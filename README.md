@@ -1,24 +1,52 @@
-MESH: a next-gen, experimental social platform. Mesh combines real-time multiplayer canvas-based rooms with nodes as posts, a wide array of different node types including text, images, video, livestreaming etc and multimedia interactions.
+# Mesh
 
-- Check the Mesh_Roadmpa.md file for orientation.
-## Getting Started
+Mesh is an experimental social platform built with **Next.js** that lets users interact in real-time rooms. Each room hosts a collaborative canvas where posts are represented as nodes. Node types range from simple text posts to livestreams and AI-generated images.
 
-### Developing Localy
+See [`Mesh_Roadmap.md`](Mesh_Roadmap.md) for the long term product plan.
 
-1. Make sure you have an up-to-date .env.local file.
+## Project layout
 
-2. Run the following:
-
-```bash
-yarn dev
+```
+app/                Next.js route handlers and pages
+  (auth)/           Public auth routes (login, register, onboarding)
+  (root)/           Authenticated application routes
+  api/              Edge API routes (LiveKit tokens, geocoding, uploads)
+components/         React components grouped by feature (nodes, modals, ui)
+lib/                Server code: Prisma models, firebase config and actions
+constants/          Static values used across the app
+public/             Static assets (icons, fonts, sounds)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+`tsconfig.json` defines the `@/` alias that maps to the project root.
 
-## Vercel Project Dashboard
+## Development
 
-https://vercel.com/18vijaybs-projects/ephemera
+1. Install dependencies
 
-## Adding a new node
+   ```bash
+   npm install
+   ```
 
-https://github.com/Rhizome-Technologies/Ephemera/pull/36
+2. Create `.env.local` with the required environment variables (Firebase, OpenAI, database, etc.).
+3. Start the development server
+
+   ```bash
+   yarn dev
+   ```
+
+The app runs at [http://localhost:3000](http://localhost:3000).
+
+### Scripts
+
+- `npm run build` – build for production
+- `npm run start` – start a production build
+- `npm run lint` – run ESLint
+
+## Adding new node types
+
+Nodes are defined in `components/nodes` and typed in `lib/reactflow/types.ts`. To add a node type, create a new React component, extend the types, and register it in the React Flow store.
+
+## Deployment
+
+Mesh is deployed on Vercel: <https://vercel.com/18vijaybs-projects/ephemera>
+
