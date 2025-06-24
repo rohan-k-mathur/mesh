@@ -1,0 +1,932 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import '../app/audio-tool/components/App.css';
+@import '../app/audio-tool/components/index.css';
+
+@layer components {
+  /* main */
+  .main-container {
+    @apply flex min-h-screen flex-1 flex-col items-center px-6 pb-10 pt-[5rem] max-md:pb-32 sm:px-10;
+    overscroll-behavior: none;
+    overscroll-behavior-x: none;
+  }
+
+  /* Head Text */
+  .head-text {
+    @apply text-heading1-bold ;
+   
+  }
+  /* Head Text */
+  .head-sub-text {
+    @apply text-heading2-semibold text-light-1;
+  }
+
+  /* Activity */
+  .activity-card {
+    @apply flex items-center gap-2 rounded-none bg-dark-2 px-5 py-3;
+  }
+
+  /* No Result */
+  .no-result {
+    @apply text-center !text-base-regular text-light-3;
+  }
+
+  /* Community Card */
+  .community-card {
+    @apply w-full rounded-none bg-dark-3 px-4 py-5 sm:w-96;
+  }
+
+  .community-card_btn {
+    @apply rounded-lg bg-primary-500 px-5 py-1.5 text-small-regular !text-light-1 !important;
+  }
+
+  /* thread card  */
+  .thread-card_bar {
+    @apply relative mt-2 w-0.5 grow rounded-none bg-neutral-800;
+  }
+
+  /* User card */
+  .user-card {
+    @apply flex flex-col justify-between gap-4 max-xs:rounded-none max-xs:bg-dark-3 max-xs:p-4 xs:flex-row xs:items-center;
+  }
+
+  .user-card_avatar {
+    @apply flex flex-1 items-start justify-start gap-3 xs:items-center;
+  }
+
+  .user-card_btn {
+    @apply h-auto min-w-[74px] rounded-none bg-primary-500 text-[12px] text-light-1 !important;
+  }
+
+  .searchbar {
+    @apply flex gap-1 rounded-none bg-dark-3 px-4 py-2;
+  }
+
+  .searchbar_input {
+    @apply border-none bg-dark-3 text-base-regular text-light-4 outline-none !important;
+  }
+
+  .topbar {
+    @apply absolute top-0 z-30 flex w-full items-center justify-between bg-transparent px-6 py-3;
+  }
+
+  .bottombar {
+    @apply fixed bottom-0 z-10 w-full rounded-none bg-glassmorphism p-4 backdrop-blur-lg xs:px-7 md:hidden;
+  }
+
+  .bottombar_container {
+    @apply flex items-center justify-between gap-3 xs:gap-5;
+  }
+
+  .bottombar_link {
+    @apply relative flex flex-col items-center gap-2 rounded-none p-2 sm:flex-1 sm:px-2 sm:py-2.5;
+  }
+
+  .leftsidebar {
+    @apply sticky left-[0rem] top-0 z-20 flex h-screen w-fit flex-col justify-between overflow-auto	 bg-dark-2 pb-5 pt-28 pl-[1rem] pr-[1rem] max-md:hidden;
+  }
+
+  .leftsidebar_link {
+    @apply relative flex justify-start gap-4 rounded-none p-4;
+  }
+
+  .pagination {
+    @apply mt-10 flex w-full items-center justify-center gap-5;
+  }
+
+  .rightsidebar {
+    @apply sticky right-0 top-0 z-20 flex h-screen w-fit flex-col justify-between gap-12 overflow-auto border-l border-l-dark-4 bg-dark-2 px-10 pb-6 pt-28 max-xl:hidden;
+  }
+}
+
+@layer utilities {
+  .css-invert {
+    @apply invert-[50%] brightness-200;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 3px;
+    height: 3px;
+    border-radius: 2px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: #09090a;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #5c5c7b;
+    border-radius: 50px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #7878a3;
+  }
+}
+
+.cl-organizationSwitcherTrigger
+  .cl-organizationPreview
+  .cl-organizationPreviewTextContainer {
+  @apply max-sm:hidden;
+}
+
+/* Shadcn Component Styles */
+
+/* Tab */
+.tab {
+  @apply flex min-h-[50px] flex-1 items-center gap-3 bg-dark-2 text-light-2 data-[state=active]:bg-[#0e0e12] data-[state=active]:text-light-2 !important;
+}
+
+.no-focus {
+  @apply focus-visible:ring-0 focus-visible:ring-transparent focus-visible:ring-offset-0 !important;
+}
+
+/* Account Profile  */
+.account-form_image-label {
+  @apply flex h-24 w-24 items-center justify-center rounded-full !important;
+}
+
+.account-form_image-input {
+  @apply cursor-pointer border-none bg-transparent outline-none file:text-blue !important;
+}
+
+.account-form_input {
+  @apply border border-dark-4 bg-dark-3 text-light-1 !important;
+}
+
+/* Comment Form */
+.comment-form {
+  @apply mt-10 flex items-center gap-4 border-y border-y-dark-4 py-5 max-xs:flex-col !important;
+}
+
+.comment-form_btn {
+  @apply rounded-3xl bg-primary-500 px-8 py-2 !text-small-regular text-light-1 max-xs:w-full !important;
+}
+
+.dndnode {
+  @apply h-[30px] w-fit flex justify-center items-center p-1 rounded-sm border-2 border-solid border-[#1a192b];
+}
+
+.rounded_icon_container {
+  @apply flex items-center justify-center rounded-full overflow-hidden bg-gray-100;
+}
+
+.selectall {
+  margin-top: 10px;
+}
+.image-submit-button
+{
+  font-size: larger;
+}
+.image-submit-button :hover
+{
+  font-size: larger;
+}
+.leftsidebar-item
+{
+  border-radius: 20px;
+  /*background: linear-gradient(145deg, #c5c9d8, #eaefff);*/
+  background: transparent;
+  box-shadow:  inset 17px 17px 49px #F4F4F5,
+               inset -17px -17px 49px #CCDAF8;
+}
+.profile-shadow
+{
+  box-shadow:   3px 3px 7px #dec7cc,
+                -1px 2px 7px #b8b4e9;
+}
+.img-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  padding: 14px;
+  padding-top: 44px;
+  padding-bottom: 52px;
+  border: 2px solid #1a192b;
+  border-radius: 4px;
+}
+.img-frame-outer {
+  display: flex;
+  width: auto;
+  height: auto;
+  justify-content: center;
+  align-items: center;
+  background: #ffffff;
+  padding: 4px;
+  border: 1px solid #1a192b;
+  border-radius: 1px;
+}
+.img-frame {
+  display: flex;
+  width: auto;
+  height: auto;
+  max-width: 500px;
+  justify-content: center;
+  align-items: center;
+  background: transparent;
+  box-shadow: 1px 1px 1px #3e3e3e;
+  border: 1px solid #1a192b;
+  padding: 0px;
+  position: relative;
+  bottom: -4px;
+}
+
+.yt-container {
+  display: grid;
+  justify-content: center;
+  align-items: center;
+
+  padding-left: 14px;
+  padding-right: 14px;
+  padding-top: 44px;
+  padding-bottom: 52px;
+  border: 2px solid #1a192b;
+  border-radius: 4px;
+  box-shadow: 2px 2px 2px #3e3e3e;
+}
+.yt-transparent {
+  display: grid;
+  justify-content: center;
+  align-items: center;
+  border: 1px solid black;
+  padding-left: 14px;
+  padding-right: 14px;
+  padding-top: 44px;
+  padding-bottom: 40px;
+}
+.yt-video {
+  cursor: none !important;
+}
+.yt-frame {
+  display: grid;
+  justify-content: center;
+  align-items: center;
+  max-width: 600;
+  border: 1px solid #1a192b;
+  box-shadow: 1px 1px 1px #3e3e3e;
+  position: relative;
+  bottom: -4px;
+  background: transparent;
+  cursor: pointer !important;
+}
+
+.number-input {
+  padding: 10px;
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 10px;
+}
+
+.input-link-node {
+  display: grid;
+
+  padding-top: 8px;
+  padding-bottom: 2px;
+  /* border: 2px solid #1a192b; */
+  /* border-top: 0px solid #1a192b;
+  box-shadow: 2px 2px 2px #3e3e3e; */
+  width: auto;
+  /* border-radius: 2px; */
+  position: relative;
+  bottom: -6px;
+  cursor: grab;
+}
+.input-link-node input {
+  display: grid;
+  padding: 1px;
+  border: 1px solid #1a192b;
+  border-radius: 2px;
+  box-shadow: 1px 1px 1px #3e3e3e;
+  /* color: #1a192b; */
+  font-size: 10px;
+  letter-spacing: 0.1px;
+}
+
+.text-updater-node {
+  border-radius: 2px;
+  border-color: slategray;
+  padding-left: 0.8rem;
+  padding-right: 0.8rem;
+  padding-top: 2.75rem;
+  padding-bottom: 3.9rem;
+  justify-content: center;
+  align-items: center;
+  width: 25rem;
+  height: 15.3rem;
+  font-size: 0.5rem;
+  cursor: grab;
+  color:rgb(0, 0, 0);
+}
+
+.text-block {
+    width: 22.8rem;
+  height: 13.8rem;
+  /* === NEW RULES FOR A THIN BORDER AROUND THE TEXT === */
+  border: .5px solid #000000;   /* thin, light gray border */
+  border-radius: 2px;       /* optional small rounding on corners */
+   /* ensure a white background behind the text */
+
+  /* We’ll remove artificially small size for better readability */
+  font-size: 1rem;
+  line-height: 1.25;
+
+  /* Adjust letter-spacing to a minimal or default setting for normal text */
+  letter-spacing: normal;
+
+  /* Generous padding and margin can help the text breathe, or you can rely on the .text-updater-node padding instead */
+  margin: 0.3rem 0; 
+  padding: 0.3rem;
+
+  /* If you keep scrolling, ensure the area is visually bounded */
+  max-height: 9.25rem;
+  overflow-y: auto;
+
+  /* Smoother scroll behavior */
+  scroll-behavior: smooth;
+
+}
+
+.overlay {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+}
+
+label,
+textarea {
+  font-size: 0.75rem; /* 12px */
+
+  line-height: 0.8rem; /* 16px */
+}
+.text-node-display {
+  font-size: 0.75rem; /* 12px */
+  line-height: 0.84rem; /* 16px */
+  letter-spacing: 1px;
+  padding: 1.5px;
+  -webkit-font-smoothing: auto;
+  -moz-osx-font-smoothing: auto;
+  overflow: scroll;
+  scroll-behavior: smooth;
+}
+.z-back {
+  position: absolute;
+  z-index: -1; /* Ensures this is always in the background */
+}
+
+.z-front {
+  position: relative;
+  z-index: 1; /* Ensures this is always in the foreground */
+}
+.pagebg
+{
+  background: linear-gradient(145deg, #c5c9d8, #e7c49f);
+}
+.edgebutton {
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 14px;
+  font-weight: bold;
+  background: #d3edf7;
+  border: none;
+  cursor: pointer;
+  border-radius: 20%;
+  font-size: 12px;
+  text-align: center;
+}
+
+.edgebutton:hover {
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 14px;
+  font-weight: bold;
+  background: #d3edf7;
+  border: none;
+  cursor: pointer;
+  border-radius: 20%;
+  font-size: 12px;
+  text-align: center;
+  box-shadow: none;
+}
+.postcard {
+  border-radius: 20px;
+/*background: linear-gradient(145deg, #c5c9d8, #eaefff);*/
+background: transparent;
+box-shadow:  inset 17px 17px 49px #F4F4F5,
+             inset -17px -17px 49px #fecdd3;
+border: 0.125 rem solid #D1C6E7;
+            
+}
+
+.node-profile-photo {
+
+  width: 24px;
+  height: 24px;
+  width: 100%;
+
+}
+
+
+.profile-name {
+  display: flex;
+  background: white;
+  height: auto;
+
+  padding-left: 4px;
+  padding-right: 4px;
+  border: 1px solid #1a192b;
+  border-left: 1px solid #1a192b;
+  font-size: 14px;
+  border-top-right-radius: 2px;
+  border-bottom-right-radius: 2px;
+  border-top-left-radius: 0%;
+  border-bottom-left-radius: 0%;
+  justify-content: center;
+  align-items: center;
+  cursor: grab;
+  box-shadow: 1px 1px 1px #3e3e3e;
+}
+.live-container {
+  justify-content: center;
+  align-items: center;
+
+  padding-left: 14px;
+  padding-right: 14px;
+  padding-top: 48px;
+  padding-bottom: 72px;
+  border: 2px solid #1a192b;
+  border-radius: 4px;
+  box-shadow: 2px 2px 2px #3e3e3e;
+}
+.livestreamnode {
+  display: grid;
+  padding-left: 12px;
+  padding-right: 12px;
+  padding-top: 12px;
+  padding-bottom: 24px;
+  border: 2px solid #1a192b;
+  box-shadow: 2px 2px 2px #3e3e3e;
+  border-radius: 2px;
+  justify-content: center;
+  align-items: center;
+  cursor: grab;
+}
+.livestreambuttons {
+  display: flex;
+  padding-left: 12px;
+  padding-right: 12px;
+  padding-top: 12px;
+  border-radius: 2px;
+  justify-content: center;
+  align-items: center;
+
+  cursor: grab;
+}
+
+.livestreamvideo {
+  display: grid;
+
+  border: 1px solid #1a192b;
+  box-shadow: 1px 1px 1px #3e3e3e;
+  border-radius: 2px;
+  width: 300px;
+  height: 225px;
+  margin-bottom: 12px;
+  justify-content: center;
+  align-items: center;
+  background: white;
+  cursor: grab;
+}
+.multiselect-dropdown
+{
+  border-bottom-left-radius: .7rem;
+  border-bottom-right-radius: .7rem;
+
+}
+.dropdown-divider
+{
+  border-top: 1px solid #888;
+  
+}
+/* The wrapper that combines image + username in one hoverable area */
+.node-author-wrapper {
+  display: inline-flex;
+
+  align-items: center;
+  text-decoration: none;      /* remove underline on hover for link */
+  padding-left: 0px;
+  padding-right: 4px;
+  padding-top: 0px;
+  padding-bottom:0px;
+  background-color:white;
+  border-radius: 2px;         /* slight rounding if desired */
+  transition: background-color 0.1s ease, box-shadow 0.1s ease;
+  cursor: pointer;            /* entire area is clickable */
+  box-shadow: 1px 1px 1px 1px rgba(0,0,0,0.15);
+
+}
+
+.node-author-wrapper:hover {
+  background-color:white;
+  box-shadow: 0 0 0px 0px rgba(0,0,0,0.15);
+}
+
+/* Profile image styling */
+.node-profile-photo {
+  border:none;
+  border-top-left-radius: 2px;
+  border-bottom-left-radius: 2px;
+
+  box-shadow: 0 0 0px 0px rgba(0,0,0,0.15);
+
+  /* Remove other border or inline style if you’d like a simpler look:
+     border: 1px solid #ccc;  */
+}
+
+
+/* The username text next to the photo */
+.node-profile-name {
+  margin-left: 4px;           /* space between the image and the text */
+  font-weight: 500;           /* a little emphasis */
+  font-size: 0.875rem;        /* ~14px */
+  color: #333;                /* text color */
+  text-decoration: none;
+}
+
+.lockbutton {
+  background-color: white;
+  padding: 2px;
+  border-radius: 2px;
+  box-shadow: 1px 1px 1px 1px rgba(0,0,0,0.15);
+
+}
+.lockbutton:hover{
+
+  box-shadow: 0 0 0px 0px rgba(0,0,0,0.15);
+
+}
+
+.customize-dialog
+{
+background-color: #000000;
+
+}
+.comment-container
+{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overscroll-behavior: contain;
+  font-size: smaller;
+  padding-left: 14px;
+  padding-right: 14px;
+  padding-top: 14px;
+  padding-bottom: 52px;
+  border: 2px solid #1a192b;
+  border-radius: 4px;
+  box-shadow: 2px 2px 2px #3e3e3e;
+  user-select: text;
+  overflow-y: scroll;
+  scrollbar-width: thin;
+  white-space: pre-wrap;
+  overflow-wrap:break-word ;
+}
+
+.hover-area {
+  display: inline-block;
+  position: absolute;
+  background-color: transparent;
+  box-shadow:none;
+  outline:none;
+  border-radius: 2px;
+  width: 92%;
+  height: 63%;
+  cursor: pointer;
+  align-items: center;
+  border: none;
+  margin-top: .1rem;
+  margin-left:.1rem;
+  text-align: center;
+  justify-content: center;
+}
+
+
+textarea {
+  padding: 10px;
+  max-width: 100%;
+  line-height: 1;
+  border-radius: 2px;
+  resize: none;
+  border: 1.5px solid #222222;
+  box-shadow: 1px 1px 1px #3e3e3e;
+}
+/* Node card container: an orange box with a black border and drop shadow. */
+.orange-node {
+  position: relative;        /* So we can position children absolutely if needed */
+  display: flex;
+  flex-direction: column;
+  width: 280px;              /* Adjust width to taste */
+  background-color: #fa9676; /* The orange color seen in the screenshot */
+  border: 1px solid #000;    /* Black border */
+  border-radius: 4px;        /* Slightly rounded corners */
+  box-shadow: 2px 2px 3px rgba(0, 0, 0, 0.4); /* Subtle shadow */
+}
+
+/* Header at the top, displaying the author or node title. */
+.orange-node_header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* space between text & any other controls */
+  padding: 4px 8px;               /* some horizontal + vertical padding */
+  border-bottom: 1px solid #000;  /* black divider line */
+}
+
+/* The main body area (middle section) where child content goes (e.g., images). */
+.orange-node_body {
+  flex: 1;                         /* fill the available vertical space */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+}
+
+/* Footer at the bottom, with Downvote / Upvote buttons. */
+.orange-node_footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;   /* space around the two buttons */
+  padding: 4px 8px;
+  border-top: 1px solid #000;      /* black divider line */
+}
+
+/* Example styling for the buttons in the footer. */
+.orange-node_footer-button {
+  background-color: #fff;
+  border: 1px solid #000;      /* black border to match the card */
+  border-radius: 2px;
+  font-size: 0.9rem;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+/* On hover, lighten the background a bit. */
+.orange-node_footer-button:hover {
+  background-color: #e2e8f0;
+}
+
+/* Example handle styling (for the top and bottom handles). */
+.orange-node_handle {
+  width: 12px;
+  height: 12px;
+  border: 2px solid #000;     /* black border */
+  background-color: #fff;     /* white interior */
+  border-radius: 50%;         /* round shape */
+  position: absolute;         /* let React Flow position them with top/bottom + left */
+  transform: translateX(-50%);/* centers horizontally when left: 50% */
+}
+
+textarea:hover {
+  padding: 10px;
+  max-width: 100%;
+  line-height: 1;
+  border-radius: 2px;
+  resize: none;
+  border: 1.5px solid #222222;
+  box-shadow: none;
+}
+textarea:disabled {
+  background: #f9f9f9;
+}
+label {
+  display: block;
+  margin-bottom: 10px;
+}
+textarea:focus,
+input:focus {
+  outline: none;
+}
+
+textarea:link {
+  margin: 0px;
+}
+.react-flow .react-flow__handle {
+  width: 10px;
+  height: 10px;
+  border-radius: 10px;
+}
+
+.react-flow .react-flow__handle-right {
+  right: 1px;
+}
+
+.react-flow .react-flow__handle-left {
+  left: 1px;
+}
+.react-flow__node-tools {
+  border: 1px solid #333;
+  background: white;
+  display: flex;
+  width: 30px;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.react-flow__node-toolbar {
+  border-radius: 5px;
+  box-shadow: 0 0 6px 1px rgba(0, 0, 0, 0.08);
+}
+
+.react-flow__node-toolbar button {
+  border: 1px solid #eee;
+  background: white;
+  padding-left: 5px;
+  padding-right: 5px;
+  padding-top: 0px;
+  padding-bottom: 0px;
+  cursor: pointer;
+}
+
+.react-flow__node-toolbar button:hover {
+  background: #f5f5f6;
+}
+
+.react-flow__node-toolbar button:first-child {
+  border-right: none;
+}
+
+.react-flow__node-toolbar button:last-child {
+  border-left: none;
+}
+video {
+  transform: scaleX(-1);
+}
+
+button {
+  background-color: white; /* Green */
+  border: 1px solid #333;
+  border-radius: 2px;
+  color: rgb(0, 0, 0);
+  display: flex;
+  justify-content: center;
+  letter-spacing: 1px;
+  box-shadow: 1px 1px 1px #3e3e3e;
+  align-items: center;
+  text-align: center;
+  width: auto;
+}
+
+.movies-dialog
+{
+  width: 45rem;
+  z-index: 0; /* Lower than the Autocomplete dropdown */
+  overflow: visible;
+  overscroll-behavior: contain;
+}
+
+.MuiAutocomplete-popper {
+  z-index: 1500 !important; 
+}
+
+.your-modal-classname {
+  z-index: 1200; /* Lower than the Autocomplete dropdown */
+}
+
+.dialog-header {
+  font-size: 2rem;
+  margin-bottom: -5px;
+}
+
+.dialog-text-area {
+  border: 1px solid #ffffff;
+  border-radius: 2px;
+  text-align: left;
+  max-height: 15rem;
+  user-select: text;
+  overflow-y: scroll;
+  scrollbar-width: thin;
+  color: black;
+  overscroll-behavior: contain;
+  padding: 0.64rem;
+  overflow: scroll;
+  scroll-behavior: smooth;
+  white-space: pre-wrap;
+  font-size: 1.2rem;
+  letter-spacing: 0.01rem;
+  line-height: 1.5rem;
+  font-weight: 300;
+  box-shadow: 0.0625rem 0.0625rem 0.0625rem #3e3e3e;
+  cursor: text;
+}
+
+
+.dialog-text-area:hover {
+  border: 1px solid #ffffff;
+  border-radius: 2px;
+  text-align: left;
+  max-height: 15rem;
+  user-select: text;
+  overflow-y: scroll;
+  scrollbar-width: thin;
+  color: black;
+  overscroll-behavior: contain;
+  padding: 0.64rem;
+  overflow: scroll;
+  scroll-behavior: smooth;
+  white-space: pre-wrap;
+  font-size: 1.2rem;
+  letter-spacing: 0.01rem;
+  line-height: 1.5rem;
+  font-weight: 300;
+  box-shadow: none;
+  cursor: text;
+}
+
+.dialog-text-area input {
+  font-size: 1.2rem;
+  letter-spacing: 0.0625rem;
+}
+
+.form-submit-button {
+  background: white;
+  color: black;
+  border: 1px solid #ffffff;
+  display: flex;
+  justify-content: center;
+  letter-spacing: 1px;
+  border-radius: 2px;
+  font-size: larger;
+  align-items: center;
+  text-align: center;
+  font-size: larger;
+}
+
+
+.create-post-button {
+  background: white;
+  color: black;
+  border: 1px solid #ffffff;
+  letter-spacing: 1px;
+  border-radius: .1rem;
+  font-size: x-large;
+  align-items: center;
+  text-align: center;
+  
+}
+
+.create-post-button :hover{
+  background: white;
+  color: black;
+  border: 1px solid #ffffff;
+  letter-spacing: 1px;
+  border-radius: .1rem;
+  font-size: x-large;
+  align-items: center;
+  text-align: center;
+  width: auto;
+}
+
+
+.form-submit-button:hover {
+  background: #e2e8f0;
+  color: black;
+  border: 1px solid #ffffff;
+  display: flex;
+  justify-content: center;
+  letter-spacing: 1px;
+  border-radius: 2px;
+  font-size: larger;
+  align-items: center;
+  text-align: center;
+  animation-play-state: running;
+}
+
+button:hover {
+  background-color: #e2e8f0; /* Green */
+  border: 1px solid #333;
+  border-radius: 2px;
+  color: rgb(0, 0, 0);
+  display: flex;
+  justify-content: center;
+  letter-spacing: 1px;
+  box-shadow: 0px 0px 0px #3e3e3e;
+  align-items: center;
+  text-align: center;
+  width: auto;
+}
+html {
+  margin: 0;
+  overscroll-behavior: auto;
+}
+@media screen and (min-width: 768px) {
+  aside {
+    width: 15.5%;
+    max-width: 250px;
+  }
+}
