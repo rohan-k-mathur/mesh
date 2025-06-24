@@ -19,6 +19,11 @@ public/             Static assets (icons, fonts, sounds)
 
 `tsconfig.json` defines the `@/` alias that maps to the project root.
 
+The app/(root)/(standard)/ folder contains the code for the standard linear infinite scroll twitter like feed which is connected to posts 
+created in the global rooms and by friends and rooms that are subscribed to.
+
+The app/(root)/(realtime)/ folder contains the code for the reactflow canvas rooms.
+
 ## Development
 
 1. Install dependencies
