@@ -1,50 +1,143 @@
 # Mesh Product Development Roadmap
 
-This roadmap outlines the milestones required to evolve the **Mesh** portion of the project into a production ready social platform. Mesh combines collaborative rooms, AI powered nodes and multimedia interactions.
+Codebase Overview
 
-## Goals
-- Enable real‑time collaborative "rooms" where users can drag nodes, chat and share media.
-- Support custom node workflows powered by LLM instructions.
-- Provide engaging social discovery features tailored to user interests.
+Mesh is a Next.js monorepo that implements collaborative “rooms” where users manipulate nodes in real time. Core components include:
 
-## Phases
+Real‑time canvas implemented with React Flow. Different node types are registered in Room.tsx (TEXT, VIDEO, IMAGE, LIVESTREAM, IMAGE_COMPUTE, COLLAGE) and displayed on the canvas with cursor tracking and background layers.
 
-### 1. Foundation
-- **User Authentication** – leverage existing auth flows; ensure room membership and permissions.
-- **Room Management** – CRUD API for rooms, join/invite links and private/public settings.
-- **Basic Node Canvas** – implement React Flow canvas for multiplayer editing; persist nodes and edges to backend.
-- **Core Node Types** – text node, media upload node, livestream node (display an iframe or player), link node.
-- **Feed Integration** – allow posting completed room outputs (e.g., images or text) to a global feed.
+Node creation menu defined in NodeSidebar.tsx. Users can create multiple node types via modals, including LLM‑powered features such as the “IMAGE_COMPUTE” node and a Collage node.
 
-### 2. Social Discovery Engine
-- **Interest Profiles** – users specify interests; store in database for personalized content suggestions.
-- **Recommendation API** – suggest rooms and posts based on interests, trending topics and social graphs.
-- **Search and Explore** – keyword search across rooms, users and posts with filters for interests and media type.
+Live collaboration infrastructure via Supabase channels, enabling presence and database updates in real time. Helper utilities handle cursor broadcasting and new node/edge synchronization.
 
-### 3. Advanced Node Workflows
-- **LLM Instruction Nodes** – users create node chains with custom instructions that define AI behaviour.
-- **State Machine Builder** – visual interface to connect instruction nodes, conditionals and data sources.
-- **Photowall Node** – accepts multiple images and outputs a mosaic/grid. Provide shareable permalink for the resulting wall.
-- **Webpage Portfolio Node** – collect media and text into a single page that can be published or exported.
-- **DAW/Audio Nodes** – integrate existing audio tool endpoints to support music workflow output.
+User authentication uses Firebase with server tokens validated in middleware, preventing unauthorized access to private pages.
 
-### 4. Real‑Time Collaboration Enhancements
-- **Multiplayer Cursors** – show other participants' cursors and selections.
-- **Live Chat & Reactions** – persistent chat alongside the canvas with emoji reactions.
-- **Live Streaming Support** – livestream node streams video to participants; integrate with existing WebRTC / Twilio API.
-- **Concurrency Handling** – optimistic UI updates with conflict resolution for simultaneous edits.
+Database schema (Prisma) includes real‑time posts, edges, rooms, and user attributes for storing interests, songs, movies, etc.
 
-### 5. Production Hardening
-- **Scalability Tests** – benchmark room size limits and media upload throughput.
-- **Security Review** – validate auth, ACLs and rate limits for real‑time endpoints.
-- **Mobile Responsiveness** – ensure room canvas and chat work across devices.
-- **Analytics & Metrics** – track usage of rooms, nodes and social discovery features to guide iteration.
+1. Foundation (Refinement)
+Authentication & Security
 
-### 6. Launch & Growth
-- **Onboarding Flow** – tutorial room and example nodes to demonstrate possibilities.
-- **Template Gallery** – starter rooms such as Photo Wall, Portfolio Builder and Livestream Event.
-- **Feedback Loop** – collect user feedback via in‑app surveys and analytics to prioritize improvements.
+Introduce multi‑factor auth and passwordless login to minimize friction.
 
----
+Add role-based room permissions (owner, moderator, viewer).
 
-By following these phases, Mesh can evolve into a flexible platform that blends social discovery, live collaboration and AI‑driven creation.
+Harden the middleware with stricter sameSite/cookie policies.
+
+Room Management
+
+Provide REST/GraphQL endpoints for room creation and membership invites.
+
+Implement soft deletion and archival for rooms.
+
+Node Canvas & Types
+
+Expand node plugin architecture so additional node types can be loaded dynamically.
+
+Include a standardized metadata model for nodes to store author info, tags, and visibility.
+
+Feed Integration
+
+Add a post moderation queue and trending algorithm.
+
+Include timeline filters for “following” vs. “global” feed.
+
+Device Responsiveness
+
+Baseline cross‑device support early to ensure the canvas functions on touch devices.
+
+2. Social Discovery Engine (Expansion)
+Interest Profiling
+
+Leverage the existing UserAttributes model for capturing movies, albums, etc., and expose update APIs.
+
+Provide an onboarding survey to seed recommendations.
+
+Recommendation API
+
+Use collaborative filtering from interactions (likes, room membership).
+
+Expose an endpoint returning recommended rooms or threads; integrate into the feed.
+
+Search and Explore
+
+Implement full-text search via Postgres tsvector or a dedicated search service.
+
+Support map-based discovery using the geocoding API route.
+
+3. Advanced Node Workflows (Detail)
+LLM Instruction Nodes
+
+Model instruction nodes in the database with references to prompts and parameters.
+
+Provide a visual builder UI for chaining instructions (e.g., convert text → image).
+
+State Machine Builder
+
+Represent node connections as a directed graph with triggers/conditions.
+
+Allow storing and sharing these workflows with others.
+
+Multimedia Nodes
+
+Photowall/Collage node: integrate existing Collage modal, store resulting images, and allow public sharing.
+
+Webpage Portfolio node: export to static HTML/CSS for personal pages.
+
+DAW/Audio nodes: connect to third‑party APIs (e.g., LiveKit for recording) and store audio in Supabase.
+
+4. Real‑Time Collaboration Enhancements (Detail)
+Multiplayer UX
+
+Extend cursor broadcasting with presence indicators (username labels, join/leave notifications).
+
+Add ephemeral chat and emoji reactions stored in memory (optional persistence for the last N messages).
+
+Concurrency Handling
+
+Introduce operational transform or CRDT-based conflict resolution for simultaneous edits, especially for text nodes.
+
+Provide visual indicators when nodes are locked by others.
+
+Live Streaming Support
+
+The /get-participant-token route already issues tokens via LiveKit. Build a Livestream node UI enabling hosts to broadcast to viewers.
+
+5. Production Hardening (Addition)
+Testing
+
+Implement unit tests for actions and React components.
+
+Integrate a CI pipeline running lint, type-check, and e2e tests.
+
+Monitoring & Metrics
+
+Instrument API routes and real-time events with metrics (e.g., Prometheus or a SaaS).
+
+Track latency, errors, and usage patterns to inform scaling.
+
+Security
+
+Conduct a thorough review of file upload paths (e.g., uploadthing) for vulnerabilities.
+
+Enforce strict rate limiting on real-time channels.
+
+6. Launch & Growth (Expansion)
+Onboarding & Templates
+
+Include guided tours of the room UI and a “demo” room.
+
+Build a template marketplace (starter rooms) that can be cloned.
+
+Feedback Loop
+
+Integrate user surveys and Net Promoter Score (NPS) in-app.
+
+Establish a public changelog and feature request board.
+
+Community & Partnerships
+
+Encourage community-created node plugins, with a submission and review process.
+
+Evaluate integrations with existing social platforms for cross‑posting content.
+
+
