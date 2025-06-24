@@ -2,8 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-@import '../app/audio-tool/components/App.css';
-@import '../app/audio-tool/components/index.css';
+
 
 @layer components {
   /* main */
