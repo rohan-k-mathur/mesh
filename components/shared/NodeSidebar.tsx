@@ -37,6 +37,7 @@ const nodeTypes: { label: string; nodeType: AppNodeType }[] = [
   { label: "LIVESTREAM", nodeType: "LIVESTREAM" },
   { label: "IMAGE_COMPUTE", nodeType: "IMAGE_COMPUTE" },
   { label: "COLLAGE", nodeType: "COLLAGE" },
+  { label: "PORTAL", nodeType: "PORTAL" },
 ];
 
 // Import your modals
@@ -44,6 +45,7 @@ import TextNodeModal from "@/components/modals/TextNodeModal";
 import ImageNodeModal from "@/components/modals/ImageNodeModal";
 import YoutubeNodeModal from "@/components/modals/YoutubeNodeModal";
 import CollageCreationModal from "@/components/modals/CollageCreationModal";
+import PortalNodeModal from "@/components/modals/PortalNodeModal";
 
 export default function NodeSidebar({
   reactFlowRef,
@@ -191,6 +193,22 @@ export default function NodeSidebar({
                 collageLayoutStyle: vals.layoutStyle,
                 collageColumns: vals.columns,
                 collageGap: vals.gap,
+              });
+            }}
+          />
+        );
+        break;
+
+      case "PORTAL":
+        store.openModal(
+          <PortalNodeModal
+            isOwned={true}
+            onSubmit={() => {
+              createPostAndAddToCanvas({
+                path: pathname,
+                coordinates: centerPosition,
+                type: "PORTAL",
+                realtimeRoomId: roomId,
               });
             }}
           />
