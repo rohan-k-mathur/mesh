@@ -4,11 +4,12 @@ import { fetchUser } from "@/lib/actions/user.actions";
 import { useAuth } from "@/lib/AuthContext";
 import { AuthorOrAuthorId } from "@/lib/reactflow/types";
 import BaseNode from "./BaseNode";
-import { NodeProps } from "@xyflow/react";
-import { useEffect, useState } from "react";
+import { NodeProps, useReactFlow } from "@xyflow/react";
+import { useEffect, useState, useCallback } from "react";
 
 interface PortalNodeData {
-  roomId: string;
+  x: number;
+  y: number;
   author: AuthorOrAuthorId;
   locked: boolean;
 }
@@ -16,6 +17,7 @@ interface PortalNodeData {
 function PortalNode({ id, data }: NodeProps<PortalNodeData>) {
   const currentUser = useAuth().user;
   const [author, setAuthor] = useState(data.author);
+  const { setViewport } = useReactFlow();
 
   useEffect(() => {
     if ("username" in author) return;
@@ -25,6 +27,10 @@ function PortalNode({ id, data }: NodeProps<PortalNodeData>) {
   const isOwned = currentUser
     ? Number(currentUser.userId) === Number(data.author.id)
     : false;
+
+  const handleTeleport = useCallback(() => {
+    setViewport({ x: data.x, y: data.y, zoom: 0.75 }, { duration: 800 });
+  }, [data.x, data.y, setViewport]);
 
   return (
     <BaseNode
@@ -36,11 +42,15 @@ function PortalNode({ id, data }: NodeProps<PortalNodeData>) {
       isLocked={data.locked}
     >
       <div className="p-25 text-center portal-node">
-        <div className="portal-block">        <p>Portal to room {data.roomId}</p>
-</div>
+        <div className="portal-block">
+          <button onClick={handleTeleport} className="button">
+            Go to ({data.x}, {data.y})
+          </button>
+        </div>
       </div>
     </BaseNode>
   );
 }
 
 export default PortalNode;
+

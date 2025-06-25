@@ -76,7 +76,8 @@ export type CollageNodeData = Node<
 
 export type PortalNode = Node<
   {
-    roomId: string;
+    x: number;
+    y: number;
     author: AuthorOrAuthorId;
     locked: boolean;
   },

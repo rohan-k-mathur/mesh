@@ -133,10 +133,20 @@ export function convertPostToNode(
           },
         }  as CollageNodeData;
         case "PORTAL":
+          let portalCoords = { x: 0, y: 0 };
+          if (realtimePost.content) {
+            try {
+              portalCoords = JSON.parse(realtimePost.content);
+            } catch (e) {
+              portalCoords = { x: 0, y: 0 };
+            }
+          }
           return {
             id: realtimePost.id.toString(),
             type: realtimePost.type,
             data: {
+              x: portalCoords.x,
+              y: portalCoords.y,
               author: authorToSet,
               locked: realtimePost.locked,
             },
