@@ -21,11 +21,11 @@ const PortalNodeForm = ({ onSubmit, currentX, currentY }: Props) => {
     <form method="post" className="ml-3 mr-3" onSubmit={form.handleSubmit(onSubmit)}>
       <hr />
       <div className="py-4 grid gap-2">
-        <label className="flex flex-col text-sm text-white">
+        <label className="flex flex-col text-slate-500 gap-3 text-[14px]">
           X:
           <Input type="number" {...form.register("x", { valueAsNumber: true })} />
         </label>
-        <label className="flex flex-col text-sm text-white">
+        <label className="flex flex-col text-slate-500 gap-3 text-xl">
           Y:
           <Input type="number" {...form.register("y", { valueAsNumber: true })} />
         </label>

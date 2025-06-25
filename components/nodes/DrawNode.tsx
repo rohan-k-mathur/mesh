@@ -38,7 +38,7 @@ function DrawNode({ id, data }: NodeProps<DrawNodeData>) {
     >
       <div className="draw-container">
         <div className="nodrag nopan">
-          <div className="w-[500px] h-[500px]">
+          <div className="w-[400px] h-[400px] border-black border-2 rounded-sm">
             <Tldraw />
           </div>
         </div>

@@ -516,7 +516,22 @@ border: 0.125 rem solid #D1C6E7;
 
   cursor: grab;
 }
-
+.draw-container
+{
+  border-radius: 2px;
+  border-color: slategray;
+  padding-left: 1.0rem;
+  padding-right: 1.0rem;
+  padding-top: 3.9rem;
+  padding-bottom: 3.9rem;
+  justify-content: center;
+  align-items: center;
+  width: auto;
+  height: auto;
+  font-size: 0.5rem;
+  cursor: grab;
+  color:rgb(0, 0, 0);
+}
 .livestreamvideo {
   display: grid;
 
