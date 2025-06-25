@@ -74,6 +74,18 @@ export type CollageNodeData = Node<
   "COLLAGE"
 >;
 
+export type GalleryNodeData = Node<
+  {
+    images: string[];
+    author: AuthorOrAuthorId;
+    locked: boolean;
+    layoutStyle?: string;
+    columns?: number;
+    gap?: number;
+  },
+  "GALLERY"
+>;
+
 export type PortalNode = Node<
   {
     x: number;
@@ -139,6 +151,7 @@ export const NodeTypeMap = {
   LIVESTREAM: {} as WebcamNode,
   IMAGE_COMPUTE: {} as ImageComputeNodeProps,
   COLLAGE: {} as CollageNodeData,
+  GALLERY: {} as GalleryNodeData,
   PORTAL: {} as PortalNode,
   DRAW: {} as DrawNode,
   AUDIO: {} as AudioNode,
@@ -159,6 +172,7 @@ export const NodeTypeToModalMap = {
   IMAGE: ImageNodeModal,
   VIDEO: YoutubeNodeModal,
   COLLAGE: CollageCreationModal,
+  GALLERY: CollageCreationModal,
   PORTAL: ShareRoomModal,
 };
 
@@ -169,6 +183,7 @@ export type AppNode =
   | WebcamNode
   | ImageComputeNodeProps
   | CollageNodeData
+  | GalleryNodeData
   | PortalNode
   | DrawNode
   | AudioNode
@@ -188,6 +203,7 @@ export const DEFAULT_NODE_VALUES: Record<AppNodeType, string> = {
   ["IMAGE_COMPUTE"]:
     "https://live.staticflickr.com/5702/23230527751_b14f3cd11d_b.jpg",
   ["COLLAGE"]:"",
+  ["GALLERY"]: "",
   ["PORTAL"]: "",
   ["DRAW"]: "",
   ["AUDIO"]: "",

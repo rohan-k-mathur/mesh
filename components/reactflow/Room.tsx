@@ -35,6 +35,7 @@ import TextInputNode from "../nodes/TextInputNode";
 import PortalNode from "../nodes/PortalNode";
 import YoutubeNode from "../nodes/YoutubeNode";
 import CollageNode from "../nodes/CollageNode";
+import GalleryNode from "../nodes/GalleryNode";
 import DrawNode from "../nodes/DrawNode";
 import HamburgerMenu from "../shared/HamburgerMenu";
 import NodeSidebar from "../shared/NodeSidebar";
@@ -186,9 +187,6 @@ function Room({ roomId, initialNodes, initialEdges }: Props) {
         id: nodePositionChange.id,
         path: pathname,
         coordinates: nodePositionChange.position,
-        collageLayoutStyle: "grid",
-        collageColumns: 3,
-        collageGap: 10,
       });
     }
     onNodesChangeStore(changes);
@@ -209,6 +207,7 @@ function Room({ roomId, initialNodes, initialEdges }: Props) {
     LIVESTREAM: LiveStreamNode,
     IMAGE_COMPUTE: ImageComputeNode,
     COLLAGE: CollageNode,
+    GALLERY: GalleryNode,
     PORTAL: PortalNode,
     DRAW: DrawNode,
   };
