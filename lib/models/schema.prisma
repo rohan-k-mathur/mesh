@@ -144,6 +144,7 @@ enum realtime_post_type {
   LIVESTREAM
   IMAGE_COMPUTE
   COLLAGE
+  PORTAL
 }
 
 model UserRealtimeRoom {

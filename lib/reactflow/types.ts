@@ -10,6 +10,8 @@ import TextNodeModal from "@/components/modals/TextNodeModal";
 import ImageNodeModal from "@/components/modals/ImageNodeModal";
 import YoutubeNodeModal from "@/components/modals/YoutubeNodeModal";
 import CollageCreationModal from "@/components/modals/CollageCreationModal";
+import ShareRoomModal from "@/components/modals/ShareRoomModal";
+// there is currently no dedicated modal for portal nodes
 
 import { RefObject } from "react";
 
@@ -72,6 +74,15 @@ export type CollageNodeData = Node<
   "COLLAGE"
 >;
 
+export type PortalNode = Node<
+  {
+    roomId: string;
+    author: AuthorOrAuthorId;
+    locked: boolean;
+  },
+  "PORTAL"
+>;
+
 
 
 export type DefaultEdge = Edge<{}, "DEFAULT">;
@@ -83,6 +94,7 @@ export const NodeTypeMap = {
   LIVESTREAM: {} as WebcamNode,
   IMAGE_COMPUTE: {} as ImageComputeNodeProps,
   COLLAGE: {} as CollageNodeData,
+  PORTAL: {} as PortalNode,
 };
 
 export interface AppEdgeMapping {
@@ -97,6 +109,7 @@ export const NodeTypeToModalMap = {
   IMAGE: ImageNodeModal,
   VIDEO: YoutubeNodeModal,
   COLLAGE: CollageCreationModal,
+  PORTAL: ShareRoomModal,
 };
 
 export type AppNode =
@@ -105,7 +118,8 @@ export type AppNode =
   | ImageUNode
   | WebcamNode
   | ImageComputeNodeProps
-  | CollageNodeData;
+  | CollageNodeData
+  | PortalNode;
 
 export type AppEdgeType = keyof AppEdgeMapping;
 
@@ -119,6 +133,7 @@ export const DEFAULT_NODE_VALUES: Record<AppNodeType, string> = {
   ["IMAGE_COMPUTE"]:
     "https://live.staticflickr.com/5702/23230527751_b14f3cd11d_b.jpg",
   ["COLLAGE"]:"",
+  ["PORTAL"]: "",
 };
 
 export type AppState = {
