@@ -145,6 +145,11 @@ enum realtime_post_type {
   IMAGE_COMPUTE
   COLLAGE
   PORTAL
+  AUDIO
+  DRAW
+  DOCUMENT
+  THREAD
+  CODE
 }
 
 model UserRealtimeRoom {
