@@ -32,6 +32,7 @@ import ImageComputeNode from "../nodes/ImageComputeNode";
 import ImageURLNode from "../nodes/ImageURLNode";
 import LiveStreamNode from "../nodes/LiveStreamNode";
 import TextInputNode from "../nodes/TextInputNode";
+import PortalNode from "../nodes/PortalNode";
 import YoutubeNode from "../nodes/YoutubeNode";
 import CollageNode from "../nodes/CollageNode";
 import HamburgerMenu from "../shared/HamburgerMenu";
@@ -207,6 +208,7 @@ function Room({ roomId, initialNodes, initialEdges }: Props) {
     LIVESTREAM: LiveStreamNode,
     IMAGE_COMPUTE: ImageComputeNode,
     COLLAGE: CollageNode,
+    PORTAL: PortalNode,
   };
   const edgeTypes = {
     DEFAULT: DefaultEdge,
