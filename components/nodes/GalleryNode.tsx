@@ -1,7 +1,7 @@
 "use client";
 
-import { NodeProps, useReactFlow } from "@xyflow/react";
-import { useEffect, useMemo, useState, CSSProperties } from "react";
+import { NodeProps } from "@xyflow/react";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
 
@@ -9,14 +9,12 @@ import { useAuth } from "@/lib/AuthContext";
 import useStore from "@/lib/reactflow/store";
 import { GalleryNodeData, AppState } from "@/lib/reactflow/types";
 import { updateRealtimePost } from "@/lib/actions/realtimepost.actions";
+import { uploadFileToSupabase } from "@/lib/utils";
+import { GalleryPostValidation } from "@/lib/validations/thread";
 import BaseNode from "./BaseNode";
 import { useShallow } from "zustand/react/shallow";
-
-interface GalleryConfigType {
-  layoutStyle: string;
-  columns: number;
-  gap: number;
-}
+import GalleryNodeModal from "../modals/GalleryNodeModal";
+import { z } from "zod";
 
 function GalleryNode({ id, data }: NodeProps<GalleryNodeData>) {
   const path = usePathname();
@@ -26,78 +24,88 @@ function GalleryNode({ id, data }: NodeProps<GalleryNodeData>) {
       closeModal: state.closeModal,
     }))
   );
-  const reactFlowInstance = useReactFlow();
-
-  const [layoutStyle, setLayoutStyle] = useState(data.layoutStyle || "grid");
-  const [columns, setColumns] = useState(data.columns ?? 3);
-  const [gap, setGap] = useState(data.gap ?? 8);
+  const [images, setImages] = useState<string[]>(data.images || []);
+  const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
-    setLayoutStyle(data.layoutStyle || "grid");
-    setColumns(data.columns ?? 3);
-    setGap(data.gap ?? 8);
-  }, [data.layoutStyle, data.columns, data.gap]);
+    setImages(data.images || []);
+  }, [data.images]);
 
   const isOwned = currentActiveUser
     ? Number(currentActiveUser.userId) === Number(data.author.id)
     : false;
 
-  const edgesToThisNode = useMemo(() => {
-    return reactFlowInstance.getEdges().filter((e) => e.target === id);
-  }, [reactFlowInstance, id]);
-
-  const imageURLs = useMemo(() => {
-    const urls: string[] = [];
-    edgesToThisNode.forEach((edge) => {
-      const sourceNode = reactFlowInstance.getNode(edge.source);
-      if (sourceNode?.type === "IMAGE") {
-        const url = (sourceNode.data as any).imageurl;
-        if (typeof url === "string") {
-          urls.push(url);
-        }
-      }
-    });
-    return urls;
-  }, [edgesToThisNode, reactFlowInstance]);
-
-  async function onGallerySubmit(values: GalleryConfigType) {
-    setLayoutStyle(values.layoutStyle);
-    setColumns(values.columns);
-    setGap(values.gap);
-
-    await updateRealtimePost({
-      id,
-      path,
-      collageLayoutStyle: values.layoutStyle,
-      collageColumns: values.columns,
-      collageGap: values.gap,
-    });
-
+  async function onGallerySubmit(values: z.infer<typeof GalleryPostValidation>) {
+    const uploads = await Promise.all(
+      values.images.map((img) => uploadFileToSupabase(img))
+    );
+    const urls = uploads
+      .filter((r) => !r.error)
+      .map((r) => r.fileURL);
+    if (urls.length > 0) {
+      setImages(urls);
+      setCurrentIndex(0);
+      await updateRealtimePost({
+        id,
+        path,
+        imageUrl: urls[0],
+        text: JSON.stringify(urls),
+      });
+    }
     store.closeModal();
   }
 
-  const containerStyle: CSSProperties = {
-    display: "grid",
-    gap: `${gap}px`,
-    gridTemplateColumns: `repeat(${columns}, 1fr)`,
-    padding: "12px",
+  const handlePrev = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
+  };
+  const handleNext = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCurrentIndex((prev) => (prev + 1) % images.length);
   };
 
   return (
     <BaseNode
+      modalContent={
+        <GalleryNodeModal
+          id={id}
+          isOwned={isOwned}
+          currentImages={images}
+          onSubmit={onGallerySubmit}
+        />
+      }
       id={id}
       author={data.author}
       isOwned={isOwned}
       type="GALLERY"
       isLocked={data.locked}
     >
-      <div style={containerStyle}>
-        {imageURLs.map((url, idx) => (
-          <div key={idx} style={{ position: "relative", minWidth: 150, minHeight: 150 }}>
-            <Image src={url} alt={`img-${idx}`} fill style={{ objectFit: "cover" }} />
-          </div>
-        ))}
-      </div>
+      {images.length > 0 && (
+        <div className="relative w-48 h-48 overflow-hidden">
+          <Image
+            src={images[currentIndex]}
+            alt={`img-${currentIndex}`}
+            fill
+            style={{ objectFit: "cover" }}
+          />
+          {images.length > 1 && (
+            <>
+              <button
+                className="absolute left-0 top-1/2 -translate-y-1/2 bg-black/50 text-white px-1"
+                onClick={handlePrev}
+              >
+                ‹
+              </button>
+              <button
+                className="absolute right-0 top-1/2 -translate-y-1/2 bg-black/50 text-white px-1"
+                onClick={handleNext}
+              >
+                ›
+              </button>
+            </>
+          )}
+        </div>
+      )}
     </BaseNode>
   );
 }

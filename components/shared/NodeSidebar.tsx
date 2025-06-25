@@ -14,6 +14,7 @@ import useStore from "@/lib/reactflow/store";
 import { z } from "zod";
 import {
   ImagePostValidation,
+  GalleryPostValidation,
   TextPostValidation,
   YoutubePostValidation,
 } from "@/lib/validations/thread";
@@ -48,6 +49,7 @@ import ImageNodeModal from "@/components/modals/ImageNodeModal";
 import YoutubeNodeModal from "@/components/modals/YoutubeNodeModal";
 import CollageCreationModal from "@/components/modals/CollageCreationModal";
 import PortalNodeModal from "@/components/modals/PortalNodeModal";
+import GalleryNodeModal from "@/components/modals/GalleryNodeModal";
 
 export default function NodeSidebar({
   reactFlowRef,
@@ -203,18 +205,26 @@ export default function NodeSidebar({
 
       case "GALLERY":
         store.openModal(
-          <CollageCreationModal
+          <GalleryNodeModal
             isOwned={true}
-            onSubmit={(vals) => {
-              createPostAndAddToCanvas({
-                path: pathname,
-                coordinates: centerPosition,
-                type: "GALLERY",
-                realtimeRoomId: roomId,
-                collageLayoutStyle: vals.layoutStyle,
-                collageColumns: vals.columns,
-                collageGap: vals.gap,
-              });
+            currentImages={[]}
+            onSubmit={async (vals) => {
+              const uploads = await Promise.all(
+                vals.images.map((img) => uploadFileToSupabase(img))
+              );
+              const urls = uploads
+                .filter((r) => !r.error)
+                .map((r) => r.fileURL);
+              if (urls.length > 0) {
+                createPostAndAddToCanvas({
+                  path: pathname,
+                  coordinates: centerPosition,
+                  type: "GALLERY",
+                  realtimeRoomId: roomId,
+                  imageUrl: urls[0],
+                  text: JSON.stringify(urls),
+                });
+              }
             }}
           />
         );
