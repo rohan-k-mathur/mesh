@@ -37,7 +37,7 @@ const CreateFeedPost = () => {
             width={24}
             height={24}
           />
-          <p className="text-black max-lg:hidden">Create Post</p>
+          <p className="text-black max-lg:hidden">New Post</p>
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-[57rem]">

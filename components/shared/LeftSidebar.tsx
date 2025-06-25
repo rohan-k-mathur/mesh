@@ -55,7 +55,7 @@ function LeftSidebar({ userRooms }: Props) {
         })}
         <Link
           href={`/create-room`}
-          className="leftsidebar_link leftsidebar-item border-2 border-red-400 border-opacity-80	 rounded-md hover:outline-4 hover:outline-double hover:outline-red-400"
+          className="leftsidebar_link leftsidebar-item border-2 border-red-600 border-opacity-80	 rounded-md hover:outline-4 hover:outline-double hover:outline-red-400"
         >
           <Image
             src="/assets/create-new.svg"
@@ -63,16 +63,16 @@ function LeftSidebar({ userRooms }: Props) {
             width={24}
             height={24}
           />
-          <p className="text-black max-lg:hidden">{"Create Room"}</p>
+          <p className="text-black  max-lg:hidden">{"New Room"}</p>
         </Link>
       </div>
       <div className="mb-6 px-6 ">
         {isUserSignedIn && <CreateFeedPost />}
       </div>
-      <div className="mb-6 px-6 ">
+      <div className="mb-6 px-6  ">
         {isUserSignedIn && (
           <Button
-            className="h-full w-full rounded-md  leftsidebar-item border-none "
+            className="h-full w-full rounded-md  leftsidebar-item border-none justify-center items-center"
             onClick={gotoprofile}
           >
             <Image
