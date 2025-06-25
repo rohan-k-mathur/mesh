@@ -7,6 +7,8 @@ import {
   WebcamNode,
   ImageComputeNodeProps,
   CollageNodeData,
+  PortalNode,
+
   AppEdge,
 } from "./types";
 
@@ -116,7 +118,7 @@ export function convertPostToNode(
           y: realtimePost.y_coordinate,
         },
       } as ImageComputeNodeProps;
-      case "COLLAGE": 
+      case "COLLAGE":
         return{
           id: realtimePost.id.toString(),
           type: realtimePost.type, // literal string
@@ -130,6 +132,26 @@ export function convertPostToNode(
             y: realtimePost.y_coordinate,
           },
         }  as CollageNodeData;
+        case "PORTAL":
+          return {
+            id: realtimePost.id.toString(),
+            type: realtimePost.type,
+            data: {
+              author: authorToSet,
+              locked: realtimePost.locked,
+            },
+            position: {
+              x: realtimePost.x_coordinate,
+              y: realtimePost.y_coordinate,
+            },
+          } as PortalNode;
+    
+        default:
+          throw new Error("Unsupported real-time post type");
+          
+      }
+      
+    }
       
     default:
       throw new Error("Unsupported real-time post type");
