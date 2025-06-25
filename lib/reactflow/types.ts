@@ -72,6 +72,14 @@ export type CollageNodeData = Node<
   "COLLAGE"
 >;
 
+export type PortalNode = Node<
+  {
+    author: AuthorOrAuthorId;
+    locked: boolean;
+  },
+  "PORTAL"
+>;
+
 
 
 export type DefaultEdge = Edge<{}, "DEFAULT">;
@@ -83,6 +91,7 @@ export const NodeTypeMap = {
   LIVESTREAM: {} as WebcamNode,
   IMAGE_COMPUTE: {} as ImageComputeNodeProps,
   COLLAGE: {} as CollageNodeData,
+  PORTAL: {} as PortalNode,
 };
 
 export interface AppEdgeMapping {
@@ -105,7 +114,8 @@ export type AppNode =
   | ImageUNode
   | WebcamNode
   | ImageComputeNodeProps
-  | CollageNodeData;
+  | CollageNodeData
+  | PortalNode;
 
 export type AppEdgeType = keyof AppEdgeMapping;
 
@@ -119,6 +129,7 @@ export const DEFAULT_NODE_VALUES: Record<AppNodeType, string> = {
   ["IMAGE_COMPUTE"]:
     "https://live.staticflickr.com/5702/23230527751_b14f3cd11d_b.jpg",
   ["COLLAGE"]:"",
+  ["PORTAL"]: "",
 };
 
 export type AppState = {
