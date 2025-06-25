@@ -146,16 +146,7 @@ export function convertPostToNode(
             },
           } as PortalNode;
     
-        default:
-          throw new Error("Unsupported real-time post type");
-          
-      }
-      
+          default:
+            throw new Error("Unsupported real-time post type");
+        }
     }
-      
-    default:
-      throw new Error("Unsupported real-time post type");
-      
-  }
-  
-}
