@@ -203,8 +203,9 @@ export default function NodeSidebar({
         store.openModal(
           <PortalNodeModal
             isOwned={true}
-            onSubmit={() => {
+            onSubmit={(values) => {
               createPostAndAddToCanvas({
+                text: JSON.stringify(values),
                 path: pathname,
                 coordinates: centerPosition,
                 type: "PORTAL",
