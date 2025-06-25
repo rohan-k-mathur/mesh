@@ -105,13 +105,13 @@ const AccountProfile = ({ user, btnTitle }: Props) => {
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
-        className="flex flex-col justify-start gap-10"
+        className="flex flex-col justify-start gap-1"
       >
         <FormField
           control={form.control}
           name="profile_photo"
           render={({ field }) => (
-            <FormItem className="flex items-center gap-4">
+            <FormItem className="flex flex-row items-center ">
               <FormLabel className="account-form_image-label">
                 {field.value ? (
                   <Image
@@ -120,25 +120,25 @@ const AccountProfile = ({ user, btnTitle }: Props) => {
                     width={96}
                     height={96}
                     priority
-                    className="rounded-none object-contain"
+                    className="object-cover rounded-full "
                   />
                 ) : (
                   <Image
                     src="/assets/profile.svg"
-                    alt="profile photo"
-                    width={24}
-                    height={24}
+                    alt="profile photo needed"
+                    width={96}
+                    height={96}
                     priority
-                    className="object-contain"
+                    className="object-cover rounded-full"
                   />
                 )}
               </FormLabel>
-              <FormControl className="flex-1 text-base-semibold text-gray-200">
+              <FormControl className="flex-1 ">
                 <Input
                   type="file"
                   accept="image/*"
                   placeholder="Upload a photo"
-                  className="account-form_image-input"
+                  className="account-form_image-input "
                   onChange={(e) => handleImage(e, field.onChange)}
                 />
               </FormControl>
@@ -150,9 +150,9 @@ const AccountProfile = ({ user, btnTitle }: Props) => {
           control={form.control}
           name="name"
           render={({ field }) => (
-            <FormItem className="flex flex-col gap-3 w-full">
-              <FormLabel className="text-base-semibold text-light-2">
-                Name
+            <FormItem className="flex-2 flex-col  w-full">
+              <FormLabel className="account_label_name">
+                Enter Your Name
               </FormLabel>
               <FormControl>
                 <Input
@@ -166,12 +166,14 @@ const AccountProfile = ({ user, btnTitle }: Props) => {
           )}
         />
         <FormField
+        
           control={form.control}
           name="username"
+          
           render={({ field }) => (
-            <FormItem className="flex flex-col gap-3 w-full">
-              <FormLabel className="text-base-semibold text-light-2">
-                Username
+            <FormItem className="flex-2 flex-col-1 w-full">
+              <FormLabel className="account_label_name">
+                Choose Username
               </FormLabel>
               <FormControl>
                 <Input
@@ -188,13 +190,13 @@ const AccountProfile = ({ user, btnTitle }: Props) => {
           control={form.control}
           name="bio"
           render={({ field }) => (
-            <FormItem className="flex flex-col gap-3 w-full">
-              <FormLabel className="text-base-semibold text-light-2">
-                Bio
+            <FormItem className="flex-2 flex-col w-full">
+              <FormLabel className="account_label_name">
+                Add a Bio
               </FormLabel>
               <FormControl>
-                <Textarea
-                  rows={10}
+                <Input
+                  type="text"
                   className="account-form_input no-focus"
                   {...field}
                 />
@@ -203,7 +205,7 @@ const AccountProfile = ({ user, btnTitle }: Props) => {
             </FormItem>
           )}
         />
-        <Button type="submit" className="bg-primary-500">
+        <Button type="submit" className="bg-white w-40 mt-4">
           Submit
         </Button>
       </form>

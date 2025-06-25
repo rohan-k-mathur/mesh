@@ -25,6 +25,9 @@ function LeftSidebar({ userRooms }: Props) {
     await fetch("/api/logout");
     router.push("/login");
   }
+  function gotoprofile() {
+    router.push("/onboarding");
+  }
 
   return (
     <section className="custom-scrollbar leftsidebar  bg-transparent">
@@ -66,6 +69,23 @@ function LeftSidebar({ userRooms }: Props) {
         {isUserSignedIn && (
           <Button
             className="h-full w-full rounded-md  leftsidebar-item border-none "
+            onClick={gotoprofile}
+          >
+            <Image
+              src="/assets/user-helsinki.svg"
+              alt="profile"
+              className="mr-2"
+              width={24}
+              height={24}
+            />
+            <p className="text-black max-lg:hidden">Profile</p>
+          </Button>
+        )}
+      </div>
+      <div className="mb-6 px-6 ">
+        {isUserSignedIn && (
+          <Button
+            className="h-full w-full rounded-md  leftsidebar-item border-none "
             onClick={handleLogout}
           >
             <Image
@@ -79,7 +99,7 @@ function LeftSidebar({ userRooms }: Props) {
           </Button>
         )}
       </div>
-      <div className="absolute justify-start  top-[1.55rem] left-[3.4rem] ">
+      <div className="absolute justify-start  top-[1.55rem] left-[2.7rem] ">
       <Link href="/" className="flex items-center gap-2">
         <Image src="/assets/logo-black.svg" alt="logo" width={36} height={36} /> 
         <div className={`${parabole.className}`}>

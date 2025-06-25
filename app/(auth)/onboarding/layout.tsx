@@ -12,7 +12,7 @@ export default function OnboardingLayout({
     <html>
       <body className={`${founderslight.className}`}>
         <main className="flex min-h-screen items-center justify-center bg-gradient-to-r from-zinc-200 via-indigo-300 to-rose-200">
-          <section className="w-full max-w-4xl px-6 py-10">
+          <section className="w-full max-w-4xl px-6 py-2">
             {children}
           </section>
         </main>
