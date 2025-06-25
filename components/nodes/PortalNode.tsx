@@ -41,9 +41,9 @@ function PortalNode({ id, data }: NodeProps<PortalNodeData>) {
       type={"PORTAL"}
       isLocked={data.locked}
     >
-      <div className="p-25 text-center portal-node">
+      <div className="portal-node">
         <div className="portal-block">
-          <button onClick={handleTeleport} className="button">
+          <button  onClick={handleTeleport} className="portalbutton w-36 p-4">
             Go to ({data.x}, {data.y})
           </button>
         </div>
