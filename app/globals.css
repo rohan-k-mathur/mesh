@@ -439,7 +439,7 @@ border: 0.125 rem solid #D1C6E7;
 
   width: 24px;
   height: 24px;
-  width: 100%;
+  object-fit: cover;
 
 }
 
@@ -535,7 +535,10 @@ border: 0.125 rem solid #D1C6E7;
   padding-right: 4px;
   padding-top: 0px;
   padding-bottom:0px;
-  background-color:white;
+  border-color: black;
+  background-color:transparent;
+  opacity: 100;
+  border: 2px;
   border-radius: 2px;         /* slight rounding if desired */
   transition: background-color 0.1s ease, box-shadow 0.1s ease;
   cursor: pointer;            /* entire area is clickable */
@@ -544,7 +547,7 @@ border: 0.125 rem solid #D1C6E7;
 }
 
 .node-author-wrapper:hover {
-  background-color:white;
+  background-color:transparent;
   box-shadow: 0 0 0px 0px rgba(0,0,0,0.15);
 }
 
