@@ -42,6 +42,20 @@ export const ImagePostValidation = z.object({
       "Only .jpg, .jpeg, .png and .webp formats are supported."
     ),
 });
+
+export const GalleryPostValidation = z.object({
+  images: z
+    .array(
+      z
+        .any()
+        .refine((file) => file?.size <= MAX_FILE_SIZE, `Max image size is 5MB.`)
+        .refine(
+          (file) => ACCEPTED_IMAGE_TYPES.includes(file?.type),
+          "Only .jpg, .jpeg, .png and .webp formats are supported."
+        )
+    )
+    .min(1),
+});
 export const CommentValidation = z.object({
   thread: z.string().min(3, { message: "Minimum of 3 characters" }),
 });

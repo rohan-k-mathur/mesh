@@ -10,6 +10,7 @@ import TextNodeModal from "@/components/modals/TextNodeModal";
 import ImageNodeModal from "@/components/modals/ImageNodeModal";
 import YoutubeNodeModal from "@/components/modals/YoutubeNodeModal";
 import CollageCreationModal from "@/components/modals/CollageCreationModal";
+import GalleryNodeModal from "@/components/modals/GalleryNodeModal";
 import ShareRoomModal from "@/components/modals/ShareRoomModal";
 // there is currently no dedicated modal for portal nodes
 
@@ -172,7 +173,7 @@ export const NodeTypeToModalMap = {
   IMAGE: ImageNodeModal,
   VIDEO: YoutubeNodeModal,
   COLLAGE: CollageCreationModal,
-  GALLERY: CollageCreationModal,
+  GALLERY: GalleryNodeModal,
   PORTAL: ShareRoomModal,
 };
 

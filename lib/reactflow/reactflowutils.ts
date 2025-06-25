@@ -135,16 +135,21 @@ export function convertPostToNode(
           },
         }  as CollageNodeData;
       case "GALLERY":
+        let galleryImages: string[] = [];
+        if (realtimePost.content) {
+          try {
+            galleryImages = JSON.parse(realtimePost.content);
+          } catch (e) {
+            galleryImages = [];
+          }
+        }
         return {
           id: realtimePost.id.toString(),
           type: realtimePost.type,
           data: {
-            images: [],
+            images: galleryImages,
             author: authorToSet,
             locked: realtimePost.locked,
-            layoutStyle: realtimePost.collageLayoutStyle || undefined,
-            columns: realtimePost.collageColumns || undefined,
-            gap: realtimePost.collageGap || undefined,
           },
           position: {
             x: realtimePost.x_coordinate,
