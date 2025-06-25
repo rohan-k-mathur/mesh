@@ -81,12 +81,16 @@ function GalleryNode({ id, data }: NodeProps<GalleryNodeData>) {
       isLocked={data.locked}
     >
       {images.length > 0 && (
-        <div className="relative w-48 h-48 overflow-hidden">
+        <div className=" img-container">
+          
           <Image
+            className="img-frame"
+
             src={images[currentIndex]}
             alt={`img-${currentIndex}`}
-            fill
-            style={{ objectFit: "cover" }}
+            width={0}
+            height={0}
+            sizes="200vw"
           />
           {images.length > 1 && (
             <>
