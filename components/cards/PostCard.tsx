@@ -11,7 +11,9 @@ interface Props {
   id: bigint;
   currentUserId?: bigint | null;
   image_url?: string;
+  video_url?: string;
   content?: string;
+  type: string;
   author: {
     name: string | null;
     image: string | null;
@@ -25,6 +27,8 @@ const PostCard = async ({
   content,
   author,
   image_url,
+  video_url,
+  type,
   createdAt,
 }: Props) => {
   let currentUserLike: Like | null = null;
@@ -60,10 +64,10 @@ const PostCard = async ({
             </Link>
             <hr className="mt-3 mb-4 w-[48rem] h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-100 to-transparent opacity-75" />
 
-            {content && (
+            {type === "TEXT" && content && (
               <p className="mt-2  text-[1.2rem] text-black tracking-[.05rem]">{content}</p>
             )}
-            {image_url && (
+            {(type === "IMAGE" || type === "IMAGE_COMPUTE") && image_url && (
               <Image
                 className="img-frame flex border-indigo-500 rounded-lg mt-[.8rem] mb-[2rem]  ml-[7.5rem] mr-[8rem] p-2 items-center"
                 src={image_url}
@@ -72,6 +76,26 @@ const PostCard = async ({
                 height={0}
                 sizes="200vw"
               />
+            )}
+            {type === "VIDEO" && video_url && (
+              <div className="yt-container mt-2 mb-2">
+                <iframe
+                  title="video"
+                  width={560}
+                  height={315}
+                  src={video_url}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                ></iframe>
+              </div>
+            )}
+            {type === "GALLERY" && content && (
+              <div className="flex flex-wrap gap-2 mt-2 mb-2">
+                {JSON.parse(content).map((url: string, idx: number) => (
+                  <div key={idx} className="relative w-32 h-32">
+                    <Image src={url} alt={`img-${idx}`} fill style={{ objectFit: "cover" }} />
+                  </div>
+                ))}
+              </div>
             )}
             <hr className="mt-4 mb-3 w-[48rem] h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-100 to-transparent opacity-75" />
 

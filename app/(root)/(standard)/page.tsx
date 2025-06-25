@@ -10,7 +10,7 @@ export const metadata = {
 export default async function Home() {
   const result = await fetchRealtimePosts({
     realtimeRoomId: "global",
-    postTypes: ["TEXT", "VIDEO", "IMAGE", "IMAGE_COMPUTE"],
+    postTypes: ["TEXT", "VIDEO", "IMAGE", "IMAGE_COMPUTE", "GALLERY"],
   });
   const user = await getUserFromCookies();
 
@@ -32,6 +32,10 @@ export default async function Home() {
                 image_url={
                   realtimePost.image_url ? realtimePost.image_url : undefined
                 }
+                video_url={
+                  realtimePost.video_url ? realtimePost.video_url : undefined
+                }
+                type={realtimePost.type}
                 author={realtimePost.author!}
                 createdAt={realtimePost.created_at.toDateString()}
               />
