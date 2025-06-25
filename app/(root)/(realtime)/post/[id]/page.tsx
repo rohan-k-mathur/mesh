@@ -17,8 +17,18 @@ const Page = async ({ params }: { params: { id: string } }) => {
           key={post.id}
           currentUserId={user?.userId}
           id={post.id}
-          content={post.type === "TEXT" ? post.content! : undefined}
-          image_url={post.type === "IMAGE" ? post.image_url! : undefined}
+          content={
+            post.type === "TEXT" || post.type === "GALLERY"
+              ? post.content!
+              : undefined
+          }
+          image_url={
+            post.type === "IMAGE" || post.type === "IMAGE_COMPUTE"
+              ? post.image_url!
+              : undefined
+          }
+          video_url={post.type === "VIDEO" ? post.video_url! : undefined}
+          type={post.type}
           author={post.author!}
           createdAt={post.created_at.toDateString()}
         />
