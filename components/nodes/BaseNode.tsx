@@ -83,12 +83,12 @@ function BaseNode({
       <Handle
         type="target"
         position={Position.Top}
-        className="w-16 h-2 rounded-sm"
+        className="w-16 h-2 bg-white rounded-sm"
       />
       <Handle
         type="source"
         position={Position.Bottom}
-        className="w-16 h-2 rounded-sm"
+        className="w-16 h-2 bg-white rounded-sm"
       />
     </div>
   );

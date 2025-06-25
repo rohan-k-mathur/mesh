@@ -80,7 +80,7 @@ const LikeButton = ({ postId, likeCount, initialLikeState }: Props) => {
     }
   }
   return (
-    <div className="flex flex-row items-center gap-2">
+    <div className="flex flex-row items-center gap-2 relative -left-3">
         <Image
         onClick={likeButtonClicked}
         src={
@@ -89,9 +89,9 @@ const LikeButton = ({ postId, likeCount, initialLikeState }: Props) => {
             : "/assets/triangle-up-stroke.svg"
         }
         alt="smile"
-        width={28}
-        height={28}
-        className="cursor-pointer object-contain"
+        width={24}
+        height={24}
+        className="cursor-pointer object-contain likebutton"
       />
   
       {/* Give this paragraph a fixed width (e.g. 24px or w-6) and text-center. */}
@@ -108,9 +108,9 @@ const LikeButton = ({ postId, likeCount, initialLikeState }: Props) => {
             : "/assets/triangle-down-stroke.svg"
         }
         alt="frown"
-        width={28}
-        height={28}
-        className="cursor-pointer object-contain"
+        width={24}
+        height={24}
+        className="cursor-pointer object-contain likebutton"
       />
     </div>
   );

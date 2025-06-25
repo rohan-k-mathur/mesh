@@ -37,7 +37,7 @@ export default function NodeDropdown({
         </DropdownMenuTrigger>
       )}
       {isOwned && (
-        <DropdownMenuContent className="bg-gray-800 shadow-lg rounded-lg border border-gray-700">
+        <DropdownMenuContent className="bg-gray-800 shadow-lg rounded-lg border border-gray-700 likebutton">
           <DropdownMenuItem
             className="text-gray-300 focus:bg-gray-700"
             onClick={() => store.openModal(modalContent)}

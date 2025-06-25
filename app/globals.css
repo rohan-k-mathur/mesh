@@ -542,7 +542,7 @@ border: 0.125 rem solid #D1C6E7;
   border-radius: 2px;         /* slight rounding if desired */
   transition: background-color 0.1s ease, box-shadow 0.1s ease;
   cursor: pointer;            /* entire area is clickable */
-  box-shadow: 1px 1px 1px 1px rgba(0,0,0,0.15);
+  box-shadow: 1px 1px 1px 1px rgba(0,0,0,0.5);
 
 }
 
@@ -574,15 +574,27 @@ border: 0.125 rem solid #D1C6E7;
 }
 
 .lockbutton {
-  background-color: white;
+  background-color: transparent;
   padding: 2px;
   border-radius: 2px;
-  box-shadow: 1px 1px 1px 1px rgba(0,0,0,0.15);
+  box-shadow: 1px 1px 1px 1px rgba(0,0,0,0.5);
 
 }
 .lockbutton:hover{
 
   box-shadow: 0 0 0px 0px rgba(0,0,0,0.15);
+
+}
+.likebutton {
+  background-color: transparent;
+  padding: 2px;
+  border-radius: 2px;
+  box-shadow: 1px 1px 1px 1px rgba(0,0,0,0.5);
+
+}
+.likebutton:hover{
+  box-shadow: 0 0 0px 0px rgba(0,0,0,0.15);
+
 
 }
 
