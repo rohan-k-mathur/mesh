@@ -45,3 +45,8 @@ export const ImagePostValidation = z.object({
 export const CommentValidation = z.object({
   thread: z.string().min(3, { message: "Minimum of 3 characters" }),
 });
+
+export const PortalNodeValidation = z.object({
+  x: z.number(),
+  y: z.number(),
+});
