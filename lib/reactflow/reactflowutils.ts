@@ -7,6 +7,7 @@ import {
   WebcamNode,
   ImageComputeNodeProps,
   CollageNodeData,
+  GalleryNodeData,
   PortalNode,
   DrawNode,
   
@@ -105,22 +106,22 @@ export function convertPostToNode(
           y: realtimePost.y_coordinate,
         },
       } as WebcamNode;
-    case "IMAGE_COMPUTE":
-      return {
-        id: realtimePost.id.toString(),
-        type: realtimePost.type,
-        data: {
-          imageurl: realtimePost.image_url,
-          author: authorToSet,
-          locked: realtimePost.locked,
-        },
-        position: {
-          x: realtimePost.x_coordinate,
-          y: realtimePost.y_coordinate,
-        },
-      } as ImageComputeNodeProps;
+      case "IMAGE_COMPUTE":
+        return {
+          id: realtimePost.id.toString(),
+          type: realtimePost.type,
+          data: {
+            imageurl: realtimePost.image_url,
+            author: authorToSet,
+            locked: realtimePost.locked,
+          },
+          position: {
+            x: realtimePost.x_coordinate,
+            y: realtimePost.y_coordinate,
+          },
+        } as ImageComputeNodeProps;
       case "COLLAGE":
-        return{
+        return {
           id: realtimePost.id.toString(),
           type: realtimePost.type, // literal string
           data: {
@@ -133,6 +134,23 @@ export function convertPostToNode(
             y: realtimePost.y_coordinate,
           },
         }  as CollageNodeData;
+      case "GALLERY":
+        return {
+          id: realtimePost.id.toString(),
+          type: realtimePost.type,
+          data: {
+            images: [],
+            author: authorToSet,
+            locked: realtimePost.locked,
+            layoutStyle: realtimePost.collageLayoutStyle || undefined,
+            columns: realtimePost.collageColumns || undefined,
+            gap: realtimePost.collageGap || undefined,
+          },
+          position: {
+            x: realtimePost.x_coordinate,
+            y: realtimePost.y_coordinate,
+          },
+        } as GalleryNodeData;
         case "PORTAL":
           let portalCoords = { x: 0, y: 0 };
           if (realtimePost.content) {

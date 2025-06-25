@@ -37,6 +37,7 @@ const nodeTypes: { label: string; nodeType: AppNodeType }[] = [
   { label: "LIVESTREAM", nodeType: "LIVESTREAM" },
   { label: "IMAGE_COMPUTE", nodeType: "IMAGE_COMPUTE" },
   { label: "COLLAGE", nodeType: "COLLAGE" },
+  { label: "GALLERY", nodeType: "GALLERY" },
   { label: "PORTAL", nodeType: "PORTAL" },
   { label: "DRAW", nodeType: "DRAW" },
 ];
@@ -190,6 +191,25 @@ export default function NodeSidebar({
                 path: pathname,
                 coordinates: centerPosition,
                 type: "COLLAGE",
+                realtimeRoomId: roomId,
+                collageLayoutStyle: vals.layoutStyle,
+                collageColumns: vals.columns,
+                collageGap: vals.gap,
+              });
+            }}
+          />
+        );
+        break;
+
+      case "GALLERY":
+        store.openModal(
+          <CollageCreationModal
+            isOwned={true}
+            onSubmit={(vals) => {
+              createPostAndAddToCanvas({
+                path: pathname,
+                coordinates: centerPosition,
+                type: "GALLERY",
                 realtimeRoomId: roomId,
                 collageLayoutStyle: vals.layoutStyle,
                 collageColumns: vals.columns,

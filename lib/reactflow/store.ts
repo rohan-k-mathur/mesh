@@ -8,6 +8,7 @@ import {
   YoutubeVidNode,
   WebcamNode,
   CollageNodeData,
+  GalleryNodeData,
   AppEdge,
 } from "./types";
 
@@ -25,6 +26,9 @@ function isWebcamNode(node: AppNode): node is WebcamNode {
 }
 function isCollageNode(node: AppNode): node is CollageNodeData {
   return node.type === "COLLAGE";
+}
+function isGalleryNode(node: AppNode): node is GalleryNodeData {
+  return node.type === "GALLERY";
 }
 
 function isDefaultEdge(edge: AppEdge): edge is AppEdge {
