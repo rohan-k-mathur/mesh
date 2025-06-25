@@ -315,7 +315,21 @@
   font-size: 10px;
   letter-spacing: 0.1px;
 }
-
+.portal-node {
+  border-radius: 2px;
+  border-color: slategray;
+  padding-left: 0.8rem;
+  padding-right: 0.8rem;
+  padding-top: 2.75rem;
+  padding-bottom: 3.9rem;
+  justify-content: center;
+  align-items: center;
+  width: 10rem;
+  height: 10rem;
+  font-size: 0.5rem;
+  cursor: grab;
+  color:rgb(0, 0, 0);
+}
 .text-updater-node {
   border-radius: 2px;
   border-color: slategray;
@@ -331,7 +345,11 @@
   cursor: grab;
   color:rgb(0, 0, 0);
 }
-
+.portal-block{
+  width: fit-content;
+  margin: 0.3rem 0; 
+  padding: 0.3rem;
+}
 .text-block {
     width: 22.8rem;
   height: 13.8rem;

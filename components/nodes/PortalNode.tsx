@@ -35,8 +35,9 @@ function PortalNode({ id, data }: NodeProps<PortalNodeData>) {
       type={"PORTAL"}
       isLocked={data.locked}
     >
-      <div className="p-4 text-center">
-        <p>Portal to room {data.roomId}</p>
+      <div className="p-25 text-center portal-node">
+        <div className="portal-block">        <p>Portal to room {data.roomId}</p>
+</div>
       </div>
     </BaseNode>
   );
