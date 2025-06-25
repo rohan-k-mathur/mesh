@@ -35,6 +35,7 @@ import TextInputNode from "../nodes/TextInputNode";
 import PortalNode from "../nodes/PortalNode";
 import YoutubeNode from "../nodes/YoutubeNode";
 import CollageNode from "../nodes/CollageNode";
+import DrawNode from "../nodes/DrawNode";
 import HamburgerMenu from "../shared/HamburgerMenu";
 import NodeSidebar from "../shared/NodeSidebar";
 import { createRealtimeEdge } from "@/lib/actions/realtimeedge.actions";
@@ -209,6 +210,7 @@ function Room({ roomId, initialNodes, initialEdges }: Props) {
     IMAGE_COMPUTE: ImageComputeNode,
     COLLAGE: CollageNode,
     PORTAL: PortalNode,
+    DRAW: DrawNode,
   };
   const edgeTypes = {
     DEFAULT: DefaultEdge,

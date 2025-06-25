@@ -8,7 +8,8 @@ import {
   ImageComputeNodeProps,
   CollageNodeData,
   PortalNode,
-
+  DrawNode,
+  
   AppEdge,
 } from "./types";
 
@@ -145,6 +146,19 @@ export function convertPostToNode(
               y: realtimePost.y_coordinate,
             },
           } as PortalNode;
+        case "DRAW":
+          return {
+            id: realtimePost.id.toString(),
+            type: realtimePost.type,
+            data: {
+              author: authorToSet,
+              locked: realtimePost.locked,
+            },
+            position: {
+              x: realtimePost.x_coordinate,
+              y: realtimePost.y_coordinate,
+            },
+          } as DrawNode;
     
           default:
             throw new Error("Unsupported real-time post type");

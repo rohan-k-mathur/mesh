@@ -83,6 +83,50 @@ export type PortalNode = Node<
   "PORTAL"
 >;
 
+export type DrawNode = Node<
+  {
+    author: AuthorOrAuthorId;
+    locked: boolean;
+  },
+  "DRAW"
+>;
+
+export type AudioNode = Node<
+  {
+    audioUrl: string;
+    author: AuthorOrAuthorId;
+    locked: boolean;
+  },
+  "AUDIO"
+>;
+
+export type DocumentNode = Node<
+  {
+    documentUrl: string;
+    author: AuthorOrAuthorId;
+    locked: boolean;
+  },
+  "DOCUMENT"
+>;
+
+export type ThreadNode = Node<
+  {
+    threadId: string;
+    author: AuthorOrAuthorId;
+    locked: boolean;
+  },
+  "THREAD"
+>;
+
+export type CodeNode = Node<
+  {
+    code: string;
+    author: AuthorOrAuthorId;
+    locked: boolean;
+  },
+  "CODE"
+>;
+
 
 
 export type DefaultEdge = Edge<{}, "DEFAULT">;
@@ -95,6 +139,11 @@ export const NodeTypeMap = {
   IMAGE_COMPUTE: {} as ImageComputeNodeProps,
   COLLAGE: {} as CollageNodeData,
   PORTAL: {} as PortalNode,
+  DRAW: {} as DrawNode,
+  AUDIO: {} as AudioNode,
+  DOCUMENT: {} as DocumentNode,
+  THREAD: {} as ThreadNode,
+  CODE: {} as CodeNode,
 };
 
 export interface AppEdgeMapping {
@@ -119,7 +168,12 @@ export type AppNode =
   | WebcamNode
   | ImageComputeNodeProps
   | CollageNodeData
-  | PortalNode;
+  | PortalNode
+  | DrawNode
+  | AudioNode
+  | DocumentNode
+  | ThreadNode
+  | CodeNode;
 
 export type AppEdgeType = keyof AppEdgeMapping;
 
@@ -134,6 +188,11 @@ export const DEFAULT_NODE_VALUES: Record<AppNodeType, string> = {
     "https://live.staticflickr.com/5702/23230527751_b14f3cd11d_b.jpg",
   ["COLLAGE"]:"",
   ["PORTAL"]: "",
+  ["DRAW"]: "",
+  ["AUDIO"]: "",
+  ["DOCUMENT"]: "",
+  ["THREAD"]: "",
+  ["CODE"]: "",
 };
 
 export type AppState = {

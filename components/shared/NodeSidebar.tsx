@@ -38,6 +38,7 @@ const nodeTypes: { label: string; nodeType: AppNodeType }[] = [
   { label: "IMAGE_COMPUTE", nodeType: "IMAGE_COMPUTE" },
   { label: "COLLAGE", nodeType: "COLLAGE" },
   { label: "PORTAL", nodeType: "PORTAL" },
+  { label: "DRAW", nodeType: "DRAW" },
 ];
 
 // Import your modals
@@ -213,6 +214,15 @@ export default function NodeSidebar({
             }}
           />
         );
+        break;
+
+      case "DRAW":
+        createPostAndAddToCanvas({
+          path: pathname,
+          coordinates: centerPosition,
+          type: "DRAW",
+          realtimeRoomId: roomId,
+        });
         break;
 
       default:
