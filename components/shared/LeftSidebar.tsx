@@ -9,6 +9,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import localFont from 'next/font/local'
+import CreateFeedPost from "@/components/forms/CreateFeedPost";
 const parabole = localFont({ src: '/Parabole-DisplayRegular.woff2' })
 
 interface Props {
@@ -64,6 +65,9 @@ function LeftSidebar({ userRooms }: Props) {
           />
           <p className="text-black max-lg:hidden">{"Create Room"}</p>
         </Link>
+      </div>
+      <div className="mb-6 px-6 ">
+        {isUserSignedIn && <CreateFeedPost />}
       </div>
       <div className="mb-6 px-6 ">
         {isUserSignedIn && (
