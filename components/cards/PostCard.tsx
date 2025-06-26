@@ -2,6 +2,8 @@ import Image from "next/image";
 import Link from "next/link";
 import LikeButton from "../buttons/LikeButton";
 import ShareButton from "../buttons/ShareButton";
+import ExpandButton from "../buttons/ExpandButton";
+import ReplicateButton from "../buttons/ReplicateButton";
 // import { fetchLikeForCurrentUser } from "@/lib/actions/like.actions";
 import { Like } from "@prisma/client";
 import React from "react";
@@ -46,7 +48,7 @@ const PostCard = async ({
               className="relative h-[2rem] w-[2rem] left-[.5rem]"
             >
               <Image
-                src={author.image || "/assets/profile.svg"}
+                src={author.image || "/assets/user-helsinki.svg"}
                 alt="Profile Image"
                 fill
                 objectFit="cover"
@@ -110,23 +112,11 @@ const PostCard = async ({
                   initialLikeState={currentUserLike}
                 />
                 <>
-                  <Link href={`/post/${id}`}>
-                    <Image
-                      src="/assets/expand-all.svg"
-                      alt="reply"
-                      width={28}
-                      height={28}
-                      className="cursor-pointer object-contain"
-                    />
-                  </Link>
+                 <ExpandButton 
+                 postId={id}/>
                 </>
-                <Image
-                  src="/assets/replicate.svg"
-                  alt="repost"
-                  width={28}
-                  height={28}
-                  className="cursor-pointer object-contain"
-                />
+                <ReplicateButton
+                postId={id}/>
                 <ShareButton 
                 postId={id}
                 />

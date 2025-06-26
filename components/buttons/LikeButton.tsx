@@ -89,8 +89,8 @@ const LikeButton = ({ postId, likeCount, initialLikeState }: Props) => {
             : "/assets/triangle-up-stroke.svg"
         }
         alt="smile"
-        width={24}
-        height={24}
+        width={28}
+        height={28}
         className="cursor-pointer object-contain likebutton"
       />
   
