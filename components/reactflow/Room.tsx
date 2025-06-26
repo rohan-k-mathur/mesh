@@ -90,8 +90,8 @@ function Room({ roomId, initialNodes, initialEdges }: Props) {
 
   const getClosestEdge = useCallback(
     (node: AppNode) => {
-      const { nodeInternals } = storeApi.getState();
-      const storeNodes = Array.from(nodeInternals.values());
+      const { nodeLookup } = storeApi.getState();
+      const storeNodes = Array.from(nodeLookup.values());
 
       const closestNode = storeNodes.reduce(
         (res, n) => {
