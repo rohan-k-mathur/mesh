@@ -63,52 +63,74 @@ async function createSampleData() {
     const email = `${username}@example.com`;
     const password = "password123";
 
-    const firebaseUser = await getAuth().createUser({
-      email,
-      password,
+    let authId: string;
+    try {
+      const firebaseUser = await getAuth().createUser({
+        email,
+        password,
+      });
+      authId = firebaseUser.uid;
+    } catch (err: any) {
+      if (err.code === "auth/email-already-exists") {
+        const existing = await getAuth().getUserByEmail(email);
+        authId = existing.uid;
+      } else {
+        throw err;
+      }
+    }
+
+    const existingUser = await prisma.user.findUnique({
+      where: { auth_id: authId },
     });
 
-    const authId = firebaseUser.uid;
-
-    const user = await prisma.user.create({
-      data: {
-        auth_id: authId,
-        username,
-        name,
-        bio: `Bio for ${name}`,
-        onboarded: true,
-      },
-    });
-
-    await prisma.userRealtimeRoom.create({
-      data: {
-        user_id: user.id,
-        realtime_room_id: GLOBAL_ROOM_ID,
-      },
-    });
-
-    const postCount = 3;
-    for (let j = 0; j < postCount; j++) {
-      const content = `${getRandom(samplePosts)} (${j + 1})`;
-
-      await prisma.post.create({
+    if (!existingUser) {
+      const user = await prisma.user.create({
         data: {
-          content,
-          author_id: user.id,
+          auth_id: authId,
+          username,
+          name,
+          bio: `Bio for ${name}`,
+          onboarded: true,
         },
       });
 
-      await prisma.realtimePost.create({
-        data: {
-          content,
-          author_id: user.id,
+      await prisma.userRealtimeRoom.upsert({
+        where: {
+          user_id_realtime_room_id: {
+            user_id: user.id,
+            realtime_room_id: GLOBAL_ROOM_ID,
+          },
+        },
+        update: {},
+        create: {
+          user_id: user.id,
           realtime_room_id: GLOBAL_ROOM_ID,
-          x_coordinate: new Prisma.Decimal(Math.random() * 100),
-          y_coordinate: new Prisma.Decimal(Math.random() * 100),
-          type: "TEXT",
-          locked: false,
         },
       });
+
+      const postCount = 3;
+      for (let j = 0; j < postCount; j++) {
+        const content = `${getRandom(samplePosts)} (${j + 1})`;
+
+        await prisma.post.create({
+          data: {
+            content,
+            author_id: user.id,
+          },
+        });
+
+        await prisma.realtimePost.create({
+          data: {
+            content,
+            author_id: user.id,
+            realtime_room_id: GLOBAL_ROOM_ID,
+            x_coordinate: new Prisma.Decimal(Math.random() * 100),
+            y_coordinate: new Prisma.Decimal(Math.random() * 100),
+            type: "TEXT",
+            locked: false,
+          },
+        });
+      }
     }
   }
 }
