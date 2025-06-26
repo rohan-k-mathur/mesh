@@ -4,6 +4,7 @@ import AboutTab from "@/components/shared/AboutTab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { profileTabs } from "@/constants";
 import { fetchUser } from "@/lib/actions/user.actions";
+import { areFriends, isFollowing } from "@/lib/actions/follow.actions";
 import { getUserFromCookies } from "@/lib/serverutils";
 import Image from "next/image";
 import { redirect, notFound } from "next/navigation";
@@ -15,6 +16,12 @@ async function Page({ params }: { params: { id: string } }) {
   if (!activeUser?.onboarded) redirect("/onboarding");
   const profilePageUser = await fetchUser(BigInt(params.id));
   if (!profilePageUser?.onboarded) notFound();
+  const following = activeUser.userId
+    ? await isFollowing({ followerId: activeUser.userId, followingId: profilePageUser.id })
+    : false;
+  const friend = activeUser.userId
+    ? await areFriends({ userId: activeUser.userId, targetUserId: profilePageUser.id })
+    : false;
   return (
     <section>
       <ProfileHeader
@@ -23,6 +30,9 @@ async function Page({ params }: { params: { id: string } }) {
         username={profilePageUser.username}
         imgUrl={profilePageUser.image}
         bio={profilePageUser.bio}
+        currentUserId={activeUser.userId}
+        isFollowing={following}
+        isFriend={friend}
       />
       <div className="mt-9">
         <Tabs defaultValue="threads" className="w-full">
