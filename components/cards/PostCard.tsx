@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import LikeButton from "../buttons/LikeButton";
+import ShareButton from "../buttons/ShareButton";
 // import { fetchLikeForCurrentUser } from "@/lib/actions/like.actions";
 import { Like } from "@prisma/client";
 import React from "react";
@@ -12,8 +13,10 @@ interface Props {
   currentUserId?: bigint | null;
   image_url?: string;
   video_url?: string;
+
   content?: string;
   type: string;
+
   author: {
     name: string | null;
     image: string | null;
@@ -26,7 +29,7 @@ const PostCard = async ({
   id,
   content,
   author,
-  image_url,
+  image_url,  
   video_url,
   type,
   createdAt,
@@ -47,7 +50,7 @@ const PostCard = async ({
                 alt="Profile Image"
                 fill
                 objectFit="cover"
-                className="cursor-pointer rounded-full border-[.05rem] border-indigo-300 profile-shadow hover:shadow-none
+                className="cursor-pointer rounded-full border-[.05rem] border-indigo-300 profile-shadow hover:shadow-none 
 
                 "
               />
@@ -63,11 +66,11 @@ const PostCard = async ({
               </div>
             </Link>
             <hr className="mt-3 mb-4 w-[48rem] h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-100 to-transparent opacity-75" />
-
             {type === "TEXT" && content && (
               <p className="mt-2  text-[1.2rem] text-black tracking-[.05rem]">{content}</p>
             )}
             {(type === "IMAGE" || type === "IMAGE_COMPUTE") && image_url && (
+
               <Image
                 className="img-frame flex border-indigo-500 rounded-lg mt-[.8rem] mb-[2rem]  ml-[7.5rem] mr-[8rem] p-2 items-center"
                 src={image_url}
@@ -77,7 +80,7 @@ const PostCard = async ({
                 sizes="200vw"
               />
             )}
-            {type === "VIDEO" && video_url && (
+                        {type === "VIDEO" && video_url && (
               <div className="yt-container mt-2 mb-2">
                 <iframe
                   title="video"
@@ -124,12 +127,8 @@ const PostCard = async ({
                   height={28}
                   className="cursor-pointer object-contain"
                 />
-                <Image
-                  src="/assets/send--alt.svg"
-                  alt="share"
-                  width={28}
-                  height={28}
-                  className="cursor-pointer object-contain"
+                <ShareButton 
+                postId={id}
                 />
               </div>
             </div>
