@@ -10,8 +10,17 @@ interface likePostParams {
 
 export async function likePost({ userId, postId }: likePostParams) {
   try {
+    await prisma.$connect();
     const uid = BigInt(userId);
     const pid = BigInt(postId);
+    const post = await prisma.post.findUnique({
+      where: {
+        id: pid,
+      },
+    });
+    if (!post) {
+      throw new Error("Post not found");
+    }
     const existingLike = await fetchLikeForCurrentUser({
       userId: uid,
       postId: pid,
@@ -74,6 +83,14 @@ export async function unlikePost({ userId, postId }: likePostParams) {
     await prisma.$connect();
     const uid = BigInt(userId);
     const pid = BigInt(postId);
+    const post = await prisma.post.findUnique({
+      where: {
+        id: pid,
+      },
+    });
+    if (!post) {
+      throw new Error("Post not found");
+    }
     const existingLike = await fetchLikeForCurrentUser({
       userId: uid,
       postId: pid,
@@ -114,6 +131,14 @@ export async function dislikePost({ userId, postId }: likePostParams) {
     await prisma.$connect();
     const uid = BigInt(userId);
     const pid = BigInt(postId);
+    const post = await prisma.post.findUnique({
+      where: {
+        id: pid,
+      },
+    });
+    if (!post) {
+      throw new Error("Post not found");
+    }
     const existingLike = await fetchLikeForCurrentUser({
       userId: uid,
       postId: pid,
