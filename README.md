@@ -49,6 +49,12 @@ The app/(root)/(realtime)/ folder contains the code for the reactflow canvas roo
    npx prisma db push
    ```
 
+5. Seed the database
+
+   ```bash
+   yarn seed    # populate the Supabase database with sample users and posts
+   ```
+
 The app runs at [http://localhost:3000](http://localhost:3000).
 
 ### Scripts
