@@ -39,6 +39,12 @@ The app/(root)/(realtime)/ folder contains the code for the reactflow canvas roo
    yarn dev
    ```
 
+4. Apply Prisma schema changes
+
+   ```bash
+   npx prisma db push
+   ```
+
 The app runs at [http://localhost:3000](http://localhost:3000).
 
 ### Scripts
