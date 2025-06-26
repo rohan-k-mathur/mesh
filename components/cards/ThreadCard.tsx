@@ -61,7 +61,7 @@ const ThreadCard = async ({
           <div className="flex flex-col items-center">
             <Link href={`/profile/${author.id}`} className="relative h-11 w-11">
               <Image
-                src={author.image || ""}
+                src={author.image || "/assets/profile.svg"}
                 alt="Profile Image"
                 fill
                 className="cursor-pointer rounded-lg"

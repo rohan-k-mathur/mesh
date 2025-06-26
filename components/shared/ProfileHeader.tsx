@@ -28,7 +28,7 @@ const ProfileHeader = ({
         <div className="flex items-center gap-3">
           <div className="relative h-20 w-20 objects-cover">
             <Image
-              src={imgUrl || ""}
+              src={imgUrl || "/assets/profile.svg"}
               alt="Profile Image"
               fill
               className="rounded-none object-cover shadow-2xl"

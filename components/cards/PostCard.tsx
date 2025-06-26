@@ -43,11 +43,11 @@ const PostCard = async ({
               className="relative h-[2rem] w-[2rem] left-[.5rem]"
             >
               <Image
-                src={author.image || ""}
+                src={author.image || "/assets/profile.svg"}
                 alt="Profile Image"
                 fill
                 objectFit="cover"
-                className="cursor-pointer rounded-full border-[.05rem] border-indigo-300 profile-shadow hover:shadow-none 
+                className="cursor-pointer rounded-full border-[.05rem] border-indigo-300 profile-shadow hover:shadow-none
 
                 "
               />

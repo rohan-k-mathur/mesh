@@ -39,7 +39,7 @@ const UserCard = ({ userId, name, username, imgUrl, personType }: Props) => {
       <article className="user-card">
         <div className="user-card_avatar">
           <Image
-            src={imgUrl || ""}
+            src={imgUrl || "/assets/profile.svg"}
             alt="logo"
             width={48}
             height={48}
