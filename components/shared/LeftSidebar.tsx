@@ -27,8 +27,11 @@ function LeftSidebar({ userRooms }: Props) {
     router.push("/login");
   }
   function gotoprofile() {
-    router.push("/onboarding");
-  }
+    if (user.user?.userId) {
+      router.push(`/profile/${user.user.userId}`);
+    } else {
+      router.push("/onboarding");
+    }  }
 
   return (
     <section className="custom-scrollbar leftsidebar  bg-transparent">
