@@ -57,6 +57,15 @@ export async function joinRoom({ roomId }: { roomId: string }) {
       throw new Error("User not authenticated");
     }
 
+    const existingRoom = await prisma.realtimeRoom.findUnique({
+      where: { id: roomId },
+    });
+    if (!existingRoom) {
+      await prisma.realtimeRoom.create({
+        data: { id: roomId, room_icon: "/assets/logo-white.svg" },
+      });
+    }
+
     await prisma.userRealtimeRoom.upsert({
       where: {
         user_id_realtime_room_id: {
