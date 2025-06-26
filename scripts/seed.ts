@@ -1,4 +1,5 @@
-import { Prisma, prisma } from "../lib/prismaclient";
+import { Prisma } from "@prisma/client";
+import { prisma } from "../lib/prismaclient";
 import { cert, initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { serverConfig } from "../lib/firebase/config";
