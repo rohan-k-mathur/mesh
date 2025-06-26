@@ -4,15 +4,17 @@ import { like_type } from "@prisma/client";
 import { prisma } from "../prismaclient";
 
 interface likePostParams {
-  userId: bigint;
-  postId: bigint;
+  userId: string | number | bigint;
+  postId: string | number | bigint;
 }
 
 export async function likePost({ userId, postId }: likePostParams) {
   try {
+    const uid = BigInt(userId);
+    const pid = BigInt(postId);
     const existingLike = await fetchLikeForCurrentUser({
-      userId: userId,
-      postId: postId,
+      userId: uid,
+      postId: pid,
     });
     if (existingLike && existingLike.type === like_type.LIKE) {
       console.log(
@@ -28,8 +30,8 @@ export async function likePost({ userId, postId }: likePostParams) {
       prisma.like.upsert({
         where: {
           post_id_user_id: {
-            post_id: postId,
-            user_id: userId,
+            post_id: pid,
+            user_id: uid,
           },
         },
         update: {
@@ -41,19 +43,19 @@ export async function likePost({ userId, postId }: likePostParams) {
           type: "LIKE",
           user: {
             connect: {
-              id: userId,
+              id: uid,
             },
           },
           post: {
             connect: {
-              id: postId,
+              id: pid,
             },
           },
         },
       }),
       prisma.post.update({
         where: {
-          id: postId,
+          id: pid,
         },
         data: {
           like_count: {
@@ -70,9 +72,11 @@ export async function likePost({ userId, postId }: likePostParams) {
 export async function unlikePost({ userId, postId }: likePostParams) {
   try {
     await prisma.$connect();
+    const uid = BigInt(userId);
+    const pid = BigInt(postId);
     const existingLike = await fetchLikeForCurrentUser({
-      userId: userId,
-      postId: postId,
+      userId: uid,
+      postId: pid,
     });
     let likeChangeAmount = 0;
     if (existingLike && existingLike.type === "LIKE") {
@@ -84,14 +88,14 @@ export async function unlikePost({ userId, postId }: likePostParams) {
       prisma.like.delete({
         where: {
           post_id_user_id: {
-            user_id: userId,
-            post_id: postId,
+            user_id: uid,
+            post_id: pid,
           },
         },
       }),
       prisma.post.update({
         where: {
-          id: postId,
+          id: pid,
         },
         data: {
           like_count: {
@@ -108,9 +112,11 @@ export async function unlikePost({ userId, postId }: likePostParams) {
 export async function dislikePost({ userId, postId }: likePostParams) {
   try {
     await prisma.$connect();
+    const uid = BigInt(userId);
+    const pid = BigInt(postId);
     const existingLike = await fetchLikeForCurrentUser({
-      userId: userId,
-      postId: postId,
+      userId: uid,
+      postId: pid,
     });
     if (existingLike && existingLike.type === like_type.DISLIKE) {
       console.log(
@@ -126,8 +132,8 @@ export async function dislikePost({ userId, postId }: likePostParams) {
       prisma.like.upsert({
         where: {
           post_id_user_id: {
-            user_id: userId,
-            post_id: postId,
+            user_id: uid,
+            post_id: pid,
           },
         },
         update: {
@@ -139,19 +145,19 @@ export async function dislikePost({ userId, postId }: likePostParams) {
           type: "DISLIKE",
           user: {
             connect: {
-              id: userId,
+              id: uid,
             },
           },
           post: {
             connect: {
-              id: postId,
+              id: pid,
             },
           },
         },
       }),
       prisma.post.update({
         where: {
-          id: postId,
+          id: pid,
         },
         data: {
           like_count: {
@@ -171,11 +177,13 @@ export async function fetchLikeForCurrentUser({
 }: likePostParams) {
   try {
     await prisma.$connect();
+    const uid = BigInt(userId);
+    const pid = BigInt(postId);
     const like = await prisma.like.findUnique({
       where: {
         post_id_user_id: {
-          user_id: userId,
-          post_id: postId,
+          user_id: uid,
+          post_id: pid,
         },
       },
     });
