@@ -38,6 +38,7 @@
     "cmdk": "^1.0.0",
     "fastpriorityqueue": "^0.7.5",
     "firebase": "^10.12.4",
+    "firebase-admin": "^12",
     "glsl-noise": "^0.0.0",
     "glslify": "^7.1.1",
     "glslify-loader": "^2.0.0",
