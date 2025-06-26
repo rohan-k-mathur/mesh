@@ -1,27 +1,13 @@
 import Image from "next/image";
 
-import FollowButton from "../buttons/FollowButton";
-
 interface Props {
   accountId: bigint;
   name: string;
   username: string;
   imgUrl: string | null;
   bio: string | null;
-  currentUserId: bigint | null;
-  isFollowing: boolean;
-  isFriend: boolean;
 }
-const ProfileHeader = ({
-  accountId,
-  name,
-  username,
-  imgUrl,
-  bio,
-  currentUserId,
-  isFollowing,
-  isFriend,
-}: Props) => {
+const ProfileHeader = ({ accountId, name, username, imgUrl, bio }: Props) => {
   return (
     <div className="flex w-full flex-col justify-start">
       <div className="flex items-center justify-between">
@@ -39,13 +25,6 @@ const ProfileHeader = ({
               {name}
             </h2>
             <p className="text-base-medium text-gray-1">@{username}</p>
-            {currentUserId && currentUserId !== accountId && (
-              <FollowButton
-                targetUserId={accountId}
-                initialIsFollowing={isFollowing}
-                initialIsFriend={isFriend}
-              />
-            )}
           </div>
         </div>
       </div>
