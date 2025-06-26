@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
+
+// Feature flag controlling automatic proximity edge creation
+const PROXIMITY_CONNECT_ENABLED = false;
 import { usePathname } from "next/navigation";
 import { useShallow } from "zustand/react/shallow";
 import { supabase } from "@/lib/supabaseclient";
@@ -90,6 +93,7 @@ function Room({ roomId, initialNodes, initialEdges }: Props) {
 
   const getClosestEdge = useCallback(
     (node: AppNode) => {
+      if (!PROXIMITY_CONNECT_ENABLED) return null;
       const { nodeLookup } = storeApi.getState();
       const storeNodes = Array.from(nodeLookup.values());
 
@@ -131,6 +135,7 @@ function Room({ roomId, initialNodes, initialEdges }: Props) {
 
   const onNodeDrag = useCallback(
     (_: any, node: AppNode) => {
+      if (!PROXIMITY_CONNECT_ENABLED) return;
       const closeEdge = getClosestEdge(node);
 
       let nextEdges = edges.filter((e) => e.className !== "temp");
@@ -170,6 +175,7 @@ function Room({ roomId, initialNodes, initialEdges }: Props) {
 
   const onNodeDragStop = useCallback(
     (_: any, node: AppNode) => {
+      if (!PROXIMITY_CONNECT_ENABLED) return;
       const closeEdge = getClosestEdge(node);
 
       const nextEdges = edges.filter((e) => e.className !== "temp");
@@ -317,8 +323,10 @@ function Room({ roomId, initialNodes, initialEdges }: Props) {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
-        onNodeDrag={onNodeDrag}
-        onNodeDragStop={onNodeDragStop}
+        onNodeDrag={PROXIMITY_CONNECT_ENABLED ? onNodeDrag : undefined}
+        onNodeDragStop={
+          PROXIMITY_CONNECT_ENABLED ? onNodeDragStop : undefined
+        }
         deleteKeyCode={null}
         snapToGrid
         snapGrid={[10, 10]}
