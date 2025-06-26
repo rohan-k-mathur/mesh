@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useShallow } from "zustand/react/shallow";
 import { supabase } from "@/lib/supabaseclient";
 import { useAuth } from "@/lib/AuthContext";
-import { useReactFlow, useStoreApi } from "@xyflow/react";
+import { useReactFlow } from "@xyflow/react";
 import useStore from "@/lib/reactflow/store";
 import { AppEdge, AppNode, AppState } from "@/lib/reactflow/types";
 import { subscribeToDatabaseUpdates, subscribeToRoom } from "@/lib/utils";
@@ -84,85 +84,6 @@ function Room({ roomId, initialNodes, initialEdges }: Props) {
   } = useStore(useShallow(selector));
 
   const { updateNode, updateEdge, setViewport } = useReactFlow();
-  const storeApi = useStoreApi();
-
-  const MIN_DISTANCE = 150;
-
-  const getClosestEdge = useCallback(
-    (node: AppNode) => {
-      const { nodeInternals } = storeApi.getState();
-      const storeNodes = Array.from(nodeInternals.values());
-
-      const closestNode = storeNodes.reduce(
-        (res, n) => {
-          if (n.id !== node.id) {
-            const dx =
-              (n.positionAbsolute?.x ?? 0) - (node.positionAbsolute?.x ?? 0);
-            const dy =
-              (n.positionAbsolute?.y ?? 0) - (node.positionAbsolute?.y ?? 0);
-            const d = Math.sqrt(dx * dx + dy * dy);
-
-            if (d < res.distance && d < MIN_DISTANCE) {
-              res.distance = d;
-              res.node = n;
-            }
-          }
-          return res;
-        },
-        { distance: Number.MAX_VALUE, node: null as typeof node | null }
-      );
-
-      if (!closestNode.node) {
-        return null;
-      }
-
-      const closeNodeIsSource =
-        (closestNode.node.positionAbsolute?.x ?? 0) <
-        (node.positionAbsolute?.x ?? 0);
-
-      return {
-        id: `${node.id}-${closestNode.node.id}`,
-        source: closeNodeIsSource ? closestNode.node.id : node.id,
-        target: closeNodeIsSource ? node.id : closestNode.node.id,
-      };
-    },
-    [storeApi]
-  );
-
-  const onNodeDrag = useCallback(
-    (_: any, node: AppNode) => {
-      const closeEdge = getClosestEdge(node);
-
-      let nextEdges = edges.filter((e) => e.className !== "temp");
-
-      if (
-        closeEdge &&
-        !nextEdges.find(
-          (ne) => ne.source === closeEdge.source && ne.target === closeEdge.target
-        )
-      ) {
-        nextEdges = [...nextEdges, { ...closeEdge, className: "temp" }];
-      }
-
-      setEdges(nextEdges);
-    },
-    [edges, getClosestEdge, setEdges]
-  );
-
-  const onNodeDragStop = useCallback(
-    (_: any, node: AppNode) => {
-      const closeEdge = getClosestEdge(node);
-
-      const nextEdges = edges.filter((e) => e.className !== "temp");
-
-      setEdges(nextEdges);
-
-      if (closeEdge) {
-        onConnect({ source: closeEdge.source, target: closeEdge.target });
-      }
-    },
-    [edges, getClosestEdge, onConnect, setEdges]
-  );
 
   const reactFlowRef = useRef<HTMLDivElement>(null);
   const liveCursorsRef = useRef<LiveCursorHandles>(null);
@@ -248,22 +169,12 @@ function Room({ roomId, initialNodes, initialEdges }: Props) {
   ]);
 
   const onConnect: OnConnect = (connection: Connection): void => {
-    const edgeWithMarker = {
-      ...connection,
-      markerEnd: {
-        type: MarkerType.ArrowClosed,
-        width: 15,
-        height: 15,
-        color: "#ffffff",
-      },
-    };
-
     createRealtimeEdge({
       path: pathname,
       sourceNodeId: BigInt(connection.source),
       targetNodeId: BigInt(connection.target),
       realtimeRoomId: roomId,
-    }).then(() => onConnectStore(edgeWithMarker));
+    }).then(() => onConnectStore(connection));
   };
 
   const onNodesChange: OnNodesChange<AppNode> = (changes) => {
@@ -316,8 +227,6 @@ function Room({ roomId, initialNodes, initialEdges }: Props) {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
-        onNodeDrag={onNodeDrag}
-        onNodeDragStop={onNodeDragStop}
         deleteKeyCode={null}
         snapToGrid
         snapGrid={[10, 10]}
