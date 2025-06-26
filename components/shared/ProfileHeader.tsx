@@ -26,9 +26,9 @@ const ProfileHeader = ({
     <div className="flex w-full flex-col justify-start">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="relative h-20 w-20 objects-cover">
+          <div className="relative h-28 w-28 objects-cover">
             <Image
-              src={imgUrl || "/assets/profile.svg"}
+              src={imgUrl || "/assets/user-helsinki.svg"}
               alt="Profile Image"
               fill
               className="rounded-none object-cover shadow-2xl"
@@ -38,7 +38,7 @@ const ProfileHeader = ({
             <h2 className="text-left text-heading3-bold text-black">
               {name}
             </h2>
-            <p className="text-base-medium text-black">@{username}</p>
+            <p className="text-base-light text-black">@{username}</p>
             {currentUserId && currentUserId !== accountId && (
               <FollowButton
                 targetUserId={accountId}
