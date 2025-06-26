@@ -7178,9 +7178,9 @@ __metadata:
     prisma: "npm:^6.10.1"
     raw-loader: "npm:^4.0.2"
     rc-table: "npm:^7.50.4"
-    react: "npm:^18.3.1"
+    react: "npm:^18.2.0"
     react-ace: "npm:^14.0.1"
-    react-dom: "npm:^18.3.1"
+    react-dom: "npm:^18.2.0"
     react-flow-renderer: "npm:^10.3.17"
     react-hook-form: "npm:^7.52.1"
     react-markdown: "npm:^10.1.0"
@@ -12890,7 +12890,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-dom@npm:^18.3.1":
+"react-dom@npm:^18.2.0":
   version: 18.3.1
   resolution: "react-dom@npm:18.3.1"
   dependencies:
@@ -13048,7 +13048,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react@npm:>=16, react@npm:^18.3.1":
+"react@npm:>=16, react@npm:^18.2.0":
   version: 18.3.1
   resolution: "react@npm:18.3.1"
   dependencies:
