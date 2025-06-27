@@ -26,6 +26,7 @@ export default async function Home() {
                 key={realtimePost.id}
                 currentUserId={user?.userId}
                 id={realtimePost.id}
+                isRealtimePost
                 content={
                   realtimePost.content ? realtimePost.content : undefined
                 }
