@@ -115,6 +115,31 @@ export async function fetchPostById(id: bigint) {
   }
 }
 
+export async function fetchPostTreeById(id: bigint) {
+  await prisma.$connect();
+  const post = await prisma.post.findUnique({
+    where: { id },
+    include: {
+      author: true,
+    },
+  });
+  if (!post) return null;
+
+  const fetchChildren = async (parentId: bigint): Promise<any[]> => {
+    const children = await prisma.post.findMany({
+      where: { parent_id: parentId },
+      include: { author: true },
+    });
+    for (const child of children) {
+      child.children = await fetchChildren(child.id);
+    }
+    return children;
+  };
+
+  post.children = await fetchChildren(post.id);
+  return post;
+}
+
 export async function addCommentToPost({
   parentPostId,
   commentText,

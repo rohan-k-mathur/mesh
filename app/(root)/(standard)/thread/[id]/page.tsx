@@ -1,6 +1,7 @@
 import ThreadCard from "@/components/cards/ThreadCard";
 import Comment from "@/components/forms/Comment";
-import { fetchPostById } from "@/lib/actions/thread.actions";
+import { fetchPostTreeById } from "@/lib/actions/thread.actions";
+import CommentTree from "@/components/shared/CommentTree";
 import { redirect, notFound } from "next/navigation";
 import { getUserFromCookies } from "@/lib/serverutils";
 
@@ -8,7 +9,7 @@ const Page = async ({ params }: { params: { id: string } }) => {
   if (!params?.id && params?.id?.length !== 1) return notFound();
   const user = await getUserFromCookies();
   if (!user?.onboarded) redirect("/onboarding");
-  const post = await fetchPostById(BigInt(params.id));
+  const post = await fetchPostTreeById(BigInt(params.id));
   if (!post) notFound();
 
   return (
@@ -33,22 +34,11 @@ const Page = async ({ params }: { params: { id: string } }) => {
           currentUserId={user.userId!}
         />
       </div>
-      <section className="mt-10 flex flex-col gap-1">
-        {post.children.map((childItem) => (
-          <ThreadCard
-            key={childItem.id}
-            currentUserId={user?.userId}
-            id={childItem.id}
-            parentId={childItem.parent_id}
-            content={childItem.content}
-            author={childItem.author}
-            createdAt={childItem.created_at.toDateString()}
-            comments={childItem.children}
-            isComment
-            likeCount={childItem.like_count}
-          />
-        ))}
-      </section>
+      <CommentTree
+        comments={post.children}
+        currentUserId={user.userId!}
+        currentUserImg={user.photoURL!}
+      />
     </section>
   );
 };
