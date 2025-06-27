@@ -77,14 +77,14 @@ const PostCard = async ({
           <div>
             <Link href={`/profile/${author.id}`} className="w-fit ">
               <div className={`${founders.className} `}>
-              <h4 className="cursor-pointer  text-[1.25rem] tracking-[.05rem] font-semibold text-black relative right-[.3rem] top-[.1rem]">
+              <p className="cursor-pointer  text-[1.08rem] tracking-[.05rem] font-light text-black relative right-[.25rem] top-[.3rem]">
                 {author.name}
-              </h4>
+              </p>
               </div>
             </Link>
             <hr className="mt-3 mb-4 w-[48rem] h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-100 to-transparent opacity-75" />
             {type === "TEXT" && content && (
-              <p className="mt-2  text-[1.2rem] text-black tracking-[.05rem]">{content}</p>
+              <p className="mt-2  text-[1.08rem] text-black tracking-[.05rem]">{content}</p>
             )}
             {(type === "IMAGE" || type === "IMAGE_COMPUTE") && image_url && (
 
