@@ -128,13 +128,11 @@ const PostCard = async ({
                   likeCount={likeCount}
                   initialLikeState={currentUserLike}
                 />
-                {!isRealtimePost && (
                   <>
                     <ExpandButton postId={id} />
                   </>
-                )}
-                {!isRealtimePost && <ReplicateButton postId={id} />}
-                {!isRealtimePost && <ShareButton postId={id} />}
+            <ReplicateButton postId={id} />
+          <ShareButton postId={id} />
               </div>
             </div>
           </div>
