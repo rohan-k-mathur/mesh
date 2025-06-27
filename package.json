@@ -37,6 +37,7 @@
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",
+    "date-fns": "^4.1.0",
     "fastpriorityqueue": "^0.7.5",
     "firebase": "^10.12.4",
     "firebase-admin": "^12",

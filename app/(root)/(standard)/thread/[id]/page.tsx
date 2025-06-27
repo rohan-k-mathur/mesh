@@ -13,7 +13,7 @@ const Page = async ({ params }: { params: { id: string } }) => {
 
   return (
     <section className="relative">
-      <div>
+      <div >
         <ThreadCard
           key={post.id}
           currentUserId={user?.userId}

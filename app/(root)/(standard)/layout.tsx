@@ -57,7 +57,10 @@ export default async function StandardLayout({
                 <AuthProvider user={user}>{children}</AuthProvider>
               </div>
             </section>
+            <RightSidebar/>
+
           </main>
+          
         </AuthProvider>
       </body>
     </html>
