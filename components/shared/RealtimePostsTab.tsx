@@ -28,6 +28,7 @@ const RealtimePostsTab = async ({ currentUserId, accountId }: Props) => {
               currentUserId={currentUserId}
               id={post.id}
               isRealtimePost
+              likeCount={post.like_count}
               content={post.content ? post.content : undefined}
               image_url={post.image_url ? post.image_url : undefined}
               video_url={post.video_url ? post.video_url : undefined}
