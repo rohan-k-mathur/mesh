@@ -59,6 +59,7 @@ const Page = async ({ params }: { params: { id: string } }) => {
         comments={post.children}
         currentUserId={user.userId!}
         currentUserImg={user.photoURL!}
+        depth={1}
       />
       </div>
           </main>
