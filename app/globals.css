@@ -171,11 +171,17 @@
 
 /* Comment Form */
 .comment-form {
-  @apply mt-10 flex items-center gap-4 border-y border-y-dark-4 py-5 max-xs:flex-col !important;
+  @apply mt-2 flex w-3/5 flex-row items-start gap-2 border-y border-y-dark-4 py-4 max-xs:flex-col !important;
 }
 
 .comment-form_btn {
-  @apply rounded-3xl bg-primary-500 px-8 py-2 !text-small-regular text-light-1 max-xs:w-full !important;
+  @apply rounded-sm bg-transparent gap-4 !text-small-regular border-none 
+  text-light-1    max-xs:w-full !important;
+  outline-style: solid;
+  outline-width: .5px;
+  border-radius: 2px;
+  box-shadow:   3px 3px 7px #dec7cc,
+  -1px 2px 7px rgba(0, 0, 0, 0.15);
 }
 
 .dndnode {
@@ -392,6 +398,21 @@ textarea {
   font-size: 0.75rem; /* 12px */
 
   line-height: 0.8rem; /* 16px */
+}
+.comment-textarea {
+
+  font-size: 1.75rem; /* 12px */
+  box-shadow:  inset 4px 8px 30px #ffffff,
+             inset -4px -8px 20px #cbadd3;
+
+}
+
+.comment-textarea:hover {
+  font-size: 1.75rem; /* 12px */
+  box-shadow:  inset 4px 4px 17px #F4F4F5,
+             inset -4px -4px 17px #fecdd3;
+             
+
 }
 .text-node-display {
   font-size: 0.75rem; /* 12px */

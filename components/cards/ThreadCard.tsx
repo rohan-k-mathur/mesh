@@ -5,7 +5,11 @@ import { fetchLikeForCurrentUser } from "@/lib/actions/like.actions";
 import { Like } from "@prisma/client";
 import { Comfortaa } from "next/font/google";
 import { Nunito } from "next/font/google";
-
+import ShareButton from "../buttons/ShareButton";
+import ReplicateButton from "../buttons/ReplicateButton";
+import ExpandButton from "../buttons/ExpandButton";
+import localFont from 'next/font/local'
+const founders = localFont({ src: '/NewEdgeTest-RegularRounded.otf' })
 const comfortaa = Comfortaa({
   weight: ["400"],
   subsets: ["latin"],
@@ -16,7 +20,8 @@ interface Props {
   id: bigint;
   currentUserId?: bigint | null;
   parentId: bigint | null;
-  content: string;
+  content?: string;
+
   author: {
     name: string | null;
     image: string | null;
@@ -51,76 +56,52 @@ const ThreadCard = async ({
     });
   }
   return (
-    <article
-      className={`flex w-full flex-col rounded-lg  ${
-        isComment ? "px-0 xs:px-7" : "border-2 border-primary-500 bg-dark-2 p-7"
-      }`}
-    >
-      <div className="flex items-start justify-between mb-2">
-        <div className="flex w-full flex-1 flex-row gap-4">
-          <div className="flex flex-col items-center">
-            <Link href={`/profile/${author.id}`} className="relative h-11 w-11">
+    <article className="relative flex w-fit flex-col postcard  p-7 ">
+      <div className="flex-1 items-start justify-between ">
+        <div className="flex w-fit flex-1 flex-row gap-4 ">
+          <div className="flex flex-col items-center  ">
+            <Link
+              href={`/profile/${author.id}`}
+              className="relative h-[2rem] w-[2rem] left-[.5rem]"
+            >
               <Image
-                src={author.image || "/assets/profile.svg"}
+                src={author.image || "/assets/user-helsinki.svg"}
                 alt="Profile Image"
                 fill
-                className="cursor-pointer rounded-lg"
+                objectFit="cover"
+                className="cursor-pointer rounded-full border-[.05rem] border-indigo-300 profile-shadow hover:shadow-none 
+
+                "
               />
             </Link>
-            <div className="thread-card_bar" />
           </div>
+          <div className=""></div>
           <div>
-            <Link href={`/profile/${author.id}`} className="w-fit">
-              <h4 className="cursor-pointer text-base-semibold text-black">
+            <Link href={`/profile/${author.id}`} className="w-fit ">
+              <div className={`${founders.className} `}>
+              <p className="cursor-pointer  text-[1.08rem] tracking-[.05rem] font-semibold text-black relative right-[.25rem] top-[.3rem]">
                 {author.name}
-              </h4>
+              </p>
+              </div>
             </Link>
-            <p className="mt-2 nunito.className text-small-regular text-black">
-              {content}
-            </p>
-            <div className={`${isComment && "mb-10"} mt-5 flex flex-col gap-3`}>
-              <div className="flex gap-3.5">
+            <hr className="mt-3 mb-4 w-[48rem] h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-100 to-transparent opacity-75" />
+              <p className="mt-2  text-[1.08rem] text-black tracking-[.05rem]">{content}</p>
+           
+            <hr className="mt-4 mb-3 w-[48rem] h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-100 to-transparent opacity-75" />
+
+            <div className="mt-4 flex flex-col gap-x-3 gap-y-4">
+              <div className="flex gap-x-12 gap-y-8">
                 <LikeButton
-                  postId={id}
+    
                   likeCount={likeCount}
                   initialLikeState={currentUserLike}
                 />
-                <>
-                  <Link href={`/thread/${id}`}>
-                    <Image
-                      src="/assets/expand-all.svg"
-                      alt="reply"
-                      width={24}
-                      height={24}
-                      className="cursor-pointer object-contain"
-                    />
-                  </Link>
-                  <p className="mt-1 text-subtle-medium text-gray-1">
-                    {comments.length}
-                  </p>
-                </>
-                <Image
-                  src="/assets/replicate.svg"
-                  alt="repost"
-                  width={24}
-                  height={24}
-                  className="cursor-pointer object-contain"
-                />
-                <Image
-                  src="/assets/send--alt.svg"
-                  alt="share"
-                  width={24}
-                  height={24}
-                  className="cursor-pointer object-contain"
-                />
+                  <>
+                    <ExpandButton postId={id} />
+                  </>
+            <ReplicateButton postId={id} />
+          <ShareButton postId={id} />
               </div>
-              {/* {isComment && comments.length > 0 && (
-                <Link href={`/thread/${id}`}>
-                  <p className="mt-1 text-subtle-medium text-slate-600">
-                    {comments.length}
-                  </p>
-                </Link>
-              )} */}
             </div>
           </div>
         </div>

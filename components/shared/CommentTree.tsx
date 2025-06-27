@@ -23,7 +23,7 @@ const CommentTree = ({ comments, currentUserId, currentUserImg }: CommentTreePro
             isComment
             likeCount={comment.like_count}
           />
-          <div className="ml-6 mt-2">
+          <div className="ml-6 mt-4">
             <Comment
               postId={comment.id}
               currentUserImg={currentUserImg}

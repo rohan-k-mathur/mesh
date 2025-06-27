@@ -6,13 +6,13 @@ import { Like } from "@prisma/client";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import Link from "next/link";
+
 interface Props {
   postId?: bigint;
   realtimePostId?: string;
 }
 
-const ExpandButton = ({ postId }: Props) => {
+const ReplyButton = ({ postId }: Props) => {
   const user = useAuth();
   const router = useRouter();
   const isUserSignedIn = !!user.user;
@@ -22,19 +22,17 @@ const ExpandButton = ({ postId }: Props) => {
  
   return (
 
-    <Link href={`/thread/${postId}`}>
-                    <Image
-                      src="/assets/reply.svg"
-                      alt="reply"
-                      width={28}
-                      height={28}
-                      className="cursor-pointer object-contain likebutton"
-                    />
-                  </Link>
+    <Image
+                  src="/assets/reply.svg"
+                  alt="share"
+                  width={24}
+                  height={24}
+                  className="cursor-pointer object-contain likebutton"
+                />
 
   );
   
 };
 
 
-export default ExpandButton;
+export default ReplyButton;

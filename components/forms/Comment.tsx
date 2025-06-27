@@ -10,6 +10,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { CommentTextarea } from "../ui/commenttextarea";
 import { Input } from "@/components/ui/input";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
@@ -20,7 +21,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { CommentValidation } from "@/lib/validations/thread";
 import Image from "next/image";
 import { addCommentToPost } from "@/lib/actions/thread.actions";
-
+import ReplyButton from "../buttons/ReplyButton";
 interface Props {
   postId: bigint;
   currentUserImg: string;
@@ -54,28 +55,28 @@ const Comment = ({ postId, currentUserImg, currentUserId }: Props) => {
           control={form.control}
           name="thread"
           render={({ field }) => (
-            <FormItem className="flex items-center gap-3 w-full">
-              <FormLabel>
+            <FormItem className="flex items-center gap-3 w-full h-full">
                 <Image
                   src={currentUserImg}
                   alt="Profile image"
                   width={48}
                   height={48}
-                  className="rounded-full object-cover"
+                    className="rounded-md"
                 />
-              </FormLabel>
-              <FormControl className="border-none bg-transparent">
-                <Input
-                  type="text"
+              <FormControl className=" bg-transparent ">
+          
+                <CommentTextarea
                   placeholder="Comment..."
-                  className="no-focus text-light-1 outline-none"
+                  rows={1}
+                  className="comment-textarea   no-focus text-black "
                   {...field}
-                />
+                  ></CommentTextarea>
               </FormControl>
+              
             </FormItem>
           )}
         />
-        <Button type="submit" className="comment-form_btn">
+        <Button type="submit" variant="ghost" className=" comment-form_btn mr-2 mt-2">
           Reply
         </Button>
       </form>

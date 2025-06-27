@@ -77,7 +77,7 @@ const PostCard = async ({
           <div>
             <Link href={`/profile/${author.id}`} className="w-fit ">
               <div className={`${founders.className} `}>
-              <p className="cursor-pointer  text-[1.08rem] tracking-[.05rem] font-light text-black relative right-[.25rem] top-[.3rem]">
+              <p className="cursor-pointer  text-[1.08rem] tracking-[.05rem] font-semibold text-black relative right-[.25rem] top-[.3rem]">
                 {author.name}
               </p>
               </div>
