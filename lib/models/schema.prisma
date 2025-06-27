@@ -21,6 +21,8 @@ model User {
   bio                      String?
   onboarded                Boolean                   @default(false)
   likes                    Like[]
+  realtimeLikes            RealtimeLike[]      
+
   posts                    Post[]
   realtimeposts            RealtimePost[]
   realtimeedges            RealtimeEdge[]
