@@ -56,9 +56,9 @@ const ThreadCard = async ({
     });
   }
   return (
-    <article className="relative flex w-fit flex-col postcard  p-7 ">
+    <article className="relative flex w-full flex-col postcard p-7 ">
       <div className="flex-1 items-start justify-between ">
-        <div className="flex w-fit flex-1 flex-row gap-4 ">
+        <div className="flex w-full flex-1 flex-row gap-4 ">
           <div className="flex flex-col items-center  ">
             <Link
               href={`/profile/${author.id}`}
@@ -84,10 +84,10 @@ const ThreadCard = async ({
               </p>
               </div>
             </Link>
-            <hr className="mt-3 mb-4 w-[48rem] h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-100 to-transparent opacity-75" />
+            <hr className="mt-3 mb-4 w-full h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-100 to-transparent opacity-75" />
               <p className="mt-2  text-[1.08rem] text-black tracking-[.05rem]">{content}</p>
            
-            <hr className="mt-4 mb-3 w-[48rem] h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-100 to-transparent opacity-75" />
+            <hr className="mt-4 mb-3 w-full h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-100 to-transparent opacity-75" />
 
             <div className="mt-4 flex flex-col gap-x-3 gap-y-4">
               <div className="flex gap-x-12 gap-y-8">

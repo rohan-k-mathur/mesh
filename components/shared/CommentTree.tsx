@@ -5,13 +5,23 @@ interface CommentTreeProps {
   comments: any[];
   currentUserId: bigint;
   currentUserImg: string;
+  depth?: number;
 }
 
-const CommentTree = ({ comments, currentUserId, currentUserImg }: CommentTreeProps) => {
+const MAX_DEPTH = 5;
+const INDENT_PX = 24;
+
+const CommentTree = ({ comments, currentUserId, currentUserImg, depth = 0 }: CommentTreeProps) => {
   return (
-    <div className="ml-6 flex flex-col gap-3">
-      {comments.map((comment) => (
-        <div key={comment.id} className="mt-4">
+    <div className="flex flex-col gap-3">
+      {comments.map((comment) => {
+        const indent = Math.min(depth, MAX_DEPTH) * INDENT_PX;
+        return (
+          <div
+            key={comment.id}
+            className="mt-4"
+            style={{ marginLeft: indent, width: `calc(100% - ${indent}px)` }}
+          >
           <ThreadCard
             id={comment.id}
             currentUserId={currentUserId}
@@ -23,7 +33,10 @@ const CommentTree = ({ comments, currentUserId, currentUserImg }: CommentTreePro
             isComment
             likeCount={comment.like_count}
           />
-          <div className="ml-6 mt-4">
+          <div
+            className="mt-4"
+            style={{ marginLeft: indent, width: `calc(100% - ${indent}px)` }}
+          >
             <Comment
               postId={comment.id}
               currentUserImg={currentUserImg}
@@ -34,11 +47,13 @@ const CommentTree = ({ comments, currentUserId, currentUserImg }: CommentTreePro
                 comments={comment.children}
                 currentUserId={currentUserId}
                 currentUserImg={currentUserImg}
+                depth={depth + 1}
               />
             )}
           </div>
-        </div>
-      ))}
+          </div>
+        );
+      })}
     </div>
   );
 };
