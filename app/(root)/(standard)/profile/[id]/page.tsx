@@ -1,5 +1,6 @@
 import ProfileHeader from "@/components/shared/ProfileHeader";
 import ThreadsTab from "@/components/shared/ThreadsTab";
+import RealtimePostsTab from "@/components/shared/RealtimePostsTab";
 import AboutTab from "@/components/shared/AboutTab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { profileTabs } from "@/constants";
@@ -61,8 +62,8 @@ async function Page({ params }: { params: { id: string } }) {
               value={tab.value}
               className="w-full text-light-1"
             >
-              {tab.label === "Posts" ? ( // Render ThreadsTab only if the tab's value is 'threads'
-                <ThreadsTab
+              {tab.label === "Posts" ? (
+                <RealtimePostsTab
                   currentUserId={activeUser.userId!}
                   accountId={profilePageUser.id}
                 />

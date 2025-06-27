@@ -245,3 +245,36 @@ export async function fetchRealtimePostById({ id }: { id: string }) {
     throw new Error(`Failed to fetch real-time post: ${error.message}`);
   }
 }
+
+export async function fetchUserRealtimePosts({
+  realtimeRoomId,
+  userId,
+  postTypes,
+}: {
+  realtimeRoomId: string;
+  userId: bigint;
+  postTypes: realtime_post_type[];
+}) {
+  await prisma.$connect();
+  const realtimePosts = await prisma.realtimePost.findMany({
+    where: {
+      realtime_room_id: realtimeRoomId,
+      author_id: userId,
+      type: {
+        in: postTypes,
+      },
+    },
+    include: {
+      author: true,
+    },
+    orderBy: {
+      created_at: "desc",
+    },
+  });
+
+  return realtimePosts.map((realtimePost) => ({
+    ...realtimePost,
+    x_coordinate: realtimePost.x_coordinate.toNumber(),
+    y_coordinate: realtimePost.y_coordinate.toNumber(),
+  }));
+}
