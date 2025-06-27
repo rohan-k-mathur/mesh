@@ -25,16 +25,18 @@ interface Props {
     id: bigint;
   };
   createdAt: string;
+  isRealtimePost?: boolean;
 }
 
 const PostCard = async ({
   id,
   content,
   author,
-  image_url,  
+  image_url,
   video_url,
   type,
   createdAt,
+  isRealtimePost = false,
 }: Props) => {
   let currentUserLike: Like | null = null;
   let likeCount = 0;
@@ -107,19 +109,19 @@ const PostCard = async ({
             <div className="mt-4 flex flex-col gap-x-3 gap-y-4">
               <div className="flex gap-x-12 gap-y-8">
                 <LikeButton
-                  postId={id}
+                  {...(isRealtimePost
+                    ? { realtimePostId: id.toString() }
+                    : { postId: id })}
                   likeCount={likeCount}
                   initialLikeState={currentUserLike}
                 />
-                <>
-                 <ExpandButton 
-                 postId={id}/>
-                </>
-                <ReplicateButton
-                postId={id}/>
-                <ShareButton 
-                postId={id}
-                />
+                {!isRealtimePost && (
+                  <>
+                    <ExpandButton postId={id} />
+                  </>
+                )}
+                {!isRealtimePost && <ReplicateButton postId={id} />}
+                {!isRealtimePost && <ShareButton postId={id} />}
               </div>
             </div>
           </div>

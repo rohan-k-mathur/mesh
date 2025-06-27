@@ -17,6 +17,7 @@ const Page = async ({ params }: { params: { id: string } }) => {
           key={post.id}
           currentUserId={user?.userId}
           id={post.id}
+          isRealtimePost
           content={
             post.type === "TEXT" || post.type === "GALLERY"
               ? post.content!
