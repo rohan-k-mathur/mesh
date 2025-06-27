@@ -18,6 +18,7 @@ const Page = async ({ params }: { params: { id: string } }) => {
           currentUserId={user?.userId}
           id={post.id}
           isRealtimePost
+          likeCount={post.like_count}
           content={
             post.type === "TEXT" || post.type === "GALLERY"
               ? post.content!

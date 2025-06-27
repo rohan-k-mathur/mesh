@@ -27,6 +27,7 @@ export default async function Home() {
                 currentUserId={user?.userId}
                 id={realtimePost.id}
                 isRealtimePost
+                likeCount={realtimePost.like_count}
                 content={
                   realtimePost.content ? realtimePost.content : undefined
                 }
