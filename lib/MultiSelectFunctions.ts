@@ -252,3 +252,31 @@ export function submitEdits(
       console.error("Nothing to update");
   }
 }
+
+export function submitFieldEdits(
+  field: "LOCATION" | "BIRTHDAY",
+  value: string,
+  userAttributes: UserAttributes,
+  path: string
+) {
+  switch (field) {
+    case "LOCATION":
+      return upsertUserAttributes({
+        userAttributes: {
+          ...userAttributes,
+          location: value,
+        },
+        path,
+      });
+    case "BIRTHDAY":
+      return upsertUserAttributes({
+        userAttributes: {
+          ...userAttributes,
+          birthday: new Date(value),
+        },
+        path,
+      });
+    default:
+      console.error("Nothing to update");
+  }
+}
