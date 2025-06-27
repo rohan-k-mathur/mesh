@@ -37,7 +37,7 @@ async function Page({ params }: { params: { id: string } }) {
       />
       <div className="mt-9">
         <Tabs defaultValue="threads" className="w-full">
-          <TabsList className="tab">
+          <TabsList className="tab mb-4">
             {profileTabs.map((tab) => (
               <TabsTrigger key={tab.label} value={tab.value} className="tab">
                 <Image
@@ -60,7 +60,7 @@ async function Page({ params }: { params: { id: string } }) {
             <TabsContent
               key={`content-${tab.label}`}
               value={tab.value}
-              className="w-full text-light-1"
+              className="w-full text-light-1 "
             >
               {tab.label === "Posts" ? (
                 <RealtimePostsTab

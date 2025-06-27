@@ -1,7 +1,7 @@
 import { fetchUserThreads } from "@/lib/actions/user.actions";
 import { redirect } from "next/navigation";
 import ThreadCard from "@/components/cards/ThreadCard";
-
+import PostCard from "../cards/PostCard";
 interface Props {
   currentUserId: bigint;
   accountId: bigint;
@@ -29,9 +29,11 @@ const ThreadsTab = async ({ currentUserId, accountId }: Props) => {
           comments={post.children}
           likeCount={post.like_count}
         />
+        
       ))}
     </section>
   );
 };
 
 export default ThreadsTab;
+

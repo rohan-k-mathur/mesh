@@ -17,11 +17,11 @@ const RealtimePostsTab = async ({ currentUserId, accountId }: Props) => {
   if (!posts) redirect("/");
 
   return (
-    <section className="mt-[0rem] flex flex-col gap-12">
+    <section className="mt-[3rem] flex flex-col gap-12">
       {posts.length === 0 ? (
         <p className="no-result">Nothing found</p>
       ) : (
-        <>
+          <>
           {posts.map((post) => (
             <PostCard
               key={post.id}
@@ -34,9 +34,12 @@ const RealtimePostsTab = async ({ currentUserId, accountId }: Props) => {
               author={post.author!}
               createdAt={post.created_at.toDateString()}
             />
+            
           ))}
-        </>
+                  </>
+
       )}
+      
     </section>
   );
 };

@@ -15,7 +15,7 @@ const NodeAuthorDisplay = ({ author }: Props) => {
         {/* This link wraps both the image and the username, so you have one unified hover area */}
         <Link href={`/profile/${author.id}`} className="node-author-wrapper ">
           <Image
-            src={"image" in author ? author.image || "/assets/profile.svg" : "/assets/profile.svg"}
+            src={"image" in author ? author.image || "/assets/user-helsinki.svg" : "/assets/user-helsinki.svg"}
             alt="Profile Image"
             width={24}
             height={24}
