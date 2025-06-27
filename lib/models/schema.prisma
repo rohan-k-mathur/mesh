@@ -45,6 +45,10 @@ model UserAttributes {
   songs      String[]
   interests  String[]
   movies     String[]
+  location   String?
+  birthday   DateTime?
+  hobbies    String[]
+  communities String[]
 
   @@map("user_attributes")
 }

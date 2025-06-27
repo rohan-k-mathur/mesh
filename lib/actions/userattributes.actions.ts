@@ -40,6 +40,14 @@ export async function upsertUserAttributes({
         movies: {
           set: userAttributes.movies,
         },
+        location: userAttributes.location,
+        birthday: userAttributes.birthday,
+        hobbies: {
+          set: userAttributes.hobbies,
+        },
+        communities: {
+          set: userAttributes.communities,
+        },
       },
       create: {
         user_id: user.userId!,
@@ -57,6 +65,14 @@ export async function upsertUserAttributes({
         },
         movies: {
           set: userAttributes.movies,
+        },
+        location: userAttributes.location,
+        birthday: userAttributes.birthday,
+        hobbies: {
+          set: userAttributes.hobbies,
+        },
+        communities: {
+          set: userAttributes.communities,
         },
       },
     });
