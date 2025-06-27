@@ -184,9 +184,9 @@ export async function fetchInterests(query: string): Promise<OptionType[]> {
   ];
 }
 
-export function convertListToSelectables(interests: string[]) {
-  if (!interests) {
-    return [{} as OptionType];
+export function convertListToSelectables(interests?: string[]) {
+  if (!interests || interests.length === 0) {
+    return [] as OptionType[];
   }
   return interests.map(
     (interest) =>

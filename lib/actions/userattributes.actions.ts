@@ -20,59 +20,74 @@ export async function upsertUserAttributes({
   }
   try {
     await prisma.$connect();
+
+    const {
+      artists = [],
+      albums = [],
+      songs = [],
+      interests = [],
+      movies = [],
+      location = null,
+      birthday = null,
+      hobbies = [],
+      communities = [],
+    } = userAttributes as Partial<UserAttributes>;
+
+    const sanitize = (arr: string[]) => arr.filter(Boolean);
+
     await prisma.userAttributes.upsert({
       where: {
         user_id: user.userId!,
       },
       update: {
         artists: {
-          set: userAttributes.artists,
+          set: sanitize(artists),
         },
         albums: {
-          set: userAttributes.albums,
+          set: sanitize(albums),
         },
         songs: {
-          set: userAttributes.songs,
+          set: sanitize(songs),
         },
         interests: {
-          set: userAttributes.interests,
+          set: sanitize(interests),
         },
         movies: {
-          set: userAttributes.movies,
+          set: sanitize(movies),
         },
-        location: userAttributes.location,
-        birthday: userAttributes.birthday,
+        location,
+        birthday,
         hobbies: {
-          set: userAttributes.hobbies,
+          set: sanitize(hobbies),
         },
         communities: {
-          set: userAttributes.communities,
+          set: sanitize(communities),
         },
       },
       create: {
         user_id: user.userId!,
         artists: {
-          set: userAttributes.artists,
+          set: sanitize(artists),
         },
         albums: {
-          set: userAttributes.albums,
+          set: sanitize(albums),
         },
         songs: {
-          set: userAttributes.songs,
+          set: sanitize(songs),
         },
         interests: {
-          set: userAttributes.interests,
+          set: sanitize(interests),
         },
         movies: {
-          set: userAttributes.movies,
+          set: sanitize(movies),
         },
-        location: userAttributes.location,
-        birthday: userAttributes.birthday,
+        location,
+        birthday,
         hobbies: {
-          set: userAttributes.hobbies,
+          set: sanitize(hobbies),
         },
         communities: {
-          set: userAttributes.communities,
+          set: sanitize(communities),
         },
       },
     });
