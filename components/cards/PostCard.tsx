@@ -4,8 +4,11 @@ import LikeButton from "../buttons/LikeButton";
 import ShareButton from "../buttons/ShareButton";
 import ExpandButton from "../buttons/ExpandButton";
 import ReplicateButton from "../buttons/ReplicateButton";
-// import { fetchLikeForCurrentUser } from "@/lib/actions/like.actions";
-import { Like } from "@prisma/client";
+import {
+  fetchLikeForCurrentUser,
+  fetchRealtimeLikeForCurrentUser,
+} from "@/lib/actions/like.actions";
+import { Like, RealtimeLike } from "@prisma/client";
 import React from "react";
 import localFont from 'next/font/local'
 const founders = localFont({ src: '/NewEdgeTest-RegularRounded.otf' })
@@ -26,10 +29,12 @@ interface Props {
   };
   createdAt: string;
   isRealtimePost?: boolean;
+  likeCount?: number;
 }
 
 const PostCard = async ({
   id,
+  currentUserId,
   content,
   author,
   image_url,
@@ -37,9 +42,17 @@ const PostCard = async ({
   type,
   createdAt,
   isRealtimePost = false,
-}: Props) => {
-  let currentUserLike: Like | null = null;
-  let likeCount = 0;
+  likeCount = 0,
+  }: Props) => {
+  let currentUserLike: Like | RealtimeLike | null = null;
+  if (currentUserId) {
+    currentUserLike = isRealtimePost
+      ? await fetchRealtimeLikeForCurrentUser({
+          realtimePostId: id,
+          userId: currentUserId,
+        })
+      : await fetchLikeForCurrentUser({ postId: id, userId: currentUserId });
+  }
   return (
     <article className="flex w-full flex-col postcard  p-7 ">
       <div className="flex items-start justify-between ">
