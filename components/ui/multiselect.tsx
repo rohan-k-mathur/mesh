@@ -17,6 +17,8 @@ interface Props<T extends OptionType> {
   fetchMultiselectData: (query: string) => Promise<T[]>;
   submitEdits: (selectables: T[]) => void;
   initialSelected: T[];
+  allowNew?: boolean;
+  onCreateOption?: (label: string) => T;
 }
 
 function useDebounce<T>(value: T, delay: number): T {
@@ -39,6 +41,8 @@ export function FancyMultiSelect<T extends OptionType>({
   fetchMultiselectData,
   initialSelected,
   submitEdits,
+  allowNew = false,
+  onCreateOption,
 }: Props<T>) {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -74,9 +78,21 @@ const fetchAndSetSelectables = useCallback(async (query: string) => {
   setSelectables(data.slice(0, 10));
 }, [fetchMultiselectData]);
 
-    const handleUnselect = useCallback((selectedValue: T) => {
+  const handleUnselect = useCallback((selectedValue: T) => {
     setSelected((prev) => prev.filter((s) => s.value !== selectedValue.value));
   }, []);
+
+  const handleAddOption = useCallback(() => {
+    if (!inputValue.trim()) {
+      return;
+    }
+    const label = inputValue.trim();
+    const option = onCreateOption
+      ? onCreateOption(label)
+      : ({ label, value: label } as T);
+    setInputValue("");
+    setSelected((prev) => [...prev, option]);
+  }, [inputValue, onCreateOption]);
 
 
 useEffect(() => {
@@ -180,7 +196,7 @@ useEffect(() => {
         {open && (
           <div className="absolute  w-[46.35rem]  mt-[1.47rem] bg-black text-white rounded-md">
             <CommandList>
-              {selectables.length > 0 ? (
+              {(selectables.length > 0 || (allowNew && inputValue.trim().length > 0)) ? (
                 <div className="absolute right-[.55rem]  top-[-.4rem] z-10 w-full rounded-md bg-popover text-popover-foreground animate-in">
                   <CommandGroup
                     className="visible  outline outline-1 outline-blue bg-blend-screen multiselect-dropdown ml-2 mr-2 mt-[-1.3rem] max-h-[9rem]
@@ -206,9 +222,25 @@ useEffect(() => {
                         }}
                         className="cursor-pointer relative right-1 w-[102%] bottom-1 dropdown-divider rounded-none hover:bg-slate-600"
                       >
-                        {selectable.label}
+                      {selectable.label}
                       </CommandItem>
                     ))}
+                    {allowNew && inputValue.trim().length > 0 &&
+                      !selectables.some(
+                        (s) => s.label.toLowerCase() === inputValue.trim().toLowerCase()
+                      ) && (
+                        <CommandItem
+                          key="add-new"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                          }}
+                          onSelect={handleAddOption}
+                          className="cursor-pointer relative right-1 w-[102%] bottom-1 dropdown-divider rounded-none hover:bg-slate-600"
+                        >
+                          {`Add "${inputValue.trim()}"`}
+                        </CommandItem>
+                      )}
                   </CommandGroup>
                 </div>
               ) : null}

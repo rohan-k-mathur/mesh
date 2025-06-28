@@ -14,6 +14,7 @@ import {
   fetchAlbums,
   fetchArtists,
   fetchInterests,
+  addInterest,
   fetchMovies,
   fetchBooks,
   fetchTracks,
@@ -195,6 +196,8 @@ export default function CustomButtons({ userAttributes }: Props) {
                 submitEdits={(selectables) =>
                   submitEdits("INTERESTS", selectables, userAttributes, path)
                 }
+                allowNew
+                onCreateOption={addInterest}
               />
             </div>
             <hr />
@@ -235,11 +238,13 @@ export default function CustomButtons({ userAttributes }: Props) {
               <FancyMultiSelect
                 fetchMultiselectData={fetchInterests}
                 initialSelected={convertListToSelectables(
-                  userAttributes.interests
+                  userAttributes.hobbies
                 )}
                 submitEdits={(selectables) =>
-                  submitEdits("INTERESTS", selectables, userAttributes, path)
+                  submitEdits("HOBBIES", selectables, userAttributes, path)
                 }
+                allowNew
+                onCreateOption={addInterest}
               />
             </div>
             <hr />

@@ -4,6 +4,60 @@ import { upsertUserAttributes } from "./actions/userattributes.actions";
 const OMDB_API_KEY = "c971c02c";
 const discogsToken = "cuqwVeLuoiKZsMfpWDLDPeTIjviOBgJnlvHELjse";
 
+export const interestList: OptionType[] = [
+  { value: "rock_climbing", label: "Rock Climbing" },
+  { value: "skydiving", label: "Skydiving" },
+  { value: "scuba_diving", label: "Scuba Diving" },
+  { value: "white_water_rafting", label: "White Water Rafting" },
+  { value: "paragliding", label: "Paragliding" },
+  { value: "spelunking", label: "Spelunking" },
+  { value: "car_restoration", label: "Car Restoration" },
+  { value: "car_detailing", label: "Car Detailing" },
+  { value: "auto_racing", label: "Auto Racing" },
+  { value: "off_roading", label: "Off-Roading" },
+  { value: "car_photography", label: "Car Photography" },
+  { value: "car_collecting", label: "Car Collecting" },
+  { value: "autocross", label: "Autocross" },
+  { value: "hiking", label: "Hiking" },
+  { value: "kayaking", label: "Kayaking/Canoeing" },
+  { value: "stargazing", label: "Stargazing" },
+  { value: "cycling", label: "Cycling" },
+  { value: "nature_walks", label: "Nature Walks" },
+  { value: "biking", label: "Biking" },
+  { value: "picnicking", label: "Picnicking" },
+  { value: "camping", label: "Camping" },
+  { value: "geocaching", label: "Geocaching" },
+  { value: "parkour", label: "Parkour" },
+  { value: "free_running", label: "Free Running" },
+  { value: "skateboarding", label: "Skateboarding" },
+  { value: "rollerblading", label: "Rollerblading/Roller Skating" },
+  { value: "motocross", label: "Motocross" },
+  { value: "skiing", label: "Skiing" },
+  { value: "kite_flying", label: "Kite Flying" },
+  { value: "beach_running", label: "Beach Running" },
+  { value: "beach_cleanup", label: "Beach Cleanup" },
+  { value: "surfing", label: "Surfing" },
+  { value: "beach_yoga", label: "Beach Yoga" },
+  { value: "beach_photography", label: "Beach Photography" },
+  { value: "dancing", label: "Dancing" },
+  { value: "trampoline_jumping", label: "Trampoline Jumping" },
+  { value: "kickboxing", label: "Kickboxing" },
+  { value: "zumba", label: "Zumba" },
+  { value: "swimming", label: "Swimming" },
+];
+
+export function addInterest(label: string): OptionType {
+  const value = label.toLowerCase().replace(/\s+/g, "_");
+  let option = interestList.find(
+    (i) => i.label.toLowerCase() === label.toLowerCase()
+  );
+  if (!option) {
+    option = { value, label };
+    interestList.push(option);
+  }
+  return option;
+}
+
 export interface OptionType {
   value: string;
   label: string;
@@ -167,47 +221,9 @@ export async function fetchTracks(query: string): Promise<OptionType[]> {
 }
 
 export async function fetchInterests(query: string): Promise<OptionType[]> {
-  return [
-    { value: "rock_climbing", label: "Rock Climbing" },
-    { value: "skydiving", label: "Skydiving" },
-    { value: "scuba_diving", label: "Scuba Diving" },
-    { value: "white_water_rafting", label: "White Water Rafting" },
-    { value: "paragliding", label: "Paragliding" },
-    { value: "spelunking", label: "Spelunking" },
-    { value: "car_restoration", label: "Car Restoration" },
-    { value: "car_detailing", label: "Car Detailing" },
-    { value: "auto_racing", label: "Auto Racing" },
-    { value: "off_roading", label: "Off-Roading" },
-    { value: "car_photography", label: "Car Photography" },
-    { value: "car_collecting", label: "Car Collecting" },
-    { value: "autocross", label: "Autocross" },
-    { value: "hiking", label: "Hiking" },
-    { value: "kayaking", label: "Kayaking/Canoeing" },
-    { value: "stargazing", label: "Stargazing" },
-    { value: "cycling", label: "Cycling" },
-    { value: "nature_walks", label: "Nature Walks" },
-    { value: "biking", label: "Biking" },
-    { value: "picnicking", label: "Picnicking" },
-    { value: "camping", label: "Camping" },
-    { value: "geocaching", label: "Geocaching" },
-    { value: "parkour", label: "Parkour" },
-    { value: "free_running", label: "Free Running" },
-    { value: "skateboarding", label: "Skateboarding" },
-    { value: "rollerblading", label: "Rollerblading/Roller Skating" },
-    { value: "motocross", label: "Motocross" },
-    { value: "skiing", label: "Skiing" },
-    { value: "kite_flying", label: "Kite Flying" },
-    { value: "beach_running", label: "Beach Running" },
-    { value: "beach_cleanup", label: "Beach Cleanup" },
-    { value: "surfing", label: "Surfing" },
-    { value: "beach_yoga", label: "Beach Yoga" },
-    { value: "beach_photography", label: "Beach Photography" },
-    { value: "dancing", label: "Dancing" },
-    { value: "trampoline_jumping", label: "Trampoline Jumping" },
-    { value: "kickboxing", label: "Kickboxing" },
-    { value: "zumba", label: "Zumba" },
-    { value: "swimming", label: "Swimming" },
-  ];
+  return interestList.filter((interest) =>
+    interest.label.toLowerCase().includes(query.toLowerCase())
+  );
 }
 
 export function convertListToSelectables(interests?: string[]) {
@@ -230,6 +246,7 @@ export function convertSelectablesToList(selectables: OptionType[]) {
 export function submitEdits(
   selectableType:
     | "INTERESTS"
+    | "HOBBIES"
     | "ALBUMS"
     | "MOVIES"
     | "TRACKS"
@@ -245,6 +262,14 @@ export function submitEdits(
         userAttributes: {
           ...userAttributes,
           interests: convertSelectablesToList(selectables),
+        },
+        path,
+      });
+    case "HOBBIES":
+      return upsertUserAttributes({
+        userAttributes: {
+          ...userAttributes,
+          hobbies: convertSelectablesToList(selectables),
         },
         path,
       });
