@@ -46,7 +46,7 @@ const Page = async ({ params }: { params: { id: string } }) => {
                 createdAt={post.created_at.toDateString()}
               />
       </div>
-      <div className="flex-1 flex-row w-full  mt-2 ml-4">
+      <div className="flex-1 flex-row w-full  mt-6 ml-4">
         <Comment
           postId={post.id}
           currentUserImg={user.photoURL!}

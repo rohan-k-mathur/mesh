@@ -56,13 +56,7 @@ const Comment = ({ postId, currentUserImg, currentUserId }: Props) => {
           name="thread"
           render={({ field }) => (
             <FormItem className="flex items-center gap-3 w-full h-full">
-                <Image
-                  src={currentUserImg}
-                  alt="Profile image"
-                  width={48}
-                  height={48}
-                    className="rounded-md"
-                />
+     
               <FormControl className=" bg-transparent ">
           
                 <CommentTextarea
@@ -76,7 +70,7 @@ const Comment = ({ postId, currentUserImg, currentUserId }: Props) => {
             </FormItem>
           )}
         />
-        <Button type="submit" variant="ghost" className=" comment-form_btn mr-2 mt-2">
+        <Button type="submit" variant="ghost" className=" comment-form_btn mr-2">
           Reply
         </Button>
       </form>
