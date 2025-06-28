@@ -8,6 +8,7 @@ import {
   DialogHeader,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { FancyMultiSelect } from "@/components/ui/multiselect";
 import {
   convertListToSelectables,
@@ -33,6 +34,7 @@ export default function CustomButtons({ userAttributes, initialOpen }: Props) {
   const [isAboutOpen, setAboutOpen] = useState(false);
   const [isBirthdayOpen, setBirthdayOpen] = useState(false);
   const [isLocationOpen, setLocationOpen] = useState(false);
+  const [location, setLocation] = useState(userAttributes.location || "");
   const [isInterestsOpen, setInterestsOpen] = useState(initialOpen || false);
   const [isHobbiesOpen, setHobbiesOpen] = useState(false);
   const [isCommunitiesOpen, setCommunitiesOpen] = useState(false);
@@ -144,9 +146,18 @@ export default function CustomButtons({ userAttributes, initialOpen }: Props) {
               <b>Enter your location if you&apos; d like to</b>
             </DialogHeader>
             <hr />
-
             <div className="bg-black border border-white rounded-md px-3 pt-6 pb-[4rem] mt-3 mb-3 ">
-              {/* <FancyMultiSelect_Interests /> */}
+              <Input
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    submitFieldEdits("LOCATION", e.currentTarget.value, userAttributes, path);
+                  }
+                }}
+                onBlur={() => submitFieldEdits("LOCATION", location, userAttributes, path)}
+                placeholder="Your location"
+              />
             </div>
             <hr />
             <div className="flex gap-4 ">
@@ -164,9 +175,6 @@ export default function CustomButtons({ userAttributes, initialOpen }: Props) {
               >
                 Close
               </DialogClose>
-            </div>
-            <div className="overlay w-full bg-white h-full text-center align-middle	 font-bold text-black">
-              {"UNDER CONSTRUCTION"}
             </div>
           </DialogContent>
         </Dialog>
