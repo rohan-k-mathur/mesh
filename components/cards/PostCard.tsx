@@ -82,7 +82,7 @@ const PostCard = async ({
               </p>
               </div>
             </Link>
-            <hr className="mt-3 mb-4 w-full h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-100 to-transparent opacity-75" />
+            <hr className="mt-3 mb-4 w-[200%] h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-100 to-transparent opacity-75" />
             {type === "TEXT" && content && (
               <p className="mt-2  text-[1.08rem] text-black tracking-[.05rem]">{content}</p>
             )}
@@ -117,7 +117,7 @@ const PostCard = async ({
                 ))}
               </div>
             )}
-            <hr className="mt-4 mb-3 w-full h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-100 to-transparent opacity-75" />
+            <hr className="mt-4 mb-3 w-[200%] h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-100 to-transparent opacity-75" />
 
             <div className="mt-4 flex flex-col gap-x-3 gap-y-4">
               <div className="flex gap-x-12 gap-y-8">

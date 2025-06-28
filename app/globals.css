@@ -7,7 +7,7 @@
 @layer components {
   /* main */
   .main-container {
-    @apply flex min-h-screen flex-1 flex-col items-center px-6 pb-10 pt-[5rem] max-md:pb-32 sm:px-10;
+    @apply flex  min-h-screen flex-1 flex-col items-center px-6 pb-10 pt-[5rem] max-md:pb-32 sm:px-10;
     overscroll-behavior: none;
     overscroll-behavior-x: none;
   }
@@ -171,11 +171,11 @@
 
 /* Comment Form */
 .comment-form {
-  @apply mt-2 flex w-3/5 flex-row items-start gap-2 border-y border-y-dark-4 py-4 max-xs:flex-col !important;
+  @apply mt-2 flex w-[96%] flex-row items-start gap-2 py-2 max-xs:flex-col !important;
 }
 
 .comment-form_btn {
-  @apply rounded-sm bg-transparent gap-4 !text-small-regular border-none 
+  @apply rounded-md bg-transparent px-3 py-4  !text-small-regular border-none 
   text-light-1    max-xs:w-full !important;
   outline-style: solid;
   outline-width: .5px;
@@ -400,7 +400,7 @@ textarea {
   line-height: 0.8rem; /* 16px */
 }
 .comment-textarea {
-
+  
   font-size: 1.75rem; /* 12px */
   box-shadow:  inset 4px 8px 30px #ffffff,
              inset -4px -8px 20px #cbadd3;

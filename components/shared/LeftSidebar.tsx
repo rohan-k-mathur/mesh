@@ -106,7 +106,7 @@ function LeftSidebar({ userRooms }: Props) {
           </Button>
         )}
       </div>
-      <div className="absolute justify-start  top-[1.55rem] left-[2.7rem] ">
+      <div className="absolute justify-start  top-[1.55rem] left-[2.3rem] ">
       <Link href="/" className="flex items-center gap-2">
         <Image src="/assets/logo-black.svg" alt="logo" width={36} height={36} /> 
         <div className={`${parabole.className}`}>

@@ -37,11 +37,15 @@ const CommentTree = ({ comments, currentUserId, currentUserImg, depth = 0 }: Com
             className="mt-4"
             style={{ marginLeft: indent, width: `calc(100% - ${indent}px)` }}
           >
+                              <hr className="mt-4 mb-3 w-full h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-900 to-transparent opacity-75" />
+
             <Comment
               postId={comment.id}
               currentUserImg={currentUserImg}
               currentUserId={currentUserId}
             />
+                  <hr className="mt-4 mb-3 w-full h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-900 to-transparent opacity-75" />
+
             {comment.children && comment.children.length > 0 && (
               <CommentTree
                 comments={comment.children}

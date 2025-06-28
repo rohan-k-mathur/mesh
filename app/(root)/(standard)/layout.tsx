@@ -47,22 +47,22 @@ export default async function StandardLayout({
     userRooms = [];
   }
   return (
-    <html className="bg-gradient-to-r from-zinc-200 via-indigo-300 to-rose-200">
-  <body className={`${founderslight.className} `}>
-        <AuthProvider user={user}>
-          <main className="flex flex-row">
-            <LeftSidebar userRooms={userRooms} />
-            <section className="main-container ">
-              <div className="w-full max-w-4xl">
-                <AuthProvider user={user}>{children}</AuthProvider>
-              </div>
-            </section>
-            <RightSidebar/>
+    <html className="bg-gradient-to-r from-zinc-200 from-0% via-indigo-300 via-50% to-rose-200 to-100%">
+    <body className={`${founderslight.className}`}>
+      <AuthProvider user={user}>
+        <main className="flex flex-row">
+          <LeftSidebar userRooms={userRooms} />
+          <section className="main-container ">
+            <div className="w-full max-w-4xl">
+              <AuthProvider user={user}>{children}</AuthProvider>
+            </div>
+          </section>
+          <RightSidebar/>
 
-          </main>
-          
-        </AuthProvider>
-      </body>
-    </html>
+        </main>
+        
+      </AuthProvider>
+    </body>
+  </html>
   );
 }
