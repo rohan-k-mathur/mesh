@@ -286,9 +286,6 @@ export default function CustomButtons({ userAttributes, initialOpen }: Props) {
                 Close
               </DialogClose>
             </div>
-            <div className="overlay w-full bg-white h-full text-center align-middle	 font-bold text-black">
-              {"UNDER CONSTRUCTION"}
-            </div>
           </DialogContent>
         </Dialog>
 
