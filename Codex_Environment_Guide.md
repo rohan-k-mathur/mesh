@@ -5,11 +5,16 @@ This project uses Node.js 18+ and Yarn. To speed up initialization in Codex, you
 ## Prebuild the Docker image
 1. Create a `Dockerfile` in the project root with:
    ```Dockerfile
-   FROM node:18
+   FROM node:20
    WORKDIR /app
+
    COPY package.json yarn.lock ./
+   COPY lib/models/schema.prisma ./lib/models/
+
    RUN yarn install --frozen-lockfile
+
    COPY . .
+
    ```
 2. Build the image once and push it to a registry:
    ```bash
