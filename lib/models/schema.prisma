@@ -31,6 +31,8 @@ model User {
   realtimeRoomInviteTokens RealtimeRoomInviteToken[]
   following                Follow[]          @relation("FollowingRelation")
   followers                Follow[]          @relation("FollowerRelation")
+  archivedPosts            ArchivedPost[]
+
 
   @@map("users")
 }
