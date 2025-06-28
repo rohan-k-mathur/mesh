@@ -224,3 +224,32 @@ export async function getActivity(userId: bigint) {
     throw new Error(`Failed to fetch activity ${error.message}`);
   }
 }
+
+export async function fetchRandomUsers(count = 3) {
+  try {
+    await prisma.$connect();
+    const total = await prisma.user.count({
+      where: { onboarded: true },
+    });
+    const take = Math.min(count, total);
+    if (take === 0) return [];
+    const skip = Math.max(0, Math.floor(Math.random() * Math.max(total - take + 1, 1)));
+    const users = await prisma.user.findMany({
+      where: { onboarded: true },
+      skip,
+      take,
+      select: {
+        id: true,
+        name: true,
+        username: true,
+        image: true,
+      },
+    });
+    return users.map((u) => ({
+      ...u,
+      id: Number(u.id),
+    }));
+  } catch (error: any) {
+    throw new Error(`Failed to fetch random users: ${error.message}`);
+  }
+}
