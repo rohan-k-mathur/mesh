@@ -2,6 +2,7 @@ import { fetchRealtimePostById } from "@/lib/actions/realtimepost.actions";
 import { redirect, notFound } from "next/navigation";
 import { getUserFromCookies } from "@/lib/serverutils";
 import PostCard from "@/components/cards/PostCard";
+import Modal from "@/components/modals/Modal";
 
 const Page = async ({ params }: { params: { id: string } }) => {
   if (!params?.id && params?.id?.length !== 1) return notFound();
@@ -12,6 +13,7 @@ const Page = async ({ params }: { params: { id: string } }) => {
 
   return (
     <section className="relative">
+      <Modal />
       <div>
         <PostCard
           key={post.id}
