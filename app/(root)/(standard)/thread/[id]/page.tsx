@@ -6,6 +6,7 @@ import CommentTree from "@/components/shared/CommentTree";
 import { redirect, notFound } from "next/navigation";
 import { getUserFromCookies } from "@/lib/serverutils";
 import PostCard from "@/components/cards/PostCard";
+import Modal from "@/components/modals/Modal";
 
 const Page = async ({ params }: { params: { id: string } }) => {
   if (!params?.id && params?.id?.length !== 1) return notFound();
@@ -17,6 +18,7 @@ const Page = async ({ params }: { params: { id: string } }) => {
   return (
     <section className="sticky ">
                 <main className=" bg-transparent">
+      <Modal />
 
       <div className="flex flex-row">
         {/* <PostCard

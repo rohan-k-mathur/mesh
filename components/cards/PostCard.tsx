@@ -31,6 +31,7 @@ interface Props {
   createdAt: string;
   isRealtimePost?: boolean;
   likeCount?: number;
+  expirationDate?: string | null;
 }
 
 const PostCard = async ({
@@ -44,6 +45,7 @@ const PostCard = async ({
   createdAt,
   isRealtimePost = false,
   likeCount = 0,
+  expirationDate = null,
   }: Props) => {
   let currentUserLike: Like | RealtimeLike | null = null;
   if (currentUserId) {
@@ -134,7 +136,10 @@ const PostCard = async ({
                   </>
             <ReplicateButton postId={id} />
           <ShareButton postId={id} />
-          <TimerButton postId={id} />
+          <TimerButton
+            isOwned={currentUserId === author.id}
+            expirationDate={expirationDate ?? undefined}
+          />
 
               </div>
             </div>

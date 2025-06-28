@@ -36,6 +36,7 @@ interface Props {
   }[];
   isComment?: boolean;
   likeCount: number;
+  expirationDate?: string | null;
 }
 
 const ThreadCard = async ({
@@ -48,6 +49,7 @@ const ThreadCard = async ({
   comments,
   isComment,
   likeCount,
+  expirationDate = null,
 }: Props) => {
   let currentUserLike: Like | null = null;
   if (currentUserId) {
@@ -102,7 +104,10 @@ const ThreadCard = async ({
                   </>
             <ReplicateButton postId={id} />
           <ShareButton postId={id} />
-          <TimerButton postId={id} />
+          <TimerButton
+            isOwned={currentUserId === author.id}
+            expirationDate={expirationDate ?? undefined}
+          />
               </div>
             </div>
           </div>
