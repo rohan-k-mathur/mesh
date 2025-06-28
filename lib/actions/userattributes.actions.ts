@@ -115,3 +115,69 @@ export async function fetchUserAttributes({ userId }: { userId: bigint }) {
 
   return userAttributes;
 }
+
+export interface SearchUsersByAttributesParams {
+  base: Partial<UserAttributes>;
+  limit?: number;
+}
+
+export interface ScoredUser {
+  id: bigint;
+  name: string | null;
+  username: string;
+  image: string | null;
+  score: number;
+}
+
+export async function searchUsersByAttributes({
+  base,
+  limit = 10,
+}: SearchUsersByAttributesParams) {
+  await prisma.$connect();
+
+  const others = await prisma.userAttributes.findMany({
+    include: { user: true },
+  });
+
+  const intersection = (a: string[] | undefined | null, b: string[] | undefined | null) =>
+    (a || []).filter((v) => (b || []).includes(v));
+
+  const calcScore = (target: (typeof others)[number]) => {
+    let score = 0;
+    const fields: (keyof UserAttributes)[] = [
+      "artists",
+      "albums",
+      "songs",
+      "interests",
+      "movies",
+      "books",
+      "hobbies",
+      "communities",
+    ];
+    for (const field of fields) {
+      const arrA = (base as any)[field] as string[] | undefined;
+      const arrB = (target as any)[field] as string[] | undefined;
+      score += intersection(arrA, arrB).length;
+    }
+    if (base.location && target.location && base.location === target.location) {
+      score += 1;
+    }
+    return score;
+  };
+
+  const scored = others
+    .map((o) => ({ user: o.user, score: calcScore(o) }))
+    .filter((s) => s.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit);
+
+  const result: ScoredUser[] = scored.map((s) => ({
+    id: s.user.id,
+    name: s.user.name,
+    username: s.user.username,
+    image: s.user.image,
+    score: s.score,
+  }));
+
+  return result;
+}
