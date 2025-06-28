@@ -9,6 +9,7 @@ import ShareButton from "../buttons/ShareButton";
 import ReplicateButton from "../buttons/ReplicateButton";
 import ExpandButton from "../buttons/ExpandButton";
 import localFont from 'next/font/local'
+import TimerButton from "../buttons/TimerButton";
 const founders = localFont({ src: '/NewEdgeTest-RegularRounded.otf' })
 const comfortaa = Comfortaa({
   weight: ["400"],
@@ -101,6 +102,7 @@ const ThreadCard = async ({
                   </>
             <ReplicateButton postId={id} />
           <ShareButton postId={id} />
+          <TimerButton postId={id} />
               </div>
             </div>
           </div>

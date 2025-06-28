@@ -3,6 +3,7 @@ import Link from "next/link";
 import LikeButton from "../buttons/LikeButton";
 import ShareButton from "../buttons/ShareButton";
 import ExpandButton from "../buttons/ExpandButton";
+import TimerButton from "../buttons/TimerButton";
 import ReplicateButton from "../buttons/ReplicateButton";
 import {
   fetchLikeForCurrentUser,
@@ -133,6 +134,8 @@ const PostCard = async ({
                   </>
             <ReplicateButton postId={id} />
           <ShareButton postId={id} />
+          <TimerButton postId={id} />
+
               </div>
             </div>
           </div>
