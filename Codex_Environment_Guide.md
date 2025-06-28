@@ -16,12 +16,16 @@ This project uses Node.js 18+ and Yarn. To speed up initialization in Codex, you
    COPY . .
 
    ```
-2. Build the image once and push it to a registry:
+2. Build the image once and push it to [Docker Hub](https://hub.docker.com/):
    ```bash
-   docker build -t my-mesh-image .
-   docker push my-mesh-image
+   docker build -t rohanmathurrhyzome/my-mesh-image .
+   docker push rohanmathurrhyzome/my-mesh-image
    ```
-3. Use this image when launching Codex. Dependencies are already installed, so the container starts quickly.
+3. Use this image when launching Codex. Add the following to the Setup script so the container pulls the image automatically:
+   ```bash
+   docker pull rohanmathurrhyzome/my-mesh-image
+   ```
+   Dependencies are already installed, so the container starts quickly.
 
 ## Cache dependencies
 If you do not use a Docker image, run `yarn install` once and save the resulting `node_modules` directory. Restore it on future runs to skip reinstallation.
