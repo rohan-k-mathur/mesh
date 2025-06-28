@@ -71,3 +71,6 @@ Nodes are defined in `components/nodes` and typed in `lib/reactflow/types.ts`. T
 
 Mesh is deployed on Vercel: <https://vercel.com/18vijaybs-projects/ephemera>
 
+
+## Faster setup in Codex
+See `Codex_Environment_Guide.md` for tips on caching dependencies and using a Docker image so the development server starts quickly.
