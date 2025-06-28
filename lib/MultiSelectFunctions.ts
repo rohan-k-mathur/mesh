@@ -46,6 +46,28 @@ export const interestList: OptionType[] = [
   { value: "swimming", label: "Swimming" },
 ];
 
+export const communityList: OptionType[] = [
+  { value: "photography_club", label: "Photography Club" },
+  { value: "book_club", label: "Book Club" },
+  { value: "sports_fans", label: "Sports Fans" },
+  { value: "gaming", label: "Gaming" },
+  { value: "yoga_group", label: "Yoga Group" },
+  { value: "running_club", label: "Running Club" },
+  { value: "cooking", label: "Cooking" },
+  { value: "chess_club", label: "Chess Club" },
+  { value: "writers", label: "Writers" },
+  { value: "artists", label: "Artists" },
+  { value: "musicians", label: "Musicians" },
+  { value: "parents", label: "Parents" },
+  { value: "travelers", label: "Travelers" },
+  { value: "foodies", label: "Foodies" },
+  { value: "film_buff", label: "Film Buffs" },
+  { value: "startups", label: "Startups" },
+  { value: "open_source", label: "Open Source" },
+  { value: "nature_conservation", label: "Nature Conservation" },
+  { value: "volunteers", label: "Volunteers" },
+];
+
 export function addInterest(label: string): OptionType {
   const value = label.toLowerCase().replace(/\s+/g, "_");
   let option = interestList.find(
@@ -226,6 +248,12 @@ export async function fetchInterests(query: string): Promise<OptionType[]> {
   );
 }
 
+export async function fetchCommunities(query: string): Promise<OptionType[]> {
+  return communityList.filter((community) =>
+    community.label.toLowerCase().includes(query.toLowerCase())
+  );
+}
+
 export function convertListToSelectables(interests?: string[]) {
   if (!interests || interests.length === 0) {
     return [] as OptionType[];
@@ -251,7 +279,8 @@ export function submitEdits(
     | "MOVIES"
     | "TRACKS"
     | "ARTISTS"
-    | "BOOKS",
+    | "BOOKS"
+    | "COMMUNITIES",
   selectables: OptionType[],
   userAttributes: UserAttributes,
   path: string
@@ -310,6 +339,14 @@ export function submitEdits(
         userAttributes: {
           ...userAttributes,
           artists: convertSelectablesToList(selectables),
+        },
+        path,
+      });
+    case "COMMUNITIES":
+      return upsertUserAttributes({
+        userAttributes: {
+          ...userAttributes,
+          communities: convertSelectablesToList(selectables),
         },
         path,
       });
