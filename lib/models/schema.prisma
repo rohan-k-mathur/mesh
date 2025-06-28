@@ -233,3 +233,25 @@ model ArchivedPost {
 
   @@map("archived_posts")
 }
+
+model UserEmbedding {
+  user_id   BigInt   @id
+  user      User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  embedding Float[]
+  updated_at DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+
+  @@map("user_embeddings")
+}
+
+model FriendSuggestion {
+  id               BigInt   @id @default(autoincrement())
+  user_id          BigInt
+  suggested_user_id BigInt
+  score            Float
+  created_at       DateTime @default(now()) @db.Timestamptz(6)
+  user             User     @relation("SuggestionsCreator", fields: [user_id], references: [id], onDelete: Cascade)
+  suggestedUser    User     @relation("SuggestionsTarget", fields: [suggested_user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, suggested_user_id])
+  @@map("friend_suggestions")
+}
