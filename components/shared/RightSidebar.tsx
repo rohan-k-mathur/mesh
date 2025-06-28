@@ -10,6 +10,7 @@ interface SuggestedUser {
   username: string;
   image: string | null;
   score?: number;
+  overlap?: Record<string, string[]>;
 }
 
 function RightSidebar() {
@@ -21,6 +22,7 @@ function RightSidebar() {
         const res = await fetch("/api/suggested-friends");
         if (res.ok) {
           const data = await res.json();
+          console.log("suggestions", data);
           setUsers(data);
         }
       } catch (e) {
@@ -51,6 +53,11 @@ function RightSidebar() {
             <Link key={u.id} href={`/profile/${u.id}`}>
               <Button className="w-full rounded-md rightsidebar-item border-none">
                 {u.name}
+                {u.score !== undefined && (
+                  <span className="ml-2 text-xs text-gray-600">
+                    {u.score.toFixed(2)}
+                  </span>
+                )}
               </Button>
             </Link>
           ))}

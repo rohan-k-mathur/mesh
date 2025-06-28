@@ -2,6 +2,7 @@
 
 import { prisma } from "../prismaclient";
 import { deepseekEmbedding } from "../deepseekclient";
+import { UserAttributes } from "@prisma/client";
 
 function cosineSimilarity(a: number[], b: number[]) {
   const dot = a.reduce((sum, val, i) => sum + val * b[i], 0);
@@ -67,11 +68,56 @@ export async function fetchFriendSuggestions(userId: bigint) {
     orderBy: { score: "desc" },
     take: 5,
   });
-  return suggestions.map((s) => ({
-    id: s.suggested_user_id,
-    name: s.suggestedUser.name,
-    username: s.suggestedUser.username,
-    image: s.suggestedUser.image,
-    score: s.score,
-  }));
+
+  const baseAttrs = await prisma.userAttributes.findUnique({
+    where: { user_id: userId },
+  });
+
+  const fields: (keyof UserAttributes)[] = [
+    "artists",
+    "albums",
+    "songs",
+    "interests",
+    "movies",
+    "books",
+    "hobbies",
+    "communities",
+  ];
+
+  const overlapFor = async (otherId: bigint) => {
+    if (!baseAttrs) return {} as Record<string, string[]>;
+    const other = await prisma.userAttributes.findUnique({
+      where: { user_id: otherId },
+    });
+    if (!other) return {} as Record<string, string[]>;
+
+    const overlap: Record<string, string[]> = {};
+    for (const field of fields) {
+      const arrA = (baseAttrs as any)[field] as string[] | null | undefined;
+      const arrB = (other as any)[field] as string[] | null | undefined;
+      const inter = (arrA || []).filter((v) => (arrB || []).includes(v));
+      if (inter.length > 0) {
+        overlap[field] = inter;
+      }
+    }
+    if (
+      baseAttrs.location &&
+      other.location &&
+      baseAttrs.location === other.location
+    ) {
+      overlap.location = [baseAttrs.location];
+    }
+    return overlap;
+  };
+
+  return Promise.all(
+    suggestions.map(async (s) => ({
+      id: s.suggested_user_id,
+      name: s.suggestedUser.name,
+      username: s.suggestedUser.username,
+      image: s.suggestedUser.image,
+      score: s.score,
+      overlap: await overlapFor(s.suggested_user_id),
+    }))
+  );
 }
