@@ -27,6 +27,7 @@ export async function upsertUserAttributes({
       songs = [],
       interests = [],
       movies = [],
+      books = [],
       location = null,
       birthday = null,
       hobbies = [],
@@ -55,6 +56,9 @@ export async function upsertUserAttributes({
         movies: {
           set: sanitize(movies),
         },
+        books: {
+          set: sanitize(books),
+        },
         location,
         birthday,
         hobbies: {
@@ -80,6 +84,9 @@ export async function upsertUserAttributes({
         },
         movies: {
           set: sanitize(movies),
+        },
+        books: {
+          set: sanitize(books),
         },
         location,
         birthday,

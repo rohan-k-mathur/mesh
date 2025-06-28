@@ -36,6 +36,10 @@ const AboutTab = async ({ currentUserId, accountId }: Props) => {
       values: attributes?.movies || [],
     },
     {
+      label: "Books",
+      values: attributes?.books || [],
+    },
+    {
       label: "Interests",
       values: attributes?.interests || [],
     },
