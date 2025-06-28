@@ -7,11 +7,12 @@ import { useShallow } from "zustand/react/shallow";
 import TimerModal from "../modals/TimerModal";
 
 interface Props {
+  postId: bigint;
   isOwned: boolean;
   expirationDate?: string | null;
 }
 
-const TimerButton = ({ isOwned, expirationDate }: Props) => {
+const TimerButton = ({ postId, isOwned, expirationDate }: Props) => {
   const { openModal } = useStore(
     useShallow((state: AppState) => ({
       openModal: state.openModal,
@@ -27,7 +28,7 @@ const TimerButton = ({ isOwned, expirationDate }: Props) => {
       className="cursor-pointer object-contain likebutton"
       onClick={() =>
         openModal(
-          <TimerModal isOwned={isOwned} expirationDate={expirationDate} />
+          <TimerModal postId={postId} isOwned={isOwned} expirationDate={expirationDate} />
         )
       }
     />

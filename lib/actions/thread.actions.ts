@@ -7,6 +7,7 @@ interface CreatePostParams {
   text: string;
   authorId: bigint;
   path: string;
+  expirationDate?: string | null;
 }
 
 interface AddCommentToPostParams {
@@ -16,13 +17,14 @@ interface AddCommentToPostParams {
   path: string;
 }
 
-export async function createPost({ text, authorId, path }: CreatePostParams) {
+export async function createPost({ text, authorId, path, expirationDate }: CreatePostParams) {
   try {
     await prisma.$connect();
     const createdPost = await prisma.post.create({
       data: {
         content: text,
         author_id: authorId,
+        ...(expirationDate && { expiration_date: new Date(expirationDate) }),
       },
     });
     await prisma.user.update({
@@ -46,6 +48,7 @@ export async function createPost({ text, authorId, path }: CreatePostParams) {
 
 export async function fetchPosts(pageNumber = 1, pageSize = 20) {
   await prisma.$connect();
+  await archiveExpiredPosts();
 
   const skipAmount = (pageNumber - 1) * pageSize;
 
@@ -53,6 +56,10 @@ export async function fetchPosts(pageNumber = 1, pageSize = 20) {
   const posts = await prisma.post.findMany({
     where: {
       parent_id: null,
+      OR: [
+        { expiration_date: null },
+        { expiration_date: { gt: new Date() } },
+      ],
     },
     include: {
       author: {
@@ -82,6 +89,10 @@ export async function fetchPosts(pageNumber = 1, pageSize = 20) {
   const totalPostCount = await prisma.post.count({
     where: {
       parent_id: null,
+      OR: [
+        { expiration_date: null },
+        { expiration_date: { gt: new Date() } },
+      ],
     },
   });
   const isNext = totalPostCount > skipAmount + posts.length;
@@ -92,7 +103,8 @@ export async function fetchPosts(pageNumber = 1, pageSize = 20) {
 export async function fetchPostById(id: bigint) {
   try {
     await prisma.$connect();
-    return await prisma.post.findUnique({
+    await archiveExpiredPosts();
+    const post = await prisma.post.findUnique({
       where: {
         id: id,
       },
@@ -110,6 +122,10 @@ export async function fetchPostById(id: bigint) {
         },
       },
     });
+    if (post && post.expiration_date && post.expiration_date <= new Date()) {
+      return null;
+    }
+    return post;
   } catch (error: any) {
     throw new Error(`Failed to fetch post by id ${error.message}`);
   }
@@ -117,13 +133,15 @@ export async function fetchPostById(id: bigint) {
 
 export async function fetchPostTreeById(id: bigint) {
   await prisma.$connect();
+  await archiveExpiredPosts();
   const post = await prisma.post.findUnique({
     where: { id },
     include: {
       author: true,
     },
   });
-  if (!post) return null;
+  if (!post || (post.expiration_date && post.expiration_date <= new Date()))
+    return null;
 
   const fetchChildren = async (parentId: bigint): Promise<any[]> => {
     const children = await prisma.post.findMany({
@@ -179,4 +197,56 @@ export async function addCommentToPost({
   } catch (error: any) {
     throw new Error(`Error adding comment to thread ${error.message}`);
   }
+}
+
+export async function updatePostExpiration({
+  postId,
+  duration,
+}: {
+  postId: bigint;
+  duration: string;
+}) {
+  await prisma.$connect();
+  const post = await prisma.post.findUnique({
+    where: { id: postId },
+  });
+  if (!post) {
+    throw new Error("Post not found");
+  }
+  let expiration: Date | null = null;
+  if (duration !== "none") {
+    const now = Date.now();
+    if (duration === "1h") expiration = new Date(now + 3600 * 1000);
+    if (duration === "1d") expiration = new Date(now + 86400 * 1000);
+    if (duration === "1w") expiration = new Date(now + 604800 * 1000);
+  }
+  await prisma.post.update({
+    where: { id: postId },
+    data: { expiration_date: expiration },
+  });
+}
+
+export async function archiveExpiredPosts() {
+  await prisma.$connect();
+  const now = new Date();
+  const expired = await prisma.post.findMany({
+    where: { expiration_date: { lte: now } },
+  });
+  if (expired.length === 0) return;
+  const ids = expired.map((p) => p.id);
+  await prisma.$transaction([
+    prisma.archivedPost.createMany({
+      data: expired.map((p) => ({
+        original_post_id: p.id,
+        created_at: p.created_at,
+        content: p.content,
+        author_id: p.author_id,
+        updated_at: p.updated_at,
+        parent_id: p.parent_id,
+        like_count: p.like_count,
+        expiration_date: p.expiration_date!,
+      })),
+    }),
+    prisma.post.deleteMany({ where: { id: { in: ids } } }),
+  ]);
 }

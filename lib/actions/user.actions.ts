@@ -95,6 +95,12 @@ export async function fetchUserThreads(userId: bigint) {
       },
       include: {
         posts: {
+          where: {
+            OR: [
+              { expiration_date: null },
+              { expiration_date: { gt: new Date() } },
+            ],
+          },
           include: {
             author: true,
             children: {
