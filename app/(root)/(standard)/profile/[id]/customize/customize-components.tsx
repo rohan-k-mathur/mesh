@@ -15,6 +15,7 @@ import {
   fetchArtists,
   fetchInterests,
   fetchMovies,
+  fetchBooks,
   fetchTracks,
   submitEdits,
 } from "@/lib/MultiSelectFunctions";
@@ -447,12 +448,18 @@ export default function CustomButtons({ userAttributes }: Props) {
             <hr />
 
             <div className="bg-black border border-white rounded-md px-3 pt-6  pb-16  mt-3 mb-3 ">
-              {/* <FancyMultiSelect /> */}
+              <FancyMultiSelect
+                fetchMultiselectData={fetchBooks}
+                initialSelected={convertListToSelectables(userAttributes.books)}
+                submitEdits={(selectables) =>
+                  submitEdits("BOOKS", selectables, userAttributes, path)
+                }
+              />
             </div>
             <hr />
             <div className="flex gap-4 mb-2 mt-2">
               <DialogClose
-                id="entermovie"
+                id="enterbooks"
                 type="submit"
                 className={`form-submit-button pl-4 py-1 pr-[1rem]`}
               >
@@ -465,9 +472,6 @@ export default function CustomButtons({ userAttributes }: Props) {
               >
                 Close
               </DialogClose>
-            </div>
-            <div className="overlay w-full bg-white h-full text-center align-middle	 font-bold text-black">
-              {"UNDER CONSTRUCTION"}
             </div>
           </DialogContent>
         </Dialog>

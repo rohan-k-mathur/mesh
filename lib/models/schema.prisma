@@ -45,6 +45,7 @@ model UserAttributes {
   songs      String[]
   interests  String[]
   movies     String[]
+  books      String[]
   location   String?
   birthday   DateTime?
   hobbies    String[]

@@ -30,6 +30,32 @@ export async function fetchMovies(query: string): Promise<OptionType[]> {
   }
 }
 
+export async function fetchBooks(query: string): Promise<OptionType[]> {
+  try {
+    const response = await fetch(
+      `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}`
+    );
+    const data = await response.json();
+    if (data.docs && Array.isArray(data.docs)) {
+      const books = data.docs.map((doc: any) => ({
+        value: doc.key,
+        label: `${doc.title}${doc.author_name && doc.author_name.length ? ` by ${doc.author_name[0]}` : ""}`,
+      }));
+
+      const uniqueBooks = books.filter(
+        (book: any, index: number, self: any) =>
+          index === self.findIndex((b: any) => b.label === book.label)
+      );
+
+      return uniqueBooks;
+    }
+    return [];
+  } catch (error: any) {
+    console.error("Error fetching books:", error);
+    return [];
+  }
+}
+
 export async function fetchAlbums(query: string): Promise<OptionType[]> {
   try {
     const response = await fetch(
@@ -202,7 +228,13 @@ export function convertSelectablesToList(selectables: OptionType[]) {
 }
 
 export function submitEdits(
-  selectableType: "INTERESTS" | "ALBUMS" | "MOVIES" | "TRACKS" | "ARTISTS",
+  selectableType:
+    | "INTERESTS"
+    | "ALBUMS"
+    | "MOVIES"
+    | "TRACKS"
+    | "ARTISTS"
+    | "BOOKS",
   selectables: OptionType[],
   userAttributes: UserAttributes,
   path: string
@@ -229,6 +261,14 @@ export function submitEdits(
         userAttributes: {
           ...userAttributes,
           movies: convertSelectablesToList(selectables),
+        },
+        path,
+      });
+    case "BOOKS":
+      return upsertUserAttributes({
+        userAttributes: {
+          ...userAttributes,
+          books: convertSelectablesToList(selectables),
         },
         path,
       });
