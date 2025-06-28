@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogClose,
@@ -46,6 +47,11 @@ export default function CustomButtons({ userAttributes, initialOpen }: Props) {
   const [isArtistsOpen, setArtistsOpen] = useState(false);
   const [isAlbumsOpen, setAlbumsOpen] = useState(false);
   const [isTracksOpen, setTracksOpen] = useState(false);
+  const [birthday, setBirthday] = useState(
+    userAttributes.birthday
+      ? new Date(userAttributes.birthday).toISOString().split("T")[0]
+      : ""
+  );
   const path = usePathname();
 
   return (
@@ -87,9 +93,6 @@ export default function CustomButtons({ userAttributes, initialOpen }: Props) {
                 Close
               </DialogClose>
             </div>
-            <div className="overlay w-full bg-white h-full text-center align-middle	 font-bold text-black">
-              {"UNDER CONSTRUCTION"}
-            </div>
           </DialogContent>
         </Dialog>
 
@@ -108,7 +111,20 @@ export default function CustomButtons({ userAttributes, initialOpen }: Props) {
             <hr />
 
             <div className="bg-black border border-white rounded-md px-3 pt-6 pb-[4rem] mt-3 mb-3 ">
-              {/* <FancyMultiSelect_Interests /> */}
+              <Input
+                type="date"
+                value={birthday}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setBirthday(value);
+                  submitFieldEdits("BIRTHDAY", value, userAttributes, path);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    submitFieldEdits("BIRTHDAY", birthday, userAttributes, path);
+                  }
+                }}
+              />
             </div>
             <hr />
             <div className="flex gap-4 ">
@@ -126,9 +142,6 @@ export default function CustomButtons({ userAttributes, initialOpen }: Props) {
               >
                 Close
               </DialogClose>
-            </div>
-            <div className="overlay w-full bg-white h-full text-center align-middle	 font-bold text-black">
-              {"UNDER CONSTRUCTION"}
             </div>
           </DialogContent>
         </Dialog>
