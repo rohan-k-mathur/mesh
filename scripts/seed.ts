@@ -44,8 +44,107 @@ const samplePosts = [
   "Learning new things every day.",
 ];
 
+const sampleArtists = [
+  "The Beatles",
+  "Taylor Swift",
+  "Kendrick Lamar",
+  "Radiohead",
+  "Beyonce",
+  "Nirvana",
+  "Miles Davis",
+];
+
+const sampleAlbums = [
+  "Abbey Road",
+  "1989",
+  "To Pimp a Butterfly",
+  "OK Computer",
+  "Lemonade",
+  "Nevermind",
+  "Kind of Blue",
+];
+
+const sampleSongs = [
+  "Imagine",
+  "Bohemian Rhapsody",
+  "Hey Jude",
+  "Hotel California",
+  "Shake It Off",
+  "Blinding Lights",
+  "Smells Like Teen Spirit",
+];
+
+const sampleMovies = [
+  "The Matrix",
+  "Inception",
+  "Interstellar",
+  "The Lord of the Rings",
+  "The Shawshank Redemption",
+  "The Godfather",
+  "Pulp Fiction",
+  "Forrest Gump",
+];
+
+const sampleBooks = [
+  "1984",
+  "The Hobbit",
+  "To Kill a Mockingbird",
+  "Harry Potter",
+  "The Great Gatsby",
+  "Moby Dick",
+  "Pride and Prejudice",
+];
+
+const sampleInterests = [
+  "Rock Climbing",
+  "Skydiving",
+  "Scuba Diving",
+  "Hiking",
+  "Kayaking/Canoeing",
+  "Stargazing",
+  "Cycling",
+  "Camping",
+  "Surfing",
+  "Dancing",
+];
+
+const sampleHobbies = [
+  "Photography",
+  "Cooking",
+  "Chess",
+  "Writing",
+  "Running",
+  "Gardening",
+  "Gaming",
+];
+
+const sampleCommunities = [
+  "Book Club",
+  "Sports Fans",
+  "Yoga Group",
+  "Artists",
+  "Musicians",
+  "Travelers",
+  "Foodies",
+];
+
+const sampleLocations = [
+  "New York",
+  "San Francisco",
+  "London",
+  "Tokyo",
+  "Berlin",
+  "Sydney",
+];
+
 function getRandom<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
+}
+
+function getRandomSubset<T>(arr: T[], min: number, max: number): T[] {
+  const count = Math.floor(Math.random() * (max - min + 1)) + min;
+  const shuffled = [...arr].sort(() => 0.5 - Math.random());
+  return shuffled.slice(0, count);
 }
 
 async function createSampleData() {
@@ -105,6 +204,30 @@ async function createSampleData() {
         create: {
           user_id: user.id,
           realtime_room_id: GLOBAL_ROOM_ID,
+        },
+      });
+
+      await prisma.userAttributes.upsert({
+        where: { user_id: user.id },
+        update: {},
+        create: {
+          user_id: user.id,
+          artists: { set: getRandomSubset(sampleArtists, 1, 3) },
+          albums: { set: getRandomSubset(sampleAlbums, 1, 3) },
+          songs: { set: getRandomSubset(sampleSongs, 1, 3) },
+          interests: { set: getRandomSubset(sampleInterests, 2, 4) },
+          movies: { set: getRandomSubset(sampleMovies, 1, 3) },
+          books: { set: getRandomSubset(sampleBooks, 1, 3) },
+          location: getRandom(sampleLocations),
+          hobbies: { set: getRandomSubset(sampleHobbies, 1, 3) },
+          communities: { set: getRandomSubset(sampleCommunities, 1, 2) },
+          birthday: new Date(
+            Date.UTC(
+              1980 + Math.floor(Math.random() * 20),
+              Math.floor(Math.random() * 12),
+              Math.floor(Math.random() * 28) + 1
+            )
+          ),
         },
       });
 
