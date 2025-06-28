@@ -33,12 +33,12 @@ function RightSidebar() {
     // )
 return(
     <section className="custom-scrollbar rightsidebar  bg-transparent">
-    <div className="flex w-full flex-1 flex-col gap-6 px-6">
-    <h3 className="text-heading4-medium text-light-1">Discover Groups</h3>
+    <div className="flex w-full flex-1 flex-col gap-6 px-2">
+    <h3 className="relative bottom-[4rem] text-[1.5rem] text-black">Find New Groups</h3>
 
     </div>
-    <div className="flex w-full flex-1 flex-col gap-6 px-6">
-    <h3 className="text-heading4-medium text-light-1">Discover Users</h3>
+    <div className="flex w-full flex-1 flex-col gap-6 px-2">
+    <h3 className="relative bottom-[4rem] text-[1.5rem] text-black">Find New Users</h3>
     </div>
     <div className="absolute justify-start  top-[1.55rem] left-[2.7rem]"></div>
     <div
