@@ -58,3 +58,46 @@ export async function areFriends({ userId, targetUserId }: { userId: bigint; tar
   ]);
   return !!a && !!b;
 }
+export interface FriendEntry {
+  id: bigint;
+  name: string;
+  username: string;
+  image: string | null;
+  status: "following" | "followed" | "friends";
+}
+
+export async function fetchFollowRelations({ userId }: { userId: bigint }) {
+  await prisma.$connect();
+  const followings = await prisma.follow.findMany({
+    where: { follower_id: userId },
+    include: { following: true },
+  });
+  const followers = await prisma.follow.findMany({
+    where: { following_id: userId },
+    include: { follower: true },
+  });
+  const map = new Map<bigint, FriendEntry>();
+  for (const f of followings) {
+    map.set(f.following_id, {
+      id: f.following_id,
+      name: f.following.name!,
+      username: f.following.username,
+      image: f.following.image,
+      status: "following",
+    });
+  }
+  for (const f of followers) {
+    if (map.has(f.follower_id)) {
+      map.set(f.follower_id, { ...map.get(f.follower_id)!, status: "friends" });
+    } else {
+      map.set(f.follower_id, {
+        id: f.follower_id,
+        name: f.follower.name!,
+        username: f.follower.username,
+        image: f.follower.image,
+        status: "followed",
+      });
+    }
+  }
+  return Array.from(map.values());
+}
