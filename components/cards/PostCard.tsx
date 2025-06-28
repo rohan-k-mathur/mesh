@@ -137,6 +137,7 @@ const PostCard = async ({
             <ReplicateButton postId={id} />
           <ShareButton postId={id} />
           <TimerButton
+            postId={id}
             isOwned={currentUserId === author.id}
             expirationDate={expirationDate ?? undefined}
           />

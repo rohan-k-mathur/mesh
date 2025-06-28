@@ -13,11 +13,14 @@ import { AppState } from "@/lib/reactflow/types";
 import { useShallow } from "zustand/react/shallow";
 
 interface Props {
+  postId: bigint;
   isOwned: boolean;
   expirationDate?: string | null;
 }
 
-const TimerModal = ({ isOwned, expirationDate }: Props) => {
+import { updatePostExpiration } from "@/lib/actions/thread.actions";
+
+const TimerModal = ({ postId, isOwned, expirationDate }: Props) => {
   const { closeModal } = useStore(
     useShallow((state: AppState) => ({
       closeModal: state.closeModal,
@@ -56,7 +59,10 @@ const TimerModal = ({ isOwned, expirationDate }: Props) => {
       <div className="py-4 flex justify-end">
         <Button
           variant="outline"
-          onClick={() => closeModal()}
+          onClick={async () => {
+            await updatePostExpiration({ postId, duration });
+            closeModal();
+          }}
           className="px-4"
         >
           Save
