@@ -31,19 +31,20 @@ const ProfileHeader = ({
               src={imgUrl || "/assets/user-helsinki.svg"}
               alt="Profile Image"
               fill
-              className="rounded-none object-cover shadow-2xl"
+              className="rounded-md object-cover shadow-2xl"
             />
           </div>
           <div className="flex-1">
             <h2 className="text-left text-heading3-bold text-black">
               {name}
             </h2>
-            <p className="text-base-light text-black">@{username}</p>
+            <p className="text-base-light text-black mb-0">@{username}</p>
             {currentUserId && currentUserId !== accountId && (
               <FollowButton
                 targetUserId={accountId}
                 initialIsFollowing={isFollowing}
                 initialIsFriend={isFriend}
+                
               />
             )}
           </div>

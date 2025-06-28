@@ -39,10 +39,10 @@ const FollowButton = ({ targetUserId, initialIsFollowing, initialIsFriend }: Pro
     }
   }
 
-  const label = isFriend ? "Friends" : isFollowing ? "Unfollow" : "Follow";
+  const label = isFriend ? "Friends" : isFollowing ? "Following" : "Follow";
 
   return (
-    <Button variant="whiteborder" onClick={handleClick} className="mt-2 bg-transparent hover:bg-transparent">
+    <Button variant="whiteborder" onClick={handleClick} className=" bg-transparent hover:bg-transparent">
       {label}
     </Button>
   );
