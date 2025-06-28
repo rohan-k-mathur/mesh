@@ -1,8 +1,8 @@
 import { UserAttributes } from "@prisma/client";
 import { upsertUserAttributes } from "./actions/userattributes.actions";
 
-const OMDB_API_KEY = "c971c02c";
-const discogsToken = "cuqwVeLuoiKZsMfpWDLDPeTIjviOBgJnlvHELjse";
+const OMDB_API_KEY = process.env.OMDB_API_KEY || "";
+const discogsToken = process.env.DISCOGS_TOKEN || "";
 
 export const interestList: OptionType[] = [
   { value: "rock_climbing", label: "Rock Climbing" },
