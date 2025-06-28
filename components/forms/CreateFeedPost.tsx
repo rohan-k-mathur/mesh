@@ -29,7 +29,7 @@ const CreateFeedPost = () => {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="h-full w-full rounded-md leftsidebar-item border-none">
+        <Button className="h-full w-full rounded-md leftsidebar-item border-none hover:outline-2 hover:outline-double hover:outline-emerald-400">
           <Image
             src="/assets/plus-circle.svg"
             alt="create post"

@@ -48,7 +48,7 @@ function RightSidebar() {
         <div className="relative bottom-[4rem] flex flex-col gap-2">
           {users.map((u) => (
             <Link key={u.id} href={`/profile/${u.id}`}>
-              <Button className="w-full rounded-md leftsidebar-item border-none">
+              <Button className="w-full rounded-md rightsidebar-item border-none">
                 {u.name}
               </Button>
             </Link>

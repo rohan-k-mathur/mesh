@@ -211,6 +211,31 @@
   box-shadow:  inset 17px 17px 49px #F4F4F5,
                inset -17px -17px 49px #CCDAF8;
 }
+.rightsidebar-item
+{
+  border-radius: 20px;
+  /*background: linear-gradient(145deg, #c5c9d8, #eaefff);*/
+  background: transparent;
+  box-shadow:  inset 17px 17px 49px #F4F4F5,
+               inset -17px -17px 49px #f8cce2;
+}
+.leftsidebar-item:hover
+{
+  border-radius: 20px;
+  /*background: linear-gradient(145deg, #c5c9d8, #eaefff);*/
+  background: transparent;
+  box-shadow:  inset 17px 17px 49px #F4F4F5,
+               inset -17px -17px 49px #CCDAF8;
+}
+.rightsidebar-item:hover
+{
+  border-radius: 20px;
+  /*background: linear-gradient(145deg, #c5c9d8, #eaefff);*/
+  background: transparent;
+  box-shadow:  inset 17px 17px 49px #F4F4F5,
+               inset -17px -17px 49px #f8cce2;
+}
+
 .profile-shadow
 {
   box-shadow:   3px 3px 7px #dec7cc,

@@ -41,7 +41,7 @@ function LeftSidebar({ userRooms }: Props) {
             <Link
               href={`/room/${userRoom.id}`}
               key={userRoom.id}
-              className="leftsidebar_link leftsidebar-item  rounded-md hover:outline-4 hover:outline-double hover:outline-indigo-400"
+              className="leftsidebar_link leftsidebar-item  rounded-md hover:outline-2 hover:outline-double hover:outline-indigo-400"
             >
               <div className="rounded_icon_container shadow-sm shadow-black h-6 w-6">
                 <Image
@@ -58,7 +58,7 @@ function LeftSidebar({ userRooms }: Props) {
         })}
         <Link
           href={`/create-room`}
-          className="leftsidebar_link leftsidebar-item border-2 border-red-600 border-opacity-80	 rounded-md hover:outline-4 hover:outline-double hover:outline-red-400"
+          className="leftsidebar_link leftsidebar-item border-[1px] border-rose-300 border-opacity-80	 rounded-md hover:outline-2 hover:outline-double hover:outline-red-400"
         >
           <Image
             src="/assets/create-new.svg"
@@ -75,7 +75,7 @@ function LeftSidebar({ userRooms }: Props) {
       <div className="mb-6 px-6  ">
         {isUserSignedIn && (
           <Button
-            className="h-full w-full rounded-md  leftsidebar-item border-none justify-center items-center"
+            className="h-full w-full rounded-md  leftsidebar-item border-none justify-center items-center hover:outline-2 hover:outline-double hover:outline-emerald-400"
             onClick={gotoprofile}
           >
             <Image
@@ -92,7 +92,7 @@ function LeftSidebar({ userRooms }: Props) {
       <div className="mb-6 px-6 ">
         {isUserSignedIn && (
           <Button
-            className="h-full w-full rounded-md  leftsidebar-item border-none "
+            className="h-full w-full rounded-md  leftsidebar-item border-none hover:outline-2 hover:outline-double hover:outline-emerald-400"
             onClick={handleLogout}
           >
             <Image
