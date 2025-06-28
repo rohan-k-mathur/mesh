@@ -14,6 +14,7 @@ import {
   fetchAlbums,
   fetchArtists,
   fetchInterests,
+  fetchCommunities,
   addInterest,
   fetchMovies,
   fetchBooks,
@@ -286,7 +287,15 @@ export default function CustomButtons({ userAttributes, initialOpen }: Props) {
             <hr />
 
             <div className="bg-black border border-white rounded-md px-3 pt-6  pb-16  mt-3 mb-3 ">
-              {/* <FancyMultiSelect /> */}
+              <FancyMultiSelect
+                fetchMultiselectData={fetchCommunities}
+                initialSelected={convertListToSelectables(
+                  userAttributes.communities
+                )}
+                submitEdits={(selectables) =>
+                  submitEdits("COMMUNITIES", selectables, userAttributes, path)
+                }
+              />
             </div>
             <hr />
             <div className="flex gap-4 mb-2 mt-2">
@@ -304,9 +313,6 @@ export default function CustomButtons({ userAttributes, initialOpen }: Props) {
               >
                 Close
               </DialogClose>
-            </div>
-            <div className="overlay w-full bg-white h-full text-center align-middle	 font-bold text-black">
-              {"UNDER CONSTRUCTION"}
             </div>
           </DialogContent>
         </Dialog>
