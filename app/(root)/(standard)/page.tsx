@@ -1,4 +1,5 @@
 import PostCard from "@/components/cards/PostCard";
+import Modal from "@/components/modals/Modal";
 import { fetchRealtimePosts } from "@/lib/actions/realtimepost.actions";
 import { getUserFromCookies } from "@/lib/serverutils";
 
@@ -16,6 +17,7 @@ export default async function Home() {
 
   return (
     <div >
+      <Modal />
       <section className="mt-[0rem] flex flex-col gap-12">
         {result.length === 0 ? (
           <p className="no-result">Nothing found</p>
