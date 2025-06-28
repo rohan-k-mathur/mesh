@@ -2,6 +2,7 @@ import ProfileHeader from "@/components/shared/ProfileHeader";
 import ThreadsTab from "@/components/shared/ThreadsTab";
 import RealtimePostsTab from "@/components/shared/RealtimePostsTab";
 import AboutTab from "@/components/shared/AboutTab";
+import FriendsTab from "@/components/shared/FriendsTab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { profileTabs } from "@/constants";
 import { fetchUser } from "@/lib/actions/user.actions";
@@ -67,16 +68,18 @@ async function Page({ params }: { params: { id: string } }) {
                   currentUserId={activeUser.userId!}
                   accountId={profilePageUser.id}
                 />
-              ) : tab.label === "About" ? ( // Render ThreadsTab only if the tab's value is 'threads'
+              ) : tab.label === "About" ? (
                 <AboutTab
+                  currentUserId={activeUser.userId!}
+                  accountId={profilePageUser.id}
+                />
+              ) : tab.label === "Friends" ? (
+                <FriendsTab
                   currentUserId={activeUser.userId!}
                   accountId={profilePageUser.id}
                 />
               ) : (
                 <div className="placeholder">
-                  {" "}
-                  {/* Placeholder or other component for other tabs */}
-                  {/* You can add different components or placeholders for other tabs here */}
                   Content for {tab.label}
                 </div>
               )}
