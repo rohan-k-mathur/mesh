@@ -182,8 +182,9 @@ async function createSampleData() {
       where: { auth_id: authId },
     });
 
+    let user = existingUser;
     if (!existingUser) {
-      const user = await prisma.user.create({
+      user = await prisma.user.create({
         data: {
           auth_id: authId,
           username,
@@ -192,45 +193,48 @@ async function createSampleData() {
           onboarded: true,
         },
       });
+    }
 
-      await prisma.userRealtimeRoom.upsert({
-        where: {
-          user_id_realtime_room_id: {
-            user_id: user.id,
-            realtime_room_id: GLOBAL_ROOM_ID,
-          },
-        },
-        update: {},
-        create: {
+    await prisma.userRealtimeRoom.upsert({
+      where: {
+        user_id_realtime_room_id: {
           user_id: user.id,
           realtime_room_id: GLOBAL_ROOM_ID,
         },
-      });
+      },
+      update: {},
+      create: {
+        user_id: user.id,
+        realtime_room_id: GLOBAL_ROOM_ID,
+      },
+    });
 
-      await prisma.userAttributes.upsert({
-        where: { user_id: user.id },
-        update: {},
-        create: {
-          user_id: user.id,
-          artists: { set: getRandomSubset(sampleArtists, 1, 3) },
-          albums: { set: getRandomSubset(sampleAlbums, 1, 3) },
-          songs: { set: getRandomSubset(sampleSongs, 1, 3) },
-          interests: { set: getRandomSubset(sampleInterests, 2, 4) },
-          movies: { set: getRandomSubset(sampleMovies, 1, 3) },
-          books: { set: getRandomSubset(sampleBooks, 1, 3) },
-          location: getRandom(sampleLocations),
-          hobbies: { set: getRandomSubset(sampleHobbies, 1, 3) },
-          communities: { set: getRandomSubset(sampleCommunities, 1, 2) },
-          birthday: new Date(
-            Date.UTC(
-              1980 + Math.floor(Math.random() * 20),
-              Math.floor(Math.random() * 12),
-              Math.floor(Math.random() * 28) + 1
-            )
-          ),
-        },
-      });
+    const userAttrData = {
+      artists: { set: getRandomSubset(sampleArtists, 1, 3) },
+      albums: { set: getRandomSubset(sampleAlbums, 1, 3) },
+      songs: { set: getRandomSubset(sampleSongs, 1, 3) },
+      interests: { set: getRandomSubset(sampleInterests, 2, 4) },
+      movies: { set: getRandomSubset(sampleMovies, 1, 3) },
+      books: { set: getRandomSubset(sampleBooks, 1, 3) },
+      location: getRandom(sampleLocations),
+      hobbies: { set: getRandomSubset(sampleHobbies, 1, 3) },
+      communities: { set: getRandomSubset(sampleCommunities, 1, 2) },
+      birthday: new Date(
+        Date.UTC(
+          1980 + Math.floor(Math.random() * 20),
+          Math.floor(Math.random() * 12),
+          Math.floor(Math.random() * 28) + 1
+        )
+      ),
+    };
 
+    await prisma.userAttributes.upsert({
+      where: { user_id: user.id },
+      update: userAttrData,
+      create: { user_id: user.id, ...userAttrData },
+    });
+
+    if (!existingUser) {
       const postCount = 3;
       for (let j = 0; j < postCount; j++) {
         const content = `${getRandom(samplePosts)} (${j + 1})`;
