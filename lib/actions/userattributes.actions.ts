@@ -4,6 +4,10 @@ import { Prisma, realtime_post_type, UserAttributes } from "@prisma/client";
 import { prisma } from "../prismaclient";
 import { revalidatePath } from "next/cache";
 import { getUserFromCookies } from "@/lib/serverutils";
+import {
+  updateUserEmbedding,
+  generateFriendSuggestions,
+} from "./friend-suggestions.actions";
 
 export interface UpsertUserAttributes {
   userAttributes: UserAttributes;
@@ -98,6 +102,8 @@ export async function upsertUserAttributes({
         },
       },
     });
+    await updateUserEmbedding(user.userId!);
+    await generateFriendSuggestions(user.userId!);
     revalidatePath(path);
   } catch (error: any) {
     throw new Error(`Failed to upsert user attributes: ${error.message}`);
