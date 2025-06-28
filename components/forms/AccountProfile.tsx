@@ -34,9 +34,10 @@ interface Props {
     image: string | null;
   };
   btnTitle: string;
+  onSuccess?: () => void | Promise<void>;
 }
 
-const AccountProfile = ({ user, btnTitle }: Props) => {
+const AccountProfile = ({ user, btnTitle, onSuccess }: Props) => {
   const pathname = usePathname();
   const router = useRouter();
   const [files, setFiles] = useState<File[]>([]);
@@ -93,7 +94,9 @@ const AccountProfile = ({ user, btnTitle }: Props) => {
       path: pathname,
     });
 
-    if (pathname === "/profile/edit") {
+    if (onSuccess) {
+      await onSuccess();
+    } else if (pathname === "/profile/edit") {
       router.back();
     } else {
       await joinRoom({ roomId: "global" });
