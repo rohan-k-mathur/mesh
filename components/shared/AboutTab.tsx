@@ -72,13 +72,13 @@ const AboutTab = async ({ currentUserId, accountId }: Props) => {
         >
           <h3 className="text-base-semibold mb-2 text-black">{cat.label}</h3>
           {cat.values.length > 0 ? (
-            <ul className="list-disc pl-4 text-black text-base-regular space-y-1">
+            <ul className="list-disc pl-4 text-black text-base-light space-y-1">
               {cat.values.map((v) => (
                 <li key={v}>{v}</li>
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-light-3">No {cat.label.toLowerCase()} added</p>
+            <p className="text-base-light text-light-3">No {cat.label.toLowerCase()} added</p>
           )}
         </div>
       ))}
@@ -89,7 +89,7 @@ const AboutTab = async ({ currentUserId, accountId }: Props) => {
     return (
       <main className="items-center justify-center text-center">
         <Link href={`/profile/${accountId}/customize`}>
-          <Button size="lg" className="head-sub-text text-black w-fit rounded-md p-8">
+          <Button size="lg" className="mt-4 text-[1.5rem] bg-light-2 text-black w-fit rounded-md px-4 py-8 hover:bg-light-2">
             Customize Profile
           </Button>
         </Link>

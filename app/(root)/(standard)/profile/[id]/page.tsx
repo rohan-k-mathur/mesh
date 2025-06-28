@@ -38,7 +38,7 @@ async function Page({ params }: { params: { id: string } }) {
       />
       <div className="mt-9">
         <Tabs defaultValue="threads" className="w-full">
-          <TabsList className="tab mb-4">
+          <TabsList className="tab bg-white mb-4">
             {profileTabs.map((tab) => (
               <TabsTrigger key={tab.label} value={tab.value} className="tab">
                 <Image

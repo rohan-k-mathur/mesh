@@ -46,7 +46,7 @@ export default function CustomButtons({ userAttributes }: Props) {
 
   return (
     <div className="absolute flex flex-wrap grid-auto-row-dense w-fit	max-w-[70rem] items-start justify-left gap-10  mt-24  ">
-      <div className="relative grid p-5 gap-3 w-fit  border-2 border-white rounded-md pb-7 text-white  font-semibold">
+      <div className="relative grid p-5 gap-3 w-fit  border-2 border-white rounded-md pb-7 text-black  font-semibold">
         {"Bio"}
 
         {/* About Modal */}
@@ -169,7 +169,7 @@ export default function CustomButtons({ userAttributes }: Props) {
           </DialogContent>
         </Dialog>
       </div>
-      <div className="relative grid p-5 gap-3 w-fit  border-2 border-white rounded-md pb-7 text-white  font-semibold">
+      <div className="relative grid p-5 gap-3 w-fit  border-2 border-white rounded-md pb-7 text-black  font-semibold">
         {"Activities"}
 
         {/* Interests Modal */}
@@ -345,7 +345,7 @@ export default function CustomButtons({ userAttributes }: Props) {
           </DialogContent>
         </Dialog>
       </div>
-      <div className="grid p-5 w-fit gap-3  border-2 border-white rounded-md pb-7 text-white  font-semibold ">
+      <div className="grid p-5 w-fit gap-3  border-2 border-white rounded-md pb-7 text-black  font-semibold ">
         {"Media"}
 
         {/* Movies Modal */}
@@ -479,7 +479,7 @@ export default function CustomButtons({ userAttributes }: Props) {
         {/* Podcasts Modal */}
         <Dialog open={isPodcastsOpen} onOpenChange={setPodcastsOpen}>
           <DialogTrigger asChild>
-            <Button size={"lg"} className="flex w-full rounded-md">
+            <Button size={"lg"} className="flex w-full  rounded-md">
               Podcasts
             </Button>
           </DialogTrigger>
@@ -516,7 +516,7 @@ export default function CustomButtons({ userAttributes }: Props) {
           </DialogContent>
         </Dialog>
       </div>
-      <div className="grid p-5 w-fit gap-3 border-2 border-white rounded-md pb-7 text-white  font-semibold ">
+      <div className="grid p-5 w-fit gap-3 border-2 border-white rounded-md pb-7 text-black  font-semibold ">
         {"Music"}
 
         {/* Artists Modal */}
