@@ -26,13 +26,14 @@ import { useState } from "react";
 
 interface Props {
   userAttributes: UserAttributes;
+  initialOpen?: boolean;
 }
 
-export default function CustomButtons({ userAttributes }: Props) {
+export default function CustomButtons({ userAttributes, initialOpen }: Props) {
   const [isAboutOpen, setAboutOpen] = useState(false);
   const [isBirthdayOpen, setBirthdayOpen] = useState(false);
   const [isLocationOpen, setLocationOpen] = useState(false);
-  const [isInterestsOpen, setInterestsOpen] = useState(false);
+  const [isInterestsOpen, setInterestsOpen] = useState(initialOpen || false);
   const [isHobbiesOpen, setHobbiesOpen] = useState(false);
   const [isCommunitiesOpen, setCommunitiesOpen] = useState(false);
   const [isEventsOpen, setEventsOpen] = useState(false);
