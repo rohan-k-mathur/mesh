@@ -53,9 +53,11 @@ export default async function StandardLayout({
         <main className="flex flex-row">
           <LeftSidebar userRooms={userRooms} />
           <section className="main-container ">
+            
             <div className="w-full max-w-4xl">
               <AuthProvider user={user}>{children}</AuthProvider>
             </div>
+
           </section>
           <RightSidebar/>
 

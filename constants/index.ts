@@ -33,8 +33,9 @@ export const sidebarLinks = [
 
 export const profileTabs = [
   { value: "posts", label: "Posts", icon: "/assets/posts.svg" },
-  { value: "replies", label: "Replies", icon: "/assets/multiple-users.svg" },
   { value: "tagged", label: "Tagged", icon: "/assets/tag.svg" },
+
+  { value: "friends", label: "Friends", icon: "/assets/multiple-users.svg" },
 
   { value: "about", label: "About", icon: "/assets/user-circle.svg" },
 ];
