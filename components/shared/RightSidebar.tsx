@@ -4,20 +4,21 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
-interface RandomUser {
+interface SuggestedUser {
   id: number;
-  name: string;
+  name: string | null;
   username: string;
   image: string | null;
+  score?: number;
 }
 
 function RightSidebar() {
-  const [users, setUsers] = useState<RandomUser[]>([]);
+  const [users, setUsers] = useState<SuggestedUser[]>([]);
 
   useEffect(() => {
     async function load() {
       try {
-        const res = await fetch("/api/random-users");
+        const res = await fetch("/api/suggested-friends");
         if (res.ok) {
           const data = await res.json();
           setUsers(data);
