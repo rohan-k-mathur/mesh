@@ -110,7 +110,12 @@ export async function upsertUserAttributes({
   }
 }
 
-export async function fetchUserAttributes({ userId }: { userId: bigint }) {
+export async function fetchUserAttributes({
+  userId,
+}: {
+  userId: bigint | null;
+}) {
+  if (!userId) return null;
   await prisma.$connect();
 
   const userAttributes = await prisma.userAttributes.findUnique({

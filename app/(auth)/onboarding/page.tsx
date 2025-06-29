@@ -16,7 +16,8 @@ async function Page() {
     image: user?.photoURL || "",
   };
   const userAttributes =
-    (await fetchUserAttributes({ userId: user.userId! })) || ({} as UserAttributes);
+    (await fetchUserAttributes({ userId: user.userId ?? null })) ||
+    ({} as UserAttributes);
 
   return <OnboardingFlow userData={userData} userAttributes={userAttributes} />;
 }
