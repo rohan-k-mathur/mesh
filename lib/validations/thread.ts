@@ -55,6 +55,7 @@ export const GalleryPostValidation = z.object({
         )
     )
     .min(1),
+  isPublic: z.boolean().optional(),
 });
 export const CommentValidation = z.object({
   thread: z.string().min(3, { message: "Minimum of 3 characters" }),

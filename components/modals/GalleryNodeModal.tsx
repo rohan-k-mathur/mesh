@@ -12,6 +12,7 @@ import Image from "next/image";
 interface Props {
   id?: string;
   isOwned: boolean;
+  isPublic: boolean;
   onSubmit?: (values: z.infer<typeof GalleryPostValidation>) => void;
   currentImages: string[];
 }
@@ -22,17 +23,17 @@ const renderCreate = ({ onSubmit }: { onSubmit?: (values: z.infer<typeof Gallery
       <b>Create Gallery</b>
     </DialogHeader>
     <hr />
-    <GalleryNodeForm onSubmit={onSubmit!} currentImages={[]} />
+    <GalleryNodeForm onSubmit={onSubmit!} currentImages={[]} isOwned={true} />
   </div>
 );
 
-const renderEdit = ({ onSubmit, currentImages }: { onSubmit?: (values: z.infer<typeof GalleryPostValidation>) => void; currentImages: string[] }) => (
+const renderEdit = ({ onSubmit, currentImages, isOwned }: { onSubmit?: (values: z.infer<typeof GalleryPostValidation>) => void; currentImages: string[]; isOwned: boolean }) => (
   <div>
     <DialogHeader className="dialog-header text-white text-lg py-4 mt-[-4rem]">
       <b>Edit Gallery</b>
     </DialogHeader>
     <hr />
-    <GalleryNodeForm onSubmit={onSubmit!} currentImages={currentImages} />
+    <GalleryNodeForm onSubmit={onSubmit!} currentImages={currentImages} isOwned={isOwned} />
   </div>
 );
 
@@ -56,17 +57,17 @@ const renderView = (images: string[]) => (
   </div>
 );
 
-const GalleryNodeModal = ({ id, isOwned, onSubmit, currentImages }: Props) => {
+const GalleryNodeModal = ({ id, isOwned, isPublic, onSubmit, currentImages }: Props) => {
   const isCreate = !id && isOwned;
-  const isEdit = id && isOwned;
-  const isView = id && !isOwned;
+  const isEdit = id && (isOwned || isPublic);
+  const isView = id && !isOwned && !isPublic;
   return (
     <div>
       <DialogContent className="max-w-[57rem]">
         <DialogTitle>GalleryNodeModal</DialogTitle>
         <div className="grid rounded-md px-4 py-2">
           {isCreate && renderCreate({ onSubmit })}
-          {isEdit && renderEdit({ onSubmit, currentImages })}
+          {isEdit && renderEdit({ onSubmit, currentImages, isOwned })}
           {isView && renderView(currentImages)}
         </div>
       </DialogContent>

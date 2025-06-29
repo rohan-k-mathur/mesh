@@ -143,6 +143,7 @@ model RealtimePost {
   realtimeroom       RealtimeRoom       @relation(fields: [realtime_room_id], references: [id])
   realtime_room_id   String
   locked             Boolean
+  isPublic           Boolean        @default(false)
   collageLayoutStyle String? // "grid", "bento", "scrapbook"
   collageColumns     Int?
   collageGap         Int?
