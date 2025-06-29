@@ -94,12 +94,13 @@ const GalleryNodeForm = ({ onSubmit, currentImages, isOwned }: Props) => {
             name="isPublic"
             render={({ field }) => (
               <FormItem className="flex flex-row items-center gap-2 mb-4">
-                <FormLabel className="text-xl">Public</FormLabel>
+                <FormLabel className=" text-[2rem] text-white ml-8">Public?</FormLabel>
                 <FormControl>
                   <Input
                     type="checkbox"
                     checked={field.value}
                     onChange={field.onChange}
+                    className="flex relative -left-[15rem]"
                   />
                 </FormControl>
                 <FormMessage />
