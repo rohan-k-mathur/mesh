@@ -1,5 +1,3 @@
-import { openai } from "./openaiclient";
-
 export async function deepseekEmbedding(input: string) {
   try {
     const apiKey = process.env.DEEPSEEK_API_KEY;
@@ -18,13 +16,9 @@ export async function deepseekEmbedding(input: string) {
       const data = await res.json();
       return data.embedding as number[];
     }
+    throw new Error("Deepseek embedding request failed");
   } catch (err) {
     console.warn("Deepseek embedding failed", err);
+    throw err;
   }
-
-  const resp = await openai.embeddings.create({
-    model: "text-embedding-3-small",
-    input,
-  });
-  return resp.data[0].embedding as number[];
 }

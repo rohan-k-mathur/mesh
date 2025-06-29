@@ -32,7 +32,7 @@ The app/(root)/(realtime)/ folder contains the code for the reactflow canvas roo
    yarn install
    ```
 
-2. Create `.env.local` with the required environment variables (Firebase, OpenAI, database, etc.) and copy it to `.env` so Prisma can read them:
+2. Create `.env.local` with the required environment variables (Firebase, DeepSeek, database, etc.) and copy it to `.env` so Prisma can read them:
 
    ```bash
    cp .env.local .env
