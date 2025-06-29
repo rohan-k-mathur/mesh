@@ -1,39 +1,34 @@
 import crypto from "crypto";
-import axios from 'axios';
 import OpenAI from "openai";
 
 const apiKey = process.env.DEEPSEEK_API_KEY;
 const openai = new OpenAI({
-  baseURL: 'https://api.deepseek.com',
-  apiKey: apiKey
+  baseURL: "https://api.deepseek.com",
+  apiKey,
 });
-export async function deepseekEmbedding(input: string) {
-  const completion = await openai.chat.completions.create({
-    messages: [{ role: "system", content: "You are a helpful assistant." }],
-    model: "deepseek-chat",
-  });
-  console.log(completion.choices[0].message.content);
 
+export async function deepseekEmbedding(input: string) {
   if (apiKey) {
     try {
-      const res = await fetch("https://api.deepseek.com/v1/embeddings", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          input,
-        }),
+      const completion = await openai.chat.completions.create({
+        model: "deepseek-reasoner",
+        response_format: { type: "json_object" },
+        messages: [
+          {
+            role: "system",
+            content:
+              "Return a JSON object with a field 'embedding' containing a 32-dimensional array of numbers between -1 and 1.",
+          },
+          { role: "user", content: input },
+        ],
       });
-      if (res.ok) {
-        const data = await res.json();
-        return data.embedding as number[];
+      const message = completion.choices[0]?.message?.content;
+      if (message) {
+        const data = JSON.parse(message);
+        if (Array.isArray(data.embedding)) {
+          return data.embedding as number[];
+        }
       }
-      console.warn(
-        "Deepseek embedding request failed",
-        await res.text()
-      );
     } catch (err) {
       console.warn("Deepseek embedding failed", err);
     }
