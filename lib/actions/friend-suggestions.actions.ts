@@ -112,7 +112,7 @@ export async function fetchFriendSuggestions(userId: bigint) {
 
   return Promise.all(
     suggestions.map(async (s) => ({
-      id: s.suggested_user_id,
+      id: Number(s.suggested_user_id),
       name: s.suggestedUser.name,
       username: s.suggestedUser.username,
       image: s.suggestedUser.image,
