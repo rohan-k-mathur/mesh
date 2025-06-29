@@ -150,6 +150,7 @@ export function convertPostToNode(
             images: galleryImages,
             author: authorToSet,
             locked: realtimePost.locked,
+            isPublic: (realtimePost as any).isPublic ?? false,
           },
           position: {
             x: realtimePost.x_coordinate,

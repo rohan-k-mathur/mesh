@@ -13,6 +13,7 @@ export interface CreateRealtimePostParams {
   coordinates: { x: number; y: number };
   type: realtime_post_type;
   realtimeRoomId: string;
+  isPublic?: boolean;
   collageLayoutStyle?: string;  // or some enum
   collageColumns?: number;
   collageGap?: number;
@@ -25,6 +26,7 @@ interface UpdateRealtimePostParams {
   videoUrl?: string;
   coordinates?: { x: number; y: number };
   path: string;
+  isPublic?: boolean;
   collageLayoutStyle?: string;  // or some enum
   collageColumns?: number;
   collageGap?: number;
@@ -38,6 +40,7 @@ export async function createRealtimePost({
   coordinates,
   type,
   realtimeRoomId,
+  isPublic = false,
    //  collage fields
    collageLayoutStyle,
    collageColumns,
@@ -61,6 +64,7 @@ export async function createRealtimePost({
         type,
         realtime_room_id: realtimeRoomId,
         locked: false,
+        isPublic,
 
          // Collage fields
          ...(collageLayoutStyle && { collageLayoutStyle }),
@@ -100,6 +104,7 @@ export async function updateRealtimePost({
   imageUrl,
   coordinates,
   path,
+  isPublic,
   //  <-- Add these lines
   collageLayoutStyle,
   collageColumns,
@@ -114,7 +119,16 @@ export async function updateRealtimePost({
       },
     });
     if (user!.userId != originalPost!.author_id) {
-      if (text || videoUrl || imageUrl) {
+      if (!originalPost.isPublic) {
+        throw new Error(`User is not allowed to update this post`);
+      }
+      if (
+        coordinates ||
+        isPublic !== undefined ||
+        collageLayoutStyle ||
+        collageColumns !== undefined ||
+        collageGap !== undefined
+      ) {
         throw new Error(`User is not allowed to update this post`);
       }
     }
@@ -132,6 +146,7 @@ export async function updateRealtimePost({
         ...(collageLayoutStyle && { collageLayoutStyle }),
         ...(collageColumns !== undefined && { collageColumns }),
         ...(collageGap !== undefined && { collageGap }),
+        ...(isPublic !== undefined && { isPublic }),
 
         ...(coordinates && {
           x_coordinate: new Prisma.Decimal(coordinates.x),

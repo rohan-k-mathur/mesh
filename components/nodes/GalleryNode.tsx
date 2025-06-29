@@ -34,6 +34,7 @@ function GalleryNode({ id, data }: NodeProps<GalleryNodeData>) {
   const isOwned = currentActiveUser
     ? Number(currentActiveUser.userId) === Number(data.author.id)
     : false;
+  const isPublic = data.isPublic;
 
   async function onGallerySubmit(values: z.infer<typeof GalleryPostValidation>) {
     const uploads = await Promise.all(
@@ -50,6 +51,7 @@ function GalleryNode({ id, data }: NodeProps<GalleryNodeData>) {
         path,
         imageUrl: urls[0],
         text: JSON.stringify(urls),
+        ...(isOwned && { isPublic: values.isPublic }),
       });
     }
     store.closeModal();
@@ -70,6 +72,7 @@ function GalleryNode({ id, data }: NodeProps<GalleryNodeData>) {
         <GalleryNodeModal
           id={id}
           isOwned={isOwned}
+          isPublic={isPublic}
           currentImages={images}
           onSubmit={onGallerySubmit}
         />

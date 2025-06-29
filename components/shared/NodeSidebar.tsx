@@ -207,6 +207,7 @@ export default function NodeSidebar({
         store.openModal(
           <GalleryNodeModal
             isOwned={true}
+            isPublic={false}
             currentImages={[]}
             onSubmit={async (vals) => {
               const uploads = await Promise.all(
@@ -221,6 +222,7 @@ export default function NodeSidebar({
                   coordinates: centerPosition,
                   type: "GALLERY",
                   realtimeRoomId: roomId,
+                  isPublic: vals.isPublic,
                   imageUrl: urls[0],
                   text: JSON.stringify(urls),
                 });
