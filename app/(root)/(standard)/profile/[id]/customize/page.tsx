@@ -12,7 +12,7 @@ async function Page({ params }: { params: { id: string } }) {
   const profilePageUser = await fetchUser(BigInt(params.id));
   const userAttributes =
     (await fetchUserAttributes({
-      userId: activeUser.userId!,
+      userId: activeUser.userId ?? null,
     })) || ({} as UserAttributes);
   if (!profilePageUser?.onboarded) notFound();
   return (
