@@ -3,6 +3,10 @@ import { prisma } from "../lib/prismaclient";
 import { cert, initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { serverConfig } from "../lib/firebase/config";
+import {
+  updateUserEmbedding,
+  generateFriendSuggestions,
+} from "../lib/actions/friend-suggestions.actions";
 
 initializeApp({
   credential: cert(serverConfig.serviceAccount),
@@ -148,6 +152,7 @@ function getRandomSubset<T>(arr: T[], min: number, max: number): T[] {
 }
 
 async function createSampleData() {
+  const userIds: bigint[] = [];
   await prisma.realtimeRoom.upsert({
     where: { id: GLOBAL_ROOM_ID },
     update: {},
@@ -259,6 +264,16 @@ async function createSampleData() {
         });
       }
     }
+
+    userIds.push(user.id);
+  }
+
+  for (const id of userIds) {
+    await updateUserEmbedding(id);
+  }
+
+  for (const id of userIds) {
+    await generateFriendSuggestions(id);
   }
 }
 
