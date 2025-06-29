@@ -260,6 +260,7 @@ async function createSampleData() {
             y_coordinate: new Prisma.Decimal(Math.random() * 100),
             type: "TEXT",
             locked: false,
+            isPublic: false,
           },
         });
       }

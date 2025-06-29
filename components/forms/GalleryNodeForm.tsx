@@ -18,13 +18,14 @@ import { Input } from "../ui/input";
 interface Props {
   onSubmit: (values: z.infer<typeof GalleryPostValidation>) => void;
   currentImages: string[];
+  isOwned: boolean;
 }
 
-const GalleryNodeForm = ({ onSubmit, currentImages }: Props) => {
+const GalleryNodeForm = ({ onSubmit, currentImages, isOwned }: Props) => {
   const [imageURLs, setImageURLs] = useState<string[]>(currentImages);
   const form = useForm({
     resolver: zodResolver(GalleryPostValidation),
-    defaultValues: { images: [] as File[] },
+    defaultValues: { images: [] as File[], isPublic: false },
   });
 
   const handleImages = (
@@ -87,6 +88,25 @@ const GalleryNodeForm = ({ onSubmit, currentImages }: Props) => {
             </FormItem>
           )}
         />
+        {isOwned && (
+          <FormField
+            control={form.control}
+            name="isPublic"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-center gap-2 mb-4">
+                <FormLabel className="text-xl">Public</FormLabel>
+                <FormControl>
+                  <Input
+                    type="checkbox"
+                    checked={field.value}
+                    onChange={field.onChange}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
         <Button type="submit" className="w-[100%] h-max image-submit-button mt-2">
           Submit
         </Button>

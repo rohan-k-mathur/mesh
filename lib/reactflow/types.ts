@@ -80,6 +80,7 @@ export type GalleryNodeData = Node<
     images: string[];
     author: AuthorOrAuthorId;
     locked: boolean;
+    isPublic: boolean;
     layoutStyle?: string;
     columns?: number;
     gap?: number;
