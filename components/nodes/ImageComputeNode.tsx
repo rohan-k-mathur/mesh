@@ -1,6 +1,6 @@
 "use client";
 
-import { generateImage } from "@/lib/actions/openai.actions";
+import { generateImage } from "@/lib/actions/deepseek.actions";
 import { updateRealtimePost } from "@/lib/actions/realtimepost.actions";
 import { fetchUser } from "@/lib/actions/user.actions";
 import { useAuth } from "@/lib/AuthContext";
