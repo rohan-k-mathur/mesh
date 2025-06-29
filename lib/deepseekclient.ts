@@ -1,7 +1,19 @@
 import crypto from "crypto";
+import axios from 'axios';
+import OpenAI from "openai";
 
+const apiKey = process.env.DEEPSEEK_API_KEY;
+const openai = new OpenAI({
+  baseURL: 'https://api.deepseek.com',
+  apiKey: apiKey
+});
 export async function deepseekEmbedding(input: string) {
-  const apiKey = process.env.DEEPSEEK_API_KEY;
+  const completion = await openai.chat.completions.create({
+    messages: [{ role: "system", content: "You are a helpful assistant." }],
+    model: "deepseek-chat",
+  });
+  console.log(completion.choices[0].message.content);
+
   if (apiKey) {
     try {
       const res = await fetch("https://api.deepseek.com/v1/embeddings", {
