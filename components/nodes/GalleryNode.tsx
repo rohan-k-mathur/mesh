@@ -44,13 +44,14 @@ function GalleryNode({ id, data }: NodeProps<GalleryNodeData>) {
       .filter((r) => !r.error)
       .map((r) => r.fileURL);
     if (urls.length > 0) {
-      setImages(urls);
+      const updatedGallery = [...images, ...urls];
+      setImages(updatedGallery);
       setCurrentIndex(0);
       await updateRealtimePost({
         id,
         path,
-        imageUrl: urls[0],
-        text: JSON.stringify(urls),
+        imageUrl: updatedGallery[0],
+        text: JSON.stringify(updatedGallery),
         ...(isOwned && { isPublic: values.isPublic }),
       });
     }

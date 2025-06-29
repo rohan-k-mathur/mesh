@@ -45,7 +45,9 @@ const GalleryNodeForm = ({ onSubmit, currentImages, isOwned }: Props) => {
             reader.readAsDataURL(file);
           })
       )
-    ).then((urls) => setImageURLs(urls));
+    ).then((urls) =>
+      setImageURLs((prev) => [...prev, ...urls])
+    );
   };
 
   return (
