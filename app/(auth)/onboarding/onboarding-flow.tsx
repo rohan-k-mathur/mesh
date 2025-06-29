@@ -5,7 +5,7 @@ import { UserAttributes } from "@prisma/client";
 import AccountProfile from "@/components/forms/AccountProfile";
 import CustomButtons from "@/app/(root)/(standard)/profile/[id]/customize/customize-components";
 import { useRouter } from "next/navigation";
-
+import Button from "antd/lib/Button";
 interface UserData {
   authId: string;
   userId: bigint | null;
@@ -44,11 +44,11 @@ export default function OnboardingFlow({ userData, userAttributes }: Props) {
       )}
       {step === "customize" && (
         <>
-          <h1 className="head-text">Customize Profile</h1>
+          <h1 className="head-text relative">Customize Profile</h1>
           <CustomButtons userAttributes={userAttributes} initialOpen />
-          <button onClick={finishOnboarding} className="mt-8 bg-white px-5 py-2 rounded-md">
+          <Button onClick={finishOnboarding} className="flex flex-row mt-[48rem] bg-white px-5 py-2 rounded-md z-100">
             Finish
-          </button>
+          </Button>
         </>
       )}
     </main>
