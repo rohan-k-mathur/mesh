@@ -1,143 +1,146 @@
 # Mesh Product Development Roadmap
 
-Codebase Overview
+## Codebase Overview
 
-Mesh is a Next.js monorepo that implements collaborative “rooms” where users manipulate nodes in real time. Core components include:
+Mesh is a Next.js monorepo that powers real‑time collaborative “rooms.” Major building blocks already in place include:
 
-Real‑time canvas implemented with React Flow. Different node types are registered in Room.tsx (TEXT, VIDEO, IMAGE, LIVESTREAM, IMAGE_COMPUTE, COLLAGE) and displayed on the canvas with cursor tracking and background layers.
+* **Real‑time canvas** via React Flow. Room.tsx registers node types (TEXT, VIDEO, IMAGE, LIVESTREAM, IMAGE_COMPUTE, COLLAGE) and handles presence/cursor updates.
+* **Node creation menu** in NodeSidebar.tsx with modals for adding text posts, multimedia uploads, AI‑generated images, and collages.
+* **Live collaboration** using Supabase channels. Presence broadcasting and database synchronization keep all participants in sync.
+* **Authentication middleware** backed by Firebase, restricting access to private content.
+* **Prisma schema** defining posts, edges, rooms, and rich UserAttributes for interests, songs, movies, and more.
 
-Node creation menu defined in NodeSidebar.tsx. Users can create multiple node types via modals, including LLM‑powered features such as the “IMAGE_COMPUTE” node and a Collage node.
+These components form a working prototype where users can create rooms, post multimedia nodes, and collaborate live.
 
-Live collaboration infrastructure via Supabase channels, enabling presence and database updates in real time. Helper utilities handle cursor broadcasting and new node/edge synchronization.
+## Completed Milestones
 
-User authentication uses Firebase with server tokens validated in middleware, preventing unauthorized access to private pages.
+* Core canvas and node system
+* Supabase real‑time channels for presence and data updates
+* Basic feed with global and friend posts
+* Firebase authentication and session middleware
+* Initial Prisma models for rooms, posts, and user attributes
 
-Database schema (Prisma) includes real‑time posts, edges, rooms, and user attributes for storing interests, songs, movies, etc.
+The next sections outline the remaining work required for a public launch.
 
-1. Foundation (Refinement)
-Authentication & Security
+## Road to Public Launch
 
-Introduce multi‑factor auth and passwordless login to minimize friction.
+1. **Internal Dogfooding** – use Mesh daily within the team, logging bugs and collecting usability notes.
+2. **Closed Beta** – invite a small group of external users, monitor feedback, and refine onboarding.
+3. **Performance Optimization** – profile React rendering and Supabase queries; add caching and asset compression where needed.
+4. **Security Review** – audit authentication flows, dependency versions, and file uploads before opening to the public.
+5. **Open Beta / Production Release** – gradually roll out to a larger audience, scaling infrastructure based on monitoring data.
 
-Add role-based room permissions (owner, moderator, viewer).
+## 1. Foundation and Refinement
 
-Harden the middleware with stricter sameSite/cookie policies.
+### Authentication & Security
 
-Room Management
+* Introduce multi‑factor and passwordless login flows to minimize friction while maintaining strong account security.
+* Add role‑based permissions for rooms (owner, moderator, viewer) enforced on both the client and server.
+* Harden middleware with stricter `sameSite` and cookie policies.
 
-Provide REST/GraphQL endpoints for room creation and membership invites.
+### Room Management
 
-Implement soft deletion and archival for rooms.
+* Provide REST/GraphQL endpoints for room creation and membership invites.
+* Implement soft deletion and archival for rooms so data is not immediately lost.
 
-Node Canvas & Types
+### Node Canvas & Types
 
-Expand node plugin architecture so additional node types can be loaded dynamically.
+* Expand the node plug‑in architecture so additional node types can be loaded dynamically.
+* Define a standardized metadata model for nodes, storing author info, tags, and visibility levels.
 
-Include a standardized metadata model for nodes to store author info, tags, and visibility.
+### Feed Integration
 
-Feed Integration
+* Build a post moderation queue and trending algorithm for visibility control.
+* Add timeline filters to switch between “following” and “global” feeds.
 
-Add a post moderation queue and trending algorithm.
+### Device Responsiveness
 
-Include timeline filters for “following” vs. “global” feed.
+* Establish cross‑device support early so the canvas functions well on touch devices.
 
-Device Responsiveness
+## 2. Social Discovery Engine
 
-Baseline cross‑device support early to ensure the canvas functions on touch devices.
+### Interest Profiling
 
-2. Social Discovery Engine (Expansion)
-Interest Profiling
+* Extend `UserAttributes` with optional fields (location, birthday, hobbies, communities).
+* Provide update APIs and an onboarding survey to capture initial interests.
 
-Leverage the existing UserAttributes model for capturing movies, albums, etc., and expose update APIs.
+### Recommendation API
 
-Provide an onboarding survey to seed recommendations.
+* Apply collaborative filtering from likes, room membership, and profile overlaps.
+* Expose an endpoint returning recommended rooms or threads and integrate it into the feed UI.
 
-Recommendation API
+### Search and Explore
 
-Use collaborative filtering from interactions (likes, room membership).
+* Implement full‑text search (Postgres `tsvector` or a dedicated service).
+* Support map‑based discovery using the existing geocoding API route.
 
-Expose an endpoint returning recommended rooms or threads; integrate into the feed.
+## 3. Advanced Node Workflows
 
-Search and Explore
+### LLM Instruction Nodes
 
-Implement full-text search via Postgres tsvector or a dedicated search service.
+* Model instruction nodes in the database with references to prompts and parameters.
+* Provide a visual builder UI for chaining instructions (e.g., convert text → image).
 
-Support map-based discovery using the geocoding API route.
+### State Machine Builder
 
-3. Advanced Node Workflows (Detail)
-LLM Instruction Nodes
+* Represent node connections as a directed graph with triggers and conditions.
+* Allow storing and sharing these workflows with others.
 
-Model instruction nodes in the database with references to prompts and parameters.
+### Multimedia Nodes
 
-Provide a visual builder UI for chaining instructions (e.g., convert text → image).
+* Collage node: integrate the existing collage modal, store resulting images, and enable public sharing.
+* Webpage portfolio node: export to static HTML/CSS for personal pages.
+* DAW/Audio nodes: connect to third‑party APIs (e.g., LiveKit for recording) and store audio in Supabase.
 
-State Machine Builder
+## 4. Real‑Time Collaboration Enhancements
 
-Represent node connections as a directed graph with triggers/conditions.
+### Multiplayer UX
 
-Allow storing and sharing these workflows with others.
+* Extend cursor broadcasting with presence indicators (username labels and join/leave notifications).
+* Add ephemeral chat and emoji reactions stored in memory (optionally persisted for the last N messages).
 
-Multimedia Nodes
+### Concurrency Handling
 
-Photowall/Collage node: integrate existing Collage modal, store resulting images, and allow public sharing.
+* Introduce operational transform or CRDT‑based conflict resolution for simultaneous edits, especially text nodes.
+* Provide visual indicators when nodes are locked by others.
 
-Webpage Portfolio node: export to static HTML/CSS for personal pages.
+### Live Streaming Support
 
-DAW/Audio nodes: connect to third‑party APIs (e.g., LiveKit for recording) and store audio in Supabase.
+* The `/get-participant-token` route already issues LiveKit tokens. Build a livestream node UI enabling hosts to broadcast to viewers.
 
-4. Real‑Time Collaboration Enhancements (Detail)
-Multiplayer UX
+## 5. Production Hardening
 
-Extend cursor broadcasting with presence indicators (username labels, join/leave notifications).
+### Testing
 
-Add ephemeral chat and emoji reactions stored in memory (optional persistence for the last N messages).
+* Implement unit tests for actions and React components.
+* Integrate a CI pipeline running lint, type‑check, and end‑to‑end tests.
 
-Concurrency Handling
+### Monitoring & Metrics
 
-Introduce operational transform or CRDT-based conflict resolution for simultaneous edits, especially for text nodes.
+* Instrument API routes and real‑time events with metrics (e.g., Prometheus or a SaaS solution).
+* Track latency, errors, and usage patterns to inform scaling and optimization.
 
-Provide visual indicators when nodes are locked by others.
+### Security
 
-Live Streaming Support
+* Conduct a thorough review of file upload paths (e.g., `uploadthing`) for vulnerabilities.
+* Enforce strict rate limiting on real‑time channels.
 
-The /get-participant-token route already issues tokens via LiveKit. Build a Livestream node UI enabling hosts to broadcast to viewers.
+## 6. Launch & Growth
 
-5. Production Hardening (Addition)
-Testing
+### Onboarding & Templates
 
-Implement unit tests for actions and React components.
+* Include guided tours of the room UI and a “demo” room.
+* Build a template marketplace (starter rooms) that users can clone.
 
-Integrate a CI pipeline running lint, type-check, and e2e tests.
+### Feedback Loop & Dogfooding
 
-Monitoring & Metrics
+* Run an internal dogfooding program with staged rollouts to collect bug reports and usability feedback.
+* Integrate user surveys and Net Promoter Score (NPS) in‑app.
+* Establish a public changelog and feature request board.
 
-Instrument API routes and real-time events with metrics (e.g., Prometheus or a SaaS).
+### Community & Partnerships
 
-Track latency, errors, and usage patterns to inform scaling.
-
-Security
-
-Conduct a thorough review of file upload paths (e.g., uploadthing) for vulnerabilities.
-
-Enforce strict rate limiting on real-time channels.
-
-6. Launch & Growth (Expansion)
-Onboarding & Templates
-
-Include guided tours of the room UI and a “demo” room.
-
-Build a template marketplace (starter rooms) that can be cloned.
-
-Feedback Loop
-
-Integrate user surveys and Net Promoter Score (NPS) in-app.
-
-Establish a public changelog and feature request board.
-
-Community & Partnerships
-
-Encourage community-created node plugins, with a submission and review process.
-
-Evaluate integrations with existing social platforms for cross‑posting content.
+* Encourage community‑created node plugins with a submission and review process.
+* Evaluate integrations with existing social platforms for cross‑posting content.
 
 
