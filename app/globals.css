@@ -491,7 +491,7 @@ textarea {
   box-shadow: none;
 }
 .postcard {
-  border-radius: 20px;
+  border-radius: 40px; 
 /*background: linear-gradient(145deg, #c5c9d8, #eaefff);*/
 background: transparent;
 box-shadow:  inset 17px 17px 49px #F4F4F5,
