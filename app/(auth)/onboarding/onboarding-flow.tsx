@@ -4,6 +4,7 @@ import { useState } from "react";
 import { UserAttributes } from "@prisma/client";
 import AccountProfile from "@/components/forms/AccountProfile";
 import CustomButtons from "@/app/(root)/(standard)/profile/[id]/customize/customize-components";
+import { joinRoom } from "@/lib/actions/realtimeroom.actions";
 import { useRouter } from "next/navigation";
 import Button from "antd/lib/Button";
 interface UserData {
@@ -28,7 +29,8 @@ export default function OnboardingFlow({ userData, userAttributes }: Props) {
     setStep("customize");
   };
 
-  const finishOnboarding = () => {
+  const finishOnboarding = async () => {
+    await joinRoom({ roomId: "global" });
     router.push("/room/global");
   };
 
