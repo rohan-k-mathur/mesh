@@ -23,14 +23,14 @@ const GalleryCarousel = ({ urls }: Props) => {
   if (urls.length === 0) return null;
 
   return (
-    <div className="img-container">
+    <div >
       <Image
-        className="img-frame"
+        className="carousel"
         src={urls[currentIndex]}
         alt={`img-${currentIndex}`}
         width={0}
         height={0}
-        sizes="200vw"
+        sizes="100vw"
       />
       {urls.length > 1 && (
         <>

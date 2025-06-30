@@ -277,6 +277,20 @@
   position: relative;
   bottom: -4px;
 }
+.carousel{
+  width: auto;
+  height: auto;
+  max-width: 500px;
+  justify-content: center;
+  align-items: center;
+  background: transparent;
+  box-shadow: 1px 1px 1px #3e3e3e;
+  border: 1px solid #1a192b;
+  padding: 0px;
+  position: relative;
+  bottom: -4px;
+}
+
 
 .yt-container {
   display: grid;
