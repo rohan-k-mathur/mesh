@@ -42,7 +42,7 @@ function LivechatNode({ id, data }: NodeProps<LivechatNodeData>) {
     const ch = supabase.channel(`livechat-${id}`);
     ch
       .on("broadcast", { event: "typing" }, ({ payload }) => {
-        if (payload.sender !== currentUser?.userId) {
+        if (Number(payload.sender) !== Number(currentUser?.userId)) {
           setOtherText(payload.text);
         }
       })
@@ -69,14 +69,14 @@ function LivechatNode({ id, data }: NodeProps<LivechatNodeData>) {
 
   const sendMessage = () => {
     if (!channel) return;
-    channel.send({ type: "broadcast", event: "send", payload: { sender: currentUser?.userId } });
+    channel.send({ type: "broadcast", event: "send", payload: { sender: Number(currentUser?.userId) } });
     setMyText("");
-    channel.send({ type: "broadcast", event: "typing", payload: { sender: currentUser?.userId, text: "" } });
+    channel.send({ type: "broadcast", event: "typing", payload: { sender: Number(currentUser?.userId), text: "" } });
   };
 
   const handleTyping = (val: string) => {
     setMyText(val);
-    channel?.send({ type: "broadcast", event: "typing", payload: { sender: currentUser?.userId, text: val } });
+    channel?.send({ type: "broadcast", event: "typing", payload: { sender: Number(currentUser?.userId), text: val } });
   };
 
   if (currentUser &&
