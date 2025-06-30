@@ -34,27 +34,24 @@ const GalleryCarousel = ({ urls }: Props) => {
       />
       {urls.length > 1 && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-between px-2">
-        
-        <button onClick={handlePrev}>
-          <Image
-
-                  src="/assets/leftarrow.svg"
-                  alt="share"
-                  width={48}
-                  height={48}
-                  className="cursor-pointer object-contain carouselbutton"
-                />
-</button>
-<button onClick={handlePrev}>
-<Image
-
-src="/assets/rightarrow.svg"
-alt="share"
-width={48}
-height={48}
-className="cursor-pointer object-contain carouselbutton"
-/>
-</button>
+          <button className="pointer-events-auto" onClick={handlePrev}>
+            <Image
+              src="/assets/leftarrow.svg"
+              alt="previous"
+              width={48}
+              height={48}
+              className="cursor-pointer object-contain carouselbutton"
+            />
+          </button>
+          <button className="pointer-events-auto" onClick={handleNext}>
+            <Image
+              src="/assets/rightarrow.svg"
+              alt="next"
+              width={48}
+              height={48}
+              className="cursor-pointer object-contain carouselbutton"
+            />
+          </button>
         </div>
       )}
     </div>
