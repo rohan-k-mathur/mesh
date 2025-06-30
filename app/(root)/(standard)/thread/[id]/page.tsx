@@ -16,6 +16,7 @@ const Page = async ({ params }: { params: { id: string } }) => {
   return (
     <section className="sticky ">
                 <main className=" bg-transparent">
+                  
       <Modal />
 
       <div className="flex flex-row">
@@ -35,9 +36,9 @@ const Page = async ({ params }: { params: { id: string } }) => {
           expirationDate={post.expiration_date?.toISOString() ?? null}
         />
       </div>
+      
 
       <div className="flex-1 flex-row w-full  mt-6 ml-4">
-      <hr className="mt-4 mb-3 w-full h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-900 to-transparent opacity-75" />
 
         <Comment
           postId={post.id}
@@ -45,7 +46,6 @@ const Page = async ({ params }: { params: { id: string } }) => {
           currentUserId={user.userId!}
         />
       </div >
-      <hr className="mt-4 mb-3 w-full h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-900 to-transparent opacity-75" />
 
       <div className="flex-1 flex-row w-full mt-2 ml-4">
 

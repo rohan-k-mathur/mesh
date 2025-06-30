@@ -171,14 +171,16 @@
 
 /* Comment Form */
 .comment-form {
-  @apply mt-2 flex w-[96%] flex-row items-start gap-2 py-2 max-xs:flex-col !important;
+  @apply mt-2 flex w-[96%] flex-row items-start gap-2  max-xs:flex-col !important;
 }
 
 .comment-form_btn {
-  @apply rounded-md bg-transparent px-3 py-4  !text-small-regular border-none 
-  text-light-1    max-xs:w-full !important;
+  @apply rounded-md bg-transparent px-4 py-4  !text-small-regular border-[.01rem] border-slate-200 hover:border-slate-200
+    text-slate-900  max-xs:w-full !important;
+      
   outline-style: solid;
   outline-width: .5px;
+  outline: black;
   border-radius: 2px;
   box-shadow:   3px 3px 7px #dec7cc,
   -1px 2px 7px rgba(0, 0, 0, 0.15);

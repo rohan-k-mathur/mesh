@@ -112,8 +112,11 @@ const ThreadCard = async ({
               </div>
             </div>
           </div>
+
         </div>
+
       </div>
+
     </article>
   );
 };
