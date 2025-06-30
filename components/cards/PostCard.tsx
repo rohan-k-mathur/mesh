@@ -119,11 +119,11 @@ const PostCard = async ({
                 <GalleryCarousel urls={JSON.parse(content)} />
               </div>
             )}
-            {type === "DRAW" && (
-              <div className="mt-2 mb-2 flex justify-center">
-                <DrawCanvas />
-              </div>
-            )}
+              {type === "DRAW" && (
+                <div className="mt-2 mb-2 flex justify-center">
+                  <DrawCanvas content={content} />
+                </div>
+              )}
             <hr className="mt-4 mb-3 w-full h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-100 to-transparent opacity-75" />
 
             <div className="mt-4 flex flex-col gap-x-3 gap-y-4">
