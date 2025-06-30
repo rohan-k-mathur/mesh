@@ -1,4 +1,7 @@
-import { GalleryPostValidation } from "@/lib/validations/thread";
+import {
+  GalleryPostValidation,
+  GalleryEditValidation,
+} from "@/lib/validations/thread";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Image from "next/image";
 import { ChangeEvent, useState } from "react";
@@ -16,16 +19,29 @@ import {
 import { Input } from "../ui/input";
 
 interface Props {
-  onSubmit: (values: z.infer<typeof GalleryPostValidation>) => void;
+  onSubmit: (
+    values:
+      | z.infer<typeof GalleryPostValidation>
+      | z.infer<typeof GalleryEditValidation>
+  ) => void;
   currentImages: string[];
+  currentIsPublic: boolean;
   isOwned: boolean;
 }
 
-const GalleryNodeForm = ({ onSubmit, currentImages, isOwned }: Props) => {
+const GalleryNodeForm = ({
+  onSubmit,
+  currentImages,
+  currentIsPublic,
+  isOwned,
+}: Props) => {
   const [imageURLs, setImageURLs] = useState<string[]>(currentImages);
+  const isEditing = currentImages.length > 0;
   const form = useForm({
-    resolver: zodResolver(GalleryPostValidation),
-    defaultValues: { images: [] as File[], isPublic: false },
+    resolver: zodResolver(
+      isEditing ? GalleryEditValidation : GalleryPostValidation
+    ),
+    defaultValues: { images: [] as File[], isPublic: currentIsPublic },
   });
 
   const handleImages = (
