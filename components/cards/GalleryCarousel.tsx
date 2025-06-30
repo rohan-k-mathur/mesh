@@ -34,7 +34,7 @@ const GalleryCarousel = ({ urls }: Props) => {
       />
       {urls.length > 1 && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-between px-2">
-          <button className="pointer-events-auto" onClick={handlePrev}>
+          <button className="pointer-events-auto bg-transparent border-none carouselbutton" onClick={handlePrev}>
             <Image
               src="/assets/leftarrow.svg"
               alt="previous"
@@ -43,7 +43,7 @@ const GalleryCarousel = ({ urls }: Props) => {
               className="cursor-pointer object-contain carouselbutton"
             />
           </button>
-          <button className="pointer-events-auto" onClick={handleNext}>
+          <button className="pointer-events-auto bg-transparent border-none carouselbutton" onClick={handleNext}>
             <Image
               src="/assets/rightarrow.svg"
               alt="next"
