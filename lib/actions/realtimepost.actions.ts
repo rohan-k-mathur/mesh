@@ -30,6 +30,7 @@ interface UpdateRealtimePostParams {
   collageLayoutStyle?: string;  // or some enum
   collageColumns?: number;
   collageGap?: number;
+  content?: string;
 }
 
 export async function createRealtimePost({
@@ -109,6 +110,7 @@ export async function updateRealtimePost({
   collageLayoutStyle,
   collageColumns,
   collageGap,
+  content,
 }: UpdateRealtimePostParams) {
   const user = await getUserFromCookies();
   try {
@@ -144,6 +146,7 @@ export async function updateRealtimePost({
       ...(text && { content: text }),
       ...(imageUrl && { image_url: imageUrl }),
       ...(videoUrl && { video_url: videoUrl }),
+      ...(content && { content }),
       ...(collageLayoutStyle && { collageLayoutStyle }),
       ...(collageColumns !== undefined && { collageColumns }),
       ...(collageGap !== undefined && { collageGap }),

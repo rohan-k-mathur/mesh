@@ -102,6 +102,7 @@ export type DrawNode = Node<
   {
     author: AuthorOrAuthorId;
     locked: boolean;
+    content?: string;
   },
   "DRAW"
 >;
