@@ -1,4 +1,5 @@
 "use client";
+import localFont from "next/font/local";
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
@@ -6,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 import { app } from "@/lib/firebase/firebase";
 import BackgroundCanvas from "@/components/threejs/BackgroundCanvas";
+const founderslight = localFont({ src: "/NewEdgeTest-LightRounded.otf" });
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -38,25 +40,25 @@ export default function Login() {
   }
 
   return (
-    <div>
+    <div className={`${founderslight.className}`}>
       <div className="z-back">
         <BackgroundCanvas />
       </div>
       <main className=" z-front flex min-h-screen max-w-screen w-full flex-col items-center justify-center p-8 ">
-        <div className="w-full bg-slate-300 bg-opacity-50 backdrop-blur-lg rounded-lg shadow-md dark:border md:mt-0 sm:max-w-md xl:p-0 dark:bg-gray-800 dark:border-gray-700">
+        <div className="w-full bg-white bg-opacity-10  rounded-xl logincard dark:border md:mt-0 sm:max-w-md xl:p-0 dark:bg-gray-800 dark:border-gray-700">
           <div className="p-6 space-y-4 md:space-y-6 sm:p-8">
-            <h1 className="text-xl font-bold leading-tight  text-gray-100 md:text-2xl dark:text-white">
-              Enter Your Email and Password
-            </h1>
+            <h1 className="text-center text-white font-bold text-[2rem]">
+                Sign In
+                            </h1>
             <form
               onSubmit={handleSubmit}
-              className="space-y-4 md:space-y-6"
+              className="space-y-10"
               action="#"
             >
               <div>
                 <label
                   htmlFor="email"
-                  className="block mb-2 text-md font-medium text-gray-100 dark:text-white"
+                  className="block mb-3 text-[1.2rem]  text-gray-100 dark:text-white"
                 >
                   Email
                 </label>
@@ -67,14 +69,14 @@ export default function Login() {
                   onChange={(e) => setEmail(e.target.value)}
                   id="email"
                   className="bg-gray-50 border border-gray-300 text-gray-900 sm:text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-                  placeholder="name@company.com"
+                  placeholder="name@email.com"
                   required
                 />
               </div>
               <div>
                 <label
                   htmlFor="password"
-                  className="block mb-2 text-sm font-medium text-gray-100 dark:text-white"
+                  className="block mb-3 text-[1.2rem] text-gray-100 dark:text-white"
                 >
                   Password
                 </label>
@@ -91,7 +93,7 @@ export default function Login() {
               </div>
               {error && (
                 <div
-                  className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative"
+                  className="bg-red-100 border border-red-400 text-red-700 px-4 py-4 rounded relative"
                   role="alert"
                 >
                   <span className="block sm:inline">{error}</span>
@@ -99,17 +101,18 @@ export default function Login() {
               )}
               <button
                 type="submit"
-                className="w-full text-white bg-slate-800 hover:bg-gray-700 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-gray-600 dark:hover:bg-gray-700 dark:focus:ring-primary-800"
+                className="flex w-[50%] items-center justify-center text-center content-center mx-auto
+                text-white bg-transparent likebutton py-2 border-white rounded-md "
               >
-                Sign In
+                Next
               </button>
-              <p className="text-sm font-light text-gray-200 dark:text-gray-400">
-                Don&apos;t have an account?{" "}
+              <p className="text-[1.2rem] text-center mx-auto text-gray-200 dark:text-gray-400">
+                No Account?{" "}
                 <Link
                   href="/register"
-                  className="font-medium text-gray-200 hover:underline dark:text-gray-500"
+                  className=" text-gray-200 hover:underline dark:text-gray-500"
                 >
-                  Register here
+                  Register Here
                 </Link>
               </p>
             </form>
