@@ -11,7 +11,7 @@ const RealtimePostsTab = async ({ currentUserId, accountId }: Props) => {
   const posts = await fetchUserRealtimePosts({
     realtimeRoomId: "global",
     userId: accountId,
-    postTypes: ["TEXT", "VIDEO", "IMAGE", "IMAGE_COMPUTE", "GALLERY"],
+    postTypes: ["TEXT", "VIDEO", "IMAGE", "IMAGE_COMPUTE", "GALLERY", "DRAW"],
   });
 
   if (!posts) redirect("/");
