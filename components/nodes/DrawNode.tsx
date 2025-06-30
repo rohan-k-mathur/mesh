@@ -25,6 +25,7 @@ function DrawNode({ id, data }: NodeProps<DrawNodeData>) {
   const path = usePathname();
   const [author, setAuthor] = useState(data.author);
   const editorRef = useRef<any>(null);
+  const [editorReady, setEditorReady] = useState(false);
   const lastLoaded = useRef<string | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -34,7 +35,7 @@ function DrawNode({ id, data }: NodeProps<DrawNodeData>) {
   }, [data]);
 
   useEffect(() => {
-    if (!editorRef.current) return;
+    if (!editorReady || !editorRef.current) return;
     fetchRealtimePostById({ id }).then((post) => {
       if (post?.content) {
         try {
@@ -61,10 +62,10 @@ function DrawNode({ id, data }: NodeProps<DrawNodeData>) {
       unsub();
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
-  }, [id, path]);
+  }, [editorReady, id, path]);
 
   useEffect(() => {
-    if (editorRef.current && data.content && data.content !== lastLoaded.current) {
+    if (editorReady && editorRef.current && data.content && data.content !== lastLoaded.current) {
       try {
         editorRef.current.store.loadStoreSnapshot(JSON.parse(data.content));
         lastLoaded.current = data.content;
@@ -72,7 +73,7 @@ function DrawNode({ id, data }: NodeProps<DrawNodeData>) {
         console.error(e);
       }
     }
-  }, [data.content]);
+  }, [editorReady, data.content]);
 
   const isOwned = currentUser
     ? Number(currentUser.userId) === Number(data.author.id)
@@ -90,7 +91,12 @@ function DrawNode({ id, data }: NodeProps<DrawNodeData>) {
       <div className="draw-container">
         <div className="nodrag nopan">
           <div className="w-[400px] h-[400px] border-black border-2 rounded-sm">
-            <Tldraw onMount={(editor) => { editorRef.current = editor; }} />
+            <Tldraw
+              onMount={(editor) => {
+                editorRef.current = editor;
+                setEditorReady(true);
+              }}
+            />
           </div>
         </div>
       </div>

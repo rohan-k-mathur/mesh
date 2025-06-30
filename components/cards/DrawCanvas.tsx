@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Tldraw } from "tldraw";
 import "tldraw/tldraw.css";
 
@@ -10,21 +10,27 @@ interface DrawCanvasProps {
 
 const DrawCanvas = ({ content }: DrawCanvasProps) => {
   const editorRef = useRef<any>(null);
+  const [editorReady, setEditorReady] = useState(false);
 
   useEffect(() => {
-    if (editorRef.current && content) {
+    if (editorReady && editorRef.current && content) {
       try {
         editorRef.current.store.loadStoreSnapshot(JSON.parse(content));
       } catch (e) {
         console.error(e);
       }
     }
-  }, [content]);
+  }, [editorReady, content]);
 
   return (
     <div className="flex justify-center">
       <div className="w-[400px] h-[400px] border-black border-2 rounded-sm">
-        <Tldraw onMount={(editor) => { editorRef.current = editor; }} />
+        <Tldraw
+          onMount={(editor) => {
+            editorRef.current = editor;
+            setEditorReady(true);
+          }}
+        />
       </div>
     </div>
   );
