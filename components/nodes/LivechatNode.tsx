@@ -90,9 +90,12 @@ function LivechatNode({ id, data }: NodeProps<LivechatNodeData>) {
     channel?.send({ type: "broadcast", event: "typing", payload: { sender: Number(currentUser?.userId), text: val } });
   };
 
-  if (currentUser &&
-      currentUser.userId !== data.inviteeId &&
-      currentUser.userId !== ("id" in data.author ? data.author.id : data.author.id)) {
+  if (
+    currentUser &&
+    Number(currentUser.userId) !== Number(data.inviteeId) &&
+    Number(currentUser.userId) !==
+      Number("id" in data.author ? data.author.id : data.author.id)
+  ) {
     return null;
   }
 
