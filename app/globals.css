@@ -278,9 +278,9 @@
   bottom: -4px;
 }
 .carousel{
-  width: auto;
-  height: 300px;
-  max-width: 500px;
+  width: max-content;
+  height: 25rem;
+
   justify-content: center;
   align-items: center;
   background: transparent;

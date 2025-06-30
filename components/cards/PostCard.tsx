@@ -112,8 +112,8 @@ const PostCard = async ({
                 ></iframe>
               </div>
             )}
-            {type === "GALLERY" && content && (
-              <GalleryCarousel urls={JSON.parse(content)} />
+            {type === "GALLERY" && content && ( <div className="ml-[15rem] justify-center items-center">
+              <GalleryCarousel urls={JSON.parse(content)} /> </div>
             )}
             <hr className="mt-4 mb-3 w-[200%] h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-100 to-transparent opacity-75" />
 

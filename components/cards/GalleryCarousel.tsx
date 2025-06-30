@@ -23,7 +23,7 @@ const GalleryCarousel = ({ urls }: Props) => {
   if (urls.length === 0) return null;
 
   return (
-    <div className="relative flex justify-center">
+    <div className="relative  justify-center">
       <Image
         className="carousel"
         src={urls[currentIndex]}
@@ -35,13 +35,13 @@ const GalleryCarousel = ({ urls }: Props) => {
       {urls.length > 1 && (
         <>
           <button
-            className="absolute left-0 top-1/2 -translate-y-1/2 bg-black/50 text-white px-1"
+            className="absolute -left-8 top-1/2 -translate-y-1/2 bg-black/50 text-white px-1"
             onClick={handlePrev}
           >
             ‹
           </button>
           <button
-            className="absolute right-0 top-1/2 -translate-y-1/2 bg-black/50 text-white px-1"
+            className="absolute -right-8 top-1/2 -translate-y-1/2 bg-black/50 text-white px-1"
             onClick={handleNext}
           >
             ›
