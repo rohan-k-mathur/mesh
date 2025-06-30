@@ -23,7 +23,7 @@ const GalleryCarousel = ({ urls }: Props) => {
   if (urls.length === 0) return null;
 
   return (
-    <div >
+    <div className="relative flex justify-center">
       <Image
         className="carousel"
         src={urls[currentIndex]}
