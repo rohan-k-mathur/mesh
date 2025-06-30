@@ -42,16 +42,16 @@ function RightSidebar() {
     // </section>
     // )
   return (
-    <section className="custom-scrollbar rightsidebar  bg-transparent">
-      <div className="flex w-full flex-1 flex-col gap-6 px-2">
+    <section className="sticky custom-scrollbar rightsidebar  bg-transparent">
+      <div className="sticky flex w-full flex-1 flex-col gap-6 px-2">
         <h3 className="relative bottom-[4rem] text-[1.5rem] text-black">Find New Groups</h3>
       </div>
       <div className="flex w-full flex-1 flex-col gap-2 px-2">
         <h3 className="relative bottom-[4rem] text-[1.5rem] text-black">Find New Users</h3>
-        <div className="relative bottom-[4rem] flex flex-col gap-2">
+        <div className="relative bottom-[4rem] flex flex-col gap-y-2">
           {users.map((u) => (
             <Link key={u.id} href={`/profile/${u.id}`}>
-              <Button className="w-full rounded-md rightsidebar-item border-none">
+              <Button className="items-center justify-center rounded-md rightsidebar-item border-none">
                 {u.name}
                 {u.score !== undefined && (
                   <span className="ml-2 text-xs text-gray-600">

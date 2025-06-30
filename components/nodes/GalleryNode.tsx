@@ -15,6 +15,7 @@ import BaseNode from "./BaseNode";
 import { useShallow } from "zustand/react/shallow";
 import GalleryNodeModal from "../modals/GalleryNodeModal";
 import { z } from "zod";
+import Button from "antd/lib/Button";
 
 function GalleryNode({ id, data }: NodeProps<GalleryNodeData>) {
   const path = usePathname();
@@ -106,18 +107,18 @@ function GalleryNode({ id, data }: NodeProps<GalleryNodeData>) {
           />
           {images.length > 1 && (
             <>
-              <button
-                className="absolute left-0 top-1/2 -translate-y-1/2 bg-black/50 text-white px-1"
+              <Button
+                className="carouselbutton absolute bg-transparent right-0 top-1/2 -translate-y-1/2 px-1"
                 onClick={handlePrev}
               >
-                ‹
-              </button>
-              <button
-                className="absolute right-0 top-1/2 -translate-y-1/2 bg-black/50 text-white px-1"
+                {"<"}
+              </Button>
+              <Button
+                className="carouselbutton absolute bg-transparent right-0 top-1/2 -translate-y-1/2 px-1"
                 onClick={handleNext}
               >
-                ›
-              </button>
+                {"<"}
+              </Button>
             </>
           )}
         </div>

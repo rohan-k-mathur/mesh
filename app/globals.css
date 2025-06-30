@@ -97,7 +97,7 @@
 
 
   .rightsidebar {
-    @apply sticky right-[0rem] top-0 z-20 flex h-screen w-fit flex-col justify-between overflow-auto	 bg-dark-2 pb-5 pt-28 pl-[1rem] pr-[1rem] max-xl:hidden;
+    @apply sticky right-[0rem] top-0 z-20 flex h-screen w-fit flex-col justify-between overflow-auto	 bg-dark-2 pb-5 pt-28 pl-[1rem] pr-[1rem] max-md:hidden;
   }
 
 }
@@ -280,15 +280,12 @@
 
 .carousel{
   width: 100%;
-  max-width: 500px;
+  max-width: 45rem;
   height: 25rem;
 
   justify-content: center;
   align-items: center;
   background: transparent;
-  box-shadow: 1px 1px 1px #3e3e3e;
-  border: 1px solid #1a192b;
-  padding: 0px;
   position: relative;
   bottom: -4px;
   object-fit: contain;
@@ -691,6 +688,20 @@ border: 0.125 rem solid #D1C6E7;
   border-radius: 2px;
   box-shadow:   3px 3px 7px #dec7cc,
   -1px 2px 7px rgba(0, 0, 0, 0.15);
+
+}
+.carouselbutton{
+  background-color: transparent;
+  padding: 2px;
+  outline: black;
+  outline-style: solid;
+  outline-width: .5px;
+  border-radius: 2px;
+  box-shadow:   3px 3px 7px #dec7cc,
+  -1px 2px 7px rgba(0, 0, 0, 0.15);
+}
+.carouselbutton:hover{
+  box-shadow: 0 0 0px 0px rgba(0,0,0,0.15);
 
 }
 .likebutton:hover{

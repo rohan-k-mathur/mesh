@@ -113,7 +113,7 @@ const PostCard = async ({
               </div>
             )}
             {type === "GALLERY" && content && (
-              <div className="ml-[15rem] w-[500px] justify-center items-center">
+              <div className="ml-[7rem] w-[500px] justify-center items-center">
                 <GalleryCarousel urls={JSON.parse(content)} />
               </div>
             )}
