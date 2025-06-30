@@ -86,6 +86,17 @@ export async function fetchUser(userId: bigint) {
   }
 }
 
+export async function fetchUserByUsername(username: string) {
+  try {
+    await prisma.$connect();
+    return await prisma.user.findUnique({
+      where: { username: username.toLowerCase() },
+    });
+  } catch (error: any) {
+    throw new Error(`Failed to get user: ${error.message}`);
+  }
+}
+
 export async function fetchUserThreads(userId: bigint) {
   try {
     await prisma.$connect();

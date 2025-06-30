@@ -1,5 +1,5 @@
 "use client";
-import { fetchUser } from "@/lib/actions/user.actions";
+import { fetchUser, fetchUserByUsername } from "@/lib/actions/user.actions";
 import { updateRealtimePost } from "@/lib/actions/realtimepost.actions";
 import { useAuth } from "@/lib/AuthContext";
 import { AuthorOrAuthorId, AppState } from "@/lib/reactflow/types";
@@ -32,11 +32,17 @@ function LivechatNode({ id, data }: NodeProps<LivechatNodeData>) {
   const [myText, setMyText] = useState("");
   const [otherText, setOtherText] = useState("");
   const [channel, setChannel] = useState<any>(null);
+  const [inviteeUsername, setInviteeUsername] = useState("");
 
   useEffect(() => {
     if ("username" in author) return;
     fetchUser(data.author.id).then((user) => user && setAuthor(user));
   }, [data]);
+
+  useEffect(() => {
+    if (!data.inviteeId) return;
+    fetchUser(BigInt(data.inviteeId)).then((u) => u && setInviteeUsername(u.username));
+  }, [data.inviteeId]);
 
   useEffect(() => {
     const ch = supabase.channel(`livechat-${id}`);
@@ -59,11 +65,16 @@ function LivechatNode({ id, data }: NodeProps<LivechatNodeData>) {
   const isOwned = currentUser ? Number(currentUser.userId) === Number(data.author.id) : false;
 
   async function onSubmit(values: z.infer<typeof LivechatInviteValidation>) {
-    await updateRealtimePost({
-      id,
-      path,
-      content: JSON.stringify({ inviteeId: values.inviteeId }),
-    });
+    const username = values.invitee.replace(/^@/, "");
+    const user = await fetchUserByUsername(username);
+    if (user) {
+      await updateRealtimePost({
+        id,
+        path,
+        content: JSON.stringify({ inviteeId: Number(user.id) }),
+      });
+      setInviteeUsername(user.username);
+    }
     store.closeModal();
   }
 
@@ -91,7 +102,7 @@ function LivechatNode({ id, data }: NodeProps<LivechatNodeData>) {
         <LivechatNodeModal
           id={id}
           isOwned={isOwned}
-          currentInviteeId={data.inviteeId}
+          currentInvitee={inviteeUsername}
           onSubmit={onSubmit}
         />
       }

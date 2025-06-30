@@ -7,13 +7,13 @@ import { Input } from "../ui/input";
 
 interface Props {
   onSubmit: (values: z.infer<typeof LivechatInviteValidation>) => void;
-  currentInviteeId: number;
+  currentInvitee: string;
 }
 
-function LivechatNodeForm({ onSubmit, currentInviteeId }: Props) {
+function LivechatNodeForm({ onSubmit, currentInvitee }: Props) {
   const form = useForm({
     resolver: zodResolver(LivechatInviteValidation),
-    defaultValues: { inviteeId: currentInviteeId },
+    defaultValues: { invitee: currentInvitee },
   });
 
   return (
@@ -21,8 +21,8 @@ function LivechatNodeForm({ onSubmit, currentInviteeId }: Props) {
       <hr />
       <div className="py-4 grid gap-2">
         <label className="flex flex-col text-slate-500 gap-3 text-xl">
-          Invitee User ID:
-          <Input type="number" {...form.register("inviteeId", { valueAsNumber: true })} />
+          Invitee Username:
+          <Input type="text" {...form.register("invitee")} placeholder="@username" />
         </label>
       </div>
       <hr />

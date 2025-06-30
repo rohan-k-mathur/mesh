@@ -12,7 +12,7 @@ interface Props {
   id?: string;
   isOwned: boolean;
   onSubmit?: (values: z.infer<typeof LivechatInviteValidation>) => void;
-  currentInviteeId: number;
+  currentInvitee: string;
 }
 
 const renderCreate = ({ onSubmit }: { onSubmit?: (v: z.infer<typeof LivechatInviteValidation>) => void }) => (
@@ -21,27 +21,27 @@ const renderCreate = ({ onSubmit }: { onSubmit?: (v: z.infer<typeof LivechatInvi
       <b>Create Chat</b>
     </DialogHeader>
     <hr />
-    <LivechatNodeForm onSubmit={onSubmit!} currentInviteeId={0} />
+    <LivechatNodeForm onSubmit={onSubmit!} currentInvitee="" />
   </div>
 );
 
-const renderEdit = ({ onSubmit, currentInviteeId }: { onSubmit?: (v: z.infer<typeof LivechatInviteValidation>) => void; currentInviteeId: number }) => (
+const renderEdit = ({ onSubmit, currentInvitee }: { onSubmit?: (v: z.infer<typeof LivechatInviteValidation>) => void; currentInvitee: string }) => (
   <div>
     <DialogHeader className="dialog-header text-white text-lg py-4 mt-[-4rem]">
       <b>Edit Chat</b>
     </DialogHeader>
     <hr />
-    <LivechatNodeForm onSubmit={onSubmit!} currentInviteeId={currentInviteeId} />
+    <LivechatNodeForm onSubmit={onSubmit!} currentInvitee={currentInvitee} />
   </div>
 );
 
-const renderView = (currentInviteeId: number) => (
+const renderView = (currentInvitee: string) => (
   <div>
     <DialogHeader className="dialog-header text-white text-lg py-4 mt-[-3rem]">
       <b>View Chat</b>
     </DialogHeader>
     <hr />
-    <div className="py-4 grid gap-2 text-white">Invitee ID: {currentInviteeId}</div>
+    <div className="py-4 grid gap-2 text-white">Invitee: {currentInvitee}</div>
     <hr />
     <div className="py-4">
       <DialogClose id="animateButton" className={`form-submit-button pl-2 py-2 pr-[1rem]`}>
@@ -52,7 +52,7 @@ const renderView = (currentInviteeId: number) => (
   </div>
 );
 
-function LivechatNodeModal({ id, isOwned, onSubmit, currentInviteeId }: Props) {
+function LivechatNodeModal({ id, isOwned, onSubmit, currentInvitee }: Props) {
   const isCreate = !id && isOwned;
   const isEdit = id && isOwned;
   const isView = id && !isOwned;
@@ -62,8 +62,8 @@ function LivechatNodeModal({ id, isOwned, onSubmit, currentInviteeId }: Props) {
         <DialogTitle>LivechatNodeModal</DialogTitle>
         <div className="grid rounded-md px-4 py-2">
           {isCreate && renderCreate({ onSubmit })}
-          {isEdit && renderEdit({ onSubmit, currentInviteeId })}
-          {isView && renderView(currentInviteeId)}
+          {isEdit && renderEdit({ onSubmit, currentInvitee })}
+          {isView && renderView(currentInvitee)}
         </div>
       </DialogContent>
     </div>
