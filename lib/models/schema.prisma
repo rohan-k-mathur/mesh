@@ -182,6 +182,7 @@ enum realtime_post_type {
   PORTAL
   AUDIO
   DRAW
+  LIVECHAT
   DOCUMENT
   THREAD
   CODE

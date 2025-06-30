@@ -41,6 +41,7 @@ const nodeTypes: { label: string; nodeType: AppNodeType }[] = [
   { label: "GALLERY", nodeType: "GALLERY" },
   { label: "PORTAL", nodeType: "PORTAL" },
   { label: "DRAW", nodeType: "DRAW" },
+  { label: "LIVECHAT", nodeType: "LIVECHAT" },
 ];
 
 // Import your modals
@@ -50,6 +51,7 @@ import YoutubeNodeModal from "@/components/modals/YoutubeNodeModal";
 import CollageCreationModal from "@/components/modals/CollageCreationModal";
 import PortalNodeModal from "@/components/modals/PortalNodeModal";
 import GalleryNodeModal from "@/components/modals/GalleryNodeModal";
+import LivechatNodeModal from "@/components/modals/LivechatNodeModal";
 
 export default function NodeSidebar({
   reactFlowRef,
@@ -256,6 +258,24 @@ export default function NodeSidebar({
           type: "DRAW",
           realtimeRoomId: roomId,
         });
+        break;
+
+      case "LIVECHAT":
+        store.openModal(
+          <LivechatNodeModal
+            isOwned={true}
+            currentInviteeId={0}
+            onSubmit={(vals) => {
+              createPostAndAddToCanvas({
+                path: pathname,
+                coordinates: centerPosition,
+                type: "LIVECHAT",
+                realtimeRoomId: roomId,
+                text: JSON.stringify({ inviteeId: vals.inviteeId }),
+              });
+            }}
+          />
+        );
         break;
 
       default:
