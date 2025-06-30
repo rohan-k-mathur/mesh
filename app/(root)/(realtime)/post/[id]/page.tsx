@@ -1,4 +1,4 @@
-import { fetchRealtimePostById } from "@/lib/actions/realtimepost.actions";
+import { fetchRealtimePostTreeById } from "@/lib/actions/realtimepost.actions";
 import { redirect, notFound } from "next/navigation";
 import { getUserFromCookies } from "@/lib/serverutils";
 import PostCard from "@/components/cards/PostCard";
@@ -10,7 +10,7 @@ const Page = async ({ params }: { params: { id: string } }) => {
   if (!params?.id && params?.id?.length !== 1) return notFound();
   const user = await getUserFromCookies();
   if (!user?.onboarded) redirect("/onboarding");
-  const post = await fetchRealtimePostById({ id: params.id });
+  const post = await fetchRealtimePostTreeById({ id: params.id });
   if (!post) notFound();
 
   return (
