@@ -101,15 +101,15 @@ function LivechatNode({ id, data }: NodeProps<LivechatNodeData>) {
       type={"LIVECHAT"}
       isLocked={data.locked}
     >
-      <div className="flex flex-col space-y-2 p-2">
-        <textarea className="w-full border rounded text-black p-1" disabled value={otherText} rows={2} />
+      <div className="text-updater-node  w-[30rem] h-[20rem] flex flex-col ">
+        <textarea className="w-full text-block border rounded text-black p-1" disabled value={otherText} rows={2} />
         <textarea
-          className="w-full border rounded text-black p-1"
+          className="w-full text-block border rounded text-black p-4"
           value={myText}
           onChange={(e) => handleTyping(e.target.value)}
-          rows={2}
+          rows={5}
         />
-        <button onClick={sendMessage} className="bg-blue-500 text-white rounded px-2 py-1">
+        <button onClick={sendMessage} className="bg-blue-500 text-black rounded px-2 py-1">
           Send
         </button>
       </div>
