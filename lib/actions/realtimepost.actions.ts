@@ -273,6 +273,29 @@ export async function fetchRealtimePostById({ id }: { id: string }) {
   }
 }
 
+export async function fetchRealtimePostTreeById({ id }: { id: string }) {
+  await prisma.$connect();
+  const post = await prisma.realtimePost.findUnique({
+    where: { id: BigInt(id) },
+    include: { author: true },
+  });
+  if (!post) return null;
+
+  const fetchChildren = async (parentId: bigint): Promise<any[]> => {
+    const children = await prisma.realtimePost.findMany({
+      where: { parent_id: parentId },
+      include: { author: true },
+    });
+    for (const child of children) {
+      child.children = await fetchChildren(child.id);
+    }
+    return children;
+  };
+
+  post.children = await fetchChildren(post.id);
+  return post;
+}
+
 export async function addCommentToRealtimePost({
   parentPostId,
   commentText,

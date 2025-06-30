@@ -1,5 +1,5 @@
 import Comment from "@/components/forms/Comment";
-import { fetchPostById } from "@/lib/actions/thread.actions";
+import { fetchPostTreeById } from "@/lib/actions/thread.actions";
 import CommentTree from "@/components/shared/CommentTree";
 import { redirect, notFound } from "next/navigation";
 import { getUserFromCookies } from "@/lib/serverutils";
@@ -10,7 +10,7 @@ const Page = async ({ params }: { params: { id: string } }) => {
   if (!params?.id && params?.id?.length !== 1) return notFound();
   const user = await getUserFromCookies();
   if (!user?.onboarded) redirect("/onboarding");
-  const post = await fetchPostById(BigInt(params.id));
+  const post = await fetchPostTreeById(BigInt(params.id));
   if (!post) notFound();
   
   return (
