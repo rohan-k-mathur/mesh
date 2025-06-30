@@ -589,8 +589,6 @@ border: 0.125 rem solid #D1C6E7;
 }
 .draw-container
 {
-  border-radius: 2px;
-  border-color: slategray;
   padding-left: 1.0rem;
   padding-right: 1.0rem;
   padding-top: 3.9rem;
@@ -679,7 +677,7 @@ border: 0.125 rem solid #D1C6E7;
 .lockbutton {
   background-color: transparent;
   padding: 2px;
-  border-radius: 2px;
+  border-radius: 4px;
   box-shadow: 1px 1px 1px 1px rgba(0,0,0,0.5);
 
 }

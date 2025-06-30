@@ -67,7 +67,7 @@ function ImageURLNode({ id, data }: NodeProps<ImageUNode>) {
       id={id}
       author={author}
       isOwned={isOwned}
-      type={"TEXT"}
+      type={"IMAGE"}
       isLocked={data.locked}
     >
       <div>
