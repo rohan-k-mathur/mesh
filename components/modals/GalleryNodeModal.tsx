@@ -17,23 +17,49 @@ interface Props {
   currentImages: string[];
 }
 
-const renderCreate = ({ onSubmit }: { onSubmit?: (values: z.infer<typeof GalleryPostValidation>) => void }) => (
+const renderCreate = ({
+  onSubmit,
+  currentIsPublic,
+}: {
+  onSubmit?: (values: z.infer<typeof GalleryPostValidation>) => void;
+  currentIsPublic: boolean;
+}) => (
   <div>
     <DialogHeader className="dialog-header text-white text-lg py-4 mt-[-4rem]">
       <b>Create Gallery</b>
     </DialogHeader>
     <hr />
-    <GalleryNodeForm onSubmit={onSubmit!} currentImages={[]} isOwned={true} />
+    <GalleryNodeForm
+      onSubmit={onSubmit!}
+      currentImages={[]}
+      currentIsPublic={currentIsPublic}
+      isOwned={true}
+    />
   </div>
 );
 
-const renderEdit = ({ onSubmit, currentImages, isOwned }: { onSubmit?: (values: z.infer<typeof GalleryPostValidation>) => void; currentImages: string[]; isOwned: boolean }) => (
+const renderEdit = ({
+  onSubmit,
+  currentImages,
+  isOwned,
+  currentIsPublic,
+}: {
+  onSubmit?: (values: z.infer<typeof GalleryPostValidation>) => void;
+  currentImages: string[];
+  isOwned: boolean;
+  currentIsPublic: boolean;
+}) => (
   <div>
     <DialogHeader className="dialog-header text-white text-lg py-4 mt-[-4rem]">
       <b>Edit Gallery</b>
     </DialogHeader>
     <hr />
-    <GalleryNodeForm onSubmit={onSubmit!} currentImages={currentImages} isOwned={isOwned} />
+    <GalleryNodeForm
+      onSubmit={onSubmit!}
+      currentImages={currentImages}
+      currentIsPublic={currentIsPublic}
+      isOwned={isOwned}
+    />
   </div>
 );
 
@@ -66,8 +92,14 @@ const GalleryNodeModal = ({ id, isOwned, isPublic, onSubmit, currentImages }: Pr
       <DialogContent className="max-w-[57rem]">
         <DialogTitle>GalleryNodeModal</DialogTitle>
         <div className="grid rounded-md px-4 py-2">
-          {isCreate && renderCreate({ onSubmit })}
-          {isEdit && renderEdit({ onSubmit, currentImages, isOwned })}
+          {isCreate && renderCreate({ onSubmit, currentIsPublic: isPublic })}
+          {isEdit &&
+            renderEdit({
+              onSubmit,
+              currentImages,
+              isOwned,
+              currentIsPublic: isPublic,
+            })}
           {isView && renderView(currentImages)}
         </div>
       </DialogContent>
