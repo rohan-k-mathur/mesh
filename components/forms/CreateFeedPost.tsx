@@ -17,6 +17,7 @@ import YoutubeNodeModal from "@/components/modals/YoutubeNodeModal";
 import CollageCreationModal from "@/components/modals/CollageCreationModal";
 import GalleryNodeModal from "@/components/modals/GalleryNodeModal";
 import PortalNodeModal from "@/components/modals/PortalNodeModal";
+import LivechatNodeModal from "@/components/modals/LivechatNodeModal";
 import { uploadFileToSupabase } from "@/lib/utils";
 import { createRealtimePost } from "@/lib/actions/realtimepost.actions";
 import { useRouter } from "next/navigation";
@@ -40,6 +41,7 @@ const nodeOptions: { label: string; nodeType: AppNodeType }[] = [
   { label: "GALLERY", nodeType: "GALLERY" },
   { label: "PORTAL", nodeType: "PORTAL" },
   { label: "DRAW", nodeType: "DRAW" },
+  { label: "LIVECHAT", nodeType: "LIVECHAT" },
 ];
 
 const CreateFeedPost = () => {
@@ -190,6 +192,24 @@ const CreateFeedPost = () => {
         );
       case "PORTAL":
         return <PortalNodeModal isOwned={true} onSubmit={handlePortalSubmit} currentX={0} currentY={0} />;
+      case "LIVECHAT":
+        return (
+          <LivechatNodeModal
+            isOwned={true}
+            currentInviteeId={0}
+            onSubmit={async (vals) => {
+              await createRealtimePost({
+                path: "/",
+                coordinates: { x: 0, y: 0 },
+                type: "LIVECHAT",
+                realtimeRoomId: "global",
+                text: JSON.stringify({ inviteeId: vals.inviteeId }),
+              });
+              reset();
+              router.refresh();
+            }}
+          />
+        );
       default:
         return (
           <DialogContent className="max-w-[24rem]">
