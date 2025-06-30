@@ -90,7 +90,7 @@ function DrawNode({ id, data }: NodeProps<DrawNodeData>) {
       <div className="draw-container">
         <div className="nodrag nopan">
           <div className="w-[400px] h-[400px] border-black border-2 rounded-sm">
-            <Tldraw onMount={(editor) => (editorRef.current = editor)} />
+            <Tldraw onMount={(editor) => { editorRef.current = editor; }} />
           </div>
         </div>
       </div>
