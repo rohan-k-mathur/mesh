@@ -52,6 +52,7 @@ import CollageCreationModal from "@/components/modals/CollageCreationModal";
 import PortalNodeModal from "@/components/modals/PortalNodeModal";
 import GalleryNodeModal from "@/components/modals/GalleryNodeModal";
 import LivechatNodeModal from "@/components/modals/LivechatNodeModal";
+import { fetchUserByUsername } from "@/lib/actions/user.actions";
 
 export default function NodeSidebar({
   reactFlowRef,
@@ -264,14 +265,17 @@ export default function NodeSidebar({
         store.openModal(
           <LivechatNodeModal
             isOwned={true}
-            currentInviteeId={0}
-            onSubmit={(vals) => {
+            currentInvitee=""
+            onSubmit={async (vals) => {
+              const username = vals.invitee.replace(/^@/, "");
+              const user = await fetchUserByUsername(username);
+              if (!user) return;
               createPostAndAddToCanvas({
                 path: pathname,
                 coordinates: centerPosition,
                 type: "LIVECHAT",
                 realtimeRoomId: roomId,
-                text: JSON.stringify({ inviteeId: vals.inviteeId }),
+                text: JSON.stringify({ inviteeId: Number(user.id) }),
               });
             }}
           />

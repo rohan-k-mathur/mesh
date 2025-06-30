@@ -20,6 +20,7 @@ import PortalNodeModal from "@/components/modals/PortalNodeModal";
 import LivechatNodeModal from "@/components/modals/LivechatNodeModal";
 import { uploadFileToSupabase } from "@/lib/utils";
 import { createRealtimePost } from "@/lib/actions/realtimepost.actions";
+import { fetchUserByUsername } from "@/lib/actions/user.actions";
 import { useRouter } from "next/navigation";
 import { z } from "zod";
 import {
@@ -196,14 +197,17 @@ const CreateFeedPost = () => {
         return (
           <LivechatNodeModal
             isOwned={true}
-            currentInviteeId={0}
+            currentInvitee=""
             onSubmit={async (vals) => {
+              const username = vals.invitee.replace(/^@/, "");
+              const user = await fetchUserByUsername(username);
+              if (!user) return;
               await createRealtimePost({
                 path: "/",
                 coordinates: { x: 0, y: 0 },
                 type: "LIVECHAT",
                 realtimeRoomId: "global",
-                text: JSON.stringify({ inviteeId: vals.inviteeId }),
+                text: JSON.stringify({ inviteeId: Number(user.id) }),
               });
               reset();
               router.refresh();
