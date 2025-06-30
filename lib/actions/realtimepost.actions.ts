@@ -118,12 +118,17 @@ export async function updateRealtimePost({
         id: BigInt(id),
       },
     });
+    const coordChanged =
+      coordinates &&
+      (coordinates.x !== originalPost.x_coordinate.toNumber() ||
+        coordinates.y !== originalPost.y_coordinate.toNumber());
+
     if (user!.userId != originalPost!.author_id) {
       if (!originalPost.isPublic) {
         throw new Error(`User is not allowed to update this post`);
       }
       if (
-        coordinates ||
+        coordChanged ||
         isPublic !== undefined ||
         collageLayoutStyle ||
         collageColumns !== undefined ||
@@ -135,24 +140,24 @@ export async function updateRealtimePost({
     if (originalPost.locked && coordinates) {
       throw new Error(`User is not permitted to move this post`);
     }
-    await prisma.realtimePost.update({
-      where: {
-        id: BigInt(id),
-      },
-      data: {
-        ...(text && { content: text }),
-        ...(imageUrl && { image_url: imageUrl }),
-        ...(videoUrl && { video_url: videoUrl }),
-        ...(collageLayoutStyle && { collageLayoutStyle }),
-        ...(collageColumns !== undefined && { collageColumns }),
-        ...(collageGap !== undefined && { collageGap }),
-        ...(isPublic !== undefined && { isPublic }),
+    const updateData: Prisma.RealtimePostUpdateInput = {
+      ...(text && { content: text }),
+      ...(imageUrl && { image_url: imageUrl }),
+      ...(videoUrl && { video_url: videoUrl }),
+      ...(collageLayoutStyle && { collageLayoutStyle }),
+      ...(collageColumns !== undefined && { collageColumns }),
+      ...(collageGap !== undefined && { collageGap }),
+      ...(isPublic !== undefined && { isPublic }),
+    };
 
-        ...(coordinates && {
-          x_coordinate: new Prisma.Decimal(coordinates.x),
-          y_coordinate: new Prisma.Decimal(coordinates.y),
-        }),
-      },
+    if (coordinates && coordChanged) {
+      updateData.x_coordinate = new Prisma.Decimal(coordinates.x);
+      updateData.y_coordinate = new Prisma.Decimal(coordinates.y);
+    }
+
+    await prisma.realtimePost.update({
+      where: { id: BigInt(id) },
+      data: updateData,
     });
 
     revalidatePath(path);

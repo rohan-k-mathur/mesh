@@ -279,11 +279,18 @@ function Room({ roomId, initialNodes, initialEdges }: Props) {
       (changes[0] as NodePositionChange).dragging === false
     ) {
       const nodePositionChange = changes[0] as NodePositionChange;
-      updateRealtimePost({
-        id: nodePositionChange.id,
-        path: pathname,
-        coordinates: nodePositionChange.position,
-      });
+      const existing = nodes.find((n) => n.id === nodePositionChange.id);
+      if (
+        existing &&
+        (existing.position.x !== nodePositionChange.position.x ||
+          existing.position.y !== nodePositionChange.position.y)
+      ) {
+        updateRealtimePost({
+          id: nodePositionChange.id,
+          path: pathname,
+          coordinates: nodePositionChange.position,
+        });
+      }
     }
     onNodesChangeStore(changes);
   };
