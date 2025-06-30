@@ -50,7 +50,7 @@ function RightSidebar() {
         <h3 className="relative bottom-[4rem] text-[1.5rem] text-black">Find New Users</h3>
         <div className="relative bottom-[4rem] flex flex-col gap-y-2">
           {users.map((u) => (
-            <Link key={u.id} href={`/profile/${u.id}`}>
+            <Link key={u.id.toString()} href={`/profile/${u.id}`}>
               <Button className="items-center justify-center rounded-md rightsidebar-item border-none">
                 {u.name}
                 {u.score !== undefined && (

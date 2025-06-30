@@ -16,7 +16,7 @@ const Page = async ({ params }: { params: { id: string } }) => {
       <Modal />
       <div>
         <PostCard
-          key={post.id}
+          key={post.id.toString()}
           currentUserId={user?.userId}
           id={post.id}
           isRealtimePost

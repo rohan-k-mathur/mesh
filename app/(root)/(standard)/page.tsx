@@ -25,7 +25,7 @@ export default async function Home() {
           <>
             {result.map((realtimePost) => (
               <PostCard
-                key={realtimePost.id}
+                key={realtimePost.id.toString()}
                 currentUserId={user?.userId}
                 id={realtimePost.id}
                 isRealtimePost

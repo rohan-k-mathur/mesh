@@ -33,7 +33,7 @@ const Page = async ({ params }: { params: { id: string } }) => {
           likeCount={post.like_count}
         /> */}
         <ThreadCard
-                key={post.id}
+                key={post.id.toString()}
                 currentUserId={user?.userId}
                 id={post.id}
                 parentId={post.parent_id}

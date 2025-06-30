@@ -21,7 +21,7 @@ async function Page() {
           <>
             {activity.map((activityItem) => (
               <Link
-                key={activityItem.id}
+                key={activityItem.id.toString()}
                 href={`/thread/${activityItem.parent_id}`}
               >
                 <article className="activity-card bg-slate-800 rounded-md border-[2px] border-slate-500

@@ -31,7 +31,7 @@ async function Page({
           <>
             {result.users.map((searchUser) => (
               <UserCard
-                key={searchUser.id}
+                key={searchUser.id.toString()}
                 userId={searchUser.id}
                 name={searchUser.name!}
                 username={searchUser.username}

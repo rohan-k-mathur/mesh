@@ -45,7 +45,7 @@ export default async function Page() {
         ) : (
           rooms.map((r) => (
             <Link
-              key={r.id}
+              key={r.id.toString()}
               href={`/room/${r.id}`}
               className="leftsidebar_link leftsidebar-item rounded-md hover:outline-2 hover:outline-double hover:outline-indigo-400"
             >

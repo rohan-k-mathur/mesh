@@ -18,7 +18,7 @@ const CommentTree = ({ comments, currentUserId, currentUserImg, depth = 0 }: Com
         const indent = Math.min(depth, MAX_DEPTH) * INDENT_PX;
         return (
           <div
-            key={comment.id}
+            key={comment.id.toString()}
             className="mt-4"
             style={{ marginLeft: indent, width: `calc(100% - ${indent}px)` }}
           >
