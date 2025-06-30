@@ -6,6 +6,7 @@ import ExpandButton from "../buttons/ExpandButton";
 import TimerButton from "../buttons/TimerButton";
 import ReplicateButton from "../buttons/ReplicateButton";
 import GalleryCarousel from "./GalleryCarousel";
+import dynamic from "next/dynamic";
 import {
   fetchLikeForCurrentUser,
   fetchRealtimeLikeForCurrentUser,
@@ -14,6 +15,7 @@ import { Like, RealtimeLike } from "@prisma/client";
 import React from "react";
 import localFont from 'next/font/local'
 const founders = localFont({ src: '/NewEdgeTest-RegularRounded.otf' })
+const DrawCanvas = dynamic(() => import("./DrawCanvas"), { ssr: false })
 
 interface Props {
   id: bigint;
@@ -115,6 +117,11 @@ const PostCard = async ({
             {type === "GALLERY" && content && (
               <div className="ml-[7rem] w-[500px] justify-center items-center">
                 <GalleryCarousel urls={JSON.parse(content)} />
+              </div>
+            )}
+            {type === "DRAW" && (
+              <div className="mt-2 mb-2 flex justify-center">
+                <DrawCanvas />
               </div>
             )}
             <hr className="mt-4 mb-3 w-full h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-100 to-transparent opacity-75" />
