@@ -244,7 +244,7 @@ export default function HalfwayPage() {
           )}
           {venues.map((venue) => (
             <Marker
-              key={venue.id}
+              key={venue.id.toString()}
               position={venue.location}
               label={venue.name}
             />

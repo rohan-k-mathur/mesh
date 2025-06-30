@@ -24,7 +24,7 @@ const RealtimePostsTab = async ({ currentUserId, accountId }: Props) => {
           <>
           {posts.map((post) => (
             <PostCard
-              key={post.id}
+              key={post.id.toString()}
               currentUserId={currentUserId}
               id={post.id}
               isRealtimePost

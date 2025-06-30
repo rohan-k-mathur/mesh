@@ -16,7 +16,7 @@ const FriendsTab = async ({ currentUserId, accountId }: Props) => {
   return (
     <ul className="mt-9 space-y-4">
       {relations.map((rel) => (
-        <li key={rel.id} className="text-base-regular text-black">
+        <li key={rel.id.toString()} className="text-base-regular text-black">
           <Link href={`/profile/${rel.id}`} className="text-primary-500 hover:underline">
             {rel.name}
           </Link>{" "}

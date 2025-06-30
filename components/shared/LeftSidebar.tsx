@@ -40,7 +40,7 @@ function LeftSidebar({ userRooms }: Props) {
           return (
             <Link
               href={`/room/${userRoom.id}`}
-              key={userRoom.id}
+              key={userRoom.id.toString()}
               className="leftsidebar_link leftsidebar-item  rounded-md hover:outline-2 hover:outline-double hover:outline-indigo-400"
             >
               <div className="rounded_icon_container shadow-sm shadow-black h-6 w-6">

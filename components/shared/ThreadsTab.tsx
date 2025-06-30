@@ -15,7 +15,7 @@ const ThreadsTab = async ({ currentUserId, accountId }: Props) => {
     <section className="mt-9 flex flex-col gap-10">
       {result.posts.map((post) => (
         <ThreadCard
-          key={post.id}
+          key={post.id.toString()}
           id={post.id}
           currentUserId={currentUserId}
           parentId={post.parent_id}
