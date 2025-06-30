@@ -61,7 +61,7 @@ const GalleryNodeForm = ({ onSubmit, currentImages, isOwned }: Props) => {
           name="images"
           render={({ field }) => (
             <FormItem className="flex flex-col gap-4 mb-2 text-xl">
-              <FormLabel className="account-form_image-label text-xl">
+              {/* <FormLabel className="account-form_image-label text-xl">
                 <div className="flex gap-2 flex-wrap">
                   {imageURLs.map((url, idx) => (
                     <Image
@@ -74,8 +74,8 @@ const GalleryNodeForm = ({ onSubmit, currentImages, isOwned }: Props) => {
                     />
                   ))}
                 </div>
-              </FormLabel>
-              <FormControl className="form-submit-button flex-1 text-base-semibol d text-gray-200 text-xl">
+              </FormLabel> */}
+              <FormControl className="form-submit-button flex-1 text-base-semibold text-gray-200 text-xl">
                 <Input
                   hidden
                   multiple
