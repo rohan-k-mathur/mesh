@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import Spinner from "@/components/ui/spinner";
 import Link from "next/link";
 import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
 import { app } from "@/lib/firebase/firebase";
@@ -12,6 +13,7 @@ export default function Register() {
   const [password, setPassword] = useState("");
   const [confirmation, setConfirmation] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   async function handleSubmit(event: FormEvent) {
@@ -25,10 +27,13 @@ export default function Register() {
     }
 
     try {
+      setLoading(true);
       await createUserWithEmailAndPassword(getAuth(app), email, password);
       router.push("/login");
     } catch (e) {
       setError((e as Error).message);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -112,9 +117,10 @@ export default function Register() {
               )}
               <button
                 type="submit"
+                disabled={loading}
                 className="w-full text-white bg-gray-600 hover:bg-gray-700 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-gray-600 dark:hover:bg-gray-700 dark:focus:ring-primary-800"
               >
-                Create an account
+                {loading && <Spinner className="mr-2" />} {loading ? "Loading" : "Create an account"}
               </button>
               <p className="text-sm font-light text-gray-800 dark:text-gray-400">
                 Already have an account?{" "}

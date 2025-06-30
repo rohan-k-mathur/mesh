@@ -2,6 +2,7 @@
 import localFont from "next/font/local";
 
 import { FormEvent, useState } from "react";
+import Spinner from "@/components/ui/spinner";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
@@ -13,6 +14,7 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   async function handleSubmit(event: FormEvent) {
@@ -20,6 +22,7 @@ export default function Login() {
     setError("");
 
     try {
+      setLoading(true);
       const credential = await signInWithEmailAndPassword(
         getAuth(app),
         email,
@@ -36,6 +39,8 @@ export default function Login() {
       router.push("/");
     } catch (e) {
       setError((e as Error).message);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -101,10 +106,10 @@ export default function Login() {
               )}
               <button
                 type="submit"
-                className="flex w-[50%] items-center justify-center text-center content-center mx-auto
-                text-white bg-transparent likebutton py-2 border-white rounded-md "
+                disabled={loading}
+                className="flex w-[50%] items-center justify-center text-center content-center mx-auto text-white bg-transparent likebutton py-2 border-white rounded-md"
               >
-                Next
+                {loading && <Spinner className="mr-2" />} {loading ? "Loading" : "Next"}
               </button>
               <p className="text-[1.2rem] text-center mx-auto text-gray-200 dark:text-gray-400">
                 No Account?{" "}
