@@ -277,8 +277,10 @@
   position: relative;
   bottom: -4px;
 }
+
 .carousel{
-  width: max-content;
+  width: 100%;
+  max-width: 500px;
   height: 25rem;
 
   justify-content: center;

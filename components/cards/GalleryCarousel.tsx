@@ -23,7 +23,7 @@ const GalleryCarousel = ({ urls }: Props) => {
   if (urls.length === 0) return null;
 
   return (
-    <div className="relative  justify-center">
+    <div className="relative mx-auto flex w-full max-w-[500px] justify-center">
       <Image
         className="carousel"
         src={urls[currentIndex]}
@@ -33,20 +33,20 @@ const GalleryCarousel = ({ urls }: Props) => {
         sizes="100vw"
       />
       {urls.length > 1 && (
-        <>
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-between px-2">
           <button
-            className="absolute -left-8 top-1/2 -translate-y-1/2 bg-black/50 text-white px-1"
+            className="pointer-events-auto bg-black/50 text-white px-1"
             onClick={handlePrev}
           >
             ‹
           </button>
           <button
-            className="absolute -right-8 top-1/2 -translate-y-1/2 bg-black/50 text-white px-1"
+            className="pointer-events-auto bg-black/50 text-white px-1"
             onClick={handleNext}
           >
             ›
           </button>
-        </>
+        </div>
       )}
     </div>
   );
