@@ -89,7 +89,7 @@ export async function fetchUser(userId: bigint) {
 export async function fetchUserByUsername(username: string) {
   try {
     await prisma.$connect();
-    return await prisma.user.findUnique({
+    return await prisma.user.findFirst({
       where: { username: username.toLowerCase() },
     });
   } catch (error: any) {
