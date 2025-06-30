@@ -216,6 +216,7 @@ export async function fetchRealtimePosts({
   const realtimePosts = await prisma.realtimePost.findMany({
     where: {
       realtime_room_id: realtimeRoomId,
+      parent_id: null,
       type: {
         in: postTypes,
       },
