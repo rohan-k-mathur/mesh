@@ -279,7 +279,7 @@
 }
 .carousel{
   width: auto;
-  height: auto;
+  height: 300px;
   max-width: 500px;
   justify-content: center;
   align-items: center;
@@ -289,6 +289,7 @@
   padding: 0px;
   position: relative;
   bottom: -4px;
+  object-fit: contain;
 }
 
 
