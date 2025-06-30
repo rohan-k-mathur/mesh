@@ -112,13 +112,14 @@ const PostCard = async ({
               </div>
             )}
             {type === "GALLERY" && content && (
-              <div className="flex flex-wrap gap-2 mt-2 mb-2">
+              <div className="grid      gap-2 mt-2 mb-2">
                 {JSON.parse(content).map((url: string, idx: number) => (
-                  <div key={idx} className="relative w-32 h-32">
-                    <Image src={url} alt={`img-${idx}`} fill style={{ objectFit: "cover" }} />
+                  <div key={idx} className="relative w-[20rem] h-[20rem]">
+                    <Image src={url} alt={`img-${idx}`} fill style={{ objectFit: "contain" }} />
                   </div>
                 ))}
               </div>
+              
             )}
             <hr className="mt-4 mb-3 w-[200%] h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-100 to-transparent opacity-75" />
 
