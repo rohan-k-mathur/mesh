@@ -233,10 +233,28 @@ export async function archiveExpiredPosts() {
     where: { expiration_date: { lte: now } },
   });
   if (expired.length === 0) return;
-  const ids = expired.map((p) => p.id);
+
+  const postsToArchive: typeof expired = [];
+  const visited = new Set<bigint>();
+  const collect = async (id: bigint) => {
+    if (visited.has(id)) return;
+    visited.add(id);
+    const children = await prisma.post.findMany({ where: { parent_id: id } });
+    for (const child of children) {
+      await collect(child.id);
+      postsToArchive.push(child);
+    }
+  };
+
+  for (const post of expired) {
+    await collect(post.id);
+    postsToArchive.push(post);
+  }
+
+  const ids = postsToArchive.map((p) => p.id);
   await prisma.$transaction([
     prisma.archivedPost.createMany({
-      data: expired.map((p) => ({
+      data: postsToArchive.map((p) => ({
         original_post_id: p.id,
         created_at: p.created_at,
         content: p.content,
@@ -244,7 +262,7 @@ export async function archiveExpiredPosts() {
         updated_at: p.updated_at,
         parent_id: p.parent_id,
         like_count: p.like_count,
-        expiration_date: p.expiration_date!,
+        expiration_date: p.expiration_date ?? undefined,
       })),
     }),
     prisma.post.deleteMany({ where: { id: { in: ids } } }),
