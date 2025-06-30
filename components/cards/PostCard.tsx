@@ -16,6 +16,7 @@ import React from "react";
 import localFont from 'next/font/local'
 const founders = localFont({ src: '/NewEdgeTest-RegularRounded.otf' })
 const DrawCanvas = dynamic(() => import("./DrawCanvas"), { ssr: false })
+const LivechatCard = dynamic(() => import("./LivechatCard"), { ssr: false })
 
 interface Props {
   id: bigint;
@@ -119,11 +120,30 @@ const PostCard = async ({
                 <GalleryCarousel urls={JSON.parse(content)} />
               </div>
             )}
-              {type === "DRAW" && (
-                <div className="mt-2 mb-2 flex justify-center items-center">
-                  <DrawCanvas content={content} />
-                </div>
-              )}
+            {type === "LIVECHAT" && content && (
+              (() => {
+                let inviteeId = 0;
+                try {
+                  inviteeId = JSON.parse(content).inviteeId;
+                } catch (e) {
+                  inviteeId = 0;
+                }
+                return (
+                  <div className="mt-2 mb-2 flex justify-center items-center">
+                    <LivechatCard
+                      id={id.toString()}
+                      inviteeId={inviteeId}
+                      authorId={Number(author.id)}
+                    />
+                  </div>
+                );
+              })()
+            )}
+            {type === "DRAW" && (
+              <div className="mt-2 mb-2 flex justify-center items-center">
+                <DrawCanvas content={content} />
+              </div>
+            )}
             <hr className="mt-4 mb-3 w-full h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-100 to-transparent opacity-75" />
 
             <div className="mt-4 flex flex-col gap-x-3 gap-y-4">
