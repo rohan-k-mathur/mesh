@@ -264,6 +264,7 @@ export async function archiveExpiredPosts() {
         like_count: p.like_count,
         expiration_date: p.expiration_date ?? undefined,
       })),
+      skipDuplicates: true,
     }),
     prisma.post.deleteMany({ where: { id: { in: ids } } }),
   ]);
