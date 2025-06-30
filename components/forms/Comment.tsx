@@ -20,14 +20,18 @@ import { z } from "zod";
 import { useRouter, usePathname } from "next/navigation";
 import { CommentValidation } from "@/lib/validations/thread";
 import Image from "next/image";
-import { addCommentToPost } from "@/lib/actions/thread.actions";
+import {
+  addCommentToPost,
+} from "@/lib/actions/thread.actions";
+import { addCommentToRealtimePost } from "@/lib/actions/realtimepost.actions";
 import ReplyButton from "../buttons/ReplyButton";
 interface Props {
-  postId: bigint;
+  postId?: bigint;
+  realtimePostId?: string;
   currentUserImg: string;
   currentUserId: bigint;
 }
-const Comment = ({ postId, currentUserImg, currentUserId }: Props) => {
+const Comment = ({ postId, realtimePostId, currentUserImg, currentUserId }: Props) => {
   const pathname = usePathname();
   const router = useRouter();
   const form = useForm({
@@ -39,12 +43,21 @@ const Comment = ({ postId, currentUserImg, currentUserId }: Props) => {
   });
 
   const onSubmit = async (values: z.infer<typeof CommentValidation>) => {
-    await addCommentToPost({
-      parentPostId: postId,
-      commentText: values.thread,
-      userId: currentUserId,
-      path: pathname,
-    });
+    if (realtimePostId) {
+      await addCommentToRealtimePost({
+        parentPostId: BigInt(realtimePostId),
+        commentText: values.thread,
+        userId: currentUserId,
+        path: pathname,
+      });
+    } else if (postId) {
+      await addCommentToPost({
+        parentPostId: postId,
+        commentText: values.thread,
+        userId: currentUserId,
+        path: pathname,
+      });
+    }
 
     form.reset();
   };

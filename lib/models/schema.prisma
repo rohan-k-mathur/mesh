@@ -147,6 +147,9 @@ model RealtimePost {
   collageLayoutStyle String? // "grid", "bento", "scrapbook"
   collageColumns     Int?
   collageGap         Int?
+  parent_id          BigInt?
+  realtimePost       RealtimePost? @relation("RealtimePostChildren", fields: [parent_id], references: [id], onDelete: Restrict)
+  children           RealtimePost[] @relation("RealtimePostChildren")
 
   @@map("realtime_posts")
 }

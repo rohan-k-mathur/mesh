@@ -262,10 +262,53 @@ export async function fetchRealtimePostById({ id }: { id: string }) {
       },
       include: {
         author: true,
+        children: {
+          include: { author: true },
+        },
       },
     });
   } catch (error: any) {
     throw new Error(`Failed to fetch real-time post: ${error.message}`);
+  }
+}
+
+export async function addCommentToRealtimePost({
+  parentPostId,
+  commentText,
+  userId,
+  path,
+}: {
+  parentPostId: bigint;
+  commentText: string;
+  userId: bigint;
+  path: string;
+}) {
+  try {
+    await prisma.$connect();
+    const originalPost = await prisma.realtimePost.findUnique({
+      where: { id: parentPostId },
+    });
+    if (!originalPost) throw new Error("Post not found");
+    const comment = await prisma.realtimePost.create({
+      data: {
+        content: commentText,
+        author_id: userId,
+        parent_id: parentPostId,
+        realtime_room_id: originalPost.realtime_room_id,
+        type: "TEXT",
+        x_coordinate: originalPost.x_coordinate,
+        y_coordinate: originalPost.y_coordinate,
+        locked: true,
+        isPublic: false,
+      },
+    });
+    await prisma.realtimePost.update({
+      where: { id: parentPostId },
+      data: { children: { connect: { id: comment.id } } },
+    });
+    revalidatePath(path);
+  } catch (error: any) {
+    throw new Error(`Error adding comment to realtime post ${error.message}`);
   }
 }
 

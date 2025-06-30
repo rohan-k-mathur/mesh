@@ -6,12 +6,13 @@ interface CommentTreeProps {
   currentUserId: bigint;
   currentUserImg: string;
   depth?: number;
+  isRealtimePost?: boolean;
 }
 
 const MAX_DEPTH = 5;
 const INDENT_PX = 24;
 
-const CommentTree = ({ comments, currentUserId, currentUserImg, depth = 0 }: CommentTreeProps) => {
+const CommentTree = ({ comments, currentUserId, currentUserImg, depth = 0, isRealtimePost }: CommentTreeProps) => {
   return (
     <div className="flex flex-col gap-3">
       {comments.map((comment) => {
@@ -32,6 +33,7 @@ const CommentTree = ({ comments, currentUserId, currentUserImg, depth = 0 }: Com
             comments={comment.children}
             isComment
             likeCount={comment.like_count}
+            {...(isRealtimePost ? { isRealtimePost: true } : {})}
           />
           <div
             className="mt-4"
@@ -40,7 +42,7 @@ const CommentTree = ({ comments, currentUserId, currentUserImg, depth = 0 }: Com
                               <hr className="mt-4 mb-3 w-full h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-900 to-transparent opacity-75" />
 
             <Comment
-              postId={comment.id}
+              {...(isRealtimePost ? { realtimePostId: comment.id.toString() } : { postId: comment.id })}
               currentUserImg={currentUserImg}
               currentUserId={currentUserId}
             />
@@ -52,6 +54,7 @@ const CommentTree = ({ comments, currentUserId, currentUserImg, depth = 0 }: Com
                 currentUserId={currentUserId}
                 currentUserImg={currentUserImg}
                 depth={depth + 1}
+                isRealtimePost={isRealtimePost}
               />
             )}
           </div>
