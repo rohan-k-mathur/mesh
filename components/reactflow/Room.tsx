@@ -40,6 +40,7 @@ import YoutubeNode from "../nodes/YoutubeNode";
 import CollageNode from "../nodes/CollageNode";
 import GalleryNode from "../nodes/GalleryNode";
 import DrawNode from "../nodes/DrawNode";
+import LivechatNode from "../nodes/LivechatNode";
 import HamburgerMenu from "../shared/HamburgerMenu";
 import NodeSidebar from "../shared/NodeSidebar";
 import { createRealtimeEdge } from "@/lib/actions/realtimeedge.actions";
@@ -313,6 +314,7 @@ function Room({ roomId, initialNodes, initialEdges }: Props) {
     GALLERY: GalleryNode,
     PORTAL: PortalNode,
     DRAW: DrawNode,
+    LIVECHAT: LivechatNode,
   };
   const edgeTypes = {
     DEFAULT: DefaultEdge,

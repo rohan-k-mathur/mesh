@@ -80,3 +80,7 @@ export const PortalNodeValidation = z.object({
   x: z.number(),
   y: z.number(),
 });
+
+export const LivechatInviteValidation = z.object({
+  inviteeId: z.number(),
+});

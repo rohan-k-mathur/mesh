@@ -10,7 +10,8 @@ import {
   GalleryNodeData,
   PortalNode,
   DrawNode,
-  
+  LivechatNode,
+
   AppEdge,
 } from "./types";
 
@@ -194,6 +195,22 @@ export function convertPostToNode(
             y: realtimePost.y_coordinate,
           },
         } as DrawNode;
+      case "LIVECHAT": {
+        let inviteeId = 0;
+        if (realtimePost.content) {
+          try {
+            inviteeId = JSON.parse(realtimePost.content).inviteeId;
+          } catch (e) {
+            inviteeId = 0;
+          }
+        }
+        return {
+          id: realtimePost.id.toString(),
+          type: realtimePost.type,
+          data: { inviteeId, author: authorToSet, locked: realtimePost.locked },
+          position: { x: realtimePost.x_coordinate, y: realtimePost.y_coordinate }
+        } as LivechatNode;
+      }
     
           default:
             throw new Error("Unsupported real-time post type");

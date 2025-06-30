@@ -107,6 +107,15 @@ export type DrawNode = Node<
   "DRAW"
 >;
 
+export type LivechatNode = Node<
+  {
+    inviteeId: number;
+    author: AuthorOrAuthorId;
+    locked: boolean;
+  },
+  "LIVECHAT"
+>;
+
 export type AudioNode = Node<
   {
     audioUrl: string;
@@ -157,6 +166,7 @@ export const NodeTypeMap = {
   GALLERY: {} as GalleryNodeData,
   PORTAL: {} as PortalNode,
   DRAW: {} as DrawNode,
+  LIVECHAT: {} as LivechatNode,
   AUDIO: {} as AudioNode,
   DOCUMENT: {} as DocumentNode,
   THREAD: {} as ThreadNode,
@@ -177,6 +187,7 @@ export const NodeTypeToModalMap = {
   COLLAGE: CollageCreationModal,
   GALLERY: GalleryNodeModal,
   PORTAL: ShareRoomModal,
+  LIVECHAT: ShareRoomModal,
 };
 
 export type AppNode =
@@ -189,6 +200,7 @@ export type AppNode =
   | GalleryNodeData
   | PortalNode
   | DrawNode
+  | LivechatNode
   | AudioNode
   | DocumentNode
   | ThreadNode
@@ -209,6 +221,7 @@ export const DEFAULT_NODE_VALUES: Record<AppNodeType, string> = {
   ["GALLERY"]: "",
   ["PORTAL"]: "",
   ["DRAW"]: "",
+  ["LIVECHAT"]: "",
   ["AUDIO"]: "",
   ["DOCUMENT"]: "",
   ["THREAD"]: "",
