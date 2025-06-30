@@ -43,7 +43,7 @@ function PortalNode({ id, data }: NodeProps<PortalNodeData>) {
     >
       <div className="portal-node">
         <div className="portal-block">
-          <button  onClick={handleTeleport} className="portalbutton w-36 p-4">
+          <button  onClick={handleTeleport} className="portalbutton w-[15rem] p-4">
             Go to ({data.x}, {data.y})
           </button>
         </div>
