@@ -7,8 +7,11 @@ const nextConfig = {
     });
     return config;
   },
+  experimental: {
+    serverComponentsExternalPackages: ["@tldraw/tldraw"],
+  },
     images: {
-      domains: ['localhost'], 
+      domains: ['localhost'],
 
       remotePatterns: [
         {
