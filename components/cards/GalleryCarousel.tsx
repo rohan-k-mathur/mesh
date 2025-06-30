@@ -23,7 +23,7 @@ const GalleryCarousel = ({ urls }: Props) => {
   if (urls.length === 0) return null;
 
   return (
-    <div className="img-container relative">
+    <div className="img-container">
       <Image
         className="img-frame"
         src={urls[currentIndex]}
