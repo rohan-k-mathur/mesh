@@ -286,11 +286,14 @@ function Room({ roomId, initialNodes, initialEdges }: Props) {
         (existing.position.x !== nodePositionChange.position.x ||
           existing.position.y !== nodePositionChange.position.y)
       ) {
-        updateRealtimePost({
-          id: nodePositionChange.id,
-          path: pathname,
-          coordinates: nodePositionChange.position,
-        });
+        const authorId = (existing.data.author as any).id;
+        if (user && Number(authorId) === Number(user.userId)) {
+          updateRealtimePost({
+            id: nodePositionChange.id,
+            path: pathname,
+            coordinates: nodePositionChange.position,
+          });
+        }
       }
     }
     onNodesChangeStore(changes);
