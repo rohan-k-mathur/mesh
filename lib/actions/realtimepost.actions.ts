@@ -125,9 +125,9 @@ export async function updateRealtimePost({
       (coordinates.x !== originalPost.x_coordinate.toNumber() ||
         coordinates.y !== originalPost.y_coordinate.toNumber());
 
-    if (user!.userId != originalPost!.author_id) {
+    if (!user || user.userId != originalPost.author_id) {
       if (!originalPost.isPublic) {
-        throw new Error(`User is not allowed to update this post`);
+        return;
       }
       if (
         coordChanged ||
@@ -136,11 +136,11 @@ export async function updateRealtimePost({
         collageColumns !== undefined ||
         collageGap !== undefined
       ) {
-        throw new Error(`User is not allowed to update this post`);
+        return;
       }
     }
     if (originalPost.locked && coordinates) {
-      throw new Error(`User is not permitted to move this post`);
+      return;
     }
     const updateData: Prisma.RealtimePostUpdateInput = {
       ...(text && { content: text }),
@@ -165,7 +165,7 @@ export async function updateRealtimePost({
 
     revalidatePath(path);
   } catch (error: any) {
-    throw new Error(`Failed to update real-time post: ${error.message}`);
+    console.error("Failed to update real-time post:", error);
   }
 }
 
@@ -186,8 +186,8 @@ export async function lockRealtimePost({
         id: BigInt(id),
       },
     });
-    if (user!.userId != originalPost!.author_id) {
-      throw new Error(`User is not allowed to update this post`);
+    if (!user || user.userId != originalPost.author_id) {
+      return;
     }
     await prisma.realtimePost.update({
       where: {
@@ -200,7 +200,7 @@ export async function lockRealtimePost({
 
     revalidatePath(path);
   } catch (error: any) {
-    throw new Error(`Failed to update real-time post: ${error.message}`);
+    console.error("Failed to update real-time post:", error);
   }
 }
 
@@ -238,20 +238,24 @@ export async function fetchRealtimePosts({
 
 export async function deleteRealtimePost({ id }: { id: string }) {
   const user = await getUserFromCookies();
-  await prisma.$connect();
-  const originalPost = await prisma.realtimePost.findUniqueOrThrow({
-    where: {
-      id: BigInt(id),
-    },
-  });
-  if (user!.userId != originalPost!.author_id) {
-    throw new Error(`User is not allowed to update this post`);
+  try {
+    await prisma.$connect();
+    const originalPost = await prisma.realtimePost.findUniqueOrThrow({
+      where: {
+        id: BigInt(id),
+      },
+    });
+    if (!user || user.userId != originalPost.author_id) {
+      return;
+    }
+    await prisma.realtimePost.delete({
+      where: {
+        id: BigInt(id),
+      },
+    });
+  } catch (error: any) {
+    console.error("Failed to delete real-time post:", error);
   }
-  await prisma.realtimePost.delete({
-    where: {
-      id: BigInt(id),
-    },
-  });
 }
 
 export async function fetchRealtimePostById({ id }: { id: string }) {
