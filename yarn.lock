@@ -5159,19 +5159,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tldraw/editor@npm:3.13.2":
-  version: 3.13.2
-  resolution: "@tldraw/editor@npm:3.13.2"
+"@tldraw/editor@npm:3.13.4":
+  version: 3.13.4
+  resolution: "@tldraw/editor@npm:3.13.4"
   dependencies:
     "@tiptap/core": "npm:^2.9.1"
     "@tiptap/pm": "npm:^2.9.1"
     "@tiptap/react": "npm:^2.9.1"
-    "@tldraw/state": "npm:3.13.2"
-    "@tldraw/state-react": "npm:3.13.2"
-    "@tldraw/store": "npm:3.13.2"
-    "@tldraw/tlschema": "npm:3.13.2"
-    "@tldraw/utils": "npm:3.13.2"
-    "@tldraw/validate": "npm:3.13.2"
+    "@tldraw/state": "npm:3.13.4"
+    "@tldraw/state-react": "npm:3.13.4"
+    "@tldraw/store": "npm:3.13.4"
+    "@tldraw/tlschema": "npm:3.13.4"
+    "@tldraw/utils": "npm:3.13.4"
+    "@tldraw/validate": "npm:3.13.4"
     "@types/core-js": "npm:^2.5.8"
     "@use-gesture/react": "npm:^10.3.1"
     classnames: "npm:^2.5.1"
@@ -5183,77 +5183,77 @@ __metadata:
   peerDependencies:
     react: ^18.2.0 || ^19.0.0
     react-dom: ^18.2.0 || ^19.0.0
-  checksum: 10c0/8991a2ac13207b808b7f264220db88c6da25c400c6622653fd07e4abafef89d30ba0da121ef034ec27e2ff7f8b9c05766a74b7c58e795d69419f3f2af36e6fd4
+  checksum: 10c0/16d03038868d645031da5a5ad9126ffdf73e5115e4678dd4a25b9787dc6c06b74abc31cf75d5f502031c16fa5fc684f5c6a90215c0c22c02d03b46208bdcb4d0
   languageName: node
   linkType: hard
 
-"@tldraw/state-react@npm:3.13.2":
-  version: 3.13.2
-  resolution: "@tldraw/state-react@npm:3.13.2"
+"@tldraw/state-react@npm:3.13.4":
+  version: 3.13.4
+  resolution: "@tldraw/state-react@npm:3.13.4"
   dependencies:
-    "@tldraw/state": "npm:3.13.2"
-    "@tldraw/utils": "npm:3.13.2"
+    "@tldraw/state": "npm:3.13.4"
+    "@tldraw/utils": "npm:3.13.4"
   peerDependencies:
     react: ^18.2.0 || ^19.0.0
     react-dom: ^18.2.0 || ^19.0.0
-  checksum: 10c0/b1ccafc487b14ec786d576726ba32e4ac7219a6fa0382a11e5de6dd05f9007ed6de7123ec248217d7573bf4c79eea32955255ebe140552af3bf7ef23aa24360f
+  checksum: 10c0/cc932a3abd8f1e1d0a389d2db323cbd2c1f32e545133425d477b519ac54a473795f36ca56b4ab4f76adcba3a025b0e6aa74f4c5cba6ef44852bb1f49933c9907
   languageName: node
   linkType: hard
 
-"@tldraw/state@npm:3.13.2":
-  version: 3.13.2
-  resolution: "@tldraw/state@npm:3.13.2"
+"@tldraw/state@npm:3.13.4":
+  version: 3.13.4
+  resolution: "@tldraw/state@npm:3.13.4"
   dependencies:
-    "@tldraw/utils": "npm:3.13.2"
-  checksum: 10c0/5a51a8019936688f9406d196bdae0e3f0523889c23f0fc7545f9d243f3da5075fa1d74ed3f0c921074db32572b2d84fc95e30af94a1b6c721fcf2a562b58c7fb
+    "@tldraw/utils": "npm:3.13.4"
+  checksum: 10c0/78fa180d7815619b7c21152ab36fa02b5afa176ddcded362697a469b0d58cde2cb15b803b7474cb0eb704fa2ee74ccdeb18cfc635ea5e7221b9407a913f79234
   languageName: node
   linkType: hard
 
-"@tldraw/store@npm:3.13.2":
-  version: 3.13.2
-  resolution: "@tldraw/store@npm:3.13.2"
+"@tldraw/store@npm:3.13.4":
+  version: 3.13.4
+  resolution: "@tldraw/store@npm:3.13.4"
   dependencies:
-    "@tldraw/state": "npm:3.13.2"
-    "@tldraw/utils": "npm:3.13.2"
+    "@tldraw/state": "npm:3.13.4"
+    "@tldraw/utils": "npm:3.13.4"
     lodash.isequal: "npm:^4.5.0"
   peerDependencies:
     react: ^18.2.0 || ^19.0.0
-  checksum: 10c0/263d0cfdb652d0f06d8ecd33cf7c158a0be8839f8cf8f86319c2b6a713dbd4c8306d11186e5bfdc3aa371f8d63c3ef17c8db60c8476ba99b56bdd4bb8bac91b6
+  checksum: 10c0/65c43e32d4919ceb721135c425ce0d46edbb554bd84e44c1304063bf473fbf562754e6662c9676c6021777aeeef167f906c03da1b7eb974fb40225d0fc477fd8
   languageName: node
   linkType: hard
 
-"@tldraw/tlschema@npm:3.13.2":
-  version: 3.13.2
-  resolution: "@tldraw/tlschema@npm:3.13.2"
+"@tldraw/tlschema@npm:3.13.4":
+  version: 3.13.4
+  resolution: "@tldraw/tlschema@npm:3.13.4"
   dependencies:
-    "@tldraw/state": "npm:3.13.2"
-    "@tldraw/store": "npm:3.13.2"
-    "@tldraw/utils": "npm:3.13.2"
-    "@tldraw/validate": "npm:3.13.2"
+    "@tldraw/state": "npm:3.13.4"
+    "@tldraw/store": "npm:3.13.4"
+    "@tldraw/utils": "npm:3.13.4"
+    "@tldraw/validate": "npm:3.13.4"
   peerDependencies:
     react: ^18.2.0 || ^19.0.0
     react-dom: ^18.2.0 || ^19.0.0
-  checksum: 10c0/b83d8e5d1fbec12349934e636dc03acedc8f0751d39961674be48e8426472191d627bf8dab680a1bfc50cc8241032a946c2e1c8029fc25a1617bbcc964a9093c
+  checksum: 10c0/e99b505d8afdbd4b974e0c1bada7041d84dc0c093e7311eb7d925fdc4e956b696b51fe2bd2b5ede0178c0884d5aa0f17dcdda3a227cd53d838d81e733acbe967
   languageName: node
   linkType: hard
 
-"@tldraw/utils@npm:3.13.2":
-  version: 3.13.2
-  resolution: "@tldraw/utils@npm:3.13.2"
+"@tldraw/utils@npm:3.13.4":
+  version: 3.13.4
+  resolution: "@tldraw/utils@npm:3.13.4"
   dependencies:
     fractional-indexing-jittered: "npm:^0.9.1"
     lodash.throttle: "npm:^4.1.1"
     lodash.uniq: "npm:^4.5.0"
-  checksum: 10c0/55f55ea15961caf2919900c70ce5a0f74d2214cfc6bc7c630af8ff997ce13e03376eb275f05e4a9abb95750b0fbd673ecfa0939af6fbd8d2b57736bb7bdb01a7
+  checksum: 10c0/795f4df365e907441aa5e08602e7e57ff6b8f048c90db10b6ca3cbe9dab0c0edbdbc85b6cecd5f0a1e3bb40f11865a2b5b1b578e804d54b231cfc0080372e172
   languageName: node
   linkType: hard
 
-"@tldraw/validate@npm:3.13.2":
-  version: 3.13.2
-  resolution: "@tldraw/validate@npm:3.13.2"
+"@tldraw/validate@npm:3.13.4":
+  version: 3.13.4
+  resolution: "@tldraw/validate@npm:3.13.4"
   dependencies:
-    "@tldraw/utils": "npm:3.13.2"
-  checksum: 10c0/483822a63e44d4f2c67a7a9254ab99d0197c6cb400fbff9de525d94b2a7af182ba9494d7a116ddd5debec974f07a9ee2a8175015624781842d4c5eefb0167f98
+    "@tldraw/utils": "npm:3.13.4"
+  checksum: 10c0/2aa5dbddca8225cfe61678f2cda8b0b288bbbaa8ed3e26cc66b248529a10f1a18047af6fec9293ed3ba201e2d0891a737542aee845f6a4cd9e48f57b0e472a1d
   languageName: node
   linkType: hard
 
@@ -6895,6 +6895,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"axios@npm:^1.10.0":
+  version: 1.10.0
+  resolution: "axios@npm:1.10.0"
+  dependencies:
+    follow-redirects: "npm:^1.15.6"
+    form-data: "npm:^4.0.0"
+    proxy-from-env: "npm:^1.1.0"
+  checksum: 10c0/2239cb269cc789eac22f5d1aabd58e1a83f8f364c92c2caa97b6f5cbb4ab2903d2e557d9dc670b5813e9bcdebfb149e783fb8ab3e45098635cd2f559b06bd5d8
+  languageName: node
+  linkType: hard
+
 "axobject-query@npm:~3.1.1":
   version: 3.1.1
   resolution: "axobject-query@npm:3.1.1"
@@ -8275,6 +8286,7 @@ __metadata:
     "@xyflow/react": "npm:^12.4.4"
     ace-builds: "npm:^1.39.0"
     antd: "npm:^5.24.3"
+    axios: "npm:^1.10.0"
     check-peer-dependencies: "npm:^4.3.0"
     class-variance-authority: "npm:^0.7.0"
     clsx: "npm:^2.1.1"
@@ -8301,6 +8313,7 @@ __metadata:
     nanoid: "npm:^5.0.8"
     next: "npm:^14.2.30"
     next-firebase-auth-edge: "npm:^1.6.2"
+    openai: "npm:^5.8.2"
     osc: "npm:^2.4.5"
     pixi.js: "npm:^8.3.4"
     postcss: "npm:^8"
@@ -8320,7 +8333,7 @@ __metadata:
     tailwindcss: "npm:^3.4.1"
     tailwindcss-animate: "npm:^1.0.7"
     three: "npm:^0.170.0"
-    tldraw: "npm:^3.13.2"
+    tldraw: "npm:^3.13.4"
     tone: "npm:^15.0.4"
     ts-jest: "npm:^29.4.0"
     tsx: "npm:^4.16.5"
@@ -9288,6 +9301,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"follow-redirects@npm:^1.15.6":
+  version: 1.15.9
+  resolution: "follow-redirects@npm:1.15.9"
+  peerDependenciesMeta:
+    debug:
+      optional: true
+  checksum: 10c0/5829165bd112c3c0e82be6c15b1a58fa9dcfaede3b3c54697a82fe4a62dd5ae5e8222956b448d2f98e331525f05d00404aba7d696de9e761ef6e42fdc780244f
+  languageName: node
+  linkType: hard
+
 "for-each@npm:^0.3.3":
   version: 0.3.3
   resolution: "for-each@npm:0.3.3"
@@ -9317,6 +9340,19 @@ __metadata:
     mime-types: "npm:^2.1.35"
     safe-buffer: "npm:^5.2.1"
   checksum: 10c0/48b910745d4fcd403f3d6876e33082a334e712199b8c86c4eb82f6da330a59b859943999d793856758c5ff18ca5261ced4d1062235a14543022d986bd21faa7d
+  languageName: node
+  linkType: hard
+
+"form-data@npm:^4.0.0":
+  version: 4.0.3
+  resolution: "form-data@npm:4.0.3"
+  dependencies:
+    asynckit: "npm:^0.4.0"
+    combined-stream: "npm:^1.0.8"
+    es-set-tostringtag: "npm:^2.1.0"
+    hasown: "npm:^2.0.2"
+    mime-types: "npm:^2.1.12"
+  checksum: 10c0/f0cf45873d600110b5fadf5804478377694f73a1ed97aaa370a74c90cebd7fe6e845a081171668a5476477d0d55a73a4e03d6682968fa8661eac2a81d651fcdb
   languageName: node
   linkType: hard
 
@@ -12600,7 +12636,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"mime-types@npm:^2.1.35":
+"mime-types@npm:^2.1.12, mime-types@npm:^2.1.35":
   version: 2.1.35
   resolution: "mime-types@npm:2.1.35"
   dependencies:
@@ -13258,6 +13294,23 @@ __metadata:
     regex: "npm:^6.0.1"
     regex-recursion: "npm:^6.0.2"
   checksum: 10c0/8f3fc7f524a7fa78cecc3a2af29d19a834563b25de4eb3ed138ffe062075dfedacd997d86951b38cc5c5d6b5c083df1f5a10a442b742df9399eaa6ea9aa68392
+  languageName: node
+  linkType: hard
+
+"openai@npm:^5.8.2":
+  version: 5.8.2
+  resolution: "openai@npm:5.8.2"
+  peerDependencies:
+    ws: ^8.18.0
+    zod: ^3.23.8
+  peerDependenciesMeta:
+    ws:
+      optional: true
+    zod:
+      optional: true
+  bin:
+    openai: bin/cli
+  checksum: 10c0/71587ab2b8eb7b3222290bae0ae6f0914209303fb6505c7d1c3464c6a296847d17978238b619775617e8535cbac3e3565bf76e06b70d3bc8decd58143dfc589e
   languageName: node
   linkType: hard
 
@@ -13979,6 +14032,13 @@ __metadata:
     "@types/node": "npm:>=13.7.0"
     long: "npm:^5.0.0"
   checksum: 10c0/9dc131a7e7a610b8291a0b0033b313f8754ef419b57c44d27874dd4edf1afc2a9a77d7a5bc2df9a744cba014de67c92756759c73200b702a11f13360e907b0dd
+  languageName: node
+  linkType: hard
+
+"proxy-from-env@npm:^1.1.0":
+  version: 1.1.0
+  resolution: "proxy-from-env@npm:1.1.0"
+  checksum: 10c0/fe7dd8b1bdbbbea18d1459107729c3e4a2243ca870d26d34c2c1bcd3e4425b7bcc5112362df2d93cc7fb9746f6142b5e272fd1cc5c86ddf8580175186f6ad42b
   languageName: node
   linkType: hard
 
@@ -16265,9 +16325,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tldraw@npm:^3.13.2":
-  version: 3.13.2
-  resolution: "tldraw@npm:3.13.2"
+"tldraw@npm:^3.13.4":
+  version: 3.13.4
+  resolution: "tldraw@npm:3.13.4"
   dependencies:
     "@tiptap/core": "npm:^2.9.1"
     "@tiptap/extension-code": "npm:^2.9.1"
@@ -16276,8 +16336,8 @@ __metadata:
     "@tiptap/pm": "npm:^2.9.1"
     "@tiptap/react": "npm:^2.9.1"
     "@tiptap/starter-kit": "npm:^2.9.1"
-    "@tldraw/editor": "npm:3.13.2"
-    "@tldraw/store": "npm:3.13.2"
+    "@tldraw/editor": "npm:3.13.4"
+    "@tldraw/store": "npm:3.13.4"
     classnames: "npm:^2.5.1"
     hotkeys-js: "npm:^3.13.9"
     idb: "npm:^7.1.1"
@@ -16287,7 +16347,7 @@ __metadata:
   peerDependencies:
     react: ^18.2.0 || ^19.0.0
     react-dom: ^18.2.0 || ^19.0.0
-  checksum: 10c0/36e4b6ddbb71d525d363be0c5ca30f8039aac140756936d816587d5d8deaec17428e79c712f9103d0290bec27c984926cf144c28ba68b29e587f02e15edbced0
+  checksum: 10c0/01c5b5bf9fc88dadc680b287d0f0a6b59f393c75744a532ecaa8b62873a464a69d0ca6fbbc681566ec3725fab95b66799d6c9787df38d3df1e4210c4bf237a03
   languageName: node
   linkType: hard
 
