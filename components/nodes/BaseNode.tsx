@@ -53,7 +53,7 @@ function BaseNode({
     await lockRealtimePost({ id, lockState: newLockState, path: pathname });
   };
 
-  const canDrag = user && !isLocked;
+  const canDrag = user && isOwned && !isLocked;
 
   return (
     <div className={canDrag ? "" : "nodrag"}>
