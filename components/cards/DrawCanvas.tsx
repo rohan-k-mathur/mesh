@@ -24,7 +24,7 @@ const DrawCanvas = ({ content }: DrawCanvasProps) => {
 
   return (
     <div className="flex justify-center">
-      <div className="w-[400px] h-[400px] border-black border-2 rounded-sm">
+      <div className="w-[400px] h-[400px]  rounded-md">
         <Tldraw
           onMount={(editor) => {
             editorRef.current = editor;

@@ -694,7 +694,7 @@ border: 0.125 rem solid #D1C6E7;
   outline: transparent;
   outline-style: solid;
   outline-width: .25px;
-  border-radius: 2px;
+  border-radius: 4px;
   box-shadow:   3px 3px 7px #dec7cc,
   -1px 2px 7px rgba(0, 0, 0, 0.15);
 

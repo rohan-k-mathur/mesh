@@ -120,7 +120,7 @@ const PostCard = async ({
               </div>
             )}
               {type === "DRAW" && (
-                <div className="mt-2 mb-2 flex justify-center">
+                <div className="mt-2 mb-2 flex justify-center items-center">
                   <DrawCanvas content={content} />
                 </div>
               )}
