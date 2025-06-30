@@ -37,29 +37,33 @@ function GalleryNode({ id, data }: NodeProps<GalleryNodeData>) {
   const isPublic = data.isPublic;
 
   async function onGallerySubmit(values: z.infer<typeof GalleryPostValidation>) {
-    const uploads = await Promise.all(
-      values.images.map((img) => uploadFileToSupabase(img))
-    );
-    const urls = uploads
-      .filter((r) => !r.error)
-      .map((r) => r.fileURL);
-    const updatedGallery = urls.length > 0 ? [...images, ...urls] : images;
+    try {
+      const uploads = await Promise.all(
+        values.images.map((img) => uploadFileToSupabase(img))
+      );
+      const urls = uploads
+        .filter((r) => !r.error)
+        .map((r) => r.fileURL);
+      const updatedGallery = urls.length > 0 ? [...images, ...urls] : images;
 
-    if (urls.length > 0) {
-      setImages(updatedGallery);
-      setCurrentIndex(0);
+      if (urls.length > 0) {
+        setImages(updatedGallery);
+        setCurrentIndex(0);
+      }
+
+      await updateRealtimePost({
+        id,
+        path,
+        ...(urls.length > 0 && {
+          imageUrl: updatedGallery[0],
+          text: JSON.stringify(updatedGallery),
+        }),
+        ...(isOwned && { isPublic: values.isPublic }),
+      });
+      store.closeModal();
+    } catch (e) {
+      console.error(e);
     }
-
-    await updateRealtimePost({
-      id,
-      path,
-      ...(urls.length > 0 && {
-        imageUrl: updatedGallery[0],
-        text: JSON.stringify(updatedGallery),
-      }),
-      ...(isOwned && { isPublic: values.isPublic }),
-    });
-    store.closeModal();
   }
 
   const handlePrev = (e: React.MouseEvent) => {
