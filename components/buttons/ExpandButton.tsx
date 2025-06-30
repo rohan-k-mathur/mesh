@@ -12,7 +12,7 @@ interface Props {
   realtimePostId?: string;
 }
 
-const ExpandButton = ({ postId }: Props) => {
+const ExpandButton = ({ postId, realtimePostId }: Props) => {
   const user = useAuth();
   const router = useRouter();
   const isUserSignedIn = !!user.user;
@@ -20,18 +20,18 @@ const ExpandButton = ({ postId }: Props) => {
 
 
  
+  const href = realtimePostId ? `/post/${realtimePostId}` : `/thread/${postId}`;
+
   return (
-
-    <Link href={`/thread/${postId}`}>
-                    <Image
-                      src="/assets/add-comment.svg"
-                      alt="reply"
-                      width={28}
-                      height={28}
-                      className="cursor-pointer object-contain likebutton"
-                    />
-                  </Link>
-
+    <Link href={href}>
+      <Image
+        src="/assets/add-comment.svg"
+        alt="reply"
+        width={28}
+        height={28}
+        className="cursor-pointer object-contain likebutton"
+      />
+    </Link>
   );
   
 };

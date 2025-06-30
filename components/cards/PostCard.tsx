@@ -136,7 +136,11 @@ const PostCard = async ({
                   initialLikeState={currentUserLike}
                 />
                   <>
-                    <ExpandButton postId={id} />
+                    <ExpandButton
+                      {...(isRealtimePost
+                        ? { realtimePostId: id.toString() }
+                        : { postId: id })}
+                    />
                   </>
             <ReplicateButton postId={id} />
           <ShareButton postId={id} />
