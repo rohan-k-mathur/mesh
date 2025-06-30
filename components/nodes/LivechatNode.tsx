@@ -102,12 +102,14 @@ function LivechatNode({ id, data }: NodeProps<LivechatNodeData>) {
   return (
     <BaseNode
       modalContent={
-        <LivechatNodeModal
-          id={id}
-          isOwned={isOwned}
-          currentInvitee={inviteeUsername}
-          onSubmit={onSubmit}
-        />
+        isOwned ? (
+          <LivechatNodeModal
+            id={id}
+            isOwned={isOwned}
+            currentInvitee={inviteeUsername}
+            onSubmit={onSubmit}
+          />
+        ) : null
       }
       id={id}
       author={author}

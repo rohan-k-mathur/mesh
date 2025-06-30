@@ -20,13 +20,13 @@ function LivechatNodeForm({ onSubmit, currentInvitee }: Props) {
     <form method="post" className="ml-3 mr-3" onSubmit={form.handleSubmit(onSubmit)}>
       <hr />
       <div className="py-4 grid gap-2">
-        <label className="flex flex-col text-slate-500 gap-3 text-xl">
+        <label className="flex flex-col text-white gap-3 text-[1rem]">
           Invitee Username:
-          <Input type="text" {...form.register("invitee")} placeholder="@username" />
+          <Input type="text" {...form.register("invitee")} placeholder="@username" className="text-black"/>
         </label>
       </div>
       <hr />
-      <div className="py-4 mb-4">
+      <div className="py-4 mb-0">
         <Button type="submit" className="form-submit-button" size={"lg"}>
           Save Changes
         </Button>
