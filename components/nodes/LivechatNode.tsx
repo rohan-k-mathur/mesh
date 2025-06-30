@@ -116,17 +116,30 @@ function LivechatNode({ id, data }: NodeProps<LivechatNodeData>) {
       isOwned={isOwned}
       type={"LIVECHAT"}
       isLocked={data.locked}
+      
     >
-      <div className="text-updater-node  w-[30rem] h-[20rem] flex flex-col ">
-        <textarea className="w-full text-block border rounded text-black p-1" disabled value={otherText} rows={2} />
+
+      <div className="livechat-updater-node  flex flex-col py-[4rem] gap-4 ">
+      <label htmlFor="other" className="text-[1rem] mb-0 mt-0">Other Person</label>
+
+        <textarea 
+        id="other"
+        className="w-[90%]  text-block border rounded text-black p-3  custom-scrollbar " 
+        disabled value={otherText} 
+        rows={7} />
+        <label htmlFor="you" className="text-[1rem] mb-0 mt-0">You</label>
+
         <textarea
-          className="w-full text-block border rounded text-black p-4"
+        id="you"
+          className="w-[90%] text-block border rounded text-black p-3  mb-4 custom-scrollbar
+          "
           value={myText}
           onChange={(e) => handleTyping(e.target.value)}
-          rows={5}
+          rows={7}
         />
-        <button onClick={sendMessage} className="bg-blue-500 text-black rounded px-2 py-1">
-          Send
+
+        <button onClick={sendMessage} className="bg-transparent likebutton border-none outline-black outline-blue  w-[50%] text-black text-[1rem] rounded-xl px-2 py-2">
+          Clear
         </button>
       </div>
     </BaseNode>

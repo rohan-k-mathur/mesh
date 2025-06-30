@@ -405,22 +405,48 @@
   cursor: grab;
   color:rgb(0, 0, 0);
 }
+.livechat-updater-node {
+  border-radius: 2px;
+  border-color: slategray;
+  padding-left: 0.8rem;
+  padding-right: 0.8rem;
+  padding-top: 2.75rem;
+  padding-bottom: 3.9rem;
+  justify-content: center;
+  align-items: center;
+  width: 30rem;
+  cursor: grab;
+  color:rgb(0, 0, 0);
+}
+.livechat-updater-node:hover {
+  border-radius: 2px;
+  border-color: slategray;
+  padding-left: 0.8rem;
+  padding-right: 0.8rem;
+  padding-top: 2.75rem;
+  padding-bottom: 3.9rem;
+  justify-content: center;
+  align-items: center;
+  width: 30rem;
+  font-size: 0.5rem;
+  cursor: grab;
+  color:rgb(0, 0, 0);
+}
 .portal-block{
   width: fit-content;
   margin: 0.3rem; 
   padding: 0.3rem;
 }
 .text-block {
-    width: 22.8rem;
-  height: 13.8rem;
+    width: fit-content;
   /* === NEW RULES FOR A THIN BORDER AROUND THE TEXT === */
   border: .5px solid #000000;   /* thin, light gray border */
   border-radius: 2px;       /* optional small rounding on corners */
    /* ensure a white background behind the text */
 
   /* We’ll remove artificially small size for better readability */
-  font-size: 1rem;
-  line-height: 1.25;
+  font-size: .7rem;
+  line-height: 1;
 
   /* Adjust letter-spacing to a minimal or default setting for normal text */
   letter-spacing: normal;
@@ -778,7 +804,8 @@ background-color: #000000;
 
 
 textarea {
-  padding: 10px;
+  padding: 0.625rem;
+  
   max-width: 100%;
   line-height: 1;
   border-radius: 2px;
@@ -786,6 +813,7 @@ textarea {
   border: 1.5px solid #222222;
   box-shadow: 1px 1px 1px #3e3e3e;
 }
+
 /* Node card container: an orange box with a black border and drop shadow. */
 .orange-node {
   position: relative;        /* So we can position children absolutely if needed */
@@ -851,15 +879,7 @@ textarea {
   transform: translateX(-50%);/* centers horizontally when left: 50% */
 }
 
-textarea:hover {
-  padding: 10px;
-  max-width: 100%;
-  line-height: 1;
-  border-radius: 2px;
-  resize: none;
-  border: 1.5px solid #222222;
-  box-shadow: none;
-}
+
 textarea:disabled {
   background: #f9f9f9;
 }
