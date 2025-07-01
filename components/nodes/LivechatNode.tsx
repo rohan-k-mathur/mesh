@@ -33,6 +33,12 @@ function LivechatNode({ id, data }: NodeProps<LivechatNodeData>) {
   const [otherText, setOtherText] = useState("");
   const [channel, setChannel] = useState<any>(null);
   const [inviteeUsername, setInviteeUsername] = useState("");
+  const otherUsername =
+    Number(currentUser?.userId) === Number(data.author.id)
+      ? inviteeUsername
+      : "username" in author
+      ? author.username
+      : "";
 
   useEffect(() => {
     if ("username" in author) return;
@@ -120,7 +126,7 @@ function LivechatNode({ id, data }: NodeProps<LivechatNodeData>) {
     >
 
       <div className="livechat-updater-node  flex flex-col py-[4rem] gap-4 ">
-      <label htmlFor="other" className="text-[1rem] mb-0 mt-0">Other Person</label>
+      <label htmlFor="other" className="text-[1rem] mb-0 mt-0">{otherUsername || "Other Person"}</label>
 
         <textarea 
         id="other"

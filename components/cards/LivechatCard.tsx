@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseclient";
 import { useAuth } from "@/lib/AuthContext";
+import { fetchUser } from "@/lib/actions/user.actions";
 
 interface LivechatCardProps {
   id: string;
@@ -14,6 +15,7 @@ function LivechatCard({ id, inviteeId, authorId }: LivechatCardProps) {
   const [myText, setMyText] = useState("");
   const [otherText, setOtherText] = useState("");
   const [channel, setChannel] = useState<any>(null);
+  const [otherUsername, setOtherUsername] = useState("");
 
   useEffect(() => {
     const ch = supabase.channel(`livechat-${id}`);
@@ -32,6 +34,14 @@ function LivechatCard({ id, inviteeId, authorId }: LivechatCardProps) {
       supabase.removeChannel(ch);
     };
   }, [id, currentUser]);
+
+  useEffect(() => {
+    if (!currentUser) return;
+    const otherId =
+      Number(currentUser.userId) === Number(authorId) ? inviteeId : authorId;
+    if (!otherId) return;
+    fetchUser(BigInt(otherId)).then((u) => u && setOtherUsername(u.username));
+  }, [currentUser, inviteeId, authorId]);
 
   const sendMessage = () => {
     if (!channel) return;
@@ -68,7 +78,7 @@ function LivechatCard({ id, inviteeId, authorId }: LivechatCardProps) {
   return (
     <div className="livechat-canvas-node flex flex-col py-[2rem] gap-4">
       <label htmlFor="other" className="text-[1.25rem] mb-0 mt-0">
-        Other Person
+        {otherUsername || "Other Person"}
       </label>
       <textarea
         id="other"
