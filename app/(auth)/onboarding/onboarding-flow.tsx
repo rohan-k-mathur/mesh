@@ -6,7 +6,7 @@ import AccountProfile from "@/components/forms/AccountProfile";
 import CustomButtons from "@/app/(root)/(standard)/profile/[id]/customize/customize-components";
 import { joinRoom } from "@/lib/actions/realtimeroom.actions";
 import { useRouter } from "next/navigation";
-import Button from "antd/lib/button";
+import { Button } from "@/components/ui/button";
 interface UserData {
   authId: string;
   userId: bigint | null;

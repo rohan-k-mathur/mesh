@@ -13,7 +13,7 @@ import { Like, RealtimeLike } from "@prisma/client";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-
+import { Button } from "@/components/ui/button";
 interface Props {
   postId?: bigint;
   realtimePostId?: string;
@@ -118,7 +118,7 @@ const LikeButton = ({ postId, realtimePostId, likeCount, initialLikeState }: Pro
         {displayLikeCount}
       </p>
   
-    
+      <Button variant="outline" className=" comment-form_btn mr-2">
       <Image
         onClick={dislikeButtonClicked}
         src={
@@ -131,6 +131,8 @@ const LikeButton = ({ postId, realtimePostId, likeCount, initialLikeState }: Pro
         height={24}
         className="cursor-pointer object-contain likebutton"
       />
+        </Button>
+      
     </div>
   );
   
