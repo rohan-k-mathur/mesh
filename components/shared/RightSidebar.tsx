@@ -53,8 +53,8 @@ function RightSidebar() {
             <p className="text-sm text-gray-500">No suggestions</p>
           ) : (
             users.map((u) => (
-              <button>
-              <Link key={u.id.toString()} href={`/profile/${u.id}`}>
+              <button key={u.id.toString()}>
+              <Link href={`/profile/${u.id}`}> 
                 <Button
                   variant={"outline"}
                   className="rounded-full likebutton items-center justify-center bg-transparent outline-blue border-none"
