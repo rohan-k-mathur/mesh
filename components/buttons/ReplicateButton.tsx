@@ -21,7 +21,7 @@ const ReplicateButton = ({ postId }: Props) => {
 
  
   return (
-
+<button>
     <Image
                   src="/assets/replicate.svg"
                   alt="replicate"
@@ -29,6 +29,7 @@ const ReplicateButton = ({ postId }: Props) => {
                   height={24}
                   className="cursor-pointer object-contain likebutton"
                 />
+                </button>
 
   );
   

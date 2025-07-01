@@ -100,10 +100,9 @@ const LikeButton = ({ postId, realtimePostId, likeCount, initialLikeState }: Pro
   }
   return (
     <div className="flex flex-row items-center gap-2 relative -left-3">
-            <button >
+            <button         onClick={likeButtonClicked}>
 
         <Image
-        onClick={likeButtonClicked}
         src={
           currentLikeType === "LIKE"
             ? "/assets/triangle-up-filled.svg"
@@ -121,18 +120,17 @@ const LikeButton = ({ postId, realtimePostId, likeCount, initialLikeState }: Pro
         {displayLikeCount}
       </p>
   
-      <button >
+      <button         onClick={dislikeButtonClicked}>
       <Image
-        onClick={dislikeButtonClicked}
         src={
           currentLikeType === "DISLIKE"
             ? "/assets/triangle-down-filled.svg"
             : "/assets/triangle-down-stroke.svg"
         }
         alt="frown"
-        width={24}
-        height={24}
-        className="cursor-pointer object-contain "
+        width={28}
+        height={28}
+        className="cursor-pointer object-contain likebutton"
       />
         </button>
       
