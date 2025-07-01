@@ -23,6 +23,7 @@ function TextInputNode({ id, data }: NodeProps<TextNode>) {
   );
   const [text, setText] = useState(data.text);
   const [author, setAuthor] = useState(data.author);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     setText(data.text);
     if ("username" in author) {
@@ -32,7 +33,7 @@ function TextInputNode({ id, data }: NodeProps<TextNode>) {
         setAuthor(user!);
       });
     }
-  }, [data]);
+  }, [data, author]);
 
   const isOwned = currentActiveUser
     ? Number(currentActiveUser!.userId) === Number(data.author.id)

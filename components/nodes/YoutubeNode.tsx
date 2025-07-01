@@ -22,6 +22,7 @@ function YoutubeNode({ id, data }: NodeProps<YoutubeVidNode>) {
   );
   const [videoURL, setVideoURL] = useState(data.videoid);
   const [author, setAuthor] = useState(data.author);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     setVideoURL(data.videoid);
     if ("username" in author) {
@@ -31,7 +32,7 @@ function YoutubeNode({ id, data }: NodeProps<YoutubeVidNode>) {
         setAuthor(user!);
       });
     }
-  }, [data]);
+  }, [data, author]);
 
   const isOwned = currentActiveUser
     ? Number(currentActiveUser!.userId) === Number(data.author.id)

@@ -279,7 +279,7 @@ export async function fetchRealtimePostById({ id }: { id: string }) {
 
 export async function fetchRealtimePostTreeById({ id }: { id: string }) {
   await prisma.$connect();
-  const post = await prisma.realtimePost.findUnique({
+  const post: any = await prisma.realtimePost.findUnique({
     where: { id: BigInt(id) },
     include: { author: true },
   });
