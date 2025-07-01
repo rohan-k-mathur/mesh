@@ -36,7 +36,7 @@ function LeftSidebar({ userRooms }: Props) {
   return (
     <section className="custom-scrollbar leftsidebar  bg-transparent">
       <div className="flex w-full flex-1 flex-col gap-6 px-6">
-        {userRooms.map((userRoom) => {
+        {/* {userRooms.map((userRoom) => {
           return (
             <Link
               href={`/room/${userRoom.id}`}
@@ -55,7 +55,36 @@ function LeftSidebar({ userRooms }: Props) {
               <p className="text-black tracking-[.05rem] max-lg:hidden">{userRoom.id}</p>
             </Link>
           );
-        })}
+        })} */}
+            <Link
+              href={`/room/global`}
+              key={"global"}
+              className="leftsidebar_link leftsidebar-item  rounded-md hover:outline-2 hover:outline-double hover:outline-indigo-400"
+            >
+              <div className="rounded_icon_container  shadow-black h-6 w-6">
+                <Image
+                  src="/assets/logo-black.svg"
+                  alt={"globe"}
+                  width={48}
+                  height={48}
+                  className=" object-contain"
+                />
+              </div>
+              <p className="text-black tracking-[.05rem] max-lg:hidden">{"Global"}</p>
+            </Link>
+       
+        <Link
+          href={`/create-room`}
+          className="leftsidebar_link leftsidebar-item  rounded-md hover:outline-2 hover:outline-double hover:outline-indigo-400"
+        >
+          <Image
+            src="/assets/more.svg"
+            alt="YourRooms"
+            width={24}
+            height={24}
+          />
+          <p className="text-black  max-lg:hidden">{"Your Rooms"}</p>
+        </Link>
         <Link
           href={`/create-room`}
           className="leftsidebar_link leftsidebar-item border-[1px] border-rose-300 border-opacity-80	 rounded-md hover:outline-2 hover:outline-double hover:outline-red-400"
@@ -75,7 +104,27 @@ function LeftSidebar({ userRooms }: Props) {
       <div className="mb-6 px-6  ">
         {isUserSignedIn && (
           <Button
-            className="h-full w-full rounded-md  leftsidebar-item border-none justify-center items-center hover:outline-2 hover:outline-double hover:outline-emerald-400"
+          variant={"outline"}
+            className="items-start justify-start h-full w-full rounded-md leftsidebar-link  leftsidebar-item border-none justify-center items-center hover:outline-2 hover:outline-double hover:outline-emerald-400"
+            onClick={gotoprofile}
+          >
+            <Image
+              src="/assets/notifications-none.svg"
+              alt="notifs"
+              className="mr-2"
+              width={24}
+              height={24}
+            />
+            <p className="text-black max-lg:hidden">Notifications</p>
+          </Button>
+        )}
+      </div>
+      <div className="mb-6 px-6  ">
+        {isUserSignedIn && (
+          <Button
+          variant={"outline"}
+
+            className="items-start justify-start h-full w-full rounded-md  leftsidebar-item border-none  hover:outline-2 hover:outline-double hover:outline-emerald-400"
             onClick={gotoprofile}
           >
             <Image
@@ -92,7 +141,9 @@ function LeftSidebar({ userRooms }: Props) {
       <div className="mb-6 px-6 ">
         {isUserSignedIn && (
           <Button
-            className="h-full w-full rounded-md  leftsidebar-item border-none hover:outline-2 hover:outline-double hover:outline-emerald-400"
+          variant={"outline"}
+
+            className="items-start justify-start h-full w-full rounded-md  leftsidebar-item border-none hover:outline-2 hover:outline-double hover:outline-emerald-400"
             onClick={handleLogout}
           >
             <Image
