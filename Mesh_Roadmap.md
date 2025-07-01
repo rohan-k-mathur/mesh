@@ -14,11 +14,17 @@ These components form a working prototype where users can create rooms, post mul
 
 ## Completed Milestones
 
-* Core canvas and node system
-* Supabase real‑time channels for presence and data updates
-* Basic feed with global and friend posts
-* Firebase authentication and session middleware
-* Initial Prisma models for rooms, posts, and user attributes
+- [x] Core canvas and node system
+- [x] Supabase real‑time channels for presence and data updates
+- [x] Basic feed with global and friend posts
+- [x] Firebase authentication and session middleware
+- [x] Initial Prisma models for rooms, posts, and user attributes
+- [x] Explore page exposing recommended users and rooms
+- [x] Livechat node for ephemeral conversations
+
+## Summary of Current Progress
+
+The investor report highlights that the real‑time canvas, authentication middleware, Prisma models, and feed are fully functional【F:Investor_Report.md†L6-L18】. Social discovery is partially implemented: the schema now stores `location`, `birthday`, `hobbies`, and `communities` in `UserAttributes`, and server actions compute embeddings for friend suggestions. A recommendations API aggregates similar users and rooms, and an Explore page surfaces these suggestions. The Livechat node type has been built in line with the SRS, providing ephemeral chat within rooms and the feed.
 
 The next sections outline the remaining work required for a public launch.
 
@@ -61,13 +67,13 @@ The next sections outline the remaining work required for a public launch.
 
 ### Interest Profiling
 
-* Extend `UserAttributes` with optional fields (location, birthday, hobbies, communities).
-* Provide update APIs and an onboarding survey to capture initial interests.
+* [x] Extend `UserAttributes` with optional fields (location, birthday, hobbies, communities).
+* [x] Provide update APIs and an onboarding survey to capture initial interests (forms under construction).
 
 ### Recommendation API
 
-* Apply collaborative filtering from likes, room membership, and profile overlaps.
-* Expose an endpoint returning recommended rooms or threads and integrate it into the feed UI.
+* [x] Apply collaborative filtering from likes, room membership, and profile overlaps.
+* [x] Expose an endpoint returning recommended rooms or threads and integrate it into the feed UI.
 
 ### Search and Explore
 
@@ -97,7 +103,7 @@ The next sections outline the remaining work required for a public launch.
 ### Multiplayer UX
 
 * Extend cursor broadcasting with presence indicators (username labels and join/leave notifications).
-* Add ephemeral chat and emoji reactions stored in memory (optionally persisted for the last N messages).
+* [x] Add ephemeral chat and emoji reactions stored in memory (optionally persisted for the last N messages).
 
 ### Concurrency Handling
 
