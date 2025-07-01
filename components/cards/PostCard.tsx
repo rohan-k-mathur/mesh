@@ -141,7 +141,7 @@ const PostCard = async ({
             )}
             {type === "DRAW" && (
               <div className="mt-2 mb-2 flex justify-center items-center">
-                <DrawCanvas author={author.name} locked={true} content={content} />
+                <DrawCanvas id={id.toString()} content={content} />
               </div>
             )}
             <hr className="mt-4 mb-3 w-full h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-100 to-transparent opacity-75" />
