@@ -7,6 +7,7 @@ import ShareButton from "../buttons/ShareButton";
 import ExpandButton from "../buttons/ExpandButton";
 import TimerButton from "../buttons/TimerButton";
 import ReplicateButton from "../buttons/ReplicateButton";
+import DeleteCardButton from "../buttons/DeleteCardButton";
 import GalleryCarousel from "./GalleryCarousel";
 import dynamic from "next/dynamic";
 import {
@@ -167,6 +168,11 @@ const PostCard = async ({
             <ReplicateButton postId={id} />
           <ShareButton postId={id} />
           <TimerButton
+            postId={id}
+            isOwned={currentUserId === author.id}
+            expirationDate={expirationDate ?? undefined}
+          />
+          <DeleteCardButton
             postId={id}
             isOwned={currentUserId === author.id}
             expirationDate={expirationDate ?? undefined}
