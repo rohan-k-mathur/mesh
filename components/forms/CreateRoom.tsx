@@ -80,7 +80,7 @@ function CreateRoom() {
           control={form.control}
           name="roomIcon"
           render={({ field }) => (
-            <FormItem className="flex items-center gap-4">
+            <FormItem className="flex items-center gap-4 ml-[26%] mt-4">
               <FormLabel className="rounded_icon_container h-24 w-24">
                 {imageURL != "" ? (
                   <Image
@@ -102,12 +102,12 @@ function CreateRoom() {
                   />
                 )}
               </FormLabel>
-              <FormControl className="flex-1  text-base-semibold text-gray-200">
+              <FormControl className=" items-center justify-center  grid flex flex-col w-[50%] text-base-semibold text-gray-200">
                 <Input
                   type="file"
                   accept="image/*"
                   placeholder="Upload a photo"
-                  className="account-form_image-input"
+                  className="account-form_image-input "
                   onChange={(e) => handleImage(e, field.onChange)}
                 />
               </FormControl>
@@ -121,12 +121,12 @@ function CreateRoom() {
           
           render={({ field }) => (
             
-            <FormItem className="flex flex-col w-full ml-[20%]">
+            <FormItem className="flex flex-col w-full ml-[26%] mt-2 ">
               <FormLabel className="text-header-semibold text-dark-2"></FormLabel>
               <FormControl className="border-2 border-slate-500  bg-white text-black hover:border-black focus:border-black">
                 <Input
                   type="text"
-                  className="border border-dark-4 text-dark-1 w-[60%] no-focus"
+                  className="border border-dark-4 text-dark-1  w-[52%] no-focus"
                   placeholder="Enter room name"
                   {...field}
                 />
@@ -137,9 +137,9 @@ function CreateRoom() {
         />
         <Button
           type="submit"
-          className=" h-fit w-fit ml-[21%] mt-[1rem] py-1 px-4 text-[1.15rem] bg-white rounded-md "
+          className=" h-fit w-fit ml-[27%] mt-4 py-1 px-4 text-[1.15rem] bg-transparent outline-blue hover:bg-transparent rounded-md "
         >
-          Create Room
+          Create
         </Button>
       </form>
 
