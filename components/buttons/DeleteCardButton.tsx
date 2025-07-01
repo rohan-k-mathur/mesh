@@ -12,29 +12,35 @@ interface Props {
   expirationDate?: string | null;
 }
 
-const DeleteCardButton = ({ postId, isOwned, expirationDate }: Props) => {
-  const { openModal } = useStore(
-    useShallow((state: AppState) => ({
-      openModal: state.openModal,
-    }))
-  );
+interface Props {
+  postId?: bigint;
+  realtimePostId?: string;
+}
 
-  return (
-    <button>
-    <Image
-      src="/assets/trash-can.svg"
-      alt="trash"
-      width={24}
-      height={24}
-      className="cursor-pointer object-contain likebutton"
-      onClick={() =>
-        openModal(
-          <TimerModal postId={postId} isOwned={isOwned} expirationDate={expirationDate} />
-        )
-      }
-    />
-    </button>
-  );
-};
+const DeleteCardButton = ({ postId, isOwned, expirationDate }: Props) => {
+    const { openModal } = useStore(
+      useShallow((state: AppState) => ({
+        openModal: state.openModal,
+      }))
+    );
+  
+    return (
+      <button>
+      <Image
+        src="/assets/trash-can.svg"
+        alt="trash"
+        width={24}
+        height={24}
+        className="cursor-pointer object-contain likebutton"
+        onClick={() =>
+          openModal(
+            <TimerModal postId={postId} isOwned={isOwned} expirationDate={expirationDate} />
+          )
+        }
+      />
+      </button>
+    );
+  };
+  
 
 export default DeleteCardButton;
