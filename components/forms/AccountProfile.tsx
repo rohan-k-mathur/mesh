@@ -10,6 +10,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+
 import { Input } from "@/components/ui/input";
 import { UserValidation } from "@/lib/validations/user";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -105,17 +106,18 @@ const AccountProfile = ({ user, btnTitle, onSuccess }: Props) => {
   };
 
   return (
+    <div className="relative gap-y-2">
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
-        className="flex flex-col justify-start gap-1"
+        className="flex flex-col justify-center gap-1"
       >
         <FormField
           control={form.control}
           name="profile_photo"
           render={({ field }) => (
             <FormItem className="flex flex-row items-center ">
-              <FormLabel className="account-form_image-label">
+              <FormLabel className="account-form_image-label ">
                 {field.value ? (
                   <Image
                     src={field.value}
@@ -141,7 +143,7 @@ const AccountProfile = ({ user, btnTitle, onSuccess }: Props) => {
                   type="file"
                   accept="image/*"
                   placeholder="Upload a photo"
-                  className="account-form_image-input "
+                  className="account-form_image-input hover:border-[1px]"
                   onChange={(e) => handleImage(e, field.onChange)}
                 />
               </FormControl>
@@ -193,7 +195,7 @@ const AccountProfile = ({ user, btnTitle, onSuccess }: Props) => {
           control={form.control}
           name="bio"
           render={({ field }) => (
-            <FormItem className="flex-2 flex-col w-full">
+            <FormItem className="flex-2 flex-col-1 w-full">
               <FormLabel className="account_label_name">
                 Add a Bio
               </FormLabel>
@@ -213,6 +215,7 @@ const AccountProfile = ({ user, btnTitle, onSuccess }: Props) => {
         </Button>
       </form>
     </Form>
+    </div>
   );
 };
 export default AccountProfile;

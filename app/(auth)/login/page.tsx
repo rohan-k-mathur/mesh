@@ -107,7 +107,7 @@ export default function Login() {
               <button
                 type="submit"
                 disabled={loading}
-                className="flex w-[50%] items-center justify-center text-center content-center mx-auto text-white bg-transparent likebutton py-2 border-white rounded-md"
+                className="flex w-[50%] items-center justify-center text-center content-center mx-auto text-white bg-transparent loginbutton py-2 border-white rounded-md"
               >
                 {loading && <Spinner className="mr-2" />} {loading ? "Loading" : "Next"}
               </button>

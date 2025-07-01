@@ -7,6 +7,9 @@ import CustomButtons from "@/app/(root)/(standard)/profile/[id]/customize/custom
 import { joinRoom } from "@/lib/actions/realtimeroom.actions";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import localFont from "next/font/local";
+
+const founderslight = localFont({ src: "./NewEdgeTest-LightRounded.otf" });
 interface UserData {
   authId: string;
   userId: bigint | null;
@@ -35,20 +38,24 @@ export default function OnboardingFlow({ userData, userAttributes }: Props) {
   };
 
   return (
-    <main className="mx-auto flex max-w-3xl flex-col justify-center items-center px-10 py-10 text-black">
+    <main className="mx-auto flex flex-col max-w-3xl  justify-center items-center px-10 py-10 text-black">
       {step === "profile" && (
         <>
-          <h1 className="head-text">Edit Your Profile</h1>
-          <section className="postcard mt-5 bg-white bg-opacity-20 p-10 text-black">
+            <h1 className={`head-text ${founderslight.className}`}>
+
+              Edit Your Profile</h1>
+          <section className={`postcard mt-5 bg-white bg-opacity-20 p-10 text-black ${founderslight.className}`}>
             <AccountProfile user={userData} btnTitle="Continue" onSuccess={handleProfileComplete} />
           </section>
         </>
       )}
       {step === "customize" && (
         <>
-          <h1 className="head-text relative">Customize Profile</h1>
+            <h1 className={`head-text relative ${founderslight.className}`}>
+            Customize Profile</h1>
           <CustomButtons userAttributes={userAttributes} initialOpen />
-          <Button onClick={finishOnboarding} className="flex flex-row mt-[48rem] bg-white px-5 py-2 rounded-md z-100">
+          <Button onClick={finishOnboarding} className={`flex flex-row mt-[48rem] bg-white px-5 py-2 rounded-md z-100
+ ${founderslight.className}`}>
             Finish
           </Button>
         </>
