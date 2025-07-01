@@ -49,18 +49,25 @@ function RightSidebar() {
       <div className="flex w-full flex-1 flex-col gap-2 px-2">
         <h3 className="relative bottom-[4rem] text-[1.5rem] text-black">Find New Users</h3>
         <div className="relative bottom-[4rem] flex flex-col gap-y-4 items-center">
-          {users.map((u) => (
-            <Link key={u.id.toString()} href={`/profile/${u.id}`}>
-              <Button variant={"outline"} className="rounded-full likebutton items-center justify-center bg-transparent outline-blue border-none">
-                {u.name}
-                {u.score !== undefined && (
-                  <span className="ml-2 text-xs text-gray-600">
-                    {u.score.toFixed(2)}
-                  </span>
-                )}
-              </Button>
-            </Link>
-          ))}
+          {users.length === 0 ? (
+            <p className="text-sm text-gray-500">No suggestions</p>
+          ) : (
+            users.map((u) => (
+              <Link key={u.id.toString()} href={`/profile/${u.id}`}>
+                <Button
+                  variant={"outline"}
+                  className="rounded-full likebutton items-center justify-center bg-transparent outline-blue border-none"
+                >
+                  {u.name}
+                  {u.score !== undefined && (
+                    <span className="ml-2 text-xs text-gray-600">
+                      {u.score.toFixed(2)}
+                    </span>
+                  )}
+                </Button>
+              </Link>
+            ))
+          )}
         </div>
       </div>
       <div className="absolute justify-start  top-[1.55rem] left-[2.7rem]"></div>
