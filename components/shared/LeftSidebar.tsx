@@ -78,7 +78,7 @@ function LeftSidebar({ userRooms }: Props) {
           className="leftsidebar_link leftsidebar-item  rounded-md hover:outline-2 hover:outline-double hover:outline-indigo-400"
         >
           <Image
-            src="/assets/more.svg"
+            src="/assets/3D-print-mesh.svg"
             alt="YourRooms"
             width={24}
             height={24}
@@ -90,7 +90,7 @@ function LeftSidebar({ userRooms }: Props) {
           className="leftsidebar_link leftsidebar-item border-[1px] border-rose-300 border-opacity-80	 rounded-md hover:outline-2 hover:outline-double hover:outline-red-400"
         >
           <Image
-            src="/assets/create-new.svg"
+            src="/assets/gateway.svg"
             alt="Create"
             width={24}
             height={24}

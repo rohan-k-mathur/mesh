@@ -17,21 +17,13 @@ const DeleteButton = ({ deleteOnClick }: Props) => {
         btype="delete"
         onClick={deleteOnClick}
       >
-        {isHovering ? (
+       
           <Image
-            src="/assets/delete-animated.svg"
-            width={24}
-            height={24}
-            alt="deletea"
-          />
-        ) : (
-          <Image
-            src="/assets/delete-static.svg"
+            src="/assets/trash-can.svg"
             width={24}
             height={24}
             alt="deletes"
           />
-        )}
       </Button>
     </div>
   );

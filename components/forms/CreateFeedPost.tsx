@@ -246,7 +246,7 @@ const CreateFeedPost = () => {
         <Button           variant={"outline"}
  className="items-start justify-start h-full w-full rounded-md leftsidebar-item border-none hover:outline-2 hover:outline-double hover:outline-emerald-400">
           <Image
-            src="/assets/plus-circle.svg"
+            src="/assets/create-new.svg"
             alt="create post"
             className="mr-2"
             width={24}
