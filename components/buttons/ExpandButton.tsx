@@ -23,6 +23,7 @@ const ExpandButton = ({ postId, realtimePostId }: Props) => {
   const href = realtimePostId ? `/post/${realtimePostId}` : `/thread/${postId}`;
 
   return (
+    <button>
     <Link href={href}>
       <Image
         src="/assets/add-comment.svg"
@@ -32,6 +33,7 @@ const ExpandButton = ({ postId, realtimePostId }: Props) => {
         className="cursor-pointer object-contain likebutton"
       />
     </Link>
+    </button>
   );
   
 };

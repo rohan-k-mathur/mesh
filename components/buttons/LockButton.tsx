@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "../ui/button";
+import { Button } from "@/components/ui/button";
 import Image from "next/image";
 
 interface Props {
@@ -12,7 +12,8 @@ interface Props {
 
 const LockButton = ({ lockOnClick, isLocked, isOwned }: Props) => {
   return (
-    <div className="relative -bottom-1  likebutton">
+    <div className="relative -bottom-1  ">
+      <button>
    
         {isLocked ? (
           <Image src="/assets/locked.svg" width={24} height={24} alt="locked" />
@@ -25,6 +26,7 @@ const LockButton = ({ lockOnClick, isLocked, isOwned }: Props) => {
 
           />
         )}
+        </button>
     </div>
   );
 };

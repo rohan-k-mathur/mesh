@@ -37,6 +37,7 @@ const EditButton = ({ modalContent }: Props) => {
         >
           {isHovering ? (
             <div className="flex items-center">
+              <button>
               <Image
                 src={"/assets/edit-animated.svg"}
                 alt="edit"
@@ -44,6 +45,7 @@ const EditButton = ({ modalContent }: Props) => {
                 height={60}
                 className="cursor-pointer object-contain"
               />
+              </button>
             </div>
           ) : (
             <div></div>

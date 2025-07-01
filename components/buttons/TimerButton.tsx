@@ -20,6 +20,7 @@ const TimerButton = ({ postId, isOwned, expirationDate }: Props) => {
   );
 
   return (
+    <button>
     <Image
       src="/assets/time.svg"
       alt="clock"
@@ -32,6 +33,7 @@ const TimerButton = ({ postId, isOwned, expirationDate }: Props) => {
         )
       }
     />
+    </button>
   );
 };
 

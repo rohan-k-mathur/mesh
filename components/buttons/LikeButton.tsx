@@ -100,6 +100,8 @@ const LikeButton = ({ postId, realtimePostId, likeCount, initialLikeState }: Pro
   }
   return (
     <div className="flex flex-row items-center gap-2 relative -left-3">
+            <button >
+
         <Image
         onClick={likeButtonClicked}
         src={
@@ -112,13 +114,14 @@ const LikeButton = ({ postId, realtimePostId, likeCount, initialLikeState }: Pro
         height={28}
         className="cursor-pointer object-contain likebutton"
       />
-  
+          </button>
+
       {/* Give this paragraph a fixed width (e.g. 24px or w-6) and text-center. */}
       <p className="w-2 text-center text-subtle-medium text-black">
         {displayLikeCount}
       </p>
   
-      <Button variant="outline" className=" comment-form_btn mr-2">
+      <button >
       <Image
         onClick={dislikeButtonClicked}
         src={
@@ -129,9 +132,9 @@ const LikeButton = ({ postId, realtimePostId, likeCount, initialLikeState }: Pro
         alt="frown"
         width={24}
         height={24}
-        className="cursor-pointer object-contain likebutton"
+        className="cursor-pointer object-contain "
       />
-        </Button>
+        </button>
       
     </div>
   );

@@ -21,7 +21,7 @@ const ReplyButton = ({ postId }: Props) => {
 
  
   return (
-
+<button>
     <Image
                   src="/assets/reply.svg"
                   alt="share"
@@ -29,7 +29,7 @@ const ReplyButton = ({ postId }: Props) => {
                   height={24}
                   className="cursor-pointer object-contain likebutton"
                 />
-
+</button>
   );
   
 };
