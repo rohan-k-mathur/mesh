@@ -2,6 +2,7 @@ import PostCard from "@/components/cards/PostCard";
 import Modal from "@/components/modals/Modal";
 import { fetchRealtimePosts } from "@/lib/actions/realtimepost.actions";
 import { getUserFromCookies } from "@/lib/serverutils";
+import { redirect } from "next/navigation";
 
 export const metadata = {
   title: "Mesh",
@@ -22,6 +23,7 @@ export default async function Home() {
     ],
   });
   const user = await getUserFromCookies();
+  if (!user) redirect("/login");
 
   return (
     <div >
