@@ -66,23 +66,23 @@ function LivechatCard({ id, inviteeId, authorId }: LivechatCardProps) {
   }
 
   return (
-    <div className="livechat-updater-node flex flex-col py-[2rem] gap-4">
-      <label htmlFor="other" className="text-[1rem] mb-0 mt-0">
+    <div className="livechat-canvas-node flex flex-col py-[2rem] gap-4">
+      <label htmlFor="other" className="text-[1.25rem] mb-0 mt-0">
         Other Person
       </label>
       <textarea
         id="other"
-        className="w-[90%] text-block border rounded text-black p-3 custom-scrollbar"
+        className="w-[90%] text-block text-[1rem] border rounded text-black p-3 custom-scrollbar"
         disabled
         value={otherText}
         rows={5}
       />
-      <label htmlFor="you" className="text-[1rem] mb-0 mt-0">
+      <label htmlFor="you" className="text-[1.25rem] mb-0 mt-0">
         You
       </label>
       <textarea
         id="you"
-        className="w-[90%] text-block border rounded text-black p-3 mb-4 custom-scrollbar"
+        className="w-[90%] text-block text-[1rem] border rounded text-black p-3 mb-4 custom-scrollbar"
         value={myText}
         onChange={(e) => handleTyping(e.target.value)}
         rows={5}

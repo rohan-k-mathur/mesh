@@ -11,7 +11,7 @@ import BaseNode from "./BaseNode";
 import { NodeProps } from "@xyflow/react";
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
-import { Tldraw } from "tldraw";
+import { Tldraw, track, useEditor } from 'tldraw'
 import "tldraw/tldraw.css";
 
 interface DrawNodeData {
@@ -19,6 +19,70 @@ interface DrawNodeData {
   locked: boolean;
   content?: string;
 }
+// [2]
+const CustomUi = track(() => {
+	const editor = useEditor()
+
+	useEffect(() => {
+		const handleKeyUp = (e: KeyboardEvent) => {
+			switch (e.key) {
+				case 'Delete':
+				case 'Backspace': {
+					editor.deleteShapes(editor.getSelectedShapeIds())
+					break
+				}
+				case 'v': {
+					editor.setCurrentTool('select')
+					break
+				}
+				case 'e': {
+					editor.setCurrentTool('eraser')
+					break
+				}
+				case 'x':
+				case 'p':
+				case 'b':
+				case 'd': {
+					editor.setCurrentTool('draw')
+					break
+				}
+			}
+		}
+
+		window.addEventListener('keyup', handleKeyUp)
+		return () => {
+			window.removeEventListener('keyup', handleKeyUp)
+		}
+	})
+
+	return (
+		<div className="custom-layout-draw">
+			<div className="custom-toolbar-draw">
+				<button
+					className="custom-button-draw"
+					data-isactive={editor.getCurrentToolId() === 'select'}
+					onClick={() => editor.setCurrentTool('select')}
+				>
+					Select
+				</button>
+				<button
+					className="custom-button-draw"
+					data-isactive={editor.getCurrentToolId() === 'draw'}
+					onClick={() => editor.setCurrentTool('draw')}
+				>
+					Pencil
+				</button>
+				<button
+					className="custom-button-draw"
+					data-isactive={editor.getCurrentToolId() === 'eraser'}
+					onClick={() => editor.setCurrentTool('eraser')}
+				>
+					Eraser
+				</button>
+			</div>
+		</div>
+	)
+})
 
 function DrawNode({ id, data }: NodeProps<DrawNodeData>) {
   const currentUser = useAuth().user;
@@ -91,12 +155,16 @@ function DrawNode({ id, data }: NodeProps<DrawNodeData>) {
       <div className="draw-container">
         <div className="nodrag nopan">
           <div className="w-[400px] h-[400px] border-black border-2 rounded-sm">
-            <Tldraw
+            <Tldraw hideUi
+             options={{ maxPages: 1 }} 
               onMount={(editor) => {
                 editorRef.current = editor;
+                editor.setCurrentTool('draw');
                 setEditorReady(true);
               }}
-            />
+            >
+            				<CustomUi />
+</Tldraw>
           </div>
         </div>
       </div>

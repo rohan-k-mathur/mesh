@@ -432,6 +432,20 @@
   cursor: grab;
   color:rgb(0, 0, 0);
 }
+.livechat-canvas-node {
+  border-radius: 2px;
+  border-color: slategray;
+  padding-left: 0.8rem;
+  padding-right: 0.8rem;
+  padding-top: 2.75rem;
+  padding-bottom: 3.9rem;
+  justify-content: center;
+  align-items: center;
+  width: 45rem;
+  cursor: grab;
+  color:rgb(0, 0, 0);
+}
+
 .portal-block{
   width: fit-content;
   margin: 0.3rem; 
@@ -931,6 +945,31 @@ textarea:link {
   padding-top: 0px;
   padding-bottom: 0px;
   cursor: pointer;
+}
+
+.custom-toolbar-draw {
+	position: absolute;
+	top: 0px;
+	left: 0px;
+	width: 100%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 8px;
+	gap: 8px;
+}
+
+.custom-button-draw {
+	pointer-events: all;
+	padding: 4px 12px;
+	background: white;
+	border: 1px solid black;
+	border-radius: 64px;
+}
+
+.custom-button-draw[data-isactive='true'] {
+	background-color: black;
+	color: white;
 }
 
 .react-flow__node-toolbar button:hover {
