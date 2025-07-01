@@ -300,6 +300,17 @@ export async function createDefaultUser({
     });
     return user;
   } catch (error: any) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      const existing = await prisma.user.findUnique({
+        where: { auth_id: authId },
+      });
+      if (existing) {
+        return existing;
+      }
+    }
     throw new Error(`Failed to create user: ${error.message}`);
   }
 }
