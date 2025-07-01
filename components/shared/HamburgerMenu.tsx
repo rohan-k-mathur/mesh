@@ -53,7 +53,7 @@ export default function HamburgerMenu({ roomId }: { roomId: string }) {
       <div className="fixed top-4 left-4 z-50">
         <Sheet open={isOpen} onOpenChange={setIsOpen}>
           <SheetTrigger asChild>
-            <Button variant="outline" size="icon" className="rounded-full">
+            <Button  size="icon" className="rounded-full shadow-none hover:bg-slate-200">
               <Menu className="h-6 w-6" />
               <span className="sr-only">Toggle menu</span>
             </Button>
@@ -62,12 +62,12 @@ export default function HamburgerMenu({ roomId }: { roomId: string }) {
             side="left"
             className="w-[200px] sm:w-[250px] border-l border-primary/20"
           >
-            <nav className="flex flex-col space-y-4 mt-8">
+            <nav className="flex flex-col space-y-4 mt-12 ">
               {menuItemLinks.map((item) => (
                 <a
                   key={item.label}
                   href={item.href}
-                  className="text-lg font-medium hover:text-primary transition-colors"
+                  className="text-[1.5rem] font-medium hover:text-primary transition-colors"
                   onClick={() => setIsOpen(false)}
                 >
                   {item.label}
@@ -75,10 +75,10 @@ export default function HamburgerMenu({ roomId }: { roomId: string }) {
               ))}
               {user && (
                 <div
-                  className="text-lg font-medium hover:text-primary transition-colors hover:cursor-pointer"
+                  className="text-[1.5rem] font-medium hover:cursor-pointer"
                   onClick={() => openShareModal()}
                 >
-                  Invite other users
+                  Invite
                 </div>
               )}
             </nav>

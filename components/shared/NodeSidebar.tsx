@@ -289,21 +289,21 @@ export default function NodeSidebar({
 
   return (
     <>
-      <div className="fixed top-4 right-4 z-50">
+      <div className="fixed top-4 right-4 z-50 ">
         <Sheet open={isOpen} onOpenChange={setIsOpen}>
           <SheetTrigger asChild>
-            <Button variant="outline" size="icon" className="rounded-full">
-              <Plus className="h-6 w-6" />
+            <Button  size="icon" className="rounded-full bg-white shadow-none  hover:bg-slate-200">
+              <Plus className=" h-6 w-6" />
               <span className="sr-only">Toggle menu</span>
             </Button>
           </SheetTrigger>
 
           <SheetContent
             side="right"
-            className="w-[200px] sm:w-[250px] border-l border-primary/20"
+            className="w-[200px] sm:w-[250px]  border-l border-primary/20"
           >
-            <SheetTitle>Node Menu</SheetTitle>
-            <nav className="flex flex-col space-y-4 mt-8">
+            <SheetTitle className="text-[2rem] mt-4">Add Node</SheetTitle>
+            <nav className="flex flex-col space-y-4 mt-4">
               {nodeTypes.map((item) => (
                 <div
                   key={item.nodeType}
