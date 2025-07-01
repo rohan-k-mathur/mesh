@@ -16,7 +16,7 @@ import {
 import { Like, RealtimeLike } from "@prisma/client";
 import React from "react";
 import localFont from 'next/font/local'
-const founders = localFont({ src: '/NewEdgeTest-RegularRounded.otf' })
+const founders = localFont({ src: './NewEdgeTest-RegularRounded.otf' })
 const DrawCanvas = dynamic(() => import("./DrawCanvas"), { ssr: false })
 const LivechatCard = dynamic(() => import("./LivechatCard"), { ssr: false })
 
