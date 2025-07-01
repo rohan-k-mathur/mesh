@@ -3,6 +3,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "../prismaclient";
 import { revalidatePath } from "next/cache";
+import { nanoid } from "nanoid";
 
 export interface UpdateUserParams {
   userAuthId: string;
@@ -268,5 +269,37 @@ export async function fetchRandomUsers(count = 3) {
     }));
   } catch (error: any) {
     throw new Error(`Failed to fetch random users: ${error.message}`);
+  }
+}
+
+export interface CreateDefaultUserParams {
+  authId: string;
+  email?: string | null;
+  name?: string | null;
+  image?: string | null;
+}
+
+export async function createDefaultUser({
+  authId,
+  email,
+  name,
+  image,
+}: CreateDefaultUserParams) {
+  try {
+    await prisma.$connect();
+    const usernameBase = email ? email.split("@")[0] : `user-${nanoid(6)}`;
+    const user = await prisma.user.create({
+      data: {
+        auth_id: authId,
+        username: usernameBase.toLowerCase(),
+        name: name ?? "New User",
+        bio: "",
+        image: image ?? null,
+        onboarded: true,
+      },
+    });
+    return user;
+  } catch (error: any) {
+    throw new Error(`Failed to create user: ${error.message}`);
   }
 }

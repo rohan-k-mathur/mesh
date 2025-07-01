@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 import { User } from "./AuthContext";
 import { Tokens } from "next-firebase-auth-edge";
 import { filterStandardClaims } from "next-firebase-auth-edge/lib/auth/claims";
-import { fetchUserByAuthId } from "./actions/user.actions";
+import { fetchUserByAuthId, createDefaultUser } from "./actions/user.actions";
 import { serverConfig } from "./firebase/config";
 
 export async function toUser({ decodedToken }: Tokens): Promise<User> {
@@ -20,9 +20,17 @@ export async function toUser({ decodedToken }: Tokens): Promise<User> {
   } = decodedToken;
 
   const customClaims = filterStandardClaims(decodedToken);
-  const user = await fetchUserByAuthId(uid);
-  const userId = user?.id ?? null;
-  const onboarded = user?.onboarded ?? false;
+  let user = await fetchUserByAuthId(uid);
+  if (!user) {
+    user = await createDefaultUser({
+      authId: uid,
+      email,
+      name: displayName,
+      image: photoURL ?? null,
+    });
+  }
+  const userId = user.id;
+  const onboarded = user.onboarded;
 
   return {
     uid,
