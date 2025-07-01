@@ -1,5 +1,7 @@
 import CreateRoom from "@/components/forms/CreateRoom";
 
+export const dynamic = "force-dynamic";
+
 async function Page() {
   return (
     <>

@@ -14,6 +14,8 @@ export const metadata = {
   description: "A social media website",
 };
 
+export const dynamic = "force-dynamic";
+
 const chakra = Chakra_Petch({
   weight: ["400", "500", "700"],
   subsets: ["latin"],

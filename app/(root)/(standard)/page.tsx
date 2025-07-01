@@ -9,6 +9,9 @@ export const metadata = {
   description: "A website",
 };
 
+// Force this page to be rendered dynamically on every request
+export const dynamic = "force-dynamic";
+
 export default async function Home() {
   const result = await fetchRealtimePosts({
     realtimeRoomId: "global",

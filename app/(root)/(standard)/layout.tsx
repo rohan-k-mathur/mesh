@@ -19,6 +19,8 @@ export const metadata = {
   title: "Mesh",
   description: "A social media website",
 };
+
+export const dynamic = "force-dynamic";
 const founders = localFont({ src: './NewEdgeTest-RegularRounded.otf' })
 const founderslight = localFont({ src: './NewEdgeTest-LightRounded.otf' })
 
