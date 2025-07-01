@@ -216,14 +216,14 @@ const CreateFeedPost = () => {
         );
       default:
         return (
-          <DialogContent className="max-w-[24rem]">
+          <DialogContent className="p-8  max-w-[34rem] max-h-[20rem]">
             <Select onValueChange={(v) => handleSelect(v as AppNodeType)}>
               <SelectTrigger>
-                <SelectValue placeholder="Select post type" />
-              </SelectTrigger>
-              <SelectContent>
+                <SelectValue placeholder="Select post type" className="px-4" />
+              </SelectTrigger> 
+              <SelectContent  className="max-h-[14rem]">
                 {nodeOptions.map((item) => (
-                  <SelectItem key={item.nodeType} value={item.nodeType}>
+                  <SelectItem key={item.nodeType} value={item.nodeType} className="hover:bg-slate-200">
                     {item.label}
                   </SelectItem>
                 ))}

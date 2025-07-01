@@ -49,13 +49,13 @@ const YoutubeNodeForm = ({ onSubmit, currentVideoURL }: Props) => {
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
-        className="flex flex-col justify-start mt-8 mb-8"
+        className="grid   mt-2 mb-2"
       >
         <FormField
           control={form.control}
           name="videoURL"
           render={({ field }) => (
-            <FormItem className="flex items-center gap-4 mb-2 text-xl">
+            <FormItem className="grid items-center gap-0 mb-2 w-[100%]">
               <FormLabel className="text-xl">
                 <iframe
                   title="youtube video"
@@ -71,6 +71,7 @@ const YoutubeNodeForm = ({ onSubmit, currentVideoURL }: Props) => {
                   placeholder="Enter a youtube video URL"
                   defaultValue={currentVideoURL}
                   onChange={(e) => handleYoutubeVideoURL(e, field.onChange)}
+                  className="w-[100%]"
                 />
               </FormControl>
               <FormMessage />

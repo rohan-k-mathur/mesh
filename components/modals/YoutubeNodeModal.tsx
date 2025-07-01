@@ -26,7 +26,9 @@ const renderCreate = ({
         <b> Create Post</b>
       </DialogHeader>
       <hr />
+      <div className=" items-start justify-start">
       <YoutubeNodeForm onSubmit={onSubmit!} currentVideoURL={""} />
+      </div>
     </div>
   );
 };
@@ -39,7 +41,7 @@ const renderEdit = ({
   currentVideoURL: string;
 }) => {
   return (
-    <div>
+    <div className="justify-start items-start relative">
       <DialogHeader className="dialog-header text-white text-lg py-4 mt-[-4rem]">
         <b> Edit Post</b>
       </DialogHeader>
@@ -90,9 +92,8 @@ const YoutubeNodeModal = ({
   const isView = id && !isOwned;
   return (
     <div>
-      <DialogContent className="max-w-[57rem]">
-        <DialogTitle>TextNodeModal</DialogTitle>
-        <div className="grid rounded-md px-4 py-2">
+      <DialogContent className="max-w-[34rem]">
+        <div className="grid rounded-md px-4 py-2 mt-8">
           {isCreate && renderCreate({ onSubmit })}
           {isEdit && renderEdit({ onSubmit, currentVideoURL })}
           {isView && renderView(currentVideoURL)}

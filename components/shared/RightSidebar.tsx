@@ -53,7 +53,6 @@ function RightSidebar() {
             <p className="text-sm text-gray-500">No suggestions</p>
           ) : (
             users.map((u) => (
-              <button key={u.id.toString()}>
               <Link href={`/profile/${u.id}`}> 
                 <Button
                   variant={"outline"}
@@ -67,7 +66,6 @@ function RightSidebar() {
                   )}
                 </Button>
               </Link>
-              </button>
             ))
           )}
         </div>
