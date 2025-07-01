@@ -72,7 +72,7 @@ function LivechatCard({ id, inviteeId, authorId }: LivechatCardProps) {
       </label>
       <textarea
         id="other"
-        className="w-[90%] text-block text-[1rem] border rounded text-black p-3 custom-scrollbar"
+        className="w-[90%] text-block   bg-transparent text-[1rem] border rounded-lg  text-black p-3 custom-scrollbar"
         disabled
         value={otherText}
         rows={5}
@@ -82,14 +82,14 @@ function LivechatCard({ id, inviteeId, authorId }: LivechatCardProps) {
       </label>
       <textarea
         id="you"
-        className="w-[90%] text-block text-[1rem] border rounded text-black p-3 mb-4 custom-scrollbar"
+        className="w-[90%] text-block text-[1rem]  bg-transparent border rounded-lg text-black p-3 mb-4 custom-scrollbar"
         value={myText}
         onChange={(e) => handleTyping(e.target.value)}
         rows={5}
       />
       <button
         onClick={sendMessage}
-        className="bg-transparent likebutton border-none outline-black outline-blue w-[50%] text-black text-[1rem] rounded-xl px-2 py-2"
+        className="bg-transparent likebutton border-none outline-black outline-blue w-[25%] text-black text-[1rem] rounded-xl px-2 py-2"
       >
         Clear
       </button>
