@@ -13,10 +13,10 @@ const LockButton = ({ lockOnClick, isLocked, isOwned }: Props) => {
     <div className="relative -bottom-1  likebutton">
    
         {isLocked ? (
-          <Image src="/assets/lock.svg" width={24} height={24} alt="locked" />
+          <Image src="/assets/locked.svg" width={24} height={24} alt="locked" />
         ) : (
           <Image
-            src="/assets/unlock.svg"
+            src="/assets/unlocked.svg"
             width={24}
             height={24}
             alt="unlocked"

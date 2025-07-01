@@ -63,7 +63,7 @@ function LeftSidebar({ userRooms }: Props) {
             >
               <div className="rounded_icon_container  shadow-black h-6 w-6">
                 <Image
-                  src="/assets/logo-black.svg"
+                  src="/assets/earth--filled.svg"
                   alt={"globe"}
                   width={48}
                   height={48}
