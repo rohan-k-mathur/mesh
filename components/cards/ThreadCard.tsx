@@ -13,7 +13,7 @@ import ReplicateButton from "../buttons/ReplicateButton";
 import ExpandButton from "../buttons/ExpandButton";
 import localFont from 'next/font/local'
 import TimerButton from "../buttons/TimerButton";
-const founders = localFont({ src: '/NewEdgeTest-RegularRounded.otf' })
+const founders = localFont({ src: './NewEdgeTest-RegularRounded.otf' })
 const comfortaa = Comfortaa({
   weight: ["400"],
   subsets: ["latin"],

@@ -10,7 +10,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import localFont from 'next/font/local'
 import CreateFeedPost from "@/components/forms/CreateFeedPost";
-const parabole = localFont({ src: '/Parabole-DisplayRegular.woff2' })
+const parabole = localFont({ src: './Parabole-DisplayRegular.woff2' })
 
 interface Props {
   userRooms: RealtimeRoom[];

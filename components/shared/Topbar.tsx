@@ -9,7 +9,7 @@ import { app } from "@/lib/firebase/firebase";
 import { useAuth } from "@/lib/AuthContext";
 import { Chakra_Petch } from "next/font/google";
 import localFont from 'next/font/local'
-const parabole = localFont({ src: '/Parabole-DisplayRegular.woff2' })
+const parabole = localFont({ src: './Parabole-DisplayRegular.woff2' })
 
 
 const chakra = Chakra_Petch({

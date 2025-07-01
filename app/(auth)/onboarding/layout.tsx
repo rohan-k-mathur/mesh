@@ -1,7 +1,7 @@
 import localFont from "next/font/local";
 import "../../globals.css";
 
-const founderslight = localFont({ src: "/NewEdgeTest-LightRounded.otf" });
+const founderslight = localFont({ src: "./NewEdgeTest-LightRounded.otf" });
 
 export default function OnboardingLayout({
   children,

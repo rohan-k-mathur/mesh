@@ -19,8 +19,8 @@ export const metadata = {
   title: "Mesh",
   description: "A social media website",
 };
-const founders = localFont({ src: '/NewEdgeTest-RegularRounded.otf' })
-const founderslight = localFont({ src: '/NewEdgeTest-LightRounded.otf' })
+const founders = localFont({ src: './NewEdgeTest-RegularRounded.otf' })
+const founderslight = localFont({ src: './NewEdgeTest-LightRounded.otf' })
 
 const inter = Inter({ subsets: ["latin"] });
 const nunito = Nunito({ subsets: ['latin'] })

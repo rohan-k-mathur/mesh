@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 import { app } from "@/lib/firebase/firebase";
 import BackgroundCanvas from "@/components/threejs/BackgroundCanvas";
-const founderslight = localFont({ src: "/NewEdgeTest-LightRounded.otf" });
+const founderslight = localFont({ src: "./NewEdgeTest-LightRounded.otf" });
 
 export default function Login() {
   const [email, setEmail] = useState("");
