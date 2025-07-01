@@ -70,10 +70,11 @@ function CreateRoom() {
   };
 
   return (
-    <Form {...form}>
+    <div className="justify-center items-center">
+    <Form {...form} >
       <form
         onSubmit={form.handleSubmit(onSubmit)}
-        className="mt-0 flex flex-col justify-start gap-5 "
+        className="mt-0 flex flex-col justify-center  gap-0  "
       >
         <FormField
           control={form.control}
@@ -101,7 +102,7 @@ function CreateRoom() {
                   />
                 )}
               </FormLabel>
-              <FormControl className="flex-1 text-base-semibold text-gray-200">
+              <FormControl className="flex-1  text-base-semibold text-gray-200">
                 <Input
                   type="file"
                   accept="image/*"
@@ -117,13 +118,15 @@ function CreateRoom() {
         <FormField
           control={form.control}
           name="roomName"
+          
           render={({ field }) => (
-            <FormItem className="flex flex-col gap-3 w-full ">
+            
+            <FormItem className="flex flex-col w-full ml-[20%]">
               <FormLabel className="text-header-semibold text-dark-2"></FormLabel>
               <FormControl className="border-2 border-slate-500  bg-white text-black hover:border-black focus:border-black">
                 <Input
                   type="text"
-                  className="border border-dark-4 text-dark-1 w-64 no-focus"
+                  className="border border-dark-4 text-dark-1 w-[60%] no-focus"
                   placeholder="Enter room name"
                   {...field}
                 />
@@ -134,12 +137,15 @@ function CreateRoom() {
         />
         <Button
           type="submit"
-          className="create-post-button h-fit w-[20%] ml-0 mt-[1rem] gap-4 bg-white rounded-md "
+          className=" h-fit w-fit ml-[21%] mt-[1rem] py-1 px-4 text-[1.15rem] bg-white rounded-md "
         >
           Create Room
         </Button>
       </form>
+
     </Form>
+    </div>
+
   );
 }
 

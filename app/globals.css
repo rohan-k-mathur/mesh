@@ -157,7 +157,7 @@
 
 
 .account-form_image-input {
-  @apply flex relative bottom-2 cursor-pointer m-4 rounded-full text-black  border-black border-2 bg-white file:text-blue file:cursor-pointer  !important;
+  @apply flex relative bottom-2 cursor-pointer m-4 rounded-full text-black  border-black border-[1px] bg-white file:text-blue file:cursor-pointer  !important;
 }
 
 .account-form_image-input:hover {
@@ -1115,6 +1115,7 @@ font-size: large;
   background: #e2e8f0;
   color: black;
   border: 1px solid #ffffff;
+  display: flex;
   justify-content: center;
   letter-spacing: 1px;
   border-radius: 2px;
