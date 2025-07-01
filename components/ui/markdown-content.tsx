@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { marked } from "marked";
+import Image from "next/image";
 import type * as React from "react";
 import { Suspense, isValidElement, memo, useMemo } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
@@ -239,6 +240,7 @@ const components: Partial<Components> = {
 		</td>
 	),
 	img: ({ alt, ...props }: React.ImgHTMLAttributes<HTMLImageElement>) => (
+                  // eslint-disable-next-line @next/next/no-img-element
 		// biome-ignore lint/a11y/useAltText: alt is not required
 		<img className="rounded-md" alt={alt} {...props} />
 	),

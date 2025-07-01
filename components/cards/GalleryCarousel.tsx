@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useState } from "react";
-import Button from "antd/lib/Button";
+import Button from "antd/lib/button";
 interface Props {
   urls: string[];
 }

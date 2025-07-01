@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import Image from "next/image";
 import { MarkdownContent } from "@/components/ui/markdown-content";
 import { type VariantProps, cva } from "class-variance-authority";
 import { SparklesIcon, UserIcon } from "lucide-react";
@@ -119,11 +120,7 @@ const ChatMessageAvatar = React.forwardRef<
 			{...props}
 		>
 			{imageSrc ? (
-				<img
-					src={imageSrc}
-					alt="Avatar"
-					className="h-full w-full object-cover"
-				/>
+				<Image src={imageSrc} alt="Avatar" fill className="object-cover" />
 			) : (
 				<div className="translate-y-px [&_svg]:size-4 [&_svg]:shrink-0">
 					{icon}

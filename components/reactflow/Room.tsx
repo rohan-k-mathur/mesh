@@ -155,7 +155,7 @@ function Room({ roomId, initialNodes, initialEdges }: Props) {
     [edges, getClosestEdge, setEdges]
   );
 
-  const onConnect: OnConnect = (connection: Connection): void => {
+  const onConnect: OnConnect = useCallback((connection: Connection): void => {
     const edgeWithMarker = {
       ...connection,
       markerEnd: {
@@ -172,7 +172,7 @@ function Room({ roomId, initialNodes, initialEdges }: Props) {
       targetNodeId: BigInt(connection.target),
       realtimeRoomId: roomId,
     }).then(() => onConnectStore(edgeWithMarker));
-  };
+  }, [onConnectStore, pathname, roomId]);
 
   const onNodeDragStop = useCallback(
     (_: any, node: AppNode) => {

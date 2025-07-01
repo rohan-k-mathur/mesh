@@ -22,7 +22,7 @@ function PortalNode({ id, data }: NodeProps<PortalNodeData>) {
   useEffect(() => {
     if ("username" in author) return;
     fetchUser(data.author.id).then((user) => user && setAuthor(user));
-  }, [data]);
+  }, [data, author]);
 
   const isOwned = currentUser
     ? Number(currentUser.userId) === Number(data.author.id)

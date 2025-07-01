@@ -37,7 +37,7 @@ function LivechatNode({ id, data }: NodeProps<LivechatNodeData>) {
   useEffect(() => {
     if ("username" in author) return;
     fetchUser(data.author.id).then((user) => user && setAuthor(user));
-  }, [data]);
+  }, [data, author]);
 
   useEffect(() => {
     if (!data.inviteeId) return;

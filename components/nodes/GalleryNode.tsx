@@ -15,7 +15,7 @@ import BaseNode from "./BaseNode";
 import { useShallow } from "zustand/react/shallow";
 import GalleryNodeModal from "../modals/GalleryNodeModal";
 import { z } from "zod";
-import Button from "antd/lib/Button";
+import Button from "antd/lib/button";
 
 function GalleryNode({ id, data }: NodeProps<GalleryNodeData>) {
   const path = usePathname();
