@@ -1,26 +1,28 @@
 import { updateUserEmbedding, generateFriendSuggestions } from "@/lib/actions/friend-suggestions.actions";
-import { prisma } from "@/lib/prismaclient";
 import { deepseekEmbedding } from "@/lib/deepseekclient";
+
+var mockPrisma: any;
 
 jest.mock("@/lib/deepseekclient", () => ({
   deepseekEmbedding: jest.fn(async () => [1, 2, 3]),
 }));
 
-const mockPrisma = {
-  $connect: jest.fn(),
-  userAttributes: { findUnique: jest.fn() },
-  userEmbedding: {
-    upsert: jest.fn(),
-    findUnique: jest.fn(),
-    findMany: jest.fn(),
-  },
-  friendSuggestion: {
-    deleteMany: jest.fn(),
-    create: jest.fn(),
-  },
-};
-
-jest.mock("@/lib/prismaclient", () => ({ prisma: mockPrisma }));
+jest.mock("@/lib/prismaclient", () => {
+  mockPrisma = {
+    $connect: jest.fn(),
+    userAttributes: { findUnique: jest.fn() },
+    userEmbedding: {
+      upsert: jest.fn(),
+      findUnique: jest.fn(),
+      findMany: jest.fn(),
+    },
+    friendSuggestion: {
+      deleteMany: jest.fn(),
+      create: jest.fn(),
+    },
+  };
+  return { prisma: mockPrisma };
+});
 
 beforeEach(() => {
   jest.clearAllMocks();
