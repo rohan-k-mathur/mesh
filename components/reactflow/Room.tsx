@@ -51,10 +51,12 @@ import { createRealtimeEdge } from "@/lib/actions/realtimeedge.actions";
 import { updateRealtimePost } from "@/lib/actions/realtimepost.actions";
 import { RealtimePost } from "@prisma/client";
 
-// Load plug-ins from the plugins directory
-const pluginModules = import.meta.glob<{
-  descriptor?: PluginDescriptor;
-}>("../../plugins/*.tsx", { eager: true });
+// Load plug-ins from the plugins directory using webpack's require.context
+const pluginContext = (require as any).context("../../plugins", false, /\\.tsx$/);
+const pluginModules: Record<string, { descriptor?: PluginDescriptor }> = {};
+pluginContext.keys().forEach((key: string) => {
+  pluginModules[key] = pluginContext(key);
+});
 const pluginDescriptors = loadPlugins(pluginModules);
 useStore.getState().registerPlugins(pluginDescriptors);
 
