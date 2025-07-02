@@ -51,9 +51,10 @@ function BaseNode({
 
   const lockOnClick = async (newLockState: boolean) => {
     await lockRealtimePost({ id, lockState: newLockState, path: pathname });
+    store.changePostLockState(id, newLockState);
   };
 
-  const canDrag = user && isOwned && !isLocked;
+  const canDrag = user && (!isLocked || isOwned);
 
   return (
     <div className={canDrag ? "" : "nodrag"}>
