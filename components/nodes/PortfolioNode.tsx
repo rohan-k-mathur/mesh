@@ -124,10 +124,10 @@ function PortfolioNode({ id, data }: NodeProps<PortfolioNodeData>) {
       isLocked={data.locked}
       generateOnClick={handleExport}
     >
-      <div className="portfolio-container flex flex-col w-[34rem]">
-        <div className="grid grid-cols-2 gap-2 rounded-lg p-4 bg-white mt-4 auto-rows-min">
+      <div className="portfolio-container flex flex-col w-[34rem] max-h-[3000px] ">
+        <div className="flex flex-col gap-2 rounded-lg p-4 bg-white mt-4  max-h-[3000px]">
           {text && (
-            <p className="col-span-2 mb-1 mt-2 break-words">{text}</p>
+            <div className="text-block flex flex-col max-h-[1000px] mb-1 mt-2 break-words">{text}</div>
           )}
           {images.map((src, idx) => (
             <Image
@@ -136,10 +136,10 @@ function PortfolioNode({ id, data }: NodeProps<PortfolioNodeData>) {
               alt={`img-${idx}`}
               width={200}
               height={200}
-              className={`object-cover portfolio-img-frame ${idx === 0 ? "col-span-2 row-span-2" : ""}`}
+              className={`object-cover  portfolio-img-frame ${idx === 0 ? "flex flex-col max-h-[3000px] mb-1 mt-2 break-words" : ""}`}
             />
           ))}
-          {links.map((href, idx) => (
+          {links && links.map((href, idx) => (
             <a
               key={idx}
               href={href}
