@@ -238,7 +238,13 @@ export async function fetchRealtimePosts({
   }));
 }
 
-export async function deleteRealtimePost({ id }: { id: string }) {
+export async function deleteRealtimePost({
+  id,
+  path,
+}: {
+  id: string;
+  path?: string;
+}) {
   const user = await getUserFromCookies();
   try {
     await prisma.$connect();
@@ -255,6 +261,7 @@ export async function deleteRealtimePost({ id }: { id: string }) {
         id: BigInt(id),
       },
     });
+    if (path) revalidatePath(path);
   } catch (error: any) {
     console.error("Failed to delete real-time post:", error);
   }

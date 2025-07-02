@@ -336,7 +336,7 @@ export async function archiveExpiredPosts() {
   ]);
 }
 
-export async function deletePost({ id }: { id: bigint }) {
+export async function deletePost({ id, path }: { id: bigint; path?: string }) {
   const user = await getUserFromCookies();
   try {
     await prisma.$connect();
@@ -360,6 +360,7 @@ export async function deletePost({ id }: { id: bigint }) {
 
     await collect(id);
     await prisma.post.deleteMany({ where: { id: { in: ids } } });
+    if (path) revalidatePath(path);
   } catch (error: any) {
     console.error("Failed to delete post:", error);
   }

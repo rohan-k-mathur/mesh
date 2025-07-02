@@ -29,8 +29,8 @@ const ReplicateButton = ({ postId }: Props) => {
       return;
     }
     await replicatePost({
-      originalPostId: postId,
-      userId: userObjectId,
+      originalPostId: postId.toString(),
+      userId: userObjectId.toString(),
       path: pathname,
     });
     router.refresh();
