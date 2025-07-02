@@ -163,6 +163,16 @@ export type PortfolioNodeData = Node<
     locked: boolean;
   },
   "PORTFOLIO"
+export type LLMInstructionNode = Node<
+  {
+    prompt: string;
+    output: string;
+    status: "pending" | "running" | "complete";
+    author: AuthorOrAuthorId;
+    locked: boolean;
+    model?: string;
+  },
+  "LLM_INSTRUCTION"
 >;
 
 
@@ -185,6 +195,7 @@ export const NodeTypeMap = {
   THREAD: {} as ThreadNode,
   CODE: {} as CodeNode,
   PORTFOLIO: {} as PortfolioNodeData,
+  LLM_INSTRUCTION: {} as LLMInstructionNode,
 };
 
 export interface AppEdgeMapping {
@@ -220,6 +231,7 @@ export type AppNode =
   | ThreadNode
   | CodeNode
   | PortfolioNodeData;
+  | LLMInstructionNode;
 
 export type AppEdgeType = keyof AppEdgeMapping;
 
@@ -242,6 +254,7 @@ export const DEFAULT_NODE_VALUES: Record<AppNodeType, string> = {
   ["THREAD"]: "",
   ["CODE"]: "",
   ["PORTFOLIO"]: "",
+  ["LLM_INSTRUCTION"]: "",
 };
 
 export type AppState = {

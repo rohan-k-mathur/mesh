@@ -269,3 +269,19 @@ export async function uploadFileToSupabase(file: File) {
     return { fileURL: "", error: error };
   }
 }
+
+export async function uploadAudioToSupabase(file: File) {
+  const { data, error } = await supabase.storage
+    .from("realtime_post_audio")
+    .upload(`public/${file.name}`, file);
+  if (!error) {
+    return {
+      fileURL: process.env.NEXT_PUBLIC_SUPABASE_BUCKET_URL + data.fullPath,
+      error: null,
+    };
+  } else {
+    console.error(error);
+    alert("Failed to upload audio");
+    return { fileURL: "", error: error };
+  }
+}

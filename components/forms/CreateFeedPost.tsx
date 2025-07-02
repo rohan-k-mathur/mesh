@@ -242,18 +242,19 @@ const CreateFeedPost = () => {
         if (!o) setSelectedType("");
       }}
     >
-      <DialogTrigger asChild>
+      <DialogTrigger className="items-start justify-start leftsidebar-link  leftsidebar-item" asChild>
         <Button           variant={"outline"}
- className="items-start justify-start h-full w-full rounded-md leftsidebar-item border-none hover:outline-2 hover:outline-double hover:outline-emerald-400">
+ className="items-start justify-start  h-full w-full rounded-md border-none hover:outline-2 hover:outline-double hover:outline-emerald-400">
           <Image
             src="/assets/create-new.svg"
             alt="create post"
-            className="mr-2"
             width={24}
             height={24}
           />
-          <p className="text-black max-lg:hidden">New Post</p>
+          <p className="text-black ml-3  max-lg:hidden">{"New Room"}</p>
+
         </Button>
+
       </DialogTrigger>
       {renderModal()}
     </Dialog>

@@ -41,6 +41,8 @@ import CollageNode from "../nodes/CollageNode";
 import GalleryNode from "../nodes/GalleryNode";
 import DrawNode from "../nodes/DrawNode";
 import LivechatNode from "../nodes/LivechatNode";
+import AudioNode from "../nodes/AudioNode";
+import LLMInstructionNode from "../nodes/LLMInstructionNode";
 import HamburgerMenu from "../shared/HamburgerMenu";
 import NodeSidebar from "../shared/NodeSidebar";
 import { createRealtimeEdge } from "@/lib/actions/realtimeedge.actions";
@@ -318,6 +320,8 @@ function Room({ roomId, initialNodes, initialEdges }: Props) {
     PORTAL: PortalNode,
     DRAW: DrawNode,
     LIVECHAT: LivechatNode,
+    AUDIO: AudioNode,
+    LLM_INSTRUCTION: LLMInstructionNode,
   };
   const edgeTypes = {
     DEFAULT: DefaultEdge,
