@@ -8,6 +8,7 @@ import TimerButton from "../buttons/TimerButton";
 import ReplicateButton from "../buttons/ReplicateButton";
 import DeleteCardButton from "../buttons/DeleteCardButton";
 import GalleryCarousel from "./GalleryCarousel";
+import ReplicatedPostCard from "./ReplicatedPostCard";
 import dynamic from "next/dynamic";
 import {
   fetchLikeForCurrentUser,
@@ -61,6 +62,20 @@ const PostCard = async ({
           userId: currentUserId,
         })
       : await fetchLikeForCurrentUser({ postId: id, userId: currentUserId });
+  }
+  if (content && content.startsWith("REPLICATE:")) {
+    const originalId = BigInt(content.split(":" )[1]);
+    return (
+      <ReplicatedPostCard
+        id={id}
+        originalPostId={originalId}
+        currentUserId={currentUserId}
+        author={author}
+        createdAt={createdAt}
+        likeCount={likeCount}
+        expirationDate={expirationDate ?? undefined}
+      />
+    );
   }
   return (
     <article className="relative flex w-full flex-col postcard p-7 ">

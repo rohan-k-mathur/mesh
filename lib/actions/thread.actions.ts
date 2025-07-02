@@ -199,6 +199,39 @@ export async function addCommentToPost({
   }
 }
 
+export async function replicatePost({
+  originalPostId,
+  userId,
+  path,
+}: {
+  originalPostId: bigint;
+  userId: bigint;
+  path: string;
+}) {
+  try {
+    await prisma.$connect();
+    const original = await prisma.post.findUnique({
+      where: { id: originalPostId },
+      include: { author: true },
+    });
+    if (!original) throw new Error("Post not found");
+    const newPost = await prisma.post.create({
+      data: {
+        content: `REPLICATE:${originalPostId.toString()}`,
+        author_id: userId,
+      },
+    });
+    await prisma.user.update({
+      where: { id: userId },
+      data: { posts: { connect: { id: newPost.id } } },
+    });
+    revalidatePath(path);
+    return newPost;
+  } catch (error: any) {
+    throw new Error(`Failed to replicate post: ${error.message}`);
+  }
+}
+
 export async function updatePostExpiration({
   postId,
   duration,
