@@ -1,46 +1,36 @@
 "use client";
 
 import Image from "next/image";
-import useStore from "@/lib/reactflow/store";
-import { AppState } from "@/lib/reactflow/types";
-import { useShallow } from "zustand/react/shallow";
-import TimerModal from "../modals/TimerModal";
-
-interface Props {
-  postId: bigint;
-  isOwned: boolean;
-  expirationDate?: string | null;
-}
+import { deletePost } from "@/lib/actions/thread.actions";
+import { deleteRealtimePost } from "@/lib/actions/realtimepost.actions";
 
 interface Props {
   postId?: bigint;
   realtimePostId?: string;
 }
 
-const DeleteCardButton = ({ postId, isOwned, expirationDate }: Props) => {
-    const { openModal } = useStore(
-      useShallow((state: AppState) => ({
-        openModal: state.openModal,
-      }))
-    );
-  
-    return (
-      <button>
+const DeleteCardButton = ({ postId, realtimePostId }: Props) => {
+  const handleDelete = async () => {
+    if (!confirm("Are you sure you want to delete this post?")) return;
+    if (realtimePostId) {
+      await deleteRealtimePost({ id: realtimePostId });
+    } else if (postId) {
+      await deletePost({ id: postId });
+    }
+  };
+
+  return (
+    <button onClick={handleDelete}>
       <Image
         src="/assets/trash-can.svg"
         alt="trash"
         width={24}
         height={24}
         className="cursor-pointer object-contain likebutton"
-        onClick={() =>
-          openModal(
-            <TimerModal postId={postId} isOwned={isOwned} expirationDate={expirationDate} />
-          )
-        }
       />
-      </button>
-    );
-  };
+    </button>
+  );
+};
   
 
 export default DeleteCardButton;

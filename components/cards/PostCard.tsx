@@ -171,11 +171,7 @@ const PostCard = async ({
             isOwned={currentUserId === author.id}
             expirationDate={expirationDate ?? undefined}
           />
-          <DeleteCardButton
-            postId={id}
-            isOwned={currentUserId === author.id}
-            expirationDate={expirationDate ?? undefined}
-          />
+          <DeleteCardButton postId={id} />
 
               </div>
             </div>
