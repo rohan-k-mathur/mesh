@@ -93,10 +93,10 @@ function GalleryNode({ id, data }: NodeProps<GalleryNodeData>) {
       isLocked={data.locked}
     >
       {images.length > 0 && (
-        <div className=" img-container">
+        <div className=" img-container border-none px-10 py-20">
           
           <Image
-            className="img-frame"
+            className="img-frame border-none shadow-none"
 
             src={images[currentIndex]}
             alt={`img-${currentIndex}`}
@@ -106,18 +106,18 @@ function GalleryNode({ id, data }: NodeProps<GalleryNodeData>) {
           />
           {images.length > 1 && (
             <>
-              <Button
-                className="carouselbutton absolute bg-transparent right-0 top-1/2 -translate-y-1/2 px-1"
+              <button
+                className="absolute bg-blue rounded-lg w-10 h-20 left-0 top-1/2 -translate-y-1/2 bg-black/50 text-white px-1"
                 onClick={handlePrev}
               >
-                {"<"}
-              </Button>
-              <Button
-                className="carouselbutton absolute bg-transparent right-0 top-1/2 -translate-y-1/2 px-1"
+                ‹
+              </button>
+              <button
+                className="absolute bg-blue rounded-lg w-10 h-20 right-0 top-1/2 -translate-y-1/2 bg-black/50 text-white px-1"
                 onClick={handleNext}
               >
-                {"<"}
-              </Button>
+                ›
+              </button>
             </>
           )}
         </div>

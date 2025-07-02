@@ -12,7 +12,7 @@ import { LiveKitRoom, RoomAudioRenderer, useTracks } from "@livekit/components-r
 import { Track } from "livekit-client";
 import { usePathname } from "next/navigation";
 import * as Tone from "tone";
-
+import Image from "next/image";
 interface AudioNodeData {
   audioUrl: string;
   author: AuthorOrAuthorId;
@@ -83,23 +83,53 @@ function AudioNode({ id, data }: NodeProps<AudioNodeData>) {
 
   return (
     <BaseNode modalContent={null} id={id} author={author} isOwned={isOwned} type={"AUDIO"} isLocked={data.locked}>
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col text-updater-node gap-2 ">
         {token && (
           <LiveKitRoom audio token={token} serverUrl={process.env.NEXT_PUBLIC_LIVEKIT_URL} data-lk-theme="default" style={{ height: "0" }}>
             <RoomAudioRenderer />
           </LiveKitRoom>
         )}
-        {audioUrl && <audio controls src={audioUrl} className="w-full" />}
+        {audioUrl && <audio controls src={audioUrl} className="w-full " />}
         {isOwned && (
-          <div className="flex gap-2">
-            <button onClick={startRecording} className="button px-2 py-1">
-              Record
+          <div className="flex  gap-2">
+            <button onClick={startRecording} className="likebutton text-[1.2rem] button p-2 rounded-full">
+            <Image
+                src={"/assets/microphone.svg"}
+               alt="record"
+             width={24}
+            height={24}
+          />
+
             </button>
-            <button onClick={stopRecording} className="button px-2 py-1">
-              Stop
+            <button onClick={stopRecording} className="likebutton text-[1.2rem] button p-2 rounded-full">
+            <Image
+                src={"/assets/stop.svg"}
+               alt="stop"
+             width={24}
+            height={24}
+          />
             </button>
           </div>
         )}
+                  <div className="flex  gap-2">
+
+         <button className="likebutton text-[1.2rem] button p-2 rounded-full">
+            <Image
+                src={"/assets/play--outline.svg"}
+               alt="play"
+             width={24}
+            height={24}
+          />
+            </button>
+            <button className="likebutton text-[1.2rem] button p-2 rounded-full">
+            <Image
+                src={"/assets/pause.svg"}
+               alt="pause"
+             width={24}
+            height={24}
+          />
+            </button>
+            </div>
       </div>
     </BaseNode>
   );

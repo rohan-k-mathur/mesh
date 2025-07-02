@@ -90,8 +90,8 @@ function TextInputNode({ id, data }: NodeProps<TextNode>) {
       type={"TEXT"}
       isLocked={data.locked}
     >
-      <div className="text-updater-node">
-        <div className="text-block ">{text}</div>
+      <div className="text-updater-node mt-2">
+        <div className="text-node-block h-full px-2 py-2">{ text}</div>
       </div>
     </BaseNode>
   );

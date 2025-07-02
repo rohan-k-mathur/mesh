@@ -71,7 +71,7 @@ function ImageURLNode({ id, data }: NodeProps<ImageUNode>) {
       isLocked={data.locked}
     >
       <div>
-        <div className="img-container">
+        <div className="img-container border-none">
           <Image
             className="img-frame"
             src={data.imageurl}

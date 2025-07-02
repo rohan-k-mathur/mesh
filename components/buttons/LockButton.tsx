@@ -13,7 +13,7 @@ interface Props {
 const LockButton = ({ lockOnClick, isLocked, isOwned }: Props) => {
   return (
     <div className="relative -bottom-1  ">
-      <button>
+      <button className="likebutton">
    
         {isLocked ? (
           <Image src="/assets/locked.svg" width={24} height={24} alt="locked" />

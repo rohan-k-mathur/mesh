@@ -61,7 +61,7 @@ function BaseNode({
         onClick={() =>
           !isOwned && modalContent ? store.openModal(modalContent) : null
         }
-        className="bg-[#A7C7E7] rounded-md"
+        className="bg-[#A7C7E7] rounded-lg border-2 border-blue"
       >
         {children}
       </div>

@@ -13,7 +13,7 @@ const NodeAuthorDisplay = ({ author }: Props) => {
     <Panel position="top-left">
       <div className="pb-20 ">
         {/* This link wraps both the image and the username, so you have one unified hover area */}
-        <Link href={`/profile/${author.id}`} className="node-author-wrapper ">
+        <Link href={`/profile/${author.id}`} className="node-author-wrapper likebutton">
           <Image
             src={"image" in author ? author.image || "/assets/user-helsinki.svg" : "/assets/user-helsinki.svg"}
             alt="Profile Image"

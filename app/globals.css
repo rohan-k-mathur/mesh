@@ -477,6 +477,33 @@
   scroll-behavior: smooth;
 
 }
+.text-node-block {
+  width: 100%;
+/* === NEW RULES FOR A THIN BORDER AROUND THE TEXT === */
+border: .5px solid #000000;   /* thin, light gray border */
+border-radius: 2px;       /* optional small rounding on corners */
+ /* ensure a white background behind the text */
+
+/* We’ll remove artificially small size for better readability */
+font-size: .8rem;
+line-height: 1;
+
+/* Adjust letter-spacing to a minimal or default setting for normal text */
+letter-spacing: normal;
+
+/* Generous padding and margin can help the text breathe, or you can rely on the .text-updater-node padding instead */
+margin: 0.3rem 0; 
+padding: 0.3rem;
+
+/* If you keep scrolling, ensure the area is visually bounded */
+max-height: 9.25rem;
+overflow-y: auto;
+
+background-color: rgba(250, 250, 250, 0.78);
+/* Smoother scroll behavior */
+scroll-behavior: smooth;
+
+}
 
 .overlay {
   position: absolute;
