@@ -1,6 +1,7 @@
 import {
   deleteRealtimePost,
   lockRealtimePost,
+  
 } from "@/lib/actions/realtimepost.actions";
 import useStore from "@/lib/reactflow/store";
 import { AppNodeType, AppState, AuthorOrAuthorId } from "@/lib/reactflow/types";
@@ -51,9 +52,11 @@ function BaseNode({
 
   const lockOnClick = async (newLockState: boolean) => {
     await lockRealtimePost({ id, lockState: newLockState, path: pathname });
+    //store.changePostLockState(id, newLockState);
+
   };
 
-  const canDrag = user && isOwned && !isLocked;
+  const canDrag = user && (!isLocked || isOwned);
 
   return (
     <div className={canDrag ? "" : "nodrag"}>
