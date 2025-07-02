@@ -273,16 +273,42 @@ export function convertPostToNode(
             y: realtimePost.y_coordinate,
           },
         } as CodeNode;
-      case "PORTFOLIO":
+      case "PORTFOLIO": {
+        let text = "";
+        let images: string[] = [];
+        let links: string[] = [];
+        let layout: "grid" | "column" = "grid";
+        let color = "bg-white";
+
+        if (realtimePost.content) {
+          try {
+            const parsed = JSON.parse(realtimePost.content);
+            text = parsed.text || "";
+            images = parsed.images || [];
+            links = parsed.links || [];
+            layout = parsed.layout || "grid";
+            color = parsed.color || "bg-white";
+          } catch {
+            text = realtimePost.content || "";
+          }
+        }
+
+        if (images.length === 0 && realtimePost.image_url) {
+          images = [realtimePost.image_url];
+        }
+        if (links.length === 0 && realtimePost.video_url) {
+          links = [realtimePost.video_url];
+        }
+
         return {
           id: realtimePost.id.toString(),
           type: realtimePost.type,
           data: {
-            text: realtimePost.content || "",
-            images: realtimePost.image_url ? [realtimePost.image_url] : [],
-            links: realtimePost.video_url ? [realtimePost.video_url] : [],
-            layout: "grid",
-            color: "bg-white",
+            text,
+            images,
+            links,
+            layout,
+            color,
             author: authorToSet,
             locked: realtimePost.locked,
           },
@@ -291,6 +317,7 @@ export function convertPostToNode(
             y: realtimePost.y_coordinate,
           },
         } as PortfolioNodeData;
+      }
       case "LLM_INSTRUCTION":
         return {
           id: realtimePost.id.toString(),
