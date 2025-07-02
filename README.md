@@ -67,6 +67,10 @@ The app runs at [http://localhost:3000](http://localhost:3000).
 
 Nodes are defined in `components/nodes` and typed in `lib/reactflow/types.ts`. To add a node type, create a new React component, extend the types, and register it in the React Flow store.
 
+### Plug-ins
+
+Drop plug-ins into the `plugins/` folder. Each plug-in exports a `descriptor` with a `type`, the React component, and optional config. Restart the dev server with `npm run dev` and the new nodes become available.
+
 ## Deployment
 
 Mesh is deployed on Vercel: <https://vercel.com/18vijaybs-projects/ephemera>

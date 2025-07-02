@@ -12,6 +12,7 @@ import YoutubeNodeModal from "@/components/modals/YoutubeNodeModal";
 import CollageCreationModal from "@/components/modals/CollageCreationModal";
 import GalleryNodeModal from "@/components/modals/GalleryNodeModal";
 import ShareRoomModal from "@/components/modals/ShareRoomModal";
+import { PluginDescriptor } from "../pluginLoader";
 // there is currently no dedicated modal for portal nodes
 
 import { RefObject } from "react";
@@ -281,4 +282,6 @@ export type AppState = {
   reactFlowRef: RefObject<HTMLDivElement> | null;
   setReactFlowRef: (ref: RefObject<HTMLDivElement>) => void;
   changePostLockState: (id: string, lockState: boolean) => void;
+  pluginDescriptors: PluginDescriptor[];
+  registerPlugins: (plugins: PluginDescriptor[]) => void;
 };
