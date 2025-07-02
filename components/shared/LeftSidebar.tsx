@@ -8,8 +8,12 @@ import { getAuth, signOut } from "firebase/auth";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import localFont from 'next/font/local'
+import localFont from "next/font/local";
 import CreateFeedPost from "@/components/forms/CreateFeedPost";
+import useStore from "@/lib/reactflow/store";
+import { AppState } from "@/lib/reactflow/types";
+import { useShallow } from "zustand/react/shallow";
+import UserRoomsModal from "../modals/UserRoomsModal";
 const parabole = localFont({ src: './Parabole-DisplayRegular.woff2' })
 
 interface Props {
@@ -20,6 +24,15 @@ function LeftSidebar({ userRooms }: Props) {
   const router = useRouter();
   const user = useAuth();
   const isUserSignedIn = !!user.user;
+  const store = useStore(
+    useShallow((state: AppState) => ({
+      openModal: state.openModal,
+    }))
+  );
+
+  const openRoomsModal = () => {
+    store.openModal(<UserRoomsModal userRooms={userRooms} />);
+  };
 
   async function handleLogout() {
     await signOut(getAuth(app));
@@ -73,18 +86,14 @@ function LeftSidebar({ userRooms }: Props) {
               <p className="text-black tracking-[.05rem] max-lg:hidden">{"Global"}</p>
             </Link>
        
-        <Link
-          href={`/create-room`}
-          className="leftsidebar_link leftsidebar-item  rounded-md hover:outline-2 hover:outline-double hover:outline-indigo-400"
+        <Button
+          variant="outline"
+          className="leftsidebar_link leftsidebar-item rounded-md hover:outline-2 hover:outline-double hover:outline-indigo-400"
+          onClick={openRoomsModal}
         >
-          <Image
-            src="/assets/3D-print-mesh.svg"
-            alt="YourRooms"
-            width={24}
-            height={24}
-          />
+          <Image src="/assets/3D-print-mesh.svg" alt="YourRooms" width={24} height={24} />
           <p className="text-black  max-lg:hidden">{"Your Rooms"}</p>
-        </Link>
+        </Button>
         <Link
           href={`/create-room`}
           className="leftsidebar_link leftsidebar-item border-[1px] border-rose-300 border-opacity-80	 rounded-md hover:outline-2 hover:outline-double hover:outline-red-400"

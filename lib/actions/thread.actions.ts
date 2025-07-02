@@ -2,6 +2,7 @@
 
 import { prisma } from "../prismaclient";
 import { revalidatePath } from "next/cache";
+import { getUserFromCookies } from "../serverutils";
 
 interface CreatePostParams {
   text: string;
@@ -78,8 +79,10 @@ export async function fetchPosts(pageNumber = 1, pageSize = 20) {
               image: true,
             },
           },
+          _count: { select: { children: true } },
         },
       },
+      _count: { select: { children: true } },
     },
     orderBy: { created_at: "desc" },
     skip: skipAmount,
@@ -95,9 +98,18 @@ export async function fetchPosts(pageNumber = 1, pageSize = 20) {
       ],
     },
   });
+  const postsWithCount = posts.map((post) => ({
+    ...post,
+    commentCount: post._count.children,
+    children: post.children.map((child) => ({
+      ...child,
+      commentCount: child._count.children,
+    })),
+  }));
+
   const isNext = totalPostCount > skipAmount + posts.length;
 
-  return { posts, isNext };
+  return { posts: postsWithCount, isNext };
 }
 
 export async function fetchPostById(id: bigint) {
@@ -110,12 +122,15 @@ export async function fetchPostById(id: bigint) {
       },
       include: {
         author: true,
+        _count: { select: { children: true } },
         children: {
           include: {
             author: true,
+            _count: { select: { children: true } },
             children: {
               include: {
                 author: true,
+                _count: { select: { children: true } },
               },
             },
           },
@@ -124,6 +139,14 @@ export async function fetchPostById(id: bigint) {
     });
     if (post && post.expiration_date && post.expiration_date <= new Date()) {
       return null;
+    }
+    if (post) {
+      const mapChildren = (p: any): any => ({
+        ...p,
+        commentCount: p._count.children,
+        children: p.children.map(mapChildren),
+      });
+      return mapChildren(post);
     }
     return post;
   } catch (error: any) {
@@ -138,6 +161,7 @@ export async function fetchPostTreeById(id: bigint) {
     where: { id },
     include: {
       author: true,
+      _count: { select: { children: true } },
     },
   });
   if (!post || (post.expiration_date && post.expiration_date <= new Date()))
@@ -146,15 +170,21 @@ export async function fetchPostTreeById(id: bigint) {
   const fetchChildren = async (parentId: bigint): Promise<any[]> => {
     const children = await prisma.post.findMany({
       where: { parent_id: parentId },
-      include: { author: true },
+      include: { author: true, _count: { select: { children: true } } },
     });
     for (const child of children) {
       child.children = await fetchChildren(child.id);
     }
-    return children;
+    return children.map((c) => ({
+      ...c,
+      commentCount: c._count.children,
+    }));
   };
 
-  post.children = await fetchChildren(post.id);
+  if (post) {
+    post.children = await fetchChildren(post.id);
+    return { ...post, commentCount: post._count.children };
+  }
   return post;
 }
 
@@ -302,4 +332,33 @@ export async function archiveExpiredPosts() {
     }),
     prisma.post.deleteMany({ where: { id: { in: ids } } }),
   ]);
+}
+
+export async function deletePost({ id }: { id: bigint }) {
+  const user = await getUserFromCookies();
+  try {
+    await prisma.$connect();
+    const originalPost = await prisma.post.findUniqueOrThrow({
+      where: {
+        id: id,
+      },
+    });
+    if (!user || user.userId != originalPost.author_id) {
+      return;
+    }
+
+    const ids: bigint[] = [];
+    const collect = async (postId: bigint) => {
+      const children = await prisma.post.findMany({ where: { parent_id: postId } });
+      for (const child of children) {
+        await collect(child.id);
+      }
+      ids.push(postId);
+    };
+
+    await collect(id);
+    await prisma.post.deleteMany({ where: { id: { in: ids } } });
+  } catch (error: any) {
+    console.error("Failed to delete post:", error);
+  }
 }

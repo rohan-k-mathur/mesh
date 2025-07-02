@@ -39,6 +39,7 @@ interface Props {
   }[];
   isComment?: boolean;
   likeCount: number;
+  commentCount?: number;
   expirationDate?: string | null;
 }
 
@@ -52,6 +53,7 @@ const ThreadCard = async ({
   comments,
   isComment,
   likeCount,
+  commentCount = 0,
   expirationDate = null,
 }: Props) => {
   let currentUserLike: Like | null = null;
@@ -103,7 +105,7 @@ const ThreadCard = async ({
                   initialLikeState={currentUserLike}
                 />
                   <>
-                    <ExpandButton postId={id} />
+                    <ExpandButton postId={id} commentCount={commentCount} />
                   </>
             <ReplicateButton postId={id} />
           <ShareButton postId={id} />

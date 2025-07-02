@@ -124,8 +124,10 @@ export async function fetchUserThreads(userId: bigint) {
                     id: true,
                   },
                 },
+                _count: { select: { children: true } },
               },
             },
+            _count: { select: { children: true } },
           },
           orderBy: {
             created_at: Prisma.SortOrder.desc,
@@ -133,7 +135,19 @@ export async function fetchUserThreads(userId: bigint) {
         },
       },
     });
-    return posts;
+    if (!posts) return null;
+    const mapped = {
+      ...posts,
+      posts: posts.posts.map((p) => ({
+        ...p,
+        commentCount: p._count.children,
+        children: p.children.map((c) => ({
+          ...c,
+          commentCount: c._count.children,
+        })),
+      })),
+    };
+    return mapped;
   } catch (error: any) {
     throw new Error(`Failed to fetch user threads: ${error.message}`);
   }

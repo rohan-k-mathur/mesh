@@ -39,6 +39,7 @@ interface Props {
   createdAt: string;
   isRealtimePost?: boolean;
   likeCount?: number;
+  commentCount?: number;
   expirationDate?: string | null;
 }
 
@@ -53,6 +54,7 @@ const PostCard = async ({
   createdAt,
   isRealtimePost = false,
   likeCount = 0,
+  commentCount = 0,
   expirationDate = null,
   }: Props) => {
   let currentUserLike: Like | RealtimeLike | null = null;
@@ -178,6 +180,7 @@ const PostCard = async ({
                       {...(isRealtimePost
                         ? { realtimePostId: id.toString() }
                         : { postId: id })}
+                      commentCount={commentCount}
                     />
                   </>
             <ReplicateButton postId={id} />
@@ -187,11 +190,7 @@ const PostCard = async ({
             isOwned={currentUserId === author.id}
             expirationDate={expirationDate ?? undefined}
           />
-          <DeleteCardButton
-            postId={id}
-            isOwned={currentUserId === author.id}
-            expirationDate={expirationDate ?? undefined}
-          />
+          <DeleteCardButton postId={id} />
 
               </div>
             </div>
