@@ -12,6 +12,9 @@ import {
   DrawNode,
   LivechatNode,
   AudioNode,
+  DocumentNode,
+  ThreadNode,
+  CodeNode,
   PortfolioNodeData,
   LLMInstructionNode,
 
@@ -228,6 +231,48 @@ export function convertPostToNode(
             y: realtimePost.y_coordinate,
           },
         } as AudioNode;
+      case "DOCUMENT":
+        return {
+          id: realtimePost.id.toString(),
+          type: realtimePost.type,
+          data: {
+            documentUrl: realtimePost.video_url || realtimePost.image_url || "",
+            author: authorToSet,
+            locked: realtimePost.locked,
+          },
+          position: {
+            x: realtimePost.x_coordinate,
+            y: realtimePost.y_coordinate,
+          },
+        } as DocumentNode;
+      case "THREAD":
+        return {
+          id: realtimePost.id.toString(),
+          type: realtimePost.type,
+          data: {
+            threadId: realtimePost.content || realtimePost.id.toString(),
+            author: authorToSet,
+            locked: realtimePost.locked,
+          },
+          position: {
+            x: realtimePost.x_coordinate,
+            y: realtimePost.y_coordinate,
+          },
+        } as ThreadNode;
+      case "CODE":
+        return {
+          id: realtimePost.id.toString(),
+          type: realtimePost.type,
+          data: {
+            code: realtimePost.content || "",
+            author: authorToSet,
+            locked: realtimePost.locked,
+          },
+          position: {
+            x: realtimePost.x_coordinate,
+            y: realtimePost.y_coordinate,
+          },
+        } as CodeNode;
       case "PORTFOLIO":
         return {
           id: realtimePost.id.toString(),
