@@ -123,6 +123,8 @@ export default function NodeSidebar({
     { label: "DRAW", nodeType: "DRAW" },
     { label: "LIVECHAT", nodeType: "LIVECHAT" },
     { label: "AUDIO", nodeType: "AUDIO" },
+    { label: "LLM", nodeType: "LLM_INSTRUCTION" },
+    { label: "PORTFOLIO", nodeType: "PORTFOLIO" },
   ];
 
   const nodeTypes = [
