@@ -430,7 +430,7 @@ export default function CustomButtons({ userAttributes, initialOpen }: Props) {
             </Button>
           </DialogTrigger>
           <DialogContent className="grid bg-black  max-w-[50rem] max-h-[38rem]	">
-            <h2>Televisoin</h2>
+            <h2>Television</h2>
             <DialogHeader className="dialog-header mt-[-2rem] text-white tracking-wide	">
               <b> Choose Your Favorite TV Shows</b>
             </DialogHeader>
