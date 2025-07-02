@@ -1,37 +1,39 @@
 "use client";
 
-import { dislikePost, likePost, unlikePost } from "@/lib/actions/like.actions";
-import { useAuth } from "@/lib/AuthContext";
-import { Like } from "@prisma/client";
+
 import Image from "next/image";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+
+import useStore from "@/lib/reactflow/store";
+import { AppState } from "@/lib/reactflow/types";
+import { useShallow } from "zustand/react/shallow";
+import SharePostModal from "../modals/SharePostModal";
 
 interface Props {
   postId?: bigint;
   realtimePostId?: string;
 }
 
-const ShareButton = ({ postId }: Props) => {
-  const user = useAuth();
-  const router = useRouter();
-  const isUserSignedIn = !!user.user;
-  const userObjectId = user?.user?.userId;
-
-
- 
-  return (
-<button>
-    <Image
-                  src="/assets/send--alt.svg"
-                  alt="share"
-                  width={28}
-                  height={28}
-                  className="cursor-pointer object-contain likebutton"
-                />
-                </button>
-
+const ShareButton = ({ postId, realtimePostId }: Props) => {
+  const { openModal } = useStore(
+    useShallow((state: AppState) => ({
+      openModal: state.openModal,
+    }))
   );
+ 
+  <button>
+  <Image
+    src="/assets/send--alt.svg"
+    alt="share"
+    width={28}
+    height={28}
+    className="cursor-pointer object-contain likebutton"
+    onClick={() =>
+      openModal(
+        <SharePostModal postId={postId} realtimePostId={realtimePostId} />
+      )
+    }
+  />
+</button>
   
 };
 
