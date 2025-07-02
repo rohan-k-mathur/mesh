@@ -234,25 +234,27 @@ export async function replicatePost({
   userId,
   path,
 }: {
-  originalPostId: bigint;
-  userId: bigint;
+  originalPostId: string | number | bigint;
+  userId: string | number | bigint;
   path: string;
 }) {
   try {
     await prisma.$connect();
+    const oid = BigInt(originalPostId);
+    const uid = BigInt(userId);
     const original = await prisma.post.findUnique({
-      where: { id: originalPostId },
+      where: { id: oid },
       include: { author: true },
     });
     if (!original) throw new Error("Post not found");
     const newPost = await prisma.post.create({
       data: {
-        content: `REPLICATE:${originalPostId.toString()}`,
-        author_id: userId,
+        content: `REPLICATE:${oid.toString()}`,
+        author_id: uid,
       },
     });
     await prisma.user.update({
-      where: { id: userId },
+      where: { id: uid },
       data: { posts: { connect: { id: newPost.id } } },
     });
     revalidatePath(path);
