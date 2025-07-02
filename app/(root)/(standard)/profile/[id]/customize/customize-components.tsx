@@ -19,6 +19,9 @@ import {
   addInterest,
   fetchMovies,
   fetchBooks,
+  fetchEvents,
+  fetchTVShows,
+  fetchPodcasts,
   fetchTracks,
   submitEdits,
 } from "@/lib/MultiSelectFunctions";
@@ -349,7 +352,13 @@ export default function CustomButtons({ userAttributes, initialOpen }: Props) {
             <hr />
 
             <div className="bg-black border border-white rounded-md px-3 pt-6  pb-16  mt-3 mb-3 ">
-              {/* <FancyMultiSelect /> */}
+              <FancyMultiSelect
+                fetchMultiselectData={fetchEvents}
+                initialSelected={convertListToSelectables((userAttributes as any).events)}
+                submitEdits={(selectables) =>
+                  submitEdits("EVENTS", selectables, userAttributes, path)
+                }
+              />
             </div>
             <hr />
             <div className="flex gap-4 mb-2 mt-2">
@@ -367,9 +376,6 @@ export default function CustomButtons({ userAttributes, initialOpen }: Props) {
               >
                 Close
               </DialogClose>
-            </div>
-            <div className="overlay w-full bg-white h-full text-center align-middle	 font-bold text-black">
-              {"UNDER CONSTRUCTION"}
             </div>
           </DialogContent>
         </Dialog>
@@ -437,7 +443,13 @@ export default function CustomButtons({ userAttributes, initialOpen }: Props) {
             <hr />
 
             <div className="bg-black border border-white rounded-md px-3 pt-6  pb-16  mt-3 mb-3 ">
-              {/* <FancyMultiSelect /> */}
+              <FancyMultiSelect
+                fetchMultiselectData={fetchTVShows}
+                initialSelected={convertListToSelectables((userAttributes as any).tv_shows)}
+                submitEdits={(selectables) =>
+                  submitEdits("TV_SHOWS", selectables, userAttributes, path)
+                }
+              />
             </div>
             <hr />
             <div className="flex gap-4 mb-2 mt-2">
@@ -448,16 +460,12 @@ export default function CustomButtons({ userAttributes, initialOpen }: Props) {
               >
                 Enter
               </DialogClose>
-
               <DialogClose
                 id="close"
                 className={`form-submit-button pl-4 py-1 pr-[1rem]`}
               >
                 Close
               </DialogClose>
-            </div>
-            <div className="overlay w-full bg-white h-full text-center align-middle	 font-bold text-black">
-              {"UNDER CONSTRUCTION"}
             </div>
           </DialogContent>
         </Dialog>
@@ -520,7 +528,13 @@ export default function CustomButtons({ userAttributes, initialOpen }: Props) {
             <hr />
 
             <div className="bg-black border border-white rounded-md px-3 pt-6  pb-16  mt-3 mb-3 ">
-              {/* <FancyMultiSelect /> */}
+              <FancyMultiSelect
+                fetchMultiselectData={fetchPodcasts}
+                initialSelected={convertListToSelectables((userAttributes as any).podcasts)}
+                submitEdits={(selectables) =>
+                  submitEdits("PODCASTS", selectables, userAttributes, path)
+                }
+              />
             </div>
             <hr />
             <div className="flex gap-4 mb-2 mt-2">
@@ -531,16 +545,12 @@ export default function CustomButtons({ userAttributes, initialOpen }: Props) {
               >
                 Enter
               </DialogClose>
-
               <DialogClose
                 id="close"
                 className={`form-submit-button pl-4 py-1 pr-[1rem]`}
               >
                 Close
               </DialogClose>
-            </div>
-            <div className="overlay w-full bg-white h-full text-center align-middle	 font-bold text-black">
-              {"UNDER CONSTRUCTION"}
             </div>
           </DialogContent>
         </Dialog>

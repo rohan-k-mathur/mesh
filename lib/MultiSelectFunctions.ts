@@ -242,6 +242,51 @@ export async function fetchTracks(query: string): Promise<OptionType[]> {
   }
 }
 
+export async function fetchEvents(query: string): Promise<OptionType[]> {
+  const stub = [
+    { value: "festival", label: "Local Festival" },
+    { value: "meetup", label: "Community Meetup" },
+    { value: "conference", label: "Tech Conference" },
+  ];
+  return stub.filter((e) =>
+    e.label.toLowerCase().includes(query.toLowerCase())
+  );
+}
+
+export async function fetchTVShows(query: string): Promise<OptionType[]> {
+  try {
+    const response = await fetch(
+      `https://api.tvmaze.com/search/shows?q=${encodeURIComponent(query)}`
+    );
+    const data = await response.json();
+    if (Array.isArray(data)) {
+      const shows = data.map((item: any) => ({
+        value: item.show.id.toString(),
+        label: item.show.name,
+      }));
+      return shows.filter(
+        (show: any, idx: number, self: any) =>
+          idx === self.findIndex((s: any) => s.label === show.label)
+      );
+    }
+    return [];
+  } catch (error) {
+    console.error("Error fetching tv shows:", error);
+    return [];
+  }
+}
+
+export async function fetchPodcasts(query: string): Promise<OptionType[]> {
+  const stub = [
+    { value: "tech_talk", label: "Tech Talk" },
+    { value: "daily_news", label: "Daily News" },
+    { value: "comedy_hour", label: "Comedy Hour" },
+  ];
+  return stub.filter((p) =>
+    p.label.toLowerCase().includes(query.toLowerCase())
+  );
+}
+
 export async function fetchInterests(query: string): Promise<OptionType[]> {
   return interestList.filter((interest) =>
     interest.label.toLowerCase().includes(query.toLowerCase())
@@ -280,7 +325,10 @@ export function submitEdits(
     | "TRACKS"
     | "ARTISTS"
     | "BOOKS"
-    | "COMMUNITIES",
+    | "COMMUNITIES"
+    | "EVENTS"
+    | "TV_SHOWS"
+    | "PODCASTS",
   selectables: OptionType[],
   userAttributes: UserAttributes,
   path: string
@@ -347,6 +395,30 @@ export function submitEdits(
         userAttributes: {
           ...userAttributes,
           communities: convertSelectablesToList(selectables),
+        },
+        path,
+      });
+    case "EVENTS":
+      return upsertUserAttributes({
+        userAttributes: {
+          ...(userAttributes as any),
+          events: convertSelectablesToList(selectables),
+        },
+        path,
+      });
+    case "TV_SHOWS":
+      return upsertUserAttributes({
+        userAttributes: {
+          ...(userAttributes as any),
+          tv_shows: convertSelectablesToList(selectables),
+        },
+        path,
+      });
+    case "PODCASTS":
+      return upsertUserAttributes({
+        userAttributes: {
+          ...(userAttributes as any),
+          podcasts: convertSelectablesToList(selectables),
         },
         path,
       });
