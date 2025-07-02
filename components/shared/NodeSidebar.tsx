@@ -42,6 +42,7 @@ const nodeTypes: { label: string; nodeType: AppNodeType }[] = [
   { label: "PORTAL", nodeType: "PORTAL" },
   { label: "DRAW", nodeType: "DRAW" },
   { label: "LIVECHAT", nodeType: "LIVECHAT" },
+  { label: "AUDIO", nodeType: "AUDIO" },
 ];
 
 // Import your modals
@@ -280,6 +281,15 @@ export default function NodeSidebar({
             }}
           />
         );
+        break;
+
+      case "AUDIO":
+        createPostAndAddToCanvas({
+          path: pathname,
+          coordinates: centerPosition,
+          type: "AUDIO",
+          realtimeRoomId: roomId,
+        });
         break;
 
       default:
