@@ -48,55 +48,33 @@ function LeftSidebar({ userRooms }: Props) {
 
   return (
     <section className="custom-scrollbar leftsidebar  bg-transparent">
-      <div className="flex w-full flex-1 flex-col gap-6 px-6">
-        {/* {userRooms.map((userRoom) => {
-          return (
-            <Link
-              href={`/room/${userRoom.id}`}
-              key={userRoom.id.toString()}
-              className="leftsidebar_link leftsidebar-item  rounded-md hover:outline-2 hover:outline-double hover:outline-indigo-400"
-            >
-              <div className="rounded_icon_container shadow-sm shadow-black h-6 w-6">
-                <Image
-                  src={userRoom.room_icon}
-                  alt={userRoom.id}
-                  width={48}
-                  height={48}
-                  className=" object-contain"
-                />
-              </div>
-              <p className="text-black tracking-[.05rem] max-lg:hidden">{userRoom.id}</p>
-            </Link>
-          );
-        })} */}
+      <div className="flex  w-full flex flex-col gap-6 px-6">
+       
             <Link
               href={`/room/global`}
               key={"global"}
-              className="leftsidebar_link leftsidebar-item  rounded-md hover:outline-2 hover:outline-double hover:outline-indigo-400"
+              className="leftsidebar_link leftsidebar-item items-start justify-start h-fit  rounded-md hover:outline-2 hover:outline-double hover:outline-indigo-400"
             >
-              <div className="rounded_icon_container  shadow-black h-6 w-6">
                 <Image
                   src="/assets/earth--filled.svg"
                   alt={"globe"}
-                  width={48}
-                  height={48}
-                  className=" object-contain"
+                  width={24}
+                  height={24}
                 />
-              </div>
-              <p className="text-black tracking-[.05rem] max-lg:hidden">{"Global"}</p>
+              <p className="text-black max-lg:hidden">{"Global"}</p>
             </Link>
        
         <Button
           variant="outline"
-          className="leftsidebar_link leftsidebar-item rounded-md hover:outline-2 hover:outline-double hover:outline-indigo-400"
+          className="leftsidebar_link  leftsidebar-item items-start justify-start h-fit rounded-md hover:outline-2 hover:outline-double hover:outline-indigo-400"
           onClick={openRoomsModal}
         >
           <Image src="/assets/3D-print-mesh.svg" alt="YourRooms" width={24} height={24} />
-          <p className="text-black  max-lg:hidden">{"Your Rooms"}</p>
+          <p className="text-black   max-lg:hidden">{"Your Rooms"}</p>
         </Button>
         <Link
           href={`/create-room`}
-          className="leftsidebar_link leftsidebar-item border-[1px] border-rose-300 border-opacity-80	 rounded-md hover:outline-2 hover:outline-double hover:outline-red-400"
+          className="leftsidebar_link leftsidebar-item items-start justify-start h-fit border-[1px] border-rose-300 border-opacity-80	 rounded-md hover:outline-2 hover:outline-double hover:outline-red-400"
         >
           <Image
             src="/assets/gateway.svg"
@@ -114,13 +92,13 @@ function LeftSidebar({ userRooms }: Props) {
         {isUserSignedIn && (
           <Button
           variant={"outline"}
-            className="items-start justify-start h-full w-full rounded-md leftsidebar-link  leftsidebar-item border-none justify-center items-center hover:outline-2 hover:outline-double hover:outline-emerald-400"
+            className="leftsidebar-link  leftsidebar-item  items-start justify-start h-full w-full rounded-md border-none hover:outline-2 hover:outline-double hover:outline-emerald-400"
             onClick={gotoprofile}
           >
             <Image
               src="/assets/notifications-none.svg"
               alt="notifs"
-              className="mr-2"
+              className="mr-2 "
               width={24}
               height={24}
             />
@@ -133,7 +111,7 @@ function LeftSidebar({ userRooms }: Props) {
           <Button
           variant={"outline"}
 
-            className="items-start justify-start h-full w-full rounded-md  leftsidebar-item border-none  hover:outline-2 hover:outline-double hover:outline-emerald-400"
+            className="leftsidebar_link leftsidebar-item items-start justify-start h-full w-full rounded-md  leftsidebar-item border-none  hover:outline-2 hover:outline-double hover:outline-emerald-400"
             onClick={gotoprofile}
           >
             <Image
@@ -152,7 +130,7 @@ function LeftSidebar({ userRooms }: Props) {
           <Button
           variant={"outline"}
 
-            className="items-start justify-start h-full w-full rounded-md  leftsidebar-item border-none hover:outline-2 hover:outline-double hover:outline-emerald-400"
+            className="leftsidebar_link leftsidebar-item items-start justify-start h-full w-full rounded-md  leftsidebar-item border-none hover:outline-2 hover:outline-double hover:outline-emerald-400"
             onClick={handleLogout}
           >
             <Image
@@ -170,7 +148,7 @@ function LeftSidebar({ userRooms }: Props) {
       <Link href="/" className="flex items-center gap-2">
         <Image src="/assets/logo-black.svg" alt="logo" width={36} height={36} /> 
         <div className={`${parabole.className}`}>
-        <span  className=" text-[2.5rem] font-bold text-black tracking-[.0rem] max-xs:hidden">MESH</span>
+        <span  className=" text-[2.5rem] font-bold text-black max-xs:hidden">MESH</span>
         </div>
 
       </Link>

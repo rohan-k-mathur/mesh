@@ -26,7 +26,6 @@ const ReplicateButton = ({ postId }: Props) => {
       return;
     }
     if (!userObjectId || !postId) {
-      router.push("/onboarding");
       return;
     }
     await replicatePost({

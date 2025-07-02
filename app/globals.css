@@ -84,7 +84,7 @@
   }
 
   .leftsidebar {
-    @apply sticky left-[0rem] top-0 z-20 flex h-screen w-fit flex-col justify-between overflow-auto	 bg-dark-2 pb-5 pt-28 pl-[1rem] pr-[1rem] max-md:hidden;
+    @apply sticky  left-[0rem] top-0 z-20 flex h-screen w-fit flex-col justify-between overflow-auto	 bg-dark-2 pb-5 pt-28 pl-[1rem] pr-[1rem] max-md:hidden;
   }
 
   .leftsidebar_link {

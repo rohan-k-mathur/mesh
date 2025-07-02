@@ -24,8 +24,8 @@ const DeleteCardButton = ({ postId, realtimePostId }: Props) => {
       <Image
         src="/assets/trash-can.svg"
         alt="trash"
-        width={24}
-        height={24}
+        width={28}
+        height={28}
         className="cursor-pointer object-contain likebutton"
       />
     </button>
