@@ -87,10 +87,10 @@ function PortfolioNode({ id, data }: NodeProps<PortfolioNodeData>) {
     await updateRealtimePost({
       id,
       path,
+      text: values.text,
       imageUrl: updatedImages[0],
       videoUrl: (values.links && values.links[0]) || links[0],
       content: JSON.stringify({
-        text: values.text,
         images: updatedImages,
         links: values.links || [],
         layout: values.layout,
