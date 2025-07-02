@@ -107,11 +107,11 @@ const PostCard = async ({
               />
             )}
                         {type === "VIDEO" && video_url && (
-              <div className="yt-container mt-2 mb-2">
+              <div className="mt-2 mb-2 w-[70%] border-none loginbutton hover:loginbutton ">
                 <iframe
                   title="video"
-                  width={560}
-                  height={315}
+                  width={696}
+                  height={378}
                   src={video_url}
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 ></iframe>

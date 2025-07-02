@@ -25,8 +25,8 @@ const ShareButton = ({ postId }: Props) => {
     <Image
                   src="/assets/send--alt.svg"
                   alt="share"
-                  width={24}
-                  height={24}
+                  width={28}
+                  height={28}
                   className="cursor-pointer object-contain likebutton"
                 />
                 </button>

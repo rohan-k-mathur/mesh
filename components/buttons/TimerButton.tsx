@@ -24,8 +24,8 @@ const TimerButton = ({ postId, isOwned, expirationDate }: Props) => {
     <Image
       src="/assets/time.svg"
       alt="clock"
-      width={24}
-      height={24}
+      width={28}
+                  height={28}
       className="cursor-pointer object-contain likebutton"
       onClick={() =>
         openModal(

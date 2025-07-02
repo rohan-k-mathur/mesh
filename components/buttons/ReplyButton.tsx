@@ -25,8 +25,8 @@ const ReplyButton = ({ postId }: Props) => {
     <Image
                   src="/assets/reply.svg"
                   alt="share"
-                  width={24}
-                  height={24}
+                  width={28}
+                  height={28}
                   className="cursor-pointer object-contain likebutton"
                 />
 </button>
