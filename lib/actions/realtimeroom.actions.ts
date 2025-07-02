@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "../prismaclient";
 import { getUserFromCookies } from "../serverutils";
 import { nanoid } from "nanoid";
+import { generateFriendSuggestions } from "./friend-suggestions.actions";
 
 export async function fetchRealtimeRoom({
   realtimeRoomId,
@@ -82,6 +83,7 @@ export async function joinRoom({ roomId }: { roomId: string }) {
         realtime_room_id: roomId,
       },
     });
+    await generateFriendSuggestions(user.userId!);
   } catch (error: any) {
     throw new Error(`Failed to join room: ${error.message}`);
   }
@@ -129,7 +131,7 @@ export async function createAndJoinRoom({
     if (!user) {
       throw new Error("User not authenticated");
     }
-    const [realtimeRoom, connection] = await prisma.$transaction([
+  const [realtimeRoom, connection] = await prisma.$transaction([
       prisma.realtimeRoom.create({
         data: {
           id: roomName,
@@ -143,6 +145,7 @@ export async function createAndJoinRoom({
         },
       }),
     ]);
+    await generateFriendSuggestions(user.userId!);
     revalidatePath(path);
     return realtimeRoom;
   } catch (error: any) {

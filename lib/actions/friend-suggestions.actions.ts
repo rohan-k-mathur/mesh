@@ -41,10 +41,55 @@ export async function generateFriendSuggestions(userId: bigint) {
   const others = await prisma.userEmbedding.findMany({ where: { user_id: { not: userId } } });
   if (others.length === 0) return [];
   const sample = others.sort(() => Math.random() - 0.5).slice(0, 20);
-  const scored = sample.map((o) => ({
-    id: o.user_id,
-    score: cosineSimilarity(base.embedding, o.embedding),
-  }));
+
+  const otherIds = sample.map((o) => o.user_id);
+  const [baseLikes, baseRooms, otherLikes, otherRooms] = await Promise.all([
+    prisma.like.findMany({
+      where: { user_id: userId },
+      select: { post_id: true },
+    }),
+    prisma.userRealtimeRoom.findMany({
+      where: { user_id: userId },
+      select: { realtime_room_id: true },
+    }),
+    prisma.like.findMany({
+      where: { user_id: { in: otherIds } },
+      select: { user_id: true, post_id: true },
+    }),
+    prisma.userRealtimeRoom.findMany({
+      where: { user_id: { in: otherIds } },
+      select: { user_id: true, realtime_room_id: true },
+    }),
+  ]);
+
+  const baseLikeSet = new Set(baseLikes.map((l) => l.post_id.toString()));
+  const baseRoomSet = new Set(baseRooms.map((r) => r.realtime_room_id));
+
+  const likesMap = new Map<bigint, Set<string>>();
+  for (const l of otherLikes) {
+    const uid = l.user_id as bigint;
+    if (!likesMap.has(uid)) likesMap.set(uid, new Set());
+    likesMap.get(uid)!.add(l.post_id.toString());
+  }
+
+  const roomsMap = new Map<bigint, Set<string>>();
+  for (const r of otherRooms) {
+    const uid = r.user_id as bigint;
+    if (!roomsMap.has(uid)) roomsMap.set(uid, new Set());
+    roomsMap.get(uid)!.add(r.realtime_room_id);
+  }
+
+  const scored = sample.map((o) => {
+    const likeSet = likesMap.get(o.user_id) || new Set();
+    const roomSet = roomsMap.get(o.user_id) || new Set();
+    let overlapLikes = 0;
+    for (const p of likeSet) if (baseLikeSet.has(p)) overlapLikes++;
+    let overlapRooms = 0;
+    for (const rm of roomSet) if (baseRoomSet.has(rm)) overlapRooms++;
+    const baseScore = cosineSimilarity(base.embedding, o.embedding);
+    const score = baseScore + overlapLikes + overlapRooms;
+    return { id: o.user_id, score };
+  });
   scored.sort((a, b) => b.score - a.score);
   const top = scored.slice(0, 5);
   await prisma.friendSuggestion.deleteMany({ where: { user_id: userId } });
