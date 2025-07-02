@@ -35,6 +35,8 @@ model User {
   userEmbedding            UserEmbedding?
   realtimerooms            UserRealtimeRoom[]
   workflows                Workflow[]
+  attributeEdits           UserAttributeEdit[]
+  recommendationClicks     RecommendationClick[]
 
   @@map("users")
 }
@@ -53,6 +55,10 @@ model UserAttributes {
   hobbies     String[]
   location    String?
   books       String[]
+  events_visibility   visibility @default(PUBLIC)
+  tv_visibility       visibility @default(PUBLIC)
+  podcasts_visibility visibility @default(PUBLIC)
+  updated_at DateTime @default(now()) @updatedAt @db.Timestamptz(6)
   user        User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@map("user_attributes")
@@ -274,4 +280,30 @@ enum realtime_post_type {
   CODE
   PORTFOLIO
   LLM_INSTRUCTION
+}
+
+enum visibility {
+  PUBLIC
+  FOLLOWERS
+  PRIVATE
+}
+
+model UserAttributeEdit {
+  id         BigInt   @id @default(autoincrement())
+  user_id    BigInt
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("user_attribute_edits")
+}
+
+model RecommendationClick {
+  id                  BigInt   @id @default(autoincrement())
+  user_id             BigInt
+  recommended_user_id BigInt?
+  recommended_room_id String?
+  created_at          DateTime @default(now()) @db.Timestamptz(6)
+  user                User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("recommendation_clicks")
 }
