@@ -1,6 +1,7 @@
 "use client";
 
 import { replicatePost } from "@/lib/actions/thread.actions";
+import { replicateRealtimePost } from "@/lib/actions/realtimepost.actions";
 import { useAuth } from "@/lib/AuthContext";
 import { Like } from "@prisma/client";
 import Image from "next/image";
@@ -12,7 +13,7 @@ interface Props {
   realtimePostId?: string;
 }
 
-const ReplicateButton = ({ postId }: Props) => {
+const ReplicateButton = ({ postId, realtimePostId }: Props) => {
   const user = useAuth();
   const router = useRouter();
     const pathname = usePathname();
@@ -25,14 +26,24 @@ const ReplicateButton = ({ postId }: Props) => {
       router.push("/login");
       return;
     }
-    if (!userObjectId || !postId) {
+    if (!userObjectId) {
       return;
     }
-    await replicatePost({
-      originalPostId: postId.toString(),
-      userId: userObjectId.toString(),
-      path: pathname,
-    });
+    if (realtimePostId) {
+      await replicateRealtimePost({
+        originalPostId: realtimePostId.toString(),
+        userId: userObjectId.toString(),
+        path: pathname,
+      });
+    } else if (postId) {
+      await replicatePost({
+        originalPostId: postId.toString(),
+        userId: userObjectId.toString(),
+        path: pathname,
+      });
+    } else {
+      return;
+    }
     router.refresh();
   }
  
