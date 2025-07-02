@@ -30,6 +30,25 @@ import { useShallow } from "zustand/react/shallow";
 import { useAuth } from "@/lib/AuthContext";
 import { useRouter } from "next/navigation";
 
+
+// A simple static array of node types
+const nodeTypes: { label: string; nodeType: AppNodeType }[] = [
+  { label: "TEXT", nodeType: "TEXT" },
+  { label: "IMAGE", nodeType: "IMAGE" },
+  { label: "VIDEO", nodeType: "VIDEO" },
+  { label: "LIVESTREAM", nodeType: "LIVESTREAM" },
+  { label: "IMAGE_COMPUTE", nodeType: "IMAGE_COMPUTE" },
+  { label: "COLLAGE", nodeType: "COLLAGE" },
+  { label: "GALLERY", nodeType: "GALLERY" },
+  { label: "PORTAL", nodeType: "PORTAL" },
+  { label: "DRAW", nodeType: "DRAW" },
+  { label: "LIVECHAT", nodeType: "LIVECHAT" },
+  { label: "AUDIO", nodeType: "AUDIO" },
+  { label: "LLM_INSTRUCTION", nodeType: "LLM_INSTRUCTION" },
+  { label: "PORTFOLIO", nodeType: "PORTFOLIO" },
+];
+
+
 // Import your modals
 import TextNodeModal from "@/components/modals/TextNodeModal";
 import ImageNodeModal from "@/components/modals/ImageNodeModal";
@@ -297,6 +316,24 @@ export default function NodeSidebar({
           path: pathname,
           coordinates: centerPosition,
           type: "AUDIO",
+          realtimeRoomId: roomId,
+        });
+        break;
+
+      case "LLM_INSTRUCTION":
+        createPostAndAddToCanvas({
+          path: pathname,
+          coordinates: centerPosition,
+          type: "LLM_INSTRUCTION",
+          realtimeRoomId: roomId,
+        });
+        break;
+
+      case "PORTFOLIO":
+        createPostAndAddToCanvas({
+          path: pathname,
+          coordinates: centerPosition,
+          type: "PORTFOLIO",
           realtimeRoomId: roomId,
         });
         break;

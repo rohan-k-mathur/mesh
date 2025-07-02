@@ -45,3 +45,25 @@ it("handles conditional branches", async () => {
   expect(result).toEqual(["A", "B"]);
   expect(order).toEqual(["A", "B"]);
 });
+
+it("triggers actions in saved order", async () => {
+  const graph: WorkflowGraph = {
+    nodes: [
+      { id: "start", type: "x" },
+      { id: "mid", type: "y" },
+      { id: "end", type: "z" },
+    ],
+    edges: [
+      { id: "e1", source: "start", target: "mid" },
+      { id: "e2", source: "mid", target: "end" },
+    ],
+  };
+  const executed: string[] = [];
+  const actions = {
+    start: async () => executed.push("start"),
+    mid: async () => executed.push("mid"),
+    end: async () => executed.push("end"),
+  };
+  await executeWorkflow(graph, actions);
+  expect(executed).toEqual(["start", "mid", "end"]);
+});

@@ -17,12 +17,13 @@ import { WorkflowGraph } from "@/lib/actions/workflow.actions";
 
 interface Props {
   initialGraph?: WorkflowGraph;
-  onSave: (graph: WorkflowGraph) => void;
+  onSave: (graph: WorkflowGraph) => Promise<{ id: string }>;
 }
 
 export default function WorkflowBuilder({ initialGraph, onSave }: Props) {
   const [nodes, setNodes] = useState<Node[]>(initialGraph?.nodes || []);
   const [edges, setEdges] = useState<Edge[]>(initialGraph?.edges || []);
+  const [workflowId, setWorkflowId] = useState<string | null>(null);
 
   const onConnect = useCallback((connection: Connection) => {
     setEdges((eds) => addEdge(connection, eds));
@@ -40,14 +41,18 @@ export default function WorkflowBuilder({ initialGraph, onSave }: Props) {
     ]);
   };
 
-  const save = () => {
-    onSave({ nodes, edges });
+  const save = async () => {
+    const result = await onSave({ nodes, edges });
+    setWorkflowId(result.id);
   };
 
   return (
     <div style={{ height: 500 }}>
       <Button onClick={addState}>Add State</Button>
       <Button onClick={save}>Save</Button>
+      {workflowId && (
+        <a href={`/workflows/${workflowId}`}>Run Workflow</a>
+      )}
       <ReactFlow nodes={nodes} edges={edges} onConnect={onConnect}>
         <Background />
         <MiniMap />
