@@ -61,7 +61,7 @@ function LeftSidebar({ userRooms }: Props) {
       <div className="flex  w-full flex flex-col gap-6 px-6">
        
             <Button
-              className="border-none likebutton leftsidebar_link leftsidebar-item items-start justify-start h-fit  rounded-md hover:outline-2 hover:outline-double hover:outline-indigo-400"
+              className="border-[1px] border-rose-300 border-opacity-80 likebutton leftsidebar_link leftsidebar-item items-start justify-start h-fit  rounded-md hover:outline-2 hover:outline-double hover:outline-indigo-400"
               variant={"outline"}
               onClick={gotoglobal}
               >
@@ -76,7 +76,7 @@ function LeftSidebar({ userRooms }: Props) {
        
         <Button
           variant="outline"
-          className="border-none likebutton leftsidebar_link  leftsidebar-item items-start justify-start h-fit rounded-md hover:outline-2 hover:outline-double hover:outline-indigo-400"
+          className=" likebutton leftsidebar_link  leftsidebar-item items-start justify-start h-fit rounded-md border-[1px] border-rose-300 border-opacity-80 hover:outline-2 hover:outline-double hover:outline-indigo-400"
           onClick={openRoomsModal}
         >
           <Image src="/assets/3D-print-mesh.svg" alt="YourRooms" width={24} height={24} />
@@ -103,7 +103,7 @@ function LeftSidebar({ userRooms }: Props) {
         {isUserSignedIn && (
           <Button
           variant={"outline"}
-            className="likebutton leftsidebar-link  leftsidebar-item  items-start justify-start h-full w-full rounded-md border-none hover:outline-2 hover:outline-double hover:outline-emerald-400"
+            className="likebutton leftsidebar-link  leftsidebar-item  items-start justify-start h-full w-full rounded-md border-[1px] border-rose-300 border-opacity-80 hover:outline-2 hover:outline-double hover:outline-emerald-400"
             onClick={gotoprofile}
           >
             <Image
@@ -122,7 +122,7 @@ function LeftSidebar({ userRooms }: Props) {
           <Button
           variant={"outline"}
 
-            className="likebutton leftsidebar_link leftsidebar-item items-start justify-start h-full w-full rounded-md  leftsidebar-item border-none  hover:outline-2 hover:outline-double hover:outline-emerald-400"
+            className="likebutton leftsidebar_link leftsidebar-item items-start justify-start h-full w-full rounded-md  leftsidebar-item border-[1px] border-rose-300 border-opacity-80  hover:outline-2 hover:outline-double hover:outline-emerald-400"
             onClick={gotoprofile}
           >
             <Image
@@ -141,7 +141,7 @@ function LeftSidebar({ userRooms }: Props) {
           <Button
           variant={"outline"}
 
-            className="likebutton leftsidebar_link leftsidebar-item items-start justify-start h-full w-full rounded-md  leftsidebar-item border-none hover:outline-2 hover:outline-double hover:outline-emerald-400"
+            className="likebutton leftsidebar_link leftsidebar-item items-start justify-start h-full w-full rounded-md  leftsidebar-item border-[1px] border-rose-300 border-opacity-80 hover:outline-2 hover:outline-double hover:outline-emerald-400"
             onClick={handleLogout}
           >
             <Image

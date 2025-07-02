@@ -566,6 +566,15 @@ textarea {
     inset -17px -17px 49px #fecdd3;
   border: 0.125rem solid #D1C6E7;
 }
+.postcardembed {
+  border-radius: 90px;
+  /*background: linear-gradient(145deg, #c5c9d8, #eaefff);*/
+  background: white;
+  box-shadow: inset 17px 17px 49px #F4F4F5,
+    inset -17px -17px 49px #fecdd3;
+  border: 0.125rem solid #D1C6E7;
+  width: 40%;
+}
 
 .logincard{
   border-radius: 40px; 
