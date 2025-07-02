@@ -152,6 +152,17 @@ export type CodeNode = Node<
   "CODE"
 >;
 
+export type PortfolioNodeData = Node<
+  {
+    text: string;
+    images: string[];
+    links: string[];
+    layout: "grid" | "column";
+    color: string;
+    author: AuthorOrAuthorId;
+    locked: boolean;
+  },
+  "PORTFOLIO"
 export type LLMInstructionNode = Node<
   {
     prompt: string;
@@ -183,6 +194,7 @@ export const NodeTypeMap = {
   DOCUMENT: {} as DocumentNode,
   THREAD: {} as ThreadNode,
   CODE: {} as CodeNode,
+  PORTFOLIO: {} as PortfolioNodeData,
   LLM_INSTRUCTION: {} as LLMInstructionNode,
 };
 
@@ -218,6 +230,7 @@ export type AppNode =
   | DocumentNode
   | ThreadNode
   | CodeNode
+  | PortfolioNodeData;
   | LLMInstructionNode;
 
 export type AppEdgeType = keyof AppEdgeMapping;
@@ -240,6 +253,7 @@ export const DEFAULT_NODE_VALUES: Record<AppNodeType, string> = {
   ["DOCUMENT"]: "",
   ["THREAD"]: "",
   ["CODE"]: "",
+  ["PORTFOLIO"]: "",
   ["LLM_INSTRUCTION"]: "",
 };
 
