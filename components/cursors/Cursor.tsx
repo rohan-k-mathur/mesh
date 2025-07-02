@@ -15,9 +15,12 @@ const Cursor = ({ color, x, y, username }: Props) => (
     <CursorSVG color={color} />
 
     <div
-      className="absolute left-2 top-5 rounded-4xl px-2"
+      className="absolute left-2 top-5 flex items-center gap-1 rounded-4xl px-2"
       style={{ backgroundColor: color, borderRadius: 40 }}
     >
+      <div className="h-4 w-4 flex items-center justify-center rounded-full bg-white text-black text-xs">
+        {username.charAt(0).toUpperCase()}
+      </div>
       <p className="whitespace-nowrap text-sm leading-relaxed text-white">
         {username}
       </p>
