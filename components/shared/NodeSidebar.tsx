@@ -43,6 +43,8 @@ const nodeTypes: { label: string; nodeType: AppNodeType }[] = [
   { label: "DRAW", nodeType: "DRAW" },
   { label: "LIVECHAT", nodeType: "LIVECHAT" },
   { label: "AUDIO", nodeType: "AUDIO" },
+  { label: "LLM_INSTRUCTION", nodeType: "LLM_INSTRUCTION" },
+  { label: "PORTFOLIO", nodeType: "PORTFOLIO" },
 ];
 
 // Import your modals
@@ -288,6 +290,24 @@ export default function NodeSidebar({
           path: pathname,
           coordinates: centerPosition,
           type: "AUDIO",
+          realtimeRoomId: roomId,
+        });
+        break;
+
+      case "LLM_INSTRUCTION":
+        createPostAndAddToCanvas({
+          path: pathname,
+          coordinates: centerPosition,
+          type: "LLM_INSTRUCTION",
+          realtimeRoomId: roomId,
+        });
+        break;
+
+      case "PORTFOLIO":
+        createPostAndAddToCanvas({
+          path: pathname,
+          coordinates: centerPosition,
+          type: "PORTFOLIO",
           realtimeRoomId: roomId,
         });
         break;

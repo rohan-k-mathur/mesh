@@ -11,6 +11,9 @@ import {
   PortalNode,
   DrawNode,
   LivechatNode,
+  AudioNode,
+  PortfolioNodeData,
+  LLMInstructionNode,
 
   AppEdge,
 } from "./types";
@@ -211,8 +214,56 @@ export function convertPostToNode(
           position: { x: realtimePost.x_coordinate, y: realtimePost.y_coordinate }
         } as LivechatNode;
       }
-    
-          default:
-            throw new Error("Unsupported real-time post type");
-        }
+      case "AUDIO":
+        return {
+          id: realtimePost.id.toString(),
+          type: realtimePost.type,
+          data: {
+            audioUrl: realtimePost.video_url || "",
+            author: authorToSet,
+            locked: realtimePost.locked,
+          },
+          position: {
+            x: realtimePost.x_coordinate,
+            y: realtimePost.y_coordinate,
+          },
+        } as AudioNode;
+      case "PORTFOLIO":
+        return {
+          id: realtimePost.id.toString(),
+          type: realtimePost.type,
+          data: {
+            text: realtimePost.content || "",
+            images: realtimePost.image_url ? [realtimePost.image_url] : [],
+            links: realtimePost.video_url ? [realtimePost.video_url] : [],
+            layout: "grid",
+            color: "bg-white",
+            author: authorToSet,
+            locked: realtimePost.locked,
+          },
+          position: {
+            x: realtimePost.x_coordinate,
+            y: realtimePost.y_coordinate,
+          },
+        } as PortfolioNodeData;
+      case "LLM_INSTRUCTION":
+        return {
+          id: realtimePost.id.toString(),
+          type: realtimePost.type,
+          data: {
+            prompt: realtimePost.content || "",
+            output: "",
+            status: "pending",
+            author: authorToSet,
+            locked: realtimePost.locked,
+          },
+          position: {
+            x: realtimePost.x_coordinate,
+            y: realtimePost.y_coordinate,
+          },
+        } as LLMInstructionNode;
+      
+      default:
+        throw new Error("Unsupported real-time post type");
+      }
     }
