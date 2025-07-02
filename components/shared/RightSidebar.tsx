@@ -56,7 +56,7 @@ function RightSidebar() {
               <Link key={u.id.toString()} href={`/profile/${u.id}`}> 
                 <Button
                   variant={"outline"}
-                  className="rounded-full likebutton items-center justify-center bg-transparent outline-blue border-none"
+                  className="rounded-lg likebutton items-center justify-center bg-transparent outline-blue border-none"
                 >
                   {u.name}
                   {u.score !== undefined && (

@@ -242,7 +242,7 @@ const CreateFeedPost = () => {
         if (!o) setSelectedType("");
       }}
     >
-      <DialogTrigger className="items-start justify-start leftsidebar-link  leftsidebar-item" asChild>
+      <DialogTrigger className="likebutton items-start justify-start leftsidebar-link  leftsidebar-item" asChild>
         <Button           variant={"outline"}
  className="items-start justify-start  h-full w-full rounded-md border-none hover:outline-2 hover:outline-double hover:outline-emerald-400">
           <Image

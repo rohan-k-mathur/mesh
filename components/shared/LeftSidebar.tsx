@@ -45,16 +45,26 @@ function LeftSidebar({ userRooms }: Props) {
     } else {
       router.push("/onboarding");
     }  }
+    function gotoglobal()
+    {
+      router.push("/room/global");
+
+    }
+    function newroom()
+    {
+      router.push("/create-room");
+
+    }
 
   return (
     <section className="custom-scrollbar leftsidebar  bg-transparent">
       <div className="flex  w-full flex flex-col gap-6 px-6">
        
-            <Link
-              href={`/room/global`}
-              key={"global"}
-              className="leftsidebar_link leftsidebar-item items-start justify-start h-fit  rounded-md hover:outline-2 hover:outline-double hover:outline-indigo-400"
-            >
+            <Button
+              className="border-none likebutton leftsidebar_link leftsidebar-item items-start justify-start h-fit  rounded-md hover:outline-2 hover:outline-double hover:outline-indigo-400"
+              variant={"outline"}
+              onClick={gotoglobal}
+              >
                 <Image
                   src="/assets/earth--filled.svg"
                   alt={"globe"}
@@ -62,19 +72,20 @@ function LeftSidebar({ userRooms }: Props) {
                   height={24}
                 />
               <p className="text-black max-lg:hidden">{"Global"}</p>
-            </Link>
+            </Button>
        
         <Button
           variant="outline"
-          className="leftsidebar_link  leftsidebar-item items-start justify-start h-fit rounded-md hover:outline-2 hover:outline-double hover:outline-indigo-400"
+          className="border-none likebutton leftsidebar_link  leftsidebar-item items-start justify-start h-fit rounded-md hover:outline-2 hover:outline-double hover:outline-indigo-400"
           onClick={openRoomsModal}
         >
           <Image src="/assets/3D-print-mesh.svg" alt="YourRooms" width={24} height={24} />
           <p className="text-black   max-lg:hidden">{"Your Rooms"}</p>
         </Button>
-        <Link
-          href={`/create-room`}
-          className="leftsidebar_link leftsidebar-item items-start justify-start h-fit border-[1px] border-rose-300 border-opacity-80	 rounded-md hover:outline-2 hover:outline-double hover:outline-red-400"
+        <Button
+          variant={"outline"}
+          onClick={newroom}
+          className="likebutton leftsidebar_link leftsidebar-item  items-start justify-start h-fit border-[1px] border-rose-300 border-opacity-80	 rounded-md hover:outline-2 hover:outline-double hover:outline-red-400"
         >
           <Image
             src="/assets/gateway.svg"
@@ -83,7 +94,7 @@ function LeftSidebar({ userRooms }: Props) {
             height={24}
           />
           <p className="text-black  max-lg:hidden">{"New Room"}</p>
-        </Link>
+        </Button>
       </div>
       <div className="mb-6 px-6 ">
         {isUserSignedIn && <CreateFeedPost />}
@@ -92,7 +103,7 @@ function LeftSidebar({ userRooms }: Props) {
         {isUserSignedIn && (
           <Button
           variant={"outline"}
-            className="leftsidebar-link  leftsidebar-item  items-start justify-start h-full w-full rounded-md border-none hover:outline-2 hover:outline-double hover:outline-emerald-400"
+            className="likebutton leftsidebar-link  leftsidebar-item  items-start justify-start h-full w-full rounded-md border-none hover:outline-2 hover:outline-double hover:outline-emerald-400"
             onClick={gotoprofile}
           >
             <Image
@@ -111,7 +122,7 @@ function LeftSidebar({ userRooms }: Props) {
           <Button
           variant={"outline"}
 
-            className="leftsidebar_link leftsidebar-item items-start justify-start h-full w-full rounded-md  leftsidebar-item border-none  hover:outline-2 hover:outline-double hover:outline-emerald-400"
+            className="likebutton leftsidebar_link leftsidebar-item items-start justify-start h-full w-full rounded-md  leftsidebar-item border-none  hover:outline-2 hover:outline-double hover:outline-emerald-400"
             onClick={gotoprofile}
           >
             <Image
@@ -130,7 +141,7 @@ function LeftSidebar({ userRooms }: Props) {
           <Button
           variant={"outline"}
 
-            className="leftsidebar_link leftsidebar-item items-start justify-start h-full w-full rounded-md  leftsidebar-item border-none hover:outline-2 hover:outline-double hover:outline-emerald-400"
+            className="likebutton leftsidebar_link leftsidebar-item items-start justify-start h-full w-full rounded-md  leftsidebar-item border-none hover:outline-2 hover:outline-double hover:outline-emerald-400"
             onClick={handleLogout}
           >
             <Image
