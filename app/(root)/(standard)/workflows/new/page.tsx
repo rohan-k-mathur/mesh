@@ -6,7 +6,8 @@ export default function Page() {
     <WorkflowBuilder
       onSave={async (graph) => {
         "use server";
-        await createWorkflow({ name: "New Workflow", graph });
+        const workflow = await createWorkflow({ name: "New Workflow", graph });
+        return { id: workflow.id.toString() };
       }}
     />
   );
