@@ -45,6 +45,9 @@ import DrawNode from "../nodes/DrawNode";
 import LivechatNode from "../nodes/LivechatNode";
 import AudioNode from "../nodes/AudioNode";
 import LLMInstructionNode from "../nodes/LLMInstructionNode";
+import DocumentNode from "../nodes/DocumentNode";
+import ThreadNode from "../nodes/ThreadNode";
+import CodeNode from "../nodes/CodeNode";
 import HamburgerMenu from "../shared/HamburgerMenu";
 import NodeSidebar from "../shared/NodeSidebar";
 import { createRealtimeEdge } from "@/lib/actions/realtimeedge.actions";
@@ -333,6 +336,9 @@ function Room({ roomId, initialNodes, initialEdges }: Props) {
     LIVECHAT: LivechatNode,
     AUDIO: AudioNode,
     LLM_INSTRUCTION: LLMInstructionNode,
+    DOCUMENT: DocumentNode,
+    THREAD: ThreadNode,
+    CODE: CodeNode,
   };
   pluginDescriptors.forEach((p) => {
     (nodeTypes as any)[p.type] = p.component as any;
