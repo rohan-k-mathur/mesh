@@ -26,7 +26,7 @@ const ProfileHeader = ({
     <div className="flex w-full flex-col justify-start">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="relative h-28 w-28 objects-cover">
+          <div className="relative h-16 w-16 objects-cover">
             <Image
               src={imgUrl || "/assets/user-helsinki.svg"}
               alt="Profile Image"
@@ -34,11 +34,11 @@ const ProfileHeader = ({
               className="rounded-md object-cover shadow-2xl"
             />
           </div>
-          <div className="flex-1">
+          <div className="flex-1 flex-col">
             <h2 className="text-left text-heading3-bold text-black">
               {name}
             </h2>
-            <p className="text-base-light text-black mb-0">@{username}</p>
+            <p className="text-base-light text-black">@{username}</p>
             {currentUserId && currentUserId !== accountId && (
               <FollowButton
                 targetUserId={accountId}
@@ -50,8 +50,8 @@ const ProfileHeader = ({
           </div>
         </div>
       </div>
-      <p className="mt-6 max-w-lg text-base-regular text-black">{bio}</p>
-      <div className="mt-6 h-0.5 w-full bg-dark-3"></div>
+      <p className="mt-4 max-w-lg text-base-regular text-black">{bio}</p>
+      <div className="mt-2 h-0.5 w-full bg-dark-3"></div>
     </div>
   );
 };

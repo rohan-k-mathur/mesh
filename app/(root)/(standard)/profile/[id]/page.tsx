@@ -36,7 +36,7 @@ async function Page({ params }: { params: { id: string } }) {
         isFollowing={following}
         isFriend={friend}
       />
-      <div className="mt-9">
+      <div className="mt-4">
         <Tabs defaultValue="threads" className="w-full">
           <TabsList className="  mb-4">
             {profileTabs.map((tab) => (
