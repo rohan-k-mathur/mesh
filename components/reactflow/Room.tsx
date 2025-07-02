@@ -30,6 +30,7 @@ import {
 } from "@xyflow/react";
 import LiveCursors, { LiveCursorHandles } from "../cursors/LiveCursors";
 import OwnCursor from "../cursors/OwnCursor";
+import EmojiReactions from "../reactions/EmojiReactions";
 import DefaultEdge from "../edges/DefaultEdge";
 import ImageComputeNode from "../nodes/ImageComputeNode";
 import ImageURLNode from "../nodes/ImageURLNode";
@@ -404,6 +405,12 @@ function Room({ roomId, initialNodes, initialEdges }: Props) {
         <LiveCursors
           ref={liveCursorsRef}
           offset={getReactFlowOffset(reactFlowRef)}
+        />
+      )}
+      {user && (
+        <EmojiReactions
+          channel={roomChannelRef.current}
+          username={user.username!}
         />
       )}
     </div>

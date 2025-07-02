@@ -7,8 +7,11 @@ import { AppState, TextNode } from "@/lib/reactflow/types";
 import { TextPostValidation } from "@/lib/validations/thread";
 import { NodeProps } from "@xyflow/react";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
+import * as Y from "yjs";
+import { supabase } from "@/lib/supabaseclient";
+import { TEXT_UPDATE_EVENT } from "@/constants";
 import TextNodeModal from "../modals/TextNodeModal";
 import BaseNode from "./BaseNode";
 import { useShallow } from "zustand/react/shallow";
@@ -23,24 +26,50 @@ function TextInputNode({ id, data }: NodeProps<TextNode>) {
   );
   const [text, setText] = useState(data.text);
   const [author, setAuthor] = useState(data.author);
+  const docRef = useRef(new Y.Doc());
+  const channelRef = useRef<any>(null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    setText(data.text);
-    if ("username" in author) {
-      return;
-    } else {
-      fetchUser(data.author.id).then((user) => {
-        setAuthor(user!);
-      });
+    const ytext = docRef.current.getText("content");
+    if (ytext.length === 0) {
+      ytext.insert(0, data.text);
     }
-  }, [data, author]);
+    const handler = () => setText(ytext.toString());
+    handler();
+    ytext.observe(handler);
+
+    channelRef.current = supabase.channel(`text-${id}`);
+    channelRef.current
+      .on("broadcast", { event: TEXT_UPDATE_EVENT }, ({ payload }) => {
+        const update = Buffer.from(payload.update, "base64");
+        Y.applyUpdate(docRef.current, update);
+      })
+      .subscribe();
+
+    if (!("username" in author)) {
+      fetchUser(data.author.id).then((user) => user && setAuthor(user));
+    }
+
+    return () => {
+      ytext.unobserve(handler);
+      supabase.removeChannel(channelRef.current);
+    };
+  }, [data, author, id]);
 
   const isOwned = currentActiveUser
     ? Number(currentActiveUser!.userId) === Number(data.author.id)
     : false;
 
   async function onSubmit(values: z.infer<typeof TextPostValidation>) {
-    setText(values.postContent);
+    const ytext = docRef.current.getText("content");
+    ytext.delete(0, ytext.length);
+    ytext.insert(0, values.postContent);
+    const update = Y.encodeStateAsUpdate(docRef.current);
+    channelRef.current?.send({
+      type: "broadcast",
+      event: TEXT_UPDATE_EVENT,
+      payload: { update: Buffer.from(update).toString("base64") },
+    });
     updateRealtimePost({ id, text: values.postContent, path });
     store.closeModal();
   }

@@ -130,6 +130,14 @@ export function subscribeToRoom(
         );
       }
     })
+    .on("presence", { event: "leave" }, ({ leftPresences }) => {
+      const leftUsers = (leftPresences as unknown as UserStatus[]).map(
+        (u) => u.username
+      );
+      if (liveCursorsRef.current) {
+        leftUsers.forEach((u) => liveCursorsRef.current!.triggerUserLeave(u));
+      }
+    })
     .subscribe((status) => {
       if (status !== "SUBSCRIBED") {
         return;
