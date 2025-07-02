@@ -2,6 +2,7 @@
 
 import { prisma } from "../prismaclient";
 import { revalidatePath } from "next/cache";
+import { getUserFromCookies } from "../serverutils";
 
 interface CreatePostParams {
   text: string;
@@ -297,4 +298,33 @@ export async function archiveExpiredPosts() {
     }),
     prisma.post.deleteMany({ where: { id: { in: ids } } }),
   ]);
+}
+
+export async function deletePost({ id }: { id: bigint }) {
+  const user = await getUserFromCookies();
+  try {
+    await prisma.$connect();
+    const originalPost = await prisma.post.findUniqueOrThrow({
+      where: {
+        id: id,
+      },
+    });
+    if (!user || user.userId != originalPost.author_id) {
+      return;
+    }
+
+    const ids: bigint[] = [];
+    const collect = async (postId: bigint) => {
+      const children = await prisma.post.findMany({ where: { parent_id: postId } });
+      for (const child of children) {
+        await collect(child.id);
+      }
+      ids.push(postId);
+    };
+
+    await collect(id);
+    await prisma.post.deleteMany({ where: { id: { in: ids } } });
+  } catch (error: any) {
+    console.error("Failed to delete post:", error);
+  }
 }
