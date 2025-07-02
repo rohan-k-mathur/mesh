@@ -11,31 +11,30 @@ datasource db {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model User {
-  id            BigInt         @id @default(autoincrement())
-  auth_id       String         @unique
-  created_at    DateTime       @default(now()) @db.Timestamptz(6)
-  updated_at    DateTime?      @default(now()) @updatedAt @db.Timestamptz(6)
-  username      String         @db.VarChar
-  name          String
-  image         String?
-  bio           String?
-  onboarded     Boolean        @default(false)
-  likes         Like[]
-  realtimeLikes RealtimeLike[]
-
-  posts                    Post[]
-  realtimeposts            RealtimePost[]
-  realtimeedges            RealtimeEdge[]
-  userAttributes           UserAttributes[]
-  realtimerooms            UserRealtimeRoom[]
-  realtimeRoomInviteTokens RealtimeRoomInviteToken[]
+  id                       BigInt                    @id @default(autoincrement())
+  auth_id                  String                    @unique
+  created_at               DateTime                  @default(now()) @db.Timestamptz(6)
+  updated_at               DateTime?                 @default(now()) @updatedAt @db.Timestamptz(6)
+  username                 String                    @db.VarChar
+  name                     String
+  image                    String?
+  bio                      String?
+  onboarded                Boolean                   @default(false)
+  archivedPosts            ArchivedPost[]
   following                Follow[]                  @relation("FollowingRelation")
   followers                Follow[]                  @relation("FollowerRelation")
-  archivedPosts            ArchivedPost[]
-  userEmbedding            UserEmbedding?
-  friendSuggestionsCreated FriendSuggestion[]        @relation("SuggestionsCreator")
   friendSuggestionsTarget  FriendSuggestion[]        @relation("SuggestionsTarget")
-  workflows               Workflow[]
+  friendSuggestionsCreated FriendSuggestion[]        @relation("SuggestionsCreator")
+  likes                    Like[]
+  posts                    Post[]
+  realtimeedges            RealtimeEdge[]
+  realtimeLikes            RealtimeLike[]
+  realtimeposts            RealtimePost[]
+  realtimeRoomInviteTokens RealtimeRoomInviteToken[]
+  userAttributes           UserAttributes?
+  userEmbedding            UserEmbedding?
+  realtimerooms            UserRealtimeRoom[]
+  workflows                Workflow[]
 
   @@map("users")
 }
@@ -43,18 +42,18 @@ model User {
 model UserAttributes {
   id          BigInt    @id @default(autoincrement())
   user_id     BigInt    @unique
-  user        User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
   created_at  DateTime  @default(now()) @db.Timestamptz(6)
   artists     String[]
   albums      String[]
   songs       String[]
   interests   String[]
   movies      String[]
-  books       String[]
-  location    String?
   birthday    DateTime?
-  hobbies     String[]
   communities String[]
+  hobbies     String[]
+  location    String?
+  books       String[]
+  user        User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@map("user_attributes")
 }
@@ -65,12 +64,12 @@ model Post {
   created_at      DateTime  @default(now()) @db.Timestamptz(6)
   content         String
   author_id       BigInt
-  expiration_date DateTime?
   updated_at      DateTime? @default(now()) @updatedAt @db.Timestamptz(6)
   parent_id       BigInt?
   like_count      Int       @default(0)
+  expiration_date DateTime?
   like            Like[]
-  author          User      @relation(fields: [author_id], references: [id], onDelete: Restrict)
+  author          User      @relation(fields: [author_id], references: [id])
   post            Post?     @relation("children", fields: [parent_id], references: [id], onDelete: Restrict)
   children        Post[]    @relation("children")
 
@@ -108,19 +107,14 @@ model RealtimeLike {
   @@map("realtime_likes")
 }
 
-enum like_type {
-  LIKE
-  DISLIKE
-}
-
 model RealtimeRoom {
   id                       String                    @id
   created_at               DateTime                  @default(now()) @db.Timestamptz(6)
   room_icon                String
-  realtimeposts            RealtimePost[]
   realtimeedges            RealtimeEdge[]
-  members                  UserRealtimeRoom[]
+  realtimeposts            RealtimePost[]
   realtimeRoomInviteTokens RealtimeRoomInviteToken[]
+  members                  UserRealtimeRoom[]
 
   @@map("realtime_rooms")
 }
@@ -134,23 +128,23 @@ model RealtimePost {
   author_id          BigInt
   updated_at         DateTime?          @default(now()) @updatedAt @db.Timestamptz(6)
   like_count         Int                @default(0)
-  likes              RealtimeLike[]
-  author             User               @relation(fields: [author_id], references: [id], onDelete: Restrict)
   x_coordinate       Decimal
   y_coordinate       Decimal
   type               realtime_post_type @default(TEXT)
-  outgoing_edges     RealtimeEdge[]     @relation(name: "RealtimeEdgeToSourceRealtimePost")
-  incoming_edges     RealtimeEdge[]     @relation(name: "RealtimeEdgeToTargetRealtimePost")
-  realtimeroom       RealtimeRoom       @relation(fields: [realtime_room_id], references: [id])
   realtime_room_id   String
   locked             Boolean
-  isPublic           Boolean        @default(false)
-  collageLayoutStyle String? // "grid", "bento", "scrapbook"
+  collageLayoutStyle String?
   collageColumns     Int?
   collageGap         Int?
+  isPublic           Boolean            @default(false)
   parent_id          BigInt?
-  realtimePost       RealtimePost? @relation("RealtimePostChildren", fields: [parent_id], references: [id], onDelete: Restrict)
-  children           RealtimePost[] @relation("RealtimePostChildren")
+  outgoing_edges     RealtimeEdge[]     @relation("RealtimeEdgeToSourceRealtimePost")
+  incoming_edges     RealtimeEdge[]     @relation("RealtimeEdgeToTargetRealtimePost")
+  likes              RealtimeLike[]
+  author             User               @relation(fields: [author_id], references: [id])
+  realtimePost       RealtimePost?      @relation("RealtimePostChildren", fields: [parent_id], references: [id], onDelete: Restrict)
+  children           RealtimePost[]     @relation("RealtimePostChildren")
+  realtimeroom       RealtimeRoom       @relation(fields: [realtime_room_id], references: [id])
 
   @@map("realtime_posts")
 }
@@ -160,42 +154,25 @@ model RealtimeEdge {
   created_at       DateTime     @default(now()) @db.Timestamptz(6)
   updated_at       DateTime?    @default(now()) @updatedAt @db.Timestamptz(6)
   source_node_id   BigInt
-  sourceNode       RealtimePost @relation(name: "RealtimeEdgeToSourceRealtimePost", fields: [source_node_id], references: [id], onDelete: Restrict)
   target_node_id   BigInt
-  targetNode       RealtimePost @relation(name: "RealtimeEdgeToTargetRealtimePost", fields: [target_node_id], references: [id], onDelete: Restrict)
   author_id        BigInt
-  author           User         @relation(fields: [author_id], references: [id], onDelete: Restrict)
-  realtimeroom     RealtimeRoom @relation(fields: [realtime_room_id], references: [id])
   realtime_room_id String
+  author           User         @relation(fields: [author_id], references: [id])
+  realtimeroom     RealtimeRoom @relation(fields: [realtime_room_id], references: [id])
+  sourceNode       RealtimePost @relation("RealtimeEdgeToSourceRealtimePost", fields: [source_node_id], references: [id])
+  targetNode       RealtimePost @relation("RealtimeEdgeToTargetRealtimePost", fields: [target_node_id], references: [id])
 
   @@unique([source_node_id, target_node_id])
   @@map("realtime_edges")
 }
 
-enum realtime_post_type {
-  TEXT
-  VIDEO
-  IMAGE
-  LIVESTREAM
-  IMAGE_COMPUTE
-  COLLAGE
-  GALLERY
-  PORTAL
-  AUDIO
-  DRAW
-  LIVECHAT
-  DOCUMENT
-  THREAD
-  CODE
-}
-
 model UserRealtimeRoom {
   id               BigInt       @id @default(autoincrement())
   user_id          BigInt
-  user             User         @relation(fields: [user_id], references: [id], onDelete: Cascade)
   realtime_room_id String
-  realtime_room    RealtimeRoom @relation(fields: [realtime_room_id], references: [id], onDelete: Cascade)
   joined_at        DateTime     @default(now()) @db.Timestamptz(6)
+  realtime_room    RealtimeRoom @relation(fields: [realtime_room_id], references: [id], onDelete: Cascade)
+  user             User         @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@unique([user_id, realtime_room_id])
   @@map("users_realtime_rooms")
@@ -207,9 +184,9 @@ model RealtimeRoomInviteToken {
   created_at       DateTime     @default(now()) @db.Timestamptz(6)
   expiration_date  DateTime?
   realtime_room_id String
-  realtime_room    RealtimeRoom @relation(fields: [realtime_room_id], references: [id], onDelete: Cascade)
   inviting_user_id BigInt
   inviting_user    User         @relation(fields: [inviting_user_id], references: [id], onDelete: Cascade)
+  realtime_room    RealtimeRoom @relation(fields: [realtime_room_id], references: [id], onDelete: Cascade)
 
   @@map("realtime_room_invite_tokens")
 }
@@ -237,16 +214,16 @@ model ArchivedPost {
   like_count       Int       @default(0)
   expiration_date  DateTime?
   archived_at      DateTime  @default(now()) @db.Timestamptz(6)
-  author           User      @relation(fields: [author_id], references: [id], onDelete: Restrict)
+  author           User      @relation(fields: [author_id], references: [id])
 
   @@map("archived_posts")
 }
 
 model UserEmbedding {
   user_id    BigInt   @id
-  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
   embedding  Float[]
   updated_at DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@map("user_embeddings")
 }
@@ -257,8 +234,8 @@ model FriendSuggestion {
   suggested_user_id BigInt
   score             Float
   created_at        DateTime @default(now()) @db.Timestamptz(6)
-  user              User     @relation("SuggestionsCreator", fields: [user_id], references: [id], onDelete: Cascade)
   suggestedUser     User     @relation("SuggestionsTarget", fields: [suggested_user_id], references: [id], onDelete: Cascade)
+  user              User     @relation("SuggestionsCreator", fields: [user_id], references: [id], onDelete: Cascade)
 
   @@unique([user_id, suggested_user_id])
   @@map("friend_suggestions")
@@ -267,10 +244,34 @@ model FriendSuggestion {
 model Workflow {
   id         BigInt   @id @default(autoincrement())
   owner_id   BigInt
-  owner      User     @relation(fields: [owner_id], references: [id], onDelete: Cascade)
   name       String
   graph      Json
   created_at DateTime @default(now()) @db.Timestamptz(6)
+  owner      User     @relation(fields: [owner_id], references: [id], onDelete: Cascade)
 
   @@map("workflows")
+}
+
+enum like_type {
+  LIKE
+  DISLIKE
+}
+
+enum realtime_post_type {
+  TEXT
+  VIDEO
+  IMAGE
+  LIVESTREAM
+  IMAGE_COMPUTE
+  COLLAGE
+  GALLERY
+  PORTAL
+  AUDIO
+  DRAW
+  LIVECHAT
+  DOCUMENT
+  THREAD
+  CODE
+  PORTFOLIO
+  LLM_INSTRUCTION
 }

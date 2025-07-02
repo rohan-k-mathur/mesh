@@ -163,6 +163,9 @@ export type PortfolioNodeData = Node<
     locked: boolean;
   },
   "PORTFOLIO"
+
+  >;
+
 export type LLMInstructionNode = Node<
   {
     prompt: string;
@@ -230,7 +233,7 @@ export type AppNode =
   | DocumentNode
   | ThreadNode
   | CodeNode
-  | PortfolioNodeData;
+  | PortfolioNodeData
   | LLMInstructionNode;
 
 export type AppEdgeType = keyof AppEdgeMapping;

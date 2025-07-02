@@ -251,7 +251,7 @@ const CreateFeedPost = () => {
             width={24}
             height={24}
           />
-          <p className="text-black ml-3  max-lg:hidden">{"New Room"}</p>
+          <p className="text-black ml-3  max-lg:hidden">{"New Post"}</p>
 
         </Button>
 
