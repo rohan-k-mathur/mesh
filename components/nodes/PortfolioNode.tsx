@@ -124,15 +124,16 @@ function PortfolioNode({ id, data }: NodeProps<PortfolioNodeData>) {
       isLocked={data.locked}
       generateOnClick={handleExport}
     >
-      <div className="p-2 text-node-updater">
-        <p className="mb-1">{text}</p>
+      <div className="flex flex-col   w-full h-full portfolio-container min-w-[450px] min-h-[450px]">
+        <div className="flex flex-col flex-wrap rounded-lg p-4 bg-white mt-4 ">
+        <p className="mb-1 mt-2">{text}</p>
         {images[0] && (
           <Image
             src={images[0]}
             alt="img"
             width={80}
             height={80}
-            className="object-cover"
+            className="object-cover portfolio-img-frame"
           />
         )}
         {links[0] && (
@@ -145,6 +146,7 @@ function PortfolioNode({ id, data }: NodeProps<PortfolioNodeData>) {
             {links[0]}
           </a>
         )}
+        </div>
       </div>
     </BaseNode>
   );

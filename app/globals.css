@@ -243,6 +243,13 @@
   box-shadow:   3px 3px 7px #dec7cc,
                 -1px 2px 7px #b8b4e9;
 }
+.portfolio-container
+{
+  display: flex;
+  padding: 50px;
+  width: 34rem;
+  height: auto;
+}
 .img-container {
   display: flex;
   justify-content: center;
@@ -291,7 +298,13 @@
   position: relative;
   bottom: -4px;
 }
+.portfolio-img-frame {
 
+
+  background: transparent;
+  border: 1px solid #1a192b;
+  padding: 0px;
+}
 .carousel{
   width: 100%;
   max-width: 45rem;
