@@ -105,8 +105,8 @@ const LikeButton = ({ postId, realtimePostId, likeCount, initialLikeState }: Pro
         <Image
         src={
           currentLikeType === "LIKE"
-            ? "/assets/triangle-up-filled.svg"
-            : "/assets/triangle-up-stroke.svg"
+            ? "/assets/triangle--solid.svg"
+            : "/assets/triangle--outline.svg"
         }
         alt="smile"
         width={28}
@@ -124,8 +124,8 @@ const LikeButton = ({ postId, realtimePostId, likeCount, initialLikeState }: Pro
       <Image
         src={
           currentLikeType === "DISLIKE"
-            ? "/assets/triangle-down-filled.svg"
-            : "/assets/triangle-down-stroke.svg"
+            ? "/assets/triangle--down--solid.svg"
+            : "/assets/triangle--down--outline.svg"
         }
         alt="frown"
         width={28}
