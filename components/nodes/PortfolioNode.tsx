@@ -123,7 +123,7 @@ function PortfolioNode({ id, data }: NodeProps<PortfolioNodeData>) {
       isLocked={data.locked}
       generateOnClick={handleExport}
     >
-      <div className="p-2">
+      <div className="p-2 text-node-updater">
         <p className="mb-1">{text}</p>
         {images[0] && (
           <Image

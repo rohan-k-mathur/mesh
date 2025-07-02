@@ -29,7 +29,7 @@ import { uploadFileToSupabase } from "@/lib/utils";
 import { useShallow } from "zustand/react/shallow";
 import { useAuth } from "@/lib/AuthContext";
 import { useRouter } from "next/navigation";
-
+import useMousePosition from "../hooks/MousePosition";
 
 // A simple static array of node types
 const nodeTypes: { label: string; nodeType: AppNodeType }[] = [
@@ -58,6 +58,8 @@ import PortalNodeModal from "@/components/modals/PortalNodeModal";
 import GalleryNodeModal from "@/components/modals/GalleryNodeModal";
 import LivechatNodeModal from "@/components/modals/LivechatNodeModal";
 import { fetchUserByUsername } from "@/lib/actions/user.actions";
+import PortfolioNodeModal from "@/components/modals/PortfolioNodeModal";
+
 
 export default function NodeSidebar({
   reactFlowRef,
@@ -269,6 +271,8 @@ export default function NodeSidebar({
       case "PORTAL":
         store.openModal(
           <PortalNodeModal
+          currentX={1}
+          currentY={1}
             isOwned={true}
             onSubmit={(values) => {
               createPostAndAddToCanvas({
@@ -312,6 +316,27 @@ export default function NodeSidebar({
           />
         );
         break;
+        case "PORTFOLIO":
+          store.openModal(
+            <PortfolioNodeModal
+            isOwned={true}
+            currentText= {}
+            currentImages = {[]}
+            currentLinks = {[]}
+            currentLayout= {"grid"}
+            currentColor={"blue"}
+            onSubmit={async (vals) => {
+          
+              createPostAndAddToCanvas({
+                path: pathname,
+            coordinates: centerPosition,
+            type: "PORTFOLIO",
+            realtimeRoomId: roomId,
+          })  }}      
+          />
+          );  
+          break;
+  
 
       case "AUDIO":
         createPostAndAddToCanvas({
@@ -330,26 +355,14 @@ export default function NodeSidebar({
           realtimeRoomId: roomId,
         });
         break;
+  
+        
+    
+      
 
-      case "PORTFOLIO":
-        createPostAndAddToCanvas({
-          path: pathname,
-          coordinates: centerPosition,
-          type: "PORTFOLIO",
-          realtimeRoomId: roomId,
-        });
-        break;
-
-      default:
-        store.addNode({
-          id: Date.now().toString(),
-          type: nodeType as any,
-          data: {},
-          position: centerPosition,
-        } as any);
-        break;
-    }
-  };
+ 
+    
+  }};
 
   return (
     <>
