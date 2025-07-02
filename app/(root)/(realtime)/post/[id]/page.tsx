@@ -23,6 +23,7 @@ const Page = async ({ params }: { params: { id: string } }) => {
           id={post.id}
           isRealtimePost
           likeCount={post.like_count}
+          commentCount={post.commentCount}
           content={
             post.type === "TEXT" || post.type === "GALLERY"
               ? post.content!

@@ -10,9 +10,10 @@ import Link from "next/link";
 interface Props {
   postId?: bigint;
   realtimePostId?: string;
+  commentCount?: number;
 }
 
-const ExpandButton = ({ postId, realtimePostId }: Props) => {
+const ExpandButton = ({ postId, realtimePostId, commentCount = 0 }: Props) => {
   const user = useAuth();
   const router = useRouter();
   const isUserSignedIn = !!user.user;
@@ -23,16 +24,17 @@ const ExpandButton = ({ postId, realtimePostId }: Props) => {
   const href = realtimePostId ? `/post/${realtimePostId}` : `/thread/${postId}`;
 
   return (
-    <button>
-    <Link href={href}>
-      <Image
-        src="/assets/add-comment.svg"
-        alt="reply"
-        width={28}
-        height={28}
-        className="cursor-pointer object-contain likebutton"
-      />
-    </Link>
+    <button className="flex items-center gap-1">
+      <Link href={href}>
+        <Image
+          src="/assets/add-comment.svg"
+          alt="reply"
+          width={28}
+          height={28}
+          className="cursor-pointer object-contain likebutton"
+        />
+      </Link>
+      <span className="text-subtle-medium text-black">{commentCount}</span>
     </button>
   );
   

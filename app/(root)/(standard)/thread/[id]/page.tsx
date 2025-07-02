@@ -33,6 +33,7 @@ const Page = async ({ params }: { params: { id: string } }) => {
           author={post.author!}
           createdAt={post.created_at.toDateString()}
           likeCount={post.like_count}
+          commentCount={post.commentCount}
           expirationDate={post.expiration_date?.toISOString() ?? null}
         />
       </div>
