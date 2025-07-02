@@ -28,6 +28,7 @@ const ThreadsTab = async ({ currentUserId, accountId }: Props) => {
           createdAt={post.created_at.toString()}
           comments={post.children}
           likeCount={post.like_count}
+          commentCount={post.commentCount}
         />
         
       ))}

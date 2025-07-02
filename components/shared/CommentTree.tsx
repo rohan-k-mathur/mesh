@@ -36,6 +36,7 @@ const CommentTree = ({ comments, currentUserId, currentUserImg, depth = 0, isRea
             comments={comment.children}
             isComment
             likeCount={comment.like_count}
+            commentCount={comment.commentCount}
             {...(isRealtimePost ? { isRealtimePost: true } : {})}
           />
           

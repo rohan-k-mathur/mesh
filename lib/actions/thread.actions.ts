@@ -78,8 +78,10 @@ export async function fetchPosts(pageNumber = 1, pageSize = 20) {
               image: true,
             },
           },
+          _count: { select: { children: true } },
         },
       },
+      _count: { select: { children: true } },
     },
     orderBy: { created_at: "desc" },
     skip: skipAmount,
@@ -95,9 +97,18 @@ export async function fetchPosts(pageNumber = 1, pageSize = 20) {
       ],
     },
   });
+  const postsWithCount = posts.map((post) => ({
+    ...post,
+    commentCount: post._count.children,
+    children: post.children.map((child) => ({
+      ...child,
+      commentCount: child._count.children,
+    })),
+  }));
+
   const isNext = totalPostCount > skipAmount + posts.length;
 
-  return { posts, isNext };
+  return { posts: postsWithCount, isNext };
 }
 
 export async function fetchPostById(id: bigint) {
@@ -110,12 +121,15 @@ export async function fetchPostById(id: bigint) {
       },
       include: {
         author: true,
+        _count: { select: { children: true } },
         children: {
           include: {
             author: true,
+            _count: { select: { children: true } },
             children: {
               include: {
                 author: true,
+                _count: { select: { children: true } },
               },
             },
           },
@@ -124,6 +138,14 @@ export async function fetchPostById(id: bigint) {
     });
     if (post && post.expiration_date && post.expiration_date <= new Date()) {
       return null;
+    }
+    if (post) {
+      const mapChildren = (p: any): any => ({
+        ...p,
+        commentCount: p._count.children,
+        children: p.children.map(mapChildren),
+      });
+      return mapChildren(post);
     }
     return post;
   } catch (error: any) {
@@ -138,6 +160,7 @@ export async function fetchPostTreeById(id: bigint) {
     where: { id },
     include: {
       author: true,
+      _count: { select: { children: true } },
     },
   });
   if (!post || (post.expiration_date && post.expiration_date <= new Date()))
@@ -146,15 +169,21 @@ export async function fetchPostTreeById(id: bigint) {
   const fetchChildren = async (parentId: bigint): Promise<any[]> => {
     const children = await prisma.post.findMany({
       where: { parent_id: parentId },
-      include: { author: true },
+      include: { author: true, _count: { select: { children: true } } },
     });
     for (const child of children) {
       child.children = await fetchChildren(child.id);
     }
-    return children;
+    return children.map((c) => ({
+      ...c,
+      commentCount: c._count.children,
+    }));
   };
 
-  post.children = await fetchChildren(post.id);
+  if (post) {
+    post.children = await fetchChildren(post.id);
+    return { ...post, commentCount: post._count.children };
+  }
   return post;
 }
 

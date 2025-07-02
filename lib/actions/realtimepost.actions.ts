@@ -223,6 +223,7 @@ export async function fetchRealtimePosts({
     },
     include: {
       author: true,
+      _count: { select: { children: true } },
     },
     orderBy: {
       created_at: "desc",
@@ -231,6 +232,7 @@ export async function fetchRealtimePosts({
 
   return realtimePosts.map((realtimePost) => ({
     ...realtimePost,
+    commentCount: realtimePost._count.children,
     x_coordinate: realtimePost.x_coordinate.toNumber(),
     y_coordinate: realtimePost.y_coordinate.toNumber(),
   }));
@@ -261,17 +263,26 @@ export async function deleteRealtimePost({ id }: { id: string }) {
 export async function fetchRealtimePostById({ id }: { id: string }) {
   try {
     await prisma.$connect();
-    return await prisma.realtimePost.findUniqueOrThrow({
+    const post = await prisma.realtimePost.findUniqueOrThrow({
       where: {
         id: BigInt(id),
       },
       include: {
         author: true,
+        _count: { select: { children: true } },
         children: {
-          include: { author: true },
+          include: { author: true, _count: { select: { children: true } } },
         },
       },
     });
+    return {
+      ...post,
+      commentCount: post._count.children,
+      children: post.children.map((c) => ({
+        ...c,
+        commentCount: c._count.children,
+      })),
+    };
   } catch (error: any) {
     throw new Error(`Failed to fetch real-time post: ${error.message}`);
   }
@@ -281,22 +292,28 @@ export async function fetchRealtimePostTreeById({ id }: { id: string }) {
   await prisma.$connect();
   const post: any = await prisma.realtimePost.findUnique({
     where: { id: BigInt(id) },
-    include: { author: true },
+    include: { author: true, _count: { select: { children: true } } },
   });
   if (!post) return null;
 
   const fetchChildren = async (parentId: bigint): Promise<any[]> => {
     const children = await prisma.realtimePost.findMany({
       where: { parent_id: parentId },
-      include: { author: true },
+      include: { author: true, _count: { select: { children: true } } },
     });
     for (const child of children) {
       child.children = await fetchChildren(child.id);
     }
-    return children;
+    return children.map((c) => ({
+      ...c,
+      commentCount: c._count.children,
+    }));
   };
 
-  post.children = await fetchChildren(post.id);
+  if (post) {
+    post.children = await fetchChildren(post.id);
+    return { ...post, commentCount: post._count.children };
+  }
   return post;
 }
 
@@ -360,6 +377,7 @@ export async function fetchUserRealtimePosts({
     },
     include: {
       author: true,
+      _count: { select: { children: true } },
     },
     orderBy: {
       created_at: "desc",
@@ -368,6 +386,7 @@ export async function fetchUserRealtimePosts({
 
   return realtimePosts.map((realtimePost) => ({
     ...realtimePost,
+    commentCount: realtimePost._count.children,
     x_coordinate: realtimePost.x_coordinate.toNumber(),
     y_coordinate: realtimePost.y_coordinate.toNumber(),
   }));
