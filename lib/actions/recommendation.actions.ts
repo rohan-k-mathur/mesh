@@ -108,3 +108,22 @@ export async function fetchRecommendations({
 
   return { users, rooms };
 }
+
+export async function logRecommendationClick({
+  userId,
+  recommendedUserId,
+  recommendedRoomId,
+}: {
+  userId: bigint;
+  recommendedUserId?: bigint;
+  recommendedRoomId?: string;
+}) {
+  await prisma.$connect();
+  await prisma.recommendationClick.create({
+    data: {
+      user_id: userId,
+      recommended_user_id: recommendedUserId,
+      recommended_room_id: recommendedRoomId,
+    },
+  });
+}

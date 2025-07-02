@@ -1,6 +1,6 @@
 "use server";
 
-import { Prisma, realtime_post_type, UserAttributes } from "@prisma/client";
+import { Prisma, UserAttributes, visibility } from "@prisma/client";
 import { prisma } from "../prismaclient";
 import { revalidatePath } from "next/cache";
 import { getUserFromCookies } from "@/lib/serverutils";
@@ -36,6 +36,9 @@ export async function upsertUserAttributes({
       birthday = null,
       hobbies = [],
       communities = [],
+      events_visibility = visibility.PUBLIC,
+      tv_visibility = visibility.PUBLIC,
+      podcasts_visibility = visibility.PUBLIC,
     } = userAttributes as Partial<UserAttributes>;
 
     const sanitize = (arr: string[]) => arr.filter(Boolean);
@@ -71,6 +74,9 @@ export async function upsertUserAttributes({
         communities: {
           set: sanitize(communities),
         },
+        events_visibility,
+        tv_visibility,
+        podcasts_visibility,
       },
       create: {
         user_id: user.userId!,
@@ -100,7 +106,13 @@ export async function upsertUserAttributes({
         communities: {
           set: sanitize(communities),
         },
+        events_visibility,
+        tv_visibility,
+        podcasts_visibility,
       },
+    });
+    await prisma.userAttributeEdit.create({
+      data: { user_id: user.userId! },
     });
     await updateUserEmbedding(user.userId!);
     await generateFriendSuggestions(user.userId!);
