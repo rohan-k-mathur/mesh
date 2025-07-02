@@ -11,6 +11,7 @@ import ImageNodeModal from "@/components/modals/ImageNodeModal";
 import YoutubeNodeModal from "@/components/modals/YoutubeNodeModal";
 import CollageCreationModal from "@/components/modals/CollageCreationModal";
 import GalleryNodeModal from "@/components/modals/GalleryNodeModal";
+import PortfolioNodeModal from "@/components/modals/PortfolioNodeModal";
 import ShareRoomModal from "@/components/modals/ShareRoomModal";
 import { PluginDescriptor } from "../pluginLoader";
 // there is currently no dedicated modal for portal nodes
@@ -215,6 +216,7 @@ export const NodeTypeToModalMap = {
   VIDEO: YoutubeNodeModal,
   COLLAGE: CollageCreationModal,
   GALLERY: GalleryNodeModal,
+  PORTFOLIO: PortfolioNodeModal,
   PORTAL: ShareRoomModal,
   LIVECHAT: ShareRoomModal,
 };
