@@ -11,6 +11,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { useReactFlow, useStoreApi } from "@xyflow/react";
 import useStore from "@/lib/reactflow/store";
 import { AppEdge, AppNode, AppState } from "@/lib/reactflow/types";
+import { loadPlugins, PluginDescriptor } from "@/lib/pluginLoader";
 import { subscribeToDatabaseUpdates, subscribeToRoom } from "@/lib/utils";
 import {
   convertPostToNode,
@@ -49,6 +50,13 @@ import NodeSidebar from "../shared/NodeSidebar";
 import { createRealtimeEdge } from "@/lib/actions/realtimeedge.actions";
 import { updateRealtimePost } from "@/lib/actions/realtimepost.actions";
 import { RealtimePost } from "@prisma/client";
+
+// Load plug-ins from the plugins directory
+const pluginModules = import.meta.glob<{
+  descriptor?: PluginDescriptor;
+}>("../../plugins/*.tsx", { eager: true });
+const pluginDescriptors = loadPlugins(pluginModules);
+useStore.getState().registerPlugins(pluginDescriptors);
 
 const selector = (state: AppState) => ({
   nodes: state.nodes,
@@ -324,6 +332,9 @@ function Room({ roomId, initialNodes, initialEdges }: Props) {
     AUDIO: AudioNode,
     LLM_INSTRUCTION: LLMInstructionNode,
   };
+  pluginDescriptors.forEach((p) => {
+    (nodeTypes as any)[p.type] = p.component as any;
+  });
   const edgeTypes = {
     DEFAULT: DefaultEdge,
   };

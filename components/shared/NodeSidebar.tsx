@@ -30,21 +30,6 @@ import { useShallow } from "zustand/react/shallow";
 import { useAuth } from "@/lib/AuthContext";
 import { useRouter } from "next/navigation";
 
-// A simple static array of node types
-const nodeTypes: { label: string; nodeType: AppNodeType }[] = [
-  { label: "TEXT", nodeType: "TEXT" },
-  { label: "IMAGE", nodeType: "IMAGE" },
-  { label: "VIDEO", nodeType: "VIDEO" },
-  { label: "LIVESTREAM", nodeType: "LIVESTREAM" },
-  { label: "IMAGE_COMPUTE", nodeType: "IMAGE_COMPUTE" },
-  { label: "COLLAGE", nodeType: "COLLAGE" },
-  { label: "GALLERY", nodeType: "GALLERY" },
-  { label: "PORTAL", nodeType: "PORTAL" },
-  { label: "DRAW", nodeType: "DRAW" },
-  { label: "LIVECHAT", nodeType: "LIVECHAT" },
-  { label: "AUDIO", nodeType: "AUDIO" },
-];
-
 // Import your modals
 import TextNodeModal from "@/components/modals/TextNodeModal";
 import ImageNodeModal from "@/components/modals/ImageNodeModal";
@@ -71,8 +56,10 @@ export default function NodeSidebar({
       addNode: state.addNode,
       closeModal: state.closeModal,
       openModal: state.openModal,
+      pluginDescriptors: state.pluginDescriptors,
     }))
   );
+  const { pluginDescriptors } = store;
   const params = useParams<{ id: string }>();
   const roomId = params.id;
 
@@ -105,8 +92,30 @@ export default function NodeSidebar({
     setIsOpen(false);
   }
 
+  const builtinNodeTypes: { label: string; nodeType: string }[] = [
+    { label: "TEXT", nodeType: "TEXT" },
+    { label: "IMAGE", nodeType: "IMAGE" },
+    { label: "VIDEO", nodeType: "VIDEO" },
+    { label: "LIVESTREAM", nodeType: "LIVESTREAM" },
+    { label: "IMAGE_COMPUTE", nodeType: "IMAGE_COMPUTE" },
+    { label: "COLLAGE", nodeType: "COLLAGE" },
+    { label: "GALLERY", nodeType: "GALLERY" },
+    { label: "PORTAL", nodeType: "PORTAL" },
+    { label: "DRAW", nodeType: "DRAW" },
+    { label: "LIVECHAT", nodeType: "LIVECHAT" },
+    { label: "AUDIO", nodeType: "AUDIO" },
+  ];
+
+  const nodeTypes = [
+    ...builtinNodeTypes,
+    ...pluginDescriptors.map((p) => ({
+      label: (p.config as any).label ?? p.type,
+      nodeType: p.type,
+    })),
+  ];
+
   // Handler for each node type
-  const openNodeCreationMenu = (nodeType: AppNodeType) => {
+  const openNodeCreationMenu = (nodeType: string) => {
     verifyAndRedirectUserIfNotLoggedIn();
 
     switch (nodeType) {
@@ -293,6 +302,12 @@ export default function NodeSidebar({
         break;
 
       default:
+        store.addNode({
+          id: Date.now().toString(),
+          type: nodeType as any,
+          data: {},
+          position: centerPosition,
+        } as any);
         break;
     }
   };

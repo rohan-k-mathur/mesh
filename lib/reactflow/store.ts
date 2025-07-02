@@ -11,6 +11,7 @@ import {
   GalleryNodeData,
   AppEdge,
 } from "./types";
+import { PluginDescriptor } from "../pluginLoader";
 
 function isTextNode(node: AppNode): node is TextNode {
   return node.type === "TEXT";
@@ -95,6 +96,10 @@ const useStore = create<AppState>((set, get) => ({
         node.id === id ? { ...node, locked: lockState } : node
       ),
     });
+  },
+  pluginDescriptors: [] as PluginDescriptor[],
+  registerPlugins: (plugins: PluginDescriptor[]) => {
+    set({ pluginDescriptors: plugins });
   },
 }));
 
