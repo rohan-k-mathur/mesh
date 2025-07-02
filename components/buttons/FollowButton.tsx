@@ -2,7 +2,7 @@
 
 import { followUser, unfollowUser, areFriends } from "@/lib/actions/follow.actions";
 import { useAuth } from "@/lib/AuthContext";
-import { Button } from "../ui/button";
+import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 

@@ -1,5 +1,4 @@
 "use client";
-import localFont from "next/font/local";
 
 import { FormEvent, useState } from "react";
 import Spinner from "@/components/ui/spinner";
@@ -8,6 +7,8 @@ import { useRouter } from "next/navigation";
 import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 import { app } from "@/lib/firebase/firebase";
 import BackgroundCanvas from "@/components/threejs/BackgroundCanvas";
+import localFont from "next/font/local";
+
 const founderslight = localFont({ src: "./NewEdgeTest-LightRounded.otf" });
 
 export default function Login() {

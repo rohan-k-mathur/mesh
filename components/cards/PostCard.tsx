@@ -89,7 +89,7 @@ const PostCard = async ({
           <div className="flex flex-col items-center  ">
             <Link
               href={`/profile/${author.id}`}
-              className="relative h-[2rem] w-[2rem] left-[.5rem]"
+              className="relative h-[2.75rem] w-[2.75rem] left-[.65rem] top-[.1rem] "
             >
               <Image
                 src={author.image || "/assets/user-helsinki.svg"}
@@ -106,11 +106,16 @@ const PostCard = async ({
           <div>
             <Link href={`/profile/${author.id}`} className="w-fit ">
               <div className={`${founders.className} `}>
-              <p className="cursor-pointer  text-[1.08rem] tracking-[.05rem] font-semibold text-black relative right-[.25rem] top-[.3rem]">
-                {author.name}
-              </p>
+              <p className="cursor-pointer  text-[1.08rem] tracking-[.05rem] font-semibold text-black relative top-[.2rem] right-[.25rem] ">
+                  {author.name}
+                </p>
+                
               </div>
+
             </Link>
+            <div className="relative right-[.25rem] text-[.75rem] text-gray-500">{createdAt}</div>
+
+
             <hr className="mt-3 mb-4 w-full h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-100 to-transparent opacity-75" />
             {type === "TEXT" && content && (
               <p className="mt-2  text-[1.08rem] text-black tracking-[.05rem]">{content}</p>
