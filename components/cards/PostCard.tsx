@@ -183,7 +183,7 @@ const PostCard = async ({
                       commentCount={commentCount}
                     />
                   </>
-            <ReplicateButton postId={id} />
+            {!isRealtimePost && <ReplicateButton postId={id} />}
           <ShareButton postId={id} />
           <TimerButton
             postId={id}
