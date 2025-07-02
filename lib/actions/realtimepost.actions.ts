@@ -410,3 +410,54 @@ export async function fetchUserRealtimePosts({
     y_coordinate: realtimePost.y_coordinate.toNumber(),
   }));
 }
+
+export async function replicateRealtimePost({
+  originalPostId,
+  userId,
+  path,
+}: {
+  originalPostId: string | number | bigint;
+  userId: string | number | bigint;
+  path: string;
+}) {
+  try {
+    await prisma.$connect();
+    const oid = BigInt(originalPostId);
+    const uid = BigInt(userId);
+    const original = await prisma.realtimePost.findUnique({
+      where: { id: oid },
+    });
+    if (!original) throw new Error("Real-time post not found");
+    const newPost = await prisma.realtimePost.create({
+      data: {
+        ...(original.content && { content: original.content }),
+        ...(original.image_url && { image_url: original.image_url }),
+        ...(original.video_url && { video_url: original.video_url }),
+        author_id: uid,
+        x_coordinate: original.x_coordinate,
+        y_coordinate: original.y_coordinate,
+        type: original.type,
+        realtime_room_id: original.realtime_room_id,
+        locked: false,
+        isPublic: original.isPublic,
+        ...(original.collageLayoutStyle && {
+          collageLayoutStyle: original.collageLayoutStyle,
+        }),
+        ...(original.collageColumns !== null && {
+          collageColumns: original.collageColumns ?? undefined,
+        }),
+        ...(original.collageGap !== null && {
+          collageGap: original.collageGap ?? undefined,
+        }),
+      },
+    });
+    await prisma.user.update({
+      where: { id: uid },
+      data: { realtimeposts: { connect: { id: newPost.id } } },
+    });
+    revalidatePath(path);
+    return newPost;
+  } catch (error: any) {
+    throw new Error(`Failed to replicate real-time post: ${error.message}`);
+  }
+}
