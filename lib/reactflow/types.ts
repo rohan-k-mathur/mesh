@@ -152,6 +152,18 @@ export type CodeNode = Node<
   "CODE"
 >;
 
+export type LLMInstructionNode = Node<
+  {
+    prompt: string;
+    output: string;
+    status: "pending" | "running" | "complete";
+    author: AuthorOrAuthorId;
+    locked: boolean;
+    model?: string;
+  },
+  "LLM_INSTRUCTION"
+>;
+
 
 
 export type DefaultEdge = Edge<{}, "DEFAULT">;
@@ -171,6 +183,7 @@ export const NodeTypeMap = {
   DOCUMENT: {} as DocumentNode,
   THREAD: {} as ThreadNode,
   CODE: {} as CodeNode,
+  LLM_INSTRUCTION: {} as LLMInstructionNode,
 };
 
 export interface AppEdgeMapping {
@@ -204,7 +217,8 @@ export type AppNode =
   | AudioNode
   | DocumentNode
   | ThreadNode
-  | CodeNode;
+  | CodeNode
+  | LLMInstructionNode;
 
 export type AppEdgeType = keyof AppEdgeMapping;
 
@@ -226,6 +240,7 @@ export const DEFAULT_NODE_VALUES: Record<AppNodeType, string> = {
   ["DOCUMENT"]: "",
   ["THREAD"]: "",
   ["CODE"]: "",
+  ["LLM_INSTRUCTION"]: "",
 };
 
 export type AppState = {
