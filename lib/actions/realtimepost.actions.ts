@@ -285,9 +285,13 @@ export async function fetchRealtimePostById({ id }: { id: string }) {
     return {
       ...post,
       commentCount: post._count.children,
+      x_coordinate: post.x_coordinate.toNumber(),
+      y_coordinate: post.y_coordinate.toNumber(),
       children: post.children.map((c) => ({
         ...c,
         commentCount: c._count.children,
+        x_coordinate: c.x_coordinate.toNumber(),
+        y_coordinate: c.y_coordinate.toNumber(),
       })),
     };
   } catch (error: any) {
@@ -314,12 +318,20 @@ export async function fetchRealtimePostTreeById({ id }: { id: string }) {
     return children.map((c) => ({
       ...c,
       commentCount: c._count.children,
+      x_coordinate: c.x_coordinate.toNumber(),
+      y_coordinate: c.y_coordinate.toNumber(),
+      children: c.children,
     }));
   };
 
   if (post) {
     post.children = await fetchChildren(post.id);
-    return { ...post, commentCount: post._count.children };
+    return {
+      ...post,
+      commentCount: post._count.children,
+      x_coordinate: post.x_coordinate.toNumber(),
+      y_coordinate: post.y_coordinate.toNumber(),
+    };
   }
   return post;
 }
