@@ -124,28 +124,32 @@ function PortfolioNode({ id, data }: NodeProps<PortfolioNodeData>) {
       isLocked={data.locked}
       generateOnClick={handleExport}
     >
-      <div className="flex flex-col   w-full h-full portfolio-container min-w-[450px] min-h-[450px]">
-        <div className="flex flex-col flex-wrap rounded-lg p-4 bg-white mt-4 ">
-        <p className="mb-1 mt-2">{text}</p>
-        {images[0] && (
-          <Image
-            src={images[0]}
-            alt="img"
-            width={80}
-            height={80}
-            className="object-cover portfolio-img-frame"
-          />
-        )}
-        {links[0] && (
-          <a
-            href={links[0]}
-            className="text-blue-500 underline"
-            target="_blank"
-            rel="noreferrer"
-          >
-            {links[0]}
-          </a>
-        )}
+      <div className="portfolio-container flex flex-col w-[34rem]">
+        <div className="grid grid-cols-2 gap-2 rounded-lg p-4 bg-white mt-4 auto-rows-min">
+          {text && (
+            <p className="col-span-2 mb-1 mt-2 break-words">{text}</p>
+          )}
+          {images.map((src, idx) => (
+            <Image
+              key={idx}
+              src={src}
+              alt={`img-${idx}`}
+              width={200}
+              height={200}
+              className={`object-cover portfolio-img-frame ${idx === 0 ? "col-span-2 row-span-2" : ""}`}
+            />
+          ))}
+          {links.map((href, idx) => (
+            <a
+              key={idx}
+              href={href}
+              className="text-blue-500 underline break-all"
+              target="_blank"
+              rel="noreferrer"
+            >
+              {href}
+            </a>
+          ))}
         </div>
       </div>
     </BaseNode>
