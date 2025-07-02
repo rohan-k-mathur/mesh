@@ -192,6 +192,15 @@ function Room({ roomId, initialNodes, initialEdges }: Props) {
 
   const onNodeDragStop = useCallback(
     (_: any, node: AppNode) => {
+      const authorId = (node.data.author as any).id;
+      if (user && Number(authorId) === Number(user.userId)) {
+        updateRealtimePost({
+          id: node.id,
+          path: pathname,
+          coordinates: node.position,
+        });
+      }
+
       if (!PROXIMITY_CONNECT_ENABLED) return;
       const closeEdge = getClosestEdge(node);
 
@@ -203,7 +212,7 @@ function Room({ roomId, initialNodes, initialEdges }: Props) {
         onConnect({ source: closeEdge.source, target: closeEdge.target });
       }
     },
-    [edges, getClosestEdge, onConnect, setEdges]
+    [edges, getClosestEdge, onConnect, setEdges, user, pathname]
   );
 
   const reactFlowRef = useRef<HTMLDivElement>(null);

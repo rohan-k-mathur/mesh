@@ -13,8 +13,11 @@ interface Props {
 const LockButton = ({ lockOnClick, isLocked, isOwned }: Props) => {
   return (
     <div className="relative -bottom-1  ">
-      <button className="likebutton">
-   
+      <button
+        className="likebutton"
+        onClick={() => isOwned && lockOnClick(!isLocked)}
+        disabled={!isOwned}
+      >
         {isLocked ? (
           <Image src="/assets/locked.svg" width={24} height={24} alt="locked" />
         ) : (
@@ -23,10 +26,9 @@ const LockButton = ({ lockOnClick, isLocked, isOwned }: Props) => {
             width={24}
             height={24}
             alt="unlocked"
-
           />
         )}
-        </button>
+      </button>
     </div>
   );
 };

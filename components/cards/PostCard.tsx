@@ -106,11 +106,12 @@ const PostCard = async ({
           <div>
             <Link href={`/profile/${author.id}`} className="w-fit ">
               <div className={`${founders.className} `}>
-              <p className="cursor-pointer  text-[1.08rem] tracking-[.05rem] font-semibold text-black relative right-[.25rem] top-[.3rem]">
-                {author.name}
-              </p>
+                <p className="cursor-pointer  text-[1.08rem] tracking-[.05rem] font-semibold text-black relative right-[.25rem] top-[.3rem]">
+                  {author.name}
+                </p>
               </div>
             </Link>
+            <p className="text-xs text-gray-500 mt-1">Posted at {createdAt}</p>
             <hr className="mt-3 mb-4 w-full h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-100 to-transparent opacity-75" />
             {type === "TEXT" && content && (
               <p className="mt-2  text-[1.08rem] text-black tracking-[.05rem]">{content}</p>
