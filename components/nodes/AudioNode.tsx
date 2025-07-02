@@ -81,8 +81,6 @@ function AudioNode({ id, data }: NodeProps<AudioNodeData>) {
 
   const isOwned = currentUser ? Number(currentUser.userId) === Number(data.author.id) : false;
 
-  const tracks = useTracks([{ source: Track.Source.Microphone }], { onlySubscribed: false });
-
   return (
     <BaseNode modalContent={null} id={id} author={author} isOwned={isOwned} type={"AUDIO"} isLocked={data.locked}>
       <div className="flex flex-col gap-2">
