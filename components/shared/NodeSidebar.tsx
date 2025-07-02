@@ -17,6 +17,7 @@ import {
   GalleryPostValidation,
   TextPostValidation,
   YoutubePostValidation,
+  PortfolioNodeValidation,
 } from "@/lib/validations/thread";
 import { usePathname, useParams } from "next/navigation";
 import {
@@ -57,6 +58,7 @@ import CollageCreationModal from "@/components/modals/CollageCreationModal";
 import PortalNodeModal from "@/components/modals/PortalNodeModal";
 import GalleryNodeModal from "@/components/modals/GalleryNodeModal";
 import LivechatNodeModal from "@/components/modals/LivechatNodeModal";
+import PortfolioNodeModal from "@/components/modals/PortfolioNodeModal";
 import { fetchUserByUsername } from "@/lib/actions/user.actions";
 
 export default function NodeSidebar({
@@ -332,12 +334,40 @@ export default function NodeSidebar({
         break;
 
       case "PORTFOLIO":
-        createPostAndAddToCanvas({
-          path: pathname,
-          coordinates: centerPosition,
-          type: "PORTFOLIO",
-          realtimeRoomId: roomId,
-        });
+        store.openModal(
+          <PortfolioNodeModal
+            isOwned={true}
+            currentText=""
+            currentImages={[]}
+            currentLinks={[]}
+            currentLayout="grid"
+            currentColor="bg-white"
+            onSubmit={async (vals) => {
+              const uploads = await Promise.all(
+                (vals.images || []).map((img) => uploadFileToSupabase(img))
+              );
+              const urls = uploads
+                .filter((r) => !r.error)
+                .map((r) => r.fileURL);
+              const payload = {
+                text: vals.text,
+                images: urls,
+                links: vals.links || [],
+                layout: vals.layout,
+                color: vals.color,
+              };
+              createPostAndAddToCanvas({
+                text: JSON.stringify(payload),
+                imageUrl: urls[0],
+                videoUrl: (vals.links && vals.links[0]) || undefined,
+                path: pathname,
+                coordinates: centerPosition,
+                type: "PORTFOLIO",
+                realtimeRoomId: roomId,
+              });
+            }}
+          />
+        );
         break;
 
       default:
