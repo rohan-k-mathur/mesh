@@ -48,6 +48,7 @@ import LLMInstructionNode from "../nodes/LLMInstructionNode";
 import DocumentNode from "../nodes/DocumentNode";
 import ThreadNode from "../nodes/ThreadNode";
 import CodeNode from "../nodes/CodeNode";
+import PortfolioNode from "../nodes/PortfolioNode";
 import HamburgerMenu from "../shared/HamburgerMenu";
 import NodeSidebar from "../shared/NodeSidebar";
 import { createRealtimeEdge } from "@/lib/actions/realtimeedge.actions";
@@ -348,6 +349,7 @@ function Room({ roomId, initialNodes, initialEdges }: Props) {
     DOCUMENT: DocumentNode,
     THREAD: ThreadNode,
     CODE: CodeNode,
+    PORTFOLIO: PortfolioNode,
   };
   pluginDescriptors.forEach((p) => {
     (nodeTypes as any)[p.type] = p.component as any;
