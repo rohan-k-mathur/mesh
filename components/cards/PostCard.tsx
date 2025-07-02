@@ -41,6 +41,7 @@ interface Props {
   likeCount?: number;
   commentCount?: number;
   expirationDate?: string | null;
+  embedPost?: React.ReactNode;
 }
 
 const PostCard = async ({
@@ -56,6 +57,7 @@ const PostCard = async ({
   likeCount = 0,
   commentCount = 0,
   expirationDate = null,
+  embedPost,
   }: Props) => {
   let currentUserLike: Like | RealtimeLike | null = null;
   if (currentUserId) {
@@ -164,6 +166,7 @@ const PostCard = async ({
                 <DrawCanvas id={id.toString()} content={content} />
               </div>
             )}
+            {embedPost && <div className="mt-4 scale-90">{embedPost}</div>}
             <hr className="mt-4 mb-3 w-full h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-100 to-transparent opacity-75" />
 
             <div className="mt-4 flex flex-col gap-x-3 gap-y-4">

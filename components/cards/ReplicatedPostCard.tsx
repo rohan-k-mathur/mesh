@@ -28,18 +28,16 @@ const ReplicatedPostCard = async ({
   if (!original) return null;
 
   return (
-    <article className="flex flex-col gap-4">
-      <PostCard
-        id={id}
-        currentUserId={currentUserId}
-        content="Replicated"
-        type="TEXT"
-        author={author}
-        createdAt={createdAt}
-        likeCount={likeCount}
-        expirationDate={expirationDate ?? undefined}
-      />
-      <div className="ml-6">
+    <PostCard
+      id={id}
+      currentUserId={currentUserId}
+      content="Replicated"
+      type="TEXT"
+      author={author}
+      createdAt={createdAt}
+      likeCount={likeCount}
+      expirationDate={expirationDate ?? undefined}
+      embedPost={
         <PostCard
           id={original.id}
           currentUserId={currentUserId}
@@ -50,8 +48,8 @@ const ReplicatedPostCard = async ({
           likeCount={original.like_count}
           expirationDate={original.expiration_date?.toISOString() ?? null}
         />
-      </div>
-    </article>
+      }
+    />
   );
 };
 
