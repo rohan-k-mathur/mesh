@@ -19,7 +19,8 @@ const ShareButton = ({ postId, realtimePostId }: Props) => {
       openModal: state.openModal,
     }))
   );
- 
+  return (
+
   <button>
   <Image
     src="/assets/send--alt.svg"
@@ -34,7 +35,8 @@ const ShareButton = ({ postId, realtimePostId }: Props) => {
     }
   />
 </button>
-  
+    );
+
 };
 
 

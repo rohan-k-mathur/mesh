@@ -1,4 +1,4 @@
-Poimport PostCard from "./PostCard";
+import PostCard from "./PostCard";
 import { fetchPostById } from "@/lib/actions/thread.actions";
 
 interface Props {
