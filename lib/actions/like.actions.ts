@@ -2,6 +2,7 @@
 
 import { like_type } from "@prisma/client";
 import { prisma } from "../prismaclient";
+import { generateFriendSuggestions } from "./friend-suggestions.actions";
 
 interface likePostParams {
   userId: string | number | bigint;
@@ -78,6 +79,7 @@ export async function likePost({ userId, postId }: likePostParams) {
         },
       }),
     ]);
+    await generateFriendSuggestions(uid);
   } catch (error: any) {
     throw new Error(`Failed to like post: ${error.message}`);
   }
@@ -263,6 +265,7 @@ export async function likeRealtimePost({
         data: { like_count: { increment: likeChangeAmount } },
       }),
     ]);
+    await generateFriendSuggestions(uid);
   } catch (error: any) {
     throw new Error(`Failed to like realtime post: ${error.message}`);
   }
