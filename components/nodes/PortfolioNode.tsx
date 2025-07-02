@@ -6,7 +6,7 @@ import { fetchUser } from "@/lib/actions/user.actions";
 import { useEffect, useState } from "react";
 import BaseNode from "./BaseNode";
 import { PortfolioNodeData } from "@/lib/reactflow/types";
-import { generatePortfolioTemplates } from "@/lib/portfolio/export";
+
 import Image from "next/image";
 
 function PortfolioNode({ id, data }: NodeProps<PortfolioNodeData>) {
@@ -22,30 +22,26 @@ function PortfolioNode({ id, data }: NodeProps<PortfolioNodeData>) {
     ? Number(currentUser.userId) === Number(data.author.id)
     : false;
 
-  const handleExport = () => {
-    const { html, css } = generatePortfolioTemplates({
-      text: data.text,
-      images: data.images,
-      links: data.links,
-      layout: data.layout,
-      color: data.color,
+  const handleExport = async () => {
+    const res = await fetch("/api/portfolio/export", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        text: data.text,
+        images: data.images,
+        links: data.links,
+        layout: data.layout,
+        color: data.color,
+      }),
     });
-
-    const htmlBlob = new Blob([html], { type: "text/html" });
-    const htmlUrl = URL.createObjectURL(htmlBlob);
+    if (!res.ok) return;
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = htmlUrl;
-    a.download = "portfolio.html";
+    a.href = url;
+    a.download = "portfolio.zip";
     a.click();
-    URL.revokeObjectURL(htmlUrl);
-
-    const cssBlob = new Blob([css], { type: "text/css" });
-    const cssUrl = URL.createObjectURL(cssBlob);
-    const cssA = document.createElement("a");
-    cssA.href = cssUrl;
-    cssA.download = "tailwind.css";
-    cssA.click();
-    URL.revokeObjectURL(cssUrl);
+    URL.revokeObjectURL(url);
   };
 
   return (
