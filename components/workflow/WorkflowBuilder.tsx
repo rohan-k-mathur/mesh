@@ -6,6 +6,8 @@ import {
   Background,
   Controls,
   MiniMap,
+  BackgroundProps,
+  BackgroundVariant,
   addEdge,
   Connection,
   Edge,
@@ -29,6 +31,7 @@ interface Props {
   initialGraph?: WorkflowGraph;
   onSave: (graph: WorkflowGraph) => Promise<{ id: string }>;
 }
+const proOptions = { hideAttribution: true };
 
 export default function WorkflowBuilder({ initialGraph, onSave }: Props) {
   const [nodes, setNodes, onNodesChange] = useNodesState<Node[]>(
@@ -155,10 +158,10 @@ export default function WorkflowBuilder({ initialGraph, onSave }: Props) {
 
 
   return (
-    <div style={{ height: 500, position: "relative" }} ref={wrapperRef}>
-      <div className="absolute  left-2 top-2 z-10 flex gap-2">
+    <div style={{ height: 640, position: "relative" }} ref={wrapperRef}>
+      <div className="absolute  left-2 top-2 z-10 flex flex-col gap-2">
         <div
-          className="dndnode"
+          className="dndnode w-full rounded-md"
           draggable
           onDragStart={(e) =>
             e.dataTransfer.setData("application/reactflow", "state")
@@ -193,10 +196,15 @@ export default function WorkflowBuilder({ initialGraph, onSave }: Props) {
         onPaneClick={onPaneClick}
         onDrop={onDrop}
         onDragOver={onDragOver}
+        proOptions={proOptions}
         fitView
       >
-        <Background />
-        <MiniMap />
+        <Background 
+          id="1"
+          gap={10}
+        color="#000000"
+        variant={BackgroundVariant.Dots}/>
+        <MiniMap       />
         <Controls />
       </ReactFlow>
       {selectedEdge && (

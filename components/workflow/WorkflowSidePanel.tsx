@@ -37,15 +37,16 @@ export default function WorkflowSidePanel({
   const open = !!node || !!edge;
   return (
     <Sheet open={open} onOpenChange={onClose}>
-      <SheetContent side="right" className="w-[250px] space-y-4">
+      <SheetContent side="right" className="w-[250px] space-y-4 mr-2">
         {node && (
-          <div className="space-y-2">
+          <div className="space-y-4">
             <SheetHeader>
               <SheetTitle>Edit State</SheetTitle>
             </SheetHeader>
             <Label htmlFor="node-label">Label</Label>
             <Input
               id="node-label"
+              className="w-fit"
               value={node.data?.label || ""}
               onChange={(e) =>
                 onUpdateNode({
@@ -64,8 +65,8 @@ export default function WorkflowSidePanel({
                 })
               }
             >
-              <SelectTrigger id="node-action">
-                <SelectValue placeholder="Select action" />
+              <SelectTrigger id="node-action" className="w-fit">
+                <SelectValue placeholder="Select action" className="w-fit" />
               </SelectTrigger>
               <SelectContent>
                 {actions.map((name) => (
@@ -78,21 +79,23 @@ export default function WorkflowSidePanel({
           </div>
         )}
         {edge && (
-          <div className="space-y-2">
+          <div className="space-y-4">
             <SheetHeader>
               <SheetTitle>Edit Transition</SheetTitle>
             </SheetHeader>
             <Label htmlFor="edge-label">Label</Label>
             <Input
               id="edge-label"
+              className="w-fit"
+
               value={edge.label || ""}
-              onChange={(e) =>
-                onUpdateEdge({ ...edge, label: e.target.value })
-              }
+              onChange={(e) => onUpdateEdge({ ...edge, label: e.target.value })}
             />
             <Label htmlFor="edge-condition">Condition</Label>
             <Input
               id="edge-condition"
+              className="w-fit"
+
               value={(edge.data as any)?.condition || edge.condition || ""}
               onChange={(e) =>
                 onUpdateEdge({
