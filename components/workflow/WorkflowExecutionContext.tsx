@@ -74,9 +74,10 @@ export function WorkflowExecutionProvider({ children }: { children: ReactNode })
 
     const nodeMap = new Map(graph.nodes.map((n) => [n.id, n]));
     let currentNode = graph.nodes[0];
-    while (currentNode) {
-      setCurrent(currentNode.id);
-      const result = await actions[currentNode.id]?.();
+      while (currentNode) {
+        setCurrent(currentNode.id);
+        const actionKey = currentNode.action ?? currentNode.id;
+        const result = await actions[actionKey]?.();
       if (typeof result === "string") {
         setLogs((prev) => [...prev, result]);
       }
