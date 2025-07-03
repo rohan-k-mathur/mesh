@@ -1,6 +1,13 @@
 "use client";
 
-import { createContext, useContext, useRef, useState, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useRef,
+  useState,
+  ReactNode,
+} from "react";
+import { Node } from "@xyflow/react";
 import { WorkflowGraph } from "@/lib/workflowExecutor";
 
 interface ExecutionContextValue {
@@ -16,6 +23,8 @@ interface ExecutionContextValue {
   ) => Promise<void>;
   pause: () => void;
   resume: () => void;
+  graph: WorkflowGraph | null;
+  addNode: (node: Node) => void;
 }
 
 const WorkflowExecutionContext = createContext<ExecutionContextValue | null>(null);
@@ -32,6 +41,7 @@ export function WorkflowExecutionProvider({ children }: { children: ReactNode })
   const [logs, setLogs] = useState<string[]>([]);
   const [running, setRunning] = useState(false);
   const [paused, setPaused] = useState(false);
+  const [graphState, setGraphState] = useState<WorkflowGraph | null>(null);
   const resumeRef = useRef<() => void>();
 
   const waitIfPaused = () =>
@@ -47,6 +57,10 @@ export function WorkflowExecutionProvider({ children }: { children: ReactNode })
     resumeRef.current?.();
   };
 
+  const addNode = (node: Node) => {
+    setGraphState((g) => (g ? { ...g, nodes: [...g.nodes, node] } : g));
+  };
+
   const run = async (
     graph: WorkflowGraph,
     actions: Record<string, () => Promise<string | void>>,
@@ -56,6 +70,7 @@ export function WorkflowExecutionProvider({ children }: { children: ReactNode })
     setExecuted([]);
     setLogs([]);
     setCurrent(null);
+    setGraphState(graph);
 
     const nodeMap = new Map(graph.nodes.map((n) => [n.id, n]));
     let currentNode = graph.nodes[0];
@@ -79,7 +94,18 @@ export function WorkflowExecutionProvider({ children }: { children: ReactNode })
 
   return (
     <WorkflowExecutionContext.Provider
-      value={{ current, executed, logs, running, paused, run, pause, resume }}
+      value={{
+        current,
+        executed,
+        logs,
+        running,
+        paused,
+        run,
+        pause,
+        resume,
+        graph: graphState,
+        addNode,
+      }}
     >
       {children}
     </WorkflowExecutionContext.Provider>

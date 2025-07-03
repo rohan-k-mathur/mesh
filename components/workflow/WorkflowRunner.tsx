@@ -17,7 +17,7 @@ interface Props {
   graph: WorkflowGraph;
 }
 
-function Runner({ graph }: Props) {
+export function WorkflowRunnerInner({ graph }: Props) {
   const { run, pause, resume, paused, running, logs } = useWorkflowExecution();
 
   useEffect(() => {
@@ -69,7 +69,7 @@ function Runner({ graph }: Props) {
 export default function WorkflowRunner({ graph }: Props) {
   return (
     <WorkflowExecutionProvider>
-      <Runner graph={graph} />
+      <WorkflowRunnerInner graph={graph} />
     </WorkflowExecutionProvider>
   );
 }
