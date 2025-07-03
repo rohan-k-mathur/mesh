@@ -248,15 +248,19 @@ function Room({ roomId, initialNodes, initialEdges }: Props) {
 
   const updateNodeFunction = useCallback(
     (updatedObject: RealtimePost) => {
-      updateNode(updatedObject.id.toString(), () =>
-        convertPostToNode({
-          ...updatedObject,
-          x_coordinate: Number(updatedObject.x_coordinate),
-          y_coordinate: Number(updatedObject.y_coordinate),
-        })
+      const newNode = convertPostToNode({
+        ...updatedObject,
+        x_coordinate: Number(updatedObject.x_coordinate),
+        y_coordinate: Number(updatedObject.y_coordinate),
+      });
+      updateNode(updatedObject.id.toString(), () => newNode);
+
+      const currentNodes = useStore.getState().nodes;
+      setNodes(
+        currentNodes.map((n) => (n.id === newNode.id ? { ...n, ...newNode } : n))
       );
     },
-    [updateNode]
+    [updateNode, setNodes]
   );
 
   const updateEdgeFunction = useCallback(
