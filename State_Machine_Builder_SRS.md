@@ -112,3 +112,25 @@ The State Machine Builder is an extension of the React Flow canvas. Users drag n
 - Hooks to integrate with external services (email, storage, payments).
 - Support exporting and importing workflows as JSON files.
 
+Using Automatisch as a reference to help guide development: Automatisch’s open-source repository describes it as a “business automation tool” that lets you connect services like Twitter and Slack to automate workflows. It emphasizes that automation should be easy and inexpensive, without needing programming knowledge. A key benefit is the ability to keep data on your own servers, making it attractive for organizations with strict privacy requirements. The README also highlights that being open source means anyone can contribute and there’s no vendor lock-in.
+
+The documentation (available at https://automatisch.io/docs/) walks through concepts such as installation, key concepts, creating flows, advanced configuration, and how to build integrations. It describes how flows are composed of triggers and actions, running about every 15 minutes (with plans for more real‑time updates if supported by third-party services). Although the site notes “All rights reserved,” it outlines where to find information on app folder structure, authentication, global variables, and integration examples.
+
+Based on these resources, a robust approach for integrating third-party automation features into a state machine builder could include:
+
+Flow-based abstraction – Model each automation as a sequence of steps similar to Automatisch’s flows, starting from triggers (e.g., a new message or event) and moving through actions (e.g., posting to Slack).
+
+Pluggable integration modules – Follow Automatisch’s pattern of defining integrations (apps) with clear configuration, authentication, and triggers/actions so they can be added or removed easily.
+
+Self-hosted or cloud – Consider supporting self-hosting to keep user data local, matching the repository’s emphasis on privacy.
+
+Open contribution model – Encourage contributions to new integrations, taking cues from Automatisch’s open-source community approach.
+
+Interval or event-driven execution – Provide scheduling similar to the 15‑minute polling approach, but plan for near‑real‑time updates when third-party APIs allow it.
+
+Extensive documentation – Create clear guides for developers on how to build new integrations—covering folder structure, global variables, auth mechanisms, and usage examples—mirroring the structure in Automatisch’s docs.
+
+By examining Automatisch’s README and docs, these strategies can help design a state machine builder that accommodates diverse third-party services while remaining extensible and community driven. 
+
+Links: https://github.com/automatisch/automatisch and https://automatisch.io/docs/
+
