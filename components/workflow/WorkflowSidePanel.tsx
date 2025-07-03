@@ -9,10 +9,18 @@ import {
 } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Props {
   node?: Node;
   edge?: Edge;
+  actions: string[];
   onUpdateNode: (node: Node) => void;
   onUpdateEdge: (edge: Edge) => void;
   onClose: () => void;
@@ -21,6 +29,7 @@ interface Props {
 export default function WorkflowSidePanel({
   node,
   edge,
+  actions,
   onUpdateNode,
   onUpdateEdge,
   onClose,
@@ -46,16 +55,26 @@ export default function WorkflowSidePanel({
               }
             />
             <Label htmlFor="node-action">Action</Label>
-            <Input
-              id="node-action"
+            <Select
               value={node.data?.action || ""}
-              onChange={(e) =>
+              onValueChange={(value) =>
                 onUpdateNode({
                   ...node,
-                  data: { ...node.data, action: e.target.value },
+                  data: { ...node.data, action: value },
                 })
               }
-            />
+            >
+              <SelectTrigger id="node-action">
+                <SelectValue placeholder="Select action" />
+              </SelectTrigger>
+              <SelectContent>
+                {actions.map((name) => (
+                  <SelectItem key={name} value={name}>
+                    {name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         )}
         {edge && (
