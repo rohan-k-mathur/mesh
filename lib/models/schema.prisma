@@ -254,8 +254,38 @@ model Workflow {
   graph      Json
   created_at DateTime @default(now()) @db.Timestamptz(6)
   owner      User     @relation(fields: [owner_id], references: [id], onDelete: Cascade)
+  states     WorkflowState[]
+  transitions WorkflowTransition[]
 
   @@map("workflows")
+}
+
+model WorkflowState {
+  id          BigInt   @id @default(autoincrement())
+  workflow_id BigInt
+  version     Int
+  graph       Json
+  created_at  DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime? @default(now()) @updatedAt @db.Timestamptz(6)
+  workflow    Workflow  @relation(fields: [workflow_id], references: [id], onDelete: Cascade)
+  fromTransitions WorkflowTransition[] @relation("WorkflowTransitionFromState")
+  toTransitions   WorkflowTransition[] @relation("WorkflowTransitionToState")
+
+  @@unique([workflow_id, version])
+  @@map("workflow_states")
+}
+
+model WorkflowTransition {
+  id            BigInt        @id @default(autoincrement())
+  workflow_id   BigInt
+  from_state_id BigInt
+  to_state_id   BigInt
+  created_at    DateTime      @default(now()) @db.Timestamptz(6)
+  workflow      Workflow      @relation(fields: [workflow_id], references: [id], onDelete: Cascade)
+  fromState     WorkflowState @relation("WorkflowTransitionFromState", fields: [from_state_id], references: [id])
+  toState       WorkflowState @relation("WorkflowTransitionToState", fields: [to_state_id], references: [id])
+
+  @@map("workflow_transitions")
 }
 
 enum like_type {
