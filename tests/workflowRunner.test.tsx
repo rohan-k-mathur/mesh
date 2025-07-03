@@ -14,7 +14,7 @@ test("shows executed nodes when running", async () => {
   render(<WorkflowRunner graph={graph} />);
   fireEvent.click(screen.getByText("Run"));
   await waitFor(() => {
-    expect(screen.getByText("A")).toBeInTheDocument();
-    expect(screen.getByText("B")).toBeInTheDocument();
+    expect(screen.getByText("Executed A")).toBeInTheDocument();
+    expect(screen.getByText("Executed B")).toBeInTheDocument();
   });
 });

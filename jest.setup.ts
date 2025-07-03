@@ -9,6 +9,9 @@ jest.mock("@xyflow/react", () => {
     Background: () => React.createElement("div", null, "background"),
     Controls: () => React.createElement("div", null, "controls"),
     MiniMap: () => React.createElement("div", null, "minimap"),
-    addEdge: jest.fn(),
+    addEdge: jest.fn((edge: any, edges: any[]) => edges.concat(edge)),
+    useNodesState: (initial: any[]) => React.useState(initial),
+    useEdgesState: (initial: any[]) => React.useState(initial),
+    useReactFlow: () => ({ screenToFlowPosition: (pos: any) => pos }),
   };
 });

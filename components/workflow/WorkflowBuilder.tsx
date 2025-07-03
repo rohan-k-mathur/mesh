@@ -37,7 +37,31 @@ export default function WorkflowBuilder({ initialGraph, onSave }: Props) {
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const importRef = useRef<HTMLInputElement>(null);
   const { screenToFlowPosition } = useReactFlow();
+
+  const exportJson = () => {
+    const data = JSON.stringify({ nodes, edges }, null, 2);
+    const blob = new Blob([data], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "workflow.json";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const importJson = async (files: FileList | null) => {
+    if (!files?.length) return;
+    try {
+      const text = await files[0].text();
+      const graph = JSON.parse(text) as WorkflowGraph;
+      setNodes(graph.nodes as Node[]);
+      setEdges(graph.edges as Edge[]);
+    } catch {
+      // ignore invalid file
+    }
+  };
 
 
   const onNodeClick: NodeMouseHandler = (_event, node) => {
@@ -123,6 +147,16 @@ export default function WorkflowBuilder({ initialGraph, onSave }: Props) {
           State
         </div>
         <Button onClick={addState}>Add State</Button>
+        <Button onClick={() => importRef.current?.click()}>Import</Button>
+        <input
+          type="file"
+          accept="application/json"
+          ref={importRef}
+          aria-label="Import Workflow"
+          className="hidden"
+          onChange={(e) => importJson(e.target.files)}
+        />
+        <Button onClick={exportJson}>Export</Button>
         <Button onClick={save}>Save</Button>
         {workflowId && (
           <a href={`/workflows/${workflowId}`}>Run Workflow</a>
