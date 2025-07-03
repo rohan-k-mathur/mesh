@@ -119,3 +119,20 @@ it("takes alternate path when condition fails", async () => {
   expect(result).toEqual(["A", "C"]);
   expect(order).toEqual(["A", "C"]);
 });
+it("executes actions by name", async () => {
+  const graph: WorkflowGraph = {
+    nodes: [
+      { id: "n1", type: "x", action: "first" },
+      { id: "n2", type: "y", action: "second" },
+    ],
+    edges: [{ id: "e1", source: "n1", target: "n2" }],
+  };
+  const order: string[] = [];
+  const actions = {
+    first: async () => order.push("A"),
+    second: async () => order.push("B"),
+  };
+  const result = await executeWorkflow(graph, actions);
+  expect(result).toEqual(["n1", "n2"]);
+  expect(order).toEqual(["A", "B"]);
+});

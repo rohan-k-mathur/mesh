@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { WorkflowGraph } from "@/lib/workflowExecutor";
+import { getWorkflowAction } from "@/lib/workflowActions";
 import {
   WorkflowExecutionProvider,
   useWorkflowExecution,
@@ -16,9 +17,11 @@ function Runner({ graph }: Props) {
   const { run, pause, resume, paused, running, logs } = useWorkflowExecution();
 
   const handleRun = () => {
-    const actions: Record<string, () => Promise<string>> = {};
+    const actions: Record<string, () => Promise<string | void>> = {};
     for (const node of graph.nodes) {
-      actions[node.id] = async () => `Executed ${node.id}`;
+      const act = node.action ? getWorkflowAction(node.action) : undefined;
+      actions[node.action ?? node.id] =
+        act ?? (async () => `Executed ${node.id}`);
     }
     run(graph, actions);
   };
