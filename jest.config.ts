@@ -5,7 +5,14 @@ const config: Config = {
   testEnvironment: "node",
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/$1",
+    "\\.(css|less|sass|scss)$": "identity-obj-proxy",
   },
-  testMatch: ["**/tests/**/*.test.ts"],
+  globals: {
+    "ts-jest": {
+      tsconfig: "tsconfig.jest.json",
+    },
+  },
+  setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
+  testMatch: ["**/tests/**/*.test.ts", "**/tests/**/*.test.tsx"],
 };
 export default config;
