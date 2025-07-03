@@ -1,6 +1,7 @@
 export interface WorkflowNode {
   id: string;
   type: string;
+  action?: string;
 }
 
 export interface WorkflowEdge {
@@ -37,7 +38,7 @@ export type ConditionEvaluator = (
 
 export async function executeWorkflow(
   graph: WorkflowGraph,
-  actions: Record<string, () => Promise<void>>,
+  actions: Record<string, () => Promise<any>>,
   evaluate: ConditionEvaluator = () => true,
   context: Record<string, any> = {}
 ): Promise<string[]> {
@@ -45,7 +46,8 @@ export async function executeWorkflow(
   const nodeMap = new Map(graph.nodes.map((n) => [n.id, n]));
   let current = graph.nodes[0];
   while (current) {
-    const act = actions[current.id];
+    const actionKey = current.action ?? current.id;
+    const act = actions[actionKey];
     if (act) {
       await act();
     }
