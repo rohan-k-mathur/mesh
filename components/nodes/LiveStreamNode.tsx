@@ -58,7 +58,7 @@ function LiveStreamNode({ id, data }: NodeProps<WebcamNode>) {
         setAuthor(user!);
       });
     }
-  }, [data]);
+  }, [author, data.author.id]);
   useEffect(() => {
     if (!currentActiveUser) {
       return;
@@ -72,7 +72,7 @@ function LiveStreamNode({ id, data }: NodeProps<WebcamNode>) {
         console.error(e);
       }
     })();
-  }, []);
+  }, [currentActiveUser, room]);
 
   const isOwned = currentActiveUser
     ? Number(currentActiveUser!.userId) === Number(data.author.id)
