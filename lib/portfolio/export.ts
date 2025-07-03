@@ -47,7 +47,7 @@ export function generatePortfolioTemplates(data: PortfolioExportData): {
 </body>
 </html>`;
 
-  const css = `@tailwind base;\n@tailwind components;\n@tailwind utilities;`;
+  const css = `@tailwind base;\n@tailwind components;\n@tailwind utilities;\n\n.portfolio-container {\n  display: flex;\n  padding: 50px;\n  width: 34rem;\n}\n\n.portfolio-img-frame {\n  background: transparent;\n  border: 1px solid #1a192b;\n  padding: 0px;\n}\n\n.text-block {\n  width: fit-content;\n  border: .5px solid #000000;\n  border-radius: 2px;\n  font-size: .7rem;\n  line-height: 1;\n  letter-spacing: normal;\n  margin: 0.3rem 0;\n  padding: 0.3rem;\n  max-height: 9.25rem;\n  overflow-y: auto;\n  scroll-behavior: smooth;\n}`;
 
   return { html, css };
 }

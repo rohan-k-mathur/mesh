@@ -23,5 +23,31 @@ exports[`portfolio export matches snapshot 1`] = `
 exports[`portfolio export matches snapshot 2`] = `
 "@tailwind base;
 @tailwind components;
-@tailwind utilities;"
+@tailwind utilities;
+
+.portfolio-container {
+  display: flex;
+  padding: 50px;
+  width: 34rem;
+}
+
+.portfolio-img-frame {
+  background: transparent;
+  border: 1px solid #1a192b;
+  padding: 0px;
+}
+
+.text-block {
+  width: fit-content;
+  border: .5px solid #000000;
+  border-radius: 2px;
+  font-size: .7rem;
+  line-height: 1;
+  letter-spacing: normal;
+  margin: 0.3rem 0;
+  padding: 0.3rem;
+  max-height: 9.25rem;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+}"
 `;
