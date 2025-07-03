@@ -23,10 +23,11 @@ interface Props {
 export default function WorkflowBuilder({ initialGraph, onSave }: Props) {
   const [nodes, setNodes] = useState<Node[]>(initialGraph?.nodes || []);
   const [edges, setEdges] = useState<Edge[]>(initialGraph?.edges || []);
+  const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
   const [workflowId, setWorkflowId] = useState<string | null>(null);
 
   const onConnect = useCallback((connection: Connection) => {
-    setEdges((eds) => addEdge(connection, eds));
+    setEdges((eds) => addEdge({ ...connection, condition: "" }, eds));
   }, []);
 
   const addState = () => {
@@ -46,6 +47,10 @@ export default function WorkflowBuilder({ initialGraph, onSave }: Props) {
     setWorkflowId(result.id);
   };
 
+  const onEdgeClick = (_: React.MouseEvent, edge: Edge) => {
+    setSelectedEdge(edge);
+  };
+
   return (
     <div style={{ height: 500 }}>
       <Button onClick={addState}>Add State</Button>
@@ -53,11 +58,44 @@ export default function WorkflowBuilder({ initialGraph, onSave }: Props) {
       {workflowId && (
         <a href={`/workflows/${workflowId}`}>Run Workflow</a>
       )}
-      <ReactFlow nodes={nodes} edges={edges} onConnect={onConnect}>
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        onConnect={onConnect}
+        onEdgeClick={onEdgeClick}
+      >
         <Background />
         <MiniMap />
         <Controls />
       </ReactFlow>
+      {selectedEdge && (
+        <div className="absolute top-2 right-2 bg-white border p-2 space-y-2">
+          <div>Editing edge {selectedEdge.id}</div>
+          <input
+            className="border p-1"
+            value={(selectedEdge as any).condition || ""}
+            onChange={(e) => {
+              const value = e.target.value;
+              setEdges((eds) =>
+                eds.map((ed) =>
+                  ed.id === selectedEdge.id
+                    ? { ...ed, condition: value }
+                    : ed
+                )
+              );
+              setSelectedEdge((ed) =>
+                ed ? { ...ed, condition: value } : ed
+              );
+            }}
+          />
+          <button
+            className="border px-2"
+            onClick={() => setSelectedEdge(null)}
+          >
+            Close
+          </button>
+        </div>
+      )}
     </div>
   );
 }

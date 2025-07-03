@@ -15,10 +15,31 @@ export interface WorkflowGraph {
   edges: WorkflowEdge[];
 }
 
+export function defaultEvaluate(
+  condition: string,
+  context: Record<string, any> = {}
+): boolean {
+  try {
+    const vm = require("vm");
+    const script = new vm.Script(condition);
+    const sandbox = { ...context };
+    const result = script.runInNewContext(sandbox);
+    return !!result;
+  } catch {
+    return false;
+  }
+}
+
+export type ConditionEvaluator = (
+  condition: string,
+  context?: Record<string, any>
+) => boolean;
+
 export async function executeWorkflow(
   graph: WorkflowGraph,
   actions: Record<string, () => Promise<void>>,
-  evaluate: (condition: string) => boolean = () => true
+  evaluate: ConditionEvaluator = () => true,
+  context: Record<string, any> = {}
 ): Promise<string[]> {
   const executed: string[] = [];
   const nodeMap = new Map(graph.nodes.map((n) => [n.id, n]));
@@ -31,7 +52,9 @@ export async function executeWorkflow(
     executed.push(current.id);
     const outgoing = graph.edges.filter((e) => e.source === current.id);
     if (outgoing.length === 0) break;
-    const nextEdge = outgoing.find((e) => !e.condition || evaluate(e.condition));
+    const nextEdge = outgoing.find(
+      (e) => !e.condition || evaluate(e.condition, context)
+    );
     if (!nextEdge) break;
     current = nodeMap.get(nextEdge.target);
   }
