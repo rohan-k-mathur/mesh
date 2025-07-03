@@ -123,7 +123,7 @@ const PostCard = async ({
             {(type === "IMAGE" || type === "IMAGE_COMPUTE") && image_url && (
 
               <Image
-                className=" flex img-feed-frame  rounded-sm mt-[.8rem] mb-[2rem]  ml-[7.5rem] mr-[8rem] items-center"
+                className=" flex img-feed-frame  rounded-sm mt-[1rem] mb-[1rem] justify-center align-center items-center"
                 src={image_url}
                 alt="image not found"
                 width={0}
