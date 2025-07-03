@@ -8,11 +8,13 @@ exports[`portfolio export matches snapshot 1`] = `
   <title>Portfolio</title>
   <link href="tailwind.css" rel="stylesheet">
 </head>
-<body class="bg-white p-4">
-  <div class="flex flex-col gap-4">
-    <div>Hello</div>
-    <img src="img.png" class="w-full" />
-    <div><a href="https://example.com" class="text-blue-500 underline" target="_blank" rel="noopener">https://example.com</a></div>
+<body>
+  <div class="portfolio-container flex flex-col w-[34rem] max-h-[3000px]">
+    <div class="flex flex-col gap-2 rounded-lg p-4 bg-white mt-4 max-h-[3000px]">
+      <div class="text-block flex flex-col max-h-[1000px] mb-1 mt-2 break-words">Hello</div>
+      <img src="img.png" class="object-cover  portfolio-img-frame flex flex-col max-h-[3000px] mb-1 mt-2 break-words" />
+      <a href="https://example.com" class="text-blue-500 underline break-all" target="_blank" rel="noreferrer">https://example.com</a>
+    </div>
   </div>
 </body>
 </html>"

@@ -10,19 +10,24 @@ export function generatePortfolioTemplates(data: PortfolioExportData): {
   html: string;
   css: string;
 } {
-  const layoutClass =
-    data.layout === "grid" ? "grid grid-cols-3 gap-4" : "flex flex-col gap-4";
-  const colorClass = data.color || "bg-white";
+  const bgClass = data.color || "bg-white";
+
+  const textBlock = data.text
+    ? `<div class="text-block flex flex-col max-h-[1000px] mb-1 mt-2 break-words">${data.text}</div>`
+    : "";
 
   const images = data.images
-    .map((src) => `<img src="${src}" class="w-full" />`)
+    .map((src, idx) =>
+      `<img src="${src}" class="object-cover  portfolio-img-frame ${idx === 0 ? "flex flex-col max-h-[3000px] mb-1 mt-2 break-words" : ""}" />`
+    )
     .join("\n");
+
   const links = data.links
     .map(
       (href) =>
-        `<a href="${href}" class="text-blue-500 underline" target="_blank" rel="noopener">${href}</a>`
+        `<a href="${href}" class="text-blue-500 underline break-all" target="_blank" rel="noreferrer">${href}</a>`
     )
-    .join("<br/>\n");
+    .join("\n");
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -31,11 +36,13 @@ export function generatePortfolioTemplates(data: PortfolioExportData): {
   <title>Portfolio</title>
   <link href="tailwind.css" rel="stylesheet">
 </head>
-<body class="${colorClass} p-4">
-  <div class="${layoutClass}">
-    <div>${data.text}</div>
-    ${images}
-    <div>${links}</div>
+<body>
+  <div class="portfolio-container flex flex-col w-[34rem] max-h-[3000px]">
+    <div class="flex flex-col gap-2 rounded-lg p-4 ${bgClass} mt-4 max-h-[3000px]">
+      ${textBlock}
+      ${images}
+      ${links}
+    </div>
   </div>
 </body>
 </html>`;
