@@ -55,10 +55,15 @@ function LeftSidebar({ userRooms }: Props) {
       router.push("/create-room");
 
     }
+    function gotoflowbuilder()
+    {
+      router.push("/workflows/new");
 
+    }
   return (
     <section className="custom-scrollbar leftsidebar  bg-transparent">
-      <div className="flex  w-full flex flex-col gap-6 px-6">
+      <div>
+      <div className="flex  w-full flex flex-col gap-4 px-2">
        
             <Button
               className="border-[1px] border-rose-300 border-opacity-80 likebutton leftsidebar_link leftsidebar-item items-start justify-start h-fit  rounded-md hover:outline-2 hover:outline-double hover:outline-indigo-400"
@@ -68,6 +73,8 @@ function LeftSidebar({ userRooms }: Props) {
                 <Image
                   src="/assets/earth--filled.svg"
                   alt={"globe"}
+                  className="mr-2"
+
                   width={24}
                   height={24}
                 />
@@ -79,7 +86,12 @@ function LeftSidebar({ userRooms }: Props) {
           className=" likebutton leftsidebar_link  leftsidebar-item items-start justify-start h-fit rounded-md border-[1px] border-rose-300 border-opacity-80 hover:outline-2 hover:outline-double hover:outline-indigo-400"
           onClick={openRoomsModal}
         >
-          <Image src="/assets/3D-print-mesh.svg" alt="YourRooms" width={24} height={24} />
+          <Image src="/assets/3D-print-mesh.svg" 
+          alt="YourRooms" 
+          className="mr-2"
+
+          width={24} 
+          height={24} />
           <p className="text-black   max-lg:hidden">{"Your Rooms"}</p>
         </Button>
         <Button
@@ -90,20 +102,37 @@ function LeftSidebar({ userRooms }: Props) {
           <Image
             src="/assets/gateway.svg"
             alt="Create"
+            className="mr-2"
+
             width={24}
             height={24}
           />
           <p className="text-black  max-lg:hidden">{"New Room"}</p>
         </Button>
-      </div>
-      <div className="mb-6 px-6 ">
+        <Button
+          variant={"outline"}
+          onClick={gotoflowbuilder}
+          className="likebutton leftsidebar_link leftsidebar-item  items-start justify-start h-fit border-[1px] border-rose-300 border-opacity-80	 rounded-md hover:outline-2 hover:outline-double hover:outline-red-400"
+        >
+          <Image
+            src="/assets/branch.svg"
+            alt="Create"
+            className="mr-2"
+
+            width={24}
+            height={24}
+          />
+          <p className="text-black  max-lg:hidden">Flow Builder</p>
+        </Button>
+
+      <div className="h-fit w-full">
         {isUserSignedIn && <CreateFeedPost />}
       </div>
-      <div className="mb-6 px-6  ">
+      <div className="h-fit w-full">
         {isUserSignedIn && (
           <Button
           variant={"outline"}
-            className="likebutton leftsidebar-link  leftsidebar-item  items-start justify-start h-full w-full rounded-md border-[1px] border-rose-300 border-opacity-80 hover:outline-2 hover:outline-double hover:outline-emerald-400"
+            className="likebutton leftsidebar-link  leftsidebar-item  items-start justify-start w-full h-fit rounded-md border-[1px] border-rose-300 border-opacity-80 hover:outline-2 hover:outline-double hover:outline-emerald-400"
             onClick={gotoprofile}
           >
             <Image
@@ -117,7 +146,7 @@ function LeftSidebar({ userRooms }: Props) {
           </Button>
         )}
       </div>
-      <div className="mb-6 px-6  ">
+      <div className="h-fit w-full">
         {isUserSignedIn && (
           <Button
           variant={"outline"}
@@ -136,7 +165,7 @@ function LeftSidebar({ userRooms }: Props) {
           </Button>
         )}
       </div>
-      <div className="mb-6 px-6 ">
+      <div className="h-fit w-full mt-4">
         {isUserSignedIn && (
           <Button
           variant={"outline"}
@@ -151,11 +180,14 @@ function LeftSidebar({ userRooms }: Props) {
               width={24}
               height={24}
             />
-            <p className="text-black max-lg:hidden">Logout</p>
+            <p className="text-black max-lg:hidden">Sign Out</p>
           </Button>
         )}
       </div>
-      <div className="absolute justify-start  top-[1.55rem] left-[2.3rem] ">
+      </div>
+      </div>
+
+      <div className="absolute justify-start  top-[1.55rem] left-[.8rem] ">
       <Link href="/" className="flex items-center gap-2">
         <Image src="/assets/logo-black.svg" alt="logo" width={36} height={36} /> 
         <div className={`${parabole.className}`}>

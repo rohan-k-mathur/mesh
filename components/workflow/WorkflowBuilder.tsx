@@ -136,7 +136,7 @@ export default function WorkflowBuilder({ initialGraph, onSave }: Props) {
 
   return (
     <div style={{ height: 500, position: "relative" }} ref={wrapperRef}>
-      <div className="absolute left-2 top-2 z-10 flex gap-2">
+      <div className="absolute  left-2 top-2 z-10 flex gap-2">
         <div
           className="dndnode"
           draggable
