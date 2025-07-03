@@ -27,9 +27,6 @@ interface Props {
 }
 
 export default function WorkflowBuilder({ initialGraph, onSave }: Props) {
-  const [nodes, setNodes] = useState<Node[]>(initialGraph?.nodes || []);
-  const [edges, setEdges] = useState<Edge[]>(initialGraph?.edges || []);
-  const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState<Node[]>(
     initialGraph?.nodes || []
   );
@@ -42,12 +39,6 @@ export default function WorkflowBuilder({ initialGraph, onSave }: Props) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const { screenToFlowPosition } = useReactFlow();
 
-  const onConnect = useCallback(
-    (connection: Connection) => {
-      setEdges((eds) => addEdge(connection, eds));
-    },
-    [setEdges]
-  );
 
   const onNodeClick: NodeMouseHandler = (_event, node) => {
     setSelectedNode(node);
@@ -118,22 +109,8 @@ export default function WorkflowBuilder({ initialGraph, onSave }: Props) {
     setWorkflowId(result.id);
   };
 
-  const onEdgeClick = (_: React.MouseEvent, edge: Edge) => {
-    setSelectedEdge(edge);
-  };
 
   return (
-    <div style={{ height: 500 }}>
-      <Button onClick={addState}>Add State</Button>
-      <Button onClick={save}>Save</Button>
-      {workflowId && (
-        <a href={`/workflows/${workflowId}`}>Run Workflow</a>
-      )}
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onConnect={onConnect}
-        onEdgeClick={onEdgeClick}
     <div style={{ height: 500, position: "relative" }} ref={wrapperRef}>
       <div className="absolute left-2 top-2 z-10 flex gap-2">
         <div
