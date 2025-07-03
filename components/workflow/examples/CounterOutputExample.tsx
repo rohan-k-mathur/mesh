@@ -12,8 +12,20 @@ import { WorkflowRunnerInner } from "../WorkflowRunner";
 
 const sampleGraph: WorkflowGraph = {
   nodes: [
-    { id: "counter", type: "trigger", action: "sample:counter" },
-    { id: "action", type: "action", action: "sample:createOutput" },
+    {
+      id: "counter",
+      type: "trigger",
+      action: "sample:counter",
+      data: { label: "counter" },
+      position: { x: 0, y: 0 },
+    },
+    {
+      id: "action",
+      type: "action",
+      action: "sample:createOutput",
+      data: { label: "action" },
+      position: { x: 150, y: 0 },
+    },
   ],
   edges: [{ id: "e1", source: "counter", target: "action" }],
 };
