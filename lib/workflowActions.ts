@@ -9,3 +9,7 @@ export function registerWorkflowAction(name: string, action: WorkflowAction) {
 export function getWorkflowAction(name: string): WorkflowAction | undefined {
   return registry[name];
 }
+
+export function listWorkflowActions(): string[] {
+  return Object.keys(registry);
+}

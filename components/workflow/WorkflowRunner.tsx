@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { WorkflowGraph } from "@/lib/workflowExecutor";
 import { getWorkflowAction } from "@/lib/workflowActions";
 import { registerDefaultWorkflowActions } from "@/lib/registerDefaultWorkflowActions";
+import { registerIntegrationActions } from "@/lib/registerIntegrationActions";
+import { IntegrationApp } from "@/lib/integrations/types";
 import { useEffect } from "react";
 import {
   WorkflowExecutionProvider,
@@ -20,6 +22,16 @@ function Runner({ graph }: Props) {
 
   useEffect(() => {
     registerDefaultWorkflowActions();
+    const integrationContext = (require as any).context(
+      "../../integrations",
+      false,
+      /\.ts$/
+    );
+    const modules: Record<string, { integration?: IntegrationApp }> = {};
+    integrationContext.keys().forEach((key: string) => {
+      modules[key] = integrationContext(key);
+    });
+    registerIntegrationActions(modules);
   }, []);
 
   const handleRun = () => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useRef, useState, useEffect } from "react";
 import {
   ReactFlow,
   Background,
@@ -20,6 +20,10 @@ import "@xyflow/react/dist/style.css";
 import { Button } from "@/components/ui/button";
 import { WorkflowGraph } from "@/lib/actions/workflow.actions";
 import WorkflowSidePanel from "./WorkflowSidePanel";
+import { registerDefaultWorkflowActions } from "@/lib/registerDefaultWorkflowActions";
+import { registerIntegrationActions } from "@/lib/registerIntegrationActions";
+import { listWorkflowActions } from "@/lib/workflowActions";
+import { IntegrationApp } from "@/lib/integrations/types";
 
 interface Props {
   initialGraph?: WorkflowGraph;
@@ -36,9 +40,25 @@ export default function WorkflowBuilder({ initialGraph, onSave }: Props) {
   const [workflowId, setWorkflowId] = useState<string | null>(null);
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
+  const [actions, setActions] = useState<string[]>([]);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const importRef = useRef<HTMLInputElement>(null);
   const { screenToFlowPosition } = useReactFlow();
+
+  useEffect(() => {
+    registerDefaultWorkflowActions();
+    const integrationContext = (require as any).context(
+      "../../integrations",
+      false,
+      /\.ts$/
+    );
+    const modules: Record<string, { integration?: IntegrationApp }> = {};
+    integrationContext.keys().forEach((key: string) => {
+      modules[key] = integrationContext(key);
+    });
+    registerIntegrationActions(modules);
+    setActions(listWorkflowActions());
+  }, []);
 
   const exportJson = () => {
     const data = JSON.stringify({ nodes, edges }, null, 2);
@@ -210,6 +230,7 @@ export default function WorkflowBuilder({ initialGraph, onSave }: Props) {
       <WorkflowSidePanel
         node={selectedNode ?? undefined}
         edge={selectedEdge ?? undefined}
+        actions={actions}
         onUpdateNode={updateNode}
         onUpdateEdge={updateEdge}
         onClose={() => {
