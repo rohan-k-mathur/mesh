@@ -1,39 +1,54 @@
 "use client";
-import { useState } from "react";
-import { executeWorkflow, WorkflowGraph } from "@/lib/workflowExecutor";
+
 import { Button } from "@/components/ui/button";
+import { WorkflowGraph } from "@/lib/workflowExecutor";
+import {
+  WorkflowExecutionProvider,
+  useWorkflowExecution,
+} from "./WorkflowExecutionContext";
+import WorkflowViewer from "./WorkflowViewer";
 
 interface Props {
   graph: WorkflowGraph;
 }
 
-export default function WorkflowRunner({ graph }: Props) {
-  const [executed, setExecuted] = useState<string[]>([]);
-  const [running, setRunning] = useState(false);
+function Runner({ graph }: Props) {
+  const { run, pause, resume, paused, running, logs } = useWorkflowExecution();
 
-  const run = async () => {
-    setRunning(true);
-    setExecuted([]);
-    const actions: Record<string, () => Promise<void>> = {};
+  const handleRun = () => {
+    const actions: Record<string, () => Promise<string>> = {};
     for (const node of graph.nodes) {
-      actions[node.id] = async () => {
-        setExecuted((prev) => [...prev, node.id]);
-      };
+      actions[node.id] = async () => `Executed ${node.id}`;
     }
-    await executeWorkflow(graph, actions);
-    setRunning(false);
+    run(graph, actions);
   };
 
   return (
     <div className="space-y-2">
-      <Button onClick={run} disabled={running}>
-        {running ? "Running..." : "Run"}
-      </Button>
-      <div>
-        {executed.map((id) => (
-          <div key={id}>{id}</div>
+      <div className="flex gap-2">
+        <Button onClick={handleRun} disabled={running}>
+          {running ? "Running..." : "Run"}
+        </Button>
+        {running && (
+          <Button onClick={paused ? resume : pause}>
+            {paused ? "Resume" : "Pause"}
+          </Button>
+        )}
+      </div>
+      <WorkflowViewer graph={graph} />
+      <div className="border h-32 overflow-auto p-2 text-sm">
+        {logs.map((log, i) => (
+          <div key={i}>{log}</div>
         ))}
       </div>
     </div>
+  );
+}
+
+export default function WorkflowRunner({ graph }: Props) {
+  return (
+    <WorkflowExecutionProvider>
+      <Runner graph={graph} />
+    </WorkflowExecutionProvider>
   );
 }
