@@ -44,7 +44,7 @@ function PortfolioNode({ id, data }: NodeProps<PortfolioNodeData>) {
     setLayout(data.layout);
     setColor(data.color);
   }, [data]);
-
+  const colcol = data.color;
   const isOwned = currentUser
     ? Number(currentUser.userId) === Number(data.author.id)
     : false;
@@ -125,7 +125,7 @@ function PortfolioNode({ id, data }: NodeProps<PortfolioNodeData>) {
       generateOnClick={handleExport}
     >
       <div className="portfolio-container flex flex-col w-[34rem] max-h-[3000px] ">
-        <div className="flex flex-col gap-2 rounded-lg p-4 bg-white mt-4  max-h-[3000px]">
+        <div  className={`${color}flex flex-col gap-2 rounded-lg p-4  mt-4  max-h-[3000px]`}>
           {text && (
             <div className="text-block flex flex-col max-h-[1000px] mb-1 mt-2 break-words">{text}</div>
           )}
