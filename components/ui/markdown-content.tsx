@@ -239,11 +239,11 @@ const components: Partial<Components> = {
 			{children}
 		</td>
 	),
-	img: ({ alt, ...props }: React.ImgHTMLAttributes<HTMLImageElement>) => (
-                  // eslint-disable-next-line @next/next/no-img-element
-		// biome-ignore lint/a11y/useAltText: alt is not required
-		<img className="rounded-md" alt={alt} {...props} />
-	),
+        img: ({ alt, ...props }: React.ImgHTMLAttributes<HTMLImageElement>) => (
+                // biome-ignore lint/a11y/useAltText: alt is not required
+                // eslint-disable-next-line @next/next/no-img-element
+                <img className="rounded-md" alt={alt} {...props} />
+        ),
 	code: ({ children, node, className, ...props }) => {
 		const match = /language-(\w+)/.exec(className || "");
 		if (match) {
