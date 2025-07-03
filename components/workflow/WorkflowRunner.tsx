@@ -3,6 +3,8 @@
 import { Button } from "@/components/ui/button";
 import { WorkflowGraph } from "@/lib/workflowExecutor";
 import { getWorkflowAction } from "@/lib/workflowActions";
+import { registerDefaultWorkflowActions } from "@/lib/registerDefaultWorkflowActions";
+import { useEffect } from "react";
 import {
   WorkflowExecutionProvider,
   useWorkflowExecution,
@@ -15,6 +17,10 @@ interface Props {
 
 function Runner({ graph }: Props) {
   const { run, pause, resume, paused, running, logs } = useWorkflowExecution();
+
+  useEffect(() => {
+    registerDefaultWorkflowActions();
+  }, []);
 
   const handleRun = () => {
     const actions: Record<string, () => Promise<string | void>> = {};
