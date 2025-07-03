@@ -17,9 +17,16 @@ interface ViewerProps {
 }
 
 export default function WorkflowViewer({ graph }: ViewerProps) {
-  const { current } = useWorkflowExecution();
+  const { current, graph: execGraph } = useWorkflowExecution();
   const [nodes, setNodes] = useState<Node[]>(graph.nodes as Node[]);
-  const [edges] = useState<Edge[]>(graph.edges as Edge[]);
+  const [edges, setEdges] = useState<Edge[]>(graph.edges as Edge[]);
+
+  useEffect(() => {
+    if (execGraph) {
+      setNodes(execGraph.nodes as Node[]);
+      setEdges(execGraph.edges as Edge[]);
+    }
+  }, [execGraph]);
 
   useEffect(() => {
     setNodes((nds) =>
