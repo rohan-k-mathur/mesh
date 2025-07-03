@@ -14,7 +14,7 @@ function ThreadNode({ id, data }: NodeProps<ThreadNodeType>) {
   useEffect(() => {
     if ("username" in author) return;
     fetchUser(data.author.id).then((user) => user && setAuthor(user));
-  }, [data]);
+  }, [author, data.author.id]);
 
   const isOwned = currentUser ? Number(currentUser.userId) === Number(data.author.id) : false;
 

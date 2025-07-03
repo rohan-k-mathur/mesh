@@ -96,7 +96,7 @@ function DrawNode({ id, data }: NodeProps<DrawNodeData>) {
   useEffect(() => {
     if ("username" in author) return;
     fetchUser(data.author.id).then((user) => user && setAuthor(user));
-  }, [data]);
+  }, [author, data.author.id]);
 
   useEffect(() => {
     if (!editorReady || !editorRef.current) return;

@@ -31,7 +31,7 @@ function AudioNode({ id, data }: NodeProps<AudioNodeData>) {
   useEffect(() => {
     if ("username" in author) return;
     fetchUser(data.author.id).then((user) => user && setAuthor(user));
-  }, [data]);
+  }, [author, data.author.id]);
 
   useEffect(() => {
     if (!currentUser) return;

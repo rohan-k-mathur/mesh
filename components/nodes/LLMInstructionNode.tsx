@@ -31,7 +31,7 @@ function LLMInstructionNode({ id, data }: NodeProps<LLMNodeType>) {
   useEffect(() => {
     if ("username" in author) return;
     fetchUser(data.author.id).then((u) => u && setAuthor(u));
-  }, [data.author]);
+  }, [author, data.author.id]);
 
   const isOwned = currentUser ? Number(currentUser.userId) === Number(data.author.id) : false;
 

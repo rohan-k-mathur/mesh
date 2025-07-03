@@ -38,7 +38,7 @@ function ImageComputeNode({ id, data }: NodeProps<ImageComputeNodeProps>) {
         setAuthor(user!);
       });
     }
-  }, [data]);
+  }, [author, data.author.id]);
 
   const isOwned = currentActiveUser
     ? Number(currentActiveUser!.userId) === Number(data.author.id)
