@@ -27,6 +27,9 @@ interface Props {
 }
 
 export default function WorkflowBuilder({ initialGraph, onSave }: Props) {
+  const [nodes, setNodes] = useState<Node[]>(initialGraph?.nodes || []);
+  const [edges, setEdges] = useState<Edge[]>(initialGraph?.edges || []);
+  const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState<Node[]>(
     initialGraph?.nodes || []
   );
@@ -67,6 +70,9 @@ export default function WorkflowBuilder({ initialGraph, onSave }: Props) {
     event.dataTransfer.dropEffect = "move";
   };
 
+  const onConnect = useCallback((connection: Connection) => {
+    setEdges((eds) => addEdge({ ...connection, condition: "" }, eds));
+  }, []);
   const onDrop = (event: React.DragEvent) => {
     event.preventDefault();
     const type = event.dataTransfer.getData("application/reactflow");
@@ -112,7 +118,22 @@ export default function WorkflowBuilder({ initialGraph, onSave }: Props) {
     setWorkflowId(result.id);
   };
 
+  const onEdgeClick = (_: React.MouseEvent, edge: Edge) => {
+    setSelectedEdge(edge);
+  };
+
   return (
+    <div style={{ height: 500 }}>
+      <Button onClick={addState}>Add State</Button>
+      <Button onClick={save}>Save</Button>
+      {workflowId && (
+        <a href={`/workflows/${workflowId}`}>Run Workflow</a>
+      )}
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        onConnect={onConnect}
+        onEdgeClick={onEdgeClick}
     <div style={{ height: 500, position: "relative" }} ref={wrapperRef}>
       <div className="absolute left-2 top-2 z-10 flex gap-2">
         <div
@@ -147,6 +168,34 @@ export default function WorkflowBuilder({ initialGraph, onSave }: Props) {
         <MiniMap />
         <Controls />
       </ReactFlow>
+      {selectedEdge && (
+        <div className="absolute top-2 right-2 bg-white border p-2 space-y-2">
+          <div>Editing edge {selectedEdge.id}</div>
+          <input
+            className="border p-1"
+            value={(selectedEdge as any).condition || ""}
+            onChange={(e) => {
+              const value = e.target.value;
+              setEdges((eds) =>
+                eds.map((ed) =>
+                  ed.id === selectedEdge.id
+                    ? { ...ed, condition: value }
+                    : ed
+                )
+              );
+              setSelectedEdge((ed) =>
+                ed ? { ...ed, condition: value } : ed
+              );
+            }}
+          />
+          <button
+            className="border px-2"
+            onClick={() => setSelectedEdge(null)}
+          >
+            Close
+          </button>
+        </div>
+      )}
       <WorkflowSidePanel
         node={selectedNode ?? undefined}
         edge={selectedEdge ?? undefined}
