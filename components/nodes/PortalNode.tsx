@@ -6,12 +6,15 @@ import { AuthorOrAuthorId } from "@/lib/reactflow/types";
 import BaseNode from "./BaseNode";
 import { NodeProps, useReactFlow } from "@xyflow/react";
 import { useEffect, useState, useCallback } from "react";
-
+import { Button } from "../ui/button";
 interface PortalNodeData {
+  id: string;
+
+  data: {
   x: number;
   y: number;
   author: AuthorOrAuthorId;
-  locked: boolean;
+  locked: boolean;}
 }
 
 function PortalNode({ id, data }: NodeProps<PortalNodeData>) {
@@ -41,11 +44,11 @@ function PortalNode({ id, data }: NodeProps<PortalNodeData>) {
       type={"PORTAL"}
       isLocked={data.locked}
     >
-      <div className="portal-node">
-        <div className="portal-block">
-          <button  onClick={handleTeleport} className="portalbutton w-[15rem] p-4">
+      <div className="portal-node flex flex-col min-w-[20rem] ">
+        <div className="portal-block ">
+          <Button  onClick={handleTeleport} className="flex likebutton p-4 h-[100%] w-[100%]">
             Go to ({data.x}, {data.y})
-          </button>
+          </Button>
         </div>
       </div>
     </BaseNode>

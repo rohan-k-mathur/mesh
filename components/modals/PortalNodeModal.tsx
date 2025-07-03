@@ -26,7 +26,6 @@ const renderCreate = ({
       <DialogHeader className="dialog-header text-white text-lg py-4 mt-[-4rem]">
         <b> Create Portal</b>
       </DialogHeader>
-      <hr />
       <PortalNodeForm onSubmit={onSubmit!} currentX={0} currentY={0} />
     </div>
   );
@@ -46,7 +45,6 @@ const renderEdit = ({
       <DialogHeader className="dialog-header text-white text-lg py-4 mt-[-4rem]">
         <b> Edit Portal</b>
       </DialogHeader>
-      <hr />
       <PortalNodeForm onSubmit={onSubmit!} currentX={currentX} currentY={currentY} />
     </div>
   );
@@ -59,7 +57,7 @@ const renderView = (currentX: number, currentY: number) => {
         <b> View Portal</b>
       </DialogHeader>
       <hr />
-      <div className="py-4 grid gap-2 text-white">
+      <div className="py-4 grid gap-2 text-black">
         <div>X: {currentX}</div>
         <div>Y: {currentY}</div>
       </div>

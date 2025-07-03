@@ -88,9 +88,8 @@ const ImageNodeModal = ({ id, isOwned, onSubmit, currentImageURL }: Props) => {
   const isView = id && !isOwned;
   return (
     <div>
-      <DialogContent className="max-w-[57rem]">
-        <DialogTitle>TextNodeModal</DialogTitle>
-        <div className="grid rounded-md px-4 py-2">
+      <DialogContent className="max-w-[50%]">
+        <div className="mt-12 grid rounded-md px-4 py-2">
           {isCreate && renderCreate({ onSubmit })}
           {isEdit && renderEdit({ onSubmit, currentImageURL })}
           {isView && renderView(currentImageURL)}

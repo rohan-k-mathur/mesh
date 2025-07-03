@@ -15,6 +15,8 @@ import {
 } from "../ui/form";
 import { Input } from "../ui/input";
 
+import clockicon from "/public/assets/clock.svg";
+
 interface Props {
   onSubmit: (values: z.infer<typeof ImagePostValidation>) => void;
   currentImageURL: string;
@@ -51,7 +53,7 @@ const ImageNodeForm = ({ onSubmit, currentImageURL }: Props) => {
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
-        className="flex flex-col justify-start mt-8 mb-8"
+        className="flex flex-col justify-center mt-8 mb-8 "
       >
         <FormField
           control={form.control}
@@ -61,9 +63,10 @@ const ImageNodeForm = ({ onSubmit, currentImageURL }: Props) => {
               <FormLabel className="account-form_image-label text-xl">
                 <Image
                   src={imageURL}
-                  alt="uploaded image post"
+                  alt="upload"
                   width={96}
                   height={96}
+                  className="object-cover"
                   priority
                 />
               </FormLabel>
@@ -73,7 +76,7 @@ const ImageNodeForm = ({ onSubmit, currentImageURL }: Props) => {
                   type="file"
                   accept="image/*"
                   placeholder="Upload an image"
-                  className="account-form_image-input"
+                  className="account-form_image-input h-min w-min"
                   onChange={(e) => handleImage(e, field.onChange)}
                 />
               </FormControl>

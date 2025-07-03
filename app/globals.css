@@ -389,16 +389,13 @@
   letter-spacing: 0.1px;
 }
 .portal-node {
-  border-radius: 2px;
-  border-color: slategray;
+ display: grid;
   padding-left: 0.8rem;
   padding-right: 0.8rem;
   padding-top: 2.75rem;
   padding-bottom: 2.75rem;
-  justify-content: center;
-  align-items: center;
 
-  font-size: 0.5rem;
+  margin: 10%;
   cursor: grab;
   color:rgb(0, 0, 0);
 }
@@ -460,6 +457,7 @@
 
 .portal-block{
   width: fit-content;
+  
   margin: 0.3rem; 
   padding: 0.3rem;
 }
@@ -1188,7 +1186,7 @@ html:before{
     height: 100%;
     position: fixed;
     background: linear-gradient(to right,#E4E4E7, #a5b4fc, #FECDD3);
-    z-index: -49;
+    z-index: -1000;
 }
 @media screen and (min-width: 768px) {
   aside {

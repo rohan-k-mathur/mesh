@@ -22,10 +22,9 @@ const renderCreate = ({
 }) => {
   return (
     <div>
-      <DialogHeader className="dialog-header text-white text-lg py-4 mt-[-4rem]">
+      <DialogHeader className="dialog-header text-white text-lg py-4 mt-[-2rem] ml-2">
         <b> Create Post</b>
       </DialogHeader>
-      <hr />
       <TextNodeForm onSubmit={onSubmit!} currentText={""} />
     </div>
   );
@@ -89,8 +88,7 @@ const TextNodeModal = ({ id, isOwned, onSubmit, currentText }: Props) => {
   return (
     <div>
       <DialogContent className="max-w-[57rem]">
-        <DialogTitle>TextNodeModal</DialogTitle>
-        <div className="grid rounded-md px-4 py-2">
+        <div className="grid rounded-md px-4 py-2 mt-8">
           {isCreate && renderCreate({ onSubmit })}
           {isEdit && renderEdit({ onSubmit, currentText })}
           {isView && renderView(currentText)}
