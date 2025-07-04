@@ -12,12 +12,14 @@ import {
   useWorkflowExecution,
 } from "./WorkflowExecutionContext";
 import WorkflowViewer from "./WorkflowViewer";
+import { NodeTypes } from "@xyflow/react";
 
 interface Props {
   graph: WorkflowGraph;
+  nodeTypes?: NodeTypes;
 }
 
-export function WorkflowRunnerInner({ graph }: Props) {
+export function WorkflowRunnerInner({ graph, nodeTypes }: Props) {
   const { run, pause, resume, paused, running, logs } = useWorkflowExecution();
 
   useEffect(() => {
@@ -56,7 +58,7 @@ export function WorkflowRunnerInner({ graph }: Props) {
           </Button>
         )}
       </div>
-      <WorkflowViewer graph={graph} />
+      <WorkflowViewer graph={graph} nodeTypes={nodeTypes} />
       <div className="border h-32 overflow-auto p-2 text-sm">
         {logs.map((log, i) => (
           <div key={i}>{log}</div>
@@ -66,10 +68,10 @@ export function WorkflowRunnerInner({ graph }: Props) {
   );
 }
 
-export default function WorkflowRunner({ graph }: Props) {
+export default function WorkflowRunner({ graph, nodeTypes }: Props) {
   return (
     <WorkflowExecutionProvider>
-      <WorkflowRunnerInner graph={graph} />
+      <WorkflowRunnerInner graph={graph} nodeTypes={nodeTypes} />
     </WorkflowExecutionProvider>
   );
 }
