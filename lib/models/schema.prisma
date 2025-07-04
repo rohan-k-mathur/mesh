@@ -280,6 +280,7 @@ model WorkflowTransition {
   workflow_id   BigInt
   from_state_id BigInt
   to_state_id   BigInt
+  version       Int
   created_at    DateTime      @default(now()) @db.Timestamptz(6)
   workflow      Workflow      @relation(fields: [workflow_id], references: [id], onDelete: Cascade)
   fromState     WorkflowState @relation("WorkflowTransitionFromState", fields: [from_state_id], references: [id])
