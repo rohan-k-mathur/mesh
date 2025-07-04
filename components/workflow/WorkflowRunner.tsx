@@ -24,11 +24,9 @@ export function WorkflowRunnerInner({ graph, nodeTypes }: Props) {
 
   useEffect(() => {
     registerDefaultWorkflowActions();
-    const integrationContext = (require as any).context(
-      "../../integrations",
-      false,
-      /\.ts$/
-    );
+    const integrationContext = typeof (require as any).context === "function"
+      ? (require as any).context("../../integrations", false, /\.ts$/)
+      : { keys: () => [], context: () => ({}) };
     const modules: Record<string, { integration?: IntegrationApp }> = {};
     integrationContext.keys().forEach((key: string) => {
       modules[key] = integrationContext(key);
