@@ -34,7 +34,10 @@ export async function saveIntegration({
     service,
     credential,
   });
-  if (error) throw new Error(error.message);
+  if (error) {
+    console.error("Error saving integration", error);
+    throw new Error(error.message || "Failed to save integration");
+  }
 }
 
 export async function deleteIntegration(id: string) {
