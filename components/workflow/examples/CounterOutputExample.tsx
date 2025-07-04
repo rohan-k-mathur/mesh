@@ -35,7 +35,8 @@ function SampleRunner() {
 
   useEffect(() => {
     registerWorkflowAction("sample:counter", async () => {
-      for (let i = 0; i <= 100; i++) {
+      for (let i = 0; i <= 12; i++) {
+        console.log("i:", i);
         await new Promise((r) => setTimeout(r, 1000));
       }
       return "Counter reached 100";
@@ -45,7 +46,7 @@ function SampleRunner() {
       const node: Node = {
         id: `output-${Date.now()}`,
         data: { label: "output" },
-        position: { x: 150, y: 150 },
+        position: { x: 0, y: 150 },
       } as Node;
       addNode(node);
       return "Output node created";
