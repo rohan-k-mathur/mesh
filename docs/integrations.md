@@ -5,6 +5,7 @@ The state machine builder loads third‑party services from the `integrations/` 
 ```ts
 export const integration: IntegrationApp = {
   name: "slack",
+  description: "Post messages to Slack",
   actions: [
     {
       name: "sendMessage",
@@ -26,6 +27,14 @@ Integration actions receive a `credentials` object so implementations can pass A
 ## Usage
 Actions are referenced in workflows as `<integration>:<action>`. Register modules with `registerIntegrationActions`.
 
+## Submitting Integrations
+
+Third‑party integrations should include metadata so they can appear in the marketplace listing.
+
+- Place your module in the `integrations/` folder and export an `integration` object.
+- Provide `name` and `description` fields along with at least one action or trigger.
+- Keep external dependencies minimal and document any setup steps in a README.
+- Submit a pull request describing the integration and its use cases.
 ## Triggers
 
 Integrations can emit events that start workflows. Export `triggers` with `onEvent` handlers:
