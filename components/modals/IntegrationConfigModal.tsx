@@ -26,7 +26,7 @@ export default function IntegrationConfigModal() {
   return (
     <DialogContent className="max-w-[40rem]">
       <DialogHeader>
-        <DialogTitle>Configure Integration</DialogTitle>
+        <DialogTitle  className="text-white">Configure Integration</DialogTitle>
       </DialogHeader>
       <form onSubmit={handleSubmit} className="space-y-2">
         <Input

@@ -29,7 +29,7 @@ export default function ConnectAccountModal() {
   return (
     <DialogContent className="max-w-[40rem]">
       <DialogHeader>
-        <DialogTitle>Connect Account</DialogTitle>
+        <DialogTitle className="text-white">Connect Account</DialogTitle>
       </DialogHeader>
       <form onSubmit={handleSubmit} className="space-y-2">
         <Input
