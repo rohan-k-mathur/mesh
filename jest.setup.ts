@@ -1,5 +1,8 @@
 import React from "react";
 import "@testing-library/jest-dom";
+(require as any).context = jest.fn(() => ({
+  keys: () => [],
+}));
 jest.mock("@/lib/supabaseclient", () => ({ supabase: {} }));
 jest.mock("@supabase/supabase-js", () => ({}));
 jest.mock("@xyflow/react", () => {
@@ -14,6 +17,7 @@ jest.mock("@xyflow/react", () => {
     useNodesState: (initial: any[]) => React.useState(initial),
     useEdgesState: (initial: any[]) => React.useState(initial),
     useReactFlow: () => ({ screenToFlowPosition: (pos: any) => pos }),
+    BackgroundVariant: { Dots: "dots" },
   };
 });
 

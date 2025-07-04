@@ -13,6 +13,7 @@ export interface IntegrationTrigger {
 
 export interface IntegrationApp {
   name: string;
+  description?: string;
   actions?: IntegrationAction[];
   triggers?: IntegrationTrigger[];
 }

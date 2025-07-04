@@ -26,11 +26,19 @@ export async function createWorkflow({
       graph,
     },
   });
-  await prisma.workflowState.create({
+  const state = await prisma.workflowState.create({
     data: {
       workflow_id: workflow.id,
       version: 1,
       graph,
+    },
+  });
+  await prisma.workflowTransition.create({
+    data: {
+      workflow_id: workflow.id,
+      from_state_id: state.id,
+      to_state_id: state.id,
+      version: 1,
     },
   });
   revalidatePath("/workflows");
@@ -56,7 +64,7 @@ export async function updateWorkflow({
     orderBy: { version: "desc" },
   });
   const version = (last?.version ?? 0) + 1;
-  const [updatedWorkflow] = await prisma.$transaction([
+  const [updatedWorkflow, newState] = await prisma.$transaction([
     prisma.workflow.update({
       where: { id },
       data: { graph },
@@ -69,16 +77,44 @@ export async function updateWorkflow({
       },
     }),
   ]);
+  if (last) {
+    await prisma.workflowTransition.create({
+      data: {
+        workflow_id: id,
+        from_state_id: last.id,
+        to_state_id: newState.id,
+        version,
+      },
+    });
+  }
   return updatedWorkflow;
 }
 
-export async function fetchWorkflow({ id }: { id: bigint }) {
+export async function fetchWorkflow({
+  id,
+  version,
+  history = false,
+}: {
+  id: bigint;
+  version?: number;
+  history?: boolean;
+}) {
   await prisma.$connect();
+  const stateInclude = history
+    ? { orderBy: { version: "asc" } }
+    : version
+    ? { where: { version } }
+    : { orderBy: { version: "desc" }, take: 1 };
+  const transitionInclude = history
+    ? { orderBy: { version: "asc" } }
+    : version
+    ? { where: { version } }
+    : true;
   return await prisma.workflow.findUniqueOrThrow({
     where: { id },
     include: {
-      states: { orderBy: { version: "desc" }, take: 1 },
-      transitions: true,
+      states: stateInclude,
+      transitions: transitionInclude,
     },
   });
 }

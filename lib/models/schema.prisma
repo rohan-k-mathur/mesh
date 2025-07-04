@@ -256,6 +256,7 @@ model Workflow {
   owner      User     @relation(fields: [owner_id], references: [id], onDelete: Cascade)
   states     WorkflowState[]
   transitions WorkflowTransition[]
+  scheduledWorkflows ScheduledWorkflow[]
 
   @@map("workflows")
 }
@@ -280,6 +281,7 @@ model WorkflowTransition {
   workflow_id   BigInt
   from_state_id BigInt
   to_state_id   BigInt
+  version       Int
   created_at    DateTime      @default(now()) @db.Timestamptz(6)
   workflow      Workflow      @relation(fields: [workflow_id], references: [id], onDelete: Cascade)
   fromState     WorkflowState @relation("WorkflowTransitionFromState", fields: [from_state_id], references: [id])
@@ -336,4 +338,17 @@ model RecommendationClick {
   user                User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@map("recommendation_clicks")
+}
+
+model ScheduledWorkflow {
+  id          BigInt   @id @default(autoincrement())
+  workflow_id BigInt
+  cron        String?
+  trigger     String?
+  metadata    Json?
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+  workflow    Workflow @relation(fields: [workflow_id], references: [id], onDelete: Cascade)
+
+  @@map("scheduled_workflows")
 }

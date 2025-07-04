@@ -1,4 +1,5 @@
 /** @jest-environment jsdom */
+(require as any).context = jest.fn(() => ({ keys: () => [] }));
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { act } from "react";
 import WorkflowBuilder from "@/components/workflow/WorkflowBuilder";
