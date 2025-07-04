@@ -35,3 +35,22 @@ Third‑party integrations should include metadata so they can appear in the mar
 - Provide `name` and `description` fields along with at least one action or trigger.
 - Keep external dependencies minimal and document any setup steps in a README.
 - Submit a pull request describing the integration and its use cases.
+## Triggers
+
+Integrations can emit events that start workflows. Export `triggers` with `onEvent` handlers:
+
+```ts
+export const integration: IntegrationApp = {
+  name: "slack",
+  triggers: [
+    {
+      name: "message",
+      onEvent: async (cb) => {
+        // call cb when a message event occurs
+      },
+    },
+  ],
+};
+```
+
+Use `registerIntegrationTriggers` to subscribe to these events.
