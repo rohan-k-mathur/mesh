@@ -78,6 +78,9 @@ Mesh is deployed on Vercel: <https://vercel.com/18vijaybs-projects/ephemera>
 ### CRDT Prototype
 See [docs/realtime-crdt.md](docs/realtime-crdt.md) for notes on the experimental Yjs integration used for text nodes.
 
+### Workflow API
+Versioned workflows can be queried via [docs/workflows.md](docs/workflows.md).
+
 
 ## Faster setup in Codex
 See `Codex_Environment_Guide.md` for tips on caching dependencies and using a Docker image so the development server starts quickly.
