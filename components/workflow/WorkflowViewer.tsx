@@ -7,6 +7,7 @@ import {
   Controls,
   Node,
   Edge,
+  NodeTypes,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { WorkflowGraph } from "@/lib/workflowExecutor";
@@ -14,9 +15,10 @@ import { useWorkflowExecution } from "./WorkflowExecutionContext";
 
 interface ViewerProps {
   graph: WorkflowGraph;
+  nodeTypes?: NodeTypes;
 }
 
-export default function WorkflowViewer({ graph }: ViewerProps) {
+export default function WorkflowViewer({ graph, nodeTypes }: ViewerProps) {
   const { current, graph: execGraph } = useWorkflowExecution();
   const [nodes, setNodes] = useState<Node[]>(graph.nodes as Node[]);
   const [edges, setEdges] = useState<Edge[]>(graph.edges as Edge[]);
@@ -40,7 +42,7 @@ export default function WorkflowViewer({ graph }: ViewerProps) {
 
   return (
     <div style={{ height: 300 }}>
-      <ReactFlow nodes={nodes} edges={edges}>
+      <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes}>
         <Background />
         <Controls />
       </ReactFlow>
