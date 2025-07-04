@@ -7,6 +7,7 @@ jest.mock("@xyflow/react", () => {
   return {
     ReactFlow: ({ children }: any) => React.createElement("div", null, children),
     Background: () => React.createElement("div", null, "background"),
+    BackgroundVariant: { Dots: "Dots" },
     Controls: () => React.createElement("div", null, "controls"),
     MiniMap: () => React.createElement("div", null, "minimap"),
     addEdge: jest.fn((edge: any, edges: any[]) => edges.concat(edge)),
@@ -15,3 +16,9 @@ jest.mock("@xyflow/react", () => {
     useReactFlow: () => ({ screenToFlowPosition: (pos: any) => pos }),
   };
 });
+
+(require as any).context = () => {
+  const fn = () => ({});
+  fn.keys = () => [] as string[];
+  return fn;
+};

@@ -13,4 +13,4 @@ jobs:
           node-version: 18
       - run: yarn install --frozen-lockfile
       - run: npm run lint
-      - run: npm test
+      - run: npm test -- --runInBand
