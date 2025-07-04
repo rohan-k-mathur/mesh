@@ -29,14 +29,20 @@ export async function saveIntegration({
 }) {
   const user = await getUserFromCookies();
   if (!user) throw new Error("User not authenticated");
-  const { error } = await supabase.from("integrations").upsert({
-    user_id: user.userId?.toString(),
-    service,
-    credential,
-  });
-  if (error) {
-    console.error("Error saving integration", error);
-    throw new Error(error.message || "Failed to save integration");
+  try {
+    const { error } = await supabase.from("integrations").upsert({
+      user_id: user.userId?.toString(),
+      service,
+      credential,
+    });
+    if (error) {
+      const msg = error.message || error.details || "Failed to save integration";
+      console.error("Error saving integration", { message: msg, error });
+      throw new Error(msg);
+    }
+  } catch (err: any) {
+    console.error("Error saving integration", err);
+    throw new Error(err.message || "Failed to save integration");
   }
 }
 
