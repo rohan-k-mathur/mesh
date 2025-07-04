@@ -11,6 +11,7 @@ export function scheduleWorkflow(
   return setTimeout(() => {
     void runWorkflowWithSocket(graph, actions, emitter);
   }, delay);
+}
 
 import cron from "node-cron";
 import { prisma } from "@/lib/prismaclient";
