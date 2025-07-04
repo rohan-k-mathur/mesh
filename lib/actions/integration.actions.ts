@@ -15,7 +15,7 @@ export async function fetchIntegrations() {
   const { data, error } = await supabase
     .from("integrations")
     .select("id, service, credential")
-    .eq("user_id", user.userId);
+    .eq("user_id", user.userId?.toString());
   if (error) throw new Error(error.message);
   return data as Integration[];
 }
@@ -30,7 +30,7 @@ export async function saveIntegration({
   const user = await getUserFromCookies();
   if (!user) throw new Error("User not authenticated");
   const { error } = await supabase.from("integrations").upsert({
-    user_id: user.userId,
+    user_id: user.userId?.toString(),
     service,
     credential,
   });
@@ -44,6 +44,6 @@ export async function deleteIntegration(id: string) {
     .from("integrations")
     .delete()
     .eq("id", id)
-    .eq("user_id", user.userId);
+    .eq("user_id", user.userId?.toString());
   if (error) throw new Error(error.message);
 }
