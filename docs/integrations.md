@@ -25,3 +25,23 @@ Integration actions receive a `credentials` object so implementations can pass A
 
 ## Usage
 Actions are referenced in workflows as `<integration>:<action>`. Register modules with `registerIntegrationActions`.
+
+## Triggers
+
+Integrations can emit events that start workflows. Export `triggers` with `onEvent` handlers:
+
+```ts
+export const integration: IntegrationApp = {
+  name: "slack",
+  triggers: [
+    {
+      name: "message",
+      onEvent: async (cb) => {
+        // call cb when a message event occurs
+      },
+    },
+  ],
+};
+```
+
+Use `registerIntegrationTriggers` to subscribe to these events.
