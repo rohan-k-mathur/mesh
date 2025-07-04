@@ -8,7 +8,7 @@ import {
   useWorkflowExecution,
 } from "../WorkflowExecutionContext";
 import { WorkflowRunnerInner } from "../WorkflowRunner";
-import { registerWorkflowAction } from "@/lib/workflowActions";
+import { registerWorkflowAction, getWorkflowAction } from "@/lib/workflowActions";
 import { fetchIntegrations } from "@/lib/actions/integration.actions";
 import SendEmailModal from "@/components/modals/SendEmailModal";
 import useStore from "@/lib/reactflow/store";
@@ -65,7 +65,9 @@ function ExampleInner() {
   }, [cred, openModal]);
 
   const handleTrigger = useCallback(() => {
-    const actions = { openEmailModal: async () => {} };
+    const actions = {
+      openEmailModal: getWorkflowAction("openEmailModal") ?? (async () => {})
+    };
     const graph: WorkflowGraph = {
       nodes: [
         {
