@@ -60,6 +60,11 @@ function LeftSidebar({ userRooms }: Props) {
       router.push("/workflows/new");
 
     }
+    function gotoapplications()
+    {
+      router.push("/applications");
+
+    }
   return (
     <section className="custom-scrollbar leftsidebar  bg-transparent">
       <div>
@@ -111,18 +116,18 @@ function LeftSidebar({ userRooms }: Props) {
         </Button>
         <Button
           variant={"outline"}
-          onClick={gotoflowbuilder}
+          onClick={gotoapplications}
           className="likebutton leftsidebar_link leftsidebar-item  items-start justify-start h-fit border-[1px] border-rose-300 border-opacity-80	 rounded-md hover:outline-2 hover:outline-double hover:outline-red-400"
         >
           <Image
-            src="/assets/branch.svg"
+            src="/assets/apps.svg"
             alt="Create"
             className="mr-2"
 
             width={24}
             height={24}
           />
-          <p className="text-black  max-lg:hidden">Flow Builder</p>
+          <p className="text-black  max-lg:hidden">Applications</p>
         </Button>
 
       <div className="h-fit w-full">
