@@ -15,15 +15,22 @@ export default function ConnectAccountModal() {
   const [service, setService] = useState("");
   const [email, setEmail] = useState("");
   const [accessToken, setAccessToken] = useState("");
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!service) return;
     const credential = JSON.stringify({ email, accessToken });
-    await saveIntegration({ service, credential });
-    setService("");
-    setEmail("");
-    setAccessToken("");
+    try {
+      await saveIntegration({ service, credential });
+      setService("");
+      setEmail("");
+      setAccessToken("");
+      setError("");
+    } catch (err: any) {
+      console.error("Failed to save integration", err);
+      setError(err.message || "Failed to save integration");
+    }
   };
 
   return (
@@ -47,6 +54,9 @@ export default function ConnectAccountModal() {
           value={accessToken}
           onChange={(e) => setAccessToken(e.target.value)}
         />
+        {error && (
+          <p className="text-red-500 text-sm">{error}</p>
+        )}
         <div className="flex gap-2 mt-2">
           <Button type="submit">Save</Button>
           <DialogClose asChild>
