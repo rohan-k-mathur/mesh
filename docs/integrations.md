@@ -24,6 +24,10 @@ export const integration: IntegrationApp = {
 ## Global Variables and Auth
 Integration actions receive a `credentials` object so implementations can pass API keys or tokens. Credentials may come from environment variables or the `integrations` table.
 
+## Database Table
+
+Run the migration script `lib/models/migrations/20250705000000_create_integrations.sql` on your Supabase database to create the `integrations` table used by these actions.
+
 ## Usage
 Actions are referenced in workflows as `<integration>:<action>`. Register modules with `registerIntegrationActions`.
 
@@ -60,12 +64,12 @@ Use `registerIntegrationTriggers` to subscribe to these events.
 The Gmail integration uses OAuth tokens to send mail on a user's behalf.
 
 1. Create an OAuth client in the [Google Cloud Console](https://console.cloud.google.com/apis/credentials).
-2. Set the `GMAIL_CLIENT_ID` and `GMAIL_CLIENT_SECRET` variables in `.env.local`.
-3. Generate an access token for the Gmail account and save it using the **Connect Account** modal with the JSON format:
+2. Set the `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, and `GMAIL_REFRESH_TOKEN` variables in `.env`.
+3. Run `yarn gmail-token` to generate a fresh access token. Save the credentials using the **Connect Account** modal with the JSON format:
    ```json
    {
      "email": "user@gmail.com",
-     "accessToken": "ya29..."
+     "accessToken": "<token from script>"
    }
    ```
 
