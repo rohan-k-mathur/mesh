@@ -54,3 +54,19 @@ export const integration: IntegrationApp = {
 ```
 
 Use `registerIntegrationTriggers` to subscribe to these events.
+
+## Gmail API Setup
+
+The Gmail integration uses OAuth tokens to send mail on a user's behalf.
+
+1. Create an OAuth client in the [Google Cloud Console](https://console.cloud.google.com/apis/credentials).
+2. Set the `GMAIL_CLIENT_ID` and `GMAIL_CLIENT_SECRET` variables in `.env.local`.
+3. Generate an access token for the Gmail account and save it using the **Connect Account** modal with the JSON format:
+   ```json
+   {
+     "email": "user@gmail.com",
+     "accessToken": "ya29..."
+   }
+   ```
+
+The workflow action `gmail:sendEmail` reads these credentials to send messages through the Gmail API.
