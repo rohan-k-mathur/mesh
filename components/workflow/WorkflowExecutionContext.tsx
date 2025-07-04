@@ -9,6 +9,12 @@ import {
 } from "react";
 import { Node } from "@xyflow/react";
 import { WorkflowGraph } from "@/lib/workflowExecutor";
+import {
+  WORKFLOW_CHANNEL,
+  WORKFLOW_CURRENT_EVENT,
+  WORKFLOW_EXECUTED_EVENT,
+  WORKFLOW_LOG_EVENT,
+} from "@/constants";
 
 interface ExecutionContextValue {
   current: string | null;
@@ -74,14 +80,38 @@ export function WorkflowExecutionProvider({ children }: { children: ReactNode })
 
     const nodeMap = new Map(graph.nodes.map((n) => [n.id, n]));
     let currentNode = graph.nodes[0];
-      while (currentNode) {
-        setCurrent(currentNode.id);
-        const actionKey = currentNode.action ?? currentNode.id;
-        const result = await actions[actionKey]?.();
+    while (currentNode) {
+      setCurrent(currentNode.id);
+      await fetch("/api/workflow-broadcast", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          event: WORKFLOW_CURRENT_EVENT,
+          payload: { id: currentNode.id },
+        }),
+      });
+      const actionKey = currentNode.action ?? currentNode.id;
+      const result = await actions[actionKey]?.();
       if (typeof result === "string") {
         setLogs((prev) => [...prev, result]);
+        await fetch("/api/workflow-broadcast", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            event: WORKFLOW_LOG_EVENT,
+            payload: { log: result },
+          }),
+        });
       }
       setExecuted((prev) => [...prev, currentNode.id]);
+      await fetch("/api/workflow-broadcast", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          event: WORKFLOW_EXECUTED_EVENT,
+          payload: { id: currentNode.id },
+        }),
+      });
       await waitIfPaused();
       const outgoing = graph.edges.filter((e) => e.source === currentNode.id);
       if (outgoing.length === 0) break;
@@ -90,6 +120,14 @@ export function WorkflowExecutionProvider({ children }: { children: ReactNode })
       currentNode = nodeMap.get(nextEdge.target)!;
     }
     setCurrent(null);
+    await fetch("/api/workflow-broadcast", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        event: WORKFLOW_CURRENT_EVENT,
+        payload: { id: null },
+      }),
+    });
     setRunning(false);
   };
 

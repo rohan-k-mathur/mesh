@@ -45,3 +45,7 @@ export const COLORS = ["#DC2626", "#D97706", "#059669", "#7C3AED", "#DB2777"];
 export const MOUSE_EVENT = "cursor";
 export const EMOJI_EVENT = "reaction";
 export const TEXT_UPDATE_EVENT = "text-update";
+export const WORKFLOW_CHANNEL = "workflow-updates";
+export const WORKFLOW_CURRENT_EVENT = "workflow-current";
+export const WORKFLOW_EXECUTED_EVENT = "workflow-executed";
+export const WORKFLOW_LOG_EVENT = "workflow-log";
