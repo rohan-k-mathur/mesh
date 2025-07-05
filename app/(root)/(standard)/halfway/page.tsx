@@ -193,17 +193,20 @@ export default function HalfwayPage() {
   if (!isLoaded) return <Skeleton className="w-full h-[200px] rounded-md" />;
 
   return (
-    <div className="p-6 space-y-4">
+    <div className=" mt-[-2rem] space-y-4 ">
       {/* Two Autocomplete inputs + Midpoint button */}
       <div className="flex space-x-4">
         <Autocomplete
           onLoad={(auto) => (autocompleteRef1.current = auto)}
+          className="w-full w-full h-full likebutton shadow-none bg-opacity-50"
           onPlaceChanged={() =>
             handlePlaceChanged(autocompleteRef1, setAddress1, setCoord1)
           }
         >
           <Input
             placeholder="Enter first address"
+            className="w-full h-full likebutton outline-1 outline-blue bg-white bg-opacity-50"
+
             value={address1}
             onChange={(e) => setAddress1(e.target.value)}
           />
@@ -211,23 +214,28 @@ export default function HalfwayPage() {
 
         <Autocomplete
           onLoad={(auto) => (autocompleteRef2.current = auto)}
+          className="w-full h-full likebutton  shadow-none bg-opacity-50"
+
           onPlaceChanged={() =>
             handlePlaceChanged(autocompleteRef2, setAddress2, setCoord2)
           }
         >
           <Input
             placeholder="Enter second address"
+            className="w-full h-full likebutton outline-1 outline-blue bg-white bg-opacity-50"
+
             value={address2}
             onChange={(e) => setAddress2(e.target.value)}
           />
         </Autocomplete>
 
-        <Button
+        <button
           onClick={handleFindMidpoint}
           disabled={loading || !address1 || !address2}
+          className="likebutton outline-1 outline-rose-200 bg-white bg-opacity-50 p-2"
         >
-          {loading ? "Finding..." : "Find Midpoint"}
-        </Button>
+          {loading ? "Finding..." : "Halfway"}
+        </button>
       </div>
 
       {/* Display error if any */}
@@ -241,6 +249,7 @@ export default function HalfwayPage() {
           zoom={13}
           mapContainerStyle={mapContainerStyle}
           onLoad={(mapInstance) => setMap(mapInstance)}
+          
         >
           <Marker position={midpoint} label="Midpoint" />
           {map && (
@@ -264,18 +273,88 @@ export default function HalfwayPage() {
           ))}
         </GoogleMap>
       )}
+      <div className="flex flex-col w-full h-full space-x-4" >
+      <div className="flex flex-col w-full h-full space-y-4 items-center ">
+      <div             className="likebutton bg-white bg-opacity-50 px-4 py-4 w-full h-full">
+          <label className="block text-[1rem] px-2 py-1">Radius: {radius} m</label>
+          <Slider
+            value={[radius]}
+            min={500}
+            max={5000}
+            step={100}
+            className="py-1"
+            onValueChange={(value) => setRadius(value[0])}
+          />
+          
+        </div>
+        <div className="flex w-full space-x-4">
 
+        {/* Venue Type + Radius controls */}
+        <div className="flex w-full  h-full space-x-4  items-center">
+        <Select   value={venueType} onValueChange={(val) => setVenueType(val)}>
+          <SelectTrigger className=" likebutton bg-white bg-opacity-50 py-2 px-4 w-full h-full">
+            <SelectValue placeholder="Venue Type" />
+          </SelectTrigger>
+          <SelectContent >
+            <SelectItem className="hover:bg-slate-200" value="restaurant">Restaurant</SelectItem>
+            <SelectItem className="hover:bg-slate-200" value="cafe">Cafe</SelectItem>
+            <SelectItem className="hover:bg-slate-200" value="park">Park</SelectItem>
+          </SelectContent>
+        </Select>
+
+       
+        </div>
+        <div className="flex w-full  h-full space-x-4  items-center">
+        <Select   value={venueType} onValueChange={(val) => setVenueType(val)}>
+          <SelectTrigger className=" likebutton bg-white bg-opacity-50 py-2 px-4 w-full h-full">
+            <SelectValue placeholder="Filter" />
+          </SelectTrigger>
+          <SelectContent >
+            <SelectItem className="hover:bg-slate-200" value="restaurant">Hours</SelectItem>
+            <SelectItem className="hover:bg-slate-200" value="cafe">Reservation</SelectItem>
+            <SelectItem className="hover:bg-slate-200" value="park">Type</SelectItem>
+          </SelectContent>
+        </Select>
+
+       
+        </div>
+        <div className="flex w-full  h-full space-x-4  items-center">
+        <Select   value={venueType} onValueChange={(val) => setVenueType(val)}>
+          <SelectTrigger className=" likebutton bg-white bg-opacity-50 py-2 px-4 w-full h-full">
+            <SelectValue placeholder="Sort By" />
+          </SelectTrigger>
+          <SelectContent >
+            <SelectItem className="hover:bg-slate-200" value="restaurant">Price</SelectItem>
+            <SelectItem className="hover:bg-slate-200" value="cafe">Rating</SelectItem>
+            <SelectItem className="hover:bg-slate-200" value="park">Distance</SelectItem>
+          </SelectContent>
+        </Select>
+
+        </div>
+        </div>
+        {/* <button
+        
+          onClick={handleFindMidpoint}
+          disabled={loading || !address1 || !address2}
+          className="likebutton bg-white bg-opacity-50 px-2 invisible"
+        >
+          {loading ? "Finding..." : "Halfway"}
+        </button> */}
+        </div>
+        </div>
+        <div className="flex flex-col w-full">
       {venues.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
           {venues.map((venue) => (
-            <Card key={venue.id} className="likebutton">
+            <Card key={venue.id} className="likebutton bg-white bg-opacity-40">
               <CardHeader>
-                <CardTitle>{venue.name}</CardTitle>
-                <CardDescription>{venue.address}</CardDescription>
+                <CardTitle className="text-block text-[1rem] tracking-[.05rem] leading-5">{venue.name}</CardTitle>
+                <CardDescription className="text-[.85rem] ">{venue.address}</CardDescription>
+                <hr></hr>
               </CardHeader>
-              <CardContent className="space-y-1">
-                {venue.rating && <p>Rating: {venue.rating}</p>}
-                {venue.types && <p>Type: {venue.types.join(", ")}</p>}
+              <CardContent className="space-y-0 text-[.9rem] tracking-[.05rem]">
+                {venue.rating && <p>Rating: {venue.rating} / 5</p>}
+                {/* {venue.types && <p>{venue.types.join(", ")}</p>} */}
                 {venue.openingHours && (
                   <div className="text-sm">
                     {venue.openingHours.map((line, i) => (
@@ -288,31 +367,8 @@ export default function HalfwayPage() {
           ))}
         </div>
       )}
-
-      {/* Venue Type + Radius controls */}
-      <div className="flex space-x-4 items-center">
-        <Select value={venueType} onValueChange={(val) => setVenueType(val)}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Venue Type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="restaurant">Restaurant</SelectItem>
-            <SelectItem value="cafe">Cafe</SelectItem>
-            <SelectItem value="park">Park</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <div className="flex-1">
-          <label className="block">Radius: {radius}m</label>
-          <Slider
-            value={[radius]}
-            min={500}
-            max={5000}
-            step={100}
-            onValueChange={(value) => setRadius(value[0])}
-          />
-        </div>
-      </div>
+</div>
+    
     </div>
   );
 }
