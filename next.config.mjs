@@ -1,3 +1,5 @@
+import path from "path";
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   webpack: (config, options) => {
@@ -5,6 +7,28 @@ const nextConfig = {
       test: /\.(glsl|vs|fs|vert|frag)$/,
       use: ["raw-loader", "glslify", "glslify-loader"],
     });
+
+    config.resolve.alias = {
+      ...(config.resolve.alias || {}),
+      yjs: path.resolve(__dirname, "node_modules/yjs"),
+      "@tldraw/utils": path.resolve(__dirname, "node_modules/@tldraw/utils"),
+      "@tldraw/state": path.resolve(__dirname, "node_modules/@tldraw/state"),
+      "@tldraw/state-react": path.resolve(
+        __dirname,
+        "node_modules/@tldraw/state-react"
+      ),
+      "@tldraw/store": path.resolve(__dirname, "node_modules/@tldraw/store"),
+      "@tldraw/validate": path.resolve(
+        __dirname,
+        "node_modules/@tldraw/validate"
+      ),
+      "@tldraw/tlschema": path.resolve(
+        __dirname,
+        "node_modules/@tldraw/tlschema"
+      ),
+      "@tldraw/editor": path.resolve(__dirname, "node_modules/@tldraw/editor"),
+      tldraw: path.resolve(__dirname, "node_modules/tldraw"),
+    };
     return config;
   },
   experimental: {
