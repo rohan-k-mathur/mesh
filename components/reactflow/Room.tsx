@@ -11,7 +11,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { useReactFlow, useStoreApi } from "@xyflow/react";
 import useStore from "@/lib/reactflow/store";
 import { AppEdge, AppNode, AppState } from "@/lib/reactflow/types";
-import { loadPlugins, PluginDescriptor } from "@/lib/pluginLoader";
+import { loadPluginsAsync, PluginDescriptor } from "@/lib/pluginLoader";
 import { subscribeToDatabaseUpdates, subscribeToRoom } from "@/lib/utils";
 import {
   convertPostToNode,
@@ -55,14 +55,13 @@ import { createRealtimeEdge } from "@/lib/actions/realtimeedge.actions";
 import { updateRealtimePost } from "@/lib/actions/realtimepost.actions";
 import { RealtimePost } from "@prisma/client";
 
-// Load plug-ins from the plugins directory using webpack's require.context
+// Dynamically load plug-ins using import()
 const pluginContext = (require as any).context("../../plugins", false, /\\.tsx$/);
-const pluginModules: Record<string, { descriptor?: PluginDescriptor }> = {};
+const pluginImporters: Record<string, () => Promise<{ descriptor?: PluginDescriptor }>> = {};
 pluginContext.keys().forEach((key: string) => {
-  pluginModules[key] = pluginContext(key);
+  const path = `../../plugins/${key.replace("./", "")}`;
+  pluginImporters[key] = () => import(path);
 });
-const pluginDescriptors = loadPlugins(pluginModules);
-useStore.getState().registerPlugins(pluginDescriptors);
 
 const selector = (state: AppState) => ({
   nodes: state.nodes,
@@ -76,6 +75,7 @@ const selector = (state: AppState) => ({
   removeNode: state.removeNode,
   addEdge: state.addEdge,
   removeEdge: state.removeEdge,
+  pluginDescriptors: state.pluginDescriptors,
 });
 
 interface Props {
@@ -98,11 +98,18 @@ function Room({ roomId, initialNodes, initialEdges }: Props) {
     onNodesChangeStore,
     onEdgesChange,
     onConnectStore,
-    addNode,
-    removeNode,
-    addEdge,
-    removeEdge,
-  } = useStore(useShallow(selector));
+  addNode,
+  removeNode,
+  addEdge,
+  removeEdge,
+  pluginDescriptors,
+} = useStore(useShallow(selector));
+
+  useEffect(() => {
+    loadPluginsAsync(pluginImporters).then((descriptors) => {
+      useStore.getState().registerPlugins(descriptors);
+    });
+  }, []);
 
   const { updateNode, updateEdge, setViewport } = useReactFlow();
   const storeApi = useStoreApi();
