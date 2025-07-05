@@ -17,6 +17,8 @@ export interface CreateRealtimePostParams {
   collageLayoutStyle?: string;  // or some enum
   collageColumns?: number;
   collageGap?: number;
+  pluginType?: string;
+  pluginData?: Record<string, unknown>;
 }
 
 interface UpdateRealtimePostParams {
@@ -31,6 +33,8 @@ interface UpdateRealtimePostParams {
   collageColumns?: number;
   collageGap?: number;
   content?: string;
+  pluginType?: string;
+  pluginData?: Record<string, unknown>;
 }
 
 export async function createRealtimePost({
@@ -46,6 +50,8 @@ export async function createRealtimePost({
    collageLayoutStyle,
    collageColumns,
    collageGap,
+   pluginType,
+   pluginData,
 }: CreateRealtimePostParams) {
   const user = await getUserFromCookies();
   if (!user) {
@@ -66,6 +72,8 @@ export async function createRealtimePost({
         realtime_room_id: realtimeRoomId,
         locked: false,
         isPublic,
+        ...(pluginType && { pluginType }),
+        ...(pluginData && { pluginData }),
 
          // Collage fields
          ...(collageLayoutStyle && { collageLayoutStyle }),
@@ -111,6 +119,8 @@ export async function updateRealtimePost({
   collageColumns,
   collageGap,
   content,
+  pluginType,
+  pluginData,
 }: UpdateRealtimePostParams) {
   const user = await getUserFromCookies();
   try {
@@ -151,6 +161,8 @@ export async function updateRealtimePost({
       ...(collageColumns !== undefined && { collageColumns }),
       ...(collageGap !== undefined && { collageGap }),
       ...(isPublic !== undefined && { isPublic }),
+      ...(pluginType && { pluginType }),
+      ...(pluginData && { pluginData }),
     };
 
     if (coordinates && coordChanged) {

@@ -373,6 +373,17 @@ export default function NodeSidebar({
           type: "LLM_INSTRUCTION",
           realtimeRoomId: roomId,
         });
+        break;
+      default:
+        if (pluginDescriptors.find((p) => p.type === nodeType)) {
+          createPostAndAddToCanvas({
+            path: pathname,
+            coordinates: centerPosition,
+            type: "PLUGIN",
+            pluginType: nodeType,
+            realtimeRoomId: roomId,
+          });
+        }
         break;  
   
         

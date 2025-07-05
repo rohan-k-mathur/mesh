@@ -144,6 +144,8 @@ model RealtimePost {
   collageColumns     Int?
   collageGap         Int?
   isPublic           Boolean            @default(false)
+  pluginType        String?
+  pluginData        Json?
   parent_id          BigInt?
   outgoing_edges     RealtimeEdge[]     @relation("RealtimeEdgeToSourceRealtimePost")
   incoming_edges     RealtimeEdge[]     @relation("RealtimeEdgeToTargetRealtimePost")
@@ -313,6 +315,7 @@ enum realtime_post_type {
   CODE
   PORTFOLIO
   LLM_INSTRUCTION
+  PLUGIN
 }
 
 enum visibility {
