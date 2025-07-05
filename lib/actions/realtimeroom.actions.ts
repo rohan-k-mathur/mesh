@@ -170,6 +170,32 @@ export async function getRoomsForUser({ userId }: { userId: bigint }) {
   }
 }
 
+export interface RandomRoom {
+  id: string;
+  room_icon: string;
+}
+
+export async function fetchRandomRooms(count = 4): Promise<RandomRoom[]> {
+  try {
+    await prisma.$connect();
+    const total = await prisma.realtimeRoom.count();
+    const take = Math.min(count, total);
+    if (take === 0) return [];
+    const skip = Math.max(
+      0,
+      Math.floor(Math.random() * Math.max(total - take + 1, 1))
+    );
+    const rooms = await prisma.realtimeRoom.findMany({
+      skip,
+      take,
+      select: { id: true, room_icon: true },
+    });
+    return rooms;
+  } catch (error: any) {
+    throw new Error(`Failed to fetch random rooms: ${error.message}`);
+  }
+}
+
 export async function findOrGenerateInviteToken({
   userId,
   roomId,
