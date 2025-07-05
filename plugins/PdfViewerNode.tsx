@@ -71,6 +71,7 @@ function PdfViewerNode({ id, data }: NodeProps<PdfViewerNodeData>) {
       type="PLUGIN"
       isLocked={data.locked}
     >
+      <div className="img-container h-full">
       <object
         data={url}
         type="application/pdf"
@@ -81,6 +82,7 @@ function PdfViewerNode({ id, data }: NodeProps<PdfViewerNodeData>) {
           <a href={url}>Download PDF</a>
         </p>
       </object>
+      </div>
     </BaseNode>
   );
 
