@@ -19,6 +19,13 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
+import {
+  Card,
+  CardHeader,
+  CardContent,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 
 const libraries: Libraries = ["places"];
 const mapContainerStyle = { width: "100%", height: "400px" };
@@ -33,6 +40,8 @@ type Venue = {
   address: string;
   location: LatLng;
   rating?: number;
+  openingHours?: string[];
+  types?: string[];
 };
 
 type CircleItemRef = React.MutableRefObject<
@@ -127,16 +136,20 @@ export default function HalfwayPage() {
 
       const data = await res.json();
       if (data && Array.isArray(data.results)) {
-        const newVenues: Venue[] = data.results.map((place: any) => ({
-          id: place.place_id,
-          name: place.name,
-          address: place.vicinity || place.formatted_address,
-          location: {
-            lat: place.geometry.location.lat,
-            lng: place.geometry.location.lng,
-          },
-          rating: place.rating,
-        }));
+        const newVenues: Venue[] = data.results
+          .map((place: any) => ({
+            id: place.place_id,
+            name: place.name,
+            address: place.vicinity || place.formatted_address,
+            location: {
+              lat: place.geometry.location.lat,
+              lng: place.geometry.location.lng,
+            },
+            rating: place.rating,
+            openingHours: place.opening_hours?.weekday_text,
+            types: place.types,
+          }))
+          .sort((a: Venue, b: Venue) => (b.rating ?? 0) - (a.rating ?? 0));
         setVenues(newVenues);
         console.log("Venues within radius:", newVenues);
       } else {
@@ -250,6 +263,30 @@ export default function HalfwayPage() {
             />
           ))}
         </GoogleMap>
+      )}
+
+      {venues.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
+          {venues.map((venue) => (
+            <Card key={venue.id} className="likebutton">
+              <CardHeader>
+                <CardTitle>{venue.name}</CardTitle>
+                <CardDescription>{venue.address}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-1">
+                {venue.rating && <p>Rating: {venue.rating}</p>}
+                {venue.types && <p>Type: {venue.types.join(", ")}</p>}
+                {venue.openingHours && (
+                  <div className="text-sm">
+                    {venue.openingHours.map((line, i) => (
+                      <p key={i}>{line}</p>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       )}
 
       {/* Venue Type + Radius controls */}
