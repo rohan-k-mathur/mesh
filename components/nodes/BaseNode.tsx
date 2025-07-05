@@ -4,7 +4,7 @@ import {
   
 } from "@/lib/actions/realtimepost.actions";
 import useStore from "@/lib/reactflow/store";
-import { AppNodeType, AppState, AuthorOrAuthorId } from "@/lib/reactflow/types";
+import { AppState, AuthorOrAuthorId } from "@/lib/reactflow/types";
 import { Handle, Panel, Position } from "@xyflow/react";
 import { usePathname } from "next/navigation";
 import { useShallow } from "zustand/react/shallow";
@@ -19,7 +19,7 @@ interface Props {
   isLocked: boolean;
   id: string;
   author: AuthorOrAuthorId;
-  type: AppNodeType;
+  type: string;
   children: React.ReactNode;
   generateOnClick?: (evt: React.MouseEvent<HTMLButtonElement>) => void;
 }
