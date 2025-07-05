@@ -37,29 +37,30 @@ model User {
   workflows                Workflow[]
   attributeEdits           UserAttributeEdit[]
   recommendationClicks     RecommendationClick[]
+  integrations             Integration[]
 
   @@map("users")
 }
 
 model UserAttributes {
-  id          BigInt    @id @default(autoincrement())
-  user_id     BigInt    @unique
-  created_at  DateTime  @default(now()) @db.Timestamptz(6)
-  artists     String[]
-  albums      String[]
-  songs       String[]
-  interests   String[]
-  movies      String[]
-  birthday    DateTime?
-  communities String[]
-  hobbies     String[]
-  location    String?
-  books       String[]
+  id                  BigInt     @id @default(autoincrement())
+  user_id             BigInt     @unique
+  created_at          DateTime   @default(now()) @db.Timestamptz(6)
+  artists             String[]
+  albums              String[]
+  songs               String[]
+  interests           String[]
+  movies              String[]
+  birthday            DateTime?
+  communities         String[]
+  hobbies             String[]
+  location            String?
+  books               String[]
   events_visibility   visibility @default(PUBLIC)
   tv_visibility       visibility @default(PUBLIC)
   podcasts_visibility visibility @default(PUBLIC)
-  updated_at DateTime @default(now()) @updatedAt @db.Timestamptz(6)
-  user        User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  updated_at          DateTime   @default(now()) @updatedAt @db.Timestamptz(6)
+  user                User       @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@map("user_attributes")
 }
@@ -248,27 +249,27 @@ model FriendSuggestion {
 }
 
 model Workflow {
-  id         BigInt   @id @default(autoincrement())
-  owner_id   BigInt
-  name       String
-  graph      Json
-  created_at DateTime @default(now()) @db.Timestamptz(6)
-  owner      User     @relation(fields: [owner_id], references: [id], onDelete: Cascade)
-  states     WorkflowState[]
-  transitions WorkflowTransition[]
+  id                 BigInt               @id @default(autoincrement())
+  owner_id           BigInt
+  name               String
+  graph              Json
+  created_at         DateTime             @default(now()) @db.Timestamptz(6)
+  owner              User                 @relation(fields: [owner_id], references: [id], onDelete: Cascade)
+  states             WorkflowState[]
+  transitions        WorkflowTransition[]
   scheduledWorkflows ScheduledWorkflow[]
 
   @@map("workflows")
 }
 
 model WorkflowState {
-  id          BigInt   @id @default(autoincrement())
-  workflow_id BigInt
-  version     Int
-  graph       Json
-  created_at  DateTime  @default(now()) @db.Timestamptz(6)
-  updated_at  DateTime? @default(now()) @updatedAt @db.Timestamptz(6)
-  workflow    Workflow  @relation(fields: [workflow_id], references: [id], onDelete: Cascade)
+  id              BigInt               @id @default(autoincrement())
+  workflow_id     BigInt
+  version         Int
+  graph           Json
+  created_at      DateTime             @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime?            @default(now()) @updatedAt @db.Timestamptz(6)
+  workflow        Workflow             @relation(fields: [workflow_id], references: [id], onDelete: Cascade)
   fromTransitions WorkflowTransition[] @relation("WorkflowTransitionFromState")
   toTransitions   WorkflowTransition[] @relation("WorkflowTransitionToState")
 
@@ -351,4 +352,17 @@ model ScheduledWorkflow {
   workflow    Workflow @relation(fields: [workflow_id], references: [id], onDelete: Cascade)
 
   @@map("scheduled_workflows")
+}
+
+model Integration {
+  id         BigInt   @id @default(autoincrement())
+  user_id    BigInt
+  service    String
+  credential String
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, service])
+  @@index([user_id])
+  @@map("integrations")
 }
