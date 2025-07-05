@@ -14,7 +14,7 @@ export async function fetchRealtimeRoom({
   try {
     await prisma.$connect();
 
-    const realtimeRoom = await prisma.realtimeRoom.findUniqueOrThrow({
+    const realtimeRoom = await prisma.realtimeRoom.findUnique({
       where: {
         id: realtimeRoomId,
       },
@@ -36,6 +36,8 @@ export async function fetchRealtimeRoom({
         },
       },
     });
+
+    if (!realtimeRoom) return null;
 
     return {
       ...realtimeRoom,
