@@ -12,6 +12,7 @@ import { useReactFlow, useStoreApi } from "@xyflow/react";
 import useStore from "@/lib/reactflow/store";
 import { AppEdge, AppNode, AppState } from "@/lib/reactflow/types";
 import { loadPluginsAsync, PluginDescriptor } from "@/lib/pluginLoader";
+import pluginImporters from "@/lib/pluginImporters";
 import { subscribeToDatabaseUpdates, subscribeToRoom } from "@/lib/utils";
 import {
   convertPostToNode,
@@ -55,13 +56,7 @@ import { createRealtimeEdge } from "@/lib/actions/realtimeedge.actions";
 import { updateRealtimePost } from "@/lib/actions/realtimepost.actions";
 import { RealtimePost } from "@prisma/client";
 
-// Dynamically load plug-ins using import()
-const pluginContext = (require as any).context("../../plugins", false, /\\.tsx$/);
-const pluginImporters: Record<string, () => Promise<{ descriptor?: PluginDescriptor }>> = {};
-pluginContext.keys().forEach((key: string) => {
-  const path = `../../plugins/${key.replace("./", "")}`;
-  pluginImporters[key] = () => import(path);
-});
+// Plug-in modules are defined in lib/pluginImporters.ts
 
 const selector = (state: AppState) => ({
   nodes: state.nodes,
