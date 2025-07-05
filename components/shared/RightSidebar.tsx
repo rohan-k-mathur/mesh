@@ -64,7 +64,7 @@ function RightSidebar() {
     // )
   return (
     <section className="sticky custom-scrollbar rightsidebar  bg-transparent">
-      <div className="sticky flex w-full flex-1 flex-col gap-6 px-2">
+      <div className="sticky flex w-full flex-1 flex-col gap-2 px-2 mt-[-1rem]">
         <h3 className="relative bottom-[4rem] text-[1.5rem] text-black">Find New Groups</h3>
         <div className="relative bottom-[4rem] flex flex-col gap-y-4 items-center">
           {rooms.length === 0 ? (
@@ -84,8 +84,8 @@ function RightSidebar() {
         </div>
       </div>
       <div className="flex w-full flex-1 flex-col gap-2 px-2">
-        <h3 className="relative bottom-[4rem] text-[1.5rem] text-black">Find New Users</h3>
-        <div className="relative bottom-[4rem] flex flex-col gap-y-4 items-center">
+        <h3 className="relative bottom-[4.4rem] text-[1.5rem] text-black">Find New Users</h3>
+        <div className="relative bottom-[4.4rem] flex flex-col gap-y-4 items-center">
           {users.length === 0 ? (
             <p className="text-sm text-gray-500">No suggestions</p>
           ) : (
