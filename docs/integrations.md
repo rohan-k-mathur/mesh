@@ -27,6 +27,10 @@ Integration actions receive a `credentials` object so implementations can pass A
 ## Database Table
 
 Run the migration script `lib/models/migrations/20250705000000_create_integrations.sql` on your Supabase database to create the `integrations` table used by these actions.
+Make sure the migration is applied and that your database grants read/write
+access to this table for the `anon`/`authenticated` roles. If permissions are
+missing you'll encounter errors such as `permission denied for schema public`
+when loading or saving integration credentials.
 
 ## Usage
 Actions are referenced in workflows as `<integration>:<action>`. Register modules with `registerIntegrationActions`.
