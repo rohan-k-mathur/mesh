@@ -334,7 +334,22 @@ export function convertPostToNode(
             y: realtimePost.y_coordinate,
           },
         } as LLMInstructionNode;
-      
+
+      case "PLUGIN": {
+        const data = realtimePost.pluginData ||
+          (realtimePost.content ? JSON.parse(realtimePost.content) : {});
+        const nodeType = (realtimePost as any).pluginType || "PLUGIN";
+        return {
+          id: realtimePost.id.toString(),
+          type: nodeType,
+          data: { ...data, author: authorToSet, locked: realtimePost.locked },
+          position: {
+            x: realtimePost.x_coordinate,
+            y: realtimePost.y_coordinate,
+          },
+        } as AppNode;
+      }
+
       default:
         throw new Error("Unsupported real-time post type");
       }
