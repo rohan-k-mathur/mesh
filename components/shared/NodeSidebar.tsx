@@ -390,7 +390,7 @@ export default function NodeSidebar({
 
   return (
     <>
-      <div className="fixed top-4 right-4 z-50 ">
+      <div className="fixed top-4 right-4 z-50 overscroll-auto">
         <Sheet open={isOpen} onOpenChange={setIsOpen}>
           <SheetTrigger asChild>
             <Button  size="icon" className="rounded-full bg-white shadow-none  hover:bg-slate-200">
@@ -401,14 +401,14 @@ export default function NodeSidebar({
 
           <SheetContent
             side="right"
-            className="w-[200px] sm:w-[250px]  border-l border-primary/20"
+            className="w-[200px] sm:w-[250px]  border-l border-primary/20  overscroll-y-auto"
           >
             <SheetTitle className="text-[2rem] mt-4">Add Node</SheetTitle>
-            <nav className="flex flex-col space-y-4 mt-4">
+            <nav className="flex flex-col space-y-4 mt-4  overscroll-y-auto" >
               {nodeTypes.map((item) => (
                 <div
                   key={item.nodeType}
-                  className="dndnode hover:cursor-pointer"
+                  className="dndnode h-[.3rem] hover:cursor-pointer"
                   onClick={() => openNodeCreationMenu(item.nodeType)}
                 >
                   {item.label}

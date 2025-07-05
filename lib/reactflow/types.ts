@@ -201,6 +201,7 @@ export const NodeTypeMap = {
   CODE: {} as CodeNode,
   PORTFOLIO: {} as PortfolioNodeData,
   LLM_INSTRUCTION: {} as LLMInstructionNode,
+  PLUGIN: {} as PluginDescriptor,
 };
 
 export interface AppEdgeMapping {
@@ -237,7 +238,8 @@ export type AppNode =
   | ThreadNode
   | CodeNode
   | PortfolioNodeData
-  | LLMInstructionNode;
+  | LLMInstructionNode
+  | PluginDescriptor;
 
 export type AppEdgeType = keyof AppEdgeMapping;
 
@@ -261,6 +263,7 @@ export const DEFAULT_NODE_VALUES: Record<AppNodeType, string> = {
   ["CODE"]: "",
   ["PORTFOLIO"]: "",
   ["LLM_INSTRUCTION"]: "",
+  ["PLUGIN"]: "",
 };
 
 export type AppState = {
