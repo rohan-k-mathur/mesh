@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,7 +9,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { AppNodeType, AppState, DEFAULT_NODE_VALUES } from "@/lib/reactflow/types";
+import { AppState, DEFAULT_NODE_VALUES } from "@/lib/reactflow/types";
 import useStore from "@/lib/reactflow/store";
 import { z } from "zod";
 import {
@@ -32,23 +32,8 @@ import { useShallow } from "zustand/react/shallow";
 import { useAuth } from "@/lib/AuthContext";
 import { useRouter } from "next/navigation";
 import useMousePosition from "../hooks/MousePosition";
-
-// A simple static array of node types
-const nodeTypes: { label: string; nodeType: AppNodeType }[] = [
-  { label: "TEXT", nodeType: "TEXT" },
-  { label: "IMAGE", nodeType: "IMAGE" },
-  { label: "VIDEO", nodeType: "VIDEO" },
-  { label: "LIVESTREAM", nodeType: "LIVESTREAM" },
-  { label: "IMAGE_COMPUTE", nodeType: "IMAGE_COMPUTE" },
-  { label: "COLLAGE", nodeType: "COLLAGE" },
-  { label: "GALLERY", nodeType: "GALLERY" },
-  { label: "PORTAL", nodeType: "PORTAL" },
-  { label: "DRAW", nodeType: "DRAW" },
-  { label: "LIVECHAT", nodeType: "LIVECHAT" },
-  { label: "AUDIO", nodeType: "AUDIO" },
-  { label: "LLM_INSTRUCTION", nodeType: "LLM_INSTRUCTION" },
-  { label: "PORTFOLIO", nodeType: "PORTFOLIO" },
-];
+import pluginImporters from "@/lib/pluginImporters";
+import { loadPluginsAsync } from "@/lib/pluginLoader";
 
 
 // Import your modals
@@ -84,6 +69,14 @@ export default function NodeSidebar({
     }))
   );
   const { pluginDescriptors } = store;
+
+  useEffect(() => {
+    if (pluginDescriptors.length === 0) {
+      loadPluginsAsync(pluginImporters).then((descriptors) => {
+        useStore.getState().registerPlugins(descriptors);
+      });
+    }
+  }, [pluginDescriptors.length]);
   const params = useParams<{ id: string }>();
   const roomId = params.id;
 
@@ -130,7 +123,6 @@ export default function NodeSidebar({
     { label: "AUDIO", nodeType: "AUDIO" },
     { label: "LLM", nodeType: "LLM_INSTRUCTION" },
     { label: "PORTFOLIO", nodeType: "PORTFOLIO" },
-    { label: "PLUGIN", nodeType: "PLUGIN" },
 
   ];
 
