@@ -9,7 +9,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { saveIntegration } from "@/lib/actions/integration.actions";
 
 export default function IntegrationConfigModal() {
   const [service, setService] = useState("");
@@ -18,7 +17,11 @@ export default function IntegrationConfigModal() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!service || !apiKey) return;
-    await saveIntegration({ service, credential: apiKey });
+    await fetch("/api/integrations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ service, credential: apiKey }),
+    });
     setService("");
     setApiKey("");
   };

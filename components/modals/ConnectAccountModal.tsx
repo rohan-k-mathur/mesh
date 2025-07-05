@@ -9,7 +9,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { saveIntegration } from "@/lib/actions/integration.actions";
 
 export default function ConnectAccountModal() {
   const [service, setService] = useState("");
@@ -22,7 +21,11 @@ export default function ConnectAccountModal() {
     if (!service) return;
     const credential = JSON.stringify({ email, accessToken });
     try {
-      await saveIntegration({ service, credential });
+      await fetch("/api/integrations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ service, credential }),
+      });
       setService("");
       setEmail("");
       setAccessToken("");

@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { saveIntegration } from "@/lib/actions/integration.actions";
 
 export default function IntegrationForm() {
   const [service, setService] = useState("");
@@ -12,7 +11,11 @@ export default function IntegrationForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!service || !credential) return;
-    await saveIntegration({ service, credential });
+    await fetch("/api/integrations", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ service, credential }),
+    });
     setService("");
     setCredential("");
     window.location.reload();
