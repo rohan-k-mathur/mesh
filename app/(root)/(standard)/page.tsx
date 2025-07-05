@@ -23,6 +23,7 @@ export default async function Home() {
       "GALLERY",
       "DRAW",
       "LIVECHAT",
+      "PLUGIN",
     ],
   });
   const user = await getUserFromCookies();
@@ -53,6 +54,8 @@ export default async function Home() {
                 video_url={
                   realtimePost.video_url ? realtimePost.video_url : undefined
                 }
+                pluginType={(realtimePost as any).pluginType ?? null}
+                pluginData={(realtimePost as any).pluginData ?? null}
                 type={realtimePost.type}
                 author={realtimePost.author!}
                 createdAt={realtimePost.created_at.toDateString()}

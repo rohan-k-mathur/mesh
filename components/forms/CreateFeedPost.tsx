@@ -18,6 +18,7 @@ import CollageCreationModal from "@/components/modals/CollageCreationModal";
 import GalleryNodeModal from "@/components/modals/GalleryNodeModal";
 import PortalNodeModal from "@/components/modals/PortalNodeModal";
 import LivechatNodeModal from "@/components/modals/LivechatNodeModal";
+import PdfViewerNodeModal from "@/components/modals/PdfViewerNodeModal";
 import { uploadFileToSupabase } from "@/lib/utils";
 import { createRealtimePost } from "@/lib/actions/realtimepost.actions";
 import { fetchUserByUsername } from "@/lib/actions/user.actions";
@@ -29,10 +30,11 @@ import {
   YoutubePostValidation,
   GalleryPostValidation,
   PortalNodeValidation,
+  PdfViewerPostValidation,
 } from "@/lib/validations/thread";
 import { AppNodeType, DEFAULT_NODE_VALUES } from "@/lib/reactflow/types";
 
-const nodeOptions: { label: string; nodeType: AppNodeType }[] = [
+const nodeOptions: { label: string; nodeType: string }[] = [
   { label: "TEXT", nodeType: "TEXT" },
   { label: "IMAGE", nodeType: "IMAGE" },
   { label: "VIDEO", nodeType: "VIDEO" },
@@ -43,11 +45,12 @@ const nodeOptions: { label: string; nodeType: AppNodeType }[] = [
   { label: "PORTAL", nodeType: "PORTAL" },
   { label: "DRAW", nodeType: "DRAW" },
   { label: "LIVECHAT", nodeType: "LIVECHAT" },
+  { label: "PDF Viewer", nodeType: "PDF_VIEWER" },
 ];
 
 const CreateFeedPost = () => {
   const [open, setOpen] = useState(false);
-  const [selectedType, setSelectedType] = useState<AppNodeType | "">("");
+  const [selectedType, setSelectedType] = useState<string>("");
   const router = useRouter();
 
   function reset() {
@@ -126,12 +129,12 @@ const CreateFeedPost = () => {
     router.refresh();
   }
 
-  const handleSelect = async (value: AppNodeType) => {
+  const handleSelect = async (value: string) => {
     if (value === "LIVESTREAM" || value === "DRAW") {
       await createRealtimePost({
         path: "/",
         coordinates: { x: 0, y: 0 },
-        type: value,
+        type: value as AppNodeType,
         realtimeRoomId: "global",
       });
       reset();
@@ -214,10 +217,29 @@ const CreateFeedPost = () => {
             }}
           />
         );
+      case "PDF_VIEWER":
+        return (
+          <PdfViewerNodeModal
+            isOwned={true}
+            currentUrl=""
+            onSubmit={async (vals) => {
+              await createRealtimePost({
+                path: "/",
+                coordinates: { x: 0, y: 0 },
+                type: "PLUGIN",
+                realtimeRoomId: "global",
+                pluginType: "PDF_VIEWER",
+                pluginData: { pdfUrl: vals.pdfUrl },
+              });
+              reset();
+              router.refresh();
+            }}
+          />
+        );
       default:
         return (
           <DialogContent className="p-8  max-w-[34rem] max-h-[20rem]">
-            <Select onValueChange={(v) => handleSelect(v as AppNodeType)}>
+            <Select onValueChange={(v) => handleSelect(v)}>
               <SelectTrigger>
                 <SelectValue placeholder="Select post type" className="px-4" />
               </SelectTrigger> 

@@ -41,6 +41,8 @@ interface Props {
   likeCount: number;
   commentCount?: number;
   expirationDate?: string | null;
+  pluginType?: string | null;
+  pluginData?: Record<string, any> | null;
 }
 
 const ThreadCard = async ({
@@ -55,6 +57,8 @@ const ThreadCard = async ({
   likeCount,
   commentCount = 0,
   expirationDate = null,
+  pluginType = null,
+  pluginData = null,
 }: Props) => {
   let currentUserLike: Like | null = null;
   if (currentUserId) {
@@ -95,7 +99,21 @@ const ThreadCard = async ({
             <p className="text-xs text-gray-500 mt-1">Posted at {createdAt}</p>
 
             <hr className="mt-3 mb-4 w-[200%] h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-100 to-transparent opacity-75" />
-              <p className="mt-2  text-[1.08rem] text-black tracking-[.05rem]">{content}</p>
+            <p className="mt-2  text-[1.08rem] text-black tracking-[.05rem]">{content}</p>
+            {pluginType === "PDF_VIEWER" && pluginData && (
+              <div className="mt-2 mb-2 flex justify-center items-center">
+                <object
+                  data={(pluginData as any).pdfUrl}
+                  type="application/pdf"
+                  width="100%"
+                  height="400"
+                >
+                  <p>
+                    <a href={(pluginData as any).pdfUrl}>Download PDF</a>
+                  </p>
+                </object>
+              </div>
+            )}
            
               <hr className="mt-3 mb-4 w-[200%] h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-100 to-transparent opacity-75" />
 
