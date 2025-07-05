@@ -88,7 +88,9 @@ function ExampleInner() {
     if (cred) {
       handleTrigger();
     }
-  }, [cred, handleTrigger]);
+    // intentionally omit handleTrigger from deps to avoid infinite loop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cred]);
 
   const graph: WorkflowGraph = {
     nodes: [
