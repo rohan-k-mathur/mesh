@@ -84,6 +84,12 @@ function ExampleInner() {
     run(graph, actions);
   }, [run]);
 
+  useEffect(() => {
+    if (cred) {
+      handleTrigger();
+    }
+  }, [cred, handleTrigger]);
+
   const graph: WorkflowGraph = {
     nodes: [
       {
