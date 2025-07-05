@@ -7,8 +7,7 @@ declare const require: any;
 if (typeof require !== "undefined" && require.context) {
   const ctx = require.context("../plugins", false, /\\.tsx$/);
   ctx.keys().forEach((key: string) => {
-    const path = `../plugins/${key.replace("./", "")}`;
-    importers[key] = () => import(path);
+    importers[key] = () => Promise.resolve(ctx(key));
   });
 } else if (typeof import.meta !== "undefined" && (import.meta as any).glob) {
   const modules = (import.meta as any).glob("../plugins/*.tsx");
