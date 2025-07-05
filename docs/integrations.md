@@ -64,7 +64,7 @@ Use `registerIntegrationTriggers` to subscribe to these events.
 The Gmail integration uses OAuth tokens to send mail on a user's behalf.
 
 1. Create an OAuth client in the [Google Cloud Console](https://console.cloud.google.com/apis/credentials).
-2. Set the `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, and `GMAIL_REFRESH_TOKEN` variables in `.env`.
+2. Add the credentials to `.env` as `GMAIL_CLIENT_ID`, `GMAIL_CLIENT_SECRET`, and `GMAIL_REFRESH_TOKEN`. Optionally set `GMAIL_REDIRECT_URI` (defaults to `http://localhost`).
 3. Run `yarn gmail-token` to generate a fresh access token. Save the credentials using the **Connect Account** modal with the JSON format:
    ```json
    {
