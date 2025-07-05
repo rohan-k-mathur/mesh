@@ -13,8 +13,14 @@ interface SuggestedUser {
   overlap?: Record<string, string[]>;
 }
 
+interface RandomRoom {
+  id: string;
+  room_icon: string;
+}
+
 function RightSidebar() {
   const [users, setUsers] = useState<SuggestedUser[]>([]);
+  const [rooms, setRooms] = useState<RandomRoom[]>([]);
 
   useEffect(() => {
     async function load() {
@@ -31,6 +37,21 @@ function RightSidebar() {
     }
     load();
   }, []);
+
+  useEffect(() => {
+    async function loadRooms() {
+      try {
+        const res = await fetch("/api/random-rooms?count=4");
+        if (res.ok) {
+          const data = await res.json();
+          setRooms(data);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    loadRooms();
+  }, []);
     // return (
     // <section className="custom-scrollbar rightsidebar">
     //     <div className="flex flex-1 flex-col justify-start">
@@ -45,6 +66,22 @@ function RightSidebar() {
     <section className="sticky custom-scrollbar rightsidebar  bg-transparent">
       <div className="sticky flex w-full flex-1 flex-col gap-6 px-2">
         <h3 className="relative bottom-[4rem] text-[1.5rem] text-black">Find New Groups</h3>
+        <div className="relative bottom-[4rem] flex flex-col gap-y-4 items-center">
+          {rooms.length === 0 ? (
+            <p className="text-sm text-gray-500">No rooms</p>
+          ) : (
+            rooms.map((r) => (
+              <Link key={r.id} href={`/room/${r.id}`}>
+                <Button
+                  variant={"outline"}
+                  className="rounded-lg likebutton items-center justify-center bg-transparent outline-blue border-none"
+                >
+                  {r.id}
+                </Button>
+              </Link>
+            ))
+          )}
+        </div>
       </div>
       <div className="flex w-full flex-1 flex-col gap-2 px-2">
         <h3 className="relative bottom-[4rem] text-[1.5rem] text-black">Find New Users</h3>
