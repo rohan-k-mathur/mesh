@@ -93,3 +93,7 @@ export const PortfolioNodeValidation = z.object({
   color: z.string().default("bg-white"),
 });
 
+export const PdfViewerPostValidation = z.object({
+  pdfUrl: z.string().url(),
+});
+
