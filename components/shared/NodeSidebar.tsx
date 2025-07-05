@@ -130,6 +130,8 @@ export default function NodeSidebar({
     { label: "AUDIO", nodeType: "AUDIO" },
     { label: "LLM", nodeType: "LLM_INSTRUCTION" },
     { label: "PORTFOLIO", nodeType: "PORTFOLIO" },
+    { label: "PLUGIN", nodeType: "PLUGIN" },
+
   ];
 
   const nodeTypes = [
