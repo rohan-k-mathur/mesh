@@ -33,6 +33,8 @@ const RealtimePostsTab = async ({ currentUserId, accountId }: Props) => {
               content={post.content ? post.content : undefined}
               image_url={post.image_url ? post.image_url : undefined}
               video_url={post.video_url ? post.video_url : undefined}
+              pluginType={(post as any).pluginType ?? null}
+              pluginData={(post as any).pluginData ?? null}
               type={post.type}
               author={post.author!}
               createdAt={post.created_at.toDateString()}

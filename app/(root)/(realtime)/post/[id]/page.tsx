@@ -35,6 +35,8 @@ const Page = async ({ params }: { params: { id: string } }) => {
               : undefined
           }
           video_url={post.type === "VIDEO" ? post.video_url! : undefined}
+          pluginType={(post as any).pluginType ?? null}
+          pluginData={(post as any).pluginData ?? null}
           type={post.type}
           author={post.author!}
           createdAt={post.created_at.toDateString()}

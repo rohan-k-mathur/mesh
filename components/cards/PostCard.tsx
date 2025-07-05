@@ -42,6 +42,8 @@ interface Props {
   commentCount?: number;
   expirationDate?: string | null;
   embedPost?: React.ReactNode;
+  pluginType?: string | null;
+  pluginData?: Record<string, any> | null;
 }
 
 const PostCard = async ({
@@ -58,6 +60,8 @@ const PostCard = async ({
   commentCount = 0,
   expirationDate = null,
   embedPost,
+  pluginType = null,
+  pluginData = null,
   }: Props) => {
   let currentUserLike: Like | RealtimeLike | null = null;
   if (currentUserId) {
@@ -169,6 +173,20 @@ const PostCard = async ({
             {type === "DRAW" && (
               <div className="mt-2 mb-2 flex justify-center items-center">
                 <DrawCanvas id={id.toString()} content={content} />
+              </div>
+            )}
+            {type === "PLUGIN" && pluginType === "PDF_VIEWER" && pluginData && (
+              <div className="mt-2 mb-2 flex justify-center items-center">
+                <object
+                  data={(pluginData as any).pdfUrl}
+                  type="application/pdf"
+                  width="100%"
+                  height="400"
+                >
+                  <p>
+                    <a href={(pluginData as any).pdfUrl}>Download PDF</a>
+                  </p>
+                </object>
               </div>
             )}
             {embedPost && <div className="mt-4 scale-90">{embedPost}</div>}
