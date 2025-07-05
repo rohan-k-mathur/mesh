@@ -2,52 +2,89 @@
 import { fetchUser } from "@/lib/actions/user.actions";
 import { updateRealtimePost } from "@/lib/actions/realtimepost.actions";
 import { useAuth } from "@/lib/AuthContext";
+import useStore from "@/lib/reactflow/store";
+import { AppState, AuthorOrAuthorId } from "@/lib/reactflow/types";
 import { PluginDescriptor } from "@/lib/pluginLoader";
-import { AuthorOrAuthorId, AudioNode as AudioNodeType } from "@/lib/reactflow/types";
-
+import { PdfViewerPostValidation } from "@/lib/validations/thread";
 import BaseNode from "@/components/nodes/BaseNode";
-import { useEffect, useRef, useState } from "react";
-import { Handle, NodeProps, Position, useReactFlow } from "@xyflow/react";
+import PdfViewerNodeModal from "@/components/modals/PdfViewerNodeModal";
+import { NodeProps } from "@xyflow/react";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import * as Tone from "tone";
-import Image from "next/image";
+import { z } from "zod";
+import { useShallow } from "zustand/react/shallow";
 
 
-interface PDFNodeData {
-  pdfurl: string;
+interface PdfViewerNodeData {
+  pdfUrl?: string;
   author: AuthorOrAuthorId;
   locked: boolean;
 }
 
-function PdfViewerNode({ id, data }: NodeProps<PDFNodeData>) {
+
+
+function PdfViewerNode({ id, data }: NodeProps<PdfViewerNodeData>) {
   const path = usePathname();
   const currentUser = useAuth().user;
+  const store = useStore(
+    useShallow((state: AppState) => ({
+      closeModal: state.closeModal,
+    }))
+  );
   const [author, setAuthor] = useState(data.author);
-  const [token, setToken] = useState("");
-  const [pdfurl, setpdfurl] = useState(data.pdfurl);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [url, setUrl] = useState(data.pdfUrl || "");
+
   useEffect(() => {
     if ("username" in author) return;
     fetchUser(data.author.id).then((user) => user && setAuthor(user));
   }, [author, data.author.id]);
 
-  //const isOwned = Number(user!.userId) === Number(data.author.id);
+  const isOwned = currentUser
+    ? Number(currentUser.userId) === Number(data.author.id)
+    : false;
 
-
+  const onSubmit = (values: z.infer<typeof PdfViewerPostValidation>) => {
+    setUrl(values.pdfUrl);
+    updateRealtimePost({
+      id,
+      path,
+      pluginType: "PDF_VIEWER",
+      pluginData: { pdfUrl: values.pdfUrl },
+    });
+    store.closeModal();
+  };
 
   return (
-    <BaseNode modalContent={null} id={id} author={author} isOwned={true} type="PLUGIN" isLocked={data.locked}>
-      <div
-        className=" img-frame h-full"
+
+<BaseNode
+      modalContent={
+        <PdfViewerNodeModal
+          id={id}
+          isOwned={isOwned}
+          currentUrl={url}
+          onSubmit={onSubmit}
+        />
+      }
+      id={id}
+      author={author}
+      isOwned={isOwned}
+      type="PLUGIN"
+      isLocked={data.locked}
+    >
+      <object
+        data={url}
+        type="application/pdf"
+        width="100%"
+        height="400"
       >
-         <object data="https://files.libcom.org/files/Franz%20Kafka-The%20Castle%20(Oxford%20World's%20Classics)%20(2009).pdf" type="application/pdf" width="100%" height="100%">
-      <p>Alternative text - include a link <a href="https://files.libcom.org/files/Franz%20Kafka-The%20Castle%20(Oxford%20World's%20Classics)%20(2009).pdf">to the PDF!</a></p>
-  </object>
-  </div>
+        <p>
+          <a href={url}>Download PDF</a>
+        </p>
+      </object>
     </BaseNode>
   );
-}
 
+}
 export const descriptor: PluginDescriptor = {
   type: "PDF_VIEWER",
   component: PdfViewerNode,
