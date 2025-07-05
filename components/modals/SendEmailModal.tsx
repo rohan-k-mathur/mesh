@@ -18,20 +18,18 @@ interface Props {
 
 export default function SendEmailModal({ from, accessToken }: Props) {
   const [email, setEmail] = useState("");
-  const [message, setMessage] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !message) return;
+    if (!email) return;
     await sendEmail({
       from,
       to: email,
       subject: "",
-      message,
+      message: "hello",
       accessToken,
     });
     setEmail("");
-    setMessage("");
   };
 
   return (
@@ -44,11 +42,6 @@ export default function SendEmailModal({ from, accessToken }: Props) {
           placeholder="Recipient Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-        />
-        <Input
-          placeholder="Message"
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
         />
         <div className="flex gap-2 mt-2">
           <Button type="submit">Send</Button>
