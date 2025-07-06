@@ -5,7 +5,11 @@ import { cookies } from "next/headers";
 import { User } from "./AuthContext";
 import { Tokens } from "next-firebase-auth-edge";
 import { filterStandardClaims } from "next-firebase-auth-edge/lib/auth/claims";
-import { fetchUserByAuthId, createDefaultUser } from "./actions/user.actions";
+import {
+  fetchUserByAuthId,
+  createDefaultUser,
+  clearUserCache,
+} from "./actions/user.actions";
 import { serverConfig } from "./firebase/config";
 
 export async function toUser({ decodedToken }: Tokens): Promise<User> {
@@ -49,6 +53,7 @@ export async function toUser({ decodedToken }: Tokens): Promise<User> {
 }
 
 export async function getUserFromCookies(): Promise<User | null> {
+  clearUserCache();
   const tokens = await getTokens(cookies(), serverConfig);
   const user = tokens ? await toUser(tokens) : null;
   return user;
