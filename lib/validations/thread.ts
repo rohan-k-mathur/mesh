@@ -118,3 +118,7 @@ export const PdfViewerPostValidation = z.object({
   pdfUrl: z.string().url(),
 });
 
+export const SplineViewerPostValidation = z.object({
+  sceneUrl: z.string().url(),
+});
+
