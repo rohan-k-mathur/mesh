@@ -12,7 +12,6 @@ function cosineSimilarity(a: number[], b: number[]) {
 }
 
 export async function updateUserEmbedding(userId: bigint) {
-  await prisma.$connect();
   const attrs = await prisma.userAttributes.findUnique({
     where: { user_id: userId },
   });
@@ -35,7 +34,6 @@ export async function updateUserEmbedding(userId: bigint) {
 }
 
 export async function generateFriendSuggestions(userId: bigint) {
-  await prisma.$connect();
   const base = await prisma.userEmbedding.findUnique({ where: { user_id: userId } });
   if (!base) return [];
   const others = await prisma.userEmbedding.findMany({ where: { user_id: { not: userId } } });
@@ -106,7 +104,6 @@ export async function generateFriendSuggestions(userId: bigint) {
 }
 
 export async function fetchFriendSuggestions(userId: bigint) {
-  await prisma.$connect();
   const suggestions = await prisma.friendSuggestion.findMany({
     where: { user_id: userId },
     include: { suggestedUser: true },

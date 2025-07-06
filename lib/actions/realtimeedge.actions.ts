@@ -29,7 +29,6 @@ export async function createRealtimeEdge({
     throw new Error("User not authenticated");
   }
   try {
-    await prisma.$connect();
     const createdRealtimeEdge = await prisma.realtimeEdge.create({
       data: {
         source_node_id: sourceNodeId,
@@ -90,7 +89,6 @@ export async function updateRealtimeEdge({
 }: UpdateRealtimeEdgeParams) {
   const user = await getUserFromCookies();
   try {
-    await prisma.$connect();
     const originalEdge = await prisma.realtimeEdge.findUniqueOrThrow({
       where: {
         id: BigInt(id),
@@ -119,7 +117,6 @@ export async function fetchRealtimeEdges({
 }: {
   realtimeRoomId: string;
 }) {
-  await prisma.$connect();
 
   const realtimeEdges = await prisma.realtimeEdge.findMany({
     where: {
@@ -132,7 +129,6 @@ export async function fetchRealtimeEdges({
 
 export async function deleteRealtimeEdge({ id }: { id: string }) {
   const user = await getUserFromCookies();
-  await prisma.$connect();
   const originalEdge = await prisma.realtimeEdge.findUniqueOrThrow({
     where: {
       id: BigInt(id),

@@ -20,7 +20,6 @@ interface AddCommentToPostParams {
 
 export async function createPost({ text, authorId, path, expirationDate }: CreatePostParams) {
   try {
-    await prisma.$connect();
     const createdPost = await prisma.post.create({
       data: {
         content: text,
@@ -48,7 +47,6 @@ export async function createPost({ text, authorId, path, expirationDate }: Creat
 }
 
 export async function fetchPosts(pageNumber = 1, pageSize = 20) {
-  await prisma.$connect();
   await archiveExpiredPosts();
 
   const skipAmount = (pageNumber - 1) * pageSize;
@@ -114,7 +112,6 @@ export async function fetchPosts(pageNumber = 1, pageSize = 20) {
 
 export async function fetchPostById(id: bigint) {
   try {
-    await prisma.$connect();
     await archiveExpiredPosts();
     const post = await prisma.post.findUnique({
       where: {
@@ -155,7 +152,6 @@ export async function fetchPostById(id: bigint) {
 }
 
 export async function fetchPostTreeById(id: bigint) {
-  await prisma.$connect();
   await archiveExpiredPosts();
   const post = await prisma.post.findUnique({
     where: { id },
@@ -195,7 +191,6 @@ export async function addCommentToPost({
   path,
 }: AddCommentToPostParams) {
   try {
-    await prisma.$connect();
     const originalPost = await prisma.post.findUnique({
       where: {
         id: parentPostId,
@@ -239,7 +234,6 @@ export async function replicatePost({
   path: string;
 }) {
   try {
-    await prisma.$connect();
     const oid = BigInt(originalPostId);
     const uid = BigInt(userId);
     const original = await prisma.post.findUnique({
@@ -272,7 +266,6 @@ export async function updatePostExpiration({
   postId: bigint;
   duration: string;
 }) {
-  await prisma.$connect();
   const post = await prisma.post.findUnique({
     where: { id: postId },
   });
@@ -293,7 +286,6 @@ export async function updatePostExpiration({
 }
 
 export async function archiveExpiredPosts() {
-  await prisma.$connect();
   const now = new Date();
   const expired = await prisma.post.findMany({
     where: { expiration_date: { lte: now } },
@@ -347,7 +339,6 @@ export async function archiveExpiredPosts() {
 export async function deletePost({ id, path }: { id: bigint; path?: string }) {
   const user = await getUserFromCookies();
   try {
-    await prisma.$connect();
     const originalPost = await prisma.post.findUniqueOrThrow({
       where: {
         id: id,

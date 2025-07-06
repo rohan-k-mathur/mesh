@@ -58,7 +58,6 @@ export async function createRealtimePost({
     throw new Error("User not authenticated");
   }
   try {
-    await prisma.$connect();
     const createdRealtimePost = await prisma.realtimePost.create({
       data: {
         ...(text && { content: text }),
@@ -124,7 +123,6 @@ export async function updateRealtimePost({
 }: UpdateRealtimePostParams) {
   const user = await getUserFromCookies();
   try {
-    await prisma.$connect();
     const originalPost = await prisma.realtimePost.findUniqueOrThrow({
       where: {
         id: BigInt(id),
@@ -192,7 +190,6 @@ export async function lockRealtimePost({
 }) {
   const user = await getUserFromCookies();
   try {
-    await prisma.$connect();
     const originalPost = await prisma.realtimePost.findUniqueOrThrow({
       where: {
         id: BigInt(id),
@@ -223,7 +220,6 @@ export async function fetchRealtimePosts({
   realtimeRoomId: string;
   postTypes: realtime_post_type[];
 }) {
-  await prisma.$connect();
 
   const realtimePosts = await prisma.realtimePost.findMany({
     where: {
@@ -259,7 +255,6 @@ export async function deleteRealtimePost({
 }) {
   const user = await getUserFromCookies();
   try {
-    await prisma.$connect();
     const originalPost = await prisma.realtimePost.findUniqueOrThrow({
       where: {
         id: BigInt(id),
@@ -281,7 +276,6 @@ export async function deleteRealtimePost({
 
 export async function fetchRealtimePostById({ id }: { id: string }) {
   try {
-    await prisma.$connect();
     const post = await prisma.realtimePost.findUniqueOrThrow({
       where: {
         id: BigInt(id),
@@ -312,7 +306,6 @@ export async function fetchRealtimePostById({ id }: { id: string }) {
 }
 
 export async function fetchRealtimePostTreeById({ id }: { id: string }) {
-  await prisma.$connect();
   const post: any = await prisma.realtimePost.findUnique({
     where: { id: BigInt(id) },
     include: { author: true, _count: { select: { children: true } } },
@@ -360,7 +353,6 @@ export async function addCommentToRealtimePost({
   path: string;
 }) {
   try {
-    await prisma.$connect();
     const originalPost = await prisma.realtimePost.findUnique({
       where: { id: parentPostId },
     });
@@ -397,7 +389,6 @@ export async function fetchUserRealtimePosts({
   userId: bigint;
   postTypes: realtime_post_type[];
 }) {
-  await prisma.$connect();
   const realtimePosts = await prisma.realtimePost.findMany({
     where: {
       realtime_room_id: realtimeRoomId,
@@ -433,7 +424,6 @@ export async function replicateRealtimePost({
   path: string;
 }) {
   try {
-    await prisma.$connect();
     const oid = BigInt(originalPostId);
     const uid = BigInt(userId);
     const original = await prisma.realtimePost.findUnique({
