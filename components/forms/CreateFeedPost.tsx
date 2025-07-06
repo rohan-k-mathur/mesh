@@ -19,6 +19,7 @@ import GalleryNodeModal from "@/components/modals/GalleryNodeModal";
 import PortalNodeModal from "@/components/modals/PortalNodeModal";
 import LivechatNodeModal from "@/components/modals/LivechatNodeModal";
 import PdfViewerNodeModal from "@/components/modals/PdfViewerNodeModal";
+import SplineViewerNodeModal from "../modals/SplineViewerNodeModal";
 import { uploadFileToSupabase } from "@/lib/utils";
 import { createRealtimePost } from "@/lib/actions/realtimepost.actions";
 import { fetchUserByUsername } from "@/lib/actions/user.actions";

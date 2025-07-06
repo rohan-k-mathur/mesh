@@ -29,6 +29,8 @@
     "@react-google-maps/api": "^2.20.6",
     "@react-three/drei": "^9.115.0",
     "@react-three/fiber": "^8.17.10",
+    "@splinetool/react-spline": "^4.0.0",
+    "@splinetool/runtime": "^1.10.22",
     "@supabase/supabase-js": "^2.45.1",
     "@types/lodash": "^4.17.16",
     "@uploadthing/react": "^6.7.2",

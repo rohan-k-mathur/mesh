@@ -65,10 +65,16 @@ function SplineViewerNode({ id, data }: NodeProps<SplineViewerNodeData>) {
       type="PLUGIN"
       isLocked={data.locked}
     >
-      <div className="yt-container">
-        <Suspense fallback={<div>Loading...</div>}>
-          {url && <Spline scene={url} className="yt-frame nodrag w-[30vw] h-[30vw]" />}
-        </Suspense>
+         <div className="yt-container">
+            <Suspense fallback={<div>Loading...</div>}>
+
+    <Spline 
+        scene="https://prod.spline.design/oTqpLNjMyau9EI5G/scene.splinecode" 
+        className="yt-frame nodrag w-[30vw] h-[30vw]"
+    />
+          </Suspense>
+
+        
       </div>
     </BaseNode>
   );
