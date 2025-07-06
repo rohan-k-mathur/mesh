@@ -70,7 +70,7 @@ function ProductReviewNode({ id, data }: NodeProps<ProductReviewNodeData>) {
       type={"PRODUCT_REVIEW"}
       isLocked={data.locked}
     >
-      <div className="flex flex-col p-2">
+      <div className="flex flex-col img-container w-max h-full">
         <div className="font-bold">{productName}</div>
         <div>Rating: {rating}/5</div>
         <div className="text-sm mt-1">{summary}</div>
