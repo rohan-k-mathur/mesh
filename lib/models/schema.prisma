@@ -38,6 +38,9 @@ model User {
   attributeEdits           UserAttributeEdit[]
   recommendationClicks     RecommendationClick[]
   integrations             Integration[]
+  productReviews           ProductReview[]
+  productReviewVotes       ProductReviewVote[]
+  productReviewVouches     ProductReviewVouch[]
 
   @@map("users")
 }
@@ -144,8 +147,8 @@ model RealtimePost {
   collageColumns     Int?
   collageGap         Int?
   isPublic           Boolean            @default(false)
-  pluginType        String?
-  pluginData        Json?
+  pluginType         String?
+  pluginData         Json?
   parent_id          BigInt?
   outgoing_edges     RealtimeEdge[]     @relation("RealtimeEdgeToSourceRealtimePost")
   incoming_edges     RealtimeEdge[]     @relation("RealtimeEdgeToTargetRealtimePost")
@@ -154,6 +157,7 @@ model RealtimePost {
   realtimePost       RealtimePost?      @relation("RealtimePostChildren", fields: [parent_id], references: [id], onDelete: Restrict)
   children           RealtimePost[]     @relation("RealtimePostChildren")
   realtimeroom       RealtimeRoom       @relation(fields: [realtime_room_id], references: [id])
+  productReview      ProductReview?
 
   @@map("realtime_posts")
 }
@@ -372,27 +376,27 @@ model Integration {
 }
 
 model ProductReview {
-  id          BigInt   @id @default(autoincrement())
-  realtime_post_id BigInt?
-  author_id   BigInt
-  product_name String
-  rating      Int
-  summary     String?
-  created_at  DateTime @default(now()) @db.Timestamptz(6)
-  updated_at  DateTime @default(now()) @updatedAt @db.Timestamptz(6)
-  author      User     @relation(fields: [author_id], references: [id], onDelete: Cascade)
-  realtime_post RealtimePost? @relation(fields: [realtime_post_id], references: [id])
-  claims      ProductReviewClaim[]
+  id               BigInt               @id @default(autoincrement())
+  realtime_post_id BigInt?              @unique
+  author_id        BigInt
+  product_name     String
+  rating           Int
+  summary          String?
+  created_at       DateTime             @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime             @default(now()) @updatedAt @db.Timestamptz(6)
+  author           User                 @relation(fields: [author_id], references: [id], onDelete: Cascade)
+  realtime_post    RealtimePost?        @relation(fields: [realtime_post_id], references: [id])
+  claims           ProductReviewClaim[]
 
   @@map("product_reviews")
 }
 
 model ProductReviewClaim {
-  id         BigInt   @id @default(autoincrement())
+  id         BigInt               @id @default(autoincrement())
   review_id  BigInt
   text       String
-  created_at DateTime @default(now()) @db.Timestamptz(6)
-  review     ProductReview @relation(fields: [review_id], references: [id], onDelete: Cascade)
+  created_at DateTime             @default(now()) @db.Timestamptz(6)
+  review     ProductReview        @relation(fields: [review_id], references: [id], onDelete: Cascade)
   votes      ProductReviewVote[]
   vouches    ProductReviewVouch[]
 
@@ -400,26 +404,26 @@ model ProductReviewClaim {
 }
 
 model ProductReviewVote {
-  id         BigInt   @id @default(autoincrement())
+  id         BigInt             @id @default(autoincrement())
   claim_id   BigInt
   user_id    BigInt
   type       String
-  created_at DateTime @default(now()) @db.Timestamptz(6)
+  created_at DateTime           @default(now()) @db.Timestamptz(6)
   claim      ProductReviewClaim @relation(fields: [claim_id], references: [id], onDelete: Cascade)
-  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user       User               @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@unique([claim_id, user_id, type])
   @@map("product_review_votes")
 }
 
 model ProductReviewVouch {
-  id         BigInt   @id @default(autoincrement())
+  id         BigInt             @id @default(autoincrement())
   claim_id   BigInt
   user_id    BigInt
   amount     Int
-  created_at DateTime @default(now()) @db.Timestamptz(6)
+  created_at DateTime           @default(now()) @db.Timestamptz(6)
   claim      ProductReviewClaim @relation(fields: [claim_id], references: [id], onDelete: Cascade)
-  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user       User               @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@map("product_review_vouches")
 }
