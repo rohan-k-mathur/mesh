@@ -32,6 +32,7 @@ import {
   GalleryPostValidation,
   PortalNodeValidation,
   PdfViewerPostValidation,
+  SplineViewerPostValidation,
 } from "@/lib/validations/thread";
 import { AppNodeType, DEFAULT_NODE_VALUES } from "@/lib/reactflow/types";
 
@@ -47,6 +48,7 @@ const nodeOptions: { label: string; nodeType: string }[] = [
   { label: "DRAW", nodeType: "DRAW" },
   { label: "LIVECHAT", nodeType: "LIVECHAT" },
   { label: "PDF Viewer", nodeType: "PDF_VIEWER" },
+  { label: "Spline Viewer", nodeType: "SPLINE_VIEWER" },
 ];
 
 const CreateFeedPost = () => {
@@ -231,6 +233,25 @@ const CreateFeedPost = () => {
                 realtimeRoomId: "global",
                 pluginType: "PDF_VIEWER",
                 pluginData: { pdfUrl: vals.pdfUrl },
+              });
+              reset();
+              router.refresh();
+            }}
+          />
+        );
+      case "SPLINE_VIEWER":
+        return (
+          <SplineViewerNodeModal
+            isOwned={true}
+            currentUrl=""
+            onSubmit={async (vals) => {
+              await createRealtimePost({
+                path: "/",
+                coordinates: { x: 0, y: 0 },
+                type: "PLUGIN",
+                realtimeRoomId: "global",
+                pluginType: "SPLINE_VIEWER",
+                pluginData: { sceneUrl: vals.sceneUrl },
               });
               reset();
               router.refresh();

@@ -21,6 +21,7 @@ import localFont from 'next/font/local'
 const founders = localFont({ src: './NewEdgeTest-RegularRounded.otf' })
 const DrawCanvas = dynamic(() => import("./DrawCanvas"), { ssr: false })
 const LivechatCard = dynamic(() => import("./LivechatCard"), { ssr: false })
+const Spline = dynamic(() => import("@splinetool/react-spline"), { ssr: false })
 
 interface Props {
   id: bigint;
@@ -187,6 +188,11 @@ const PostCard = async ({
                     <a href={(pluginData as any).pdfUrl}>Download PDF</a>
                   </p>
                 </object>
+              </div>
+            )}
+            {type === "PLUGIN" && pluginType === "SPLINE_VIEWER" && pluginData && (
+              <div className="mt-2 mb-2 flex justify-center items-center">
+                <Spline scene={(pluginData as any).sceneUrl} className="w-[70%] h-[30vw]" />
               </div>
             )}
             {embedPost && <div className="mt-4 scale-90">{embedPost}</div>}

@@ -18,6 +18,7 @@ import {
   TextPostValidation,
   YoutubePostValidation,
   PortfolioNodeValidation,
+  SplineViewerPostValidation,
 
 } from "@/lib/validations/thread";
 import { usePathname, useParams } from "next/navigation";
@@ -45,6 +46,7 @@ import PortalNodeModal from "@/components/modals/PortalNodeModal";
 import GalleryNodeModal from "@/components/modals/GalleryNodeModal";
 import LivechatNodeModal from "@/components/modals/LivechatNodeModal";
 import PortfolioNodeModal from "@/components/modals/PortfolioNodeModal";
+import SplineViewerNodeModal from "@/components/modals/SplineViewerNodeModal";
 
 import { fetchUserByUsername } from "@/lib/actions/user.actions";
 
@@ -293,26 +295,44 @@ export default function NodeSidebar({
         });
         break;
 
-      case "LIVECHAT":
-        store.openModal(
-          <LivechatNodeModal
-            isOwned={true}
-            currentInvitee=""
-            onSubmit={async (vals) => {
-              const username = vals.invitee.replace(/^@/, "");
-              const user = await fetchUserByUsername(username);
-              if (!user) return;
-              createPostAndAddToCanvas({
-                path: pathname,
-                coordinates: centerPosition,
-                type: "LIVECHAT",
-                realtimeRoomId: roomId,
-                text: JSON.stringify({ inviteeId: Number(user.id) }),
-              });
-            }}
-          />
-        );
-        break;
+        case "LIVECHAT":
+          store.openModal(
+            <LivechatNodeModal
+              isOwned={true}
+              currentInvitee=""
+              onSubmit={async (vals) => {
+                const username = vals.invitee.replace(/^@/, "");
+                const user = await fetchUserByUsername(username);
+                if (!user) return;
+                createPostAndAddToCanvas({
+                  path: pathname,
+                  coordinates: centerPosition,
+                  type: "LIVECHAT",
+                  realtimeRoomId: roomId,
+                  text: JSON.stringify({ inviteeId: Number(user.id) }),
+                });
+              }}
+            />
+          );
+          break;
+        case "SPLINE_VIEWER":
+          store.openModal(
+            <SplineViewerNodeModal
+              isOwned={true}
+              currentUrl=""
+              onSubmit={(vals: z.infer<typeof SplineViewerPostValidation>) => {
+                createPostAndAddToCanvas({
+                  path: pathname,
+                  coordinates: centerPosition,
+                  type: "PLUGIN",
+                  pluginType: "SPLINE_VIEWER",
+                  pluginData: { sceneUrl: vals.sceneUrl },
+                  realtimeRoomId: roomId,
+                });
+              }}
+            />
+          );
+          break;
         case "PORTFOLIO":
           store.openModal(
             <PortfolioNodeModal
