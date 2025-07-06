@@ -302,19 +302,27 @@ export async function archiveExpiredPosts() {
 
   const postsToArchive: typeof expired = [];
   const visited = new Set<bigint>();
-  const collect = async (id: bigint) => {
-    if (visited.has(id)) return;
-    visited.add(id);
-    const children = await prisma.post.findMany({ where: { parent_id: id } });
-    for (const child of children) {
-      await collect(child.id);
-      postsToArchive.push(child);
-    }
-  };
+  let queue = expired.map((p) => p.id);
 
   for (const post of expired) {
-    await collect(post.id);
-    postsToArchive.push(post);
+    if (!visited.has(post.id)) {
+      visited.add(post.id);
+      postsToArchive.push(post);
+    }
+  }
+
+  while (queue.length > 0) {
+    const children = await prisma.post.findMany({
+      where: { parent_id: { in: queue } },
+    });
+    queue = [];
+    for (const child of children) {
+      if (!visited.has(child.id)) {
+        visited.add(child.id);
+        postsToArchive.push(child);
+        queue.push(child.id);
+      }
+    }
   }
 
   const ids = postsToArchive.map((p) => p.id);
