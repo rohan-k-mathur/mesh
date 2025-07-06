@@ -36,15 +36,19 @@ import EmojiReactions from "../reactions/EmojiReactions";
 import DefaultEdge from "../edges/DefaultEdge";
 import ImageComputeNode from "../nodes/ImageComputeNode";
 import ImageURLNode from "../nodes/ImageURLNode";
-import LiveStreamNode from "../nodes/LiveStreamNode";
+import dynamic from "next/dynamic";
+
+const LiveStreamNode = dynamic(() => import("../nodes/LiveStreamNode"), {
+  ssr: false,
+});
 import TextInputNode from "../nodes/TextInputNode";
 import PortalNode from "../nodes/PortalNode";
 import YoutubeNode from "../nodes/YoutubeNode";
 import CollageNode from "../nodes/CollageNode";
 import GalleryNode from "../nodes/GalleryNode";
-import DrawNode from "../nodes/DrawNode";
+const DrawNode = dynamic(() => import("../nodes/DrawNode"), { ssr: false });
 import LivechatNode from "../nodes/LivechatNode";
-import AudioNode from "../nodes/AudioNode";
+const AudioNode = dynamic(() => import("../nodes/AudioNode"), { ssr: false });
 import LLMInstructionNode from "../nodes/LLMInstructionNode";
 import DocumentNode from "../nodes/DocumentNode";
 import ThreadNode from "../nodes/ThreadNode";
