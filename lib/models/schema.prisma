@@ -316,6 +316,7 @@ enum realtime_post_type {
   PORTFOLIO
   LLM_INSTRUCTION
   PLUGIN
+  PRODUCT_REVIEW
 }
 
 enum visibility {
@@ -368,4 +369,57 @@ model Integration {
   @@unique([user_id, service])
   @@index([user_id])
   @@map("integrations")
+}
+
+model ProductReview {
+  id          BigInt   @id @default(autoincrement())
+  realtime_post_id BigInt?
+  author_id   BigInt
+  product_name String
+  rating      Int
+  summary     String?
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+  author      User     @relation(fields: [author_id], references: [id], onDelete: Cascade)
+  realtime_post RealtimePost? @relation(fields: [realtime_post_id], references: [id])
+  claims      ProductReviewClaim[]
+
+  @@map("product_reviews")
+}
+
+model ProductReviewClaim {
+  id         BigInt   @id @default(autoincrement())
+  review_id  BigInt
+  text       String
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  review     ProductReview @relation(fields: [review_id], references: [id], onDelete: Cascade)
+  votes      ProductReviewVote[]
+  vouches    ProductReviewVouch[]
+
+  @@map("product_review_claims")
+}
+
+model ProductReviewVote {
+  id         BigInt   @id @default(autoincrement())
+  claim_id   BigInt
+  user_id    BigInt
+  type       String
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  claim      ProductReviewClaim @relation(fields: [claim_id], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([claim_id, user_id, type])
+  @@map("product_review_votes")
+}
+
+model ProductReviewVouch {
+  id         BigInt   @id @default(autoincrement())
+  claim_id   BigInt
+  user_id    BigInt
+  amount     Int
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  claim      ProductReviewClaim @relation(fields: [claim_id], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("product_review_vouches")
 }

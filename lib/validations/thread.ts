@@ -118,6 +118,12 @@ export const PdfViewerPostValidation = z.object({
   pdfUrl: z.string().url(),
 });
 
+export const ProductReviewValidation = z.object({
+  productName: z.string().min(1),
+  rating: z.number().min(1).max(5),
+  summary: z.string().min(1),
+});
+
 export const SplineViewerPostValidation = z.object({
   sceneUrl: z.string().url(),
 });

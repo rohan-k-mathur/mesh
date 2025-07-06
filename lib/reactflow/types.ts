@@ -12,6 +12,7 @@ import YoutubeNodeModal from "@/components/modals/YoutubeNodeModal";
 import CollageCreationModal from "@/components/modals/CollageCreationModal";
 import GalleryNodeModal from "@/components/modals/GalleryNodeModal";
 import PortfolioNodeModal from "@/components/modals/PortfolioNodeModal";
+import ProductReviewNodeModal from "@/components/modals/ProductReviewNodeModal";
 import ShareRoomModal from "@/components/modals/ShareRoomModal";
 import { PluginDescriptor } from "../pluginLoader";
 // there is currently no dedicated modal for portal nodes
@@ -180,6 +181,17 @@ export type LLMInstructionNode = Node<
   "LLM_INSTRUCTION"
 >;
 
+export type ProductReviewNodeData = Node<
+  {
+    productName: string;
+    rating: number;
+    summary: string;
+    author: AuthorOrAuthorId;
+    locked: boolean;
+  },
+  "PRODUCT_REVIEW"
+>;
+
 
 
 export type DefaultEdge = Edge<{}, "DEFAULT">;
@@ -201,6 +213,7 @@ export const NodeTypeMap = {
   CODE: {} as CodeNode,
   PORTFOLIO: {} as PortfolioNodeData,
   LLM_INSTRUCTION: {} as LLMInstructionNode,
+  PRODUCT_REVIEW: {} as ProductReviewNodeData,
   PLUGIN: {} as PluginDescriptor,
 };
 
@@ -218,6 +231,7 @@ export const NodeTypeToModalMap = {
   COLLAGE: CollageCreationModal,
   GALLERY: GalleryNodeModal,
   PORTFOLIO: PortfolioNodeModal,
+  PRODUCT_REVIEW: ProductReviewNodeModal,
   PORTAL: ShareRoomModal,
   LIVECHAT: ShareRoomModal,
 };
@@ -239,6 +253,7 @@ export type AppNode =
   | CodeNode
   | PortfolioNodeData
   | LLMInstructionNode
+  | ProductReviewNodeData
   | PluginDescriptor;
 
 export type AppEdgeType = keyof AppEdgeMapping;
@@ -263,6 +278,7 @@ export const DEFAULT_NODE_VALUES: Record<AppNodeType, string> = {
   ["CODE"]: "",
   ["PORTFOLIO"]: "",
   ["LLM_INSTRUCTION"]: "",
+  ["PRODUCT_REVIEW"]: "",
   ["PLUGIN"]: "",
 };
 
