@@ -15,33 +15,36 @@ interface Props {
   currentProductName: string;
   currentRating: number;
   currentSummary: string;
+  currentProductLink: string;
 }
 
-const renderCreate = ({ onSubmit, currentProductName, currentRating, currentSummary }: Omit<Props, "id" | "isOwned">) => (
+const renderCreate = ({ onSubmit, currentProductName, currentRating, currentSummary, currentProductLink }: Omit<Props, "id" | "isOwned">) => (
   <div>
     <DialogHeader className="dialog-header text-white text-lg py-4 mt-[-4rem]">
       <b>Create Review</b>
     </DialogHeader>
-    <ProductReviewNodeForm
-      onSubmit={onSubmit!}
-      currentProductName={currentProductName}
-      currentRating={currentRating}
-      currentSummary={currentSummary}
-    />
+      <ProductReviewNodeForm
+        onSubmit={onSubmit!}
+        currentProductName={currentProductName}
+        currentRating={currentRating}
+        currentSummary={currentSummary}
+        currentProductLink={currentProductLink}
+      />
   </div>
 );
 
-const renderEdit = ({ onSubmit, currentProductName, currentRating, currentSummary }: Omit<Props, "id" | "isOwned">) => (
+const renderEdit = ({ onSubmit, currentProductName, currentRating, currentSummary, currentProductLink }: Omit<Props, "id" | "isOwned">) => (
   <div>
     <DialogHeader className="dialog-header text-white text-lg py-4 mt-[-4rem]">
       <b>Edit Review</b>
     </DialogHeader>
-    <ProductReviewNodeForm
-      onSubmit={onSubmit!}
-      currentProductName={currentProductName}
-      currentRating={currentRating}
-      currentSummary={currentSummary}
-    />
+      <ProductReviewNodeForm
+        onSubmit={onSubmit!}
+        currentProductName={currentProductName}
+        currentRating={currentRating}
+        currentSummary={currentSummary}
+        currentProductLink={currentProductLink}
+      />
   </div>
 );
 
@@ -52,6 +55,7 @@ const ProductReviewNodeModal = ({
   currentProductName,
   currentRating,
   currentSummary,
+  currentProductLink,
 }: Props) => {
   const isCreate = !id && isOwned;
   const isEdit = id && isOwned;
@@ -61,9 +65,9 @@ const ProductReviewNodeModal = ({
         <DialogTitle>ProductReviewNodeModal</DialogTitle>
         <div className="grid rounded-md px-4 py-2">
           {isCreate &&
-            renderCreate({ onSubmit, currentProductName, currentRating, currentSummary })}
+            renderCreate({ onSubmit, currentProductName, currentRating, currentSummary, currentProductLink })}
           {isEdit &&
-            renderEdit({ onSubmit, currentProductName, currentRating, currentSummary })}
+            renderEdit({ onSubmit, currentProductName, currentRating, currentSummary, currentProductLink })}
           {!isOwned && (
             <DialogClose id="animateButton" className={`form-submit-button pl-2 py-2 pr-[1rem]`}>
               <> Close </>

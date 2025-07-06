@@ -10,6 +10,7 @@ interface Props {
   currentProductName: string;
   currentRating: number;
   currentSummary: string;
+  currentProductLink: string;
 }
 
 const ProductReviewNodeForm = ({
@@ -17,6 +18,7 @@ const ProductReviewNodeForm = ({
   currentProductName,
   currentRating,
   currentSummary,
+  currentProductLink,
 }: Props) => {
   const form = useForm({
     resolver: zodResolver(ProductReviewValidation),
@@ -24,6 +26,7 @@ const ProductReviewNodeForm = ({
       productName: currentProductName,
       rating: currentRating,
       summary: currentSummary,
+      productLink: currentProductLink,
     },
   });
 
@@ -42,6 +45,10 @@ const ProductReviewNodeForm = ({
         <label className="flex flex-col text-slate-500 gap-3 text-[14px]">
           Summary:
           <Input type="text" {...form.register("summary")} defaultValue={currentSummary} />
+        </label>
+        <label className="flex flex-col text-slate-500 gap-3 text-[14px]">
+          Product Link:
+          <Input type="url" {...form.register("productLink")} defaultValue={currentProductLink} />
         </label>
       </div>
       <hr />

@@ -122,6 +122,7 @@ export const ProductReviewValidation = z.object({
   productName: z.string().min(1),
   rating: z.number().min(1).max(5),
   summary: z.string().min(1),
+  productLink: z.string().url(),
 });
 
 export const SplineViewerPostValidation = z.object({
