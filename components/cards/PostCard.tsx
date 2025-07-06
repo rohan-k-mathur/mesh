@@ -191,8 +191,8 @@ const PostCard = async ({
               </div>
             )}
             {type === "PLUGIN" && pluginType === "SPLINE_VIEWER" && pluginData && (
-              <div className="mt-2 mb-2 flex justify-center items-center">
-                <Spline scene={(pluginData as any).sceneUrl} className="w-[70%] h-[30vw]" />
+              <div className="mt-2 mb-2 flex justify-center items-center  ml-1/2 w-full">
+                <Spline scene={(pluginData as any).sceneUrl} className="w-[100%] h-[30vw]" />
               </div>
             )}
             {embedPost && <div className="mt-4 scale-90">{embedPost}</div>}

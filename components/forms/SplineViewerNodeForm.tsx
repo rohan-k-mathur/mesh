@@ -32,7 +32,7 @@ const SplineViewerNodeForm = ({ onSubmit, currentUrl }: Props) => {
           name="sceneUrl"
           render={({ field }) => (
             <FormItem className="grid gap-2">
-              <FormLabel className="text-xl">Scene URL</FormLabel>
+              <FormLabel className="text-[1.5rem] text-white mt-4">Scene URL</FormLabel>
               <FormControl>
                 <Input type="text" defaultValue={currentUrl} {...field} />
               </FormControl>
@@ -40,7 +40,7 @@ const SplineViewerNodeForm = ({ onSubmit, currentUrl }: Props) => {
             </FormItem>
           )}
         />
-        <Button type="submit" className="form-submit-button">
+        <Button type="submit" className="form-submit-button mt-2 mb-4 ">
           Submit
         </Button>
       </form>

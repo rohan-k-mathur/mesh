@@ -21,9 +21,11 @@ const renderCreate = ({
   onSubmit?: (values: z.infer<typeof SplineViewerPostValidation>) => void;
 }) => (
   <div>
-    <DialogHeader className="dialog-header text-white text-lg py-4 mt-[-4rem]">
+    <DialogHeader className="dialog-header text-white text-lg py-4 mt-[-2.5rem]">
       <b>Create Spline Viewer</b>
     </DialogHeader>
+    <hr />
+
     <SplineViewerNodeForm onSubmit={onSubmit!} currentUrl="" />
   </div>
 );
@@ -70,8 +72,8 @@ const SplineViewerNodeModal = ({ id, isOwned, onSubmit, currentUrl }: Props) => 
   const isView = id && !isOwned;
   return (
     <div>
-      <DialogContent className="max-w-[50%]">
-        <div className="grid rounded-md px-4 py-2">
+      <DialogContent className="max-w-[40%] max-h-[60%] h-auto bg-slate-800 border-blue">
+        <div className="grid rounded-md px-4 py-2 mt-8">
           {isCreate && renderCreate({ onSubmit })}
           {isEdit && renderEdit({ onSubmit, currentUrl })}
           {isView && renderView(currentUrl)}
