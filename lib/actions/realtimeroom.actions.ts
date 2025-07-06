@@ -12,7 +12,6 @@ export async function fetchRealtimeRoom({
   realtimeRoomId: string;
 }) {
   try {
-    await prisma.$connect();
 
     const realtimeRoom = await prisma.realtimeRoom.findUnique({
       where: {
@@ -54,7 +53,6 @@ export async function fetchRealtimeRoom({
 
 export async function joinRoom({ roomId }: { roomId: string }) {
   try {
-    await prisma.$connect();
     const user = await getUserFromCookies();
     if (!user) {
       throw new Error("User not authenticated");
@@ -99,7 +97,6 @@ export async function leaveRoom({
   path: string;
 }) {
   try {
-    await prisma.$connect();
     const user = await getUserFromCookies();
     if (!user) {
       throw new Error("User not authenticated");
@@ -128,7 +125,6 @@ export async function createAndJoinRoom({
   path: string;
 }) {
   try {
-    await prisma.$connect();
     const user = await getUserFromCookies();
     if (!user) {
       throw new Error("User not authenticated");
@@ -157,7 +153,6 @@ export async function createAndJoinRoom({
 
 export async function getRoomsForUser({ userId }: { userId: bigint }) {
   try {
-    await prisma.$connect();
     const userRoomMemberships = await prisma.userRealtimeRoom.findMany({
       where: {
         user_id: userId,
@@ -179,7 +174,6 @@ export interface RandomRoom {
 
 export async function fetchRandomRooms(count = 4): Promise<RandomRoom[]> {
   try {
-    await prisma.$connect();
     const total = await prisma.realtimeRoom.count();
     const take = Math.min(count, total);
     if (take === 0) return [];
@@ -206,7 +200,6 @@ export async function findOrGenerateInviteToken({
   roomId: string;
 }) {
   try {
-    await prisma.$connect();
     const existingInviteToken = await prisma.realtimeRoomInviteToken.findFirst({
       where: { inviting_user_id: userId, realtime_room_id: roomId },
     });
@@ -228,7 +221,6 @@ export async function findOrGenerateInviteToken({
 
 export async function lookupInviteToken(inviteToken: string) {
   try {
-    await prisma.$connect();
     return await prisma.realtimeRoomInviteToken.findUnique({
       where: { token: inviteToken },
     });

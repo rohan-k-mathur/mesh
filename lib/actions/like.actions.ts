@@ -16,7 +16,6 @@ interface realtimeLikeParams {
 
 export async function likePost({ userId, postId }: likePostParams) {
   try {
-    await prisma.$connect();
     const uid = BigInt(userId);
     const pid = BigInt(postId);
     const post = await prisma.post.findUnique({
@@ -87,7 +86,6 @@ export async function likePost({ userId, postId }: likePostParams) {
 
 export async function unlikePost({ userId, postId }: likePostParams) {
   try {
-    await prisma.$connect();
     const uid = BigInt(userId);
     const pid = BigInt(postId);
     const post = await prisma.post.findUnique({
@@ -135,7 +133,6 @@ export async function unlikePost({ userId, postId }: likePostParams) {
 
 export async function dislikePost({ userId, postId }: likePostParams) {
   try {
-    await prisma.$connect();
     const uid = BigInt(userId);
     const pid = BigInt(postId);
     const post = await prisma.post.findUnique({
@@ -208,7 +205,6 @@ export async function fetchLikeForCurrentUser({
   postId,
 }: likePostParams) {
   try {
-    await prisma.$connect();
     const uid = BigInt(userId);
     const pid = BigInt(postId);
     const like = await prisma.like.findUnique({
@@ -230,7 +226,6 @@ export async function likeRealtimePost({
   realtimePostId,
 }: realtimeLikeParams) {
   try {
-    await prisma.$connect();
     const uid = BigInt(userId);
     const pid = BigInt(realtimePostId);
     const post = await prisma.realtimePost.findUnique({
@@ -276,7 +271,6 @@ export async function unlikeRealtimePost({
   realtimePostId,
 }: realtimeLikeParams) {
   try {
-    await prisma.$connect();
     const uid = BigInt(userId);
     const pid = BigInt(realtimePostId);
     const post = await prisma.realtimePost.findUnique({ where: { id: pid } });
@@ -311,7 +305,6 @@ export async function dislikeRealtimePost({
   realtimePostId,
 }: realtimeLikeParams) {
   try {
-    await prisma.$connect();
     const uid = BigInt(userId);
     const pid = BigInt(realtimePostId);
     const post = await prisma.realtimePost.findUnique({ where: { id: pid } });
@@ -354,7 +347,6 @@ export async function fetchRealtimeLikeForCurrentUser({
   realtimePostId,
 }: realtimeLikeParams) {
   try {
-    await prisma.$connect();
     const uid = BigInt(userId);
     const pid = BigInt(realtimePostId);
     const like = await prisma.realtimeLike.findUnique({

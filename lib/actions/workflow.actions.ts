@@ -18,7 +18,6 @@ export async function createWorkflow({
 }) {
   const user = await getUserFromCookies();
   if (!user) throw new Error("User not authenticated");
-  await prisma.$connect();
   const workflow = await prisma.workflow.create({
     data: {
       owner_id: user.userId!,
@@ -54,7 +53,6 @@ export async function updateWorkflow({
 }) {
   const user = await getUserFromCookies();
   if (!user) throw new Error("User not authenticated");
-  await prisma.$connect();
   const workflow = await prisma.workflow.findUniqueOrThrow({ where: { id } });
   if (workflow.owner_id !== user.userId) {
     throw new Error("User not authorized");
@@ -99,7 +97,6 @@ export async function fetchWorkflow({
   version?: number;
   history?: boolean;
 }) {
-  await prisma.$connect();
   const stateInclude = history
     ? { orderBy: { version: "asc" } }
     : version

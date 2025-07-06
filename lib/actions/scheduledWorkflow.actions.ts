@@ -13,7 +13,6 @@ export async function createScheduledWorkflow({
   trigger?: string | null;
   metadata?: any;
 }) {
-  await prisma.$connect();
   const id = typeof workflowId === "string" ? BigInt(workflowId) : workflowId;
   return prisma.scheduledWorkflow.create({
     data: {
@@ -26,6 +25,5 @@ export async function createScheduledWorkflow({
 }
 
 export async function listScheduledWorkflows() {
-  await prisma.$connect();
   return prisma.scheduledWorkflow.findMany();
 }

@@ -8,8 +8,11 @@ jest.mock("@/lib/prismaclient", () => {
   mockPrisma = {
     $connect: jest.fn(),
     $transaction: jest.fn(async (actions: any[]) => {
-      await Promise.all(actions.map((a) => a));
-      return [actions[0]?.data ? { id: BigInt(1), ...actions[0].data } : undefined];
+      const results = await Promise.all(actions);
+      return [
+        { id: BigInt(1), ...(results[0] ?? {}) },
+        { id: BigInt(2), ...(results[1] ?? {}) },
+      ];
     }),
     workflow: {
       create: jest.fn(async ({ data }: any) => ({ id: BigInt(1), ...data })),
@@ -17,8 +20,11 @@ jest.mock("@/lib/prismaclient", () => {
       findUniqueOrThrow: jest.fn(async ({ where }: any) => ({ id: where.id, owner_id: BigInt(2) })),
     },
     workflowState: {
-      create: jest.fn(),
+      create: jest.fn(async ({ data }: any) => ({ id: BigInt(1), ...data })),
       findFirst: jest.fn(),
+    },
+    workflowTransition: {
+      create: jest.fn(),
     },
   };
   return { prisma: mockPrisma };

@@ -31,7 +31,6 @@ export async function updateUser({
   path,
 }: UpdateUserParams) {
   try {
-    await prisma.$connect();
     const result = await prisma.user.upsert({
       where: {
         auth_id: userAuthId,
@@ -63,7 +62,6 @@ export async function updateUser({
 
 export async function fetchUserByAuthId(userAuthId: string) {
   try {
-    await prisma.$connect();
     return await prisma.user.findUnique({
       where: {
         auth_id: userAuthId,
@@ -76,7 +74,6 @@ export async function fetchUserByAuthId(userAuthId: string) {
 
 export async function fetchUser(userId: bigint) {
   try {
-    await prisma.$connect();
     return await prisma.user.findUnique({
       where: {
         id: userId,
@@ -89,7 +86,6 @@ export async function fetchUser(userId: bigint) {
 
 export async function fetchUserByUsername(username: string) {
   try {
-    await prisma.$connect();
     return await prisma.user.findFirst({
       where: { username: username.toLowerCase() },
     });
@@ -100,7 +96,6 @@ export async function fetchUserByUsername(username: string) {
 
 export async function fetchUserThreads(userId: bigint) {
   try {
-    await prisma.$connect();
     const posts = await prisma.user.findUnique({
       where: {
         id: userId,
@@ -161,7 +156,6 @@ export async function fetchUsers({
   sortBy = Prisma.SortOrder.desc,
 }: FetchUsersParams) {
   try {
-    await prisma.$connect();
     const skipAmount = (pageNumber - 1) * pageSize;
     const query: Prisma.UserWhereInput[] = [
       {
@@ -211,7 +205,6 @@ export async function fetchUsers({
 
 export async function getActivity(userId: bigint) {
   try {
-    await prisma.$connect();
     const userThreads = await prisma.post.findMany({
       where: {
         author_id: userId,
@@ -259,7 +252,6 @@ export async function getActivity(userId: bigint) {
 
 export async function fetchRandomUsers(count = 3) {
   try {
-    await prisma.$connect();
     const total = await prisma.user.count({
       where: { onboarded: true },
     });
@@ -300,7 +292,6 @@ export async function createDefaultUser({
   image,
 }: CreateDefaultUserParams) {
   try {
-    await prisma.$connect();
     const usernameBase = email ? email.split("@")[0] : `user-${nanoid(6)}`;
     const user = await prisma.user.create({
       data: {

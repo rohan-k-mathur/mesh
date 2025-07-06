@@ -32,7 +32,6 @@ async function runWorkflow(workflowId: bigint) {
 }
 
 export async function startWorkflowScheduler() {
-  await prisma.$connect();
   const schedules = await prisma.scheduledWorkflow.findMany();
   for (const sched of schedules) {
     if (sched.cron) {

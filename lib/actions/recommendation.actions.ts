@@ -28,7 +28,6 @@ export async function fetchRecommendations({
   limitUsers = 7,
   limitRooms = 5,
 }: RecommendationParams) {
-  await prisma.$connect();
   const base = await prisma.userAttributes.findUnique({
     where: { user_id: userId },
   });
@@ -118,7 +117,6 @@ export async function logRecommendationClick({
   recommendedUserId?: bigint;
   recommendedRoomId?: string;
 }) {
-  await prisma.$connect();
   await prisma.recommendationClick.create({
     data: {
       user_id: userId,

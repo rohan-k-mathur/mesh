@@ -23,7 +23,6 @@ export async function upsertUserAttributes({
     throw new Error("User not authenticated");
   }
   try {
-    await prisma.$connect();
 
     const {
       artists = [],
@@ -128,7 +127,6 @@ export async function fetchUserAttributes({
   userId: bigint | null;
 }) {
   if (!userId) return null;
-  await prisma.$connect();
 
   const userAttributes = await prisma.userAttributes.findUnique({
     where: {
@@ -156,7 +154,6 @@ export async function searchUsersByAttributes({
   base,
   limit = 10,
 }: SearchUsersByAttributesParams) {
-  await prisma.$connect();
 
   const others = await prisma.userAttributes.findMany({
     include: { user: true },
