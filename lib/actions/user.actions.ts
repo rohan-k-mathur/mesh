@@ -5,6 +5,14 @@ import { prisma } from "../prismaclient";
 import { revalidatePath } from "next/cache";
 import { nanoid } from "nanoid";
 
+const userCacheById = new Map<bigint, Prisma.User | null>();
+const userCacheByAuthId = new Map<string, Prisma.User | null>();
+
+export function clearUserCache() {
+  userCacheById.clear();
+  userCacheByAuthId.clear();
+}
+
 export interface UpdateUserParams {
   userAuthId: string;
   username: string;
@@ -62,26 +70,42 @@ export async function updateUser({
 }
 
 export async function fetchUserByAuthId(userAuthId: string) {
+  if (userCacheByAuthId.has(userAuthId)) {
+    return userCacheByAuthId.get(userAuthId) ?? null;
+  }
   try {
     await prisma.$connect();
-    return await prisma.user.findUnique({
+    const user = await prisma.user.findUnique({
       where: {
         auth_id: userAuthId,
       },
     });
+    userCacheByAuthId.set(userAuthId, user ?? null);
+    if (user) {
+      userCacheById.set(user.id, user);
+    }
+    return user;
   } catch (error: any) {
     throw new Error(`Failed to get user: ${error.message}`);
   }
 }
 
 export async function fetchUser(userId: bigint) {
+  if (userCacheById.has(userId)) {
+    return userCacheById.get(userId) ?? null;
+  }
   try {
     await prisma.$connect();
-    return await prisma.user.findUnique({
+    const user = await prisma.user.findUnique({
       where: {
         id: userId,
       },
     });
+    userCacheById.set(userId, user ?? null);
+    if (user) {
+      userCacheByAuthId.set(user.auth_id, user);
+    }
+    return user;
   } catch (error: any) {
     throw new Error(`Failed to get user: ${error.message}`);
   }
