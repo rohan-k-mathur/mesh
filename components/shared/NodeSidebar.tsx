@@ -19,6 +19,7 @@ import {
   YoutubePostValidation,
   PortfolioNodeValidation,
   SplineViewerPostValidation,
+  ProductReviewValidation,
 
 } from "@/lib/validations/thread";
 import { usePathname, useParams } from "next/navigation";
@@ -47,6 +48,7 @@ import GalleryNodeModal from "@/components/modals/GalleryNodeModal";
 import LivechatNodeModal from "@/components/modals/LivechatNodeModal";
 import PortfolioNodeModal from "@/components/modals/PortfolioNodeModal";
 import SplineViewerNodeModal from "@/components/modals/SplineViewerNodeModal";
+import ProductReviewNodeModal from "@/components/modals/ProductReviewNodeModal";
 
 import { fetchUserByUsername } from "@/lib/actions/user.actions";
 
@@ -125,6 +127,7 @@ export default function NodeSidebar({
     { label: "AUDIO", nodeType: "AUDIO" },
     { label: "LLM", nodeType: "LLM_INSTRUCTION" },
     { label: "PORTFOLIO", nodeType: "PORTFOLIO" },
+    { label: "PRODUCT_REVIEW", nodeType: "PRODUCT_REVIEW" },
 
   ];
 
@@ -369,7 +372,26 @@ export default function NodeSidebar({
             />
           );
           break;
-  
+
+        case "PRODUCT_REVIEW":
+          store.openModal(
+            <ProductReviewNodeModal
+              isOwned={true}
+              currentProductName=""
+              currentRating={5}
+              currentSummary=""
+              onSubmit={(vals: z.infer<typeof ProductReviewValidation>) => {
+                createPostAndAddToCanvas({
+                  text: JSON.stringify(vals),
+                  path: pathname,
+                  coordinates: centerPosition,
+                  type: "PRODUCT_REVIEW",
+                  realtimeRoomId: roomId,
+                });
+              }}
+            />
+          );
+          break;
 
       case "AUDIO":
         createPostAndAddToCanvas({

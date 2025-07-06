@@ -273,7 +273,7 @@ export function convertPostToNode(
             y: realtimePost.y_coordinate,
           },
         } as CodeNode;
-        case "PORTFOLIO": {
+      case "PORTFOLIO": {
           let text = "";
           let images: string[] = [];
           let links: string[] = [];
@@ -316,6 +316,35 @@ export function convertPostToNode(
             y: realtimePost.y_coordinate,
           },
         } as PortfolioNodeData;
+      }
+
+      case "PRODUCT_REVIEW": {
+        let productName = "";
+        let rating = 5;
+        let summary = "";
+        if (realtimePost.content) {
+          try {
+            const parsed = JSON.parse(realtimePost.content);
+            productName = parsed.productName || "";
+            rating = parsed.rating || 5;
+            summary = parsed.summary || "";
+          } catch {}
+        }
+        return {
+          id: realtimePost.id.toString(),
+          type: realtimePost.type,
+          data: {
+            productName,
+            rating,
+            summary,
+            author: authorToSet,
+            locked: realtimePost.locked,
+          },
+          position: {
+            x: realtimePost.x_coordinate,
+            y: realtimePost.y_coordinate,
+          },
+        } as AppNode;
       }
 
       case "LLM_INSTRUCTION":
