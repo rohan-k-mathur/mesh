@@ -238,7 +238,7 @@ const CreateFeedPost = () => {
         );
       default:
         return (
-          <DialogContent className="p-8  max-w-[34rem] max-h-[20rem]">
+          <DialogContent className="p-8 bg-slate-200 border-[2px] border-blue max-w-[34rem] max-h-[20rem]">
             <Select onValueChange={(v) => handleSelect(v)}>
               <SelectTrigger>
                 <SelectValue placeholder="Select post type" className="px-4" />

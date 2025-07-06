@@ -60,7 +60,7 @@ const ImageNodeForm = ({ onSubmit, currentImageURL }: Props) => {
           name="image"
           render={({ field }) => (
             <FormItem className="flex items-center gap-4 mb-2 text-xl">
-              <FormLabel className="account-form_image-label text-xl">
+              {/* <FormLabel className="account-form_image-label text-xl">
                 <Image
                   src={imageURL}
                   alt="upload"
@@ -69,7 +69,7 @@ const ImageNodeForm = ({ onSubmit, currentImageURL }: Props) => {
                   className="object-cover"
                   priority
                 />
-              </FormLabel>
+              </FormLabel> */}
               <FormControl className="form-submit-button flex-1 text-base-semibold text-gray-200 text-xl">
                 <Input
                   hidden

@@ -24,7 +24,7 @@ const renderCreate = ({
   onSubmit?: (values: z.infer<typeof GalleryPostValidation>) => void;
   currentIsPublic: boolean;
 }) => (
-  <div>
+  <div >
     <DialogHeader className="dialog-header text-white text-lg py-4 mt-[-4rem]">
       <b>Create Gallery</b>
     </DialogHeader>
@@ -89,9 +89,8 @@ const GalleryNodeModal = ({ id, isOwned, isPublic, onSubmit, currentImages }: Pr
   const isView = id && !isOwned && !isPublic;
   return (
     <div>
-      <DialogContent className="max-w-[57rem]">
-        <DialogTitle>GalleryNodeModal</DialogTitle>
-        <div className="grid rounded-md px-4 py-2">
+      <DialogContent className="max-w-[57rem] w-fit bg-slate-800 border-[2px] border-blue">
+        <div className="grid rounded-md px-4 py-8 mt-10">
           {isCreate && renderCreate({ onSubmit, currentIsPublic: isPublic })}
           {isEdit &&
             renderEdit({

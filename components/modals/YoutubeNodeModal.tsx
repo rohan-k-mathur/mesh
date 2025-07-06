@@ -22,7 +22,7 @@ const renderCreate = ({
 }) => {
   return (
     <div>
-      <DialogHeader className="dialog-header text-white text-lg py-4 mt-[-4rem]">
+      <DialogHeader className="dialog-header text-white text-lg py-4 mt-[-3rem]">
         <b> Create Post</b>
       </DialogHeader>
       <hr />
@@ -92,7 +92,7 @@ const YoutubeNodeModal = ({
   const isView = id && !isOwned;
   return (
     <div>
-      <DialogContent className="max-w-[34rem]">
+      <DialogContent className="max-w-[34rem] bg-slate-800 border-blue">
         <div className="grid rounded-md px-4 py-2 mt-8">
           {isCreate && renderCreate({ onSubmit })}
           {isEdit && renderEdit({ onSubmit, currentVideoURL })}

@@ -87,7 +87,7 @@ const TextNodeModal = ({ id, isOwned, onSubmit, currentText }: Props) => {
   const isView = id && !isOwned;
   return (
     <div>
-      <DialogContent className="max-w-[57rem]">
+      <DialogContent className="max-w-[57rem] bg-slate-800 border-blue">
         <div className="grid rounded-md px-4 py-2 mt-8">
           {isCreate && renderCreate({ onSubmit })}
           {isEdit && renderEdit({ onSubmit, currentText })}

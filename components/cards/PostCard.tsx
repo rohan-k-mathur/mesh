@@ -127,7 +127,7 @@ const PostCard = async ({
             {(type === "IMAGE" || type === "IMAGE_COMPUTE") && image_url && (
 
               <Image
-                className=" flex img-feed-frame  rounded-sm mt-[1rem] mb-[1rem] justify-center align-center items-center"
+                className=" flex img-feed-frame ml-[19%] mr-[19%] rounded-sm mt-[1rem] mb-[1rem] "
                 src={image_url}
                 alt="image not found"
                 width={0}
@@ -176,12 +176,12 @@ const PostCard = async ({
               </div>
             )}
             {type === "PLUGIN" && pluginType === "PDF_VIEWER" && pluginData && (
-              <div className="mt-2 mb-2 flex justify-center items-center">
+              <div className="mt-2 mb-2 flex img-feed-frame w-[100%] ml-[23%]  justify-center items-center">
                 <object
                   data={(pluginData as any).pdfUrl}
                   type="application/pdf"
-                  width="100%"
-                  height="400"
+                  width="200%"
+                  height="500"
                 >
                   <p>
                     <a href={(pluginData as any).pdfUrl}>Download PDF</a>

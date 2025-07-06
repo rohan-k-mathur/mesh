@@ -70,13 +70,13 @@ const GalleryNodeForm = ({
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
-        className="flex flex-col justify-start mt-8 mb-8"
+        className="grid mt-8 mb-8"
       >
         <FormField
           control={form.control}
           name="images"
           render={({ field }) => (
-            <FormItem className="flex flex-col gap-4 mb-2 text-xl">
+            <FormItem className="flex gap-4 mb-2 text-xl">
               {/* <FormLabel className="account-form_image-label text-xl">
                 <div className="flex gap-2 flex-wrap">
                   {imageURLs.map((url, idx) => (
@@ -91,14 +91,14 @@ const GalleryNodeForm = ({
                   ))}
                 </div>
               </FormLabel> */}
-              <FormControl className="form-submit-button flex-1 text-base-semibold text-gray-200 text-xl">
+              <FormControl className=" flex h-max text-base-semibold text-gray-200 text-[1.25rem]">
                 <Input
                   hidden
                   multiple
                   type="file"
                   accept="image/*"
                   placeholder="Upload images"
-                  className="account-form_image-input"
+                  className="account-form_image-input w-min"
                   onChange={(e) => handleImages(e, field.onChange)}
                 />
               </FormControl>
@@ -109,26 +109,33 @@ const GalleryNodeForm = ({
         {isOwned && (
           <FormField
             control={form.control}
+            
             name="isPublic"
             render={({ field }) => (
-              <FormItem className="flex flex-row items-center gap-2 mb-4">
-                <FormLabel className=" text-[2rem] text-white ml-8">Public?</FormLabel>
-                <FormControl>
+              <div className="w-min h-min grid">
+              <FormItem className="flex justify-start  items-start gap-2 mb-4">
+                <FormLabel className=" px-8 flex  text-[1.5rem] text-white ">Public?</FormLabel>
+                <FormControl className="relative h-min  w-min bottom-2 right-[14%]  flex items-start justify-start">
                   <Input
                     type="checkbox"
+                    
                     checked={field.value}
                     onChange={field.onChange}
-                    className="flex relative -left-[15rem]"
+                    className=" "
                   />
                 </FormControl>
                 <FormMessage />
               </FormItem>
+                      <Button type="submit" className="relative bottom-4 left-6 px-0 py-2 rounded-full h-min image-submit-button  ">
+                      Submit
+                    </Button>
+                    </div>
+
             )}
+            
           />
         )}
-        <Button type="submit" className="w-[100%] h-max image-submit-button mt-2">
-          Submit
-        </Button>
+
       </form>
     </Form>
   );

@@ -23,7 +23,7 @@ const GalleryCarousel = ({ urls }: Props) => {
   if (urls.length === 0) return null;
 
   return (
-    <div className="relative mx-auto flex w-full max-w-[45rem] justify-center">
+    <div className="relative mr-[20%] flex w-[100%] max-w-[45rem]  right-3 justify-center">
       <Image
         className="carousel"
         src={urls[currentIndex]}
@@ -33,23 +33,23 @@ const GalleryCarousel = ({ urls }: Props) => {
         sizes="100vw"
       />
       {urls.length > 1 && (
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-between px-2">
-          <button className="pointer-events-auto bg-transparent border-none carouselbutton" onClick={handlePrev}>
+        <div className="pointer-events-none absolute inset-0 flex  justify-between px-2">
+          <button className="pointer-events-auto bg-transparent border-none carouselbutton px-2 " onClick={handlePrev}>
             <Image
-              src="/assets/leftarrow.svg"
+              src="/assets/chevron--left.svg"
               alt="previous"
               width={48}
               height={48}
-              className="cursor-pointer object-contain carouselbutton"
+              className="cursor-pointer object-contain "
             />
           </button>
-          <button className="pointer-events-auto bg-transparent border-none carouselbutton" onClick={handleNext}>
+          <button className="pointer-events-auto bg-transparent border-none carouselbutton px-2" onClick={handleNext}>
             <Image
-              src="/assets/rightarrow.svg"
+              src="/assets/chevron--right.svg"
               alt="next"
               width={48}
               height={48}
-              className="cursor-pointer object-contain carouselbutton"
+              className="cursor-pointer object-contain "
             />
           </button>
         </div>
