@@ -26,6 +26,7 @@ function ProductReviewNode({ id, data }: NodeProps<ProductReviewNodeData>) {
   const [productName, setProductName] = useState(data.productName);
   const [rating, setRating] = useState(data.rating);
   const [summary, setSummary] = useState(data.summary);
+  const [productLink, setProductLink] = useState(data.productLink);
 
   useEffect(() => {
     if ("username" in author) return;
@@ -36,6 +37,7 @@ function ProductReviewNode({ id, data }: NodeProps<ProductReviewNodeData>) {
     setProductName(data.productName);
     setRating(data.rating);
     setSummary(data.summary);
+    setProductLink(data.productLink);
   }, [data]);
 
   const isOwned = currentUser ? Number(currentUser.userId) === Number(data.author.id) : false;
@@ -44,6 +46,7 @@ function ProductReviewNode({ id, data }: NodeProps<ProductReviewNodeData>) {
     setProductName(values.productName);
     setRating(values.rating);
     setSummary(values.summary);
+    setProductLink(values.productLink);
     await updateRealtimePost({
       id,
       path,
@@ -55,14 +58,15 @@ function ProductReviewNode({ id, data }: NodeProps<ProductReviewNodeData>) {
   return (
     <BaseNode
       modalContent={
-        <ProductReviewNodeModal
-          id={id}
-          isOwned={isOwned}
-          currentProductName={productName}
-          currentRating={rating}
-          currentSummary={summary}
-          onSubmit={onSubmit}
-        />
+      <ProductReviewNodeModal
+        id={id}
+        isOwned={isOwned}
+        currentProductName={productName}
+        currentRating={rating}
+        currentSummary={summary}
+        currentProductLink={productLink}
+        onSubmit={onSubmit}
+      />
       }
       id={id}
       author={author}
@@ -74,6 +78,9 @@ function ProductReviewNode({ id, data }: NodeProps<ProductReviewNodeData>) {
         <div className="font-bold">{productName}</div>
         <div>Rating: {rating}/5</div>
         <div className="text-sm mt-1">{summary}</div>
+        <a href={productLink} className="text-xs text-blue-500" target="_blank" rel="noopener noreferrer">
+          View Product
+        </a>
       </div>
     </BaseNode>
   );

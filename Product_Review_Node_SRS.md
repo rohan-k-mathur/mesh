@@ -17,7 +17,7 @@ Product Review Nodes capture opinions about a product in a standardized format. 
 
 ## 3. System Features
 ### 3.1 Structured Review Fields
-- **Description:** Forms for product name, rating (1–5), pros/cons, and claim text.
+- **Description:** Forms for product name, rating (1–5), a link to the product, pros/cons, and claim text.
 - **Storage:** Persisted in the database alongside other post types.
 - **UI:** Creation and edit modals validate required fields before saving.
 
@@ -58,7 +58,7 @@ Product Review Nodes capture opinions about a product in a standardized format. 
 - WebSocket or Supabase channels for real-time updates to votes and annotations.
 
 ## 5. Functional Requirements
-1. **FR1:** The system shall store product name, rating, summary, and an array of claims for each review.
+1. **FR1:** The system shall store product name, a product link, rating, summary, and an array of claims for each review.
 2. **FR2:** The system shall allow users to highlight claim text and create annotations linked to that claim.
 3. **FR3:** The system shall provide modular vote options on each claim and on the overall review.
 4. **FR4:** The system shall optionally let users attach micro vouch tokens to a claim and track totals per user.
@@ -95,3 +95,12 @@ The Product Review Node extends the existing node plug-in framework. A React com
 6. **Room & Feed Integration** – Render the node in rooms and the feed with real-time updates.
 7. **Testing & Linting** – Write tests and ensure `npm run lint` passes before merging.
 8. **Beta Feedback** – Deploy to a test environment and collect user feedback for refinements.
+
+## 11. Review Composition Guidelines
+To encourage useful and engaging reviews, posts should include:
+1. **Engaging introduction** with context, target audience, and quick verdict.
+2. **Product information** such as full name, manufacturer, price, availability, and model details.
+3. **Personal experience** covering setup, real-world usage, and specific examples.
+4. **Pros and cons** that focus on usability and performance.
+5. **Recommendations** for who should use the product and possible alternatives.
+6. **Visual elements** like photos, videos, or screenshots when applicable.

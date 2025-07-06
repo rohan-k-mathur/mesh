@@ -322,12 +322,14 @@ export function convertPostToNode(
         let productName = "";
         let rating = 5;
         let summary = "";
+        let productLink = "";
         if (realtimePost.content) {
           try {
             const parsed = JSON.parse(realtimePost.content);
             productName = parsed.productName || "";
             rating = parsed.rating || 5;
             summary = parsed.summary || "";
+            productLink = parsed.productLink || "";
           } catch {}
         }
         return {
@@ -337,6 +339,7 @@ export function convertPostToNode(
             productName,
             rating,
             summary,
+            productLink,
             author: authorToSet,
             locked: realtimePost.locked,
           },
