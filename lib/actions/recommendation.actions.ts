@@ -39,32 +39,54 @@ export async function fetchRecommendations({
     include: { user: true },
   });
 
-  const intersection = (a: string[], b: string[]) => a.filter((v) => b.includes(v));
+  const fields: (keyof typeof base)[] = [
+    "artists",
+    "albums",
+    "songs",
+    "interests",
+    "movies",
+    "books",
+    "hobbies",
+    "communities",
+  ];
 
-  const calcScore = (a: typeof base, b: typeof base) => {
-    let score = 0;
-    const fields: (keyof typeof base)[] = [
-      "artists",
-      "albums",
-      "songs",
-      "interests",
-      "movies",
-      "books",
-      "hobbies",
-      "communities",
-    ];
+  const toSetMap = (u: typeof base) => {
+    const sets: Record<string, Set<string>> = {};
     for (const field of fields) {
-      const arrA = (a as any)[field] as string[];
-      const arrB = (b as any)[field] as string[];
-      score += intersection(arrA || [], arrB || []).length;
+      sets[field] = new Set(((u as any)[field] as string[]) || []);
     }
-    if (a.location && b.location && a.location === b.location) score += 1;
+    return sets;
+  };
+
+  const baseSets = toSetMap(base);
+
+  const intersection = (a: Set<string>, b: Set<string>) => {
+    const [smaller, larger] = a.size < b.size ? [a, b] : [b, a];
+    let count = 0;
+    for (const value of smaller) {
+      if (larger.has(value)) count += 1;
+    }
+    return count;
+  };
+
+  const calcScore = (
+    aSets: Record<string, Set<string>>,
+    bSets: Record<string, Set<string>>,
+    aLocation?: string | null,
+    bLocation?: string | null,
+  ) => {
+    let score = 0;
+    for (const field of fields) {
+      score += intersection(aSets[field], bSets[field]);
+    }
+
+    if (aLocation && bLocation && aLocation === bLocation) score += 1;
     return score;
   };
 
   const scored = others
     .map((o) => ({
-      score: calcScore(base, o),
+      score: calcScore(baseSets, toSetMap(o), base.location, o.location),
       user: o.user,
     }))
     .filter((s) => s.score > 0)
