@@ -2,10 +2,10 @@
 
 ## 1. Introduction
 ### 1.1 Purpose
-This document details the requirements and architecture roadmap for a **State Machine Builder** in Mesh. The feature provides a graphical editor to orchestrate node execution with branching logic. It expands the "Advanced Node System" and enables automation workflows such as sending email notifications when product inventory runs low on a small ecommerce site.
+This document details the requirements and architecture roadmap for a **Flowstate Builder (State Machine Builder)** in Mesh. The feature provides a graphical editor to orchestrate node execution with branching logic. It expands the "Advanced Node System" and enables automation workflows such as sending email notifications when product inventory runs low on a small ecommerce site. Flowstate aims to democratize workflow automation through AI-assisted drag-and-drop creation, as described in the Flow_Builder_FLOWSTATE_Report.md.
 
 ### 1.2 Scope
-The builder allows users to visually create states, connect them with transitions, and define conditional branches. During execution, the interface highlights the active state so users can monitor progress. Workflows are saved in the database and can trigger existing node types or custom plug‑ins.
+The builder allows users to visually create states, connect them with transitions, and define conditional branches. During execution, the interface highlights the active state so users can monitor progress. Workflows are saved in the database and can trigger existing node types or custom plug‑ins. The platform includes AI assistance, real-time collaboration, and connectors to third-party services, allowing workflows like those in the FlowBuilder_Case_Study.md.
 
 ### 1.3 References
 - `Advanced_Node_System_SRS.md`
@@ -13,7 +13,7 @@ The builder allows users to visually create states, connect them with transition
 - Existing node components in `components/nodes`
 
 ## 2. Overall Description
-The State Machine Builder is an extension of the React Flow canvas. Users drag nodes representing states onto the canvas, then draw edges to indicate execution order. Each edge can include a condition (e.g., inventory `< 5`). A dedicated panel lists state properties and transition rules. When a workflow runs, the builder animates which state is active and shows output from each step. A state machine might automate tasks across services, similar to Zapier or Automatisch.
+The State Machine Builder is an extension of the React Flow canvas. Users drag nodes representing states onto the canvas, then draw edges to indicate execution order. Each edge can include a condition (e.g., inventory `< 5`). A dedicated panel lists state properties and transition rules. When a workflow runs, the builder animates which state is active and shows output from each step. A state machine might automate tasks across services, similar to Zapier or Automatisch. The builder integrates AI-driven nodes, third-party connectors, and analytics as outlined in the Flow_Builder_FLOWSTATE_Report.md.
 
 ## 3. System Features
 ### 3.1 Graphical Editor
@@ -52,6 +52,18 @@ The State Machine Builder is an extension of the React Flow canvas. Users drag n
   3. On the "Send Email" state, attach an email‑sending node with message details.
   4. Optionally loop back to "Check Inventory" with a delay state for periodic checks.
 
+### 3.6 AI Assistance
+- **Description:** AI-powered nodes help generate content, extract data, and suggest improvements. Natural language prompts can create entire workflows.
+
+### 3.7 Integration & Connectors
+- **Description:** Built-in connectors to SaaS services (e.g., Shopify, Gmail, Slack) let users automate across tools without code. New connectors can be added via the integrations folder.
+
+### 3.8 Collaboration & Governance
+- **Description:** Real-time collaboration using CRDTs with version history and permission controls. Governance policies ensure workflows remain secure.
+
+### 3.9 Analytics Dashboard
+- **Description:** Execution metrics are collected and visualized so users can optimize performance and see ROI.
+
 ## 4. External Interface Requirements
 ### 4.1 User Interfaces
 - Builder canvas and side panels within the Mesh web app.
@@ -87,11 +99,14 @@ The State Machine Builder is an extension of the React Flow canvas. Users drag n
 1. **Frontend Components**
    - React Flow canvas for graph editing.
    - Sidebar panels for state details and transition conditions.
+   - AI assistant panel for natural language prompts.
    - Execution viewer overlay to display active state and logs.
+   - Real-time collaboration via Supabase channels and Yjs.
 2. **Backend Services**
    - Database tables for states, transitions, and workflow metadata.
    - API routes to create, update, retrieve, and run workflows.
    - Execution engine that interprets the stored graph and calls node actions.
+   - Integration loader registers connectors from the integrations folder.
 3. **Data Model**
    - `Workflow` – id, owner, name, version.
    - `State` – id, workflowId, actionType, config.
@@ -111,6 +126,9 @@ The State Machine Builder is an extension of the React Flow canvas. Users drag n
 - Marketplace for sharing workflow templates.
 - Hooks to integrate with external services (email, storage, payments).
 - Support exporting and importing workflows as JSON files.
+- Multi-channel eCommerce management nodes for Shopify and social channels.
+- Workflows for influencer tracking and automated payments.
+- AI-driven customer support integrations for chat and email.
 
 Using Automatisch as a reference to help guide development: Automatisch’s open-source repository describes it as a “business automation tool” that lets you connect services like Twitter and Slack to automate workflows. It emphasizes that automation should be easy and inexpensive, without needing programming knowledge. A key benefit is the ability to keep data on your own servers, making it attractive for organizations with strict privacy requirements. The README also highlights that being open source means anyone can contribute and there’s no vendor lock-in.
 
