@@ -47,7 +47,7 @@ import UserRoomsModal from "../modals/UserRoomsModal";
     }
     return (
       <section className="p-4 space-y-4">
-        <h1 className="text-[2rem] font-bold">MESH Applications</h1>
+        <h1 className="text-[2rem] px-[35%] pb-4 font-bold">MESH Applications</h1>
         <div className="space-y-4">
 
             <div  className="flex gap-4 w-fit h-full">

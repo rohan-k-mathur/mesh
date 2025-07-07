@@ -52,8 +52,7 @@ function Ring({
   return (
     <g
       style={{ transformOrigin: "center", transformBox: "fill-box" }}
-      className="transition-transform"
-      transform={`rotate(${angle})`}
+      className="transition-transform "
     >
       {letters.map((l, i) => {
         const a = (i * step * Math.PI) / 180;
@@ -66,7 +65,7 @@ function Ring({
             y={y}
             textAnchor="middle"
             dominantBaseline="middle"
-            className="font-mono text-lg"
+            className="font-mono text-block  text-[1rem] text-gray-800 rounded-full"
           >
             {l}
           </text>
@@ -117,23 +116,24 @@ export default function PivotPage() {
   const solved = valid.every(Boolean);
 
   return (
-    <main className="p-4 space-y-4 flex flex-col items-center">
-      <h1 className="text-2xl font-bold">Pivot</h1>
+    <main className=" flex flex-col items-center">
+      <h1 className="text-[2rem] mt-[-2rem] font-bold">Pivot</h1>
       <p>Spins: {spins}</p>
       <svg
-        width={260}
-        height={260}
+        width={350}
+        height={350}
         viewBox="-130 -130 260 260"
         className="mx-auto"
       >
-        <circle r={100} className="fill-none stroke-gray-300" />
-        <circle r={70} className="fill-none stroke-gray-300" />
-        <circle r={40} className="fill-none stroke-gray-300" />
+        <circle r={100} className="fill-none stroke-slate-200" />
+        <circle r={70} className="fill-none stroke-slate-200" />
+        <circle r={40} className="fill-none stroke-slate-200" />
         <Ring letters={r1} radius={100} angle={angle1} />
         <Ring letters={r2} radius={70} angle={angle2} />
         <Ring letters={r3} radius={40} angle={angle3} />
       </svg>
-      <div className="flex gap-4">
+      <div className=" mt-[-0rem] space-y-2">
+      <div className="flex gap-4 ">
         <div className="flex flex-col items-center gap-1">
           <Button
             onClick={() => {
@@ -142,7 +142,7 @@ export default function PivotPage() {
               setSpins(spins + 1);
             }}
           >
-            R1 ↺
+            Outer ↺
           </Button>
           <Button
             onClick={() => {
@@ -151,7 +151,7 @@ export default function PivotPage() {
               setSpins(spins + 1);
             }}
           >
-            R1 ↻
+            Outer ↻
           </Button>
         </div>
         <div className="flex flex-col items-center gap-1">
@@ -162,7 +162,7 @@ export default function PivotPage() {
               setSpins(spins + 1);
             }}
           >
-            R2 ↺
+            Middle ↺
           </Button>
           <Button
             onClick={() => {
@@ -171,7 +171,7 @@ export default function PivotPage() {
               setSpins(spins + 1);
             }}
           >
-            R2 ↻
+            Middle ↻
           </Button>
         </div>
         <div className="flex flex-col items-center gap-1">
@@ -182,7 +182,7 @@ export default function PivotPage() {
               setSpins(spins + 1);
             }}
           >
-            R3 ↺
+            Inner ↺
           </Button>
           <Button
             onClick={() => {
@@ -191,13 +191,14 @@ export default function PivotPage() {
               setSpins(spins + 1);
             }}
           >
-            R3 ↻
+            Inner ↻
           </Button>
         </div>
+        </div>
       </div>
-      <ul className="space-y-1 font-mono">
+      <ul className="py-8 grid grid-cols-4 grid-rows-2 gap-x-4 gap-y-2 mt-2 font-mono text-[1rem]">
         {spokes.map((w, i) => (
-          <li key={i} className={valid[i] ? "text-green-600" : "text-gray-500"}>
+          <li key={i} className={valid[i] ? "text-green-800 text-[1.2rem]" : "text-gray-700 text-[1.2rem]"}>
             {w}
           </li>
         ))}
