@@ -31,18 +31,15 @@ import { Slider } from "@/components/ui/slider";
 // ]);
 
 const dictionary = new Set([
-   
-    "SUN",
-    "MAP",
-    "OIL",
-    "PEG",
-    "TAR",
-    "HOP",
-    "NET",
-    "LOG",
-
-
-  ]);
+  "SUNS",
+  "MAPS",
+  "OILS",
+  "PEGS",
+  "TARP",
+  "HOPS",
+  "NETS",
+  "LOGS",
+]);
 
 
 function rotateSteps(arr: string[], steps: number) {
@@ -143,21 +140,34 @@ export default function PivotPage() {
     "G",
     "R",
   ]);
+  const [r4, setR4] = useState<string[]>([
+    "P",
+    "S",
+    "S",
+    "S",
+    "S",
+    "S",
+    "S",
+    "S",
+  ]);
   const [angle1, setAngle1] = useState(0);
   const [angle2, setAngle2] = useState(0);
   const [angle3, setAngle3] = useState(0);
+  const [angle4, setAngle4] = useState(0);
   const [spins, setSpins] = useState(0);
   const [speed, setSpeed] = useState(8000);
 
   const offset1 = -Math.round(angle1 / 45);
   const offset2 = -Math.round(angle2 / 45);
   const offset3 = -Math.round(angle3 / 45);
+  const offset4 = -Math.round(angle4 / 45);
 
   const r1Rot = rotateSteps(r1, offset1);
   const r2Rot = rotateSteps(r2, offset2);
   const r3Rot = rotateSteps(r3, offset3);
+  const r4Rot = rotateSteps(r4, offset4);
 
-  const spokes = r1Rot.map((_, i) => r1Rot[i] + r2Rot[i] + r3Rot[i]);
+  const spokes = r1Rot.map((_, i) => r1Rot[i] + r2Rot[i] + r3Rot[i] + r4Rot[i]);
   const valid = spokes.map((w) => dictionary.has(w));
   const solved = valid.every(Boolean);
 
@@ -165,20 +175,22 @@ export default function PivotPage() {
     <main className=" flex flex-col items-center">
       <h1 className="text-[2rem] mt-[-3rem] text-black font-bold">Pivot</h1>
       <p>Spins: {spins}</p>
-      <p className="fixed p-2 border-white border-2 rounded-lg justify-center -left-[-16rem] bottom-[18rem] flex text-wrap max-w-[12rem] text-[1.0rem]">Rotate the outer, middle, and inner rings in 45° steps with the ↺ / ↻ buttons. <br></br><br></br>
-        When every vertical stack of letters—read outer → middle → inner—forms a real 3-letter word, you win. <br></br> <br></br>   
+      <p className="fixed p-2 border-white border-2 rounded-lg justify-center -left-[-16rem] bottom-[18rem] flex text-wrap max-w-[12rem] text-[1.0rem]">Rotate the outer, middle, inner, and core rings in 45° steps with the ↺ / ↻ buttons. <br></br><br></br>
+        When every vertical stack of letters—read outer → middle → inner → core—forms a real 4-letter word, you win. <br></br> <br></br>
         Try to finish with as few spins as possible.</p>
       <div className="flex items-center gap-2">
       
       </div>
-      <svg width={370} height={370}         viewBox="-130 -130 260 260" className="mx-auto"> {/* <- bigger box */}
+      <svg width={430} height={430} viewBox="-160 -160 320 320" className="mx-auto">
 
+        <circle r={130} className="fill-none stroke-slate-200 stroke-2" />
         <circle r={100} className="fill-none stroke-slate-200 stroke-2" />
         <circle r={70} className="fill-none stroke-slate-200 stroke-2" />
         <circle r={40} className="fill-none stroke-slate-200 stroke-2" />
-        <Ring letters={r1} radius={100} angle={angle1} speed={speed} />
-        <Ring letters={r2} radius={70} angle={angle2} speed={speed} />
-        <Ring letters={r3} radius={40} angle={angle3} speed={speed} />
+        <Ring letters={r1} radius={130} angle={angle1} speed={speed} />
+        <Ring letters={r2} radius={100} angle={angle2} speed={speed} />
+        <Ring letters={r3} radius={70} angle={angle3} speed={speed} />
+        <Ring letters={r4} radius={40} angle={angle4} speed={speed} />
       </svg>
       <div className=" mt-[-0rem] space-y-2">
       <div className="flex gap-6 ">
@@ -246,6 +258,28 @@ export default function PivotPage() {
             }}
           >
             Inner ↻
+          </Button>
+        </div>
+        <div className="flex flex-col items-center gap-3">
+          <Button
+              variant={"outline"}
+              className="likebutton bg-white bg-opacity-50 border-none outline-blue"
+            onClick={() => {
+              setAngle4(angle4 - 45);
+              setSpins(spins + 1);
+            }}
+          >
+            Core ↺
+          </Button>
+          <Button
+              variant={"outline"}
+              className="likebutton bg-white bg-opacity-50 border-none outline-blue"
+            onClick={() => {
+              setAngle4(angle4 + 45);
+              setSpins(spins + 1);
+            }}
+          >
+            Core ↻
           </Button>
         </div>
         </div>
