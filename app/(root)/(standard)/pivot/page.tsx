@@ -4,31 +4,45 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 
+// const dictionary = new Set([
+//   "SOT",
+//   "MUG",
+//   "PIP",
+//   "HAG",
+//   "LOP",
+//   "MAG",
+//   "PEP",
+//   "HOG",
+//   "SOP",
+//   "PIN",
+//   "TAP",
+//   "NOG",
+//   "SUN",
+//   "MAP",
+//   "OIL",
+//   "PEG",
+//   "TAR",
+//   "HOP",
+//   "NET",
+//   "LOG",
+//   "MAN",
+//   "TAG",
+//   "LOT",
+// ]);
+
 const dictionary = new Set([
-  "SOT",
-  "MUG",
-  "PIP",
-  "HAG",
-  "LOP",
-  "MAG",
-  "PEP",
-  "HOG",
-  "SOP",
-  "PIN",
-  "TAP",
-  "NOG",
-  "SUN",
-  "MAP",
-  "OIL",
-  "PEG",
-  "TAR",
-  "HOP",
-  "NET",
-  "LOG",
-  "MAN",
-  "TAG",
-  "LOT",
-]);
+   
+    "SUN",
+    "MAP",
+    "OIL",
+    "PEG",
+    "TAR",
+    "HOP",
+    "NET",
+    "LOG",
+
+
+  ]);
 
 
 function rotateSteps(arr: string[], steps: number) {
@@ -236,9 +250,13 @@ export default function PivotPage() {
         </div>
         </div>
       </div>
+      
       <ul className="py-8 grid grid-cols-4 grid-rows-2 gap-x-4 gap-y-2 mt-2 text-[1rem]">
+        
         {spokes.map((w, i) => (
+            
           <li key={i} className={valid[i] ? "text-green-800 text-[1.2rem]" : "text-gray-700 text-[1.2rem]"}>
+            
             {w}
           </li>
         ))}
