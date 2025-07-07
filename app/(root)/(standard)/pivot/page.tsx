@@ -30,17 +30,20 @@ import { Slider } from "@/components/ui/slider";
 //   "LOT",
 // ]);
 
+// const dictionary = new Set([
+//   "LENS", "LIPS", "LAPS", "LUGS",
+//   "SOPS", "SIPS", "SITS", "SINS",
+//   "MOPS", "MIPS", "MENS", "MINS",
+//   "OATS", "OOPS",
+//   "PENS", "PINS", "PANS", "POPS",
+//   "TENS", "TIPS", "TAPS", "TANS",
+//   "HENS", "HOPS", "HAGS", "HUGS",
+//   "NAPS", "NIPS", "NOGS",
+// ]);
 const dictionary = new Set([
-  "LENS", "LIPS", "LAPS", "LUGS",
-  "SOPS", "SIPS", "SITS", "SINS",
-  "MOPS", "MIPS", "MENS", "MINS",
-  "OATS", "OOPS",
-  "PENS", "PINS", "PANS", "POPS",
-  "TENS", "TIPS", "TAPS", "TANS",
-  "HENS", "HOPS", "HAGS", "HUGS",
-  "NAPS", "NIPS", "NOGS",
-]);
-
+    "LAMP", "SOAR", "MINT", "OAKS",
+    "PLOT", "TREE", "HORN", "NEST",
+  ]);
 
 function rotateSteps(arr: string[], steps: number) {
   const copy = [...arr];
@@ -109,6 +112,7 @@ function Ring({
   );
 }
 
+
 export default function PivotPage() {
   const [r1, setR1] = useState<string[]>([
     "L",
@@ -121,35 +125,27 @@ export default function PivotPage() {
     "N",
   ]);
   const [r2, setR2] = useState<string[]>([
-    "E",
-    "O",
-    "U",
-    "A",
     "I",
+    "A",
+    "L",
+    "R",
+    "O",
     "E",
     "A",
     "O",
   ]);
   const [r3, setR3] = useState<string[]>([
-    "P",
-    "T",
-    "G",
+    "A",
     "N",
-    "P",
-    "L",
-    "G",
+    "K",
+    "O",
+    "E",
     "R",
+    "S",
+    "M",    
   ]);
-  const [r4, setR4] = useState<string[]>([
-    "P",
-    "S",
-    "S",
-    "S",
-    "S",
-    "S",
-    "S",
-    "S",
-  ]);
+  const [r4, setR4] = useState<string[]>(["S","T","E","N","T","P","R","T"]);
+
   const [angle1, setAngle1] = useState(0);
   const [angle2, setAngle2] = useState(0);
   const [angle3, setAngle3] = useState(0);
@@ -295,7 +291,7 @@ export default function PivotPage() {
           </li>
         ))}
       </ul>
-      {solved && <p className="text-block text-[2rem] mt-[-1rem]">Victory in {spins} spins!</p>}
+      {solved && <p className="fixed p-2 border-white border-2 rounded-lg justify-center -right-[-16rem] bottom-[28rem] text-block text-[2rem] mt-[-1rem]">Victory in {spins} spins!</p>}
     </main>
   );
 }
