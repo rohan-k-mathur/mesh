@@ -7,6 +7,7 @@ import {
   Circle,
   Autocomplete,
   Libraries,
+  DirectionsRenderer,
 } from "@react-google-maps/api";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -101,6 +102,8 @@ export default function HalfwayPage() {
   const [venueType, setVenueType] = useState("restaurant");
   const [radius, setRadius] = useState(1500);
   const [error, setError] = useState<string | null>(null);
+  const [directions1, setDirections1] = useState<google.maps.DirectionsResult | null>(null);
+  const [directions2, setDirections2] = useState<google.maps.DirectionsResult | null>(null);
 
   const { isLoaded } = useLoadScript({
     googleMapsApiKey: GOOGLE_MAPS_API_KEY,
@@ -195,6 +198,38 @@ export default function HalfwayPage() {
     }
   }, [midpoint, radius, venueType]);
 
+  useEffect(() => {
+    if (!midpoint || !coord1 || !coord2 || !window.google) return;
+
+    const service1 = new window.google.maps.DirectionsService();
+    service1.route(
+      {
+        origin: coord1,
+        destination: midpoint,
+        travelMode: window.google.maps.TravelMode.DRIVING,
+      },
+      (result, status) => {
+        if (status === window.google.maps.DirectionsStatus.OK && result) {
+          setDirections1(result);
+        }
+      }
+    );
+
+    const service2 = new window.google.maps.DirectionsService();
+    service2.route(
+      {
+        origin: coord2,
+        destination: midpoint,
+        travelMode: window.google.maps.TravelMode.DRIVING,
+      },
+      (result, status) => {
+        if (status === window.google.maps.DirectionsStatus.OK && result) {
+          setDirections2(result);
+        }
+      }
+    );
+  }, [midpoint, coord1, coord2]);
+
   // Wait for script to load
   if (!isLoaded) return <Skeleton className="w-full h-[200px] rounded-md" />;
 
@@ -268,6 +303,18 @@ export default function HalfwayPage() {
                 strokeColor: "#00F",
                 fillOpacity: 0.2,
               }}
+            />
+          )}
+          {directions1 && (
+            <DirectionsRenderer
+              directions={directions1}
+              options={{ polylineOptions: { strokeColor: "green" } }}
+            />
+          )}
+          {directions2 && (
+            <DirectionsRenderer
+              directions={directions2}
+              options={{ polylineOptions: { strokeColor: "blue" } }}
             />
           )}
           {venues.map((venue) => (
