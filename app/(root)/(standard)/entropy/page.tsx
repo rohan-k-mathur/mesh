@@ -126,11 +126,14 @@ const solved = guesses.some(g => g.word === secret);
   return (
     
     <main className="p-4 space-y-4">
+        
       <h1 className="text-2xl font-bold">Entropy</h1>
       <p className="text-sm">Wins: {stats.wins} • Streak: {stats.streak}</p>
       <p>
       Puzzle • {todayId} • Guesses {turnsUsed}/{MAX_TURNS}
       </p>
+
+
       <ul className="space-y-2 font-mono">
         {Array.from({ length: MAX_TURNS }).map((_, i) => {
           const g = guesses[i];
@@ -177,7 +180,7 @@ const solved = guesses.some(g => g.word === secret);
         </form>
       )}
       {solved && (
-        <div className="space-y-2">
+        <div className="space-y-2 flex w-fit">
           <p className="font-semibold">Solved in {turnsUsed} guesses!</p>
           <Button onClick={shareResult}>Share Result</Button>
         </div>
@@ -186,6 +189,24 @@ const solved = guesses.some(g => g.word === secret);
         // <p className="font-semibold">Secret was {puzzle.secret}</p>
         <p className="font-semibold">The word was {secret}</p>
       )}
+      <div className="space-y-1">
+  <label htmlFor="notes" className="text-sm font-medium">
+    Scratch pad
+    <span className="text-xs text-gray-500"> (auto-saves)</span>
+  </label>
+
+  {/* uncontrolled textarea that syncs to localStorage */}
+  <textarea
+    id="notes"
+    defaultValue={typeof window !== "undefined"
+      ? localStorage.getItem("entropy-notes") ?? ""
+      : ""}
+    onChange={e => localStorage.setItem("entropy-notes", e.target.value)}
+    rows={6}
+    className="w-full border rounded p-2 font-mono text-sm resize-y"
+    placeholder="Type your deductions here…"
+  />
+</div>
     </main>
   );
 }
