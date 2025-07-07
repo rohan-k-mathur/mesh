@@ -151,6 +151,9 @@ export default function PivotPage() {
     <main className=" flex flex-col items-center">
       <h1 className="text-[2rem] mt-[-3rem] text-black font-bold">Pivot</h1>
       <p>Spins: {spins}</p>
+      <p className="fixed p-2 border-white border-2 rounded-lg justify-center -left-[-16rem] bottom-[18rem] flex text-wrap max-w-[12rem] text-[1.0rem]">Rotate the outer, middle, and inner rings in 45° steps with the ↺ / ↻ buttons. <br></br><br></br>
+        When every vertical stack of letters—read outer → middle → inner—forms a real 3-letter word, you win. <br></br> <br></br>   
+        Try to finish with as few spins as possible.</p>
       <div className="flex items-center gap-2">
       
       </div>
