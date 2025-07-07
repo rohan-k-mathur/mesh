@@ -31,14 +31,14 @@ import { Slider } from "@/components/ui/slider";
 // ]);
 
 const dictionary = new Set([
-  "SUNS",
-  "MAPS",
-  "OILS",
-  "PEGS",
-  "TARP",
-  "HOPS",
-  "NETS",
-  "LOGS",
+  "LENS", "LIPS", "LAPS", "LUGS",
+  "SOPS", "SIPS", "SITS", "SINS",
+  "MOPS", "MIPS", "MENS", "MINS",
+  "OATS", "OOPS",
+  "PENS", "PINS", "PANS", "POPS",
+  "TENS", "TIPS", "TAPS", "TANS",
+  "HENS", "HOPS", "HAGS", "HUGS",
+  "NAPS", "NIPS", "NOGS",
 ]);
 
 
