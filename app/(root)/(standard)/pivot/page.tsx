@@ -137,7 +137,7 @@ export default function PivotPage() {
 
   return (
     <main className=" flex flex-col items-center">
-      <h1 className="text-[2rem] mt-[-3rem] font-bold">Pivot</h1>
+      <h1 className="text-[2rem] mt-[-3rem] text-black font-bold">Pivot</h1>
       <p>Spins: {spins}</p>
       <div className="flex items-center gap-2">
       

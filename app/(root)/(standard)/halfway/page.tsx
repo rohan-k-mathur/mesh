@@ -108,6 +108,10 @@ export default function HalfwayPage() {
   const [avgPath1, setAvgPath1] = useState<LatLng[]>([]);
   const [avgPath2, setAvgPath2] = useState<LatLng[]>([]);
 
+    // NEW — distance along each route in miles
+    const [distance1, setDistance1] = useState<number | null>(null);
+    const [distance2, setDistance2] = useState<number | null>(null);
+
   const { isLoaded } = useLoadScript({
     googleMapsApiKey: GOOGLE_MAPS_API_KEY,
     libraries,
@@ -245,6 +249,9 @@ export default function HalfwayPage() {
   // Wait for script to load
   if (!isLoaded) return <Skeleton className="w-full h-[200px] rounded-md" />;
 
+  // Helper to pick the middle coordinate of a polyline
+  const middleOfPath = (path: LatLng[]): LatLng | null => path.length ? path[Math.floor(path.length / 2)] : null;
+
   return (
     <div className=" mt-[-2rem] space-y-4 ">
       {/* Two Autocomplete inputs + Midpoint button */}
@@ -319,6 +326,24 @@ export default function HalfwayPage() {
                 strokeWeight:.5,
                 fillOpacity: 0.2,
               }}
+            />
+          )}
+
+
+
+          {/* Labels for distances */}
+          {distance1 && middleOfPath(path1) && (
+            <Marker
+              position={middleOfPath(path1)!}
+              icon={{ path: google.maps.SymbolPath.CIRCLE, scale: 0 }}
+              label={{ text: `${distance1.toFixed(1)} mi`, fontSize: "12px", color: "#000" }}
+            />
+          )}
+          {distance2 && middleOfPath(path2) && (
+            <Marker
+              position={middleOfPath(path2)!}
+              icon={{ path: google.maps.SymbolPath.CIRCLE, scale: 0 }}
+              label={{ text: `${distance2.toFixed(1)} mi`, fontSize: "12px", color: "#000" }}
             />
           )}
           {path1.length > 0 && (
