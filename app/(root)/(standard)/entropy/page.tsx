@@ -59,11 +59,18 @@ export default function Page() {
   const { puzzle, index } = getTodayPuzzle();
   const [guesses, setGuesses] = useState<{ word: string; digits: number[] }[]>([]);
   const [current, setCurrent] = useState("");
-  const [stats, setStats] = useState<Stats>(() => {
-    if (typeof window === "undefined") return { plays: 0, wins: 0, streak: 0 };
-    const raw = localStorage.getItem("entropy-stats");
-    return raw ? JSON.parse(raw) : { plays: 0, wins: 0, streak: 0 };
+  // start with placeholder that matches server HTML
+  const [stats, setStats] = useState<Stats>({
+    plays: 0,
+    wins: 0,
+    streak: 0,
   });
+
+  // read persisted stats only after the component has mounted
+  useEffect(() => {
+    const raw = localStorage.getItem("entropy-stats");
+    if (raw) setStats(JSON.parse(raw));
+  }, []);
 
   const addGuess = () => {
     if (current.length !== 6) return;

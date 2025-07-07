@@ -24,6 +24,7 @@ export default async function Home() {
       "DRAW",
       "LIVECHAT",
       "PLUGIN",
+
     ],
   });
   const user = await getUserFromCookies();
