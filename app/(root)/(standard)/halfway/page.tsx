@@ -97,6 +97,7 @@ export default function HalfwayPage() {
   const [coord1, setCoord1] = useState<LatLng | null>(null);
   const [coord2, setCoord2] = useState<LatLng | null>(null);
   const [midpoint, setMidpoint] = useState<LatLng | null>(null);
+  const [avgMidpoint, setAvgMidpoint] = useState<LatLng | null>(null);
   const [venues, setVenues] = useState<Venue[]>([]);
   const [loading, setLoading] = useState(false);
   const [venueType, setVenueType] = useState("restaurant");
@@ -104,6 +105,10 @@ export default function HalfwayPage() {
   const [error, setError] = useState<string | null>(null);
   const [directions1, setDirections1] = useState<google.maps.DirectionsResult | null>(null);
   const [directions2, setDirections2] = useState<google.maps.DirectionsResult | null>(null);
+  const [avgDirections1, setAvgDirections1] =
+    useState<google.maps.DirectionsResult | null>(null);
+  const [avgDirections2, setAvgDirections2] =
+    useState<google.maps.DirectionsResult | null>(null);
 
   const { isLoaded } = useLoadScript({
     googleMapsApiKey: GOOGLE_MAPS_API_KEY,
@@ -174,6 +179,12 @@ export default function HalfwayPage() {
       return;
     }
     setError(null);
+    // Calculate simple geometric midpoint
+    const avg = {
+      lat: (coord1.lat + coord2.lat) / 2,
+      lng: (coord1.lng + coord2.lng) / 2,
+    };
+    setAvgMidpoint(avg);
 
     try {
       const res = await fetch(
@@ -229,6 +240,38 @@ export default function HalfwayPage() {
       }
     );
   }, [midpoint, coord1, coord2]);
+
+  useEffect(() => {
+    if (!avgMidpoint || !coord1 || !coord2 || !window.google) return;
+
+    const service1 = new window.google.maps.DirectionsService();
+    service1.route(
+      {
+        origin: coord1,
+        destination: avgMidpoint,
+        travelMode: window.google.maps.TravelMode.DRIVING,
+      },
+      (result, status) => {
+        if (status === window.google.maps.DirectionsStatus.OK && result) {
+          setAvgDirections1(result);
+        }
+      }
+    );
+
+    const service2 = new window.google.maps.DirectionsService();
+    service2.route(
+      {
+        origin: coord2,
+        destination: avgMidpoint,
+        travelMode: window.google.maps.TravelMode.DRIVING,
+      },
+      (result, status) => {
+        if (status === window.google.maps.DirectionsStatus.OK && result) {
+          setAvgDirections2(result);
+        }
+      }
+    );
+  }, [avgMidpoint, coord1, coord2]);
 
   // Wait for script to load
   if (!isLoaded) return <Skeleton className="w-full h-[200px] rounded-md" />;
@@ -293,6 +336,7 @@ export default function HalfwayPage() {
           
         >
           <Marker position={midpoint} label="Midpoint" />
+          {avgMidpoint && <Marker position={avgMidpoint} label="Avg" />}
           {map && (
             <CircleComponent
               map={map}
@@ -316,6 +360,18 @@ export default function HalfwayPage() {
             <DirectionsRenderer
               directions={directions2}
               options={{ polylineOptions: { strokeColor: "blue" } }}
+            />
+          )}
+          {avgDirections1 && (
+            <DirectionsRenderer
+              directions={avgDirections1}
+              options={{ polylineOptions: { strokeColor: "orange" } }}
+            />
+          )}
+          {avgDirections2 && (
+            <DirectionsRenderer
+              directions={avgDirections2}
+              options={{ polylineOptions: { strokeColor: "purple" } }}
             />
           )}
           {venues.map((venue) => (
