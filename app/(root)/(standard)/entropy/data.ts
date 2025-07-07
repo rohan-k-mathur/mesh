@@ -4,6 +4,11 @@ export interface Puzzle {
 
 export const puzzles: Puzzle[] = [
   { secret: "CARNAL" },
+  { secret: "CASTLE" },
+  { secret: "PRIMES" },
+  { secret: "ORANGE" },
+  { secret: "PUZZLE" },
+  { secret: "FIDDLE" },
 ];
 
 export const dictionary = new Set([
@@ -13,4 +18,17 @@ export const dictionary = new Set([
   "ORANGE",
   "PUZZLE",
   "FIDDLE",
+  "WEALTH",
+  "INSECT",
+  "BATTLE",
+  "FOLLOW",
+  "GARDEN",
+  "THRIVE",
+  "DEGREE",
+  "POCKET",
+  "LATTER",
+  "SIMPLE",
+  "FIGURE",
+  "JUNGLE",
+  "KITTEN",
 ]);
