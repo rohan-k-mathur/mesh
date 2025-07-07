@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
 
 const dictionary = new Set([
   "SOT",
@@ -43,16 +44,23 @@ function Ring({
   letters,
   radius,
   angle,
+  speed,
 }: {
   letters: string[];
   radius: number;
   angle: number;
+  speed: number;
 }) {
   const step = 360 / letters.length;
   return (
     <g
-      style={{ transformOrigin: "center", transformBox: "fill-box" }}
-      className="transition-transform "
+      style={{
+        transformOrigin: "center",
+        transformBox: "fill-box",
+        transition: `transform ${speed}ms`,
+        transform: `rotate(${angle}deg)`,
+      }}
+      className="transition-transform"
     >
       {letters.map((l, i) => {
         const a = (i * step * Math.PI) / 180;
@@ -112,6 +120,7 @@ export default function PivotPage() {
   const [angle2, setAngle2] = useState(0);
   const [angle3, setAngle3] = useState(0);
   const [spins, setSpins] = useState(0);
+  const [speed, setSpeed] = useState(300);
 
   const spokes = r1.map((_, i) => r1[i] + r2[i] + r3[i]);
   const valid = spokes.map((w) => dictionary.has(w));
@@ -121,6 +130,18 @@ export default function PivotPage() {
     <main className=" flex flex-col items-center">
       <h1 className="text-[2rem] mt-[-3rem] font-bold">Pivot</h1>
       <p>Spins: {spins}</p>
+      <div className="flex items-center gap-2">
+        <span className="text-sm">Speed: {speed}ms</span>
+        <div className="w-40">
+          <Slider
+            value={[speed]}
+            min={100}
+            max={1000}
+            step={50}
+            onValueChange={(val) => setSpeed(val[0])}
+          />
+        </div>
+      </div>
       <svg
         width={370}
         height={370}
@@ -130,9 +151,9 @@ export default function PivotPage() {
         <circle r={100} className="fill-none stroke-slate-200" />
         <circle r={70} className="fill-none stroke-slate-200" />
         <circle r={40} className="fill-none stroke-slate-200" />
-        <Ring letters={r1} radius={100} angle={angle1} />
-        <Ring letters={r2} radius={70} angle={angle2} />
-        <Ring letters={r3} radius={40} angle={angle3} />
+        <Ring letters={r1} radius={100} angle={angle1} speed={speed} />
+        <Ring letters={r2} radius={70} angle={angle2} speed={speed} />
+        <Ring letters={r3} radius={40} angle={angle3} speed={speed} />
       </svg>
       <div className=" mt-[-0rem] space-y-2">
       <div className="flex gap-6 ">
