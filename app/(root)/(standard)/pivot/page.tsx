@@ -119,7 +119,7 @@ export default function PivotPage() {
 
   return (
     <main className=" flex flex-col items-center">
-      <h1 className="text-[2rem] mt-[-2rem] font-bold">Pivot</h1>
+      <h1 className="text-[2rem] mt-[-3rem] font-bold">Pivot</h1>
       <p>Spins: {spins}</p>
       <svg
         width={370}
@@ -210,14 +210,14 @@ export default function PivotPage() {
         </div>
         </div>
       </div>
-      <ul className="py-8 grid grid-cols-4 grid-rows-2 gap-x-4 gap-y-2 mt-2 font-mono text-[1rem]">
+      <ul className="py-8 grid grid-cols-4 grid-rows-2 gap-x-4 gap-y-2 mt-2 text-[1rem]">
         {spokes.map((w, i) => (
           <li key={i} className={valid[i] ? "text-green-800 text-[1.2rem]" : "text-gray-700 text-[1.2rem]"}>
             {w}
           </li>
         ))}
       </ul>
-      {solved && <p className="font-semibold">Victory in {spins} spins!</p>}
+      {solved && <p className="text-block text-[2rem] mt-[-1rem]">Victory in {spins} spins!</p>}
     </main>
   );
 }
