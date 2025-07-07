@@ -7,7 +7,7 @@ import {
   Circle,
   Autocomplete,
   Libraries,
-  DirectionsRenderer,
+  Polyline,
 } from "@react-google-maps/api";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -28,7 +28,7 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 
-const libraries: Libraries = ["places"];
+const libraries: Libraries = ["places", "geometry"];
 const mapContainerStyle = { width: "100%", height: "400px" };
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!;
@@ -103,12 +103,10 @@ export default function HalfwayPage() {
   const [venueType, setVenueType] = useState("restaurant");
   const [radius, setRadius] = useState(1500);
   const [error, setError] = useState<string | null>(null);
-  const [directions1, setDirections1] = useState<google.maps.DirectionsResult | null>(null);
-  const [directions2, setDirections2] = useState<google.maps.DirectionsResult | null>(null);
-  const [avgDirections1, setAvgDirections1] =
-    useState<google.maps.DirectionsResult | null>(null);
-  const [avgDirections2, setAvgDirections2] =
-    useState<google.maps.DirectionsResult | null>(null);
+  const [path1, setPath1] = useState<LatLng[]>([]);
+  const [path2, setPath2] = useState<LatLng[]>([]);
+  const [avgPath1, setAvgPath1] = useState<LatLng[]>([]);
+  const [avgPath2, setAvgPath2] = useState<LatLng[]>([]);
 
   const { isLoaded } = useLoadScript({
     googleMapsApiKey: GOOGLE_MAPS_API_KEY,
@@ -213,73 +211,36 @@ export default function HalfwayPage() {
     }
   }, [midpoint, radius, venueType]);
 
-  useEffect(() => {
-    if (!midpoint || !coord1 || !coord2 || !window.google) return;
-
-    const service1 = new window.google.maps.DirectionsService();
-    service1.route(
-      {
-        origin: coord1,
-        destination: midpoint,
-        travelMode: window.google.maps.TravelMode.DRIVING,
-      },
-      (result, status) => {
-        console.log("Directions1 status:", status, result);
-        if (status === window.google.maps.DirectionsStatus.OK && result) {
-          setDirections1(result);
-        }
+  const fetchRoute = async (start: LatLng, end: LatLng) => {
+    try {
+      const res = await fetch(
+        `/api/computeRoutes?origin=${start.lat},${start.lng}&destination=${end.lat},${end.lng}`
+      );
+      if (!res.ok) return [] as LatLng[];
+      const data = await res.json();
+      if (data.routes && data.routes[0]) {
+        const encoded = data.routes[0].polyline.encodedPolyline as string;
+        return window.google.maps.geometry.encoding
+          .decodePath(encoded)
+          .map((p) => ({ lat: p.lat(), lng: p.lng() }));
       }
-    );
-
-    const service2 = new window.google.maps.DirectionsService();
-    service2.route(
-      {
-        origin: coord2,
-        destination: midpoint,
-        travelMode: window.google.maps.TravelMode.DRIVING,
-      },
-      (result, status) => {
-        console.log("Directions2 status:", status, result);
-        if (status === window.google.maps.DirectionsStatus.OK && result) {
-          setDirections2(result);
-        }
-      }
-    );
-  }, [midpoint, coord1, coord2]);
+    } catch (err) {
+      console.error("Error fetching route", err);
+    }
+    return [] as LatLng[];
+  };
 
   useEffect(() => {
-    if (!avgMidpoint || !coord1 || !coord2 || !window.google) return;
+    if (!midpoint || !coord1 || !coord2 || !isLoaded) return;
+    fetchRoute(coord1, midpoint).then(setPath1);
+    fetchRoute(coord2, midpoint).then(setPath2);
+  }, [midpoint, coord1, coord2, isLoaded]);
 
-    const service1 = new window.google.maps.DirectionsService();
-    service1.route(
-      {
-        origin: coord1,
-        destination: avgMidpoint,
-        travelMode: window.google.maps.TravelMode.DRIVING,
-      },
-      (result, status) => {
-        console.log("Avg Directions1 status:", status, result);
-        if (status === window.google.maps.DirectionsStatus.OK && result) {
-          setAvgDirections1(result);
-        }
-      }
-    );
-
-    const service2 = new window.google.maps.DirectionsService();
-    service2.route(
-      {
-        origin: coord2,
-        destination: avgMidpoint,
-        travelMode: window.google.maps.TravelMode.DRIVING,
-      },
-      (result, status) => {
-        console.log("Avg Directions2 status:", status, result);
-        if (status === window.google.maps.DirectionsStatus.OK && result) {
-          setAvgDirections2(result);
-        }
-      }
-    );
-  }, [avgMidpoint, coord1, coord2]);
+  useEffect(() => {
+    if (!avgMidpoint || !coord1 || !coord2 || !isLoaded) return;
+    fetchRoute(coord1, avgMidpoint).then(setAvgPath1);
+    fetchRoute(coord2, avgMidpoint).then(setAvgPath2);
+  }, [avgMidpoint, coord1, coord2, isLoaded]);
 
   // Wait for script to load
   if (!isLoaded) return <Skeleton className="w-full h-[200px] rounded-md" />;
@@ -360,29 +321,17 @@ export default function HalfwayPage() {
               }}
             />
           )}
-          {directions1 && (
-            <DirectionsRenderer
-              directions={directions1}
-              options={{ polylineOptions: { strokeColor: "green" } }}
-            />
+          {path1.length > 0 && (
+            <Polyline path={path1} options={{ strokeColor: "green" }} />
           )}
-          {directions2 && (
-            <DirectionsRenderer
-              directions={directions2}
-              options={{ polylineOptions: { strokeColor: "blue" } }}
-            />
+          {path2.length > 0 && (
+            <Polyline path={path2} options={{ strokeColor: "blue" }} />
           )}
-          {avgDirections1 && (
-            <DirectionsRenderer
-              directions={avgDirections1}
-              options={{ polylineOptions: { strokeColor: "orange" } }}
-            />
+          {avgPath1.length > 0 && (
+            <Polyline path={avgPath1} options={{ strokeColor: "orange" }} />
           )}
-          {avgDirections2 && (
-            <DirectionsRenderer
-              directions={avgDirections2}
-              options={{ polylineOptions: { strokeColor: "purple" } }}
-            />
+          {avgPath2.length > 0 && (
+            <Polyline path={avgPath2} options={{ strokeColor: "purple" }} />
           )}
           {venues.map((venue) => (
             <Marker
