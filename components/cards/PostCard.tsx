@@ -176,6 +176,33 @@ const PostCard = async ({
                 <DrawCanvas id={id.toString()} content={content} />
               </div>
             )}
+            {type === "PRODUCT_REVIEW" && content && (
+              (() => {
+                let vals: any = null;
+                try {
+                  vals = JSON.parse(content);
+                } catch (e) {
+                  vals = null;
+                }
+                return (
+                  vals && (
+                    <div className="flex flex-col items-start mt-2 mb-2">
+                      <div className="font-bold">{vals.productName}</div>
+                      <div>Rating: {vals.rating}/5</div>
+                      <div className="text-sm mt-1">{vals.summary}</div>
+                      <a
+                        href={vals.productLink}
+                        className="text-xs text-blue-500"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        View Product
+                      </a>
+                    </div>
+                  )
+                );
+              })()
+            )}
             {type === "PLUGIN" && pluginType === "PDF_VIEWER" && pluginData && (
               <div className="mt-2 mb-2 flex img-feed-frame w-[100%] ml-[23%]  justify-center items-center">
                 <object
