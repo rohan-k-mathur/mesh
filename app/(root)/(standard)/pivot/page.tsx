@@ -60,13 +60,13 @@ function Ring({
         const y = -radius * Math.cos(a);
         return (
           <g key={i}>
-            <circle cx={x} cy={y} r={12} fill="white" />
+            <circle cx={x} cy={y} r={12} fill="#E2E8F0" stroke="blue" strokeWidth={.5} />
             <text
               x={x}
               y={y}
               textAnchor="middle"
               dominantBaseline="middle"
-              className="font-mono text-block text-[1rem] text-gray-800"
+              className=" text-[.9rem] text-gray-800"
             >
               {l}
             </text>
@@ -122,8 +122,8 @@ export default function PivotPage() {
       <h1 className="text-[2rem] mt-[-2rem] font-bold">Pivot</h1>
       <p>Spins: {spins}</p>
       <svg
-        width={350}
-        height={350}
+        width={370}
+        height={370}
         viewBox="-130 -130 260 260"
         className="mx-auto"
       >
@@ -135,9 +135,11 @@ export default function PivotPage() {
         <Ring letters={r3} radius={40} angle={angle3} />
       </svg>
       <div className=" mt-[-0rem] space-y-2">
-      <div className="flex gap-4 ">
-        <div className="flex flex-col items-center gap-1">
+      <div className="flex gap-6 ">
+        <div className="flex flex-col items-center gap-3">
           <Button
+          variant={"outline"}
+          className="likebutton bg-white bg-opacity-50 border-none outline-blue"
             onClick={() => {
               setR1(rotate(r1, -1));
               setAngle1(angle1 - 45);
@@ -147,6 +149,8 @@ export default function PivotPage() {
             Outer ↺
           </Button>
           <Button
+              variant={"outline"}
+              className="likebutton bg-white bg-opacity-50 border-none outline-blue"
             onClick={() => {
               setR1(rotate(r1, 1));
               setAngle1(angle1 + 45);
@@ -156,8 +160,10 @@ export default function PivotPage() {
             Outer ↻
           </Button>
         </div>
-        <div className="flex flex-col items-center gap-1">
+        <div className="flex flex-col items-center  gap-3">
           <Button
+              variant={"outline"}
+              className="likebutton bg-white bg-opacity-50 border-none outline-blue"
             onClick={() => {
               setR2(rotate(r2, -1));
               setAngle2(angle2 - 45);
@@ -167,6 +173,8 @@ export default function PivotPage() {
             Middle ↺
           </Button>
           <Button
+              variant={"outline"}
+              className="likebutton bg-white bg-opacity-50 border-none outline-blue"
             onClick={() => {
               setR2(rotate(r2, 1));
               setAngle2(angle2 + 45);
@@ -176,8 +184,10 @@ export default function PivotPage() {
             Middle ↻
           </Button>
         </div>
-        <div className="flex flex-col items-center gap-1">
+        <div className="flex flex-col items-center gap-3">
           <Button
+              variant={"outline"}
+              className="likebutton bg-white bg-opacity-50 border-none outline-blue"
             onClick={() => {
               setR3(rotate(r3, -1));
               setAngle3(angle3 - 45);
@@ -187,6 +197,8 @@ export default function PivotPage() {
             Inner ↺
           </Button>
           <Button
+              variant={"outline"}
+              className="likebutton bg-white bg-opacity-50 border-none outline-blue"
             onClick={() => {
               setR3(rotate(r3, 1));
               setAngle3(angle3 + 45);
