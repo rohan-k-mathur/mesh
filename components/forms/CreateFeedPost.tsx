@@ -19,6 +19,8 @@ import GalleryNodeModal from "@/components/modals/GalleryNodeModal";
 import PortalNodeModal from "@/components/modals/PortalNodeModal";
 import LivechatNodeModal from "@/components/modals/LivechatNodeModal";
 import PdfViewerNodeModal from "@/components/modals/PdfViewerNodeModal";
+import ProductReviewNodeModal from "../modals/ProductReviewNodeModal";
+import { ProductReviewNodeData } from "@/lib/reactflow/types";
 import SplineViewerNodeModal from "../modals/SplineViewerNodeModal";
 import { uploadFileToSupabase } from "@/lib/utils";
 import { createRealtimePost } from "@/lib/actions/realtimepost.actions";
@@ -33,6 +35,7 @@ import {
   PortalNodeValidation,
   PdfViewerPostValidation,
   SplineViewerPostValidation,
+  ProductReviewValidation
 } from "@/lib/validations/thread";
 import { AppNodeType, DEFAULT_NODE_VALUES } from "@/lib/reactflow/types";
 
@@ -47,8 +50,10 @@ const nodeOptions: { label: string; nodeType: string }[] = [
   { label: "PORTAL", nodeType: "PORTAL" },
   { label: "DRAW", nodeType: "DRAW" },
   { label: "LIVECHAT", nodeType: "LIVECHAT" },
-  { label: "PDF Viewer", nodeType: "PDF_VIEWER" },
-  { label: "Spline Viewer", nodeType: "SPLINE_VIEWER" },
+  { label: "PDF", nodeType: "PDF_VIEWER" },
+  { label: "SPLINE", nodeType: "SPLINE_VIEWER" },
+  { label: "PRODUCT_REVIEW", nodeType: "PRODUCT_REVIEW" },
+
 ];
 
 const CreateFeedPost = () => {
@@ -258,6 +263,48 @@ const CreateFeedPost = () => {
             }}
           />
         );
+        case "PRODUCT_REVIEW":
+          return (
+            <ProductReviewNodeModal
+              isOwned={true}
+              currentProductLink=""
+              currentProductName=""
+              currentRating={}
+              currentSummary=""
+              onSubmit={async (vals) => {
+                await createRealtimePost({
+                  path: "/",
+                  coordinates: { x: 0, y: 0 },
+                  type: "PLUGIN",
+                  realtimeRoomId: "global",
+                  pluginType: "PRODUCT_REVIEW",
+                  pluginData:{ ProductReviewValidation: vals.productName,
+                    vals.rating,
+                    vals.summary,
+                    vals.productLink},
+         
+                  });
+            
+                  reset();
+                  router.refresh();
+     
+                  }}
+                />
+              );
+                  
+              // onSubmit={async (vals) => {
+              //   await createRealtimePost({
+              //     path: "/",
+              //     coordinates: { x: 0, y: 0 },
+              //     type: "PLUGIN",
+              //     realtimeRoomId: "global",
+              //     pluginType: "PRODUCT_REVIEW",
+              //     pluginData: {},
+              //   });
+              //   reset();
+              //   router.refresh();
+              // }}
+       
       default:
         return (
           <DialogContent className="p-8 bg-slate-200 border-[2px] border-blue max-w-[34rem] max-h-[20rem]">
