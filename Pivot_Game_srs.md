@@ -165,6 +165,125 @@ Steps:
 * **B.** UI colour palette & WCAG contrast report.
 * **C.** Play-test rubric (difficulty vs. spins used).
 
+Example: 
+
+Below is a **worked-through daily “Pivot” puzzle** showing
+
+1. the *published* start board that players see,
+2. each spin the solver makes (six spins total, which equals the puzzle’s par), and
+3. the final solved board where every spoke is a real 3-letter word.
+
+You can reuse this example in play-testing, tutorials, or design docs.
+
+---
+
+## 0 Legend & layout
+
+```
+          Ring-3 (outer)      index ↑
+        ┌───┬───┬───┬───┬───┬───┬───┬───┐
+        │ 0 │ 1 │ 2 │ 3 │ 4 │ 5 │ 6 │ 7 │  ← clockwise positions
+┌───────┼───┼───┼───┼───┼───┼───┼───┼───┤
+│ Ring-2│   │   │   │   │   │   │   │   │
+└───────┼───┼───┼───┼───┼───┼───┼───┼───┤
+        │   │   │   │   │   │   │   │   │  Ring-1 (inner)
+        └───┴───┴───┴───┴───┴───┴───┴───┘
+```
+
+*At any moment a **spoke word** is the vertical trio of letters at the same index (R1-R2-R3).*
+
+---
+
+## 1 Puzzle parameters
+
+| Item                                | Value                             |
+| ----------------------------------- | --------------------------------- |
+| Word length per spoke               | 3                                 |
+| Rings                               | 3 (R1 inner, R2 middle, R3 outer) |
+| Spokes                              | 8                                 |
+| **Par (optimal spins)**             | **6**                             |
+| Puzzle hash (SHA-1 of solved board) | `0bf1a5…`                         |
+
+---
+
+## 2 Solved board (kept server-side)
+
+Clockwise from index 0 the eight correct spoke words are:
+
+```
+0  SUN   4  TAR
+1  MAP   5  HOP
+2  OIL   6  NET
+3  PEG   7  LOG
+```
+
+So the canonical ring strings (clockwise) are:
+
+| Ring | Letters             |
+| ---- | ------------------- |
+| R1   | **S M O P T H N L** |
+| R2   | **U A I E A O E O** |
+| R3   | **N P L G R P T G** |
+
+---
+
+## 3 Published start board (offsets: R1 +1, R2 +2, R3 +3)
+
+```
+Index →      0   1   2   3   4   5   6   7
+Ring-3   │   P   T   G   N   P   L   G   R
+Ring-2   │   E   O   U   A   I   E   A   O
+Ring-1   │   L   S   M   O   P   T   H   N
+           ↓   ↓   ↓   ↓   ↓   ↓   ↓   ↓
+Spoke     LEP SOT MUG OAN PIP TEL HAG NOR   ← only 3 of 8 are valid
+```
+
+Player sees eight **grey** spokes, three of which (*SOT, MUG, PIP*) are yellow to indicate they’re already real words.
+
+---
+
+## 4 Step-by-step playthrough (6 spins)
+
+| #     | Action (45° spin)      | Ring offsets (R1,R2,R3) | Spokes now (valid ✓ / invalid ✗)                          |
+| ----- | ---------------------- | ----------------------- | --------------------------------------------------------- |
+| **0** | — start board          | **+1, +2, +3**          | LEP✗  SOT✓  MUG✓  OAN✗  PIP✓  TEL✗  HAG✓  NOR✗            |
+| **1** | Rotate **R2 −1** (CCW) | +1, **+1**, +3          | LOP✓  SUT✗  MAG✓  OIN✗  PEP✓  TAL✗  HOG✓  NER✗            |
+| **2** | Rotate **R1 −1**       | **0**, +1, +3           | SOP✓  MUT✗  OAG✗  PIN✓  TAP✓  HAL✗  NOG✓  LER✗            |
+| **3** | Rotate **R2 −1**       | 0, **0**, +3            | **SUN✓ MAP✓ OIL✓ PEG✓ TAR✓ HOP✓ NET✓ LOG✓**               |
+| **4** | Rotate **R3 −1**       | 0, 0, +2                | SUT✗ MAG✓ OIN✗ PEP✓ TAL✗ HOG✓ NER✗ LOP✓                   |
+| **5** | Rotate **R3 −1**       | 0, 0, +1                | SUG✗ MAN✓ OIP✗ PEL✗ TAG✓ HOR✗ NEP✗ LOT✓                   |
+| **6** | Rotate **R3 −1**       | **0, 0, 0**             | **SUN✓ MAP✓ OIL✓ PEG✓ TAR✓ HOP✓ NET✓ LOG✓** ← **Victory** |
+
+**Spins used = 6 → matches par → Gold medal 🥇**
+
+*(Notice how one wrong ring—R3—knocked the board out again at step 4, forcing three focused spins to finish.
+This illustrates the “one move changes three spokes” deduction that makes Pivot sudoku-like.)*
+
+---
+
+## 5 End-of-game screen
+
+```
+Pivot #042      🥇  6 spins   Streak 🔥 3
+SUN MAP OIL PEG TAR HOP NET LOG
+```
+
+A “Copy” button places the share-string on the clipboard.
+
+---
+
+### What this example demonstrates
+
+| Design goal                  | How it shows up in playthrough                                               |
+| ---------------------------- | ---------------------------------------------------------------------------- |
+| **Few but meaningful moves** | Six spins, each altering 3 spokes; every decision is visible.                |
+| **Constraint propagation**   | Fixing R1+R2 (step 3) briefly solved, but R3 still wrong—player sees why.    |
+| **Clear par metric**         | 6 spins optimum; solver who flails will land in Silver (7-8) or Bronze (9+). |
+| **Short tutorial potential** | Steps 1-3 themselves form a tiny tutorial of “rotate → check spokes”.        |
+
+Use this walk-through in onboarding slides or QA scripts to verify rendering, spin gestures, word-validation, medal awarding, and share-card generation.
+
+
 ---
 
 ### ✅ Pivot specification ready
