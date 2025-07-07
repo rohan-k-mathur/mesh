@@ -33,6 +33,12 @@ import UserRoomsModal from "../modals/UserRoomsModal";
     {
       router.push("/halfway");
 
+      
+    }
+    function gotowordrails()
+    {
+      router.push("/wordrails");
+
     }
     return (
       <section className="p-4 space-y-4">
@@ -43,7 +49,7 @@ import UserRoomsModal from "../modals/UserRoomsModal";
                 <Button variant={"outline"} className="likebutton h-full text-[1.2rem] p-4" type="submit" onClick={gotoflowbuilder}>
                 <Image
               src="/assets/branch.svg"
-              alt="logout"
+              alt="branch"
               className="mr-2"
               width={24}
               height={24}
@@ -54,12 +60,23 @@ import UserRoomsModal from "../modals/UserRoomsModal";
               <Button variant={"outline"} className="likebutton text-[1.2rem] h-full p-4" type="submit" onClick={gotohalfway}>
               <Image
               src="/assets/map.svg"
-              alt="logout"
+              alt="map"
               className="mr-2"
               width={24}
               height={24}
             />
                 Halfway              
+                </Button>
+                <div className="space-y-4"></div>
+              <Button variant={"outline"} className="likebutton text-[1.2rem] h-full p-4" type="submit" onClick={gotowordrails}>
+              <Image
+              src="/assets/workspace.svg"
+              alt="wordrails"
+              className="mr-2"
+              width={24}
+              height={24}
+            />
+                Word Rails              
                 </Button>
             </div>
         </div>
