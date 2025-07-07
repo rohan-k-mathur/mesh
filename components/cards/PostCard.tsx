@@ -7,7 +7,7 @@ import ExpandButton from "../buttons/ExpandButton";
 import TimerButton from "../buttons/TimerButton";
 import ReplicateButton from "../buttons/ReplicateButton";
 import ReplicatedPostCard from "./ReplicatedPostCard";
-import ProductReviewNode from "../nodes/ProductReviewNode";
+import ProductReviewCard from "./ProductReviewCard";
 import DeleteCardButton from "../buttons/DeleteCardButton";
 import GalleryCarousel from "./GalleryCarousel";
 import dynamic from "next/dynamic";
@@ -186,19 +186,12 @@ const PostCard = async ({
                 }
                 return (
                   vals && (
-                    <div className="flex flex-col items-start mt-2 mb-2">
-                      <div className="font-bold">{vals.productName}</div>
-                      <div>Rating: {vals.rating}/5</div>
-                      <div className="text-sm mt-1">{vals.summary}</div>
-                      <a
-                        href={vals.productLink}
-                        className="text-xs text-blue-500"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        View Product
-                      </a>
-                    </div>
+                    <ProductReviewCard
+                      productName={vals.productName}
+                      rating={vals.rating}
+                      summary={vals.summary}
+                      productLink={vals.productLink}
+                    />
                   )
                 );
               })()
