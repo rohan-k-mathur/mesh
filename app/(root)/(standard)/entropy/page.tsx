@@ -3,15 +3,23 @@
 import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { puzzles, dictionary } from "./data";
+import { puzzles } from "./data";
+import { dictionaryArray, dictionary } from "./data";
+
 
 const MAX_TURNS = 8;
+const todayId = new Date().toISOString().slice(0, 10); // "2025-07-07"
 
 interface Stats {
   plays: number;
   wins: number;
   streak: number;
 }
+
+function pickRandomSecret(): string {
+    const idx = Math.floor(Math.random() * dictionaryArray.length);
+    return dictionaryArray[idx];
+  }
 
 function getTodayPuzzle() {
   const index = Math.floor(Date.now() / 86400000) % puzzles.length;
@@ -56,8 +64,12 @@ function entropyDigits(secret: string, guess: string): number[] {
 }
 
 export default function Page() {
-  const { puzzle, index } = getTodayPuzzle();
-  const [guesses, setGuesses] = useState<{ word: string; digits: number[] }[]>([]);
+//   const { puzzle, index } = getTodayPuzzle();
+//   const [guesses, setGuesses] = useState<{ word: string; digits: number[] }[]>([]);
+const [secret] = useState<string>(pickRandomSecret);   // ← initialised once
+const [guesses, setGuesses] = useState<
+  { word: string; digits: number[] }[]
+>([]);
   const [current, setCurrent] = useState("");
   // start with placeholder that matches server HTML
   const [stats, setStats] = useState<Stats>({
@@ -65,6 +77,7 @@ export default function Page() {
     wins: 0,
     streak: 0,
   });
+
 
   // read persisted stats only after the component has mounted
   useEffect(() => {
@@ -74,18 +87,21 @@ export default function Page() {
 
   const addGuess = () => {
     if (current.length !== 6) return;
-    if (!dictionary.has(current)) return;
-    const digits = entropyDigits(puzzle.secret, current);
+    if (!dictionary.has(current.trim())) return;   // <-- trim just in case
+    // const digits = entropyDigits(puzzle.secret, current);
+    const digits = entropyDigits(secret, current);
     setGuesses([...guesses, { word: current, digits }]);
     setCurrent("");
   };
 
-  const solved = guesses.some((g) => g.word === puzzle.secret);
+//   const solved = guesses.some((g) => g.word === puzzle.secret);
+const solved = guesses.some(g => g.word === secret);
   const turnsUsed = guesses.length;
 
   const shareResult = () => {
     const digitsStr = guesses.map((g) => g.digits.join(" ")).join(" / ");
-    const text = `Entropy #${index + 1} ${turnsUsed}/${MAX_TURNS} ${digitsStr}`;
+    // const text = `Entropy #${index + 1} ${turnsUsed}/${MAX_TURNS} ${digitsStr}`;
+    const text = `Entropy ${turnsUsed}/${MAX_TURNS} ${digitsStr}`;
     navigator.clipboard.writeText(text).catch(() => {});
   };
 
@@ -108,11 +124,12 @@ export default function Page() {
   }, [solved, turnsUsed]);
 
   return (
+    
     <main className="p-4 space-y-4">
       <h1 className="text-2xl font-bold">Entropy</h1>
       <p className="text-sm">Wins: {stats.wins} • Streak: {stats.streak}</p>
       <p>
-        Puzzle #{index + 1} • Guesses {turnsUsed}/{MAX_TURNS}
+      Puzzle • {todayId} • Guesses {turnsUsed}/{MAX_TURNS}
       </p>
       <ul className="space-y-2 font-mono">
         {Array.from({ length: MAX_TURNS }).map((_, i) => {
@@ -166,7 +183,8 @@ export default function Page() {
         </div>
       )}
       {!solved && turnsUsed >= MAX_TURNS && (
-        <p className="font-semibold">Secret was {puzzle.secret}</p>
+        // <p className="font-semibold">Secret was {puzzle.secret}</p>
+        <p className="font-semibold">The word was {secret}</p>
       )}
     </main>
   );

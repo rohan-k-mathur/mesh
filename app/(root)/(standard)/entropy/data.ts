@@ -11,8 +11,8 @@ export const puzzles: Puzzle[] = [
   { secret: "FIDDLE" },
 ];
 
-export const dictionary = new Set([
-  [
+export const dictionaryArray: readonly string[] = [
+
     "ABACUS",
     "ABASED",
     "ABASES",
@@ -4956,6 +4956,7 @@ export const dictionary = new Set([
     "WARMUP",
     "WARNED",
     "WARPED",
+    "PRIMES",
     "WARPER",
     "WASHED",
     "WASHER",
@@ -5141,5 +5142,7 @@ export const dictionary = new Set([
     "ZONKED",
     "ZOOMED",
     "ZYGOTE",
-  ],
-]);
+  ];
+
+  export const dictionary: ReadonlySet<string> = new Set<string>(dictionaryArray);
+

@@ -13,10 +13,8 @@ import { usePathname } from "next/navigation";
 import { z } from "zod";
 import { useShallow } from "zustand/react/shallow";
 import dynamic from "next/dynamic";
+import Spline from "@splinetool/react-spline";
 
-const Spline = dynamic(() => import("@splinetool/react-spline"), {
-  ssr: false,
-});
 
 interface SplineViewerNodeData {
   sceneUrl?: string;
