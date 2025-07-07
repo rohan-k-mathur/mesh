@@ -8,7 +8,7 @@ import { nanoid } from "nanoid";
 const userCacheById = new Map<bigint, Prisma.User | null>();
 const userCacheByAuthId = new Map<string, Prisma.User | null>();
 
-export function clearUserCache() {
+export async function clearUserCache() {
   userCacheById.clear();
   userCacheByAuthId.clear();
 }
