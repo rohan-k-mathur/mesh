@@ -127,7 +127,9 @@ export default function HalfwayPage() {
     const place = ref.current?.getPlace();
     if (place?.geometry?.location) {
       const location = place.geometry.location;
-      setCoord({ lat: location.lat(), lng: location.lng() });
+      const coord = { lat: location.lat(), lng: location.lng() };
+      console.log("Selected place:", place.formatted_address, coord);
+      setCoord(coord);
       setAddress(place.formatted_address || "");
     }
   };
@@ -184,6 +186,7 @@ export default function HalfwayPage() {
       lat: (coord1.lat + coord2.lat) / 2,
       lng: (coord1.lng + coord2.lng) / 2,
     };
+    console.log("Average midpoint:", avg);
     setAvgMidpoint(avg);
 
     try {
@@ -192,6 +195,7 @@ export default function HalfwayPage() {
       );
       if (!res.ok) throw new Error("Failed to fetch midpoint");
       const mid: LatLng = await res.json();
+      console.log("Route midpoint:", mid);
       setMidpoint(mid);
 
       // Immediately fetch venues for the current radius & type
@@ -220,6 +224,7 @@ export default function HalfwayPage() {
         travelMode: window.google.maps.TravelMode.DRIVING,
       },
       (result, status) => {
+        console.log("Directions1 status:", status, result);
         if (status === window.google.maps.DirectionsStatus.OK && result) {
           setDirections1(result);
         }
@@ -234,6 +239,7 @@ export default function HalfwayPage() {
         travelMode: window.google.maps.TravelMode.DRIVING,
       },
       (result, status) => {
+        console.log("Directions2 status:", status, result);
         if (status === window.google.maps.DirectionsStatus.OK && result) {
           setDirections2(result);
         }
@@ -252,6 +258,7 @@ export default function HalfwayPage() {
         travelMode: window.google.maps.TravelMode.DRIVING,
       },
       (result, status) => {
+        console.log("Avg Directions1 status:", status, result);
         if (status === window.google.maps.DirectionsStatus.OK && result) {
           setAvgDirections1(result);
         }
@@ -266,6 +273,7 @@ export default function HalfwayPage() {
         travelMode: window.google.maps.TravelMode.DRIVING,
       },
       (result, status) => {
+        console.log("Avg Directions2 status:", status, result);
         if (status === window.google.maps.DirectionsStatus.OK && result) {
           setAvgDirections2(result);
         }
@@ -335,6 +343,8 @@ export default function HalfwayPage() {
           onLoad={(mapInstance) => setMap(mapInstance)}
           
         >
+          {coord1 && <Marker position={coord1} label="A" />}
+          {coord2 && <Marker position={coord2} label="B" />}
           <Marker position={midpoint} label="Midpoint" />
           {avgMidpoint && <Marker position={avgMidpoint} label="Avg" />}
           {map && (
