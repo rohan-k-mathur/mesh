@@ -20,7 +20,6 @@ import PortalNodeModal from "@/components/modals/PortalNodeModal";
 import LivechatNodeModal from "@/components/modals/LivechatNodeModal";
 import PdfViewerNodeModal from "@/components/modals/PdfViewerNodeModal";
 import ProductReviewNodeModal from "../modals/ProductReviewNodeModal";
-import { ProductReviewNodeData } from "@/lib/reactflow/types";
 import SplineViewerNodeModal from "../modals/SplineViewerNodeModal";
 import { uploadFileToSupabase } from "@/lib/utils";
 import { createRealtimePost } from "@/lib/actions/realtimepost.actions";
@@ -263,34 +262,27 @@ const CreateFeedPost = () => {
             }}
           />
         );
-        case "PRODUCT_REVIEW":
-          return (
-            <ProductReviewNodeModal
-              isOwned={true}
-              currentProductLink=""
-              currentProductName=""
-              currentRating={}
-              currentSummary=""
-              onSubmit={async (vals) => {
-                await createRealtimePost({
-                  path: "/",
-                  coordinates: { x: 0, y: 0 },
-                  type: "PLUGIN",
-                  realtimeRoomId: "global",
-                  pluginType: "PRODUCT_REVIEW",
-                  pluginData:{ ProductReviewValidation: vals.productName,
-                    vals.rating,
-                    vals.summary,
-                    vals.productLink},
-         
-                  });
-            
-                  reset();
-                  router.refresh();
-     
-                  }}
-                />
-              );
+      case "PRODUCT_REVIEW":
+        return (
+          <ProductReviewNodeModal
+            isOwned={true}
+            currentProductName=""
+            currentRating={5}
+            currentSummary=""
+            currentProductLink=""
+            onSubmit={async (vals) => {
+              await createRealtimePost({
+                text: JSON.stringify(vals),
+                path: "/",
+                coordinates: { x: 0, y: 0 },
+                type: "PRODUCT_REVIEW",
+                realtimeRoomId: "global",
+              });
+              reset();
+              router.refresh();
+            }}
+          />
+        );
                   
               // onSubmit={async (vals) => {
               //   await createRealtimePost({
