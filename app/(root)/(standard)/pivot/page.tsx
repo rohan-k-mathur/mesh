@@ -59,16 +59,18 @@ function Ring({
         const x = radius * Math.sin(a);
         const y = -radius * Math.cos(a);
         return (
-          <text
-            key={i}
-            x={x}
-            y={y}
-            textAnchor="middle"
-            dominantBaseline="middle"
-            className="font-mono text-block  text-[1rem] text-gray-800 rounded-full"
-          >
-            {l}
-          </text>
+          <g key={i}>
+            <circle cx={x} cy={y} r={12} fill="white" />
+            <text
+              x={x}
+              y={y}
+              textAnchor="middle"
+              dominantBaseline="middle"
+              className="font-mono text-block text-[1rem] text-gray-800"
+            >
+              {l}
+            </text>
+          </g>
         );
       })}
     </g>
