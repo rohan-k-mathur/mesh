@@ -54,27 +54,36 @@ function Ring({
   const step = 360 / letters.length;
   return (
     <g
-      style={{
-        transformOrigin: "center",
-        transformBox: "fill-box",
-        transition: `transform ${speed}ms`,
-        transform: `rotate(${angle}deg)`,
-      }}
+    style={
+        {
+          "--angle": `${angle}deg`,
+          transformOrigin: "center",
+          transformBox: "fill-box",
+          transform: "rotate(var(--angle))",
+          transition: `transform ${speed}ms`,
+        } as React.CSSProperties
+      }
       className="transition-transform"
     >
       {letters.map((l, i) => {
         const a = (i * step * Math.PI) / 180;
-        const x = radius * Math.sin(a);
-        const y = -radius * Math.cos(a);
+        const x = radius*.5 * Math.sin(a);
+        const y = -radius*.5 * Math.cos(a);
         return (
-          <g key={i}>
-            <circle cx={x} cy={y} r={12} fill="#E2E8F0" stroke="blue" strokeWidth={.5} />
+            <g
+            key={i}
+            style={{
+              transform: `translate(${x}px, ${y}px) rotate(calc(-1 * var(--angle)))`,
+              transformBox: "fill-box",
+              transformOrigin: "center",
+            }}
+          >            <circle cx={x} cy={y} r={12} fill="#E2E8F0" stroke="blue" strokeWidth={.5} />
             <text
               x={x}
               y={y}
               textAnchor="middle"
               dominantBaseline="middle"
-              className=" text-[.9rem] text-gray-800"
+              className=" text-[.9rem] text-gray-800 "
             >
               {l}
             </text>
@@ -120,7 +129,7 @@ export default function PivotPage() {
   const [angle2, setAngle2] = useState(0);
   const [angle3, setAngle3] = useState(0);
   const [spins, setSpins] = useState(0);
-  const [speed, setSpeed] = useState(300);
+  const [speed, setSpeed] = useState(8000);
 
   const spokes = r1.map((_, i) => r1[i] + r2[i] + r3[i]);
   const valid = spokes.map((w) => dictionary.has(w));
@@ -131,26 +140,13 @@ export default function PivotPage() {
       <h1 className="text-[2rem] mt-[-3rem] font-bold">Pivot</h1>
       <p>Spins: {spins}</p>
       <div className="flex items-center gap-2">
-        <span className="text-sm">Speed: {speed}ms</span>
-        <div className="w-40">
-          <Slider
-            value={[speed]}
-            min={100}
-            max={1000}
-            step={50}
-            onValueChange={(val) => setSpeed(val[0])}
-          />
-        </div>
+      
       </div>
-      <svg
-        width={370}
-        height={370}
-        viewBox="-130 -130 260 260"
-        className="mx-auto"
-      >
-        <circle r={100} className="fill-none stroke-slate-200" />
-        <circle r={70} className="fill-none stroke-slate-200" />
-        <circle r={40} className="fill-none stroke-slate-200" />
+      <svg width={370} height={370}         viewBox="-130 -130 260 260" className="mx-auto"> {/* <- bigger box */}
+
+        <circle r={100} className="fill-none stroke-slate-200 stroke-2" />
+        <circle r={70} className="fill-none stroke-slate-200 stroke-2" />
+        <circle r={40} className="fill-none stroke-slate-200 stroke-2" />
         <Ring letters={r1} radius={100} angle={angle1} speed={speed} />
         <Ring letters={r2} radius={70} angle={angle2} speed={speed} />
         <Ring letters={r3} radius={40} angle={angle3} speed={speed} />
