@@ -30,12 +30,16 @@ const dictionary = new Set([
   "LOT",
 ]);
 
-function rotate(arr: string[], dir: number) {
+
+function rotateSteps(arr: string[], steps: number) {
   const copy = [...arr];
-  if (dir === 1) {
-    copy.push(copy.shift() as string);
-  } else {
-    copy.unshift(copy.pop() as string);
+  const count = Math.abs(steps) % arr.length;
+  for (let i = 0; i < count; i++) {
+    if (steps > 0) {
+      copy.push(copy.shift() as string);
+    } else {
+      copy.unshift(copy.pop() as string);
+    }
   }
   return copy;
 }
@@ -131,7 +135,15 @@ export default function PivotPage() {
   const [spins, setSpins] = useState(0);
   const [speed, setSpeed] = useState(8000);
 
-  const spokes = r1.map((_, i) => r1[i] + r2[i] + r3[i]);
+  const offset1 = -Math.round(angle1 / 45);
+  const offset2 = -Math.round(angle2 / 45);
+  const offset3 = -Math.round(angle3 / 45);
+
+  const r1Rot = rotateSteps(r1, offset1);
+  const r2Rot = rotateSteps(r2, offset2);
+  const r3Rot = rotateSteps(r3, offset3);
+
+  const spokes = r1Rot.map((_, i) => r1Rot[i] + r2Rot[i] + r3Rot[i]);
   const valid = spokes.map((w) => dictionary.has(w));
   const solved = valid.every(Boolean);
 
@@ -158,7 +170,6 @@ export default function PivotPage() {
           variant={"outline"}
           className="likebutton bg-white bg-opacity-50 border-none outline-blue"
             onClick={() => {
-              setR1(rotate(r1, -1));
               setAngle1(angle1 - 45);
               setSpins(spins + 1);
             }}
@@ -169,7 +180,6 @@ export default function PivotPage() {
               variant={"outline"}
               className="likebutton bg-white bg-opacity-50 border-none outline-blue"
             onClick={() => {
-              setR1(rotate(r1, 1));
               setAngle1(angle1 + 45);
               setSpins(spins + 1);
             }}
@@ -182,7 +192,6 @@ export default function PivotPage() {
               variant={"outline"}
               className="likebutton bg-white bg-opacity-50 border-none outline-blue"
             onClick={() => {
-              setR2(rotate(r2, -1));
               setAngle2(angle2 - 45);
               setSpins(spins + 1);
             }}
@@ -193,7 +202,6 @@ export default function PivotPage() {
               variant={"outline"}
               className="likebutton bg-white bg-opacity-50 border-none outline-blue"
             onClick={() => {
-              setR2(rotate(r2, 1));
               setAngle2(angle2 + 45);
               setSpins(spins + 1);
             }}
@@ -206,7 +214,6 @@ export default function PivotPage() {
               variant={"outline"}
               className="likebutton bg-white bg-opacity-50 border-none outline-blue"
             onClick={() => {
-              setR3(rotate(r3, -1));
               setAngle3(angle3 - 45);
               setSpins(spins + 1);
             }}
@@ -217,7 +224,6 @@ export default function PivotPage() {
               variant={"outline"}
               className="likebutton bg-white bg-opacity-50 border-none outline-blue"
             onClick={() => {
-              setR3(rotate(r3, 1));
               setAngle3(angle3 + 45);
               setSpins(spins + 1);
             }}
