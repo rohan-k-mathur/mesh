@@ -27,11 +27,20 @@ export async function GET(req: NextRequest) {
   }
 
   const data = await res.json();
-  if (!data.routes || data.routes.length === 0) {
-    return NextResponse.json(
-      { error: "No route" },
-      { status: 404 }
+  if (!data.routes || data.routes.length === 0 || data.status !== "OK") {
+    const rad = Math.PI / 180;
+    const la1 = parseFloat(lat1) * rad;
+    const la2 = parseFloat(lat2) * rad;
+    const lo1 = parseFloat(lng1) * rad;
+    const dLon = (parseFloat(lng2) - parseFloat(lng1)) * rad;
+    const bx = Math.cos(la2) * Math.cos(dLon);
+    const by = Math.cos(la2) * Math.sin(dLon);
+    const lat = Math.atan2(
+      Math.sin(la1) + Math.sin(la2),
+      Math.sqrt((Math.cos(la1) + bx) ** 2 + by * by)
     );
+    const lng = lo1 + Math.atan2(by, Math.cos(la1) + bx);
+    return NextResponse.json({ lat: lat / rad, lng: lng / rad });
   }
 
   const legs = data.routes[0].legs;
