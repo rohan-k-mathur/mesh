@@ -172,14 +172,20 @@ export default function HalfwayPage() {
     }
     setError(null);
 
-    const mid: LatLng = {
-      lat: (coord1.lat + coord2.lat) / 2,
-      lng: (coord1.lng + coord2.lng) / 2,
-    };
-    setMidpoint(mid);
+    try {
+      const res = await fetch(
+        `/api/routeMidpoint?lat1=${coord1.lat}&lng1=${coord1.lng}&lat2=${coord2.lat}&lng2=${coord2.lng}`
+      );
+      if (!res.ok) throw new Error("Failed to fetch midpoint");
+      const mid: LatLng = await res.json();
+      setMidpoint(mid);
 
-    // Immediately fetch venues for the current radius & type
-    await fetchVenues(mid, radius, venueType);
+      // Immediately fetch venues for the current radius & type
+      await fetchVenues(mid, radius, venueType);
+    } catch (err) {
+      console.error("Error fetching midpoint:", err);
+      setError("Failed to calculate midpoint.");
+    }
   };
 
   // Auto-refetch when radius or venueType changes (if we have a midpoint)
