@@ -45,6 +45,11 @@ import UserRoomsModal from "../modals/UserRoomsModal";
       router.push("/pivot");
 
     }
+    function gotoentropy()
+    {
+      router.push("/entropy");
+
+    }
     return (
       <section className="p-4 space-y-4">
         <h1 className="text-[2rem] px-[35%] pb-4 font-bold">MESH Applications</h1>
@@ -94,6 +99,18 @@ import UserRoomsModal from "../modals/UserRoomsModal";
               height={24}
             />
                 Pivot            
+                </Button>
+                <div className="space-y-4"></div>
+
+                <Button variant={"outline"} className="likebutton text-[1.2rem] h-full p-4" type="submit" onClick={gotoentropy}>
+              <Image
+              src="/assets/data-blob.svg"
+              alt="entropy"
+              className="mr-2"
+              width={24}
+              height={24}
+            />
+                Entropy            
                 </Button>
             </div>
         </div>
