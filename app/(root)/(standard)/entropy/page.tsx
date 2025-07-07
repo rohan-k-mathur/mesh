@@ -51,7 +51,7 @@ function entropyDigits(secret: string, guess: string): number[] {
   });
 
   return status.map((st) =>
-    st === "G" ? Gre.size : st === "Y" ? Yel.size : Gry.size
+  st==="G" ? Gre.size : st==="Y" ? Yel.size : 0
   );
 }
 
