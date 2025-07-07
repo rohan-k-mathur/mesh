@@ -301,6 +301,7 @@ export default function HalfwayPage() {
               options={{
                 fillColor: "#AAF",
                 strokeColor: "#00F",
+                strokeWeight:.5,
                 fillOpacity: 0.2,
               }}
             />
@@ -319,9 +320,9 @@ export default function HalfwayPage() {
           )}
           {venues.map((venue) => (
             <Marker
+            
               key={venue.id.toString()}
               position={venue.location}
-              label={venue.name}
             />
           ))}
         </GoogleMap>
