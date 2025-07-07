@@ -50,14 +50,16 @@ export default function Page() {
 
   useEffect(() => {
     if (!isComplete) return;
-    const updated = {
-      plays: stats.plays + 1,
-      wins: stats.wins + 1,
-      streak: stats.streak + 1,
-    };
-    localStorage.setItem("wordrails-stats", JSON.stringify(updated));
-    setStats(updated);
-  }, [isComplete, stats]);
+    setStats((prev) => {
+      const updated = {
+        plays: prev.plays + 1,
+        wins: prev.wins + 1,
+        streak: prev.streak + 1,
+      };
+      localStorage.setItem("wordrails-stats", JSON.stringify(updated));
+      return updated;
+    });
+  }, [isComplete]);
 
   const shareResult = () => {
     const index = puzzles.indexOf(puzzle) + 1;
