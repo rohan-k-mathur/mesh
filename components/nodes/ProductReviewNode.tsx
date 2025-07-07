@@ -13,6 +13,7 @@ import { z } from "zod";
 import { useShallow } from "zustand/react/shallow";
 import BaseNode from "./BaseNode";
 import ProductReviewNodeModal from "../modals/ProductReviewNodeModal";
+import { Button } from "../ui/button";
 
 function ProductReviewNode({ id, data }: NodeProps<ProductReviewNodeData>) {
   const path = usePathname();
@@ -74,13 +75,15 @@ function ProductReviewNode({ id, data }: NodeProps<ProductReviewNodeData>) {
       type={"PRODUCT_REVIEW"}
       isLocked={data.locked}
     >
-      <div className="flex flex-col img-container w-max h-full">
+      <div className="flex flex-col img-container w-[30rem] h-fit">
         <div className="font-bold">{productName}</div>
         <div>Rating: {rating}/5</div>
         <div className="text-sm mt-1">{summary}</div>
+        <Button>
         <a href={productLink} className="text-xs text-blue-500" target="_blank" rel="noopener noreferrer">
           View Product
         </a>
+        </Button>
       </div>
     </BaseNode>
   );

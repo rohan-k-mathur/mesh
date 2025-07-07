@@ -14,7 +14,9 @@ const ProductReviewCard = ({
   productLink,
 }: ProductReviewCardProps) => {
   return (
-    <div className="flex flex-col items-start mt-2 mb-2">
+    <div className="flex justify-center">
+    <div className="w-[45rem] h-[24rem]  rounded-md">
+    <div className="flex flex-col  items-start mt-2 mb-2">
       <div className="font-bold">{productName}</div>
       <div>Rating: {rating}/5</div>
       <div className="text-sm mt-1">{summary}</div>
@@ -27,6 +29,10 @@ const ProductReviewCard = ({
         View Product
       </a>
     </div>
+    </div>
+
+    </div>
+
   );
 };
 
