@@ -151,6 +151,8 @@ export default function PivotPage() {
   const [angle3, setAngle3] = useState(0);
   const [angle4, setAngle4] = useState(0);
   const [spins, setSpins] = useState(0);
+  const MIN_SPINS = 6;
+  const SPIN_LIMIT = MIN_SPINS * 2;
   const [speed, setSpeed] = useState(8000);
 
   const offset1 = -Math.round(angle1 / 45);
@@ -170,7 +172,10 @@ export default function PivotPage() {
   return (
     <main className=" flex flex-col items-center">
       <h1 className="text-[2rem] mt-[-3rem] text-black font-bold">Pivot</h1>
-      <p>Spins: {spins}</p>
+      <p>Spins: {spins}/{SPIN_LIMIT}</p>
+      {spins >= SPIN_LIMIT && !solved && (
+        <p className="text-red-700">Spin limit reached</p>
+      )}
       <p className="fixed p-2 border-white border-2 rounded-lg justify-center -left-[-16rem] bottom-[18rem] flex text-wrap max-w-[12rem] text-[1.0rem]">Rotate the outer, middle, inner, and core rings in 45° steps with the ↺ / ↻ buttons. <br></br><br></br>
         When every vertical stack of letters—read outer → middle → inner → core—forms a real 4-letter word, you win. <br></br> <br></br>
         Try to finish with as few spins as possible.</p>
@@ -194,7 +199,9 @@ export default function PivotPage() {
           <Button
           variant={"outline"}
           className="likebutton bg-white bg-opacity-50 border-none outline-blue"
+            disabled={spins >= SPIN_LIMIT || solved}
             onClick={() => {
+              if (spins >= SPIN_LIMIT || solved) return;
               setAngle1(angle1 - 45);
               setSpins(spins + 1);
             }}
@@ -204,7 +211,9 @@ export default function PivotPage() {
           <Button
               variant={"outline"}
               className="likebutton bg-white bg-opacity-50 border-none outline-blue"
+              disabled={spins >= SPIN_LIMIT || solved}
             onClick={() => {
+              if (spins >= SPIN_LIMIT || solved) return;
               setAngle1(angle1 + 45);
               setSpins(spins + 1);
             }}
@@ -216,7 +225,9 @@ export default function PivotPage() {
           <Button
               variant={"outline"}
               className="likebutton bg-white bg-opacity-50 border-none outline-blue"
+              disabled={spins >= SPIN_LIMIT || solved}
             onClick={() => {
+              if (spins >= SPIN_LIMIT || solved) return;
               setAngle2(angle2 - 45);
               setSpins(spins + 1);
             }}
@@ -226,7 +237,9 @@ export default function PivotPage() {
           <Button
               variant={"outline"}
               className="likebutton bg-white bg-opacity-50 border-none outline-blue"
+              disabled={spins >= SPIN_LIMIT || solved}
             onClick={() => {
+              if (spins >= SPIN_LIMIT || solved) return;
               setAngle2(angle2 + 45);
               setSpins(spins + 1);
             }}
@@ -238,7 +251,9 @@ export default function PivotPage() {
           <Button
               variant={"outline"}
               className="likebutton bg-white bg-opacity-50 border-none outline-blue"
+              disabled={spins >= SPIN_LIMIT || solved}
             onClick={() => {
+              if (spins >= SPIN_LIMIT || solved) return;
               setAngle3(angle3 - 45);
               setSpins(spins + 1);
             }}
@@ -248,7 +263,9 @@ export default function PivotPage() {
           <Button
               variant={"outline"}
               className="likebutton bg-white bg-opacity-50 border-none outline-blue"
+              disabled={spins >= SPIN_LIMIT || solved}
             onClick={() => {
+              if (spins >= SPIN_LIMIT || solved) return;
               setAngle3(angle3 + 45);
               setSpins(spins + 1);
             }}
@@ -260,7 +277,9 @@ export default function PivotPage() {
           <Button
               variant={"outline"}
               className="likebutton bg-white bg-opacity-50 border-none outline-blue"
+              disabled={spins >= SPIN_LIMIT || solved}
             onClick={() => {
+              if (spins >= SPIN_LIMIT || solved) return;
               setAngle4(angle4 - 45);
               setSpins(spins + 1);
             }}
@@ -270,7 +289,9 @@ export default function PivotPage() {
           <Button
               variant={"outline"}
               className="likebutton bg-white bg-opacity-50 border-none outline-blue"
+              disabled={spins >= SPIN_LIMIT || solved}
             onClick={() => {
+              if (spins >= SPIN_LIMIT || solved) return;
               setAngle4(angle4 + 45);
               setSpins(spins + 1);
             }}
