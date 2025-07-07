@@ -33,9 +33,9 @@ const dictionary = new Set([
 function rotate(arr: string[], dir: number) {
   const copy = [...arr];
   if (dir === 1) {
-    copy.unshift(copy.pop() as string);
-  } else {
     copy.push(copy.shift() as string);
+  } else {
+    copy.unshift(copy.pop() as string);
   }
   return copy;
 }
