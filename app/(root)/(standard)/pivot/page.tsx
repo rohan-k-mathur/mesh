@@ -196,6 +196,18 @@ export default function PivotPage() {
       <div className=" mt-[-0rem] space-y-2">
       <div className="flex gap-6 ">
         <div className="flex flex-col items-center gap-3">
+        <Button
+              variant={"outline"}
+              className="likebutton bg-white bg-opacity-50 border-none outline-blue"
+              disabled={spins >= SPIN_LIMIT || solved}
+            onClick={() => {
+              if (spins >= SPIN_LIMIT || solved) return;
+              setAngle1(angle1 + 45);
+              setSpins(spins + 1);
+            }}
+          >
+            Crust ↻
+          </Button>
           <Button
           variant={"outline"}
           className="likebutton bg-white bg-opacity-50 border-none outline-blue"
@@ -206,22 +218,23 @@ export default function PivotPage() {
               setSpins(spins + 1);
             }}
           >
-            Outer ↺
+            Crust ↺
           </Button>
-          <Button
+      
+        </div>
+        <div className="flex flex-col items-center  gap-3">
+        <Button
               variant={"outline"}
               className="likebutton bg-white bg-opacity-50 border-none outline-blue"
               disabled={spins >= SPIN_LIMIT || solved}
             onClick={() => {
               if (spins >= SPIN_LIMIT || solved) return;
-              setAngle1(angle1 + 45);
+              setAngle2(angle2 + 45);
               setSpins(spins + 1);
             }}
           >
-            Outer ↻
+            Outer Core ↻
           </Button>
-        </div>
-        <div className="flex flex-col items-center  gap-3">
           <Button
               variant={"outline"}
               className="likebutton bg-white bg-opacity-50 border-none outline-blue"
@@ -232,22 +245,23 @@ export default function PivotPage() {
               setSpins(spins + 1);
             }}
           >
-            Middle ↺
+            Outer Core ↺
           </Button>
-          <Button
+     
+        </div>
+        <div className="flex flex-col items-center gap-3">
+        <Button
               variant={"outline"}
               className="likebutton bg-white bg-opacity-50 border-none outline-blue"
               disabled={spins >= SPIN_LIMIT || solved}
             onClick={() => {
               if (spins >= SPIN_LIMIT || solved) return;
-              setAngle2(angle2 + 45);
+              setAngle3(angle3 + 45);
               setSpins(spins + 1);
             }}
           >
-            Middle ↻
+            Inner Core ↻
           </Button>
-        </div>
-        <div className="flex flex-col items-center gap-3">
           <Button
               variant={"outline"}
               className="likebutton bg-white bg-opacity-50 border-none outline-blue"
@@ -258,22 +272,23 @@ export default function PivotPage() {
               setSpins(spins + 1);
             }}
           >
-            Inner ↺
+            Inner Core ↺
           </Button>
-          <Button
+    
+        </div>
+        <div className="flex flex-col items-center gap-3">
+        <Button
               variant={"outline"}
               className="likebutton bg-white bg-opacity-50 border-none outline-blue"
               disabled={spins >= SPIN_LIMIT || solved}
             onClick={() => {
               if (spins >= SPIN_LIMIT || solved) return;
-              setAngle3(angle3 + 45);
+              setAngle4(angle4 + 45);
               setSpins(spins + 1);
             }}
           >
-            Inner ↻
+            Core ↻
           </Button>
-        </div>
-        <div className="flex flex-col items-center gap-3">
           <Button
               variant={"outline"}
               className="likebutton bg-white bg-opacity-50 border-none outline-blue"
@@ -286,18 +301,7 @@ export default function PivotPage() {
           >
             Core ↺
           </Button>
-          <Button
-              variant={"outline"}
-              className="likebutton bg-white bg-opacity-50 border-none outline-blue"
-              disabled={spins >= SPIN_LIMIT || solved}
-            onClick={() => {
-              if (spins >= SPIN_LIMIT || solved) return;
-              setAngle4(angle4 + 45);
-              setSpins(spins + 1);
-            }}
-          >
-            Core ↻
-          </Button>
+   
         </div>
         </div>
       </div>
