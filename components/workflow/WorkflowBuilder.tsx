@@ -25,6 +25,9 @@ import WorkflowSidePanel from "./WorkflowSidePanel";
 import { registerDefaultWorkflowActions } from "@/lib/registerDefaultWorkflowActions";
 import { registerIntegrationActions } from "@/lib/registerIntegrationActions";
 import { listWorkflowActions } from "@/lib/workflowActions";
+import { registerDefaultWorkflowTriggers } from "@/lib/registerDefaultWorkflowTriggers";
+import { registerIntegrationTriggerTypes } from "@/lib/registerIntegrationTriggerTypes";
+import { listWorkflowTriggers } from "@/lib/workflowTriggers";
 import { IntegrationApp } from "@/lib/integrations/types";
 import ScheduleForm from "./ScheduleForm";
 
@@ -52,12 +55,14 @@ export default function WorkflowBuilder({ initialGraph, onSave }: Props) {
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
   const [actions, setActions] = useState<string[]>([]);
+  const [triggers, setTriggers] = useState<string[]>([]);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const importRef = useRef<HTMLInputElement>(null);
   const { screenToFlowPosition } = useReactFlow();
 
   useEffect(() => {
     registerDefaultWorkflowActions();
+    registerDefaultWorkflowTriggers();
     const integrationContext = typeof (require as any).context === "function"
       ? (require as any).context("../../integrations", false, /\.ts$/)
       : { keys: () => [], context: () => ({}) };
@@ -66,7 +71,9 @@ export default function WorkflowBuilder({ initialGraph, onSave }: Props) {
       modules[key] = integrationContext(key);
     });
     registerIntegrationActions(modules);
+    registerIntegrationTriggerTypes(modules);
     setActions(listWorkflowActions());
+    setTriggers(listWorkflowTriggers());
   }, []);
 
   const exportJson = () => {
@@ -135,7 +142,7 @@ export default function WorkflowBuilder({ initialGraph, onSave }: Props) {
     const newNode: Node = {
       id,
       position,
-      data: { label: id },
+      data: { label: id, type },
     };
     setNodes((nds) => nds.concat(newNode));
   };
@@ -150,13 +157,13 @@ export default function WorkflowBuilder({ initialGraph, onSave }: Props) {
     setSelectedEdge(updated);
   };
 
-  const addState = () => {
+  const addNode = (type: string) => {
     const id = `state-${nodes.length + 1}`;
     setNodes((nds) => [
       ...nds,
       {
         id,
-        data: { label: id },
+        data: { label: id, type },
         position: { x: 50 * nds.length, y: 50 * nds.length },
       },
     ]);
@@ -175,12 +182,22 @@ export default function WorkflowBuilder({ initialGraph, onSave }: Props) {
           className="dndnode w-full rounded-md"
           draggable
           onDragStart={(e) =>
-            e.dataTransfer.setData("application/reactflow", "state")
+            e.dataTransfer.setData("application/reactflow", "trigger")
           }
         >
-          State
+          Trigger
         </div>
-        <Button onClick={addState}>Add State</Button>
+        <div
+          className="dndnode w-full rounded-md"
+          draggable
+          onDragStart={(e) =>
+            e.dataTransfer.setData("application/reactflow", "action")
+          }
+        >
+          Action
+        </div>
+        <Button onClick={() => addNode("trigger")}>Add Trigger</Button>
+        <Button onClick={() => addNode("action")}>Add Action</Button>
         <Input
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -259,6 +276,7 @@ export default function WorkflowBuilder({ initialGraph, onSave }: Props) {
         node={selectedNode ?? undefined}
         edge={selectedEdge ?? undefined}
         actions={actions}
+        triggers={triggers}
         onUpdateNode={updateNode}
         onUpdateEdge={updateEdge}
         onClose={() => {
