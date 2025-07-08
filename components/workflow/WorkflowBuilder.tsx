@@ -26,6 +26,7 @@ import { registerDefaultWorkflowActions } from "@/lib/registerDefaultWorkflowAct
 import { registerIntegrationActions } from "@/lib/registerIntegrationActions";
 import { listWorkflowActions } from "@/lib/workflowActions";
 import { IntegrationApp } from "@/lib/integrations/types";
+import ScheduleForm from "./ScheduleForm";
 
 import { Input } from "@/components/ui/input";
 
@@ -198,7 +199,10 @@ export default function WorkflowBuilder({ initialGraph, onSave }: Props) {
         <Button onClick={exportJson}>Export</Button>
         <Button onClick={save}>Save</Button>
         {workflowId && (
-          <a href={`/workflows/${workflowId}`}>Run Workflow</a>
+          <div className="space-y-2">
+            <a href={`/workflows/${workflowId}`}>Run Workflow</a>
+            <ScheduleForm workflowId={workflowId} />
+          </div>
         )}
       </div>
       <ReactFlow

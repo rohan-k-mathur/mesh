@@ -2,12 +2,30 @@ import { IntegrationApp } from "@/lib/integrations/types";
 
 export const integration: IntegrationApp = {
   name: "analytics",
-  description: "Aggregate analytics data and generate reports",
+  description: "Aggregate ecommerce and social metrics into reports",
   actions: [
     {
-      name: "fetchData",
+      name: "fetchShopify",
       run: async () => {
-        console.log("Fetching analytics data");
+        console.log("Fetching Shopify sales data");
+      },
+    },
+    {
+      name: "fetchInstagram",
+      run: async () => {
+        console.log("Fetching Instagram metrics");
+      },
+    },
+    {
+      name: "fetchTikTok",
+      run: async () => {
+        console.log("Fetching TikTok metrics");
+      },
+    },
+    {
+      name: "aggregateData",
+      run: async () => {
+        console.log("Aggregating analytics");
       },
     },
     {

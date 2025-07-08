@@ -19,10 +19,10 @@ export default function Page() {
     <div className="relative -top-12 space-y-4">
       <IntegrationButtons />
       <p className="mx-2 text-sm">
-        This builder starts with a sample analytics workflow fetching metrics,
-        generating a report, and sending it via email or Slack. It demonstrates
-        the unified analytics dashboard concept outlined in the product
-        roadmap.
+        This builder loads the Analytics Dashboard template. The default flow
+        collects Shopify and social metrics, aggregates the data, generates a
+        report, then shares it through Gmail and Slack. Use it as a starting
+        point for the unified analytics dashboard described in the roadmap.
       </p>
       <div className="w-[100%] h-full border-2 border-blue overscroll-none">
         <ReactFlowProvider>
