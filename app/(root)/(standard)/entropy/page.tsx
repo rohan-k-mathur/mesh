@@ -5,8 +5,35 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { puzzles } from "./data";
 import { dictionaryArray, dictionary } from "./data";
-
-
+/* utils */
+export const SHAPE: Record<"G" | "Y" | "X", string> = {
+    G: "  ◯",   // circle   (green)
+    Y: "  □",   // square   (yellow)
+    X: "  △",   // triangle (grey)
+  };
+  
+  export function shapeOf(status: "G" | "Y" | "X") {
+    return SHAPE[status];
+  }
+  
+  export function colourOf(status: "G" | "Y" | "X") {
+    return status === "G"
+      ? "text-green-600"
+      : status === "Y"
+      ? "text-yellow-500"
+      : "text-gray-400";
+  }
+  
+  
+  // helper that returns a word with six distinct letters
+  export function pickStarter(dictionary: string[]): string {
+    const uniques = dictionary.filter(
+      w => new Set(w).size === 6 && w.length === 6
+    );
+    return uniques[Math.floor(Math.random() * uniques.length)];
+  }
+  
+  
 const MAX_TURNS = 8;
 const todayId = new Date().toISOString().slice(0, 10); // "2025-07-07"
 
@@ -16,20 +43,25 @@ interface Stats {
   streak: number;
 }
 
-function pickRandomSecret(): string {
-    const idx = Math.floor(Math.random() * dictionaryArray.length);
-    return dictionaryArray[idx];
-  }
+type TileInfo = { digit: number; status: "G" | "Y" | "X" };
+type SetSizes = { G: number; Y: number; X: number };
 
-function getTodayPuzzle() {
-  const index = Math.floor(Date.now() / 86400000) % puzzles.length;
-  return { puzzle: puzzles[index], index };
-}
+type GuessRow = {
+  word: string;
+  tiles: TileInfo[];
+  setSizes: SetSizes;   // ← single, consistent key
+};
 
-function entropyDigits(secret: string, guess: string): number[] {
+
+
+function entropyDigits(secret: string, guess: string): {
+  tiles: TileInfo[];
+  setSizes: { G: number; Y: number; X: number };
+} {
   const status: ("G" | "Y" | "X")[] = Array(6).fill("X");
   const secretRem = secret.split("");
 
+  // greens
   for (let i = 0; i < 6; i++) {
     if (guess[i] === secret[i]) {
       status[i] = "G";
@@ -37,6 +69,7 @@ function entropyDigits(secret: string, guess: string): number[] {
     }
   }
 
+  // yellows
   for (let i = 0; i < 6; i++) {
     if (status[i] === "X") {
       const idx = secretRem.indexOf(guess[i]);
@@ -47,6 +80,7 @@ function entropyDigits(secret: string, guess: string): number[] {
     }
   }
 
+  // distinct-letter sets
   const Gre = new Set<string>();
   const Yel = new Set<string>();
   const Gry = new Set<string>();
@@ -58,18 +92,73 @@ function entropyDigits(secret: string, guess: string): number[] {
     else Gry.add(c);
   });
 
-  return status.map((st) =>
-  st==="G" ? Gre.size : st==="Y" ? Yel.size : 0
-  );
+  const sizes = { G: Gre.size, Y: Yel.size, X: Gry.size };
+
+  const tiles = status.map<TileInfo>(st => ({
+    status: st,
+    digit:
+      st === "G" ? sizes.G : st === "Y" ? sizes.Y : sizes.X
+  }));
+
+  return { tiles, setSizes: sizes };
 }
+
+
+function pickRandomSecret(): string {
+    const idx = Math.floor(Math.random() * dictionaryArray.length);
+    return dictionaryArray[idx];
+  }
+
+function getTodayPuzzle() {
+  const index = Math.floor(Date.now() / 86400000) % puzzles.length;
+  return { puzzle: puzzles[index], index };
+}
+
+// function entropyDigits(secret: string, guess: string): number[] {
+//   const status: ("G" | "Y" | "X")[] = Array(6).fill("X");
+//   const secretRem = secret.split("");
+
+//   for (let i = 0; i < 6; i++) {
+//     if (guess[i] === secret[i]) {
+//       status[i] = "G";
+//       secretRem[i] = "_";
+//     }
+//   }
+
+//   for (let i = 0; i < 6; i++) {
+//     if (status[i] === "X") {
+//       const idx = secretRem.indexOf(guess[i]);
+//       if (idx !== -1) {
+//         status[i] = "Y";
+//         secretRem[idx] = "_";
+//       }
+//     }
+//   }
+
+//   const Gre = new Set<string>();
+//   const Yel = new Set<string>();
+//   const Gry = new Set<string>();
+
+//   status.forEach((st, i) => {
+//     const c = guess[i];
+//     if (st === "G") Gre.add(c);
+//     else if (st === "Y") Yel.add(c);
+//     else Gry.add(c);
+//   });
+
+//   return status.map((st) =>
+//   st==="G" ? Gre.size : st==="Y" ? Yel.size : 0
+//   );
+// }
 
 export default function Page() {
 //   const { puzzle, index } = getTodayPuzzle();
 //   const [guesses, setGuesses] = useState<{ word: string; digits: number[] }[]>([]);
-const [secret] = useState<string>(pickRandomSecret);   // ← initialised once
-const [guesses, setGuesses] = useState<
-  { word: string; digits: number[] }[]
->([]);
+const [secret] = useState<string>(pickRandomSecret);
+const [starter]  = useState<string>(() => pickStarter(dictionaryArray));
+
+const [guesses, setGuesses] = useState<GuessRow[]>([]);
+
   const [current, setCurrent] = useState("");
   // start with placeholder that matches server HTML
   const [stats, setStats] = useState<Stats>({
@@ -87,20 +176,22 @@ const [guesses, setGuesses] = useState<
 
   const addGuess = () => {
     if (current.length !== 6) return;
-    if (!dictionary.has(current.trim())) return;   // <-- trim just in case
-    // const digits = entropyDigits(puzzle.secret, current);
-    const digits = entropyDigits(secret, current);
-    setGuesses([...guesses, { word: current, digits }]);
+    if (!dictionary.has(current)) return;
+  
+    const { tiles, setSizes } = entropyDigits(secret, current);
+    setGuesses([...guesses, { word: current, tiles, setSizes }]);
     setCurrent("");
   };
+  
 
 //   const solved = guesses.some((g) => g.word === puzzle.secret);
 const solved = guesses.some(g => g.word === secret);
   const turnsUsed = guesses.length;
 
   const shareResult = () => {
-    const digitsStr = guesses.map((g) => g.digits.join(" ")).join(" / ");
-    // const text = `Entropy #${index + 1} ${turnsUsed}/${MAX_TURNS} ${digitsStr}`;
+    const digitsStr = guesses
+      .map(g => g.tiles.map(t => t.digit).join(" "))
+      .join(" / ");
     const text = `Entropy ${turnsUsed}/${MAX_TURNS} ${digitsStr}`;
     navigator.clipboard.writeText(text).catch(() => {});
   };
@@ -134,7 +225,7 @@ const solved = guesses.some(g => g.word === secret);
       </p>
 
 
-      <ul className="space-y-2 font-mono">
+      <ul className="space-y-2 font-mono ">
         {Array.from({ length: MAX_TURNS }).map((_, i) => {
           const g = guesses[i];
           const isCurrent = i === guesses.length;
@@ -153,12 +244,21 @@ const solved = guesses.some(g => g.word === secret);
                 ))}
               </div>
               {g && (
-                <div className="grid grid-cols-6 gap-1 text-center text-sm" aria-live="polite">
-                  {g.digits.map((d, idx) => (
-                    <span key={idx}>{d}</span>
-                  ))}
-                </div>
-              )}
+  <>
+    {/* feedback row */}
+<div className="grid grid-cols-6  text-[1rem] leading-none">
+  {g.tiles.map((t, idx) => (
+    <span
+      key={idx}
+      className={colourOf(t.status)}
+      aria-label={t.status === "G" ? "green" : t.status === "Y" ? "yellow" : "grey"}
+    >
+      {shapeOf(t.status)}
+    </span>
+  ))}
+</div>
+  </>
+)}
             </li>
           );
         })}
