@@ -3,7 +3,7 @@
 import { NodeProps } from "@xyflow/react";
 
 export function TriggerNode({ data }: NodeProps) {
-  if (data.trigger === "onClick") {
+  if (data?.trigger === "onClick") {
     return (
       <div className="p-2 bg-white border rounded">
         <button className="nodrag" onClick={data.onTrigger}>
@@ -12,12 +12,12 @@ export function TriggerNode({ data }: NodeProps) {
       </div>
     );
   }
-  return <div className="p-2 bg-white border rounded">{data.label}</div>;
+  return <div className="p-2 bg-white border rounded">{data?.label}</div>;
 }
 
 export function ActionNode({ data }: NodeProps) {
-  if (data.action === "createRandomLineGraph") {
-    const points: [number, number][] = data.points || [];
+  if (data?.action === "createRandomLineGraph") {
+    const points: [number, number][] = data.points ?? [];
     const width = 200;
     const height = 100;
     if (points.length === 0) {
@@ -45,5 +45,5 @@ export function ActionNode({ data }: NodeProps) {
       </div>
     );
   }
-  return <div className="p-2 bg-white border rounded">{data.label}</div>;
+  return <div className="p-2 bg-white border rounded">{data?.label}</div>;
 }
