@@ -13,6 +13,7 @@ import {
 } from "./WorkflowExecutionContext";
 import WorkflowViewer from "./WorkflowViewer";
 import { NodeTypes } from "@xyflow/react";
+import { TriggerNode, ActionNode } from "./CustomNodes";
 import { supabase } from "@/lib/supabaseclient";
 import {
   WORKFLOW_CHANNEL,
@@ -33,6 +34,9 @@ export function WorkflowRunnerInner({ graph, nodeTypes, workflowId }: Props) {
   const [remoteLogs, setRemoteLogs] = useState<string[]>([]);
   const [remoteCurrent, setRemoteCurrent] = useState<string | null>(null);
   const [remoteExecuted, setRemoteExecuted] = useState<string[]>([]);
+  const [pointsMap, setPointsMap] = useState<Record<string, [number, number][]>>(
+    {}
+  );
 
   useEffect(() => {
     const ch = supabase.channel(WORKFLOW_CHANNEL);
@@ -67,9 +71,19 @@ export function WorkflowRunnerInner({ graph, nodeTypes, workflowId }: Props) {
   const handleRun = async () => {
     const actions: Record<string, () => Promise<string | void>> = {};
     for (const node of graph.nodes) {
-      const act = node.action ? getWorkflowAction(node.action) : undefined;
-      actions[node.action ?? node.id] =
-        act ?? (async () => `Executed ${node.id}`);
+      if (node.action === "createRandomLineGraph") {
+        actions[node.action] = async () => {
+          const pts = Array.from({ length: 12 }, (_, i) => [
+            i + 1,
+            Math.random() * 100,
+          ]) as [number, number][];
+          setPointsMap((m) => ({ ...m, [node.id]: pts }));
+        };
+      } else {
+        const act = node.action ? getWorkflowAction(node.action) : undefined;
+        actions[node.action ?? node.id] =
+          act ?? (async () => `Executed ${node.id}`);
+      }
     }
     const start = new Date();
     await run(graph, actions);
@@ -87,6 +101,18 @@ export function WorkflowRunnerInner({ graph, nodeTypes, workflowId }: Props) {
     }
   };
 
+  const computedGraph: WorkflowGraph = {
+    nodes: graph.nodes.map((n) => {
+      const data: any = { ...n.data };
+      if (n.type === "trigger" && n.data?.trigger === "onClick") {
+        data.onTrigger = handleRun;
+      }
+      if (pointsMap[n.id]) data.points = pointsMap[n.id];
+      return { ...n, data } as any;
+    }),
+    edges: graph.edges,
+  };
+
   return (
     <div className="space-y-2">
       <div className="flex gap-2">
@@ -99,7 +125,10 @@ export function WorkflowRunnerInner({ graph, nodeTypes, workflowId }: Props) {
           </Button>
         )}
       </div>
-      <WorkflowViewer graph={graph} nodeTypes={nodeTypes} />
+      <WorkflowViewer
+        graph={computedGraph}
+        nodeTypes={nodeTypes ?? { trigger: TriggerNode, action: ActionNode }}
+      />
       <div className="border h-32 overflow-auto p-2 text-sm">
         {logs.map((log, i) => (
           <div key={i}>{log}</div>

@@ -20,6 +20,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { Button } from "@/components/ui/button";
+import { TriggerNode, ActionNode } from "./CustomNodes";
 import { WorkflowGraph } from "@/lib/actions/workflow.actions";
 import WorkflowSidePanel from "./WorkflowSidePanel";
 import { registerDefaultWorkflowActions } from "@/lib/registerDefaultWorkflowActions";
@@ -38,6 +39,7 @@ interface Props {
   onSave: (graph: WorkflowGraph, name: string) => Promise<{ id: string }>;
 }
 const proOptions = { hideAttribution: true };
+const nodeTypes = { trigger: TriggerNode, action: ActionNode };
 
 export default function WorkflowBuilder({ initialGraph, onSave }: Props) {
   const defaultPosition = { x: 0, y: 0 };
@@ -234,6 +236,7 @@ export default function WorkflowBuilder({ initialGraph, onSave }: Props) {
         onDrop={onDrop}
         onDragOver={onDragOver}
         proOptions={proOptions}
+        nodeTypes={nodeTypes}
         fitView
       >
         <Background 

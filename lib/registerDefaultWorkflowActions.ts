@@ -13,4 +13,8 @@ export function registerDefaultWorkflowActions() {
     const url = process.env.SLACK_WEBHOOK_URL ?? "";
     await sendSlackMessage({ webhookUrl: url, text: "New issue created" });
   });
+
+  registerWorkflowAction("createRandomLineGraph", async () => {
+    // action handled in WorkflowRunner
+  });
 }
