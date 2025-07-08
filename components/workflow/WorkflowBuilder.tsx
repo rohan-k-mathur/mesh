@@ -36,8 +36,12 @@ interface Props {
 const proOptions = { hideAttribution: true };
 
 export default function WorkflowBuilder({ initialGraph, onSave }: Props) {
+  const defaultPosition = { x: 0, y: 0 };
   const [nodes, setNodes, onNodesChange] = useNodesState<Node[]>(
-    initialGraph?.nodes || []
+    (initialGraph?.nodes?.map((n) => ({
+      ...n,
+      position: n.position ?? defaultPosition,
+    })) as Node[]) || []
   );
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge[]>(
     initialGraph?.edges || []
@@ -80,7 +84,12 @@ export default function WorkflowBuilder({ initialGraph, onSave }: Props) {
     try {
       const text = await files[0].text();
       const graph = JSON.parse(text) as WorkflowGraph;
-      setNodes(graph.nodes as Node[]);
+      setNodes(
+        (graph.nodes as Node[]).map((n) => ({
+          ...n,
+          position: n.position ?? defaultPosition,
+        }))
+      );
       setEdges(graph.edges as Edge[]);
     } catch {
       // ignore invalid file
