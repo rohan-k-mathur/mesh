@@ -27,9 +27,11 @@ import { registerIntegrationActions } from "@/lib/registerIntegrationActions";
 import { listWorkflowActions } from "@/lib/workflowActions";
 import { IntegrationApp } from "@/lib/integrations/types";
 
+import { Input } from "@/components/ui/input";
+
 interface Props {
   initialGraph?: WorkflowGraph;
-  onSave: (graph: WorkflowGraph) => Promise<{ id: string }>;
+  onSave: (graph: WorkflowGraph, name: string) => Promise<{ id: string }>;
 }
 const proOptions = { hideAttribution: true };
 
@@ -41,6 +43,7 @@ export default function WorkflowBuilder({ initialGraph, onSave }: Props) {
     initialGraph?.edges || []
   );
   const [workflowId, setWorkflowId] = useState<string | null>(null);
+  const [name, setName] = useState("New Workflow");
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
   const [actions, setActions] = useState<string[]>([]);
@@ -150,7 +153,7 @@ export default function WorkflowBuilder({ initialGraph, onSave }: Props) {
   };
 
   const save = async () => {
-    const result = await onSave({ nodes, edges });
+    const result = await onSave({ nodes, edges }, name);
     setWorkflowId(result.id);
   };
 
@@ -168,6 +171,12 @@ export default function WorkflowBuilder({ initialGraph, onSave }: Props) {
           State
         </div>
         <Button onClick={addState}>Add State</Button>
+        <Input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="border p-1"
+          aria-label="Workflow Name"
+        />
         <Button onClick={() => importRef.current?.click()}>Import</Button>
         <input
           type="file"

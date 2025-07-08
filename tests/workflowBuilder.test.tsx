@@ -18,10 +18,13 @@ it.skip("adds a new state and triggers save", async () => {
   await act(async () => {
     fireEvent.click(screen.getByText("Save"));
   });
-  expect(onSave).toHaveBeenCalledWith({
-    nodes: expect.arrayContaining([expect.objectContaining({ id: "state-1" })]),
-    edges: [],
-  });
+  expect(onSave).toHaveBeenCalledWith(
+    {
+      nodes: expect.arrayContaining([expect.objectContaining({ id: "state-1" })]),
+      edges: [],
+    },
+    expect.any(String)
+  );
 });
 
 it.skip("imports workflow JSON", async () => {
@@ -39,5 +42,5 @@ it.skip("imports workflow JSON", async () => {
   await act(async () => {
     fireEvent.click(screen.getByText("Save"));
   });
-  expect(onSave).toHaveBeenCalled();
+  expect(onSave).toHaveBeenCalledWith(expect.any(Object), expect.any(String));
 });
