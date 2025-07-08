@@ -1,0 +1,15 @@
+{
+  "name": "Analytics Dashboard",
+  "description": "Aggregates metrics and emails a weekly report",
+  "graph": {
+    "nodes": [
+      { "id": "fetch", "type": "trigger", "action": "analytics:fetchData" },
+      { "id": "report", "type": "action", "action": "analytics:generateReport" },
+      { "id": "notify", "type": "action", "action": "analytics:sendReport" }
+    ],
+    "edges": [
+      { "id": "e1", "source": "fetch", "target": "report" },
+      { "id": "e2", "source": "report", "target": "notify" }
+    ]
+  }
+}
