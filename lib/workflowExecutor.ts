@@ -40,7 +40,8 @@ export async function executeWorkflow(
   graph: WorkflowGraph,
   actions: Record<string, () => Promise<any>>,
   evaluate: ConditionEvaluator = () => true,
-  context: Record<string, any> = {}
+  context: Record<string, any> = {},
+  onNodeExecuted?: (id: string) => void
 ): Promise<string[]> {
   const executed: string[] = [];
   const nodeMap = new Map(graph.nodes.map((n) => [n.id, n]));
@@ -52,6 +53,7 @@ export async function executeWorkflow(
       await act();
     }
     executed.push(current.id);
+    if (onNodeExecuted) onNodeExecuted(current.id);
     const outgoing = graph.edges.filter((e) => e.source === current.id);
     if (outgoing.length === 0) break;
     const nextEdge = outgoing.find(

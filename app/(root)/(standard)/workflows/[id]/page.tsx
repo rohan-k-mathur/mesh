@@ -6,5 +6,5 @@ export default async function Page({ params }: { params: { id: string } }) {
   if (!params?.id) return notFound();
   const workflow = await fetchWorkflow({ id: BigInt(params.id) });
   if (!workflow) return notFound();
-  return <WorkflowRunner graph={workflow.graph} />;
+  return <WorkflowRunner graph={workflow.graph} workflowId={params.id} />;
 }
