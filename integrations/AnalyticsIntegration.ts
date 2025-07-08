@@ -16,29 +16,24 @@ export const integration: IntegrationApp = {
     {
       name: "fetchShopify",
       run: async () => {
-        const res = await fetch("https://dummyjson.com/products?limit=5");
-        const data = await res.json();
-        store.shopify = data.products;
+        const count = Math.floor(Math.random() * 5) + 1;
+        store.shopify = Array.from({ length: count }, (_, i) => ({ id: i }));
         return `Fetched ${store.shopify.length} Shopify products`;
       },
     },
     {
       name: "fetchInstagram",
       run: async () => {
-        const res = await fetch(
-          "https://jsonplaceholder.typicode.com/posts?userId=1"
-        );
-        store.instagram = await res.json();
+        const count = Math.floor(Math.random() * 5) + 1;
+        store.instagram = Array.from({ length: count }, (_, i) => ({ id: i }));
         return `Fetched ${store.instagram.length} Instagram posts`;
       },
     },
     {
       name: "fetchTikTok",
       run: async () => {
-        const res = await fetch(
-          "https://jsonplaceholder.typicode.com/photos?albumId=1"
-        );
-        store.tiktok = await res.json();
+        const count = Math.floor(Math.random() * 5) + 1;
+        store.tiktok = Array.from({ length: count }, (_, i) => ({ id: i }));
         return `Fetched ${store.tiktok.length} TikTok videos`;
       },
     },
