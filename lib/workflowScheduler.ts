@@ -17,6 +17,7 @@ import cron from "node-cron";
 import { prisma } from "@/lib/prismaclient";
 import { WorkflowGraph } from "@/lib/actions/workflow.actions";
 import { executeWorkflow } from "@/lib/workflowExecutor";
+import { recordWorkflowRun } from "@/lib/workflowAnalytics";
 import { getWorkflowAction } from "@/lib/workflowActions";
 import { registerWorkflowTrigger } from "@/lib/workflowTriggers";
 
@@ -28,7 +29,15 @@ async function runWorkflow(workflowId: bigint) {
     const act = node.action ? getWorkflowAction(node.action) : undefined;
     actions[node.action ?? node.id] = act ?? (async () => {});
   }
-  await executeWorkflow(graph, actions);
+  const executed: string[] = [];
+  const started = new Date();
+  await executeWorkflow(graph, actions, undefined, {}, (id) => executed.push(id));
+  await recordWorkflowRun({
+    workflowId,
+    executed,
+    startedAt: started,
+    finishedAt: new Date(),
+  });
 }
 
 export async function startWorkflowScheduler() {

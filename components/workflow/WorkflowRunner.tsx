@@ -24,10 +24,12 @@ import {
 interface Props {
   graph: WorkflowGraph;
   nodeTypes?: NodeTypes;
+  workflowId?: string;
 }
 
-export function WorkflowRunnerInner({ graph, nodeTypes }: Props) {
-  const { run, pause, resume, paused, running, logs } = useWorkflowExecution();
+export function WorkflowRunnerInner({ graph, nodeTypes, workflowId }: Props) {
+  const { run, pause, resume, paused, running, logs, executed } =
+    useWorkflowExecution();
   const [remoteLogs, setRemoteLogs] = useState<string[]>([]);
   const [remoteCurrent, setRemoteCurrent] = useState<string | null>(null);
   const [remoteExecuted, setRemoteExecuted] = useState<string[]>([]);
@@ -62,14 +64,27 @@ export function WorkflowRunnerInner({ graph, nodeTypes }: Props) {
     registerIntegrationActions(modules);
   }, []);
 
-  const handleRun = () => {
+  const handleRun = async () => {
     const actions: Record<string, () => Promise<string | void>> = {};
     for (const node of graph.nodes) {
       const act = node.action ? getWorkflowAction(node.action) : undefined;
       actions[node.action ?? node.id] =
         act ?? (async () => `Executed ${node.id}`);
     }
-    run(graph, actions);
+    const start = new Date();
+    await run(graph, actions);
+    const finish = new Date();
+    if (workflowId) {
+      await fetch(`/api/workflows/${workflowId}/runs`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          executed,
+          startedAt: start.toISOString(),
+          finishedAt: finish.toISOString(),
+        }),
+      });
+    }
   };
 
   return (
@@ -99,10 +114,10 @@ export function WorkflowRunnerInner({ graph, nodeTypes }: Props) {
   );
 }
 
-export default function WorkflowRunner({ graph, nodeTypes }: Props) {
+export default function WorkflowRunner({ graph, nodeTypes, workflowId }: Props) {
   return (
     <WorkflowExecutionProvider>
-      <WorkflowRunnerInner graph={graph} nodeTypes={nodeTypes} />
+      <WorkflowRunnerInner graph={graph} nodeTypes={nodeTypes} workflowId={workflowId} />
     </WorkflowExecutionProvider>
   );
 }

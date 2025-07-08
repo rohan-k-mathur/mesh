@@ -428,3 +428,15 @@ model ProductReviewVouch {
 
   @@map("product_review_vouches")
 }
+
+model WorkflowRun {
+  id          BigInt   @id @default(autoincrement())
+  workflow_id BigInt
+  started_at  DateTime @default(now())
+  finished_at DateTime?
+  executed    Json
+  workflow    Workflow @relation(fields: [workflow_id], references: [id], onDelete: Cascade)
+
+  @@index([workflow_id])
+  @@map("workflow_runs")
+}
