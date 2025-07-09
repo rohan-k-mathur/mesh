@@ -127,6 +127,21 @@ export default function PageFlowBuilder() {
 
   const handleRun = async () => {
     setLogs([]);
+    // refresh gmail credentials in case the user recently connected an account
+    if (!gmailCred) {
+      try {
+        const list = await fetchIntegrations();
+        const gmail = list.find((i) => i.service === "gmail");
+        if (gmail) {
+          const c = JSON.parse(gmail.credential);
+          if (c.email && c.accessToken) {
+            setGmailCred({ email: c.email, accessToken: c.accessToken });
+          }
+        }
+      } catch {
+        // ignore errors and proceed; action map will skip gmail send
+      }
+    }
     const nodes = steps.map((s) => ({
       id: s.id,
       type: s.type,
@@ -163,6 +178,9 @@ export default function PageFlowBuilder() {
           actionsMap[step.name] = act ?? (async () => {});
         }
       }
+    }
+    if (!gmailCred && steps.some((s) => s.type === "action" && s.name === "gmail:sendEmail")) {
+      setLogs((l) => [...l, "Gmail credentials not found. Connect an account first."]);
     }
     const graph: WorkflowGraph = { nodes, edges };
     await executeWorkflow(graph, actionsMap, undefined, {}, (id) => {
