@@ -106,3 +106,19 @@ The builder is a React component tree with state managed via a central store. Ea
 - Drag‑and‑drop reordering of cards.
 - Conditional branching beyond simple parallel branches.
 - Versioning of workflows and collaborative editing.
+
+## 12. Priority Integrations
+To help small businesses streamline operations, the first release will support these third‑party apps:
+
+- **Google Sheets** – store and manipulate workflow data.
+- **Gmail** – send automated emails from workflows.
+- **Slack** – post notifications to team channels.
+- **HubSpot** – manage leads and CRM activities.
+- **QuickBooks Online** – sync invoices and expenses.
+- **Stripe** – process payments within workflows.
+- **Shopify** – handle e‑commerce orders and inventory.
+- **Calendly** – automate meeting scheduling.
+- **Notion** – organize internal documents and tasks.
+- **ChatGPT (OpenAI)** – generate content and respond with AI.
+
+These integrations cover communication, sales, payments and scheduling, giving small businesses an efficient starting toolkit.
