@@ -1,19 +1,25 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
 import {
   NodeProps,
   NodeTypes,
   BackgroundVariant,
   Handle,
   Position,
+  ReactFlow,
+  useNodesState,
+  useEdgesState,
+  addEdge,
+  Connection,
+  Background,
+  Controls,
 } from "@xyflow/react";
 import { WorkflowGraph } from "@/lib/workflowExecutor";
 import {
   WorkflowExecutionProvider,
   useWorkflowExecution,
 } from "../WorkflowExecutionContext";
-import { WorkflowRunnerInner } from "../WorkflowRunner";
 
 function TriggerNode({ data }: NodeProps) {
   return (
@@ -94,8 +100,33 @@ function ExampleInner() {
   const [points, setPoints] = useState<[number, number][]>([]);
   const [height, setHeight] = useState(300);
   const [bgVariant, setBgVariant] = useState<BackgroundVariant>(BackgroundVariant.Dots);
+  const [nodes, setNodes, onNodesChange] = useNodesState([
+    {
+      id: "trigger",
+      type: "trigger",
+      position: { x: 0, y: 0 },
+      data: { onTrigger: () => {} },
+    },
+    {
+      id: "graph",
+      type: "graph",
+      position: { x: 150, y: 0 },
+      data: { points: [] },
+    },
+  ]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [ready, setReady] = useState(false);
+
+  const onConnect = useCallback(
+    (connection: Connection) => {
+      setEdges((eds) => addEdge(connection, eds));
+    },
+    [setEdges]
+  );
 
   const handleTrigger = useCallback(() => {
+    if (!ready) return;
+    if (!edges.find((e) => e.source === "trigger" && e.target === "graph")) return;
     const newPoints = Array.from({ length: 12 }, (_, i) => [
       i + 1,
       Math.random() * 100,
@@ -108,51 +139,32 @@ function ExampleInner() {
     };
     const graph: WorkflowGraph = {
       nodes: [
-        {
-          id: "trigger",
-          type: "trigger",
-          action: "generate",
-          data: { onTrigger: handleTrigger },
-          position: { x: 0, y: 0 },
-        },
-        {
-          id: "graph",
-          type: "graph",
-          action: "show",
-          data: { points: newPoints },
-          position: { x: 150, y: 0 },
-        },
+        { id: "trigger", type: "trigger", action: "generate" },
+        { id: "graph", type: "graph", action: "show" },
       ],
-      edges: [{ id: "e1", source: "trigger", target: "graph" }],
+      edges,
     };
     run(graph, actions);
-  }, [run]);
+    setReady(false);
+  }, [edges, run, ready]);
 
-  const graph: WorkflowGraph = {
-    nodes: [
-      {
-        id: "trigger",
-        type: "trigger",
-        action: "generate",
-        data: { onTrigger: handleTrigger },
-        position: { x: 0, y: 0 },
-      },
-      {
-        id: "graph",
-        type: "graph",
-        action: "show",
-        data: { points },
-        position: { x: 150, y: 0 },
-      },
-    ],
-    edges: [{ id: "e1", source: "trigger", target: "graph" }],
-  };
+  useEffect(() => {
+    setNodes((nds) =>
+      nds.map((n) =>
+        n.id === "graph"
+          ? { ...n, data: { points } }
+          : n.id === "trigger"
+          ? { ...n, data: { onTrigger: handleTrigger } }
+          : n
+      )
+    );
+  }, [points, handleTrigger, setNodes]);
 
   const nodeTypes: NodeTypes = { trigger: TriggerNode, graph: GraphNode };
 
   return (
     <div className="space-y-2">
-      <div className="flex gap-4">
+      <div className="flex gap-4 items-center">
         <label className="flex items-center gap-1 text-sm">
           Height:
           <input
@@ -174,13 +186,27 @@ function ExampleInner() {
             <option value={BackgroundVariant.Cross}>Cross</option>
           </select>
         </label>
+        <button
+          onClick={() => setReady(true)}
+          className="border px-2 py-1 rounded bg-blue-600 text-white text-sm"
+        >
+          Run
+        </button>
       </div>
-      <WorkflowRunnerInner
-        graph={graph}
-        nodeTypes={nodeTypes}
-        height={height}
-        bgVariant={bgVariant}
-      />
+      <div style={{ height }}>
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          nodeTypes={nodeTypes}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          fitView
+        >
+          <Background variant={bgVariant} />
+          <Controls />
+        </ReactFlow>
+      </div>
     </div>
   );
 }
