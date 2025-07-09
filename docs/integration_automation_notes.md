@@ -20,6 +20,14 @@ This document summarizes the steps followed when implementing the Slack integrat
 5. Register the module by importing it through dynamic imports where workflows are executed or built.
 6. Include the action in workflow templates (`slack:sendMessage`).
 
+## Google Sheets Integration Steps
+1. Create `integrations/GoogleSheetsIntegration.ts` exporting an `IntegrationApp`.
+2. Add helper functions in `lib/actions/googleSheets.actions.ts` using the `googleapis` library.
+3. Implement actions such as `appendRow` that call the Sheets API.
+4. Read the API key from `.env` (`GOOGLE_API_KEY`) or saved credentials via `IntegrationConfigModal`.
+5. Register the module with `registerIntegrationActions` so workflow cards can use `googleSheets:appendRow`.
+6. Follow SRS requirements on security and reliability when handling spreadsheet data.
+
 ## Production Considerations
 - Store credentials securely in the database (see `docs/integrations.md`).
 - Use environment variables for API keys when possible.
@@ -29,5 +37,3 @@ This document summarizes the steps followed when implementing the Slack integrat
 ## Automation Ideas
 - Provide a CLI script that scaffolds a new integration module with boilerplate code.
 - Automatically generate action registration and sample template entries.
-- Validate required credentials and environment variables during setup.
-
