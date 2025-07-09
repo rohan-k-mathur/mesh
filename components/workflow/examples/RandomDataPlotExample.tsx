@@ -21,6 +21,19 @@ import {
   WorkflowExecutionProvider,
   useWorkflowExecution,
 } from "../WorkflowExecutionContext";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 function TriggerNode({ data }: NodeProps) {
   return (
@@ -44,6 +57,7 @@ function TriggerNode({ data }: NodeProps) {
 
 function GraphNode({ data }: NodeProps) {
   const points: [number, number][] = data.points || [];
+  const chartType: "line" | "bar" = data.chartType ?? "line";
   const width = 200;
   const height = 100;
   if (points.length === 0) {
@@ -75,9 +89,25 @@ function GraphNode({ data }: NodeProps) {
     .map((p, i) => `${i === 0 ? "M" : "L"}${scaleX(p[0])},${scaleY(p[1])}`)
     .join(" ");
   return (
-    <div className="relative p-2 bg-white border rounded">
+    <div
+      className="relative p-2 bg-white border rounded"
+      onClick={data.onOpenPanel}
+    >
       <svg width={width} height={height}>
-        <path d={path} fill="none" stroke="black" />
+        {chartType === "line" ? (
+          <path d={path} fill="none" stroke="black" />
+        ) : (
+          points.map((p, i) => (
+            <line
+              key={i}
+              x1={scaleX(p[0])}
+              y1={height}
+              x2={scaleX(p[0])}
+              y2={scaleY(p[1])}
+              stroke="black"
+            />
+          ))
+        )}
         {points.map((p, i) => (
           <circle key={i} cx={scaleX(p[0])} cy={scaleY(p[1])} r={3} fill="red" />
         ))}
@@ -99,6 +129,8 @@ function GraphNode({ data }: NodeProps) {
 function ExampleInner() {
   const { run } = useWorkflowExecution();
   const [points, setPoints] = useState<[number, number][]>([]);
+  const [chartType, setChartType] = useState<"line" | "bar">("line");
+  const [panelOpen, setPanelOpen] = useState(false);
   const [height, setHeight] = useState(300);
   const [bgVariant, setBgVariant] = useState<BackgroundVariant>(BackgroundVariant.Dots);
   const [nodes, setNodes, onNodesChange] = useNodesState([
@@ -149,17 +181,26 @@ function ExampleInner() {
     setReady(false);
   }, [edges, run, ready]);
 
+  const openPanel = () => setPanelOpen(true);
+
   useEffect(() => {
     setNodes((nds) =>
       nds.map((n) =>
         n.id === "graph"
-          ? { ...n, data: { points } }
+          ? {
+              ...n,
+              data: {
+                points,
+                chartType,
+                onOpenPanel: openPanel,
+              },
+            }
           : n.id === "trigger"
           ? { ...n, data: { onTrigger: handleTrigger } }
           : n
       )
     );
-  }, [points, handleTrigger, setNodes]);
+  }, [points, handleTrigger, chartType, setNodes]);
 
   const nodeTypes: NodeTypes = { trigger: TriggerNode, graph: GraphNode };
 
@@ -208,6 +249,25 @@ function ExampleInner() {
           <Controls />
         </ReactFlow>
       </div>
+      <Sheet open={panelOpen} onOpenChange={setPanelOpen}>
+        <SheetContent side="right" className="w-48 space-y-4 mr-2">
+          <SheetHeader>
+            <SheetTitle>Chart Type</SheetTitle>
+          </SheetHeader>
+          <Select
+            value={chartType}
+            onValueChange={(v) => setChartType(v as "line" | "bar")}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="line">Line</SelectItem>
+              <SelectItem value="bar">Bar</SelectItem>
+            </SelectContent>
+          </Select>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
