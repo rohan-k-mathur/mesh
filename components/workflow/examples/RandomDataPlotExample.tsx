@@ -1,7 +1,13 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { NodeProps, NodeTypes, BackgroundVariant } from "@xyflow/react";
+import {
+  NodeProps,
+  NodeTypes,
+  BackgroundVariant,
+  Handle,
+  Position,
+} from "@xyflow/react";
 import { WorkflowGraph } from "@/lib/workflowExecutor";
 import {
   WorkflowExecutionProvider,
@@ -11,10 +17,20 @@ import { WorkflowRunnerInner } from "../WorkflowRunner";
 
 function TriggerNode({ data }: NodeProps) {
   return (
-    <div className="p-2 bg-white border rounded">
+    <div className="relative p-2 bg-white border rounded">
       <button className="nodrag" onClick={data.onTrigger}>
         Generate Data
       </button>
+      <Handle
+        type="target"
+        position={Position.Top}
+        className="orange-node_handle"
+      />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        className="orange-node_handle"
+      />
     </div>
   );
 }
@@ -24,7 +40,21 @@ function GraphNode({ data }: NodeProps) {
   const width = 200;
   const height = 100;
   if (points.length === 0) {
-    return <div className="p-2 bg-white border rounded">No Data</div>;
+    return (
+      <div className="relative p-2 bg-white border rounded">
+        No Data
+        <Handle
+          type="target"
+          position={Position.Top}
+          className="orange-node_handle"
+        />
+        <Handle
+          type="source"
+          position={Position.Bottom}
+          className="orange-node_handle"
+        />
+      </div>
+    );
   }
   const xs = points.map((p) => p[0]);
   const ys = points.map((p) => p[1]);
@@ -38,13 +68,23 @@ function GraphNode({ data }: NodeProps) {
     .map((p, i) => `${i === 0 ? "M" : "L"}${scaleX(p[0])},${scaleY(p[1])}`)
     .join(" ");
   return (
-    <div className="p-2 bg-white border rounded">
+    <div className="relative p-2 bg-white border rounded">
       <svg width={width} height={height}>
         <path d={path} fill="none" stroke="black" />
         {points.map((p, i) => (
           <circle key={i} cx={scaleX(p[0])} cy={scaleY(p[1])} r={3} fill="red" />
         ))}
       </svg>
+      <Handle
+        type="target"
+        position={Position.Top}
+        className="orange-node_handle"
+      />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        className="orange-node_handle"
+      />
     </div>
   );
 }
