@@ -31,6 +31,7 @@ import { registerIntegrationTriggerTypes } from "@/lib/registerIntegrationTrigge
 import { listWorkflowTriggers } from "@/lib/workflowTriggers";
 import { IntegrationApp } from "@/lib/integrations/types";
 import ScheduleForm from "./ScheduleForm";
+import WorkflowRunner from "./WorkflowRunner";
 
 import { Input } from "@/components/ui/input";
 
@@ -56,6 +57,7 @@ export default function WorkflowBuilder({ initialGraph, onSave }: Props) {
   const [name, setName] = useState("New Workflow");
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
+  const [showRunner, setShowRunner] = useState(false);
   const [actions, setActions] = useState<string[]>([]);
   const [triggers, setTriggers] = useState<string[]>([]);
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -216,6 +218,7 @@ export default function WorkflowBuilder({ initialGraph, onSave }: Props) {
           onChange={(e) => importJson(e.target.files)}
         />
         <Button onClick={exportJson}>Export</Button>
+        <Button onClick={() => setShowRunner((s) => !s)}>Run</Button>
         <Button onClick={save}>Save</Button>
         {workflowId && (
           <div className="space-y-2">
@@ -287,6 +290,12 @@ export default function WorkflowBuilder({ initialGraph, onSave }: Props) {
           setSelectedEdge(null);
         }}
       />
+      {showRunner && (
+        <div className="absolute inset-0 bg-white/90 z-20 overflow-auto p-4 space-y-2">
+          <Button onClick={() => setShowRunner(false)}>Close Runner</Button>
+          <WorkflowRunner graph={{ nodes, edges }} />
+        </div>
+      )}
     </div>
   );
 }
