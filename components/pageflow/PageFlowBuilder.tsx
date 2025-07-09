@@ -40,6 +40,9 @@ export default function PageFlowBuilder() {
   const [actions, setActions] = useState<string[]>([]);
   const [triggers, setTriggers] = useState<string[]>([]);
   const [logs, setLogs] = useState<string[]>([]);
+  const [pointsMap, setPointsMap] = useState<Record<string, [number, number][]>>(
+    {}
+  );
 
   useEffect(() => {
     registerDefaultWorkflowActions();
@@ -90,8 +93,18 @@ export default function PageFlowBuilder() {
     const actionsMap: Record<string, () => Promise<string | void>> = {};
     for (const step of steps) {
       if (step.type === "action" && step.name) {
-        const act = getWorkflowAction(step.name);
-        actionsMap[step.name] = act ?? (async () => {});
+        if (step.name === "createRandomLineGraph") {
+          actionsMap[step.name] = async () => {
+            const pts = Array.from({ length: 12 }, (_, i) => [
+              i + 1,
+              Math.random() * 100,
+            ]) as [number, number][];
+            setPointsMap((m) => ({ ...m, [step.id]: pts }));
+          };
+        } else {
+          const act = getWorkflowAction(step.name);
+          actionsMap[step.name] = act ?? (async () => {});
+        }
       }
     }
     const graph: WorkflowGraph = { nodes, edges };
@@ -113,46 +126,88 @@ export default function PageFlowBuilder() {
       </div>
       <div className="space-y-4">
         {steps.map((step, idx) => (
-          <Card key={step.id} className="w-full">
-            <CardHeader>
-              <CardTitle>
-                {step.type === "trigger" ? "Trigger" : "Action"} {idx + 1}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Select
-                value={step.name}
-                onValueChange={(val) => updateStep(step.id, val)}
-              >
-                <SelectTrigger className="w-[200px]">
-                  <SelectValue placeholder="Select option" />
-                </SelectTrigger>
-                <SelectContent>
-                  {(step.type === "trigger" ? triggers : actions).map((n) => (
-                    <SelectItem key={n} value={n}>
-                      {n}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </CardContent>
-            <CardFooter className="space-x-2">
-              <Button
-                variant="outline"
-                onClick={() => addAfter(idx, step.type)}
-              >
-                Add {step.type === "trigger" ? "Trigger" : "Action"}
-              </Button>
-              {step.type === "trigger" && (
+          <div key={step.id} className="relative flex flex-col items-center">
+            {idx !== 0 && <div className="h-4 w-px bg-gray-300" />}
+            <Card className="w-full">
+              <CardHeader>
+                <CardTitle>
+                  {step.type === "trigger" ? "Trigger" : "Action"} {idx + 1}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <Select
+                  value={step.name}
+                  onValueChange={(val) => updateStep(step.id, val)}
+                >
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="Select option" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(step.type === "trigger" ? triggers : actions).map((n) => (
+                      <SelectItem key={n} value={n}>
+                        {n}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {step.type === "trigger" && step.name === "onClick" && (
+                  <Button onClick={handleRun}>Trigger</Button>
+                )}
+              </CardContent>
+              <CardFooter className="space-x-2">
                 <Button
                   variant="outline"
-                  onClick={() => addAfter(idx, "action")}
+                  onClick={() => addAfter(idx, step.type)}
                 >
-                  Add Action
+                  Add {step.type === "trigger" ? "Trigger" : "Action"}
                 </Button>
-              )}
-            </CardFooter>
-          </Card>
+                {step.type === "trigger" && (
+                  <Button
+                    variant="outline"
+                    onClick={() => addAfter(idx, "action")}
+                  >
+                    Add Action
+                  </Button>
+                )}
+              </CardFooter>
+            </Card>
+            {pointsMap[step.id] && (
+              <Card className="w-full mt-2 p-2">
+                {(() => {
+                  const points = pointsMap[step.id];
+                  const width = 200;
+                  const height = 100;
+                  const xs = points.map((p) => p[0]);
+                  const ys = points.map((p) => p[1]);
+                  const minX = Math.min(...xs);
+                  const maxX = Math.max(...xs);
+                  const minY = Math.min(...ys);
+                  const maxY = Math.max(...ys);
+                  const scaleX = (x: number) => ((x - minX) / (maxX - minX || 1)) * width;
+                  const scaleY = (y: number) =>
+                    height - ((y - minY) / (maxY - minY || 1)) * height;
+                  const path = points
+                    .map((p, i) => `${i === 0 ? "M" : "L"}${scaleX(p[0])},${scaleY(p[1])}`)
+                    .join(" ");
+                  return (
+                    <svg width={width} height={height}>
+                      <path d={path} fill="none" stroke="black" />
+                      {points.map((p, i) => (
+                        <circle
+                          key={i}
+                          cx={scaleX(p[0])}
+                          cy={scaleY(p[1])}
+                          r={3}
+                          fill="red"
+                        />
+                      ))}
+                    </svg>
+                  );
+                })()}
+              </Card>
+            )}
+            {idx !== steps.length - 1 && <div className="h-4 w-px bg-gray-300" />}
+          </div>
         ))}
       </div>
       {logs.length > 0 && (
