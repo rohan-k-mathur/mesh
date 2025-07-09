@@ -115,3 +115,13 @@ export async function fetchWorkflow({
     },
   });
 }
+
+export async function listWorkflows() {
+  const user = await getUserFromCookies();
+  if (!user) throw new Error("User not authenticated");
+  return prisma.workflow.findMany({
+    where: { owner_id: user.userId! },
+    select: { id: true, name: true, created_at: true },
+    orderBy: { created_at: "desc" },
+  });
+}
