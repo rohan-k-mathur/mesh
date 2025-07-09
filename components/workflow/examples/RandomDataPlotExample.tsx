@@ -8,7 +8,10 @@ import {
   useWorkflowExecution,
 } from "../WorkflowExecutionContext";
 import { WorkflowRunnerInner } from "../WorkflowRunner";
-
+import { ReactFlow } from "@xyflow/react";
+import { Background,MiniMap,BackgroundVariant } from "@xyflow/react";
+import WorkflowBuilder from "../WorkflowBuilder";
+import NewWorkflowClient from "../NewWorkflowClient";
 function TriggerNode({ data }: NodeProps) {
   return (
     <div className="p-2 bg-white border rounded">
@@ -108,12 +111,12 @@ function ExampleInner() {
 
   const nodeTypes: NodeTypes = { trigger: TriggerNode, graph: GraphNode };
 
-  return <WorkflowRunnerInner graph={graph} nodeTypes={nodeTypes} />;
+  return <WorkflowRunnerInner  graph={graph} nodeTypes={nodeTypes} />;
 }
 
 export default function RandomDataPlotExample() {
   return (
-    <WorkflowExecutionProvider>
+    <WorkflowExecutionProvider >
       <ExampleInner />
     </WorkflowExecutionProvider>
   );
