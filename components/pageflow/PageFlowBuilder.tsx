@@ -16,6 +16,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import IntegrationButtons from "@/components/workflow/IntegrationButtons";
 import Modal from "@/components/modals/Modal";
 import {
@@ -28,11 +30,16 @@ import { listWorkflowActions, getWorkflowAction } from "@/lib/workflowActions";
 import { listWorkflowTriggers } from "@/lib/workflowTriggers";
 import { executeWorkflow, WorkflowGraph } from "@/lib/workflowExecutor";
 import { IntegrationApp } from "@/lib/integrations/types";
+import { fetchIntegrations } from "@/lib/actions/integration.actions";
+import { sendEmail } from "@/lib/actions/gmail.actions";
 
 interface Step {
   id: string;
   type: "trigger" | "action";
   name: string;
+  to?: string;
+  subject?: string;
+  message?: string;
 }
 
 export default function PageFlowBuilder() {
@@ -43,6 +50,9 @@ export default function PageFlowBuilder() {
   const [pointsMap, setPointsMap] = useState<Record<string, [number, number][]>>(
     {}
   );
+  const [gmailCred, setGmailCred] = useState<
+    { email: string; accessToken: string } | null
+  >(null);
 
   useEffect(() => {
     registerDefaultWorkflowActions();
@@ -58,12 +68,32 @@ export default function PageFlowBuilder() {
     registerIntegrationTriggerTypes(modules);
     setActions(listWorkflowActions());
     setTriggers(listWorkflowTriggers());
+    fetchIntegrations().then((list) => {
+      const gmail = list.find((i) => i.service === "gmail");
+      if (gmail) {
+        try {
+          const c = JSON.parse(gmail.credential);
+          if (c.email && c.accessToken) {
+            setGmailCred({ email: c.email, accessToken: c.accessToken });
+          }
+        } catch {
+          // ignore parse errors
+        }
+      }
+    });
   }, []);
 
   const addStep = (type: "trigger" | "action") => {
     setSteps((s) => [
       ...s,
-      { id: `step-${s.length + 1}`, type, name: "" },
+      {
+        id: `step-${s.length + 1}`,
+        type,
+        name: "",
+        to: "",
+        subject: "",
+        message: "",
+      },
     ]);
   };
 
@@ -71,9 +101,26 @@ export default function PageFlowBuilder() {
     setSteps((s) => s.map((st) => (st.id === id ? { ...st, name } : st)));
   };
 
+  const updateField = (
+    id: string,
+    field: "to" | "subject" | "message",
+    value: string
+  ) => {
+    setSteps((s) =>
+      s.map((st) => (st.id === id ? { ...st, [field]: value } : st))
+    );
+  };
+
   const addAfter = (index: number, type: "trigger" | "action") => {
     setSteps((s) => {
-      const step = { id: `step-${s.length + 1}`, type, name: "" };
+      const step = {
+        id: `step-${s.length + 1}`,
+        type,
+        name: "",
+        to: "",
+        subject: "",
+        message: "",
+      };
       return [...s.slice(0, index + 1), step, ...s.slice(index + 1)];
     });
   };
@@ -100,6 +147,16 @@ export default function PageFlowBuilder() {
               Math.random() * 100,
             ]) as [number, number][];
             setPointsMap((m) => ({ ...m, [step.id]: pts }));
+          };
+        } else if (step.name === "gmail:sendEmail" && gmailCred) {
+          actionsMap[step.name] = async () => {
+            await sendEmail({
+              from: gmailCred.email,
+              to: step.to ?? "",
+              subject: step.subject ?? "",
+              message: step.message ?? "",
+              accessToken: gmailCred.accessToken,
+            });
           };
         } else {
           const act = getWorkflowAction(step.name);
@@ -150,6 +207,29 @@ export default function PageFlowBuilder() {
                     ))}
                   </SelectContent>
                 </Select>
+                {step.type === "action" && step.name === "gmail:sendEmail" && (
+                  <>
+                    <Input
+                      placeholder="Send to"
+                      value={step.to ?? ""}
+                      onChange={(e) => updateField(step.id, "to", e.target.value)}
+                    />
+                    <Input
+                      placeholder="Subject"
+                      value={step.subject ?? ""}
+                      onChange={(e) =>
+                        updateField(step.id, "subject", e.target.value)
+                      }
+                    />
+                    <Textarea
+                      placeholder="Message"
+                      value={step.message ?? ""}
+                      onChange={(e) =>
+                        updateField(step.id, "message", e.target.value)
+                      }
+                    />
+                  </>
+                )}
                 {step.type === "trigger" && step.name === "onClick" && (
                   <Button onClick={handleRun}>Trigger</Button>
                 )}

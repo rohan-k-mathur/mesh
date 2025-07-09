@@ -9,7 +9,6 @@ test("runs analytics dashboard workflow", async () => {
     actions[`analytics:${action.name}`] = action.run as any;
   }
   actions["gmail:sendEmail"] = async () => "Email sent";
-  actions["slack:sendMessage"] = async () => "Slack sent";
   const executed = await executeWorkflow(graph, actions);
   expect(executed).toEqual([
     "fetchShopify",

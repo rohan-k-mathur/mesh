@@ -1,17 +1,10 @@
 import { IntegrationApp } from "@/lib/integrations/types";
-import { sendSlackMessage } from "@/lib/actions/slack.actions";
+// Slack integration placeholder removed
 
 export const integration: IntegrationApp = {
   name: "slack",
   description: "Post messages to Slack channels using a webhook",
-  actions: [
-    {
-      name: "sendMessage",
-      run: async (params: { text: string }, creds: { webhookUrl: string }) => {
-        await sendSlackMessage({ webhookUrl: creds.webhookUrl, text: params.text });
-      },
-    },
-  ],
+  actions: [],
 };
 
 export default integration;
