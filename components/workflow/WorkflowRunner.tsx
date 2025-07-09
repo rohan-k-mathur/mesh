@@ -12,7 +12,7 @@ import {
   useWorkflowExecution,
 } from "./WorkflowExecutionContext";
 import WorkflowViewer from "./WorkflowViewer";
-import { NodeTypes } from "@xyflow/react";
+import { NodeTypes, BackgroundVariant } from "@xyflow/react";
 import { TriggerNode, ActionNode } from "./CustomNodes";
 import { supabase } from "@/lib/supabaseclient";
 import {
@@ -26,9 +26,17 @@ interface Props {
   graph: WorkflowGraph;
   nodeTypes?: NodeTypes;
   workflowId?: string;
+  height?: number;
+  bgVariant?: BackgroundVariant;
 }
 
-export function WorkflowRunnerInner({ graph, nodeTypes, workflowId }: Props) {
+export function WorkflowRunnerInner({
+  graph,
+  nodeTypes,
+  workflowId,
+  height,
+  bgVariant,
+}: Props) {
   const { run, pause, resume, paused, running, logs, executed } =
     useWorkflowExecution();
   const [remoteLogs, setRemoteLogs] = useState<string[]>([]);
@@ -128,6 +136,8 @@ export function WorkflowRunnerInner({ graph, nodeTypes, workflowId }: Props) {
       <WorkflowViewer
         graph={computedGraph}
         nodeTypes={nodeTypes ?? { trigger: TriggerNode, action: ActionNode }}
+        height={height}
+        bgVariant={bgVariant}
       />
       <div className="border h-32 overflow-auto p-2 text-sm">
         {logs.map((log, i) => (
@@ -143,10 +153,22 @@ export function WorkflowRunnerInner({ graph, nodeTypes, workflowId }: Props) {
   );
 }
 
-export default function WorkflowRunner({ graph, nodeTypes, workflowId }: Props) {
+export default function WorkflowRunner({
+  graph,
+  nodeTypes,
+  workflowId,
+  height,
+  bgVariant,
+}: Props) {
   return (
     <WorkflowExecutionProvider>
-      <WorkflowRunnerInner graph={graph} nodeTypes={nodeTypes} workflowId={workflowId} />
+      <WorkflowRunnerInner
+        graph={graph}
+        nodeTypes={nodeTypes}
+        workflowId={workflowId}
+        height={height}
+        bgVariant={bgVariant}
+      />
     </WorkflowExecutionProvider>
   );
 }
