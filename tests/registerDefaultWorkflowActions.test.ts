@@ -3,6 +3,7 @@ import { registerDefaultWorkflowActions } from "@/lib/registerDefaultWorkflowAct
 
 test("registers default actions", () => {
   registerDefaultWorkflowActions();
-  expect(getWorkflowAction("github:latestIssue")).toBeDefined();
-  expect(getWorkflowAction("slack:sendMessage")).toBeDefined();
+  expect(getWorkflowAction("createRandomLineGraph")).toBeDefined();
+  expect(getWorkflowAction("github:latestIssue")).toBeUndefined();
+  expect(getWorkflowAction("slack:sendMessage")).toBeUndefined();
 });
