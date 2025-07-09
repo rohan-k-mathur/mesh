@@ -1,18 +1,33 @@
 "use client";
 
-import { NodeProps } from "@xyflow/react";
+import { Handle, NodeProps, Position } from "@xyflow/react";
 
 export function TriggerNode({ data }: NodeProps) {
+  let content: React.ReactNode;
   if (data?.trigger === "onClick") {
-    return (
-      <div className="p-2 bg-white border rounded">
-        <button className="nodrag" onClick={data.onTrigger}>
-          Trigger
-        </button>
-      </div>
+    content = (
+      <button className="nodrag" onClick={data.onTrigger}>
+        Trigger
+      </button>
     );
+  } else {
+    content = data?.label;
   }
-  return <div className="p-2 bg-white border rounded">{data?.label}</div>;
+  return (
+    <div className="relative p-2 bg-white border rounded">
+      {content}
+      <Handle
+        type="target"
+        position={Position.Top}
+        className="orange-node_handle"
+      />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        className="orange-node_handle"
+      />
+    </div>
+  );
 }
 
 export function ActionNode({ data }: NodeProps) {
@@ -35,15 +50,39 @@ export function ActionNode({ data }: NodeProps) {
       .map((p, i) => `${i === 0 ? "M" : "L"}${scaleX(p[0])},${scaleY(p[1])}`)
       .join(" ");
     return (
-      <div className="p-2 bg-white border rounded">
+      <div className="relative p-2 bg-white border rounded">
         <svg width={width} height={height}>
           <path d={path} fill="none" stroke="black" />
           {points.map((p, i) => (
             <circle key={i} cx={scaleX(p[0])} cy={scaleY(p[1])} r={3} fill="red" />
           ))}
         </svg>
+        <Handle
+          type="target"
+          position={Position.Top}
+          className="orange-node_handle"
+        />
+        <Handle
+          type="source"
+          position={Position.Bottom}
+          className="orange-node_handle"
+        />
       </div>
     );
   }
-  return <div className="p-2 bg-white border rounded">{data?.label}</div>;
+  return (
+    <div className="relative p-2 bg-white border rounded">
+      {data?.label}
+      <Handle
+        type="target"
+        position={Position.Top}
+        className="orange-node_handle"
+      />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        className="orange-node_handle"
+      />
+    </div>
+  );
 }
