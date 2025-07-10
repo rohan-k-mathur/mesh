@@ -2,7 +2,16 @@
 
 const BASE_URL = process.env.BIGCAPITAL_URL || "http://localhost:4000";
 
+function assertValidUrl() {
+  if (!/^https?:\/\//.test(BASE_URL)) {
+    throw new Error(
+      "BIGCAPITAL_URL must start with http:// or https://"
+    );
+  }
+}
+
 async function request(path: string, method: string, token: string, body?: any) {
+  assertValidUrl();
   const res = await fetch(`${BASE_URL}${path}`, {
     method,
     headers: {
