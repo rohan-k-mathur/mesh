@@ -29,6 +29,11 @@ import UserRoomsModal from "../modals/UserRoomsModal";
       router.push("/workflows/new");
 
     }
+    function gotopageflow()
+    {
+      router.push("/pageflow");
+
+    }
     function gotohalfway()
     {
       router.push("/halfway");
@@ -52,10 +57,10 @@ import UserRoomsModal from "../modals/UserRoomsModal";
     }
     return (
       <section className="p-4 space-y-4">
-        <h1 className="text-[2rem] px-[35%] pb-4 font-bold">MESH Applications</h1>
-        <div className="space-y-4">
+        <h1 className="text-[2rem] px-[35%] pb-4  font-bold">MESH Applications</h1>
+        <div className="space-y-4 ">
 
-            <div  className="flex gap-4 w-fit h-full">
+            <div  className="flex flex-wrap gap-4 w-fit h-full">
                 <Button variant={"outline"} className="likebutton h-full text-[1.2rem] p-4" type="submit" onClick={gotoflowbuilder}>
                 <Image
               src="/assets/branch.svg"
@@ -65,6 +70,17 @@ import UserRoomsModal from "../modals/UserRoomsModal";
               height={24}
             />
             Flow Builder
+              </Button>
+              <div className="space-y-4"></div>
+              <Button variant={"outline"} className="likebutton h-full text-[1.2rem] p-4" type="submit" onClick={gotopageflow}>
+                <Image
+              src="/assets/branch.svg"
+              alt="pageflow"
+              className="mr-2"
+              width={24}
+              height={24}
+            />
+            Pageflow
               </Button>
               <div className="space-y-4"></div>
               <Button variant={"outline"} className="likebutton text-[1.2rem] h-full p-4" type="submit" onClick={gotohalfway}>
