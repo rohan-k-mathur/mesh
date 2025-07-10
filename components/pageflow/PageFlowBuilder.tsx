@@ -59,6 +59,7 @@ export default function PageFlowBuilder() {
   const [pointsMap, setPointsMap] = useState<Record<string, [number, number][]>>(
     {}
   );
+  const [sheetMap, setSheetMap] = useState<Record<string, string>>({});
   const [gmailCred, setGmailCred] = useState<
     { email: string; accessToken: string } | null
   >(null);
@@ -212,6 +213,7 @@ export default function PageFlowBuilder() {
                 accessToken: sheetsKey,
               });
               setLogs((l) => [...l, `Created spreadsheet ${id}`]);
+              setSheetMap((m) => ({ ...m, [step.id]: id }));
             };
           } else if (step.name === "googleSheets:appendRow") {
             actionsMap[step.name] = async () => {
@@ -407,6 +409,15 @@ export default function PageFlowBuilder() {
                     </svg>
                   );
                 })()}
+              </Card>
+            )}
+            {sheetMap[step.id] && (
+              <Card className="w-full mt-2 p-2">
+                <iframe
+                  src={`https://docs.google.com/spreadsheets/d/${sheetMap[step.id]}/edit`}
+                  width="100%"
+                  height="400"
+                />
               </Card>
             )}
             {idx !== steps.length - 1 && <div className="h-4 w-px bg-gray-300" />}
