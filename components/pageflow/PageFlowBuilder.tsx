@@ -197,19 +197,30 @@ export default function PageFlowBuilder() {
 
   const handleRun = async () => {
     setLogs([]);
-    // refresh gmail credentials in case the user recently connected an account
-    if (!gmailCred) {
+    if (steps.some((s) => s.type === "action" && s.name === "gmail:sendEmail")) {
       try {
-        const list = await fetchIntegrations();
-        const gmail = list.find((i) => i.service === "gmail");
-        if (gmail) {
-          const c = JSON.parse(gmail.credential);
-          if (c.email && c.accessToken) {
-            setGmailCred({ email: c.email, accessToken: c.accessToken });
-          }
+        const res = await fetch("/api/integrations/refresh-gmail", { method: "POST" });
+        if (res.ok) {
+          const data = await res.json();
+          setGmailCred(data);
         }
       } catch {
-        // ignore errors and proceed; action map will skip gmail send
+        // ignore errors
+      }
+    }
+    if (
+      steps.some(
+        (s) => s.type === "action" && s.name.startsWith("googleSheets:")
+      )
+    ) {
+      try {
+        const res = await fetch("/api/integrations/refresh-sheets", { method: "POST" });
+        if (res.ok) {
+          const data = await res.json();
+          setSheetsKey(data.accessToken);
+        }
+      } catch {
+        // ignore errors
       }
     }
     const nodes = steps.map((s) => ({
