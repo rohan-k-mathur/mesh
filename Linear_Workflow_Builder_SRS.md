@@ -13,7 +13,7 @@ The builder enables users to create workflows composed of trigger and action car
 - `Plugin_Architecture_SRS.md`
 
 ## 2. Overall Description
-Users assemble workflows by adding cards to an infinite scroll page. A toolbar at the top provides buttons such as **Add Trigger**, **Add Action**, **Add Condition**, **Connect Accounts**, **Configure Integrations**, and **Add Parallel Branch**. Each card contains dropdowns and inputs that change based on the selected trigger or action. Cards are chained vertically, with plus buttons to add the next step or branch. The final card includes a **Run** button to execute the flow.
+Users assemble workflows by adding cards to an infinite scroll page. A toolbar at the top provides buttons such as **Add Trigger**, **Add Action**, **Add Condition**, **Connect Accounts**, **Configure Integrations**, and **Add Parallel Branch**. Each card contains dropdowns and inputs that change based on the selected trigger or action. Cards are chained vertically, with plus buttons to add the next step. When parallel branches are present the cards share the row horizontally. The final card includes a **Run** button to execute the flow.
 
 ## 3. Product Development Roadmap
 1. **Prototype Layout** – Build the infinite scrolling page with basic card components and toolbar.
@@ -39,6 +39,7 @@ Users assemble workflows by adding cards to an infinite scroll page. A toolbar a
 ### 4.3 Parallel Branches
 - Selecting **Add Parallel Branch** adds a sibling card on the same row.
 - Branches can contain their own sequence of cards executed after the original trigger.
+- Cards share the available width so up to three can appear side by side.
 
 ### 4.4 Condition Cards
 - Choosing **Add Condition** inserts a card that evaluates expressions.

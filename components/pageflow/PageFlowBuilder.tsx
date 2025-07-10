@@ -40,8 +40,10 @@ import integrationModules from "@/integrations";
 
 interface Step {
   id: string;
-  type: "trigger" | "action";
+  type: "trigger" | "action" | "condition";
   name: string;
+  row: number;
+  expression?: string;
   to?: string;
   subject?: string;
   message?: string;
@@ -100,22 +102,27 @@ export default function PageFlowBuilder() {
     });
   }, []);
 
-  const addStep = (type: "trigger" | "action") => {
-    setSteps((s) => [
-      ...s,
-      {
-        id: `step-${s.length + 1}`,
-        type,
-        name: "",
-        to: "",
-        subject: "",
-        message: "",
-        spreadsheetId: "",
-        range: "",
-        values: "",
-        title: "",
-      },
-    ]);
+  const addStep = (type: "trigger" | "action" | "condition") => {
+    setSteps((s) => {
+      const lastRow = s.length ? Math.max(...s.map((st) => st.row)) : -1;
+      return [
+        ...s,
+        {
+          id: `step-${s.length + 1}`,
+          type,
+          name: "",
+          row: lastRow + 1,
+          expression: "",
+          to: "",
+          subject: "",
+          message: "",
+          spreadsheetId: "",
+          range: "",
+          values: "",
+          title: "",
+        },
+      ];
+    });
   };
 
   const updateStep = (id: string, name: string) => {
@@ -131,7 +138,8 @@ export default function PageFlowBuilder() {
       | "spreadsheetId"
       | "range"
       | "values"
-      | "title",
+      | "title"
+      | "expression",
     value: string
   ) => {
     setSteps((s) =>
@@ -139,12 +147,15 @@ export default function PageFlowBuilder() {
     );
   };
 
-  const addAfter = (index: number, type: "trigger" | "action") => {
+  const addAfter = (index: number, type: "trigger" | "action" | "condition") => {
     setSteps((s) => {
+      const row = s[index].row + 1;
       const step = {
         id: `step-${s.length + 1}`,
         type,
         name: "",
+        row,
+        expression: "",
         to: "",
         subject: "",
         message: "",
@@ -153,7 +164,34 @@ export default function PageFlowBuilder() {
         values: "",
         title: "",
       };
-      return [...s.slice(0, index + 1), step, ...s.slice(index + 1)];
+      const updated = s.map((st, i) =>
+        i > index && st.row >= row ? { ...st, row: st.row + 1 } : st
+      );
+      return [...updated.slice(0, index + 1), step, ...updated.slice(index + 1)];
+    });
+  };
+
+  const addParallel = (type: "trigger" | "action" | "condition") => {
+    setSteps((s) => {
+      if (s.length === 0) return s;
+      const lastRow = Math.max(...s.map((st) => st.row));
+      return [
+        ...s,
+        {
+          id: `step-${s.length + 1}`,
+          type,
+          name: "",
+          row: lastRow,
+          expression: "",
+          to: "",
+          subject: "",
+          message: "",
+          spreadsheetId: "",
+          range: "",
+          values: "",
+          title: "",
+        },
+      ];
     });
   };
 
@@ -262,18 +300,33 @@ export default function PageFlowBuilder() {
       <div className="absolute top-0 bg-background z-10 space-x-2 pb-2">
         <Button onClick={() => addStep("trigger")}>Add Trigger</Button>
         <Button onClick={() => addStep("action")}>Add Action</Button>
+        <Button onClick={() => addStep("condition")}>Add Condition</Button>
+        <Button onClick={() => addParallel("action")}>Add Parallel Branch</Button>
         <Button onClick={handleRun} disabled={steps.length === 0}>
           Run
         </Button>
       </div>
       <div className="space-y-4">
-        {steps.map((step, idx) => (
-          <div key={step.id} className="relative flex flex-col items-center">
-            {idx !== 0 && <div className="h-4 w-px bg-gray-300" />}
-            <Card className="w-full">
+        {Array.from(new Set(steps.map((s) => s.row)))
+          .sort((a, b) => a - b)
+          .map((row, rowIdx) => {
+            const rowSteps = steps.filter((s) => s.row === row);
+            return (
+              <div key={row} className="flex flex-col items-center">
+                {rowIdx !== 0 && <div className="h-4 w-px bg-gray-300" />}
+                <div className="flex space-x-2 w-full">
+                  {rowSteps.map((step) => {
+                    const idx = steps.findIndex((st) => st.id === step.id);
+                    return (
+                      <div key={step.id} className="flex-1">
+                        <Card className="w-full">
               <CardHeader>
                 <CardTitle>
-                  {step.type === "trigger" ? "Trigger" : "Action"} {idx + 1}
+                  {step.type === "trigger"
+                    ? "Trigger"
+                    : step.type === "condition"
+                    ? "Condition"
+                    : "Action"} {idx + 1}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
@@ -355,6 +408,13 @@ export default function PageFlowBuilder() {
                     />
                   </>
                 )}
+                {step.type === "condition" && (
+                  <Input
+                    placeholder="Condition expression"
+                    value={step.expression ?? ""}
+                    onChange={(e) => updateField(step.id, "expression", e.target.value)}
+                  />
+                )}
                 {step.type === "trigger" && step.name === "onClick" && (
                   <Button onClick={handleRun}>Trigger</Button>
                 )}
@@ -364,7 +424,7 @@ export default function PageFlowBuilder() {
                   variant="outline"
                   onClick={() => addAfter(idx, step.type)}
                 >
-                  Add {step.type === "trigger" ? "Trigger" : "Action"}
+                  Add {step.type === "trigger" ? "Trigger" : step.type === "condition" ? "Condition" : "Action"}
                 </Button>
                 {step.type === "trigger" && (
                   <Button
@@ -420,9 +480,13 @@ export default function PageFlowBuilder() {
                 />
               </Card>
             )}
-            {idx !== steps.length - 1 && <div className="h-4 w-px bg-gray-300" />}
           </div>
-        ))}
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
       </div>
       {logs.length > 0 && (
         <div className="border p-2 space-y-1 text-sm">
