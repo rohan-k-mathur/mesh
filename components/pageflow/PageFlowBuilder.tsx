@@ -32,6 +32,11 @@ import { executeWorkflow, WorkflowGraph } from "@/lib/workflowExecutor";
 import { IntegrationApp } from "@/lib/integrations/types";
 import { fetchIntegrations } from "@/lib/actions/integration.actions";
 import { sendEmail } from "@/lib/actions/gmail.actions";
+import {
+  appendRow,
+  createSpreadsheet,
+  readRange,
+} from "@/lib/actions/googleSheets.actions";
 
 interface Step {
   id: string;
@@ -40,6 +45,10 @@ interface Step {
   to?: string;
   subject?: string;
   message?: string;
+  spreadsheetId?: string;
+  range?: string;
+  values?: string;
+  title?: string;
 }
 
 export default function PageFlowBuilder() {
@@ -53,6 +62,7 @@ export default function PageFlowBuilder() {
   const [gmailCred, setGmailCred] = useState<
     { email: string; accessToken: string } | null
   >(null);
+  const [sheetsKey, setSheetsKey] = useState<string | null>(null);
 
   useEffect(() => {
     registerDefaultWorkflowActions();
@@ -80,6 +90,19 @@ export default function PageFlowBuilder() {
           // ignore parse errors
         }
       }
+      const sheets = list.find((i) => i.service === "googleSheets");
+      if (sheets) {
+        try {
+          const c = JSON.parse(sheets.credential);
+          if (c.apiKey) {
+            setSheetsKey(c.apiKey);
+          }
+        } catch {
+          if (typeof sheets.credential === "string") {
+            setSheetsKey(sheets.credential);
+          }
+        }
+      }
     });
   }, []);
 
@@ -93,6 +116,10 @@ export default function PageFlowBuilder() {
         to: "",
         subject: "",
         message: "",
+        spreadsheetId: "",
+        range: "",
+        values: "",
+        title: "",
       },
     ]);
   };
@@ -103,7 +130,14 @@ export default function PageFlowBuilder() {
 
   const updateField = (
     id: string,
-    field: "to" | "subject" | "message",
+    field:
+      | "to"
+      | "subject"
+      | "message"
+      | "spreadsheetId"
+      | "range"
+      | "values"
+      | "title",
     value: string
   ) => {
     setSteps((s) =>
@@ -120,6 +154,10 @@ export default function PageFlowBuilder() {
         to: "",
         subject: "",
         message: "",
+        spreadsheetId: "",
+        range: "",
+        values: "",
+        title: "",
       };
       return [...s.slice(0, index + 1), step, ...s.slice(index + 1)];
     });
@@ -173,6 +211,37 @@ export default function PageFlowBuilder() {
               accessToken: gmailCred.accessToken,
             });
           };
+        } else if (step.name.startsWith("googleSheets:") && sheetsKey) {
+          if (step.name === "googleSheets:createSpreadsheet") {
+            actionsMap[step.name] = async () => {
+              const id = await createSpreadsheet({
+                title: step.title ?? "",
+                apiKey: sheetsKey,
+              });
+              setLogs((l) => [...l, `Created spreadsheet ${id}`]);
+            };
+          } else if (step.name === "googleSheets:appendRow") {
+            actionsMap[step.name] = async () => {
+              const vals = (step.values ?? "")
+                .split(",")
+                .map((v) => v.trim());
+              await appendRow({
+                spreadsheetId: step.spreadsheetId ?? "",
+                range: step.range ?? "",
+                values: vals,
+                apiKey: sheetsKey,
+              });
+            };
+          } else if (step.name === "googleSheets:readRange") {
+            actionsMap[step.name] = async () => {
+              const data = await readRange({
+                spreadsheetId: step.spreadsheetId ?? "",
+                range: step.range ?? "",
+                apiKey: sheetsKey,
+              });
+              setLogs((l) => [...l, JSON.stringify(data ?? [])]);
+            };
+          }
         } else {
           const act = getWorkflowAction(step.name);
           actionsMap[step.name] = act ?? (async () => {});
@@ -181,6 +250,9 @@ export default function PageFlowBuilder() {
     }
     if (!gmailCred && steps.some((s) => s.type === "action" && s.name === "gmail:sendEmail")) {
       setLogs((l) => [...l, "Gmail credentials not found. Connect an account first."]);
+    }
+    if (!sheetsKey && steps.some((s) => s.type === "action" && s.name.startsWith("googleSheets:"))) {
+      setLogs((l) => [...l, "Google Sheets API key not found. Configure integration first."]);
     }
     const graph: WorkflowGraph = { nodes, edges };
     await executeWorkflow(graph, actionsMap, undefined, {}, (id) => {
@@ -245,6 +317,46 @@ export default function PageFlowBuilder() {
                       onChange={(e) =>
                         updateField(step.id, "message", e.target.value)
                       }
+                    />
+                  </>
+                )}
+                {step.type === "action" && step.name === "googleSheets:createSpreadsheet" && (
+                  <Input
+                    placeholder="Title"
+                    value={step.title ?? ""}
+                    onChange={(e) => updateField(step.id, "title", e.target.value)}
+                  />
+                )}
+                {step.type === "action" && step.name === "googleSheets:appendRow" && (
+                  <>
+                    <Input
+                      placeholder="Spreadsheet ID"
+                      value={step.spreadsheetId ?? ""}
+                      onChange={(e) => updateField(step.id, "spreadsheetId", e.target.value)}
+                    />
+                    <Input
+                      placeholder="Range (e.g. Sheet1!A1:C1)"
+                      value={step.range ?? ""}
+                      onChange={(e) => updateField(step.id, "range", e.target.value)}
+                    />
+                    <Input
+                      placeholder="Comma separated values"
+                      value={step.values ?? ""}
+                      onChange={(e) => updateField(step.id, "values", e.target.value)}
+                    />
+                  </>
+                )}
+                {step.type === "action" && step.name === "googleSheets:readRange" && (
+                  <>
+                    <Input
+                      placeholder="Spreadsheet ID"
+                      value={step.spreadsheetId ?? ""}
+                      onChange={(e) => updateField(step.id, "spreadsheetId", e.target.value)}
+                    />
+                    <Input
+                      placeholder="Range (e.g. Sheet1!A1:C10)"
+                      value={step.range ?? ""}
+                      onChange={(e) => updateField(step.id, "range", e.target.value)}
                     />
                   </>
                 )}

@@ -1,5 +1,9 @@
 import { IntegrationApp } from "@/lib/integrations/types";
-import { appendRow } from "@/lib/actions/googleSheets.actions";
+import {
+  appendRow,
+  createSpreadsheet,
+  readRange,
+} from "@/lib/actions/googleSheets.actions";
 
 export const integration: IntegrationApp = {
   name: "googleSheets",
@@ -15,6 +19,25 @@ export const integration: IntegrationApp = {
           spreadsheetId: params.spreadsheetId,
           range: params.range,
           values: params.values,
+          apiKey: creds.apiKey,
+        });
+      },
+    },
+    {
+      name: "createSpreadsheet",
+      run: async (params: { title: string }, creds: { apiKey: string }) => {
+        return await createSpreadsheet({ title: params.title, apiKey: creds.apiKey });
+      },
+    },
+    {
+      name: "readRange",
+      run: async (
+        params: { spreadsheetId: string; range: string },
+        creds: { apiKey: string }
+      ) => {
+        return await readRange({
+          spreadsheetId: params.spreadsheetId,
+          range: params.range,
           apiKey: creds.apiKey,
         });
       },
