@@ -24,6 +24,7 @@ export default async function Home() {
       "DRAW",
       "LIVECHAT",
       "PLUGIN",
+      "PRODUCT_REVIEW",
 
     ],
   });
