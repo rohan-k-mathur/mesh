@@ -246,7 +246,7 @@ const solved = guesses.some(g => g.word === secret);
               {g && (
   <>
     {/* feedback row */}
-<div className="grid grid-cols-6  text-[1rem] leading-none">
+{/* <div className="grid grid-cols-6  text-[1rem] leading-none">
   {g.tiles.map((t, idx) => (
     <span
       key={idx}
@@ -256,6 +256,20 @@ const solved = guesses.some(g => g.word === secret);
       {shapeOf(t.status)}
     </span>
   ))}
+</div> */}
+{/* feedback row */}
+<div className="text-sm font-mono flex gap-1">
+  <span className="text-green-600 font-semibold">
+    {g.setSizes.G} green
+  </span>
+  <span>|</span>
+  <span className="text-yellow-500 font-semibold">
+    {g.setSizes.Y} yellow
+  </span>
+  <span>|</span>
+  <span className="text-gray-500 font-semibold">
+    {g.setSizes.X} grey
+  </span>
 </div>
   </>
 )}

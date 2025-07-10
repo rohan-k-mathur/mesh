@@ -14,7 +14,7 @@ export default function Page() {
       <div className="w-[100%] h-[100%] border-2 border-blue overscroll-none">
 <ReactFlowProvider>
       <Modal />
-      <RandomDataPlotExample />
+      <GmailFlowExample />
     </ReactFlowProvider>
     </div>
     </div>

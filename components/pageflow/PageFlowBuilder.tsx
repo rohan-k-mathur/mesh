@@ -192,7 +192,7 @@ export default function PageFlowBuilder() {
     <div className="space-y-4">
       <IntegrationButtons />
       <Modal />
-      <div className="sticky top-0 bg-background z-10 space-x-2 pb-2">
+      <div className="absolute top-0 bg-background z-10 space-x-2 pb-2">
         <Button onClick={() => addStep("trigger")}>Add Trigger</Button>
         <Button onClick={() => addStep("action")}>Add Action</Button>
         <Button onClick={handleRun} disabled={steps.length === 0}>
