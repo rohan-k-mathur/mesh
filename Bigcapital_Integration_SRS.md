@@ -2,14 +2,14 @@
 
 ## 1. Introduction
 ### 1.1 Purpose
-This document describes how the open source accounting platform [Bigcapital](https://github.com/bigcapitalhq/bigcapital) will be integrated into Mesh. The goal is to expose Bigcapital's financial features as workflow actions and triggers within the PageFlow builder, enabling users to automate accounting tasks directly from Mesh.
+This document describes how the open source accounting platform [Bigcapital](https://github.com/bigcapitalhq/bigcapital) will be integrated into Mesh. Bigcapital is cloned under the `bigcapital/` directory and run locally with Docker. The goal is to expose Bigcapital's financial features as workflow actions and triggers within the PageFlow builder so users can automate accounting tasks without relying on the Bigcapital cloud.
 
 ### 1.2 Scope
 The integration covers:
-1. Deploying the Bigcapital service alongside Mesh.
-2. API modules for creating invoices, recording expenses and retrieving balances.
-3. PageFlow actions and triggers for interacting with those endpoints.
-4. User interfaces for connecting a Bigcapital account and managing credentials.
+1. Cloning the Bigcapital repository and running its Docker compose stack locally.
+2. Library modules for creating invoices, recording expenses and retrieving balances by calling the local service.
+3. PageFlow actions and triggers that use those modules.
+4. User interfaces for connecting to the self‑hosted instance.
 
 ### 1.3 References
 - [Bigcapital Documentation](https://docs.bigcapital.app/)
@@ -18,7 +18,7 @@ The integration covers:
 - `Linear_Workflow_Builder_SRS.md`
 
 ## 2. Overall Description
-Bigcapital is an AGPL licensed accounting and inventory system that exposes REST and GraphQL APIs. It manages double entry ledgers, invoices, bills and inventory items. Mesh will run Bigcapital as a Docker service and communicate with its API to perform accounting operations. The integration adds an `BigcapitalIntegration` module that registers workflow actions (e.g. `createInvoice`) and triggers (e.g. `invoicePaid`). Credentials are stored in the existing integrations table.
+Bigcapital is an AGPL licensed accounting and inventory system. A full copy of the project lives in `bigcapital/` and is started with `docker compose`. Mesh communicates with the local service through REST and GraphQL endpoints exposed on the internal Docker network. The integration adds a `BigcapitalIntegration` module that registers workflow actions (e.g. `createInvoice`) and triggers (e.g. `invoicePaid`). Connection details are stored in the existing integrations table.
 
 ## 3. System Features
 ### 3.1 Bigcapital Actions
@@ -31,8 +31,8 @@ Bigcapital is an AGPL licensed accounting and inventory system that exposes REST
 - **lowInventory** – Emits when an item stock level falls below a threshold.
 
 ### 3.3 Credential Management
-- Users supply an API token or OAuth credentials via the Integrations modal.
-- Tokens are encrypted in the database similar to Gmail and Google Sheets integrations.
+- Users provide the local Bigcapital URL and login credentials configured in the `bigcapital/.env` file.
+- These values are encrypted in the database similar to other integrations.
 
 ### 3.4 PageFlow Integration
 - Actions and triggers become selectable options in the PageFlow builder.
@@ -52,8 +52,8 @@ Bigcapital is an AGPL licensed accounting and inventory system that exposes REST
 - Existing Mesh integration loader and workflow executor libraries.
 
 ### 4.4 Communication Interfaces
-- All calls use HTTPS with bearer tokens for authentication.
-- Webhooks from Bigcapital (for triggers) are received via a new API route under `/api/webhooks/bigcapital`.
+- Mesh calls the local Bigcapital REST and GraphQL endpoints over HTTP on the Docker network.
+- Webhooks from the Bigcapital container are received via `/api/webhooks/bigcapital`.
 
 ## 5. Non-Functional Requirements
 - **Performance:** Each action should complete within 2 seconds under normal API load.
@@ -62,18 +62,19 @@ Bigcapital is an AGPL licensed accounting and inventory system that exposes REST
 - **Maintainability:** Implementation follows repository coding conventions and passes `npm run lint`.
 
 ## 6. User Flows
-1. **Connect Account** – User opens the Integrations modal, selects Bigcapital and enters an API key. Mesh stores the credentials securely.
+1. **Connect Account** – User opens the Integrations modal, selects Bigcapital and enters the URL, email and password for the local instance. Mesh stores these values securely.
 2. **Build Workflow** – In PageFlow, the user adds steps such as `onClick` → `bigcapital:createInvoice`. The builder prompts for customer name, items and totals.
-3. **Run Flow** – When triggered, Mesh sends requests to Bigcapital. Success or error responses are displayed in the log section.
+3. **Run Flow** – When triggered, Mesh sends requests to the self‑hosted Bigcapital service. Success or error responses are displayed in the log section.
 4. **Webhook Trigger** – When an invoice is paid, Bigcapital sends a webhook to Mesh, triggering a PageFlow that may send an email or update a spreadsheet.
 
 ## 7. System Architecture
 1. **Bigcapital Service**
-   - Deployed via Docker Compose alongside the Mesh application.
+   - Deployed via `docker compose -f bigcapital/docker-compose.prod.yml -p bigcapital up -d`.
+   - Environment variables are loaded from `bigcapital/.env`.
    - Exposes REST and GraphQL endpoints on an internal network.
 2. **API Wrapper**
-   - A new module under `lib/actions/bigcapital.actions.ts` wraps common API calls such as `createInvoice` and `recordExpense`.
-   - Uses `fetch` with the stored credentials.
+   - A new module under `lib/actions/bigcapital.actions.ts` wraps common calls like `createInvoice` and `recordExpense`.
+   - Uses `fetch` to hit the local service URLs defined in the integration settings.
 3. **Integration Module**
    - `integrations/BigcapitalIntegration.ts` implements the `IntegrationApp` interface.
    - Registers actions and triggers using the wrapper functions.
@@ -84,8 +85,8 @@ Bigcapital is an AGPL licensed accounting and inventory system that exposes REST
 
 ## 8. Product Development Roadmap
 1. **Research & Setup**
-   - Review Bigcapital docs and spin up a local instance via Docker.
-   - Generate an API token and confirm basic requests from Node.js.
+   - Review Bigcapital docs and clone the repository into `bigcapital/`.
+   - Copy `.env.example` to `.env`, adjust credentials, then run `docker compose -f docker-compose.prod.yml -p bigcapital up -d`.
 2. **API Wrapper**
    - Implement TypeScript functions for invoices, expenses and account queries.
    - Write unit tests with mocked responses.
@@ -93,7 +94,7 @@ Bigcapital is an AGPL licensed accounting and inventory system that exposes REST
    - Create `BigcapitalIntegration.ts` exporting available actions and triggers.
    - Register the module in `integrations/index.ts`.
 4. **Credential UI**
-   - Extend the Integrations modal to support Bigcapital keys and webhook secret configuration.
+   - Extend the Integrations modal to accept the self‑hosted URL, email and password, plus webhook secret configuration.
 5. **PageFlow Support**
    - Add Bigcapital actions and triggers to the builder dropdowns.
    - Display form fields for invoice data, expense details and stock thresholds.
