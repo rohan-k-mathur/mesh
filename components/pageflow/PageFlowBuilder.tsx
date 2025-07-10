@@ -29,7 +29,6 @@ import { registerIntegrationTriggerTypes } from "@/lib/registerIntegrationTrigge
 import { listWorkflowActions, getWorkflowAction } from "@/lib/workflowActions";
 import { listWorkflowTriggers } from "@/lib/workflowTriggers";
 import { executeWorkflow, WorkflowGraph } from "@/lib/workflowExecutor";
-import { IntegrationApp } from "@/lib/integrations/types";
 import { fetchIntegrations } from "@/lib/actions/integration.actions";
 import { sendEmail } from "@/lib/actions/gmail.actions";
 import {
@@ -37,6 +36,7 @@ import {
   createSpreadsheet,
   readRange,
 } from "@/lib/actions/googleSheets.actions";
+import integrationModules from "@/integrations";
 
 interface Step {
   id: string;
@@ -67,15 +67,8 @@ export default function PageFlowBuilder() {
   useEffect(() => {
     registerDefaultWorkflowActions();
     registerDefaultWorkflowTriggers();
-    const integrationContext = typeof (require as any).context === "function"
-      ? (require as any).context("../../integrations", false, /\\.ts$/)
-      : { keys: () => [], context: () => ({}) };
-    const modules: Record<string, { integration?: IntegrationApp }> = {};
-    integrationContext.keys().forEach((key: string) => {
-      modules[key] = integrationContext(key);
-    });
-    registerIntegrationActions(modules);
-    registerIntegrationTriggerTypes(modules);
+    registerIntegrationActions(integrationModules);
+    registerIntegrationTriggerTypes(integrationModules);
     setActions(listWorkflowActions());
     setTriggers(listWorkflowTriggers());
     fetchIntegrations().then((list) => {

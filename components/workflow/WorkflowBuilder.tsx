@@ -29,9 +29,10 @@ import { listWorkflowActions } from "@/lib/workflowActions";
 import { registerDefaultWorkflowTriggers } from "@/lib/registerDefaultWorkflowTriggers";
 import { registerIntegrationTriggerTypes } from "@/lib/registerIntegrationTriggerTypes";
 import { listWorkflowTriggers } from "@/lib/workflowTriggers";
-import { IntegrationApp } from "@/lib/integrations/types";
 import ScheduleForm from "./ScheduleForm";
 import WorkflowRunner from "./WorkflowRunner";
+
+import integrationModules from "@/integrations";
 
 import { Input } from "@/components/ui/input";
 
@@ -67,15 +68,8 @@ export default function WorkflowBuilder({ initialGraph, onSave }: Props) {
   useEffect(() => {
     registerDefaultWorkflowActions();
     registerDefaultWorkflowTriggers();
-    const integrationContext = typeof (require as any).context === "function"
-      ? (require as any).context("../../integrations", false, /\.ts$/)
-      : { keys: () => [], context: () => ({}) };
-    const modules: Record<string, { integration?: IntegrationApp }> = {};
-    integrationContext.keys().forEach((key: string) => {
-      modules[key] = integrationContext(key);
-    });
-    registerIntegrationActions(modules);
-    registerIntegrationTriggerTypes(modules);
+    registerIntegrationActions(integrationModules);
+    registerIntegrationTriggerTypes(integrationModules);
     setActions(listWorkflowActions());
     setTriggers(listWorkflowTriggers());
   }, []);
