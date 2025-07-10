@@ -44,7 +44,13 @@ export default function WorkflowSidePanel({
           <div className="space-y-4">
             <SheetHeader>
               <SheetTitle>
-                Edit {node.data?.type === "trigger" ? "Trigger" : "Action"}
+                Edit
+                {" "}
+                {node.data?.type === "trigger"
+                  ? "Trigger"
+                  : node.data?.type === "action"
+                  ? "Action"
+                  : "Condition"}
               </SheetTitle>
             </SheetHeader>
             <Label htmlFor="node-label">Label</Label>
@@ -83,7 +89,7 @@ export default function WorkflowSidePanel({
                   </SelectContent>
                 </Select>
               </>
-            ) : (
+            ) : node.data?.type === "action" ? (
               <>
                 <Label htmlFor="node-action">Action</Label>
                 <Select
@@ -107,7 +113,7 @@ export default function WorkflowSidePanel({
                   </SelectContent>
                 </Select>
               </>
-            )}
+            ) : null}
           </div>
         )}
         {edge && (

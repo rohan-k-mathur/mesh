@@ -86,3 +86,21 @@ export function ActionNode({ data }: NodeProps) {
     </div>
   );
 }
+
+export function ConditionNode({ data }: NodeProps) {
+  return (
+    <div className="relative p-2 bg-white border rounded">
+      {data?.label || "Condition"}
+      <Handle
+        type="target"
+        position={Position.Top}
+        className="orange-node_handle"
+      />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        className="orange-node_handle"
+      />
+    </div>
+  );
+}

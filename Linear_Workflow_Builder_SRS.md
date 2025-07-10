@@ -13,17 +13,18 @@ The builder enables users to create workflows composed of trigger and action car
 - `Plugin_Architecture_SRS.md`
 
 ## 2. Overall Description
-Users assemble workflows by adding cards to an infinite scroll page. A toolbar at the top provides buttons such as **Add Trigger**, **Add Action**, **Connect Accounts**, **Configure Integrations**, and **Add Parallel Branch**. Each card contains dropdowns and inputs that change based on the selected trigger or action. Cards are chained vertically, with plus buttons to add the next step or branch. The final card includes a **Run** button to execute the flow.
+Users assemble workflows by adding cards to an infinite scroll page. A toolbar at the top provides buttons such as **Add Trigger**, **Add Action**, **Add Condition**, **Connect Accounts**, **Configure Integrations**, and **Add Parallel Branch**. Each card contains dropdowns and inputs that change based on the selected trigger or action. Cards are chained vertically, with plus buttons to add the next step or branch. The final card includes a **Run** button to execute the flow.
 
 ## 3. Product Development Roadmap
 1. **Prototype Layout** – Build the infinite scrolling page with basic card components and toolbar.
 2. **Dynamic Card Logic** – Implement dropdowns that reveal input fields based on selected options.
 3. **Parallel Branching** – Allow cards to spawn siblings on the same row when **Add Parallel Branch** is chosen.
-4. **Account Connections** – Integrate OAuth flows and store credentials securely.
-5. **Workflow Execution** – Serialize the card chain and execute actions server‑side.
-6. **Saving & Loading** – Create API routes to persist workflows and list saved flows.
-7. **Template Library** – Provide starter workflows that users can load and customize.
-8. **Analytics & Logging** – Record run history and display logs for each card.
+4. **Conditional Branching** – Insert condition cards that route execution based on expressions.
+5. **Account Connections** – Integrate OAuth flows and store credentials securely.
+6. **Workflow Execution** – Serialize the card chain and execute actions server‑side.
+7. **Saving & Loading** – Create API routes to persist workflows and list saved flows.
+8. **Template Library** – Provide starter workflows that users can load and customize.
+9. **Analytics & Logging** – Record run history and display logs for each card.
 
 ## 4. System Features
 ### 4.1 Linear Layout
@@ -39,11 +40,16 @@ Users assemble workflows by adding cards to an infinite scroll page. A toolbar a
 - Selecting **Add Parallel Branch** adds a sibling card on the same row.
 - Branches can contain their own sequence of cards executed after the original trigger.
 
-### 4.4 Integration Management
+### 4.4 Condition Cards
+- Choosing **Add Condition** inserts a card that evaluates expressions.
+- Each outgoing edge from the card specifies a condition like `x < 5` or `x == 5`.
+- Cards on the same row run in parallel when multiple branches are defined.
+
+### 4.5 Integration Management
 - **Connect Accounts** and **Configure Integrations** open modals for OAuth flows or API key entry.
 - Stored credentials are reused across workflows.
 
-### 4.5 Workflow Execution & Persistence
+### 4.6 Workflow Execution & Persistence
 - Clicking **Run** sends the serialized workflow to a serverless function that executes each step.
 - Users can save flows, load existing ones, and create new flows from templates.
 
@@ -67,10 +73,11 @@ Users assemble workflows by adding cards to an infinite scroll page. A toolbar a
 1. The system shall render a new trigger card when **Add Trigger** is clicked.
 2. The system shall display relevant input fields after a trigger or action is selected.
 3. The system shall allow adding a chain of action cards using the plus icon.
-4. The system shall support creating parallel branches from any card.
-5. The system shall store workflow definitions in the database.
-6. The system shall execute workflows and report success or failure per card.
-7. The system shall let users save, load, and delete flows.
+4. The system shall allow inserting condition cards that evaluate expressions.
+5. The system shall support creating parallel branches from any card.
+6. The system shall store workflow definitions in the database.
+7. The system shall execute workflows and report success or failure per card.
+8. The system shall let users save, load, and delete flows.
 
 ## 7. Non-Functional Requirements
 - **Performance:** Page interactions should remain responsive with dozens of cards.
@@ -86,7 +93,7 @@ The builder is a React component tree with state managed via a central store. Ea
 1. **Create New Flow**
    - Navigate to `/workflows/new`.
    - Click **Add Trigger** and configure the trigger.
-   - Click the plus icon to add an action or parallel branch.
+   - Click the plus icon to add an action, condition, or parallel branch.
    - Repeat until the workflow is complete, then save.
 2. **Run Existing Flow**
    - Load a saved flow from the dashboard.

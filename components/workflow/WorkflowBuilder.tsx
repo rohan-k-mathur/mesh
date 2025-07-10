@@ -20,7 +20,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { Button } from "@/components/ui/button";
-import { TriggerNode, ActionNode } from "./CustomNodes";
+import { TriggerNode, ActionNode, ConditionNode } from "./CustomNodes";
 import { WorkflowGraph } from "@/lib/actions/workflow.actions";
 import WorkflowSidePanel from "./WorkflowSidePanel";
 import { registerDefaultWorkflowActions } from "@/lib/registerDefaultWorkflowActions";
@@ -41,7 +41,7 @@ interface Props {
   onSave: (graph: WorkflowGraph, name: string) => Promise<{ id: string }>;
 }
 const proOptions = { hideAttribution: true };
-const nodeTypes = { trigger: TriggerNode, action: ActionNode };
+const nodeTypes = { trigger: TriggerNode, action: ActionNode, condition: ConditionNode };
 
 export default function WorkflowBuilder({ initialGraph, onSave }: Props) {
   const defaultPosition = { x: 0, y: 0 };
@@ -167,6 +167,24 @@ export default function WorkflowBuilder({ initialGraph, onSave }: Props) {
     ]);
   };
 
+  const addParallel = (type: string) => {
+    if (!selectedNode) return;
+    const id = `state-${nodes.length + 1}`;
+    const sameRow = nodes.filter((n) => n.position.y === selectedNode.position.y);
+    const maxX = Math.max(
+      ...sameRow.map((n) => n.position.x),
+      selectedNode.position.x
+    );
+    setNodes((nds) => [
+      ...nds,
+      {
+        id,
+        data: { label: id, type },
+        position: { x: maxX + 200, y: selectedNode.position.y },
+      },
+    ]);
+  };
+
   const save = async () => {
     const result = await onSave({ nodes, edges }, name);
     setWorkflowId(result.id);
@@ -194,8 +212,19 @@ export default function WorkflowBuilder({ initialGraph, onSave }: Props) {
         >
           Action
         </div>
+        <div
+          className="dndnode w-full rounded-md"
+          draggable
+          onDragStart={(e) =>
+            e.dataTransfer.setData("application/reactflow", "condition")
+          }
+        >
+          Condition
+        </div>
         <Button onClick={() => addNode("trigger")}>Add Trigger</Button>
         <Button onClick={() => addNode("action")}>Add Action</Button>
+        <Button onClick={() => addNode("condition")}>Add Condition</Button>
+        <Button onClick={() => addParallel("action")}>Add Parallel Branch</Button>
         <Input
           value={name}
           onChange={(e) => setName(e.target.value)}
