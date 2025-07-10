@@ -1,11 +1,6 @@
 "use server";
 
 import { google } from "googleapis";
-import { getUserFromCookies } from "@/lib/serverutils";
-import {
-  saveIntegration,
-  fetchIntegrations,
-} from "@/lib/actions/integration.actions";
 
 export async function sendEmail({
   from,
@@ -44,42 +39,4 @@ export async function sendEmail({
     userId: "me",
     requestBody: { raw: encodedMessage },
   });
-}
-
-export async function refreshGmailAccessToken() {
-  const clientId = process.env.GMAIL_CLIENT_ID;
-  const clientSecret = process.env.GMAIL_CLIENT_SECRET;
-  const refreshToken = process.env.GMAIL_REFRESH_TOKEN;
-  if (!clientId || !clientSecret || !refreshToken) {
-    throw new Error("Gmail environment variables not configured");
-  }
-  const client = new google.auth.OAuth2(
-    clientId,
-    clientSecret,
-    process.env.GMAIL_REDIRECT_URI ?? "http://localhost"
-  );
-  client.setCredentials({ refresh_token: refreshToken });
-  const { token } = await client.getAccessToken();
-  if (!token) throw new Error("Failed to retrieve access token");
-  let email = process.env.GMAIL_FROM ?? "";
-  const user = await getUserFromCookies();
-  if (user) {
-    const list = await fetchIntegrations();
-    const gmail = list.find((i) => i.service === "gmail");
-    if (gmail) {
-      try {
-        const cred = JSON.parse(gmail.credential);
-        if (cred.email) email = cred.email;
-      } catch {
-        // ignore parse errors
-      }
-    }
-  }
-  if (user) {
-    await saveIntegration({
-      service: "gmail",
-      credential: JSON.stringify({ email, accessToken: token }),
-    });
-  }
-  return { email, accessToken: token };
 }

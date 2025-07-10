@@ -1,8 +1,6 @@
 "use server";
 
 import { google } from "googleapis";
-import { getUserFromCookies } from "@/lib/serverutils";
-import { saveIntegration } from "@/lib/actions/integration.actions";
 
 function getClient(accessToken: string) {
   const auth = new google.auth.OAuth2();
@@ -63,29 +61,4 @@ export async function readRange({
     range,
   });
   return res.data.values as (string | number)[][] | undefined;
-}
-
-export async function refreshSheetsAccessToken() {
-  const clientId = process.env.GOOGLE_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-  const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
-  if (!clientId || !clientSecret || !refreshToken) {
-    throw new Error("Google Sheets environment variables not configured");
-  }
-  const client = new google.auth.OAuth2(
-    clientId,
-    clientSecret,
-    process.env.GOOGLE_REDIRECT_URI ?? "http://localhost"
-  );
-  client.setCredentials({ refresh_token: refreshToken });
-  const { token } = await client.getAccessToken();
-  if (!token) throw new Error("Failed to retrieve access token");
-  const user = await getUserFromCookies();
-  if (user) {
-    await saveIntegration({
-      service: "googleSheets",
-      credential: JSON.stringify({ accessToken: token }),
-    });
-  }
-  return token;
 }
