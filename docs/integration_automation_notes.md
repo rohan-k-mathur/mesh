@@ -24,14 +24,14 @@ This document summarizes the steps followed when implementing the Slack integrat
 1. Create `integrations/GoogleSheetsIntegration.ts` exporting an `IntegrationApp`.
 2. Add helper functions in `lib/actions/googleSheets.actions.ts` using the `googleapis` library.
 3. Implement actions such as `appendRow` that call the Sheets API.
-4. Read the API key from `.env` (`GOOGLE_API_KEY`) or saved credentials via `IntegrationConfigModal`.
+4. Authenticate using an OAuth access token stored via `ConnectAccountModal` or environment variables (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, etc.).
 5. Register the module with `registerIntegrationActions` so workflow cards can use `googleSheets:appendRow`.
-6. Newly created spreadsheets are stored in the Google Drive of the account tied to the API key and appear under <https://docs.google.com/spreadsheets/>.
+6. Newly created spreadsheets are stored in the Google Drive of the authenticated account and appear under <https://docs.google.com/spreadsheets/>.
 7. Follow SRS requirements on security and reliability when handling spreadsheet data.
 
-## Production Considerations
+-## Production Considerations
 - Store credentials securely in the database (see `docs/integrations.md`).
-- Use environment variables for API keys when possible.
+- Use environment variables for tokens when possible.
 - Ensure actions return promises and handle errors gracefully.
 - Add unit tests for loaders and action registration.
 

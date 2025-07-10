@@ -78,3 +78,18 @@ The Gmail integration uses OAuth tokens to send mail on a user's behalf.
    ```
 
 The workflow action `gmail:sendEmail` reads these credentials to send messages through the Gmail API.
+
+## Google Sheets API Setup
+
+Creating and modifying spreadsheets requires OAuth credentials.
+
+1. Create an OAuth client in the [Google Cloud Console](https://console.cloud.google.com/apis/credentials) and enable the **Google Sheets API**.
+2. Add the credentials to `.env` as `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `GOOGLE_REFRESH_TOKEN`. Optionally set `GOOGLE_REDIRECT_URI`.
+3. Run `yarn sheets-token` to generate an access token. Save it using the **Connect Account** modal in the JSON format:
+   ```json
+   {
+     "accessToken": "<token from script>"
+   }
+   ```
+
+The workflow actions under `googleSheets:*` use this token to authenticate requests.

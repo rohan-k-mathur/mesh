@@ -87,8 +87,8 @@ export default function PageFlowBuilder() {
       if (sheets) {
         try {
           const c = JSON.parse(sheets.credential);
-          if (c.apiKey) {
-            setSheetsKey(c.apiKey);
+          if (c.accessToken) {
+            setSheetsKey(c.accessToken);
           }
         } catch {
           if (typeof sheets.credential === "string") {
@@ -209,7 +209,7 @@ export default function PageFlowBuilder() {
             actionsMap[step.name] = async () => {
               const id = await createSpreadsheet({
                 title: step.title ?? "",
-                apiKey: sheetsKey,
+                accessToken: sheetsKey,
               });
               setLogs((l) => [...l, `Created spreadsheet ${id}`]);
             };
@@ -222,7 +222,7 @@ export default function PageFlowBuilder() {
                 spreadsheetId: step.spreadsheetId ?? "",
                 range: step.range ?? "",
                 values: vals,
-                apiKey: sheetsKey,
+                accessToken: sheetsKey,
               });
             };
           } else if (step.name === "googleSheets:readRange") {
@@ -230,7 +230,7 @@ export default function PageFlowBuilder() {
               const data = await readRange({
                 spreadsheetId: step.spreadsheetId ?? "",
                 range: step.range ?? "",
-                apiKey: sheetsKey,
+                accessToken: sheetsKey,
               });
               setLogs((l) => [...l, JSON.stringify(data ?? [])]);
             };
@@ -245,7 +245,7 @@ export default function PageFlowBuilder() {
       setLogs((l) => [...l, "Gmail credentials not found. Connect an account first."]);
     }
     if (!sheetsKey && steps.some((s) => s.type === "action" && s.name.startsWith("googleSheets:"))) {
-      setLogs((l) => [...l, "Google Sheets API key not found. Configure integration first."]);
+      setLogs((l) => [...l, "Google Sheets access token not found. Configure integration first."]);
     }
     const graph: WorkflowGraph = { nodes, edges };
     await executeWorkflow(graph, actionsMap, undefined, {}, (id) => {

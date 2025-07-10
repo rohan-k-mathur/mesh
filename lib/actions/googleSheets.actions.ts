@@ -2,18 +2,24 @@
 
 import { google } from "googleapis";
 
+function getClient(accessToken: string) {
+  const auth = new google.auth.OAuth2();
+  auth.setCredentials({ access_token: accessToken });
+  return google.sheets({ version: "v4", auth });
+}
+
 export async function appendRow({
   spreadsheetId,
   range,
   values,
-  apiKey,
+  accessToken,
 }: {
   spreadsheetId: string;
   range: string;
   values: (string | number)[];
-  apiKey: string;
+  accessToken: string;
 }) {
-  const sheets = google.sheets({ version: "v4", auth: apiKey });
+  const sheets = getClient(accessToken);
   await sheets.spreadsheets.values.append({
     spreadsheetId,
     range,
@@ -26,12 +32,12 @@ export async function appendRow({
 
 export async function createSpreadsheet({
   title,
-  apiKey,
+  accessToken,
 }: {
   title: string;
-  apiKey: string;
+  accessToken: string;
 }) {
-  const sheets = google.sheets({ version: "v4", auth: apiKey });
+  const sheets = getClient(accessToken);
   const res = await sheets.spreadsheets.create({
     requestBody: {
       properties: { title },
@@ -43,13 +49,13 @@ export async function createSpreadsheet({
 export async function readRange({
   spreadsheetId,
   range,
-  apiKey,
+  accessToken,
 }: {
   spreadsheetId: string;
   range: string;
-  apiKey: string;
+  accessToken: string;
 }) {
-  const sheets = google.sheets({ version: "v4", auth: apiKey });
+  const sheets = getClient(accessToken);
   const res = await sheets.spreadsheets.values.get({
     spreadsheetId,
     range,
