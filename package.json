@@ -10,7 +10,8 @@
     "test": "jest",
     "postinstall": "prisma generate",
     "seed": "tsx --env-file=.env scripts/seed.ts",
-    "gmail-token": "tsx --env-file=.env scripts/gmail-token.ts"
+    "gmail-token": "tsx --env-file=.env scripts/gmail-token.ts",
+    "sheets-token": "tsx --env-file=.env scripts/google-sheets-token.ts"
   },
   "dependencies": {
     "@gsap/react": "^2.1.1",

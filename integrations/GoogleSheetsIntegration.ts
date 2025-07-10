@@ -13,32 +13,32 @@ export const integration: IntegrationApp = {
       name: "appendRow",
       run: async (
         params: { spreadsheetId: string; range: string; values: (string | number)[] },
-        creds: { apiKey: string }
+        creds: { accessToken: string }
       ) => {
         await appendRow({
           spreadsheetId: params.spreadsheetId,
           range: params.range,
           values: params.values,
-          apiKey: creds.apiKey,
+          accessToken: creds.accessToken,
         });
       },
     },
     {
       name: "createSpreadsheet",
-      run: async (params: { title: string }, creds: { apiKey: string }) => {
-        return await createSpreadsheet({ title: params.title, apiKey: creds.apiKey });
+      run: async (params: { title: string }, creds: { accessToken: string }) => {
+        return await createSpreadsheet({ title: params.title, accessToken: creds.accessToken });
       },
     },
     {
       name: "readRange",
       run: async (
         params: { spreadsheetId: string; range: string },
-        creds: { apiKey: string }
+        creds: { accessToken: string }
       ) => {
         return await readRange({
           spreadsheetId: params.spreadsheetId,
           range: params.range,
-          apiKey: creds.apiKey,
+          accessToken: creds.accessToken,
         });
       },
     },
