@@ -5,7 +5,7 @@ import { WorkflowGraph } from "@/lib/workflowExecutor";
 import { getWorkflowAction } from "@/lib/workflowActions";
 import { registerDefaultWorkflowActions } from "@/lib/registerDefaultWorkflowActions";
 import { registerIntegrationActions } from "@/lib/registerIntegrationActions";
-import { IntegrationApp } from "@/lib/integrations/types";
+import integrationModules from "@/integrations";
 import { useEffect, useState } from "react";
 import {
   WorkflowExecutionProvider,
@@ -66,14 +66,7 @@ export function WorkflowRunnerInner({
 
   useEffect(() => {
     registerDefaultWorkflowActions();
-    const integrationContext = typeof (require as any).context === "function"
-      ? (require as any).context("../../integrations", false, /\.ts$/)
-      : { keys: () => [], context: () => ({}) };
-    const modules: Record<string, { integration?: IntegrationApp }> = {};
-    integrationContext.keys().forEach((key: string) => {
-      modules[key] = integrationContext(key);
-    });
-    registerIntegrationActions(modules);
+    registerIntegrationActions(integrationModules);
   }, []);
 
   const handleRun = async () => {
