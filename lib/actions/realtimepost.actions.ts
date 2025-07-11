@@ -263,8 +263,8 @@ export async function fetchRealtimePosts({
           ...realtimePost.productReview,
           claims: realtimePost.productReview.claims.map((c) => ({
             ...c,
-            id: c.id,
-            review_id: c.review_id,
+            id: c.id.toString(),
+            review_id: c.review_id.toString(),
           })),
         }
       : null,
@@ -324,8 +324,8 @@ export async function fetchRealtimePostById({ id }: { id: string }) {
             ...post.productReview,
             claims: post.productReview.claims.map((c) => ({
               ...c,
-              id: c.id,
-              review_id: c.review_id,
+              id: c.id.toString(),
+              review_id: c.review_id.toString(),
             })),
           }
         : null,
@@ -381,8 +381,8 @@ export async function fetchRealtimePostTreeById({ id }: { id: string }) {
             ...post.productReview,
             claims: post.productReview.claims.map((c) => ({
               ...c,
-              id: c.id,
-              review_id: c.review_id,
+              id: c.id.toString(),
+              review_id: c.review_id.toString(),
             })),
           }
         : null,
