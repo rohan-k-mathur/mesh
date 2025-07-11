@@ -39,7 +39,7 @@ const ProductReviewCard = ({
     async function loadCounts() {
       if (!claimIds) return;
       const counts = await Promise.all(
-        claimIds.map((id) => fetchClaimStats(id))
+        claimIds.map((id) => fetchClaimStats(id.toString()))
       );
       setVoteCounts(
         counts.map((c) => ({
@@ -56,11 +56,11 @@ const ProductReviewCard = ({
     if (claimIds) {
       if (userId === null) return;
       await voteClaim({
-        claimId: claimIds[idx],
-        userId: userId!,
+        claimId: claimIds[idx].toString(),
+        userId: userId!.toString(),
         type: type === "helpful" ? "HELPFUL" : "UNHELPFUL",
       });
-      const updated = await fetchClaimStats(claimIds[idx]);
+      const updated = await fetchClaimStats(claimIds[idx].toString());
       setVoteCounts((prev) => {
         const copy = [...prev];
         copy[idx] = {
@@ -82,8 +82,12 @@ const ProductReviewCard = ({
   const handleVouch = async (idx: number) => {
     if (claimIds) {
       if (userId === null) return;
-      await vouchClaim({ claimId: claimIds[idx], userId: userId!, amount: 1 });
-      const updated = await fetchClaimStats(claimIds[idx]);
+      await vouchClaim({
+        claimId: claimIds[idx].toString(),
+        userId: userId!.toString(),
+        amount: 1,
+      });
+      const updated = await fetchClaimStats(claimIds[idx].toString());
       setVoteCounts((prev) => {
         const copy = [...prev];
         copy[idx] = {

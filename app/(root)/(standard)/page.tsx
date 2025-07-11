@@ -61,7 +61,9 @@ export default async function Home() {
                 type={realtimePost.type}
                 author={realtimePost.author!}
                 createdAt={realtimePost.created_at.toDateString()}
-                claimIds={realtimePost.productReview?.claims.map((c) => c.id) ?? []}
+                claimIds={
+                  realtimePost.productReview?.claims.map((c) => c.id.toString()) ?? []
+                }
               />
             ))}
           </>
