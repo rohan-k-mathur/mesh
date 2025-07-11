@@ -485,25 +485,14 @@ export async function replicateRealtimePost({
     if (!original) throw new Error("Real-time post not found");
     const newPost = await prisma.realtimePost.create({
       data: {
-        ...(original.content && { content: original.content }),
-        ...(original.image_url && { image_url: original.image_url }),
-        ...(original.video_url && { video_url: original.video_url }),
+        content: `REPLICATE:${oid.toString()}`,
         author_id: uid,
         x_coordinate: original.x_coordinate,
         y_coordinate: original.y_coordinate,
-        type: original.type,
+        type: "TEXT",
         realtime_room_id: original.realtime_room_id,
         locked: false,
         isPublic: original.isPublic,
-        ...(original.collageLayoutStyle && {
-          collageLayoutStyle: original.collageLayoutStyle,
-        }),
-        ...(original.collageColumns !== null && {
-          collageColumns: original.collageColumns ?? undefined,
-        }),
-        ...(original.collageGap !== null && {
-          collageGap: original.collageGap ?? undefined,
-        }),
       },
     });
     await prisma.user.update({
