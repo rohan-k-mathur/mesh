@@ -1,7 +1,7 @@
 "use client";
 
 import { ThumbsUp, ThumbsDown, BadgeDollarSign, Link } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface ProductReviewCardProps {
   productName: string;
@@ -21,6 +21,10 @@ const ProductReviewCard = ({
   const [voteCounts, setVoteCounts] = useState(
     claims.map(() => ({ helpful: 0, unhelpful: 0, vouch: 0 }))
   );
+
+  useEffect(() => {
+    setVoteCounts(claims.map(() => ({ helpful: 0, unhelpful: 0, vouch: 0 })));
+  }, [claims]);
 
   const handleVote = (idx: number, type: "helpful" | "unhelpful") => {
     setVoteCounts((prev) => {
@@ -53,13 +57,13 @@ const ProductReviewCard = ({
               <span>{c}</span>
               <div className="flex items-start gap-3 text-xs">
                 <button onClick={() => handleVote(idx, "helpful")} aria-label="Helpful" className="p-1">
-                  <ThumbsUp className="h-4 w-4" /> {voteCounts[idx].helpful}
+                  <ThumbsUp className="h-4 w-4" /> {voteCounts[idx]?.helpful ?? 0}
                 </button>
                 <button onClick={() => handleVote(idx, "unhelpful")} aria-label="Unhelpful" className="p-1">
-                  <ThumbsDown className="h-4 w-4" /> {voteCounts[idx].unhelpful}
+                  <ThumbsDown className="h-4 w-4" /> {voteCounts[idx]?.unhelpful ?? 0}
                 </button>
                 <button onClick={() => handleVouch(idx)} aria-label="Vouch" className="p-1">
-                  <BadgeDollarSign className="h-4 w-4" /> {voteCounts[idx].vouch}
+                  <BadgeDollarSign className="h-4 w-4" /> {voteCounts[idx]?.vouch ?? 0}
                 </button>
               </div>
             </div>
