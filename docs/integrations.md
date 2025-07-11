@@ -97,7 +97,7 @@ The workflow actions under `googleSheets:*` use this token to authenticate reque
 ## Bigcapital Setup
 
 The Bigcapital service must be running locally or accessible over HTTPS.
-1. Clone `https://github.com/bigcapitalhq/bigcapital` and start the Docker stack.
+1. Run `git submodule update --init --recursive` to fetch the Bigcapital source code located in the `bigcapital/` directory and start the Docker stack.
 2. Set `BIGCAPITAL_URL` to the API endpoint and `BIGCAPITAL_WEBHOOK_SECRET` to a shared secret in `.env`.
 3. Generate an API token from Bigcapital and save it using the **Integrations** page:
    ```json
