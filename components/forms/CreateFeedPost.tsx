@@ -18,6 +18,7 @@ import CollageCreationModal from "@/components/modals/CollageCreationModal";
 import GalleryNodeModal from "@/components/modals/GalleryNodeModal";
 import PortalNodeModal from "@/components/modals/PortalNodeModal";
 import LivechatNodeModal from "@/components/modals/LivechatNodeModal";
+import EntropyNodeModal from "@/components/modals/EntropyNodeModal";
 import PdfViewerNodeModal from "@/components/modals/PdfViewerNodeModal";
 import ProductReviewNodeModal from "../modals/ProductReviewNodeModal";
 import SplineViewerNodeModal from "../modals/SplineViewerNodeModal";
@@ -49,6 +50,7 @@ const nodeOptions: { label: string; nodeType: string }[] = [
   { label: "PORTAL", nodeType: "PORTAL" },
   { label: "DRAW", nodeType: "DRAW" },
   { label: "LIVECHAT", nodeType: "LIVECHAT" },
+  { label: "ENTROPY", nodeType: "ENTROPY" },
   { label: "PDF", nodeType: "PDF_VIEWER" },
   { label: "SPLINE", nodeType: "SPLINE_VIEWER" },
   { label: "PRODUCT_REVIEW", nodeType: "PRODUCT_REVIEW" },
@@ -218,6 +220,29 @@ const CreateFeedPost = () => {
                 type: "LIVECHAT",
                 realtimeRoomId: "global",
                 text: JSON.stringify({ inviteeId: Number(user.id) }),
+              });
+              reset();
+              router.refresh();
+            }}
+          />
+        );
+      case "ENTROPY":
+        return (
+          <EntropyNodeModal
+            isOwned={true}
+            currentInvitee=""
+            onSubmit={async (vals) => {
+              const username = vals.invitee.replace(/^@/, "");
+              const user = await fetchUserByUsername(username);
+              if (!user) return;
+              const res = await fetch("/api/random-secret");
+              const { word } = await res.json();
+              await createRealtimePost({
+                path: "/",
+                coordinates: { x: 0, y: 0 },
+                type: "ENTROPY",
+                realtimeRoomId: "global",
+                text: JSON.stringify({ inviteeId: Number(user.id), secret: word, guesses: [] }),
               });
               reset();
               router.refresh();

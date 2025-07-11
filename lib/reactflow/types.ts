@@ -119,6 +119,17 @@ export type LivechatNode = Node<
   "LIVECHAT"
 >;
 
+export type EntropyNode = Node<
+  {
+    inviteeId: number;
+    author: AuthorOrAuthorId;
+    locked: boolean;
+    secret?: string;
+    guesses?: string[];
+  },
+  "ENTROPY"
+>;
+
 export type AudioNode = Node<
   {
     audioUrl: string;
@@ -209,6 +220,7 @@ export const NodeTypeMap = {
   PORTAL: {} as PortalNode,
   DRAW: {} as DrawNode,
   LIVECHAT: {} as LivechatNode,
+  ENTROPY: {} as EntropyNode,
   AUDIO: {} as AudioNode,
   DOCUMENT: {} as DocumentNode,
   THREAD: {} as ThreadNode,
@@ -236,6 +248,7 @@ export const NodeTypeToModalMap = {
   PRODUCT_REVIEW: ProductReviewNodeModal,
   PORTAL: ShareRoomModal,
   LIVECHAT: ShareRoomModal,
+  ENTROPY: ShareRoomModal,
 };
 
 export type AppNode =
@@ -249,6 +262,7 @@ export type AppNode =
   | PortalNode
   | DrawNode
   | LivechatNode
+  | EntropyNode
   | AudioNode
   | DocumentNode
   | ThreadNode
@@ -274,6 +288,7 @@ export const DEFAULT_NODE_VALUES: Record<AppNodeType, string> = {
   ["PORTAL"]: "",
   ["DRAW"]: "",
   ["LIVECHAT"]: "",
+  ["ENTROPY"]: "",
   ["AUDIO"]: "",
   ["DOCUMENT"]: "",
   ["THREAD"]: "",

@@ -96,6 +96,10 @@ export const LivechatInviteValidation = z.object({
   invitee: z.string().min(1),
 });
 
+export const EntropyInviteValidation = z.object({
+  invitee: z.string().min(1),
+});
+
 export const PortfolioNodeValidation = z.object({
   text: z.string().min(1),
   images: z

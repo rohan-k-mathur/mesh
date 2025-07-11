@@ -46,6 +46,7 @@ import CollageCreationModal from "@/components/modals/CollageCreationModal";
 import PortalNodeModal from "@/components/modals/PortalNodeModal";
 import GalleryNodeModal from "@/components/modals/GalleryNodeModal";
 import LivechatNodeModal from "@/components/modals/LivechatNodeModal";
+import EntropyNodeModal from "@/components/modals/EntropyNodeModal";
 import PortfolioNodeModal from "@/components/modals/PortfolioNodeModal";
 import SplineViewerNodeModal from "@/components/modals/SplineViewerNodeModal";
 import ProductReviewNodeModal from "@/components/modals/ProductReviewNodeModal";
@@ -124,6 +125,7 @@ export default function NodeSidebar({
     { label: "PORTAL", nodeType: "PORTAL" },
     { label: "DRAW", nodeType: "DRAW" },
     { label: "LIVECHAT", nodeType: "LIVECHAT" },
+    { label: "ENTROPY", nodeType: "ENTROPY" },
     { label: "AUDIO", nodeType: "AUDIO" },
     { label: "LLM", nodeType: "LLM_INSTRUCTION" },
     { label: "PORTFOLIO", nodeType: "PORTFOLIO" },
@@ -314,6 +316,28 @@ export default function NodeSidebar({
                   realtimeRoomId: roomId,
                   text: JSON.stringify({ inviteeId: Number(user.id) }),
                 });
+              }}
+            />
+          );
+          break;
+        case "ENTROPY":
+          store.openModal(
+            <EntropyNodeModal
+              isOwned={true}
+              currentInvitee=""
+              onSubmit={async (vals) => {
+                const username = vals.invitee.replace(/^@/, "");
+                const user = await fetchUserByUsername(username);
+                if (!user) return;
+                const res = await fetch("/api/random-secret");
+                const { word } = await res.json();
+                createPostAndAddToCanvas({
+                  path: pathname,
+                  coordinates: centerPosition,
+                  type: "ENTROPY",
+                  realtimeRoomId: roomId,
+                  text: JSON.stringify({ inviteeId: Number(user.id), secret: word, guesses: [] }),
+                } as any);
               }}
             />
           );

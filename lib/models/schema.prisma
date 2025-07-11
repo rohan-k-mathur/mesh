@@ -315,6 +315,7 @@ enum realtime_post_type {
   AUDIO
   DRAW
   LIVECHAT
+  ENTROPY
   DOCUMENT
   THREAD
   CODE
