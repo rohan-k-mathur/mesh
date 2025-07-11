@@ -60,7 +60,9 @@ const ProductReviewNodeForm = ({
             {...form.register("claims")}
             value={form.watch("claims").join("\n")}
             onChange={(e) => {
-              const vals = e.target.value.split("\n").map((v) => v.trim()).filter(Boolean);
+              const vals = e.target.value
+                .split("\n")
+                .filter((v) => v.trim() !== "");
               form.setValue("claims", vals);
             }}
           />
