@@ -272,8 +272,9 @@ const CreateFeedPost = () => {
             currentProductLink=""
             currentClaims={[]}
             onSubmit={async (vals) => {
+              const filtered = vals.claims.filter((c) => c.trim() !== "");
               await createRealtimePost({
-                text: JSON.stringify(vals),
+                text: JSON.stringify({ ...vals, claims: filtered }),
                 path: "/",
                 coordinates: { x: 0, y: 0 },
                 type: "PRODUCT_REVIEW",

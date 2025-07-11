@@ -5,7 +5,6 @@ import { Controller } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
-import { Textarea } from "../ui/textarea";
 
 interface Props {
   onSubmit: (values: z.infer<typeof ProductReviewValidation>) => void;
@@ -31,12 +30,23 @@ const ProductReviewNodeForm = ({
       rating: currentRating,
       summary: currentSummary,
       productLink: currentProductLink,
-      claims: currentClaims,
+      claims: [
+        currentClaims[0] || "",
+        currentClaims[1] || "",
+        currentClaims[2] || "",
+      ],
     },
   });
 
   return (
-    <form method="post" className="ml-3 mr-3" onSubmit={form.handleSubmit(onSubmit)}>
+    <form
+      method="post"
+      className="ml-3 mr-3"
+      onSubmit={form.handleSubmit((vals) => {
+        const filtered = vals.claims.filter((c) => c.trim() !== "");
+        onSubmit({ ...vals, claims: filtered });
+      })}
+    >
       <hr />
       <div className="py-4 grid gap-2">
         <label className="flex flex-col text-slate-500 gap-3 text-[14px]">
@@ -56,21 +66,25 @@ const ProductReviewNodeForm = ({
           <Input type="url" {...form.register("productLink")} defaultValue={currentProductLink} />
         </label>
         <label className="flex flex-col text-slate-500 gap-3 text-[14px]">
-          Claims (one per line):
+          Claims:
           <Controller
             control={form.control}
             name="claims"
             render={({ field }) => (
-              <Textarea
-                {...field}
-                value={field.value.join("\n")}
-                onChange={(e) => {
-                  const vals = e.target.value
-                    .split("\n")
-                    .filter((v) => v.trim() !== "");
-                  field.onChange(vals);
-                }}
-              />
+              <div className="flex flex-col gap-2">
+                {[0, 1, 2].map((idx) => (
+                  <Input
+                    key={idx}
+                    type="text"
+                    value={field.value[idx] || ""}
+                    onChange={(e) => {
+                      const copy = [...field.value];
+                      copy[idx] = e.target.value;
+                      field.onChange(copy);
+                    }}
+                  />
+                ))}
+              </div>
             )}
           />
         </label>
