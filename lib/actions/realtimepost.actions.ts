@@ -4,6 +4,7 @@ import { Prisma, realtime_post_type } from "@prisma/client";
 import { prisma } from "../prismaclient";
 import { revalidatePath } from "next/cache";
 import { getUserFromCookies } from "@/lib/serverutils";
+import { createProductReview } from "./productreview.actions";
 
 export interface CreateRealtimePostParams {
   text?: string;
@@ -77,9 +78,25 @@ export async function createRealtimePost({
          // Collage fields
          ...(collageLayoutStyle && { collageLayoutStyle }),
          ...(collageColumns !== undefined && { collageColumns }),
-         ...(collageGap !== undefined && { collageGap }),
+        ...(collageGap !== undefined && { collageGap }),
       },
     });
+    if (type === "PRODUCT_REVIEW" && text) {
+      try {
+        const parsed = JSON.parse(text);
+        await createProductReview({
+          realtimePostId: createdRealtimePost.id,
+          authorId: user.userId!,
+          productName: parsed.productName || "",
+          rating: parsed.rating || 5,
+          summary: parsed.summary || "",
+          productLink: parsed.productLink || "",
+          claims: (parsed.claims || []).filter((c: string) => c.trim() !== ""),
+        });
+      } catch {
+        // ignore JSON parse errors
+      }
+    }
     const author = await prisma.user.update({
       where: {
         id: user.userId!,
@@ -232,6 +249,7 @@ export async function fetchRealtimePosts({
     include: {
       author: true,
       _count: { select: { children: true } },
+      productReview: { include: { claims: true } },
     },
     orderBy: {
       created_at: "desc",
@@ -240,6 +258,16 @@ export async function fetchRealtimePosts({
 
   return realtimePosts.map((realtimePost) => ({
     ...realtimePost,
+    productReview: realtimePost.productReview
+      ? {
+          ...realtimePost.productReview,
+          claims: realtimePost.productReview.claims.map((c) => ({
+            ...c,
+            id: c.id,
+            review_id: c.review_id,
+          })),
+        }
+      : null,
     commentCount: realtimePost._count.children,
     x_coordinate: realtimePost.x_coordinate.toNumber(),
     y_coordinate: realtimePost.y_coordinate.toNumber(),
@@ -286,10 +314,21 @@ export async function fetchRealtimePostById({ id }: { id: string }) {
         children: {
           include: { author: true, _count: { select: { children: true } } },
         },
+        productReview: { include: { claims: true } },
       },
     });
     return {
       ...post,
+      productReview: post.productReview
+        ? {
+            ...post.productReview,
+            claims: post.productReview.claims.map((c) => ({
+              ...c,
+              id: c.id,
+              review_id: c.review_id,
+            })),
+          }
+        : null,
       commentCount: post._count.children,
       x_coordinate: post.x_coordinate.toNumber(),
       y_coordinate: post.y_coordinate.toNumber(),
@@ -308,7 +347,11 @@ export async function fetchRealtimePostById({ id }: { id: string }) {
 export async function fetchRealtimePostTreeById({ id }: { id: string }) {
   const post: any = await prisma.realtimePost.findUnique({
     where: { id: BigInt(id) },
-    include: { author: true, _count: { select: { children: true } } },
+    include: {
+      author: true,
+      _count: { select: { children: true } },
+      productReview: { include: { claims: true } },
+    },
   });
   if (!post) return null;
 
@@ -333,6 +376,16 @@ export async function fetchRealtimePostTreeById({ id }: { id: string }) {
     post.children = await fetchChildren(post.id);
     return {
       ...post,
+      productReview: post.productReview
+        ? {
+            ...post.productReview,
+            claims: post.productReview.claims.map((c) => ({
+              ...c,
+              id: c.id,
+              review_id: c.review_id,
+            })),
+          }
+        : null,
       commentCount: post._count.children,
       x_coordinate: post.x_coordinate.toNumber(),
       y_coordinate: post.y_coordinate.toNumber(),

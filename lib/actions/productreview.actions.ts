@@ -113,3 +113,52 @@ export async function fetchClaimStats(claimId: string | number | bigint) {
     },
   });
 }
+
+export async function createProductReview({
+  realtimePostId,
+  authorId,
+  productName,
+  rating,
+  summary,
+  productLink,
+  claims,
+}: {
+  realtimePostId: string | number | bigint;
+  authorId: string | number | bigint;
+  productName: string;
+  rating: number;
+  summary?: string;
+  productLink?: string;
+  claims: string[];
+}) {
+  const pid = BigInt(realtimePostId);
+  const uid = BigInt(authorId);
+
+  return await prisma.$transaction(async (tx) => {
+    const review = await tx.productReview.create({
+      data: {
+        realtime_post_id: pid,
+        author_id: uid,
+        product_name: productName,
+        rating,
+        ...(summary && { summary }),
+        ...(productLink && { product_link: productLink }),
+        claims: {
+          create: claims.map((text) => ({ text })),
+        },
+      },
+      include: { claims: true },
+    });
+    return review;
+  });
+}
+
+export async function fetchProductReviewByPostId(
+  realtimePostId: string | number | bigint
+) {
+  const pid = BigInt(realtimePostId);
+  return await prisma.productReview.findUnique({
+    where: { realtime_post_id: pid },
+    include: { claims: true },
+  });
+}

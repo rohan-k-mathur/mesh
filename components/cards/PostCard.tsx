@@ -45,6 +45,7 @@ interface Props {
   embedPost?: React.ReactNode;
   pluginType?: string | null;
   pluginData?: Record<string, any> | null;
+  claimIds?: (string | number | bigint)[];
 }
 
 const PostCard = async ({
@@ -63,6 +64,7 @@ const PostCard = async ({
   embedPost,
   pluginType = null,
   pluginData = null,
+  claimIds,
   }: Props) => {
   let currentUserLike: Like | RealtimeLike | null = null;
   if (currentUserId) {
@@ -192,6 +194,7 @@ const PostCard = async ({
                       summary={vals.summary}
                       productLink={vals.productLink}
                       claims={vals.claims || []}
+                      claimIds={claimIds}
                     />
                   )
                 );

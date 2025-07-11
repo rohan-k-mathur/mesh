@@ -40,6 +40,7 @@ const Page = async ({ params }: { params: { id: string } }) => {
           type={post.type}
           author={post.author!}
           createdAt={post.created_at.toDateString()}
+          claimIds={post.productReview?.claims.map((c) => c.id) ?? []}
         />
       </div>
       <div className="flex-1 flex-row w-full mt-6 ml-4">

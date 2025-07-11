@@ -323,6 +323,7 @@ export function convertPostToNode(
         let rating = 5;
         let summary = "";
         let productLink = "";
+        let claims: string[] = [];
         if (realtimePost.content) {
           try {
             const parsed = JSON.parse(realtimePost.content);
@@ -330,6 +331,7 @@ export function convertPostToNode(
             rating = parsed.rating || 5;
             summary = parsed.summary || "";
             productLink = parsed.productLink || "";
+            claims = parsed.claims || [];
           } catch {}
         }
         return {
@@ -340,6 +342,7 @@ export function convertPostToNode(
             rating,
             summary,
             productLink,
+            claims,
             author: authorToSet,
             locked: realtimePost.locked,
           },
