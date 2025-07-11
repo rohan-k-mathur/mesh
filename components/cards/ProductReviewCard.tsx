@@ -2,6 +2,8 @@
 
 import { ThumbsUp, ThumbsDown, BadgeDollarSign, Link } from "lucide-react";
 import { useState, useEffect } from "react";
+import { fetchClaimStats, voteClaim, vouchClaim } from "@/lib/actions/productreview.actions";
+import { useAuth } from "@/lib/AuthContext";
 import React from "react";
 import localFont from 'next/font/local'
 const founders = localFont({ src: './NewEdgeTest-RegularRounded.otf' })
@@ -12,6 +14,7 @@ interface ProductReviewCardProps {
   summary: string;
   productLink: string;
   claims: string[];
+  claimIds?: (string | number | bigint)[];
 }
 
 const ProductReviewCard = ({
@@ -20,7 +23,10 @@ const ProductReviewCard = ({
   summary,
   productLink,
   claims,
+  claimIds,
 }: ProductReviewCardProps) => {
+  const auth = useAuth();
+  const userId = auth.user?.userId ?? null;
   const [voteCounts, setVoteCounts] = useState(
     claims.map(() => ({ helpful: 0, unhelpful: 0, vouch: 0 }))
   );
@@ -29,20 +35,71 @@ const ProductReviewCard = ({
     setVoteCounts(claims.map(() => ({ helpful: 0, unhelpful: 0, vouch: 0 })));
   }, [claims]);
 
-  const handleVote = (idx: number, type: "helpful" | "unhelpful") => {
-    setVoteCounts((prev) => {
-      const copy = [...prev];
-      copy[idx] = { ...copy[idx], [type]: copy[idx][type] + 1 };
-      return copy;
-    });
+  useEffect(() => {
+    async function loadCounts() {
+      if (!claimIds) return;
+      const counts = await Promise.all(
+        claimIds.map((id) => fetchClaimStats(id))
+      );
+      setVoteCounts(
+        counts.map((c) => ({
+          helpful: c?.helpful_count ?? 0,
+          unhelpful: c?.unhelpful_count ?? 0,
+          vouch: c?.vouch_total ?? 0,
+        }))
+      );
+    }
+    loadCounts();
+  }, [claimIds]);
+
+  const handleVote = async (idx: number, type: "helpful" | "unhelpful") => {
+    if (claimIds) {
+      if (userId === null) return;
+      await voteClaim({
+        claimId: claimIds[idx],
+        userId: userId!,
+        type: type === "helpful" ? "HELPFUL" : "UNHELPFUL",
+      });
+      const updated = await fetchClaimStats(claimIds[idx]);
+      setVoteCounts((prev) => {
+        const copy = [...prev];
+        copy[idx] = {
+          helpful: updated?.helpful_count ?? 0,
+          unhelpful: updated?.unhelpful_count ?? 0,
+          vouch: copy[idx].vouch,
+        };
+        return copy;
+      });
+    } else {
+      setVoteCounts((prev) => {
+        const copy = [...prev];
+        copy[idx] = { ...copy[idx], [type]: copy[idx][type] + 1 };
+        return copy;
+      });
+    }
   };
 
-  const handleVouch = (idx: number) => {
-    setVoteCounts((prev) => {
-      const copy = [...prev];
-      copy[idx] = { ...copy[idx], vouch: copy[idx].vouch + 1 };
-      return copy;
-    });
+  const handleVouch = async (idx: number) => {
+    if (claimIds) {
+      if (userId === null) return;
+      await vouchClaim({ claimId: claimIds[idx], userId: userId!, amount: 1 });
+      const updated = await fetchClaimStats(claimIds[idx]);
+      setVoteCounts((prev) => {
+        const copy = [...prev];
+        copy[idx] = {
+          helpful: updated?.helpful_count ?? copy[idx].helpful,
+          unhelpful: updated?.unhelpful_count ?? copy[idx].unhelpful,
+          vouch: updated?.vouch_total ?? copy[idx].vouch,
+        };
+        return copy;
+      });
+    } else {
+      setVoteCounts((prev) => {
+        const copy = [...prev];
+        copy[idx] = { ...copy[idx], vouch: copy[idx].vouch + 1 };
+        return copy;
+      });
+    }
   };
   return (
     <div className="flex justify-center text-[1rem]">
