@@ -66,6 +66,13 @@ export default function PageFlowBuilder() {
     { email: string; accessToken: string } | null
   >(null);
   const [sheetsKey, setSheetsKey] = useState<string | null>(null);
+  const [pendingWorkflow, setPendingWorkflow] = useState<
+    | {
+        graph: WorkflowGraph;
+        actions: Record<string, () => Promise<string | void>>;
+      }
+    | null
+  >(null);
 
   useEffect(() => {
     registerDefaultWorkflowActions();
@@ -195,6 +202,15 @@ export default function PageFlowBuilder() {
     });
   };
 
+  const runGraph = async (
+    graph: WorkflowGraph,
+    actionsMap: Record<string, () => Promise<string | void>>
+  ) => {
+    await executeWorkflow(graph, actionsMap, undefined, {}, (id) => {
+      setLogs((l) => [...l, `Executed ${id}`]);
+    });
+  };
+
   const handleRun = async () => {
     setLogs([]);
     // refresh gmail credentials in case the user recently connected an account
@@ -288,9 +304,17 @@ export default function PageFlowBuilder() {
       setLogs((l) => [...l, "Google Sheets access token not found. Configure integration first."]);
     }
     const graph: WorkflowGraph = { nodes, edges };
-    await executeWorkflow(graph, actionsMap, undefined, {}, (id) => {
-      setLogs((l) => [...l, `Executed ${id}`]);
-    });
+    if (steps.some((s) => s.type === "trigger")) {
+      setPendingWorkflow({ graph, actions: actionsMap });
+      return;
+    }
+    await runGraph(graph, actionsMap);
+  };
+
+  const handleTrigger = async () => {
+    if (!pendingWorkflow) return;
+    await runGraph(pendingWorkflow.graph, pendingWorkflow.actions);
+    setPendingWorkflow(null);
   };
 
   return (
@@ -416,7 +440,9 @@ export default function PageFlowBuilder() {
                   />
                 )}
                 {step.type === "trigger" && step.name === "onClick" && (
-                  <Button onClick={handleRun}>Trigger</Button>
+                  <Button onClick={handleTrigger} disabled={!pendingWorkflow}>
+                    Trigger
+                  </Button>
                 )}
               </CardContent>
               <CardFooter className="space-x-2">
