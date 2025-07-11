@@ -1,6 +1,7 @@
 import { ProductReviewValidation } from "@/lib/validations/thread";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { Controller } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -56,15 +57,21 @@ const ProductReviewNodeForm = ({
         </label>
         <label className="flex flex-col text-slate-500 gap-3 text-[14px]">
           Claims (one per line):
-          <Textarea
-            {...form.register("claims")}
-            value={form.watch("claims").join("\n")}
-            onChange={(e) => {
-              const vals = e.target.value
-                .split("\n")
-                .filter((v) => v.trim() !== "");
-              form.setValue("claims", vals);
-            }}
+          <Controller
+            control={form.control}
+            name="claims"
+            render={({ field }) => (
+              <Textarea
+                {...field}
+                value={field.value.join("\n")}
+                onChange={(e) => {
+                  const vals = e.target.value
+                    .split("\n")
+                    .filter((v) => v.trim() !== "");
+                  field.onChange(vals);
+                }}
+              />
+            )}
           />
         </label>
       </div>
