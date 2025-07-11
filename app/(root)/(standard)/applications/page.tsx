@@ -63,7 +63,7 @@ import UserRoomsModal from "../modals/UserRoomsModal";
             <div  className="flex flex-wrap gap-4 w-fit h-full">
                 <Button variant={"outline"} className="likebutton h-full text-[1.2rem] p-4" type="submit" onClick={gotoflowbuilder}>
                 <Image
-              src="/assets/branch.svg"
+              src="/assets/model-builder.svg"
               alt="branch"
               className="mr-2"
               width={24}
