@@ -2,6 +2,9 @@
   "name": "ephemera",
   "version": "0.1.0",
   "private": true,
+    "workspaces": [
+    "bigcapital"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "next build",
