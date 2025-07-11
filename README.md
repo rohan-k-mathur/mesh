@@ -81,36 +81,6 @@ See [docs/realtime-crdt.md](docs/realtime-crdt.md) for notes on the experimental
 ### Workflow API
 Versioned workflows can be queried via [docs/workflows.md](docs/workflows.md).
 
-## Bigcapital integration setup
-
-The Bigcapital repository is included as a Git submodule under `bigcapital/` and
-installed as a workspace. To fetch the code and prepare the environment:
-
-1. Initialize the submodule
-
-   ```bash
-   git submodule update --init --recursive
-   ```
-
-2. Copy `bigcapital/.env.example` to `bigcapital/.env` and fill in the database
-   credentials for your Bigcapital instance.
-
-3. Install dependencies and build the Bigcapital packages
-
-   ```bash
-   yarn install
-   yarn --cwd bigcapital build:server
-   ```
-
-4. Start the Bigcapital services if needed with
-
-   ```bash
-   yarn --cwd bigcapital dev:server
-   ```
-
-Once built, Mesh can import functions from the Bigcapital workspace using the
-`@/lib/bigcapital` helpers.
-
 
 ## Faster setup in Codex
 See `Codex_Environment_Guide.md` for tips on caching dependencies and using a Docker image so the development server starts quickly.
