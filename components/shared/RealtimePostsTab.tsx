@@ -38,6 +38,7 @@ const RealtimePostsTab = async ({ currentUserId, accountId }: Props) => {
               type={post.type}
               author={post.author!}
               createdAt={post.created_at.toDateString()}
+              claimIds={post.productReview?.claims.map((c) => c.id) ?? []}
             />
             
           ))}
