@@ -191,6 +191,7 @@ const PostCard = async ({
                       rating={vals.rating}
                       summary={vals.summary}
                       productLink={vals.productLink}
+                      claims={vals.claims || []}
                     />
                   )
                 );

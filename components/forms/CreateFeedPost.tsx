@@ -270,6 +270,7 @@ const CreateFeedPost = () => {
             currentRating={5}
             currentSummary=""
             currentProductLink=""
+            currentClaims={[]}
             onSubmit={async (vals) => {
               await createRealtimePost({
                 text: JSON.stringify(vals),
