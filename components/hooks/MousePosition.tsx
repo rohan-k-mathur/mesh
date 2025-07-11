@@ -46,7 +46,7 @@ const useMousePosition = (
       window.removeEventListener("mousemove", updateMousePosition);
       window.removeEventListener("drag", updateMousePosition);
     };
-  }, []);
+  }, [channel, username, reactFlowInstance]);
   return mousePosition;
 };
 
