@@ -21,6 +21,7 @@ import localFont from 'next/font/local'
 const founders = localFont({ src: './NewEdgeTest-RegularRounded.otf' })
 const DrawCanvas = dynamic(() => import("./DrawCanvas"), { ssr: false })
 const LivechatCard = dynamic(() => import("./LivechatCard"), { ssr: false })
+const EntropyCard = dynamic(() => import("./EntropyCard"), { ssr: false })
 const Spline = dynamic(() => import("@splinetool/react-spline"), { ssr: false })
 
 interface Props {
@@ -166,6 +167,26 @@ const PostCard = async ({
                   <div className="mt-2 mb-2 flex justify-center items-center">
                     <LivechatCard
                       id={id.toString()}
+                      inviteeId={inviteeId}
+                      authorId={Number(author.id)}
+                    />
+                  </div>
+                );
+              })()
+            )}
+            {type === "ENTROPY" && content && (
+              (() => {
+                let inviteeId = 0;
+                try {
+                  inviteeId = JSON.parse(content).inviteeId;
+                } catch (e) {
+                  inviteeId = 0;
+                }
+                return (
+                  <div className="mt-2 mb-2 flex justify-center items-center">
+                    <EntropyCard
+                      id={id.toString()}
+                      content={content}
                       inviteeId={inviteeId}
                       authorId={Number(author.id)}
                     />

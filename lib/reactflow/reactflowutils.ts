@@ -217,6 +217,25 @@ export function convertPostToNode(
           position: { x: realtimePost.x_coordinate, y: realtimePost.y_coordinate }
         } as LivechatNode;
       }
+      case "ENTROPY": {
+        let inviteeId = 0;
+        let secret = "";
+        let guesses: string[] = [];
+        if (realtimePost.content) {
+          try {
+            const parsed = JSON.parse(realtimePost.content);
+            inviteeId = parsed.inviteeId || 0;
+            secret = parsed.secret || "";
+            guesses = parsed.guesses || [];
+          } catch {}
+        }
+        return {
+          id: realtimePost.id.toString(),
+          type: realtimePost.type,
+          data: { inviteeId, author: authorToSet, locked: realtimePost.locked, secret, guesses },
+          position: { x: realtimePost.x_coordinate, y: realtimePost.y_coordinate },
+        } as AppNode;
+      }
       case "AUDIO":
         return {
           id: realtimePost.id.toString(),
