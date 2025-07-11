@@ -2,6 +2,9 @@
 
 import { ThumbsUp, ThumbsDown, BadgeDollarSign, Link } from "lucide-react";
 import { useState, useEffect } from "react";
+import React from "react";
+import localFont from 'next/font/local'
+const founders = localFont({ src: './NewEdgeTest-RegularRounded.otf' })
 
 interface ProductReviewCardProps {
   productName: string;
@@ -42,44 +45,58 @@ const ProductReviewCard = ({
     });
   };
   return (
-    <div className="flex justify-center">
+    <div className="flex justify-center text-[1rem]">
     <div className="w-[45rem] h-fit  rounded-md">
-    <div className="flex flex-col  items-start mt-2 mb-2">
-      <div className="font-bold">{"Product Name: " + productName}</div>
-      <div>Rating: {rating}/5</div>
-      <div className="text-sm mt-1">{"Review: " + summary}</div>
+    <div className="flex flex-col   mt-0 mb-0">
+      <div className="flex flex-col items-center">
+      <div className="items-center   font-bold"> <h1 className="text-[1.5rem] font-bold"> {productName} </h1> </div>
+      <div className="text-[1.1rem] mb-1">Rating: {rating}/5</div>
+      </div>
+      <hr></hr>
+      <div className=" my-2 items-start">{"Review: " + summary}</div>
+      <hr></hr>
 
-      <ul className="list-disc pl-2  space-y-2 w-full">
-        Claims: 
+      <ul className="flex  flex-wrap gap-x-2 px-2 my-2  w-full h-fit">
         {claims.map((c, idx) => (
-          <li key={idx} className="text-sm">
-            <div className="flex flex-col mt-2 ml-4 justify-between items-start">
-              <span>{c}</span>
-              <div className="flex items-start gap-3 text-xs">
-                <button onClick={() => handleVote(idx, "helpful")} aria-label="Helpful" className="p-1">
-                  <ThumbsUp className="h-4 w-4" /> {voteCounts[idx]?.helpful ?? 0}
+          <li key={idx} className="text-[1rem] w-fit text-block  h-fit">
+            <div className="flex flex-col my-2 mx-2  justify-between items-center">
+              <span className="text-block text-[1rem]">{c}</span>
+              <div className="flex items-center mt-1  gap-3 text-xs">
+                <button onClick={() => handleVote(idx, "helpful")} aria-label="Helpful" className="py-1">
+                  <ThumbsUp className="h-4 w-4 mb-1" /> {voteCounts[idx]?.helpful ?? 0}
                 </button>
-                <button onClick={() => handleVote(idx, "unhelpful")} aria-label="Unhelpful" className="p-1">
-                  <ThumbsDown className="h-4 w-4" /> {voteCounts[idx]?.unhelpful ?? 0}
+                <button onClick={() => handleVote(idx, "unhelpful")} aria-label="Unhelpful" className="py-1">
+                  <ThumbsDown className="h-4 w-4 mb-1" /> {voteCounts[idx]?.unhelpful ?? 0}
                 </button>
-                <button onClick={() => handleVouch(idx)} aria-label="Vouch" className="p-1">
-                  <BadgeDollarSign className="h-4 w-4" /> {voteCounts[idx]?.vouch ?? 0}
+                <button onClick={() => handleVouch(idx)} aria-label="Vouch" className="py-1">
+                  <BadgeDollarSign className="h-4 w-4 mb-1" /> {voteCounts[idx]?.vouch ?? 0}
                 </button>
               </div>
             </div>
           </li>
         ))}
       </ul>
+      <hr></hr>
 
+<div className="flex flex-wrap gap-4 mt-2">
       {/* <Link href="productlink" className="bg-transparent likebutton border-none outline-black outline-blue w-fit text-black  rounded-xl px-2 py-2"> View Product  </Link> */}
       <a
         href={productLink}
-        className="mt-2 bg-transparent likebutton border-none outline-black outline-blue w-fit text-black  rounded-xl px-2 py-2"
+        className="mt-1 bg-transparent likebutton border-none outline-black outline-blue w-fit text-black  rounded-xl px-2 py-2"
         target="_blank"
         rel="noopener noreferrer"
       >
-        View Product
+        Product Link
       </a>
+      <a
+        href={productLink}
+        className="mt-1 bg-transparent likebutton border-none outline-black outline-blue w-fit text-black  rounded-xl px-2 py-2"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        View Photos
+      </a>
+      </div>
     </div>
     </div>
 
