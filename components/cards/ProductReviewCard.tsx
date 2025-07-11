@@ -1,6 +1,6 @@
 "use client";
 
-import { ThumbsUp, ThumbsDown, BadgeDollarSign } from "lucide-react";
+import { ThumbsUp, ThumbsDown, BadgeDollarSign, Link } from "lucide-react";
 import { useState } from "react";
 
 interface ProductReviewCardProps {
@@ -39,17 +39,19 @@ const ProductReviewCard = ({
   };
   return (
     <div className="flex justify-center">
-    <div className="w-[45rem] h-[24rem]  rounded-md">
+    <div className="w-[45rem] h-fit  rounded-md">
     <div className="flex flex-col  items-start mt-2 mb-2">
-      <div className="font-bold">{productName}</div>
+      <div className="font-bold">{"Product Name: " + productName}</div>
       <div>Rating: {rating}/5</div>
-      <div className="text-sm mt-1">{summary}</div>
-      <ul className="list-disc pl-5 mt-2 space-y-2 w-full">
+      <div className="text-sm mt-1">{"Review: " + summary}</div>
+
+      <ul className="list-disc pl-2  space-y-2 w-full">
+        Claims: 
         {claims.map((c, idx) => (
           <li key={idx} className="text-sm">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col mt-2 ml-4 justify-between items-start">
               <span>{c}</span>
-              <div className="flex items-center gap-2 text-xs">
+              <div className="flex items-start gap-3 text-xs">
                 <button onClick={() => handleVote(idx, "helpful")} aria-label="Helpful" className="p-1">
                   <ThumbsUp className="h-4 w-4" /> {voteCounts[idx].helpful}
                 </button>
@@ -64,9 +66,11 @@ const ProductReviewCard = ({
           </li>
         ))}
       </ul>
+
+      {/* <Link href="productlink" className="bg-transparent likebutton border-none outline-black outline-blue w-fit text-black  rounded-xl px-2 py-2"> View Product  </Link> */}
       <a
         href={productLink}
-        className="text-xs text-blue-500"
+        className="mt-2 bg-transparent likebutton border-none outline-black outline-blue w-fit text-black  rounded-xl px-2 py-2"
         target="_blank"
         rel="noopener noreferrer"
       >
