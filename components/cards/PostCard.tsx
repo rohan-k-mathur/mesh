@@ -240,7 +240,9 @@ const PostCard = async ({
                 <Spline scene={(pluginData as any).sceneUrl} className="w-[100%] h-[30vw]" />
               </div>
             )}
-            {embedPost && <div className="mt-4 scale-75">{embedPost}</div>}
+            <div className="items-start justify-start mx-[0%] px-8 w-full">
+            {embedPost && <div className="mt-4 w-full items-center scale-85">{embedPost}</div>}
+            </div>
             <hr className="mt-4 mb-3 w-full h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-100 to-transparent opacity-75" />
 
             <div className="mt-4 flex flex-col gap-x-3 gap-y-4">
