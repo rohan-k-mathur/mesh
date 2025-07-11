@@ -28,6 +28,7 @@ function ProductReviewNode({ id, data }: NodeProps<ProductReviewNodeData>) {
   const [rating, setRating] = useState(data.rating);
   const [summary, setSummary] = useState(data.summary);
   const [productLink, setProductLink] = useState(data.productLink);
+  const [claims, setClaims] = useState<string[]>(data.claims || []);
 
   useEffect(() => {
     if ("username" in author) return;
@@ -39,6 +40,7 @@ function ProductReviewNode({ id, data }: NodeProps<ProductReviewNodeData>) {
     setRating(data.rating);
     setSummary(data.summary);
     setProductLink(data.productLink);
+    setClaims(data.claims || []);
   }, [data]);
 
   const isOwned = currentUser ? Number(currentUser.userId) === Number(data.author.id) : false;
@@ -48,6 +50,7 @@ function ProductReviewNode({ id, data }: NodeProps<ProductReviewNodeData>) {
     setRating(values.rating);
     setSummary(values.summary);
     setProductLink(values.productLink);
+    setClaims(values.claims);
     await updateRealtimePost({
       id,
       path,
@@ -66,6 +69,7 @@ function ProductReviewNode({ id, data }: NodeProps<ProductReviewNodeData>) {
         currentRating={rating}
         currentSummary={summary}
         currentProductLink={productLink}
+        currentClaims={claims}
         onSubmit={onSubmit}
       />
       }
@@ -79,6 +83,11 @@ function ProductReviewNode({ id, data }: NodeProps<ProductReviewNodeData>) {
         <div className="font-bold">{productName}</div>
         <div>Rating: {rating}/5</div>
         <div className="text-sm mt-1">{summary}</div>
+        <ul className="list-disc pl-5 mt-2 space-y-1 text-sm">
+          {claims.map((c, idx) => (
+            <li key={idx}>{c}</li>
+          ))}
+        </ul>
         <Button>
         <a href={productLink} className="text-xs text-blue-500" target="_blank" rel="noopener noreferrer">
           View Product

@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
+import { Textarea } from "../ui/textarea";
 
 interface Props {
   onSubmit: (values: z.infer<typeof ProductReviewValidation>) => void;
@@ -11,6 +12,7 @@ interface Props {
   currentRating: number;
   currentSummary: string;
   currentProductLink: string;
+  currentClaims: string[];
 }
 
 const ProductReviewNodeForm = ({
@@ -19,6 +21,7 @@ const ProductReviewNodeForm = ({
   currentRating,
   currentSummary,
   currentProductLink,
+  currentClaims,
 }: Props) => {
   const form = useForm({
     resolver: zodResolver(ProductReviewValidation),
@@ -27,6 +30,7 @@ const ProductReviewNodeForm = ({
       rating: currentRating,
       summary: currentSummary,
       productLink: currentProductLink,
+      claims: currentClaims,
     },
   });
 
@@ -49,6 +53,17 @@ const ProductReviewNodeForm = ({
         <label className="flex flex-col text-slate-500 gap-3 text-[14px]">
           Product Link:
           <Input type="url" {...form.register("productLink")} defaultValue={currentProductLink} />
+        </label>
+        <label className="flex flex-col text-slate-500 gap-3 text-[14px]">
+          Claims (one per line):
+          <Textarea
+            {...form.register("claims")}
+            value={form.watch("claims").join("\n")}
+            onChange={(e) => {
+              const vals = e.target.value.split("\n").map((v) => v.trim()).filter(Boolean);
+              form.setValue("claims", vals);
+            }}
+          />
         </label>
       </div>
       <hr />

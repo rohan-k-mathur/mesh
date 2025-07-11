@@ -381,6 +381,7 @@ export default function NodeSidebar({
               currentRating={5}
               currentSummary=""
               currentProductLink=""
+              currentClaims={[]}
               onSubmit={(vals: z.infer<typeof ProductReviewValidation>) => {
                 createPostAndAddToCanvas({
                   text: JSON.stringify(vals),
