@@ -126,7 +126,7 @@ export default function WorkflowBuilder({ initialGraph, onSave }: Props) {
 
   const onConnect = useCallback((connection: Connection) => {
     setEdges((eds) => addEdge({ ...connection, condition: "" }, eds));
-  }, []);
+  }, [setEdges]);
   const onDrop = (event: React.DragEvent) => {
     event.preventDefault();
     const type = event.dataTransfer.getData("application/reactflow");

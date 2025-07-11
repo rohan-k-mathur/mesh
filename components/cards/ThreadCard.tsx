@@ -45,6 +45,7 @@ interface Props {
   pluginData?: Record<string, any> | null;
 }
 
+/* eslint-disable-next-line @next/next/no-async-client-component */
 const ThreadCard = async ({
   id,
   currentUserId,
