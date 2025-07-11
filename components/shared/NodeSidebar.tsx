@@ -383,8 +383,9 @@ export default function NodeSidebar({
               currentProductLink=""
               currentClaims={[]}
               onSubmit={(vals: z.infer<typeof ProductReviewValidation>) => {
+                const filtered = vals.claims.filter((c) => c.trim() !== "");
                 createPostAndAddToCanvas({
-                  text: JSON.stringify(vals),
+                  text: JSON.stringify({ ...vals, claims: filtered }),
                   path: pathname,
                   coordinates: centerPosition,
                   type: "PRODUCT_REVIEW",

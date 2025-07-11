@@ -46,15 +46,16 @@ function ProductReviewNode({ id, data }: NodeProps<ProductReviewNodeData>) {
   const isOwned = currentUser ? Number(currentUser.userId) === Number(data.author.id) : false;
 
   async function onSubmit(values: z.infer<typeof ProductReviewValidation>) {
+    const filtered = values.claims.filter((c) => c.trim() !== "");
     setProductName(values.productName);
     setRating(values.rating);
     setSummary(values.summary);
     setProductLink(values.productLink);
-    setClaims(values.claims);
+    setClaims(filtered);
     await updateRealtimePost({
       id,
       path,
-      content: JSON.stringify(values),
+      content: JSON.stringify({ ...values, claims: filtered }),
     });
     store.closeModal();
   }
