@@ -1,0 +1,3 @@
+[submodule "bigcapital"]
+	path = bigcapital
+	url = https://github.com/bigcapitalhq/bigcapital.git
