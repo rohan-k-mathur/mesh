@@ -37,9 +37,12 @@ const ProductReviewCard = ({
 
   useEffect(() => {
     async function loadCounts() {
-      if (!claimIds) return;
+      if (!claimIds || claimIds.length === 0) return;
       const counts = await Promise.all(
-        claimIds.map((id) => fetchClaimStats(id.toString()))
+        claims.map((_, i) => {
+          const id = claimIds[i];
+          return id != null ? fetchClaimStats(id.toString()) : Promise.resolve(null);
+        })
       );
       setVoteCounts(
         counts.map((c) => ({
@@ -50,10 +53,10 @@ const ProductReviewCard = ({
       );
     }
     loadCounts();
-  }, [claimIds]);
+  }, [claimIds, claims]);
 
   const handleVote = async (idx: number, type: "helpful" | "unhelpful") => {
-    if (claimIds) {
+    if (claimIds && claimIds[idx] != null) {
       if (userId === null) return;
       await voteClaim({
         claimId: claimIds[idx].toString(),
@@ -80,7 +83,7 @@ const ProductReviewCard = ({
   };
 
   const handleVouch = async (idx: number) => {
-    if (claimIds) {
+    if (claimIds && claimIds[idx] != null) {
       if (userId === null) return;
       await vouchClaim({
         claimId: claimIds[idx].toString(),
