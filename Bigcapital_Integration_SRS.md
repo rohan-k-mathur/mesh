@@ -2,14 +2,14 @@
 
 ## 1. Introduction
 ### 1.1 Purpose
-This document describes how the open source accounting platform [Bigcapital](https://github.com/bigcapitalhq/bigcapital) will be integrated into Mesh. Bigcapital is cloned under the `bigcapital/` directory and run locally with Docker. The goal is to expose Bigcapital's financial features as workflow actions and triggers within the PageFlow builder so users can automate accounting tasks without relying on the Bigcapital cloud.
+This document describes how the open source accounting platform [Bigcapital](https://github.com/bigcapitalhq/bigcapital) integrates into Mesh. Bigcapital is included as a Git submodule under the `bigcapital/` directory and referenced in `package.json` via Yarn workspaces. The goal is to expose Bigcapital's financial functions as local modules usable within the PageFlow builder so workflows can automate accounting tasks without external API calls or reliance on the Bigcapital cloud.
 
 ### 1.2 Scope
 The integration covers:
-1. Cloning the Bigcapital repository and running its Docker compose stack locally.
-2. Library modules for creating invoices, recording expenses and retrieving balances by calling the local service.
+1. Fetching the Bigcapital repository as a submodule and installing it as a workspace dependency.
+2. Library modules for creating invoices, recording expenses and retrieving balances by calling Bigcapital code directly.
 3. PageFlow actions and triggers that use those modules.
-4. User interfaces for connecting to the self‑hosted instance.
+4. Configuration of Bigcapital environment variables and database connections.
 
 ### 1.3 References
 - [Bigcapital Documentation](https://docs.bigcapital.app/)
@@ -18,7 +18,7 @@ The integration covers:
 - `Linear_Workflow_Builder_SRS.md`
 
 ## 2. Overall Description
-Bigcapital is an AGPL licensed accounting and inventory system. A full copy of the project lives in `bigcapital/` and is started with `docker compose`. Mesh communicates with the local service through REST and GraphQL endpoints exposed on the internal Docker network. The integration adds a `BigcapitalIntegration` module that registers workflow actions (e.g. `createInvoice`) and triggers (e.g. `invoicePaid`). Connection details are stored in the existing integrations table.
+Bigcapital is an AGPL licensed accounting and inventory system. A copy of the project lives in `bigcapital/` and builds alongside Mesh as part of the Yarn workspace. Mesh imports server packages from this directory rather than communicating over HTTP. The `BigcapitalIntegration` module registers workflow actions (e.g. `createInvoice`) and triggers using these local function calls. Application settings such as database credentials are stored in `bigcapital/.env`.
 
 ## 3. System Features
 ### 3.1 Bigcapital Actions
@@ -31,88 +31,78 @@ Bigcapital is an AGPL licensed accounting and inventory system. A full copy of t
 - **lowInventory** – Emits when an item stock level falls below a threshold.
 
 ### 3.3 Credential Management
-- Users provide the local Bigcapital URL and login credentials configured in the `bigcapital/.env` file.
-- These values are encrypted in the database similar to other integrations.
+- Environment variables in `bigcapital/.env` configure the database connection and authentication keys.
+- Sensitive values are encrypted in the database similar to other integrations.
 
 ### 3.4 PageFlow Integration
 - Actions and triggers become selectable options in the PageFlow builder.
 - Steps can mix Bigcapital functions with existing workflow actions.
-- Logs from Bigcapital requests appear in the builder output panel.
+- Logs from executed functions appear in the builder output panel.
 
 ## 4. External Interface Requirements
 ### 4.1 User Interfaces
-- **Integration Modal** – Allows adding a Bigcapital connection and testing credentials.
+- **Integration Modal** – Allows configuring Bigcapital database credentials.
 - **PageFlow Builder** – Presents Bigcapital actions/triggers in the step selector and provides fields for invoice data or expense details.
 
 ### 4.2 Hardware Interfaces
-- No special hardware requirements. Both Mesh and Bigcapital run on standard servers or Docker containers.
+- No special hardware requirements. Mesh and the Bigcapital packages run on standard servers or containers.
 
 ### 4.3 Software Interfaces
-- HTTPS requests to the Bigcapital API (`/api/graphql` and REST endpoints).
+- Direct imports from Bigcapital workspace packages.
 - Existing Mesh integration loader and workflow executor libraries.
 
 ### 4.4 Communication Interfaces
-- Mesh calls the local Bigcapital REST and GraphQL endpoints over HTTP on the Docker network.
-- Webhooks from the Bigcapital container are received via `/api/webhooks/bigcapital`.
+- Internal function calls between Mesh and Bigcapital modules.
+- Optional event hooks emitted by Bigcapital packages for triggers.
 
 ## 5. Non-Functional Requirements
-- **Performance:** Each action should complete within 2 seconds under normal API load.
-- **Security:** Credentials are encrypted at rest and never logged. Webhook payloads are verified using shared secrets.
-- **Reliability:** Retry logic handles transient API failures. Workflows log errors and continue processing other steps.
+- **Performance:** Actions should complete within 2 seconds under normal load without network latency.
+- **Security:** Credentials are encrypted at rest and never logged.
+- **Reliability:** Retry logic handles transient database failures. Workflows log errors and continue processing other steps.
 - **Maintainability:** Implementation follows repository coding conventions and passes `npm run lint`.
 
 ## 6. User Flows
-1. **Connect Account** – User opens the Integrations modal, selects Bigcapital and enters the URL, email and password for the local instance. Mesh stores these values securely.
+1. **Configure Bigcapital** – User initializes the submodule, copies `.env.example` to `.env` and sets database credentials.
 2. **Build Workflow** – In PageFlow, the user adds steps such as `onClick` → `bigcapital:createInvoice`. The builder prompts for customer name, items and totals.
-3. **Run Flow** – When triggered, Mesh sends requests to the self‑hosted Bigcapital service. Success or error responses are displayed in the log section.
-4. **Webhook Trigger** – When an invoice is paid, Bigcapital sends a webhook to Mesh, triggering a PageFlow that may send an email or update a spreadsheet.
+3. **Run Flow** – When triggered, Mesh calls Bigcapital functions directly. Success or error responses are displayed in the log section.
+4. **Trigger on Events** – When an invoice is paid, Bigcapital emits an event that triggers a PageFlow which may send an email or update a spreadsheet.
 
 ## 7. System Architecture
-1. **Bigcapital Service**
-   - Deployed via `docker compose -f bigcapital/docker-compose.prod.yml -p bigcapital up -d`.
+1. **Bigcapital Workspace**
+   - Managed as a Git submodule and listed under `workspaces` in `package.json`.
    - Environment variables are loaded from `bigcapital/.env`.
-   - Exposes REST and GraphQL endpoints on an internal network.
-2. **API Wrapper**
-   - A new module under `lib/actions/bigcapital.actions.ts` wraps common calls like `createInvoice` and `recordExpense`.
-   - Uses `fetch` to hit the local service URLs defined in the integration settings.
-3. **Integration Module**
-   - `integrations/BigcapitalIntegration.ts` implements the `IntegrationApp` interface.
-   - Registers actions and triggers using the wrapper functions.
-4. **Webhook Handler**
-   - API route `/api/webhooks/bigcapital` verifies events from Bigcapital and enqueues matching PageFlow triggers.
-5. **PageFlow Execution**
-   - Existing workflow executor maps action names like `bigcapital:createInvoice` to the API wrapper methods.
+2. **Integration Module**
+   - `integrations/BigcapitalIntegration.ts` imports functions from Bigcapital packages.
+   - Registers actions and triggers using those functions.
+3. **PageFlow Execution**
+   - Existing workflow executor maps action names like `bigcapital:createInvoice` to the imported functions.
 
 ## 8. Product Development Roadmap
 1. **Research & Setup**
-   - Review Bigcapital docs and clone the repository into `bigcapital/`.
-   - Copy `.env.example` to `.env`, adjust credentials, then run `docker compose -f docker-compose.prod.yml -p bigcapital up -d`.
-2. **API Wrapper**
-   - Implement TypeScript functions for invoices, expenses and account queries.
-   - Write unit tests with mocked responses.
+   - Review Bigcapital docs and fetch the submodule with `git submodule update --init --recursive`.
+   - Copy `.env.example` to `.env`, set database credentials and run `yarn install`.
+2. **Library Wrappers**
+   - Create TypeScript helpers for invoices, expenses and account queries.
+   - Write unit tests for these helpers.
 3. **Integration Module**
-   - Create `BigcapitalIntegration.ts` exporting available actions and triggers.
+   - Export available actions and triggers through `BigcapitalIntegration.ts`.
    - Register the module in `integrations/index.ts`.
 4. **Credential UI**
-   - Extend the Integrations modal to accept the self‑hosted URL, email and password, plus webhook secret configuration.
+   - Extend the Integrations modal to edit values stored in `bigcapital/.env`.
 5. **PageFlow Support**
    - Add Bigcapital actions and triggers to the builder dropdowns.
-   - Display form fields for invoice data, expense details and stock thresholds.
-6. **Webhook Implementation**
-   - Create the `/api/webhooks/bigcapital` route and link triggers to PageFlow executions.
-7. **Testing & Beta**
+6. **Testing & Beta**
    - Run end‑to‑end tests creating invoices and recording expenses via workflows.
    - Invite a small set of users to trial the integration and gather feedback.
-8. **Public Release**
+7. **Public Release**
    - Document usage in README and promote to all Mesh users.
 
 ## 9. Testing Plan
-- **Unit Tests** for the API wrapper and webhook verification.
+- **Unit Tests** for the library helpers and event handling.
 - **Integration Tests** executing PageFlows with Bigcapital actions.
-- **Webhook Tests** ensuring external events correctly trigger flows.
 - Continuous linting with `npm run lint` to enforce code quality.
 
 ## 10. Future Considerations
 - Support additional Bigcapital modules such as payroll and inventory transfers.
 - Provide a full Bigcapital dashboard inside Mesh using embedded pages.
-- Consider caching common queries to reduce API calls and improve performance.
+- Consider exposing optional API endpoints if remote access becomes necessary.
