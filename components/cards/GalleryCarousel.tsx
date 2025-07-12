@@ -24,14 +24,15 @@ const GalleryCarousel = ({ urls }: Props) => {
 
   return (
     <div className="w-full flex flex-1  max-w-[90%]  h-fit justify-center">
-    <div className="relative h-auto my-0  flex justify-center mx-auto">
+    <div className="relative h-fit my-0  flex justify-center mx-auto">
       <Image
-        className="carousel px-10"
+        className="carousel px-10 items-center justify-center h-fit w-[100%]"
         src={urls[currentIndex]}
         alt={`img-${currentIndex}`}
         width={0}
         height={0}
         sizes="100vw"
+
 
       />
       {urls.length > 0 && (
@@ -44,7 +45,7 @@ const GalleryCarousel = ({ urls }: Props) => {
               width={0}
               height={0}
               sizes="30vw"
-              className="cursor-pointer object-contain w-fit "
+              className="cursor-pointer object-contain w-fit h-fit"
               layout="responsive"
 
 
@@ -58,7 +59,7 @@ const GalleryCarousel = ({ urls }: Props) => {
               width={0}
               height={0}
               sizes="30vw"
-              className="cursor-pointer object-contain w-fit "
+              className="cursor-pointer object-contain w-fit h-fit"
               layout="responsive"
 
             />
