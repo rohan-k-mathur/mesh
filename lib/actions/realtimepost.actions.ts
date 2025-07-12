@@ -453,6 +453,7 @@ export async function fetchUserRealtimePosts({
     include: {
       author: true,
       _count: { select: { children: true } },
+      productReview: { include: { claims: true } },
     },
     orderBy: {
       created_at: "desc",
@@ -461,6 +462,16 @@ export async function fetchUserRealtimePosts({
 
   return realtimePosts.map((realtimePost) => ({
     ...realtimePost,
+    productReview: realtimePost.productReview
+      ? {
+          ...realtimePost.productReview,
+          claims: realtimePost.productReview.claims.map((c) => ({
+            ...c,
+            id: c.id.toString(),
+            review_id: c.review_id.toString(),
+          })),
+        }
+      : null,
     commentCount: realtimePost._count.children,
     x_coordinate: realtimePost.x_coordinate.toNumber(),
     y_coordinate: realtimePost.y_coordinate.toNumber(),
