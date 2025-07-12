@@ -14,8 +14,10 @@ export default async function Page({ params }: { params: { id: string } }) {
   const messages = await fetchMessages({ conversationId });
   const other = conversation.user1_id === user.userId ? conversation.user2 : conversation.user1;
   return (
-    <main className="p-4 space-y-4">
-      <h1 className="head-text">Chat with {other.name}</h1>
+    <main className=" p-4 mt-[-3rem] space-y-6 items-center justify-center ">
+      <h1 className="ml-[40%]  text-[2.4rem]  ">{other.name}</h1>
+      <hr></hr>
+
       <ChatRoom
         conversationId={conversationId}
         currentUserId={user.userId}
@@ -27,6 +29,7 @@ export default async function Page({ params }: { params: { id: string } }) {
           sender: { name: m.sender.name, image: m.sender.image },
         }))}
       />
+      <hr></hr>
       <MessageForm conversationId={conversationId} />
     </main>
   );

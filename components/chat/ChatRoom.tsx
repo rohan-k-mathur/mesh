@@ -46,16 +46,18 @@ export default function ChatRoom({
   }, [conversationId]);
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       {messages.map((m) => (
+        
         <ChatMessage
           key={m.id}
           type={m.sender_id === currentUserId.toString() ? "outgoing" : "incoming"}
           variant="bubble"
           id={m.id}
         >
-          <ChatMessageAvatar imageSrc={m.sender.image || "/assets/user-helsinki.svg"} />
           <ChatMessageContent content={m.text} />
+          <ChatMessageAvatar imageSrc={m.sender.image || "/assets/user-helsinki.svg"} />
+
         </ChatMessage>
       ))}
     </div>

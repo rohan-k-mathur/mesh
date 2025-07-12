@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { fetchFollowRelations, FriendEntry } from "@/lib/actions/follow.actions";
-
+import Image from "next/image";
 interface Props {
   currentUserId: bigint;
   accountId: bigint;
@@ -16,18 +16,21 @@ const MessagesTab = async ({ currentUserId, accountId }: Props) => {
 
   return (
 
-    <ul className="mt-9 space-y-4">
-      <li>
-        <Link href="/profile/messages" className="text-primary-500 hover:underline">
-          Go to Messages
+    <div className="mt-9 space-y-4 justify-center items-center mx-auto">
+        <Link href="/profile/messages" className="items-cente flex gap-4 text-slate-900 hover:underline">
+            <button className="likebutton flex  p-9 outline-indigo-500 w-fit h-fit text-[1.5rem] font-light outline-1 ">
+            <Image
+                  src="/assets/message-queue.svg"
+                  alt="inbox"
+                  width={24}
+                  height={24}
+                  className="object-contain w-fit h-fit mr-4"
+                />
+          Your Messages
+          </button>
         </Link>
-      </li>
-      {relations.map((rel) => (
-        <li key={rel.id.toString()} className="text-base-regular text-black">
-          {rel.name} <span className="text-light-3">- {rel.status}</span>
-        </li>
-      ))}
-    </ul>
+     
+    </div>
     
   );
       }

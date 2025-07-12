@@ -86,7 +86,7 @@ ChatMessage.displayName = "ChatMessage";
 // Avatar component
 
 const chatMessageAvatarVariants = cva(
-	"w-8 h-8 flex items-center rounded-full justify-center ring-1 shrink-0 bg-transparent overflow-hidden",
+	"w-8 h-8 flex items-center rounded-full justify-center border-black border-[1px] p-1 shrink-0 bg-slate-200 bg-opacity-30 overflow-hidden",
 	{
 		variants: {
 			type: {
@@ -120,7 +120,7 @@ const ChatMessageAvatar = React.forwardRef<
 			{...props}
 		>
 			{imageSrc ? (
-				<Image src={imageSrc} alt="Avatar" fill className="object-cover" />
+				<Image src={imageSrc} alt="Avatar" width={0} height={0} sizes="30vw" className="object-cover  w-full h-full" />
 			) : (
 				<div className="translate-y-px [&_svg]:size-4 [&_svg]:shrink-0">
 					{icon}
@@ -133,11 +133,11 @@ ChatMessageAvatar.displayName = "ChatMessageAvatar";
 
 // Content component
 
-const chatMessageContentVariants = cva("flex flex-col gap-2", {
+const chatMessageContentVariants = cva("flex flex-col gap-2 ", {
 	variants: {
 		variant: {
 			default: "",
-			bubble: "rounded-xl px-3 py-2",
+			bubble: "rounded-xl px-4 py-1 ",
 			full: "",
 		},
 		type: {
@@ -149,12 +149,12 @@ const chatMessageContentVariants = cva("flex flex-col gap-2", {
 		{
 			variant: "bubble",
 			type: "incoming",
-			className: "bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-slate-50",
+			className: "bg-rose-200  bg-opacity-40 tab-button outline-transparent text-[.9rem] text-slate-950 dark:bg-slate-50 dark:text-slate-900",
 		},
 		{
 			variant: "bubble",
 			type: "outgoing",
-			className: "bg-slate-900 text-slate-50 dark:bg-slate-50 dark:text-slate-900",
+			className: "bg-indigo-200  bg-opacity-40 tab-button outline-transparent text-[.95rem] text-slate-950 dark:bg-slate-50 dark:text-slate-900",
 		},
 	],
 	defaultVariants: {
