@@ -3,6 +3,7 @@ import ThreadsTab from "@/components/shared/ThreadsTab";
 import RealtimePostsTab from "@/components/shared/RealtimePostsTab";
 import AboutTab from "@/components/shared/AboutTab";
 import FriendsTab from "@/components/shared/FriendsTab";
+import MessagesTab from "@/components/shared/MessagesTab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { profileTabs } from "@/constants";
 import { fetchUser } from "@/lib/actions/user.actions";
@@ -78,7 +79,13 @@ async function Page({ params }: { params: { id: string } }) {
                   currentUserId={activeUser.userId!}
                   accountId={profilePageUser.id}
                 />
-              ) : (
+              ) 
+              :  tab.label === "Messages" ? (
+                <MessagesTab
+                  currentUserId={activeUser.userId!}
+                  accountId={profilePageUser.id}
+                />
+              ) :(
                 <div className="placeholder">
                   Content for {tab.label}
                 </div>
