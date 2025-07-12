@@ -1,6 +1,5 @@
 "use client";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
 interface Props {
   conversationId: bigint;
@@ -8,7 +7,6 @@ interface Props {
 
 export default function MessageForm({ conversationId }: Props) {
   const [text, setText] = useState("");
-  const router = useRouter();
   async function send() {
     if (!text.trim()) return;
     await fetch(`/api/messages/${conversationId}`, {
@@ -17,7 +15,6 @@ export default function MessageForm({ conversationId }: Props) {
       body: JSON.stringify({ text }),
     });
     setText("");
-    router.refresh();
   }
   return (
     <div className="flex gap-2">
