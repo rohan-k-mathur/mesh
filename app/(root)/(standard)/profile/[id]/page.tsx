@@ -25,6 +25,15 @@ async function Page({ params }: { params: { id: string } }) {
   const friend = activeUser.userId
     ? await areFriends({ userId: activeUser.userId, targetUserId: profilePageUser.id })
     : false;
+
+    const isOwnProfile =
+    BigInt(activeUser.userId!) === BigInt(profilePageUser.id); // ← helper
+
+  // 1️⃣  Only include “Messages” in the tab list when it’s your own profile
+  const visibleTabs = profileTabs.filter(
+    (tab) => tab.label !== "Messages" || isOwnProfile
+  );
+
   return (
     <section className=" mt-[-2rem]">
       <ProfileHeader
@@ -37,11 +46,15 @@ async function Page({ params }: { params: { id: string } }) {
         isFollowing={following}
         isFriend={friend}
       />
-      <div className="mt-4">
+       <div className="mt-4">
         <Tabs defaultValue="threads" className="w-full">
-          <TabsList className="  mb-4">
-            {profileTabs.map((tab) => (
-              <TabsTrigger key={tab.label} value={tab.value} className="tab tab-button">
+          <TabsList className="mb-4">
+            {visibleTabs.map((tab) => (
+              <TabsTrigger
+                key={tab.label}
+                value={tab.value}
+                className="tab tab-button"
+              >
                 <Image
                   src={tab.icon}
                   alt={tab.label}
@@ -58,11 +71,12 @@ async function Page({ params }: { params: { id: string } }) {
               </TabsTrigger>
             ))}
           </TabsList>
-          {profileTabs.map((tab) => (
+
+          {visibleTabs.map((tab) => (
             <TabsContent
               key={`content-${tab.label}`}
               value={tab.value}
-              className="w-full text-light-1 "
+              className="w-full text-light-1"
             >
               {tab.label === "Posts" ? (
                 <RealtimePostsTab
@@ -79,22 +93,21 @@ async function Page({ params }: { params: { id: string } }) {
                   currentUserId={activeUser.userId!}
                   accountId={profilePageUser.id}
                 />
-              ) 
-              :  tab.label === "Messages" ? (
+              ) : tab.label === "Messages" ? (
+                /* 2️⃣  This branch only exists when isOwnProfile === true */
                 <MessagesTab
                   currentUserId={activeUser.userId!}
                   accountId={profilePageUser.id}
                 />
-              ) :(
-                <div className="placeholder">
-                  Content for {tab.label}
-                </div>
+              ) : (
+                <div className="placeholder">Content for {tab.label}</div>
               )}
             </TabsContent>
           ))}
         </Tabs>
       </div>
     </section>
+
   );
 }
 

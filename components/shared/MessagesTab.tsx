@@ -12,8 +12,10 @@ const MessagesTab = async ({ currentUserId, accountId }: Props) => {
   if (relations.length === 0) {
     return <p className="no-result">No connections</p>;
   }
+  if (BigInt(currentUserId) === BigInt(accountId)) {
 
   return (
+
     <ul className="mt-9 space-y-4">
       <li>
         <Link href="/profile/messages" className="text-primary-500 hover:underline">
@@ -26,7 +28,11 @@ const MessagesTab = async ({ currentUserId, accountId }: Props) => {
         </li>
       ))}
     </ul>
+    
   );
+      }
+      return <main className="text-center">{ }</main>;
+
 };
 
 export default MessagesTab;
