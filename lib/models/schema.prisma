@@ -41,6 +41,9 @@ model User {
   productReviews           ProductReview[]
   productReviewVotes       ProductReviewVote[]
   productReviewVouches     ProductReviewVouch[]
+  conversationsUser1       Conversation[]        @relation("ConversationUser1")
+  conversationsUser2       Conversation[]        @relation("ConversationUser2")
+  messages                 Message[]
 
   @@map("users")
 }
