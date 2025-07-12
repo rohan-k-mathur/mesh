@@ -48,24 +48,24 @@ const ProductReviewNodeForm = ({
       })}
     >
       <hr />
-      <div className="py-4 grid gap-2">
-        <label className="flex flex-col text-slate-500 gap-3 text-[14px]">
+      <div className="py-2 grid gap-0 ">
+        <label className="flex flex-col text-slate-900 gap-3 text-[14px] ">
           Product Name:
-          <Input type="text" {...form.register("productName")} defaultValue={currentProductName} />
+          <Input className="border-blue " type="text" {...form.register("productName")} defaultValue={currentProductName} />
         </label>
-        <label className="flex flex-col text-slate-500 gap-3 text-[14px]">
+        <label className="flex flex-col text-slate-900 gap-3 text-[14px] ">
           Rating:
-          <Input type="number" min={1} max={5} {...form.register("rating", { valueAsNumber: true })} defaultValue={currentRating} />
+          <Input className="border-blue " type="number" min={1} max={5} {...form.register("rating", { valueAsNumber: true })} defaultValue={currentRating} />
         </label>
-        <label className="flex flex-col text-slate-500 gap-3 text-[14px]">
+        <label className="flex flex-col text-slate-900 gap-3 text-[14px] ">
           Summary:
-          <Input type="text" {...form.register("summary")} defaultValue={currentSummary} />
+          <Input className="border-blue " type="text" {...form.register("summary")} defaultValue={currentSummary} />
         </label>
-        <label className="flex flex-col text-slate-500 gap-3 text-[14px]">
+        <label className="flex flex-col text-slate-900 gap-3 text-[14px] ">
           Product Link:
-          <Input type="url" {...form.register("productLink")} defaultValue={currentProductLink} />
+          <Input className="border-blue " type="url" {...form.register("productLink")} defaultValue={currentProductLink} />
         </label>
-        <label className="flex flex-col text-slate-500 gap-3 text-[14px]">
+        <label className="flex flex-col text-slate-900 gap-3 text-[14px] ">
           Claims:
           <Controller
             control={form.control}
@@ -74,6 +74,7 @@ const ProductReviewNodeForm = ({
               <div className="flex flex-col gap-2">
                 {[0, 1, 2].map((idx) => (
                   <Input
+                  className="border-blue "
                     key={idx}
                     type="text"
                     value={field.value[idx] || ""}
@@ -90,8 +91,8 @@ const ProductReviewNodeForm = ({
         </label>
       </div>
       <hr />
-      <div className="py-4 mb-4">
-        <Button type="submit" className="form-submit-button" size={"lg"}>
+      <div className="py-2  mb-0">
+        <Button type="submit" className=" border-blue border-[1px] rounded-xl" size={"lg"}>
           Save Changes
         </Button>
       </div>

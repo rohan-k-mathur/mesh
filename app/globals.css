@@ -600,7 +600,7 @@ textarea {
   background: transparent;
   box-shadow: inset 17px 17px 49px rgba(244,244,245,.35),
     inset -17px -17px 49px #fecdd3;
-  border: 0.125rem solid #D1C6E7;
+  border: 0.045rem solid #D1C6E7;
 }
 .postcardembed {
   border-radius: 90px;

@@ -20,8 +20,8 @@ interface Props {
 }
 
 const renderCreate = ({ onSubmit, currentProductName, currentRating, currentSummary, currentProductLink, currentClaims }: Omit<Props, "id" | "isOwned">) => (
-  <div>
-    <DialogHeader className="dialog-header text-white text-lg py-4 mt-[-4rem]">
+  <div >
+    <DialogHeader className="dialog-header  text-black text-lg py-3 mt-[-4rem]">
       <b>Create Review</b>
     </DialogHeader>
       <ProductReviewNodeForm
@@ -49,6 +49,7 @@ const renderEdit = ({ onSubmit, currentProductName, currentRating, currentSummar
         currentClaims={currentClaims}
       />
   </div>
+  
 );
 
 const ProductReviewNodeModal = ({
@@ -64,10 +65,10 @@ const ProductReviewNodeModal = ({
   const isCreate = !id && isOwned;
   const isEdit = id && isOwned;
   return (
-    <div>
-      <DialogContent className="max-w-[40rem]">
-        <DialogTitle>ProductReviewNodeModal</DialogTitle>
-        <div className="grid rounded-md px-4 py-2">
+
+    <DialogContent className="max-w-[40rem] h-fit bg-indigo-200 bg-opacity-100 border-blue">
+        <DialogTitle hidden>ProductReviewNodeModal</DialogTitle>
+        <div className="grid rounded-md px-4 py-2 mt-10">
           {isCreate &&
             renderCreate({ onSubmit, currentProductName, currentRating, currentSummary, currentProductLink, currentClaims })}
           {isEdit &&
@@ -79,7 +80,6 @@ const ProductReviewNodeModal = ({
           )}
         </div>
       </DialogContent>
-    </div>
   );
 };
 
