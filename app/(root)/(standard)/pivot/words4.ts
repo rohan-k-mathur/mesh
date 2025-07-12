@@ -3,8 +3,8 @@ let WORDS4: string[] = [];
 export async function loadWords4() {
   if (WORDS4.length) return WORDS4;          // already cached
 
-  // Next.js: fetches from /public at runtime or build‑time (Edge / node).
-  const res = await fetch('./4letter.txt');
+  // Fetch words from the public file once
+  const res = await fetch('/pivot/4letter.txt');
   const text = await res.text();
 
   WORDS4 = Array.from(
