@@ -82,6 +82,7 @@ const PostCard = async ({
       <ReplicatedPostCard
         id={id}
         originalPostId={originalId}
+        isRealtimePost={isRealtimePost}
         currentUserId={currentUserId}
         author={author}
         createdAt={createdAt}

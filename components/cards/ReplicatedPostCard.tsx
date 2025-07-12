@@ -1,10 +1,12 @@
 import PostCard from "./PostCard";
 import { fetchPostById } from "@/lib/actions/thread.actions";
+import { fetchRealtimePostById } from "@/lib/actions/realtimepost.actions";
 
 interface Props {
   id: bigint;
   originalPostId: bigint;
   currentUserId?: bigint | null;
+  isRealtimePost?: boolean;
   author: {
     name: string | null;
     image: string | null;
@@ -19,12 +21,15 @@ const ReplicatedPostCard = async ({
   id,
   originalPostId,
   currentUserId,
+  isRealtimePost = false,
   author,
   createdAt,
   likeCount,
   expirationDate,
 }: Props) => {
-  const original = await fetchPostById(originalPostId);
+  const original = isRealtimePost
+    ? await fetchRealtimePostById({ id: originalPostId.toString() })
+    : await fetchPostById(originalPostId);
   if (!original) return null;
 
   return (
@@ -33,6 +38,7 @@ const ReplicatedPostCard = async ({
       currentUserId={currentUserId}
       content="Replicated"
       type="TEXT"
+      isRealtimePost={isRealtimePost}
       author={author}
       createdAt={createdAt}
       likeCount={likeCount}
@@ -41,12 +47,19 @@ const ReplicatedPostCard = async ({
         <PostCard
           id={original.id}
           currentUserId={currentUserId}
-          content={original.content}
-          type="TEXT"
+          content={original.content ?? undefined}
+          image_url={(original as any).image_url ?? undefined}
+          video_url={(original as any).video_url ?? undefined}
+          type={original.type}
           author={original.author!}
           createdAt={original.created_at.toDateString()}
           likeCount={original.like_count}
-          expirationDate={original.expiration_date?.toISOString() ?? null}
+          commentCount={(original as any).commentCount ?? 0}
+          expirationDate={(original as any).expiration_date?.toISOString?.() ?? null}
+          isRealtimePost={isRealtimePost}
+          pluginType={(original as any).pluginType ?? null}
+          pluginData={(original as any).pluginData ?? null}
+          claimIds={(original as any).productReview?.claims.map((c: any) => c.id.toString()) ?? []}
         />
       }
     />
