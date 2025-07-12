@@ -23,37 +23,49 @@ const GalleryCarousel = ({ urls }: Props) => {
   if (urls.length === 0) return null;
 
   return (
-    <div className="relative mr-[20%] flex w-[100%] max-w-[45rem]  right-3 justify-center">
+    <div className="w-full flex flex-1  max-w-[90%]  h-fit justify-center">
+    <div className="relative h-auto my-0  flex justify-center mx-auto">
       <Image
-        className="carousel"
+        className="carousel px-10"
         src={urls[currentIndex]}
         alt={`img-${currentIndex}`}
         width={0}
         height={0}
         sizes="100vw"
+
       />
-      {urls.length > 1 && (
-        <div className="pointer-events-none absolute inset-0 flex  justify-between px-2">
-          <button className="pointer-events-auto bg-transparent border-none carouselbutton px-2 " onClick={handlePrev}>
+      {urls.length > 0 && (
+        <div className="pointer-events-none max-w-[100%] max-h-[100%]  flex flex-1 w-full absolute inset-0   h-full justify-between px-[-4]">
+          <button className=" pointer-events-auto bg-transparent border-none carouselbutton 
+          px-2 max-w-[4rem] min-w-[2rem] w-fit max-h-[70%] min-h-[20%] h-auto justify-center align-center items-center my-auto py-2  " onClick={handlePrev}>          
             <Image
               src="/assets/chevron--left.svg"
               alt="previous"
-              width={48}
-              height={48}
-              className="cursor-pointer object-contain "
+              width={0}
+              height={0}
+              sizes="30vw"
+              className="cursor-pointer object-contain w-fit "
+              layout="responsive"
+
+
             />
           </button>
-          <button className="pointer-events-auto bg-transparent border-none carouselbutton px-2" onClick={handleNext}>
+          <button className="pointer-events-auto bg-transparent border-none carouselbutton 
+          px-2 max-w-[4rem] min-w-[2rem] w-fit max-h-[70%] min-h-[20%] h-auto justify-center align-center items-center my-auto py-2  " onClick={handleNext}>
             <Image
               src="/assets/chevron--right.svg"
               alt="next"
-              width={48}
-              height={48}
-              className="cursor-pointer object-contain "
+              width={0}
+              height={0}
+              sizes="30vw"
+              className="cursor-pointer object-contain w-fit "
+              layout="responsive"
+
             />
           </button>
         </div>
       )}
+    </div>
     </div>
   );
 };
