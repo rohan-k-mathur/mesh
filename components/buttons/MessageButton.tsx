@@ -1,10 +1,8 @@
 "use client";
 
-import { followUser, unfollowUser, areFriends } from "@/lib/actions/follow.actions";
 import { useAuth } from "@/lib/AuthContext";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
 
 interface Props {
   targetUserId: bigint;
@@ -12,11 +10,9 @@ interface Props {
   initialIsFriend: boolean;
 }
 
-const MessageButton = ({ targetUserId, initialIsFollowing, initialIsFriend }: Props) => {
+const MessageButton = ({ targetUserId }: Props) => {
   const { user } = useAuth();
   const router = useRouter();
-  const [isFollowing, setIsFollowing] = useState(initialIsFollowing);
-  const [isFriend, setIsFriend] = useState(initialIsFriend);
 
   async function handleClick() {
     if (!user) {
@@ -27,23 +23,20 @@ const MessageButton = ({ targetUserId, initialIsFollowing, initialIsFriend }: Pr
       router.push("/onboarding");
       return;
     }
-    if (isFollowing) {
-      await unfollowUser({ followerId: user.userId, followingId: targetUserId });
-      setIsFollowing(false);
-      setIsFriend(false);
-    } else {
-      await followUser({ followerId: user.userId, followingId: targetUserId });
-      setIsFollowing(true);
-      const friend = await areFriends({ userId: user.userId, targetUserId });
-      setIsFriend(friend);
+    const res = await fetch("/api/messages/start", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ targetUserId: targetUserId.toString() }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      router.push(`/messages/${data.id}`);
     }
   }
 
-  const label = isFriend ? "Send Message" : isFollowing ? "Send Message" : "Send Message";
-
   return (
-    <Button variant="whiteborder" onClick={handleClick} className=" bg-transparent hover:bg-transparent">
-      {label}
+    <Button variant="whiteborder" onClick={handleClick} className="bg-transparent hover:bg-transparent">
+      Send Message
     </Button>
   );
 };
