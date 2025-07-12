@@ -8,6 +8,7 @@ import TimerButton from "../buttons/TimerButton";
 import ReplicateButton from "../buttons/ReplicateButton";
 import ReplicatedPostCard from "./ReplicatedPostCard";
 import ProductReviewCard from "./ProductReviewCard";
+import PortfolioCard from "./PortfolioCard";
 import DeleteCardButton from "../buttons/DeleteCardButton";
 import ImageCard from "./ImageCard";
 import GalleryCarousel from "./GalleryCarousel";
@@ -201,6 +202,27 @@ const PostCard = async ({
               <div className="mt-2 mb-2 flex justify-center items-center">
                 <DrawCanvas id={id.toString()} content={content} />
               </div>
+            )}
+            {type === "PORTFOLIO" && content && (
+              (() => {
+                let vals: any = null;
+                try {
+                  vals = JSON.parse(content);
+                } catch (e) {
+                  vals = null;
+                }
+                return (
+                  vals && (
+                    <PortfolioCard
+                      text={vals.text}
+                      images={vals.images || []}
+                      links={vals.links || []}
+                      layout={vals.layout}
+                      color={vals.color}
+                    />
+                  )
+                );
+              })()
             )}
             {type === "PRODUCT_REVIEW" && content && (
               (() => {
