@@ -131,9 +131,32 @@ const CreateFeedPost = () => {
     }
   }
 
-  // async function handlePortfolioSubmit(values: z.infer<typeof PortfolioNodeValidation>) {
-  //        insert implementation here
-  // }
+  async function handlePortfolioSubmit(
+    values: z.infer<typeof PortfolioNodeValidation>,
+  ) {
+    const uploads = await Promise.all(
+      (values.images || []).map((img) => uploadFileToSupabase(img)),
+    );
+    const urls = uploads.filter((r) => !r.error).map((r) => r.fileURL);
+    const payload = {
+      text: values.text,
+      images: urls,
+      links: values.links || [],
+      layout: values.layout,
+      color: values.color,
+    };
+    await createRealtimePost({
+      text: JSON.stringify(payload),
+      imageUrl: urls[0],
+      videoUrl: (values.links && values.links[0]) || undefined,
+      path: "/",
+      coordinates: { x: 0, y: 0 },
+      type: "PORTFOLIO",
+      realtimeRoomId: "global",
+    });
+    reset();
+    router.refresh();
+  }
 
   async function handlePortalSubmit(values: z.infer<typeof PortalNodeValidation>) {
     await createRealtimePost({
@@ -233,6 +256,18 @@ const CreateFeedPost = () => {
               reset();
               router.refresh();
             }}
+          />
+        );
+      case "PORTFOLIO":
+        return (
+          <PortfolioNodeModal
+            isOwned={true}
+            currentText=""
+            currentImages={[]}
+            currentLinks={[]}
+            currentLayout="grid"
+            currentColor="bg-white"
+            onSubmit={handlePortfolioSubmit}
           />
         );
       case "ENTROPY":
@@ -342,11 +377,11 @@ const CreateFeedPost = () => {
               </SelectTrigger> 
               <SelectContent  className="max-h-[14rem] border-blue rounded-xl">
                 {nodeOptions.map((item) => (
-                  <div>
-                  <SelectItem key={item.nodeType} value={item.nodeType} className="px-4 hover:bg-slate-200">
-                    {item.label}
-                  </SelectItem>
-                  <hr></hr>
+                  <div key={item.nodeType}>
+                    <SelectItem value={item.nodeType} className="px-4 hover:bg-slate-200">
+                      {item.label}
+                    </SelectItem>
+                    <hr />
                   </div>
                 ))}
               </SelectContent>
