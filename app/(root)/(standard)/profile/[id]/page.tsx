@@ -26,7 +26,7 @@ async function Page({ params }: { params: { id: string } }) {
     ? await areFriends({ userId: activeUser.userId, targetUserId: profilePageUser.id })
     : false;
   return (
-    <section>
+    <section className=" mt-[-2rem]">
       <ProfileHeader
         accountId={profilePageUser.id}
         name={profilePageUser.name!}
@@ -41,7 +41,7 @@ async function Page({ params }: { params: { id: string } }) {
         <Tabs defaultValue="threads" className="w-full">
           <TabsList className="  mb-4">
             {profileTabs.map((tab) => (
-              <TabsTrigger key={tab.label} value={tab.value} className="tab likebutton">
+              <TabsTrigger key={tab.label} value={tab.value} className="tab tab-button">
                 <Image
                   src={tab.icon}
                   alt={tab.label}

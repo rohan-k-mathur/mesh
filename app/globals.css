@@ -612,6 +612,7 @@ textarea {
   width: 40%;
 }
 
+
 .logincard{
   border-radius: 40px; 
   /*background: linear-gradient(145deg, #c5c9d8, #eaefff);*/
@@ -799,6 +800,20 @@ textarea {
   border-radius: 4px;
   box-shadow:   3px 3px 7px #dec7cc,
   -1px 2px 7px rgba(0, 0, 0, 0.15);
+
+}
+.tab-button
+{
+
+  background-color: transparent;
+  padding: 2px;
+  outline: transparent;
+  outline-style: solid;
+  outline-width: .25px;
+  border-radius: 4px;
+  box-shadow:   -3px 3px 7px rgba(222,199,204,.53),
+  3px 3px 7px rgba(0, 0, 0, 0.15);
+
 
 }
 .carouselbutton{

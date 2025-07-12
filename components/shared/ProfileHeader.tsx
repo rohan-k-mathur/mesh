@@ -38,9 +38,9 @@ const ProfileHeader = ({
             <h2 className="text-left text-heading3-bold text-black">
               {name}
             </h2>
-            <p className="text-base-light text-black">@{username}</p>
+            <p className="text-base-light ml-1 text-black">@{username}</p>
             {currentUserId && currentUserId !== accountId && (
-              <div className="flex gap-2">
+              <div className="flex ml-1 gap-2">
               <FollowButton
                 targetUserId={accountId}
                 initialIsFollowing={isFollowing}
