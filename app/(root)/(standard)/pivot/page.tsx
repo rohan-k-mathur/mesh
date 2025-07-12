@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from 'react';
+import  generatePuzzle  from './pivotGenerator';
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 
@@ -114,37 +115,48 @@ function Ring({
 
 
 export default function PivotPage() {
-  const [r1, setR1] = useState<string[]>([
-    "L",
-    "S",
-    "M",
-    "O",
-    "P",
-    "T",
-    "H",
-    "N",
-  ]);
-  const [r2, setR2] = useState<string[]>([
-    "I",
-    "A",
-    "L",
-    "R",
-    "O",
-    "E",
-    "A",
-    "O",
-  ]);
-  const [r3, setR3] = useState<string[]>([
-    "A",
-    "N",
-    "K",
-    "O",
-    "E",
-    "R",
-    "S",
-    "M",    
-  ]);
-  const [r4, setR4] = useState<string[]>(["S","T","E","N","T","P","R","T"]);
+
+  const [r1, setR1] = useState<string[]>(Array(8).fill('?'));
+  const [r2, setR2] = useState<string[]>(Array(8).fill('?'));
+  const [r3, setR3] = useState<string[]>(Array(8).fill('?'));
+  const [r4, setR4] = useState<string[]>(Array(8).fill('?'));
+
+
+  // const [r1, setR1] = useState<string[]>([
+  //   "L",
+  //   "S",
+  //   "M",
+  //   "O",
+  //   "P",
+  //   "T",
+  //   "H",
+  //   "N",
+  // ]);
+  // const [r2, setR2] = useState<string[]>([
+  //   "I",
+  //   "A",
+  //   "L",
+  //   "R",
+  //   "O",
+  //   "E",
+  //   "A",
+  //   "O",
+  // ]);
+  // const [r3, setR3] = useState<string[]>([
+  //   "A",
+  //   "N",
+  //   "K",
+  //   "O",
+  //   "E",
+  //   "R",
+  //   "S",
+  //   "M",    
+  // ]);
+  // const [r4, setR4] = useState<string[]>(["S","T","E","N","T","P","R","T"]);
+
+    // ► (optional) offsets if you want a “Give up / show solution” button
+ 
+
 
   const [angle1, setAngle1] = useState(0);
   const [angle2, setAngle2] = useState(0);
@@ -169,9 +181,25 @@ export default function PivotPage() {
   const valid = spokes.map((w) => dictionary.has(w));
   const solved = valid.every(Boolean);
 
+  const [solutionOffsets, setSolutionOffsets] =
+  useState<[0, number, number, number]>([0, 0, 0, 0]);
+
+  const newPuzzle = async () => {
+    const { rings: [R1, R2, R3, R4], solutionOffsets } =
+      await generatePuzzle();
+    setR1(R1); setR2(R2); setR3(R3); setR4(R4);
+    setSolutionOffsets(solutionOffsets);
+    // also reset angles, spins, etc
+    setAngle1(0); setAngle2(0); setAngle3(0); setAngle4(0);
+    setSpins(0);
+  };
+
+  useEffect(() => { newPuzzle(); }, []);    // one puzzle per page load
+
   return (
     <main className=" flex flex-col items-center">
       <h1 className="text-[2rem] mt-[-3rem] text-black font-bold">Pivot</h1>
+    
       <p>Spins: {spins}/{SPIN_LIMIT}</p>
       {spins >= SPIN_LIMIT && !solved && (
         <p className="text-red-700">Spin limit reached</p>
@@ -305,7 +333,9 @@ export default function PivotPage() {
         </div>
         </div>
       </div>
-      
+      <Button className="absolute top-4 right-4" onClick={newPuzzle}>
+        New Puzzle
+      </Button>
       <ul className="py-8 grid grid-cols-4 grid-rows-2 gap-x-4 gap-y-2 mt-2 text-[1rem]">
         
         {spokes.map((w, i) => (
