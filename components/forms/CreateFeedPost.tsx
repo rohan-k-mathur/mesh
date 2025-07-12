@@ -17,6 +17,8 @@ import YoutubeNodeModal from "@/components/modals/YoutubeNodeModal";
 import CollageCreationModal from "@/components/modals/CollageCreationModal";
 import GalleryNodeModal from "@/components/modals/GalleryNodeModal";
 import PortalNodeModal from "@/components/modals/PortalNodeModal";
+import PortfolioNodeForm from "./PortfolioNodeForm";
+import PortfolioNodeModal from "../modals/PortfolioNodeModal";
 import LivechatNodeModal from "@/components/modals/LivechatNodeModal";
 import EntropyNodeModal from "@/components/modals/EntropyNodeModal";
 import PdfViewerNodeModal from "@/components/modals/PdfViewerNodeModal";
@@ -34,6 +36,7 @@ import {
   GalleryPostValidation,
   PortalNodeValidation,
   PdfViewerPostValidation,
+  PortfolioNodeValidation,
   SplineViewerPostValidation,
   ProductReviewValidation
 } from "@/lib/validations/thread";
@@ -50,6 +53,8 @@ const nodeOptions: { label: string; nodeType: string }[] = [
   // { label: "PORTAL", nodeType: "PORTAL" },
   { label: "DRAW", nodeType: "DRAW" },
   { label: "LIVECHAT", nodeType: "LIVECHAT" },
+  { label: "PORTFOLIO", nodeType: "PORTFOLIO" },
+
   { label: "ENTROPY", nodeType: "ENTROPY" },
   { label: "PDF", nodeType: "PDF_VIEWER" },
   { label: "SPLINE", nodeType: "SPLINE_VIEWER" },
@@ -125,6 +130,10 @@ const CreateFeedPost = () => {
       router.refresh();
     }
   }
+
+  // async function handlePortfolioSubmit(values: z.infer<typeof PortfolioNodeValidation>) {
+  //        insert implementation here
+  // }
 
   async function handlePortalSubmit(values: z.infer<typeof PortalNodeValidation>) {
     await createRealtimePost({
