@@ -119,7 +119,7 @@ export default function PivotPage() {
   const [angle4, setAngle4] = useState(0);
   const [spins, setSpins] = useState(0);
   const MIN_SPINS = 6;
-  const SPIN_LIMIT = MIN_SPINS * 2;
+  const SPIN_LIMIT = MIN_SPINS * 4;
   const [speed, setSpeed] = useState(8000);
 
   const offset1 = -Math.round(angle1 / 45);
@@ -166,6 +166,9 @@ export default function PivotPage() {
       <div className="flex items-center gap-2">
       
       </div>
+      <Button className="absolute flex z-1000 -right-[-70%] top-8 justify-center items-center" onClick={newPuzzle}>
+        New Puzzle
+      </Button>
       <svg width={430} height={430} viewBox="-160 -160 320 320" className="mx-auto">
 
         <circle r={130} className="fill-none stroke-slate-200 stroke-2" />
@@ -289,9 +292,7 @@ export default function PivotPage() {
         </div>
         </div>
       </div>
-      <Button className="absolute top-4 right-4" onClick={newPuzzle}>
-        New Puzzle
-      </Button>
+     
       <ul className="py-8 grid grid-cols-4 grid-rows-2 gap-x-4 gap-y-2 mt-2 text-[1rem]">
         
         {spokes.map((w, i) => (
@@ -303,6 +304,7 @@ export default function PivotPage() {
         ))}
       </ul>
       {solved && <p className="fixed p-2 border-white border-2 rounded-lg justify-center -right-[-16rem] bottom-[28rem] text-block text-[2rem] mt-[-1rem]">Victory in {spins} spins!</p>}
+     
     </main>
   );
 }
