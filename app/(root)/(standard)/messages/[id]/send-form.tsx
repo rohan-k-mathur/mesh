@@ -1,0 +1,34 @@
+"use client";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+
+interface Props {
+  conversationId: bigint;
+}
+
+export default function MessageForm({ conversationId }: Props) {
+  const [text, setText] = useState("");
+  const router = useRouter();
+  async function send() {
+    if (!text.trim()) return;
+    await fetch(`/api/messages/${conversationId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text }),
+    });
+    setText("");
+    router.refresh();
+  }
+  return (
+    <div className="flex gap-2">
+      <input
+        className="flex-1 border rounded p-2 text-black"
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+      />
+      <button className="px-4 py-2 bg-primary-500 text-white rounded" onClick={send}>
+        Send
+      </button>
+    </div>
+  );
+}

@@ -15,11 +15,14 @@ const MessagesTab = async ({ currentUserId, accountId }: Props) => {
 
   return (
     <ul className="mt-9 space-y-4">
+      <li>
+        <Link href="/profile/messages" className="text-primary-500 hover:underline">
+          Go to Messages
+        </Link>
+      </li>
       {relations.map((rel) => (
         <li key={rel.id.toString()} className="text-base-regular text-black">
-          <Link href={`/profile/messages`} className="text-primary-500 hover:underline">
-          </Link>{" "}
-          <span className="text-light-3">- {rel.status}</span>
+          {rel.name} <span className="text-light-3">- {rel.status}</span>
         </li>
       ))}
     </ul>
