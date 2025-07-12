@@ -2,6 +2,7 @@
 
 import { prisma } from "../prismaclient";
 import { revalidatePath } from "next/cache";
+import { supabase } from "@/lib/supabaseclient";
 
 export async function getOrCreateConversation({
   userId,
@@ -74,16 +75,37 @@ export async function sendMessage({
   text: string;
   path: string;
 }) {
-  await prisma.message.create({
+  const message = await prisma.message.create({
     data: {
       conversation_id: conversationId,
       sender_id: senderId,
       text,
     },
+    include: { sender: true },
   });
   await prisma.conversation.update({
     where: { id: conversationId },
     data: { updated_at: new Date() },
   });
+  try {
+    const channel = supabase.channel(`conversation-${conversationId.toString()}`);
+    await channel.send({
+      type: "broadcast",
+      event: "new-message",
+      payload: {
+        id: message.id.toString(),
+        text: message.text,
+        created_at: message.created_at,
+        sender_id: message.sender_id.toString(),
+        sender: {
+          name: message.sender.name,
+          image: message.sender.image,
+        },
+      },
+    });
+    supabase.removeChannel(channel);
+  } catch (err) {
+    console.error("Failed to broadcast message", err);
+  }
   revalidatePath(path);
 }

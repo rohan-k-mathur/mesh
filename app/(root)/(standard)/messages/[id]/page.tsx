@@ -2,6 +2,7 @@ import { fetchConversation, fetchMessages } from "@/lib/actions/message.actions"
 import { getUserFromCookies } from "@/lib/serverutils";
 import { redirect, notFound } from "next/navigation";
 import MessageForm from "./send-form";
+import ChatRoom from "@/components/chat/ChatRoom";
 
 export default async function Page({ params }: { params: { id: string } }) {
   const user = await getUserFromCookies();
@@ -15,14 +16,17 @@ export default async function Page({ params }: { params: { id: string } }) {
   return (
     <main className="p-4 space-y-4">
       <h1 className="head-text">Chat with {other.name}</h1>
-      <div className="space-y-2">
-        {messages.map((m) => (
-          <div key={m.id.toString()} className="rounded p-2 bg-light-4">
-            <p className="text-sm font-semibold">{m.sender.name}</p>
-            <p>{m.text}</p>
-          </div>
-        ))}
-      </div>
+      <ChatRoom
+        conversationId={conversationId}
+        currentUserId={user.userId}
+        initialMessages={messages.map((m) => ({
+          id: m.id.toString(),
+          text: m.text,
+          created_at: m.created_at.toISOString(),
+          sender_id: m.sender_id.toString(),
+          sender: { name: m.sender.name, image: m.sender.image },
+        }))}
+      />
       <MessageForm conversationId={conversationId} />
     </main>
   );
