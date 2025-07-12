@@ -44,10 +44,10 @@ const nodeOptions: { label: string; nodeType: string }[] = [
   { label: "IMAGE", nodeType: "IMAGE" },
   { label: "VIDEO", nodeType: "VIDEO" },
   { label: "LIVESTREAM", nodeType: "LIVESTREAM" },
-  { label: "IMAGE_COMPUTE", nodeType: "IMAGE_COMPUTE" },
-  { label: "COLLAGE", nodeType: "COLLAGE" },
+  // { label: "IMAGE_COMPUTE", nodeType: "IMAGE_COMPUTE" },
+  // { label: "COLLAGE", nodeType: "COLLAGE" },
   { label: "GALLERY", nodeType: "GALLERY" },
-  { label: "PORTAL", nodeType: "PORTAL" },
+  // { label: "PORTAL", nodeType: "PORTAL" },
   { label: "DRAW", nodeType: "DRAW" },
   { label: "LIVECHAT", nodeType: "LIVECHAT" },
   { label: "ENTROPY", nodeType: "ENTROPY" },
@@ -326,16 +326,19 @@ const CreateFeedPost = () => {
        
       default:
         return (
-          <DialogContent className="p-8 bg-slate-200 border-[2px] border-blue max-w-[34rem] max-h-[20rem]">
+          <DialogContent className=" p-8 bg-slate-300 border-[2px] w-[100%] border-blue max-w-[35rem] max-h-[20rem]">
             <Select onValueChange={(v) => handleSelect(v)}>
               <SelectTrigger>
                 <SelectValue placeholder="Select post type" className="px-4" />
               </SelectTrigger> 
-              <SelectContent  className="max-h-[14rem]">
+              <SelectContent  className="max-h-[14rem] border-blue rounded-xl">
                 {nodeOptions.map((item) => (
-                  <SelectItem key={item.nodeType} value={item.nodeType} className="hover:bg-slate-200">
+                  <div>
+                  <SelectItem key={item.nodeType} value={item.nodeType} className="px-4 hover:bg-slate-200">
                     {item.label}
                   </SelectItem>
+                  <hr></hr>
+                  </div>
                 ))}
               </SelectContent>
             </Select>
