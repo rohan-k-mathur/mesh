@@ -3,60 +3,14 @@
 import { useEffect, useState } from 'react';
 import  generatePuzzle  from './pivotGenerator';
 import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
 
-// const dictionary = new Set([
-//   "SOT",
-//   "MUG",
-//   "PIP",
-//   "HAG",
-//   "LOP",
-//   "MAG",
-//   "PEP",
-//   "HOG",
-//   "SOP",
-//   "PIN",
-//   "TAP",
-//   "NOG",
-//   "SUN",
-//   "MAP",
-//   "OIL",
-//   "PEG",
-//   "TAR",
-//   "HOP",
-//   "NET",
-//   "LOG",
-//   "MAN",
-//   "TAG",
-//   "LOT",
-// ]);
-
-// const dictionary = new Set([
-//   "LENS", "LIPS", "LAPS", "LUGS",
-//   "SOPS", "SIPS", "SITS", "SINS",
-//   "MOPS", "MIPS", "MENS", "MINS",
-//   "OATS", "OOPS",
-//   "PENS", "PINS", "PANS", "POPS",
-//   "TENS", "TIPS", "TAPS", "TANS",
-//   "HENS", "HOPS", "HAGS", "HUGS",
-//   "NAPS", "NIPS", "NOGS",
-// ]);
-const dictionary = new Set([
-    "LAMP", "SOAR", "MINT", "OAKS",
-    "PLOT", "TREE", "HORN", "NEST",
-  ]);
+// Dictionary of solution words is set when a puzzle loads
 
 function rotateSteps(arr: string[], steps: number) {
-  const copy = [...arr];
-  const count = Math.abs(steps) % arr.length;
-  for (let i = 0; i < count; i++) {
-    if (steps > 0) {
-      copy.push(copy.shift() as string);
-    } else {
-      copy.unshift(copy.pop() as string);
-    }
-  }
-  return copy;
+  const len = arr.length;
+  if (!len) return [];
+  const k = ((steps % len) + len) % len; // normalize steps
+  return [...arr.slice(k), ...arr.slice(0, k)];
 }
 
 function Ring({
@@ -120,6 +74,7 @@ export default function PivotPage() {
   const [r2, setR2] = useState<string[]>(Array(8).fill('?'));
   const [r3, setR3] = useState<string[]>(Array(8).fill('?'));
   const [r4, setR4] = useState<string[]>(Array(8).fill('?'));
+  const [dictionary, setDictionary] = useState<Set<string>>(new Set());
 
 
   // const [r1, setR1] = useState<string[]>([
@@ -185,10 +140,11 @@ export default function PivotPage() {
   useState<[0, number, number, number]>([0, 0, 0, 0]);
 
   const newPuzzle = async () => {
-    const { rings: [R1, R2, R3, R4], solutionOffsets } =
+    const { rings: [R1, R2, R3, R4], solutionOffsets, words } =
       await generatePuzzle();
     setR1(R1); setR2(R2); setR3(R3); setR4(R4);
     setSolutionOffsets(solutionOffsets);
+    setDictionary(new Set(words));
     // also reset angles, spins, etc
     setAngle1(0); setAngle2(0); setAngle3(0); setAngle4(0);
     setSpins(0);
