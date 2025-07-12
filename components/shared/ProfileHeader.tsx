@@ -31,7 +31,7 @@ const ProfileHeader = ({
               src={imgUrl || "/assets/user-helsinki.svg"}
               alt="Profile Image"
               fill
-              className="rounded-md object-cover shadow-2xl"
+              className="rounded-md object-cover  shadow-2xl"
             />
           </div>
           <div className="flex">
@@ -42,7 +42,7 @@ const ProfileHeader = ({
             <p className="text-base-light ml-1 text-black">@{username}</p>
             </div>
             {currentUserId && currentUserId !== accountId && (
-              <div className="flex  ml-12  gap-4">
+              <div className="flex  ml-12  gap-6">
               <FollowButton
                 targetUserId={accountId}
                 initialIsFollowing={isFollowing}
@@ -60,8 +60,8 @@ const ProfileHeader = ({
           </div>
         </div>
       </div>
-      <p className="mt-4 max-w-lg text-base-regular text-black">{bio}</p>
-      <div className="mt-2 h-0.5 w-full bg-dark-3"></div>
+      <p className="mt-4 ml-1 max-w-lg text-[1rem] text-black">{bio}</p>
+      <div className="mt-2 h-[1px] w-full bg-slate-500 bg-opacity-50"></div>
     </div>
   );
 };

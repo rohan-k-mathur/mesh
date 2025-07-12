@@ -42,7 +42,7 @@ const FollowButton = ({ targetUserId, initialIsFollowing, initialIsFriend }: Pro
   const label = isFriend ? "Friends" : isFollowing ? "Following" : "Follow";
 
   return (
-    <Button variant="whiteborder" onClick={handleClick} className=" bg-transparent tab-button p-8 outline-indigo-400 border-none hover:bg-transparent">
+    <Button variant="whiteborder" onClick={handleClick} className=" bg-transparent tab-button px-8 py-6 outline-indigo-400 border-none hover:bg-transparent">
       {label}
     </Button>
   );
