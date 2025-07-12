@@ -1,7 +1,7 @@
 import Image from "next/image";
 
 import FollowButton from "../buttons/FollowButton";
-
+import MessageButton from "../buttons/MessageButton";
 interface Props {
   accountId: bigint;
   name: string;
@@ -40,12 +40,20 @@ const ProfileHeader = ({
             </h2>
             <p className="text-base-light text-black">@{username}</p>
             {currentUserId && currentUserId !== accountId && (
+              <div className="flex gap-2">
               <FollowButton
                 targetUserId={accountId}
                 initialIsFollowing={isFollowing}
                 initialIsFriend={isFriend}
                 
               />
+              <MessageButton
+                targetUserId={accountId}
+                initialIsFollowing={isFollowing}
+                initialIsFriend={isFriend}
+                
+              />
+              </div>
             )}
           </div>
         </div>
