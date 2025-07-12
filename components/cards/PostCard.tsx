@@ -9,6 +9,7 @@ import ReplicateButton from "../buttons/ReplicateButton";
 import ReplicatedPostCard from "./ReplicatedPostCard";
 import ProductReviewCard from "./ProductReviewCard";
 import DeleteCardButton from "../buttons/DeleteCardButton";
+import ImageCard from "./ImageCard";
 import GalleryCarousel from "./GalleryCarousel";
 import dynamic from "next/dynamic";
 import {
@@ -130,15 +131,16 @@ const PostCard = async ({
               <p className="mt-2  text-[1.08rem] text-black tracking-[.05rem]">{content}</p>
             )}
             {(type === "IMAGE" || type === "IMAGE_COMPUTE") && image_url && (
+              <ImageCard id = {id} imageurl={image_url} ></ImageCard>
 
-              <Image
-                className=" flex img-feed-frame ml-[19%] mr-[19%] rounded-sm mt-[1rem] mb-[1rem] "
-                src={image_url}
-                alt="image not found"
-                width={0}
-                height={0}
-                sizes="200vw"
-              />
+              // <Image
+              //   className=" flex img-feed-frame ml-[19%] mr-[19%] rounded-sm mt-[1rem] mb-[1rem] "
+              //   src={image_url}
+              //   alt="image not found"
+              //   width={0}
+              //   height={0}
+              //   sizes="200vw"
+              // />
             )}
                         {type === "VIDEO" && video_url && (
               <div className="mt-2 mb-2 w-[70%] border-none loginbutton hover:loginbutton ">
