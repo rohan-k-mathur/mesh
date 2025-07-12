@@ -274,11 +274,13 @@ const PostCard = async ({
             isOwned={currentUserId === author.id}
             expirationDate={expirationDate ?? undefined}
           />
-          <DeleteCardButton
-            {...(isRealtimePost
-              ? { realtimePostId: id.toString() }
-              : { postId: id })}
-          />
+          {currentUserId === author.id && (
+            <DeleteCardButton
+              {...(isRealtimePost
+                ? { realtimePostId: id.toString() }
+                : { postId: id })}
+            />
+          )}
 
               </div>
             </div>
