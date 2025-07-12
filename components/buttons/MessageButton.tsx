@@ -35,7 +35,7 @@ const MessageButton = ({ targetUserId }: Props) => {
   }
 
   return (
-    <Button variant="whiteborder" onClick={handleClick} className="bg-transparent hover:bg-transparent">
+    <Button variant="whiteborder" onClick={handleClick} className=" bg-transparent tab-button p-8 outline-indigo-400 border-none hover:bg-transparent">
       Send Message
     </Button>
   );

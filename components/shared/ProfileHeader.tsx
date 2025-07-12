@@ -34,13 +34,15 @@ const ProfileHeader = ({
               className="rounded-md object-cover shadow-2xl"
             />
           </div>
-          <div className="flex-1 flex-col">
+          <div className="flex">
+            <div className="flex flex-col">
             <h2 className="text-left text-heading3-bold text-black">
               {name}
             </h2>
             <p className="text-base-light ml-1 text-black">@{username}</p>
+            </div>
             {currentUserId && currentUserId !== accountId && (
-              <div className="flex ml-1 gap-2">
+              <div className="flex  ml-12  gap-4">
               <FollowButton
                 targetUserId={accountId}
                 initialIsFollowing={isFollowing}

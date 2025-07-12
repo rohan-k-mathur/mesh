@@ -3,6 +3,8 @@ import { getUserFromCookies } from "@/lib/serverutils";
 import { redirect, notFound } from "next/navigation";
 import MessageForm from "./send-form";
 import ChatRoom from "@/components/chat/ChatRoom";
+import Link from "next/link";
+import { useContext } from "react";
 
 export default async function Page({ params }: { params: { id: string } }) {
   const user = await getUserFromCookies();
@@ -15,7 +17,9 @@ export default async function Page({ params }: { params: { id: string } }) {
   const other = conversation.user1_id === user.userId ? conversation.user2 : conversation.user1;
   return (
     <main className=" p-4 mt-[-3rem] space-y-6 items-center justify-center ">
-      <h1 className="ml-[40%]  text-[2.4rem]  ">{other.name}</h1>
+      <Link href={`/profile/${other.id}`} className="ml-[40%]  text-[2.4rem]  ">{other.name}
+      {/* <h1 className="ml-[40%]  text-[2.4rem]  ">{other.name}</h1> */}
+      </Link>
       <hr></hr>
 
       <ChatRoom

@@ -53,7 +53,7 @@ async function Page({ params }: { params: { id: string } }) {
               <TabsTrigger
                 key={tab.label}
                 value={tab.value}
-                className="tab tab-button"
+                className="tab mx-1 tab-button border-none outline-indigo-400"
               >
                 <Image
                   src={tab.icon}
