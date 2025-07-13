@@ -280,7 +280,7 @@ export async function uploadFileToSupabase(file: File) {
 
 export async function uploadAudioToSupabase(file: File) {
   const { data, error } = await supabase.storage
-    .from("realtime_post_audio")
+    .from("realtimepostaudio")
     .upload(`public/${file.name}`, file);
   if (!error) {
     return {
