@@ -343,6 +343,7 @@ export function convertPostToNode(
         let summary = "";
         let productLink = "";
         let claims: string[] = [];
+        let images: string[] = [];
         if (realtimePost.content) {
           try {
             const parsed = JSON.parse(realtimePost.content);
@@ -351,6 +352,7 @@ export function convertPostToNode(
             summary = parsed.summary || "";
             productLink = parsed.productLink || "";
             claims = parsed.claims || [];
+            images = parsed.images || [];
           } catch {}
         }
         return {
@@ -361,6 +363,7 @@ export function convertPostToNode(
             rating,
             summary,
             productLink,
+            images,
             claims,
             author: authorToSet,
             locked: realtimePost.locked,

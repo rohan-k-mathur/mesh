@@ -13,7 +13,9 @@ import { z } from "zod";
 import { useShallow } from "zustand/react/shallow";
 import BaseNode from "./BaseNode";
 import ProductReviewNodeModal from "../modals/ProductReviewNodeModal";
+import ProductPhotoGalleryModal from "../modals/ProductPhotoGalleryModal";
 import { Button } from "../ui/button";
+import { uploadFileToSupabase } from "@/lib/utils";
 
 function ProductReviewNode({ id, data }: NodeProps<ProductReviewNodeData>) {
   const path = usePathname();
@@ -29,6 +31,8 @@ function ProductReviewNode({ id, data }: NodeProps<ProductReviewNodeData>) {
   const [summary, setSummary] = useState(data.summary);
   const [productLink, setProductLink] = useState(data.productLink);
   const [claims, setClaims] = useState<string[]>(data.claims || []);
+  const [images, setImages] = useState<string[]>(data.images || []);
+  const [viewerOpen, setViewerOpen] = useState(false);
 
   useEffect(() => {
     if ("username" in author) return;
@@ -41,21 +45,29 @@ function ProductReviewNode({ id, data }: NodeProps<ProductReviewNodeData>) {
     setSummary(data.summary);
     setProductLink(data.productLink);
     setClaims(data.claims || []);
+    setImages(data.images || []);
   }, [data]);
 
   const isOwned = currentUser ? Number(currentUser.userId) === Number(data.author.id) : false;
 
   async function onSubmit(values: z.infer<typeof ProductReviewValidation>) {
     const filtered = values.claims.filter((c) => c.trim() !== "");
+    const uploads = await Promise.all(
+      (values.images || []).map((img) => uploadFileToSupabase(img))
+    );
+    const urls = uploads.filter((r) => !r.error).map((r) => r.fileURL);
+    const updatedImages = urls.length > 0 ? [...images, ...urls] : images;
     setProductName(values.productName);
     setRating(values.rating);
     setSummary(values.summary);
     setProductLink(values.productLink);
     setClaims(filtered);
+    if (urls.length > 0) setImages(updatedImages);
     await updateRealtimePost({
       id,
       path,
-      content: JSON.stringify({ ...values, claims: filtered }),
+      ...(urls.length > 0 && { imageUrl: updatedImages[0] }),
+      content: JSON.stringify({ ...values, images: updatedImages, claims: filtered }),
     });
     store.closeModal();
   }
@@ -71,6 +83,7 @@ function ProductReviewNode({ id, data }: NodeProps<ProductReviewNodeData>) {
         currentSummary={summary}
         currentProductLink={productLink}
         currentClaims={claims}
+        currentImages={images}
         onSubmit={onSubmit}
       />
       }
@@ -89,11 +102,28 @@ function ProductReviewNode({ id, data }: NodeProps<ProductReviewNodeData>) {
             <li key={idx}>{c}</li>
           ))}
         </ul>
-        <Button>
-        <a href={productLink} className="text-xs text-blue-500" target="_blank" rel="noopener noreferrer">
-          View Product
-        </a>
-        </Button>
+        <div className="flex gap-2 mt-2">
+          <Button>
+            <a
+              href={productLink}
+              className="text-xs text-blue-500"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              View Product
+            </a>
+          </Button>
+          {images.length > 0 && (
+            <Button onClick={() => setViewerOpen(true)} className="text-xs">
+              View Photos
+            </Button>
+          )}
+        </div>
+        <ProductPhotoGalleryModal
+          images={images}
+          open={viewerOpen}
+          onOpenChange={setViewerOpen}
+        />
       </div>
     </BaseNode>
   );

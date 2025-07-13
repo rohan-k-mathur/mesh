@@ -2,8 +2,16 @@ import { ProductReviewValidation } from "@/lib/validations/thread";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Controller } from "react-hook-form";
+import { ChangeEvent, useState } from "react";
 import { z } from "zod";
 import { Button } from "../ui/button";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormMessage,
+} from "../ui/form";
 import { Input } from "../ui/input";
 
 interface Props {
@@ -13,6 +21,7 @@ interface Props {
   currentSummary: string;
   currentProductLink: string;
   currentClaims: string[];
+  currentImages: string[];
 }
 
 const ProductReviewNodeForm = ({
@@ -22,7 +31,9 @@ const ProductReviewNodeForm = ({
   currentSummary,
   currentProductLink,
   currentClaims,
+  currentImages,
 }: Props) => {
+  const [imageURLs, setImageURLs] = useState<string[]>(currentImages);
   const form = useForm({
     resolver: zodResolver(ProductReviewValidation),
     defaultValues: {
@@ -35,18 +46,39 @@ const ProductReviewNodeForm = ({
         currentClaims[1] || "",
         currentClaims[2] || "",
       ],
+      images: [] as File[],
     },
   });
 
+  const handleImages = (
+    e: ChangeEvent<HTMLInputElement>,
+    fieldChange: (value: File[]) => void
+  ) => {
+    e.preventDefault();
+    const files = Array.from(e.target.files || []);
+    fieldChange(files);
+    Promise.all(
+      files.map(
+        (file) =>
+          new Promise<string>((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (evt) => resolve(evt.target?.result?.toString() || "");
+            reader.readAsDataURL(file);
+          })
+      )
+    ).then((urls) => setImageURLs((prev) => [...prev, ...urls]));
+  };
+
   return (
-    <form
-      method="post"
-      className="ml-3 mr-3"
-      onSubmit={form.handleSubmit((vals) => {
-        const filtered = vals.claims.filter((c) => c.trim() !== "");
-        onSubmit({ ...vals, claims: filtered });
-      })}
-    >
+    <Form {...form}>
+      <form
+        method="post"
+        className="ml-3 mr-3"
+        onSubmit={form.handleSubmit((vals) => {
+          const filtered = vals.claims.filter((c) => c.trim() !== "");
+          onSubmit({ ...vals, claims: filtered });
+        })}
+      >
       <hr />
       <div className="py-2 grid gap-0 ">
         <label className="flex flex-col text-slate-900 gap-3 text-[14px] ">
@@ -89,6 +121,24 @@ const ProductReviewNodeForm = ({
             )}
           />
         </label>
+        <FormField
+          control={form.control}
+          name="images"
+          render={({ field }) => (
+            <FormItem className="flex gap-4 mb-2 text-sm">
+              <FormControl className="flex">
+                <Input
+                  hidden
+                  multiple
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleImages(e, field.onChange)}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
       </div>
       <hr />
       <div className="py-2  mb-0">
@@ -96,7 +146,8 @@ const ProductReviewNodeForm = ({
           Save Changes
         </Button>
       </div>
-    </form>
+      </form>
+    </Form>
   );
 };
 

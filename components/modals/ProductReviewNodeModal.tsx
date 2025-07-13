@@ -17,9 +17,10 @@ interface Props {
   currentSummary: string;
   currentProductLink: string;
   currentClaims: string[];
+  currentImages: string[];
 }
 
-const renderCreate = ({ onSubmit, currentProductName, currentRating, currentSummary, currentProductLink, currentClaims }: Omit<Props, "id" | "isOwned">) => (
+const renderCreate = ({ onSubmit, currentProductName, currentRating, currentSummary, currentProductLink, currentClaims, currentImages }: Omit<Props, "id" | "isOwned">) => (
   <div >
     <DialogHeader className="dialog-header  text-black text-lg py-3 mt-[-4rem]">
       <b>Create Review</b>
@@ -31,11 +32,12 @@ const renderCreate = ({ onSubmit, currentProductName, currentRating, currentSumm
         currentSummary={currentSummary}
         currentProductLink={currentProductLink}
         currentClaims={currentClaims}
+        currentImages={currentImages}
       />
   </div>
 );
 
-const renderEdit = ({ onSubmit, currentProductName, currentRating, currentSummary, currentProductLink, currentClaims }: Omit<Props, "id" | "isOwned">) => (
+const renderEdit = ({ onSubmit, currentProductName, currentRating, currentSummary, currentProductLink, currentClaims, currentImages }: Omit<Props, "id" | "isOwned">) => (
   <div>
     <DialogHeader className="dialog-header text-white text-lg py-4 mt-[-4rem]">
       <b>Edit Review</b>
@@ -47,6 +49,7 @@ const renderEdit = ({ onSubmit, currentProductName, currentRating, currentSummar
         currentSummary={currentSummary}
         currentProductLink={currentProductLink}
         currentClaims={currentClaims}
+        currentImages={currentImages}
       />
   </div>
   
@@ -61,6 +64,7 @@ const ProductReviewNodeModal = ({
   currentSummary,
   currentProductLink,
   currentClaims,
+  currentImages,
 }: Props) => {
   const isCreate = !id && isOwned;
   const isEdit = id && isOwned;
@@ -70,9 +74,9 @@ const ProductReviewNodeModal = ({
         <DialogTitle hidden>ProductReviewNodeModal</DialogTitle>
         <div className="grid rounded-md px-4 py-2 mt-10">
           {isCreate &&
-            renderCreate({ onSubmit, currentProductName, currentRating, currentSummary, currentProductLink, currentClaims })}
+            renderCreate({ onSubmit, currentProductName, currentRating, currentSummary, currentProductLink, currentClaims, currentImages })}
           {isEdit &&
-            renderEdit({ onSubmit, currentProductName, currentRating, currentSummary, currentProductLink, currentClaims })}
+            renderEdit({ onSubmit, currentProductName, currentRating, currentSummary, currentProductLink, currentClaims, currentImages })}
           {!isOwned && (
             <DialogClose id="animateButton" className={`form-submit-button pl-2 py-2 pr-[1rem]`}>
               <> Close </>
