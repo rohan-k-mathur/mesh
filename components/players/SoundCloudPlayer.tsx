@@ -16,21 +16,33 @@ const SoundCloudPlayer = ({ src, title }: Props) => {
   
   // Define the waveform gradient
   const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height * 1)
-  gradient.addColorStop(0, '#656666') // Top color
-  gradient.addColorStop((canvas.height * 0.7) / canvas.height, '#64748b') // Top color
-  gradient.addColorStop((canvas.height * 0.7 + 1) / canvas.height, '#94a3b8') // White line
-  gradient.addColorStop((canvas.height * 0.7 + 2) / canvas.height, '#94a3b8') // White line
-  gradient.addColorStop((canvas.height * 0.7 + 3) / canvas.height, '#cbd5e1') // Bottom color
-  gradient.addColorStop(1, '#B1B1B1') // Bottom color
+  gradient.addColorStop(0, '#475569') // Top color
+  gradient.addColorStop((canvas.height * 0.65) / canvas.height, '#64748b') // Top color
+  gradient.addColorStop((canvas.height * 0.65+1) / canvas.height, '#94a3b8') // Top color
+
+  // gradient.addColorStop((canvas.height * 0.65 + 1) / canvas.height, '#cbd5e1') // White line
+  // gradient.addColorStop((canvas.height * 0.65 + 2) / canvas.height, '#cbd5e1') // White line
+  // gradient.addColorStop((canvas.height * 0.65 + 2) / canvas.height, '#cbd5e1') // Bottom color
+  gradient.addColorStop(1, '#cbd5e1') // Bottom color
+
+  // const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height * 1)
+  // gradient.addColorStop(0, '#64748b') // Top color
+  // gradient.addColorStop((canvas.height * 0.65) / canvas.height, '#94a3b8') // Top color
+  // gradient.addColorStop((canvas.height * 0.65 + 1) / canvas.height, '#cbd5e1') // White line
+  // gradient.addColorStop((canvas.height * 0.65 + 2) / canvas.height, '#cbd5e1') // White line
+  // gradient.addColorStop((canvas.height * 0.65 + 3) / canvas.height, '#e2e8f0') // Bottom color
+  // gradient.addColorStop(1, '#e2e8f0') // Bottom color
   
   // Define the progress gradient
   const progressGradient = ctx.createLinearGradient(0, 0, 0, canvas.height * 1)
-  progressGradient.addColorStop(0, '#EE772F') // Top color
-  progressGradient.addColorStop((canvas.height * 0.7) / canvas.height, '#f97316') // Top color
-  gradient.addColorStop((canvas.height * 0.7 + 1) / canvas.height, '#fb923c') // White line
-  gradient.addColorStop((canvas.height * 0.7 + 2) / canvas.height, '#fb923c') // White line
-  progressGradient.addColorStop((canvas.height * 0.7 + 3) / canvas.height, '#fdba74') // Bottom color
-  progressGradient.addColorStop(1, '#F6B094') // Bottom color
+  progressGradient.addColorStop(0, '#ea580c') // Top color
+  progressGradient.addColorStop((canvas.height * 0.65) / canvas.height, '#f97316') // Top color
+  progressGradient.addColorStop((canvas.height * 0.65+1) / canvas.height, '#fb923c') // Top color
+
+  // gradient.addColorStop((canvas.height * 0.65 + 1) / canvas.height, '#cbd5e1') // White line
+  // gradient.addColorStop((canvas.height * 0.65 + 2) / canvas.height, '#cbd5e1') // White line
+  // progressGradient.addColorStop((canvas.height * 0.65 + 2) / canvas.height, '#fb923c') // Bottom color
+  progressGradient.addColorStop(1, '#fdba74') // Bottom color
 
   const waveRef = useRef<WaveSurfer | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
