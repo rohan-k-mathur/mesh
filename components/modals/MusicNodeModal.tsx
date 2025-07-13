@@ -8,12 +8,12 @@ import {
 interface Props {
   id?: string;
   isOwned: boolean;
-  onSubmit?: (values: { audioUrl: string; title: string }) => void;
+  onSubmit?: (values: { audioFile: File; title: string }) => void;
   currentUrl: string;
   currentTitle: string;
 }
 
-const renderCreate = ({ onSubmit }: { onSubmit?: (values: { audioUrl: string; title: string }) => void }) => (
+const renderCreate = ({ onSubmit }: { onSubmit?: (values: { audioFile: File; title: string }) => void }) => (
   <div>
     <DialogHeader className="dialog-header text-white text-lg py-4 mt-[-3rem]">
       <b>Create Post</b>

@@ -25,7 +25,7 @@ import PdfViewerNodeModal from "@/components/modals/PdfViewerNodeModal";
 import ProductReviewNodeModal from "../modals/ProductReviewNodeModal";
 import MusicNodeModal from "../modals/MusicNodeModal";
 import SplineViewerNodeModal from "../modals/SplineViewerNodeModal";
-import { uploadFileToSupabase } from "@/lib/utils";
+import { uploadFileToSupabase, uploadAudioToSupabase } from "@/lib/utils";
 import { createRealtimePost } from "@/lib/actions/realtimepost.actions";
 import { fetchUserByUsername } from "@/lib/actions/user.actions";
 import { useRouter } from "next/navigation";
@@ -113,9 +113,11 @@ const CreateFeedPost = () => {
     router.refresh();
   }
 
-  async function handleMusicSubmit(values: { audioUrl: string; title: string }) {
+  async function handleMusicSubmit(values: { audioFile: File; title: string }) {
+    const result = await uploadAudioToSupabase(values.audioFile);
+    if (result.error) return;
     await createRealtimePost({
-      videoUrl: values.audioUrl,
+      videoUrl: result.fileURL,
       text: values.title,
       path: "/",
       coordinates: { x: 0, y: 0 },

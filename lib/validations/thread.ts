@@ -9,6 +9,19 @@ const ACCEPTED_IMAGE_TYPES = [
 ];
 const ACCEPTED_IMAGE_EXTENSIONS = [".jpeg", ".jpg", ".png", ".webp"];
 
+const ACCEPTED_AUDIO_TYPES = ["audio/mpeg", "audio/mp3", "audio/wav", "audio/x-wav"];
+const ACCEPTED_AUDIO_EXTENSIONS = [".mp3", ".wav"];
+
+function isAcceptedAudio(file: File) {
+  if (!file) return false;
+  const type = file.type?.toLowerCase();
+  const ext = file.name?.split(".").pop()?.toLowerCase();
+  return (
+    (type && ACCEPTED_AUDIO_TYPES.includes(type)) ||
+    (ext && ACCEPTED_AUDIO_EXTENSIONS.includes(`.${ext}`))
+  );
+}
+
 function isAcceptedImage(file: File) {
   if (!file) return false;
   const type = file.type?.toLowerCase();
@@ -146,7 +159,13 @@ export const SplineViewerPostValidation = z.object({
 });
 
 export const MusicPostValidation = z.object({
-  youtubeUrl: z.string().url(),
-  title: z.string().min(1).optional(),
+  audio: z
+    .any()
+    .refine((file) => file?.size <= MAX_FILE_SIZE, `Max audio size is 5MB.`)
+    .refine(
+      (file) => isAcceptedAudio(file),
+      "Only .mp3 and .wav formats are supported."
+    ),
+  title: z.string().min(1),
 });
 
