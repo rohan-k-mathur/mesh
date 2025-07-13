@@ -25,7 +25,7 @@ const founders = localFont({ src: './NewEdgeTest-RegularRounded.otf' })
 const DrawCanvas = dynamic(() => import("./DrawCanvas"), { ssr: false })
 const LivechatCard = dynamic(() => import("./LivechatCard"), { ssr: false })
 const EntropyCard = dynamic(() => import("./EntropyCard"), { ssr: false })
-const Spline = dynamic(() => import("@splinetool/react-spline"), { ssr: false })
+const Spline = dynamic(() => import("@splinetool/react-spline/next"), { ssr: false })
 
 interface Props {
   id: bigint;
