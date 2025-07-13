@@ -1,3 +1,5 @@
+"use server";
+
 import { like_type } from "@prisma/client";
 import { prisma } from "../prismaclient";
 import { generateFriendSuggestions } from "./friend-suggestions.actions";
@@ -13,7 +15,6 @@ interface realtimeLikeParams {
 }
 
 export async function likePost({ userId, postId }: likePostParams) {
-  "use server";
   try {
     const uid = BigInt(userId);
     const pid = BigInt(postId);
@@ -84,7 +85,6 @@ export async function likePost({ userId, postId }: likePostParams) {
 }
 
 export async function unlikePost({ userId, postId }: likePostParams) {
-  "use server";
   try {
     const uid = BigInt(userId);
     const pid = BigInt(postId);
@@ -132,7 +132,6 @@ export async function unlikePost({ userId, postId }: likePostParams) {
 }
 
 export async function dislikePost({ userId, postId }: likePostParams) {
-  "use server";
   try {
     const uid = BigInt(userId);
     const pid = BigInt(postId);
@@ -226,7 +225,6 @@ export async function likeRealtimePost({
   userId,
   realtimePostId,
 }: realtimeLikeParams) {
-  "use server";
   try {
     const uid = BigInt(userId);
     const pid = BigInt(realtimePostId);
@@ -272,7 +270,6 @@ export async function unlikeRealtimePost({
   userId,
   realtimePostId,
 }: realtimeLikeParams) {
-  "use server";
   try {
     const uid = BigInt(userId);
     const pid = BigInt(realtimePostId);
@@ -307,7 +304,6 @@ export async function dislikeRealtimePost({
   userId,
   realtimePostId,
 }: realtimeLikeParams) {
-  "use server";
   try {
     const uid = BigInt(userId);
     const pid = BigInt(realtimePostId);
