@@ -92,6 +92,7 @@ export async function createRealtimePost({
           summary: parsed.summary || "",
           productLink: parsed.productLink || "",
           claims: (parsed.claims || []).filter((c: string) => c.trim() !== ""),
+          images: parsed.images || [],
         });
       } catch {
         // ignore JSON parse errors

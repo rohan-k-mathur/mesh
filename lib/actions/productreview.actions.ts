@@ -122,6 +122,7 @@ export async function createProductReview({
   summary,
   productLink,
   claims,
+  images,
 }: {
   realtimePostId: string | number | bigint;
   authorId: string | number | bigint;
@@ -130,6 +131,7 @@ export async function createProductReview({
   summary?: string;
   productLink?: string;
   claims: string[];
+  images: string[];
 }) {
   const pid = BigInt(realtimePostId);
   const uid = BigInt(authorId);
@@ -143,6 +145,7 @@ export async function createProductReview({
         rating,
         ...(summary && { summary }),
         ...(productLink && { product_link: productLink }),
+        image_urls: images,
         claims: {
           create: claims.map((text) => ({ text })),
         },

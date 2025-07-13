@@ -198,6 +198,7 @@ export type ProductReviewNodeData = Node<
     rating: number;
     summary: string;
     productLink: string;
+    images: string[];
     claims: string[];
     author: AuthorOrAuthorId;
     locked: boolean;

@@ -406,14 +406,22 @@ export default function NodeSidebar({
               currentSummary=""
               currentProductLink=""
               currentClaims={[]}
-              onSubmit={(vals: z.infer<typeof ProductReviewValidation>) => {
+              currentImages={[]}
+              onSubmit={async (vals: z.infer<typeof ProductReviewValidation>) => {
+                const uploads = await Promise.all(
+                  (vals.images || []).map((img) => uploadFileToSupabase(img))
+                );
+                const urls = uploads
+                  .filter((r) => !r.error)
+                  .map((r) => r.fileURL);
                 const filtered = vals.claims.filter((c) => c.trim() !== "");
                 createPostAndAddToCanvas({
-                  text: JSON.stringify({ ...vals, claims: filtered }),
+                  text: JSON.stringify({ ...vals, images: urls, claims: filtered }),
                   path: pathname,
                   coordinates: centerPosition,
                   type: "PRODUCT_REVIEW",
                   realtimeRoomId: roomId,
+                  ...(urls.length > 0 && { imageUrl: urls[0] }),
                 });
               }}
             />

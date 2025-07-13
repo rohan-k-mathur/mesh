@@ -340,14 +340,22 @@ const CreateFeedPost = () => {
             currentSummary=""
             currentProductLink=""
             currentClaims={[]}
+            currentImages={[]}
             onSubmit={async (vals) => {
+              const uploads = await Promise.all(
+                (vals.images || []).map((img) => uploadFileToSupabase(img))
+              );
+              const urls = uploads
+                .filter((r) => !r.error)
+                .map((r) => r.fileURL);
               const filtered = vals.claims.filter((c) => c.trim() !== "");
               await createRealtimePost({
-                text: JSON.stringify({ ...vals, claims: filtered }),
+                text: JSON.stringify({ ...vals, images: urls, claims: filtered }),
                 path: "/",
                 coordinates: { x: 0, y: 0 },
                 type: "PRODUCT_REVIEW",
                 realtimeRoomId: "global",
+                ...(urls.length > 0 && { imageUrl: urls[0] }),
               });
               reset();
               router.refresh();

@@ -128,6 +128,17 @@ export const ProductReviewValidation = z.object({
   summary: z.string().min(1),
   productLink: z.string().url(),
   claims: z.array(z.string().min(1)).max(5),
+  images: z
+    .array(
+      z
+        .any()
+        .refine((file) => file?.size <= MAX_FILE_SIZE, `Max image size is 5MB.`)
+        .refine(
+          (file) => isAcceptedImage(file),
+          "Only .jpg, .jpeg, .png and .webp formats are supported."
+        )
+    )
+    .optional(),
 });
 
 export const SplineViewerPostValidation = z.object({
