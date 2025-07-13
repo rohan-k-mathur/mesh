@@ -802,6 +802,25 @@ textarea {
   -1px 2px 7px rgba(0, 0, 0, 0.15);
 
 }
+.playbutton {
+  background-color: transparent;
+  outline: transparent;
+  outline-style: solid;
+  outline-width: .5px;
+  box-shadow:   3px 3px 7px #dec7cc,
+  -1px 2px 7px rgba(0, 0, 0, 0.15);
+
+}
+.playbutton:hover {
+  background-color: transparent;
+  outline: transparent;
+  outline-style: solid;
+  outline-width: .5px;
+
+  box-shadow:   3px 3px 4px rgba(222,199,204,.53),
+  -.5px 1px 4px rgba(0, 0, 0, 0.15);
+
+}
 .send-message-box
 {
   background-color: transparent;
@@ -840,8 +859,8 @@ textarea {
 
 }
 .likebutton:hover{
-  box-shadow: 0 0 0px 0px rgba(0,0,0,0.15);
-
+  box-shadow:   3px 3px 4px rgba(222,199,204,.53),
+  -.5px 1px 4px rgba(0, 0, 0, 0.15);
 
 }
 
