@@ -250,6 +250,21 @@ export function convertPostToNode(
             y: realtimePost.y_coordinate,
           },
         } as AudioNode;
+      case "MUSIC":
+        return {
+          id: realtimePost.id.toString(),
+          type: realtimePost.type,
+          data: {
+            audioUrl: realtimePost.video_url || "",
+            title: realtimePost.content || "",
+            author: authorToSet,
+            locked: realtimePost.locked,
+          },
+          position: {
+            x: realtimePost.x_coordinate,
+            y: realtimePost.y_coordinate,
+          },
+        } as AppNode;
       case "DOCUMENT":
         return {
           id: realtimePost.id.toString(),

@@ -20,22 +20,6 @@ interface RandomRoom {
 const isOff = true;
 
 function RightSidebar() {
-  /* ──────────────────────────────────────────────────────────────
-     FAST-PATH: during dev/testing skip all expensive work
-  ────────────────────────────────────────────────────────────── */
-  if (isOff) {
-    return (
-      <section className="sticky custom-scrollbar rightsidebar bg-transparent">
-        {/* Keep any visual chrome you still want visible */}
-        <div className="absolute left-0 top-0 h-full w-[.1rem] bg-gradient-to-tr
-                        from-transparent via-rose-300 to-transparent opacity-50
-                        dark:via-neutral-400 lg:block" />
-                                <h3 className="relative bottom-[4rem] text-[1.5rem] text-black">Right Sidebar</h3>
-
-      </section>
-    );
-  }
-
   const [users, setUsers] = useState<SuggestedUser[]>([]);
   const [rooms, setRooms] = useState<RandomRoom[]>([]);
 
@@ -52,7 +36,7 @@ function RightSidebar() {
         console.error(e);
       }
     }
-    load();
+    if (!isOff) load();
   }, []);
 
   useEffect(() => {
@@ -67,7 +51,7 @@ function RightSidebar() {
         console.error(e);
       }
     }
-    loadRooms();
+    if (!isOff) loadRooms();
   }, []);
     // return (
     // <section className="custom-scrollbar rightsidebar">
@@ -80,6 +64,15 @@ function RightSidebar() {
     // </section>
     // )
  
+  if (isOff) {
+    return (
+      <section className="sticky custom-scrollbar rightsidebar bg-transparent">
+        <div className="absolute left-0 top-0 h-full w-[.1rem] bg-gradient-to-tr from-transparent via-rose-300 to-transparent opacity-50 dark:via-neutral-400 lg:block" />
+        <h3 className="relative bottom-[4rem] text-[1.5rem] text-black">Right Sidebar</h3>
+      </section>
+    );
+  }
+
   return (
     <section className="sticky custom-scrollbar rightsidebar  bg-transparent">
       <div className="sticky flex w-full flex-1 flex-col gap-2 px-2 mt-[-1rem]">

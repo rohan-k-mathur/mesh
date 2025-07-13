@@ -127,6 +127,7 @@ export default function NodeSidebar({
     { label: "LIVECHAT", nodeType: "LIVECHAT" },
     { label: "ENTROPY", nodeType: "ENTROPY" },
     { label: "AUDIO", nodeType: "AUDIO" },
+    { label: "MUSIC", nodeType: "MUSIC" },
     { label: "LLM", nodeType: "LLM_INSTRUCTION" },
     { label: "PORTFOLIO", nodeType: "PORTFOLIO" },
     { label: "PRODUCT_REVIEW", nodeType: "PRODUCT_REVIEW" },
@@ -433,6 +434,15 @@ export default function NodeSidebar({
           path: pathname,
           coordinates: centerPosition,
           type: "AUDIO",
+          realtimeRoomId: roomId,
+        });
+        break;
+
+      case "MUSIC":
+        createPostAndAddToCanvas({
+          path: pathname,
+          coordinates: centerPosition,
+          type: "MUSIC",
           realtimeRoomId: roomId,
         });
         break;

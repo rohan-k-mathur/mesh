@@ -49,6 +49,7 @@ import GalleryNode from "../nodes/GalleryNode";
 const DrawNode = dynamic(() => import("../nodes/DrawNode"), { ssr: false });
 import LivechatNode from "../nodes/LivechatNode";
 const AudioNode = dynamic(() => import("../nodes/AudioNode"), { ssr: false });
+const MusicNode = dynamic(() => import("../nodes/MusicNode"), { ssr: false });
 import LLMInstructionNode from "../nodes/LLMInstructionNode";
 import DocumentNode from "../nodes/DocumentNode";
 import ThreadNode from "../nodes/ThreadNode";
@@ -356,6 +357,7 @@ function Room({ roomId, initialNodes, initialEdges }: Props) {
     DRAW: DrawNode,
     LIVECHAT: LivechatNode,
     AUDIO: AudioNode,
+    MUSIC: MusicNode,
     LLM_INSTRUCTION: LLMInstructionNode,
     DOCUMENT: DocumentNode,
     THREAD: ThreadNode,

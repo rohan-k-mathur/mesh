@@ -14,6 +14,7 @@ import GalleryNodeModal from "@/components/modals/GalleryNodeModal";
 import PortfolioNodeModal from "@/components/modals/PortfolioNodeModal";
 import ProductReviewNodeModal from "@/components/modals/ProductReviewNodeModal";
 import ShareRoomModal from "@/components/modals/ShareRoomModal";
+import MusicNodeModal from "@/components/modals/MusicNodeModal";
 import { PluginDescriptor } from "../pluginLoader";
 // there is currently no dedicated modal for portal nodes
 
@@ -139,6 +140,16 @@ export type AudioNode = Node<
   "AUDIO"
 >;
 
+export type MusicNode = Node<
+  {
+    audioUrl: string;
+    title: string;
+    author: AuthorOrAuthorId;
+    locked: boolean;
+  },
+  "MUSIC"
+>;
+
 export type DocumentNode = Node<
   {
     documentUrl: string;
@@ -223,6 +234,7 @@ export const NodeTypeMap = {
   LIVECHAT: {} as LivechatNode,
   ENTROPY: {} as EntropyNode,
   AUDIO: {} as AudioNode,
+  MUSIC: {} as MusicNode,
   DOCUMENT: {} as DocumentNode,
   THREAD: {} as ThreadNode,
   CODE: {} as CodeNode,
@@ -250,6 +262,7 @@ export const NodeTypeToModalMap = {
   PORTAL: ShareRoomModal,
   LIVECHAT: ShareRoomModal,
   ENTROPY: ShareRoomModal,
+  MUSIC: MusicNodeModal,
 };
 
 export type AppNode =
@@ -265,6 +278,7 @@ export type AppNode =
   | LivechatNode
   | EntropyNode
   | AudioNode
+  | MusicNode
   | DocumentNode
   | ThreadNode
   | CodeNode
@@ -291,6 +305,7 @@ export const DEFAULT_NODE_VALUES: Record<AppNodeType, string> = {
   ["LIVECHAT"]: "",
   ["ENTROPY"]: "",
   ["AUDIO"]: "",
+  ["MUSIC"]: "",
   ["DOCUMENT"]: "",
   ["THREAD"]: "",
   ["CODE"]: "",
