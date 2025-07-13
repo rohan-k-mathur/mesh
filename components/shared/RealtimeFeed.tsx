@@ -56,7 +56,7 @@ export default function RealtimeFeed({
           pluginData={(realtimePost as any).pluginData ?? null}
           type={realtimePost.type}
           author={realtimePost.author!}
-          createdAt={realtimePost.created_at.toDateString()}
+          createdAt={new Date(realtimePost.created_at).toDateString()}
           claimIds={realtimePost.productReview?.claims.map((c: any) => c.id.toString()) ?? []}
         />
       ))}
