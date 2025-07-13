@@ -1,11 +1,8 @@
-"use client";
-
-
 import Image from "next/image";
 import Link from "next/link";
 import LikeButton from "@/components/buttons/LikeButton";
 import { fetchLikeForCurrentUser } from "@/lib/actions/like.actions";
-import { Like } from "@prisma/client";
+import type { Like } from "@prisma/client";
 import { Comfortaa } from "next/font/google";
 import { Nunito } from "next/font/google";
 import ShareButton from "../buttons/ShareButton";
@@ -45,7 +42,6 @@ interface Props {
   pluginData?: Record<string, any> | null;
 }
 
-/* eslint-disable-next-line @next/next/no-async-client-component */
 const ThreadCard = async ({
   id,
   currentUserId,

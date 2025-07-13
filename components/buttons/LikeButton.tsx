@@ -18,7 +18,7 @@ interface Props {
   postId?: bigint;
   realtimePostId?: string;
   likeCount: number;
-  initialLikeState: Like | RealtimeLike | null;
+  initialLikeState?: Like | RealtimeLike | null;
 }
 
 const LikeButton = ({ postId, realtimePostId, likeCount, initialLikeState }: Props) => {

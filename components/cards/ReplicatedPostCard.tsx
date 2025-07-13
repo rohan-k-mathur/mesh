@@ -1,6 +1,10 @@
 import PostCard from "./PostCard";
 import { fetchPostById } from "@/lib/actions/thread.actions";
 import { fetchRealtimePostById } from "@/lib/actions/realtimepost.actions";
+import {
+  fetchLikeForCurrentUser,
+  fetchRealtimeLikeForCurrentUser,
+} from "@/lib/actions/like.actions";
 
 interface Props {
   id: bigint;
@@ -32,10 +36,29 @@ const ReplicatedPostCard = async ({
     : await fetchPostById(originalPostId);
   if (!original) return null;
 
+  const currentUserLike = currentUserId
+    ? isRealtimePost
+      ? await fetchRealtimeLikeForCurrentUser({
+          realtimePostId: id,
+          userId: currentUserId,
+        })
+      : await fetchLikeForCurrentUser({ postId: id, userId: currentUserId })
+    : null;
+
+  const originalUserLike = currentUserId
+    ? isRealtimePost
+      ? await fetchRealtimeLikeForCurrentUser({
+          realtimePostId: original.id,
+          userId: currentUserId,
+        })
+      : await fetchLikeForCurrentUser({ postId: original.id, userId: currentUserId })
+    : null;
+
   return (
     <PostCard
       id={id}
       currentUserId={currentUserId}
+      currentUserLike={currentUserLike}
       content="Replicated"
       type="TEXT"
       isRealtimePost={isRealtimePost}
@@ -47,6 +70,7 @@ const ReplicatedPostCard = async ({
         <PostCard
           id={original.id}
           currentUserId={currentUserId}
+          currentUserLike={originalUserLike}
           content={original.content ?? undefined}
           image_url={(original as any).image_url ?? undefined}
           video_url={(original as any).video_url ?? undefined}

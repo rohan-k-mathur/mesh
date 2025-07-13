@@ -1,5 +1,6 @@
 import PostCard from "@/components/cards/PostCard";
 import { fetchUserRealtimePosts } from "@/lib/actions/realtimepost.actions";
+import { fetchRealtimeLikeForCurrentUser } from "@/lib/actions/like.actions";
 import { redirect } from "next/navigation";
 
 interface Props {
@@ -16,16 +17,29 @@ const RealtimePostsTab = async ({ currentUserId, accountId }: Props) => {
 
   if (!posts) redirect("/");
 
+  const postsWithLikes = await Promise.all(
+    posts.map(async (post) => {
+      const like = currentUserId
+        ? await fetchRealtimeLikeForCurrentUser({
+            realtimePostId: post.id,
+            userId: currentUserId,
+          })
+        : null;
+      return { post, like };
+    })
+  );
+
   return (
     <section className="mt-[3rem] flex flex-col gap-12">
-      {posts.length === 0 ? (
+      {postsWithLikes.length === 0 ? (
         <p className="no-result">Nothing found</p>
       ) : (
-          <>
-          {posts.map((post) => (
+        <>
+          {postsWithLikes.map(({ post, like }) => (
             <PostCard
               key={post.id.toString()}
               currentUserId={currentUserId}
+              currentUserLike={like}
               id={post.id}
               isRealtimePost
               likeCount={post.like_count}
@@ -40,12 +54,9 @@ const RealtimePostsTab = async ({ currentUserId, accountId }: Props) => {
               createdAt={post.created_at.toDateString()}
               claimIds={post.productReview?.claims.map((c) => c.id.toString()) ?? []}
             />
-            
           ))}
-                  </>
-
+        </>
       )}
-      
     </section>
   );
 };
