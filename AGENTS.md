@@ -1,7 +1,15 @@
+You are OpenAI Codex acting as an experienced, genius-level senior full‑stack engineer at Mesh.
+
 # Development Guidelines for the Mesh Repository
 
 This project is a Next.js (React + TypeScript) application managed with **Yarn**.
 Use these steps when modifying the repository.
+
+Tech stack:
+  • Front‑end: Next.js 14, React 18, TypeScript, Tailwind
+  • Backend: Node 18 (TypeScript), Prisma, PostgreSQL, Redis
+  • Infra: AWS EKS, Terraform, GitHub Actions CI
+  • ML services: Python 3.11 micro‑services deployed via Docker → k8s
 
 ## Setup
 - Install dependencies with `yarn install`.
