@@ -24,6 +24,16 @@ created in the global rooms and by friends and rooms that are subscribed to.
 
 The app/(root)/(realtime)/ folder contains the code for the reactflow canvas rooms.
 
+## Setup
+
+To avoid missing-bucket errors when uploading audio posts, create the `realtime_post_audio` bucket in Supabase:
+
+1. Navigate to **Storage** → **Create a new bucket**.
+2. Name it `realtime_post_audio` and set it to **public** (or adjust policies).
+3. Ensure public read access and upload permissions are allowed.
+
+Apply the same steps to create a `realtime_post_images` bucket if it does not already exist.
+
 ## Development
 
 1. Install dependencies
