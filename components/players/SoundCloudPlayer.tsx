@@ -22,15 +22,15 @@ const SoundCloudPlayer = ({ src, title }: Props) => {
 
     const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height * 1);
     gradient.addColorStop(0, "#ffffff");
-    gradient.addColorStop((canvas.height * 0.6 ) / canvas.height, "#E8E8E8");
+    gradient.addColorStop((canvas.height * 0.65 ) / canvas.height, "#E8E8E8");
 
-    gradient.addColorStop((canvas.height * 0.6) / canvas.height, "#464646");
+    gradient.addColorStop((canvas.height * 0.65) / canvas.height, "#464646");
     gradient.addColorStop(1, "#000000");
 
     const progressGradient = ctx.createLinearGradient(0, 0, 0, canvas.height * 1);
     progressGradient.addColorStop(0, "#ea580c");
-    progressGradient.addColorStop((canvas.height * 0.6) / canvas.height, "#f97316");
-    progressGradient.addColorStop((canvas.height * 0.6) / canvas.height, "#fb923c");
+    progressGradient.addColorStop((canvas.height * 0.65) / canvas.height, "#f97316");
+    progressGradient.addColorStop((canvas.height * 0.65) / canvas.height, "#fb923c");
     progressGradient.addColorStop(1, "#fdba74");
 
     waveRef.current = WaveSurfer.create({
