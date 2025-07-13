@@ -495,7 +495,7 @@ export default function NodeSidebar({
               {nodeTypes.map((item) => (
                 <div
                   key={item.nodeType}
-                  className="dndnode h-[.3rem] hover:cursor-pointer"
+                  className="dndnode h-[1rem] hover:cursor-pointer"
                   onClick={() => openNodeCreationMenu(item.nodeType)}
                 >
                   {item.label}

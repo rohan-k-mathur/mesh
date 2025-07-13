@@ -5,7 +5,7 @@ import { fetchClaimStats, voteClaim, vouchClaim } from "@/lib/actions/productrev
 import { useAuth } from "@/lib/AuthContext";
 import ProductPhotoGalleryModal from "../modals/ProductPhotoGalleryModal";
 import { Button } from "../ui/button";
-
+import Link from "next/link";
 interface ProductReviewCardProps {
   productName: string;
   rating: number;
@@ -149,8 +149,10 @@ const ProductReviewCard = ({
       <hr></hr>
 
 <div className="flex flex-wrap gap-4 mt-2">
-      <Button>
-        <a
+
+      <button
+          className="mt-1 bg-transparent likebutton border-none outline-black outline-blue w-fit text-black  rounded-xl px-2 py-2">
+ <a
           href={productLink}
           target="_blank"
           rel="noopener noreferrer"
@@ -158,11 +160,13 @@ const ProductReviewCard = ({
         >
           Product Link
         </a>
-      </Button>
+      </button>
+
       {images.length > 0 && (
-        <Button onClick={() => setViewerOpen(true)} className="text-sm">
+        <button onClick={() => setViewerOpen(true)} 
+        className="mt-1 bg-transparent likebutton border-none outline-black outline-blue w-fit text-black  rounded-xl px-2 py-2">
           View Photos
-        </Button>
+        </button>
       )}
         </div>
         <ProductPhotoGalleryModal
