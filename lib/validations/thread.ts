@@ -145,3 +145,8 @@ export const SplineViewerPostValidation = z.object({
   sceneUrl: z.string().url(),
 });
 
+export const MusicPostValidation = z.object({
+  youtubeUrl: z.string().url(),
+  title: z.string().min(1).optional(),
+});
+
