@@ -69,7 +69,7 @@ function RightSidebar() {
       <section className="sticky custom-scrollbar rightsidebar bg-transparent">
          <div className="flex  w-full flex flex-col gap-4 px-2">
          <Button
-         className="border-[1px] border-rose-300 border-opacity-80 likebutton leftsidebar_link leftsidebar-item items-start justify-start h-fit  rounded-md hover:outline-2 hover:outline-double hover:outline-indigo-400"
+         className="border-[1px] border-rose-300 border-opacity-80 likebutton leftsidebar_link leftsidebar-item items-start justify-start h-fit  rounded-md "
          variant={"outline"}
          >
            <Image
@@ -84,7 +84,7 @@ function RightSidebar() {
        </Button>
        
        <Button
-         className="border-[1px] border-rose-300 border-opacity-80 likebutton leftsidebar_link leftsidebar-item items-start justify-start h-fit  rounded-md hover:outline-2 hover:outline-double hover:outline-indigo-400"
+         className="border-[1px] border-rose-300 border-opacity-80 likebutton leftsidebar_link leftsidebar-item items-start justify-start h-fit  rounded-md "
          variant={"outline"}
          >
            <Image
@@ -98,7 +98,7 @@ function RightSidebar() {
          <p className="text-black max-lg:hidden">{"Find Users"}</p>
        </Button>
        <Button
-         className="border-[1px] border-rose-300 border-opacity-80 likebutton leftsidebar_link leftsidebar-item items-start justify-start h-fit  rounded-md hover:outline-2 hover:outline-double hover:outline-indigo-400"
+         className="border-[1px] border-rose-300 border-opacity-80 likebutton leftsidebar_link leftsidebar-item items-start justify-start h-fit  rounded-md "
          variant={"outline"}
          >
            <Image

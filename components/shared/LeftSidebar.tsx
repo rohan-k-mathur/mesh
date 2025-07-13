@@ -71,7 +71,7 @@ function LeftSidebar({ userRooms }: Props) {
       <div className="flex  w-full flex flex-col gap-4 px-2">
        
             <Button
-              className="border-[1px] border-rose-300 border-opacity-80 likebutton leftsidebar_link leftsidebar-item items-start justify-start h-fit  rounded-md hover:outline-2 hover:outline-double hover:outline-indigo-400"
+              className="border-[1px] border-rose-300 border-opacity-80 likebutton leftsidebar_link leftsidebar-item items-start justify-start h-fit  rounded-md "
               variant={"outline"}
               onClick={gotoglobal}
               >
@@ -88,7 +88,7 @@ function LeftSidebar({ userRooms }: Props) {
        
         <Button
           variant="outline"
-          className=" likebutton leftsidebar_link  leftsidebar-item items-start justify-start h-fit rounded-md border-[1px] border-rose-300 border-opacity-80 hover:outline-2 hover:outline-double hover:outline-indigo-400"
+          className=" likebutton leftsidebar_link  leftsidebar-item items-start justify-start h-fit rounded-md border-[1px] border-rose-300 border-opacity-80 "
           onClick={openRoomsModal}
         >
           <Image src="/assets/3D-print-mesh.svg" 
@@ -102,7 +102,7 @@ function LeftSidebar({ userRooms }: Props) {
         <Button
           variant={"outline"}
           onClick={newroom}
-          className="likebutton leftsidebar_link leftsidebar-item  items-start justify-start h-fit border-[1px] border-rose-300 border-opacity-80	 rounded-md hover:outline-2 hover:outline-double hover:outline-red-400"
+          className="likebutton leftsidebar_link leftsidebar-item  items-start justify-start h-fit border-[1px] border-rose-300 border-opacity-80	 rounded-md "
         >
           <Image
             src="/assets/gateway.svg"
@@ -117,7 +117,7 @@ function LeftSidebar({ userRooms }: Props) {
         <Button
           variant={"outline"}
           onClick={gotoapplications}
-          className="likebutton leftsidebar_link leftsidebar-item  items-start justify-start h-fit border-[1px] border-rose-300 border-opacity-80	 rounded-md hover:outline-2 hover:outline-double hover:outline-red-400"
+          className="likebutton leftsidebar_link leftsidebar-item  items-start justify-start h-fit border-[1px] border-rose-300 border-opacity-80	 rounded-md "
         >
           <Image
             src="/assets/apps.svg"
@@ -137,7 +137,7 @@ function LeftSidebar({ userRooms }: Props) {
         {isUserSignedIn && (
           <Button
           variant={"outline"}
-            className="likebutton leftsidebar-link  leftsidebar-item  items-start justify-start w-full h-fit rounded-md border-[1px] border-rose-300 border-opacity-80 hover:outline-2 hover:outline-double hover:outline-emerald-400"
+            className="likebutton leftsidebar-link  leftsidebar-item  items-start justify-start w-full h-fit rounded-md border-[1px] border-rose-300 border-opacity-80 "
             onClick={gotoprofile}
           >
             <Image
@@ -156,7 +156,7 @@ function LeftSidebar({ userRooms }: Props) {
           <Button
           variant={"outline"}
 
-            className="likebutton leftsidebar_link leftsidebar-item items-start justify-start h-full w-full rounded-md  leftsidebar-item border-[1px] border-rose-300 border-opacity-80  hover:outline-2 hover:outline-double hover:outline-emerald-400"
+            className="likebutton leftsidebar_link leftsidebar-item items-start justify-start h-full w-full rounded-md  leftsidebar-item border-[1px] border-rose-300 border-opacity-80  "
             onClick={gotoprofile}
           >
             <Image
@@ -175,7 +175,7 @@ function LeftSidebar({ userRooms }: Props) {
           <Button
           variant={"outline"}
 
-            className="likebutton leftsidebar_link leftsidebar-item items-start justify-start h-full w-full rounded-md  leftsidebar-item border-[1px] border-rose-300 border-opacity-80 hover:outline-2 hover:outline-double hover:outline-emerald-400"
+            className="likebutton leftsidebar_link leftsidebar-item items-start justify-start h-full w-full rounded-md  leftsidebar-item border-[1px] border-rose-300 border-opacity-80 "
             onClick={handleLogout}
           >
             <Image

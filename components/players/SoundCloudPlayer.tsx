@@ -21,15 +21,16 @@ const SoundCloudPlayer = ({ src, title }: Props) => {
     if (!ctx) return;
 
     const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height * 1);
-    gradient.addColorStop(0, "#475569");
-    gradient.addColorStop((canvas.height * 0.65) / canvas.height, "#64748b");
-    gradient.addColorStop((canvas.height * 0.65 + 1) / canvas.height, "#94a3b8");
-    gradient.addColorStop(1, "#cbd5e1");
+    gradient.addColorStop(0, "#ffffff");
+    gradient.addColorStop((canvas.height * 0.6 ) / canvas.height, "#E8E8E8");
+
+    gradient.addColorStop((canvas.height * 0.6) / canvas.height, "#464646");
+    gradient.addColorStop(1, "#000000");
 
     const progressGradient = ctx.createLinearGradient(0, 0, 0, canvas.height * 1);
     progressGradient.addColorStop(0, "#ea580c");
-    progressGradient.addColorStop((canvas.height * 0.65) / canvas.height, "#f97316");
-    progressGradient.addColorStop((canvas.height * 0.65 + 1) / canvas.height, "#fb923c");
+    progressGradient.addColorStop((canvas.height * 0.6) / canvas.height, "#f97316");
+    progressGradient.addColorStop((canvas.height * 0.6) / canvas.height, "#fb923c");
     progressGradient.addColorStop(1, "#fdba74");
 
     waveRef.current = WaveSurfer.create({
@@ -57,6 +58,8 @@ const SoundCloudPlayer = ({ src, title }: Props) => {
 
   return (
     <div className="w-full flex-col">
+            <h1 className="text-center font-bold text-[1.1rem] mt-0  py-2">{title}</h1>
+
       <div className="flex items-center gap-5 w-full">
         {isPlaying ? (
           <button
@@ -77,7 +80,6 @@ const SoundCloudPlayer = ({ src, title }: Props) => {
           <div ref={containerRef} className=" px-0 py-0 rounded-full  w-full" />
         </div>
       </div>
-      <h1 className="text-center font-bold text-[1.1rem]">{title}</h1>
     </div>
   );
 };
