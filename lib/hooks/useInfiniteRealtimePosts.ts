@@ -10,14 +10,18 @@ export function useInfiniteRealtimePosts(
   const [page, setPage] = useState(1);
   const [posts, setPosts] = useState(initialPosts);
   const [hasMore, setHasMore] = useState(initialIsNext);
+  const [loading, setLoading] = useState(false);
   const loaderRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (page === 1) return;
-    fetchPage(page).then((data) => {
-      setPosts((prev) => [...prev, ...data.posts]);
-      setHasMore(data.isNext);
-    });
+    setLoading(true);
+    fetchPage(page)
+      .then((data) => {
+        setPosts((prev) => [...prev, ...data.posts]);
+        setHasMore(data.isNext);
+      })
+      .finally(() => setLoading(false));
   }, [page, fetchPage]);
 
   useEffect(() => {
@@ -32,5 +36,5 @@ export function useInfiniteRealtimePosts(
     return () => observer.disconnect();
   }, [loaderRef, hasMore]);
 
-  return { posts, loaderRef };
+  return { posts, loaderRef, loading };
 }
