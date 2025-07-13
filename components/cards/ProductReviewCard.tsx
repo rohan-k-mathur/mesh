@@ -122,9 +122,9 @@ const ProductReviewCard = ({
 
       <ul className="flex  flex-wrap gap-x-2 px-2 my-2  w-full h-fit">
         {claims.map((c, idx) => (
-          <li key={idx} className="text-[1rem] w-fit text-block  h-fit">
+          <li key={idx} className="text-[1rem] w-fit text-block rounded-xl h-fit">
             <div className="flex flex-col my-2 mx-2  justify-between items-center">
-              <span className="text-block text-[1rem] leading-[1.2rem]">{c}</span>
+              <span className="text-block text-[1rem] rounded-md leading-[1.2rem]">{c}</span>
               <div className="flex items-center mt-1  gap-3 text-xs">
                 <button onClick={() => handleVote(idx, "helpful")} aria-label="Helpful" className="py-1">
                   <ThumbsUp className="h-4 w-4 mb-1" /> {voteCounts[idx]?.helpful ?? 0}
