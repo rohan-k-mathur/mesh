@@ -1,3 +1,5 @@
+"use client";
+
 import { PortfolioNodeValidation } from "@/lib/validations/thread";
 import { zodResolver } from "@hookform/resolvers/zod";
 import Image from "next/image";
