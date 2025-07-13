@@ -1,3 +1,5 @@
+"use client";
+
 import { PortfolioNodeValidation } from "@/lib/validations/thread";
 import { z } from "zod";
 import PortfolioNodeForm from "../forms/PortfolioNodeForm";
