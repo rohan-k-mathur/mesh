@@ -149,12 +149,12 @@ const chatMessageContentVariants = cva("flex flex-col gap-2 ", {
 		{
 			variant: "bubble",
 			type: "incoming",
-			className: "bg-rose-200  bg-opacity-40 tab-button outline-transparent text-[.9rem] text-slate-950 dark:bg-slate-50 dark:text-slate-900",
+			className: "bg-sky-200  bg-opacity-40 tab-button outline-transparent text-[.9rem] text-slate-950 dark:bg-slate-50 dark:text-slate-900",
 		},
 		{
 			variant: "bubble",
 			type: "outgoing",
-			className: "bg-indigo-200  bg-opacity-40 tab-button outline-transparent text-[.95rem] text-slate-950 dark:bg-slate-50 dark:text-slate-900",
+			className: "bg-red-200  bg-opacity-40 tab-button outline-transparent text-[.95rem] text-slate-950 dark:bg-slate-50 dark:text-slate-900",
 		},
 	],
 	defaultVariants: {

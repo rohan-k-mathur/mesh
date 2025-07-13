@@ -17,13 +17,15 @@ export default function MessageForm({ conversationId }: Props) {
     setText("");
   }
   return (
-    <div className="flex gap-2 ">
+    <div className="flex gap-4 ">
       <input
         className="flex-1 border rounded-xl px-4 bg-transparent shadow-md border-black send-message-box text-black"
         value={text}
         onChange={(e) => setText(e.target.value)}
       />
-      <button className="px-4 py-2 bg-primary-500 text-white rounded" onClick={send}>
+      <button className=" bg-transparent send-message-box shadow-md border border-black w-fit text-black  
+       rounded-xl px-8 py-2 hover:shadow-none "
+      onClick={send}>
         Send
       </button>
     </div>
