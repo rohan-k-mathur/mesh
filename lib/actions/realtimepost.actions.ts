@@ -59,8 +59,7 @@ export async function createRealtimePost({
     throw new Error("User not authenticated");
   }
   try {
-    const prismaType: realtime_post_type =
-      (type === "MUSIC" ? "AUDIO" : type) as realtime_post_type;
+    const prismaType: realtime_post_type = type as realtime_post_type;
 
     const createdRealtimePost = await prisma.realtimePost.create({
       data: {
