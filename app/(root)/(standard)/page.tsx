@@ -24,6 +24,8 @@ export default async function Home() {
       "DRAW",
       "LIVECHAT",
       "ENTROPY",
+      "PORTFOLIO",
+
       "PLUGIN",
       "PRODUCT_REVIEW",
 

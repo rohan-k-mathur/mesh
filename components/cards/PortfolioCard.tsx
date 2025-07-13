@@ -28,14 +28,12 @@ const PortfolioCard = ({ text, images, links, layout, color }: PortfolioCardProp
   };
 
   return (
-    <div className="flex flex-col">
-      <button onClick={handleExport} className="likebutton w-fit self-end mb-2 px-2">
-        Export
-      </button>
-      <div className="portfolio-container flex flex-col w-[34rem] max-h-[3000px]">
-        <div className={`${color} flex flex-col gap-2 rounded-lg p-4 mt-4 max-h-[3000px]`}>
+    <div className="flex flex-col ">
+    
+      <div className="flex flex-col w-full h-fit  items-start">
+        <div className={`${color} flex flex-col rounded-lg p-4 max-w-[90%] w-fit  mt-4 h-fit`}>
           {text && (
-            <div className="text-block flex flex-col max-h-[1000px] mb-1 mt-2 break-words">
+            <div className="text-block flex flex-col max-h-screen  h-fit mb-1 mt-1 p-2 custom-scrollbar text-[1.1rem] break-words">
               {text}
             </div>
           )}
@@ -62,6 +60,10 @@ const PortfolioCard = ({ text, images, links, layout, color }: PortfolioCardProp
           ))}
         </div>
       </div>
+
+      <button onClick={handleExport} className="justify-start mx-auto mr-[44%] likebutton text-[1rem] font-light  w-[20%] py-2 mt-6 mb-4 mb-1 outline-blue px-2">
+        Export
+      </button>
     </div>
   );
 };
