@@ -50,6 +50,7 @@ import EntropyNodeModal from "@/components/modals/EntropyNodeModal";
 import PortfolioNodeModal from "@/components/modals/PortfolioNodeModal";
 import SplineViewerNodeModal from "@/components/modals/SplineViewerNodeModal";
 import ProductReviewNodeModal from "@/components/modals/ProductReviewNodeModal";
+import MusicNodeModal from "@/components/modals/MusicNodeModal";
 
 import { fetchUserByUsername } from "@/lib/actions/user.actions";
 
@@ -439,12 +440,23 @@ export default function NodeSidebar({
         break;
 
       case "MUSIC":
-        createPostAndAddToCanvas({
-          path: pathname,
-          coordinates: centerPosition,
-          type: "MUSIC",
-          realtimeRoomId: roomId,
-        });
+        store.openModal(
+          <MusicNodeModal
+            isOwned={true}
+            currentUrl=""
+            currentTitle=""
+            onSubmit={(vals) => {
+              createPostAndAddToCanvas({
+                path: pathname,
+                coordinates: centerPosition,
+                type: "MUSIC",
+                realtimeRoomId: roomId,
+                videoUrl: vals.audioUrl,
+                text: vals.title,
+              });
+            }}
+          />,
+        );
         break;
 
       case "LLM_INSTRUCTION":

@@ -23,6 +23,7 @@ import LivechatNodeModal from "@/components/modals/LivechatNodeModal";
 import EntropyNodeModal from "@/components/modals/EntropyNodeModal";
 import PdfViewerNodeModal from "@/components/modals/PdfViewerNodeModal";
 import ProductReviewNodeModal from "../modals/ProductReviewNodeModal";
+import MusicNodeModal from "../modals/MusicNodeModal";
 import SplineViewerNodeModal from "../modals/SplineViewerNodeModal";
 import { uploadFileToSupabase } from "@/lib/utils";
 import { createRealtimePost } from "@/lib/actions/realtimepost.actions";
@@ -46,6 +47,7 @@ const nodeOptions: { label: string; nodeType: string }[] = [
   { label: "TEXT", nodeType: "TEXT" },
   { label: "IMAGE", nodeType: "IMAGE" },
   { label: "VIDEO", nodeType: "VIDEO" },
+  { label: "MUSIC", nodeType: "MUSIC" },
   { label: "LIVESTREAM", nodeType: "LIVESTREAM" },
   // { label: "IMAGE_COMPUTE", nodeType: "IMAGE_COMPUTE" },
   // { label: "COLLAGE", nodeType: "COLLAGE" },
@@ -105,6 +107,19 @@ const CreateFeedPost = () => {
       path: "/",
       coordinates: { x: 0, y: 0 },
       type: "VIDEO",
+      realtimeRoomId: "global",
+    });
+    reset();
+    router.refresh();
+  }
+
+  async function handleMusicSubmit(values: { audioUrl: string; title: string }) {
+    await createRealtimePost({
+      videoUrl: values.audioUrl,
+      text: values.title,
+      path: "/",
+      coordinates: { x: 0, y: 0 },
+      type: "MUSIC",
       realtimeRoomId: "global",
     });
     reset();
@@ -207,6 +222,15 @@ const CreateFeedPost = () => {
         return <ImageNodeModal isOwned={true} currentImageURL="" onSubmit={handleImageSubmit} />;
       case "VIDEO":
         return <YoutubeNodeModal isOwned={true} currentVideoURL="" onSubmit={handleVideoSubmit} />;
+      case "MUSIC":
+        return (
+          <MusicNodeModal
+            isOwned={true}
+            currentUrl=""
+            currentTitle=""
+            onSubmit={handleMusicSubmit}
+          />
+        );
       case "COLLAGE":
         return (
           <CollageCreationModal

@@ -23,6 +23,7 @@ export default async function Home() {
       "GALLERY",
       "DRAW",
       "LIVECHAT",
+      "MUSIC",
       "ENTROPY",
       "PORTFOLIO",
 
