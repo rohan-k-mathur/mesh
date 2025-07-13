@@ -1,3 +1,6 @@
+"use server";
+
+
 import { prisma } from "../prismaclient";
 import { revalidatePath } from "next/cache";
 import { getUserFromCookies } from "../serverutils";
@@ -17,7 +20,6 @@ interface AddCommentToPostParams {
 }
 
 export async function createPost({ text, authorId, path, expirationDate }: CreatePostParams) {
-  "use server";
   try {
     const createdPost = await prisma.post.create({
       data: {
@@ -189,7 +191,6 @@ export async function addCommentToPost({
   userId,
   path,
 }: AddCommentToPostParams) {
-  "use server";
   try {
     const originalPost = await prisma.post.findUnique({
       where: {
@@ -233,7 +234,6 @@ export async function replicatePost({
   userId: string | number | bigint;
   path: string;
 }) {
-  "use server";
   try {
     const oid = BigInt(originalPostId);
     const uid = BigInt(userId);
@@ -267,7 +267,6 @@ export async function updatePostExpiration({
   postId: bigint;
   duration: string;
 }) {
-  "use server";
   const post = await prisma.post.findUnique({
     where: { id: postId },
   });
@@ -339,7 +338,6 @@ export async function archiveExpiredPosts() {
 }
 
 export async function deletePost({ id, path }: { id: bigint; path?: string }) {
-  "use server";
   const user = await getUserFromCookies();
   try {
     const originalPost = await prisma.post.findUniqueOrThrow({
