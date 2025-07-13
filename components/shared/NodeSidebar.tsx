@@ -29,7 +29,7 @@ import {
 } from "@/lib/actions/realtimepost.actions";
 import { convertPostToNode } from "@/lib/reactflow/reactflowutils";
 import { useReactFlow } from "@xyflow/react";
-import { uploadFileToSupabase } from "@/lib/utils";
+import { uploadFileToSupabase, uploadAudioToSupabase } from "@/lib/utils";
 import { useShallow } from "zustand/react/shallow";
 import { useAuth } from "@/lib/AuthContext";
 import { useRouter } from "next/navigation";
@@ -445,13 +445,15 @@ export default function NodeSidebar({
             isOwned={true}
             currentUrl=""
             currentTitle=""
-            onSubmit={(vals) => {
+            onSubmit={async (vals) => {
+              const result = await uploadAudioToSupabase(vals.audioFile);
+              if (result.error) return;
               createPostAndAddToCanvas({
                 path: pathname,
                 coordinates: centerPosition,
                 type: "MUSIC",
                 realtimeRoomId: roomId,
-                videoUrl: vals.audioUrl,
+                videoUrl: result.fileURL,
                 text: vals.title,
               });
             }}

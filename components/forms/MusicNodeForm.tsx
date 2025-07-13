@@ -2,7 +2,7 @@ import { MusicPostValidation } from "@/lib/validations/thread";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { useState } from "react";
+import { ChangeEvent, useState } from "react";
 import { Button } from "../ui/button";
 import {
   Form,
@@ -15,14 +15,14 @@ import {
 import { Input } from "../ui/input";
 
 interface Props {
-  onSubmit: (values: { audioUrl: string; title: string }) => void;
+  onSubmit: (values: { audioFile: File; title: string }) => void;
 }
 
 const MusicNodeForm = ({ onSubmit }: Props) => {
   const form = useForm({
     resolver: zodResolver(MusicPostValidation),
     defaultValues: {
-      youtubeUrl: "",
+      audio: new File([""], "filename"),
       title: "",
     },
   });
@@ -31,16 +31,7 @@ const MusicNodeForm = ({ onSubmit }: Props) => {
   async function handleSubmit(values: z.infer<typeof MusicPostValidation>) {
     setLoading(true);
     try {
-      const res = await fetch(
-        `/api/youtube-audio?url=${encodeURIComponent(values.youtubeUrl)}`
-      );
-      if (res.ok) {
-        const data = await res.json();
-        onSubmit({
-          audioUrl: data.audioUrl,
-          title: values.title || data.title,
-        });
-      }
+      onSubmit({ audioFile: values.audio, title: values.title });
     } finally {
       setLoading(false);
     }
@@ -54,12 +45,19 @@ const MusicNodeForm = ({ onSubmit }: Props) => {
       >
         <FormField
           control={form.control}
-          name="youtubeUrl"
+          name="audio"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>YouTube URL</FormLabel>
+              <FormLabel>Audio File</FormLabel>
               <FormControl>
-                <Input type="text" placeholder="Enter a YouTube URL" {...field} />
+                <Input
+                  type="file"
+                  accept="audio/mpeg, audio/mp3, audio/wav"
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                    const file = e.target.files && e.target.files[0];
+                    if (file) field.onChange(file);
+                  }}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>

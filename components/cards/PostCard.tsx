@@ -12,6 +12,7 @@ import PortfolioCard from "./PortfolioCard";
 import DeleteCardButton from "../buttons/DeleteCardButton";
 import ImageCard from "./ImageCard";
 import GalleryCarousel from "./GalleryCarousel";
+import SoundCloudPlayer from "../players/SoundCloudPlayer";
 import dynamic from "next/dynamic";
 import {
   fetchLikeForCurrentUser,
@@ -156,12 +157,7 @@ const PostCard = async ({
             )}
             {type === "MUSIC" && video_url && (
               <div className="mt-2 mb-2 w-full">
-                {content && (
-                  <p className="mb-2 text-[1.08rem] text-black tracking-[.05rem]">
-                    {content}
-                  </p>
-                )}
-                <audio controls src={video_url} className="w-full" />
+                <SoundCloudPlayer src={video_url} title={content || undefined} />
               </div>
             )}
             {type === "GALLERY" && content && (
