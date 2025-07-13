@@ -143,7 +143,7 @@ const PostCard = async ({
               //   sizes="200vw"
               // />
             )}
-                        {type === "VIDEO" && video_url && (
+            {type === "VIDEO" && video_url && (
               <div className="mt-2 mb-2 w-[70%] border-none loginbutton hover:loginbutton ">
                 <iframe
                   title="video"
@@ -152,6 +152,16 @@ const PostCard = async ({
                   src={video_url}
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 ></iframe>
+              </div>
+            )}
+            {type === "MUSIC" && video_url && (
+              <div className="mt-2 mb-2 w-full">
+                {content && (
+                  <p className="mb-2 text-[1.08rem] text-black tracking-[.05rem]">
+                    {content}
+                  </p>
+                )}
+                <audio controls src={video_url} className="w-full" />
               </div>
             )}
             {type === "GALLERY" && content && (
