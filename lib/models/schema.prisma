@@ -21,6 +21,7 @@ model User {
   bio                      String?
   onboarded                Boolean                   @default(false)
   archivedPosts            ArchivedPost[]
+  archivedRealtimePosts    ArchivedRealtimePost[]
   following                Follow[]                  @relation("FollowingRelation")
   followers                Follow[]                  @relation("FollowerRelation")
   friendSuggestionsTarget  FriendSuggestion[]        @relation("SuggestionsTarget")
