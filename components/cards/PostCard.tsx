@@ -106,7 +106,7 @@ const PostCard = async ({
                 src={author.image || "/assets/user-helsinki.svg"}
                 alt="Profile Image"
                 fill
-                objectFit="cover"
+                style={{ objectFit: 'cover' }}
                 className="cursor-pointer rounded-full border-[.05rem] border-indigo-300 profile-shadow hover:shadow-none 
 
                 "

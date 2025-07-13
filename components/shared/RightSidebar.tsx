@@ -17,8 +17,25 @@ interface RandomRoom {
   id: string;
   room_icon: string;
 }
+const isOff = true;
 
 function RightSidebar() {
+  /* ──────────────────────────────────────────────────────────────
+     FAST-PATH: during dev/testing skip all expensive work
+  ────────────────────────────────────────────────────────────── */
+  if (isOff) {
+    return (
+      <section className="sticky custom-scrollbar rightsidebar bg-transparent">
+        {/* Keep any visual chrome you still want visible */}
+        <div className="absolute left-0 top-0 h-full w-[.1rem] bg-gradient-to-tr
+                        from-transparent via-rose-300 to-transparent opacity-50
+                        dark:via-neutral-400 lg:block" />
+                                <h3 className="relative bottom-[4rem] text-[1.5rem] text-black">Right Sidebar</h3>
+
+      </section>
+    );
+  }
+
   const [users, setUsers] = useState<SuggestedUser[]>([]);
   const [rooms, setRooms] = useState<RandomRoom[]>([]);
 
@@ -62,12 +79,13 @@ function RightSidebar() {
     //     </div>
     // </section>
     // )
+ 
   return (
     <section className="sticky custom-scrollbar rightsidebar  bg-transparent">
       <div className="sticky flex w-full flex-1 flex-col gap-2 px-2 mt-[-1rem]">
         <h3 className="relative bottom-[4rem] text-[1.5rem] text-black">Find New Groups</h3>
         <div className="relative bottom-[4rem] flex flex-col gap-y-4 items-center">
-          {rooms.length === 0 ? (
+          { rooms.length === 0 ? (
             <p className="text-sm text-gray-500">No rooms</p>
           ) : (
             rooms.map((r) => (
@@ -111,6 +129,7 @@ function RightSidebar() {
       <div className="absolute left-0 top-0 h-full min-h-[1em] w-[.1rem] border-t-0 bg-gradient-to-tr from-transparent via-rose-300 to-transparent opacity-50 dark:via-neutral-400 lg:block"></div>
     </section>
   );
+
 }
 
 export default RightSidebar;
