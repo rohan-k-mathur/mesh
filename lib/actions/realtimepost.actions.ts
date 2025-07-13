@@ -234,6 +234,43 @@ export async function lockRealtimePost({
   }
 }
 
+export async function archiveOldRealtimePosts(days = 30) {
+  const threshold = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  const oldPosts = await prisma.realtimePost.findMany({
+    where: { created_at: { lte: threshold } },
+  });
+  if (oldPosts.length === 0) return;
+  const ids = oldPosts.map((p) => p.id);
+  await prisma.$transaction([
+    prisma.archivedRealtimePost.createMany({
+      data: oldPosts.map((p) => ({
+        original_post_id: p.id,
+        created_at: p.created_at,
+        content: p.content ?? undefined,
+        image_url: p.image_url ?? undefined,
+        video_url: p.video_url ?? undefined,
+        author_id: p.author_id,
+        updated_at: p.updated_at ?? undefined,
+        like_count: p.like_count,
+        x_coordinate: p.x_coordinate,
+        y_coordinate: p.y_coordinate,
+        type: p.type,
+        realtime_room_id: p.realtime_room_id,
+        locked: p.locked,
+        collageLayoutStyle: p.collageLayoutStyle ?? undefined,
+        collageColumns: p.collageColumns ?? undefined,
+        collageGap: p.collageGap ?? undefined,
+        isPublic: p.isPublic,
+        pluginType: p.pluginType ?? undefined,
+        pluginData: p.pluginData ?? undefined,
+        parent_id: p.parent_id ?? undefined,
+      })),
+      skipDuplicates: true,
+    }),
+    prisma.realtimePost.deleteMany({ where: { id: { in: ids } } }),
+  ]);
+}
+
 export async function fetchRealtimePosts({
   realtimeRoomId,
   postTypes,
@@ -245,6 +282,7 @@ export async function fetchRealtimePosts({
   pageNumber?: number;
   pageSize?: number;
 }) {
+  await archiveOldRealtimePosts();
   const skipAmount = (pageNumber - 1) * pageSize;
 
   const realtimePosts = await prisma.realtimePost.findMany({
