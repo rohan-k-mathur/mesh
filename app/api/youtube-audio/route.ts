@@ -8,7 +8,9 @@ export async function GET(req: NextRequest) {
   }
   process.env.YTDL_NO_UPDATE = "1";
   try {
-    const info = await ytdl.getInfo(url);
+    const info = await ytdl.getInfo(url, {
+      requestOptions: { family: 4 },
+    });
     const format = ytdl.chooseFormat(info.formats, { quality: "highestaudio" });
     return NextResponse.json({ audioUrl: format.url, title: info.videoDetails.title });
   } catch (e) {
