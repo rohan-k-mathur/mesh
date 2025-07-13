@@ -1,5 +1,5 @@
-import PostCard from "@/components/cards/PostCard";
 import Modal from "@/components/modals/Modal";
+import RealtimeFeed from "@/components/shared/RealtimeFeed";
 import { fetchRealtimePosts } from "@/lib/actions/realtimepost.actions";
 import { getUserFromCookies } from "@/lib/serverutils";
 import { redirect } from "next/navigation";
@@ -13,7 +13,7 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const { posts } = await fetchRealtimePosts({
+  const result = await fetchRealtimePosts({
     realtimeRoomId: "global",
     postTypes: [
       "TEXT",
@@ -36,43 +36,32 @@ export default async function Home() {
   if (!user) redirect("/login");
 
   return (
-    <div >
+    <div>
       <Modal />
-      <section className="mt-[0rem] flex flex-col gap-12">
-        {posts.length === 0 ? (
-          <p className="no-result">Nothing found</p>
-        ) : (
-          <>
-            {posts.map((realtimePost) => (
-              <PostCard
-                key={realtimePost.id.toString()}
-                currentUserId={user?.userId}
-                id={realtimePost.id}
-                isRealtimePost
-              likeCount={realtimePost.like_count}
-              commentCount={realtimePost.commentCount}
-              content={
-                realtimePost.content ? realtimePost.content : undefined
-              }
-                image_url={
-                  realtimePost.image_url ? realtimePost.image_url : undefined
-                }
-                video_url={
-                  realtimePost.video_url ? realtimePost.video_url : undefined
-                }
-                pluginType={(realtimePost as any).pluginType ?? null}
-                pluginData={(realtimePost as any).pluginData ?? null}
-                type={realtimePost.type}
-                author={realtimePost.author!}
-                createdAt={realtimePost.created_at.toDateString()}
-                claimIds={
-                  realtimePost.productReview?.claims.map((c) => c.id.toString()) ?? []
-                }
-              />
-            ))}
-          </>
-        )}
-      </section>
+      {result.posts.length === 0 ? (
+        <p className="no-result">Nothing found</p>
+      ) : (
+        <RealtimeFeed
+          initialPosts={result.posts}
+          initialIsNext={result.isNext}
+          roomId="global"
+          postTypes={[
+            "TEXT",
+            "VIDEO",
+            "IMAGE",
+            "IMAGE_COMPUTE",
+            "GALLERY",
+            "DRAW",
+            "LIVECHAT",
+            "MUSIC",
+            "ENTROPY",
+            "PORTFOLIO",
+            "PLUGIN",
+            "PRODUCT_REVIEW",
+          ]}
+          currentUserId={user.userId}
+        />
+      )}
     </div>
   );
 }
