@@ -22,9 +22,16 @@ const SoundCloudPlayer = ({ src, title }: Props) => {
       height: 64,
       responsive: true,
     });
-    if (src) waveRef.current.load(src);
+    if (src)
+      waveRef.current
+        .load(src)
+        .catch(() => null);
     return () => {
-      waveRef.current?.destroy();
+      try {
+        waveRef.current?.destroy();
+      } catch (err) {
+        console.error("WaveSurfer destroy failed", err);
+      }
     };
   }, [src]);
 
