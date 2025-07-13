@@ -13,6 +13,7 @@ import DeleteCardButton from "../buttons/DeleteCardButton";
 import ImageCard from "./ImageCard";
 import GalleryCarousel from "./GalleryCarousel";
 import SoundCloudPlayer from "../players/SoundCloudPlayer";
+import Spline from "@splinetool/react-spline";
 import dynamic from "next/dynamic";
 import {
   fetchLikeForCurrentUser,
@@ -25,7 +26,6 @@ const founders = localFont({ src: './NewEdgeTest-RegularRounded.otf' })
 const DrawCanvas = dynamic(() => import("./DrawCanvas"), { ssr: false })
 const LivechatCard = dynamic(() => import("./LivechatCard"), { ssr: false })
 const EntropyCard = dynamic(() => import("./EntropyCard"), { ssr: false })
-const Spline = dynamic(() => import("@splinetool/react-spline/next"), { ssr: false })
 
 interface Props {
   id: bigint;
