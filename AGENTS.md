@@ -1,6 +1,7 @@
+# Development Guidelines for the Mesh Repository
+
 You are OpenAI Codex acting as an experienced, genius-level senior full‑stack engineer at Mesh.
 
-# Development Guidelines for the Mesh Repository
 
 This project is a Next.js (React + TypeScript) application managed with **Yarn**.
 Use these steps when modifying the repository.
@@ -15,6 +16,21 @@ Tech stack:
 - Install dependencies with `yarn install`.
 - Code should compile under Node.js 18 or later.
 - The `@/` path alias points to the project root (defined in `tsconfig.json`).
+  
+## Reference docs: (consult as needed)
+- README.md
+- Advanced_Node_System_SRS.md
+- Direct_Message_SRS.md
+- FlowBuilder_Case_Study.md
+- Flow_Builder_FLOWSTATE_Report.md
+- Flowstate_Flow_Builder.md
+- Investor_Report.md
+- Linear_Workflow_Builder_SRS.md
+- Mesh_Performance_Improvements.md
+- Mesh_Roadmap.md
+- SocialDiscoveryEnginev2.md
+- SocialDiscoverEngine_V2_SRS.md
+- SocialDiscovery_Codex_Guide.md
 
 ## Coding Conventions
 - Use double quotes for string literals in TypeScript files.
