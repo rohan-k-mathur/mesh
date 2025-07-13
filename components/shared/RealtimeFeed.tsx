@@ -2,6 +2,7 @@
 
 import PostCard from "@/components/cards/PostCard";
 import { useInfiniteRealtimePosts } from "@/lib/hooks/useInfiniteRealtimePosts";
+import Spinner from "@/components/ui/spinner";
 import { realtime_post_type } from "@prisma/client";
 import { useMemo } from "react";
 
@@ -33,7 +34,7 @@ export default function RealtimeFeed({
     [roomId, postTypes]
   );
 
-  const { posts, loaderRef } = useInfiniteRealtimePosts(
+  const { posts, loaderRef, loading } = useInfiniteRealtimePosts(
     fetchPage,
     initialPosts,
     initialIsNext
@@ -61,6 +62,11 @@ export default function RealtimeFeed({
         />
       ))}
       <div ref={loaderRef} className="h-1" />
+      {loading && (
+        <div className="flex justify-center py-4">
+          <Spinner />
+        </div>
+      )}
     </section>
   );
 }
