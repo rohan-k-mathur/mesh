@@ -1,17 +1,10 @@
 "use client";
-import useStore from "@/lib/reactflow/store";
-import { ThumbsUp, ThumbsDown, BadgeDollarSign, Link } from "lucide-react";
+import { ThumbsUp, ThumbsDown, BadgeDollarSign } from "lucide-react";
 import { useState, useEffect } from "react";
 import { fetchClaimStats, voteClaim, vouchClaim } from "@/lib/actions/productreview.actions";
 import { useAuth } from "@/lib/AuthContext";
 import ProductPhotoGalleryModal from "../modals/ProductPhotoGalleryModal";
-import { uploadFileToSupabase } from "@/lib/utils";
 import { Button } from "../ui/button";
-import React from "react";
-import { updateRealtimePost } from "@/lib/actions/realtimepost.actions";
-import localFont from 'next/font/local'
-import { ProductReviewValidation } from "@/lib/validations/thread";
-const founders = localFont({ src: './NewEdgeTest-RegularRounded.otf' })
 
 interface ProductReviewCardProps {
   productName: string;
@@ -156,20 +149,21 @@ const ProductReviewCard = ({
       <hr></hr>
 
 <div className="flex flex-wrap gap-4 mt-2">
-      {/* <Link href="productlink" className="bg-transparent likebutton border-none outline-black outline-blue w-fit text-black  rounded-xl px-2 py-2"> View Product  </Link> */}
-      <a
-        href={productLink}
-        className="mt-1 bg-transparent likebutton border-none outline-black outline-blue w-fit text-black  rounded-xl px-2 py-2"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        Product Link
-      </a>
-      {images.length >= 0 && (
-            <button onClick={() => setViewerOpen(true)} className="mt-1 bg-transparent likebutton border-none outline-black outline-blue w-fit text-black  rounded-xl px-2 py-2">
-              View Photos
-            </button>
-          )}
+      <Button>
+        <a
+          href={productLink}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-sm"
+        >
+          Product Link
+        </a>
+      </Button>
+      {images.length > 0 && (
+        <Button onClick={() => setViewerOpen(true)} className="text-sm">
+          View Photos
+        </Button>
+      )}
         </div>
         <ProductPhotoGalleryModal
           images={images}
