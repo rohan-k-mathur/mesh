@@ -1,10 +1,7 @@
+"use client";
+
 import PostCard from "./PostCard";
-import { fetchPostById } from "@/lib/actions/thread.actions";
-import { fetchRealtimePostById } from "@/lib/actions/realtimepost.actions";
-import {
-  fetchLikeForCurrentUser,
-  fetchRealtimeLikeForCurrentUser,
-} from "@/lib/actions/like.actions";
+import { useEffect, useState } from "react";
 
 interface Props {
   id: bigint;
@@ -21,7 +18,7 @@ interface Props {
   expirationDate?: string | null;
 }
 
-const ReplicatedPostCard = async ({
+const ReplicatedPostCard = ({
   id,
   originalPostId,
   currentUserId,
@@ -31,28 +28,29 @@ const ReplicatedPostCard = async ({
   likeCount,
   expirationDate,
 }: Props) => {
-  const original = isRealtimePost
-    ? await fetchRealtimePostById({ id: originalPostId.toString() })
-    : await fetchPostById(originalPostId);
+  const [original, setOriginal] = useState<any | null>(null);
+  const [currentUserLike, setCurrentUserLike] = useState<any | null>(null);
+  const [originalUserLike, setOriginalUserLike] = useState<any | null>(null);
+
+  useEffect(() => {
+    async function load() {
+      const params = new URLSearchParams({
+        id: id.toString(),
+        originalId: originalPostId.toString(),
+        isRealtime: String(isRealtimePost),
+      });
+      if (currentUserId) params.append("userId", currentUserId.toString());
+      const res = await fetch(`/api/replicated-post?${params.toString()}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      setOriginal(data.original);
+      setCurrentUserLike(data.currentUserLike);
+      setOriginalUserLike(data.originalUserLike);
+    }
+    load();
+  }, [id, originalPostId, currentUserId, isRealtimePost]);
+
   if (!original) return null;
-
-  const currentUserLike = currentUserId
-    ? isRealtimePost
-      ? await fetchRealtimeLikeForCurrentUser({
-          realtimePostId: id,
-          userId: currentUserId,
-        })
-      : await fetchLikeForCurrentUser({ postId: id, userId: currentUserId })
-    : null;
-
-  const originalUserLike = currentUserId
-    ? isRealtimePost
-      ? await fetchRealtimeLikeForCurrentUser({
-          realtimePostId: original.id,
-          userId: currentUserId,
-        })
-      : await fetchLikeForCurrentUser({ postId: original.id, userId: currentUserId })
-    : null;
 
   return (
     <PostCard
@@ -76,10 +74,10 @@ const ReplicatedPostCard = async ({
           video_url={(original as any).video_url ?? undefined}
           type={original.type}
           author={original.author!}
-          createdAt={original.created_at.toDateString()}
+          createdAt={new Date(original.created_at).toDateString()}
           likeCount={original.like_count}
           commentCount={(original as any).commentCount ?? 0}
-          expirationDate={(original as any).expiration_date?.toISOString?.() ?? null}
+          expirationDate={(original as any).expiration_date ?? null}
           isRealtimePost={isRealtimePost}
           pluginType={(original as any).pluginType ?? null}
           pluginData={(original as any).pluginData ?? null}
