@@ -4,6 +4,7 @@ import CommentTree from "@/components/shared/CommentTree";
 import { redirect, notFound } from "next/navigation";
 import { getUserFromCookies } from "@/lib/serverutils";
 import PostCard from "@/components/cards/PostCard";
+import { fetchLikeForCurrentUser } from "@/lib/actions/like.actions";
 import Modal from "@/components/modals/Modal";
 
 const Page = async ({ params }: { params: { id: string } }) => {
@@ -12,6 +13,9 @@ const Page = async ({ params }: { params: { id: string } }) => {
   if (!user?.onboarded) redirect("/onboarding");
   const post = await fetchPostTreeById(BigInt(params.id));
   if (!post) notFound();
+  const currentUserLike = user
+    ? await fetchLikeForCurrentUser({ postId: post.id, userId: user.userId })
+    : null;
   
   return (
     <section className="sticky ">
@@ -23,8 +27,8 @@ const Page = async ({ params }: { params: { id: string } }) => {
         <PostCard
           key={post.id.toString()}
           currentUserId={user?.userId}
+          currentUserLike={currentUserLike}
           id={post.id}
-          parentId={post.parent_id}
           content={post.content ?? undefined}
           image_url={post.image_url ?? undefined}
           video_url={post.video_url ?? undefined}

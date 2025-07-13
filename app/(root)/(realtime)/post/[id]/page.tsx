@@ -2,6 +2,7 @@ import { fetchRealtimePostTreeById } from "@/lib/actions/realtimepost.actions";
 import { redirect, notFound } from "next/navigation";
 import { getUserFromCookies } from "@/lib/serverutils";
 import PostCard from "@/components/cards/PostCard";
+import { fetchRealtimeLikeForCurrentUser } from "@/lib/actions/like.actions";
 import Modal from "@/components/modals/Modal";
 import Comment from "@/components/forms/Comment";
 import CommentTree from "@/components/shared/CommentTree";
@@ -12,6 +13,12 @@ const Page = async ({ params }: { params: { id: string } }) => {
   if (!user?.onboarded) redirect("/onboarding");
   const post = await fetchRealtimePostTreeById({ id: params.id });
   if (!post) notFound();
+  const currentUserLike = user
+    ? await fetchRealtimeLikeForCurrentUser({
+        realtimePostId: post.id,
+        userId: user.userId,
+      })
+    : null;
 
   return (
     <section className="relative">
@@ -20,6 +27,7 @@ const Page = async ({ params }: { params: { id: string } }) => {
         <PostCard
           key={post.id.toString()}
           currentUserId={user?.userId}
+          currentUserLike={currentUserLike}
           id={post.id}
           isRealtimePost
           likeCount={post.like_count}

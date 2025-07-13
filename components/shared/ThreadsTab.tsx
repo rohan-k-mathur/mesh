@@ -1,7 +1,6 @@
 import { fetchUserThreads } from "@/lib/actions/user.actions";
 import { redirect } from "next/navigation";
 import ThreadCard from "@/components/cards/ThreadCard";
-import PostCard from "../cards/PostCard";
 interface Props {
   currentUserId: bigint;
   accountId: bigint;

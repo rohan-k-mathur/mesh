@@ -1,3 +1,4 @@
+"use client";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -15,11 +16,7 @@ import GalleryCarousel from "./GalleryCarousel";
 import SoundCloudPlayer from "../players/SoundCloudPlayer";
 import Spline from "@splinetool/react-spline";
 import dynamic from "next/dynamic";
-import {
-  fetchLikeForCurrentUser,
-  fetchRealtimeLikeForCurrentUser,
-} from "@/lib/actions/like.actions";
-import { Like, RealtimeLike } from "@prisma/client";
+import type { Like, RealtimeLike } from "@prisma/client";
 import React from "react";
 import localFont from 'next/font/local'
 const founders = localFont({ src: './NewEdgeTest-RegularRounded.otf' })
@@ -30,6 +27,7 @@ const EntropyCard = dynamic(() => import("./EntropyCard"), { ssr: false })
 interface Props {
   id: bigint;
   currentUserId?: bigint | null;
+  currentUserLike?: Like | RealtimeLike | null;
   image_url?: string;
   video_url?: string;
 
@@ -52,9 +50,10 @@ interface Props {
   claimIds?: (string | number | bigint)[];
 }
 
-const PostCard = async ({
+const PostCard = ({
   id,
   currentUserId,
+  currentUserLike = null,
   content,
   author,
   image_url,
@@ -70,15 +69,6 @@ const PostCard = async ({
   pluginData = null,
   claimIds,
   }: Props) => {
-  let currentUserLike: Like | RealtimeLike | null = null;
-  if (currentUserId) {
-    currentUserLike = isRealtimePost
-      ? await fetchRealtimeLikeForCurrentUser({
-          realtimePostId: id,
-          userId: currentUserId,
-        })
-      : await fetchLikeForCurrentUser({ postId: id, userId: currentUserId });
-  }
   if (content && content.startsWith("REPLICATE:")) {
     const originalId = BigInt(content.split(":" )[1]);
     return (
