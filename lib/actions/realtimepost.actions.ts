@@ -237,10 +237,15 @@ export async function lockRealtimePost({
 export async function fetchRealtimePosts({
   realtimeRoomId,
   postTypes,
+  pageNumber = 1,
+  pageSize = 20,
 }: {
   realtimeRoomId: string;
   postTypes: realtime_post_type[];
+  pageNumber?: number;
+  pageSize?: number;
 }) {
+  const skipAmount = (pageNumber - 1) * pageSize;
 
   const realtimePosts = await prisma.realtimePost.findMany({
     where: {
@@ -258,9 +263,21 @@ export async function fetchRealtimePosts({
     orderBy: {
       created_at: "desc",
     },
+    skip: skipAmount,
+    take: pageSize,
   });
 
-  return realtimePosts.map((realtimePost) => ({
+  const totalCount = await prisma.realtimePost.count({
+    where: {
+      realtime_room_id: realtimeRoomId,
+      parent_id: null,
+      type: {
+        in: postTypes,
+      },
+    },
+  });
+
+  const postsWithCount = realtimePosts.map((realtimePost) => ({
     ...realtimePost,
     productReview: realtimePost.productReview
       ? {
@@ -276,6 +293,10 @@ export async function fetchRealtimePosts({
     x_coordinate: realtimePost.x_coordinate.toNumber(),
     y_coordinate: realtimePost.y_coordinate.toNumber(),
   }));
+
+  const isNext = totalCount > skipAmount + realtimePosts.length;
+
+  return { posts: postsWithCount, isNext };
 }
 
 export async function deleteRealtimePost({

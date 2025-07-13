@@ -13,7 +13,7 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const result = await fetchRealtimePosts({
+  const { posts } = await fetchRealtimePosts({
     realtimeRoomId: "global",
     postTypes: [
       "TEXT",
@@ -39,11 +39,11 @@ export default async function Home() {
     <div >
       <Modal />
       <section className="mt-[0rem] flex flex-col gap-12">
-        {result.length === 0 ? (
+        {posts.length === 0 ? (
           <p className="no-result">Nothing found</p>
         ) : (
           <>
-            {result.map((realtimePost) => (
+            {posts.map((realtimePost) => (
               <PostCard
                 key={realtimePost.id.toString()}
                 currentUserId={user?.userId}
