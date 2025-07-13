@@ -5,6 +5,7 @@ import {
   fetchLikeForCurrentUser,
   fetchRealtimeLikeForCurrentUser,
 } from "@/lib/actions/like.actions";
+import { serializeBigInt } from "@/lib/utils";
 
 export async function GET(req: NextRequest) {
   const params = req.nextUrl.searchParams;
@@ -43,5 +44,7 @@ export async function GET(req: NextRequest) {
       : await fetchLikeForCurrentUser({ postId: original.id, userId: BigInt(userId) })
     : null;
 
-  return NextResponse.json({ original, currentUserLike, originalUserLike });
+  return NextResponse.json(
+    serializeBigInt({ original, currentUserLike, originalUserLike })
+  );
 }

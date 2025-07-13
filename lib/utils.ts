@@ -296,3 +296,20 @@ export async function uploadAudioToSupabase(file: File) {
     return { fileURL: "", error: error };
   }
 }
+
+export function serializeBigInt(value: unknown): any {
+  if (typeof value === "bigint") {
+    return value.toString();
+  }
+  if (Array.isArray(value)) {
+    return value.map(serializeBigInt);
+  }
+  if (value && typeof value === "object") {
+    const result: Record<string, any> = {};
+    for (const [k, v] of Object.entries(value)) {
+      result[k] = serializeBigInt(v);
+    }
+    return result;
+  }
+  return value;
+}
