@@ -56,7 +56,7 @@ const SoundCloudPlayer = ({ src, title }: Props) => {
   };
 
   return (
-    <div className="w-full">
+    <div className="w-full flex-col">
       <div className="flex items-center gap-5 w-full">
         {isPlaying ? (
           <button
@@ -77,6 +77,7 @@ const SoundCloudPlayer = ({ src, title }: Props) => {
           <div ref={containerRef} className=" px-0 py-0 rounded-full  w-full" />
         </div>
       </div>
+      <h1 className="text-center font-bold text-[1.1rem]">{title}</h1>
     </div>
   );
 };
