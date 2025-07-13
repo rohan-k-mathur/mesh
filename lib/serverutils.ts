@@ -1,5 +1,3 @@
-"use server";
-
 import { getTokens } from "next-firebase-auth-edge";
 import { cookies } from "next/headers";
 import { User } from "./AuthContext";

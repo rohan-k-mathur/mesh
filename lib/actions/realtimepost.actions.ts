@@ -1,5 +1,3 @@
-"use server";
-
 import { Prisma, realtime_post_type } from "@prisma/client";
 import { prisma } from "../prismaclient";
 import { revalidatePath } from "next/cache";
@@ -54,6 +52,7 @@ export async function createRealtimePost({
    pluginType,
    pluginData,
 }: CreateRealtimePostParams) {
+  "use server";
   const user = await getUserFromCookies();
   if (!user) {
     throw new Error("User not authenticated");
@@ -142,6 +141,7 @@ export async function updateRealtimePost({
   pluginType,
   pluginData,
 }: UpdateRealtimePostParams) {
+  "use server";
   const user = await getUserFromCookies();
   try {
     const originalPost = await prisma.realtimePost.findUniqueOrThrow({
@@ -209,6 +209,7 @@ export async function lockRealtimePost({
   lockState: boolean;
   path: string;
 }) {
+  "use server";
   const user = await getUserFromCookies();
   try {
     const originalPost = await prisma.realtimePost.findUniqueOrThrow({
@@ -344,6 +345,7 @@ export async function deleteRealtimePost({
   id: string;
   path?: string;
 }) {
+  "use server";
   const user = await getUserFromCookies();
   try {
     const originalPost = await prisma.realtimePost.findUniqueOrThrow({
@@ -468,6 +470,7 @@ export async function addCommentToRealtimePost({
   userId: bigint;
   path: string;
 }) {
+  "use server";
   try {
     const originalPost = await prisma.realtimePost.findUnique({
       where: { id: parentPostId },
@@ -550,6 +553,7 @@ export async function replicateRealtimePost({
   userId: string | number | bigint;
   path: string;
 }) {
+  "use server";
   try {
     const oid = BigInt(originalPostId);
     const uid = BigInt(userId);
