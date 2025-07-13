@@ -378,10 +378,10 @@ const CreateFeedPost = () => {
        
       default:
         return (
-          <DialogContent className=" p-8 bg-slate-300 border-[2px] w-[100%] border-blue max-w-[35rem] max-h-[20rem]">
+          <DialogContent className=" p-8 bg-slate-300 border-[2px] w-[100%] h-full border-blue max-w-[35rem] max-h-[10rem] mt-[-5rem]">
             <Select onValueChange={(v) => handleSelect(v)}>
               <SelectTrigger>
-                <SelectValue placeholder="Select post type" className="px-4" />
+                <SelectValue placeholder="Select post type" className="px-4 py-1 " />
               </SelectTrigger> 
               <SelectContent  className="max-h-[14rem] border-blue rounded-xl">
                 {nodeOptions.map((item) => (

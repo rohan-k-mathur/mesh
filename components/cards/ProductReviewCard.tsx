@@ -1,11 +1,16 @@
 "use client";
-
+import useStore from "@/lib/reactflow/store";
 import { ThumbsUp, ThumbsDown, BadgeDollarSign, Link } from "lucide-react";
 import { useState, useEffect } from "react";
 import { fetchClaimStats, voteClaim, vouchClaim } from "@/lib/actions/productreview.actions";
 import { useAuth } from "@/lib/AuthContext";
+import ProductPhotoGalleryModal from "../modals/ProductPhotoGalleryModal";
+import { uploadFileToSupabase } from "@/lib/utils";
+import { Button } from "../ui/button";
 import React from "react";
+import { updateRealtimePost } from "@/lib/actions/realtimepost.actions";
 import localFont from 'next/font/local'
+import { ProductReviewValidation } from "@/lib/validations/thread";
 const founders = localFont({ src: './NewEdgeTest-RegularRounded.otf' })
 
 interface ProductReviewCardProps {
@@ -15,6 +20,7 @@ interface ProductReviewCardProps {
   productLink: string;
   claims: string[];
   claimIds?: (string | number | bigint)[];
+  productimages?: (string[] | null);
 }
 
 const ProductReviewCard = ({
@@ -24,13 +30,19 @@ const ProductReviewCard = ({
   productLink,
   claims,
   claimIds,
+  productimages
 }: ProductReviewCardProps) => {
   const auth = useAuth();
   const userId = auth.user?.userId ?? null;
   const [voteCounts, setVoteCounts] = useState(
     claims.map(() => ({ helpful: 0, unhelpful: 0, vouch: 0 }))
   );
+  const [images, setImages] = useState<string[]>(productimages || []);
+  const [viewerOpen, setViewerOpen] = useState(false);
+  useEffect(() => {
 
+    setImages(productimages || []);
+  }, [productimages]);
   useEffect(() => {
     setVoteCounts(claims.map(() => ({ helpful: 0, unhelpful: 0, vouch: 0 })));
   }, [claims]);
@@ -108,6 +120,7 @@ const ProductReviewCard = ({
       });
     }
   };
+
   return (
     <div className="flex justify-center text-[1rem]">
     <div className="w-[45rem] h-fit  rounded-md">
@@ -152,19 +165,21 @@ const ProductReviewCard = ({
       >
         Product Link
       </a>
-      <a
-        href={productLink}
-        className="mt-1 bg-transparent likebutton border-none outline-black outline-blue w-fit text-black  rounded-xl px-2 py-2"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        View Photos
-      </a>
+      {images.length >= 0 && (
+            <button onClick={() => setViewerOpen(true)} className="mt-1 bg-transparent likebutton border-none outline-black outline-blue w-fit text-black  rounded-xl px-2 py-2">
+              View Photos
+            </button>
+          )}
+        </div>
+        <ProductPhotoGalleryModal
+          images={images}
+          open={viewerOpen}
+          onOpenChange={setViewerOpen}
+        />
       </div>
     </div>
     </div>
 
-    </div>
 
   );
 };
