@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchRealtimePosts } from "@/lib/actions/realtimepost.actions";
 import { realtime_post_type } from "@prisma/client";
+import { serializeBigInt } from "@/lib/utils";
 
 export async function GET(req: NextRequest) {
   const params = req.nextUrl.searchParams;
@@ -31,5 +32,5 @@ export async function GET(req: NextRequest) {
     pageNumber: page,
     pageSize,
   });
-  return NextResponse.json(data);
+  return NextResponse.json(serializeBigInt(data));
 }
