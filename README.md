@@ -31,6 +31,9 @@ To avoid missing-bucket errors when uploading audio posts, create the `realtimep
 1. Navigate to **Storage** → **Create a new bucket**.
 2. Name it `realtimepostaudio` and set it to **public** (or adjust policies).
 3. Ensure public read access and upload permissions are allowed.
+4. Under the bucket's **Policies** tab, add an **INSERT** policy that grants the
+   `anon` role upload access (for example, use condition `auth.role() = 'anon'`).
+   Without this policy uploads fail with "new row violates row-level security policy".
 
 Apply the same steps to create a `realtime_post_images` bucket if it does not already exist.
 
