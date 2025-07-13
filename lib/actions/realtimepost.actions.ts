@@ -12,7 +12,7 @@ export interface CreateRealtimePostParams {
   videoUrl?: string;
   path: string;
   coordinates: { x: number; y: number };
-  type: realtime_post_type;
+  type: realtime_post_type | "MUSIC";
   realtimeRoomId: string;
   isPublic?: boolean;
   collageLayoutStyle?: string;  // or some enum
@@ -59,6 +59,9 @@ export async function createRealtimePost({
     throw new Error("User not authenticated");
   }
   try {
+    const prismaType: realtime_post_type =
+      (type === "MUSIC" ? "AUDIO" : type) as realtime_post_type;
+
     const createdRealtimePost = await prisma.realtimePost.create({
       data: {
         ...(text && { content: text }),
@@ -68,7 +71,7 @@ export async function createRealtimePost({
         author_id: user.userId!,
         x_coordinate: new Prisma.Decimal(coordinates.x),
         y_coordinate: new Prisma.Decimal(coordinates.y),
-        type,
+        type: prismaType,
         realtime_room_id: realtimeRoomId,
         locked: false,
         isPublic,
@@ -114,6 +117,7 @@ export async function createRealtimePost({
     revalidatePath(path);
     return {
       ...createdRealtimePost,
+      type,
       author: author,
       x_coordinate: createdRealtimePost.x_coordinate.toNumber(),
       y_coordinate: createdRealtimePost.y_coordinate.toNumber(),

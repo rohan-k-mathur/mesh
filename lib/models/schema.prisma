@@ -316,6 +316,7 @@ enum realtime_post_type {
   GALLERY
   PORTAL
   AUDIO
+  MUSIC
   DRAW
   LIVECHAT
   ENTROPY
