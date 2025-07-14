@@ -97,3 +97,6 @@ Versioned workflows can be queried via [docs/workflows.md](docs/workflows.md).
 
 ## Faster setup in Codex
 See `Codex_Environment_Guide.md` for tips on caching dependencies and using a Docker image so the development server starts quickly.
+
+### Embedding Service
+See services/embedding/README.md for setup.
