@@ -3,7 +3,16 @@ import "@testing-library/jest-dom";
 (require as any).context = jest.fn(() => ({
   keys: () => [],
 }));
-jest.mock("@/lib/supabaseclient", () => ({ supabase: {} }));
+jest.mock("@/lib/supabaseclient", () => ({
+  supabase: {
+    storage: {
+      from: jest.fn(() => ({
+        createSignedUploadUrl: jest.fn(async () => ({ data: "https://example.com/upload" })),
+        upload: jest.fn(),
+      })),
+    },
+  },
+}));
 jest.mock("@supabase/supabase-js", () => ({}));
 jest.mock("@xyflow/react", () => {
   const React = require("react");
