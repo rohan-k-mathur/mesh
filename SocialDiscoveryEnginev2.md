@@ -163,3 +163,138 @@ Automate daily dashboards; trigger alert if any safety metric breaches threshold
 4. **Draft a privacy & fairness review checklist** and add it to your PR template—catches issues before prod.
 
 Implementing even 70 % of the above will put Mesh’s Social Discovery engine on the frontier of user‑centric, trustworthy recommendation systems. Good luck, and feel free to reach out for deeper dives on any component!
+
+
+Below is an engineering‑centric blueprint for turning **user‑supplied “favorites”** (media picks imported from Spotify, Letterboxd, Goodreads, manual lists, etc.) into *actionable* signals for social matching—while staying mindful of latency, cost, and team bandwidth.
+
+---
+
+## 1  High‑Level Architecture
+
+```
+┌──────────────┐     1. Ingestion      ┌─────────────┐
+│  Connectors  │ ────────────────────▶ │ Canonical   │
+│ (Spotify …)  │                      │ Media DB    │
+└──────────────┘                      └────┬────────┘
+                                          │2. Metadata fetch
+                                          ▼
+                                     ┌─────────────┐
+                                     │  Feature     │
+┌──────────────┐ 5. Traits JSON      │  Builder     │
+│   LLM Batch  │◀────────────────────┤  (Python)    │
+│  Summariser  │ 4. Media vectors    └────┬────────┘
+└────┬─────────┘                          │3. Taste vectors
+     │                                    ▼
+     │                              ┌─────────────┐
+     │ 6. Persist                   │ Vector DB   │
+     └─────────────────────────────▶│ + Feature   │
+                                    │  Store      │
+                                    └────┬────────┘
+                                         │7. Matching API
+                                         ▼
+                                    ┌─────────────┐
+                                    │ Discovery   │
+                                    │ Engine      │
+                                    └─────────────┘
+```
+
+---
+
+## 2  Detailed Pipeline
+
+| Step                                        | What Happens                                                                                                                                                                       | Tech Choice                                                            | Frequency                              | Cost Control                                     |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | -------------------------------------- | ------------------------------------------------ |
+| **1. Ingestion & Canonicalisation**         | OAuth adapters pull “liked” media → resolve to canonical IDs (IMDb tt, MusicBrainz MBID, ISBN).                                                                                    | Node workers + open metadata APIs (TMDb, MusicBrainz, Open Library).   | On connect + nightly delta.            | Rate‑limit, cache 24 h.                          |
+| **2. Metadata Enrichment**                  | Fetch genres, themes, era, mood tags, creator nationality, box‑office, Goodreads ratings, etc.                                                                                     | Serverless fetcher → S3 parquet.                                       | Batch.                                 | Bulk API keys, local cache.                      |
+| **3. Taste Vector Construction**            | Convert each media item to *content embedding* (e.g., OpenAI `text-embedding-3-large`) + *metadata one‑hot*; average per user, weighted by recency + enthusiasm (5‑star > 3‑star). | Python job in Airflow; Faiss for fast cosine.                          | Nightly, incremental.                  | Embedding once per title; reuse across users.    |
+| **4. Personality & Intent Inference (LLM)** | Feed *top N* favorites + aggregated tags into prompt “What does this say about the user? Return JSON traits.”                                                                      | OpenAI GPT‑4o (32k) or local Mixtral distilled model; temperature 0.2. | Weekly or on profile‑change threshold. | Batch, off‑peak; cache traits JSON.              |
+| **5. Summariser Output Schema**             | `json { "traits": {"aesthetic":"arthouse","tempo":"high-energy"}, "potential_matches":["alt‑cinema buffs", …] }`                                                                   | Validated against JSONSchema.                                          | —                                      | —                                                |
+| **6. Persist & Index**                      | Store `taste_vector`, `traits JSON`, and lightweight hash of favorites in:  • Pinecone/Qdrant (vector)  • Redis/Feast (features)  • PostgreSQL (raw).                              | —                                                                      | —                                      | Keep vectors at 256‑dims (≈1 kB/user).           |
+| **7. Matching & Ranking**                   | Candidate = ANN on taste\_vector → LightGBM re‑rank using:  • cosine\_sim  • trait overlap  • graph features.                                                                      | Real‑time API (<120 ms p95).                                           | Per request.                           | Vector cache + CDN for static JSON explanations. |
+
+---
+
+## 3  Why This Balances “Insight” vs. “Performance”
+
+| Dimension                | Insightful                                                                               | Lightweight                                                                           |
+| ------------------------ | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| *Metadata + embeddings*  | Captures nuance beyond genre (e.g., *slow‑burn existential sci‑fi*).                     | One‑time cost; vector math is O(1) per user.                                          |
+| *LLM summarisation*      | Produces non‑obvious soft traits (e.g., “likely values strong female leads”).            | **Offline batch**, so zero impact on matchmaking latency; small volume (1 JSON/user). |
+| *Separation of concerns* | Matching uses dense math → fast; Explanations read cached trait text → no extra compute. | ——                                                                                    |
+
+---
+
+## 4  Implementation Notes
+
+### 4.1 Canonical Media DB
+
+*Lightweight* Option: host a Postgres table seeded from public data dumps (IMDb alternate interface, Spotify genre seeds, etc.).
+*Richer* Option: query Databricks Lakehouse with Delta tables for near‑real‑time updates.
+
+### 4.2 Embedding Strategy
+
+* **Model**: Use `text-embedding-3-large` or Sentence‑Transformers `all-mpnet-base-v2`.
+* **Input**: Concatenate `title + tagline + top 3 genres + plot synopsis (≤200 words)`.
+* **Dimensionality**: 768 → reduce to 256 with PCA once per night.
+
+### 4.3 LLM Prompt (example)
+
+```
+SYSTEM: You are a cultural psychographic analyst.
+USER: From the JSON list of movies below, infer personality facets
+and return compact JSON with keys: traits (object), summary (string).
+
+[{
+  "title": "Eternal Sunshine of the Spotless Mind",
+  "genres": ["Drama","Romance","Sci‑Fi"],
+  "themes": ["memory","loss","non‑linear"],
+  "year": 2004
+}, …  ]
+
+Return only JSON.
+```
+
+### 4.4 Cost Guard‑Rails
+
+| Lever           | Tactic                                                       |
+| --------------- | ------------------------------------------------------------ |
+| LLM tokens      | Crop to **top 15** favorites by recency & rating.            |
+| Embedding calls | Check redis `md5(title)` before API call.                    |
+| Vector DB       | Use **HNSW** index; pay‑per‑storage not per‑query.           |
+| GPU usage       | Quantise embeddings (fp16) or run CPU Faiss for ≤10 M users. |
+
+---
+
+## 5  Data Privacy & Consent
+
+1. **Connector scopes**: read‑only, minimal (Spotify: `user‑library‑read`).
+2. **Hash external IDs** before storage; keep mapping in user’s device or encrypted column.
+3. **Explainability UI**: show “We inferred you enjoy *thought‑provoking sci‑fi* from these movies. Turn off?”
+4. **Opt‑out path** clears taste\_vector and traits row → re‑embed with placeholder vector.
+
+---
+
+## 6  Testing Path
+
+| Layer           | Test                                                                                               | Tooling                     |
+| --------------- | -------------------------------------------------------------------------------------------------- | --------------------------- |
+| Unit            | Canonicalisation function maps “Blade Runner (Final Cut)” → same ID as “Blade Runner”.             | Vitest                      |
+| Batch           | 1,000 users → embedding job produces ≤1 GB parquet; trait JSON validates against schema.           | PyTest + Great Expectations |
+| Integration     | Given user A (arthouse) & user B (matching arthouse), `/discovery/candidates` returns B in top 10. | Cypress                     |
+| Load            | 500 req/s ANN search stays <100 ms p95 on 3 × c6i.large.                                           | k6                          |
+| Cost regression | Nightly Airflow logs token usage; alert if >10 % jump.                                             | Prometheus                  |
+
+---
+
+## 7  Minimal‑Viable Rollout
+
+1. **Phase 1** – Basic vectors only (no LLM); match on genre/mood embeddings.
+2. **Phase 2** – Add weekly LLM trait JSON; surface as “Why this match?”.
+3. **Phase 3** – Fine‑tune small open model locally to cut LLM spend by >50 %.
+
+---
+
+### TL;DR
+
+*Use embeddings for speed, batch LLM for depth*.  Store both as cheap, reusable features.  This yields **rich psychographic matching** without turning every user swipe into an expensive transformer call—and it scales with a small team and a modest AWS bill.
+
