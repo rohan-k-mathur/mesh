@@ -39,6 +39,7 @@ model User {
   attributeEdits           UserAttributeEdit[]
   recommendationClicks     RecommendationClick[]
   integrations             Integration[]
+  linkedAccounts           LinkedAccount[]
   productReviews           ProductReview[]
   productReviewVotes       ProductReviewVote[]
   productReviewVouches     ProductReviewVouch[]
