@@ -41,7 +41,7 @@ const SoundCloudPlayer = ({ src, title }: Props) => {
       progressColor: progressGradient,
       height: 100,
       width: 600,
-      normalize: true,
+      normalize: false,
       barWidth: 6,
       barGap: 3,
       barRadius: 40,

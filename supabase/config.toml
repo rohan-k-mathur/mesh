@@ -59,8 +59,7 @@ enabled = true
 # Supports glob patterns relative to supabase directory: "./seeds/*.sql"
 sql_paths = ["./seed.sql"]
 
-[db.extensions]
-pg_cron = { enabled = true }
+
 
 [realtime]
 enabled = true
