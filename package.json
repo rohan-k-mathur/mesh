@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "test": "jest",
+    "vitest": "vitest",
     "postinstall": "prisma generate",
     "seed": "tsx --env-file=.env scripts/seed.ts",
     "gmail-token": "tsx --env-file=.env scripts/gmail-token.ts",
@@ -116,7 +117,8 @@
     "ts-jest": "^29.4.0",
     "ts-node": "^10.9.2",
     "tsx": "^4.16.5",
-    "typescript": "^5.5.4"
+    "typescript": "^5.5.4",
+    "vitest": "^1.4.0"
   },
   "prisma": {
     "schema": "lib/models/schema.prisma"
