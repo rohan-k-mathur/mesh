@@ -7,6 +7,36 @@ Below is a **“prompt playbook”**—a sequenced set of ready‑to‑paste ins
 
 > **Tip for live use:** Paste a block, let Codex work, review the diff/PR it produces, then paste the next block.  Never queue multiple blocks at once.
 
+--IMPORTANT UPDATE/ PLEASE READ: 
+Below are the main adaptations you’d make to the Codex prompt‑playbook when the entire stack is limited to Supabase (PostgreSQL + Edge Functions + Storage + pgvector) and Vercel (Next.js hosting, serverless/edge functions, cron, analytics). After each change‑set you’ll find the revised snippet you can paste into Codex in place of the AWS‑centric original.
+
+
+The playbook stays test‑driven and incremental, but every infra‑oriented instruction now targets Supabase & Vercel primitives, eliminating Docker/k8s complexity while retaining the same product behaviour and SRS coverage.
+
+
+Global Mind‑set Shifts
+
+| Area                          | AWS‑based Playbook                       | Supabase + Vercel Variant                                                                                                      |
+| ----------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| **Infrastructure‑as‑Code**    | Terraform modules (EKS, RDS, S3, Lambda) | Supabase CLI migrations + `supabase/config.toml`; Vercel `vercel.json`                                                         |
+| **Container Orchestration**   | k8s Deployments, Dockerfiles             | *None for back‑end* – compute runs as<br>• Vercel serverless/edge functions (Node, Python)<br>• Supabase Edge Functions (Deno) |
+| **Stateful Stores**           | Aurora Postgres, Redis, S3, Pinecone     | Supabase Postgres (pgvector, pg\_cron), Supabase Storage; Pinecone **or** pgvector IVFFlat/HNSW                                |
+| **Streaming / Feature Store** | Kafka + Feast (+Redis online)            | pgvector table + Materialised Views; realtime events via Supabase Realtime or Vercel Analytics                                 |
+| **Batch Orchestration**       | Airflow on EKS / SageMaker Batch         | Supabase `pg_cron`, Vercel Cron Jobs, or GitHub Actions‑scheduled workflows                                                    |
+| **Secrets / Config**          | AWS Secrets Manager                      | Supabase encrypted secrets (`supabase secrets set`) + Vercel Environment Variables                                             |
+
+
+| **Remove Entirely**                | **Change To**                              |
+| ---------------------------------- | ------------------------------------------ |
+| EKS, k8s manifests, Helmfile       | Vercel config + Supabase Edge Functions    |
+| Terraform AWS modules              | Supabase CLI (`supabase db, secrets`)      |
+| S3 buckets                         | Supabase Storage                           |
+| Lambda / Fargate                   | Vercel Functions / Supabase Edge Functions |
+| Airflow DAGs                       | Vercel Cron / GitHub Actions               |
+| Redis Feature Store (non‑critical) | Postgres pgvector tables                   |
+| Prometheus stack                   | Vercel analytics + Logflare dashboards     |
+
+
 ---
 
 ## 0  Pre‑flight Context Prompt (paste once per session)
@@ -15,7 +45,19 @@ Below is a **“prompt playbook”**—a sequenced set of ready‑to‑paste ins
 You are OpenAI Codex acting as a senior full‑stack engineer at Mesh.
 Repository root = https://github.com/mesh‑app/mesh (private).
 Branch: create <feature-branch> for each task; open PRs against main.
-Tech stack:
+Tech Stack (current):
+⚙️  Runtime & Hosting
+  • Front‑end / API: Next.js 14 on Vercel (Edge & Serverless Functions)
+  • Database: Supabase Postgres 16 w/ pgvector & pg_cron
+  • Storage: Supabase Storage buckets
+  • Edge compute: Supabase Edge Functions (Deno) for connectors
+  • Long‑running batch: Vercel Cron Jobs or GitHub Actions
+Tooling & Standards
+  • Prisma Client (supabase connection string)
+  • ESLint + Prettier + Vitest (80 % coverage)
+  • Commit style: Conventional Commits
+
+Tech stack (long term):
   • Front‑end: Next.js 14, React 18, TypeScript, Tailwind
   • Backend: Node 18 (TypeScript), Prisma, PostgreSQL, Redis
   • Infra: AWS EKS, Terraform, GitHub Actions CI
@@ -26,8 +68,10 @@ Reference docs:
   • /docs/READMES/*
 Coding standards: ESLint + Prettier, 80 % test coverage, commit style Conventional Commits.
 
-When asked to “RUN & REPORT,” execute `pnpm test && pnpm lint && pnpm typecheck`
+When asked to “RUN & REPORT,” execute `npm test && npm lint && pnpm typecheck`
 (or equivalent for Python services) and summarise pass/fail.
+  • For Edge Functions: `deno task test`
+
 A failed linter/test terminates the current step; do not push partial code to main.
 
 New high‑level components in v2.1:
@@ -132,17 +176,18 @@ RUN & REPORT
 
 ### Task A1 – Build Canonical Media DB
 Scope:
-  • Add Prisma models CanonicalMedia & FavoriteItem (see SRS §7.1).
-  • Provision Aurora PostgreSQL via Terraform module infra/aurora_media.
-  • Seed CMD with initial TMDb movie dump (top 50 k titles).
+  • Append CanonicalMedia & FavoriteItem models to prisma/schema.prisma.
+  • Run `supabase db push` to generate SQL & apply to local dev db.
+  • Commit generated migration under /supabase/migrations.
 Steps:
   1. prisma/schema.prisma – append models.
   2. prisma/migrations – create migration + run generate.
   3. scripts/seed_cmd.ts – pull & insert sample dataset.
-  4. Terraform: create aws_rds_cluster & secrets.
+  4. //Terraform: create aws_rds_cluster & secrets.
 Tests:
+
   • Vitest unit: canonicalise("Blade Runner (Final Cut)") === id("tt0083658").
-  • Integration: seed script inserts ≥50 k rows without PK collision.
+  • //Integration: seed script inserts ≥50 k rows without PK collision.
 RUN & REPORT
 
 ### Task A2 – OAuth + ingest worker
@@ -150,8 +195,11 @@ Files: /connectors/spotify/*
 Scope:
   • Implement POST /api/v2/favorites/import/spotify.
   • Exchange code for access token (scope: user‑library‑read).
-  • Lambda writes raw liked tracks JSON to S3 s3://favorites_raw/spotify/<userId>/dt.json.
-  • Write ingest status to Redis key fav:sync:<userId>.
+  • //Lambda writes raw liked tracks JSON to S3 s3://favorites_raw/spotify/<userId>/dt.json.
+  • //Write ingest status to Redis key fav:sync:<userId>.
+   *Supabase Storage path: bucket `favorites_raw`, key `spotify/${userId}/${timestamp}.json`
+  • Use `createSignedUploadUrl` to avoid exposing service‑role key client‑side.
+  • Update Jest mocks: supersbase.storage.from(...).upload(...)
 Tests:
   • Jest: token refresh, S3 putObject mock, status flag toggled.
   • e2e (Playwright): connect flow redirects, shows “Syncing…”.
@@ -166,9 +214,35 @@ Scope:
 Tests:
   • Unit: cache hit ratio logic.
   • Contract test: TMDb response → mapper → CMD row upsert.
+  
 RUN & REPORT
 
+3.3 Serverless / Edge Functions
+AWS Lambda / k8s Pod	Replacement
+Node Lambda connectors	Supabase Edge Function (Deno) in /supabase/functions/<service>.ts
+FastAPI embedding service	Vercel Python Serverless Function (/api/embed.py) – calls OpenAI and writes back to Postgres canonical_media.embedding
+Post‑ranking filter micro‑service	Next.js API Route (/api/_internal/post_rank_filter.ts)
 
+3.4 Batch & Cron
+Airflow DAG	Replacement
+Nightly favorites_feature_builder	Vercel Cron Job (vercel.json schedule: "0 2 * * *"); job implemented in /api/cron/fav_builder.ts
+Weekly batch_trait_inference	GitHub Actions workflow .github/workflows/traits.yml triggered by schedule:
+
+3.5 Feature / Vector Store
+Feast + Redis → pgvector + Materialised View
+
+sql
+Copy
+-- supabase/migrations/20250715_feature_store.sql
+CREATE TABLE user_taste_vectors (
+  user_id uuid PRIMARY KEY,
+  taste vector(256),
+  traits jsonb,
+  updated_at timestamp default now()
+);
+
+-- ANN index
+CREATE INDEX ON user_taste_vectors USING ivfflat (taste vector_l2_ops) WITH (lists = 100);
 
 ---
 
@@ -268,6 +342,12 @@ Tests:
   • Jest: response contains union without dupes.
   • k6 load: 500 rps ≤120 ms p95 (mock pinecone).
 RUN & REPORT
+-Update Codex prompt in Task B3:
+
+  • Run SQL: SELECT user_id, taste <-> $1 AS dist
+             FROM user_taste_vectors
+             ORDER BY dist
+             LIMIT 200;
 
 ### Task B4 – <FavoritesManager> component
 Scope:
