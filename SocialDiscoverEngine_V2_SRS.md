@@ -60,6 +60,7 @@ Adds new micro‑services, feature pipelines, LLM‑powered trait extraction, da
 ### 1.4 Definitions & Acronyms
 
 * **Feature Store** – Low‑latency store for ML features.
+Feature Store -	Postgres (pgvector) table + materialised views providing low‑latency ML features (replaces Redis / Feast).
 * **ANN** – Approximate Nearest Neighbour search.
 * **DPP** – Determinantal Point Process diversity filter.
 * **Two‑Tower** – Neural architecture with separate encoders for query and candidate entities.
@@ -142,14 +143,23 @@ Discovery v2.1 remains a platform service but now exposes an additional Favori
 
 ### 2.4 Operating Environment
 
-* Cloud: AWS us‑east‑1 (primary), us‑west‑2 (DR). or Supabase
-* Runtime: Node 18, Python 3.11
-* Model Serving: NVIDIA T4 GPUs (SageMaker or k8s w/ Triton).
+2.4 Operating Environment
+Layer	Runtime
+Front‑end & APIs	Next.js 14 on Vercel Edge Runtime / Node 18
+Serverless Back‑end	Vercel Functions (Node 18) & Supabase Edge Functions (Deno 1.41)
+Database	Supabase Postgres 16 + pgvector 0.6.2
+Batch & Cron	Supabase pg_cron, Vercel Cron, GitHub Actions
+ML Serving	FastAPI on Vercel Python Functions (CPU) or GPU runner when required
+
 
 ### 2.5 Assumptions & Dependencies
 
 * OAuth integrations (Spotify, GitHub, etc.) remain read‑only.
 * Event streaming (Kafka) is available cluster‑wide.
+* pgvector ANN index satisfies ≤50 ms p99 for 10 M vectors; Pinecone fallback is optional.
+Kafka cluster available Supabase Realtime provides row‑level event streaming.
+
+
 * Pinecone or Qdrant meets <50 ms p99 vector query SLA.
 
 ---
@@ -177,7 +187,61 @@ Discovery v2.1 remains a platform service but now exposes an additional Favori
 | **FR‑16** | **Trait Inference Service**             | Weekly (or profile‑change>10 %) batch job sends top 15 favorites → GPT‑4o prompt; validates JSONSchema; stores `traits` (max 2 kB/user) in Feature Store.                      |
 | **FR‑17** | **Taste‑Aware Matching Extension**      | Candidate generation first unions ANN on taste\_vector (top 200) with existing Two‑Tower results, then deduplicates. Latency budget unchanged (≤120 ms p95).                   |
 | **FR‑18** | **Taste‑Based Explanations**            | `why/:targetId` endpoint may reference trait overlap (“Both enjoy cerebral sci‑fi”). Source text must come from cached Traits JSON, never live LLM call.                       |
-| **FR‑19** | **Opt‑out / Redact Favorites**          | User toggle removes taste\_vector and traits within 15 min; system falls back to generic embeddings until re‑enabled.                                                          |
+| **FR‑19** | **Opt‑out / Redact Favorites**          | User toggle removes taste\_vector and traits within 15 min; system falls back to generic embeddings until re‑enabled.       
+|
+
+System Features & Functional Requirements
+All FR‑IDs retained; implementation notes updated:
+
+FR‑01 – Signal ingestion now uses Supabase Realtime triggers; end‑to‑end lag unchanged (≤ 5 s).
+
+FR‑02 – No change.
+
+FR‑03 – Two‑Tower embedding served by Vercel Python Function /api/embed.py; vectors stored in pgvector.
+
+FR‑04 – Candidate API calls SQL ORDER BY taste <-> $1 instead of Pinecone SDK when local ANN used.
+
+FR‑05 – Re‑ranker remains gRPC FastAPI but is deployed as Vercel Python Function; mTLS inside Vercel’s private network.
+
+FR‑06 ‑ FR‑12 – Logic unchanged, underlying infra swapped.
+
+FR‑13 ‑ FR‑19 – Unchanged; nightly & weekly jobs moved to Vercel Cron / GitHub Actions and Supabase pg_cron (see §4).
+
+
+
+2.1 Product Perspective
+Major stack pivot – Discovery v2.1 now runs entirely on Supabase (Postgres + Edge Functions + Storage + pgvector) and Vercel (Next.js Edge & Serverless Functions, Cron, Analytics). AWS EKS, Redis, S3, Lambda are no longer used for Discovery components.
+
+Area	Legacy (AWS)	Current (Supabase + Vercel)
+Infrastructure‑as‑Code	Terraform modules	Supabase CLI migrations; Vercel vercel.json
+Container Orchestration	k8s Deployments	Serverless / Edge Functions (Node 18, Python 3.11, Deno)
+Stateful Stores	Aurora Postgres, Redis, S3, Pinecone	Supabase Postgres 16 (pgvector, pg_cron); Supabase Storage; Pinecone or pgvector IVFFlat/HNSW
+Streaming / Feature Store	Kafka + Feast (+Redis)	Supabase Realtime channels; pgvector table + materialised views
+Batch Orchestration	Airflow on EKS / SageMaker Batch	Supabase pg_cron, Vercel Cron Jobs, GitHub Actions
+Secrets / Config	AWS Secrets Manager	supabase secrets + Vercel Environment Variables
+Observability	Prometheus stack	Vercel Analytics, Supabase Logs + Logflare + Grafana Cloud
+
+System Context (updated)
+
+┌──────────────────── Clients (Web / Mobile) ───────────────────┐
+│   ↓ REST / GraphQL / SSE                                      │
+│   /api/v2/discovery/* (Next.js Edge & Serverless Functions)   │
+└──────────────┬───────────────────────┬────────────────────────┘
+               │                       │
+               │                       │  Supabase Realtime channel
+               │                       └────────▶ "user_behavior"
+               ▼
+┌────────────────────── Discovery Core (Node 18) ───────────────┐
+│  • Candidate Generation (pgvector K‑NN)                       │
+│  • LightGBM Re‑Ranker (Python, gRPC)                          │
+│  • DPP Diversity & Safety Filter                              │
+└────────┬──────────────────────────┬───────────────────────────┘
+         │                          │
+         │                          │
+         ▼                          ▼
+┌─────────────── pgvector Feature Store ────────────────┐   ┌──── Canonical Media DB ────┐
+│ user_taste_vectors (256‑D)                            │   │ media metadata + 768‑D emb │
+└────────────────────────────────────────────────────────┘   └────────────────────────────┘
 
 
 ---
@@ -200,6 +264,15 @@ Embedding cache hit ≥ 95 %.
 LLM batch runtime < 4 h / week, <$0.02 per active user / month.
 
 Performance – Favorites DAG completes ≤ 90 min for 10 M users.
+
+Non‑Functional Requirements
+Category	New Specification
+Performance	unchanged
+Scalability	10 M MAU on single Postgres cluster + read replicas; Vercel auto‑scale functions
+Reliability	99.9 % SLA; Supabase HA Postgres + Vercel Global Edge Network
+Security & Privacy	JWT (JWE) auth, Row‑Level Security (RLS) rules, Supabase Secrets
+Observability	Vercel Analytics, Supabase Logs (Logflare), Grafana Cloud
+Cost	Net new infra ≤ 10 % discovery OPEX; Logflare alert triggers when embedding spend > 1.1× budget
 
 ---
 
@@ -234,6 +307,23 @@ OAuth 2.0 flows (Spotify, GitHub, Goodreads) with minimal scopes; refresh toke
 
 ## 6  System Architecture & Data Flow
 
+(updated): 6.1 Pipeline Summary (re‑written)
+Client Analytics → Supabase Row Inserts (scroll_events).
+
+Materialised View user_dwell_avg refreshes via pg_cron every 5 min.
+
+Profile updates trigger Supabase Edge Function → enqueue re‑embed to /api/embed.py.
+
+Nightly Vercel Cron job builds taste vectors (PCA) and upserts to user_taste_vectors.
+
+Candidate API (Next.js Edge) executes pgvector ANN search, merges with Two‑Tower list.
+
+LightGBM Re‑Ranker reorders slate; result passes through DPP & Guardrails micro‑service.
+
+Explanation API fetches SHAP‑mapped reasons; caches in Supabase table why_cache.
+
+legacy:
+
 1. **Event Ingestion** – Web/mobile clients → Kafka topics (`user_behavior`, `content_view`).
 2. **Stream Processing** – Flink jobs aggregate into session‑level features; push to **Feature Store** (Feast on Redis).
 3. **Offline Feature ETL** – Nightly Airflow DAG populates training datasets in S3 + Athena.
@@ -256,6 +346,10 @@ Trait Inference – Batch LLM job (SageMaker Batch or Cloud Run) → JSON valid
 ---
 
 ## 7  Data & Model Design
+Tables & schemas already updated in v1.0; only backend path changes.
+
+Added: supabase/migrations/20250715_feature_store.sql defining user_taste_vectors.
+
 
 ### 7.1 Core Tables (PostgreSQL via Prisma)
 
@@ -387,6 +481,14 @@ Undo available for 10 s.
 | **Continuous** | NA   | • Online learning loop • Federated POC • Graph contrastive v3                               | Quarterly model 
 refresh; retention lift ≥ 12 %     |
 
+
+| Phase | Milestones (Supabase + Vercel)                                                                                       | Exit Criteria                           |
+| ----- | -------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| Alpha | Feature‑store table + pg\_cron view, profile embeddings, **Spotify connector via Supabase Storage**                  | Internal dogfood AUC ≥ 0.6              |
+| Beta  | Behavioural event pipeline (**Supabase Realtime**), LightGBM ranker (Vercel Python), Swipe UI, Privacy Dashboard MVP | 10 % cohort, +8 % connection acceptance |
+| GA    | Diversity filter, guardrails, GrowthBook, i18n, **Logflare cost alert**                                              | 100 % rollout                           |
+
+
 ---
 | Phase       | Extra Milestones (Favorites track)                                                           |
 | ----------- | -------------------------------------------------------------------------------------------- |
@@ -424,6 +526,14 @@ Favorites DAG image built via GitHub Actions → Airflow via Helm chart.
 LLM batch job triggered by Airflow sensor; outputs uploaded to S3 & Feature Store.
 
 Canary: first 100 k users each Saturday 01:00‑03:00 UTC.
+
+| Aspect         | From                                | **To**                                                                                |
+| -------------- | ----------------------------------- | ------------------------------------------------------------------------------------- |
+| CI/CD          | GitHub Actions ➜ Terraform ➜ ArgoCD | **GitHub Actions ➜ Supabase CLI (`db push`, migrations) ➜ Vercel CLI (`--prebuilt`)** |
+| Model Registry | MLflow + S3                         | **Weights & hash recorded in Git tags; artefacts stored in GitHub Releases**          |
+| Serving        | Triton on k8s                       | **Vercel Python Functions**                                                           |
+| Canary         | 5 % via k8s service mesh            | **GrowthBook flag + Vercel traffic splitting**                                        |
+
 
 
 ---
@@ -471,6 +581,17 @@ Eng – Ship MVP Spotify adapter + TMDb fetcher (owner: @media‑ingest).
 ML – Evaluate text-embedding-3-large vs. all-mpnet-base-v2 on 5 k movie synopsis set.
 
 UX – Wireframe “Favorites” tab in onboarding & settings.
+
+Next Actions (updated)
+Run supabase db push to create user_taste_vectors and pg_cron schedule.
+
+Deploy /api/embed.py to Vercel; verify health.
+
+Finish Logflare cost‑alert SQL & webhook.
+
+Schedule security & privacy review (Week 2).
+
+Favorites Work‑Stream actions remain identical but reference Supabase instead of S3/Aurora.
 
 
 
