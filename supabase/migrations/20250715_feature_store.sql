@@ -1,11 +1,8 @@
-CREATE EXTENSION IF NOT EXISTS vector;
-CREATE EXTENSION IF NOT EXISTS pg_cron;
-
 CREATE TABLE IF NOT EXISTS user_taste_vectors (
-  user_id BIGINT PRIMARY KEY,
-  taste vector(256),
-  traits jsonb,
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+  user_id BIGINT PRIMARY KEY REFERENCES auth.users(id),
+  taste vector(256) NOT NULL,
+  traits jsonb DEFAULT '{}'::jsonb,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS user_taste_vectors_ann
@@ -16,7 +13,7 @@ SELECT user_id, AVG(dwell_ms) AS avg_dwell_ms
 FROM scroll_events
 GROUP BY user_id;
 
-DO $$
+DO $do$
 BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM cron.job WHERE jobname = 'refresh_user_dwell_avg'
@@ -28,4 +25,4 @@ BEGIN
     );
   END IF;
 END
-$$;
+$do$;
