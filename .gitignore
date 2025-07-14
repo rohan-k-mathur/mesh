@@ -38,3 +38,4 @@ package-lock.json
 .env
 services/feature-store/data/registry.db
 __pycache__/
+.env.example
