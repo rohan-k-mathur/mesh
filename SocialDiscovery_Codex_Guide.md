@@ -1,638 +1,552 @@
-Below is a **“prompt playbook”**—a sequenced set of ready‑to‑paste instructions you can feed into **chatgpt.com/codex** (or any Codex‑powered IDE extension) to implement, validate, and ship every item in the Social Discovery Engine v2.0 SRS. Each prompt block:
-
-1. Sets **scope & acceptance criteria** so Codex knows the “definition of done.”
-2. Provides **file/glob references** for rapid grounding (Codex has repository access, but pointing it saves tokens and prevents hallucination).
-3. Specifies **coding & testing tasks** in a test‑driven order.
-4. Ends with a **“RUN & REPORT”** instruction telling Codex to execute unit tests / linters and summarize results.
-
-> **Tip for live use:** Paste a block, let Codex work, review the diff/PR it produces, then paste the next block.  Never queue multiple blocks at once.
-
---IMPORTANT UPDATE/ PLEASE READ: 
-Below are the main adaptations you’d make to the Codex prompt‑playbook when the entire stack is limited to Supabase (PostgreSQL + Edge Functions + Storage + pgvector) and Vercel (Next.js hosting, serverless/edge functions, cron, analytics). After each change‑set you’ll find the revised snippet you can paste into Codex in place of the AWS‑centric original.
-
-
-The playbook stays test‑driven and incremental, but every infra‑oriented instruction now targets Supabase & Vercel primitives, eliminating Docker/k8s complexity while retaining the same product behaviour and SRS coverage.
-
-
-Global Mind‑set Shifts
-
-| Area                          | AWS‑based Playbook                       | Supabase + Vercel Variant                                                                                                      |
-| ----------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| **Infrastructure‑as‑Code**    | Terraform modules (EKS, RDS, S3, Lambda) | Supabase CLI migrations + `supabase/config.toml`; Vercel `vercel.json`                                                         |
-| **Container Orchestration**   | k8s Deployments, Dockerfiles             | *None for back‑end* – compute runs as<br>• Vercel serverless/edge functions (Node, Python)<br>• Supabase Edge Functions (Deno) |
-| **Stateful Stores**           | Aurora Postgres, Redis, S3, Pinecone     | Supabase Postgres (pgvector, pg\_cron), Supabase Storage; Pinecone **or** pgvector IVFFlat/HNSW                                |
-| **Streaming / Feature Store** | Kafka + Feast (+Redis online)            | pgvector table + Materialised Views; realtime events via Supabase Realtime or Vercel Analytics                                 |
-| **Batch Orchestration**       | Airflow on EKS / SageMaker Batch         | Supabase `pg_cron`, Vercel Cron Jobs, or GitHub Actions‑scheduled workflows                                                    |
-| **Secrets / Config**          | AWS Secrets Manager                      | Supabase encrypted secrets (`supabase secrets set`) + Vercel Environment Variables                                             |
-
-
-| **Remove Entirely**                | **Change To**                              |
-| ---------------------------------- | ------------------------------------------ |
-| EKS, k8s manifests, Helmfile       | Vercel config + Supabase Edge Functions    |
-| Terraform AWS modules              | Supabase CLI (`supabase db, secrets`)      |
-| S3 buckets                         | Supabase Storage                           |
-| Lambda / Fargate                   | Vercel Functions / Supabase Edge Functions |
-| Airflow DAGs                       | Vercel Cron / GitHub Actions               |
-| Redis Feature Store (non‑critical) | Postgres pgvector tables                   |
-| Prometheus stack                   | Vercel analytics + Logflare dashboards     |
-
+Below is a **clean, deduplicated, and fully‑sequenced playbook** for shipping *Social Discovery Engine v2.0* on **Supabase (Postgres + Edge Functions + Storage + pgvector)** and **Vercel (Next.js hosting, serverless/edge, cron, analytics)**.
+Copy‑and‑paste each prompt block into **chatgpt.com/codex** (or any Codex‑powered IDE extension) one at a time, review the diff/PR it returns, then move on to the next block. Every block is test‑driven and ends with **“RUN & REPORT.”**
 
 ---
 
-## 0  Pre‑flight Context Prompt (paste once per session)
+# 0  Pre‑Flight Context Prompt  *(paste once per session)*
 
 ```txt
-You are OpenAI Codex acting as a senior full‑stack engineer at Mesh.
-Repository root = https://github.com/mesh‑app/mesh (private).
-Branch: create <feature-branch> for each task; open PRs against main.
-Tech Stack (current):
-⚙️  Runtime & Hosting
-  • Front‑end / API: Next.js 14 on Vercel (Edge & Serverless Functions)
-  • Database: Supabase Postgres 16 w/ pgvector & pg_cron
-  • Storage: Supabase Storage buckets
-  • Edge compute: Supabase Edge Functions (Deno) for connectors
-  • Long‑running batch: Vercel Cron Jobs or GitHub Actions
-Tooling & Standards
-  • Prisma Client (supabase connection string)
-  • ESLint + Prettier + Vitest (80 % coverage)
-  • Commit style: Conventional Commits
+You are OpenAI Codex acting as a senior full‑stack engineer at Mesh.
+Repository root = https://github.com/mesh‑app/mesh (private).
+Create a new <feature‑branch> for each task; open PRs against main.
 
-Tech stack (long term):
-  • Front‑end: Next.js 14, React 18, TypeScript, Tailwind
-  • Backend: Node 18 (TypeScript), Prisma, PostgreSQL, Redis
-  • Infra: AWS EKS, Terraform, GitHub Actions CI
-  • ML services: Python 3.11 micro‑services deployed via Docker → k8s
-Reference docs:
-  • /docs/SRS/SDE_v2.0.pdf   (this SRS)
-  • /docs/ARCHITECTURE.md
-  • /docs/READMES/*
-Coding standards: ESLint + Prettier, 80 % test coverage, commit style Conventional Commits.
+Current stack
+  • Front‑end / API  ▸ Next.js 14 (Edge + Serverless Functions) on Vercel  
+  • Database        ▸ Supabase Postgres 16 (pgvector, pg_cron)  
+  • Storage         ▸ Supabase Storage buckets  
+  • Edge compute    ▸ Supabase Edge Functions (Deno)  
+  • Batch           ▸ Vercel Cron Jobs or GitHub Actions  
+  • Tooling         ▸ Prisma Client, ESLint + Prettier, Vitest (≥80 % coverage), Conventional Commits  
 
-When asked to “RUN & REPORT,” execute `npm test && npm lint && pnpm typecheck`
-(or equivalent for Python services) and summarise pass/fail.
-  • For Edge Functions: `deno task test`
+Reference docs
+  • /docs/SRS/SDE_v2.0.pdf   (SRS)  
+  • /docs/ARCHITECTURE.md  
+  • /docs/READMES/*  
 
-A failed linter/test terminates the current step; do not push partial code to main.
-
-New high‑level components in v2.1:
-  · Canonical Media DB (Aurora / Prisma models)
-  · Favorites Connector workers (Node Lambdas)
-  · Metadata fetcher + embedding generator
-  · Airflow “Favorites Feature Builder” DAG
-  · Batch LLM Trait‑Inference job
-  · Taste‑aware matching extension
+When asked to **RUN & REPORT**, execute  
+`pnpm test && pnpm lint && pnpm typecheck` (Node)  
+`deno task test`                        (Deno)  
+`pytest`                                (Python)  
+and summarise results. A failed test/lint aborts the step—nothing is pushed to main.
 ```
 
 ---
 
-## 1  Alpha Phase Prompts (Weeks 0‑4)
+# 1  Global Mind‑Set Shifts (AWS → Supabase + Vercel)
 
-### 1.1 Feature Store + Behavioural Event Schema
+| Area                      | Was                                               | **Now**                                                                        |
+| ------------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Infrastructure‑as‑Code    | Terraform (EKS, RDS, S3)                          | **Supabase CLI** migrations + `supabase/config.toml`, **Vercel `vercel.json`** |
+| Containers                | k8s Deployments                                   | **No k8s** — Serverless / Edge Functions                                       |
+| Stateful Stores           | Aurora PG, Redis, S3, Pinecone                    | **Supabase Postgres + pgvector**, Supabase Storage, Pinecone *or* pgvector ANN |
+| Streaming / Feature Store | Kafka + Feast                                     | **pgvector table + Materialised Views**, Supabase Realtime                     |
+| Batch                     | Airflow                                           | **pg\_cron**, Vercel Cron, GitHub Actions                                      |
+| Secrets                   | AWS Secrets Manager                               | **Supabase `secrets set`** + Vercel Env Vars                                   |
+| Removed                   | EKS, Dockerfiles, Redis feature store, Prometheus | (Replaced by stack above)                                                      |
 
-```txt
-### Task 1 – Create Feature Store scaffolding
-Scope:
-  • Introduce Feast (Python) for user‑level features backed by Redis.
-  • Add Dockerfile & k8s deployment manifest.
-Steps:
-  1. Create /services/feature‑store with basic Feast repo.
-  2. Define entity `user_id` and feature view `avg_session_dwell_sec_7d` (float).
-  3. Add makefile target `make feature‑store-local-up`.
-Testing:
-  • Unit test: Verify feature ingestion & retrieval in /services/feature‑store/tests/.
-Acceptance:
-  • All tests pass; docker‑compose up exposes Feast web UI on :8888.
-RUN & REPORT
+---
 
+# 2  Alpha Phase (Weeks 0 – 4)
 
-```
-
-
-### 1.2 Prisma Schema Expansion
+### 2.1 Task 1 – Feature‑Store Scaffolding *(pgvector + Materialised View)*
 
 ```txt
-### Task 2 – Extend UserAttributes
-Files: prisma/schema.prisma, /apps/web/src/graphql/*
-Scope:
-  • Add fields: location (String?), birthday (DateTime?), hobbies (String[]), communities (String[])
-  • Add connectors (Json) for hashed external IDs.
-Steps:
-  1. Modify schema and run `pnpm prisma generate`.
-  2. Update upsertUserAttributes mutation + validation.
-  3. Write migration SQL in prisma/migrations/20250713_user_attributes_expand.
-Testing:
-  • Unit tests for resolver.
-  • e2e test with Playwright: onboarding wizard saves attributes.
+### Task 1 – Initialise User‑Level Feature Store
+Scope
+  • Create table `user_taste_vectors` (user_id PK, taste vector(256), traits jsonb, updated_at).
+  • Build ANN index with IVFFlat (lists = 100).
+  • Materialised view `user_dwell_avg` ← scroll_events.
+  • Schedule 5‑min refresh via `pg_cron`.
+
+Files
+  ▸ /supabase/migrations/20250715_feature_store.sql  
+  ▸ /supabase/config.toml (enable pg_cron extension)
+
+Tests
+  • Vitest SQL unit: inserting vector then K‑NN query returns self at rank 1.
+  • SQL integration: `REFRESH MATERIALIZED VIEW` completes < 1 s on sample data.
+
 RUN & REPORT
 ```
 
-### 1.3 Initial Two‑Tower Embedding Service
+---
+
+### 2.2 Task 2 – Extend `UserAttributes` Model
 
 ```txt
-### Task 3 – Bootstrap embedding micro‑service
-Scope:
-  • Python FastAPI service `/embed` that accepts user_id → returns 256‑D vector.
-  • Very first version: average FastText embeddings of user interests (as placeholder).
-Steps:
-  1. Create /services/embedding‑svc.
-  2. Dockerfile; deploy to k8s namespace “ml”.
-  3. Expose gRPC stub for batch embedding.
-Testing:
-  • pytest covers embed_empty_input, embed_valid_user.
-  • k8s health probe passes.
+### Task 2 – Prisma Schema Expansion
+Scope
+  • Add optional fields: location, birthday, hobbies (String[]), communities (String[]), connectors (Json).
+Steps
+  1. Update prisma/schema.prisma.
+  2. Run `supabase db push` and commit migration.
+  3. Update GraphQL mutation `upsertUserAttributes`.
+  4. End‑to‑end: onboarding wizard persists attributes.
+
+Tests
+  • Vitest resolver unit tests.
+  • Playwright e2e: wizard writes & reads back values.
+
 RUN & REPORT
 ```
 
+---
 
-### 1.4 Vector DB Integration & Candidate Query API
+### 2.3 Task 3 – Embedding Service (v0)
 
 ```txt
-### Task 4 – Integrate Pinecone + create `/api/v2/discovery/candidates`
-Files: /apps/web/src/pages/api/v2/discovery/candidates.ts
-Scope:
-  • Upsert vectors from embedding‑svc to Pinecone.
-  • Implement API route:
-      query params: `k=number` (default 50)
-      auth: JWT
-Steps:
-  1. Add util pineconeClient.ts.
-  2. On user profile save, enqueue job to (re)‑embed and upsert vector.
-  3. API route: cosine similarity search → return array of {userId, score}.
-Testing:
-  • Jest mock for Pinecone.
-  • Integration test with two dummy users.
+### Task 3 – Bootstrap Embedding Micro‑Service
+Scope
+  • Python FastAPI `/embed` → returns 256‑D vector (placeholder: avg FastText of interests).
+  • Dockerfile *only for local dev*; deploy as **Vercel Python Serverless Function** `/api/embed.py`.
+  • Add gRPC stub for batch embedding.
+
+Tests
+  • pytest: embed_empty_input → 422; embed_valid_user → 256‑float list.
+  • Vercel health check returns 200.
+
 RUN & REPORT
 ```
 
-| Area                          | AWS‑based Playbook                       | Supabase + Vercel Variant                                                                                                      |
-| ----------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| **Infrastructure‑as‑Code**    | Terraform modules (EKS, RDS, S3, Lambda) | Supabase CLI migrations + `supabase/config.toml`; Vercel `vercel.json`                                                         |
-| **Container Orchestration**   | k8s Deployments, Dockerfiles             | *None for back‑end* – compute runs as<br>• Vercel serverless/edge functions (Node, Python)<br>• Supabase Edge Functions (Deno) |
-| **Stateful Stores**           | Aurora Postgres, Redis, S3, Pinecone     | Supabase Postgres (pgvector, pg\_cron), Supabase Storage; Pinecone **or** pgvector IVFFlat/HNSW                                |
-| **Streaming / Feature Store** | Kafka + Feast (+Redis online)            | pgvector table + Materialised Views; realtime events via Supabase Realtime or Vercel Analytics                                 |
-| **Batch Orchestration**       | Airflow on EKS / SageMaker Batch         | Supabase `pg_cron`, Vercel Cron Jobs, or GitHub Actions‑scheduled workflows                                                    |
-| **Secrets / Config**          | AWS Secrets Manager                      | Supabase encrypted secrets (`supabase secrets set`) + Vercel Environment Variables                                             |
+---
 
+### 2.4 Task 4 – Candidate Query API + Vector Upsert
 
-### Task A1 – Build Canonical Media DB
-Scope:
-  • Append CanonicalMedia & FavoriteItem models to prisma/schema.prisma.
-  • Run `supabase db push` to generate SQL & apply to local dev db.
-  • Commit generated migration under /supabase/migrations.
-Steps:
-  1. prisma/schema.prisma – append models.
-  2. prisma/migrations – create migration + run generate.
-  3. scripts/seed_cmd.ts – pull & insert sample dataset.
-  4. //Terraform: create aws_rds_cluster & secrets.
-Tests:
+```txt
+### Task 4 – `/api/v2/discovery/candidates`
+Scope
+  • On profile save → queue re‑embed & upsert vector to `user_taste_vectors`.
+  • API route: `GET ?k=50` → pgvector cosine search; JWT‑protected.
 
-  • Vitest unit: canonicalise("Blade Runner (Final Cut)") === id("tt0083658").
-  • //Integration: seed script inserts ≥50 k rows without PK collision.
+Steps
+  1. util/postgresVector.ts – helper for `SELECT … ORDER BY taste <-> $1 LIMIT $k`.
+  2. Queue worker: Supabase Edge Function subscribes to `user_attributes_updated`.
+  3. API route returns `{userId, score}[]`.
+
+Tests
+  • Jest pgmock: two dummy users, expect closest vector returned.
+  • 30‑sec Redis memoization to meet p95 ≤ 120 ms.
+
 RUN & REPORT
+```
 
-### Task A1 – Build Canonical Media DB (Supabase)
-Scope:
-  • Append CanonicalMedia & FavoriteItem models to prisma/schema.prisma.
-  • Run `supabase db push` to generate SQL & apply to local dev db.
-  • Commit generated migration under /supabase/migrations.
-Tests:
-  • Vitest: canonicalise("Blade Runner (Final Cut)") === id("tt0083658").
+---
+
+### 2.5 Task A1 – Canonical Media DB
+
+```txt
+### Task A1 – Canonical Media DB
+Scope
+  • Append `CanonicalMedia` & `FavoriteItem` models to prisma schema.
+  • Seed ≥ 50 k rows (sample dataset) via `scripts/seed_cmd.ts`.
+
+Tests
+  • Vitest: `canonicalise("Blade Runner (Final Cut)")` ⇒ `id("tt0083658")`.
+  • Seed runs with no PK collisions.
+
 RUN & REPORT
+```
 
+---
 
-### Task A2 – OAuth + ingest worker
-Files: /connectors/spotify/*
-Scope:
-  • Implement POST /api/v2/favorites/import/spotify.
-  • Exchange code for access token (scope: user‑library‑read).
-  • //Lambda writes raw liked tracks JSON to S3 s3://favorites_raw/spotify/<userId>/dt.json.
-  • //Write ingest status to Redis key fav:sync:<userId>.
-   *Supabase Storage path: bucket `favorites_raw`, key `spotify/${userId}/${timestamp}.json`
-  • Use `createSignedUploadUrl` to avoid exposing service‑role key client‑side.
-  • Update Jest mocks: supersbase.storage.from(...).upload(...)
-Tests:
-  • Jest: token refresh, S3 putObject mock, status flag toggled.
-  • e2e (Playwright): connect flow redirects, shows “Syncing…”.
+### 2.6 Task A2 – Spotify Favorites Ingest
+
+```txt
+### Task A2 – Spotify OAuth + Ingest Worker
+Scope
+  • POST `/api/v2/favorites/import/spotify` – exchange code, fetch likes.
+  • Upload raw JSON to Supabase Storage bucket `favorites_raw/spotify/${userId}/${ts}.json`
+    using `createSignedUploadUrl` (no service‑role key exposed).
+  • Track ingest status in Redis `fav:sync:${userId}`.
+
+Tests
+  • Jest: token refresh flow, storage upload mocked, status flag toggled.
+  • Playwright e2e: connect flow shows “Syncing…”.
+
 RUN & REPORT
+```
 
-### change in Task A2  (Spotify ingest)
-  • Supabase Storage path: bucket `favorites_raw`, key `spotify/${userId}/${timestamp}.json`
-  • Use `createSignedUploadUrl` to avoid exposing service‑role key client‑side.
-  • Update Jest mocks: supersbase.storage.from(...).upload(...)
+---
 
+### 2.7 Task A3 – External Metadata Fetcher
 
-### Task A3 – TMDb / MusicBrainz / OpenLibrary fetcher
-Scope:
-  • Serverless function fetch_meta(id) → {genres, year, synopsis, …}
-  • 24 h Redis cache (key: meta:<id>).
-  • Store merged metadata JSON in CanonicalMedia.metadata.
-Tests:
+```txt
+### Task A3 – TMDb / MusicBrainz / OpenLibrary Fetcher
+Scope
+  • Edge Function `fetch_meta(id)` → `{genres, year, synopsis,…}`.
+  • 24 h Redis cache (`meta:${id}`); merge into `CanonicalMedia.metadata`.
+
+Tests
   • Unit: cache hit ratio logic.
-  • Contract test: TMDb response → mapper → CMD row upsert.
-  
+  • Contract: TMDb sample response maps correctly to DB row upsert.
+
 RUN & REPORT
-
-3.3 Serverless / Edge Functions
-AWS Lambda / k8s Pod	Replacement
-Node Lambda connectors	Supabase Edge Function (Deno) in /supabase/functions/<service>.ts
-FastAPI embedding service	Vercel Python Serverless Function (/api/embed.py) – calls OpenAI and writes back to Postgres canonical_media.embedding
-Post‑ranking filter micro‑service	Next.js API Route (/api/_internal/post_rank_filter.ts)
-
-3.4 Batch & Cron
-Airflow DAG	Replacement
-Nightly favorites_feature_builder	Vercel Cron Job (vercel.json schedule: "0 2 * * *"); job implemented in /api/cron/fav_builder.ts
-Weekly batch_trait_inference	GitHub Actions workflow .github/workflows/traits.yml triggered by schedule:
-
-
-
-3.5 Feature / Vector Store
-Feast + Redis → pgvector + Materialised View
-
-
--- supabase/migrations/20250715_feature_store.sql
-CREATE TABLE user_taste_vectors (
-  user_id uuid PRIMARY KEY,
-  taste vector(256),
-  traits jsonb,
-  updated_at timestamp default now()
-);
-
--- ANN index
-CREATE INDEX ON user_taste_vectors USING ivfflat (taste vector_l2_ops) WITH (lists = 100);
+```
 
 ---
 
-## 2  Beta Phase Prompts (Weeks 5‑10)
+# 3  Beta Phase (Weeks 5 – 10)
 
-### 2.1 Behavioural Event Streaming
+### 3.1 Task 5 – Behavioural Event Streaming (Scroll & Dwell)
 
 ```txt
-### Task 5 – Kafka event pipeline
-Scope:
-  • Emit `scroll_pause` and `dwell_time` events from front‑end → Kafka topic `user_behavior`.
-  • Flink job aggregates 7‑day avg dwell.
-Steps:
-  1. Add analytics hook in /apps/web/src/utils/analytics.ts.
-  2. Define Flink job in /streaming/dwell_aggregate.
-  3. Write to Feast table.
-Testing:
-  • Unit test Flink window aggregation using testcontainers.
-  • Front‑end e2e: simulate scroll, assert POST /analytics success 200.
+### Task 5 – Front‑end Analytics → Supabase Realtime
+Scope
+  • Emit `scroll_pause` + `dwell_time` events to Postgres table `scroll_events`
+    with Row‑Level Security enabled.
+  • Supabase Realtime channel `user_behavior` notifies Edge consumers.
+  • Materialised view `user_dwell_avg` (7‑day window) already scheduled by Task 1.
+
+Tests
+  • Front‑end e2e: scroll generates 200‑OK analytics calls.
+  • SQL: dwell view refreshes and row count matches events.
+
 RUN & REPORT
 ```
 
-### 2.2 LightGBM Re‑Ranker
+---
+
+### 3.2 Task 6 – LightGBM Re‑Ranker Service
 
 ```txt
-### Task 6 – LightGBM ranker micro‑service
-Scope:
-  • Train model using offline features (script in /ml/offline_train_ranker.py).
-  • gRPC `Rank(request: {viewerId, candidateIds[]}) → rankedIds[]`
-Steps:
-  1. Create training pipeline reading S3 parquet generated by Airflow.
-  2. Serialize model; load in FastAPI service.
-  3. Add unit test with synthetic data.
+### Task 6 – LightGBM Ranker
+Scope
+  • Train offline (Python script `/ml/offline_train_ranker.py`) on features parquet.
+  • Serve via FastAPI gRPC: `Rank(viewerId, candidateIds[]) → rankedIds[]`.
+  • Shadow‑deploy behind GrowthBook flag `discovery_reranker_v2`.
+
+Tests
+  • pytest synthetic data ranking.
+  • gRPC contract test.
+
 RUN & REPORT
 ```
 
-### 2.3 Swipe‑to‑Tune Card Stack & Feedback Loop
+---
+
+### 3.3 Task 7 – `<DiscoveryCardStack>` + Feedback Loop
 
 ```txt
-### Task 7 – UI & signal ingestion
-Scope:
-  • React component <DiscoveryCardStack>.
-  • Swipe right → POST /api/v2/discovery/feedback {targetId, type:'positive'}
-  • Negative swipes likewise.
-  • Feedback writes to Feature Store real‑time queue (Redis stream).
-Testing:
-  • React Testing Library – swipe gestures.
-  • API tests: rate‑limiting 100 req/min.
+### Task 7 – Swipe‑to‑Tune Card Stack
+Scope
+  • React component: swipe right/left POSTs `/api/v2/discovery/feedback`.
+  • Feedback enters Redis stream for incremental learner (see Task 13).
+
+Tests
+  • React Testing Library: swipe gesture recognised.
+  • API rate‑limited to 100 req / min.
+
 RUN & REPORT
 ```
 
-### 2.4 Privacy Dashboard MVP
+---
+
+### 3.4 Task 8 – Privacy Dashboard MVP
 
 ```txt
-### Task 8 – Discovery Data settings screen
-Scope:
-  • Path: /settings/discovery
-  • Toggle list: Interests, Behavioural Data, External Connectors.
-  • PATCH /api/v2/discovery/privacy.
-  • When toggled off, mask feature group in Feast and schedule re‑embedding.
-Testing:
-  • Cypress e2e: opt‑out “Behavioural Data” → verify Feature Store mask flag set.
+### Task 8 – Discovery Data Settings
+Scope
+  • Route `/settings/discovery`: toggles for Interests, Behavioural Data, External Connectors.
+  • PATCH `/api/v2/discovery/privacy` → mask feature group + schedule re‑embed.
+
+Tests
+  • Cypress: opt‑out “Behavioural Data” → feature masked flag true.
+  • Unit: re‑embed job enqueued.
+
 RUN & REPORT
 ```
-### Task B1 – media‑embedding‑svc
-Scope:
-  • FastAPI `/embed` POST {id, text} → 768‑D using OpenAI text-embedding-3-large.
-  • Check Redis md5 cache before call.
-  • Quantise to fp16 & store in CanonicalMedia.embedding.
-  • Dockerfile & k8s Deployment.
-Tests:
-  • pytest: cache bypass, resizing to 768‑floats.
-  • k8s healthcheck responds 200.
-RUN & REPORT
 
-### Task B2 – favorites_feature_builder DAG
-Scope:
-  • Nightly @02:00 UTC.
-  • Steps:
-      1) Load new FavoriteItem rows.
-      2) Ensure embeddings exist via media‑embedding‑svc.
-      3) Per‑user: build 256‑D taste_vector (PCA reduce).
-      4) feast.online_write(user_id, taste_vector).
-  • Log token usage metrics.
-Tests:
-  • Great Expectations: >95 % favorites have embedding.
-  • DAG unit via pytest‑airflow: dag.test_dag_integrity().
-RUN & REPORT
+---
 
+### 3.5 Task B1 – Media Embedding API (Vercel)
+
+```txt
+### Task B1 – media‑embedding‑api
+Scope
+  • Vercel Python Function `/api/embed.py`  
+      – POST {mediaId} → fetch metadata → OpenAI text‑embedding‑3‑large  
+      – Store 768‑D fp16 in `CanonicalMedia.embedding`.  
+  • Skip OpenAI call if embedding exists.
+
+Tests
+  • pytest: `embed_existing_returns_cached`.
+  • Vitest TS mock call from builder job.
+
+RUN & REPORT
+```
+
+---
+
+### 3.6 Task B2 – Nightly Favorites Feature Builder
+
+```txt
+### Task B2 – favorites_feature_builder (Vercel Cron 02:00 UTC)
+Scope
+  1. Load new `FavoriteItem` rows.  
+  2. Ensure embeddings via media‑embedding‑api.  
+  3. Per user: build 256‑D taste_vector (PCA) → `user_taste_vectors`.  
+  4. Log token usage.
+
+Tests
+  • Great Expectations: ≥ 95 % favorites have embedding.
+  • Dag integrity via `pytest-airflow`.
+
+RUN & REPORT
+```
+
+---
+
+### 3.7 Task B3 – Taste‑Aware Candidates API
+
+````txt
 ### Task B3 – taste‑aware candidates
-Files: /apps/web/src/pages/api/v2/discovery/candidates.ts
-Scope:
-  • Fetch top200 ANN neighbours from taste_vector (pinecone).
-  • Merge with existing Two‑Tower list; deduplicate.
-  • Preserve latency budget with Redis memoisation 30 s.
-Tests:
-  • Jest: response contains union without dupes.
-  • k6 load: 500 rps ≤120 ms p95 (mock pinecone).
+Scope
+  • SQL:  
+    ```sql
+    SELECT user_id, taste <-> $1 AS dist
+    FROM user_taste_vectors
+    ORDER BY dist
+    LIMIT 200;
+    ```  
+  • Merge with Two‑Tower list; dedupe; 30 s Redis cache.
+
+Tests
+  • Jest: union without duplicates.
+  • k6 load: 500 rps ≤ 120 ms p95 (mock pgvector).
+
 RUN & REPORT
--Update Codex prompt in Task B3:
+````
 
-  • Run SQL: SELECT user_id, taste <-> $1 AS dist
-             FROM user_taste_vectors
-             ORDER BY dist
-             LIMIT 200;
+---
 
-### Task B4 – <FavoritesManager> component
-Scope:
-  • Route /settings/favorites.
-  • Show connectors status chips + manual add autocomplete (CMD search API).
-  • Display last sync timestamp (from /favorites/status).
-Tests:
+### 3.8 Task B4 – `<FavoritesManager>` UI
+
+```txt
+### Task B4 – Favorites Manager
+Scope
+  • Route `/settings/favorites`: connector status chips, manual add autocomplete (CMD search API).
+  • Show last‑sync timestamp via `/favorites/status`.
+
+Tests
   • RTL: autocomplete debounce 150 ms.
-  • axe‑core: component is WCAG 2.1 AA compliant.
-RUN & REPORT
+  • axe‑core: WCAG 2.1 AA pass.
 
+RUN & REPORT
+```
 
 ---
 
-## 3  GA Phase Prompts (Weeks 11‑18)
+# 4  GA Phase (Weeks 11 – 18)
 
-### 3.1 Diversity & Safety Guardrails
+### 4.1 Task 9 – Post‑Ranking Diversity & Safety Filter
 
 ```txt
-### Task 9 – Post‑ranking filter service
-Scope:
-  • Implement Determinantal Point Process (DPP) diversity algorithm.
-  • Integrate harassment_score filter >0.8.
-  • Enforce ±10 % demographic parity across gender_inferred label.
-Files: /services/post_rank_filter/*
-Testing:
-  • Unit tests for DPP set coverage.
-  • Integration test using fixture of 100 candidates with varied scores.
+### Task 9 – post_rank_filter service
+Scope
+  • Determinantal Point Process (DPP) diversity, harassment_score filter > 0.8, ±10 % gender parity.
+
+Tests
+  • Unit: DPP coverage.
+  • Integration: 100‑candidate fixture passes safety & diversity.
+
 RUN & REPORT
 ```
 
-### 3.2 Explainability Service
+---
+
+### 4.2 Task 10 – Explainability API
 
 ```txt
-### Task 10 – `/api/v2/discovery/why/:targetId`
-Scope:
-  • Use SHAP on LightGBM to pick top 2 features.
-  • Map to phrase via /config/explain_map.json.
-  • Locales: en, es.
-Testing:
-  • Jest tests: verify output keys {reason_en, reason_es}.
-  • Perf: <20 ms per call via caching.
+### Task 10 – /api/v2/discovery/why/:targetId
+Scope
+  • SHAP on LightGBM to select top 2 features.  Map via /config/explain_map.json.  
+  • Locales: en, es; cached.
+
+Tests
+  • Jest: outputs `{reason_en, reason_es}`.
+  • Perf: < 20 ms via cache.
+
 RUN & REPORT
 ```
 
-### 3.3 A/B Framework & Metrics
+---
+
+### 4.3 Task 11 – Experimentation Framework
 
 ```txt
-### Task 11 – GrowthBook rollout
-Scope:
-  • Instrument flag `discovery_reranker_v2`.
-  • Add assignment logging to Experiment DB.
-  • Dashboard in Grafana: connection_accept_rate, conversation_depth.
-Testing:
-  • Unit test flag evaluation.
-  • Integration test: user in holdout cohort bypasses re‑ranker.
+### Task 11 – GrowthBook Roll‑out
+Scope
+  • Flag `discovery_reranker_v2`, assignment logging, Grafana dashboard.
+
+Tests
+  • Unit: flag evaluation.
+  • Integration: hold‑out bypasses reranker.
+
 RUN & REPORT
 ```
 
-### 3.4 Localization & Accessibility
+---
+
+### 4.4 Task 12 – i18n & Accessibility Polish
 
 ```txt
-### Task 12 – i18n & a11y polish
-Scope:
-  • Add Spanish translations for discovery components.
-  • Ensure card stack supports keyboard navigation (WCAG 2.1 AA).
-Testing:
-  • jest‑axe for accessibility.
-  • React i18next snapshot tests.
+### Task 12 – Localization & a11y
+Scope
+  • Spanish translations, keyboard nav for Card Stack.
+
+Tests
+  • jest‑axe, i18next snapshots.
+
 RUN & REPORT
 ```
-Trait Inference Batch Job
-### Task G1 – batch_trait_inference
-Scope:
-  • Weekly Airflow DAG:
-       – Pull top 15 favorites / user.
-       – Build prompt (docs/LLM_PROMPTS.md).
-       – Call GPT‑4o (temperature 0.2).
-       – Validate against /schemas/traits.schema.json.
-       – Feast.online_write(user_id, traits_json).
-  • Budget: ≤0.02 USD / active user / month.
-Tests:
-  • pytest: JSON validation fail → retries 3, quarantines user.
-  • Cost monitor unit: sample calc < budget.
-RUN & REPORT
 
-Taste‑Based Explainability
+---
+
+### 4.5 Task G1 – Trait‑Inference Batch Job
+
+```txt
+### Task G1 – batch_trait_inference (GitHub Actions weekly)
+Scope
+  • For each user: top 15 favorites → GPT‑4o prompt → traits JSON (validate against schema).  
+  • Write to `user_taste_vectors.traits`.
+
+Budget ≤ $0.02 / active user / month.
+
+Tests
+  • pytest: JSONSchema validation retry logic.
+  • Cost monitor unit test.
+
+RUN & REPORT
+```
+
+---
+
+### 4.6 Task G2 – Trait‑Based Explainability
+
+```txt
 ### Task G2 – why/:targetId enhancements
-Scope:
-  • If traits overlap ≥1 key, include chip “Both appreciate X”.
-  • Explanations pulled from cached traits_json only.
-  • Locales: en, es (use i18n JSON).
-Tests:
-  • jest: no live LLM call path.
-  • RTL: chip renders Spanish when locale=es.
-RUN & REPORT
+Scope
+  • If trait overlap ≥ 1 → chip “Both appreciate X”.  Locales en, es.
 
-Opt‑Out & Redact Flow
+Tests
+  • Jest: no live LLM call.
+  • RTL: Spanish chip renders when locale = es.
+
+RUN & REPORT
+```
+
+---
+
+### 4.7 Task G3 – Favorites Opt‑Out Flow
+
+```txt
 ### Task G3 – favorites opt‑out
-Scope:
-  • Toggle in Privacy Dashboard → PATCH /api/v2/discovery/privacy {"favorites": false}
-  • Backend:
-       – Deletes taste_vector & traits_json from Feast.
-       – Sets redis flag for user fallback path.
-  • Re‑enable recomputes vectors next nightly DAG.
-Tests:
-  • Cypress: toggle off → discover slate uses generic embeddings.
-  • Unit: Feast delete called, redis flag set.
-RUN & REPORT
+Scope
+  • Toggle in Privacy Dashboard ⇒ PATCH `/api/v2/discovery/privacy {"favorites": false}`  
+  • Backend deletes vectors/traits, sets Redis fallback flag; re‑enable triggers nightly rebuild.
 
+Tests
+  • Cypress: toggle → generic slate served.
+  • Unit: Feast delete + Redis flag set.
 
----
-
-## 4  Continuous Improvement Prompts
-
-### 4.1 Online Learning Job
-
-```txt
-### Task 13 – Online learner
-Scope:
-  • Batch incremental LightGBM update every 30 min using feedback events.
-  • Auto‑shadow deploy model version; promote on metrics threshold success.
-Testing:
-  • Unit test incremental training function.
-  • Canary deployment test script.
 RUN & REPORT
 ```
 
-### 4.2 Federated Learning POC
+---
+
+# 5  Continuous Improvement
+
+### 5.1 Task 13 – Online Incremental Learner
 
 ```txt
-### Task 14 – Federated embeddings experiment
-Scope:
-  • Use Flower framework; train interest embeddings on device simulator.
-  • Compare cosine@10 against centralised baseline.
-Testing:
-  • Notebook with experiment results saved to /experiments/federated_2025‑Q4.ipynb.
-No immediate RUN & REPORT (research deliverable).
-```
+### Task 13 – online_lightgbm_update
+Scope
+  • Every 30 min, train LightGBM on feedback stream; shadow deploy; promote on metric threshold.
 
-Open‑Source Embedding POC
-### Task C1 – replace text-embedding-3-large with all-mpnet-base-v2
-Scope:
-  • A/B flag `oss_embeddings_v1`.
-  • Benchmark cosine@10 vs. baseline; report latency & dollar cost.
-No RUN & REPORT yet (research deliverable).
+Tests
+  • Unit: incremental training.
+  • Canary deployment script.
 
-Weekly Cost Regression Guard
-### Task C2 – prom_cost_regression
-Scope:
-  • Prometheus alert: embedding_tokens_weekly > budget *1.1.
-  • Terraform alertmanager rule + Slack webhook #discovery‑alerts.
 RUN & REPORT
-
+```
 
 ---
 
-## 5  Global Regression & Release Prompt
+### 5.2 Task 14 – Federated Embeddings PoC *(research)*
 
 ```txt
-### Final Task – Regression & Release Prep
-Scope:
-  • Run full monorepo test suite, lint, typecheck.
-  • Terraform plan & k8s manifests rendered via Helmfile.
-  • Bump version to v2.0.0 in CHANGELOG.md.
-  • Generate release notes Markdown from Conventional Commits.
-RUN & REPORT
+### Task 14 – federated_embeddings_experiment
+Scope
+  • Flower framework; compare cosine@10 vs central baseline.
+Deliverable = notebook `/experiments/federated_2025‑Q4.ipynb` (no RUN & REPORT).
 ```
-### Final Task – v2.1 release gate
-Scope:
-  • Run full test matrix (web, py, infra).
-  • Helmfile template render –> kubeval.
-  • Changelog auto‑generate v2.1.0.
-  • Create GitHub Release draft, attach migration docs.
-RUN & REPORT
-
 
 ---
 
-### How This Playbook Ensures Coverage & Quality
+### 5.3 Task C1 – Open‑Source Embedding A/B
 
-| SRS Section           | Prompt Coverage    | Validation                                  |
-| --------------------- | ------------------ | ------------------------------------------- |
-| Data Model Expansion  | 1.2                | Prisma migration tests                      |
-| Signal Ingestion      | 1.1, 2.1           | Unit + Flink container tests                |
-| Embedding / Vector    | 1.3, 1.4           | pytest, integration tests                   |
-| Re‑Ranker & Diversity | 2.2, 3.1           | gRPC tests, DPP unit tests                  |
-| UI Integration        | 2.3, 2.4, 3.2, 3.4 | RTL, Cypress, jest‑axe                      |
-| Metrics & A/B         | 3.3, 4.1           | Grafana dashboards, GrowthBook flags        |
-| Privacy & Safety      | 2.4, 3.1           | Opt‑out propagation test, guardrail filters |
-| MLOps                 | every RUN & REPORT | CI pass gate before merge                   |
+```txt
+### Task C1 – oss_embeddings_v1
+Scope
+  • Replace OpenAI model with `all‑mpnet-base-v2` under GrowthBook flag; benchmark latency & cost.
 
-| SRS Section                  | Tasks Above | Key Validation                         |
-| ---------------------------- | ----------- | -------------------------------------- |
-| Canonical Media DB           | A1          | Seed >50 k rows; dedup pass rate       |
-| Favorites Connectors         | A2, B4      | OAuth flow e2e + sync status UI        |
-| Metadata + Embeddings        | A3, B1      | 95 % coverage; cache hit unit tests    |
-| Taste Vector & Feature Store | B2          | GE tests; <90 min DAG for 10 M users   |
-| Taste‑Aware Matching         | B3          | p95 latency + union correctness        |
-| Trait Inference (LLM)        | G1          | JSONSchema validation; cost monitor    |
-| Explanations & UI            | G2, B4      | i18n + no live LLM calls               |
-| Privacy / Opt‑Out            | G3          | Feast delete & slate fallback verified |
-| Cost & Monitoring            | C1, C2      | Prometheus alert; A/B cost reduction   |
+No RUN & REPORT yet (research).
+```
 
+---
 
-Executing the prompts in sequence implements the full **roadmap**, enforces **test‑driven development**, and provides continuous feedback loops so Codex never drifts from specification.  Adjust timelines or split tasks further as team velocity dictates, but keep the *prompt → review → merge* rhythm intact for predictable delivery.
+### 5.4 Task C2 – Cost Regression Alert
 
+```txt
+### Task C2 – cost_regression_logflare
+Scope
+  • Supabase Logflare source `openai_embeddings`.  
+  • SQL alert: SUM(token_cost) > budget × 1.1 over 7 d ⇒ webhook to #discovery‑alerts.  
+  • Commit dashboard JSON under /infra/logflare/.
 
+Tests
+  • Vitest: alert query returns rows when threshold breached.
 
---changes: 3.6 Event Streaming
-Kafka → Supabase Realtime Channels or Row Level Security logs.
-
-For small volumes you can:
-
-ts
-Copy
-const { data, error } = supabase.channel('user_behavior')
-  .on('postgres_changes', { event: '*', schema: 'public', table: 'scroll_events' }, handler)
-  .subscribe();
-Replace Flink aggregation with a Materialised View refreshed via pg_cron:
-
-sql
-Copy
-CREATE MATERIALIZED VIEW user_dwell_avg AS
-SELECT user_id, AVG(duration) AS avg_session_dwell_sec_7d
-FROM scroll_events
-WHERE created_at > now() - interval '7 days'
-GROUP BY 1;
-SELECT cron.schedule('dwell_refresh', '*/5 * * * *', $$ REFRESH MATERIALIZED VIEW user_dwell_avg $$);
-4  Sample Updated Prompt (embedding service)
-txt
-Copy
-### Task B1‑supabase – media‑embedding‑api on Vercel
-Scope:
-  • Implement `/api/embed.py` (Vercel Python Serverless Function).
-     – POST {mediaId} → fetch metadata from Supabase → OpenAI embedding API
-     – Store 768‑D fp16 array in CanonicalMedia.embedding column.
-  • Add `VERCEL_PYTHON_VERSION=3.11` in project settings.
-  • Cache: before calling OpenAI, check if embedding already exists.
-Tests:
-  • pytest: embed_existing_returns_cached
-  • Vitest (TS) mock call from builder job.
 RUN & REPORT
-5  Monitoring / Cost
-Replace Prometheus alertmanager rules with either:
+```
 
-Vercel Usage Alerts
+---
 
-Supabase Logs + Logflare + Grafana Cloud
+# 6  Release Gate
 
-Example Codex snippet:
+```txt
+### Final Task – v2.1 release gate (Supabase + Vercel)
+Scope
+  • `pnpm test | deno task test | pytest` all green.  
+  • `supabase db diff --linked` shows zero drift.  
+  • `vercel --prod --prebuilt` succeeds.  
+  • Generate CHANGELOG.md; create GitHub Release draft with migration docs.
 
-txt
-Copy
-### Task C2‑supabase – cost_regression_logflare
-Scope:
-  • Supabase Logflare source `openai_embeddings`.
-  • Write SQL alert: if SUM(token_cost) > budget * 1.1 in 7d THEN send webhook.
-  • Commit logflare dashboard JSON under /infra/logflare/.
 RUN & REPORT
-6  MLOps & CI/CD
-Docker/k8s steps vanish. Update release gate:
+```
 
-txt
-Copy
-### Final Task – v2.1 release gate (Supabase + Vercel)
-Scope:
-  • pnpm test / deno test / pytest all green.
-  • `supabase db diff --linked` shows zero drift on main.
-  • `vercel --prod --prebuilt` succeeds.
-  • Generate CHANGELOG.md & create GitHub Release draft.
-RUN & REPORT
+---
+
+## How the Playbook Maps to the SRS
+
+| SRS Area              | Tasks            | Validation                           |
+| --------------------- | ---------------- | ------------------------------------ |
+| Data Model Expansion  | 2                | Prisma migration tests               |
+| Signal Ingestion      | 1, 5             | SQL view + e2e scroll tests          |
+| Embedding & Vectors   | 3, 4, B1‑B3      | pytest, integration, k6              |
+| Re‑Ranker & Diversity | 6, 9             | gRPC + DPP tests                     |
+| UI & Explainability   | 7, 8, 10, 12, G2 | RTL, Cypress, jest‑axe               |
+| Metrics & A/B         | 11, 13           | Grafana dashboards, GrowthBook flags |
+| Privacy & Safety      | 8, 9, G3         | Opt‑out propagation, safety filters  |
+| Cost & Monitoring     | C1, C2           | Logflare alert, cost benchmarks      |
+| Release & CI          | Final Task       | Full test suite, zero‑drift DB       |
+
+---
+
+### Using the Playbook
+
+1. **Copy** the Pre‑Flight prompt into Codex to establish context.
+2. **Work top‑to‑bottom, one block at a time.** Wait for each RUN & REPORT summary; merge or fix before continuing.
+3. **Never queue multiple blocks.** The incremental, test‑driven rhythm is what keeps the implementation aligned with the SRS.
+
+Happy shipping!
