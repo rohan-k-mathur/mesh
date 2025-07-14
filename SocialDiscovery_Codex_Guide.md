@@ -190,6 +190,16 @@ Tests:
   • //Integration: seed script inserts ≥50 k rows without PK collision.
 RUN & REPORT
 
+### Task A1 – Build Canonical Media DB (Supabase)
+Scope:
+  • Append CanonicalMedia & FavoriteItem models to prisma/schema.prisma.
+  • Run `supabase db push` to generate SQL & apply to local dev db.
+  • Commit generated migration under /supabase/migrations.
+Tests:
+  • Vitest: canonicalise("Blade Runner (Final Cut)") === id("tt0083658").
+RUN & REPORT
+
+
 ### Task A2 – OAuth + ingest worker
 Files: /connectors/spotify/*
 Scope:
@@ -204,6 +214,11 @@ Tests:
   • Jest: token refresh, S3 putObject mock, status flag toggled.
   • e2e (Playwright): connect flow redirects, shows “Syncing…”.
 RUN & REPORT
+
+### change in Task A2  (Spotify ingest)
+  • Supabase Storage path: bucket `favorites_raw`, key `spotify/${userId}/${timestamp}.json`
+  • Use `createSignedUploadUrl` to avoid exposing service‑role key client‑side.
+  • Update Jest mocks: supersbase.storage.from(...).upload(...)
 
 
 ### Task A3 – TMDb / MusicBrainz / OpenLibrary fetcher
@@ -228,11 +243,12 @@ Airflow DAG	Replacement
 Nightly favorites_feature_builder	Vercel Cron Job (vercel.json schedule: "0 2 * * *"); job implemented in /api/cron/fav_builder.ts
 Weekly batch_trait_inference	GitHub Actions workflow .github/workflows/traits.yml triggered by schedule:
 
+
+
 3.5 Feature / Vector Store
 Feast + Redis → pgvector + Materialised View
 
-sql
-Copy
+
 -- supabase/migrations/20250715_feature_store.sql
 CREATE TABLE user_taste_vectors (
   user_id uuid PRIMARY KEY,
@@ -554,3 +570,69 @@ RUN & REPORT
 
 
 Executing the prompts in sequence implements the full **roadmap**, enforces **test‑driven development**, and provides continuous feedback loops so Codex never drifts from specification.  Adjust timelines or split tasks further as team velocity dictates, but keep the *prompt → review → merge* rhythm intact for predictable delivery.
+
+
+
+--changes: 3.6 Event Streaming
+Kafka → Supabase Realtime Channels or Row Level Security logs.
+
+For small volumes you can:
+
+ts
+Copy
+const { data, error } = supabase.channel('user_behavior')
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'scroll_events' }, handler)
+  .subscribe();
+Replace Flink aggregation with a Materialised View refreshed via pg_cron:
+
+sql
+Copy
+CREATE MATERIALIZED VIEW user_dwell_avg AS
+SELECT user_id, AVG(duration) AS avg_session_dwell_sec_7d
+FROM scroll_events
+WHERE created_at > now() - interval '7 days'
+GROUP BY 1;
+SELECT cron.schedule('dwell_refresh', '*/5 * * * *', $$ REFRESH MATERIALIZED VIEW user_dwell_avg $$);
+4  Sample Updated Prompt (embedding service)
+txt
+Copy
+### Task B1‑supabase – media‑embedding‑api on Vercel
+Scope:
+  • Implement `/api/embed.py` (Vercel Python Serverless Function).
+     – POST {mediaId} → fetch metadata from Supabase → OpenAI embedding API
+     – Store 768‑D fp16 array in CanonicalMedia.embedding column.
+  • Add `VERCEL_PYTHON_VERSION=3.11` in project settings.
+  • Cache: before calling OpenAI, check if embedding already exists.
+Tests:
+  • pytest: embed_existing_returns_cached
+  • Vitest (TS) mock call from builder job.
+RUN & REPORT
+5  Monitoring / Cost
+Replace Prometheus alertmanager rules with either:
+
+Vercel Usage Alerts
+
+Supabase Logs + Logflare + Grafana Cloud
+
+Example Codex snippet:
+
+txt
+Copy
+### Task C2‑supabase – cost_regression_logflare
+Scope:
+  • Supabase Logflare source `openai_embeddings`.
+  • Write SQL alert: if SUM(token_cost) > budget * 1.1 in 7d THEN send webhook.
+  • Commit logflare dashboard JSON under /infra/logflare/.
+RUN & REPORT
+6  MLOps & CI/CD
+Docker/k8s steps vanish. Update release gate:
+
+txt
+Copy
+### Final Task – v2.1 release gate (Supabase + Vercel)
+Scope:
+  • pnpm test / deno test / pytest all green.
+  • `supabase db diff --linked` shows zero drift on main.
+  • `vercel --prod --prebuilt` succeeds.
+  • Generate CHANGELOG.md & create GitHub Release draft.
+RUN & REPORT
