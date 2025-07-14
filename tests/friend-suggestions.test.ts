@@ -1,10 +1,16 @@
 import { updateUserEmbedding, generateFriendSuggestions } from "@/lib/actions/friend-suggestions.actions";
 import { deepseekEmbedding } from "@/lib/deepseekclient";
+import { getPineconeIndex } from "@/lib/pineconeClient";
 
 var mockPrisma: any;
 
 jest.mock("@/lib/deepseekclient", () => ({
   deepseekEmbedding: jest.fn(async () => [1, 2, 3]),
+}));
+
+var mockIndex: any;
+jest.mock("@/lib/pineconeClient", () => ({
+  getPineconeIndex: jest.fn(async () => mockIndex),
 }));
 
 jest.mock("@/lib/prismaclient", () => {
@@ -31,7 +37,7 @@ beforeEach(() => {
 });
 
 describe("updateUserEmbedding", () => {
-  it("writes embedding to database", async () => {
+  it("writes embedding to database and pinecone", async () => {
     mockPrisma.userAttributes.findUnique.mockResolvedValue({
       interests: ["coding"],
       hobbies: [],
@@ -42,6 +48,8 @@ describe("updateUserEmbedding", () => {
       communities: [],
     });
 
+    mockIndex = { upsert: jest.fn() };
+
     const id = BigInt(1);
     await updateUserEmbedding(id);
 
@@ -49,6 +57,9 @@ describe("updateUserEmbedding", () => {
       where: { user_id: id },
       update: { embedding: [1, 2, 3] },
       create: { user_id: id, embedding: [1, 2, 3] },
+    });
+    expect(mockIndex.upsert).toHaveBeenCalledWith({
+      vectors: [{ id: id.toString(), values: [1, 2, 3] }],
     });
   });
 });

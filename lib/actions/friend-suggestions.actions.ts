@@ -2,6 +2,7 @@
 
 import { prisma } from "../prismaclient";
 import { deepseekEmbedding } from "../deepseekclient";
+import { getPineconeIndex } from "../pineconeClient";
 import { UserAttributes } from "@prisma/client";
 
 function cosineSimilarity(a: number[], b: number[]) {
@@ -31,6 +32,14 @@ export async function updateUserEmbedding(userId: bigint) {
     update: { embedding },
     create: { user_id: userId, embedding },
   });
+  try {
+    const index = await getPineconeIndex();
+    await index.upsert({
+      vectors: [{ id: userId.toString(), values: embedding }],
+    });
+  } catch (err) {
+    console.warn("Pinecone upsert failed", err);
+  }
 }
 
 export async function generateFriendSuggestions(userId: bigint) {

@@ -21,6 +21,9 @@ jest.mock("@xyflow/react", () => {
   };
 });
 
+jest.mock("nanoid", () => ({ nanoid: () => "id" }));
+jest.mock("@/lib/prismaclient", () => ({ prisma: { $connect: jest.fn() } }));
+
 (require as any).context = () => {
   const fn = () => ({});
   fn.keys = () => [] as string[];
