@@ -83,10 +83,19 @@ Traits JSON – Small JSON blob of personality/intent descriptors inferred offli
 
 ### 2.1 Product Perspective
 
-The engine is a **platform‑level service** consumed by multiple front‑end surfaces (feed, profile sidebar, live rooms). It runs independent micro‑services but shares Mesh’s common infra: Next.js front‑end, AWS EKS, managed PostgreSQL, and Redis.
+The engine is a **platform‑level service** consumed by multiple front‑end surfaces (feed, profile sidebar, live rooms). It runs independent micro‑services but shares Mesh’s common infra: Next.js front‑end, AWS EKS, managed PostgreSQL, and Redis /// SUPABASE + VERCEL.
 
 Discovery v2.1 remains a platform service but now exposes an additional Favorites Pipeline (batch) and Favorites Connector API (real‑time).
 
+
+| Area                          | AWS‑based Playbook                       | Supabase + Vercel Variant                                                                                                      |
+| ----------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| **Infrastructure‑as‑Code**    | Terraform modules (EKS, RDS, S3, Lambda) | Supabase CLI migrations + `supabase/config.toml`; Vercel `vercel.json`                                                         |
+| **Container Orchestration**   | k8s Deployments, Dockerfiles             | *None for back‑end* – compute runs as<br>• Vercel serverless/edge functions (Node, Python)<br>• Supabase Edge Functions (Deno) |
+| **Stateful Stores**           | Aurora Postgres, Redis, S3, Pinecone     | Supabase Postgres (pgvector, pg\_cron), Supabase Storage; Pinecone **or** pgvector IVFFlat/HNSW                                |
+| **Streaming / Feature Store** | Kafka + Feast (+Redis online)            | pgvector table + Materialised Views; realtime events via Supabase Realtime or Vercel Analytics                                 |
+| **Batch Orchestration**       | Airflow on EKS / SageMaker Batch         | Supabase `pg_cron`, Vercel Cron Jobs, or GitHub Actions‑scheduled workflows                                                    |
+| **Secrets / Config**          | AWS Secrets Manager                      | Supabase encrypted secrets (`supabase secrets set`) + Vercel Environment Variables                                             |
 
 
 ### 2.2 System Context
