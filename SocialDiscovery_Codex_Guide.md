@@ -120,6 +120,16 @@ Testing:
 RUN & REPORT
 ```
 
+| Area                          | AWS‑based Playbook                       | Supabase + Vercel Variant                                                                                                      |
+| ----------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| **Infrastructure‑as‑Code**    | Terraform modules (EKS, RDS, S3, Lambda) | Supabase CLI migrations + `supabase/config.toml`; Vercel `vercel.json`                                                         |
+| **Container Orchestration**   | k8s Deployments, Dockerfiles             | *None for back‑end* – compute runs as<br>• Vercel serverless/edge functions (Node, Python)<br>• Supabase Edge Functions (Deno) |
+| **Stateful Stores**           | Aurora Postgres, Redis, S3, Pinecone     | Supabase Postgres (pgvector, pg\_cron), Supabase Storage; Pinecone **or** pgvector IVFFlat/HNSW                                |
+| **Streaming / Feature Store** | Kafka + Feast (+Redis online)            | pgvector table + Materialised Views; realtime events via Supabase Realtime or Vercel Analytics                                 |
+| **Batch Orchestration**       | Airflow on EKS / SageMaker Batch         | Supabase `pg_cron`, Vercel Cron Jobs, or GitHub Actions‑scheduled workflows                                                    |
+| **Secrets / Config**          | AWS Secrets Manager                      | Supabase encrypted secrets (`supabase secrets set`) + Vercel Environment Variables                                             |
+
+
 ### Task A1 – Build Canonical Media DB
 Scope:
   • Add Prisma models CanonicalMedia & FavoriteItem (see SRS §7.1).
