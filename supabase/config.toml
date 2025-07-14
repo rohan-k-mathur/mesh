@@ -52,11 +52,6 @@ enabled = true
 # Supports glob patterns relative to supabase directory: "./schemas/*.sql"
 schema_paths = []
 
-[db.extensions.pg_cron]
-enabled = true
-
-[db.extensions.vector]
-enabled = true
 
 [db.seed]
 # If enabled, seeds the database after migrations during a db reset.
