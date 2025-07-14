@@ -843,6 +843,15 @@ textarea {
 
 
 }
+.tab-button:hover
+{
+
+  box-shadow:   -2px 2px 4px rgba(222,199,204,.53),
+  .5px 1px 4px rgba(0, 0, 0, 0.15);
+
+
+
+}
 .carouselbutton{
   background-color: transparent;
   outline: transparent;
