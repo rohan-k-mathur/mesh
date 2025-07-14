@@ -72,6 +72,7 @@ Traits JSON – Small JSON blob of personality/intent descriptors inferred offli
 ### 1.5 References
 
 * Mesh_Roadmap.md
+* SocialDiscovery_Codex_Guide.md
 * SocialDiscoveryEnginev2.md
 * OWASP ASVS v4.0
 * ISO/IEC 27001:2022 Controls
