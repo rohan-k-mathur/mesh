@@ -21,24 +21,32 @@ const SoundCloudPlayer = ({ src, title }: Props) => {
     if (!ctx) return;
 
     const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height * 1);
-    gradient.addColorStop(0, "#ffffff");
-    gradient.addColorStop((canvas.height * 0.65 ) / canvas.height, "#E8E8E8");
+    gradient.addColorStop(0, "#818cf8");
+    // gradient.addColorStop((canvas.height * 0.65 ) / canvas.height, "#E8E8E8");
 
-    gradient.addColorStop((canvas.height * 0.65) / canvas.height, "#464646");
-    gradient.addColorStop(1, "#000000");
+    // gradient.addColorStop((canvas.height * 0.65) / canvas.height, "#464646");
+    gradient.addColorStop(1, "#4f46e5");
 
     const progressGradient = ctx.createLinearGradient(0, 0, 0, canvas.height * 1);
-    progressGradient.addColorStop(0, "#ea580c");
-    progressGradient.addColorStop((canvas.height * 0.65) / canvas.height, "#f97316");
-    progressGradient.addColorStop((canvas.height * 0.65) / canvas.height, "#fb923c");
-    progressGradient.addColorStop(1, "#fdba74");
+    progressGradient.addColorStop(0, "#fdba74");
+    // progressGradient.addColorStop((canvas.height * 0.65) / canvas.height, "#f97316");
+    // progressGradient.addColorStop((canvas.height * 0.65) / canvas.height, "#fb923c");
+    progressGradient.addColorStop(1, "#ea580c");
 
     waveRef.current = WaveSurfer.create({
       container: containerRef.current,
+      // waveColor: "#000000",
       waveColor: gradient,
+
       progressColor: progressGradient,
       height: 100,
       width: 600,
+      normalize: true,
+      barWidth: 6,
+      barGap: 3,
+      barRadius: 40,
+
+
     });
     if (src) waveRef.current.load(src).catch(() => null);
     return () => {
@@ -58,7 +66,7 @@ const SoundCloudPlayer = ({ src, title }: Props) => {
 
   return (
     <div className="w-full flex-col">
-            <h1 className="text-center font-bold text-[1.1rem] mt-0  py-2">{title}</h1>
+            <h1 className="text-center tracking-wide text-[1.6rem] mt-0  pt-1 pb-2">{title}</h1>
 
       <div className="flex items-center gap-5 w-full">
         {isPlaying ? (
