@@ -1,4 +1,4 @@
-import { describe, expect, test } from "vitest";
+// Jest provides global describe/expect/test
 
 describe("user_taste_vectors", () => {
   test("knn query ranks self first", async () => {
