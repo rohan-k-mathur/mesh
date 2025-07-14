@@ -1,0 +1,31 @@
+CREATE EXTENSION IF NOT EXISTS vector;
+CREATE EXTENSION IF NOT EXISTS pg_cron;
+
+CREATE TABLE IF NOT EXISTS user_taste_vectors (
+  user_id BIGINT PRIMARY KEY,
+  taste vector(256),
+  traits jsonb,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS user_taste_vectors_ann
+  ON user_taste_vectors USING ivfflat (taste vector_cosine_ops) WITH (lists = 100);
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS user_dwell_avg AS
+SELECT user_id, AVG(dwell_ms) AS avg_dwell_ms
+FROM scroll_events
+GROUP BY user_id;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM cron.job WHERE jobname = 'refresh_user_dwell_avg'
+  ) THEN
+    PERFORM cron.schedule(
+      'refresh_user_dwell_avg',
+      '*/5 * * * *',
+      'REFRESH MATERIALIZED VIEW CONCURRENTLY user_dwell_avg'
+    );
+  END IF;
+END
+$$;
