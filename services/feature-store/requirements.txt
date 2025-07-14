@@ -1,0 +1,3 @@
+feast[redis]==0.50.0
+pandas
+pyarrow
