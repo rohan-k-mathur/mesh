@@ -4,3 +4,7 @@ import redis from "./redis";
 export const spotifyIngestQueue = new Queue("spotify:ingest", {
   connection: redis,
 });
+
+export const reembedQueue = new Queue("reembed", {
+  connection: redis,
+});

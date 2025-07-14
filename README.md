@@ -100,3 +100,8 @@ See `Codex_Environment_Guide.md` for tips on caching dependencies and using a Do
 
 ### Embedding Service
 See services/embedding/README.md for setup.
+
+### Discovery Candidates API
+`GET /api/v2/discovery/candidates?k=50` returns the top‑K users with similar
+taste. Authentication via Supabase session is required. Results are cached in
+Redis for `CANDIDATE_CACHE_TTL` seconds.

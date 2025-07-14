@@ -1,22 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserFromCookies } from "@/lib/serverutils";
-import { prisma } from "@/lib/prismaclient";
-import { getPineconeIndex } from "@/lib/pineconeClient";
+import { getOrSet } from "@/lib/redis";
+import { knn } from "@/util/postgresVector";
+import rateLimit from "next-rate-limit";
 
+const limiter = rateLimit({ limit: 30, interval: 60 * 1000 });
 export async function GET(req: NextRequest) {
   const user = await getUserFromCookies();
   if (!user?.userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const k = parseInt(req.nextUrl.searchParams.get("k") || "50", 10);
-  const record = await prisma.userEmbedding.findUnique({
-    where: { user_id: user.userId },
-  });
-  if (!record) return NextResponse.json([]);
-  const index = await getPineconeIndex();
-  const result = await index.query({ topK: k + 1, vector: record.embedding });
-  const matches = (result.matches || [])
-    .filter((m: any) => m.id !== user.userId.toString())
-    .map((m: any) => ({ userId: parseInt(m.id, 10), score: m.score }));
-  return NextResponse.json(matches);
+  const kParam = parseInt(req.nextUrl.searchParams.get("k") || "50", 10);
+  const k = Math.min(Math.max(kParam, 1), 100);
+  await limiter.check(req, `cand-${user.userId}`);
+  const ttl = parseInt(process.env.CANDIDATE_CACHE_TTL || "30", 10);
+  const results = await getOrSet(`candCache:${user.userId}:${k}`, ttl, () =>
+    knn(String(user.userId), k + 1),
+  );
+  const filtered = results
+    .filter((r) => r.userId !== Number(user.userId))
+    .slice(0, k)
+    .map((r) => ({ userId: r.userId, score: r.score }));
+  return NextResponse.json(filtered);
 }
