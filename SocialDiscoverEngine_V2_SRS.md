@@ -34,9 +34,17 @@ Provide a definitive specification for the next‑generation Social Discovery En
 * Maximises meaningful interactions while protecting user privacy and safety.
 * Serves as a flagship capability differentiating Mesh from incumbent social platforms.
 
+* Extend v2.0 of the Social Discovery Engine to leverage user‑supplied media “favorites” (music, films, books, podcasts, games) imported from connected services (Spotify, Letterboxd, Goodreads, etc.) or entered manually. The objective is to convert these cultural signals into:
+
+Taste vectors for sub‑second similarity matching.
+
+Psychographic traits for richer explanations and better diversity control.
+
 ### 1.2 Scope
 
-Covers backend services, data pipelines, ML models, APIs, and UI components required to ingest signals, compute similarity, rank candidates, explain recommendations, and collect feedback for continuous learning.
+Covers backend services, data pipelines, ML models, APIs, and UI components required to ingest signals, compute similarity, rank candidates, explain recommendations, and collect feedback for continuous learning. 
+
+Adds new micro‑services, feature pipelines, LLM‑powered trait extraction, data schemas, and UI surfaces while preserving all previously scoped functionality.
 
 ### 1.3 Stakeholders
 
@@ -55,11 +63,17 @@ Covers backend services, data pipelines, ML models, APIs, and UI components requ
 * **ANN** – Approximate Nearest Neighbour search.
 * **DPP** – Determinantal Point Process diversity filter.
 * **Two‑Tower** – Neural architecture with separate encoders for query and candidate entities.
+* Canonical Media DB (CMD) – Internal catalogue mapping external IDs to a single canonical record.
+
+Taste Vector – 256‑D embedding representing a user’s aggregated media preferences.
+
+Traits JSON – Small JSON blob of personality/intent descriptors inferred offline by an LLM.
 
 ### 1.5 References
 
-* Mesh\_Roadmap.md
-* Social\_Discovery\_Engine\_Roadmap.md (superseded by this SRS)
+* Mesh_Roadmap.md
+* SocialDiscovery_Codex_Guide.md
+* SocialDiscoveryEnginev2.md
 * OWASP ASVS v4.0
 * ISO/IEC 27001:2022 Controls
 
@@ -70,6 +84,10 @@ Covers backend services, data pipelines, ML models, APIs, and UI components requ
 ### 2.1 Product Perspective
 
 The engine is a **platform‑level service** consumed by multiple front‑end surfaces (feed, profile sidebar, live rooms). It runs independent micro‑services but shares Mesh’s common infra: Next.js front‑end, AWS EKS, managed PostgreSQL, and Redis.
+
+Discovery v2.1 remains a platform service but now exposes an additional Favorites Pipeline (batch) and Favorites Connector API (real‑time).
+
+
 
 ### 2.2 System Context
 
@@ -84,6 +102,28 @@ The engine is a **platform‑level service** consumed by multiple front‑end su
        |                    |                              |
        |<-- WS / SSE ------ |   Real‑time Match Service    |
 ```
+
+2.2.1 System Context (updated)
+
+            +─────────────── 1  OAuth/CSV ────────────────+
+            |                                              |
+┌───────────▼───────────┐        2 Metadata fetch        ┌─▼───────────────┐
+│    Connectors &       │ ─────────────────────────────▶ │ Canonical Media │
+│ Manual Uploads (UI)   │                                │      DB         │
+└───────────▲───────────┘                                └───┬─────────────┘
+            | 5 Traits JSON                                   │3 Embeddings
+            |                                                 ▼
+            |       ┌────────────────────────────┐     ┌──────────────┐
+            └──────▶│  Favorites Feature Builder │────▶│ Vector +     │
+                    │   (Airflow / Python)       │     │ Feature Store│
+                    └──────────┬─────────────────┘     └─────┬────────┘
+                               │                            7│
+                               │6 Persist & Cache            ▼
+                         ┌─────▼────────┐              ┌─────────────┐
+                         │Batch LLM for │              │ Discovery   │
+                         │Trait Inference│────────────▶│ Engine Core │
+                         └──────────────┘    traits    └─────────────┘
+
 
 ### 2.3 User Classes
 
@@ -121,6 +161,15 @@ The engine is a **platform‑level service** consumed by multiple front‑end su
 | **FR‑10** | **Feedback Loop**                | Store swipe‑left/right, click, connection acceptance; feed online learner every 30 min.                                      |
 | **FR‑11** | **Real‑time Match (Rooms)**      | For active rooms, compute attendee‑to‑viewer similarity in <500 ms using in‑memory Faiss.                                    |
 | **FR‑12** | **A/B Experimentation**          | Feature flags and assignment persisted; metrics logged to Experiment DB.                                                     |
+| --------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **FR‑13** | **Favorites Connectors & Manual Entry** | a) OAuth adapters retrieve latest “liked/saved/5‑star” items. b) Manual entry modal supports title auto‑complete via CMD. c) Delta sync nightly.                               |
+| **FR‑14** | **Canonical Media DB**                  | Store canonical records keyed by IMDb tt/MBID/ISBN. Must de‑duplicate variants (“Blade Runner – Final Cut”). TTL for metadata cache = 30 days.                                 |
+| **FR‑15** | **Favorites Feature Builder**           | Nightly Airflow DAG creates: 1) per‑title 768‑D embedding (if missing). 2) per‑user 256‑D taste vector (PCA‑reduced, recency & rating weighted). Persist to Vector DB & Feast. |
+| **FR‑16** | **Trait Inference Service**             | Weekly (or profile‑change>10 %) batch job sends top 15 favorites → GPT‑4o prompt; validates JSONSchema; stores `traits` (max 2 kB/user) in Feature Store.                      |
+| **FR‑17** | **Taste‑Aware Matching Extension**      | Candidate generation first unions ANN on taste\_vector (top 200) with existing Two‑Tower results, then deduplicates. Latency budget unchanged (≤120 ms p95).                   |
+| **FR‑18** | **Taste‑Based Explanations**            | `why/:targetId` endpoint may reference trait overlap (“Both enjoy cerebral sci‑fi”). Source text must come from cached Traits JSON, never live LLM call.                       |
+| **FR‑19** | **Opt‑out / Redact Favorites**          | User toggle removes taste\_vector and traits within 15 min; system falls back to generic embeddings until re‑enabled.                                                          |
+
 
 ---
 
@@ -135,6 +184,13 @@ The engine is a **platform‑level service** consumed by multiple front‑end su
 | **Fairness**           | Disparate impact ratio between protected classes 0.8–1.25.                         |
 | **Observability**      | OpenTelemetry traces, Prometheus metrics, Grafana alerts.                          |
 | **Maintainability**    | Clean Architecture, 80 % unit‑test coverage, ESLint & Prettier gates.              |
+Cost – Net new monthly infra budget ≤ 10 % of discovery OPEX. Guard‑rails:
+
+Embedding cache hit ≥ 95 %.
+
+LLM batch runtime < 4 h / week, <$0.02 per active user / month.
+
+Performance – Favorites DAG completes ≤ 90 min for 10 M users.
 
 ---
 
@@ -148,6 +204,12 @@ The engine is a **platform‑level service** consumed by multiple front‑end su
 | `/api/v2/discovery/rooms`         | GET  | JWT  | Recommended live rooms.            |
 | `/api/v2/discovery/why/:targetId` | GET  | JWT  | Fetch explanation object.          |
 | `/grpc/reranker.Rank`             | gRPC | mTLS | Internal use – re‑ranking service. |
+| Route                                | Verb | Auth | Description                                    |
+| ------------------------------------ | ---- | ---- | ---------------------------------------------- |
+| `/api/v2/favorites/import/:service`  | POST | JWT  | Trigger on‑demand OAuth ingest (Spotify, etc.) |
+| `/api/v2/favorites/manual`           | POST | JWT  | Add or edit manual favorite items.             |
+| `/api/v2/discovery/favorites/status` | GET  | JWT  | Sync status, last processed date.              |
+
 
 ### 5.2 UI Components
 
@@ -173,6 +235,14 @@ OAuth 2.0 flows (Spotify, GitHub, Goodreads) with minimal scopes; refresh toke
 8. **Diversity & Guardrail Filter** – Node service applies DPP & safety rules; outputs final slate to **Discovery Gateway**.
 9. **API Gateway** – Edge Lambdas / Next.js API routes deliver results to clients.
 10. **Observability Stack** – OTEL collectors → Tempo (traces), Loki (logs), Prometheus (metrics).
+11. 
+Favorites Connector Workers – Node18 lambdas pulling external libraries; push raw JSON to S3 favorites_raw/.
+
+Canonical Media DB – Aurora PostgreSQL with nightly metadata refresh jobs.
+
+Embedding Generator – Python container (Torch) calling text-embedding-3-large; cached in Redis (media_emb:<md5>).
+
+Trait Inference – Batch LLM job (SageMaker Batch or Cloud Run) → JSON validated → Feature Store (traits_json).
 
 ---
 
@@ -191,6 +261,25 @@ model UserAttributes {
   updatedAt   DateTime @updatedAt
 }
 ```
+Additional Tables
+prisma
+Copy
+model FavoriteItem {
+  userId     String  @index
+  mediaId    String  // foreign key to CanonicalMedia.id
+  rating     Int?    // 1‑5
+  addedAt    DateTime @default(now())
+}
+
+model CanonicalMedia {
+  id        String @id           // imdb_tt, mbid, isbn, etc.
+  title     String
+  mediaType String               // MOVIE, SONG, BOOK, ...
+  metadata  Json                 // genres, themes, mood, year
+  embedding Float[]              // 768‑D
+  updatedAt DateTime @updatedAt
+}
+
 
 ### 7.2 Feature Groups (Feast)
 
@@ -199,6 +288,11 @@ model UserAttributes {
 | user\_id | avg\_session\_dwell\_sec\_7d | float      |
 | user\_id | music\_genre\_vect           | float\[32] |
 | user\_id | harassment\_score            | float      |
+| Entity   | Feature       | Type        |
+| -------- | ------------- | ----------- |
+| user\_id | taste\_vector | float\[256] |
+| user\_id | traits\_json  | bytes       |
+
 
 ### 7.3 Model Specs
 
@@ -212,14 +306,15 @@ model UserAttributes {
 
 ## 8  Algorithms & Decision Logic
 
-```
+
 Algorithm RecommendUsers(u):
-  Q ← VectorDB.nn_search(Embed(u), topK=300)
-  C ← LightGBM.rank(u, Q)
-  C' ← FilterSafety(C, threshold=0.8)
-  S ← DPP_Diversity(C', N=10, λ=0.3)
+  P  ← TasteANN(u.taste_vector, topK=200)
+  Q  ← VectorDB.nn_search(Embed(u), topK=300)
+  C0 ← UNIQUE(P ∪ Q)
+  C1 ← LightGBM.rank(u, C0, extra_feats = overlap(traits))
+  C2 ← FilterSafety(C1)
+  S  ← DPP_Diversity(C2, N=10)
   return Explain(S, u)
-```
 
 * **FilterSafety** removes users with high harassment\_score or block relation.
 * **DPP\_Diversity** optimises for dissimilarity while retaining relevance.
@@ -236,19 +331,35 @@ Algorithm RecommendUsers(u):
 3. Two‑Tower embedding computed; candidate API pre‑warmed.
 4. First suggestion slate delivered to home feed.
 
-### 9.2 Discovery Interaction
+### 9.2 Favorites Import
+User taps “Connect Spotify” → OAuth → success banner.
+
+Backend queues ingest; UI shows Syncing….
+
+Within 5 min taste_vector ready; slate refreshes silently.
+
+Weekly email “Your cultural twin is Alex – because you both love mid‑2000 s synth‑pop.”
+
+### 9.3 Manual Entry
+Auto‑complete field backed by CMD; debounce 150 ms.
+
+On submit, preview card shows poster/cover art + “Added”.
+
+Undo available for 10 s.
+
+### 9.4 Discovery Interaction
 
 1. Carousel renders 10 cards.
 2. User swipes right → **Feedback Event** (`positive_signal`).
 3. Connection request sent; on acceptance, feature `mutual_follow` toggled → retraining weight++.
 
-### 9.3 Privacy Audit
+### 9.5 Privacy Audit
 
 1. Settings → Discovery Data.
 2. List of signal categories with toggles.
 3. Saving triggers event `signal_opt_out`; Feature Store masks features and schedules re‑embedding.
 
-### 9.4 Live Room Matchmaking
+### 9.6 Live Room Matchmaking
 
 1. User opens live music room.
 2. Client emits `room_context` vector.
@@ -264,9 +375,17 @@ Algorithm RecommendUsers(u):
 | **Alpha**      | NA   | • Feature Store (redis) • Vector DB seeded • v1 embeddings (static)                         | Internal dog‑food accuracy ≥ 0.6 AUC               |
 | **Beta**       | NA  | • Behavioural signals pipeline • LightGBM ranker • Swipe‑to‑tune UI • Privacy Dashboard MVP | 10 % user cohort; KPI: +8 % connection acceptance  |
 | **GA**         | NA | • Diversity filter • Safety guardrails • A/B infra • Localization EN/ES • Audit logs        | 100 % rollout; SLA, privacy & fairness metrics met |
-| **Continuous** | NA   | • Online learning loop • Federated POC • Graph contrastive v3                               | Quarterly model refresh; retention lift ≥ 12 %     |
+| **Continuous** | NA   | • Online learning loop • Federated POC • Graph contrastive v3                               | Quarterly model 
+refresh; retention lift ≥ 12 %     |
 
 ---
+| Phase       | Extra Milestones (Favorites track)                                                           |
+| ----------- | -------------------------------------------------------------------------------------------- |
+| **Alpha**   | Build Canonical Media DB seed + import UI (read‑only).                                       |
+| **Beta**    | Embedding generator + nightly taste vectors; ANN blended into candidate API for 10 % cohort. |
+| **GA**      | LLM trait inference, opt‑out UI, taste‑based explanations; 100 % rollout.                    |
+| **Phase 3** | Cost‑down: switch to open‑source embeddings + Mixtral fine‑tunings.                          |
+
 
 ## 11  Testing & Validation Strategy
 
@@ -278,7 +397,11 @@ Algorithm RecommendUsers(u):
 | Online AB    | Connection acceptance, 7‑day conversation depth, safety incident delta |
 | Security     | OWASP ASVS L2; dependency scanning (Snyk)                              |
 | Privacy      | Synthetic DSAR runs; opt‑out propagation <15 min                       |
+Schema tests – Great Expectations: CMD completeness ≥ 95 % essential metadata.
 
+Offline eval (favorites) – Precision@10 uplift ≥ 5 % vs. control on “shared favorites” cohort.
+
+Cost regression – Prometheus alert if weekly embedding spend > budget.
 ---
 
 ## 12  Deployment & MLOps Plan
@@ -287,6 +410,12 @@ Algorithm RecommendUsers(u):
 * **Blue/Green Serving** – New model versions get 5 % traffic until rollback window passes.
 * **Feature Drift Alerts** – Great Expectations rules + Prometheus; Slack pager.
 * **Retraining Schedule** – LightGBM weekly; Two‑Tower daily incremental + full monthly.
+Favorites DAG image built via GitHub Actions → Airflow via Helm chart.
+
+LLM batch job triggered by Airflow sensor; outputs uploaded to S3 & Feature Store.
+
+Canary: first 100 k users each Saturday 01:00‑03:00 UTC.
+
 
 ---
 
@@ -298,6 +427,11 @@ Algorithm RecommendUsers(u):
 | Vector DB outage      | Recs unavailable     | Fallback to set‑intersection v1 via feature flag          |
 | Privacy breach        | Regulatory fines     | Data minimisation, rotating encryption keys, DPIA reviews |
 | Connector API changes | Data loss            | Version pinning, contract tests, graceful degradation     |
+| Risk                          | Mitigation                                  |
+| ----------------------------- | ------------------------------------------- |
+| API quota exhaustion (TMDb …) | 24 h cache + exponential back‑off.          |
+| LLM PII leakage in prompts    | Strip user names; log‑redaction middleware. |
+| Copyright on poster images    | Store URLs only, proxy via img cache.       |
 
 ---
 
@@ -307,6 +441,9 @@ Algorithm RecommendUsers(u):
 * B. SHAP → Phrase mapping table.
 * C. Experiment KPI Definitions.
 * D. Change Log Template.
+* E. Canonical Media Source List & Licenses
+F. LLM Prompt Library & JSONSchema
+G. Favorites Opt‑out Data‑Flow Diagram
 
 ---
 
@@ -316,6 +453,17 @@ Algorithm RecommendUsers(u):
 2. Draft UX for explainability & privacy screens (Design).
 3. Finalise Vector DB vendor contract (Ops).
 4. Schedule Security & Privacy design review by Week 2.
+
+Next Actions (Favorites Work‑Stream)
+Infra – Provision Aurora CMD cluster & S3 favorites_raw.
+
+Eng – Ship MVP Spotify adapter + TMDb fetcher (owner: @media‑ingest).
+
+ML – Evaluate text-embedding-3-large vs. all-mpnet-base-v2 on 5 k movie synopsis set.
+
+UX – Wireframe “Favorites” tab in onboarding & settings.
+
+
 
 ---
 
