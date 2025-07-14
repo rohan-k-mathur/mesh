@@ -1,0 +1,6 @@
+fastapi
+uvicorn[standard]
+numpy
+grpcio
+grpcio-tools
+requests
