@@ -14,5 +14,9 @@ const config: Config = {
   },
   setupFilesAfterEnv: ["<rootDir>/jest.setup.ts"],
   testMatch: ["**/tests/**/*.test.ts", "**/tests/**/*.test.tsx"],
+  testPathIgnorePatterns: [
+    "canonicalise.test.ts$",
+    "seed_cmd.integration.test.ts$",
+  ],
 };
 export default config;

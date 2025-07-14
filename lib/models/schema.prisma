@@ -45,6 +45,7 @@ model User {
   conversationsUser1       Conversation[]        @relation("ConversationUser1")
   conversationsUser2       Conversation[]        @relation("ConversationUser2")
   messages                 Message[]
+  favoriteItems            FavoriteItem[]
 
   @@map("users")
 }
@@ -508,4 +509,30 @@ model Message {
 
   @@index([conversation_id])
   @@map("messages")
+}
+
+model CanonicalMedia {
+  id        String   @id
+  title     String
+  mediaType String
+  metadata  Json?
+  embedding Float[]
+  updatedAt DateTime @updatedAt
+
+  favoriteItems FavoriteItem[]
+
+  @@map("canonical_media")
+}
+
+model FavoriteItem {
+  userId  BigInt
+  mediaId String
+  rating  Int?
+  addedAt DateTime @default(now())
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  media   CanonicalMedia @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@id([userId, mediaId])
+  @@index([userId])
+  @@map("favorite_items")
 }
