@@ -543,6 +543,13 @@ RUN & REPORT
 
 ---
 
+### Progress Summary
+
+* Tasks 1–4 and A1–A3 completed: feature store, schema expansion, embedding microservice, candidate API, canonical media DB, Spotify ingest and metadata fetcher.
+* Task 5 implemented via `useScrollAnalytics` and Supabase realtime; data flows into materialised views.
+* LightGBM ranker service (Task 6) present with tests but not yet integrated.
+* Later tasks (7+, B‑series, G‑series) including privacy dashboard, taste-aware API and cost alerts remain outstanding.
+
 ### Using the Playbook
 
 1. **Copy** the Pre‑Flight prompt into Codex to establish context.

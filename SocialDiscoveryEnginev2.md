@@ -293,6 +293,15 @@ Return only JSON.
 3. **Phase 3** – Fine‑tune small open model locally to cut LLM spend by >50 %.
 
 ---
+### Implementation Progress
+
+* Feature store and scroll event pipeline live in Supabase (see `useScrollAnalytics`).
+* User attributes expansion and Spotify ingest worker deployed.
+* Embedding microservice and candidate API functioning with pgvector.
+* Metadata fetcher Edge Function and Canonical Media tables created.
+* LightGBM ranker exists but integration & DPP filter still pending.
+* Privacy dashboard, explanations and trait inference remain to be built.
+
 
 ### TL;DR
 
