@@ -5,7 +5,7 @@ CREATE EXTENSION IF NOT EXISTS pg_cron;
 
 -- 1. Taste vectors
 CREATE TABLE IF NOT EXISTS user_taste_vectors (
-  user_id     UUID PRIMARY KEY REFERENCES auth.users(id),
+  user_id     UUID PRIMARY KEY,
   taste       VECTOR(256)  NOT NULL,
   traits      JSONB        DEFAULT '{}'::jsonb,
   updated_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW()
@@ -18,7 +18,7 @@ CREATE INDEX IF NOT EXISTS user_taste_vectors_ann
 -- 2. Scroll events
 CREATE TABLE IF NOT EXISTS scroll_events (
   id          BIGSERIAL    PRIMARY KEY,
-  user_id     UUID         NOT NULL REFERENCES auth.users(id),
+  user_id     UUID         NOT NULL,
   dwell_ms    INT          NOT NULL,
   created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
