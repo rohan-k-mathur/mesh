@@ -1,3 +1,5 @@
+export const runtime = 'nodejs';  
+
 import { NextRequest, NextResponse } from "next/server";
 import { getUserFromCookies } from "@/lib/serverutils";
 import { prisma } from "@/lib/prismaclient";
