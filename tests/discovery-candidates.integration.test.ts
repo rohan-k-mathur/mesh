@@ -1,12 +1,20 @@
 import { NextRequest } from "next/server";
 
 let mockRedis: any;
-let mockKnn: any;
+let mockTT: any;
+let mockTaste: any;
 
-jest.mock("@/util/postgresVector", () => {
-  mockKnn = jest.fn();
-  return { knn: mockKnn };
+jest.mock("@/lib/twoTower", () => {
+  mockTT = jest.fn();
+  return { getTwoTowerCandidates: mockTT };
 });
+
+jest.mock("@/util/taste", () => {
+  mockTaste = jest.fn();
+  return { tasteFallbackCandidates: mockTaste };
+});
+
+jest.mock("next-rate-limit", () => () => ({ check: jest.fn() }));
 
 jest.mock("@/lib/redis", () => {
   const store: Record<string, string> = {};
@@ -17,12 +25,7 @@ jest.mock("@/lib/redis", () => {
     }),
     del: jest.fn(),
   };
-  return { __esModule: true, default: mockRedis, getOrSet: async (k: string, ttl: number, fn: () => Promise<any>) => {
-    if (store[k]) return JSON.parse(store[k]);
-    const val = await fn();
-    store[k] = JSON.stringify(val);
-    return val;
-  } };
+  return { __esModule: true, default: mockRedis };
 });
 
 jest.mock("@/lib/serverutils", () => ({
@@ -30,20 +33,17 @@ jest.mock("@/lib/serverutils", () => ({
 }));
 
 describe("/api/v2/discovery/candidates", () => {
-  it("caches knn results", async () => {
+  it("caches merged results", async () => {
     const { GET } = await import("@/app/api/v2/discovery/candidates/route");
-    mockKnn.mockResolvedValue([
-      { userId: 1, score: 1 },
-      { userId: 2, score: 0.8 },
-    ]);
-    const req = new NextRequest(
-      new URL("http://localhost/api/v2/discovery/candidates?k=1"),
-    );
+    mockTT.mockResolvedValue(["a", "b"]);
+    mockTaste.mockResolvedValue(["b", "c"]);
+    const req = new NextRequest(new URL("http://localhost/api/v2/discovery/candidates"));
     const res1 = await GET(req);
     const body1 = await res1.json();
-    expect(body1).toEqual([{ userId: 2, score: 0.8 }]);
+    expect(body1).toEqual(["a", "b", "c"]);
     const res2 = await GET(req);
     await res2.json();
-    expect(mockKnn).toHaveBeenCalledTimes(1);
+    expect(mockTT).toHaveBeenCalledTimes(1);
+    expect(mockTaste).toHaveBeenCalledTimes(1);
   });
 });
