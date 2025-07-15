@@ -2,8 +2,6 @@
 /* friend‑suggestions.actions.ts                                 */
 /* ────────────────────────────────────────────────────────────── */
 "use server";
-export const runtime  = "nodejs";
-export const dynamic  = "force-dynamic";
 
 import { prisma } from "../prismaclient";
 import { deepseekEmbedding } from "../deepseekclient";
@@ -21,6 +19,10 @@ const cosineSimilarity = (a: number[], b: number[]) => {
 };
 
 const safeJoin = (arr?: string[] | null) => (arr ?? []).join(" ");
+/** Returns a string[] even when the raw value is string | bigint | Date | undefined. */
+const toStringArray = (v: unknown): string[] =>
+  Array.isArray(v) ? (v.filter((x) => typeof x === "string") as string[]) : [];
+
 
 /* ---------- embedding upsert -------------------------------- */
 export async function updateUserEmbedding(userId: Big) {
@@ -133,17 +135,21 @@ export async function generateFriendSuggestions(userId: Big) {
   );
 
   /* -- score -------------------------------------------------- */
-  const scored = otherIds.map((oid) => {
+  const scored = otherIds.map((oid: Big) => {
     const otherEmb = embMap.get(oid)!;
 
     const likeSet = likesMap.get(oid) ?? new Set();
     const roomSet = roomsMap.get(oid) ?? new Set();
 
     let overlapLikes = 0;
-    for (const p of likeSet) if (baseLikeSet.has(p)) overlapLikes++;
+    // for (const p of likeSet) if (baseLikeSet.has(p)) overlapLikes++;
 
     let overlapRooms = 0;
-    for (const r of roomSet) if (baseRoomSet.has(r)) overlapRooms++;
+    // for (const r of roomSet) if (baseRoomSet.has(r)) overlapRooms++;
+
+    for (const p of likeSet) if (baseLikeSet.has(p)) overlapLikes++;
+for (const r of roomSet) if (baseRoomSet.has(r)) overlapRooms++;
+
 
     const sim   = cosineSimilarity(base.embedding, otherEmb.embedding);
     const score = 0.6 * sim + 0.2 * overlapLikes + 0.2 * overlapRooms;
@@ -204,9 +210,9 @@ export async function fetchFriendSuggestions(userId: Big) {
 
     const overlap: Record<string, string[]> = {};
     for (const field of arrayFields) {
-      const inter = (baseAttrs[field] ?? []).filter((v) =>
-        (other[field] ?? []).includes(v),
-      );
+      const arrBase = toStringArray((baseAttrs as any)[field]);
+      const arrOther = toStringArray((other as any)[field]);
+      const inter = arrBase.filter((v) => arrOther.includes(v));
       if (inter.length) overlap[field] = inter;
     }
     if (baseAttrs.location && baseAttrs.location === other.location) {

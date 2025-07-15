@@ -1,5 +1,30 @@
 import { PineconeClient } from "@pinecone-database/pinecone";
-import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
+
+let supabase: SupabaseClient | null = null;
+function getSupabase() {
+  if (supabase) return supabase;
+
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_ANON_KEY;
+  if (!url || !key) {
+    console.warn("Supabase env vars missing; pgvector fallback disabled");
+    return null;
+  }
+  supabase = createClient(url, key);
+  return supabase;
+}
+
+export async function knnPgvector(vec: number[], k = 200) {
+  const sb = getSupabase();
+  if (!sb) return [];                // silent noop fallback
+  const { data, error } = await sb.rpc("knn_user_vectors", {
+    query_vector: vec,
+    result_count: k,
+  });
+  if (error) throw error;
+  return data;
+}
 
 const apiKey       = process.env.PINECONE_API_KEY;
 const environment  = process.env.PINECONE_ENVIRONMENT;
@@ -23,19 +48,19 @@ export async function getPineconeIndex() {
 }
 
 /* ---------- optional pgvector fallback ------------------ */
-const supabase = createSupabaseClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_ANON_KEY!
-);
+// const supabase = createSupabaseClient(
+//   process.env.NEXT_PUBLIC_SUPABASE_URL!,
+//   process.env.SUPABASE_ANON_KEY!
+// );
 
-export async function knnPgvector(vector: number[], k = 200) {
-  const { data, error } = await supabase.rpc("knn_user_vectors", {
-    query_vector: vector,
-    result_count: k,
-  });
-  if (error) throw error;
-  return data;
-}
+// export async function knnPgvector(vector: number[], k = 200) {
+//   const { data, error } = await supabase.rpc("knn_user_vectors", {
+//     query_vector: vector,
+//     result_count: k,
+//   });
+//   if (error) throw error;
+//   return data;
+// }
 
 // async function init() {
 //   if (!initialized) {
