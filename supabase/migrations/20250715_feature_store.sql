@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS user_taste_vectors (
-  user_id BIGINT PRIMARY KEY REFERENCES auth.users(id),
+  user_id BIGINT PRIMARY KEY,
   taste vector(256) NOT NULL,
   traits jsonb DEFAULT '{}'::jsonb,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
