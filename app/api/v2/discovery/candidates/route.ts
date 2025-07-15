@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
   }
   const kParam = parseInt(req.nextUrl.searchParams.get("k") || "50", 10);
   const k = Math.min(Math.max(kParam, 1), 100);
-  await limiter.check(req, `cand-${user.userId}`);
+  await limiter.checkNext(req, 30);
   const ttl = parseInt(process.env.CANDIDATE_CACHE_TTL || "30", 10);
   const results = await getOrSet(`candCache:${user.userId}:${k}`, ttl, () =>
     knn(String(user.userId), k + 1),
