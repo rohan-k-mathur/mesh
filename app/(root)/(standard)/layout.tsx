@@ -12,6 +12,7 @@ import RightSidebar from "@/components/shared/RightSidebar";
 import Bottombar from "@/components/shared/Bottombar";
 import { getUserFromCookies } from "@/lib/serverutils";
 import { AuthProvider } from "@/components/shared/AuthProvider";
+import ScrollAnalytics from "@/components/shared/ScrollAnalytics";
 import { getRoomsForUser } from "@/lib/actions/realtimeroom.actions";
 import { RealtimeRoom } from "@prisma/client";
 
@@ -52,6 +53,7 @@ export default async function StandardLayout({
     <html className="bg-gradient-to-r from-zinc-200 from-0% via-indigo-300 via-50% to-rose-200 to-100%">
     <body className={`${founderslight.className}`}>
       <AuthProvider user={user}>
+        <ScrollAnalytics />
         <main className="flex flex-row">
           <LeftSidebar userRooms={userRooms} />
           <section className="main-container ">

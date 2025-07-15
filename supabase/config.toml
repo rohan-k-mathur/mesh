@@ -65,6 +65,9 @@ sql_paths = ["./seed.sql"]
 
 [realtime]
 enabled = true
+# Tables to emit change events for
+[realtime.tables]
+"public.scroll_events" = { replica_identity = "full" }
 # Bind realtime via either IPv4 or IPv6. (default: IPv4)
 # ip_version = "IPv6"
 # The maximum length in bytes of HTTP request headers. (default: 4096)
