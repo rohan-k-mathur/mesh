@@ -39,10 +39,10 @@ const SoundCloudPlayer = ({ src, title }: Props) => {
       waveColor: gradient,
 
       progressColor: progressGradient,
-      height: 100,
+      height: 80,
       width: 600,
-      normalize: false,
-      barWidth: 6,
+      normalize: true,
+      barWidth: 5,
       barGap: 3,
       barRadius: 40,
 
@@ -65,10 +65,10 @@ const SoundCloudPlayer = ({ src, title }: Props) => {
   };
 
   return (
-    <div className="w-full flex-col">
+    <div className="w-full  flex-col">
             <h1 className="text-center tracking-wide text-[1.6rem] mt-0  pb-2">{title}</h1>
-
-      <div className="flex items-center gap-5 w-full">
+<hr></hr>
+      <div className="flex items-center gap-5 mt-2 w-full">
         {isPlaying ? (
           <button
             onClick={togglePlay}
