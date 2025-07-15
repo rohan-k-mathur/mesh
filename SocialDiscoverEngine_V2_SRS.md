@@ -79,6 +79,16 @@ Traits JSON – Small JSON blob of personality/intent descriptors inferred offli
 * ISO/IEC 27001:2022 Controls
 
 ---
+### Implementation Progress
+
+* **Signal ingestion** via `scroll_events` table and React hook `useScrollAnalytics` is operational.
+* **UserAttributes** schema expanded (location, birthday, hobbies, communities) with Supabase migrations.
+* **Embedding service** `/api/embed.py` deployed; re-embed worker queues updates.
+* **Candidate API** `/api/v2/discovery/candidates` backed by pgvector with Redis caching.
+* **Canonical Media** tables and metadata fetcher Edge Function implemented; Spotify ingest worker active.
+* **LightGBM ranker** microservice exists with tests but is not yet wired into the API.
+* Privacy dashboard, explainability API, diversity filter and trait inference jobs remain **TBD**.
+
 
 ## 2  Overall Description
 
