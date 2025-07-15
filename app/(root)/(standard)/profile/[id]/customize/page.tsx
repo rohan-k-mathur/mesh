@@ -17,7 +17,8 @@ async function Page({ params }: { params: { id: string } }) {
   if (!profilePageUser?.onboarded) notFound();
   return (
     <main className="grid mt-[-2rem] text-center">
-      <h1 className="head-text">Customize Profile</h1>
+      <h1 className="text-[2.5rem] text-center">Customize Profile</h1>
+      <hr></hr>
       <CustomButtons userAttributes={userAttributes} />
     </main>
   );

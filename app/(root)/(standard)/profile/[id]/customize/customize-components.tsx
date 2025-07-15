@@ -24,10 +24,12 @@ import {
   fetchPodcasts,
   fetchTracks,
   submitEdits,
+  submitFieldEdits,
 } from "@/lib/MultiSelectFunctions";
 import { UserAttributes } from "@prisma/client";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import React, { useState } from 'react';
+
 
 interface Props {
   userAttributes: UserAttributes;
@@ -56,42 +58,57 @@ export default function CustomButtons({ userAttributes, initialOpen }: Props) {
       : ""
   );
   const path = usePathname();
+  const [message, setMessage] = useState('');
+  const handleChange = (event) => {
+    setMessage(event.target.value);
+  };
 
   return (
     <div className="absolute flex flex-wrap grid-auto-row-dense w-fit	max-w-[70rem] items-start justify-left gap-10  mt-24  ">
-      <div className="relative grid p-5 gap-3 w-fit  border-2 border-white rounded-md pb-7 text-black  font-semibold">
+      <div className="relative grid p-5 gap-3 w-fit  border-[1px] border-sky-400 rounded-xl pb-7 text-black  font-semibold">
+       <h1 className="text-[1.2rem] ">
         {"Bio"}
+        </h1> 
 
         {/* About Modal */}
         <Dialog open={isAboutOpen} onOpenChange={setAboutOpen}>
           <DialogTrigger asChild>
-            <Button size={"lg"} className="flex w-full rounded-md">
+            <Button variant={"customize"} size={"lg"} className="likebutton flex w-full rounded-md hover:likebutton">
               About Me
             </Button>
           </DialogTrigger>
-          <DialogContent className="grid bg-black  max-w-[50rem] max-h-[38rem]	">
-            <h2>About Me</h2>
-            <DialogHeader className="dialog-header text-white tracking-wide	">
-              <b> Write anything you&apos; d like to here</b>
+          <DialogContent className="grid bg-slate-300 border-blue border-[1px] max-w-[50rem] max-h-[38rem]	">
+            <DialogHeader className="dialog-header text-center text-black tracking-wide	">
+              <b className="text-center "> Write Anything Here</b>
             </DialogHeader>
             <hr />
 
-            <div className="bg-black border border-white rounded-md px-3 pt-6 pb-[4rem] mt-3 mb-3 ">
-              {/* <FancyMultiSelect_Interests /> */}
-            </div>
+            <div className=" bg-transparent border border-white rounded-md px-3 pt-6 pb-6 mt-3 mb-3 ">
+            <form className="items-center flex flex-1 justify-center rounded-md shadow-none">
+          <label htmlFor="message"></label>
+          <textarea
+            id="message"
+            value={message} // Controlled component: value tied to state
+            onChange={handleChange} // Update state on change
+            rows={8} // Set initial visible rows
+            cols={90} // Set initial visible columns
+            placeholder="Type your message here..."
+            className="text-[1rem] bg-transparent border-[1px] border-white rounded-lg shadow-none "
+          />
+        </form>            </div>
             <hr />
-            <div className="flex gap-4 ">
+            <div className="flex gap-20 items-center justify-center ">
               <DialogClose
-                id="entermovie"
+                id="aboutme"
                 type="submit"
-                className={`form-submit-button pl-4 py-1 pr-[1rem]`}
+                className={`likebutton text-[1.2rem] tracking-[2px] text-center px-4 py-1 border-blue border-[.5px]`}
               >
                 Enter
               </DialogClose>
 
               <DialogClose
                 id="close"
-                className={`form-submit-button pl-4 py-1 pr-[1rem]`}
+                className={`likebutton text-[1.2rem] tracking-[2px] text-center px-4 py-1 border-blue border-[.5px]`}
               >
                 Close
               </DialogClose>
@@ -102,14 +119,14 @@ export default function CustomButtons({ userAttributes, initialOpen }: Props) {
         {/* Birthday Modal */}
         <Dialog open={isBirthdayOpen} onOpenChange={setBirthdayOpen}>
           <DialogTrigger asChild>
-            <Button size={"lg"} className="flex w-full rounded-md">
+          <Button variant={"customize"} size={"lg"} className="likebutton flex w-full rounded-md hover:likebutton">
               Birthday
             </Button>
           </DialogTrigger>
           <DialogContent className="grid bg-black  max-w-[50rem] max-h-[38rem]	">
             <h2>Birthday</h2>
             <DialogHeader className="dialog-header text-white tracking-wide	">
-              <b> Enter your date of birth:</b>
+              <b>When Is Your Birthday?</b>
             </DialogHeader>
             <hr />
 
@@ -120,6 +137,7 @@ export default function CustomButtons({ userAttributes, initialOpen }: Props) {
                 onChange={(e) => {
                   const value = e.target.value;
                   setBirthday(value);
+                  
                   submitFieldEdits("BIRTHDAY", value, userAttributes, path);
                 }}
                 onKeyDown={(e) => {
@@ -152,14 +170,14 @@ export default function CustomButtons({ userAttributes, initialOpen }: Props) {
         {/* Location Modal */}
         <Dialog open={isLocationOpen} onOpenChange={setLocationOpen}>
           <DialogTrigger asChild>
-            <Button size={"lg"} className="flex w-full rounded-md">
+          <Button variant={"customize"} size={"lg"} className="likebutton flex w-full rounded-md hover:likebutton">
               Location
             </Button>
           </DialogTrigger>
           <DialogContent className="grid bg-black  max-w-[50rem] max-h-[38rem]	">
             <h2>Location</h2>
             <DialogHeader className="dialog-header text-white tracking-wide	">
-              <b>Enter your location if you&apos; d like to</b>
+              <b>Enter Your Location</b>
             </DialogHeader>
             <hr />
             <div className="bg-black border border-white rounded-md px-3 pt-6 pb-[4rem] mt-3 mb-3 ">
@@ -195,13 +213,14 @@ export default function CustomButtons({ userAttributes, initialOpen }: Props) {
           </DialogContent>
         </Dialog>
       </div>
-      <div className="relative grid p-5 gap-3 w-fit  border-2 border-white rounded-md pb-7 text-black  font-semibold">
+      <div className="relative grid p-5 gap-3 w-fit  border-[1px] border-sky-400 rounded-xl pb-7 text-black  font-semibold">
+      <h1 className="text-[1.2rem]">
         {"Activities"}
-
+        </h1> 
         {/* Interests Modal */}
         <Dialog open={isInterestsOpen} onOpenChange={setInterestsOpen}>
           <DialogTrigger asChild>
-            <Button size={"lg"} className="flex w-full rounded-md">
+          <Button variant={"customize"} size={"lg"} className="likebutton flex w-full rounded-md hover:likebutton">
               Interests
             </Button>
           </DialogTrigger>
@@ -221,6 +240,7 @@ export default function CustomButtons({ userAttributes, initialOpen }: Props) {
                 submitEdits={(selectables) =>
                   submitEdits("INTERESTS", selectables, userAttributes, path)
                 }
+         
                 allowNew
                 onCreateOption={addInterest}
               />
@@ -248,7 +268,7 @@ export default function CustomButtons({ userAttributes, initialOpen }: Props) {
         {/* Hobbies Modal */}
         <Dialog open={isHobbiesOpen} onOpenChange={setHobbiesOpen}>
           <DialogTrigger asChild>
-            <Button size={"lg"} className="flex w-full rounded-md">
+          <Button variant={"customize"} size={"lg"} className="likebutton flex w-full rounded-md hover:likebutton">
               Hobbies
             </Button>
           </DialogTrigger>
@@ -295,7 +315,7 @@ export default function CustomButtons({ userAttributes, initialOpen }: Props) {
         {/* Communities Modal */}
         <Dialog open={isCommunitiesOpen} onOpenChange={setCommunitiesOpen}>
           <DialogTrigger asChild>
-            <Button size={"lg"} className="flex w-fit rounded-md">
+          <Button variant={"customize"} size={"lg"} className="likebutton flex w-full rounded-md hover:likebutton">
               Communities
             </Button>
           </DialogTrigger>
@@ -340,7 +360,7 @@ export default function CustomButtons({ userAttributes, initialOpen }: Props) {
         {/* Events Modal */}
         <Dialog open={isEventsOpen} onOpenChange={setEventsOpen}>
           <DialogTrigger asChild>
-            <Button size={"lg"} className="flex w-full rounded-md">
+          <Button variant={"customize"} size={"lg"} className="likebutton flex w-full rounded-md hover:likebutton">
               Events
             </Button>
           </DialogTrigger>
@@ -380,13 +400,14 @@ export default function CustomButtons({ userAttributes, initialOpen }: Props) {
           </DialogContent>
         </Dialog>
       </div>
-      <div className="grid p-5 w-fit gap-3  border-2 border-white rounded-md pb-7 text-black  font-semibold ">
+      <div className="relative grid p-5 gap-3 w-fit  border-[1px] border-sky-400 rounded-xl pb-7 text-black  font-semibold">
+      <h1 className="text-[1.2rem]">
         {"Media"}
-
+        </h1> 
         {/* Movies Modal */}
         <Dialog open={isMoviesOpen} onOpenChange={setMoviesOpen}>
           <DialogTrigger asChild>
-            <Button size={"lg"} className="flex w-full rounded-md">
+          <Button variant={"customize"} size={"lg"} className="likebutton flex w-full rounded-md hover:likebutton">
               Movies
             </Button>
           </DialogTrigger>
@@ -431,7 +452,7 @@ export default function CustomButtons({ userAttributes, initialOpen }: Props) {
         {/* TV Modal */}
         <Dialog open={isTVOpen} onOpenChange={setTVOpen}>
           <DialogTrigger asChild>
-            <Button size={"lg"} className="flex w-fit rounded-md">
+          <Button variant={"customize"} size={"lg"} className="likebutton flex w-full rounded-md hover:likebutton">
               Television
             </Button>
           </DialogTrigger>
@@ -473,7 +494,7 @@ export default function CustomButtons({ userAttributes, initialOpen }: Props) {
         {/* Books Modal */}
         <Dialog open={isBooksOpen} onOpenChange={setBooksOpen}>
           <DialogTrigger asChild>
-            <Button size={"lg"} className="flex w-full rounded-md">
+          <Button variant={"customize"} size={"lg"} className="likebutton flex w-full rounded-md hover:likebutton">
               Books
             </Button>
           </DialogTrigger>
@@ -516,7 +537,7 @@ export default function CustomButtons({ userAttributes, initialOpen }: Props) {
         {/* Podcasts Modal */}
         <Dialog open={isPodcastsOpen} onOpenChange={setPodcastsOpen}>
           <DialogTrigger asChild>
-            <Button size={"lg"} className="flex w-full  rounded-md">
+          <Button variant={"customize"} size={"lg"} className="likebutton flex w-full rounded-md hover:likebutton">
               Podcasts
             </Button>
           </DialogTrigger>
@@ -555,13 +576,14 @@ export default function CustomButtons({ userAttributes, initialOpen }: Props) {
           </DialogContent>
         </Dialog>
       </div>
-      <div className="grid p-5 w-fit gap-3 border-2 border-white rounded-md pb-7 text-black  font-semibold ">
+      <div className="relative grid p-5 gap-3 w-fit  border-[1px] border-sky-400 rounded-xl pb-7 text-black  font-semibold">
+      <h1 className="text-[1.2rem]">
         {"Music"}
-
+        </h1> 
         {/* Artists Modal */}
         <Dialog open={isArtistsOpen} onOpenChange={setArtistsOpen}>
           <DialogTrigger asChild>
-            <Button size={"lg"} className="flex w-full rounded-md">
+          <Button variant={"customize"} size={"lg"} className="likebutton flex w-full rounded-md hover:likebutton">
               Artists
             </Button>
           </DialogTrigger>
@@ -606,7 +628,7 @@ export default function CustomButtons({ userAttributes, initialOpen }: Props) {
         {/* Albums Modal */}
         <Dialog open={isAlbumsOpen} onOpenChange={setAlbumsOpen}>
           <DialogTrigger asChild>
-            <Button size={"lg"} className="flex w-full rounded-md">
+          <Button variant={"customize"} size={"lg"} className="likebutton flex w-full rounded-md hover:likebutton">
               Albums
             </Button>
           </DialogTrigger>
@@ -651,7 +673,7 @@ export default function CustomButtons({ userAttributes, initialOpen }: Props) {
         {/* Tracks Modal */}
         <Dialog open={isTracksOpen} onOpenChange={setTracksOpen}>
           <DialogTrigger asChild>
-            <Button size={"lg"} className="flex w-full rounded-md">
+          <Button variant={"customize"} size={"lg"} className="likebutton flex w-full rounded-md hover:likebutton">
               Tracks
             </Button>
           </DialogTrigger>

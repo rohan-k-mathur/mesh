@@ -21,7 +21,7 @@ const buttonVariants = cva(
         ghost: "border-black outline-black hover:shadow-none ",
         link: "text-primary underline-offset-4 hover:underline",
         iconic: "bg-transparent border-none",
-
+        customize:"bg-white bg-opacity-30",
         whiteborder:
           "bg-white text-black border border-black border-[0.5px] rounded-[2px] hover:bg-slate-100",
       },

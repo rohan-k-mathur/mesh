@@ -89,9 +89,9 @@ const AboutTab = async ({ currentUserId, accountId }: Props) => {
     return (
       <main className="items-center justify-center text-center">
         <Link href={`/profile/${accountId}/customize`}>
-          <Button size="lg" className="mt-4 text-[1.5rem] bg-light-2 text-black w-fit rounded-md px-4 py-8 hover:bg-light-2">
+          <button className="tab-button mt-5 text-[1.35rem] bg-white bg-opacity-30 text-black w-fit rounded-md px-4 py-3">
             Customize Profile
-          </Button>
+          </button>
         </Link>
         {grid}
       </main>
