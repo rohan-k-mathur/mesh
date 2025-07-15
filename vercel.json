@@ -1,8 +1,0 @@
-{
-  "functions": {
-    "api/**/*.py": { "runtime": "python3.11" } 
-  },
-  "routes": [
-    { "src": "/embed", "dest": "/api/embed.py" }
-  ]
-}
