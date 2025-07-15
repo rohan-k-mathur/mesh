@@ -4,6 +4,17 @@ Mesh is an experimental social platform built with **Next.js** that lets users i
 
 See [`Mesh_Roadmap.md`](Mesh_Roadmap.md) for the long term product plan.
 
+## Current Features
+
+Mesh already includes the following capabilities:
+
+- **Real-time canvas** powered by React Flow with nodes for text, images, video, livestreams and AI-generated content.
+- **Presence synchronization** via Supabase channels so collaborators see each other's cursors and updates instantly.
+- **Firebase authentication middleware** protecting private content.
+- **Prisma data models** defining posts, edges, rooms and extended `UserAttributes` for interests like music or movies.
+- **Global and friends feed** built on Next.js pages alongside the real-time canvas.
+- **Livechat node** providing ephemeral conversations as described in `Livechat_Node_SRS.md`.
+
 ## Project layout
 
 ```
@@ -105,3 +116,15 @@ See services/embedding/README.md for setup.
 `GET /api/v2/discovery/candidates?k=50` returns the top‑K users with similar
 taste. Authentication via Supabase session is required. Results are cached in
 Redis for `CANDIDATE_CACHE_TTL` seconds.
+
+## Roadmap Highlights
+
+The documents in this repo outline the path toward a public launch. Key themes include:
+
+- **Foundation & Refinement** – multi‑factor auth, role‑based room permissions and a hardened middleware layer.
+- **Social Discovery Engine** – expanded user attributes and a recommendation API combining embeddings with collaborative filtering.
+- **Advanced Node Workflows** – instruction nodes, a state machine builder and plug‑in architecture for custom node types.
+- **Real-Time Collaboration Enhancements** – presence labels, ephemeral chat and CRDT conflict resolution.
+- **Production Hardening** – CI pipelines, performance monitoring and security reviews.
+
+See `Mesh_Roadmap.md`, `SocialDiscoverEngine_V2_SRS.md`, `Flowstate_v2_SRS.md` and other SRS files for full details.
