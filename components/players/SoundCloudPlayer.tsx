@@ -68,7 +68,7 @@ const SoundCloudPlayer = ({ src, title }: Props) => {
     <div className="w-full  flex-col">
             <h1 className="text-center tracking-wide text-[1.6rem] mt-0  pb-2">{title}</h1>
 <hr></hr>
-      <div className="flex items-center gap-5 mt-2 w-full">
+      <div className="flex items-center gap-5 mt-2 py-2 w-full">
         {isPlaying ? (
           <button
             onClick={togglePlay}
