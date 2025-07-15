@@ -1,4 +1,6 @@
 export const runtime = 'nodejs';  
+export const dynamic  = 'force-dynamic'; // prevents Next from prerendering
+
 
 import { NextRequest, NextResponse } from "next/server";
 import { getUserFromCookies } from "@/lib/serverutils";
