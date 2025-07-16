@@ -2,12 +2,12 @@
     "regions": ["iad1"],
   
     "functions": {
-      "api/**/*.py": {
-        "runtime": "python@3.11"
-      }
-    },
+        "api/**/*.py": {
+            "api/**/*.py": {}
+        }
+      },
   
     "crons": [
-      { "path": "/api/_cron/favorites_builder", "schedule": "0 2 * * *" }
+        { "path": "/api/_cron/favorites_builder", "schedule": "0 2 * * *" }
     ]
   }
