@@ -43,6 +43,8 @@ model User {
   realtimeRoomInviteTokens RealtimeRoomInviteToken[]
   recommendationClicks     RecommendationClick[]
   attributeEdits           UserAttributeEdit[]
+  notifications           Notification[]          @relation("NotificationUser")
+  notificationsAuthored   Notification[]          @relation("NotificationActor")
   userAttributes           UserAttributes?
   userEmbedding            UserEmbedding?
   realtimerooms            UserRealtimeRoom[]
@@ -473,6 +475,7 @@ model Conversation {
   user1      User      @relation("ConversationUser1", fields: [user1_id], references: [id])
   user2      User      @relation("ConversationUser2", fields: [user2_id], references: [id])
   messages   Message[]
+  notifications Notification[]
 
   @@unique([user1_id, user2_id])
   @@index([user1_id])
@@ -488,6 +491,7 @@ model Message {
   created_at      DateTime     @default(now()) @db.Timestamptz(6)
   conversation    Conversation @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
   sender          User         @relation(fields: [sender_id], references: [id], onDelete: Cascade)
+  notifications   Notification[]
 
   @@index([conversation_id])
   @@map("messages")
