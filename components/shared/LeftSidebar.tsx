@@ -65,6 +65,9 @@ function LeftSidebar({ userRooms }: Props) {
       router.push("/applications");
 
     }
+    function gotonotifications() {
+      router.push("/notifications");
+    }
   return (
     <section className="custom-scrollbar leftsidebar  bg-transparent">
       <div>
@@ -138,7 +141,7 @@ function LeftSidebar({ userRooms }: Props) {
           <Button
           variant={"outline"}
             className="likebutton leftsidebar-link  leftsidebar-item  items-start justify-start w-full h-fit rounded-md border-[1px] border-rose-300 border-opacity-80 "
-            onClick={gotoprofile}
+            onClick={gotonotifications}
           >
             <Image
               src="/assets/notifications-none.svg"

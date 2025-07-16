@@ -3,6 +3,7 @@
 import { prisma } from "../prismaclient";
 import { revalidatePath } from "next/cache";
 import { supabase } from "@/lib/supabaseclient";
+import { createMessageNotification } from "./notification.actions";
 
 export async function getOrCreateConversation({
   userId,
@@ -83,6 +84,7 @@ export async function sendMessage({
     },
     include: { sender: true },
   });
+  await createMessageNotification({ conversationId, messageId: message.id, senderId });
   await prisma.conversation.update({
     where: { id: conversationId },
     data: { updated_at: new Date() },
