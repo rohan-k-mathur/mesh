@@ -34,7 +34,7 @@ export function generatePortfolioTemplates(data: PortfolioExportData): {
 <head>
   <meta charset="UTF-8">
   <title>Portfolio</title>
-  <link href="tailwind.css" rel="stylesheet">
+  <link href="./tailwind.css" rel="stylesheet">
 </head>
 <body>
   <div class="portfolio-container flex flex-col w-[34rem] max-h-[3000px]">
