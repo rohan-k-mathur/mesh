@@ -69,7 +69,7 @@ const AboutTab = async ({ currentUserId, accountId }: Props) => {
       {categories.map((cat) => (
         <div
           key={cat.label}
-          className="border border-light-3 rounded-md p-4 bg-light-2"
+          className="border border-light-3 rounded-md p-4 bg-light-2 bg-opacity-30"
         >
           <h3 className="text-base-semibold mb-2 text-black">{cat.label}</h3>
           {cat.values.length > 0 ? (
