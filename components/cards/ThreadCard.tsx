@@ -41,7 +41,7 @@ const ThreadCard = async ({
   content,
   image_url,
   video_url,
-  type = "TEXT",
+  type = "",
   author,
   createdAt,
   comments,

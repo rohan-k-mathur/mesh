@@ -6,7 +6,7 @@ import { getUserFromCookies } from "@/lib/serverutils";
 import PostCard from "@/components/cards/PostCard";
 import { fetchLikeForCurrentUser } from "@/lib/actions/like.actions";
 import Modal from "@/components/modals/Modal";
-
+import ThreadCard from "@/components/cards/ThreadCard";
 const Page = async ({ params }: { params: { id: string } }) => {
   if (!params?.id && params?.id?.length !== 1) return notFound();
   const user = await getUserFromCookies();
@@ -24,7 +24,7 @@ const Page = async ({ params }: { params: { id: string } }) => {
       <Modal />
 
       <div className="flex flex-row">
-        <PostCard
+        <ThreadCard
           key={post.id.toString()}
           currentUserId={user?.userId}
           currentUserLike={currentUserLike}
