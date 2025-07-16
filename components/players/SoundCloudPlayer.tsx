@@ -39,8 +39,8 @@ const SoundCloudPlayer = ({ src, title }: Props) => {
       waveColor: gradient,
 
       progressColor: progressGradient,
+      width:600,
       height: 80,
-      width: 600,
       normalize: true,
       barWidth: 5,
       barGap: 3,
@@ -65,8 +65,8 @@ const SoundCloudPlayer = ({ src, title }: Props) => {
   };
 
   return (
-    <div className="w-full  flex-col">
-            <h1 className="text-center tracking-wide text-[1.6rem] mt-0  pb-2">{title}</h1>
+    <div className="flex flex-1 w-[100%] flex-col">
+            <h1 className="text-center tracking-wide text-[1.4rem] font-semi-bold mt-0 w-full pb-2">{title}</h1>
 <hr></hr>
       <div className="flex items-center gap-5 mt-2 py-2 w-full">
         {isPlaying ? (
@@ -85,7 +85,7 @@ const SoundCloudPlayer = ({ src, title }: Props) => {
           </button>
         )}
         <div className="flex flex-1 w-full">
-          <div ref={containerRef} className=" px-0 py-0 rounded-full  w-full" />
+          <div ref={containerRef} className="flex flex-1 px-0 py-0 rounded-full  w-full" />
         </div>
       </div>
     </div>

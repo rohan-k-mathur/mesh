@@ -19,6 +19,7 @@ const AboutTab = async ({ currentUserId, accountId }: Props) => {
     (await fetchUserAttributes({ userId: accountId })) || null;
 
   const categories = [
+
     {
       label: "Artists",
       values: attributes?.artists || [],

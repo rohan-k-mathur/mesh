@@ -146,9 +146,9 @@ const PostCard = ({
               </div>
             )}
             {type === "MUSIC" && video_url && (
-              <div className="mt-2 mb-2 w-full">
+              // <div className="mt-2 mb-2 ">
                 <SoundCloudPlayer src={video_url} title={content || undefined} />
-              </div>
+              // </div>
             )}
             {type === "GALLERY" && content && (
               // <div className="ml-[7rem] w-[500px] justify-center items-center">
@@ -263,7 +263,7 @@ const PostCard = ({
               </div>
             )}
             <div className="items-start justify-start mx-[0%] px-8 w-full">
-            {embedPost && <div className="mt-4 w-full items-center scale-85">{embedPost}</div>}
+            {embedPost && <div className="flex flex-2 mt-4  items-center scale-85">{embedPost}</div>}
             </div>
             <hr className="mt-4 mb-3 w-full h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-100 to-transparent opacity-75" />
 

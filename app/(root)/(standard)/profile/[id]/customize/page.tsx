@@ -16,10 +16,12 @@ async function Page({ params }: { params: { id: string } }) {
     })) || ({} as UserAttributes);
   if (!profilePageUser?.onboarded) notFound();
   return (
-    <main className="grid mt-[-2rem] text-center">
+    <main className="grid mt-[-2rem] items-center justify-center text-center">
       <h1 className="text-[2.5rem] text-center">Customize Profile</h1>
       <hr></hr>
-      <CustomButtons userAttributes={userAttributes} />
+      <div className ="px-8">
+      <CustomButtons  userAttributes={userAttributes} />
+      </div>
     </main>
   );
 }
