@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "../prismaclient";
+import { createFollowNotification } from "./notification.actions";
 
 export async function followUser({ followerId, followingId }: { followerId: bigint; followingId: bigint; }) {
   try {
@@ -10,6 +11,7 @@ export async function followUser({ followerId, followingId }: { followerId: bigi
         following_id: followingId,
       },
     });
+    await createFollowNotification({ userId: followingId, actorId: followerId });
   } catch (error: any) {
     throw new Error(`Failed to follow user: ${error.message}`);
   }
