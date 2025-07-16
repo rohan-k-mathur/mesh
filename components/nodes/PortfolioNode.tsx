@@ -62,13 +62,8 @@ function PortfolioNode({ id, data }: NodeProps<PortfolioNodeData>) {
       }),
     });
     if (!res.ok) return;
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "portfolio.zip";
-    a.click();
-    URL.revokeObjectURL(url);
+    const { url } = await res.json();
+    window.open(url, "_blank");
   };
 
   async function onSubmit(values: z.infer<typeof PortfolioNodeValidation>) {

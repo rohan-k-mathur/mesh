@@ -18,13 +18,8 @@ const PortfolioCard = ({ text, images, links, layout, color }: PortfolioCardProp
       body: JSON.stringify({ text, images, links, layout, color }),
     });
     if (!res.ok) return;
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "portfolio.zip";
-    a.click();
-    URL.revokeObjectURL(url);
+    const { url } = await res.json();
+    window.open(url, "_blank");
   };
 
   return (
