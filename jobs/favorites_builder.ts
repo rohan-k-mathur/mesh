@@ -12,6 +12,8 @@ export interface RunOptions {
   dryRun?: boolean;
 }
 
+
+
 export interface RunResult {
   favoritesProcessed: number;
   embeddingsRequested: number;
@@ -67,6 +69,22 @@ function chunk<T>(arr: readonly T[], size: number): T[][] {
 /** Converts a JS array → safe Postgres vector literal */
 function vecToPg(arr: Float32Array): string {
   return `'[${Array.from(arr).join(',')}]'`;
+}
+
+// /api/_cron/favorites_builder.ts
+export default async function handler(req, res) {
+  if (process.env.ENABLE_FAV_BUILDER !== 'true') {
+    return res.status(200).send('favorites builder disabled');
+  }
+
+  try {
+    const result = await run();
+    console.table(result);
+    return res.status(200).json(result);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).send('builder error');
+  }
 }
 
 export async function run(opts: RunOptions = {}): Promise<RunResult> {

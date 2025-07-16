@@ -74,7 +74,7 @@
     "next-firebase-auth-edge": "^1.6.2",
     "next-rate-limit": "^0.0.3",
     "node-cron": "^3.0.3",
-    "openai": "^5.8.2",
+    "openai": "^5.10.0",
     "osc": "^2.4.5",
     "pixi.js": "^8.3.4",
     "raw-loader": "^4.0.2",
