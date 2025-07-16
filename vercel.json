@@ -2,7 +2,9 @@
     "regions": ["iad1"],
 
     "functions": {
-        "api/**/*.py": {}
+        "api/**/*.py": {
+          "runtime": "vercel-python@3.11.0"
+        }
       },
     "crons": [
       { "path": "/api/_cron/favorites_builder", "schedule": "0 2 * * *" }
