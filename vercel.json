@@ -4,6 +4,11 @@
       "path": "/api/_cron/favorites_builder",
       "schedule": "0 2 * * *",
       "enabled": false
+    },
+    {
+      "path": "/api/_cron/embed_retry_worker",
+      "schedule": "*/15 * * * *",
+      "enabled": false
     }
   ]
 }

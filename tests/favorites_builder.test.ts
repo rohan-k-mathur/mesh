@@ -12,3 +12,16 @@ test("projection returns 256 dims", () => {
   expect(vec).toHaveLength(256);
   expect(vec[0]).toBe(1);
 });
+
+test("project identity fast", () => {
+  const PCA = [
+    [1, 0, 0],
+    [0, 1, 0],
+    [0, 0, 1],
+  ] as const;
+  const v = [4, 5, 6];
+  const t0 = performance.now();
+  const out = project(v, PCA as any);
+  expect(out).toEqual(Float32Array.from([4, 5, 6]));
+  expect(performance.now() - t0).toBeLessThan(1);
+});
