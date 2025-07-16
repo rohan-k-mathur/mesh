@@ -422,13 +422,27 @@ export async function fetchRealtimePostTreeById({ id }: { id: string }) {
   const fetchChildren = async (parentId: bigint): Promise<any[]> => {
     const children = await prisma.realtimePost.findMany({
       where: { parent_id: parentId },
-      include: { author: true, _count: { select: { children: true } } },
+      include: {
+        author: true,
+        _count: { select: { children: true } },
+        productReview: { include: { claims: true } },
+      },
     });
     for (const child of children) {
       child.children = await fetchChildren(child.id);
     }
     return children.map((c) => ({
       ...c,
+      productReview: c.productReview
+        ? {
+            ...c.productReview,
+            claims: c.productReview.claims.map((cl) => ({
+              ...cl,
+              id: cl.id.toString(),
+              review_id: cl.review_id.toString(),
+            })),
+          }
+        : null,
       commentCount: c._count.children,
       x_coordinate: c.x_coordinate.toNumber(),
       y_coordinate: c.y_coordinate.toNumber(),
