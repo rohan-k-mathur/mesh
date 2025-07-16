@@ -5,10 +5,15 @@ import redis from "@/lib/redis";
 import { execFile } from "child_process";
 import { promisify } from "util";
 import fs from "fs";
+import { intersection } from "lodash";
+import { prisma } from "@/lib/prismaclient";
 
 const execFileAsync = promisify(execFile);
 const explainMap = JSON.parse(
   fs.readFileSync("config/explain_map.json", "utf8")
+);
+const chipTemplates = JSON.parse(
+  fs.readFileSync("config/chip_templates.json", "utf8")
 );
 
 const redisRest = new Redis({
@@ -53,7 +58,35 @@ export async function GET(
     ).slice(0, 2);
     const reason_en = features.map((f) => localize(f, "en")).join(" ");
     const reason_es = features.map((f) => localize(f, "es")).join(" ");
-    const body = { reason_en, reason_es };
+    let chip: { en: string; es: string } | undefined;
+    try {
+      const viewerTraits = await prisma.user_taste_vectors.findUnique({
+        where: { user_id: BigInt(viewerId) },
+        select: { traits: true },
+      });
+      const creatorId = await prisma.post.findUnique({
+        where: { id: BigInt(params.targetId) },
+        select: { author_id: true },
+      });
+      if (viewerTraits?.traits && creatorId) {
+        const creatorTraits = await prisma.user_taste_vectors.findUnique({
+          where: { user_id: creatorId.author_id },
+          select: { traits: true },
+        });
+        const vg = (viewerTraits.traits as any).genres || [];
+        const cg = (creatorTraits?.traits as any)?.genres || [];
+        const overlap = intersection(vg, cg).sort();
+        if (overlap.length > 0) {
+          const term = String(overlap[0]).toLowerCase();
+          chip = {
+            en: chipTemplates.both_appreciate.en.replace("%{term}", term),
+            es: chipTemplates.both_appreciate.es.replace("%{term}", term),
+          };
+        }
+      }
+    } catch {}
+    const body: any = { reason_en, reason_es };
+    if (chip) body.chip = chip;
     await redis.setex(cacheKey, 120, JSON.stringify(body));
     return NextResponse.json(body);
   } catch (err) {
