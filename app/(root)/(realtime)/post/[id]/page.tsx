@@ -32,17 +32,9 @@ const Page = async ({ params }: { params: { id: string } }) => {
           isRealtimePost
           likeCount={post.like_count}
           commentCount={post.commentCount}
-          content={
-            post.type === "TEXT" || post.type === "GALLERY"
-              ? post.content!
-              : undefined
-          }
-          image_url={
-            post.type === "IMAGE" || post.type === "IMAGE_COMPUTE"
-              ? post.image_url!
-              : undefined
-          }
-          video_url={post.type === "VIDEO" ? post.video_url! : undefined}
+          content={post.content ?? undefined}
+          image_url={post.image_url ?? undefined}
+          video_url={post.video_url ?? undefined}
           pluginType={(post as any).pluginType ?? null}
           pluginData={(post as any).pluginData ?? null}
           type={post.type}
