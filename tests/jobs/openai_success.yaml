@@ -1,0 +1,17 @@
+interactions:
+- request:
+    method: POST
+    uri: https://api.openai.com/v1/chat/completions
+    body: '{}'
+    headers:
+      Authorization: ['Bearer test']
+      Content-Type: ['application/json']
+  response:
+    status:
+      code: 200
+      message: OK
+    headers:
+      content-type: ['application/json']
+    body:
+      string: '{"id":"chatcmpl-test","choices":[{"message":{"content":"{\"genres\":[\"drama\"],\"tone\":\"light\",\"novelty_seek\":0.5,\"summary\":\"ok\"}"}}],"usage":{"total_tokens":1}}'
+version: 1

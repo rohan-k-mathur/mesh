@@ -1,0 +1,15 @@
+on:
+  schedule:
+    - cron: '0 3 * * 0'
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-python
+      - name: Install deps
+        run: pip install -r requirements.txt
+      - name: Run batch_trait_inference
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: python jobs/batch_trait_inference.py
