@@ -1,3 +1,5 @@
+# top of requirements.txt
+# Requires: python>=3.9,<3.13
 # requirements.txt  – only what the function actually imports
 fastapi==0.111.0
 pydantic==2.*
