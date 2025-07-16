@@ -1,27 +1,17 @@
-import Image from "next/image";
-import Link from "next/link";
-import LikeButton from "@/components/buttons/LikeButton";
-import { fetchLikeForCurrentUser } from "@/lib/actions/like.actions";
-import type { Like } from "@prisma/client";
-import { Comfortaa } from "next/font/google";
-import { Nunito } from "next/font/google";
-import ShareButton from "../buttons/ShareButton";
-import ReplicateButton from "../buttons/ReplicateButton";
-import ExpandButton from "../buttons/ExpandButton";
-import localFont from 'next/font/local'
-import TimerButton from "../buttons/TimerButton";
-const founders = localFont({ src: './NewEdgeTest-RegularRounded.otf' })
-const comfortaa = Comfortaa({
-  weight: ["400"],
-  subsets: ["latin"],
-});
-const nunito = Nunito({ subsets: ['latin'] })
+import { fetchLikeForCurrentUser, fetchRealtimeLikeForCurrentUser } from "@/lib/actions/like.actions";
+import type { Like, RealtimeLike } from "@prisma/client";
+import PostCard from "./PostCard";
+import localFont from "next/font/local";
+const founders = localFont({ src: "./NewEdgeTest-RegularRounded.otf" });
 
 interface Props {
   id: bigint;
   currentUserId?: bigint | null;
   parentId: bigint | null;
   content?: string;
+  image_url?: string;
+  video_url?: string;
+  type?: string;
 
   author: {
     name: string | null;
@@ -35,11 +25,13 @@ interface Props {
     } | null;
   }[];
   isComment?: boolean;
+  isRealtimePost?: boolean;
   likeCount: number;
   commentCount?: number;
   expirationDate?: string | null;
   pluginType?: string | null;
   pluginData?: Record<string, any> | null;
+  claimIds?: (string | number | bigint)[];
 }
 
 const ThreadCard = async ({
@@ -47,99 +39,50 @@ const ThreadCard = async ({
   currentUserId,
   parentId,
   content,
+  image_url,
+  video_url,
+  type = "TEXT",
   author,
   createdAt,
   comments,
   isComment,
+  isRealtimePost = false,
   likeCount,
   commentCount = 0,
   expirationDate = null,
   pluginType = null,
   pluginData = null,
+  claimIds,
 }: Props) => {
-  let currentUserLike: Like | null = null;
+  let currentUserLike: Like | RealtimeLike | null = null;
   if (currentUserId) {
-    currentUserLike = await fetchLikeForCurrentUser({
-      postId: id,
-      userId: currentUserId,
-    });
+    currentUserLike = isRealtimePost
+      ? await fetchRealtimeLikeForCurrentUser({
+          realtimePostId: id,
+          userId: currentUserId,
+        })
+      : await fetchLikeForCurrentUser({ postId: id, userId: currentUserId });
   }
+
   return (
-    <article className="relative flex w-full flex-col postcard p-7 ">
-      <div className="flex-1 items-start justify-between ">
-        <div className="flex w-full flex-1 flex-row gap-4 ">
-          <div className="flex flex-col items-center  ">
-            <Link
-              href={`/profile/${author.id}`}
-              className="relative h-[2rem] w-[2rem] left-[.5rem]"
-            >
-              <Image
-                src={author.image || "/assets/user-helsinki.svg"}
-                alt="Profile Image"
-                fill
-                objectFit="cover"
-                className="cursor-pointer rounded-full border-[.05rem] border-indigo-300 profile-shadow hover:shadow-none 
-
-                "
-              />
-            </Link>
-          </div>
-          <div className=""></div>
-          <div>
-            <Link href={`/profile/${author.id}`} className="w-fit ">
-              <div className={`${founders.className} `}>
-              <p className="cursor-pointer  text-[1.08rem] tracking-[.05rem] font-semibold text-black relative right-[.25rem] top-[.3rem]">
-                  {author.name}
-                </p>
-              </div>
-            </Link>
-            <p className="text-xs text-gray-500 mt-1">Posted at {createdAt}</p>
-
-            <hr className="mt-3 mb-4 w-[200%] h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-100 to-transparent opacity-75" />
-            <p className="mt-2  text-[1.08rem] text-black tracking-[.05rem]">{content}</p>
-            {pluginType === "PDF_VIEWER" && pluginData && (
-              <div className="mt-2 mb-2 flex justify-center items-center">
-                <object
-                  data={(pluginData as any).pdfUrl}
-                  type="application/pdf"
-                  width="100%"
-                  height="400"
-                >
-                  <p>
-                    <a href={(pluginData as any).pdfUrl}>Download PDF</a>
-                  </p>
-                </object>
-              </div>
-            )}
-           
-              <hr className="mt-3 mb-4 w-[200%] h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-100 to-transparent opacity-75" />
-
-            <div className="mt-4 flex flex-col gap-x-3 gap-y-4">
-              <div className="flex gap-x-12 gap-y-8">
-                <LikeButton
-    
-                  likeCount={likeCount}
-                  initialLikeState={currentUserLike}
-                />
-                  <>
-                    <ExpandButton postId={id} commentCount={commentCount} />
-                  </>
-            <ReplicateButton postId={id} />
-          <ShareButton postId={id} />
-          <TimerButton
-            postId={id}
-            isOwned={currentUserId === author.id}
-            expirationDate={expirationDate ?? undefined}
-          />
-              </div>
-            </div>
-          </div>
-
-        </div>
-
-      </div>
-
-    </article>
+    <PostCard
+      id={id}
+      currentUserId={currentUserId}
+      currentUserLike={currentUserLike}
+      image_url={image_url}
+      video_url={video_url}
+      content={content}
+      type={type}
+      author={author}
+      createdAt={createdAt}
+      isRealtimePost={isRealtimePost}
+      likeCount={likeCount}
+      commentCount={commentCount}
+      expirationDate={expirationDate ?? undefined}
+      pluginType={pluginType}
+      pluginData={pluginData}
+      claimIds={claimIds}
+    />
   );
 };
 

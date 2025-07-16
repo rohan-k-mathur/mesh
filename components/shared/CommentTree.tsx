@@ -31,12 +31,19 @@ const CommentTree = ({ comments, currentUserId, currentUserImg, depth = 0, isRea
             currentUserId={currentUserId}
             parentId={comment.parent_id}
             content={comment.content}
+            image_url={comment.image_url}
+            video_url={comment.video_url}
+            type={comment.type}
             author={comment.author}
             createdAt={comment.created_at.toDateString()}
             comments={comment.children}
             isComment
             likeCount={comment.like_count}
             commentCount={comment.commentCount}
+            expirationDate={comment.expiration_date?.toISOString?.() ?? null}
+            pluginType={comment.pluginType}
+            pluginData={comment.pluginData}
+            claimIds={comment.productReview?.claims?.map((c: any) => c.id.toString())}
             {...(isRealtimePost ? { isRealtimePost: true } : {})}
           />
           
