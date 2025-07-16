@@ -1,0 +1,8 @@
+# requirements.txt  – only what the function actually imports
+fastapi==0.111.0
+pydantic==2.*
+openai==1.30.1
+asyncpg==0.29.*
+numpy==1.26.*
+uvicorn==0.30.*          # only needed for local `uvicorn embed:app`
+python-dotenv==1.0.*     # optional, nice for local env files
