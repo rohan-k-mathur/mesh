@@ -1,10 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabaseclient";
-import { useAuth } from "@/lib/AuthContext";
-import { fetchUser } from "@/lib/actions/user.actions";
+import { useState } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ImageCardProps {
   id: bigint;
@@ -12,25 +10,26 @@ interface ImageCardProps {
 }
 
 function ImageCard({ id, imageurl }: ImageCardProps) {
-  const { user: currentUser } = useAuth();
-  
+  const [isLoaded, setIsLoaded] = useState(false);
 
   return (
-
     <div className="flex justify-center px-24 w-fit items-center align-center h-fit">
-       <div className="mx-auto">
-
+      <div className="mx-auto relative w-full max-w-[500px]">
+        {!isLoaded && (
+          <Skeleton className="img-feed-frame mt-[1rem] mb-[1rem] w-full h-[300px]" />
+        )}
         <Image
-          className=" flex img-feed-frame  rounded-sm mt-[1rem] mb-[1rem] "
+          className={`flex img-feed-frame rounded-sm mt-[1rem] mb-[1rem] ${!isLoaded ? "hidden" : ""}`}
           src={imageurl}
           alt="image not found"
           width={0}
           height={0}
           sizes="200vw"
           layout="responsive"
+          onLoad={() => setIsLoaded(true)}
         />
-        </div>
-</div>
+      </div>
+    </div>
   );
 }
 

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import WaveSurfer from "wavesurfer.js";
 import Image from "next/image";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Props {
   src: string;
@@ -13,6 +14,7 @@ const SoundCloudPlayer = ({ src, title }: Props) => {
   const waveRef = useRef<WaveSurfer | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -49,6 +51,7 @@ const SoundCloudPlayer = ({ src, title }: Props) => {
 
     });
     if (src) waveRef.current.load(src).catch(() => null);
+    waveRef.current.on("ready", () => setIsReady(true));
     return () => {
       try {
         waveRef.current?.destroy();
@@ -66,9 +69,10 @@ const SoundCloudPlayer = ({ src, title }: Props) => {
 
   return (
     <div className="flex flex-1 w-[100%] flex-col">
-            <h1 className="text-center tracking-wide text-[1.4rem] font-semi-bold mt-0 w-full pb-2">{title}</h1>
-<hr></hr>
-      <div className="flex items-center gap-5 mt-2 py-2 w-full">
+      <h1 className="text-center tracking-wide text-[1.4rem] font-semi-bold mt-0 w-full pb-2">{title}</h1>
+      <hr />
+      {!isReady && <Skeleton className="w-full h-[100px] mt-2" />}
+      <div className={`flex items-center gap-5 mt-2 py-2 w-full ${!isReady ? "hidden" : ""}`}>
         {isPlaying ? (
           <button
             onClick={togglePlay}
