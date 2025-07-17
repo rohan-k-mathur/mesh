@@ -16,10 +16,22 @@ import GalleryCarousel from "./GalleryCarousel";
 import SoundCloudPlayer from "../players/SoundCloudPlayer";
 import Spline from "@splinetool/react-spline";
 import dynamic from "next/dynamic";
-import EmbeddedCanvas from "./EmbeddedCanvas";
+//import EmbeddedCanvas from "./EmbeddedCanvas";
 import type { Like, RealtimeLike } from "@prisma/client";
 import React from "react";
 import localFont from 'next/font/local'
+
+import type { Node, Edge } from "@xyflow/react";    // if you have these types
+const EmbeddedCanvas = dynamic(() => import('./EmbeddedCanvas'), { ssr: false })
+
+
+interface CanvasState {
+  nodes: Node[];
+  edges: Edge[];
+  viewport?: { x: number; y: number; zoom: number };
+ roomId?: string;
+}
+
 const founders = localFont({ src: './NewEdgeTest-RegularRounded.otf' })
 const DrawCanvas = dynamic(() => import("./DrawCanvas"), { ssr: false })
 const LivechatCard = dynamic(() => import("./LivechatCard"), { ssr: false })
@@ -33,8 +45,8 @@ interface Props {
   video_url?: string;
 
   content?: string;
-  roomPostContent?: Record<string, any> | null;
-  type: string;
+  roomPostContent?: CanvasState | null;
+    type: string;
 
   author: {
     name: string | null;
@@ -202,14 +214,24 @@ const PostCard = ({
                 <DrawCanvas id={id.toString()} content={content} />
               </div>
             )}
-            {type === "ROOM_CANVAS" && roomPostContent && (
+            {/* {type === "ROOM_CANVAS" && roomPostContent && (
               <div className="mt-2 mb-2 flex flex-col items-center justify-center">
                 <EmbeddedCanvas canvas={roomPostContent} roomId={roomPostContent.roomId || "global"} />
               </div>
             )}
             {type === "ROOM_CANVAS" && content && (
               <p className="mt-2 text-[1.08rem] text-black tracking-[.05rem]">{content}</p>
-            )}
+            )} */}
+            {type === "ROOM_CANVAS" && roomPostContent && (
+  <div className="flex flex-col w-full mx-auto px-10 h-fit items-center justify-center ">
+    <div className="h-[14rem]  justify-center w-full border-black border-[1px] rounded-xl">
+    <EmbeddedCanvas
+      canvas={roomPostContent}
+      roomId={roomPostContent.roomId ?? 'global'}
+    />
+    </div>
+  </div>
+)}
             {type === "PORTFOLIO" && content && (
               (() => {
                 let vals: any = null;

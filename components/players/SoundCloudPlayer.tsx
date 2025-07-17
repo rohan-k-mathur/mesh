@@ -23,11 +23,11 @@ const SoundCloudPlayer = ({ src, title }: Props) => {
     if (!ctx) return;
 
     const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height * 1);
-    gradient.addColorStop(0, "#bae6fd");
+    gradient.addColorStop(0, "#9fb4ff");
     // gradient.addColorStop((canvas.height * 0.65 ) / canvas.height, "#E8E8E8");
 
     // gradient.addColorStop((canvas.height * 0.65) / canvas.height, "#464646");
-    gradient.addColorStop(1, "#60a5fa");
+    gradient.addColorStop(1, "#8da0e8");
 
     const progressGradient = ctx.createLinearGradient(0, 0, 0, canvas.height * 1);
     progressGradient.addColorStop(0, "#fdba74");
@@ -47,6 +47,10 @@ const SoundCloudPlayer = ({ src, title }: Props) => {
       barWidth: 4,
       barGap: 3,
       barRadius: 40,
+      cursorColor: "#ffffff",
+      cursorWidth: 2,
+      autoplay: false,
+      mediaControls: false,
 
 
     });
@@ -88,7 +92,7 @@ const SoundCloudPlayer = ({ src, title }: Props) => {
             <Image src="/assets/play--filled--alt.svg" alt="play" width={24} height={24} />
           </button>
         )}
-        <div className="flex flex-1 w-full">
+        <div className="flex flex-1 w-full ">
           <div ref={containerRef} className="flex flex-1 px-0 py-0 rounded-full  w-full" />
         </div>
       </div>
