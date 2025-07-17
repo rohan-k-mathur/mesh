@@ -1,0 +1,66 @@
+import Modal from "@/components/modals/Modal";
+import RealtimeFeed from "@/components/shared/RealtimeFeed";
+import { fetchRealtimePosts } from "@/lib/actions/realtimepost.actions";
+import { fetchRealtimeRoom } from "@/lib/actions/realtimeroom.actions";
+import { getUserFromCookies } from "@/lib/serverutils";
+import { notFound, redirect } from "next/navigation";
+
+export const dynamic = "force-dynamic";
+
+export default async function Page({ params }: { params: { id: string } }) {
+  const lounge = await fetchRealtimeRoom({ realtimeRoomId: params.id });
+  if (!lounge || !lounge.isLounge) notFound();
+  const user = await getUserFromCookies();
+  if (!lounge.isPublic) {
+    if (!user) redirect("/login");
+    if (!lounge.members.map((m) => m.user_id).includes(user.userId)) {
+      notFound();
+    }
+  }
+  const result = await fetchRealtimePosts({
+    realtimeRoomId: params.id,
+    postTypes: [
+      "TEXT",
+      "VIDEO",
+      "IMAGE",
+      "IMAGE_COMPUTE",
+      "GALLERY",
+      "DRAW",
+      "LIVECHAT",
+      "MUSIC",
+      "ENTROPY",
+      "PORTFOLIO",
+      "PLUGIN",
+      "PRODUCT_REVIEW",
+    ],
+  });
+  return (
+    <div>
+      <Modal />
+      {result.posts.length === 0 ? (
+        <p className="no-result">Nothing found</p>
+      ) : (
+        <RealtimeFeed
+          initialPosts={result.posts}
+          initialIsNext={result.isNext}
+          roomId={params.id}
+          postTypes={[
+            "TEXT",
+            "VIDEO",
+            "IMAGE",
+            "IMAGE_COMPUTE",
+            "GALLERY",
+            "DRAW",
+            "LIVECHAT",
+            "MUSIC",
+            "ENTROPY",
+            "PORTFOLIO",
+            "PLUGIN",
+            "PRODUCT_REVIEW",
+          ]}
+          currentUserId={user?.userId}
+        />
+      )}
+    </div>
+  );
+}

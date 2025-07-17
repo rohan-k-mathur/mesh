@@ -49,6 +49,19 @@ export const RoomValidation = z.object({
     ),
 });
 
+export const LoungeValidation = z.object({
+  roomName: z.string().min(3, { message: "Minimum of 3 characters" }),
+  userId: z.bigint(),
+  roomIcon: z
+    .any()
+    .refine((file) => file?.size <= MAX_FILE_SIZE, `Max image size is 5MB.`)
+    .refine(
+      (file) => isAcceptedImage(file),
+      "Only .jpg, .jpeg, .png and .webp formats are supported."
+    ),
+  isPublic: z.boolean().default(true),
+});
+
 export const TextPostValidation = z.object({
   postContent: z.string().min(3, { message: "Minimum of 3 characters" }),
 });
