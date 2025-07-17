@@ -16,6 +16,7 @@ import GalleryCarousel from "./GalleryCarousel";
 import SoundCloudPlayer from "../players/SoundCloudPlayer";
 import Spline from "@splinetool/react-spline";
 import dynamic from "next/dynamic";
+import EmbeddedCanvas from "./EmbeddedCanvas";
 import type { Like, RealtimeLike } from "@prisma/client";
 import React from "react";
 import localFont from 'next/font/local'
@@ -198,6 +199,23 @@ const PostCard = ({
               <div className="mt-2 mb-2 flex justify-center items-center">
                 <DrawCanvas id={id.toString()} content={content} />
               </div>
+            )}
+            {type === "ROOM_CANVAS" && content && (
+              (() => {
+                let canvas: any = null;
+                try {
+                  canvas = JSON.parse(content);
+                } catch (e) {
+                  canvas = null;
+                }
+                return (
+                  canvas && (
+                    <div className="mt-2 mb-2 flex justify-center items-center">
+                      <EmbeddedCanvas canvas={canvas} roomId={canvas.roomId || "global"} />
+                    </div>
+                  )
+                );
+              })()
             )}
             {type === "PORTFOLIO" && content && (
               (() => {

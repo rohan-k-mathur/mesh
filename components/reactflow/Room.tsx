@@ -364,6 +364,7 @@ function Room({ roomId, initialNodes, initialEdges }: Props) {
     CODE: CodeNode,
     PORTFOLIO: PortfolioNode,
     PRODUCT_REVIEW: ProductReviewNode,
+    ROOM_CANVAS: dynamic(() => import("../nodes/RoomCanvasNode"), { ssr: false }),
   };
   pluginDescriptors.forEach((p) => {
     (nodeTypes as any)[p.type] = p.component as any;
