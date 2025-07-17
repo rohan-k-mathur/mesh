@@ -82,14 +82,14 @@ function CreateLounge() {
             control={form.control}
             name="roomIcon"
             render={({ field }) => (
-              <FormItem className="flex items-center gap-4 ml-[26%] mt-4">
-                <FormLabel className="rounded_icon_container h-24 w-24">
+              <FormItem className="flex items-center gap-4 mt-4">
+                <FormLabel className="rounded_icon_container h-[4rem] w-[4rem]">
                   {imageURL != "" ? (
                     <Image
                       src={imageURL}
                       alt="profile photo"
-                      width={96}
-                      height={96}
+                      width={48}
+                      height={48}
                       priority
                       className="object-cover"
                     />
@@ -121,7 +121,7 @@ function CreateLounge() {
             control={form.control}
             name="roomName"
             render={({ field }) => (
-              <FormItem className="flex flex-col w-full ml-[26%] mt-2 ">
+              <FormItem className="flex flex-col w-full  mt-2 ">
                 <FormLabel className="text-header-semibold text-dark-2"></FormLabel>
                 <FormControl className="border-2 border-slate-500  bg-white text-black hover:border-black focus:border-black">
                   <Input
@@ -161,7 +161,7 @@ function CreateLounge() {
           />
           <Button
             type="submit"
-            className=" h-fit w-fit ml-[27%] mt-4 py-1 px-4 text-[1.15rem] bg-transparent outline-blue hover:bg-transparent rounded-md "
+            className="likebutton h-fit w-fit ml-[27%] mt-4 py-1 px-4 text-[1.15rem] bg-transparent outline-blue hover:bg-transparent rounded-md "
           >
             Create
           </Button>

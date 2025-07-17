@@ -36,6 +36,11 @@ function gotomessages()
   router.push("/profile/messages");
 
 }
+function newlounge()
+{
+  router.push("/create-lounge");
+
+}
 
   useEffect(() => {
     async function load() {
@@ -83,6 +88,36 @@ function gotomessages()
       <section className="sticky custom-scrollbar rightsidebar bg-transparent">
          <div className="flex  w-full flex flex-col gap-4 px-2">
          {loungeId && <CreateLoungePost roomId={loungeId} />}
+          <Button
+         className="border-[1px] border-rose-300 border-opacity-80 likebutton leftsidebar_link leftsidebar-item items-start justify-start h-fit  rounded-md "
+         onClick={newlounge}
+         variant={"outline"}
+         >
+           <Image
+             src="/assets/group--resource.svg"
+             alt={"lounge"}
+             className="mr-2"
+
+             width={24}
+             height={24}
+           />
+         <p className="text-black max-lg:hidden">{"New Lounge"}</p>
+       </Button>
+         <Button
+         className="border-[1px] border-rose-300 border-opacity-80 likebutton leftsidebar_link leftsidebar-item items-start justify-start h-fit  rounded-md "
+         onClick={gotomessages}
+         variant={"outline"}
+         >
+           <Image
+             src="/assets/message-queue.svg"
+             alt={"message"}
+             className="mr-2"
+
+             width={24}
+             height={24}
+           />
+         <p className="text-black max-lg:hidden">{"Messages"}</p>
+       </Button>
          <Button
          className="border-[1px] border-rose-300 border-opacity-80 likebutton leftsidebar_link leftsidebar-item items-start justify-start h-fit  rounded-md "
          variant={"outline"}
@@ -126,21 +161,7 @@ function gotomessages()
            />
          <p className="text-black max-lg:hidden">{"Find Groups"}</p>
        </Button>
-       <Button
-         className="border-[1px] border-rose-300 border-opacity-80 likebutton leftsidebar_link leftsidebar-item items-start justify-start h-fit  rounded-md "
-         onClick={gotomessages}
-         variant={"outline"}
-         >
-           <Image
-             src="/assets/message-queue.svg"
-             alt={"message"}
-             className="mr-2"
-
-             width={24}
-             height={24}
-           />
-         <p className="text-black max-lg:hidden">{"Messages"}</p>
-       </Button>
+       
   </div>
         <div className="absolute left-0 top-0 h-full w-[.1rem] bg-gradient-to-tr from-transparent via-rose-300 to-transparent opacity-50 dark:via-neutral-400 lg:block" />
         {/* <h3 className="relative bottom-[4rem] text-[1.5rem] text-black">Right Sidebar</h3> */}
