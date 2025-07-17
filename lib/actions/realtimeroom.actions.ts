@@ -167,22 +167,37 @@ export async function createAndJoinLounge({
     if (!user) {
       throw new Error("User not authenticated");
     }
-    const [lounge, connection] = await prisma.$transaction([
-      prisma.realtimeRoom.create({
+    let lounge = await prisma.realtimeRoom.findUnique({
+      where: { id: loungeName },
+    });
+
+    if (!lounge) {
+      lounge = await prisma.realtimeRoom.create({
         data: {
           id: loungeName,
           room_icon: roomIcon,
           isPublic,
           isLounge: true,
         },
-      }),
-      prisma.userRealtimeRoom.create({
-        data: {
+      });
+    }
+
+    await prisma.userRealtimeRoom.upsert({
+      where: {
+        user_id_realtime_room_id: {
           user_id: user.userId!,
           realtime_room_id: loungeName,
         },
-      }),
-    ]);
+      },
+      create: {
+        user_id: user.userId!,
+        realtime_room_id: loungeName,
+      },
+      update: {
+        user_id: user.userId!,
+        realtime_room_id: loungeName,
+      },
+    });
     await generateFriendSuggestions(user.userId!);
     revalidatePath(path);
     return lounge;
