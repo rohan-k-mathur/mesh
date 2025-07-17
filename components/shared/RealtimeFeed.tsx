@@ -51,6 +51,7 @@ export default function RealtimeFeed({
           likeCount={realtimePost.like_count}
           commentCount={realtimePost.commentCount}
           content={realtimePost.content ? realtimePost.content : undefined}
+          roomPostContent={(realtimePost as any).room_post_content}
           image_url={realtimePost.image_url ? realtimePost.image_url : undefined}
           video_url={realtimePost.video_url ? realtimePost.video_url : undefined}
           pluginType={(realtimePost as any).pluginType ?? null}
