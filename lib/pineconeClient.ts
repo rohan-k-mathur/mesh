@@ -26,9 +26,9 @@ export async function knnPgvector(vec: number[], k = 200) {
   return data;
 }
 const projectName = process.env.PINECONE_PROJECT_NAME;
-const apiKey       = process.env.PINECONE_API_KEY;
-const environment  = process.env.PINECONE_ENVIRONMENT;
-const indexName   = process.env.PINECONE_INDEX_NAME || "users";
+const apiKey = process.env.PINECONE_API_KEY;
+const environment = process.env.PINECONE_ENVIRONMENT;
+const indexName = process.env.PINECONE_INDEX_NAME || "users";
 
 // --- singleton pattern avoids reconnecting every call ----
 const pinecone = new PineconeClient();
@@ -36,8 +36,12 @@ let pineconeReady = false;
 
 async function initPinecone() {
   if (pineconeReady) return;
-  if (!apiKey || !environment) return;        // graceful fallback
-  await pinecone.init({ apiKey, environment });
+  if (!apiKey || !environment) return; // graceful fallback
+  await pinecone.init({
+    apiKey,
+    environment,
+    ...(projectName ? { projectName } : {}),
+  });
   pineconeReady = true;
 }
 
