@@ -21,6 +21,7 @@ export interface CreateRealtimePostParams {
   collageGap?: number;
   pluginType?: string;
   pluginData?: Record<string, unknown>;
+  roomPostContent?: Record<string, unknown>;
 }
 
 interface UpdateRealtimePostParams {
@@ -37,6 +38,7 @@ interface UpdateRealtimePostParams {
   content?: string;
   pluginType?: string;
   pluginData?: Record<string, unknown>;
+  roomPostContent?: Record<string, unknown>;
 }
 
 export async function createRealtimePost({
@@ -54,6 +56,7 @@ export async function createRealtimePost({
    collageGap,
    pluginType,
    pluginData,
+   roomPostContent,
 }: CreateRealtimePostParams) {
   const user = await getUserFromCookies();
   if (!user) {
@@ -77,6 +80,7 @@ export async function createRealtimePost({
         isPublic,
         ...(pluginType && { pluginType }),
         ...(pluginData && { pluginData }),
+        ...(roomPostContent && { room_post_content: roomPostContent }),
 
          // Collage fields
          ...(collageLayoutStyle && { collageLayoutStyle }),
@@ -142,6 +146,7 @@ export async function updateRealtimePost({
   content,
   pluginType,
   pluginData,
+  roomPostContent,
 }: UpdateRealtimePostParams) {
   const user = await getUserFromCookies();
   try {
@@ -183,6 +188,7 @@ export async function updateRealtimePost({
       ...(isPublic !== undefined && { isPublic }),
       ...(pluginType && { pluginType }),
       ...(pluginData && { pluginData }),
+      ...(roomPostContent && { room_post_content: roomPostContent }),
     };
 
     if (coordinates && coordChanged) {

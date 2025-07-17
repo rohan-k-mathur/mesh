@@ -6,19 +6,27 @@ import { findOrGenerateInviteToken } from "@/lib/actions/realtimeroom.actions";
 import { useAuth } from "@/lib/AuthContext";
 import useStore from "@/lib/reactflow/store";
 import { AppState } from "@/lib/reactflow/types";
+import { useReactFlow, useStoreApi } from "@xyflow/react";
 import { Menu } from "lucide-react";
-import { redirect } from "next/navigation";
+import { redirect, usePathname } from "next/navigation";
 import { useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 import ShareRoomModal from "../modals/ShareRoomModal";
+import ShareCanvasModal from "../modals/ShareCanvasModal";
+import { createRealtimePost } from "@/lib/actions/realtimepost.actions";
 
 export default function HamburgerMenu({ roomId }: { roomId: string }) {
   const user = useAuth().user;
+  const pathname = usePathname();
+  const reactFlow = useReactFlow();
+  const storeApi = useStoreApi();
 
   const [isOpen, setIsOpen] = useState(false);
   const store = useStore(
     useShallow((state: AppState) => ({
       openModal: state.openModal,
+      nodes: state.nodes,
+      edges: state.edges,
     }))
   );
   let menuItemLinks;
@@ -45,6 +53,35 @@ export default function HamburgerMenu({ roomId }: { roomId: string }) {
       (inviteToken) => {
         store.openModal(ShareRoomModal({ inviteToken: inviteToken.token }));
       }
+    );
+  };
+
+  const openCanvasModal = () => {
+    if (!user) return;
+    store.openModal(
+      <ShareCanvasModal
+        onSubmit={async (desc) => {
+          const canvas = {
+            nodes: store.nodes,
+            edges: store.edges,
+            viewport: storeApi.getState().viewport,
+            roomId,
+          };
+          if (JSON.stringify(canvas).length > 1_000_000) {
+            alert("Canvas too large to share");
+            return;
+          }
+          await createRealtimePost({
+            text: desc,
+            path: pathname,
+            coordinates: { x: 0, y: 0 },
+            type: "ROOM_CANVAS",
+            realtimeRoomId: roomId,
+            roomPostContent: canvas,
+          });
+          setIsOpen(false);
+        }}
+      />
     );
   };
 
@@ -79,6 +116,14 @@ export default function HamburgerMenu({ roomId }: { roomId: string }) {
                   onClick={() => openShareModal()}
                 >
                   Invite
+                </div>
+              )}
+              {user && (
+                <div
+                  className="text-[1.5rem] font-medium hover:cursor-pointer"
+                  onClick={() => openCanvasModal()}
+                >
+                  Share Canvas
                 </div>
               )}
             </nav>
