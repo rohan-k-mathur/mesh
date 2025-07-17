@@ -27,7 +27,11 @@ import MusicNodeModal from "../modals/MusicNodeModal";
 import SplineViewerNodeModal from "../modals/SplineViewerNodeModal";
 import RoomCanvasModal from "../modals/RoomCanvasModal";
 import { exportRoomCanvas } from "@/lib/actions/realtimeroom.actions";
-import { uploadFileToSupabase, uploadAudioToSupabase } from "@/lib/utils";
+import {
+  uploadFileToSupabase,
+  uploadAudioToSupabase,
+  serializeBigInt,
+} from "@/lib/utils";
 import { createRealtimePost } from "@/lib/actions/realtimepost.actions";
 import { fetchUserByUsername } from "@/lib/actions/user.actions";
 import { useRouter } from "next/navigation";
@@ -371,7 +375,8 @@ const CreateFeedPost = ({ roomId = "global" }: Props) => {
             onSubmit={async (vals) => {
               const canvas = await exportRoomCanvas(vals.roomId);
               if (!canvas) return;
-              if (JSON.stringify(canvas).length > 1_000_000) {
+              const safeCanvas = serializeBigInt(canvas);
+              if (JSON.stringify(safeCanvas).length > 1_000_000) {
                 alert("Canvas too large to share");
                 return;
               }
@@ -381,7 +386,7 @@ const CreateFeedPost = ({ roomId = "global" }: Props) => {
                 coordinates: { x: 0, y: 0 },
                 type: "ROOM_CANVAS",
                 realtimeRoomId: vals.roomId,
-                roomPostContent: canvas,
+                roomPostContent: safeCanvas,
               });
               reset();
               router.refresh();
