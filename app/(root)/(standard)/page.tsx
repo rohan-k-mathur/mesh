@@ -29,6 +29,8 @@ export default async function Home() {
 
       "PLUGIN",
       "PRODUCT_REVIEW",
+      "ROOM_CANVAS",
+
 
     ],
   });
@@ -58,6 +60,7 @@ export default async function Home() {
             "PORTFOLIO",
             "PLUGIN",
             "PRODUCT_REVIEW",
+            "ROOM_CANVAS"
           ]}
           currentUserId={user.userId}
         />
