@@ -1,11 +1,12 @@
 import CreateLounge from "@/components/forms/CreateLounge";
-
+import React from "react";
 export const dynamic = "force-dynamic";
 
 async function Page() {
   return (
-    <div className="flex flex-col items-center justify-center ">
-      <h1 className="head-text text-center items-center justify-center mb-4 ">Create New Lounge</h1>
+    <div className="flex flex-col items-center justify-center mt-[-2rem]">
+      <h1 className="head-text text-center items-center justify-center mb-4 tracking-wide">Create New Lounge</h1>
+      <hr></hr>
       <CreateLounge />
     </div>
   );
