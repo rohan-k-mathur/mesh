@@ -32,6 +32,7 @@ export default async function Page({ params }: { params: { id: string } }) {
       "PORTFOLIO",
       "PLUGIN",
       "PRODUCT_REVIEW",
+      "ROOM_CANVAS",
     ],
   });
   return (
@@ -55,11 +56,12 @@ export default async function Page({ params }: { params: { id: string } }) {
             "MUSIC",
             "ENTROPY",
             "PORTFOLIO",
-            "PLUGIN",
-            "PRODUCT_REVIEW",
-          ]}
-          currentUserId={user?.userId}
-        />
+          "PLUGIN",
+          "PRODUCT_REVIEW",
+          "ROOM_CANVAS",
+        ]}
+        currentUserId={user?.userId}
+      />
       )}
     </div>
   );
