@@ -82,8 +82,8 @@ function CreateLounge() {
             control={form.control}
             name="roomIcon"
             render={({ field }) => (
-              <FormItem className="flex items-center gap-4 mt-4">
-                <FormLabel className="rounded_icon_container h-[4rem] w-[4rem]">
+              <FormItem className="flex items-center gap-4 mt-4 ">
+                <FormLabel className="rounded_icon_container border-black border-[1px] rounded-lg h-[4rem] w-[4rem]">
                   {imageURL != "" ? (
                     <Image
                       src={imageURL}
@@ -121,12 +121,12 @@ function CreateLounge() {
             control={form.control}
             name="roomName"
             render={({ field }) => (
-              <FormItem className="flex flex-col w-full  mt-2 ">
-                <FormLabel className="text-header-semibold text-dark-2"></FormLabel>
+              <FormItem className="flex flex-col w-full  mt-6 ">
+                <FormLabel className="text-[1rem]">Name</FormLabel>
                 <FormControl className="border-2 border-slate-500  bg-white text-black hover:border-black focus:border-black">
                   <Input
                     type="text"
-                    className="border border-dark-4 text-dark-1  w-[52%] no-focus"
+                    className="border border-dark-4 text-dark-1  w-full no-focus"
                     placeholder="Enter lounge name"
                     {...field}
                   />
@@ -139,8 +139,8 @@ function CreateLounge() {
             control={form.control}
             name="isPublic"
             render={({ field }) => (
-              <FormItem className="flex flex-col w-full ml-[26%] mt-2">
-                <FormLabel>Visibility</FormLabel>
+              <FormItem className="flex flex-col   mt-6 ">
+                <FormLabel className="text-[1rem]">Visibility</FormLabel>
                 <FormControl>
                   <Select
                     onValueChange={(v) => field.onChange(v === "public")}
@@ -161,7 +161,7 @@ function CreateLounge() {
           />
           <Button
             type="submit"
-            className="likebutton h-fit w-fit ml-[27%] mt-4 py-1 px-4 text-[1.15rem] bg-transparent outline-blue hover:bg-transparent rounded-md "
+            className="likebutton h-fit  mt-10 py-2 px-4 text-[1.15rem] bg-transparent outline-blue hover:bg-transparent rounded-md "
           >
             Create
           </Button>
