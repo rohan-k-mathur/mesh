@@ -151,6 +151,46 @@ export async function createAndJoinRoom({
   }
 }
 
+export async function createAndJoinLounge({
+  loungeName,
+  roomIcon,
+  isPublic,
+  path,
+}: {
+  loungeName: string;
+  roomIcon: string;
+  isPublic: boolean;
+  path: string;
+}) {
+  try {
+    const user = await getUserFromCookies();
+    if (!user) {
+      throw new Error("User not authenticated");
+    }
+    const [lounge, connection] = await prisma.$transaction([
+      prisma.realtimeRoom.create({
+        data: {
+          id: loungeName,
+          room_icon: roomIcon,
+          isPublic,
+          isLounge: true,
+        },
+      }),
+      prisma.userRealtimeRoom.create({
+        data: {
+          user_id: user.userId!,
+          realtime_room_id: loungeName,
+        },
+      }),
+    ]);
+    await generateFriendSuggestions(user.userId!);
+    revalidatePath(path);
+    return lounge;
+  } catch (error: any) {
+    throw new Error(`Failed to create lounge: ${error.message}`);
+  }
+}
+
 export async function getRoomsForUser({ userId }: { userId: bigint }) {
   try {
     const userRoomMemberships = await prisma.userRealtimeRoom.findMany({
