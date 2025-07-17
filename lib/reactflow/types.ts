@@ -217,6 +217,16 @@ export type ProductReviewNodeData = Node<
   "PRODUCT_REVIEW"
 >;
 
+export type RoomCanvasNodeData = Node<
+  {
+    canvas: { nodes: any[]; edges: any[]; viewport?: { x: number; y: number; zoom: number } };
+    roomId: string;
+    author: AuthorOrAuthorId;
+    locked: boolean;
+  },
+  "ROOM_CANVAS"
+>;
+
 
 
 export type DefaultEdge = Edge<{}, "DEFAULT">;
@@ -241,6 +251,7 @@ export const NodeTypeMap = {
   PORTFOLIO: {} as PortfolioNodeData,
   LLM_INSTRUCTION: {} as LLMInstructionNode,
   PRODUCT_REVIEW: {} as ProductReviewNodeData,
+  ROOM_CANVAS: {} as RoomCanvasNodeData,
   PLUGIN: {} as PluginDescriptor,
 };
 
@@ -285,6 +296,7 @@ export type AppNode =
   | PortfolioNodeData
   | LLMInstructionNode
   | ProductReviewNodeData
+  | RoomCanvasNodeData
   | PluginDescriptor;
 
 export type AppEdgeType = keyof AppEdgeMapping;
@@ -312,6 +324,7 @@ export const DEFAULT_NODE_VALUES: Record<AppNodeType, string> = {
   ["PORTFOLIO"]: "",
   ["LLM_INSTRUCTION"]: "",
   ["PRODUCT_REVIEW"]: "",
+  ["ROOM_CANVAS"]: "",
   ["PLUGIN"]: "",
 };
 

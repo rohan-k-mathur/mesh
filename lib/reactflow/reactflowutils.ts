@@ -422,6 +422,22 @@ export function convertPostToNode(
         } as AppNode;
       }
 
+      case "ROOM_CANVAS": {
+        const canvas = (realtimePost as any).room_post_content ||
+          (realtimePost.content ? JSON.parse(realtimePost.content) : { nodes: [], edges: [] });
+        return {
+          id: realtimePost.id.toString(),
+          type: realtimePost.type,
+          data: {
+            canvas,
+            roomId: realtimePost.realtime_room_id,
+            author: authorToSet,
+            locked: realtimePost.locked,
+          },
+          position: { x: realtimePost.x_coordinate, y: realtimePost.y_coordinate },
+        } as AppNode;
+      }
+
       default:
         throw new Error("Unsupported real-time post type");
       }
