@@ -61,6 +61,8 @@ const nodeOptions: { label: string; nodeType: string }[] = [
   { label: "PDF", nodeType: "PDF_VIEWER" },
   { label: "SPLINE", nodeType: "SPLINE_VIEWER" },
   { label: "PRODUCT_REVIEW", nodeType: "PRODUCT_REVIEW" },
+  { label: "ROOM_CANVAS", nodeType: "ROOM_CANVAS" },
+
 
 ];
 
