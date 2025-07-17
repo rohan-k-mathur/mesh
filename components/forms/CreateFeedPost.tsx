@@ -64,7 +64,11 @@ const nodeOptions: { label: string; nodeType: string }[] = [
 
 ];
 
-const CreateFeedPost = () => {
+interface Props {
+  roomId?: string;
+}
+
+const CreateFeedPost = ({ roomId = "global" }: Props) => {
   const [open, setOpen] = useState(false);
   const [selectedType, setSelectedType] = useState<string>("");
   const router = useRouter();
@@ -80,7 +84,7 @@ const CreateFeedPost = () => {
       path: "/",
       coordinates: { x: 0, y: 0 },
       type: "TEXT",
-      realtimeRoomId: "global",
+      realtimeRoomId: roomId,
     });
     reset();
     router.refresh();
@@ -94,7 +98,7 @@ const CreateFeedPost = () => {
         path: "/",
         coordinates: { x: 0, y: 0 },
         type: "IMAGE",
-        realtimeRoomId: "global",
+        realtimeRoomId: roomId,
       });
       reset();
       router.refresh();
@@ -107,7 +111,7 @@ const CreateFeedPost = () => {
       path: "/",
       coordinates: { x: 0, y: 0 },
       type: "VIDEO",
-      realtimeRoomId: "global",
+      realtimeRoomId: roomId,
     });
     reset();
     router.refresh();
@@ -122,7 +126,7 @@ const CreateFeedPost = () => {
       path: "/",
       coordinates: { x: 0, y: 0 },
       type: "MUSIC",
-      realtimeRoomId: "global",
+      realtimeRoomId: roomId,
     });
     reset();
     router.refresh();
@@ -138,7 +142,7 @@ const CreateFeedPost = () => {
         path: "/",
         coordinates: { x: 0, y: 0 },
         type: "GALLERY",
-        realtimeRoomId: "global",
+        realtimeRoomId: roomId,
         isPublic: values.isPublic,
         imageUrl: urls[0],
         text: JSON.stringify(urls),
@@ -169,7 +173,7 @@ const CreateFeedPost = () => {
       path: "/",
       coordinates: { x: 0, y: 0 },
       type: "PORTFOLIO",
-      realtimeRoomId: "global",
+      realtimeRoomId: roomId,
     });
     reset();
     router.refresh();
@@ -181,7 +185,7 @@ const CreateFeedPost = () => {
       path: "/",
       coordinates: { x: 0, y: 0 },
       type: "PORTAL",
-      realtimeRoomId: "global",
+      realtimeRoomId: roomId,
     });
     reset();
     router.refresh();
@@ -193,7 +197,7 @@ const CreateFeedPost = () => {
         path: "/",
         coordinates: { x: 0, y: 0 },
         type: value as AppNodeType,
-        realtimeRoomId: "global",
+        realtimeRoomId: roomId,
       });
       reset();
       router.refresh();
@@ -205,7 +209,7 @@ const CreateFeedPost = () => {
         path: "/",
         coordinates: { x: 0, y: 0 },
         type: "IMAGE_COMPUTE",
-        realtimeRoomId: "global",
+        realtimeRoomId: roomId,
         imageUrl: DEFAULT_NODE_VALUES["IMAGE_COMPUTE"],
       });
       reset();
@@ -242,7 +246,7 @@ const CreateFeedPost = () => {
                 path: "/",
                 coordinates: { x: 0, y: 0 },
                 type: "COLLAGE",
-                realtimeRoomId: "global",
+                realtimeRoomId: roomId,
                 collageLayoutStyle: vals.layoutStyle,
                 collageColumns: vals.columns,
                 collageGap: vals.gap,
@@ -276,7 +280,7 @@ const CreateFeedPost = () => {
                 path: "/",
                 coordinates: { x: 0, y: 0 },
                 type: "LIVECHAT",
-                realtimeRoomId: "global",
+                realtimeRoomId: roomId,
                 text: JSON.stringify({ inviteeId: Number(user.id) }),
               });
               reset();
@@ -311,7 +315,7 @@ const CreateFeedPost = () => {
                 path: "/",
                 coordinates: { x: 0, y: 0 },
                 type: "ENTROPY",
-                realtimeRoomId: "global",
+                realtimeRoomId: roomId,
                 text: JSON.stringify({ inviteeId: Number(user.id), secret: word, guesses: [] }),
               });
               reset();
@@ -329,7 +333,7 @@ const CreateFeedPost = () => {
                 path: "/",
                 coordinates: { x: 0, y: 0 },
                 type: "PLUGIN",
-                realtimeRoomId: "global",
+                realtimeRoomId: roomId,
                 pluginType: "PDF_VIEWER",
                 pluginData: { pdfUrl: vals.pdfUrl },
               });
@@ -348,7 +352,7 @@ const CreateFeedPost = () => {
                 path: "/",
                 coordinates: { x: 0, y: 0 },
                 type: "PLUGIN",
-                realtimeRoomId: "global",
+                realtimeRoomId: roomId,
                 pluginType: "SPLINE_VIEWER",
                 pluginData: { sceneUrl: vals.sceneUrl },
               });
@@ -380,7 +384,7 @@ const CreateFeedPost = () => {
                 path: "/",
                 coordinates: { x: 0, y: 0 },
                 type: "PRODUCT_REVIEW",
-                realtimeRoomId: "global",
+                realtimeRoomId: roomId,
                 ...(urls.length > 0 && { imageUrl: urls[0] }),
               });
               reset();
@@ -394,7 +398,7 @@ const CreateFeedPost = () => {
               //     path: "/",
               //     coordinates: { x: 0, y: 0 },
               //     type: "PLUGIN",
-              //     realtimeRoomId: "global",
+              //     realtimeRoomId: roomId,
               //     pluginType: "PRODUCT_REVIEW",
               //     pluginData: {},
               //   });

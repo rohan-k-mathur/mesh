@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
+import CreateLoungePost from "@/components/forms/CreateLoungePost";
 
 interface SuggestedUser {
   id: number;
@@ -23,10 +24,13 @@ const isOff = true;
 
 
 function RightSidebar() {
-  
+
   const [users, setUsers] = useState<SuggestedUser[]>([]);
   const [rooms, setRooms] = useState<RandomRoom[]>([]);
   const router = useRouter();
+  const pathname = usePathname();
+  const loungeMatch = pathname.match(/^\/lounges\/([^/]+)/);
+  const loungeId = loungeMatch ? loungeMatch[1] : null;
 function gotomessages()
 {
   router.push("/profile/messages");
@@ -78,6 +82,7 @@ function gotomessages()
     return (
       <section className="sticky custom-scrollbar rightsidebar bg-transparent">
          <div className="flex  w-full flex flex-col gap-4 px-2">
+         {loungeId && <CreateLoungePost roomId={loungeId} />}
          <Button
          className="border-[1px] border-rose-300 border-opacity-80 likebutton leftsidebar_link leftsidebar-item items-start justify-start h-fit  rounded-md "
          variant={"outline"}
