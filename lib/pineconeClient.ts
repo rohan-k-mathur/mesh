@@ -1,4 +1,4 @@
-import { PineconeClient } from "@pinecone-database/pinecone";
+import { Pinecone } from '@pinecone-database/pinecone';
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
 let supabase: SupabaseClient | null = null;
@@ -31,7 +31,7 @@ const environment = process.env.PINECONE_ENVIRONMENT;
 const indexName = process.env.PINECONE_INDEX_NAME || "users";
 
 // --- singleton pattern avoids reconnecting every call ----
-const pinecone = new PineconeClient();
+const pinecone = new Pinecone();
 let pineconeReady = false;
 
 async function initPinecone() {
