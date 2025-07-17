@@ -5,6 +5,10 @@ import { prisma } from "../prismaclient";
 import { getUserFromCookies } from "../serverutils";
 import { nanoid } from "nanoid";
 import { generateFriendSuggestions } from "./friend-suggestions.actions";
+import {
+  convertPostToNode,
+  convertRealtimeEdgeToEdge,
+} from "@/lib/reactflow/reactflowutils";
 
 export async function fetchRealtimeRoom({
   realtimeRoomId,
@@ -281,5 +285,21 @@ export async function lookupInviteToken(inviteToken: string) {
     });
   } catch (error: any) {
     throw new Error(`Failed to lookup invite token: ${error.message}`);
+  }
+}
+
+export async function exportRoomCanvas(roomId: string) {
+  try {
+    const room = await fetchRealtimeRoom({ realtimeRoomId: roomId });
+    if (!room) return null;
+    const nodes = room.realtimeposts.map((post) =>
+      convertPostToNode(post, post.author)
+    );
+    const edges = room.realtimeedges.map((edge) =>
+      convertRealtimeEdgeToEdge(edge)
+    );
+    return { nodes, edges, roomId, viewport: { x: 0, y: 0, zoom: 1 } };
+  } catch (error: any) {
+    throw new Error(`Failed to export room canvas: ${error.message}`);
   }
 }

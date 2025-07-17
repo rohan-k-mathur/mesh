@@ -25,6 +25,8 @@ import PdfViewerNodeModal from "@/components/modals/PdfViewerNodeModal";
 import ProductReviewNodeModal from "../modals/ProductReviewNodeModal";
 import MusicNodeModal from "../modals/MusicNodeModal";
 import SplineViewerNodeModal from "../modals/SplineViewerNodeModal";
+import RoomCanvasModal from "../modals/RoomCanvasModal";
+import { exportRoomCanvas } from "@/lib/actions/realtimeroom.actions";
 import { uploadFileToSupabase, uploadAudioToSupabase } from "@/lib/utils";
 import { createRealtimePost } from "@/lib/actions/realtimepost.actions";
 import { fetchUserByUsername } from "@/lib/actions/user.actions";
@@ -357,6 +359,29 @@ const CreateFeedPost = ({ roomId = "global" }: Props) => {
                 realtimeRoomId: roomId,
                 pluginType: "SPLINE_VIEWER",
                 pluginData: { sceneUrl: vals.sceneUrl },
+              });
+              reset();
+              router.refresh();
+            }}
+          />
+        );
+      case "ROOM_CANVAS":
+        return (
+          <RoomCanvasModal
+            onSubmit={async (vals) => {
+              const canvas = await exportRoomCanvas(vals.roomId);
+              if (!canvas) return;
+              if (JSON.stringify(canvas).length > 1_000_000) {
+                alert("Canvas too large to share");
+                return;
+              }
+              await createRealtimePost({
+                text: vals.description,
+                path: "/",
+                coordinates: { x: 0, y: 0 },
+                type: "ROOM_CANVAS",
+                realtimeRoomId: vals.roomId,
+                roomPostContent: canvas,
               });
               reset();
               router.refresh();

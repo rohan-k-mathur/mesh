@@ -182,3 +182,8 @@ export const MusicPostValidation = z.object({
   title: z.string().min(1),
 });
 
+export const RoomCanvasPostValidation = z.object({
+  roomId: z.string().min(1),
+  description: z.string().optional(),
+});
+
