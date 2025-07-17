@@ -58,7 +58,7 @@ async def create_embedding(text: str) -> List[float]:
 #     mediaId: str
 
 
-@app.post("/")                          # 2️⃣ root route
+@app.post("/")                          
 async def handle(req: EmbedRequest) -> Any:
     media_id = req.mediaId
     conn = await db()

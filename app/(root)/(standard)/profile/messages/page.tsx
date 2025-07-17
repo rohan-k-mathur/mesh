@@ -9,25 +9,28 @@ export default async function Page() {
   if (!user?.userId) redirect("/login");
   const conversations = await fetchConversations({ userId: user.userId });
   return (
-    <main className="p-4">
-      <h1 className="head-text mb-4">Messages</h1>
-      <ul className="space-y-4">
+    <main className="p-4 mt-[-2rem]">
+      <h1 className="text-[3rem] mb-2 text-center ">Messages</h1>
+      <hr></hr>
+      <ul className="space-y-6 mt-6">
         {conversations.map((c) => {
           const other = c.user1_id === user.userId ? c.user2 : c.user1;
           const last = c.messages[0];
           return (
-            <li key={c.id.toString()} className="flex items-center gap-3">
+            <li key={c.id.toString()} className="flex items-center gap-3 border-[1px] border-indigo-400 px-3 py-4 likebutton rounded-xl">
+              <div className="flex h-[3rem] w-[3rem] ">
               <Image
                 src={other.image || "/assets/user-helsinki.svg"}
                 alt={other.name}
                 width={40}
                 height={40}
-                className="rounded-full"
+                className="object-cover flex-1 border-[.05rem] rounded-full border-indigo-300 profile-shadow hover:shadow-none "
               />
+              </div>
               <Link href={`/messages/${c.id}`} className="flex-1">
-                <p className="font-bold">{other.name}</p>
+                <p className="font-bold text-[1.1rem]">{other.name}</p>
                 {last && (
-                  <p className="text-sm text-gray-500 truncate max-w-xs">
+                  <p className="text-[1rem] text-gray-700 truncate max-w-xs">
                     {last.text}
                   </p>
                 )}
