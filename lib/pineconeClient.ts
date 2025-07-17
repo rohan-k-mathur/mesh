@@ -30,26 +30,35 @@ const apiKey = process.env.PINECONE_API_KEY;
 const environment = process.env.PINECONE_ENVIRONMENT;
 const indexName = process.env.PINECONE_INDEX_NAME || "users";
 
+export function getPineconeIndex() {
+  // constructor already authenticated; nothing async left to do
+  return process.env.PINECONE_INDEX_NAME
+    ? pc.index(process.env.PINECONE_INDEX_NAME)
+    : undefined;                           // graceful fallback
+}
+
 // --- singleton pattern avoids reconnecting every call ----
-const pinecone = new Pinecone();
-let pineconeReady = false;
+const pc = new Pinecone({
+  apiKey: process.env.PINECONE_API_KEY!,   // required
+  // environment is no longer needed – the key encodes it
+});
 
-async function initPinecone() {
-  if (pineconeReady) return;
-  if (!apiKey || !environment) return; // graceful fallback
-  await pinecone.init({
-    apiKey,
-    environment,
-    ...(projectName ? { projectName } : {}),
-  });
-  pineconeReady = true;
-}
+// async function initPinecone() {
+//   if (pineconeReady) return;
+//   if (!apiKey || !environment) return; // graceful fallback
+//   await pinecone.init({
+//     apiKey,
+//     environment,
+//     ...(projectName ? { projectName } : {}),
+//   });
+//   pineconeReady = true;
+// }
 
-/** Returns the index or `undefined` if env-vars are missing. */
-export async function getPineconeIndex() {
-  await initPinecone();
-  return pineconeReady ? pinecone.Index(indexName) : undefined;
-}
+// /** Returns the index or `undefined` if env-vars are missing. */
+// export async function getPineconeIndex() {
+//   await initPinecone();
+//   return pineconeReady ? pinecone.Index(indexName) : undefined;
+// }
 
 /* ---------- optional pgvector fallback ------------------ */
 // const supabase = createSupabaseClient(
