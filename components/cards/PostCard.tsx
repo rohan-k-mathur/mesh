@@ -33,6 +33,7 @@ interface Props {
   video_url?: string;
 
   content?: string;
+  roomPostContent?: Record<string, any> | null;
   type: string;
 
   author: {
@@ -56,6 +57,7 @@ const PostCard = ({
   currentUserId,
   currentUserLike = null,
   content,
+  roomPostContent = null,
   author,
   image_url,
   video_url,
@@ -200,22 +202,13 @@ const PostCard = ({
                 <DrawCanvas id={id.toString()} content={content} />
               </div>
             )}
+            {type === "ROOM_CANVAS" && roomPostContent && (
+              <div className="mt-2 mb-2 flex flex-col items-center justify-center">
+                <EmbeddedCanvas canvas={roomPostContent} roomId={roomPostContent.roomId || "global"} />
+              </div>
+            )}
             {type === "ROOM_CANVAS" && content && (
-              (() => {
-                let canvas: any = null;
-                try {
-                  canvas = JSON.parse(content);
-                } catch (e) {
-                  canvas = null;
-                }
-                return (
-                  canvas && (
-                    <div className="mt-2 mb-2 flex justify-center items-center">
-                      <EmbeddedCanvas canvas={canvas} roomId={canvas.roomId || "global"} />
-                    </div>
-                  )
-                );
-              })()
+              <p className="mt-2 text-[1.08rem] text-black tracking-[.05rem]">{content}</p>
             )}
             {type === "PORTFOLIO" && content && (
               (() => {
