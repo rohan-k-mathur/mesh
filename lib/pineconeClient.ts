@@ -25,7 +25,7 @@ export async function knnPgvector(vec: number[], k = 200) {
   if (error) throw error;
   return data;
 }
-
+const projectName = process.env.PINECONE_PROJECT_NAME;
 const apiKey       = process.env.PINECONE_API_KEY;
 const environment  = process.env.PINECONE_ENVIRONMENT;
 const indexName   = process.env.PINECONE_INDEX_NAME || "users";
