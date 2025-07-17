@@ -23,11 +23,11 @@ const SoundCloudPlayer = ({ src, title }: Props) => {
     if (!ctx) return;
 
     const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height * 1);
-    gradient.addColorStop(0, "#818cf8");
+    gradient.addColorStop(0, "#bae6fd");
     // gradient.addColorStop((canvas.height * 0.65 ) / canvas.height, "#E8E8E8");
 
     // gradient.addColorStop((canvas.height * 0.65) / canvas.height, "#464646");
-    gradient.addColorStop(1, "#4f46e5");
+    gradient.addColorStop(1, "#60a5fa");
 
     const progressGradient = ctx.createLinearGradient(0, 0, 0, canvas.height * 1);
     progressGradient.addColorStop(0, "#fdba74");
@@ -41,10 +41,10 @@ const SoundCloudPlayer = ({ src, title }: Props) => {
       waveColor: gradient,
 
       progressColor: progressGradient,
-      width:600,
-      height: 80,
+      width:610,
+      height: 70,
       normalize: true,
-      barWidth: 5,
+      barWidth: 4,
       barGap: 3,
       barRadius: 40,
 
@@ -69,9 +69,9 @@ const SoundCloudPlayer = ({ src, title }: Props) => {
 
   return (
     <div className="flex flex-1 w-[100%] flex-col">
-      <h1 className="text-center tracking-wide text-[1.4rem] font-semi-bold mt-0 w-full pb-2">{title}</h1>
+      <h1 className=" px-20 tracking-wide text-[1.4rem] whitespace-nowrap justify-center items-center  mt-0 w-full pb-2">{title}</h1>
       <hr />
-      {!isReady && <Skeleton className="w-full h-[100px] mt-2" />}
+      {!isReady && <Skeleton className="flex w-full h-[90px] items-center gap-5 mt-2 py-2 w-full" />}
       <div className={`flex items-center gap-5 mt-2 py-2 w-full ${!isReady ? "hidden" : ""}`}>
         {isPlaying ? (
           <button
@@ -83,7 +83,7 @@ const SoundCloudPlayer = ({ src, title }: Props) => {
         ) : (
           <button
             onClick={togglePlay}
-            className="playbutton outline-transparent bg-rose-100 bg-opacity-20 p-5 rounded-full "
+            className="playbutton outline-transparent bg-rose-100 bg-opacity-20 p-4 rounded-full "
           >
             <Image src="/assets/play--filled--alt.svg" alt="play" width={24} height={24} />
           </button>

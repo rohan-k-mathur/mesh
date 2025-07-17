@@ -19,7 +19,7 @@ function ImageCard({ id, imageurl }: ImageCardProps) {
           <Skeleton className="img-feed-frame mt-[1rem] mb-[1rem] w-full h-[300px]" />
         )}
         <Image
-          className={`flex img-feed-frame rounded-sm mt-[1rem] mb-[1rem] ${!isLoaded ? "hidden" : ""}`}
+           className="flex img-feed-frame rounded-sm mt-[1rem] mb-[1rem]" //${!isLoaded ? //flex img-feed-frame rounded-sm mt-[1rem] mb-[1rem]" : "flex img-feed-frame rounded-sm mt-[1rem] mb-[1rem]"}`}
           src={imageurl}
           alt="image not found"
           width={0}

@@ -119,7 +119,7 @@ const ProductReviewCard = ({
     <div className="w-[45rem] h-fit  rounded-md">
     <div className="flex flex-col   mt-0 mb-0">
       <div className="flex flex-col items-center">
-      <div className="items-center text-center  font-bold"> <h1 className="text-[1.5rem] text-center tracking-wide font-bold"> {productName} </h1> </div>
+      <div className="items-center text-center  font-bold"> <h1 className="text-[1.5rem] text-center tracking-wider font-bold"> {productName} </h1> </div>
       <div className="text-[1.1rem] text-center mb-2">Rating: {rating}/5</div>
       </div>
       <hr></hr>
