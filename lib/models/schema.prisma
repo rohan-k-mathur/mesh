@@ -136,6 +136,8 @@ model RealtimeRoom {
   room_icon                String
   realtimeedges            RealtimeEdge[]
   realtimeposts            RealtimePost[]
+  isPublic                 Boolean                   @default(false)
+  isLounge                 Boolean                   @default(false)
   realtimeRoomInviteTokens RealtimeRoomInviteToken[]
   members                  UserRealtimeRoom[]
 
@@ -159,6 +161,7 @@ model RealtimePost {
   collageLayoutStyle String?
   collageColumns     Int?
   collageGap         Int?
+  room_post_content  Json?
   isPublic           Boolean            @default(false)
   pluginType         String?
   pluginData         Json?
