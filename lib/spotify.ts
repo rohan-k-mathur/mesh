@@ -39,6 +39,18 @@ export async function refreshToken(refresh_token: string): Promise<TokenResponse
   return res.data;
 }
 
+export function buildAuthUrl(state: string) {
+  const params = new URLSearchParams({
+    response_type: "code",
+    client_id: process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID!,
+    redirect_uri: process.env.NEXT_PUBLIC_REDIRECT_URI!,
+    scope: "user-library-read user-read-private",
+    state,
+    show_dialog: "true",
+  });
+  return `https://accounts.spotify.com/authorize?${params.toString()}`;
+}
+
 // export async function uploadRaw(userId: number, data: unknown) {
   
 //   const key = `spotify/${userId}/${new Date().toISOString().split("T")[0]}.json`;

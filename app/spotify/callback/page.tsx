@@ -111,7 +111,7 @@ export const dynamic = 'force-dynamic';
 
 export default function SpotifyCallback() {
   const params              = useSearchParams();
-  const [msg, setMsg]       = useState('Checking sync status…');
+  const [msg, setMsg]       = useState("Checking sync status…");
   const [summary, setSum]   = useState<Summary | null>(null);
   const [inFlight, setFly ] = useState(false);         // guard against double polling
 
@@ -175,7 +175,14 @@ export default function SpotifyCallback() {
     }
   };
 
-  useEffect(() => { pollStatus(); }, []);              // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    const saved = localStorage.getItem("spotify_oauth_state");
+    if (params.get("state") !== saved) {
+      setMsg("State mismatch – try again");
+      return;
+    }
+    pollStatus();
+  }, []);              // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ---------- render ---------- */
   if (!summary) {
