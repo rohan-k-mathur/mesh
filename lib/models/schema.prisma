@@ -1,5 +1,6 @@
 generator client {
   provider   = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
   engineType = "library"
 }
 
@@ -7,6 +8,7 @@ datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
+  extensions = [vector]
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -22,33 +24,31 @@ model User {
   onboarded                Boolean                   @default(false)
   archivedPosts            ArchivedPost[]
   archivedRealtimePosts    ArchivedRealtimePost[]
-  conversationsUser1       Conversation[]            @relation("ConversationUser1")
-  conversationsUser2       Conversation[]            @relation("ConversationUser2")
-  favoriteItems            FavoriteItem[]
   following                Follow[]                  @relation("FollowingRelation")
   followers                Follow[]                  @relation("FollowerRelation")
   friendSuggestionsTarget  FriendSuggestion[]        @relation("SuggestionsTarget")
   friendSuggestionsCreated FriendSuggestion[]        @relation("SuggestionsCreator")
-  integrations             Integration[]
   likes                    Like[]
-  linkedAccounts           LinkedAccount[]
-  messages                 Message[]
   posts                    Post[]
-  productReviewVotes       ProductReviewVote[]
-  productReviewVouches     ProductReviewVouch[]
-  productReviews           ProductReview[]
   realtimeedges            RealtimeEdge[]
   realtimeLikes            RealtimeLike[]
   realtimeposts            RealtimePost[]
   realtimeRoomInviteTokens RealtimeRoomInviteToken[]
-  recommendationClicks     RecommendationClick[]
-  attributeEdits           UserAttributeEdit[]
-  notifications           Notification[]          @relation("NotificationUser")
-  notificationsAuthored   Notification[]          @relation("NotificationActor")
   userAttributes           UserAttributes?
   userEmbedding            UserEmbedding?
   realtimerooms            UserRealtimeRoom[]
   workflows                Workflow[]
+  attributeEdits           UserAttributeEdit[]
+  recommendationClicks     RecommendationClick[]
+  integrations             Integration[]
+  linkedAccounts           LinkedAccount[]
+  productReviews           ProductReview[]
+  productReviewVotes       ProductReviewVote[]
+  productReviewVouches     ProductReviewVouch[]
+  conversationsUser1       Conversation[]        @relation("ConversationUser1")
+  conversationsUser2       Conversation[]        @relation("ConversationUser2")
+  messages                 Message[]
+  favoriteItems            FavoriteItem[]
 
   @@map("users")
 }
@@ -129,8 +129,6 @@ model RealtimeRoom {
   id                       String                    @id
   created_at               DateTime                  @default(now()) @db.Timestamptz(6)
   room_icon                String
-  isPublic                 Boolean                   @default(true)
-  isLounge                 Boolean                   @default(false)
   realtimeedges            RealtimeEdge[]
   realtimeposts            RealtimePost[]
   realtimeRoomInviteTokens RealtimeRoomInviteToken[]
@@ -156,12 +154,10 @@ model RealtimePost {
   collageLayoutStyle String?
   collageColumns     Int?
   collageGap         Int?
-  room_post_content  Json?
   isPublic           Boolean            @default(false)
-  parent_id          BigInt?
-  pluginData         Json?
   pluginType         String?
-  productReview      ProductReview?
+  pluginData         Json?
+  parent_id          BigInt?
   outgoing_edges     RealtimeEdge[]     @relation("RealtimeEdgeToSourceRealtimePost")
   incoming_edges     RealtimeEdge[]     @relation("RealtimeEdgeToTargetRealtimePost")
   likes              RealtimeLike[]
@@ -169,6 +165,7 @@ model RealtimePost {
   realtimePost       RealtimePost?      @relation("RealtimePostChildren", fields: [parent_id], references: [id], onDelete: Restrict)
   children           RealtimePost[]     @relation("RealtimePostChildren")
   realtimeroom       RealtimeRoom       @relation(fields: [realtime_room_id], references: [id])
+  productReview      ProductReview?
 
   @@map("realtime_posts")
 }
@@ -244,29 +241,29 @@ model ArchivedPost {
 }
 
 model ArchivedRealtimePost {
-  id                 BigInt             @id @default(autoincrement())
-  original_post_id   BigInt             @unique
-  created_at         DateTime           @db.Timestamptz(6)
-  content            String?
-  image_url          String?
-  video_url          String?
-  author_id          BigInt
-  updated_at         DateTime?          @db.Timestamptz(6)
-  like_count         Int                @default(0)
-  x_coordinate       Decimal
-  y_coordinate       Decimal
-  type               realtime_post_type @default(TEXT)
-  realtime_room_id   String
-  locked             Boolean            @default(false)
+  id               BigInt             @id @default(autoincrement())
+  original_post_id BigInt             @unique
+  created_at       DateTime           @db.Timestamptz(6)
+  content          String?
+  image_url        String?
+  video_url        String?
+  author_id        BigInt
+  updated_at       DateTime?          @db.Timestamptz(6)
+  like_count       Int                @default(0)
+  x_coordinate     Decimal
+  y_coordinate     Decimal
+  type             realtime_post_type @default(TEXT)
+  realtime_room_id String
+  locked           Boolean            @default(false)
   collageLayoutStyle String?
-  collageColumns     Int?
-  collageGap         Int?
-  isPublic           Boolean            @default(false)
-  pluginType         String?
-  pluginData         Json?
-  parent_id          BigInt?
-  archived_at        DateTime           @default(now()) @db.Timestamptz(6)
-  author             User               @relation(fields: [author_id], references: [id])
+  collageColumns   Int?
+  collageGap       Int?
+  isPublic         Boolean            @default(false)
+  pluginType       String?
+  pluginData       Json?
+  parent_id        BigInt?
+  archived_at      DateTime           @default(now()) @db.Timestamptz(6)
+  author           User               @relation(fields: [author_id], references: [id])
 
   @@map("archived_realtime_posts")
 }
@@ -299,11 +296,11 @@ model Workflow {
   name               String
   graph              Json
   created_at         DateTime             @default(now()) @db.Timestamptz(6)
-  scheduledWorkflows ScheduledWorkflow[]
-  runs               WorkflowRun[]
+  owner              User                 @relation(fields: [owner_id], references: [id], onDelete: Cascade)
   states             WorkflowState[]
   transitions        WorkflowTransition[]
-  owner              User                 @relation(fields: [owner_id], references: [id], onDelete: Cascade)
+  scheduledWorkflows ScheduledWorkflow[]
+  runs               WorkflowRun[]
 
   @@map("workflows")
 }
@@ -330,12 +327,19 @@ model WorkflowTransition {
   to_state_id   BigInt
   version       Int
   created_at    DateTime      @default(now()) @db.Timestamptz(6)
+  workflow      Workflow      @relation(fields: [workflow_id], references: [id], onDelete: Cascade)
   fromState     WorkflowState @relation("WorkflowTransitionFromState", fields: [from_state_id], references: [id])
   toState       WorkflowState @relation("WorkflowTransitionToState", fields: [to_state_id], references: [id])
-  workflow      Workflow      @relation(fields: [workflow_id], references: [id], onDelete: Cascade)
 
   @@map("workflow_transitions")
 }
+
+enum like_type {
+  LIKE
+  DISLIKE
+}
+
+
 
 model UserAttributeEdit {
   id         BigInt   @id @default(autoincrement())
@@ -384,14 +388,14 @@ model Integration {
 }
 
 model LinkedAccount {
-  id            BigInt    @id @default(autoincrement())
-  user_id       BigInt
-  provider      String
-  access_token  String
+  id           BigInt   @id @default(autoincrement())
+  user_id      BigInt
+  provider     String
+  access_token String
   refresh_token String
-  expires_at    DateTime? @db.Timestamptz(6)
-  created_at    DateTime  @default(now()) @db.Timestamptz(6)
-  user          User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  expires_at   DateTime? @db.Timestamptz(6)
+  created_at   DateTime @default(now()) @db.Timestamptz(6)
+  user         User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@unique([user_id, provider])
   @@index([user_id])
@@ -405,28 +409,28 @@ model ProductReview {
   product_name     String
   rating           Int
   summary          String?
-  created_at       DateTime             @default(now()) @db.Timestamptz(6)
-  updated_at       DateTime             @default(now()) @updatedAt @db.Timestamptz(6)
   product_link     String?
   image_urls       String[]
-  claims           ProductReviewClaim[]
+  created_at       DateTime             @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime             @default(now()) @updatedAt @db.Timestamptz(6)
   author           User                 @relation(fields: [author_id], references: [id], onDelete: Cascade)
   realtime_post    RealtimePost?        @relation(fields: [realtime_post_id], references: [id])
+  claims           ProductReviewClaim[]
 
   @@map("product_reviews")
 }
 
 model ProductReviewClaim {
-  id              BigInt               @id @default(autoincrement())
-  review_id       BigInt
-  text            String
-  created_at      DateTime             @default(now()) @db.Timestamptz(6)
-  helpful_count   Int                  @default(0)
-  unhelpful_count Int                  @default(0)
-  vouch_total     Int                  @default(0)
-  review          ProductReview        @relation(fields: [review_id], references: [id], onDelete: Cascade)
-  votes           ProductReviewVote[]
-  vouches         ProductReviewVouch[]
+  id         BigInt               @id @default(autoincrement())
+  review_id  BigInt
+  text       String
+  helpful_count   Int              @default(0)
+  unhelpful_count Int              @default(0)
+  vouch_total     Int              @default(0)
+  created_at DateTime             @default(now()) @db.Timestamptz(6)
+  review     ProductReview        @relation(fields: [review_id], references: [id], onDelete: Cascade)
+  votes      ProductReviewVote[]
+  vouches    ProductReviewVouch[]
 
   @@map("product_review_claims")
 }
@@ -458,67 +462,66 @@ model ProductReviewVouch {
 }
 
 model WorkflowRun {
-  id          BigInt    @id @default(autoincrement())
+  id          BigInt   @id @default(autoincrement())
   workflow_id BigInt
-  started_at  DateTime  @default(now())
+  started_at  DateTime @default(now())
   finished_at DateTime?
   executed    Json
-  workflow    Workflow  @relation(fields: [workflow_id], references: [id], onDelete: Cascade)
+  workflow    Workflow @relation(fields: [workflow_id], references: [id], onDelete: Cascade)
 
   @@index([workflow_id])
   @@map("workflow_runs")
 }
 
 model Conversation {
-  id         BigInt    @id @default(autoincrement())
-  user1_id   BigInt
-  user2_id   BigInt
-  created_at DateTime  @default(now()) @db.Timestamptz(6)
-  updated_at DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
-  user1      User      @relation("ConversationUser1", fields: [user1_id], references: [id])
-  user2      User      @relation("ConversationUser2", fields: [user2_id], references: [id])
-  messages   Message[]
-  notifications Notification[]
+  id          BigInt   @id @default(autoincrement())
+  user1_id    BigInt
+  user2_id    BigInt
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+  messages    Message[]
+  user1       User     @relation("ConversationUser1", fields: [user1_id], references: [id])
+  user2       User     @relation("ConversationUser2", fields: [user2_id], references: [id])
 
-  @@unique([user1_id, user2_id])
   @@index([user1_id])
   @@index([user2_id])
+  @@unique([user1_id, user2_id])
   @@map("conversations")
 }
 
 model Message {
-  id              BigInt       @id @default(autoincrement())
+  id              BigInt      @id @default(autoincrement())
   conversation_id BigInt
   sender_id       BigInt
   text            String
-  created_at      DateTime     @default(now()) @db.Timestamptz(6)
+  created_at      DateTime    @default(now()) @db.Timestamptz(6)
   conversation    Conversation @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
-  sender          User         @relation(fields: [sender_id], references: [id], onDelete: Cascade)
-  notifications   Notification[]
+  sender          User        @relation(fields: [sender_id], references: [id], onDelete: Cascade)
 
   @@index([conversation_id])
   @@map("messages")
 }
 
 model CanonicalMedia {
-  id            String         @id
-  title         String
-  mediaType     String
-  metadata      Json?
-  embedding     Float[]
-  updatedAt     DateTime       @updatedAt
+  id        String   @id
+  title     String
+  mediaType String
+  metadata  Json?
+  embedding Float[]
+  updatedAt DateTime @updatedAt
+
   favoriteItems FavoriteItem[]
 
   @@map("canonical_media")
 }
 
 model FavoriteItem {
+  userId  BigInt
   mediaId String
   rating  Int?
-  addedAt DateTime       @default(now())
-  userId  BigInt
+  addedAt DateTime @default(now())
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   media   CanonicalMedia @relation(fields: [mediaId], references: [id], onDelete: Cascade)
-  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, mediaId])
   @@index([userId])
@@ -572,10 +575,6 @@ model user_taste_vectors {
   @@index([taste], map: "user_taste_vectors_ann")
 }
 
-enum like_type {
-  LIKE
-  DISLIKE
-}
 
 enum realtime_post_type {
   TEXT
@@ -610,4 +609,10 @@ enum visibility {
 enum notification_type {
   FOLLOW
   MESSAGE
+}
+
+model TrackEmbedding {
+  id        String   @id
+  vector    Float[]  // This will map to the vector type
+  createdAt DateTime @default(now())
 }
