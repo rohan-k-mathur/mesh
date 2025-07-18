@@ -1,4 +1,4 @@
-import { Queue } from "bullmq";
+import { Queue, QueueEvents } from "bullmq";
 import redis from "./redis";
 import IORedis from 'ioredis';
 
@@ -17,6 +17,8 @@ export const connection = new IORedis(redisUrl, { maxRetriesPerRequest: null });
 //const connection = new IORedis(redisUrl, { maxRetriesPerRequest: null });
 export const spotifyIngestQueue = new Queue('spotify-ingest', { connection }); // <-- no colon
 export const reembedQueue       = new Queue('reembed',       { connection });
+export const tasteVectorQueue   = new Queue('taste-vector',   { connection });
+export const tasteVectorEvents  = new QueueEvents('taste-vector',   { connection });
 
 // export const spotifyIngestQueue = new Queue("spotify-ingest", {
 //   connection: new IORedis(redisUrl, { maxRetriesPerRequest: null }),
