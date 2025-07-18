@@ -12,7 +12,9 @@
     "postinstall": "prisma generate",
     "seed": "tsx --env-file=.env scripts/seed.ts",
     "gmail-token": "tsx --env-file=.env scripts/gmail-token.ts",
-    "sheets-token": "tsx --env-file=.env scripts/google-sheets-token.ts"
+    "sheets-token": "tsx --env-file=.env scripts/google-sheets-token.ts",
+    "watch:worker": "nodemon",
+    "worker": "tsx -r dotenv/config workers/index.ts"
   },
   "dependencies": {
     "@gsap/react": "^2.1.1",
@@ -35,7 +37,7 @@
     "@react-three/fiber": "^8.17.10",
     "@splinetool/react-spline": "^4.0.0",
     "@splinetool/runtime": "^1.10.22",
-    "@supabase/supabase-js": "^2.45.1",
+    "@supabase/supabase-js": "^2.52.0",
     "@types/lodash": "^4.17.16",
     "@uploadthing/react": "^6.7.2",
     "@upstash/ratelimit": "^2.0.5",
@@ -115,6 +117,7 @@
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "constructs": "^10.3.0",
+    "dotenv": "^17.2.0",
     "esbuild": "^0.25.5",
     "eslint": "^8",
     "eslint-config-next": "14.2.5",
@@ -131,7 +134,7 @@
     "tailwindcss": "^3.4.1",
     "ts-jest": "^29.4.0",
     "ts-node": "^10.9.2",
-    "tsx": "^4.16.5",
+    "tsx": "^4.20.3",
     "typescript": "^5.5.4",
     "vitest": "^1.4.0"
   },

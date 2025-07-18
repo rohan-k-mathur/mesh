@@ -345,7 +345,7 @@ legacy:
 9. **API Gateway** – Edge Lambdas / Next.js API routes deliver results to clients.
 10. **Observability Stack** – OTEL collectors → Tempo (traces), Loki (logs), Prometheus (metrics).
 11. 
-Favorites Connector Workers – Node18 lambdas pulling external libraries; push raw JSON to S3 favorites_raw/.
+Favorites Connector Workers – Node18 lambdas pulling external libraries; push raw JSON to S3 favorites-raw/.
 
 Canonical Media DB – Aurora PostgreSQL with nightly metadata refresh jobs.
 

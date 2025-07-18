@@ -12,3 +12,12 @@ services:
       - redis
     environment:
       - FEAST_USAGE=False
+  web:
+    build: .
+    command: pnpm dev
+    ports: ["3000:3000"]
+    env_file: .env.local
+  worker:
+    build: .
+    command: pnpm worker           
+    env_file: .env.local

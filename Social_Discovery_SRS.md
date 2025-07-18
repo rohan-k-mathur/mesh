@@ -159,7 +159,7 @@ Performance – Favorites DAG completes ≤ 90 min for 10 M users.
 ## 7. System Architecture
 The Social Discovery AI Model will be built as a set of API routes powered by Prisma models and a similarity service. A dedicated module will encode user attributes into vectors for nearest-neighbor searches. Recommendation logic will rely on both vector similarity and collaborative filtering signals (likes and room memberships). UI components will consume these APIs to display matches and suggestions.
 
-Favorites Connector Workers – Node18 lambdas pulling external libraries; push raw JSON to S3 favorites_raw/.
+Favorites Connector Workers – Node18 lambdas pulling external libraries; push raw JSON to S3 favorites-raw/.
 
 Canonical Media DB – Aurora PostgreSQL with nightly metadata refresh jobs.
 

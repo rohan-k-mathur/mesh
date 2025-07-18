@@ -1,9 +1,11 @@
 import { Worker } from "bullmq";
-import { spotifyIngestQueue } from "@/lib/queue";
+import { connection, spotifyIngestQueue } from '@/lib/queue';
 import { prisma } from "@/lib/prismaclient";
 import { refreshToken, uploadRaw } from "@/lib/spotify";
-import redis, { setSyncStatus } from "@/lib/redis";
+
+import { setSyncStatus } from '@/lib/redis';       // only the helper
 import axios from "axios";
+// new Worker('spotify-ingest', job, { connection });
 
 async function fetchTracks(access: string) {
   let url: string | null = "https://api.spotify.com/v1/me/tracks?limit=50&offset=0";
@@ -17,9 +19,9 @@ async function fetchTracks(access: string) {
 }
 
 new Worker(
-  "spotify:ingest",
+  "spotify-ingest",
   async (job) => {
-    const userId = job.data.userId as number;
+    const userId = Number(job.data.userId);        // BigInt → number
     await setSyncStatus(userId, "syncing");
     const account = await prisma.linkedAccount.findFirst({
       where: { user_id: userId, provider: "spotify" },
@@ -56,5 +58,5 @@ new Worker(
       }
     }
   },
-  { connection: redis }
+  { connection }
 );

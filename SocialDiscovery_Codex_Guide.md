@@ -155,7 +155,7 @@ RUN & REPORT
 ### Task A2 – Spotify OAuth + Ingest Worker
 Scope
   • POST `/api/v2/favorites/import/spotify` – exchange code, fetch likes.
-  • Upload raw JSON to Supabase Storage bucket `favorites_raw/spotify/${userId}/${ts}.json`
+  • Upload raw JSON to Supabase Storage bucket `favorites-raw/spotify/${userId}/${ts}.json`
     using `createSignedUploadUrl` (no service‑role key exposed).
   • Track ingest status in Redis `fav:sync:${userId}`.
 

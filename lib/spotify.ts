@@ -36,7 +36,7 @@ export async function refreshToken(refresh_token: string): Promise<TokenResponse
 
 export async function uploadRaw(userId: number, data: unknown) {
   const key = `spotify/${userId}/${new Date().toISOString().split("T")[0]}.json`;
-  const bucket = supabase.storage.from("favorites_raw");
+  const bucket = supabase.storage.from("favorites-raw");
   const { data: url } = await bucket.createSignedUploadUrl(key);
   if (url) {
     await fetch(url, { method: "PUT", body: JSON.stringify(data) });

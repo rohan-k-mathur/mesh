@@ -32,6 +32,6 @@ export async function POST(req: NextRequest) {
       expires_at: new Date(Date.now() + tokens.expires_in * 1000),
     },
   });
-  const job = await spotifyIngestQueue.add("ingest", { userId: user.userId });
+  const job = await spotifyIngestQueue.add('ingest', { userId: Number(user.userId) });
   return NextResponse.json({ jobId: job.id }, { status: 202 });
 }

@@ -26,5 +26,5 @@ test("uploadRaw uses storage path", async () => {
   const upload = jest.fn();
   mockFrom.mockReturnValue({ createSignedUploadUrl: jest.fn(async () => ({ data: "u" })), upload });
   await uploadRaw(1, []);
-  expect(mockFrom).toHaveBeenCalledWith("favorites_raw");
+  expect(mockFrom).toHaveBeenCalledWith("favorites-raw");
 });
