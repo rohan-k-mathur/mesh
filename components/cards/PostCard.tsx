@@ -318,7 +318,7 @@ const PostCard = ({
             <hr className="mt-4 mb-3 w-full h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-100 to-transparent opacity-75" />
 
             <div className="mt-4 flex flex-col gap-x-3 gap-y-4">
-              <div className="flex gap-x-12 gap-y-8">
+              <div className="flex gap-x-10 gap-y-8">
                 <LikeButton
                   {...(isRealtimePost
                     ? { realtimePostId: id.toString() }

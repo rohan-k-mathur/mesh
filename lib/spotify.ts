@@ -50,29 +50,42 @@ export async function refreshToken(refresh_token: string): Promise<TokenResponse
 
 //   }
 // }
-export async function uploadRaw(userId: number, data: unknown) {
+export async function uploadRaw(userId: number, payload: unknown) {
   const key = `spotify/${userId}/${new Date().toISOString().split("T")[0]}.json`;
   console.log('[uploadRaw] creating signed URL for', key);
 
-  const bucket = supabase.storage.from('favorites_raw');
-  const { data: url, error } = await bucket.createSignedUploadUrl(key);
+  const bucket = supabase.storage.from('favorites-raw');
+  //const { data: url, error } = await bucket.createSignedUploadUrl(key);
 
-  if (error) {
-    console.error('[uploadRaw] signed-url error', error);
-    throw error;
-  }
-  if (!url) throw new Error('signedUrl is null');
+  const { data, error } = await bucket.createSignedUploadUrl(key, 60);
+  if (error) throw error;               // surface problems early
 
-  console.log('[uploadRaw] PUT → Supabase');
-  const res = await fetch(url, {
-    method: 'PUT',
-    body: JSON.stringify(data),
+  await fetch(data.signedUrl, {
+    method:  'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify(payload),
   });
-  if (!res.ok) {
-    const text = await res.text();
-    console.error('[uploadRaw] PUT failed', res.status, text);
-    throw new Error(`Supabase upload failed ${res.status}`);
-  }
 
-  console.log('[uploadRaw] upload complete');
+  console.log('[uploadRaw] upload complete →', data.path);
 }
+// }
+
+//   if (error) {
+//     console.error('[uploadRaw] signed-url error', error);
+//     throw error;
+//   }
+//   if (!url) throw new Error('signedUrl is null');
+
+//   console.log('[uploadRaw] PUT → Supabase');
+//   const res = await fetch(url, {
+//     method: 'PUT',
+//     body: JSON.stringify(data),
+//   });
+//   if (!res.ok) {
+//     const text = await res.text();
+//     console.error('[uploadRaw] PUT failed', res.status, text);
+//     throw new Error(`Supabase upload failed ${res.status}`);
+//   }
+
+//   console.log('[uploadRaw] upload complete');
+// }
