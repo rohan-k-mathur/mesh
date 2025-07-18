@@ -1,5 +1,5 @@
 import { Worker, QueueEvents } from 'bullmq';
-import { connection } from '@/lib/queue';          // only the Redis conn
+import { connection, tasteVectorQueue } from '@/lib/queue';          // only the Redis conn
 import { prisma } from '@/lib/prismaclient';
 import { refreshToken, uploadRaw } from '@/lib/spotify'; // uploadRaw uses the service-role key
 import { setSyncStatus } from '@/lib/redis';
@@ -38,6 +38,7 @@ async function jobHandler(job: { data: { userId: number } }) {
   try {
     const tracks = await fetchTracks(access);
     await uploadRaw(userId, tracks);          // throws if bucket/key wrong
+    await tasteVectorQueue.add('build-vector', { userId });
     await setSyncStatus(userId, 'done');
   } catch (err: any) {
     // 401 = expired access token → refresh once
@@ -57,6 +58,7 @@ async function jobHandler(job: { data: { userId: number } }) {
 
       const tracks = await fetchTracks(access);
       await uploadRaw(userId, tracks);
+      await tasteVectorQueue.add('build-vector', { userId });
       await setSyncStatus(userId, 'done');
       return;
     }
