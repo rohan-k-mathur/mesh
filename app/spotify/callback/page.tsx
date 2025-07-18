@@ -3,17 +3,19 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-export const dynamic = 'force-dynamic';           // don’t pre‑render
+export const dynamic = 'force-dynamic'; // don’t pre-render on the server
 
 export default function SpotifyCallback() {
-  // simple UX state
   const [msg, setMsg] = useState('Linking your Spotify account…');
   const params = useSearchParams();
   const router = useRouter();
 
   useEffect(() => {
     const code = params.get('code');
-    if (!code) { setMsg('Missing code'); return; }
+    if (!code) {
+      setMsg('Missing “code” parameter');
+      return;
+    }
 
     (async () => {
       try {
@@ -22,17 +24,23 @@ export default function SpotifyCallback() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ code }),
         });
-        const json = await res.json();
-        if (res.status === 202) {
-          setMsg('Sync started! You can close this tab.');
-          // Optionally redirect somewhere nicer:
-          // router.replace('/favorites?sync=spotify');
-        } else {
-          setMsg(`Error: ${json.error ?? 'unknown'}`);
+
+        let json: any = {};
+        try {
+          json = await res.json(); // may be empty on 500
+        } catch {
+          /* ignore empty body */
         }
-      } catch (e) {
-        setMsg('Network error – check console');
-        console.error(e);
+
+        if (res.ok && res.status === 202) {
+          setMsg('Sync started! You can close this tab.');
+          // router.replace('/favorites?sync=spotify'); // optional redirect
+        } else {
+          setMsg(`Error: ${json.error ?? res.statusText}`);
+        }
+      } catch (err) {
+        console.error(err);
+        setMsg('Network error – see console');
       }
     })();
   }, [params]);

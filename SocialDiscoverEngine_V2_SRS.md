@@ -584,7 +584,7 @@ G. Favorites Opt‑out Data‑Flow Diagram
 4. Schedule Security & Privacy design review by Week 2.
 
 Next Actions (Favorites Work‑Stream)
-Infra – Provision Aurora CMD cluster & S3 favorites_raw.
+Infra – Provision Aurora CMD cluster & S3 favorites-raw.
 
 Eng – Ship MVP Spotify adapter + TMDb fetcher (owner: @media‑ingest).
 
