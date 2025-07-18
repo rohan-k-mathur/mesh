@@ -566,10 +566,12 @@ export async function replicateRealtimePost({
   originalPostId,
   userId,
   path,
+  text,
 }: {
   originalPostId: string | number | bigint;
   userId: string | number | bigint;
   path: string;
+  text?: string;
 }) {
   try {
     const oid = BigInt(originalPostId);
@@ -578,9 +580,10 @@ export async function replicateRealtimePost({
       where: { id: oid },
     });
     if (!original) throw new Error("Real-time post not found");
+    const payload = JSON.stringify({ id: oid.toString(), text });
     const newPost = await prisma.realtimePost.create({
       data: {
-        content: `REPLICATE:${oid.toString()}`,
+        content: `REPLICATE:${payload}`,
         author_id: uid,
         x_coordinate: original.x_coordinate,
         y_coordinate: original.y_coordinate,

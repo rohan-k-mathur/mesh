@@ -16,6 +16,7 @@ interface Props {
   createdAt: string;
   likeCount: number;
   expirationDate?: string | null;
+  text?: string;
 }
 
 const ReplicatedPostCard = ({
@@ -27,6 +28,7 @@ const ReplicatedPostCard = ({
   createdAt,
   likeCount,
   expirationDate,
+  text = "Replicated",
 }: Props) => {
   const [original, setOriginal] = useState<any | null>(null);
   const [currentUserLike, setCurrentUserLike] = useState<any | null>(null);
@@ -57,7 +59,7 @@ const ReplicatedPostCard = ({
       id={id}
       currentUserId={currentUserId}
       currentUserLike={currentUserLike}
-      content="Replicated"
+      content={text}
       type="TEXT"
       isRealtimePost={isRealtimePost}
       author={author}

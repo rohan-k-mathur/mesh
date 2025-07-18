@@ -85,7 +85,23 @@ const PostCard = ({
   claimIds,
   }: Props) => {
   if (content && content.startsWith("REPLICATE:")) {
-    const originalId = BigInt(content.split(":" )[1]);
+    const dataStr = content.slice("REPLICATE:".length);
+    let originalId: bigint | null = null;
+    let replicateText = "Replicated";
+    try {
+      const parsed = JSON.parse(dataStr);
+      originalId = BigInt(parsed.id);
+      replicateText = parsed.text || replicateText;
+    } catch (e) {
+      try {
+        originalId = BigInt(dataStr);
+      } catch {
+        originalId = null;
+      }
+    }
+
+    if (!originalId) return null;
+
     return (
       <ReplicatedPostCard
         id={id}
@@ -96,6 +112,7 @@ const PostCard = ({
         createdAt={createdAt}
         likeCount={likeCount}
         expirationDate={expirationDate ?? undefined}
+        text={replicateText}
       />
     );
   }

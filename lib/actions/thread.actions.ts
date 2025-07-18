@@ -229,10 +229,12 @@ export async function replicatePost({
   originalPostId,
   userId,
   path,
+  text,
 }: {
   originalPostId: string | number | bigint;
   userId: string | number | bigint;
   path: string;
+  text?: string;
 }) {
   try {
     const oid = BigInt(originalPostId);
@@ -242,9 +244,10 @@ export async function replicatePost({
       include: { author: true },
     });
     if (!original) throw new Error("Post not found");
+    const payload = JSON.stringify({ id: oid.toString(), text });
     const newPost = await prisma.post.create({
       data: {
-        content: `REPLICATE:${oid.toString()}`,
+        content: `REPLICATE:${payload}`,
         author_id: uid,
       },
     });
