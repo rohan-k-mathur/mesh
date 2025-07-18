@@ -131,10 +131,12 @@ export default function SpotifyCallback() {
           { cache: 'no-store' }
         );
 
-        let sum: Summary | null = null;
-        if (sRes.ok && Number(sRes.headers.get('content-length') || 0) > 0) {
-          sum = await sRes.json();
-        }
+        // let sum: Summary | null = null;
+        // if (sRes.ok && Number(sRes.headers.get('content-length') || 0) > 0) {
+        //   sum = await sRes.json();
+        // }
+         if (!sRes.ok) throw new Error('summary failed');
+         const sum = await sRes.json();  
 
         if (sum && sum.total) {
           setSum(sum);
