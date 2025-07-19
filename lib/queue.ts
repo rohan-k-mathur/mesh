@@ -18,7 +18,20 @@ export const connection = new IORedis(redisUrl, { maxRetriesPerRequest: null });
 export const spotifyIngestQueue = new Queue('spotify-ingest', { connection }); // <-- no colon
 export const reembedQueue       = new Queue('reembed',       { connection });
 export const tasteVectorQueue   = new Queue('taste-vector',   { connection });
-export const tasteVectorEvents  = new QueueEvents('taste-vector',   { connection });
+// export const tasteVectorEvents  = new QueueEvents('taste-vector',   { connection });
+
+
+/** one reusable ioredis connection */
+
+
+
+/* (optional) queue‑event helpers – keep a reference so GC doesn't kill them */
+export const tasteVectorEvents  = new QueueEvents('taste-vector', { connection });
+tasteVectorEvents.on('completed',
+  ({ jobId }) => console.log('[taste-vector] completed', jobId));
+tasteVectorEvents.on('failed',
+  ({ jobId, failedReason }) => console.error('[taste-vector] FAILED', failedReason));
+
 
 // export const spotifyIngestQueue = new Queue("spotify-ingest", {
 //   connection: new IORedis(redisUrl, { maxRetriesPerRequest: null }),

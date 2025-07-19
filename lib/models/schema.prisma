@@ -626,8 +626,8 @@ enum notification_type {
   MESSAGE
 }
 
-model TrackEmbedding {
-  id        String   @id
+model track_embedding {
+  track_id  String   @id @db.Text
   vector    Float[] // This will map to the vector type
   createdAt DateTime @default(now())
 }

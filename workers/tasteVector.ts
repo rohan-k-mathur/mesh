@@ -8,6 +8,8 @@ import { Readable }        from 'node:stream';
 import { parser }          from 'stream-json';
 import { streamArray }     from 'stream-json/streamers/StreamArray';
 
+
+
 // service-role Supabase client (server only)
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -46,28 +48,54 @@ new Worker(
         .on('error', rej);
     });
 
+    // /* --- 3. fetch / compute embeddings ---------------------------------- */
+    // const embeddings = await prisma.trackEmbedding.findMany({
+    //   where: { id: { in: trackIds } },
+    //   select: { vector: true }
+    // });
+
+
+    // const dim = embeddings[0]?.vector.length ?? 0;
+    // const agg = Array(dim).fill(0) as number[];
+
+    // embeddings.forEach(e =>
+    //   e.vector.forEach((v, i) => (agg[i] += v)));
+
+    // const taste = agg.map(v => v / embeddings.length);
+
+    // /* --- 4. write to user_taste_vectors (upsert) ------------------------- */
+    // await prisma.$executeRaw`
+    //   INSERT INTO user_taste_vectors (user_id, taste, updated_at)
+    //   VALUES (${BigInt(userId)}, ${taste}::vector, NOW())
+    //   ON CONFLICT (user_id)
+    //   DO UPDATE SET taste = ${taste}::vector, updated_at = NOW()
+    // `;
     /* --- 3. fetch / compute embeddings ---------------------------------- */
-    const embeddings = await prisma.trackEmbedding.findMany({
-      where: { id: { in: trackIds } },
-      select: { vector: true }
-    });
+const rows: { vector: number[] }[] = await prisma.$queryRaw`
+SELECT vector::float8[] AS vector
+FROM   track_embedding
+WHERE  track_id = ANY(${trackIds})   -- 👈 use the right column
+`;
+console.log('[taste‑vector]', userId, 'parsed', trackIds.length, 'ids');
 
+if (rows.length === 0) {
+console.log('[taste-vector] no embeddings for user', userId);
+return;                              // or throw → worker “failed”
+}
 
-    const dim = embeddings[0]?.vector.length ?? 0;
-    const agg = Array(dim).fill(0) as number[];
+/* average the vectors */
+const dim  = rows[0].vector.length;
+const mean = Array(dim).fill(0) as number[];
+rows.forEach(r => r.vector.forEach((v, i) => (mean[i] += v)));
+for (let i = 0; i < dim; i++) mean[i] /= rows.length;
 
-    embeddings.forEach(e =>
-      e.vector.forEach((v, i) => (agg[i] += v)));
-
-    const taste = agg.map(v => v / embeddings.length);
-
-    /* --- 4. write to user_taste_vectors (upsert) ------------------------- */
-    await prisma.$executeRaw`
-      INSERT INTO user_taste_vectors (user_id, taste, updated_at)
-      VALUES (${BigInt(userId)}, ${taste}::vector, NOW())
-      ON CONFLICT (user_id)
-      DO UPDATE SET taste = ${taste}::vector, updated_at = NOW()
-    `;
+/* upsert */
+await prisma.$executeRaw`
+INSERT INTO user_taste_vectors (user_id, taste, updated_at)
+VALUES (${BigInt(userId)}, ${mean}::vector, NOW())
+ON CONFLICT (user_id)
+DO UPDATE SET taste = ${mean}::vector, updated_at = NOW()
+`;
 
     /* --- 5. invalidate downstream caches -------------------------------- */
     await redis.del(`candCache:${userId}`);
