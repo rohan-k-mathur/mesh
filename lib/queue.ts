@@ -19,6 +19,7 @@ export const spotifyIngestQueue = new Queue('spotify-ingest', { connection }); /
 export const reembedQueue       = new Queue('reembed',       { connection });
 export const tasteVectorQueue   = new Queue('taste-vector',   { connection });
 export const candidateBuilderQueue = new Queue('candidate-builder', { connection });
+export const userKnnQueue       = new Queue('user-knn',      { connection });
 // export const tasteVectorEvents  = new QueueEvents('taste-vector',   { connection });
 
 
