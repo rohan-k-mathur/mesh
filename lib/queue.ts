@@ -18,6 +18,7 @@ export const connection = new IORedis(redisUrl, { maxRetriesPerRequest: null });
 export const spotifyIngestQueue = new Queue('spotify-ingest', { connection }); // <-- no colon
 export const reembedQueue       = new Queue('reembed',       { connection });
 export const tasteVectorQueue   = new Queue('taste-vector',   { connection });
+export const candidateBuilderQueue = new Queue('candidate-builder', { connection });
 // export const tasteVectorEvents  = new QueueEvents('taste-vector',   { connection });
 
 
