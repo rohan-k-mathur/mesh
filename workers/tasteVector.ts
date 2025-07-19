@@ -10,7 +10,7 @@
 
 
 import { Worker }                 from 'bullmq';
-import { connection }             from '@/lib/queue';
+import { connection, candidateBuilderQueue } from '@/lib/queue';
 import { prisma }                 from '@/lib/prismaclient';
 import redis                      from '@/lib/redis';
 import { createClient }           from '@supabase/supabase-js';
@@ -90,6 +90,7 @@ new Worker(
     /* 5 — invalidate caches */
     await redis.del(`candCache:${userId}`);
     await redis.del(`friendSuggest:${userId}`);
+    await candidateBuilderQueue.add('build', { userId });
     console.log('[taste‑vector] done', userId);
   },
   { connection, concurrency: 2 },
