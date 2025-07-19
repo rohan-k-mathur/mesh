@@ -134,7 +134,7 @@ Use this flow whenever you need to wire up (or revisit) the */api/v2/favorites/i
      const ymd   = new Date().toISOString().split('T')[0];
      const key   = `spotify/${userId}/${ymd}.json`;
      const { data: signed } = await supabase.storage
-       .from('favorites_raw')
+       .from('favorites-raw')
        .createSignedUploadUrl(key, 60);
 
      await fetch(signed.signedUrl, {

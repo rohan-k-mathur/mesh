@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
   const status = (await redis.get(key)) ?? 'none';
 
   if (status === 'done') {
-    // find newest file in favorites_raw/spotify/{uid}/
+    // find newest file in favorites-raw/spotify/{uid}/
     const prefix = `spotify/${user.userId}/`;
     const { data } = await supabase.storage.from('favorites-raw').list(prefix, { limit: 1, sortBy: { column: 'name', order: 'desc' }});
     const latest  = data?.[0]?.name ? prefix + data[0].name : null;

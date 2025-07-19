@@ -52,6 +52,7 @@ new Worker(
       select: { vector: true }
     });
 
+
     const dim = embeddings[0]?.vector.length ?? 0;
     const agg = Array(dim).fill(0) as number[];
 

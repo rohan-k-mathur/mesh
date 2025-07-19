@@ -25,7 +25,7 @@ const queue = new Queue("reembed", {
 
 // ---------------------------------------------------------------------------
 //  HTTP handler – called by the **Supabase DB Webhook** on
-//  INSERT/UPDATE into favorites_raw or linked_accounts.
+//  INSERT/UPDATE into favorites-raw or linked_accounts.
 serve(async (req) => {
   const { record } = await req.json();              // row payload
   const userId = record.user_id ?? record.id;       // adjust to trigger source
