@@ -19,6 +19,7 @@ import GalleryNodeModal from "@/components/modals/GalleryNodeModal";
 import PortalNodeModal from "@/components/modals/PortalNodeModal";
 import PortfolioNodeForm from "./PortfolioNodeForm";
 import PortfolioNodeModal from "../modals/PortfolioNodeModal";
+import PortfolioSiteBuilderModal from "../modals/PortfolioSiteBuilderModal";
 import LivechatNodeModal from "@/components/modals/LivechatNodeModal";
 import EntropyNodeModal from "@/components/modals/EntropyNodeModal";
 import PdfViewerNodeModal from "@/components/modals/PdfViewerNodeModal";
@@ -297,17 +298,7 @@ const CreateFeedPost = ({ roomId = "global" }: Props) => {
           />
         );
       case "PORTFOLIO":
-        return (
-          <PortfolioNodeModal
-            isOwned={true}
-            currentText=""
-            currentImages={[]}
-            currentLinks={[]}
-            currentLayout="grid"
-            currentColor="bg-white"
-            onSubmit={handlePortfolioSubmit}
-          />
-        );
+        return <PortfolioSiteBuilderModal />;
       case "ENTROPY":
         return (
           <EntropyNodeModal
