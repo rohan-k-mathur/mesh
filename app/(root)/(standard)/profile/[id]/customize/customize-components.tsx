@@ -64,7 +64,7 @@ export default function CustomButtons({ userAttributes, initialOpen }: Props) {
   };
 
   return (
-    <div className="absolute flex flex-wrap grid-auto-row-dense w-fit	max-w-[70rem] items-start justify-left gap-10  mt-24  ">
+    <div className="absolute flex flex-wrap grid-auto-row-dense w-fit	max-w-[70rem] items-start justify-start gap-10  mt-24  ">
       <div className="relative grid p-5 gap-3 w-fit  border-[1px] border-sky-400 rounded-xl pb-7 text-black  font-semibold">
        <h1 className="text-[1.2rem] ">
         {"Bio"}
