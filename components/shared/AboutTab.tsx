@@ -78,7 +78,7 @@ const AboutTab = async ({ currentUserId, accountId }: Props) => {
   ];
 
   const grid = (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-9">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
       {categories.map((cat) => (
         <div
           key={cat.label}
@@ -107,11 +107,11 @@ const AboutTab = async ({ currentUserId, accountId }: Props) => {
     return (
       <main className="items-center justify-center text-center">
         <Link href={`/profile/${accountId}/customize`}>
-          <button className="tab-button mt-5 text-[1.35rem] bg-white bg-opacity-30 text-black w-fit rounded-md px-4 py-3">
+          <button className="tab-button mt-5 text-[1.2rem] bg-white bg-opacity-20 text-black w-fit rounded-xl px-5 tracking-wide py-3 mb-6">
             Customize Profile
           </button>
         </Link>
-       
+        <hr></hr>
 
         {grid}
       </main>
