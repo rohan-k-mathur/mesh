@@ -4,9 +4,10 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "../prismaclient";
 import { revalidatePath } from "next/cache";
 import { nanoid } from "nanoid";
-
-const userCacheById = new Map<bigint, Prisma.User | null>();
-const userCacheByAuthId = new Map<string, Prisma.User | null>();
+import { getUserFromCookies } from "../serverutils";
+import { User } from "@prisma/client";
+const userCacheById = new Map<bigint, User| null>();
+const userCacheByAuthId = new Map<string, User | null>();
 
 export async function clearUserCache() {
   userCacheById.clear();

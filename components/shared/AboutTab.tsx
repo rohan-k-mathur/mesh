@@ -21,27 +21,6 @@ const AboutTab = async ({ currentUserId, accountId }: Props) => {
   const profile = await fetchUser(accountId);
 
   const categories = [
-
-    {
-      label: "Artists",
-      values: attributes?.artists || [],
-    },
-    {
-      label: "Albums",
-      values: attributes?.albums || [],
-    },
-    {
-      label: "Songs",
-      values: attributes?.songs || [],
-    },
-    {
-      label: "Movies",
-      values: attributes?.movies || [],
-    },
-    {
-      label: "Books",
-      values: attributes?.books || [],
-    },
     {
       label: "Interests",
       values: attributes?.interests || [],
@@ -64,6 +43,38 @@ const AboutTab = async ({ currentUserId, accountId }: Props) => {
         ? [format(new Date(attributes.birthday), "yyyy-MM-dd")]
         : [],
     },
+    {
+      label: "Profession",
+      values: attributes?.birthday
+        ? [format(new Date(attributes.birthday), "yyyy-MM-dd")]
+        : [],
+    },
+    {
+      label: "Artists",
+      values: attributes?.artists || [],
+    },
+    {
+      label: "Albums",
+      values: attributes?.albums || [],
+    },
+    {
+      label: "Songs",
+      values: attributes?.songs || [],
+    },
+    {
+      label: "Movies",
+      values: attributes?.movies || [],
+    },
+    {
+      label: "Books",
+      values: attributes?.books || [],
+    },
+    {
+      label: "Podcasts",
+      values: attributes?.books || [],
+    },
+
+
   ];
 
   const grid = (
@@ -100,7 +111,8 @@ const AboutTab = async ({ currentUserId, accountId }: Props) => {
             Customize Profile
           </button>
         </Link>
-        {bioSection}
+       
+
         {grid}
       </main>
     );
