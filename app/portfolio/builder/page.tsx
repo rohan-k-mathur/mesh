@@ -4,7 +4,7 @@ import { DndContext, DragEndEvent, closestCenter } from "@dnd-kit/core";
 import { useDraggable, useDroppable, useSortable, SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { nanoid } from "nanoid";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { uploadFileToSupabase } from "@/lib/utils";
 import { PortfolioExportData } from "@/lib/portfolio/export";
@@ -36,12 +36,96 @@ function SortableCanvasItem({ id, children }: { id: string; children: React.Reac
   );
 }
 
+interface TextBox {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  text: string;
+}
+
 function DroppableCanvas({ children, layout }: { children: React.ReactNode; layout: "column" | "grid" }) {
   const { setNodeRef } = useDroppable({ id: "canvas" });
   const layoutClass = layout === "grid" ? "grid grid-cols-2 gap-2" : "flex flex-col space-y-2";
+  const [boxes, setBoxes] = useState<TextBox[]>([]);
+  const [draft, setDraft] = useState<TextBox | null>(null);
+  const ref = useRef<HTMLDivElement>(null);
+
+  function startDraw(e: React.MouseEvent<HTMLDivElement>) {
+    if (e.target !== ref.current) return;
+    const rect = ref.current!.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    setDraft({ id: "", x, y, width: 0, height: 0, text: "" });
+  }
+
+  function moveDraw(e: React.MouseEvent<HTMLDivElement>) {
+    if (!draft) return;
+    const rect = ref.current!.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    setDraft((d) => (d ? { ...d, width: x - d.x, height: y - d.y } : null));
+  }
+
+  function endDraw() {
+    if (!draft) return;
+    let { x, y, width, height } = draft;
+    if (Math.abs(width) < 5 || Math.abs(height) < 5) {
+      setDraft(null);
+      return;
+    }
+    if (width < 0) {
+      x += width;
+      width = Math.abs(width);
+    }
+    if (height < 0) {
+      y += height;
+      height = Math.abs(height);
+    }
+    setBoxes((bs) => [...bs, { id: nanoid(), x, y, width, height, text: "" }]);
+    setDraft(null);
+  }
+
+  function updateText(id: string, text: string) {
+    setBoxes((bs) => bs.map((b) => (b.id === id ? { ...b, text } : b)));
+  }
+
   return (
-    <div ref={setNodeRef} className={`flex-1 min-h-screen border border-dashed p-4 bg-gray-50 ${layoutClass}`}> 
+    <div
+      ref={(node) => {
+        setNodeRef(node);
+        ref.current = node;
+      }}
+      className={`relative flex-1 min-h-screen border border-dashed p-4 bg-gray-50 ${layoutClass}`}
+      onMouseDown={startDraw}
+      onMouseMove={moveDraw}
+      onMouseUp={endDraw}
+    >
       {children}
+      {boxes.map((box) => (
+        <div
+          key={box.id}
+          style={{ left: box.x, top: box.y, width: box.width, height: box.height }}
+          className="absolute border border-dashed border-gray-400 bg-white text-xs p-1 outline-none"
+          contentEditable
+          suppressContentEditableWarning
+          onInput={(e) => updateText(box.id, (e.target as HTMLElement).innerText)}
+        >
+          {box.text}
+        </div>
+      ))}
+      {draft && (
+        <div
+          style={{
+            left: draft.width < 0 ? draft.x + draft.width : draft.x,
+            top: draft.height < 0 ? draft.y + draft.height : draft.y,
+            width: Math.abs(draft.width),
+            height: Math.abs(draft.height),
+          }}
+          className="absolute border border-dashed border-gray-400 pointer-events-none"
+        />
+      )}
     </div>
   );
 }
