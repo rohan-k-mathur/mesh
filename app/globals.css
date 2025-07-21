@@ -387,6 +387,22 @@
   font-size: 10px;
   letter-spacing: 0.1px;
 }
+
+/* ---- text‑box corner handles ---- */
+.resize-handle {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: #3b82f6;            /* blue‑500 – tweak to taste */
+  border-radius: 2px;
+  z-index: 10;
+}
+
+.handle-nw { top:  -5px; left:  -5px;  cursor: nwse-resize; }
+.handle-ne { top:  -5px; right: -5px;  cursor: nesw-resize; }
+.handle-sw { bottom:-5px; left:  -5px;  cursor: nesw-resize; }
+.handle-se { bottom:-5px; right: -5px;  cursor: nwse-resize; }
+
 .portal-node {
  display: grid;
   padding-left: 0.8rem;

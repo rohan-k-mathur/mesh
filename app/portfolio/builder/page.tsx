@@ -14,7 +14,7 @@ import {
 import { useSortable, arrayMove } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { nanoid } from "nanoid";
-import { useState, useRef } from "react";
+import { useState, useRef,useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { uploadFileToSupabase } from "@/lib/utils";
 import { PortfolioExportData } from "@/lib/portfolio/export";
@@ -68,7 +68,18 @@ interface TextBox {
   height: number;
   text: string;
 }
+type Corner = 'nw' | 'ne' | 'sw' | 'se';
 
+interface ResizeState {
+  id: string;            // box being resized
+  corner: Corner;        // which corner is active
+  startX: number;        // pointer position at drag start
+  startY: number;
+  startLeft: number;     // box position/dimensions at drag start
+  startTop: number;
+  startWidth: number;
+  startHeight: number;
+}
 function DroppableCanvas({
   children,
   layout,
@@ -88,13 +99,16 @@ function DroppableCanvas({
   setBoxes: React.Dispatch<React.SetStateAction<TextBox[]>>;
   canvasRef: React.MutableRefObject<HTMLDivElement | null>;
 }) {
-  const { setNodeRef } = useDroppable({ id: "canvas" });
-  const layoutClass = isBlank
+    const { setNodeRef } = useDroppable({ id: "canvas" });
+    const layoutClass = isBlank
     ? ""
     : layout === "grid"
     ? "grid grid-cols-2 gap-2"
     : "flex flex-col gap-2";
-  const [draft, setDraft] = useState<TextBox | null>(null);
+   /* NEW ---------- */
+   const [draft, setDraft]   = useState<TextBox | null>(null);
+   const [resizing, setResizing] = useState<ResizeState | null>(null);
+   /* --------------- */
   const ref = canvasRef;
 
   function startDraw(e: React.MouseEvent<HTMLDivElement>) {
@@ -131,7 +145,82 @@ function DroppableCanvas({
     setBoxes((bs) => [...bs, { id: nanoid(), x, y, width, height, text: "" }]);
     setDraft(null);
   }
+  /* ---------- resize helpers ------------ */
+  function handlePointerDown(e: React.PointerEvent, b: TextBox, corner: Corner) {
+    e.stopPropagation();
+    const rect = ref.current!.getBoundingClientRect();
+    setResizing({
+      id: b.id,
+      corner,
+      startX: e.clientX - rect.left,
+      startY: e.clientY - rect.top,
+      startLeft: b.x,
+      startTop:  b.y,
+      startWidth: b.width,
+      startHeight: b.height,
+    });
+  }
 
+  /* attach / detach window listeners when resizing */
+  useEffect(() => {
+    function onMove(ev: PointerEvent) {
+      if (!resizing) return;
+      const { startX, startY, corner, startLeft, startTop, startWidth, startHeight } = resizing;
+      const rect = ref.current!.getBoundingClientRect();
+      const x = ev.clientX - rect.left;
+      const y = ev.clientY - rect.top;
+      const dx = x - startX;
+      const dy = y - startY;
+
+      setBoxes(bs =>
+        bs.map(b => {
+          if (b.id !== resizing.id) return b;
+
+          let left  = startLeft;
+          let top   = startTop;
+          let width = startWidth;
+          let height= startHeight;
+
+          switch (corner) {
+            case 'se':
+              width  = Math.max(20, startWidth  + dx);
+              height = Math.max(20, startHeight + dy);
+              break;
+            case 'sw':
+              width  = Math.max(20, startWidth  - dx);
+              height = Math.max(20, startHeight + dy);
+              left   = startLeft + dx;
+              break;
+            case 'ne':
+              width  = Math.max(20, startWidth  + dx);
+              height = Math.max(20, startHeight - dy);
+              top    = startTop  + dy;
+              break;
+            case 'nw':
+              width  = Math.max(20, startWidth  - dx);
+              height = Math.max(20, startHeight - dy);
+              left   = startLeft + dx;
+              top    = startTop  + dy;
+              break;
+          }
+          return { ...b, x: left, y: top, width, height };
+        }),
+      );
+    }
+
+    function onUp() {
+      setResizing(null);
+    }
+
+    if (resizing) {
+      window.addEventListener('pointermove', onMove);
+      window.addEventListener('pointerup', onUp);
+      return () => {
+        window.removeEventListener('pointermove', onMove);
+        window.removeEventListener('pointerup', onUp);
+      };
+    }
+  }, [resizing, setBoxes]);
   function updateText(id: string, text: string) {
     setBoxes((bs) => bs.map((b) => (b.id === id ? { ...b, text } : b)));
   }
@@ -150,6 +239,35 @@ function DroppableCanvas({
     >
       {children}
       {boxes.map((box) => (
+
+<div
+key={box.id}
+style={{ left: box.x, top: box.y, width: box.width, height: box.height }}
+className="absolute border border-dashed border-gray-400 bg-white text-xs outline-none overflow-auto"
+>
+{/* corner handles */}
+{(['nw','ne','sw','se'] as Corner[]).map(corner => (
+  <div
+    key={corner}
+    onPointerDown={(e) => handlePointerDown(e, box, corner)}
+    className={`resize-handle handle-${corner}`}
+  />
+))}
+
+{/* editable text area */}
+<div
+            contentEditable
+            suppressContentEditableWarning
+            className="w-full h-full p-1"
+            onInput={(e) => updateText(box.id, (e.target as HTMLElement).innerText)}
+            style={{ cursor: 'text' }}
+          >
+            {box.text}
+          </div>
+        </div>
+      ))}
+
+{/* 
         <div
           key={box.id}
           style={{ left: box.x, top: box.y, width: box.width, height: box.height }}
@@ -160,7 +278,7 @@ function DroppableCanvas({
         >
           {box.text}
         </div>
-      ))}
+      ))} */}
       {draft && (
         <div
           style={{
