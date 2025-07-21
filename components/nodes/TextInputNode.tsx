@@ -60,27 +60,6 @@ function TextInputNode({ id, data }: NodeProps<TextNode>) {
     ? Number(currentActiveUser!.userId) === Number(data.author.id)
     : false;
 
-  const handleInput = (e: React.FormEvent<HTMLDivElement>) => {
-    if (!isOwned) return;
-    const value = e.currentTarget.textContent || "";
-    setText(value);
-    const ytext = docRef.current.getText("content");
-    ytext.delete(0, ytext.length);
-    ytext.insert(0, value);
-    const update = Y.encodeStateAsUpdate(docRef.current);
-    channelRef.current?.send({
-      type: "broadcast",
-      event: TEXT_UPDATE_EVENT,
-      payload: { update: Buffer.from(update).toString("base64") },
-    });
-  };
-
-  const handleBlur = () => {
-    if (isOwned) {
-      updateRealtimePost({ id, text, path });
-    }
-  };
-
   async function onSubmit(values: z.infer<typeof TextPostValidation>) {
     const ytext = docRef.current.getText("content");
     ytext.delete(0, ytext.length);
@@ -112,15 +91,7 @@ function TextInputNode({ id, data }: NodeProps<TextNode>) {
       isLocked={data.locked}
     >
       <div className="text-updater-node mt-2">
-        <div
-          className="text-node-block h-full px-2 py-2 outline-none"
-          contentEditable={isOwned}
-          suppressContentEditableWarning
-          onInput={handleInput}
-          onBlur={handleBlur}
-        >
-          {text}
-        </div>
+        <div className="text-node-block h-full px-2 py-2">{ text}</div>
       </div>
     </BaseNode>
   );
