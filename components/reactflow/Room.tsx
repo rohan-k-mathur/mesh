@@ -374,7 +374,7 @@ function Room({ roomId, initialNodes, initialEdges }: Props) {
   };
 
   return (
-    <div className="absolute inset-x-0 inset-y-0 cursor-none canvas-grid bg-white z-0">
+    <div className="absolute inset-x-0 inset-y-0 cursor-none bg-white z-0">
       <ReactFlow
         style={{ cursor: "none" }}
         ref={reactFlowRef}
