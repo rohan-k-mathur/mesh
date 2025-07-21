@@ -1,8 +1,16 @@
 /* eslint-disable react/jsx-key */
 "use client";
 
-import { DndContext, DragEndEvent, closestCenter,
-         useDraggable, useDroppable } from "@dnd-kit/core";
+import {
+  DndContext,
+  DragEndEvent,
+  pointerWithin,
+  useDraggable,
+  useDroppable,
+  useSensor,
+  useSensors,
+  PointerSensor,
+} from "@dnd-kit/core";
 import { useSortable, SortableContext,
          verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -48,7 +56,15 @@ interface TextBox {
   text: string;
 }
 
-function DroppableCanvas({ children, layout }: { children: React.ReactNode; layout: "column" | "grid" }) {
+function DroppableCanvas({
+  children,
+  layout,
+  color,
+}: {
+  children: React.ReactNode;
+  layout: "column" | "grid";
+  color: string;
+}) {
   const { setNodeRef } = useDroppable({ id: "canvas" });
   const layoutClass = layout === "grid" ? "grid grid-cols-2 gap-2" : "flex flex-col space-y-2";
   const [boxes, setBoxes] = useState<TextBox[]>([]);
@@ -100,7 +116,7 @@ function DroppableCanvas({ children, layout }: { children: React.ReactNode; layo
         setNodeRef(node);
         ref.current = node;
       }}
-      className={`relative flex-1 min-h-screen border border-dashed p-4 bg-gray-50 ${layoutClass}`}
+      className={`relative flex-1 min-h-screen border border-dashed p-4 ${color} ${layoutClass} grid-background`}
       style={{ cursor: draft ? "crosshair" : "text" }}
       onMouseDown={startDraw}
       onMouseMove={moveDraw}
@@ -209,8 +225,14 @@ export default function PortfolioBuilder() {
     setElements(tpl.elements.map((e) => ({ ...e, id: nanoid() })));
   }
 
+  const sensors = useSensors(useSensor(PointerSensor));
+
   return (
-    <DndContext onDragEnd={handleDragEnd} collisionDetection={closestCenter}>
+    <DndContext
+      sensors={sensors}
+      onDragEnd={handleDragEnd}
+      collisionDetection={pointerWithin}
+    >
       <div className="flex h-screen">
         <div className="w-40 border-r p-2 space-y-2 bg-gray-100">
           <DraggableItem id="text" fromSidebar>
@@ -226,7 +248,7 @@ export default function PortfolioBuilder() {
             Link
           </DraggableItem>
         </div>
-        <DroppableCanvas layout={layout}>
+        <DroppableCanvas layout={layout} color={color}>
           <SortableContext items={elements.map((e) => e.id)} strategy={verticalListSortingStrategy}>
             {elements.map((el) => (
               <SortableCanvasItem key={el.id} id={el.id}>
