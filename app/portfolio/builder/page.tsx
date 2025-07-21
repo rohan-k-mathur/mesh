@@ -1,7 +1,7 @@
 "use client";
 
-import { DndContext, DragEndEvent } from "@dnd-kit/core";
-import { useDraggable, useDroppable } from "@dnd-kit/core";
+import { DndContext, DragEndEvent, closestCenter } from "@dnd-kit/core";
+import { useDraggable, useDroppable, useSortable, SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { nanoid } from "nanoid";
 import { useState } from "react";
@@ -18,6 +18,19 @@ function DraggableItem({ id, children, fromSidebar }: { id: string; children: Re
   const style = transform ? { transform: CSS.Translate.toString(transform) } : undefined;
   return (
     <div ref={setNodeRef} style={style} {...listeners} {...attributes} className="cursor-move p-2 border rounded-md bg-white text-black">
+      {children}
+    </div>
+  );
+}
+
+function SortableCanvasItem({ id, children }: { id: string; children: React.ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
+  const style = {
+    transform: transform ? CSS.Transform.toString(transform) : undefined,
+    transition,
+  } as React.CSSProperties;
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners} className="cursor-move">
       {children}
     </div>
   );
@@ -47,6 +60,19 @@ export default function PortfolioBuilder() {
         ...els,
         { id: nanoid(), type: active.id as Element["type"], content: "", src: "" },
       ]);
+      return;
+    }
+
+    if (over && !active.data.current?.fromSidebar) {
+      setElements((els) => {
+        const oldIndex = els.findIndex((e) => e.id === active.id);
+        const newIndex = els.findIndex((e) => e.id === over.id);
+        if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return els;
+        const updated = [...els];
+        const [moved] = updated.splice(oldIndex, 1);
+        updated.splice(newIndex, 0, moved);
+        return updated;
+      });
     }
   }
 
@@ -96,7 +122,7 @@ export default function PortfolioBuilder() {
   }
 
   return (
-    <DndContext onDragEnd={handleDragEnd}>
+    <DndContext onDragEnd={handleDragEnd} collisionDetection={closestCenter}>
       <div className="flex h-screen">
         <div className="w-40 border-r p-2 space-y-2 bg-gray-100">
           <DraggableItem id="text" fromSidebar>
@@ -113,13 +139,15 @@ export default function PortfolioBuilder() {
           </DraggableItem>
         </div>
         <DroppableCanvas layout={layout}>
-          {elements.map((el) => (
-            <div key={el.id} className="p-2 border bg-white space-y-2">
-              {el.type === "text" && (
-                <div
-                  contentEditable
-                  suppressContentEditableWarning
-                  className="text-block outline-none"
+          <SortableContext items={elements.map((e) => e.id)} strategy={verticalListSortingStrategy}>
+            {elements.map((el) => (
+              <SortableCanvasItem key={el.id} id={el.id}>
+                <div className="p-2 border bg-white space-y-2">
+                  {el.type === "text" && (
+                    <div
+                      contentEditable
+                      suppressContentEditableWarning
+                      className="text-block outline-none"
                   onInput={(e) =>
                     setElements((els) =>
                       els.map((it) =>
@@ -172,8 +200,18 @@ export default function PortfolioBuilder() {
                   }
                 />
               )}
-            </div>
-          ))}
+                <button
+                  className="text-xs text-red-500"
+                  onClick={() =>
+                    setElements((els) => els.filter((it) => it.id !== el.id))
+                  }
+                >
+                  Delete
+                </button>
+              </div>
+            </SortableCanvasItem>
+            ))}
+          </SortableContext>
         </DroppableCanvas>
         <div className="w-40 border-l p-2 bg-gray-100 space-y-4">
           <div>
