@@ -46,7 +46,7 @@ import {
   PdfViewerPostValidation,
   PortfolioNodeValidation,
   SplineViewerPostValidation,
-  ProductReviewValidation
+  ProductReviewValidation,
 } from "@/lib/validations/thread";
 import { AppNodeType, DEFAULT_NODE_VALUES } from "@/lib/reactflow/types";
 
@@ -69,8 +69,6 @@ const nodeOptions: { label: string; nodeType: string }[] = [
   { label: "SPLINE", nodeType: "SPLINE_VIEWER" },
   { label: "PRODUCT_REVIEW", nodeType: "PRODUCT_REVIEW" },
   { label: "ROOM_CANVAS", nodeType: "ROOM_CANVAS" },
-
-
 ];
 
 interface Props {
@@ -99,7 +97,9 @@ const CreateFeedPost = ({ roomId = "global" }: Props) => {
     router.refresh();
   }
 
-  async function handleImageSubmit(values: z.infer<typeof ImagePostValidation>) {
+  async function handleImageSubmit(
+    values: z.infer<typeof ImagePostValidation>
+  ) {
     const result = await uploadFileToSupabase(values.image);
     if (!result.error) {
       await createRealtimePost({
@@ -114,7 +114,9 @@ const CreateFeedPost = ({ roomId = "global" }: Props) => {
     }
   }
 
-  async function handleVideoSubmit(values: z.infer<typeof YoutubePostValidation>) {
+  async function handleVideoSubmit(
+    values: z.infer<typeof YoutubePostValidation>
+  ) {
     await createRealtimePost({
       videoUrl: values.videoURL,
       path: "/",
@@ -141,7 +143,9 @@ const CreateFeedPost = ({ roomId = "global" }: Props) => {
     router.refresh();
   }
 
-  async function handleGallerySubmit(values: z.infer<typeof GalleryPostValidation>) {
+  async function handleGallerySubmit(
+    values: z.infer<typeof GalleryPostValidation>
+  ) {
     const uploads = await Promise.all(
       values.images.map((img) => uploadFileToSupabase(img))
     );
@@ -162,10 +166,10 @@ const CreateFeedPost = ({ roomId = "global" }: Props) => {
   }
 
   async function handlePortfolioSubmit(
-    values: z.infer<typeof PortfolioNodeValidation>,
+    values: z.infer<typeof PortfolioNodeValidation>
   ) {
     const uploads = await Promise.all(
-      (values.images || []).map((img) => uploadFileToSupabase(img)),
+      (values.images || []).map((img) => uploadFileToSupabase(img))
     );
     const urls = uploads.filter((r) => !r.error).map((r) => r.fileURL);
     const payload = {
@@ -188,7 +192,9 @@ const CreateFeedPost = ({ roomId = "global" }: Props) => {
     router.refresh();
   }
 
-  async function handlePortalSubmit(values: z.infer<typeof PortalNodeValidation>) {
+  async function handlePortalSubmit(
+    values: z.infer<typeof PortalNodeValidation>
+  ) {
     await createRealtimePost({
       text: JSON.stringify(values),
       path: "/",
@@ -232,11 +238,29 @@ const CreateFeedPost = ({ roomId = "global" }: Props) => {
   const renderModal = () => {
     switch (selectedType) {
       case "TEXT":
-        return <TextNodeModal isOwned={true} currentText="" onSubmit={handleTextSubmit} />;
+        return (
+          <TextNodeModal
+            isOwned={true}
+            currentText=""
+            onSubmit={handleTextSubmit}
+          />
+        );
       case "IMAGE":
-        return <ImageNodeModal isOwned={true} currentImageURL="" onSubmit={handleImageSubmit} />;
+        return (
+          <ImageNodeModal
+            isOwned={true}
+            currentImageURL=""
+            onSubmit={handleImageSubmit}
+          />
+        );
       case "VIDEO":
-        return <YoutubeNodeModal isOwned={true} currentVideoURL="" onSubmit={handleVideoSubmit} />;
+        return (
+          <YoutubeNodeModal
+            isOwned={true}
+            currentVideoURL=""
+            onSubmit={handleVideoSubmit}
+          />
+        );
       case "MUSIC":
         return (
           <MusicNodeModal
@@ -275,7 +299,14 @@ const CreateFeedPost = ({ roomId = "global" }: Props) => {
           />
         );
       case "PORTAL":
-        return <PortalNodeModal isOwned={true} onSubmit={handlePortalSubmit} currentX={0} currentY={0} />;
+        return (
+          <PortalNodeModal
+            isOwned={true}
+            onSubmit={handlePortalSubmit}
+            currentX={0}
+            currentY={0}
+          />
+        );
       case "LIVECHAT":
         return (
           <LivechatNodeModal
@@ -315,7 +346,11 @@ const CreateFeedPost = ({ roomId = "global" }: Props) => {
                 coordinates: { x: 0, y: 0 },
                 type: "ENTROPY",
                 realtimeRoomId: roomId,
-                text: JSON.stringify({ inviteeId: Number(user.id), secret: word, guesses: [] }),
+                text: JSON.stringify({
+                  inviteeId: Number(user.id),
+                  secret: word,
+                  guesses: [],
+                }),
               });
               reset();
               router.refresh();
@@ -403,7 +438,11 @@ const CreateFeedPost = ({ roomId = "global" }: Props) => {
                 .map((r) => r.fileURL);
               const filtered = vals.claims.filter((c) => c.trim() !== "");
               await createRealtimePost({
-                text: JSON.stringify({ ...vals, images: urls, claims: filtered }),
+                text: JSON.stringify({
+                  ...vals,
+                  images: urls,
+                  claims: filtered,
+                }),
                 path: "/",
                 coordinates: { x: 0, y: 0 },
                 type: "PRODUCT_REVIEW",
@@ -415,31 +454,37 @@ const CreateFeedPost = ({ roomId = "global" }: Props) => {
             }}
           />
         );
-                  
-              // onSubmit={async (vals) => {
-              //   await createRealtimePost({
-              //     path: "/",
-              //     coordinates: { x: 0, y: 0 },
-              //     type: "PLUGIN",
-              //     realtimeRoomId: roomId,
-              //     pluginType: "PRODUCT_REVIEW",
-              //     pluginData: {},
-              //   });
-              //   reset();
-              //   router.refresh();
-              // }}
-       
+
+      // onSubmit={async (vals) => {
+      //   await createRealtimePost({
+      //     path: "/",
+      //     coordinates: { x: 0, y: 0 },
+      //     type: "PLUGIN",
+      //     realtimeRoomId: roomId,
+      //     pluginType: "PRODUCT_REVIEW",
+      //     pluginData: {},
+      //   });
+      //   reset();
+      //   router.refresh();
+      // }}
+
       default:
         return (
-          <DialogContent className=" p-8 bg-slate-300 border-[2px] w-[100%]  border-blue max-w-[35rem] max-h-[10rem] mt-[-5rem]">
+          <DialogContent className="flex flex-1 p-8 bg-slate-300 border-[2px] rounded-xl border-blue max-w-[35rem]  max-h-[14rem] mt-[-6rem] ">
             <Select onValueChange={(v) => handleSelect(v)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select post type" className="px-4 py-1 " />
-              </SelectTrigger> 
-              <SelectContent  className="max-h-[14rem] border-blue rounded-xl">
+              <SelectTrigger className=" ring-blue border-none ring-[2px] h-auto flex flex-1 text-[1.2rem] text-center tracking-wide focus:ring-blue focus:border-none focus:ring-[1px]">
+                <SelectValue
+                  placeholder="Select post type"
+                  className="px-4 py-1 "
+                />
+              </SelectTrigger>
+              <SelectContent className="max-h-[18rem] justify-center w-[95%] mx-auto border-blue border-2 rounded-xl">
                 {nodeOptions.map((item) => (
                   <div key={item.nodeType}>
-                    <SelectItem value={item.nodeType} className="px-4 hover:bg-slate-200">
+                    <SelectItem
+                      value={item.nodeType}
+                      className="px-4  hover:bg-slate-200"
+                    >
                       {item.label}
                     </SelectItem>
                     <hr />
@@ -460,9 +505,14 @@ const CreateFeedPost = ({ roomId = "global" }: Props) => {
         if (!o) setSelectedType("");
       }}
     >
-      <DialogTrigger className="likebutton items-start justify-start leftsidebar-link  leftsidebar-item" asChild>
-        <Button           variant={"outline"}
- className="items-start justify-start  h-full w-full rounded-xl border-[1px] border-rose-300 border-opacity-80 hover:outline-2 hover:outline-double hover:outline-emerald-400">
+      <DialogTrigger
+        className="likebutton items-start justify-start leftsidebar-link  leftsidebar-item"
+        asChild
+      >
+        <Button
+          variant={"outline"}
+          className="items-start justify-start  h-full w-full rounded-xl border-[1px] border-rose-300 border-opacity-80 hover:outline-2 hover:outline-double hover:outline-emerald-400"
+        >
           <Image
             src="/assets/create-new.svg"
             alt="create post"
@@ -470,9 +520,7 @@ const CreateFeedPost = ({ roomId = "global" }: Props) => {
             height={24}
           />
           <p className="text-black ml-3  max-lg:hidden">{"New Post"}</p>
-
         </Button>
-
       </DialogTrigger>
       {renderModal()}
     </Dialog>
