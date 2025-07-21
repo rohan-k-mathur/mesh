@@ -64,8 +64,8 @@ export default function RealtimeFeed({
       ))}
       <div ref={loaderRef} className="h-1" />
       {loading && (
-        <div className="flex justify-center py-4">
-          <Spinner />
+        <div className="flex justify-center mt-0 mb-4">
+          <Spinner className="w-[3rem] h-[3rem]"/>
         </div>
       )}
     </section>

@@ -296,6 +296,9 @@
   padding: 0px;
   position: relative;
 }
+.publishing .resize-handle          { display:none !important; }
+.publishing.border-dashed,
+.publishing .border-dashed          { border-style:none !important; }
 .portfolio-img-frame {
 
 

@@ -100,7 +100,7 @@ function DroppableCanvas({
   canvasRef,
 }: {
   children: React.ReactNode;
-  layout: "column" | "grid";
+  layout: "column" | "grid" | "free";
   color: string;
   isBlank: boolean;
   drawText: boolean;
@@ -109,8 +109,8 @@ function DroppableCanvas({
   canvasRef: React.MutableRefObject<HTMLDivElement | null>;
 }) {
     const { setNodeRef } = useDroppable({ id: "canvas" });
-    const layoutClass = isBlank
-    ? ""
+    const layoutClass = layout === "free"
+    ? "flex flex-col-auto flex-1 flex-row-auto gap-auto w-auto h-auto"
     : layout === "grid"
     ? "grid grid-cols-2 gap-2"
     : "flex flex-col gap-2";
@@ -367,7 +367,7 @@ export default function PortfolioBuilder() {
   const [elements, setElements] = useState<Element[]>([]);
   const canvasRef = useRef<HTMLDivElement>(null);
   const [color, setColor] = useState("bg-white");
-  const [layout, setLayout] = useState<"column" | "grid">("column");
+  const [layout, setLayout] = useState<"column" | "grid" | "free">("free");
   const [template, setTemplate] = useState<string>("");
   const [drawText, setDrawText] = useState(false);
   const [textBoxes, setTextBoxes] = useState<TextBox[]>([]);
@@ -432,41 +432,81 @@ export default function PortfolioBuilder() {
   }
   async function handlePublish() {
     if (!canvasRef.current) return;
+    const node = canvasRef.current;
   
-    // 1️⃣  Render the current canvas DOM into a bitmap
-    const canvasBitmap = await html2canvas(canvasRef.current, {
-      backgroundColor: null,             // keep transparent if using non‑white bg
-      useCORS: true,                     // allow external images
-      scale: 2,                          // retina quality (adjust to taste)
-    });
+    /* 0️⃣  Toggle “clean mode” so resize handles & dashed borders disappear */
+    node.classList.add("publishing");
   
-    // 2️⃣  Convert to blob (PNG)
-    const blob: Blob | null = await new Promise(res => canvasBitmap.toBlob(res, "image/png"));
-    if (!blob) return;
+    try {
+      /* 1️⃣  Ensure all remote images and custom fonts are ready */
+      await Promise.all([
+        document.fonts.ready,
+        ...Array.from(node.querySelectorAll("img")).map(
+          img =>
+            img.complete
+              ? Promise.resolve()
+              : new Promise(res => {
+                  const done = () => {
+                    img.removeEventListener("load", done);
+                    img.removeEventListener("error", done);
+                    res(null);
+                  };
+                  img.addEventListener("load", done);
+                  img.addEventListener("error", done);
+                }),
+        ),
+      ]);
   
-    // 3️⃣  OPTIONAL: upload to Supabase (or wherever)
-    const fileName = `portfolio/snapshot-${Date.now()}.png`;
-    const { fileURL, error } = await uploadFileToSupabase(new File([blob], fileName, { type: "image/png" }));
-    if (error) {
-      console.error(error);
-      return;
-    }
+      /* 2️⃣  Compute the exact canvas size (it may be taller than the viewport) */
+      const width  = node.scrollWidth;
+      const height = node.scrollHeight;
   
-    // 4️⃣  Send metadata + snapshot URL to your export endpoint
-    const payload = {
-      ...serialize(),       // existing text / images / links / colour / layout
-      snapshot: fileURL,    // NEW field: the rendered PNG
-    };
+      /* 3️⃣  Render to bitmap */
+      const bitmap = await html2canvas(node, {
+        backgroundColor: null,   // keep transparent; change to '#fff' if preferred
+        useCORS: true,
+        width,
+        height,
+        scrollX: -window.scrollX, // guarantees 0,0 alignment even if user scrolled
+        scrollY: -window.scrollY,
+        scale: window.devicePixelRatio, // crisp on Retina without huge file
+      });
   
-    const res = await fetch("/api/portfolio/export", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+      /* 4️⃣  Convert → Blob */
+      const blob: Blob | null = await new Promise(res => bitmap.toBlob(res, "image/png"));
+      if (!blob) return;
   
-    if (res.ok) {
-      const { url } = await res.json();
-      router.push(url);     // open public page as before
+      /* 5️⃣  Upload the PNG (Supabase helper unchanged) */
+      const fileName = `portfolio/snapshot-${Date.now()}.png`;
+      const { fileURL, error } = await uploadFileToSupabase(
+        new File([blob], fileName, { type: "image/png" }),
+      );
+      if (error) {
+        console.error(error);
+        return;
+      }
+  
+      /* 6️⃣  POST the usual payload + snapshot URL */
+      const payload = {
+        ...serialize(),
+        snapshot: fileURL,
+        snapshotWidth: width,   // optional: let the public page know natural size
+        snapshotHeight: height,
+      };
+  
+      const res = await fetch("/api/portfolio/export", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+  
+      if (res.ok) {
+        const { url } = await res.json();
+        router.push(url);
+      }
+    } finally {
+      /* 🔚  Always restore the editing chrome, even if something threw */
+      node.classList.remove("publishing");
     }
   }
 
@@ -740,10 +780,13 @@ export default function PortfolioBuilder() {
             <select
               className="w-full rounded-xl lockbutton mt-1 border-black bg-gray-100 border-[1px] p-1"
               value={layout}
-              onChange={(e) => setLayout(e.target.value as "column" | "grid")}
-            >
+              onChange={(e) => setLayout(e.target.value as "column" | "grid" | "free")}
+            >             
+             <option value="free">Free</option>
+
               <option value="column">Column</option>
               <option value="grid">Grid</option>
+
             </select>
           </div>
           <button
