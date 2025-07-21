@@ -430,17 +430,43 @@ export default function PortfolioBuilder() {
       .map((e) => e.href as string);
     return { text, images, links, layout, color };
   }
-
   async function handlePublish() {
-    const data = serialize();
+    if (!canvasRef.current) return;
+  
+    // 1️⃣  Render the current canvas DOM into a bitmap
+    const canvasBitmap = await html2canvas(canvasRef.current, {
+      backgroundColor: null,             // keep transparent if using non‑white bg
+      useCORS: true,                     // allow external images
+      scale: 2,                          // retina quality (adjust to taste)
+    });
+  
+    // 2️⃣  Convert to blob (PNG)
+    const blob: Blob | null = await new Promise(res => canvasBitmap.toBlob(res, "image/png"));
+    if (!blob) return;
+  
+    // 3️⃣  OPTIONAL: upload to Supabase (or wherever)
+    const fileName = `portfolio/snapshot-${Date.now()}.png`;
+    const { fileURL, error } = await uploadFileToSupabase(new File([blob], fileName, { type: "image/png" }));
+    if (error) {
+      console.error(error);
+      return;
+    }
+  
+    // 4️⃣  Send metadata + snapshot URL to your export endpoint
+    const payload = {
+      ...serialize(),       // existing text / images / links / colour / layout
+      snapshot: fileURL,    // NEW field: the rendered PNG
+    };
+  
     const res = await fetch("/api/portfolio/export", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
+      body: JSON.stringify(payload),
     });
+  
     if (res.ok) {
       const { url } = await res.json();
-      router.push(url);
+      router.push(url);     // open public page as before
     }
   }
 
@@ -538,20 +564,21 @@ export default function PortfolioBuilder() {
                       </div>
                     )}
                     {el.type === "image" && (
-                      <div className="p-0 border-[1px] w-full h-full border-black">
+                      <div className="p-1 border-[1px] border-transparent ">
                         {el.src ? (
                           <Image
                             src={el.src}
                             alt="uploaded"
-                            width={0}
-                            height={0}
-                            sizes="(max-width: 768px) 100vw, 33vw"
-                           className="object-cover w-full h-full portfolio-img-frame"
+                            width={300}
+                            height={300}
+                            sizes="(max-height: 200px) 50vw, 33vw"
+                           className="object-cover w-fit h-fit portfolio-img-frame"
                           />
                         ) : (
                           <input
                             type="file"
                             accept="image/*"
+                            className=" w-full p-1"
                             onPointerDown={(e) => e.stopPropagation()}
                             onChange={(e) => {
                               const file = e.target.files?.[0];
@@ -580,7 +607,7 @@ export default function PortfolioBuilder() {
                       />
                     )}
                     <button
-                      className=" rounded-md lockbutton ml-2"
+                      className=" rounded-md mt-2 lockbutton ml-2"
                       onClick={() =>
                         setElements((els) => els.filter((it) => it.id !== el.id))
                       }
