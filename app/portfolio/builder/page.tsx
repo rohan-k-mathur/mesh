@@ -101,6 +101,7 @@ function DroppableCanvas({ children, layout }: { children: React.ReactNode; layo
         ref.current = node;
       }}
       className={`relative flex-1 min-h-screen border border-dashed p-4 bg-gray-50 ${layoutClass}`}
+      style={{ cursor: draft ? "crosshair" : "text" }}
       onMouseDown={startDraw}
       onMouseMove={moveDraw}
       onMouseUp={endDraw}
@@ -110,7 +111,7 @@ function DroppableCanvas({ children, layout }: { children: React.ReactNode; layo
         <div
           key={box.id}
           style={{ left: box.x, top: box.y, width: box.width, height: box.height }}
-          className="absolute border border-dashed border-gray-400 bg-white text-xs p-1 outline-none"
+          className="absolute border border-dashed border-gray-400 bg-white text-xs p-1 outline-none resize overflow-auto"
           contentEditable
           suppressContentEditableWarning
           onInput={(e) => updateText(box.id, (e.target as HTMLElement).innerText)}
@@ -126,7 +127,7 @@ function DroppableCanvas({ children, layout }: { children: React.ReactNode; layo
             width: Math.abs(draft.width),
             height: Math.abs(draft.height),
           }}
-          className="absolute border border-dashed border-gray-400 pointer-events-none"
+          className="absolute border border-dashed border-gray-400 bg-white/50 pointer-events-none"
         />
       )}
     </div>
