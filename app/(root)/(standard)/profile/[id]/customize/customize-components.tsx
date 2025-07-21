@@ -25,6 +25,7 @@ import {
   fetchTracks,
   submitEdits,
   submitFieldEdits,
+  submitBioEdit,
 } from "@/lib/MultiSelectFunctions";
 import { UserAttributes } from "@prisma/client";
 import { usePathname } from "next/navigation";
@@ -33,10 +34,11 @@ import React, { useState } from 'react';
 
 interface Props {
   userAttributes: UserAttributes;
+  currentBio: string;
   initialOpen?: boolean;
 }
 
-export default function CustomButtons({ userAttributes, initialOpen }: Props) {
+export default function CustomButtons({ userAttributes, currentBio, initialOpen }: Props) {
   const [isAboutOpen, setAboutOpen] = useState(false);
   const [isBirthdayOpen, setBirthdayOpen] = useState(false);
   const [isLocationOpen, setLocationOpen] = useState(false);
@@ -58,7 +60,7 @@ export default function CustomButtons({ userAttributes, initialOpen }: Props) {
       : ""
   );
   const path = usePathname();
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState(currentBio);
   const handleChange = (event) => {
     setMessage(event.target.value);
   };
@@ -102,6 +104,7 @@ export default function CustomButtons({ userAttributes, initialOpen }: Props) {
                 id="aboutme"
                 type="submit"
                 className={`likebutton text-[1.2rem] tracking-[2px] text-center px-4 py-1 border-blue border-[.5px]`}
+                onClick={() => submitBioEdit(message, path)}
               >
                 Enter
               </DialogClose>

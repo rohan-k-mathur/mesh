@@ -68,6 +68,24 @@ export async function updateUser({
   }
 }
 
+export async function updateUserBio({ bio, path }: { bio: string; path: string }) {
+  const user = await getUserFromCookies();
+  if (!user) {
+    throw new Error("User not authenticated");
+  }
+  try {
+    await prisma.user.update({
+      where: {
+        id: user.userId!,
+      },
+      data: { bio },
+    });
+    revalidatePath(path);
+  } catch (error: any) {
+    throw new Error(`Failed to update bio: ${error.message}`);
+  }
+}
+
 export async function fetchUserByAuthId(userAuthId: string) {
   if (userCacheByAuthId.has(userAuthId)) {
     return userCacheByAuthId.get(userAuthId) ?? null;
