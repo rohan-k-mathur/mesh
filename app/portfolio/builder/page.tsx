@@ -60,19 +60,24 @@ function DroppableCanvas({
   children,
   layout,
   color,
+  drawText,
+  boxes,
+  setBoxes,
 }: {
   children: React.ReactNode;
   layout: "column" | "grid";
   color: string;
+  drawText: boolean;
+  boxes: TextBox[];
+  setBoxes: React.Dispatch<React.SetStateAction<TextBox[]>>;
 }) {
   const { setNodeRef } = useDroppable({ id: "canvas" });
   const layoutClass = layout === "grid" ? "grid grid-cols-2 gap-2" : "flex flex-col space-y-2";
-  const [boxes, setBoxes] = useState<TextBox[]>([]);
   const [draft, setDraft] = useState<TextBox | null>(null);
   const ref = useRef<HTMLDivElement>(null);
 
   function startDraw(e: React.MouseEvent<HTMLDivElement>) {
-    if (e.target !== ref.current) return;
+    if (!drawText || e.target !== ref.current) return;
     const rect = ref.current!.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
@@ -80,7 +85,7 @@ function DroppableCanvas({
   }
 
   function moveDraw(e: React.MouseEvent<HTMLDivElement>) {
-    if (!draft) return;
+    if (!drawText || !draft) return;
     const rect = ref.current!.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
@@ -88,7 +93,7 @@ function DroppableCanvas({
   }
 
   function endDraw() {
-    if (!draft) return;
+    if (!drawText || !draft) return;
     let { x, y, width, height } = draft;
     if (Math.abs(width) < 5 || Math.abs(height) < 5) {
       setDraft(null);
@@ -117,10 +122,10 @@ function DroppableCanvas({
         ref.current = node;
       }}
       className={`relative flex-1 min-h-screen border border-dashed p-4 ${color} ${layoutClass} grid-background`}
-      style={{ cursor: draft ? "crosshair" : "text" }}
-      onMouseDown={startDraw}
-      onMouseMove={moveDraw}
-      onMouseUp={endDraw}
+      style={{ cursor: drawText ? (draft ? "crosshair" : "text") : "default" }}
+      onMouseDown={drawText ? startDraw : undefined}
+      onMouseMove={drawText ? moveDraw : undefined}
+      onMouseUp={drawText ? endDraw : undefined}
     >
       {children}
       {boxes.map((box) => (
@@ -155,6 +160,8 @@ export default function PortfolioBuilder() {
   const [color, setColor] = useState("bg-white");
   const [layout, setLayout] = useState<"column" | "grid">("column");
   const [template, setTemplate] = useState<string>("");
+  const [drawText, setDrawText] = useState(false);
+  const [textBoxes, setTextBoxes] = useState<TextBox[]>([]);
   const router = useRouter();
 
   function handleDragEnd(event: DragEndEvent) {
@@ -190,10 +197,12 @@ export default function PortfolioBuilder() {
   }
 
   function serialize(): PortfolioExportData {
-    const text = elements
+    const textFromElements = elements
       .filter((e) => e.type === "text" && e.content)
       .map((e) => e.content)
       .join("\n");
+    const textFromBoxes = textBoxes.map((b) => b.text).join("\n");
+    const text = [textFromElements, textFromBoxes].filter(Boolean).join("\n");
     const images = elements
       .filter((e) => e.type === "image" && e.src)
       .map((e) => e.src as string);
@@ -235,6 +244,12 @@ export default function PortfolioBuilder() {
     >
       <div className="flex h-screen">
         <div className="w-40 border-r p-2 space-y-2 bg-gray-100">
+          <button
+            className={`w-full py-1 rounded ${drawText ? "bg-blue-500 text-white" : "bg-white"}`}
+            onClick={() => setDrawText((d) => !d)}
+          >
+            {drawText ? "Drawing..." : "Draw Text Box"}
+          </button>
           <DraggableItem id="text" fromSidebar>
             Text
           </DraggableItem>
@@ -248,7 +263,13 @@ export default function PortfolioBuilder() {
             Link
           </DraggableItem>
         </div>
-        <DroppableCanvas layout={layout} color={color}>
+        <DroppableCanvas
+          layout={layout}
+          color={color}
+          drawText={drawText}
+          boxes={textBoxes}
+          setBoxes={setTextBoxes}
+        >
           <SortableContext items={elements.map((e) => e.id)} strategy={verticalListSortingStrategy}>
             {elements.map((el) => (
               <SortableCanvasItem key={el.id} id={el.id}>
