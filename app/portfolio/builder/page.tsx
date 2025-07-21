@@ -27,7 +27,8 @@ function DraggableItem({ id, children, fromSidebar }: { id: string; children: Re
   const { attributes, listeners, setNodeRef, transform } = useDraggable({ id, data: { fromSidebar } });
   const style = transform ? { transform: CSS.Translate.toString(transform) } : undefined;
   return (
-    <div ref={setNodeRef} style={style} {...listeners} {...attributes} className="cursor-move p-2 border rounded-md bg-white text-black">
+    <div ref={setNodeRef} style={style} {...listeners} {...attributes} className="cursor-move flex justify-start px-4 gap-2 tracking-wide
+     py-2 border rounded-md lockbutton text-center bg-white text-black">
       {children}
     </div>
   );
@@ -80,6 +81,13 @@ interface ResizeState {
   startWidth: number;
   startHeight: number;
 }
+interface DragState {
+    id: string;
+    startX: number;
+    startY: number;
+    startLeft: number;
+    startTop: number;
+  }
 function DroppableCanvas({
   children,
   layout,
@@ -108,6 +116,8 @@ function DroppableCanvas({
    /* NEW ---------- */
    const [draft, setDraft]   = useState<TextBox | null>(null);
    const [resizing, setResizing] = useState<ResizeState | null>(null);
+   const [dragging, setDragging] = useState<DragState | null>(null);
+
    /* --------------- */
   const ref = canvasRef;
 
@@ -160,7 +170,22 @@ function DroppableCanvas({
       startHeight: b.height,
     });
   }
-
+  function handleBoxPointerDown(e: React.PointerEvent, b: TextBox) {
+    // Ignore if we’re clicking a resize handle – they call handlePointerDown.
+    if ((e.target as HTMLElement).classList.contains('resize-handle')) return;
+  
+    // Ignore if user clicks inside the text editor (it stops propagation).
+    e.stopPropagation();
+  
+    const rect = ref.current!.getBoundingClientRect();
+    setDragging({
+      id: b.id,
+      startX: e.clientX - rect.left,
+      startY: e.clientY - rect.top,
+      startLeft: b.x,
+      startTop: b.y,
+    });
+  }
   /* attach / detach window listeners when resizing */
   useEffect(() => {
     function onMove(ev: PointerEvent) {
@@ -221,6 +246,37 @@ function DroppableCanvas({
       };
     }
   }, [resizing, setBoxes]);
+
+  useEffect(() => {
+    function onMove(ev: PointerEvent) {
+      if (!dragging) return;
+      const rect = ref.current!.getBoundingClientRect();
+      const x = ev.clientX - rect.left;
+      const y = ev.clientY - rect.top;
+      const dx = x - dragging.startX;
+      const dy = y - dragging.startY;
+  
+      setBoxes(bs =>
+        bs.map(b =>
+          b.id === dragging.id ? { ...b, x: dragging.startLeft + dx, y: dragging.startTop + dy } : b
+        ),
+      );
+    }
+  
+    function onUp() {
+      setDragging(null);
+    }
+  
+    if (dragging) {
+      window.addEventListener('pointermove', onMove);
+      window.addEventListener('pointerup', onUp);
+      return () => {
+        window.removeEventListener('pointermove', onMove);
+        window.removeEventListener('pointerup', onUp);
+      };
+    }
+  }, [dragging, setBoxes]);
+
   function updateText(id: string, text: string) {
     setBoxes((bs) => bs.map((b) => (b.id === id ? { ...b, text } : b)));
   }
@@ -241,9 +297,11 @@ function DroppableCanvas({
       {boxes.map((box) => (
 
 <div
-key={box.id}
-style={{ left: box.x, top: box.y, width: box.width, height: box.height }}
-className="absolute border border-dashed border-gray-400 bg-white text-xs outline-none overflow-auto"
+  key={box.id}
+  onPointerDown={(e) => handleBoxPointerDown(e, box)}
+  style={{ left: box.x, top: box.y, width: box.width, height: box.height }}
+  className="absolute border-2 border-r-4 border-l-4 border-r-solid border-l-solid custom-scrollbar border-dashed border-gray-400 bg-white text-xs outline-none overflow-hidden cursor-move 
+ justify-center"
 >
 {/* corner handles */}
 {(['nw','ne','sw','se'] as Corner[]).map(corner => (
@@ -256,6 +314,8 @@ className="absolute border border-dashed border-gray-400 bg-white text-xs outlin
 
 {/* editable text area */}
 <div
+  onPointerDown={(e) => e.stopPropagation()}
+
   ref={el => {
     /* keep DOM in sync **only** when the box text
        changes because of something *other* than typing
@@ -265,7 +325,7 @@ className="absolute border border-dashed border-gray-400 bg-white text-xs outlin
     }
   }}            contentEditable
             suppressContentEditableWarning
-            className="w-full h-full p-1"
+            className="w-full h-full px-3 py-2"
             style={{ cursor: 'text' }}
             onInput={e => updateText(box.id, (e.target as HTMLElement).innerText)}
 
@@ -401,24 +461,46 @@ export default function PortfolioBuilder() {
       collisionDetection={pointerWithin}
     >
       <div className="flex h-screen">
-        <div className="w-40 border-r p-2 space-y-2 bg-gray-100">
+        <div className="w-fit border-r py-2 px-4 space-y-4  mt-12">
           <button
-            className={`w-full py-1 rounded ${drawText ? "bg-blue-500 text-white" : "bg-white"}`}
+            className={`w-full flex gap-2 justify-start px-4 py-2 rounded-md lockbutton tracking-wide ${drawText ? "bg-white " : "bg-white"}`}
             onClick={() => setDrawText((d) => !d)}
           >
-            {drawText ? "Drawing..." : "Draw Text Box"}
+            {drawText ? "Editing.." : "Text Box"}
+            <Image
+                  src="/assets/text--creation.svg"
+                  alt={"globe"}
+                  className="mr-2"
+
+                  width={24}
+                  height={24}
+                />
           </button>
-          <DraggableItem id="text" fromSidebar>
+          {/* <DraggableItem id="text" fromSidebar>
             Text
-          </DraggableItem>
+          </DraggableItem> */}
           <DraggableItem id="image" fromSidebar>
             Image
+            <Image
+                  src="/assets/image.svg"
+                  alt={"globe"}
+                  className="mr-2"
+
+                  width={24}
+                  height={24}
+                />
           </DraggableItem>
-          <DraggableItem id="box" fromSidebar>
-            Box
-          </DraggableItem>
+          
           <DraggableItem id="link" fromSidebar>
             Link
+            <Image
+                  src="/assets/link.svg"
+                  alt={"globe"}
+                  className="mr-2"
+
+                  width={24}
+                  height={24}
+                />
           </DraggableItem>
         </div>
         <DroppableCanvas
