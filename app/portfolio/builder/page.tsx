@@ -11,6 +11,7 @@ import {
   useSensors,
   PointerSensor,
 } from "@dnd-kit/core";
+import { useSortable, arrayMove } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { nanoid } from "nanoid";
 import { useState, useRef } from "react";
@@ -46,6 +47,19 @@ function CanvasItem({ id, x, y, children }: { id: string; x: number; y: number; 
   );
 }
 
+function SortableCanvasItem({ id, children }: { id: string; children: React.ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  } as React.CSSProperties;
+  return (
+    <div ref={setNodeRef} style={style} {...listeners} {...attributes} className="cursor-move">
+      {children}
+    </div>
+  );
+}
+
 interface TextBox {
   id: string;
   x: number;
@@ -59,6 +73,7 @@ function DroppableCanvas({
   children,
   layout,
   color,
+  isBlank,
   drawText,
   boxes,
   setBoxes,
@@ -67,13 +82,18 @@ function DroppableCanvas({
   children: React.ReactNode;
   layout: "column" | "grid";
   color: string;
+  isBlank: boolean;
   drawText: boolean;
   boxes: TextBox[];
   setBoxes: React.Dispatch<React.SetStateAction<TextBox[]>>;
   canvasRef: React.MutableRefObject<HTMLDivElement | null>;
 }) {
   const { setNodeRef } = useDroppable({ id: "canvas" });
-  const layoutClass = "";
+  const layoutClass = isBlank
+    ? ""
+    : layout === "grid"
+    ? "grid grid-cols-2 gap-2"
+    : "flex flex-col gap-2";
   const [draft, setDraft] = useState<TextBox | null>(null);
   const ref = canvasRef;
 
@@ -168,24 +188,34 @@ export default function PortfolioBuilder() {
 
   function handleDragEnd(event: DragEndEvent) {
     const { over, active, delta } = event;
-    if (over?.id === "canvas" && active.data.current?.fromSidebar) {
-      const pointer = (event.activatorEvent as PointerEvent);
-      const rect = canvasRef.current?.getBoundingClientRect();
-      const x = rect ? pointer.clientX - rect.left : 0;
-      const y = rect ? pointer.clientY - rect.top : 0;
-      setElements((els) => [
-        ...els,
-        { id: nanoid(), type: active.id as Element["type"], content: "", src: "", x, y },
-      ]);
+    if (active.data.current?.fromSidebar) {
+      if (over) {
+        const pointer = event.activatorEvent as PointerEvent;
+        const rect = canvasRef.current?.getBoundingClientRect();
+        const x = rect ? pointer.clientX - rect.left : 0;
+        const y = rect ? pointer.clientY - rect.top : 0;
+        setElements((els) => [
+          ...els,
+          template === ""
+            ? { id: nanoid(), type: active.id as Element["type"], content: "", src: "", x, y }
+            : { id: nanoid(), type: active.id as Element["type"], content: "", src: "" },
+        ]);
+      }
       return;
     }
 
-    if (!active.data.current?.fromSidebar) {
+    if (template === "") {
       setElements((els) =>
         els.map((e) =>
           e.id === active.id ? { ...e, x: (e.x || 0) + delta.x, y: (e.y || 0) + delta.y } : e
         )
       );
+    } else if (over && active.id !== over.id) {
+      setElements((els) => {
+        const oldIndex = els.findIndex((e) => e.id === active.id);
+        const newIndex = els.findIndex((e) => e.id === over.id);
+        return arrayMove(els, oldIndex, newIndex);
+      });
     }
   }
 
@@ -268,81 +298,160 @@ export default function PortfolioBuilder() {
         <DroppableCanvas
           layout={layout}
           color={color}
+          isBlank={template === ""}
           drawText={drawText}
           boxes={textBoxes}
           setBoxes={setTextBoxes}
           canvasRef={canvasRef}
         >
             {elements.map((el) => (
-              <CanvasItem key={el.id} id={el.id} x={el.x} y={el.y}>
-                <div className="p-2 border bg-white space-y-2">
-                  {el.type === "text" && (
-                    <div
-                      contentEditable
-                      suppressContentEditableWarning
-                      className="text-block outline-none"
-                  onInput={(e) =>
-                    setElements((els) =>
-                      els.map((it) =>
-                        it.id === el.id
-                          ? { ...it, content: (e.target as HTMLElement).innerText }
-                          : it
-                      )
-                    )
-                  }
-                >
-                  {el.content || "Edit text"}
-                </div>
-              )}
-              {el.type === "image" && (
-                <div>
-                  {el.src ? (
-                    <Image
-                      src={el.src}
-                      alt="uploaded"
-                      width={200}
-                      height={200}
-                      className="object-cover portfolio-img-frame"
-                    />
-                  ) : (
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleImageSelect(el.id, file);
-                      }}
-                    />
-                  )}
-                </div>
-              )}
-              {el.type === "box" && (
-                <div className="w-20 h-20 border bg-gray-200" />
-              )}
-              {el.type === "link" && (
-                <input
-                  className="border p-1 text-sm"
-                  placeholder="https://example.com"
-                  value={el.href || ""}
-                  onChange={(e) =>
-                    setElements((els) =>
-                      els.map((it) =>
-                        it.id === el.id ? { ...it, href: e.target.value } : it
-                      )
-                    )
-                  }
-                />
-              )}
-                <button
-                  className="text-xs text-red-500"
-                  onClick={() =>
-                    setElements((els) => els.filter((it) => it.id !== el.id))
-                  }
-                >
-                  Delete
-                </button>
-              </div>
-            </CanvasItem>
+              template === "" ? (
+                <CanvasItem key={el.id} id={el.id} x={el.x} y={el.y}>
+                  <div className="p-2 border bg-white space-y-2">
+                    {el.type === "text" && (
+                      <div
+                        contentEditable
+                        suppressContentEditableWarning
+                        className="text-block outline-none"
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onInput={(e) =>
+                          setElements((els) =>
+                            els.map((it) =>
+                              it.id === el.id
+                                ? { ...it, content: (e.target as HTMLElement).innerText }
+                                : it
+                            )
+                          )
+                        }
+                      >
+                        {el.content || "Edit text"}
+                      </div>
+                    )}
+                    {el.type === "image" && (
+                      <div>
+                        {el.src ? (
+                          <Image
+                            src={el.src}
+                            alt="uploaded"
+                            width={200}
+                            height={200}
+                            className="object-cover portfolio-img-frame"
+                          />
+                        ) : (
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onPointerDown={(e) => e.stopPropagation()}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleImageSelect(el.id, file);
+                            }}
+                          />
+                        )}
+                      </div>
+                    )}
+                    {el.type === "box" && (
+                      <div className="w-20 h-20 border bg-gray-200" />
+                    )}
+                    {el.type === "link" && (
+                      <input
+                        className="border p-1 text-sm"
+                        placeholder="https://example.com"
+                        value={el.href || ""}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onChange={(e) =>
+                          setElements((els) =>
+                            els.map((it) =>
+                              it.id === el.id ? { ...it, href: e.target.value } : it
+                            )
+                          )
+                        }
+                      />
+                    )}
+                    <button
+                      className="text-xs text-red-500"
+                      onClick={() =>
+                        setElements((els) => els.filter((it) => it.id !== el.id))
+                      }
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </CanvasItem>
+              ) : (
+                <SortableCanvasItem key={el.id} id={el.id}>
+                  <div className="p-2 border bg-white space-y-2">
+                    {el.type === "text" && (
+                      <div
+                        contentEditable
+                        suppressContentEditableWarning
+                        className="text-block outline-none"
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onInput={(e) =>
+                          setElements((els) =>
+                            els.map((it) =>
+                              it.id === el.id
+                                ? { ...it, content: (e.target as HTMLElement).innerText }
+                                : it
+                            )
+                          )
+                        }
+                      >
+                        {el.content || "Edit text"}
+                      </div>
+                    )}
+                    {el.type === "image" && (
+                      <div>
+                        {el.src ? (
+                          <Image
+                            src={el.src}
+                            alt="uploaded"
+                            width={200}
+                            height={200}
+                            className="object-cover portfolio-img-frame"
+                          />
+                        ) : (
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onPointerDown={(e) => e.stopPropagation()}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleImageSelect(el.id, file);
+                            }}
+                          />
+                        )}
+                      </div>
+                    )}
+                    {el.type === "box" && (
+                      <div className="w-20 h-20 border bg-gray-200" />
+                    )}
+                    {el.type === "link" && (
+                      <input
+                        className="border p-1 text-sm"
+                        placeholder="https://example.com"
+                        value={el.href || ""}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onChange={(e) =>
+                          setElements((els) =>
+                            els.map((it) =>
+                              it.id === el.id ? { ...it, href: e.target.value } : it
+                            )
+                          )
+                        }
+                      />
+                    )}
+                    <button
+                      className="text-xs text-red-500"
+                      onClick={() =>
+                        setElements((els) => els.filter((it) => it.id !== el.id))
+                      }
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </SortableCanvasItem>
+              )
             ))}
         </DroppableCanvas>
         <div className="w-40 border-l p-2 bg-gray-100 space-y-4">
