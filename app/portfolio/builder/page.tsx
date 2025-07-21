@@ -256,13 +256,21 @@ className="absolute border border-dashed border-gray-400 bg-white text-xs outlin
 
 {/* editable text area */}
 <div
-            contentEditable
+  ref={el => {
+    /* keep DOM in sync **only** when the box text
+       changes because of something *other* than typing
+       (e.g. loading, undo, etc.)                    */
+    if (el && el.innerText !== box.text) {
+      el.innerText = box.text;
+    }
+  }}            contentEditable
             suppressContentEditableWarning
             className="w-full h-full p-1"
-            onInput={(e) => updateText(box.id, (e.target as HTMLElement).innerText)}
             style={{ cursor: 'text' }}
+            onInput={e => updateText(box.id, (e.target as HTMLElement).innerText)}
+
           >
-            {box.text}
+            {/* {box.text} */}
           </div>
         </div>
       ))}
