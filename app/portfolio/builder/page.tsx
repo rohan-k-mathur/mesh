@@ -20,6 +20,7 @@ import { uploadFileToSupabase } from "@/lib/utils";
 import { PortfolioExportData } from "@/lib/portfolio/export";
 import { templates, BuilderElement } from "@/lib/portfolio/templates";
 import Image from "next/image";
+import html2canvas from "html2canvas";
 
 type Element = BuilderElement;
 
