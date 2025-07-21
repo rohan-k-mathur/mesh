@@ -1,7 +1,10 @@
+/* eslint-disable react/jsx-key */
 "use client";
 
-import { DndContext, DragEndEvent, closestCenter } from "@dnd-kit/core";
-import { useDraggable, useDroppable, useSortable, SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { DndContext, DragEndEvent, closestCenter,
+         useDraggable, useDroppable } from "@dnd-kit/core";
+import { useSortable, SortableContext,
+         verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { nanoid } from "nanoid";
 import { useState, useRef } from "react";
