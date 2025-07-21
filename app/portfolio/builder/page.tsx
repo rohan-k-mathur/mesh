@@ -8,15 +8,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { uploadFileToSupabase } from "@/lib/utils";
 import { PortfolioExportData } from "@/lib/portfolio/export";
+import { templates, BuilderElement } from "@/lib/portfolio/templates";
 import Image from "next/image";
 
-interface Element {
-  id: string;
-  type: "text" | "image" | "box" | "link";
-  content?: string;
-  src?: string;
-  href?: string;
-}
+type Element = BuilderElement;
 
 function DraggableItem({ id, children, fromSidebar }: { id: string; children: React.ReactNode; fromSidebar?: boolean }) {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({ id, data: { fromSidebar } });
@@ -28,10 +23,11 @@ function DraggableItem({ id, children, fromSidebar }: { id: string; children: Re
   );
 }
 
-function DroppableCanvas({ children }: { children: React.ReactNode }) {
+function DroppableCanvas({ children, layout }: { children: React.ReactNode; layout: "column" | "grid" }) {
   const { setNodeRef } = useDroppable({ id: "canvas" });
+  const layoutClass = layout === "grid" ? "grid grid-cols-2 gap-2" : "flex flex-col space-y-2";
   return (
-    <div ref={setNodeRef} className="flex-1 min-h-screen border border-dashed p-4 space-y-2 bg-gray-50">
+    <div ref={setNodeRef} className={`flex-1 min-h-screen border border-dashed p-4 bg-gray-50 ${layoutClass}`}> 
       {children}
     </div>
   );
@@ -41,6 +37,7 @@ export default function PortfolioBuilder() {
   const [elements, setElements] = useState<Element[]>([]);
   const [color, setColor] = useState("bg-white");
   const [layout, setLayout] = useState<"column" | "grid">("column");
+  const [template, setTemplate] = useState<string>("");
   const router = useRouter();
 
   function handleDragEnd(event: DragEndEvent) {
@@ -89,6 +86,15 @@ export default function PortfolioBuilder() {
     }
   }
 
+  function applyTemplate(name: string) {
+    const tpl = templates.find((t) => t.name === name);
+    if (!tpl) return;
+    setTemplate(name);
+    setLayout(tpl.layout);
+    setColor(tpl.color);
+    setElements(tpl.elements.map((e) => ({ ...e, id: nanoid() })));
+  }
+
   return (
     <DndContext onDragEnd={handleDragEnd}>
       <div className="flex h-screen">
@@ -106,7 +112,7 @@ export default function PortfolioBuilder() {
             Link
           </DraggableItem>
         </div>
-        <DroppableCanvas>
+        <DroppableCanvas layout={layout}>
           {elements.map((el) => (
             <div key={el.id} className="p-2 border bg-white space-y-2">
               {el.type === "text" && (
@@ -170,6 +176,21 @@ export default function PortfolioBuilder() {
           ))}
         </DroppableCanvas>
         <div className="w-40 border-l p-2 bg-gray-100 space-y-4">
+          <div>
+            <p className="text-sm mb-1">Template</p>
+            <select
+              className="w-full border p-1"
+              value={template}
+              onChange={(e) => applyTemplate(e.target.value)}
+            >
+              <option value="">Blank</option>
+              {templates.map((t) => (
+                <option key={t.name} value={t.name}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+          </div>
           <div>
             <p className="text-sm mb-1">Background</p>
             <select

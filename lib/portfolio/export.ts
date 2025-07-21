@@ -29,6 +29,8 @@ export function generatePortfolioTemplates(data: PortfolioExportData): {
     )
     .join("\n");
 
+  const layoutClass = data.layout === "grid" ? "grid grid-cols-2 gap-2" : "flex flex-col gap-2";
+
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -38,7 +40,7 @@ export function generatePortfolioTemplates(data: PortfolioExportData): {
 </head>
 <body>
   <div class="portfolio-container flex flex-col w-[34rem] max-h-[3000px]">
-    <div class="flex flex-col gap-2 rounded-lg p-4 ${bgClass} mt-4 max-h-[3000px]">
+    <div class="${layoutClass} rounded-lg p-4 ${bgClass} mt-4 max-h-[3000px]">
       ${textBlock}
       ${images}
       ${links}
@@ -47,7 +49,7 @@ export function generatePortfolioTemplates(data: PortfolioExportData): {
 </body>
 </html>`;
 
-  const css = `@tailwind base;\n@tailwind components;\n@tailwind utilities;\n\n.portfolio-container {\n  display: flex;\n  padding: 50px;\n  width: 34rem;\n}\n\n.portfolio-img-frame {\n  background: transparent;\n  border: 1px solid #1a192b;\n  padding: 0px;\n}\n\n.text-block {\n  width: fit-content;\n  border: .5px solid #000000;\n  border-radius: 2px;\n  font-size: .7rem;\n  line-height: 1;\n  letter-spacing: normal;\n  margin: 0.3rem 0;\n  padding: 0.3rem;\n  max-height: 9.25rem;\n  overflow-y: auto;\n  scroll-behavior: smooth;\n}`;
+  const css = `@tailwind base;\n@tailwind components;\n@tailwind utilities;\n\n.portfolio-container {\n  display: flex;\n  padding: 50px;\n  width: 34rem;\n}\n\n.portfolio-img-frame {\n  background: transparent;\n  border: 1px solid #1a192b;\n  padding: 0px;\n}\n\n.text-block {\n  width: fit-content;\n  border: .5px solid #000000;\n  border-radius: 2px;\n  font-size: .7rem;\n  line-height: 1;\n  letter-spacing: normal;\n  margin: 0.3rem 0;\n  padding: 0.3rem;\n  max-height: 9.25rem;\n  overflow-y: auto;\n  scroll-behavior: smooth;\n}\n\n.grid {\n  display: grid;\n  grid-template-columns: repeat(2, minmax(0, 1fr));\n  gap: 0.5rem;\n}\n.flex {\n  display: flex;\n}\n`;
 
   return { html, css };
 }
