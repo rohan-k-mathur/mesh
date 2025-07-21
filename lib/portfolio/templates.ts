@@ -4,6 +4,8 @@ export interface BuilderElement {
   content?: string;
   src?: string;
   href?: string;
+  x?: number;
+  y?: number;
 }
 
 export interface PortfolioTemplate {
