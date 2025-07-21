@@ -1,5 +1,6 @@
 // app/(pages)/settings/integrations/page.tsx
-import SpotifyButton from './SpotifyButton';
+import SpotifyButton from "./SpotifyButton";
+import Image from "next/image";
 
 export const metadata = { title: 'Integrations' };
 
@@ -11,7 +12,7 @@ export default function IntegrationsPage() {
       {/* --- Spotify -------------------------------------------------- */}
       <section className="space-y-2">
         <h2 className="text-xl font-medium flex items-center gap-2">
-          <img src="/logo/spotify.svg" className="h-5 w-5" /> Spotify
+          <Image src="/logo/spotify.svg" alt="Spotify" width={20} height={20} /> Spotify
         </h2>
         <p className="text-sm text-gray-500">
           Import your liked songs to personalise recommendations.
