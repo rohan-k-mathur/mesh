@@ -1,7 +1,15 @@
-import { Worker } from "bullmq";
-import { connection } from "@/lib/queue";
-import { prisma } from "@/lib/prismaclient";
-import redis from "@/lib/redis";
+
+import { Worker }       from "bullmq";
+import { connection }   from "@/lib/queue";
+import { prisma }       from "@/lib/prismaclient";
+import redis            from "@/lib/redis";
+
+/** Helper so JSON & Redis never choke on BigInt */
+const safeJSON = (value: unknown) =>
+  JSON.stringify(value, (_k, v) =>
+    typeof v === "bigint" ? v.toString() : v
+  );
+
 
 new Worker(
   "user-knn",
@@ -9,8 +17,7 @@ new Worker(
     const uid = Number(job.data.userId);
 
     /* ----- user-knn-builder.ts ------------------------------------- */
-    const rows: { neighbour_id: bigint; sim: number }[] =
-      await prisma.$queryRaw`
+    const rows: { neighbour_id: string; sim: number }[] = await prisma.$queryRaw`
   SELECT  u2.user_id  AS neighbour_id,
           1 - (u1.taste <=> u2.taste) AS sim          
   FROM    user_taste_vectors u1,
@@ -21,23 +28,36 @@ new Worker(
   LIMIT   200
 `;
 
+
+    // await prisma.$transaction(async (tx) => {
+          /* keep neighbour_id as TEXT all the way until it’s cast back in SQL   */
+          const payload = rows.map((r) => ({
+            user_id: uid,            // numeric – fits JS range
+            neighbour_id: r.neighbour_id, // string
+            sim: r.sim,
+          }));
+
     await prisma.$transaction(async (tx) => {
       await tx.$executeRaw`DELETE FROM user_similarity_knn WHERE user_id = ${uid}`;
-      if (rows.length)
+      if (payload.length)
         await tx.$executeRawUnsafe(
           `INSERT INTO user_similarity_knn (user_id, neighbour_id, sim)
            SELECT * FROM jsonb_to_recordset($1::jsonb)
-                  AS x(user_id bigint, neighbour_id bigint, sim float4)`,
-          JSON.stringify(rows.map((r) => ({ user_id: uid, ...r })))
+           AS x(user_id bigint, neighbour_id bigint, sim float4)`,
+           safeJSON(payload)        
         );
     });
 
-    await redis.set(
-      `friendSuggest:${uid}`,
-      JSON.stringify(rows.map((r) => Number(r.neighbour_id))),
-      "EX",
-      300
-    );
+        /* cache neighbours as strings as well; caller can Number() if needed */
+        await redis.set(
+          `friendSuggest:${uid}`,
+          safeJSON(rows.map((r) => r.neighbour_id)),
+          "EX",
+          300
+        );
   },
   { connection, concurrency: 2 }
 );
+
+
+

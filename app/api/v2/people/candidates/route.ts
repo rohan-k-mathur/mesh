@@ -27,10 +27,16 @@ export async function GET(req: NextRequest) {
     ids = r.map((x) => Number(x.neighbour_id));
   }
 
-  const profiles = await prisma.user.findMany({
+  const rawProfiles = await prisma.user.findMany({
     where: { id: { in: ids.slice(0, k) } },
     select: { id: true, username: true, name: true, image: true },
   });
-
-  return NextResponse.json(profiles);
+ // convert bigint → number (or string if you prefer)
+   const profiles = rawProfiles.map((p) => ({
+      ...p,
+      id: Number(p.id),     // safe as long as id < 2^53
+    }));
+  
+    return NextResponse.json(profiles);
+   
 }
