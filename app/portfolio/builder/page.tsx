@@ -150,6 +150,16 @@ const useBuilderStore = create<BuilderState>()(
   )
 );
 
+useBuilderStore.subscribe(
+  (s) => s,
+  (next, prev) => {
+    const diff = Object.keys(next).filter(
+      (k) => next[k as keyof typeof next] !== prev[k as keyof typeof prev]
+    );
+    diff.length && console.log("%c[Store] changed:", "color:GoldenRod", diff);
+  }
+);
+
 // -----------------------------------------------------------------------------
 // 2. Util – snap to 8 px grid
 // -----------------------------------------------------------------------------
@@ -185,20 +195,24 @@ function ToolbarButton({ type, label }: { type: BuilderElement["type"]; label: s
 // -----------------------------------------------------------------------------
 function Canvas() {
   const { setNodeRef } = useDroppable({ id: "canvas" });
-  const { color, template, layout, order } = useBuilderStore((s) => ({
-    color: s.color,
-    template: s.template,
-    layout: s.layout,
-    order: s.order,
-  }));
-
+ // ✅ tuple  + shallow ⇒ stable
+   const [color, template, layout, order] = useBuilderStore(
+      (s) => [s.color, s.template, s.layout, s.order],
+      shallow
+    );
+      /* debug – proves Canvas renders only when store really changes */
+  console.log(
+    "%c[Canvas] render",
+    "color:LightSeaGreen",
+    { orderLen: order.length }
+  );
   const layoutClass =
     template === ""
       ? ""
       : layout === "grid"
       ? "grid grid-cols-2 gap-4"
       : "flex flex-col gap-4";
-
+      console.log("%c[Canvas] render", "color:LightSeaGreen");
   return (
     <div
       ref={setNodeRef}
@@ -376,9 +390,22 @@ const modifiers = useMemo<Modifier[]>(() => [restrictToParentElement, snap8], []
   //   color: s.color,
   // }));
   const [color, template, layout, order, elements] = useBuilderStore(
-    (s) => [s.color, s.template, s.layout, s.order, s.elements],
-    shallow
-  );
+      (s) => [s.color, s.template, s.layout, s.order, s.elements],
+       shallow
+     );
+    
+     console.log(
+        "%c[Builder] render",
+        "color:HotPink",
+        { template, layout, orderLen: order.length }
+      );
+
+    /* ▶ ADD: log when builder slice changes */
+    console.log(
+      "%c[Builder] render",
+      "color:HotPink",
+      { template, layout, orderLen: order.length }
+    );
   // ---------------------------------------------------------------------------
   // DnD Handlers
   // ---------------------------------------------------------------------------
@@ -404,8 +431,8 @@ const modifiers = useMemo<Modifier[]>(() => [restrictToParentElement, snap8], []
   /* 2 – move existing block in absolute mode */
   if (template === "" && over?.id === "canvas") {
     const id = active.id as string;
-    const el = elements[id];
-    if (el) {
+     const el = elements?.[id];
+     if (el) {
       update(id, { x: (el.x ?? 0) + delta.x, y: (el.y ?? 0) + delta.y });
     }
     return;

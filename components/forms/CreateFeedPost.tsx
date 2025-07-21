@@ -462,7 +462,7 @@ const CreateFeedPost = ({ roomId = "global" }: Props) => {
     >
       <DialogTrigger className="likebutton items-start justify-start leftsidebar-link  leftsidebar-item" asChild>
         <Button           variant={"outline"}
- className="items-start justify-start  h-full w-full rounded-md border-[1px] border-rose-300 border-opacity-80 hover:outline-2 hover:outline-double hover:outline-emerald-400">
+ className="items-start justify-start  h-full w-full rounded-xl border-[1px] border-rose-300 border-opacity-80 hover:outline-2 hover:outline-double hover:outline-emerald-400">
           <Image
             src="/assets/create-new.svg"
             alt="create post"
