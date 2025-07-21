@@ -150,15 +150,15 @@ const useBuilderStore = create<BuilderState>()(
   )
 );
 
-useBuilderStore.subscribe(
-  (s) => s,
-  (next, prev) => {
-    const diff = Object.keys(next).filter(
-      (k) => next[k as keyof typeof next] !== prev[k as keyof typeof prev]
-    );
-    diff.length && console.log("%c[Store] changed:", "color:GoldenRod", diff);
-  }
-);
+// useBuilderStore.subscribe(
+//   (s) => s,
+//   (next, prev) => {
+//     const diff = Object.keys(next).filter(
+//       (k) => next[k as keyof typeof next] !== prev[k as keyof typeof prev]
+//     );
+//     diff.length && console.log("%c[Store] changed:", "color:GoldenRod", diff);
+//   }
+// );
 
 // -----------------------------------------------------------------------------
 // 2. Util – snap to 8 px grid
@@ -196,10 +196,7 @@ function ToolbarButton({ type, label }: { type: BuilderElement["type"]; label: s
 function Canvas() {
   const { setNodeRef } = useDroppable({ id: "canvas" });
  // ✅ tuple  + shallow ⇒ stable
-   const [color, template, layout, order] = useBuilderStore(
-      (s) => [s.color, s.template, s.layout, s.order],
-      shallow
-    );
+  const color = useBuilderStore(s => s.color); const template = useBuilderStore(s => s.template); const layout = useBuilderStore(s => s.layout); const order = useBuilderStore(s => s.order); const elements = useBuilderStore(s => s.elements);
       /* debug – proves Canvas renders only when store really changes */
   console.log(
     "%c[Canvas] render",
@@ -236,18 +233,32 @@ function Canvas() {
 // 5. Block Wrapper (draggable or sortable based on template mode)
 // -----------------------------------------------------------------------------
 function BlockWrapper({ id }: { id: string }) {
-  const template = useBuilderStore((s) => s.template);
+  const template = useBuilderStore(s => s.template);
   const el = useBuilderStore((s) => s.elements[id]);
   const update = useBuilderStore((s) => s.updateElement);
   const del = useBuilderStore((s) => s.deleteElement);
 
-  // Choose correct DnD hook
-  const dndHook = template === "" ? useDraggable : useSortable;
-  // @ts-expect-error generic hook
-  const { setNodeRef, attributes, listeners, transform, transition } = dndHook({
+
+  const draggable = useDraggable({
     id,
     data: { type: "block" },
+    disabled: template !== ""        // <– off in template mode
   });
+
+  const sortable  = useSortable({
+    id,
+    data: { type: "block" },
+    disabled: template === ""        // <– off in free‑form mode
+  });
+
+  const {
+    setNodeRef,
+    attributes,
+    listeners,
+    transform,
+    transition    // only defined when sortable is live
+  } = template === "" ? draggable : sortable;
+
   const style: React.CSSProperties =
     template === ""
       ? {
@@ -372,7 +383,10 @@ export default function PortfolioBuilder() {
         )
       );
 // after sensorsRef
-const sensors = sensorsRef.current;
+//const sensors = sensorsRef.current;
+const sensors = useSensors(
+  useSensor(PointerSensor, { activationConstraint: { distance: 4 } })
+);
 const modifiers = useMemo<Modifier[]>(() => [restrictToParentElement, snap8], []);  // const sensors = useSensors(useSensor(PointerSensor));
   // const modifiers = useMemo(() => [restrictToParentElement, snap8], []);
   // const add = useBuilderStore((s) => s.addElement);
