@@ -1,5 +1,6 @@
 import { UserAttributes } from "@prisma/client";
 import { upsertUserAttributes } from "./actions/userattributes.actions";
+import { updateUserBio } from "./actions/user.actions";
 
 const OMDB_API_KEY = "c971c02c";
 const discogsToken = "cuqwVeLuoiKZsMfpWDLDPeTIjviOBgJnlvHELjse";
@@ -453,4 +454,8 @@ export function submitFieldEdits(
     default:
       console.error("Nothing to update");
   }
+}
+
+export function submitBioEdit(bio: string, path: string) {
+  return updateUserBio({ bio, path });
 }

@@ -20,7 +20,7 @@ async function Page({ params }: { params: { id: string } }) {
       <h1 className="text-[2.5rem] text-center">Customize Profile</h1>
       <hr></hr>
       <div className ="px-0 items-start justify-start">
-      <CustomButtons  userAttributes={userAttributes} />
+      <CustomButtons  userAttributes={userAttributes} currentBio={profilePageUser.bio || ""} />
       </div>
     </main>
   );

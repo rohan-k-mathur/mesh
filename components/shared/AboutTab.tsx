@@ -2,6 +2,7 @@ import { getUserFromCookies } from "@/lib/serverutils";
 import { Button } from "../ui/button";
 import Link from "next/link";
 import { fetchUserAttributes } from "@/lib/actions/userattributes.actions";
+import { fetchUser } from "@/lib/actions/user.actions";
 import { format } from "date-fns";
 
 
@@ -17,6 +18,7 @@ const AboutTab = async ({ currentUserId, accountId }: Props) => {
 
   const attributes =
     (await fetchUserAttributes({ userId: accountId })) || null;
+  const profile = await fetchUser(accountId);
 
   const categories = [
 
@@ -86,6 +88,10 @@ const AboutTab = async ({ currentUserId, accountId }: Props) => {
     </div>
   );
 
+  const bioSection = profile?.bio ? (
+    <p className="mt-4 text-left text-black whitespace-pre-wrap">{profile.bio}</p>
+  ) : null;
+
   if (BigInt(currentUserId) === BigInt(accountId)) {
     return (
       <main className="items-center justify-center text-center">
@@ -94,12 +100,13 @@ const AboutTab = async ({ currentUserId, accountId }: Props) => {
             Customize Profile
           </button>
         </Link>
+        {bioSection}
         {grid}
       </main>
     );
   }
 
-  return <main className="text-center">{grid}</main>;
+  return <main className="text-center">{bioSection}{grid}</main>;
 };
 
 
