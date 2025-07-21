@@ -288,7 +288,7 @@ function DroppableCanvas({
         ref.current = node;
       }}
       className={`relative flex-1 min-h-screen border border-dashed p-4 ${color} ${layoutClass} grid-background`}
-      style={{ cursor: drawText ? (draft ? "crosshair" : "text") : "default" }}
+      style={{ cursor: drawText ? (draft ? "crosshair" : "crosshair") : "default" }}
       onMouseDown={drawText ? startDraw : undefined}
       onMouseMove={drawText ? moveDraw : undefined}
       onMouseUp={drawText ? endDraw : undefined}
@@ -461,16 +461,17 @@ export default function PortfolioBuilder() {
       collisionDetection={pointerWithin}
     >
       <div className="flex h-screen">
-        <div className="w-fit border-r py-2 px-4 space-y-4  mt-12">
+        <div className=" flex-grow-0 flex-shrink-0 border-r py-2 px-4 space-y-4  mt-12">
           <button
-            className={`w-full flex gap-2 justify-start px-4 py-2 rounded-md lockbutton tracking-wide ${drawText ? "bg-white " : "bg-white"}`}
+            className={` flex gap-2 justify-start px-4 py-2 rounded-md l
+            flex-grow-0 flex-shrink-0 lockbutton tracking-wide ${drawText ? "bg-slate-300 cursor-crosshair" : "bg-white"}`}
             onClick={() => setDrawText((d) => !d)}
           >
-            {drawText ? "Editing.." : "Text Box"}
+            {drawText ? "Text Box" : "Text Box"}
             <Image
                   src="/assets/text--creation.svg"
                   alt={"globe"}
-                  className="mr-2"
+                  className="p-0 flex-grow-0 flex-shrink-0"
 
                   width={24}
                   height={24}
@@ -484,7 +485,7 @@ export default function PortfolioBuilder() {
             <Image
                   src="/assets/image.svg"
                   alt={"globe"}
-                  className="mr-2"
+                  className="p-0 flex-grow-0 flex-shrink-0"
 
                   width={24}
                   height={24}
@@ -515,7 +516,7 @@ export default function PortfolioBuilder() {
             {elements.map((el) => (
               template === "" ? (
                 <CanvasItem key={el.id} id={el.id} x={el.x} y={el.y}>
-                  <div className="p-2 border bg-white space-y-2">
+                  <div className="p-2 border-[1px]  border-black bg-white space-y-2">
                     {el.type === "text" && (
                       <div
                         contentEditable
@@ -536,14 +537,15 @@ export default function PortfolioBuilder() {
                       </div>
                     )}
                     {el.type === "image" && (
-                      <div>
+                      <div className="p-0 border-[1px] w-full h-full border-black">
                         {el.src ? (
                           <Image
                             src={el.src}
                             alt="uploaded"
-                            width={200}
-                            height={200}
-                            className="object-cover portfolio-img-frame"
+                            width={0}
+                            height={0}
+                            sizes="(max-width: 768px) 100vw, 33vw"
+                           className="object-cover w-full h-full portfolio-img-frame"
                           />
                         ) : (
                           <input
@@ -577,12 +579,19 @@ export default function PortfolioBuilder() {
                       />
                     )}
                     <button
-                      className="text-xs text-red-500"
+                      className=" rounded-md lockbutton ml-2"
                       onClick={() =>
                         setElements((els) => els.filter((it) => it.id !== el.id))
                       }
                     >
-                      Delete
+                      <Image
+                  src="/assets/trash-can.svg"
+                  alt={"globe"}
+                  className="justify-center  "
+
+                  width={24}
+                  height={24}
+                />
                     </button>
                   </div>
                 </CanvasItem>
@@ -655,18 +664,26 @@ export default function PortfolioBuilder() {
                         setElements((els) => els.filter((it) => it.id !== el.id))
                       }
                     >
-                      Delete
+                           <Image
+                  src="/assets/trash-can.svg"
+                  alt={"globe"}
+                  className="mr-2"
+
+                  width={24}
+                  height={24}
+                />
+
                     </button>
                   </div>
                 </SortableCanvasItem>
               )
             ))}
         </DroppableCanvas>
-        <div className="w-40 border-l p-2 bg-gray-100 space-y-4">
-          <div>
+        <div className="w-fit border-l px-4 py-2 mt-8 space-y-4">
+          <div className="rounded-xl bg-transparent border-[1px] border-black p-3 ">
             <p className="text-sm mb-1">Template</p>
             <select
-              className="w-full border p-1"
+              className="w-full rounded-xl lockbutton mt-1 border-black bg-gray-100 border-[1px] p-1"
               value={template}
               onChange={(e) => applyTemplate(e.target.value)}
             >
@@ -678,10 +695,10 @@ export default function PortfolioBuilder() {
               ))}
             </select>
           </div>
-          <div>
+          <div className="rounded-xl bg-transparent border-[1px] border-black p-3 ">
             <p className="text-sm mb-1">Background</p>
             <select
-              className="w-full border p-1"
+              className="w-full rounded-xl lockbutton mt-1 border-black bg-gray-100 border-[1px] p-1"
               value={color}
               onChange={(e) => setColor(e.target.value)}
             >
@@ -690,10 +707,10 @@ export default function PortfolioBuilder() {
               <option value="bg-blue-200">Blue</option>
             </select>
           </div>
-          <div>
+          <div className="rounded-xl bg-transparent border-[1px] border-black p-3 ">
             <p className="text-sm mb-1">Layout</p>
             <select
-              className="w-full border p-1"
+              className="w-full rounded-xl lockbutton mt-1 border-black bg-gray-100 border-[1px] p-1"
               value={layout}
               onChange={(e) => setLayout(e.target.value as "column" | "grid")}
             >
@@ -702,7 +719,8 @@ export default function PortfolioBuilder() {
             </select>
           </div>
           <button
-            className="w-full mt-4 bg-blue-500 text-white py-1 rounded"
+            className="w-full  bg-gray-100 border-black border-[1px] lockbutton  text-black  px-1 py-2 
+            tracking-wide text-[1.1rem] rounded-xl"
             onClick={handlePublish}
           >
             Publish
