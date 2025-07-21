@@ -11,8 +11,6 @@ import {
   useSensors,
   PointerSensor,
 } from "@dnd-kit/core";
-import { useSortable, SortableContext,
-         verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { nanoid } from "nanoid";
 import { useState, useRef } from "react";
@@ -34,14 +32,15 @@ function DraggableItem({ id, children, fromSidebar }: { id: string; children: Re
   );
 }
 
-function SortableCanvasItem({ id, children }: { id: string; children: React.ReactNode }) {
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
+function CanvasItem({ id, x, y, children }: { id: string; x: number; y: number; children: React.ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform } = useDraggable({ id });
   const style = {
-    transform: transform ? CSS.Transform.toString(transform) : undefined,
-    transition,
+    position: "absolute",
+    left: x + (transform?.x ?? 0),
+    top: y + (transform?.y ?? 0),
   } as React.CSSProperties;
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners} className="cursor-move">
+    <div ref={setNodeRef} style={style} {...listeners} {...attributes} className="cursor-move">
       {children}
     </div>
   );
@@ -63,6 +62,7 @@ function DroppableCanvas({
   drawText,
   boxes,
   setBoxes,
+  canvasRef,
 }: {
   children: React.ReactNode;
   layout: "column" | "grid";
@@ -70,11 +70,12 @@ function DroppableCanvas({
   drawText: boolean;
   boxes: TextBox[];
   setBoxes: React.Dispatch<React.SetStateAction<TextBox[]>>;
+  canvasRef: React.MutableRefObject<HTMLDivElement | null>;
 }) {
   const { setNodeRef } = useDroppable({ id: "canvas" });
-  const layoutClass = layout === "grid" ? "grid grid-cols-2 gap-2" : "flex flex-col space-y-2";
+  const layoutClass = "";
   const [draft, setDraft] = useState<TextBox | null>(null);
-  const ref = useRef<HTMLDivElement>(null);
+  const ref = canvasRef;
 
   function startDraw(e: React.MouseEvent<HTMLDivElement>) {
     if (!drawText || e.target !== ref.current) return;
@@ -157,6 +158,7 @@ function DroppableCanvas({
 
 export default function PortfolioBuilder() {
   const [elements, setElements] = useState<Element[]>([]);
+  const canvasRef = useRef<HTMLDivElement>(null);
   const [color, setColor] = useState("bg-white");
   const [layout, setLayout] = useState<"column" | "grid">("column");
   const [template, setTemplate] = useState<string>("");
@@ -165,25 +167,25 @@ export default function PortfolioBuilder() {
   const router = useRouter();
 
   function handleDragEnd(event: DragEndEvent) {
-    const { over, active } = event;
+    const { over, active, delta } = event;
     if (over?.id === "canvas" && active.data.current?.fromSidebar) {
+      const pointer = (event.activatorEvent as PointerEvent);
+      const rect = canvasRef.current?.getBoundingClientRect();
+      const x = rect ? pointer.clientX - rect.left : 0;
+      const y = rect ? pointer.clientY - rect.top : 0;
       setElements((els) => [
         ...els,
-        { id: nanoid(), type: active.id as Element["type"], content: "", src: "" },
+        { id: nanoid(), type: active.id as Element["type"], content: "", src: "", x, y },
       ]);
       return;
     }
 
-    if (over && !active.data.current?.fromSidebar) {
-      setElements((els) => {
-        const oldIndex = els.findIndex((e) => e.id === active.id);
-        const newIndex = els.findIndex((e) => e.id === over.id);
-        if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return els;
-        const updated = [...els];
-        const [moved] = updated.splice(oldIndex, 1);
-        updated.splice(newIndex, 0, moved);
-        return updated;
-      });
+    if (!active.data.current?.fromSidebar) {
+      setElements((els) =>
+        els.map((e) =>
+          e.id === active.id ? { ...e, x: (e.x || 0) + delta.x, y: (e.y || 0) + delta.y } : e
+        )
+      );
     }
   }
 
@@ -231,7 +233,7 @@ export default function PortfolioBuilder() {
     setTemplate(name);
     setLayout(tpl.layout);
     setColor(tpl.color);
-    setElements(tpl.elements.map((e) => ({ ...e, id: nanoid() })));
+    setElements(tpl.elements.map((e) => ({ ...e, id: nanoid(), x: 0, y: 0 })));
   }
 
   const sensors = useSensors(useSensor(PointerSensor));
@@ -269,10 +271,10 @@ export default function PortfolioBuilder() {
           drawText={drawText}
           boxes={textBoxes}
           setBoxes={setTextBoxes}
+          canvasRef={canvasRef}
         >
-          <SortableContext items={elements.map((e) => e.id)} strategy={verticalListSortingStrategy}>
             {elements.map((el) => (
-              <SortableCanvasItem key={el.id} id={el.id}>
+              <CanvasItem key={el.id} id={el.id} x={el.x} y={el.y}>
                 <div className="p-2 border bg-white space-y-2">
                   {el.type === "text" && (
                     <div
@@ -340,9 +342,8 @@ export default function PortfolioBuilder() {
                   Delete
                 </button>
               </div>
-            </SortableCanvasItem>
+            </CanvasItem>
             ))}
-          </SortableContext>
         </DroppableCanvas>
         <div className="w-40 border-l p-2 bg-gray-100 space-y-4">
           <div>
