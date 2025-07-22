@@ -24,7 +24,7 @@ interface PortfolioCardProps {
 /* ————————————————————————————————————————————— */
 /* ✨ Modal implemented with dynamic import so it   */
 /*    isn’t bundled on every feed page load.        */
-dynamic(() => import("@/components/modals/PortfolioModal"), { ssr: false });
+const Modal = dynamic(() => import("@/components/modals/PortfolioModal"), { ssr: false });
 /* ————————————————————————————————————————————— */
 
 export default function PortfolioCard({
