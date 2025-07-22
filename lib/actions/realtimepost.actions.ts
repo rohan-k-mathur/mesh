@@ -82,7 +82,10 @@ export async function createRealtimePost({
         ...(text && { content: text }),
         ...(imageUrl && { image_url: imageUrl }),
         ...(videoUrl && { video_url: videoUrl }),
-        ...[portfolio && { pageUrl: portfolio }],
+        ...(portfolio && {
+          content: JSON.stringify(portfolio),
+          ...(portfolio.snapshot && { image_url: portfolio.snapshot }),
+        }),
         author_id: user.userId!,
         x_coordinate: new Prisma.Decimal(coordinates.x),
         y_coordinate: new Prisma.Decimal(coordinates.y),
@@ -190,10 +193,14 @@ export async function updateRealtimePost({
     if (originalPost.locked && coordinates) {
       return;
     }
-    const updateData: Prisma.RealtimePostUpdateInput = {
+  const updateData: Prisma.RealtimePostUpdateInput = {
       ...(text && { content: text }),
       ...(imageUrl && { image_url: imageUrl }),
       ...(videoUrl && { video_url: videoUrl }),
+      ...(portfolio && {
+        content: JSON.stringify(portfolio),
+        ...(portfolio.snapshot && { image_url: portfolio.snapshot }),
+      }),
       ...(content && { content }),
       ...(collageLayoutStyle && { collageLayoutStyle }),
       ...(collageColumns !== undefined && { collageColumns }),
