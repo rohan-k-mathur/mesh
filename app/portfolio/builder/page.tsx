@@ -564,7 +564,7 @@ const { url } = data;            // “/portfolio/abc123”
  
   
   await createRealtimePost({
-    portfolio: url,
+    portfolio: { pageUrl: url, snapshot: fileURL },
     imageUrl: fileURL,          // gives the feed a thumbnail
     path: "/",
     coordinates: { x: 0, y: 0 },
@@ -682,7 +682,8 @@ const { url } = data;            // “/portfolio/abc123”
                             width={300}
                             height={300}
                             sizes="(max-height: 200px) 50vw, 33vw"
-                           className="object-cover w-fit h-fit portfolio-img-frame"
+                            className="object-cover w-fit h-fit portfolio-img-frame"
+                            crossOrigin="anonymous"
                           />
                         ) : (
                           <input
@@ -764,6 +765,7 @@ const { url } = data;            // “/portfolio/abc123”
                             width={200}
                             height={200}
                             className="object-cover portfolio-img-frame"
+                            crossOrigin="anonymous"
                           />
                         ) : (
                           <input
