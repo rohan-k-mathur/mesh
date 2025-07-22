@@ -26,6 +26,12 @@ export interface AbsoluteElement {
   content?: string;
   src?: string;
   href?: string;
+  fontSize?: number;
+  lineHeight?: number;
+  letterSpacing?: number;
+  fontFamily?: string;
+  fontWeight?: 400 | 500 | 600 | 700;
+  italic?: boolean;
 }
 export function generatePortfolioTemplates(
   data: PortfolioExportData,
@@ -41,13 +47,30 @@ export function generatePortfolioTemplates(
     /* ---------- 1‑A  plain HTML fallback ---------- */
     const itemsHtml = data.absolutes
       .map(a => {
-        const style = `style="position:absolute;left:${a.x}px;top:${a.y}px;width:${a.width}px;height:${a.height}px;object-fit:cover"`;
+        const styleParts = [
+          `position:absolute`,
+          `left:${a.x}px`,
+          `top:${a.y}px`,
+          `width:${a.width}px`,
+          `height:${a.height}px`,
+        ];
+        if (a.type === "image") styleParts.push("object-fit:cover");
+        if (a.fontSize) styleParts.push(`font-size:${a.fontSize}px`);
+        if (a.lineHeight) styleParts.push(`line-height:${a.lineHeight}`);
+        if (a.letterSpacing) styleParts.push(`letter-spacing:${a.letterSpacing}px`);
+        if (a.fontFamily) styleParts.push(`font-family:${a.fontFamily}`);
+        if (a.fontWeight) styleParts.push(`font-weight:${a.fontWeight}`);
+        if (a.italic) styleParts.push("font-style:italic");
+        if (a.type === "text-box" || a.type === "text") styleParts.push("white-space:pre-wrap");
+        const style = `style="${styleParts.join(";")}"`;
         switch (a.type) {
           case "image":
             return `<img ${style} src="${escapeHtml(a.src)}" />`;
           case "link":
             return `<a ${style} href="${escapeHtml(a.href)}" class="break-all underline text-blue-500" target="_blank" rel="noreferrer">${escapeHtml(a.href)}</a>`;
-          default: // "text" | "text-box" | "box"
+          case "box":
+            return `<div ${style} class="bg-gray-200 border" />`;
+          default: // "text" | "text-box"
             return `<div ${style} class="text-xs border p-1 overflow-hidden">${escapeHtml(
               a.content,
             )}</div>`;
@@ -72,15 +95,22 @@ export function generatePortfolioTemplates(
     /* ---------- 1‑B  React component string (.tsx) ---------- */
     const reactBody = data.absolutes
       .map(a => {
-        const styleObj = {
+        const styleObj: Record<string, any> = {
           position: "absolute",
           left: a.x,
           top: a.y,
           width: a.width,
           height: a.height,
         };
+        if (a.fontSize) styleObj.fontSize = `${a.fontSize}px`;
+        if (a.lineHeight) styleObj.lineHeight = a.lineHeight;
+        if (a.letterSpacing) styleObj.letterSpacing = `${a.letterSpacing}px`;
+        if (a.fontFamily) styleObj.fontFamily = a.fontFamily;
+        if (a.fontWeight) styleObj.fontWeight = a.fontWeight;
+        if (a.italic) styleObj.fontStyle = "italic";
+        if (a.type === "text-box" || a.type === "text") styleObj.whiteSpace = "pre-wrap";
         const styleJsx = `{ ${Object.entries(styleObj)
-          .map(([k, v]) => `${k}: ${v}`)
+          .map(([k, v]) => `${k}: ${JSON.stringify(v)}`)
           .join(", ")} }`;
 
         switch (a.type) {
