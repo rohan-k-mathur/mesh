@@ -21,7 +21,7 @@ import { PortfolioExportData } from "@/lib/portfolio/export";
 import { templates, BuilderElement } from "@/lib/portfolio/templates";
 import Image from "next/image";
 import html2canvas from "html2canvas";
-import { getUserFromCookies } from "@/lib/serverutils";
+import { createRealtimePost } from "@/lib/actions/realtimepost.actions";
 
 
 type Element = BuilderElement;
@@ -543,23 +543,14 @@ export default function PortfolioBuilder() {
       if (!res.ok) throw new Error("export failed");
       const { url } = await res.json();          // “/portfolio/abc123”
   
-      /* ➋  Build the JSON the feed card expects */
-      const postContent = JSON.stringify({
-        pageUrl: url,           // required for new PortfolioCard
-        snapshot: fileURL,      // optional – faster preview
+      /* ➋  Create the post in the feed */
+      await createRealtimePost({
+        portfolio: { pageUrl: url, snapshot: fileURL },
+        path: "/",
+        coordinates: { x: 0, y: 0 },
+        type: "PORTFOLIO",
+        realtimeRoomId: "global",
       });
-   /* ➌  Create the post in the feed */
-   const user = await getUserFromCookies();
-
-   await fetch("/api/posts", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      authorId: user?.uid,
-      type: "PORTFOLIO",
-      content: postContent,
-    }),
-  });
 
   router.push(url);
 
