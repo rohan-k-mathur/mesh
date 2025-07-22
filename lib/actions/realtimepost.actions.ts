@@ -7,10 +7,16 @@ import { revalidatePath } from "next/cache";
 import { getUserFromCookies } from "@/lib/serverutils";
 import { createProductReview } from "./productreview.actions";
 
+export interface PortfolioPayload {
+  pageUrl: string;   // “/portfolio/abc123”
+  snapshot?: string; // CDN url of PNG (optional)
+}
+
 export interface CreateRealtimePostParams {
   text?: string;
   imageUrl?: string;
   videoUrl?: string;
+  portfolio?: PortfolioPayload;
   path: string;
   coordinates: { x: number; y: number };
   type: realtime_post_type | "MUSIC";
@@ -29,6 +35,8 @@ interface UpdateRealtimePostParams {
   text?: string;
   imageUrl?: string;
   videoUrl?: string;
+  portfolio?: PortfolioPayload;
+
   coordinates?: { x: number; y: number };
   path: string;
   isPublic?: boolean;
@@ -41,10 +49,14 @@ interface UpdateRealtimePostParams {
   roomPostContent?: Record<string, unknown>;
 }
 
+
+
 export async function createRealtimePost({
   text,
   imageUrl,
   videoUrl,
+  portfolio,
+
   path,
   coordinates,
   type,
@@ -70,7 +82,7 @@ export async function createRealtimePost({
         ...(text && { content: text }),
         ...(imageUrl && { image_url: imageUrl }),
         ...(videoUrl && { video_url: videoUrl }),
-        
+        ...[portfolio && { pageUrl: portfolio }],
         author_id: user.userId!,
         x_coordinate: new Prisma.Decimal(coordinates.x),
         y_coordinate: new Prisma.Decimal(coordinates.y),
@@ -88,6 +100,7 @@ export async function createRealtimePost({
         ...(collageGap !== undefined && { collageGap }),
       },
     });
+    
     if (type === "PRODUCT_REVIEW" && text) {
       try {
         const parsed = JSON.parse(text);

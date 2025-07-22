@@ -1,66 +1,120 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
+import dynamic from "next/dynamic";
 
 interface PortfolioCardProps {
-  text: string;
-  images: string[];
-  links: string[];
-  layout: "grid" | "column";
-  color: string;
+  /** absolute URL or site‑relative slug (/portfolio/abc123) */
+  pageUrl: string;
+
+  /** Optional pre‑computed snapshot (PNG) for faster preview */
+  snapshot?: string;
+
+  /** For legacy posts that still show raw text/images until they’re published */
+  text?: string;
+  images?: string[];
+  links?: string[];
+
+  /** Needed only if you still support in‑feed export */
+  layout?: "grid" | "column" | "free";
+  color?: string;
 }
 
-const PortfolioCard = ({ text, images, links, layout, color }: PortfolioCardProps) => {
-  const handleExport = async () => {
-    const res = await fetch("/api/portfolio/export", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text, images, links, layout, color }),
-    });
-    if (!res.ok) return;
-    const { url } = await res.json();
-    window.open(url, "_blank");
-  };
+/* ————————————————————————————————————————————— */
+/* ✨ Modal implemented with dynamic import so it   */
+/*    isn’t bundled on every feed page load.        */
+dynamic(() => import("@/components/modals/PortfolioModal"), { ssr: false });
+/* ————————————————————————————————————————————— */
+
+export default function PortfolioCard({
+  pageUrl,
+  snapshot,
+  text = "",
+  images = [],
+  links = [],
+  layout = "column",
+  color = "bg-white",
+}: PortfolioCardProps) {
+  const [open, setOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  /* OPTIONAL — legacy export button */
+  async function handleExport() {
+    setExporting(true);
+    try {
+      const res = await fetch("/api/portfolio/export", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, images, links, layout, color }),
+      });
+      if (!res.ok) throw new Error("export failed");
+      const { url } = await res.json();
+      window.open(url, "_blank");
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  /* —————————————————————————————— */
+  /* Preview iframe (scaled thumbnail) */
+  /* —————————————————————————————— */
+  const preview = snapshot ? (
+    <Image
+      src={snapshot}
+      alt="Portfolio preview"
+      fill
+      className="object-cover"
+    />
+  ) : (
+    /* Scaled iframe preview */
+    <iframe
+      src={pageUrl}
+      loading="lazy"
+      className="w-[1200px] h-[800px] scale-[0.25] origin-top-left pointer-events-none"
+      /* 1200×800 is arbitrary; it just needs to be ≥ the actual canvas */
+    />
+  );
 
   return (
-    <div className="flex flex-col ">
-    
-      <div className="flex flex-col w-full h-fit  items-start">
-        <div className={`${color} flex flex-col rounded-lg p-4 max-w-[90%] w-fit  mt-4 h-fit`}>
-          {text && (
-            <div className="text-block flex flex-col max-h-screen  h-fit mb-1 mt-1 p-2 custom-scrollbar text-[1.1rem] break-words">
-              {text}
-            </div>
-          )}
-          {images.map((src, idx) => (
-            <Image
-              key={idx}
-              src={src}
-              alt={`img-${idx}`}
-              width={200}
-              height={200}
-              className={`object-cover portfolio-img-frame ${idx === 0 ? "flex flex-col max-h-[3000px] mb-1 mt-2 break-words" : ""}`}
-            />
-          ))}
-          {links.map((href, idx) => (
-            <a
-              key={idx}
-              href={href}
-              className="text-blue-500 underline break-all"
-              target="_blank"
-              rel="noreferrer"
-            >
-              {href}
-            </a>
-          ))}
+    <>
+      {/* Card container */}
+      <div className="flex flex-col gap-3 w-full">
+        {/* Thumbnail frame */}
+        <div
+          onClick={() => setOpen(true)}
+          className="relative w-[300px] h-[180px] overflow-hidden border rounded cursor-pointer shadow-sm"
+        >
+          {preview}
         </div>
+
+        {/* (Optional) old text preview if post not yet published */}
+        {!pageUrl && (
+          <div className="text-xs text-gray-500">
+            Draft: {text.slice(0, 120)}…
+          </div>
+        )}
+
+        {/* (Optional) Export / Re‑publish button */}
+        {text && (
+          <button
+            onClick={handleExport}
+            disabled={exporting}
+            className="likebutton text-sm px-3 py-1 rounded border w-fit"
+          >
+            {exporting ? "Exporting…" : "Export"}
+          </button>
+        )}
       </div>
 
-      <button onClick={handleExport} className="justify-start mx-auto mr-[44%] likebutton text-[1rem] font-light  w-[20%] py-2 mt-6 mb-4 mb-1 outline-blue px-2">
-        Export
-      </button>
-    </div>
+      {/* Modal — lazy‑loaded client component */}
+      {open && (
+        <Modal
+          url={pageUrl}
+          onClose={() => setOpen(false)}
+          snapshot={snapshot}
+        />
+      )}
+    </>
   );
-};
-
-export default PortfolioCard;
+}
