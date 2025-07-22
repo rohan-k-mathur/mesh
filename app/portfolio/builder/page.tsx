@@ -23,6 +23,14 @@ import Image from "next/image";
 import html2canvas from "html2canvas";
 import { getUserFromCookies } from "@/lib/serverutils";
 import { createRealtimePost } from "@/lib/actions/realtimepost.actions";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type Element = BuilderElement;
 
@@ -119,6 +127,12 @@ interface TextBox {
   width: number;
   height: number;
   text: string;
+  fontSize?: number;
+  lineHeight?: number;
+  letterSpacing?: number;
+  fontFamily?: string;
+  fontWeight?: 400 | 500 | 600 | 700;
+  italic?: boolean;
 }
 type Corner = "nw" | "ne" | "sw" | "se";
 
@@ -139,6 +153,74 @@ interface DragState {
   startLeft: number;
   startTop: number;
 }
+
+function StylePanel({
+  box,
+  onChange,
+}: {
+  box: TextBox;
+  onChange: (patch: Partial<TextBox>) => void;
+}) {
+  return (
+    <div className="space-y-3 mt-6">
+      <label className="block text-xs">
+        Font&nbsp;Size
+        <Input
+          type="number"
+          value={box.fontSize ?? 14}
+          min={8}
+          max={96}
+          onChange={(e) => onChange({ fontSize: +e.target.value })}
+        />
+      </label>
+      <label className="block text-xs">
+        Line&nbsp;Height
+        <Input
+          type="number"
+          step="0.05"
+          value={box.lineHeight ?? 1.2}
+          onChange={(e) => onChange({ lineHeight: +e.target.value })}
+        />
+      </label>
+      <label className="block text-xs">
+        Tracking
+        <Input
+          type="number"
+          value={box.letterSpacing ?? 0}
+          onChange={(e) => onChange({ letterSpacing: +e.target.value })}
+        />
+      </label>
+      <Select
+        value={box.fontFamily ?? "Inter"}
+        onValueChange={(v) => onChange({ fontFamily: v })}
+      >
+        <SelectTrigger className="w-full">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="Inter">Inter</SelectItem>
+          <SelectItem value="Times">Times</SelectItem>
+        </SelectContent>
+      </Select>
+      <div className="flex gap-2">
+        <button
+          className="border px-1"
+          onClick={() =>
+            onChange({ fontWeight: box.fontWeight === 700 ? 400 : 700 })
+          }
+        >
+          <b>B</b>
+        </button>
+        <button
+          className="border px-1"
+          onClick={() => onChange({ italic: !box.italic })}
+        >
+          <i>I</i>
+        </button>
+      </div>
+    </div>
+  );
+}
 function DroppableCanvas({
   children,
   layout,
@@ -148,6 +230,8 @@ function DroppableCanvas({
   boxes,
   setBoxes,
   canvasRef,
+  selectedId,
+  setSelectedId,
 }: {
   children: React.ReactNode;
   layout: "column" | "grid" | "free";
@@ -157,6 +241,8 @@ function DroppableCanvas({
   boxes: TextBox[];
   setBoxes: React.Dispatch<React.SetStateAction<TextBox[]>>;
   canvasRef: React.MutableRefObject<HTMLDivElement | null>;
+  selectedId: string | null;
+  setSelectedId: React.Dispatch<React.SetStateAction<string | null>>;
 }) {
   const { setNodeRef } = useDroppable({ id: "canvas" });
   const layoutClass =
@@ -175,6 +261,7 @@ function DroppableCanvas({
 
   function startDraw(e: React.MouseEvent<HTMLDivElement>) {
     if (!drawText || e.target !== ref.current) return;
+    setSelectedId(null);
     const rect = ref.current!.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
@@ -204,7 +291,19 @@ function DroppableCanvas({
       y += height;
       height = Math.abs(height);
     }
-    setBoxes((bs) => [...bs, { id: nanoid(), x, y, width, height, text: "" }]);
+    setBoxes((bs) => [
+      ...bs,
+      {
+        id: nanoid(),
+        x,
+        y,
+        width,
+        height,
+        text: "",
+        fontSize: 14,
+        lineHeight: 1.2,
+      },
+    ]);
     setDraft(null);
   }
   /* ---------- resize helpers ------------ */
@@ -232,6 +331,8 @@ function DroppableCanvas({
 
     // Ignore if user clicks inside the text editor (it stops propagation).
     e.stopPropagation();
+
+    setSelectedId(b.id);
 
     const rect = ref.current!.getBoundingClientRect();
     setDragging({
@@ -347,6 +448,13 @@ function DroppableCanvas({
     setBoxes((bs) => bs.map((b) => (b.id === id ? { ...b, text } : b)));
   }
 
+  function canvasMouseDown(e: React.MouseEvent<HTMLDivElement>) {
+    if (e.target === ref.current) {
+      setSelectedId(null);
+    }
+    if (drawText) startDraw(e);
+  }
+
   return (
     <div
       ref={(node) => {
@@ -357,7 +465,7 @@ function DroppableCanvas({
       style={{
         cursor: drawText ? (draft ? "crosshair" : "crosshair") : "default",
       }}
-      onMouseDown={drawText ? startDraw : undefined}
+      onMouseDown={canvasMouseDown}
       onMouseMove={drawText ? moveDraw : undefined}
       onMouseUp={drawText ? endDraw : undefined}
     >
@@ -407,7 +515,16 @@ function DroppableCanvas({
             contentEditable
             suppressContentEditableWarning
             className="w-full h-full px-3 py-2"
-            style={{ cursor: "text" }}
+            style={{
+              cursor: "text",
+              fontSize: box.fontSize,
+              lineHeight: box.lineHeight,
+              letterSpacing: box.letterSpacing,
+              fontFamily: box.fontFamily,
+              fontWeight: box.fontWeight,
+              fontStyle: box.italic ? "italic" : undefined,
+              whiteSpace: "pre-wrap",
+            }}
             onInput={(e) =>
               updateText(box.id, (e.target as HTMLElement).innerText)
             }
@@ -452,6 +569,7 @@ export default function PortfolioBuilder() {
   const [template, setTemplate] = useState<string>("");
   const [drawText, setDrawText] = useState(false);
   const [textBoxes, setTextBoxes] = useState<TextBox[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const router = useRouter();
 
   function handleDragEnd(event: DragEndEvent) {
@@ -572,6 +690,12 @@ export default function PortfolioBuilder() {
       width: b.width,
       height: b.height,
       content: b.text,
+      fontSize: b.fontSize,
+      lineHeight: b.lineHeight,
+      letterSpacing: b.letterSpacing,
+      fontFamily: b.fontFamily,
+      fontWeight: b.fontWeight,
+      italic: b.italic,
     }));
 
     return [...absoluteElems, ...absoluteText];
@@ -799,6 +923,18 @@ export default function PortfolioBuilder() {
               height={24}
             />
           </DraggableItem>
+          {selectedId && (
+            <StylePanel
+              box={textBoxes.find((b) => b.id === selectedId)!}
+              onChange={(patch) =>
+                setTextBoxes((bs) =>
+                  bs.map((b) =>
+                    b.id === selectedId ? { ...b, ...patch } : b
+                  )
+                )
+              }
+            />
+          )}
         </div>
         <DroppableCanvas
           layout={layout}
@@ -808,6 +944,8 @@ export default function PortfolioBuilder() {
           boxes={textBoxes}
           setBoxes={setTextBoxes}
           canvasRef={canvasRef}
+          selectedId={selectedId}
+          setSelectedId={setSelectedId}
         >
           {elements.map((el) =>
             template === "" ? (

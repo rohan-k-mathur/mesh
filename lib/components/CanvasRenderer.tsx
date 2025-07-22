@@ -12,6 +12,12 @@ export interface AbsoluteElement {
   content?: string;
   src?: string;
   href?: string;
+  fontSize?: number;
+  lineHeight?: number;
+  letterSpacing?: number;
+  fontFamily?: string;
+  fontWeight?: 400 | 500 | 600 | 700;
+  italic?: boolean;
 }
 
 export default function CanvasRenderer({
@@ -39,7 +45,7 @@ export default function CanvasRenderer({
         }}
       >
         {elements.map(el => {
-          const style: React.CSSProperties = {
+          const base: React.CSSProperties = {
             position: "absolute",
             left: el.x,
             top: el.y,
@@ -48,7 +54,8 @@ export default function CanvasRenderer({
           };
 
           switch (el.type) {
-            case "image":
+            case "image": {
+              const style = { ...base, objectFit: "cover" } as React.CSSProperties;
               return (
                 <Image
                   key={el.id}
@@ -56,11 +63,13 @@ export default function CanvasRenderer({
                   alt=""
                   width={el.width}
                   height={el.height}
-                  style={{ ...style, objectFit: "cover" }}
+                  style={style}
                 />
               );
+            }
 
-            case "link":
+            case "link": {
+              const style = base;
               return (
                 <a
                   key={el.id}
@@ -73,25 +82,35 @@ export default function CanvasRenderer({
                   {el.href}
                 </a>
               );
+            }
 
-            case "box":
+            case "box": {
+              const style = base;
               return (
-                <div
-                  key={el.id}
-                  style={style}
-                  className="bg-gray-200 border"
-                />
+                <div key={el.id} style={style} className="bg-gray-200 border" />
               );
+            }
 
-            default: // text / text-box
+            default: {
+              const style: React.CSSProperties = {
+                ...base,
+                fontSize: el.fontSize,
+                lineHeight: el.lineHeight,
+                letterSpacing: el.letterSpacing,
+                fontFamily: el.fontFamily,
+                fontWeight: el.fontWeight,
+                fontStyle: el.italic ? "italic" : undefined,
+                whiteSpace: "pre-wrap",
+              };
               return (
                 <div
                   key={el.id}
                   style={style}
-                  className="text-xs border p-1 overflow-hidden whitespace-pre-wrap"
+                  className="text-xs border p-1 overflow-hidden"
                   dangerouslySetInnerHTML={{ __html: el.content ?? "" }}
                 />
               );
+            }
           }
         })}
       </div>
