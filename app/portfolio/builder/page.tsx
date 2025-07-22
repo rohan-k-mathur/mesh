@@ -14,7 +14,7 @@ import {
 import { useSortable, arrayMove } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { nanoid } from "nanoid";
-import { useState, useRef,useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { uploadFileToSupabase } from "@/lib/utils";
 import { PortfolioExportData } from "@/lib/portfolio/export";
@@ -24,22 +24,49 @@ import html2canvas from "html2canvas";
 import { getUserFromCookies } from "@/lib/serverutils";
 import { createRealtimePost } from "@/lib/actions/realtimepost.actions";
 
-
 type Element = BuilderElement;
 
-
-function DraggableItem({ id, children, fromSidebar }: { id: string; children: React.ReactNode; fromSidebar?: boolean }) {
-  const { attributes, listeners, setNodeRef, transform } = useDraggable({ id, data: { fromSidebar } });
-  const style = transform ? { transform: CSS.Translate.toString(transform) } : undefined;
+function DraggableItem({
+  id,
+  children,
+  fromSidebar,
+}: {
+  id: string;
+  children: React.ReactNode;
+  fromSidebar?: boolean;
+}) {
+  const { attributes, listeners, setNodeRef, transform } = useDraggable({
+    id,
+    data: { fromSidebar },
+  });
+  const style = transform
+    ? { transform: CSS.Translate.toString(transform) }
+    : undefined;
   return (
-    <div ref={setNodeRef} style={style} {...listeners} {...attributes} className="cursor-move flex justify-start px-4 gap-2 tracking-wide
-     py-2 border rounded-md lockbutton text-center bg-white text-black">
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...listeners}
+      {...attributes}
+      className="cursor-move flex justify-start px-4 gap-2 tracking-wide
+     py-2 border rounded-md lockbutton text-center bg-white text-black"
+    >
       {children}
     </div>
   );
 }
 
-function CanvasItem({ id, x, y, children }: { id: string; x: number; y: number; children: React.ReactNode }) {
+function CanvasItem({
+  id,
+  x,
+  y,
+  children,
+}: {
+  id: string;
+  x: number;
+  y: number;
+  children: React.ReactNode;
+}) {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({ id });
   const style = {
     position: "absolute",
@@ -47,20 +74,39 @@ function CanvasItem({ id, x, y, children }: { id: string; x: number; y: number; 
     top: y + (transform?.y ?? 0),
   } as React.CSSProperties;
   return (
-    <div ref={setNodeRef} style={style} {...listeners} {...attributes} className="cursor-move">
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...listeners}
+      {...attributes}
+      className="cursor-move"
+    >
       {children}
     </div>
   );
 }
 
-function SortableCanvasItem({ id, children }: { id: string; children: React.ReactNode }) {
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id });
+function SortableCanvasItem({
+  id,
+  children,
+}: {
+  id: string;
+  children: React.ReactNode;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition } =
+    useSortable({ id });
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
   } as React.CSSProperties;
   return (
-    <div ref={setNodeRef} style={style} {...listeners} {...attributes} className="cursor-move">
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...listeners}
+      {...attributes}
+      className="cursor-move"
+    >
       {children}
     </div>
   );
@@ -74,25 +120,25 @@ interface TextBox {
   height: number;
   text: string;
 }
-type Corner = 'nw' | 'ne' | 'sw' | 'se';
+type Corner = "nw" | "ne" | "sw" | "se";
 
 interface ResizeState {
-  id: string;            // box being resized
-  corner: Corner;        // which corner is active
-  startX: number;        // pointer position at drag start
+  id: string; // box being resized
+  corner: Corner; // which corner is active
+  startX: number; // pointer position at drag start
   startY: number;
-  startLeft: number;     // box position/dimensions at drag start
+  startLeft: number; // box position/dimensions at drag start
   startTop: number;
   startWidth: number;
   startHeight: number;
 }
 interface DragState {
-    id: string;
-    startX: number;
-    startY: number;
-    startLeft: number;
-    startTop: number;
-  }
+  id: string;
+  startX: number;
+  startY: number;
+  startLeft: number;
+  startTop: number;
+}
 function DroppableCanvas({
   children,
   layout,
@@ -112,18 +158,19 @@ function DroppableCanvas({
   setBoxes: React.Dispatch<React.SetStateAction<TextBox[]>>;
   canvasRef: React.MutableRefObject<HTMLDivElement | null>;
 }) {
-    const { setNodeRef } = useDroppable({ id: "canvas" });
-    const layoutClass = layout === "free"
-    ? "flex flex-col-auto flex-1 flex-row-auto gap-auto w-auto h-auto"
-    : layout === "grid"
-    ? "grid grid-cols-2 gap-2"
-    : "flex flex-col gap-2";
-   /* NEW ---------- */
-   const [draft, setDraft]   = useState<TextBox | null>(null);
-   const [resizing, setResizing] = useState<ResizeState | null>(null);
-   const [dragging, setDragging] = useState<DragState | null>(null);
+  const { setNodeRef } = useDroppable({ id: "canvas" });
+  const layoutClass =
+    layout === "free"
+      ? "flex flex-col-auto flex-1 flex-row-auto gap-auto w-auto h-auto"
+      : layout === "grid"
+      ? "grid grid-cols-2 gap-2"
+      : "flex flex-col gap-2";
+  /* NEW ---------- */
+  const [draft, setDraft] = useState<TextBox | null>(null);
+  const [resizing, setResizing] = useState<ResizeState | null>(null);
+  const [dragging, setDragging] = useState<DragState | null>(null);
 
-   /* --------------- */
+  /* --------------- */
   const ref = canvasRef;
 
   function startDraw(e: React.MouseEvent<HTMLDivElement>) {
@@ -161,7 +208,11 @@ function DroppableCanvas({
     setDraft(null);
   }
   /* ---------- resize helpers ------------ */
-  function handlePointerDown(e: React.PointerEvent, b: TextBox, corner: Corner) {
+  function handlePointerDown(
+    e: React.PointerEvent,
+    b: TextBox,
+    corner: Corner
+  ) {
     e.stopPropagation();
     const rect = ref.current!.getBoundingClientRect();
     setResizing({
@@ -170,18 +221,18 @@ function DroppableCanvas({
       startX: e.clientX - rect.left,
       startY: e.clientY - rect.top,
       startLeft: b.x,
-      startTop:  b.y,
+      startTop: b.y,
       startWidth: b.width,
       startHeight: b.height,
     });
   }
   function handleBoxPointerDown(e: React.PointerEvent, b: TextBox) {
     // Ignore if we’re clicking a resize handle – they call handlePointerDown.
-    if ((e.target as HTMLElement).classList.contains('resize-handle')) return;
-  
+    if ((e.target as HTMLElement).classList.contains("resize-handle")) return;
+
     // Ignore if user clicks inside the text editor (it stops propagation).
     e.stopPropagation();
-  
+
     const rect = ref.current!.getBoundingClientRect();
     setDragging({
       id: b.id,
@@ -195,46 +246,54 @@ function DroppableCanvas({
   useEffect(() => {
     function onMove(ev: PointerEvent) {
       if (!resizing) return;
-      const { startX, startY, corner, startLeft, startTop, startWidth, startHeight } = resizing;
+      const {
+        startX,
+        startY,
+        corner,
+        startLeft,
+        startTop,
+        startWidth,
+        startHeight,
+      } = resizing;
       const rect = ref.current!.getBoundingClientRect();
       const x = ev.clientX - rect.left;
       const y = ev.clientY - rect.top;
       const dx = x - startX;
       const dy = y - startY;
 
-      setBoxes(bs =>
-        bs.map(b => {
+      setBoxes((bs) =>
+        bs.map((b) => {
           if (b.id !== resizing.id) return b;
 
-          let left  = startLeft;
-          let top   = startTop;
+          let left = startLeft;
+          let top = startTop;
           let width = startWidth;
-          let height= startHeight;
+          let height = startHeight;
 
           switch (corner) {
-            case 'se':
-              width  = Math.max(20, startWidth  + dx);
+            case "se":
+              width = Math.max(20, startWidth + dx);
               height = Math.max(20, startHeight + dy);
               break;
-            case 'sw':
-              width  = Math.max(20, startWidth  - dx);
+            case "sw":
+              width = Math.max(20, startWidth - dx);
               height = Math.max(20, startHeight + dy);
-              left   = startLeft + dx;
+              left = startLeft + dx;
               break;
-            case 'ne':
-              width  = Math.max(20, startWidth  + dx);
+            case "ne":
+              width = Math.max(20, startWidth + dx);
               height = Math.max(20, startHeight - dy);
-              top    = startTop  + dy;
+              top = startTop + dy;
               break;
-            case 'nw':
-              width  = Math.max(20, startWidth  - dx);
+            case "nw":
+              width = Math.max(20, startWidth - dx);
               height = Math.max(20, startHeight - dy);
-              left   = startLeft + dx;
-              top    = startTop  + dy;
+              left = startLeft + dx;
+              top = startTop + dy;
               break;
           }
           return { ...b, x: left, y: top, width, height };
-        }),
+        })
       );
     }
 
@@ -243,11 +302,11 @@ function DroppableCanvas({
     }
 
     if (resizing) {
-      window.addEventListener('pointermove', onMove);
-      window.addEventListener('pointerup', onUp);
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
       return () => {
-        window.removeEventListener('pointermove', onMove);
-        window.removeEventListener('pointerup', onUp);
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
       };
     }
   }, [resizing, setBoxes]);
@@ -260,24 +319,26 @@ function DroppableCanvas({
       const y = ev.clientY - rect.top;
       const dx = x - dragging.startX;
       const dy = y - dragging.startY;
-  
-      setBoxes(bs =>
-        bs.map(b =>
-          b.id === dragging.id ? { ...b, x: dragging.startLeft + dx, y: dragging.startTop + dy } : b
-        ),
+
+      setBoxes((bs) =>
+        bs.map((b) =>
+          b.id === dragging.id
+            ? { ...b, x: dragging.startLeft + dx, y: dragging.startTop + dy }
+            : b
+        )
       );
     }
-  
+
     function onUp() {
       setDragging(null);
     }
-  
+
     if (dragging) {
-      window.addEventListener('pointermove', onMove);
-      window.addEventListener('pointerup', onUp);
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
       return () => {
-        window.removeEventListener('pointermove', onMove);
-        window.removeEventListener('pointerup', onUp);
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
       };
     }
   }, [dragging, setBoxes]);
@@ -293,54 +354,70 @@ function DroppableCanvas({
         ref.current = node;
       }}
       className={`relative flex-1 min-h-screen border border-dashed p-4 ${color} ${layoutClass} grid-background`}
-      style={{ cursor: drawText ? (draft ? "crosshair" : "crosshair") : "default" }}
+      style={{
+        cursor: drawText ? (draft ? "crosshair" : "crosshair") : "default",
+      }}
       onMouseDown={drawText ? startDraw : undefined}
       onMouseMove={drawText ? moveDraw : undefined}
       onMouseUp={drawText ? endDraw : undefined}
     >
       {children}
       {boxes.map((box) => (
-
-<div
-  key={box.id}
-  onPointerDown={(e) => handleBoxPointerDown(e, box)}
-  style={{ left: box.x, top: box.y, width: box.width, height: box.height }}
-  className="absolute border-2 border-r-4 border-l-4 border-r-solid border-l-solid custom-scrollbar border-dashed border-gray-400 bg-white text-xs outline-none overflow-hidden cursor-move 
+        <div
+          key={box.id}
+          onPointerDown={(e) => handleBoxPointerDown(e, box)}
+          style={{
+            left: box.x,
+            top: box.y,
+            width: box.width,
+            height: box.height,
+          }}
+          className="absolute border-2 border-r-4 border-l-4 border-r-solid border-l-solid custom-scrollbar border-dashed border-gray-400 bg-white text-xs outline-none overflow-hidden cursor-move 
  justify-center"
->
-{/* corner handles */}
-{(['nw','ne','sw','se'] as Corner[]).map(corner => (
-  <div
-    key={corner}
-    onPointerDown={(e) => handlePointerDown(e, box, corner)}
-    className={`resize-handle handle-${corner}`}
-  />
-))}
-
-{/* editable text area */}
-<div
-  onPointerDown={(e) => e.stopPropagation()}
-
-  ref={el => {
-    /* keep DOM in sync **only** when the box text
+        >
+          {/* corner handles */}
+          {(["nw", "ne", "sw", "se"] as Corner[]).map((corner) => (
+            <div
+              key={corner}
+              onPointerDown={(e) => handlePointerDown(e, box, corner)}
+              className={`resize-handle handle-${corner}`}
+            />
+          ))}
+<button
+     className="absolute bottom-1 right-1 p-[2px] rounded
+                bg-white/80 hover:bg-red-500/90"
+     onClick={(e) => {
+       e.stopPropagation();          // don’t start a drag
+       setBoxes((bs) => bs.filter((b) => b.id !== box.id));
+     }}
+   >
+     <Image src="/assets/trash-can.svg" alt="delete" width={14} height={14} />
+   </button>
+          {/* editable text area */}
+          <div
+            onPointerDown={(e) => e.stopPropagation()}
+            ref={(el) => {
+              /* keep DOM in sync **only** when the box text
        changes because of something *other* than typing
        (e.g. loading, undo, etc.)                    */
-    if (el && el.innerText !== box.text) {
-      el.innerText = box.text;
-    }
-  }}            contentEditable
+              if (el && el.innerText !== box.text) {
+                el.innerText = box.text;
+              }
+            }}
+            contentEditable
             suppressContentEditableWarning
             className="w-full h-full px-3 py-2"
-            style={{ cursor: 'text' }}
-            onInput={e => updateText(box.id, (e.target as HTMLElement).innerText)}
-
+            style={{ cursor: "text" }}
+            onInput={(e) =>
+              updateText(box.id, (e.target as HTMLElement).innerText)
+            }
           >
             {/* {box.text} */}
           </div>
         </div>
       ))}
 
-{/* 
+      {/* 
         <div
           key={box.id}
           style={{ left: box.x, top: box.y, width: box.width, height: box.height }}
@@ -414,7 +491,9 @@ export default function PortfolioBuilder() {
     if (template === "") {
       setElements((els) =>
         els.map((e) =>
-          e.id === active.id ? { ...e, x: (e.x || 0) + delta.x, y: (e.y || 0) + delta.y } : e
+          e.id === active.id
+            ? { ...e, x: (e.x || 0) + delta.x, y: (e.y || 0) + delta.y }
+            : e
         )
       );
     } else if (over && active.id !== over.id) {
@@ -427,8 +506,8 @@ export default function PortfolioBuilder() {
   }
   function getImageSizeFromFile(file: File): Promise<{ w: number; h: number }> {
     return new Promise((resolve, reject) => {
-      const url  = URL.createObjectURL(file);
-      const img  = new window.Image();
+      const url = URL.createObjectURL(file);
+      const img = new window.Image();
       img.onload = () => {
         resolve({ w: img.naturalWidth, h: img.naturalHeight });
         URL.revokeObjectURL(url);
@@ -437,13 +516,13 @@ export default function PortfolioBuilder() {
       img.src = url;
     });
   }
-  
+
   async function getImageSizeFromUrl(url: string) {
     return new Promise<{ w: number; h: number }>((resolve, reject) => {
-      const img  = new window.Image();
+      const img = new window.Image();
       img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
       img.onerror = reject;
-      img.crossOrigin = "anonymous";   // just in case
+      img.crossOrigin = "anonymous"; // just in case
       img.src = url;
     });
   }
@@ -454,10 +533,11 @@ export default function PortfolioBuilder() {
 
     if (!res.error) {
       setElements((els) =>
-        els.map((el) => (el.id === id ? { ...el, src: res.fileURL,       width  : w,
-          height : h,
-          natW   : w,
-          natH   : h,} : el))
+        els.map((el) =>
+          el.id === id
+            ? { ...el, src: res.fileURL, width: w, height: h, natW: w, natH: h }
+            : el
+        )
       );
     }
   }
@@ -482,9 +562,9 @@ export default function PortfolioBuilder() {
       src: e.src,
       href: e.href,
     }));
-  
+
     // 2️⃣  From text boxes we drew
-    const absoluteText = textBoxes.map(b => ({
+    const absoluteText = textBoxes.map((b) => ({
       id: b.id,
       type: "text-box",
       x: b.x,
@@ -493,11 +573,10 @@ export default function PortfolioBuilder() {
       height: b.height,
       content: b.text,
     }));
-  
+
     return [...absoluteElems, ...absoluteText];
   }
   function serialize(): PortfolioExportData {
-
     const textFromElements = elements
       .filter((e) => e.type === "text" && e.content)
       .map((e) => e.content)
@@ -515,10 +594,10 @@ export default function PortfolioBuilder() {
   async function handlePublish() {
     // if (!canvasRef.current) return;
     // const node = canvasRef.current;
-  
+
     // /* 0️⃣  Toggle “clean mode” so resize handles & dashed borders disappear */
     // node.classList.add("publishing");
-  
+
     // try {
     //   /* 1️⃣  Ensure all remote images and custom fonts are ready */
     //   await Promise.all([
@@ -538,11 +617,11 @@ export default function PortfolioBuilder() {
     //             }),
     //     ),
     //   ]);
-  
+
     //   /* 2️⃣  Compute the exact canvas size (it may be taller than the viewport) */
     //   const width  = node.scrollWidth;
     //   const height = node.scrollHeight;
-  
+
     //   /* 3️⃣  Render to bitmap */
     //   const bitmap = await html2canvas(node, {
     //     backgroundColor: null,   // keep transparent; change to '#fff' if preferred
@@ -553,11 +632,11 @@ export default function PortfolioBuilder() {
     //     scrollY: -window.scrollY,
     //     scale: window.devicePixelRatio, // crisp on Retina without huge file
     //   });
-  
+
     //   /* 4️⃣  Convert → Blob */
     //   const blob: Blob | null = await new Promise(res => bitmap.toBlob(res, "image/png"));
     //   if (!blob) return;
-  
+
     //   /* 5️⃣  Upload the PNG (Supabase helper unchanged) */
     //   const fileName = `portfolio/snapshot-${Date.now()}.png`;
     //   const { fileURL, error } = await uploadFileToSupabase(
@@ -567,8 +646,8 @@ export default function PortfolioBuilder() {
     //     console.error(error);
     //     return;
     //   }
-  
-      /* 6️⃣  POST the usual payload + snapshot URL */
+
+    /* 6️⃣  POST the usual payload + snapshot URL */
     //   const payload = {
     //     ...serialize(),
     //     snapshot: fileURL,
@@ -583,80 +662,74 @@ export default function PortfolioBuilder() {
     //     snapshotHeight: height,
     //   };
 
-      const payload = {
-        ...serialize(),
-        absolutes: buildAbsoluteExport(),
-      };
+    const payload = {
+      ...serialize(),
+      absolutes: buildAbsoluteExport(),
+    };
 
-      /* 2) POST to the export route – it now returns the PNG */
-  const res   = await fetch("/api/portfolio/export", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) throw new Error("export failed");
+    /* 2) POST to the export route – it now returns the PNG */
+    const res = await fetch("/api/portfolio/export", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error("export failed");
 
-  const { url, snapshot } = await res.json();
+    const { url, snapshot } = await res.json();
 
-  /* 3) Create the realtime post using the *server‑generated* PNG */
-  await createRealtimePost({
-    portfolio: { pageUrl: url, snapshot },
-    imageUrl:  snapshot,          // thumbnail in the feed
-    path:      "/",
-    coordinates: { x: 0, y: 0 },
-    type:        "PORTFOLIO",
-    realtimeRoomId: "global",
-  });
+    /* 3) Create the realtime post using the *server‑generated* PNG */
+    await createRealtimePost({
+      portfolio: { pageUrl: url, snapshot },
+      imageUrl: snapshot, // thumbnail in the feed
+      path: "/",
+      coordinates: { x: 0, y: 0 },
+      type: "PORTFOLIO",
+      realtimeRoomId: "global",
+    });
 
-  router.push(url);               // open the live page for the author
-}
+    router.push(url); // open the live page for the author
+  }
 
-  
-//      /***** 6️⃣  POST the payload *****/
-// const res = await fetch("/api/portfolio/export", {
-//   method: "POST",
-//   headers: { "Content-Type": "application/json" },
-//   body: JSON.stringify(payload),
-// });
+  //      /***** 6️⃣  POST the payload *****/
+  // const res = await fetch("/api/portfolio/export", {
+  //   method: "POST",
+  //   headers: { "Content-Type": "application/json" },
+  //   body: JSON.stringify(payload),
+  // });
 
-// /* ---- read only ONCE ---- */
-// const data = await res.json();   // <- body consumed exactly here
+  // /* ---- read only ONCE ---- */
+  // const data = await res.json();   // <- body consumed exactly here
 
-// if (!res.ok) {
-//   throw new Error(data.error ?? "export failed");
-// }
+  // if (!res.ok) {
+  //   throw new Error(data.error ?? "export failed");
+  // }
 
-// const { url } = data;            // “/portfolio/abc123”
-//   //   //   if (res.ok) {
-//   //   //     const { url } = await res.json();
-//   //   //   }
-//   //     if (!res.ok) throw new Error("export failed");
-      
-//   //     const { url } = await res.json();          // “/portfolio/abc123”
-  
-//   //     /* ➋  Build the JSON the feed card expects */
-//   //     const postContent = JSON.stringify({
-//   //       pageUrl: url,           // required for new PortfolioCard
-//   //       snapshot: fileURL,      // optional – faster preview
-//   //     });
-//   //  /* ➌  Create the post in the feed */
-//   //  const user = await getUserFromCookies();
+  // const { url } = data;            // “/portfolio/abc123”
+  //   //   //   if (res.ok) {
+  //   //   //     const { url } = await res.json();
+  //   //   //   }
+  //   //     if (!res.ok) throw new Error("export failed");
 
- 
-  
-//   await createRealtimePost({
-//     portfolio: { pageUrl: url, snapshot: fileURL },
-//     imageUrl: fileURL,          // gives the feed a thumbnail
-//     path: "/",
-//     coordinates: { x: 0, y: 0 },
-//     type: "PORTFOLIO",
-//     realtimeRoomId: "global",
-//   });
+  //   //     const { url } = await res.json();          // “/portfolio/abc123”
 
-//   router.push(url);
+  //   //     /* ➋  Build the JSON the feed card expects */
+  //   //     const postContent = JSON.stringify({
+  //   //       pageUrl: url,           // required for new PortfolioCard
+  //   //       snapshot: fileURL,      // optional – faster preview
+  //   //     });
+  //   //  /* ➌  Create the post in the feed */
+  //   //  const user = await getUserFromCookies();
 
-     
-  
+  //   await createRealtimePost({
+  //     portfolio: { pageUrl: url, snapshot: fileURL },
+  //     imageUrl: fileURL,          // gives the feed a thumbnail
+  //     path: "/",
+  //     coordinates: { x: 0, y: 0 },
+  //     type: "PORTFOLIO",
+  //     realtimeRoomId: "global",
+  //   });
+
+  //   router.push(url);
 
   function applyTemplate(name: string) {
     const tpl = templates.find((t) => t.name === name);
@@ -688,18 +761,19 @@ export default function PortfolioBuilder() {
         <div className=" flex-grow-0 flex-shrink-0 border-r py-2 px-4 space-y-4  mt-12">
           <button
             className={` flex gap-2 justify-start px-4 py-2 rounded-md l
-            flex-grow-0 flex-shrink-0 lockbutton tracking-wide ${drawText ? "bg-slate-300 cursor-crosshair" : "bg-white"}`}
+            flex-grow-0 flex-shrink-0 lockbutton tracking-wide ${
+              drawText ? "bg-slate-300 cursor-crosshair" : "bg-white"
+            }`}
             onClick={() => setDrawText((d) => !d)}
           >
             {drawText ? "Text Box" : "Text Box"}
             <Image
-                  src="/assets/text--creation.svg"
-                  alt={"globe"}
-                  className="p-0 flex-grow-0 flex-shrink-0"
-
-                  width={24}
-                  height={24}
-                />
+              src="/assets/text--creation.svg"
+              alt={"globe"}
+              className="p-0 flex-grow-0 flex-shrink-0"
+              width={24}
+              height={24}
+            />
           </button>
           {/* <DraggableItem id="text" fromSidebar>
             Text
@@ -707,25 +781,23 @@ export default function PortfolioBuilder() {
           <DraggableItem id="image" fromSidebar>
             Image
             <Image
-                  src="/assets/image.svg"
-                  alt={"globe"}
-                  className="p-0 flex-grow-0 flex-shrink-0"
-
-                  width={24}
-                  height={24}
-                />
+              src="/assets/image.svg"
+              alt={"globe"}
+              className="p-0 flex-grow-0 flex-shrink-0"
+              width={24}
+              height={24}
+            />
           </DraggableItem>
-          
+
           <DraggableItem id="link" fromSidebar>
             Link
             <Image
-                  src="/assets/link.svg"
-                  alt={"globe"}
-                  className="mr-2"
-
-                  width={24}
-                  height={24}
-                />
+              src="/assets/link.svg"
+              alt={"globe"}
+              className="mr-2"
+              width={24}
+              height={24}
+            />
           </DraggableItem>
         </div>
         <DroppableCanvas
@@ -737,189 +809,197 @@ export default function PortfolioBuilder() {
           setBoxes={setTextBoxes}
           canvasRef={canvasRef}
         >
-            {elements.map((el) => (
-              template === "" ? (
-                <CanvasItem key={el.id} id={el.id} x={el.x} y={el.y}>
-                  <div className="p-2 border-[1px]  border-black bg-white space-y-2">
-                    {el.type === "text" && (
-                      <div
-                        contentEditable
-                        suppressContentEditableWarning
-                        className="text-block outline-none"
-                        onPointerDown={(e) => e.stopPropagation()}
-                        onInput={(e) =>
-                          setElements((els) =>
-                            els.map((it) =>
-                              it.id === el.id
-                                ? { ...it, content: (e.target as HTMLElement).innerText }
-                                : it
-                            )
+          {elements.map((el) =>
+            template === "" ? (
+              <CanvasItem key={el.id} id={el.id} x={el.x} y={el.y}>
+                <div className="p-2 border-[1px]  border-black bg-white space-y-2">
+                  {el.type === "text" && (
+                    <div
+                      contentEditable
+                      suppressContentEditableWarning
+                      className="text-block outline-none"
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onInput={(e) =>
+                        setElements((els) =>
+                          els.map((it) =>
+                            it.id === el.id
+                              ? {
+                                  ...it,
+                                  content: (e.target as HTMLElement).innerText,
+                                }
+                              : it
                           )
-                        }
-                      >
-                        {el.content || "Edit text"}
-                      </div>
-                    )}
-                    {el.type === "image" && (
-                      
-                      <div className="p-1 border-[1px] border-transparent ">
-                        {el.src ? (
-                          <Image
-                            src={el.src}
-                            alt="uploaded"
-                            
-                             width={el.width}
-                             height={el.height}
-                            className="object-cover portfolio-img-frame max-h-[400px]"
-                            crossOrigin="anonymous"
-                            onLoad={(e) =>
-                              recordNaturalSize(
-                                el.id,
-                                (e.target as HTMLImageElement).naturalWidth,
-                                (e.target as HTMLImageElement).naturalHeight,
-                              )
-                            }
-                          />
-                        ) : (
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className=" w-full p-1"
-                            onPointerDown={(e) => e.stopPropagation()}
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) handleImageSelect(el.id, file);
-                            }}
-                          />
-                        )}
-                      </div>
-                    )}
-                    {el.type === "box" && (
-                      <div className="w-20 h-20 border bg-gray-200" />
-                    )}
-                    {el.type === "link" && (
-                      <input
-                        className="border p-1 text-sm"
-                        placeholder="https://example.com"
-                        value={el.href || ""}
-                        onPointerDown={(e) => e.stopPropagation()}
-                        onChange={(e) =>
-                          setElements((els) =>
-                            els.map((it) =>
-                              it.id === el.id ? { ...it, href: e.target.value } : it
-                            )
-                          )
-                        }
-                      />
-                    )}
-                    <button
-                      className=" rounded-md mt-2 lockbutton ml-2"
-                      onClick={() =>
-                        setElements((els) => els.filter((it) => it.id !== el.id))
+                        )
                       }
                     >
-                      <Image
-                  src="/assets/trash-can.svg"
-                  alt={"globe"}
-                  className="justify-center  "
-
-                  width={24}
-                  height={24}
-                />
-                    </button>
-                  </div>
-                </CanvasItem>
-              ) : (
-                <SortableCanvasItem key={el.id} id={el.id}>
-                  <div className="p-2 border bg-white space-y-2">
-                    {el.type === "text" && (
-                      <div
-                        contentEditable
-                        suppressContentEditableWarning
-                        className="text-block outline-none"
-                        onPointerDown={(e) => e.stopPropagation()}
-                        onInput={(e) =>
-                          setElements((els) =>
-                            els.map((it) =>
-                              it.id === el.id
-                                ? { ...it, content: (e.target as HTMLElement).innerText }
-                                : it
+                      {el.content || "Edit text"}
+                    </div>
+                  )}
+                  {el.type === "image" && (
+                    <div className="p-1 border-[1px] border-transparent ">
+                      {el.src ? (
+                        <Image
+                          src={el.src}
+                          alt="uploaded"
+                          width={el.width}
+                          height={el.height}
+                          className="object-cover portfolio-img-frame max-h-[400px]"
+                          crossOrigin="anonymous"
+                          onLoad={(e) =>
+                            recordNaturalSize(
+                              el.id,
+                              (e.target as HTMLImageElement).naturalWidth,
+                              (e.target as HTMLImageElement).naturalHeight
                             )
+                          }
+                        />
+                      ) : (
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className=" w-full p-1"
+                          onPointerDown={(e) => e.stopPropagation()}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleImageSelect(el.id, file);
+                          }}
+                        />
+                      )}
+                           <button
+                      className="rounded-md mt-5 lockbutton"
+                      onPointerDown={(e) => e.stopPropagation()}   /* ⬅︎ PREVENT DRAG  */
+                      onClick={(e) => {                            /* ⬅︎ ACTUAL DELETE */
+                        e.stopPropagation();                       // safety for touch events
+                        setElements((els) => els.filter((it) => it.id !== el.id));
+                      }}
+                  >
+                    <Image
+                      src="/assets/trash-can.svg"
+                      alt={"globe"}
+                      className="justify-center  "
+                      width={14}
+                      height={14}
+                    />
+                  </button>
+                    </div>
+                  )}
+                  {el.type === "box" && (
+                    <div className="w-20 h-20 border bg-gray-200" />
+                  )}
+                  {el.type === "link" && (
+                    <input
+                      className="border p-1 text-sm"
+                      placeholder="https://example.com"
+                      value={el.href || ""}
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onChange={(e) =>
+                        setElements((els) =>
+                          els.map((it) =>
+                            it.id === el.id
+                              ? { ...it, href: e.target.value }
+                              : it
                           )
-                        }
-                      >
-                        {el.content || "Edit text"}
-                      </div>
-                    )}
-                    {el.type === "image" && (
-                      <div>
-                        {el.src ? (
-                          <Image
-                            src={el.src}
-                            alt="uploaded"
-                            width={el.width}
-                            height={el.height}
-                            className="object-cover portfolio-img-frame"
-                            crossOrigin="anonymous"
-                            onLoad={(e) =>
-                              recordNaturalSize(
-                                el.id,
-                                (e.target as HTMLImageElement).naturalWidth,
-                                (e.target as HTMLImageElement).naturalHeight,
-                              )
-                            }
-                          />
-                        ) : (
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onPointerDown={(e) => e.stopPropagation()}
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) handleImageSelect(el.id, file);
-                            }}
-                          />
-                        )}
-                      </div>
-                    )}
-                    {el.type === "box" && (
-                      <div className="w-20 h-20 border bg-gray-200" />
-                    )}
-                    {el.type === "link" && (
-                      <input
-                        className="border p-1 text-sm"
-                        placeholder="https://example.com"
-                        value={el.href || ""}
-                        onPointerDown={(e) => e.stopPropagation()}
-                        onChange={(e) =>
-                          setElements((els) =>
-                            els.map((it) =>
-                              it.id === el.id ? { ...it, href: e.target.value } : it
-                            )
+                        )
+                      }
+                    />
+                  )}
+             
+                </div>
+              </CanvasItem>
+            ) : (
+              <SortableCanvasItem key={el.id} id={el.id}>
+                <div className="p-2 border bg-white space-y-2">
+                  {el.type === "text" && (
+                    <div
+                      contentEditable
+                      suppressContentEditableWarning
+                      className="text-block outline-none"
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onInput={(e) =>
+                        setElements((els) =>
+                          els.map((it) =>
+                            it.id === el.id
+                              ? {
+                                  ...it,
+                                  content: (e.target as HTMLElement).innerText,
+                                }
+                              : it
                           )
-                        }
-                      />
-                    )}
-                    <button
-                      className="text-xs text-red-500"
-                      onClick={() =>
-                        setElements((els) => els.filter((it) => it.id !== el.id))
+                        )
                       }
                     >
-                           <Image
-                  src="/assets/trash-can.svg"
-                  alt={"globe"}
-                  className="mr-2"
-
-                  width={24}
-                  height={24}
-                />
-
-                    </button>
-                  </div>
-                </SortableCanvasItem>
-              )
-            ))}
+                      {el.content || "Edit text"}
+                    </div>
+                  )}
+                  {el.type === "image" && (
+                    <div>
+                      {el.src ? (
+                        <Image
+                          src={el.src}
+                          alt="uploaded"
+                          width={el.width}
+                          height={el.height}
+                          className="object-cover portfolio-img-frame"
+                          crossOrigin="anonymous"
+                          onLoad={(e) =>
+                            recordNaturalSize(
+                              el.id,
+                              (e.target as HTMLImageElement).naturalWidth,
+                              (e.target as HTMLImageElement).naturalHeight
+                            )
+                          }
+                        />
+                      ) : (
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onPointerDown={(e) => e.stopPropagation()}
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleImageSelect(el.id, file);
+                          }}
+                        />
+                      )}
+                    </div>
+                  )}
+                  {el.type === "box" && (
+                    <div className="w-20 h-20 border bg-gray-200" />
+                  )}
+                  {el.type === "link" && (
+                    <input
+                      className="border p-1 text-sm"
+                      placeholder="https://example.com"
+                      value={el.href || ""}
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onChange={(e) =>
+                        setElements((els) =>
+                          els.map((it) =>
+                            it.id === el.id
+                              ? { ...it, href: e.target.value }
+                              : it
+                          )
+                        )
+                      }
+                    />
+                  )}
+                  <button
+                    className="text-xs text-red-500"
+                    onClick={() =>
+                      setElements((els) => els.filter((it) => it.id !== el.id))
+                    }
+                  >
+                    <Image
+                      src="/assets/trash-can.svg"
+                      alt={"globe"}
+                      className="mr-2"
+                      width={24}
+                      height={24}
+                    />
+                  </button>
+                </div>
+              </SortableCanvasItem>
+            )
+          )}
         </DroppableCanvas>
         <div className="w-fit border-l px-4 py-2 mt-8 space-y-4">
           <div className="rounded-xl bg-transparent border-[1px] border-black p-3 ">
@@ -954,13 +1034,14 @@ export default function PortfolioBuilder() {
             <select
               className="w-full rounded-xl lockbutton mt-1 border-black bg-gray-100 border-[1px] p-1"
               value={layout}
-              onChange={(e) => setLayout(e.target.value as "column" | "grid" | "free")}
-            >             
-             <option value="free">Free</option>
+              onChange={(e) =>
+                setLayout(e.target.value as "column" | "grid" | "free")
+              }
+            >
+              <option value="free">Free</option>
 
               <option value="column">Column</option>
               <option value="grid">Grid</option>
-
             </select>
           </div>
           <button
@@ -975,4 +1056,3 @@ export default function PortfolioBuilder() {
     </DndContext>
   );
 }
-
