@@ -414,7 +414,35 @@ export default function PortfolioBuilder() {
       );
     }
   }
-
+  function buildAbsoluteExport() {
+    // 1️⃣  From drag‑dropped template elements
+    const absoluteElems = elements
+      .filter(e => typeof e.x === "number" && typeof e.y === "number")
+      .map(e => ({
+        id: e.id,
+        type: e.type,
+        x: e.x!,
+        y: e.y!,
+        width:  e.type === "image" ? 300 : 200, // you could store width/height too
+        height: e.type === "image" ? 300 : 32,
+        content: e.content,
+        src: e.src,
+        href: e.href,
+      }));
+  
+    // 2️⃣  From text boxes we drew
+    const absoluteText = textBoxes.map(b => ({
+      id: b.id,
+      type: "text-box",
+      x: b.x,
+      y: b.y,
+      width: b.width,
+      height: b.height,
+      content: b.text,
+    }));
+  
+    return [...absoluteElems, ...absoluteText];
+  }
   function serialize(): PortfolioExportData {
     const textFromElements = elements
       .filter((e) => e.type === "text" && e.content)
@@ -487,9 +515,16 @@ export default function PortfolioBuilder() {
       }
   
       /* 6️⃣  POST the usual payload + snapshot URL */
-      const payload = {
-        ...serialize(),
-        snapshot: fileURL,
+    //   const payload = {
+    //     ...serialize(),
+    //     snapshot: fileURL,
+    //     snapshotWidth: width,   // optional: let the public page know natural size
+    //     snapshotHeight: height,
+    //   };
+    const payload = {
+        ...serialize(),          // legacy keys
+        absolutes: buildAbsoluteExport(),   // NEW
+                snapshot: fileURL,
         snapshotWidth: width,   // optional: let the public page know natural size
         snapshotHeight: height,
       };

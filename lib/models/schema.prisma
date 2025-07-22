@@ -550,6 +550,7 @@ model PortfolioPage {
   slug       String   @unique
   html       String
   css        String
+  tsx        String?       // NEW nullable column
   created_at DateTime @default(now()) @db.Timestamptz(6)
 
   @@map("portfolio_pages")

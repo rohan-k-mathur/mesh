@@ -10,7 +10,6 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "downlevelIteration": true,
-
     "isolatedModules": true,
     "jsx": "preserve",
     "typeRoots": ["./node_modules/@types", "./types"],

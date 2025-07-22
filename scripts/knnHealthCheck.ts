@@ -5,8 +5,7 @@ import { connection } from '@/lib/queue';
 
 
 import 'dotenv/config';
-const safeStringify = (v: unknown) =>
-  JSON.stringify(v, (_, val) => (typeof val === 'bigint' ? val.toString() : val));
+
 
 const q = new Queue('user-knn', { connection });
 const ev = new QueueEvents('user-knn', { connection });

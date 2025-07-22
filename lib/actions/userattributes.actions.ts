@@ -25,6 +25,7 @@ export async function upsertUserAttributes({
   try {
 
     const {
+      
       artists = [],
       albums = [],
       songs = [],

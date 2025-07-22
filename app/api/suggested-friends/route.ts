@@ -1,3 +1,6 @@
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from "next/server";
 import { getUserFromCookies } from "@/lib/serverutils";
 import { fetchFriendSuggestions } from "@/lib/actions/friend-suggestions.actions";

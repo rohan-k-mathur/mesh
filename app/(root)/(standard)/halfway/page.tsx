@@ -331,6 +331,7 @@ export default function HalfwayPage() {
 
 
 
+
           {/* Labels for distances */}
           {distance1 && middleOfPath(path1) && (
             <Marker
