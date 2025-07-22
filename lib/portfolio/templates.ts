@@ -4,6 +4,11 @@ export interface BuilderElement {
   content?: string;
   src?: string;
   href?: string;
+  width?: number;
+  height?: number;
+  /** natural dimensions for keeping aspect ratio */
+  natW?: number;
+  natH?: number;
   x?: number;
   y?: number;
 }

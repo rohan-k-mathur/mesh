@@ -7,6 +7,8 @@ export interface AbsoluteElement {
   y: number;
   width: number;
   height: number;
+  natW?: number;
+  natH?: number;
   content?: string;
   src?: string;
   href?: string;
@@ -52,9 +54,9 @@ export default function CanvasRenderer({
                   key={el.id}
                   src={el.src!}
                   alt=""
-                  fill
-                  style={style}
-                  className="object-cover"
+                  width={el.width}
+                  height={el.height}
+                  style={{ ...style, objectFit: "cover" }}
                 />
               );
 
