@@ -11,6 +11,8 @@ export interface BuilderElement {
   natH?: number;
   x?: number;
   y?: number;
+
+  
 }
 
 export interface PortfolioTemplate {

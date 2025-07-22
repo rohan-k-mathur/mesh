@@ -24,7 +24,9 @@ import html2canvas from "html2canvas";
 import { getUserFromCookies } from "@/lib/serverutils";
 import { createRealtimePost } from "@/lib/actions/realtimepost.actions";
 
+
 type Element = BuilderElement;
+
 
 function DraggableItem({ id, children, fromSidebar }: { id: string; children: React.ReactNode; fromSidebar?: boolean }) {
   const { attributes, listeners, setNodeRef, transform } = useDraggable({ id, data: { fromSidebar } });
@@ -423,12 +425,39 @@ export default function PortfolioBuilder() {
       });
     }
   }
-
+  function getImageSizeFromFile(file: File): Promise<{ w: number; h: number }> {
+    return new Promise((resolve, reject) => {
+      const url  = URL.createObjectURL(file);
+      const img  = new window.Image();
+      img.onload = () => {
+        resolve({ w: img.naturalWidth, h: img.naturalHeight });
+        URL.revokeObjectURL(url);
+      };
+      img.onerror = reject;
+      img.src = url;
+    });
+  }
+  
+  async function getImageSizeFromUrl(url: string) {
+    return new Promise<{ w: number; h: number }>((resolve, reject) => {
+      const img  = new window.Image();
+      img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
+      img.onerror = reject;
+      img.crossOrigin = "anonymous";   // just in case
+      img.src = url;
+    });
+  }
   async function handleImageSelect(id: string, file: File) {
     const res = await uploadFileToSupabase(file);
+    // if (upload.error) return;
+    const { w, h } = await getImageSizeFromFile(file);
+
     if (!res.error) {
       setElements((els) =>
-        els.map((el) => (el.id === id ? { ...el, src: res.fileURL } : el))
+        els.map((el) => (el.id === id ? { ...el, src: res.fileURL,       width  : w,
+          height : h,
+          natW   : w,
+          natH   : h,} : el))
       );
     }
   }
@@ -445,10 +474,10 @@ export default function PortfolioBuilder() {
       type: e.type,
       x: e.x ?? 0,
       y: e.y ?? 0,
-      width: e.width ?? (e.type === "image" ? 300 : 200),
-      height: e.height ?? (e.type === "image" ? 300 : 32),
       natW: e.natW,
       natH: e.natH,
+      width: e.width ?? (e.type === "image" ? 300 : 200),
+      height: e.height ?? (e.type === "image" ? 300 : 32),
       content: e.content,
       src: e.src,
       href: e.href,
@@ -468,6 +497,7 @@ export default function PortfolioBuilder() {
     return [...absoluteElems, ...absoluteText];
   }
   function serialize(): PortfolioExportData {
+
     const textFromElements = elements
       .filter((e) => e.type === "text" && e.content)
       .map((e) => e.content)
@@ -483,60 +513,60 @@ export default function PortfolioBuilder() {
     return { text, images, links, layout, color };
   }
   async function handlePublish() {
-    if (!canvasRef.current) return;
-    const node = canvasRef.current;
+    // if (!canvasRef.current) return;
+    // const node = canvasRef.current;
   
-    /* 0️⃣  Toggle “clean mode” so resize handles & dashed borders disappear */
-    node.classList.add("publishing");
+    // /* 0️⃣  Toggle “clean mode” so resize handles & dashed borders disappear */
+    // node.classList.add("publishing");
   
-    try {
-      /* 1️⃣  Ensure all remote images and custom fonts are ready */
-      await Promise.all([
-        document.fonts.ready,
-        ...Array.from(node.querySelectorAll("img")).map(
-          img =>
-            img.complete
-              ? Promise.resolve()
-              : new Promise(res => {
-                  const done = () => {
-                    img.removeEventListener("load", done);
-                    img.removeEventListener("error", done);
-                    res(null);
-                  };
-                  img.addEventListener("load", done);
-                  img.addEventListener("error", done);
-                }),
-        ),
-      ]);
+    // try {
+    //   /* 1️⃣  Ensure all remote images and custom fonts are ready */
+    //   await Promise.all([
+    //     document.fonts.ready,
+    //     ...Array.from(node.querySelectorAll("img")).map(
+    //       img =>
+    //         img.complete
+    //           ? Promise.resolve()
+    //           : new Promise(res => {
+    //               const done = () => {
+    //                 img.removeEventListener("load", done);
+    //                 img.removeEventListener("error", done);
+    //                 res(null);
+    //               };
+    //               img.addEventListener("load", done);
+    //               img.addEventListener("error", done);
+    //             }),
+    //     ),
+    //   ]);
   
-      /* 2️⃣  Compute the exact canvas size (it may be taller than the viewport) */
-      const width  = node.scrollWidth;
-      const height = node.scrollHeight;
+    //   /* 2️⃣  Compute the exact canvas size (it may be taller than the viewport) */
+    //   const width  = node.scrollWidth;
+    //   const height = node.scrollHeight;
   
-      /* 3️⃣  Render to bitmap */
-      const bitmap = await html2canvas(node, {
-        backgroundColor: null,   // keep transparent; change to '#fff' if preferred
-        useCORS: true,
-        width,
-        height,
-        scrollX: -window.scrollX, // guarantees 0,0 alignment even if user scrolled
-        scrollY: -window.scrollY,
-        scale: window.devicePixelRatio, // crisp on Retina without huge file
-      });
+    //   /* 3️⃣  Render to bitmap */
+    //   const bitmap = await html2canvas(node, {
+    //     backgroundColor: null,   // keep transparent; change to '#fff' if preferred
+    //     useCORS: true,
+    //     width,
+    //     height,
+    //     scrollX: -window.scrollX, // guarantees 0,0 alignment even if user scrolled
+    //     scrollY: -window.scrollY,
+    //     scale: window.devicePixelRatio, // crisp on Retina without huge file
+    //   });
   
-      /* 4️⃣  Convert → Blob */
-      const blob: Blob | null = await new Promise(res => bitmap.toBlob(res, "image/png"));
-      if (!blob) return;
+    //   /* 4️⃣  Convert → Blob */
+    //   const blob: Blob | null = await new Promise(res => bitmap.toBlob(res, "image/png"));
+    //   if (!blob) return;
   
-      /* 5️⃣  Upload the PNG (Supabase helper unchanged) */
-      const fileName = `portfolio/snapshot-${Date.now()}.png`;
-      const { fileURL, error } = await uploadFileToSupabase(
-        new File([blob], fileName, { type: "image/png" }),
-      );
-      if (error) {
-        console.error(error);
-        return;
-      }
+    //   /* 5️⃣  Upload the PNG (Supabase helper unchanged) */
+    //   const fileName = `portfolio/snapshot-${Date.now()}.png`;
+    //   const { fileURL, error } = await uploadFileToSupabase(
+    //     new File([blob], fileName, { type: "image/png" }),
+    //   );
+    //   if (error) {
+    //     console.error(error);
+    //     return;
+    //   }
   
       /* 6️⃣  POST the usual payload + snapshot URL */
     //   const payload = {
@@ -545,62 +575,88 @@ export default function PortfolioBuilder() {
     //     snapshotWidth: width,   // optional: let the public page know natural size
     //     snapshotHeight: height,
     //   };
-    const payload = {
-        ...serialize(),          // legacy keys
-        absolutes: buildAbsoluteExport(),   // NEW
-                snapshot: fileURL,
-        snapshotWidth: width,   // optional: let the public page know natural size
-        snapshotHeight: height,
+    // const payload = {
+    //     ...serialize(),          // legacy keys
+    //     absolutes: buildAbsoluteExport(),   // NEW
+    //             snapshot: fileURL,
+    //     snapshotWidth: width,   // optional: let the public page know natural size
+    //     snapshotHeight: height,
+    //   };
+
+      const payload = {
+        ...serialize(),
+        absolutes: buildAbsoluteExport(),
       };
-  
-     /***** 6️⃣  POST the payload *****/
-const res = await fetch("/api/portfolio/export", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify(payload),
-});
 
-/* ---- read only ONCE ---- */
-const data = await res.json();   // <- body consumed exactly here
+      /* 2) POST to the export route – it now returns the PNG */
+  const res   = await fetch("/api/portfolio/export", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error("export failed");
 
-if (!res.ok) {
-  throw new Error(data.error ?? "export failed");
-}
+  const { url, snapshot } = await res.json();
 
-const { url } = data;            // “/portfolio/abc123”
-  //   //   if (res.ok) {
-  //   //     const { url } = await res.json();
-  //   //   }
-  //     if (!res.ok) throw new Error("export failed");
-      
-  //     const { url } = await res.json();          // “/portfolio/abc123”
-  
-  //     /* ➋  Build the JSON the feed card expects */
-  //     const postContent = JSON.stringify({
-  //       pageUrl: url,           // required for new PortfolioCard
-  //       snapshot: fileURL,      // optional – faster preview
-  //     });
-  //  /* ➌  Create the post in the feed */
-  //  const user = await getUserFromCookies();
-
- 
-  
+  /* 3) Create the realtime post using the *server‑generated* PNG */
   await createRealtimePost({
-    portfolio: { pageUrl: url, snapshot: fileURL },
-    imageUrl: fileURL,          // gives the feed a thumbnail
-    path: "/",
+    portfolio: { pageUrl: url, snapshot },
+    imageUrl:  snapshot,          // thumbnail in the feed
+    path:      "/",
     coordinates: { x: 0, y: 0 },
-    type: "PORTFOLIO",
+    type:        "PORTFOLIO",
     realtimeRoomId: "global",
   });
 
-  router.push(url);
+  router.push(url);               // open the live page for the author
+}
 
-    } finally {
-      /* 🔚  Always restore the editing chrome, even if something threw */
-      node.classList.remove("publishing");
-    }
-  }
+  
+//      /***** 6️⃣  POST the payload *****/
+// const res = await fetch("/api/portfolio/export", {
+//   method: "POST",
+//   headers: { "Content-Type": "application/json" },
+//   body: JSON.stringify(payload),
+// });
+
+// /* ---- read only ONCE ---- */
+// const data = await res.json();   // <- body consumed exactly here
+
+// if (!res.ok) {
+//   throw new Error(data.error ?? "export failed");
+// }
+
+// const { url } = data;            // “/portfolio/abc123”
+//   //   //   if (res.ok) {
+//   //   //     const { url } = await res.json();
+//   //   //   }
+//   //     if (!res.ok) throw new Error("export failed");
+      
+//   //     const { url } = await res.json();          // “/portfolio/abc123”
+  
+//   //     /* ➋  Build the JSON the feed card expects */
+//   //     const postContent = JSON.stringify({
+//   //       pageUrl: url,           // required for new PortfolioCard
+//   //       snapshot: fileURL,      // optional – faster preview
+//   //     });
+//   //  /* ➌  Create the post in the feed */
+//   //  const user = await getUserFromCookies();
+
+ 
+  
+//   await createRealtimePost({
+//     portfolio: { pageUrl: url, snapshot: fileURL },
+//     imageUrl: fileURL,          // gives the feed a thumbnail
+//     path: "/",
+//     coordinates: { x: 0, y: 0 },
+//     type: "PORTFOLIO",
+//     realtimeRoomId: "global",
+//   });
+
+//   router.push(url);
+
+     
+  
 
   function applyTemplate(name: string) {
     const tpl = templates.find((t) => t.name === name);
@@ -705,14 +761,16 @@ const { url } = data;            // “/portfolio/abc123”
                       </div>
                     )}
                     {el.type === "image" && (
+                      
                       <div className="p-1 border-[1px] border-transparent ">
                         {el.src ? (
                           <Image
                             src={el.src}
                             alt="uploaded"
-                            width={el.width}
-                            height={el.height}
-                            className="object-cover w-fit h-fit portfolio-img-frame"
+                            
+                             width={el.width}
+                             height={el.height}
+                            className="object-cover portfolio-img-frame max-h-[400px]"
                             crossOrigin="anonymous"
                             onLoad={(e) =>
                               recordNaturalSize(

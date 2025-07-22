@@ -9,6 +9,10 @@ import { firebaseConfig, serverConfig } from "@/lib/firebase/config";
 const PUBLIC_PATHS = ["/register", "/login", "/reset-password", "/room/global"];
 
 export async function middleware(request: NextRequest) {
+  if (request.nextUrl.pathname.startsWith("/portfolio/")) {
+    return NextResponse.next();
+  }
+
   return authMiddleware(request, {
     loginPath: "/api/login",
     logoutPath: "/api/logout",

@@ -85,7 +85,12 @@ export function generatePortfolioTemplates(
 
         switch (a.type) {
           case "image":
-            return `<Image src="${escapeJSX(a.src)}" alt="" width={${a.width}} height={${a.height}} style={{ position: 'absolute', left: ${a.x}, top: ${a.y}, width: ${a.width}, height: ${a.height}, objectFit: 'cover' }} />`;
+            return `<Image src="${escapeJSX(a.src)}" alt="" width={${a.width}} height={${a.height}} 
+            style={{ position:'absolute',
+            left:${a.x}, top:${a.y},
+            ${a.width && a.height ? '' : `width:${a.natW ?? 300},height:${a.natH ?? 300},`}
+            objectFit:'cover' }} />`; 
+
           case "link":
             return `<a href="${escapeJSX(a.href)}" style={${styleJsx}} className="break-all underline text-blue-500" target="_blank" rel="noreferrer">${escapeJSX(
               a.href,

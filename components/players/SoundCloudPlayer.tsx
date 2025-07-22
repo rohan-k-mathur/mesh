@@ -41,8 +41,8 @@ const SoundCloudPlayer = ({ src, title }: Props) => {
       waveColor: gradient,
 
       progressColor: progressGradient,
-      width:610,
-      height: 70,
+      width:600,
+      height: 58,
       normalize: true,
       barWidth: 4,
       barGap: 3,
@@ -73,23 +73,23 @@ const SoundCloudPlayer = ({ src, title }: Props) => {
 
   return (
     <div className="flex flex-1 w-[100%] flex-col">
-      <h1 className=" px-20 tracking-wide text-[1.4rem] whitespace-nowrap justify-center items-center  mt-0 w-full pb-2">{title}</h1>
+      <h1 className=" px-20 tracking-wide text-[1.2rem] whitespace-nowrap justify-center items-center  mt-0 w-full pb-2">{title}</h1>
       <hr />
       {!isReady && <Skeleton className="flex w-full h-[90px] items-center gap-5 mt-2 py-2 w-full" />}
-      <div className={`flex items-center gap-5 mt-2 py-2 w-full ${!isReady ? "hidden" : ""}`}>
+      <div className={`flex items-center gap-7 mt-2 py-2 w-full ${!isReady ? "hidden" : ""}`}>
         {isPlaying ? (
           <button
             onClick={togglePlay}
-            className="playbutton outline-transparent  bg-rose-100 bg-opacity-20 p-5 rounded-full"
+            className="playbutton outline-transparent  bg-rose-100 bg-opacity-20 p-4 rounded-full"
           >
-            <Image src="/assets/pause--filled.svg" alt="pause" width={24} height={24} />
+            <Image src="/assets/pause--filled.svg" alt="pause" width={20} height={20} />
           </button>
         ) : (
           <button
             onClick={togglePlay}
             className="playbutton outline-transparent bg-rose-100 bg-opacity-20 p-4 rounded-full "
           >
-            <Image src="/assets/play--filled--alt.svg" alt="play" width={24} height={24} />
+            <Image src="/assets/play--filled--alt.svg" alt="play" width={20} height={20} />
           </button>
         )}
         <div className="flex flex-1 w-full ">

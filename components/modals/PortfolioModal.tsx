@@ -84,9 +84,9 @@ export default function PortfolioModal({
           href={url}
           target="_blank"
           rel="noopener noreferrer"
-          className="absolute bottom-4 right-4 bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700 transition-colors"
+          className="absolute top-4 -right-[-2rem] bg-blue-600 text-black  px-4 py-2 rounded-xl lockbutton hover:bg-blue-700 transition-colors"
         >
-          Open in new tab
+          Visit Page
         </a>
       </div>
     </div>
