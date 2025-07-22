@@ -386,8 +386,24 @@ export default function PortfolioBuilder() {
         setElements((els) => [
           ...els,
           template === ""
-            ? { id: nanoid(), type: active.id as Element["type"], content: "", src: "", x, y }
-            : { id: nanoid(), type: active.id as Element["type"], content: "", src: "" },
+            ? {
+                id: nanoid(),
+                type: active.id as Element["type"],
+                content: "",
+                src: "",
+                x,
+                y,
+                width: active.id === "image" ? 300 : 200,
+                height: active.id === "image" ? 300 : 32,
+              }
+            : {
+                id: nanoid(),
+                type: active.id as Element["type"],
+                content: "",
+                src: "",
+                width: active.id === "image" ? 200 : 200,
+                height: active.id === "image" ? 200 : 32,
+              },
         ]);
       }
       return;
@@ -416,21 +432,27 @@ export default function PortfolioBuilder() {
       );
     }
   }
+
+  function recordNaturalSize(id: string, w: number, h: number) {
+    setElements((els) =>
+      els.map((el) => (el.id === id ? { ...el, natW: w, natH: h } : el))
+    );
+  }
   function buildAbsoluteExport() {
     // 1️⃣  From drag‑dropped template elements
-    const absoluteElems = elements
-      .filter(e => typeof e.x === "number" && typeof e.y === "number")
-      .map(e => ({
-        id: e.id,
-        type: e.type,
-        x: e.x!,
-        y: e.y!,
-        width:  e.type === "image" ? 300 : 200, // you could store width/height too
-        height: e.type === "image" ? 300 : 32,
-        content: e.content,
-        src: e.src,
-        href: e.href,
-      }));
+    const absoluteElems = elements.map((e) => ({
+      id: e.id,
+      type: e.type,
+      x: e.x ?? 0,
+      y: e.y ?? 0,
+      width: e.width ?? (e.type === "image" ? 300 : 200),
+      height: e.height ?? (e.type === "image" ? 300 : 32),
+      natW: e.natW,
+      natH: e.natH,
+      content: e.content,
+      src: e.src,
+      href: e.href,
+    }));
   
     // 2️⃣  From text boxes we drew
     const absoluteText = textBoxes.map(b => ({
@@ -586,7 +608,16 @@ const { url } = data;            // “/portfolio/abc123”
     setTemplate(name);
     setLayout(tpl.layout);
     setColor(tpl.color);
-    setElements(tpl.elements.map((e) => ({ ...e, id: nanoid(), x: 0, y: 0 })));
+    setElements(
+      tpl.elements.map((e) => ({
+        ...e,
+        id: nanoid(),
+        x: 0,
+        y: 0,
+        width: e.type === "image" ? 200 : 200,
+        height: e.type === "image" ? 200 : 32,
+      }))
+    );
   }
 
   const sensors = useSensors(useSensor(PointerSensor));
@@ -679,11 +710,17 @@ const { url } = data;            // “/portfolio/abc123”
                           <Image
                             src={el.src}
                             alt="uploaded"
-                            width={300}
-                            height={300}
-                            sizes="(max-height: 200px) 50vw, 33vw"
+                            width={el.width}
+                            height={el.height}
                             className="object-cover w-fit h-fit portfolio-img-frame"
                             crossOrigin="anonymous"
+                            onLoad={(e) =>
+                              recordNaturalSize(
+                                el.id,
+                                (e.target as HTMLImageElement).naturalWidth,
+                                (e.target as HTMLImageElement).naturalHeight,
+                              )
+                            }
                           />
                         ) : (
                           <input
@@ -762,10 +799,17 @@ const { url } = data;            // “/portfolio/abc123”
                           <Image
                             src={el.src}
                             alt="uploaded"
-                            width={200}
-                            height={200}
+                            width={el.width}
+                            height={el.height}
                             className="object-cover portfolio-img-frame"
                             crossOrigin="anonymous"
+                            onLoad={(e) =>
+                              recordNaturalSize(
+                                el.id,
+                                (e.target as HTMLImageElement).naturalWidth,
+                                (e.target as HTMLImageElement).naturalHeight,
+                              )
+                            }
                           />
                         ) : (
                           <input

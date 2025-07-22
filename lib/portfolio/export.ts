@@ -21,6 +21,8 @@ export interface AbsoluteElement {
   y: number;
   width: number;
   height: number;
+  natW?: number;
+  natH?: number;
   content?: string;
   src?: string;
   href?: string;
@@ -39,10 +41,10 @@ export function generatePortfolioTemplates(
     /* ---------- 1‑A  plain HTML fallback ---------- */
     const itemsHtml = data.absolutes
       .map(a => {
-        const style = `style="position:absolute;left:${a.x}px;top:${a.y}px;width:${a.width}px;height:${a.height}px;"`;
+        const style = `style="position:absolute;left:${a.x}px;top:${a.y}px;width:${a.width}px;height:${a.height}px;object-fit:cover"`;
         switch (a.type) {
           case "image":
-            return `<img ${style} src="${escapeHtml(a.src)}" class="object-cover" />`;
+            return `<img ${style} src="${escapeHtml(a.src)}" />`;
           case "link":
             return `<a ${style} href="${escapeHtml(a.href)}" class="break-all underline text-blue-500" target="_blank" rel="noreferrer">${escapeHtml(a.href)}</a>`;
           default: // "text" | "text-box" | "box"
@@ -83,7 +85,7 @@ export function generatePortfolioTemplates(
 
         switch (a.type) {
           case "image":
-            return `<Image src="${escapeJSX(a.src)}" alt="" fill style={${styleJsx}} className="object-cover" />`;
+            return `<Image src="${escapeJSX(a.src)}" alt="" width={${a.width}} height={${a.height}} style={{ position: 'absolute', left: ${a.x}, top: ${a.y}, width: ${a.width}, height: ${a.height}, objectFit: 'cover' }} />`;
           case "link":
             return `<a href="${escapeJSX(a.href)}" style={${styleJsx}} className="break-all underline text-blue-500" target="_blank" rel="noreferrer">${escapeJSX(
               a.href,
@@ -154,10 +156,17 @@ export default function PortfolioCanvas() {
     ? `<div class="text-block flex flex-col max-h-[1000px] mb-1 mt-2 break-words">${data.text}</div>`
     : "";
 
-  const images = data.images
-    .map((src, idx) =>
-      `<img src="${src}" class="object-cover  portfolio-img-frame ${idx === 0 ? "flex flex-col max-h-[3000px] mb-1 mt-2 break-words" : ""}" />`
-    )
+  const absImgs = data.absolutes?.filter(a => a.type === "image") ?? [];
+  const images = (absImgs.length ? absImgs : data.images.map(src => ({ src })))
+    .map((img, idx) => {
+      const src = (img as any).src ?? img;
+      const w = (img as any).width;
+      const h = (img as any).height;
+      const style = w && h
+        ? `style="width:${w}px;height:${h}px;object-fit:cover"`
+        : "";
+      return `<img src="${src}" ${style} class="portfolio-img-frame ${idx === 0 ? "flex flex-col max-h-[3000px] mb-1 mt-2 break-words" : ""}" />`;
+    })
     .join("\n");
 
   const links = data.links
