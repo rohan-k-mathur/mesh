@@ -271,7 +271,9 @@ function DroppableCanvas({
 
   /* --------------- */
   const ref = canvasRef;
-
+    useEffect(() => {
+        onResizeStart?.(handleResizeStart);
+     }, [onResizeStart]);
 
 
 
@@ -1033,7 +1035,7 @@ const proxyResizeStart = (
           canvasRef={canvasRef}
           selectedId={selectedId}
           setSelectedId={setSelectedId}
-
+          onResizeStart={fn => (resizeStartRef.current = fn)}
         >
           {elements.map((el) =>
             template === "" ? (
