@@ -1,274 +1,223 @@
 Below is a **developer checklist** you can follow every time you introduce a new canvas element
 (e.g. YouTube/Vimeo embed, audio player, sticker, code block, …).
 
+It reflects everything that has been built so far **and** answers the follow‑up
+question: *“which extra files must change when you add a brand‑new canvas
+element (e.g. an embedded video)?”*
 
 ---
 
-## 0. Plan: do you need *all* infrastructure?
+# ✧ How to add a new canvas element to the Site Builder
 
-| Feature                                         | Action                                                                                                                    |
-| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| Movable (drag anywhere)                         | *Nothing extra*—all elements already sit inside `<CanvasItem>` / `<SortableCanvasItem>` that the DnD‑kit wrappers handle. |
-| Resizable by the four corner handles            | Add the element’s *kind* to the `ResizeTarget` union and make sure `handleResizeStart` can locate it (see step 6).        |
-| Inline editing (click to edit text / URL, etc.) | Add a field to the element object to store the value and put an editable control in the renderer (step 7).                |
-| Needs upload (images, audio)                    | Create an upload helper (like `uploadFileToSupabase`) and call it from the renderer’s `<input type=file>` handler.        |
-| Needs remote data (YouTube iframe)              | Probably *no upload*; just store a `src` or `videoId`.                                                                    |
+The Site Builder lives in three distinct layers:
+
+| Layer                    | Purpose                                                                                                | Key files                                                                                                                                  |
+| ------------------------ | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Authoring UI**         | Drag, resize, style.                                                                                   | `app/portfolio/builder/page.tsx`                                                                                                           |
+| **Shared library**       | TypeScript types, presets & helpers used by *both* the builder and the public viewer/exporter.         | `lib/portfolio/*.ts`, `lib/components/CanvasRenderer.tsx`                                                                                  |
+| **Publishing / viewing** | ① Export route that stores JSON + snapshot.<br>② Public `[slug]` page & `<PortfolioCard>` in the feed. | `api/portfolio/export.ts` (backend)<br>`app/portfolio/[slug]/page.tsx` (frontend)<br>`components/cards/PortfolioCard.tsx` (feed thumbnail) |
+
+Any new element (let’s call it **`video`**) must be wired through **all three
+layers**.  There are *no* other places in the repo that need touching.
 
 ---
 
-## 1. Update the **type definitions**
+## 1  Authoring layer – `app/portfolio/builder/page.tsx`
+
+1. **Extend the union**
+
+   ```ts
+   type BuilderElement["type"]  // previously "text" | "image" | "link" | "box"
+     = "text" | "image" | "link" | "box" | "video";          // + video
+   ```
+
+2. **Default object when dragging from the sidebar**
+
+   ```ts
+   // inside handleDragEnd → fromSidebar branch
+   {
+     id: nanoid(),
+     type: "video",
+     src: "",
+     x, y,
+     width: 480,   // sensible default
+     height: 270,
+   }
+   ```
+
+3. **Sidebar button**
+
+   ```tsx
+   <DraggableItem id="video" fromSidebar>
+     Video
+     <Image src="/assets/video.svg" … />
+   </DraggableItem>
+   ```
+
+4. **Canvas rendering / interaction**
+
+   *Add a new case where images are currently handled.*
+
+   ```tsx
+   {el.type === "video" && (
+     <div className="p-1 border border-transparent">
+       {el.src ? (
+         <iframe
+           src={el.src}
+           width={el.width}
+           height={el.height}
+           className="pointer-events-none"   // so resize/drag works
+           allow="autoplay; encrypted-media"
+           allowFullScreen
+         />
+       ) : (
+         <input
+           placeholder="https://www.youtube.com/embed/…"
+           …onChange={e => setElements(…)}
+         />
+       )}
+       {cornerHandles}    // same <div className="resize-handle …"/>
+     </div>
+   )}
+   ```
+
+   *No change to the generic resize helpers – they already use
+   `target.kind === "image" | "text"`, so add `"video"`.*
+
+   ```ts
+   type ResizeTarget = { id: string; kind: "text" | "image" | "video" };
+   ```
+
+---
+
+## 2  Shared library layer (`lib/portfolio`)
+
+### 2.1 `templates.ts`
 
 ```ts
-// ---- page.tsx (top of file) ----
-type ElementType = "text" | "image" | "link" | "video";  // NEW
-
-interface VideoElement {
+export interface BuilderElement {
   id: string;
-  type: "video";
-  src: string;       // e.g. https://www.youtube.com/embed/abc
-  x?: number;        // only for free‑layout
-  y?: number;
-  width: number;
-  height: number;
-}
-
-type Element = BuilderElement | VideoElement;
-```
-
-*If you keep a central `lib/portfolio/templates.ts`, update the exported
-`BuilderElement` union there instead; the idea is the same.*
-
----
-
-## 2. Add a **sidebar button** so users can drag it in
-
-```tsx
-{/* left‑hand sidebar */}
-<DraggableItem id="video" fromSidebar>
-  Video
-  <Image src="/assets/video.svg" width={24} height={24} alt="" />
-</DraggableItem>
-```
-
----
-
-## 3. Generate a default object when it is dropped
-
-```ts
-// ---- handleDragEnd inside PortfolioBuilder ----
-if (active.data.current?.fromSidebar) {
-  /* ... */
-  setElements(els => [
-    ...els,
-    template === ""
-      ? defaultObjectFor(active.id as ElementType, x, y)
-      : defaultObjectFor(active.id as ElementType)
-  ]);
-}
-
-function defaultObjectFor(kind: ElementType, x = 0, y = 0): Element {
-  switch (kind) {
-    case "video":
-      return {
-        id: nanoid(),
-        type: "video",
-        src: "",               // user chooses later
-        x,
-        y,
-        width: 320,
-        height: 180,
-      };
-    /* existing cases … */
-  }
+  type: "text" | "image" | "link" | "box" | "video";  // + video
+  // image/video
+  src?: string;
+  width?: number;
+  height?: number;
+  // …
 }
 ```
 
----
+Add demo objects in the starter templates if you wish.
 
-## 4. If the element should **participate in templates**
+### 2.2 `export.ts`
 
-Add a stub entry to any template definitions:
-
-```ts
-elements: [
-  { type: "video", src: "", width: 320, height: 180 }, // etc.
-]
-```
-
-Template instances are created without free‑layout coordinates, so `x/y`
-are omitted.
-
----
-
-## 5. Extend the **resize infrastructure** (optional)
-
-If you want videos to resize with the generic handles:
+*Both* the runtime helper `buildAbsoluteExport()` (inside the Builder page) and
+the formal `AbsoluteElement` type live here.
 
 ```ts
-type ResizeTarget = { id: string; kind: "text" | "image" | "video" };
+export type AbsoluteElement =
+  | { type: "video"; src: string; x: number; y: number; width: number; height: number; id: string }
+  | /* existing cases */;
 ```
 
-Inside `handleResizeStart` locate the object:
+The HTML/React‑string generators already have a `switch` – add the
+`case "video":`.
 
-```ts
-const obj =
-  target.kind === "text"
-    ? boxes.find(b => b.id === target.id)!
-    : elements.find(el => el.id === target.id)!;   // now includes video
-```
-
-No other changes are needed—`onMove` already mutates `width/height`.
+*No server‑side code changes are needed here.*
 
 ---
 
-## 6. Create the **renderer**
+## 3  Publishing / viewing layer
 
-Add a block in both render paths (free layout and template/grid) right after
-the *image* case:
+### 3.1 `api/portfolio/export.ts`
+
+**Usually unchanged.**
+
+Only touch this file if:
+
+* You need to **strip active iframes** when taking the PNG snapshot (HTML2Canvas
+  cannot capture them).  Typical fix:
+
+  ```ts
+  // just before html2canvas()
+  const restore: (() => void)[] = [];
+  node.querySelectorAll("iframe").forEach((f) => {
+    const ph = document.createElement("div");
+    ph.style.width  = f.style.width;
+    ph.style.height = f.style.height;
+    ph.style.background = "#000";
+    f.replaceWith(ph);
+    restore.push(() => ph.replaceWith(f));
+  });
+  const bitmap = await html2canvas(node, { … });
+  restore.forEach(fn => fn());
+  ```
+
+* You want to validate `/ sanitize` the incoming video URLs.
+
+Otherwise exporting remains the same because the payload is opaque JSON.
+
+### 3.2 Public viewer – `app/portfolio/[slug]/page.tsx`
+
+Add a render branch identical to what you put in the builder but without the
+resize handles:
 
 ```tsx
 case "video":
   return (
-    <div className="p-1 border border-transparent">
-      {/* video wrapper needed for resize handles */}
-      <div className="relative inline-block">
-        {el.src ? (
-          <iframe
-            src={el.src}
-            width={el.width}
-            height={el.height}
-            className="pointer-events-none select-none"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture"
-            allowFullScreen
-          />
-        ) : (
-          <input
-            className="border p-1 text-xs"
-            placeholder="https://www.youtube.com/embed/ID"
-            onPointerDown={e => e.stopPropagation()}
-            onChange={e =>
-              setElements(els =>
-                els.map(it =>
-                  it.id === el.id ? { ...it, src: e.target.value } : it
-                )
-              )
-            }
-          />
-        )}
-
-        {/* if resizable */}
-        {["nw","ne","sw","se"].map(corner => (
-          <div
-            key={corner}
-            onPointerDown={e =>
-              proxyResizeStart(e, { id: el.id, kind: "video" }, corner)
-            }
-            className={`resize-handle handle-${corner}`}
-          />
-        ))}
-      </div>
-    </div>
+    <iframe
+      key={abs.id}
+      src={abs.src}
+      style={{
+        position: "absolute",
+        left: abs.x,
+        top:  abs.y,
+        width: abs.width,
+        height: abs.height,
+      }}
+      allow="accelerometer; autoplay; encrypted-media; picture-in-picture"
+      allowFullScreen
+    />
   );
 ```
 
----
+### 3.3 Feed card – `components/cards/PortfolioCard.tsx`
 
-## 7. Prevent drag‑vs‑resize conflicts
-
-* All resize handles must have the class `resize-handle`.
-  The existing `handleBoxPointerDown` (for text) and the generic pointer‑down
-  on images already ignore drags that start on such elements—so your video
-  will too.
-
-* Inside the editor controls (`<input>` above) call `e.stopPropagation()` on
-  *pointer* **and** *mouse* events to prevent the wrapper from thinking it
-  should drag.
+If you rely solely on the PNG snapshot there is **nothing to do**. If you show
+an icon when no snapshot exists, add a `video` fallback icon.
 
 ---
 
-## 8. Persist the element when exporting / publishing
+## 4  Other files in the list
 
-### 8 a `buildAbsoluteExport()`
-
-```ts
-// append after absoluteElems
-const absoluteVideos = elements
-  .filter(e => e.type === "video")
-  .map(e => ({
-    id: e.id,
-    type: "video",
-    x: e.x ?? 0,
-    y: e.y ?? 0,
-    width: e.width,
-    height: e.height,
-    src: e.src,
-  }));
-return [...absoluteElems, ...absoluteText, ...absoluteVideos];
-```
-
-### 8 b If you save a **flat string representation** (`serialize()`),
-
-append the video URLs or IDs similarly (often not needed).
+| File                                                  | Needs a change?                                                                                   | Reason                                   |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| **`components/forms/CreateFeedPost.tsx`**             | **No**                                                                                            | It posts whatever JSON is produced.      |
+| **`lib/actions/realtimepost.actions.ts`**             | **No**                                                                                            | Payload remains `{ snapshot, pageUrl }`. |
+| **`components/modals/PortfolioSiteBuilderModal.tsx`** | **No**                                                                                            | It simply mounts the Builder page.       |
+| **`lib/components/CanvasRenderer.tsx`**               | **Yes** **if** you use it for static previews (e.g. inside a modal). Add the same `video` branch. |                                          |
 
 ---
 
-## 9. Handle the element on the **published page**
+## 5  Quick check‑list for future element types
 
-Whatever consumes the `absolute[]` array must recognise `"video"` and render
-an `<iframe>` (or `<video>` tag) at the saved coordinates / size.
+1. **Authoring UI**
+   \* Sidebar button → default object → render branch → resize target kind.\*
 
----
+2. **Shared library**
+   \* Type extension + (optional) default template item.\*
 
-## 10. CSS (optional)
+3. **Public viewer**
+   \* Render branch.\*
 
-If the resize squares overlap the iframe content, add
+4. **(Optional)** export route tweaks for snapshot or validation.
 
-```css
-iframe { pointer-events: none; }
-```
-
-so you can’t accidentally click the YouTube player while resizing/moving.
-When you later implement *play* in preview mode, you can override that rule.
+That’s it. The rest of the application (Supabase storage, feed actions, modals)
+is *element‑agnostic* and keeps working automatically.
 
 ---
 
-## 11. Update **eslint / tests / storybook** (if any)
+> **Pro‑tip**
+> Keep this doc up‑to‑date as the single source of truth; it prevents drift when
+> someone else on the team adds *audio*, *GIF stickers*, or any other fun block
+> six months from now.
 
-Search for hard‑coded enum lists (`"image" | "text" | "link"`) in other files
-and add `"video"`.
-
----
-
-## 12. Checklist for every new element
-
-| Step | File / Section                        | What to do                           |
-| ---- | ------------------------------------- | ------------------------------------ |
-| 1    | Types section                         | Add union literal and interface      |
-| 2    | Sidebar JSX                           | Add `<DraggableItem>`                |
-| 3    | `defaultObjectFor()`                  | Return sensible defaults             |
-| 4    | Templates (optional)                  | Add stub object                      |
-| 5    | `ResizeTarget` union + lookup logic   | Include new kind                     |
-| 6    | Renderer (both free & template paths) | Implement visual + editing + handles |
-| 7    | `buildAbsoluteExport` / `serialize`   | Persist data                         |
-| 8    | Public‑page renderer                  | Display when published               |
-| 9    | Assets / upload helper (if necessary) | Copy the image logic                 |
-| 10   | Styling                               | Make sure resize handles are visible |
-
-Follow the table row‑by‑row and you will not miss anything.
-
----
-
-### Tips & Common Pitfalls
-
-* **Don’t put React hooks inside callbacks** (we fixed that earlier).
-* Use **`onPointerDown`** (not `onMouseDown`) everywhere so touch devices work.
-* Remember to call `e.stopPropagation()` in any control that lives *inside*
-  the draggable box (links, inputs, buttons).
-* When an element does not move, check that its wrapper has the class
-  `cursor-move` and is **not** entirely covered by an input/iframe that
-  captures the events.
-* Keep the *single source of truth* for width/height in React state—*never*
-  read from `getBoundingClientRect()` when exporting; just use the saved
-  numbers.
-
-You can now add as many element kinds as you like by repeating the steps.
