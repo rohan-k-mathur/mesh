@@ -16,7 +16,7 @@ export interface PortfolioExportData {
 }
 export interface AbsoluteElement {
   id: string;
-  type: "text" | "text-box" | "image" | "link" | "box";
+  type: "text" | "text-box" | "image" | "link" | "box" | "video";
   x: number;
   y: number;
   width: number;
@@ -66,6 +66,8 @@ export function generatePortfolioTemplates(
         switch (a.type) {
           case "image":
             return `<img ${style} src="${escapeHtml(a.src)}" />`;
+          case "video":
+            return `<iframe ${style} src="${escapeHtml(a.src)}" allow="accelerometer; autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
           case "link":
             return `<a ${style} href="${escapeHtml(a.href)}" class="break-all underline text-blue-500" target="_blank" rel="noreferrer">${escapeHtml(a.href)}</a>`;
           case "box":
@@ -115,11 +117,14 @@ export function generatePortfolioTemplates(
 
         switch (a.type) {
           case "image":
-            return `<Image src="${escapeJSX(a.src)}" alt="" width={${a.width}} height={${a.height}} 
+            return `<Image src="${escapeJSX(a.src)}" alt="" width={${a.width}} height={${a.height}}
             style={{ position:'absolute',
             left:${a.x}, top:${a.y},
             ${a.width && a.height ? '' : `width:${a.natW ?? 300},height:${a.natH ?? 300},`}
-            objectFit:'cover' }} />`; 
+            objectFit:'cover' }} />`;
+
+          case "video":
+            return `<iframe src="${escapeJSX(a.src)}" style={${styleJsx}} allow="accelerometer; autoplay; encrypted-media; picture-in-picture" allowFullScreen />`;
 
           case "link":
             return `<a href="${escapeJSX(a.href)}" style={${styleJsx}} className="break-all underline text-blue-500" target="_blank" rel="noreferrer">${escapeJSX(
