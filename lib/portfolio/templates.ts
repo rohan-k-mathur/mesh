@@ -1,6 +1,6 @@
 export interface BuilderElement {
   id: string;
-  type: "text" | "image" | "box" | "link";
+  type: "text" | "image" | "box" | "link" | "video";
   content?: string;
   src?: string;
   href?: string;

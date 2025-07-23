@@ -2,7 +2,7 @@ import Image from "next/image";
 
 export interface AbsoluteElement {
   id: string;
-  type: "text" | "text-box" | "image" | "link" | "box";
+  type: "text" | "text-box" | "image" | "link" | "box" | "video";
   x: number;
   y: number;
   width: number;
@@ -64,6 +64,19 @@ export default function CanvasRenderer({
                   width={el.width}
                   height={el.height}
                   style={style}
+                />
+              );
+            }
+
+            case "video": {
+              const style = base;
+              return (
+                <iframe
+                  key={el.id}
+                  src={el.src}
+                  style={style}
+                  allow="accelerometer; autoplay; encrypted-media; picture-in-picture"
+                  allowFullScreen
                 />
               );
             }

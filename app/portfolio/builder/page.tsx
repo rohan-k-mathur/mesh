@@ -136,7 +136,7 @@ interface TextBox {
 }
 type Corner = "nw" | "ne" | "sw" | "se";
 
-type ResizeTarget = { id: string; kind: "text" | "image" };
+type ResizeTarget = { id: string; kind: "text" | "image" | "video" };
 interface ResizeState {
   target: ResizeTarget; // element being resized
   corner: Corner; // which corner is active
@@ -677,16 +677,36 @@ const proxyResizeStart = (
                 src: "",
                 x,
                 y,
-                width: active.id === "image" ? 300 : 200,
-                height: active.id === "image" ? 300 : 32,
+                width:
+                  active.id === "image"
+                    ? 300
+                    : active.id === "video"
+                    ? 480
+                    : 200,
+                height:
+                  active.id === "image"
+                    ? 300
+                    : active.id === "video"
+                    ? 270
+                    : 32,
               }
             : {
                 id: nanoid(),
                 type: active.id as Element["type"],
                 content: "",
                 src: "",
-                width: active.id === "image" ? 200 : 200,
-                height: active.id === "image" ? 200 : 32,
+                width:
+                  active.id === "image"
+                    ? 200
+                    : active.id === "video"
+                    ? 480
+                    : 200,
+                height:
+                  active.id === "image"
+                    ? 200
+                    : active.id === "video"
+                    ? 270
+                    : 32,
               },
         ]);
       }
@@ -1000,6 +1020,17 @@ const proxyResizeStart = (
             />
           </DraggableItem>
 
+          <DraggableItem id="video" fromSidebar>
+            Video
+            <Image
+              src="/assets/video.svg"
+              alt={"video"}
+              className="p-0 flex-grow-0 flex-shrink-0"
+              width={24}
+              height={24}
+            />
+          </DraggableItem>
+
           <DraggableItem id="link" fromSidebar>
             Link
             <Image
@@ -1122,6 +1153,42 @@ const proxyResizeStart = (
                   </button>
                     </div>
                   )}
+                  {el.type === "video" && (
+                    <div className="p-1 border border-transparent">
+                      {el.src ? (
+                        <iframe
+                          src={el.src}
+                          width={el.width}
+                          height={el.height}
+                          className="pointer-events-none"
+                          allow="autoplay; encrypted-media"
+                          allowFullScreen
+                        />
+                      ) : (
+                        <input
+                          placeholder="https://www.youtube.com/embed/…"
+                          className="w-full h-full p-1"
+                          onPointerDown={(e) => e.stopPropagation()}
+                          onChange={(e) =>
+                            setElements((els) =>
+                              els.map((it) =>
+                                it.id === el.id ? { ...it, src: e.target.value } : it
+                              )
+                            )
+                          }
+                        />
+                      )}
+                      {(["nw", "ne", "sw", "se"] as Corner[]).map((corner) => (
+                        <div
+                          key={corner}
+                          onPointerDown={(e) =>
+                            proxyResizeStart(e, { id: el.id, kind: "video" }, corner)
+                          }
+                          className={`resize-handle handle-${corner}`}
+                        />
+                      ))}
+                    </div>
+                  )}
                   {el.type === "box" && (
                     <div className="w-20 h-20 border bg-gray-200" />
                   )}
@@ -1211,6 +1278,42 @@ const proxyResizeStart = (
                           />
                         ))}
                       </div>
+                    </div>
+                  )}
+                  {el.type === "video" && (
+                    <div className="p-1 border border-transparent">
+                      {el.src ? (
+                        <iframe
+                          src={el.src}
+                          width={el.width}
+                          height={el.height}
+                          className="pointer-events-none"
+                          allow="autoplay; encrypted-media"
+                          allowFullScreen
+                        />
+                      ) : (
+                        <input
+                          placeholder="https://www.youtube.com/embed/…"
+                          className="w-full h-full"
+                          onPointerDown={(e) => e.stopPropagation()}
+                          onChange={(e) =>
+                            setElements((els) =>
+                              els.map((it) =>
+                                it.id === el.id ? { ...it, src: e.target.value } : it
+                              )
+                            )
+                          }
+                        />
+                      )}
+                      {(["nw", "ne", "sw", "se"] as Corner[]).map((corner) => (
+                        <div
+                          key={corner}
+                          onPointerDown={(e) =>
+                            handleResizeStart(e, { id: el.id, kind: "video" }, corner)
+                          }
+                          className={`resize-handle handle-${corner}`}
+                        />
+                      ))}
                     </div>
                   )}
                   {el.type === "box" && (
