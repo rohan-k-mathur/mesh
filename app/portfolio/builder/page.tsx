@@ -136,12 +136,13 @@ interface TextBox {
 }
 type Corner = "nw" | "ne" | "sw" | "se";
 
+type ResizeTarget = { id: string; kind: "text" | "image" };
 interface ResizeState {
-  id: string; // box being resized
+  target: ResizeTarget; // element being resized
   corner: Corner; // which corner is active
   startX: number; // pointer position at drag start
   startY: number;
-  startLeft: number; // box position/dimensions at drag start
+  startLeft: number; // element position/dimensions at drag start
   startTop: number;
   startWidth: number;
   startHeight: number;
@@ -307,26 +308,34 @@ function DroppableCanvas({
     setDraft(null);
   }
   /* ---------- resize helpers ------------ */
-  function handlePointerDown(
+  function handleResizeStart(
     e: React.PointerEvent,
-    b: TextBox,
+    target: ResizeTarget,
     corner: Corner
   ) {
     e.stopPropagation();
     const rect = ref.current!.getBoundingClientRect();
+    const startX = e.clientX - rect.left;
+    const startY = e.clientY - rect.top;
+
+    const obj =
+      target.kind === "text"
+        ? textBoxes.find((b) => b.id === target.id)!
+        : elements.find((el) => el.id === target.id)!;
+
     setResizing({
-      id: b.id,
+      target,
       corner,
-      startX: e.clientX - rect.left,
-      startY: e.clientY - rect.top,
-      startLeft: b.x,
-      startTop: b.y,
-      startWidth: b.width,
-      startHeight: b.height,
+      startX,
+      startY,
+      startLeft: obj.x,
+      startTop: obj.y,
+      startWidth: obj.width,
+      startHeight: obj.height,
     });
   }
   function handleBoxPointerDown(e: React.PointerEvent, b: TextBox) {
-    // Ignore if we’re clicking a resize handle – they call handlePointerDown.
+    // Ignore if we’re clicking a resize handle – they call handleResizeStart.
     if ((e.target as HTMLElement).classList.contains("resize-handle")) return;
 
     // Ignore if user clicks inside the text editor (it stops propagation).
@@ -361,6 +370,7 @@ function DroppableCanvas({
         startTop,
         startWidth,
         startHeight,
+        target,
       } = resizing;
       const rect = ref.current!.getBoundingClientRect();
       const x = ev.clientX - rect.left;
@@ -368,40 +378,47 @@ function DroppableCanvas({
       const dx = x - startX;
       const dy = y - startY;
 
-      setBoxes((bs) =>
-        bs.map((b) => {
-          if (b.id !== resizing.id) return b;
+      let left = startLeft;
+      let top = startTop;
+      let width = startWidth;
+      let height = startHeight;
 
-          let left = startLeft;
-          let top = startTop;
-          let width = startWidth;
-          let height = startHeight;
+      switch (corner) {
+        case "se":
+          width = Math.max(20, startWidth + dx);
+          height = Math.max(20, startHeight + dy);
+          break;
+        case "sw":
+          width = Math.max(20, startWidth - dx);
+          height = Math.max(20, startHeight + dy);
+          left = startLeft + dx;
+          break;
+        case "ne":
+          width = Math.max(20, startWidth + dx);
+          height = Math.max(20, startHeight - dy);
+          top = startTop + dy;
+          break;
+        case "nw":
+          width = Math.max(20, startWidth - dx);
+          height = Math.max(20, startHeight - dy);
+          left = startLeft + dx;
+          top = startTop + dy;
+          break;
+      }
 
-          switch (corner) {
-            case "se":
-              width = Math.max(20, startWidth + dx);
-              height = Math.max(20, startHeight + dy);
-              break;
-            case "sw":
-              width = Math.max(20, startWidth - dx);
-              height = Math.max(20, startHeight + dy);
-              left = startLeft + dx;
-              break;
-            case "ne":
-              width = Math.max(20, startWidth + dx);
-              height = Math.max(20, startHeight - dy);
-              top = startTop + dy;
-              break;
-            case "nw":
-              width = Math.max(20, startWidth - dx);
-              height = Math.max(20, startHeight - dy);
-              left = startLeft + dx;
-              top = startTop + dy;
-              break;
-          }
-          return { ...b, x: left, y: top, width, height };
-        })
-      );
+      if (target.kind === "text") {
+        setBoxes((bs) =>
+          bs.map((b) =>
+            b.id === target.id ? { ...b, x: left, y: top, width, height } : b
+          )
+        );
+      } else {
+        setElements((es) =>
+          es.map((el) =>
+            el.id === target.id ? { ...el, x: left, y: top, width, height } : el
+          )
+        );
+      }
     }
 
     function onUp() {
@@ -416,7 +433,7 @@ function DroppableCanvas({
         window.removeEventListener("pointerup", onUp);
       };
     }
-  }, [resizing, setBoxes]);
+  }, [resizing, setBoxes, setElements]);
 
   useEffect(() => {
     function onMove(ev: PointerEvent) {
@@ -493,7 +510,9 @@ function DroppableCanvas({
           {(["nw", "ne", "sw", "se"] as Corner[]).map((corner) => (
             <div
               key={corner}
-              onPointerDown={(e) => handlePointerDown(e, box, corner)}
+              onPointerDown={(e) =>
+                handleResizeStart(e, { id: box.id, kind: "text" }, corner)
+              }
               className={`resize-handle handle-${corner}`}
             />
           ))}
@@ -681,8 +700,8 @@ export default function PortfolioBuilder() {
       y: e.y ?? 0,
       natW: e.natW,
       natH: e.natH,
-      width: e.width ?? (e.type === "image" ? 300 : 200),
-      height: e.height ?? (e.type === "image" ? 300 : 32),
+      width: e.width,
+      height: e.height,
       content: e.content,
       src: e.src,
       href: e.href,
@@ -981,36 +1000,47 @@ export default function PortfolioBuilder() {
                     </div>
                   )}
                   {el.type === "image" && (
-                    <div className="p-1 border-[1px] border-transparent ">
-                      {el.src ? (
-                        <Image
-                          src={el.src}
-                          alt="uploaded"
-                          width={el.width}
-                          height={el.height}
-                          className="object-cover portfolio-img-frame max-h-[400px]"
-                          crossOrigin="anonymous"
-                          onLoad={(e) =>
-                            recordNaturalSize(
-                              el.id,
-                              (e.target as HTMLImageElement).naturalWidth,
-                              (e.target as HTMLImageElement).naturalHeight
-                            )
-                          }
-                        />
-                      ) : (
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className=" w-full p-1"
-                          onPointerDown={(e) => e.stopPropagation()}
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) handleImageSelect(el.id, file);
-                          }}
-                        />
-                      )}
-                           <button
+                    <div className="p-1 border-[1px] border-transparent">
+                      <div className="relative inline-block">
+                        {el.src ? (
+                          <Image
+                            src={el.src}
+                            alt="uploaded"
+                            width={el.width}
+                            height={el.height}
+                            className="object-cover portfolio-img-frame max-h-[400px]"
+                            crossOrigin="anonymous"
+                            onLoad={(e) =>
+                              recordNaturalSize(
+                                el.id,
+                                (e.target as HTMLImageElement).naturalWidth,
+                                (e.target as HTMLImageElement).naturalHeight
+                              )
+                            }
+                          />
+                        ) : (
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="w-full h-full p-1"
+                            onPointerDown={(e) => e.stopPropagation()}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleImageSelect(el.id, file);
+                            }}
+                          />
+                        )}
+                        {(["nw", "ne", "sw", "se"] as Corner[]).map((corner) => (
+                          <div
+                            key={corner}
+                            onPointerDown={(e) =>
+                              handleResizeStart(e, { id: el.id, kind: "image" }, corner)
+                            }
+                            className={`resize-handle handle-${corner}`}
+                          />
+                        ))}
+                      </div>
+                      <button
                       className="rounded-md mt-5 lockbutton"
                       onPointerDown={(e) => e.stopPropagation()}   /* ⬅︎ PREVENT DRAG  */
                       onClick={(e) => {                            /* ⬅︎ ACTUAL DELETE */
@@ -1078,33 +1108,45 @@ export default function PortfolioBuilder() {
                   )}
                   {el.type === "image" && (
                     <div>
-                      {el.src ? (
-                        <Image
-                          src={el.src}
-                          alt="uploaded"
-                          width={el.width}
-                          height={el.height}
-                          className="object-cover portfolio-img-frame"
-                          crossOrigin="anonymous"
-                          onLoad={(e) =>
-                            recordNaturalSize(
-                              el.id,
-                              (e.target as HTMLImageElement).naturalWidth,
-                              (e.target as HTMLImageElement).naturalHeight
-                            )
-                          }
-                        />
-                      ) : (
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onPointerDown={(e) => e.stopPropagation()}
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) handleImageSelect(el.id, file);
-                          }}
-                        />
-                      )}
+                      <div className="relative inline-block">
+                        {el.src ? (
+                          <Image
+                            src={el.src}
+                            alt="uploaded"
+                            width={el.width}
+                            height={el.height}
+                            className="object-cover portfolio-img-frame"
+                            crossOrigin="anonymous"
+                            onLoad={(e) =>
+                              recordNaturalSize(
+                                el.id,
+                                (e.target as HTMLImageElement).naturalWidth,
+                                (e.target as HTMLImageElement).naturalHeight
+                              )
+                            }
+                          />
+                        ) : (
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="w-full h-full"
+                            onPointerDown={(e) => e.stopPropagation()}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleImageSelect(el.id, file);
+                            }}
+                          />
+                        )}
+                        {(["nw", "ne", "sw", "se"] as Corner[]).map((corner) => (
+                          <div
+                            key={corner}
+                            onPointerDown={(e) =>
+                              handleResizeStart(e, { id: el.id, kind: "image" }, corner)
+                            }
+                            className={`resize-handle handle-${corner}`}
+                          />
+                        ))}
+                      </div>
                     </div>
                   )}
                   {el.type === "box" && (

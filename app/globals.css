@@ -406,17 +406,17 @@
 /* ---- text‑box corner handles ---- */
 .resize-handle {
   position: absolute;
-  width: 10px;
-  height: 10px;
-  background: #3b82f6;            /* blue‑500 – tweak to taste */
-  border-radius: 2px;
-  z-index: 10;
+  width: 8px;
+  height: 8px;
+  background: #fff;
+  border: 1px solid #000;
+  z-index: 20;
 }
 
-.handle-nw { top:  -5px; left:  -5px;  cursor: nwse-resize; }
-.handle-ne { top:  -5px; right: -5px;  cursor: nesw-resize; }
-.handle-sw { bottom:-5px; left:  -5px;  cursor: nesw-resize; }
-.handle-se { bottom:-5px; right: -5px;  cursor: nwse-resize; }
+.handle-nw { left: -4px; top: -4px; cursor: nwse-resize; }
+.handle-ne { right: -4px; top: -4px; cursor: nesw-resize; }
+.handle-sw { left: -4px; bottom: -4px; cursor: nesw-resize; }
+.handle-se { right: -4px; bottom: -4px; cursor: nwse-resize; }
 
 .portal-node {
  display: grid;
