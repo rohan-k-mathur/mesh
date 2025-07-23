@@ -230,9 +230,12 @@ function DroppableCanvas({
   drawText,
   boxes,
   setBoxes,
+  elements,
+  setElements, 
   canvasRef,
   selectedId,
   setSelectedId,
+  onResizeStart,
 }: {
   children: React.ReactNode;
   layout: "column" | "grid" | "free";
@@ -240,10 +243,19 @@ function DroppableCanvas({
   isBlank: boolean;
   drawText: boolean;
   boxes: TextBox[];
+  elements: Element[];                              
   setBoxes: React.Dispatch<React.SetStateAction<TextBox[]>>;
+  setElements: React.Dispatch<React.SetStateAction<Element[]>>; 
   canvasRef: React.MutableRefObject<HTMLDivElement | null>;
   selectedId: string | null;
   setSelectedId: React.Dispatch<React.SetStateAction<string | null>>;
+  onResizeStart?: (
+    fn: (
+      e: React.PointerEvent,
+      target: ResizeTarget,
+      corner: Corner
+    ) => void
+  ) => void;
 }) {
   const { setNodeRef } = useDroppable({ id: "canvas" });
   const layoutClass =
@@ -259,6 +271,9 @@ function DroppableCanvas({
 
   /* --------------- */
   const ref = canvasRef;
+
+
+
 
   function startDraw(e: React.MouseEvent<HTMLDivElement>) {
     if (!drawText || e.target !== ref.current) return;
@@ -317,11 +332,14 @@ function DroppableCanvas({
     const rect = ref.current!.getBoundingClientRect();
     const startX = e.clientX - rect.left;
     const startY = e.clientY - rect.top;
+        const obj =
+          target.kind === "text"
+            ? boxes.find((b) => b.id === target.id)!    // use local `boxes`
+            : elements.find((el) => el.id === target.id)!;
 
-    const obj =
-      target.kind === "text"
-        ? textBoxes.find((b) => b.id === target.id)!
-        : elements.find((el) => el.id === target.id)!;
+            // useEffect(() => {
+            //   onResizeStart?.(handleResizeStart);
+            // }, [onResizeStart]);
 
     setResizing({
       target,
@@ -334,6 +352,7 @@ function DroppableCanvas({
       startHeight: obj.height,
     });
   }
+  
   function handleBoxPointerDown(e: React.PointerEvent, b: TextBox) {
     // Ignore if we’re clicking a resize handle – they call handleResizeStart.
     if ((e.target as HTMLElement).classList.contains("resize-handle")) return;
@@ -420,19 +439,23 @@ function DroppableCanvas({
         );
       }
     }
+    
 
-    function onUp() {
-      setResizing(null);
-    }
 
-    if (resizing) {
-      window.addEventListener("pointermove", onMove);
-      window.addEventListener("pointerup", onUp);
-      return () => {
-        window.removeEventListener("pointermove", onMove);
-        window.removeEventListener("pointerup", onUp);
-      };
-    }
+
+
+       function onUp() {
+            setResizing(null);          // <- clear the mode
+          }
+
+          if (resizing) {
+                  window.addEventListener("pointermove", onMove);
+                  window.addEventListener("pointerup", onUp);
+                  return () => {
+                    window.removeEventListener("pointermove", onMove);
+                    window.removeEventListener("pointerup", onUp);
+                  };
+                }
   }, [resizing, setBoxes, setElements]);
 
   useEffect(() => {
@@ -477,6 +500,15 @@ function DroppableCanvas({
     }
     if (drawText) startDraw(e);
   }
+  const resizeStartRef = useRef<
+  (e: React.PointerEvent, t: ResizeTarget, c: Corner) => void
+>();
+// thin wrapper the JSX can call
+const proxyResizeStart = (
+  e: React.PointerEvent,
+  target: ResizeTarget,
+  corner: Corner
+) => resizeStartRef.current?.(e, target, corner);
 
   return (
     <div
@@ -508,14 +540,14 @@ function DroppableCanvas({
         >
           {/* corner handles */}
           {(["nw", "ne", "sw", "se"] as Corner[]).map((corner) => (
-            <div
-              key={corner}
-              onPointerDown={(e) =>
-                handleResizeStart(e, { id: box.id, kind: "text" }, corner)
-              }
-              className={`resize-handle handle-${corner}`}
-            />
-          ))}
+        <div
+          key={corner}
+          onPointerDown={(e) =>
+            handleResizeStart(e, { id: box.id, kind: "text" }, corner)
+          }
+          className={`resize-handle handle-${corner}`}
+        />
+      ))}
 <button
      className="absolute bottom-1 right-1 p-[2px] rounded
                 bg-white/80 hover:bg-red-500/90"
@@ -597,6 +629,33 @@ export default function PortfolioBuilder() {
   const [textBoxes, setTextBoxes] = useState<TextBox[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const router = useRouter();
+  const handleResizeStart = (
+    e: React.PointerEvent,
+    target: ResizeTarget,
+    corner: Corner,
+  ) => {
+    canvasHandleResizeStart.current?.(e, target, corner); // delegate
+  };
+
+/* --- inside PortfolioBuilder --- */
+const resizeStartRef = useRef<
+  (e: React.PointerEvent, t: ResizeTarget, c: Corner) => void
+>();
+
+// thin wrapper the JSX can call
+const proxyResizeStart = (
+  e: React.PointerEvent,
+  target: ResizeTarget,
+  corner: Corner
+) => resizeStartRef.current?.(e, target, corner);
+
+
+  // Keep a ref so DroppableCanvas gives us its real implementation
+  const canvasHandleResizeStart = useRef<
+    (e: React.PointerEvent, target: ResizeTarget, corner: Corner) => void
+  >(null);
+
+
 
   function handleDragEnd(event: DragEndEvent) {
     const { over, active, delta } = event;
@@ -969,9 +1028,12 @@ export default function PortfolioBuilder() {
           drawText={drawText}
           boxes={textBoxes}
           setBoxes={setTextBoxes}
+           elements={elements}                     
+          setElements={setElements}        
           canvasRef={canvasRef}
           selectedId={selectedId}
           setSelectedId={setSelectedId}
+
         >
           {elements.map((el) =>
             template === "" ? (
@@ -1033,9 +1095,9 @@ export default function PortfolioBuilder() {
                         {(["nw", "ne", "sw", "se"] as Corner[]).map((corner) => (
                           <div
                             key={corner}
-                            onPointerDown={(e) =>
-                              handleResizeStart(e, { id: el.id, kind: "image" }, corner)
-                            }
+                              onPointerDown={(e) =>
+                                    proxyResizeStart(e, { id: el.id, kind: "image" }, corner)
+                                }
                             className={`resize-handle handle-${corner}`}
                           />
                         ))}
