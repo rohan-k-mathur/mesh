@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import  generatePuzzle  from './pivotGenerator';
+import generatePuzzle, { RING_LENGTHS } from "./pivotGenerator";
 import { Button } from "@/components/ui/button";
 
 // Dictionary of solution words is set when a puzzle loads
@@ -16,15 +16,16 @@ function rotateSteps(arr: string[], steps: number) {
 function Ring({
   letters,
   radius,
-  angle,
+  offset,
   speed,
 }: {
   letters: string[];
   radius: number;
-  angle: number;
+  offset: number;
   speed: number;
 }) {
   const step = 360 / letters.length;
+  const angle = offset * step;
   return (
     <g
     style={
@@ -70,10 +71,10 @@ function Ring({
 
 export default function PivotPage() {
 
-  const [r1, setR1] = useState<string[]>(Array(8).fill('?'));
-  const [r2, setR2] = useState<string[]>(Array(8).fill('?'));
-  const [r3, setR3] = useState<string[]>(Array(8).fill('?'));
-  const [r4, setR4] = useState<string[]>(Array(8).fill('?'));
+  const [r1, setR1] = useState<string[]>(Array(RING_LENGTHS[0]).fill("?"));
+  const [r2, setR2] = useState<string[]>(Array(RING_LENGTHS[1]).fill("?"));
+  const [r3, setR3] = useState<string[]>(Array(RING_LENGTHS[2]).fill("?"));
+  const [r4, setR4] = useState<string[]>(Array(RING_LENGTHS[3]).fill("?"));
   const [dictionary, setDictionary] = useState<Set<string>>(new Set());
 
 
@@ -113,26 +114,27 @@ export default function PivotPage() {
  
 
 
-  const [angle1, setAngle1] = useState(0);
-  const [angle2, setAngle2] = useState(0);
-  const [angle3, setAngle3] = useState(0);
-  const [angle4, setAngle4] = useState(0);
+  const [offset1, setOffset1] = useState(0);
+  const [offset2, setOffset2] = useState(0);
+  const [offset3, setOffset3] = useState(0);
+  const [offset4, setOffset4] = useState(0);
   const [spins, setSpins] = useState(0);
   const MIN_SPINS = 6;
   const SPIN_LIMIT = MIN_SPINS * 4;
-  const [speed, setSpeed] = useState(8000);
+  const [speed, setSpeed] = useState(800);
 
-  const offset1 = -Math.round(angle1 / 45);
-  const offset2 = -Math.round(angle2 / 45);
-  const offset3 = -Math.round(angle3 / 45);
-  const offset4 = -Math.round(angle4 / 45);
 
   const r1Rot = rotateSteps(r1, offset1);
   const r2Rot = rotateSteps(r2, offset2);
   const r3Rot = rotateSteps(r3, offset3);
   const r4Rot = rotateSteps(r4, offset4);
 
-  const spokes = r1Rot.map((_, i) => r1Rot[i] + r2Rot[i] + r3Rot[i] + r4Rot[i]);
+  const spokes = r1Rot.map((_, i) =>
+    r1Rot[i] +
+    r2Rot[i % r2Rot.length] +
+    r3Rot[i % r3Rot.length] +
+    r4Rot[i % r4Rot.length]
+  );
   const valid = spokes.map((w) => dictionary.has(w));
   const solved = valid.every(Boolean);
 
@@ -145,8 +147,8 @@ export default function PivotPage() {
     setR1(R1); setR2(R2); setR3(R3); setR4(R4);
     setSolutionOffsets(solutionOffsets);
     setDictionary(new Set(words));
-    // also reset angles, spins, etc
-    setAngle1(0); setAngle2(0); setAngle3(0); setAngle4(0);
+    // reset offsets and spin count
+    setOffset1(0); setOffset2(0); setOffset3(0); setOffset4(0);
     setSpins(0);
   };
 
@@ -160,7 +162,7 @@ export default function PivotPage() {
       {spins >= SPIN_LIMIT && !solved && (
         <p className="text-red-700">Spin limit reached</p>
       )}
-      <p className="fixed p-2 border-white border-2 rounded-lg justify-center -left-[-16rem] bottom-[18rem] flex text-wrap max-w-[12rem] text-[1.0rem]">Rotate the outer, middle, inner, and core rings in 45° steps with the ↺ / ↻ buttons. <br></br><br></br>
+      <p className="fixed p-2 border-white border-2 rounded-lg justify-center -left-[-16rem] bottom-[18rem] flex text-wrap max-w-[12rem] text-[1.0rem]">Rotate the outer, middle, inner, and core rings one step at a time with the ↺ / ↻ buttons. <br></br><br></br>
         When every vertical stack of letters—read outer → middle → inner → core—forms a real 4-letter word, you win. <br></br> <br></br>
         Try to finish with as few spins as possible.</p>
       <div className="flex items-center gap-2">
@@ -171,14 +173,14 @@ export default function PivotPage() {
       </Button>
       <svg width={430} height={430} viewBox="-160 -160 320 320" className="mx-auto">
 
-        <circle r={130} className="fill-none stroke-slate-200 stroke-2" />
-        <circle r={100} className="fill-none stroke-slate-200 stroke-2" />
-        <circle r={70} className="fill-none stroke-slate-200 stroke-2" />
-        <circle r={40} className="fill-none stroke-slate-200 stroke-2" />
-        <Ring letters={r1} radius={130} angle={angle1} speed={speed} />
-        <Ring letters={r2} radius={100} angle={angle2} speed={speed} />
-        <Ring letters={r3} radius={70} angle={angle3} speed={speed} />
-        <Ring letters={r4} radius={40} angle={angle4} speed={speed} />
+        <circle r={140} className="fill-none stroke-slate-200 stroke-2" />
+        <circle r={110} className="fill-none stroke-slate-200 stroke-2" />
+        <circle r={80} className="fill-none stroke-slate-200 stroke-2" />
+        <circle r={50} className="fill-none stroke-slate-200 stroke-2" />
+        <Ring letters={r1} radius={140} offset={offset1} speed={speed} />
+        <Ring letters={r2} radius={110} offset={offset2} speed={speed} />
+        <Ring letters={r3} radius={80} offset={offset3} speed={speed} />
+        <Ring letters={r4} radius={50} offset={offset4} speed={speed} />
       </svg>
       <div className=" mt-[-0rem] space-y-2">
       <div className="flex gap-6 ">
@@ -189,7 +191,7 @@ export default function PivotPage() {
               disabled={spins >= SPIN_LIMIT || solved}
             onClick={() => {
               if (spins >= SPIN_LIMIT || solved) return;
-              setAngle1(angle1 + 45);
+              setOffset1((offset1 + 1) % RING_LENGTHS[0]);
               setSpins(spins + 1);
             }}
           >
@@ -201,7 +203,7 @@ export default function PivotPage() {
             disabled={spins >= SPIN_LIMIT || solved}
             onClick={() => {
               if (spins >= SPIN_LIMIT || solved) return;
-              setAngle1(angle1 - 45);
+              setOffset1((offset1 - 1 + RING_LENGTHS[0]) % RING_LENGTHS[0]);
               setSpins(spins + 1);
             }}
           >
@@ -216,7 +218,7 @@ export default function PivotPage() {
               disabled={spins >= SPIN_LIMIT || solved}
             onClick={() => {
               if (spins >= SPIN_LIMIT || solved) return;
-              setAngle2(angle2 + 45);
+              setOffset2((offset2 + 1) % RING_LENGTHS[1]);
               setSpins(spins + 1);
             }}
           >
@@ -228,7 +230,7 @@ export default function PivotPage() {
               disabled={spins >= SPIN_LIMIT || solved}
             onClick={() => {
               if (spins >= SPIN_LIMIT || solved) return;
-              setAngle2(angle2 - 45);
+              setOffset2((offset2 - 1 + RING_LENGTHS[1]) % RING_LENGTHS[1]);
               setSpins(spins + 1);
             }}
           >
@@ -243,7 +245,7 @@ export default function PivotPage() {
               disabled={spins >= SPIN_LIMIT || solved}
             onClick={() => {
               if (spins >= SPIN_LIMIT || solved) return;
-              setAngle3(angle3 + 45);
+              setOffset3((offset3 + 1) % RING_LENGTHS[2]);
               setSpins(spins + 1);
             }}
           >
@@ -255,7 +257,7 @@ export default function PivotPage() {
               disabled={spins >= SPIN_LIMIT || solved}
             onClick={() => {
               if (spins >= SPIN_LIMIT || solved) return;
-              setAngle3(angle3 - 45);
+              setOffset3((offset3 - 1 + RING_LENGTHS[2]) % RING_LENGTHS[2]);
               setSpins(spins + 1);
             }}
           >
@@ -270,7 +272,7 @@ export default function PivotPage() {
               disabled={spins >= SPIN_LIMIT || solved}
             onClick={() => {
               if (spins >= SPIN_LIMIT || solved) return;
-              setAngle4(angle4 + 45);
+              setOffset4((offset4 + 1) % RING_LENGTHS[3]);
               setSpins(spins + 1);
             }}
           >
@@ -282,7 +284,7 @@ export default function PivotPage() {
               disabled={spins >= SPIN_LIMIT || solved}
             onClick={() => {
               if (spins >= SPIN_LIMIT || solved) return;
-              setAngle4(angle4 - 45);
+              setOffset4((offset4 - 1 + RING_LENGTHS[3]) % RING_LENGTHS[3]);
               setSpins(spins + 1);
             }}
           >

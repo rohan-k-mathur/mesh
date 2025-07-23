@@ -1,6 +1,8 @@
 // lib/pivotGenerator.ts
-import { shuffle } from 'fast-shuffle'
-import { loadWords4 }   from './words4';
+import { shuffle } from "fast-shuffle";
+import { loadWords4 } from "./words4";
+
+const RING_LENGTHS = [9, 8, 7, 6] as const;
 
 export type Rings = [string[], string[], string[], string[]];
 
@@ -10,48 +12,54 @@ export interface Puzzle {
   words: string[];
 }
 
- async function generatePuzzle(): Promise<Puzzle> {
-  const words = await pickEightWords();              // step 1
+async function generatePuzzle(): Promise<Puzzle> {
+  const words = await pickWords(RING_LENGTHS[0]); // pick outer ring length words
   const [r1, r2, r3, r4] = splitIntoRings(words);    // step 2
   const { rings, solutionOffsets } = scrambleRings([r1, r2, r3, r4]); // step 3
-  
+
   return { rings, solutionOffsets, words };
 }
 
 /* ---------- helpers ---------- */
 
-async function pickEightWords(): Promise<string[]> {
+async function pickWords(n: number): Promise<string[]> {
   const dict = await loadWords4();
 
-  // Draw without replacement until we have 8 distinct words
+  // Draw without replacement until we have n distinct words
   // *Optionally*: reject sets where any ring would hold 2 identical letters,
   //               which prevents ambiguous alternative solutions.
   const selected = new Set<string>();
-  while (selected.size < 8) {
+  while (selected.size < n) {
     selected.add(dict[Math.floor(Math.random() * dict.length)]);
   }
-  return Array.from(selected); 
+  return Array.from(selected);
 }
 
 function splitIntoRings(words: string[]): Rings {
-  const r1: string[] = []; const r2: string[] = [];
-  const r3: string[] = []; const r4: string[] = [];
-  for (const w of words) {
-    r1.push(w[0]); r2.push(w[1]); r3.push(w[2]); r4.push(w[3]);
+  const r1: string[] = [];
+  const r2: string[] = [];
+  const r3: string[] = [];
+  const r4: string[] = [];
+  for (let i = 0; i < words.length; i++) {
+    const w = words[i];
+    r1.push(w[0]);
+    if (i < RING_LENGTHS[1]) r2.push(w[1]);
+    if (i < RING_LENGTHS[2]) r3.push(w[2]);
+    if (i < RING_LENGTHS[3]) r4.push(w[3]);
   }
   return [r1, r2, r3, r4];
 }
 function scrambleRings([r1, r2, r3, r4]: Rings) {
-    const rand = () => Math.floor(Math.random() * 8);
-  
-    const offset2 = rand();
-    let   offset3 = rand();
-    let   offset4 = rand();
-  
+    const rand = (len: number) => Math.floor(Math.random() * len);
+
+    const offset2 = rand(RING_LENGTHS[1]);
+    let   offset3 = rand(RING_LENGTHS[2]);
+    let   offset4 = rand(RING_LENGTHS[3]);
+
     if (offset2 === 0 && offset3 === 0 && offset4 === 0) {
-      offset3 = (offset3 + 1) % 8;
+      offset3 = (offset3 + 1) % RING_LENGTHS[2];
     }
-  
+
     const rings: Rings = [
       r1,
       rotate(r2, offset2),
@@ -76,3 +84,4 @@ function rotate<T>(arr: readonly T[], k: number): T[] {
 }
 
 export default generatePuzzle;
+export { RING_LENGTHS };
