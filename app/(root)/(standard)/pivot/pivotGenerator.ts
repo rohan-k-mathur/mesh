@@ -8,8 +8,8 @@ const PAR_MAX = 25;
 export type Rings = [string[], string[], string[], string[]];
 
 export interface Puzzle {
-  rings: Rings;           // already rotated, ready for setState
-  solutionOffsets: [0, number, number, number];
+  rings: Rings; // already rotated, ready for setState
+  solutionOffsets: [number, number, number, number];
   words: string[];
   par: number;
   puzzleId: string;
@@ -78,7 +78,7 @@ function scrambleRings([r1, r2, r3, r4]: Rings) {
     rotate(r4, offset4),
   ];
 
-  const solutionOffsets: [0, number, number, number] = [0, offset2, offset3, offset4];
+  const solutionOffsets: [number, number, number, number] = [offset1, offset2, offset3, offset4];
   return { rings, solutionOffsets };
 }
 
