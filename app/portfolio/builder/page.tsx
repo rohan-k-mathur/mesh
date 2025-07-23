@@ -343,6 +343,12 @@ function DroppableCanvas({
       startTop: b.y,
     });
   }
+  useEffect(() => {
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && setSelectedId(null);
+    window.addEventListener("keydown", esc);
+    return () => window.removeEventListener("keydown", esc);
+  }, []);
+
   /* attach / detach window listeners when resizing */
   useEffect(() => {
     function onMove(ev: PointerEvent) {
@@ -503,7 +509,7 @@ function DroppableCanvas({
    </button>
           {/* editable text area */}
           <div
-            onPointerDown={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()} 
             ref={(el) => {
               /* keep DOM in sync **only** when the box text
        changes because of something *other* than typing
@@ -513,6 +519,7 @@ function DroppableCanvas({
               }
             }}
             contentEditable
+            onFocus={() => setSelectedId(box.id)}
             suppressContentEditableWarning
             className="w-full h-full px-3 py-2"
             style={{
