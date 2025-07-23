@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from "react";
 import generatePuzzle, { RING_LENGTHS } from "./pivotGenerator";
+import { loadWords4 } from "./words4";
 import { Button } from "@/components/ui/button";
 
 // Dictionary of solution words is set when a puzzle loads
@@ -11,6 +12,26 @@ function rotateSteps(arr: string[], steps: number) {
   if (!len) return [];
   const k = ((steps % len) + len) % len; // normalize steps
   return [...arr.slice(k), ...arr.slice(0, k)];
+}
+
+function computeSpokes(
+  r1: string[],
+  r2: string[],
+  r3: string[],
+  r4: string[],
+  offsets: number[]
+) {
+  const [o1, o2, o3, o4] = offsets;
+  const rot1 = rotateSteps(r1, o1);
+  const rot2 = rotateSteps(r2, o2);
+  const rot3 = rotateSteps(r3, o3);
+  const rot4 = rotateSteps(r4, o4);
+  return rot1.map((_, i) =>
+    rot1[i] +
+    rot2[i % rot2.length] +
+    rot3[i % rot3.length] +
+    rot4[i % rot4.length]
+  );
 }
 
 function Ring({
@@ -76,6 +97,14 @@ export default function PivotPage() {
   const [r3, setR3] = useState<string[]>(Array(RING_LENGTHS[2]).fill("?"));
   const [r4, setR4] = useState<string[]>(Array(RING_LENGTHS[3]).fill("?"));
   const [dictionary, setDictionary] = useState<Set<string>>(new Set());
+  const [targetWords, setTargetWords] = useState<string[]>([]);
+  const [locked, setLocked] = useState<boolean[]>(Array(RING_LENGTHS[0]).fill(false));
+  const [lockedWords, setLockedWords] = useState<string[]>(Array(RING_LENGTHS[0]).fill(""));
+  const [par, setPar] = useState(0);
+
+  useEffect(() => {
+    loadWords4().then((list) => setDictionary(new Set(list)));
+  }, []);
 
 
   // const [r1, setR1] = useState<string[]>([
@@ -124,40 +153,79 @@ export default function PivotPage() {
   const [speed, setSpeed] = useState(800);
 
 
-  const r1Rot = rotateSteps(r1, offset1);
-  const r2Rot = rotateSteps(r2, offset2);
-  const r3Rot = rotateSteps(r3, offset3);
-  const r4Rot = rotateSteps(r4, offset4);
+  const offsets = [offset1, offset2, offset3, offset4];
 
-  const spokes = r1Rot.map((_, i) =>
-    r1Rot[i] +
-    r2Rot[i % r2Rot.length] +
-    r3Rot[i % r3Rot.length] +
-    r4Rot[i % r4Rot.length]
+  const attemptRotate = (ring: number, dir: number) => {
+    if (spins >= SPIN_LIMIT || solved) return;
+    const next = [...offsets];
+    next[ring] = (next[ring] + dir + RING_LENGTHS[ring]) % RING_LENGTHS[ring];
+    const newSpokes = computeSpokes(r1, r2, r3, r4, next);
+    for (let i = 0; i < locked.length; i++) {
+      if (locked[i] && newSpokes[i] !== lockedWords[i]) {
+        return;
+      }
+    }
+    switch (ring) {
+      case 0:
+        setOffset1(next[0]);
+        break;
+      case 1:
+        setOffset2(next[1]);
+        break;
+      case 2:
+        setOffset3(next[2]);
+        break;
+      case 3:
+        setOffset4(next[3]);
+        break;
+    }
+    setSpins(spins + 1);
+  };
+
+  const spokes = useMemo(
+    () => computeSpokes(r1, r2, r3, r4, offsets),
+    [r1, r2, r3, r4, offset1, offset2, offset3, offset4]
   );
   const valid = spokes.map((w) => dictionary.has(w));
-  const solved = valid.every(Boolean);
+  const solved = locked.every(Boolean);
 
   const [solutionOffsets, setSolutionOffsets] =
   useState<[0, number, number, number]>([0, 0, 0, 0]);
 
   const newPuzzle = async () => {
-    const { rings: [R1, R2, R3, R4], solutionOffsets, words } =
+    const { rings: [R1, R2, R3, R4], solutionOffsets, words, par, puzzleId } =
       await generatePuzzle();
     setR1(R1); setR2(R2); setR3(R3); setR4(R4);
     setSolutionOffsets(solutionOffsets);
-    setDictionary(new Set(words));
+    setTargetWords(words);
+    setPar(par);
+    setLocked(Array(RING_LENGTHS[0]).fill(false));
+    setLockedWords(Array(RING_LENGTHS[0]).fill(""));
     // reset offsets and spin count
     setOffset1(0); setOffset2(0); setOffset3(0); setOffset4(0);
     setSpins(0);
   };
 
-  useEffect(() => { newPuzzle(); }, []);    // one puzzle per page load
+  useEffect(() => { if (dictionary.size) newPuzzle(); }, [dictionary.size]);
+
+  useEffect(() => {
+    const newLocked = [...locked];
+    const newWords = [...lockedWords];
+    for (let i = 0; i < spokes.length; i++) {
+      if (!newLocked[i] && dictionary.has(spokes[i])) {
+        newLocked[i] = true;
+        newWords[i] = spokes[i];
+      }
+    }
+    setLocked(newLocked);
+    setLockedWords(newWords);
+  }, [spokes, dictionary]);
 
   return (
     <main className=" flex flex-col items-center">
       <h1 className="text-[2rem] mt-[-3rem] text-black font-bold">Pivot</h1>
     
+      <p>Par: {par} spins</p>
       <p>Spins: {spins}/{SPIN_LIMIT}</p>
       {spins >= SPIN_LIMIT && !solved && (
         <p className="text-red-700">Spin limit reached</p>
@@ -189,11 +257,7 @@ export default function PivotPage() {
               variant={"outline"}
               className="likebutton bg-white bg-opacity-50 border-none outline-blue"
               disabled={spins >= SPIN_LIMIT || solved}
-            onClick={() => {
-              if (spins >= SPIN_LIMIT || solved) return;
-              setOffset1((offset1 + 1) % RING_LENGTHS[0]);
-              setSpins(spins + 1);
-            }}
+            onClick={() => attemptRotate(0, 1)}
           >
             Crust ↻
           </Button>
@@ -201,11 +265,7 @@ export default function PivotPage() {
           variant={"outline"}
           className="likebutton bg-white bg-opacity-50 border-none outline-blue"
             disabled={spins >= SPIN_LIMIT || solved}
-            onClick={() => {
-              if (spins >= SPIN_LIMIT || solved) return;
-              setOffset1((offset1 - 1 + RING_LENGTHS[0]) % RING_LENGTHS[0]);
-              setSpins(spins + 1);
-            }}
+            onClick={() => attemptRotate(0, -1)}
           >
             Crust ↺
           </Button>
@@ -216,11 +276,7 @@ export default function PivotPage() {
               variant={"outline"}
               className="likebutton bg-white bg-opacity-50 border-none outline-blue"
               disabled={spins >= SPIN_LIMIT || solved}
-            onClick={() => {
-              if (spins >= SPIN_LIMIT || solved) return;
-              setOffset2((offset2 + 1) % RING_LENGTHS[1]);
-              setSpins(spins + 1);
-            }}
+            onClick={() => attemptRotate(1, 1)}
           >
             Outer Core ↻
           </Button>
@@ -228,11 +284,7 @@ export default function PivotPage() {
               variant={"outline"}
               className="likebutton bg-white bg-opacity-50 border-none outline-blue"
               disabled={spins >= SPIN_LIMIT || solved}
-            onClick={() => {
-              if (spins >= SPIN_LIMIT || solved) return;
-              setOffset2((offset2 - 1 + RING_LENGTHS[1]) % RING_LENGTHS[1]);
-              setSpins(spins + 1);
-            }}
+            onClick={() => attemptRotate(1, -1)}
           >
             Outer Core ↺
           </Button>
@@ -243,11 +295,7 @@ export default function PivotPage() {
               variant={"outline"}
               className="likebutton bg-white bg-opacity-50 border-none outline-blue"
               disabled={spins >= SPIN_LIMIT || solved}
-            onClick={() => {
-              if (spins >= SPIN_LIMIT || solved) return;
-              setOffset3((offset3 + 1) % RING_LENGTHS[2]);
-              setSpins(spins + 1);
-            }}
+            onClick={() => attemptRotate(2, 1)}
           >
             Inner Core ↻
           </Button>
@@ -255,11 +303,7 @@ export default function PivotPage() {
               variant={"outline"}
               className="likebutton bg-white bg-opacity-50 border-none outline-blue"
               disabled={spins >= SPIN_LIMIT || solved}
-            onClick={() => {
-              if (spins >= SPIN_LIMIT || solved) return;
-              setOffset3((offset3 - 1 + RING_LENGTHS[2]) % RING_LENGTHS[2]);
-              setSpins(spins + 1);
-            }}
+            onClick={() => attemptRotate(2, -1)}
           >
             Inner Core ↺
           </Button>
@@ -270,11 +314,7 @@ export default function PivotPage() {
               variant={"outline"}
               className="likebutton bg-white bg-opacity-50 border-none outline-blue"
               disabled={spins >= SPIN_LIMIT || solved}
-            onClick={() => {
-              if (spins >= SPIN_LIMIT || solved) return;
-              setOffset4((offset4 + 1) % RING_LENGTHS[3]);
-              setSpins(spins + 1);
-            }}
+            onClick={() => attemptRotate(3, 1)}
           >
             Core ↻
           </Button>
@@ -282,11 +322,7 @@ export default function PivotPage() {
               variant={"outline"}
               className="likebutton bg-white bg-opacity-50 border-none outline-blue"
               disabled={spins >= SPIN_LIMIT || solved}
-            onClick={() => {
-              if (spins >= SPIN_LIMIT || solved) return;
-              setOffset4((offset4 - 1 + RING_LENGTHS[3]) % RING_LENGTHS[3]);
-              setSpins(spins + 1);
-            }}
+            onClick={() => attemptRotate(3, -1)}
           >
             Core ↺
           </Button>
@@ -295,7 +331,7 @@ export default function PivotPage() {
         </div>
       </div>
      
-      <ul className="py-8 grid grid-cols-4 grid-rows-2 gap-x-4 gap-y-2 mt-2 text-[1rem]">
+      <ul className="py-8 grid grid-cols-3 grid-rows-3 gap-x-4 gap-y-2 mt-2 text-[1rem]">
         
         {spokes.map((w, i) => (
             
