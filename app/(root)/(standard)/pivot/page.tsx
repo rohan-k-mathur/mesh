@@ -6,7 +6,7 @@ import { loadWords4 } from "./words4";
 import { Button } from "@/components/ui/button";
 
 // Dictionary of solution words is set when a puzzle loads
-const COLS = RING_LENGTHS[3];
+const COLS = RING_LENGTHS[0]; 
 const RADII = [140, 108, 78, 52] as const;
 type OffsetTuple = [number, number, number, number];
 
@@ -115,8 +115,8 @@ export default function PivotPage() {
   const [r4, setR4] = useState<string[]>(Array(RING_LENGTHS[3]).fill("?"));
   const [dictionary, setDictionary] = useState<Set<string>>(new Set());
   const [targetWords, setTargetWords] = useState<string[]>([]);
-  const [locked, setLocked] = useState<boolean[]>(Array(COLS).fill(false));
-  const [lockedWords, setLockedWords] = useState<string[]>(Array(COLS).fill(""));
+  const [locked, setLocked]       = useState<boolean[]>(Array(COLS).fill(false));
+  const [lockedWords, setLockedWords]  = useState<string[]>(Array(COLS).fill(""));
   const [par, setPar] = useState(0);
   const [solutionSet, setSolutionSet] = useState<Set<string>>(new Set());
 
@@ -221,9 +221,8 @@ export default function PivotPage() {
   };
 
   const spokes = useMemo(
-      () => computeSpokes(r1, r2, r3, r4, offsets).slice(0, COLS),
-      [r1, r2, r3, r4, offsets] );
-
+      () => computeSpokes(r1,r2,r3,r4,offsets),
+      [r1,r2,r3,r4,offsets]);
   const valid = useMemo(
     () => spokes.map(w => solutionSet.has(w)),
       [spokes, solutionSet]
@@ -399,7 +398,7 @@ export default function PivotPage() {
         </div>
       </div>
      
-<ul className="py-8 grid grid-cols-3 grid-rows-2 gap-4 text-[1rem]">
+<ul className="py-8 grid grid-cols-3 grid-rows-3 gap-4 text-[1rem]">
         
         {spokes.map((w, i) => (
             
