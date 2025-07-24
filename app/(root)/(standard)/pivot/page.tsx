@@ -6,7 +6,8 @@ import { loadWords4 } from "./words4";
 import { Button } from "@/components/ui/button";
 
 // Dictionary of solution words is set when a puzzle loads
-const DISPLAY_COLS = 7;
+const COLS = RING_LENGTHS[0];
+type OffsetTuple = [number, number, number, number];
 
 function rotateSteps(arr: string[], steps: number) {
   const len = arr.length;
@@ -99,8 +100,8 @@ export default function PivotPage() {
   const [r4, setR4] = useState<string[]>(Array(RING_LENGTHS[3]).fill("?"));
   const [dictionary, setDictionary] = useState<Set<string>>(new Set());
   const [targetWords, setTargetWords] = useState<string[]>([]);
-  const [locked, setLocked] = useState<boolean[]>(Array(DISPLAY_COLS).fill(false));
-  const [lockedWords, setLockedWords] = useState<string[]>(Array(DISPLAY_COLS).fill(""));
+  const [locked, setLocked] = useState<boolean[]>(Array(COLS).fill(false));
+  const [lockedWords, setLockedWords] = useState<string[]>(Array(COLS).fill(""));
   const [par, setPar] = useState(0);
 
   useEffect(() => {
@@ -149,8 +150,7 @@ export default function PivotPage() {
   const [offset3, setOffset3] = useState(0);
   const [offset4, setOffset4] = useState(0);
   const [spins, setSpins] = useState(0);
-  const MIN_SPINS = 6;
-  const SPIN_LIMIT = par ? par * 4 : MIN_SPINS * 4;
+  const SPIN_LIMIT = par * 4;
   const [speed, setSpeed] = useState(800);
 
 
@@ -161,14 +161,28 @@ export default function PivotPage() {
 
   const attemptRotate = (ring: number, dir: number) => {
     if (spins >= SPIN_LIMIT || solved) return;
-    setSpeed(Math.abs(dir) * 50);
     const next = [...offsets];
     next[ring] = (next[ring] + dir + RING_LENGTHS[ring]) % RING_LENGTHS[ring];
-    const newSpokes = computeSpokes(r1, r2, r3, r4, next).slice(0, DISPLAY_COLS);
+    const newSpokes = computeSpokes(r1, r2, r3, r4, next);
     for (let i = 0; i < locked.length; i++) {
       if (locked[i] && newSpokes[i] !== lockedWords[i]) {
         return;
       }
+    }
+    setSpeed(Math.abs(dir) * 50);
+    const newLocked = [...locked];
+    const newWords = [...lockedWords];
+    let changed = false;
+    for (let i = 0; i < newSpokes.length; i++) {
+      if (!newLocked[i] && dictionary.has(newSpokes[i])) {
+        newLocked[i] = true;
+        newWords[i] = newSpokes[i];
+        changed = true;
+      }
+    }
+    if (changed) {
+      setLocked(newLocked);
+      setLockedWords(newWords);
     }
     switch (ring) {
       case 0:
@@ -188,14 +202,14 @@ export default function PivotPage() {
   };
 
   const spokes = useMemo(
-    () => computeSpokes(r1, r2, r3, r4, offsets).slice(0, DISPLAY_COLS),
+    () => computeSpokes(r1, r2, r3, r4, offsets),
     [r1, r2, r3, r4, offsets]
   );
   const valid = spokes.map((w) => dictionary.has(w));
   const solved = locked.every(Boolean);
 
   const [solutionOffsets, setSolutionOffsets] =
-    useState<[number, number, number, number]>([0, 0, 0, 0]);
+    useState<OffsetTuple>([0, 0, 0, 0] as OffsetTuple);
 
   const newPuzzle = async () => {
     const { rings: [R1, R2, R3, R4], solutionOffsets, words, par, puzzleId } =
@@ -204,31 +218,14 @@ export default function PivotPage() {
     setSolutionOffsets(solutionOffsets);
     setTargetWords(words);
     setPar(par);
-    setLocked(Array(DISPLAY_COLS).fill(false));
-    setLockedWords(Array(DISPLAY_COLS).fill(""));
+    setLocked(Array(COLS).fill(false));
+    setLockedWords(Array(COLS).fill(""));
     // reset offsets and spin count
     setOffset1(0); setOffset2(0); setOffset3(0); setOffset4(0);
     setSpins(0);
   };
 
   useEffect(() => { if (dictionary.size) newPuzzle(); }, [dictionary.size]);
-
-  useEffect(() => {
-    const newLocked = [...locked];
-    const newWords = [...lockedWords];
-    let changed = false;
-    for (let i = 0; i < spokes.length; i++) {
-      if (!newLocked[i] && targetWords.includes(spokes[i]) && !newWords.includes(spokes[i])) {
-        newLocked[i] = true;
-        newWords[i] = spokes[i];
-        changed = true;
-      }
-    }
-    if (changed) {
-      setLocked(newLocked);
-      setLockedWords(newWords);
-    }
-  }, [spokes, targetWords, locked, lockedWords]);
 
   return (
     <main className=" flex flex-col items-center">
