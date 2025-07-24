@@ -1,6 +1,6 @@
 import Modal from "@/components/modals/Modal";
 import RealtimeFeed from "@/components/shared/RealtimeFeed";
-import { fetchRealtimePosts } from "@/lib/actions/realtimepost.actions";
+import { fetchFeedPosts } from "@/lib/actions/feed.actions";
 import { getUserFromCookies } from "@/lib/serverutils";
 import { redirect } from "next/navigation";
 
@@ -13,56 +13,21 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const result = await fetchRealtimePosts({
-    realtimeRoomId: "global",
-    postTypes: [
-      "TEXT",
-      "VIDEO",
-      "IMAGE",
-      "IMAGE_COMPUTE",
-      "GALLERY",
-      "DRAW",
-      "LIVECHAT",
-      "MUSIC",
-      "ENTROPY",
-      "PORTFOLIO",
-
-      "PLUGIN",
-      "PRODUCT_REVIEW",
-      "ROOM_CANVAS",
-
-
-    ],
-  });
+  const posts = await fetchFeedPosts();
   const user = await getUserFromCookies();
   if (!user) redirect("/login");
 
   return (
     <div>
       <Modal />
-      {result.posts.length === 0 ? (
+      {posts.length === 0 ? (
         <p className="no-result">Nothing found</p>
       ) : (
         <RealtimeFeed
-          initialPosts={result.posts}
-          initialIsNext={result.isNext}
+          initialPosts={posts}
+          initialIsNext={false}
           roomId="global"
-          postTypes={[
-            "TEXT",
-            "VIDEO",
-            "IMAGE",
-            "IMAGE_COMPUTE",
-            "GALLERY",
-            "DRAW",
-            "LIVECHAT",
-            "MUSIC",
-            "ENTROPY",
-            "PORTFOLIO",
-            "PLUGIN",
-            "PRODUCT_REVIEW",
-            "PREDICTION",
-            "ROOM_CANVAS",
-          ]}
+          postTypes={[]}
           currentUserId={user.userId}
         />
       )}
