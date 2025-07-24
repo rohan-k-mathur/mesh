@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
-import generatePuzzle, { RING_LENGTHS } from "./pivotGenerator";
+import { useEffect, useState, useMemo, useCallback } from "react";
+import generatePuzzle from "./pivotGenerator";
+import { PRESETS, RingPreset } from "@/lib/RingPreset";
 import { loadWords4 } from "./words4";
 import { Button } from "@/components/ui/button";
 
 // Dictionary of solution words is set when a puzzle loads
-const COLS = RING_LENGTHS[0]; 
-const RADII = [140, 108, 78, 52] as const;
 type OffsetTuple = [number, number, number, number];
 
 function rotateSteps(arr: string[], steps: number) {
@@ -17,10 +16,15 @@ function rotateSteps(arr: string[], steps: number) {
   return [...arr.slice(k), ...arr.slice(0, k)];
 }
 
-function spokePoints(idx: number, offsets: number[]) {
-  const outerStep = 360 / RING_LENGTHS[0];
-  return RADII.map((radius, ring) => {
-    const len = RING_LENGTHS[ring];
+function spokePoints(
+  idx: number,
+  offsets: number[],
+  rings: readonly number[],
+  radii: readonly number[]
+) {
+  const outerStep = 360 / rings[0];
+  return radii.map((radius, ring) => {
+    const len = rings[ring];
     const step = 360 / len;
 
     const globalDeg =
@@ -107,12 +111,21 @@ function Ring({
 }
 
 
-export default function PivotPage() {
+export default function PivotPage({
+  initialPreset = "STAIR_9876" as RingPreset,
+}: { initialPreset?: RingPreset }) {
 
-  const [r1, setR1] = useState<string[]>(Array(RING_LENGTHS[0]).fill("?"));
-  const [r2, setR2] = useState<string[]>(Array(RING_LENGTHS[1]).fill("?"));
-  const [r3, setR3] = useState<string[]>(Array(RING_LENGTHS[2]).fill("?"));
-  const [r4, setR4] = useState<string[]>(Array(RING_LENGTHS[3]).fill("?"));
+  const [preset, setPreset] = useState<RingPreset>(initialPreset);
+  const info = PRESETS[preset];
+  const rings = info.rings;
+  const RADII = info.radii;
+  const COLS = rings[0];
+  const [open, setOpen] = useState(false);
+
+  const [r1, setR1] = useState<string[]>(Array(rings[0]).fill("?"));
+  const [r2, setR2] = useState<string[]>(Array(rings[1]).fill("?"));
+  const [r3, setR3] = useState<string[]>(Array(rings[2]).fill("?"));
+  const [r4, setR4] = useState<string[]>(Array(rings[3]).fill("?"));
   const [dictionary, setDictionary] = useState<Set<string>>(new Set());
   const [targetWords, setTargetWords] = useState<string[]>([]);
   const [locked, setLocked]       = useState<boolean[]>(Array(COLS).fill(false));
@@ -124,6 +137,11 @@ export default function PivotPage() {
 
   useEffect(() => {
     loadWords4().then((list) => setDictionary(new Set(list)));
+  }, []);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("pivot:preset") as RingPreset | null;
+    if (saved && PRESETS[saved]) setPreset(saved);
   }, []);
 
 
@@ -180,7 +198,7 @@ export default function PivotPage() {
   const attemptRotate = (ring: number, dir: number) => {
     if (spins >= SPIN_LIMIT || solved) return;
     const next = [...offsets];
-    next[ring] = (next[ring] + dir + RING_LENGTHS[ring]) % RING_LENGTHS[ring];
+    next[ring] = (next[ring] + dir + rings[ring]) % rings[ring];
     const newSpokes = computeSpokes(r1, r2, r3, r4, next);
     // for (let i = 0; i < locked.length; i++) {
     //   if (locked[i] && newSpokes[i] !== lockedWords[i]) {
@@ -231,9 +249,9 @@ export default function PivotPage() {
   const [solutionOffsets, setSolutionOffsets] =
     useState<OffsetTuple>([0, 0, 0, 0] as OffsetTuple);
 
-  const newPuzzle = async () => {
+  const newPuzzle = useCallback(async (chosen: RingPreset = preset) => {
     const { rings: [R1, R2, R3, R4], solutionOffsets, words, par, puzzleId } =
-      await generatePuzzle();
+      await generatePuzzle(chosen);
     setR1(R1); setR2(R2); setR3(R3); setR4(R4);
     setSolutionOffsets(solutionOffsets);
     // setTargetWords(words);
@@ -248,9 +266,9 @@ export default function PivotPage() {
     // reset offsets and spin count
     setOffset1(0); setOffset2(0); setOffset3(0); setOffset4(0);
     setSpins(0);
-  };
+  }, [preset, COLS]);
 
-  useEffect(() => { if (dictionary.size) newPuzzle(); }, [dictionary.size]);
+  useEffect(() => { if (dictionary.size) newPuzzle(preset); }, [dictionary.size, newPuzzle, preset]);
 
   return (
     <main className=" flex flex-col items-center">
@@ -280,9 +298,28 @@ export default function PivotPage() {
   gives the biggest clues.
 </p>
       <div className="flex items-center gap-2">
-      
+        <Button onClick={() => setOpen(!open)}>⚙️ Board</Button>
+        {open && (
+          <div className="absolute top-12 right-4 bg-white shadow rounded p-3 space-y-1 text-sm">
+            {Object.entries(PRESETS).map(([key, val]) => (
+              <label key={key} className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="boardType"
+                  checked={preset === key}
+                  onChange={() => {
+                    setPreset(key as RingPreset);
+                    newPuzzle(key as RingPreset);
+                    localStorage.setItem("pivot:preset", key);
+                  }}
+                />
+                {val.name}
+              </label>
+            ))}
+          </div>
+        )}
       </div>
-      <Button className="absolute flex z-1000 -right-[-70%] top-8 justify-center items-center" onClick={newPuzzle}>
+      <Button className="absolute flex z-1000 -right-[-70%] top-8 justify-center items-center" onClick={() => newPuzzle()}>
         New Puzzle
       </Button>
     
@@ -302,11 +339,25 @@ export default function PivotPage() {
         <Ring letters={r3} radius={RADII[2]} offset={offset3} speed={speed} />
         <Ring letters={r4} radius={RADII[3]} offset={offset4} speed={speed} />
 
+        {preset === "GRID_12" &&
+          [...Array(12)].map((_, i) => (
+            <line
+              key={i}
+              x1={0}
+              y1={-RADII[0]}
+              x2={0}
+              y2={-RADII[3]}
+              stroke="#e2e8f0"
+              strokeWidth=".5"
+              transform={`rotate(${i * 30})`}
+            />
+          ))}
+
         {focusIdx !== null && (
    <polyline
      pointerEvents="none"
      strokeLinecap="round"
-     points={spokePoints(focusIdx!, offsets)
+     points={spokePoints(focusIdx!, offsets, rings, RADII)
                .map(([x,y]) => `${x},${y}`)
                .join(" ")}
      fill="none"

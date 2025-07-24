@@ -117,6 +117,13 @@ See services/embedding/README.md for setup.
 taste. Authentication via Supabase session is required. Results are cached in
 Redis for `CANDIDATE_CACHE_TTL` seconds.
 
+### Board presets
+| Key | Ring counts | Use‑case |
+|-----|-------------|----------|
+| 12‑12‑12‑12 | perfect grid | teaching, speed‑runs |
+| 9‑8‑7‑6 | asymmetric | flagship puzzle |
+| 10‑10‑5‑5 | micro | mobile quick‑play |
+
 ## Roadmap Highlights
 
 The documents in this repo outline the path toward a public launch. Key themes include:
