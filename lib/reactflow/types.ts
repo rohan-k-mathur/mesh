@@ -13,6 +13,7 @@ import CollageCreationModal from "@/components/modals/CollageCreationModal";
 import GalleryNodeModal from "@/components/modals/GalleryNodeModal";
 import PortfolioNodeModal from "@/components/modals/PortfolioNodeModal";
 import ProductReviewNodeModal from "@/components/modals/ProductReviewNodeModal";
+import PredictionMarketModal from "@/components/modals/PredictionMarketModal";
 import ShareRoomModal from "@/components/modals/ShareRoomModal";
 import MusicNodeModal from "@/components/modals/MusicNodeModal";
 import { PluginDescriptor } from "../pluginLoader";
@@ -252,6 +253,7 @@ export const NodeTypeMap = {
   LLM_INSTRUCTION: {} as LLMInstructionNode,
   PRODUCT_REVIEW: {} as ProductReviewNodeData,
   ROOM_CANVAS: {} as RoomCanvasNodeData,
+  PREDICTION: {} as TextNode,
   PLUGIN: {} as PluginDescriptor,
 };
 
@@ -270,6 +272,7 @@ export const NodeTypeToModalMap = {
   GALLERY: GalleryNodeModal,
   PORTFOLIO: PortfolioNodeModal,
   PRODUCT_REVIEW: ProductReviewNodeModal,
+  PREDICTION: PredictionMarketModal,
   PORTAL: ShareRoomModal,
   LIVECHAT: ShareRoomModal,
   ENTROPY: ShareRoomModal,
@@ -296,6 +299,7 @@ export type AppNode =
   | PortfolioNodeData
   | LLMInstructionNode
   | ProductReviewNodeData
+  | TextNode /* Prediction uses TextNode shape */
   | RoomCanvasNodeData
   | PluginDescriptor;
 
@@ -324,6 +328,7 @@ export const DEFAULT_NODE_VALUES: Record<AppNodeType, string> = {
   ["PORTFOLIO"]: "",
   ["LLM_INSTRUCTION"]: "",
   ["PRODUCT_REVIEW"]: "",
+  ["PREDICTION"]: "",
   ["ROOM_CANVAS"]: "",
   ["PLUGIN"]: "",
 };

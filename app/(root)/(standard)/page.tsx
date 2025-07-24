@@ -60,6 +60,7 @@ export default async function Home() {
             "PORTFOLIO",
             "PLUGIN",
             "PRODUCT_REVIEW",
+            "PREDICTION",
             "ROOM_CANVAS",
           ]}
           currentUserId={user.userId}

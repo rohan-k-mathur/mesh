@@ -27,6 +27,7 @@ import ProductReviewNodeModal from "../modals/ProductReviewNodeModal";
 import MusicNodeModal from "../modals/MusicNodeModal";
 import SplineViewerNodeModal from "../modals/SplineViewerNodeModal";
 import RoomCanvasModal from "../modals/RoomCanvasModal";
+import PredictionMarketModal from "../modals/PredictionMarketModal";
 import { exportRoomCanvas } from "@/lib/actions/realtimeroom.actions";
 import {
   uploadFileToSupabase,
@@ -68,6 +69,7 @@ const nodeOptions: { label: string; nodeType: string }[] = [
   { label: "PDF", nodeType: "PDF_VIEWER" },
   { label: "SPLINE", nodeType: "SPLINE_VIEWER" },
   { label: "PRODUCT_REVIEW", nodeType: "PRODUCT_REVIEW" },
+  { label: "PREDICTION", nodeType: "PREDICTION" },
   { label: "ROOM_CANVAS", nodeType: "ROOM_CANVAS" },
 ];
 
@@ -448,6 +450,24 @@ const CreateFeedPost = ({ roomId = "global" }: Props) => {
                 type: "PRODUCT_REVIEW",
                 realtimeRoomId: roomId,
                 ...(urls.length > 0 && { imageUrl: urls[0] }),
+              });
+              reset();
+              router.refresh();
+            }}
+          />
+        );
+
+      case "PREDICTION":
+        return (
+          <PredictionMarketModal
+            onSubmit={async (vals) => {
+              await fetch("/api/market", {
+                method: "POST",
+                body: JSON.stringify({
+                  question: vals.question,
+                  closesAt: vals.closesAt,
+                  liquidity: vals.liquidity,
+                }),
               });
               reset();
               router.refresh();
