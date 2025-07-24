@@ -49,6 +49,9 @@ model User {
   attributeEdits           UserAttributeEdit[]
   userAttributes           UserAttributes?
   userEmbedding            UserEmbedding?
+  createdPredictionMarkets PredictionMarket[] @relation("CreatedPredictionMarkets")
+  oraclePredictionMarkets  PredictionMarket[] @relation("OraclePredictionMarkets")
+  trades                   Trade[]             @relation("UserTrades")
   realtimerooms            UserRealtimeRoom[]
   workflows                Workflow[]
 
@@ -610,8 +613,8 @@ model PredictionMarket {
 
   trades     Trade[]
   post       RealtimePost @relation(fields: [postId], references: [id])
-  creator    User        @relation(fields: [creatorId], references: [id])
-  oracle     User?       @relation(fields: [oracleId], references: [id])
+  creator    User        @relation("CreatedPredictionMarkets", fields: [creatorId], references: [id])
+  oracle     User?       @relation("OraclePredictionMarkets", fields: [oracleId], references: [id])
 
   @@map("prediction_markets")
 }
@@ -627,7 +630,7 @@ model Trade {
   createdAt DateTime @default(now()) @db.Timestamptz(6)
 
   market PredictionMarket @relation(fields: [marketId], references: [id])
-  user   User             @relation(fields: [userId], references: [id])
+  user   User             @relation("UserTrades", fields: [userId], references: [id])
 
   @@index([marketId])
   @@index([userId])
