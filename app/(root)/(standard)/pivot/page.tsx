@@ -18,13 +18,14 @@ function rotateSteps(arr: string[], steps: number) {
 }
 
 function spokePoints(idx: number, offsets: number[]) {
+  const outerStep = 360 / RING_LENGTHS[0];
   return RADII.map((radius, ring) => {
     const len = RING_LENGTHS[ring];
     const step = 360 / len;
 
     const globalDeg =
       idx * step -
-      offsets[0] * step +
+      offsets[0] * outerStep +
       offsets[ring] * step;
 
     const rad = (globalDeg * Math.PI) / 180;
@@ -32,23 +33,22 @@ function spokePoints(idx: number, offsets: number[]) {
   });
 }
 
-function computeSpokes(r1,r2,r3,r4,[o1,o2,o3,o4]:number[])
-{
-    const rot1 = rotateSteps(r1,o1);
-    const rot2 = rotateSteps(r2,o2);
-    const rot3 = rotateSteps(r3,o3);
-    const rot4 = rotateSteps(r4,o4);
-  
-    const idx2 = (i:number)=> (i - o1 + o2 + r2.length) % r2.length;
-    const idx3 = (i:number)=> (i - o1 + o3 + r3.length) % r3.length;
-    const idx4 = (i:number)=> (i - o1 + o4 + r4.length) % r4.length;
-  
-    return rot1.map((_,i)=>            
-      rot1[i] +
-      rot2[idx2(i)] +
-      rot3[idx3(i)] +
-      rot4[idx4(i)] );
-  }
+function computeSpokes(r1: string[], r2: string[], r3: string[], r4: string[],
+  [o1, o2, o3, o4]: number[]) {
+  const rot1 = rotateSteps(r1, o1); // outer ring truly rotates
+
+  const len2 = r2.length;
+  const len3 = r3.length;
+  const len4 = r4.length;
+
+  const idx2 = (i: number) => (i - o1 + o2 + len2) % len2;
+  const idx3 = (i: number) => (i - o1 + o3 + len3) % len3;
+  const idx4 = (i: number) => (i - o1 + o4 + len4) % len4;
+
+  return rot1.map((_, i) =>
+    rot1[i] + r2[idx2(i)] + r3[idx3(i)] + r4[idx4(i)]
+  );
+}
 
 function Ring({
   letters,
@@ -73,6 +73,7 @@ function Ring({
           transformBox: "fill-box",
           transform: "rotate(var(--angle))",
           transition: `transform ${speed}ms`,
+          willChange: "transform",
         } as React.CSSProperties
       }
       className="transition-transform"
@@ -88,7 +89,7 @@ function Ring({
             key={i}
             style={{ transform: `translate(${x}px, ${y}px) rotate(calc(-1 * var(--angle)))` }}
            >
-                    <circle cx={0} cy={0} r={12} fill="#E2E8F0" stroke="blue" strokeWidth={.5}/>
+                    <circle cx={0} cy={0} r={10} fill="#fff" stroke="#64748b" strokeWidth={.6} filter="url(#dshadow)" />
            <text
              x={0}
              y={0}
@@ -168,7 +169,7 @@ export default function PivotPage() {
   const [offset4, setOffset4] = useState(0);
   const [spins, setSpins] = useState(0);
   const SPIN_LIMIT = par * 4;
-  const [speed, setSpeed] = useState(800);
+  const [speed, setSpeed] = useState(350);
 
 
   const offsets = useMemo(
@@ -200,6 +201,7 @@ export default function PivotPage() {
     if (changed) {
       setLocked(newLocked);
       setLockedWords(newWords);
+      if (focusIdx !== null && newLocked[focusIdx]) setFocusIdx(null);
     }
     switch (ring) {
       case 0:
@@ -286,6 +288,11 @@ export default function PivotPage() {
       </Button>
     
       <svg width={430} height={430} viewBox="-160 -160 320 320" className="mx-auto">
+        <defs>
+          <filter id="dshadow" x="-50%" y="-50%" width="200%" height="200%">
+            <feDropShadow dx="0" dy="1" stdDeviation="1" floodOpacity=".35" />
+          </filter>
+        </defs>
 
         <circle r={RADII[0]} className="fill-none stroke-slate-200 stroke-2" />
         <circle r={RADII[1]} className="fill-none stroke-slate-200 stroke-2" />
@@ -304,10 +311,9 @@ export default function PivotPage() {
                .map(([x,y]) => `${x},${y}`)
                .join(" ")}
      fill="none"
-     stroke="#16a34a"
-
-     strokeWidth="1.2"
-     strokeDasharray="4 4"
+     stroke="#059669"
+     strokeWidth={1.5}
+     strokeDasharray="4 3"
    />
  )}
       </svg>
