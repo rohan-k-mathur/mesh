@@ -1,7 +1,6 @@
 // lib/pivotGenerator.ts
 import { loadWords4 } from "./words4";
-
-const RING_LENGTHS = [9, 8, 7, 6] as const;
+import { PRESETS, RingPreset } from "@/lib/RingPreset";
 const PAR_MIN = 10;
 const PAR_MAX = 25;
 
@@ -15,12 +14,15 @@ export interface Puzzle {
   puzzleId: string;
 }
 
-async function generatePuzzle(): Promise<Puzzle> {
+async function generatePuzzle(
+  preset: RingPreset = "STAIR_9876"
+): Promise<Puzzle> {
+  const { rings: RING_LENGTHS } = PRESETS[preset];
   const dictionary = new Set(await loadWords4());
   while (true) {
     const words = await pickWords(RING_LENGTHS[0], dictionary);
-    const solved = splitIntoRings(words);
-    const { rings, solutionOffsets } = scrambleRings(solved);
+    const solved = splitIntoRings(words, RING_LENGTHS);
+    const { rings, solutionOffsets } = scrambleRings(solved, RING_LENGTHS);
 
     const { unique, par } = bfsSolve(rings, dictionary);
     if (unique && par >= PAR_MIN && par <= PAR_MAX) {
@@ -45,7 +47,7 @@ async function pickWords(n: number, dict: Set<string>): Promise<string[]> {
   return Array.from(selected);
 }
 
-function splitIntoRings(words: string[]): Rings {
+function splitIntoRings(words: string[], RING_LENGTHS: readonly number[]): Rings {
   const r1: string[] = [];
   const r2: string[] = [];
   const r3: string[] = [];
@@ -59,7 +61,7 @@ function splitIntoRings(words: string[]): Rings {
   }
   return [r1, r2, r3, r4];
 }
-function scrambleRings([r1, r2, r3, r4]: Rings) {
+function scrambleRings([r1, r2, r3, r4]: Rings, RING_LENGTHS: readonly number[]) {
   const rand = (len: number) => Math.floor(Math.random() * len);
 
   const offset1 = rand(RING_LENGTHS[0]);
@@ -137,4 +139,3 @@ function bfsSolve(rings: Rings, dict: Set<string>) {
 }
 
 export default generatePuzzle;
-export { RING_LENGTHS };
