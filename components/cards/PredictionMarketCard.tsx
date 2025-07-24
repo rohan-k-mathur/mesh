@@ -1,13 +1,23 @@
 "use client";
 import { useState } from "react";
 import { priceYes } from "@/lib/prediction/lmsr";
+import TradePredictionModal from "../modals/TradePredictionModal";
 
 interface Props {
   post: any;
 }
 
 export default function PredictionMarketCard({ post }: Props) {
-  const [price, setPrice] = useState(post.predictionMarket ? priceYes(post.predictionMarket.yesPool, post.predictionMarket.noPool, post.predictionMarket.b) : 0.5);
+  const [price, setPrice] = useState(
+    post.predictionMarket
+      ? priceYes(
+          post.predictionMarket.yesPool,
+          post.predictionMarket.noPool,
+          post.predictionMarket.b
+        )
+      : 0.5
+  );
+  const [showTrade, setShowTrade] = useState(false);
 
   return (
     <div className="border rounded-lg p-4 space-y-3">
@@ -22,9 +32,17 @@ export default function PredictionMarketCard({ post }: Props) {
       <button
         className="btn-primary w-full"
         disabled={post.predictionMarket?.state !== "OPEN"}
+        onClick={() => setShowTrade(true)}
       >
         {post.predictionMarket?.state === "OPEN" ? "Trade" : "Closed"}
       </button>
+      {showTrade && post.predictionMarket && (
+        <TradePredictionModal
+          market={post.predictionMarket}
+          onClose={() => setShowTrade(false)}
+          onTraded={(p) => setPrice(p)}
+        />
+      )}
       {post.predictionMarket?.state === "RESOLVED" && (
         <div className="text-sm font-medium">Outcome: {post.predictionMarket.outcome}</div>
       )}

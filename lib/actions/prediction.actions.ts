@@ -116,3 +116,20 @@ export async function tradeMarket({ marketId, side, credits }:{ marketId:string;
   });
   return { shares, cost };
 }
+
+export async function resolveMarket({ marketId, outcome }:{ marketId:string; outcome:"YES"|"NO"; }) {
+  const user = await getUserFromCookies();
+  if (!user) throw new Error("Not authenticated");
+  const market = await prisma.predictionMarket.findUniqueOrThrow({ where:{ id: marketId } });
+  if (market.creatorId !== user.userId && market.oracleId !== user.userId) {
+    throw new Error("Not authorized");
+  }
+  if (market.state === "RESOLVED") {
+    throw new Error("Already resolved");
+  }
+  await prisma.predictionMarket.update({
+    where:{ id: marketId },
+    data:{ state:"RESOLVED", outcome, resolvesAt: new Date() }
+  });
+  return { ok:true };
+}
