@@ -164,6 +164,7 @@ model RealtimePost {
   pluginType         String?
   room_post_content  Json?
   productReview      ProductReview?
+  predictionMarket   PredictionMarket?
   outgoing_edges     RealtimeEdge[]     @relation("RealtimeEdgeToSourceRealtimePost")
   incoming_edges     RealtimeEdge[]     @relation("RealtimeEdgeToTargetRealtimePost")
   likes              RealtimeLike[]
@@ -593,6 +594,57 @@ model UserSimilarityKnn {
   @@map("user_similarity_knn")
 }
 
+model PredictionMarket {
+  id         String   @id @default(cuid())
+  postId     BigInt   @unique
+  question   String   @db.VarChar(140)
+  closesAt   DateTime
+  resolvesAt DateTime?
+  state      PredictionState @default(OPEN)
+  outcome    MarketOutcome?
+  b          Float
+  yesPool    Float     @default(0)
+  noPool     Float     @default(0)
+  creatorId  BigInt
+  oracleId   BigInt?
+
+  trades     Trade[]
+  post       RealtimePost @relation(fields: [postId], references: [id])
+  creator    User        @relation(fields: [creatorId], references: [id])
+  oracle     User?       @relation(fields: [oracleId], references: [id])
+
+  @@map("prediction_markets")
+}
+
+model Trade {
+  id        String   @id @default(cuid())
+  marketId  String
+  userId    BigInt
+  side      MarketOutcome
+  shares    Float
+  price     Float
+  cost      Int
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+
+  market PredictionMarket @relation(fields: [marketId], references: [id])
+  user   User             @relation(fields: [userId], references: [id])
+
+  @@index([marketId])
+  @@index([userId])
+  @@map("prediction_trades")
+}
+
+enum PredictionState {
+  OPEN
+  CLOSED
+  RESOLVED
+}
+
+enum MarketOutcome {
+  YES
+  NO
+}
+
 enum like_type {
   LIKE
   DISLIKE
@@ -615,6 +667,7 @@ enum realtime_post_type {
   CODE
   PORTFOLIO
   LLM_INSTRUCTION
+  PREDICTION
   PLUGIN
   PRODUCT_REVIEW
   ENTROPY

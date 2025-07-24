@@ -58,6 +58,7 @@ export default async function Page({ params }: { params: { id: string } }) {
             "PORTFOLIO",
           "PLUGIN",
           "PRODUCT_REVIEW",
+          "PREDICTION",
           "ROOM_CANVAS",
         ]}
         currentUserId={user?.userId}

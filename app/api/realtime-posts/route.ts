@@ -24,6 +24,7 @@ export async function GET(req: NextRequest) {
         "PORTFOLIO",
         "PLUGIN",
         "PRODUCT_REVIEW",
+        "PREDICTION",
       ];
 
   const data = await fetchRealtimePosts({

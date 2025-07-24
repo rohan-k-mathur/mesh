@@ -16,6 +16,7 @@ import GalleryCarousel from "./GalleryCarousel";
 import SoundCloudPlayer from "../players/SoundCloudPlayer";
 import Spline from "@splinetool/react-spline";
 import dynamic from "next/dynamic";
+import PredictionMarketCard from "./PredictionMarketCard";
 import { PortfolioPayload } from "@/lib/actions/realtimepost.actions";
 //import EmbeddedCanvas from "./EmbeddedCanvas";
 import type { Like, RealtimeLike } from "@prisma/client";
@@ -317,6 +318,9 @@ const PostCard = ({
                   )
                 );
               })()}
+            {type === "PREDICTION" && (
+              <PredictionMarketCard post={{ predictionMarket: JSON.parse(content || "{}") }} />
+            )}
             {type === "PLUGIN" && pluginType === "PDF_VIEWER" && pluginData && (
               <div className="mt-2 mb-2 flex img-feed-frame w-[100%] ml-[23%]  justify-center items-center">
                 <object
