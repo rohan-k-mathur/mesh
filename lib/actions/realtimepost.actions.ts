@@ -6,6 +6,7 @@ import { prisma } from "../prismaclient";
 import { revalidatePath } from "next/cache";
 import { getUserFromCookies } from "@/lib/serverutils";
 import { createProductReview } from "./productreview.actions";
+import { createPortfolioPage } from "./portfolio.actions";
 
 export interface PortfolioPayload {
   pageUrl: string;   // “/portfolio/abc123”
@@ -82,10 +83,7 @@ export async function createRealtimePost({
         ...(text && { content: text }),
         ...(imageUrl && { image_url: imageUrl }),
         ...(videoUrl && { video_url: videoUrl }),
-        ...(portfolio && {
-          content: JSON.stringify(portfolio),
-          ...(portfolio.snapshot && { image_url: portfolio.snapshot }),
-        }),
+        ...[portfolio && { pageUrl: portfolio }],
         author_id: user.userId!,
         x_coordinate: new Prisma.Decimal(coordinates.x),
         y_coordinate: new Prisma.Decimal(coordinates.y),
@@ -103,6 +101,12 @@ export async function createRealtimePost({
         ...(collageGap !== undefined && { collageGap }),
       },
     });
+    if (type==="PORTFOLIO") {
+      if (!portfolio?.pageUrl)
+        throw new Error("Portfolio post requires { pageUrl }");
+       createdRealtimePost.portfolio.pageUrl = JSON.stringify(portfolio);
+      if (portfolio.snapshot) data.image_url = portfolio.snapshot; // thumbnail
+    }
     
     if (type === "PRODUCT_REVIEW" && text) {
       try {
@@ -193,14 +197,10 @@ export async function updateRealtimePost({
     if (originalPost.locked && coordinates) {
       return;
     }
-  const updateData: Prisma.RealtimePostUpdateInput = {
+    const updateData: Prisma.RealtimePostUpdateInput = {
       ...(text && { content: text }),
       ...(imageUrl && { image_url: imageUrl }),
       ...(videoUrl && { video_url: videoUrl }),
-      ...(portfolio && {
-        content: JSON.stringify(portfolio),
-        ...(portfolio.snapshot && { image_url: portfolio.snapshot }),
-      }),
       ...(content && { content }),
       ...(collageLayoutStyle && { collageLayoutStyle }),
       ...(collageColumns !== undefined && { collageColumns }),

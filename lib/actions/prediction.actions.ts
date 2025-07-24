@@ -4,32 +4,52 @@ import { costToBuy } from "@/lib/prediction/lmsr";
 import { getUserFromCookies } from "@/lib/serverutils";
 import { Prisma } from "@prisma/client";
 import { serializeBigInt } from "@/lib/utils";
+import { NextResponse } from "next/server";
 
-export async function createMarket({ question, closesAt, liquidity }:{ question:string; closesAt:string; liquidity:number; }) {
+
+export interface CreateMarketArgs {
+  question: string;
+  closesAt: string;      // ISO datetime from the form
+  liquidity?: number;    // optional, default handled below
+}
+
+export interface CreateMarketResult {
+  postId: bigint;        // BigInt coming from PostgreSQL → JS bigint
+}
+
+
+export async function createMarket(
+  { question, closesAt, liquidity = 100 }: CreateMarketArgs
+): Promise<CreateMarketResult> {
   const user = await getUserFromCookies();
   if (!user) throw new Error("Not authenticated");
 
-  const post = await prisma.realtimePost.create({
-    data: {
-      author_id: user.userId!,
-      x_coordinate: new Prisma.Decimal(0),
-      y_coordinate: new Prisma.Decimal(0),
-      type: "PREDICTION",
-      realtime_room_id: "global",
-      locked: false,
-    },
-  });
 
-  const market = await prisma.predictionMarket.create({
-    data: {
-      postId: post.id,
-      question,
-      closesAt: new Date(closesAt),
-      b: liquidity,
-      creatorId: user.userId!,
-    },
-  });
+// 1. Create the shell realtime-post
+const post = await prisma.realtimePost.create({
+  data: {
+    author_id: user.userId!,
+    x_coordinate: new Prisma.Decimal(0),
+    y_coordinate: new Prisma.Decimal(0),
+    type: "PREDICTION",               // schema must include this enum value
+    realtime_room_id: "global",
+    locked: false,
+  },
+});
 
+// 2. Create the market proper
+const market = await prisma.predictionMarket.create({
+  data: {
+    postId: post.id,
+    question,
+    closesAt: new Date(closesAt),
+    b: liquidity,
+    creatorId: user.userId!,
+  },
+});
+
+
+  // 3. Attach the market to the post & store serialised content
   await prisma.realtimePost.update({
     where: { id: post.id },
     data: {
@@ -40,6 +60,44 @@ export async function createMarket({ question, closesAt, liquidity }:{ question:
 
   return { postId: post.id };
 }
+
+// export async function createMarket({ question, closesAt, liquidity }:{ question:string; closesAt:string; liquidity:number; }) {
+//   const user = await getUserFromCookies();
+//   if (!user) throw new Error("Not authenticated");
+
+//   const post = await prisma.realtimePost.create({
+//     data: {
+//       author_id: user.userId!,
+//       x_coordinate: new Prisma.Decimal(0),
+//       y_coordinate: new Prisma.Decimal(0),
+//       type: "PREDICTION",
+//       realtime_room_id: "global",
+//       locked: false,
+//     },
+//   });
+
+//   const market = await prisma.predictionMarket.create({
+//     data: {
+//       postId: post.id,
+//       question,
+//       closesAt: new Date(closesAt),
+//       b: liquidity,
+//       creatorId: user.userId!,
+//     },
+//   });
+
+//   await prisma.realtimePost.update({
+//     where: { id: post.id },
+//     data: {
+//       predictionMarket: { connect: { id: market.id } },
+//       content: JSON.stringify(serializeBigInt(market)),
+//     },
+//   });
+
+//   // return { postId: post.id };
+//   const { postId } = await createMarket(data); 
+//   return NextResponse.json({ postId: postId.toString() });
+// }
 
 export async function tradeMarket({ marketId, side, credits }:{ marketId:string; side:"YES"|"NO"; credits:number; }) {
   const user = await getUserFromCookies();

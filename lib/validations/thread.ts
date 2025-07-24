@@ -185,7 +185,7 @@ export const MusicPostValidation = z.object({
 export const PredictionPostValidation = z.object({
   question: z.string().min(1).max(140),
   closesAt: z.string(),
-  liquidity: z.number().min(50),
+  liquidity: z.coerce.number().min(50).max(1000),
 });
 
 export const RoomCanvasPostValidation = z.object({
