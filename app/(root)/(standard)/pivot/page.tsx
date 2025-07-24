@@ -6,7 +6,8 @@ import { loadWords4 } from "./words4";
 import { Button } from "@/components/ui/button";
 
 // Dictionary of solution words is set when a puzzle loads
-const COLS = RING_LENGTHS[3]; 
+const COLS = RING_LENGTHS[3];
+const RADII = [140, 108, 78, 52] as const;
 type OffsetTuple = [number, number, number, number];
 
 function rotateSteps(arr: string[], steps: number) {
@@ -16,27 +17,18 @@ function rotateSteps(arr: string[], steps: number) {
   return [...arr.slice(k), ...arr.slice(0, k)];
 }
 
-function spokePoints(
-  radii: number[],   // [140, 110, 80, 50]
-  offsets: number[], // current offsets   [o1,o2,o3,o4]
-  idx: number        // 0‑(COLS‑1)
-) {
-  return radii.map((radius,ring)=>{
-      const len  = RING_LENGTHS[ring];
-      const step = 360/len;
-    
-      let localIdx;
-      if (ring===0){                      // outer ring – trivial
-        localIdx = idx;
-      }else{                              // inner rings
-        const outerOffset = offsets[0];
-        const innerOffset = offsets[ring];
-        localIdx = (idx - outerOffset + innerOffset + len) % len;
-      }
-    
-      const ang = (localIdx*step + offsets[ring]*step) * Math.PI/180;
+function spokePoints(idx: number, offsets: number[]) {
+  return RADII.map((radius, ring) => {
+    const len = RING_LENGTHS[ring];
+    const step = 360 / len;
 
-    return [ radius * Math.sin(ang), -radius * Math.cos(ang) ]; // [x,y]
+    const globalDeg =
+      idx * step -
+      offsets[0] * step +
+      offsets[ring] * step;
+
+    const rad = (globalDeg * Math.PI) / 180;
+    return [radius * Math.sin(rad), -radius * Math.cos(rad)];
   });
 }
 
@@ -295,22 +287,22 @@ export default function PivotPage() {
     
       <svg width={430} height={430} viewBox="-160 -160 320 320" className="mx-auto">
 
-        <circle r={140} className="fill-none stroke-slate-200 stroke-2" />
-        <circle r={110} className="fill-none stroke-slate-200 stroke-2" />
-        <circle r={80} className="fill-none stroke-slate-200 stroke-2" />
-        <circle r={50} className="fill-none stroke-slate-200 stroke-2" />
-        <Ring letters={r1} radius={140} offset={offset1} speed={speed} />
-        <Ring letters={r2} radius={110} offset={offset2} speed={speed} />
-        <Ring letters={r3} radius={80} offset={offset3} speed={speed} />
-        <Ring letters={r4} radius={50} offset={offset4} speed={speed} />
+        <circle r={RADII[0]} className="fill-none stroke-slate-200 stroke-2" />
+        <circle r={RADII[1]} className="fill-none stroke-slate-200 stroke-2" />
+        <circle r={RADII[2]} className="fill-none stroke-slate-200 stroke-2" />
+        <circle r={RADII[3]} className="fill-none stroke-slate-200 stroke-2" />
+        <Ring letters={r1} radius={RADII[0]} offset={offset1} speed={speed} />
+        <Ring letters={r2} radius={RADII[1]} offset={offset2} speed={speed} />
+        <Ring letters={r3} radius={RADII[2]} offset={offset3} speed={speed} />
+        <Ring letters={r4} radius={RADII[3]} offset={offset4} speed={speed} />
 
         {focusIdx !== null && (
    <polyline
      pointerEvents="none"
      strokeLinecap="round"
-     points={spokePoints([140,110,80,50], offsets, focusIdx)
+     points={spokePoints(focusIdx!, offsets)
                .map(([x,y]) => `${x},${y}`)
-               .join(' ')}
+               .join(" ")}
      fill="none"
      stroke="#16a34a"
 
