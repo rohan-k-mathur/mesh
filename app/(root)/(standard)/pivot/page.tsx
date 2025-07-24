@@ -16,40 +16,81 @@ function rotateSteps(arr: string[], steps: number) {
   const k = ((steps % len) + len) % len; // normalize steps
   return [...arr.slice(k), ...arr.slice(0, k)];
 }
+/** index (0…len‑1) that `letterAt` ends up using */
+function idxAt(
+  ringLen : number,
+  outerLen: number,
+  iOuter  : number,
+  oOuter  : number,
+  oRing   : number
+){
+  const ang  = (iOuter - oOuter) * (360 / outerLen);
+  const raw  =  ang / (360 / ringLen);
+  return ((Math.round(raw - oRing) % ringLen) + ringLen) % ringLen;
+}
 
-function spokePoints(idx: number, offsets: number[]) {
-  const outerStep = 360 / RING_LENGTHS[0];
+function spokePoints(
+  iOuter : number,
+  offs   : number[]
+){
+  const outerLen = RING_LENGTHS[0];
   return RADII.map((radius, ring) => {
-    const len = RING_LENGTHS[ring];
-    const step = 360 / len;
-
-    const globalDeg =
-      idx * step -
-      offsets[0] * outerStep +
-      offsets[ring] * step;
-
-    const rad = (globalDeg * Math.PI) / 180;
-    return [radius * Math.sin(rad), -radius * Math.cos(rad)];
+    const len   = RING_LENGTHS[ring];
+    const idx   = idxAt(len, outerLen, iOuter, offs[0], offs[ring]);
+    const angle = (idx + offs[ring]) * (360 / len) * Math.PI / 180;
+    return [radius * Math.sin(angle), -radius * Math.cos(angle)];
   });
 }
+// function spokePoints(idx: number, offsets: number[]) {
+//   const outerStep = 360 / RING_LENGTHS[0];
+//   return RADII.map((radius, ring) => {
+//     const len = RING_LENGTHS[ring];
+//     const step = 360 / len;
 
-function computeSpokes(r1: string[], r2: string[], r3: string[], r4: string[],
-  [o1, o2, o3, o4]: number[]) {
-  const rot1 = rotateSteps(r1, o1); // outer ring truly rotates
+//     const globalDeg =
+//       idx * step -
+//       offsets[0] * outerStep +
+//       offsets[ring] * step;
 
-  const len2 = r2.length;
-  const len3 = r3.length;
-  const len4 = r4.length;
+//     const rad = (globalDeg * Math.PI) / 180;
+//     return [radius * Math.sin(rad), -radius * Math.cos(rad)];
+//   });
+// }
 
-  const idx2 = (i: number) => (i - o1 + o2 + len2) % len2;
-  const idx3 = (i: number) => (i - o1 + o3 + len3) % len3;
-  const idx4 = (i: number) => (i - o1 + o4 + len4) % len4;
+/**
+ * Letter that really sits on the same radial when the outer column is iOuter.
+ * Works for any ring length.
+ */
+function letterAt(
+  letters: string[],
+  ringLen : number,
+  outerLen: number,   // length of ring‑0
+  iOuter  : number,   // column being tested
+  oOuter  : number,   // offset of ring‑0
+  oRing   : number    // offset of this ring
+){
+  /* angle (°) of the spoke relative to this ring’s 0‑index */
+  const ang   = (iOuter - oOuter) * (360 / outerLen);
+  const raw   =  ang / (360 / ringLen);   // ideal fractional index
+  const index = Math.round(raw - oRing)   // apply this ring’s offset
+                % ringLen;
 
-  return rot1.map((_, i) =>
-    rot1[i] + r2[idx2(i)] + r3[idx3(i)] + r4[idx4(i)]
-  );
+  return letters[(index + ringLen) % ringLen];
 }
 
+function computeSpokes(
+  r1:string[], r2:string[], r3:string[], r4:string[],
+  [o1,o2,o3,o4]:number[]
+){
+  const len1 = r1.length, len2 = r2.length, len3 = r3.length, len4 = r4.length;
+
+  return [...Array(len1)].map((_, i) =>
+    letterAt(r1,len1,len1,i,o1,0  ) +   // 0 because ring‑0 already rotated
+    letterAt(r2,len2,len1,i,o1,o2) +
+    letterAt(r3,len3,len1,i,o1,o3) +
+    letterAt(r4,len4,len1,i,o1,o4)
+  );
+}
 function Ring({
   letters,
   radius,
