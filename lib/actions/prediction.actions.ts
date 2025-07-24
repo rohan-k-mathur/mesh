@@ -25,40 +25,35 @@ export async function createMarket(
   if (!user) throw new Error("Not authenticated");
 
 
-// 1. Create the shell realtime-post
-const post = await prisma.realtimePost.create({
-  data: {
-    author_id: user.userId!,
-    x_coordinate: new Prisma.Decimal(0),
-    y_coordinate: new Prisma.Decimal(0),
-    type: "PREDICTION",               // schema must include this enum value
-    realtime_room_id: "global",
-    locked: false,
-  },
-});
-
-// 2. Create the market proper
-const market = await prisma.predictionMarket.create({
-  data: {
-    postId: post.id,
-    question,
-    closesAt: new Date(closesAt),
-    b: liquidity,
-    creatorId: user.userId!,
-  },
-});
-
-
-  // 3. Attach the market to the post & store serialised content
-  await prisma.realtimePost.update({
-    where: { id: post.id },
+  // 1. Create the feed post shell
+  const feed = await prisma.feedPost.create({
     data: {
-      predictionMarket: { connect: { id: market.id } },
+      author_id: user.userId!,
+      type: "PREDICTION",
+      isPublic: true,
+    },
+  });
+
+  // 2. Create the market referencing that feed row
+  const market = await prisma.predictionMarket.create({
+    data: {
+      postId: feed.id,
+      question,
+      closesAt: new Date(closesAt),
+      b: liquidity,
+      creatorId: user.userId!,
+    },
+  });
+
+  // 3. Update feed content with serialised market
+  await prisma.feedPost.update({
+    where: { id: feed.id },
+    data: {
       content: JSON.stringify(serializeBigInt(market)),
     },
   });
 
-  return { postId: post.id };
+  return { postId: feed.id };
 }
 
 // export async function createMarket({ question, closesAt, liquidity }:{ question:string; closesAt:string; liquidity:number; }) {

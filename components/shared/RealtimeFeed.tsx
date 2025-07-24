@@ -9,8 +9,8 @@ import { useMemo } from "react";
 interface Props {
   initialPosts: any[];
   initialIsNext: boolean;
-  roomId: string;
-  postTypes: realtime_post_type[];
+  roomId?: string;
+  postTypes?: realtime_post_type[];
   currentUserId?: bigint;
 }
 
@@ -21,18 +21,23 @@ export default function RealtimeFeed({
   postTypes,
   currentUserId,
 }: Props) {
-  const fetchPage = useMemo(
-    () => async (page: number) => {
-      const params = new URLSearchParams({
-        roomId,
-        page: page.toString(),
-        types: postTypes.join(","),
-      });
-      const res = await fetch(`/api/realtime-posts?${params.toString()}`);
-      return res.json();
-    },
-    [roomId, postTypes]
-  );
+  const fetchPage = useMemo(() => {
+    if (roomId && postTypes && postTypes.length > 0) {
+      return async (page: number) => {
+        const params = new URLSearchParams({
+          roomId,
+          page: page.toString(),
+          types: postTypes.join(","),
+        });
+        const res = await fetch(`/api/realtime-posts?${params.toString()}`);
+        return res.json();
+      };
+    }
+    return async (_page: number) => {
+      const res = await fetch(`/api/feed`);
+      return { posts: await res.json(), isNext: false };
+    };
+  }, [roomId, postTypes]);
 
   const { posts, loaderRef, loading } = useInfiniteRealtimePosts(
     fetchPage,
@@ -47,9 +52,9 @@ export default function RealtimeFeed({
           key={realtimePost.id.toString()}
           currentUserId={currentUserId}
           id={realtimePost.id}
-          isRealtimePost
+          isRealtimePost={Boolean(roomId && postTypes && postTypes.length > 0)}
           likeCount={realtimePost.like_count}
-          commentCount={realtimePost.commentCount}
+          commentCount={realtimePost.commentCount ?? 0}
           content={realtimePost.content ? realtimePost.content : undefined}
           roomPostContent={(realtimePost as any).room_post_content}
           image_url={realtimePost.image_url ? realtimePost.image_url : undefined}

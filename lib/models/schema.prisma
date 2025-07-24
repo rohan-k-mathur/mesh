@@ -44,14 +44,15 @@ model User {
   realtimeedges            RealtimeEdge[]
   realtimeLikes            RealtimeLike[]
   realtimeposts            RealtimePost[]
+  feedPosts                FeedPost[]
   realtimeRoomInviteTokens RealtimeRoomInviteToken[]
   recommendationClicks     RecommendationClick[]
   attributeEdits           UserAttributeEdit[]
   userAttributes           UserAttributes?
   userEmbedding            UserEmbedding?
-  createdPredictionMarkets PredictionMarket[] @relation("CreatedPredictionMarkets")
-  oraclePredictionMarkets  PredictionMarket[] @relation("OraclePredictionMarkets")
-  trades                   Trade[]             @relation("UserTrades")
+  createdPredictionMarkets PredictionMarket[]        @relation("CreatedPredictionMarkets")
+  oraclePredictionMarkets  PredictionMarket[]        @relation("OraclePredictionMarkets")
+  trades                   Trade[]                   @relation("UserTrades")
   realtimerooms            UserRealtimeRoom[]
   workflows                Workflow[]
 
@@ -115,6 +116,34 @@ model Like {
   @@map("likes")
 }
 
+model FeedPost {
+  id         BigInt         @id @default(autoincrement())
+  created_at DateTime       @default(now()) @db.Timestamptz(6)
+  updated_at DateTime?      @default(now()) @updatedAt @db.Timestamptz(6)
+  author_id  BigInt
+  type       feed_post_type
+  content    String?
+  image_url  String?
+  video_url  String?
+  isPublic   Boolean        @default(true)
+  like_count Int            @default(0)
+
+  author           User              @relation(fields: [author_id], references: [id])
+  predictionMarket PredictionMarket? @relation("FeedPostPrediction")
+
+  @@index([author_id])
+  @@map("feed_posts")
+}
+
+enum feed_post_type {
+  TEXT
+  IMAGE
+  VIDEO
+  GALLERY
+  PREDICTION
+  PRODUCT_REVIEW
+}
+
 model RealtimeLike {
   id               BigInt       @id @default(autoincrement())
   created_at       DateTime     @default(now()) @db.Timestamptz(6)
@@ -167,7 +196,7 @@ model RealtimePost {
   pluginType         String?
   room_post_content  Json?
   productReview      ProductReview?
-  predictionMarket   PredictionMarket?
+  predictionMarket   PredictionMarket?  @relation(fields: [predictionMarketId], references: [id])
   outgoing_edges     RealtimeEdge[]     @relation("RealtimeEdgeToSourceRealtimePost")
   incoming_edges     RealtimeEdge[]     @relation("RealtimeEdgeToTargetRealtimePost")
   likes              RealtimeLike[]
@@ -175,6 +204,7 @@ model RealtimePost {
   realtimePost       RealtimePost?      @relation("RealtimePostChildren", fields: [parent_id], references: [id], onDelete: Restrict)
   children           RealtimePost[]     @relation("RealtimePostChildren")
   realtimeroom       RealtimeRoom       @relation(fields: [realtime_room_id], references: [id])
+  predictionMarketId String?
 
   @@map("realtime_posts")
 }
@@ -554,7 +584,7 @@ model PortfolioPage {
   slug       String   @unique
   html       String
   css        String
-  tsx        String?       // NEW nullable column
+  tsx        String? // NEW nullable column
   created_at DateTime @default(now()) @db.Timestamptz(6)
 
   @@map("portfolio_pages")
@@ -598,36 +628,37 @@ model UserSimilarityKnn {
 }
 
 model PredictionMarket {
-  id         String   @id @default(cuid())
-  postId     BigInt   @unique
-  question   String   @db.VarChar(140)
+  id         String          @id @default(cuid())
+  postId     BigInt          @unique
+  question   String          @db.VarChar(140)
   closesAt   DateTime
   resolvesAt DateTime?
   state      PredictionState @default(OPEN)
   outcome    MarketOutcome?
   b          Float
-  yesPool    Float     @default(0)
-  noPool     Float     @default(0)
+  yesPool    Float           @default(0)
+  noPool     Float           @default(0)
   creatorId  BigInt
   oracleId   BigInt?
 
-  trades     Trade[]
-  post       RealtimePost @relation(fields: [postId], references: [id])
-  creator    User        @relation("CreatedPredictionMarkets", fields: [creatorId], references: [id])
-  oracle     User?       @relation("OraclePredictionMarkets", fields: [oracleId], references: [id])
+  trades       Trade[]
+  post         FeedPost       @relation("FeedPostPrediction", fields: [postId], references: [id])
+  creator      User           @relation("CreatedPredictionMarkets", fields: [creatorId], references: [id])
+  oracle       User?          @relation("OraclePredictionMarkets", fields: [oracleId], references: [id])
+  RealtimePost RealtimePost[]
 
   @@map("prediction_markets")
 }
 
 model Trade {
-  id        String   @id @default(cuid())
+  id        String        @id @default(cuid())
   marketId  String
   userId    BigInt
   side      MarketOutcome
   shares    Float
   price     Float
   cost      Int
-  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  createdAt DateTime      @default(now()) @db.Timestamptz(6)
 
   market PredictionMarket @relation(fields: [marketId], references: [id])
   user   User             @relation("UserTrades", fields: [userId], references: [id])
