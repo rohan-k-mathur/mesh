@@ -3,6 +3,7 @@ import { prisma } from "../prismaclient";
 import { costToBuy } from "@/lib/prediction/lmsr";
 import { getUserFromCookies } from "@/lib/serverutils";
 import { Prisma } from "@prisma/client";
+import { serializeBigInt } from "@/lib/utils";
 
 export async function createMarket({ question, closesAt, liquidity }:{ question:string; closesAt:string; liquidity:number; }) {
   const user = await getUserFromCookies();
@@ -31,7 +32,10 @@ export async function createMarket({ question, closesAt, liquidity }:{ question:
 
   await prisma.realtimePost.update({
     where: { id: post.id },
-    data: { predictionMarket: { connect: { id: market.id } }, content: JSON.stringify(market) },
+    data: {
+      predictionMarket: { connect: { id: market.id } },
+      content: JSON.stringify(serializeBigInt(market)),
+    },
   });
 
   return { postId: post.id };
