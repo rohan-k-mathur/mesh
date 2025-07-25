@@ -1,14 +1,22 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback } from "react";
+import { useCallback, useRef } from "react";
 import { useKeyPress } from "@/hooks/useKeyPress";
 import { ArrowUp, ArrowRight, ArrowDown, ArrowLeft, SendHorizonal } from "lucide-react";
 
 export function GridNavControls({ x, y }: { x: number; y: number }) {
   const router = useRouter();
+  const lastRef = useRef(0);
   const go = useCallback(
     (dx: number, dy: number) => {
+      const now = Date.now();
+      if (now - lastRef.current < 150) return;
+      lastRef.current = now;
+      const el = document.activeElement;
+      if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA")) {
+        return;
+      }
       router.push(`/market/${x + dx}/${y + dy}`);
     },
     [x, y, router],
@@ -18,6 +26,10 @@ export function GridNavControls({ x, y }: { x: number; y: number }) {
   useKeyPress("a", () => go(-1, 0));
   useKeyPress("s", () => go(0, 1));
   useKeyPress("d", () => go(1, 0));
+  useKeyPress("ArrowUp", () => go(0, -1));
+  useKeyPress("ArrowLeft", () => go(-1, 0));
+  useKeyPress("ArrowDown", () => go(0, 1));
+  useKeyPress("ArrowRight", () => go(1, 0));
 
   async function teleport() {
     try {
