@@ -2,4 +2,5 @@
 
 Backend service for SwapMeet features.
 
-This package will host tRPC routers and business logic as described in the SwapMeet SRS.
+A placeholder `getSection` helper returns stall data for a given `(x, y)` coordinate.
+Future iterations will expose this via tRPC as detailed in the SRS.
