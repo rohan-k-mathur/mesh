@@ -2,5 +2,6 @@
 
 Backend service for SwapMeet features.
 
-A placeholder `getSection` helper returns stall data for a given `(x, y)` coordinate.
-Future iterations will expose this via tRPC as detailed in the SRS.
+`getSection(x, y)` now queries Prisma for stalls within the requested section. The function is used by `swapmeet-web` and is exposed via the `/api/section` endpoint.
+
+Future iterations will surface additional tRPC routes as detailed in the SRS.
