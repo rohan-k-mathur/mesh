@@ -647,11 +647,11 @@ model PredictionMarket {
   creatorId  BigInt
   oracleId   BigInt?
 
-  trades       Trade[]
-  post         FeedPost       @relation("FeedPostPrediction", fields: [postId], references: [id])
-  creator      User           @relation("CreatedPredictionMarkets", fields: [creatorId], references: [id])
-  oracle       User?          @relation("OraclePredictionMarkets", fields: [oracleId], references: [id])
-  RealtimePost RealtimePost[]
+  trades         Trade[]
+  post           FeedPost        @relation("FeedPostPrediction", fields: [postId], references: [id])
+  creator        User            @relation("CreatedPredictionMarkets", fields: [creatorId], references: [id])
+  oracle         User?           @relation("OraclePredictionMarkets", fields: [oracleId], references: [id])
+  RealtimePost   RealtimePost[]
   resolutionLogs ResolutionLog[]
 
   @@map("prediction_markets")
@@ -677,7 +677,7 @@ model Trade {
 }
 
 model Wallet {
-  userId      BigInt @id
+  userId       BigInt @id
   balanceCents Int    @default(0)
   lockedCents  Int    @default(0)
 
@@ -766,13 +766,13 @@ model Section {
 }
 
 model Stall {
-  id         BigInt   @id @default(autoincrement())
+  id         BigInt    @id @default(autoincrement())
   section_id BigInt?
   owner_id   BigInt
   name       String
-  created_at DateTime @default(now()) @db.Timestamptz(6)
-  section    Section? @relation(fields: [section_id], references: [id])
-  owner      User     @relation(fields: [owner_id], references: [id])
+  created_at DateTime  @default(now()) @db.Timestamptz(6)
+  section    Section?  @relation(fields: [section_id], references: [id])
+  owner      User      @relation(fields: [owner_id], references: [id])
   items      Item[]
   auctions   Auction[]
   orders     Order[]
@@ -782,71 +782,71 @@ model Stall {
 }
 
 model Item {
-  id         BigInt   @id @default(autoincrement())
-  stall_id   BigInt
-  name       String
+  id          BigInt      @id @default(autoincrement())
+  stall_id    BigInt
+  name        String
   price_cents Int
-  created_at DateTime @default(now()) @db.Timestamptz(6)
-  stall      Stall    @relation(fields: [stall_id], references: [id])
-  offers     Offer[]
-  auction    Auction?
-  orderLines OrderLine[]
+  created_at  DateTime    @default(now()) @db.Timestamptz(6)
+  stall       Stall       @relation(fields: [stall_id], references: [id])
+  offers      Offer[]
+  auction     Auction?
+  orderLines  OrderLine[]
 
   @@index([stall_id])
   @@map("items")
 }
 
 model Offer {
-  id         BigInt   @id @default(autoincrement())
-  item_id    BigInt
-  buyer_id   BigInt
+  id          BigInt   @id @default(autoincrement())
+  item_id     BigInt
+  buyer_id    BigInt
   price_cents Int
-  status     String   @default("PENDING")
-  message    String?
-  created_at DateTime @default(now()) @db.Timestamptz(6)
-  item       Item     @relation(fields: [item_id], references: [id])
-  buyer      User     @relation(fields: [buyer_id], references: [id])
+  status      String   @default("PENDING")
+  message     String?
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  item        Item     @relation(fields: [item_id], references: [id])
+  buyer       User     @relation(fields: [buyer_id], references: [id])
 
   @@index([item_id])
   @@map("offers")
 }
 
 model Auction {
-  id         BigInt   @id @default(autoincrement())
-  item_id    BigInt   @unique
-  stall_id   BigInt
+  id            BigInt   @id @default(autoincrement())
+  item_id       BigInt   @unique
+  stall_id      BigInt
   reserve_cents Int
-  ends_at    DateTime
-  created_at DateTime @default(now()) @db.Timestamptz(6)
-  item       Item     @relation(fields: [item_id], references: [id])
-  stall      Stall    @relation(fields: [stall_id], references: [id])
-  bids       Bid[]
+  ends_at       DateTime
+  created_at    DateTime @default(now()) @db.Timestamptz(6)
+  item          Item     @relation(fields: [item_id], references: [id])
+  stall         Stall    @relation(fields: [stall_id], references: [id])
+  bids          Bid[]
 
   @@index([stall_id])
   @@map("auctions")
 }
 
 model Bid {
-  id         BigInt   @id @default(autoincrement())
-  auction_id BigInt
-  bidder_id  BigInt
+  id           BigInt   @id @default(autoincrement())
+  auction_id   BigInt
+  bidder_id    BigInt
   amount_cents Int
-  created_at DateTime @default(now()) @db.Timestamptz(6)
-  auction    Auction  @relation(fields: [auction_id], references: [id])
-  bidder     User     @relation(fields: [bidder_id], references: [id])
+  created_at   DateTime @default(now()) @db.Timestamptz(6)
+  auction      Auction  @relation(fields: [auction_id], references: [id])
+  bidder       User     @relation(fields: [bidder_id], references: [id])
 
   @@index([auction_id])
   @@map("bids")
 }
 
 model Order {
-  id         BigInt   @id @default(autoincrement())
+  id         BigInt      @id @default(autoincrement())
   stall_id   BigInt
   buyer_id   BigInt
-  status     String   @default("PENDING")
-  created_at DateTime @default(now()) @db.Timestamptz(6)
-  stall      Stall    @relation(fields: [stall_id], references: [id])
-  buyer      User     @relation(fields: [buyer_id], references: [id])
+  status     String      @default("PENDING")
+  created_at DateTime    @default(now()) @db.Timestamptz(6)
+  stall      Stall       @relation(fields: [stall_id], references: [id])
+  buyer      User        @relation(fields: [buyer_id], references: [id])
   lines      OrderLine[]
 
   @@index([stall_id])
@@ -854,16 +854,15 @@ model Order {
 }
 
 model OrderLine {
-  id         BigInt   @id @default(autoincrement())
-  order_id   BigInt
-  item_id    BigInt
-  quantity   Int
+  id          BigInt   @id @default(autoincrement())
+  order_id    BigInt
+  item_id     BigInt
+  quantity    Int
   price_cents Int
-  created_at DateTime @default(now()) @db.Timestamptz(6)
-  order      Order    @relation(fields: [order_id], references: [id])
-  item       Item     @relation(fields: [item_id], references: [id])
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  order       Order    @relation(fields: [order_id], references: [id])
+  item        Item     @relation(fields: [item_id], references: [id])
 
   @@index([order_id])
   @@map("order_lines")
 }
-
