@@ -9,7 +9,7 @@ import { upsertSectionPing } from "@/lib/analytics/upsertSectionPing";
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 export default function SectionClient({ x, y }: { x: number; y: number }) {
-  const { data } = useSWR(`/api/section?x=${x}&y=${y}`, fetcher);
+  const { data } = useSWR(`/swapmeet/api/section?x=${x}&y=${y}`, fetcher);
 
   useEffect(() => {
     const neighbours = [
@@ -19,7 +19,7 @@ export default function SectionClient({ x, y }: { x: number; y: number }) {
       { dx: -1, dy: 0 },
     ];
     neighbours.forEach(({ dx, dy }) => {
-      const url = `/api/section?x=${x + dx}&y=${y + dy}`;
+      const url = `/swapmeet/api/section?x=${x + dx}&y=${y + dy}`;
       mutate(url, fetcher(url));
     });
   }, [x, y]);

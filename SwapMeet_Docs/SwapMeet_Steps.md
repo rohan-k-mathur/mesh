@@ -23,7 +23,7 @@ Work is grouped into **ten milestone blocks**; each block contains granular step
 
 | #   | Task                       | Owner              | Instructions                                                                                               |
 | --- | -------------------------- | ------------------ | ---------------------------------------------------------------------------------------------------------- |
-| 1.1 | **Grid coordinate router** | Frontend           | In Next.js App Router: `/market/(x)/(y)` dynamic segments; parse ints; fallback to `0/0`.                  |
+| 1.1 | **Grid coordinate router** | Frontend           | In Next.js App Router: `/swapmeet/market/(x)/(y)` dynamic segments; parse ints; fallback to `0/0`.                  |
 | 1.2 | **Section query**          | Frontend + Backend | tRPC procedure `getSection(x,y)` → returns 3×3 stalls + visitor counts. Cache in SWR 5 s.                  |
 | 1.3 | **Minimap component**      | Frontend           | Canvas overlay (Pixi JS) sized 200 px; highlight current; call `/analytics/heatmap?window=30s`.            |
 | 1.4 | **Keyboard & arrows**      | Frontend           | `useKeyPress(['w','a','s','d'])`; update router push; debounce 150 ms; disable when chat textarea focused. |

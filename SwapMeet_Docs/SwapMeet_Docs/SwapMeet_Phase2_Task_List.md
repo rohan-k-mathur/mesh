@@ -4,7 +4,7 @@
 ## 1. Macro Grid Navigation (finish Block 1)
 - [ ] Arrow buttons + WASD keys (`components/GridNavControls.tsx`)
 - [ ] Minimap canvas with heat‑map overlay (`components/Minimap.tsx`)
-- [ ] Heat‑map API route `/api/heatmap`
+- [ ] Heat‑map API route `/swapmeet/api/heatmap`
 - [ ] Teleport to busy section helper
 - [ ] SWR neighbour prefetch for instant navigation
 

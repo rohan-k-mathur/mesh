@@ -17,7 +17,7 @@ export function GridNavControls({ x, y }: { x: number; y: number }) {
       if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA")) {
         return;
       }
-      router.push(`/market/${x + dx}/${y + dy}`);
+      router.push(`/swapmeet/market/${x + dx}/${y + dy}`);
     },
     [x, y, router],
   );
@@ -33,10 +33,10 @@ export function GridNavControls({ x, y }: { x: number; y: number }) {
 
   async function teleport() {
     try {
-      const res = await fetch("/api/heatmap?busy=true");
+      const res = await fetch("/swapmeet/api/heatmap?busy=true");
       const data = await res.json();
       if (data && typeof data.x === "number" && typeof data.y === "number") {
-        router.push(`/market/${data.x}/${data.y}`);
+        router.push(`/swapmeet/market/${data.x}/${data.y}`);
       }
     } catch (err) {
       console.error("Teleport failed", err);

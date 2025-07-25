@@ -15,7 +15,7 @@ This document distills the key actions required to build the **SwapMeet** module
 The playbook in `SwapMeet_Steps.md` maps to ten blocks. Each block corresponds to a two–three day sprint. Suggested order:
 
 1. **Foundation & Tooling** – scaffold packages, CI, environments.
-2. **Macro Grid Navigation** – build `/market/[x]/[y]` routes with minimap overlay.
+2. **Macro Grid Navigation** – build `/swapmeet/market/[x]/[y]` routes with minimap overlay.
 3. **Stall CRUD & Thumbnails** – seller dashboard, image uploads, presence badge.
 4. **Stall Detail + CRDT** – chat panel, item grid, presence cursors.
 5. **Live Video** – LiveKit room per stall, broadcast controls.

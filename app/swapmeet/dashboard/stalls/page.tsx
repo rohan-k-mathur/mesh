@@ -6,7 +6,7 @@ import Link from "next/link";
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 export default function StallsPage() {
-  const { data } = useSWR("/api/section?x=0&y=0", fetcher);
+  const { data } = useSWR("/swapmeet/api//section?x=0&y=0", fetcher);
   const stalls = data?.stalls ?? [];
 
   return (

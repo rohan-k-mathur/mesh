@@ -8,7 +8,7 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json());
 export function Minimap({ x, y }: { x: number; y: number }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const { data } = useSWR(
-    `/api/heatmap?x0=${x - 5}&x1=${x + 5}&y0=${y - 5}&y1=${y + 5}`,
+    `/swapmeet/api/heatmap?x0=${x - 5}&x1=${x + 5}&y0=${y - 5}&y1=${y + 5}`,
     fetcher,
     { refreshInterval: 3000 },
   );

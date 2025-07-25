@@ -7,4 +7,4 @@ CREATE TABLE IF NOT EXISTS stall_image (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS idx_stall_section ON stall(owner_id, section_id);
+-- CREATE UNIQUE INDEX IF NOT EXISTS idx_stall_section ON stall(owner_id, section_id);
