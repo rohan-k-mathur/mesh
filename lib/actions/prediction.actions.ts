@@ -1,8 +1,7 @@
 "use server";
 import { prisma } from "../prismaclient";
-import { costToBuy } from "@/lib/prediction/lmsr";
+import { costToBuy, priceYes } from "@/lib/prediction/lmsr";
 import { getUserFromCookies } from "@/lib/serverutils";
-import { Prisma } from "@prisma/client";
 import { serializeBigInt } from "@/lib/utils";
 import { NextResponse } from "next/server";
 
@@ -97,24 +96,33 @@ export async function createMarket(
 export async function tradeMarket({ marketId, side, credits }:{ marketId:string; side:"YES"|"NO"; credits:number; }) {
   const user = await getUserFromCookies();
   if (!user) throw new Error("Not authenticated");
-  const market = await prisma.predictionMarket.findUniqueOrThrow({ where:{ id: marketId } });
-  if (market.state !== "OPEN") throw new Error("Market closed");
-  let lo=0, hi=1000;
-  for(let i=0;i<30;i++){
-    const mid=(lo+hi)/2;
-    const cost=costToBuy(side, mid, market.yesPool, market.noPool, market.b);
-    cost>credits?hi=mid:lo=mid;
-  }
-  const shares=lo;
-  const cost=Math.ceil(costToBuy(side, shares, market.yesPool, market.noPool, market.b));
-  await prisma.$transaction(async tx => {
+  return await prisma.$transaction(async tx => {
+    const market = await tx.predictionMarket.findUniqueOrThrow({ where:{ id: marketId } });
+    if (market.state !== "OPEN") throw new Error("Market closed");
+
+    let lo=0, hi=1000;
+    for(let i=0;i<30;i++){
+      const mid=(lo+hi)/2;
+      const cost=costToBuy(side, mid, market.yesPool, market.noPool, market.b);
+      cost>credits?hi=mid:lo=mid;
+    }
+    const shares=lo;
+    const cost=Math.ceil(costToBuy(side, shares, market.yesPool, market.noPool, market.b));
+
+    await tx.$executeRaw`SELECT lock_wallet(${user.userId})`;
+    const wallet = await tx.wallet.findUnique({ where:{ userId: user.userId! } });
+    if (!wallet || wallet.balanceCents - wallet.lockedCents < cost) {
+      throw new Error("Insufficient credits");
+    }
+
+    await tx.wallet.update({ where:{ userId:user.userId! }, data:{ balanceCents: { decrement: cost } } });
     await tx.trade.create({ data:{ marketId, userId:user.userId!, side, shares, cost, price: cost/shares } });
-    await tx.predictionMarket.update({
-      where:{ id: marketId },
-      data: side === "YES" ? { yesPool: { increment: shares } } : { noPool:{ increment: shares } }
-    });
+    const data = side === "YES" ? { yesPool: { increment: shares } } : { noPool:{ increment: shares } };
+    const updated = await tx.predictionMarket.update({ where:{ id: marketId }, data });
+
+    const newPrice = priceYes(updated.yesPool, updated.noPool, updated.b);
+    return { shares, cost, newPrice };
   });
-  return { shares, cost };
 }
 
 export async function resolveMarket({ marketId, outcome }:{ marketId:string; outcome:"YES"|"NO"; }) {
@@ -127,9 +135,22 @@ export async function resolveMarket({ marketId, outcome }:{ marketId:string; out
   if (market.state === "RESOLVED") {
     throw new Error("Already resolved");
   }
-  await prisma.predictionMarket.update({
-    where:{ id: marketId },
-    data:{ state:"RESOLVED", outcome, resolvesAt: new Date() }
+
+  return await prisma.$transaction(async tx => {
+    const trades = await tx.trade.findMany({ where:{ marketId } });
+
+    for (const trade of trades) {
+      if (trade.side === outcome) {
+        await tx.$executeRaw`SELECT lock_wallet(${trade.userId})`;
+        await tx.wallet.update({ where:{ userId: trade.userId }, data:{ balanceCents: { increment: Math.floor(trade.shares) } } });
+        await tx.resolutionLog.create({ data:{ marketId, userId: trade.userId, amount: Math.floor(trade.shares) } });
+      }
+    }
+
+    await tx.predictionMarket.update({
+      where:{ id: marketId },
+      data:{ state:"RESOLVED", outcome, resolvesAt: new Date() }
+    });
+    return { ok:true };
   });
-  return { ok:true };
 }

@@ -53,6 +53,8 @@ model User {
   createdPredictionMarkets PredictionMarket[]        @relation("CreatedPredictionMarkets")
   oraclePredictionMarkets  PredictionMarket[]        @relation("OraclePredictionMarkets")
   trades                   Trade[]                   @relation("UserTrades")
+  wallet                   Wallet?
+  resolutionLogs           ResolutionLog[]
   realtimerooms            UserRealtimeRoom[]
   workflows                Workflow[]
 
@@ -646,6 +648,7 @@ model PredictionMarket {
   creator      User           @relation("CreatedPredictionMarkets", fields: [creatorId], references: [id])
   oracle       User?          @relation("OraclePredictionMarkets", fields: [oracleId], references: [id])
   RealtimePost RealtimePost[]
+  resolutionLogs ResolutionLog[]
 
   @@map("prediction_markets")
 }
@@ -665,7 +668,33 @@ model Trade {
 
   @@index([marketId])
   @@index([userId])
+  @@index([marketId, userId], name: "idx_trade_market_user")
   @@map("prediction_trades")
+}
+
+model Wallet {
+  userId      BigInt @id
+  balanceCents Int    @default(0)
+  lockedCents  Int    @default(0)
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("wallet")
+}
+
+model ResolutionLog {
+  id        String   @id @default(cuid())
+  marketId  String
+  userId    BigInt
+  amount    Int
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+
+  market PredictionMarket @relation(fields: [marketId], references: [id])
+  user   User             @relation(fields: [userId], references: [id])
+
+  @@index([marketId])
+  @@index([userId])
+  @@map("resolution_log")
 }
 
 enum PredictionState {
