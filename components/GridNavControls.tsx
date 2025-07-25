@@ -22,13 +22,13 @@ export function GridNavControls({ x, y }: { x: number; y: number }) {
     [x, y, router],
   );
 
-  useKeyPress("w", () => go(0, -1));
+  useKeyPress("w", () => go(0,  1));   // up  (y+1)
   useKeyPress("a", () => go(-1, 0));
-  useKeyPress("s", () => go(0, 1));
+  useKeyPress("s", () => go(0, -1));   // down(y‑1)
   useKeyPress("d", () => go(1, 0));
-  useKeyPress("ArrowUp", () => go(0, -1));
+  useKeyPress("ArrowUp", () => go(0, 1));
   useKeyPress("ArrowLeft", () => go(-1, 0));
-  useKeyPress("ArrowDown", () => go(0, 1));
+  useKeyPress("ArrowDown", () => go(0, -1));
   useKeyPress("ArrowRight", () => go(1, 0));
 
   async function teleport() {
