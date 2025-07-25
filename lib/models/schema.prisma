@@ -757,6 +757,7 @@ model Section {
   id         BigInt   @id @default(autoincrement())
   x          Int
   y          Int
+  visitors   Int      @default(0)
   created_at DateTime @default(now()) @db.Timestamptz(6)
   stalls     Stall[]
 

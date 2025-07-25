@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getSection } from "swapmeet-api";
+import SectionClient from "./SectionClient";
 
 export default async function SectionPage({ params }: { params: { x?: string; y?: string } }) {
   const x = parseInt(params.x ?? "0", 10);
@@ -9,16 +9,5 @@ export default async function SectionPage({ params }: { params: { x?: string; y?
     notFound();
   }
 
-  const { stalls } = await getSection(x, y);
-
-  return (
-    <div>
-      <h1>{`Section (${x}, ${y})`}</h1>
-      <ul>
-        {stalls.map((s) => (
-          <li key={s.id}>{s.name}</li>
-        ))}
-      </ul>
-    </div>
-  );
+  return <SectionClient x={x} y={y} />;
 }
