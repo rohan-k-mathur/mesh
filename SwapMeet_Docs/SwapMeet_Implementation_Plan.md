@@ -4,7 +4,7 @@ This document distills the key actions required to build the **SwapMeet** module
 
 ## 1. Repository Integration
 
-- **Monorepo packages**: follow the pattern in existing `apps/` and `services/` folders. Create `apps/swapmeet-web` for the Next.js frontend and `services/swapmeet-api` for API routes and business logic.
+- **Monorepo packages**: follow the pattern in existing `apps/` and `services/` folders. The SwapMeet Next.js frontend now lives under `app/swapmeet`, with server logic in `services/swapmeet-api`.
 - **Database schema**: extend the Prisma models in `database` with tables listed in the SRS (`section`, `stall`, `item`, `offer`, `auction`, `order`). Use migration scripts in `scripts/`.
 - **Realtime**: use Supabase Realtime channels as done in other features (see `lib/supaClient.ts`). Yjs documents per stall store chat and offer state.
 - **Video streaming**: integrate LiveKit via `@livekit/components-react` similar to existing livestream nodes.
