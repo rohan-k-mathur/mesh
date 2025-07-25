@@ -20,7 +20,9 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "swapmeet-api": ["services/swapmeet-api/src/index.ts"]
+
     }
   },
   "include": ["next-env.d.ts","shader.d.ts", "**/*.ts",     "types/osc.d.ts"
