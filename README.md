@@ -3,6 +3,8 @@
 Mesh is an experimental social platform built with **Next.js** that lets users interact in real-time rooms. Each room hosts a collaborative canvas where posts are represented as nodes. Node types range from simple text posts to livestreams and AI-generated images.
 
 See [`Mesh_Roadmap.md`](Mesh_Roadmap.md) for the long term product plan.
+For the step‑by‑step rollout of the Prediction Market module, check
+[`PredictionMarket_Development_Playbook.md`](PredictionMarket_Development_Playbook.md).
 
 ## Current Features
 
