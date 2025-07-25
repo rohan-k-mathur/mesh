@@ -2,11 +2,11 @@
 *(covers remaining Block 1 work + Block 2 “Stall CRUD & Thumbnails”)*
 
 ## 1. Macro Grid Navigation (finish Block 1)
-- [ ] Arrow buttons + WASD keys (`components/GridNavControls.tsx`)
-- [ ] Minimap canvas with heat‑map overlay (`components/Minimap.tsx`)
-- [ ] Heat‑map API route `/api/heatmap`
-- [ ] Teleport to busy section helper
-- [ ] SWR neighbour prefetch for instant navigation
+- [x] Arrow buttons + WASD keys (`components/GridNavControls.tsx`)
+- [x] Minimap canvas with heat‑map overlay (`components/Minimap.tsx`)
+- [x] Heat‑map API route `/api/heatmap`
+- [x] Teleport to busy section helper
+- [x] SWR neighbour prefetch for instant navigation
 
 ## 2. Stall CRUD & Thumbnails (Block 2)
 - [ ] Seller dashboard route `/dashboard/stalls`
@@ -18,12 +18,11 @@
 - [ ] Presence badge via Supabase Realtime
 
 ## 3. Migrations
-- [ ] `ALTER TABLE section ADD COLUMN visitors INT DEFAULT 0;`
-- [ ] `CREATE TABLE stall_image (…)` *if multiple images per stall*
-- [ ] `CREATE UNIQUE INDEX idx_stall_section ON "Stall"(seller_id, section_id);`
+- [x] `ALTER TABLE section ADD COLUMN visitors INT DEFAULT 0;`
+- [x] `CREATE TABLE stall_image (…)` *if multiple images per stall*
+- [x] `CREATE UNIQUE INDEX idx_stall_section ON "Stall"(seller_id, section_id);`
 
-## 4. Testing
-- [ ] Vitest unit tests for `getHeatmap`
+- [x] Vitest unit tests for `getHeatmap`
 - [ ] Playwright e2e: create stall → image upload → appears on section page
 - [ ] k6: 1 k simultaneous heat‑map pings
 
