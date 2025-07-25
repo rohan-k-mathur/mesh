@@ -57,6 +57,10 @@ model User {
   resolutionLogs           ResolutionLog[]
   realtimerooms            UserRealtimeRoom[]
   workflows                Workflow[]
+  stalls                   Stall[]
+  offers                   Offer[]
+  bids                     Bid[]
+  orders                   Order[]
 
   @@map("users")
 }
@@ -769,7 +773,6 @@ model Stall {
   section    Section? @relation(fields: [section_id], references: [id])
   owner      User     @relation(fields: [owner_id], references: [id])
   items      Item[]
-  offers     Offer[]
   auctions   Auction[]
   orders     Order[]
 
@@ -809,7 +812,7 @@ model Offer {
 
 model Auction {
   id         BigInt   @id @default(autoincrement())
-  item_id    BigInt
+  item_id    BigInt   @unique
   stall_id   BigInt
   reserve_cents Int
   ends_at    DateTime
