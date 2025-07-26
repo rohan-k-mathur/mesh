@@ -9,10 +9,10 @@
 - [x] SWR neighbour prefetch for instant navigation
 
 ## 2. Stall CRUD & Thumbnails (Block 2)
-- [ ] Seller dashboard route `/dashboard/stalls`
-- [ ] TanStack Table listing stalls
-- [ ] Create / Edit modal with Zod validation
-- [ ] Prisma uniqueness constraint on `sectionId + sellerId`
+- [x] Seller dashboard route `/dashboard/stalls`
+- [x] TanStack Table listing stalls
+- [x] Create / Edit modal with Zod validation
+- [x] Prisma uniqueness constraint on `sectionId + sellerId`
 - [ ] Supabase Storage bucket `stall-images`
 - [ ] ImageDropzone + blurhash generation
 - [ ] Presence badge via Supabase Realtime
