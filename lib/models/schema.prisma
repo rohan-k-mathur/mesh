@@ -762,7 +762,7 @@ model Section {
   stalls     Stall[]
 
   @@unique([x, y])
-  @@map("sections")
+  @@map("section")      // 👈 tell Prisma the real table name
 }
 
 model Stall {

@@ -1,13 +1,32 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { StallFormSchema, type StallFormValues } from "@/lib/validations/stall";
 import { useState } from "react";
+
+import useSWR from "swr";
+export const fetcher = (url: string) =>
+  fetch(url).then((r) => {
+    if (!r.ok) throw new Error(r.statusText);
+    return r.json();
+  });
 
 interface Props {
   open: boolean;
@@ -16,7 +35,12 @@ interface Props {
   defaultValues?: Partial<StallFormValues>;
 }
 
-export default function StallForm({ open, onOpenChange, onSubmit, defaultValues }: Props) {
+export default function StallForm({
+  open,
+  onOpenChange,
+  onSubmit,
+  defaultValues,
+}: Props) {
   const form = useForm<StallFormValues>({
     resolver: zodResolver(StallFormSchema),
     defaultValues: {
@@ -29,15 +53,21 @@ export default function StallForm({ open, onOpenChange, onSubmit, defaultValues 
     await onSubmit(values);
     onOpenChange(false);
   };
+  const { data: sections } = useSWR("/swapmeet/api/section", fetcher);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
-          <DialogTitle>{defaultValues ? "Edit Stall" : "New Stall"}</DialogTitle>
+          <DialogTitle>
+            {defaultValues ? "Edit Stall" : "New Stall"}
+          </DialogTitle>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+          <form
+            onSubmit={form.handleSubmit(handleSubmit)}
+            className="space-y-4"
+          >
             <FormField
               control={form.control}
               name="name"
@@ -51,6 +81,7 @@ export default function StallForm({ open, onOpenChange, onSubmit, defaultValues 
                 </FormItem>
               )}
             />
+
             <FormField
               control={form.control}
               name="sectionId"
@@ -58,13 +89,25 @@ export default function StallForm({ open, onOpenChange, onSubmit, defaultValues 
                 <FormItem>
                   <FormLabel>Section</FormLabel>
                   <FormControl>
-                    <Input type="number" {...field} className="text-black" />
+                    <select
+                      {...field}
+                      className="text-black border px-2 py-1"
+                      value={field.value ?? sections?.[0]?.id ?? ""}
+                    >
+                      {sections?.map((s: any) => (
+                        <option key={s.id} value={s.id}>
+                          ({s.x}, {s.y})
+                        </option>
+                      ))}
+                    </select>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <Button type="submit" className="mt-2">Save</Button>
+            <Button type="submit" className="mt-2">
+              Save
+            </Button>
           </form>
         </Form>
       </DialogContent>

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getHeatmap, getRandomBusySection } from "swapmeet-api";
+import { jsonSafe } from "@/lib/bigintjson";
 
 export const revalidate = 2;   // still fine to keep
 

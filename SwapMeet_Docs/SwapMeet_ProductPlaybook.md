@@ -1,4 +1,4 @@
-Below is a product playbook for a Real‑Time Virtual Flea‑Market module inside Mesh—designed to evoke the serendipity of strolling past physical stalls, striking up conversation, and buying on the spot. I break it down from the user journey through to technical architecture, governance, and a six‑week MVP plan so your team can scope, staff, and sprint.
+Below is a product playbook for a Real‑Time Virtual Flea‑Market module inside Mesh—designed to evoke the serendipity of strolling past physical stalls, striking up conversation, and buying on the spot.I break it down from the user journey through to technical architecture, governance, and a six‑week MVP plan so your team can scope, staff, and sprint.
 
 1 · Core Experience in a Sentence
 “Scroll, wander, and haggle in a living 2‑D bazaar where every grid square is a live seller stall—complete with real‑time chat, optional video, and instant checkout—so discovery feels like poking around a Sunday flea market, not hunting SKUs on Amazon.”
@@ -28,7 +28,7 @@ Buyer	Chat, offers, pay, rate sellers	3 completed purchases ➜ “Trusted Buyer
 Seller	Create stall, list items, stream, bargain/auction, withdraw funds	Application + KYC
 Steward (Market Mod)	Move or hide stalls, mediate disputes	Elected by seller vote + admin approval
 5 · Interaction Mechanics
-1. Walk‑Up Flow Section → Click Stall → Detail View loads (pre‑join) → auto‑join chat → optional 1‑click “Say hi 👋”.
+1. Walk‑Up FlowSection → Click Stall → Detail View loads (pre‑join) → auto‑join chat → optional 1‑click “Say hi 👋”.
 2. Bargaining
     * Buyer clicks “Make Offer” → modal with price field & message.
     * Seller gets toast: “$25 offer on Vintage Clock (list $30)” → Accept / Counter / Reject.
