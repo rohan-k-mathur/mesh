@@ -4,6 +4,12 @@ import { Minimap } from "@/app/swapmeet/components/Minimap";
 import { TeleportButton } from "@/app/swapmeet/components/TeleportButton";
 import { StallCard } from "@/app/swapmeet/components/StallCard";
 import { getSection } from "swapmeet-api";
+import { useArrowNav } from "@/app/swapmeet/components/useArrowNav";
+
+function NavHook({ x, y }: { x: number; y: number }) {
+  useArrowNav(x, y);
+  return null;
+}
 
 export default async function SectionPage({ params }: { params: { x?: string; y?: string } }) {
   const x = parseInt(params.x ?? "0", 10);
@@ -16,13 +22,14 @@ export default async function SectionPage({ params }: { params: { x?: string; y?
 
   return (
     <main className="relative h-dvh bg-[var(--ubz-bg)]">
+      <NavHook x={x} y={y} />
       <NavArrow dir="N" x={x} y={y} />
       <NavArrow dir="E" x={x} y={y} />
       <NavArrow dir="S" x={x} y={y} />
       <NavArrow dir="W" x={x} y={y} />
       <TeleportButton />
       <Minimap cx={x} cy={y} />
-      <div className="absolute inset-0 grid grid-cols-3 gap-[3%] p-[clamp(16px,4vw,40px)]">
+      <div className="absolute inset-0 section-grid gap-[3%] p-[clamp(16px,4vw,40px)]">
         {stalls.map((s) => (
           <StallCard key={s.id} stall={s} />
         ))}

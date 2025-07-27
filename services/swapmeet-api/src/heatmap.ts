@@ -16,12 +16,10 @@ export async function getHeatmap(
 }
 
 export async function getRandomBusySection() {
-  const sections = await prisma.section.findMany({
-    where: { visitors: { gt: 0 } },
-    orderBy: { visitors: "desc" },
-    take: 10,
-  });
-  if (sections.length === 0) return null;
-  const pick = sections[Math.floor(Math.random() * sections.length)];
+  const res = await prisma.$queryRawUnsafe<{ x: number; y: number }[]>(
+    "SELECT x,y FROM section ORDER BY visitors DESC LIMIT 20 OFFSET floor(random()*20)"
+  );
+  if (!res.length) return null;
+  const pick = res[Math.floor(Math.random() * res.length)];
   return { x: pick.x, y: pick.y };
 }

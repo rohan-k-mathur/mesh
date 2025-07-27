@@ -1323,3 +1323,9 @@ html:before{
 .nav.south { @apply left-1/2 bottom-2 -translate-x-1/2; }
 .nav.west { @apply left-2 top-1/2 -translate-y-1/2; }
 .nav.teleport { @apply right-2 bottom-2; }
+@media (max-width:767px){
+  .section-grid{grid-template-columns:1fr!important}
+}
+@media (min-width:768px) and (max-width:1279px){
+  .section-grid{grid-template-columns:repeat(2,1fr)!important}
+}
