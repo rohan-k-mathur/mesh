@@ -15,6 +15,7 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json());
 export default function StallsPage() {
   const { data, mutate } = useSWR("/swapmeet/api/section?x=0&y=0", fetcher);
   const stalls = data?.stalls ?? [];
+  const isLoading = !data;
 
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -57,7 +58,13 @@ export default function StallsPage() {
         });
       }
     }
-    await mutate();
+    mutate(
+      (prev) =>
+        prev
+          ? { ...prev, stalls: [...prev.stalls, { id: stallId, name: rest.name }] }
+          : prev,
+      false,
+    );
     setLoading(false);
   }
 
@@ -84,16 +91,24 @@ export default function StallsPage() {
           ))}
         </thead>
         <tbody>
-          {table.getRowModel().rows.map((row) => (
-            <tr key={row.id}>
-              {row.getVisibleCells().map((cell) => (
-                <td key={cell.id} className="border px-2 py-1">
-                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                </td>
+          {isLoading
+            ? [1, 2, 3].map((n) => (
+                <tr key={n}>
+                  <td colSpan={3} className="px-2 py-1">
+                    <div className="animate-pulse h-6 bg-gray-200 rounded" />
+                  </td>
+                </tr>
+              ))
+            : table.getRowModel().rows.map((row) => (
+                <tr key={row.id}>
+                  {row.getVisibleCells().map((cell) => (
+                    <td key={cell.id} className="border px-2 py-1">
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </td>
+                  ))}
+                  <StallPresenceTracker stallId={row.original.id} />
+                </tr>
               ))}
-              <StallPresenceTracker stallId={row.original.id} />
-            </tr>
-          ))}
         </tbody>
       </table>
       <Link href="/swapmeet" className="block mt-4">Back to market</Link>

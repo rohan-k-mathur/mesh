@@ -16,9 +16,13 @@ const map = {
 export function useArrowNav(x: number, y: number) {
   const r = useRouter();
   useEffect(() => {
+    let last = 0;
     const h = (e: KeyboardEvent) => {
       const v = map[e.key as keyof typeof map];
       if (v) {
+        const now = Date.now();
+        if (now - last < 300) return;
+        last = now;
         e.preventDefault();
         r.push(`/swapmeet/market/${x + v[0]}/${y + v[1]}`);
       }

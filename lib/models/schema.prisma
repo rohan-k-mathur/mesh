@@ -771,6 +771,7 @@ model Stall {
   owner_id   BigInt
   name       String
   created_at DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at DateTime? @default(now()) @updatedAt @db.Timestamptz(6)
   section    Section?  @relation(fields: [section_id], references: [id])
   owner      User      @relation(fields: [owner_id], references: [id])
   items      Item[]
@@ -779,6 +780,7 @@ model Stall {
   images     StallImage[]
 
   @@index([section_id])
+  @@index([owner_id, updated_at])
   @@unique([section_id, owner_id])
   @@map("stalls")
 }
