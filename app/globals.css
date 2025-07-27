@@ -1329,3 +1329,5 @@ html:before{
 @media (min-width:768px) and (max-width:1279px){
   .section-grid{grid-template-columns:repeat(2,1fr)!important}
 }
+.kbdTip{display:block}
+@media (max-width:600px){.kbdTip{display:none}}

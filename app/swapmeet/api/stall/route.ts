@@ -13,13 +13,19 @@ export async function POST(req: Request) {
     );
   }
 
-  const stall = await prisma.stall.create({
-    data: {
-      name,
-      section_id: BigInt(sectionId),
-      owner_id: 1n,
-    },
-  });
-  return NextResponse.json(jsonSafe({ id: stall.id }));
+  const [stall] = await prisma.$transaction([
+    prisma.stall.create({
+      data: {
+        name,
+        section_id: BigInt(sectionId),
+        owner_id: 1n,
+      },
+    }),
+    prisma.section.update({
+      where: { id: BigInt(sectionId) },
+      data: { visitors: { increment: 1 } },
+    }),
+  ]);
+  return NextResponse.json(jsonSafe({ id: stall.id, name: stall.name }));
 }
 

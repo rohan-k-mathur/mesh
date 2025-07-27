@@ -5,6 +5,7 @@ import { TeleportButton } from "@/app/swapmeet/components/TeleportButton";
 import { StallCard } from "@/app/swapmeet/components/StallCard";
 import { getSection } from "swapmeet-api";
 import { NavHook } from "@/app/swapmeet/components/NavHook";
+import { EdgeNav } from "@/app/swapmeet/components/EdgeNav";
 
 export default async function SectionPage({ params }: { params: { x?: string; y?: string } }) {
   const x = parseInt(params.x ?? "0", 10);
@@ -18,6 +19,7 @@ export default async function SectionPage({ params }: { params: { x?: string; y?
   return (
     <main className="relative h-dvh bg-[var(--ubz-bg)]">
       <NavHook x={x} y={y} />
+      <EdgeNav x={x} y={y} />
       <NavArrow dir="N" x={x} y={y} />
       <NavArrow dir="E" x={x} y={y} />
       <NavArrow dir="S" x={x} y={y} />
@@ -28,6 +30,9 @@ export default async function SectionPage({ params }: { params: { x?: string; y?
         {stalls.map((s) => (
           <StallCard key={s.id} stall={s} />
         ))}
+      </div>
+      <div className="kbdTip fixed bottom-2 left-1/2 -translate-x-1/2 text-xs text-[var(--ubz-street)] select-none">
+        ← ↑ ↓ → &nbsp; / &nbsp; WASD
       </div>
     </main>
   );
