@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { GridNavControls } from "@/components/GridNavControls";
 import { Minimap } from "@/components/Minimap";
 import { upsertSectionPing } from "@/lib/analytics/upsertSectionPing";
+import { PresenceBadge } from "@/components/PresenceBadge";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -41,7 +42,10 @@ export default function SectionClient({ x, y }: { x: number; y: number }) {
       <Minimap x={x} y={y} />
       <ul>
         {stalls.map((s: any) => (
-          <li key={s.id}>{s.name}</li>
+          <li key={s.id} className="flex items-center gap-1">
+            {s.name}
+            <PresenceBadge stallId={s.id} />
+          </li>
         ))}
       </ul>
     </div>

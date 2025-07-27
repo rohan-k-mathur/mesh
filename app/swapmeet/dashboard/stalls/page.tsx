@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ColumnDef, flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
 import StallForm from "@/components/forms/StallForm";
+import { StallPresenceTracker } from "@/components/PresenceBadge";
 import { Button } from "@/components/ui/button";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
@@ -62,6 +63,7 @@ export default function StallsPage() {
                   {flexRender(cell.column.columnDef.cell, cell.getContext())}
                 </td>
               ))}
+              <StallPresenceTracker stallId={row.original.id} />
             </tr>
           ))}
         </tbody>
