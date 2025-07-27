@@ -297,6 +297,23 @@ export async function uploadAudioToSupabase(file: File) {
   }
 }
 
+export async function uploadStallImage(file: File) {
+  const fileName = `${nanoid()}-${file.name}`;
+  const { data, error } = await supabase.storage
+    .from("stall-images")
+    .upload(`public/${fileName}`, file);
+  if (!error) {
+    return {
+      fileURL: process.env.NEXT_PUBLIC_SUPABASE_BUCKET_URL + data.fullPath,
+      error: null,
+    };
+  } else {
+    console.error(error);
+    alert("Failed to upload image");
+    return { fileURL: "", error };
+  }
+}
+
 export function serializeBigInt(value: unknown): any {
   if (typeof value === "bigint") {
     return value.toString();

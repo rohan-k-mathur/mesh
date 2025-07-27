@@ -49,6 +49,7 @@ To avoid missing-bucket errors when uploading audio posts, create the `realtimep
    Without this policy uploads fail with "new row violates row-level security policy".
 
 Apply the same steps to create a `realtime_post_images` bucket if it does not already exist.
+Create another public bucket named `stall-images` for SwapMeet thumbnails.
 
 ## Development
 
