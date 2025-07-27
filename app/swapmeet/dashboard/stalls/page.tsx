@@ -17,6 +17,7 @@ export default function StallsPage() {
   const stalls = data?.stalls ?? [];
 
   const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const columns = useMemo<ColumnDef<any>[]>(
     () => [
@@ -34,6 +35,7 @@ export default function StallsPage() {
 
   async function createStall(values: any) {
     const { image, ...rest } = values;
+    setLoading(true);
     const res = await fetch("/swapmeet/api/stall", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -43,23 +45,34 @@ export default function StallsPage() {
     const stallId = data.id;
     if (image instanceof File) {
       const compressed = await compressImage(image);
-      const blurhash = await generateBlurhash(compressed);
-      const { fileURL } = await uploadStallImage(compressed);
-      await fetch("/swapmeet/api/stall-image", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ stallId, url: fileURL, blurhash }),
-      });
+      const [blurhash, upload] = await Promise.all([
+        generateBlurhash(compressed),
+        uploadStallImage(compressed),
+      ]);
+      if (upload.fileURL) {
+        await fetch("/swapmeet/api/stall-image", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ stallId, url: upload.fileURL, blurhash }),
+        });
+      }
     }
-    mutate();
+    await mutate();
+    setLoading(false);
   }
 
   return (
     <div className="p-4">
       <h1 className="text-lg font-bold mb-4">My Stalls</h1>
-      <Button onClick={() => setOpen(true)} className="mb-2">New Stall</Button>
-      <table className="min-w-full border">
-        <thead>
+      <Button
+        onClick={() => setOpen(true)}
+        className="bg-[var(--ubz-brand)] text-white shadow-ubz1 fixed top-4 right-4"
+        disabled={loading}
+      >
+        {loading ? "Saving..." : "+ New Stall"}
+      </Button>
+      <table className="w-full text-sm">
+        <thead className="bg-[var(--ubz-street)] text-white">
           {table.getHeaderGroups().map((hg) => (
             <tr key={hg.id}>
               {hg.headers.map((h) => (
@@ -84,7 +97,7 @@ export default function StallsPage() {
         </tbody>
       </table>
       <Link href="/swapmeet" className="block mt-4">Back to market</Link>
-      <StallForm open={open} onOpenChange={setOpen} onSubmit={createStall} />
+      <StallForm open={open} onOpenChange={setOpen} onSubmit={createStall} loading={loading} />
     </div>
   );
 }

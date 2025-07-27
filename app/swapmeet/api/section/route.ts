@@ -15,10 +15,25 @@
 // }
 // // 
 import { jsonSafe } from "@/lib/bigintjson";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prismaclient";
+import { getSection } from "swapmeet-api";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const xParam = searchParams.get("x");
+  const yParam = searchParams.get("y");
+
+  if (xParam !== null && yParam !== null) {
+    const x = Number(xParam);
+    const y = Number(yParam);
+    if (Number.isNaN(x) || Number.isNaN(y)) {
+      return NextResponse.json({ message: "Invalid coordinates" }, { status: 400 });
+    }
+    const section = await getSection(x, y);
+    return NextResponse.json(jsonSafe(section));
+  }
+
   const sections = await prisma.section.findMany({
     select: { id: true, x: true, y: true },
     orderBy: [{ y: "asc" }, { x: "asc" }],
