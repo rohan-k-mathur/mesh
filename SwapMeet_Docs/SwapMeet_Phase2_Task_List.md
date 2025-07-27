@@ -15,7 +15,7 @@
 - [x] Prisma uniqueness constraint on `sectionId + sellerId`
 - [ ] Supabase Storage bucket `stall-images`
 - [ ] ImageDropzone + blurhash generation
-- [ ] Presence badge via Supabase Realtime
+- [x] Presence badge via Supabase Realtime
 
 ## 3. Migrations
 - [x] `ALTER TABLE section ADD COLUMN visitors INT DEFAULT 0;`
