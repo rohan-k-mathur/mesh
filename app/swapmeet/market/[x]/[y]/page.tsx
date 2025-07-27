@@ -4,12 +4,7 @@ import { Minimap } from "@/app/swapmeet/components/Minimap";
 import { TeleportButton } from "@/app/swapmeet/components/TeleportButton";
 import { StallCard } from "@/app/swapmeet/components/StallCard";
 import { getSection } from "swapmeet-api";
-import { useArrowNav } from "@/app/swapmeet/components/useArrowNav";
-
-function NavHook({ x, y }: { x: number; y: number }) {
-  useArrowNav(x, y);
-  return null;
-}
+import { NavHook } from "@/app/swapmeet/components/NavHook";
 
 export default async function SectionPage({ params }: { params: { x?: string; y?: string } }) {
   const x = parseInt(params.x ?? "0", 10);
