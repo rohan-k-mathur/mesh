@@ -16,6 +16,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import ImageDropzone from "../ImageDropzone";
+import { compressImage, generateBlurhash } from "@/lib/image";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { StallFormSchema, type StallFormValues } from "@/lib/validations/stall";
@@ -46,6 +48,7 @@ export default function StallForm({
     defaultValues: {
       name: defaultValues?.name ?? "",
       sectionId: defaultValues?.sectionId ?? 0,
+      image: undefined,
     },
   });
 
@@ -100,6 +103,20 @@ export default function StallForm({
                         </option>
                       ))}
                     </select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="image"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Thumbnail</FormLabel>
+                  <FormControl>
+                    <ImageDropzone onFile={field.onChange} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

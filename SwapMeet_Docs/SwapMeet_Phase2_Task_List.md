@@ -13,8 +13,8 @@
 - [x] TanStack Table listing stalls
 - [x] Create / Edit modal with Zod validation
 - [x] Prisma uniqueness constraint on `sectionId + sellerId`
-- [ ] Supabase Storage bucket `stall-images`
-- [ ] ImageDropzone + blurhash generation
+- [x] Supabase Storage bucket `stall-images`
+- [x] ImageDropzone + blurhash generation
 - [x] Presence badge via Supabase Realtime
 
 ## 3. Migrations

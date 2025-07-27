@@ -5,6 +5,8 @@ import Link from "next/link";
 import { ColumnDef, flexRender, getCoreRowModel, useReactTable } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
 import StallForm from "@/components/forms/StallForm";
+import { compressImage, generateBlurhash } from "@/lib/image";
+import { uploadStallImage } from "@/lib/utils";
 import { StallPresenceTracker } from "@/components/PresenceBadge";
 import { Button } from "@/components/ui/button";
 
@@ -31,11 +33,24 @@ export default function StallsPage() {
   });
 
   async function createStall(values: any) {
-    await fetch("/swapmeet/api/stall", {
+    const { image, ...rest } = values;
+    const res = await fetch("/swapmeet/api/stall", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(values),
+      body: JSON.stringify(rest),
     });
+    const data = await res.json();
+    const stallId = data.id;
+    if (image instanceof File) {
+      const compressed = await compressImage(image);
+      const blurhash = await generateBlurhash(compressed);
+      const { fileURL } = await uploadStallImage(compressed);
+      await fetch("/swapmeet/api/stall-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ stallId, url: fileURL, blurhash }),
+      });
+    }
     mutate();
   }
 
