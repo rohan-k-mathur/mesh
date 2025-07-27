@@ -35,6 +35,7 @@ interface Props {
   onOpenChange: (v: boolean) => void;
   onSubmit: (values: StallFormValues) => Promise<void> | void;
   defaultValues?: Partial<StallFormValues>;
+  loading?: boolean;
 }
 
 export default function StallForm({
@@ -42,6 +43,7 @@ export default function StallForm({
   onOpenChange,
   onSubmit,
   defaultValues,
+  loading,
 }: Props) {
   const form = useForm<StallFormValues>({
     resolver: zodResolver(StallFormSchema),
@@ -122,8 +124,8 @@ export default function StallForm({
                 </FormItem>
               )}
             />
-            <Button type="submit" className="mt-2">
-              Save
+            <Button type="submit" className="mt-2" disabled={loading}>
+              {loading ? "Saving..." : "Save"}
             </Button>
           </form>
         </Form>
