@@ -5,8 +5,8 @@
 
 /* === Urban Bazaar palette + shadows === */
 :root {
-  --ubz-bg:       #F5F3F1;
-  --ubz-card:     #FFFFFF;
+  --ubz-bg:       #f5f3f1de;
+  --ubz-card:     #ffffffb0;
   --ubz-street:   #3B3B3B;
   --ubz-brand:    #E94C40;
   --ubz-accent:   #1599A3;

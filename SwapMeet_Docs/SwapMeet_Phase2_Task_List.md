@@ -4,18 +4,18 @@
 ## 1. Macro Grid Navigation (finish Block 1)
 - [x] Arrow buttons + WASD keys (`components/GridNavControls.tsx`)
 - [x] Minimap canvas with heat‑map overlay (`components/Minimap.tsx`)
-- [x] Heat‑map API route `/api/heatmap`
+- [x] Heat‑map API route `/swapmeet/api/heatmap`
 - [x] Teleport to busy section helper
 - [x] SWR neighbour prefetch for instant navigation
 
 ## 2. Stall CRUD & Thumbnails (Block 2)
-- [x] Seller dashboard route `/dashboard/stalls`
-- [x] TanStack Table listing stalls
-- [x] Create / Edit modal with Zod validation
-- [x] Prisma uniqueness constraint on `sectionId + sellerId`
-- [x] Supabase Storage bucket `stall-images`
-- [x] ImageDropzone + blurhash generation
-- [x] Presence badge via Supabase Realtime
+- [ ] Seller dashboard route `/dashboard/stalls`
+- [ ] TanStack Table listing stalls
+- [ ] Create / Edit modal with Zod validation
+- [ ] Prisma uniqueness constraint on `sectionId + sellerId`
+- [ ] Supabase Storage bucket `stall-images`
+- [ ] ImageDropzone + blurhash generation
+- [ ] Presence badge via Supabase Realtime
 
 ## 3. Migrations
 - [x] `ALTER TABLE section ADD COLUMN visitors INT DEFAULT 0;`

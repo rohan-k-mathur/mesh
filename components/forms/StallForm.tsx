@@ -34,6 +34,7 @@ interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onSubmit: (values: StallFormValues) => Promise<void> | void;
+  
   defaultValues?: Partial<StallFormValues>;
   loading?: boolean;
 }
@@ -57,9 +58,12 @@ export default function StallForm({
   const [step, setStep] = useState(0);
 
   const handleSubmit = async (values: StallFormValues) => {
-    if (!(values.image instanceof File)) {
-      delete (values as any).image;
-    }
+    values.sectionId = Number(values.sectionId);
+
+   // strip image if the seller skipped it
+   if (!(values.image instanceof File)) {
+    delete (values as any).image;
+  }
     await onSubmit(values);
     onOpenChange(false);
   };
@@ -103,7 +107,9 @@ export default function StallForm({
                           {...field}
                           className="text-black border px-2 py-1"
                           value={field.value ?? sections?.[0]?.id ?? ""}
+                          onChange={(e) => field.onChange(Number(e.target.value))}
                         >
+                          
                           {sections?.map((s: any) => (
                             <option key={s.id} value={s.id}>
                               ({s.x}, {s.y})

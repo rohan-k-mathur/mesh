@@ -19,7 +19,7 @@ export function StallSheet({ stallId }: { stallId: number }) {
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent
           side="bottom"
-          className="!h-[90vh] rounded-t-lg overflow-y-auto"
+          className="h-full rounded-t-lg overflow-y-auto"
         >
           <header className="flex items-center gap-2 pb-2 border-b">
             {stall?.avatar && (

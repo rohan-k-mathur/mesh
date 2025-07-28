@@ -17,7 +17,7 @@ export default async function SectionPage({ params }: { params: { x?: string; y?
   const { stalls } = await getSection(x, y);
 
   return (
-    <main className="relative h-dvh bg-[var(--ubz-bg)]">
+    <main className="relative flex  flex-wrap h-dvh bg-slate-400">
       <NavHook x={x} y={y} />
       <EdgeNav x={x} y={y} />
       <NavArrow dir="N" x={x} y={y} />
@@ -26,7 +26,7 @@ export default async function SectionPage({ params }: { params: { x?: string; y?
       <NavArrow dir="W" x={x} y={y} />
       <TeleportButton />
       <Minimap cx={x} cy={y} />
-      <div className="absolute inset-0 section-grid gap-[3%] p-[clamp(16px,4vw,40px)]">
+      <div className="relative flex flex-wrap  gap-[3%] ">
         {stalls.map((s) => (
           <StallCard key={s.id} stall={s} />
         ))}
