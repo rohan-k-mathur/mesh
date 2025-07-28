@@ -20,7 +20,7 @@ export default async function SectionPage({ params }: { params: { x?: string; y?
 
 
   return (
-    <main className="relative h-dvh  items-center justify-center bg-[var(--ubz-bg)]">
+    <main className="relative h-dvh  items-center bg-transparent justify-center ">
     
     <NavHook x={x} y={y} />
       <EdgeNav x={x} y={y} />
@@ -33,8 +33,8 @@ export default async function SectionPage({ params }: { params: { x?: string; y?
 <hr></hr>
 
  {/* the grid */}
-<div className="flex items-center justify-center h-full">
-    <div className="grid grid-cols-3 grid-rows-3 gap-[3%]
+<div className="flex  items-center justify-center h-full">
+    <div className="grid grid-cols-3  bg-transparent grid-rows-3 gap-[3%] 
                     w-[min(90vmin,640px)] h-[min(90vmin,640px)]">
       {Array.from({ length: 9 }).map((_, i) => {
         const stall = stalls[i];
@@ -44,7 +44,7 @@ export default async function SectionPage({ params }: { params: { x?: string; y?
             {stall
               ? <StallCard stall={stall} />
               : <div className="w-full h-full border-2
-                               border-gray-400/30 rounded-lg" />}
+                               border-indigo-700/30 rounded-xl" />}
           </div>
         );
       })}

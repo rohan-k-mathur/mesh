@@ -620,6 +620,12 @@ textarea {
   overflow: scroll;
   scroll-behavior: smooth;
 }
+.stall-grid
+{
+  box-shadow:  0px 0px 145px rgba(244,244,245,.75),
+   0px 0px 149px rgba(255, 206, 205, 0.75);
+}
+
 .z-back {
   position: absolute;
   z-index: -1; /* Ensures this is always in the background */

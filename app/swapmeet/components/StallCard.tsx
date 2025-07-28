@@ -32,7 +32,7 @@ export function StallCard({ stall }) {
            alt={stall.name}
 
            className="object-cover w-full h-full rounded-xl transition-transform
-                      hover:scale-90" />
+                      hover:scale-95" />
       <span className="absolute inset-x-0 bottom-0 bg-white pb-1 text-xs
                        px-3  text-center tracking-wide py-0 line-clamp-1">{stall.name}</span>
       {stall.live && (

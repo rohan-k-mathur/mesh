@@ -32,7 +32,7 @@ export function Minimap({ cx, cy }: { cx: number; cy: number }) {
       ref={canvas}
       width={200}
       height={200}
-      className="absolute bottom-4 right-4 bg-white/70 rounded shadow"
+      className="fixed bottom-4 right-4 bg-white/70 rounded shadow"
     />
   );
 }
