@@ -48,7 +48,7 @@ export default function Login() {
   return (
     <div className={`${founderslight.className}`}>
       <div className="z-back">
-        <BackgroundCanvas />
+        {/* <BackgroundCanvas /> */}
       </div>
       <main className=" z-front flex min-h-screen max-w-screen w-full flex-col items-center justify-center p-8 ">
         <div className="w-full bg-white bg-opacity-10  rounded-xl logincard dark:border md:mt-0 sm:max-w-md xl:p-0 dark:bg-gray-800 dark:border-gray-700">

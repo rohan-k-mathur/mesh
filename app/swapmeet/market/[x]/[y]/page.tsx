@@ -16,23 +16,50 @@ export default async function SectionPage({ params }: { params: { x?: string; y?
   }
   const { stalls } = await getSection(x, y);
 
+  const cells = Array.from({ length: 9 }, (_, i) => stalls[i] ?? null);
+
+
   return (
-    <main className="relative flex  flex-wrap h-dvh bg-slate-400">
-      <NavHook x={x} y={y} />
+    <main className="relative h-dvh  items-center justify-center bg-[var(--ubz-bg)]">
+    
+    <NavHook x={x} y={y} />
       <EdgeNav x={x} y={y} />
-      <NavArrow dir="N" x={x} y={y} />
+      {/* <NavArrow dir="N" x={x} y={y} />
       <NavArrow dir="E" x={x} y={y} />
       <NavArrow dir="S" x={x} y={y} />
-      <NavArrow dir="W" x={x} y={y} />
+      <NavArrow dir="W" x={x} y={y} /> */}
       <TeleportButton />
-      <Minimap cx={x} cy={y} />
-      <div className="relative flex flex-wrap  gap-[3%] ">
-        {stalls.map((s) => (
-          <StallCard key={s.id} stall={s} />
-        ))}
-      </div>
-      <div className="kbdTip fixed bottom-2 left-1/2 -translate-x-1/2 text-xs text-[var(--ubz-street)] select-none">
-        ← ↑ ↓ → &nbsp; / &nbsp; WASD
+            <Minimap cx={x} cy={y} />
+<hr></hr>
+
+ {/* the grid */}
+<div className="flex items-center justify-center h-full">
+    <div className="grid grid-cols-3 grid-rows-3 gap-[3%]
+                    w-[min(90vmin,640px)] h-[min(90vmin,640px)]">
+      {Array.from({ length: 9 }).map((_, i) => {
+        const stall = stalls[i];
+        return (
+          <div key={stall ? stall.id : `empty-${i}`}
+               className="w-full aspect-square relative">
+            {stall
+              ? <StallCard stall={stall} />
+              : <div className="w-full h-full border-2
+                               border-gray-400/30 rounded-lg" />}
+          </div>
+        );
+      })}
+    </div>
+  </div>
+{/* 3×3 board */}
+
+      <hr></hr>
+  
+      {/* tooltip */}
+      <hr></hr>
+
+      <div className="kbdTip fixed bottom-2 left-1/2 -translate-x-1/2
+                      text-xs text-[var(--ubz-street)] select-none">
+        WASD&nbsp;/&nbsp;← ↑ ↓ →
       </div>
     </main>
   );

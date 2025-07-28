@@ -34,7 +34,7 @@ export function Minimap({ x, y }: { x: number; y: number }) {
       ref={canvasRef}
       width={200}
       height={200}
-      className="fixed bottom-4 right-4 border border-black bg-white/50 backdrop-blur-sm"
+      className="fixed bottom-4 right-4 border-2 border-black bg-white/50 backdrop-blur-sm"
     />
   );
 }

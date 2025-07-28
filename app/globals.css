@@ -493,6 +493,20 @@
   cursor: grab;
   color:rgb(0, 0, 0);
 }
+
+/* 3×3 board: keeps a perfect square and leaves a margin */
+.board {
+  display: grid;
+  place-content: center;          /* centre whole board */
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows:    repeat(3, 1fr);
+  gap: 3%;
+  width: 10rem;                 /* square responsive board */
+  height: 10rem;
+  max-width: 12rem;
+  max-height: 12rem;
+
+}
 .livechat-canvas-node {
   border-radius: 2px;
   border-color: slategray;
@@ -758,6 +772,39 @@ textarea {
   font-size: 0.5rem;
   cursor: grab;
   color:rgb(0, 0, 0);
+}
+
+/* === SwapMeet board =================================================== */
+/* A centred, perfectly square 3 × 3 grid with breathing room on all sides */
+.ubz-board {
+  position: absolute;
+  /* 8 vmin gap around the board for minimap, arrows, etc. */
+  inset: clamp(64px, 8vmin, 96px);
+  /* Keep the board itself square (width == height). */
+  width: calc(100% - clamp(64px, 8vmin, 96px) * 2);
+  aspect-ratio: 1 / 1;
+
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows:    repeat(3, 1fr);
+  gap: 3%;
+
+  /* Ensure the board shrinks on very small phones rather than overflow */
+  max-width: 90vmin;
+  max-height: 90vmin;
+  margin: 0 auto; /* centre horizontally */
+}
+/* Empty board square */
+.empty-cell {
+  border: 2px dashed var(--ubz-street);
+  border-radius: 8px;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 6px,
+    rgba(0,0,0,0.03) 6px,
+    rgba(0,0,0,0.03) 12px
+  );
 }
 .livestreamvideo {
   display: grid;
@@ -1296,6 +1343,12 @@ html:before{
     width: 15.5%;
     max-width: 250px;
   }
+}
+@media (max-width: 1279px) {
+  .ubz-board { grid-template-columns: repeat(2, 1fr); grid-auto-rows: 1fr; }
+}
+@media (max-width: 767px) {
+  .ubz-board { grid-template-columns: 1fr; }
 }
 
 .react-flow__edge-path {

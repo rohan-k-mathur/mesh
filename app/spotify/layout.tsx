@@ -1,7 +1,7 @@
 import localFont from 'next/font/local'
 
+import "@/app/globals.css";
 
-import "../globals.css";
 export const dynamic = "force-dynamic";
 
 

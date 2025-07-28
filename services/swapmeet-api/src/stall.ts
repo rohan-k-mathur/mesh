@@ -1,9 +1,9 @@
 export interface StallDetail {
   id: number;
   name: string;
-  visitors: number;
-  avatar?: string | null;
-  liveSrc?: string | null;
+  // visitors: number;
+  // avatar?: string | null;
+  // liveSrc?: string | null;
   items: { id: number; name: string; price_cents: number }[];
 }
 
@@ -15,9 +15,9 @@ export async function getStall(id: number): Promise<StallDetail | null> {
     select: {
       id: true,
       name: true,
-      visitors: true,
-      avatar: true,
-      live_src: true,
+      // visitors: true,
+      // avatar: true,
+      // live_src: true,
       items: { select: { id: true, name: true, price_cents: true } },
     },
   });
@@ -25,9 +25,9 @@ export async function getStall(id: number): Promise<StallDetail | null> {
   return {
     id: Number(stall.id),
     name: stall.name,
-    visitors: stall.visitors ?? 0,
-    avatar: stall.avatar,
-    liveSrc: stall.live_src,
+    // visitors: stall.visitors ?? 0,
+    // avatar: stall.avatar,
+    // liveSrc: stall.live_src,
     items: stall.items.map((i) => ({
       id: Number(i.id),
       name: i.name,

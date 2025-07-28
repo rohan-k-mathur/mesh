@@ -15,13 +15,13 @@ export function StallSheet({ stallId }: { stallId: number }) {
 
   return (
     <>
-      <button onClick={() => setOpen(true)} className="absolute inset-0" />
+      {/* <button onClick={() => setOpen(true)} className="absolute inset-0" /> */}
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent
           side="bottom"
           className="h-full rounded-t-lg overflow-y-auto"
         >
-          <header className="flex items-center gap-2 pb-2 border-b">
+          <header className="grid items-center gap-2 pb-2 border-b">
             {stall?.avatar && (
               <img src={stall.avatar} className="w-8 h-8 rounded-full" />
             )}
