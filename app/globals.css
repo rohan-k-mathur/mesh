@@ -307,6 +307,19 @@
   position: relative;
   bottom: -4px;
 }
+.img-view-modal {
+  display: flex;
+  width: auto;
+  height: auto;
+  max-width: 50rem;
+  max-height: 40rem;
+  justify-content: center;
+  align-items: center;
+  background: transparent;
+ 
+  padding: 0px;
+  position: relative;
+}
 .img-feed-frame {
   display: flex;
   width: auto;

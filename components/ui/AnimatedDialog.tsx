@@ -40,12 +40,12 @@ export function AnimatedDialog({
             <DialogContent asChild forceMount>
               <motion.div
                 layoutId={layoutId}
-                initial={{ scale: 0.92, opacity: 0 }}
+                initial={{ scale: 0, opacity: 0 }}
                 animate={{ scale: 1,   opacity: 1 }}
-                exit={{   scale: 0.92, opacity: 0 }}
+                exit={{   scale: 0, opacity: 0 }}
                 transition={{
                   type: "spring",
-                  mass: 0.6,
+                  mass: 10.,
                   stiffness: 260,
                   damping: 24,
                 }}
