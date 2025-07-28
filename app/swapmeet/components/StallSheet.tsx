@@ -2,7 +2,9 @@
 "use client";
 import useSWR from "swr";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
-import { OfferLadder } from "./OfferLadder";
+import { VideoPane } from "./VideoPane";
+import { ItemsPane } from "./ItemsPane";
+import { ChatPane } from "./ChatPane";
 
 const fetcher = (url: string) => fetch(url).then(r => r.json());
 
@@ -22,27 +24,14 @@ export function StallSheet({ stallId, open, onOpenChange }: Props) {
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="h-full overflow-y-auto rounded-t-lg">
-        <header className="flex items-center gap-2 border-b pb-2">
-          {stall?.avatar && (
-            <img src={stall.avatar} className="h-8 w-8 rounded-full" />
-          )}
-          <h2 className="font-headline text-lg">{stall?.name}</h2>
-        </header>
-
-        {/* video pane */}
-        {stall?.liveSrc && (
-          <video
-            src={stall.liveSrc}
-            className="mt-2 w-full aspect-video bg-black"
-            autoPlay
-            muted
-            playsInline
-          />
-        )}
-
-        {/* items / offer ladder  */}
-        <OfferLadder stallId={stallId} />
+      <SheetContent
+        side="bottom"
+        className="h-[90dvh] grid grid-rows-[auto_1fr_auto] gap-3 p-0 overflow-hidden rounded-t-lg"
+      >
+        <div className="mx-auto my-2 h-1.5 w-12 rounded-full bg-gray-300" />
+        <VideoPane src={stall?.liveSrc} open={open} />
+        <ItemsPane stallId={stallId} />
+        <ChatPane stallId={stallId} />
       </SheetContent>
     </Sheet>
   );
