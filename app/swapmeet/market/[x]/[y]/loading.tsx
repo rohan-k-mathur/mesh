@@ -1,5 +1,6 @@
 import SkeletonSquare from "@/components/SkeletonSquare";
 import { ThumbPad } from "@/app/swapmeet/components/ThumbPad";
+import SpinnerBlue from "@/components/ui/spinner-blue";
 
 export default function Loading() {
   return (
@@ -16,7 +17,9 @@ export default function Loading() {
           ))}
         </div>
       </div>
-      <ThumbPad x={0} y={0} />
+      <SpinnerBlue    className=" fixed bottom-[35%] right-16 border-2 border-slate-300/70
+                 w-28 h-28 bg-white/20 rounded-full backdrop-blur
+                 flex items-center justify-center text-gray-700" />
     </main>
   );
 }

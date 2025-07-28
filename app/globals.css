@@ -528,8 +528,8 @@
   cursor: grab;
   color:rgb(0, 0, 0);
 }
-.animate-pulse { animation: animatePulse 1s infinite; }
-@keyframes animatePulse { 0%{opacity:0} 50%{opacity:.3;} 100%{opacity:1} }
+/* .animate-pulse { animation: animatePulse .2s infinite; }
+@keyframes animatePulse { 0%{opacity:0} 50%{opacity:.3;} 100%{opacity:1} } */
 .portal-block{
   width: fit-content;
   
