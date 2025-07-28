@@ -117,10 +117,18 @@
 }
 
 @layer utilities {
+  @keyframes wiggle {
+    0%,100% { transform: rotate(0deg); }
+    33% { transform: rotate(8deg); }
+    66% { transform: rotate(-8deg); }
+  }
+  .animate-wiggle { animation: wiggle 0.4s ease-in-out 1; }
   .css-invert {
     @apply invert-[50%] brightness-200;
   }
-
+  .hover-tilt:hover {
+    transform: translateY(-4px) rotateX(3deg) rotateY(2deg);
+  }
   .custom-scrollbar::-webkit-scrollbar {
     width: 3px;
     height: 3px;
@@ -489,7 +497,7 @@
 .ubz-card { background: var(--ubz-card); box-shadow: var(--ubz-shadow-1); }
 .ubz-card-h:hover { box-shadow: var(--ubz-shadow-h); }
 .ubz-ring { outline: 3px solid var(--ubz-brand); border-radius: 9999px; }
-.ubz-pulse { animation: ubzPulse 1.2s infinite; }
+.ubz-pulse { animation: ubzPulse .15s infinite; }
 @keyframes ubzPulse { 0%{opacity:.7} 50%{opacity:0;} 100%{opacity:.7} }
 
 @keyframes spin-slow {0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
@@ -520,7 +528,8 @@
   cursor: grab;
   color:rgb(0, 0, 0);
 }
-
+.animate-pulse { animation: animatePulse 1s infinite; }
+@keyframes animatePulse { 0%{opacity:0} 50%{opacity:.3;} 100%{opacity:1} }
 .portal-block{
   width: fit-content;
   
@@ -610,6 +619,7 @@ textarea {
              
 
 }
+
 .text-node-display {
   font-size: 0.75rem; /* 12px */
   line-height: 0.84rem; /* 16px */

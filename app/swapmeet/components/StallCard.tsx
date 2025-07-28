@@ -26,15 +26,15 @@ import { StallSheet } from "./StallSheet";
 export function StallCard({ stall }) {
   return (
     <div /* clickable area for sheet – simplifies tab order */
-      className="relative  group bg-white rounded-xl likebutton
-                 overflow-hidden  ">
+      className="relative w-full h-full min-w-0 min-h-0 group bg-white rounded-xl likebutton 
+                 overflow-hidden hover-tilt hover:scale-105">
       <img src={stall.img ?? "/placeholder-stall.svg"}
            alt={stall.name}
 
-           className="object-cover w-full h-full rounded-xl transition-transform
-                      hover:scale-95" />
+           className="absolute inset-0 object-contain w-full h-full object-cover rounded-xl transition-transform 
+                      " />
       <span className="absolute inset-x-0 bottom-0 bg-white pb-1 text-xs
-                       px-3  text-center tracking-wide py-0 line-clamp-1">{stall.name}</span>
+                       px-3  text-center tracking-wide py-0 line-clamp-1 truncate pointer-events-none">{stall.name}</span>
       {stall.live && (
         <span className="ubz-ring ubz-pulse absolute top-1 right-1 w-3 h-3" />
       )}

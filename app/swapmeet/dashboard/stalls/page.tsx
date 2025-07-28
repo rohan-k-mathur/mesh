@@ -7,14 +7,18 @@ import { useMemo, useState } from "react";
 import StallForm from "@/components/forms/StallForm";
 import { compressImage, generateBlurhash } from "@/lib/image";
 import { uploadStallImage } from "@/lib/utils";
+import { uploadStallThumb } from "@/lib/uploadthumbnail";
 import { StallPresenceTracker } from "@/components/PresenceBadge";
 import { Button } from "@/components/ui/button";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 export default function StallsPage() {
-  const { data: stalls, mutate } = useSWR("/swapmeet/api/my-stalls", fetcher);
-  const isLoading = !stalls;
+  const { data: stalls, mutate } = useSWR(
+    "/swapmeet/api/my-stalls",
+    fetcher,
+    { revalidateOnFocus: false },
+  );  const isLoading = !stalls;
 
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -33,45 +37,75 @@ export default function StallsPage() {
     getCoreRowModel: getCoreRowModel(),
   });
 
-  async function createStall({ image, ...body }: any) {
-    setLoading(true);
-    const res = await fetch("/swapmeet/api/stall", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    if (!res.ok) {
-      setLoading(false);
-      return;
-    }
-    const { id } = await res.json();
-
-    mutate((prev: any) =>
-      prev ? [...prev, { id, name: body.name, visitors: 0 }] : prev,
-      false,
-    );
-
-    if (image instanceof File) {
-      try {
-        const compressed = await compressImage(image);
-        const [blurhash, upload] = await Promise.all([
-          generateBlurhash(compressed),
-          uploadStallImage(compressed),
-        ]);
-        if (upload.fileURL) {
-          await fetch("/swapmeet/api/stall-image", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ stallId: id, url: upload.fileURL, blurhash }),
-          });
-        }
-      } catch (err) {
-        console.warn("Image upload skipped:", err);
+  async function createStall(values: {
+    name: string;
+    sectionId: number;
+    image?: File;
+  }) {
+    try {
+      setLoading(true);
+  
+      /* ----------------------------------------------------------- 1. create row */
+      const res = await fetch("/swapmeet/api/stall", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: values.name, sectionId: values.sectionId }),
+      });
+  
+      if (res.status === 409) {
+        alert("You already have a stall in that section.");
+        return;
       }
+      if (!res.ok) throw new Error(await res.text());
+  
+      const { id } = (await res.json()) as { id: number };
+  
+      /* -------------------------------------------------- 2. optional thumbnail */
+      let publicUrl: string | null = null;
+  
+      if (values.image instanceof File) {
+        const compressed = await compressImage(values.image);
+        const blurhash   = await generateBlurhash(compressed);
+        publicUrl        = await uploadStallThumb(
+          compressed,
+          BigInt(id),            // helper expects bigint
+        );
+  
+        await fetch("/swapmeet/api/stall-image", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            stallId: id,
+            url: publicUrl,
+            blurhash,
+          }),
+        });
+      }
+  
+      /* ------------------------------------------- 3. optimistic SWR local cache */
+      mutate(
+        (prev: any[] | undefined) =>
+          prev
+            ? prev.concat({
+                id,
+                name: values.name,
+                // visitors: 0,
+                img: publicUrl ?? null,
+              })
+            : [
+                { id, name: values.name, visitors: 0, img: publicUrl ?? null },
+              ],
+        false,               // keep optimistic cache, no fetch yet
+      );
+      setOpen(false);               // close modal
+    } catch (err: any) {
+      console.error(err);
+      alert("Failed to create stall — see console for details.");
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   }
+  
 
   return (
     <div className="p-4">

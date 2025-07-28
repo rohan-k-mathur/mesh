@@ -1,79 +1,64 @@
 import { prisma } from "@/lib/prismaclient";
 import { NextResponse } from "next/server";
 import { getUserFromCookies } from "@/lib/serverutils";
-
-
+import { jsonSafe } from "@/lib/bigintjson";
 
 export async function POST(req: Request) {
-  const body = (await req.json()) as { name?: string; sectionId?: unknown };
-  const name = body.name?.trim();
-  const sectionId = Number(body.sectionId);          // coerce to number
+  /* -------- read body ONCE -------- */
+  const { name = "", sectionId } = (await req.json()) as {
+    name?: string;
+    sectionId?: unknown;
+  };
 
-  /* 2 ▸ validate */
-  if (!name || Number.isNaN(sectionId) || sectionId <= 0) {
-    return NextResponse.json({ message: "Bad request" }, { status: 400 });
+  /* -------- validate fields -------- */
+  const trimmed   = name.trim();
+  const secIdNum  = Number(sectionId);
+  if (!trimmed || Number.isNaN(secIdNum) || secIdNum <= 0) {
+    return NextResponse.json(
+      { message: "Missing or bad fields" },
+      { status: 400 },
+    );
   }
 
-    /* 3 ▸ auth  */
-    const user = await getUserFromCookies();          // adjust if sync
-    const ownerId = BigInt(user?.userId ?? 1);            // dev fallback
+  /* -------- auth -------- */
+  const user = await getUserFromCookies();
+  if (!user?.userId) {
+    return NextResponse.json({ message: "Auth required" }, { status: 401 });
+  }
+  const ownerId      = BigInt(user.userId);
+  const sectionIdBig = BigInt(secIdNum);
 
-    // /* 4 ▸ fetch current user id */
-    // const user = getUserFromCookies();                 // returns { id: bigint | number, … }
-    // const ownerId = typeof user === "object" ? user.id : 1n;  // fallback for now
-
-    
-      /* 5 ▸ verify section exists --------------------------------------------- */
+  /* -------- verify section -------- */
   const section = await prisma.section.findUnique({
-    where: { id: BigInt(sectionId) },
+    where: { id: sectionIdBig },
     select: { id: true },
   });
   if (!section) {
     return NextResponse.json({ message: "Invalid section" }, { status: 400 });
   }
 
-  
+  /* -------- uniqueness guard -------- */
+  const duplicate = await prisma.stall.findFirst({
+    where: { owner_id: ownerId, section_id: sectionIdBig },
+    select: { id: true },
+  });
+  if (duplicate) {
+    return NextResponse.json(
+      { message: "You already created a stall in this section." },
+      { status: 409 },
+    );
+  }
 
-  /* 6 ▸ create the stall  -------------------------------------------------- */
+  /* -------- create stall -------- */
   const stall = await prisma.stall.create({
     data: {
-      name,
-      section_id: section.id,
-      owner_id: BigInt(ownerId),        // Prisma field expects bigint | number
+      name: trimmed,
+      section_id: sectionIdBig,
+      owner_id:   ownerId,
     },
     select: { id: true },
   });
 
-  return NextResponse.json({ id: Number(stall.id) });
- }
-//   // const { name, sectionId } = await req.json();
-
-//   // if (!name || !sectionId) {
-//   //   return NextResponse.json({ message: "Missing fields" }, { status: 400 });
-//   // }
-//   const user = getUserFromCookies();
-//   const sectionId = Number(body.sectionId);
-// if (!name || Number.isNaN(sectionId) || sectionId <= 0) {
-//   return NextResponse.json({ message: "Bad request" }, { status: 400 });
-// }
-
-//   const section = await prisma.section.findUnique({
-//     where: { id: BigInt(sectionId) },
-//     select: { id: true },
-//   });
-
-//   if (!section) {
-//     return NextResponse.json({ message: "Invalid section" }, { status: 400 });
-//   }
-
-//   const stall = await prisma.stall.create({
-//     data: {
-//       name,
-//       section_id: section.id,
-//       owner_id: user, // TODO: replace with auth
-//     },
-//   });
-
-//   return NextResponse.json({ id: Number(stall.id) });
-// }
-
+  /* -------- respond -------- */
+  return NextResponse.json(jsonSafe({ id: stall.id }), { status: 201 });
+}

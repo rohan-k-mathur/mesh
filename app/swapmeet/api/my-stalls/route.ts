@@ -1,46 +1,86 @@
+// // // import { prisma } from "@/lib/prismaclient";
+// // // import { NextResponse } from "next/server";
+
+// // // export async function GET() {
+// // //   const rows = await prisma.stall.findMany({
+// // //     where: { owner_id: 1n },
+// // //     select: { id: true, name: true },
+// // //     orderBy: { updated_at: "desc" },
+// // //   });
+// // //   return NextResponse.json(rows);
+// // // }
+// // // app/swapmeet/api/my-stalls/route.ts
 // // import { prisma } from "@/lib/prismaclient";
 // // import { NextResponse } from "next/server";
 
 // // export async function GET() {
 // //   const rows = await prisma.stall.findMany({
-// //     where: { owner_id: 1n },
+// //     // 1.  use BigInt() if you don't bump tsconfig
+// //     where: { owner_id: BigInt(1) },
+
+// //     // 2.  only select fields that exist
 // //     select: { id: true, name: true },
-// //     orderBy: { updated_at: "desc" },
+
+// //     // 3.  order by a real column (created_at or id)
+// //     orderBy: { created_at: "desc" },
 // //   });
 // //   return NextResponse.json(rows);
 // // }
-// // app/swapmeet/api/my-stalls/route.ts
+
+
 // import { prisma } from "@/lib/prismaclient";
 // import { NextResponse } from "next/server";
+// import { jsonSafe } from "@/lib/bigintjson";
+// // import { getUserFromCookies } from "@/lib/serverutils"; // ← add later
 
 // export async function GET() {
+//   // const user = getUserFromCookies();        // TODO: real auth
+//   // const ownerId = BigInt(user?.id ?? 1);    // fallback for dev
+
 //   const rows = await prisma.stall.findMany({
-//     // 1.  use BigInt() if you don't bump tsconfig
-//     where: { owner_id: BigInt(1) },
-
-//     // 2.  only select fields that exist
-//     select: { id: true, name: true },
-
-//     // 3.  order by a real column (created_at or id)
-//     orderBy: { created_at: "desc" },
+//     where: { owner_id: BigInt(12) },         // use BigInt(…) not 1n
+//     select: { id: true, name: true },         // visitors removed
+//     orderBy: { id: "desc" },                  // id or created_at exist
 //   });
-//   return NextResponse.json(rows);
+
+//   return NextResponse.json(jsonSafe(rows), { status: 200 });
 // }
 
-
+// app/swapmeet/api/my-stalls/route.ts
 import { prisma } from "@/lib/prismaclient";
+import { jsonSafe } from "@/lib/bigintjson";
 import { NextResponse } from "next/server";
-// import { getUserFromCookies } from "@/lib/serverutils"; // ← add later
+import { getUserFromCookies } from "@/lib/serverutils";
 
 export async function GET() {
-  // const user = getUserFromCookies();        // TODO: real auth
-  // const ownerId = BigInt(user?.id ?? 1);    // fallback for dev
+  const user = await getUserFromCookies();
+  if (!user?.userId)
+    return NextResponse.json({ msg: "unauth" }, { status: 401 });
 
+  /* latest image per stall */
   const rows = await prisma.stall.findMany({
-    where: { owner_id: BigInt(1) },           // use BigInt(…) not 1n
-    select: { id: true, name: true },         // visitors removed
-    orderBy: { id: "desc" },                  // id or created_at exist
+    where: { owner_id: BigInt(user.userId) },
+    orderBy: { updated_at: "desc" },
+    select: {
+      id: true,
+      name: true,
+      // visitors: true,
+      images: {
+        /* newest first then take[0] on client OR limit=1 here */
+        orderBy: { created_at: "desc" },
+        take: 1,
+        select: { url: true },
+      },
+    },
   });
 
-  return NextResponse.json(rows);
+  /* map into flat shape expected by dashboard */
+  const out = rows.map((s) => ({
+    id: Number(s.id),
+    name: s.name,
+    // visitors: s.visitors ?? 0,
+    img: s.images[0]?.url ?? null,
+  }));
+
+  return NextResponse.json(jsonSafe(out));
 }

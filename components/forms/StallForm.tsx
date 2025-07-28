@@ -139,9 +139,10 @@ export default function StallForm({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Thumbnail</FormLabel>
-                      <FormControl>
-                        <ImageDropzone onFile={field.onChange} />
-                      </FormControl>
+                      <FormControl asChild>
+            {/* 2️⃣ our single wrapper div comes from ImageDropzone itself */}
+            <ImageDropzone onFile={field.onChange} />
+          </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}

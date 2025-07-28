@@ -13,6 +13,8 @@ export async function POST(req: Request) {
       url,
       blurhash,
     },
+    select: { id: true, url: true, blurhash: true },
+
   });
-  return NextResponse.json(jsonSafe(img));
+  return NextResponse.json(jsonSafe(img), { status: 201 });
 }
