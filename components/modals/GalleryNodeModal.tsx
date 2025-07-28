@@ -8,6 +8,8 @@ import { GalleryPostValidation } from "@/lib/validations/thread";
 import { z } from "zod";
 import GalleryNodeForm from "../forms/GalleryNodeForm";
 import Image from "next/image";
+import { AnimatedDialog } from "../ui/AnimatedDialog";
+import { motion } from "framer-motion";
 
 interface Props {
   id?: string;

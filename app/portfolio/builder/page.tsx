@@ -21,7 +21,6 @@ import { PortfolioExportData } from "@/lib/portfolio/export";
 import { templates, BuilderElement } from "@/lib/portfolio/templates";
 import Image from "next/image";
 import html2canvas from "html2canvas";
-import { getUserFromCookies } from "@/lib/serverutils";
 import { createRealtimePost } from "@/lib/actions/realtimepost.actions";
 import { Input } from "@/components/ui/input";
 import {

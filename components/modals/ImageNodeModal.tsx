@@ -4,6 +4,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { AnimatedDialog } from "../ui/AnimatedDialog";
+import { motion } from "framer-motion";
+
 import { ImagePostValidation } from "@/lib/validations/thread";
 import Image from "next/image";
 import { z } from "zod";

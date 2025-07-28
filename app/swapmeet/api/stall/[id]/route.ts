@@ -11,9 +11,8 @@ export async function GET(
     return NextResponse.json({ message: "Invalid id" }, { status: 400 });
   }
   const stall = await getStall(id);
-  if (!stall) {
-    return NextResponse.json({ message: "Not found" }, { status: 404 });
-  }
+  if (!stall) return NextResponse.json({ message: "Not found" }, { status: 404 });
+
   return NextResponse.json(jsonSafe(stall), {
     headers: { "Cache-Control": "s-maxage=2, stale-while-revalidate=5" },
   });

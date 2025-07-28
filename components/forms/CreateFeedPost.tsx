@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import { Dialog, DialogTrigger, DialogContent } from "@/components/ui/dialog";
+import { AnimatedDialog } from "../ui/AnimatedDialog";
+import { motion } from "framer-motion";
+
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import {
@@ -11,6 +14,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
+
 import TextNodeModal from "@/components/modals/TextNodeModal";
 import ImageNodeModal from "@/components/modals/ImageNodeModal";
 import YoutubeNodeModal from "@/components/modals/YoutubeNodeModal";
@@ -35,7 +39,6 @@ import {
   serializeBigInt,
 } from "@/lib/utils";
 import { createRealtimePost } from "@/lib/actions/realtimepost.actions";
-import { createFeedPost } from "@/lib/actions/feed.actions";
 import { fetchUserByUsername } from "@/lib/actions/user.actions";
 import { useRouter } from "next/navigation";
 import { z } from "zod";
@@ -51,6 +54,8 @@ import {
   ProductReviewValidation,
 } from "@/lib/validations/thread";
 import { AppNodeType, DEFAULT_NODE_VALUES } from "@/lib/reactflow/types";
+import { useCreateFeedPost } from "@/lib/hooks/useCreateFeedPost";  // client
+import { useSession }        from "@/lib/hooks/useSession";
 
 const nodeOptions: { label: string; nodeType: string }[] = [
   { label: "TEXT", nodeType: "TEXT" },
@@ -79,6 +84,8 @@ interface Props {
 }
 
 const CreateFeedPost = ({ roomId = "global" }: Props) => {
+    const { session, loading: authLoading } = useSession();     // who is this?
+  const createFeedPost = useCreateFeedPost();                 // POST helper
   const [open, setOpen] = useState(false);
   const [selectedType, setSelectedType] = useState<string>("");
   const router = useRouter();
@@ -94,7 +101,10 @@ const CreateFeedPost = ({ roomId = "global" }: Props) => {
         type: "TEXT",
         content: values.postContent,
       });
-    } else {
+    }
+    if (roomId === "global") {   // ⬅ use the hook not the server action
+            await createFeedPost({ type: "TEXT", content: values.postContent });     }
+      else {
       await createRealtimePost({
         text: values.postContent,
         path: "/",
@@ -559,7 +569,15 @@ const CreateFeedPost = ({ roomId = "global" }: Props) => {
         );
     }
   };
+  if (authLoading) return null;        // still checking cookies
 
+  if (!session) {
+    return (
+      <Button onClick={() => router.push("/login")} /* … */>
+        Sign in to post
+      </Button>
+    );
+  }
   return (
     <Dialog
       open={open}
@@ -569,6 +587,7 @@ const CreateFeedPost = ({ roomId = "global" }: Props) => {
       }}
     >
       <DialogTrigger
+      
         className="likebutton items-start justify-start leftsidebar-link  leftsidebar-item"
         asChild
       >

@@ -1,6 +1,7 @@
 import { prisma } from "../prismaclient";
-import { getUserFromCookies } from "@/lib/serverutils";
-
+import { useSession } from "../useSession";
+import { getUserFromCookies } from "@/lib/serverutils";  // server‑only util
+import { jsonSafe } from "../bigintjson";
 export interface CreateFeedPostArgs {
   type: "TEXT" | "IMAGE" | "VIDEO" | "GALLERY" | "PREDICTION" | "PRODUCT_REVIEW";
   content?: string;
@@ -10,8 +11,10 @@ export interface CreateFeedPostArgs {
 }
 
 export async function createFeedPost(args: CreateFeedPostArgs): Promise<{ postId: bigint }> {
-  const user = await getUserFromCookies();
+  const user = await getUserFromCookies();          // ← **server** side
   if (!user) throw new Error("Not authenticated");
+
+ // const user = await getUserFromCookies();
 
   const { type, isPublic = true, ...rest } = args;
 
@@ -26,7 +29,7 @@ export async function createFeedPost(args: CreateFeedPostArgs): Promise<{ postId
     },
   });
 
-  return { postId: post.id };
+  return jsonSafe({ postId: post.id });
 }
 
 export async function fetchFeedPosts() {
