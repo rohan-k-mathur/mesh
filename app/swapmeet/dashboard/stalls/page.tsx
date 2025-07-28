@@ -13,9 +13,8 @@ import { Button } from "@/components/ui/button";
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 export default function StallsPage() {
-  const { data, mutate } = useSWR("/swapmeet/api/section?x=0&y=0", fetcher);
-  const stalls = data?.stalls ?? [];
-  const isLoading = !data;
+  const { data: stalls, mutate } = useSWR("/swapmeet/api/my-stalls", fetcher);
+  const isLoading = !stalls;
 
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -29,42 +28,48 @@ export default function StallsPage() {
   );
 
   const table = useReactTable({
-    data: stalls,
+    data: stalls ?? [],
     columns,
     getCoreRowModel: getCoreRowModel(),
   });
 
-  async function createStall(values: any) {
-    const { image, ...rest } = values;
+  async function createStall({ image, ...body }: any) {
     setLoading(true);
     const res = await fetch("/swapmeet/api/stall", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(rest),
+      body: JSON.stringify(body),
     });
-    const data = await res.json();
-    const stallId = data.id;
-    if (image instanceof File) {
-      const compressed = await compressImage(image);
-      const [blurhash, upload] = await Promise.all([
-        generateBlurhash(compressed),
-        uploadStallImage(compressed),
-      ]);
-      if (upload.fileURL) {
-        await fetch("/swapmeet/api/stall-image", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ stallId, url: upload.fileURL, blurhash }),
-        });
-      }
+    if (!res.ok) {
+      setLoading(false);
+      return;
     }
-    mutate(
-      (prev) =>
-        prev
-          ? { ...prev, stalls: [...prev.stalls, { id: stallId, name: rest.name }] }
-          : prev,
+    const { id } = await res.json();
+
+    mutate((prev: any) =>
+      prev ? [...prev, { id, name: body.name, visitors: 0 }] : prev,
       false,
     );
+
+    if (image instanceof File) {
+      try {
+        const compressed = await compressImage(image);
+        const [blurhash, upload] = await Promise.all([
+          generateBlurhash(compressed),
+          uploadStallImage(compressed),
+        ]);
+        if (upload.fileURL) {
+          await fetch("/swapmeet/api/stall-image", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ stallId: id, url: upload.fileURL, blurhash }),
+          });
+        }
+      } catch (err) {
+        console.warn("Image upload skipped:", err);
+      }
+    }
+
     setLoading(false);
   }
 
