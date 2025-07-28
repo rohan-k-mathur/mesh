@@ -1,31 +1,30 @@
-import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prismaclient";
-import { jsonSafe } from "@/lib/bigintjson";
-export async function POST(req: Request) {
-  const body = await req.json();
-  const { name, sectionId } = body;
+import { NextResponse } from "next/server";
 
-  const exists = await prisma.section.count({ where: { id: sectionId } });
-  if (!exists) {
-    return NextResponse.json(
-      { message: "Section not found" },
-      { status: 400 }
-    );
+export async function POST(req: Request) {
+  const { name, sectionId } = await req.json();
+
+  if (!name || !sectionId) {
+    return NextResponse.json({ message: "Missing fields" }, { status: 400 });
   }
 
-  const [stall] = await prisma.$transaction([
-    prisma.stall.create({
-      data: {
-        name,
-        section_id: BigInt(sectionId),
-        owner_id: 1n,
-      },
-    }),
-    prisma.section.update({
-      where: { id: BigInt(sectionId) },
-      data: { visitors: { increment: 1 } },
-    }),
-  ]);
-  return NextResponse.json(jsonSafe({ id: stall.id, name: stall.name }));
+  const section = await prisma.section.findUnique({
+    where: { id: BigInt(sectionId) },
+    select: { id: true },
+  });
+
+  if (!section) {
+    return NextResponse.json({ message: "Invalid section" }, { status: 400 });
+  }
+
+  const stall = await prisma.stall.create({
+    data: {
+      name,
+      section_id: section.id,
+      owner_id: 1n, // TODO: replace with auth
+    },
+  });
+
+  return NextResponse.json({ id: Number(stall.id) });
 }
 

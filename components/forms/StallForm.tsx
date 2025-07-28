@@ -52,14 +52,19 @@ export default function StallForm({
       sectionId: defaultValues?.sectionId ?? 0,
       image: undefined,
     },
+    mode: "onChange",
   });
   const [step, setStep] = useState(0);
 
   const handleSubmit = async (values: StallFormValues) => {
+    if (!(values.image instanceof File)) {
+      delete (values as any).image;
+    }
     await onSubmit(values);
     onOpenChange(false);
   };
   const { data: sections } = useSWR("/swapmeet/api/section", fetcher);
+  const isReady = !!sections?.length;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -110,7 +115,11 @@ export default function StallForm({
                     </FormItem>
                   )}
                 />
-                <Button type="button" onClick={() => setStep(1)}>
+                <Button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  disabled={!form.formState.isValid || !isReady}
+                >
                   Next
                 </Button>
               </>
@@ -132,7 +141,7 @@ export default function StallForm({
                   )}
                 />
                 <div className="flex justify-between">
-                  <Button type="button" onClick={() => setStep(0)}>
+                  <Button type="button" onClick={() => setStep(0)} disabled={!isReady}>
                     Back
                   </Button>
                   <Button type="button" onClick={() => setStep(2)}>
@@ -144,7 +153,7 @@ export default function StallForm({
 
             {step === 2 && (
               <>
-                <Button type="button" onClick={() => setStep(1)}>
+                <Button type="button" onClick={() => setStep(1)} disabled={!isReady}>
                   Back
                 </Button>
                 <Button type="submit" className="ml-2" disabled={loading}>
