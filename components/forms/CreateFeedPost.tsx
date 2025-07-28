@@ -35,6 +35,7 @@ import {
   serializeBigInt,
 } from "@/lib/utils";
 import { createRealtimePost } from "@/lib/actions/realtimepost.actions";
+import { createFeedPost } from "@/lib/actions/feed.actions";
 import { fetchUserByUsername } from "@/lib/actions/user.actions";
 import { useRouter } from "next/navigation";
 import { z } from "zod";
@@ -88,13 +89,20 @@ const CreateFeedPost = ({ roomId = "global" }: Props) => {
   }
 
   async function handleTextSubmit(values: z.infer<typeof TextPostValidation>) {
-    await createRealtimePost({
-      text: values.postContent,
-      path: "/",
-      coordinates: { x: 0, y: 0 },
-      type: "TEXT",
-      realtimeRoomId: roomId,
-    });
+    if (roomId === "global") {
+      await createFeedPost({
+        type: "TEXT",
+        content: values.postContent,
+      });
+    } else {
+      await createRealtimePost({
+        text: values.postContent,
+        path: "/",
+        coordinates: { x: 0, y: 0 },
+        type: "TEXT",
+        realtimeRoomId: roomId,
+      });
+    }
     reset();
     router.refresh();
   }
@@ -104,13 +112,20 @@ const CreateFeedPost = ({ roomId = "global" }: Props) => {
   ) {
     const result = await uploadFileToSupabase(values.image);
     if (!result.error) {
-      await createRealtimePost({
-        imageUrl: result.fileURL,
-        path: "/",
-        coordinates: { x: 0, y: 0 },
-        type: "IMAGE",
-        realtimeRoomId: roomId,
-      });
+      if (roomId === "global") {
+        await createFeedPost({
+          type: "IMAGE",
+          imageUrl: result.fileURL,
+        });
+      } else {
+        await createRealtimePost({
+          imageUrl: result.fileURL,
+          path: "/",
+          coordinates: { x: 0, y: 0 },
+          type: "IMAGE",
+          realtimeRoomId: roomId,
+        });
+      }
       reset();
       router.refresh();
     }
@@ -119,13 +134,20 @@ const CreateFeedPost = ({ roomId = "global" }: Props) => {
   async function handleVideoSubmit(
     values: z.infer<typeof YoutubePostValidation>
   ) {
-    await createRealtimePost({
-      videoUrl: values.videoURL,
-      path: "/",
-      coordinates: { x: 0, y: 0 },
-      type: "VIDEO",
-      realtimeRoomId: roomId,
-    });
+    if (roomId === "global") {
+      await createFeedPost({
+        type: "VIDEO",
+        videoUrl: values.videoURL,
+      });
+    } else {
+      await createRealtimePost({
+        videoUrl: values.videoURL,
+        path: "/",
+        coordinates: { x: 0, y: 0 },
+        type: "VIDEO",
+        realtimeRoomId: roomId,
+      });
+    }
     reset();
     router.refresh();
   }
@@ -153,15 +175,24 @@ const CreateFeedPost = ({ roomId = "global" }: Props) => {
     );
     const urls = uploads.filter((r) => !r.error).map((r) => r.fileURL);
     if (urls.length > 0) {
-      await createRealtimePost({
-        path: "/",
-        coordinates: { x: 0, y: 0 },
-        type: "GALLERY",
-        realtimeRoomId: roomId,
-        isPublic: values.isPublic,
-        imageUrl: urls[0],
-        text: JSON.stringify(urls),
-      });
+      if (roomId === "global") {
+        await createFeedPost({
+          type: "GALLERY",
+          imageUrl: urls[0],
+          content: JSON.stringify(urls),
+          isPublic: values.isPublic,
+        });
+      } else {
+        await createRealtimePost({
+          path: "/",
+          coordinates: { x: 0, y: 0 },
+          type: "GALLERY",
+          realtimeRoomId: roomId,
+          isPublic: values.isPublic,
+          imageUrl: urls[0],
+          text: JSON.stringify(urls),
+        });
+      }
       reset();
       router.refresh();
     }
@@ -439,18 +470,30 @@ const CreateFeedPost = ({ roomId = "global" }: Props) => {
                 .filter((r) => !r.error)
                 .map((r) => r.fileURL);
               const filtered = vals.claims.filter((c) => c.trim() !== "");
-              await createRealtimePost({
-                text: JSON.stringify({
-                  ...vals,
-                  images: urls,
-                  claims: filtered,
-                }),
-                path: "/",
-                coordinates: { x: 0, y: 0 },
-                type: "PRODUCT_REVIEW",
-                realtimeRoomId: roomId,
-                ...(urls.length > 0 && { imageUrl: urls[0] }),
-              });
+              if (roomId === "global") {
+                await createFeedPost({
+                  type: "PRODUCT_REVIEW",
+                  content: JSON.stringify({
+                    ...vals,
+                    images: urls,
+                    claims: filtered,
+                  }),
+                  imageUrl: urls[0],
+                });
+              } else {
+                await createRealtimePost({
+                  text: JSON.stringify({
+                    ...vals,
+                    images: urls,
+                    claims: filtered,
+                  }),
+                  path: "/",
+                  coordinates: { x: 0, y: 0 },
+                  type: "PRODUCT_REVIEW",
+                  realtimeRoomId: roomId,
+                  ...(urls.length > 0 && { imageUrl: urls[0] }),
+                });
+              }
               reset();
               router.refresh();
             }}
