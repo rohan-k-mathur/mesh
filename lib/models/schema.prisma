@@ -61,8 +61,8 @@ model User {
   offers                   Offer[]
   bids                     Bid[]
   orders                   Order[]
+  StallMessage             StallMessage[]
   cartItems               CartItem[]
-
   @@map("users")
 }
 
@@ -124,31 +124,31 @@ model Like {
 }
 
 model FeedPost {
-  id         BigInt         @id @default(autoincrement())
-  created_at DateTime       @default(now()) @db.Timestamptz(6)
-  updated_at DateTime?      @default(now()) @updatedAt @db.Timestamptz(6)
-  author_id  BigInt
-  type       feed_post_type
-  content    String?
-  image_url  String?
-  video_url  String?
-  isPublic   Boolean        @default(true)
-  like_count Int            @default(0)
+  id               BigInt            @id @default(autoincrement())
+  created_at       DateTime          @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime?         @default(now()) @updatedAt @db.Timestamptz(6)
+  author_id        BigInt
+  type             feed_post_type
+  content          String?
+  image_url        String?
+  video_url        String?
+  isPublic         Boolean           @default(true)
+  like_count       Int               @default(0)
   author           User              @relation(fields: [author_id], references: [id])
   predictionMarket PredictionMarket? @relation("FeedPostPrediction")
-  productReview      ProductReview?
-  parent_id          BigInt?
-  pluginData         Json?
-  pluginType         String?
-  feedPost           FeedPost?      @relation("FeedPostChildren", fields: [parent_id], references: [id], onDelete: Restrict)
-  children           FeedPost[]     @relation("FeedPostChildren") 
+  productReview    ProductReview?
+  parent_id        BigInt?
+  pluginData       Json?
+  pluginType       String?
+  feedPost         FeedPost?         @relation("FeedPostChildren", fields: [parent_id], references: [id], onDelete: Restrict)
+  children         FeedPost[]        @relation("FeedPostChildren")
 
   @@index([author_id])
   @@map("feed_posts")
 }
 
 enum feed_post_type {
-TEXT
+  TEXT
   VIDEO
   IMAGE
   LIVESTREAM
@@ -477,8 +477,7 @@ model ProductReview {
   claims           ProductReviewClaim[]
   author           User                 @relation(fields: [author_id], references: [id], onDelete: Cascade)
   realtime_post    RealtimePost?        @relation(fields: [realtime_post_id], references: [id])
-  feed_post      FeedPost?             @relation(fields: [feed_post_id], references: [id])
-
+  feed_post        FeedPost?            @relation(fields: [feed_post_id], references: [id])
 
   @@map("product_reviews")
 }
@@ -787,26 +786,27 @@ model Section {
   stalls     Stall[]
 
   @@unique([x, y])
-  @@map("section")      // 👈 tell Prisma the real table name
+  @@map("section") // 👈 tell Prisma the real table name
 }
 
 model Stall {
-  id         BigInt    @id @default(autoincrement())
-  section_id BigInt?
-  owner_id   BigInt
-  name       String
-  created_at DateTime  @default(now()) @db.Timestamptz(6)
-  updated_at DateTime? @default(now()) @updatedAt @db.Timestamptz(6)
-  section    Section?  @relation(fields: [section_id], references: [id])
-  owner      User      @relation(fields: [owner_id], references: [id])
-  items      Item[]
-  auctions   Auction[]
-  orders     Order[]
-  images     StallImage[]
+  id           BigInt         @id @default(autoincrement())
+  section_id   BigInt?
+  owner_id     BigInt
+  name         String
+  created_at   DateTime       @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime?      @default(now()) @updatedAt @db.Timestamptz(6)
+  section      Section?       @relation(fields: [section_id], references: [id])
+  owner        User           @relation(fields: [owner_id], references: [id])
+  items        Item[]
+  auctions     Auction[]
+  orders       Order[]
+  images       StallImage[]
+  StallMessage StallMessage[]
 
+  @@unique([section_id, owner_id])
   @@index([section_id])
   @@index([owner_id, updated_at])
-  @@unique([section_id, owner_id])
   @@map("stalls")
 }
 
@@ -909,6 +909,18 @@ model OrderLine {
   @@map("order_lines")
 }
 
+model StallMessage {
+  id         BigInt   @id @default(autoincrement())
+  stall_id   BigInt
+  user_id    BigInt
+  text       String
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  stall      Stall    @relation(fields: [stall_id], references: [id])
+  user       User     @relation(fields: [user_id], references: [id])
+
+  @@index([stall_id])
+  @@map("stall_messages")
+=======
 model CartItem {
   id         BigInt   @id @default(autoincrement())
   user_id    BigInt
