@@ -114,6 +114,7 @@
     "remark-gfm": "^4.0.1",
     "shadcn": "^2.1.0",
     "shiki": "^3.2.1",
+    "smooth-scrollbar": "^8.8.4",
     "stream-json": "^1.9.1",
     "swr": "^2.2.0",
     "tailwind-merge": "^2.4.0",

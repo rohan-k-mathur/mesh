@@ -5,6 +5,7 @@ import { useInfiniteRealtimePosts } from "@/lib/hooks/useInfiniteRealtimePosts";
 import Spinner from "@/components/ui/spinner";
 import { realtime_post_type } from "@prisma/client";
 import { useMemo } from "react";
+import ScrollList from "./ScrollList";
 
 interface Props {
   initialPosts: any[];
@@ -12,6 +13,7 @@ interface Props {
   roomId?: string;
   postTypes?: realtime_post_type[];
   currentUserId?: bigint;
+  animated?: boolean;
 }
 
 export default function RealtimeFeed({
@@ -20,6 +22,7 @@ export default function RealtimeFeed({
   roomId,
   postTypes,
   currentUserId,
+  animated = false,
 }: Props) {
   const fetchPage = useMemo(() => {
     if (roomId && postTypes && postTypes.length > 0) {
@@ -47,35 +50,44 @@ export default function RealtimeFeed({
     initialIsNext
   );
 
-  return (
-    <section className="mt-[0rem] flex flex-col gap-12">
-      {posts.map((realtimePost) => (
-        <PostCard
-          key={realtimePost.id.toString()}
-          currentUserId={currentUserId}
-          id={realtimePost.id}
-          isRealtimePost={Boolean(roomId && postTypes && postTypes.length > 0)}
-          isFeedPost={isFeed}
-          likeCount={realtimePost.like_count}
-          commentCount={realtimePost.commentCount ?? 0}
-          content={realtimePost.content ? realtimePost.content : undefined}
-          roomPostContent={(realtimePost as any).room_post_content}
-          image_url={realtimePost.image_url ? realtimePost.image_url : undefined}
-          video_url={realtimePost.video_url ? realtimePost.video_url : undefined}
-          pluginType={(realtimePost as any).pluginType ?? null}
-          pluginData={(realtimePost as any).pluginData ?? null}
-          type={realtimePost.type}
-          author={realtimePost.author!}
-          createdAt={new Date(realtimePost.created_at).toDateString()}
-          claimIds={realtimePost.productReview?.claims.map((c: any) => c.id.toString()) ?? []}
-        />
-      ))}
+  const items = posts.map((realtimePost) => (
+    <div key={realtimePost.id.toString()} className={animated ? "scroll-list__item js-scroll-list-item" : ""}>
+      <PostCard
+        currentUserId={currentUserId}
+        id={realtimePost.id}
+        isRealtimePost={Boolean(roomId && postTypes && postTypes.length > 0)}
+        isFeedPost={isFeed}
+        likeCount={realtimePost.like_count}
+        commentCount={realtimePost.commentCount ?? 0}
+        content={realtimePost.content ? realtimePost.content : undefined}
+        roomPostContent={(realtimePost as any).room_post_content}
+        image_url={realtimePost.image_url ? realtimePost.image_url : undefined}
+        video_url={realtimePost.video_url ? realtimePost.video_url : undefined}
+        pluginType={(realtimePost as any).pluginType ?? null}
+        pluginData={(realtimePost as any).pluginData ?? null}
+        type={realtimePost.type}
+        author={realtimePost.author!}
+        createdAt={new Date(realtimePost.created_at).toDateString()}
+        claimIds={realtimePost.productReview?.claims.map((c: any) => c.id.toString()) ?? []}
+      />
+    </div>
+  ));
+
+  const content = (
+    <>
+      {items}
       <div ref={loaderRef} className="h-1" />
       {loading && (
         <div className="flex justify-center mt-0 mb-4">
-          <Spinner className="w-[3rem] h-[3rem]"/>
+          <Spinner className="w-[3rem] h-[3rem]" />
         </div>
       )}
-    </section>
+    </>
+  );
+
+  return animated ? (
+    <ScrollList>{content}</ScrollList>
+  ) : (
+    <section className="mt-[0rem] flex flex-col gap-12">{content}</section>
   );
 }
