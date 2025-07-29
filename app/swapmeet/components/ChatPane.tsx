@@ -42,7 +42,7 @@ export function ChatPane({ stallId }: { stallId: number }) {
   }
 
   return (
-    <div className="relative bottom-6 flex flex-col h-full w-[50%] border-2 border-white mx-8  rounded-xl ">
+    <div className="relative bottom-6 flex flex-col max-h-[15rem] h-full w-[50%] border-2 border-white mx-8  rounded-xl ">
       <div className="flex-1 overflow-y-auto space-y-1 px-4 py-2">
         {msgs.map(m => (
           <p
@@ -68,7 +68,7 @@ export function ChatPane({ stallId }: { stallId: number }) {
         className="flex gap-2 border-t p-2"
       >
         <input
-          className="flex-1 border rounded px-2 py-1 text-sm"
+          className="flex-1 border-[1px] border-black rounded px-2 py-2 text-sm"
           value={input}
           onChange={e => setInput(e.target.value)}
           placeholder="Say something…"
@@ -76,7 +76,7 @@ export function ChatPane({ stallId }: { stallId: number }) {
         <button
           type="submit"
           disabled={!input.trim()}
-          className="btn-primary px-3 disabled:opacity-40"
+          className="likebutton bg-white bg-opacity-50 px-3 disabled:opacity-40"
         >
           Send
         </button>
