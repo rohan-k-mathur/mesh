@@ -68,15 +68,16 @@ export function ChatPane({ stallId }: { stallId: number }) {
         className="flex gap-2 border-t p-2"
       >
         <input
-          className="flex-1 border-[1px] border-black rounded px-2 py-2 text-sm"
+          className="flex-1 border-[2px] border-slate-300 rounded px-2 py-2 text-sm"
           value={input}
           onChange={e => setInput(e.target.value)}
           placeholder="Say something…"
+          autoFocus
         />
         <button
           type="submit"
           disabled={!input.trim()}
-          className="likebutton bg-white bg-opacity-50 px-3 disabled:opacity-40"
+          className="likebutton bg-white bg-opacity-50 px-3  py-2 border-[2px] border-slate-300  disabled:opacity-40"
         >
           Send
         </button>
