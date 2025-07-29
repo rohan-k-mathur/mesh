@@ -4,8 +4,8 @@ export async function getStall(id: number) {
   return prisma.stall.findUnique({
     where: { id: BigInt(id) },
     include: {
-      items: true,
-      owner: { select: { name: true, avatar: true } },
+      items: { select: { id: true, name: true, price_cents: true } },
+      owner: { select: { name: true, image: true } },
     },
   });
 }
