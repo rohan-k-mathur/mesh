@@ -1,6 +1,7 @@
 "use client";
 
 import { replicatePost } from "@/lib/actions/thread.actions";
+import { replicateFeedPost } from "@/lib/actions/feed.actions";
 import { replicateRealtimePost } from "@/lib/actions/realtimepost.actions";
 import { useAuth } from "@/lib/AuthContext";
 import Image from "next/image";
@@ -20,9 +21,10 @@ import { Button } from "@/components/ui/button";
 interface Props {
   postId?: bigint;
   realtimePostId?: string;
+  feedPostId?: bigint;
 }
 
-const ReplicateButton = ({ postId, realtimePostId }: Props) => {
+const ReplicateButton = ({ postId, realtimePostId, feedPostId }: Props) => {
   const user = useAuth();
   const router = useRouter();
   const pathname = usePathname();
@@ -44,6 +46,13 @@ const ReplicateButton = ({ postId, realtimePostId }: Props) => {
     if (realtimePostId) {
       await replicateRealtimePost({
         originalPostId: realtimePostId.toString(),
+        userId: userObjectId.toString(),
+        path: pathname,
+        text,
+      });
+    } else if (feedPostId) {
+      await replicateFeedPost({
+        originalPostId: feedPostId.toString(),
         userId: userObjectId.toString(),
         path: pathname,
         text,
