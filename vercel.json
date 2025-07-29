@@ -7,6 +7,10 @@
       {
         "path": "/api/_cron/favorites_builder",
         "schedule": "0 2 * * *"
+      },
+      {
+        "path": "/api/_cron/close_auctions",
+        "schedule": "*/10 * * * *"
       }
     ]
   }

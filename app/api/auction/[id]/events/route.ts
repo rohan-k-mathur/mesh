@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prismaclient";
 export const runtime = "edge";
 
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: { id: string } },
 ) {
   const auctionId = BigInt(params.id);
@@ -35,6 +35,7 @@ export async function GET(
           })) })}\n\n`);
         }
       }, 2000);
+      req.signal?.addEventListener("abort", () => clearInterval(tick));
     },
   });
 
