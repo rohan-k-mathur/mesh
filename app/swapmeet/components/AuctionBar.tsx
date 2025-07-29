@@ -22,8 +22,8 @@ export default function AuctionBar({ auctionId, reserve, endsAt }: {
   }, [auctionId]);
 
   useEffect(() => {
-    totalRef.current = new Date(endsAt).getTime() - (Date.now() - remaining);
-  }, []);
+    totalRef.current = new Date(endsAt).getTime() - Date.now();
+  }, [endsAt]);
 
   const pct = Math.max(0, remaining / totalRef.current);
 
