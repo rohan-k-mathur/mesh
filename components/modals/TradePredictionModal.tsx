@@ -55,21 +55,24 @@ export default function TradePredictionModal({ market, onClose, onTraded }: Prop
   }
 
   return (
-    <div className="p-4 space-y-4 bg-white rounded-lg shadow-md">
+    <div className="border-[1px] border-white px-8 py-6  space-y-4 bg-white bg-opacity-20 rounded-lg shadow-md">
       <div className="flex justify-between">
-        <Button
-          variant={side === "YES" ? "default" : "outline"}
-          onClick={() => setSide("YES")}
-        >
-          YES
-        </Button>
-        <Button
-          variant={side === "NO" ? "default" : "outline"}
+       
+        <button
+          className="likebutton bg-white px-8 bg-opacity-40"
           onClick={() => setSide("NO")}
         >
           NO
-        </Button>
+        </button>
+        <button
+          className="likebutton bg-white px-8 bg-opacity-40"
+
+          onClick={() => setSide("YES")}
+        >
+          YES
+        </button>
       </div>
+      <div className="justify-center items-center mx-auto text-center space-y-2 ">
       <Input
         type="range"
         min={0}
@@ -83,9 +86,11 @@ export default function TradePredictionModal({ market, onClose, onTraded }: Prop
       <div className="text-sm text-gray-700">
         New probability: {(priceAfter * 100).toFixed(2)}% YES
       </div>
-      <Button className="w-full" onClick={handleTrade}>
+      <button className="w-fit px-8  text-[1rem] bg-white bg-opacity-40
+       py-2 rounded-xl tracking-wide text-center justify-center items-center mx-auto  likebutton" onClick={handleTrade}>
         Confirm Trade
-      </Button>
-    </div>
+      </button>
+      </div>
+      </div>
   );
 }
