@@ -3,12 +3,20 @@
 import Image from "next/image";
 import { useState } from "react";
 import Button from "antd/lib/button";
+import { Dialog, DialogTrigger } from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
+
+import ViewImageModal from "../modals/ViewImageModal";
+
 interface Props {
   urls: string[];
 }
 
 const GalleryCarousel = ({ urls }: Props) => {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [loaded, setLoaded] = useState(false);
+  const [open,   setOpen]   = useState(false);
+
 
   const handlePrev = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
@@ -25,7 +33,7 @@ const GalleryCarousel = ({ urls }: Props) => {
   return (
     <div className="w-full flex flex-1 justify-center items-center mx-[25%] max-w-[90%]  h-fit ">
     <div className="relative h-fit my-0  flex justify-center mx-auto">
-      <Image
+      {/* <Image
         className="carousel px-10 items-center justify-center h-[32rem] w-[500px] object-fit"
         src={urls[currentIndex]}
         alt={`img-${currentIndex}`}
@@ -34,7 +42,40 @@ const GalleryCarousel = ({ urls }: Props) => {
         sizes="100vw"
 
 
+      /> */}
+
+
+<Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        {/*  wrapper ensures the whole card is clickable  */}
+        <button
+          type="button"
+          className="flex justify-center items-center w-fit focus:outline-none
+                     focus-visible:ring-2 ring-offset-2 ring-indigo-400"
+        >
+          {/*  skeleton while the <img> is downloading  */}
+          {!loaded && (
+            <Skeleton className="img-feed-frame mt-4 mb-4 w-full h-[300px]" />
+          )}
+
+<Image
+        className="carousel px-10 items-center justify-center h-[32rem] w-[500px] object-fit"
+        src={urls[currentIndex]}
+        alt={`img-${currentIndex}`}
+        width={0}
+        height={0}
+        sizes="100vw"
+        onLoad={() => setLoaded(true)}
+
+
       />
+        </button>
+      </DialogTrigger>
+
+      {/*  Re‑use your existing modal in “view” mode  */}
+      <ViewImageModal open={open} onOpenChange={setOpen} imageUrl={urls[currentIndex]} />
+
+    </Dialog>
       {urls.length > 0 && (
         <div className="pointer-events-none max-w-[100%] max-h-[100%]  flex flex-1 w-full absolute inset-0   h-full justify-between px-[-4rem]">
           <button className=" pointer-events-auto bg-white bg-opacity-20 border-none carouselbutton rounded-xl
@@ -70,3 +111,4 @@ const GalleryCarousel = ({ urls }: Props) => {
 };
 
 export default GalleryCarousel;
+

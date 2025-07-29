@@ -21,7 +21,7 @@ export default function PredictionMarketCard({ post }: Props) {
 
   return (
     <div className="border-[1px] border-white w-[600px] bg-white bg-opacity-10
-     justify-center items-center mx-auto rounded-lg p-6 space-y-3">
+     justify-center items-center mx-auto rounded-xl p-6 space-y-3 shadow-md">
       <h3 className=" text-[1.2rem] tracking-wide">{post.predictionMarket?.question}</h3>
       <div className="h-3 w-full rounded bg-gray-200 relative items-center justify-center mx-auto  overflow-hidden">
         <div

@@ -134,7 +134,7 @@ const PostCard = ({
           <div className="flex flex-col items-center  ">
             <Link
               href={`/profile/${author.id}`}
-              className="relative h-[2.75rem] w-[2.75rem] left-[.65rem] top-[.1rem] "
+              className="relative h-[2.75rem] w-[2.75rem] left-[.65rem] top-[.1rem]  "
             >
               <Image
                 src={author.image || "/assets/user-helsinki.svg"}
@@ -160,9 +160,9 @@ const PostCard = ({
               {createdAt}
             </div>
 
-            <hr className="mt-3 mb-4 w-full h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-100 to-transparent opacity-75" />
+            <hr className="mt-2 mb-4 w-full h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-100 to-transparent opacity-75" />
             {type === "TEXT" && content && (
-              <p className="mt-2  text-[1.08rem] text-black tracking-[.05rem]">
+              <p className="mt-2 ml-1 text-left  text-[1.08rem] text-black tracking-[.05rem] max-w-[90%]">
                 {content}
               </p>
             )}
@@ -352,11 +352,17 @@ const PostCard = ({
                   />
                 </div>
               )}
-            <div className="items-start justify-start mx-[0%] px-8 w-full">
+            <div className="items-start justify-start  px-12  w-full">
+              
               {embedPost && (
-                <div className="flex flex-2 mt-4  items-center scale-85">
+                <>
+                            <hr className="mt-2 mb-4 w-full h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-100 to-transparent opacity-75" />
+
+                <div className="flex flex-2 mt-2   items-center scale-85">
+                  
                   {embedPost}
                 </div>
+                </>
               )}
             </div>
             <hr className="mt-4 mb-3 w-full h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-100 to-transparent opacity-75" />

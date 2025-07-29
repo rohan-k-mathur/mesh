@@ -55,17 +55,17 @@ export default function TradePredictionModal({ market, onClose, onTraded }: Prop
   }
 
   return (
-    <div className="border-[1px] border-white px-8 py-6  space-y-4 bg-white bg-opacity-20 rounded-lg shadow-md">
+    <div className="border-[1px] border-white px-8 py-6  space-y-4 bg-white bg-opacity-20 rounded-xl shadow-md">
       <div className="flex justify-between">
        
         <button
-          className="likebutton bg-white px-8 bg-opacity-40"
+          className="likebutton bg-white px-4 pt-1 pb-0 bg-opacity-40 rounded-xl items-center justify-center text-center"
           onClick={() => setSide("NO")}
         >
           NO
         </button>
         <button
-          className="likebutton bg-white px-8 bg-opacity-40"
+          className="likebutton bg-white px-4 pt-1 pb-0 bg-opacity-40 rounded-xl items-center justify-center text-center"
 
           onClick={() => setSide("YES")}
         >
