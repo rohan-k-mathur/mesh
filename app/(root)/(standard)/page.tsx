@@ -17,6 +17,8 @@ export default async function Home() {
   const user = await getUserFromCookies();
   if (!user) redirect("/login");
 
+  const USE_SCROLL_ANIMATION = false;
+
   return (
     <div>
       <Modal />
@@ -29,6 +31,7 @@ export default async function Home() {
           roomId="global"
           postTypes={[]}
           currentUserId={user.userId}
+          animated={USE_SCROLL_ANIMATION}
         />
       )}
     </div>
