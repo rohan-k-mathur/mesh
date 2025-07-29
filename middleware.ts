@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { spawnSection } from "@/lib/actions/section.server";
 import {
   authMiddleware,
   redirectToHome,
@@ -34,6 +35,13 @@ export async function middleware(request: NextRequest) {
         request.nextUrl.pathname !== "/room/global"
       ) {
         return redirectToHome(request);
+      }
+
+      if (request.nextUrl.pathname === "/swapmeet") {
+        const { x, y } = await spawnSection();
+        return NextResponse.redirect(
+          new URL(`/swapmeet/market/${x}/${y}`, request.url),
+        );
       }
 
       return NextResponse.next({

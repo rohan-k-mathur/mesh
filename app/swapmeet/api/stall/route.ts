@@ -31,7 +31,7 @@ export async function POST(req: Request) {
   /* -------- verify section -------- */
   const section = await prisma.section.findUnique({
     where: { id: sectionIdBig },
-    select: { id: true },
+    select: { id: true, x: true, y: true },
   });
   if (!section) {
     return NextResponse.json({ message: "Invalid section" }, { status: 400 });
@@ -49,11 +49,53 @@ export async function POST(req: Request) {
     );
   }
 
+  /* -------- section capacity -------- */
+  let targetSectionId = sectionIdBig;
+  const stallCount = await prisma.stall.count({
+    where: { section_id: sectionIdBig },
+  });
+  if (stallCount >= 9 && section) {
+    const dirs = [
+      [1, 0],
+      [-1, 0],
+      [0, 1],
+      [0, -1],
+    ] as const;
+    for (const [dx, dy] of dirs) {
+      const nx = section.x + dx;
+      const ny = section.y + dy;
+      const existing = await prisma.section.findUnique({
+        where: { x_y: { x: nx, y: ny } },
+        select: { id: true },
+      });
+      if (existing) continue;
+      const neighbor = await prisma.section.findFirst({
+        where: {
+          OR: [
+            { x: nx + 1, y: ny, stalls: { some: {} } },
+            { x: nx - 1, y: ny, stalls: { some: {} } },
+            { x: nx, y: ny + 1, stalls: { some: {} } },
+            { x: nx, y: ny - 1, stalls: { some: {} } },
+          ],
+        },
+        select: { id: true },
+      });
+      if (neighbor) {
+        const newSec = await prisma.section.create({
+          data: { x: nx, y: ny },
+          select: { id: true },
+        });
+        targetSectionId = newSec.id;
+        break;
+      }
+    }
+  }
+
   /* -------- create stall -------- */
   const stall = await prisma.stall.create({
     data: {
       name: trimmed,
-      section_id: sectionIdBig,
+      section_id: targetSectionId,
       owner_id:   ownerId,
     },
     select: { id: true },
