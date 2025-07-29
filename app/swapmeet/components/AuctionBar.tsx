@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 
 export default function AuctionBar({ auctionId, reserve, endsAt }: {
@@ -8,6 +8,7 @@ export default function AuctionBar({ auctionId, reserve, endsAt }: {
   const [remaining, setRemaining] = useState(
     new Date(endsAt).getTime() - Date.now(),
   );
+  const totalRef = useRef(1);
   const [bids, setBids] = useState<{ user: string; amount: number }[]>([]);
 
   useEffect(() => {
@@ -20,8 +21,11 @@ export default function AuctionBar({ auctionId, reserve, endsAt }: {
     return () => es.close();
   }, [auctionId]);
 
-  const total = new Date(endsAt).getTime() - (Date.now() - remaining);
-  const pct = Math.max(0, remaining / total);
+  useEffect(() => {
+    totalRef.current = new Date(endsAt).getTime() - (Date.now() - remaining);
+  }, []);
+
+  const pct = Math.max(0, remaining / totalRef.current);
 
   return (
     <div className="space-y-2">

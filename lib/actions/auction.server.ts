@@ -22,22 +22,21 @@ export async function placeBid(
   userId: number,
   amount: number,
 ) {
-  const a = await prisma.auction.findUnique({
-    where: { id: BigInt(auctionId) },
-    include: { bids: true },
-  });
-  if (!a || a.state !== "LIVE" || Date.now() > a.ends_at.getTime())
-    throw new Error("closed");
-  const highest = Math.max(
-    a.reserve_cents,
-    ...a.bids.map((b) => b.amount_cents),
-  );
-  if (amount <= highest) throw new Error("too low");
-  return prisma.bid.create({
-    data: {
-      auction_id: BigInt(auctionId),
-      bidder_id: BigInt(userId),
-      amount_cents: amount,
-    },
+  return prisma.$transaction(async (tx) => {
+    const a = await tx.auction.findUnique({
+      where: { id: BigInt(auctionId) },
+      include: { bids: { orderBy: { amount_cents: "desc" }, take: 1 } },
+    });
+    if (!a || a.state !== "LIVE" || Date.now() > a.ends_at.getTime())
+      throw new Error("closed");
+    const highest = a.bids[0]?.amount_cents ?? a.reserve_cents;
+    if (amount <= highest) throw new Error("too low");
+    return tx.bid.create({
+      data: {
+        auction_id: BigInt(auctionId),
+        bidder_id: BigInt(userId),
+        amount_cents: amount,
+      },
+    });
   });
 }
