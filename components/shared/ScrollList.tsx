@@ -24,19 +24,46 @@ export default function ScrollList({ children }: ScrollListProps) {
       const items = wrapperRef.current!.querySelectorAll<HTMLDivElement>(
         ".js-scroll-list-item"
       );
-      let focused = false;
+      // let focused = false;
+      let firstFocusIndex: number | null = null;
       items.forEach((el, idx) => {
-        el.classList.remove("item-focus", "item-next", "item-hide");
+        // el.classList.remove("item-focus", "item-next", "item-hide");
+        el.classList.remove(
+                    "item-focus",
+                    "item-second-focus",
+                    "item-next",
+                    "item-hide"
+                  );
         const relTop = el.offsetTop;
-        if (!focused && relTop >= top) {
-          el.classList.add("item-focus");
-          const next = items[idx + 1];
-          if (next) next.classList.add("item-next");
-          focused = true;
-        } else if (!focused) {
-          el.classList.add("item-hide");
-        }
+        // if (!focused && relTop >= top) {
+        //   el.classList.add("item-focus");
+        //   const next = items[idx + 1];
+        //   if (next) next.classList.add("item-next");
+        //   focused = true;
+        // } else if (!focused) {
+        //   el.classList.add("item-hide");
+        // }
+        if (firstFocusIndex === null && relTop >= top) {
+                    firstFocusIndex = idx;
+                  }
       });
+      if (firstFocusIndex !== null) {
+                // First card in focus
+                items[firstFocusIndex].classList.add("item-focus");
+        
+                // Second card in focus (if it exists)
+                const second = items[firstFocusIndex + 1];
+                if (second) second.classList.add("item-second-focus");
+        
+                // Optional: tag the *third* card so you can style it (dim/scale) if desired
+                const third = items[firstFocusIndex + 2];
+                if (third) third.classList.add("item-next");
+        
+                // Hide everything *before* the first focused card
+                for (let i = 0; i < firstFocusIndex; i++) {
+                  items[i].classList.add("item-hide");
+                }
+              }
     };
 
     scrollbar.addListener(handle);
@@ -48,7 +75,7 @@ export default function ScrollList({ children }: ScrollListProps) {
   }, []);
 
   return (
-    <div ref={wrapperRef} className="scroll-list__wrp mt-[-4rem] js-scroll-list h-[720px] space-y-4 w-full ">
+    <div ref={wrapperRef} className="scroll-list__wrp mt-[0rem] js-scroll-list h-[100vh] space-y-4 w-full ">
       <div className="js-scroll-content h-full space-y-4 w-full">{children}</div>
     </div>
   );
