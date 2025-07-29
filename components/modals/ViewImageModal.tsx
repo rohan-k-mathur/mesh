@@ -55,6 +55,7 @@ import {
   
   const renderView = (currentImageURL: string) => {
     return (
+
       <div className="h-full w-full justify-center items-center flex p-0 flex-col  ">
         <DialogHeader className=" text-white text-lg  ">
           <DialogTitle hidden> view </DialogTitle>
@@ -77,8 +78,11 @@ import {
           >
             
           </DialogClose>
+          
         </div>
+
       </div>
+
     );
   };
   
@@ -88,6 +92,7 @@ import {
     const isView = id && !isOwned;
     return (
       <div>
+        <AnimatedDialog>
         <DialogContent className="max-w-[60%] max-h-[90%] h-full bg-black bg-opacity-50  border-blue">
           <div className="mt-0 grid rounded-xl ">
             {isCreate && renderCreate({ onSubmit })}
@@ -95,6 +100,7 @@ import {
             {isView && renderView(currentImageURL)}
           </div>
         </DialogContent>
+        </AnimatedDialog>
       </div>
     );
   };
