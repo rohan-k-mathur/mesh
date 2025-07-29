@@ -8,6 +8,7 @@ import {
   unlikeRealtimePost,
   dislikeRealtimePost,
 } from "@/lib/actions/like.actions";
+import { likeFeedPost, unlikeFeedPost } from "@/lib/actions/feed.actions";
 import { useAuth } from "@/lib/AuthContext";
 import { Like, RealtimeLike } from "@prisma/client";
 import Image from "next/image";
@@ -17,11 +18,12 @@ import { Button } from "@/components/ui/button";
 interface Props {
   postId?: bigint;
   realtimePostId?: string;
+  feedPostId?: bigint;
   likeCount: number;
   initialLikeState?: Like | RealtimeLike | null;
 }
 
-const LikeButton = ({ postId, realtimePostId, likeCount, initialLikeState }: Props) => {
+const LikeButton = ({ postId, realtimePostId, feedPostId, likeCount, initialLikeState }: Props) => {
   const user = useAuth();
   const router = useRouter();
   const isUserSignedIn = !!user.user;
@@ -47,6 +49,9 @@ const LikeButton = ({ postId, realtimePostId, likeCount, initialLikeState }: Pro
       if (realtimePostId) {
         unlikeRealtimePost({ userId: userObjectId, realtimePostId });
       }
+      if (feedPostId) {
+        unlikeFeedPost({ id: feedPostId });
+      }
       setCurrentLikeType("NONE");
       setDisplayLikeCount(displayLikeCount - 1);
     } else {
@@ -55,6 +60,9 @@ const LikeButton = ({ postId, realtimePostId, likeCount, initialLikeState }: Pro
       }
       if (realtimePostId) {
         likeRealtimePost({ userId: userObjectId, realtimePostId });
+      }
+      if (feedPostId) {
+        likeFeedPost({ id: feedPostId });
       }
       if (currentLikeType === "NONE") {
         setDisplayLikeCount(displayLikeCount + 1);
@@ -81,6 +89,9 @@ const LikeButton = ({ postId, realtimePostId, likeCount, initialLikeState }: Pro
       if (realtimePostId) {
         unlikeRealtimePost({ userId: userObjectId, realtimePostId });
       }
+      if (feedPostId) {
+        unlikeFeedPost({ id: feedPostId });
+      }
       setCurrentLikeType("NONE");
       setDisplayLikeCount(displayLikeCount + 1);
     } else {
@@ -94,6 +105,9 @@ const LikeButton = ({ postId, realtimePostId, likeCount, initialLikeState }: Pro
         setDisplayLikeCount(displayLikeCount - 1);
       } else if (currentLikeType === "LIKE") {
         setDisplayLikeCount(displayLikeCount - 2);
+      }
+      if (feedPostId) {
+        unlikeFeedPost({ id: feedPostId });
       }
       setCurrentLikeType("DISLIKE");
     }

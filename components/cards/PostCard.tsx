@@ -58,6 +58,7 @@ interface Props {
   };
   createdAt: string;
   isRealtimePost?: boolean;
+  isFeedPost?: boolean;
   likeCount?: number;
   commentCount?: number;
   expirationDate?: string | null;
@@ -80,6 +81,7 @@ const PostCard = ({
   type,
   createdAt,
   isRealtimePost = false,
+  isFeedPost = false,
   likeCount = 0,
   commentCount = 0,
   expirationDate = null,
@@ -359,6 +361,8 @@ const PostCard = ({
                 <LikeButton
                   {...(isRealtimePost
                     ? { realtimePostId: id.toString() }
+                    : isFeedPost
+                    ? { feedPostId: id }
                     : { postId: id })}
                   likeCount={likeCount}
                   initialLikeState={currentUserLike}
@@ -367,6 +371,8 @@ const PostCard = ({
                   <ExpandButton
                     {...(isRealtimePost
                       ? { realtimePostId: id.toString() }
+                      : isFeedPost
+                      ? { postId: id }
                       : { postId: id })}
                     commentCount={commentCount}
                   />
@@ -374,18 +380,24 @@ const PostCard = ({
                 <ReplicateButton
                   {...(isRealtimePost
                     ? { realtimePostId: id.toString() }
+                    : isFeedPost
+                    ? { feedPostId: id }
                     : { postId: id })}
                 />
                 <ShareButton postId={id} />
-                <TimerButton
-                  postId={id}
-                  isOwned={currentUserId === author.id}
-                  expirationDate={expirationDate ?? undefined}
-                />
+                {!isFeedPost && (
+                  <TimerButton
+                    postId={id}
+                    isOwned={currentUserId === author.id}
+                    expirationDate={expirationDate ?? undefined}
+                  />
+                )}
                 {currentUserId === author.id && (
                   <DeleteCardButton
                     {...(isRealtimePost
                       ? { realtimePostId: id.toString() }
+                      : isFeedPost
+                      ? { feedPostId: id }
                       : { postId: id })}
                   />
                 )}

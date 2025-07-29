@@ -39,6 +39,8 @@ export default function RealtimeFeed({
     };
   }, [roomId, postTypes]);
 
+  const isFeed = roomId === "global" && (!postTypes || postTypes.length === 0);
+
   const { posts, loaderRef, loading } = useInfiniteRealtimePosts(
     fetchPage,
     initialPosts,
@@ -53,6 +55,7 @@ export default function RealtimeFeed({
           currentUserId={currentUserId}
           id={realtimePost.id}
           isRealtimePost={Boolean(roomId && postTypes && postTypes.length > 0)}
+          isFeedPost={isFeed}
           likeCount={realtimePost.like_count}
           commentCount={realtimePost.commentCount ?? 0}
           content={realtimePost.content ? realtimePost.content : undefined}
