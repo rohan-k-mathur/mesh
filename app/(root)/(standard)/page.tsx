@@ -17,7 +17,7 @@ export default async function Home() {
   const user = await getUserFromCookies();
   if (!user) redirect("/login");
 
-  const USE_SCROLL_ANIMATION = false;
+  const USE_SCROLL_ANIMATION = true;
 
   return (
     <div>

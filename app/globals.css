@@ -1415,19 +1415,29 @@ html:before{
 
 /* Scroll list animation */
 .scroll-list__wrp {
-  height: 700px;
+  height: 100%;
+  width: 100%;
   overflow-y: auto;
-  padding: 50px;
+  overflow-x: hidden;
+
+  padding-top: 50px;
+
+  
+}
+.scrollbar-track {
+  display: none!important;
 }
 .scroll-list__item {
-  transition: all 0.35s ease-in-out;
-  opacity: 0;
-  transform: scale(0.7);
-  margin-bottom: 15px;
+  transition: all .15s ease-in-out;
+  opacity: .8;
+  transform: scale(0.95);
+  margin-bottom: 0px;
+
+  
 }
 .scroll-list__item.item-hide {
-  opacity: 0;
-  transform: scale(0.7);
+  opacity: .7;
+  transform: scale(0.95);
 }
 .scroll-list__item.item-focus,
 .scroll-list__item.item-next {

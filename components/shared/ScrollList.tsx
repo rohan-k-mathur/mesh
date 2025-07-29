@@ -48,8 +48,8 @@ export default function ScrollList({ children }: ScrollListProps) {
   }, []);
 
   return (
-    <div ref={wrapperRef} className="scroll-list__wrp js-scroll-list">
-      <div className="js-scroll-content">{children}</div>
+    <div ref={wrapperRef} className="scroll-list__wrp mt-[-4rem] js-scroll-list h-[720px] space-y-4 w-full ">
+      <div className="js-scroll-content h-full space-y-4 w-full">{children}</div>
     </div>
   );
 }
