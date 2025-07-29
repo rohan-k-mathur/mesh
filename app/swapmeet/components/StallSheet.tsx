@@ -6,6 +6,7 @@ import { VideoPane } from "./VideoPane";
 import { ItemsPane } from "./ItemsPane";
 import { ChatPane } from "./ChatPane";
 import Link from "next/link";
+import { useAuth } from "@/lib/AuthContext";
 
 const fetcher = (url: string) => fetch(url).then(r => r.json());
 
@@ -21,7 +22,10 @@ export function StallSheet({ stallId, open, onOpenChange }: Props) {
     open ? `/swapmeet/api/stall/${stallId}` : null,
     fetcher
   );
+  const { user } = useAuth();
   const liveSrc = stall && "liveSrc" in stall ? (stall as any).liveSrc : undefined;
+  const isOwner =
+    !!user && !!stall && "owner" in stall && Number((stall as any).owner?.id) === Number(user.userId);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -44,7 +48,7 @@ export function StallSheet({ stallId, open, onOpenChange }: Props) {
           View full stall →
         </Link>
         <VideoPane src={liveSrc} open={open} />
-        <ItemsPane stallId={stallId} />
+        <ItemsPane stallId={stallId} isOwner={Boolean(isOwner)} />
         <ChatPane stallId={stallId} />
       </SheetContent>
     </Sheet>
