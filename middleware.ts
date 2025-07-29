@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { spawnSection } from "@/lib/actions/section.server";
 import {
   authMiddleware,
   redirectToHome,
@@ -37,12 +36,30 @@ export async function middleware(request: NextRequest) {
         return redirectToHome(request);
       }
 
-      if (request.nextUrl.pathname === "/swapmeet") {
-        const { x, y } = await spawnSection();
-        return NextResponse.redirect(
-          new URL(`/swapmeet/market/${x}/${y}`, request.url),
-        );
-      }
+      // if (request.nextUrl.pathname === "/swapmeet") {
+      //   const { x, y } = await spawnSection();
+      //   return NextResponse.redirect(
+      //     new URL(`/swapmeet/market/${x}/${y}`, request.url),
+      //   );
+      // }
+            // 🔄  Edge‑safe fetch instead of direct Prisma call
+            if (request.nextUrl.pathname === "/swapmeet") {
+              const apiUrl = new URL("/api/swapmeet/spawn", request.url);
+              const res    = await fetch(apiUrl, {
+                // pass session cookies / headers if your API route needs them
+                headers: { cookie: request.headers.get("cookie") ?? "" },
+              });
+      
+              if (res.ok) {
+                const { x, y } = await res.json();
+                return NextResponse.redirect(
+                  new URL(`/swapmeet/market/${x}/${y}`, request.url),
+                );
+              }
+      
+              // Fallback if API failed
+              return NextResponse.next();
+            }
 
       return NextResponse.next({
         request: {
