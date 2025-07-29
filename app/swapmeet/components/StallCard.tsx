@@ -57,7 +57,7 @@ export function StallCard({ stall }) {
         className="relative w-full h-full min-w-0 min-h-0 group bg-white rounded-xl likebutton 
         overflow-hidden hover-tilt hover:scale-105">
       
-      <img src={stall.img ?? "/placeholder-stall.svg"}
+      <img src={("img" in stall ? (stall as any).img : undefined) ?? "/placeholder-stall.svg"}
            alt={stall.name}
 
            className="absolute inset-0 object-contain w-full h-full object-cover rounded-xl transition-transform 
