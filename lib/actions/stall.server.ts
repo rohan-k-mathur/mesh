@@ -5,7 +5,7 @@ export async function getStall(id: number) {
     where: { id: BigInt(id) },
     include: {
       items: { select: { id: true, name: true, price_cents: true } },
-      owner: { select: { name: true, image: true } },
+      owner: { select: { id: true, name: true, image: true } },
     },
   });
 }

@@ -3,10 +3,11 @@
 import useSWR from "swr";
 import { Skeleton } from "@/components/ui/skeleton";
 import AuctionBar from "./AuctionBar";
+import CreateAuctionDialog from "./CreateAuctionDialog";
 
 const fetcher = (u: string) => fetch(u).then(r => r.json());
 
-export function ItemsPane({ stallId }: { stallId: number }) {
+export function ItemsPane({ stallId, isOwner = false }: { stallId: number; isOwner?: boolean }) {
   const { data = [{ name: "Mock item", price_cents: 10 }], isLoading } = useSWR(
     stallId ? `/swapmeet/api/items?stall=${stallId}` : null,
     fetcher,
@@ -26,6 +27,8 @@ export function ItemsPane({ stallId }: { stallId: number }) {
               reserve={item.auction.reserve_cents}
               endsAt={item.auction.ends_at}
             />
+          ) : isOwner ? (
+            <CreateAuctionDialog stallId={stallId} itemId={item.id} />
           ) : (
             <>
               <span>{item.name}</span>
