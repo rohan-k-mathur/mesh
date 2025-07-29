@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import * as cp from "child_process";
 
 process.env.UPSTASH_REDIS_REST_URL = "http://localhost";
 process.env.UPSTASH_REDIS_REST_TOKEN = "token";
@@ -7,11 +8,13 @@ let mockPrisma: any;
 
 describe("why api", () => {
   let store: Record<string, string>;
+  let execSpy: jest.SpyInstance;
   beforeEach(() => {
     store = {};
-    jest.doMock("child_process", () => ({
-      execFile: (_cmd: string, _args: string[], cb: any) => cb(null, JSON.stringify({ FAV_ARTIST_OVERLAP: 0.9, RECENT_SWIPE_RIGHT: 0.1 }), "")
-    }));
+    jest.restoreAllMocks();
+    execSpy = jest.spyOn(cp, "execFile").mockImplementation((_cmd: string, _args: string[], cb: any) =>
+      cb(null, JSON.stringify({ FAV_ARTIST_OVERLAP: 0.9, RECENT_SWIPE_RIGHT: 0.1 }), "")
+    );
     jest.doMock("@/lib/redis", () => ({
       __esModule: true,
       default: {
@@ -38,6 +41,7 @@ describe("why api", () => {
   });
 
   afterEach(() => {
+    execSpy.mockRestore();
   });
 
   test("explainReturnsBothLocales", async () => {
@@ -45,8 +49,8 @@ describe("why api", () => {
     const req = new NextRequest(new URL("http://localhost/api/v2/discovery/why/abc?viewerId=1"));
     const res = await GET(req, { params: { targetId: "abc" } });
     const body = await res.json();
-    expect(body.reason_en).toBeDefined();
-    expect(body.reason_es).toBeDefined();
+    expect(body.explanation.reason_en).toBeDefined();
+    expect(body.explanation.reason_es).toBeDefined();
   });
 
   test("cacheHitShortCircuits", async () => {

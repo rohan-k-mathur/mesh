@@ -51,7 +51,10 @@ test("generator returns orientations that satisfy UI lock rule", async () => {
   const puzzle = await generatePuzzle();
   const spokes = computeSpokes(puzzle.rings as Rings, [0,0,0,0]);
   const solved = computeSpokes(puzzle.rings as Rings, puzzle.solutionOffsets as OffsetTuple);
-  expect(solved.every(w => dict.has(w))).toBe(true);
-  expect(spokes.some(w => dict.has(w))).toBe(false);
+  const areAllValid = solved.every(w => dict.has(w));
+  expect(areAllValid).toBeTruthy();
+
+  const hasInvalid = spokes.some(w => dict.has(w));
+  expect(hasInvalid).toBeFalsy();
 });
 

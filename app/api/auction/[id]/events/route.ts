@@ -35,7 +35,10 @@ export async function GET(
           })) })}\n\n`);
         }
       }, 2000);
-      req.signal?.addEventListener("abort", () => clearInterval(tick));
+      req.signal?.addEventListener("abort", () => {
+        clearInterval(tick);
+        controller.close();
+      });
     },
   });
 

@@ -1,6 +1,7 @@
 import { updateUserEmbedding, generateFriendSuggestions } from "@/lib/actions/friend-suggestions.actions";
 import { deepseekEmbedding } from "@/lib/deepseekclient";
 import { getPineconeIndex } from "@/lib/pineconeClient";
+jest.mock("@pinecone-database/pinecone-client-node");
 
 var mockPrisma: any;
 
@@ -16,7 +17,8 @@ jest.mock("@/lib/pineconeClient", () => ({
 jest.mock("@/lib/prismaclient", () => {
   mockPrisma = {
     $connect: jest.fn(),
-    userAttributes: { findUnique: jest.fn() },
+    $transaction: jest.fn(async (ops:any[]) => { for (const op of ops) await op; }),
+    userAttributes: { findUnique: jest.fn(), findMany: jest.fn() },
     userEmbedding: {
       upsert: jest.fn(),
       findUnique: jest.fn(),
@@ -26,6 +28,7 @@ jest.mock("@/lib/prismaclient", () => {
     userRealtimeRoom: { findMany: jest.fn() },
     friendSuggestion: {
       deleteMany: jest.fn(),
+      createMany: jest.fn(),
       create: jest.fn(),
     },
   };
@@ -34,6 +37,8 @@ jest.mock("@/lib/prismaclient", () => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockIndex = { query: jest.fn().mockResolvedValue({ matches: [ { id: "2" }, { id: "3" } ] }), upsert: jest.fn() };
+  mockPrisma.userAttributes.findMany.mockResolvedValue([]);
 });
 
 describe("updateUserEmbedding", () => {
