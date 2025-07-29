@@ -9,7 +9,14 @@ export async function GET(req: Request) {
     ? []
     : await prisma.item.findMany({
         where: { stall_id: BigInt(stall) },
-        select: { id: true, name: true, price_cents: true },
+        select: {
+          id: true,
+          name: true,
+          price_cents: true,
+          auction: {
+            select: { id: true, reserve_cents: true, ends_at: true },
+          },
+        },
       });
   return NextResponse.json(jsonSafe(items), {
     headers: { "Cache-Control": "no-store" },
