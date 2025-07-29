@@ -920,7 +920,8 @@ model StallMessage {
 
   @@index([stall_id])
   @@map("stall_messages")
-=======
+}
+
 model CartItem {
   id         BigInt   @id @default(autoincrement())
   user_id    BigInt
