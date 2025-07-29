@@ -97,7 +97,7 @@ export default function ViewImageModal({ open, onOpenChange, imageUrl }: Props) 
   return (
     <AnimatedDialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="h-full w-full justify-center items-center flex p-0 flex-col 
-      max-w-[60%] max-h-[90%] h-full bg-black bg-opacity-50  border-blue">
+      max-w-[60%] max-h-[90%] h-full bg-white bg-opacity-50  border-blue">
         {/* close button (optional) */}
         <DialogClose className="absolute top-4 right-4 text-white text-2xl">
           ×
@@ -109,7 +109,7 @@ export default function ViewImageModal({ open, onOpenChange, imageUrl }: Props) 
           alt="posted image"
           width={0}
           height={0}
-          sizes="200vw"
+          sizes="300vw"
           className="img-view-modal justify-center items-center mx-auto w-fit h-fit  transition-opacity duration-400"
           priority          /* avoids a second request if cached */
         />

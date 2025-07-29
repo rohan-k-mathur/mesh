@@ -6,9 +6,9 @@ import {
   DialogOverlay,
   DialogClose,
 } from "@/components/ui/dialog";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, Transition, useReducedMotion, easeInOut } from "framer-motion";
+import { duration } from "html2canvas/dist/types/css/property-descriptors/duration";
 import { PropsWithChildren } from "react";
-
 import { ReactNode } from "react";
 
 // interface Props {
@@ -70,30 +70,32 @@ interface Props {
   children: ReactNode;
 }
 export function AnimatedDialog({ open, onOpenChange, children }: Props) {
+  // Respect the user’s OS-level “reduce motion” preference
+  const prefersReduced = useReducedMotion();
+
+  /** ---------- spring config ---------- */
   return (
     <AnimatePresence>
       {open && (
         <Dialog open={open} onOpenChange={onOpenChange}>
-          {/* backdrop */}
-          <motion.div
+                    {/* ───── backdrop ───── */}
+                    <motion.div
             key="backdrop"
-            className="fixed inset-0 background-transparent backdrop-blur z-40"
+            className="fixed inset-0 bg-transparent backdrop-blur-sm z-40"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.5 }}
+            transition={{type:"spring", duration: .5 }}
           />
-          {/* content wrapper */}
-          <motion.div
+           {/* ───── content ───── */}
+           <motion.div
             key="content"
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
-            initial={{ opacity: 0, scale: 0.5 }}
+            className=" inset-0 z-50  "
+            /*  Pop‑in with a gentle overshoot */
+            initial={{ opacity: 0.5, scale: 0.5 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: .2, scale: 0.5 }}
-            transition={{
-
-              duration:.5,
-            }}
+            exit={{ opacity: 0.5, scale: 0.5 }}
+            transition={{type:"tween", duration: .5 }}
           >
             {children}
           </motion.div>
