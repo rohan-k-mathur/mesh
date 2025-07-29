@@ -133,21 +133,42 @@ model FeedPost {
   video_url  String?
   isPublic   Boolean        @default(true)
   like_count Int            @default(0)
-
   author           User              @relation(fields: [author_id], references: [id])
   predictionMarket PredictionMarket? @relation("FeedPostPrediction")
+  productReview      ProductReview?
+  parent_id          BigInt?
+  pluginData         Json?
+  pluginType         String?
+  feedPost           FeedPost?      @relation("FeedPostChildren", fields: [parent_id], references: [id], onDelete: Restrict)
+  children           FeedPost[]     @relation("FeedPostChildren") 
 
   @@index([author_id])
   @@map("feed_posts")
 }
 
 enum feed_post_type {
-  TEXT
-  IMAGE
+TEXT
   VIDEO
+  IMAGE
+  LIVESTREAM
+  IMAGE_COMPUTE
+  COLLAGE
   GALLERY
+  PORTAL
+  AUDIO
+  DRAW
+  LIVECHAT
+  DOCUMENT
+  THREAD
+  CODE
+  PORTFOLIO
+  LLM_INSTRUCTION
   PREDICTION
+  PLUGIN
   PRODUCT_REVIEW
+  ENTROPY
+  MUSIC
+  ROOM_CANVAS
 }
 
 model RealtimeLike {
@@ -443,6 +464,7 @@ model LinkedAccount {
 model ProductReview {
   id               BigInt               @id @default(autoincrement())
   realtime_post_id BigInt?              @unique
+  feed_post_id     BigInt?              @unique
   author_id        BigInt
   product_name     String
   rating           Int
@@ -454,6 +476,8 @@ model ProductReview {
   claims           ProductReviewClaim[]
   author           User                 @relation(fields: [author_id], references: [id], onDelete: Cascade)
   realtime_post    RealtimePost?        @relation(fields: [realtime_post_id], references: [id])
+  feed_post      FeedPost?             @relation(fields: [feed_post_id], references: [id])
+
 
   @@map("product_reviews")
 }

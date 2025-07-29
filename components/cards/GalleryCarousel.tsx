@@ -23,10 +23,10 @@ const GalleryCarousel = ({ urls }: Props) => {
   if (urls.length === 0) return null;
 
   return (
-    <div className="w-full flex flex-1  max-w-[90%]  h-fit justify-center">
+    <div className="w-full flex flex-1 justify-center items-center mx-[25%] max-w-[90%]  h-fit ">
     <div className="relative h-fit my-0  flex justify-center mx-auto">
       <Image
-        className="carousel px-10 items-center justify-center h-fit w-[100%]"
+        className="carousel px-10 items-center justify-center h-[32rem] w-[500px] object-fit"
         src={urls[currentIndex]}
         alt={`img-${currentIndex}`}
         width={0}
@@ -36,31 +36,29 @@ const GalleryCarousel = ({ urls }: Props) => {
 
       />
       {urls.length > 0 && (
-        <div className="pointer-events-none max-w-[100%] max-h-[100%]  flex flex-1 w-full absolute inset-0   h-full justify-between px-[-4]">
-          <button className=" pointer-events-auto bg-transparent border-none carouselbutton 
+        <div className="pointer-events-none max-w-[100%] max-h-[100%]  flex flex-1 w-full absolute inset-0   h-full justify-between px-[-4rem]">
+          <button className=" pointer-events-auto bg-white bg-opacity-20 border-none carouselbutton rounded-xl
           px-2 max-w-[4rem] min-w-[2rem] w-fit max-h-[70%] min-h-[20%] h-auto justify-center align-center items-center my-auto py-2  " onClick={handlePrev}>          
             <Image
               src="/assets/chevron--left.svg"
               alt="previous"
               width={0}
               height={0}
-              sizes="30vw"
-              className="cursor-pointer object-contain w-fit h-fit"
-              layout="responsive"
+              sizes="50vw"
+              className="cursor-pointer object-contain w-fit h-fit responsive"
 
 
             />
           </button>
-          <button className="pointer-events-auto bg-transparent border-none carouselbutton 
+          <button className="pointer-events-auto bg-white bg-opacity-20 border-none carouselbutton rounded-xl
           px-2 max-w-[4rem] min-w-[2rem] w-fit max-h-[70%] min-h-[20%] h-auto justify-center align-center items-center my-auto py-2  " onClick={handleNext}>
             <Image
               src="/assets/chevron--right.svg"
               alt="next"
               width={0}
               height={0}
-              sizes="30vw"
-              className="cursor-pointer object-contain w-fit h-fit"
-              layout="responsive"
+              sizes="50vw"
+              className="cursor-pointer object-contain w-fit h-fit responsive"
 
             />
           </button>

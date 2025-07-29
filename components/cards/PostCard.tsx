@@ -92,12 +92,16 @@ const PostCard = ({
 }: Props) => {
   if (content && content.startsWith("REPLICATE:")) {
     const dataStr = content.slice("REPLICATE:".length);
-    let originalId: bigint | null = null;
-    let replicateText = "Replicated";
+    // let originalId: bigint | null = null;
+    // let replicateText = "Replicated";
+       let originalId: bigint | null = null;
+   let replicateText = "Replicated";
+   let source: "feed" | "realtime" = "realtime";
     try {
       const parsed = JSON.parse(dataStr);
       originalId = BigInt(parsed.id);
       replicateText = parsed.text || replicateText;
+      source         = parsed.source || "realtime"
     } catch (e) {
       try {
         originalId = BigInt(dataStr);
@@ -112,6 +116,7 @@ const PostCard = ({
       <ReplicatedPostCard
         id={id}
         originalPostId={originalId}
+        source={source}
         isRealtimePost={isRealtimePost}
         currentUserId={currentUserId}
         author={author}

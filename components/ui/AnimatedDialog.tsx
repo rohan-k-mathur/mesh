@@ -81,24 +81,16 @@ export function AnimatedDialog({ open, onOpenChange, children }: Props) {
                     {/* ───── backdrop ───── */}
                     <motion.div
             key="backdrop"
-            className="fixed inset-0 bg-transparent backdrop-blur-sm z-40"
+            className="fixed inset-0 bg-white bg-opacity-50 backdrop-blur-sm z-40"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{type:"spring", duration: .5 }}
+            transition={{type:"tween", duration: .25 }}
           />
            {/* ───── content ───── */}
-           <motion.div
-            key="content"
-            className=" inset-0 z-50  "
-            /*  Pop‑in with a gentle overshoot */
-            initial={{ opacity: 0.5, scale: 0.5 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0.5, scale: 0.5 }}
-            transition={{type:"tween", duration: .5 }}
-          >
+         <div>
             {children}
-          </motion.div>
+            </div>
         </Dialog>
       )}
     </AnimatePresence>

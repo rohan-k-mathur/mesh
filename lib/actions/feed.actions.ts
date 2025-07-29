@@ -66,7 +66,12 @@ export async function replicateFeedPost({
   const uid = BigInt(userId);
   const original = await prisma.feedPost.findUnique({ where: { id: oid } });
   if (!original) throw new Error("Feed post not found");
-  const payload = JSON.stringify({ id: oid.toString(), text });
+  // const payload = JSON.stringify({ id: oid.toString(), text });
+  const payload = JSON.stringify({
+       id: oid.toString(),
+       text,
+       source: "feed",
+     })
   const newPost = await prisma.feedPost.create({
     data: {
       content: `REPLICATE:${payload}`,

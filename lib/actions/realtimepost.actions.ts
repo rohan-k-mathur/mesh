@@ -600,7 +600,12 @@ export async function replicateRealtimePost({
       where: { id: oid },
     });
     if (!original) throw new Error("Real-time post not found");
-    const payload = JSON.stringify({ id: oid.toString(), text });
+    // const payload = JSON.stringify({ id: oid.toString(), text });
+    const payload = JSON.stringify({
+         id: oid.toString(),
+         text,
+         source: "realtime",
+       })
     const newPost = await prisma.realtimePost.create({
       data: {
         content: `REPLICATE:${payload}`,
