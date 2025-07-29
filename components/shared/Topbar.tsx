@@ -7,6 +7,7 @@ import { signOut, getAuth } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { app } from "@/lib/firebase/firebase";
 import { useAuth } from "@/lib/AuthContext";
+import CartButton from "@/components/CartButton";
 import { Chakra_Petch } from "next/font/google";
 import localFont from 'next/font/local'
 const parabole = localFont({ src: './Parabole-DisplayRegular.woff2' })
@@ -47,12 +48,13 @@ function Topbar() {
       )}
       <div className="fixed top-[1rem]  justify-start ">
       <Link href="/" className="flex items-center gap-4">
-        <Image src="/assets/logo-black.svg" alt="logo" width={36} height={36} /> 
+        <Image src="/assets/logo-black.svg" alt="logo" width={36} height={36} />
         <div className={`${parabole.className}`}>
         <span  className=" text-[2.5rem] font-bold text-black tracking-[.0rem] max-xs:hidden">MESH</span>
         </div>
 
       </Link>
+      <CartButton />
       </div>
 
     </nav>
