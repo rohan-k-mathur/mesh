@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { deletePost } from "@/lib/actions/thread.actions";
-import { deleteFeedPost } from "@/lib/actions/feed.actions";
+import { deleteFeedPost } from "@/lib/actions/feed.client";
 import { deleteRealtimePost } from "@/lib/actions/realtimepost.actions";
 import { useRouter, usePathname } from "next/navigation";
 

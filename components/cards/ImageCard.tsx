@@ -44,11 +44,8 @@ export default function ImageCard({ id, imageurl }: Props) {
       </DialogTrigger>
 
       {/*  Re‑use your existing modal in “view” mode  */}
-      <ViewImageModal
-        id={String(id)}          // ← any truthy string marks “view”
-        isOwned={false}          // not editable from the feed
-        currentImageURL={imageurl}
-      />
+      <ViewImageModal open={open} onOpenChange={setOpen} imageUrl={imageurl} />
+
     </Dialog>
   );
 }

@@ -8,7 +8,7 @@ import {
   unlikeRealtimePost,
   dislikeRealtimePost,
 } from "@/lib/actions/like.actions";
-import { likeFeedPost, unlikeFeedPost } from "@/lib/actions/feed.actions";
+import { likeFeedPost, unlikeFeedPost } from "@/lib/actions/feed.client";
 import { useAuth } from "@/lib/AuthContext";
 import { Like, RealtimeLike } from "@prisma/client";
 import Image from "next/image";

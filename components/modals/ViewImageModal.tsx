@@ -12,12 +12,19 @@ import {
   import { z } from "zod";
   import ImageNodeForm from "../forms/ImageNodeForm";
   
-  interface Props {
-    id?: string;
-    isOwned: boolean;
-    onSubmit?: (values: z.infer<typeof ImagePostValidation>) => void;
-    currentImageURL: string;
-  }
+  // interface Props {
+  //   id?: string;
+  //   isOwned: boolean;
+  //   onSubmit?: (values: z.infer<typeof ImagePostValidation>) => void;
+  //   currentImageURL: string;
+  // }
+
+interface Props {
+  open: boolean;
+  onOpenChange(v: boolean): void;
+  imageUrl: string;
+}
+
   
   const renderCreate = ({
     onSubmit,
@@ -86,24 +93,29 @@ import {
     );
   };
   
-  const ViewImageModal = ({ id, isOwned, onSubmit, currentImageURL }: Props) => {
-    const isCreate = !id && isOwned;
-    const isEdit = id && isOwned;
-    const isView = id && !isOwned;
-    return (
-      <div>
-        <AnimatedDialog>
-        <DialogContent className="max-w-[60%] max-h-[90%] h-full bg-black bg-opacity-50  border-blue">
-          <div className="mt-0 grid rounded-xl ">
-            {isCreate && renderCreate({ onSubmit })}
-            {isEdit && renderEdit({ onSubmit, currentImageURL })}
-            {isView && renderView(currentImageURL)}
-          </div>
-        </DialogContent>
-        </AnimatedDialog>
-      </div>
-    );
-  };
+export default function ViewImageModal({ open, onOpenChange, imageUrl }: Props) {
+  return (
+    <AnimatedDialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="h-full w-full justify-center items-center flex p-0 flex-col 
+      max-w-[60%] max-h-[90%] h-full bg-black bg-opacity-50  border-blue">
+        {/* close button (optional) */}
+        <DialogClose className="absolute top-4 right-4 text-white text-2xl">
+          ×
+        </DialogClose>
+
+        {/* the image itself */}
+        <Image
+          src={imageUrl}
+          alt="posted image"
+          width={0}
+          height={0}
+          sizes="200vw"
+          className="img-view-modal justify-center items-center mx-auto w-fit h-fit  transition-opacity duration-400"
+          priority          /* avoids a second request if cached */
+        />
+      </DialogContent>
+    </AnimatedDialog>
+  );
+}
   
-  export default ViewImageModal;
   

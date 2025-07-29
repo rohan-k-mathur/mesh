@@ -1,7 +1,7 @@
 "use client";
 
 import { replicatePost } from "@/lib/actions/thread.actions";
-import { replicateFeedPost } from "@/lib/actions/feed.actions";
+import { replicateFeedPost } from "@/lib/actions/feed.client";
 import { replicateRealtimePost } from "@/lib/actions/realtimepost.actions";
 import { useAuth } from "@/lib/AuthContext";
 import Image from "next/image";
