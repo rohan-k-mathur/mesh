@@ -62,7 +62,7 @@ model User {
   bids                     Bid[]
   orders                   Order[]
   StallMessage             StallMessage[]
-  cartItems               CartItem[]
+  cartItems                CartItem[]
   carts                    Cart[]
 
   @@map("users")
@@ -850,6 +850,7 @@ model Offer {
   created_at  DateTime @default(now()) @db.Timestamptz(6)
   item        Item     @relation(fields: [item_id], references: [id])
   buyer       User     @relation(fields: [buyer_id], references: [id])
+  cart        Cart?    @relation("CartOffer")
 
   @@index([item_id])
   @@map("offers")
@@ -945,13 +946,16 @@ enum escrow_state {
 }
 
 model Cart {
-  id        BigInt   @id @default(autoincrement())
-  user_id   BigInt
-  offer_id  BigInt   @unique
-  added_at  DateTime @default(now()) @db.Timestamptz(6)
-  deadline  DateTime @db.Timestamptz(6)
-  offer     Offer    @relation(fields: [offer_id], references: [id])
-  user      User     @relation(fields: [user_id], references: [id])
+  id       BigInt   @id @default(autoincrement())
+  user_id  BigInt
+  offer_id BigInt   @unique
+  added_at DateTime @default(now()) @db.Timestamptz(6)
+  deadline DateTime @db.Timestamptz(6)
+  /// explicit relation names keep things readable
+  offer    Offer    @relation("CartOffer", fields: [offer_id], references: [id])
+  user     User     @relation(fields: [user_id], references: [id])
+  /// NEW — back‑reference for Cart ↔ Escrow
+  escrow   Escrow?  @relation("CartEscrow")
 
   @@index([user_id])
   @@map("cart")
@@ -964,7 +968,8 @@ model Escrow {
   tx_ref     String?
   created_at DateTime     @default(now()) @db.Timestamptz(6)
   updated_at DateTime     @updatedAt @db.Timestamptz(6)
-  cart       Cart         @relation(fields: [cart_id], references: [id])
+  /// Wire up the other side of Cart ↔ Escrow
+  cart       Cart         @relation("CartEscrow", fields: [cart_id], references: [id])
 
   @@map("escrow")
 }
