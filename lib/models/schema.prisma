@@ -862,6 +862,8 @@ model Auction {
   stall_id      BigInt
   reserve_cents Int
   ends_at       DateTime
+  state         auction_state @default(LIVE)
+  winner_id     BigInt?
   created_at    DateTime @default(now()) @db.Timestamptz(6)
   item          Item     @relation(fields: [item_id], references: [id])
   stall         Stall    @relation(fields: [stall_id], references: [id])
@@ -882,6 +884,11 @@ model Bid {
 
   @@index([auction_id])
   @@map("bids")
+}
+
+enum auction_state {
+  LIVE
+  CLOSED
 }
 
 model Order {
@@ -972,4 +979,26 @@ model Escrow {
   cart       Cart         @relation("CartEscrow", fields: [cart_id], references: [id])
 
   @@map("escrow")
+}
+
+model PartyPresence {
+  id         String   @id @default(cuid())
+  party_id   String
+  user_id    BigInt
+  x          Int
+  y          Int
+  updated_at DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+
+  @@index([party_id])
+  @@map("party_presence")
+}
+
+model StallHeat {
+  id       BigInt   @id @default(autoincrement())
+  stall_id BigInt
+  cell     Int
+  views    Int
+
+  @@unique([stall_id, cell], name: "stall_id_cell")
+  @@map("stall_heat")
 }
