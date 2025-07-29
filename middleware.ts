@@ -43,24 +43,32 @@ export async function middleware(request: NextRequest) {
       //   );
       // }
             // 🔄  Edge‑safe fetch instead of direct Prisma call
-            if (request.nextUrl.pathname === "/swapmeet") {
-              const apiUrl = new URL("/api/swapmeet/spawn", request.url);
-              const res    = await fetch(apiUrl, {
-                // pass session cookies / headers if your API route needs them
-                headers: { cookie: request.headers.get("cookie") ?? "" },
-              });
+            // if (request.nextUrl.pathname === "/swapmeet") {
+            //   const apiUrl = new URL("/api/swapmeet/spawn", request.url);
+            //   const res    = await fetch(apiUrl, {
+            //     // pass session cookies / headers if your API route needs them
+            //     headers: { cookie: request.headers.get("cookie") ?? "" },
+            //   });
       
+            //   if (res.ok) {
+            //     const { x, y } = await res.json();
+            //     return NextResponse.redirect(
+            //       new URL(`/swapmeet/market/${x}/${y}`, request.url),
+            //     );
+            //   }
+      
+            //   // Fallback if API failed
+            //   return NextResponse.next();
+            // }
+            if (request.nextUrl.pathname === "/swapmeet") {
+              const res = await fetch(new URL("/swapmeet/api/spawn", request.url));
               if (res.ok) {
-                const { x, y } = await res.json();
+                const { x, y } = (await res.json()) as { x: number; y: number };
                 return NextResponse.redirect(
                   new URL(`/swapmeet/market/${x}/${y}`, request.url),
                 );
               }
-      
-              // Fallback if API failed
-              return NextResponse.next();
             }
-
       return NextResponse.next({
         request: {
           headers,
