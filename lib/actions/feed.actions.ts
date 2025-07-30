@@ -4,7 +4,7 @@ import { getUserFromCookies } from "@/lib/serverutils";  // server‑only util
 import { revalidatePath } from "next/cache";
 import { jsonSafe } from "../bigintjson";
 export interface CreateFeedPostArgs {
-  type: "TEXT" | "IMAGE" | "VIDEO" | "GALLERY" | "PREDICTION" | "PRODUCT_REVIEW";
+  type: "TEXT" | "IMAGE" | "VIDEO" | "GALLERY" | "PREDICTION" | "PRODUCT_REVIEW" | "LIVECHAT";
   content?: string;
   imageUrl?: string;
   videoUrl?: string;

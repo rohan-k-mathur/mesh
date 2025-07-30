@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabaseclient";
+import { supabase } from "@/lib/supabase-browser";
 import { WORKFLOW_CHANNEL } from "@/constants";
 
 export async function POST(req: Request) {

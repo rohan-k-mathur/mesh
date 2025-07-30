@@ -4,4 +4,3 @@ export function jsonSafe<T>(obj: T): T {
       JSON.stringify(obj, (_, v) => (typeof v === "bigint" ? Number(v) : v))
     );
   }
-  

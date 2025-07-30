@@ -1,19 +1,47 @@
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prismaclient";
-import { ItemSchema } from "@/lib/zod-schemas";
-import { broadcast } from "@/lib/sse";
-
-export async function POST(
-  req: NextRequest,
-  { params }: { params: { stallId: string } },
+/* app/api/stalls/[stallId]/items/route.ts */
+import { prisma } from '@/lib/prismaclient';
+import { ItemSchema, ItemPayload } from '@/lib/zod-schemas';
+import { NextRequest, NextResponse } from 'next/server';
+import { jsonSafe } from '@/lib/bigintjson';
+/* ----------  GET  ---------- */
+export async function GET(
+  _req: NextRequest,
+  { params }: { params: { stallId: string } }
 ) {
-  const body = await req.json();
-  const data = ItemSchema.parse(body);
-
-  const item = await prisma.item.create({
-    data: { ...data, stallId: params.stallId },
+  const items = await prisma.item.findMany({
+    where: { stall_id: BigInt(params.stallId) },
+    select: {
+      id: true,
+      name: true,
+      price_cents: true,
+      stock: true,
+      images: true,
+      auction: { select: { id: true, reserve_cents: true, ends_at: true } },
+    },
   });
 
-  broadcast(params.stallId, { type: "ITEM_CREATED", payload: item });
-  return NextResponse.json(item, { status: 201 });
+  return NextResponse.json(jsonSafe(items), { headers: { 'Cache-Control': 'no-store' } });
+}
+
+/* ----------  POST  ---------- */
+export async function POST(
+  req: NextRequest,
+  { params }: { params: { stallId: string } }
+) {
+  const body   = await req.json();
+  const parsed = ItemSchema.parse(body) as ItemPayload;
+
+  const item = await prisma.item.create({
+    data: {
+      stall_id:    BigInt(params.stallId),   // ← FK column
+      name:        parsed.name,
+      description: parsed.description,
+      stock:       parsed.stock,
+      images:      parsed.images,
+      price_cents: parsed.price_cents,       // ← required Int
+    },
+    select: { id: true },
+  });
+
+  return NextResponse.json(jsonSafe(item), { status: 201 });
 }

@@ -25,8 +25,9 @@ export function ItemsPanel({ stallId }: { stallId: string }) {
             <li key={item.id} className="rounded border p-4 space-y-2">
               <img src={item.images[0]} className="h-32 w-full object-cover rounded" />
               <h3 className="font-medium">{item.name}</h3>
-              <p>${item.price.toFixed(2)} &middot; Stock {item.stock}</p>
-              {item.sold && <span className="text-green-600">Sold</span>}
+              <p>
+  ${ (item.price_cents / 100).toFixed(2) } &middot; Stock&nbsp;{item.stock}
+</p>              {item.sold && <span className="text-green-600">Sold</span>}
             </li>
           ))}
         </ul>

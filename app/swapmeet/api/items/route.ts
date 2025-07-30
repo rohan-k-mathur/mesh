@@ -1,53 +1,46 @@
-import { prisma } from "@/lib/prismaclient";
-import { jsonSafe } from "@/lib/bigintjson";
-import { NextResponse, NextRequest } from "next/server";
-import { ItemSchema } from "@/lib/zod-schemas";
+/* app/api/stalls/[stallId]/items/route.ts */
+import { prisma } from '@/lib/prismaclient';
+import { ItemSchema, ItemPayload } from '@/lib/zod-schemas';
+import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET(req: Request) {
-  const url = new URL(req.url);
-  const stall = Number(url.searchParams.get("stall"));
-  const items = Number.isNaN(stall)
-    ? []
-    : await prisma.item.findMany({
-        where: { stall_id: BigInt(stall) },
-        select: {
-          id: true,
-          name: true,
-          price_cents: true,
-          auction: {
-            select: { id: true, reserve_cents: true, ends_at: true },
-          },
-        },
-      });
-  return NextResponse.json(jsonSafe(items), {
-    headers: { "Cache-Control": "no-store" },
+/* ----------  GET  ---------- */
+export async function GET(
+  _req: NextRequest,
+  { params }: { params: { stallId: string } }
+) {
+  const items = await prisma.item.findMany({
+    where: { stall_id: BigInt(params.stallId) },
+    select: {
+      id: true,
+      name: true,
+      price_cents: true,
+      stock: true,
+      images: true,
+      auction: { select: { id: true, reserve_cents: true, ends_at: true } },
+    },
   });
-}
-// POST /api/items
 
+  return NextResponse.json(items, { headers: { 'Cache-Control': 'no-store' } });
+}
+
+/* ----------  POST  ---------- */
 export async function POST(
   req: NextRequest,
-  { params }: { params: { stallId: string } },
+  { params }: { params: { stallId: string } }
 ) {
-  
   const body   = await req.json();
-  const parsed = ItemSchema.parse(body);
-
-  const stall_id    = BigInt(params.stallId);
-  const price_cents = Math.round(parsed.price * 100);
+  const parsed = ItemSchema.parse(body) as ItemPayload;
 
   const item = await prisma.item.create({
     data: {
-      stall_id,
+      stall_id:    BigInt(params.stallId),   // ← FK column
       name:        parsed.name,
       description: parsed.description,
-      price_cents,
       stock:       parsed.stock,
       images:      parsed.images,
+      price_cents: parsed.price_cents,       // ← required Int
     },
-    select: {
-      id: true, name: true, price_cents: true, stock: true, images: true,
-    },
+    select: { id: true },
   });
 
   return NextResponse.json(item, { status: 201 });

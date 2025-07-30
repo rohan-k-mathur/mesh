@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { AuthorOrAuthorId, AppState } from "@/lib/reactflow/types";
 import { NodeProps } from "@xyflow/react";
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabaseclient";
+import { supabase } from "@/lib/supabase-browser";
 import { usePathname } from "next/navigation";
 import BaseNode from "./BaseNode";
 import EntropyNodeModal from "../modals/EntropyNodeModal";
