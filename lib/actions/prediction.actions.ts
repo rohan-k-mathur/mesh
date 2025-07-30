@@ -132,6 +132,9 @@ export async function resolveMarket({ marketId, outcome }:{ marketId:string; out
   if (market.creatorId !== user.userId && market.oracleId !== user.userId) {
     throw new Error("Not authorized");
   }
+  if (market.state !== "CLOSED") {
+    throw new Error("Market not closed");
+  }
   if (market.state === "RESOLVED") {
     throw new Error("Already resolved");
   }
