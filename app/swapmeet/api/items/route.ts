@@ -22,3 +22,9 @@ export async function GET(req: Request) {
     headers: { "Cache-Control": "no-store" },
   });
 }
+// POST /api/items
+export const POST = withAuth(async (req) => {
+  const data = ItemSchema.parse(await req.json());
+  const item = await prisma.item.create({ data: { ...data, stallId: req.user.stallId }});
+  return NextResponse.json(item, { status: 201 });
+});

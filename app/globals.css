@@ -1417,7 +1417,7 @@ html:before{
 .scroll-list__wrp {
   height: 100%;
   width: 100%;
-  overflow-y: scroll;
+  overflow-y: none;
   overflow-x: hidden;
 
   padding-top: 100px;
@@ -1432,20 +1432,44 @@ html:before{
   opacity: 1;
   transform: scale(1);
   margin-bottom: 0px;
-
   
 }
 .scroll-list__item.item-hide {
-  opacity: .15;
+  opacity: 1;
+  transform: scale(.9);
+  margin-bottom: 0px;
+
+}
+.scroll-list__item.item-second-hide {
+  opacity: .8;
   transform: scale(1);
+  margin-bottom: 0px;
+
 }
 
-.scroll-list__item.item-focus,
+.scroll-list__item.item-focus
+{
+  opacity: 1;     /* dim it a bit */
+  transform: scale(1);
+  margin-bottom: 0px;
+
+
+
+}
 .scroll-list__item.item-second-focus {
-   opacity: 1;
-   transform: scale(1);
+
+  opacity: 1;
+  transform: scale(1);
+  margin-bottom: 0px;
+
+  
+
+   
  }
  .scroll-list__item.item-next {
-    opacity: 0.8;     /* dim it a bit */
-    transform: scale(1);
+  opacity: 1;
+  transform: scale(.9);
+  margin-bottom: 0px;
+
+
   }

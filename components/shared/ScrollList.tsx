@@ -7,6 +7,7 @@ import clsx from "clsx";
 
 interface ScrollListProps {
   children: React.ReactNode[];
+  
 }
 
 export default function ScrollList({ children }: ScrollListProps) {
@@ -58,6 +59,11 @@ export default function ScrollList({ children }: ScrollListProps) {
                 // Optional: tag the *third* card so you can style it (dim/scale) if desired
                 const third = items[firstFocusIndex + 2];
                 if (third) third.classList.add("item-next");
+
+                 // Optional: tag the *third* card so you can style it (dim/scale) if desired
+                 const fourplus = items[firstFocusIndex + 3];
+                 if (fourplus) fourplus.classList.add("item-next");
+         
         
                 // Hide everything *before* the first focused card
                 for (let i = 0; i < firstFocusIndex; i++) {
@@ -75,8 +81,8 @@ export default function ScrollList({ children }: ScrollListProps) {
   }, []);
 
   return (
-    <div ref={wrapperRef} className="scroll-list__wrp mt-[0rem] js-scroll-list h-[100vh] space-y-4 w-full ">
-      <div className="js-scroll-content h-full space-y-4 w-full">{children}</div>
+    <div ref={wrapperRef} className="scroll-list__wrp js-scroll-list h-[95vh] space-y-0 w-full ">
+      <div className="js-scroll-content  space-y-4 w-full">{children}</div>
     </div>
   );
 }
