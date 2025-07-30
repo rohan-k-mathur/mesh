@@ -69,7 +69,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
         </ul>
       </nav>
 
-      <main className="flex-1 p-6 overflow-y-auto">{children}</main>
+      <main className="flex-1 p-6 space-y-4 overflow-y-auto">{children}</main>
     </div>
   );
 }
