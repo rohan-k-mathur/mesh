@@ -17,6 +17,7 @@ export default function ImageCard({ id, imageurl }: Props) {
   const [open,   setOpen]   = useState(false);
 
   return (
+    <div className="flex flex-col">
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {/*  wrapper ensures the whole card is clickable  */}
@@ -47,5 +48,10 @@ export default function ImageCard({ id, imageurl }: Props) {
       <ViewImageModal open={open} onOpenChange={setOpen} imageUrl={imageurl} />
 
     </Dialog>
+     <div className="mt-4 w-full justify-center items-center  w-full ">
+     <hr className="w-full h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-100 to-transparent opacity-55" />
+     <p className="text-center tracking-wide mb-0 pt-3">hello</p>
+     </div>
+     </div>
   );
 }

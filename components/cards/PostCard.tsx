@@ -160,7 +160,7 @@ const PostCard = ({
               {createdAt}
             </div>
 
-            <hr className="mt-2 mb-4 w-full h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-100 to-transparent opacity-75" />
+            <hr className="mt-2 mb-3 w-full h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-100 to-transparent opacity-55" />
             {type === "TEXT" && content && (
               <p className="mt-2 ml-1 text-left  text-[1.08rem] text-black tracking-[.05rem] max-w-[90%]">
                 {content}
@@ -356,7 +356,7 @@ const PostCard = ({
               
               {embedPost && (
                 <>
-                            <hr className="mt-2 mb-4 w-full h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-100 to-transparent opacity-75" />
+                            <hr className="mt-2 mb-4 w-full h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-100 to-transparent opacity-55" />
 
                 <div className="flex flex-2 mt-2   items-center scale-85">
                   
@@ -365,7 +365,7 @@ const PostCard = ({
                 </>
               )}
             </div>
-            <hr className="mt-4 mb-3 w-full h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-100 to-transparent opacity-75" />
+            <hr className="mt-3 mb-3 w-full h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-100 to-transparent opacity-55" />
 
             <div className="mt-4 flex flex-col gap-x-3 gap-y-4">
               <div className="flex gap-x-10 gap-y-8">

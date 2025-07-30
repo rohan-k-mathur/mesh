@@ -31,8 +31,9 @@ const GalleryCarousel = ({ urls }: Props) => {
   if (urls.length === 0) return null;
 
   return (
-    <div className="w-full flex flex-1 justify-center items-center mx-[25%] max-w-[90%]  h-fit ">
-    <div className="relative h-fit my-0  flex justify-center mx-auto">
+    <div className="w-full  justify-center items-center flex flex-col mx-auto">
+    <div className="w-full flex flex-1 flex-col justify-center items-center mx-auto max-w-[90%] mx-auto h-fit ">
+    <div className="relative h-fit  flex flex-col  justify-center mx-auto">
       {/* <Image
         className="carousel px-10 items-center justify-center h-[32rem] w-[500px] object-fit"
         src={urls[currentIndex]}
@@ -59,7 +60,7 @@ const GalleryCarousel = ({ urls }: Props) => {
           )}
 
 <Image
-        className="carousel px-10 items-center justify-center h-[32rem] w-[500px] object-fit"
+        className="carousel px-10 items-center justify-center h-[32rem] w-[500px] mx-auto object-fit"
         src={urls[currentIndex]}
         alt={`img-${currentIndex}`}
         width={0}
@@ -76,35 +77,29 @@ const GalleryCarousel = ({ urls }: Props) => {
       <ViewImageModal open={open} onOpenChange={setOpen} imageUrl={urls[currentIndex]} />
 
     </Dialog>
+
       {urls.length > 0 && (
-        <div className="pointer-events-none max-w-[100%] max-h-[100%]  flex flex-1 w-full absolute inset-0   h-full justify-between px-[-4rem]">
+        <div className="pointer-events-none mt-4 justify-center items-center   flex flex-1 w-full relative   h-full  ">
           <button className=" pointer-events-auto bg-white bg-opacity-20 border-none carouselbutton rounded-xl
-          px-2 max-w-[4rem] min-w-[2rem] w-fit max-h-[70%] min-h-[20%] h-auto justify-center align-center items-center my-auto py-2  " onClick={handlePrev}>          
-            <Image
-              src="/assets/chevron--left.svg"
-              alt="previous"
-              width={0}
-              height={0}
-              sizes="50vw"
-              className="cursor-pointer object-contain w-fit h-fit responsive"
+          px-[15%] mx-auto  w-auto max-h-[70%] min-h-[20%] h-auto justify-center align-center items-center    " onClick={handlePrev}>          
+                        <p className="justify-start mx-auto text-[1.2rem]">{"<"}</p>
 
-
-            />
+           
           </button>
           <button className="pointer-events-auto bg-white bg-opacity-20 border-none carouselbutton rounded-xl
-          px-2 max-w-[4rem] min-w-[2rem] w-fit max-h-[70%] min-h-[20%] h-auto justify-center align-center items-center my-auto py-2  " onClick={handleNext}>
-            <Image
-              src="/assets/chevron--right.svg"
-              alt="next"
-              width={0}
-              height={0}
-              sizes="50vw"
-              className="cursor-pointer object-contain w-fit h-fit responsive"
+           px-[15%] mx-auto  w-auto  max-h-[70%] min-h-[20%] h-auto justify-center align-center items-center  " onClick={handleNext}>
+                                <p className="justify-start mx-auto  text-[1.2rem]">{">"}</p>
 
-            />
+           
           </button>
         </div>
       )}
+    
+    </div>
+    </div>
+    <div className="mt-4 w-full justify-center items-center  w-full ">
+    <hr className="w-full h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-100 to-transparent opacity-55" />
+    <p className="text-center tracking-wide mb-0 pt-3">hello</p>
     </div>
     </div>
   );

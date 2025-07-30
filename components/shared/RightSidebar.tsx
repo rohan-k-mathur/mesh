@@ -89,7 +89,7 @@ function newlounge()
          <div className="flex  w-full flex flex-col gap-4 px-2">
          {loungeId && <CreateLoungePost roomId={loungeId} />}
           <Button
-         className="border-[1px] border-rose-300 border-opacity-80 likebutton leftsidebar_link leftsidebar-item items-start justify-start h-fit  rounded-xl "
+         className="border-[1px] border-transparent likebutton leftsidebar_link leftsidebar-item items-start justify-start h-fit  rounded-xl "
          onClick={newlounge}
          variant={"outline"}
          >
@@ -104,7 +104,7 @@ function newlounge()
          <p className="text-black max-lg:hidden">{"New Lounge"}</p>
        </Button>
          <Button
-         className="border-[1px] border-rose-300 border-opacity-80 likebutton leftsidebar_link leftsidebar-item items-start justify-start h-fit  rounded-xl "
+         className="border-[1px] border-transparent likebutton leftsidebar_link leftsidebar-item items-start justify-start h-fit  rounded-xl "
          onClick={gotomessages}
          variant={"outline"}
          >
@@ -119,7 +119,7 @@ function newlounge()
          <p className="text-black max-lg:hidden">{"Messages"}</p>
        </Button>
          <Button
-         className="border-[1px] border-rose-300 border-opacity-80 likebutton leftsidebar_link leftsidebar-item items-start justify-start h-fit  rounded-xl "
+         className="border-[1px] border-transparent likebutton leftsidebar_link leftsidebar-item items-start justify-start h-fit  rounded-xl "
          variant={"outline"}
          >
            <Image
@@ -134,7 +134,7 @@ function newlounge()
        </Button>
        
        <Button
-         className="border-[1px] border-rose-300 border-opacity-80 likebutton leftsidebar_link leftsidebar-item items-start justify-start h-fit  rounded-xl "
+         className="border-[1px] border-transparent likebutton leftsidebar_link leftsidebar-item items-start justify-start h-fit  rounded-xl "
          variant={"outline"}
          >
            <Image
@@ -148,7 +148,7 @@ function newlounge()
          <p className="text-black max-lg:hidden">{"Find Users"}</p>
        </Button>
        <Button
-         className="border-[1px] border-rose-300 border-opacity-80 likebutton leftsidebar_link leftsidebar-item items-start justify-start h-fit  rounded-xl "
+         className="border-[1px] border-transparent likebutton leftsidebar_link leftsidebar-item items-start justify-start h-fit  rounded-xl "
          variant={"outline"}
          >
            <Image
@@ -162,7 +162,7 @@ function newlounge()
          <p className="text-black max-lg:hidden">{"Find Groups"}</p>
        </Button>
        <Button
-         className="border-[1px] border-rose-300 border-opacity-80 likebutton leftsidebar_link leftsidebar-item items-start justify-start h-fit  rounded-xl "
+         className="border-[1px] border-transparent likebutton leftsidebar_link leftsidebar-item items-start justify-start h-fit  rounded-xl "
          variant={"outline"}
          >
            <Image
