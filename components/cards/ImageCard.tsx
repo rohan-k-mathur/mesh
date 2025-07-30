@@ -36,10 +36,10 @@ export default function ImageCard({ id, imageurl }: Props) {
             alt="posted image"
             width={0}
             height={0}
-            sizes="200vw"
-            layout="responsive"
+            sizes="(max-height: 468px) 100vw, 33vw"
+              layout="responsive"
             onLoad={() => setLoaded(true)}
-            className="img-feed-frame rounded-sm mt-4 mb-4"
+            className="img-feed-frame rounded-sm mt-2 mb-2"
           />
         </button>
       </DialogTrigger>
