@@ -1,5 +1,7 @@
-import { usePartyPresence } from "@/lib/hooks/usePartyPresence";
+"use client";
 
+
+import { usePartyPresence } from "@/lib/hooks/usePartyPresence";
 export default function PartyOverlay({ partyId }: { partyId: string }) {
   const curs = usePartyPresence(partyId);
   return (

@@ -1355,7 +1355,7 @@ button:hover {
 html {
   margin: 0;
   height: 100%;
-  scroll-behavior: smooth;
+  scroll-behavior:smooth;
   overscroll-behavior: auto;
 }
 html:before{
@@ -1428,7 +1428,7 @@ html:before{
   display: none!important;
 }
 .scroll-list__item {
-  transition: all .1s ease-in-out;
+  transition: all .1s -ouease-int;
   opacity: 1;
   transform: scale(1);
   margin-bottom: 0px;

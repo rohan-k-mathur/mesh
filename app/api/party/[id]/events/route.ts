@@ -1,5 +1,8 @@
 import { prisma } from "@/lib/prismaclient";
+import { subscribe } from '@/lib/sse';
+
 export const runtime = "edge";
+
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   const partyId = params.id;

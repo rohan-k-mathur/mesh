@@ -4,7 +4,7 @@ import React from 'react';
 import { Chart as ChartJS, registerables } from 'chart.js';
 ChartJS.register(...registerables);                // once, globally
 
-import { Pie, Bar } from 'react-chartjs-2';
+import { Pie, Bar, Line, Doughnut } from 'react-chartjs-2';
 
 export type Summary = {
   total:      number;

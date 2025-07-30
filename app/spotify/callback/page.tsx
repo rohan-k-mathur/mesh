@@ -102,7 +102,10 @@
 
 import { useEffect, useState } from 'react';
 import { useSearchParams }     from 'next/navigation';
+ import { Chart as ChartJS, registerables } from 'chart.js';
+ ChartJS.register(...registerables);
 
+import { Doughnut, Bar, Line } from 'react-chartjs-2';
 import DashboardCharts, { type Summary } from './DashboardCharts';
 
 /* ------------------------------------------------------------------ */

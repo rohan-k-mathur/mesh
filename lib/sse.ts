@@ -1,4 +1,5 @@
-type EventPayload = { type: string; payload: any };
+// lib/sse.ts
+type Payload = { type: string; payload: any };
 
 const channels: Record<string, Set<WritableStreamDefaultWriter>> = {};
 
@@ -7,8 +8,9 @@ export function subscribe(stallId: string, writer: WritableStreamDefaultWriter) 
   channels[stallId].add(writer);
 }
 
-export function broadcast(stallId: string, ev: EventPayload) {
+export function broadcast(stallId: string, ev: Payload) {
   channels[stallId]?.forEach(w =>
-    w.write(`data: ${JSON.stringify(ev)}\n\n`).catch(() => channels[stallId].delete(w)),
+    w.write(`data: ${JSON.stringify(ev)}\n\n`)
+      .catch(() => channels[stallId].delete(w)),
   );
 }

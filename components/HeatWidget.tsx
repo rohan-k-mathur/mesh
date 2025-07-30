@@ -1,4 +1,8 @@
-import { Bar } from "react-chartjs-2";
+"use client";
+import { Chart as ChartJS, registerables } from 'chart.js';
+ChartJS.register(...registerables);                // once, globally
+
+import { Pie, Bar, Line, Doughnut } from 'react-chartjs-2';
 import useSWR from "swr";
 export default function HeatWidget({ stallId }:{ stallId:number }){
   const { data=[] } = useSWR(`/api/stall/${stallId}/heat`, (u)=>fetch(u).then(r=>r.json()), { refreshInterval: 10_000 });

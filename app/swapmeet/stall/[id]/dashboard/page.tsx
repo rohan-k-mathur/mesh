@@ -5,9 +5,14 @@ import { OrdersPanel } from "@/components/dashboard/OrdersPanel";
 import { PayoutsPanel } from "@/components/dashboard/PayoutsPanel";
 import { LivePanel } from "@/components/dashboard/LivePanel";
 
-export default function StallDashboard() {
-  const { id } = useParams<{ id: string }>();
-  return (
+interface PageProps {
+    params: { id: string };          // <- Next.js injects this for route segments
+  }
+  
+
+  export default function StallDashboard({ params }: PageProps) {
+    const { id } = params;           // <- No client hook needed
+    return (
     <DashboardShell>
       <ItemsPanel stallId={id} />
       <OrdersPanel stallId={id} />

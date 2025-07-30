@@ -796,6 +796,8 @@ model Stall {
   section_id   BigInt?
   owner_id     BigInt
   name         String
+  sellerId     BigInt?
+  seller       Seller?        @relation(fields: [sellerId], references: [id])
   created_at   DateTime       @default(now()) @db.Timestamptz(6)
   updated_at   DateTime?      @default(now()) @updatedAt @db.Timestamptz(6)
   section      Section?       @relation(fields: [section_id], references: [id])
@@ -828,16 +830,27 @@ model Item {
   id          BigInt      @id @default(autoincrement())
   stall_id    BigInt
   name        String
+  description String
   price_cents Int
+  stock       Int
   created_at  DateTime    @default(now()) @db.Timestamptz(6)
   stall       Stall       @relation(fields: [stall_id], references: [id])
+  images      String[] // using PostgreSQL array
   offers      Offer[]
   auction     Auction?
   orderLines  OrderLine[]
   cartItems   CartItem[]
+  Order       Order[]
 
   @@index([stall_id])
   @@map("items")
+}
+
+model Seller {
+  id                   BigInt  @id @default(autoincrement()) // <-- give Seller the ids
+  stripeAccountId      String? @unique
+  stripeChargesEnabled Boolean @default(false)
+  stalls               Stall[]
 }
 
 model Offer {
@@ -893,6 +906,11 @@ enum auction_state {
 
 model Order {
   id         BigInt      @id @default(autoincrement())
+  amount     Int
+  sessionId  String      @unique
+  buyerEmail String?
+  item_id    BigInt
+  item       Item        @relation(fields: [item_id], references: [id])
   stall_id   BigInt
   buyer_id   BigInt
   status     String      @default("PENDING")
