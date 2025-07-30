@@ -1,5 +1,4 @@
-import { supabase } from "./supabase";
-
+import { supabase } from "./supabase-browser";
 // export async function uploadItemImage(
 //   stallId: string,
 //   file: File,

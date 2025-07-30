@@ -1,7 +1,7 @@
 // app/api/v2/favorites/spotify/status/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromCookies }      from '@/lib/serverutils';
-import { supabase }                from '@/lib/supabaseServer'; // service‑role client
+import { supabase } from '@/lib/supabase-server'; // service‑role client
 import redis                       from '@/lib/redis';
 
 export async function GET(req: NextRequest) {
