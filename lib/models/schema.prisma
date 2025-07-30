@@ -664,6 +664,7 @@ model PredictionMarket {
   postId     BigInt          @unique
   question   String          @db.VarChar(140)
   closesAt   DateTime
+  closedAt   DateTime?
   resolvesAt DateTime?
   state      PredictionState @default(OPEN)
   outcome    MarketOutcome?

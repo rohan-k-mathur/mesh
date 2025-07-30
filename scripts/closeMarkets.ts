@@ -2,18 +2,10 @@ import { prisma } from "@/lib/prismaclient";
 
 async function main() {
   const now = new Date();
-  const markets = await prisma.predictionMarket.findMany({
-    where: {
-      closesAt: { lt: now },
-      state: "OPEN",
-    },
+  await prisma.predictionMarket.updateMany({
+    where: { closesAt: { lt: now }, state: "OPEN" },
+    data: { state: "CLOSED", closedAt: now },
   });
-  for (const market of markets) {
-    await prisma.predictionMarket.update({
-      where: { id: market.id },
-      data: { state: "CLOSED" },
-    });
-  }
 }
 
 main()
