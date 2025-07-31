@@ -717,18 +717,21 @@ model Wallet {
 }
 
 model ResolutionLog {
-  id        String   @id @default(cuid())
-  marketId  String
-  userId    BigInt
-  amount    Int
-  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  id         BigInt           @id @default(autoincrement())
+  market     PredictionMarket @relation(fields: [marketId], references: [id])
+  marketId   String
+  resolver   User             @relation(fields: [resolverId], references: [id])
+  resolverId BigInt
+  outcome    ResolutionOutcome
+  createdAt  DateTime         @default(now())
 
-  market PredictionMarket @relation(fields: [marketId], references: [id])
-  user   User             @relation(fields: [userId], references: [id])
-
-  @@index([marketId])
-  @@index([userId])
   @@map("resolution_log")
+}
+
+enum ResolutionOutcome {
+  YES
+  NO
+  N_A
 }
 
 enum PredictionState {
