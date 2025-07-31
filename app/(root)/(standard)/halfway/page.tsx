@@ -27,6 +27,7 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
+import { toast } from "sonner";
 import { dedupeByPlaceId } from "@/lib/dedupeVenues";
 
 const libraries: Libraries = ["places", "geometry"];
@@ -200,10 +201,13 @@ export default function HalfwayPage() {
       const res = await fetch(
         `/api/routeMidpoint?lat1=${coord1.lat}&lng1=${coord1.lng}&lat2=${coord2.lat}&lng2=${coord2.lng}`
       );
-      if (!res.ok) throw new Error("Failed to fetch midpoint");
-      const mid: LatLng = await res.json();
+      const mid: LatLng | { error?: string } = await res.json();
+      if (!res.ok || (mid as any).error) {
+        toast.error("Unable to calculate midpoint");
+        throw new Error("Failed");
+      }
       console.log("Route midpoint:", mid);
-      setMidpoint(mid);
+      setMidpoint(mid as LatLng);
 
       // Immediately fetch venues for the current radius & category
       await fetchVenues(mid, radius, venueCategory);
@@ -225,8 +229,11 @@ export default function HalfwayPage() {
       const res = await fetch(
         `/api/computeRoutes?origin=${start.lat},${start.lng}&destination=${end.lat},${end.lng}`
       );
-      if (!res.ok) return { path: [] as LatLng[], distance: null };
       const data = await res.json();
+      if (!res.ok || data.error) {
+        toast.error("Directions unavailable");
+        return { path: [] as LatLng[], distance: null };
+      }
       if (data.routes && data.routes[0]) {
         const encoded = data.routes[0].polyline.encodedPolyline as string;
         const path = window.google.maps.geometry.encoding
