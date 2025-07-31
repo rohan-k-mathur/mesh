@@ -39,7 +39,21 @@ export async function fetchFeedPosts() {
   const posts = await prisma.feedPost.findMany({
     where: { isPublic: true },
     orderBy: { created_at: "desc" },
-    include: { predictionMarket: true, author: true },
+    include: {
+      predictionMarket: {
+        select: {
+          id: true,
+          question: true,
+          yesPool: true,
+          noPool: true,
+          b: true,
+          state: true,
+          outcome: true,
+          closesAt: true,
+        },
+      },
+      author: true,
+    },
   });
   return posts.map((p) => ({ ...p }));
 }

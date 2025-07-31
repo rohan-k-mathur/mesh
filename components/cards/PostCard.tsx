@@ -68,6 +68,7 @@ interface Props {
   pluginType?: string | null;
   pluginData?: Record<string, any> | null;
   claimIds?: (string | number | bigint)[];
+  predictionMarket?: any | null;
 }
 
 const PostCard = ({
@@ -92,6 +93,7 @@ const PostCard = ({
   pluginType = null,
   pluginData = null,
   claimIds,
+  predictionMarket = null,
 }: Props) => {
   if (content && content.startsWith("REPLICATE:")) {
     const dataStr = content.slice("REPLICATE:".length);
@@ -328,8 +330,11 @@ const PostCard = ({
                   )
                 );
               })()}
-            {type === "PREDICTION" && (
-              <PredictionMarketCard post={{ predictionMarket: JSON.parse(content || "{}") }} />
+            {type === "PREDICTION" && predictionMarket && (
+              <PredictionMarketCard
+                key={id.toString()}
+                post={{ id, predictionMarket }}
+              />
             )}
             {type === "PLUGIN" && pluginType === "PDF_VIEWER" && pluginData && (
               <div className="mt-2 mb-2 flex img-feed-frame w-[100%] ml-[23%]  justify-center items-center">
