@@ -3,7 +3,7 @@ import { Worker }       from "bullmq";
 import { connection }   from "@/lib/queue";
 import { prisma }       from "@/lib/prismaclient";
 import redis            from "@/lib/redis";
-
+import { getRedis } from "@/lib/redis";
 /** Helper so JSON & Redis never choke on BigInt */
 const safeJSON = (value: unknown) =>
   JSON.stringify(value, (_k, v) =>
@@ -49,12 +49,15 @@ new Worker(
     });
 
         /* cache neighbours as strings as well; caller can Number() if needed */
+        const redis = getRedis();
+        if (redis) {
         await redis.set(
           `friendSuggest:${uid}`,
           safeJSON(rows.map((r) => r.neighbour_id)),
           "EX",
           300
         );
+        }
   },
   { connection, concurrency: 2 }
 );

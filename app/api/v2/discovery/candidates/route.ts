@@ -1,17 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserFromCookies } from "@/lib/serverutils";
-import redis from "@/lib/redis";
+import { getRedis } from "@/lib/redis";
 import { checkNext, check } from "@/lib/limiter";
 import { getTwoTowerCandidates } from "@/lib/twoTower";
 import { tasteFallbackCandidates } from "@/util/taste";
 import { unionWithoutDuplicates } from "@/lib/union";
-
+import { getOrSet } from "@/lib/redis";
+import { knn } from "@/util/postgresVector";
 
 export async function GET(req: NextRequest) {
   const user = await getUserFromCookies();
+
+  if(!user){
+    return;
+  }
+  else{
+
   if (!user?.userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  
   const kParam = parseInt(req.nextUrl.searchParams.get("k") || "50", 10);
   const k = Math.min(Math.max(kParam, 1), 100);
   await checkNext(req, 30);
@@ -23,7 +31,9 @@ export async function GET(req: NextRequest) {
     .filter((r) => r.userId !== Number(user.userId))
     .slice(0, k)
     .map((r) => ({ userId: r.userId, score: r.score }));
-  return NextResponse.json(filtered);
+  //return NextResponse.json(filtered); 
+  const redis = getRedis();
+if (redis) {
 
   await check(req, `cand-${user.userId}`);
   const cacheKey = `candidates:v2:${user.userId}`;
@@ -37,4 +47,8 @@ export async function GET(req: NextRequest) {
 
   await redis.setex(cacheKey, 30, JSON.stringify(final));
   return NextResponse.json(final);
+  }
 }
+}
+
+

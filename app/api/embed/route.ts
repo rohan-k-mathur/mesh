@@ -1,12 +1,12 @@
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+import { getRedis } from "@/lib/redis";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prismaclient";
 import OpenAI from "openai";
 const openai = new OpenAI();
-import redis from "@/lib/redis";
 
 const schema = z.object({ ids: z.array(z.string()).max(200) });
 
@@ -20,6 +20,9 @@ function downsample(vec: number[]): number[] {
 }
 
 export async function logToDlq(mediaId: string, err: Error) {
+  const redis = getRedis();
+if (redis) {
+  
   await redis.xadd(
     "embedding_dlq",
     "*",
@@ -30,6 +33,7 @@ export async function logToDlq(mediaId: string, err: Error) {
     "ts",
     Date.now().toString(),
   );
+}
 }
 
 export async function POST(req: NextRequest) {

@@ -1,12 +1,15 @@
 import fetch from 'node-fetch';
 import redis from '@/lib/redis';
-
+import { getRedis } from '@/lib/redis';
 const GROUP = 'retry_group';
 const BATCH = 50;
 const MAX_RETRY = 3;
 const EMBED_URL = process.env.EMBEDDING_URL ?? 'http://localhost:3000/api/embed';
 
 export async function runOnce() {
+  const redis = getRedis();
+if (redis) {
+
   await redis.xgroup('CREATE', 'embedding_dlq', GROUP, '0', 'MKSTREAM').catch(() => {});
   const res: any = await redis.xreadgroup('GROUP', GROUP, 'worker', 'COUNT', BATCH, 'STREAMS', 'embedding_dlq', '>');
   if (!res) return;
@@ -41,7 +44,7 @@ export async function runOnce() {
     }
   }
 }
-
+}
 if (require.main === module) {
   runOnce().then(() => process.exit(0));
 }

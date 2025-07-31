@@ -1,3 +1,5 @@
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';  // prevent Next from caching the RSC
 import { prisma } from "@/lib/prismaclient";
 
 export async function POST(req: Request) {
@@ -9,3 +11,4 @@ export async function POST(req: Request) {
   });
   return new Response("ok");
 }
+

@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prismaclient";
-export const runtime = "edge";
+export const runtime = 'nodejs';          // Next 14+
 
 export async function GET(
   req: Request,

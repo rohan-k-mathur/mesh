@@ -1,7 +1,7 @@
 import { Queue, QueueEvents } from "bullmq";
 import redis from "./redis";
 import IORedis from 'ioredis';
-
+import { getRedis } from "./redis";
 export const runtime = 'nodejs';        // <-- prevents Edge bundling if imported elsewhere
 
 // const res = await fetch(

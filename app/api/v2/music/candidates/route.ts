@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prismaclient";
 import redis from "@/lib/redis";
 import axios from "axios";
 import { refreshToken } from "@/lib/spotify";
-
+import { getRedis } from "@/lib/redis";
 export const runtime = "nodejs";
 
 export async function GET(req: NextRequest) {
@@ -18,6 +18,9 @@ export async function GET(req: NextRequest) {
   const uid = Number(user.userId);
 
   let trackIds: string[];
+  const redis = getRedis();
+if (redis) {
+  
   const cached = await redis.get(`candCache:${uid}`);
   if (cached) {
     trackIds = JSON.parse(cached) as string[];
@@ -77,4 +80,5 @@ export async function GET(req: NextRequest) {
   }
 
   return NextResponse.json(tracks);
+}
 }

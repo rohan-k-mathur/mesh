@@ -5,7 +5,7 @@ import { fetchFromTMDb } from "../../../services/meta/tmdb.ts";
 import { fetchFromMusicBrainz } from "../../../services/meta/musicbrainz.ts";
 import { fetchFromOpenLibrary } from "../../../services/meta/openlibrary.ts";
 import { createClient as createRedis } from "https://deno.land/x/redis@v0.29.4/mod.ts";
-
+import { getRedis } from "@/lib/redis.js";
 const schema = object({
   id: string(),
   type: string(),
@@ -24,12 +24,19 @@ const redis = await createRedis({
 });
 
 async function getCached(key: string) {
+  const redis = getRedis();
+  if (redis) {
   const value = await redis.get(key);
   return value ? JSON.parse(value) : null;
+  }
 }
 
 async function setCached(key: string, value: unknown) {
+  const redis = getRedis();
+if (redis) {
+  
   await redis.setex(key, 86400, JSON.stringify(value));
+}
 }
 
 Deno.serve(async (req: Request) => {

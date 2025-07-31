@@ -7,7 +7,7 @@ import { createClient }    from '@supabase/supabase-js';
 import { Readable }        from 'node:stream';
 import { parser }          from 'stream-json';
 import { streamArray }     from 'stream-json/streamers/StreamArray';
-
+import { getRedis } from '@/lib/redis';
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!,      // service‑role, **NOT** the anon key
@@ -68,9 +68,12 @@ new Worker(
     `;
 
     /* 6 — clear caches */
+    const redis = getRedis();
+    if (redis) {
     await redis.del(`candCache:${userId}`);
     await redis.del(`friendSuggest:${userId}`);
     await setSyncStatus(userId, 'done');
+    }
   },
   { connection, concurrency: 2 }
 );

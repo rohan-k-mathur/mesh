@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getUserFromCookies } from "@/lib/serverutils";
 import { prisma } from "@/lib/prismaclient";
 import redis from "@/lib/redis";
-
+import { getRedis } from "@/lib/redis";
 export const runtime = "nodejs";
 
 export async function GET(req: NextRequest) {
@@ -15,6 +15,9 @@ export async function GET(req: NextRequest) {
   const uid = Number(user.userId);
 
   let ids: number[];
+  const redis = getRedis();
+if (redis) {
+
   const cached = await redis.get(`friendSuggest:${uid}`);
   if (cached) ids = JSON.parse(cached) as number[];
   else {
@@ -38,5 +41,5 @@ export async function GET(req: NextRequest) {
     }));
   
     return NextResponse.json(profiles);
-   
+  }
 }

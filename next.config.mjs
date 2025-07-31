@@ -39,7 +39,6 @@ const nextConfig = {
     serverComponentsExternalPackages: ["@tldraw/tldraw"],
   },
     images: {
-      domains: ['localhost'],
 
       remotePatterns: [
         {
@@ -79,6 +78,7 @@ const nextConfig = {
           hostname: '**.supabase.co',
           pathname: '/storage/v1/object/public/**',
         },
+        { protocol: 'https', hostname: '**.supabase.co', pathname: '/storage/**' },
         {
           protocol: "https",
           hostname: "*.blob.core.windows.net"

@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prismaclient';
 import { refreshToken, uploadRaw } from '@/lib/spotify'; // uploadRaw uses the service-role key
 import { setSyncStatus } from '@/lib/redis';
 import axios from 'axios';
-
+import { getRedis } from '@/lib/redis';
 
 /* helpers ------------------------------------------------------------- */
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));

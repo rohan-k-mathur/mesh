@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromCookies }      from '@/lib/serverutils';
 import redis                       from '@/lib/redis';
 import { createClient } from '@supabase/supabase-js';
-
+import { getRedis } from '@/lib/redis';
 // Service-role key **must** stay on the server!
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,   // your project URL
@@ -19,6 +19,9 @@ export async function GET(req: NextRequest) {
   if (!user?.userId) return NextResponse.json({ error: 'unauth' }, { status: 401 });
 
   const key    = `fav:sync:${user.userId}`;
+  const redis = getRedis();
+if (redis) {
+ 
   const status = (await redis.get(key)) ?? 'none';
 
   if (status === 'done') {
@@ -30,4 +33,5 @@ export async function GET(req: NextRequest) {
   }
 
   return NextResponse.json({ status });
+}
 }

@@ -24,4 +24,21 @@ export async function getOrSet<T>(
   return result;
 }
 
+export function getRedis() {
+  // Skip redis entirely at build-time or when env vars are missing
+  if (process.env.NEXT_RUNTIME === "nodejs" && process.env.NODE_ENV === "production") {
+    if (!process.env.REDIS_HOST) return null;   // change to your var names
+  }
+  if (!process.env.REDIS_HOST) return null;
+
+  // cache the instance so you don’t create many
+  globalThis._redis ??= new Redis({
+    host: process.env.REDIS_HOST,
+    port: Number(process.env.REDIS_PORT ?? 6379),
+    username: process.env.REDIS_USER,
+    password: process.env.REDIS_PASS,
+  });
+  return globalThis._redis as Redis;
+}
+
 export default redis;

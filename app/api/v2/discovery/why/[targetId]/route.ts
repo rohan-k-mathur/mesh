@@ -7,6 +7,7 @@ import { promisify } from "util";
 import fs from "fs";
 import { intersection } from "lodash";
 import { prisma } from "@/lib/prismaclient";
+import { getRedis } from "@/lib/redis";
 
 const execFileAsync = promisify(execFile);
 const explainMap = JSON.parse(
@@ -41,7 +42,10 @@ export async function GET(
   if (!success) return new NextResponse("Too Many", { status: 429 });
 
   const cacheKey = `why:${viewerId}:${params.targetId}`;
-  const cached = await redis.get(cacheKey);
+  const rediss = getRedis();
+if (rediss) {
+ 
+  const cached = await rediss.get(cacheKey);
   if (cached) {
     return NextResponse.json(JSON.parse(cached as string));
   }
@@ -87,9 +91,10 @@ export async function GET(
     } catch {}
     const body: any = { reason_en, reason_es };
     if (chip) body.chip = chip;
-    await redis.setex(cacheKey, 120, JSON.stringify(body));
+    await rediss.setex(cacheKey, 120, JSON.stringify(body));
     return NextResponse.json(body);
   } catch (err) {
     return NextResponse.json({ error: "Internal" }, { status: 500 });
   }
+}
 }

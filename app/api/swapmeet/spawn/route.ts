@@ -1,5 +1,6 @@
 // Marks this route as Node (not Edge)
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 import { spawnSection } from "@/lib/actions/section.server";
 

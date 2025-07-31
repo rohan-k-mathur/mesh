@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import * as cp from "child_process";
-
+import { getRedis } from "@/lib/redis";
 process.env.UPSTASH_REDIS_REST_URL = "http://localhost";
 process.env.UPSTASH_REDIS_REST_TOKEN = "token";
 

@@ -3,12 +3,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromCookies }      from '@/lib/serverutils';
 import { supabase } from '@/lib/supabase-server'; // service‑role client
 import redis                       from '@/lib/redis';
-
+import { getRedis } from '@/lib/redis';
 export async function GET(req: NextRequest) {
   const user = await getUserFromCookies();
   if (!user?.userId) return NextResponse.json({ error: 'unauth' }, { status: 401 });
 
   const key    = `fav:sync:${user.userId}`;
+  const redis = getRedis();
+if (redis) {
+
   const status = (await redis.get(key)) ?? 'none';
 
   if (status === 'done') {
@@ -19,5 +22,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ status, path: latest });
   }
 
+
   return NextResponse.json({ status });
+}
 }
