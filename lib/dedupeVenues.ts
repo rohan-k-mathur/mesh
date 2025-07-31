@@ -7,7 +7,10 @@ export type Venue = {
   address: string;
   location: { lat: number; lng: number };
   rating?: number;
+  price_level?: number;
   openingHours?: string[];
+  openNow?: boolean;
+  distance?: number;
   types?: string[];
 };
 
