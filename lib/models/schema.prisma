@@ -1035,6 +1035,7 @@ model GroupMeeting {
   title          String?
   participantUids String[]
   origins        Json?
+  votes          Json?
   status         String   @default("init")
   createdAt      DateTime @default(now())
 

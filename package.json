@@ -122,6 +122,8 @@
     "shadcn": "^2.1.0",
     "shiki": "^3.2.1",
     "smooth-scrollbar": "^8.8.4",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1",
     "sonner": "^2.0.6",
     "stream-json": "^1.9.1",
     "stripe": "18.3.0",
