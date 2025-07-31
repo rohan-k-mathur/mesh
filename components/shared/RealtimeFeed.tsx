@@ -70,6 +70,7 @@ export default function RealtimeFeed({
         author={realtimePost.author!}
         createdAt={new Date(realtimePost.created_at).toDateString()}
         claimIds={realtimePost.productReview?.claims.map((c: any) => c.id.toString()) ?? []}
+        predictionMarket={realtimePost.predictionMarket}
       />
     </div>
   ));
