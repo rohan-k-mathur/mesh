@@ -27,6 +27,7 @@ interface Props {
   currentImages: string[];
   currentIsPublic: boolean;
   isOwned: boolean;
+  currentCaption?: string;
 }
 
 const GalleryNodeForm = ({
@@ -41,7 +42,7 @@ const GalleryNodeForm = ({
     resolver: zodResolver(
       isEditing ? GalleryEditValidation : GalleryPostValidation
     ),
-    defaultValues: { images: [] as File[], isPublic: currentIsPublic },
+    defaultValues: { images: [] as File[], isPublic: currentIsPublic, caption: currentCaption || "" },
   });
 
   const handleImages = (
@@ -101,6 +102,19 @@ const GalleryNodeForm = ({
                   className="account-form_image-input w-min"
                   onChange={(e) => handleImages(e, field.onChange)}
                 />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="caption"
+          render={({ field }) => (
+            <FormItem className="mb-4">
+              <FormLabel>Caption</FormLabel>
+              <FormControl>
+                <Input type="text" placeholder="Caption (optional)" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

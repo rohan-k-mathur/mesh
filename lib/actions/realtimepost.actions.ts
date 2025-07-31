@@ -18,6 +18,7 @@ export interface CreateRealtimePostParams {
   imageUrl?: string;
   videoUrl?: string;
   portfolio?: PortfolioPayload;
+  caption?: string;
   path: string;
   coordinates: { x: number; y: number };
   type: realtime_post_type | "MUSIC";
@@ -37,6 +38,7 @@ interface UpdateRealtimePostParams {
   imageUrl?: string;
   videoUrl?: string;
   portfolio?: PortfolioPayload;
+  caption?: string;
 
   coordinates?: { x: number; y: number };
   path: string;
@@ -82,7 +84,8 @@ export async function createRealtimePost({
       data: {
         ...(text && { content: text }),
         ...(imageUrl && { image_url: imageUrl }),
-        ...(videoUrl && { video_url: videoUrl }),
+       ...(videoUrl && { video_url: videoUrl }),
+        ...(caption && { caption }),
         ...[portfolio && { pageUrl: portfolio }],
         author_id: user.userId!,
         x_coordinate: new Prisma.Decimal(coordinates.x),
@@ -156,6 +159,7 @@ export async function updateRealtimePost({
   text,
   videoUrl,
   imageUrl,
+  caption,
   coordinates,
   path,
   isPublic,
@@ -201,6 +205,7 @@ export async function updateRealtimePost({
       ...(text && { content: text }),
       ...(imageUrl && { image_url: imageUrl }),
       ...(videoUrl && { video_url: videoUrl }),
+      ...(caption && { caption }),
       ...(content && { content }),
       ...(collageLayoutStyle && { collageLayoutStyle }),
       ...(collageColumns !== undefined && { collageColumns }),
@@ -276,6 +281,7 @@ export async function archiveOldRealtimePosts(days = 30) {
         content: p.content ?? undefined,
         image_url: p.image_url ?? undefined,
         video_url: p.video_url ?? undefined,
+        caption: (p as any).caption ?? undefined,
         author_id: p.author_id,
         updated_at: p.updated_at ?? undefined,
         like_count: p.like_count,

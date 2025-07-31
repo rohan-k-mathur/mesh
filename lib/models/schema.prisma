@@ -134,6 +134,7 @@ model FeedPost {
   content          String?
   image_url        String?
   video_url        String?
+  caption          String?
   isPublic         Boolean           @default(true)
   like_count       Int               @default(0)
   author           User              @relation(fields: [author_id], references: [id])
@@ -209,6 +210,7 @@ model RealtimePost {
   content            String?
   image_url          String?
   video_url          String?
+  caption            String?
   author_id          BigInt
   updated_at         DateTime?          @default(now()) @updatedAt @db.Timestamptz(6)
   like_count         Int                @default(0)
@@ -316,6 +318,7 @@ model ArchivedRealtimePost {
   content            String?
   image_url          String?
   video_url          String?
+  caption            String?
   author_id          BigInt
   updated_at         DateTime?          @db.Timestamptz(6)
   like_count         Int                @default(0)

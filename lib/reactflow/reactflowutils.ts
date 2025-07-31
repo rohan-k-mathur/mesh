@@ -92,6 +92,7 @@ export function convertPostToNode(
         type: realtimePost.type,
         data: {
           imageurl: realtimePost.image_url,
+          caption: (realtimePost as any).caption ?? undefined,
           author: authorToSet,
           locked: realtimePost.locked,
         },
@@ -150,15 +151,16 @@ export function convertPostToNode(
             galleryImages = [];
           }
         }
-        return {
-          id: realtimePost.id.toString(),
-          type: realtimePost.type,
-          data: {
-            images: galleryImages,
-            author: authorToSet,
-            locked: realtimePost.locked,
-            isPublic: (realtimePost as any).isPublic ?? false,
-          },
+      return {
+        id: realtimePost.id.toString(),
+        type: realtimePost.type,
+        data: {
+          images: galleryImages,
+          caption: (realtimePost as any).caption ?? undefined,
+          author: authorToSet,
+          locked: realtimePost.locked,
+          isPublic: (realtimePost as any).isPublic ?? false,
+        },
           position: {
             x: realtimePost.x_coordinate,
             y: realtimePost.y_coordinate,

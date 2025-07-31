@@ -25,6 +25,7 @@ function GalleryNode({ id, data }: NodeProps<GalleryNodeData>) {
     }))
   );
   const [images, setImages] = useState<string[]>(data.images || []);
+  const [caption, setCaption] = useState(data.caption || "");
   const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
@@ -59,7 +60,9 @@ function GalleryNode({ id, data }: NodeProps<GalleryNodeData>) {
           text: JSON.stringify(updatedGallery),
         }),
         ...(isOwned && { isPublic: values.isPublic }),
+        ...(values.caption && { caption: values.caption }),
       });
+      setCaption(values.caption || "");
       store.closeModal();
     } catch (e) {
       console.error(e);
@@ -83,6 +86,7 @@ function GalleryNode({ id, data }: NodeProps<GalleryNodeData>) {
           isOwned={isOwned}
           isPublic={isPublic}
           currentImages={images}
+          currentCaption={caption}
           onSubmit={onGallerySubmit}
         />
       }
@@ -104,6 +108,9 @@ function GalleryNode({ id, data }: NodeProps<GalleryNodeData>) {
             height={0}
             sizes="200vw"
           />
+          {caption && (
+            <p className="text-center mt-2 text-white text-sm">{caption}</p>
+          )}
           {images.length > 1 && (
             <>
               <button

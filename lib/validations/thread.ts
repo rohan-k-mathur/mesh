@@ -78,6 +78,7 @@ export const ImagePostValidation = z.object({
       (file) => isAcceptedImage(file),
       "Only .jpg, .jpeg, .png and .webp formats are supported."
     ),
+  caption: z.string().max(200).optional(),
 });
 
 export const GalleryPostValidation = z.object({
@@ -92,6 +93,7 @@ export const GalleryPostValidation = z.object({
         )
     )
     .min(1),
+  caption: z.string().max(200).optional(),
   isPublic: z.boolean().optional(),
 });
 
@@ -107,6 +109,7 @@ export const GalleryEditValidation = z.object({
         )
     )
     .optional(),
+  caption: z.string().max(200).optional(),
   isPublic: z.boolean().optional(),
 });
 export const CommentValidation = z.object({

@@ -8,6 +8,7 @@ export interface CreateFeedPostArgs {
   content?: string;
   imageUrl?: string;
   videoUrl?: string;
+  caption?: string;
   isPublic?: boolean;
 }
 
@@ -27,6 +28,7 @@ export async function createFeedPost(args: CreateFeedPostArgs): Promise<{ postId
       ...(rest.content && { content: rest.content }),
       ...(rest.imageUrl && { image_url: rest.imageUrl }),
       ...(rest.videoUrl && { video_url: rest.videoUrl }),
+      ...(rest.caption && { caption: rest.caption }),
     },
   });
 

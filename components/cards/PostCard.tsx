@@ -51,6 +51,8 @@ interface Props {
   roomPostContent?: CanvasState | null;
   type: string;
 
+  caption?: string | null;
+
   author: {
     name: string | null;
     image: string | null;
@@ -78,6 +80,7 @@ const PostCard = ({
   image_url,
   video_url,
   portfolio,
+  caption,
   type,
   createdAt,
   isRealtimePost = false,
@@ -167,7 +170,7 @@ const PostCard = ({
               </p>
             )}
             {(type === "IMAGE" || type === "IMAGE_COMPUTE") && image_url && (
-              <ImageCard id={id} imageurl={image_url}></ImageCard>
+              <ImageCard id={id} imageurl={image_url} caption={caption || undefined} />
 
               // <Image
               //   className=" flex img-feed-frame ml-[19%] mr-[19%] rounded-sm mt-[1rem] mb-[1rem] "
@@ -196,7 +199,7 @@ const PostCard = ({
             )}
             {type === "GALLERY" && content && (
               // <div className="ml-[7rem] w-[500px] justify-center items-center">
-              <GalleryCarousel urls={JSON.parse(content)} />
+              <GalleryCarousel urls={JSON.parse(content)} caption={caption || undefined} />
               // </div>
             )}
             {type === "LIVECHAT" &&

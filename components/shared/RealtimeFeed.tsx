@@ -65,6 +65,7 @@ export default function RealtimeFeed({
         video_url={realtimePost.video_url ? realtimePost.video_url : undefined}
         pluginType={(realtimePost as any).pluginType ?? null}
         pluginData={(realtimePost as any).pluginData ?? null}
+        caption={(realtimePost as any).caption ?? null}
         type={realtimePost.type}
         author={realtimePost.author!}
         createdAt={new Date(realtimePost.created_at).toDateString()}

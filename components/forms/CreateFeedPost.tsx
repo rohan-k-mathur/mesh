@@ -126,10 +126,12 @@ const CreateFeedPost = ({ roomId = "global" }: Props) => {
         await createFeedPost({
           type: "IMAGE",
           imageUrl: result.fileURL,
+          content: values.caption,
         });
       } else {
         await createRealtimePost({
           imageUrl: result.fileURL,
+          text: values.caption,
           path: "/",
           coordinates: { x: 0, y: 0 },
           type: "IMAGE",
@@ -190,6 +192,7 @@ const CreateFeedPost = ({ roomId = "global" }: Props) => {
           type: "GALLERY",
           imageUrl: urls[0],
           content: JSON.stringify(urls),
+          caption: values.caption,
           isPublic: values.isPublic,
         });
       } else {
@@ -201,6 +204,7 @@ const CreateFeedPost = ({ roomId = "global" }: Props) => {
           isPublic: values.isPublic,
           imageUrl: urls[0],
           text: JSON.stringify(urls),
+          caption: values.caption,
         });
       }
       reset();
@@ -293,6 +297,7 @@ const CreateFeedPost = ({ roomId = "global" }: Props) => {
           <ImageNodeModal
             isOwned={true}
             currentImageURL=""
+            currentCaption=""
             onSubmit={handleImageSubmit}
           />
         );
@@ -338,6 +343,7 @@ const CreateFeedPost = ({ roomId = "global" }: Props) => {
             isOwned={true}
             isPublic={false}
             currentImages={[]}
+            currentCaption=""
             onSubmit={handleGallerySubmit}
           />
         );
