@@ -20,6 +20,9 @@ export interface CreateMarketResult {
 export async function createMarket(
   { question, closesAt, liquidity = 100 }: CreateMarketArgs
 ): Promise<CreateMarketResult> {
+  if (process.env.ENABLE_PREDICTION_MARKETS !== "true") {
+    throw new Error("Prediction markets are disabled");
+  }
   const user = await getUserFromCookies();
   if (!user) throw new Error("Not authenticated");
 
@@ -94,6 +97,9 @@ export async function createMarket(
 // }
 
 export async function tradeMarket({ marketId, side, credits }:{ marketId:string; side:"YES"|"NO"; credits:number; }) {
+  if (process.env.ENABLE_PREDICTION_MARKETS !== "true") {
+    throw new Error("Prediction markets are disabled");
+  }
   const user = await getUserFromCookies();
   if (!user) throw new Error("Not authenticated");
   return await prisma.$transaction(async tx => {
@@ -126,6 +132,9 @@ export async function tradeMarket({ marketId, side, credits }:{ marketId:string;
 }
 
 export async function resolveMarket({ marketId, outcome }:{ marketId:string; outcome:"YES"|"NO"; }) {
+  if (process.env.ENABLE_PREDICTION_MARKETS !== "true") {
+    throw new Error("Prediction markets are disabled");
+  }
   const user = await getUserFromCookies();
   if (!user) throw new Error("Not authenticated");
   const market = await prisma.predictionMarket.findUniqueOrThrow({ where:{ id: marketId } });
