@@ -108,9 +108,12 @@ export default function HalfwayPage() {
   const [avgPath1, setAvgPath1] = useState<LatLng[]>([]);
   const [avgPath2, setAvgPath2] = useState<LatLng[]>([]);
 
-    // NEW — distance along each route in miles
-    const [distance1, setDistance1] = useState<number | null>(null);
-    const [distance2, setDistance2] = useState<number | null>(null);
+  // NEW — distance along each route in miles
+  const [distance1, setDistance1] = useState<number | null>(null);
+  const [distance2, setDistance2] = useState<number | null>(null);
+
+  // Toggle to show average midpoint artefacts
+  const [showAvg, setShowAvg] = useState(false);
 
   const { isLoaded } = useLoadScript({
     googleMapsApiKey: GOOGLE_MAPS_API_KEY,
@@ -220,24 +223,33 @@ export default function HalfwayPage() {
       const res = await fetch(
         `/api/computeRoutes?origin=${start.lat},${start.lng}&destination=${end.lat},${end.lng}`
       );
-      if (!res.ok) return [] as LatLng[];
+      if (!res.ok) return { path: [] as LatLng[], distance: null };
       const data = await res.json();
       if (data.routes && data.routes[0]) {
         const encoded = data.routes[0].polyline.encodedPolyline as string;
-        return window.google.maps.geometry.encoding
+        const path = window.google.maps.geometry.encoding
           .decodePath(encoded)
           .map((p) => ({ lat: p.lat(), lng: p.lng() }));
+        const meters = data.routes[0].legs[0].distance.value as number;
+        const miles = meters / 1609.34;
+        return { path, distance: miles };
       }
     } catch (err) {
       console.error("Error fetching route", err);
     }
-    return [] as LatLng[];
+    return { path: [] as LatLng[], distance: null };
   };
 
   useEffect(() => {
     if (!midpoint || !coord1 || !coord2 || !isLoaded) return;
-    fetchRoute(coord1, midpoint).then(setPath1);
-    fetchRoute(coord2, midpoint).then(setPath2);
+    fetchRoute(coord1, midpoint).then((res) => {
+      setPath1(res.path);
+      if (res.distance !== null) setDistance1(res.distance);
+    });
+    fetchRoute(coord2, midpoint).then((res) => {
+      setPath2(res.path);
+      if (res.distance !== null) setDistance2(res.distance);
+    });
   }, [midpoint, coord1, coord2, isLoaded]);
 
   useEffect(() => {
@@ -301,20 +313,31 @@ export default function HalfwayPage() {
       {/* Display error if any */}
       {error && <p className="text-red-500">{error}</p>}
 
+      {/* Toggle for showing average midpoint */}
+      <label className="flex items-center space-x-2 text-sm">
+        <input
+          type="checkbox"
+          checked={showAvg}
+          onChange={() => setShowAvg(!showAvg)}
+        />
+        <span>Show average midpoint</span>
+      </label>
+
       {/* Google Map with a forced re-render circle */}
 
       {midpoint && (
+        <div className="relative">
         <GoogleMap
           center={midpoint}
           zoom={13}
           mapContainerStyle={mapContainerStyle}
           onLoad={(mapInstance) => setMap(mapInstance)}
-          
+
         >
           {coord1 && <Marker position={coord1} label="A" />}
           {coord2 && <Marker position={coord2} label="B" />}
           <Marker position={midpoint} label="Midpoint" />
-          {avgMidpoint && <Marker position={avgMidpoint} label="Avg" />}
+          {showAvg && avgMidpoint && <Marker position={avgMidpoint} label="Avg" />}
           {map && (
             <CircleComponent
               map={map}
@@ -353,20 +376,26 @@ export default function HalfwayPage() {
           {path2.length > 0 && (
             <Polyline path={path2} options={{ strokeColor: "blue" }} />
           )}
-          {avgPath1.length > 0 && (
+          {showAvg && avgPath1.length > 0 && (
             <Polyline path={avgPath1} options={{ strokeColor: "orange" }} />
           )}
-          {avgPath2.length > 0 && (
+          {showAvg && avgPath2.length > 0 && (
             <Polyline path={avgPath2} options={{ strokeColor: "purple" }} />
           )}
           {venues.map((venue) => (
             <Marker
-            
+
               key={venue.id.toString()}
               position={venue.location}
             />
           ))}
         </GoogleMap>
+        <div className="absolute bottom-2 right-2 bg-white bg-opacity-80 text-xs p-2 rounded">
+          <p>A = you</p>
+          <p>B = friend</p>
+          <p>★ = travel-time midpoint</p>
+        </div>
+        </div>
       )}
       <div className="flex flex-col w-full h-full space-x-4" >
       <div className="flex flex-col w-full h-full space-y-4 items-center ">
@@ -455,6 +484,12 @@ export default function HalfwayPage() {
                     {venue.openingHours.map((line, i) => (
                       <p key={i}>{line}</p>
                     ))}
+                  </div>
+                )}
+                {(distance1 !== null || distance2 !== null) && (
+                  <div className="pt-1 text-sm">
+                    {distance1 !== null && <p>A → midpoint: {distance1.toFixed(1)} mi</p>}
+                    {distance2 !== null && <p>B → midpoint: {distance2.toFixed(1)} mi</p>}
                   </div>
                 )}
               </CardContent>
