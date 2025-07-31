@@ -1,27 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createMarket } from "@/lib/actions/prediction.actions";
-import { serializeBigInt } from '@/lib/utils';
+import { prisma } from "@/lib/prismaclient";
+import { getUserFromCookies } from "@/lib/serverutils";
+import { z } from "zod";
 
+const schema = z.object({
+  question: z.string().min(1),
+  closesAt: z.string(),
+  b: z.number().optional(),
+});
 
-// export async function POST(req: NextRequest) {
-//   const body = await req.json();
-//   const result = await createMarket({
-//     question: body.question,
-//     closesAt: body.closesAt,
-//     liquidity: body.liquidity ?? 100,
-//   });
-//   return NextResponse.json(result);
-// }
 export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json();
-    const market = await createMarket(body);     // BigInts inside
-    return NextResponse.json(serializeBigInt(market)); // ✓
-  } catch (err) {
-    console.error(err);
-    return NextResponse.json(
-      { message: (err as Error).message },
-      { status: 500 }
-    );
+  const user = await getUserFromCookies();
+  if (!user) return new NextResponse("Unauthorized", { status: 401 });
+  const body = await req.json().catch(() => ({}));
+  const parsed = schema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
+  const { question, closesAt, b } = parsed.data;
+  const post = await prisma.feedPost.create({
+    data: { author_id: user.userId!, type: "PREDICTION", isPublic: true },
+  });
+  const market = await prisma.predictionMarket.create({
+    data: {
+      postId: post.id,
+      question,
+      closesAt: new Date(closesAt),
+      b: b ?? 100,
+      creatorId: user.userId!,
+    },
+  });
+  return NextResponse.json({ marketId: market.id });
 }
