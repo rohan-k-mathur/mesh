@@ -101,7 +101,9 @@ export default function HalfwayPage() {
   const [avgMidpoint, setAvgMidpoint] = useState<LatLng | null>(null);
   const [venues, setVenues] = useState<Venue[]>([]);
   const [loading, setLoading] = useState(false);
-  const [venueType, setVenueType] = useState("restaurant");
+  const [venueCategory, setVenueCategory] = useState("restaurant");
+  const [venueFilter, setVenueFilter] = useState("hours");
+  const [sortBy, setSortBy] = useState("rating");
   const [radius, setRadius] = useState(1500);
   const [error, setError] = useState<string | null>(null);
   const [path1, setPath1] = useState<LatLng[]>([]);
@@ -120,7 +122,6 @@ export default function HalfwayPage() {
     googleMapsApiKey: GOOGLE_MAPS_API_KEY,
     libraries,
   });
-  const circleRefs = useRef<{ instance: google.maps.Circle; id: string }[]>([]);
   const autocompleteRef1 = useRef<google.maps.places.Autocomplete | null>(null);
   const autocompleteRef2 = useRef<google.maps.places.Autocomplete | null>(null);
 
@@ -141,12 +142,12 @@ export default function HalfwayPage() {
   };
 
   // Fetch nearby venues from your endpoint
-  const fetchVenues = async (mid: LatLng, rad: number, type: string) => {
+  const fetchVenues = async (mid: LatLng, rad: number, category: string) => {
     setLoading(true);
     setError(null);
     try {
       const res = await fetch(
-        `/api/nearbyPlaces?lat=${mid.lat}&lng=${mid.lng}&type=${type}&radius=${rad}`
+        `/api/nearbyPlaces?lat=${mid.lat}&lng=${mid.lng}&type=${category}&radius=${rad}`
       );
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
 
@@ -204,20 +205,20 @@ export default function HalfwayPage() {
       console.log("Route midpoint:", mid);
       setMidpoint(mid);
 
-      // Immediately fetch venues for the current radius & type
-      await fetchVenues(mid, radius, venueType);
+      // Immediately fetch venues for the current radius & category
+      await fetchVenues(mid, radius, venueCategory);
     } catch (err) {
       console.error("Error fetching midpoint:", err);
       setError("Failed to calculate midpoint.");
     }
   };
 
-  // Auto-refetch when radius or venueType changes (if we have a midpoint)
+  // Auto-refetch when radius or venueCategory changes (if we have a midpoint)
   useEffect(() => {
     if (midpoint) {
-      fetchVenues(midpoint, radius, venueType);
+      fetchVenues(midpoint, radius, venueCategory);
     }
-  }, [midpoint, radius, venueType]);
+  }, [midpoint, radius, venueCategory]);
 
   const fetchRoute = async (start: LatLng, end: LatLng) => {
     try {
@@ -414,9 +415,9 @@ export default function HalfwayPage() {
         </div>
         <div className="flex w-full space-x-4">
 
-        {/* Venue Type + Radius controls */}
+        {/* Venue Category, Filter and Sort controls */}
         <div className="flex w-full  h-full space-x-4  items-center">
-        <Select   value={venueType} onValueChange={(val) => setVenueType(val)}>
+        <Select value={venueCategory} onValueChange={(val) => setVenueCategory(val)}>
           <SelectTrigger className=" likebutton bg-white bg-opacity-50 py-2 px-4 w-full h-full">
             <SelectValue placeholder="Venue Type" />
           </SelectTrigger>
@@ -427,31 +428,31 @@ export default function HalfwayPage() {
           </SelectContent>
         </Select>
 
-       
+
         </div>
         <div className="flex w-full  h-full space-x-4  items-center">
-        <Select   value={venueType} onValueChange={(val) => setVenueType(val)}>
+        <Select value={venueFilter} onValueChange={(val) => setVenueFilter(val)}>
           <SelectTrigger className=" likebutton bg-white bg-opacity-50 py-2 px-4 w-full h-full">
             <SelectValue placeholder="Filter" />
           </SelectTrigger>
           <SelectContent >
-            <SelectItem className="hover:bg-slate-200" value="restaurant">Hours</SelectItem>
-            <SelectItem className="hover:bg-slate-200" value="cafe">Reservation</SelectItem>
-            <SelectItem className="hover:bg-slate-200" value="park">Type</SelectItem>
+            <SelectItem className="hover:bg-slate-200" value="hours">Hours</SelectItem>
+            <SelectItem className="hover:bg-slate-200" value="reservations">Reservations</SelectItem>
+            <SelectItem className="hover:bg-slate-200" value="type">Type</SelectItem>
           </SelectContent>
         </Select>
 
-       
+
         </div>
         <div className="flex w-full  h-full space-x-4  items-center">
-        <Select   value={venueType} onValueChange={(val) => setVenueType(val)}>
+        <Select value={sortBy} onValueChange={(val) => setSortBy(val)}>
           <SelectTrigger className=" likebutton bg-white bg-opacity-50 py-2 px-4 w-full h-full">
             <SelectValue placeholder="Sort By" />
           </SelectTrigger>
           <SelectContent >
-            <SelectItem className="hover:bg-slate-200" value="restaurant">Price</SelectItem>
-            <SelectItem className="hover:bg-slate-200" value="cafe">Rating</SelectItem>
-            <SelectItem className="hover:bg-slate-200" value="park">Distance</SelectItem>
+            <SelectItem className="hover:bg-slate-200" value="price">Price</SelectItem>
+            <SelectItem className="hover:bg-slate-200" value="rating">Rating</SelectItem>
+            <SelectItem className="hover:bg-slate-200" value="distance">Distance</SelectItem>
           </SelectContent>
         </Select>
 
