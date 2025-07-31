@@ -1,0 +1,17 @@
+name: Close Markets
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+jobs:
+  close:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - run: yarn install --frozen-lockfile
+      - run: npx ts-node scripts/closeMarkets.ts --secret $MARKET_CRON_SECRET
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          MARKET_CRON_SECRET: ${{ secrets.MARKET_CRON_SECRET }}
