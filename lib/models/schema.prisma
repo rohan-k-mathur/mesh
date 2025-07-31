@@ -1029,3 +1029,14 @@ model StallHeat {
   @@unique([stall_id, cell], name: "stall_id_cell")
   @@map("stall_heat")
 }
+
+model GroupMeeting {
+  id             String   @id @default(uuid())
+  title          String?
+  participantUids String[]
+  origins        Json?
+  status         String   @default("init")
+  createdAt      DateTime @default(now())
+
+  @@map("group_meetings")
+}
