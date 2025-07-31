@@ -183,22 +183,49 @@ export default function HalfwayPage() {
 
   // Calculate midpoint and fetch venues
   const handleFindMidpoint = async () => {
-    if (!coord1 || !coord2) {
-      setError("Please enter both addresses correctly.");
+    let c1 = coord1;
+    let c2 = coord2;
+
+    if (!c1 && address1) {
+      try {
+        const res = await fetch(`/api/geocode?address=${encodeURIComponent(address1)}`);
+        if (res.ok) {
+          c1 = await res.json();
+          setCoord1(c1);
+        }
+      } catch (err) {
+        console.error("Error geocoding address1", err);
+      }
+    }
+
+    if (!c2 && address2) {
+      try {
+        const res = await fetch(`/api/geocode?address=${encodeURIComponent(address2)}`);
+        if (res.ok) {
+          c2 = await res.json();
+          setCoord2(c2);
+        }
+      } catch (err) {
+        console.error("Error geocoding address2", err);
+      }
+    }
+
+    if (!c1 || !c2) {
+      setError("Address not recognised");
       return;
     }
     setError(null);
     // Calculate simple geometric midpoint
     const avg = {
-      lat: (coord1.lat + coord2.lat) / 2,
-      lng: (coord1.lng + coord2.lng) / 2,
+      lat: (c1.lat + c2.lat) / 2,
+      lng: (c1.lng + c2.lng) / 2,
     };
     console.log("Average midpoint:", avg);
     setAvgMidpoint(avg);
 
     try {
       const res = await fetch(
-        `/api/routeMidpoint?lat1=${coord1.lat}&lng1=${coord1.lng}&lat2=${coord2.lat}&lng2=${coord2.lng}`
+        `/api/routeMidpoint?lat1=${c1.lat}&lng1=${c1.lng}&lat2=${c2.lat}&lng2=${c2.lng}`
       );
       if (!res.ok) throw new Error("Failed to fetch midpoint");
       const mid: LatLng = await res.json();
