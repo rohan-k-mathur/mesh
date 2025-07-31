@@ -21,9 +21,11 @@ export async function POST(
   const body       = await req.json();       // { itemId, qty }
   const order = await prisma.order.create({
     data: {
-      stall_id: BigInt(params.stallId),
-      item_id:  BigInt(body.itemId),
-      qty:      body.qty ?? 1,
+      stall_id:  BigInt(params.stallId),
+      item_id:   BigInt(body.itemId),
+      amount:    body.qty ?? 1,
+      sessionId: "undefined",
+      buyer_id:  1,
     },
     select: { id: true, status: true },
   });

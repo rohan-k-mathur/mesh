@@ -4,7 +4,7 @@ const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
 
 export function BuyNowButton({ itemId }: { itemId: string }) {
   const checkout = async () => {
-    const res = await fetch('/api/orders', {
+    const res = await fetch('/api/swapmeet/orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ itemId }),
@@ -13,5 +13,5 @@ export function BuyNowButton({ itemId }: { itemId: string }) {
     window.location.href = sessionUrl;
   };
 
-  return <button onClick={checkout} className="btn-primary">Buy Now</button>;
+  return <button onClick={checkout} className="likebutton rounded-full p-3 bg-white bg-opacity-30 mt-2">Buy Now</button>;
 }

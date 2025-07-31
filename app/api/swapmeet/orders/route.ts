@@ -12,7 +12,9 @@ export async function POST(req: NextRequest) {
   }
 
   const order = await prisma.order.create({
-    data: { stall_id: item.stall_id, item_id: item.id, amount: 1 },
+    data: { stall_id: item.stall_id, item_id: item.id, amount: item.stock, sessionId: "undefined", buyer_id: 1, },
+
+
   });
 
   const session = await stripe.checkout.sessions.create({

@@ -75,6 +75,11 @@ const nextConfig = {
           hostname: "i.redd.it"
         },
         {
+          protocol: 'https',
+          hostname: '**.supabase.co',
+          pathname: '/storage/v1/object/public/**',
+        },
+        {
           protocol: "https",
           hostname: "*.blob.core.windows.net"
         }
@@ -84,5 +89,6 @@ const nextConfig = {
     ignoreBuildErrors: true,
   },
   };
+  
 
 export default nextConfig;

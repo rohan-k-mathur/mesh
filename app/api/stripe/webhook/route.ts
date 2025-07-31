@@ -6,7 +6,8 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2025-06
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
 export async function POST(req: NextRequest) {
-  const body = await req.arrayBuffer();
+  const rawBody = await req.arrayBuffer();             // ArrayBuffer
+const body    = Buffer.from(rawBody);            
   const sig  = req.headers.get('stripe-signature') as string;
 
   let event: Stripe.Event;
@@ -28,11 +29,11 @@ export async function POST(req: NextRequest) {
       });
       await tx.item.update({
         where: { id: order.item_id },
-        data: { stock: { decrement: order.amount } },
+        data:  { stock: { decrement: order.amount } },
       });
-      const updatedItem = await tx.item.update({ where: { id: order.item_id },
-        data: { stock: { decrement: order.amount } }, });
-if (updatedItem.stock < 0) throw new Error('oversold');
+      
+      const current = await tx.item.findUnique({ where: { id: order.item_id } });
+      if (current!.stock < 0) throw new Error('oversold');
     });
   }
 
