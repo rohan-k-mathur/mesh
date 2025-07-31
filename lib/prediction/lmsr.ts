@@ -17,3 +17,19 @@ export function costToBuy(
   const costAfter = side === "YES" ? C(qYes + delta, qNo) : C(qYes, qNo + delta);
   return costAfter - costBefore;
 }
+
+export function calcSharesForSpend({ yesPool, noPool, b, spend, side }: { yesPool: number; noPool: number; b: number; spend: number; side: "YES" | "NO"; }) {
+  let lo = 0;
+  let hi = 1;
+  while (costToBuy(side, hi, yesPool, noPool, b) < spend) {
+    hi *= 2;
+  }
+  for (let i = 0; i < 30; i++) {
+    const mid = (lo + hi) / 2;
+    const cost = costToBuy(side, mid, yesPool, noPool, b);
+    if (cost > spend) hi = mid; else lo = mid;
+  }
+  const deltaQ = lo;
+  const cost = Math.ceil(costToBuy(side, deltaQ, yesPool, noPool, b));
+  return { deltaQ, cost };
+}
