@@ -29,24 +29,19 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { toast } from "sonner";
-import { dedupeByPlaceId } from "@/lib/dedupeVenues";
+import { dedupeByPlaceId, Venue } from "@/lib/dedupeVenues";
+import {
+  sortByRating,
+  sortByPrice,
+  sortByDistance,
+  haversineDistance,
+  LatLng,
+} from "@/lib/sorters";
 
 const libraries: Libraries = ["places", "geometry"];
 const mapContainerStyle = { width: "100%", height: "400px" };
 
 const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!;
-
-type LatLng = { lat: number; lng: number };
-
-type Venue = {
-  id: string;
-  name: string;
-  address: string;
-  location: LatLng;
-  rating?: number;
-  openingHours?: string[];
-  types?: string[];
-};
 
 type CircleItemRef = React.MutableRefObject<
   { instance: google.maps.Circle; id: string }[]
@@ -128,6 +123,25 @@ export default function HalfwayPage() {
   const autocompleteRef1 = useRef<google.maps.places.Autocomplete | null>(null);
   const autocompleteRef2 = useRef<google.maps.places.Autocomplete | null>(null);
 
+  const venueFilterPredicate = (v: Venue) => {
+    if (venueFilter === "hours") {
+      return v.openNow === true;
+    }
+    return true;
+  };
+
+  const getComparator = (mid: LatLng) => {
+    switch (sortBy) {
+      case "price":
+        return sortByPrice;
+      case "distance":
+        return sortByDistance(mid);
+      case "rating":
+      default:
+        return sortByRating;
+    }
+  };
+
   // Handle user selecting a place from Autocomplete
   const handlePlaceChanged = (
     ref: React.RefObject<google.maps.places.Autocomplete>,
@@ -156,22 +170,31 @@ export default function HalfwayPage() {
 
       const data = await res.json();
       if (data && Array.isArray(data.results)) {
-        const newVenues: Venue[] = data.results
-          .map((place: any) => ({
-            id: place.place_id,
-            name: place.name,
-            address: place.vicinity || place.formatted_address,
-            location: {
-              lat: place.geometry.location.lat,
-              lng: place.geometry.location.lng,
-            },
-            rating: place.rating,
-            openingHours: place.opening_hours?.weekday_text,
-            types: place.types,
-          }))
-          .sort((a: Venue, b: Venue) => (b.rating ?? 0) - (a.rating ?? 0));
-        setVenues(dedupeByPlaceId(newVenues));
-        console.log("Venues within radius:", newVenues);
+        const mapped: Venue[] = data.results.map((place: any) => ({
+          id: place.place_id,
+          name: place.name,
+          address: place.vicinity || place.formatted_address,
+          location: {
+            lat: place.geometry.location.lat,
+            lng: place.geometry.location.lng,
+          },
+          rating: place.rating,
+          price_level: place.price_level,
+          openingHours: place.opening_hours?.weekday_text,
+          openNow: place.opening_hours?.open_now ?? null,
+          types: place.types,
+          distance: haversineDistance(
+            { lat: place.geometry.location.lat, lng: place.geometry.location.lng },
+            mid
+          ),
+        }));
+
+        const filtered = mapped.filter(venueFilterPredicate);
+
+        const sorted = [...filtered].sort(getComparator(mid));
+
+        setVenues(dedupeByPlaceId(sorted));
+        console.log("Venues within radius:", sorted);
       } else {
         setVenues([]);
         setError("No venues found.");
@@ -252,6 +275,14 @@ export default function HalfwayPage() {
       fetchVenues(midpoint, radius, venueCategory);
     }
   }, [midpoint, radius, venueCategory]);
+
+  useEffect(() => {
+    if (!midpoint) return;
+    setVenues((prev) => {
+      const filtered = prev.filter(venueFilterPredicate);
+      return [...filtered].sort(getComparator(midpoint));
+    });
+  }, [sortBy, venueFilter, midpoint]);
 
   const fetchRoute = async (start: LatLng, end: LatLng) => {
     try {
@@ -502,7 +533,7 @@ export default function HalfwayPage() {
             <SelectValue placeholder="Filter" />
           </SelectTrigger>
           <SelectContent >
-            <SelectItem className="hover:bg-slate-200" value="hours">Hours</SelectItem>
+            <SelectItem className="hover:bg-slate-200" value="hours">Open now</SelectItem>
             <SelectItem className="hover:bg-slate-200" value="reservations">Reservations</SelectItem>
             <SelectItem className="hover:bg-slate-200" value="type">Type</SelectItem>
           </SelectContent>
