@@ -27,6 +27,7 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
+import { dedupeByPlaceId } from "@/lib/dedupeVenues";
 
 const libraries: Libraries = ["places", "geometry"];
 const mapContainerStyle = { width: "100%", height: "400px" };
@@ -165,7 +166,7 @@ export default function HalfwayPage() {
             types: place.types,
           }))
           .sort((a: Venue, b: Venue) => (b.rating ?? 0) - (a.rating ?? 0));
-        setVenues(newVenues);
+        setVenues(dedupeByPlaceId(newVenues));
         console.log("Venues within radius:", newVenues);
       } else {
         setVenues([]);
