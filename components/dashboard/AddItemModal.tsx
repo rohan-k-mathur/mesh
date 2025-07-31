@@ -107,7 +107,7 @@ export function AddItemModal({ stallId }: { stallId: string }) {
 
   return (
     <>
-      <button onClick={() => setOpen(true)} className="btn-primary">
+      <button onClick={() => setOpen(true)} className="rounded-xl likebutton p-4 border-[1px] border-blue bg-white bg-opacity-20 mr-[5%]">
         + Add Item
       </button>
 

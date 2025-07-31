@@ -7,7 +7,7 @@ export function OrdersPanel({ stallId }: { stallId: string }) {
 
   return (
     <>
-      <h2 className="text-xl font-semibold mb-4">Orders</h2>
+      <h2 className=" text-[1.37rem] font-semibold">Orders</h2>
       {!data ? (
         <p>Loading…</p>
       ) : data.length === 0 ? (

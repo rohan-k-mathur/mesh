@@ -51,10 +51,11 @@ export function DashboardShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)]">
-      <nav className="w-48 shrink-0 border-r p-6">
-        <ul className="space-y-4">
+      <nav className="w-48 shrink-0 border-r ml-8 mt-8">
+        <ul className="space-y-6">
           {links.map(l => (
             <li key={l.href}>
+              <button className='likebutton rounded-xl'>
               <Link
                 href={l.href}
                 className={`
@@ -64,6 +65,7 @@ export function DashboardShell({ children }: { children: ReactNode }) {
               >
                 {l.label}
               </Link>
+              </button>
             </li>
           ))}
         </ul>

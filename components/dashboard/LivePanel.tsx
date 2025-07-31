@@ -27,5 +27,5 @@ export  async function LivePanel({ stallId }: { stallId: string }) {
   const stallIdInt = BigInt(stallId);            // Prisma model uses BigInt
 
 
-  return <div>Live for stall {stallId}</div>;
+  return <div><h2 className=" text-[1.37rem] font-semibold">Livestream For Stall {stallId}</h2></div>;
 }

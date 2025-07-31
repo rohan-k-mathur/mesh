@@ -16,7 +16,7 @@ export function PayoutsPanel({ stallId }: { stallId: string }) {
 
   return (
     <>
-      <h2 className="text-xl font-semibold mb-4">Payouts</h2>
+     <h2 className=" text-[1.37rem] font-semibold mb-4">Payouts</h2>
 
       {data?.charges_enabled ? (
         <p className="text-green-600">Stripe account verified – charges enabled.</p>
