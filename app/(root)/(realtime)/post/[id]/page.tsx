@@ -13,6 +13,7 @@ const Page = async ({ params }: { params: { id: string } }) => {
   if (!user?.onboarded) redirect("/onboarding");
   const post = await fetchRealtimePostTreeById({ id: params.id });
   if (!post) notFound();
+  if (!params?.id) notFound();
   const currentUserLike = user
     ? await fetchRealtimeLikeForCurrentUser({
         realtimePostId: post.id,

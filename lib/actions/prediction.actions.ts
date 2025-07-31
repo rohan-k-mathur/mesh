@@ -4,7 +4,7 @@ import { costToBuy, priceYes } from "@/lib/prediction/lmsr";
 import { getUserFromCookies } from "@/lib/serverutils";
 import { serializeBigInt } from "@/lib/utils";
 import { NextResponse } from "next/server";
-
+import { Prisma } from "@prisma/client";
 
 export interface CreateMarketArgs {
   question: string;
@@ -13,7 +13,7 @@ export interface CreateMarketArgs {
 }
 
 export interface CreateMarketResult {
-  postId: bigint;        // BigInt coming from PostgreSQL → JS bigint
+  postId: string;        // BigInt coming from PostgreSQL → JS bigint
 }
 
 
@@ -26,6 +26,18 @@ export async function createMarket(
   const user = await getUserFromCookies();
   if (!user) throw new Error("Not authenticated");
 
+
+  // 1. Create realtime post shell
+  const post = await prisma.realtimePost.create({
+    data: {
+      author_id: user.userId!,
+      x_coordinate: new Prisma.Decimal(0),
+      y_coordinate: new Prisma.Decimal(0),
+      type: "PREDICTION",
+      realtime_room_id: "global",
+      locked: false,
+    },
+  });
 
   // 1. Create the feed post shell
   const feed = await prisma.feedPost.create({
@@ -47,15 +59,16 @@ export async function createMarket(
     },
   });
 
-  // 3. Update feed content with serialised market
-  await prisma.feedPost.update({
-    where: { id: feed.id },
+  // 3. Store serialised market JSON in the post content
+  await prisma.realtimePost.update({
+    where: { id: post.id },
     data: {
+      predictionMarket: { connect: { id: market.id } },
       content: JSON.stringify(serializeBigInt(market)),
     },
   });
 
-  return { postId: feed.id };
+  return { postId: feed.id.toString() };
 }
 
 // export async function createMarket({ question, closesAt, liquidity }:{ question:string; closesAt:string; liquidity:number; }) {

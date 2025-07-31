@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prismaclient";
 import { getUserFromCookies } from "@/lib/serverutils";
 import { z } from "zod";
+export const runtime = "nodejs";
 
 const schema = z.object({
   question: z.string().min(1),

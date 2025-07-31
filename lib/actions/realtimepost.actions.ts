@@ -441,6 +441,7 @@ export async function fetchRealtimePostById({ id }: { id: string }) {
 }
 
 export async function fetchRealtimePostTreeById({ id }: { id: string }) {
+
   const post: any = await prisma.realtimePost.findUnique({
     where: { id: BigInt(id) },
     include: {
