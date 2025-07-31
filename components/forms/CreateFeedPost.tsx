@@ -126,7 +126,7 @@ const CreateFeedPost = ({ roomId = "global" }: Props) => {
         await createFeedPost({
           type: "IMAGE",
           imageUrl: result.fileURL,
-          content: values.caption,
+          caption: values.caption,
         });
       } else {
         await createRealtimePost({
