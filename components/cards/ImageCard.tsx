@@ -10,9 +10,10 @@ import ViewImageModal from "../modals/ViewImageModal";
 interface Props {
   id: bigint;           // keeping it in case you later support “edit”
   imageurl: string;
+  caption?: string;
 }
 
-export default function ImageCard({ id, imageurl }: Props) {
+export default function ImageCard({ id, imageurl, caption }: Props) {
   const [loaded, setLoaded] = useState(false);
   const [open,   setOpen]   = useState(false);
 
@@ -50,7 +51,7 @@ export default function ImageCard({ id, imageurl }: Props) {
     </Dialog>
      <div className="mt-4 w-full justify-center items-center  w-full ">
      <hr className="w-full h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-100 to-transparent opacity-55" />
-     <p className="text-center tracking-wide mb-0 pt-3">hello</p>
+     <p className="text-center tracking-wide mb-0 pt-3">{caption}</p>
      </div>
      </div>
   );

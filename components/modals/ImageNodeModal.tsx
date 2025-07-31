@@ -17,6 +17,7 @@ interface Props {
   isOwned: boolean;
   onSubmit?: (values: z.infer<typeof ImagePostValidation>) => void;
   currentImageURL: string;
+  currentCaption?: string;
 }
 
 const renderCreate = ({
@@ -30,7 +31,7 @@ const renderCreate = ({
         <b> Create Post</b>
       </DialogHeader>
       <hr />
-      <ImageNodeForm onSubmit={onSubmit!} currentImageURL={""} />
+      <ImageNodeForm onSubmit={onSubmit!} currentImageURL={""} currentCaption="" />
     </div>
   );
 };
@@ -38,9 +39,11 @@ const renderCreate = ({
 const renderEdit = ({
   onSubmit,
   currentImageURL,
+  currentCaption,
 }: {
   onSubmit?: (values: z.infer<typeof ImagePostValidation>) => void;
   currentImageURL: string;
+  currentCaption?: string;
 }) => {
   return (
     <div>
@@ -48,7 +51,7 @@ const renderEdit = ({
         <b> Edit Post</b>
       </DialogHeader>
       <hr />
-      <ImageNodeForm onSubmit={onSubmit!} currentImageURL={currentImageURL} />
+      <ImageNodeForm onSubmit={onSubmit!} currentImageURL={currentImageURL} currentCaption={currentCaption || ""} />
     </div>
   );
 };
@@ -85,7 +88,7 @@ const renderView = (currentImageURL: string) => {
   );
 };
 
-const ImageNodeModal = ({ id, isOwned, onSubmit, currentImageURL }: Props) => {
+const ImageNodeModal = ({ id, isOwned, onSubmit, currentImageURL, currentCaption }: Props) => {
   const isCreate = !id && isOwned;
   const isEdit = id && isOwned;
   const isView = id && !isOwned;
@@ -94,7 +97,7 @@ const ImageNodeModal = ({ id, isOwned, onSubmit, currentImageURL }: Props) => {
       <DialogContent className="max-w-[50%] bg-slate-800 border-blue">
         <div className="mt-12 grid rounded-md px-4 py-2">
           {isCreate && renderCreate({ onSubmit })}
-          {isEdit && renderEdit({ onSubmit, currentImageURL })}
+          {isEdit && renderEdit({ onSubmit, currentImageURL, currentCaption })}
           {isView && renderView(currentImageURL)}
         </div>
       </DialogContent>

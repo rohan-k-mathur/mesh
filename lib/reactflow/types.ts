@@ -44,6 +44,7 @@ export type YoutubeVidNode = Node<
 export type ImageUNode = Node<
   {
     imageurl: string;
+    caption?: string;
     author: AuthorOrAuthorId;
     locked: boolean;
   },
@@ -83,6 +84,7 @@ export type CollageNodeData = Node<
 export type GalleryNodeData = Node<
   {
     images: string[];
+    caption?: string;
     author: AuthorOrAuthorId;
     locked: boolean;
     isPublic: boolean;

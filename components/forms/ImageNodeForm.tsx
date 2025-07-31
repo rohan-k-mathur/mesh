@@ -20,14 +20,16 @@ import clockicon from "/public/assets/clock.svg";
 interface Props {
   onSubmit: (values: z.infer<typeof ImagePostValidation>) => void;
   currentImageURL: string;
+  currentCaption: string;
 }
 
-const ImageNodeForm = ({ onSubmit, currentImageURL }: Props) => {
+const ImageNodeForm = ({ onSubmit, currentImageURL, currentCaption }: Props) => {
   const [imageURL, setImageURL] = useState(currentImageURL);
   const form = useForm({
     resolver: zodResolver(ImagePostValidation),
     defaultValues: {
       image: new File([""], "filename"),
+      caption: currentCaption,
     },
   });
 
@@ -79,6 +81,19 @@ const ImageNodeForm = ({ onSubmit, currentImageURL }: Props) => {
                   className="account-form_image-input h-min w-min"
                   onChange={(e) => handleImage(e, field.onChange)}
                 />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="caption"
+          render={({ field }) => (
+            <FormItem className="mb-2">
+              <FormLabel>Caption</FormLabel>
+              <FormControl>
+                <Input type="text" placeholder="Caption (optional)" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

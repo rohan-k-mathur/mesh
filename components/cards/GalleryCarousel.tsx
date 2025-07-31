@@ -10,9 +10,10 @@ import ViewImageModal from "../modals/ViewImageModal";
 
 interface Props {
   urls: string[];
+  caption?: string;
 }
 
-const GalleryCarousel = ({ urls }: Props) => {
+const GalleryCarousel = ({ urls, caption }: Props) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loaded, setLoaded] = useState(false);
   const [open,   setOpen]   = useState(false);
@@ -99,7 +100,7 @@ const GalleryCarousel = ({ urls }: Props) => {
     </div>
     <div className="mt-4 w-full justify-center items-center  w-full ">
     <hr className="w-full h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-100 to-transparent opacity-55" />
-    <p className="text-center tracking-wide mb-0 pt-3">hello</p>
+    <p className="text-center tracking-wide mb-0 pt-3">{caption}</p>
     </div>
     </div>
   );

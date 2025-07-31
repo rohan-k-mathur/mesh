@@ -25,6 +25,7 @@ function ImageURLNode({ id, data }: NodeProps<ImageUNode>) {
     }))
   );
   const [imageURL, setImageURL] = useState(data.imageurl);
+  const [caption, setCaption] = useState(data.caption || "");
   const [author, setAuthor] = useState(data.author);
   useEffect(() => {
     setImageURL(data.imageurl);
@@ -46,9 +47,11 @@ function ImageURLNode({ id, data }: NodeProps<ImageUNode>) {
         return;
       }
       setImageURL(result.fileURL);
+      setCaption(values.caption || "");
       updateRealtimePost({
         id,
         imageUrl: result.fileURL,
+        ...(values.caption && { caption: values.caption }),
         path,
       });
       store.closeModal();
@@ -61,6 +64,7 @@ function ImageURLNode({ id, data }: NodeProps<ImageUNode>) {
           id={id}
           isOwned={isOwned}
           currentImageURL={imageURL}
+          currentCaption={caption}
           onSubmit={onSubmit}
         />
       }
@@ -80,6 +84,9 @@ function ImageURLNode({ id, data }: NodeProps<ImageUNode>) {
             height={0}
             sizes="200vw"
           />
+          {caption && (
+            <p className="text-center mt-2 text-white text-sm">{caption}</p>
+          )}
         </div>
       </div>
     </BaseNode>

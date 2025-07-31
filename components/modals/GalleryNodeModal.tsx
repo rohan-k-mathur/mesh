@@ -17,14 +17,17 @@ interface Props {
   isPublic: boolean;
   onSubmit?: (values: z.infer<typeof GalleryPostValidation>) => void;
   currentImages: string[];
+  currentCaption?: string;
 }
 
 const renderCreate = ({
   onSubmit,
   currentIsPublic,
+  currentCaption,
 }: {
   onSubmit?: (values: z.infer<typeof GalleryPostValidation>) => void;
   currentIsPublic: boolean;
+  currentCaption?: string;
 }) => (
   <div >
     <DialogHeader className="dialog-header text-white text-lg py-4 mt-[-4rem]">
@@ -36,6 +39,7 @@ const renderCreate = ({
       currentImages={[]}
       currentIsPublic={currentIsPublic}
       isOwned={true}
+      currentCaption={currentCaption}
     />
   </div>
 );
@@ -45,11 +49,13 @@ const renderEdit = ({
   currentImages,
   isOwned,
   currentIsPublic,
+  currentCaption,
 }: {
   onSubmit?: (values: z.infer<typeof GalleryPostValidation>) => void;
   currentImages: string[];
   isOwned: boolean;
   currentIsPublic: boolean;
+  currentCaption?: string;
 }) => (
   <div>
     <DialogHeader className="dialog-header text-white text-lg py-4 mt-[-4rem]">
@@ -61,6 +67,7 @@ const renderEdit = ({
       currentImages={currentImages}
       currentIsPublic={currentIsPublic}
       isOwned={isOwned}
+      currentCaption={currentCaption}
     />
   </div>
 );
@@ -85,7 +92,7 @@ const renderView = (images: string[]) => (
   </div>
 );
 
-const GalleryNodeModal = ({ id, isOwned, isPublic, onSubmit, currentImages }: Props) => {
+const GalleryNodeModal = ({ id, isOwned, isPublic, onSubmit, currentImages, currentCaption }: Props) => {
   const isCreate = !id && isOwned;
   const isEdit = id && (isOwned || isPublic);
   const isView = id && !isOwned && !isPublic;
@@ -93,13 +100,14 @@ const GalleryNodeModal = ({ id, isOwned, isPublic, onSubmit, currentImages }: Pr
     <div>
       <DialogContent className="max-w-[57rem] w-fit bg-slate-800 border-[2px] border-blue">
         <div className="grid rounded-md px-4 py-8 mt-10">
-          {isCreate && renderCreate({ onSubmit, currentIsPublic: isPublic })}
+          {isCreate && renderCreate({ onSubmit, currentIsPublic: isPublic, currentCaption })}
           {isEdit &&
             renderEdit({
               onSubmit,
               currentImages,
               isOwned,
               currentIsPublic: isPublic,
+              currentCaption,
             })}
           {isView && renderView(currentImages)}
         </div>

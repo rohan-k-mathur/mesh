@@ -42,6 +42,7 @@ const Page = async ({ params }: { params: { id: string } }) => {
               ? post.image_url!
               : undefined
           }
+          caption={(post as any).caption ?? null}
           video_url={post.type === "VIDEO" ? post.video_url! : undefined}
           pluginType={(post as any).pluginType ?? null}
           pluginData={(post as any).pluginData ?? null}
