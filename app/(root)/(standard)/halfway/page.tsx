@@ -8,6 +8,7 @@ import {
   Autocomplete,
   Libraries,
   Polyline,
+  InfoWindow,
 } from "@react-google-maps/api";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -118,6 +119,7 @@ export default function HalfwayPage() {
 
   // Toggle to show average midpoint artefacts
   const [showAvg, setShowAvg] = useState(false);
+  const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
 
   const { isLoaded } = useLoadScript({
     googleMapsApiKey: GOOGLE_MAPS_API_KEY,
@@ -295,7 +297,7 @@ export default function HalfwayPage() {
   }, [avgMidpoint, coord1, coord2, isLoaded]);
 
   // Wait for script to load
-  if (!isLoaded) return <Skeleton className="w-full h-[200px] rounded-md" />;
+  if (!isLoaded) return <Skeleton className="w-full h-[400px] rounded-md" />;
 
   // Helper to pick the middle coordinate of a polyline
   const middleOfPath = (path: LatLng[]): LatLng | null => path.length ? path[Math.floor(path.length / 2)] : null;
@@ -303,7 +305,7 @@ export default function HalfwayPage() {
   return (
     <div className=" mt-[-2rem] space-y-4 ">
       {/* Two Autocomplete inputs + Midpoint button */}
-      <div className="flex space-x-4">
+      <div className="flex flex-col space-y-2 xs:flex-row xs:space-y-0 xs:space-x-4">
         <Autocomplete
           onLoad={(auto) => (autocompleteRef1.current = auto)}
           className="w-full w-full h-full likebutton shadow-none bg-opacity-50"
@@ -312,6 +314,7 @@ export default function HalfwayPage() {
           }
         >
           <Input
+            aria-label="Enter first address"
             placeholder="Enter first address"
             className="w-full h-full likebutton outline-1 outline-blue bg-white bg-opacity-50"
 
@@ -329,6 +332,7 @@ export default function HalfwayPage() {
           }
         >
           <Input
+            aria-label="Enter second address"
             placeholder="Enter second address"
             className="w-full h-full likebutton outline-1 outline-blue bg-white bg-opacity-50"
 
@@ -338,6 +342,7 @@ export default function HalfwayPage() {
         </Autocomplete>
 
         <button
+          aria-label="Find midpoint"
           onClick={handleFindMidpoint}
           disabled={loading || !address1 || !address2}
           className="likebutton outline-1 outline-rose-200 bg-white bg-opacity-50 p-2"
@@ -347,7 +352,11 @@ export default function HalfwayPage() {
       </div>
 
       {/* Display error if any */}
-      {error && <p className="text-red-500">{error}</p>}
+      {error && (
+        <p className="text-red-500" aria-live="assertive">
+          {error}
+        </p>
+      )}
 
       {/* Toggle for showing average midpoint */}
       <label className="flex items-center space-x-2 text-sm">
@@ -420,11 +429,34 @@ export default function HalfwayPage() {
           )}
           {venues.map((venue) => (
             <Marker
-
               key={venue.id.toString()}
               position={venue.location}
+              onClick={() => setSelectedVenue(venue)}
             />
           ))}
+          {selectedVenue && (
+            <InfoWindow
+              position={selectedVenue.location}
+              onCloseClick={() => setSelectedVenue(null)}
+            >
+              <div className="text-sm">
+                <p className="font-semibold">{selectedVenue.name}</p>
+                {selectedVenue.rating && (
+                  <p>Rating: {selectedVenue.rating}</p>
+                )}
+                <a
+                  className="text-blue-600 underline"
+                  target="_blank"
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                    selectedVenue.name
+                  )}`}
+                  rel="noopener noreferrer"
+                >
+                  View on Maps
+                </a>
+              </div>
+            </InfoWindow>
+          )}
         </GoogleMap>
         <div className="absolute bottom-2 right-2 bg-white bg-opacity-80 text-xs p-2 rounded">
           <p>A = you</p>
@@ -504,9 +536,16 @@ export default function HalfwayPage() {
         </div>
         <div className="flex flex-col w-full">
       {venues.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4">
+        <div
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pt-4"
+          aria-live="polite"
+        >
           {venues.map((venue) => (
-            <Card key={venue.id} className="likebutton bg-white bg-opacity-40">
+            <Card
+              key={venue.id}
+              tabIndex={0}
+              className="likebutton bg-white bg-opacity-40 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
               <CardHeader>
                 <CardTitle className="text-block text-[1rem] tracking-[.05rem] leading-5">{venue.name}</CardTitle>
                 <CardDescription className="text-[.85rem] ">{venue.address}</CardDescription>
