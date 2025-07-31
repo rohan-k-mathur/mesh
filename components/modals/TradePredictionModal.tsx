@@ -1,7 +1,10 @@
-import { useState, useMemo } from "react";
-import { costToBuy, priceYes } from "@/lib/prediction/lmsr";
+"use client";
+import { useState, useMemo, useEffect, useCallback } from "react";
+import { priceYes, estimateShares } from "@/lib/prediction/lmsr";
 import { Button } from "../ui/button";
-import { Input } from "../ui/input";
+import { Slider } from "../ui/slider";
+import Spinner from "../ui/spinner";
+import { toast } from "sonner";
 
 interface Market {
   id: string;
@@ -13,31 +16,38 @@ interface Market {
 interface Props {
   market: Market;
   onClose: () => void;
-  onTraded?: (newPrice: number) => void;
+  mutate?: () => void;
 }
 
-export default function TradePredictionModal({ market, onClose, onTraded }: Props) {
+export default function TradePredictionModal({ market, onClose, mutate }: Props) {
   const [side, setSide] = useState<"YES" | "NO">("YES");
-  const [credits, setCredits] = useState(0);
+  const [spend, setSpend] = useState(0);
+  const [balance, setBalance] = useState<number | null>(null);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const currentPrice = useMemo(
     () => priceYes(market.yesPool, market.noPool, market.b),
     [market]
   );
 
-  const shares = useMemo(() => {
-    let lo = 0,
-      hi = 1000;
-    for (let i = 0; i < 30; i++) {
-      const mid = (lo + hi) / 2;
-      const cost = costToBuy(side, mid, market.yesPool, market.noPool, market.b);
-      cost > credits ? (hi = mid) : (lo = mid);
-    }
-    return lo;
-  }, [credits, side, market]);
+  useEffect(() => {
+    fetch("/api/wallet")
+      .then((r) => (r.ok ? r.json() : Promise.reject(r)))
+      .then((d) => setBalance(d.balanceCents ?? 0))
+      .catch(() => setBalance(0));
+  }, []);
 
-  const cost = Math.ceil(
-    costToBuy(side, shares, market.yesPool, market.noPool, market.b)
-  );
+  const maxSpend = balance ?? 0;
+
+  const { shares, cost } = useMemo(() => {
+    if (!spend) return { shares: 0, cost: 0 };
+    try {
+      return estimateShares(side, spend, market);
+    } catch (e) {
+      setError("Invalid spend amount");
+      return { shares: 0, cost: 0 };
+    }
+  }, [spend, side, market]);
 
   const priceAfter = useMemo(() => {
     const yes = market.yesPool + (side === "YES" ? shares : 0);
@@ -45,52 +55,85 @@ export default function TradePredictionModal({ market, onClose, onTraded }: Prop
     return priceYes(yes, no, market.b);
   }, [shares, side, market]);
 
-  async function handleTrade() {
-    await fetch(`/api/market/${market.id}/trade`, {
-      method: "POST",
-      body: JSON.stringify({ side, credits: cost }),
-    });
-    onTraded?.(priceAfter);
-    onClose();
-  }
+  const handleTrade = useCallback(async () => {
+    setPending(true);
+    setError(null);
+    try {
+      const resp = await fetch(`/api/market/${market.id}/trade`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ side, spendCents: cost }),
+      });
+      if (!resp.ok) {
+        const text = await resp.text();
+        toast.error(text);
+        setPending(false);
+        return;
+      }
+      mutate?.();
+      toast.success(
+        `Bought ${shares.toFixed(2)} shares @ ${(priceAfter * 100).toFixed(2)} %`
+      );
+      onClose();
+    } catch (e: any) {
+      toast.error("Trade failed");
+    } finally {
+      setPending(false);
+    }
+  }, [market.id, side, cost, mutate, shares, priceAfter, onClose]);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      if (e.key === "ArrowLeft") setSpend((s) => Math.max(0, s - 10));
+      if (e.key === "ArrowRight") setSpend((s) => Math.min(maxSpend, s + 10));
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onClose, maxSpend]);
+
+  const fmt = useMemo(() => new Intl.NumberFormat(), []);
 
   return (
-    <div className="border-[1px] border-white px-8 py-6  space-y-4 bg-white bg-opacity-20 rounded-xl shadow-md">
+    <div className="border-[1px] border-white px-8 py-6 space-y-4 bg-white bg-opacity-20 rounded-xl shadow-md">
       <div className="flex justify-between">
-       
         <button
-          className="likebutton bg-white px-4 pt-1 pb-0 bg-opacity-40 rounded-xl items-center justify-center text-center"
+          className={`likebutton px-4 pt-1 pb-0 rounded-xl ${side === "NO" ? "bg-red-500 text-white" : "bg-white bg-opacity-40"}`}
           onClick={() => setSide("NO")}
         >
           NO
         </button>
         <button
-          className="likebutton bg-white px-4 pt-1 pb-0 bg-opacity-40 rounded-xl items-center justify-center text-center"
-
+          className={`likebutton px-4 pt-1 pb-0 rounded-xl ${side === "YES" ? "bg-green-500 text-white" : "bg-white bg-opacity-40"}`}
           onClick={() => setSide("YES")}
         >
           YES
         </button>
       </div>
-      <div className="justify-center items-center mx-auto text-center space-y-2 ">
-      <Input
-        type="range"
-        min={0}
-        max={100}
-        value={credits}
-        onChange={(e) => setCredits(Number(e.target.value))}
-      />
-      <div className="text-sm text-gray-700">
-        Spend: {cost} credits for {shares.toFixed(2)} shares
+      <div className="justify-center items-center mx-auto text-center space-y-2">
+        <Slider
+          min={0}
+          max={maxSpend}
+          step={10}
+          value={[spend]}
+          onValueChange={([v]) => setSpend(v)}
+          className="w-full"
+        />
+        {error && <div className="text-red-500 text-sm">{error}</div>}
+        <div className="text-sm text-gray-700">
+          Spend: {fmt.format(cost)} credits for {shares.toFixed(2)} shares
+        </div>
+        <div className="text-sm text-gray-700" aria-live="polite">
+          New probability: {(priceAfter * 100).toFixed(2)}% YES
+        </div>
+        <Button
+          onClick={handleTrade}
+          disabled={pending || cost === 0}
+          className="w-fit px-8 py-2 bg-white bg-opacity-40 rounded-xl tracking-wide mx-auto likebutton"
+        >
+          {pending ? <Spinner className="h-4 w-4" /> : "Confirm Trade"}
+        </Button>
       </div>
-      <div className="text-sm text-gray-700">
-        New probability: {(priceAfter * 100).toFixed(2)}% YES
-      </div>
-      <button className="w-fit px-8  text-[1rem] bg-white bg-opacity-40
-       py-2 rounded-xl tracking-wide text-center justify-center items-center mx-auto  likebutton" onClick={handleTrade}>
-        Confirm Trade
-      </button>
-      </div>
-      </div>
+    </div>
   );
 }

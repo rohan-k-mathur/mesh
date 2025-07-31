@@ -43,7 +43,7 @@ export default function PredictionMarketCard({ post }: Props) {
         <TradePredictionModal
           market={post.predictionMarket}
           onClose={() => setShowTrade(false)}
-          onTraded={() => mutate()}
+          mutate={() => mutate()}
         />
       )}
       {state === "CLOSED" && (
