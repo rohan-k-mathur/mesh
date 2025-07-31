@@ -5,20 +5,34 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Form, FormField, FormItem, FormControl, FormMessage } from "../ui/form";
 import { PredictionPostValidation } from "@/lib/validations/thread";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
-interface Props {
-  onSubmit: (values: z.infer<typeof PredictionPostValidation>) => void;
-}
-
-export default function CreatePredictionPost({ onSubmit }: Props) {
+export default function CreatePredictionPost() {
+  const router = useRouter();
   const form = useForm({
     resolver: zodResolver(PredictionPostValidation),
+    mode: "onChange",
     defaultValues: {
       question: "",
       closesAt: "",
       liquidity: 100,
     },
   });
+
+  async function onSubmit(values: z.infer<typeof PredictionPostValidation>) {
+    try {
+      const resp = await fetch("/api/market", {
+        method: "POST",
+        body: JSON.stringify(values),
+      });
+      if (!resp.ok) throw new Error();
+      const { postId } = await resp.json();
+      router.push(`/post/${postId}`);
+    } catch (e) {
+      toast.error("Failed to create market");
+    }
+  }
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -58,7 +72,12 @@ export default function CreatePredictionPost({ onSubmit }: Props) {
             </FormItem>
           )}
         />
-        <Button type="submit">Create</Button>
+        <Button
+          type="submit"
+          disabled={!(form.formState.isDirty && form.formState.isValid)}
+        >
+          Create
+        </Button>
       </form>
     </Form>
   );

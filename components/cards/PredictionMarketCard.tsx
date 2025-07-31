@@ -1,22 +1,19 @@
 "use client";
-import { useState } from "react";
-import { priceYes } from "@/lib/prediction/lmsr";
 import TradePredictionModal from "../modals/TradePredictionModal";
+import { useMarket } from "@/hooks/useMarket";
+import { timeUntil } from "@/lib/utils";
+import { useState } from "react";
 
 interface Props {
   post: any;
 }
 
 export default function PredictionMarketCard({ post }: Props) {
-  const [price, setPrice] = useState(
-    post.predictionMarket
-      ? priceYes(
-          post.predictionMarket.yesPool,
-          post.predictionMarket.noPool,
-          post.predictionMarket.b
-        )
-      : 0.5
-  );
+  const { market, mutate } = useMarket(post.predictionMarket.id);
+  const price = market?.price ?? 0.5;
+  const closesAt = market?.market.closesAt ?? post.predictionMarket.closesAt;
+  const state = market?.market.state ?? post.predictionMarket.state;
+  const outcome = market?.market.outcome ?? post.predictionMarket.outcome;
   const [showTrade, setShowTrade] = useState(false);
 
   return (
@@ -31,23 +28,29 @@ export default function PredictionMarketCard({ post }: Props) {
       </div>
       <div className="text-xs text-gray-600 ">{Math.round(price * 100)} % YES</div>
       <div className="items-center justify-center mx-auto ">
-      <button
-        className="likebutton bg-white bg-opacity-20 py-2 px-8 mt-1 mb-2  rounded-xl text-[1.1rem] mx-full items-center justify-center text-center tracking-widest"
-        disabled={post.predictionMarket?.state !== "OPEN"}
-        onClick={() => setShowTrade(true)}
-      >
-        {post.predictionMarket?.state === "OPEN" ? "Trade" : "Closed"}
-      </button>
+        <button
+          className="likebutton bg-white bg-opacity-20 py-2 px-8 mt-1 mb-2  rounded-xl text-[1.1rem] mx-full items-center justify-center text-center tracking-widest"
+          disabled={state !== "OPEN"}
+          onClick={() => setShowTrade(true)}
+        >
+          {state === "OPEN" ? "Trade" : state === "CLOSED" ? "Closed" : "Resolved"}
+        </button>
       </div>
+      {state === "OPEN" && (
+        <span className="text-xs">Closes in {timeUntil(closesAt)}</span>
+      )}
       {showTrade && post.predictionMarket && (
         <TradePredictionModal
           market={post.predictionMarket}
           onClose={() => setShowTrade(false)}
-          onTraded={(p) => setPrice(p)}
+          onTraded={() => mutate()}
         />
       )}
-      {post.predictionMarket?.state === "RESOLVED" && (
-        <div className="text-[sm] font-medium">Outcome: {post.predictionMarket.outcome}</div>
+      {state === "CLOSED" && (
+        <div className="text-[sm] font-medium">Awaiting resolution</div>
+      )}
+      {state === "RESOLVED" && (
+        <div className="text-[sm] font-medium">Outcome: {outcome}</div>
       )}
     </div>
   );

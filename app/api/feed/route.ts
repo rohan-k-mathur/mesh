@@ -8,7 +8,20 @@ export async function GET() {
   const posts = await prisma.feedPost.findMany({
     where: { isPublic: true },
     orderBy: { created_at: "desc" },
-    include: { predictionMarket: true },
+    include: {
+      predictionMarket: {
+        select: {
+          id: true,
+          question: true,
+          yesPool: true,
+          noPool: true,
+          b: true,
+          state: true,
+          outcome: true,
+          closesAt: true,
+        },
+      },
+    },
   });
   return NextResponse.json(serializeBigInt(posts));
 }
