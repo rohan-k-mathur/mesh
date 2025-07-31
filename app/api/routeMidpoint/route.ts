@@ -14,19 +14,19 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const apiKey = process.env.GOOGLE_MAPS_API_KEY;
-  const directionsUrl =
-    `https://maps.googleapis.com/maps/api/directions/json?origin=${lat1},${lng1}&destination=${lat2},${lng2}&key=${apiKey}`;
+  const url = new URL("/api/googleProxy", req.url);
+  url.searchParams.set("endpoint", "directions/json");
+  url.searchParams.set("origin", `${lat1},${lng1}`);
+  url.searchParams.set("destination", `${lat2},${lng2}`);
 
-  const res = await fetch(directionsUrl);
-  if (!res.ok) {
+  const res = await fetch(url.toString());
+  const data = await res.json();
+  if (!res.ok || data.error) {
     return NextResponse.json(
-      { error: "Failed to fetch directions" },
+      typeof data.error === "string" ? { error: data.error } : data,
       { status: res.status }
     );
   }
-
-  const data = await res.json();
   if (!data.routes || data.routes.length === 0 || data.status !== "OK") {
     const rad = Math.PI / 180;
     const la1 = parseFloat(lat1) * rad;
