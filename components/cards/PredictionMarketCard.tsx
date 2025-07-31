@@ -1,5 +1,6 @@
 "use client";
 import TradePredictionModal from "../modals/TradePredictionModal";
+import ResolveMarketDialog from "../modals/ResolveMarketDialog";
 import { useMarket } from "@/hooks/useMarket";
 import { timeUntil } from "@/lib/utils";
 import { useState } from "react";
@@ -14,7 +15,9 @@ export default function PredictionMarketCard({ post }: Props) {
   const closesAt = market?.market.closesAt ?? post.predictionMarket.closesAt;
   const state = market?.market.state ?? post.predictionMarket.state;
   const outcome = market?.market.outcome ?? post.predictionMarket.outcome;
+  const canResolve = market?.canResolve ?? false;
   const [showTrade, setShowTrade] = useState(false);
+  const [showResolve, setShowResolve] = useState(false);
 
   return (
     <div className="border-[1px] border-white w-[600px] bg-white bg-opacity-10
@@ -28,13 +31,22 @@ export default function PredictionMarketCard({ post }: Props) {
       </div>
       <div className="text-xs text-gray-600 ">{Math.round(price * 100)} % YES</div>
       <div className="items-center justify-center mx-auto ">
-        <button
-          className="likebutton bg-white bg-opacity-20 py-2 px-8 mt-1 mb-2  rounded-xl text-[1.1rem] mx-full items-center justify-center text-center tracking-widest"
-          disabled={state !== "OPEN"}
-          onClick={() => setShowTrade(true)}
-        >
-          {state === "OPEN" ? "Trade" : state === "CLOSED" ? "Closed" : "Resolved"}
-        </button>
+        {state === "OPEN" && (
+          <button
+            className="likebutton bg-white bg-opacity-20 py-2 px-8 mt-1 mb-2  rounded-xl text-[1.1rem] mx-full items-center justify-center text-center tracking-widest"
+            onClick={() => setShowTrade(true)}
+          >
+            Trade
+          </button>
+        )}
+        {state === "CLOSED" && canResolve && (
+          <button
+            className="likebutton bg-white bg-opacity-20 py-2 px-8 mt-1 mb-2 rounded-xl text-[1.1rem] mx-full items-center justify-center text-center tracking-widest"
+            onClick={() => setShowResolve(true)}
+          >
+            Resolve
+          </button>
+        )}
       </div>
       {state === "OPEN" && (
         <span className="text-xs">Closes in {timeUntil(closesAt)}</span>
@@ -46,8 +58,15 @@ export default function PredictionMarketCard({ post }: Props) {
           mutate={() => mutate()}
         />
       )}
-      {state === "CLOSED" && (
+      {state === "CLOSED" && !canResolve && (
         <div className="text-[sm] font-medium">Awaiting resolution</div>
+      )}
+      {showResolve && (
+        <ResolveMarketDialog
+          marketId={post.predictionMarket.id}
+          onClose={() => setShowResolve(false)}
+          mutate={() => mutate()}
+        />
       )}
       {state === "RESOLVED" && (
         <div className="text-[sm] font-medium">Outcome: {outcome}</div>
