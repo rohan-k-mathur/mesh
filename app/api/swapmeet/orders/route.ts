@@ -1,0 +1,34 @@
+import Stripe from 'stripe';
+import { prisma } from '@/lib/prismaclient';
+import { NextRequest, NextResponse } from 'next/server';
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2025-06-30.basil' });
+
+export async function POST(req: NextRequest) {
+  const { itemId } = await req.json();
+  const item = await prisma.item.findUnique({ where: { id: BigInt(itemId) } });
+  if (!item || item.stock <= 0) {
+    return NextResponse.json({ error: 'Out of stock' }, { status: 400 });
+  }
+
+  const order = await prisma.order.create({
+    data: { stall_id: item.stall_id, item_id: item.id, amount: 1 },
+  });
+
+  const session = await stripe.checkout.sessions.create({
+    mode: 'payment',
+    success_url: `${process.env.NEXT_PUBLIC_URL}/success`,
+    cancel_url:  `${process.env.NEXT_PUBLIC_URL}/cancel`,
+    line_items: [{
+      price_data: {
+        currency: 'usd',
+        unit_amount: item.price_cents,
+        product_data: { name: item.name },
+      },
+      quantity: 1,
+    }],
+    metadata: { orderId: order.id.toString(), itemId: item.id.toString() },
+  });
+
+  return NextResponse.json({ sessionUrl: session.url });
+}

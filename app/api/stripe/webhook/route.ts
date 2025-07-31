@@ -1,43 +1,40 @@
-import { stripe } from "@/lib/stripe";
-import { prisma } from "@/lib/prismaclient";
-import { NextRequest, NextResponse } from "next/server";
-import { broadcast } from "@/lib/sse";
+import Stripe from 'stripe';
+import { prisma } from '@/lib/prismaclient';
+import { NextRequest, NextResponse } from 'next/server';
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2025-06-30.basil' });
+const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
 export async function POST(req: NextRequest) {
-  const sig = req.headers.get("stripe-signature")!;
-  const buf = await req.arrayBuffer();
-  let event;
+  const body = await req.arrayBuffer();
+  const sig  = req.headers.get('stripe-signature') as string;
+
+  let event: Stripe.Event;
   try {
-    event = stripe.webhooks.constructEvent(
-      buf,
-      sig,
-      process.env.STRIPE_WEBHOOK_SECRET!,
-    );
+    event = stripe.webhooks.constructEvent(body, sig, endpointSecret);
   } catch (err) {
-    return new NextResponse("Webhook error", { status: 400 });
+    return NextResponse.json({ error: 'Signature mismatch' }, { status: 400 });
   }
 
-  switch (event.type) {
-    case "checkout.session.completed": {
-      const sess = event.data.object as Stripe.Checkout.Session;
-      const order = await prisma.order.create({
-        data: {
-          sessionId: sess.id,
-          amount: sess.amount_total!,
-          stallId: sess.metadata!.stallId,
-          itemId: sess.metadata!.itemId,
-        },
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object as Stripe.Checkout.Session;
+    const orderId = BigInt(session.metadata!.orderId);
+
+    await prisma.$transaction(async (tx) => {
+      const order = await tx.order.update({
+        where: { id: orderId },
+        data: { status: 'paid' },
+        include: { item: true },
       });
-      await prisma.item.update({
-        where: { id: order.itemId },
-        data: { sold: true },
+      await tx.item.update({
+        where: { id: order.item_id },
+        data: { stock: { decrement: order.amount } },
       });
-      broadcast(order.stallId, { type: "ITEM_SOLD", payload: order.itemId });
-      break;
-    }
-    case "account.updated": {
-      break;
-    }
+      const updatedItem = await tx.item.update({ where: { id: order.item_id },
+        data: { stock: { decrement: order.amount } }, });
+if (updatedItem.stock < 0) throw new Error('oversold');
+    });
   }
-  return new NextResponse(null, { status: 200 });
+
+  return NextResponse.json({ received: true });
 }
