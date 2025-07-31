@@ -33,3 +33,18 @@ export function calcSharesForSpend({ yesPool, noPool, b, spend, side }: { yesPoo
   const cost = Math.ceil(costToBuy(side, deltaQ, yesPool, noPool, b));
   return { deltaQ, cost };
 }
+
+export function estimateShares(
+  side: "YES" | "NO",
+  spend: number,
+  market: { yesPool: number; noPool: number; b: number }
+) {
+  const { deltaQ, cost } = calcSharesForSpend({
+    yesPool: market.yesPool,
+    noPool: market.noPool,
+    b: market.b,
+    spend,
+    side,
+  });
+  return { shares: deltaQ, cost };
+}
