@@ -76,7 +76,7 @@ export default function TradePredictionModal({ market, onClose, mutateMarket }: 
       });
       if (resp.status !== 200) {
         const data = await resp.json().catch(() => ({}));
-        setError(data.error ?? "Trade failed");
+        setError(typeof data.error === "string" ? data.error : "Trade failed");
         return;
       }
       const result = await resp.json();
@@ -140,7 +140,9 @@ export default function TradePredictionModal({ market, onClose, mutateMarket }: 
           onValueChange={([v]) => setSpend(v)}
           className="w-full"
         />
-        {error && <Alert variant="destructive">{error}</Alert>}
+        {typeof error === "string" && (
+          <Alert variant="destructive">{error}</Alert>
+        )}
         <div className="text-sm text-gray-700" aria-live="polite">
           Cost: {cost} credits — New balance: {maxSpend - cost}
         </div>
