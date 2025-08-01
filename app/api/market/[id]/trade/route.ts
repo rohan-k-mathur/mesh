@@ -28,7 +28,10 @@ export async function POST(
   const body = await req.json().catch(() => ({}));
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid payload", details: parsed.error.flatten() },
+      { status: 400 },
+    );
   }
   const { success } = await ratelimit.limit(user.userId.toString());
   if (!success) return new NextResponse("Too Many", { status: 429 });
