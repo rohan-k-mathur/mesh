@@ -37,7 +37,7 @@ export async function placeTrade({ marketId, userId, spendCents, side }: PlaceTr
       throw new Error("Insufficient funds");
     }
 
-    await tx.trade.create({
+    const trade = await tx.trade.create({
       data: {
         marketId,
         userId,
@@ -45,6 +45,16 @@ export async function placeTrade({ marketId, userId, spendCents, side }: PlaceTr
         shares: deltaQ,
         cost,
         price: cost / deltaQ,
+      },
+    });
+
+    await tx.notification.create({
+      data: {
+        user_id: userId,
+        actor_id: userId,
+        type: "TRADE_EXECUTED",
+        market_id: marketId,
+        trade_id: trade.id,
       },
     });
 
@@ -101,6 +111,21 @@ export async function resolveMarket({ marketId, outcome, resolverId }: ResolveMa
     });
 
     await tx.resolutionLog.create({ data: { marketId, resolverId, outcome } });
+
+    const participants = await tx.trade.findMany({
+      where: { marketId },
+      select: { userId: true },
+      distinct: ["userId"],
+    });
+
+    await tx.notification.createMany({
+      data: participants.map((p) => ({
+        user_id: p.userId,
+        actor_id: resolverId,
+        type: "MARKET_RESOLVED",
+        market_id: marketId,
+      })),
+    });
 
     return { payouts, totalPaid };
   });

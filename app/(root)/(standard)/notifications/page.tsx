@@ -42,6 +42,20 @@ export default async function Page() {
                     </p>
                   </Link>
                 )}
+                {n.type === "TRADE_EXECUTED" && n.market && n.trade && (
+                  <Link href={`/prediction/${n.market_id}`}>
+                    <p className="!text-base text-light-1">
+                      <span className="mr-2 text-blue">{n.actor.name}</span> trade on {n.market.question} executed at {Math.round(n.trade.price * 100)} %
+                    </p>
+                  </Link>
+                )}
+                {n.type === "MARKET_RESOLVED" && n.market && (
+                  <Link href={`/prediction/${n.market_id}`}>
+                    <p className="!text-base text-light-1">
+                      Market {n.market.question} resolved to {n.market.outcome}
+                    </p>
+                  </Link>
+                )}
               </div>
             ))}
           </>

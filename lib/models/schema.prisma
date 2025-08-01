@@ -603,11 +603,15 @@ model Notification {
   type            notification_type
   conversation_id BigInt?
   message_id      BigInt?
+  market_id       String?
+  trade_id        String?
   created_at      DateTime          @default(now()) @db.Timestamptz(6)
   read            Boolean           @default(false)
   actor           User              @relation("NotificationActor", fields: [actor_id], references: [id], onDelete: Cascade)
   conversation    Conversation?     @relation("NotificationConversation", fields: [conversation_id], references: [id], onDelete: Cascade)
   message         Message?          @relation("NotificationMessage", fields: [message_id], references: [id], onDelete: Cascade)
+  market          PredictionMarket? @relation("PredictionMarketNotifications", fields: [market_id], references: [id])
+  trade           Trade?            @relation("TradeNotifications", fields: [trade_id], references: [id])
   user            User              @relation("NotificationUser", fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([user_id])
@@ -678,6 +682,7 @@ model PredictionMarket {
   oracleId   BigInt?
 
   trades         Trade[]
+  notifications  Notification[] @relation("PredictionMarketNotifications")
   post           FeedPost        @relation("FeedPostPrediction", fields: [postId], references: [id])
   creator        User            @relation("CreatedPredictionMarkets", fields: [creatorId], references: [id])
   oracle         User?           @relation("OraclePredictionMarkets", fields: [oracleId], references: [id])
@@ -699,6 +704,7 @@ model Trade {
 
   market PredictionMarket @relation(fields: [marketId], references: [id])
   user   User             @relation("UserTrades", fields: [userId], references: [id])
+  notifications Notification[] @relation("TradeNotifications")
 
   @@index([marketId])
   @@index([userId])
@@ -784,6 +790,8 @@ enum visibility {
 enum notification_type {
   FOLLOW
   MESSAGE
+  TRADE_EXECUTED
+  MARKET_RESOLVED
 }
 
 model Section {
