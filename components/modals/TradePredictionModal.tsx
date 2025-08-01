@@ -5,6 +5,7 @@ import { estimateShares } from "@/lib/prediction/tradePreview";
 import { Button } from "../ui/button";
 import { Slider } from "../ui/slider";
 import Spinner from "../ui/spinner";
+import { Alert } from "../ui/alert";
 import { toast } from "sonner";
 
 interface Market {
@@ -73,10 +74,9 @@ export default function TradePredictionModal({ market, onClose, mutateMarket }: 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ side, spendCents: cost }),
       });
-      if (!resp.ok) {
-        const text = await resp.text();
-        toast.error(text);
-        setPending(false);
+      if (resp.status !== 200) {
+        const data = await resp.json().catch(() => ({}));
+        setError(data.error ?? "Trade failed");
         return;
       }
       const result = await resp.json();
@@ -96,8 +96,8 @@ export default function TradePredictionModal({ market, onClose, mutateMarket }: 
         `Bought ${tradedShares.toFixed(2)} shares @ ${(priceAfter * 100).toFixed(2)} %`
       );
       onClose();
-    } catch (e: any) {
-      toast.error("Trade failed");
+    } catch {
+      toast.error("Network error");
     } finally {
       setPending(false);
     }
@@ -140,7 +140,7 @@ export default function TradePredictionModal({ market, onClose, mutateMarket }: 
           onValueChange={([v]) => setSpend(v)}
           className="w-full"
         />
-        {error && <div className="text-red-500 text-sm">{error}</div>}
+        {error && <Alert variant="destructive">{error}</Alert>}
         <div className="text-sm text-gray-700" aria-live="polite">
           Cost: {cost} credits — New balance: {maxSpend - cost}
         </div>
