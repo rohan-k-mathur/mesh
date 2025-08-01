@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { app } from "@/lib/firebase/firebase";
 import { useAuth } from "@/lib/AuthContext";
 import CartButton from "@/components/CartButton";
+import NotificationBell from "@/components/NotificationBell";
 import { Chakra_Petch } from "next/font/google";
 import localFont from 'next/font/local'
 const parabole = localFont({ src: './Parabole-DisplayRegular.woff2' })
@@ -55,6 +56,7 @@ function Topbar() {
 
       </Link>
       <CartButton />
+      <NotificationBell />
       </div>
 
     </nav>
