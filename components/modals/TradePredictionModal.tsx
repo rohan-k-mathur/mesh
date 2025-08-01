@@ -1,6 +1,7 @@
 "use client";
 import { useState, useMemo, useEffect, useCallback } from "react";
-import { priceYes, estimateShares } from "@/lib/prediction/lmsr";
+import { priceYes, costToBuy } from "@/lib/prediction/lmsr";
+import { estimateShares } from "@/lib/prediction/tradePreview";
 import { Button } from "../ui/button";
 import { Slider } from "../ui/slider";
 import Spinner from "../ui/spinner";
@@ -22,7 +23,7 @@ interface Props {
 export default function TradePredictionModal({ market, onClose, mutate }: Props) {
   const [side, setSide] = useState<"YES" | "NO">("YES");
   const [spend, setSpend] = useState(0);
-  const [balance, setBalance] = useState<number | null>(null);
+  const [maxSpend, setMaxSpend] = useState(0);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const currentPrice = useMemo(
@@ -33,16 +34,20 @@ export default function TradePredictionModal({ market, onClose, mutate }: Props)
   useEffect(() => {
     fetch("/api/wallet")
       .then((r) => (r.ok ? r.json() : Promise.reject(r)))
-      .then((d) => setBalance(d.balanceCents ?? 0))
-      .catch(() => setBalance(0));
+      .then((d) => setMaxSpend(d.balanceCents ?? 0))
+      .catch(() => setMaxSpend(0));
   }, []);
-
-  const maxSpend = balance ?? 0;
 
   const { shares, cost } = useMemo(() => {
     if (!spend) return { shares: 0, cost: 0 };
     try {
-      return estimateShares(side, spend, market);
+      return estimateShares(
+        side,
+        spend,
+        market.yesPool,
+        market.noPool,
+        market.b
+      );
     } catch (e) {
       setError("Invalid spend amount");
       return { shares: 0, cost: 0 };
@@ -120,15 +125,18 @@ export default function TradePredictionModal({ market, onClose, mutate }: Props)
           className="w-full"
         />
         {error && <div className="text-red-500 text-sm">{error}</div>}
-        <div className="text-sm text-gray-700">
-          Spend: {fmt.format(cost)} credits for {shares.toFixed(2)} shares
+        <div className="text-sm text-gray-700" aria-live="polite">
+          Cost: {cost} credits — New balance: {maxSpend - cost}
         </div>
         <div className="text-sm text-gray-700" aria-live="polite">
-          New probability: {(priceAfter * 100).toFixed(2)}% YES
+          You receive ≈ {shares.toFixed(2)} shares
+        </div>
+        <div className="text-sm text-gray-700" aria-live="polite">
+          Market moves to ≈ {(priceAfter * 100).toFixed(1)} % YES
         </div>
         <Button
           onClick={handleTrade}
-          disabled={pending || cost === 0}
+          disabled={pending || cost === 0 || cost > maxSpend}
           className="w-fit px-8 py-2 bg-white bg-opacity-40 rounded-xl tracking-wide mx-auto likebutton"
         >
           {pending ? <Spinner className="h-4 w-4" /> : "Confirm Trade"}
