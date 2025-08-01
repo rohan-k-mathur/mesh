@@ -51,6 +51,11 @@ export default function HalfwayPage() {
   const { isLoaded } = useLoadScript({ googleMapsApiKey: GOOGLE_MAPS_API_KEY, libraries });
   const acRefA = useRef<google.maps.places.Autocomplete | null>(null);
   const acRefB = useRef<google.maps.places.Autocomplete | null>(null);
+   const reqIdRef = useRef(0);
+// /* inside handleFindMidpoint, just after aborting the previous one */
+// reqIdRef.current += 1;
+ const myReq = reqIdRef.current;
+ if (myReq !== reqIdRef.current) return; // obsolete request – ignore
 
   /* ───────────────────── memoised helpers ───────────────────────── */
   const venueCmp = useMemo(() => {
@@ -133,6 +138,9 @@ export default function HalfwayPage() {
     if (abortCtl.current) abortCtl.current.abort();
     abortCtl.current = new AbortController();
 
+    reqIdRef.current += 1;
+    const thisReq = reqIdRef.current;
+
     let A = coordA;
     let B = coordB;
 
@@ -153,8 +161,8 @@ export default function HalfwayPage() {
       const { midpoint: mid, error } = await res.json();
       if (!res.ok || error) throw new Error(error ?? "midpoint fail");
 
+      if (thisReq !== reqIdRef.current) return;   // ← stale; ignore
       setMidpoint(mid);
-
       /* 2️⃣ decode each half‑route for polylines + distances */
       const fetchRoute = async (start: LatLng) => {
         const r = await fetch(`/api/computeRoutes?origin=${start.lat},${start.lng}&destination=${mid.lat},${mid.lng}`);
@@ -180,13 +188,14 @@ export default function HalfwayPage() {
       /* 3️⃣ venues */
       await fetchVenues(mid);
     } catch (e) {
-      if ((e as any).name !== "AbortError") {
-        console.error(e);
-        toast.error("Failed to calculate midpoint");
-        setErrorMsg("Midpoint calculation failed.");
-      }
+            if (thisReq !== reqIdRef.current) return;      // stale
+            if ((e as any).name !== "AbortError") {
+              console.error(e);
+              toast.error("Failed to calculate midpoint");
+              setErrorMsg("Midpoint calculation failed.");
+            }
     } finally {
-      setLoading(false);
+      if (thisReq === reqIdRef.current) setLoading(false);
     }
   }, [addrA, addrB, coordA, coordB, fetchVenues]);
 
