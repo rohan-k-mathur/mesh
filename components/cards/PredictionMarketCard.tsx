@@ -1,6 +1,6 @@
 "use client";
 import TradePredictionModal from "../modals/TradePredictionModal";
-import ResolveMarketDialog from "../modals/ResolveMarketDialog";
+import ResolveMarketDialog from "@/apps/web/src/components/modals/ResolveMarketDialog";
 import { useMarket } from "@/hooks/useMarket";
 import { priceYes } from "@/lib/prediction/lmsr";
 import { timeUntil } from "@/lib/utils";
@@ -72,12 +72,14 @@ const countdown =
       {showResolve && (
         <ResolveMarketDialog
           marketId={post.predictionMarket.id}
-          onClose={() => setShowResolve(false)}
-          mutate={() => mutate()}
+          onResolved={() => {
+            mutate();
+            setShowResolve(false);
+          }}
         />
       )}
       {state === "RESOLVED" && (
-        <div className="text-[sm] font-medium">Outcome: {outcome}</div>
+        <div className="text-[sm] font-medium">Resolved: {outcome}</div>
       )}
     </div>
   );
