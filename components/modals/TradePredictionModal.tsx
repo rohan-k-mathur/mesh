@@ -38,6 +38,20 @@ export default function TradePredictionModal({ market, onClose, mutate }: Props)
       .catch(() => setMaxSpend(0));
   }, []);
 
+
+  async function fetchWallet() {
+    const res = await fetch("/api/wallet");
+    if (!res.ok) throw new Error("wallet fetch failed");
+    const json = await res.json();
+    return {
+      balance: Number(json.balanceCents) / 100,   // convert to “credits”
+      locked: Number(json.lockedCents) / 100,
+    };
+  }
+
+  const maxSpend = balance ?? 0;
+
+
   const { shares, cost } = useMemo(() => {
     if (!spend) return { shares: 0, cost: 0 };
     try {
@@ -138,6 +152,8 @@ export default function TradePredictionModal({ market, onClose, mutate }: Props)
           onClick={handleTrade}
           disabled={pending || cost === 0 || cost > maxSpend}
           className="w-fit px-8 py-2 bg-white bg-opacity-40 rounded-xl tracking-wide mx-auto likebutton"
+          disabled={pending || cost === 0}
+          className="w-fit h-full px-6 py-3 bg-white bg-opacity-40 rounded-xl tracking-wide mx-auto likebutton"
         >
           {pending ? <Spinner className="h-4 w-4" /> : "Confirm Trade"}
         </Button>
