@@ -41,7 +41,7 @@ const countdown =
       <div className="items-center justify-center mx-auto ">
         {state === "OPEN" && (
           <button
-            className="likebutton bg-white bg-opacity-20 py-2 px-8 mt-1 mb-2  rounded-xl text-[1.1rem] mx-full items-center justify-center text-center tracking-widest"
+            className="likebutton bg-white bg-opacity-20 py-2 px-8 mt-1 mb-3  rounded-xl text-[1.1rem] mx-full items-center justify-center text-center tracking-widest"
             onClick={() => setShowTrade(true)}
           >
             Trade
@@ -57,7 +57,7 @@ const countdown =
         )}
       </div>
       {state === "OPEN" && (
-  <span className="text-xs">Closes in {countdown}</span>
+  <span className="text-xs p-4 mt-4">Closes in {countdown}</span>
   )}
       {showTrade && post.predictionMarket && (
         <TradePredictionModal

@@ -932,6 +932,11 @@ textarea {
 
   
 }
+.likebutton:hover{
+  box-shadow:   2px 2px 4px rgba(222,199,204,.53),
+  -.5px 1px 4px rgba(0, 0, 0, 0.35);
+
+}
 .searchfield {
   outline:transparent;
   border:none;
@@ -945,8 +950,68 @@ textarea {
 
   box-shadow: inset  3px 3px 7px rgba(239, 204, 219, 0.55),
   inset -3px -3px 7px rgba(178, 214, 250, 0.55);
+}
+.halfwaybutton{
+  background-color: transparent;
+  padding: 2px;
+  outline: transparent;
+  outline-style: solid;
+  outline-width: .25px;
+  border-radius: 4px;
+  box-shadow:   3px 3px 7px rgba(239, 204, 219, 0.55),
+    -1px 2px 7px rgba(178, 214, 250, 0.55);
+}
+.halfwaybutton:hover{
+  background-color: transparent;
+  padding: 2px;
+  outline: transparent;
+  outline-style: solid;
+  outline-width: .25px;
+  border-radius: 4px;
+  box-shadow:   2px 2px 4px rgba(239, 204, 219, 0.55),
+  -.5px 1px 4px rgba(178, 214, 250, 0.55);
+}
+
+.messagefield {
+  outline:transparent;
+  border:none;
+  box-shadow: inset  -3px -3px 7px rgba(253, 205, 205, 0.95),
+  inset  3px 3px 7px rgba(176, 141, 141, 0.95);
 
 }
+.messagefield:hover {
+  outline:transparent;
+  border:none;
+  box-shadow: inset  -3px -3px 7px rgba(243, 195, 195, 0.95),
+  inset  3px 3px 7px rgba(176, 141, 141, 0.95);
+
+}
+.messagefield:focus {
+  outline:transparent;
+  border:none;
+  box-shadow: inset  -3px -3px 7px rgba(233, 185, 185, 0.95),
+  inset  3px 3px 7px rgba(156, 121, 121, 0.95);
+
+}
+
+.sendbutton {
+  background-color: transparent;
+  padding: 2px;
+  outline: transparent;
+  outline-style: solid;
+  outline-width: .25px;
+  border-radius: 4px;
+  box-shadow:   3px 3px 7px rgba(253, 205, 205, 0.95),
+  -1px 2px 7px rgba(176, 141, 141, 0.95);
+
+  
+}
+.sendbutton:hover{
+  box-shadow:   2px 2px 4px rgba(253, 205, 205, 0.95),
+  -.5px 1px 4px rgba(176, 141, 141, 0.95);
+
+}
+
 .playbutton {
   background-color: transparent;
   outline: transparent;
@@ -1011,11 +1076,7 @@ textarea {
   box-shadow:   1px 1px 3px #dec7cc,
   -1px 1px 3px rgba(0, 0, 0, 0.15);
 }
-.likebutton:hover{
-  box-shadow:   3px 3px 4px rgba(222,199,204,.53),
-  -.5px 1px 4px rgba(0, 0, 0, 0.15);
 
-}
 
 .customize-dialog
 {

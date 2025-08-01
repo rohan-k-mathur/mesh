@@ -26,7 +26,7 @@ const chatMessageVariants = cva("flex gap-4 w-full", {
 		{
 			variant: "full",
 			type: "incoming",
-			className: "bg-white dark:bg-slate-950",
+			className: "bg-black dark:bg-slate-950",
 		},
 	],
 	defaultVariants: {

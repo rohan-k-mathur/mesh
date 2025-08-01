@@ -220,7 +220,7 @@ export default function HalfwayPage() {
           <Input className="w-full h-full  searchfield  bg-white bg-opacity-50 rounded-xl  focus:ring-blue focus:ring-[1px]"  placeholder="Address B" value={addrB} onChange={(e) => setAddrB(e.target.value)} />
         </Autocomplete>
         <button disabled={loading || !addrA || !addrB} onClick={handleFindMidpoint} 
-         className=" likebutton h-fit w-fit  bg-white bg-opacity-50 py-1 px-3 rounded-xl">
+         className=" halfwaybutton h-fit w-fit  bg-white bg-opacity-50 py-1 px-3 rounded-xl">
           {loading ? "Finding" : "Halfway"}
         </button>
       </div>
