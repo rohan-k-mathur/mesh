@@ -9,11 +9,17 @@ import CommentTree from "@/components/shared/CommentTree";
 
 const Page = async ({ params }: { params: { id: string } }) => {
   if (!params?.id && params?.id?.length !== 1) return notFound();
-  const user = await getUserFromCookies();
-  if (!user?.onboarded) redirect("/onboarding");
-  const post = await fetchRealtimePostTreeById({ id: params.id });
-  if (!post) notFound();
-  if (!params?.id) notFound();
+  // const user = await getUserFromCookies();
+  // if (!user?.onboarded) redirect("/onboarding");
+  // const post = await fetchRealtimePostTreeById({ id: params.id });
+  // if (!post) notFound();
+  // if (!params?.id) notFound();
+  if (!params?.id || params.id === 'undefined') notFound();
+    
+    const user = await getUserFromCookies();
+    if (!user?.onboarded) redirect("/onboarding");
+    const post = await fetchRealtimePostTreeById({ id: params.id });
+    if (!post) notFound();
   const currentUserLike = user
     ? await fetchRealtimeLikeForCurrentUser({
         realtimePostId: post.id,

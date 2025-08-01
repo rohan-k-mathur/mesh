@@ -1034,10 +1034,10 @@ model GroupMeeting {
   id              String   @id @default(uuid())
   title           String?
   participantUids String[]
-  origins        Json?
-  votes          Json?
-  status         String   @default("init")
-  createdAt      DateTime @default(now())
+  origins         Json?
+  votes           Json?
+  status          String   @default("init")
+  createdAt       DateTime @default(now())
 
   @@map("group_meetings")
 }

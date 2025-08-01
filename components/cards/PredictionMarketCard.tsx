@@ -12,8 +12,16 @@ interface Props {
 export default function PredictionMarketCard({ post }: Props) {
   const { market, mutate } = useMarket(post.predictionMarket.id);
   const price = market?.price ?? 0.5;
-  const closesAt = market?.market.closesAt ?? post.predictionMarket.closesAt;
-  const state = market?.market.state ?? post.predictionMarket.state;
+  // const closesAt =
+  //   market?.market.closesAt ? market.market.closesAt
+  //                           : post.predictionMarket.closesAt;  
+  const closesAt =
+  market?.market.closesAt ?? post.predictionMarket?.closesAt;
+
+const countdown =
+  closesAt ? timeUntil(closesAt) : '--';
+
+    const state = market?.market.state ?? post.predictionMarket.state;
   const outcome = market?.market.outcome ?? post.predictionMarket.outcome;
   const canResolve = market?.canResolve ?? false;
   const [showTrade, setShowTrade] = useState(false);
@@ -49,8 +57,8 @@ export default function PredictionMarketCard({ post }: Props) {
         )}
       </div>
       {state === "OPEN" && (
-        <span className="text-xs">Closes in {timeUntil(closesAt)}</span>
-      )}
+  <span className="text-xs">Closes in {countdown}</span>
+  )}
       {showTrade && post.predictionMarket && (
         <TradePredictionModal
           market={post.predictionMarket}

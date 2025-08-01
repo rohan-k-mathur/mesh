@@ -59,16 +59,29 @@ export async function createMarket(
     },
   });
 
-  // 3. Store serialised market JSON in the post content
+  // // 3. Store serialised market JSON in the post content
+  // await prisma.realtimePost.update({
+  //   where: { id: post.id },
+  //   data: {
+  //     predictionMarket: { connect: { id: market.id } },
+  //     content: JSON.stringify(serializeBigInt(market)),
+  //   },
+  // });
+    // --- serialise for the feed ---
+  // ① convert bigints → strings
+  const payload = serializeBigInt(market) as any;
+  // ② make closesAt an ISO string (e.g. "2025-07-31T21:00:00.000Z")
+  payload.closesAt = market.closesAt.toISOString();
+
   await prisma.realtimePost.update({
     where: { id: post.id },
     data: {
       predictionMarket: { connect: { id: market.id } },
-      content: JSON.stringify(serializeBigInt(market)),
+      content: JSON.stringify(payload),
     },
   });
 
-  return { postId: feed.id.toString() };
+   return { postId: post.id.toString() };
 }
 
 // export async function createMarket({ question, closesAt, liquidity }:{ question:string; closesAt:string; liquidity:number; }) {

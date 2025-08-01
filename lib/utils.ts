@@ -333,35 +333,35 @@ export function serializeBigInt(value: unknown): any {
   }
   return value;
 }
-
 export function timeUntil(raw: Dateish) {
-  // 1. Bail on null/undefined
-  if (raw == null) return '--';
-
-  // 2. Normalise to a Date
+  if (raw == null || raw === '') return '--'; 
   let d: Date;
 
   switch (typeof raw) {
-    case 'string':
-      d = new Date(raw);                 // ISO / RFC-2822
+    case 'string': {
+      const s = String(raw).trim();
+            if (/^\d+$/.test(s)) {
+        // purely digits → epoch seconds/ms encoded as string
+        const n = Number(s);
+        d = new Date(n < 1e12 ? n * 1000 : n);   // sec ↔ ms heuristic
+      } else {
+        // ISO-8601 or RFC-2822
+        d = new Date(s.replace(' ', 'T'));       // tolerant of “2025-07-31 17:50Z”
+      }
       break;
+    }
     case 'number':
-    case 'bigint':
-      // If it looks like seconds, convert; if ms, Date handles it
+    case 'bigint': {
       const n = Number(raw);
       d = new Date(n < 1e12 ? n * 1000 : n);
       break;
-    case 'object':                        // could already be Date
-      if (raw instanceof Date) d = raw as Date;
-      else return '--';
+    }
+    case 'object':
+      if (raw instanceof Date) d = raw; else return '--';
       break;
     default:
       return '--';
   }
 
-  // 3. Verify validity
-  if (isNaN(d.getTime())) return '--';
-
-  // 4. Format
-  return formatDistanceToNowStrict(d, { addSuffix: false });
+  return isNaN(d.getTime()) ? '--' : formatDistanceToNowStrict(d);
 }

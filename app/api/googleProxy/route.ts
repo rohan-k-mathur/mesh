@@ -1,60 +1,58 @@
-import { NextRequest, NextResponse } from "next/server";
-import { kv } from "@vercel/kv";
+import { NextResponse } from "next/server";
 
-const BASE_MAPS = "https://maps.googleapis.com/maps/api";
-const BASE_ROUTES = "https://routes.googleapis.com";
-
-export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const endpoint = searchParams.get("endpoint");
+// ───────────────────────────────────────────────────────────
+// * One handler for both GET and POST (legacy & Routes v2)  *
+// ───────────────────────────────────────────────────────────
+const handler = async (req: Request) => {
+  /* 1 ─ read query */
+  const incoming = new URL(req.url);
+  const endpoint = incoming.searchParams.get("endpoint");
   if (!endpoint) {
     return NextResponse.json({ error: "missing endpoint" }, { status: 400 });
   }
 
-  searchParams.delete("endpoint");
-  const qs = searchParams.toString();
-  const url = endpoint.startsWith("directions/") || endpoint.startsWith("place/") || endpoint.startsWith("geocode")
-    ? `${BASE_MAPS}/${endpoint}?${qs}&key=${process.env.GMAPS_KEY}`
-    : endpoint.startsWith("directions/")
-    ? `${BASE_MAPS}/${endpoint}?${qs}&key=${process.env.GMAPS_KEY}`
-    : endpoint.startsWith("v2:") || endpoint.includes("v2")
-    ? `${BASE_ROUTES}/${endpoint}${qs ? "?" + qs : ""}`
-    : `${BASE_MAPS}/${endpoint}?${qs}&key=${process.env.GMAPS_KEY}`;
+  /* 2 ─ decide Google host */
+  const isRoutesV2 = endpoint.startsWith("directions/v2:computeRoutes");
+  const googleBase = isRoutesV2
+    ? "https://routes.googleapis.com/"
+    : "https://maps.googleapis.com/maps/api/";
 
-  if (req.method !== "GET") {
-    const body = await req.text();
-    const res = await fetch(url, {
-      method: req.method,
-      headers: {
-        "Content-Type": "application/json",
-        "X-Goog-Api-Key": process.env.GMAPS_KEY!,
-      },
-      body,
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      return NextResponse.json({ error: data.error?.status || res.statusText }, { status: res.status });
-    }
-    if (data.status && ["ZERO_RESULTS", "OVER_QUERY_LIMIT", "REQUEST_DENIED"].includes(data.status)) {
-      return NextResponse.json({ error: data.status }, { status: 400 });
-    }
-    return NextResponse.json(data);
+
+    
+  /* 3 ─ rebuild Google URL */
+  const target = new URL(endpoint, googleBase);
+  incoming.searchParams.forEach((v, k) => {
+    if (k !== "endpoint") target.searchParams.set(k, v); // copy the rest
+  });
+
+  /* 4 ─ headers & body */
+  const apiKey = process.env.GOOGLE_MAPS_API_KEY!;
+  const init: RequestInit = { method: req.method };
+
+  if (isRoutesV2) {
+    init.method = "POST";
+    init.headers = {
+      "Content-Type": "application/json",
+      "X-Goog-Api-Key": apiKey,
+      // 👇 FIX: read from the original request, not URL
+      "X-Goog-FieldMask": req.headers.get("x-goog-fieldmask") ?? "*",
+    };
+    init.body = await req.text();
+  } else {
+    target.searchParams.set("key", apiKey);
   }
 
-  // GET with caching
-  const cacheKey = url;
-  const cached = await kv.get(cacheKey);
-  if (cached) {
-    return NextResponse.json(cached as any);
+  /* 5 ─ fire & relay */
+  const gRes = await fetch(target.toString(), init);
+  const raw = await gRes.text();
+
+  if (!gRes.ok) {
+    console.error("Google error →", raw);
+    return NextResponse.json({ error: "upstream fail", detail: raw }, { status: gRes.status });
   }
-  const res = await fetch(url);
-  const data = await res.json();
-  if (!res.ok) {
-    return NextResponse.json({ error: data.error?.status || res.statusText }, { status: res.status });
-  }
-  if (data.status && ["ZERO_RESULTS", "OVER_QUERY_LIMIT", "REQUEST_DENIED"].includes(data.status)) {
-    return NextResponse.json({ error: data.status }, { status: 400 });
-  }
-  await kv.set(cacheKey, data, { ex: 600 });
-  return NextResponse.json(data);
-}
+  return NextResponse.json(JSON.parse(raw));
+};
+
+// export *after* definition to avoid ReferenceError
+export const GET  = handler;
+export const POST = handler;
