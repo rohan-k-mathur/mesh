@@ -2,6 +2,7 @@
 import TradePredictionModal from "../modals/TradePredictionModal";
 import ResolveMarketDialog from "../modals/ResolveMarketDialog";
 import { useMarket } from "@/hooks/useMarket";
+import { priceYes } from "@/lib/prediction/lmsr";
 import { timeUntil } from "@/lib/utils";
 import { useState } from "react";
 
@@ -10,19 +11,18 @@ interface Props {
 }
 
 export default function PredictionMarketCard({ post }: Props) {
-  const { market, mutate } = useMarket(post.predictionMarket.id);
-  const price = market?.price ?? 0.5;
+  const { data: market, mutate } = useMarket(post.predictionMarket.id);
+  const price = market ? priceYes(market.yesPool, market.noPool, market.b) : 0.5;
   // const closesAt =
   //   market?.market.closesAt ? market.market.closesAt
   //                           : post.predictionMarket.closesAt;  
-  const closesAt =
-  market?.market.closesAt ?? post.predictionMarket?.closesAt;
+  const closesAt = market?.closesAt ?? post.predictionMarket?.closesAt;
 
 const countdown =
   closesAt ? timeUntil(closesAt) : '--';
 
-    const state = market?.market.state ?? post.predictionMarket.state;
-  const outcome = market?.market.outcome ?? post.predictionMarket.outcome;
+    const state = market?.state ?? post.predictionMarket.state;
+  const outcome = market?.outcome ?? post.predictionMarket.outcome;
   const canResolve = market?.canResolve ?? false;
   const [showTrade, setShowTrade] = useState(false);
   const [showResolve, setShowResolve] = useState(false);
@@ -59,11 +59,11 @@ const countdown =
       {state === "OPEN" && (
   <span className="text-xs p-4 mt-4">Closes in {countdown}</span>
   )}
-      {showTrade && post.predictionMarket && (
+      {showTrade && market && (
         <TradePredictionModal
-          market={post.predictionMarket}
+          market={market}
           onClose={() => setShowTrade(false)}
-          mutate={() => mutate()}
+          mutateMarket={mutate}
         />
       )}
       {state === "CLOSED" && !canResolve && (

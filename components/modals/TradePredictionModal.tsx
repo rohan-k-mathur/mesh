@@ -17,10 +17,10 @@ interface Market {
 interface Props {
   market: Market;
   onClose: () => void;
-  mutate?: () => void;
+  mutateMarket?: (updater?: any) => void;
 }
 
-export default function TradePredictionModal({ market, onClose, mutate }: Props) {
+export default function TradePredictionModal({ market, onClose, mutateMarket }: Props) {
   const [side, setSide] = useState<"YES" | "NO">("YES");
   const [spend, setSpend] = useState(0);
   const [maxSpend, setMaxSpend] = useState(0);
@@ -39,17 +39,7 @@ export default function TradePredictionModal({ market, onClose, mutate }: Props)
   }, []);
 
 
-  async function fetchWallet() {
-    const res = await fetch("/api/wallet");
-    if (!res.ok) throw new Error("wallet fetch failed");
-    const json = await res.json();
-    return {
-      balance: Number(json.balanceCents) / 100,   // convert to “credits”
-      locked: Number(json.lockedCents) / 100,
-    };
-  }
 
-  const maxSpend = balance ?? 0;
 
 
   const { shares, cost } = useMemo(() => {
@@ -89,9 +79,21 @@ export default function TradePredictionModal({ market, onClose, mutate }: Props)
         setPending(false);
         return;
       }
-      mutate?.();
+      const result = await resp.json();
+      const tradedShares = result.shares ?? shares;
+      const newYes = market.yesPool + (side === "YES" ? tradedShares : 0);
+      const newNo = market.noPool + (side === "NO" ? tradedShares : 0);
+      if (mutateMarket) {
+        mutateMarket((prev: Market) => ({
+          ...prev,
+          yesPool: newYes,
+          noPool: newNo,
+        }));
+      } else {
+        mutateMarket?.();
+      }
       toast.success(
-        `Bought ${shares.toFixed(2)} shares @ ${(priceAfter * 100).toFixed(2)} %`
+        `Bought ${tradedShares.toFixed(2)} shares @ ${(priceAfter * 100).toFixed(2)} %`
       );
       onClose();
     } catch (e: any) {
@@ -99,7 +101,7 @@ export default function TradePredictionModal({ market, onClose, mutate }: Props)
     } finally {
       setPending(false);
     }
-  }, [market.id, side, cost, mutate, shares, priceAfter, onClose]);
+  }, [market.id, side, cost, mutateMarket, shares, priceAfter, onClose, market.yesPool, market.noPool]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -151,8 +153,6 @@ export default function TradePredictionModal({ market, onClose, mutate }: Props)
         <Button
           onClick={handleTrade}
           disabled={pending || cost === 0 || cost > maxSpend}
-          className="w-fit px-8 py-2 bg-white bg-opacity-40 rounded-xl tracking-wide mx-auto likebutton"
-          disabled={pending || cost === 0}
           className="w-fit h-full px-6 py-3 bg-white bg-opacity-40 rounded-xl tracking-wide mx-auto likebutton"
         >
           {pending ? <Spinner className="h-4 w-4" /> : "Confirm Trade"}
