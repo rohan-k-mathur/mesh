@@ -406,7 +406,11 @@ const PostCard = ({
                 <ShareButton postId={id} />
         
                   <TimerButton
-                    postId={id}
+                    {...(isRealtimePost
+                      ? { realtimePostId: id.toString() }
+                      : isFeedPost
+                      ? { feedPostId: id }
+                      : { postId: id })}
                     isOwned={currentUserId === author.id}
                     expirationDate={expirationDate ?? undefined}
                   />

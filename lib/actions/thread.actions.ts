@@ -265,17 +265,15 @@ export async function replicatePost({
 
 export async function updatePostExpiration({
   postId,
+  realtimePostId,
+  feedPostId,
   duration,
 }: {
-  postId: bigint;
+  postId?: bigint;
+  realtimePostId?: string | bigint;
+  feedPostId?: bigint;
   duration: string;
 }) {
-  const post = await prisma.post.findUnique({
-    where: { id: postId },
-  });
-  if (!post) {
-    throw new Error("Post not found");
-  }
   let expiration: Date | null = null;
   if (duration !== "none") {
     const now = Date.now();
@@ -283,10 +281,36 @@ export async function updatePostExpiration({
     if (duration === "1d") expiration = new Date(now + 86400 * 1000);
     if (duration === "1w") expiration = new Date(now + 604800 * 1000);
   }
-  await prisma.post.update({
-    where: { id: postId },
-    data: { expiration_date: expiration },
-  });
+
+  if (postId) {
+    const post = await prisma.post.findUnique({ where: { id: postId } });
+    if (!post) throw new Error("Post not found");
+    await prisma.post.update({
+      where: { id: postId },
+      data: { expiration_date: expiration },
+    });
+    return;
+  }
+  if (feedPostId) {
+    const post = await prisma.feedPost.findUnique({ where: { id: feedPostId } });
+    if (!post) throw new Error("Feed post not found");
+    await prisma.feedPost.update({
+      where: { id: feedPostId },
+      data: { expiration_date: expiration },
+    });
+    return;
+  }
+  if (realtimePostId) {
+    const rid = BigInt(realtimePostId);
+    const post = await prisma.realtimePost.findUnique({ where: { id: rid } });
+    if (!post) throw new Error("Realtime post not found");
+    await prisma.realtimePost.update({
+      where: { id: rid },
+      data: { expiration_date: expiration },
+    });
+    return;
+  }
+  throw new Error("No post identifier provided");
 }
 
 export async function archiveExpiredPosts() {

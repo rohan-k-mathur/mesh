@@ -268,8 +268,14 @@ export async function lockRealtimePost({
 
 export async function archiveOldRealtimePosts(days = 30) {
   const threshold = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  const now = new Date();
   const oldPosts = await prisma.realtimePost.findMany({
-    where: { created_at: { lte: threshold } },
+    where: {
+      OR: [
+        { created_at: { lte: threshold } },
+        { expiration_date: { lte: now } },
+      ],
+    },
   });
   if (oldPosts.length === 0) return;
   const ids = oldPosts.map((p) => p.id);
@@ -297,6 +303,7 @@ export async function archiveOldRealtimePosts(days = 30) {
         pluginType: p.pluginType ?? undefined,
         pluginData: p.pluginData ?? undefined,
         parent_id: p.parent_id ?? undefined,
+        expiration_date: p.expiration_date ?? undefined,
       })),
       skipDuplicates: true,
     }),
@@ -325,6 +332,10 @@ export async function fetchRealtimePosts({
       type: {
         in: postTypes,
       },
+      OR: [
+        { expiration_date: null },
+        { expiration_date: { gt: new Date() } },
+      ],
     },
     include: {
       author: true,
@@ -345,6 +356,10 @@ export async function fetchRealtimePosts({
       type: {
         in: postTypes,
       },
+      OR: [
+        { expiration_date: null },
+        { expiration_date: { gt: new Date() } },
+      ],
     },
   });
 

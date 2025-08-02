@@ -13,14 +13,22 @@ import { AppState } from "@/lib/reactflow/types";
 import { useShallow } from "zustand/react/shallow";
 
 interface Props {
-  postId: bigint;
+  postId?: bigint;
+  realtimePostId?: string;
+  feedPostId?: bigint;
   isOwned: boolean;
   expirationDate?: string | null;
 }
 
 import { updatePostExpiration } from "@/lib/actions/thread.actions";
 
-const TimerModal = ({ postId, isOwned, expirationDate }: Props) => {
+const TimerModal = ({
+  postId,
+  realtimePostId,
+  feedPostId,
+  isOwned,
+  expirationDate,
+}: Props) => {
   const { closeModal } = useStore(
     useShallow((state: AppState) => ({
       closeModal: state.closeModal,
@@ -60,7 +68,12 @@ const TimerModal = ({ postId, isOwned, expirationDate }: Props) => {
         <Button
           variant="outline"
           onClick={async () => {
-            await updatePostExpiration({ postId, duration });
+            await updatePostExpiration({
+              postId,
+              realtimePostId,
+              feedPostId,
+              duration,
+            });
             closeModal();
           }}
           className="px-4"

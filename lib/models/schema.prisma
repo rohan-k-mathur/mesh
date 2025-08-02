@@ -137,6 +137,7 @@ model FeedPost {
   caption          String?
   isPublic         Boolean           @default(true)
   like_count       Int               @default(0)
+  expiration_date  DateTime?
   author           User              @relation(fields: [author_id], references: [id])
   predictionMarket PredictionMarket? @relation("FeedPostPrediction")
   productReview    ProductReview?
@@ -224,6 +225,7 @@ model RealtimePost {
   collageGap         Int?
   isPublic           Boolean            @default(false)
   parent_id          BigInt?
+  expiration_date    DateTime?
   pluginData         Json?
   pluginType         String?
   room_post_content  Json?
@@ -334,6 +336,7 @@ model ArchivedRealtimePost {
   pluginType         String?
   pluginData         Json?
   parent_id          BigInt?
+  expiration_date    DateTime?
   archived_at        DateTime           @default(now()) @db.Timestamptz(6)
   author             User               @relation(fields: [author_id], references: [id])
 
