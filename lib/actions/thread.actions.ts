@@ -4,6 +4,7 @@
 import { prisma } from "../prismaclient";
 import { revalidatePath } from "next/cache";
 import { getUserFromCookies } from "../serverutils";
+import { canRepost } from "@/lib/repostPolicy";
 
 interface CreatePostParams {
   text: string;
@@ -244,6 +245,9 @@ export async function replicatePost({
       include: { author: true },
     });
     if (!original) throw new Error("Post not found");
+    if (!canRepost(original.type)) {
+      throw new Error("Post type not allowed to be replicated");
+    }
     const payload = JSON.stringify({ id: oid.toString(), text });
     const newPost = await prisma.post.create({
       data: {

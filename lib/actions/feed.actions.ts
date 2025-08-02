@@ -3,6 +3,7 @@ import { useSession } from "../useSession";
 import { getUserFromCookies } from "@/lib/serverutils"; // server‑only util
 import { revalidatePath } from "next/cache";
 import { jsonSafe } from "../bigintjson";
+import { canRepost } from "@/lib/repostPolicy";
 export interface CreateFeedPostArgs {
   type:
     | "TEXT"
@@ -167,6 +168,9 @@ export async function replicateFeedPost({
   const uid = BigInt(userId);
   const original = await prisma.feedPost.findUnique({ where: { id: oid } });
   if (!original) throw new Error("Feed post not found");
+  if (!canRepost(original.type)) {
+    throw new Error("Post type not allowed to be replicated");
+  }
   // const payload = JSON.stringify({ id: oid.toString(), text });
   const payload = JSON.stringify({
     id: oid.toString(),
