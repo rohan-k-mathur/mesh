@@ -6,6 +6,7 @@ import Spinner from "@/components/ui/spinner";
 import { realtime_post_type } from "@prisma/client";
 import { useMemo } from "react";
 import ScrollList from "./ScrollList";
+import { mapFeedPost, mapRealtimePost } from "@/lib/transform/post";
 
 interface Props {
   initialPosts: any[];
@@ -42,6 +43,7 @@ export default function RealtimeFeed({
     };
   }, [roomId, postTypes]);
 
+  const isRealtime = Boolean(roomId && postTypes && postTypes.length > 0);
   const isFeed = roomId === "global" && (!postTypes || postTypes.length === 0);
 
   const { posts, loaderRef, loading } = useInfiniteRealtimePosts(
@@ -50,31 +52,24 @@ export default function RealtimeFeed({
     initialIsNext
   );
 
-  const items = posts.map((realtimePost) => (
-    <div key={realtimePost.id.toString()} className={animated ? "scroll-list__item js-scroll-list-item" : ""}>
-      <PostCard
-        currentUserId={currentUserId}
-        id={realtimePost.id}
-        isRealtimePost={Boolean(roomId && postTypes && postTypes.length > 0)}
-        isFeedPost={isFeed}
-        likeCount={realtimePost.like_count}
-        commentCount={realtimePost.commentCount ?? 0}
-        content={realtimePost.content ? realtimePost.content : undefined}
-        roomPostContent={(realtimePost as any).room_post_content}
-        image_url={realtimePost.image_url ? realtimePost.image_url : undefined}
-        video_url={realtimePost.video_url ? realtimePost.video_url : undefined}
-        pluginType={(realtimePost as any).pluginType ?? null}
-        pluginData={(realtimePost as any).pluginData ?? null}
-        caption={(realtimePost as any).caption ?? null}
-        type={realtimePost.type}
-        author={realtimePost.author!}
-        createdAt={new Date(realtimePost.created_at).toDateString()}
-        claimIds={realtimePost.productReview?.claims.map((c: any) => c.id.toString()) ?? []}
-        predictionMarket={realtimePost.predictionMarket}
-        expirationDate={realtimePost.expiration_date ?? undefined}
-      />
-    </div>
-  ));
+  const mapper = isRealtime ? mapRealtimePost : mapFeedPost;
+
+  const items = posts.map((realtimePost) => {
+    const mapped = mapper(realtimePost);
+    return (
+      <div
+        key={realtimePost.id.toString()}
+        className={animated ? "scroll-list__item js-scroll-list-item" : ""}
+      >
+        <PostCard
+          {...mapped}
+          currentUserId={currentUserId}
+          {...(isRealtime ? { isRealtimePost: true } : {})}
+          {...(isFeed ? { isFeedPost: true } : {})}
+        />
+      </div>
+    );
+  });
 
   const content = (
     <>

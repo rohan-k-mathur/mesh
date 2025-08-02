@@ -2,6 +2,7 @@ import PostCard from "@/components/cards/PostCard";
 import { fetchUserRealtimePosts } from "@/lib/actions/realtimepost.actions";
 import { fetchRealtimeLikeForCurrentUser } from "@/lib/actions/like.actions";
 import { redirect } from "next/navigation";
+import { mapRealtimePost } from "@/lib/transform/post";
 
 interface Props {
   currentUserId: bigint;
@@ -25,7 +26,7 @@ const RealtimePostsTab = async ({ currentUserId, accountId }: Props) => {
             userId: currentUserId,
           })
         : null;
-      return { post, like };
+      return { post: mapRealtimePost(post), like };
     })
   );
 
@@ -40,19 +41,8 @@ const RealtimePostsTab = async ({ currentUserId, accountId }: Props) => {
               key={post.id.toString()}
               currentUserId={currentUserId}
               currentUserLike={like}
-              id={post.id}
+              {...post}
               isRealtimePost
-              likeCount={post.like_count}
-              commentCount={post.commentCount}
-              content={post.content ? post.content : undefined}
-              image_url={post.image_url ? post.image_url : undefined}
-              video_url={post.video_url ? post.video_url : undefined}
-              pluginType={(post as any).pluginType ?? null}
-              pluginData={(post as any).pluginData ?? null}
-              type={post.type}
-              author={post.author!}
-              createdAt={post.created_at.toDateString()}
-              claimIds={post.productReview?.claims.map((c) => c.id.toString()) ?? []}
             />
           ))}
         </>

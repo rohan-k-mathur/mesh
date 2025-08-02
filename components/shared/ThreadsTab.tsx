@@ -1,6 +1,7 @@
 import { fetchUserThreads } from "@/lib/actions/user.actions";
 import { redirect } from "next/navigation";
 import ThreadCard from "@/components/cards/ThreadCard";
+import { mapFeedPost } from "@/lib/transform/post";
 interface Props {
   currentUserId: bigint;
   accountId: bigint;
@@ -15,21 +16,9 @@ const ThreadsTab = async ({ currentUserId, accountId }: Props) => {
       {result.posts.map((post) => (
         <ThreadCard
           key={post.id.toString()}
-          id={post.id}
+          post={mapFeedPost(post)}
           currentUserId={currentUserId}
-          parentId={post.parent_id}
-          content={post.content}
-          author={{
-            name: post.author.name,
-            image: post.author.image,
-            id: post.author.id,
-          }}
-          createdAt={post.created_at.toString()}
-          comments={post.children}
-          likeCount={post.like_count}
-          commentCount={post.commentCount}
         />
-        
       ))}
     </section>
   );
