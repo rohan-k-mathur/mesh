@@ -1,5 +1,4 @@
 import { prisma } from "../prismaclient";
-import { useSession } from "../useSession";
 import { getUserFromCookies } from "@/lib/serverutils"; // server‑only util
 import { revalidatePath } from "next/cache";
 import { jsonSafe } from "../bigintjson";
@@ -169,6 +168,9 @@ await prisma.$transaction([
 export async function fetchFeedPosts() {
   await archiveExpiredFeedPosts();
 
+  const user = await getUserFromCookies();
+  const currentUserId = user?.userId ? BigInt(user.userId) : null;
+
   const rows = await prisma.feedPost.findMany({
     where: {
       isPublic: true,
@@ -213,7 +215,24 @@ export async function fetchFeedPosts() {
     },
   });
 
-  return rows;          // mapper will handle null‑checks / defaults
+  const postIds = rows.map((r) => r.post_id);
+
+  let userLikes: Record<string, any> = {};
+  if (currentUserId) {
+    const likes = await prisma.like.findMany({
+      where: { user_id: currentUserId, post_id: { in: postIds } },
+    });
+    userLikes = Object.fromEntries(
+      likes.map((l) => [l.post_id.toString(), l])
+    );
+  }
+
+  const rowsWithLike = rows.map((r) => ({
+    ...r,
+    currentUserLike: userLikes[r.post_id.toString()] ?? null,
+  }));
+
+  return rowsWithLike; // mapper will handle null‑checks / defaults
 }
 export async function deleteFeedPost({
   id,
@@ -266,16 +285,3 @@ export async function replicateFeedPost({
   return newPost;
 }
 
-export async function likeFeedPost({ id }: { id: bigint }) {
-  await prisma.feedPost.update({
-    where: { id },
-    data: { like_count: { increment: 1 } },
-  });
-}
-
-export async function unlikeFeedPost({ id }: { id: bigint }) {
-  await prisma.feedPost.update({
-    where: { id },
-    data: { like_count: { decrement: 1 } },
-  });
-}

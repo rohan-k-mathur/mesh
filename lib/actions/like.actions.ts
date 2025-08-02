@@ -77,6 +77,10 @@ export async function likePost({ userId, postId }: likePostParams) {
           },
         },
       }),
+      prisma.feedPost.updateMany({
+        where: { post_id: pid },
+        data: { like_count: { increment: likeChangeAmount } },
+      }),
     ]);
     await generateFriendSuggestions(uid);
   } catch (error: any) {
@@ -124,6 +128,10 @@ export async function unlikePost({ userId, postId }: likePostParams) {
             increment: likeChangeAmount,
           },
         },
+      }),
+      prisma.feedPost.updateMany({
+        where: { post_id: pid },
+        data: { like_count: { increment: likeChangeAmount } },
       }),
     ]);
   } catch (error: any) {
@@ -193,6 +201,10 @@ export async function dislikePost({ userId, postId }: likePostParams) {
             increment: likeChangeAmount,
           },
         },
+      }),
+      prisma.feedPost.updateMany({
+        where: { post_id: pid },
+        data: { like_count: { increment: likeChangeAmount } },
       }),
     ]);
   } catch (error: any) {

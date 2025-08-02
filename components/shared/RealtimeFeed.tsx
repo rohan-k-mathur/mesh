@@ -64,6 +64,7 @@ export default function RealtimeFeed({
         <PostCard
           {...mapped}
           currentUserId={currentUserId}
+          currentUserLike={mapped.currentUserLike}
           {...(isRealtime ? { isRealtimePost: true } : {})}
           {...(isFeed ? { isFeedPost: true } : {})}
         />

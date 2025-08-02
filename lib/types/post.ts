@@ -1,4 +1,5 @@
 import type { Node, Edge } from "@xyflow/react";
+import type { Like, RealtimeLike } from "@prisma/client";
 
 export interface CanvasState {
   nodes: Node[];
@@ -26,6 +27,7 @@ export interface BasePost {
   likeCount: number;
   commentCount: number;
   expirationDate?: string | null;
+  currentUserLike?: Like | RealtimeLike | null;
   //createdAt: Date;
-  createdAt: string;   
+  createdAt: string;
 }

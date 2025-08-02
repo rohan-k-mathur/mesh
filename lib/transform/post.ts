@@ -45,6 +45,7 @@ export const mapFeedPost = (dbRow: any): BasePost => ({
   commentCount: dbRow._count?.children ?? 0,   // instead of row.commentCount
 
   expirationDate: dbRow.expiration_date ?? null,
+  currentUserLike: (dbRow as any).currentUserLike ?? null,
   createdAt: dbRow.created_at
   ? new Date(dbRow.created_at).toISOString()
   : new Date().toISOString(),
