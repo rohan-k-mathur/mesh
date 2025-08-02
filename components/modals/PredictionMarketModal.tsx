@@ -9,11 +9,14 @@ interface Props {
 
 export default function PredictionMarketModal({ onSubmit }: Props) {
   return (
-    <DialogContent className="p-4">
-      <DialogHeader className="dialog-header text-lg mb-4">
+    <DialogContent className="max-w-[40rem] px-8 py-8  bg-slate-700  border-blue">
+    <div className="grid rounded-xl px-4">
+  <DialogHeader className="dialog-header text-lg mb-4 text-white">
         Create Prediction Market
+        <hr></hr>
       </DialogHeader>
       <CreatePredictionPost onSubmit={onSubmit} />
+      </div>
     </DialogContent>
   );
 }

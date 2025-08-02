@@ -47,13 +47,13 @@ const TimerModal = ({
 
   const renderOwned = () => (
     <div>
-      <DialogHeader className="dialog-header text-white text-lg py-4 mt-[-4rem]">
+      <DialogHeader className="dialog-header text-white text-lg py-2 ">
         <b>Set Expiration</b>
       </DialogHeader>
       <hr />
-      <div className="py-4 text-white flex flex-col gap-4">
+      <div className="py-4 text-white flex flex-col ">
         <select
-          className="p-2 bg-gray-800 border border-gray-700"
+          className="px-2 bg-slate-800 rounded-xl py-4"
           value={duration}
           onChange={(e) => setDuration(e.target.value)}
         >
@@ -64,9 +64,8 @@ const TimerModal = ({
         </select>
       </div>
       <hr />
-      <div className="py-4 flex justify-end">
-        <Button
-          variant="outline"
+      <div className="py-4 flex justify-start">
+        <button
           onClick={async () => {
             await updatePostExpiration({
               postId,
@@ -76,10 +75,10 @@ const TimerModal = ({
             });
             closeModal();
           }}
-          className="px-4"
+          className="px-5 py-2 mt-2 savebutton bg-white text-[1.1rem] tracking-wide hover:bg-opacity-90 rounded-xl"
         >
           Save
-        </Button>
+        </button>
       </div>
     </div>
   );
@@ -102,10 +101,12 @@ const TimerModal = ({
 
   return (
     <div>
-      <DialogContent className="max-w-[30rem]">
-        <DialogTitle>Timer</DialogTitle>
-        <div className="grid rounded-md px-4 py-2">
+           <DialogContent className="max-w-[37rem]  bg-slate-700  border-blue">
+        <div className="grid rounded-xl px-4">
+        <DialogTitle hidden>Timer</DialogTitle>
+        <div className="grid">
           {isOwned ? renderOwned() : renderView()}
+        </div>
         </div>
       </DialogContent>
     </div>

@@ -40,7 +40,10 @@ export default function PredictionMarketCard({ post }: Props) {
   const initialMarket = coerce(post.predictionMarket);
 
   const { data: liveMarket, mutate } = useMarket(initialMarket.id, initialMarket);
-  const market = coerce(liveMarket as Market);   // live is defined thanks to fallback
+  const market = coerce((api?.market ?? initialMarket) as Market);
+
+
+  
 
   // const { data: market, mutate } = useMarket(
   //   post.predictionMarket.id,
