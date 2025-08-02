@@ -3,13 +3,19 @@ import { prisma } from "@/lib/prismaclient";
 import { getUserFromCookies } from "@/lib/serverutils";
 import { z } from "zod";
 export const runtime = "nodejs";
-import { CreateMarketArgs } from "@/lib/actions/prediction.actions";
+// import { CreateMarketArgs } from "@/lib/actions/prediction.actions";
+// import { createMarket } from "@/lib/actions/prediction.actions";
+
 import { createMarket } from "@/lib/actions/prediction.actions";
+import type { CreateMarketArgs } from "@/lib/actions/prediction.actions";
+
+
 const schema = z.object({
   question: z.string().min(1),
   closesAt: z.string(),
   b: z.number().optional(),
 });
+
 
 // export async function POST(req: NextRequest) {
 //   const user = await getUserFromCookies();
@@ -49,13 +55,12 @@ export async function POST(req: NextRequest) {
   }
 
   const { question, closesAt, b: liquidity } = parsed.data;
-
   const { postId } = await createMarket({
-    question,
-    closesAt,
-    liquidity,
-  } as CreateMarketArgs);
+        question,
+        closesAt,
+        liquidity: liquidity ?? 100,   // ✅ ALWAYS numeric
+      } satisfies CreateMarketArgs);
 
-  return NextResponse.json({ postId });          // <-- what the client expects
+      return NextResponse.json({ postId }); // keep response shape
 }
 

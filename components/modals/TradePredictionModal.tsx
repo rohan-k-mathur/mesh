@@ -1,5 +1,6 @@
 "use client";
 import { useState, useMemo, useEffect, useCallback } from "react";
+
 import { priceYes, costToBuy } from "@/lib/prediction/lmsr";
 import { estimateShares } from "@/lib/prediction/tradePreview";
 import { Button } from "../ui/button";
@@ -23,8 +24,8 @@ interface Props {
 
 export default function TradePredictionModal({ market, onClose, mutateMarket }: Props) {
   const [side, setSide] = useState<"YES" | "NO">("YES");
-  const [spend, setSpend] = useState(0);
-  const [maxSpend, setMaxSpend] = useState(0);
+  const [spend, setSpend] = useState<number>(10);
+    const [maxSpend, setMaxSpend] = useState(0);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const currentPrice = useMemo(
@@ -34,30 +35,46 @@ export default function TradePredictionModal({ market, onClose, mutateMarket }: 
 
   useEffect(() => {
     fetch("/api/wallet")
-      .then((r) => (r.ok ? r.json() : Promise.reject(r)))
-      .then((d) => setMaxSpend(d.balanceCents ?? 0))
-      .catch(() => setMaxSpend(0));
+
+    .then(async (r) => {
+           if (!r.ok) throw r;
+           const d = await r.json();
+           setMaxSpend(Number.isFinite(d.balanceCents) ? d.balanceCents : 0);
+         })
+         .catch((e) => {
+           console.error("wallet fetch failed", e);
+           setMaxSpend(0);
+         });
   }, []);
 
 
 
+  const safeNum = (n: number | undefined | null) =>
+  Number.isFinite(n) ? n! : 0;
 
 
   const { shares, cost } = useMemo(() => {
-    if (!spend) return { shares: 0, cost: 0 };
+    // if (!spend) return { shares: 0, cost: 0 };
+    if (!Number.isFinite(spend) || spend <= 0)
+  return { shares: 0, cost: 0 };
     try {
       return estimateShares(
         side,
-        spend,
-        market.yesPool,
-        market.noPool,
-        market.b
+         safeNum(spend),
+ safeNum(market.yesPool),
+ safeNum(market.noPool),
+ safeNum(market.b)
       );
     } catch (e) {
       setError("Invalid spend amount");
       return { shares: 0, cost: 0 };
     }
   }, [spend, side, market]);
+
+  useEffect(() => {
+    // ⚠ remove after debugging
+    console.log({ spend, cost, shares, market });
+  }, [spend, cost, shares, market]);
 
   const priceAfter = useMemo(() => {
     const yes = market.yesPool + (side === "YES" ? shares : 0);
@@ -66,13 +83,23 @@ export default function TradePredictionModal({ market, onClose, mutateMarket }: 
   }, [shares, side, market]);
 
   const handleTrade = useCallback(async () => {
-    setPending(true);
-    setError(null);
+    // setPending(true);
+    // setError(null);
+      if (!Number.isFinite(cost) || cost <= 0) {
+          setError("Choose a valid amount");
+          return;
+        }
+        if (!market?.id) {
+          toast.error("Market unavailable, try again in a second");
+          return;
+        }
+        setPending(true);
+        setError(null);
     try {
       const resp = await fetch(`/api/market/${market.id}/trade`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ side, spendCents: cost }),
+        body: JSON.stringify({ side, spendCents: Math.ceil(cost) }),
       });
       if (resp.status !== 200) {
         const data = await resp.json().catch(() => ({}));
@@ -81,8 +108,10 @@ export default function TradePredictionModal({ market, onClose, mutateMarket }: 
       }
       const result = await resp.json();
       const tradedShares = result.shares ?? shares;
+      // const newYes = market.yesPool + (side === "YES" ? tradedShares : 0);
+      // const newNo = market.noPool + (side === "NO" ? tradedShares : 0);
       const newYes = market.yesPool + (side === "YES" ? tradedShares : 0);
-      const newNo = market.noPool + (side === "NO" ? tradedShares : 0);
+         const newNo  = market.noPool + (side === "NO" ? tradedShares : 0);
       if (mutateMarket) {
         mutateMarket((prev: Market) => ({
           ...prev,
@@ -134,27 +163,35 @@ export default function TradePredictionModal({ market, onClose, mutateMarket }: 
       <div className="justify-center items-center mx-auto text-center space-y-2">
         <Slider
           min={0}
-          max={maxSpend}
+
+           max={Math.max(10, maxSpend)} 
           step={10}
           value={[spend]}
-          onValueChange={([v]) => setSpend(v)}
-          className="w-full"
+          onValueChange={([v]) => setSpend(Number.isFinite(v) ? Number(v) : 0)}
+                      className="w-full"
         />
         {typeof error === "string" && (
           <Alert variant="destructive">{error}</Alert>
         )}
         <div className="text-sm text-gray-700" aria-live="polite">
-          Cost: {cost} credits — New balance: {maxSpend - cost}
+          {/* Cost: {cost} credits — New balance: {maxSpend - cost} */}
+          {/* Cost: {Number.isFinite(cost) ? cost : "--"}  */}
+
+          Cost: {spend}
+
+          credits —
+        New balance: {Number.isFinite(cost) ? maxSpend - cost : "--"}
         </div>
         <div className="text-sm text-gray-700" aria-live="polite">
           You receive ≈ {shares.toFixed(2)} shares
         </div>
         <div className="text-sm text-gray-700" aria-live="polite">
-          Market moves to ≈ {(priceAfter * 100).toFixed(1)} % YES
-        </div>
+        Market moves to ≈ {Number.isFinite(priceAfter)
+  ? (priceAfter * 100).toFixed(1)
+  : "--"} % YES        </div>
         <Button
           onClick={handleTrade}
-          disabled={pending || cost === 0 || cost > maxSpend}
+          disabled={pending || cost <= 0 || cost > maxSpend}
           className="w-fit h-full px-6 py-3 bg-white bg-opacity-40 rounded-xl tracking-wide mx-auto likebutton"
         >
           {pending ? <Spinner className="h-4 w-4" /> : "Confirm Trade"}

@@ -12,7 +12,11 @@ interface Props {
 
 export default function PredictionMarketCard({ post }: Props) {
   const { data: market, mutate } = useMarket(post.predictionMarket.id);
-  const price = market ? priceYes(market.yesPool, market.noPool, market.b) : 0.5;
+  const safe = (n:number|undefined|null)=>Number.isFinite(n!) ? n! : 0;
+  const bVal = safe(market?.b);
+  const yVal = safe(market?.yesPool);
+  const nVal = safe(market?.noPool);
+  const price = Number.isFinite(bVal) ? priceYes(yVal, nVal, bVal) : 0.5;
   // const closesAt =
   //   market?.market.closesAt ? market.market.closesAt
   //                           : post.predictionMarket.closesAt;  
@@ -37,9 +41,11 @@ const countdown =
           style={{ width: `${price * 100}%` }}
         />
       </div>
-      <div className="text-xs text-gray-600 ">{Math.round(price * 100)} % YES</div>
-      <div className="items-center justify-center mx-auto ">
-        {state === "OPEN" && (
+      <div className="text-xs text-gray-600 ">
+  {Number.isFinite(price) ? Math.round(price * 100) + " % YES" : "--"}
+</div>
+     <div className="items-center justify-center mx-auto ">
+     {state === "OPEN" && market && (
           <button
             className="likebutton bg-white bg-opacity-20 py-2 px-8 mt-1 mb-3  rounded-xl text-[1.1rem] mx-full items-center justify-center text-center tracking-widest"
             onClick={() => setShowTrade(true)}
@@ -60,6 +66,8 @@ const countdown =
   <span className="text-xs p-4 mt-4">Closes in {countdown}</span>
   )}
       {showTrade && market && (
+        // console.log({b: market.b, yes: market.yesPool, no: market.noPool, credits});
+
         <TradePredictionModal
           market={market}
           onClose={() => setShowTrade(false)}

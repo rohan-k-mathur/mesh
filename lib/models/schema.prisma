@@ -675,14 +675,14 @@ model PredictionMarket {
   resolvesAt DateTime?
   state      PredictionState @default(OPEN)
   outcome    MarketOutcome?
-  b          Float
+  b          Float           @default(100)
   yesPool    Float           @default(0)
   noPool     Float           @default(0)
   creatorId  BigInt
   oracleId   BigInt?
 
   trades         Trade[]
-  notifications  Notification[] @relation("PredictionMarketNotifications")
+  notifications  Notification[]  @relation("PredictionMarketNotifications")
   post           FeedPost        @relation("FeedPostPrediction", fields: [postId], references: [id])
   creator        User            @relation("CreatedPredictionMarkets", fields: [creatorId], references: [id])
   oracle         User?           @relation("OraclePredictionMarkets", fields: [oracleId], references: [id])
@@ -702,9 +702,9 @@ model Trade {
   cost      Int
   createdAt DateTime      @default(now()) @db.Timestamptz(6)
 
-  market PredictionMarket @relation(fields: [marketId], references: [id])
-  user   User             @relation("UserTrades", fields: [userId], references: [id])
-  notifications Notification[] @relation("TradeNotifications")
+  market        PredictionMarket @relation(fields: [marketId], references: [id])
+  user          User             @relation("UserTrades", fields: [userId], references: [id])
+  notifications Notification[]   @relation("TradeNotifications")
 
   @@index([marketId])
   @@index([userId])

@@ -15,8 +15,8 @@ const ratelimit = new Ratelimit({
 });
 
 const schema = z.object({
-  spendCents: z.number().int().positive(),
-  side: z.enum(["YES", "NO"]),
+  side: z.enum(["YES","NO"]),
+  spendCents: z.number().int().positive().max(1_000_000), // optional cap
 });
 
 export async function POST(
@@ -33,6 +33,7 @@ export async function POST(
       { status: 400 },
     );
   }
+  if (!user.userId){return;}
   const { success } = await ratelimit.limit(user.userId.toString());
   if (!success) return new NextResponse("Too Many", { status: 429 });
   const { spendCents, side } = parsed.data;
