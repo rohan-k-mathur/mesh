@@ -7,6 +7,7 @@ import ShareButton from "../buttons/ShareButton";
 import ExpandButton from "../buttons/ExpandButton";
 import TimerButton from "../buttons/TimerButton";
 import ReplicateButton from "../buttons/ReplicateButton";
+import { canRepost } from "@/lib/repostPolicy";
 import ReplicatedPostCard from "./ReplicatedPostCard";
 import ProductReviewCard from "./ProductReviewCard";
 import PortfolioCard from "./PortfolioCard";
@@ -396,13 +397,16 @@ const PostCard = ({
                     commentCount={commentCount}
                   />
                 </>
-                <ReplicateButton
-                  {...(isRealtimePost
-                    ? { realtimePostId: id.toString() }
-                    : isFeedPost
-                    ? { feedPostId: id }
-                    : { postId: id })}
-                />
+                {canRepost(type) && (
+                  <ReplicateButton
+                    type={type}
+                    {...(isRealtimePost
+                      ? { realtimePostId: id.toString() }
+                      : isFeedPost
+                      ? { feedPostId: id }
+                      : { postId: id })}
+                  />
+                )}
                 <ShareButton postId={id} />
         
                   <TimerButton

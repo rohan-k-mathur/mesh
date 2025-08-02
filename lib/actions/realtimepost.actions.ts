@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { getUserFromCookies } from "@/lib/serverutils";
 import { createProductReview } from "./productreview.actions";
 import { createPortfolioPage } from "./portfolio.actions";
+import { canRepost } from "@/lib/repostPolicy";
 
 export interface PortfolioPayload {
   pageUrl: string;   // “/portfolio/abc123”
@@ -622,6 +623,9 @@ export async function replicateRealtimePost({
       where: { id: oid },
     });
     if (!original) throw new Error("Real-time post not found");
+    if (!canRepost(original.type)) {
+      throw new Error("Post type not allowed to be replicated");
+    }
     // const payload = JSON.stringify({ id: oid.toString(), text });
     const payload = JSON.stringify({
          id: oid.toString(),
