@@ -35,14 +35,21 @@ const GalleryNodeForm = ({
   currentImages,
   currentIsPublic,
   isOwned,
+  currentCaption,
 }: Props) => {
   const [imageURLs, setImageURLs] = useState<string[]>(currentImages);
   const isEditing = currentImages.length > 0;
+  const captionDefault = currentCaption ?? "";
+
   const form = useForm({
     resolver: zodResolver(
       isEditing ? GalleryEditValidation : GalleryPostValidation
     ),
-    defaultValues: { images: [] as File[], isPublic: currentIsPublic, caption: currentCaption || "" },
+    defaultValues: {
+      images: [] as File[],
+      isPublic: currentIsPublic,
+      caption: captionDefault,
+    },
   });
 
   const handleImages = (
@@ -62,22 +69,17 @@ const GalleryNodeForm = ({
             reader.readAsDataURL(file);
           })
       )
-    ).then((urls) =>
-      setImageURLs((prev) => [...prev, ...urls])
-    );
+    ).then((urls) => setImageURLs((prev) => [...prev, ...urls]));
   };
 
   return (
     <Form {...form}>
-      <form
-        onSubmit={form.handleSubmit(onSubmit)}
-        className="grid mt-8 mb-8"
-      >
+      <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col">
         <FormField
           control={form.control}
           name="images"
           render={({ field }) => (
-            <FormItem className="flex gap-4 mb-2 text-xl">
+            <FormItem className="flex justify-center mx-auto w-full gap-4 mb-2 mt-6 text-xl">
               {/* <FormLabel className="account-form_image-label text-xl">
                 <div className="flex gap-2 flex-wrap">
                   {imageURLs.map((url, idx) => (
@@ -99,7 +101,7 @@ const GalleryNodeForm = ({
                   type="file"
                   accept="image/*"
                   placeholder="Upload images"
-                  className="account-form_image-input w-min"
+                  className="rounded-xl savebutton hover:bg-opacity-90 p-2 w-full"
                   onChange={(e) => handleImages(e, field.onChange)}
                 />
               </FormControl>
@@ -107,14 +109,15 @@ const GalleryNodeForm = ({
             </FormItem>
           )}
         />
+        <hr className="mt-4"></hr>
         <FormField
           control={form.control}
           name="caption"
           render={({ field }) => (
-            <FormItem className="mb-4">
-              <FormLabel>Caption</FormLabel>
+            <FormItem className="mb-4 mt-4  rounded-xl">
+              <FormLabel hidden>Caption</FormLabel>
               <FormControl>
-                <Input type="text" placeholder="Caption (optional)" {...field} />
+                <Input className="flex searchfield w-full rounded-xl justify-center mx-auto text-[1.1rem]" type="text" placeholder="Caption" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -123,33 +126,48 @@ const GalleryNodeForm = ({
         {isOwned && (
           <FormField
             control={form.control}
-            
             name="isPublic"
             render={({ field }) => (
-              <div className="w-min h-min grid">
-              <FormItem className="flex justify-start  items-start gap-2 mb-4">
-                <FormLabel className=" px-8 flex  text-[1.5rem] text-white ">Public?</FormLabel>
-                <FormControl className="relative h-min  w-min bottom-2 right-[14%]  flex items-start justify-start">
-                  <Input
-                    type="checkbox"
-                    
-                    checked={field.value}
-                    onChange={field.onChange}
-                    className=" "
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-                      <Button type="submit" className="relative bottom-4 left-6 px-0 py-2 rounded-full h-min image-submit-button  ">
-                      Submit
-                    </Button>
-                    </div>
+              <div className="flex flex-col ">
+                <div className="grid justify-center align-center items-center">
+                  <FormItem className=" justify-center items-center align-center">
+                    <FormLabel hidden>Public?</FormLabel>
+                    {/* <p className="relative justify-center align-center items-center flex  text-[1.1rem] tracking-wide text-white ">
+                      Public?
+                    </p> */}
+                    <FormControl className="flex inline-block w-full h-full justify-center align-center items-center gap-3 ">
+                      <div className="flex  inline-block w-full h-full">
+                 
+                        <p className="w-full relative justify-center align-center items-center flex  inline-block  text-[1.4rem] tracking-wide text-white ">
+                          Public?
+                        </p>
+                        <Input
+                      type="checkbox"
+                      checked={field.value}
+                      onChange={field.onChange}
+                      className="justify-center align-center items-center relative w-full bg-white h-fit savebutton"
+                         />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                </div>
 
+                {/* <Button
+                  type="submit"
+                  className="relative bottom-4 left-6 px-0 py-2 rounded-full h-min image-submit-button  "
+                >
+                  Submit
+                </Button> */}
+                 <div className="mt-4 justify-center items-center mx-auto mb-0">
+        <button type="submit" className="bg-white  text-[1.2rem] tracking-wide px-4 py-3 w-full rounded-xl savebutton hover:bg-opacity-90">
+          Save Changes
+        </button>
+      </div>
+              </div>
             )}
-            
           />
         )}
-
       </form>
     </Form>
   );

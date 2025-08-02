@@ -27,7 +27,7 @@ const renderCreate = ({
 }) => {
   return (
     <div>
-      <DialogHeader className="dialog-header text-white text-lg py-4 mt-[-4rem]">
+      <DialogHeader className="dialog-header text-white text-lg py-4  ml-2 ">
         <b> Create Post</b>
       </DialogHeader>
       <hr />
@@ -94,8 +94,9 @@ const ImageNodeModal = ({ id, isOwned, onSubmit, currentImageURL, currentCaption
   const isView = id && !isOwned;
   return (
     <div>
-      <DialogContent className="max-w-[50%] bg-slate-800 border-blue">
-        <div className="mt-12 grid rounded-md px-4 py-2">
+           <DialogContent className="max-w-[57rem]  bg-slate-700  border-blue">
+        <div className="grid rounded-xl px-4">
+
           {isCreate && renderCreate({ onSubmit })}
           {isEdit && renderEdit({ onSubmit, currentImageURL, currentCaption })}
           {isView && renderView(currentImageURL)}

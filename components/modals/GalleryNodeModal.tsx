@@ -30,7 +30,7 @@ const renderCreate = ({
   currentCaption?: string;
 }) => (
   <div >
-    <DialogHeader className="dialog-header text-white text-lg py-4 mt-[-4rem]">
+      <DialogHeader className="dialog-header text-white text-lg py-4  ml-2 ">
       <b>Create Gallery</b>
     </DialogHeader>
     <hr />
@@ -58,7 +58,7 @@ const renderEdit = ({
   currentCaption?: string;
 }) => (
   <div>
-    <DialogHeader className="dialog-header text-white text-lg py-4 mt-[-4rem]">
+      <DialogHeader className="dialog-header text-white text-lg py-4 mt-[-4rem] ml-2 ">
       <b>Edit Gallery</b>
     </DialogHeader>
     <hr />
@@ -98,8 +98,8 @@ const GalleryNodeModal = ({ id, isOwned, isPublic, onSubmit, currentImages, curr
   const isView = id && !isOwned && !isPublic;
   return (
     <div>
-      <DialogContent className="max-w-[57rem] w-fit bg-slate-800 border-[2px] border-blue">
-        <div className="grid rounded-md px-4 py-8 mt-10">
+      <DialogContent className="max-w-[57rem]  bg-slate-700  border-blue">
+        <div className="grid rounded-xl px-4">
           {isCreate && renderCreate({ onSubmit, currentIsPublic: isPublic, currentCaption })}
           {isEdit &&
             renderEdit({
