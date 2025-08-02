@@ -599,7 +599,7 @@ const CreateFeedPost = ({ roomId = "global" }: Props) => {
       >
         <Button
           variant={"outline"}
-          className="items-start justify-start  h-full w-full rounded-xl border-[1px] border-rose-300 border-opacity-80 hover:outline-2 hover:outline-double hover:outline-emerald-400"
+          className="items-start justify-start  h-full w-full rounded-xl border-[1px] border-rose-300 border-opacity-80 hover:outline-[1px] hover:outline-solid hover:outline-rose-400"
         >
           <Image
             src="/assets/create-new.svg"

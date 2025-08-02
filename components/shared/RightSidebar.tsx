@@ -29,12 +29,16 @@ function RightSidebar() {
   const [rooms, setRooms] = useState<RandomRoom[]>([]);
   const router = useRouter();
   const pathname = usePathname();
-  const loungeMatch = pathname.match(/^\/lounges\/([^/]+)/);
+  const loungeMatch = pathname?.match(/^\/lounges\/([^/]+)/);
   const loungeId = loungeMatch ? loungeMatch[1] : null;
 function gotomessages()
 {
   router.push("/profile/messages");
 
+}
+function gotosettings()
+{
+  router.push("/profile/settings");
 }
 function newlounge()
 {
@@ -164,6 +168,7 @@ function newlounge()
        <Button
          className="border-[1px] border-transparent likebutton leftsidebar_link leftsidebar-item items-start justify-start h-fit  rounded-xl "
          variant={"outline"}
+         onClick={gotosettings}
          >
            <Image
              src="/assets/settings.svg"

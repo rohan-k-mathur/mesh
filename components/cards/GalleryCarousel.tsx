@@ -80,7 +80,7 @@ const GalleryCarousel = ({ urls, caption }: Props) => {
     fill                     // let the image cover the container
     src={urls[currentIndex]}
     alt={`img-${currentIndex}`}
-    className="object-contain pt-2"
+    className="object-contain pt-3"
     sizes="500px"
     priority                // first image pre-loads, optional
     onLoad={() => setLoaded(true)}
