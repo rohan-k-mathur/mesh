@@ -3,10 +3,12 @@
 import { replicatePost } from "@/lib/actions/thread.actions";
 import { replicateFeedPost } from "@/lib/actions/feed.client";
 import { replicateRealtimePost } from "@/lib/actions/realtimepost.actions";
+import { canRepost } from "@/lib/repostPolicy";
 import { useAuth } from "@/lib/AuthContext";
 import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
 import { useState } from "react";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
@@ -22,9 +24,10 @@ interface Props {
   postId?: bigint;
   realtimePostId?: string;
   feedPostId?: bigint;
+  type?: string;
 }
 
-const ReplicateButton = ({ postId, realtimePostId, feedPostId }: Props) => {
+const ReplicateButton = ({ postId, realtimePostId, feedPostId, type }: Props) => {
   const user = useAuth();
   const router = useRouter();
   const pathname = usePathname();
@@ -41,6 +44,10 @@ const ReplicateButton = ({ postId, realtimePostId, feedPostId }: Props) => {
       return;
     }
     if (!userObjectId) {
+      return;
+    }
+    if (!canRepost(type)) {
+      toast.error("Only text posts can be replicated.");
       return;
     }
     if (realtimePostId) {
