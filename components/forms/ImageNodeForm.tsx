@@ -96,10 +96,10 @@ const ImageNodeForm = ({ onSubmit, currentImageURL, currentCaption }: Props) => 
           control={form.control}
           name="caption"
           render={({ field }) => (
-            <FormItem className="mb-4 mt-6 searchfield rounded-xl">
+            <FormItem className="mb-4 mt-6  rounded-xl">
               <FormLabel hidden>Caption</FormLabel>
               <FormControl>
-              <Input className="flex modalfield w-full justify-center mx-auto text-[1.1rem]" type="text" placeholder="Caption" {...field} />
+              <Input className="flex textinputfield w-full justify-center mx-auto text-[1.1rem]" type="text" placeholder="Caption" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

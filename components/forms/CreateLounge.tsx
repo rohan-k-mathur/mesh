@@ -73,6 +73,8 @@ function CreateLounge() {
 
   return (
     <div className="justify-center items-center">
+            <hr className="h-1"></hr>
+
       <Form {...form}>
         <form
           onSubmit={form.handleSubmit(onSubmit)}
@@ -82,8 +84,8 @@ function CreateLounge() {
             control={form.control}
             name="roomIcon"
             render={({ field }) => (
-              <FormItem className="flex items-center mx-auto justify-center w-full gap-4 mt-4 ">
-                <FormLabel className="rounded_icon_container border-black border-[1px]  rounded-lg h-[4rem] w-[4rem]">
+              <FormItem className="flex flex-col items-center mx-auto justify-center w-full gap-4 mt-4 ">
+                <FormLabel className=" rounded-full bg-white p-4 items-center align-center ">
                   {imageURL != "" ? (
                     <Image
                       src={imageURL}
@@ -104,12 +106,13 @@ function CreateLounge() {
                     />
                   )}
                 </FormLabel>
-                <FormControl className=" items-center justify-center  grid flex flex-col w-[50%] text-base-semibold text-gray-200">
+                <FormControl className=" items-center justify-center border-none grid flex flex-col w-[50%] text-base-semibold text-gray-200">
                   <Input
+                  hidden
                     type="file"
                     accept="image/*"
                     placeholder="Upload a photo"
-                    className="account-form_image-input "
+                    className=" rounded-full savebutton hover:bg-opacity-90 p-2 w-full"
                     onChange={(e) => handleImage(e, field.onChange)}
                   />
                 </FormControl>
@@ -122,12 +125,12 @@ function CreateLounge() {
             name="roomName"
             render={({ field }) => (
               <FormItem className="flex flex-col w-full  mt-6 ">
-                <FormLabel className="text-[1rem]">Name</FormLabel>
-                <FormControl className="border-2 border-slate-500  bg-white text-black hover:border-black focus:border-black">
+                <FormLabel className="text-[1.1rem] text-center ">Name</FormLabel>
+                <FormControl className=" bg-white text-black ">
                   <Input
-                    type="text"
-                    className="border border-dark-4 text-dark-1  w-full no-focus"
-                    placeholder="Enter lounge name"
+                  className="flex modalfield  bg-white  py-4 px-4 rounded-full w-full justify-center mx-auto " 
+                  type="text" 
+                  placeholder="Enter lounge name"
                     {...field}
                   />
                 </FormControl>
@@ -140,16 +143,17 @@ function CreateLounge() {
             name="isPublic"
             render={({ field }) => (
               <FormItem className="flex flex-col   mt-6 ">
-                <FormLabel className="text-[1rem]">Visibility</FormLabel>
+                <FormLabel className="text-[1.1rem] text-center">Visibility</FormLabel>
                 <FormControl>
                   <Select
                     onValueChange={(v) => field.onChange(v === "public")}
                     value={field.value ? "public" : "private"}
+                    
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="savebutton  rounded-full">
                       <SelectValue placeholder="Select visibility" />
                     </SelectTrigger>
-                    <SelectContent className="max-h-[8rem] border-blue rounded-xl">
+                    <SelectContent className="max-h-[8rem] border-blue   rounded-xl">
                       <SelectItem value="public">Public</SelectItem>
                       <SelectItem value="private">Invite Only</SelectItem>
                     </SelectContent>
@@ -159,12 +163,12 @@ function CreateLounge() {
               </FormItem>
             )}
           />
-          <Button
+          <button
             type="submit"
-            className="likebutton h-fit items-center text-center mx-auto pl-8 pr-4  mt-10 py-4 rounded-full  tracking-[1.2rem] w-fit justify-center text-[1.15rem] bg-transparent outline-blue hover:bg-transparent  "
+            className="likebutton bg-white bg-opacity-80 h-fit items-center text-center mx-auto py-2 px-4 mt-8 rounded-full tracking-wide w-fit justify-center text-[1.15rem]  outline-blue  "
           >
            <p> Create </p>
-            </Button>
+            </button>
         </form>
       </Form>
     </div>
