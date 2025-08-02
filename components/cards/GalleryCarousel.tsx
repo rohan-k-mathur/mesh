@@ -45,13 +45,38 @@ const GalleryCarousel = ({ urls, caption }: Props) => {
   // };
 
   if (urls.length === 0) return null;
-  const distance = 500;             // px — tune to your design
+//   const distance = 500;             // px — tune to your design
 
-const slideVariants = {
-  enter:  (dir: number) => ({ x:  dir > 0 ?  distance : -distance, opacity: 0 }),
-  center:              { x: 0,   opacity: 1 },
-  exit:   (dir: number) => ({ x:  dir > 0 ? -distance :  distance, opacity: 0 })
-};
+// const slideVariants = {
+//   enter:  (dir: number) => ({ x:  dir > 0 ?  distance : -distance, opacity: 0 }),
+//   center:              { x: 0,   opacity: 1 },
+//   exit:   (dir: number) => ({ x:  dir > 0 ? -distance :  distance, opacity: 0 })
+// };
+ const radius      = 350;    // 👈 depth “radius” of the cylinder
+ const angle       = 60;     // 👈 how far each neighbour swings away
+ const slideVariants = {
+   enter:  (dir: number) => ({
+     rotateY: dir > 0 ?  angle   : -angle,
+     x:       dir > 0 ?  radius  : -radius,
+     z:       -radius,                 // push into screen
+     opacity: 0.1,
+     scale:   0.5
+   }),
+   center: {
+     rotateY: 0,
+     x:       0,
+     z:       0,
+     opacity: 1,
+     scale:   1
+   },
+   exit:   (dir: number) => ({
+     rotateY: dir > 0 ? -angle   :  angle,
+     x:       dir > 0 ? -radius  :  radius,
+     z:       -radius,
+     opacity: 0.25,
+     scale:   0.85
+   })
+ };
 
   return (
     <div className="flex flex-col p-1 w-fit border-[1px] border-sky-200 border-opacity-50 
@@ -69,7 +94,15 @@ const slideVariants = {
                      focus-visible:ring-2 ring-offset-2 ring-indigo-400"
         >
      
-<div className="relative w-[700px] h-[25rem] overflow-hidden">
+{/* <div className="relative w-[700px] h-[25rem] overflow-hidden"> */}
+ <div
+   className="relative w-[700px] h-[25rem] overflow-hidden"
+   style={{ perspective: 900 }}   // 👈 distance (px) of the viewer
+ >
+{/* <div className="pointer-events-none absolute inset-0 bg-gradient-to-b
+                from-black/0 via-black/10 to-black/20 z-10" /> */}
+
+
   <AnimatePresence initial={false} custom={direction} mode="wait">
     <motion.div
       key={currentIndex}           // ← causes re‑mount on index change
@@ -78,9 +111,12 @@ const slideVariants = {
       initial="enter"
       animate="center"
       exit="exit"
+         transformTemplate={(_, transform) =>
+             `perspective(1000px) ${transform}`   // ⬅️ keep perspective locked
+           }
       transition={{
-        x:       { type: "spring", stiffness: 300, damping: 30 },
-        opacity: { duration: 0.25 }
+        x:       { type: "tween" },
+        opacity: { duration: 0.3 }
       }}
       className="absolute inset-0 flex items-center justify-center"
     >
@@ -107,14 +143,14 @@ const slideVariants = {
 
       {urls.length > 0 && (
         <div className="pointer-events-none mt-4 justify-center items-center   flex flex-1 w-full relative gap-4  h-full  ">
-          <button className=" pointer-events-auto bg-white bg-opacity-20 border-none carouselbutton rounded-xl
-          px-[10%] py-2  w-auto max-h-[70%] min-h-[20%] h-auto justify-center align-center items-center    " onClick={handlePrev}>          
+          <button className=" pointer-events-auto bg-white/20 hover:bg-white/30 backdrop-blur-sm transition-colors border-none carouselbutton rounded-xl
+          px-[10%] py-1  w-auto max-h-[70%] min-h-[20%] h-auto justify-center align-center items-center    " onClick={handlePrev}>          
                         <p className="justify-start  text-[1.2rem]">{"<"}</p>
 
            
           </button>
           <button className="pointer-events-auto bg-white bg-opacity-20 border-none carouselbutton rounded-xl
-           px-[10%] py-2  w-auto  max-h-[70%] min-h-[20%] h-auto justify-center align-center items-center  " onClick={handleNext}>
+           px-[10%] py-1  w-auto  max-h-[70%] min-h-[20%] h-auto justify-center align-center items-center  " onClick={handleNext}>
                                 <p className="justify-start   text-[1.2rem]">{">"}</p>
 
            

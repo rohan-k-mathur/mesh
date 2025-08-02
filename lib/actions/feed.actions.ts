@@ -189,7 +189,9 @@ export async function fetchFeedPosts() {
       video_url: true,
       caption: true,
       like_count: true,
-      commentCount: true,
+      // commentCount: true,
+      _count: { select: { children: true } },   // children = replies
+
       expiration_date: true,
       created_at: true,
 
