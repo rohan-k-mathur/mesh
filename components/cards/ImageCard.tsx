@@ -24,11 +24,27 @@ export default function ImageCard({ id, imageurl, caption }: Props) {
         {/*  wrapper ensures the whole card is clickable  */}
         <button
           type="button"
-          className="flex justify-center items-center w-fit px-24 focus:outline-none
+          className="flex justify-center items-center w-fit  focus:outline-none
                      focus-visible:ring-2 ring-offset-2 ring-indigo-400"
         >
+<div className="relative w-[700px] h-[25rem] ">
+  <Image
+    fill                     // let the image cover the container
+    src={imageurl}
+    alt="posted image"
+    className="object-contain pt-2"
+    sizes="500px"
+    priority                // first image pre-loads, optional
+    onLoad={() => setLoaded(true)}
+  />
+  {!loaded && (
+    <Skeleton className="absolute inset-0" />      
+  )}
+</div>
+
+
           {/*  skeleton while the <img> is downloading  */}
-          {!loaded && (
+          {/* {!loaded && (
             <Skeleton className="img-feed-frame mt-4 mb-4 w-full h-[300px]" />
           )}
 
@@ -41,7 +57,7 @@ export default function ImageCard({ id, imageurl, caption }: Props) {
               layout="responsive"
             onLoad={() => setLoaded(true)}
             className="img-feed-frame rounded-sm mt-2 mb-2"
-          />
+          /> */}
         </button>
       </DialogTrigger>
 

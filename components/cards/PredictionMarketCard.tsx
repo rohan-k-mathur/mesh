@@ -66,7 +66,7 @@ export default function PredictionMarketCard({ post }: Props) {
   const mId = market?.id ?? post.predictionMarket.id;
 
   return (
-    <div className="border-[1px] border-white w-[600px] bg-white bg-opacity-10
+    <div className="border-[1px] border-sky-200 border-opacity-30  w-[700px] bg-white bg-opacity-10
      justify-center items-center mx-auto rounded-xl p-6 space-y-3 shadow-md">
       <h3 className=" text-[1.2rem] tracking-wide">{post.predictionMarket?.question}</h3>
       <div className="h-3 w-full rounded bg-gray-200 relative items-center justify-center mx-auto  overflow-hidden">

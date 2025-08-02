@@ -201,8 +201,9 @@ const PostCard = ({
             )}
             {type === "GALLERY" && content && (
               // <div className="ml-[7rem] w-[500px] justify-center items-center">
+              <div className="grid justify-center items-center align-center w-full ">
               <GalleryCarousel urls={JSON.parse(content)} caption={caption || undefined} />
-              // </div>
+             </div>
             )}
             {type === "LIVECHAT" &&
               content &&

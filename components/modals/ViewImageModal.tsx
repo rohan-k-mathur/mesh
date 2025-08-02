@@ -37,7 +37,7 @@ interface Props {
           <b> Create Post</b>
         </DialogHeader>
         <hr />
-        <ImageNodeForm onSubmit={onSubmit!} currentImageURL={""} />
+        <ImageNodeForm onSubmit={onSubmit!} currentImageURL={""} currentCaption="" />
       </div>
     );
   };
@@ -55,7 +55,7 @@ interface Props {
           <b> Edit Post</b>
         </DialogHeader>
         <hr />
-        <ImageNodeForm onSubmit={onSubmit!} currentImageURL={currentImageURL} />
+        <ImageNodeForm onSubmit={onSubmit!} currentImageURL={currentImageURL} currentCaption=""/>
       </div>
     );
   };
@@ -96,7 +96,7 @@ interface Props {
 export default function ViewImageModal({ open, onOpenChange, imageUrl }: Props) {
   return (
     <AnimatedDialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="h-full w-fit justify-center items-center flex py-0 px-4 flex-col 
+      <DialogContent className=" w-fit justify-center items-center flex py-0 px-4 flex-col min-w-[750px] h-min-[27rem]
       max-w-[60%] max-h-[90%] h-full bg-slate-400 bg-opacity-100  border-blue">
         {/* close button (optional) */}
         <DialogClose className="absolute top-4 right-4 text-white text-2xl">
