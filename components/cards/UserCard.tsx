@@ -4,7 +4,7 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import FollowButton from "@/components/buttons/FollowButton";
+import SearchFollowButton from "../buttons/SearchFollowButton";
 import { areFriends, isFollowing } from "@/lib/actions/follow.actions";
 import { useAuth } from "@/lib/AuthContext";
 
@@ -35,37 +35,35 @@ const UserCard = ({ userId, name, username, imgUrl, personType }: Props) => {
   }, [user, userId]);
 
   return (
-    <div>
-      <article className="user-card">
+    <div className="grid justify-center items-center align-center rounded-none
+     border-white border-[1px] w-1/4  p-4 bg-white bg-opacity-20 gap-4">
+      <article className="flex ">
         <div className="user-card_avatar">
           <Image
-            src={imgUrl || "/assets/profile.svg"}
+            src={imgUrl || "/assets/user.svg"}
             alt="logo"
             width={48}
             height={48}
-            className="rounded-full"
+            className="rounded-full border-white border-[1px] p-1"
           />
-          <div className="flex-1 text-ellipsis">
-            <h4 className="text-base-semibold text-light-1">{name}</h4>
+          <div className="flex flex-col text-[1rem]">
+            <p className="flex inline-block text-base-semibold text-black">{name}</p>
             <p className="text-small-medium text-gray-1">@{username}</p>
           </div>
+        
         </div>
-        <div className="flex gap-2">
-          <Button
-            className="user-card_btn"
-            onClick={() => router.push(`/profile/${userId}`)}
-          >
-            View
-          </Button>
-          {user?.userId && user.userId !== userId && (
-            <FollowButton
+   
+      </article>
+      {user?.userId && user.userId !== userId && (
+            <div className="grid w-full justify-center items-center">
+            <SearchFollowButton
+            
               targetUserId={userId}
               initialIsFollowing={isFollowingState}
               initialIsFriend={isFriendState}
             />
+            </div>
           )}
-        </div>
-      </article>
     </div>
   );
 };

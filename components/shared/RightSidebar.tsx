@@ -40,6 +40,10 @@ function gotosettings()
 {
   router.push("/profile/settings");
 }
+function gotosearch()
+{
+  router.push("/search");
+}
 function newlounge()
 {
   router.push("/create-lounge");
@@ -125,6 +129,7 @@ function newlounge()
          <Button
          className="border-[1px] border-transparent likebutton leftsidebar_link leftsidebar-item items-start justify-start h-fit  rounded-xl "
          variant={"outline"}
+         onClick={gotosearch}
          >
            <Image
              src="/assets/search-helsinki.svg"

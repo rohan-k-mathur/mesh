@@ -22,9 +22,10 @@ async function Page({
 
   return (
     <section>
-      <h1 className="head-text mb-10">Search</h1>
+      <h1 className="head-text mb-2 mt-[-2rem]">Search</h1>
+      <hr className="mb-2"></hr>
       <Searchbar routeType="search" />
-      <div className="mt-14 flex flex-col gap-9">
+      <div className="mt-8 justify-start items-start flex flex-wrap ">
         {result.users.length === 0 ? (
           <p className="no-result">No Users</p>
         ) : (
