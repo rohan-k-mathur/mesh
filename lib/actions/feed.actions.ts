@@ -35,9 +35,26 @@ export async function createFeedPost(args: CreateFeedPostArgs): Promise<{ postId
   return jsonSafe({ postId: post.id });
 }
 
+export async function archiveExpiredFeedPosts() {
+  const now = new Date();
+  const expired = await prisma.feedPost.findMany({
+    where: { expiration_date: { lte: now } },
+  });
+  if (expired.length === 0) return;
+  const ids = expired.map((p) => p.id);
+  await prisma.feedPost.deleteMany({ where: { id: { in: ids } } });
+}
+
 export async function fetchFeedPosts() {
+  await archiveExpiredFeedPosts();
   const posts = await prisma.feedPost.findMany({
-    where: { isPublic: true },
+    where: {
+      isPublic: true,
+      OR: [
+        { expiration_date: null },
+        { expiration_date: { gt: new Date() } },
+      ],
+    },
     orderBy: { created_at: "desc" },
     include: {
       predictionMarket: {

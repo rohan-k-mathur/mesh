@@ -71,6 +71,7 @@ export default function RealtimeFeed({
         createdAt={new Date(realtimePost.created_at).toDateString()}
         claimIds={realtimePost.productReview?.claims.map((c: any) => c.id.toString()) ?? []}
         predictionMarket={realtimePost.predictionMarket}
+        expirationDate={realtimePost.expiration_date ?? undefined}
       />
     </div>
   ));
