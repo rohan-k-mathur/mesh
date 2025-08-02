@@ -30,7 +30,7 @@ const TextNodeForm = ({ onSubmit, currentText }: Props) => {
         <textarea
           {...form.register("postContent")}
           name="postContent"
-          className="dialog-text-area"
+          className="dialog-text-area rounded-xl"
           placeholder="Enter Text"
           defaultValue={currentText}
           rows={12}
@@ -39,9 +39,9 @@ const TextNodeForm = ({ onSubmit, currentText }: Props) => {
       </div>
       <hr />
       <div className="py-4 mb-4">
-        <Button type="submit" className="form-submit-button" size={"lg"}>
+        <button type="submit" className="bg-white  text-[1.2rem] tracking-wide p-3 rounded-xl savebutton">
           Save Changes
-        </Button>
+        </button>
       </div>
     </form>
   );

@@ -1,10 +1,17 @@
 import { prisma } from "../prismaclient";
 import { useSession } from "../useSession";
-import { getUserFromCookies } from "@/lib/serverutils";  // server‑only util
+import { getUserFromCookies } from "@/lib/serverutils"; // server‑only util
 import { revalidatePath } from "next/cache";
 import { jsonSafe } from "../bigintjson";
 export interface CreateFeedPostArgs {
-  type: "TEXT" | "IMAGE" | "VIDEO" | "GALLERY" | "PREDICTION" | "PRODUCT_REVIEW" | "LIVECHAT";
+  type:
+    | "TEXT"
+    | "IMAGE"
+    | "VIDEO"
+    | "GALLERY"
+    | "PREDICTION"
+    | "PRODUCT_REVIEW"
+    | "LIVECHAT";
   content?: string;
   imageUrl?: string;
   videoUrl?: string;
@@ -12,11 +19,13 @@ export interface CreateFeedPostArgs {
   isPublic?: boolean;
 }
 
-export async function createFeedPost(args: CreateFeedPostArgs): Promise<{ postId: bigint }> {
-  const user = await getUserFromCookies();          // ← **server** side
+export async function createFeedPost(
+  args: CreateFeedPostArgs
+): Promise<{ postId: bigint }> {
+  const user = await getUserFromCookies(); // ← **server** side
   if (!user) throw new Error("Not authenticated");
 
- // const user = await getUserFromCookies();
+  // const user = await getUserFromCookies();
 
   const { type, isPublic = true, ...rest } = args;
 
@@ -35,14 +44,70 @@ export async function createFeedPost(args: CreateFeedPostArgs): Promise<{ postId
   return jsonSafe({ postId: post.id });
 }
 
-export async function archiveExpiredFeedPosts() {
-  const now = new Date();
-  const expired = await prisma.feedPost.findMany({
-    where: { expiration_date: { lte: now } },
-  });
-  if (expired.length === 0) return;
-  const ids = expired.map((p) => p.id);
-  await prisma.feedPost.deleteMany({ where: { id: { in: ids } } });
+// export async function archiveExpiredFeedPosts() {
+//   const now = new Date();
+//   const expired = await prisma.feedPost.findMany({
+//     where: { expiration_date: { lte: now } },
+//   });
+//   if (expired.length === 0) return;
+//   const ids = expired.map((p) => p.id);
+//   await prisma.feedPost.deleteMany({ where: { id: { in: ids } } });
+// }
+// export async function archiveExpiredFeedPosts() {
+//   const now = new Date();
+
+//   const expired = await prisma.feedPost.findMany({
+//     where: { expiration_date: { lte: now } },      // ➜ error #1
+//   });
+//   if (expired.length === 0) return;
+
+//   const ids = expired.map((p) => p.id);
+
+//   await prisma.$transaction([
+//     prisma.predictionMarket.deleteMany({ where: { postId: { in: ids } } }),
+//     prisma.feedPost.deleteMany({ where: { id: { in: ids } } }),
+//   ]);
+// }
+// export async function archiveExpiredFeedPosts() {
+//   const now = new Date();                        // 1️⃣ declare
+
+//   // 2️⃣ find every expired post (snake-case field)
+//   const expired = await prisma.feedPost.findMany({
+//     where: {
+//       expiration_date: { lte: now },
+//     },
+//     select: { id: true },
+//   });
+//   if (expired.length === 0) return;
+
+//   const ids = expired.map(p => p.id);
+
+//   // 3️⃣ delete in the right order inside one transaction
+//   await prisma.$transaction([
+//     prisma.predictionMarket.deleteMany({
+//       where: { postId: { in: ids } },
+//     }),
+//     prisma.feedPost.deleteMany({
+//       where: { id: { in: ids } },
+//     }),
+//   ]);
+// }
+ // ❶ IDs of all expired posts
+ export async function archiveExpiredFeedPosts() {
+  const now = new Date();   // ← bring “now” back
+ const ids = await prisma.feedPost.findMany({
+  where: { expiration_date: { lte: now } },
+  select: { id: true },
+}).then(rows => rows.map(r => r.id));
+
+if (ids.length === 0) return;
+
+await prisma.$transaction([
+  // delete trades first → then markets → then posts
+  prisma.trade.deleteMany({ where: { market: { postId: { in: ids } } } }),
+  prisma.predictionMarket.deleteMany({ where: { postId: { in: ids } } }),
+  prisma.feedPost.deleteMany({ where: { id: { in: ids } } }),
+]);
 }
 
 export async function fetchFeedPosts() {
@@ -50,10 +115,7 @@ export async function fetchFeedPosts() {
   const posts = await prisma.feedPost.findMany({
     where: {
       isPublic: true,
-      OR: [
-        { expiration_date: null },
-        { expiration_date: { gt: new Date() } },
-      ],
+      OR: [{ expiration_date: null }, { expiration_date: { gt: new Date() } }],
     },
     orderBy: { created_at: "desc" },
     include: {
@@ -75,7 +137,13 @@ export async function fetchFeedPosts() {
   return posts.map((p) => ({ ...p }));
 }
 
-export async function deleteFeedPost({ id, path }: { id: bigint; path?: string }) {
+export async function deleteFeedPost({
+  id,
+  path,
+}: {
+  id: bigint;
+  path?: string;
+}) {
   const user = await getUserFromCookies();
   if (!user) return;
   const post = await prisma.feedPost.findUnique({ where: { id } });
@@ -101,10 +169,10 @@ export async function replicateFeedPost({
   if (!original) throw new Error("Feed post not found");
   // const payload = JSON.stringify({ id: oid.toString(), text });
   const payload = JSON.stringify({
-       id: oid.toString(),
-       text,
-       source: "feed",
-     })
+    id: oid.toString(),
+    text,
+    source: "feed",
+  });
   const newPost = await prisma.feedPost.create({
     data: {
       content: `REPLICATE:${payload}`,

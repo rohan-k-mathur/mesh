@@ -19,23 +19,23 @@ export async function GET(
   /* ──────────────────── 2 • Fetch minimal market snapshot ────────────────── */
   const market = await prisma.predictionMarket.findUnique({
     where: { id: params.id },
-    select: {
-      // public fields
-      id: true,
-      question: true,
-      closesAt: true,
-      state: true,
-      outcome: true,
+    // select: {
+    //   // public fields
+    //   id: true,
+    //   question: true,
+    //   closesAt: true,
+    //   state: true,
+    //   outcome: true,
 
-      // liquidity & pricing
-      yesPool: true,
-      noPool: true,
-      b: true,
+    //   // liquidity & pricing
+    //   yesPool: true,
+    //   noPool: true,
+    //   b: true,
 
-      // needed only to compute canResolve (not returned)
-      creatorId: true,
-      oracleId: true,
-    },
+    //   // needed only to compute canResolve (not returned)
+    //   creatorId: true,
+    //   oracleId: true,
+    // },
   });
 
   if (!market) {

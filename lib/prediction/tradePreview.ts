@@ -10,6 +10,7 @@ export function estimateShares(
   if (spend <= 0) return { shares: 0, cost: 0 };
   let lo = 0;
   let hi = 1;
+  
   while (costToBuy(side, hi, yes, no, b) < spend) {
     hi *= 2;
   }
