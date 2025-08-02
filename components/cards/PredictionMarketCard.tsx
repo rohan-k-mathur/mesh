@@ -11,23 +11,22 @@ interface Props {
 }
 
 export default function PredictionMarketCard({ post }: Props) {
-  const { data: market, mutate } = useMarket(post.predictionMarket.id);
-  const safe = (n:number|undefined|null)=>Number.isFinite(n!) ? n! : 0;
+  const { data: marketData, mutate } = useMarket(post.predictionMarket.id);
+  const market = marketData?.market;
+  const safe = (n: number | undefined | null) =>
+    Number.isFinite(n!) ? n! : 0;
   const bVal = safe(market?.b);
   const yVal = safe(market?.yesPool);
   const nVal = safe(market?.noPool);
-  const price = Number.isFinite(bVal) ? priceYes(yVal, nVal, bVal) : 0.5;
-  // const closesAt =
-  //   market?.market.closesAt ? market.market.closesAt
-  //                           : post.predictionMarket.closesAt;  
+  const price = bVal > 0 ? priceYes(yVal, nVal, bVal) : 0.5;
   const closesAt = market?.closesAt ?? post.predictionMarket?.closesAt;
 
 const countdown =
   closesAt ? timeUntil(closesAt) : '--';
 
-    const state = market?.state ?? post.predictionMarket.state;
+  const state = market?.state ?? post.predictionMarket.state;
   const outcome = market?.outcome ?? post.predictionMarket.outcome;
-  const canResolve = market?.canResolve ?? false;
+  const canResolve = marketData?.canResolve ?? false;
   const [showTrade, setShowTrade] = useState(false);
   const [showResolve, setShowResolve] = useState(false);
 
