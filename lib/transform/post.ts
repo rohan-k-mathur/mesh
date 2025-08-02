@@ -43,6 +43,7 @@ export const mapFeedPost = (dbRow: any): BasePost => ({
   likeCount: dbRow.like_count ?? dbRow.likeCount ?? 0,
   commentCount: dbRow.commentCount ?? 0,
   expirationDate: dbRow.expiration_date ?? null,
+  currentUserLike: (dbRow as any).currentUserLike ?? null,
   createdAt: dbRow.created_at
   ? new Date(dbRow.created_at).toISOString()
   : new Date().toISOString(),

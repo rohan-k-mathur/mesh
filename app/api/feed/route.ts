@@ -1,28 +1,10 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prismaclient";
 import { serializeBigInt } from "@/lib/utils";
-import { createFeedPost } from "@/lib/actions/feed.actions";
+import { createFeedPost, fetchFeedPosts } from "@/lib/actions/feed.actions";
 
 
 export async function GET() {
-  const posts = await prisma.feedPost.findMany({
-    where: { isPublic: true },
-    orderBy: { created_at: "desc" },
-    include: {
-      predictionMarket: {
-        select: {
-          id: true,
-          question: true,
-          yesPool: true,
-          noPool: true,
-          b: true,
-          state: true,
-          outcome: true,
-          closesAt: true,
-        },
-      },
-    },
-  });
+  const posts = await fetchFeedPosts();
   return NextResponse.json(serializeBigInt(posts));
 }
 
