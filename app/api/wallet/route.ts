@@ -24,6 +24,10 @@ export async function GET(_req: NextRequest) {
         lockedCents: 0,
       },
     }));
-
-  return NextResponse.json(serializeBigInt(data)); // BigInt → string
+      // Cast BigInt → number *before* sending JSON
+      return NextResponse.json({
+        balanceCents: Number(data.balanceCents),
+        lockedCents : Number(data.lockedCents),
+      });
+  // return NextResponse.json(serializeBigInt(data)); // BigInt → string
 }

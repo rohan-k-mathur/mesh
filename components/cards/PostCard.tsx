@@ -404,13 +404,13 @@ const PostCard = ({
                     : { postId: id })}
                 />
                 <ShareButton postId={id} />
-                {!isFeedPost && (
+        
                   <TimerButton
                     postId={id}
                     isOwned={currentUserId === author.id}
                     expirationDate={expirationDate ?? undefined}
                   />
-                )}
+         
                 {currentUserId === author.id && (
                   <DeleteCardButton
                     {...(isRealtimePost
