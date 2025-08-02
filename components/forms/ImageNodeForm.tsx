@@ -82,7 +82,7 @@ const ImageNodeForm = ({ onSubmit, currentImageURL, currentCaption }: Props) => 
                   type="file"
                   accept="image/*"
                   placeholder="Upload an image"
-                  className="rounded-xl savebutton p-2 w-full"
+                  className="rounded-xl savebutton hover:bg-opacity-90 p-2 w-full"
                   onChange={(e) => handleImage(e, field.onChange)}
                 />
               </FormControl>
@@ -99,7 +99,7 @@ const ImageNodeForm = ({ onSubmit, currentImageURL, currentCaption }: Props) => 
             <FormItem className="mb-4 mt-6 searchfield rounded-xl">
               <FormLabel hidden>Caption</FormLabel>
               <FormControl>
-              <Input className="flex searchfield w-full justify-center mx-auto text-[1.1rem]" type="text" placeholder="Caption" {...field} />
+              <Input className="flex modalfield w-full justify-center mx-auto text-[1.1rem]" type="text" placeholder="Caption" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

@@ -35,14 +35,14 @@ export default function CreatePredictionPost() {
   }
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <FormField
           control={form.control}
           name="question"
           render={({ field }) => (
             <FormItem>
               <FormControl>
-                <Input className="searchfield " placeholder="Market question" {...field} />
+                <Input className="textinputfield " placeholder="Market question" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -54,7 +54,7 @@ export default function CreatePredictionPost() {
           render={({ field }) => (
             <FormItem>
               <FormControl>
-                <Input className="searchfield " type="datetime-local" {...field} />
+                <Input className="textinputfield " type="datetime-local" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -66,15 +66,16 @@ export default function CreatePredictionPost() {
           render={({ field }) => (
             <FormItem>
               <FormControl>
-                <Input className="searchfield " type="number" min={50} {...field} />
+                <Input className="textinputfield " type="number" min={50} {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
+        <hr></hr>
         <button
           type="submit"
-          className="savebutton px-5 py-2 rounded-xl bg-white hover:bg-opacity-90"
+          className="savebutton px-5 py-2 rounded-xl text-[1.1rem] tracking-wide bg-white hover:bg-opacity-90"
           disabled={!(form.formState.isDirty && form.formState.isValid)}
         >
           Create
