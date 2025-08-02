@@ -6,6 +6,7 @@ import { fetchRealtimeLikeForCurrentUser } from "@/lib/actions/like.actions";
 import Modal from "@/components/modals/Modal";
 import Comment from "@/components/forms/Comment";
 import CommentTree from "@/components/shared/CommentTree";
+import { mapRealtimePost } from "@/lib/transform/post";
 
 const Page = async ({ params }: { params: { id: string } }) => {
   if (!params?.id && params?.id?.length !== 1) return notFound();
@@ -26,6 +27,7 @@ const Page = async ({ params }: { params: { id: string } }) => {
         userId: user.userId,
       })
     : null;
+  const mappedPost = mapRealtimePost(post);
 
   return (
     <section className="relative">
@@ -35,28 +37,8 @@ const Page = async ({ params }: { params: { id: string } }) => {
           key={post.id.toString()}
           currentUserId={user?.userId}
           currentUserLike={currentUserLike}
-          id={post.id}
+          {...mappedPost}
           isRealtimePost
-          likeCount={post.like_count}
-          commentCount={post.commentCount}
-          content={
-            post.type === "TEXT" || post.type === "GALLERY"
-              ? post.content!
-              : undefined
-          }
-          image_url={
-            post.type === "IMAGE" || post.type === "IMAGE_COMPUTE"
-              ? post.image_url!
-              : undefined
-          }
-          caption={(post as any).caption ?? null}
-          video_url={post.type === "VIDEO" ? post.video_url! : undefined}
-          pluginType={(post as any).pluginType ?? null}
-          pluginData={(post as any).pluginData ?? null}
-          type={post.type}
-          author={post.author!}
-          createdAt={post.created_at.toDateString()}
-          claimIds={post.productReview?.claims.map((c) => c.id.toString()) ?? []}
         />
       </div>
       <div className="flex-1 flex-row w-full mt-6 ml-4">

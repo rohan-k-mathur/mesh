@@ -1,21 +1,20 @@
 "use client";
 
 import PostCard from "./PostCard";
-import { useEffect, useState } from "react";
 import useSWR from "swr";
-import { Fetcher } from "swr";
+import { mapFeedPost, mapRealtimePost } from "@/lib/transform/post";
+
 interface Props {
   id: bigint;
   originalPostId: bigint;
   source: "feed" | "realtime";
   currentUserId?: bigint | null;
-  isRealtimePost?: boolean;
   author: {
     name: string | null;
     image: string | null;
     id: bigint;
   };
-  createdAt: string;
+  createdAt: Date;
   likeCount: number;
   expirationDate?: string | null;
   text?: string;
@@ -34,11 +33,7 @@ export default function ReplicatedPostCard(props: Props) {
     text = "Replicated"
   } = props;
 
-  const fetcher = (u: string) => fetch(u).then(r => r.json());
-
-/* ------------------------------------------------------------------ */
-  /* 1. fetch the original post (SWR keeps it fresh & caches automatically)
-  /* ------------------------------------------------------------------ */
+  const fetcher = (u: string) => fetch(u).then((r) => r.json());
   const { data: original, isLoading } = useSWR(
     `/api/${source === "feed" ? "feed" : "realtime-posts"}/${originalPostId}`,
     fetcher
@@ -46,9 +41,9 @@ export default function ReplicatedPostCard(props: Props) {
 
   if (isLoading || !original) return null;
 
-  /* ------------------------------------------------------------------ */
-  /* 2. render a wrapper PostCard that embeds the original PostCard
-  /* ------------------------------------------------------------------ */
+  const mappedOriginal =
+    source === "realtime" ? mapRealtimePost(original) : mapFeedPost(original);
+
   return (
     <PostCard
       id={id}
@@ -59,33 +54,14 @@ export default function ReplicatedPostCard(props: Props) {
       likeCount={likeCount}
       expirationDate={expirationDate ?? undefined}
       currentUserId={currentUserId}
-      /* replicate cards live in the same “namespace” as their parent */
       isRealtimePost={source === "realtime"}
-      isFeedPost={source === "feed"} 
+      isFeedPost={source === "feed"}
       embedPost={
         <PostCard
-          id={original.id}
-          type={original.type}
-          content={original.content ?? undefined}
-          image_url={original.image_url ?? undefined}
-          video_url={original.video_url ?? undefined}
-          pluginType={original.pluginType ?? null}
-          pluginData={original.pluginData ?? null}
-          author={original.author}
-          createdAt={new Date(original.created_at).toDateString()}
-          likeCount={original.like_count}
-          commentCount={original.commentCount ?? 0}
-          expirationDate={original.expiration_date ?? null}
+          {...mappedOriginal}
           currentUserId={currentUserId}
-          isRealtimePost={source === "realtime"}
-          isFeedPost={source === "feed"} 
-
-          /* extras for product‑review */
-          claimIds={
-            original.productReview?.claims?.map((c: any) =>
-              c.id.toString()
-            ) ?? []
-          }
+          {...(source === "realtime" ? { isRealtimePost: true } : {})}
+          {...(source === "feed" ? { isFeedPost: true } : {})}
         />
       }
     />

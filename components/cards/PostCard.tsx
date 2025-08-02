@@ -18,59 +18,29 @@ import SoundCloudPlayer from "../players/SoundCloudPlayer";
 import Spline from "@splinetool/react-spline";
 import dynamic from "next/dynamic";
 import PredictionMarketCard from "./PredictionMarketCard";
-import { PortfolioPayload } from "@/lib/actions/realtimepost.actions";
-//import EmbeddedCanvas from "./EmbeddedCanvas";
 import type { Like, RealtimeLike } from "@prisma/client";
 import React from "react";
 import localFont from "next/font/local";
+import type { BasePost, CanvasState } from "@/lib/types/post";
 
-import type { Node, Edge } from "@xyflow/react"; // if you have these types
 const EmbeddedCanvas = dynamic(() => import("./EmbeddedCanvas"), {
   ssr: false,
 });
-
-interface CanvasState {
-  nodes: Node[];
-  edges: Edge[];
-  viewport?: { x: number; y: number; zoom: number };
-  roomId?: string;
-}
 
 const founders = localFont({ src: "./NewEdgeTest-RegularRounded.otf" });
 const DrawCanvas = dynamic(() => import("./DrawCanvas"), { ssr: false });
 const LivechatCard = dynamic(() => import("./LivechatCard"), { ssr: false });
 const EntropyCard = dynamic(() => import("./EntropyCard"), { ssr: false });
 
-interface Props {
-  id: bigint;
+interface ExtraUIProps {
   currentUserId?: bigint | null;
   currentUserLike?: Like | RealtimeLike | null;
-  image_url?: string;
-  video_url?: string;
-  portfolio?: PortfolioPayload;
-  content?: string;
-  roomPostContent?: CanvasState | null;
-  type: string;
-
-  caption?: string | null;
-
-  author: {
-    name: string | null;
-    image: string | null;
-    id: bigint;
-  };
-  createdAt: string;
   isRealtimePost?: boolean;
   isFeedPost?: boolean;
-  likeCount?: number;
-  commentCount?: number;
-  expirationDate?: string | null;
   embedPost?: React.ReactNode;
-  pluginType?: string | null;
-  pluginData?: Record<string, any> | null;
-  claimIds?: (string | number | bigint)[];
-  predictionMarket?: any | null;
 }
+
+type PostCardProps = BasePost & ExtraUIProps;
 
 const PostCard = ({
   id,
@@ -81,7 +51,6 @@ const PostCard = ({
   author,
   image_url,
   video_url,
-  portfolio,
   caption,
   type,
   createdAt,
@@ -95,7 +64,7 @@ const PostCard = ({
   pluginData = null,
   claimIds,
   predictionMarket = null,
-}: Props) => {
+}: PostCardProps) => {
   if (content && content.startsWith("REPLICATE:")) {
     const dataStr = content.slice("REPLICATE:".length);
     // let originalId: bigint | null = null;
@@ -163,7 +132,7 @@ const PostCard = ({
               </div>
             </Link>
             <div className="relative right-[.25rem] text-[.75rem] text-gray-500">
-              {createdAt}
+              {createdAt.toDateString()}
             </div>
 
             <hr className="mt-2 mb-3 w-full h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-100 to-transparent opacity-55" />

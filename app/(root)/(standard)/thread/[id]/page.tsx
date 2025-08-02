@@ -6,7 +6,7 @@ import { getUserFromCookies } from "@/lib/serverutils";
 import PostCard from "@/components/cards/PostCard";
 import { fetchLikeForCurrentUser } from "@/lib/actions/like.actions";
 import Modal from "@/components/modals/Modal";
-import ThreadCard from "@/components/cards/ThreadCard";
+import { mapFeedPost } from "@/lib/transform/post";
 const Page = async ({ params }: { params: { id: string } }) => {
   if (!params?.id && params?.id?.length !== 1) return notFound();
   const user = await getUserFromCookies();
@@ -16,6 +16,7 @@ const Page = async ({ params }: { params: { id: string } }) => {
   const currentUserLike = user
     ? await fetchLikeForCurrentUser({ postId: post.id, userId: user.userId })
     : null;
+  const mappedPost = mapFeedPost(post);
   
   return (
     <section className="sticky ">
@@ -24,21 +25,11 @@ const Page = async ({ params }: { params: { id: string } }) => {
       <Modal />
 
       <div className="flex flex-row">
-        <ThreadCard
+        <PostCard
           key={post.id.toString()}
           currentUserId={user?.userId}
           currentUserLike={currentUserLike}
-          id={post.id}
-          content={post.content ?? undefined}
-          image_url={post.image_url ?? undefined}
-          video_url={post.video_url ?? undefined}
-          type={post.type}
-          comments={post.children}
-          author={post.author!}
-          createdAt={post.created_at.toDateString()}
-          likeCount={post.like_count}
-          commentCount={post.commentCount}
-          expirationDate={post.expiration_date?.toISOString() ?? null}
+          {...mappedPost}
         />
       </div>
       

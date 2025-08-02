@@ -1,0 +1,27 @@
+import type { Node, Edge } from "@xyflow/react";
+
+export interface CanvasState {
+  nodes: Node[];
+  edges: Edge[];
+  viewport?: { x: number; y: number; zoom: number };
+  roomId?: string;
+}
+
+export interface BasePost {
+  id: bigint;
+  author: { id: bigint; name: string | null; image: string | null };
+  type: string;
+  content?: string | null;
+  roomPostContent?: CanvasState | null;
+  image_url?: string | null;
+  video_url?: string | null;
+  caption?: string | null;
+  pluginType?: string | null;
+  pluginData?: Record<string, unknown> | null;
+  predictionMarket?: any | null;
+  claimIds?: (string | number | bigint)[];
+  likeCount: number;
+  commentCount: number;
+  expirationDate?: string | null;
+  createdAt: Date;
+}
