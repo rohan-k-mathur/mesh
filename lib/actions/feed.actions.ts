@@ -215,10 +215,12 @@ export async function fetchFeedPosts() {
     },
   });
 
-  const postIds = rows.map((r) => r.post_id);
+  const postIds = rows
+    .map((r) => r.post_id)
+    .filter((id): id is bigint => id !== null);
 
   let userLikes: Record<string, any> = {};
-  if (currentUserId) {
+  if (currentUserId && postIds.length) {
     const likes = await prisma.like.findMany({
       where: { user_id: currentUserId, post_id: { in: postIds } },
     });
@@ -229,7 +231,9 @@ export async function fetchFeedPosts() {
 
   const rowsWithLike = rows.map((r) => ({
     ...r,
-    currentUserLike: userLikes[r.post_id.toString()] ?? null,
+    currentUserLike: r.post_id
+      ? userLikes[r.post_id.toString()] ?? null
+      : null,
   }));
 
   return rowsWithLike; // mapper will handle null‑checks / defaults
