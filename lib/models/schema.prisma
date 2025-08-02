@@ -93,9 +93,12 @@ model UserAttributes {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model Post {
-  id              BigInt    @id @default(autoincrement())
-  created_at      DateTime  @default(now()) @db.Timestamptz(6)
-  content         String
+  id         BigInt    @id @default(autoincrement())
+  created_at DateTime  @default(now()) @db.Timestamptz(6)
+content String?   // allow NULL
+  feedPost   FeedPost? @relation("PostToFeedPost") // ← singular, optional
+  type feed_post_type? @default(TEXT)  // use the enum you already have
+
   author_id       BigInt
   updated_at      DateTime? @default(now()) @updatedAt @db.Timestamptz(6)
   parent_id       BigInt?
@@ -126,7 +129,10 @@ model Like {
 }
 
 model FeedPost {
-  id               BigInt            @id @default(autoincrement())
+  id      BigInt  @id @default(autoincrement())
+  post_id BigInt? @unique // ← add @unique
+  post    Post?   @relation("PostToFeedPost", fields: [post_id], references: [id])
+
   created_at       DateTime          @default(now()) @db.Timestamptz(6)
   updated_at       DateTime?         @default(now()) @updatedAt @db.Timestamptz(6)
   author_id        BigInt
@@ -152,6 +158,32 @@ model FeedPost {
 }
 
 enum feed_post_type {
+  TEXT
+  VIDEO
+  IMAGE
+  LIVESTREAM
+  IMAGE_COMPUTE
+  COLLAGE
+  GALLERY
+  PORTAL
+  AUDIO
+  DRAW
+  LIVECHAT
+  DOCUMENT
+  THREAD
+  CODE
+  PORTFOLIO
+  LLM_INSTRUCTION
+  PREDICTION
+  PLUGIN
+  PRODUCT_REVIEW
+  ENTROPY
+  MUSIC
+  ROOM_CANVAS
+}
+
+
+enum post_type {
   TEXT
   VIDEO
   IMAGE

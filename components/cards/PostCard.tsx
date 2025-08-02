@@ -38,12 +38,14 @@ interface ExtraUIProps {
   isRealtimePost?: boolean;
   isFeedPost?: boolean;
   embedPost?: React.ReactNode;
+  
 }
 
 type PostCardProps = BasePost & ExtraUIProps;
 
 const PostCard = ({
   id,
+  canonicalId,  
   currentUserId,
   currentUserLike = null,
   content,
@@ -132,7 +134,7 @@ const PostCard = ({
               </div>
             </Link>
             <div className="relative right-[.25rem] text-[.75rem] text-gray-500">
-              {createdAt.toDateString()}
+            {new Date(createdAt).toLocaleDateString()}
             </div>
 
             <hr className="mt-2 mb-3 w-full h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-100 to-transparent opacity-55" />
@@ -359,11 +361,12 @@ const PostCard = ({
                 />
                 <>
                   <ExpandButton
-                    {...(isRealtimePost
-                      ? { realtimePostId: id.toString() }
-                      : isFeedPost
-                      ? { postId: id }
-                      : { postId: id })}
+                    // {...(isRealtimePost
+                    //   ? { realtimePostId: id.toString() }
+                    //   : isFeedPost
+                    //   ? { postId: id }
+                    //   : { postId: id })}
+                    targetId={canonicalId}      // ← always the post table PK
                     commentCount={commentCount}
                   />
                 </>

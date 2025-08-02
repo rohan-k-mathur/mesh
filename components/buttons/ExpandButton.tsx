@@ -7,13 +7,18 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
-interface Props {
-  postId?: bigint;
-  realtimePostId?: string;
-  commentCount?: number;
+// interface Props {
+//   postId?: bigint;
+//   realtimePostId?: string;
+//   commentCount?: number;
+// }
+interface ExpandButtonProps {
+  targetId: bigint;
+  commentCount: number;
 }
 
-const ExpandButton = ({ postId, realtimePostId, commentCount = 0 }: Props) => {
+
+export default function ExpandButton({ targetId, commentCount }: ExpandButtonProps) {
   const user = useAuth();
   const router = useRouter();
   const isUserSignedIn = !!user.user;
@@ -21,12 +26,14 @@ const ExpandButton = ({ postId, realtimePostId, commentCount = 0 }: Props) => {
 
 
  
-  const href = realtimePostId ? `/post/${realtimePostId}` : `/thread/${postId}`;
+  // const href = realtimePostId ? `/post/${realtimePostId}` : `/thread/${postId}`;
 
   return (
     <button className="flex items-center gap-1">
-      <Link href={href}>
-        <Image
+      <Link       href={`/thread/${targetId}`}
+   data-testid="expand"
+      data-id={targetId.toString()}
+>        <Image
           src="/assets/add-comment.svg"
           alt="reply"
           width={28}
@@ -41,4 +48,4 @@ const ExpandButton = ({ postId, realtimePostId, commentCount = 0 }: Props) => {
 };
 
 
-export default ExpandButton;
+// export default ExpandButton;

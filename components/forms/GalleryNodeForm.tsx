@@ -117,7 +117,7 @@ const GalleryNodeForm = ({
             <FormItem className="mb-4 mt-4  rounded-xl">
               <FormLabel hidden>Caption</FormLabel>
               <FormControl>
-                <Input className="flex searchfield w-full rounded-xl justify-center mx-auto text-[1.1rem]" type="text" placeholder="Caption" {...field} />
+                <Input className="flex messagefield w-full rounded-xl justify-center mx-auto text-[1.1rem]" type="text" placeholder="Caption" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

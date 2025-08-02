@@ -9,11 +9,14 @@ export interface CanvasState {
 
 export interface BasePost {
   id: bigint;
+  canonicalId: bigint;        // ← NEW (posts table id)
+
   author: { id: bigint; name: string | null; image: string | null };
   type: string;
   content?: string | null;
   roomPostContent?: CanvasState | null;
   image_url?: string | null;
+
   video_url?: string | null;
   caption?: string | null;
   pluginType?: string | null;
@@ -23,5 +26,6 @@ export interface BasePost {
   likeCount: number;
   commentCount: number;
   expirationDate?: string | null;
-  createdAt: Date;
+  //createdAt: Date;
+  createdAt: string;   
 }

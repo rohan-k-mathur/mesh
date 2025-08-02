@@ -63,19 +63,19 @@ const Comment = ({ postId, realtimePostId, currentUserImg, currentUserId }: Prop
   };
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="comment-form">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="flex gap-2 px-2">
         <FormField
           control={form.control}
           name="thread"
           render={({ field }) => (
             <FormItem className="flex items-center gap-3 w-full h-full">
      
-              <FormControl className=" bg-transparent ">
+              <FormControl className=" bg-white bg-opacity-50 ">
           
                 <CommentTextarea
                   placeholder="Comment..."
                   rows={1}
-                  className="comment-textarea   no-focus text-black "
+                  className="searchfield text-black "
                   {...field}
                   ></CommentTextarea>
               </FormControl>
@@ -83,9 +83,9 @@ const Comment = ({ postId, realtimePostId, currentUserImg, currentUserId }: Prop
             </FormItem>
           )}
         />
-        <Button type="submit" variant="ghost" className=" comment-form_btn mr-2">
+        <button type="submit"  className=" savebutton bg-white bg-opacity-30 px-3 rounded-xl ">
           Reply
-        </Button>
+        </button>
       </form>
     </Form>
   );

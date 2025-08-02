@@ -34,7 +34,7 @@ const Page = async ({ params }: { params: { id: string } }) => {
       </div>
       
 
-      <div className="flex-1 flex-row w-full  mt-6 ml-4">
+      <div className="flex-1 flex-row w-full  mt-6 ">
 
         <Comment
           postId={post.id}
@@ -43,7 +43,7 @@ const Page = async ({ params }: { params: { id: string } }) => {
         />
       </div >
 
-      <div className="flex-1 flex-row w-full mt-2 ml-4">
+      <div className="flex-1 flex-row w-full mt-4 ">
 
       <CommentTree
       

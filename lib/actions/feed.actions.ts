@@ -30,8 +30,24 @@ export async function createFeedPost(
 
   const { type, isPublic = true, ...rest } = args;
 
-  const post = await prisma.feedPost.create({
+    /* 1️⃣ Create the canonical post row */
+    const master = await prisma.post.create({
+      data: {
+        author_id: user.userId!,
+        type,
+        isPublic,
+        content: rest.content ?? null,
+        image_url: rest.imageUrl ?? null,
+        video_url: rest.videoUrl ?? null,
+        caption:  rest.caption  ?? null,
+      },
+    });
+
+
+  /* 2️⃣ Create the feed row that points at it */
+  const feed = await prisma.feedPost.create({
     data: {
+      post_id:   master.id,        // 🔑 FK
       author_id: user.userId!,
       type,
       isPublic,
@@ -42,7 +58,20 @@ export async function createFeedPost(
     },
   });
 
-  return jsonSafe({ postId: post.id });
+
+  // const post = await prisma.feedPost.create({
+  //   data: {
+  //     author_id: user.userId!,
+  //     type,
+  //     isPublic,
+  //     ...(rest.content && { content: rest.content }),
+  //     ...(rest.imageUrl && { image_url: rest.imageUrl }),
+  //     ...(rest.videoUrl && { video_url: rest.videoUrl }),
+  //     ...(rest.caption && { caption: rest.caption }),
+  //   },
+  // });
+
+  return jsonSafe({ postId: feed.id });
 }
 
 // export async function archiveExpiredFeedPosts() {
@@ -111,15 +140,59 @@ await prisma.$transaction([
 ]);
 }
 
+// export async function fetchFeedPosts() {
+//   await archiveExpiredFeedPosts();
+//   const posts = await prisma.feedPost.findMany({
+//     where: {
+//       isPublic: true,
+//       OR: [{ expiration_date: null }, { expiration_date: { gt: new Date() } }],
+//     },
+//     orderBy: { created_at: "desc" },
+//     include: {
+//       predictionMarket: {
+//         select: {
+//           id: true,
+//           question: true,
+//           yesPool: true,
+//           noPool: true,
+//           b: true,
+//           state: true,
+//           outcome: true,
+//           closesAt: true,
+//         },
+//       },
+//       author: true,
+//     },
+//   });
+//   return posts.map((p) => ({ ...p }));
+// }
 export async function fetchFeedPosts() {
   await archiveExpiredFeedPosts();
-  const posts = await prisma.feedPost.findMany({
+
+  const rows = await prisma.feedPost.findMany({
     where: {
       isPublic: true,
-      OR: [{ expiration_date: null }, { expiration_date: { gt: new Date() } }],
+      OR: [
+        { expiration_date: null },
+        { expiration_date: { gt: new Date() } },
+      ],
     },
     orderBy: { created_at: "desc" },
-    include: {
+
+    /* 👇 use select so scalar `post_id` is available */
+    select: {
+      id: true,                 // feed‑row PK
+      post_id: true,            // ← canonical Post PK
+      type: true,
+      content: true,
+      image_url: true,
+      video_url: true,
+      caption: true,
+      like_count: true,
+      commentCount: true,
+      expiration_date: true,
+      created_at: true,
+
       predictionMarket: {
         select: {
           id: true,
@@ -132,12 +205,14 @@ export async function fetchFeedPosts() {
           closesAt: true,
         },
       },
-      author: true,
+      author: {
+        select: { id: true, name: true, image: true },
+      },
     },
   });
-  return posts.map((p) => ({ ...p }));
-}
 
+  return rows;          // mapper will handle null‑checks / defaults
+}
 export async function deleteFeedPost({
   id,
   path,
