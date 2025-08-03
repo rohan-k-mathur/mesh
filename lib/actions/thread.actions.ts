@@ -207,11 +207,7 @@ export async function addCommentToPost({
         content: commentText,
         type: "TEXT",
         author_id: userId,
-        feedPost: {
-          connect: {
-            id: parentPostId,
-          },
-        },
+        parent_id: parentPostId,
       },
     });
     revalidatePath(path);
