@@ -38,6 +38,7 @@ export default function PortfolioCard({
 }: PortfolioCardProps) {
   const [open, setOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
+  
 
   /* OPTIONAL — legacy export button */
   async function handleExport() {
@@ -79,11 +80,11 @@ export default function PortfolioCard({
   return (
     <>
       {/* Card container */}
-      <div className="flex flex-col gap-3 w-full">
+      <div className="flex flex-col justify-center items-center  gap-3 w-full">
         {/* Thumbnail frame */}
         <div
           onClick={() => setOpen(true)}
-          className="relative w-[300px] h-[180px] overflow-hidden border rounded cursor-pointer shadow-sm"
+          className="relative justify-center items-center my-2 w-[640px] h-[300px] overflow-hidden  rounded-xl cursor-pointer likebutton"
         >
           {preview}
         </div>

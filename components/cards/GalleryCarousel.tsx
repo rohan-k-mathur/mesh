@@ -79,7 +79,7 @@ const GalleryCarousel = ({ urls, caption }: Props) => {
  };
 
   return (
-    <div className="flex flex-col p-1 w-fit border-[1px] border-sky-200 border-opacity-50 
+    <div className="flex flex-col flex-1 p-1 w-full border-[1px] border-indigo-200 border-opacity-50 
     rounded-xl align-center justify-center items-center shadow-md bg-white bg-opacity-10">
     <div className="w-full flex flex-1 flex-col justify-center items-center max-w-[90%] h-fit ">
     <div className=" h-fit  flex flex-col  justify-center ">
@@ -96,7 +96,7 @@ const GalleryCarousel = ({ urls, caption }: Props) => {
      
 {/* <div className="relative w-[700px] h-[25rem] overflow-hidden"> */}
  <div
-   className="relative w-[700px] h-[25rem] overflow-hidden"
+   className="relative w-[600px] h-[400px] overflow-hidden"
    style={{ perspective: 900 }}   // 👈 distance (px) of the viewer
  >
 {/* <div className="pointer-events-none absolute inset-0 bg-gradient-to-b
@@ -124,7 +124,7 @@ const GalleryCarousel = ({ urls, caption }: Props) => {
         fill
         src={urls[currentIndex]}
         alt={`img-${currentIndex}`}
-        className="object-contain pt-3"
+        className="object-contain pt-1"
         sizes="500px"
         priority={currentIndex === 0}
         onLoad={() => setLoaded(true)}
@@ -160,9 +160,9 @@ const GalleryCarousel = ({ urls, caption }: Props) => {
     
     </div>
     </div>
-    <div className="flex flex-wrap mt-4 mb-2 border-t-[1px] border-b-[1px]  border-sky-200 border-opacity-50  py-2 w-full  rounded-none  justify-center items-center   ">
+    <div className="flex flex-wrap mt-4 mb-2 border-t-[1px]   border-indigo-300 border-opacity-50   w-full  rounded-none  justify-center items-center   ">
     {/* <hr className="w-full h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-100 to-transparent opacity-55" /> */}
-    <p className="text-center tracking-wide ">{caption}</p>
+    <p className="text-center tracking-wide pt-2 ">{caption}</p>
     </div>
     </div>
   );
