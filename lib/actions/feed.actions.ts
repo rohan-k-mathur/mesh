@@ -174,6 +174,7 @@ export async function fetchFeedPosts() {
   const rows = await prisma.feedPost.findMany({
     where: {
       isPublic: true,
+      parent_id: null,
       OR: [
         { expiration_date: null },
         { expiration_date: { gt: new Date() } },
@@ -221,10 +222,10 @@ export async function fetchFeedPosts() {
   let userLikes: Record<string, any> = {};
   if (currentUserId && postIds.length) {
     const likes = await prisma.like.findMany({
-      where: { user_id: currentUserId, id: { in: postIds } },
+      where: { user_id: currentUserId, feed_post_id: { in: postIds } },
     });
     userLikes = Object.fromEntries(
-      likes.map((l) => [l.id.toString(), l])
+      likes.map((l) => [l.feed_post_id.toString(), l])
     );
   }
 
