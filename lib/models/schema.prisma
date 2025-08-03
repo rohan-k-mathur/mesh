@@ -116,6 +116,8 @@ model FeedPost {
   type             feed_post_type
   content          String?
   image_url        String?
+  portfolio Json?          // <-- add this
+
   video_url        String?
   caption          String?
   isPublic         Boolean           @default(true)
@@ -610,12 +612,13 @@ model PortfolioPage {
   slug       String   @unique
   html       String
   css        String
-  tsx        String? // NEW nullable column
+  tsx        String?            // existing
+  payload    Json?              // <‑‑ NEW (optional)
+  snapshot   String?            // <‑‑ NEW (optional helper)
   created_at DateTime @default(now()) @db.Timestamptz(6)
 
   @@map("portfolio_pages")
 }
-
 model scroll_events {
   id         BigInt   @id @default(autoincrement())
   user_id    String   @db.Uuid

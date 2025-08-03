@@ -3,8 +3,8 @@ import { generatePortfolioTemplates, PortfolioExportData } from "@/lib/portfolio
 import { createPortfolioPage } from "@/lib/actions/portfolio.actions";
 import { screenshotPage } from "@/lib/screenshot";
 
-import { getUserFromCookies } from "@/lib/serverutils";
-import { createRealtimePost } from "@/lib/actions/realtimepost.actions";
+// import { getUserFromCookies } from "@/lib/serverutils";
+// import { createRealtimePost } from "@/lib/actions/realtimepost.actions";
 import { uploadFileToSupabase } from "@/lib/utils";
 export const runtime = "nodejs";       // make sure Playwright can run
 
@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
 
   const { html, css, tsx } = generatePortfolioTemplates(data);
 
-  const slug = await createPortfolioPage({ html, css, tsx });
+  const slug = await createPortfolioPage({ html, css, tsx,  });
 
     /* 2) render → screenshot */
     const base = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";

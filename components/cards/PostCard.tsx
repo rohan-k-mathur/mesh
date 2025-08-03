@@ -51,6 +51,7 @@ const PostCard = ({
   roomPostContent = null,
   author,
   image_url,
+  portfolio = null,        
   video_url,
   caption,
   type,
@@ -238,47 +239,41 @@ const PostCard = ({
                 </div>
               </div>
             )}
-            {type === "PORTFOLIO" &&
-              content &&
-              (() => {
-                /* ‑‑ Parse once, bail on failure ‑‑ */
-                let data: any = null;
-                try {
-                  data = JSON.parse(content);
-                } catch {
-                  /* ignore */
-                }
+            {type === "PORTFOLIO" && (() => {
+          /* ③ choose the preferred payload */
+          const data =
+            portfolio                       // ← new schema
+              ?? (() => {                   // ← fall back to legacy string
+                   if (!content) return null;
+                   try { return JSON.parse(content); } catch { return null; }
+                 })();
 
                 if (!data) return null;
 
-                /* 🔹 New schema preferred:
-         {
-           "pageUrl": "/portfolio/abc123",
-           "snapshot": "https://…/snapshot.png"   // optional
-         }
-       Fallbacks to legacy keys if pageUrl missing. */
                 if (data.pageUrl) {
-                  return (
-                    <PortfolioCard
-                      pageUrl={data.pageUrl}
-                      snapshot={data.snapshot}
-                    />
-                  );
-                }
+                              return (
+                                <PortfolioCard
+                                  pageUrl={data.pageUrl}
+                                  snapshot={data.snapshot ?? image_url /* graceful fallback */}
+                                />
+                              );
+                            }
+                   
+                             /* 🕜 legacy raw-content fallback */
+                             return (
+                               <PortfolioCard
+                               pageUrl="" /* empty => shows legacy content only */
+                               snapshot={undefined}
+                               text={data.text}
+                               images={data.images || []}
+                               links={data.links || []}
+                               layout={data.layout}
+                               color={data.color}
+                               />
+                             );
+                        })()}
 
-                /* 🕜  Legacy (raw text/images) */
-                return (
-                  <PortfolioCard
-                    pageUrl="" /* empty => shows legacy content only */
-                    snapshot={undefined}
-                    text={data.text}
-                    images={data.images || []}
-                    links={data.links || []}
-                    layout={data.layout}
-                    color={data.color}
-                  />
-                );
-              })()}
+                
             {type === "PRODUCT_REVIEW" &&
               content &&
               (() => {

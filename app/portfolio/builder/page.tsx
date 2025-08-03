@@ -21,7 +21,8 @@ import { PortfolioExportData } from "@/lib/portfolio/export";
 import { templates, BuilderElement } from "@/lib/portfolio/templates";
 import Image from "next/image";
 import html2canvas from "html2canvas";
-import { createRealtimePost } from "@/lib/actions/realtimepost.actions";
+import { createFeedPost }     from "@/lib/actions/feedpost.actions";
+import { feed_post_type }     from "@prisma/client";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -908,14 +909,20 @@ const proxyResizeStart = (
     const { url, snapshot } = await res.json();
 
     /* 3) Create the realtime post using the *server‑generated* PNG */
-    await createRealtimePost({
-      portfolio: { pageUrl: url, snapshot },
-      imageUrl: snapshot, // thumbnail in the feed
-      path: "/",
-      coordinates: { x: 0, y: 0 },
-      type: "PORTFOLIO",
-      realtimeRoomId: "global",
-    });
+    // await createRealtimePost({
+    //   portfolio: { pageUrl: url, snapshot },
+    //   imageUrl: snapshot, // thumbnail in the feed
+    //   path: "/",
+    //   coordinates: { x: 0, y: 0 },
+    //   type: "PORTFOLIO",
+    //   realtimeRoomId: "global",
+    // });
+    await createFeedPost({
+        caption: "",                     // or derive from textBoxes/elements
+        imageUrl: snapshot ?? undefined, // thumbnail in the feed
+        portfolio: { pageUrl: url, snapshot },
+        type: feed_post_type.PORTFOLIO,
+      });
 
     router.push(url); // open the live page for the author
   }

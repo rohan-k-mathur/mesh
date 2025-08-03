@@ -1,8 +1,16 @@
+'use server';
 import { prisma } from "../prismaclient";
 import { getUserFromCookies } from "@/lib/serverutils"; // server‑only util
 import { revalidatePath } from "next/cache";
 import { jsonSafe } from "../bigintjson";
 import { canRepost } from "@/lib/repostPolicy";
+
+export interface PortfolioPayload {
+  pageUrl: string;   // “/portfolio/abc123”
+  snapshot?: string; // CDN url of PNG (optional)
+}
+
+
 export interface CreateFeedPostArgs {
   type:
     | "TEXT"
@@ -11,12 +19,25 @@ export interface CreateFeedPostArgs {
     | "GALLERY"
     | "PREDICTION"
     | "PRODUCT_REVIEW"
+    | "PORTFOLIO"
+    | "MUSIC"
     | "LIVECHAT";
   content?: string;
   imageUrl?: string;
   videoUrl?: string;
   caption?: string;
+
+  text?: string;
+
+  portfolio?: PortfolioPayload;
+  path: string;
+  coordinates: { x: number; y: number };
+  realtimeRoomId: string;
   isPublic?: boolean;
+
+  pluginType?: string;
+  pluginData?: Record<string, unknown>;
+  roomPostContent?: Record<string, unknown>;
 }
 
 export async function createFeedPost(
@@ -30,17 +51,17 @@ export async function createFeedPost(
   const { type, isPublic = true, ...rest } = args;
 
     /* 1️⃣ Create the canonical post row */
-    const master = await prisma.feedPost.create({
-      data: {
-        author_id: user.userId!,
-        type,
-        isPublic,
-        content: rest.content ?? null,
-        image_url: rest.imageUrl ?? null,
-        video_url: rest.videoUrl ?? null,
-        caption:  rest.caption  ?? null,
-      },
-    });
+    // const master = await prisma.feedPost.create({
+    //   data: {
+    //     author_id: user.userId!,
+    //     type,
+    //     isPublic,
+    //     content: rest.content ?? null,
+    //     image_url: rest.imageUrl ?? null,
+    //     video_url: rest.videoUrl ?? null,
+    //     caption:  rest.caption  ?? null,
+    //   },
+    // });
 
 
   // /* 2️⃣ Create the feed row that points at it */
@@ -58,19 +79,21 @@ export async function createFeedPost(
   // });
 
 
-  // const post = await prisma.feedPost.create({
-  //   data: {
-  //     author_id: user.userId!,
-  //     type,
-  //     isPublic,
-  //     ...(rest.content && { content: rest.content }),
-  //     ...(rest.imageUrl && { image_url: rest.imageUrl }),
-  //     ...(rest.videoUrl && { video_url: rest.videoUrl }),
-  //     ...(rest.caption && { caption: rest.caption }),
-  //   },
-  // });
+  const post = await prisma.feedPost.create({
+    data: {
+      author_id: user.userId!,
+      type,
+      isPublic,
+      ...(rest.content && { content: rest.content }),
+      ...(rest.imageUrl && { image_url: rest.imageUrl }),
+      ...(rest.videoUrl && { video_url: rest.videoUrl }),
+      ...(rest.caption && { caption: rest.caption }),
+      ...(rest.portfolio && { portfolio: rest.portfolio }),
 
-  return jsonSafe({ postId: master.id });
+    },
+  });
+
+  return jsonSafe({ postId: post.id });
 }
 
 // export async function archiveExpiredFeedPosts() {
@@ -188,9 +211,12 @@ export async function fetchFeedPosts() {
       type: true,
       content: true,
       image_url: true,
+      portfolio: true,        // 👈  ADD THIS LINE
+
       video_url: true,
       caption: true,
       like_count: true,
+    
       // commentCount: true,
       _count: { select: { children: true } },   // children = replies
 
