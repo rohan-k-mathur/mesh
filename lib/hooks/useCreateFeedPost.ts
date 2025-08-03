@@ -1,6 +1,6 @@
 "use client";
 import { useSession } from "@/lib/useSession";
-
+import { CreateFeedPostArgs } from "../actions/feed.actions";
 export function useCreateFeedPost() {
   const { session } = useSession();
 

@@ -27,6 +27,7 @@ export const mapRealtimePost = (dbRow: any): BasePost => ({
 export const mapFeedPost = (dbRow: any): BasePost => ({
   id: dbRow.id,
   canonicalId: dbRow.post_id ?? dbRow.id,   // fallback for legacy rows
+  post_id: dbRow.post_id ?? null,
 
   author: dbRow.author,
   type: dbRow.type,

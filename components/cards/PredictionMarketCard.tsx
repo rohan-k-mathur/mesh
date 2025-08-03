@@ -6,7 +6,12 @@ import { priceYes } from "@/lib/prediction/lmsr";
 import { timeUntil } from "@/lib/utils";
 import { useState } from "react";
 import { Market } from "@/lib/types/prediction";
+import dynamic from "next/dynamic";
 
+const TimeRemaining = dynamic(
+  () => import("@/components/TimeRemaining"),   // correct path
+  { ssr: false }                                // don’t SSR this component
+);
 
 function coerce(m: Market): Market {
   return {
@@ -14,6 +19,7 @@ function coerce(m: Market): Market {
     yesPool : Number(m.yesPool),
     noPool  : Number(m.noPool),
     b       : Number(m.b),
+    
     closesAt: typeof m.closesAt === "string"
                 ? new Date(m.closesAt)
                 : m.closesAt,
@@ -101,7 +107,9 @@ export default function PredictionMarketCard({ post }: Props) {
         )}
       </div>
       {state === "OPEN" && (
-  <span className="text-xs p-4 mt-4">Closes in {countdown}</span>
+  // <span className="text-xs p-4 mt-4">Closes in {countdown}</span>
+  <TimeRemaining closesAt={market.closesAt} />
+
   )}
       { showTrade && (
 

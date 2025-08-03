@@ -11,6 +11,7 @@ export interface CanvasState {
 export interface BasePost {
   id: bigint;
   canonicalId: bigint;        // ← NEW (posts table id)
+  post_id?: bigint | null;   // ← new
 
   author: { id: bigint; name: string | null; image: string | null };
   type: string;

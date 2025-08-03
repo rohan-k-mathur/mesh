@@ -5,7 +5,7 @@ import { priceYes } from "@/lib/prediction/lmsr";
 import { getUserFromCookies } from "@/lib/serverutils";
 
 /** ISR‑style cache: one minute */
-export const revalidate = 60;
+export const dynamic = "force-dynamic";   // always fresh
 
 export async function GET(
   _req: NextRequest,
@@ -67,6 +67,6 @@ export async function GET(
       price,
       canResolve,
     }),
-    { headers: { "Cache-Control": "public, max-age=60" } },
+    { headers: { "Cache-Control": "no-store" } },
   );
 }

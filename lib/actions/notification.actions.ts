@@ -1,4 +1,5 @@
 "use server";
+import { getUserFromCookies } from "@/lib/serverutils";
 
 import { prisma } from "../prismaclient";
 
@@ -51,5 +52,23 @@ export async function fetchNotifications({ userId }: { userId: bigint }) {
     where: { user_id: userId },
     orderBy: { created_at: "desc" },
     include: { actor: true, market: true, trade: true },
+  });
+}
+
+export async function deleteNotification(id: bigint) {
+  const user = await getUserFromCookies();
+  if (!user?.userId) throw new Error("Unauthorized");
+
+  await prisma.notification.deleteMany({
+    where: { id, user_id: user.userId },
+  });
+}
+
+export async function clearNotifications() {
+  const user = await getUserFromCookies();
+  if (!user?.userId) throw new Error("Unauthorized");
+
+  await prisma.notification.deleteMany({
+    where: { user_id: user.userId },
   });
 }
