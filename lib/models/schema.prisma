@@ -64,6 +64,7 @@ model User {
   StallMessage             StallMessage[]
   cartItems                CartItem[]
   carts                    Cart[]
+  settings                 UserSettings?
 
   @@map("users")
 }
@@ -1083,4 +1084,22 @@ model GroupMeeting {
   createdAt       DateTime @default(now())
 
   @@map("group_meetings")
+}
+
+model UserSettings {
+  user_id    BigInt   @id
+  prefs      Json     @default("{}")
+  updated_at DateTime @updatedAt
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("user_settings")
+}
+
+model WorkspaceSettings {
+  workspace_id BigInt   @id
+  prefs        Json     @default("{}")
+  updated_at   DateTime @updatedAt
+
+  @@map("workspace_settings")
 }
