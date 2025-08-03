@@ -7,12 +7,11 @@ import { deleteRealtimePost } from "@/lib/actions/realtimepost.actions";
 import { useRouter, usePathname } from "next/navigation";
 
 interface Props {
-  postId?: bigint;
   realtimePostId?: string;
   feedPostId?: bigint;
 }
 
-const DeleteCardButton = ({ postId, realtimePostId, feedPostId }: Props) => {
+const DeleteCardButton = ({  realtimePostId, feedPostId }: Props) => {
   const router = useRouter();
   const pathname = usePathname();
 
@@ -22,9 +21,7 @@ const DeleteCardButton = ({ postId, realtimePostId, feedPostId }: Props) => {
       await deleteRealtimePost({ id: realtimePostId, path: pathname });
     } else if (feedPostId) {
       await deleteFeedPost({ id: feedPostId, path: pathname });
-    } else if (postId) {
-      await deletePost({ id: postId, path: pathname });
-    }
+    } 
     router.refresh();
   };
 

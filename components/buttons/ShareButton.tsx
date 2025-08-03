@@ -9,11 +9,11 @@ import { useShallow } from "zustand/react/shallow";
 import SharePostModal from "../modals/SharePostModal";
 
 interface Props {
-  postId?: bigint;
+  feedpostId?: bigint;
   realtimePostId?: string;
 }
 
-const ShareButton = ({ postId, realtimePostId }: Props) => {
+const ShareButton = ({ feedpostId, realtimePostId }: Props) => {
   const { openModal } = useStore(
     useShallow((state: AppState) => ({
       openModal: state.openModal,
@@ -30,7 +30,7 @@ const ShareButton = ({ postId, realtimePostId }: Props) => {
     className="cursor-pointer object-contain likebutton"
     onClick={() =>
       openModal(
-        <SharePostModal postId={postId} realtimePostId={realtimePostId} />
+        <SharePostModal feedpostId={feedpostId} realtimePostId={realtimePostId} />
       )
     }
   />

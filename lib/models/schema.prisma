@@ -37,7 +37,6 @@ model User {
   messages                 Message[]
   sentNotifications        Notification[]            @relation("NotificationActor")
   receivedNotifications    Notification[]            @relation("NotificationUser")
-  posts                    Post[]
   productReviewVotes       ProductReviewVote[]
   productReviewVouches     ProductReviewVouch[]
   productReviews           ProductReview[]
@@ -93,46 +92,23 @@ model UserAttributes {
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-model Post {
-  id         BigInt          @id @default(autoincrement())
-  created_at DateTime        @default(now()) @db.Timestamptz(6)
-  content    String? // allow NULL
-  feedPost   FeedPost?       @relation("PostToFeedPost") // ← singular, optional
-  type       feed_post_type? @default(TEXT) // use the enum you already have
-
-  author_id       BigInt
-  updated_at      DateTime? @default(now()) @updatedAt @db.Timestamptz(6)
-  parent_id       BigInt?
-  like_count      Int       @default(0)
-  expiration_date DateTime?
-  like            Like[]
-  author          User      @relation(fields: [author_id], references: [id])
-  post            Post?     @relation("children", fields: [parent_id], references: [id], onDelete: Restrict)
-  children        Post[]    @relation("children")
-
-  @@map("posts")
-}
-
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model Like {
-  id         BigInt    @id @default(autoincrement())
-  created_at DateTime  @default(now()) @db.Timestamptz(6)
-  score      Int
-  type       like_type @default(LIKE)
-  user_id    BigInt
-  post_id    BigInt
-  updated_at DateTime? @default(now()) @updatedAt @db.Timestamptz(6)
-  post       Post      @relation(fields: [post_id], references: [id], onDelete: Cascade)
-  user       User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  id           BigInt    @id @default(autoincrement())
+  created_at   DateTime  @default(now()) @db.Timestamptz(6)
+  score        Int
+  type         like_type @default(LIKE)
+  user_id      BigInt
+  updated_at   DateTime? @default(now()) @updatedAt @db.Timestamptz(6)
+  feed_post_id BigInt
+  feedPost     FeedPost  @relation(fields: [feed_post_id], references: [id], onDelete: Cascade)
+  user         User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
-  @@unique([post_id, user_id])
+  @@unique([feed_post_id, user_id])
   @@map("likes")
 }
 
 model FeedPost {
-  id      BigInt  @id @default(autoincrement())
-  post_id BigInt? @unique // ← add @unique
-  post    Post?   @relation("PostToFeedPost", fields: [post_id], references: [id])
+  id BigInt @id @default(autoincrement())
 
   created_at       DateTime          @default(now()) @db.Timestamptz(6)
   updated_at       DateTime?         @default(now()) @updatedAt @db.Timestamptz(6)
@@ -153,37 +129,13 @@ model FeedPost {
   pluginType       String?
   feedPost         FeedPost?         @relation("FeedPostChildren", fields: [parent_id], references: [id], onDelete: Restrict)
   children         FeedPost[]        @relation("FeedPostChildren")
+  Like             Like[]
 
   @@index([author_id])
   @@map("feed_posts")
 }
 
 enum feed_post_type {
-  TEXT
-  VIDEO
-  IMAGE
-  LIVESTREAM
-  IMAGE_COMPUTE
-  COLLAGE
-  GALLERY
-  PORTAL
-  AUDIO
-  DRAW
-  LIVECHAT
-  DOCUMENT
-  THREAD
-  CODE
-  PORTFOLIO
-  LLM_INSTRUCTION
-  PREDICTION
-  PLUGIN
-  PRODUCT_REVIEW
-  ENTROPY
-  MUSIC
-  ROOM_CANVAS
-}
-
-enum post_type {
   TEXT
   VIDEO
   IMAGE

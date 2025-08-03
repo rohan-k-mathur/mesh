@@ -8,11 +8,11 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 interface Props {
-  postId?: bigint;
+  feedpostId?: bigint;
   realtimePostId?: string;
 }
 
-const ReplyButton = ({ postId }: Props) => {
+const ReplyButton = ({ feedpostId }: Props) => {
   const user = useAuth();
   const router = useRouter();
   const isUserSignedIn = !!user.user;

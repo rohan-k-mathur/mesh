@@ -30,7 +30,7 @@ export async function createFeedPost(
   const { type, isPublic = true, ...rest } = args;
 
     /* 1️⃣ Create the canonical post row */
-    const master = await prisma.post.create({
+    const master = await prisma.feedPost.create({
       data: {
         author_id: user.userId!,
         type,
@@ -43,19 +43,19 @@ export async function createFeedPost(
     });
 
 
-  /* 2️⃣ Create the feed row that points at it */
-  const feed = await prisma.feedPost.create({
-    data: {
-      post_id:   master.id,        // 🔑 FK
-      author_id: user.userId!,
-      type,
-      isPublic,
-      ...(rest.content && { content: rest.content }),
-      ...(rest.imageUrl && { image_url: rest.imageUrl }),
-      ...(rest.videoUrl && { video_url: rest.videoUrl }),
-      ...(rest.caption && { caption: rest.caption }),
-    },
-  });
+  // /* 2️⃣ Create the feed row that points at it */
+  // const feed = await prisma.feedPost.create({
+  //   data: {
+  //     post_id:   master.id,        // 🔑 FK
+  //     author_id: user.userId!,
+  //     type,
+  //     isPublic,
+  //     ...(rest.content && { content: rest.content }),
+  //     ...(rest.imageUrl && { image_url: rest.imageUrl }),
+  //     ...(rest.videoUrl && { video_url: rest.videoUrl }),
+  //     ...(rest.caption && { caption: rest.caption }),
+  //   },
+  // });
 
 
   // const post = await prisma.feedPost.create({
@@ -70,7 +70,7 @@ export async function createFeedPost(
   //   },
   // });
 
-  return jsonSafe({ postId: feed.id });
+  return jsonSafe({ postId: master.id });
 }
 
 // export async function archiveExpiredFeedPosts() {
@@ -184,7 +184,6 @@ export async function fetchFeedPosts() {
     /* 👇 use select so scalar `post_id` is available */
     select: {
       id: true,                 // feed‑row PK
-      post_id: true,             // ✅ use the Prisma field name
       type: true,
       content: true,
       image_url: true,
@@ -216,23 +215,23 @@ export async function fetchFeedPosts() {
   });
 
   const postIds = rows
-    .map((r) => r.post_id)
+    .map((r) => r.id)
     .filter((id): id is bigint => id !== null);
 
   let userLikes: Record<string, any> = {};
   if (currentUserId && postIds.length) {
     const likes = await prisma.like.findMany({
-      where: { user_id: currentUserId, post_id: { in: postIds } },
+      where: { user_id: currentUserId, id: { in: postIds } },
     });
     userLikes = Object.fromEntries(
-      likes.map((l) => [l.post_id.toString(), l])
+      likes.map((l) => [l.id.toString(), l])
     );
   }
 
   const rowsWithLike = rows.map((r) => ({
     ...r,
-    currentUserLike: r.post_id
-      ? userLikes[r.post_id.toString()] ?? null
+    currentUserLike: r.id
+      ? userLikes[r.id.toString()] ?? null
       : null,
   }));
 

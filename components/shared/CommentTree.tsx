@@ -8,12 +8,13 @@ interface CommentTreeProps {
   currentUserImg: string;
   depth?: number;
   isRealtimePost?: boolean;
+  isFeedPost?: boolean;
 }
 
 const MAX_DEPTH = 5;
 const INDENT_PX = 24;
 
-const CommentTree = ({ comments, currentUserId, currentUserImg, depth = 0, isRealtimePost }: CommentTreeProps) => {
+const CommentTree = ({ comments, currentUserId, currentUserImg, depth = 0, isRealtimePost, isFeedPost=true }: CommentTreeProps) => {
   return (
     
     <div className="flex flex-col gap-3">
@@ -30,7 +31,7 @@ const CommentTree = ({ comments, currentUserId, currentUserImg, depth = 0, isRea
             style={{ marginLeft: indent, width: `calc(100% - ${indent}px)` }}
           >
             <ThreadCard
-              post={mapped}
+              post={comment}
               currentUserId={currentUserId}
               {...(isRealtimePost ? { isRealtimePost: true } : {})}
             />
@@ -55,6 +56,8 @@ const CommentTree = ({ comments, currentUserId, currentUserImg, depth = 0, isRea
                   currentUserImg={currentUserImg}
                   depth={depth + 1}
                   isRealtimePost={isRealtimePost}
+                  isFeedPost={isFeedPost}
+
                 />
               )}
             </div>

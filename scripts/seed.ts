@@ -244,7 +244,7 @@ async function createSampleData() {
       for (let j = 0; j < postCount; j++) {
         const content = `${getRandom(samplePosts)} (${j + 1})`;
 
-        await prisma.post.create({
+        await prisma.feedPost.create({
           data: {
             content,
             author_id: user.id,

@@ -45,7 +45,6 @@ type PostCardProps = BasePost & ExtraUIProps;
 
 const PostCard = ({
   id,
-  canonicalId,  
   currentUserId,
   currentUserLike = null,
   content,
@@ -57,7 +56,7 @@ const PostCard = ({
   type,
   createdAt,
   isRealtimePost = false,
-  isFeedPost = false,
+  isFeedPost = true,
   likeCount = 0,
   commentCount = 0,
   expirationDate = null,
@@ -353,7 +352,7 @@ const PostCard = ({
                 <LikeButton
                   {...(isRealtimePost
                     ? { realtimePostId: id.toString() }
-                    : { postId: canonicalId })}
+                    : { postId: id.toString() })}
                   likeCount={likeCount}
                   initialLikeState={currentUserLike}
                 />
@@ -364,7 +363,7 @@ const PostCard = ({
                   //   : isFeedPost
                   //   ? { postId: id }
                   //   : { postId: id })}
-                  targetId={canonicalId}      // ← always the post table PK
+                  targetId={id}      // ← always the post table PK
                 />
                    {commentCount >= 0 && (
                 <div className="w-2 text-center  text-subtle-medium text-black">
@@ -379,17 +378,17 @@ const PostCard = ({
                       ? { realtimePostId: id.toString() }
                       : isFeedPost
                       ? { feedPostId: id }
-                      : { postId: id })}
+                      : { feedPostId: id })}
                   />
                 )}
-                <ShareButton postId={id} />
+                <ShareButton feedpostId={id} />
         
                   <TimerButton
                     {...(isRealtimePost
                       ? { realtimePostId: id.toString() }
                       : isFeedPost
                       ? { feedPostId: id }
-                      : { postId: id })}
+                      : { feedPostId: id })}
                     isOwned={currentUserId === author.id}
                     expirationDate={expirationDate ?? undefined}
                   />
@@ -400,7 +399,7 @@ const PostCard = ({
                       ? { realtimePostId: id.toString() }
                       : isFeedPost
                       ? { feedPostId: id }
-                      : { postId: id })}
+                      : { feedPostId: id })}
                   />
                 )}
               

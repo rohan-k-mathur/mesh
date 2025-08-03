@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
           realtimePostId: BigInt(id),
           userId: BigInt(userId),
         })
-      : await fetchLikeForCurrentUser({ postId: BigInt(id), userId: BigInt(userId) })
+      : await fetchLikeForCurrentUser({ feedPostId: BigInt(id), userId: BigInt(userId) })
     : null;
 
   const originalUserLike = userId
@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
           realtimePostId: original.id,
           userId: BigInt(userId),
         })
-      : await fetchLikeForCurrentUser({ postId: original.id, userId: BigInt(userId) })
+      : await fetchLikeForCurrentUser({ feedPostId: original.id, userId: BigInt(userId) })
     : null;
 
   return NextResponse.json(

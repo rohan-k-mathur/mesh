@@ -28,7 +28,7 @@ export default function CreatePredictionPost() {
       });
       if (!resp.ok) throw new Error();
       const { postId } = await resp.json();
-      router.push(`/post/${postId}`);
+    //  router.push(`/post/${postId}`);
     } catch (e) {
       toast.error("Failed to create market");
     }

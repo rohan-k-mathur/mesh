@@ -21,13 +21,13 @@ import { Button } from "@/components/ui/button";
 
 
 interface Props {
-  postId?: bigint;
+  feedpostId?: bigint;
   realtimePostId?: string;
   feedPostId?: bigint;
   type?: string;
 }
 
-const ReplicateButton = ({ postId, realtimePostId, feedPostId, type }: Props) => {
+const ReplicateButton = ({ realtimePostId, feedpostId, type }: Props) => {
   const user = useAuth();
   const router = useRouter();
   const pathname = usePathname();
@@ -57,16 +57,9 @@ const ReplicateButton = ({ postId, realtimePostId, feedPostId, type }: Props) =>
         path: pathname,
         text,
       });
-    } else if (feedPostId) {
+    } else if (feedpostId) {
       await replicateFeedPost({
-        originalPostId: feedPostId.toString(),
-        userId: userObjectId.toString(),
-        path: pathname,
-        text,
-      });
-    } else if (postId) {
-      await replicatePost({
-        originalPostId: postId.toString(),
+        originalPostId: feedpostId.toString(),
         userId: userObjectId.toString(),
         path: pathname,
         text,

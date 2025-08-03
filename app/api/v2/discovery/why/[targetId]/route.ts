@@ -68,7 +68,7 @@ if (rediss) {
         where: { user_id: BigInt(viewerId) },
         select: { traits: true },
       });
-      const creatorId = await prisma.post.findUnique({
+      const creatorId = await prisma.feedPost.findUnique({
         where: { id: BigInt(params.targetId) },
         select: { author_id: true },
       });

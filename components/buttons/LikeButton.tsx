@@ -14,13 +14,13 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 interface Props {
-  postId?: bigint;
+  feedpostId?: string;
   realtimePostId?: string;
   likeCount: number;
   initialLikeState?: Like | RealtimeLike | null;
 }
 
-const LikeButton = ({ postId, realtimePostId, likeCount, initialLikeState }: Props) => {
+const LikeButton = ({ feedpostId, realtimePostId, likeCount, initialLikeState }: Props) => {
   const user = useAuth();
   const router = useRouter();
   const isUserSignedIn = !!user.user;
@@ -40,8 +40,8 @@ const LikeButton = ({ postId, realtimePostId, likeCount, initialLikeState }: Pro
       return;
     }
     if (currentLikeType === "LIKE") {
-      if (postId) {
-        unlikePost({ userId: userObjectId, postId });
+      if (feedpostId) {
+        unlikePost({ userId: userObjectId, feedPostId: feedpostId });
       }
       if (realtimePostId) {
         unlikeRealtimePost({ userId: userObjectId, realtimePostId });
@@ -49,8 +49,8 @@ const LikeButton = ({ postId, realtimePostId, likeCount, initialLikeState }: Pro
       setCurrentLikeType("NONE");
       setDisplayLikeCount(displayLikeCount - 1);
     } else {
-      if (postId) {
-        likePost({ userId: userObjectId, postId });
+      if (feedpostId) {
+        likePost({ userId: userObjectId, feedPostId: feedpostId });
       }
       if (realtimePostId) {
         likeRealtimePost({ userId: userObjectId, realtimePostId });
@@ -74,8 +74,8 @@ const LikeButton = ({ postId, realtimePostId, likeCount, initialLikeState }: Pro
       return;
     }
     if (currentLikeType === "DISLIKE") {
-      if (postId) {
-        unlikePost({ userId: userObjectId, postId });
+      if (feedpostId) {
+        unlikePost({ userId: userObjectId, feedPostId: feedpostId });
       }
       if (realtimePostId) {
         unlikeRealtimePost({ userId: userObjectId, realtimePostId });
@@ -83,8 +83,8 @@ const LikeButton = ({ postId, realtimePostId, likeCount, initialLikeState }: Pro
       setCurrentLikeType("NONE");
       setDisplayLikeCount(displayLikeCount + 1);
     } else {
-      if (postId) {
-        dislikePost({ userId: userObjectId, postId });
+      if (feedpostId) {
+        dislikePost({ userId: userObjectId, feedPostId: feedpostId });
       }
       if (realtimePostId) {
         dislikeRealtimePost({ userId: userObjectId, realtimePostId });

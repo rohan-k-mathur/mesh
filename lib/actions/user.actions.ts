@@ -252,7 +252,7 @@ export async function fetchUsers({
 
 export async function getActivity(userId: bigint) {
   try {
-    const userThreads = await prisma.post.findMany({
+    const userThreads = await prisma.feedPost.findMany({
       where: {
         author_id: userId,
       },
@@ -268,7 +268,7 @@ export async function getActivity(userId: bigint) {
     const childThreadIds = userThreads.flatMap((userThread) =>
       userThread.children.map((child) => child.id)
     );
-    const replies = await prisma.post.findMany({
+    const replies = await prisma.feedPost.findMany({
       where: {
         AND: [
           {

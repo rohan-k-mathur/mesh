@@ -7,7 +7,6 @@ import { useShallow } from "zustand/react/shallow";
 import TimerModal from "../modals/TimerModal";
 
 interface Props {
-  postId?: bigint;
   realtimePostId?: string;
   feedPostId?: bigint;
   isOwned: boolean;
@@ -15,9 +14,8 @@ interface Props {
 }
 
 const TimerButton = ({
-  postId,
   realtimePostId,
-  feedPostId,
+  feedpostId,
   isOwned,
   expirationDate,
 }: Props) => {
@@ -38,9 +36,8 @@ const TimerButton = ({
       onClick={() =>
         openModal(
           <TimerModal
-            postId={postId}
             realtimePostId={realtimePostId}
-            feedPostId={feedPostId}
+            feedPostId={feedpostId}
             isOwned={isOwned}
             expirationDate={expirationDate}
           />

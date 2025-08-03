@@ -5,7 +5,7 @@ import { prisma } from "../prismaclient";
 import { revalidatePath } from "next/cache";
 import { getUserFromCookies } from "../serverutils";
 import { canRepost } from "@/lib/repostPolicy";
-
+import CreateFeedPost from "@/components/forms/CreateFeedPost";
 interface CreatePostParams {
   text: string;
   authorId: bigint;
@@ -20,33 +20,34 @@ interface AddCommentToPostParams {
   path: string;
 }
 
-export async function createPost({ text, authorId, path, expirationDate }: CreatePostParams) {
-  try {
-    const createdPost = await prisma.post.create({
-      data: {
-        content: text,
-        author_id: authorId,
-        ...(expirationDate && { expiration_date: new Date(expirationDate) }),
-      },
-    });
-    await prisma.user.update({
-      where: {
-        id: authorId,
-      },
-      data: {
-        posts: {
-          connect: {
-            id: createdPost.id,
-          },
-        },
-      },
-    });
+// export async function createPost({ text, authorId, path, expirationDate }: CreatePostParams) {
+//   try {
+//     const createdPost = await prisma.feedPost.create({
+//       data: {
+//         content: text,
+//         author_id: authorId,
+//         type:
+//         ...(expirationDate && { expiration_date: new Date(expirationDate) }),
+//       },
+//     });
+//     await prisma.user.update({
+//       where: {
+//         id: authorId,
+//       },
+//       data: {
+//         posts: {
+//           connect: {
+//             id: createdPost.id,
+//           },
+//         },
+//       },
+//     });
 
-    revalidatePath(path);
-  } catch (error: any) {
-    throw new Error(`Failed to create post: ${error.message}`);
-  }
-}
+//     revalidatePath(path);
+//   } catch (error: any) {
+//     throw new Error(`Failed to create post: ${error.message}`);
+//   }
+// }
 
 export async function fetchPosts(pageNumber = 1, pageSize = 20) {
   await archiveExpiredPosts();
@@ -54,7 +55,7 @@ export async function fetchPosts(pageNumber = 1, pageSize = 20) {
   const skipAmount = (pageNumber - 1) * pageSize;
 
   //Find posts that are only top level (no parents)
-  const posts = await prisma.post.findMany({
+  const posts = await prisma.feedPost.findMany({
     where: {
       parent_id: null,
       OR: [
@@ -89,7 +90,7 @@ export async function fetchPosts(pageNumber = 1, pageSize = 20) {
     take: pageSize,
   });
 
-  const totalPostCount = await prisma.post.count({
+  const totalPostCount = await prisma.feedPost.count({
     where: {
       parent_id: null,
       OR: [
@@ -115,7 +116,7 @@ export async function fetchPosts(pageNumber = 1, pageSize = 20) {
 export async function fetchPostById(id: bigint) {
   try {
     await archiveExpiredPosts();
-    const post = await prisma.post.findUnique({
+    const post = await prisma.feedPost.findUnique({
       where: {
         id: id,
       },
@@ -155,7 +156,7 @@ export async function fetchPostById(id: bigint) {
 
 export async function fetchPostTreeById(id: bigint) {
   await archiveExpiredPosts();
-  const post = await prisma.post.findUnique({
+  const post = await prisma.feedPost.findUnique({
     where: { id },
     include: {
       author: true,
@@ -166,7 +167,7 @@ export async function fetchPostTreeById(id: bigint) {
     return null;
 
   const fetchChildren = async (parentId: bigint): Promise<any[]> => {
-    const children = await prisma.post.findMany({
+    const children = await prisma.feedPost.findMany({
       where: { parent_id: parentId },
       include: { author: true, _count: { select: { children: true } } },
     });
@@ -193,7 +194,7 @@ export async function addCommentToPost({
   path,
 }: AddCommentToPostParams) {
   try {
-    const originalPost = await prisma.post.findUnique({
+    const originalPost = await prisma.feedPost.findUnique({
       where: {
         id: parentPostId,
       },
@@ -201,14 +202,14 @@ export async function addCommentToPost({
     if (!originalPost) {
       throw new Error("Post not found");
     }
-    const commentPost = await prisma.post.create({
+    const commentPost = await prisma.feedPost.create({
       data: {
         content: commentText,
         author_id: userId,
         parent_id: parentPostId,
       },
     });
-    await prisma.post.update({
+    await prisma.feedPost.update({
       where: {
         id: parentPostId,
       },
@@ -240,7 +241,7 @@ export async function replicatePost({
   try {
     const oid = BigInt(originalPostId);
     const uid = BigInt(userId);
-    const original = await prisma.post.findUnique({
+    const original = await prisma.feedPost.findUnique({
       where: { id: oid },
       include: { author: true },
     });
@@ -249,7 +250,7 @@ export async function replicatePost({
       throw new Error("Post type not allowed to be replicated");
     }
     const payload = JSON.stringify({ id: oid.toString(), text });
-    const newPost = await prisma.post.create({
+    const newPost = await prisma.feedPost.create({
       data: {
         content: `REPLICATE:${payload}`,
         author_id: uid,
@@ -268,12 +269,10 @@ export async function replicatePost({
 
 
 export async function updatePostExpiration({
-  postId,
   realtimePostId,
   feedPostId,
   duration,
 }: {
-  postId?: bigint;
   realtimePostId?: string | bigint;
   feedPostId?: bigint;
   duration: string;
@@ -286,15 +285,7 @@ export async function updatePostExpiration({
     if (duration === "1w") expiration = new Date(now + 604800 * 1000);
   }
 
-  if (postId) {
-    const post = await prisma.post.findUnique({ where: { id: postId } });
-    if (!post) throw new Error("Post not found");
-    await prisma.post.update({
-      where: { id: postId },
-      data: { expiration_date: expiration },
-    });
-    return;
-  }
+
   if (feedPostId) {
     const post = await prisma.feedPost.findUnique({ where: { id: feedPostId } });
     if (!post) throw new Error("Feed post not found");
@@ -319,7 +310,7 @@ export async function updatePostExpiration({
 
 export async function archiveExpiredPosts() {
   const now = new Date();
-  const expired = await prisma.post.findMany({
+  const expired = await prisma.feedPost.findMany({
     where: { expiration_date: { lte: now } },
   });
   if (expired.length === 0) return;
@@ -336,7 +327,7 @@ export async function archiveExpiredPosts() {
   }
 
   while (queue.length > 0) {
-    const children = await prisma.post.findMany({
+    const children = await prisma.feedPost.findMany({
       where: { parent_id: { in: queue } },
     });
     queue = [];
@@ -354,6 +345,7 @@ export async function archiveExpiredPosts() {
     prisma.archivedPost.createMany({
       data: postsToArchive.map((p) => ({
         original_post_id: p.id,
+        // type; p.type,
         created_at: p.created_at,
         content: p.content,
         author_id: p.author_id,
@@ -364,14 +356,14 @@ export async function archiveExpiredPosts() {
       })),
       skipDuplicates: true,
     }),
-    prisma.post.deleteMany({ where: { id: { in: ids } } }),
+    prisma.feedPost.deleteMany({ where: { id: { in: ids } } }),
   ]);
 }
 
 export async function deletePost({ id, path }: { id: bigint; path?: string }) {
   const user = await getUserFromCookies();
   try {
-    const originalPost = await prisma.post.findUniqueOrThrow({
+    const originalPost = await prisma.feedPost.findUniqueOrThrow({
       where: {
         id: id,
       },
@@ -382,7 +374,7 @@ export async function deletePost({ id, path }: { id: bigint; path?: string }) {
 
     const ids: bigint[] = [];
     const collect = async (postId: bigint) => {
-      const children = await prisma.post.findMany({ where: { parent_id: postId } });
+      const children = await prisma.feedPost.findMany({ where: { parent_id: postId } });
       for (const child of children) {
         await collect(child.id);
       }
@@ -390,7 +382,7 @@ export async function deletePost({ id, path }: { id: bigint; path?: string }) {
     };
 
     await collect(id);
-    await prisma.post.deleteMany({ where: { id: { in: ids } } });
+    await prisma.feedPost.deleteMany({ where: { id: { in: ids } } });
     if (path) revalidatePath(path);
   } catch (error: any) {
     console.error("Failed to delete post:", error);

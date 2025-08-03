@@ -9,7 +9,7 @@ import {
 import { Input } from "../ui/input";
 
 interface Props {
-  postId?: bigint;
+  feedpostId?: bigint;
   realtimePostId?: string;
 }
 

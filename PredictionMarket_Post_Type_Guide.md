@@ -45,7 +45,6 @@ model Post {
 
 model PredictionMarket {
   id           String   @id @default(cuid())
-  postId       String   @unique
   question     String   @db.VarChar(140)
   closesAt     DateTime
   resolvesAt   DateTime?

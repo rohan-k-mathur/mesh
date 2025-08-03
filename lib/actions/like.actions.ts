@@ -1,371 +1,215 @@
+/* lib/actions/like.actions.ts */
 "use server";
 
 import { like_type } from "@prisma/client";
 import { prisma } from "../prismaclient";
 import { generateFriendSuggestions } from "./friend-suggestions.actions";
 
-interface likePostParams {
+/* ────────────────────────────────────────────────────────────
+   ─── Types ─────────────────────────────────────────────────── */
+
+interface FeedLikeParams {
   userId: string | number | bigint;
-  postId: string | number | bigint;
+  feedPostId: string | number | bigint;
 }
 
-interface realtimeLikeParams {
+interface RealtimeLikeParams {
   userId: string | number | bigint;
   realtimePostId: string | number | bigint;
 }
 
-export async function likePost({ userId, postId }: likePostParams) {
-  try {
-    const uid = BigInt(userId);
-    const pid = BigInt(postId);
-    const post = await prisma.post.findUnique({
-      where: {
-        id: pid,
-      },
-    });
-    if (!post) {
-      throw new Error("Post not found");
-    }
-    const existingLike = await fetchLikeForCurrentUser({
-      userId: uid,
-      postId: pid,
-    });
-    if (existingLike && existingLike.type === like_type.LIKE) {
-      console.log(
-        `User ${userId} has already liked post ${postId}. Returning...`
-      );
-      return;
-    }
-    let likeChangeAmount = 1;
-    if (existingLike && existingLike.type === like_type.DISLIKE) {
-      likeChangeAmount = 2;
-    }
-    await prisma.$transaction([
-      prisma.like.upsert({
-        where: {
-          post_id_user_id: {
-            post_id: pid,
-            user_id: uid,
-          },
-        },
-        update: {
-          score: 1,
-          type: "LIKE",
-        },
-        create: {
-          score: 1,
-          type: "LIKE",
-          user: {
-            connect: {
-              id: uid,
-            },
-          },
-          post: {
-            connect: {
-              id: pid,
-            },
-          },
-        },
-      }),
-      prisma.post.update({
-        where: {
-          id: pid,
-        },
-        data: {
-          like_count: {
-            increment: likeChangeAmount,
-          },
-        },
-      }),
-      prisma.feedPost.updateMany({
-        where: { post_id: pid },
-        data: { like_count: { increment: likeChangeAmount } },
-      }),
-    ]);
-    await generateFriendSuggestions(uid);
-  } catch (error: any) {
-    throw new Error(`Failed to like post: ${error.message}`);
-  }
+/* ────────────────────────────────────────────────────────────
+   ─── Helpers ──────────────────────────────────────────────── */
+
+function toBig(n: string | number | bigint) {
+  return typeof n === "bigint" ? n : BigInt(n);
 }
 
-export async function unlikePost({ userId, postId }: likePostParams) {
-  try {
-    const uid = BigInt(userId);
-    const pid = BigInt(postId);
-    const post = await prisma.post.findUnique({
-      where: {
-        id: pid,
-      },
-    });
-    if (!post) {
-      throw new Error("Post not found");
-    }
-    const existingLike = await fetchLikeForCurrentUser({
-      userId: uid,
-      postId: pid,
-    });
-    let likeChangeAmount = 0;
-    if (existingLike && existingLike.type === "LIKE") {
-      likeChangeAmount = -1;
-    } else if (existingLike && existingLike.type === "DISLIKE") {
-      likeChangeAmount = 1;
-    }
-    await prisma.$transaction([
-      prisma.like.delete({
-        where: {
-          post_id_user_id: {
-            user_id: uid,
-            post_id: pid,
-          },
-        },
-      }),
-      prisma.post.update({
-        where: {
-          id: pid,
-        },
-        data: {
-          like_count: {
-            increment: likeChangeAmount,
-          },
-        },
-      }),
-      prisma.feedPost.updateMany({
-        where: { post_id: pid },
-        data: { like_count: { increment: likeChangeAmount } },
-      }),
-    ]);
-  } catch (error: any) {
-    throw new Error(`Failed to unlike post: ${error.message}`);
-  }
+function feedPK(userId: bigint, postId: bigint) {
+  return { feed_post_id_user_id: { feed_post_id: postId, user_id: userId } };
 }
 
-export async function dislikePost({ userId, postId }: likePostParams) {
-  try {
-    const uid = BigInt(userId);
-    const pid = BigInt(postId);
-    const post = await prisma.post.findUnique({
-      where: {
-        id: pid,
-      },
-    });
-    if (!post) {
-      throw new Error("Post not found");
-    }
-    const existingLike = await fetchLikeForCurrentUser({
-      userId: uid,
-      postId: pid,
-    });
-    if (existingLike && existingLike.type === like_type.DISLIKE) {
-      console.log(
-        `User ${userId} has already disliked post ${postId}. Returning...`
-      );
-      return;
-    }
-    let likeChangeAmount = -1;
-    if (existingLike && existingLike.type === like_type.LIKE) {
-      likeChangeAmount = -2;
-    }
-    await prisma.$transaction([
-      prisma.like.upsert({
-        where: {
-          post_id_user_id: {
-            user_id: uid,
-            post_id: pid,
-          },
-        },
-        update: {
-          score: -1,
-          type: "DISLIKE",
-        },
-        create: {
-          score: -1,
-          type: "DISLIKE",
-          user: {
-            connect: {
-              id: uid,
-            },
-          },
-          post: {
-            connect: {
-              id: pid,
-            },
-          },
-        },
-      }),
-      prisma.post.update({
-        where: {
-          id: pid,
-        },
-        data: {
-          like_count: {
-            increment: likeChangeAmount,
-          },
-        },
-      }),
-      prisma.feedPost.updateMany({
-        where: { post_id: pid },
-        data: { like_count: { increment: likeChangeAmount } },
-      }),
-    ]);
-  } catch (error: any) {
-    throw new Error(`Failed to like post: ${error.message}`);
-  }
+function realtimePK(userId: bigint, postId: bigint) {
+  return { realtime_post_id_user_id: { realtime_post_id: postId, user_id: userId } };
 }
 
-export async function fetchLikeForCurrentUser({
-  userId,
-  postId,
-}: likePostParams) {
-  try {
-    const uid = BigInt(userId);
-    const pid = BigInt(postId);
-    const like = await prisma.like.findUnique({
-      where: {
-        post_id_user_id: {
-          user_id: uid,
-          post_id: pid,
-        },
-      },
-    });
-    return like;
-  } catch (error: any) {
-    throw new Error(`Failed to fetch if user liked post: ${error.message}`);
-  }
-}
+/* ────────────────────────────────────────────────────────────
+   ─── Feed‑post likes ──────────────────────────────────────── */
 
-export async function likeRealtimePost({
-  userId,
-  realtimePostId,
-}: realtimeLikeParams) {
-  try {
-    const uid = BigInt(userId);
-    const pid = BigInt(realtimePostId);
-    const post = await prisma.realtimePost.findUnique({
+export async function likePost({ userId, feedPostId }: FeedLikeParams) {
+  const uid = toBig(userId);
+  const pid = toBig(feedPostId);
+
+  const post = await prisma.feedPost.findUnique({ where: { id: pid } });
+  if (!post) throw new Error("Feed‑post not found");
+
+  const existing = await prisma.like.findUnique({ where: feedPK(uid, pid) });
+  if (existing?.type === like_type.LIKE) return;             // already liked
+
+  const delta = existing?.type === like_type.DISLIKE ? 2 : 1;
+
+  await prisma.$transaction([
+    prisma.like.upsert({
+      where: feedPK(uid, pid),
+      update: { score: 1, type: like_type.LIKE },
+      create: {
+        score: 1,
+        type:  like_type.LIKE,
+        user:  { connect: { id: uid } },
+        feedPost: { connect: { id: pid } },
+      },
+    }),
+    prisma.feedPost.update({
       where: { id: pid },
-    });
-    if (!post) {
-      throw new Error("Realtime post not found");
-    }
-    const existingLike = await prisma.realtimeLike.findUnique({
-      where: { realtime_post_id_user_id: { realtime_post_id: pid, user_id: uid } },
-    });
-    if (existingLike && existingLike.type === like_type.LIKE) {
-      return;
-    }
-    let likeChangeAmount = 1;
-    if (existingLike && existingLike.type === like_type.DISLIKE) {
-      likeChangeAmount = 2;
-    }
-    await prisma.$transaction([
-      prisma.realtimeLike.upsert({
-        where: { realtime_post_id_user_id: { realtime_post_id: pid, user_id: uid } },
-        update: { score: 1, type: "LIKE" },
-        create: {
-          score: 1,
-          type: "LIKE",
-          user: { connect: { id: uid } },
-          realtime_post: { connect: { id: pid } },
-        },
-      }),
-      prisma.realtimePost.update({
-        where: { id: pid },
-        data: { like_count: { increment: likeChangeAmount } },
-      }),
-    ]);
-    await generateFriendSuggestions(uid);
-  } catch (error: any) {
-    throw new Error(`Failed to like realtime post: ${error.message}`);
-  }
+      data:  { like_count: { increment: delta } },
+    }),
+  ]);
+
+  await generateFriendSuggestions(uid);
 }
 
-export async function unlikeRealtimePost({
-  userId,
-  realtimePostId,
-}: realtimeLikeParams) {
-  try {
-    const uid = BigInt(userId);
-    const pid = BigInt(realtimePostId);
-    const post = await prisma.realtimePost.findUnique({ where: { id: pid } });
-    if (!post) {
-      throw new Error("Realtime post not found");
-    }
-    const existingLike = await prisma.realtimeLike.findUnique({
-      where: { realtime_post_id_user_id: { realtime_post_id: pid, user_id: uid } },
-    });
-    let likeChangeAmount = 0;
-    if (existingLike && existingLike.type === "LIKE") {
-      likeChangeAmount = -1;
-    } else if (existingLike && existingLike.type === "DISLIKE") {
-      likeChangeAmount = 1;
-    }
-    await prisma.$transaction([
-      prisma.realtimeLike.delete({
-        where: { realtime_post_id_user_id: { realtime_post_id: pid, user_id: uid } },
-      }),
-      prisma.realtimePost.update({
-        where: { id: pid },
-        data: { like_count: { increment: likeChangeAmount } },
-      }),
-    ]);
-  } catch (error: any) {
-    throw new Error(`Failed to unlike realtime post: ${error.message}`);
-  }
+export async function dislikePost({ userId, feedPostId }: FeedLikeParams) {
+  const uid = toBig(userId);
+  const pid = toBig(feedPostId);
+
+  const post = await prisma.feedPost.findUnique({ where: { id: pid } });
+  if (!post) throw new Error("Feed‑post not found");
+
+  const existing = await prisma.like.findUnique({ where: feedPK(uid, pid) });
+  if (existing?.type === like_type.DISLIKE) return;          // already down‑voted
+
+  const delta = existing?.type === like_type.LIKE ? -2 : -1;
+
+  await prisma.$transaction([
+    prisma.like.upsert({
+      where: feedPK(uid, pid),
+      update: { score: -1, type: like_type.DISLIKE },
+      create: {
+        score: -1,
+        type:  like_type.DISLIKE,
+        user:  { connect: { id: uid } },
+        feedPost: { connect: { id: pid } },
+      },
+    }),
+    prisma.feedPost.update({
+      where: { id: pid },
+      data:  { like_count: { increment: delta } },
+    }),
+  ]);
 }
 
-export async function dislikeRealtimePost({
-  userId,
-  realtimePostId,
-}: realtimeLikeParams) {
-  try {
-    const uid = BigInt(userId);
-    const pid = BigInt(realtimePostId);
-    const post = await prisma.realtimePost.findUnique({ where: { id: pid } });
-    if (!post) {
-      throw new Error("Realtime post not found");
-    }
-    const existingLike = await prisma.realtimeLike.findUnique({
-      where: { realtime_post_id_user_id: { realtime_post_id: pid, user_id: uid } },
-    });
-    if (existingLike && existingLike.type === like_type.DISLIKE) {
-      return;
-    }
-    let likeChangeAmount = -1;
-    if (existingLike && existingLike.type === like_type.LIKE) {
-      likeChangeAmount = -2;
-    }
-    await prisma.$transaction([
-      prisma.realtimeLike.upsert({
-        where: { realtime_post_id_user_id: { realtime_post_id: pid, user_id: uid } },
-        update: { score: -1, type: "DISLIKE" },
-        create: {
-          score: -1,
-          type: "DISLIKE",
-          user: { connect: { id: uid } },
-          realtime_post: { connect: { id: pid } },
-        },
-      }),
-      prisma.realtimePost.update({
-        where: { id: pid },
-        data: { like_count: { increment: likeChangeAmount } },
-      }),
-    ]);
-  } catch (error: any) {
-    throw new Error(`Failed to dislike realtime post: ${error.message}`);
-  }
+export async function unlikePost({ userId, feedPostId }: FeedLikeParams) {
+  const uid = toBig(userId);
+  const pid = toBig(feedPostId);
+
+  const like = await prisma.like.findUnique({ where: feedPK(uid, pid) });
+  if (!like) return;                                         // nothing to undo
+
+  const delta = like.type === like_type.LIKE ? -1 : 1;
+
+  await prisma.$transaction([
+    prisma.like.delete({ where: feedPK(uid, pid) }),
+    prisma.feedPost.update({
+      where: { id: pid },
+      data:  { like_count: { increment: delta } },
+    }),
+  ]);
 }
 
-export async function fetchRealtimeLikeForCurrentUser({
-  userId,
-  realtimePostId,
-}: realtimeLikeParams) {
-  try {
-    const uid = BigInt(userId);
-    const pid = BigInt(realtimePostId);
-    const like = await prisma.realtimeLike.findUnique({
-      where: { realtime_post_id_user_id: { realtime_post_id: pid, user_id: uid } },
-    });
-    return like;
-  } catch (error: any) {
-    throw new Error(`Failed to fetch if user liked realtime post: ${error.message}`);
-  }
+/* Utility used by the feed page */
+export async function fetchLikeForCurrentUser({ userId, feedPostId }: FeedLikeParams) {
+  return prisma.like.findUnique({
+    where: feedPK(toBig(userId), toBig(feedPostId)),
+  });
+}
+
+/* ────────────────────────────────────────────────────────────
+   ─── Realtime‑post likes (unchanged apart from PK helpers) ── */
+
+export async function likeRealtimePost({ userId, realtimePostId }: RealtimeLikeParams) {
+  const uid = toBig(userId);
+  const pid = toBig(realtimePostId);
+
+  const post = await prisma.realtimePost.findUnique({ where: { id: pid } });
+  if (!post) throw new Error("Realtime‑post not found");
+
+  const existing = await prisma.realtimeLike.findUnique({ where: realtimePK(uid, pid) });
+  if (existing?.type === like_type.LIKE) return;
+
+  const delta = existing?.type === like_type.DISLIKE ? 2 : 1;
+
+  await prisma.$transaction([
+    prisma.realtimeLike.upsert({
+      where: realtimePK(uid, pid),
+      update: { score: 1, type: like_type.LIKE },
+      create: {
+        score: 1,
+        type:  like_type.LIKE,
+        user:  { connect: { id: uid } },
+        realtime_post: { connect: { id: pid } },
+      },
+    }),
+    prisma.realtimePost.update({
+      where: { id: pid },
+      data:  { like_count: { increment: delta } },
+    }),
+  ]);
+
+  await generateFriendSuggestions(uid);
+}
+
+export async function dislikeRealtimePost({ userId, realtimePostId }: RealtimeLikeParams) {
+  const uid = toBig(userId);
+  const pid = toBig(realtimePostId);
+
+  const post = await prisma.realtimePost.findUnique({ where: { id: pid } });
+  if (!post) throw new Error("Realtime‑post not found");
+
+  const existing = await prisma.realtimeLike.findUnique({ where: realtimePK(uid, pid) });
+  if (existing?.type === like_type.DISLIKE) return;
+
+  const delta = existing?.type === like_type.LIKE ? -2 : -1;
+
+  await prisma.$transaction([
+    prisma.realtimeLike.upsert({
+      where: realtimePK(uid, pid),
+      update: { score: -1, type: like_type.DISLIKE },
+      create: {
+        score: -1,
+        type:  like_type.DISLIKE,
+        user:  { connect: { id: uid } },
+        realtime_post: { connect: { id: pid } },
+      },
+    }),
+    prisma.realtimePost.update({
+      where: { id: pid },
+      data:  { like_count: { increment: delta } },
+    }),
+  ]);
+}
+
+export async function unlikeRealtimePost({ userId, realtimePostId }: RealtimeLikeParams) {
+  const uid = toBig(userId);
+  const pid = toBig(realtimePostId);
+
+  const like = await prisma.realtimeLike.findUnique({ where: realtimePK(uid, pid) });
+  if (!like) return;
+
+  const delta = like.type === like_type.LIKE ? -1 : 1;
+
+  await prisma.$transaction([
+    prisma.realtimeLike.delete({ where: realtimePK(uid, pid) }),
+    prisma.realtimePost.update({
+      where: { id: pid },
+      data:  { like_count: { increment: delta } },
+    }),
+  ]);
+}
+
+export async function fetchRealtimeLikeForCurrentUser(
+  { userId, realtimePostId }: RealtimeLikeParams,
+) {
+  return prisma.realtimeLike.findUnique({
+    where: realtimePK(toBig(userId), toBig(realtimePostId)),
+  });
 }

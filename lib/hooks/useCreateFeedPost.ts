@@ -11,7 +11,10 @@ export function useCreateFeedPost() {
       headers:{ "Content-Type":"application/json" },
       body: JSON.stringify(args),
     });
-    if (!res.ok) throw new Error("Failed");
+    if (!res.ok) {
+      const { error } = await res.json().catch(() => ({ error: res.statusText }));
+      throw new Error(`Failed: ${error}`);
+    }
     return res.json();
   }
 
