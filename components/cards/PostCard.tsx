@@ -352,7 +352,7 @@ const PostCard = ({
                 <LikeButton
                   {...(isRealtimePost
                     ? { realtimePostId: id.toString() }
-                    : { postId: id.toString() })}
+                    : { feedpostId: id.toString() })}
                   likeCount={likeCount}
                   initialLikeState={currentUserLike}
                 />
