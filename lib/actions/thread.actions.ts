@@ -202,22 +202,14 @@ export async function addCommentToPost({
     if (!originalPost) {
       throw new Error("Post not found");
     }
-    const commentPost = await prisma.feedPost.create({
+    await prisma.feedPost.create({
       data: {
         content: commentText,
         type: "TEXT",
         author_id: userId,
-        parent_id: parentPostId,
-      },
-    });
-    await prisma.feedPost.update({
-      where: {
-        id: parentPostId,
-      },
-      data: {
-        children: {
+        feedPost: {
           connect: {
-            id: commentPost.id,
+            id: parentPostId,
           },
         },
       },
