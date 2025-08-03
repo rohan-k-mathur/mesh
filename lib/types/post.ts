@@ -1,6 +1,6 @@
 import type { Node, Edge } from "@xyflow/react";
 import type { Like, RealtimeLike } from "@prisma/client";
-
+import { ProductReviewPayload } from "../actions/feed.actions";
 export interface CanvasState {
   nodes: Node[];
   edges: Edge[];
@@ -29,7 +29,7 @@ export interface BasePost {
   roomPostContent?: CanvasState | null;
   image_url?: string | null;
   portfolio?: PortfolioPayload | null;   // ← NEW
-
+  productReview?: ProductReviewPayload | null;
   video_url?: string | null;
   caption?: string | null;
   pluginType?: string | null;

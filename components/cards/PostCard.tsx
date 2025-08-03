@@ -275,7 +275,7 @@ const PostCard = ({
 
                 
             {type === "PRODUCT_REVIEW" &&
-              content &&
+              
               (() => {
                 let vals: any = null;
                 try {

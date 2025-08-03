@@ -13,6 +13,8 @@ import {
   FormMessage,
 } from "../ui/form";
 import { Input } from "../ui/input";
+import { createFeedPost } from "@/lib/actions/feedpost.actions";
+import { feed_post_type }  from "@prisma/client";
 
 interface Props {
   onSubmit: (values: z.infer<typeof ProductReviewValidation>) => void;
@@ -23,6 +25,8 @@ interface Props {
   currentClaims: string[];
   currentImages: string[];
 }
+
+
 
 const ProductReviewNodeForm = ({
   onSubmit,
