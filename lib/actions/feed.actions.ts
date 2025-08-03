@@ -249,7 +249,19 @@ export async function deleteFeedPost({
   if (!user) return;
   const post = await prisma.feedPost.findUnique({ where: { id } });
   if (!post || post.author_id !== user.userId) return;
-  await prisma.feedPost.delete({ where: { id } });
+  const ids: bigint[] = [];
+  const collect = async (postId: bigint) => {
+    const children = await prisma.feedPost.findMany({
+      where: { parent_id: postId },
+      select: { id: true },
+    });
+    for (const child of children) {
+      await collect(child.id);
+    }
+    ids.push(postId);
+  };
+  await collect(id);
+  await prisma.feedPost.deleteMany({ where: { id: { in: ids } } });
   if (path) revalidatePath(path);
 }
 
