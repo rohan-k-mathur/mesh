@@ -10,7 +10,8 @@ import { generateFriendSuggestions } from "./friend-suggestions.actions";
 
 interface FeedLikeParams {
   userId: string | number | bigint;
-  feedPostId: string | number | bigint;
+  feedPostId?: string | number | bigint;
+  postId?: string | number | bigint;
 }
 
 interface RealtimeLikeParams {
@@ -21,7 +22,8 @@ interface RealtimeLikeParams {
 /* ────────────────────────────────────────────────────────────
    ─── Helpers ──────────────────────────────────────────────── */
 
-function toBig(n: string | number | bigint) {
+function toBig(n: string | number | bigint | undefined) {
+  if (n === undefined) throw new Error("ID is required");
   return typeof n === "bigint" ? n : BigInt(n);
 }
 
@@ -36,9 +38,9 @@ function realtimePK(userId: bigint, postId: bigint) {
 /* ────────────────────────────────────────────────────────────
    ─── Feed‑post likes ──────────────────────────────────────── */
 
-export async function likePost({ userId, feedPostId }: FeedLikeParams) {
+export async function likePost({ userId, feedPostId, postId }: FeedLikeParams) {
   const uid = toBig(userId);
-  const pid = toBig(feedPostId);
+  const pid = toBig(feedPostId ?? postId);
 
   const post = await prisma.feedPost.findUnique({ where: { id: pid } });
   if (!post) throw new Error("Feed‑post not found");
@@ -68,9 +70,9 @@ export async function likePost({ userId, feedPostId }: FeedLikeParams) {
   await generateFriendSuggestions(uid);
 }
 
-export async function dislikePost({ userId, feedPostId }: FeedLikeParams) {
+export async function dislikePost({ userId, feedPostId, postId }: FeedLikeParams) {
   const uid = toBig(userId);
-  const pid = toBig(feedPostId);
+  const pid = toBig(feedPostId ?? postId);
 
   const post = await prisma.feedPost.findUnique({ where: { id: pid } });
   if (!post) throw new Error("Feed‑post not found");
@@ -98,9 +100,9 @@ export async function dislikePost({ userId, feedPostId }: FeedLikeParams) {
   ]);
 }
 
-export async function unlikePost({ userId, feedPostId }: FeedLikeParams) {
+export async function unlikePost({ userId, feedPostId, postId }: FeedLikeParams) {
   const uid = toBig(userId);
-  const pid = toBig(feedPostId);
+  const pid = toBig(feedPostId ?? postId);
 
   const like = await prisma.like.findUnique({ where: feedPK(uid, pid) });
   if (!like) return;                                         // nothing to undo
@@ -117,9 +119,13 @@ export async function unlikePost({ userId, feedPostId }: FeedLikeParams) {
 }
 
 /* Utility used by the feed page */
-export async function fetchLikeForCurrentUser({ userId, feedPostId }: FeedLikeParams) {
+export async function fetchLikeForCurrentUser({
+  userId,
+  feedPostId,
+  postId,
+}: FeedLikeParams) {
   return prisma.like.findUnique({
-    where: feedPK(toBig(userId), toBig(feedPostId)),
+    where: feedPK(toBig(userId), toBig(feedPostId ?? postId)),
   });
 }
 
