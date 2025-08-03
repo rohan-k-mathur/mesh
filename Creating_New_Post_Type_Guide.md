@@ -1,40 +1,30 @@
-Creating New Post Type Flow:
+Creating a New Post Type
+------------------------
 
-1. Creating new card component in components/cards/
-2. Import new card component in components/cards/PostCard.tsx
-3. Add new post type to enum realtime_post_type in lib/models/schema.prisma
-4. Add relevant columns to “model ReatimePost” in lib/models/schema.prisma if necessary 
-5. Create Supabase migration file with the structure: 
-ALTER TYPE "realtime_post_type" ADD VALUE IF NOT EXISTS ‘(NEW ‘POST TYPE);
-ALTER TABLE "realtime_posts" ADD COLUMN IF NOT EXISTS “(RELEVANT COLUMN IF NEEDED)“ (type);
-6. Add new post type in app/root/standard/page.tsx inside the RealtimeFeed component in the postTypes parameter — here is an example:  <RealtimeFeed
-          initialPosts={result.posts}
-          initialIsNext={result.isNext}
-          roomId="global"
-          postTypes={[
-            "TEXT",
-	………….
-            "PRODUCT_REVIEW",
-            "ROOM_CANVAS”,
-	“ (ADD NEW POST TYPE HERE),
-          ]}
-          currentUserId={user.userId}
-        />
-7. Also add to reactflow: “Adding new node types
-Nodes are defined in components/nodes and typed in lib/reactflow/types.ts. To add a node type, create a new React component, extend the types, and register it in the React Flow store.
+The PORTFOLIO post type is a good reference for how a fully featured post works. To add your own type, update both the backend and frontend as outlined below.
 
-Plug-ins
-Drop plug-ins into the plugins/ folder. Each plug-in exports a descriptor with a type, the React component, and optional config. Restart the dev server with npm run dev and the new nodes become available.”
+### Backend
 
-8. Updated post creation/ actions in lib/actions/realtimepost.actions.ts to persist data in the database— update CreateRealtimePostParams, UpdateRealtimePostParams, createRealtimePost, updateRealtimePost (with updateData inside it)
+1. **Prisma schema** – add the type to the `feed_post_type` and `realtime_post_type` enums in `lib/models/schema.prisma`. Add any new columns to `FeedPost` or `RealtimePost` if the post stores extra data.
+2. **Migration** – create a SQL migration in `lib/models/migrations/<timestamp>_<name>/migration.sql` that adds the enum value and columns, for example:
+   ```sql
+   ALTER TYPE "realtime_post_type" ADD VALUE IF NOT EXISTS 'MY_NEW_TYPE';
+   ALTER TYPE "feed_post_type"     ADD VALUE IF NOT EXISTS 'MY_NEW_TYPE';
+   ALTER TABLE "realtime_posts" ADD COLUMN IF NOT EXISTS ...;
+   ALTER TABLE "feed_posts"     ADD COLUMN IF NOT EXISTS ...;
+   ```
+3. **Server actions** – extend `CreateRealtimePostParams`, `UpdateRealtimePostParams`, `createRealtimePost`, and `updateRealtimePost` in `lib/actions/realtimepost.actions.ts`. If the type appears in the global feed, also update `CreateFeedPostArgs` and `createFeedPost` in `lib/actions/feed.actions.ts`.
+4. **Expose the type** – add it to the default list in `app/api/realtime-posts/route.ts` and to the `postTypes` arrays passed to `RealtimeFeed` in pages such as `app/(root)/(standard)/lounges/[id]/page.tsx`.
 
-9. Create a create post modal for the new post type in components/modals/ — this will import the input form at components/forms/ for the user to enter in the relevant data/information for the post type 
+### Frontend
 
-10. Create a validation for the new post type in lib/validations/thread.ts as export const NewPostTypeValidation = z.object({……. *insert*…});
-
-11. Import the modal into the Create Feed Post dropdown menu in components/forms/CreateFeedPost.tsx then add it as a case in “const nodeOptions”
-
-12. Double check if everything is in its right place and the logic is sound and styling is clean, robust and matches the standards and conventions of the implementation of the other post types.
+5. **Display component** – create a card under `components/cards/` and import it in `components/cards/PostCard.tsx` to render the new type.
+6. **React Flow node** – build a node component in `components/nodes/` and register it in:
+   - `lib/reactflow/types.ts` (`NodeTypeMap`, `NodeTypeToModalMap`, `DEFAULT_NODE_VALUES`, and type definitions)
+   - `components/reactflow/Room.tsx`
+   - `lib/reactflow/reactflowutils.ts`
+7. **Creation & editing UI** – add a form in `components/forms/` and a modal in `components/modals/`, define validation in `lib/validations/thread.ts`, and wire the modal into both `components/shared/NodeSidebar.tsx` (room canvas) and `components/forms/CreateFeedPost.tsx` (global feed) by updating their option lists and switch cases.
+8. **Final checks** – verify styling, data persistence, and permissions against existing post types.
 
 Raw → Taste-Vector integration checklist
 ---------------------------------------
