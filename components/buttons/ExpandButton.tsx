@@ -9,6 +9,7 @@ interface ExpandButtonProps {
 
 export default function ExpandButton({ targetId }: ExpandButtonProps) {
   return (
+    <button className="flex items-center gap-1">
     <Link
       href={`/thread/${targetId}`}
       data-testid="expand"
@@ -23,5 +24,7 @@ export default function ExpandButton({ targetId }: ExpandButtonProps) {
         className="cursor-pointer object-contain likebutton"
       />
     </Link>
+    {/* <span className="text-subtle-medium text-black">{commentCount}</span> */}
+    </button>
   );
 }

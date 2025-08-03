@@ -357,6 +357,7 @@ const PostCard = ({
                   likeCount={likeCount}
                   initialLikeState={currentUserLike}
                 />
+                <div className="flex flex-row items-center gap-2 ">
                 <ExpandButton
                   // {...(isRealtimePost
                   //   ? { realtimePostId: id.toString() }
@@ -365,6 +366,12 @@ const PostCard = ({
                   //   : { postId: id })}
                   targetId={canonicalId}      // ← always the post table PK
                 />
+                   {commentCount >= 0 && (
+                <div className="w-2 text-center  text-subtle-medium text-black">
+                  {commentCount}
+                </div>
+              )}
+              </div>
                 {canRepost(type) && (
                   <ReplicateButton
                     type={type}
@@ -396,13 +403,9 @@ const PostCard = ({
                       : { postId: id })}
                   />
                 )}
+              
               </div>
-              {commentCount > 0 && (
-                <div className="flex items-center gap-1 ml-2 text-gray-600 text-sm">
-                  <Image src="/assets/comment.svg" width={18} height={18} alt="" />
-                  {commentCount}
-                </div>
-              )}
+             
             </div>
           </div>
         </div>

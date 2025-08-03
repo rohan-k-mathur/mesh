@@ -23,12 +23,16 @@ export const mapRealtimePost = (dbRow: any): BasePost => ({
   ? new Date(dbRow.created_at).toISOString()
   : new Date().toISOString(),
 });
-
+export function canonicalIdOf(row: { type: string; id: bigint; post_id?: bigint | null }) {
+  return row.type === "PREDICTION" ? row.id : row.post_id ?? row.id;
+}
 export const mapFeedPost = (dbRow: any): BasePost => ({
   id: dbRow.id,
-  canonicalId: dbRow.post_id ?? dbRow.id,   // fallback for legacy rows
-  post_id: dbRow.post_id ?? null,
-
+  canonicalId:
+    dbRow.type === "PREDICTION"
+      ? dbRow.id                // <- thread/[id] must point to feed row
+      : dbRow.post_id ?? dbRow.id,  post_id: dbRow.post_id ?? null,
+// canonicalId: canonicalIdOf(dbRow),
   author: dbRow.author,
   type: dbRow.type,
   content: dbRow.content ?? null,
