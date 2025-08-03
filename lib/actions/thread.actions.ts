@@ -205,6 +205,7 @@ export async function addCommentToPost({
     const commentPost = await prisma.feedPost.create({
       data: {
         content: commentText,
+        type: "TEXT",
         author_id: userId,
         parent_id: parentPostId,
       },
