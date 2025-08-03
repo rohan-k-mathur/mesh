@@ -7,39 +7,55 @@ import { getUserFromCookies } from "../serverutils";
 
 interface CreateFeedPostParams {
   caption?: string;
+  content?: string;
   imageUrl?: string;
   portfolio?: { pageUrl: string; snapshot?: string };
   productReview?: {
-       productName: string;
-       rating: number;                   // 1 – 5
-       summary: string;
-       productLink?: string;
-       images?: string[];
-       claims?: string[];
-     };
+    productName: string;
+    rating: number; // 1 – 5
+    summary: string;
+    productLink?: string;
+    images?: string[];
+    claims?: string[];
+  };
   type: feed_post_type;
 }
 
 export async function createFeedPost({
   caption = "",
+  content = "",
   imageUrl,
   portfolio,
-   productReview,
-
+  productReview,
   type,
 }: CreateFeedPostParams) {
-    const user = await getUserFromCookies();
-    if (!user) throw new Error("Unauthenticated");
-//   const author = await getUserFromCookies();
-//   if (!author) throw new Error("Unauthenticated");
+  const user = await getUserFromCookies();
+  if (!user) throw new Error("Unauthenticated");
 
   await prisma.feedPost.create({
     data: {
-        author: { connect: { id: BigInt(user.userId) } },
-        caption,
-      image_url: imageUrl ?? null,   // keep column names 1-to-1
-      portfolio,          // JSON column on feed_posts (assumed)
-      productReview,
+      author: { connect: { id: BigInt(user.userId) } },
+      caption,
+      content,
+      image_url: imageUrl ?? null, // keep column names 1-to-1
+      portfolio, // JSON column on feed_posts (assumed)
+      ...(productReview && {
+        productReview: {
+          create: {
+            author_id: BigInt(user.userId),
+            product_name: productReview.productName,
+            rating: productReview.rating,
+            ...(productReview.summary && { summary: productReview.summary }),
+            ...(productReview.productLink && {
+              product_link: productReview.productLink,
+            }),
+            image_urls: productReview.images ?? [],
+            claims: {
+              create: (productReview.claims ?? []).map((text) => ({ text })),
+            },
+          },
+        },
+      }),
       type,
     },
   });

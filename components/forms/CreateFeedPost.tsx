@@ -495,6 +495,14 @@ const CreateFeedPost = ({ roomId = "global" }: Props) => {
                     claims: filtered,
                   }),
                   imageUrl: urls[0],
+                  productReview: {
+                    productName: vals.productName,
+                    rating: vals.rating,
+                    summary: vals.summary,
+                    productLink: vals.productLink,
+                    images: urls,
+                    claims: filtered,
+                  },
                 });
               } else {
                 await createRealtimePost({
