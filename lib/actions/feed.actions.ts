@@ -184,7 +184,7 @@ export async function fetchFeedPosts() {
     /* 👇 use select so scalar `post_id` is available */
     select: {
       id: true,                 // feed‑row PK
-      post_id: true,            // ← canonical Post PK
+      post_id: true,             // ✅ use the Prisma field name
       type: true,
       content: true,
       image_url: true,

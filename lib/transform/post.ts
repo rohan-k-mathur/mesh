@@ -2,7 +2,9 @@ import type { BasePost } from "@/lib/types/post";
 
 export const mapRealtimePost = (dbRow: any): BasePost => ({
   id: dbRow.id,
-  canonicalId: dbRow.id,                  // realtime rows *are* canonical
+  canonicalId: dbRow.postId          // ✅ correct link
+  ?? dbRow.post_id      // (legacy)
+  ?? dbRow.id,             // realtime rows *are* canonical
 
   author: dbRow.author,
   type: dbRow.type,
@@ -31,7 +33,7 @@ export const mapFeedPost = (dbRow: any): BasePost => ({
   canonicalId:
     dbRow.type === "PREDICTION"
       ? dbRow.id                // <- thread/[id] must point to feed row
-      : dbRow.post_id ?? dbRow.id,  post_id: dbRow.post_id ?? null,
+      : dbRow.postId ?? dbRow.id,  post_id: dbRow.postId ?? null,
 // canonicalId: canonicalIdOf(dbRow),
   author: dbRow.author,
   type: dbRow.type,
