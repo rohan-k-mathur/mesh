@@ -162,9 +162,11 @@ function SortableCanvasItem({
 function EditableBox({
   box,
   onInput,
+  onSelect,
 }: {
   box: TextBox;
   onInput: (t: string) => void;
+  onSelect: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -190,7 +192,10 @@ function EditableBox({
         whiteSpace: "pre-wrap",
         cursor: "text",
       }}
-      onPointerDown={(e) => e.stopPropagation()}
+      onPointerDown={(e) => {
+        onSelect();
+        e.stopPropagation();
+      }}
       onInput={(e) => onInput((e.target as HTMLElement).innerText)}
     />
   );
@@ -506,10 +511,11 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
         y += height;
         height = -height;
       }
+      const id = nanoid();
       setBoxes((bs) => [
         ...bs,
         {
-          id: nanoid(),
+          id,
           x,
           y,
           width,
@@ -519,6 +525,7 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
           lineHeight: 1.2,
         },
       ]);
+      setSelectedId(id);
       setDraft(null);
     };
 
@@ -572,6 +579,7 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
                   bs.map((b) => (b.id === box.id ? { ...b, text } : b))
                 )
               }
+              onSelect={() => setSelectedId(box.id)}
             />
           </div>
         ))}
