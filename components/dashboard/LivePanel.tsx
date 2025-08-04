@@ -5,7 +5,6 @@ import { revalidatePath } from "next/cache";
 import { Suspense } from "react";
 import { useState, useOptimistic } from "react";
 // ---------- CLIENT PART ----------
-const [optimisticLive, setLive] = useOptimistic(initLive, (_prev, next) => next);
 
 import { mutate } from "swr";
 
