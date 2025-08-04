@@ -8,16 +8,16 @@ import { NickCompleter } from "./NickCompleter";
 
 dayjs.extend(relativeTime);
 
-interface Msg {
+interface RVW {
   id: string;
   user: string;
   text: string;
   at: string;
 }
 
-export function ChatPane({ stallId }: { stallId: number }) {
+export function ReviewPane({ stallId }: { stallId: number }) {
   const { user } = useAuth();
-  const [msgs, setMsgs] = useState<Msg[]>([]);
+  const [msgs, setMsgs] = useState<RVW[]>([]);
   const [input, setInput] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
   const handleSelect = (nick: string) =>
@@ -70,7 +70,6 @@ export function ChatPane({ stallId }: { stallId: number }) {
         <div ref={bottomRef} />
       </div>
 
-      <NickCompleter stallId={stallId} onSelect={handleSelect} />
       <form
         onSubmit={e => {
           e.preventDefault();
@@ -82,7 +81,7 @@ export function ChatPane({ stallId }: { stallId: number }) {
           className="flex-1 border-[2px] border-slate-300 rounded px-2 py-2 text-sm"
           value={input}
           onChange={e => setInput(e.target.value)}
-          placeholder="Message the Seller…"
+          placeholder="Leave Reviews, Testimonials, Feedback and Comments Here..."
           autoFocus
         />
         <button
