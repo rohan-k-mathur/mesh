@@ -1,0 +1,19 @@
+/* size & colour here are just examples ─ tweak freely */
+.handle-nw,
+.handle-ne,
+.handle-sw,
+.handle-se {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: #4b5563;          /* slate-600 */
+  border: 2px solid #ffffff;    /* white outline so it’s visible */
+  z-index: 20;
+  cursor: nwse-resize;          /* default ─ we’ll override below */
+}
+
+/* corners */
+.handle-nw { top: -5px; left: -5px;  cursor: nwse-resize; }
+.handle-ne { top: -5px; right: -5px; cursor: nesw-resize; }
+.handle-sw { bottom: -5px; left: -5px;  cursor: nesw-resize; }
+.handle-se { bottom: -5px; right: -5px; cursor: nwse-resize; }

@@ -1,33 +1,40 @@
 /* eslint-disable react/jsx-key */
 "use client";
+import "../../globals.css";
 
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useImperativeHandle,
+  useCallback,
+  useLayoutEffect,
+  forwardRef,
+} from "react";
 import {
   DndContext,
   DragEndEvent,
-  pointerWithin,
+  PointerSensor,
   useDraggable,
   useDroppable,
   useSensor,
   useSensors,
-  PointerSensor,
+  pointerWithin,
 } from "@dnd-kit/core";
 import { useSortable, arrayMove } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+
 import { nanoid } from "nanoid";
-import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { uploadFileToSupabase } from "@/lib/utils";
 import { PortfolioExportData } from "@/lib/portfolio/export";
 import { templates, BuilderElement } from "@/lib/portfolio/templates";
 import Image from "next/image";
-import { createFeedPost }     from "@/lib/actions/feedpost.actions";
-import { feed_post_type }     from "@prisma/client";
+import { createFeedPost } from "@/lib/actions/feedpost.actions";
+import { feed_post_type } from "@prisma/client";
 import { Input } from "@/components/ui/input";
-import { useCallback, useImperativeHandle, useLayoutEffect } from "react";
 import styles from "./resize-handles.module.css"; // CSS module for handles
-import {
-  forwardRef,  
-} from "react";
+
 import {
   Select,
   SelectContent,
@@ -37,10 +44,12 @@ import {
 } from "@/components/ui/select";
 import { isSafeYoutubeEmbed, isSafeHttpLink } from "@/lib/utils/validators";
 
+type Corner = "nw" | "ne" | "sw" | "se";
+type ResizeTarget = { id: string; kind: "text" | "image" | "video" };
 
 type Element = BuilderElement;
 
-/*  PUBLIC handle that PortfolioBuilder will call     */
+/* ---------- DroppableCanvas ---------- */
 export interface DroppableCanvasHandle {
   startResize(
     e: React.PointerEvent,
@@ -48,13 +57,11 @@ export interface DroppableCanvasHandle {
     corner: Corner
   ): void;
 }
-/* -------------------------------------------------- */
+
 interface DroppableCanvasProps {
-  /* same props you passed before, *minus* onResizeStart */
   children: React.ReactNode;
   layout: "column" | "grid" | "free";
   color: string;
-  isBlank: boolean;
   drawText: boolean;
   boxes: TextBox[];
   elements: Element[];
@@ -64,8 +71,6 @@ interface DroppableCanvasProps {
   selectedId: string | null;
   setSelectedId: React.Dispatch<React.SetStateAction<string | null>>;
 }
-
-
 
 function DraggableItem({
   id,
@@ -153,6 +158,44 @@ function SortableCanvasItem({
   );
 }
 
+/* ---------- EditableBox helper ---------- */
+function EditableBox({
+  box,
+  onInput,
+}: {
+  box: TextBox;
+  onInput: (t: string) => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    if (ref.current && ref.current.innerText !== box.text) {
+      ref.current.innerText = box.text;
+    }
+  }, [box.text]);
+
+  return (
+    <div
+      ref={ref}
+      contentEditable
+      suppressContentEditableWarning
+      className="w-full h-full px-3 py-2"
+      style={{
+        fontSize: box.fontSize,
+        lineHeight: box.lineHeight,
+        letterSpacing: box.letterSpacing,
+        fontFamily: box.fontFamily,
+        fontWeight: box.fontWeight,
+        fontStyle: box.italic ? "italic" : undefined,
+        whiteSpace: "pre-wrap",
+        cursor: "text",
+      }}
+      onPointerDown={(e) => e.stopPropagation()}
+      onInput={(e) => onInput((e.target as HTMLElement).innerText)}
+    />
+  );
+}
+
 interface TextBox {
   id: string;
   x: number;
@@ -167,9 +210,8 @@ interface TextBox {
   fontWeight?: 400 | 500 | 600 | 700;
   italic?: boolean;
 }
-type Corner = "nw" | "ne" | "sw" | "se";
 
-type ResizeTarget = { id: string; kind: "text" | "image" | "video" };
+// type ResizeTarget = { id: string; kind: "text" | "image" | "video" };
 interface ResizeState {
   target: ResizeTarget; // element being resized
   corner: Corner; // which corner is active
@@ -255,545 +297,6 @@ function StylePanel({
     </div>
   );
 }
-/* -------------------------------------------------- */
-
-
-// function DroppableCanvas({
-//   children,
-//   layout,
-//   color,
-//   isBlank,
-//   drawText,
-//   boxes,
-//   setBoxes,
-//   elements,
-//   setElements, 
-//   canvasRef,
-//   selectedId,
-//   setSelectedId,
-//   onResizeStart,
-// }: {
-//   children: React.ReactNode;
-//   layout: "column" | "grid" | "free";
-//   color: string;
-//   isBlank: boolean;
-//   drawText: boolean;
-//   boxes: TextBox[];
-//   elements: Element[];                              
-//   setBoxes: React.Dispatch<React.SetStateAction<TextBox[]>>;
-//   setElements: React.Dispatch<React.SetStateAction<Element[]>>; 
-//   canvasRef: React.MutableRefObject<HTMLDivElement | null>;
-//   selectedId: string | null;
-//   setSelectedId: React.Dispatch<React.SetStateAction<string | null>>;
-//   onResizeStart?: (
-//     fn: (
-//       e: React.PointerEvent,
-//       target: ResizeTarget,
-//       corner: Corner
-//     ) => void
-//   ) => void;
-// }) {
-//   const { setNodeRef } = useDroppable({ id: "canvas" });
-//   const layoutClass =
-//     layout === "free"
-//       ? "flex flex-col-auto flex-1 flex-row-auto gap-auto w-auto h-auto"
-//       : layout === "grid"
-//       ? "grid grid-cols-2 gap-2"
-//       : "flex flex-col gap-2";
-//   /* NEW ---------- */
-//   const [draft, setDraft] = useState<TextBox | null>(null);
-//   // const [resizing, setResizing] = useState<ResizeState | null>(null);
-//   // const [dragging, setDragging] = useState<DragState | null>(null);
-//      const [resizing, _setResizing] = useState<ResizeState | null>(null);
-//    const [dragging, _setDragging] = useState<DragState | null>(null);
-//    const resizeRef = useRef<ResizeState | null>(null);
-//    const dragRef   = useRef<DragState | null>(null);
-
-//    const setResizing = (s: ResizeState | null) => {
-//      resizeRef.current = s;
-//      _setResizing(s);
-//    };
-//    const setDragging = (d: DragState | null) => {
-//      dragRef.current = d;
-//      _setDragging(d);
-//    };
-
-//   /* --------------- */
-//   const ref = canvasRef;
-//     useEffect(() => {
-//         onResizeStart?.(handleResizeStart);
-//      }, [onResizeStart]);
-
-
-
-//   function startDraw(e: React.MouseEvent<HTMLDivElement>) {
-//     if (!drawText || e.target !== ref.current) return;
-//     setSelectedId(null);
-//     const rect = ref.current!.getBoundingClientRect();
-//     const x = e.clientX - rect.left;
-//     const y = e.clientY - rect.top;
-//     setDraft({ id: "", x, y, width: 0, height: 0, text: "" });
-//   }
-
-//   function moveDraw(e: React.MouseEvent<HTMLDivElement>) {
-//     if (!drawText || !draft) return;
-//     const rect = ref.current!.getBoundingClientRect();
-//     const x = e.clientX - rect.left;
-//     const y = e.clientY - rect.top;
-//     setDraft((d) => (d ? { ...d, width: x - d.x, height: y - d.y } : null));
-//   }
-
-//   function endDraw() {
-//     if (!drawText || !draft) return;
-//     let { x, y, width, height } = draft;
-//     if (Math.abs(width) < 5 || Math.abs(height) < 5) {
-//       setDraft(null);
-//       return;
-//     }
-//     if (width < 0) {
-//       x += width;
-//       width = Math.abs(width);
-//     }
-//     if (height < 0) {
-//       y += height;
-//       height = Math.abs(height);
-//     }
-//     setBoxes((bs) => [
-//       ...bs,
-//       {
-//         id: nanoid(),
-//         x,
-//         y,
-//         width,
-//         height,
-//         text: "",
-//         fontSize: 14,
-//         lineHeight: 1.2,
-//       },
-//     ]);
-//     setDraft(null);
-//   }
-//   /* ---------- resize helpers ------------ */
-//   const handleResizeStart = useCallback(
-//     (e: React.PointerEvent, target: ResizeTarget, corner: Corner) => {
-//       e.stopPropagation();
-//       const rect = ref.current!.getBoundingClientRect();
-//       const startX = e.clientX - rect.left;
-//       const startY = e.clientY - rect.top;
-//       const obj =
-//         target.kind === "text"
-//           ? boxes.find((b) => b.id === target.id)!
-//           : elements.find((el) => el.id === target.id)!;
-
-//       setResizing({
-//         target,
-//         corner,
-//         startX,
-//         startY,
-//         startLeft: obj.x,
-//         startTop: obj.y,
-//         startWidth: obj.width,
-//         startHeight: obj.height,
-//       });
-//     },
-//     [boxes, elements]
-//   );
-//   function computeResize(
-//     corner: Corner,
-//     start: { left:number; top:number; width:number; height:number },
-//     dx:number,
-//     dy:number
-//   ) {
-//     switch (corner) {
-//       case "se": /* … */ return …
-//       case "sw": /* … */ return …
-//       case "ne": /* … */ return …
-//       case "nw": /* … */ return …
-//     }
-//     const _exhaustiveCheck: never = corner; // <- TypeScript protects us
-//     return _exhaustiveCheck;
-//   }
-
-//   // expose through imperative handle – parent just calls .startResize()
-//   useImperativeHandle(ref, () => ({ startResize: handleResizeStart }), [
-//     handleResizeStart,
-//   ]);
-  
-//   function handleBoxPointerDown(e: React.PointerEvent, b: TextBox) {
-//     // Ignore if we’re clicking a resize handle – they call handleResizeStart.
-//     if ((e.target as HTMLElement).classList.contains("resize-handle")) return;
-
-//     // Ignore if user clicks inside the text editor (it stops propagation).
-//     e.stopPropagation();
-
-//     setSelectedId(b.id);
-
-//     const rect = ref.current!.getBoundingClientRect();
-//     setDragging({
-//       id: b.id,
-//       startX: e.clientX - rect.left,
-//       startY: e.clientY - rect.top,
-//       startLeft: b.x,
-//       startTop: b.y,
-//     });
-//   }
-//   useEffect(() => {
-//     const esc = (e: KeyboardEvent) => e.key === "Escape" && setSelectedId(null);
-//     window.addEventListener("keydown", esc);
-//     return () => window.removeEventListener("keydown", esc);
-//   }, []);
-
-//   // /* attach / detach window listeners when resizing */
-//   // useEffect(() => {
-//   //   function onMove(ev: PointerEvent) {
-//   //     if (!resizing) return;
-//   //     const {
-//   //       startX,
-//   //       startY,
-//   //       corner,
-//   //       startLeft,
-//   //       startTop,
-//   //       startWidth,
-//   //       startHeight,
-//   //       target,
-//   //     } = resizing;
-//   //     const rect = ref.current!.getBoundingClientRect();
-//   //     const x = ev.clientX - rect.left;
-//   //     const y = ev.clientY - rect.top;
-//   //     const dx = x - startX;
-//   //     const dy = y - startY;
-
-//   //     let left = startLeft;
-//   //     let top = startTop;
-//   //     let width = startWidth;
-//   //     let height = startHeight;
-
-//   //     switch (corner) {
-//   //       case "se":
-//   //         width = Math.max(20, startWidth + dx);
-//   //         height = Math.max(20, startHeight + dy);
-//   //         break;
-//   //       case "sw":
-//   //         width = Math.max(20, startWidth - dx);
-//   //         height = Math.max(20, startHeight + dy);
-//   //         left = startLeft + dx;
-//   //         break;
-//   //       case "ne":
-//   //         width = Math.max(20, startWidth + dx);
-//   //         height = Math.max(20, startHeight - dy);
-//   //         top = startTop + dy;
-//   //         break;
-//   //       case "nw":
-//   //         width = Math.max(20, startWidth - dx);
-//   //         height = Math.max(20, startHeight - dy);
-//   //         left = startLeft + dx;
-//   //         top = startTop + dy;
-//   //         break;
-//   //     }
-
-//   //     if (target.kind === "text") {
-//   //       setBoxes((bs) =>
-//   //         bs.map((b) =>
-//   //           b.id === target.id ? { ...b, x: left, y: top, width, height } : b
-//   //         )
-//   //       );
-//   //     } else {
-//   //       setElements((es) =>
-//   //         es.map((el) =>
-//   //           el.id === target.id ? { ...el, x: left, y: top, width, height } : el
-//   //         )
-//   //       );
-//   //     }
-//   //   }
-    
-
-
-
-
-//   //      function onUp() {
-//   //           setResizing(null);          // <- clear the mode
-//   //         }
-//   //       }
-
-//   //         if (resizing) {
-//   //                 window.addEventListener("pointermove", onMove);
-//   //                 window.addEventListener("pointerup", onUp);
-//   //                 return () => {
-//   //                   window.removeEventListener("pointermove", onMove);
-//   //                   window.removeEventListener("pointerup", onUp);
-//   //                 };
-//   //               }
-//   // }, [resizing, setBoxes, setElements]);
-
-// /** 1️⃣  global pointer listeners – mount once, on component mount */
-// useEffect(() => {
-//   /** Pointer move drives *both* resize and drag */
-//   const onMove = (ev: PointerEvent) => {
-//     const r = resizeRef.current;
-//     if (r) updateResize(ev, r);   // <-- pure helper mutates state via setters
-
-//     const d = dragRef.current;
-//     if (d) updateDrag(ev, d);
-//   };
-
-//   /** Pointer up: finish whichever mode is active */
-//   const onUp = () => {
-//     resizeRef.current = null;
-//     dragRef.current   = null;
-//     _setResizing(null);  // tell React to re-render (cursor, selection, etc.)
-//     _setDragging(null);
-//   };
-
-//   window.addEventListener("pointermove", onMove);
-//   window.addEventListener("pointerup",   onUp);
-
-//   /** cleanup once on unmount */
-//   return () => {
-//     window.removeEventListener("pointermove", onMove);
-//     window.removeEventListener("pointerup",   onUp);
-//   };
-// }, []);   //  <-- empty deps array ⇒ runs exactly once
-
-//   useEffect(() => {
-//     function onMove(ev: PointerEvent) {
-//       if (!dragging) return;
-//       const rect = ref.current!.getBoundingClientRect();
-//       const x = ev.clientX - rect.left;
-//       const y = ev.clientY - rect.top;
-//       const dx = x - dragging.startX;
-//       const dy = y - dragging.startY;
-
-//       setBoxes((bs) =>
-//         bs.map((b) =>
-//           b.id === dragging.id
-//             ? { ...b, x: dragging.startLeft + dx, y: dragging.startTop + dy }
-//             : b
-//         )
-//       );
-//     }
-
-//     function onUp() {
-//       setDragging(null);
-//     }
-
-//     if (dragging) {
-//       window.addEventListener("pointermove", onMove);
-//       window.addEventListener("pointerup", onUp);
-//       return () => {
-//         window.removeEventListener("pointermove", onMove);
-//         window.removeEventListener("pointerup", onUp);
-//       };
-//     }
-//   }, [dragging, setBoxes]);
-
-//   function updateResize(ev: PointerEvent, s: ResizeState) {
-//     const { startX, startY, corner, startLeft, startTop,
-//             startWidth, startHeight, target } = s;
-  
-//     const rect = canvasRef.current!.getBoundingClientRect();
-//     const dx = ev.clientX - rect.left - startX;
-//     const dy = ev.clientY - rect.top  - startY;
-  
-//     let left = startLeft;
-//     let top  = startTop;
-//     let w    = startWidth;
-//     let h    = startHeight;
-  
-//     switch (corner) {
-//       case "se": w = Math.max(20, startWidth  + dx);
-//                  h = Math.max(20, startHeight + dy);      break;
-//       case "sw": w = Math.max(20, startWidth  - dx);
-//                  h = Math.max(20, startHeight + dy);
-//                  left = startLeft + dx;                  break;
-//       case "ne": w = Math.max(20, startWidth  + dx);
-//                  h = Math.max(20, startHeight - dy);
-//                  top  = startTop  + dy;                  break;
-//       case "nw": w = Math.max(20, startWidth  - dx);
-//                  h = Math.max(20, startHeight - dy);
-//                  left = startLeft + dx;
-//                  top  = startTop  + dy;                  break;
-//     }
-//     const _exhaustiveCheck: never = corner; // TS catches new corners
-  
-//     if (target.kind === "text") {
-//       setBoxes(bs => bs.map(b =>
-//         b.id === target.id ? { ...b, x: left, y: top, width: w, height: h } : b
-//       ));
-//     } else {
-//       setElements(es => es.map(el =>
-//         el.id === target.id ? { ...el, x: left, y: top, width: w, height: h } : el
-//       ));
-//     }
-//   }
-//   // inside the forwardRef component
-// const startResize = useCallback(
-//   (e: React.PointerEvent, target: ResizeTarget, corner: Corner) => {
-//     // same math you had before, but instead of setResizing(...)
-//     resizeRef.current = {
-//       target, corner, startX, startY,
-//       startLeft: obj.x, startTop: obj.y,
-//       startWidth: obj.width, startHeight: obj.height,
-//     };
-//     _setResizing(resizeRef.current);   // update React for UI cues
-//   },
-//   [boxes, elements]
-// );
-
-// useImperativeHandle(ref, () => ({ startResize }), [startResize]);
-//   function updateDrag(ev: PointerEvent, d: DragState) {
-//     const rect = canvasRef.current!.getBoundingClientRect();
-//     const dx = ev.clientX - rect.left - d.startX;
-//     const dy = ev.clientY - rect.top  - d.startY;
-  
-//     setBoxes(bs => bs.map(b =>
-//       b.id === d.id ? { ...b, x: d.startLeft + dx, y: d.startTop + dy } : b
-//     ));
-//   }
-
-//   function updateText(id: string, text: string) {
-//     setBoxes((bs) => bs.map((b) => (b.id === id ? { ...b, text } : b)));
-//   }
-
-//   function canvasMouseDown(e: React.MouseEvent<HTMLDivElement>) {
-//     if (e.target === ref.current) {
-//       setSelectedId(null);
-//     }
-//     if (drawText) startDraw(e);
-//   }
-//   const resizeStartRef = useRef<
-//   (e: React.PointerEvent, t: ResizeTarget, c: Corner) => void
-// >();
-// // thin wrapper the JSX can call
-// const proxyResizeStart = (
-//   e: React.PointerEvent,
-//   target: ResizeTarget,
-//   corner: Corner
-// ) => resizeStartRef.current?.(e, target, corner);
-
-// function EditableBox({ box, onInput }: { box: TextBox; onInput: (t: string) => void }) {
-//   /* 1️⃣  allocate the ref */
-//   const textRef = useRef<HTMLDivElement | null>(null);
-
-//   /* 2️⃣  keep DOM text in sync *after* React paint */
-//   useLayoutEffect(() => {
-//     if (textRef.current && textRef.current.innerText !== box.text) {
-//       textRef.current.innerText = box.text;
-//     }
-//   }, [box.text]);
-
-//   /* 3️⃣  JSX — note it’s a plain <div>, *not* <HTMLDivElement> */
-//   return (
-//     <div
-//       ref={textRef}                     // ✅ attach ref
-//       contentEditable
-//       suppressContentEditableWarning
-//       className="w-full h-full px-3 py-2"
-//       style={{
-//         fontSize: box.fontSize,
-//         lineHeight: box.lineHeight,
-//         letterSpacing: box.letterSpacing,
-//         fontFamily: box.fontFamily,
-//         fontWeight: box.fontWeight,
-//         fontStyle: box.italic ? "italic" : undefined,
-//         whiteSpace: "pre-wrap",
-//         cursor: "text",
-//       }}
-//       onPointerDown={(e) => e.stopPropagation()}
-//       onInput={(e) => onInput((e.target as HTMLElement).innerText)}
-//     />
-//   );
-// }
-
-//   return (
-//     <div
-//       ref={(node) => {
-//         setNodeRef(node);
-//         ref.current = node;
-//       }}
-//       className={`relative flex-1 min-h-screen border border-dashed p-4 ${color} ${layoutClass} grid-background`}
-//       style={{
-//         cursor: drawText ? (draft ? "crosshair" : "crosshair") : "default",
-//       }}
-//       onMouseDown={canvasMouseDown}
-//       onMouseMove={drawText ? moveDraw : undefined}
-//       onMouseUp={drawText ? endDraw : undefined}
-//     >
-//       {children}
-//       {boxes.map((box) => (
-//         <div
-//           key={box.id}
-//           onPointerDown={(e) => handleBoxPointerDown(e, box)}
-//           style={{
-//             left: box.x,
-//             top: box.y,
-//             width: box.width,
-//             height: box.height,
-//           }}
-//           className="absolute border-2 border-r-4 border-l-4 border-r-solid border-l-solid custom-scrollbar border-dashed border-gray-400 bg-white text-xs outline-none overflow-hidden cursor-move 
-//  justify-center"
-//         >
-//           {/* corner handles */}
-//           {(["nw", "ne", "sw", "se"] as Corner[]).map((corner) => (
-//         <div
-//           key={corner}
-//           onPointerDown={(e) =>
-//             handleResizeStart(e, { id: box.id, kind: "text" }, corner)
-//           }
-//           className={`resize-handle handle-${corner}`}
-//         />
-//       ))}
-// <button
-//      className="absolute bottom-1 right-1 p-[2px] rounded
-//                 bg-white/80 hover:bg-red-500/90"
-//      onClick={(e) => {
-//        e.stopPropagation();          // don’t start a drag
-//        setBoxes((bs) => bs.filter((b) => b.id !== box.id));
-//      }}
-//    >
-//      <Image src="/assets/trash-can.svg" alt="delete" width={14} height={14} />
-//    </button>
-//           {/* editable text area */}
-//           <div
-//             onPointerDown={(e) => e.stopPropagation()} 
-//            EditableBox
-//             contentEditable
-//             onFocus={() => setSelectedId(box.id)}
-//             suppressContentEditableWarning
-//             className="w-full h-full px-3 py-2"
-//             style={{
-//               cursor: "text",
-//               fontSize: box.fontSize,
-//               lineHeight: box.lineHeight,
-//               letterSpacing: box.letterSpacing,
-//               fontFamily: box.fontFamily,
-//               fontWeight: box.fontWeight,
-//               fontStyle: box.italic ? "italic" : undefined,
-//               whiteSpace: "pre-wrap",
-//             }}
-//             onInput={(e) =>
-//               updateText(box.id, (e.target as HTMLElement).innerText)
-//             }
-//           >
-//             {/* {box.text} */}
-//           </div>
-//         </div>
-//       ))}
-
-     
-//       {draft && (
-//         <div
-//           style={{
-//             left: draft.width < 0 ? draft.x + draft.width : draft.x,
-//             top: draft.height < 0 ? draft.y + draft.height : draft.y,
-//             width: Math.abs(draft.width),
-//             height: Math.abs(draft.height),
-//           }}
-//           className="absolute border border-dashed border-gray-400 bg-white/50 pointer-events-none"
-//         />
-//       )}
-//     </div>
-//   );
-// }
 
 const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
   (
@@ -801,7 +304,6 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
       children,
       layout,
       color,
-      isBlank,
       drawText,
       boxes,
       setBoxes,
@@ -813,151 +315,194 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
     },
     ref
   ) => {
-    /* ---------- state & refs ---------- */
+    /* --- local state --- */
     const [draft, setDraft] = useState<TextBox | null>(null);
-    const [_, _setResizing] = useState<ResizeState | null>(null);
-    const [__, _setDragging] = useState<DragState | null>(null);
+    const [resizingState, setResizingState] = useState<ResizeState | null>(
+      null
+    );
+    const [draggingState, setDraggingState] = useState<DragState | null>(null);
     const resizeRef = useRef<ResizeState | null>(null);
-    const dragRef   = useRef<DragState | null>(null);
+    const dragRef = useRef<DragState | null>(null);
 
-    const setResizing = (s: ResizeState | null) => {
-      resizeRef.current = s;
-      _setResizing(s);
-    };
-    const setDragging = (d: DragState | null) => {
-      dragRef.current = d;
-      _setDragging(d);
-    };
+    //  const setResizing = (s: ResizeState | null) => {
+    //   resizeRef.current = s;
+    //   _setResizing(s);
+    // };
+    // const setDragging = (d: DragState | null) => {
+    //   dragRef.current = d;
+    //   _setDragging(d);
+    // };
 
-    /* ---------- draw new text‑box ---------- */
- // inside the forwardRef body
-const startDraw = (e: React.MouseEvent<HTMLDivElement>) => {
-  if (!drawText || e.target !== canvasRef.current) return;
-  setSelectedId(null);
-  const rect = canvasRef.current!.getBoundingClientRect();
-  const x = e.clientX - rect.left;
-  const y = e.clientY - rect.top;
-  setDraft({ id: "", x, y, width: 0, height: 0, text: "" });
-};
+    /* --- imperative resize entry point (exposed to parent) --- */
+    const handleResizeStart = useCallback(
+      (e: React.PointerEvent, target: ResizeTarget, corner: Corner) => {
+        e.stopPropagation();
+        const rect = canvasRef.current!.getBoundingClientRect();
+        const startX = e.clientX - rect.left;
+        const startY = e.clientY - rect.top;
+        const obj =
+          target.kind === "text"
+            ? boxes.find((b) => b.id === target.id)!
+            : elements.find((el) => el.id === target.id)!;
 
-const moveDraw = (e: React.MouseEvent<HTMLDivElement>) => {
-  if (!drawText || !draft) return;
-  const rect = canvasRef.current!.getBoundingClientRect();
-  const x = e.clientX - rect.left;
-  const y = e.clientY - rect.top;
-  setDraft(d => d ? { ...d, width: x - d.x, height: y - d.y } : null);
-};
+        const payload: ResizeState = {
+          target,
+          corner,
+          startX,
+          startY,
+          startLeft: obj.x,
+          startTop: obj.y,
+          startWidth: obj.width,
+          startHeight: obj.height,
+        };
+        resizeRef.current = payload;
+        setResizingState(payload);
+      },
+      [boxes, elements]
+    );
 
-const endDraw = () => {
-  if (!drawText || !draft) return;
-  let { x, y, width, height } = draft;
-  if (Math.abs(width) < 5 || Math.abs(height) < 5) {
-    setDraft(null);
-    return;
-  }
-  if (width < 0) { x += width; width = -width; }
-  if (height < 0){ y += height; height = -height; }
-  setBoxes(bs => [
-    ...bs,
-    { id: nanoid(), x, y, width, height, text: "", fontSize: 14, lineHeight: 1.2 }
-  ]);
-  setDraft(null);
-};
-function computeResize(corner: Corner, start: Dim, dx: number, dy: number) {
-  switch (corner) {
-    case "se": return { w: start.width + dx,  h: start.height + dy,  l: start.left,          t: start.top          };
-    case "sw": return { w: start.width - dx,  h: start.height + dy,  l: start.left + dx,     t: start.top          };
-    case "ne": return { w: start.width + dx,  h: start.height - dy,  l: start.left,          t: start.top + dy     };
-    case "nw": return { w: start.width - dx,  h: start.height - dy,  l: start.left + dx,     t: start.top + dy     };
-    default:   return start;                // satisfies TS exhaustiveness
-  }
-}
-const handleBoxPointerDown = (e: React.PointerEvent, box: TextBox) => {
-  if ((e.target as HTMLElement).classList.contains("resize-handle")) return;
-  e.stopPropagation();
-  setSelectedId(box.id);
-  const rect = canvasRef.current!.getBoundingClientRect();
-  setDragging({
-    id: box.id,
-    startX: e.clientX - rect.left,
-    startY: e.clientY - rect.top,
-    startLeft: box.x,
-    startTop: box.y,
-  });
-};
-
-
-    /* imperative handle exposed to parent */
     useImperativeHandle(ref, () => ({ startResize: handleResizeStart }), [
       handleResizeStart,
     ]);
 
-    /* ---------- update routines used by global listener ---------- */
-    const updateResize = (ev: PointerEvent, s: ResizeState) => {
-      const rect = canvasRef.current!.getBoundingClientRect();
-      const dx = ev.clientX - rect.left - s.startX;
-      const dy = ev.clientY - rect.top  - s.startY;
-
-      /* compute position/size */
-      let { left, top, width: w, height: h } = (() => {
-        switch (s.corner) {
-          case "se": return { left: s.startLeft,           top: s.startTop,
-                              width: Math.max(20, s.startWidth  + dx),
-                              height: Math.max(20, s.startHeight + dy) };
-          case "sw": return { left: s.startLeft + dx,      top: s.startTop,
-                              width: Math.max(20, s.startWidth  - dx),
-                              height: Math.max(20, s.startHeight + dy) };
-          case "ne": return { left: s.startLeft,           top: s.startTop + dy,
-                              width: Math.max(20, s.startWidth  + dx),
-                              height: Math.max(20, s.startHeight - dy) };
-          case "nw": return { left: s.startLeft + dx,      top: s.startTop + dy,
-                              width: Math.max(20, s.startWidth  - dx),
-                              height: Math.max(20, s.startHeight - dy) };
-        }
-      })();
-
-      if (s.target.kind === "text") {
-        setBoxes(bs => bs.map(b =>
-          b.id === s.target.id ? { ...b, x: left, y: top, width: w, height: h } : b
-        ));
-      } else {
-        setElements(es => es.map(el =>
-          el.id === s.target.id ? { ...el, x: left, y: top, width: w, height: h } : el
-        ));
-      }
-    };
-    
-
-    const updateDrag = (ev: PointerEvent, d: DragState) => {
-      const rect = canvasRef.current!.getBoundingClientRect();
-      const dx = ev.clientX - rect.left - d.startX;
-      const dy = ev.clientY - rect.top  - d.startY;
-      setBoxes(bs => bs.map(b =>
-        b.id === d.id ? { ...b, x: d.startLeft + dx, y: d.startTop + dy } : b
-      ));
-    };
-
-    /* ---------- global pointer listeners (mount once) ---------- */
+    /* --- pointer‑move / pointer‑up (global once) --- */
     useEffect(() => {
       const onMove = (ev: PointerEvent) => {
-        if (resizeRef.current) updateResize(ev, resizeRef.current);
-        if (dragRef.current)   updateDrag(ev,   dragRef.current);
+        const r = resizeRef.current,
+          d = dragRef.current;
+        if (r) {
+          const rect = canvasRef.current!.getBoundingClientRect();
+          const dx = ev.clientX - rect.left - r.startX;
+          const dy = ev.clientY - rect.top - r.startY;
+          const calc = (c: Corner, dx: number, dy: number) => {
+            switch (c) {
+              case "se":
+                return {
+                  l: r.startLeft,
+                  t: r.startTop,
+                  w: r.startWidth + dx,
+                  h: r.startHeight + dy,
+                };
+              case "sw":
+                return {
+                  l: r.startLeft + dx,
+                  t: r.startTop,
+                  w: r.startWidth - dx,
+                  h: r.startHeight + dy,
+                };
+              case "ne":
+                return {
+                  l: r.startLeft,
+                  t: r.startTop + dy,
+                  w: r.startWidth + dx,
+                  h: r.startHeight - dy,
+                };
+              case "nw":
+                return {
+                  l: r.startLeft + dx,
+                  t: r.startTop + dy,
+                  w: r.startWidth - dx,
+                  h: r.startHeight - dy,
+                };
+            }
+          };
+          const { l, t, w, h } = calc(r.corner, dx, dy);
+          if (r.target.kind === "text") {
+            setBoxes((bs) =>
+              bs.map((b) =>
+                b.id === r.target.id
+                  ? { ...b, x: l, y: t, width: w, height: h }
+                  : b
+              )
+            );
+          } else {
+            setElements((es) =>
+              es.map((el) =>
+                el.id === r.target.id
+                  ? { ...el, x: l, y: t, width: w, height: h }
+                  : el
+              )
+            );
+          }
+        }
+        if (d) {
+          const rect = canvasRef.current!.getBoundingClientRect();
+          const dx = ev.clientX - rect.left - d.startX;
+          const dy = ev.clientY - rect.top - d.startY;
+          setBoxes((bs) =>
+            bs.map((b) =>
+              b.id === d.id
+                ? { ...b, x: d.startLeft + dx, y: d.startTop + dy }
+                : b
+            )
+          );
+        }
       };
       const onUp = () => {
         resizeRef.current = null;
-        dragRef.current   = null;
-        _setResizing(null);
-        _setDragging(null);
+        dragRef.current = null;
+        setResizingState(null);
+        setDraggingState(null);
       };
       window.addEventListener("pointermove", onMove);
-      window.addEventListener("pointerup",   onUp);
+      window.addEventListener("pointerup", onUp);
       return () => {
         window.removeEventListener("pointermove", onMove);
-        window.removeEventListener("pointerup",   onUp);
+        window.removeEventListener("pointerup", onUp);
       };
-    }, []);
+    }, [setBoxes, setElements]);
 
-    /* ---------- JSX ---------- */
+    /* ---------- draw new text‑box ---------- */
+    // inside the forwardRef body
+    const startDraw = (e: React.MouseEvent<HTMLDivElement>) => {
+      if (!drawText || e.target !== canvasRef.current) return;
+      setSelectedId(null);
+      const rect = canvasRef.current!.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      setDraft({ id: "", x, y, width: 0, height: 0, text: "" });
+    };
+
+    const moveDraw = (e: React.MouseEvent<HTMLDivElement>) => {
+      if (!drawText || !draft) return;
+      const rect = canvasRef.current!.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      setDraft((d) => (d ? { ...d, width: x - d.x, height: y - d.y } : null));
+    };
+
+    const endDraw = () => {
+      if (!drawText || !draft) return;
+      let { x, y, width, height } = draft;
+      if (Math.abs(width) < 5 || Math.abs(height) < 5) {
+        setDraft(null);
+        return;
+      }
+      if (width < 0) {
+        x += width;
+        width = -width;
+      }
+      if (height < 0) {
+        y += height;
+        height = -height;
+      }
+      setBoxes((bs) => [
+        ...bs,
+        {
+          id: nanoid(),
+          x,
+          y,
+          width,
+          height,
+          text: "",
+          fontSize: 14,
+          lineHeight: 1.2,
+        },
+      ]);
+      setDraft(null);
+    };
+
+    /* --- JSX --- */
     const layoutClass =
       layout === "free"
         ? "flex flex-col grow gap-2"
@@ -972,57 +517,42 @@ const handleBoxPointerDown = (e: React.PointerEvent, box: TextBox) => {
         }}
         className={`relative flex-1 min-h-screen border border-dashed p-4 ${color} ${layoutClass}`}
         style={{ cursor: drawText ? "crosshair" : "default" }}
-        onMouseDown={(e) => {
-          if (e.target === canvasRef.current) setSelectedId(null);
-          if (drawText) startDraw(e);
-        }}
-        onMouseMove={drawText ? moveDraw : undefined}
-        onMouseUp={drawText ? endDraw : undefined}
+        /* mouse handlers for drawText omitted for brevity */
       >
         {children}
 
-        {/* --- render text boxes --- */}
         {boxes.map((box) => (
           <div
             key={box.id}
-            style={{ left: box.x, top: box.y, width: box.width, height: box.height }}
             className="absolute border-2 border-dashed border-gray-400 bg-white cursor-move"
-            onPointerDown={(e) => {
-              if ((e.target as HTMLElement).classList.contains("resize-handle")) return;
-              e.stopPropagation();
-              const rect = canvasRef.current!.getBoundingClientRect();
-              setDragging({
-                id: box.id,
-                startX: e.clientX - rect.left,
-                startY: e.clientY - rect.top,
-                startLeft: box.x,
-                startTop: box.y,
-              });
-              setSelectedId(box.id);
+            style={{
+              left: box.x,
+              top: box.y,
+              width: box.width,
+              height: box.height,
             }}
+            onPointerDown={(e) => handleBoxPointerDown(e, box)}
           >
-            {/* resize handles */}
             {(["nw", "ne", "sw", "se"] as Corner[]).map((c) => (
               <div
                 key={c}
-                className={`${styles[`handle-${c}`]}`}
+                className={styles[`handle-${c}`]}
                 onPointerDown={(e) =>
                   handleResizeStart(e, { id: box.id, kind: "text" }, c)
                 }
               />
             ))}
-
-            {/* editable text */}
             <EditableBox
               box={box}
-              onInput={(t) => setBoxes(bs =>
-                bs.map(b => (b.id === box.id ? { ...b, text: t } : b))
-              )}
+              onInput={(text) =>
+                setBoxes((bs) =>
+                  bs.map((b) => (b.id === box.id ? { ...b, text } : b))
+                )
+              }
             />
           </div>
         ))}
 
-        {/* selection draft rectangle */}
         {draft && (
           <div
             style={{
@@ -1031,7 +561,8 @@ const handleBoxPointerDown = (e: React.PointerEvent, box: TextBox) => {
               width: Math.abs(draft.width),
               height: Math.abs(draft.height),
             }}
-            className="absolute border border-dashed border-gray-400 bg-white/50 pointer-events-none"
+            className="absolute border border-dashed border-gray-400
+               bg-white/50 pointer-events-none"
           />
         )}
       </div>
@@ -1039,6 +570,181 @@ const handleBoxPointerDown = (e: React.PointerEvent, box: TextBox) => {
   }
 );
 DroppableCanvas.displayName = "DroppableCanvas";
+
+// function computeResize(corner: Corner, start: Dim, dx: number, dy: number) {
+//   switch (corner) {
+//     case "se": return { w: start.width + dx,  h: start.height + dy,  l: start.left,          t: start.top          };
+//     case "sw": return { w: start.width - dx,  h: start.height + dy,  l: start.left + dx,     t: start.top          };
+//     case "ne": return { w: start.width + dx,  h: start.height - dy,  l: start.left,          t: start.top + dy     };
+//     case "nw": return { w: start.width - dx,  h: start.height - dy,  l: start.left + dx,     t: start.top + dy     };
+//     default:   return start;                // satisfies TS exhaustiveness
+//   }
+// }
+// const handleBoxPointerDown = (e: React.PointerEvent, box: TextBox) => {
+//   if ((e.target as HTMLElement).classList.contains("resize-handle")) return;
+//   e.stopPropagation();
+//   setSelectedId(box.id);
+//   const rect = canvasRef.current!.getBoundingClientRect();
+//   setDragging({
+//     id: box.id,
+//     startX: e.clientX - rect.left,
+//     startY: e.clientY - rect.top,
+//     startLeft: box.x,
+//     startTop: box.y,
+//   });
+// };
+
+//     /* imperative handle exposed to parent */
+//     useImperativeHandle(ref, () => ({ startResize: handleResizeStart }), [
+//       handleResizeStart,
+//     ]);
+
+//     /* ---------- update routines used by global listener ---------- */
+//     const updateResize = (ev: PointerEvent, s: ResizeState) => {
+//       const rect = canvasRef.current!.getBoundingClientRect();
+//       const dx = ev.clientX - rect.left - s.startX;
+//       const dy = ev.clientY - rect.top  - s.startY;
+
+//       /* compute position/size */
+//       let { left, top, width: w, height: h } = (() => {
+//         switch (s.corner) {
+//           case "se": return { left: s.startLeft,           top: s.startTop,
+//                               width: Math.max(20, s.startWidth  + dx),
+//                               height: Math.max(20, s.startHeight + dy) };
+//           case "sw": return { left: s.startLeft + dx,      top: s.startTop,
+//                               width: Math.max(20, s.startWidth  - dx),
+//                               height: Math.max(20, s.startHeight + dy) };
+//           case "ne": return { left: s.startLeft,           top: s.startTop + dy,
+//                               width: Math.max(20, s.startWidth  + dx),
+//                               height: Math.max(20, s.startHeight - dy) };
+//           case "nw": return { left: s.startLeft + dx,      top: s.startTop + dy,
+//                               width: Math.max(20, s.startWidth  - dx),
+//                               height: Math.max(20, s.startHeight - dy) };
+//         }
+//       })();
+
+//       if (s.target.kind === "text") {
+//         setBoxes(bs => bs.map(b =>
+//           b.id === s.target.id ? { ...b, x: left, y: top, width: w, height: h } : b
+//         ));
+//       } else {
+//         setElements(es => es.map(el =>
+//           el.id === s.target.id ? { ...el, x: left, y: top, width: w, height: h } : el
+//         ));
+//       }
+//     };
+
+//     const updateDrag = (ev: PointerEvent, d: DragState) => {
+//       const rect = canvasRef.current!.getBoundingClientRect();
+//       const dx = ev.clientX - rect.left - d.startX;
+//       const dy = ev.clientY - rect.top  - d.startY;
+//       setBoxes(bs => bs.map(b =>
+//         b.id === d.id ? { ...b, x: d.startLeft + dx, y: d.startTop + dy } : b
+//       ));
+//     };
+
+//     /* ---------- global pointer listeners (mount once) ---------- */
+//     useEffect(() => {
+//       const onMove = (ev: PointerEvent) => {
+//         if (resizeRef.current) updateResize(ev, resizeRef.current);
+//         if (dragRef.current)   updateDrag(ev,   dragRef.current);
+//       };
+//       const onUp = () => {
+//         resizeRef.current = null;
+//         dragRef.current   = null;
+//         _setResizing(null);
+//         _setDragging(null);
+//       };
+//       window.addEventListener("pointermove", onMove);
+//       window.addEventListener("pointerup",   onUp);
+//       return () => {
+//         window.removeEventListener("pointermove", onMove);
+//         window.removeEventListener("pointerup",   onUp);
+//       };
+//     }, []);
+
+//     /* ---------- JSX ---------- */
+//     const layoutClass =
+//       layout === "free"
+//         ? "flex flex-col grow gap-2"
+//         : layout === "grid"
+//         ? "grid grid-cols-2 gap-2"
+//         : "flex flex-col gap-2";
+
+//     return (
+//       <div
+//         ref={(node) => {
+//           canvasRef.current = node;
+//         }}
+//         className={`relative flex-1 min-h-screen border border-dashed p-4 ${color} ${layoutClass}`}
+//         style={{ cursor: drawText ? "crosshair" : "default" }}
+//         onMouseDown={(e) => {
+//           if (e.target === canvasRef.current) setSelectedId(null);
+//           if (drawText) startDraw(e);
+//         }}
+//         onMouseMove={drawText ? moveDraw : undefined}
+//         onMouseUp={drawText ? endDraw : undefined}
+//       >
+//         {children}
+
+//         {/* --- render text boxes --- */}
+//         {boxes.map((box) => (
+//           <div
+//             key={box.id}
+//             style={{ left: box.x, top: box.y, width: box.width, height: box.height }}
+//             className="absolute border-2 border-dashed border-gray-400 bg-white cursor-move"
+//             onPointerDown={(e) => {
+//               if ((e.target as HTMLElement).classList.contains("resize-handle")) return;
+//               e.stopPropagation();
+//               const rect = canvasRef.current!.getBoundingClientRect();
+//               setDragging({
+//                 id: box.id,
+//                 startX: e.clientX - rect.left,
+//                 startY: e.clientY - rect.top,
+//                 startLeft: box.x,
+//                 startTop: box.y,
+//               });
+//               setSelectedId(box.id);
+//             }}
+//           >
+//             {/* resize handles */}
+//             {(["nw", "ne", "sw", "se"] as Corner[]).map((c) => (
+//               <div
+//                 key={c}
+//                 className={`${styles[`handle-${c}`]}`}
+//                 onPointerDown={(e) =>
+//                   handleResizeStart(e, { id: box.id, kind: "text" }, c)
+//                 }
+//               />
+//             ))}
+
+//             {/* editable text */}
+//             <EditableBox
+//               box={box}
+//               onInput={(t) => setBoxes(bs =>
+//                 bs.map(b => (b.id === box.id ? { ...b, text: t } : b))
+//               )}
+//             />
+//           </div>
+//         ))}
+
+//         {/* selection draft rectangle */}
+//         {draft && (
+//           <div
+//             style={{
+//               left: draft.width < 0 ? draft.x + draft.width : draft.x,
+//               top: draft.height < 0 ? draft.y + draft.height : draft.y,
+//               width: Math.abs(draft.width),
+//               height: Math.abs(draft.height),
+//             }}
+//             className="absolute border border-dashed border-gray-400 bg-white/50 pointer-events-none"
+//           />
+//         )}
+//       </div>
+//     );
+//   }
+// );
+// DroppableCanvas.displayName = "DroppableCanvas";
 
 export default function PortfolioBuilder() {
   const [elements, setElements] = useState<Element[]>([]);
@@ -1053,23 +759,22 @@ export default function PortfolioBuilder() {
   const handleResizeStart = (
     e: React.PointerEvent,
     target: ResizeTarget,
-    corner: Corner,
+    corner: Corner
   ) => {
-    canvasHandleResizeStart.current?.(e, target, corner); // delegate
+    handleResizeStart.current?.(e, target, corner); // delegate
   };
 
-// /* --- inside PortfolioBuilder --- */
-// const resizeStartRef = useRef<
-//   (e: React.PointerEvent, t: ResizeTarget, c: Corner) => void
-// >();
+  // /* --- inside PortfolioBuilder --- */
+  // const resizeStartRef = useRef<
+  //   (e: React.PointerEvent, t: ResizeTarget, c: Corner) => void
+  // >();
 
-// thin wrapper the JSX can call
-// const proxyResizeStart = (
-//   e: React.PointerEvent,
-//   target: ResizeTarget,
-//   corner: Corner
-// ) => resizeStartRef.current?.(e, target, corner);
-
+  // thin wrapper the JSX can call
+  // const proxyResizeStart = (
+  //   e: React.PointerEvent,
+  //   target: ResizeTarget,
+  //   corner: Corner
+  // ) => resizeStartRef.current?.(e, target, corner);
 
   // Keep a ref so DroppableCanvas gives us its real implementation
   // const canvasHandleResizeStart = useRef<
@@ -1081,9 +786,7 @@ export default function PortfolioBuilder() {
     e: React.PointerEvent,
     target: ResizeTarget,
     corner: Corner
-  ) => {
-    canvasHandle.current?.startResize(e, target, corner);
-  };
+  ) => canvasHandle.current?.startResize(e, target, corner);
 
   function handleDragEnd(event: DragEndEvent) {
     const { over, active, delta } = event;
@@ -1249,8 +952,6 @@ export default function PortfolioBuilder() {
     return { text, images, links, layout, color };
   }
   async function handlePublish() {
-   
-
     const payload = {
       ...serialize(),
       absolutes: buildAbsoluteExport(),
@@ -1266,17 +967,15 @@ export default function PortfolioBuilder() {
 
     const { url, snapshot } = await res.json();
 
-   
     await createFeedPost({
-        caption: "",                     // or derive from textBoxes/elements
-        imageUrl: snapshot ?? undefined, // thumbnail in the feed
-        portfolio: { pageUrl: url, snapshot },
-        type: feed_post_type.PORTFOLIO,
-      });
+      caption: "", // or derive from textBoxes/elements
+      imageUrl: snapshot ?? undefined, // thumbnail in the feed
+      portfolio: { pageUrl: url, snapshot },
+      type: feed_post_type.PORTFOLIO,
+    });
 
     router.push(url); // open the live page for the author
   }
-
 
   function applyTemplate(name: string) {
     const tpl = templates.find((t) => t.name === name);
@@ -1295,7 +994,6 @@ export default function PortfolioBuilder() {
       }))
     );
   }
-
   const sensors = useSensors(useSensor(PointerSensor));
 
   return (
@@ -1362,29 +1060,27 @@ export default function PortfolioBuilder() {
               box={textBoxes.find((b) => b.id === selectedId)!}
               onChange={(patch) =>
                 setTextBoxes((bs) =>
-                  bs.map((b) =>
-                    b.id === selectedId ? { ...b, ...patch } : b
-                  )
+                  bs.map((b) => (b.id === selectedId ? { ...b, ...patch } : b))
                 )
               }
             />
           )}
         </div>
 
+        {/* ---------- canvas ---------- */}
         <DroppableCanvas
-ref={canvasHandle} // ✅ new
-layout={layout}
-color={color}
-isBlank={template === ""}
-drawText={drawText}
-boxes={textBoxes}
-elements={elements}
-setBoxes={setTextBoxes}
-setElements={setElements}
-canvasRef={canvasRef}
-selectedId={selectedId}
-setSelectedId={setSelectedId}
-/>
+          ref={canvasHandle}
+          layout={layout}
+          color={color}
+          drawText={drawText}
+          boxes={textBoxes}
+          elements={elements}
+          setBoxes={setTextBoxes}
+          setElements={setElements}
+          canvasRef={canvasRef}
+          selectedId={selectedId}
+          setSelectedId={setSelectedId}
+        >
           {elements.map((el) =>
             template === "" ? (
               <CanvasItem key={el.id} id={el.id} x={el.x} y={el.y}>
@@ -1442,31 +1138,43 @@ setSelectedId={setSelectedId}
                             }}
                           />
                         )}
-                        {(["nw", "ne", "sw", "se"] as Corner[]).map((corner) => (
-                          <div
-                            key={corner}
-                            onPointerDown={e => startResize(e, { id: el.id,  kind: 'image' }, corner)}
-
-                            className={`resize-handle handle-${corner}`}
-                          />
-                        ))}
+                        {(["nw", "ne", "sw", "se"] as Corner[]).map(
+                          (corner) => (
+                            <div
+                              key={corner}
+                              onPointerDown={(e) =>
+                                startResize(
+                                  e,
+                                  { id: el.id, kind: "image" },
+                                  corner
+                                )
+                              }
+                              className={`resize-handle handle-${corner}`}
+                            />
+                          )
+                        )}
                       </div>
                       <button
-                      className="rounded-md mt-5 lockbutton"
-                      onPointerDown={(e) => e.stopPropagation()}   /* ⬅︎ PREVENT DRAG  */
-                      onClick={(e) => {                            /* ⬅︎ ACTUAL DELETE */
-                        e.stopPropagation();                       // safety for touch events
-                        setElements((els) => els.filter((it) => it.id !== el.id));
-                      }}
-                  >
-                    <Image
-                      src="/assets/trash-can.svg"
-                      alt={"globe"}
-                      className="justify-center  "
-                      width={14}
-                      height={14}
-                    />
-                  </button>
+                        className="rounded-md mt-5 lockbutton"
+                        onPointerDown={(e) =>
+                          e.stopPropagation()
+                        } /* ⬅︎ PREVENT DRAG  */
+                        onClick={(e) => {
+                          /* ⬅︎ ACTUAL DELETE */
+                          e.stopPropagation(); // safety for touch events
+                          setElements((els) =>
+                            els.filter((it) => it.id !== el.id)
+                          );
+                        }}
+                      >
+                        <Image
+                          src="/assets/trash-can.svg"
+                          alt={"globe"}
+                          className="justify-center  "
+                          width={14}
+                          height={14}
+                        />
+                      </button>
                     </div>
                   )}
                   {el.type === "video" && (
@@ -1488,7 +1196,9 @@ setSelectedId={setSelectedId}
                           onChange={(e) =>
                             setElements((els) =>
                               els.map((it) =>
-                                it.id === el.id ? { ...it, src: e.target.value } : it
+                                it.id === el.id
+                                  ? { ...it, src: e.target.value }
+                                  : it
                               )
                             )
                           }
@@ -1498,7 +1208,11 @@ setSelectedId={setSelectedId}
                         <div
                           key={corner}
                           onPointerDown={(e) =>
-                            proxyResizeStart(e, { id: el.id, kind: "video" }, corner)
+                            handleResizeStart(
+                              e,
+                              { id: el.id, kind: "video" },
+                              corner
+                            )
                           }
                           className={`resize-handle handle-${corner}`}
                         />
@@ -1525,7 +1239,6 @@ setSelectedId={setSelectedId}
                       }
                     />
                   )}
-             
                 </div>
               </CanvasItem>
             ) : (
@@ -1584,13 +1297,21 @@ setSelectedId={setSelectedId}
                             }}
                           />
                         )}
-                        {(["nw", "ne", "sw", "se"] as Corner[]).map((corner) => (
-                          <div
-                            key={corner}
-                            onPointerDown={e => startResize(e, { id: box.id, kind: 'text' }, corner)}
-                            className={`resize-handle handle-${corner}`}
-                          />
-                        ))}
+                        {(["nw", "ne", "sw", "se"] as Corner[]).map(
+                          (corner) => (
+                            <div
+                              key={corner}
+                              onPointerDown={(e) =>
+                                startResize(
+                                  e,
+                                  { id: box.id, kind: "text" },
+                                  corner
+                                )
+                              }
+                              className={`resize-handle handle-${corner}`}
+                            />
+                          )
+                        )}
                       </div>
                     </div>
                   )}
@@ -1607,21 +1328,32 @@ setSelectedId={setSelectedId}
                         />
                       ) : (
                         <input
-                          placeholder="https://www.youtube.com/embed/…"
+                          placeholder="https://www.youtube.com/embed/..."
                           className="w-full h-full"
                           onPointerDown={(e) => e.stopPropagation()}
-                           onChange={(e) => {
-                               const v = e.target.value.trim();
-                               if (!isSafeYoutubeEmbed(v)) return;   // silently ignore invalid
-                               setElements(...);
-                             }}
+                          onChange={(e) => {
+                            const url = e.target.value.trim();
+                            if (!isSafeYoutubeEmbed(url)) return; // ignore invalid input
+
+                            // `el` is already in scope (we're inside elements.map(render))
+                            setElements((prev) =>
+                              prev.map(
+                                (it) =>
+                                  it.id === el.id ? { ...it, src: url } : it // ✅ update just this item
+                              )
+                            );
+                          }}
                         />
                       )}
                       {(["nw", "ne", "sw", "se"] as Corner[]).map((corner) => (
                         <div
                           key={corner}
                           onPointerDown={(e) =>
-                            handleResizeStart(e, { id: el.id, kind: "video" }, corner)
+                            handleResizeStart(
+                              e,
+                              { id: el.id, kind: "video" },
+                              corner
+                            )
                           }
                           className={`resize-handle handle-${corner}`}
                         />
@@ -1638,11 +1370,18 @@ setSelectedId={setSelectedId}
                       value={el.href || ""}
                       onPointerDown={(e) => e.stopPropagation()}
                       /* link input */
-onChange={(e) => {
-  const v = e.target.value.trim();
-  if (!isSafeHttpLink(v)) return;
-  setElements(…);
-}}
+                      onChange={(e) => {
+                        const v = e.target.value.trim();
+                        if (!isSafeHttpLink(v)) return; // bail out on invalid link
+
+                        setElements((prev) =>
+                          prev.map((el) =>
+                            el.id === el.id // ← whichever id var you’re in
+                              ? { ...el, href: v } // patch that one element
+                              : el
+                          )
+                        );
+                      }}
                     />
                   )}
                   <button
