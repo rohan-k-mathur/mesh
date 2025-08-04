@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({
     url: `/portfolio/${slug}`,
     snapshot,
-    snapshotWidth: 800,   // match viewport you passed to screenshotPage
-    snapshotHeight: 1200,
+    snapshotWidth: 1000,   // match viewport you passed to screenshotPage
+    snapshotHeight: 625,
   });
 }

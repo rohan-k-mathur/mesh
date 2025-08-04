@@ -21,13 +21,13 @@ export default function PortfolioSiteBuilderModal() {
     // </DialogContent>
 
     <div>
-      <DialogContent className="justify-center items-center max-w-lg max-h-[15rem] h-full px-8 py-12 w-full flex bg-sky-200 border-blue border-2 mt-[-6rem]">
+      <DialogContent className="max-w-[50rem]  bg-slate-700 border-blue ">
         <DialogHeader>
-          <DialogTitle hidden>Site Builder</DialogTitle>
+          <DialogTitle className="h-0" hidden>Go to Page Builder</DialogTitle>
         </DialogHeader>
-          <button className="flex justify-center likebutton text-[1.5rem] bg-slate-100 w-3/4 h-fit py-5 items-center mx-auto text-center text-black rounded-xl px-5 tracking-widest "
+          <button className="flex justify-center savebutton text-[1.5rem] bg-slate-100 w-3/4 h-fit py-5 items-center mx-auto text-center text-black rounded-xl px-5 tracking-widest mb-2"
            onClick={() => router.push("/portfolio/builder")}>
-            Site Builder
+            Go to Page Builder
           </button>
       </DialogContent>
     </div>

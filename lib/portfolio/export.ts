@@ -166,8 +166,8 @@ export default function PortfolioCanvas() {
   }
   
   if (data.layout!="free" && data.snapshot) {
-    const w = data.snapshotWidth ?? 1200;
-    const h = data.snapshotHeight ?? 800;
+    const w = 1000;
+    const h = 625;
     const bgClass = data.color || "bg-white";
 
     const html = `<!DOCTYPE html>

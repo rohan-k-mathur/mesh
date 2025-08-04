@@ -167,14 +167,23 @@ const CreateFeedPost = ({ roomId = "global" }: Props) => {
   async function handleMusicSubmit(values: { audioFile: File; title: string }) {
     const result = await uploadAudioToSupabase(values.audioFile);
     if (result.error) return;
-    await createRealtimePost({
-      videoUrl: result.fileURL,
-      text: values.title,
-      path: "/",
-      coordinates: { x: 0, y: 0 },
-      type: "MUSIC",
-      realtimeRoomId: roomId,
-    });
+    if (roomId === "global") {
+          // treat audio files the same way we treat images / video in the feed
+          await createFeedPost({
+            type: "MUSIC",                 // enum value in Prisma
+           videoUrl: result.fileURL,      // ← stored in `video_url` column
+           caption:  values.title.slice(0, 140) || undefined,
+          });}
+        // } else {
+        //   await createRealtimePost({
+        //     videoUrl:     result.fileURL,        // reused column
+        //     text:         values.title,
+        //     path:         "/",
+        //     coordinates:  { x: 0, y: 0 },
+        //     type:         "MUSIC",
+        //   realtimeRoomId: roomId,
+        //   });
+        // }
     reset();
     router.refresh();
   }

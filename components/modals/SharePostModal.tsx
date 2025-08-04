@@ -13,10 +13,10 @@ interface Props {
   realtimePostId?: string;
 }
 
-const SharePostModal = ({ postId, realtimePostId }: Props) => {
+const SharePostModal = ({ feedpostId, realtimePostId }: Props) => {
   const shareLink = realtimePostId
     ? `${window.location.origin}/post/${realtimePostId}`
-    : `${window.location.origin}/thread/${postId?.toString()}`;
+    : `${window.location.origin}/thread/${feedpostId?.toString()}`;
   return (
     <div>
       <DialogContent className="max-w-[57rem]">

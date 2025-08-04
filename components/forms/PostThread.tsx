@@ -44,7 +44,7 @@ function PostThread({ userId }: { userId: bigint }) {
   });
 
   const onSubmit = async (values: z.infer<typeof ThreadValidation>) => {
-    await createPost({
+    await create({
       text: values.thread,
       authorId: userId,
       path: pathname,

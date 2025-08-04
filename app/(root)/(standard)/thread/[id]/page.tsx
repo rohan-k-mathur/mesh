@@ -14,7 +14,7 @@ const Page = async ({ params }: { params: { id: string } }) => {
   const post = await fetchPostTreeById(BigInt(params.id));
   if (!post) notFound();
   const currentUserLike = user
-    ? await fetchLikeForCurrentUser({ postId: post.id, userId: user.userId })
+    ? await fetchLikeForCurrentUser({ feedPostId: post.id, userId: user.userId })
     : null;
   const mappedPost = mapFeedPost(post);
   

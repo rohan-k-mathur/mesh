@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 
 interface PortfolioModalProps {
@@ -21,6 +21,13 @@ export default function PortfolioModal({
   onClose,
   snapshot,
 }: PortfolioModalProps) {
+   const [dim, setDim] = useState<{ w: number; h: number } | null>(null);
+
+  /* read natural size once the image loads */
+  const handleImgLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget;
+    setDim({ w: img.naturalWidth, h: img.naturalHeight });
+  };
   /* put focus in modal for accessibility */
   const wrapperRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -36,8 +43,10 @@ export default function PortfolioModal({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  return (
-    <div
+    const maxW  = 0.85 * window.innerWidth;
+    const maxH  = 0.85 * window.innerHeight;
+  
+    return (    <div
       tabIndex={-1}
       ref={wrapperRef}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm focus:outline-none"
@@ -50,8 +59,19 @@ export default function PortfolioModal({
       />
 
       {/* Content panel */}
-      <div className="relative bg-white rounded shadow-xl max-w-5xl w-full h-[90vh] overflow-hidden">
-
+      {/* <div className="relative bg-slate-200 rounded-xl shadow-xl max-w-5xl w-full h-[90vh] overflow-hidden"> */}
+ {/* Content panel – width/height adapt to snapshot */}
+       <div
+        className="relative bg-slate-200 rounded-xl shadow-xl overflow-hidden"
+        style={
+          dim
+            ? {
+                width:  Math.min(dim.w, maxW),
+                height: Math.min(dim.h, maxH),
+              }
+            : { width: "85vw", height: "85vh" }   /* while loading */
+        }
+      >
         {/* Close button */}
         <button
           onClick={onClose}
@@ -67,7 +87,9 @@ export default function PortfolioModal({
             src={snapshot}
             alt="Portfolio preview"
             fill
-            className="object-contain"
+            onLoad={handleImgLoad}
+            
+            className="object-contain rounded-xl"
             sizes="(max-width: 1280px) 100vw, 1280px"
           />
         ) : (
@@ -84,7 +106,7 @@ export default function PortfolioModal({
           href={url}
           target="_blank"
           rel="noopener noreferrer"
-          className="absolute top-4 -right-[-2rem] bg-blue-600 text-black  px-4 py-2 rounded-xl lockbutton hover:bg-blue-700 transition-colors"
+          className="absolute top-4 -right-[-2rem] text-black tracking-wide  px-4 py-2 rounded-xl savebutton"
         >
           Visit Page
         </a>

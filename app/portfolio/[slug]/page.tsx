@@ -14,6 +14,7 @@ export default async function PortfolioPage({
     select: {
       html: true,
       css: true,
+      tsx: true,
       /* payload is whatever you stored; assuming ‘payload’ JSON column: */
       payload: true,
     },
@@ -21,7 +22,7 @@ export default async function PortfolioPage({
 
   if (!rec) return <p className="p-12 text-center">Not found.</p>;
 
-  const payload = rec.payload as any;
+   const payload = rec.payload as any;
 
   /* 1️⃣  Prefer ‘snapshot’ */
   if (payload?.snapshot) {

@@ -170,11 +170,9 @@ const PostCard = ({
                 ></iframe>
               </div>
             )}
-            {type === "MUSIC" && video_url && (
-              // <div className="mt-2 mb-2 ">
-              <SoundCloudPlayer src={video_url} title={content || undefined} />
-              // </div>
-            )}
+        {type === "MUSIC" && video_url && (
+  <SoundCloudPlayer src={video_url} title={content || caption} />
+)}
             {type === "GALLERY" && content && (
               // <div className="ml-[7rem] w-[500px] justify-center items-center">
               <div className="grid justify-center items-center align-center w-full ">

@@ -18,8 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 //import { updateUser } from "@/lib/actions/user.actions"
 import { useRouter, usePathname } from "next/navigation";
 import { ThreadValidation } from "@/lib/validations/thread";
-import { createPost } from "@/lib/actions/thread.actions";
-
+import CreateFeedPost from "./CreateFeedPost";
 interface Props {
   user: {
     id: bigint;
