@@ -53,7 +53,7 @@ export default async function StandardLayout({
   return (
     <html className="bg-gradient-to-r from-zinc-200 from-0% via-indigo-300 via-50% to-rose-200 to-100%">
     <body className={`${founderslight.className}`}>
-      <AuthProvider user={user}>
+      {/* <AuthProvider user={user}>
         <PrivateChatManagerProvider>
           <ScrollAnalytics />
           <main className="flex flex-row">
@@ -70,7 +70,20 @@ export default async function StandardLayout({
           </main>
         </PrivateChatManagerProvider>
 
-      </AuthProvider>
+      </AuthProvider> */}
+        {/* ONE AuthProvider and ONE ChatManager for the entire app */}
+  <AuthProvider user={user}>
+    <PrivateChatManagerProvider>
+      <ScrollAnalytics />
+      <main className="flex flex-row">
+        <LeftSidebar userRooms={userRooms} />
+        <section className="main-container ">
+          <div className="w-full max-w-4xl">{children}</div>
+        </section>
+        <RightSidebar />
+      </main>
+    </PrivateChatManagerProvider>
+  </AuthProvider>
     </body>
   </html>
   );
