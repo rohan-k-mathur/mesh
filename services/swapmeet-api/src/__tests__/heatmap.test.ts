@@ -18,15 +18,25 @@ beforeEach(() => {
 
 describe("getHeatmap", () => {
   it("queries sections within bounds", async () => {
-    mockFindMany.mockResolvedValue([{ x: 1, y: 2, visitors: 3 }]);
+    mockFindMany.mockResolvedValue([
+      { x: 1, y: 2, visitors: 3, liveCount: 1, auctionCount: 0 },
+    ]);
     const result = await getHeatmap(0, 2, 0, 3);
     expect(mockFindMany).toHaveBeenCalledWith({
       where: {
         x: { gte: 0, lte: 2 },
         y: { gte: 0, lte: 3 },
       },
-      select: { x: true, y: true, visitors: true },
+      select: {
+        x: true,
+        y: true,
+        visitors: true,
+        liveCount: true,
+        auctionCount: true,
+      },
     });
-    expect(result).toEqual([{ x: 1, y: 2, visitors: 3 }]);
+    expect(result).toEqual([
+      { x: 1, y: 2, visitors: 3, liveCount: 1, auctionCount: 0 },
+    ]);
   });
 });

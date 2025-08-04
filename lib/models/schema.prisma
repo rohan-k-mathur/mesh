@@ -789,7 +789,10 @@ model Section {
   x          Int
   y          Int
   visitors   Int      @default(0)
+  liveCount  Int      @default(0)
+  auctionCount Int   @default(0)
   created_at DateTime @default(now()) @db.Timestamptz(6)
+  updated_at DateTime @default(now()) @updatedAt @db.Timestamptz(6)
   stalls     Stall[]
 
   @@unique([x, y])

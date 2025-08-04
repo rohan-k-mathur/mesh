@@ -11,7 +11,13 @@ export async function getHeatmap(
       x: { gte: xMin, lte: xMax },
       y: { gte: yMin, lte: yMax },
     },
-    select: { x: true, y: true, visitors: true },
+    select: {
+      x: true,
+      y: true,
+      visitors: true,
+      liveCount: true,
+      auctionCount: true,
+    },
   });
 }
 

@@ -8,6 +8,7 @@ import "@/workers/scrollRealtime";
 import '@/workers/tasteVector';
 import "@/workers/candidate-builder";
 import "@/workers/user-knn-builder";
+import "@/workers/sectionHeat";
 
 
 console.log('All workers bootstrapped');
