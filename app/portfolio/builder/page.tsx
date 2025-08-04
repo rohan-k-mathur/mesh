@@ -323,6 +323,7 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
     const [draggingState, setDraggingState] = useState<DragState | null>(null);
     const resizeRef = useRef<ResizeState | null>(null);
     const dragRef = useRef<DragState | null>(null);
+    const { setNodeRef } = useDroppable({ id: "canvas" });
 
     //  const setResizing = (s: ResizeState | null) => {
     //   resizeRef.current = s;
@@ -358,12 +359,31 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
         resizeRef.current = payload;
         setResizingState(payload);
       },
-      [boxes, elements]
+      [boxes, elements, canvasRef]
     );
 
     useImperativeHandle(ref, () => ({ startResize: handleResizeStart }), [
       handleResizeStart,
     ]);
+
+    const handleBoxPointerDown = (
+      e: React.PointerEvent,
+      box: TextBox
+    ) => {
+      if ((e.target as HTMLElement).classList.contains("resize-handle")) return;
+      e.stopPropagation();
+      setSelectedId(box.id);
+      const rect = canvasRef.current!.getBoundingClientRect();
+      const payload: DragState = {
+        id: box.id,
+        startX: e.clientX - rect.left,
+        startY: e.clientY - rect.top,
+        startLeft: box.x,
+        startTop: box.y,
+      };
+      dragRef.current = payload;
+      setDraggingState(payload);
+    };
 
     /* --- pointer‑move / pointer‑up (global once) --- */
     useEffect(() => {
@@ -450,7 +470,7 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
         window.removeEventListener("pointermove", onMove);
         window.removeEventListener("pointerup", onUp);
       };
-    }, [setBoxes, setElements]);
+    }, [canvasRef, setBoxes, setElements]);
 
     /* ---------- draw new text‑box ---------- */
     // inside the forwardRef body
@@ -513,11 +533,14 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
     return (
       <div
         ref={(node) => {
+          setNodeRef(node);
           canvasRef.current = node;
         }}
         className={`relative flex-1 min-h-screen border border-dashed p-4 ${color} ${layoutClass}`}
         style={{ cursor: drawText ? "crosshair" : "default" }}
-        /* mouse handlers for drawText omitted for brevity */
+        onMouseDown={startDraw}
+        onMouseMove={moveDraw}
+        onMouseUp={endDraw}
       >
         {children}
 
@@ -1375,10 +1398,10 @@ export default function PortfolioBuilder() {
                         if (!isSafeHttpLink(v)) return; // bail out on invalid link
 
                         setElements((prev) =>
-                          prev.map((el) =>
-                            el.id === el.id // ← whichever id var you’re in
-                              ? { ...el, href: v } // patch that one element
-                              : el
+                          prev.map((it) =>
+                            it.id === el.id
+                              ? { ...it, href: v }
+                              : it
                           )
                         );
                       }}
