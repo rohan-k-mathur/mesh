@@ -52,15 +52,15 @@ const GalleryCarousel = ({ urls, caption }: Props) => {
 //   center:              { x: 0,   opacity: 1 },
 //   exit:   (dir: number) => ({ x:  dir > 0 ? -distance :  distance, opacity: 0 })
 // };
- const radius      = 350;    // 👈 depth “radius” of the cylinder
- const angle       = 60;     // 👈 how far each neighbour swings away
+ const radius      = 270;    // 👈 depth “radius” of the cylinder
+ const angle       = 45;     // 👈 how far each neighbour swings away
  const slideVariants = {
    enter:  (dir: number) => ({
      rotateY: dir > 0 ?  angle   : -angle,
      x:       dir > 0 ?  radius  : -radius,
      z:       -radius,                 // push into screen
-     opacity: 0.1,
-     scale:   0.5
+     opacity: 0.5,
+     scale:   0.7
    }),
    center: {
      rotateY: 0,
@@ -70,11 +70,11 @@ const GalleryCarousel = ({ urls, caption }: Props) => {
      scale:   1
    },
    exit:   (dir: number) => ({
-     rotateY: dir > 0 ? -angle   :  angle,
+     rotateY: dir > 0 ? angle   :  -angle,
      x:       dir > 0 ? -radius  :  radius,
      z:       -radius,
-     opacity: 0.25,
-     scale:   0.85
+     opacity: 0,
+     scale:   0.5
    })
  };
 

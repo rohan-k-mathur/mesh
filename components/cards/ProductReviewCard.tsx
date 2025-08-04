@@ -6,6 +6,9 @@ import { useAuth } from "@/lib/AuthContext";
 import ProductPhotoGalleryModal from "../modals/ProductPhotoGalleryModal";
 import { Button } from "../ui/button";
 import Link from "next/link";
+import { createFeedPost } from "@/lib/actions/feedpost.actions";
+import { feed_post_type }  from "@prisma/client";
+
 interface ProductReviewCardProps {
   productName: string;
   rating: number;
@@ -122,15 +125,15 @@ const ProductReviewCard = ({
       <div className="items-center text-center  font-bold"> <h1 className="text-[1.5rem] text-center tracking-wider font-bold"> {productName} </h1> </div>
       <div className="text-[1.1rem] text-center mb-2">Rating: {rating}/5</div>
       </div>
-      <hr></hr>
-      <div className=" my-2 items-start">{"Review: " + summary}</div>
-      <hr></hr>
+      <hr className="border-indigo-300"></hr>
+      <div className=" my-2 items-start tracking-wide">{"Review: " + summary}</div>
+      <hr className="border-indigo-300"></hr>
 
-      <ul className="flex  flex-wrap gap-x-2 px-2 my-2  w-full h-fit">
+      <ul className="flex  flex-wrap gap-x-4 px-2 my-2  w-full h-fit">
         {claims.map((c, idx) => (
-          <li key={idx} className="text-[1rem] w-fit text-block rounded-xl h-fit">
+          <li key={idx} className="text-[1rem] w-fit text-block rounded-xl h-fit bg-white/20 border-none outline-none cardelement">
             <div className="flex flex-col my-2 mx-2  justify-between items-center">
-              <span className="text-block text-[1rem] rounded-md leading-[1.2rem]">{c}</span>
+              <span className="text-block text-[1rem] tracking-wide rounded-md leading-[1.2rem]">{c}</span>
               <div className="flex items-center mt-1  gap-3 text-xs">
                 <button onClick={() => handleVote(idx, "helpful")} aria-label="Helpful" className="py-1">
                   <ThumbsUp className="h-4 w-4 mb-1" /> {voteCounts[idx]?.helpful ?? 0}
@@ -146,19 +149,19 @@ const ProductReviewCard = ({
           </li>
         ))}
       </ul>
-      <hr></hr>
+      <hr className="border-indigo-300"></hr>
 
 <div className="flex flex-wrap gap-4 mt-2">
 
       <button
-          className="mt-1 bg-transparent likebutton border-none outline-black outline-blue w-fit text-black  rounded-xl px-2 py-2">
+          className="mt-1 bg-transparent bg-white/20 border-none outline-none savebutton w-fit text-black tracking-widest rounded-xl px-4 py-2">
  <a
           href={productLink}
           target="_blank"
           rel="noopener noreferrer"
           className="text-sm"
         >
-          Product Link
+          Link
         </a>
       </button>
 
