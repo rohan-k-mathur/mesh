@@ -4,6 +4,7 @@
 import { prisma } from "../prismaclient";
 import { feed_post_type } from "@prisma/client";
 import { getUserFromCookies } from "../serverutils";
+import type { feed_post_type } from "@prisma/client";   // ✅ type-only import
 
 interface CreateFeedPostParams {
   caption?: string;
@@ -18,7 +19,7 @@ interface CreateFeedPostParams {
     images?: string[];
     claims?: string[];
   };
-  type: string;   
+  type: feed_post_type;    
 }
 
 export async function createFeedPost({
@@ -43,7 +44,7 @@ export async function createFeedPost({
   ...(productReview && {
     productReview: {
       create: {
-        author_id:        { connect: { id: BigInt(user.userId) } },
+        author_id: BigInt(user.userId), 
         product_name:     productReview.productName,
         rating:           productReview.rating,
         summary:          productReview.summary,

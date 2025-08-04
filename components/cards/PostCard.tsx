@@ -38,7 +38,6 @@ interface ExtraUIProps {
   isRealtimePost?: boolean;
   isFeedPost?: boolean;
   embedPost?: React.ReactNode;
-  
 }
 
 type PostCardProps = BasePost & ExtraUIProps;
@@ -51,7 +50,8 @@ const PostCard = ({
   roomPostContent = null,
   author,
   image_url,
-  portfolio = null,        
+  portfolio = null,
+  productReview,
   video_url,
   caption,
   type,
@@ -71,14 +71,14 @@ const PostCard = ({
     const dataStr = content.slice("REPLICATE:".length);
     // let originalId: bigint | null = null;
     // let replicateText = "Replicated";
-       let originalId: bigint | null = null;
-   let replicateText = "Replicated";
-   let source: "feed" | "realtime" = "realtime";
+    let originalId: bigint | null = null;
+    let replicateText = "Replicated";
+    let source: "feed" | "realtime" = "realtime";
     try {
       const parsed = JSON.parse(dataStr);
       originalId = BigInt(parsed.id);
       replicateText = parsed.text || replicateText;
-      source         = parsed.source || "realtime"
+      source = parsed.source || "realtime";
     } catch (e) {
       try {
         originalId = BigInt(dataStr);
@@ -134,7 +134,7 @@ const PostCard = ({
               </div>
             </Link>
             <div className="relative right-[.25rem] text-[.75rem] text-gray-500">
-            {new Date(createdAt).toLocaleDateString()}
+              {new Date(createdAt).toLocaleDateString()}
             </div>
 
             <hr className="mt-2 mb-3 w-full h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-100 to-transparent opacity-55" />
@@ -144,7 +144,11 @@ const PostCard = ({
               </p>
             )}
             {(type === "IMAGE" || type === "IMAGE_COMPUTE") && image_url && (
-              <ImageCard id={id} imageurl={image_url} caption={caption || undefined} />
+              <ImageCard
+                id={id}
+                imageurl={image_url}
+                caption={caption || undefined}
+              />
 
               // <Image
               //   className=" flex img-feed-frame ml-[19%] mr-[19%] rounded-sm mt-[1rem] mb-[1rem] "
@@ -174,8 +178,11 @@ const PostCard = ({
             {type === "GALLERY" && content && (
               // <div className="ml-[7rem] w-[500px] justify-center items-center">
               <div className="grid justify-center items-center align-center w-full ">
-              <GalleryCarousel urls={JSON.parse(content)} caption={caption || undefined} />
-             </div>
+                <GalleryCarousel
+                  urls={JSON.parse(content)}
+                  caption={caption || undefined}
+                />
+              </div>
             )}
             {type === "LIVECHAT" &&
               content &&
@@ -239,64 +246,84 @@ const PostCard = ({
                 </div>
               </div>
             )}
-            {type === "PORTFOLIO" && (() => {
-          /* ③ choose the preferred payload */
-          const data =
-            portfolio                       // ← new schema
-              ?? (() => {                   // ← fall back to legacy string
-                   if (!content) return null;
-                   try { return JSON.parse(content); } catch { return null; }
-                 })();
+            {type === "PORTFOLIO" &&
+              (() => {
+                /* ③ choose the preferred payload */
+                const data =
+                  portfolio ?? // ← new schema
+                  (() => {
+                    // ← fall back to legacy string
+                    if (!content) return null;
+                    try {
+                      return JSON.parse(content);
+                    } catch {
+                      return null;
+                    }
+                  })();
 
                 if (!data) return null;
 
                 if (data.pageUrl) {
-                              return (
-                                <PortfolioCard
-                                  pageUrl={data.pageUrl}
-                                  snapshot={data.snapshot ?? image_url /* graceful fallback */}
-                                />
-                              );
-                            }
-                   
-                             /* 🕜 legacy raw-content fallback */
-                             return (
-                               <PortfolioCard
-                               pageUrl="" /* empty => shows legacy content only */
-                               snapshot={undefined}
-                               text={data.text}
-                               images={data.images || []}
-                               links={data.links || []}
-                               layout={data.layout}
-                               color={data.color}
-                               />
-                             );
-                        })()}
-
-                
-            {type === "PRODUCT_REVIEW" &&
-              
-              (() => {
-                let vals: any = null;
-                try {
-                  vals = JSON.parse(content);
-                } catch (e) {
-                  vals = null;
+                  return (
+                    <PortfolioCard
+                      pageUrl={data.pageUrl}
+                      snapshot={
+                        data.snapshot ?? image_url /* graceful fallback */
+                      }
+                    />
+                  );
                 }
+
+                /* 🕜 legacy raw-content fallback */
                 return (
-                  vals && (
+                  <PortfolioCard
+                    pageUrl="" /* empty => shows legacy content only */
+                    snapshot={undefined}
+                    text={data.text}
+                    images={data.images || []}
+                    links={data.links || []}
+                    layout={data.layout}
+                    color={data.color}
+                  />
+                );
+              })()}
+
+            {type === "PRODUCT_REVIEW" &&
+              /* Prefer the 1-to-1 relation; fall back to legacy JSON string */
+              (productReview ? (
+                <ProductReviewCard
+                  productName={productReview.product_name}
+                  rating={productReview.rating}
+                  summary={productReview.summary ?? ""}
+                  productLink={productReview.product_link ?? ""}
+                  /* relation is optional ➜ defensive chaining */
+                  claims={productReview.claims?.map((c) => c.text) ?? []}
+                  claimIds={claimIds ?? []}
+                  productimages={productReview.image_urls}
+                />
+              ) : (
+                content &&
+                (() => {
+                  let vals: any = null;
+                  try {
+                    vals = JSON.parse(content);
+                  } catch {
+                    /* ignore */
+                  }
+                  return vals ? (
                     <ProductReviewCard
                       productName={vals.productName}
                       rating={vals.rating}
                       summary={vals.summary}
                       productLink={vals.productLink}
                       claims={vals.claims || []}
-                      claimIds={claimIds}
+                      claimIds={claimIds ?? []}
                       productimages={vals.images || []}
                     />
-                  )
-                );
-              })()}
+                  ) : null;
+                })()
+              ))}
+
             {type === "PREDICTION" && predictionMarket && (
               <PredictionMarketCard
                 key={id.toString()}
@@ -328,15 +355,13 @@ const PostCard = ({
                 </div>
               )}
             <div className="items-start justify-start  px-12  w-full">
-              
               {embedPost && (
                 <>
-                            <hr className="mt-2 mb-4 w-full h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-100 to-transparent opacity-55" />
+                  <hr className="mt-2 mb-4 w-full h-px border-t-0 bg-transparent bg-gradient-to-r from-transparent via-slate-100 to-transparent opacity-55" />
 
-                <div className="flex flex-2 mt-2   items-center scale-85">
-                  
-                  {embedPost}
-                </div>
+                  <div className="flex flex-2 mt-2   items-center scale-85">
+                    {embedPost}
+                  </div>
                 </>
               )}
             </div>
@@ -352,20 +377,20 @@ const PostCard = ({
                   initialLikeState={currentUserLike}
                 />
                 <div className="flex flex-row items-center gap-2 ">
-                <ExpandButton
-                  // {...(isRealtimePost
-                  //   ? { realtimePostId: id.toString() }
-                  //   : isFeedPost
-                  //   ? { postId: id }
-                  //   : { postId: id })}
-                  targetId={id}      // ← always the post table PK
-                />
-                   {commentCount >= 0 && (
-                <div className="w-2 text-center  text-subtle-medium text-black">
-                  {commentCount}
+                  <ExpandButton
+                    // {...(isRealtimePost
+                    //   ? { realtimePostId: id.toString() }
+                    //   : isFeedPost
+                    //   ? { postId: id }
+                    //   : { postId: id })}
+                    targetId={id} // ← always the post table PK
+                  />
+                  {commentCount >= 0 && (
+                    <div className="w-2 text-center  text-subtle-medium text-black">
+                      {commentCount}
+                    </div>
+                  )}
                 </div>
-              )}
-              </div>
                 {canRepost(type) && (
                   <ReplicateButton
                     type={type}
@@ -377,17 +402,17 @@ const PostCard = ({
                   />
                 )}
                 <ShareButton feedpostId={id} />
-        
-                  <TimerButton
-                    {...(isRealtimePost
-                      ? { realtimePostId: id.toString() }
-                      : isFeedPost
-                      ? { feedPostId: id }
-                      : { feedPostId: id })}
-                    isOwned={currentUserId === author.id}
-                    expirationDate={expirationDate ?? undefined}
-                  />
-         
+
+                <TimerButton
+                  {...(isRealtimePost
+                    ? { realtimePostId: id.toString() }
+                    : isFeedPost
+                    ? { feedPostId: id }
+                    : { feedPostId: id })}
+                  isOwned={currentUserId === author.id}
+                  expirationDate={expirationDate ?? undefined}
+                />
+
                 {currentUserId === author.id && (
                   <DeleteCardButton
                     {...(isRealtimePost
@@ -397,9 +422,7 @@ const PostCard = ({
                       : { feedPostId: id })}
                   />
                 )}
-              
               </div>
-             
             </div>
           </div>
         </div>

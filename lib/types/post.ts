@@ -29,7 +29,14 @@ export interface BasePost {
   roomPostContent?: CanvasState | null;
   image_url?: string | null;
   portfolio?: PortfolioPayload | null;   // ← NEW
-  productReview?: ProductReviewPayload | null;
+  productReview?: {
+    product_name: string;
+    rating: number;
+    summary?: string | null;
+    product_link?: string | null;
+    image_urls: string[];
+    claims: { text: string }[];
+  };
   video_url?: string | null;
   caption?: string | null;
   pluginType?: string | null;

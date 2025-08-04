@@ -13,7 +13,8 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
-
+import { createFeedPost as createFeedPostAction } from "@/lib/actions/feedpost.actions";
+import { feed_post_type } from "@prisma/client";
 import TextNodeModal from "@/components/modals/TextNodeModal";
 import ImageNodeModal from "@/components/modals/ImageNodeModal";
 import YoutubeNodeModal from "@/components/modals/YoutubeNodeModal";
@@ -486,10 +487,16 @@ const CreateFeedPost = ({ roomId = "global" }: Props) => {
                 .map((r) => r.fileURL);
               const filtered = vals.claims.filter((c) => c.trim() !== "");
               if (roomId === "global") {
-                await createFeedPost({
-                  type: "PRODUCT_REVIEW",
+                await createFeedPostAction({
+                  type: "PRODUCT_REVIEW" as feed_post_type,
+
                   caption: vals.summary.slice(0, 140),
                   imageUrl: urls[0] ?? null,
+                  content: JSON.stringify({        // 👈 add this
+                         ...vals,
+                         images: urls,
+                         claims: filtered,
+                       }),
                   productReview: {
                     productName: vals.productName,
                     rating:      vals.rating,
