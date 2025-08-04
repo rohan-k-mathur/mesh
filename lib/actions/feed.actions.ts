@@ -27,6 +27,15 @@ export interface CreateFeedPostArgs {
   videoUrl?: string;
   caption?: string;
 
+  productReview?: {
+    productName: string;
+    rating: number;
+    summary: string;
+    productLink?: string;
+    images?: string[];
+    claims?: string[];
+  };
+
   text?: string;
 
   portfolio?: PortfolioPayload;
@@ -89,7 +98,27 @@ export async function createFeedPost(
       ...(rest.videoUrl && { video_url: rest.videoUrl }),
       ...(rest.caption && { caption: rest.caption }),
       ...(rest.portfolio && { portfolio: rest.portfolio }),
-
+      ...(rest.productReview && {
+        productReview: {
+          create: {
+            author_id: user.userId!,
+            product_name: rest.productReview.productName,
+            rating: rest.productReview.rating,
+            ...(rest.productReview.summary && {
+              summary: rest.productReview.summary,
+            }),
+            ...(rest.productReview.productLink && {
+              product_link: rest.productReview.productLink,
+            }),
+            image_urls: rest.productReview.images ?? [],
+            claims: {
+              create: (rest.productReview.claims ?? []).map((text) => ({
+                text,
+              })),
+            },
+          },
+        },
+      }),
     },
   });
 
