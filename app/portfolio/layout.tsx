@@ -1,4 +1,4 @@
-import "../globals.css";
+import styles from "./builder.css";
 
 export const metadata = {
   title: "Next.js",
