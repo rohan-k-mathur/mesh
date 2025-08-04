@@ -62,14 +62,23 @@ export default function PortfolioModal({
       {/* <div className="relative bg-slate-200 rounded-xl shadow-xl max-w-5xl w-full h-[90vh] overflow-hidden"> */}
  {/* Content panel – width/height adapt to snapshot */}
        <div
-        className="relative bg-slate-200 rounded-xl shadow-xl overflow-hidden"
+        className="relative flex  justify-center bg-slate-200 rounded-xl shadow-xl overflow-hidden"
         style={
           dim
-            ? {
-                width:  Math.min(dim.w, maxW),
-                height: Math.min(dim.h, maxH),
-              }
-            : { width: "85vw", height: "85vh" }   /* while loading */
+            ? (() => {
+                const maxW = 0.9 * window.innerWidth;
+                const maxH = 0.9 * window.innerHeight;
+                let w = dim.w;
+                let h = dim.h;
+        
+                // scale down until it fits both constraints
+                const scale = Math.min(maxW / w, maxH / h);   // allow > 1 when we can
+                w *=2;
+                h *= scale;
+        
+                return { width: w, height: h };
+              })()
+            : { width: "85vw", height: "85vh" }
         }
       >
         {/* Close button */}
@@ -86,11 +95,12 @@ export default function PortfolioModal({
           <Image
             src={snapshot}
             alt="Portfolio preview"
-            fill
+            width={1400}
+            height={1025}
+            
             onLoad={handleImgLoad}
             
-            className="object-contain rounded-xl"
-            sizes="(max-width: 1280px) 100vw, 1280px"
+            className="object-contain flex rounded-xl w-fit justify-center"
           />
         ) : (
           <iframe
