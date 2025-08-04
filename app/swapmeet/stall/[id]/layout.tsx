@@ -34,7 +34,7 @@ export default async function StallLayout(
     <>
       {/* Put a common stall header / branding here */}
       <header className="border-b p-2">
-        <h1 className="text-[1.8rem] px-4 ml-2 font-semibold">{stall?.name}</h1>
+        <h1 className="text-[2.4rem] px-4 ml-2 ">{stall?.name}</h1>
       </header>
 
       {/* Suspense boundary allows streaming for child routes */}

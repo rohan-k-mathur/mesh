@@ -2,7 +2,8 @@ import HeatWidget from "@/components/HeatWidget";
 import PartyOverlay from "@/components/PartyOverlay";
 import TrackGrid from "@/app/swapmeet/components/TrackGrid";
 import { getStall } from "@/lib/actions/stall.server";
-const heatOn = false;
+import { VideoPane } from "../../components/VideoPane";
+const heatOn = true;
 
 export async function generateMetadata({ params }: { params: { id: string } }) {
   const stall = await getStall(Number(params.id));
@@ -22,8 +23,17 @@ export default async function Page({ params }: { params: { id: string } }) {
   
   if (!stall) return <div>Not found</div>;
   const items = stall.items as any[];
+  const liveSrc = stall && "liveSrc" in stall ? (stall as any).liveSrc : undefined;
+
   return (
-    <div className="relative p-4">
+    <div className="relative p-2">
+       <VideoPane
+          stallId={stallId}
+          live={Boolean((stall as any)?.live)}
+          src={liveSrc}
+          open={true}
+        />
+        <hr></hr>
       <TrackGrid stallId={stallId} items={items} />
       <hr></hr>
       <PartyOverlay partyId={`stall-${stallId}`} />

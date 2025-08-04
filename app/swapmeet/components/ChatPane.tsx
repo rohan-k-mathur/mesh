@@ -49,7 +49,7 @@ export function ChatPane({ stallId }: { stallId: number }) {
   }
 
   return (
-    <div className="relative bottom-6 flex flex-col max-h-[15rem] h-full w-[50%] border-2 border-white mx-8  rounded-xl ">
+    <div className="flex flex-col max-h-[15rem] h-full w-[50%] border-[1px] border-white bg-white/50 shadow-xl  rounded-xl ">
       <div className="flex-1 overflow-y-auto space-y-1 px-4 py-2">
         {msgs.map(m => (
           <p

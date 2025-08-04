@@ -39,7 +39,7 @@ export function LivePanelClient({ stallId, initLive, initSrc }: Props) {
   }
 
   return (
-    <section className="rounded-lg border p-4 bg-white space-y-3 w-[240px]">
+    <section className="border-[1px] border-white bg-white/50 shadow-xl  rounded-xl p-4 m-4 bg-white space-y-3 w-[240px]">
       <h2 className="text-lg font-semibold">Livestream control</h2>
 
       {optimisticLive ? (
@@ -59,9 +59,9 @@ export function LivePanelClient({ stallId, initLive, initSrc }: Props) {
 
           <button
             onClick={stop}
-            className="px-4 py-2 rounded bg-red-600 hover:bg-red-700 text-white text-sm"
+            className="px-4 py-1 rounded bg-red-600 hover:bg-red-700 text-white text-sm"
           >
-            End stream
+            Stop
           </button>
         </>
       ) : (

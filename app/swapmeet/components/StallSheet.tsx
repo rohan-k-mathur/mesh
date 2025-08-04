@@ -33,7 +33,7 @@ export function StallSheet({ stallId, open, onOpenChange }: Props) {
      
       <SheetContent
         side="bottom"
-        className="h-[90dvh] grid grid-rows-[auto_auto_1fr_auto] gap-3 p-0 overflow-hidden bg-slate-200 rounded-t-lg"
+        className="h-[90dvh]   gap-3 p-0 overflow-hidden bg-slate-200 rounded-t-lg"
         motion={{
           initial: { y: "100%" },
           animate: { y: 0, transition: { type: "spring", stiffness: 260, damping: 24 } },
@@ -59,10 +59,12 @@ export function StallSheet({ stallId, open, onOpenChange }: Props) {
           src={liveSrc}
           open={open}
         />
-        {isOwner && <LivePanel stallId={stallId} />}
-
         <ItemsPane stallId={stallId} isOwner={Boolean(isOwner)} />
+        <div className="flex">
+        <LivePanel stallId={stallId} />
+
         <ChatPane stallId={stallId} />
+        </div>
       </SheetContent>
     </Sheet>
   );

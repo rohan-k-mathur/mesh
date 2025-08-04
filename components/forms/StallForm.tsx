@@ -72,24 +72,26 @@ export default function StallForm({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent role="dialog" aria-labelledby="new-stall" className="max-w-sm">
-        <DialogHeader>
-          <DialogTitle>
-            {defaultValues ? "Edit Stall" : "New Stall"}
+      <DialogContent className="flex flex-1 flex-col max-w-[30rem] max-h-[800px] bg-slate-700 border-blue">
+      <DialogHeader className="dialog-header text-white text-lg  ml-2 ">
+   
+          <DialogTitle className="tracking-wide">
+            {defaultValues ? "Edit Stall" : "Create Stall"}
           </DialogTitle>
         </DialogHeader>
+        <hr></hr>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
             {step === 0 && (
-              <>
+              <div className="flex flex-col flex-1 p-4 gap-4 space-y-2">
                 <FormField
                   control={form.control}
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Name</FormLabel>
+                      <FormLabel className=" text-white text-[1.1rem] tracking-wide mb-4">Stall Name</FormLabel>
                       <FormControl>
-                        <Input type="text" {...field} className="text-black" />
+                        <Input type="text" {...field} className="text-black modalfield " />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -101,11 +103,11 @@ export default function StallForm({
                   name="sectionId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Section</FormLabel>
+                      <FormLabel className="text-white text-[1.1rem] tracking-wide ">Market Section</FormLabel>
                       <FormControl>
                         <select
                           {...field}
-                          className="text-black border px-2 py-1"
+                          className="text-black border px-2 py-1 rounded-xl"
                           value={field.value ?? sections?.[0]?.id ?? ""}
                           onChange={(e) => field.onChange(Number(e.target.value))}
                         >
@@ -121,14 +123,15 @@ export default function StallForm({
                     </FormItem>
                   )}
                 />
-                <Button
+                <button
                   type="button"
+                  className="savebutton w-fit rounded-xl text-center bg-white px-5 py-1 mt-4 text-[1.1rem]"
                   onClick={() => setStep(1)}
                   disabled={!form.formState.isValid || !isReady}
                 >
                   Next
-                </Button>
-              </>
+                </button>
+              </div>
             )}
 
             {step === 1 && (

@@ -110,19 +110,20 @@ export default function StallsPage() {
   return (
     <div className="p-4">
       <h1 className="text-lg font-bold mb-4">My Stalls</h1>
-      <Button
+      <button
         onClick={() => setOpen(true)}
-        className="bg-[var(--ubz-brand)] text-white shadow-ubz1 fixed top-4 right-4"
+        className="bg-[var(--ubz-brand)] text-white shadow-ubz1 fixed top-4 right-4 savebutton px-3 py-1 rounded-lg"
         disabled={loading}
       >
         {loading ? "Saving..." : "+ New Stall"}
-      </Button>
-      <table className="w-full text-sm">
-        <thead className="bg-[var(--ubz-street)] text-white">
+      </button>
+      <div className="rounded-none">
+      <table className="w-full text-sm shadow-xl mt-8 rounded-none">
+        <thead className="bg-[var(--ubz-street)] text-white rounded-none">
           {table.getHeaderGroups().map((hg) => (
             <tr key={hg.id}>
               {hg.headers.map((h) => (
-                <th key={h.id} className="border px-2 py-1 text-left">
+                <th key={h.id} className="border px-2 py-1 text-left rounded-none">
                   {flexRender(h.column.columnDef.header, h.getContext())}
                 </th>
               ))}
@@ -133,16 +134,18 @@ export default function StallsPage() {
           {isLoading
             ? [1, 2, 3].map((n) => (
                 <tr key={n}>
-                  <td colSpan={3} className="px-2 py-1">
-                    <div className="animate-pulse h-6 bg-gray-200 rounded" />
+                  <td colSpan={3} className="px-2 py-1 rounded-none">
+                    <div className="animate-pulse h-6 bg-gray-200 rounded-none" />
                   </td>
                 </tr>
               ))
             : table.getRowModel().rows.map((row) => (
                 <tr key={row.id}>
                   {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="border px-2 py-1">
+                    <td key={cell.id} className="border px-2 py-1 bg-white/30 shadow-xl rounded-none">
+                      <button className="savebutton w-full text-left px-4">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </button>
                     </td>
                   ))}
                   <StallPresenceTracker stallId={row.original.id} />
@@ -150,7 +153,8 @@ export default function StallsPage() {
               ))}
         </tbody>
       </table>
-      <Link href="/swapmeet" className="block mt-4">Back to market</Link>
+      </div>
+      <Link href="/swapmeet/market/0/0" className="flex flex-col savebutton rounded-xl w-fit bg-white/20 p-3  mt-8">Back to Market</Link>
       <StallForm open={open} onOpenChange={setOpen} onSubmit={createStall} loading={loading} />
     </div>
   );
