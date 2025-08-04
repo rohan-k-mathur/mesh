@@ -1050,13 +1050,15 @@ textarea {
   outline-width: .25px;
   border-radius: 4px;
   box-shadow:   3px 3px 7px rgba(253, 205, 205, 0.95),
-  -1px 2px 7px rgba(176, 141, 141, 0.95);
+  1px -2px 7px rgba(176, 141, 141, 0.95);
 
   
 }
 .sendbutton:hover{
-  box-shadow:   2px 2px 4px rgba(253, 205, 205, 0.95),
-  -.5px 1px 4px rgba(176, 141, 141, 0.95);
+  /* box-shadow:   2px 2px 4px rgba(253, 205, 205, 0.95),
+  -.5px 1px 4px rgba(176, 141, 141, 0.95); */
+  box-shadow: inset  -3px -3px 7px rgba(253, 205, 205, 0.95),
+  inset 1px 2px 7px rgba(176, 141, 141, 0.95);
 
 }
 

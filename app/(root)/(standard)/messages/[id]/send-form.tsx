@@ -23,8 +23,8 @@ export default function MessageForm({ conversationId }: Props) {
         value={text}
         onChange={(e) => setText(e.target.value)}
       />
-      <button className=" bg-white bg-opacity-20 sendbutton w-fit text-black  
-       rounded-xl px-8 py-2 "
+      <button className=" bg-white/20 sendbutton w-fit text-black  tracking-widest text-[1.1rem] text-shadow-xl
+       rounded-xl px-5 py-2 "
       onClick={send}>
         Send
       </button>
