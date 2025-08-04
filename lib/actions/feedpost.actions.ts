@@ -18,7 +18,7 @@ interface CreateFeedPostParams {
     images?: string[];
     claims?: string[];
   };
-  type: feed_post_type;
+  type: string;   
 }
 
 export async function createFeedPost({
@@ -39,23 +39,39 @@ export async function createFeedPost({
       content,
       image_url: imageUrl ?? null, // keep column names 1-to-1
       portfolio, // JSON column on feed_posts (assumed)
-      ...(productReview && {
-        productReview: {
-          create: {
-            author_id: BigInt(user.userId),
-            product_name: productReview.productName,
-            rating: productReview.rating,
-            ...(productReview.summary && { summary: productReview.summary }),
-            ...(productReview.productLink && {
-              product_link: productReview.productLink,
-            }),
-            image_urls: productReview.images ?? [],
-            claims: {
-              create: (productReview.claims ?? []).map((text) => ({ text })),
-            },
-          },
+  /* one‑to‑one relation – will create ProductReview + nested claims */
+  ...(productReview && {
+    productReview: {
+      create: {
+        author_id:        { connect: { id: BigInt(user.userId) } },
+        product_name:     productReview.productName,
+        rating:           productReview.rating,
+        summary:          productReview.summary,
+        product_link:     productReview.productLink,
+        image_urls:       productReview.images ?? [],
+        claims: {
+          create: (productReview.claims ?? []).map((t) => ({ text: t })),
         },
-      }),
+      },
+    },
+  }),
+    //   ...(productReview && {
+    //     productReview: {
+    //       create: {
+    //         author_id: BigInt(user.userId),
+    //         product_name: productReview.productName,
+    //         rating: productReview.rating,
+    //         ...(productReview.summary && { summary: productReview.summary }),
+    //         ...(productReview.productLink && {
+    //           product_link: productReview.productLink,
+    //         }),
+    //         image_urls: productReview.images ?? [],
+    //         claims: {
+    //           create: (productReview.claims ?? []).map((text) => ({ text })),
+    //         },
+    //       },
+    //     },
+    //   }),
       type,
     },
   });

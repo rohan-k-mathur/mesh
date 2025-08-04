@@ -4,7 +4,6 @@ import { useState } from "react";
 import { Dialog, DialogTrigger, DialogContent } from "@/components/ui/dialog";
 import { AnimatedDialog } from "../ui/AnimatedDialog";
 import { motion } from "framer-motion";
-
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import {
@@ -488,20 +487,17 @@ const CreateFeedPost = ({ roomId = "global" }: Props) => {
               const filtered = vals.claims.filter((c) => c.trim() !== "");
               if (roomId === "global") {
                 await createFeedPost({
-                  type: "PRODUCT_REVIEW",
-                  content: JSON.stringify({
-                    ...vals,
-                    images: urls,
-                    claims: filtered,
-                  }),
-                  imageUrl: urls[0],
+                      type: "PRODUCT_REVIEW",                  // pass plain string
+                      caption: vals.summary.slice(0, 140),     // use the real value
+                  imageUrl: urls[0] ?? null,
+                  content: JSON.stringify({ ...vals, images: urls, claims: filtered }),
                   productReview: {
                     productName: vals.productName,
-                    rating: vals.rating,
-                    summary: vals.summary,
+                    rating:      vals.rating,
+                    summary:     vals.summary,
                     productLink: vals.productLink,
-                    images: urls,
-                    claims: filtered,
+                    images:      urls,
+                    claims:      filtered,
                   },
                 });
               } else {
