@@ -30,7 +30,7 @@ export default async function SectionPage({ params }: { params: { x?: string; y?
       <NavArrow dir="E" x={x} y={y} />
       <NavArrow dir="S" x={x} y={y} />
       <NavArrow dir="W" x={x} y={y} /> */}
-      <TeleportButton />
+      <TeleportButton x={x} y={y} />
       <ThumbPad x={x} y={y} />
 
             <Minimap cx={x} cy={y} />

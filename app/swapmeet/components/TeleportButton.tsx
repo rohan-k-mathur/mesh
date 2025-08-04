@@ -1,18 +1,20 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { useState } from "react"; 
-export function TeleportButton() {
+import { useState } from "react";
+export function TeleportButton({ x, y }: { x: number; y: number }) {
   const [justJumped, setJustJumped] = useState(false);
-
   const router = useRouter();
   const jump = async () => {
-    const sec = await fetch("/swapmeet/api/heatmap?busy=true").then((r) => r.json());
-    
+    const useV2 = process.env.NEXT_PUBLIC_FEATURE_TELEPORT_V2 === "1";
+    const url = useV2
+      ? `/swapmeet/api/teleport?x=${x}&y=${y}`
+      : "/swapmeet/api/heatmap?busy=true";
+    const sec = await fetch(url).then((r) => r.json());
+
     if (sec) {
       setJustJumped(true);
       setTimeout(() => setJustJumped(false), 400);
-      // router.push(`/swapmeet/market/${sec.x}/${sec.y}`);
-      router.push("/swapmeet/market/0/0")
+      router.push(`/swapmeet/market/${sec.x}/${sec.y}`);
     }
   };
   return (

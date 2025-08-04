@@ -74,6 +74,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",
     "date-fns": "^4.1.0",
+    "embla-carousel-react": "^8.6.0",
     "fast-shuffle": "^6.1.1",
     "fastpriorityqueue": "^0.7.5",
     "ffmpeg-static": "^5.2.0",
