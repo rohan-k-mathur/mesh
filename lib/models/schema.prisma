@@ -825,9 +825,10 @@ model StallImage {
   url        String
   blurhash   String?
   created_at DateTime @default(now()) @db.Timestamptz(6)
+  position   Int      @default(0)
   stall      Stall    @relation(fields: [stall_id], references: [id])
 
-  @@index([stall_id])
+  @@index([stall_id, position])
   @@map("stall_image")
 }
 
@@ -1056,4 +1057,14 @@ model WorkspaceSettings {
   updated_at   DateTime @updatedAt
 
   @@map("workspace_settings")
+}
+
+model Telemetry {
+  id        BigInt   @id @default(autoincrement())
+  event     String
+  coords    String
+  userId    BigInt?
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([event, createdAt])
 }

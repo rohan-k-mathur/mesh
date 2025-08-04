@@ -42,3 +42,16 @@ export async function getSection(x: number, y: number): Promise<{ stalls: StallS
       })) ?? [],
   };
 }
+
+export async function getNearestOpenSection(x: number, y: number): Promise<{ x: number; y: number } | null> {
+  const rows = await prisma.$queryRaw<{ x: number; y: number }[]>`
+    SELECT s.x, s.y
+    FROM section s
+    LEFT JOIN stalls st ON st.section_id = s.id
+    GROUP BY s.id
+    HAVING COUNT(st.id) < 9
+    ORDER BY ABS(s.x - ${x}) + ABS(s.y - ${y})
+    LIMIT 1
+  `;
+  return rows[0] ?? null;
+}

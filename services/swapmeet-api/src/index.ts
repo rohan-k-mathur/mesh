@@ -1,4 +1,4 @@
-export { getSection, type StallSummary } from "./section";
+export { getSection, getNearestOpenSection, type StallSummary } from "./section";
 export { getHeatmap, getRandomBusySection } from "./heatmap";
 export { getStall, type StallDetail } from "./stall";
 

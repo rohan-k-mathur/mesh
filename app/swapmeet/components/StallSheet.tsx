@@ -5,6 +5,7 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { VideoPane } from "./VideoPane";
 import { ItemsPane } from "./ItemsPane";
 import { ChatPane } from "./ChatPane";
+import { ImageCarousel } from "./ImageCarousel";
 import Link from "next/link";
 import { useAuth } from "@/lib/AuthContext";
 
@@ -40,15 +41,17 @@ export function StallSheet({ stallId, open, onOpenChange }: Props) {
         }}
       >
         <div className="mx-auto my-2 h-1.5 w-12 rounded-full bg-gray-300"></div>
+        {stall && "images" in stall && (
+          <ImageCarousel images={(stall as any).images} />
+        )}
         <button className="likebutton bg-white bg-opacity-50 w-fit mx-8 text-[1.1rem] text-center tracking-wide rounded-xl">
-        <Link
-          href={`/swapmeet/stall/${stallId}`}
-          onClick={() => onOpenChange(false)}
-          className=" py-2 px-2 inline-block text-sm text-[var(--ubz-brand)] "
-        >
-          
-          Enter Stall →
-        </Link>
+          <Link
+            href={`/swapmeet/stall/${stallId}`}
+            onClick={() => onOpenChange(false)}
+            className=" py-2 px-2 inline-block text-sm text-[var(--ubz-brand)] "
+          >
+            Enter Stall →
+          </Link>
         </button>
         <VideoPane src={liveSrc} open={open} />
         <ItemsPane stallId={stallId} isOwner={Boolean(isOwner)} />

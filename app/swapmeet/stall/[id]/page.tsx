@@ -4,6 +4,18 @@ import TrackGrid from "@/app/swapmeet/components/TrackGrid";
 import { getStall } from "@/lib/actions/stall.server";
 const heatOn = false;
 
+export async function generateMetadata({ params }: { params: { id: string } }) {
+  const stall = await getStall(Number(params.id));
+  if (!stall) return {};
+  const img = stall.images?.[0]?.url;
+  return {
+    title: stall.name,
+    openGraph: {
+      images: img ? [img] : [],
+    },
+  };
+}
+
 export default async function Page({ params }: { params: { id: string } }) {
   const stallId = Number(params.id);
   const stall = await getStall(stallId);
