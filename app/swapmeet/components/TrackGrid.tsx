@@ -37,9 +37,9 @@ export default function TrackGrid({ stallId, items }: { stallId: number; items: 
         <li
           key={i}
           onMouseEnter={() => enter(i)}
-          className="border-[2px] rounded-xl max-w-[20rem] flex flex-col  space-y-4  p-4  items-center justify-center"
+          className="border-[2px] rounded-xl max-w-[20rem] flex flex-col mb-4 space-y-4 bg-white/20 shadow-lg py-4 px-6 mx-auto items-center justify-center"
         >
-          <div className="flex  flex-col justify-center mx-auto space-y-8  p-4 tracking-wide text-center text-[1.2rem]">
+          <div className="flex  flex-col justify-center mx-auto space-y-5  p-4 tracking-wide text-center text-[1.2rem]">
           {item ? item.name : null }
           {item &&     <hr className="mt-2"></hr>}
 <div className="w-[200px] h-[200px]">
