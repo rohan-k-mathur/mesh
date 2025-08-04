@@ -5,7 +5,9 @@ import { Msg } from "@/contexts/PrivateChatManager";
 export function usePrivateChatSocket(paneId: string, onMsg: (m: Msg) => void) {
   useEffect(() => {
     const ch = supabase.channel(`esp-${paneId}`);
-    ch.on("broadcast", { event: "msg" }, ({ payload }) => onMsg(payload as Msg));
+    ch.on("broadcast", { event: "msg" }, ({ payload }) =>
+      onMsg({ ...payload, from: BigInt(payload.from) } as Msg),
+    );
     ch.subscribe();
     return () => {
       supabase.removeChannel(ch);
@@ -15,7 +17,7 @@ export function usePrivateChatSocket(paneId: string, onMsg: (m: Msg) => void) {
     supabase.channel(`esp-${paneId}`).send({
       type: "broadcast",
       event: "msg",
-      payload: { paneId, from, body, ts: Date.now() },
+      payload: { paneId, from: from.toString(), body, ts: Date.now() },
     });
   };
 }
