@@ -53,7 +53,12 @@ export function StallSheet({ stallId, open, onOpenChange }: Props) {
             Enter Stall →
           </Link>
         </button>
-        <VideoPane src={liveSrc} open={open} />
+        <VideoPane
+          stallId={stallId}
+          live={Boolean((stall as any)?.live)}
+          src={liveSrc}
+          open={open}
+        />
         <ItemsPane stallId={stallId} isOwner={Boolean(isOwner)} />
         <ChatPane stallId={stallId} />
       </SheetContent>
