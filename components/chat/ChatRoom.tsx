@@ -6,7 +6,13 @@ import {
   ChatMessageAvatar,
   ChatMessageContent,
 } from "@/components/ui/chat-message";
-import Image from "next/image";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { usePrivateChatManager } from "@/contexts/PrivateChatManager";
 
 interface UserLite {
   name: string;
@@ -33,6 +39,7 @@ export default function ChatRoom({
   initialMessages,
 }: Props) {
   const [messages, setMessages] = useState<MessageData[]>(initialMessages);
+  const { open } = usePrivateChatManager();
 
   useEffect(() => {
     const channel = supabase.channel(`conversation-${conversationId.toString()}`);
@@ -56,7 +63,22 @@ export default function ChatRoom({
           id={m.id}
         >
           <ChatMessageContent content={m.text} />
-          <ChatMessageAvatar imageSrc={m.sender.image || "/assets/user-helsinki.svg"} />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <ChatMessageAvatar
+                imageSrc={m.sender.image || "/assets/user-helsinki.svg"}
+                className="cursor-pointer"
+              />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem
+                onClick={() => open(BigInt(m.sender_id), conversationId)}
+                disabled={m.sender_id === currentUserId.toString()}
+              >
+                💬 Chat
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
         </ChatMessage>
       ))}

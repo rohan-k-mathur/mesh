@@ -15,6 +15,7 @@ import { AuthProvider } from "@/components/shared/AuthProvider";
 import ScrollAnalytics from "@/components/shared/ScrollAnalytics";
 import { getRoomsForUser } from "@/lib/actions/realtimeroom.actions";
 import { RealtimeRoom } from "@prisma/client";
+import { PrivateChatManagerProvider } from "@/contexts/PrivateChatManager";
 
 export const metadata = {
   title: "Mesh",
@@ -53,20 +54,22 @@ export default async function StandardLayout({
     <html className="bg-gradient-to-r from-zinc-200 from-0% via-indigo-300 via-50% to-rose-200 to-100%">
     <body className={`${founderslight.className}`}>
       <AuthProvider user={user}>
-        <ScrollAnalytics />
-        <main className="flex flex-row">
-          <LeftSidebar userRooms={userRooms} />
-          <section className="main-container ">
-            
-            <div className="w-full max-w-4xl">
-              <AuthProvider user={user}>{children}</AuthProvider>
-            </div>
+        <PrivateChatManagerProvider>
+          <ScrollAnalytics />
+          <main className="flex flex-row">
+            <LeftSidebar userRooms={userRooms} />
+            <section className="main-container ">
 
-          </section>
-          <RightSidebar/>
+              <div className="w-full max-w-4xl">
+                <AuthProvider user={user}>{children}</AuthProvider>
+              </div>
 
-        </main>
-        
+            </section>
+            <RightSidebar/>
+
+          </main>
+        </PrivateChatManagerProvider>
+
       </AuthProvider>
     </body>
   </html>
