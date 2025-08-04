@@ -487,10 +487,9 @@ const CreateFeedPost = ({ roomId = "global" }: Props) => {
               const filtered = vals.claims.filter((c) => c.trim() !== "");
               if (roomId === "global") {
                 await createFeedPost({
-                      type: "PRODUCT_REVIEW",                  // pass plain string
-                      caption: vals.summary.slice(0, 140),     // use the real value
+                  type: "PRODUCT_REVIEW",
+                  caption: vals.summary.slice(0, 140),
                   imageUrl: urls[0] ?? null,
-                  content: JSON.stringify({ ...vals, images: urls, claims: filtered }),
                   productReview: {
                     productName: vals.productName,
                     rating:      vals.rating,
