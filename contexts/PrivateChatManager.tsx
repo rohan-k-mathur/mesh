@@ -12,6 +12,7 @@ export interface Msg {
 interface Pane {
   id: string;
   peerId: bigint;
+  peerName: string;          // 👈 NEW
   msgs: Msg[];
   minimised: boolean;
   pos: { x: number; y: number };
@@ -23,7 +24,7 @@ interface State {
 
 const Context = createContext<{
   panes: Pane[];
-  open: (targetUserId: bigint, roomId: bigint) => Promise<void>;
+  open: (targetUserId: bigint, targetName: string, roomId: bigint) => Promise<void>;
   dispatch: React.Dispatch<Action>;
 }>({ panes: [], open: async () => {}, dispatch: () => {} });
 
@@ -84,7 +85,7 @@ function reducer(state: State, action: Action): State {
 export function PrivateChatManagerProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, { panes: [] });
 
-  const open = async (targetUserId: bigint, roomId: bigint) => {
+  const open = async (targetUserId: bigint, targetName:string, roomId: bigint) => {
     const res = await fetch("/api/esp/open", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -99,6 +100,7 @@ export function PrivateChatManagerProvider({ children }: { children: React.React
       pane: {
         id: paneId,
         peerId: targetUserId,
+        peerName: targetName,          // 👈 NEW
         msgs: [],
         minimised: false,
         pos: { x: 20, y: 20 },

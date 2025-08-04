@@ -72,8 +72,14 @@ export default function ChatRoom({
             </DropdownMenuTrigger>
             <DropdownMenuContent>
               <DropdownMenuItem
-                onClick={() => open(BigInt(m.sender_id), conversationId)}
-                disabled={m.sender_id === currentUserId.toString()}
+         onClick={() =>
+            open(
+              BigInt(m.sender_id),   // peer id
+              m.sender.name,         // peer display name  ← NEW
+              conversationId         // existing room id
+            )
+          }
+          disabled={m.sender_id === currentUserId.toString()}
               >
                 💬 Chat
               </DropdownMenuItem>
