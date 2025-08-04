@@ -815,6 +815,7 @@ model Stall {
   orders       Order[]
   images       StallImage[]
   StallMessage StallMessage[]
+  doc          Json?
 
   @@unique([section_id, owner_id])
   @@index([section_id])

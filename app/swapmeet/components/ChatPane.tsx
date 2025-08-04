@@ -2,6 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/AuthContext";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+import { NickCompleter } from "./NickCompleter";
+
+dayjs.extend(relativeTime);
 
 interface Msg {
   id: string;
@@ -15,6 +20,8 @@ export function ChatPane({ stallId }: { stallId: number }) {
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
+  const handleSelect = (nick: string) =>
+    setInput(prev => `${prev}@${nick} `);
 
   useEffect(() => {
     const es = new EventSource(`/swapmeet/api/stall/${stallId}/events`);
@@ -55,11 +62,15 @@ export function ChatPane({ stallId }: { stallId: number }) {
           >
             <span className="font-medium">{m.user}: </span>
             {m.text}
+            <span className="ml-2 text-xs text-gray-500">
+              {dayjs(m.at).fromNow()}
+            </span>
           </p>
         ))}
         <div ref={bottomRef} />
       </div>
 
+      <NickCompleter stallId={stallId} onSelect={handleSelect} />
       <form
         onSubmit={e => {
           e.preventDefault();
