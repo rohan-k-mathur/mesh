@@ -34,6 +34,8 @@ import { createFeedPost } from "@/lib/actions/feedpost.actions";
 import { feed_post_type } from "@prisma/client";
 import { Input } from "@/components/ui/input";
 import styles from "./resize-handles.module.css"; // CSS module for handles
+import { TextBoxRecord } from "@/lib/portfolio/types";
+import { CanvasProvider } from "@/lib/portfolio/CanvasStoreProvider";
 
 import {
   Select,
@@ -63,9 +65,9 @@ interface DroppableCanvasProps {
   layout: "column" | "grid" | "free";
   color: string;
   drawText: boolean;
-  boxes: TextBox[];
+  boxes: TextBoxRecord[];
   elements: Element[];
-  setBoxes: React.Dispatch<React.SetStateAction<TextBox[]>>;
+  setBoxes: React.Dispatch<React.SetStateAction<TextBoxRecord[]>>;
   setElements: React.Dispatch<React.SetStateAction<Element[]>>;
   canvasRef: React.MutableRefObject<HTMLDivElement | null>;
   selectedId: string | null;
@@ -164,17 +166,17 @@ function EditableBox({
   onInput,
   onSelect,
 }: {
-  box: TextBox;
+  box: TextBoxRecord;
   onInput: (t: string) => void;
   onSelect: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
-    if (ref.current && ref.current.innerText !== box.text) {
-      ref.current.innerText = box.text;
+    if (ref.current && ref.current.innerText !== box.content) {
+      ref.current.innerText = box.content;
     }
-  }, [box.text]);
+  }, [box.content]);
 
   return (
     <div
@@ -201,20 +203,7 @@ function EditableBox({
   );
 }
 
-interface TextBox {
-  id: string;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  text: string;
-  fontSize?: number;
-  lineHeight?: number;
-  letterSpacing?: number;
-  fontFamily?: string;
-  fontWeight?: 400 | 500 | 600 | 700;
-  italic?: boolean;
-}
+
 
 // type ResizeTarget = { id: string; kind: "text" | "image" | "video" };
 interface ResizeState {
@@ -239,8 +228,8 @@ function StylePanel({
   box,
   onChange,
 }: {
-  box: TextBox;
-  onChange: (patch: Partial<TextBox>) => void;
+  box: TextBoxRecord;
+  onChange: (patch: Partial<TextBoxRecord>) => void;
 }) {
   return (
     <div className="space-y-3 mt-6">
@@ -321,7 +310,7 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
     ref
   ) => {
     /* --- local state --- */
-    const [draft, setDraft] = useState<TextBox | null>(null);
+    const [draft, setDraft] = useState<TextBoxRecord | null>(null);
     const [resizingState, setResizingState] = useState<ResizeState | null>(
       null
     );
@@ -373,7 +362,7 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
 
     const handleBoxPointerDown = (
       e: React.PointerEvent,
-      box: TextBox
+      box: TextBoxRecord
     ) => {
       if ((e.target as HTMLElement).classList.contains("resize-handle")) return;
       e.stopPropagation();
@@ -574,9 +563,9 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
             ))}
             <EditableBox
               box={box}
-              onInput={(text) =>
+              onInput={(content) =>
                 setBoxes((bs) =>
-                  bs.map((b) => (b.id === box.id ? { ...b, text } : b))
+                  bs.map((b) => (b.id === box.id ? { ...b, content } : b))
                 )
               }
               onSelect={() => setSelectedId(box.id)}
@@ -611,7 +600,7 @@ DroppableCanvas.displayName = "DroppableCanvas";
 //     default:   return start;                // satisfies TS exhaustiveness
 //   }
 // }
-// const handleBoxPointerDown = (e: React.PointerEvent, box: TextBox) => {
+// const handleBoxPointerDown = (e: React.PointerEvent, box: TextBoxRecord) => {
 //   if ((e.target as HTMLElement).classList.contains("resize-handle")) return;
 //   e.stopPropagation();
 //   setSelectedId(box.id);
@@ -784,7 +773,7 @@ export default function PortfolioBuilder() {
   const [layout, setLayout] = useState<"column" | "grid" | "free">("free");
   const [template, setTemplate] = useState<string>("");
   const [drawText, setDrawText] = useState(false);
-  const [textBoxes, setTextBoxes] = useState<TextBox[]>([]);
+  const [textBoxes, setTextBoxes] = useState<TextBoxRecord[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const router = useRouter();
   const handleResizeStart = (
@@ -956,7 +945,7 @@ export default function PortfolioBuilder() {
       y: b.y,
       width: b.width,
       height: b.height,
-      content: b.text,
+      content: b.content,
       fontSize: b.fontSize,
       lineHeight: b.lineHeight,
       letterSpacing: b.letterSpacing,
@@ -972,7 +961,7 @@ export default function PortfolioBuilder() {
       .filter((e) => e.type === "text" && e.content)
       .map((e) => e.content)
       .join("\n");
-    const textFromBoxes = textBoxes.map((b) => b.text).join("\n");
+    const textFromBoxes = textBoxes.map((b) => b.content).join("\n");
     const text = [textFromElements, textFromBoxes].filter(Boolean).join("\n");
     const images = elements
       .filter((e) => e.type === "image" && e.src)
@@ -1028,12 +1017,13 @@ export default function PortfolioBuilder() {
   const sensors = useSensors(useSensor(PointerSensor));
 
   return (
-    <DndContext
-      sensors={sensors}
-      onDragEnd={handleDragEnd}
-      collisionDetection={pointerWithin}
-    >
-      <div className="flex h-screen">
+    <CanvasProvider>
+      <DndContext
+        sensors={sensors}
+        onDragEnd={handleDragEnd}
+        collisionDetection={pointerWithin}
+      >
+        <div className="flex h-screen">
         <div className=" flex-grow-0 flex-shrink-0 border-r py-2 px-4 space-y-4  mt-12">
           <button
             className={` flex gap-2 justify-start px-4 py-2 rounded-md l
@@ -1485,7 +1475,8 @@ export default function PortfolioBuilder() {
             Publish
           </button>
         </div>
-      </div>
-    </DndContext>
+        </div>
+      </DndContext>
+    </CanvasProvider>
   );
 }
