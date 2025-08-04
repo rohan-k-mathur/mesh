@@ -816,6 +816,8 @@ model Stall {
   orders       Order[]
   images       StallImage[]
   StallMessage StallMessage[]
+  live         Boolean        @default(false)
+  liveSrc      String? // nullable -> no stream yet
   doc          Json?
 
   @@unique([section_id, owner_id])

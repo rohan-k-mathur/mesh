@@ -3,7 +3,7 @@ import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { ItemsPanel } from "@/components/dashboard/ItemsPanel";
 import { OrdersPanel } from "@/components/dashboard/OrdersPanel";
 import { PayoutsPanel } from "@/components/dashboard/PayoutsPanel";
-import { LivePanel } from "@/components/dashboard/LivePanel";
+import { LivePanel } from "@/app/swapmeet/components/dashboard/LivePanel";
 
 interface PageProps {
     params: { id: string };          // <- Next.js injects this for route segments

@@ -45,9 +45,11 @@ export function VideoPane({ stallId, live, src, open }: Props) {
   if (!live || !token) return null;
 
   return (
+    <div className=" w-[100px] h-[100px]">
     <LiveKitRoom token={token} serverUrl={process.env.NEXT_PUBLIC_LIVEKIT_URL}>
       <BroadcastControls />
     </LiveKitRoom>
+    </div>
   );
 }
 

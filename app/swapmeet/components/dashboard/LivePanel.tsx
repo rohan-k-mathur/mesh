@@ -1,28 +1,19 @@
-// components/dashboard/LivePanel.tsx
-'use client';
-import { useEffect, useState } from 'react';
+/* LivePanel.tsx */
+"use client";
+import useSWR from "swr";
+import { LivePanelClient } from "./LivePanelClient";
 
-export function LivePanel({ stallId }: { stallId: string }) {
-  const [events, setEvents] = useState<any[]>([]);
+const fetcher = (u: string) => fetch(u).then(r => r.json());
 
-  useEffect(() => {
-    const es = new EventSource(`/api/stalls/${stallId}/events`);
-    es.onmessage = (e) => {
-      setEvents((prev) => [...prev, JSON.parse(e.data)]);
-    };
-    return () => es.close();
-  }, [stallId]);
+export function LivePanel({ stallId }: { stallId: number }) {
+  const { data } = useSWR(`/swapmeet/api/stall/${stallId}`, fetcher);
+  if (!data) return null;               // loading
 
   return (
-    <>
-      <h2 className="text-xl font-semibold mb-4">Live events</h2>
-      <ul className="space-y-2">
-        {events.map((ev, i) => (
-          <li key={i} className="border p-2 rounded">
-            <pre className="whitespace-pre-wrap text-sm">{JSON.stringify(ev, null, 2)}</pre>
-          </li>
-        ))}
-      </ul>
-    </>
+    <LivePanelClient
+      stallId={stallId}
+      initLive={Boolean(data.live)}
+      initSrc={data.liveSrc ?? null}
+    />
   );
 }

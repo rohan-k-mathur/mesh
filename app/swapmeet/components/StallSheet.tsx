@@ -8,7 +8,7 @@ import { ChatPane } from "./ChatPane";
 import { ImageCarousel } from "./ImageCarousel";
 import Link from "next/link";
 import { useAuth } from "@/lib/AuthContext";
-
+import { LivePanel } from "./dashboard/LivePanel";
 const fetcher = (url: string) => fetch(url).then(r => r.json());
 
 interface Props {
@@ -59,6 +59,8 @@ export function StallSheet({ stallId, open, onOpenChange }: Props) {
           src={liveSrc}
           open={open}
         />
+        {isOwner && <LivePanel stallId={stallId} />}
+
         <ItemsPane stallId={stallId} isOwner={Boolean(isOwner)} />
         <ChatPane stallId={stallId} />
       </SheetContent>
