@@ -87,7 +87,11 @@ export function PrivateChatManagerProvider({ children }: { children: React.React
   const open = async (targetUserId: bigint, roomId: bigint) => {
     const res = await fetch("/api/esp/open", {
       method: "POST",
-      body: JSON.stringify({ targetUserId, roomId }),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        targetUserId: targetUserId.toString(),
+        roomId: roomId.toString(),
+      }),
     });
     const { paneId } = await res.json();
     dispatch({
