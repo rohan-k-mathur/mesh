@@ -17,14 +17,14 @@ export default async function Page() {
           const other = c.user1_id === user.userId ? c.user2 : c.user1;
           const last = c.messages[0];
           return (
-            <li key={c.id.toString()} className="flex items-center gap-3 border-[1px] border-indigo-400 px-3 py-4 likebutton rounded-xl">
+            <li key={c.id.toString()} className="flex bg-white/20 items-center gap-3 border-[1px] border-indigo-400 px-3 py-4 likebutton rounded-xl">
               <div className="flex h-[3rem] w-[3rem] ">
               <Image
                 src={other.image || "/assets/user-helsinki.svg"}
                 alt={other.name}
                 width={40}
                 height={40}
-                className="object-cover flex-1 border-[.05rem] rounded-full border-indigo-300 profile-shadow hover:shadow-none "
+                className="object-cover flex-1 border-[.05rem] rounded-full border-indigo-300 profile-shadow  "
               />
               </div>
               <Link href={`/messages/${c.id}`} className="flex-1">

@@ -72,7 +72,7 @@ const GalleryCarousel = ({ urls, caption }: Props) => {
    exit:   (dir: number) => ({
      rotateY: dir > 0 ? angle   :  -angle,
      x:       dir > 0 ? -radius  :  radius,
-     z:       -radius,
+     z:       radius,
      opacity: 0,
      scale:   0.5
    })
