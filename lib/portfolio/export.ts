@@ -16,7 +16,7 @@ export interface PortfolioExportData {
 }
 export interface AbsoluteElement {
   id: string;
-  type: "text" | "text-box" | "image" | "link" | "box" | "video";
+  type: "text" | "image" | "link" | "box" | "video";
   x: number;
   y: number;
   width: number;
@@ -61,7 +61,7 @@ export function generatePortfolioTemplates(
         if (a.fontFamily) styleParts.push(`font-family:${a.fontFamily}`);
         if (a.fontWeight) styleParts.push(`font-weight:${a.fontWeight}`);
         if (a.italic) styleParts.push("font-style:italic");
-        if (a.type === "text-box" || a.type === "text") styleParts.push("white-space:pre-wrap");
+        if (a.type === "text") styleParts.push("white-space:pre-wrap");
         const style = `style="${styleParts.join(";")}"`;
         switch (a.type) {
           case "image":
@@ -72,7 +72,7 @@ export function generatePortfolioTemplates(
             return `<a ${style} href="${escapeHtml(a.href)}" class="break-all underline text-blue-500" target="_blank" rel="noreferrer">${escapeHtml(a.href)}</a>`;
           case "box":
             return `<div ${style} class="bg-gray-200 border" />`;
-          default: // "text" | "text-box"
+          default: // "text"
             return `<div ${style} class="text-xs border p-1 overflow-hidden">${escapeHtml(
               a.content,
             )}</div>`;
@@ -110,7 +110,7 @@ export function generatePortfolioTemplates(
         if (a.fontFamily) styleObj.fontFamily = a.fontFamily;
         if (a.fontWeight) styleObj.fontWeight = a.fontWeight;
         if (a.italic) styleObj.fontStyle = "italic";
-        if (a.type === "text-box" || a.type === "text") styleObj.whiteSpace = "pre-wrap";
+        if (a.type === "text") styleObj.whiteSpace = "pre-wrap";
         const styleJsx = `{ ${Object.entries(styleObj)
           .map(([k, v]) => `${k}: ${JSON.stringify(v)}`)
           .join(", ")} }`;
@@ -132,7 +132,7 @@ export function generatePortfolioTemplates(
             )}</a>`;
           case "box":
             return `<div style={${styleJsx}} className="bg-gray-200 border" />`;
-          default: // "text" | "text-box"
+          default: // "text"
             return `<div style={${styleJsx}} className="text-xs border p-1 overflow-hidden whitespace-pre-wrap">${escapeJSX(
               a.content,
             )}</div>`;
@@ -254,7 +254,6 @@ export default function PortfolioCanvas() {
 //             case "image":
 //               return `<Image src="${a.src}" alt="" fill style=${style} />`;
 //             case "text":
-//             case "text-box":
 //               return `<div style=${style} className="text-xs border p-1">${escapeJSX(
 //                 a.content || "",
 //               )}</div>`;

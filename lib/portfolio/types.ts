@@ -7,7 +7,7 @@ export interface BaseGeometry {
 }
 
 export type TextBoxRecord = BaseGeometry & {
-  kind: "text-box";
+  kind: "text";
   content: string;
   fontSize: number;
   lineHeight: number;
