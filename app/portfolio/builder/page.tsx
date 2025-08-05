@@ -57,6 +57,10 @@ type Element = BuilderElement;
 
 type DrawMode = null | "text" | "image" | "video" | "link";
 
+const gridSize = 30; // px – change whenever you want
+const snap = (v: number) => Math.round(v / gridSize) * gridSize;
+
+
 function mkElement(
   type: "image" | "video" | "link",
   pos: { x: number; y: number; width: number; height: number }
@@ -84,6 +88,8 @@ interface DroppableCanvasProps {
   layout: "column" | "grid" | "free";
   color: string;
   drawMode: DrawMode;
+  showGrid: boolean;
+
   setDrawMode: React.Dispatch<React.SetStateAction<DrawMode>>;
   boxes: TextBoxRecord[];
   elements: Element[];
@@ -298,6 +304,7 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
       color,
       drawMode,
       setDrawMode,
+      showGrid,
       boxes,
       setBoxes,
       elements,
@@ -390,8 +397,8 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
           d = dragRef.current;
         if (r) {
           const rect = canvasRef.current!.getBoundingClientRect();
-          const dx = ev.clientX - rect.left - r.startX;
-          const dy = ev.clientY - rect.top - r.startY;
+          const dx = snap(ev.clientX - rect.left)  - r.startX;
+          const dy = snap(ev.clientY - rect.top)   - r.startY;
           const calc = (c: Corner, dx: number, dy: number) => {
             switch (c) {
               case "se":
@@ -445,8 +452,8 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
         }
         if (d) {
           const rect = canvasRef.current!.getBoundingClientRect();
-          const dx = ev.clientX - rect.left - d.startX;
-          const dy = ev.clientY - rect.top - d.startY;
+          const dx = snap(ev.clientX - rect.left) - d.startX;
+          const dy = snap(ev.clientY - rect.top)  - d.startY;
           setBoxes((bs) =>
             bs.map((b) =>
               b.id === d.id
@@ -474,11 +481,12 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
     const isDrawing = drawMode !== null;
 
     const startDraw = (e: React.MouseEvent<HTMLDivElement>) => {
+      
       if (!isDrawing || e.target !== canvasRef.current) return;
       setSelectedId(null);
       const rect = canvasRef.current!.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
+      const x = snap(e.clientX - rect.left);
+      const y = snap(e.clientY - rect.top);
       setDraft({ x, y, width: 0, height: 0 });
     };
 
@@ -487,7 +495,8 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
       const rect = canvasRef.current!.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
-      setDraft((d) => (d ? { ...d, width: x - d.x, height: y - d.y } : null));
+      setDraft((d) => (d ? { ...d, width: snap(x) - d.x,
+        height: snap(y) - d.y } : null));
     };
 
     const endDraw = () => {
@@ -563,7 +572,17 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
           canvasRef.current = node;
         }}
         className={`relative flex-1 min-h-screen border border-dashed p-4 ${color} ${layoutClass}`}
-        style={{ cursor: isDrawing ? "crosshair" : "default" }}
+        style={{
+          cursor: isDrawing ? "crosshair" : "default",
+          ...(showGrid && {
+            backgroundImage: `
+              linear-gradient(to right, rgba(0,0,0,.06) 1px, transparent 1px),
+              linear-gradient(to bottom, rgba(0,0,0,.06) 1px, transparent 1px)
+            `,
+            backgroundSize: `${gridSize}px ${gridSize}px`,
+          }),
+        }}
+    
         onMouseDown={startDraw}
         onMouseMove={moveDraw}
         onMouseUp={endDraw}
@@ -798,6 +817,7 @@ DroppableCanvas.displayName = "DroppableCanvas";
 
 export default function PortfolioBuilder() {
   //return <h1 style={{color:'red'}}>If you can see this, the file is routed correctly</h1>;
+  const [showGrid, setShowGrid] = useState(true);   // ← NEW
 
   const [elements, setElements] = useState<Element[]>([]);
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -963,6 +983,7 @@ export default function PortfolioBuilder() {
       ...serialize(),
       absolutes: buildAbsoluteExport(),
     };
+    setShowGrid(false);            // hide grid for snapshot/export
 
     /* 2) POST to the export route – it now returns the PNG */
     const res = await fetch("/api/portfolio/export", {
@@ -1023,6 +1044,14 @@ export default function PortfolioBuilder() {
         >
         <div className="flex h-screen">
           <div className=" flex-grow-0 flex-shrink-0 border-r py-2 px-4 space-y-4  mt-12">
+          <button
+    onClick={() => setShowGrid(g => !g)}
+    className={`w-full px-4 py-2 rounded-md lockbutton ${
+      showGrid ? "bg-slate-300" : "bg-white"
+    }`}
+  >
+    {showGrid ? "Hide Grid" : "Show Grid"}
+  </button>
             <button
               className={` flex gap-2 w-full justify-start px-4 py-2 rounded-md l
              lockbutton tracking-wide ${
@@ -1123,6 +1152,8 @@ export default function PortfolioBuilder() {
             color={color}
             drawMode={drawMode}
             setDrawMode={setDrawMode}
+              showGrid={showGrid}
+
             boxes={textBoxes}
             elements={elements}
             setBoxes={setTextBoxes}
@@ -1155,7 +1186,19 @@ export default function PortfolioBuilder() {
                           )
                         }
                       >
-                        {el.content || "Edit text"}
+                            {el.content || "Edit text"}
+
+                            {(["nw","ne","sw","se"] as const).map((corner) => (
+                        <ResizeHandle
+                        key={corner}
+                        corner={corner}
+                        onPointerDown={(ev) =>
+                          startResize(ev, { id: el.id, kind: "text" }, corner)
+                        }
+                    />
+                    
+                      ))}
+                        {/* {el.content || "Edit text"} */}
                       </div>
                     )}
                     {el.type === "image" && (
@@ -1234,7 +1277,7 @@ export default function PortfolioBuilder() {
                           ))}
                         </div>
                         <button
-                          className="flex flex-col rounded-md mt-2 lockbutton "
+                          className="flex flex-col rounded-md mt-2 ml-5 lockbutton "
                           onPointerDown={(e) =>
                             e.stopPropagation()
                           } /* ⬅︎ PREVENT DRAG  */
