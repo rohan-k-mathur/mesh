@@ -8,7 +8,8 @@ import NextImage from "next/image";
 import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
-import { lowlight } from "lowlight";
+import { createLowlight } from 'lowlight';
+
 import javascript from "highlight.js/lib/languages/javascript";
 import typescript from "highlight.js/lib/languages/typescript";
 import python from "highlight.js/lib/languages/python";
@@ -25,11 +26,16 @@ import { uploadFileToSupabase } from "@/lib/utils";
 import styles from "./article.module.scss";
 import Cropper from "react-easy-crop";
 import "katex/dist/katex.min.css";
+// const lowlight = new Lowlight();
+const lowlight = createLowlight();
 
-lowlight.registerLanguage("js", javascript);
-lowlight.registerLanguage("ts", typescript);
-lowlight.registerLanguage("py", python);
-lowlight.registerLanguage("sh", bash);
+if (typeof window !== 'undefined') {               // only run in browser
+  lowlight.register('js', javascript);
+  lowlight.register('ts', typescript);
+  lowlight.register('py', python);
+  lowlight.register('sh', bash);
+}
+CodeBlockLowlight.configure({ lowlight });
 
 interface Heading {
   level: number;

@@ -2,8 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { nanoid } from "nanoid";
-import ArticleEditor from "@/components/article/ArticleEditor";
-
+// import ArticleEditor from "@/components/article/ArticleEditor";
+import dynamic from 'next/dynamic';
+const ArticleEditor = dynamic(
+  () => import('@/components/article/ArticleEditor'),
+  { ssr: false }      // ⬅️  disables server-side render for this component
+);
 export default function NewArticlePage() {
   const [articleId, setArticleId] = useState<string | null>(null);
 
