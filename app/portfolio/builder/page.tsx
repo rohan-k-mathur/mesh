@@ -48,9 +48,24 @@ import {
 import { isSafeYoutubeEmbed, isSafeHttpLink } from "@/lib/utils/validators";
 
 type Corner = "nw" | "ne" | "sw" | "se";
-type ResizeTarget = { id: string; kind: "text" | "image" | "video" };
+type ResizeTarget = { id: string; kind: "text" | "image" | "video" | "link" };
 
 type Element = BuilderElement;
+
+type DrawMode = null | "text" | "image" | "video" | "link";
+
+function mkElement(
+  type: "image" | "video" | "link",
+  pos: { x: number; y: number; width: number; height: number }
+): BuilderElement {
+  return {
+    id: nanoid(),
+    type,
+    content: "",
+    src: "",
+    ...pos,
+  };
+}
 
 /* ---------- DroppableCanvas ---------- */
 export interface DroppableCanvasHandle {
@@ -65,7 +80,8 @@ interface DroppableCanvasProps {
   children: React.ReactNode;
   layout: "column" | "grid" | "free";
   color: string;
-  drawText: boolean;
+  drawMode: DrawMode;
+  setDrawMode: React.Dispatch<React.SetStateAction<DrawMode>>;
   boxes: TextBoxRecord[];
   elements: Element[];
   setBoxes: React.Dispatch<React.SetStateAction<TextBoxRecord[]>>;
@@ -78,36 +94,6 @@ interface DroppableCanvasProps {
 interface PreviewProps {
   id: string;
   elements: Element[];
-}
-
-function DraggableItem({
-  id,
-  children,
-  fromSidebar,
-}: {
-  id: string;
-  children: React.ReactNode;
-  fromSidebar?: boolean;
-}) {
-  const { attributes, listeners, setNodeRef, transform } = useDraggable({
-    id,
-    data: { fromSidebar },
-  });
-  const style = transform
-    ? { transform: CSS.Translate.toString(transform) }
-    : undefined;
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      {...listeners}
-      {...attributes}
-      className="cursor-move flex  justify-start px-4 gap-2 tracking-wide
-     py-2 border rounded-md lockbutton text-center bg-white text-black z-1000"
-    >
-      {children}
-    </div>
-  );
 }
 
 function CanvasItem({
@@ -308,7 +294,8 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
       children,
       layout,
       color,
-      drawText,
+      drawMode,
+      setDrawMode,
       boxes,
       setBoxes,
       elements,
@@ -320,7 +307,12 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
     ref
   ) => {
     /* --- local state --- */
-    const [draft, setDraft] = useState<TextBoxRecord | null>(null);
+    const [draft, setDraft] = useState<{
+      x: number;
+      y: number;
+      width: number;
+      height: number;
+    } | null>(null);
     const [resizingState, setResizingState] = useState<ResizeState | null>(
       null
     );
@@ -476,19 +468,20 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
       };
     }, [canvasRef, setBoxes, setElements]);
 
-    /* ---------- draw new text‑box ---------- */
-    // inside the forwardRef body
+    /* ---------- draw new element ---------- */
+    const isDrawing = drawMode !== null;
+
     const startDraw = (e: React.MouseEvent<HTMLDivElement>) => {
-      if (!drawText || e.target !== canvasRef.current) return;
+      if (!isDrawing || e.target !== canvasRef.current) return;
       setSelectedId(null);
       const rect = canvasRef.current!.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
-      setDraft({ id: "", x, y, width: 0, height: 0, kind: "text", content: "" });
+      setDraft({ x, y, width: 0, height: 0 });
     };
 
     const moveDraw = (e: React.MouseEvent<HTMLDivElement>) => {
-      if (!drawText || !draft) return;
+      if (!isDrawing || !draft) return;
       const rect = canvasRef.current!.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
@@ -496,10 +489,11 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
     };
 
     const endDraw = () => {
-      if (!drawText || !draft) return;
+      if (!isDrawing || !draft) return;
       let { x, y, width, height } = draft;
       if (Math.abs(width) < 5 || Math.abs(height) < 5) {
         setDraft(null);
+        setDrawMode(null);
         return;
       }
       if (width < 0) {
@@ -511,22 +505,45 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
         height = -height;
       }
       const id = nanoid();
-      setBoxes((bs) => [
-        ...bs,
-        {
-          id,
-          x,
-          y,
-          width,
-          height,
-          kind: "text",
-          content: "",
-          fontSize: 14,
-          lineHeight: 1.2,
-        },
-      ]);
-      setSelectedId(id);
+      switch (drawMode) {
+        case "text":
+          setBoxes((bs) => [
+            ...bs,
+            {
+              id,
+              x,
+              y,
+              width,
+              height,
+              kind: "text",
+              content: "",
+              fontSize: 14,
+              lineHeight: 1.2,
+            },
+          ]);
+          setSelectedId(id);
+          break;
+        case "image":
+          setElements((els) => [
+            ...els,
+            mkElement("image", { x, y, width, height }),
+          ]);
+          break;
+        case "video":
+          setElements((els) => [
+            ...els,
+            mkElement("video", { x, y, width, height }),
+          ]);
+          break;
+        case "link":
+          setElements((els) => [
+            ...els,
+            mkElement("link", { x, y, width, height }),
+          ]);
+          break;
+      }
       setDraft(null);
+      setDrawMode(null);
     };
 
     /* --- JSX --- */
@@ -544,7 +561,7 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
           canvasRef.current = node;
         }}
         className={`relative flex-1 min-h-screen border border-dashed p-4 ${color} ${layoutClass}`}
-        style={{ cursor: drawText ? "crosshair" : "default" }}
+        style={{ cursor: isDrawing ? "crosshair" : "default" }}
         onMouseDown={startDraw}
         onMouseMove={moveDraw}
         onMouseUp={endDraw}
@@ -708,13 +725,13 @@ DroppableCanvas.displayName = "DroppableCanvas";
 //           canvasRef.current = node;
 //         }}
 //         className={`relative flex-1 min-h-screen border border-dashed p-4 ${color} ${layoutClass}`}
-//         style={{ cursor: drawText ? "crosshair" : "default" }}
+//         style={{ cursor: isDrawing ? "crosshair" : "default" }}
 //         onMouseDown={(e) => {
 //           if (e.target === canvasRef.current) setSelectedId(null);
-//           if (drawText) startDraw(e);
+//           if (isDrawing) startDraw(e);
 //         }}
-//         onMouseMove={drawText ? moveDraw : undefined}
-//         onMouseUp={drawText ? endDraw : undefined}
+//         onMouseMove={isDrawing ? moveDraw : undefined}
+//         onMouseUp={isDrawing ? endDraw : undefined}
 //       >
 //         {children}
 
@@ -783,7 +800,7 @@ export default function PortfolioBuilder() {
   const [color, setColor] = useState("bg-white");
   const [layout, setLayout] = useState<"column" | "grid" | "free">("free");
   const [template, setTemplate] = useState<string>("");
-  const [drawText, setDrawText] = useState(false);
+  const [drawMode, setDrawMode] = useState<DrawMode>(null);
   const [textBoxes, setTextBoxes] = useState<TextBoxRecord[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -823,58 +840,6 @@ export default function PortfolioBuilder() {
 
   function handleDragEnd(event: DragEndEvent) {
     const { over, active, delta } = event;
-    if (active.data.current?.fromSidebar) {
-      if (over) {
-        const pointer = event.activatorEvent as PointerEvent;
-        const rect = canvasRef.current?.getBoundingClientRect();
-        const x = rect ? pointer.clientX - rect.left : 0;
-        const y = rect ? pointer.clientY - rect.top : 0;
-        setElements((els) => [
-          ...els,
-          template === ""
-            ? {
-                id: nanoid(),
-                type: active.id as Element["type"],
-                content: "",
-                src: "",
-                x,
-                y,
-                width:
-                  active.id === "image"
-                    ? 300
-                    : active.id === "video"
-                    ? 480
-                    : 200,
-                height:
-                  active.id === "image"
-                    ? 300
-                    : active.id === "video"
-                    ? 270
-                    : 32,
-              }
-            : {
-                id: nanoid(),
-                type: active.id as Element["type"],
-                content: "",
-                src: "",
-                width:
-                  active.id === "image"
-                    ? 200
-                    : active.id === "video"
-                    ? 480
-                    : 200,
-                height:
-                  active.id === "image"
-                    ? 200
-                    : active.id === "video"
-                    ? 270
-                    : 32,
-              },
-        ]);
-      }
-      return;
-    }
-
     if (template === "") {
       setElements((els) =>
         els.map((e) =>
@@ -1045,11 +1010,13 @@ export default function PortfolioBuilder() {
           <button
             className={` flex gap-2 w-full justify-start px-4 py-2 rounded-md l
              lockbutton tracking-wide ${
-              drawText ? "bg-slate-300 cursor-crosshair" : "bg-white"
+              drawMode === "text" ? "bg-slate-300 cursor-crosshair" : "bg-white"
             }`}
-            onClick={() => setDrawText((d) => !d)}
+            onClick={() =>
+              setDrawMode((d) => (d === "text" ? null : "text"))
+            }
           >
-            {drawText ? "Text Box" : "Text Box"}
+            {drawMode === "text" ? "Text Box" : "Text Box"}
             <Image
               src="/assets/text--creation.svg"
               alt={"text"}
@@ -1058,10 +1025,16 @@ export default function PortfolioBuilder() {
               height={24}
             />
           </button>
-          {/* <DraggableItem id="text" fromSidebar>
-            Text
-          </DraggableItem> */}
-          <DraggableItem id="image" fromSidebar>
+
+          <button
+            className={` flex gap-2 w-full justify-start px-4 py-2 rounded-md l
+             lockbutton tracking-wide ${
+              drawMode === "image" ? "bg-slate-300 cursor-crosshair" : "bg-white"
+            }`}
+            onClick={() =>
+              setDrawMode((d) => (d === "image" ? null : "image"))
+            }
+          >
             Image
             <Image
               src="/assets/image.svg"
@@ -1070,9 +1043,17 @@ export default function PortfolioBuilder() {
               width={24}
               height={24}
             />
-          </DraggableItem>
+          </button>
 
-          <DraggableItem id="video" fromSidebar>
+          <button
+            className={` flex gap-2 w-full justify-start px-4 py-2 rounded-md l
+             lockbutton tracking-wide ${
+              drawMode === "video" ? "bg-slate-300 cursor-crosshair" : "bg-white"
+            }`}
+            onClick={() =>
+              setDrawMode((d) => (d === "video" ? null : "video"))
+            }
+          >
             Video
             <Image
               src="/assets/video.svg"
@@ -1081,9 +1062,17 @@ export default function PortfolioBuilder() {
               width={24}
               height={24}
             />
-          </DraggableItem>
+          </button>
 
-          <DraggableItem id="link" fromSidebar>
+          <button
+            className={` flex gap-2 w-full justify-start px-4 py-2 rounded-md l
+             lockbutton tracking-wide ${
+              drawMode === "link" ? "bg-slate-300 cursor-crosshair" : "bg-white"
+            }`}
+            onClick={() =>
+              setDrawMode((d) => (d === "link" ? null : "link"))
+            }
+          >
             Link
             <Image
               src="/assets/link.svg"
@@ -1092,7 +1081,7 @@ export default function PortfolioBuilder() {
               width={24}
               height={24}
             />
-          </DraggableItem>
+          </button>
           {selectedId && (
             <StylePanel
               box={textBoxes.find((b) => b.id === selectedId)!}
@@ -1110,7 +1099,8 @@ export default function PortfolioBuilder() {
           ref={canvasHandle}
           layout={layout}
           color={color}
-          drawText={drawText}
+          drawMode={drawMode}
+          setDrawMode={setDrawMode}
           boxes={textBoxes}
           elements={elements}
           setBoxes={setTextBoxes}
