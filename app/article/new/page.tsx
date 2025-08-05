@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { nanoid } from "nanoid";
-import ArticleEditor from "@/components/article/Editor";
+import ArticleEditor from "@/components/article/ArticleEditor";
 
 export default function NewArticlePage() {
   const [articleId, setArticleId] = useState<string | null>(null);
