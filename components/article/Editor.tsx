@@ -6,7 +6,6 @@ import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
 import styles from "./article.module.scss";
 import { uploadFileToSupabase } from "@/lib/utils";
-import Image from "next/image";
 
 interface EditorProps {
   articleId: string;
