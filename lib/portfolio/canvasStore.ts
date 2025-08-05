@@ -1,10 +1,26 @@
-import { produce } from "immer";
+import { produce, enableMapSet } from "immer";
 import { ElementRecord } from "./types";
+
+enableMapSet();
 
 export interface CanvasState {
   elements: Map<string, ElementRecord>;
   past: Array<Map<string, ElementRecord>>;
   future: Array<Map<string, ElementRecord>>;
+}
+
+const HISTORY_LIMIT = 100;
+
+function cloneElements(
+  elements: Map<string, ElementRecord>,
+): Map<string, ElementRecord> {
+  return new Map([...elements].map(([k, v]) => [k, { ...v }]));
+}
+
+function pushHistory(draft: CanvasState) {
+  draft.past.push(cloneElements(draft.elements));
+  if (draft.past.length > HISTORY_LIMIT) draft.past.shift();
+  draft.future = [];
 }
 
 export type CanvasAction =
@@ -30,21 +46,18 @@ export const canvasReducer = produce(
   (draft: CanvasState, action: CanvasAction) => {
     switch (action.type) {
       case "add": {
-        draft.past.push(new Map(draft.elements));
-        draft.future = [];
+        pushHistory(draft);
         draft.elements.set(action.element.id, action.element);
         break;
       }
       case "patch": {
-        draft.past.push(new Map(draft.elements));
-        draft.future = [];
+        pushHistory(draft);
         const el = draft.elements.get(action.id);
         if (el) Object.assign(el, action.patch);
         break;
       }
       case "drag": {
-        draft.past.push(new Map(draft.elements));
-        draft.future = [];
+        pushHistory(draft);
         const el = draft.elements.get(action.id);
         if (el) {
           el.x += action.dx;
@@ -53,27 +66,26 @@ export const canvasReducer = produce(
         break;
       }
       case "resize": {
-        draft.past.push(new Map(draft.elements));
-        draft.future = [];
+        pushHistory(draft);
         const el = draft.elements.get(action.id);
         if (el) Object.assign(el, action.patch);
         break;
       }
       case "remove": {
-        draft.past.push(new Map(draft.elements));
-        draft.future = [];
+        pushHistory(draft);
         draft.elements.delete(action.id);
         break;
       }
       case "undo": {
         if (!draft.past.length) break;
-        draft.future.unshift(new Map(draft.elements));
+        draft.future.unshift(cloneElements(draft.elements));
         draft.elements = draft.past.pop()!;
         break;
       }
       case "redo": {
         if (!draft.future.length) break;
-        draft.past.push(new Map(draft.elements));
+        draft.past.push(cloneElements(draft.elements));
+        if (draft.past.length > HISTORY_LIMIT) draft.past.shift();
         draft.elements = draft.future.shift()!;
         break;
       }

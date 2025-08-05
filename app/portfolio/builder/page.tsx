@@ -474,7 +474,7 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
       const rect = canvasRef.current!.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
-      setDraft({ id: "", x, y, width: 0, height: 0, text: "" });
+      setDraft({ id: "", x, y, width: 0, height: 0, kind: "text", content: "" });
     };
 
     const moveDraw = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -509,7 +509,8 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
           y,
           width,
           height,
-          text: "",
+          kind: "text",
+          content: "",
           fontSize: 14,
           lineHeight: 1.2,
         },
@@ -940,7 +941,7 @@ export default function PortfolioBuilder() {
     // 2️⃣  From text boxes we drew
     const absoluteText = textBoxes.map((b) => ({
       id: b.id,
-      type: "text-box",
+      type: "text",
       x: b.x,
       y: b.y,
       width: b.width,

@@ -2,7 +2,7 @@ import Image from "next/image";
 
 export interface AbsoluteElement {
   id: string;
-  type: "text" | "text-box" | "image" | "link" | "box" | "video";
+  type: "text" | "image" | "link" | "box" | "video";
   x: number;
   y: number;
   width: number;

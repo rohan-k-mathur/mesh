@@ -1,4 +1,4 @@
-import React, { useReducer, useCallback } from "react";
+import React, { useReducer, useCallback, useLayoutEffect } from "react";
 import {
   canvasReducer,
   initialCanvasState,
@@ -17,7 +17,6 @@ const CanvasCtx = React.createContext<Store | null>(null);
 
 export function CanvasProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(canvasReducer, initialCanvasState);
-
   const listeners = React.useRef(new Set<() => void>());
 
   const subscribe = useCallback((fn: () => void) => {
@@ -25,31 +24,39 @@ export function CanvasProvider({ children }: { children: React.ReactNode }) {
     return () => listeners.current.delete(fn);
   }, []);
 
-  React.useLayoutEffect(() => {
-    listeners.current.forEach((fn) => fn());
-  });
+  const store = React.useRef<Store>({
+    getSnapshot: () => initialCanvasState,
+    dispatch: () => {},
+    subscribe: () => () => {},
+  }).current;
 
-  const store = React.useMemo<Store>(
-    () => ({
-      getSnapshot: () => state,
-      dispatch,
-      subscribe,
-    }),
-    [state, dispatch, subscribe]
-  );
+  store.dispatch = dispatch;
+  store.getSnapshot = () => state;
+  store.subscribe = subscribe;
+
+  useLayoutEffect(() => {
+    listeners.current.forEach((fn) => fn());
+  }, [state]);
 
   return <CanvasCtx.Provider value={store}>{children}</CanvasCtx.Provider>;
 }
 
+function useStore(): Store {
+  const store = React.useContext(CanvasCtx);
+  if (!store)
+    throw new Error("Canvas context missing. Wrap components with CanvasProvider.");
+  return store;
+}
+
 export function useElement(id: string): ElementRecord {
-  const store = React.useContext(CanvasCtx)!;
+  const store = useStore();
   return React.useSyncExternalStore(
     store.subscribe,
     () => store.getSnapshot().elements.get(id)!,
-    () => store.getSnapshot().elements.get(id)!
+    () => store.getSnapshot().elements.get(id)!,
   );
 }
 
 export function useCanvasDispatch() {
-  return React.useContext(CanvasCtx)!.dispatch;
+  return useStore().dispatch;
 }
