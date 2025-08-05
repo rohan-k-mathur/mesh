@@ -1,5 +1,6 @@
 import { BubbleMenu, Editor } from "@tiptap/react";
 import styles from "../article.module.scss";
+import enStrings from "@/public/locales/en/editor.json";
 
 interface ToolbarProps {
   editor: Editor | null;
@@ -7,7 +8,10 @@ interface ToolbarProps {
 
 export default function Toolbar({ editor }: ToolbarProps) {
   if (!editor) return null;
-
+  const t = (key: string) =>
+  ((window as any)?.i18next?.t?.(`editor:${key}`) as string) ||
+  (enStrings as any)[key] ||
+  key;
   const setLink = () => {
     const url = window.prompt("URL");
     if (url) {
@@ -21,57 +25,65 @@ export default function Toolbar({ editor }: ToolbarProps) {
         onClick={() => editor.chain().focus().toggleBold().run()}
         className={editor.isActive("bold") ? styles.active : ""}
       >
-        B
+                {t("bold")}
+
       </button>
       <button
         onClick={() => editor.chain().focus().toggleItalic().run()}
         className={editor.isActive("italic") ? styles.active : ""}
       >
-        I
+               {t("italic")}
+
       </button>
       <button onClick={setLink} className={editor.isActive("link") ? styles.active : ""}>
-        Link
+      {t("link")}
       </button>
       <button
         onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
         className={editor.isActive("heading", { level: 1 }) ? styles.active : ""}
       >
-        H1
+                {t("h1")}
+
       </button>
       <button
         onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
         className={editor.isActive("heading", { level: 2 }) ? styles.active : ""}
       >
-        H2
+                {t("h2")}
+
       </button>
       <button
         onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
         className={editor.isActive("heading", { level: 3 }) ? styles.active : ""}
       >
-        H3
+          {t("h3")}
       </button>
       <button
         onClick={() => editor.chain().focus().toggleBlockquote().run()}
         className={editor.isActive("blockquote") ? styles.active : ""}
       >
-        Quote
+        {t("quote")}
       </button>
       <button
         onClick={() => editor.chain().focus().toggleCodeBlock().run()}
         className={editor.isActive("codeBlock") ? styles.active : ""}
       >
-        Code
+                {t("code")}
+
       </button>
       {editor.isActive("image") && (
         <>
           <button onClick={() => editor.chain().focus().updateAttributes("image", { align: "left" }).run()}>
-            Left
+          {t("left")}
+
           </button>
           <button onClick={() => editor.chain().focus().updateAttributes("image", { align: "center" }).run()}>
-            Center
+          {t("center")}
+
           </button>
           <button onClick={() => editor.chain().focus().updateAttributes("image", { align: "right" }).run()}>
-            Right
+          {t("right")}
+
           </button>
         </>
       )}
