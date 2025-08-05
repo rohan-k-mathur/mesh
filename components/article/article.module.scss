@@ -1,12 +1,60 @@
 .article {
+  min-height: 400px;          /* ← the main one you’re missing */
+
+  max-width: 65ch;
+  margin: 0 auto;
+  line-height: 1.6;
+  position: relative;
+
+}
+
+.tiptap {
+  min-height: 400px;          /* ← the main one you’re missing */
+  padding: 1rem;
+  outline: none;              /* keeps native focus ring away */
+  background: #fff;
+  border: 1px solid #d4d4d8;
+  border-radius: 2rem;
+  font-size: 1rem;
+  line-height: 1;
+  box-shadow: inset  -3px -3px 7px rgba(253, 205, 205, 0.95),
+  inset  3px 3px 7px rgba(176, 141, 141, 0.95);
+}
+/* optional: show placeholder text */
+.tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #9ca3af;
+  pointer-events: none;
+  height: 0;
+}
+.standard {
+  min-height: 400px;          /* ← the main one you’re missing */
+
   max-width: 65ch;
   margin: 0 auto;
   line-height: 1.6;
   position: relative;
 }
-
-.standard {}
-
+/* global.css or article.module.scss */
+.ProseMirror {
+  min-height: 400px;
+  padding: 1rem;
+  background: #fff;
+  border: 1px solid #d4d4d8;
+  border-radius: .5rem;
+  outline: none;      /* focus handled by your UI */
+  font-size: 1rem;
+  line-height: 1.5;
+}
+/* placeholder (works with your Placeholder extension) */
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #9ca3af;
+  pointer-events: none;
+  height: 0;
+}
 .feature {
   background-color: #f9fafb;
 }
@@ -75,7 +123,10 @@
 
 .editorWrapper {
   display: flex;
-  gap: 1rem;
+  flex-direction: column;
+  gap: 0.5rem;
+
+
 }
 
 .cropperModal {

@@ -8,7 +8,7 @@ import NextImage from "next/image";
 import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
-import { createLowlight } from 'lowlight';
+import { createLowlight } from "lowlight";
 import javascript from "highlight.js/lib/languages/javascript";
 import typescript from "highlight.js/lib/languages/typescript";
 import python from "highlight.js/lib/languages/python";
@@ -28,11 +28,12 @@ import "katex/dist/katex.min.css";
 // const lowlight = new Lowlight();
 const lowlight = createLowlight();
 
-if (typeof window !== 'undefined') {               // only run in browser
-  lowlight.register('js', javascript);
-  lowlight.register('ts', typescript);
-  lowlight.register('py', python);
-  lowlight.register('sh', bash);
+if (typeof window !== "undefined") {
+  // only run in browser
+  lowlight.register("js", javascript);
+  lowlight.register("ts", typescript);
+  lowlight.register("py", python);
+  lowlight.register("sh", bash);
 }
 
 interface Heading {
@@ -76,7 +77,9 @@ const Callout = Node.create({
   renderHTML({ HTMLAttributes }) {
     return [
       "div",
-      mergeAttributes(HTMLAttributes, { class: `callout ${HTMLAttributes.type}` }),
+      mergeAttributes(HTMLAttributes, {
+        class: `callout ${HTMLAttributes.type}`,
+      }),
       0,
     ];
   },
@@ -187,10 +190,13 @@ export default function ArticleEditor({ articleId }: EditorProps) {
       Callout,
       MathBlock,
       MathInline,
-      // SlashCommand,
+      //SlashCommand,
     ],
-    content: "",
+    content: "text",
     editorProps: {
+      attributes: {
+        class: 'tiptap',   // will be merged with 'ProseMirror'
+      },
       handleDrop(view, event) {
         const file = (event as DragEvent).dataTransfer?.files?.[0];
         if (file) {
@@ -301,15 +307,13 @@ export default function ArticleEditor({ articleId }: EditorProps) {
     return () => clearTimeout(timeout);
   }, [template, heroImageKey, saveDraft]);
 
-  const onHeroUpload = async (
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) => {
+  const onHeroUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const res = await fetch(
       `/api/articles/presign?filename=${encodeURIComponent(
-        file.name,
-      )}&contentType=${encodeURIComponent(file.type)}`,
+        file.name
+      )}&contentType=${encodeURIComponent(file.type)}`
     );
     const { uploadUrl } = await res.json();
     await fetch(uploadUrl, {
@@ -342,7 +346,7 @@ export default function ArticleEditor({ articleId }: EditorProps) {
       0,
       0,
       croppedArea.width,
-      croppedArea.height,
+      croppedArea.height
     );
     return new Promise<void>((resolve) => {
       canvas.toBlob(async (blob) => {
@@ -373,6 +377,7 @@ export default function ArticleEditor({ articleId }: EditorProps) {
   };
 
   return (
+    <div className="bg-slate-200">
     <div className={`${styles.article} ${styles[template]}`}>
       <TemplateSelector template={template} onChange={setTemplate} />
       <input type="file" onChange={onHeroUpload} />
@@ -422,6 +427,7 @@ export default function ArticleEditor({ articleId }: EditorProps) {
           </div>
         </div>
       )}
+    </div>
     </div>
   );
 }
