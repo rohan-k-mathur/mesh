@@ -11,8 +11,10 @@ import React, {
   useLayoutEffect,
   forwardRef,
 } from "react";
+import { ResizeHandle } from "./ResizeHandle";
 import {
   DndContext,
+  DragStartEvent,
   DragEndEvent,
   DragOverlay,
   PointerSensor,
@@ -37,6 +39,7 @@ import { Input } from "@/components/ui/input";
 import styles from "./resize-handles.module.css"; // CSS module for handles
 import { TextBoxRecord } from "@/lib/portfolio/types";
 import { CanvasProvider } from "@/lib/portfolio/CanvasStoreProvider";
+import type { UniqueIdentifier } from "@dnd-kit/core";
 
 import {
   Select,
@@ -107,15 +110,16 @@ function CanvasItem({
   y: number;
   children: React.ReactNode;
 }) {
-  
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id });
+  const { attributes, listeners, setNodeRef, transform, isDragging } =
+    useDraggable({ id });
   const style = {
-    position: "absolute",
-    left: x + (transform?.x ?? 0),
-    top: y + (transform?.y ?? 0),
-    zIndex: isDragging ? 1000 : 1,   // 🟢 lift while dragging
-    transform: CSS.Translate.toString(transform),
+    
+        position: "absolute",
+        left: x + (transform?.x ?? 0),
+        top:  y + (transform?.y ?? 0),
+        // transform: CSS.Translate.toString(transform),
 
+         zIndex: 1,
   } as React.CSSProperties;
   return (
     <div
@@ -198,8 +202,6 @@ function EditableBox({
     />
   );
 }
-
-
 
 // type ResizeTarget = { id: string; kind: "text" | "image" | "video" };
 interface ResizeState {
@@ -795,6 +797,8 @@ DroppableCanvas.displayName = "DroppableCanvas";
 // DroppableCanvas.displayName = "DroppableCanvas";
 
 export default function PortfolioBuilder() {
+  //return <h1 style={{color:'red'}}>If you can see this, the file is routed correctly</h1>;
+
   const [elements, setElements] = useState<Element[]>([]);
   const canvasRef = useRef<HTMLDivElement>(null);
   const [color, setColor] = useState("bg-white");
@@ -803,16 +807,21 @@ export default function PortfolioBuilder() {
   const [drawMode, setDrawMode] = useState<DrawMode>(null);
   const [textBoxes, setTextBoxes] = useState<TextBoxRecord[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
 
   const router = useRouter();
-  const handleResizeStart = (
+  // const handleResizeStart = (
+  //   e: React.PointerEvent,
+  //   target: ResizeTarget,
+  //   corner: Corner
+  // ) => {
+  //   handleResizeStart.current?.(e, target, corner); // delegate
+  // };
+  const proxyResizeStart = (
     e: React.PointerEvent,
     target: ResizeTarget,
     corner: Corner
-  ) => {
-    handleResizeStart.current?.(e, target, corner); // delegate
-  };
+  ) => canvasHandle.current?.startResize(e, target, corner);
 
   // /* --- inside PortfolioBuilder --- */
   // const resizeStartRef = useRef<
@@ -993,9 +1002,16 @@ export default function PortfolioBuilder() {
     );
   }
   const sensors = useSensors(useSensor(PointerSensor));
+
+ 
+<DragOverlay zIndex={1000}>
+          {activeId ? (
+            <PreviewOfItem id={activeId} elements={elements} />
+          ) : null}
+        </DragOverlay>
   const handleEnd = (event: DragEndEvent) => {
-    handleDragEnd(event);   // ← your canvas-update logic
-    setActiveId(null);      // ← clear overlay
+    handleDragEnd(event); // ← your canvas-update logic
+    setActiveId(null); // ← clear overlay
   };
   return (
     <CanvasProvider>
@@ -1004,169 +1020,189 @@ export default function PortfolioBuilder() {
         onDragEnd={handleEnd}
         collisionDetection={pointerWithin}
         onDragStart={(e) => setActiveId(e.active.id)}
-      >
-        <div className="flex h-screen">
-        <div className=" flex-grow-0 flex-shrink-0 border-r py-2 px-4 space-y-4  mt-12">
-          <button
-            className={` flex gap-2 w-full justify-start px-4 py-2 rounded-md l
-             lockbutton tracking-wide ${
-              drawMode === "text" ? "bg-slate-300 cursor-crosshair" : "bg-white"
-            }`}
-            onClick={() =>
-              setDrawMode((d) => (d === "text" ? null : "text"))
-            }
-          >
-            {drawMode === "text" ? "Text Box" : "Text Box"}
-            <Image
-              src="/assets/text--creation.svg"
-              alt={"text"}
-              className="p-0 flex-grow-0 flex-shrink-0"
-              width={24}
-              height={24}
-            />
-          </button>
-
-          <button
-            className={` flex gap-2 w-full justify-start px-4 py-2 rounded-md l
-             lockbutton tracking-wide ${
-              drawMode === "image" ? "bg-slate-300 cursor-crosshair" : "bg-white"
-            }`}
-            onClick={() =>
-              setDrawMode((d) => (d === "image" ? null : "image"))
-            }
-          >
-            Image
-            <Image
-              src="/assets/image.svg"
-              alt={"image"}
-              className="p-0 flex-grow-0 flex-shrink-0"
-              width={24}
-              height={24}
-            />
-          </button>
-
-          <button
-            className={` flex gap-2 w-full justify-start px-4 py-2 rounded-md l
-             lockbutton tracking-wide ${
-              drawMode === "video" ? "bg-slate-300 cursor-crosshair" : "bg-white"
-            }`}
-            onClick={() =>
-              setDrawMode((d) => (d === "video" ? null : "video"))
-            }
-          >
-            Video
-            <Image
-              src="/assets/video.svg"
-              alt={"video"}
-              className="p-0 flex-grow-0 flex-shrink-0"
-              width={24}
-              height={24}
-            />
-          </button>
-
-          <button
-            className={` flex gap-2 w-full justify-start px-4 py-2 rounded-md l
-             lockbutton tracking-wide ${
-              drawMode === "link" ? "bg-slate-300 cursor-crosshair" : "bg-white"
-            }`}
-            onClick={() =>
-              setDrawMode((d) => (d === "link" ? null : "link"))
-            }
-          >
-            Link
-            <Image
-              src="/assets/link.svg"
-              alt={"globe"}
-              className="mr-2"
-              width={24}
-              height={24}
-            />
-          </button>
-          {selectedId && (
-            <StylePanel
-              box={textBoxes.find((b) => b.id === selectedId)!}
-              onChange={(patch) =>
-                setTextBoxes((bs) =>
-                  bs.map((b) => (b.id === selectedId ? { ...b, ...patch } : b))
-                )
-              }
-            />
-          )}
-        </div>
-
-        {/* ---------- canvas ---------- */}
-        <DroppableCanvas
-          ref={canvasHandle}
-          layout={layout}
-          color={color}
-          drawMode={drawMode}
-          setDrawMode={setDrawMode}
-          boxes={textBoxes}
-          elements={elements}
-          setBoxes={setTextBoxes}
-          setElements={setElements}
-          canvasRef={canvasRef}
-          selectedId={selectedId}
-          setSelectedId={setSelectedId}
         >
-          {elements.map((el) =>
-            template === "" ? (
-              <CanvasItem key={el.id} id={el.id} x={el.x} y={el.y}>
-                <div className="p-2 border-[1px]  border-black bg-white space-y-2">
-                  {el.type === "text" && (
-                    <div
-                      contentEditable
-                      suppressContentEditableWarning
-                      className="text-block outline-none"
-                      onPointerDown={(e) => e.stopPropagation()}
-                      onInput={(e) =>
-                        setElements((els) =>
-                          els.map((it) =>
-                            it.id === el.id
-                              ? {
-                                  ...it,
-                                  content: (e.target as HTMLElement).innerText,
-                                }
-                              : it
+        <div className="flex h-screen">
+          <div className=" flex-grow-0 flex-shrink-0 border-r py-2 px-4 space-y-4  mt-12">
+            <button
+              className={` flex gap-2 w-full justify-start px-4 py-2 rounded-md l
+             lockbutton tracking-wide ${
+               drawMode === "text"
+                 ? "bg-slate-300 cursor-crosshair"
+                 : "bg-white"
+             }`}
+              onClick={() => setDrawMode((d) => (d === "text" ? null : "text"))}
+            >
+              {drawMode === "text" ? "Text Box" : "Text Box"}
+              <Image
+                src="/assets/text--creation.svg"
+                alt={"text"}
+                className="p-0 flex-grow-0 flex-shrink-0"
+                width={24}
+                height={24}
+              />
+            </button>
+
+            <button
+              className={` flex gap-2 w-full justify-start px-4 py-2 rounded-md l
+             lockbutton tracking-wide ${
+               drawMode === "image"
+                 ? "bg-slate-300 cursor-crosshair"
+                 : "bg-white"
+             }`}
+              onClick={() =>
+                setDrawMode((d) => (d === "image" ? null : "image"))
+              }
+            >
+              Image
+              <Image
+                src="/assets/image.svg"
+                alt={"image"}
+                className="p-0 flex-grow-0 flex-shrink-0"
+                width={24}
+                height={24}
+              />
+            </button>
+
+            <button
+              className={` flex gap-2 w-full justify-start px-4 py-2 rounded-md l
+             lockbutton tracking-wide ${
+               drawMode === "video"
+                 ? "bg-slate-300 cursor-crosshair"
+                 : "bg-white"
+             }`}
+              onClick={() =>
+                setDrawMode((d) => (d === "video" ? null : "video"))
+              }
+            >
+              Video
+              <Image
+                src="/assets/video.svg"
+                alt={"video"}
+                className="p-0 flex-grow-0 flex-shrink-0"
+                width={24}
+                height={24}
+              />
+            </button>
+
+            <button
+              className={` flex gap-2 w-full justify-start px-4 py-2 rounded-md l
+             lockbutton tracking-wide ${
+               drawMode === "link"
+                 ? "bg-slate-300 cursor-crosshair"
+                 : "bg-white"
+             }`}
+              onClick={() => setDrawMode((d) => (d === "link" ? null : "link"))}
+            >
+              Link
+              <Image
+                src="/assets/link.svg"
+                alt={"globe"}
+                className="mr-2"
+                width={24}
+                height={24}
+              />
+            </button>
+            {selectedId && (
+              <StylePanel
+                box={textBoxes.find((b) => b.id === selectedId)!}
+                onChange={(patch) =>
+                  setTextBoxes((bs) =>
+                    bs.map((b) =>
+                      b.id === selectedId ? { ...b, ...patch } : b
+                    )
+                  )
+                }
+              />
+            )}
+          </div>
+
+          {/* ---------- canvas ---------- */}
+          <DroppableCanvas
+            ref={canvasHandle}
+            layout={layout}
+            color={color}
+            drawMode={drawMode}
+            setDrawMode={setDrawMode}
+            boxes={textBoxes}
+            elements={elements}
+            setBoxes={setTextBoxes}
+            setElements={setElements}
+            canvasRef={canvasRef}
+            selectedId={selectedId}
+            setSelectedId={setSelectedId}
+          >
+            {elements.map((el) =>
+              template === "" ? (
+                <CanvasItem key={el.id} id={el.id} x={el.x} y={el.y}>
+                  <div className="py-8 px-8 border-[1px] rounded-xl border-black savebutton bg-white/20 space-y-2">
+                    {el.type === "text" && (
+                      <div
+                        contentEditable
+                        suppressContentEditableWarning
+                        className="text-block outline-none"
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onInput={(e) =>
+                          setElements((els) =>
+                            els.map((it) =>
+                              it.id === el.id
+                                ? {
+                                    ...it,
+                                    content: (e.target as HTMLElement)
+                                      .innerText,
+                                  }
+                                : it
+                            )
                           )
-                        )
-                      }
-                    >
-                      {el.content || "Edit text"}
-                    </div>
-                  )}
-                  {el.type === "image" && (
-                    <div className="p-1 border-[1px] border-transparent">
-                      <div className="relative inline-block">
-                        {el.src ? (
-                          <Image
-                            src={el.src}
-                            alt="uploaded"
-                            width={el.width}
-                            height={el.height}
-                            className="object-cover portfolio-img-frame max-h-[400px]"
-                            crossOrigin="anonymous"
-                            onLoad={(e) =>
-                              recordNaturalSize(
-                                el.id,
-                                (e.target as HTMLImageElement).naturalWidth,
-                                (e.target as HTMLImageElement).naturalHeight
-                              )
-                            }
-                          />
-                        ) : (
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="w-full h-full p-1"
-                            onPointerDown={(e) => e.stopPropagation()}
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) handleImageSelect(el.id, file);
-                            }}
-                          />
-                        )}
-                        {(["nw", "ne", "sw", "se"] as Corner[]).map(
+                        }
+                      >
+                        {el.content || "Edit text"}
+                      </div>
+                    )}
+                    {el.type === "image" && (
+                      <div
+                        style={{
+                  
+                          width: el.width,
+                          height: el.height,
+                          boxSizing: 'border-box'  // ← keeps border inside the rectangle
+
+                        }}
+                        className="absolute border-2 border-dashed border-gray-500/60 bg-transparent relative"        
+                        // onPointerDown={(e) => handleDragEnd(e, el)}
+                      >
+  <div className="relative w-full h-full ">
+                          {el.src ? (
+                            <Image
+                              src={el.src}
+                              alt="uploaded"
+                              width={400}
+                              height={400}
+                              className="object-contain items-center justify-center w-full h-full"
+                              crossOrigin="anonymous"
+                              onLoad={(e) =>
+                                recordNaturalSize(
+                                  el.id,
+                                  (e.target as HTMLImageElement).naturalWidth,
+                                  (e.target as HTMLImageElement).naturalHeight
+                                )
+                              }
+                            />
+                          ) : (
+                            <label className="flex flex-1 items-center justify-center  h-full  cursor-pointer">
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="relative flex flex-1 justify-center items-center shadow-xl w-full h-full rounded-none p-3"
+                                onPointerDown={(e) => e.stopPropagation()}
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) handleImageSelect(el.id, file);
+                                }}
+                              />
+                              {/* <span className="text-xs text-gray-600">Choose file</span> */}
+                            </label>
+                          )}
+                          {/* {(["nw", "ne", "sw", "se"] as Corner[]).map(
                           (corner) => (
                             <div
                               key={corner}
@@ -1177,152 +1213,74 @@ export default function PortfolioBuilder() {
                                   corner
                                 )
                               }
-                              className={`resize-handle handle-${corner}`}
+                              className={`${styles.handle} ${styles[`handle-${corner}`]}`}
+
+                              // className={`resize-handle rounded-full bg-black handle-${corner}`}
                             />
                           )
-                        )}
-                      </div>
-                      <button
-                        className="rounded-md mt-5 lockbutton"
-                        onPointerDown={(e) =>
-                          e.stopPropagation()
-                        } /* ⬅︎ PREVENT DRAG  */
-                        onClick={(e) => {
-                          /* ⬅︎ ACTUAL DELETE */
-                          e.stopPropagation(); // safety for touch events
-                          setElements((els) =>
-                            els.filter((it) => it.id !== el.id)
-                          );
-                        }}
-                      >
-                        <Image
-                          src="/assets/trash-can.svg"
-                          alt={"globe"}
-                          className="justify-center  "
-                          width={14}
-                          height={14}
-                        />
-                      </button>
-                    </div>
-                  )}
-                  {el.type === "video" && (
-                    <div className="p-1 border border-transparent">
-                      {el.src ? (
-                        <iframe
-                          src={el.src}
-                          width={el.width}
-                          height={el.height}
-                          className="pointer-events-none"
-                          allow="autoplay; encrypted-media"
-                          allowFullScreen
-                        />
-                      ) : (
-                        <input
-                          placeholder="https://www.youtube.com/embed/…"
-                          className="w-full h-full p-1"
-                          onPointerDown={(e) => e.stopPropagation()}
-                          onChange={(e) =>
-                            setElements((els) =>
-                              els.map((it) =>
-                                it.id === el.id
-                                  ? { ...it, src: e.target.value }
-                                  : it
-                              )
-                            )
-                          }
-                        />
-                      )}
-                      {(["nw", "ne", "sw", "se"] as Corner[]).map((corner) => (
-                        <div
-                          key={corner}
+                        )} */}
+                          {(["nw", "ne", "sw", "se"] as const).map((corner) => (
+                            <ResizeHandle
+                              key={corner}
+                              corner={corner}
+                              onPointerDown={(ev) =>
+                                startResize(
+                                  ev,
+                                  { id: el.id, kind: "image" },
+                                  corner
+                                )
+                              }
+                            />
+                          ))}
+                        </div>
+                        <button
+                          className="flex flex-col rounded-md mt-2 lockbutton "
                           onPointerDown={(e) =>
-                            handleResizeStart(
-                              e,
-                              { id: el.id, kind: "video" },
-                              corner
-                            )
-                          }
-                          className={`resize-handle handle-${corner}`}
-                        />
-                      ))}
-                    </div>
-                  )}
-                  {el.type === "box" && (
-                    <div className="w-20 h-20 border bg-gray-200" />
-                  )}
-                  {el.type === "link" && (
-                    <input
-                      className="border p-1 text-sm"
-                      placeholder="https://example.com"
-                      value={el.href || ""}
-                      onPointerDown={(e) => e.stopPropagation()}
-                      onChange={(e) =>
-                        setElements((els) =>
-                          els.map((it) =>
-                            it.id === el.id
-                              ? { ...it, href: e.target.value }
-                              : it
-                          )
-                        )
-                      }
-                    />
-                  )}
-                </div>
-              </CanvasItem>
-            ) : (
-              <SortableCanvasItem key={el.id} id={el.id}>
-                <div className="p-2 border bg-white space-y-2">
-                  {el.type === "text" && (
-                    <div
-                      contentEditable
-                      suppressContentEditableWarning
-                      className="text-block outline-none"
-                      onPointerDown={(e) => e.stopPropagation()}
-                      onInput={(e) =>
-                        setElements((els) =>
-                          els.map((it) =>
-                            it.id === el.id
-                              ? {
-                                  ...it,
-                                  content: (e.target as HTMLElement).innerText,
-                                }
-                              : it
-                          )
-                        )
-                      }
-                    >
-                      {el.content || "Edit text"}
-                    </div>
-                  )}
-                  {el.type === "image" && (
-                    <div>
-                      <div className="relative inline-block">
-                        {el.src ? (
+                            e.stopPropagation()
+                          } /* ⬅︎ PREVENT DRAG  */
+                          onClick={(e) => {
+                            /* ⬅︎ ACTUAL DELETE */
+                            e.stopPropagation(); // safety for touch events
+                            setElements((els) =>
+                              els.filter((it) => it.id !== el.id)
+                            );
+                          }}
+                        >
                           <Image
+                            src="/assets/trash-can.svg"
+                            alt={"globe"}
+                            className="justify-center  "
+                            width={14}
+                            height={14}
+                          />
+                        </button>
+                      </div>
+                    )}
+                    {el.type === "video" && (
+                      <div className="p-1 border border-transparent">
+                        {el.src ? (
+                          <iframe
                             src={el.src}
-                            alt="uploaded"
                             width={el.width}
                             height={el.height}
-                            className="object-cover portfolio-img-frame"
-                            crossOrigin="anonymous"
-                            onLoad={(e) =>
-                              recordNaturalSize(
-                                el.id,
-                                (e.target as HTMLImageElement).naturalWidth,
-                                (e.target as HTMLImageElement).naturalHeight
-                              )
-                            }
+                            className="pointer-events-none"
+                            allow="autoplay; encrypted-media"
+                            allowFullScreen
                           />
                         ) : (
                           <input
-                            type="file"
-                            accept="image/*"
-                            className="w-full h-full"
+                            placeholder="https://www.youtube.com/embed/…"
+                            className="w-full h-full p-1"
                             onPointerDown={(e) => e.stopPropagation()}
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) handleImageSelect(el.id, file);
-                            }}
+                            onChange={(e) =>
+                              setElements((els) =>
+                                els.map((it) =>
+                                  it.id === el.id
+                                    ? { ...it, src: e.target.value }
+                                    : it
+                                )
+                              )
+                            }
                           />
                         )}
                         {(["nw", "ne", "sw", "se"] as Corner[]).map(
@@ -1330,9 +1288,9 @@ export default function PortfolioBuilder() {
                             <div
                               key={corner}
                               onPointerDown={(e) =>
-                                startResize(
+                                proxyResizeStart(
                                   e,
-                                  { id: box.id, kind: "text" },
+                                  { id: el.id, kind: "video" },
                                   corner
                                 )
                               }
@@ -1341,161 +1299,258 @@ export default function PortfolioBuilder() {
                           )
                         )}
                       </div>
-                    </div>
-                  )}
-                  {el.type === "video" && (
-                    <div className="p-1 border border-transparent">
-                      {el.src ? (
-                        <iframe
-                          src={el.src}
-                          width={el.width}
-                          height={el.height}
-                          className="pointer-events-none"
-                          allow="autoplay; encrypted-media"
-                          allowFullScreen
-                        />
-                      ) : (
-                        <input
-                          placeholder="https://www.youtube.com/embed/..."
-                          className="w-full h-full"
-                          onPointerDown={(e) => e.stopPropagation()}
-                          onChange={(e) => {
-                            const url = e.target.value.trim();
-                            if (!isSafeYoutubeEmbed(url)) return; // ignore invalid input
-
-                            // `el` is already in scope (we're inside elements.map(render))
-                            setElements((prev) =>
-                              prev.map(
-                                (it) =>
-                                  it.id === el.id ? { ...it, src: url } : it // ✅ update just this item
-                              )
-                            );
-                          }}
-                        />
-                      )}
-                      {(["nw", "ne", "sw", "se"] as Corner[]).map((corner) => (
-                        <div
-                          key={corner}
-                          onPointerDown={(e) =>
-                            handleResizeStart(
-                              e,
-                              { id: el.id, kind: "video" },
-                              corner
+                    )}
+                    {el.type === "box" && (
+                      <div className="w-20 h-20 border bg-gray-200" />
+                    )}
+                    {el.type === "link" && (
+                      <input
+                        className="border p-1 text-sm"
+                        placeholder="https://example.com"
+                        value={el.href || ""}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onChange={(e) =>
+                          setElements((els) =>
+                            els.map((it) =>
+                              it.id === el.id
+                                ? { ...it, href: e.target.value }
+                                : it
                             )
-                          }
-                          className={`resize-handle handle-${corner}`}
-                        />
-                      ))}
-                    </div>
-                  )}
-                  {el.type === "box" && (
-                    <div className="w-20 h-20 border bg-gray-200" />
-                  )}
-                  {el.type === "link" && (
-                    <input
-                      className="border p-1 text-sm"
-                      placeholder="https://example.com"
-                      value={el.href || ""}
-                      onPointerDown={(e) => e.stopPropagation()}
-                      /* link input */
-                      onChange={(e) => {
-                        const v = e.target.value.trim();
-                        if (!isSafeHttpLink(v)) return; // bail out on invalid link
-
-                        setElements((prev) =>
-                          prev.map((it) =>
-                            it.id === el.id
-                              ? { ...it, href: v }
-                              : it
                           )
-                        );
-                      }}
-                    />
-                  )}
-                  <button
-                    className="text-xs text-red-500"
-                    onClick={() =>
-                      setElements((els) => els.filter((it) => it.id !== el.id))
-                    }
-                  >
-                    <Image
-                      src="/assets/trash-can.svg"
-                      alt={"globe"}
-                      className="mr-2"
-                      width={24}
-                      height={24}
-                    />
-                  </button>
-                </div>
-              </SortableCanvasItem>
-            )
-          )}
-        </DroppableCanvas>
-        <div className="w-fit border-l px-4 py-2 mt-8 space-y-4">
-          <div className="rounded-xl bg-transparent border-[1px] border-black p-3 ">
-            <p className="text-sm mb-1">Template</p>
-            <select
-              className="w-full rounded-xl lockbutton mt-1 border-black bg-gray-100 border-[1px] p-1"
-              value={template}
-              onChange={(e) => applyTemplate(e.target.value)}
-            >
-              <option value="">Blank</option>
-              {templates.map((t) => (
-                <option key={t.name} value={t.name}>
-                  {t.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="rounded-xl bg-transparent border-[1px] border-black p-3 ">
-            <p className="text-sm mb-1">Background</p>
-            <select
-              className="w-full rounded-xl lockbutton mt-1 border-black bg-gray-100 border-[1px] p-1"
-              value={color}
-              onChange={(e) => setColor(e.target.value)}
-            >
-              <option value="bg-white">White</option>
-              <option value="bg-gray-200">Gray</option>
-              <option value="bg-blue-200">Blue</option>
-            </select>
-          </div>
-          <div className="rounded-xl bg-transparent border-[1px] border-black p-3 ">
-            <p className="text-sm mb-1">Layout</p>
-            <select
-              className="w-full rounded-xl lockbutton mt-1 border-black bg-gray-100 border-[1px] p-1"
-              value={layout}
-              onChange={(e) =>
-                setLayout(e.target.value as "column" | "grid" | "free")
-              }
-            >
-              <option value="free">Free</option>
+                        }
+                      />
+                    )}
+                  </div>
+                </CanvasItem>
+              ) : (
+                <SortableCanvasItem key={el.id} id={el.id}>
+                  <div className="p-2 border bg-white space-y-2">
+                    {el.type === "text" && (
+                      <div
+                        contentEditable
+                        suppressContentEditableWarning
+                        className="text-block outline-none"
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onInput={(e) =>
+                          setElements((els) =>
+                            els.map((it) =>
+                              it.id === el.id
+                                ? {
+                                    ...it,
+                                    content: (e.target as HTMLElement)
+                                      .innerText,
+                                  }
+                                : it
+                            )
+                          )
+                        }
+                      >
+                        {el.content || "Edit text"}
+                      </div>
+                    )}
+                    {el.type === "image" && (
+                      <div>
+                        <div className="relative inline-block">
+                          {el.src ? (
+                            <Image
+                              src={el.src}
+                              alt="uploaded"
+                              width={el.width}
+                              height={el.height}
+                              className="object-cover "
+                              crossOrigin="anonymous"
+                              onLoad={(e) =>
+                                recordNaturalSize(
+                                  el.id,
+                                  (e.target as HTMLImageElement).naturalWidth,
+                                  (e.target as HTMLImageElement).naturalHeight
+                                )
+                              }
+                            />
+                          ) : (
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="w-full h-full"
+                              onPointerDown={(e) => e.stopPropagation()}
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleImageSelect(el.id, file);
+                              }}
+                            />
+                          )}
+                          {(["nw", "ne", "sw", "se"] as Corner[]).map(
+                            (corner) => (
+                              <div
+                                key={corner}
+                                onPointerDown={(e) =>
+                                  startResize(
+                                    e,
+                                    { id: box.id, kind: "text" },
+                                    corner
+                                  )
+                                }
+                                className={`resize-handle handle-${corner}`}
+                              />
+                            )
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    {el.type === "video" && (
+                      <div className="p-1 border border-transparent">
+                        {el.src ? (
+                          <iframe
+                            src={el.src}
+                            width={el.width}
+                            height={el.height}
+                            className="pointer-events-none"
+                            allow="autoplay; encrypted-media"
+                            allowFullScreen
+                          />
+                        ) : (
+                          <input
+                            placeholder="https://www.youtube.com/embed/..."
+                            className="w-full h-full"
+                            onPointerDown={(e) => e.stopPropagation()}
+                            onChange={(e) => {
+                              const url = e.target.value.trim();
+                              if (!isSafeYoutubeEmbed(url)) return; // ignore invalid input
 
-              <option value="column">Column</option>
-              <option value="grid">Grid</option>
-            </select>
-          </div>
-          <button
-            className="w-full  bg-gray-100 border-black border-[1px] lockbutton  text-black  px-1 py-2 
+                              // `el` is already in scope (we're inside elements.map(render))
+                              setElements((prev) =>
+                                prev.map(
+                                  (it) =>
+                                    it.id === el.id ? { ...it, src: url } : it // ✅ update just this item
+                                )
+                              );
+                            }}
+                          />
+                        )}
+                        {(["nw", "ne", "sw", "se"] as Corner[]).map(
+                          (corner) => (
+                            <div
+                              key={corner}
+                              onPointerDown={(e) =>
+                                proxyResizeStart(
+                                  e,
+                                  { id: el.id, kind: "video" },
+                                  corner
+                                )
+                              }
+                              className={`resize-handle handle-${corner}`}
+                            />
+                          )
+                        )}
+                      </div>
+                    )}
+                    {el.type === "box" && (
+                      <div className="w-20 h-20 border bg-gray-200" />
+                    )}
+                    {el.type === "link" && (
+                      <input
+                        className="border p-1 text-sm"
+                        placeholder="https://example.com"
+                        value={el.href || ""}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        /* link input */
+                        onChange={(e) => {
+                          const v = e.target.value.trim();
+                          if (!isSafeHttpLink(v)) return; // bail out on invalid link
+
+                          setElements((prev) =>
+                            prev.map((it) =>
+                              it.id === el.id ? { ...it, href: v } : it
+                            )
+                          );
+                        }}
+                      />
+                    )}
+                    <button
+                      className="text-xs text-red-500"
+                      onClick={() =>
+                        setElements((els) =>
+                          els.filter((it) => it.id !== el.id)
+                        )
+                      }
+                    >
+                      <Image
+                        src="/assets/trash-can.svg"
+                        alt={"globe"}
+                        className="mr-2"
+                        width={24}
+                        height={24}
+                      />
+                    </button>
+                  </div>
+                </SortableCanvasItem>
+              )
+            )}
+          </DroppableCanvas>
+          <div className="w-fit border-l px-4 py-2 mt-8 space-y-4">
+            <div className="rounded-xl bg-transparent border-[1px] border-black p-3 ">
+              <p className="text-sm mb-1">Template</p>
+              <select
+                className="w-full rounded-xl lockbutton mt-1 border-black bg-gray-100 border-[1px] p-1"
+                value={template}
+                onChange={(e) => applyTemplate(e.target.value)}
+              >
+                <option value="">Blank</option>
+                {templates.map((t) => (
+                  <option key={t.name} value={t.name}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="rounded-xl bg-transparent border-[1px] border-black p-3 ">
+              <p className="text-sm mb-1">Background</p>
+              <select
+                className="w-full rounded-xl lockbutton mt-1 border-black bg-gray-100 border-[1px] p-1"
+                value={color}
+                onChange={(e) => setColor(e.target.value)}
+              >
+                <option value="bg-white">White</option>
+                <option value="bg-gray-200">Gray</option>
+                <option value="bg-blue-200">Blue</option>
+              </select>
+            </div>
+            <div className="rounded-xl bg-transparent border-[1px] border-black p-3 ">
+              <p className="text-sm mb-1">Layout</p>
+              <select
+                className="w-full rounded-xl lockbutton mt-1 border-black bg-gray-100 border-[1px] p-1"
+                value={layout}
+                onChange={(e) =>
+                  setLayout(e.target.value as "column" | "grid" | "free")
+                }
+              >
+                <option value="free">Free</option>
+
+                <option value="column">Column</option>
+                <option value="grid">Grid</option>
+              </select>
+            </div>
+            <button
+              className="w-full  bg-gray-100 border-black border-[1px] lockbutton  text-black  px-1 py-2 
             tracking-wide text-[1.1rem] rounded-xl"
-            onClick={handlePublish}
-          >
-            Publish
-          </button>
-        </div>
+              onClick={handlePublish}
+            >
+              Publish
+            </button>
+          </div>
         </div>
 
-        <DragOverlay zIndex={1000}>
-        {activeId ? (
-          <PreviewOfItem id={activeId} elements={elements} />
-          ) : null}
-      </DragOverlay>
-    </DndContext>    </CanvasProvider>
+        
+      </DndContext>{" "}
+    </CanvasProvider>
   );
 }
 
 function PreviewOfItem({ id, elements }: PreviewProps) {
   const el = elements.find((e) => e.id === id);
-  if (!el) return null;               // shouldn't happen
+  
+  if (!el) return null; // shouldn't happen
+  const isActive = activeId === el.id;
 
   switch (el.type) {
     case "text":
@@ -1513,12 +1568,13 @@ function PreviewOfItem({ id, elements }: PreviewProps) {
         <img
           src={el.src}
           alt=""
+          className="shadow-xl justify-center w-full h-full"
           style={{
             width: el.width,
             height: el.height,
             objectFit: "cover",
             border: "2px solid #4b9eff",
-            boxShadow: "0 4px 12px rgba(0,0,0,.2)",
+            opacity: isActive ? 0 : 1,
           }}
         />
       );

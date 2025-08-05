@@ -1,4 +1,4 @@
-/* size & colour here are just examples ─ tweak freely */
+/* size & colour here are just examples ─ tweak freely
 .handle-nw,
 .handle-ne,
 .handle-sw,
@@ -6,14 +6,38 @@
   position: absolute;
   width: 10px;
   height: 10px;
-  background: #4b5563;          /* slate-600 */
-  border: 2px solid #ffffff;    /* white outline so it’s visible */
+  background: #004db9;          
+  border: 2px solid #ffffff;  
   z-index: 20;
-  cursor: nwse-resize;          /* default ─ we’ll override below */
-}
+  cursor: nwse-resize;   
+} */
+.handle          { position:absolute; width:10px; height:10px;
+  background:#334155; border-radius:50%;
+  transform:translate(-50%,-50%); }  /* ← key line */
 
-/* corners */
+.nw { top:0;    left:0;    }
+.ne { top:0;    left:100%; }
+.sw { top:100%; left:0;    }
+.se { top:100%; left:100%; }
+
+/* corners
 .handle-nw { top: -5px; left: -5px;  cursor: nwse-resize; }
 .handle-ne { top: -5px; right: -5px; cursor: nesw-resize; }
 .handle-sw { bottom: -5px; left: -5px;  cursor: nesw-resize; }
 .handle-se { bottom: -5px; right: -5px; cursor: nwse-resize; }
+ */
+/* corners (measured from the *border box* of the parent) */
+/* .nw{ top:0; left:0; }
+.ne{ top:0; right:0; transform:translate(50%,-50%) } */
+/* .sw{ bottom:0; left:0; transform:translate(-50%,50%) }
+.se{ bottom:0; right:0; cursor:nesw-resize; transform:translate(50%,50%) } */
+
+.base{
+  position:absolute;
+  border-radius: 40%;
+  width:12px;
+  height:12px;
+  background:#374151;         /* slate-700 – use your token */
+  cursor:nwse-resize;
+  transform:translate(-50%,-50%); /* makes placement math easier */
+}
