@@ -14,6 +14,7 @@ import React, {
 import {
   DndContext,
   DragEndEvent,
+  DragOverlay,
   PointerSensor,
   useDraggable,
   useDroppable,
@@ -73,6 +74,11 @@ interface DroppableCanvasProps {
   selectedId: string | null;
   setSelectedId: React.Dispatch<React.SetStateAction<string | null>>;
 }
+/* ---------- preview component ---------- */
+interface PreviewProps {
+  id: string;
+  elements: Element[];
+}
 
 function DraggableItem({
   id,
@@ -96,8 +102,8 @@ function DraggableItem({
       style={style}
       {...listeners}
       {...attributes}
-      className="cursor-move flex justify-start px-4 gap-2 tracking-wide
-     py-2 border rounded-md lockbutton text-center bg-white text-black"
+      className="cursor-move flex  justify-start px-4 gap-2 tracking-wide
+     py-2 border rounded-md lockbutton text-center bg-white text-black z-1000"
     >
       {children}
     </div>
@@ -115,11 +121,15 @@ function CanvasItem({
   y: number;
   children: React.ReactNode;
 }) {
-  const { attributes, listeners, setNodeRef, transform } = useDraggable({ id });
+  
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id });
   const style = {
     position: "absolute",
     left: x + (transform?.x ?? 0),
     top: y + (transform?.y ?? 0),
+    zIndex: isDragging ? 1000 : 1,   // 🟢 lift while dragging
+    transform: CSS.Translate.toString(transform),
+
   } as React.CSSProperties;
   return (
     <div
@@ -232,7 +242,7 @@ function StylePanel({
   onChange: (patch: Partial<TextBoxRecord>) => void;
 }) {
   return (
-    <div className="space-y-3 mt-6">
+    <div className="flex flex-col space-y-3 mt-6 ">
       <label className="block text-xs">
         Font&nbsp;Size
         <Input
@@ -776,6 +786,8 @@ export default function PortfolioBuilder() {
   const [drawText, setDrawText] = useState(false);
   const [textBoxes, setTextBoxes] = useState<TextBoxRecord[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
+
   const router = useRouter();
   const handleResizeStart = (
     e: React.PointerEvent,
@@ -1016,19 +1028,23 @@ export default function PortfolioBuilder() {
     );
   }
   const sensors = useSensors(useSensor(PointerSensor));
-
+  const handleEnd = (event: DragEndEvent) => {
+    handleDragEnd(event);   // ← your canvas-update logic
+    setActiveId(null);      // ← clear overlay
+  };
   return (
     <CanvasProvider>
       <DndContext
         sensors={sensors}
-        onDragEnd={handleDragEnd}
+        onDragEnd={handleEnd}
         collisionDetection={pointerWithin}
+        onDragStart={(e) => setActiveId(e.active.id)}
       >
         <div className="flex h-screen">
         <div className=" flex-grow-0 flex-shrink-0 border-r py-2 px-4 space-y-4  mt-12">
           <button
-            className={` flex gap-2 justify-start px-4 py-2 rounded-md l
-            flex-grow-0 flex-shrink-0 lockbutton tracking-wide ${
+            className={` flex gap-2 w-full justify-start px-4 py-2 rounded-md l
+             lockbutton tracking-wide ${
               drawText ? "bg-slate-300 cursor-crosshair" : "bg-white"
             }`}
             onClick={() => setDrawText((d) => !d)}
@@ -1036,7 +1052,7 @@ export default function PortfolioBuilder() {
             {drawText ? "Text Box" : "Text Box"}
             <Image
               src="/assets/text--creation.svg"
-              alt={"globe"}
+              alt={"text"}
               className="p-0 flex-grow-0 flex-shrink-0"
               width={24}
               height={24}
@@ -1049,7 +1065,7 @@ export default function PortfolioBuilder() {
             Image
             <Image
               src="/assets/image.svg"
-              alt={"globe"}
+              alt={"image"}
               className="p-0 flex-grow-0 flex-shrink-0"
               width={24}
               height={24}
@@ -1477,7 +1493,63 @@ export default function PortfolioBuilder() {
           </button>
         </div>
         </div>
-      </DndContext>
-    </CanvasProvider>
+
+        <DragOverlay zIndex={1000}>
+        {activeId ? (
+          <PreviewOfItem id={activeId} elements={elements} />
+          ) : null}
+      </DragOverlay>
+    </DndContext>    </CanvasProvider>
   );
+}
+
+function PreviewOfItem({ id, elements }: PreviewProps) {
+  const el = elements.find((e) => e.id === id);
+  if (!el) return null;               // shouldn't happen
+
+  switch (el.type) {
+    case "text":
+      return (
+        <div
+          className="px-3 py-2 rounded border bg-white shadow-lg"
+          style={{ fontSize: 12, lineHeight: 1 }}
+        >
+          {el.content}
+        </div>
+      );
+
+    case "image":
+      return (
+        <img
+          src={el.src}
+          alt=""
+          style={{
+            width: el.width,
+            height: el.height,
+            objectFit: "cover",
+            border: "2px solid #4b9eff",
+            boxShadow: "0 4px 12px rgba(0,0,0,.2)",
+          }}
+        />
+      );
+
+    case "video":
+      return (
+        <div
+          style={{
+            width: el.width,
+            height: el.height,
+            background: "#000",
+            display: "grid",
+            placeItems: "center",
+            color: "white",
+          }}
+        >
+          🎥
+        </div>
+      );
+
+    default:
+      return null;
+  }
 }

@@ -25,7 +25,7 @@ export function ItemsPanel({ stallId }: { stallId: string }) {
           {data.map((item: any) => (
             <li
               key={item.id}
-              className="rounded-xl justify-center items-center border-2 p-4 space-y-2"
+              className="rounded-xl justify-center items-center border-2 p-4 space-y-2 bg-white/40 shadow-lg"
             >
               {/* <img src={item.images[0]} width={50} height={50}  className="h-fit w-fit object-cover rounded" /> */}
               <h3 className="text-center text-[1.2rem] font-medium">
