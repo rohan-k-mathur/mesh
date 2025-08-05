@@ -39,8 +39,9 @@ export function LivePanelClient({ stallId, initLive, initSrc }: Props) {
   }
 
   return (
-    <section className="border-[1px] border-white bg-white/50 shadow-xl  rounded-xl p-4 m-4 bg-white space-y-3 w-[240px]">
-      <h2 className="text-lg font-semibold">Livestream control</h2>
+    <>        <h2 className="text-[1.37rem] font-semibold">Stream Control Panel</h2>
+
+    <section className="border-[1px] border-white bg-white/50 shadow-xl  rounded-xl p-4 m-4 bg-white space-y-3 w-[400px] h-[300px]">
 
       {optimisticLive ? (
         <>
@@ -66,25 +67,26 @@ export function LivePanelClient({ stallId, initLive, initSrc }: Props) {
         </>
       ) : (
         <>
-          <label className="block text-sm">
-            Stream / embed URL
+          <label className="block text-[.9rem] text-center ">
+            Stream / Embed URL
             <input
               value={src}
               onChange={(e) => setSrc(e.target.value)}
               placeholder="https://www.youtube.com/embed/…"
-              className="mt-1 w-full rounded border p-2 text-sm"
+              className="w-full rounded bg-white/30 px-2 py-3 text-sm modalfield mt-2"
             />
           </label>
 
           <button
             onClick={start}
             disabled={!src.trim()}
-            className="px-4 py-2 rounded bg-emerald-600 disabled:bg-gray-400 text-white text-sm"
+            className="px-4 py-1 rounded-xl bg-white/30 text-[1.1rem] savebutton disabled:bg-gray-400 text-gray-700 tracking-wide disabled:text-gray-100"
           >
-            Go live
+            Start
           </button>
         </>
       )}
     </section>
+    </>
   );
 }

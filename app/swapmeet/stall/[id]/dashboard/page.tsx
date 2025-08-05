@@ -15,9 +15,10 @@ interface PageProps {
     return (
     <DashboardShell>
       <ItemsPanel stallId={id} />
+      <LivePanel stallId={id} />
+
       <OrdersPanel stallId={id} />
       <PayoutsPanel stallId={id} />
-      <LivePanel stallId={id} />
     </DashboardShell>
   );
 }

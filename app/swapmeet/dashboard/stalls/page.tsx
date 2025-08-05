@@ -10,6 +10,8 @@ import { uploadStallImage } from "@/lib/utils";
 import { uploadStallThumb } from "@/lib/uploadthumbnail";
 import { StallPresenceTracker } from "@/components/PresenceBadge";
 import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
+
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -105,7 +107,8 @@ export default function StallsPage() {
       setLoading(false);
     }
   }
-  
+  const router = useRouter();
+
 
   return (
     <div className="p-4">
@@ -141,9 +144,12 @@ export default function StallsPage() {
               ))
             : table.getRowModel().rows.map((row) => (
                 <tr key={row.id}>
+                  
                   {row.getVisibleCells().map((cell) => (
                     <td key={cell.id} className="border px-2 py-1 bg-white/30 shadow-xl rounded-none">
-                      <button className="savebutton w-full text-left px-4">
+                      <button className="savebutton w-full text-left px-4"   onClick={() =>
+          router.push(`/swapmeet/stall/${row.original.id}/dashboard`)
+        }>
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </button>
                     </td>
