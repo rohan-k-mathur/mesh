@@ -58,8 +58,13 @@
     "@supabase/storage-js": "2.10.4",
     "@supabase/supabase-js": "^2.53.0",
     "@tanstack/react-table": "^8.21.3",
-    "@tiptap/react": "^3.0.9",
-    "@tiptap/starter-kit": "^3.0.9",
+    "@tiptap/core": "2.24.2",
+    "@tiptap/extension-bullet-list": "2.26.1",
+    "@tiptap/extension-list-item": "2.26.1",
+    "@tiptap/extension-ordered-list": "2.26.1",
+    "@tiptap/pm": "2.26.1",
+    "@tiptap/react": "2.24.2",
+    "@tiptap/starter-kit": "2.26.1",
     "@types/lodash": "^4.17.16",
     "@uploadthing/react": "^6.7.2",
     "@upstash/ratelimit": "^2.0.5",
@@ -76,6 +81,7 @@
     "bullmq": "^5.56.4",
     "chart.js": "^4.5.0",
     "check-peer-dependencies": "^4.3.0",
+    "cheerio": "1.0.0-rc.12",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",
@@ -83,7 +89,6 @@
     "dayjs": "^1.11.13",
     "dompurify": "^3.2.6",
     "embla-carousel-react": "^8.6.0",
-    "epub-gen": "^0.1.0",
     "fast-shuffle": "^6.1.1",
     "fastpriorityqueue": "^0.7.5",
     "ffmpeg-static": "^5.2.0",
@@ -144,8 +149,9 @@
     "tailwindcss-animate": "^1.0.7",
     "three": "^0.170.0",
     "tinyws": "^0.1.0",
-    "tldraw": "^3.13.4",
+    "tldraw": "^3.14.0",
     "tone": "^15.0.4",
+    "undici": "6.21.1",
     "uploadthing": "^6.13.2",
     "use-debounce": "^10.0.5",
     "uuid": "^11.1.0",
@@ -156,6 +162,11 @@
     "ytdl-core": "^4.11.5",
     "zod": "3.25.6",
     "zustand": "^5.0.6"
+  },
+  "overrides": {
+    "@tiptap/*": "2.26.1",
+    "@tiptap/pm": "2.26.1",
+    "undici": "6.21.1"
   },
   "devDependencies": {
     "@size-limit/webpack": "^11.2.0",
@@ -193,6 +204,6 @@
     "ts-node": "^10.9.2",
     "tsx": "^4.20.3",
     "typescript": "^5.5.4",
-    "vitest": "^1.4.0"
+    "vitest": "^3.2.4"
   }
 }

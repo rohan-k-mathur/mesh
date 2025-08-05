@@ -106,7 +106,6 @@ I can generate the full SRS template and a packetised implementation playbook (a
 * **“Canonical quotes”** – Let authors link to *other* Mesh articles; hovering shows the quoted block with backlink, fostering a web‑like citation graph.
 * **Dynamic TL;DR** – Client‑side summariser that condenses article into 100 words; taps into Mesh’s AI capabilities, helps skimmers.
 * **Reading circles** – Post can be “published to Lounge X” where it triggers a guided discussion thread (structured prompts).
-* **E‑ink / offline mode** – One‑tap generate `.epub` or “Send to Kindle” for long train rides.
 
 ---
 

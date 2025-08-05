@@ -13,7 +13,7 @@ Below is a **two‑part deliverable**:
 | **Sprint 1 – Foundations** (Week 1‑2)              | Data & basic authoring          | DB schema, CRUD APIs, minimal TipTap editor, draft autosave, SSR renderer.                                                                                                                  |
 | **Sprint 2 – Polish & Social** (Week 3‑4)          | Templates & community           | Hero upload, three templates, pull‑quotes, up‑vote/comment integration, accessibility linter, basic analytics.                                                                              |
 | **Sprint 3 – Collaboration & Citation** (Week 5‑6) | Co‑authoring + Canonical Quotes | CRDT live cursors & suggestion mode, highlight‑to‑comment, Canonical Quote block w/ hover preview & backlink graph, scroll‑depth & read‑time analytics.                                     |
-| **Sprint 4 – Reader Delight** (Week 7‑8)           | AI & offline goodness           | Dynamic TL;DR generator stored in metadata; One‑tap **.epub / Send‑to‑Kindle** export (E‑ink mode) with presigned link; progressive‑web‑app offline cache so articles open with no network. |
+| **Sprint 4 – Reader Delight** (Week 7‑8)           | AI & offline goodness           | Dynamic TL;DR generator stored in metadata; One‑tap Send‑to‑Kindle export (E‑ink mode) with presigned link; progressive‑web‑app offline cache so articles open with no network. |
 
 **Success KPIs**
 
@@ -36,7 +36,7 @@ Below is a **two‑part deliverable**:
 | Action                                                                                                                                                     |
 | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `git checkout -b feature/article-post-type`                                                                                                                |
-| `pnpm add -w @tiptap/react @tiptap/starter-kit zod dompurify slate-preview archiver epub-gen @aws-sdk/client-ses @aws-sdk/client-s3 @aws-sdk/client-sesv2` |
+| `pnpm add -w @tiptap/react @tiptap/starter-kit zod dompurify slate-preview archiver @aws-sdk/client-ses @aws-sdk/client-s3 @aws-sdk/client-sesv2` |
 | Add envs to `.env.example`: `AWS_SES_REGION`, `KINDLE_SENDER`, `KINDLE_ADDRESS`, `OPENAI_API_KEY` (for TL;DR).                                             |
 
 ---
@@ -155,7 +155,7 @@ Below is a **two‑part deliverable**:
 
 | Steps                                                                                                                                           |
 | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| Add `/api/articles/:id/export?fmt=epub` → uses `epub-gen` to compile hero + blocks to EPUB; store temp file in S3; return presigned URL (24 h). |
+
 | “Send to Kindle” button: invokes SES `SendEmail` from `KINDLE_SENDER` to `KINDLE_ADDRESS` with EPUB as attachment.                              |
 | Add ServiceWorker caching strategy for offline reading (`workbox`) – cache published article assets + JSON.                                     |
 
