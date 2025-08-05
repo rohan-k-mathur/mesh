@@ -1,4 +1,3 @@
-/* size & colour here are just examples ─ tweak freely
 .handle-nw,
 .handle-ne,
 .handle-sw,
@@ -10,7 +9,7 @@
   border: 2px solid #ffffff;  
   z-index: 20;
   cursor: nwse-resize;   
-} */
+} 
 .handle          { position:absolute; width:10px; height:10px;
   background:#334155; border-radius:50%;
   transform:translate(-50%,-50%); }  /* ← key line */
@@ -20,12 +19,12 @@
 .sw { top:100%; left:0;    }
 .se { top:100%; left:100%; }
 
-/* corners
+
 .handle-nw { top: -5px; left: -5px;  cursor: nwse-resize; }
 .handle-ne { top: -5px; right: -5px; cursor: nesw-resize; }
 .handle-sw { bottom: -5px; left: -5px;  cursor: nesw-resize; }
 .handle-se { bottom: -5px; right: -5px; cursor: nwse-resize; }
- */
+
 /* corners (measured from the *border box* of the parent) */
 /* .nw{ top:0; left:0; }
 .ne{ top:0; right:0; transform:translate(50%,-50%) } */
