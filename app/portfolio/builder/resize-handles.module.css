@@ -3,8 +3,8 @@
 .handle-sw,
 .handle-se {
   position: absolute;
-  width: 10px;
-  height: 10px;
+  width: 15px;
+  height: 15px;
   background: #004db9;          
   border: 2px solid #ffffff;  
   z-index: 20;

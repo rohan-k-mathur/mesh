@@ -1167,6 +1167,7 @@ export default function PortfolioBuilder() {
                 <CanvasItem key={el.id} id={el.id} x={el.x} y={el.y}>
                   <div className="py-8 px-8 border-[1px] rounded-xl border-black savebutton bg-white/20 space-y-2">
                     {el.type === "text" && (
+                      
                       <div
                         contentEditable
                         suppressContentEditableWarning
