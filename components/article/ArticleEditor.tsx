@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
@@ -8,6 +8,9 @@ import NextImage from "next/image";
 import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
+import Collaboration from "@tiptap/extension-collaboration";
+import CollaborationCursor from "@tiptap/extension-collaboration-cursor";
+import CharacterCount from "@tiptap/extension-character-count";
 import { createLowlight } from 'lowlight';
 import javascript from "highlight.js/lib/languages/javascript";
 import typescript from "highlight.js/lib/languages/typescript";
@@ -17,6 +20,8 @@ import katex from "katex";
 import { keymap } from "@tiptap/pm/keymap";
 import { Node, mergeAttributes } from "@tiptap/core";
 import { ReactNodeViewRenderer } from "@tiptap/react";
+import * as Y from "yjs";
+import { WebsocketProvider } from "y-websocket";
 import SlashCommand from "./editor/SlashCommand";
 import Toolbar from "./editor/Toolbar";
 import TemplateSelector from "./editor/TemplateSelector";
@@ -25,6 +30,7 @@ import { uploadFileToSupabase } from "@/lib/utils";
 import styles from "./article.module.scss";
 import Cropper from "react-easy-crop";
 import "katex/dist/katex.min.css";
+import enStrings from "@/public/locales/en/editor.json";
 // const lowlight = new Lowlight();
 const lowlight = createLowlight();
 
@@ -149,13 +155,17 @@ const CustomImage = Image.extend({
       ...this.parent?.(),
       caption: { default: "" },
       align: { default: "center" },
+      alt: { default: "" },
+      missingAlt: { default: false },
     };
   },
   renderHTML({ HTMLAttributes }) {
     return [
       "figure",
-      { class: `image align-${HTMLAttributes.align}` },
-      ["img", { src: HTMLAttributes.src }],
+      {
+        class: `image align-${HTMLAttributes.align}${HTMLAttributes.missingAlt ? " a11y-error" : ""}`,
+      },
+      ["img", { src: HTMLAttributes.src, alt: HTMLAttributes.alt }],
       ["figcaption", HTMLAttributes.caption],
     ];
   },
@@ -175,20 +185,54 @@ export default function ArticleEditor({ articleId }: EditorProps) {
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedArea, setCroppedArea] = useState<any>(null);
+  const [a11yErrors, setA11yErrors] = useState(0);
+  const [suggestion, setSuggestion] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+  const [showUnsaved, setShowUnsaved] = useState(false);
+  const ydoc = useMemo(() => new Y.Doc(), []);
+  const provider = useMemo(() => {
+    if (typeof window === "undefined") return null;
+    const proto = window.location.protocol === "https:" ? "wss" : "ws";
+    return new WebsocketProvider(
+      `${proto}://${window.location.host}/ws/article/${articleId}`,
+      articleId,
+      ydoc,
+    );
+  }, [articleId, ydoc]);
+  const userName = useMemo(
+    () => `User${Math.floor(Math.random() * 1000)}`,
+    [],
+  );
+  const userColor = useMemo(
+    () => `#${Math.floor(Math.random() * 0xffffff).toString(16)}`,
+    [],
+  );
+  const t = (key: string) =>
+    ((window as any)?.i18next?.t?.(`editor:${key}`) as string) ||
+    (enStrings as any)[key] ||
+    key;
 
   const editor = useEditor({
     extensions: [
       StarterKit,
       CustomImage,
       Link,
-      Placeholder.configure({ placeholder: "Write something..." }),
+      Placeholder.configure({ placeholder: "Write something…" }),
       CodeBlockLowlight.configure({ lowlight }),
       PullQuote,
       Callout,
       MathBlock,
       MathInline,
-      // SlashCommand,
-    ],
+      SlashCommand,
+      Collaboration.configure({ document: ydoc }),
+      provider
+        ? CollaborationCursor.configure({
+            provider,
+            user: { name: userName, color: userColor },
+          })
+        : null,
+      CharacterCount,
+    ].filter(Boolean),
     content: "",
     editorProps: {
       handleDrop(view, event) {
@@ -215,6 +259,15 @@ export default function ArticleEditor({ articleId }: EditorProps) {
       editor.unregisterPlugin(plugin.key);
     };
   }, [editor]);
+
+  useEffect(() => {
+    if (!editor) return;
+    editor.setEditable(!suggestion);
+  }, [suggestion, editor]);
+
+  useEffect(() => () => {
+    provider?.destroy();
+  }, [provider]);
 
   useEffect(() => {
     if (!editor) return;
@@ -252,9 +305,11 @@ export default function ArticleEditor({ articleId }: EditorProps) {
 
   useEffect(() => {
     async function load() {
+      let updated = 0;
       const res = await fetch(`/api/articles/${articleId}`);
       if (res.ok) {
         const data = await res.json();
+        updated = new Date(data.updatedAt || 0).getTime();
         if (data.astJson && editor) {
           editor.commands.setContent(data.astJson);
         }
@@ -262,6 +317,20 @@ export default function ArticleEditor({ articleId }: EditorProps) {
         if (data.heroImageKey) {
           setHeroImageKey(data.heroImageKey);
           setHeroPreview(data.heroImageKey);
+        }
+      }
+      const local = localStorage.getItem(`article_${articleId}_backup`);
+      if (local) {
+        const parsed = JSON.parse(local);
+        if (parsed.ts > updated) {
+          if (confirm("Restore unsaved changes?")) {
+            if (editor) editor.commands.setContent(parsed.content);
+            if (parsed.template) setTemplate(parsed.template);
+            if (parsed.heroImageKey) {
+              setHeroImageKey(parsed.heroImageKey);
+              setHeroPreview(parsed.heroImageKey);
+            }
+          }
         }
       }
     }
@@ -275,19 +344,30 @@ export default function ArticleEditor({ articleId }: EditorProps) {
       template,
       heroImageKey,
     };
-    await fetch(`/api/articles/${articleId}/draft`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
+    try {
+      await fetch(`/api/articles/${articleId}/draft`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      setIsDirty(false);
+      setShowUnsaved(false);
+    } catch {
+      setShowUnsaved(true);
+    }
   }, [editor, articleId, template, heroImageKey]);
 
   useEffect(() => {
     if (!editor) return;
     let timeout: NodeJS.Timeout;
     const handler = () => {
+      setIsDirty(true);
+      setShowUnsaved(false);
       clearTimeout(timeout);
-      timeout = setTimeout(() => saveDraft(), 1000);
+      timeout = setTimeout(async () => {
+        setShowUnsaved(true);
+        await saveDraft();
+      }, 2000);
     };
     editor.on("update", handler);
     return () => {
@@ -297,9 +377,28 @@ export default function ArticleEditor({ articleId }: EditorProps) {
   }, [editor, saveDraft]);
 
   useEffect(() => {
+    setIsDirty(true);
+    setShowUnsaved(true);
     const timeout = setTimeout(() => saveDraft(), 500);
     return () => clearTimeout(timeout);
   }, [template, heroImageKey, saveDraft]);
+
+  useEffect(() => {
+    if (!editor) return;
+    const interval = setInterval(() => {
+      const backup = {
+        content: editor.getJSON(),
+        template,
+        heroImageKey,
+        ts: Date.now(),
+      };
+      localStorage.setItem(
+        `article_${articleId}_backup`,
+        JSON.stringify(backup),
+      );
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [editor, template, heroImageKey, articleId]);
 
   const onHeroUpload = async (
     e: React.ChangeEvent<HTMLInputElement>,
@@ -353,7 +452,7 @@ export default function ArticleEditor({ articleId }: EditorProps) {
           editor
             .chain()
             .focus()
-            .setImage({ src: fileURL, caption: "", align: "center" })
+            .setImage({ src: fileURL, caption: "", align: "center", alt: "" })
             .run();
         }
         resolve();
@@ -372,10 +471,61 @@ export default function ArticleEditor({ articleId }: EditorProps) {
     dom.scrollIntoView({ behavior: "smooth" });
   };
 
+  const runA11yCheck = () => {
+    if (!editor) return;
+    document
+      .querySelectorAll(".a11y-error")
+      .forEach((el) => el.classList.remove("a11y-error"));
+    let last = 0;
+    let errors = 0;
+    editor.state.doc.descendants((node, pos) => {
+      if (node.type.name === "heading") {
+        const dom = editor.view.nodeDOM(pos) as HTMLElement;
+        const lvl = node.attrs.level;
+        if (last && lvl > last + 1) {
+          dom.classList.add("a11y-error");
+          errors++;
+        }
+        last = lvl;
+      }
+      if (node.type.name === "image") {
+        const dom = editor.view.nodeDOM(pos) as HTMLElement;
+        if (!node.attrs.alt) {
+          dom.classList.add("a11y-error");
+          editor.commands.command(({ tr }) => {
+            tr.setNodeMarkup(pos, undefined, {
+              ...node.attrs,
+              missingAlt: true,
+            });
+            return true;
+          });
+          errors++;
+        } else {
+          editor.commands.command(({ tr }) => {
+            tr.setNodeMarkup(pos, undefined, {
+              ...node.attrs,
+              missingAlt: false,
+            });
+            return true;
+          });
+        }
+      }
+    });
+    setA11yErrors(errors);
+  };
+
   return (
     <div className={`${styles.article} ${styles[template]}`}>
-      <TemplateSelector template={template} onChange={setTemplate} />
-      <input type="file" onChange={onHeroUpload} />
+      {showUnsaved && <div className={styles.unsaved}>{t("unsavedChanges")}</div>}
+      <div className={styles.controls}>
+        <TemplateSelector template={template} onChange={setTemplate} />
+        <button onClick={saveDraft}>{t("saveDraft")}</button>
+        <button onClick={() => setSuggestion(!suggestion)}>
+          {suggestion ? t("suggestionOff") : t("suggestionMode")}
+        </button>
+        <button onClick={runA11yCheck}>{t("checkAccessibility")}</button>
+        <input type="file" onChange={onHeroUpload} />
+      </div>
       {heroPreview && (
         <NextImage
           src={heroPreview}
@@ -389,6 +539,10 @@ export default function ArticleEditor({ articleId }: EditorProps) {
         <Outline headings={headings} onSelect={onSelectHeading} />
         <EditorContent editor={editor} />
         <Toolbar editor={editor} />
+      </div>
+      <div className={styles.charCount}>
+        {editor?.storage.characterCount.words()} {t("wordCount")} /{" "}
+        {editor?.storage.characterCount.characters()} {t("characterCount")}
       </div>
       {cropImage && (
         <div className={styles.cropperModal}>

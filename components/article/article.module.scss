@@ -1,18 +1,28 @@
+
 .article {
-  max-width: 65ch;
+  max-width: var(--column-width, 65ch);
   margin: 0 auto;
-  line-height: 1.6;
+  line-height: var(--line-height, 1.6);
   position: relative;
+  font-feature-settings: "liga", "kern";
+  hyphens: auto;
 }
 
-.standard {}
+.standard {
+  --line-height: 1.6;
+  --column-width: 65ch;
+}
 
 .feature {
   background-color: #f9fafb;
+  --line-height: 1.8;
+  --column-width: 70ch;
 }
 
 .interview {
   font-family: "Courier New", monospace;
+  --line-height: 1.7;
+  --column-width: 60ch;
 }
 
 .feature h1 {
@@ -76,6 +86,48 @@
 .editorWrapper {
   display: flex;
   gap: 1rem;
+}
+
+.unsaved {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: #fff3cd;
+  color: #8a6d3b;
+  padding: 4px;
+  text-align: center;
+  z-index: 100;
+}
+
+.charCount {
+  position: fixed;
+  bottom: 8px;
+  right: 8px;
+  background: #fff;
+  border: 1px solid #ddd;
+  padding: 4px 8px;
+  font-size: 0.875rem;
+  border-radius: 4px;
+}
+
+.a11y-error {
+  border: 2px solid red;
+}
+
+.drag-handle {
+  cursor: grab;
+  user-select: none;
+}
+
+:global(.ProseMirror) h1:hover::before,
+:global(.ProseMirror) h2:hover::before,
+:global(.ProseMirror) h3:hover::before,
+:global(.ProseMirror) p:hover::before {
+  content: "⋮⋮";
+  color: #999;
+  cursor: grab;
+  margin-right: 4px;
 }
 
 .cropperModal {
