@@ -9,7 +9,6 @@ import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
 import { createLowlight } from 'lowlight';
-
 import javascript from "highlight.js/lib/languages/javascript";
 import typescript from "highlight.js/lib/languages/typescript";
 import python from "highlight.js/lib/languages/python";
@@ -35,7 +34,6 @@ if (typeof window !== 'undefined') {               // only run in browser
   lowlight.register('py', python);
   lowlight.register('sh', bash);
 }
-CodeBlockLowlight.configure({ lowlight });
 
 interface Heading {
   level: number;
@@ -189,7 +187,7 @@ export default function ArticleEditor({ articleId }: EditorProps) {
       Callout,
       MathBlock,
       MathInline,
-      SlashCommand,
+      // SlashCommand,
     ],
     content: "",
     editorProps: {
