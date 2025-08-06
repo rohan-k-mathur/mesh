@@ -4,7 +4,6 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
@@ -33,7 +32,6 @@ import { useDebouncedCallback } from "use-debounce";
 import SlashCommand from "./editor/SlashCommand";
 import Toolbar from "./editor/Toolbar";
 import TemplateSelector from "./editor/TemplateSelector";
-import Outline from "./editor/Outline";
 import { uploadFileToSupabase } from "@/lib/utils";
  import styles from "./article.module.scss";
  import '@tiptap/core';
@@ -298,7 +296,7 @@ const extensions = useMemo(() => {
 
     content: "write here...",
     editorProps: {
-      attributes: { class: 'ProseMirror  max-w-none' },
+      attributes: { class: "ProseMirror max-w-none" },
 
       handleDrop(view, event) {
         const file = (event as DragEvent).dataTransfer?.files?.[0];
@@ -315,16 +313,19 @@ const extensions = useMemo(() => {
   
 const saveDraftFn = useCallback(async () => {
   if (!editor) return;
-  const body = {
-    astJson: editor.getJSON(),
-    template,
-    heroImageKey,
-  };
+  const astJson = editor.getJSON();
+  const body = { astJson, template, heroImageKey };
   await fetch(`/api/articles/${articleId}/draft`, {
-    method: "POST",
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
+  localStorage.setItem(
+    LOCAL_KEY(articleId),
+    JSON.stringify({ ts: Date.now(), content: astJson, template, heroImageKey }),
+  );
   setIsDirty(false); // ← unload listener removed
+  setShowUnsaved(false);
 }, [editor, template, heroImageKey, articleId]);
 
 const saveDraft = useDebouncedCallback(saveDraftFn, 2_000);
@@ -423,11 +424,13 @@ useEffect(() => {
           } else {
             seen[id] = 1;
           }
+          if (node.attrs.id !== id) {
+            editor.commands.command(({ tr }) => {
+              tr.setNodeMarkup(pos, undefined, { ...node.attrs, id });
+              return true;
+            });
+          }
           hs.push({ level: node.attrs.level, text, id, pos });
-          editor.commands.command(({ tr }) => {
-            tr.setNodeMarkup(pos, undefined, { ...node.attrs, id });
-            return true;
-          });
         }
       });
       setHeadings(hs);
@@ -555,47 +558,25 @@ useEffect(() => {
   //     clearTimeout(timeout);
   //   };
   // }, [editor, saveDraft]);
-  const saveLocal = useDebouncedCallback(
-    (payload: Backup) =>
-      localStorage.setItem(LOCAL_KEY(articleId), JSON.stringify(payload)),
-    1000 // ← 1 s of inactivity
-  );
   useEffect(() => {
-    if (!editor) return; // guard against initial nulls
-
-    let timeout: number | null = null;
+    if (!editor) return;
 
     const handler = () => {
       setIsDirty(true);
-      saveLocal({
-        ts: Date.now(),
-        content: editor.getJSON(),
-        template,
-        heroImageKey,
-      });
-
-      if (timeout) clearTimeout(timeout);
-
-      timeout = window.setTimeout(async () => {
-        await saveDraft();
-      }, 2_000); // 2-second quiet period
+      setShowUnsaved(true);
+      saveDraft();
     };
 
     editor.on("update", handler);
 
-    // ▶︎ cleanup
-    return () => {
-      editor.off("update", handler);
-      if (timeout) clearTimeout(timeout);
-    };
-  }, [editor, template, heroImageKey, saveDraft, saveLocal]);
+    return () => editor.off("update", handler);
+  }, [editor, saveDraft]);
 
-  // useEffect(() => {
-  //   setIsDirty(true);
-  //   setShowUnsaved(true);
-  //   const timeout = setTimeout(() => saveDraft(), 500);
-  //   return () => clearTimeout(timeout);
-  // }, [template, heroImageKey, saveDraft]);
+  useEffect(() => {
+    setIsDirty(true);
+    setShowUnsaved(true);
+    saveDraft();
+  }, [template, heroImageKey, saveDraft]);
 
   useEffect(() => {
     if (!editor) return;
@@ -763,7 +744,9 @@ useEffect(() => {
           />
         )}
         <div className="h-full flex flex-col">
-        <Toolbar editor={editor} />       {/* fixed-width column */}
+        <div className="sticky top-0 z-10">
+          <Toolbar editor={editor} />
+        </div>
 
   <div className="  flex-1 w-max-[1000px] w-min-[700px] overflow-none ">
           {/* <Outline headings={headings} onSelect={onSelectHeading} /> */}
@@ -837,6 +820,7 @@ useEffect(() => {
       onClick={() => {
         localStorage.removeItem(LOCAL_KEY(articleId));
         setPendingRestore(null);
+        setIsDirty(false);
       }}
     >
       Dismiss
