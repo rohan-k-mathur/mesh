@@ -5,6 +5,7 @@ enableMapSet();
 
 export interface CanvasState {
   elements: Map<string, ElementRecord>;
+  selected: Set<string>;
   past: Array<Map<string, ElementRecord>>;
   future: Array<Map<string, ElementRecord>>;
 }
@@ -34,10 +35,17 @@ export type CanvasAction =
       type: "resize";
       id: string;
       patch: Pick<ElementRecord, "x" | "y" | "width" | "height">;
-    };
+    }
+  | { type: "selectOne"; id: string }
+  | { type: "toggleSelect"; id: string }
+  | { type: "clearSelect" }
+  | { type: "groupDragStart" }
+  | { type: "groupDrag"; dx: number; dy: number }
+  | { type: "groupDragEnd" };
 
 export const initialCanvasState: CanvasState = {
   elements: new Map(),
+  selected: new Set(),
   past: [],
   future: [],
 };
@@ -74,6 +82,38 @@ export const canvasReducer = produce(
       case "remove": {
         pushHistory(draft);
         draft.elements.delete(action.id);
+        draft.selected.delete(action.id);
+        break;
+      }
+      case "selectOne": {
+        draft.selected = new Set([action.id]);
+        break;
+      }
+      case "toggleSelect": {
+        if (draft.selected.has(action.id)) draft.selected.delete(action.id);
+        else draft.selected.add(action.id);
+        break;
+      }
+      case "clearSelect": {
+        draft.selected.clear();
+        break;
+      }
+      case "groupDragStart": {
+        draft.past.push(cloneElements(draft.elements));
+        draft.future = [];
+        break;
+      }
+      case "groupDrag": {
+        draft.selected.forEach((id) => {
+          const el = draft.elements.get(id);
+          if (el) {
+            el.x += action.dx;
+            el.y += action.dy;
+          }
+        });
+        break;
+      }
+      case "groupDragEnd": {
         break;
       }
       case "undo": {

@@ -16,6 +16,7 @@ import {
   DndContext,
   DragStartEvent,
   DragEndEvent,
+  DragMoveEvent,
   DragOverlay,
   PointerSensor,
   useDraggable,
@@ -38,7 +39,11 @@ import { feed_post_type } from "@prisma/client";
 import { Input } from "@/components/ui/input";
 import styles from "./resize-handles.module.css"; // CSS module for handles
 import { TextBoxRecord } from "@/lib/portfolio/types";
-import { CanvasProvider } from "@/lib/portfolio/CanvasStoreProvider";
+import {
+  CanvasProvider,
+  useCanvasDispatch,
+  useCanvasSelection,
+} from "@/lib/portfolio/CanvasStoreProvider";
 import type { UniqueIdentifier } from "@dnd-kit/core";
 
 import {
@@ -49,6 +54,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { isSafeYoutubeEmbed, isSafeHttpLink } from "@/lib/utils/validators";
+import { getBoundingRect } from "@/lib/portfolio/selection";
 
 type Corner = "nw" | "ne" | "sw" | "se";
 type ResizeTarget = { id: string; kind: "text" | "image" | "video" | "link" };
@@ -116,23 +122,26 @@ function CanvasItem({
   y: number;
   children: React.ReactNode;
 }) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } =
-    useDraggable({ id });
+  const { attributes, listeners, setNodeRef } = useDraggable({ id });
+  const dispatch = useCanvasDispatch();
   const style = {
-    
-        position: "absolute",
-        left: x + (transform?.x ?? 0),
-        top:  y + (transform?.y ?? 0),
-        // transform: CSS.Translate.toString(transform),
-
-         zIndex: 1,
+    position: "absolute",
+    left: x,
+    top: y,
+    zIndex: 1,
   } as React.CSSProperties;
+  const handlePointerDown = (e: React.PointerEvent) => {
+    const isMeta = e.metaKey || e.ctrlKey;
+    if (isMeta) dispatch({ type: "toggleSelect", id });
+    else dispatch({ type: "selectOne", id });
+  };
   return (
     <div
       ref={setNodeRef}
       style={style}
       {...listeners}
       {...attributes}
+      onPointerDown={handlePointerDown}
       className="cursor-move"
     >
       {children}
@@ -329,6 +338,15 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
     const resizeRef = useRef<ResizeState | null>(null);
     const dragRef = useRef<DragState | null>(null);
     const { setNodeRef } = useDroppable({ id: "canvas" });
+    const dispatch = useCanvasDispatch();
+    const selection = useCanvasSelection();
+    const selectionBox = React.useMemo(() => {
+      if (selection.length <= 1) return null;
+      const map = new Map(
+        elements.map((e) => [e.id, { x: e.x || 0, y: e.y || 0, width: e.width || 0, height: e.height || 0 }]),
+      );
+      return getBoundingRect(selection, map);
+    }, [selection, elements]);
 
     //  const setResizing = (s: ResizeState | null) => {
     //   resizeRef.current = s;
@@ -583,6 +601,9 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
           }),
         }}
     
+        onPointerDown={(e) => {
+          if (e.target === e.currentTarget) dispatch({ type: "clearSelect" });
+        }}
         onMouseDown={startDraw}
         onMouseMove={moveDraw}
         onMouseUp={endDraw}
@@ -632,6 +653,18 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
             }}
             className="absolute border border-dashed border-gray-400
                bg-white/50 pointer-events-none"
+          />
+        )}
+        {selectionBox && (
+          <div
+            className="absolute border-2 border-blue-500/50"
+            style={{
+              left: selectionBox.left,
+              top: selectionBox.top,
+              width: selectionBox.width,
+              height: selectionBox.height,
+              pointerEvents: "none",
+            }}
           />
         )}
       </div>
@@ -828,6 +861,9 @@ export default function PortfolioBuilder() {
   const [textBoxes, setTextBoxes] = useState<TextBoxRecord[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
+  const dispatch = useCanvasDispatch();
+  const selection = useCanvasSelection();
+  const lastDrag = useRef({ x: 0, y: 0 });
 
   const router = useRouter();
   // const handleResizeStart = (
@@ -866,18 +902,36 @@ export default function PortfolioBuilder() {
     target: ResizeTarget,
     corner: Corner
   ) => canvasHandle.current?.startResize(e, target, corner);
+  const handleDragStart = (event: DragStartEvent) => {
+    const id = String(event.active.id);
+    if (!selection.includes(id)) dispatch({ type: "selectOne", id });
+    dispatch({ type: "groupDragStart" });
+    lastDrag.current = { x: 0, y: 0 };
+  };
 
-  function handleDragEnd(event: DragEndEvent) {
-    const { over, active, delta } = event;
+  const handleDragMove = (event: DragMoveEvent) => {
+    const { delta, active } = event;
+    const dx = delta.x - lastDrag.current.x;
+    const dy = delta.y - lastDrag.current.y;
+    lastDrag.current = { x: delta.x, y: delta.y };
+    const targets = selection.length ? selection : [String(active.id)];
     if (template === "") {
       setElements((els) =>
         els.map((e) =>
-          e.id === active.id
-            ? { ...e, x: (e.x || 0) + delta.x, y: (e.y || 0) + delta.y }
+          targets.includes(e.id)
+            ? { ...e, x: (e.x || 0) + dx, y: (e.y || 0) + dy }
             : e
         )
       );
-    } else if (over && active.id !== over.id) {
+    }
+    dispatch({ type: "groupDrag", dx, dy });
+  };
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { over, active } = event;
+    dispatch({ type: "groupDragEnd" });
+    lastDrag.current = { x: 0, y: 0 };
+    if (template !== "" && over && active.id !== over.id) {
       setElements((els) => {
         const oldIndex = els.findIndex((e) => e.id === active.id);
         const newIndex = els.findIndex((e) => e.id === over.id);
@@ -1025,23 +1079,31 @@ export default function PortfolioBuilder() {
   const sensors = useSensors(useSensor(PointerSensor));
 
  
-<DragOverlay zIndex={1000}>
-          {activeId ? (
-            <PreviewOfItem id={activeId} elements={elements} />
-          ) : null}
-        </DragOverlay>
+  const handleStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id);
+    handleDragStart(event);
+  };
+  const handleMoveWrapper = (event: DragMoveEvent) => {
+    handleDragMove(event);
+  };
   const handleEnd = (event: DragEndEvent) => {
-    handleDragEnd(event); // ← your canvas-update logic
-    setActiveId(null); // ← clear overlay
+    handleDragEnd(event);
+    setActiveId(null);
   };
   return (
     <CanvasProvider>
       <DndContext
         sensors={sensors}
+        onDragStart={handleStart}
+        onDragMove={handleMoveWrapper}
         onDragEnd={handleEnd}
         collisionDetection={pointerWithin}
-        onDragStart={(e) => setActiveId(e.active.id)}
-        >
+      >
+        <DragOverlay zIndex={1000}>
+          {activeId ? (
+            <PreviewOfItem id={activeId} elements={elements} />
+          ) : null}
+        </DragOverlay>
         <div className="flex h-screen">
           <div className=" flex-grow-0 flex-shrink-0 border-r py-2 px-4 space-y-4  mt-12">
           <button
@@ -1609,7 +1671,7 @@ function PreviewOfItem({ id, elements }: PreviewProps) {
 
     case "image":
       return (
-        <img
+        <Image
           src={el.src}
           alt=""
           className="shadow-xl justify-center w-full h-full"
@@ -1620,6 +1682,8 @@ function PreviewOfItem({ id, elements }: PreviewProps) {
             border: "2px solid #4b9eff",
             opacity: isActive ? 0 : 1,
           }}
+          width={el.width || 0}
+          height={el.height || 0}
         />
       );
 
