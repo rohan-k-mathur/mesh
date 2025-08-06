@@ -10,7 +10,6 @@ import React, {
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
-import NextImage from "next/image";
 import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
@@ -35,10 +34,11 @@ import Toolbar from "./editor/Toolbar";
 import TemplateSelector from "./editor/TemplateSelector";
 import Outline from "./editor/Outline";
 import { uploadFileToSupabase } from "@/lib/utils";
- import styles from "./article.module.scss";
- import '@tiptap/core';
+import styles from "./article.module.scss";
+import "@tiptap/core";
 import type { JSONContent } from "@tiptap/core";
 import Editor from "./Editor";
+import HeroRenderer from "./HeroRenderer";
 import Spinner from "../ui/spinner";
 import "katex/dist/katex.min.css";
 import dynamic from "next/dynamic";
@@ -728,61 +728,42 @@ useEffect(() => {
 
   return (
     <div className=" justify-center items-center w-max-[800px]">
-          <div className="absolute flex  flex-col align-center w-max-[800px] justify-center items-center p-4 w-full h-fit">
-
-    <div className={`${styles[template]}`}>
-        {/* <TemplateSelector template={template} onChange={setTemplate} />
-      <input type="file" onChange={onHeroUpload} /> */}
-        {showUnsaved && (
-          <div className="flex">{t("unsavedChanges")}</div>
-        )}
-        <div className="flex flex-1 gap-4 p-2 mt-2 w-fit">
-          <TemplateSelector template={template} onChange={setTemplate} />
-          <div className="flex flex-wrap w-fit p-2 gap-2 w-max-[800px]">
-          <button className="savebutton rounded-xl bg-white h-fit w-fit px-3 text-[.8rem] text-center" onClick={saveDraft}>{t("saveDraft")}</button>
-          <button  className="savebutton rounded-xl bg-white h-fit w-fit px-3 text-[.8rem] text-center"  onClick={() => setSuggestion(!suggestion)}>
-            {suggestion ? t("suggestionOff") : t("suggestionMode")}
-          </button>
-          <button className="savebutton h-fit px-3 rounded-xl bg-white w-fit text-[.8rem] text-center" 
-          onClick={runA11yCheck}>{t("checkAccessibility")}</button>
-            <label className="custom-file-upload flex-1 flex flex-2 savebutton h-fit px-3 rounded-xl bg-white w-fit text-[.8rem] text-center">
-          <input  type="file" onChange={onHeroUpload} />
-          
-          </label>
-          
-          </div>   
-               </div>
-        {heroPreview && (
-          <NextImage
-            src={heroPreview}
-            alt="hero"
-            width={800}
-            height={400}
-            className={styles.hero}
-          />
-        )}
-        <div className="h-full flex flex-col">
-        <Toolbar editor={editor} />       {/* fixed-width column */}
-
-  <div className="  flex-1 w-max-[1000px] w-min-[700px] overflow-none ">
-          {/* <Outline headings={headings} onSelect={onSelectHeading} /> */}
-          {/* <EditorContent
+      <div className="absolute flex  flex-col align-center w-max-[800px] justify-center items-center p-4 w-full h-fit">
+        <article className={template}>
+          {showUnsaved && <div className="flex">{t("unsavedChanges")}</div>}
+          <div className="flex flex-1 gap-4 p-2 mt-2 w-fit">
+            <TemplateSelector articleId={articleId} template={template} onChange={setTemplate} />
+            <div className="flex flex-wrap w-fit p-2 gap-2 w-max-[800px]">
+              <button className="savebutton rounded-xl bg-white h-fit w-fit px-3 text-[.8rem] text-center" onClick={saveDraft}>{t("saveDraft")}</button>
+              <button className="savebutton rounded-xl bg-white h-fit w-fit px-3 text-[.8rem] text-center" onClick={() => setSuggestion(!suggestion)}>
+                {suggestion ? t("suggestionOff") : t("suggestionMode")}
+              </button>
+              <button className="savebutton h-fit px-3 rounded-xl bg-white w-fit text-[.8rem] text-center" onClick={runA11yCheck}>{t("checkAccessibility")}</button>
+              <label className="custom-file-upload flex-1 flex flex-2 savebutton h-fit px-3 rounded-xl bg-white w-fit text-[.8rem] text-center">
+                <input type="file" onChange={onHeroUpload} />
+              </label>
+            </div>
+          </div>
+          {heroPreview && <HeroRenderer src={heroPreview} template={template} />}
+          <div className="h-full flex flex-col">
+            <Toolbar editor={editor} />       {/* fixed-width column */}
+            <div className="  flex-1 w-max-[1000px] w-min-[700px] overflow-none ">
+              {/* <Outline headings={headings} onSelect={onSelectHeading} /> */}
+              {/* <EditorContent
             editor={editor}
           /> */}
-          <Editor 
-          articleId={articleId}
-          />
-        </div>
-        </div>
-        <div className="text-[.8rem] gap-2 p-2 tracking-wide">
-        <div
-          className={`${styles.charCount} ${counter.chars > CHAR_LIMIT ? "text-red-600" : ""}`}
-        >
-          {counter.words} words • {counter.chars}/{CHAR_LIMIT}
-        </div>
-        </div>
-        {cropImage && (
-          <div className={styles.cropperModal}>
+              <Editor articleId={articleId} />
+            </div>
+          </div>
+          <div className="text-[.8rem] gap-2 p-2 tracking-wide">
+            <div
+              className={`${styles.charCount} ${counter.chars > CHAR_LIMIT ? "text-red-600" : ""}`}
+            >
+              {counter.words} words • {counter.chars}/{CHAR_LIMIT}
+            </div>
+          </div>
+          {cropImage && (
+            <div className={styles.cropperModal}>
             <Cropper
               image={cropImage}
               crop={crop}
@@ -812,8 +793,8 @@ useEffect(() => {
               </button>
             </div>
           </div>
-        )}
-      </div>
+          )}
+        </article>
       </div>
       {pendingRestore && (
   <div className="fixed top-0 inset-x-0 bg-amber-100 text-amber-900 p-2 text-sm flex justify-center gap-4 z-50">

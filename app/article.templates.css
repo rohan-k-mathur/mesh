@@ -1,0 +1,32 @@
+/* article.templates.css */
+
+/* ---------- STANDARD ---------- */
+.standard {
+  --column-width: 65ch;
+  --line-height: 1.65;
+}
+
+@media (min-width:1024px){
+  .standard main{
+    max-width: var(--column-width);
+    margin-inline: auto;
+  }
+}
+
+/* ---------- FEATURE ---------- */
+.feature {
+  --column-width: 72ch;
+  --line-height: 1.8;
+}
+.feature header   { @apply grid lg:grid-cols-12 gap-6 pb-10; }
+.feature h1       { @apply col-span-12 lg:col-span-8 text-5xl leading-tight font-serif; }
+.feature .byline  { @apply col-span-12 lg:col-span-4 text-sm uppercase tracking-wide; }
+
+/* ---------- INTERVIEW ---------- */
+.interview {
+  --column-width: 60ch;
+  --line-height: 1.7;
+}
+.interview h1   { @apply font-mono text-4xl mb-6; }
+.interview .q   { @apply font-semibold; }
+.interview .a   { @apply pl-4 border-l-2 border-neutral-300; }

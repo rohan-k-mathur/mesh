@@ -2,11 +2,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
-import {Image as ExtImage} from "@tiptap/extension-image";
+import { Image as ExtImage } from "@tiptap/extension-image";
 import StarterKit from "@tiptap/starter-kit";
-import Image from "next/image";
 import styles from "./article.module.scss";
 import { uploadFileToSupabase } from "@/lib/utils";
+import HeroRenderer from "./HeroRenderer";
 
 interface EditorProps {
   articleId: string;
@@ -130,15 +130,7 @@ export default function Editor({ articleId }: EditorProps) {
         </button> */}
         </div>
       </div>
-      {heroPreview && (
-        <Image
-          src={heroPreview}
-          alt="hero"
-          width={800}
-          height={400}
-          className={styles.hero}
-        />
-      )}
+      {heroPreview && <HeroRenderer src={heroPreview} template={template} />}
       <EditorContent editor={editor}
         className=" flex-1 h-max-[1500px] w-full px-0 py-0 overflow-auto border-none outline-none  rounded-xl"
         />
