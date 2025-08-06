@@ -60,3 +60,21 @@ export function useElement(id: string): ElementRecord {
 export function useCanvasDispatch() {
   return useStore().dispatch;
 }
+
+export function useCanvasSelection(): string[] {
+  const store = useStore();
+  return React.useSyncExternalStore(
+    store.subscribe,
+    () => Array.from(store.getSnapshot().selected),
+    () => Array.from(store.getSnapshot().selected),
+  );
+}
+
+export function useCanvasElements(): Map<string, ElementRecord> {
+  const store = useStore();
+  return React.useSyncExternalStore(
+    store.subscribe,
+    () => store.getSnapshot().elements,
+    () => store.getSnapshot().elements,
+  );
+}
