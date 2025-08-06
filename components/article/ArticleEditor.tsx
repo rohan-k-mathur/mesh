@@ -56,6 +56,8 @@ declare module '@tiptap/core' {
 }
 
 const CHAR_LIMIT = 20_000;   // show red once we’re close
+const COLLAB_ENABLED = false; // process.env.NEXT_PUBLIC_ENABLE_COLLAB === 'true';
+
 
 
 interface Heading {
@@ -239,14 +241,14 @@ useEffect(() => {
 }, [isDirty]);
 
   const provider = useMemo(() => {
-    if (typeof window === "undefined") return null;
+    if (!COLLAB_ENABLED || typeof window === "undefined") return null;
     const proto = window.location.protocol === "https:" ? "wss" : "ws";
     return new WebsocketProvider(
       `${proto}://${window.location.host}/ws/article/${articleId}`,
       articleId,
       ydoc
     );
-  }, [articleId, ydoc]);
+  }, [COLLAB_ENABLED,articleId, ydoc]);
   const lowlight = useMemo(() => {
     const ll = createLowlight();
     ll.register("js", javascript);
@@ -282,15 +284,14 @@ const extensions = useMemo(() => {
     CharacterCount.configure({ limit: 20_000 }),
     SlashCommand,              // your command palette
 
-    /* ---- optional real-time collaboration -------------------- */
-    provider && Collaboration.configure({ document: ydoc }),
-    provider &&
+    COLLAB_ENABLED && provider && Collaboration.configure({ document: ydoc }),
+    COLLAB_ENABLED && provider &&
       CollaborationCursor.configure({
         provider,
         user: { name: userName, color: userColor },
       }),
   ].filter(Boolean);            // ← removes the two `false` items
-}, [provider, ydoc, userName, userColor, lowlight]);      
+}, [COLLAB_ENABLED, provider, ydoc, userName, userColor, lowlight]);      
 
   const editor = useEditor({
     extensions,
