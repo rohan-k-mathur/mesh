@@ -582,7 +582,10 @@ useEffect(() => {
     };
   
     editor.on('update', handler);
-    return () => editor.off('update', handler);
+    return () => {
+      // discard the value that .off() returns
+      editor.off('update', handler);   // ← nothing returned => void
+    };
   }, [editor, saveDraft]);
 
   useEffect(() => {

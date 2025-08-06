@@ -128,6 +128,16 @@ function CanvasItem({
 }) {
   const { attributes, listeners, setNodeRef } = useDraggable({ id });
   const dispatch = useCanvasDispatch();
+  const mergedListeners = {
+        ...listeners,
+        onPointerDown: (e: React.PointerEvent) => {
+          const isMeta = e.metaKey || e.ctrlKey;
+          if (isMeta) dispatch({ type: "toggleSelect", id });
+          else dispatch({ type: "selectOne", id });
+          // invoke the original pointerDown so the drag still starts
+          (listeners as any).onPointerDown?.(e);
+        },
+      };
   const style: React.CSSProperties = {
     position: "absolute",
     left: x,
@@ -136,7 +146,8 @@ function CanvasItem({
     height: h,
     zIndex: 1,
   };
-  const handlePointerDown = (e: React.PointerEvent) => {
+  // const handlePointerDown = (e: React.PointerEvent) => {
+    const handleSelectCapture = (e: React.PointerEvent) => {
     const isMeta = e.metaKey || e.ctrlKey;
     if (isMeta) dispatch({ type: "toggleSelect", id });
     else dispatch({ type: "selectOne", id });
@@ -145,9 +156,10 @@ function CanvasItem({
     <div
       ref={setNodeRef}
       style={style}
-      {...listeners}
+      {...mergedListeners}
       {...attributes}
-      onPointerDown={handlePointerDown}
+      // onPointerDown={handlePointerDown}
+      onPointerDownCapture={handleSelectCapture}
       className="cursor-move"
     >
       {children}
@@ -156,15 +168,32 @@ function CanvasItem({
 }
 
 function SortableCanvasItem({
-  id,
-  children,
-}: {
-  id: string;
-  children: React.ReactNode;
-}) {
+    id,
+    w,
+    h,
+    children,
+  }: {
+    id: string;
+    w: number;
+    h: number;
+    children: React.ReactNode;
+  }) {
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id });
+    const dispatch = useCanvasDispatch();
+  const mergedListeners = {
+        ...listeners,
+        onPointerDown: (e: React.PointerEvent) => {
+          const isMeta = e.metaKey || e.ctrlKey;
+          if (isMeta) dispatch({ type: "toggleSelect", id });
+          else dispatch({ type: "selectOne", id });
+          // invoke the original pointerDown so the drag still starts
+          (listeners as any).onPointerDown?.(e);
+        },
+      };
   const style = {
+    width:w,
+    height:h,
     transform: CSS.Transform.toString(transform),
     transition,
   } as React.CSSProperties;
@@ -172,8 +201,8 @@ function SortableCanvasItem({
     <div
       ref={setNodeRef}
       style={style}
-      {...listeners}
-      {...attributes}
+          {...mergedListeners}
+            {...attributes}
       className="cursor-move"
     >
       {children}
@@ -1104,11 +1133,11 @@ DroppableCanvas.displayName = "DroppableCanvas";
         onDragEnd={handleEnd}
         collisionDetection={pointerWithin}
       >
-        <DragOverlay zIndex={1000}>
+        {/* <DragOverlay zIndex={1000}>
           {activeId ? (
             <PreviewOfItem id={activeId} elements={elements} />
           ) : null}
-        </DragOverlay>
+        </DragOverlay> */}
         <div className="flex h-screen">
           <div className=" flex-grow-0 flex-shrink-0 border-r py-2 px-4 space-y-4  mt-12">
           <button
@@ -1243,9 +1272,10 @@ DroppableCanvas.displayName = "DroppableCanvas";
                     {el.type === "text" && (
                       
                       <div
+                      
                         contentEditable
                         suppressContentEditableWarning
-                        className="text-block outline-none"
+                        className="text-block outline-none "
                         onPointerDown={(e) => e.stopPropagation()}
                         onInput={(e) =>
                           setElements((els) =>
@@ -1310,6 +1340,7 @@ DroppableCanvas.displayName = "DroppableCanvas";
                             <label className="flex flex-1 items-center justify-center  h-full  cursor-pointer">
                               <input
                                 type="file"
+                                draggable={false}
                                 accept="image/*"
                                 className="relative flex flex-1 justify-center items-center shadow-xl w-full h-full rounded-none p-3"
                                 onPointerDown={(e) => e.stopPropagation()}
@@ -1679,7 +1710,6 @@ function PreviewOfItem({ id, elements }: PreviewProps) {
   const el = elements.find((e) => e.id === id);
   
   if (!el) return null; // shouldn't happen
-  const isActive = activeId === el.id;
 
   switch (el.type) {
     case "text":
@@ -1703,7 +1733,6 @@ function PreviewOfItem({ id, elements }: PreviewProps) {
             height: el.height,
             objectFit: "cover",
             border: "2px solid #4b9eff",
-            opacity: isActive ? 0 : 1,
           }}
           width={el.width || 0}
           height={el.height || 0}
