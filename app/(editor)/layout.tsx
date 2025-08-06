@@ -1,6 +1,7 @@
- import "../globals.css";
+import "../globals.css";
+import "../article.templates.css";
 // import './article.global.scss';
-import './editor.global.css';
+import "./editor.global.css";
 export const metadata = { title: 'Write an article' };
 
 export default function EditorLayout({
