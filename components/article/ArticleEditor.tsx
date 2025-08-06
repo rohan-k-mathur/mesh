@@ -4,7 +4,6 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
@@ -32,7 +31,6 @@ import { useDebouncedCallback } from "use-debounce";
 import SlashCommand from "./editor/SlashCommand";
 import Toolbar from "./editor/Toolbar";
 import TemplateSelector from "./editor/TemplateSelector";
-import Outline from "./editor/Outline";
 import { uploadFileToSupabase } from "@/lib/utils";
 import styles from "./article.module.scss";
 import "@tiptap/core";
@@ -56,6 +54,8 @@ declare module '@tiptap/core' {
 }
 
 const CHAR_LIMIT = 20_000;   // show red once we’re close
+const COLLAB_ENABLED = false; // process.env.NEXT_PUBLIC_ENABLE_COLLAB === 'true';
+
 
 
 interface Heading {
@@ -239,14 +239,14 @@ useEffect(() => {
 }, [isDirty]);
 
   const provider = useMemo(() => {
-    if (typeof window === "undefined") return null;
+    if (!COLLAB_ENABLED || typeof window === "undefined") return null;
     const proto = window.location.protocol === "https:" ? "wss" : "ws";
     return new WebsocketProvider(
       `${proto}://${window.location.host}/ws/article/${articleId}`,
       articleId,
       ydoc
     );
-  }, [articleId, ydoc]);
+  }, [COLLAB_ENABLED,articleId, ydoc]);
   const lowlight = useMemo(() => {
     const ll = createLowlight();
     ll.register("js", javascript);
@@ -282,22 +282,21 @@ const extensions = useMemo(() => {
     CharacterCount.configure({ limit: 20_000 }),
     SlashCommand,              // your command palette
 
-    /* ---- optional real-time collaboration -------------------- */
-    provider && Collaboration.configure({ document: ydoc }),
-    provider &&
+    COLLAB_ENABLED && provider && Collaboration.configure({ document: ydoc }),
+    COLLAB_ENABLED && provider &&
       CollaborationCursor.configure({
         provider,
         user: { name: userName, color: userColor },
       }),
   ].filter(Boolean);            // ← removes the two `false` items
-}, [provider, ydoc, userName, userColor, lowlight]);      
+}, [COLLAB_ENABLED, provider, ydoc, userName, userColor, lowlight]);      
 
   const editor = useEditor({
     extensions,
 
-    content: "write here...",
+    content: "",
     editorProps: {
-      attributes: { class: 'ProseMirror  max-w-none' },
+      attributes: { class: "ProseMirror max-w-none" },
 
       handleDrop(view, event) {
         const file = (event as DragEvent).dataTransfer?.files?.[0];
@@ -314,16 +313,19 @@ const extensions = useMemo(() => {
   
 const saveDraftFn = useCallback(async () => {
   if (!editor) return;
-  const body = {
-    astJson: editor.getJSON(),
-    template,
-    heroImageKey,
-  };
+  const astJson = editor.getJSON();
+  const body = { astJson, template, heroImageKey };
   await fetch(`/api/articles/${articleId}/draft`, {
-    method: "POST",
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
+  localStorage.setItem(
+    LOCAL_KEY(articleId),
+    JSON.stringify({ ts: Date.now(), content: astJson, template, heroImageKey }),
+  );
   setIsDirty(false); // ← unload listener removed
+  setShowUnsaved(false);
 }, [editor, template, heroImageKey, articleId]);
 
 const saveDraft = useDebouncedCallback(saveDraftFn, 2_000);
@@ -338,6 +340,7 @@ useEffect(() => {
         signal: controller.signal,
       });
       if (!res.ok) return;
+      console.log(await res.text())
       const data = await res.json();
       const serverUpdated = new Date(data.updatedAt ?? 0).getTime();
 
@@ -346,13 +349,26 @@ useEffect(() => {
       setHeroImageKey(data.heroImageKey ?? null);
       setHeroPreview(data.heroImageKey ?? null);
 
-      const local = localStorage.getItem(LOCAL_KEY(articleId));
-      if (local) {
-        const parsed: Backup = JSON.parse(local);
-        if (parsed.ts > serverUpdated) {
-          setPendingRestore(parsed);
-        }
-      }
+      // 1️⃣ load server copy first (keep the promise order)
+editor.commands.setContent(data.astJson ?? []);
+
+// 2️⃣ 🚚 after that, check whether a newer local backup exists
+const local = localStorage.getItem(LOCAL_KEY(articleId));
+if (local) {
+  const parsed: Backup = JSON.parse(local);
+  if (parsed.ts > serverUpdated) {
+    setPendingRestore(parsed);      // show banner
+  }
+}
+
+
+      // const local = localStorage.getItem(LOCAL_KEY(articleId));
+      // if (local) {
+      //   const parsed: Backup = JSON.parse(local);
+      //   if (parsed.ts > serverUpdated) {
+      //     setPendingRestore(parsed);
+      //   }
+      // }
     } catch (err) {
       if ((err as DOMException).name !== "AbortError") {
         console.error(err);
@@ -422,11 +438,13 @@ useEffect(() => {
           } else {
             seen[id] = 1;
           }
+          if (node.attrs.id !== id) {
+            editor.commands.command(({ tr }) => {
+              tr.setNodeMarkup(pos, undefined, { ...node.attrs, id });
+              return true;
+            });
+          }
           hs.push({ level: node.attrs.level, text, id, pos });
-          editor.commands.command(({ tr }) => {
-            tr.setNodeMarkup(pos, undefined, { ...node.attrs, id });
-            return true;
-          });
         }
       });
       setHeadings(hs);
@@ -554,47 +572,27 @@ useEffect(() => {
   //     clearTimeout(timeout);
   //   };
   // }, [editor, saveDraft]);
-  const saveLocal = useDebouncedCallback(
-    (payload: Backup) =>
-      localStorage.setItem(LOCAL_KEY(articleId), JSON.stringify(payload)),
-    1000 // ← 1 s of inactivity
-  );
   useEffect(() => {
-    if (!editor) return; // guard against initial nulls
-
-    let timeout: number | null = null;
-
+    if (!editor) return;
+  
     const handler = () => {
       setIsDirty(true);
-      saveLocal({
-        ts: Date.now(),
-        content: editor.getJSON(),
-        template,
-        heroImageKey,
-      });
-
-      if (timeout) clearTimeout(timeout);
-
-      timeout = window.setTimeout(async () => {
-        await saveDraft();
-      }, 2_000); // 2-second quiet period
+      setShowUnsaved(true);
+      saveDraft();                // debounced 2 s
     };
-
-    editor.on("update", handler);
-
-    // ▶︎ cleanup
+  
+    editor.on('update', handler);
     return () => {
-      editor.off("update", handler);
-      if (timeout) clearTimeout(timeout);
+      // discard the value that .off() returns
+      editor.off('update', handler);   // ← nothing returned => void
     };
-  }, [editor, template, heroImageKey, saveDraft, saveLocal]);
+  }, [editor, saveDraft]);
 
-  // useEffect(() => {
-  //   setIsDirty(true);
-  //   setShowUnsaved(true);
-  //   const timeout = setTimeout(() => saveDraft(), 500);
-  //   return () => clearTimeout(timeout);
-  // }, [template, heroImageKey, saveDraft]);
+  useEffect(() => {
+    setIsDirty(true);
+    setShowUnsaved(true);
+    saveDraft();
+  }, [template, heroImageKey, saveDraft]);
 
   useEffect(() => {
     if (!editor) return;
@@ -764,6 +762,64 @@ useEffect(() => {
           </div>
           {cropImage && (
             <div className={styles.cropperModal}>
+          <div className="absolute flex  flex-col align-center w-max-[800px] justify-center items-center p-4 w-full h-fit">
+
+    <div className={`${styles[template]}`}>
+        {/* <TemplateSelector template={template} onChange={setTemplate} />
+      <input type="file" onChange={onHeroUpload} /> */}
+        {showUnsaved && (
+          <div className="flex">{t("unsavedChanges")}</div>
+        )}
+        <div className="flex flex-1 gap-4 p-2 mt-2 w-fit">
+          <TemplateSelector template={template} onChange={setTemplate} />
+          <div className="flex flex-wrap w-fit p-2 gap-2 w-max-[800px]">
+          <button className="savebutton rounded-xl bg-white h-fit w-fit px-3 text-[.8rem] text-center" onClick={saveDraft}>{t("saveDraft")}</button>
+          <button  className="savebutton rounded-xl bg-white h-fit w-fit px-3 text-[.8rem] text-center"  onClick={() => setSuggestion(!suggestion)}>
+            {suggestion ? t("suggestionOff") : t("suggestionMode")}
+          </button>
+          <button className="savebutton h-fit px-3 rounded-xl bg-white w-fit text-[.8rem] text-center" 
+          onClick={runA11yCheck}>{t("checkAccessibility")}</button>
+            <label className="custom-file-upload flex-1 flex flex-2 savebutton h-fit px-3 rounded-xl bg-white w-fit text-[.8rem] text-center">
+          <input  type="file" onChange={onHeroUpload} />
+          
+          </label>
+          
+          </div>   
+               </div>
+        {heroPreview && (
+          <NextImage
+            src={heroPreview}
+            alt="hero"
+            width={800}
+            height={400}
+            className={styles.hero}
+          />
+        )}
+        <div className="h-full flex flex-col">
+        <div className="sticky top-0 z-10">
+          <Toolbar editor={editor} />
+        </div>
+
+  <div className="  flex-1 w-max-[1000px] w-min-[700px] overflow-none ">
+          {/* <Outline headings={headings} onSelect={onSelectHeading} /> */}
+          {/* <EditorContent
+            editor={editor}
+          /> */}
+         <EditorContent editor={editor}
+        className=" flex-1 h-max-[1500px] w-full px-0 py-0 overflow-auto border-none outline-none  rounded-xl"
+        />
+        </div>
+        </div>
+        <div className="text-[.8rem] gap-2 p-2 tracking-wide">
+        <div
+          className={`${styles.charCount} ${counter.chars > CHAR_LIMIT ? "text-red-600" : ""}`}
+        >
+          {counter.words} words • {counter.chars}/{CHAR_LIMIT}
+        </div>
+        </div>
+        {cropImage && (
+          <div className={styles.cropperModal}>
+
             <Cropper
               image={cropImage}
               crop={crop}
@@ -802,13 +858,13 @@ useEffect(() => {
     <button
       className="underline"
       onClick={() => {
-        editor?.commands.setContent(pendingRestore.content);
+        if (!editor) return;
+        editor.commands.setContent(pendingRestore.content);
         setTemplate(pendingRestore.template);
         setHeroImageKey(pendingRestore.heroImageKey);
         setHeroPreview(pendingRestore.heroImageKey);
         setPendingRestore(null);
-        setIsDirty(false);          // banner closes, unload listener gone
-
+        saveDraftFn();           // <= write it to server & localStorage
       }}
     >
       Restore
@@ -817,6 +873,7 @@ useEffect(() => {
       onClick={() => {
         localStorage.removeItem(LOCAL_KEY(articleId));
         setPendingRestore(null);
+        setIsDirty(false);
       }}
     >
       Dismiss
