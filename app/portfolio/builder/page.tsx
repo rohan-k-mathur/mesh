@@ -115,21 +115,27 @@ function CanvasItem({
   id,
   x,
   y,
+  w,
+  h,
   children,
 }: {
   id: string;
   x: number;
   y: number;
+  w: number;
+  h: number;
   children: React.ReactNode;
 }) {
   const { attributes, listeners, setNodeRef } = useDraggable({ id });
   const dispatch = useCanvasDispatch();
-  const style = {
+  const style: React.CSSProperties = {
     position: "absolute",
     left: x,
     top: y,
+    width: w,
+    height: h,
     zIndex: 1,
-  } as React.CSSProperties;
+  };
   const handlePointerDown = (e: React.PointerEvent) => {
     const isMeta = e.metaKey || e.ctrlKey;
     if (isMeta) dispatch({ type: "toggleSelect", id });
@@ -1225,7 +1231,14 @@ DroppableCanvas.displayName = "DroppableCanvas";
           >
             {elements.map((el) =>
               template === "" ? (
-                <CanvasItem key={el.id} id={el.id} x={el.x} y={el.y}>
+                <CanvasItem
+                  key={el.id}
+                  id={el.id}
+                  x={el.x}
+                  y={el.y}
+                  w={el.width}
+                  h={el.height}
+                >
                   <div className="py-8 px-8 border-[1px] rounded-xl border-black savebutton bg-white/20 space-y-2">
                     {el.type === "text" && (
                       
@@ -1282,6 +1295,7 @@ DroppableCanvas.displayName = "DroppableCanvas";
                               alt="uploaded"
                               width={400}
                               height={400}
+                              draggable={false}
                               className="object-contain items-center justify-center w-full h-full"
                               crossOrigin="anonymous"
                               onLoad={(e) =>
@@ -1462,6 +1476,7 @@ DroppableCanvas.displayName = "DroppableCanvas";
                               alt="uploaded"
                               width={el.width}
                               height={el.height}
+                              draggable={false}
                               className="object-cover "
                               crossOrigin="anonymous"
                               onLoad={(e) =>
@@ -1692,6 +1707,7 @@ function PreviewOfItem({ id, elements }: PreviewProps) {
           }}
           width={el.width || 0}
           height={el.height || 0}
+          draggable={false}
         />
       );
 
