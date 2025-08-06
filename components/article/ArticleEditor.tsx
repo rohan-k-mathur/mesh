@@ -294,7 +294,7 @@ const extensions = useMemo(() => {
   const editor = useEditor({
     extensions,
 
-    content: "write here...",
+    content: "",
     editorProps: {
       attributes: { class: "ProseMirror max-w-none" },
 
@@ -340,6 +340,7 @@ useEffect(() => {
         signal: controller.signal,
       });
       if (!res.ok) return;
+      console.log(await res.text())
       const data = await res.json();
       const serverUpdated = new Date(data.updatedAt ?? 0).getTime();
 
@@ -348,13 +349,26 @@ useEffect(() => {
       setHeroImageKey(data.heroImageKey ?? null);
       setHeroPreview(data.heroImageKey ?? null);
 
-      const local = localStorage.getItem(LOCAL_KEY(articleId));
-      if (local) {
-        const parsed: Backup = JSON.parse(local);
-        if (parsed.ts > serverUpdated) {
-          setPendingRestore(parsed);
-        }
-      }
+      // 1️⃣ load server copy first (keep the promise order)
+editor.commands.setContent(data.astJson ?? []);
+
+// 2️⃣ 🚚 after that, check whether a newer local backup exists
+const local = localStorage.getItem(LOCAL_KEY(articleId));
+if (local) {
+  const parsed: Backup = JSON.parse(local);
+  if (parsed.ts > serverUpdated) {
+    setPendingRestore(parsed);      // show banner
+  }
+}
+
+
+      // const local = localStorage.getItem(LOCAL_KEY(articleId));
+      // if (local) {
+      //   const parsed: Backup = JSON.parse(local);
+      //   if (parsed.ts > serverUpdated) {
+      //     setPendingRestore(parsed);
+      //   }
+      // }
     } catch (err) {
       if ((err as DOMException).name !== "AbortError") {
         console.error(err);
@@ -560,16 +574,15 @@ useEffect(() => {
   // }, [editor, saveDraft]);
   useEffect(() => {
     if (!editor) return;
-
+  
     const handler = () => {
       setIsDirty(true);
       setShowUnsaved(true);
-      saveDraft();
+      saveDraft();                // debounced 2 s
     };
-
-    editor.on("update", handler);
-
-    return () => editor.off("update", handler);
+  
+    editor.on('update', handler);
+    return () => editor.off('update', handler);
   }, [editor, saveDraft]);
 
   useEffect(() => {
@@ -753,9 +766,9 @@ useEffect(() => {
           {/* <EditorContent
             editor={editor}
           /> */}
-          <Editor 
-          articleId={articleId}
-          />
+         <EditorContent editor={editor}
+        className=" flex-1 h-max-[1500px] w-full px-0 py-0 overflow-auto border-none outline-none  rounded-xl"
+        />
         </div>
         </div>
         <div className="text-[.8rem] gap-2 p-2 tracking-wide">
@@ -805,13 +818,13 @@ useEffect(() => {
     <button
       className="underline"
       onClick={() => {
-        editor?.commands.setContent(pendingRestore.content);
+        if (!editor) return;
+        editor.commands.setContent(pendingRestore.content);
         setTemplate(pendingRestore.template);
         setHeroImageKey(pendingRestore.heroImageKey);
         setHeroPreview(pendingRestore.heroImageKey);
         setPendingRestore(null);
-        setIsDirty(false);          // banner closes, unload listener gone
-
+        saveDraftFn();           // <= write it to server & localStorage
       }}
     >
       Restore

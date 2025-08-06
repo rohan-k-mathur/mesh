@@ -1442,7 +1442,7 @@ DroppableCanvas.displayName = "DroppableCanvas";
                   </div>
                 </CanvasItem>
               ) : (
-                <SortableCanvasItem key={el.id} id={el.id}>
+                <SortableCanvasItem key={el.id} id={el.id} w={el.width} h={el.height}>
                   <div className="p-2 border bg-white space-y-2">
                     {el.type === "text" && (
                       <div
