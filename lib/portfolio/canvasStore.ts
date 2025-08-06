@@ -90,12 +90,14 @@ export const canvasReducer = produce(
         break;
       }
       case "toggleSelect": {
-        if (draft.selected.has(action.id)) draft.selected.delete(action.id);
-        else draft.selected.add(action.id);
+        const next = new Set(draft.selected);
+        if (next.has(action.id)) next.delete(action.id);
+        else next.add(action.id);
+        draft.selected = next;
         break;
       }
       case "clearSelect": {
-        draft.selected.clear();
+        draft.selected = new Set();
         break;
       }
       case "groupDragStart": {
