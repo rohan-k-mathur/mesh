@@ -1,49 +1,60 @@
-"use client";
+/* eslint‑disable max‑lines */
+'use client';
 
 import React, {
   useCallback,
   useEffect,
   useMemo,
   useState,
-} from "react";
-import { EditorContent, useEditor } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import Image from "@tiptap/extension-image";
-import Link from "@tiptap/extension-link";
-import Placeholder from "@tiptap/extension-placeholder";
-import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
-import Collaboration from "@tiptap/extension-collaboration";
-import CollaborationCursor from "@tiptap/extension-collaboration-cursor";
-import CharacterCount from "@tiptap/extension-character-count";
-import { createLowlight } from "lowlight";
-import javascript from "highlight.js/lib/languages/javascript";
-import typescript from "highlight.js/lib/languages/typescript";
-import python from "highlight.js/lib/languages/python";
-import bash from "highlight.js/lib/languages/bash";
-import katex from "katex";
-import { keymap } from "@tiptap/pm/keymap";
-import { Node, mergeAttributes } from "@tiptap/core";
-import { ReactNodeViewRenderer } from "@tiptap/react";
-import * as Y from "yjs";
-import { WebsocketProvider } from "y-websocket";
-import enStrings from "@/public/locales/en/editor.json";
-import { useDebouncedCallback } from "use-debounce";
-import SlashCommand from "./editor/SlashCommand";
-import Toolbar from "./editor/Toolbar";
-import TemplateSelector from "./editor/TemplateSelector";
-import { uploadFileToSupabase } from "@/lib/utils";
-import styles from "./article.module.scss";
-import "@tiptap/core";
-import type { JSONContent } from "@tiptap/core";
-import Editor from "./Editor";
-import HeroRenderer from "./HeroRenderer";
-import Spinner from "../ui/spinner";
-import "katex/dist/katex.min.css";
-import dynamic from "next/dynamic";
-const Cropper = dynamic(() => import("react-easy-crop"), {
+} from 'react';
+import { EditorContent, useEditor } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import ImageExt from '@tiptap/extension-image';
+import Link from '@tiptap/extension-link';
+import Placeholder from '@tiptap/extension-placeholder';
+import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
+import Collaboration from '@tiptap/extension-collaboration';
+import CollaborationCursor from '@tiptap/extension-collaboration-cursor';
+import CharacterCount from '@tiptap/extension-character-count';
+import { createLowlight } from 'lowlight';
+import javascript from 'highlight.js/lib/languages/javascript';
+import typescript from 'highlight.js/lib/languages/typescript';
+import python from 'highlight.js/lib/languages/python';
+import bash from 'highlight.js/lib/languages/bash';
+import katex from 'katex';
+import { keymap } from '@tiptap/pm/keymap';
+import { Node, mergeAttributes, type JSONContent, type Extension } from '@tiptap/core';
+import { ReactNodeViewRenderer } from '@tiptap/react';
+import * as Y from 'yjs';
+import { WebsocketProvider } from 'y-websocket';
+import enStrings from '@/public/locales/en/editor.json';
+import { useDebouncedCallback } from 'use-debounce';
+
+import SlashCommand from './editor/SlashCommand';
+import Toolbar from './editor/Toolbar';
+import TemplateSelector from './editor/TemplateSelector';
+import { uploadFileToSupabase } from '@/lib/utils';
+import styles from './article.module.scss';
+import Spinner from '../ui/spinner';
+import dynamic from 'next/dynamic';
+import NextImage from 'next/image';                              // 🆕 missing import
+import Editor from './Editor';                                  // the wrapper component
+
+import 'katex/dist/katex.min.css';
+
+/* -------------------------------------------------------------------------- */
+/*  Dynamic imports                                                            */
+/* -------------------------------------------------------------------------- */
+
+const Cropper = dynamic(() => import('react-easy-crop'), {
   ssr: false,
   loading: () => <Spinner />,
 });
+
+/* -------------------------------------------------------------------------- */
+/*  Module augmentation for CharacterCount storage                             */
+/* -------------------------------------------------------------------------- */
+
 declare module '@tiptap/core' {
   interface Storage {
     characterCount?: {
@@ -53,10 +64,16 @@ declare module '@tiptap/core' {
   }
 }
 
-const CHAR_LIMIT = 20_000;   // show red once we’re close
-const COLLAB_ENABLED = false; // process.env.NEXT_PUBLIC_ENABLE_COLLAB === 'true';
+/* -------------------------------------------------------------------------- */
+/*  Constants                                                                  */
+/* -------------------------------------------------------------------------- */
 
+const CHAR_LIMIT = 20_000;
+const COLLAB_ENABLED = false; // set to true if you enable websockets
 
+/* -------------------------------------------------------------------------- */
+/*  Helper types                                                               */
+/* -------------------------------------------------------------------------- */
 
 interface Heading {
   level: number;
@@ -65,19 +82,32 @@ interface Heading {
   pos: number;
 }
 
+type Backup = {
+  ts: number;
+  content: JSONContent;
+  template: string;
+  heroImageKey: string | null;
+};
+
+const LOCAL_KEY = (id: string) => `article_${id}_backup`;
+
+/* -------------------------------------------------------------------------- */
+/*  Custom nodes                                                               */
+/* -------------------------------------------------------------------------- */
+
 const PullQuote = Node.create({
-  name: "pullQuote",
-  group: "block",
-  content: "inline*",
+  name: 'pullQuote',
+  group: 'block',
+  content: 'inline*',
   addAttributes() {
-    return { alignment: { default: "left" } };
+    return { alignment: { default: 'left' } };
   },
   parseHTML() {
-    return [{ tag: "blockquote.pull-quote" }];
+    return [{ tag: 'blockquote.pull-quote' }];
   },
   renderHTML({ HTMLAttributes }) {
     return [
-      "blockquote",
+      'blockquote',
       mergeAttributes(HTMLAttributes, {
         class: `pull-quote ${HTMLAttributes.alignment}`,
       }),
@@ -85,32 +115,20 @@ const PullQuote = Node.create({
     ];
   },
 });
-const LOCAL_KEY = (id: string) => `article_${id}_backup`;
-
-type Backup = {
-  ts: number;                 // epoch ms
-  content: JSONContent;       // tiptap JSON
-  template: string;
-  heroImageKey: string | null;
-};
-
-
 
 const Callout = Node.create({
-
-  
-  name: "callout",
-  group: "block",
-  content: "paragraph+",
+  name: 'callout',
+  group: 'block',
+  content: 'paragraph+',
   addAttributes() {
-    return { type: { default: "info" } };
+    return { type: { default: 'info' } };
   },
   parseHTML() {
-    return [{ tag: "div.callout" }];
+    return [{ tag: 'div.callout' }];
   },
   renderHTML({ HTMLAttributes }) {
     return [
-      "div",
+      'div',
       mergeAttributes(HTMLAttributes, {
         class: `callout ${HTMLAttributes.type}`,
       }),
@@ -120,19 +138,19 @@ const Callout = Node.create({
 });
 
 const MathBlock = Node.create({
-  name: "mathBlock",
-  group: "block",
+  name: 'mathBlock',
+  group: 'block',
   atom: true,
   addAttributes() {
-    return { latex: { default: "" } };
+    return { latex: { default: '' } };
   },
   parseHTML() {
-    return [{ tag: "div[data-type=math-block]" }];
+    return [{ tag: 'div[data-type=math-block]' }];
   },
   renderHTML({ HTMLAttributes }) {
     return [
-      "div",
-      mergeAttributes(HTMLAttributes, { "data-type": "math-block" }),
+      'div',
+      mergeAttributes(HTMLAttributes, { 'data-type': 'math-block' }),
     ];
   },
   addNodeView() {
@@ -150,20 +168,20 @@ const MathBlock = Node.create({
 });
 
 const MathInline = Node.create({
-  name: "mathInline",
-  group: "inline",
+  name: 'mathInline',
+  group: 'inline',
   inline: true,
   atom: true,
   addAttributes() {
-    return { latex: { default: "" } };
+    return { latex: { default: '' } };
   },
   parseHTML() {
-    return [{ tag: "span[data-type=math-inline]" }];
+    return [{ tag: 'span[data-type=math-inline]' }];
   },
   renderHTML({ HTMLAttributes }) {
     return [
-      "span",
-      mergeAttributes(HTMLAttributes, { "data-type": "math-inline" }),
+      'span',
+      mergeAttributes(HTMLAttributes, { 'data-type': 'math-inline' }),
     ];
   },
   addNodeView() {
@@ -180,124 +198,128 @@ const MathInline = Node.create({
   },
 });
 
-const CustomImage = Image.extend({
+/*  Image extension with extra a11y metadata  */
+const CustomImage = ImageExt.extend({
   addAttributes() {
     return {
       ...this.parent?.(),
-      caption: { default: "" },
-      align: { default: "center" },
-      alt: { default: "" },
+      caption: { default: '' },
+      align: { default: 'center' },
+      alt: { default: '' },
       missingAlt: { default: false },
     };
   },
   renderHTML({ HTMLAttributes }) {
     return [
-      "figure",
-      // { class: `image align-${HTMLAttributes.align}` },
-      // ["img", { src: HTMLAttributes.src }],
+      'figure',
       {
         class: `image align-${HTMLAttributes.align}${
-          HTMLAttributes.missingAlt ? " a11y-error" : ""
+          HTMLAttributes.missingAlt ? ' a11y-error' : ''
         }`,
       },
-      ["img", { src: HTMLAttributes.src, alt: HTMLAttributes.alt }],
-      ["figcaption", HTMLAttributes.caption],
+      ['img', { src: HTMLAttributes.src, alt: HTMLAttributes.alt }],
+      ['figcaption', HTMLAttributes.caption],
     ];
   },
 });
+
+/* -------------------------------------------------------------------------- */
+/*  Props                                                                     */
+/* -------------------------------------------------------------------------- */
 
 interface EditorProps {
   articleId: string;
 }
 
-export default function ArticleEditor({ articleId }: EditorProps) {
-  const [template, setTemplate] = useState("standard");
+/* -------------------------------------------------------------------------- */
+/*  Component                                                                  */
+/* -------------------------------------------------------------------------- */
 
-  const [heroImageKey, setHeroImageKey] = useState<string | null>(null);
-  const [heroPreview, setHeroPreview] = useState<string | null>(null);
-  const [headings, setHeadings] = useState<Heading[]>([]);
-  const [cropFile, setCropFile] = useState<File | null>(null);
-  const [cropImage, setCropImage] = useState<string | null>(null);
-  const [crop, setCrop] = useState({ x: 0, y: 0 });
-  const [zoom, setZoom] = useState(1);
-  const [croppedArea, setCroppedArea] = useState<any>(null);
-  const [a11yErrors, setA11yErrors] = useState(0);
-  const [suggestion, setSuggestion] = useState(false);
-  const [isDirty, setIsDirty] = useState(false);
-  const [showUnsaved, setShowUnsaved] = useState(false);
+export default function ArticleEditor({ articleId }: EditorProps) {
+  /* ------------------------------- state ---------------------------------- */
+
+  const [template,      setTemplate]      = useState('standard');
+  const [heroImageKey,  setHeroImageKey]  = useState<string | null>(null);
+  const [heroPreview,   setHeroPreview]   = useState<string | null>(null);
+  const [headings,      setHeadings]      = useState<Heading[]>([]);
+  const [cropFile,      setCropFile]      = useState<File | null>(null);
+  const [cropImage,     setCropImage]     = useState<string | null>(null);
+  const [crop,          setCrop]          = useState({ x: 0, y: 0 });
+  const [zoom,          setZoom]          = useState(1);
+  const [croppedArea,   setCroppedArea]   = useState<any>(null);
+  const [a11yErrors,    setA11yErrors]    = useState(0);
+  const [suggestion,    setSuggestion]    = useState(false);
+  const [isDirty,       setIsDirty]       = useState(false);
+  const [showUnsaved,   setShowUnsaved]   = useState(false);
+  const [pendingRestore,setPendingRestore]= useState<Backup | null>(null);
+  const [counter,       setCounter]       = useState({ words: 0, chars: 0 });
+
+  /* ------------------------------ y‑js / collab --------------------------- */
+
   const ydoc = useMemo(() => new Y.Doc(), []);
-  const [counter, setCounter] = useState({ words: 0, chars: 0 });
-  const [pendingRestore, setPendingRestore] = useState<Backup | null>(null);
-// show Chrome dialog only while dirty
-useEffect(() => {
-  const handler = (e: BeforeUnloadEvent) => {
-    e.preventDefault();
-    e.returnValue = '';
-  };
-  if (isDirty) window.addEventListener('beforeunload', handler);
-  return () => window.removeEventListener('beforeunload', handler);
-}, [isDirty]);
 
   const provider = useMemo(() => {
-    if (!COLLAB_ENABLED || typeof window === "undefined") return null;
-    const proto = window.location.protocol === "https:" ? "wss" : "ws";
+    if (!COLLAB_ENABLED || typeof window === 'undefined') return null;
+    const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
     return new WebsocketProvider(
       `${proto}://${window.location.host}/ws/article/${articleId}`,
       articleId,
-      ydoc
+      ydoc,
     );
-  }, [COLLAB_ENABLED,articleId, ydoc]);
+  }, [articleId, ydoc]);
+
+  /* ------------------------------ lowlight -------------------------------- */
+
   const lowlight = useMemo(() => {
     const ll = createLowlight();
-    ll.register("js", javascript);
-    ll.register("ts", typescript);
-    ll.register("py", python);
-    ll.register("sh", bash);
+    ll.register('js', javascript);
+    ll.register('ts', typescript);
+    ll.register('py', python);
+    ll.register('sh', bash);
     return ll;
   }, []);
 
-  const userName = useMemo(() => `User${Math.floor(Math.random() * 1000)}`, []);
-  const userColor = useMemo(
-    () => `#${Math.floor(Math.random() * 0xffffff).toString(16)}`,
-    []
-  );
+  /* ---------------------------- i18n helper ------------------------------ */
+
   const t = (key: string) =>
     ((window as any)?.i18next?.t?.(`editor:${key}`) as string) ||
     (enStrings as any)[key] ||
     key;
-// 1 – build the list *outside* the hook so you don’t recreate the array
-//     on every render (avoids unnecessary re-initialisation)
 
-const extensions = useMemo(() => {
-  return [
-    StarterKit,                // <-- brings in doc/paragraph/text
-    CustomImage,
-    Link,
-    Placeholder.configure({ placeholder: 'Write something…' }),
-    CodeBlockLowlight.configure({ lowlight }),
-    PullQuote,
-    Callout,
-    MathBlock,
-    MathInline,
-    CharacterCount.configure({ limit: 20_000 }),
-    SlashCommand,              // your command palette
+  /* ------------------------- editor extensions --------------------------- */
 
-    COLLAB_ENABLED && provider && Collaboration.configure({ document: ydoc }),
-    COLLAB_ENABLED && provider &&
-      CollaborationCursor.configure({
-        provider,
-        user: { name: userName, color: userColor },
-      }),
-  ].filter(Boolean);            // ← removes the two `false` items
-}, [COLLAB_ENABLED, provider, ydoc, userName, userColor, lowlight]);      
+  const userName  = useMemo(() => `User${Math.floor(Math.random() * 1000)}`, []);
+  const userColor = useMemo(() => `#${Math.floor(Math.random() * 0xffffff).toString(16)}`, []);
+
+  const extensions = useMemo<Extension[]>(() => {
+    return [
+      StarterKit,
+      CustomImage,
+      Link,
+      Placeholder.configure({ placeholder: 'Write something…' }),
+      CodeBlockLowlight.configure({ lowlight }),
+      PullQuote,
+      Callout,
+      MathBlock,
+      MathInline,
+      CharacterCount.configure({ limit: CHAR_LIMIT }),
+      SlashCommand,
+      COLLAB_ENABLED && provider && Collaboration.configure({ document: ydoc }),
+      COLLAB_ENABLED && provider &&
+        CollaborationCursor.configure({
+          provider,
+          user: { name: userName, color: userColor },
+        }),
+    ].filter(Boolean) as Extension[];          // TS narrow‑down
+  }, [lowlight, provider, userName, userColor]);
+
+  /* ---------------------------- TipTap editor ---------------------------- */
 
   const editor = useEditor({
     extensions,
-
-    content: "",
+    content: '',
     editorProps: {
-      attributes: { class: "ProseMirror max-w-none" },
-
+      attributes: { class: 'ProseMirror max-w-none' },
       handleDrop(view, event) {
         const file = (event as DragEvent).dataTransfer?.files?.[0];
         if (file) {
@@ -310,482 +332,378 @@ const extensions = useMemo(() => {
       },
     },
   });
-  
-const saveDraftFn = useCallback(async () => {
-  if (!editor) return;
-  const astJson = editor.getJSON();
-  const body = { astJson, template, heroImageKey };
-  await fetch(`/api/articles/${articleId}/draft`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  localStorage.setItem(
-    LOCAL_KEY(articleId),
-    JSON.stringify({ ts: Date.now(), content: astJson, template, heroImageKey }),
-  );
-  setIsDirty(false); // ← unload listener removed
-  setShowUnsaved(false);
-}, [editor, template, heroImageKey, articleId]);
 
-const saveDraft = useDebouncedCallback(saveDraftFn, 2_000);
+  /* ---------------------------------------------------------------------- */
+  /*  Dirty‑flag + “are you sure you want to leave?” browser dialog          */
+  /* ---------------------------------------------------------------------- */
 
-useEffect(() => {
-  if (!editor) return;
-  const controller = new AbortController();
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    if (isDirty) window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [isDirty]);
 
-  (async () => {
-    try {
-      const res = await fetch(`/api/articles/${articleId}`, {
-        signal: controller.signal,
-      });
-      if (!res.ok) return;
-      console.log(await res.text())
-      const data = await res.json();
-      const serverUpdated = new Date(data.updatedAt ?? 0).getTime();
+  /* ---------------------------------------------------------------------- */
+  /*  Debounced save                                                         */
+  /* ---------------------------------------------------------------------- */
 
-      editor.commands.setContent(data.astJson ?? []);
-      setTemplate(data.template ?? "standard");
-      setHeroImageKey(data.heroImageKey ?? null);
-      setHeroPreview(data.heroImageKey ?? null);
+  const saveDraftImmediate = useCallback(async () => {
+    if (!editor) return;
 
-      // 1️⃣ load server copy first (keep the promise order)
-editor.commands.setContent(data.astJson ?? []);
+    const astJson = editor.getJSON();
+    const body    = { astJson, template, heroImageKey };
 
-// 2️⃣ 🚚 after that, check whether a newer local backup exists
-const local = localStorage.getItem(LOCAL_KEY(articleId));
-if (local) {
-  const parsed: Backup = JSON.parse(local);
-  if (parsed.ts > serverUpdated) {
-    setPendingRestore(parsed);      // show banner
-  }
-}
+    await fetch(`/api/articles/${articleId}/draft`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
 
+    localStorage.setItem(
+      LOCAL_KEY(articleId),
+      JSON.stringify({ ts: Date.now(), ...body }),
+    );
 
-      // const local = localStorage.getItem(LOCAL_KEY(articleId));
-      // if (local) {
-      //   const parsed: Backup = JSON.parse(local);
-      //   if (parsed.ts > serverUpdated) {
-      //     setPendingRestore(parsed);
-      //   }
-      // }
-    } catch (err) {
-      if ((err as DOMException).name !== "AbortError") {
-        console.error(err);
+    setIsDirty(false);
+    setShowUnsaved(false);
+  }, [editor, template, heroImageKey, articleId]);
+
+  const saveDraft = useDebouncedCallback(saveDraftImmediate, 2_000);
+
+  /* ---------------------------------------------------------------------- */
+  /*  Initial load (server copy + optional local override)                   */
+  /* ---------------------------------------------------------------------- */
+
+  useEffect(() => {
+    if (!editor) return;
+    const controller = new AbortController();
+
+    (async () => {
+      try {
+        const res = await fetch(`/api/articles/${articleId}`, {
+          signal: controller.signal,
+        });
+        if (!res.ok) return;
+        const data = await res.json();         // consume body only once
+        const serverUpdated = new Date(data.updatedAt ?? 0).getTime();
+
+        editor.commands.setContent(data.astJson ?? []);
+        setTemplate(data.template ?? 'standard');
+        setHeroImageKey(data.heroImageKey ?? null);
+        setHeroPreview(data.heroImageKey ?? null);
+
+        /* … look for a fresher local backup … */
+        const local = localStorage.getItem(LOCAL_KEY(articleId));
+        if (local) {
+          const parsed: Backup = JSON.parse(local);
+          if (parsed.ts > serverUpdated) {
+            setPendingRestore(parsed);
+          }
+        }
+      } catch (err) {
+        if ((err as DOMException).name !== 'AbortError') {
+          console.error(err);
+        }
       }
-    }
-  })();
+    })();
 
-  return () => controller.abort();
-}, [articleId, editor]);
+    return () => controller.abort();
+  }, [articleId, editor]);
 
-useEffect(() => {
-  if (!editor) return;            // <<–– early-exit: returns void ✔
+  /* ---------------------------------------------------------------------- */
+  /*  Live character counter                                                 */
+  /* ---------------------------------------------------------------------- */
 
-  const updateCounter = () => {
-    const store = editor.storage.characterCount;
-    setCounter({ words: store.words(), chars: store.characters() });
-  };
+  useEffect(() => {
+    if (!editor) return;
 
-  updateCounter();                // initial run
-  editor.on("update", updateCounter);
+    const updateCounter = () => {
+      const store = editor.storage.characterCount!;
+      setCounter({ words: store.words(), chars: store.characters() });
+    };
 
-  return () => {
-    editor.off("update", updateCounter);   // tidy up
-  };
-}, [editor]);
+    updateCounter();
+    editor.on('update', updateCounter);
+    return () => editor.off('update', updateCounter);
+  }, [editor]);
+
+  /* ---------------------------------------------------------------------- */
+  /*  Keyboard shortcuts                                                     */
+  /* ---------------------------------------------------------------------- */
 
   useEffect(() => {
     if (!editor) return;
     const plugin = keymap({
-      "Mod-b": () => editor.chain().focus().toggleBold().run(),
-      "Mod-i": () => editor.chain().focus().toggleItalic().run(),
+      'Mod-b': () => editor.chain().focus().toggleBold().run(),
+      'Mod-i': () => editor.chain().focus().toggleItalic().run(),
     });
     editor.registerPlugin(plugin);
-    return () => {
-      editor.unregisterPlugin(plugin.key);
-    };
+    return () => editor.unregisterPlugin(plugin.key);
   }, [editor]);
+
+  /* ---------------------------------------------------------------------- */
+  /*  Suggestion mode toggle                                                 */
+  /* ---------------------------------------------------------------------- */
+
   useEffect(() => {
-    if (!editor) return;
-    editor.setEditable(!suggestion);
+    if (editor) editor.setEditable(!suggestion);
   }, [suggestion, editor]);
 
-  useEffect(() => {
-    if (!provider) return; // no cleanup needed
+  /* ---------------------------------------------------------------------- */
+  /*  Provider cleanup                                                       */
+  /* ---------------------------------------------------------------------- */
 
-    return () => {
-      provider.destroy(); // returns void → OK
-    };
+  useEffect(() => {
+    return () => provider?.destroy();
   }, [provider]);
 
+  /* ---------------------------------------------------------------------- */
+  /*  Outline (headings list)                                                */
+  /* ---------------------------------------------------------------------- */
+
   useEffect(() => {
-    if (!editor) return; // ✅ one early exit – no cleanup
+    if (!editor) return;
 
     const updateHeadings = () => {
       const seen: Record<string, number> = {};
       const hs: Heading[] = [];
+
       editor.state.doc.descendants((node, pos) => {
-        if (node.type.name === "heading") {
-          const text = node.textContent;
-          let id = text
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, "-")
-            .replace(/(^-|-$)+/g, "");
-          if (seen[id]) {
-            id = `${id}-${seen[id]}`;
-            seen[id] += 1;
-          } else {
-            seen[id] = 1;
-          }
-          if (node.attrs.id !== id) {
-            editor.commands.command(({ tr }) => {
-              tr.setNodeMarkup(pos, undefined, { ...node.attrs, id });
-              return true;
-            });
-          }
-          hs.push({ level: node.attrs.level, text, id, pos });
+        if (node.type.name !== 'heading') return;
+
+        const text = node.textContent;
+        let id = text
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/(^-|-$)+/g, '');
+
+        if (seen[id]) {
+          id = `${id}-${seen[id]}`;
+          seen[id] += 1;
+        } else {
+          seen[id] = 1;
         }
+
+        if (node.attrs.id !== id) {
+          editor.commands.command(({ tr }) => {
+            tr.setNodeMarkup(pos, undefined, { ...node.attrs, id });
+            return true;
+          });
+        }
+        hs.push({ level: node.attrs.level, text, id, pos });
       });
+
       setHeadings(hs);
     };
-    editor.on("update", updateHeadings);
+
     updateHeadings();
-    return () => {
-      // ✅ single cleanup function
-      editor.off("update", updateHeadings);
-    };
+    editor.on('update', updateHeadings);
+    return () => editor.off('update', updateHeadings);
   }, [editor]);
 
-  // const saveDraft = useCallback(async () => {
-  //   if (!editor) return;
-  //   const body = {
-  //     astJson: editor.getJSON(),
-  //     template,
-  //     heroImageKey,
-  //   };
+  /* ---------------------------------------------------------------------- */
+  /*  Dirty‑flag on change + queued save                                     */
+  /* ---------------------------------------------------------------------- */
 
-  //   const saveDraft = useCallback(async () => {
-  //     /* …your POST logic… */
-  //   }, [editor, template, heroImageKey]);
-
-  //   useEffect(() => {
-  //     if (!editor) return;
-
-  //     const timeoutRef = { current: 0 };
-
-  //     const handler = () => {
-  //       setIsDirty(true);
-  //       clearTimeout(timeoutRef.current);
-
-  //       timeoutRef.current = window.setTimeout(async () => {
-  //         await saveDraft();
-  //         setShowUnsaved(true);
-  //         setIsDirty(false);
-  //       }, 2_000);            // 2 s “quiet period”
-  //     };
-
-  //     editor.on('update', handler);
-  //     return () => {
-  //       editor.off('update', handler);
-  //       clearTimeout(timeoutRef.current);
-  //     };
-  //   }, [editor, saveDraft]);
-  /** POST the current editor state to the backend and stash a local copy */
-
-// /* 1️⃣ mark dirty on any change, debounce the real save */
-// useEffect(() => {
-//   if (!editor) return;
-//   const markDirty = () => setIsDirty(true);
-//   editor.on('update', markDirty);
-//   return () => editor.off('update', markDirty);
-// }, [editor]);
-
-//   const saveDraft = useCallback(async () => {
-//     if (!editor) return; // TS knows editor may be null
-
-//     const payload = {
-//       astJson: editor.getJSON(),
-//       template,
-//       heroImageKey,
-//     };
-
-//     // ── 1) server ──────────────────────────────────────────────────────────────
-//     await fetch(`/api/articles/${articleId}/draft`, {
-//       method: "PATCH",
-//       headers: { "Content-Type": "application/json" },
-//       body: JSON.stringify(payload),
-//     });
-
-//     // ── 2) local backup (timestamped) ──────────────────────────────────────────
-//     localStorage.setItem(
-//       `article_${articleId}_backup`,
-//       JSON.stringify({ ts: Date.now(), ...payload })
-//     );
-//     setIsDirty(false);          // ← removes the listener automatically
-
-//   }, [editor, template, heroImageKey, articleId]);
-
-
-  // const saveDraftDebounced = useDebouncedCallback(saveDraft, 1000);
-
-  // useEffect(() => {
-  //   if (!editor) return;
-  //   editor.on('update', saveDraftDebounced);
-  //   return () => editor.off('update', saveDraftDebounced);
-  // }, [editor, saveDraftDebounced]);
-
-  // await fetch(`/api/articles/${articleId}/draft`, {
-  //   method: "PATCH",
-  //   headers: { "Content-Type": "application/json" },
-  //   body: JSON.stringify(body),
-  // });
-  //   try {
-  //     await fetch(`/api/articles/${articleId}/draft`, {
-  //       method: "PATCH",
-  //       headers: { "Content-Type": "application/json" },
-  //       body: JSON.stringify(body),
-  //     });
-  //     setIsDirty(false);
-  //     setShowUnsaved(false);
-  //   } catch {
-  //     setShowUnsaved(true);
-  //   }
-  // }, [editor, articleId, template, heroImageKey]);
-
-  // useEffect(() => {
-  //   if (!editor) return;
-  //   let timeout: NodeJS.Timeout;
-  //   const handler = () => {
-  //     setIsDirty(true);
-  //     setShowUnsaved(false);
-  //     clearTimeout(timeout);
-  //     // timeout = setTimeout(() => saveDraft(), 1000);
-  //     timeout = setTimeout(async () => {
-  //       setShowUnsaved(true);
-  //       await saveDraft();
-  //     }, 2000);
-  //   };
-  //   editor.on("update", saveDraftDebounced);
-  //   return () => {
-  //     editor.off("update", handler);
-  //     clearTimeout(timeout);
-  //   };
-  // }, [editor, saveDraft]);
   useEffect(() => {
     if (!editor) return;
-  
     const handler = () => {
       setIsDirty(true);
       setShowUnsaved(true);
-      saveDraft();                // debounced 2 s
+      saveDraft();                // 2‑s debounce
     };
-  
     editor.on('update', handler);
-    return () => {
-      // discard the value that .off() returns
-      editor.off('update', handler);   // ← nothing returned => void
-    };
+    return () => editor.off('update', handler);
   }, [editor, saveDraft]);
 
+  /* also mark dirty when template or hero image changes */
   useEffect(() => {
     setIsDirty(true);
     setShowUnsaved(true);
     saveDraft();
   }, [template, heroImageKey, saveDraft]);
 
+  /* ---------------------------------------------------------------------- */
+  /*  15‑second local backup                                                 */
+  /* ---------------------------------------------------------------------- */
+
   useEffect(() => {
     if (!editor) return;
     const interval = setInterval(() => {
-      const backup = {
+      const backup: Backup = {
         content: editor.getJSON(),
         template,
         heroImageKey,
         ts: Date.now(),
       };
-      localStorage.setItem(
-        `article_${articleId}_backup`,
-        JSON.stringify(backup)
-      );
-    }, 15000);
+      localStorage.setItem(LOCAL_KEY(articleId), JSON.stringify(backup));
+    }, 15_000);
     return () => clearInterval(interval);
   }, [editor, template, heroImageKey, articleId]);
+
+  /* ---------------------------------------------------------------------- */
+  /*  Handlers                                                               */
+  /* ---------------------------------------------------------------------- */
 
   const onHeroUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
     const res = await fetch(
-      `/api/articles/presign?filename=${encodeURIComponent(
-        file.name
-      )}&contentType=${encodeURIComponent(file.type)}`
+      `/api/articles/presign?filename=${encodeURIComponent(file.name)}&contentType=${encodeURIComponent(file.type)}`,
     );
     const { uploadUrl } = await res.json();
+
     await fetch(uploadUrl, {
-      method: "PUT",
-      headers: { "Content-Type": file.type },
+      method: 'PUT',
+      headers: { 'Content-Type': file.type },
       body: file,
     });
-    const publicUrl = uploadUrl.split("?")[0];
+
+    const publicUrl = uploadUrl.split('?')[0];
     setHeroImageKey(publicUrl);
     setHeroPreview(publicUrl);
-    e.target.value = "";
-  };
-
-  const insertCroppedImage = async () => {
-    if (!cropFile || !croppedArea || !editor) return;
-    const image = new Image();
-    image.src = cropImage as string;
-    await new Promise((res) => (image.onload = res));
-    const canvas = document.createElement("canvas");
-    canvas.width = croppedArea.width;
-    canvas.height = croppedArea.height;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.drawImage(
-      image,
-      croppedArea.x,
-      croppedArea.y,
-      croppedArea.width,
-      croppedArea.height,
-      0,
-      0,
-      croppedArea.width,
-      croppedArea.height
-    );
-    return new Promise<void>((resolve) => {
-      canvas.toBlob(async (blob) => {
-        if (!blob) return;
-        const file = new File([blob], cropFile.name, { type: cropFile.type });
-        const { fileURL } = await uploadFileToSupabase(file);
-        if (fileURL) {
-          editor
-            .chain()
-            .focus()
-            .setImage({ src: fileURL, caption: "", align: "center", alt: "" })
-            .run();
-        }
-        resolve();
-      });
-    });
+    e.target.value = '';
   };
 
   const onCropComplete = useCallback((_: any, area: any) => {
     setCroppedArea(area);
   }, []);
 
+  const insertCroppedImage = async () => {
+    if (!cropFile || !croppedArea || !editor) return;
+    const img = new Image();
+    img.src = cropImage as string;
+    await new Promise((res) => (img.onload = res));
+
+    const canvas = document.createElement('canvas');
+    canvas.width  = croppedArea.width;
+    canvas.height = croppedArea.height;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.drawImage(
+      img,
+      croppedArea.x,     croppedArea.y,
+      croppedArea.width, croppedArea.height,
+      0,                 0,
+      croppedArea.width, croppedArea.height,
+    );
+
+    return new Promise<void>((resolve) => {
+      canvas.toBlob(async (blob) => {
+        if (!blob) return;
+        const file = new File([blob], cropFile.name, { type: cropFile.type });
+        const { fileURL } = await uploadFileToSupabase(file);
+        if (fileURL) {
+          editor.chain().focus().setImage({
+            src: fileURL, caption: '', align: 'center', alt: '',
+          }).run();
+        }
+        resolve();
+      });
+    });
+  };
+
   const onSelectHeading = (id: string) => {
     const h = headings.find((x) => x.id === id);
     if (!h || !editor) return;
     const dom = editor.view.domAtPos(h.pos).node as HTMLElement;
-    dom.scrollIntoView({ behavior: "smooth" });
+    dom.scrollIntoView({ behavior: 'smooth' });
   };
 
   const runA11yCheck = () => {
     if (!editor) return;
     document
-      .querySelectorAll(".a11y-error")
-      .forEach((el) => el.classList.remove("a11y-error"));
+      .querySelectorAll('.a11y-error')
+      .forEach((el) => el.classList.remove('a11y-error'));
+
     let last = 0;
     let errors = 0;
+
     editor.state.doc.descendants((node, pos) => {
-      if (node.type.name === "heading") {
+      if (node.type.name === 'heading') {
         const dom = editor.view.nodeDOM(pos) as HTMLElement;
         const lvl = node.attrs.level;
         if (last && lvl > last + 1) {
-          dom.classList.add("a11y-error");
+          dom.classList.add('a11y-error');
           errors++;
         }
         last = lvl;
       }
-      if (node.type.name === "image") {
+
+      if (node.type.name === 'image') {
         const dom = editor.view.nodeDOM(pos) as HTMLElement;
         if (!node.attrs.alt) {
-          dom.classList.add("a11y-error");
+          dom.classList.add('a11y-error');
           editor.commands.command(({ tr }) => {
-            tr.setNodeMarkup(pos, undefined, {
-              ...node.attrs,
-              missingAlt: true,
-            });
+            tr.setNodeMarkup(pos, undefined, { ...node.attrs, missingAlt: true });
             return true;
           });
           errors++;
         } else {
           editor.commands.command(({ tr }) => {
-            tr.setNodeMarkup(pos, undefined, {
-              ...node.attrs,
-              missingAlt: false,
-            });
+            tr.setNodeMarkup(pos, undefined, { ...node.attrs, missingAlt: false });
             return true;
           });
         }
       }
     });
+
     setA11yErrors(errors);
   };
-  const words = editor?.storage.characterCount?.words() ?? 0;
+
+  /* ---------------------------------------------------------------------- */
+  /*  Render                                                                 */
+  /* ---------------------------------------------------------------------- */
 
   return (
-    <div className=" justify-center items-center w-max-[800px]">
-      <div className="absolute flex  flex-col align-center w-max-[800px] justify-center items-center p-4 w-full h-fit">
-        <article className={template}>
-          {showUnsaved && <div className="flex">{t("unsavedChanges")}</div>}
-          <div className="flex flex-1 gap-4 p-2 mt-2 w-fit">
-            <TemplateSelector articleId={articleId} template={template} onChange={setTemplate} />
-            <div className="flex flex-wrap w-fit p-2 gap-2 w-max-[800px]">
-              <button className="savebutton rounded-xl bg-white h-fit w-fit px-3 text-[.8rem] text-center" onClick={saveDraft}>{t("saveDraft")}</button>
-              <button className="savebutton rounded-xl bg-white h-fit w-fit px-3 text-[.8rem] text-center" onClick={() => setSuggestion(!suggestion)}>
-                {suggestion ? t("suggestionOff") : t("suggestionMode")}
-              </button>
-              <button className="savebutton h-fit px-3 rounded-xl bg-white w-fit text-[.8rem] text-center" onClick={runA11yCheck}>{t("checkAccessibility")}</button>
-              <label className="custom-file-upload flex-1 flex flex-2 savebutton h-fit px-3 rounded-xl bg-white w-fit text-[.8rem] text-center">
-                <input type="file" onChange={onHeroUpload} />
-              </label>
-            </div>
-          </div>
-          {heroPreview && <HeroRenderer src={heroPreview} template={template} />}
-          <div className="h-full flex flex-col">
-            <Toolbar editor={editor} />       {/* fixed-width column */}
-            <div className="  flex-1 w-max-[1000px] w-min-[700px] overflow-none ">
-              {/* <Outline headings={headings} onSelect={onSelectHeading} /> */}
-              {/* <EditorContent
-            editor={editor}
-          /> */}
-              <Editor articleId={articleId} />
-            </div>
-          </div>
-          <div className="text-[.8rem] gap-2 p-2 tracking-wide">
-            <div
-              className={`${styles.charCount} ${counter.chars > CHAR_LIMIT ? "text-red-600" : ""}`}
-            >
-              {counter.words} words • {counter.chars}/{CHAR_LIMIT}
-            </div>
-          </div>
-          {cropImage && (
-            <div className={styles.cropperModal}>
-          <div className="absolute flex  flex-col align-center w-max-[800px] justify-center items-center p-4 w-full h-fit">
-
-    <div className={`${styles[template]}`}>
-        {/* <TemplateSelector template={template} onChange={setTemplate} />
-      <input type="file" onChange={onHeroUpload} /> */}
+    <div className="flex justify-center items-center max-w-[800px]">
+      <article className={template}>
+        {/* Top‑bar ---------------------------------------------------------- */}
         {showUnsaved && (
-          <div className="flex">{t("unsavedChanges")}</div>
+          <div className="flex text-red-600">{t('unsavedChanges')}</div>
         )}
-        <div className="flex flex-1 gap-4 p-2 mt-2 w-fit">
-          <TemplateSelector template={template} onChange={setTemplate} />
-          <div className="flex flex-wrap w-fit p-2 gap-2 w-max-[800px]">
-          <button className="savebutton rounded-xl bg-white h-fit w-fit px-3 text-[.8rem] text-center" onClick={saveDraft}>{t("saveDraft")}</button>
-          <button  className="savebutton rounded-xl bg-white h-fit w-fit px-3 text-[.8rem] text-center"  onClick={() => setSuggestion(!suggestion)}>
-            {suggestion ? t("suggestionOff") : t("suggestionMode")}
+
+        <div className="flex flex-wrap gap-2 p-2 mt-2">
+          <TemplateSelector
+            articleId={articleId}
+            template={template}
+            onChange={setTemplate}
+          />
+
+          <button
+            className="savebutton rounded-xl bg-white px-3 text-xs"
+            onClick={saveDraftImmediate}
+          >
+            {t('saveDraft')}
           </button>
-          <button className="savebutton h-fit px-3 rounded-xl bg-white w-fit text-[.8rem] text-center" 
-          onClick={runA11yCheck}>{t("checkAccessibility")}</button>
-            <label className="custom-file-upload flex-1 flex flex-2 savebutton h-fit px-3 rounded-xl bg-white w-fit text-[.8rem] text-center">
-          <input  type="file" onChange={onHeroUpload} />
-          
+
+          <button
+            className="savebutton rounded-xl bg-white px-3 text-xs"
+            onClick={() => setSuggestion(!suggestion)}
+          >
+            {suggestion ? t('suggestionOff') : t('suggestionMode')}
+          </button>
+
+          <button
+            className="savebutton rounded-xl bg-white px-3 text-xs"
+            onClick={runA11yCheck}
+          >
+            {t('checkAccessibility')}
+          </button>
+
+          <label className="custom-file-upload savebutton rounded-xl bg-white px-3 text-xs cursor-pointer">
+            <input type="file" onChange={onHeroUpload} hidden />
+            Upload hero
           </label>
-          
-          </div>   
-               </div>
+        </div>
+
+        {/* Hero image ------------------------------------------------------- */}
         {heroPreview && (
           <NextImage
             src={heroPreview}
@@ -795,91 +713,94 @@ useEffect(() => {
             className={styles.hero}
           />
         )}
+
+        {/* Editor ----------------------------------------------------------- */}
         <div className="h-full flex flex-col">
-        <div className="sticky top-0 z-10">
           <Toolbar editor={editor} />
-        </div>
-
-  <div className="  flex-1 w-max-[1000px] w-min-[700px] overflow-none ">
-          {/* <Outline headings={headings} onSelect={onSelectHeading} /> */}
-          {/* <EditorContent
-            editor={editor}
-          /> */}
-         <EditorContent editor={editor}
-        className=" flex-1 h-max-[1500px] w-full px-0 py-0 overflow-auto border-none outline-none  rounded-xl"
-        />
-        </div>
-        </div>
-        <div className="text-[.8rem] gap-2 p-2 tracking-wide">
-        <div
-          className={`${styles.charCount} ${counter.chars > CHAR_LIMIT ? "text-red-600" : ""}`}
-        >
-          {counter.words} words • {counter.chars}/{CHAR_LIMIT}
-        </div>
-        </div>
-        {cropImage && (
-          <div className={styles.cropperModal}>
-
-            <Cropper
-              image={cropImage}
-              crop={crop}
-              zoom={zoom}
-              onCropChange={setCrop}
-              onZoomChange={setZoom}
-              onCropComplete={onCropComplete}
-              aspect={4 / 3}
-            />
-            <div className={styles.cropActions}>
-              <button
-                onClick={async () => {
-                  await insertCroppedImage();
-                  setCropFile(null);
-                  setCropImage(null);
-                }}
-              >
-                Insert
-              </button>
-              <button
-                onClick={() => {
-                  setCropFile(null);
-                  setCropImage(null);
-                }}
-              >
-                Cancel
-              </button>
-            </div>
+          <div className="flex-1 overflow-auto">
+            {/* If you want a live outline component, pass `headings` + handler */}
+            {/* <Outline headings={headings} onSelect={onSelectHeading} /> */}
+            <EditorContent editor={editor} className="px-0 py-0" />
           </div>
-          )}
-        </article>
-      </div>
+        </div>
+
+        {/* Footer counter --------------------------------------------------- */}
+        <div className="text-xs p-2 tracking-wide">
+          <span
+            className={`${styles.charCount} ${
+              counter.chars > CHAR_LIMIT ? 'text-red-600' : ''
+            }`}
+          >
+            {counter.words} words • {counter.chars}/{CHAR_LIMIT}
+          </span>
+        </div>
+      </article>
+
+      {/* Cropper modal ------------------------------------------------------ */}
+      {cropImage && (
+        <div className={styles.cropperModal}>
+          <Cropper
+            image={cropImage}
+            crop={crop}
+            zoom={zoom}
+            onCropChange={setCrop}
+            onZoomChange={setZoom}
+            onCropComplete={onCropComplete}
+            aspect={4 / 3}
+          />
+          <div className={styles.cropActions}>
+            <button
+              className="savebutton"
+              onClick={async () => {
+                await insertCroppedImage();
+                setCropFile(null);
+                setCropImage(null);
+              }}
+            >
+              Insert
+            </button>
+            <button
+              className="savebutton"
+              onClick={() => {
+                setCropFile(null);
+                setCropImage(null);
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Restore‑from‑local banner ----------------------------------------- */}
       {pendingRestore && (
-  <div className="fixed top-0 inset-x-0 bg-amber-100 text-amber-900 p-2 text-sm flex justify-center gap-4 z-50">
-    Unsaved changes found on this device.
-    <button
-      className="underline"
-      onClick={() => {
-        if (!editor) return;
-        editor.commands.setContent(pendingRestore.content);
-        setTemplate(pendingRestore.template);
-        setHeroImageKey(pendingRestore.heroImageKey);
-        setHeroPreview(pendingRestore.heroImageKey);
-        setPendingRestore(null);
-        saveDraftFn();           // <= write it to server & localStorage
-      }}
-    >
-      Restore
-    </button>
-    <button
-      onClick={() => {
-        localStorage.removeItem(LOCAL_KEY(articleId));
-        setPendingRestore(null);
-        setIsDirty(false);
-      }}
-    >
-      Dismiss
-    </button>
-  </div>
-)}
+        <div className="fixed top-0 inset-x-0 bg-amber-100 text-amber-900 p-2 text-sm flex justify-center gap-4 z-50">
+          Unsaved changes found on this device.
+          <button
+            className="underline"
+            onClick={() => {
+              if (!editor) return;
+              editor.commands.setContent(pendingRestore.content);
+              setTemplate(pendingRestore.template);
+              setHeroImageKey(pendingRestore.heroImageKey);
+              setHeroPreview(pendingRestore.heroImageKey);
+              setPendingRestore(null);
+              saveDraftImmediate();
+            }}
+          >
+            Restore
+          </button>
+          <button
+            onClick={() => {
+              localStorage.removeItem(LOCAL_KEY(articleId));
+              setPendingRestore(null);
+              setIsDirty(false);
+            }}
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
     </div>
   );
 }

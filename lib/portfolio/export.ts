@@ -54,7 +54,7 @@ export function generatePortfolioTemplates(
           `width:${a.width}px`,
           `height:${a.height}px`,
         ];
-        if (a.type === "image") styleParts.push("object-fit:cover");
+        if (a.type === "image") styleParts.push("object-fit:contain");
         if (a.fontSize) styleParts.push(`font-size:${a.fontSize}px`);
         if (a.lineHeight) styleParts.push(`line-height:${a.lineHeight}`);
         if (a.letterSpacing) styleParts.push(`letter-spacing:${a.letterSpacing}px`);

@@ -31,11 +31,13 @@ export default function CanvasRenderer({
 
   const width = Math.max(...elements.map(e => e.x + e.width)) + 20;
   const height = Math.max(...elements.map(e => e.y + e.height)) + 20;
+  const importantBg = bgClass.replace("bg-", "!bg-");
 
   return (
     <div
-      className={`${bgClass} flex items-center justify-center min-h-screen`}
-      style={{ overflow: "auto" }}
+    className={`min-h-screen min-w-full flex items-center justify-center
+    relative z-10 isolate ${importantBg}`}
+          style={{ overflow: "auto" }}
     >
       <div
         style={{
@@ -55,7 +57,7 @@ export default function CanvasRenderer({
 
           switch (el.type) {
             case "image": {
-              const style = { ...base, objectFit: "cover" } as React.CSSProperties;
+              const style = { ...base, objectFit: "contain" } as React.CSSProperties;
               return (
                 <Image
                   key={el.id}

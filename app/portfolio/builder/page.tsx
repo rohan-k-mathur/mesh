@@ -79,7 +79,15 @@ function mkElement(
     ...pos,
   };
 }
-
+function fitIntoBox(
+  boxW: number,
+  boxH: number,
+  natW: number,
+  natH: number
+) {
+  const scale = Math.min(boxW / natW, boxH / natH);
+  return { width: Math.round(natW * scale), height: Math.round(natH * scale) };
+}
 /* ---------- DroppableCanvas ---------- */
 export interface DroppableCanvasHandle {
   startResize(
@@ -1000,13 +1008,15 @@ DroppableCanvas.displayName = "DroppableCanvas";
     const res = await uploadFileToSupabase(file);
     // if (upload.error) return;
     const { w, h } = await getImageSizeFromFile(file);
+    // const fit = fitIntoBox(el.width, el.height, w, h);
+    
 
     if (!res.error) {
       setElements((els) =>
         els.map((el) =>
           el.id === id
-            ? { ...el, src: res.fileURL, width: w, height: h, natW: w, natH: h }
-            : el
+          ? { ...el, src: res.fileURL,           /* keep current w/h */
+                        natW: w, natH: h }            : el
         )
       );
     }
@@ -1268,7 +1278,7 @@ DroppableCanvas.displayName = "DroppableCanvas";
                   w={el.width}
                   h={el.height}
                 >
-                  <div className="py-8 px-8 border-[1px] rounded-xl border-black savebutton bg-white/20 space-y-2">
+                  <div className="py-8 px-8 border-[1px] rounded-xl border-black savebutton bg-white space-y-2">
                     {el.type === "text" && (
                       
                       <div
@@ -1315,10 +1325,10 @@ DroppableCanvas.displayName = "DroppableCanvas";
                           boxSizing: 'border-box'  // ← keeps border inside the rectangle
 
                         }}
-                        className=" border-2 border-dashed border-gray-500/60 bg-white/20 w-full "        
+                        className=" border-2 border-dashed border-gray-500/60 bg-transparent w-full "        
                         // onPointerDown={(e) => handleDragEnd(e, el)}
                       >
-  <div className="relative w-full h-full ">
+  <div className=" w-full h-full ">
                           {el.src ? (
                             <Image
                               src={el.src}
@@ -1508,7 +1518,7 @@ DroppableCanvas.displayName = "DroppableCanvas";
                               width={el.width}
                               height={el.height}
                               draggable={false}
-                              className="object-cover "
+                              className="object-contain "
                               crossOrigin="anonymous"
                               onLoad={(e) =>
                                 recordNaturalSize(
@@ -1731,7 +1741,7 @@ function PreviewOfItem({ id, elements }: PreviewProps) {
           style={{
             width: el.width,
             height: el.height,
-            objectFit: "cover",
+            objectFit: "contain",
             border: "2px solid #4b9eff",
           }}
           width={el.width || 0}
