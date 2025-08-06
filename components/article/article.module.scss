@@ -1,0 +1,136 @@
+.article {
+  max-width: 100%;
+  margin: 0 auto;
+  line-height: 1;
+  position: relative;
+}
+
+.standard {
+  background-color: rgb(222, 212, 222, .5);
+  border-radius: 1%;
+
+}
+
+.feature {
+  background-color: #f9fafb;
+}
+
+.interview {
+  font-family: "Courier New", monospace;
+}
+
+.feature h1 {
+  font-size: 3rem;
+}
+
+.interview h1 {
+  font-size: 2.5rem;
+}
+
+.hero {
+  width: 100%;
+  height: auto;
+  margin-bottom: 1.5rem;
+}
+
+.toolbar {
+  display: flex;
+  gap: 4px;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.toolbar button {
+  padding: 2px 4px;
+}
+
+.slashMenu {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+}
+
+.slashMenu button {
+  padding: 4px 8px;
+  text-align: left;
+}
+
+.templateSelector {
+  margin-bottom: 1rem;
+  display: flex;
+  gap: 8px;
+}
+
+.templateSelector button {
+  padding: 8px 8px;
+  border: 1px solid #ccc;
+  border-radius: 20%;
+  background: #fff;
+
+  box-shadow:   1px 1px 3px rgb(222, 199, 204, .3),
+  -1px 2px 3px rgba(70, 69, 69, 0.25);
+}
+.templateSelector button:hover {
+  box-shadow:  inset 1px 1px 3px rgb(222, 199, 204, .3),
+  inset -1px 2px 3px rgba(70, 69, 69, 0.25);
+}
+
+
+.active {
+  background: #eee;
+}
+
+.editorWrapper {
+  display: flex;
+  gap: 1rem;
+}
+
+.cropperModal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.cropActions {
+  margin-top: 1rem;
+  display: flex;
+  gap: 1rem;
+}
+
+.image {
+  &.align-left {
+    text-align: left;
+  }
+  &.align-center {
+    text-align: center;
+  }
+  &.align-right {
+    text-align: right;
+  }
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+  figcaption {
+    font-size: 0.875rem;
+    color: #666;
+  }
+}
+
+.controls {
+  margin-bottom: 1rem;
+}

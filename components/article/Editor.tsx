@@ -109,7 +109,7 @@ export default function ArticleEditor({ articleId }: EditorProps) {
   return (
     <div className={`${styles.article} ${styles[template]}`}>
       <div className={styles.controls}>
-        <label>
+        {/* <label>
           Template:
           <select
             value={template}
@@ -119,9 +119,16 @@ export default function ArticleEditor({ articleId }: EditorProps) {
             <option value="feature">Feature</option>
             <option value="interview">Interview</option>
           </select>
-        </label>
+        </label> */}
+        <div className="gap-4 mx-4 p-2">
+        <button className="savebutton bg-white w-[200px]">
         <input type="file" onChange={onImageUpload} />
+        </button>
+        <button className="savebutton bg-white w-[200px]">
+
         <input type="file" onChange={onHeroUpload} />
+        </button>
+        </div>
       </div>
       {heroPreview && (
         <Image
@@ -132,7 +139,9 @@ export default function ArticleEditor({ articleId }: EditorProps) {
           className={styles.hero}
         />
       )}
-      <EditorContent editor={editor} />
+      <EditorContent editor={editor}
+        className="max-h-[2000px] flex-1 overflow-auto p-4 bg-white rounded-lg"
+        />
     </div>   
   );
 }

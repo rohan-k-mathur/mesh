@@ -33,6 +33,8 @@ const SlashCommand = Extension.create({
   addProseMirrorPlugins() {
     return [
       Suggestion({
+        editor: this.editor,      // ✅ pass the instance
+
         char: "/",
         items: ({ query }) =>
           COMMANDS.filter((item) =>

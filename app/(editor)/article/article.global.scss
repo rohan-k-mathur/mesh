@@ -1,5 +1,4 @@
-
-  /* ─────────────────────────────────────────────────────────────
+/* ─────────────────────────────────────────────────────────────
    GLOBAL – absolutely required so ProseMirror can function
    (everything else stays in the module file)
    ─────────────────────────────────────────────────────────── */
@@ -16,7 +15,7 @@
     @apply float-left h-0 text-slate-400 pointer-events-none;
   }
   
-  /* ¶ hover marker – editor‑shell scoped so it never leaks */
+  /* ¶ hover marker – editor‑shell scoped so it never leaks */
   /* you may comment this out if you don’t like the pilcrow */
   .editor-shell :global(.ProseMirror) h1:hover::before,
   .editor-shell :global(.ProseMirror) h2:hover::before,
@@ -47,8 +46,7 @@
   --column-width: 65ch;
   --line-height: 1.6;
 
-  @apply grid gap-8 mx-auto w-full justify-start
-         [grid-template-columns:minmax(0,1fr)_minmax(var(--column-width),1fr)_minmax(0,1fr)];
+  
 }
 
 
@@ -328,4 +326,65 @@
 
 .controls {
   margin-bottom: 1rem;
+}
+
+.img-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  padding: 14px;
+  padding-top: 44px;
+  padding-bottom: 52px;
+  border: 2px solid #1a192b;
+  border-radius: 4px;
+}
+.img-frame-outer {
+  display: flex;
+  width: auto;
+  height: auto;
+  justify-content: center;
+  align-items: center;
+  background: #ffffff;
+  padding: 4px;
+  border: 1px solid #1a192b;
+  border-radius: 1px;
+}
+.img-frame {
+  display: flex;
+  width: auto;
+  height: auto;
+  max-width: 500px;
+  justify-content: center;
+  align-items: center;
+  background: transparent;
+  box-shadow: 1px 1px 1px #3e3e3e;
+  border: 1px solid #1a192b;
+  padding: 0px;
+  position: relative;
+  bottom: -4px;
+}
+.img-view-modal {
+  display: flex;
+  width: auto;
+  height: auto;
+  max-width: 50rem;
+  max-height: 40rem;
+  justify-content: center;
+  align-items: center;
+  background: transparent;
+ 
+  padding: 0px;
+  position: relative;
+}
+.img-feed-frame {
+  display: flex;
+  width: auto;
+  height: auto;
+  max-width: 500px;
+  justify-content: center;
+  align-items: center;
+  background: transparent;
+  padding: 0px;
+  position: relative;
 }

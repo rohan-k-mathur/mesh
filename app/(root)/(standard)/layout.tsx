@@ -4,7 +4,6 @@ import { Comfortaa } from "next/font/google";
 import { Nunito } from 'next/font/google'
 import localFont from 'next/font/local'
 
-
 import "../../globals.css";
 import Topbar from "@/components/shared/Topbar";
 import LeftSidebar from "@/components/shared/LeftSidebar";
@@ -50,6 +49,9 @@ export default async function StandardLayout({
   } else {
     userRooms = [];
   }
+
+  const isEditor =false;
+
   return (
     <html className="bg-gradient-to-r from-zinc-200 from-0% via-indigo-300 via-50% to-rose-200 to-100%">
     <body className={`${founderslight.className}`}>
@@ -76,11 +78,11 @@ export default async function StandardLayout({
     <PrivateChatManagerProvider>
       <ScrollAnalytics />
       <main className="flex flex-row">
-        <LeftSidebar userRooms={userRooms} />
+      {!isEditor && <LeftSidebar userRooms={userRooms} />}
         <section className="main-container ">
           <div className="w-full max-w-4xl">{children}</div>
         </section>
-        <RightSidebar />
+        {!isEditor &&<RightSidebar />}
       </main>
     </PrivateChatManagerProvider>
   </AuthProvider>

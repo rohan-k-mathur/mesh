@@ -36,38 +36,28 @@ import Toolbar from "./editor/Toolbar";
 import TemplateSelector from "./editor/TemplateSelector";
 import Outline from "./editor/Outline";
 import { uploadFileToSupabase } from "@/lib/utils";
- import styles from "./article.module.css";
- import "../../../globals.css";
-
+ import styles from "./article.module.scss";
+ import '@tiptap/core';
+import type { JSONContent } from "@tiptap/core";
 
 import Spinner from "../ui/spinner";
 import "katex/dist/katex.min.css";
-// const lowlight = new Lowlight();
 import dynamic from "next/dynamic";
 const Cropper = dynamic(() => import("react-easy-crop"), {
   ssr: false,
   loading: () => <Spinner />,
 });
+declare module '@tiptap/core' {
+  interface Storage {
+    characterCount?: {
+      words: () => number;
+      characters: () => number;
+    };
+  }
+}
 
-// async function registerLanguage(code: 'js' | 'ts' | 'py' | 'sh') {
-//   const lib = await import(`highlight.js/lib/languages/${{
-//     js: 'javascript',
-//     ts: 'typescript',
-//     py: 'python',
-//     sh: 'bash',
-//   }[code]}`);
-//   lowlight.register(code, lib.default);
-// }
+const CHAR_LIMIT = 20_000;   // show red once we’re close
 
-// const lowlight = createLowlight();
-
-// if (typeof window !== "undefined") {
-//   // only run in browser
-//   lowlight.register("js", javascript);
-//   lowlight.register("ts", typescript);
-//   lowlight.register("py", python);
-//   lowlight.register("sh", bash);
-// }
 
 interface Heading {
   level: number;
@@ -96,8 +86,20 @@ const PullQuote = Node.create({
     ];
   },
 });
+const LOCAL_KEY = (id: string) => `article_${id}_backup`;
+
+type Backup = {
+  ts: number;                 // epoch ms
+  content: JSONContent;       // tiptap JSON
+  template: string;
+  heroImageKey: string | null;
+};
+
+
 
 const Callout = Node.create({
+
+  
   name: "callout",
   group: "block",
   content: "paragraph+",
@@ -211,6 +213,7 @@ interface EditorProps {
 
 export default function ArticleEditor({ articleId }: EditorProps) {
   const [template, setTemplate] = useState("standard");
+
   const [heroImageKey, setHeroImageKey] = useState<string | null>(null);
   const [heroPreview, setHeroPreview] = useState<string | null>(null);
   const [headings, setHeadings] = useState<Heading[]>([]);
@@ -224,6 +227,23 @@ export default function ArticleEditor({ articleId }: EditorProps) {
   const [isDirty, setIsDirty] = useState(false);
   const [showUnsaved, setShowUnsaved] = useState(false);
   const ydoc = useMemo(() => new Y.Doc(), []);
+  const [counter, setCounter] = useState({ words: 0, chars: 0 });
+  const [pendingRestore, setPendingRestore] = useState<Backup | null>(null);
+// show Chrome dialog only while dirty
+useEffect(() => {
+  const handler = (e: BeforeUnloadEvent) => {
+    e.preventDefault();
+    e.returnValue = '';
+  };
+  if (isDirty) window.addEventListener('beforeunload', handler);
+  return () => window.removeEventListener('beforeunload', handler);
+}, [isDirty]);
+
+  function handleUnload(e: BeforeUnloadEvent) {
+    // 2️⃣  Chrome shows its own sheet only when you set returnValue
+    e.preventDefault();
+    // e.returnValue = '';      // keep as empty string – spec-compliant
+  }
   const provider = useMemo(() => {
     if (typeof window === "undefined") return null;
     const proto = window.location.protocol === "https:" ? "wss" : "ws";
@@ -251,38 +271,40 @@ export default function ArticleEditor({ articleId }: EditorProps) {
     ((window as any)?.i18next?.t?.(`editor:${key}`) as string) ||
     (enStrings as any)[key] ||
     key;
+// 1 – build the list *outside* the hook so you don’t recreate the array
+//     on every render (avoids unnecessary re-initialisation)
+
+const extensions = useMemo(() => {
+  return [
+    StarterKit,                // <-- brings in doc/paragraph/text
+    CustomImage,
+    Link,
+    Placeholder.configure({ placeholder: 'Write something…' }),
+    CodeBlockLowlight.configure({ lowlight }),
+    PullQuote,
+    Callout,
+    MathBlock,
+    MathInline,
+    CharacterCount.configure({ limit: 20_000 }),
+    SlashCommand,              // your command palette
+
+    /* ---- optional real-time collaboration -------------------- */
+    provider && Collaboration.configure({ document: ydoc }),
+    provider &&
+      CollaborationCursor.configure({
+        provider,
+        user: { name: userName, color: userColor },
+      }),
+  ].filter(Boolean);            // ← removes the two `false` items
+}, [provider, ydoc, userName, userColor, lowlight]);      
 
   const editor = useEditor({
-    extensions: [
-      StarterKit,
-      CustomImage,
-      Link,
-      Placeholder.configure({ placeholder: "Write something…" }),
-      CodeBlockLowlight.configure({ lowlight }),
-      PullQuote,
-      Callout,
-      MathBlock,
-      CharacterCount.configure({
-        limit: 20_000, // optional – character limit
-      }),
-      MathInline,
-      //SlashCommand,
-    ],
-    //   SlashCommand,
-    //   Collaboration.configure({ document: ydoc }),
-    //   provider
-    //     ? CollaborationCursor.configure({
-    //         provider,
-    //         user: { name: userName, color: userColor },
-    //       })
-    //     : null,
-    //   CharacterCount,
-    // ].filter(Boolean),
+    extensions,
+
     content: "write here...",
     editorProps: {
-      attributes: {
-        class: "tiptap", // will be merged with 'ProseMirror'
-      },
+      attributes: { class: 'ProseMirror prose max-w-none' },
+
       handleDrop(view, event) {
         const file = (event as DragEvent).dataTransfer?.files?.[0];
         if (file) {
@@ -295,6 +317,58 @@ export default function ArticleEditor({ articleId }: EditorProps) {
       },
     },
   });
+  
+/* 1️⃣ mark dirty on any change, debounce the real save */
+useEffect(() => {
+  if (!editor) return;
+  const markDirty = () => setIsDirty(true);
+  editor.on('update', markDirty);
+  return () => editor.off('update', markDirty);
+}, [editor]);
+
+/* 2️⃣ save after 2 s of silence */
+const saveDraft = useDebouncedCallback(async () => {
+  if (!editor) return;
+  await fetch('/api/draft', { method: 'POST', body: JSON.stringify(editor.getJSON()) });
+  setIsDirty(false);                 // ← unload listener removed
+}, 2000);
+
+useEffect(() => {
+  if (!editor) return;
+  const controller = new AbortController();
+
+  (async () => {
+    // 1️⃣ fetch server copy
+    const res = await fetch(`/api/articles/${articleId}`, { signal: controller.signal });
+    if (!res.ok) return;
+    const data = await res.json();
+    const serverUpdated = new Date(data.updatedAt ?? 0).getTime();
+
+    // 3️⃣ load server copy by default
+    editor.commands.setContent(data.astJson ?? []);
+    setTemplate(data.template ?? 'standard');
+    setHeroImageKey(data.heroImageKey ?? null);
+    setHeroPreview(data.heroImageKey ?? null);
+  })();
+
+  return () => controller.abort();
+}, [articleId, editor]);
+
+useEffect(() => {
+  if (!editor) return;            // <<–– early-exit: returns void ✔
+
+  const updateCounter = () => {
+    const store = editor.storage.characterCount
+    setCounter({ words: store.words(), chars: store.characters() })
+  }
+
+  updateCounter()                // initial run
+  editor.on('update', updateCounter)
+
+  return () => {
+    editor.off('update', updateCounter)   // tidy up
+  }
+}, [editor]);
 
   useEffect(() => {
     if (!editor) return;
@@ -398,19 +472,19 @@ export default function ArticleEditor({ articleId }: EditorProps) {
           setHeroPreview(data.heroImageKey);
         }
 
-        // ── local-storage restore check ──────────────────────────────────────────
-        const local = localStorage.getItem(`article_${articleId}_backup`);
-        if (local) {
-          const parsed = JSON.parse(local);
-          if (parsed.ts > updated && confirm("Restore unsaved changes?")) {
-            if (editor && !editor.isDestroyed) {
-              editor.commands.setContent(parsed.astJson);
-            }
-            setTemplate(parsed.template ?? "standard");
-            setHeroImageKey(parsed.heroImageKey ?? null);
-            setHeroPreview(parsed.heroImageKey ?? null);
-          }
-        }
+        // // ── local-storage restore check ──────────────────────────────────────────
+        // const local = localStorage.getItem(`article_${articleId}_backup`);
+        // if (local) {
+        //   const parsed = JSON.parse(local);
+        //   if (parsed.ts > updated && confirm("Restore unsaved changes?")) {
+        //     if (editor && !editor.isDestroyed) {
+        //       editor.commands.setContent(parsed.astJson);
+        //     }
+        //     setTemplate(parsed.template ?? "standard");
+        //     setHeroImageKey(parsed.heroImageKey ?? null);
+        //     setHeroPreview(parsed.heroImageKey ?? null);
+        //   }
+        // }
       } catch (err) {
         // Ignore the abort that React dev-mode double invoke triggers
         if ((err as DOMException).name !== "AbortError") {
@@ -457,29 +531,42 @@ export default function ArticleEditor({ articleId }: EditorProps) {
   //     };
   //   }, [editor, saveDraft]);
   /** POST the current editor state to the backend and stash a local copy */
-  const saveDraft = useCallback(async () => {
-    if (!editor) return; // TS knows editor may be null
 
-    const payload = {
-      astJson: editor.getJSON(),
-      template,
-      heroImageKey,
-    };
+// /* 1️⃣ mark dirty on any change, debounce the real save */
+// useEffect(() => {
+//   if (!editor) return;
+//   const markDirty = () => setIsDirty(true);
+//   editor.on('update', markDirty);
+//   return () => editor.off('update', markDirty);
+// }, [editor]);
 
-    // ── 1) server ──────────────────────────────────────────────────────────────
-    await fetch(`/api/articles/${articleId}/draft`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+//   const saveDraft = useCallback(async () => {
+//     if (!editor) return; // TS knows editor may be null
 
-    // ── 2) local backup (timestamped) ──────────────────────────────────────────
-    localStorage.setItem(
-      `article_${articleId}_backup`,
-      JSON.stringify({ ts: Date.now(), ...payload })
-    );
-  }, [editor, template, heroImageKey, articleId]);
-  const saveDraftDebounced = useDebouncedCallback(saveDraft, 1000);
+//     const payload = {
+//       astJson: editor.getJSON(),
+//       template,
+//       heroImageKey,
+//     };
+
+//     // ── 1) server ──────────────────────────────────────────────────────────────
+//     await fetch(`/api/articles/${articleId}/draft`, {
+//       method: "PATCH",
+//       headers: { "Content-Type": "application/json" },
+//       body: JSON.stringify(payload),
+//     });
+
+//     // ── 2) local backup (timestamped) ──────────────────────────────────────────
+//     localStorage.setItem(
+//       `article_${articleId}_backup`,
+//       JSON.stringify({ ts: Date.now(), ...payload })
+//     );
+//     setIsDirty(false);          // ← removes the listener automatically
+
+//   }, [editor, template, heroImageKey, articleId]);
+
+
+  // const saveDraftDebounced = useDebouncedCallback(saveDraft, 1000);
 
   // useEffect(() => {
   //   if (!editor) return;
@@ -524,6 +611,10 @@ export default function ArticleEditor({ articleId }: EditorProps) {
   //     clearTimeout(timeout);
   //   };
   // }, [editor, saveDraft]);
+  const saveLocal = useDebouncedCallback(
+    (payload: Backup) => localStorage.setItem(LOCAL_KEY(articleId), JSON.stringify(payload)),
+    1000                                         // ← 1 s of inactivity
+  );
   useEffect(() => {
     if (!editor) return; // guard against initial nulls
 
@@ -541,7 +632,13 @@ export default function ArticleEditor({ articleId }: EditorProps) {
     };
 
     editor.on("update", handler);
-
+   
+    saveLocal({
+      ts: Date.now(),
+      content: editor.getJSON(),
+      template,
+      heroImageKey,
+    });
     // ▶︎ cleanup
     return () => {
       editor.off("update", handler);
@@ -687,22 +784,23 @@ export default function ArticleEditor({ articleId }: EditorProps) {
   const words = editor?.storage.characterCount?.words() ?? 0;
 
   return (
-    <div className={styles.page}>
-          <div className="flex flex-col gap-2">
+    <div className=" justify-center static top-0">
+          <div className="flex  flex-col gap-2">
 
-    <div className={`${styles.articlepage} ${styles[template]}`}>
+    <div className={`${styles[template]}`}>
         {/* <TemplateSelector template={template} onChange={setTemplate} />
       <input type="file" onChange={onHeroUpload} /> */}
         {showUnsaved && (
-          <div className={styles.unsaved}>{t("unsavedChanges")}</div>
+          <div className="flex">{t("unsavedChanges")}</div>
         )}
-        <div className={styles.controls}>
+        <div className="flex flex-1 gap-4 p-2 mt-2 ">
           <TemplateSelector template={template} onChange={setTemplate} />
-          <button onClick={saveDraft}>{t("saveDraft")}</button>
-          <button onClick={() => setSuggestion(!suggestion)}>
+          <button className="savebutton rounded-xl bg-white" onClick={saveDraft}>{t("saveDraft")}</button>
+          <button  className="savebutton rounded-xl bg-white"  onClick={() => setSuggestion(!suggestion)}>
             {suggestion ? t("suggestionOff") : t("suggestionMode")}
           </button>
-          <button onClick={runA11yCheck}>{t("checkAccessibility")}</button>
+          <button className=" rounded-xl bg-white" 
+          onClick={runA11yCheck}>{t("checkAccessibility")}</button>
           <input type="file" onChange={onHeroUpload} />
         </div>
         {heroPreview && (
@@ -714,21 +812,24 @@ export default function ArticleEditor({ articleId }: EditorProps) {
             className={styles.hero}
           />
         )}
-      <div className="flex gap-4 mt-4">
-          <Outline headings={headings} onSelect={onSelectHeading} />
+        <div className="h-full flex flex-col">
+        <Toolbar editor={editor} />       {/* fixed-width column */}
+
+  <div className="flex-1 overflow-auto p-6">
+          {/* <Outline headings={headings} onSelect={onSelectHeading} /> */}
           <Editor             articleId={articleId}/>
-                  <Toolbar editor={editor} />       {/* fixed-width column */}
 
           {/* <EditorContent
             editor={editor}
             className="prose bg-black max-w-none focus:outline-none"
           /> */}
         </div>
-        <div className={styles.charCount}>
-          <Toolbar editor={editor} />
-          {editor?.storage.characterCount.words()} {t("wordCount")} /{" "}
-          {editor?.storage.characterCount.characters()} {t("characterCount")}
         </div>
+        <div className={styles.charCount}>
+         
+        {counter.words} words • {counter.chars}/{CHAR_LIMIT}
+
+</div>
         {cropImage && (
           <div className={styles.cropperModal}>
             <Cropper
@@ -763,7 +864,33 @@ export default function ArticleEditor({ articleId }: EditorProps) {
         )}
       </div>
       </div>
+      {pendingRestore && (
+  <div className="fixed top-0 inset-x-0 bg-amber-100 text-amber-900 p-2 text-sm flex justify-center gap-4 z-50">
+    Unsaved changes found on this device.
+    <button
+      className="underline"
+      onClick={() => {
+        editor?.commands.setContent(pendingRestore.content);
+        setTemplate(pendingRestore.template);
+        setHeroImageKey(pendingRestore.heroImageKey);
+        setHeroPreview(pendingRestore.heroImageKey);
+        setPendingRestore(null);
+        setIsDirty(false);          // banner closes, unload listener gone
 
+      }}
+    >
+      Restore
+    </button>
+    <button
+      onClick={() => {
+        localStorage.removeItem(LOCAL_KEY(articleId));
+        setPendingRestore(null);
+      }}
+    >
+      Dismiss
+    </button>
+  </div>
+)}
     </div>
   );
 }
