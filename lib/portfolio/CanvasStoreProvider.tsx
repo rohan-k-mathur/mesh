@@ -1,4 +1,4 @@
-import React, { useReducer, useCallback, useLayoutEffect } from "react";
+import React, { useReducer, useCallback, useLayoutEffect,useMemo,useRef } from "react";
 import {
   canvasReducer,
   initialCanvasState,
@@ -17,23 +17,37 @@ const CanvasCtx = React.createContext<Store | null>(null);
 
 export function CanvasProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(canvasReducer, initialCanvasState);
-  const listeners = React.useRef(new Set<() => void>());
+  // const listeners = React.useRef(new Set<() => void>());
+
+  // const subscribe = useCallback((fn: () => void) => {
+  //   listeners.current.add(fn);
+  //   return () => listeners.current.delete(fn);
+  // }, []);
+
+  //   const store = useMemo<Store>(() => ({
+  //       getSnapshot: () => state,          // overwritten below via closure
+  //       dispatch,
+  //       subscribe,
+  //     // eslint-disable-next-line react-hooks/exhaustive-deps
+  //     }), []); // never re-created
+    
+  //     /* keep getSnapshot up-to-date without changing identity */
+  //     store.getSnapshot = () => state;
+  /* ---------- NEW stable store ---------- */
+  const listeners = useRef(new Set<() => void>());
+
+  const stateRef = useRef(initialCanvasState); // holds latest state
+  stateRef.current = state;                    // update ref each render
 
   const subscribe = useCallback((fn: () => void) => {
     listeners.current.add(fn);
     return () => listeners.current.delete(fn);
   }, []);
 
-  const store = React.useRef<Store>({
-    getSnapshot: () => initialCanvasState,
-    dispatch: () => {},
-    subscribe: () => () => {},
-  }).current;
-
-  store.dispatch = dispatch;
-  store.getSnapshot = () => state;
-  store.subscribe = subscribe;
-
+  const store = useMemo<Store>(() => {
+    const getSnapshot = () => stateRef.current;  // ⚡️ SAME fn for life
+    return { getSnapshot, dispatch, subscribe };
+  }, [dispatch, subscribe]); // deps are stable
   useLayoutEffect(() => {
     listeners.current.forEach((fn) => fn());
   }, [state]);
@@ -63,12 +77,22 @@ export function useCanvasDispatch() {
 
 export function useCanvasSelection(): string[] {
   const store = useStore();
-  return React.useSyncExternalStore(
-    store.subscribe,
-    () => Array.from(store.getSnapshot().selected),
-    () => Array.from(store.getSnapshot().selected),
-  );
-}
+  // return React.useSyncExternalStore(
+  //   store.subscribe,
+  //   () => Array.from(store.getSnapshot().selected),
+  //   () => Array.from(store.getSnapshot().selected),
+  // );
+  const selectedSet = React.useSyncExternalStore(
+        store.subscribe,
+        () => store.getSnapshot().selected,
+        () => store.getSnapshot().selected,
+      );
+    
+      /* 2️⃣  Convert to an Array _after_ the snapshot comparison.
+            Stable as long as the Set reference didn’t change. */
+      return React.useMemo(() => Array.from(selectedSet), [selectedSet]);
+     }
+
 
 export function useCanvasElements(): Map<string, ElementRecord> {
   const store = useStore();

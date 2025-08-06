@@ -848,7 +848,7 @@ DroppableCanvas.displayName = "DroppableCanvas";
 // );
 // DroppableCanvas.displayName = "DroppableCanvas";
 
-export default function PortfolioBuilder() {
+  function PortfolioBuilderInner() {
   //return <h1 style={{color:'red'}}>If you can see this, the file is routed correctly</h1>;
   const [showGrid, setShowGrid] = useState(true);   // ← NEW
 
@@ -1091,7 +1091,6 @@ export default function PortfolioBuilder() {
     setActiveId(null);
   };
   return (
-    <CanvasProvider>
       <DndContext
         sensors={sensors}
         onDragStart={handleStart}
@@ -1273,7 +1272,7 @@ export default function PortfolioBuilder() {
                           boxSizing: 'border-box'  // ← keeps border inside the rectangle
 
                         }}
-                        className="absolute border-2 border-dashed border-gray-500/60 bg-transparent relative"        
+                        className=" border-2 border-dashed border-gray-500/60 bg-transparent relative"        
                         // onPointerDown={(e) => handleDragEnd(e, el)}
                       >
   <div className="relative w-full h-full ">
@@ -1647,10 +1646,19 @@ export default function PortfolioBuilder() {
         </div>
 
         
-      </DndContext>{" "}
-    </CanvasProvider>
+      </DndContext>
+ 
   );
 }
+
+/* 2️⃣  outer wrapper – injects the context */
+export default function PortfolioBuilder() {
+    return (
+      <CanvasProvider>
+        <PortfolioBuilderInner />
+      </CanvasProvider>
+    );
+  }
 
 function PreviewOfItem({ id, elements }: PreviewProps) {
   const el = elements.find((e) => e.id === id);

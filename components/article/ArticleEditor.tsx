@@ -297,7 +297,7 @@ const extensions = useMemo(() => {
 
     content: "write here...",
     editorProps: {
-      attributes: { class: 'ProseMirror prose max-w-none' },
+      attributes: { class: 'ProseMirror  max-w-none' },
 
       handleDrop(view, event) {
         const file = (event as DragEvent).dataTransfer?.files?.[0];
