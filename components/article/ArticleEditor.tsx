@@ -8,7 +8,6 @@ import React, {
   useState,
 } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
-import Editor from "@/components/article/Editor";
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
 import NextImage from "next/image";
@@ -239,11 +238,6 @@ useEffect(() => {
   return () => window.removeEventListener('beforeunload', handler);
 }, [isDirty]);
 
-  function handleUnload(e: BeforeUnloadEvent) {
-    // 2️⃣  Chrome shows its own sheet only when you set returnValue
-    e.preventDefault();
-    // e.returnValue = '';      // keep as empty string – spec-compliant
-  }
   const provider = useMemo(() => {
     if (typeof window === "undefined") return null;
     const proto = window.location.protocol === "https:" ? "wss" : "ws";
@@ -318,37 +312,52 @@ const extensions = useMemo(() => {
     },
   });
   
-/* 1️⃣ mark dirty on any change, debounce the real save */
-useEffect(() => {
+const saveDraftFn = useCallback(async () => {
   if (!editor) return;
-  const markDirty = () => setIsDirty(true);
-  editor.on('update', markDirty);
-  return () => editor.off('update', markDirty);
-}, [editor]);
+  const body = {
+    astJson: editor.getJSON(),
+    template,
+    heroImageKey,
+  };
+  await fetch(`/api/articles/${articleId}/draft`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+  setIsDirty(false); // ← unload listener removed
+}, [editor, template, heroImageKey, articleId]);
 
-/* 2️⃣ save after 2 s of silence */
-const saveDraft = useDebouncedCallback(async () => {
-  if (!editor) return;
-  await fetch('/api/draft', { method: 'POST', body: JSON.stringify(editor.getJSON()) });
-  setIsDirty(false);                 // ← unload listener removed
-}, 2000);
+const saveDraft = useDebouncedCallback(saveDraftFn, 2_000);
 
 useEffect(() => {
   if (!editor) return;
   const controller = new AbortController();
 
   (async () => {
-    // 1️⃣ fetch server copy
-    const res = await fetch(`/api/articles/${articleId}`, { signal: controller.signal });
-    if (!res.ok) return;
-    const data = await res.json();
-    const serverUpdated = new Date(data.updatedAt ?? 0).getTime();
+    try {
+      const res = await fetch(`/api/articles/${articleId}`, {
+        signal: controller.signal,
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      const serverUpdated = new Date(data.updatedAt ?? 0).getTime();
 
-    // 3️⃣ load server copy by default
-    editor.commands.setContent(data.astJson ?? []);
-    setTemplate(data.template ?? 'standard');
-    setHeroImageKey(data.heroImageKey ?? null);
-    setHeroPreview(data.heroImageKey ?? null);
+      editor.commands.setContent(data.astJson ?? []);
+      setTemplate(data.template ?? "standard");
+      setHeroImageKey(data.heroImageKey ?? null);
+      setHeroPreview(data.heroImageKey ?? null);
+
+      const local = localStorage.getItem(LOCAL_KEY(articleId));
+      if (local) {
+        const parsed: Backup = JSON.parse(local);
+        if (parsed.ts > serverUpdated) {
+          setPendingRestore(parsed);
+        }
+      }
+    } catch (err) {
+      if ((err as DOMException).name !== "AbortError") {
+        console.error(err);
+      }
+    }
   })();
 
   return () => controller.abort();
@@ -358,16 +367,16 @@ useEffect(() => {
   if (!editor) return;            // <<–– early-exit: returns void ✔
 
   const updateCounter = () => {
-    const store = editor.storage.characterCount
-    setCounter({ words: store.words(), chars: store.characters() })
-  }
+    const store = editor.storage.characterCount;
+    setCounter({ words: store.words(), chars: store.characters() });
+  };
 
-  updateCounter()                // initial run
-  editor.on('update', updateCounter)
+  updateCounter();                // initial run
+  editor.on("update", updateCounter);
 
   return () => {
-    editor.off('update', updateCounter)   // tidy up
-  }
+    editor.off("update", updateCounter);   // tidy up
+  };
 }, [editor]);
 
   useEffect(() => {
@@ -430,72 +439,6 @@ useEffect(() => {
     };
   }, [editor]);
 
-  useEffect(() => {
-    if (!editor) return; // ✅ one early exit – no cleanup
-
-    if (!articleId) return;
-    const controller = new AbortController();
-
-    (async () => {
-      try {
-        const res = await fetch(`/api/articles/${articleId}`, {
-          signal: controller.signal,
-        });
-        if (!res.ok) return;
-        const data = await res.json();
-        if (!editor.isDestroyed) {
-          editor.commands.setContent(data.astJson);
-        }
-
-        // const res = await fetch(`/api/articles/${articleId}`, {
-        //   signal: controller.signal,
-        // });
-        // if (!res.ok) return;
-        // const data = await res.json();
-        const updated = new Date(data.updatedAt || 0).getTime();
-
-        if (editor && !editor.isDestroyed && data.astJson) {
-          editor.commands.setContent(data.astJson);
-        }
-        // // const data = await res.json();
-        // if (!editor?.isDestroyed) {
-        //   editor.commands.setContent(data.astJson);
-        // }
-        // updated = new Date(data.updatedAt || 0).getTime();
-
-        if (data.astJson && editor) {
-          editor.commands.setContent(data.astJson);
-        }
-        if (data.template) setTemplate(data.template);
-        if (data.heroImageKey) {
-          setHeroImageKey(data.heroImageKey);
-          setHeroPreview(data.heroImageKey);
-        }
-
-        // // ── local-storage restore check ──────────────────────────────────────────
-        // const local = localStorage.getItem(`article_${articleId}_backup`);
-        // if (local) {
-        //   const parsed = JSON.parse(local);
-        //   if (parsed.ts > updated && confirm("Restore unsaved changes?")) {
-        //     if (editor && !editor.isDestroyed) {
-        //       editor.commands.setContent(parsed.astJson);
-        //     }
-        //     setTemplate(parsed.template ?? "standard");
-        //     setHeroImageKey(parsed.heroImageKey ?? null);
-        //     setHeroPreview(parsed.heroImageKey ?? null);
-        //   }
-        // }
-      } catch (err) {
-        // Ignore the abort that React dev-mode double invoke triggers
-        if ((err as DOMException).name !== "AbortError") {
-          console.error(err);
-        }
-      }
-    })();
-
-    // 🧹 abort only *after* we’ve handled the promise above
-    return () => controller.abort();
-  }, [articleId, editor]);
   // const saveDraft = useCallback(async () => {
   //   if (!editor) return;
   //   const body = {
@@ -612,39 +555,39 @@ useEffect(() => {
   //   };
   // }, [editor, saveDraft]);
   const saveLocal = useDebouncedCallback(
-    (payload: Backup) => localStorage.setItem(LOCAL_KEY(articleId), JSON.stringify(payload)),
-    1000                                         // ← 1 s of inactivity
+    (payload: Backup) =>
+      localStorage.setItem(LOCAL_KEY(articleId), JSON.stringify(payload)),
+    1000 // ← 1 s of inactivity
   );
   useEffect(() => {
     if (!editor) return; // guard against initial nulls
 
-    let dirty = false;
     let timeout: number | null = null;
 
     const handler = () => {
-      dirty = true; // mark when user changes doc
+      setIsDirty(true);
+      saveLocal({
+        ts: Date.now(),
+        content: editor.getJSON(),
+        template,
+        heroImageKey,
+      });
+
       if (timeout) clearTimeout(timeout);
 
       timeout = window.setTimeout(async () => {
         await saveDraft();
-        dirty = false;
       }, 2_000); // 2-second quiet period
     };
 
     editor.on("update", handler);
-   
-    saveLocal({
-      ts: Date.now(),
-      content: editor.getJSON(),
-      template,
-      heroImageKey,
-    });
+
     // ▶︎ cleanup
     return () => {
       editor.off("update", handler);
       if (timeout) clearTimeout(timeout);
     };
-  }, [editor, saveDraft]);
+  }, [editor, template, heroImageKey, saveDraft, saveLocal]);
 
   // useEffect(() => {
   //   setIsDirty(true);
@@ -817,19 +760,17 @@ useEffect(() => {
 
   <div className="flex-1 overflow-auto p-6">
           {/* <Outline headings={headings} onSelect={onSelectHeading} /> */}
-          <Editor             articleId={articleId}/>
-
-          {/* <EditorContent
+          <EditorContent
             editor={editor}
             className="prose bg-black max-w-none focus:outline-none"
-          /> */}
+          />
         </div>
         </div>
-        <div className={styles.charCount}>
-         
-        {counter.words} words • {counter.chars}/{CHAR_LIMIT}
-
-</div>
+        <div
+          className={`${styles.charCount} ${counter.chars > CHAR_LIMIT ? "text-red-600" : ""}`}
+        >
+          {counter.words} words • {counter.chars}/{CHAR_LIMIT}
+        </div>
         {cropImage && (
           <div className={styles.cropperModal}>
             <Cropper
