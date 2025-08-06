@@ -6,17 +6,30 @@
 }
 
 .standard {
-  background-color: rgb(222, 212, 222, .5);
+  background-color: rgb(255, 255, 255, .3);
   border-radius: 1%;
+  max-width: 1000px;
+  border: 2px;;
+  border-color: black;
+  padding: 8px;
+
+
 
 }
-
 .feature {
-  background-color: #f9fafb;
+  background-color: rgb(255, 255, 255, .3);
+  border-radius: 1%;
+  max-width: 1400px;
+  padding: 8px;
+
 }
 
 .interview {
   font-family: "Courier New", monospace;
+  border-radius: 1%;
+  max-width: 1000px;
+  padding: 8px;
+
 }
 
 .feature h1 {
@@ -67,12 +80,12 @@
   gap: 8px;
 }
 
-.templateSelector button {
-  padding: 8px 8px;
+.templateSelector button {  
+  padding: 4px 4px;
   border: 1px solid #ccc;
-  border-radius: 20%;
+font-size: .8rem;
+text-align: center;
   background: #fff;
-
   box-shadow:   1px 1px 3px rgb(222, 199, 204, .3),
   -1px 2px 3px rgba(70, 69, 69, 0.25);
 }
@@ -81,7 +94,12 @@
   inset -1px 2px 3px rgba(70, 69, 69, 0.25);
 }
 
-
+.custom-file-upload {
+  border: 1px solid #ccc;
+  display: inline-block;
+  padding: 6px 12px;
+  cursor: pointer;
+}
 .active {
   background: #eee;
 }

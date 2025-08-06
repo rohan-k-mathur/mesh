@@ -1285,7 +1285,7 @@ DroppableCanvas.displayName = "DroppableCanvas";
                           boxSizing: 'border-box'  // ← keeps border inside the rectangle
 
                         }}
-                        className=" border-2 border-dashed border-gray-500/60 bg-transparent relative"        
+                        className=" border-2 border-dashed border-gray-500/60 bg-white/20 w-full "        
                         // onPointerDown={(e) => handleDragEnd(e, el)}
                       >
   <div className="relative w-full h-full ">

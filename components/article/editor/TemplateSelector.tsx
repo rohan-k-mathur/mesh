@@ -8,11 +8,15 @@ interface TemplateSelectorProps {
 export default function TemplateSelector({ template, onChange }: TemplateSelectorProps) {
   return (
     <div className={styles.templateSelector}>
+              <div className=" flex flex-col">
+
       {[
         { key: "standard", label: "Standard" },
         { key: "feature", label: "Feature" },
         { key: "interview", label: "Interview" },
       ].map((t) => (
+        <div className=" flex flex-col">
+
         <button
           key={t.key}
           onClick={() => onChange(t.key)}
@@ -20,7 +24,10 @@ export default function TemplateSelector({ template, onChange }: TemplateSelecto
         >
           {t.label}
         </button>
+        </div>
+
       ))}
+      </div>
     </div>
   );
 }

@@ -38,7 +38,7 @@ import { uploadFileToSupabase } from "@/lib/utils";
  import styles from "./article.module.scss";
  import '@tiptap/core';
 import type { JSONContent } from "@tiptap/core";
-
+import Editor from "./Editor";
 import Spinner from "../ui/spinner";
 import "katex/dist/katex.min.css";
 import dynamic from "next/dynamic";
@@ -727,8 +727,8 @@ useEffect(() => {
   const words = editor?.storage.characterCount?.words() ?? 0;
 
   return (
-    <div className=" justify-center static top-0">
-          <div className="flex  flex-col gap-2">
+    <div className=" justify-center items-center w-max-[800px]">
+          <div className="absolute flex  flex-col align-center w-max-[800px] justify-center items-center p-4 w-full h-fit">
 
     <div className={`${styles[template]}`}>
         {/* <TemplateSelector template={template} onChange={setTemplate} />
@@ -736,16 +736,22 @@ useEffect(() => {
         {showUnsaved && (
           <div className="flex">{t("unsavedChanges")}</div>
         )}
-        <div className="flex flex-1 gap-4 p-2 mt-2 ">
+        <div className="flex flex-1 gap-4 p-2 mt-2 w-fit">
           <TemplateSelector template={template} onChange={setTemplate} />
-          <button className="savebutton rounded-xl bg-white" onClick={saveDraft}>{t("saveDraft")}</button>
-          <button  className="savebutton rounded-xl bg-white"  onClick={() => setSuggestion(!suggestion)}>
+          <div className="flex flex-wrap w-fit p-2 gap-2 w-max-[800px]">
+          <button className="savebutton rounded-xl bg-white h-fit w-fit px-3 text-[.8rem] text-center" onClick={saveDraft}>{t("saveDraft")}</button>
+          <button  className="savebutton rounded-xl bg-white h-fit w-fit px-3 text-[.8rem] text-center"  onClick={() => setSuggestion(!suggestion)}>
             {suggestion ? t("suggestionOff") : t("suggestionMode")}
           </button>
-          <button className=" rounded-xl bg-white" 
+          <button className="savebutton h-fit px-3 rounded-xl bg-white w-fit text-[.8rem] text-center" 
           onClick={runA11yCheck}>{t("checkAccessibility")}</button>
-          <input type="file" onChange={onHeroUpload} />
-        </div>
+            <label className="custom-file-upload flex-1 flex flex-2 savebutton h-fit px-3 rounded-xl bg-white w-fit text-[.8rem] text-center">
+          <input  type="file" onChange={onHeroUpload} />
+          
+          </label>
+          
+          </div>   
+               </div>
         {heroPreview && (
           <NextImage
             src={heroPreview}
@@ -758,18 +764,22 @@ useEffect(() => {
         <div className="h-full flex flex-col">
         <Toolbar editor={editor} />       {/* fixed-width column */}
 
-  <div className="flex-1 overflow-auto p-6">
+  <div className="  flex-1 w-max-[1000px] w-min-[700px] overflow-none ">
           {/* <Outline headings={headings} onSelect={onSelectHeading} /> */}
-          <EditorContent
+          {/* <EditorContent
             editor={editor}
-            className="prose bg-black max-w-none focus:outline-none"
+          /> */}
+          <Editor 
+          articleId={articleId}
           />
         </div>
         </div>
+        <div className="text-[.8rem] gap-2 p-2 tracking-wide">
         <div
           className={`${styles.charCount} ${counter.chars > CHAR_LIMIT ? "text-red-600" : ""}`}
         >
           {counter.words} words • {counter.chars}/{CHAR_LIMIT}
+        </div>
         </div>
         {cropImage && (
           <div className={styles.cropperModal}>

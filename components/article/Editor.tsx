@@ -12,7 +12,7 @@ interface EditorProps {
   articleId: string;
 }
 
-export default function ArticleEditor({ articleId }: EditorProps) {
+export default function Editor({ articleId }: EditorProps) {
   const [template, setTemplate] = useState("standard");
   const [heroImageKey, setHeroImageKey] = useState<string | null>(null);
   const [heroPreview, setHeroPreview] = useState<string | null>(null);
@@ -107,7 +107,7 @@ export default function ArticleEditor({ articleId }: EditorProps) {
   };
 
   return (
-    <div className={`${styles.article} ${styles[template]}`}>
+    <div className={`${styles.article}`}>
       <div className={styles.controls}>
         {/* <label>
           Template:
@@ -121,13 +121,13 @@ export default function ArticleEditor({ articleId }: EditorProps) {
           </select>
         </label> */}
         <div className="gap-4 mx-4 p-2">
-        <button className="savebutton bg-white w-[200px]">
+        {/* <button className="savebutton bg-white w-[200px]">
         <input type="file" onChange={onImageUpload} />
-        </button>
-        <button className="savebutton bg-white w-[200px]">
+        </button> */}
+        {/* <button className="savebutton bg-white w-[200px]">
 
         <input type="file" onChange={onHeroUpload} />
-        </button>
+        </button> */}
         </div>
       </div>
       {heroPreview && (
@@ -140,7 +140,7 @@ export default function ArticleEditor({ articleId }: EditorProps) {
         />
       )}
       <EditorContent editor={editor}
-        className="max-h-[2000px] flex-1 overflow-auto p-4 bg-white rounded-lg"
+        className=" flex-1 h-max-[1500px] w-full px-0 py-0 overflow-auto border-none outline-none  rounded-xl"
         />
     </div>   
   );
