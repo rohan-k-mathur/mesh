@@ -1,7 +1,14 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
+import Editor from "@/components/article/Editor";
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
 import NextImage from "next/image";
@@ -20,28 +27,47 @@ import katex from "katex";
 import { keymap } from "@tiptap/pm/keymap";
 import { Node, mergeAttributes } from "@tiptap/core";
 import { ReactNodeViewRenderer } from "@tiptap/react";
-mport * as Y from "yjs";
+import * as Y from "yjs";
 import { WebsocketProvider } from "y-websocket";
 import enStrings from "@/public/locales/en/editor.json";
-
+import { useDebouncedCallback } from "use-debounce";
 import SlashCommand from "./editor/SlashCommand";
 import Toolbar from "./editor/Toolbar";
 import TemplateSelector from "./editor/TemplateSelector";
 import Outline from "./editor/Outline";
 import { uploadFileToSupabase } from "@/lib/utils";
-import styles from "./article.module.scss";
-import Cropper from "react-easy-crop";
+ import styles from "./article.module.css";
+ import "../../../globals.css";
+
+
+import Spinner from "../ui/spinner";
 import "katex/dist/katex.min.css";
 // const lowlight = new Lowlight();
-const lowlight = createLowlight();
+import dynamic from "next/dynamic";
+const Cropper = dynamic(() => import("react-easy-crop"), {
+  ssr: false,
+  loading: () => <Spinner />,
+});
 
-if (typeof window !== "undefined") {
-  // only run in browser
-  lowlight.register("js", javascript);
-  lowlight.register("ts", typescript);
-  lowlight.register("py", python);
-  lowlight.register("sh", bash);
-}
+// async function registerLanguage(code: 'js' | 'ts' | 'py' | 'sh') {
+//   const lib = await import(`highlight.js/lib/languages/${{
+//     js: 'javascript',
+//     ts: 'typescript',
+//     py: 'python',
+//     sh: 'bash',
+//   }[code]}`);
+//   lowlight.register(code, lib.default);
+// }
+
+// const lowlight = createLowlight();
+
+// if (typeof window !== "undefined") {
+//   // only run in browser
+//   lowlight.register("js", javascript);
+//   lowlight.register("ts", typescript);
+//   lowlight.register("py", python);
+//   lowlight.register("sh", bash);
+// }
 
 interface Heading {
   level: number;
@@ -169,7 +195,9 @@ const CustomImage = Image.extend({
       // { class: `image align-${HTMLAttributes.align}` },
       // ["img", { src: HTMLAttributes.src }],
       {
-        class: `image align-${HTMLAttributes.align}${HTMLAttributes.missingAlt ? " a11y-error" : ""}`,
+        class: `image align-${HTMLAttributes.align}${
+          HTMLAttributes.missingAlt ? " a11y-error" : ""
+        }`,
       },
       ["img", { src: HTMLAttributes.src, alt: HTMLAttributes.alt }],
       ["figcaption", HTMLAttributes.caption],
@@ -202,16 +230,22 @@ export default function ArticleEditor({ articleId }: EditorProps) {
     return new WebsocketProvider(
       `${proto}://${window.location.host}/ws/article/${articleId}`,
       articleId,
-      ydoc,
+      ydoc
     );
   }, [articleId, ydoc]);
-  const userName = useMemo(
-    () => `User${Math.floor(Math.random() * 1000)}`,
-    [],
-  );
+  const lowlight = useMemo(() => {
+    const ll = createLowlight();
+    ll.register("js", javascript);
+    ll.register("ts", typescript);
+    ll.register("py", python);
+    ll.register("sh", bash);
+    return ll;
+  }, []);
+
+  const userName = useMemo(() => `User${Math.floor(Math.random() * 1000)}`, []);
   const userColor = useMemo(
     () => `#${Math.floor(Math.random() * 0xffffff).toString(16)}`,
-    [],
+    []
   );
   const t = (key: string) =>
     ((window as any)?.i18next?.t?.(`editor:${key}`) as string) ||
@@ -228,23 +262,26 @@ export default function ArticleEditor({ articleId }: EditorProps) {
       PullQuote,
       Callout,
       MathBlock,
+      CharacterCount.configure({
+        limit: 20_000, // optional – character limit
+      }),
       MathInline,
       //SlashCommand,
     ],
-  //   SlashCommand,
-  //   Collaboration.configure({ document: ydoc }),
-  //   provider
-  //     ? CollaborationCursor.configure({
-  //         provider,
-  //         user: { name: userName, color: userColor },
-  //       })
-  //     : null,
-  //   CharacterCount,
-  // ].filter(Boolean),
-    content: "text",
+    //   SlashCommand,
+    //   Collaboration.configure({ document: ydoc }),
+    //   provider
+    //     ? CollaborationCursor.configure({
+    //         provider,
+    //         user: { name: userName, color: userColor },
+    //       })
+    //     : null,
+    //   CharacterCount,
+    // ].filter(Boolean),
+    content: "write here...",
     editorProps: {
       attributes: {
-        class: 'tiptap',   // will be merged with 'ProseMirror'
+        class: "tiptap", // will be merged with 'ProseMirror'
       },
       handleDrop(view, event) {
         const file = (event as DragEvent).dataTransfer?.files?.[0];
@@ -275,13 +312,17 @@ export default function ArticleEditor({ articleId }: EditorProps) {
     editor.setEditable(!suggestion);
   }, [suggestion, editor]);
 
-  useEffect(() => () => {
-    provider?.destroy();
+  useEffect(() => {
+    if (!provider) return; // no cleanup needed
+
+    return () => {
+      provider.destroy(); // returns void → OK
+    };
   }, [provider]);
 
-
   useEffect(() => {
-    if (!editor) return;
+    if (!editor) return; // ✅ one early exit – no cleanup
+
     const updateHeadings = () => {
       const seen: Record<string, number> = {};
       const hs: Heading[] = [];
@@ -310,18 +351,43 @@ export default function ArticleEditor({ articleId }: EditorProps) {
     editor.on("update", updateHeadings);
     updateHeadings();
     return () => {
+      // ✅ single cleanup function
       editor.off("update", updateHeadings);
     };
   }, [editor]);
 
   useEffect(() => {
-    async function load() {
-      let updated = 0;
+    if (!editor) return; // ✅ one early exit – no cleanup
 
-      const res = await fetch(`/api/articles/${articleId}`);
-      if (res.ok) {
+    if (!articleId) return;
+    const controller = new AbortController();
+
+    (async () => {
+      try {
+        const res = await fetch(`/api/articles/${articleId}`, {
+          signal: controller.signal,
+        });
+        if (!res.ok) return;
         const data = await res.json();
-        updated = new Date(data.updatedAt || 0).getTime();
+        if (!editor.isDestroyed) {
+          editor.commands.setContent(data.astJson);
+        }
+
+        // const res = await fetch(`/api/articles/${articleId}`, {
+        //   signal: controller.signal,
+        // });
+        // if (!res.ok) return;
+        // const data = await res.json();
+        const updated = new Date(data.updatedAt || 0).getTime();
+
+        if (editor && !editor.isDestroyed && data.astJson) {
+          editor.commands.setContent(data.astJson);
+        }
+        // // const data = await res.json();
+        // if (!editor?.isDestroyed) {
+        //   editor.commands.setContent(data.astJson);
+        // }
+        // updated = new Date(data.updatedAt || 0).getTime();
 
         if (data.astJson && editor) {
           editor.commands.setContent(data.astJson);
@@ -331,76 +397,164 @@ export default function ArticleEditor({ articleId }: EditorProps) {
           setHeroImageKey(data.heroImageKey);
           setHeroPreview(data.heroImageKey);
         }
+
+        // ── local-storage restore check ──────────────────────────────────────────
         const local = localStorage.getItem(`article_${articleId}_backup`);
         if (local) {
           const parsed = JSON.parse(local);
-          if (parsed.ts > updated) {
-            if (confirm("Restore unsaved changes?")) {
-              if (editor) editor.commands.setContent(parsed.content);
-              if (parsed.template) setTemplate(parsed.template);
-              if (parsed.heroImageKey) {
-                setHeroImageKey(parsed.heroImageKey);
-                setHeroPreview(parsed.heroImageKey);
-              }
+          if (parsed.ts > updated && confirm("Restore unsaved changes?")) {
+            if (editor && !editor.isDestroyed) {
+              editor.commands.setContent(parsed.astJson);
             }
+            setTemplate(parsed.template ?? "standard");
+            setHeroImageKey(parsed.heroImageKey ?? null);
+            setHeroPreview(parsed.heroImageKey ?? null);
           }
         }
+      } catch (err) {
+        // Ignore the abort that React dev-mode double invoke triggers
+        if ((err as DOMException).name !== "AbortError") {
+          console.error(err);
+        }
       }
-    }
-    load();
-  }, [articleId, editor]);
+    })();
 
+    // 🧹 abort only *after* we’ve handled the promise above
+    return () => controller.abort();
+  }, [articleId, editor]);
+  // const saveDraft = useCallback(async () => {
+  //   if (!editor) return;
+  //   const body = {
+  //     astJson: editor.getJSON(),
+  //     template,
+  //     heroImageKey,
+  //   };
+
+  //   const saveDraft = useCallback(async () => {
+  //     /* …your POST logic… */
+  //   }, [editor, template, heroImageKey]);
+
+  //   useEffect(() => {
+  //     if (!editor) return;
+
+  //     const timeoutRef = { current: 0 };
+
+  //     const handler = () => {
+  //       setIsDirty(true);
+  //       clearTimeout(timeoutRef.current);
+
+  //       timeoutRef.current = window.setTimeout(async () => {
+  //         await saveDraft();
+  //         setShowUnsaved(true);
+  //         setIsDirty(false);
+  //       }, 2_000);            // 2 s “quiet period”
+  //     };
+
+  //     editor.on('update', handler);
+  //     return () => {
+  //       editor.off('update', handler);
+  //       clearTimeout(timeoutRef.current);
+  //     };
+  //   }, [editor, saveDraft]);
+  /** POST the current editor state to the backend and stash a local copy */
   const saveDraft = useCallback(async () => {
-    if (!editor) return;
-    const body = {
+    if (!editor) return; // TS knows editor may be null
+
+    const payload = {
       astJson: editor.getJSON(),
       template,
       heroImageKey,
     };
-    // await fetch(`/api/articles/${articleId}/draft`, {
-    //   method: "PATCH",
-    //   headers: { "Content-Type": "application/json" },
-    //   body: JSON.stringify(body),
-    // });
-    try {
-      await fetch(`/api/articles/${articleId}/draft`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      setIsDirty(false);
-      setShowUnsaved(false);
-    } catch {
-      setShowUnsaved(true);
-    }
-  }, [editor, articleId, template, heroImageKey]);
 
+    // ── 1) server ──────────────────────────────────────────────────────────────
+    await fetch(`/api/articles/${articleId}/draft`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    // ── 2) local backup (timestamped) ──────────────────────────────────────────
+    localStorage.setItem(
+      `article_${articleId}_backup`,
+      JSON.stringify({ ts: Date.now(), ...payload })
+    );
+  }, [editor, template, heroImageKey, articleId]);
+  const saveDraftDebounced = useDebouncedCallback(saveDraft, 1000);
+
+  // useEffect(() => {
+  //   if (!editor) return;
+  //   editor.on('update', saveDraftDebounced);
+  //   return () => editor.off('update', saveDraftDebounced);
+  // }, [editor, saveDraftDebounced]);
+
+  // await fetch(`/api/articles/${articleId}/draft`, {
+  //   method: "PATCH",
+  //   headers: { "Content-Type": "application/json" },
+  //   body: JSON.stringify(body),
+  // });
+  //   try {
+  //     await fetch(`/api/articles/${articleId}/draft`, {
+  //       method: "PATCH",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify(body),
+  //     });
+  //     setIsDirty(false);
+  //     setShowUnsaved(false);
+  //   } catch {
+  //     setShowUnsaved(true);
+  //   }
+  // }, [editor, articleId, template, heroImageKey]);
+
+  // useEffect(() => {
+  //   if (!editor) return;
+  //   let timeout: NodeJS.Timeout;
+  //   const handler = () => {
+  //     setIsDirty(true);
+  //     setShowUnsaved(false);
+  //     clearTimeout(timeout);
+  //     // timeout = setTimeout(() => saveDraft(), 1000);
+  //     timeout = setTimeout(async () => {
+  //       setShowUnsaved(true);
+  //       await saveDraft();
+  //     }, 2000);
+  //   };
+  //   editor.on("update", saveDraftDebounced);
+  //   return () => {
+  //     editor.off("update", handler);
+  //     clearTimeout(timeout);
+  //   };
+  // }, [editor, saveDraft]);
   useEffect(() => {
-    if (!editor) return;
-    let timeout: NodeJS.Timeout;
+    if (!editor) return; // guard against initial nulls
+
+    let dirty = false;
+    let timeout: number | null = null;
+
     const handler = () => {
-      setIsDirty(true);
-      setShowUnsaved(false);
-      clearTimeout(timeout);
-      // timeout = setTimeout(() => saveDraft(), 1000);
-      timeout = setTimeout(async () => {
-        setShowUnsaved(true);
+      dirty = true; // mark when user changes doc
+      if (timeout) clearTimeout(timeout);
+
+      timeout = window.setTimeout(async () => {
         await saveDraft();
-      }, 2000);
+        dirty = false;
+      }, 2_000); // 2-second quiet period
     };
+
     editor.on("update", handler);
+
+    // ▶︎ cleanup
     return () => {
       editor.off("update", handler);
-      clearTimeout(timeout);
+      if (timeout) clearTimeout(timeout);
     };
   }, [editor, saveDraft]);
 
-  useEffect(() => {
-    setIsDirty(true);
-    setShowUnsaved(true);
-    const timeout = setTimeout(() => saveDraft(), 500);
-    return () => clearTimeout(timeout);
-  }, [template, heroImageKey, saveDraft]);
+  // useEffect(() => {
+  //   setIsDirty(true);
+  //   setShowUnsaved(true);
+  //   const timeout = setTimeout(() => saveDraft(), 500);
+  //   return () => clearTimeout(timeout);
+  // }, [template, heroImageKey, saveDraft]);
 
   useEffect(() => {
     if (!editor) return;
@@ -413,7 +567,7 @@ export default function ArticleEditor({ articleId }: EditorProps) {
       };
       localStorage.setItem(
         `article_${articleId}_backup`,
-        JSON.stringify(backup),
+        JSON.stringify(backup)
       );
     }, 15000);
     return () => clearInterval(interval);
@@ -530,59 +684,86 @@ export default function ArticleEditor({ articleId }: EditorProps) {
     });
     setA11yErrors(errors);
   };
+  const words = editor?.storage.characterCount?.words() ?? 0;
 
   return (
-    <div className="bg-slate-200">
-    <div className={`${styles.article} ${styles[template]}`}>
-      <TemplateSelector template={template} onChange={setTemplate} />
-      <input type="file" onChange={onHeroUpload} />
-      {heroPreview && (
-        <NextImage
-          src={heroPreview}
-          alt="hero"
-          width={800}
-          height={400}
-          className={styles.hero}
-        />
-      )}
-      <div className={styles.editorWrapper}>
-        <Outline headings={headings} onSelect={onSelectHeading} />
-        <EditorContent editor={editor} />
-        <Toolbar editor={editor} />
-      </div>
-      {cropImage && (
-        <div className={styles.cropperModal}>
-          <Cropper
-            image={cropImage}
-            crop={crop}
-            zoom={zoom}
-            onCropChange={setCrop}
-            onZoomChange={setZoom}
-            onCropComplete={onCropComplete}
-            aspect={4 / 3}
-          />
-          <div className={styles.cropActions}>
-            <button
-              onClick={async () => {
-                await insertCroppedImage();
-                setCropFile(null);
-                setCropImage(null);
-              }}
-            >
-              Insert
-            </button>
-            <button
-              onClick={() => {
-                setCropFile(null);
-                setCropImage(null);
-              }}
-            >
-              Cancel
-            </button>
-          </div>
+    <div className={styles.page}>
+          <div className="flex flex-col gap-2">
+
+    <div className={`${styles.articlepage} ${styles[template]}`}>
+        {/* <TemplateSelector template={template} onChange={setTemplate} />
+      <input type="file" onChange={onHeroUpload} /> */}
+        {showUnsaved && (
+          <div className={styles.unsaved}>{t("unsavedChanges")}</div>
+        )}
+        <div className={styles.controls}>
+          <TemplateSelector template={template} onChange={setTemplate} />
+          <button onClick={saveDraft}>{t("saveDraft")}</button>
+          <button onClick={() => setSuggestion(!suggestion)}>
+            {suggestion ? t("suggestionOff") : t("suggestionMode")}
+          </button>
+          <button onClick={runA11yCheck}>{t("checkAccessibility")}</button>
+          <input type="file" onChange={onHeroUpload} />
         </div>
-      )}
-    </div>
+        {heroPreview && (
+          <NextImage
+            src={heroPreview}
+            alt="hero"
+            width={800}
+            height={400}
+            className={styles.hero}
+          />
+        )}
+      <div className="flex gap-4 mt-4">
+          <Outline headings={headings} onSelect={onSelectHeading} />
+          <Editor             articleId={articleId}/>
+                  <Toolbar editor={editor} />       {/* fixed-width column */}
+
+          {/* <EditorContent
+            editor={editor}
+            className="prose bg-black max-w-none focus:outline-none"
+          /> */}
+        </div>
+        <div className={styles.charCount}>
+          <Toolbar editor={editor} />
+          {editor?.storage.characterCount.words()} {t("wordCount")} /{" "}
+          {editor?.storage.characterCount.characters()} {t("characterCount")}
+        </div>
+        {cropImage && (
+          <div className={styles.cropperModal}>
+            <Cropper
+              image={cropImage}
+              crop={crop}
+              zoom={zoom}
+              onCropChange={setCrop}
+              onZoomChange={setZoom}
+              onCropComplete={onCropComplete}
+              aspect={4 / 3}
+            />
+            <div className={styles.cropActions}>
+              <button
+                onClick={async () => {
+                  await insertCroppedImage();
+                  setCropFile(null);
+                  setCropImage(null);
+                }}
+              >
+                Insert
+              </button>
+              <button
+                onClick={() => {
+                  setCropFile(null);
+                  setCropImage(null);
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+      </div>
+
     </div>
   );
 }
