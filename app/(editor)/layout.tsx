@@ -1,5 +1,5 @@
-import "../globals.css";
-import "../article.templates.css";
+import '@/app/globals.css';
+import '@/app/article.templates.css';   // <— single import
 // import './article.global.scss';
 import "./editor.global.css";
 export const metadata = { title: 'Write an article' };

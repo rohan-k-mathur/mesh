@@ -126,6 +126,9 @@ model FeedPost {
   author           User              @relation(fields: [author_id], references: [id])
   predictionMarket PredictionMarket? @relation("FeedPostPrediction")
   productReview    ProductReview?
+    articleId     String?  @unique
+  thumbnailKey  String?  // 4:3 hero variant stored in CDN
+  tldr          String?  // 280-char summary
   parent_id        BigInt?
   pluginData       Json?
   pluginType       String?
@@ -160,6 +163,7 @@ enum feed_post_type {
   ENTROPY
   MUSIC
   ROOM_CANVAS
+  ARTICLE
 }
 
 model RealtimeLike {
