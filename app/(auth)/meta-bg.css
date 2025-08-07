@@ -11,35 +11,48 @@
   
   /* —— ACCENT BLOBS ———————————————————————— */
   .blob {
-    fill: hsl(var(--accent-hue) 80% 55% );
-    border:none;
-    opacity: 70%;
+   /* // fill: hsl(var(--accent-hue) 80% 55% ); */
+    fill: rgba(230,230,255,.5);
+   
     transform-origin: 50% 50%;
-    animation: float 5s ease-in-out infinite;
+    animation: float 30s alternate-reverse infinite;
   }
+  .blobtwo {
+    /* // fill: hsl(var(--accent-hue) 80% 55% ); */
+     fill: rgba(202, 180, 228, 0.5);
+    
+     transform-origin: 50% 50%;
+     animation: float 30s alternate-reverse infinite;
+   }
   
   .blob.core { animation-delay: -1s; }
   .blob.n1  { animation-delay: -3s; }
   .blob.n2  { animation-delay: -5s; }
   .blob.n3  { animation-delay: -7s; }
   
+  .blobtwo.core { animation-delay: -1s; }
+  .blobtwo.n1  { animation-delay: -3s; }
+  .blobtwo.n2  { animation-delay: -5s; }
+  .blobtwo.n3  { animation-delay: -7s; }
   @keyframes float {
-    0%   { transform: translate(  0px,   0px)  scale(2.00); }
-    25%  { transform: translate(-140px, -260px) scale(1.58); }
-    50%  { transform: translate(400px,  150px) scale(1.15); }
-    75%  { transform: translate(-80px,  320px) scale(1.42); }
-    100% { transform: translate(  0px,   0px)  scale(2.00); }
+    0%   { transform: translate(  0px,   -70px)  scaleX(1.00) scaleY(1.5) rotate(360deg); }
+    25%  { transform: translate(-140px, -260px) scaleX(1.58) scaleY(1.7) rotate(270deg); }
+    50%  { transform: translate(400px,  150px) scaleX(.8) scaleY(1.15) rotate(180deg); }
+    75%  { transform: translate(-80px,  320px) scaleY(.42) scaleX (.7) rotate(120deg); }
+    100% { transform: translate(  0px,   0px)  scaleX(1.00) scaleY(1.4) rotate(40deg); }
   }
   
   /* —— HALO RING ———————————————————————— */
   .tint .halo {
-    fill: hsl(var(--tint-hue) 90% 65%);
+    /* fill: hsl(var(--tint-hue) 90% 65%); */
+    fill: rgba(230,230,255,.5);
+
     transform-origin: 50% 50%;
     animation: orbit 30s linear infinite;
   }
   
   @keyframes orbit {
-    to { transform: rotate(360deg) translateX(80px) translateY(80px) rotate(-360deg); }
+    to { transform: rotate(0deg) translateX(50%) translateY(0px) rotate(180deg); }
   }
   
   /* phase‑shift each of the 12 halo blobs */

@@ -68,7 +68,7 @@ export async function POST(req: Request) {
 
   const body = await req.json()
   const parsed = schema.safeParse(body)
-  console.log('draft received', parsed.success ? 'OK' : parsed.error)
+  // console.log('draft received', parsed.success ? 'OK' : parsed.error)
 
   if (!parsed.success)
     return NextResponse.json({ error: 'Invalid body' }, { status: 400 })
