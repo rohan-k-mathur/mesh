@@ -956,6 +956,7 @@ DroppableCanvas.displayName = "DroppableCanvas";
     const { delta, active } = event;
     const dx = delta.x - lastDrag.current.x;
     const dy = delta.y - lastDrag.current.y;
+    
     lastDrag.current = { x: delta.x, y: delta.y };
     const targets = selection.length ? selection : [String(active.id)];
     if (template === "") {
