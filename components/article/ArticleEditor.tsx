@@ -743,7 +743,7 @@ export default function ArticleEditor({ articleId }: EditorProps) {
             {t('checkAccessibility')}
           </button>
 
-          <label className="custom-file-upload savebutton rounded-xl bg-white px-3 text-xs cursor-pointer">
+          <label className="align-center savebutton rounded-xl bg-white px-3 text-center text-xs cursor-pointer">
             <input type="file" onChange={onHeroUpload} hidden />
             Upload hero
           </label>
