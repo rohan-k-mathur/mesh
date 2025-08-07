@@ -51,9 +51,9 @@ export default function Login() {
         {/* <BackgroundCanvas /> */}
       </div>
       <main className=" z-front flex min-h-screen max-w-screen w-full flex-col items-center justify-center p-8 ">
-        <div className="w-full bg-white bg-opacity-10  rounded-xl logincard dark:border md:mt-0 sm:max-w-md xl:p-0 dark:bg-gray-800 dark:border-gray-700">
+        <div className="w-full bg-white bg-opacity-30  rounded-xl logincard dark:border md:mt-0 sm:max-w-md xl:p-0 dark:bg-gray-800 dark:border-gray-700">
           <div className="p-6 space-y-4 md:space-y-6 sm:p-8">
-            <h1 className="text-center text-white font-bold text-[2rem]">
+            <h1 className="text-center text-slate-800 font-bold text-[2rem]">
                 Sign In
                             </h1>
             <form
@@ -64,7 +64,7 @@ export default function Login() {
               <div>
                 <label
                   htmlFor="email"
-                  className="block mb-3 text-[1.2rem]  text-gray-100 dark:text-white"
+                  className="block mb-3 text-[1.2rem]  text-gray-700 dark:text-white"
                 >
                   Email
                 </label>
@@ -82,7 +82,7 @@ export default function Login() {
               <div>
                 <label
                   htmlFor="password"
-                  className="block mb-3 text-[1.2rem] text-gray-100 dark:text-white"
+                  className="block mb-3 text-[1.2rem] text-gray-700 dark:text-white"
                 >
                   Password
                 </label>

@@ -1,6 +1,9 @@
 import { Inter } from "next/font/google";
 import "../globals.css";
 import "./auth-bg.css";
+import "./meta-bg.css";
+import MetaBg from "./MetaBg";   // ← path relative to this file
+
 export const metadata = {
   title: "Mesh",
   description: "A social media website",
@@ -15,7 +18,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${inter.className} auth-bg`}>{children}</body>
+      <body className={`${inter.className} `}>
+      <MetaBg />
+{children}</body>
     </html>
   );
 }

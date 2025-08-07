@@ -1,0 +1,73 @@
+/* meta-bg.css */
+.meta-bg {
+    --accent-hue: 168;
+    --tint-hue: calc(var(--accent-hue) + 120);
+    position: fixed;
+    
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+  }
+  
+  /* —— ACCENT BLOBS ———————————————————————— */
+  .blob {
+    fill: hsl(var(--accent-hue) 80% 55% );
+    border:none;
+    opacity: 70%;
+    transform-origin: 50% 50%;
+    animation: float 5s ease-in-out infinite;
+  }
+  
+  .blob.core { animation-delay: -1s; }
+  .blob.n1  { animation-delay: -3s; }
+  .blob.n2  { animation-delay: -5s; }
+  .blob.n3  { animation-delay: -7s; }
+  
+  @keyframes float {
+    0%   { transform: translate(  0px,   0px)  scale(2.00); }
+    25%  { transform: translate(-140px, -260px) scale(1.58); }
+    50%  { transform: translate(400px,  150px) scale(1.15); }
+    75%  { transform: translate(-80px,  320px) scale(1.42); }
+    100% { transform: translate(  0px,   0px)  scale(2.00); }
+  }
+  
+  /* —— HALO RING ———————————————————————— */
+  .tint .halo {
+    fill: hsl(var(--tint-hue) 90% 65%);
+    transform-origin: 50% 50%;
+    animation: orbit 30s linear infinite;
+  }
+  
+  @keyframes orbit {
+    to { transform: rotate(360deg) translateX(80px) translateY(80px) rotate(-360deg); }
+  }
+  
+  /* phase‑shift each of the 12 halo blobs */
+  @for $i from 0 through 11 { /* SCSS or compile‑time */
+    .halo.h0  { animation-delay: 0s;  }
+.halo.h1  { animation-delay: -5s; }
+.halo.h2  { animation-delay: -10s; }
+.halo.h3  { animation-delay: -15s; }
+.halo.h4  { animation-delay: -20s; }
+.halo.h5  { animation-delay: -25s; }
+.halo.h6  { animation-delay: -30s; }
+.halo.h7  { animation-delay: -35s; }
+.halo.h8  { animation-delay: -40s; }
+.halo.h9  { animation-delay: -45s; }
+.halo.h10  { animation-delay: -50s; }
+
+.halo.h11 { animation-delay: -55s; }
+
+  }
+  
+  /* —— ACCESSIBILITY ——————————————————— */
+  @media (prefers-reduced-motion: reduce) {
+    .blob,
+    .halo { animation: none; }
+  }
+  
+  /* —— DARK MODE COLOUR SHIFT —————————— */
+  @media (prefers-color-scheme: dark) {
+    .meta-bg { --accent-hue: 210; }          /* cooler blue */
+  }
+  
