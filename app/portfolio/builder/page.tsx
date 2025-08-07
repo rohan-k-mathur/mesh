@@ -1191,6 +1191,8 @@ DroppableCanvas.displayName = "DroppableCanvas";
     handleDragEnd(event);
     setActiveId(null);
   };
+  const selectedEl = elementsMap.get(selectedId ?? "");
+const isTextBox = selectedEl && selectedEl.kind === "text";
   return (
       <DndContext
         sensors={sensors}
@@ -1308,14 +1310,12 @@ DroppableCanvas.displayName = "DroppableCanvas";
                 height={24}
               />
             </button>
-            {selectedId && (
-              <StylePanel
-                box={elementsMap.get(selectedId)! as TextBoxRecord}
-                onChange={(patch) =>
-                  dispatch({ type: "patch", id: selectedId, patch })
-                }
-              />
-            )}
+            {isTextBox && (
+  <StylePanel
+    box={selectedEl as TextBoxRecord}
+    onChange={(patch) => dispatch({ type: "patch", id: selectedId!, patch })}
+  />
+)}
           </div>
 
           {/* ---------- canvas ---------- */}
