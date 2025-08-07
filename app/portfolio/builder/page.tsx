@@ -1278,7 +1278,7 @@ DroppableCanvas.displayName = "DroppableCanvas";
                   w={el.width}
                   h={el.height}
                 >
-                  <div className="py-8 px-8 border-[1px] rounded-xl border-black savebutton bg-white space-y-2">
+                  <div className="py-8 px-8 border-[1px] rounded-none border-black savebutton bg-white space-y-2">
                     {el.type === "text" && (
                       
                       <div
