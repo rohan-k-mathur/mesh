@@ -337,16 +337,24 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
 
   /* ---------------------------- TipTap editor ---------------------------- */
 
-  const editor = useEditor(
-    initialJson
-      ? {
-          extensions,
-          content: initialJson,
-          immediatelyRender: false,
-          onCreate: ({ editor }) => setEditorRef(editor),
-        }
-      : undefined,
-  )
+  // const editor = useEditor(
+  //   initialJson
+  //     ? {
+  //         extensions,
+  //         content: initialJson,
+  //         immediatelyRender: false,
+  //         onCreate: ({ editor }) => setEditorRef(editor),
+  //       }
+  //     : undefined,
+  // )
+  //  if (initialJson === undefined) return <div>Loading editor…</div>
+
+ const editor = useEditor({
+   extensions,
+   content: initialJson,
+   immediatelyRender: false,
+   onCreate: ({ editor }) => setEditorRef(editor),
+ })
 
   /** 3️⃣ autosave once the editor is ready */
   useEffect(() => {
