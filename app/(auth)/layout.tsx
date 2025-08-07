@@ -1,6 +1,6 @@
 import { Inter } from "next/font/google";
 import "../globals.css";
-
+import "./auth-bg.css";
 export const metadata = {
   title: "Mesh",
   description: "A social media website",
@@ -15,7 +15,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${inter.className} bg-dark-1`}>{children}</body>
+      <body className={`${inter.className} auth-bg`}>{children}</body>
     </html>
   );
 }
