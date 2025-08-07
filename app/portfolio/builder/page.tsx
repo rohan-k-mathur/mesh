@@ -63,8 +63,8 @@ type Element = BuilderElement;
 
 type DrawMode = null | "text" | "image" | "video" | "link";
 
-const gridSize = 30; // px – change whenever you want
-const snap = (v: number) => Math.round(v / gridSize) * gridSize;
+ // px – change whenever you want
+// const snap = (v: number) => Math.round(v / gridSize) * gridSize;
 
 
 function mkElement(
@@ -378,6 +378,11 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
       null
     );
     const [draggingState, setDraggingState] = useState<DragState | null>(null);
+    const [gridSize, setGridSize] = useState(30);
+const snap = useCallback(
+  (v: number) => Math.round(v / gridSize) * gridSize,
+  [gridSize]
+);
     const resizeRef = useRef<ResizeState | null>(null);
     const dragRef = useRef<DragState | null>(null);
     const { setNodeRef } = useDroppable({ id: "canvas" });
@@ -513,15 +518,26 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
         }
         if (d) {
           const rect = canvasRef.current!.getBoundingClientRect();
-          const dx = snap(ev.clientX - rect.left) - d.startX;
-          const dy = snap(ev.clientY - rect.top)  - d.startY;
-          setBoxes((bs) =>
-            bs.map((b) =>
-              b.id === d.id
-                ? { ...b, x: d.startLeft + dx, y: d.startTop + dy }
-                : b
-            )
+
+          const pointerX  = ev.clientX - rect.left;
+          const pointerY  = ev.clientY - rect.top;
+        
+          const newLeft = snap(d.startLeft + pointerX - d.startX);
+          const newTop  = snap(d.startTop  + pointerY - d.startY);
+        
+          setBoxes(bs =>
+            bs.map(b => b.id === d.id ? { ...b, x: newLeft, y: newTop } : b)
           );
+          
+          // const dx = snap(ev.clientX - rect.left) - d.startX;
+          // const dy = snap(ev.clientY - rect.top)  - d.startY;
+          // setBoxes((bs) =>
+          //   bs.map((b) =>
+          //     b.id === d.id
+          //       ? { ...b, x: d.startLeft + dx, y: d.startTop + dy }
+          //       : b
+          //   )
+          // );
         }
       };
       const onUp = () => {
@@ -904,10 +920,15 @@ DroppableCanvas.displayName = "DroppableCanvas";
   const [textBoxes, setTextBoxes] = useState<TextBoxRecord[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
+  const [gridSize, setGridSize] = useState(30);
+
   const dispatch = useCanvasDispatch();
   const selection = useCanvasSelection();
   const lastDrag = useRef({ x: 0, y: 0 });
-
+  const snap = useCallback(
+    (v: number) => Math.round(v / gridSize) * gridSize,
+    [gridSize]
+  );
   const router = useRouter();
   // const handleResizeStart = (
   //   e: React.PointerEvent,
@@ -963,7 +984,8 @@ DroppableCanvas.displayName = "DroppableCanvas";
       setElements((els) =>
         els.map((e) =>
           targets.includes(e.id)
-            ? { ...e, x: (e.x || 0) + dx, y: (e.y || 0) + dy }
+            ? { ...e,   x: snap((e.x ?? 0) + dx),
+              y: snap((e.y ?? 0) + dy),}
             : e
         )
       );
@@ -1159,6 +1181,17 @@ DroppableCanvas.displayName = "DroppableCanvas";
   >
     {showGrid ? "Hide Grid" : "Show Grid"}
   </button>
+  <label className="block mt-2 text-xs">
+  Grid&nbsp;size
+  <input
+    type="number"
+    min={5}
+    step={5}
+    className="w-full mt-1 border rounded px-2 py-1 text-center"
+    value={gridSize}
+    onChange={e => setGridSize(Math.max(5, +e.target.value))}
+  />
+</label>
             <button
               className={` flex gap-2 w-full justify-start px-4 py-2 rounded-md l
              lockbutton tracking-wide ${
@@ -1351,12 +1384,12 @@ DroppableCanvas.displayName = "DroppableCanvas";
                               }
                             />
                           ) : (
-                            <label className="flex flex-1 items-center justify-center  h-fit bg-white  cursor-pointer">
+                            <label className="flex flex-1 items-center justify-center  h-fit bg-slate-200  cursor-pointer">
                               <input
                                 type="file"
                                 draggable={false}
                                 accept="image/*"
-                                className="relative flex flex-1 justify-center items-center shadow-xl w-full h-full rounded-none p-3"
+                                className="relative flex flex-1 justify-center items-center shadow-md w-full h-full rounded-xl p-3"
                                 onPointerDown={(e) => e.stopPropagation()}
                                 onChange={(e) => {
                                   const file = e.target.files?.[0];
