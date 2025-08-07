@@ -143,6 +143,13 @@ const PostCard = ({
                 {content}
               </p>
             )}
+            {type === "ARTICLE" && content && (
+              <Link href={content}>
+                <button className="savebutton rounded-xl bg-white px-3 text-xs">
+                  View article
+                </button>
+              </Link>
+            )}
             {(type === "IMAGE" || type === "IMAGE_COMPUTE") && image_url && (
               <ImageCard
                 id={id}
