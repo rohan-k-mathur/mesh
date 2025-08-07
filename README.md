@@ -56,8 +56,8 @@ Create another public bucket named `stall-images` for SwapMeet thumbnails.
 1. Install dependencies
 
    ```bash
-   yarn install
-   ```
+npm install
+```
 
 2. Create `.env.local` with the required environment variables (Firebase, DeepSeek, database, etc.) and copy it to `.env` so Prisma can read them:
 
@@ -67,7 +67,7 @@ Create another public bucket named `stall-images` for SwapMeet thumbnails.
 3. Start the development server
 
    ```bash
-   yarn dev
+   npm run dev
    ```
 
 4. Apply Prisma schema changes
@@ -79,7 +79,7 @@ Create another public bucket named `stall-images` for SwapMeet thumbnails.
 5. Seed the database
 
    ```bash
-   yarn seed    # populate the Supabase database with sample users and posts
+   npm run seed    # populate the Supabase database with sample users and posts
    ```
 
 The app runs at [http://localhost:3000](http://localhost:3000).
@@ -99,8 +99,6 @@ Nodes are defined in `components/nodes` and typed in `lib/reactflow/types.ts`. T
 Drop plug-ins into the `plugins/` folder. Each plug-in exports a `descriptor` with a `type`, the React component, and optional config. Restart the dev server with `npm run dev` and the new nodes become available.
 
 ## Deployment
-
-Mesh is deployed on Vercel: <https://vercel.com/18vijaybs-projects/ephemera>
 
 ### CRDT Prototype
 See [docs/realtime-crdt.md](docs/realtime-crdt.md) for notes on the experimental Yjs integration used for text nodes.
