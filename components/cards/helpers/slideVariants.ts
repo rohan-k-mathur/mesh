@@ -3,7 +3,7 @@ import { Variants } from 'framer-motion';
 import { GalleryAnimationStyle } from '../GalleryCarousel';
 export const buildSlideVariants = (
   style: GalleryAnimationStyle,
-  radius: 400,
+  radius= 400,
   radiusZ = 500,
   radiusX = 400,
   angle  = 30,

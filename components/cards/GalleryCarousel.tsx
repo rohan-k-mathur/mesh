@@ -11,7 +11,7 @@ import ViewImageModal from "../modals/ViewImageModal";
 import { buildSlideVariants } from './helpers/slideVariants';
 
 
-export type GalleryAnimationStyle = 'cylinder' | 'cube' | 'portal';
+export type GalleryAnimationStyle = 'cylinder' | 'cube' | 'portal' | "towardscreen";
 
 interface Props {
   urls: string[];
@@ -19,7 +19,7 @@ interface Props {
   animation?: GalleryAnimationStyle;   // NEW   (default = 'cylinder')
 }
 
-const GalleryCarousel = ({ urls, caption , animation = 'cylinder',
+const GalleryCarousel = ({ urls, caption , animation = 'portal',
 }: Props) => {
  // const [currentIndex, setCurrentIndex] = useState(0);
 
