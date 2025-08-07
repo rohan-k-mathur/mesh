@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { nanoid } from "nanoid";
+import { useRouter } from "next/navigation";
 // import ArticleEditor from "@/components/article/ArticleEditor";
 import dynamic from 'next/dynamic';
 const ArticleEditor = dynamic(
@@ -10,7 +11,7 @@ const ArticleEditor = dynamic(
 );
 export default function NewArticlePage() {
   const [articleId, setArticleId] = useState<string | null>(null);
-
+  const router = useRouter();
   useEffect(() => {
     async function init() {
       const stored = localStorage.getItem("draftArticleId");
@@ -19,7 +20,7 @@ export default function NewArticlePage() {
         return;
       }
       const slug = nanoid();
-      const res = await fetch("/api/articles", {
+      const res = await fetch('/api/articles', {          
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

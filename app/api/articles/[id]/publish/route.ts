@@ -25,13 +25,23 @@ export async function POST(
   while (await prisma.article.findUnique({ where: { slug } })) {
     slug = `${base}-${suffix++}`
   }
+  const body = await _req.json().catch(() => null)  // client may POST content
 
   /* ①  write slug + PUBLISHED status */
+// await prisma.article.update({
+//     where: { id: params.id },
+//     data: { slug, status: 'PUBLISHED' },
+//   })
 await prisma.article.update({
     where: { id: params.id },
-    data: { slug, status: 'PUBLISHED' },
+    data : {
+      slug,
+      status : 'PUBLISHED',
+      ...(body?.astJson && { astJson: body.astJson }),
+      ...(body?.template && { template: body.template }),
+      ...(body?.heroImageKey && { heroImageKey: body.heroImageKey }),
+    },
   })
-
 
 
   const post = await createFeedPost({
@@ -39,9 +49,21 @@ await prisma.article.update({
     content: `/article/${slug}`,
     imageUrl: article.heroImageKey ?? undefined,
     type: feed_post_type.ARTICLE,
+
+    template: article.template,
+    heroImageKey: article.heroImageKey,
+    title: article.title,
+    slug: article.slug,
+    id: article.id,
+    status: article.status,
+    createdAt: Date,
+    authorId: user.userId.toString(),
+    astJson: article.astJson,
+    analytics: article.analytics,
+    updatedAt: Date,
   });
 
-  return NextResponse.json({ postId: post.id.toString(), slug }, { status: 201 })
+  return NextResponse.json({ postId: post.postId.toString(), slug }, { status: 201 })
 }
 
 

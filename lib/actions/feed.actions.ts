@@ -4,6 +4,7 @@ import { getUserFromCookies } from "@/lib/serverutils"; // server‑only util
 import { revalidatePath } from "next/cache";
 import { jsonSafe } from "../bigintjson";
 import { canRepost } from "@/lib/repostPolicy";
+import { JsonValue } from "tldraw";
 
 export interface PortfolioPayload {
   pageUrl: string;   // “/portfolio/abc123”
@@ -38,7 +39,13 @@ export interface CreateFeedPostArgs {
   };
 
   text?: string;
-
+  template?: string;
+  heroImageKey?: string;
+  title?: string;
+    slug?: string;
+    status?: string;
+    astJson?: JsonValue;
+    analytics?: JsonValue;
   portfolio?: PortfolioPayload;
   path: string;
   coordinates: { x: number; y: number };

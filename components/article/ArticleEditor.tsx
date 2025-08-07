@@ -379,11 +379,22 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
     const body    = { astJson, template, heroImageKey };
     if (!articleId) return            // never hit the API with undefined
 
+    // await fetch(`/api/articles/${articleId}/draft`, {
+    //   method: 'PATCH',
+    //   headers: { 'Content-Type': 'application/json' },
+    //   body: JSON.stringify(body),
+    // });
     await fetch(`/api/articles/${articleId}/draft`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
+      body: JSON.stringify({
+        astJson : editor.getJSON(),           // actual doc
+        template: template,            // optional
+       
+        heroImageKey
+      }),
+      
+    })
 
     localStorage.setItem(
       LOCAL_KEY(articleId),
@@ -396,25 +407,47 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
 
   const saveDraft = useDebouncedCallback(saveDraftImmediate, 2_000);
 
-  const publishArticle = useCallback(async () => {
-    if (!articleId) return;
-    const res = await fetch(`/api/articles/${articleId}/publish`, {
-      method: "POST",
-    });
-    //localStorage.removeItem('draftArticleId')
-    const { slug } = await res.json()
+//   const publishArticle = useCallback(async () => {
+//     if (!articleId) return;
+// const res = await fetch(`/api/articles/${articleId}/publish`, { method: 'POST' })
 
-    if (res.ok) {
-      const data = await res.json();
-      //localStorage.removeItem(LOCAL_KEY(articleId));
-      //localStorage.removeItem("draftArticleId");
-      //router.push(`/article/${data.slug}`);
-      router.push(`/article/${slug}`)           // open the published page
-      localStorage.removeItem('draftArticleId')
 
-    }
-  }, [articleId, router]);
+//     //localStorage.removeItem('draftArticleId')
+//     const { slug } = await res.json()
 
+//     if (res.ok) {
+//       const data = await res.json();
+//       //localStorage.removeItem(LOCAL_KEY(articleId));
+//       //localStorage.removeItem("draftArticleId");
+//       //router.push(`/article/${data.slug}`);
+//       router.push(`/article/${slug}`)           // open the published page
+//       localStorage.removeItem('draftArticleId')
+
+//     }
+//   }, [articleId, router]);
+const publishArticle = useCallback(async () => {
+  if (!articleId) return
+
+  const res = await fetch(`/api/articles/${articleId}/publish`, {
+    method : 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body   : JSON.stringify({
+      astJson : editor.getJSON(),
+      template: template,
+      heroImageKey,
+    }),
+  })
+
+  if (!res.ok) {
+    // optional: surface error message
+    console.error('Publish failed', await res.text())
+    return
+  }
+
+  const { slug } = await res.json()      // parse exactly once
+  localStorage.removeItem('draftArticleId')
+  router.push(`/article/${slug}`)        // ✅ open the reader page
+}, [articleId, router])
   /* ---------------------------------------------------------------------- */
   /*  Initial load (server copy + optional local override)                   */
   /* ---------------------------------------------------------------------- */
