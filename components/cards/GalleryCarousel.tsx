@@ -8,14 +8,21 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { motion, AnimatePresence } from "framer-motion";   // ⬅️ NEW
 import ViewGalleryModal from "../modals/ViewGalleryModal";
 import ViewImageModal from "../modals/ViewImageModal";
+import { buildSlideVariants } from './helpers/slideVariants';
+
+
+export type GalleryAnimationStyle = 'cylinder' | 'cube' | 'portal';
 
 interface Props {
   urls: string[];
   caption?: string;
+  animation?: GalleryAnimationStyle;   // NEW   (default = 'cylinder')
 }
 
-const GalleryCarousel = ({ urls, caption }: Props) => {
+const GalleryCarousel = ({ urls, caption , animation = 'cylinder',
+}: Props) => {
  // const [currentIndex, setCurrentIndex] = useState(0);
+
   const [[currentIndex, direction], setPage] = useState<[number, number]>([0, 0]);
 
   const [loaded, setLoaded] = useState(false);
@@ -54,29 +61,30 @@ const GalleryCarousel = ({ urls, caption }: Props) => {
 // };
  const radius      = 270;    // 👈 depth “radius” of the cylinder
  const angle       = 45;     // 👈 how far each neighbour swings away
- const slideVariants = {
-   enter:  (dir: number) => ({
-     rotateY: dir > 0 ?  angle   : -angle,
-     x:       dir > 0 ?  radius  : -radius,
-     z:       -radius,                 // push into screen
-     opacity: 0.5,
-     scale:   0.7
-   }),
-   center: {
-     rotateY: 0,
-     x:       0,
-     z:       0,
-     opacity: 1,
-     scale:   1
-   },
-   exit:   (dir: number) => ({
-     rotateY: dir > 0 ? angle   :  -angle,
-     x:       dir > 0 ? -radius  :  radius,
-     z:       radius,
-     opacity: 0,
-     scale:   0.5
-   })
- };
+//  const slideVariants = {
+//    enter:  (dir: number) => ({
+//      rotateY: dir > 0 ?  angle   : -angle,
+//      x:       dir > 0 ?  radius  : -radius,
+//      z:       -radius,                 // push into screen
+//      opacity: 0.5,
+//      scale:   0.7
+//    }),
+//    center: {
+//      rotateY: 0,
+//      x:       0,
+//      z:       0,
+//      opacity: 1,
+//      scale:   1
+//    },
+//    exit:   (dir: number) => ({
+//      rotateY: dir > 0 ? angle   :  -angle,
+//      x:       dir > 0 ? -radius  :  radius,
+//      z:       radius,
+//      opacity: 0,
+//      scale:   0.5
+//    })
+//  };
+ const slideVariants = buildSlideVariants(animation);
 
   return (
     <div className="flex flex-col flex-1 p-1 w-full border-[1px] border-indigo-200 border-opacity-50 

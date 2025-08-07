@@ -1,4 +1,4 @@
-import '@/app/globals.css';
+//import '@/app/globals.css';
 import '@/app/article.templates.css';   // <— single import
 import './editor.global.css';
 // import './article.global.scss';
@@ -14,7 +14,7 @@ export default function ReaderLayout({
 }) {
   return (
     <html lang="en">
-      <body className="justify-center items-center align-center mt-9  p-4 h-full w-full overflow-auto bg-slate-500">
+      <body className="justify-center items-center align-center mt-9  p-4 h-full w-full overflow-auto bg-slate-200 ">
       {children}
       </body>
     </html>

@@ -45,9 +45,9 @@ const ViewGalleryModal = ({   images = [], open, onOpenChange }: Props) => {
   return (
     <AnimatedDialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className=" w-full justify-center items-center flex py-0 px-4 flex-col min-w-[750px] h-min-[27rem]
-      max-w-[70%] max-h-[96%] h-full bg-slate-400 bg-opacity-100  border-blue">
+      max-w-[70%] max-h-[96%] h-full bg-slate-100 bg-opacity-100  border-blue">
         {/* close button (optional) */}
-        <DialogClose className="absolute top-4 right-4 text-white text-2xl">
+        <DialogClose className="absolute top-4 right-4 text-black text-2xl">
           ×
         </DialogClose>
         {images.length > 0 && (
