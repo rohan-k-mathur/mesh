@@ -47,6 +47,7 @@ import Spinner from '../ui/spinner';
 import dynamic from 'next/dynamic';
 import NextImage from 'next/image';                              // 🆕 missing import
 import Editor from './Editor';                                  // the wrapper component
+import { useRouter } from "next/navigation";
 
 import 'katex/dist/katex.min.css';
 
@@ -262,6 +263,8 @@ export default function ArticleEditor({ articleId }: EditorProps) {
   const [pendingRestore,setPendingRestore]= useState<Backup | null>(null);
   const [counter,       setCounter]       = useState({ words: 0, chars: 0 });
 
+  const router = useRouter();
+
   /* ------------------------------ y‑js / collab --------------------------- */
 
   const ydoc = useMemo(() => new Y.Doc(), []);
@@ -388,6 +391,19 @@ export default function ArticleEditor({ articleId }: EditorProps) {
   }, [editor, template, heroImageKey, articleId]);
 
   const saveDraft = useDebouncedCallback(saveDraftImmediate, 2_000);
+
+  const publishArticle = useCallback(async () => {
+    if (!articleId) return;
+    const res = await fetch(`/api/articles/${articleId}/publish`, {
+      method: "POST",
+    });
+    if (res.ok) {
+      const data = await res.json();
+      localStorage.removeItem(LOCAL_KEY(articleId));
+      localStorage.removeItem("draftArticleId");
+      router.push(`/article/${data.slug}`);
+    }
+  }, [articleId, router]);
 
   /* ---------------------------------------------------------------------- */
   /*  Initial load (server copy + optional local override)                   */
@@ -694,6 +710,12 @@ export default function ArticleEditor({ articleId }: EditorProps) {
         )}
 
         <div className="flex flex-wrap gap-2 p-2 mt-2">
+          <button
+            className="savebutton rounded-xl bg-white px-3 text-xs"
+            onClick={publishArticle}
+          >
+            Publish
+          </button>
           <TemplateSelector
             articleId={articleId}
             template={template}
