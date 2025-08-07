@@ -16,6 +16,13 @@ import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import Collaboration from '@tiptap/extension-collaboration';
 import CollaborationCursor from '@tiptap/extension-collaboration-cursor';
 import CharacterCount from '@tiptap/extension-character-count';
+import TextStyle from '@tiptap/extension-text-style';
+import Underline from '@tiptap/extension-underline';
+import Color from '@tiptap/extension-color';
+import Highlight from '@tiptap/extension-highlight';
+import TextAlign from '@tiptap/extension-text-align';
+import TaskList from '@tiptap/extension-task-list';
+import TaskItem from '@tiptap/extension-task-item';
 import { createLowlight } from 'lowlight';
 import javascript from 'highlight.js/lib/languages/javascript';
 import typescript from 'highlight.js/lib/languages/typescript';
@@ -29,6 +36,7 @@ import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
 import enStrings from '@/public/locales/en/editor.json';
 import { useDebouncedCallback } from 'use-debounce';
+import { FontFamily } from './extensions/font-family';
 
 import SlashCommand from './editor/SlashCommand';
 import Toolbar from './editor/Toolbar';
@@ -293,6 +301,14 @@ export default function ArticleEditor({ articleId }: EditorProps) {
 
   const extensions = useMemo<Extension[]>(() => {
     return [
+      TextStyle,
+      FontFamily,
+      Color,
+      Highlight,
+      TextAlign.configure({ types: ['heading', 'paragraph'] }),
+      Underline,
+      TaskList,
+      TaskItem,
       StarterKit,
       CustomImage,
       Link,
@@ -311,7 +327,7 @@ export default function ArticleEditor({ articleId }: EditorProps) {
           user: { name: userName, color: userColor },
         }),
     ].filter(Boolean) as Extension[];          // TS narrow‑down
-  }, [lowlight, provider, userName, userColor]);
+  }, [lowlight, provider, userName, userColor, ydoc]);
 
   /* ---------------------------- TipTap editor ---------------------------- */
 
@@ -569,6 +585,14 @@ export default function ArticleEditor({ articleId }: EditorProps) {
     e.target.value = '';
   };
 
+  const onImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCropFile(file);
+    setCropImage(URL.createObjectURL(file));
+    e.target.value = '';
+  };
+
   const onCropComplete = useCallback((_: any, area: any) => {
     setCroppedArea(area);
   }, []);
@@ -716,6 +740,7 @@ export default function ArticleEditor({ articleId }: EditorProps) {
 
         {/* Editor ----------------------------------------------------------- */}
         <div className="h-full flex flex-col">
+          <input id="image-upload" type="file" onChange={onImageUpload} hidden />
           <Toolbar editor={editor} />
           <div className="flex-1 overflow-auto">
             {/* If you want a live outline component, pass `headings` + handler */}
