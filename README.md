@@ -118,6 +118,12 @@ See services/embedding/README.md for setup.
 taste. Authentication via Supabase session is required. Results are cached in
 Redis for `CANDIDATE_CACHE_TTL` seconds.
 
+## Portfolio Builder shortcuts
+
+- Cmd/Ctrl+Z = Undo
+- Cmd/Ctrl+Shift+Z or Ctrl+Y = Redo
+- Draft autosaves locally every 0.8 s; clear via "New / Clear" in menu
+
 ## Roadmap Highlights
 
 The documents in this repo outline the path toward a public launch. Key themes include:
