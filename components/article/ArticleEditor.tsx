@@ -265,51 +265,8 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
   const [pendingRestore,setPendingRestore]= useState<Backup | null>(null);
   const [counter,       setCounter]       = useState({ words: 0, chars: 0 });
   const [editorRef, setEditorRef] = useState<Editor | null>(null)
-  const [initialJson, setInitialJson] = useState<any | null>(null)
+  const [initialJson, setInitialJson] = useState<any>()
   const router = useRouter();
-  const editor = useEditor(
-    initialJson && {                        // ← guard against null
-      extensions: [StarterKit],
-      content: initialJson,
-      immediatelyRender: false,
-      onCreate({ editor }) {
-        setEditorRef(editor)
-      },
-    }
-  )
-  
-  /** 3️⃣ autosave once the editor is ready */
-  useEffect(() => {
-    if (!editorRef) return            // still mounting
-    const save = () => {
-      fetch(`/api/articles/${articleId}/draft`, {
-        method : 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body   : JSON.stringify({ astJson: editorRef.getJSON() }),
-      })
-    }
-    const id = setInterval(save, 1500)
-    return () => clearInterval(id)
-  }, [editorRef])
-
-  if (!editor) return null            // nothing until TipTap mounts
-
-  // return <EditorContent editor={editor} />
-// }
-// useEffect(() => {
-//   if (!editor) return                     // not ready yet
-//   const save = () => {
-//     fetch(`/api/articles/${articleId}/draft`, {
-//       method : 'PATCH',
-//       headers: { 'Content-Type': 'application/json' },
-//       body   : JSON.stringify({ astJson: editor.getJSON(), template }),
-//     })
-//   }
-//   const timer = setInterval(save, 1000)   // example debounce
-//   return () => clearInterval(timer)
-// }, [editor, articleId, template])
-
-//   const router = useRouter();
 
   /* ------------------------------ y‑js / collab --------------------------- */
 
@@ -380,30 +337,35 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
 
   /* ---------------------------- TipTap editor ---------------------------- */
 
-  // const editor = useEditor({
-  //   extensions,
-  //   content: '',
-  //   editorProps: {
-  //     attributes: { class: 'ProseMirror max-w-none' },
-  //     handleDrop(view, event) {
-  //       const file = (event as DragEvent).dataTransfer?.files?.[0];
-  //       if (file) {
-  //         event.preventDefault();
-  //         setCropFile(file);
-  //         setCropImage(URL.createObjectURL(file));
-  //         return true;
-  //       }
-  //       return false;
-  //     },
-  //   },
-  // });
+  const editor = useEditor(
+    initialJson
+      ? {
+          extensions,
+          content: initialJson,
+          immediatelyRender: false,
+          onCreate: ({ editor }) => setEditorRef(editor),
+        }
+      : undefined,
+  )
 
-  // const editor = useEditor({
-  //   extensions: [StarterKit],
-  //   content: initialJson,
-  //   immediatelyRender: false,     // ← required for Next 14 SSR
-  //   onCreate: ({ editor }) => setEditor(editor),
-  // })
+  /** 3️⃣ autosave once the editor is ready */
+  useEffect(() => {
+    if (!editorRef) return
+    const save = () => {
+      const body = {
+        astJson: editorRef.getJSON(),
+        template,
+        heroImageKey,
+      }
+      fetch(`/api/articles/${articleId}/draft`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+    }
+    const id = setInterval(save, 1500)
+    return () => clearInterval(id)
+  }, [editorRef, articleId, template, heroImageKey])
   /* ---------------------------------------------------------------------- */
   /*  Dirty‑flag + “are you sure you want to leave?” browser dialog          */
   /* ---------------------------------------------------------------------- */
@@ -422,57 +384,45 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
   /* ---------------------------------------------------------------------- */
 
   const saveDraftImmediate = useCallback(async () => {
-    if (!editor) return;
-
-    const astJson = editor?.getJSON()          // undefined if not ready
-    const body    = { astJson, template, heroImageKey };
-    if (!articleId) return            // never hit the API with undefined
-    if (!editor) return                        // or return early from the handler
-
-    // await fetch(`/api/articles/${articleId}/draft`, {
-    //   method: 'PATCH',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify(body),
-    // });
+    if (!editor) return
+    if (!articleId) return
+    const body = {
+      astJson: editor.getJSON(),
+      template,
+      heroImageKey,
+    }
     await fetch(`/api/articles/${articleId}/draft`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        astJson : editor?.getJSON(),           // actual doc
-        template: template,            // optional
-       
-        heroImageKey
-      }),
-      
+      body: JSON.stringify(body),
     })
-
     localStorage.setItem(
       LOCAL_KEY(articleId),
       JSON.stringify({ ts: Date.now(), ...body }),
-    );
+    )
+    setIsDirty(false)
+    setShowUnsaved(false)
+  }, [editor, template, heroImageKey, articleId])
 
-    setIsDirty(false);
-    setShowUnsaved(false);
-  }, [editor, template, heroImageKey, articleId]);
-
-  const saveDraft = async () => {
-    if (!editor) return                        // still mounting
-  
+  const saveDraft = useCallback(async () => {
+    if (!editor) return
+    const body = {
+      astJson: editor.getJSON(),
+      template,
+      heroImageKey,
+    }
     await fetch(`/api/articles/${articleId}/draft`, {
-      method : 'PATCH',
+      method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body   : JSON.stringify({
-        astJson     : editor.getJSON(),
-        template,
-        heroImageKey,
-      }),
+      body: JSON.stringify(body),
     })
-  }
+  }, [editor, articleId, template, heroImageKey])
+
   useEffect(() => {
     if (!editor) return
     const id = setInterval(saveDraft, 1500)
     return () => clearInterval(id)
-  }, [editor, articleId, template])
+  }, [editor, saveDraft])
 //   const publishArticle = useCallback(async () => {
 //     if (!articleId) return;
 // const res = await fetch(`/api/articles/${articleId}/publish`, { method: 'POST' })
@@ -494,36 +444,25 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
 const publishArticle = useCallback(async () => {
   if (!articleId) return
   if (!editor) return
-
-  await fetch(`/api/articles/${articleId}/publish`, {
-    method : 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body   : JSON.stringify({
-      astJson : editor?.getJSON() ?? null,
-      template,
-      heroImageKey,
-    }),
-  })
+  const body = {
+    astJson: editor.getJSON(),
+    template,
+    heroImageKey,
+  }
   const res = await fetch(`/api/articles/${articleId}/publish`, {
-    method : 'POST',
+    method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body   : JSON.stringify({
-      astJson : editor.getJSON(),
-      template: template,
-      heroImageKey,
-    }),
+    body: JSON.stringify(body),
   })
-
   if (!res.ok) {
     // optional: surface error message
     console.error('Publish failed', await res.text())
     return
   }
-
-  const { slug } = await res.json()      // parse exactly once
+  const { slug } = await res.json()
   localStorage.removeItem('draftArticleId')
-  router.push(`/article/${slug}`)        // ✅ open the reader page
-}, [articleId, router])
+  router.push(`/article/${slug}`)
+}, [articleId, editor, template, heroImageKey, router])
   /* ---------------------------------------------------------------------- */
   /*  Initial load (server copy + optional local override)                   */
   /* ---------------------------------------------------------------------- */
@@ -836,6 +775,7 @@ const publishArticle = useCallback(async () => {
   /* ---------------------------------------------------------------------- */
   /*  Render                                                                 */
   /* ---------------------------------------------------------------------- */
+  if (!editor) return <div>Loading editor…</div>
 
   return (
     <div className="flex justify-center items-center ">
