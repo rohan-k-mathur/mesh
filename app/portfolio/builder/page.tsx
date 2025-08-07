@@ -1279,7 +1279,10 @@ DroppableCanvas.displayName = "DroppableCanvas";
                   w={el.width}
                   h={el.height}
                 >
-                  <div className="py-8 px-8 border-[1px] rounded-none border-black savebutton bg-white space-y-2">
+                  {/* <div className="py-8 px-8 border-[1px] rounded-none border-black savebutton bg-white space-y-2"> */}
+                  <div className="relative border-2 border-dashed
+                border-gray-500/60 bg-transparent box-border "
+     style={{ width: el.width, height: el.height }}>
                     {el.type === "text" && (
                       
                       <div
@@ -1326,7 +1329,7 @@ DroppableCanvas.displayName = "DroppableCanvas";
                           boxSizing: 'border-box'  // ← keeps border inside the rectangle
 
                         }}
-                        className=" border-2 border-dashed border-gray-500/60 bg-transparent w-full "        
+                        className=" border-2 border-dashed border-gray-500/60 bg-white w-full "        
                         // onPointerDown={(e) => handleDragEnd(e, el)}
                       >
   <div className=" w-full h-full ">
@@ -1348,7 +1351,7 @@ DroppableCanvas.displayName = "DroppableCanvas";
                               }
                             />
                           ) : (
-                            <label className="flex flex-1 items-center justify-center  h-full  cursor-pointer">
+                            <label className="flex flex-1 items-center justify-center  h-fit bg-white  cursor-pointer">
                               <input
                                 type="file"
                                 draggable={false}

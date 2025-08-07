@@ -203,6 +203,7 @@
     "@types/pg": "^8",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "@types/react-easy-crop": "^1.16.0",
     "constructs": "^10.3.0",
     "dotenv": "^17.2.0",
     "esbuild": "^0.25.5",

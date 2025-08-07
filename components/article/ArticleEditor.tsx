@@ -743,8 +743,8 @@ export default function ArticleEditor({ articleId }: EditorProps) {
             {t('checkAccessibility')}
           </button>
 
-          <label className="align-center savebutton rounded-xl bg-white px-3 text-center text-xs cursor-pointer">
-            <input type="file" onChange={onHeroUpload} hidden />
+          <label className="align-center savebutton rounded-xl bg-white pt-2 px-2 text-center text-xs cursor-pointer">
+            <input  type="file" onChange={onHeroUpload} hidden />
             Upload hero
           </label>
         </div>
@@ -821,7 +821,7 @@ export default function ArticleEditor({ articleId }: EditorProps) {
 
       {/* Restore‑from‑local banner ----------------------------------------- */}
       {pendingRestore && (
-        <div className="fixed top-0 inset-x-0 bg-amber-100 text-amber-900 p-2 text-sm flex justify-center gap-4 z-50">
+        <div className="fixed top-0 inset-x-0 bg-indigo-200/20 text-amber-900 p-2 text-sm flex justify-center gap-4 z-50 shadow-sm">
           Unsaved changes found on this device.
           <button
             className="underline"
