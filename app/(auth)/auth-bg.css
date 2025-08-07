@@ -31,35 +31,10 @@
     /* 75%  { transform: translate3d( 40%,  45%, -20) scale(.75); } */
     100% { transform: translate3d(0%, 0%, -20%) scale(.5); }
   }
-  .meta-bg {
-    position: fixed;
-    inset: 0;
-    pointer-events: none;
-    z-index: -1;
-    --blob-color: hsl(168 82% 55%);       /* brand accent */
-  }
   
-  /* ③  Style once, animate via transform (GPU‑friendly) */
-  .blob {
-    fill: var(--blob-color);
-    transform-origin: 50% 50%;
-    animation: float 18s ease-in-out infinite;
-  }
-  
-  .blob.a { animation-delay: -4s; }
-  .blob.b { animation-delay: -9s; }
-  
-  @keyframes float {
-    0%   { transform: translate(-180px, -220px)  scale(0.9); }
-    50%  { transform: translate( 230px,  160px) scale(1.15); }
-    100% { transform: translate(-180px, -220px) scale(0.9); }
-  }
-  
-
   
   /* 3⃣  Accessibility – shuts off the motion automatically */
   @media (prefers-reduced-motion: reduce) {
     .auth-bg::before { animation: none; }
-    .blob { animation: none; }
-
+    
   }

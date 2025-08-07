@@ -1,6 +1,6 @@
-'use client'
+// 'use client'
 
-import dynamic from 'next/dynamic'
+// import dynamic from 'next/dynamic'
 
 import { prisma } from "@/lib/prismaclient";
 import { notFound } from "next/navigation";

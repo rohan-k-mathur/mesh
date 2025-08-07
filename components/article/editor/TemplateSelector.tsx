@@ -15,7 +15,7 @@ export default function TemplateSelector({ articleId, template, onChange }: Temp
     await fetch(`/api/articles/${articleId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ template: id }),
+      body: JSON.stringify({  id }),
     });
   };
 

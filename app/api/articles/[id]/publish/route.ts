@@ -16,6 +16,14 @@ export async function POST(
   const article = await prisma.article.findUnique({ where: { id: params.id } });
   if (!article) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
+    /* ---------- grab the final doc/state sent by the client ----------- */
+  let incoming: { astJson?: unknown; template?: string; heroImageKey?: string | null }
+  try {
+    incoming = await _req.json()
+  } catch {
+    incoming = {}
+  }
+
 //   /* create or fetch a unique slug */
 //   const base = kebabCase(article.title);
 //   const slug  = base;                       // TODO: ensure uniqueness
@@ -37,16 +45,27 @@ export async function POST(
 //     where: { id: params.id },
 //     data: { slug, status: 'PUBLISHED' },
 //   })
-await prisma.article.update({
-    where: { id: params.id },
-    data : {
-      slug,
-      status: 'PUBLISHED',
-      ...(body.astJson && { astJson: body.astJson }),
-      ...(body.template && { template: body.template }),
-      ...(body.heroImageKey && { heroImageKey: body.heroImageKey }),
-    },
-  })
+// await prisma.article.update({
+//     where: { id: params.id },
+//     data : {
+//       slug,
+//       status: 'PUBLISHED',
+//       ...(body.astJson && { astJson: body.astJson }),
+//       ...(body.template && { template: body.template }),
+//       ...(body.heroImageKey && { heroImageKey: body.heroImageKey }),
+//     },
+//   })
+  await prisma.article.update({
+      where: { id: params.id },
+      data : {
+        slug,
+        status      : 'PUBLISHED',
+      astJson     : incoming.astJson    ?? article.astJson,
+        template    : incoming.template   ?? article.template,
+        heroImageKey: incoming.heroImageKey ?? article.heroImageKey,
+      },
+    })
+  
 
 
   const post = await createFeedPost({
