@@ -9,6 +9,7 @@ import React, {
   useImperativeHandle,
   useCallback,
   useLayoutEffect,
+  useMemo,
   forwardRef,
 } from "react";
 import { ResizeHandle } from "./ResizeHandle";
@@ -43,8 +44,12 @@ import {
   CanvasProvider,
   useCanvasDispatch,
   useCanvasSelection,
+  useCanvasUndo,
+  useCanvasRedo,
 } from "@/lib/portfolio/CanvasStoreProvider";
 import type { UniqueIdentifier } from "@dnd-kit/core";
+import { serialize, jsonToCanvasState } from "@/lib/portfolio/export";
+import type { CanvasState } from "@/lib/portfolio/canvasStore";
 
 import {
   Select,
@@ -87,6 +92,14 @@ function fitIntoBox(
 ) {
   const scale = Math.min(boxW / natW, boxH / natH);
   return { width: Math.round(natW * scale), height: Math.round(natH * scale) };
+}
+
+function debounce<F extends (...args: any[]) => void>(fn: F, ms: number) {
+  let timeout: ReturnType<typeof setTimeout>;
+  return (...args: Parameters<F>) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => fn(...args), ms);
+  };
 }
 /* ---------- DroppableCanvas ---------- */
 export interface DroppableCanvasHandle {
@@ -924,12 +937,30 @@ DroppableCanvas.displayName = "DroppableCanvas";
 
   const dispatch = useCanvasDispatch();
   const selection = useCanvasSelection();
+  const undo = useCanvasUndo();
+  const redo = useCanvasRedo();
   const lastDrag = useRef({ x: 0, y: 0 });
   const snap = useCallback(
     (v: number) => Math.round(v / gridSize) * gridSize,
     [gridSize]
   );
   const router = useRouter();
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const meta = e.ctrlKey || e.metaKey;
+      if (!meta) return;
+      if (e.key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+      }
+      if ((e.key === "Z" && e.shiftKey) || e.key === "y") {
+        e.preventDefault();
+        redo();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [undo, redo]);
   // const handleResizeStart = (
   //   e: React.PointerEvent,
   //   target: ResizeTarget,
@@ -1728,8 +1759,16 @@ DroppableCanvas.displayName = "DroppableCanvas";
                 <option value="grid">Grid</option>
               </select>
             </div>
+            <div className="flex gap-2">
+              <button onClick={undo} title="Undo (⌘Z)">
+                <Image src="/assets/undo.svg" width={20} height={20} alt="" />
+              </button>
+              <button onClick={redo} title="Redo (⇧⌘Z)">
+                <Image src="/assets/redo.svg" width={20} height={20} alt="" />
+              </button>
+            </div>
             <button
-              className="w-full  bg-gray-100 border-black border-[1px] lockbutton  text-black  px-1 py-2 
+              className="w-full  bg-gray-100 border-black border-[1px] lockbutton  text-black  px-1 py-2
             tracking-wide text-[1.1rem] rounded-xl"
               onClick={handlePublish}
             >
@@ -1746,12 +1785,32 @@ DroppableCanvas.displayName = "DroppableCanvas";
 
 /* 2️⃣  outer wrapper – injects the context */
 export default function PortfolioBuilder() {
-    return (
-      <CanvasProvider>
-        <PortfolioBuilderInner />
-      </CanvasProvider>
-    );
-  }
+  const projectId = "draft";
+  const projectKey = `pbuilder:${projectId}`;
+  const saveDraft = useRef(
+    debounce((s: CanvasState) => {
+      localStorage.setItem(projectKey, serialize(s));
+    }, 800),
+  ).current;
+
+  const draftJson =
+    typeof window !== "undefined" ? localStorage.getItem(projectKey) : null;
+  const initialStateFromDraft = useMemo(() => {
+    if (!draftJson) return null;
+    try {
+      const obj = JSON.parse(draftJson);
+      return jsonToCanvasState(obj, projectKey);
+    } catch {
+      return null;
+    }
+  }, [draftJson, projectKey]);
+
+  return (
+    <CanvasProvider initial={initialStateFromDraft} onChange={saveDraft}>
+      <PortfolioBuilderInner />
+    </CanvasProvider>
+  );
+}
 
 function PreviewOfItem({ id, elements }: PreviewProps) {
   const el = elements.find((e) => e.id === id);

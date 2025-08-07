@@ -1,4 +1,10 @@
-import React, { useReducer, useCallback, useLayoutEffect,useMemo,useRef } from "react";
+import React, {
+  useReducer,
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+} from "react";
 import {
   canvasReducer,
   initialCanvasState,
@@ -15,8 +21,19 @@ interface Store {
 
 const CanvasCtx = React.createContext<Store | null>(null);
 
-export function CanvasProvider({ children }: { children: React.ReactNode }) {
-  const [state, dispatch] = useReducer(canvasReducer, initialCanvasState);
+export function CanvasProvider({
+  children,
+  initial,
+  onChange,
+}: {
+  children: React.ReactNode;
+  initial?: CanvasState | null;
+  onChange?: (s: CanvasState) => void;
+}) {
+  const [state, dispatch] = useReducer(
+    canvasReducer,
+    initial ?? initialCanvasState,
+  );
   // const listeners = React.useRef(new Set<() => void>());
 
   // const subscribe = useCallback((fn: () => void) => {
@@ -50,7 +67,8 @@ export function CanvasProvider({ children }: { children: React.ReactNode }) {
   }, [dispatch, subscribe]); // deps are stable
   useLayoutEffect(() => {
     listeners.current.forEach((fn) => fn());
-  }, [state]);
+    onChange?.(state);
+  }, [state, onChange]);
 
   return <CanvasCtx.Provider value={store}>{children}</CanvasCtx.Provider>;
 }
@@ -101,4 +119,14 @@ export function useCanvasElements(): Map<string, ElementRecord> {
     () => store.getSnapshot().elements,
     () => store.getSnapshot().elements,
   );
+}
+
+export function useCanvasUndo() {
+  const store = useStore();
+  return () => store.dispatch({ type: "undo" });
+}
+
+export function useCanvasRedo() {
+  const store = useStore();
+  return () => store.dispatch({ type: "redo" });
 }

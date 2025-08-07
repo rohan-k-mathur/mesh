@@ -1,4 +1,6 @@
 import { escapeHtml, escapeJSX, camelToKebab } from "@/lib/utils/escape";
+import { CanvasState } from "./canvasStore";
+import { ElementRecord } from "./types";
 
 
 export interface PortfolioExportData {
@@ -32,6 +34,33 @@ export interface AbsoluteElement {
   fontFamily?: string;
   fontWeight?: 400 | 500 | 600 | 700;
   italic?: boolean;
+}
+
+export function serialize(state: CanvasState): string {
+  return JSON.stringify({
+    schemaVersion: 1,
+    ...state,
+    elements: [...state.elements.values()],
+    selected: [...state.selected],
+  });
+}
+
+export function jsonToCanvasState(
+  obj: any,
+  projectKey?: string,
+): CanvasState | null {
+  if (!obj || obj.schemaVersion !== 1) {
+    if (projectKey && typeof window !== "undefined") {
+      localStorage.removeItem(projectKey);
+    }
+    return null;
+  }
+  const elements = new Map<string, ElementRecord>();
+  if (Array.isArray(obj.elements)) {
+    obj.elements.forEach((el: ElementRecord) => elements.set(el.id, el));
+  }
+  const selected = new Set<string>(Array.isArray(obj.selected) ? obj.selected : []);
+  return { elements, selected, past: [], future: [] };
 }
 export function generatePortfolioTemplates(
   data: PortfolioExportData,
