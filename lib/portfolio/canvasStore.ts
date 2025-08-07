@@ -8,6 +8,10 @@ export interface CanvasState {
   selected: Set<string>;
   past: Array<Map<string, ElementRecord>>;
   future: Array<Map<string, ElementRecord>>;
+  layout?: "grid" | "column" | "free";
+  color?: string;
+  schemaVersion?: number;
+  _dragStart?: Map<string, ElementRecord>;
 }
 
 const HISTORY_LIMIT = 100;
@@ -27,6 +31,8 @@ function pushHistory(draft: CanvasState) {
 export type CanvasAction =
   | { type: "add"; element: ElementRecord }
   | { type: "patch"; id: string; patch: Partial<ElementRecord> }
+  | { type: "replace"; elements: ElementRecord[] }
+  | { type: "reorder"; order: string[] }
   | { type: "remove"; id: string }
   | { type: "undo" }
   | { type: "redo" }
@@ -39,15 +45,19 @@ export type CanvasAction =
   | { type: "selectOne"; id: string }
   | { type: "toggleSelect"; id: string }
   | { type: "clearSelect" }
+  | { type: "setLayout"; layout: "grid" | "column" | "free" }
+  | { type: "setColor"; color: string }
   | { type: "groupDragStart" }
   | { type: "groupDrag"; dx: number; dy: number }
-  | { type: "groupDragEnd" };
+  | { type: "groupDragEnd"; dx: number; dy: number };
 
 export const initialCanvasState: CanvasState = {
   elements: new Map(),
   selected: new Set(),
   past: [],
   future: [],
+  layout: "free",
+  color: "bg-white",
 };
 
 export const canvasReducer = produce(
@@ -62,6 +72,32 @@ export const canvasReducer = produce(
         pushHistory(draft);
         const el = draft.elements.get(action.id);
         if (el) Object.assign(el, action.patch);
+        break;
+      }
+      case "replace": {
+        pushHistory(draft);
+        draft.elements = new Map(
+          action.elements.map((el) => [el.id, { ...el }]),
+        );
+        draft.selected = new Set();
+        break;
+      }
+      case "reorder": {
+        pushHistory(draft);
+        const newMap = new Map<string, ElementRecord>();
+        action.order.forEach((id) => {
+          const el = draft.elements.get(id);
+          if (el) newMap.set(id, el);
+        });
+        draft.elements = newMap;
+        break;
+      }
+      case "setLayout": {
+        draft.layout = action.layout;
+        break;
+      }
+      case "setColor": {
+        draft.color = action.color;
         break;
       }
       case "drag": {
@@ -101,8 +137,7 @@ export const canvasReducer = produce(
         break;
       }
       case "groupDragStart": {
-        draft.past.push(cloneElements(draft.elements));
-        draft.future = [];
+        draft._dragStart = cloneElements(draft.elements);
         break;
       }
       case "groupDrag": {
@@ -116,6 +151,12 @@ export const canvasReducer = produce(
         break;
       }
       case "groupDragEnd": {
+        if ((action.dx !== 0 || action.dy !== 0) && draft._dragStart) {
+          draft.past.push(draft._dragStart);
+          if (draft.past.length > HISTORY_LIMIT) draft.past.shift();
+          draft.future = [];
+        }
+        draft._dragStart = undefined;
         break;
       }
       case "undo": {

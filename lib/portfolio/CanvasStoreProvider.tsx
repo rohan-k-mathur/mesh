@@ -53,8 +53,7 @@ export function CanvasProvider({
   /* ---------- NEW stable store ---------- */
   const listeners = useRef(new Set<() => void>());
 
-  const stateRef = useRef(initialCanvasState); // holds latest state
-  stateRef.current = state;                    // update ref each render
+  const stateRef = useRef(state); // holds latest state
 
   const subscribe = useCallback((fn: () => void) => {
     listeners.current.add(fn);
@@ -62,13 +61,17 @@ export function CanvasProvider({
   }, []);
 
   const store = useMemo<Store>(() => {
-    const getSnapshot = () => stateRef.current;  // ⚡️ SAME fn for life
+    const getSnapshot = () => stateRef.current; // ⚡️ SAME fn for life
     return { getSnapshot, dispatch, subscribe };
   }, [dispatch, subscribe]); // deps are stable
+
   useLayoutEffect(() => {
+    stateRef.current = state;
     listeners.current.forEach((fn) => fn());
     onChange?.(state);
   }, [state, onChange]);
+
+  React.useEffect(() => () => listeners.current.clear(), []);
 
   return <CanvasCtx.Provider value={store}>{children}</CanvasCtx.Provider>;
 }
