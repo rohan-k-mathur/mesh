@@ -13,57 +13,58 @@ datasource db {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model User {
-  id                       BigInt                    @id @default(autoincrement())
-  auth_id                  String                    @unique
-  created_at               DateTime                  @default(now()) @db.Timestamptz(6)
-  updated_at               DateTime?                 @default(now()) @updatedAt @db.Timestamptz(6)
-  username                 String                    @db.VarChar
-  name                     String
-  image                    String?
-  bio                      String?
-  onboarded                Boolean                   @default(false)
-  archivedPosts            ArchivedPost[]
-  archivedRealtimePosts    ArchivedRealtimePost[]
-  conversationsUser1       Conversation[]            @relation("ConversationUser1")
-  conversationsUser2       Conversation[]            @relation("ConversationUser2")
-  favoriteItems            FavoriteItem[]
-  following                Follow[]                  @relation("FollowingRelation")
-  followers                Follow[]                  @relation("FollowerRelation")
-  friendSuggestionsTarget  FriendSuggestion[]        @relation("SuggestionsTarget")
-  friendSuggestionsCreated FriendSuggestion[]        @relation("SuggestionsCreator")
-  integrations             Integration[]
-  likes                    Like[]
-  linkedAccounts           LinkedAccount[]
-  messages                 Message[]
-  sentNotifications        Notification[]            @relation("NotificationActor")
-  receivedNotifications    Notification[]            @relation("NotificationUser")
-  productReviewVotes       ProductReviewVote[]
-  productReviewVouches     ProductReviewVouch[]
-  productReviews           ProductReview[]
-  realtimeedges            RealtimeEdge[]
-  realtimeLikes            RealtimeLike[]
-  realtimeposts            RealtimePost[]
-  feedPosts                FeedPost[]
-  realtimeRoomInviteTokens RealtimeRoomInviteToken[]
-  recommendationClicks     RecommendationClick[]
-  attributeEdits           UserAttributeEdit[]
-  userAttributes           UserAttributes?
-  userEmbedding            UserEmbedding?
-  createdPredictionMarkets PredictionMarket[]        @relation("CreatedPredictionMarkets")
-  oraclePredictionMarkets  PredictionMarket[]        @relation("OraclePredictionMarkets")
-  trades                   Trade[]                   @relation("UserTrades")
-  wallet                   Wallet?
-  resolutionLogs           ResolutionLog[]
-  realtimerooms            UserRealtimeRoom[]
-  workflows                Workflow[]
-  stalls                   Stall[]
-  offers                   Offer[]
-  bids                     Bid[]
-  orders                   Order[]
-  StallMessage             StallMessage[]
-  cartItems                CartItem[]
-  carts                    Cart[]
-  settings                 UserSettings?
+  id                        BigInt                    @id @default(autoincrement())
+  auth_id                   String                    @unique
+  created_at                DateTime                  @default(now()) @db.Timestamptz(6)
+  updated_at                DateTime?                 @default(now()) @updatedAt @db.Timestamptz(6)
+  username                  String                    @db.VarChar
+  name                      String
+  image                     String?
+  bio                       String?
+  onboarded                 Boolean                   @default(false)
+  archivedPosts             ArchivedPost[]
+  archivedRealtimePosts     ArchivedRealtimePost[]
+  conversationsUser1        Conversation[]            @relation("ConversationUser1")
+  conversationsUser2        Conversation[]            @relation("ConversationUser2")
+  conversation_participants ConversationParticipant[]
+  favoriteItems             FavoriteItem[]
+  following                 Follow[]                  @relation("FollowingRelation")
+  followers                 Follow[]                  @relation("FollowerRelation")
+  friendSuggestionsTarget   FriendSuggestion[]        @relation("SuggestionsTarget")
+  friendSuggestionsCreated  FriendSuggestion[]        @relation("SuggestionsCreator")
+  integrations              Integration[]
+  likes                     Like[]
+  linkedAccounts            LinkedAccount[]
+  messages                  Message[]
+  sentNotifications         Notification[]            @relation("NotificationActor")
+  receivedNotifications     Notification[]            @relation("NotificationUser")
+  productReviewVotes        ProductReviewVote[]
+  productReviewVouches      ProductReviewVouch[]
+  productReviews            ProductReview[]
+  realtimeedges             RealtimeEdge[]
+  realtimeLikes             RealtimeLike[]
+  realtimeposts             RealtimePost[]
+  feedPosts                 FeedPost[]
+  realtimeRoomInviteTokens  RealtimeRoomInviteToken[]
+  recommendationClicks      RecommendationClick[]
+  attributeEdits            UserAttributeEdit[]
+  userAttributes            UserAttributes?
+  userEmbedding             UserEmbedding?
+  createdPredictionMarkets  PredictionMarket[]        @relation("CreatedPredictionMarkets")
+  oraclePredictionMarkets   PredictionMarket[]        @relation("OraclePredictionMarkets")
+  trades                    Trade[]                   @relation("UserTrades")
+  wallet                    Wallet?
+  resolutionLogs            ResolutionLog[]
+  realtimerooms             UserRealtimeRoom[]
+  workflows                 Workflow[]
+  stalls                    Stall[]
+  offers                    Offer[]
+  bids                      Bid[]
+  orders                    Order[]
+  StallMessage              StallMessage[]
+  cartItems                 CartItem[]
+  carts                     Cart[]
+  settings                  UserSettings?
 
   @@map("users")
 }
@@ -126,9 +127,9 @@ model FeedPost {
   author           User              @relation(fields: [author_id], references: [id])
   predictionMarket PredictionMarket? @relation("FeedPostPrediction")
   productReview    ProductReview?
-    articleId     String?  @unique
-  thumbnailKey  String?  // 4:3 hero variant stored in CDN
-  tldr          String?  // 280-char summary
+  articleId        String?           @unique
+  thumbnailKey     String? // 4:3 hero variant stored in CDN
+  tldr             String? // 280-char summary
   parent_id        BigInt?
   pluginData       Json?
   pluginType       String?
@@ -534,15 +535,18 @@ model WorkflowRun {
 }
 
 model Conversation {
-  id            BigInt         @id @default(autoincrement())
-  user1_id      BigInt
-  user2_id      BigInt
-  created_at    DateTime       @default(now()) @db.Timestamptz(6)
-  updated_at    DateTime       @default(now()) @updatedAt @db.Timestamptz(6)
-  user1         User           @relation("ConversationUser1", fields: [user1_id], references: [id])
-  user2         User           @relation("ConversationUser2", fields: [user2_id], references: [id])
+  id            BigInt                    @id @default(autoincrement())
+  user1_id      BigInt?
+  user2_id      BigInt?
+  created_at    DateTime                  @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime                  @default(now()) @updatedAt @db.Timestamptz(6)
+  title         String?
+  is_group      Boolean                   @default(false)
+  user1         User?                     @relation("ConversationUser1", fields: [user1_id], references: [id])
+  user2         User?                     @relation("ConversationUser2", fields: [user2_id], references: [id])
   messages      Message[]
-  notifications Notification[] @relation("NotificationConversation")
+  notifications Notification[]            @relation("NotificationConversation")
+  participants  ConversationParticipant[]
 
   @@unique([user1_id, user2_id])
   @@index([user1_id])
@@ -550,17 +554,43 @@ model Conversation {
   @@map("conversations")
 }
 
+model ConversationParticipant {
+  id              BigInt       @id @default(autoincrement())
+  conversation_id BigInt
+  user_id         BigInt
+  joined_at       DateTime     @default(now()) @db.Timestamptz(6)
+  conversation    Conversation @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
+  user            User         @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([conversation_id, user_id])
+  @@map("conversation_participants")
+}
+
+model MessageAttachment {
+  id         BigInt   @id @default(autoincrement())
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  message_id BigInt
+  url        String
+  type       String
+  size       Int
+  metadata   Json?
+  message    Message  @relation(fields: [message_id], references: [id], onDelete: Cascade)
+
+  @@map("message_attachments")
+}
+
 model Message {
-  id              BigInt         @id @default(autoincrement())
+  id              BigInt              @id @default(autoincrement())
   conversation_id BigInt
   sender_id       BigInt
-  text            String
-  created_at      DateTime       @default(now()) @db.Timestamptz(6)
-  conversation    Conversation   @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
-  sender          User           @relation(fields: [sender_id], references: [id], onDelete: Cascade)
-  notifications   Notification[] @relation("NotificationMessage")
+  text            String?
+  created_at      DateTime            @default(now()) @db.Timestamptz(6)
+  conversation    Conversation        @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
+  sender          User                @relation(fields: [sender_id], references: [id], onDelete: Cascade)
+  notifications   Notification[]      @relation("NotificationMessage")
+  attachments     MessageAttachment[]
 
-  @@index([conversation_id])
+  @@index([conversation_id, created_at])
   @@map("messages")
 }
 
@@ -1086,18 +1116,18 @@ enum ArticleStatus {
 }
 
 model Article {
-  id           String         @id @default(uuid())
+  id           String        @id @default(uuid())
   authorId     String
   title        String
-  slug         String         @unique
+  slug         String        @unique
   heroImageKey String?
-  template     String         @default("standard")
+  template     String        @default("standard")
   astJson      Json
-  status       ArticleStatus  @default(DRAFT)
+  status       ArticleStatus @default(DRAFT)
   revisions    Revision[]
   analytics    Json?
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 
   @@map("articles")
 }
