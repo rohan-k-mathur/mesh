@@ -100,6 +100,9 @@ type Backup = {
 
 const LOCAL_KEY = (id: string) => `article_${id}_backup`;
 
+interface ArticleEditorProps { articleId: string }
+
+
 /* -------------------------------------------------------------------------- */
 /*  Custom nodes                                                               */
 /* -------------------------------------------------------------------------- */
@@ -244,7 +247,7 @@ interface EditorProps {
 /*  Component                                                                  */
 /* -------------------------------------------------------------------------- */
 
-export default function ArticleEditor({ articleId }: EditorProps) {
+export default function ArticleEditor({ articleId }: ArticleEditorProps) {
   /* ------------------------------- state ---------------------------------- */
 
   const [template,      setTemplate]      = useState('standard');
@@ -374,6 +377,7 @@ export default function ArticleEditor({ articleId }: EditorProps) {
 
     const astJson = editor.getJSON();
     const body    = { astJson, template, heroImageKey };
+    if (!articleId) return            // never hit the API with undefined
 
     await fetch(`/api/articles/${articleId}/draft`, {
       method: 'PATCH',
@@ -397,11 +401,17 @@ export default function ArticleEditor({ articleId }: EditorProps) {
     const res = await fetch(`/api/articles/${articleId}/publish`, {
       method: "POST",
     });
+    //localStorage.removeItem('draftArticleId')
+    const { slug } = await res.json()
+
     if (res.ok) {
       const data = await res.json();
-      localStorage.removeItem(LOCAL_KEY(articleId));
-      localStorage.removeItem("draftArticleId");
-      router.push(`/article/${data.slug}`);
+      //localStorage.removeItem(LOCAL_KEY(articleId));
+      //localStorage.removeItem("draftArticleId");
+      //router.push(`/article/${data.slug}`);
+      router.push(`/article/${slug}`)           // open the published page
+      localStorage.removeItem('draftArticleId')
+
     }
   }, [articleId, router]);
 
@@ -415,6 +425,8 @@ export default function ArticleEditor({ articleId }: EditorProps) {
 
     (async () => {
       try {
+        if (!articleId) return            // never hit the API with undefined
+
         const res = await fetch(`/api/articles/${articleId}`, {
           signal: controller.signal,
         });
@@ -702,51 +714,54 @@ export default function ArticleEditor({ articleId }: EditorProps) {
   /* ---------------------------------------------------------------------- */
 
   return (
-    <div className="flex justify-center items-center max-w-[800px]">
+    <div className="flex justify-center items-center ">
       <article className={template}>
         {/* Top‑bar ---------------------------------------------------------- */}
         {showUnsaved && (
-          <div className="flex text-red-600">{t('unsavedChanges')}</div>
+          <div className="fixed flex left-0 top-0 text-red-600">{t('unsavedChanges')}</div>
         )}
 
-        <div className="flex flex-wrap gap-2 p-2 mt-2">
+        <div className="flex flex-col ">
+       
+          
+          <div className="flex flex-1 flex-wrap space-x-3 gap-2 justify-center mb-3">
+          <button className=" savebutton rounded-xl bg-white/70  p-2  text-xs h-fit ">
+            <input  type="file" onChange={onHeroUpload} hidden />
+            Upload hero
+          </button>
+      
+
           <button
-            className="savebutton rounded-xl bg-white px-3 text-xs"
+            className="savebutton rounded-xl bg-white/70 p-2 h-fit text-xs"
+            onClick={() => setSuggestion(!suggestion)}
+          >
+            {suggestion ? t('suggestionOff') : t('suggestionMode')}
+          </button>
+          <button
+            className="savebutton rounded-xl bg-white/70 p-2 h-fit text-xs"
+            onClick={saveDraftImmediate}
+          >
+            {t('saveDraft')}
+          </button>
+          {/* <button
+            className="savebutton rounded-xl bg-white p-2 text-xs h-fit"
+            onClick={runA11yCheck}
+          >
+            {t('checkAccessibility')}
+          </button> */}
+             <button
+            className="savebutton rounded-xl bg-white/70 px-4   py-2 items-end justify-end h-fit text-xs"
             onClick={publishArticle}
           >
             Publish
           </button>
+          </div>
           <TemplateSelector
             articleId={articleId}
             template={template}
             onChange={setTemplate}
           />
-
-          <button
-            className="savebutton rounded-xl bg-white px-3 text-xs"
-            onClick={saveDraftImmediate}
-          >
-            {t('saveDraft')}
-          </button>
-
-          <button
-            className="savebutton rounded-xl bg-white px-3 text-xs"
-            onClick={() => setSuggestion(!suggestion)}
-          >
-            {suggestion ? t('suggestionOff') : t('suggestionMode')}
-          </button>
-
-          <button
-            className="savebutton rounded-xl bg-white px-3 text-xs"
-            onClick={runA11yCheck}
-          >
-            {t('checkAccessibility')}
-          </button>
-
-          <label className="align-center savebutton rounded-xl bg-white pt-2 px-2 text-center text-xs cursor-pointer">
-            <input  type="file" onChange={onHeroUpload} hidden />
-            Upload hero
-          </label>
+       
         </div>
 
         {/* Hero image ------------------------------------------------------- */}
@@ -761,7 +776,7 @@ export default function ArticleEditor({ articleId }: EditorProps) {
         )}
 
         {/* Editor ----------------------------------------------------------- */}
-        <div className="h-full flex flex-col">
+        <div className="h-full flex flex-col gap-2">
           <input id="image-upload" type="file" onChange={onImageUpload} hidden />
           <Toolbar editor={editor} />
           <div className="flex-1 overflow-auto">

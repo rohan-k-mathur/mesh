@@ -21,7 +21,8 @@ export interface CreateFeedPostArgs {
     | "PRODUCT_REVIEW"
     | "PORTFOLIO"
     | "MUSIC"
-    | "LIVECHAT";
+    | "LIVECHAT"
+    | "ARTICLE";
   content?: string;
   imageUrl?: string;
   videoUrl?: string;

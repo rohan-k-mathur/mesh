@@ -34,7 +34,7 @@ import { uploadFileToSupabase } from "@/lib/utils";
 import { PortfolioExportData } from "@/lib/portfolio/export";
 import { templates, BuilderElement } from "@/lib/portfolio/templates";
 import Image from "next/image";
-import { createFeedPost } from "@/lib/actions/feedpost.actions";
+import { createFeedPost } from "@/lib/actions/feed.actions";
 import { feed_post_type } from "@prisma/client";
 import { Input } from "@/components/ui/input";
 import styles from "./resize-handles.module.css"; // CSS module for handles

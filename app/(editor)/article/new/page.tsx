@@ -32,6 +32,10 @@ export default function NewArticlePage() {
       const data = await res.json();
       setArticleId(data.id);
       localStorage.setItem("draftArticleId", data.id);
+
+        // friendly URL; prevents “undefined” on refresh
+  router.replace(`/article/${data.id}/edit`)
+  return
     }
     init();
   }, []);

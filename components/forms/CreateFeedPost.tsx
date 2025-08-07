@@ -13,7 +13,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
-import { createFeedPost as createFeedPostAction } from "@/lib/actions/feedpost.actions";
+import { createFeedPost as createFeedPostAction } from "@/lib/actions/feed.actions";
 import { feed_post_type } from "@prisma/client";
 import TextNodeModal from "@/components/modals/TextNodeModal";
 import ImageNodeModal from "@/components/modals/ImageNodeModal";

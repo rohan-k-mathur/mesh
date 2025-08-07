@@ -11,12 +11,21 @@ export default async function ArticlePage({
 }: {
   params: { slug: string };
 }) {
-  const article = await prisma.article.findUnique({
-    where: { slug: params.slug },
-  });
-  if (!article) {
-    notFound();
-  }
+  // const article = await prisma.article.findUnique({
+  //   where: { slug: params.slug },
+  // });
+  // if (!article) {
+  //   notFound();
+  // }
+  const article = await prisma.article.findFirst({
+    where: {
+      OR: [
+        { slug: params.slugOrId },
+        { id: params.slugOrId },           // allows ID fallback
+      ],
+    },
+  })
+  if (!article) notFound()
   const html = generateHTML(article.astJson as any, [StarterKit, TipTapImage]);
   return (
     <ArticleReader template={article.template}>

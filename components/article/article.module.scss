@@ -34,17 +34,19 @@
 }
 
 .templateSelector {
-  margin-bottom: 1rem;
+  margin-bottom: .8rem;
+  justify-content: center;
   display: flex;
-  gap: 8px;
+  gap: 24px;
 }
 
 .templateSelector button {
-  padding: 4px 4px;
+  padding: 4px 7px;
   border: 1px solid #ccc;
   font-size: 0.8rem;
   text-align: center;
-  background: #fff;
+  background-color: rgba(255, 255, 255, 0.5);
+
   box-shadow: 1px 1px 3px rgb(222 199 204 / 0.3), -1px 2px 3px rgba(70 69 69 / 0.25);
 }
 
