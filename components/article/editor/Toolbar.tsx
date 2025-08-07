@@ -1,92 +1,152 @@
-import { BubbleMenu, Editor } from "@tiptap/react";
-import styles from "../article.module.scss";
-import enStrings from "@/public/locales/en/editor.json";
+import { Editor } from "@tiptap/react";
+import {
+  Bold,
+  Italic,
+  Underline,
+  Strikethrough,
+  Code,
+  List,
+  ListOrdered,
+  ListChecks,
+  Quote,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  Link2,
+  Image as ImageIcon,
+  Eraser,
+} from "lucide-react";
+import React from "react";
 
-interface ToolbarProps {
-  editor: Editor | null;
-}
+type Props = { editor: Editor | null };
 
-export default function Toolbar({ editor }: ToolbarProps) {
+export default function Toolbar({ editor }: Props) {
   if (!editor) return null;
-  const t = (key: string) =>
-  ((window as any)?.i18next?.t?.(`editor:${key}`) as string) ||
-  (enStrings as any)[key] ||
-  key;
-  const setLink = () => {
-    const url = window.prompt("URL");
-    if (url) {
-      editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
-    }
-  };
+
+  const btn = (
+    icon: React.ReactNode,
+    onClick: () => void,
+    active = false,
+  ) => (
+    <button
+      onClick={onClick}
+      className={`p-1.5 ${active ? "bg-neutral-200" : ""}`}
+      type="button"
+    >
+      {icon}
+    </button>
+  );
 
   return (
-    <BubbleMenu editor={editor} tippyOptions={{ duration: 100 }} className={styles.toolbar}>
-      <button
-        onClick={() => editor.chain().focus().toggleBold().run()}
-        className={editor.isActive("bold") ? styles.active : ""}
+    <div className="flex flex-wrap items-center gap-1 border rounded-md px-2 py-1 bg-white">
+      <select
+        onChange={(e) =>
+          editor.chain().focus().setFontFamily(e.target.value).run()
+        }
+        className="text-sm border rounded"
+        defaultValue=""
       >
-                {t("bold")}
+        <option value="" disabled>
+          Font
+        </option>
+        <option value="inherit">Sans Serif</option>
+        <option value="Georgia,serif">Serif</option>
+        <option value="Mercury,serif">Mercury</option>
+      </select>
 
-      </button>
-      <button
-        onClick={() => editor.chain().focus().toggleItalic().run()}
-        className={editor.isActive("italic") ? styles.active : ""}
-      >
-               {t("italic")}
-
-      </button>
-      <button onClick={setLink} className={editor.isActive("link") ? styles.active : ""}>
-      {t("link")}
-      </button>
-      <button
-        onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-        className={editor.isActive("heading", { level: 1 }) ? styles.active : ""}
-      >
-                {t("h1")}
-
-      </button>
-      <button
-        onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-        className={editor.isActive("heading", { level: 2 }) ? styles.active : ""}
-      >
-                {t("h2")}
-
-      </button>
-      <button
-        onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-        className={editor.isActive("heading", { level: 3 }) ? styles.active : ""}
-      >
-          {t("h3")}
-      </button>
-      <button
-        onClick={() => editor.chain().focus().toggleBlockquote().run()}
-        className={editor.isActive("blockquote") ? styles.active : ""}
-      >
-        {t("quote")}
-      </button>
-      <button
-        onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-        className={editor.isActive("codeBlock") ? styles.active : ""}
-      >
-                {t("code")}
-
-      </button>
-      {editor.isActive("image") && (
-        <>
-          <button onClick={() => editor.chain().focus().updateAttributes("image", { align: "left" }).run()}>
-          {t("left")}
-
-          </button>
-          <button onClick={() => editor.chain().focus().updateAttributes("image", { align: "center" }).run()}>
-          {t("center")}
-
-          </button>
-          <button onClick={() => editor.chain().focus().updateAttributes("image", { align: "right" }).run()}>
-          {t("right")}
-
-          </button>
-        </>
+      {btn(
+        <Bold size={16} />,
+        () => editor.chain().focus().toggleBold().run(),
+        editor.isActive("bold"),
       )}
-    </BubbleMenu>
+      {btn(
+        <Italic size={16} />,
+        () => editor.chain().focus().toggleItalic().run(),
+        editor.isActive("italic"),
+      )}
+      {btn(
+        <Underline size={16} />,
+        () => editor.chain().focus().toggleUnderline().run(),
+        editor.isActive("underline"),
+      )}
+      {btn(
+        <Strikethrough size={16} />,
+        () => editor.chain().focus().toggleStrike().run(),
+        editor.isActive("strike"),
+      )}
+      {btn(
+        <Code size={16} />,
+        () => editor.chain().focus().toggleCode().run(),
+        editor.isActive("code"),
+      )}
+
+      <input
+        type="color"
+        onChange={(e) =>
+          editor.chain().focus().setColor(e.target.value).run()
+        }
+        className="h-5 w-5 p-[1px] cursor-pointer"
+      />
+
+      {btn(
+        <List size={16} />,
+        () => editor.chain().focus().toggleBulletList().run(),
+        editor.isActive("bulletList"),
+      )}
+      {btn(
+        <ListOrdered size={16} />,
+        () => editor.chain().focus().toggleOrderedList().run(),
+        editor.isActive("orderedList"),
+      )}
+      {btn(
+        <ListChecks size={16} />,
+        () => editor.chain().focus().toggleTaskList().run(),
+        editor.isActive("taskList"),
+      )}
+
+      {btn(
+        <AlignLeft size={16} />,
+        () => editor.chain().focus().setTextAlign("left").run(),
+        editor.isActive({ textAlign: "left" }),
+      )}
+      {btn(
+        <AlignCenter size={16} />,
+        () => editor.chain().focus().setTextAlign("center").run(),
+        editor.isActive({ textAlign: "center" }),
+      )}
+      {btn(
+        <AlignRight size={16} />,
+        () => editor.chain().focus().setTextAlign("right").run(),
+        editor.isActive({ textAlign: "right" }),
+      )}
+
+      {btn(
+        <Quote size={16} />,
+        () => editor.chain().focus().toggleBlockquote().run(),
+        editor.isActive("blockquote"),
+      )}
+
+      {btn(
+        <Link2 size={16} />,
+        () => {
+          const url = prompt("URL")?.trim();
+          if (url) {
+            editor.chain().focus().setLink({ href: url }).run();
+          }
+        },
+        editor.isActive("link"),
+      )}
+      {btn(
+        <ImageIcon size={16} />,
+        () => {
+          document
+            .querySelector<HTMLInputElement>("#image-upload")?.click();
+        },
+      )}
+      {btn(
+        <Eraser size={16} />,
+        () => editor.chain().focus().clearNodes().unsetAllMarks().run(),
+      )}
+    </div>
   );
 }
