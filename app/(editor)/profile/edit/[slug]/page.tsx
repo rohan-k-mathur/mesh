@@ -1,3 +1,7 @@
+'use client'
+
+import dynamic from 'next/dynamic'
+
 import { prisma } from "@/lib/prismaclient";
 import { notFound } from "next/navigation";
 import { generateHTML } from "@tiptap/html";

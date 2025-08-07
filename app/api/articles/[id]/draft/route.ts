@@ -11,20 +11,24 @@ const schema = z
   })
   .partial()                           // allow sparse payloads
 
-export async function PATCH(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
-  const body = await req.json()
-  const parsed = schema.safeParse(body)
-  if (!parsed.success) {
-    return NextResponse.json({ error: 'Invalid body' }, { status: 400 })
+  export async function PATCH(
+    req: Request,
+    { params }: { params: { id: string } }
+  ) {
+    // ↙ safeguard against empty body (avoids “Unexpected end of JSON”)
+    const safeJson = async () => {
+      try { return await req.json() } catch { return {} }
+    }
+    const body = await safeJson()
+    const parsed = schema.safeParse(body)
+    if (!parsed.success) {
+      return NextResponse.json({ error: 'Invalid body' }, { status: 400 })
+    }
+  
+    await prisma.article.update({
+      where: { id: params.id },
+      data : { ...parsed.data, status: 'DRAFT' },
+    })
+  
+    return NextResponse.json({ ok: true })
   }
-
-  await prisma.article.update({
-    where: { id: params.id },
-    data: { ...parsed.data, status: 'DRAFT' },
-  })
-
-  return NextResponse.json({ ok: true })
-}

@@ -7,7 +7,7 @@ import React, {
   useMemo,
   useState,
 } from 'react';
-import { EditorContent, useEditor } from '@tiptap/react';
+import { EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import ImageExt from '@tiptap/extension-image';
 import Link from '@tiptap/extension-link';
@@ -37,6 +37,7 @@ import { WebsocketProvider } from 'y-websocket';
 import enStrings from '@/public/locales/en/editor.json';
 import { useDebouncedCallback } from 'use-debounce';
 import { FontFamily } from './extensions/font-family';
+import { useEditor, Editor } from '@tiptap/react'
 
 import SlashCommand from './editor/SlashCommand';
 import Toolbar from './editor/Toolbar';
@@ -46,9 +47,7 @@ import styles from './article.module.scss';
 import Spinner from '../ui/spinner';
 import dynamic from 'next/dynamic';
 import NextImage from 'next/image';                              // 🆕 missing import
-import Editor from './Editor';                                  // the wrapper component
 import { useRouter } from "next/navigation";
-
 import 'katex/dist/katex.min.css';
 
 /* -------------------------------------------------------------------------- */
@@ -265,8 +264,52 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
   const [showUnsaved,   setShowUnsaved]   = useState(false);
   const [pendingRestore,setPendingRestore]= useState<Backup | null>(null);
   const [counter,       setCounter]       = useState({ words: 0, chars: 0 });
-
+  const [editorRef, setEditorRef] = useState<Editor | null>(null)
+  const [initialJson, setInitialJson] = useState<any | null>(null)
   const router = useRouter();
+  const editor = useEditor(
+    initialJson && {                        // ← guard against null
+      extensions: [StarterKit],
+      content: initialJson,
+      immediatelyRender: false,
+      onCreate({ editor }) {
+        setEditorRef(editor)
+      },
+    }
+  )
+  
+  /** 3️⃣ autosave once the editor is ready */
+  useEffect(() => {
+    if (!editorRef) return            // still mounting
+    const save = () => {
+      fetch(`/api/articles/${articleId}/draft`, {
+        method : 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body   : JSON.stringify({ astJson: editorRef.getJSON() }),
+      })
+    }
+    const id = setInterval(save, 1500)
+    return () => clearInterval(id)
+  }, [editorRef])
+
+  if (!editor) return null            // nothing until TipTap mounts
+
+  // return <EditorContent editor={editor} />
+// }
+// useEffect(() => {
+//   if (!editor) return                     // not ready yet
+//   const save = () => {
+//     fetch(`/api/articles/${articleId}/draft`, {
+//       method : 'PATCH',
+//       headers: { 'Content-Type': 'application/json' },
+//       body   : JSON.stringify({ astJson: editor.getJSON(), template }),
+//     })
+//   }
+//   const timer = setInterval(save, 1000)   // example debounce
+//   return () => clearInterval(timer)
+// }, [editor, articleId, template])
+
+//   const router = useRouter();
 
   /* ------------------------------ y‑js / collab --------------------------- */
 
@@ -337,24 +380,30 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
 
   /* ---------------------------- TipTap editor ---------------------------- */
 
-  const editor = useEditor({
-    extensions,
-    content: '',
-    editorProps: {
-      attributes: { class: 'ProseMirror max-w-none' },
-      handleDrop(view, event) {
-        const file = (event as DragEvent).dataTransfer?.files?.[0];
-        if (file) {
-          event.preventDefault();
-          setCropFile(file);
-          setCropImage(URL.createObjectURL(file));
-          return true;
-        }
-        return false;
-      },
-    },
-  });
+  // const editor = useEditor({
+  //   extensions,
+  //   content: '',
+  //   editorProps: {
+  //     attributes: { class: 'ProseMirror max-w-none' },
+  //     handleDrop(view, event) {
+  //       const file = (event as DragEvent).dataTransfer?.files?.[0];
+  //       if (file) {
+  //         event.preventDefault();
+  //         setCropFile(file);
+  //         setCropImage(URL.createObjectURL(file));
+  //         return true;
+  //       }
+  //       return false;
+  //     },
+  //   },
+  // });
 
+  // const editor = useEditor({
+  //   extensions: [StarterKit],
+  //   content: initialJson,
+  //   immediatelyRender: false,     // ← required for Next 14 SSR
+  //   onCreate: ({ editor }) => setEditor(editor),
+  // })
   /* ---------------------------------------------------------------------- */
   /*  Dirty‑flag + “are you sure you want to leave?” browser dialog          */
   /* ---------------------------------------------------------------------- */
@@ -375,9 +424,10 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
   const saveDraftImmediate = useCallback(async () => {
     if (!editor) return;
 
-    const astJson = editor.getJSON();
+    const astJson = editor?.getJSON()          // undefined if not ready
     const body    = { astJson, template, heroImageKey };
     if (!articleId) return            // never hit the API with undefined
+    if (!editor) return                        // or return early from the handler
 
     // await fetch(`/api/articles/${articleId}/draft`, {
     //   method: 'PATCH',
@@ -388,7 +438,7 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        astJson : editor.getJSON(),           // actual doc
+        astJson : editor?.getJSON(),           // actual doc
         template: template,            // optional
        
         heroImageKey
@@ -405,8 +455,24 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
     setShowUnsaved(false);
   }, [editor, template, heroImageKey, articleId]);
 
-  const saveDraft = useDebouncedCallback(saveDraftImmediate, 2_000);
-
+  const saveDraft = async () => {
+    if (!editor) return                        // still mounting
+  
+    await fetch(`/api/articles/${articleId}/draft`, {
+      method : 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body   : JSON.stringify({
+        astJson     : editor.getJSON(),
+        template,
+        heroImageKey,
+      }),
+    })
+  }
+  useEffect(() => {
+    if (!editor) return
+    const id = setInterval(saveDraft, 1500)
+    return () => clearInterval(id)
+  }, [editor, articleId, template])
 //   const publishArticle = useCallback(async () => {
 //     if (!articleId) return;
 // const res = await fetch(`/api/articles/${articleId}/publish`, { method: 'POST' })
@@ -427,7 +493,17 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
 //   }, [articleId, router]);
 const publishArticle = useCallback(async () => {
   if (!articleId) return
+  if (!editor) return
 
+  await fetch(`/api/articles/${articleId}/publish`, {
+    method : 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body   : JSON.stringify({
+      astJson : editor?.getJSON() ?? null,
+      template,
+      heroImageKey,
+    }),
+  })
   const res = await fetch(`/api/articles/${articleId}/publish`, {
     method : 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -453,42 +529,57 @@ const publishArticle = useCallback(async () => {
   /* ---------------------------------------------------------------------- */
 
   useEffect(() => {
-    if (!editor) return;
-    const controller = new AbortController();
+    let cancelled = false
+    ;(async () => {
+      const res = await fetch(`/api/articles/${articleId}`)
+      const data = res.ok ? await res.json() : null
+      if (cancelled) return
+      setTemplate(data?.template ?? 'standard')
+      setHeroImageKey(data?.heroImageKey ?? null)
+      setInitialJson(
+        data?.astJson ?? { type: 'doc', content: [] }   // default empty doc
+      )
+    })()
+  
+    return () => { cancelled = true }
+  }, [articleId])
 
-    (async () => {
-      try {
-        if (!articleId) return            // never hit the API with undefined
+  //   if (!editor) return;
+  //   const controller = new AbortController();
 
-        const res = await fetch(`/api/articles/${articleId}`, {
-          signal: controller.signal,
-        });
-        if (!res.ok) return;
-        const data = await res.json();         // consume body only once
-        const serverUpdated = new Date(data.updatedAt ?? 0).getTime();
+  //   (async () => {
+  //     try {
+  //       if (!articleId) return            // never hit the API with undefined
 
-        editor.commands.setContent(data.astJson ?? []);
-        setTemplate(data.template ?? 'standard');
-        setHeroImageKey(data.heroImageKey ?? null);
-        setHeroPreview(data.heroImageKey ?? null);
+  //       const res = await fetch(`/api/articles/${articleId}`, {
+  //         signal: controller.signal,
+  //       });
+  //       if (!res.ok) return;
+  //       const data = await res.json();         // consume body only once
+  //       const serverUpdated = new Date(data.updatedAt ?? 0).getTime();
 
-        /* … look for a fresher local backup … */
-        const local = localStorage.getItem(LOCAL_KEY(articleId));
-        if (local) {
-          const parsed: Backup = JSON.parse(local);
-          if (parsed.ts > serverUpdated) {
-            setPendingRestore(parsed);
-          }
-        }
-      } catch (err) {
-        if ((err as DOMException).name !== 'AbortError') {
-          console.error(err);
-        }
-      }
-    })();
+  //       editor.commands.setContent(data.astJson ?? []);
+  //       setTemplate(data.template ?? 'standard');
+  //       setHeroImageKey(data.heroImageKey ?? null);
+  //       setHeroPreview(data.heroImageKey ?? null);
 
-    return () => controller.abort();
-  }, [articleId, editor]);
+  //       /* … look for a fresher local backup … */
+  //       const local = localStorage.getItem(LOCAL_KEY(articleId));
+  //       if (local) {
+  //         const parsed: Backup = JSON.parse(local);
+  //         if (parsed.ts > serverUpdated) {
+  //           setPendingRestore(parsed);
+  //         }
+  //       }
+  //     } catch (err) {
+  //       if ((err as DOMException).name !== 'AbortError') {
+  //         console.error(err);
+  //       }
+  //     }
+  //   })();
+
+  //   return () => controller.abort();
+  // }, [articleId, editor]);
 
   /* ---------------------------------------------------------------------- */
   /*  Live character counter                                                 */

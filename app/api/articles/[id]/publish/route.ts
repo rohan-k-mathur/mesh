@@ -25,7 +25,12 @@ export async function POST(
   while (await prisma.article.findUnique({ where: { slug } })) {
     slug = `${base}-${suffix++}`
   }
-  const body = await _req.json().catch(() => null)  // client may POST content
+  const safeJson = async () => {
+    try { return await _req.json() } catch { return {} }
+  }
+  const body = await safeJson()
+
+  //const body = await _req.json().catch(() => null)  // client may POST content
 
   /* ①  write slug + PUBLISHED status */
 // await prisma.article.update({
@@ -36,10 +41,10 @@ await prisma.article.update({
     where: { id: params.id },
     data : {
       slug,
-      status : 'PUBLISHED',
-      ...(body?.astJson && { astJson: body.astJson }),
-      ...(body?.template && { template: body.template }),
-      ...(body?.heroImageKey && { heroImageKey: body.heroImageKey }),
+      status: 'PUBLISHED',
+      ...(body.astJson && { astJson: body.astJson }),
+      ...(body.template && { template: body.template }),
+      ...(body.heroImageKey && { heroImageKey: body.heroImageKey }),
     },
   })
 
