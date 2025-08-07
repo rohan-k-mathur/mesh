@@ -33,19 +33,20 @@ import { nanoid } from "nanoid";
 import { useRouter } from "next/navigation";
 import { uploadFileToSupabase } from "@/lib/utils";
 import { PortfolioExportData } from "@/lib/portfolio/export";
-import { templates, BuilderElement } from "@/lib/portfolio/templates";
+import { templates } from "@/lib/portfolio/templates";
 import Image from "next/image";
 import { createFeedPost } from "@/lib/actions/feed.actions";
 import { feed_post_type } from "@prisma/client";
 import { Input } from "@/components/ui/input";
 import styles from "./resize-handles.module.css"; // CSS module for handles
-import { TextBoxRecord } from "@/lib/portfolio/types";
+import { TextBoxRecord, ElementRecord } from "@/lib/portfolio/types";
 import {
   CanvasProvider,
   useCanvasDispatch,
   useCanvasSelection,
   useCanvasUndo,
   useCanvasRedo,
+  useCanvasElements,
 } from "@/lib/portfolio/CanvasStoreProvider";
 import type { UniqueIdentifier } from "@dnd-kit/core";
 import { serialize, jsonToCanvasState } from "@/lib/portfolio/export";
@@ -64,7 +65,6 @@ import { getBoundingRect } from "@/lib/portfolio/selection";
 type Corner = "nw" | "ne" | "sw" | "se";
 type ResizeTarget = { id: string; kind: "text" | "image" | "video" | "link" };
 
-type Element = BuilderElement;
 
 type DrawMode = null | "text" | "image" | "video" | "link";
 
@@ -75,10 +75,10 @@ type DrawMode = null | "text" | "image" | "video" | "link";
 function mkElement(
   type: "image" | "video" | "link",
   pos: { x: number; y: number; width: number; height: number }
-): BuilderElement {
+): ElementRecord {
   return {
     id: nanoid(),
-    type,
+    kind: type,
     content: "",
     src: "",
     ...pos,
@@ -95,10 +95,10 @@ function fitIntoBox(
 }
 
 function debounce<F extends (...args: any[]) => void>(fn: F, ms: number) {
-  let timeout: ReturnType<typeof setTimeout>;
+  let t: ReturnType<typeof setTimeout>;
   return (...args: Parameters<F>) => {
-    clearTimeout(timeout);
-    timeout = setTimeout(() => fn(...args), ms);
+    clearTimeout(t);
+    t = setTimeout(() => fn(...args), ms);
   };
 }
 /* ---------- DroppableCanvas ---------- */
@@ -116,12 +116,7 @@ interface DroppableCanvasProps {
   color: string;
   drawMode: DrawMode;
   showGrid: boolean;
-
   setDrawMode: React.Dispatch<React.SetStateAction<DrawMode>>;
-  boxes: TextBoxRecord[];
-  elements: Element[];
-  setBoxes: React.Dispatch<React.SetStateAction<TextBoxRecord[]>>;
-  setElements: React.Dispatch<React.SetStateAction<Element[]>>;
   canvasRef: React.MutableRefObject<HTMLDivElement | null>;
   selectedId: string | null;
   setSelectedId: React.Dispatch<React.SetStateAction<string | null>>;
@@ -129,7 +124,7 @@ interface DroppableCanvasProps {
 /* ---------- preview component ---------- */
 interface PreviewProps {
   id: string;
-  elements: Element[];
+  elements: ElementRecord[];
 }
 
 function CanvasItem({
@@ -370,10 +365,6 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
       drawMode,
       setDrawMode,
       showGrid,
-      boxes,
-      setBoxes,
-      elements,
-      setElements,
       canvasRef,
       selectedId,
       setSelectedId,
@@ -401,6 +392,15 @@ const snap = useCallback(
     const { setNodeRef } = useDroppable({ id: "canvas" });
     const dispatch = useCanvasDispatch();
     const selection = useCanvasSelection();
+    const elementsMap = useCanvasElements();
+    const elements = useMemo(
+      () => Array.from(elementsMap.values()),
+      [elementsMap],
+    );
+    const boxes = useMemo(
+      () => elements.filter((e): e is TextBoxRecord => (e as any).kind === "text"),
+      [elements],
+    );
     const selectionBox = React.useMemo(() => {
       if (selection.length <= 1) return null;
       const map = new Map(
@@ -511,23 +511,11 @@ const snap = useCallback(
             }
           };
           const { l, t, w, h } = calc(r.corner, dx, dy);
-          if (r.target.kind === "text") {
-            setBoxes((bs) =>
-              bs.map((b) =>
-                b.id === r.target.id
-                  ? { ...b, x: l, y: t, width: w, height: h }
-                  : b
-              )
-            );
-          } else {
-            setElements((es) =>
-              es.map((el) =>
-                el.id === r.target.id
-                  ? { ...el, x: l, y: t, width: w, height: h }
-                  : el
-              )
-            );
-          }
+          dispatch({
+            type: "patch",
+            id: r.target.id,
+            patch: { x: l, y: t, width: w, height: h },
+          });
         }
         if (d) {
           const rect = canvasRef.current!.getBoundingClientRect();
@@ -537,10 +525,12 @@ const snap = useCallback(
         
           const newLeft = snap(d.startLeft + pointerX - d.startX);
           const newTop  = snap(d.startTop  + pointerY - d.startY);
-        
-          setBoxes(bs =>
-            bs.map(b => b.id === d.id ? { ...b, x: newLeft, y: newTop } : b)
-          );
+
+          dispatch({
+            type: "patch",
+            id: d.id,
+            patch: { x: newLeft, y: newTop },
+          });
           
           // const dx = snap(ev.clientX - rect.left) - d.startX;
           // const dy = snap(ev.clientY - rect.top)  - d.startY;
@@ -565,7 +555,7 @@ const snap = useCallback(
         window.removeEventListener("pointermove", onMove);
         window.removeEventListener("pointerup", onUp);
       };
-    }, [canvasRef, setBoxes, setElements]);
+    }, [canvasRef, dispatch]);
 
     /* ---------- draw new element ---------- */
     const isDrawing = drawMode !== null;
@@ -608,9 +598,9 @@ const snap = useCallback(
       const id = nanoid();
       switch (drawMode) {
         case "text":
-          setBoxes((bs) => [
-            ...bs,
-            {
+          dispatch({
+            type: "add",
+            element: {
               id,
               x,
               y,
@@ -621,26 +611,26 @@ const snap = useCallback(
               fontSize: 14,
               lineHeight: 1.2,
             },
-          ]);
+          });
           setSelectedId(id);
           break;
         case "image":
-          setElements((els) => [
-            ...els,
-            mkElement("image", { x, y, width, height }),
-          ]);
+          dispatch({
+            type: "add",
+            element: mkElement("image", { x, y, width, height }),
+          });
           break;
         case "video":
-          setElements((els) => [
-            ...els,
-            mkElement("video", { x, y, width, height }),
-          ]);
+          dispatch({
+            type: "add",
+            element: mkElement("video", { x, y, width, height }),
+          });
           break;
         case "link":
-          setElements((els) => [
-            ...els,
-            mkElement("link", { x, y, width, height }),
-          ]);
+          dispatch({
+            type: "add",
+            element: mkElement("link", { x, y, width, height }),
+          });
           break;
       }
       setDraft(null);
@@ -706,9 +696,11 @@ const snap = useCallback(
             <EditableBox
               box={box}
               onInput={(content) =>
-                setBoxes((bs) =>
-                  bs.map((b) => (b.id === box.id ? { ...b, content } : b))
-                )
+                dispatch({
+                  type: "patch",
+                  id: box.id,
+                  patch: { content },
+                })
               }
               onSelect={() => setSelectedId(box.id)}
             />
@@ -920,17 +912,21 @@ DroppableCanvas.displayName = "DroppableCanvas";
 // );
 // DroppableCanvas.displayName = "DroppableCanvas";
 
-  function PortfolioBuilderInner() {
+  function PortfolioBuilderInner({
+    initialLayout = "free",
+    initialColor = "bg-white",
+  }: {
+    initialLayout?: "column" | "grid" | "free";
+    initialColor?: string;
+  }) {
   //return <h1 style={{color:'red'}}>If you can see this, the file is routed correctly</h1>;
   const [showGrid, setShowGrid] = useState(true);   // ← NEW
 
-  const [elements, setElements] = useState<Element[]>([]);
   const canvasRef = useRef<HTMLDivElement>(null);
-  const [color, setColor] = useState("bg-white");
-  const [layout, setLayout] = useState<"column" | "grid" | "free">("free");
+  const [color, setColor] = useState(initialColor);
+  const [layout, setLayout] = useState<"column" | "grid" | "free">(initialLayout);
   const [template, setTemplate] = useState<string>("");
   const [drawMode, setDrawMode] = useState<DrawMode>(null);
-  const [textBoxes, setTextBoxes] = useState<TextBoxRecord[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
   const [gridSize, setGridSize] = useState(30);
@@ -939,6 +935,15 @@ DroppableCanvas.displayName = "DroppableCanvas";
   const selection = useCanvasSelection();
   const undo = useCanvasUndo();
   const redo = useCanvasRedo();
+  const elementsMap = useCanvasElements();
+  const elements = useMemo(
+    () => Array.from(elementsMap.values()),
+    [elementsMap],
+  );
+  const textBoxes = useMemo(
+    () => elements.filter((e): e is TextBoxRecord => e.kind === "text"),
+    [elements],
+  );
   const lastDrag = useRef({ x: 0, y: 0 });
   const snap = useCallback(
     (v: number) => Math.round(v / gridSize) * gridSize,
@@ -947,13 +952,15 @@ DroppableCanvas.displayName = "DroppableCanvas";
   const router = useRouter();
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      const meta = e.ctrlKey || e.metaKey;
+      if ((e.target as HTMLElement).closest("input,textarea,[contenteditable]"))
+        return;
+      const meta = e.metaKey || e.ctrlKey;
       if (!meta) return;
-      if (e.key === "z" && !e.shiftKey) {
+      if (e.key === "z") {
         e.preventDefault();
-        undo();
-      }
-      if ((e.key === "Z" && e.shiftKey) || e.key === "y") {
+        if (e.shiftKey) redo();
+        else undo();
+      } else if (e.key === "y") {
         e.preventDefault();
         redo();
       }
@@ -1008,32 +1015,25 @@ DroppableCanvas.displayName = "DroppableCanvas";
     const { delta, active } = event;
     const dx = delta.x - lastDrag.current.x;
     const dy = delta.y - lastDrag.current.y;
-    
+
     lastDrag.current = { x: delta.x, y: delta.y };
-    const targets = selection.length ? selection : [String(active.id)];
-    if (template === "") {
-      setElements((els) =>
-        els.map((e) =>
-          targets.includes(e.id)
-            ? { ...e,   x: snap((e.x ?? 0) + dx),
-              y: snap((e.y ?? 0) + dy),}
-            : e
-        )
-      );
-    }
     dispatch({ type: "groupDrag", dx, dy });
   };
 
   function handleDragEnd(event: DragEndEvent) {
     const { over, active } = event;
-    dispatch({ type: "groupDragEnd" });
+    dispatch({
+      type: "groupDragEnd",
+      dx: lastDrag.current.x,
+      dy: lastDrag.current.y,
+    });
     lastDrag.current = { x: 0, y: 0 };
     if (template !== "" && over && active.id !== over.id) {
-      setElements((els) => {
-        const oldIndex = els.findIndex((e) => e.id === active.id);
-        const newIndex = els.findIndex((e) => e.id === over.id);
-        return arrayMove(els, oldIndex, newIndex);
-      });
+      const ids = elements.map((e) => e.id);
+      const oldIndex = ids.findIndex((id) => id === active.id);
+      const newIndex = ids.findIndex((id) => id === over.id);
+      const newOrder = arrayMove(ids, oldIndex, newIndex);
+      dispatch({ type: "reorder", order: newOrder });
     }
   }
   function getImageSizeFromFile(file: File): Promise<{ w: number; h: number }> {
@@ -1066,35 +1066,31 @@ DroppableCanvas.displayName = "DroppableCanvas";
     
 
     if (!res.error) {
-      setElements((els) =>
-        els.map((el) =>
-          el.id === id
-          ? { ...el, src: res.fileURL,           /* keep current w/h */
-                        natW: w, natH: h }            : el
-        )
-      );
+      dispatch({
+        type: "patch",
+        id,
+        patch: { src: res.fileURL, natW: w, natH: h },
+      });
     }
   }
 
   function recordNaturalSize(id: string, w: number, h: number) {
-    setElements((els) =>
-      els.map((el) => (el.id === id ? { ...el, natW: w, natH: h } : el))
-    );
+    dispatch({ type: "patch", id, patch: { natW: w, natH: h } });
   }
   function buildAbsoluteExport() {
     // 1️⃣  From drag‑dropped template elements
     const absoluteElems = elements.map((e) => ({
       id: e.id,
-      type: e.type,
+      type: e.kind,
       x: e.x ?? 0,
       y: e.y ?? 0,
       natW: e.natW,
       natH: e.natH,
       width: e.width,
       height: e.height,
-      content: e.content,
-      src: e.src,
-      href: e.href,
+      content: (e as any).content,
+      src: (e as any).src,
+      href: (e as any).href,
     }));
 
     // 2️⃣  From text boxes we drew
@@ -1118,17 +1114,17 @@ DroppableCanvas.displayName = "DroppableCanvas";
   }
   function serialize(): PortfolioExportData {
     const textFromElements = elements
-      .filter((e) => e.type === "text" && e.content)
-      .map((e) => e.content)
+      .filter((e) => e.kind === "text" && (e as any).content)
+      .map((e) => (e as any).content)
       .join("\n");
     const textFromBoxes = textBoxes.map((b) => b.content).join("\n");
     const text = [textFromElements, textFromBoxes].filter(Boolean).join("\n");
     const images = elements
-      .filter((e) => e.type === "image" && e.src)
-      .map((e) => e.src as string);
+      .filter((e) => e.kind === "image" && (e as any).src)
+      .map((e) => (e as any).src as string);
     const links = elements
-      .filter((e) => e.type === "link" && e.href)
-      .map((e) => e.href as string);
+      .filter((e) => e.kind === "link" && (e as any).href)
+      .map((e) => (e as any).href as string);
     return { text, images, links, layout, color };
   }
   async function handlePublish() {
@@ -1164,16 +1160,22 @@ DroppableCanvas.displayName = "DroppableCanvas";
     setTemplate(name);
     setLayout(tpl.layout);
     setColor(tpl.color);
-    setElements(
-      tpl.elements.map((e) => ({
-        ...e,
+    dispatch({ type: "setLayout", layout: tpl.layout });
+    dispatch({ type: "setColor", color: tpl.color });
+    dispatch({
+      type: "replace",
+      elements: tpl.elements.map((e) => ({
         id: nanoid(),
+        kind: e.type,
         x: 0,
         y: 0,
         width: e.type === "image" ? 200 : 200,
         height: e.type === "image" ? 200 : 32,
-      }))
-    );
+        content: e.content,
+        src: e.src,
+        href: e.href,
+      })),
+    });
   }
   const sensors = useSensors(useSensor(PointerSensor));
 
@@ -1231,6 +1233,7 @@ DroppableCanvas.displayName = "DroppableCanvas";
                  : "bg-white"
              }`}
               onClick={() => setDrawMode((d) => (d === "text" ? null : "text"))}
+              aria-label="Add text box"
             >
               {drawMode === "text" ? "Text Box" : "Text Box"}
               <Image
@@ -1252,6 +1255,7 @@ DroppableCanvas.displayName = "DroppableCanvas";
               onClick={() =>
                 setDrawMode((d) => (d === "image" ? null : "image"))
               }
+              aria-label="Add image"
             >
               Image
               <Image
@@ -1273,6 +1277,7 @@ DroppableCanvas.displayName = "DroppableCanvas";
               onClick={() =>
                 setDrawMode((d) => (d === "video" ? null : "video"))
               }
+              aria-label="Add video"
             >
               Video
               <Image
@@ -1292,6 +1297,7 @@ DroppableCanvas.displayName = "DroppableCanvas";
                  : "bg-white"
              }`}
               onClick={() => setDrawMode((d) => (d === "link" ? null : "link"))}
+              aria-label="Add link"
             >
               Link
               <Image
@@ -1304,13 +1310,9 @@ DroppableCanvas.displayName = "DroppableCanvas";
             </button>
             {selectedId && (
               <StylePanel
-                box={textBoxes.find((b) => b.id === selectedId)!}
+                box={elementsMap.get(selectedId)! as TextBoxRecord}
                 onChange={(patch) =>
-                  setTextBoxes((bs) =>
-                    bs.map((b) =>
-                      b.id === selectedId ? { ...b, ...patch } : b
-                    )
-                  )
+                  dispatch({ type: "patch", id: selectedId, patch })
                 }
               />
             )}
@@ -1324,11 +1326,6 @@ DroppableCanvas.displayName = "DroppableCanvas";
             drawMode={drawMode}
             setDrawMode={setDrawMode}
               showGrid={showGrid}
-
-            boxes={textBoxes}
-            elements={elements}
-            setBoxes={setTextBoxes}
-            setElements={setElements}
             canvasRef={canvasRef}
             selectedId={selectedId}
             setSelectedId={setSelectedId}
@@ -1347,7 +1344,7 @@ DroppableCanvas.displayName = "DroppableCanvas";
                   <div className="relative border-2 border-dashed
                 border-gray-500/60 bg-transparent box-border "
      style={{ width: el.width, height: el.height }}>
-                    {el.type === "text" && (
+                    {el.kind === "text" && (
                       
                       <div
                       
@@ -1356,17 +1353,13 @@ DroppableCanvas.displayName = "DroppableCanvas";
                         className="text-block outline-none "
                         onPointerDown={(e) => e.stopPropagation()}
                         onInput={(e) =>
-                          setElements((els) =>
-                            els.map((it) =>
-                              it.id === el.id
-                                ? {
-                                    ...it,
-                                    content: (e.target as HTMLElement)
-                                      .innerText,
-                                  }
-                                : it
-                            )
-                          )
+                          dispatch({
+                            type: "patch",
+                            id: el.id,
+                            patch: {
+                              content: (e.target as HTMLElement).innerText,
+                            },
+                          })
                         }
                       >
                             {el.content || "Edit text"}
@@ -1384,7 +1377,7 @@ DroppableCanvas.displayName = "DroppableCanvas";
                         {/* {el.content || "Edit text"} */}
                       </div>
                     )}
-                    {el.type === "image" && (
+                    {el.kind === "image" && (
                       <div
                         style={{
                   
@@ -1469,10 +1462,9 @@ DroppableCanvas.displayName = "DroppableCanvas";
                           onClick={(e) => {
                             /* ⬅︎ ACTUAL DELETE */
                             e.stopPropagation(); // safety for touch events
-                            setElements((els) =>
-                              els.filter((it) => it.id !== el.id)
-                            );
+                            dispatch({ type: "remove", id: el.id });
                           }}
+                          aria-label="Delete"
                         >
                           <Image
                             src="/assets/trash-can.svg"
@@ -1484,7 +1476,7 @@ DroppableCanvas.displayName = "DroppableCanvas";
                         </button>
                       </div>
                     )}
-                    {el.type === "video" && (
+                    {el.kind === "video" && (
                       <div className="p-1 border border-transparent">
                         {el.src ? (
                           <iframe
@@ -1501,13 +1493,11 @@ DroppableCanvas.displayName = "DroppableCanvas";
                             className="w-full h-full p-1"
                             onPointerDown={(e) => e.stopPropagation()}
                             onChange={(e) =>
-                              setElements((els) =>
-                                els.map((it) =>
-                                  it.id === el.id
-                                    ? { ...it, src: e.target.value }
-                                    : it
-                                )
-                              )
+                              dispatch({
+                                type: "patch",
+                                id: el.id,
+                                patch: { src: e.target.value },
+                              })
                             }
                           />
                         )}
@@ -1528,23 +1518,21 @@ DroppableCanvas.displayName = "DroppableCanvas";
                         )}
                       </div>
                     )}
-                    {el.type === "box" && (
+                    {el.kind === "box" && (
                       <div className="w-20 h-20 border bg-gray-200" />
                     )}
-                    {el.type === "link" && (
+                    {el.kind === "link" && (
                       <input
                         className="border p-1 text-sm"
                         placeholder="https://example.com"
                         value={el.href || ""}
                         onPointerDown={(e) => e.stopPropagation()}
                         onChange={(e) =>
-                          setElements((els) =>
-                            els.map((it) =>
-                              it.id === el.id
-                                ? { ...it, href: e.target.value }
-                                : it
-                            )
-                          )
+                          dispatch({
+                            type: "patch",
+                            id: el.id,
+                            patch: { href: e.target.value },
+                          })
                         }
                       />
                     )}
@@ -1553,30 +1541,26 @@ DroppableCanvas.displayName = "DroppableCanvas";
               ) : (
                 <SortableCanvasItem key={el.id} id={el.id} w={el.width} h={el.height}>
                   <div className="p-2 border bg-white space-y-2">
-                    {el.type === "text" && (
+                    {el.kind === "text" && (
                       <div
                         contentEditable
                         suppressContentEditableWarning
                         className="text-block outline-none"
                         onPointerDown={(e) => e.stopPropagation()}
                         onInput={(e) =>
-                          setElements((els) =>
-                            els.map((it) =>
-                              it.id === el.id
-                                ? {
-                                    ...it,
-                                    content: (e.target as HTMLElement)
-                                      .innerText,
-                                  }
-                                : it
-                            )
-                          )
+                          dispatch({
+                            type: "patch",
+                            id: el.id,
+                            patch: {
+                              content: (e.target as HTMLElement).innerText,
+                            },
+                          })
                         }
                       >
                         {el.content || "Edit text"}
                       </div>
                     )}
-                    {el.type === "image" && (
+                    {el.kind === "image" && (
                       <div>
                         <div className="relative inline-block">
                           {el.src ? (
@@ -1626,7 +1610,7 @@ DroppableCanvas.displayName = "DroppableCanvas";
                         </div>
                       </div>
                     )}
-                    {el.type === "video" && (
+                    {el.kind === "video" && (
                       <div className="p-1 border border-transparent">
                         {el.src ? (
                           <iframe
@@ -1647,12 +1631,11 @@ DroppableCanvas.displayName = "DroppableCanvas";
                               if (!isSafeYoutubeEmbed(url)) return; // ignore invalid input
 
                               // `el` is already in scope (we're inside elements.map(render))
-                              setElements((prev) =>
-                                prev.map(
-                                  (it) =>
-                                    it.id === el.id ? { ...it, src: url } : it // ✅ update just this item
-                                )
-                              );
+                              dispatch({
+                                type: "patch",
+                                id: el.id,
+                                patch: { src: url },
+                              });
                             }}
                           />
                         )}
@@ -1673,10 +1656,10 @@ DroppableCanvas.displayName = "DroppableCanvas";
                         )}
                       </div>
                     )}
-                    {el.type === "box" && (
+                    {el.kind === "box" && (
                       <div className="w-20 h-20 border bg-gray-200" />
                     )}
-                    {el.type === "link" && (
+                    {el.kind === "link" && (
                       <input
                         className="border p-1 text-sm"
                         placeholder="https://example.com"
@@ -1687,21 +1670,20 @@ DroppableCanvas.displayName = "DroppableCanvas";
                           const v = e.target.value.trim();
                           if (!isSafeHttpLink(v)) return; // bail out on invalid link
 
-                          setElements((prev) =>
-                            prev.map((it) =>
-                              it.id === el.id ? { ...it, href: v } : it
-                            )
-                          );
+                          dispatch({
+                            type: "patch",
+                            id: el.id,
+                            patch: { href: v },
+                          });
                         }}
                       />
                     )}
                     <button
                       className="text-xs text-red-500"
                       onClick={() =>
-                        setElements((els) =>
-                          els.filter((it) => it.id !== el.id)
-                        )
+                        dispatch({ type: "remove", id: el.id })
                       }
+                      aria-label="Delete"
                     >
                       <Image
                         src="/assets/trash-can.svg"
@@ -1737,7 +1719,10 @@ DroppableCanvas.displayName = "DroppableCanvas";
               <select
                 className="w-full rounded-xl lockbutton mt-1 border-black bg-gray-100 border-[1px] p-1"
                 value={color}
-                onChange={(e) => setColor(e.target.value)}
+                onChange={(e) => {
+                  setColor(e.target.value);
+                  dispatch({ type: "setColor", color: e.target.value });
+                }}
               >
                 <option value="bg-white">White</option>
                 <option value="bg-gray-200">Gray</option>
@@ -1749,9 +1734,11 @@ DroppableCanvas.displayName = "DroppableCanvas";
               <select
                 className="w-full rounded-xl lockbutton mt-1 border-black bg-gray-100 border-[1px] p-1"
                 value={layout}
-                onChange={(e) =>
-                  setLayout(e.target.value as "column" | "grid" | "free")
-                }
+                onChange={(e) => {
+                  const v = e.target.value as "column" | "grid" | "free";
+                  setLayout(v);
+                  dispatch({ type: "setLayout", layout: v });
+                }}
               >
                 <option value="free">Free</option>
 
@@ -1760,10 +1747,10 @@ DroppableCanvas.displayName = "DroppableCanvas";
               </select>
             </div>
             <div className="flex gap-2">
-              <button onClick={undo} title="Undo (⌘Z)">
+              <button onClick={undo} title="Undo (⌘Z)" aria-label="Undo">
                 <Image src="/assets/undo.svg" width={20} height={20} alt="" />
               </button>
-              <button onClick={redo} title="Redo (⇧⌘Z)">
+              <button onClick={redo} title="Redo (⇧⌘Z)" aria-label="Redo">
                 <Image src="/assets/redo.svg" width={20} height={20} alt="" />
               </button>
             </div>
@@ -1804,10 +1791,15 @@ export default function PortfolioBuilder() {
       return null;
     }
   }, [draftJson, projectKey]);
+  const initialLayout = initialStateFromDraft?.layout ?? "free";
+  const initialColor = initialStateFromDraft?.color ?? "bg-white";
 
   return (
     <CanvasProvider initial={initialStateFromDraft} onChange={saveDraft}>
-      <PortfolioBuilderInner />
+      <PortfolioBuilderInner
+        initialLayout={initialLayout}
+        initialColor={initialColor}
+      />
     </CanvasProvider>
   );
 }
@@ -1817,7 +1809,7 @@ function PreviewOfItem({ id, elements }: PreviewProps) {
   
   if (!el) return null; // shouldn't happen
 
-  switch (el.type) {
+  switch (el.kind) {
     case "text":
       return (
         <div

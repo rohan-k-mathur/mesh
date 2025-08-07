@@ -37,11 +37,12 @@ export interface AbsoluteElement {
 }
 
 export function serialize(state: CanvasState): string {
+  const { elements, selected, past, future, _dragStart, ...rest } = state as any;
   return JSON.stringify({
     schemaVersion: 1,
-    ...state,
-    elements: [...state.elements.values()],
-    selected: [...state.selected],
+    ...rest,
+    elements: [...elements.values()],
+    selected: [...selected],
   });
 }
 
@@ -60,7 +61,15 @@ export function jsonToCanvasState(
     obj.elements.forEach((el: ElementRecord) => elements.set(el.id, el));
   }
   const selected = new Set<string>(Array.isArray(obj.selected) ? obj.selected : []);
-  return { elements, selected, past: [], future: [] };
+  return {
+    elements,
+    selected,
+    past: [],
+    future: [],
+    layout: obj.layout,
+    color: obj.color,
+    schemaVersion: obj.schemaVersion,
+  };
 }
 export function generatePortfolioTemplates(
   data: PortfolioExportData,
