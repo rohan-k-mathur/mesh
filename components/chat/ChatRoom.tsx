@@ -1,5 +1,6 @@
 "use client";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import Image from "next/image";
 import { supabase } from "@/lib/supabaseclient";
 import {
   ChatMessage,
@@ -14,6 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { usePrivateChatManager } from "@/contexts/PrivateChatManager";
 import { useChatStore } from "@/contexts/useChatStore";
+import { File as FileIcon } from "lucide-react";
 
 interface UserLite {
   name: string;
@@ -63,17 +65,72 @@ export default function ChatRoom({
     };
   }, [conversationId, appendMessage]);
 
+  function formatBytes(bytes: number) {
+    const units = ["B", "KB", "MB", "GB"];
+    let i = 0;
+    let n = bytes;
+    while (n >= 1024 && i < units.length - 1) {
+      n /= 1024;
+      i++;
+    }
+    return `${n.toFixed(1)} ${units[i]}`;
+  }
+
+  function Attachment({
+    a,
+  }: {
+    a: { path: string; type: string; size: number };
+  }) {
+    const [url, setUrl] = useState<string | null>(null);
+    useEffect(() => {
+      supabase.storage
+        .from("message-attachments")
+        .createSignedUrl(a.path, 60 * 60)
+        .then(({ data }) => setUrl(data?.signedUrl || null));
+    }, [a.path]);
+    if (!url) return null;
+    const isImage = a.type.startsWith("image/");
+    if (isImage) {
+      return (
+        <Image
+          src={url}
+          alt="attachment"
+          width={256}
+          height={256}
+          className="rounded-md max-h-64 object-cover"
+        />
+      );
+    }
+    const name = a.path.split("/").pop();
+    return (
+      <a
+        href={url}
+        download={name || undefined}
+        className="flex items-center gap-2 text-blue-600 underline"
+      >
+        <FileIcon className="w-4 h-4" />
+        <span>{formatBytes(a.size)}</span>
+      </a>
+    );
+  }
+
   return (
     <div className="space-y-3">
       {messages.map((m) => (
-        
         <ChatMessage
           key={m.id}
           type={m.senderId === currentUserId.toString() ? "outgoing" : "incoming"}
           variant="bubble"
           id={m.id}
         >
-          <ChatMessageContent content={m.text ?? ""} />
+          {m.text && <ChatMessageContent content={m.text} />}
+          {m.attachments && m.attachments.length > 0 && (
+            <div className="mt-2 space-y-2">
+              {m.attachments.map((a) => (
+                <Attachment key={a.id} a={a} />
+              ))}
+            </div>
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <ChatMessageAvatar
@@ -83,20 +140,15 @@ export default function ChatRoom({
             </DropdownMenuTrigger>
             <DropdownMenuContent>
               <DropdownMenuItem
-          onClick={() =>
-            open(
-              BigInt(m.senderId),
-              m.sender.name,
-              conversationId
-            )
-          }
-          disabled={m.senderId === currentUserId.toString()}
+                onClick={() =>
+                  open(BigInt(m.senderId), m.sender.name, conversationId)
+                }
+                disabled={m.senderId === currentUserId.toString()}
               >
                 💬 Chat
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-
         </ChatMessage>
       ))}
     </div>
