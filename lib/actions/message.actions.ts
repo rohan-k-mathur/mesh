@@ -80,19 +80,18 @@ export async function sendMessage({
 
     const channel = supabase.channel(`conversation-${conversationId.toString()}`);
     const payload = {
-      id: message.id,                  // bigint
-      conversationId,                  // bigint
-      text: message.text ?? null,
-      createdAt: message.created_at,   // Date
-      senderId,                        // bigint
-      sender: { name: message.sender.name, image: message.sender.image },
-      attachments: attachments.map(a => ({
-        id: a.id,                      // bigint
-        path: a.path,
-        type: a.type,
-        size: a.size,
-      })),
-    };
+  id: message.id.toString(),
+  conversationId: conversationId.toString(),
+  text: message.text ?? null,
+  createdAt: message.created_at.toISOString(),
+  senderId: senderId.toString(), // <- string
+  attachments: attachments.map(a => ({
+    id: a.id.toString(),
+    path: a.path,
+    type: a.type,
+    size: a.size,
+  })),
+};
     const safe = jsonSafe(payload);    // bigint→number, Date→ISO string
 
     await supabase.channel(`conversation-${conversationId.toString()}`)

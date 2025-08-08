@@ -15,6 +15,7 @@ import ScrollAnalytics from "@/components/shared/ScrollAnalytics";
 import { getRoomsForUser } from "@/lib/actions/realtimeroom.actions";
 import { RealtimeRoom } from "@prisma/client";
 import { PrivateChatManagerProvider } from "@/contexts/PrivateChatManager";
+import ClientProviders from "./client-providers";
 
 export const metadata = {
   title: "Mesh",
@@ -75,8 +76,8 @@ export default async function StandardLayout({
       </AuthProvider> */}
         {/* ONE AuthProvider and ONE ChatManager for the entire app */}
   <AuthProvider user={user}>
-    <PrivateChatManagerProvider>
-      <ScrollAnalytics />
+  <ClientProviders>
+          <ScrollAnalytics />
       <main className="flex flex-row">
       {!isEditor && <LeftSidebar userRooms={userRooms} />}
         <section className="main-container ">
@@ -84,8 +85,8 @@ export default async function StandardLayout({
         </section>
         {!isEditor &&<RightSidebar />}
       </main>
-    </PrivateChatManagerProvider>
-  </AuthProvider>
+      </ClientProviders>
+        </AuthProvider>
     </body>
   </html>
   );

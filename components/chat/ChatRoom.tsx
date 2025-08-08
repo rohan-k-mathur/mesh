@@ -1,160 +1,192 @@
 "use client";
-import { useEffect, useState } from "react";
+
+import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { supabase } from "@/lib/supabaseclient";
-import {
-  ChatMessage,
-  ChatMessageAvatar,
-  ChatMessageContent,
-} from "@/components/ui/chat-message";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { usePrivateChatManager } from "@/contexts/PrivateChatManager";
+import type { Message } from "@/contexts/useChatStore";
 import { useChatStore } from "@/contexts/useChatStore";
-import { File as FileIcon } from "lucide-react";
+import { ChatMessage, ChatMessageContent, ChatMessageAvatar } from "@/components/ui/chat-message";
+import { usePrivateChatManager } from "@/contexts/PrivateChatManager";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 
-interface UserLite {
-  name: string;
-  image: string | null;
-}
-
-interface MessageData {
-  id: string;
-  text: string | null;
-  createdAt: string;
-  senderId: string;
-  sender: UserLite;
-  attachments?: { id: string; path: string; type: string; size: number }[];
-}
-
-// ChatRoom.tsx
-interface Props {
+type Props = {
   conversationId: string;
   currentUserId: string;
-  initialMessages: MessageData[];
+  initialMessages: Message[];
+};
+
+function formatBytes(bytes: number) {
+  const units = ["B", "KB", "MB", "GB"];
+  let i = 0;
+  let n = bytes;
+  while (n >= 1024 && i < units.length - 1) {
+    n /= 1024;
+    i++;
+  }
+  return `${n.toFixed(1)} ${units[i]}`;
 }
+
+function Attachment({
+  a,
+}: {
+  a: { id: string; path: string; type: string; size: number };
+}) {
+  const [url, setUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/messages/attachments/${a.id}/sign`)
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then(({ url }) => {
+        if (!cancelled) setUrl(url);
+      })
+      .catch(() => {
+        if (!cancelled) setUrl(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [a.id]);
+
+  if (!url) return null;
+
+  if (a.type.startsWith("image/")) {
+    return (
+      <Image
+        src={url}
+        alt="attachment"
+        width={256}
+        height={256}
+        className="rounded-md max-h-64 object-cover"
+      />
+    );
+  }
+
+  const name = a.path.split("/").pop();
+  return (
+    <a
+      href={url}
+      download={name || undefined}
+      className="flex items-center gap-2 text-blue-600 underline"
+    >
+      {/* you can swap to lucide-react icon if you prefer */}
+      <span>📎</span>
+      <span>{formatBytes(a.size)}</span>
+    </a>
+  );
+}
+const MessageRow = memo(function MessageRow({
+  m,
+  currentUserId,
+  conversationId,          // <-- add this
+  onOpen,                  // <-- pass a callback from parent (cleaner)
+}: {
+  m: Message;
+  currentUserId: string;
+  conversationId: string;
+  onOpen: (peerId: string, peerName: string) => void;
+}) {
+  const isMine = String(m.senderId) === String(currentUserId);
+
+  return (
+    <ChatMessage type={isMine ? "outgoing" : "incoming"} id={m.id} variant="bubble">
+      {!isMine && (
+        <DropdownMenu>
+          <DropdownMenuTrigger className="cursor-pointer">
+            <ChatMessageAvatar imageSrc={m.sender?.image || "/assets/user-helsinki.svg"} />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" sideOffset={6}>
+            <DropdownMenuItem
+              onClick={() => onOpen(String(m.senderId), m.sender?.name ?? "User")}
+            >
+              💬 Chat
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
+
+      {m.text && <ChatMessageContent content={m.text} />}
+  
+      {m.attachments?.length ? (
+        <div className="mt-2 space-y-2">
+          {m.attachments.map((a) => (
+            <Attachment key={a.id} a={a} />
+          ))}
+        </div>
+      ) : null}
+  
+      {/* Outgoing: avatar on the right */}
+      {isMine && (
+        <ChatMessageAvatar
+          imageSrc={m.sender?.image || "/assets/user-helsinki.svg"}
+        />
+      )}
+    </ChatMessage>
+  );
+});
 
 export default function ChatRoom({
   conversationId,
   currentUserId,
   initialMessages,
 }: Props) {
-  const { appendMessage, setMessages, messages } = useChatStore((s) => ({
-    appendMessage: s.appendMessage,
-    setMessages: s.setMessages,
-    messages: s.messages[conversationId.toString()] || [],
-  }));
   const { open } = usePrivateChatManager();
+  const handleOpen = useCallback(
+    (peerId: string, peerName: string) => {
+      // close over conversationId here so child doesn’t need to know about it
+      open(peerId, peerName, conversationId);
+    },
+    [open, conversationId]
+  );
 
-  useEffect(() => {
-    setMessages(conversationId.toString(), initialMessages);
-  }, [conversationId, initialMessages, setMessages]);
 
+  // Selectors split to avoid new object each render
+  const messages = useChatStore(
+    useCallback((s) => s.messages[conversationId] ?? [], [conversationId])
+  );
+  const setMessages = useChatStore((s) => s.setMessages);
+  const appendMessage = useChatStore((s) => s.appendMessage);
+
+  // Keep a ref to the append function to avoid stale closures in the socket handler
+  const appendRef = useRef(appendMessage);
   useEffect(() => {
-    const channel = supabase.channel(`conversation-${conversationId.toString()}`);
-    channel.on("broadcast", { event: "new_message" }, ({ payload }) => {
-      appendMessage(conversationId.toString(), payload as MessageData);
-    });
+    appendRef.current = appendMessage;
+  }, [appendMessage]);
+
+  // Hydrate exactly once per conversation
+  const initRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (initRef.current === conversationId) return;
+    setMessages(conversationId, initialMessages);
+    initRef.current = conversationId;
+  }, [conversationId, setMessages, initialMessages]);
+
+  // Stable Realtime subscription
+  useEffect(() => {
+    const channel = supabase.channel(`conversation-${conversationId}`);
+    const handler = ({ payload }: any) => {
+      // server payload already JSON-safe; attachments may be missing -> store normalizes to []
+      appendRef.current(conversationId, payload as Message);
+    };
+
+    channel.on("broadcast", { event: "new_message" }, handler);
     channel.subscribe();
+
     return () => {
+      try {
+        channel.unsubscribe?.();
+      } catch {}
       supabase.removeChannel(channel);
     };
-  }, [conversationId, appendMessage]);
-
-  function formatBytes(bytes: number) {
-    const units = ["B", "KB", "MB", "GB"];
-    let i = 0;
-    let n = bytes;
-    while (n >= 1024 && i < units.length - 1) {
-      n /= 1024;
-      i++;
-    }
-    return `${n.toFixed(1)} ${units[i]}`;
-  }
-
-  function Attachment({
-    a,
-  }: {
-    a: {id:string, path: string; type: string; size: number };
-  }) {
-    const [url, setUrl] = useState<string | null>(null);
-    useEffect(() => {
-      // supabase.storage
-      //   .from("message-attachments")
-      //   .createSignedUrl(a.path, 60 * 60)
-      //   .then(({ data }) => setUrl(data?.signedUrl || null));
-        // fetch by attachment id, not path (safer)
-  fetch(`/api/messages/attachments/${a.id}/sign`)
-    .then((r) => r.ok ? r.json() : Promise.reject())
-    .then(({ url }) => setUrl(url))
-    .catch(() => setUrl(null));
-    }, [a.path]);
-    if (!url) return null;
-    const isImage = a.type.startsWith("image/");
-    if (isImage) {
-      return (
-        <Image
-          src={url}
-          alt="attachment"
-          width={256}
-          height={256}
-          className="rounded-md max-h-64 object-cover"
-        />
-      );
-    }
-    const name = a.path.split("/").pop();
-    return (
-      <a
-        href={url}
-        download={name || undefined}
-        className="flex items-center gap-2 text-blue-600 underline"
-      >
-        <FileIcon className="w-4 h-4" />
-        <span>{formatBytes(a.size)}</span>
-      </a>
-    );
-  }
+  }, [conversationId]);
 
   return (
     <div className="space-y-3">
       {messages.map((m) => (
-        <ChatMessage
-          key={m.id}
-          type={m.senderId === currentUserId ? "outgoing" : "incoming"}
-                    variant="bubble"
-          id={m.id}
-        >
-          {m.text && <ChatMessageContent content={m.text} />}
-          {m.attachments && m.attachments.length > 0 && (
-            <div className="mt-2 space-y-2">
-              {m.attachments.map((a) => (
-                <Attachment key={a.id} a={a} />
-              ))}
-            </div>
-          )}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <ChatMessageAvatar
-                imageSrc={m.sender.image || "/assets/user-helsinki.svg"}
-                className="cursor-pointer"
-              />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem
-                onClick={() =>
-                  open(BigInt(m.senderId), m.sender.name, conversationId)
-                }
-                disabled={m.senderId === currentUserId.toString()}
-              >
-                💬 Chat
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </ChatMessage>
+        <MessageRow key={m.id} m={m} currentUserId={currentUserId} 
+        conversationId={conversationId}     // <-- pass it
+        onOpen={handleOpen}                 
+        />
       ))}
     </div>
   );

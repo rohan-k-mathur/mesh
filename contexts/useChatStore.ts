@@ -1,25 +1,28 @@
 "use client";
 import { create } from "zustand";
 
-interface Attachment {
+
+export interface Attachment {
   id: string;
   path: string;
   type: string;
   size: number;
 }
 
-interface Message {
+// NEW: sender is optional; attachments optional
+export interface Message {
   id: string;
   text: string | null;
   createdAt: string;
   senderId: string;
-  attachments: Attachment[];
+  sender?: { name: string; image: string | null };
+  attachments?: Attachment[];
 }
-
 interface Conversation {
   id: string;
   title?: string | null;
 }
+
 
 interface ChatState {
   conversations: Record<string, Conversation>;
@@ -32,31 +35,65 @@ interface ChatState {
   sendMessage: (id: string, data: FormData) => Promise<void>;
 }
 
+
+// export const useChatStore = create<ChatState>((set, get) => ({
+//   conversations: {},
+//   messages: {},
+//   setCurrentConversation: (id) => set({ currentConversation: id }),
+//   setConversations: (list) =>
+//     set({ conversations: Object.fromEntries(list.map((c) => [c.id, c])) }),
+//   setMessages: (id, msgs) =>
+//     set((state) => ({ messages: { ...state.messages, [id]: msgs } })),
+//   // appendMessage: (id, msg) =>
+//   //   set((state) => ({
+//   //     messages: {
+//   //       ...state.messages,
+//   //       [id]: [...(state.messages[id] || []), msg],
+//   //     },
+//   //   })),
+//   appendMessage: (id, msg) =>
+//   set((state) => {
+//     const list = state.messages[id] || [];
+//     if (list.some((m) => m.id === msg.id)) return { messages: state.messages };
+//     return { messages: { ...state.messages, [id]: [...list, msg] } };
+//   }),
+//   sendMessage: async (id, data) => {
+//     const res = await fetch(`/api/messages/${id}`, { method: "POST", body: data });
+//     if (!res.ok) throw new Error("Failed to send message");
+//     const msg = await res.json();
+//     get().appendMessage(id, msg);
+//   },
+// }));
+
 export const useChatStore = create<ChatState>((set, get) => ({
   conversations: {},
   messages: {},
   setCurrentConversation: (id) => set({ currentConversation: id }),
   setConversations: (list) =>
     set({ conversations: Object.fromEntries(list.map((c) => [c.id, c])) }),
+
+  // normalize: attachments => []
   setMessages: (id, msgs) =>
-    set((state) => ({ messages: { ...state.messages, [id]: msgs } })),
-  // appendMessage: (id, msg) =>
-  //   set((state) => ({
-  //     messages: {
-  //       ...state.messages,
-  //       [id]: [...(state.messages[id] || []), msg],
-  //     },
-  //   })),
+    set((state) => ({
+      messages: {
+        ...state.messages,
+        [id]: msgs.map((m) => ({ ...m, attachments: m.attachments ?? [] })),
+      },
+    })),
+
+  // dedupe + normalize attachments
   appendMessage: (id, msg) =>
-  set((state) => {
-    const list = state.messages[id] || [];
-    if (list.some((m) => m.id === msg.id)) return { messages: state.messages };
-    return { messages: { ...state.messages, [id]: [...list, msg] } };
-  }),
+    set((state) => {
+      const list = state.messages[id] || [];
+      if (list.some((m) => m.id === msg.id)) return { messages: state.messages };
+      const normalized = { ...msg, attachments: msg.attachments ?? [] };
+      return { messages: { ...state.messages, [id]: [...list, normalized] } };
+    }),
+
   sendMessage: async (id, data) => {
     const res = await fetch(`/api/messages/${id}`, { method: "POST", body: data });
     if (!res.ok) throw new Error("Failed to send message");
-    const msg = await res.json();
+    const msg: Message = await res.json();
     get().appendMessage(id, msg);
   },
 }));

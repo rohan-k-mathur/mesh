@@ -4,23 +4,51 @@ import { getUserFromCookies } from "@/lib/serverutils";
 import { redirect, notFound } from "next/navigation";
 import ChatRoom from "@/components/chat/ChatRoom";
 import MessageComposer from "@/components/chat/MessageComposer";
+import { PrivateChatProvider } from "@/contexts/PrivateChatManager";
+import PrivateChatDock from "@/components/chat/PrivateChatDock";
+import Image from "next/image";
 
 export default async function Page({ params }: { params: { id: string } }) {
   const user = await getUserFromCookies();
   if (!user?.userId) redirect("/login");
 
   const conversationId = BigInt(params.id);
-
-  // Ensure the viewer is a participant (throws if not)
+  let conversation;
   try {
-    await fetchConversation(conversationId, user.userId);
+    conversation = await fetchConversation(conversationId, user.userId);
   } catch {
     notFound();
   }
+  const isGroup = conversation.is_group;
 
-  // Fetch newest->oldest then flip so newest is at the bottom in the UI
+
+  // Build a title for the header
+  const title = (() => {
+    if (conversation.is_group) {
+      if (conversation.title?.trim()) return conversation.title!;
+      const others = conversation.participants
+        .filter((p) => p.user_id !== user.userId)
+        .map((p) => p.user.name);
+      const base = others.slice(0, 3).join(", ");
+      const extra = others.length - 3;
+      return extra > 0 ? `${base} +${extra}` : base || "Group";
+    } else {
+      const other = conversation.participants.find((p) => p.user_id !== user.userId)?.user;
+      return other?.name ?? "Direct Message";
+    }
+  })();
+  // Header avatar data
+  const headerUsers = isGroup
+    ? conversation.participants
+        .filter((p) => p.user_id !== user.userId)
+        .map((p) => p.user)
+    : [
+        conversation.participants.find((p) => p.user_id !== user.userId)?.user,
+      ].filter(Boolean) as { name: string; image: string | null }[];
+
+
+  // Messages newest->oldest then flip so newest at bottom
   const rows = (await fetchMessages({ conversationId })).reverse();
-
   const initialMessages = rows.map((m) => ({
     id: m.id.toString(),
     text: m.text ?? null,
@@ -34,9 +62,60 @@ export default async function Page({ params }: { params: { id: string } }) {
       size: a.size,
     })),
   }));
+  // Fetch newest->oldest then flip so newest is at the bottom in the UI
+  // const rows = (await fetchMessages({ conversationId })).reverse();
+
+  // const initialMessages = rows.map((m) => ({
+  //   id: m.id.toString(),
+  //   text: m.text ?? null,
+  //   createdAt: m.created_at.toISOString(),
+  //   senderId: m.sender_id.toString(),
+  //   sender: { name: m.sender.name, image: m.sender.image },
+  //   attachments: m.attachments.map((a) => ({
+  //     id: a.id.toString(),
+  //     path: a.path,
+  //     type: a.type,
+  //     size: a.size,
+  //   })),
+  // }));
 
   return (
-    <main className="p-4 mt-[-3rem] items-center justify-center">
+    <main className="p-4 mt-[-4rem] items-center justify-center">
+ <div className="flex w-full h-full items-center justify-center align-center gap-4">
+        {isGroup ? (
+          // Composite avatar (up to 4 faces)
+          <div className="grid grid-cols-2 grid-rows-2 rounded-full overflow-hidden gap-2 ">
+            {headerUsers.slice(0, 4).map((u, i) => (
+              <Image
+                key={i}
+                src={u.image || "/assets/user-helsinki.svg"}
+                alt={u.name}
+                width={50}
+                height={50}
+                className="rounded-full object-fill profile-shadow align-center justify-center items-center"
+                />
+            ))}
+          </div>
+        ) : (
+          // Single avatar
+          <button>
+          <Image
+            src={headerUsers[0]?.image || "/assets/user-helsinki.svg"}
+            alt={headerUsers[0]?.name ?? "User"}
+            width={50}
+            height={50}
+            className="rounded-full object-fill profile-shadow align-center justify-center items-center"
+          />
+          </button>
+        )}
+        <button>
+        <h1 className="text-[2.1rem] justify-center items-center align-center tracking-wider mt-1">{title}</h1>
+        </button>
+      </div>
+      <hr className="mt-3"/>
+
+        <PrivateChatProvider>
+
       <div className="mt-6 space-y-6">
         <ChatRoom
           conversationId={params.id}             // pass as string
@@ -46,6 +125,8 @@ export default async function Page({ params }: { params: { id: string } }) {
         <hr />
         <MessageComposer conversationId={params.id} />
       </div>
+      <PrivateChatDock />
+      </PrivateChatProvider>
     </main>
   );
 }

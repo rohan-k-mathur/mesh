@@ -134,15 +134,30 @@ useEffect(() => {
             })}
           </div>
         )}
-        <div className="flex gap-2">
+        <div className="flex gap-5">
+        
           <input
             type="text"
             value={text}
             onChange={(e) => setText(e.target.value)}
-            className="flex-1 h-full bg-white bg-opacity-20 rounded-xl px-3 py-2 bg-transparent text-black"
+            className="flex-1 h-full bg-white bg-opacity-20 rounded-xl px-3 py-3 bg-transparent messagefield text-black"
             disabled={uploading}
           />
-          <label className="flex items-center">
+          
+          <button
+            className="bg-white/20 sendbutton w-fit text-black tracking-widest text-[1.1rem] rounded-xl px-5 py-2"
+            onClick={send}
+            disabled={uploading}
+          >
+             <Image
+    src="/assets/send--alt.svg"
+    alt="share"
+    width={28}
+    height={28}
+    className="cursor-pointer object-contain flex justify-center items-center "></Image>
+            
+          </button>
+          <button className="sendbutton p-2 rounded-xl bg-white/20 flex items-center">
             <input
               type="file"
               multiple
@@ -151,13 +166,6 @@ useEffect(() => {
               className="hidden"
             />
             <Paperclip className="w-5 h-5 cursor-pointer" />
-          </label>
-          <button
-            className="bg-white/20 sendbutton w-fit text-black tracking-widest text-[1.1rem] rounded-xl px-5 py-2"
-            onClick={send}
-            disabled={uploading}
-          >
-            Send
           </button>
         </div>
         {uploading && (
@@ -172,3 +180,21 @@ useEffect(() => {
     </div>
   );
 }
+
+
+// components/chat/MessageComposer.tsx (snippet for adding realtime presence ui)
+// const { sendTyping } = useConversationRealtime(conversationId, {
+//   id: currentUserId,
+//   name: currentUserName,
+//   image: currentUserImage,
+// });
+
+// <input
+//   type="text"
+//   value={text}
+//   onChange={(e) => {
+//     setText(e.target.value);
+//     if (e.target.value.trim()) sendTyping();
+//   }}
+//   // …
+// />
