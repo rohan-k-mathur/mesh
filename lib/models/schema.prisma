@@ -65,6 +65,7 @@ model User {
   cartItems                 CartItem[]
   carts                     Cart[]
   settings                  UserSettings?
+  Auction                   Auction[]
 
   @@map("users")
 }
@@ -571,7 +572,7 @@ model MessageAttachment {
   id         BigInt   @id @default(autoincrement())
   created_at DateTime @default(now()) @db.Timestamptz(6)
   message_id BigInt
-  path        String
+  path       String
   type       String
   size       Int
   metadata   Json?
@@ -841,10 +842,10 @@ model Stall {
   section_id   BigInt?
   owner_id     BigInt
   name         String
-  sellerId     BigInt?
-  seller       Seller?        @relation(fields: [sellerId], references: [id])
+  seller_id    BigInt?
+  seller       Seller?        @relation(fields: [seller_id], references: [id])
   created_at   DateTime       @default(now()) @db.Timestamptz(6)
-  updated_at   DateTime?      @default(now()) @updatedAt @db.Timestamptz(6)
+  updated_at   DateTime       @default(now()) @updatedAt @db.Timestamptz(6)
   section      Section?       @relation(fields: [section_id], references: [id])
   owner        User           @relation(fields: [owner_id], references: [id])
   items        Item[]
@@ -855,6 +856,7 @@ model Stall {
   live         Boolean        @default(false)
   liveSrc      String? // nullable -> no stream yet
   doc          Json?
+  Offer        Offer[]
 
   @@unique([section_id, owner_id])
   @@index([section_id])
@@ -875,21 +877,24 @@ model StallImage {
   @@map("stall_image")
 }
 
+// ---------- ITEM ----------
 model Item {
-  id          BigInt      @id @default(autoincrement())
+  id          BigInt   @id @default(autoincrement())
   stall_id    BigInt
   name        String
   description String
-  price_cents Int
+  price       Decimal  @db.Decimal(12, 2)
+  currency    String   @default("usd")
   stock       Int
-  created_at  DateTime    @default(now()) @db.Timestamptz(6)
-  stall       Stall       @relation(fields: [stall_id], references: [id])
-  images      String[] // using PostgreSQL array
-  offers      Offer[]
-  auction     Auction?
-  orderLines  OrderLine[]
-  cartItems   CartItem[]
-  Order       Order[]
+  images      String[] // PG array
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+
+  stall      Stall       @relation(fields: [stall_id], references: [id])
+  offers     Offer[]
+  auction    Auction?
+  orderItems OrderItem[]
+  cartItems  CartItem[]
+  OrderLine  OrderLine[]
 
   @@index([stall_id])
   @@map("items")
@@ -900,78 +905,163 @@ model Seller {
   stripeAccountId      String? @unique
   stripeChargesEnabled Boolean @default(false)
   stalls               Stall[]
+  Offer                Offer[]
 }
 
+// ---------- OFFER ----------
 model Offer {
-  id          BigInt   @id @default(autoincrement())
-  item_id     BigInt
-  buyer_id    BigInt
-  price_cents Int
-  status      String   @default("PENDING")
-  message     String?
-  created_at  DateTime @default(now()) @db.Timestamptz(6)
-  item        Item     @relation(fields: [item_id], references: [id])
-  buyer       User     @relation(fields: [buyer_id], references: [id])
-  cart        Cart?    @relation("CartOffer")
+  id            BigInt      @id @default(autoincrement())
+  stall_id      BigInt
+  item_id       BigInt?
+  buyer_id      BigInt
+  seller_id     BigInt
+  amount        Decimal     @db.Decimal(12, 2)
+  currency      String      @default("usd")
+  status        OfferStatus @default(PENDING)
+  counter_of_id BigInt?
+  expires_at    DateTime?
+  version       Int         @default(1)
+  message       String?
+  created_at    DateTime    @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime    @default(now()) @updatedAt @db.Timestamptz(6)
 
-  @@index([item_id])
+  stall  Stall  @relation(fields: [stall_id], references: [id])
+  item   Item?  @relation(fields: [item_id], references: [id])
+  buyer  User   @relation(fields: [buyer_id], references: [id])
+  seller Seller @relation(fields: [seller_id], references: [id])
+
+  counterOf Offer?  @relation("OfferCounters", fields: [counter_of_id], references: [id])
+  counters  Offer[] @relation("OfferCounters")
+
+  // reservation for checkout
+  cart       Cart?        @relation("CartOffer")
+  OfferEvent OfferEvent[]
+
+  @@index([stall_id, status])
+  @@index([buyer_id, status])
+  @@index([item_id, status])
   @@map("offers")
 }
 
+enum OfferEventKind {
+  CREATED
+  COUNTERED
+  ACCEPTED
+  REJECTED
+  EXPIRED
+}
+
+model OfferEvent {
+  id         BigInt         @id @default(autoincrement())
+  offer_id   BigInt
+  kind       OfferEventKind
+  payload    Json?
+  created_at DateTime       @default(now()) @db.Timestamptz(6)
+
+  offer Offer @relation(fields: [offer_id], references: [id])
+
+  @@index([offer_id])
+  @@map("offer_events")
+}
+
+// ---------- AUCTION / BID ----------
 model Auction {
-  id            BigInt        @id @default(autoincrement())
-  item_id       BigInt        @unique
-  stall_id      BigInt
-  reserve_cents Int
-  ends_at       DateTime
-  state         auction_state @default(LIVE)
-  winner_id     BigInt?
-  created_at    DateTime      @default(now()) @db.Timestamptz(6)
-  item          Item          @relation(fields: [item_id], references: [id])
-  stall         Stall         @relation(fields: [stall_id], references: [id])
-  bids          Bid[]
+  id         BigInt        @id @default(autoincrement())
+  item_id    BigInt        @unique
+  stall_id   BigInt
+  reserve    Decimal       @db.Decimal(12, 2)
+  currency   String        @default("usd")
+  ends_at    DateTime
+  state      auction_state @default(LIVE)
+  winner_id  BigInt?
+  created_at DateTime      @default(now()) @db.Timestamptz(6)
+
+  item   Item    @relation(fields: [item_id], references: [id])
+  stall  Stall   @relation(fields: [stall_id], references: [id])
+  winner User?   @relation(fields: [winner_id], references: [id])
+  bids   Bid[]
+  Order  Order[]
 
   @@index([stall_id])
+  @@index([ends_at, state])
   @@map("auctions")
 }
 
 model Bid {
-  id           BigInt   @id @default(autoincrement())
-  auction_id   BigInt
-  bidder_id    BigInt
-  amount_cents Int
-  created_at   DateTime @default(now()) @db.Timestamptz(6)
-  auction      Auction  @relation(fields: [auction_id], references: [id])
-  bidder       User     @relation(fields: [bidder_id], references: [id])
+  id         BigInt   @id @default(autoincrement())
+  auction_id BigInt
+  bidder_id  BigInt
+  amount     Decimal  @db.Decimal(12, 2)
+  created_at DateTime @default(now()) @db.Timestamptz(6)
 
-  @@index([auction_id])
+  auction Auction @relation(fields: [auction_id], references: [id])
+  bidder  User    @relation(fields: [bidder_id], references: [id])
+
+  @@index([auction_id, created_at])
   @@map("bids")
 }
 
-enum auction_state {
-  LIVE
-  CLOSED
+enum OfferStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  EXPIRED
 }
 
+enum OrderStatus {
+  PENDING_PAYMENT
+  AUTHORIZED
+  PAID
+  FULFILLED
+  RELEASED
+  DISPUTED
+  REFUNDED
+  CANCELLED
+}
+
+// ---------- ORDERS / CART / ESCROW ----------
 model Order {
+  id           BigInt      @id @default(autoincrement())
+  stall_id     BigInt
+  buyer_id     BigInt?
+  auction_id   BigInt?
+  status       OrderStatus @default(PENDING_PAYMENT)
+  subtotal     Decimal     @db.Decimal(12, 2)
+  shipping     Decimal     @db.Decimal(12, 2)
+  total        Decimal     @db.Decimal(12, 2)
+  currency     String      @default("usd")
+  stripePI     String?
+  pmId         String?
+  fulfilled_at DateTime?
+  released_at  DateTime?
+  hold_days    Int         @default(3)
+  created_at   DateTime    @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime    @default(now()) @updatedAt @db.Timestamptz(6)
+
+  stall   Stall    @relation(fields: [stall_id], references: [id])
+  buyer   User?    @relation(fields: [buyer_id], references: [id])
+  auction Auction? @relation(fields: [auction_id], references: [id])
+
+  items     OrderItem[]
+  OrderLine OrderLine[]
+
+  @@index([stall_id, status])
+  @@map("orders")
+}
+
+model OrderItem {
   id         BigInt   @id @default(autoincrement())
-  amount     Int
-  sessionId  String?  @unique
-  buyerEmail String?
-  buyer_id   BigInt?
-  status     String   @default("PENDING")
-  stall_id   BigInt
+  order_id   BigInt
   item_id    BigInt
+  qty        Int
+  unit_price Decimal  @db.Decimal(12, 2)
   created_at DateTime @default(now()) @db.Timestamptz(6)
 
-  stall Stall @relation(fields: [stall_id], references: [id])
+  order Order @relation(fields: [order_id], references: [id])
   item  Item  @relation(fields: [item_id], references: [id])
-  buyer User? @relation(fields: [buyer_id], references: [id])
 
-  lines OrderLine[] // many-to-one, optional by default
-
-  @@index([stall_id])
-  @@map("orders")
+  @@index([order_id])
+  @@map("order_items")
 }
 
 model OrderLine {
@@ -994,8 +1084,9 @@ model StallMessage {
   user_id    BigInt
   text       String
   created_at DateTime @default(now()) @db.Timestamptz(6)
-  stall      Stall    @relation(fields: [stall_id], references: [id])
-  user       User     @relation(fields: [user_id], references: [id])
+
+  stall Stall @relation(fields: [stall_id], references: [id])
+  user  User  @relation(fields: [user_id], references: [id])
 
   @@index([stall_id])
   @@map("stall_messages")
@@ -1007,8 +1098,9 @@ model CartItem {
   item_id    BigInt
   qty        Int      @default(1)
   created_at DateTime @default(now()) @db.Timestamptz(6)
-  user       User     @relation(fields: [user_id], references: [id])
-  item       Item     @relation(fields: [item_id], references: [id])
+
+  user User @relation(fields: [user_id], references: [id])
+  item Item @relation(fields: [item_id], references: [id])
 
   @@unique([user_id, item_id])
   @@map("cart_items")
@@ -1021,17 +1113,17 @@ enum escrow_state {
   REFUNDED
 }
 
+// Offer reservation (one-per-offer)
 model Cart {
-  id       BigInt   @id @default(autoincrement())
-  user_id  BigInt
-  offer_id BigInt   @unique
-  added_at DateTime @default(now()) @db.Timestamptz(6)
-  deadline DateTime @db.Timestamptz(6)
-  /// explicit relation names keep things readable
-  offer    Offer    @relation("CartOffer", fields: [offer_id], references: [id])
-  user     User     @relation(fields: [user_id], references: [id])
-  /// NEW — back‑reference for Cart ↔ Escrow
-  escrow   Escrow?  @relation("CartEscrow")
+  id         BigInt   @id @default(autoincrement())
+  user_id    BigInt
+  offer_id   BigInt   @unique
+  deadline   DateTime @db.Timestamptz(6)
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+
+  offer  Offer   @relation("CartOffer", fields: [offer_id], references: [id])
+  user   User    @relation(fields: [user_id], references: [id])
+  escrow Escrow? @relation("CartEscrow")
 
   @@index([user_id])
   @@map("cart")
@@ -1043,9 +1135,9 @@ model Escrow {
   state      escrow_state @default(PENDING)
   tx_ref     String?
   created_at DateTime     @default(now()) @db.Timestamptz(6)
-  updated_at DateTime     @updatedAt @db.Timestamptz(6)
-  /// Wire up the other side of Cart ↔ Escrow
-  cart       Cart         @relation("CartEscrow", fields: [cart_id], references: [id])
+  updated_at DateTime     @default(now()) @updatedAt @db.Timestamptz(6)
+
+  cart Cart @relation("CartEscrow", fields: [cart_id], references: [id])
 
   @@map("escrow")
 }
@@ -1110,6 +1202,11 @@ model Telemetry {
   createdAt DateTime @default(now()) @db.Timestamptz(6)
 
   @@index([event, createdAt])
+}
+
+enum auction_state {
+  LIVE
+  CLOSED
 }
 
 enum ArticleStatus {
