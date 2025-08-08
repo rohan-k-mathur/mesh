@@ -32,7 +32,8 @@ import MusicNodeModal from "../modals/MusicNodeModal";
 import SplineViewerNodeModal from "../modals/SplineViewerNodeModal";
 import RoomCanvasModal from "../modals/RoomCanvasModal";
 import PredictionMarketModal from "../modals/PredictionMarketModal";
-import LibraryPostModal from "@/components/modals/LibraryPostModal";
+// import LibraryPostModal from "@/components/modals/LibraryPostModal";
+import dynamic from "next/dynamic";
 import { exportRoomCanvas } from "@/lib/actions/realtimeroom.actions";
 import {
   uploadFileToSupabase,
@@ -57,7 +58,7 @@ import {
 import { AppNodeType, DEFAULT_NODE_VALUES } from "@/lib/reactflow/types";
 import { useCreateFeedPost } from "@/lib/hooks/useCreateFeedPost";  // client
 import { useSession }        from "@/lib/hooks/useSession";
-
+const LibraryPostModal = dynamic(() => import("@/components/modals/LibraryPostModal"), { ssr: false });
 const nodeOptions: { label: string; nodeType: string }[] = [
   { label: "TEXT", nodeType: "TEXT" },
   { label: "IMAGE", nodeType: "IMAGE" },

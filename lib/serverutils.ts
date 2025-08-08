@@ -1,6 +1,7 @@
 import { getTokens } from "next-firebase-auth-edge";
 import { cookies } from "next/headers";
 import { User } from "./AuthContext";
+
 import { Tokens } from "next-firebase-auth-edge";
 import { filterStandardClaims } from "next-firebase-auth-edge/lib/auth/claims";
 import {
@@ -50,9 +51,27 @@ export async function toUser({ decodedToken }: Tokens): Promise<User> {
   };
 }
 
+
 export async function getUserFromCookies(): Promise<User | null> {
   clearUserCache();
-  const tokens = await getTokens(cookies(), serverConfig);
-  const user = tokens ? await toUser(tokens) : null;
-  return user;
+  try {
+    const tokens = await getTokens(
+      cookies(),
+      { ...serverConfig, debug: process.env.NODE_ENV !== "production" } // 👈 turn on debug in dev
+    );
+    if (!tokens) {
+      console.warn("[auth] getTokens returned null");
+      return null;
+    }
+    return toUser(tokens);
+  } catch (e) {
+    console.error("[auth] getTokens threw:", e);
+    return null;
+  }
+}
+
+export async function getCurrentUserId(): Promise<bigint | null> {
+  const u = await getUserFromCookies();
+  // prisma expects BigInt; your `userId` is already the DB pk
+  return u?.userId ? BigInt(u.userId) : null;
 }

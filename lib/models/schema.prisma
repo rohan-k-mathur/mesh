@@ -146,6 +146,7 @@ model FeedPost {
   library_post_id String?
   stack_id        String?
 
+  @@index([created_at])
   @@index([library_post_id])
   @@index([stack_id])
   @@index([author_id])
@@ -1240,7 +1241,7 @@ model LibraryPost {
   uploader    User         @relation(fields: [uploader_id], references: [id], onDelete: Cascade)
   feedPosts   FeedPost[]
 
-  @@index([uploader_id])
+@@index([uploader_id, created_at])
   @@index([stack_id])
   @@map("library_posts")
 }

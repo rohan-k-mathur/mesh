@@ -7,11 +7,13 @@ const datasourceUrl = process.env.DATABASE_URL
   : undefined;
 
 export const prisma =
-  globalForPrisma.prisma || new PrismaClient({ datasourceUrl });
-
-void prisma.$connect();
+  globalForPrisma.prisma ||
+  new PrismaClient(
+    datasourceUrl ? { datasources: { db: { url: datasourceUrl } } } : undefined
+  );
 
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
 }
 
+void prisma.$connect();

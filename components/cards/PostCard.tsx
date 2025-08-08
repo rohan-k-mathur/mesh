@@ -191,19 +191,26 @@ const PostCard = ({
                 />
               </div>
             )}
-            {type === "LIBRARY" && library && (
-              <LibraryCard
-                kind={library.kind}
-                coverUrl={library.coverUrl}
-                libraryPostId={library.libraryPostId}
-                stackId={library.stackId}
-                coverUrls={library.coverUrls}
-                size={library.size}
-                caption={caption}
-                onOpenPdf={(id) => console.debug("openPdfModal", id)}
-                onOpenStack={(id) => console.debug("openStack", id)}
-              />
-            )}
+            {type === "LIBRARY" &&
+              (() => {
+                const lib = library ?? (() => {
+                  try { return content ? JSON.parse(content) : null; } catch { return null; }
+                })();
+                if (!lib) return null;
+                return (
+                 <LibraryCard
+                    kind={lib.kind}
+                    coverUrl={lib.coverUrl}
+                    libraryPostId={lib.libraryPostId}
+                    stackId={lib.stackId}
+                    coverUrls={lib.coverUrls}
+                    size={lib.size}
+                    caption={caption}
+                    onOpenPdf={(id) => console.debug("openPdfModal", id)}
+                    onOpenStack={(id) => console.debug("openStack", id)}
+                  />
+                );
+              })()}
             {type === "LIVECHAT" &&
               content &&
               (() => {

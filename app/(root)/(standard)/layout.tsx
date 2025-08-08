@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { Inter } from "next/font/google";
 import { Chakra_Petch } from "next/font/google";
 import { Comfortaa } from "next/font/google";
@@ -22,7 +23,7 @@ export const metadata = {
   description: "A social media website",
 };
 
-export const dynamic = "force-dynamic";
+
 const founders = localFont({ src: './NewEdgeTest-RegularRounded.otf' })
 const founderslight = localFont({ src: './NewEdgeTest-LightRounded.otf' })
 

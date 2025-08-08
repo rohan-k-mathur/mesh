@@ -38,6 +38,7 @@ export default function GroupCreationModal() {
       const res = await fetch(`/api/users/search?q=${encodeURIComponent(debounced)}`);
       if (res.ok) {
         setResults(await res.json());
+        
       }
     }
     search();

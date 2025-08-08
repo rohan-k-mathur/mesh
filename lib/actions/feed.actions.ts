@@ -11,7 +11,15 @@ export interface PortfolioPayload {
   snapshot?: string; // CDN url of PNG (optional)
 }
 
-
+export interface LibraryPayload{
+     kind: "single" | "stack";
+     libraryPostId: string | null;
+     coverUrl: string | null;
+     coverUrls: string[];
+     size: number;
+     stackId?: string;
+     caption?: string;
+}
 export interface CreateFeedPostArgs {
   type:
     | "TEXT"
@@ -23,7 +31,8 @@ export interface CreateFeedPostArgs {
     | "PORTFOLIO"
     | "MUSIC"
     | "LIVECHAT"
-    | "ARTICLE";
+    | "ARTICLE"
+    | "LIBRARY";
   content?: string;
   imageUrl?: string;
   videoUrl?: string;
@@ -51,7 +60,9 @@ export interface CreateFeedPostArgs {
   coordinates: { x: number; y: number };
   realtimeRoomId: string;
   isPublic?: boolean;
-
+  stackId?: string;         // 👈 NEW
+  libraryPostId?: string;   // 👈 NEW
+library?: LibraryPayload;
   pluginType?: string;
   pluginData?: Record<string, unknown>;
   roomPostContent?: Record<string, unknown>;
@@ -65,7 +76,6 @@ export async function createFeedPost(
 
   // const user = await getUserFromCookies();
 
-  const { type, isPublic = true, ...rest } = args;
 
     /* 1️⃣ Create the canonical post row */
     // const master = await prisma.feedPost.create({
@@ -95,17 +105,19 @@ export async function createFeedPost(
   //   },
   // });
 
-
+  const { type, isPublic = true, stackId, libraryPostId, ...rest } = args;
   const post = await prisma.feedPost.create({
     data: {
-      author_id: user.userId!,
-      type,
+      author_id: BigInt(user.userId!),
+       type,
       isPublic,
       ...(rest.content && { content: rest.content }),
       ...(rest.imageUrl && { image_url: rest.imageUrl }),
       ...(rest.videoUrl && { video_url: rest.videoUrl }),
       ...(rest.caption && { caption: rest.caption }),
       ...(rest.portfolio && { portfolio: rest.portfolio }),
+      ...(stackId && { stack_id: stackId }),
+      ...(libraryPostId && { library_post_id: libraryPostId }),
       ...(rest.productReview && {
         productReview: {
           create: {
@@ -247,8 +259,10 @@ export async function fetchFeedPosts() {
       id: true,                 // feed‑row PK
       type: true,
       content: true,
+      library_post_id: true,
+      stack_id: true,
       image_url: true,
-      portfolio: true,        // 👈  ADD THIS LINE
+      portfolio: true,        
 
       video_url: true,
       caption: true,
@@ -299,8 +313,67 @@ export async function fetchFeedPosts() {
       : null,
   }));
 
-  return rowsWithLike; // mapper will handle null‑checks / defaults
-}
+ // 🔽 Hydrate LIBRARY covers from library_posts
+    const stackIds = Array.from(
+       new Set(rowsWithLike.filter(r => r.type === "LIBRARY" && r.stack_id).map(r => r.stack_id as string))
+     );
+     const singleIds = Array.from(
+       new Set(rowsWithLike.filter(r => r.type === "LIBRARY" && r.library_post_id).map(r => r.library_post_id as string))
+     );
+   
+     let stackCovers: Record<string, { urls: string[]; size: number }> = {};
+     if (stackIds.length) {
+       const items = await prisma.libraryPost.findMany({
+         where: { stack_id: { in: stackIds } },
+         orderBy: { created_at: "asc" },
+         select: { id: true, stack_id: true, thumb_urls: true },
+       });
+       const grouped = new Map<string, string[]>();
+       for (const it of items) {
+         const k = it.stack_id!;
+         const arr = grouped.get(k) ?? [];
+         const u = (it.thumb_urls?.[0] ?? null);
+         if (u) arr.push(u);
+         grouped.set(k, arr);
+       }
+       stackCovers = Object.fromEntries(
+         Array.from(grouped.entries()).map(([k, arr]) => [k, { urls: arr, size: arr.length }])
+       );
+     }
+   
+     const singleCovers = singleIds.length
+       ? Object.fromEntries(
+           (await prisma.libraryPost.findMany({
+             where: { id: { in: singleIds } },
+             select: { id: true, thumb_urls: true },
+           })).map(lp => [lp.id, lp.thumb_urls?.[0] ?? null])
+         )
+       : {};
+   
+     const hydrated = rowsWithLike.map((r) => {
+       if (r.type !== "LIBRARY") return r;
+       if (r.stack_id && stackCovers[r.stack_id]) {
+         const { urls, size } = stackCovers[r.stack_id];
+         return {
+           ...r,
+           library: { kind: "stack", stackId: r.stack_id, coverUrls: urls, size },
+         };
+       }
+       if (r.library_post_id) {
+         const cover = singleCovers[r.library_post_id] ?? null;
+         return {
+           ...r,
+           library: { kind: "single", libraryPostId: r.library_post_id, coverUrl: cover, coverUrls: [], size: 1 },
+         };
+       }
+       // fallback: try content JSON or leave as-is
+       try {
+         return { ...r, library: r.content ? JSON.parse(r.content) : undefined };
+       } catch { return r; }
+     });
+   
+     return hydrated; // includes currentUserLike + library hydration
+   }
 export async function deleteFeedPost({
   id,
   path,

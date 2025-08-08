@@ -213,3 +213,4 @@ export function usePrivateChatManager() {
   if (!ctx) throw new Error("PrivateChatProvider missing");
   return ctx;
 }
+export { PrivateChatProvider as PrivateChatManagerProvider };

@@ -100,7 +100,7 @@ export const buildSlideVariants = (
        memory‑efficient single‑image render we *fake* it: the outgoing face
        pivots 90 ° away while the incoming one pivots in. */
     case 'cube': {
-      const depth = 200; // half the cube edge in px
+      const depth = 400; // half the cube edge in px
       return {
         enter: (dir: number) => ({
           rotateY: dir > 0 ?  40 : 0,

@@ -19,7 +19,7 @@ interface Props {
   animation?: GalleryAnimationStyle;   // NEW   (default = 'cylinder')
 }
 
-const GalleryCarousel = ({ urls, caption , animation = 'portal',
+const GalleryCarousel = ({ urls, caption , animation = 'cube',
 }: Props) => {
  // const [currentIndex, setCurrentIndex] = useState(0);
 

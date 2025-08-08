@@ -3,12 +3,14 @@
 
 import { prisma } from "../prismaclient";
 import { getUserFromCookies } from "../serverutils";
-import { feed_post_type } from '@prisma/client'        // ✅ runtime enum
+import { feed_post_type } from "@prisma/client"; // ✅ runtime enum
 
 interface CreateFeedPostParams {
   caption?: string;
   content?: string;
   imageUrl?: string;
+  videoUrl?: string;
+  isPublic?: boolean;
   portfolio?: { pageUrl: string; snapshot?: string };
   productReview?: {
     productName: string;
@@ -18,16 +20,22 @@ interface CreateFeedPostParams {
     images?: string[];
     claims?: string[];
   };
-  postType: feed_post_type;    
+  stackId?: string;
+  libraryPostId?: string;
+  postType: feed_post_type;
 }
 
 export async function createFeedPost({
-  caption = '',
-  content = '',
+  caption = "",
+  content = "",
   imageUrl,
+  videoUrl,
+  isPublic = true,
   portfolio,
   productReview,
-  postType,
+  stackId,
+  libraryPostId,
+    postType,
 }: CreateFeedPostParams) {
   const user = await getUserFromCookies();
   if (!user) throw new Error("Unauthenticated");
@@ -35,30 +43,34 @@ export async function createFeedPost({
   const post = await prisma.feedPost.create({
     data: {
       author: { connect: { id: BigInt(user.userId) } },
-      caption,
-      content,
+      type: postType, // ✅ correct Prisma column
+      isPublic: isPublic ?? true,
+      content: content ?? null,
+      caption: caption ?? null,
       image_url: imageUrl ?? null,
-      portfolio: portfolio ?? null,          // don’t pass undefined
-                                    // now a real enum value
-  /* one‑to‑one relation – will create ProductReview + nested claims */
-  ...(productReview && {
-    productReview: {
-      create: {
-        author_id: BigInt(user.userId), 
-        product_name:     productReview.productName,
-        rating:           productReview.rating,
-        summary:          productReview.summary,
-        product_link:     productReview.productLink,
-        image_urls:       productReview.images ?? [],
-        claims: {
-          create: (productReview.claims ?? []).map((t) => ({ text: t })),
-        },
-      },
-    },
-  }),
-  postType,
+      video_url: videoUrl ?? null,
+      portfolio: portfolio ?? null, // don’t pass undefined
 
+      ...(stackId && { stack_id: stackId }),
+      ...(libraryPostId && { library_post_id: libraryPostId }),
+      // now a real enum value
+      /* 1-to-1 relation – create ProductReview + nested claims */
+      ...(productReview && {
+        productReview: {
+          create: {
+            author_id: BigInt(user.userId),
+            product_name: productReview.productName,
+            rating: productReview.rating,
+            summary: productReview.summary,
+            product_link: productReview.productLink,
+            image_urls: productReview.images ?? [],
+            claims: {
+              create: (productReview.claims ?? []).map((t) => ({ text: t })),
+            },
+          },
+        },
+      }),
     },
   });
-  return post    
+  return post;
 }
