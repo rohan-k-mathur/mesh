@@ -79,14 +79,19 @@ export default function ChatRoom({
   function Attachment({
     a,
   }: {
-    a: { path: string; type: string; size: number };
+    a: {id:string, path: string; type: string; size: number };
   }) {
     const [url, setUrl] = useState<string | null>(null);
     useEffect(() => {
-      supabase.storage
-        .from("message-attachments")
-        .createSignedUrl(a.path, 60 * 60)
-        .then(({ data }) => setUrl(data?.signedUrl || null));
+      // supabase.storage
+      //   .from("message-attachments")
+      //   .createSignedUrl(a.path, 60 * 60)
+      //   .then(({ data }) => setUrl(data?.signedUrl || null));
+        // fetch by attachment id, not path (safer)
+  fetch(`/api/messages/attachments/${a.id}/sign`)
+    .then((r) => r.ok ? r.json() : Promise.reject())
+    .then(({ url }) => setUrl(url))
+    .catch(() => setUrl(null));
     }, [a.path]);
     if (!url) return null;
     const isImage = a.type.startsWith("image/");
@@ -119,8 +124,8 @@ export default function ChatRoom({
       {messages.map((m) => (
         <ChatMessage
           key={m.id}
-          type={m.senderId === currentUserId.toString() ? "outgoing" : "incoming"}
-          variant="bubble"
+          type={m.senderId === currentUserId ? "outgoing" : "incoming"}
+                    variant="bubble"
           id={m.id}
         >
           {m.text && <ChatMessageContent content={m.text} />}

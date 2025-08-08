@@ -68,19 +68,6 @@ export default async function ArticlePage({
   TextAlign.configure({ types: ['heading', 'paragraph'] }),
 ])
 
-  // /* 3️⃣ wrap in the selected template */
-  // return (
-  // <ArticleReader template={article.template} heroSrc={article.heroImageKey}>
-  //     {article.heroImageKey && (
-  //       <HeroRenderer src={article.heroImageKey} template={article.template} />
-  //     )}
-
-  //     {/* ⬇⬇ dangerous but fine – content is trusted user input */}
-  //     <div
-  //     className="ProseMirror"
-  //     dangerouslySetInnerHTML={{ __html: html }}
-  //   />
-  // </ArticleReader>
   return (
     <ArticleReader template={article.template} heroSrc={article.heroImageKey}>
     {article.heroImageKey && (

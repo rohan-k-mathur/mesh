@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import { X, File as FileIcon, Paperclip } from "lucide-react";
 import { useChatStore } from "@/contexts/useChatStore";
@@ -15,15 +15,39 @@ export default function MessageComposer({ conversationId }: Props) {
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [previews, setPreviews] = useState<string[]>([]);
 
-  function onFilesSelected(list: FileList | null) {
-    if (!list) return;
-    setFiles((prev) => [...prev, ...Array.from(list)]);
-  }
+function onFilesSelected(list: FileList | null) {
+  if (!list) return;
+  const filesArray = Array.from(list);
+  const urls = filesArray.map((f) => f.type.startsWith("image/") ? URL.createObjectURL(f) : "");
+  setFiles((prev) => [...prev, ...filesArray]);
+  setPreviews((prev) => [...prev, ...urls]);
+}
 
-  function removeFile(idx: number) {
-    setFiles((prev) => prev.filter((_, i) => i !== idx));
-  }
+function removeFile(idx: number) {
+  setFiles((prev) => prev.filter((_, i) => i !== idx));
+  setPreviews((prev) => {
+    const [toRevoke] = prev.slice(idx, idx + 1);
+    if (toRevoke) URL.revokeObjectURL(toRevoke);
+    return prev.filter((_, i) => i !== idx);
+  });
+}
+
+useEffect(() => {
+  return () => {
+    previews.forEach((url) => url && URL.revokeObjectURL(url));
+  };
+}, [previews]);
+
+  // function onFilesSelected(list: FileList | null) {
+  //   if (!list) return;
+  //   setFiles((prev) => [...prev, ...Array.from(list)]);
+  // }
+
+  // function removeFile(idx: number) {
+  //   setFiles((prev) => prev.filter((_, i) => i !== idx));
+  // }
 
   async function send() {
     if (uploading) return;
@@ -39,16 +63,23 @@ export default function MessageComposer({ conversationId }: Props) {
       }
     };
     xhr.onload = () => {
-      const msg = JSON.parse(xhr.responseText);
-      appendMessage(conversationId, msg);
-      setText("");
-      setFiles([]);
-      setUploading(false);
-      setProgress(0);
+      try {
+        if (xhr.status < 200 || xhr.status >= 300) throw new Error("Upload failed");
+        const msg = JSON.parse(xhr.responseText);
+        appendMessage(conversationId, msg);
+      } catch (e) {
+        // TODO: surface error toast
+      } finally {
+        setText("");
+        setFiles([]);
+        setUploading(false);
+        setProgress(0);
+      }
     };
     xhr.onerror = () => {
       setUploading(false);
       setProgress(0);
+      // TODO: toast
     };
     setUploading(true);
     xhr.send(form);

@@ -126,7 +126,7 @@ export default function GroupCreationModal() {
           )}
         </div>
         <DialogFooter>
-          <Button onClick={create} disabled={selected.length < 3}>
+          <Button onClick={create} disabled={selected.length < 2}>
             Create
           </Button>
         </DialogFooter>
