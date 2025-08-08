@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserFromCookies } from "@/lib/serverutils";
-import { getOrCreateConversation } from "@/lib/actions/message.actions";
+import { getOrCreateDM } from "@/lib/actions/conversation.actions";
 
 export async function POST(req: NextRequest) {
   const user = await getUserFromCookies();
@@ -8,9 +8,9 @@ export async function POST(req: NextRequest) {
     return new NextResponse("Unauthorized", { status: 401 });
   }
   const { targetUserId } = await req.json();
-  const conversation = await getOrCreateConversation({
-    userId: user.userId,
-    targetUserId: BigInt(targetUserId),
+  const conversation = await getOrCreateDM({
+    userAId: user.userId,
+    userBId: BigInt(targetUserId),
   });
   return NextResponse.json({ id: conversation.id });
 }
