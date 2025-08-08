@@ -563,6 +563,7 @@ model ConversationParticipant {
   user            User         @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@unique([conversation_id, user_id])
+  @@index([user_id])
   @@map("conversation_participants")
 }
 
@@ -576,6 +577,7 @@ model MessageAttachment {
   metadata   Json?
   message    Message  @relation(fields: [message_id], references: [id], onDelete: Cascade)
 
+  @@index([message_id])
   @@map("message_attachments")
 }
 

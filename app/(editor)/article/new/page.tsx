@@ -12,36 +12,42 @@ const ArticleEditor = dynamic(
 export default function NewArticlePage() {
   const [articleId, setArticleId] = useState<string | null>(null);
   const router = useRouter();
+  const KEY = "draftArticleId";
+
   useEffect(() => {
-    async function init() {
-      const stored = localStorage.getItem("draftArticleId");
+    (async () => {
+      const stored = localStorage.getItem(KEY);
       if (stored) {
-        setArticleId(stored);
-        return;
+        const check = await fetch(`/api/articles/${stored}`);
+        if (check.ok) {
+          setArticleId(stored);
+          router.replace(`/article/${stored}/edit`); // edit by ID
+          return;
+        }
+        localStorage.removeItem(KEY); // stale id
       }
-      const slug = nanoid();
+      
       const res = await fetch('/api/articles', {          
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           authorId: "anon",
           title: "Untitled",
-          slug,
+          slug: nanoid(),
           astJson: { type: "doc", content: [] },
         }),
       });
       const data = await res.json();
       setArticleId(data.id);
-      localStorage.setItem("draftArticleId", data.id);
+      localStorage.setItem(KEY, data.id);
+
+      // localStorage.setItem("draftArticleId", data.id);
 
         // friendly URL; prevents “undefined” on refresh
-  router.replace(`/article/${data.id}/edit`)
-  return
-    }
-    init();
-  }, []);
-
-  if (!articleId) return <div>Loading...</div>;
-
-  return <ArticleEditor articleId={articleId} />;
-}
+        router.replace(`/article/${data.id}/edit`);
+      })();
+    }, [router]);
+  
+    if (!articleId) return <div>Loading...</div>;
+    return <ArticleEditor articleId={articleId} />;
+  }

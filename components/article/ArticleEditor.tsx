@@ -1,66 +1,66 @@
 /* eslint‑disable max‑lines */
-"use client";
+'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { EditorContent } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import ImageExt from "@tiptap/extension-image";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
+import { EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import ImageExt from '@tiptap/extension-image';
 import {
   PullQuote as PullQuoteBase,
   Callout as CalloutBase,
   MathBlock as MathBlockBase,
   MathInline as MathInlineBase,
-} from "@/lib/tiptap/extensions";
-import Link from "@tiptap/extension-link";
-import Placeholder from "@tiptap/extension-placeholder";
-import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
-import Collaboration from "@tiptap/extension-collaboration";
-import CollaborationCursor from "@tiptap/extension-collaboration-cursor";
-import CharacterCount from "@tiptap/extension-character-count";
-import TextStyle from "@tiptap/extension-text-style";
-import Underline from "@tiptap/extension-underline";
-import Color from "@tiptap/extension-color";
-import Highlight from "@tiptap/extension-highlight";
-import TextAlign from "@tiptap/extension-text-align";
-import TaskList from "@tiptap/extension-task-list";
-import TaskItem from "@tiptap/extension-task-item";
-import { createLowlight } from "lowlight";
-import javascript from "highlight.js/lib/languages/javascript";
-import typescript from "highlight.js/lib/languages/typescript";
-import python from "highlight.js/lib/languages/python";
-import bash from "highlight.js/lib/languages/bash";
-import katex from "katex";
-import { keymap } from "@tiptap/pm/keymap";
-import {
-  Node,
-  mergeAttributes,
-  type JSONContent,
-  type Extension,
-} from "@tiptap/core";
-import { ReactNodeViewRenderer } from "@tiptap/react";
-import * as Y from "yjs";
-import { WebsocketProvider } from "y-websocket";
-import enStrings from "@/public/locales/en/editor.json";
-import { useDebouncedCallback } from "use-debounce";
-import { FontFamily } from "./extensions/font-family";
-import { useEditor, Editor } from "@tiptap/react";
+} from '@/lib/tiptap/extensions';
+import Link from '@tiptap/extension-link';
+import Placeholder from '@tiptap/extension-placeholder';
+import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
+import Collaboration from '@tiptap/extension-collaboration';
+import CollaborationCursor from '@tiptap/extension-collaboration-cursor';
+import CharacterCount from '@tiptap/extension-character-count';
+import TextStyle from '@tiptap/extension-text-style';
+import Underline from '@tiptap/extension-underline';
+import Color from '@tiptap/extension-color';
+import Highlight from '@tiptap/extension-highlight';
+import TextAlign from '@tiptap/extension-text-align';
+import TaskList from '@tiptap/extension-task-list';
+import TaskItem from '@tiptap/extension-task-item';
+import { createLowlight } from 'lowlight';
+import javascript from 'highlight.js/lib/languages/javascript';
+import typescript from 'highlight.js/lib/languages/typescript';
+import python from 'highlight.js/lib/languages/python';
+import bash from 'highlight.js/lib/languages/bash';
+import katex from 'katex';
+import { keymap } from '@tiptap/pm/keymap';
+import { Node, mergeAttributes, type JSONContent, type Extension } from '@tiptap/core';
+import { ReactNodeViewRenderer } from '@tiptap/react';
+import * as Y from 'yjs';
+import { WebsocketProvider } from 'y-websocket';
+import enStrings from '@/public/locales/en/editor.json';
+import { useDebouncedCallback } from 'use-debounce';
+import { FontFamily } from './extensions/font-family';
+import { useEditor, Editor } from '@tiptap/react'
 
-import SlashCommand from "./editor/SlashCommand";
-import Toolbar from "./editor/Toolbar";
-import TemplateSelector from "./editor/TemplateSelector";
-import { uploadFileToSupabase } from "@/lib/utils";
-import styles from "./article.module.scss";
-import Spinner from "../ui/spinner";
-import dynamic from "next/dynamic";
-import NextImage from "next/image"; // 🆕 missing import
+import SlashCommand from './editor/SlashCommand';
+import Toolbar from './editor/Toolbar';
+import TemplateSelector from './editor/TemplateSelector';
+import { uploadFileToSupabase } from '@/lib/utils';
+import styles from './article.module.scss';
+import Spinner from '../ui/spinner';
+import dynamic from 'next/dynamic';
+import NextImage from 'next/image';                              // 🆕 missing import
 import { useRouter } from "next/navigation";
-import "katex/dist/katex.min.css";
+import 'katex/dist/katex.min.css';
 
 /* -------------------------------------------------------------------------- */
 /*  Dynamic imports                                                            */
 /* -------------------------------------------------------------------------- */
 
-const Cropper = dynamic(() => import("react-easy-crop"), {
+const Cropper = dynamic(() => import('react-easy-crop'), {
   ssr: false,
   loading: () => <Spinner />,
 });
@@ -69,7 +69,7 @@ const Cropper = dynamic(() => import("react-easy-crop"), {
 /*  Module augmentation for CharacterCount storage                             */
 /* -------------------------------------------------------------------------- */
 
-declare module "@tiptap/core" {
+declare module '@tiptap/core' {
   interface Storage {
     characterCount?: {
       words: () => number;
@@ -105,9 +105,8 @@ type Backup = {
 
 const LOCAL_KEY = (id: string) => `article_${id}_backup`;
 
-interface ArticleEditorProps {
-  articleId: string;
-}
+interface ArticleEditorProps { articleId: string }
+
 
 /* -------------------------------------------------------------------------- */
 /*  Custom nodes                                                               */
@@ -137,25 +136,25 @@ const PullQuote = PullQuoteBase.extend({
   addNodeView() {
     return ReactNodeViewRenderer(({ node }) => (
       <blockquote className={`pull-quote ${node.attrs.alignment}`}>
-        {node.content.map((c) => c.text).join(" ")}
+        {node.content.map(c => c.text).join(' ')}
       </blockquote>
-    ));
+    ))
   },
-});
+})
 
 const Callout = Node.create({
-  name: "callout",
-  group: "block",
-  content: "paragraph+",
+  name: 'callout',
+  group: 'block',
+  content: 'paragraph+',
   addAttributes() {
-    return { type: { default: "info" } };
+    return { type: { default: 'info' } };
   },
   parseHTML() {
-    return [{ tag: "div.callout" }];
+    return [{ tag: 'div.callout' }];
   },
   renderHTML({ HTMLAttributes }) {
     return [
-      "div",
+      'div',
       mergeAttributes(HTMLAttributes, {
         class: `callout ${HTMLAttributes.type}`,
       }),
@@ -165,19 +164,19 @@ const Callout = Node.create({
 });
 
 const MathBlock = Node.create({
-  name: "mathBlock",
-  group: "block",
+  name: 'mathBlock',
+  group: 'block',
   atom: true,
   addAttributes() {
-    return { latex: { default: "" } };
+    return { latex: { default: '' } };
   },
   parseHTML() {
-    return [{ tag: "div[data-type=math-block]" }];
+    return [{ tag: 'div[data-type=math-block]' }];
   },
   renderHTML({ HTMLAttributes }) {
     return [
-      "div",
-      mergeAttributes(HTMLAttributes, { "data-type": "math-block" }),
+      'div',
+      mergeAttributes(HTMLAttributes, { 'data-type': 'math-block' }),
     ];
   },
   addNodeView() {
@@ -195,20 +194,20 @@ const MathBlock = Node.create({
 });
 
 const MathInline = Node.create({
-  name: "mathInline",
-  group: "inline",
+  name: 'mathInline',
+  group: 'inline',
   inline: true,
   atom: true,
   addAttributes() {
-    return { latex: { default: "" } };
+    return { latex: { default: '' } };
   },
   parseHTML() {
-    return [{ tag: "span[data-type=math-inline]" }];
+    return [{ tag: 'span[data-type=math-inline]' }];
   },
   renderHTML({ HTMLAttributes }) {
     return [
-      "span",
-      mergeAttributes(HTMLAttributes, { "data-type": "math-inline" }),
+      'span',
+      mergeAttributes(HTMLAttributes, { 'data-type': 'math-inline' }),
     ];
   },
   addNodeView() {
@@ -230,22 +229,22 @@ const CustomImage = ImageExt.extend({
   addAttributes() {
     return {
       ...this.parent?.(),
-      caption: { default: "" },
-      align: { default: "center" },
-      alt: { default: "" },
+      caption: { default: '' },
+      align: { default: 'center' },
+      alt: { default: '' },
       missingAlt: { default: false },
     };
   },
   renderHTML({ HTMLAttributes }) {
     return [
-      "figure",
+      'figure',
       {
         class: `image align-${HTMLAttributes.align}${
-          HTMLAttributes.missingAlt ? " a11y-error" : ""
+          HTMLAttributes.missingAlt ? ' a11y-error' : ''
         }`,
       },
-      ["img", { src: HTMLAttributes.src, alt: HTMLAttributes.alt }],
-      ["figcaption", HTMLAttributes.caption],
+      ['img', { src: HTMLAttributes.src, alt: HTMLAttributes.alt }],
+      ['figcaption', HTMLAttributes.caption],
     ];
   },
 });
@@ -265,23 +264,23 @@ interface EditorProps {
 export default function ArticleEditor({ articleId }: ArticleEditorProps) {
   /* ------------------------------- state ---------------------------------- */
 
-  const [template, setTemplate] = useState("standard");
-  const [heroImageKey, setHeroImageKey] = useState<string | null>(null);
-  const [heroPreview, setHeroPreview] = useState<string | null>(null);
-  const [headings, setHeadings] = useState<Heading[]>([]);
-  const [cropFile, setCropFile] = useState<File | null>(null);
-  const [cropImage, setCropImage] = useState<string | null>(null);
-  const [crop, setCrop] = useState({ x: 0, y: 0 });
-  const [zoom, setZoom] = useState(1);
-  const [croppedArea, setCroppedArea] = useState<any>(null);
-  const [a11yErrors, setA11yErrors] = useState(0);
-  const [suggestion, setSuggestion] = useState(false);
-  const [isDirty, setIsDirty] = useState(false);
-  const [showUnsaved, setShowUnsaved] = useState(false);
-  const [pendingRestore, setPendingRestore] = useState<Backup | null>(null);
-  const [counter, setCounter] = useState({ words: 0, chars: 0 });
-  const [editorRef, setEditorRef] = useState<Editor | null>(null);
-  const [initialJson, setInitialJson] = useState<any>();
+  const [template,      setTemplate]      = useState('standard');
+  const [heroImageKey,  setHeroImageKey]  = useState<string | null>(null);
+  const [heroPreview,   setHeroPreview]   = useState<string | null>(null);
+  const [headings,      setHeadings]      = useState<Heading[]>([]);
+  const [cropFile,      setCropFile]      = useState<File | null>(null);
+  const [cropImage,     setCropImage]     = useState<string | null>(null);
+  const [crop,          setCrop]          = useState({ x: 0, y: 0 });
+  const [zoom,          setZoom]          = useState(1);
+  const [croppedArea,   setCroppedArea]   = useState<any>(null);
+  const [a11yErrors,    setA11yErrors]    = useState(0);
+  const [suggestion,    setSuggestion]    = useState(false);
+  const [isDirty,       setIsDirty]       = useState(false);
+  const [showUnsaved,   setShowUnsaved]   = useState(false);
+  const [pendingRestore,setPendingRestore]= useState<Backup | null>(null);
+  const [counter,       setCounter]       = useState({ words: 0, chars: 0 });
+  const [editorRef, setEditorRef] = useState<Editor | null>(null)
+  const [initialJson, setInitialJson] = useState<any>()
   const router = useRouter();
 
   /* ------------------------------ y‑js / collab --------------------------- */
@@ -289,12 +288,12 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
   const ydoc = useMemo(() => new Y.Doc(), []);
 
   const provider = useMemo(() => {
-    if (!COLLAB_ENABLED || typeof window === "undefined") return null;
-    const proto = window.location.protocol === "https:" ? "wss" : "ws";
+    if (!COLLAB_ENABLED || typeof window === 'undefined') return null;
+    const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
     return new WebsocketProvider(
       `${proto}://${window.location.host}/ws/article/${articleId}`,
       articleId,
-      ydoc
+      ydoc,
     );
   }, [articleId, ydoc]);
 
@@ -302,10 +301,10 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
 
   const lowlight = useMemo(() => {
     const ll = createLowlight();
-    ll.register("js", javascript);
-    ll.register("ts", typescript);
-    ll.register("py", python);
-    ll.register("sh", bash);
+    ll.register('js', javascript);
+    ll.register('ts', typescript);
+    ll.register('py', python);
+    ll.register('sh', bash);
     return ll;
   }, []);
 
@@ -318,11 +317,8 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
 
   /* ------------------------- editor extensions --------------------------- */
 
-  const userName = useMemo(() => `User${Math.floor(Math.random() * 1000)}`, []);
-  const userColor = useMemo(
-    () => `#${Math.floor(Math.random() * 0xffffff).toString(16)}`,
-    []
-  );
+  const userName  = useMemo(() => `User${Math.floor(Math.random() * 1000)}`, []);
+  const userColor = useMemo(() => `#${Math.floor(Math.random() * 0xffffff).toString(16)}`, []);
 
   const extensions = useMemo<Extension[]>(() => {
     return [
@@ -330,14 +326,14 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
       FontFamily,
       Color,
       Highlight,
-      TextAlign.configure({ types: ["heading", "paragraph"] }),
+      TextAlign.configure({ types: ['heading', 'paragraph'] }),
       Underline,
       TaskList,
       TaskItem,
       StarterKit,
       CustomImage,
       Link,
-      Placeholder.configure({ placeholder: "Write something…" }),
+      Placeholder.configure({ placeholder: 'Write something…' }),
       CodeBlockLowlight.configure({ lowlight }),
       PullQuote,
       Callout,
@@ -346,13 +342,12 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
       CharacterCount.configure({ limit: CHAR_LIMIT }),
       SlashCommand,
       COLLAB_ENABLED && provider && Collaboration.configure({ document: ydoc }),
-      COLLAB_ENABLED &&
-        provider &&
+      COLLAB_ENABLED && provider &&
         CollaborationCursor.configure({
           provider,
           user: { name: userName, color: userColor },
         }),
-    ].filter(Boolean) as Extension[]; // TS narrow‑down
+    ].filter(Boolean) as Extension[];          // TS narrow‑down
   }, [lowlight, provider, userName, userColor, ydoc]);
 
   /* ---------------------------- TipTap editor ---------------------------- */
@@ -369,31 +364,31 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
   // )
   //  if (initialJson === undefined) return <div>Loading editor…</div>
 
-  const editor = useEditor({
-    extensions,
-    content: initialJson,
-    immediatelyRender: false,
-    onCreate: ({ editor }) => setEditorRef(editor),
-  });
+ const editor = useEditor({
+   extensions,
+   content: initialJson,
+   immediatelyRender: false,
+   onCreate: ({ editor }) => setEditorRef(editor),
+ })
 
   /** 3️⃣ autosave once the editor is ready */
   useEffect(() => {
-    if (!editorRef) return;
+    if (!editorRef) return
     const save = () => {
       const body = {
         astJson: editorRef.getJSON(),
         template,
         heroImageKey,
-      };
+      }
       fetch(`/api/articles/${articleId}/draft`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
-      });
-    };
-    const id = setInterval(save, 1500);
-    return () => clearInterval(id);
-  }, [editorRef, articleId, template, heroImageKey]);
+      })
+    }
+    const id = setInterval(save, 1500)
+    return () => clearInterval(id)
+  }, [editorRef, articleId, template, heroImageKey])
   /* ---------------------------------------------------------------------- */
   /*  Dirty‑flag + “are you sure you want to leave?” browser dialog          */
   /* ---------------------------------------------------------------------- */
@@ -401,10 +396,10 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
       e.preventDefault();
-      e.returnValue = "";
+      e.returnValue = '';
     };
-    if (isDirty) window.addEventListener("beforeunload", handler);
-    return () => window.removeEventListener("beforeunload", handler);
+    if (isDirty) window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
   }, [isDirty]);
 
   /* ---------------------------------------------------------------------- */
@@ -412,107 +407,105 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
   /* ---------------------------------------------------------------------- */
 
   const saveDraftImmediate = useCallback(async () => {
-    if (!editor) return;
-    if (!articleId) return;
+    if (!editor) return
+    if (!articleId) return
     const body = {
       astJson: editor.getJSON(),
       template,
       heroImageKey,
-    };
+    }
     await fetch(`/api/articles/${articleId}/draft`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
-    });
+    })
     localStorage.setItem(
       LOCAL_KEY(articleId),
-      JSON.stringify({ ts: Date.now(), ...body })
-    );
-    setIsDirty(false);
-    setShowUnsaved(false);
-  }, [editor, template, heroImageKey, articleId]);
+      JSON.stringify({ ts: Date.now(), ...body }),
+    )
+    setIsDirty(false)
+    setShowUnsaved(false)
+  }, [editor, template, heroImageKey, articleId])
 
   const saveDraft = useCallback(async () => {
-    if (!editor) return;
+    if (!editor) return
     const body = {
       astJson: editor.getJSON(),
       template,
       heroImageKey,
-    };
+    }
     await fetch(`/api/articles/${articleId}/draft`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
-    });
-  }, [editor, articleId, template, heroImageKey]);
+    })
+  }, [editor, articleId, template, heroImageKey])
 
   useEffect(() => {
-    if (!editor) return;
-    const id = setInterval(saveDraft, 1500);
-    return () => clearInterval(id);
-  }, [editor, saveDraft]);
-  //   const publishArticle = useCallback(async () => {
-  //     if (!articleId) return;
-  // const res = await fetch(`/api/articles/${articleId}/publish`, { method: 'POST' })
+    if (!editor) return
+    const id = setInterval(saveDraft, 1500)
+    return () => clearInterval(id)
+  }, [editor, saveDraft])
+//   const publishArticle = useCallback(async () => {
+//     if (!articleId) return;
+// const res = await fetch(`/api/articles/${articleId}/publish`, { method: 'POST' })
 
-  //     //localStorage.removeItem('draftArticleId')
-  //     const { slug } = await res.json()
 
-  //     if (res.ok) {
-  //       const data = await res.json();
-  //       //localStorage.removeItem(LOCAL_KEY(articleId));
-  //       //localStorage.removeItem("draftArticleId");
-  //       //router.push(`/article/${data.slug}`);
-  //       router.push(`/article/${slug}`)           // open the published page
-  //       localStorage.removeItem('draftArticleId')
+//     //localStorage.removeItem('draftArticleId')
+//     const { slug } = await res.json()
 
-  //     }
-  //   }, [articleId, router]);
-  const publishArticle = useCallback(async () => {
-    if (!articleId) return;
-    if (!editor) return;
-    await saveDraftImmediate();
-    const res = await fetch(`/api/articles/${articleId}/publish`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        // ② send a copy to the server too
-        astJson: editor.getJSON(),
-        template,
-        heroImageKey,
-      }),
-    });
+//     if (res.ok) {
+//       const data = await res.json();
+//       //localStorage.removeItem(LOCAL_KEY(articleId));
+//       //localStorage.removeItem("draftArticleId");
+//       //router.push(`/article/${data.slug}`);
+//       router.push(`/article/${slug}`)           // open the published page
+//       localStorage.removeItem('draftArticleId')
 
-    if (!res.ok) {
-      // optional: surface error message
-      console.error("Publish failed", await res.text());
-      return;
-    }
-    const { slug } = await res.json();
-    localStorage.removeItem("draftArticleId");
-    router.push(`/article/${slug}`);
-  }, [articleId, editor, template, heroImageKey, router]);
+//     }
+//   }, [articleId, router]);
+const publishArticle = useCallback(async () => {
+  if (!articleId) return
+  if (!editor) return
+  // await saveDraftImmediate() 
+  const body = {
+    astJson: editor.getJSON(),
+    template,
+    heroImageKey,
+  }
+  const res = await fetch(`/api/articles/${articleId}/publish`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) {
+    // optional: surface error message
+    console.error('Publish failed', await res.text())
+    return
+  }
+  const { slug } = await res.json()
+  localStorage.removeItem('draftArticleId')
+  router.push(`/article/${slug}`)
+}, [articleId, editor, template, heroImageKey, router])
   /* ---------------------------------------------------------------------- */
   /*  Initial load (server copy + optional local override)                   */
   /* ---------------------------------------------------------------------- */
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const res = await fetch(`/api/articles/${articleId}`);
-      const data = res.ok ? await res.json() : null;
-      if (cancelled) return;
-      setTemplate(data?.template ?? "standard");
-      setHeroImageKey(data?.heroImageKey ?? null);
+    let cancelled = false
+    ;(async () => {
+      const res = await fetch(`/api/articles/${articleId}`)
+      const data = res.ok ? await res.json() : null
+      if (cancelled) return
+      setTemplate(data?.template ?? 'standard')
+      setHeroImageKey(data?.heroImageKey ?? null)
       setInitialJson(
-        data?.astJson ?? { type: "doc", content: [] } // default empty doc
-      );
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [articleId]);
+        data?.astJson ?? { type: 'doc', content: [] }   // default empty doc
+      )
+    })()
+  
+    return () => { cancelled = true }
+  }, [articleId])
 
   //   if (!editor) return;
   //   const controller = new AbortController();
@@ -564,8 +557,8 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
     };
 
     updateCounter();
-    editor.on("update", updateCounter);
-    return () => editor.off("update", updateCounter);
+    editor.on('update', updateCounter);
+    return () => editor.off('update', updateCounter);
   }, [editor]);
 
   /* ---------------------------------------------------------------------- */
@@ -575,8 +568,8 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
   useEffect(() => {
     if (!editor) return;
     const plugin = keymap({
-      "Mod-b": () => editor.chain().focus().toggleBold().run(),
-      "Mod-i": () => editor.chain().focus().toggleItalic().run(),
+      'Mod-b': () => editor.chain().focus().toggleBold().run(),
+      'Mod-i': () => editor.chain().focus().toggleItalic().run(),
     });
     editor.registerPlugin(plugin);
     return () => editor.unregisterPlugin(plugin.key);
@@ -610,13 +603,13 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
       const hs: Heading[] = [];
 
       editor.state.doc.descendants((node, pos) => {
-        if (node.type.name !== "heading") return;
+        if (node.type.name !== 'heading') return;
 
         const text = node.textContent;
         let id = text
           .toLowerCase()
-          .replace(/[^a-z0-9]+/g, "-")
-          .replace(/(^-|-$)+/g, "");
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/(^-|-$)+/g, '');
 
         if (seen[id]) {
           id = `${id}-${seen[id]}`;
@@ -638,8 +631,8 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
     };
 
     updateHeadings();
-    editor.on("update", updateHeadings);
-    return () => editor.off("update", updateHeadings);
+    editor.on('update', updateHeadings);
+    return () => editor.off('update', updateHeadings);
   }, [editor]);
 
   /* ---------------------------------------------------------------------- */
@@ -651,10 +644,10 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
     const handler = () => {
       setIsDirty(true);
       setShowUnsaved(true);
-      saveDraft(); // 2‑s debounce
+      saveDraft();                // 2‑s debounce
     };
-    editor.on("update", handler);
-    return () => editor.off("update", handler);
+    editor.on('update', handler);
+    return () => editor.off('update', handler);
   }, [editor, saveDraft]);
 
   /* also mark dirty when template or hero image changes */
@@ -691,22 +684,20 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
     if (!file) return;
 
     const res = await fetch(
-      `/api/articles/presign?filename=${encodeURIComponent(
-        file.name
-      )}&contentType=${encodeURIComponent(file.type)}`
+      `/api/articles/presign?filename=${encodeURIComponent(file.name)}&contentType=${encodeURIComponent(file.type)}`,
     );
     const { uploadUrl } = await res.json();
 
     await fetch(uploadUrl, {
-      method: "PUT",
-      headers: { "Content-Type": file.type },
+      method: 'PUT',
+      headers: { 'Content-Type': file.type },
       body: file,
     });
 
-    const publicUrl = uploadUrl.split("?")[0];
+    const publicUrl = uploadUrl.split('?')[0];
     setHeroImageKey(publicUrl);
     setHeroPreview(publicUrl);
-    e.target.value = "";
+    e.target.value = '';
   };
 
   const onImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -714,7 +705,7 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
     if (!file) return;
     setCropFile(file);
     setCropImage(URL.createObjectURL(file));
-    e.target.value = "";
+    e.target.value = '';
   };
 
   const onCropComplete = useCallback((_: any, area: any) => {
@@ -727,23 +718,19 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
     img.src = cropImage as string;
     await new Promise((res) => (img.onload = res));
 
-    const canvas = document.createElement("canvas");
-    canvas.width = croppedArea.width;
+    const canvas = document.createElement('canvas');
+    canvas.width  = croppedArea.width;
     canvas.height = croppedArea.height;
 
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     ctx.drawImage(
       img,
-      croppedArea.x,
-      croppedArea.y,
-      croppedArea.width,
-      croppedArea.height,
-      0,
-      0,
-      croppedArea.width,
-      croppedArea.height
+      croppedArea.x,     croppedArea.y,
+      croppedArea.width, croppedArea.height,
+      0,                 0,
+      croppedArea.width, croppedArea.height,
     );
 
     return new Promise<void>((resolve) => {
@@ -752,16 +739,9 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
         const file = new File([blob], cropFile.name, { type: cropFile.type });
         const { fileURL } = await uploadFileToSupabase(file);
         if (fileURL) {
-          editor
-            .chain()
-            .focus()
-            .setImage({
-              src: fileURL,
-              caption: "",
-              align: "center",
-              alt: "",
-            })
-            .run();
+          editor.chain().focus().setImage({
+            src: fileURL, caption: '', align: 'center', alt: '',
+          }).run();
         }
         resolve();
       });
@@ -772,47 +752,41 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
     const h = headings.find((x) => x.id === id);
     if (!h || !editor) return;
     const dom = editor.view.domAtPos(h.pos).node as HTMLElement;
-    dom.scrollIntoView({ behavior: "smooth" });
+    dom.scrollIntoView({ behavior: 'smooth' });
   };
 
   const runA11yCheck = () => {
     if (!editor) return;
     document
-      .querySelectorAll(".a11y-error")
-      .forEach((el) => el.classList.remove("a11y-error"));
+      .querySelectorAll('.a11y-error')
+      .forEach((el) => el.classList.remove('a11y-error'));
 
     let last = 0;
     let errors = 0;
 
     editor.state.doc.descendants((node, pos) => {
-      if (node.type.name === "heading") {
+      if (node.type.name === 'heading') {
         const dom = editor.view.nodeDOM(pos) as HTMLElement;
         const lvl = node.attrs.level;
         if (last && lvl > last + 1) {
-          dom.classList.add("a11y-error");
+          dom.classList.add('a11y-error');
           errors++;
         }
         last = lvl;
       }
 
-      if (node.type.name === "image") {
+      if (node.type.name === 'image') {
         const dom = editor.view.nodeDOM(pos) as HTMLElement;
         if (!node.attrs.alt) {
-          dom.classList.add("a11y-error");
+          dom.classList.add('a11y-error');
           editor.commands.command(({ tr }) => {
-            tr.setNodeMarkup(pos, undefined, {
-              ...node.attrs,
-              missingAlt: true,
-            });
+            tr.setNodeMarkup(pos, undefined, { ...node.attrs, missingAlt: true });
             return true;
           });
           errors++;
         } else {
           editor.commands.command(({ tr }) => {
-            tr.setNodeMarkup(pos, undefined, {
-              ...node.attrs,
-              missingAlt: false,
-            });
+            tr.setNodeMarkup(pos, undefined, { ...node.attrs, missingAlt: false });
             return true;
           });
         }
@@ -825,55 +799,57 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
   /* ---------------------------------------------------------------------- */
   /*  Render                                                                 */
   /* ---------------------------------------------------------------------- */
-  if (!editor) return <div>Loading editor…</div>;
+  if (!editor) return <div>Loading editor…</div>
 
   return (
     <div className="flex justify-center items-center ">
       <article className={template}>
         {/* Top‑bar ---------------------------------------------------------- */}
         {showUnsaved && (
-          <div className="fixed flex left-0 top-0 text-red-600">
-            {t("unsavedChanges")}
-          </div>
+          <div className="fixed flex left-0 top-0 text-red-600">{t('unsavedChanges')}</div>
         )}
 
         <div className="flex flex-col ">
+       
+          
           <div className="flex flex-1 flex-wrap space-x-3 gap-2 justify-center mb-3">
-            <button className=" savebutton rounded-xl bg-white/70  p-2  text-xs h-fit ">
-              <input type="file" onChange={onHeroUpload} hidden />
-              Upload hero
-            </button>
+          <button className=" savebutton rounded-xl bg-white/70  p-2  text-xs h-fit ">
+            <input  type="file" onChange={onHeroUpload} hidden />
+            Upload hero
+          </button>
+      
 
-            <button
-              className="savebutton rounded-xl bg-white/70 p-2 h-fit text-xs"
-              onClick={() => setSuggestion(!suggestion)}
-            >
-              {suggestion ? t("suggestionOff") : t("suggestionMode")}
-            </button>
-            <button
-              className="savebutton rounded-xl bg-white/70 p-2 h-fit text-xs"
-              onClick={saveDraftImmediate}
-            >
-              {t("saveDraft")}
-            </button>
-            {/* <button
+          <button
+            className="savebutton rounded-xl bg-white/70 p-2 h-fit text-xs"
+            onClick={() => setSuggestion(!suggestion)}
+          >
+            {suggestion ? t('suggestionOff') : t('suggestionMode')}
+          </button>
+          <button
+            className="savebutton rounded-xl bg-white/70 p-2 h-fit text-xs"
+            onClick={saveDraftImmediate}
+          >
+            {t('saveDraft')}
+          </button>
+          {/* <button
             className="savebutton rounded-xl bg-white p-2 text-xs h-fit"
             onClick={runA11yCheck}
           >
             {t('checkAccessibility')}
           </button> */}
-            <button
-              className="savebutton rounded-xl bg-white/70 px-4   py-2 items-end justify-end h-fit text-xs"
-              onClick={publishArticle}
-            >
-              Publish
-            </button>
+             <button
+            className="savebutton rounded-xl bg-white/70 px-4   py-2 items-end justify-end h-fit text-xs"
+            onClick={publishArticle}
+          >
+            Publish
+          </button>
           </div>
           <TemplateSelector
             articleId={articleId}
             template={template}
             onChange={setTemplate}
           />
+       
         </div>
 
         {/* Hero image ------------------------------------------------------- */}
@@ -889,12 +865,7 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
 
         {/* Editor ----------------------------------------------------------- */}
         <div className="h-full flex flex-col gap-2">
-          <input
-            id="image-upload"
-            type="file"
-            onChange={onImageUpload}
-            hidden
-          />
+          <input id="image-upload" type="file" onChange={onImageUpload} hidden />
           <Toolbar editor={editor} />
           <div className="flex-1 overflow-auto">
             {/* If you want a live outline component, pass `headings` + handler */}
@@ -907,7 +878,7 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
         <div className="text-xs p-2 tracking-wide">
           <span
             className={`${styles.charCount} ${
-              counter.chars > CHAR_LIMIT ? "text-red-600" : ""
+              counter.chars > CHAR_LIMIT ? 'text-red-600' : ''
             }`}
           >
             {counter.words} words • {counter.chars}/{CHAR_LIMIT}
