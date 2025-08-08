@@ -104,7 +104,7 @@ export default async function Page({ params }: { params: { id: string } }) {
             alt={headerUsers[0]?.name ?? "User"}
             width={50}
             height={50}
-            className="rounded-full object-fill profile-shadow align-center justify-center items-center"
+            className="rounded-full object-fill p-1 profile-shadow bg-white/20 align-center justify-center items-center"
           />
           </button>
         )}

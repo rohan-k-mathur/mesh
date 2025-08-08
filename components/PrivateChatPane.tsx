@@ -186,8 +186,8 @@ export default function PrivateChatPane({ pane, currentUserId }: PaneProps) {
         className="fixed pointer-events-auto  w-80 h-[400px] rounded-xl bg-slate-200/10 backdrop-blur-md
                    border border-white shadow-xl flex flex-col "
       >
-        <div className="pcp-header flex justify-between items-center bg-white px-2 py-2 rounded-t-xl border-none cursor-move">
-          <span className="tracking-wide px-2 text-sm font-medium">{title}</span>
+        <div className="pcp-header flex justify-between items-center bg-white/80 px-2 py-1 rounded-t-xl border-none cursor-move">
+          <span className="tracking-wide px-2 text-[.9rem] font-medium">{title}</span>
           <div className="space-x-1">
             <button
               type="button"
@@ -212,30 +212,42 @@ export default function PrivateChatPane({ pane, currentUserId }: PaneProps) {
           <>
             <div
               ref={messagesRef}
-              className="flex-1 overflow-y-auto px-4 py-3 space-y-1 text-sm"
+              className="flex  flex-col flex-1 overflow-y-auto overflow-x-none px-4 py-3 space-y-2 text-sm text-slate-800 break-all text-wrap"
             >
               {pane.msgs.map((m, i) => {
                 const isSelf = String(m.from) === selfId;
                 return (
-                  <div key={i} className="leading-5">
-                    <span className="font-semibold">
+                  <div
+                  key={i}
+                  className={`flex ${isSelf ? "justify-end" : "justify-start"}`}
+                >
+                  <div
+                    className={`px-2 py-[.2rem] text-pretty
+                    rounded-xl max-w-[70%] ${
+                      isSelf
+                        ? "bg-indigo-100 text-right"
+                        : "bg-white text-left"
+                    }`}
+                  >
+                    <span className="p-0 ">
                       {isSelf ? "You" : pane.peerName || `User ${pane.peerId}`}:
                     </span>{" "}
                     {m.body}
-                  </div>
-                );
-              })}
+                    </div>
+    </div>
+  );
+})}
             </div>
 
             <hr className="border-indigo-300/50" />
 
             <div className="px-2 py-3 border-t flex">
               <input
-                className="pcp-input flex-1 border px-3 py-2 rounded-xl text-sm outline-none
-                           focus:ring-2 focus:ring-indigo-300"
+                className="pcp-input bg-white/80 flex-1 border px-3 py-2 rounded-xl text-sm outline-none pcpfield
+                           "
                 value={text}
                 onChange={(e) => setText(e.target.value)}
-                placeholder="Type a message…"
+                placeholder="Send a message…"
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
@@ -245,7 +257,7 @@ export default function PrivateChatPane({ pane, currentUserId }: PaneProps) {
               />
               <button
                 type="button"
-                className="ml-2 rounded-full px-3 py-2 text-sm bg-white/20 hover:bg-white/30"
+                className="ml-2 rounded-full px-3 py-2 text-sm bg-white/20 hover:bg-white/30 savebutton"
                 onClick={handleSend}
                 disabled={!text.trim()}
               >

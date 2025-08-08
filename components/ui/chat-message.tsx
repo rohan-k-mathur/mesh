@@ -120,7 +120,7 @@ const ChatMessageAvatar = React.forwardRef<
 			{...props}
 		>
 			{imageSrc ? (
-				<Image src={imageSrc} alt="Avatar" width={0} height={0} sizes="30vw" className="object-fill rounded-full   w-full h-full" />
+				<Image src={imageSrc} alt="Avatar" width={0} height={0} sizes="30vw" className="object-fill rounded-full bg-white/20  w-full h-full" />
 			) : (
 				<div className="translate-y-px [&_svg]:size-4 [&_svg]:shrink-0">
 					{icon}
