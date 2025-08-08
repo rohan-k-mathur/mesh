@@ -140,24 +140,25 @@ useEffect(() => {
             type="text"
             value={text}
             onChange={(e) => setText(e.target.value)}
-            className="flex-1 h-full bg-white bg-opacity-20 rounded-xl px-3 py-3 bg-transparent messagefield text-black"
+            className="flex-1 h-full bg-white bg-opacity-20 text-start align-center rounded-xl px-4 py-3 text-[.9rem] tracking-wider bg-white/50 messagefield text-black"
             disabled={uploading}
           />
           
           <button
-            className="bg-white/20 sendbutton w-fit text-black tracking-widest text-[1.1rem] rounded-xl px-5 py-2"
+            className="flex bg-white/30 sendbutton min-w-[4rem] h-fit w-fit text-black tracking-widest text-[1.1rem] rounded-xl px-5 py-2"
             onClick={send}
             disabled={uploading}
           >
              <Image
     src="/assets/send--alt.svg"
     alt="share"
-    width={28}
-    height={28}
-    className="cursor-pointer object-contain flex justify-center items-center "></Image>
+    width={24}
+    height={24}
+    className="cursor-pointer object-contain flex flex-1 justify-center items-center w-fit h-fit"></Image>
             
           </button>
-          <button className="sendbutton p-2 rounded-xl bg-white/20 flex items-center">
+          <button             className="flex bg-white/30 sendbutton  h-fit w-fit text-black tracking-widest text-[1.1rem] rounded-xl px-3 py-2"
+>
             <input
               type="file"
               multiple
@@ -165,7 +166,13 @@ useEffect(() => {
               onChange={(e) => onFilesSelected(e.target.files)}
               className="hidden"
             />
-            <Paperclip className="w-5 h-5 cursor-pointer" />
+            {/* <Paperclip className="w-[24px] h-[24px]  cursor-pointer" /> */}
+            <Image
+    src="/assets/attachment.svg"
+    alt="share"
+    width={24}
+    height={24}
+    className="cursor-pointer object-contain flex  justify-center items-center "></Image>
           </button>
         </div>
         {uploading && (

@@ -1023,22 +1023,22 @@ textarea {
 .messagefield {
   outline:transparent;
   border:none;
-  box-shadow: inset  -3px -3px 7px rgba(253, 205, 205, 0.95),
-  inset  3px 3px 7px rgba(176, 141, 141, 0.95);
+  box-shadow: inset  -3px -1px 7px rgba(253, 195, 195, 0.9),
+  inset  3px 4px 7px rgba(176, 161, 161, 0.85);
 
 }
 .messagefield:hover {
   outline:transparent;
   border:none;
-  box-shadow: inset  -3px -3px 7px rgba(243, 195, 195, 0.95),
-  inset  3px 3px 7px rgba(176, 141, 141, 0.95);
+  box-shadow: inset  -3px -1px 7px rgba(233, 185, 185, 0.95),
+  inset  3px 4px 7px rgba(170, 155, 155, 0.9);
 
 }
 .messagefield:focus {
   outline:transparent;
   border:none;
-  box-shadow: inset  -3px -3px 7px rgba(233, 185, 185, 0.95),
-  inset  3px 3px 7px rgba(156, 121, 121, 0.95);
+  box-shadow: inset  -3px -2px 7px rgba(233, 180, 180, 0.97),
+  inset  3px 4x 7px rgba(156, 151, 151, 0.95);
 
 }
 

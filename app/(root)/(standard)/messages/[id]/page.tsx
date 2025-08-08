@@ -84,7 +84,7 @@ export default async function Page({ params }: { params: { id: string } }) {
  <div className="flex w-full h-full items-center justify-center align-center gap-4">
         {isGroup ? (
           // Composite avatar (up to 4 faces)
-          <div className="grid grid-cols-2 grid-rows-2 rounded-full overflow-hidden gap-2 ">
+          <div className="flex flex-wrap rounded-full gap-4 ">
             {headerUsers.slice(0, 4).map((u, i) => (
               <Image
                 key={i}
@@ -92,7 +92,7 @@ export default async function Page({ params }: { params: { id: string } }) {
                 alt={u.name}
                 width={50}
                 height={50}
-                className="rounded-full object-fill profile-shadow align-center justify-center items-center"
+                className="rounded-full object-fill p-1 profile-shadow bg-white/20 align-center justify-center items-center"
                 />
             ))}
           </div>
