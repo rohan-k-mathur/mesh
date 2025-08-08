@@ -11,10 +11,22 @@ type SendMessageArgs = {
   files?: File[];
 };
 
-export async function fetchMessages(conversationId: bigint) {
+export async function fetchMessages({
+  conversationId,
+  cursor,
+  limit = 50,
+}: {
+  conversationId: bigint;
+  cursor?: bigint;
+  limit?: number;
+}) {
   return prisma.message.findMany({
-    where: { conversation_id: conversationId },
-    orderBy: { created_at: "asc" },
+    where: {
+      conversation_id: conversationId,
+      ...(cursor ? { id: { lt: cursor } } : {}),
+    },
+    orderBy: { id: "desc" },
+    take: limit,
     include: { sender: true, attachments: true },
   });
 }
@@ -61,31 +73,22 @@ export async function sendMessage({
         });
 
     const channel = supabase.channel(`conversation-${conversationId.toString()}`);
-    // message.actions.ts (inside sendMessage, after you create message & attachments)
-const safePayload = {
-  id: message.id.toString(),
-  conversationId: conversationId.toString(),
-  text: message.text ?? null,
-  createdAt: message.created_at.toISOString(),
-  senderId: senderId.toString(),
-  attachments: attachments.map(a => ({
-    id: a.id.toString(),
-    // see “path vs signed URL” below
-    path: a.path, 
-    type: a.type,
-    size: a.size,
-  })),
-};
-
-// await channel.send({ type: "broadcast", event: "new_message", payload: safePayload });
-
-    // await channel.send({
-    //   type: "broadcast",
-    //   event: "new_message",
-    //   payload: { message, attachments, senderId: senderId.toString() },
-    // });
+    const payload = {
+      id: message.id.toString(),
+      conversationId: conversationId.toString(),
+      text: message.text ?? null,
+      createdAt: message.created_at.toISOString(),
+      senderId: senderId.toString(),
+      attachments: attachments.map((a) => ({
+        id: a.id.toString(),
+        path: a.path,
+        type: a.type,
+        size: a.size,
+      })),
+    };
+    await channel.send({ type: "broadcast", event: "new_message", payload });
     supabase.removeChannel(channel);
 
-    return { message, attachments };
+    return payload;
   });
 }

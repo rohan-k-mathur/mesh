@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prismaclient";
+import { supabase } from "@/lib/supabaseclient";
 
 export async function getOrCreateDM({
   userAId,
@@ -41,16 +42,29 @@ export async function createGroupConversation(
   const ids = Array.from(new Set([creatorId, ...participantIds]));
   if (ids.length < 3) throw new Error("Minimum 3 participants required");
 
-  return prisma.$transaction(async (tx) => {
-    const convo = await tx.conversation.create({
+  const convo = await prisma.$transaction(async (tx) => {
+    const created = await tx.conversation.create({
       data: { title, is_group: true },
     });
     await tx.conversationParticipant.createMany({
-      data: ids.map((id) => ({ conversation_id: convo.id, user_id: id })),
+      data: ids.map((id) => ({ conversation_id: created.id, user_id: id })),
     });
-    return convo;
-    
+    return created;
   });
+
+  await Promise.all(
+    ids.map(async (id) => {
+      const channel = supabase.channel(`user-${id.toString()}`);
+      await channel.send({
+        type: "broadcast",
+        event: "group_created",
+        payload: { id: convo.id.toString() },
+      });
+      supabase.removeChannel(channel);
+    })
+  );
+
+  return convo;
 }
 
 export async function fetchConversations(userId: bigint) {
