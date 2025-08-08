@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { supabase } from "@/lib/supabaseclient";
 import {
   ChatMessage,
@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { usePrivateChatManager } from "@/contexts/PrivateChatManager";
+import { useChatStore } from "@/contexts/useChatStore";
 
 interface UserLite {
   name: string;
@@ -21,10 +22,11 @@ interface UserLite {
 
 interface MessageData {
   id: string;
-  text: string;
-  created_at: string;
-  sender_id: string;
+  text: string | null;
+  createdAt: string;
+  senderId: string;
   sender: UserLite;
+  attachments?: { id: string; path: string; type: string; size: number }[];
 }
 
 interface Props {
@@ -38,19 +40,27 @@ export default function ChatRoom({
   currentUserId,
   initialMessages,
 }: Props) {
-  const [messages, setMessages] = useState<MessageData[]>(initialMessages);
+  const { appendMessage, setMessages, messages } = useChatStore((s) => ({
+    appendMessage: s.appendMessage,
+    setMessages: s.setMessages,
+    messages: s.messages[conversationId.toString()] || [],
+  }));
   const { open } = usePrivateChatManager();
+
+  useEffect(() => {
+    setMessages(conversationId.toString(), initialMessages);
+  }, [conversationId, initialMessages, setMessages]);
 
   useEffect(() => {
     const channel = supabase.channel(`conversation-${conversationId.toString()}`);
     channel.on("broadcast", { event: "new_message" }, ({ payload }) => {
-      setMessages((prev) => [...prev, payload as MessageData]);
+      appendMessage(conversationId.toString(), payload as MessageData);
     });
     channel.subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [conversationId]);
+  }, [conversationId, appendMessage]);
 
   return (
     <div className="space-y-3">
@@ -58,11 +68,11 @@ export default function ChatRoom({
         
         <ChatMessage
           key={m.id}
-          type={m.sender_id === currentUserId.toString() ? "outgoing" : "incoming"}
+          type={m.senderId === currentUserId.toString() ? "outgoing" : "incoming"}
           variant="bubble"
           id={m.id}
         >
-          <ChatMessageContent content={m.text} />
+          <ChatMessageContent content={m.text ?? ""} />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <ChatMessageAvatar
@@ -72,14 +82,14 @@ export default function ChatRoom({
             </DropdownMenuTrigger>
             <DropdownMenuContent>
               <DropdownMenuItem
-         onClick={() =>
+          onClick={() =>
             open(
-              BigInt(m.sender_id),   // peer id
-              m.sender.name,         // peer display name  ← NEW
-              conversationId         // existing room id
+              BigInt(m.senderId),
+              m.sender.name,
+              conversationId
             )
           }
-          disabled={m.sender_id === currentUserId.toString()}
+          disabled={m.senderId === currentUserId.toString()}
               >
                 💬 Chat
               </DropdownMenuItem>

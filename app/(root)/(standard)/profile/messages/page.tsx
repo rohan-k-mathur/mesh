@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { fetchConversations } from "@/lib/actions/message.actions";
+import { fetchConversations } from "@/lib/actions/conversation.actions";
 import { getUserFromCookies } from "@/lib/serverutils";
 import { redirect } from "next/navigation";
 

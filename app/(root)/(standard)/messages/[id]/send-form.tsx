@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { useChatStore } from "@/contexts/useChatStore";
 
 interface Props {
   conversationId: bigint;
@@ -7,13 +8,12 @@ interface Props {
 
 export default function MessageForm({ conversationId }: Props) {
   const [text, setText] = useState("");
+  const sendMessage = useChatStore((s) => s.sendMessage);
   async function send() {
     if (!text.trim()) return;
-    await fetch(`/api/messages/${conversationId}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text }),
-    });
+    const form = new FormData();
+    form.append("text", text);
+    await sendMessage(conversationId.toString(), form);
     setText("");
   }
   return (
