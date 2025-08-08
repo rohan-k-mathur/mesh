@@ -1,113 +1,64 @@
 "use server";
 
-import { prisma } from "../prismaclient";
-import { revalidatePath } from "next/cache";
+import { prisma } from "@/lib/prismaclient";
 import { supabase } from "@/lib/supabaseclient";
-import { createMessageNotification } from "./notification.actions";
+import { uploadAttachment } from "@/lib/storage/uploadAttachment";
 
-export async function getOrCreateConversation({
-  userId,
-  targetUserId,
-}: {
-  userId: bigint;
-  targetUserId: bigint;
-}) {
-  const existing = await prisma.conversation.findFirst({
-    where: {
-      OR: [
-        { user1_id: userId, user2_id: targetUserId },
-        { user1_id: targetUserId, user2_id: userId },
-      ],
-    },
-  });
-  if (existing) return existing;
-  return await prisma.conversation.create({
-    data: { user1_id: userId, user2_id: targetUserId },
-  });
-}
-
-export async function fetchConversations({
-  userId,
-}: {
-  userId: bigint;
-}) {
-  return await prisma.conversation.findMany({
-    where: { OR: [{ user1_id: userId }, { user2_id: userId }] },
-    include: {
-      user1: true,
-      user2: true,
-      messages: { orderBy: { created_at: "desc" }, take: 1 },
-    },
-    orderBy: { updated_at: "desc" },
-  });
-}
-
-export async function fetchConversation({
-  conversationId,
-}: {
+type SendMessageArgs = {
+  senderId: bigint;
   conversationId: bigint;
-}) {
-  return await prisma.conversation.findUnique({
-    where: { id: conversationId },
-    include: { user1: true, user2: true },
-  });
-}
+  text?: string;
+  files?: File[];
+};
 
-export async function fetchMessages({
-  conversationId,
-}: {
-  conversationId: bigint;
-}) {
-  return await prisma.message.findMany({
+export async function fetchMessages(conversationId: bigint) {
+  return prisma.message.findMany({
     where: { conversation_id: conversationId },
     orderBy: { created_at: "asc" },
-    include: { sender: true },
+    include: { sender: true, attachments: true },
   });
 }
 
 export async function sendMessage({
-  conversationId,
   senderId,
+  conversationId,
   text,
-  path,
-}: {
-  conversationId: bigint;
-  senderId: bigint;
-  text: string;
-  path: string;
-}) {
-  const message = await prisma.message.create({
-    data: {
-      conversation_id: conversationId,
-      sender_id: senderId,
-      text,
-    },
-    include: { sender: true },
-  });
-  await createMessageNotification({ conversationId, messageId: message.id, senderId });
-  await prisma.conversation.update({
-    where: { id: conversationId },
-    data: { updated_at: new Date() },
-  });
-  try {
+  files,
+}: SendMessageArgs) {
+  if (!text && (!files || files.length === 0)) {
+    throw new Error("Message must contain text or attachment");
+  }
+
+  return prisma.$transaction(async (tx) => {
+    const message = await tx.message.create({
+      data: { sender_id: senderId, conversation_id: conversationId, text },
+    });
+
+    let attachments: any[] = [];
+    if (files?.length) {
+      attachments = await Promise.all(
+        files.map(async (f) => {
+          const meta = await uploadAttachment(f);
+          return tx.messageAttachment.create({
+            data: {
+              message_id: message.id,
+              url: meta.url,
+              type: meta.type,
+              size: meta.size,
+            },
+          });
+        })
+      );
+    }
+
     const channel = supabase.channel(`conversation-${conversationId.toString()}`);
     await channel.send({
       type: "broadcast",
-      event: "new-message",
-      payload: {
-        id: message.id.toString(),
-        text: message.text,
-        created_at: message.created_at,
-        sender_id: message.sender_id.toString(),
-        sender: {
-          name: message.sender.name,
-          image: message.sender.image,
-        },
-      },
+      event: "new_message",
+      payload: { message, attachments, senderId: senderId.toString() },
     });
     supabase.removeChannel(channel);
-  } catch (err) {
-    console.error("Failed to broadcast message", err);
-  }
-  revalidatePath(path);
+
+    return { message, attachments };
+  });
 }
