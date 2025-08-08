@@ -2,8 +2,8 @@ import { fetchMessages } from "@/lib/actions/message.actions";
 import { fetchConversation } from "@/lib/actions/conversation.actions";
 import { getUserFromCookies } from "@/lib/serverutils";
 import { redirect, notFound } from "next/navigation";
-import MessageForm from "./send-form";
 import ChatRoom from "@/components/chat/ChatRoom";
+import MessageComposer from "@/components/chat/MessageComposer";
 
 export default async function Page({ params }: { params: { id: string } }) {
   const user = await getUserFromCookies();
@@ -44,7 +44,7 @@ export default async function Page({ params }: { params: { id: string } }) {
           initialMessages={initialMessages}
         />
         <hr />
-        <MessageForm conversationId={params.id} /> {/* pass as string */}
+        <MessageComposer conversationId={params.id} />
       </div>
     </main>
   );
