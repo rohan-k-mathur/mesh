@@ -30,6 +30,11 @@ export async function sendMessage({
   }
 
   return prisma.$transaction(async (tx) => {
+    const member = await tx.conversationParticipant.findFirst({
+      where: { conversation_id: conversationId, user_id: senderId },
+      select: { user_id: true },
+    });
+    if (!member) throw new Error("Not a participant in this conversation");
     const message = await tx.message.create({
       data: { sender_id: senderId, conversation_id: conversationId, text },
     });
@@ -42,7 +47,7 @@ export async function sendMessage({
           return tx.messageAttachment.create({
             data: {
               message_id: message.id,
-              url: meta.url,
+              path: meta.path,
               type: meta.type,
               size: meta.size,
             },
@@ -50,13 +55,35 @@ export async function sendMessage({
         })
       );
     }
+        await tx.conversation.update({
+           where: { id: conversationId },
+           data: { updated_at: new Date() },
+        });
 
     const channel = supabase.channel(`conversation-${conversationId.toString()}`);
-    await channel.send({
-      type: "broadcast",
-      event: "new_message",
-      payload: { message, attachments, senderId: senderId.toString() },
-    });
+    // message.actions.ts (inside sendMessage, after you create message & attachments)
+const safePayload = {
+  id: message.id.toString(),
+  conversationId: conversationId.toString(),
+  text: message.text ?? null,
+  createdAt: message.created_at.toISOString(),
+  senderId: senderId.toString(),
+  attachments: attachments.map(a => ({
+    id: a.id.toString(),
+    // see “path vs signed URL” below
+    path: a.path, 
+    type: a.type,
+    size: a.size,
+  })),
+};
+
+// await channel.send({ type: "broadcast", event: "new_message", payload: safePayload });
+
+    // await channel.send({
+    //   type: "broadcast",
+    //   event: "new_message",
+    //   payload: { message, attachments, senderId: senderId.toString() },
+    // });
     supabase.removeChannel(channel);
 
     return { message, attachments };

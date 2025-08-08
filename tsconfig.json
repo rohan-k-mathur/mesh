@@ -21,6 +21,7 @@
         "name": "next"
       }
     ],
+    "baseUrl": ".",
     "paths": {
       "@/*": ["./*"],
       "swapmeet-api": ["services/swapmeet-api/src/index.ts"]

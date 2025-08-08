@@ -43,7 +43,7 @@ export default function ChatRoom({
 
   useEffect(() => {
     const channel = supabase.channel(`conversation-${conversationId.toString()}`);
-    channel.on("broadcast", { event: "new-message" }, ({ payload }) => {
+    channel.on("broadcast", { event: "new_message" }, ({ payload }) => {
       setMessages((prev) => [...prev, payload as MessageData]);
     });
     channel.subscribe();

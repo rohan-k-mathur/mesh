@@ -28,6 +28,7 @@ export async function getOrCreateDM({
         { conversation_id: convo.id, user_id: userBId },
       ],
     });
+    
     return convo;
   });
 }
@@ -48,6 +49,7 @@ export async function createGroupConversation(
       data: ids.map((id) => ({ conversation_id: convo.id, user_id: id })),
     });
     return convo;
+    
   });
 }
 

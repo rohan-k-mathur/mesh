@@ -23,7 +23,7 @@ export default function ArticleReader({
         <img
           src={heroSrc}
           alt=""
-          className="mb-8 w-full rounded-lg object-cover"
+          className="mb-8 w-full rounded-lg object-cover  "
         />
       )}
       {children}

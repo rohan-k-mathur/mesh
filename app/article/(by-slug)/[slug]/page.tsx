@@ -5,7 +5,7 @@ import { generateHTML } from "@tiptap/html";
 import StarterKit from "@tiptap/starter-kit";
 import { FontFamily } from "@/components/article/extensions/font-family";
 
-import ImageExt from "@tiptap/extension-image";
+// import ImageExt from "@tiptap/extension-image";
 // import TipTapLink       from '@tiptap/extension-link'
 import TextStyle from "@tiptap/extension-text-style";
 import Underline from "@tiptap/extension-underline";
@@ -55,7 +55,6 @@ export default async function ArticlePage({
 
   // nodes
   StarterKit,
-  ImageExt,
   CustomImage,
   PullQuote,
   Callout,
@@ -93,7 +92,7 @@ export default async function ArticlePage({
   
     {/* TipTap HTML goes here */}
     <div
-  className="ProseMirror prose prose-slate lg:prose-lg"
+  className="ProseMirror  "
   dangerouslySetInnerHTML={{ __html: html }}
 />
   </ArticleReader>

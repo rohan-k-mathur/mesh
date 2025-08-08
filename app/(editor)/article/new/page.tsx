@@ -21,7 +21,7 @@ export default function NewArticlePage() {
         const check = await fetch(`/api/articles/${stored}`);
         if (check.ok) {
           setArticleId(stored);
-          router.replace(`/article/${stored}/edit`); // edit by ID
+          router.replace(`/article/by-id/${stored}/edit`); // edit by ID
           return;
         }
         localStorage.removeItem(KEY); // stale id
@@ -44,7 +44,7 @@ export default function NewArticlePage() {
       // localStorage.setItem("draftArticleId", data.id);
 
         // friendly URL; prevents “undefined” on refresh
-        router.replace(`/article/${data.id}/edit`);
+        router.replace(`/article/by-id/${data.id}/edit`);
       })();
     }, [router]);
   
