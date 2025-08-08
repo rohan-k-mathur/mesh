@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prismaclient";
 import { supabase } from "@/lib/supabaseclient";
 import { uploadAttachment } from "@/lib/storage/uploadAttachment";
-
+import { jsonSafe } from "../bigintjson";
 type SendMessageArgs = {
   senderId: bigint;
   conversationId: bigint;
@@ -47,9 +47,15 @@ export async function sendMessage({
       select: { user_id: true },
     });
     if (!member) throw new Error("Not a participant in this conversation");
+    // const message = await tx.message.create({
+    //   data: { sender_id: senderId, conversation_id: conversationId, text },
+    //   include: { sender: { select: { name: true, image: true } } },
+
+    // });
     const message = await tx.message.create({
-      data: { sender_id: senderId, conversation_id: conversationId, text },
-    });
+            data: { sender_id: senderId, conversation_id: conversationId, text },
+            include: { sender: { select: { name: true, image: true } } },
+          });
 
     let attachments: any[] = [];
     if (files?.length) {
@@ -74,21 +80,25 @@ export async function sendMessage({
 
     const channel = supabase.channel(`conversation-${conversationId.toString()}`);
     const payload = {
-      id: message.id.toString(),
-      conversationId: conversationId.toString(),
+      id: message.id,                  // bigint
+      conversationId,                  // bigint
       text: message.text ?? null,
-      createdAt: message.created_at.toISOString(),
-      senderId: senderId.toString(),
-      attachments: attachments.map((a) => ({
-        id: a.id.toString(),
+      createdAt: message.created_at,   // Date
+      senderId,                        // bigint
+      sender: { name: message.sender.name, image: message.sender.image },
+      attachments: attachments.map(a => ({
+        id: a.id,                      // bigint
         path: a.path,
         type: a.type,
         size: a.size,
       })),
     };
-    await channel.send({ type: "broadcast", event: "new_message", payload });
-    supabase.removeChannel(channel);
+    const safe = jsonSafe(payload);    // bigint→number, Date→ISO string
 
-    return payload;
+    await supabase.channel(`conversation-${conversationId.toString()}`)
+    .send({ type: "broadcast", event: "new_message", payload: safe });
+
+  // return the same shape the client expects
+  return safe;
   });
 }

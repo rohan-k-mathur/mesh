@@ -29,9 +29,10 @@ interface MessageData {
   attachments?: { id: string; path: string; type: string; size: number }[];
 }
 
+// ChatRoom.tsx
 interface Props {
-  conversationId: bigint;
-  currentUserId: bigint;
+  conversationId: string;
+  currentUserId: string;
   initialMessages: MessageData[];
 }
 

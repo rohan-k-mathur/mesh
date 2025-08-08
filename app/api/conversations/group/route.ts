@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUserFromCookies } from "@/lib/serverutils";
 import { createGroupConversation } from "@/lib/actions/conversation.actions";
-
+import { jsonSafe } from "@/lib/bigintjson";
 export async function POST(req: NextRequest) {
   const user = await getUserFromCookies();
   if (!user?.userId) {
@@ -13,5 +13,5 @@ export async function POST(req: NextRequest) {
   }
   const ids = participantIds.map((id: string) => BigInt(id));
   const convo = await createGroupConversation(user.userId, ids, title);
-  return NextResponse.json({ id: convo.id.toString() }, { status: 201 });
+  return NextResponse.json(jsonSafe({ id: convo.id }), { status: 201 });
 }

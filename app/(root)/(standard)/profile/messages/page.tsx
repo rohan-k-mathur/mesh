@@ -7,13 +7,14 @@ import { redirect } from "next/navigation";
 export default async function Page() {
   const user = await getUserFromCookies();
   if (!user?.userId) redirect("/login");
-  const conversations = await fetchConversations({ userId: user.userId });
-  return (
+  const conversations = await fetchConversations(user.userId);
+    return (
     <main className="p-4 mt-[-2rem]">
       <h1 className="text-[3rem] mb-2 text-center ">Messages</h1>
       <hr></hr>
       <ul className="space-y-6 mt-6">
         {conversations.map((c) => {
+          
           const other = c.user1_id === user.userId ? c.user2 : c.user1;
           const last = c.messages[0];
           return (

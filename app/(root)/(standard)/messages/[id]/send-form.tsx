@@ -2,9 +2,8 @@
 import { useState } from "react";
 import { useChatStore } from "@/contexts/useChatStore";
 
-interface Props {
-  conversationId: bigint;
-}
+interface Props { conversationId: string }
+
 
 export default function MessageForm({ conversationId }: Props) {
   const [text, setText] = useState("");
