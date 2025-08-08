@@ -18,6 +18,7 @@ import SoundCloudPlayer from "../players/SoundCloudPlayer";
 import Spline from "@splinetool/react-spline";
 import dynamic from "next/dynamic";
 import PredictionMarketCard from "./PredictionMarketCard";
+import LibraryCard from "./LibraryCard";
 import type { Like, RealtimeLike } from "@prisma/client";
 import React from "react";
 import localFont from "next/font/local";
@@ -40,7 +41,7 @@ interface ExtraUIProps {
   embedPost?: React.ReactNode;
 }
 
-type PostCardProps = BasePost & ExtraUIProps;
+type PostCardProps = BasePost & ExtraUIProps & { library?: any | null };
 
 const PostCard = ({
   id,
@@ -66,6 +67,7 @@ const PostCard = ({
   pluginData = null,
   claimIds,
   predictionMarket = null,
+  library = null,
 }: PostCardProps) => {
   if (content && content.startsWith("REPLICATE:")) {
     const dataStr = content.slice("REPLICATE:".length);
@@ -188,6 +190,19 @@ const PostCard = ({
                   caption={caption || undefined}
                 />
               </div>
+            )}
+            {type === "LIBRARY" && library && (
+              <LibraryCard
+                kind={library.kind}
+                coverUrl={library.coverUrl}
+                libraryPostId={library.libraryPostId}
+                stackId={library.stackId}
+                coverUrls={library.coverUrls}
+                size={library.size}
+                caption={caption}
+                onOpenPdf={(id) => console.debug("openPdfModal", id)}
+                onOpenStack={(id) => console.debug("openStack", id)}
+              />
             )}
             {type === "LIVECHAT" &&
               content &&

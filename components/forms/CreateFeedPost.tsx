@@ -32,6 +32,7 @@ import MusicNodeModal from "../modals/MusicNodeModal";
 import SplineViewerNodeModal from "../modals/SplineViewerNodeModal";
 import RoomCanvasModal from "../modals/RoomCanvasModal";
 import PredictionMarketModal from "../modals/PredictionMarketModal";
+import LibraryPostModal from "@/components/modals/LibraryPostModal";
 import { exportRoomCanvas } from "@/lib/actions/realtimeroom.actions";
 import {
   uploadFileToSupabase,
@@ -77,6 +78,7 @@ const nodeOptions: { label: string; nodeType: string }[] = [
   { label: "PRODUCT_REVIEW", nodeType: "PRODUCT_REVIEW" },
   { label: "PREDICTION", nodeType: "PREDICTION" },
   { label: "ROOM_CANVAS", nodeType: "ROOM_CANVAS" },
+  { label: "LIBRARY", nodeType: "LIBRARY" },
 ];
 
 interface Props {
@@ -552,6 +554,8 @@ const CreateFeedPost = ({ roomId = "global" }: Props) => {
             }}
           />
         );
+      case "LIBRARY":
+        return <LibraryPostModal onOpenChange={(v) => { if (!v) reset(); }} />;
 
       // onSubmit={async (vals) => {
       //   await createRealtimePost({
