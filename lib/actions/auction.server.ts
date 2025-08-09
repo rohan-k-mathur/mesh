@@ -1,9 +1,10 @@
 import { prisma } from "@/lib/prismaclient";
+import { Prisma } from "@prisma/client";
 
 export async function createAuction(
   stallId: number,
   itemId: number,
-  reserve: number,
+  reserve: number, // dollars
   minutes = 30,
 ) {
   const ends = new Date(Date.now() + minutes * 60_000);
@@ -11,7 +12,8 @@ export async function createAuction(
     data: {
       stall_id: BigInt(stallId),
       item_id: BigInt(itemId),
-      reserve_cents: reserve,
+      reserve: new Prisma.Decimal(reserve),   // ⬅️ was reserve_cents
+      currency: "usd",
       ends_at: ends,
     },
   });
@@ -20,22 +22,24 @@ export async function createAuction(
 export async function placeBid(
   auctionId: number,
   userId: number,
-  amount: number,
+  amount: number, // dollars
 ) {
   return prisma.$transaction(async (tx) => {
     const a = await tx.auction.findUnique({
       where: { id: BigInt(auctionId) },
-      include: { bids: { orderBy: { amount_cents: "desc" }, take: 1 } },
+      include: { bids: { orderBy: { amount: "desc" }, take: 1 } }, // ⬅️ amount not amount_cents
     });
-    if (!a || a.state !== "LIVE" || Date.now() > a.ends_at.getTime())
-      throw new Error("closed");
-    const highest = a.bids[0]?.amount_cents ?? a.reserve_cents;
-    if (amount <= highest) throw new Error("too low");
+    if (!a || a.state !== "LIVE" || Date.now() > a.ends_at.getTime()) throw new Error("closed");
+
+    const highest = a.bids[0]?.amount ?? a.reserve;
+    // compare numerically
+    if (Number(amount) <= Number(highest)) throw new Error("too low");
+
     return tx.bid.create({
       data: {
         auction_id: BigInt(auctionId),
         bidder_id: BigInt(userId),
-        amount_cents: amount,
+        amount: new Prisma.Decimal(amount), // ⬅️
       },
     });
   });

@@ -129,55 +129,86 @@ export type Pane = {
   id: string;                    // stable pane id (e.g., `${conversationId}:${peerId}`)
   peerId: string;                // string for simplicity
   peerName: string;
+  peerImage?: string | null;
   msgs: Msg[];
   minimised: boolean;
+  unread?: number;   
   pos: { x: number; y: number };
 };
 
 type State = { panes: Record<string, Pane> };
 
 type Action =
-  | { type: "OPEN"; pane: Pane }
+| { type: "OPEN"; pane: Omit<Pane, "msgs" | "minimised" | "unread"> }
   | { type: "CLOSE"; id: string }
   | { type: "MINIMISE"; id: string }
+  | { type: "RESTORE"; id: string }         // NEW
   | { type: "SET_POS"; id: string; pos: { x: number; y: number } }
   | { type: "ADD_MSG"; id: string; msg: Msg };
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
     case "OPEN": {
-      const p = action.pane;
-      if (state.panes[p.id]) return state;
-      return { panes: { ...state.panes, [p.id]: p } };
+      const p = state.panes[action.pane.id];
+      if (p) return { ...state, panes: { ...state.panes, [p.id]: { ...p, minimised: false, unread: 0 } } };
+      // cascade panes a bit if needed; default pos can be (0,0)
+      const pos = action.pane.pos ?? { x: 0, y: 0 };
+      return {
+        ...state,
+        panes: {
+          ...state.panes,
+          [action.pane.id]: {
+            ...action.pane,
+            msgs: [],
+            minimised: false,
+            unread: 0,
+            pos,
+          },
+        },
+      };
     }
     case "CLOSE": {
       const { [action.id]: _, ...rest } = state.panes;
-      return { panes: rest };
+      return { ...state, panes: rest };
     }
     case "MINIMISE": {
       const p = state.panes[action.id];
       if (!p) return state;
-      return { panes: { ...state.panes, [action.id]: { ...p, minimised: !p.minimised } } };
+      return { ...state, panes: { ...state.panes, [p.id]: { ...p, minimised: true } } };
+    }
+    case "RESTORE": {
+      const p = state.panes[action.id];
+      if (!p) return state;
+      return { ...state, panes: { ...state.panes, [p.id]: { ...p, minimised: false, unread: 0 } } };
     }
     case "SET_POS": {
       const p = state.panes[action.id];
       if (!p) return state;
-      return { panes: { ...state.panes, [action.id]: { ...p, pos: action.pos } } };
+      return { ...state, panes: { ...state.panes, [p.id]: { ...p, pos: action.pos } } };
     }
     case "ADD_MSG": {
       const p = state.panes[action.id];
       if (!p) return state;
-      return { panes: { ...state.panes, [action.id]: { ...p, msgs: [...p.msgs, action.msg] } } };
+      const isIncoming = String(action.msg.from) === p.peerId;
+      const unread = p.minimised && isIncoming ? (p.unread ?? 0) + 1 : p.unread ?? 0;
+      return {
+        ...state,
+        panes: {
+          ...state.panes,
+          [p.id]: { ...p, msgs: [...p.msgs, action.msg], unread },
+        },
+      };
     }
     default:
       return state;
   }
+  
 }
 
 type Ctx = {
   state: State;
   dispatch: React.Dispatch<Action>;
-  open: (peerId: string, peerName: string, conversationId: string) => void;
+  open: (peerId: string, peerName: string, conversationId: string, peerImage: string | null) => void;
 };
 
 const C = createContext<Ctx | null>(null);
@@ -187,7 +218,7 @@ export function PrivateChatProvider({ children }: { children: React.ReactNode })
 
   const open = useMemo(
     () =>
-      (peerId: string, peerName: string, conversationId: string) => {
+      (peerId: string, peerName: string, conversationId: string,  opts?: { peerImage?: string | null }) => {
         const id = `${conversationId}:${peerId}`;
         dispatch({
           type: "OPEN",
@@ -195,7 +226,8 @@ export function PrivateChatProvider({ children }: { children: React.ReactNode })
             id,
             peerId,
             peerName,
-            msgs: [],
+            peerImage: opts?.peerImage ?? null,
+                        msgs: [],
             minimised: false,
             pos: { x: 24, y: 24 },
           },

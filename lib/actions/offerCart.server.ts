@@ -1,7 +1,7 @@
 "use server";
-
 import { prisma } from "@/lib/prismaclient";
 
+// unchanged
 export async function addOfferToCart(userId: bigint, offerId: bigint, deadline: Date) {
   await prisma.cart.upsert({
     where: { offer_id: offerId },
@@ -13,12 +13,17 @@ export async function addOfferToCart(userId: bigint, offerId: bigint, deadline: 
 export async function viewCart(userId: bigint) {
   return prisma.cart.findMany({
     where: { user_id: userId },
-    orderBy: { added_at: "desc" },
-    select: {
+    orderBy: [{ deadline: "asc" }, { id: "desc" }],
+            select: {
       id: true,
       deadline: true,
       offer: {
-        select: { id: true, price_cents: true, item: { select: { id: true, name: true } } },
+        select: {
+          id: true,
+          amount: true,            // ⬅️ replace price_cents
+          currency: true,
+          item: { select: { id: true, name: true } },
+        },
       },
     },
   });

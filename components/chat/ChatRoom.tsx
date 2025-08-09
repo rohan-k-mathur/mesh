@@ -132,9 +132,8 @@ export default function ChatRoom({
 }: Props) {
   const { open } = usePrivateChatManager();
   const handleOpen = useCallback(
-    (peerId: string, peerName: string) => {
-      // close over conversationId here so child doesn’t need to know about it
-      open(peerId, peerName, conversationId);
+    (peerId: string, peerName: string, peerImage?: string | null) => {
+      open(peerId, peerName, conversationId, { peerImage }); // <- pass image so the dock tab can show it
     },
     [open, conversationId]
   );

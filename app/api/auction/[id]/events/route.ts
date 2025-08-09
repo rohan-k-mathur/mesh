@@ -31,8 +31,8 @@ export async function GET(
           controller.enqueue(`data: ${JSON.stringify({ bids: a.bids.map(b => ({
             id: b.id.toString(),
             user: b.bidder.name,
-            amount: b.amount_cents,
-          })) })}\n\n`);
+            amount: Number(b.amount),
+                })) })}\n\n`);
         }
       }, 2000);
       req.signal?.addEventListener("abort", () => {
