@@ -73,7 +73,7 @@ export default function GroupCreationModal() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <button className="savebutton bg-white/20 rounded-xl py-2 px-3 text-[1rem]">Create Group Chat</button>
+        <button className="savebutton bg-white/30 rounded-xl py-2 px-3 text-[1rem]">Create Group Chat</button>
       </DialogTrigger>
       <DialogContent className="max-w-[45rem]  bg-slate-700 border-blue">
         <DialogHeader>

@@ -6,6 +6,11 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter, usePathname } from "next/navigation";
 import CreateLoungePost from "@/components/forms/CreateLoungePost";
+import { getAuth, signOut } from "firebase/auth";
+import { useAuth } from "@/lib/AuthContext";
+import localFont from "next/font/local";
+
+const parabole = localFont({ src: './Parabole-DisplayRegular.woff2' })
 
 interface SuggestedUser {
   id: number;
@@ -26,9 +31,17 @@ function RightSidebar() {
   const [users, setUsers] = useState<SuggestedUser[]>([]);
   const [rooms, setRooms] = useState<RandomRoom[]>([]);
   const router = useRouter();
+  const user = useAuth();
+  const isUserSignedIn = !!user.user;
   const pathname = usePathname();
   const loungeMatch = pathname?.match(/^\/lounges\/([^/]+)/);
   const loungeId = loungeMatch ? loungeMatch[1] : null;
+
+  async function handleLogout() {
+    await signOut(getAuth(app));
+    await fetch("/api/logout");
+    router.push("/login");
+  }
   function gotomessages() {
     router.push("/profile/messages");
   }
@@ -89,7 +102,7 @@ function RightSidebar() {
   if (isOff) {
     return (
       <section className="sticky custom-scrollbar rightsidebar bg-transparent">
-        <div className="flex   w-full flex flex-col gap-6 px-2">
+        <div className="flex   w-full flex flex-col gap-6 px-2 mt-3">
           {loungeId && <CreateLoungePost roomId={loungeId} />}
 
           <button
@@ -152,26 +165,7 @@ function RightSidebar() {
               </div>
             </div>
           </button>
-          <button
-            className="flex likebutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent"
-            onClick={gotosearch}
-          >
-            <div className="flex align-center gap-3">
-              <Image
-                src="/assets/search-helsinki.svg"
-                alt={"search"}
-                className="flex align-center"
-                width={24}
-                height={24}
-              />
-              <div
-                className="flex  justify-center items-center text-center tracking-wider 
-          py-0 align-center text-black text-[1rem] h-full w-full  max-lg:hidden"
-              >
-                Search
-              </div>
-            </div>
-          </button>
+          
 
           <button className="flex likebutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent">
             <div className="flex align-center gap-3">
@@ -227,7 +221,35 @@ function RightSidebar() {
               </div>
             </div>
           </button>
+          {isUserSignedIn && (
+           <button
+           className="mt-[5rem] flex likebutton  rightsidebar_link align-center rightsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent"
+           onClick={handleLogout}
+     >
+        <div className="flex align-center gap-3">
+            <Image
+              src="/assets/logout-ibm.svg"
+              alt="logout"
+              className="flex align-center"
+              width={24}
+              height={24}
+            />
+            <div className="flex  justify-center items-center text-center tracking-wider py-0 align-center text-black 
+                    text-[1rem] h-full w-full  max-lg:hidden">Sign Out</div>
+              </div>
+            </button>
+        )}
         </div>
+        <div className="absolute justify-start  top-[1.55rem] right-12 ">
+      <Link href="/" className="flex items-center gap-2">
+        {/* <Image src="/assets/logo-black.svg" alt="logo" width={36} height={36} />  */}
+        <div className={`${parabole.className}`}>
+        <span  className=" text-[2.9rem] font-bold text-black tracking-tighter max-xs:hidden">MESH</span>
+        </div>
+
+      </Link>
+      
+      </div>
         <div className="absolute left-0 top-0 h-full w-[.1rem] bg-gradient-to-tr from-transparent via-rose-300 to-transparent opacity-50 dark:via-neutral-400 lg:block" />
         {/* <h3 className="relative bottom-[4rem] text-[1.5rem] text-black">Right Sidebar</h3> */}
       </section>
@@ -281,7 +303,9 @@ function RightSidebar() {
               </Link>
             ))
           )}
+         
         </div>
+        
       </div>
       <div className="absolute justify-start  top-[1.55rem] left-[2.7rem]"></div>
       <div className="absolute left-0 top-0 h-full min-h-[1em] w-[.1rem] border-t-0 bg-gradient-to-tr from-transparent via-rose-300 to-transparent opacity-50 dark:via-neutral-400 lg:block"></div>

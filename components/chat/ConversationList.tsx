@@ -44,8 +44,8 @@ export default function ConversationList({
   currentUserId,
 }: Props) {
   return (
-    <div className="flex flex-col flex-wrap gap-4 mt-4">
-    <ul className="flex flex-wrap gap-5 h-fit w-fit ">
+    <div className="flex flex-1 gap-4 mt-6 ">
+    <ul className="flex flex-wrap gap-4 h-fit w-fit ">
       {conversations.map((c) => {
         const last = c.lastMessage;
         if (c.isGroup) {
@@ -69,7 +69,7 @@ export default function ConversationList({
               <button className="flex text-start h-full align-center border-2 border-transparent ml-2">
 
               <Link href={`/messages/${c.id}`} className="flex flex-col align-center  flex-1 py-1 ">
-                <p className="font-bold tracking-wider text-[1.1rem]">{title}</p>
+                <p className="font-bold tracking-wider text-[1.1rem] whitespace-nowrap">{title}</p>
                 {last && (
                   <p className="text-[1rem] tracking-wide text-gray-700 truncate max-w-xs">{last}</p>
                 )}
@@ -108,7 +108,7 @@ export default function ConversationList({
             
               <p className="font-bold tracking-wider text-[1.1rem] whitespace-nowrap">{other.name}</p>
               {last && (
-                <p className="text-[1rem] tracking-wide text-gray-700 truncate max-w-xs">{last}</p>
+                <p className="text-[1rem] tracking-wide text-gray-700 truncate max-w-[10rem]">{last}</p>
               )}
             </Link>
             </button>

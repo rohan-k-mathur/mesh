@@ -8,12 +8,13 @@ import { getAuth, signOut } from "firebase/auth";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import localFont from "next/font/local";
 import CreateFeedPost from "@/components/forms/CreateFeedPost";
 import useStore from "@/lib/reactflow/store";
 import { AppState } from "@/lib/reactflow/types";
 import { useShallow } from "zustand/react/shallow";
 import UserRoomsModal from "../modals/UserRoomsModal";
+import localFont from "next/font/local";
+
 const parabole = localFont({ src: './Parabole-DisplayRegular.woff2' })
 
 interface Props {
@@ -50,6 +51,9 @@ function LeftSidebar({ userRooms }: Props) {
       router.push("/room/global");
 
     }
+    function gotosearch() {
+      router.push("/search");
+    }
     function newroom()
     {
       router.push("/create-room");
@@ -71,7 +75,7 @@ function LeftSidebar({ userRooms }: Props) {
   return (
     <section className="custom-scrollbar leftsidebar  bg-transparent">
       <div>
-      <div className="flex  w-full flex flex-col gap-6 px-2">
+      <div className="flex  w-full flex flex-col gap-6 px-2 mt-3">
        
             <button
               className="flex likebutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent"
@@ -127,6 +131,26 @@ function LeftSidebar({ userRooms }: Props) {
 
 
         {isUserSignedIn && <CreateFeedPost />}
+        <button
+            className="flex likebutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent"
+            onClick={gotosearch}
+          >
+            <div className="flex align-center gap-3">
+              <Image
+                src="/assets/search-helsinki.svg"
+                alt={"search"}
+                className="flex align-center"
+                width={24}
+                height={24}
+              />
+              <div
+                className="flex  justify-center items-center text-center tracking-wider 
+          py-0 align-center text-black text-[1rem] h-full w-full  max-lg:hidden"
+              >
+                Search
+              </div>
+            </div>
+          </button>
  
         {isUserSignedIn && (
           <button
@@ -167,33 +191,16 @@ function LeftSidebar({ userRooms }: Props) {
         )}
     
 
-        {isUserSignedIn && (
-           <button
-           className="mt-[5rem] flex likebutton  leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent"
-           onClick={handleLogout}
-     >
-        <div className="flex align-center gap-3">
-            <Image
-              src="/assets/logout-ibm.svg"
-              alt="logout"
-              className="flex align-center"
-              width={24}
-              height={24}
-            />
-            <div className="flex  justify-center items-center text-center tracking-wider py-0 align-center text-black 
-                    text-[1rem] h-full w-full  max-lg:hidden">Sign Out</div>
-              </div>
-            </button>
-        )}
+        
       </div>
      </div>
 
-      <div className="absolute justify-start  top-[1.55rem] left-[.8rem] ">
-      <Link href="/" className="flex items-center gap-2">
-        <Image src="/assets/logo-black.svg" alt="logo" width={36} height={36} /> 
-        <div className={`${parabole.className}`}>
-        <span  className=" text-[2.5rem] font-bold text-black max-xs:hidden">MESH</span>
-        </div>
+      <div className="absolute justify-center border-[2px] modalfield p-2 rounded-full border-black w-[5.5rem] h-[5.5rem] top-3 left-12  ">
+      <Link href="/" className="flex ">
+        <Image src="/assets/roughlogo.svg" alt="logo" width={36} height={36} className="w-fit h-fit animate-pulse-slow"/> 
+        {/* <div className={`${parabole.className}`}> */}
+        {/* <span  className=" text-[2.5rem] font-bold text-black max-xs:hidden">MESH</span> */}
+        {/* </div> */}
 
       </Link>
       
