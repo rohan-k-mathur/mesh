@@ -72,66 +72,71 @@ export default function MessageUserModal() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <button className="savebutton bg-white/20 rounded-xl py-2 px-3 text-[1rem]">Send Direct Message</button>
-      </DialogTrigger>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Send</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4">
+    <DialogTrigger asChild>
+      <button className="savebutton bg-white/20 rounded-xl py-2 px-3 text-[1rem]">Send Direct Message</button>
+    </DialogTrigger>
+    <DialogContent className="max-w-[45rem]  bg-slate-700 border-blue">
+      <DialogHeader>
+        <DialogTitle className="text-[1.8rem] text-white tracking-wide ">Send Message</DialogTitle>
+      </DialogHeader>
+      <hr ></hr>
+
+      <div className="space-y-8 py-4">
+      <div>
           <Input
-            placeholder="Group title (optional)"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
+                    className="modalfield text-[1.1rem] tracking-wide p-3"
+
+            placeholder="Choose User"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
           />
-          <div>
-            <Input
-              placeholder="Search users"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-            {results.length > 0 && (
-              <ul className="max-h-40 overflow-y-auto mt-2 border rounded-md">
-                {results.map((u) => (
-                  <li
-                    key={u.id}
-                    className="flex items-center gap-2 p-2 hover:bg-gray-100 cursor-pointer"
-                    onClick={() => toggle(u)}
-                  >
-                    <Image
-                      src={u.image || "/assets/user-helsinki.svg"}
-                      alt={u.name}
-                      width={32}
-                      height={32}
-                      className="rounded-full object-cover"
-                    />
-                    <span>{u.name}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-          {selected.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {selected.map((u) => (
-                <span
+          {results.length > 0 && (
+            <ul className="max-h-40 overflow-y-auto mt-2 border rounded-md">
+              {results.map((u) => (
+                <li
                   key={u.id}
-                  className="flex items-center gap-1 bg-gray-200 px-2 py-1 rounded-full text-sm"
+                  className="flex items-center gap-2 p-2 hover:bg-gray-100 cursor-pointer"
+                  onClick={() => toggle(u)}
                 >
-                  {u.name}
-                  <button onClick={() => toggle(u)}>×</button>
-                </span>
+                  <Image
+                    src={u.image || "/assets/user-helsinki.svg"}
+                    alt={u.name}
+                    width={32}
+                    height={32}
+                    className="rounded-full object-cover"
+                  />
+                  <span>{u.name}</span>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
         </div>
-        <DialogFooter>
-          <Button onClick={create} disabled={selected.length < 2}>
-            Create
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        <Input
+        className="modalfield text-[1.1rem] tracking-wide p-3"
+          placeholder="Write Here..."
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+        />
+        
+        {selected.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {selected.map((u) => (
+              <span
+                key={u.id}
+                className="flex items-center gap-1 bg-gray-200 px-2 py-1 rounded-full text-sm"
+              >
+                {u.name}
+                <button onClick={() => toggle(u)}>×</button>
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+      <hr className="mt-1"></hr>
+      <button className="mt-1 flex text-center justify-start savebutton rounded-xl bg-white px-5 py-1 text-[1.1rem] tracking-wide w-fit " onClick={create} disabled={selected.length < 2}>
+          Send
+        </button>
+    </DialogContent>
+  </Dialog>
   );
 }

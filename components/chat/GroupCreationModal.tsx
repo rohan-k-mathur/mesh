@@ -75,19 +75,24 @@ export default function GroupCreationModal() {
       <DialogTrigger asChild>
         <button className="savebutton bg-white/20 rounded-xl py-2 px-3 text-[1rem]">Create Group Chat</button>
       </DialogTrigger>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-[45rem]  bg-slate-700 border-blue">
         <DialogHeader>
-          <DialogTitle>Create Group</DialogTitle>
+          <DialogTitle className="text-[1.8rem] text-white tracking-wide ">Create Group</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4">
+        <hr ></hr>
+
+        <div className="space-y-8 py-4">
           <Input
-            placeholder="Group title (optional)"
+          className="modalfield text-[1.1rem] tracking-wide p-3"
+            placeholder="Group Name"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
           />
           <div>
             <Input
-              placeholder="Search users"
+                      className="modalfield text-[1.1rem] tracking-wide p-3"
+
+              placeholder="Add Users"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
@@ -126,11 +131,10 @@ export default function GroupCreationModal() {
             </div>
           )}
         </div>
-        <DialogFooter>
-          <Button onClick={create} disabled={selected.length < 2}>
+        <hr className="mt-1"></hr>
+        <button className="mt-1 flex text-center justify-start savebutton rounded-xl bg-white px-5 py-1 text-[1.1rem] tracking-wide w-fit " onClick={create} disabled={selected.length < 2}>
             Create
-          </Button>
-        </DialogFooter>
+          </button>
       </DialogContent>
     </Dialog>
   );
