@@ -50,6 +50,7 @@ useEffect(() => {
   // }
 
   async function send() {
+    
     if (uploading) return;
     if (!text.trim() && files.length === 0) return;
     const form = new FormData();
@@ -84,8 +85,14 @@ useEffect(() => {
     setUploading(true);
     xhr.send(form);
   }
-
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (uploading) return;
+    // reuse your existing send() logic
+    send();
+  }
   return (
+    
     <div
       className="relative"
       onDragOver={(e) => {
@@ -134,8 +141,37 @@ useEffect(() => {
             })}
           </div>
         )}
-        <div className="flex gap-5">
-        
+          <form
+      onSubmit={handleSubmit}
+      className="relative"
+      onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+      onDragLeave={(e) => { e.preventDefault(); setDragOver(false); }}
+      onDrop={(e) => { e.preventDefault(); setDragOver(false); onFilesSelected(e.dataTransfer.files); }}
+    >
+<div className="flex gap-5">
+  <textarea
+              className="flex-1 h-full bg-white bg-opacity-20 text-start align-center rounded-xl px-4 py-3 text-[.9rem] tracking-wider bg-white/50 messagefield text-black"
+
+    rows={1}
+    value={text}
+    onChange={(e) => setText(e.target.value)}
+    onKeyDown={(e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        if (!uploading) send();
+      }
+    }}
+    disabled={uploading}
+  />
+
+  <button
+    className="flex bg-white/30 sendbutton min-w-[4rem] h-fit w-fit text-black tracking-widest text-[1.1rem] rounded-xl px-5 py-2"
+    onClick={send}
+    disabled={uploading}
+  >
+    <Image src="/assets/send--alt.svg" alt="share" width={24} height={24} className="cursor-pointer object-contain" />
+  </button>
+{/*         
           <input
             type="text"
             value={text}
@@ -143,20 +179,31 @@ useEffect(() => {
             className="flex-1 h-full bg-white bg-opacity-20 text-start align-center rounded-xl px-4 py-3 text-[.9rem] tracking-wider bg-white/50 messagefield text-black"
             disabled={uploading}
           />
-          
+          <textarea
+  rows={1}
+  value={text}
+  onChange={(e) => setText(e.target.value)}
+  onKeyDown={(e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      if (!uploading) send();
+    }
+  }}
+  className="flex-1 bg-white bg-opacity-20 rounded-xl px-3 py-2 bg-transparent text-black resize-none"
+/>
           <button
             className="flex bg-white/30 sendbutton min-w-[4rem] h-fit w-fit text-black tracking-widest text-[1.1rem] rounded-xl px-5 py-2"
             onClick={send}
             disabled={uploading}
-          >
-             <Image
+          > */}
+             {/* <Image
     src="/assets/send--alt.svg"
     alt="share"
     width={24}
     height={24}
-    className="cursor-pointer object-contain flex flex-1 justify-center items-center w-fit h-fit"></Image>
+    className="cursor-pointer object-contain flex flex-1 justify-center items-center w-fit h-fit"></Image> */}
             
-          </button>
+          {/* </button> */}
           <button             className="flex bg-white/30 sendbutton  h-fit w-fit text-black tracking-widest text-[1.1rem] rounded-xl px-3 py-2"
 >
             <input
@@ -176,13 +223,15 @@ useEffect(() => {
           </button>
         </div>
         {uploading && (
-          <div className="h-1 bg-gray-200 rounded">
+          <div className="h-2 bg-gray-200 rounded-full mt-5">
             <div
-              className="h-full bg-indigo-500 transition-all"
+              className="h-full bg-indigo-300 rounded-full transition-all"
               style={{ width: `${progress}%` }}
             />
           </div>
+          
         )}
+        </form>
       </div>
     </div>
   );

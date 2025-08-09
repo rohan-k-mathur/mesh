@@ -43,7 +43,7 @@ export default function PrivateChatDock() {
 
       {/* dock bar */}
       {minimised.length > 0 && (
-        <div className="pointer-events-auto fixed bottom-2 right-2 flex flex-row-reverse gap-2">
+        <div className="pointer-events-auto fixed bottom-0 left-12 flex flex-1 flex-row-reverse gap-2 ">
           {minimised.map(p => (
             <button
               key={p.id}

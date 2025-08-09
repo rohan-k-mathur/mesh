@@ -22,7 +22,7 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json());
 function GroupAvatar({ participants }: { participants: Participant[] }) {
   const imgs = participants.slice(0, 3);
   return (
-    <div className="grid grid-cols-2 grid-rows-2 w-10 h-10 rounded-full overflow-hidden bg-white/50">
+    <div className="flex  w-10 h-10 rounded-full overflow-hidden bg-white/50">
       {imgs.map((p) => (
         <Image
           key={p.id}
@@ -30,7 +30,7 @@ function GroupAvatar({ participants }: { participants: Participant[] }) {
           alt={p.name}
           width={40}
           height={40}
-          className="object-cover"
+          className="object-fill"
         />
       ))}
     </div>
@@ -78,7 +78,7 @@ export default function MessengerPane({ currentUserId }: { currentUserId: string
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed left-[14rem] top-4 z-[9995] rounded-full bg-white/50  px-4 py-1 savebutton"
+          className="absolute left-[14rem] tracking-wide top-6 z-[9995] rounded-full bg-white/50  px-4 py-1 likebutton"
         >
           ⇤
   Messages
@@ -94,9 +94,9 @@ export default function MessengerPane({ currentUserId }: { currentUserId: string
           "pointer-events-auto",
         ].join(" ")}
       >
-        <div className="flex h-full flex-col rounded-r-xl border border-white bg-indigo-50/50 backdrop-blur shadow-xl ">
-          <div className="flex items-center justify-between px-3 py-2 border-b bg-slate-50/70 rounded-tl-xl w-full rounded-tr-xl">
-            <div className="font-semibold tracking-wide px-3">Your Conversations</div>
+        <div className="flex h-full flex-col rounded-r-xl border border-slate-200 bg-indigo-50/50 backdrop-blur shadow-xl ">
+          <div className="flex items-center justify-between px-3 py-2 border-b bg-slate-50 rounded-tl-xl w-full rounded-tr-xl">
+            <div className="font-semibold text-[1.05rem] tracking-widest px-3">Your Conversations</div>
             <div className="space-x-1">
               <button
                 className="rounded px-2 py-1 hover:bg-black/5"
@@ -164,7 +164,7 @@ export default function MessengerPane({ currentUserId }: { currentUserId: string
           {/* footer (optional shortcut) */}
           <div className="border-t px-3 py-2 bg-white/60 rounded-br-xl">
             <Link href="/profile/messages" className="text-sm underline">
-              Open Messages page
+              Open Messages Page
             </Link>
           </div>
         </div>

@@ -212,7 +212,7 @@ export default function PrivateChatPane({ pane, currentUserId }: PaneProps) {
           <>
             <div
               ref={messagesRef}
-              className="flex  flex-col flex-1 overflow-y-auto overflow-x-none px-4 py-3 space-y-2 text-sm text-slate-800 break-all text-wrap"
+              className="flex  flex-col flex-1 overflow-y-auto overflow-x-none px-4 py-3 space-y-2 text-sm text-slate-700 tracking-wide break-all text-wrap"
             >
               {pane.msgs.map((m, i) => {
                 const isSelf = String(m.from) === selfId;
