@@ -618,21 +618,26 @@ const CreateFeedPost = ({ roomId = "global" }: Props) => {
     >
       <DialogTrigger
       
-        className="likebutton items-start justify-start leftsidebar-link  leftsidebar-item"
+      className="flex  w-full flex flex-col gap-4 px-2"
         asChild
       >
-        <Button
-          variant={"outline"}
-          className="items-start justify-start  h-full w-full rounded-xl border-[1px] border-rose-300 border-opacity-80 hover:outline-[1px] hover:outline-solid hover:outline-rose-400"
-        >
+
+         <button
+          className="likebutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent"
+    >
+       <div className="flex align-center gap-3">
           <Image
-            src="/assets/create-new.svg"
+            src="/assets/add--alt.svg"
             alt="create post"
+            className="flex align-center"
+
             width={24}
             height={24}
           />
-          <p className="text-black ml-3  max-lg:hidden">{"New Post"}</p>
-        </Button>
+           <div className="flex  justify-center items-center text-center tracking-wider py-0 align-center text-black 
+                    text-[1rem] h-full w-full  max-lg:hidden">New Post</div>
+              </div>
+            </button>
       </DialogTrigger>
       {renderModal()}
     </Dialog>

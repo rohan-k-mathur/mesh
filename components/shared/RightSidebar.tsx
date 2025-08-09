@@ -22,33 +22,28 @@ interface RandomRoom {
 }
 const isOff = true;
 
-
 function RightSidebar() {
-
   const [users, setUsers] = useState<SuggestedUser[]>([]);
   const [rooms, setRooms] = useState<RandomRoom[]>([]);
   const router = useRouter();
   const pathname = usePathname();
   const loungeMatch = pathname?.match(/^\/lounges\/([^/]+)/);
   const loungeId = loungeMatch ? loungeMatch[1] : null;
-function gotomessages()
-{
-  router.push("/profile/messages");
-
-}
-function gotosettings()
-{
-  router.push("/profile/settings");
-}
-function gotosearch()
-{
-  router.push("/search");
-}
-function newlounge()
-{
-  router.push("/create-lounge");
-
-}
+  function gotomessages() {
+    router.push("/profile/messages");
+  }
+  function gotosettings() {
+    router.push("/profile/settings");
+  }
+  function gotosearch() {
+    router.push("/search");
+  }
+  function newlounge() {
+    router.push("/create-lounge");
+  }
+  function newroom() {
+    router.push("/create-room");
+  }
 
   useEffect(() => {
     async function load() {
@@ -80,113 +75,159 @@ function newlounge()
     }
     if (!isOff) loadRooms();
   }, []);
-    // return (
-    // <section className="custom-scrollbar rightsidebar">
-    //     <div className="flex flex-1 flex-col justify-start">
-    //         <h3 className="text-heading4-medium text-light-1">Discover Groups</h3>
-    //     </div>
-    //     <div className="flex flex-1 flex-col justify-start">
-    //         <h3 className="text-heading4-medium text-light-1">Discover Users</h3>
-    //     </div>
-    // </section>
-    // )
- 
+  // return (
+  // <section className="custom-scrollbar rightsidebar">
+  //     <div className="flex flex-1 flex-col justify-start">
+  //         <h3 className="text-heading4-medium text-light-1">Discover Groups</h3>
+  //     </div>
+  //     <div className="flex flex-1 flex-col justify-start">
+  //         <h3 className="text-heading4-medium text-light-1">Discover Users</h3>
+  //     </div>
+  // </section>
+  // )
+
   if (isOff) {
     return (
       <section className="sticky custom-scrollbar rightsidebar bg-transparent">
-         <div className="flex  w-full flex flex-col gap-4 px-2">
-         {loungeId && <CreateLoungePost roomId={loungeId} />}
-          <Button
-         className="border-[1px] border-transparent likebutton leftsidebar_link leftsidebar-item items-start justify-start h-fit  rounded-xl "
-         onClick={newlounge}
-         variant={"outline"}
-         >
-           <Image
-             src="/assets/group--resource.svg"
-             alt={"lounge"}
-             className="mr-2"
+        <div className="flex   w-full flex flex-col gap-6 px-2">
+          {loungeId && <CreateLoungePost roomId={loungeId} />}
 
-             width={24}
-             height={24}
-           />
-         <p className="text-black max-lg:hidden">{"New Lounge"}</p>
-       </Button>
-         <Button
-         className="border-[1px] border-transparent likebutton leftsidebar_link leftsidebar-item items-start justify-start h-fit  rounded-xl "
-         onClick={gotomessages}
-         variant={"outline"}
-         >
-           <Image
-             src="/assets/message-queue.svg"
-             alt={"message"}
-             className="mr-2"
+          <button
+            className="flex likebutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent"
+            onClick={newlounge}
+          >
+            <div className="flex align-center gap-3">
+              <Image
+                src="/assets/group--resource.svg"
+                alt={"lounge"}
+                className="flex align-center"
+                width={24}
+                height={24}
+              />
+              <div
+                className="flex  justify-center items-center text-center tracking-wider 
+          py-0 align-center text-black text-[1rem] h-full w-full  max-lg:hidden"
+              >
+                New Lounge
+              </div>
+            </div>
+          </button>
+          <button
+            className="flex likebutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent"
+            onClick={newroom}
+          >
+            <div className="flex align-center gap-3">
+              <Image
+                src="/assets/gateway.svg"
+                alt="Create"
+                className="flex align-center"
+                width={24}
+                height={24}
+              />
+              <div
+                className="flex  justify-center items-center text-center tracking-wider 
+          py-0 align-center text-black text-[1rem] h-full w-full  max-lg:hidden"
+              >
+                New Room
+              </div>
+            </div>
+          </button>
+          <button
+            className="flex likebutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent"
+            onClick={gotomessages}
+          >
+            <div className="flex align-center gap-3">
+              <Image
+                src="/assets/message-queue.svg"
+                alt={"message"}
+                className="flex align-center"
+                width={24}
+                height={24}
+              />
+              <div
+                className="flex  justify-center items-center text-center tracking-wider 
+          py-0 align-center text-black text-[1rem] h-full w-full  max-lg:hidden"
+              >
+                Messages
+              </div>
+            </div>
+          </button>
+          <button
+            className="flex likebutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent"
+            onClick={gotosearch}
+          >
+            <div className="flex align-center gap-3">
+              <Image
+                src="/assets/search-helsinki.svg"
+                alt={"search"}
+                className="flex align-center"
+                width={24}
+                height={24}
+              />
+              <div
+                className="flex  justify-center items-center text-center tracking-wider 
+          py-0 align-center text-black text-[1rem] h-full w-full  max-lg:hidden"
+              >
+                Search
+              </div>
+            </div>
+          </button>
 
-             width={24}
-             height={24}
-           />
-         <p className="text-black max-lg:hidden">{"Messages"}</p>
-       </Button>
-         <Button
-         className="border-[1px] border-transparent likebutton leftsidebar_link leftsidebar-item items-start justify-start h-fit  rounded-xl "
-         variant={"outline"}
-         onClick={gotosearch}
-         >
-           <Image
-             src="/assets/search-helsinki.svg"
-             alt={"search"}
-             className="mr-2"
-
-             width={24}
-             height={24}
-           />
-         <p className="text-black max-lg:hidden">{"Search"}</p>
-       </Button>
-       
-       <Button
-         className="border-[1px] border-transparent likebutton leftsidebar_link leftsidebar-item items-start justify-start h-fit  rounded-xl "
-         variant={"outline"}
-         >
-           <Image
-             src="/assets/members.svg"
-             alt={"members"}
-             className="mr-2"
-
-             width={24}
-             height={24}
-           />
-         <p className="text-black max-lg:hidden">{"Find Users"}</p>
-       </Button>
-       <Button
-         className="border-[1px] border-transparent likebutton leftsidebar_link leftsidebar-item items-start justify-start h-fit  rounded-xl "
-         variant={"outline"}
-         >
-           <Image
-             src="/assets/group--access.svg"
-             alt={"multiple-users"}
-             className="mr-2"
-
-             width={24}
-             height={24}
-           />
-         <p className="text-black max-lg:hidden">{"Find Groups"}</p>
-       </Button>
-       <Button
-         className="border-[1px] border-transparent likebutton leftsidebar_link leftsidebar-item items-start justify-start h-fit  rounded-xl "
-         variant={"outline"}
-         onClick={gotosettings}
-         >
-           <Image
-             src="/assets/settings.svg"
-             alt={"settings"}
-             className="mr-2"
-
-             width={24}
-             height={24}
-           />
-         <p className="text-black max-lg:hidden">{"Settings"}</p>
-       </Button>
-       
-  </div>
+          <button className="flex likebutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent">
+            <div className="flex align-center gap-3">
+              <Image
+                src="/assets/members.svg"
+                alt={"members"}
+                className="flex align-center"
+                width={24}
+                height={24}
+              />
+              <div
+                className="flex  justify-center items-center text-center tracking-wider 
+          py-0 align-center text-black text-[1rem] h-full w-full  max-lg:hidden"
+              >
+                Find Users
+              </div>
+            </div>
+          </button>
+          <button className="flex likebutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent">
+            <div className="flex align-center gap-3">
+              <Image
+                src="/assets/group--access.svg"
+                alt={"multiple-users"}
+                className="flex align-center"
+                width={24}
+                height={24}
+              />
+              <div
+                className="flex  justify-center items-center text-center tracking-wider 
+          py-0 align-center text-black text-[1rem] h-full w-full  max-lg:hidden"
+              >
+                Find Groups
+              </div>
+            </div>
+          </button>
+          <button
+            className="flex likebutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent"
+            onClick={gotosettings}
+          >
+            <div className="flex align-center gap-3">
+              <Image
+                src="/assets/settings.svg"
+                alt={"settings"}
+                className="flex align-center"
+                width={24}
+                height={24}
+              />
+              <div
+                className="flex  justify-center items-center text-center tracking-wider 
+          py-0 align-center text-black text-[1rem] h-full w-full  max-lg:hidden"
+              >
+                Settings
+              </div>
+            </div>
+          </button>
+        </div>
         <div className="absolute left-0 top-0 h-full w-[.1rem] bg-gradient-to-tr from-transparent via-rose-300 to-transparent opacity-50 dark:via-neutral-400 lg:block" />
         {/* <h3 className="relative bottom-[4rem] text-[1.5rem] text-black">Right Sidebar</h3> */}
       </section>
@@ -196,9 +237,11 @@ function newlounge()
   return (
     <section className="sticky custom-scrollbar rightsidebar  bg-transparent">
       <div className="sticky flex w-full flex-1 flex-col gap-2 px-2 mt-[-1rem]">
-        <h3 className="relative bottom-[4rem] text-[1.5rem] text-black">Find New Groups</h3>
+        <h3 className="relative bottom-[4rem] text-[1.5rem] text-black">
+          Find New Groups
+        </h3>
         <div className="relative bottom-[4rem] flex flex-col gap-y-4 items-center">
-          { rooms.length === 0 ? (
+          {rooms.length === 0 ? (
             <p className="text-sm text-gray-500">No rooms</p>
           ) : (
             rooms.map((r) => (
@@ -215,13 +258,15 @@ function newlounge()
         </div>
       </div>
       <div className="flex w-full flex-1 flex-col gap-2 px-2">
-        <h3 className="relative bottom-[4.4rem] text-[1.5rem] text-black">Find New Users</h3>
+        <h3 className="relative bottom-[4.4rem] text-[1.5rem] text-black">
+          Find New Users
+        </h3>
         <div className="relative bottom-[4.4rem] flex flex-col gap-y-4 items-center">
           {users.length === 0 ? (
             <p className="text-sm text-gray-500">No suggestions</p>
           ) : (
             users.map((u) => (
-              <Link key={u.id.toString()} href={`/profile/${u.id}`}> 
+              <Link key={u.id.toString()} href={`/profile/${u.id}`}>
                 <Button
                   variant={"outline"}
                   className="rounded-lg likebutton items-center justify-center bg-transparent outline-blue border-none"
@@ -242,7 +287,6 @@ function newlounge()
       <div className="absolute left-0 top-0 h-full min-h-[1em] w-[.1rem] border-t-0 bg-gradient-to-tr from-transparent via-rose-300 to-transparent opacity-50 dark:via-neutral-400 lg:block"></div>
     </section>
   );
-
 }
 
 export default RightSidebar;

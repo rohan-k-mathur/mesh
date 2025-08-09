@@ -71,129 +71,122 @@ function LeftSidebar({ userRooms }: Props) {
   return (
     <section className="custom-scrollbar leftsidebar  bg-transparent">
       <div>
-      <div className="flex  w-full flex flex-col gap-4 px-2">
+      <div className="flex  w-full flex flex-col gap-6 px-2">
        
-            <Button
-              className="likebutton leftsidebar_link  leftsidebar-item items-start justify-start h-fit rounded-xl border-[1px] border-transparent"
-              variant={"outline"}
+            <button
+              className="flex likebutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent"
               onClick={gotoglobal}
               >
+                          <div className="flex align-center gap-3">
                 <Image
                   src="/assets/earth--filled.svg"
                   alt={"globe"}
-                  className="mr-2"
+                  className="flex align-center"
 
                   width={24}
                   height={24}
                 />
-              <p className="text-black max-lg:hidden">{"Global"}</p>
-            </Button>
+              <div className="flex  justify-center items-center text-center tracking-wider py-0 align-center text-black text-[1rem] h-full w-full  max-lg:hidden">Global</div>
+              </div>
+            </button>
        
-        <Button
-          variant="outline"
-          className=" likebutton leftsidebar_link  leftsidebar-item items-start justify-start h-fit rounded-xl border-[1px] border-transparent "
+            <button
+              className="flex likebutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent"
           onClick={openRoomsModal}
         >
+                          <div className="flex align-center gap-3">
+
           <Image src="/assets/3D-print-mesh.svg" 
           alt="YourRooms" 
-          className="mr-2"
+          className="flex align-center"
 
           width={24} 
           height={24} />
-          <p className="text-black   max-lg:hidden">{"Your Rooms"}</p>
-        </Button>
-        <Button
-          variant={"outline"}
-          onClick={newroom}
-          className="likebutton leftsidebar_link leftsidebar-item  items-start justify-start h-fit border-[1px] border-transparent rounded-xl "
-        >
-          <Image
-            src="/assets/gateway.svg"
-            alt="Create"
-            className="mr-2"
+            <div className="flex  justify-center items-center text-center tracking-wider py-0 align-center text-black text-[1rem] h-full w-full  max-lg:hidden">Rooms</div>
+              </div>
+            </button>
 
-            width={24}
-            height={24}
-          />
-          <p className="text-black  max-lg:hidden">{"New Room"}</p>
-        </Button>
-        <Button
-          variant={"outline"}
+            <button
+              className="flex likebutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent"
           onClick={gotoapplications}
-          className="likebutton leftsidebar_link leftsidebar-item  items-start justify-start h-fit border-[1px] border-transparent rounded-xl "
         >
+                                    <div className="flex align-center gap-3">
+
           <Image
             src="/assets/apps.svg"
             alt="Create"
-            className="mr-2"
+            className="flex align-center"
 
             width={24}
             height={24}
           />
-          <p className="text-black  max-lg:hidden">Applications</p>
-        </Button>
+                    <div className="flex  justify-center items-center text-center tracking-wider py-0 align-center text-black 
+                    text-[1rem] h-full w-full  max-lg:hidden">Apps</div>
+              </div>
+            </button>
 
-      <div className="h-fit w-full">
+
         {isUserSignedIn && <CreateFeedPost />}
-      </div>
-      <div className="h-fit w-full">
+ 
         {isUserSignedIn && (
-          <Button
-          variant={"outline"}
-            className="likebutton leftsidebar-link  leftsidebar-item  items-start justify-start w-full h-fit rounded-xl border-[1px] border-transparent "
-            onClick={gotonotifications}
-          >
+          <button
+          className="flex likebutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent"
+          onClick={gotonotifications}
+    >
+       <div className="flex align-center gap-3">
             <Image
-              src="/assets/notifications-none.svg"
+              src="/assets/notification.svg"
               alt="notifs"
-              className="mr-2 "
+              className="flex align-center"
               width={24}
               height={24}
             />
-            <p className="text-black max-lg:hidden">Notifications</p>
-          </Button>
+            <div className="flex  justify-center items-center text-center tracking-wider py-0 align-center text-black 
+                    text-[1rem] h-full w-full  max-lg:hidden">Updates</div>
+              </div>
+            </button>
         )}
-      </div>
-      <div className="h-fit w-full">
+  
         {isUserSignedIn && (
-          <Button
-          variant={"outline"}
-
-            className="likebutton leftsidebar_link leftsidebar-item items-start justify-start h-full w-full rounded-xl  leftsidebar-item border-[1px] border-transparent  "
-            onClick={gotoprofile}
-          >
+          <button
+          className="flex likebutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent"
+          onClick={gotoprofile}
+    >
+       <div className="flex align-center gap-3">
             <Image
-              src="/assets/user-helsinki.svg"
+              src="/assets/user--avatar.svg"
               alt="profile"
-              className="mr-2"
+              className="flex align-center"
               width={24}
               height={24}
             />
-            <p className="text-black max-lg:hidden">Profile</p>
-          </Button>
+            <div className="flex  justify-center items-center text-center tracking-wider py-0 align-center text-black 
+                    text-[1rem] h-full w-full  max-lg:hidden">Profile</div>
+              </div>
+            </button>
         )}
-      </div>
-      <div className="h-fit w-full mt-4">
-        {isUserSignedIn && (
-          <Button
-          variant={"outline"}
+    
 
-            className="likebutton leftsidebar_link leftsidebar-item items-start justify-start h-full w-full rounded-xl  leftsidebar-item border-[1px] border-transparent "
-            onClick={handleLogout}
-          >
+        {isUserSignedIn && (
+           <button
+           className="mt-[5rem] flex likebutton  leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent"
+           onClick={handleLogout}
+     >
+        <div className="flex align-center gap-3">
             <Image
-              src="/assets/signout-helsinki.svg"
+              src="/assets/logout-ibm.svg"
               alt="logout"
-              className="mr-2"
+              className="flex align-center"
               width={24}
               height={24}
             />
-            <p className="text-black max-lg:hidden">Sign Out</p>
-          </Button>
+            <div className="flex  justify-center items-center text-center tracking-wider py-0 align-center text-black 
+                    text-[1rem] h-full w-full  max-lg:hidden">Sign Out</div>
+              </div>
+            </button>
         )}
       </div>
-      </div>
-      </div>
+     </div>
 
       <div className="absolute justify-start  top-[1.55rem] left-[.8rem] ">
       <Link href="/" className="flex items-center gap-2">

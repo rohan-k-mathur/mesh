@@ -21,20 +21,21 @@ interface Props {
 }
 
 function GroupAvatar({ participants }: { participants: Participant[] }) {
-  const imgs = participants.slice(0, 3);
+  const imgs = participants.slice(0, 1);
   return (
-    <div className="grid grid-cols-2 grid-rows-2 w-[3rem] h-[3rem] rounded-full overflow-hidden">
-      {imgs.map((p) => (
+    // <div className="grid grid-cols-2 grid-rows-2 w-[3.1rem] h-[3.1rem] rounded-full overflow-hidden profile-shadow">
+    <>
+    {imgs.map((p) => (
         <Image
           key={p.id}
-          src={p.image || "/assets/user-helsinki.svg"}
+          src={ p.image|| "/assets/user-helsinki.svg"}
           alt={p.name}
-          width={40}
-          height={40}
-          className="object-cover"
-        />
+          width={54}
+          height={54}
+                className="object-cover flex-1 border-[.05rem] rounded-full border-indigo-300 profile-shadow "
+          />
       ))}
-    </div>
+    </>
   );
 }
 
@@ -43,7 +44,8 @@ export default function ConversationList({
   currentUserId,
 }: Props) {
   return (
-    <ul className="space-y-6 mt-6">
+    <div className="flex flex-col flex-wrap gap-4 mt-4">
+    <ul className="flex flex-wrap gap-5 h-fit w-fit ">
       {conversations.map((c) => {
         const last = c.lastMessage;
         if (c.isGroup) {
@@ -56,16 +58,27 @@ export default function ConversationList({
           return (
             <li
               key={c.id}
-              className="flex bg-white/20 items-center gap-3 border-[1px] border-indigo-400 px-3 py-4 rounded-xl"
-            >
+              className="flex flex-1 flex-wrap w-fit bg-white/30 items-center gap-3 likebutton px-1 py-1 rounded-xl "
+              >
+                <hr className="w-full  border-[1px] border-transparent"></hr>
+                <div className="flex w-full h-full align-center px-2 gap-2 ml-2">
+                <button className="flex w-[3.7rem] h-[3.7rem]  border-2 border-transparent">
+
               <GroupAvatar participants={c.participants} />
-              <Link href={`/messages/${c.id}`} className="flex-1">
-                <p className="font-bold text-[1.1rem]">{title}</p>
+              </button>
+              <button className="flex text-start h-full align-center border-2 border-transparent ml-2">
+
+              <Link href={`/messages/${c.id}`} className="flex flex-col align-center  flex-1 py-1 ">
+                <p className="font-bold tracking-wider text-[1.1rem]">{title}</p>
                 {last && (
-                  <p className="text-[1rem] text-gray-700 truncate max-w-xs">{last}</p>
+                  <p className="text-[1rem] tracking-wide text-gray-700 truncate max-w-xs">{last}</p>
                 )}
               </Link>
-            </li>
+              </button>
+
+</div>
+<hr className="w-full  border-[1px] border-transparent"></hr>
+</li>
           );
         }
         const other = c.participants.find((p) => p.id !== currentUserId);
@@ -73,26 +86,40 @@ export default function ConversationList({
         return (
           <li
             key={c.id}
-            className="flex bg-white/20 items-center gap-3 border-[1px] border-indigo-400 px-3 py-4 rounded-xl"
-          >
-            <div className="flex h-[3rem] w-[3rem]">
+            className="flex flex-1 flex-wrap w-fit bg-white/30 items-center gap-3 likebutton px-1 py-1 rounded-xl "
+            >            <hr className="w-full  border-[1px] border-transparent"></hr>
+
+                          <div className="flex w-full h-full align-center px-2 gap-2 ml-2">
+            <button className="flex w-[3.7rem] h-[3.7rem]  border-2 border-transparent">
+            {/* <div className="flex h-[3.1rem] w-[3.1rem]"> */}
               <Image
                 src={other.image || "/assets/user-helsinki.svg"}
                 alt={other.name}
-                width={40}
-                height={40}
-                className="object-cover flex-1 border-[.05rem] rounded-full border-indigo-300 profile-shadow"
+                width={54}
+                height={54}
+                className="object-cover flex-1 border-[.05rem] rounded-full border-indigo-300 profile-shadow "
               />
-            </div>
-            <Link href={`/messages/${c.id}`} className="flex-1">
-              <p className="font-bold text-[1.1rem]">{other.name}</p>
+            
+            {/* </div> */}
+            </button>
+            <button className="flex flex-1 text-start w-full h-full align-center border-2 border-transparent ml-2">
+
+            <Link href={`/messages/${c.id}`} className="flex flex-col align-center  flex-1 py-1 ">
+            
+              <p className="font-bold tracking-wider text-[1.1rem] whitespace-nowrap">{other.name}</p>
               {last && (
-                <p className="text-[1rem] text-gray-700 truncate max-w-xs">{last}</p>
+                <p className="text-[1rem] tracking-wide text-gray-700 truncate max-w-xs">{last}</p>
               )}
             </Link>
+            </button>
+
+            </div>
+            <hr className="w-full  border-[1px] border-transparent"></hr>
+
           </li>
         );
       })}
     </ul>
+    </div>
   );
 }

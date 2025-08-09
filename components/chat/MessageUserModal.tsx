@@ -20,7 +20,7 @@ interface UserLite {
   image: string | null;
 }
 
-export default function GroupCreationModal() {
+export default function MessageUserModal() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [debounced] = useDebounce(query, 300);
@@ -73,11 +73,11 @@ export default function GroupCreationModal() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <button className="savebutton bg-white/20 rounded-xl py-2 px-3 text-[1rem]">Create Group Chat</button>
+        <button className="savebutton bg-white/20 rounded-xl py-2 px-3 text-[1rem]">Send Direct Message</button>
       </DialogTrigger>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Create Group</DialogTitle>
+          <DialogTitle>Send</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <Input

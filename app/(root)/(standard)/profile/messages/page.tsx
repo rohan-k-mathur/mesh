@@ -3,6 +3,7 @@ import { getUserFromCookies } from "@/lib/serverutils";
 import { redirect } from "next/navigation";
 import ConversationList from "@/components/chat/ConversationList";
 import GroupCreationModal from "@/components/chat/GroupCreationModal";
+import MessageUserModal from "@/components/chat/MessageUserModal";
 
 export default async function Page() {
   const user = await getUserFromCookies();
@@ -23,7 +24,10 @@ export default async function Page() {
     <main className="p-4 mt-[-2rem]">
       <div className="flex items-center justify-between mb-2">
         <h1 className="text-[3rem] text-center">Messages</h1>
+        <div className="flex gap-4">
         <GroupCreationModal />
+        <MessageUserModal />
+        </div>
       </div>
       <hr />
       <ConversationList

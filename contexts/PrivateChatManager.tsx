@@ -162,7 +162,7 @@ function reducer(state: State, action: Action): State {
             msgs: [],
             minimised: false,
             unread: 0,
-            pos,
+            pos: action.pane.pos ?? { x: 24, y: 24 },
           },
         },
       };
@@ -205,38 +205,64 @@ function reducer(state: State, action: Action): State {
   
 }
 
+// type Ctx = {
+//   state: State;
+//   dispatch: React.Dispatch<Action>;
+//   open: (peerId: string, peerName: string, conversationId: string, peerImage: string | null) => void;
+// };
+type OpenOptions = {
+  peerImage?: string | null;
+};
+
 type Ctx = {
   state: State;
   dispatch: React.Dispatch<Action>;
-  open: (peerId: string, peerName: string, conversationId: string, peerImage: string | null) => void;
+  // accept either 4th arg as string|null OR an options object
+  open: (
+    peerId: string,
+    peerName: string,
+    conversationId: string,
+    opts?: string | null | OpenOptions
+  ) => void;
 };
 
 const C = createContext<Ctx | null>(null);
 
 export function PrivateChatProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, { panes: {} });
+  const open = React.useCallback(
+    (
+      peerId: string,
+      peerName: string,
+      conversationId: string,
+      opts?: string | null | OpenOptions
+    ) => {
+      // normalize the 4th arg (support legacy string|null OR new options bag)
+      const peerImage =
+        typeof opts === "string" || opts === null || typeof opts === "undefined"
+          ? opts ?? null
+          : opts.peerImage ?? null;
 
-  const open = useMemo(
-    () =>
-      (peerId: string, peerName: string, conversationId: string,  opts?: { peerImage?: string | null }) => {
-        const id = `${conversationId}:${peerId}`;
-        dispatch({
-          type: "OPEN",
-          pane: {
-            id,
-            peerId,
-            peerName,
-            peerImage: opts?.peerImage ?? null,
-                        msgs: [],
-            minimised: false,
-            pos: { x: 24, y: 24 },
-          },
-        });
-      },
-    []
+      const id = `${conversationId}:${peerId}`;
+
+      // IMPORTANT: do NOT include fields your reducer wants to own (msgs, minimised, unread)
+      dispatch({
+        type: "OPEN",
+        pane: {
+          id,
+          peerId,
+          peerName,
+          peerImage,     // reducer can store this on the pane
+          // leave out: msgs, minimised, unread, pos (unless your Action type allows pos)
+          // if your action allows pos, include it; otherwise the reducer should set defaults
+        },
+      });
+    },
+    [dispatch]
   );
 
-  const value = useMemo(() => ({ state, dispatch, open }), [state, open]);
+  const value = React.useMemo(() => ({ state, dispatch, open }), [state, open]);
+
   return <C.Provider value={value}>{children}</C.Provider>;
 }
 
@@ -245,4 +271,6 @@ export function usePrivateChatManager() {
   if (!ctx) throw new Error("PrivateChatProvider missing");
   return ctx;
 }
+
+// Optional re-export alias for your layout imports
 export { PrivateChatProvider as PrivateChatManagerProvider };
