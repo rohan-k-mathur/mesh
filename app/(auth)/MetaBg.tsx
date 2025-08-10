@@ -68,6 +68,11 @@ export default function MetaBg() {
         <circle className="blobtwo n1 " cx="20%" cy="50%" r="15%"/>
         <circle className="blobtwo n2" cx="60%" cy="46%" r="14%" />
         <circle className="blobtwo n3" cx="40%" cy="40%" r="12%" />
+
+         {/* NEW orbiters (3) */}
+  <circle className="blob s1 hide-sm" cx="12%" cy="28%" r="3%"  />
+  <circle className="blob s2"         cx="78%" cy="22%" r="4%"  />
+  <circle className="blob s3 hide-sm" cx="84%" cy="10%" r="5%"  />
       </g>
 
 

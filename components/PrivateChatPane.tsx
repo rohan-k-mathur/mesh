@@ -40,7 +40,30 @@ export default function PrivateChatPane({
   const nodeRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
 
-  
+  // After your imports & inside the component
+const prevMin = useRef(pane.minimised);
+useEffect(() => {
+  if (prevMin.current && !pane.minimised) {
+    // just got restored
+    dispatch({ type: "MARK_READ", id: pane.id });
+  }
+  prevMin.current = pane.minimised;
+}, [pane.minimised, pane.id, dispatch]);
+
+// also clear when the pane itself gets focus/hover (nice UX)
+const containerRef = nodeRef; // you already have nodeRef
+useEffect(() => {
+  const el = containerRef.current;
+  if (!el) return;
+  const onFocus = () => dispatch({ type: "MARK_READ", id: pane.id });
+  const onEnter = () => dispatch({ type: "MARK_READ", id: pane.id });
+  el.addEventListener("focusin", onFocus);
+  el.addEventListener("mouseenter", onEnter);
+  return () => {
+    el.removeEventListener("focusin", onFocus);
+    el.removeEventListener("mouseenter", onEnter);
+  };
+}, [pane.id, dispatch]);
   const selfId =
   currentUserId ??
   (user?.userId ? String(user.userId) : undefined) ??
@@ -49,13 +72,13 @@ export default function PrivateChatPane({
 
 const meName =
   currentUserName ??
-  user?.name ??
+  user?.displayName ??
   (user as any)?.username ??
   (typeof window !== "undefined" ? (window as any).__ME_NAME__ ?? null : null);
 
 const meImage =
   currentUserImage ??
-  user?.image ??
+  user?.photoURL ??
   (typeof window !== "undefined" ? (window as any).__ME_IMAGE__ ?? null : null);
 
   useEffect(() => {

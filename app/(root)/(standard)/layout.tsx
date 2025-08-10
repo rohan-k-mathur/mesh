@@ -2,10 +2,10 @@ export const dynamic = "force-dynamic";
 import { Inter } from "next/font/google";
 import { Chakra_Petch } from "next/font/google";
 import { Comfortaa } from "next/font/google";
-import { Nunito } from 'next/font/google'
-import localFont from 'next/font/local'
+import { Nunito } from "next/font/google";
+import localFont from "next/font/local";
 import { PrivateChatProvider } from "@/contexts/PrivateChatManager";
-
+import PrivateChatShell from "@/components/chat/PrivateChatShell";
 import "../../globals.css";
 import Topbar from "@/components/shared/Topbar";
 import LeftSidebar from "@/components/shared/LeftSidebar";
@@ -25,12 +25,11 @@ export const metadata = {
   description: "A social media website",
 };
 
-
-const founders = localFont({ src: './NewEdgeTest-RegularRounded.otf' })
-const founderslight = localFont({ src: './NewEdgeTest-LightRounded.otf' })
+const founders = localFont({ src: "./NewEdgeTest-RegularRounded.otf" });
+const founderslight = localFont({ src: "./NewEdgeTest-LightRounded.otf" });
 
 const inter = Inter({ subsets: ["latin"] });
-const nunito = Nunito({ subsets: ['latin'] })
+const nunito = Nunito({ subsets: ["latin"] });
 
 const chakra = Chakra_Petch({
   weight: ["400", "500", "700"],
@@ -54,47 +53,30 @@ export default async function StandardLayout({
     userRooms = [];
   }
 
-  const isEditor =false;
-  const currentUserId= await getCurrentUserId();
+  const isEditor = false;
+  const currentUserId = await getCurrentUserId();
   return (
     <html className="bg-gradient-to-r from-zinc-200 from-0% via-indigo-300 via-50% to-rose-200 to-100%">
-    <body className={`${founderslight.className}`}>
-      {/* <AuthProvider user={user}>
-        <PrivateChatManagerProvider>
-          <ScrollAnalytics />
-          <main className="flex flex-row">
-            <LeftSidebar userRooms={userRooms} />
-            <section className="main-container ">
+      <body className={`${founderslight.className}`}>
 
-              <div className="w-full max-w-4xl">
-                <AuthProvider user={user}>{children}</AuthProvider>
-              </div>
-
-            </section>
-            <RightSidebar/>
-
-          </main>
-        </PrivateChatManagerProvider>
-
-      </AuthProvider> */}
         {/* ONE AuthProvider and ONE ChatManager for the entire app */}
-  <AuthProvider user={user}>
-  <PrivateChatProvider>
-  {user?.userId && <MessagesRealtimeBootstrap me={user.userId.toString()} />}
-    <PrivateChatDock currentUserId={user?.userId?.toString()} />
+        <AuthProvider user={user}>
+        <ClientProviders>
+          {/* <PrivateChatShell meId={user?.userId?.toString() ?? null}> */}
+            
 
-          <ScrollAnalytics />
-      <main className="flex flex-row">
-      {!isEditor && <LeftSidebar userRooms={userRooms} />}
-        <section className="main-container ">
-          <div className="w-full max-w-4xl">{children}</div>
-        </section>
-        {!isEditor &&<RightSidebar />}
-      </main>
-      
-      </PrivateChatProvider>
-              </AuthProvider>
-    </body>
-  </html>
+            <ScrollAnalytics />
+            <main className="flex flex-row">
+              <LeftSidebar userRooms={userRooms} />
+              <section className="main-container ">
+                <div className="w-full max-w-4xl">{children}</div>
+              </section>
+              <RightSidebar />
+            </main>
+            </ClientProviders>
+          {/* </PrivateChatShell> */}
+        </AuthProvider>
+      </body>
+    </html>
   );
 }

@@ -6,10 +6,7 @@ import { getUserFromCookies } from '@/lib/server/getUser';
 import { redirect, notFound } from "next/navigation";
 import ChatRoom from "@/components/chat/ChatRoom";
 import MessageComposer from "@/components/chat/MessageComposer";
-import { PrivateChatProvider } from "@/contexts/PrivateChatManager";
-import PrivateChatDock from "@/components/chat/PrivateChatDock";
 import MessengerPane from "@/components/chat/MessengerPane";
-import MessagesRealtimeBootstrap from "@/components/chat/MessagesRealtimeBootstrap";
 import Image from "next/image";
 
 
@@ -121,7 +118,6 @@ export default async function Page({ params }: { params: { id: string } }) {
       </div>
       <hr className="mt-3"/>
 
-        <PrivateChatProvider>
 
       <div className="mt-6 space-y-6">
         <ChatRoom
@@ -132,10 +128,7 @@ export default async function Page({ params }: { params: { id: string } }) {
         <hr />
         <MessageComposer conversationId={params.id} />
       </div>
-      <PrivateChatDock />
-      <MessagesRealtimeBootstrap me={user.userId.toString()} />
       <MessengerPane currentUserId={user.userId.toString()} />
-      </PrivateChatProvider>
     </main>
   );
 }
