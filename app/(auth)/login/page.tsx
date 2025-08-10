@@ -53,7 +53,7 @@ export default function Login() {
       <main className=" z-front flex min-h-screen max-w-screen w-full flex-col items-center justify-center p-8 ">
         <div className="w-full bg-white bg-opacity-30  rounded-xl logincard dark:border md:mt-0 sm:max-w-md xl:p-0 dark:bg-gray-800 dark:border-gray-700">
           <div className="p-6 space-y-4 md:space-y-6 sm:p-8">
-            <h1 className="text-center text-slate-800 font-bold text-[2rem]">
+            <h1 className="text-center tracking-widest text-slate-800 font-bold text-[2rem]">
                 Sign In
                             </h1>
             <form
@@ -112,7 +112,7 @@ export default function Login() {
               >
                 {loading && <Spinner className="mr-2" />} {loading ? "Loading" : "Next"}
               </button>
-              <p className="text-[1.2rem] text-center mx-auto text-gray-200 dark:text-gray-400">
+              <p className="text-[1.2rem] text-center mx-auto text-gray-500 dark:text-gray-400">
                 No Account?{" "}
                 <Link
                   href="/register"

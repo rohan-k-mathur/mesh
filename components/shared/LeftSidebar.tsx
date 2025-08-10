@@ -197,7 +197,7 @@ function LeftSidebar({ userRooms }: Props) {
 
       <div className="absolute justify-center border-[2px] modalfield p-2 rounded-full border-black w-[5.5rem] h-[5.5rem] top-3 left-12  ">
       <Link href="/" className="flex ">
-        <Image src="/assets/roughlogo.svg" alt="logo" width={36} height={36} className="w-fit h-fit animate-pulse-slow"/> 
+        <Image src="/assets/roughlogo.svg" alt="logo" width={36} height={36} className="w-fit h-fit "/> 
         {/* <div className={`${parabole.className}`}> */}
         {/* <span  className=" text-[2.5rem] font-bold text-black max-xs:hidden">MESH</span> */}
         {/* </div> */}

@@ -1174,22 +1174,36 @@ textarea {
 .pcpfield {
   outline:transparent;
   border:none;
-  box-shadow: inset  -3px -3px 7px rgba(203, 205, 253, 0.75),
-  inset  3px 3px 7px rgba(204, 204, 217, 0.85);
+  box-shadow: inset  -3px -3px 7px rgba(233, 235, 244, 0.75),
+  inset  3px 3px 7px rgba(204, 204, 217, 0.75);
 
 }
 .pcpfield:hover {
   outline:transparent;
   border:none;
-  box-shadow: inset  -3px -3px 7px rgba(195, 195, 243, 0.85),
-  inset  3px 3px 7px rgba(194, 194, 207, 0.9);
+  box-shadow: inset  -3px -3px 7px rgba(195, 195, 203, 0.75),
+  inset  3px 3px 7px rgba(194, 194, 207, 0.75);
 
 }
 .pcpfield:focus {
   outline:transparent;
   border:none;
-  box-shadow: inset  -3px -3px 7px rgba(185, 185, 233, 0.95),
-  inset  3px 3px 7px rgba(185, 185, 197, 0.95);
+  box-shadow: inset  -3px -3px 7px rgba(185, 185, 193, 0.75),
+  inset  3px 3px 7px rgba(185, 185, 197, 0.75);
+
+}
+.pcp-button {
+  outline:transparent;
+  border:none;
+  box-shadow:   -1px -1px 3px rgba(233, 235, 244, 0.75),
+    3px 3px 7px rgba(204, 204, 217, 0.75);
+
+}
+.pcp-button:hover {
+  outline:transparent;
+  border:none;
+  box-shadow: inset  -2px -2px 4px rgba(195, 195, 203, 0.55),
+  inset  2px 2px 4px rgba(194, 194, 207, 0.55);
 
 }
 

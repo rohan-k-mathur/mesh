@@ -1,148 +1,44 @@
-// "use client";
-// import { createContext, useContext, useReducer } from "react";
-// import PrivateChatPane from "@/components/PrivateChatPane";
-
-// export interface Msg {
-//   paneId: string;
-//   from: bigint;
-//   body: string;
-//   ts: number;
-// }
-
-// interface Pane {
-//   id: string;
-//   peerId: bigint;
-//   peerName: string;          // 👈 NEW
-//   msgs: Msg[];
-//   minimised: boolean;
-//   pos: { x: number; y: number };
-// }
-
-// interface State {
-//   panes: Pane[];
-// }
-
-// const Context = createContext<{
-//   panes: Pane[];
-//   open: (targetUserId: bigint, targetName: string, roomId: bigint) => Promise<void>;
-//   dispatch: React.Dispatch<Action>;
-// }>({ panes: [], open: async () => {}, dispatch: () => {} });
-
-// interface OpenAction {
-//   type: "OPEN";
-//   pane: Pane;
-// }
-// interface CloseAction {
-//   type: "CLOSE";
-//   id: string;
-// }
-// interface AddMsgAction {
-//   type: "ADD_MSG";
-//   id: string;
-//   msg: Msg;
-// }
-// interface MinimiseAction {
-//   type: "MINIMISE";
-//   id: string;
-// }
-// interface SetPosAction {
-//   type: "SET_POS";
-//   id: string;
-//   pos: { x: number; y: number };
-// }
-
-// type Action = OpenAction | CloseAction | AddMsgAction | MinimiseAction | SetPosAction;
-
-// function reducer(state: State, action: Action): State {
-//   switch (action.type) {
-//     case "OPEN":
-//       return { panes: [...state.panes, action.pane] };
-//     case "CLOSE":
-//       return { panes: state.panes.filter((p) => p.id !== action.id) };
-//     case "ADD_MSG":
-//       return {
-//         panes: state.panes.map((p) =>
-//           p.id === action.id ? { ...p, msgs: [...p.msgs, action.msg] } : p,
-//         ),
-//       };
-//     case "MINIMISE":
-//       return {
-//         panes: state.panes.map((p) =>
-//           p.id === action.id ? { ...p, minimised: !p.minimised } : p,
-//         ),
-//       };
-//     case "SET_POS":
-//       return {
-//         panes: state.panes.map((p) =>
-//           p.id === action.id ? { ...p, pos: action.pos } : p,
-//         ),
-//       };
-//     default:
-//       return state;
-//   }
-// }
-
-// export function PrivateChatManagerProvider({ children }: { children: React.ReactNode }) {
-//   const [state, dispatch] = useReducer(reducer, { panes: [] });
-
-//   const open = async (targetUserId: bigint, targetName:string, roomId: bigint) => {
-//     const res = await fetch("/api/esp/open", {
-//       method: "POST",
-//       headers: { "Content-Type": "application/json" },
-//       body: JSON.stringify({
-//         targetUserId: targetUserId.toString(),
-//         roomId: roomId.toString(),
-//       }),
-//     });
-//     const { paneId } = await res.json();
-//     dispatch({
-//       type: "OPEN",
-//       pane: {
-//         id: paneId,
-//         peerId: targetUserId,
-//         peerName: targetName,          // 👈 NEW
-//         msgs: [],
-//         minimised: false,
-//         pos: { x: 20, y: 20 },
-//       },
-//     });
-//   };
-
-//   return (
-//     <Context.Provider value={{ panes: state.panes, open, dispatch }}>
-//       {children}
-//       {state.panes.map((p) => (
-//         <PrivateChatPane key={p.id} pane={p} />
-//       ))}
-//     </Context.Provider>
-//   );
-// }
-
-// export const usePrivateChatManager = () => useContext(Context);
 // contexts/PrivateChatManager.tsx
 "use client";
-import React, { createContext, useContext, useMemo, useReducer } from "react";
+import React, { createContext, useContext, useMemo, useReducer, useCallback } from "react";
 
 export type Msg = { paneId: string; from: string; body: string; ts: number };
-
 export type Pane = {
-  id: string;                    // stable pane id (e.g., `${conversationId}:${peerId}`)
-  peerId: string;                // string for simplicity
+  id: string;                 // roomId
+  conversationId: string;     // <-- add this
+  peerId: string;
   peerName: string;
   peerImage?: string | null;
   msgs: Msg[];
   minimised: boolean;
-  unread?: number;   
+  unread?: number;
   pos: { x: number; y: number };
 };
+type OpenPayload = Omit<Pane, "msgs" | "minimised" | "unread">;
+type OpenOptions = {
+  peerImage?: string | null;
+  roomId?: string;
+  pos?: { x: number; y: number };
+};
 
+type Ctx = {
+  state: State;
+  dispatch: React.Dispatch<Action>;
+  open: (
+    peerId: string,
+    peerName: string,
+    conversationId: string,
+    opts?: OpenOptions
+  ) => void;
+};
 type State = { panes: Record<string, Pane> };
 
 type Action =
-| { type: "OPEN"; pane: Omit<Pane, "msgs" | "minimised" | "unread"> }
+  | { type: "OPEN"; pane: Omit<Pane, "msgs" | "minimised" | "unread"> }
+  | { type: "OPEN_OR_CREATE"; pane: Omit<Pane, "msgs" | "minimised" | "unread">; bump?: boolean }
   | { type: "CLOSE"; id: string }
   | { type: "MINIMISE"; id: string }
-  | { type: "RESTORE"; id: string }         // NEW
+  | { type: "RESTORE"; id: string }
   | { type: "SET_POS"; id: string; pos: { x: number; y: number } }
   | { type: "ADD_MSG"; id: string; msg: Msg };
 
@@ -150,9 +46,10 @@ function reducer(state: State, action: Action): State {
   switch (action.type) {
     case "OPEN": {
       const p = state.panes[action.pane.id];
-      if (p) return { ...state, panes: { ...state.panes, [p.id]: { ...p, minimised: false, unread: 0 } } };
-      // cascade panes a bit if needed; default pos can be (0,0)
-      const pos = action.pane.pos ?? { x: 0, y: 0 };
+      if (p) {
+        return { ...state, panes: { ...state.panes, [p.id]: { ...p, minimised: false, unread: 0 } } };
+      }
+      const offset = Object.keys(state.panes).length * 40;
       return {
         ...state,
         panes: {
@@ -162,7 +59,7 @@ function reducer(state: State, action: Action): State {
             msgs: [],
             minimised: false,
             unread: 0,
-            pos: action.pane.pos ?? { x: 24, y: 24 },
+            pos: action.pane.pos ?? { x: 420 + offset, y: 24 + offset },
           },
         },
       };
@@ -186,6 +83,39 @@ function reducer(state: State, action: Action): State {
       if (!p) return state;
       return { ...state, panes: { ...state.panes, [p.id]: { ...p, pos: action.pos } } };
     }
+    case "OPEN_OR_CREATE": {
+      const p = state.panes[action.pane.id];
+      if (p) {
+        const unread = action.bump && p.minimised ? (p.unread ?? 0) + 1 : p.unread ?? 0;
+        return {
+          ...state,
+          panes: {
+            ...state.panes,
+            [p.id]: {
+              ...p,
+              peerName: action.pane.peerName || p.peerName,
+              peerImage: action.pane.peerImage ?? p.peerImage,
+              unread,
+            },
+          },
+        };
+      }
+      // create minimised; only bump if bump===true
+      return {
+        ...state,
+        panes: {
+          ...state.panes,
+          [action.pane.id]: {
+            ...action.pane,
+            msgs: [],
+            minimised: true,
+            unread: action.bump ? 1 : 0,
+            pos: action.pane.pos ?? { x: 420, y: 24 },
+          },
+        },
+      };
+    }
+
     case "ADD_MSG": {
       const p = state.panes[action.id];
       if (!p) return state;
@@ -199,70 +129,39 @@ function reducer(state: State, action: Action): State {
         },
       };
     }
+
+    
     default:
       return state;
   }
-  
 }
 
-// type Ctx = {
-//   state: State;
-//   dispatch: React.Dispatch<Action>;
-//   open: (peerId: string, peerName: string, conversationId: string, peerImage: string | null) => void;
-// };
-type OpenOptions = {
-  peerImage?: string | null;
-};
 
-type Ctx = {
-  state: State;
-  dispatch: React.Dispatch<Action>;
-  // accept either 4th arg as string|null OR an options object
-  open: (
-    peerId: string,
-    peerName: string,
-    conversationId: string,
-    opts?: string | null | OpenOptions
-  ) => void;
-};
+
 
 const C = createContext<Ctx | null>(null);
 
+
 export function PrivateChatProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, { panes: {} });
-  const open = React.useCallback(
-    (
-      peerId: string,
-      peerName: string,
-      conversationId: string,
-      opts?: string | null | OpenOptions
-    ) => {
-      // normalize the 4th arg (support legacy string|null OR new options bag)
-      const peerImage =
-        typeof opts === "string" || opts === null || typeof opts === "undefined"
-          ? opts ?? null
-          : opts.peerImage ?? null;
 
-      const id = `${conversationId}:${peerId}`;
+  const open = useCallback<Ctx["open"]>((peerId, peerName, conversationId, opts) => {
+    const roomId = opts?.roomId ?? `dm:${conversationId}:${peerId}`;
 
-      // IMPORTANT: do NOT include fields your reducer wants to own (msgs, minimised, unread)
-      dispatch({
-        type: "OPEN",
-        pane: {
-          id,
-          peerId,
-          peerName,
-          peerImage,     // reducer can store this on the pane
-          // leave out: msgs, minimised, unread, pos (unless your Action type allows pos)
-          // if your action allows pos, include it; otherwise the reducer should set defaults
-        },
-      });
-    },
-    [dispatch]
-  );
+    dispatch({
+      type: "OPEN",
+      pane: {
+        id: roomId,
+        conversationId,                      // <-- include
+        peerId,
+        peerName,
+        peerImage: opts?.peerImage ?? null,
+        pos: opts?.pos ?? { x: 420, y: 24 },
+      },
+    });
+  }, []);
 
-  const value = React.useMemo(() => ({ state, dispatch, open }), [state, open]);
-
+  const value = useMemo(() => ({ state, dispatch, open }), [state, open]);
   return <C.Provider value={value}>{children}</C.Provider>;
 }
 
@@ -271,6 +170,4 @@ export function usePrivateChatManager() {
   if (!ctx) throw new Error("PrivateChatProvider missing");
   return ctx;
 }
-
-// Optional re-export alias for your layout imports
 export { PrivateChatProvider as PrivateChatManagerProvider };

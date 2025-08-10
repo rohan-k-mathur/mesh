@@ -4,6 +4,7 @@ import { Chakra_Petch } from "next/font/google";
 import { Comfortaa } from "next/font/google";
 import { Nunito } from 'next/font/google'
 import localFont from 'next/font/local'
+import { PrivateChatProvider } from "@/contexts/PrivateChatManager";
 
 import "../../globals.css";
 import Topbar from "@/components/shared/Topbar";
@@ -15,9 +16,10 @@ import { AuthProvider } from "@/components/shared/AuthProvider";
 import ScrollAnalytics from "@/components/shared/ScrollAnalytics";
 import { getRoomsForUser } from "@/lib/actions/realtimeroom.actions";
 import { RealtimeRoom } from "@prisma/client";
-import { PrivateChatManagerProvider } from "@/contexts/PrivateChatManager";
 import ClientProviders from "./client-providers";
-
+import PrivateChatDock from "@/components/chat/PrivateChatDock";
+import MessagesRealtimeBootstrap from "@/components/chat/MessagesRealtimeBootstrap";
+import { getCurrentUserId } from "@/lib/serverutils";
 export const metadata = {
   title: "Mesh",
   description: "A social media website",
@@ -53,7 +55,7 @@ export default async function StandardLayout({
   }
 
   const isEditor =false;
-
+  const currentUserId= await getCurrentUserId();
   return (
     <html className="bg-gradient-to-r from-zinc-200 from-0% via-indigo-300 via-50% to-rose-200 to-100%">
     <body className={`${founderslight.className}`}>
@@ -77,7 +79,10 @@ export default async function StandardLayout({
       </AuthProvider> */}
         {/* ONE AuthProvider and ONE ChatManager for the entire app */}
   <AuthProvider user={user}>
-  <ClientProviders>
+  <PrivateChatProvider>
+  {user?.userId && <MessagesRealtimeBootstrap me={user.userId.toString()} />}
+    <PrivateChatDock currentUserId={user?.userId?.toString()} />
+
           <ScrollAnalytics />
       <main className="flex flex-row">
       {!isEditor && <LeftSidebar userRooms={userRooms} />}
@@ -86,8 +91,9 @@ export default async function StandardLayout({
         </section>
         {!isEditor &&<RightSidebar />}
       </main>
-      </ClientProviders>
-        </AuthProvider>
+      
+      </PrivateChatProvider>
+              </AuthProvider>
     </body>
   </html>
   );

@@ -1,13 +1,19 @@
+
+import { useUserInbox } from "@/hooks/useUserInbox";
 import { fetchMessages } from "@/lib/actions/message.actions";
 import { fetchConversation } from "@/lib/actions/conversation.actions";
-import { getUserFromCookies } from "@/lib/serverutils";
+import { getUserFromCookies } from '@/lib/server/getUser';
 import { redirect, notFound } from "next/navigation";
 import ChatRoom from "@/components/chat/ChatRoom";
 import MessageComposer from "@/components/chat/MessageComposer";
 import { PrivateChatProvider } from "@/contexts/PrivateChatManager";
 import PrivateChatDock from "@/components/chat/PrivateChatDock";
 import MessengerPane from "@/components/chat/MessengerPane";
+import MessagesRealtimeBootstrap from "@/components/chat/MessagesRealtimeBootstrap";
 import Image from "next/image";
+
+
+
 
 export default async function Page({ params }: { params: { id: string } }) {
   const user = await getUserFromCookies();
@@ -99,13 +105,13 @@ export default async function Page({ params }: { params: { id: string } }) {
           </div>
         ) : (
           // Single avatar
-          <button>
+          <button className="flex w-[2.5rem] h-[2.5rem]">
           <Image
             src={headerUsers[0]?.image || "/assets/user-helsinki.svg"}
             alt={headerUsers[0]?.name ?? "User"}
             width={50}
             height={50}
-            className="rounded-full object-fill p-1 profile-shadow bg-white/20 align-center justify-center items-center"
+            className="rounded-full object-fill w-full h-full p-[.1rem] profile-shadow bg-white/20 align-center justify-center items-center"
           />
           </button>
         )}
@@ -127,6 +133,7 @@ export default async function Page({ params }: { params: { id: string } }) {
         <MessageComposer conversationId={params.id} />
       </div>
       <PrivateChatDock />
+      <MessagesRealtimeBootstrap me={user.userId.toString()} />
       <MessengerPane currentUserId={user.userId.toString()} />
       </PrivateChatProvider>
     </main>
