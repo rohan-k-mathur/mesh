@@ -7,6 +7,115 @@ import type { Anchor, CommentThread } from "@/types/comments";
 
 /* ----------------------- DOM ↔ anchor helpers ----------------------- */
 
+type Cluster = { top: number; items: string[] }  // ids
+
+function clusterByTop(positions: Record<string, DOMRect | undefined>, threshold = 40): Cluster[] {
+  const entries = Object.entries(positions)
+    .filter(([, r]) => r)
+    .map(([id, r]) => ({ id, top: r!.top }))
+    .sort((a, b) => a.top - b.top)
+
+  const clusters: Cluster[] = []
+  for (const e of entries) {
+    const last = clusters[clusters.length - 1]
+    if (!last || Math.abs(e.top - last.top) > threshold) {
+      clusters.push({ top: e.top, items: [e.id] })
+    } else {
+      last.items.push(e.id)
+      // nudge centroid slightly
+      last.top = (last.top * (last.items.length - 1) + e.top) / last.items.length
+    }
+  }
+  return clusters
+}
+
+function findTextForwardFromBoundary(root: Node, container: Node, offset: number): { node: Text; offset: number } | null {
+  if (container.nodeType === Node.TEXT_NODE) {
+    const t = container as Text
+    return { node: t, offset: Math.min(offset, t.data.length) }
+  }
+
+  // Prefer the first text node inside child at `offset` (the node to the RIGHT of the boundary)
+  const parent = container as Node
+  const child = (parent.childNodes[offset] ?? null)
+  if (child) {
+    const t = firstTextNodeWithin(child, "forward") as Text | null
+    if (t) return { node: t, offset: 0 }
+  }
+
+  // Otherwise, walk forward in DOM order from the boundary
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
+  // position the walker just before/at the boundary
+  let prev: Node | null = null
+  while (walker.nextNode()) {
+    if (walker.currentNode === child) break
+    prev = walker.currentNode
+  }
+  // we might not be aligned; do a simple forward scan for first text node after boundary
+  let n: Node | null = child ?? prev?.nextSibling ?? (parent.childNodes[offset] ?? parent.nextSibling)
+  while (n) {
+    const t = firstTextNodeWithin(n, "forward") as Text | null
+    if (t) return { node: t, offset: 0 }
+    n = n.nextSibling
+  }
+
+  // fallback: first text in the subtree
+  const t = firstTextNodeWithin(parent, "forward") as Text | null
+  return t ? { node: t, offset: 0 } : null
+}
+
+function findTextBackwardFromBoundary(root: Node, container: Node, offset: number): { node: Text; offset: number } | null {
+  if (container.nodeType === Node.TEXT_NODE) {
+    const t = container as Text
+    return { node: t, offset: Math.min(offset, t.data.length) }
+  }
+
+  const parent = container as Node
+  const childIdx = offset - 1
+  let child: Node | null = childIdx >= 0 ? parent.childNodes[childIdx] : null
+  while (child) {
+    const t = firstTextNodeWithin(child, "backward") as Text | null
+    if (t) return { node: t, offset: t.data.length }
+    child = child.previousSibling
+  }
+
+  // fallback: last text in the subtree
+  const t = firstTextNodeWithin(parent, "backward") as Text | null
+  return t ? { node: t, offset: t.data.length } : null
+}
+
+function normalizeRangeToTextNodes(root: HTMLElement, r: Range) {
+  // Both ends prefer going FORWARD to the nearest text node when the boundary
+  // sits between elements. This matches the visual caret users expect.
+  const s = findTextForwardFromBoundary(root, r.startContainer, r.startOffset)
+  const e =
+    findTextForwardFromBoundary(root, r.endContainer,   r.endOffset) ??
+    findTextBackwardFromBoundary(root, r.endContainer,  r.endOffset)
+
+  if (!s || !e) return null
+  return { start: s.node, startOffset: s.offset, end: e.node, endOffset: e.offset }
+}
+
+function buildAnchorFromSelection(root: HTMLElement, sel: Selection): { anchor: Anchor; rect: DOMRect } | null {
+  if (!sel.rangeCount) return null
+  const r = sel.getRangeAt(0)
+  if (r.collapsed) return null
+
+  const norm = normalizeRangeToTextNodes(root, r)
+  if (!norm) return null
+
+  const { start, startOffset, end, endOffset } = norm
+  const startPath = nodePathFromRoot(root, start)
+  const endPath   = nodePathFromRoot(root, end)
+
+  const rect = r.getBoundingClientRect()
+  const base = root.getBoundingClientRect()
+  const localRect = new DOMRect(rect.left - base.left, rect.top - base.top, rect.width, rect.height)
+
+  const anchor: Anchor = { startPath, startOffset, endPath, endOffset }
+  return { anchor, rect: localRect }
+}
+
 function nodePathFromRoot(root: Node, target: Node): number[] {
   const path: number[] = [];
   let n: Node | null = target;
@@ -78,6 +187,48 @@ function getAnchorRects(anchor: Anchor, root: HTMLElement): DOMRect[] {
   )
 }
 
+function CommentRail({
+  threads,
+  positions,
+  openId,
+  setOpenId,
+}: {
+  threads: CommentThread[]
+  positions: Record<string, DOMRect | undefined>
+  openId: string | null
+  setOpenId: (id: string | null) => void
+}) {
+  // one-line items, collision-resolved
+  const items = solveCollisions(
+    threads.map(t => ({ id: t.id, top: (positions[t.id]?.top ?? 0) - 8, left: 0 }))
+  )
+
+  return (
+    <div className="relative min-h-[1px] h-full">
+      {items.map(p => {
+        const t = threads.find(x => x.id === p.id)!
+        const active = openId === t.id
+        const firstLine = t.comments[0]?.body ?? ''
+        return (
+          <div className="space-y-4 gap-4 h-full">
+          <button
+            key={t.id}
+            className={`absolute right-0 translate-y-[-50%] truncate w-full text-left m-2
+                       text-xs px-2 py-1 rounded border bg-white/30 backdrop-blur
+                       shadow-sm hover:bg-white transition
+                       ${active ? 'border-amber-400' : 'border-neutral-200'}`}
+            style={{ top: p.top }}
+            onClick={() => setOpenId(t.id)}
+            title={firstLine}
+          >
+            {firstLine.length > 60 ? firstLine.slice(0, 57) + '…' : firstLine}
+          </button>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
 
 
 type PinPos = { id: string; top: number; left: number }
@@ -91,22 +242,22 @@ function solveCollisions(items: PinPos[], minGap = 18): PinPos[] {
   return sorted
 }
 
-function buildAnchorFromSelection(root: HTMLElement, sel: Selection): { anchor: Anchor; rect: DOMRect } | null {
-  if (!sel.rangeCount) return null;
-  const r = sel.getRangeAt(0);
-  if (r.collapsed) return null;
+// function buildAnchorFromSelection(root: HTMLElement, sel: Selection): { anchor: Anchor; rect: DOMRect } | null {
+//   if (!sel.rangeCount) return null;
+//   const r = sel.getRangeAt(0);
+//   if (r.collapsed) return null;
 
-  const { start, startOffset, end, endOffset } = coerceRangeEndsToText(r);
-  const startPath = nodePathFromRoot(root, start);
-  const endPath   = nodePathFromRoot(root, end);
+//   const { start, startOffset, end, endOffset } = coerceRangeEndsToText(r);
+//   const startPath = nodePathFromRoot(root, start);
+//   const endPath   = nodePathFromRoot(root, end);
 
-  const rect = r.getBoundingClientRect();
-  const base = root.getBoundingClientRect();
-  const localRect = new DOMRect(rect.left - base.left, rect.top - base.top, rect.width, rect.height);
+//   const rect = r.getBoundingClientRect();
+//   const base = root.getBoundingClientRect();
+//   const localRect = new DOMRect(rect.left - base.left, rect.top - base.top, rect.width, rect.height);
 
-  const anchor: Anchor = { startPath, startOffset, endPath, endOffset };
-  return { anchor, rect: localRect };
-}
+//   const anchor: Anchor = { startPath, startOffset, endPath, endOffset };
+//   return { anchor, rect: localRect };
+// }
 
 function getAnchorStartRect(anchor: Anchor, root: HTMLElement): DOMRect | null {
   let node: Node | null = root;
@@ -153,7 +304,7 @@ const bubbleRef    = useRef<HTMLDivElement>(null);   // 👈 NEW
   const GUTTER = 24 // px
 
   const [hoverId, setHoverId] = useState<string | null>(null)
-  
+  const [adder, setAdder] = useState<{ anchor: Anchor; rect: DOMRect } | null>(null)
   const rectsByThread = useMemo(() => {
     const root = containerRef.current
     if (!root) return {} as Record<string, DOMRect[]>
@@ -219,20 +370,20 @@ useEffect(() => {
 
   // selection capture
   const onMouseUpCapture: React.MouseEventHandler<HTMLDivElement> = () => {
-    const root = containerRef.current;
-    if (!root) return;
-    const sel = window.getSelection();
+    const root = containerRef.current
+    if (!root) return
+    const sel = window.getSelection()
     if (!sel || sel.isCollapsed) {
-      setBubble(null);
-      return;
+      setAdder(null)
+      setBubble(null)
+      return
     }
-    const packed = buildAnchorFromSelection(root, sel);
-    if (!packed) return;
-
-    const text = sel.toString().slice(0, 280);
-    setDraftBody("");
-    setBubble({ anchor: packed.anchor, rect: packed.rect, text });
-  };
+    const packed = buildAnchorFromSelection(root, sel)
+    if (!packed) return
+  
+    setAdder({ anchor: packed.anchor, rect: packed.rect })
+    setBubble(null) // don’t open yet
+  }
 
   async function createThread() {
     if (!bubble || !draftBody.trim()) return;
@@ -250,6 +401,8 @@ useEffect(() => {
     setBubble(null);
     setDraftBody("");
   }
+  const clusters = useMemo(() => clusterByTop(positions, 40), [positions]);
+  const [expandedCluster, setExpandedCluster] = useState<string | null>(null); // cluster key = `${top}` or a generated id
 
   return (
     <ArticleReader template={template} heroSrc={heroSrc}>
@@ -280,49 +433,50 @@ useEffect(() => {
 </div>
 
   {/* pin layer in the left gutter */}
-  <div className="absolute inset-y-0 left-0 w-8 select-none">
-    {solveCollisions(
-      threads.map(t => ({
-        id: t.id,
-        top: (positions[t.id]?.top ?? 0) - 8, // center the 16px pin
-        left: 4, // inside gutter
-      }))
-    ).map(p => {
-      const t = threads.find(x => x.id === p.id)!
-      const active = openId === t.id
-      const hovered = hoverId === t.id
-      const pos = positions[t.id]
-      const leaderLeft = GUTTER // content start
-      const leaderRight = Math.max(leaderLeft, (pos?.left ?? leaderLeft) - 4)
+ 
+<div className="absolute inset-y-0 left-0 w-8 select-none hidden md:block">
+  {clusters.map((c, i) => {
+    const key = `c${i}-${Math.round(c.top)}`
+    const many = c.items.length > 3
+    const expanded = expandedCluster === key
 
+    if (many && !expanded) {
+      // collapsed badge
       return (
-        <div key={t.id} className="absolute"
-             style={{ top: p.top, left: p.left }}
-             onMouseEnter={() => setHoverId(t.id)}
-             onMouseLeave={() => setHoverId(null)}>
-          {/* pin */}
+        <div key={key} className="absolute" style={{ top: c.top - 8, left: 4 }}>
           <button
-            aria-label="Open comment"
-            className={`w-4 h-4 rounded-full grid place-items-center text-[10px] leading-none
-                        transition-opacity ring-1 shadow
-                        ${t.resolved ? "bg-neutral-300 ring-neutral-300/40" : "bg-amber-400 ring-amber-500/30"}
-                        ${active ? "opacity-100" : hovered ? "opacity-90" : "opacity-40 hover:opacity-80"}`}
-            onClick={() => setOpenId(t.id)}
+            className="w-6 h-6 rounded-full bg-amber-500 text-white text-xs shadow ring-1 ring-amber-500/30"
+            onClick={() => setExpandedCluster(key)}
+            title={`${c.items.length} comments`}
           >
-            ●
+            {c.items.length}
           </button>
-
-          {/* leader line appears only on hover/active */}
-          {(active || hovered) && (
-            <div
-              className="absolute top-2 left-4 h-px bg-current opacity-30"
-              style={{ width: leaderRight - leaderLeft }}
-            />
-          )}
         </div>
       )
-    })}
-  </div>
+    }
+
+    // expanded or small cluster → show individual pins stacked
+    const stack = solveCollisions(
+      c.items.map((id, idx) => ({ id, top: c.top + idx * 16 - 8, left: 4 })), 14
+    )
+    return stack.map(p => {
+      const t = threads.find(x => x.id === p.id)!
+      const active = openId === t.id
+      return (
+        <div key={`${key}-${t.id}`} className="absolute" style={{ top: p.top, left: p.left }}
+             onMouseEnter={() => setHoverId(t.id)} onMouseLeave={() => setHoverId(null)}>
+          <button
+            className={`w-4 h-4 rounded-full grid place-items-center text-[10px] leading-none
+                        ring-1 shadow ${t.resolved ? 'bg-neutral-300 ring-neutral-300/40' : 'bg-amber-400 ring-amber-500/30'}
+                        ${active ? 'opacity-100' : 'opacity-70 hover:opacity-100'}`}
+            onClick={() => { setOpenId(t.id); setExpandedCluster(null) }}
+            aria-label="Open comment"
+          >●</button>
+        </div>
+      )
+    })
+  })}
+</div>
 
 
           {/* Existing pins
@@ -340,6 +494,28 @@ useEffect(() => {
               ●
             </button>
           ))} */}
+          {/* Small “+” adder above selection */}
+{adder && (
+  <button
+    className="absolute z-30 w-6 h-6 rounded-full bg-amber-500 text-white text-sm grid place-items-center shadow-lg"
+    style={{
+      top: Math.max(0, adder.rect.top - 28),
+      left: adder.rect.left + adder.rect.width / 2 - 12,
+    }}
+    onMouseDown={e => e.preventDefault()}       // keep selection
+    onClick={() => {
+      // open composer bubble with the same anchor
+      const root = containerRef.current!
+      const rects = getAnchorRects(adder.anchor, root)
+      const first = rects[0] ?? adder.rect
+      setBubble({ anchor: adder.anchor, rect: first, text: window.getSelection()?.toString().slice(0, 280) ?? '' })
+      setAdder(null)
+    }}
+    aria-label="Comment on selection"
+  >
+    +
+  </button>
+)}
 
           {/* Floating composer bubble */}
           {bubble && (
@@ -380,13 +556,14 @@ useEffect(() => {
           )}
         </div>
 
-        {/* Sidebar */}
-        <CommentSidebar
-          threads={threads}
-          activeThreadId={openId}
-          // wire actions later:
-          // onSubmit, onResolve, onVote
-        />
+        <div className="relative">
+      <CommentRail
+        threads={threads}
+        positions={positions}
+        openId={openId}
+        setOpenId={setOpenId}
+      />
+          </div>
       </div>
     </ArticleReader>
   );

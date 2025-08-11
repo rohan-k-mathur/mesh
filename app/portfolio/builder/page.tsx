@@ -61,6 +61,75 @@ import {
 import { isSafeYoutubeEmbed, isSafeHttpLink } from "@/lib/utils/validators";
 import { getBoundingRect } from "@/lib/portfolio/selection";
 
+
+ 
+ /* ---------- Smart-guides helper ---------- */
+ type GuideLines = { v: number[]; h: number[] };
+ function computeGuidesForMove(
+   base: { left: number; top: number; width: number; height: number },
+   elements: ElementRecord[],
+   excludeIds: string[],
+   cumX: number,
+   cumY: number,
+   gridSize: number,
+   tolerance = 6
+ ): { snappedX: number; snappedY: number; guides: GuideLines } {
+   const moved = {
+     left: base.left + cumX,
+     top: base.top + cumY,
+     width: base.width,
+     height: base.height,
+   };
+  const movingX = [moved.left, moved.left + moved.width / 2, moved.left + moved.width];
+  const movingY = [moved.top, moved.top + moved.height / 2, moved.top + moved.height];
+  const others = elements.filter((e) => !excludeIds.includes(e.id));
+  const candX: number[] = [];
+  const candY: number[] = [];
+  for (const e of others) {
+    candX.push(e.x, e.x + e.width / 2, e.x + e.width);
+    candY.push(e.y, e.y + e.height / 2, e.y + e.height);
+   }
+ 
+   let bestDX: number | null = null;
+   let bestDY: number | null = null;
+   let guideV: number | null = null;
+   let guideH: number | null = null;
+ 
+   for (const a of movingX) {
+     for (const c of candX) {
+       const d = c - a;
+       if (Math.abs(d) <= tolerance && (bestDX === null || Math.abs(d) < Math.abs(bestDX))) {
+         bestDX = d;
+         guideV = c;
+       }
+     }
+   }
+   for (const a of movingY) {
+     for (const c of candY) {
+       const d = c - a;
+       if (Math.abs(d) <= tolerance && (bestDY === null || Math.abs(d) < Math.abs(bestDY))) {
+         bestDY = d;
+         guideH = c;
+       }
+     }
+   }
+ 
+   const useGridX = bestDX === null;
+   const useGridY = bestDY === null;
+   const snappedX = useGridX ? Math.round(cumX / gridSize) * gridSize : cumX +  (bestDX as number);
+  const snappedY = useGridY ? Math.round(cumY / gridSize) * gridSize : cumY + (bestDY as number);
+
+  return {
+    snappedX,
+    snappedY,
+    guides: {
+      v: guideV != null ? [guideV] : [],
+      h: guideH != null ? [guideH] : [],
+    },
+  };
+}
+
+
 type Corner = "nw" | "ne" | "sw" | "se";
 type ResizeTarget = { id: string; kind: "text" | "image" | "video" | "link" };
 
@@ -109,6 +178,7 @@ interface DroppableCanvasProps {
   drawMode: DrawMode;
   showGrid: boolean;
   gridSize: number;
+  externalGuides?: GuideLines | null;
   setDrawMode: React.Dispatch<React.SetStateAction<DrawMode>>;
   canvasRef: React.MutableRefObject<HTMLDivElement | null>;
   selectedId: string | null;
@@ -530,6 +600,7 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
       setDrawMode,
       showGrid,
       gridSize,
+      externalGuides,
       canvasRef,
       selectedId,
       setSelectedId,
@@ -547,11 +618,8 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
       null
     );
     const [draggingState, setDraggingState] = useState<DragState | null>(null);
-  
-    const snap = useCallback(
-      (v: number) => Math.round(v / gridSize) * gridSize,
-      [gridSize]
-    );
+        const [localGuides, setLocalGuides] = useState<GuideLines | null>(null);
+        const snap = useCallback((v: number) => Math.round(v / gridSize) * gridSize, [gridSize]);
     const resizeRef = useRef<ResizeState | null>(null);
     const dragRef = useRef<DragState | null>(null);
     const { setNodeRef } = useDroppable({ id: "canvas" });
@@ -701,24 +769,44 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
         if (d) {
           const rect = canvasRef.current!.getBoundingClientRect();
 
+          // const pointerX = ev.clientX - rect.left;
+          // const pointerY = ev.clientY - rect.top;
+
+          // const newLeft = snap(d.startLeft + pointerX - d.startX);
+          // const newTop = snap(d.startTop + pointerY - d.startY);
+
+          // dispatch({
+          //   type: "patch",
+          //   id: d.id,
+          //   patch: { x: newLeft, y: newTop },
+          // });
           const pointerX = ev.clientX - rect.left;
-          const pointerY = ev.clientY - rect.top;
-
-          const newLeft = snap(d.startLeft + pointerX - d.startX);
-          const newTop = snap(d.startTop + pointerY - d.startY);
-
-          dispatch({
-            type: "patch",
-            id: d.id,
-            patch: { x: newLeft, y: newTop },
-          });
-
+                     const pointerY = ev.clientY - rect.top;
+                     const cumX = pointerX - d.startX;
+                     const cumY = pointerY - d.startY;
+           
+                     const el = elements.find((e) => e.id === d.id);
+                     if (el) {
+                       const base = { left: d.startLeft, top: d.startTop, width: el.width, height: el.height };
+                       const { snappedX, snappedY, guides } = computeGuidesForMove(
+                         base,
+                         elements,
+                         [d.id],
+                         cumX,
+                         cumY,
+                         gridSize
+                       );
+                       setLocalGuides(guides);
+                       const newLeft = d.startLeft +  snappedX;
+                       const newTop = d.startTop  + snappedY;
+                       dispatch({ type: "patch", id: d.id, patch: { x: newLeft, y: newTop } });
+                     }
           // const dx = snap(ev.clientX - rect.left) - d.startX;
           // const dy = snap(ev.clientY - rect.top)  - d.startY;
           // setBoxes((bs) =>
           //   bs.map((b) =>
           //     b.id === d.id
-          //       ? { ...b, x: d.startLeft + dx, y: d.startTop + dy }
+          //       ? { ...b, x: d.startLeft   dx, y: d.startTop   dy }
           //       : b
           //   )
           // );
@@ -729,6 +817,7 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
         dragRef.current = null;
         setResizingState(null);
         setDraggingState(null);
+        setLocalGuides(null);
       };
       window.addEventListener("pointermove", onMove);
       window.addEventListener("pointerup", onUp);
@@ -878,6 +967,40 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
             }}
           />
         )}
+          {/* smart-guides overlay (external from DnD + local from direct drag) */}
+         {((externalGuides && (externalGuides.v.length || externalGuides.h.length)) ||
+           (localGuides && (localGuides.v.length || localGuides.h.length))) && (
+           <>
+             {[...(externalGuides?.v || []), ...(localGuides?.v || [])].map((x, i) => (
+               <div
+                 key={`gv-${i}-${x}`}
+                 style={{
+                   position: "absolute",
+                   left: x,
+                   top: 0,
+                   bottom: 0,
+                   width: 0,
+                   borderLeft: "1px solid #ff00ff",
+                   pointerEvents: "none",
+                 }}
+               />
+             ))}
+             {[...(externalGuides?.h || []), ...(localGuides?.h || [])].map((y, i) => (
+               <div
+                 key={`gh-${i}-${y}`}
+                 style={{
+                   position: "absolute",
+                   top: y,
+                   left: 0,
+                   right: 0,
+                   height: 0,
+                   borderTop: "1px solid #ff00ff",
+                   pointerEvents: "none",
+                 }}
+               />
+             ))}
+           </>
+         )}
         {singleSelected && (
            <ContextToolbar
              rect={
@@ -1137,6 +1260,18 @@ function PortfolioBuilderInner({
     const onKey = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement).closest("input,textarea,[contenteditable]"))
         return;
+        if (e.key === "ArrowLeft" || e.key === "ArrowRight" || e.key === "ArrowUp" || e.key === "ArrowDown") {
+                   e.preventDefault();
+                   const step = e.shiftKey ? 10 : 1; // 10px with Shift, 1px default
+                   const dx = e.key === "ArrowLeft" ? -step : e.key === "ArrowRight" ? step : 0;
+                   const dy = e.key === "ArrowUp" ? -step : e.key === "ArrowDown" ? step : 0;
+                   if (selection.length) {
+                     dispatch({ type: "groupDragStart" });
+                     dispatch({ type: "groupDrag", dx, dy });
+                     dispatch({ type: "groupDragEnd", dx, dy });
+                   }
+                   return;
+                 }
       const meta = e.metaKey || e.ctrlKey;
       if (!meta) return;
       if (e.key === "z") {
@@ -1366,16 +1501,48 @@ function PortfolioBuilderInner({
   }
   const sensors = useSensors(useSensor(PointerSensor));
 
+  // smart-guides state for DnD path
+  const [guides, setGuides] = useState<GuideLines | null>(null);
+
+
   const handleStart = (event: DragStartEvent) => {
     setActiveId(event.active.id);
     handleDragStart(event);
   };
-  const handleMoveWrapper = (event: DragMoveEvent) => {
-    handleDragMove(event);
-  };
+     const handleMoveWrapper = (event: DragMoveEvent) => {
+         // compute smart guides   snap for group drag
+         const { delta } = event;
+         // base rect for selection
+         if (selection.length) {
+           const map = new Map(
+             elements.map((e) => [
+               e.id,
+               { x: e.x || 0, y: e.y || 0, width: e.width || 0, height: e.height || 0 },
+             ])
+           );
+           const selRect = getBoundingRect(selection, map);
+           const { snappedX, snappedY, guides: g } = computeGuidesForMove(
+             { left: selRect.left, top: selRect.top, width: selRect.width, height: selRect.height },
+             elements,
+             selection,
+             delta.x,
+             delta.y,
+             gridSize
+           );
+           // turn cumulative snapped into step delta
+           const stepDx = snappedX - lastDrag.current.x;
+           const stepDy = snappedY - lastDrag.current.y;
+           lastDrag.current = { x: snappedX, y: snappedY };
+           setGuides(g);
+           dispatch({ type: "groupDrag", dx: stepDx, dy: stepDy });
+           return;
+         }
+         handleDragMove(event);
+       };
   const handleEnd = (event: DragEndEvent) => {
     handleDragEnd(event);
     setActiveId(null);
+    setGuides(null);
   };
   const selectedEl = elementsMap.get(selectedId ?? "");
   const isTextBox = selectedEl && selectedEl.kind === "text";
@@ -1518,6 +1685,7 @@ function PortfolioBuilderInner({
           setDrawMode={setDrawMode}
           showGrid={showGrid}
           gridSize={gridSize}
+          externalGuides={guides}
           canvasRef={canvasRef}
           selectedId={selectedId}
           setSelectedId={setSelectedId}
