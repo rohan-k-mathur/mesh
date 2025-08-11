@@ -3,10 +3,10 @@
 import Draggable from "react-draggable";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { usePrivateChatSocket } from "@/hooks/usePrivateChatSocket";
-import { usePrivateChatManager, Msg } from "@/contexts/PrivateChatManager";
+import { usePrivateChatManager, Msg, PaneAnchor } from "@/contexts/PrivateChatManager";
 import Image from "next/image";
 import { useAuth } from "@/lib/AuthContext";
-import { dmRoomId } from "@/lib/chat/roomId";
+import { messagePermalink } from "@/lib/chat/permalink";
 // components/chat/PrivateChatPane.tsx
 type PaneProps = {
   pane: {
@@ -18,6 +18,7 @@ type PaneProps = {
     msgs: Msg[];
     minimised: boolean;
     pos: { x: number; y: number };
+    anchor?: PaneAnchor;
   };
   currentUserId?: string;
   currentUserName?: string | null;
@@ -63,7 +64,7 @@ useEffect(() => {
     el.removeEventListener("focusin", onFocus);
     el.removeEventListener("mouseenter", onEnter);
   };
-}, [pane.id, dispatch]);
+}, [pane.id, dispatch, containerRef]);
   const selfId =
   currentUserId ??
   (user?.userId ? String(user.userId) : undefined) ??
@@ -142,9 +143,10 @@ useEffect(() => {
     () => `Chat with ${pane.peerName || `User ${pane.peerId}`}`,
     [pane.peerName, pane.peerId]
   );
-  useEffect(() => {
-    console.log("[pane mount]", { roomId: pane.id, conversationId: pane.conversationId, selfId, peerId: pane.peerId });
-  }, []);
+useEffect(() => {
+  console.log("[pane mount]", { roomId: pane.id, conversationId: pane.conversationId, selfId, peerId: pane.peerId });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, []);
   
 
   return (
@@ -161,37 +163,51 @@ useEffect(() => {
         ref={nodeRef}
         className="fixed pointer-events-auto w-80 h-[400px] rounded-xl bg-slate-200/10 backdrop-blur-md border border-white shadow-xl flex flex-col"
       >
-        <div className="pcp-header flex items-center justify-between bg-white/80 px-2 py-1 rounded-t-xl cursor-move">
-          <span className="flex items-center gap-2 tracking-wide px-2 text-sm font-medium">
-            {pane.peerImage ? (
-              <Image
-                src={pane.peerImage}
-                alt=""
-                width={20}
-                height={20}
-                className="rounded-full object-cover"
-              />
-            ) : (
-              <span className="inline-block w-5 h-5 rounded-full bg-slate-300" />
-            )}
-            {title}
-          </span>
-          <div className="space-x-1">
-            <button
-              onClick={() => dispatch({ type: "MINIMISE", id: pane.id })}
-              className="rounded px-2 py-1 hover:bg-black/5"
-              aria-label="Minimize"
-            >
-              –
-            </button>
-            <button
-              onClick={() => dispatch({ type: "CLOSE", id: pane.id })}
-              className="rounded px-2 py-1 hover:bg-black/5"
-              aria-label="Close"
-            >
-              ×
-            </button>
+        <div className="pcp-header bg-white/80 px-2 py-1 rounded-t-xl cursor-move">
+          <div className="flex items-center justify-between">
+            <span className="flex items-center gap-2 tracking-wide px-2 text-sm font-medium">
+              {pane.peerImage ? (
+                <Image
+                  src={pane.peerImage}
+                  alt=""
+                  width={20}
+                  height={20}
+                  className="rounded-full object-cover"
+                />
+              ) : (
+                <span className="inline-block w-5 h-5 rounded-full bg-slate-300" />
+              )}
+              {title}
+            </span>
+            <div className="space-x-1">
+              <button
+                onClick={() => dispatch({ type: "MINIMISE", id: pane.id })}
+                className="rounded px-2 py-1 hover:bg-black/5"
+                aria-label="Minimize"
+              >
+                –
+              </button>
+              <button
+                onClick={() => dispatch({ type: "CLOSE", id: pane.id })}
+                className="rounded px-2 py-1 hover:bg-black/5"
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
           </div>
+          {pane.anchor && (
+            <div className="ml-2 px-2 py-1 rounded-md bg-white/70 border text-xs flex items-center gap-2">
+              <span className="opacity-70">Re:</span>
+              <span className="truncate max-w-[180px]">&ldquo;{pane.anchor.messageText || "Original message"}&rdquo;</span>
+              <a
+                href={messagePermalink(pane.anchor.conversationId, pane.anchor.messageId)}
+                className="underline hover:opacity-80"
+              >
+                Jump
+              </a>
+            </div>
+          )}
         </div>
 
         {!pane.minimised && (
