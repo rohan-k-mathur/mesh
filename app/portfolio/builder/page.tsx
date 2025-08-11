@@ -28,7 +28,6 @@ import {
 } from "@dnd-kit/core";
 import { useSortable, arrayMove } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-
 import { nanoid } from "nanoid";
 import { useRouter } from "next/navigation";
 import { uploadFileToSupabase } from "@/lib/utils";
@@ -350,6 +349,177 @@ function StylePanel({
   );
 }
 
+ /* ---------- Rulers (top   left) ---------- */
+ function Rulers({
+     containerRef,
+     gridSize,
+   }: {
+     containerRef: React.MutableRefObject<HTMLDivElement | null>;
+     gridSize: number;
+   }) {
+     const [size, setSize] = useState({ w: 0, h: 0 });
+     useEffect(() => {
+       const el = containerRef.current;
+       if (!el) return;
+       const ro = new ResizeObserver((entries) => {
+         for (const e of entries) {
+           const cr = e.contentRect;
+           setSize({ w: Math.floor(cr.width), h: Math.floor(cr.height) });
+         }
+       });
+       ro.observe(el);
+       return () => ro.disconnect();
+     }, [containerRef]);
+   
+     const labelsX: number[] = [];
+     const labelsY: number[] = [];
+     for (let x = 0; x <= size.w; x += 100) labelsX.push(x);
+     for (let y = 0; y <= size.h; y += 100) labelsY.push(y);
+   
+     const minor = gridSize;
+     const major = gridSize * 5;
+   
+     return (
+       <>
+         {/* top ruler */}
+         <div
+           style={{
+             position: "absolute",
+             left: 0,
+             right: 0,
+             top: 0,
+             height: 24,
+             backgroundColor: "#f8fafc",
+             pointerEvents: "none",
+             borderBottom: "1px solid rgba(0,0,0,.1)",
+             backgroundImage: `
+               repeating-linear-gradient(to right, rgba(0,0,0,.15) 0, rgba(0,0,0,.15) 1px, transparent 1px, transparent ${minor}px),
+               repeating-linear-gradient(to right, rgba(0,0,0,.30) 0, rgba(0,0,0,.30) 1px, transparent 1px, transparent ${major}px)
+             `,
+           }}
+         />
+         {/* left ruler */}
+         <div
+           style={{
+             position: "absolute",
+             left: 0,
+             top: 0,
+             bottom: 0,
+             width: 24,
+             backgroundColor: "#f8fafc",
+             pointerEvents: "none",
+             borderRight: "1px solid rgba(0,0,0,.1)",
+             backgroundImage: `
+               repeating-linear-gradient(to bottom, rgba(0,0,0,.15) 0, rgba(0,0,0,.15) 1px, transparent 1px, transparent ${minor}px),
+               repeating-linear-gradient(to bottom, rgba(0,0,0,.30) 0, rgba(0,0,0,.30) 1px, transparent 1px, transparent ${major}px)
+             `,
+           }}
+         />
+         {/* top-left square */}
+         <div
+           style={{
+             position: "absolute",
+             left: 0,
+             top: 0,
+             width: 24,
+             height: 24,
+             backgroundColor: "#f8fafc",
+             borderRight: "1px solid rgba(0,0,0,.1)",
+             borderBottom: "1px solid rgba(0,0,0,.1)",
+             pointerEvents: "none",
+           }}
+         />
+         {/* numeric labels */}
+         {labelsX.map((x) => (
+           <div
+             key={`tx-${x}`}
+             style={{
+               position: "absolute",
+               left: x + 2,
+               top: 0,
+               height: 24,
+               lineHeight: "24px",
+               fontSize: 10,
+               color: "rgba(0,0,0,.6)",
+               transform: "translateX(0px)",
+               pointerEvents: "none",
+             }}
+           >
+             {x}
+           </div>
+         ))}
+         {labelsY.map((y) => (
+           <div
+             key={`ty-${y}`}
+             style={{
+               position: "absolute",
+               left: 0,
+               top: y - 6,
+               width: 24,
+               textAlign: "right",
+               fontSize: 10,
+               color: "rgba(0,0,0,.6)",
+               paddingRight: 2,
+               pointerEvents: "none",
+             }}
+           >
+             {y}
+           </div>
+         ))}
+       </>
+     );
+   }
+ /* ---------- Contextual toolbar over selection ---------- */
+ function ContextToolbar({
+     rect,
+     element,
+     onBold,
+     onItalic,
+     onDelete,
+   }: {
+     rect: { left: number; top: number; width: number; height: number };
+     element: ElementRecord;
+     onBold?: () => void;
+     onItalic?: () => void;
+     onDelete: () => void;
+   }) {
+     const centerX = rect.left +  rect.width / 2;
+     const topY = Math.max(0, rect.top - 40);
+     return (
+       <div
+         style={{
+           position: "absolute",
+           left: centerX,
+           top: topY,
+           transform: "translate(-50%,-4px)",
+           zIndex: 20,
+           pointerEvents: "auto",
+         }}
+         className="rounded-md border bg-white shadow-md px-2 py-1 flex items-center gap-2"
+      >
+         {element.kind === "text" && (
+           <>
+             <button className="px-1 border rounded text-sm" onClick={onBold} title="Bold">
+               <b>B</b>
+             </button>
+             <button className="px-1 border rounded text-sm" onClick={onItalic} title="Italic">
+               <i>I</i>
+             </button>
+           </>
+         )}
+         <button
+           className="px-1 border rounded text-sm"
+           onClick={onDelete}
+           title="Delete"
+           aria-label="Delete"
+         >
+           🗑
+         </button>
+       </div>
+     );
+   }
+  
+
 const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
   (
     {
@@ -397,6 +567,7 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
         elements.filter((e): e is TextBoxRecord => (e as any).kind === "text"),
       [elements]
     );
+    
     const selectionBox = React.useMemo(() => {
       if (selection.length <= 1) return null;
       const map = new Map(
@@ -412,7 +583,11 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
       );
       return getBoundingRect(selection, map);
     }, [selection, elements]);
-
+    const singleSelected: ElementRecord | null = React.useMemo(() => {
+            if (selection.length !== 1) return null;
+            const id = selection[0];
+            return elements.find((e) => e.id === id) ?? null;
+          }, [selection, elements]);
     //  const setResizing = (s: ResizeState | null) => {
     //   resizeRef.current = s;
     //   _setResizing(s);
@@ -421,6 +596,8 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
     //   dragRef.current = d;
     //   _setDragging(d);
     // };
+
+    
 
     /* --- imperative resize entry point (exposed to parent) --- */
     const handleResizeStart = useCallback(
@@ -701,6 +878,40 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
             }}
           />
         )}
+        {singleSelected && (
+           <ContextToolbar
+             rect={
+               selection.length > 1
+                 ? (selectionBox as any)
+                 : { left: singleSelected.x || 0, top: singleSelected.y || 0, width: singleSelected.width || 0, height: singleSelected.height || 0 }
+             }
+             element={singleSelected}
+             onBold={
+               singleSelected.kind === "text"
+                 ? () =>
+                     dispatch({
+                       type: "patch",
+                       id: singleSelected.id,
+                       patch: {
+                         fontWeight: (singleSelected as any).fontWeight === 700 ? 400 : 700,
+                       },
+                     })
+                 : undefined
+             }
+             onItalic={
+               singleSelected.kind === "text"
+                 ? () =>
+                     dispatch({
+                       type: "patch",
+                       id: singleSelected.id,
+                       patch: { italic: !(singleSelected as any).italic },
+                     })
+                 : undefined
+             }
+             onDelete={() => dispatch({ type: "remove", id: singleSelected.id })}
+           />
+         )}
+                <Rulers containerRef={canvasRef} gridSize={gridSize} />
       </div>
     );
   }
