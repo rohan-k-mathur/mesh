@@ -359,6 +359,7 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
       drawMode,
       setDrawMode,
       showGrid,
+      gridSize,
       canvasRef,
       selectedId,
       setSelectedId,
@@ -376,7 +377,7 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
       null
     );
     const [draggingState, setDraggingState] = useState<DragState | null>(null);
-    const [gridSize, setGridSize] = useState(30);
+  
     const snap = useCallback(
       (v: number) => Math.round(v / gridSize) * gridSize,
       [gridSize]
@@ -984,8 +985,13 @@ function PortfolioBuilderInner({
 
   const handleDragMove = (event: DragMoveEvent) => {
     const { delta, active } = event;
-    const dx = delta.x - lastDrag.current.x;
-    const dy = delta.y - lastDrag.current.y;
+ // snap movement to grid by comparing snapped cumulative deltas
+     const prevSnapX = Math.round(lastDrag.current.x / gridSize) * gridSize;
+     const prevSnapY = Math.round(lastDrag.current.y / gridSize) * gridSize;
+     const currSnapX = Math.round(delta.x / gridSize) * gridSize;
+     const currSnapY = Math.round(delta.y / gridSize) * gridSize;
+     const dx = currSnapX - prevSnapX;
+     const dy = currSnapY - prevSnapY;
 
     lastDrag.current = { x: delta.x, y: delta.y };
     dispatch({ type: "groupDrag", dx, dy });
@@ -1177,25 +1183,32 @@ function PortfolioBuilderInner({
         </DragOverlay> */}
       <div className="flex h-screen">
         <div className=" flex-grow-0 flex-shrink-0 border-r py-2 px-4 space-y-4  mt-12">
+          <div className="flex flex-col gap-2 w-fit">
           <button
             onClick={() => setShowGrid((g) => !g)}
-            className={`w-full px-4 py-2 rounded-md lockbutton ${
-              showGrid ? "bg-slate-300" : "bg-white"
+            className={`text-[.9rem] lockbutton
+            flex gap-2 w-full justify-start px-4 py-2 rounded-md l
+             lockbutton tracking-wide
+            ${
+              showGrid ? "bg-slate-200" : "bg-white"
             }`}
           >
             {showGrid ? "Hide Grid" : "Show Grid"}
           </button>
-          <label className="block mt-2 text-xs">
-            Grid&nbsp;size
+          <label className="flex flex-col flex-1 justify-center items-center border-[1px] shadow-md shadow-black
+           rounded-md w-fit bg-white text-center mt-2 py-1 ">
+            Grid&nbsp;Size
             <input
               type="number"
               min={5}
               step={5}
-              className="w-full mt-1 border rounded px-2 py-1 text-center"
+              width={5}
+              className="flex flex-1  mt-1 border justify-center items-center bg-slate-200 px-2 py-1 text-center"
               value={gridSize}
               onChange={(e) => setGridSize(Math.max(5, +e.target.value))}
             />
           </label>
+          </div>
           <button
             className={` flex gap-2 w-full justify-start px-4 py-2 rounded-md l
              lockbutton tracking-wide ${
@@ -1248,7 +1261,7 @@ function PortfolioBuilderInner({
           >
             Video
             <Image
-              src="/assets/video.svg"
+              src="/assets/video--add.svg"
               alt={"video"}
               className="p-0 flex-grow-0 flex-shrink-0"
               width={24}
@@ -1293,6 +1306,7 @@ function PortfolioBuilderInner({
           drawMode={drawMode}
           setDrawMode={setDrawMode}
           showGrid={showGrid}
+          gridSize={gridSize}
           canvasRef={canvasRef}
           selectedId={selectedId}
           setSelectedId={setSelectedId}
@@ -1328,6 +1342,19 @@ function PortfolioBuilderInner({
                           })
                         }
                       />
+                       <button
+                         className="absolute top-1 right-1 rounded-md lockbutton"
+                         onPointerDown={(e) => e.stopPropagation()}
+                         onClick={(e) => {
+                           e.stopPropagation();
+                           dispatch({ type: "remove", id: el.id });
+                         }}
+                         aria-label="Delete"
+                         title="Delete"
+                       >
+                         <Image src="/assets/trash-can.svg" alt="" width={14} height={14} />
+                      </button>
+
                       {(["nw", "ne", "sw", "se"] as const).map((corner) => (
                         <ResizeHandle
                           key={corner}
