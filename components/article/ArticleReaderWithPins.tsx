@@ -4,29 +4,32 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import ArticleReader from "@/components/article/ArticleReader";
 import CommentSidebar from "@/components/article/CommentSidebar";
 import type { Anchor, CommentThread } from "@/types/comments";
-
+import Image from "next/image";
 /* ----------------------- DOM ↔ anchor helpers ----------------------- */
 
-type Cluster = { top: number; items: string[] }  // ids
 
-function clusterByTop(positions: Record<string, DOMRect | undefined>, threshold = 40): Cluster[] {
-  const entries = Object.entries(positions)
-    .filter(([, r]) => r)
-    .map(([id, r]) => ({ id, top: r!.top }))
-    .sort((a, b) => a.top - b.top)
+/* ---------- Selection helpers (clean) ---------- */
 
-  const clusters: Cluster[] = []
-  for (const e of entries) {
-    const last = clusters[clusters.length - 1]
-    if (!last || Math.abs(e.top - last.top) > threshold) {
-      clusters.push({ top: e.top, items: [e.id] })
-    } else {
-      last.items.push(e.id)
-      // nudge centroid slightly
-      last.top = (last.top * (last.items.length - 1) + e.top) / last.items.length
-    }
+function firstTextNodeWithin(node: Node, dir: "forward" | "backward" = "forward"): Text | null {
+  if (node.nodeType === Node.TEXT_NODE) return node as Text
+  const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT)
+  if (dir === "forward") return (walker.nextNode() as Text) ?? null
+  let last: Text | null = null
+  while (walker.nextNode()) last = walker.currentNode as Text
+  return last
+}
+
+function nodePathFromRoot(root: Node, target: Node): number[] {
+  const path: number[] = []
+  let n: Node | null = target
+  while (n && n !== root) {
+    const p = n.parentNode
+    if (!p) break
+    const idx = Array.prototype.indexOf.call(p.childNodes, n)
+    path.unshift(idx)
+    n = p
   }
-  return clusters
+  return path
 }
 
 function findTextForwardFromBoundary(root: Node, container: Node, offset: number): { node: Text; offset: number } | null {
@@ -34,33 +37,21 @@ function findTextForwardFromBoundary(root: Node, container: Node, offset: number
     const t = container as Text
     return { node: t, offset: Math.min(offset, t.data.length) }
   }
-
-  // Prefer the first text node inside child at `offset` (the node to the RIGHT of the boundary)
-  const parent = container as Node
-  const child = (parent.childNodes[offset] ?? null)
+  // prefer first text inside child at the boundary (to the right)
+  const child = (container.childNodes[offset] ?? null)
   if (child) {
-    const t = firstTextNodeWithin(child, "forward") as Text | null
+    const t = firstTextNodeWithin(child, "forward")
     if (t) return { node: t, offset: 0 }
   }
-
-  // Otherwise, walk forward in DOM order from the boundary
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
-  // position the walker just before/at the boundary
-  let prev: Node | null = null
-  while (walker.nextNode()) {
-    if (walker.currentNode === child) break
-    prev = walker.currentNode
-  }
-  // we might not be aligned; do a simple forward scan for first text node after boundary
-  let n: Node | null = child ?? prev?.nextSibling ?? (parent.childNodes[offset] ?? parent.nextSibling)
+  // walk forward in DOM order
+  let n: Node | null = child ?? container.nextSibling
   while (n) {
-    const t = firstTextNodeWithin(n, "forward") as Text | null
+    const t = firstTextNodeWithin(n, "forward")
     if (t) return { node: t, offset: 0 }
     n = n.nextSibling
   }
-
-  // fallback: first text in the subtree
-  const t = firstTextNodeWithin(parent, "forward") as Text | null
+  // fallback: first text within container
+  const t = firstTextNodeWithin(container, "forward")
   return t ? { node: t, offset: 0 } : null
 }
 
@@ -69,29 +60,23 @@ function findTextBackwardFromBoundary(root: Node, container: Node, offset: numbe
     const t = container as Text
     return { node: t, offset: Math.min(offset, t.data.length) }
   }
-
-  const parent = container as Node
-  const childIdx = offset - 1
-  let child: Node | null = childIdx >= 0 ? parent.childNodes[childIdx] : null
-  while (child) {
-    const t = firstTextNodeWithin(child, "backward") as Text | null
+  // prefer last text inside the child just before boundary (to the left)
+  let i = offset - 1
+  while (i >= 0) {
+    const t = firstTextNodeWithin(container.childNodes[i], "backward")
     if (t) return { node: t, offset: t.data.length }
-    child = child.previousSibling
+    i--
   }
-
-  // fallback: last text in the subtree
-  const t = firstTextNodeWithin(parent, "backward") as Text | null
+  // fallback: last text within container
+  const t = firstTextNodeWithin(container, "backward")
   return t ? { node: t, offset: t.data.length } : null
 }
 
 function normalizeRangeToTextNodes(root: HTMLElement, r: Range) {
-  // Both ends prefer going FORWARD to the nearest text node when the boundary
-  // sits between elements. This matches the visual caret users expect.
+  // Prefer going FORWARD for both ends; if end can’t, fall back backward.
   const s = findTextForwardFromBoundary(root, r.startContainer, r.startOffset)
-  const e =
-    findTextForwardFromBoundary(root, r.endContainer,   r.endOffset) ??
-    findTextBackwardFromBoundary(root, r.endContainer,  r.endOffset)
-
+  const e = findTextForwardFromBoundary(root, r.endContainer, r.endOffset)
+        ?? findTextBackwardFromBoundary(root, r.endContainer, r.endOffset)
   if (!s || !e) return null
   return { start: s.node, startOffset: s.offset, end: e.node, endOffset: e.offset }
 }
@@ -116,75 +101,65 @@ function buildAnchorFromSelection(root: HTMLElement, sel: Selection): { anchor: 
   return { anchor, rect: localRect }
 }
 
-function nodePathFromRoot(root: Node, target: Node): number[] {
-  const path: number[] = [];
-  let n: Node | null = target;
-  while (n && n !== root) {
-    const parent = n.parentNode;
-    if (!parent) break;
-    const idx = Array.prototype.indexOf.call(parent.childNodes, n);
-    path.unshift(idx);
-    n = parent;
-  }
-  return path;
-}
+function getAnchorStartRect(anchor: Anchor, root: HTMLElement): DOMRect | null {
+  let node: Node | null = root
+  for (const idx of anchor.startPath) node = node?.childNodes[idx] ?? null
+  if (!node) return null
+  const text = node.nodeType === Node.TEXT_NODE ? node as Text : firstTextNodeWithin(node)
+  if (!text) return null
 
-function firstTextNodeWithin(node: Node, direction: "forward" | "backward" = "forward"): Node | null {
-  if (node.nodeType === Node.TEXT_NODE) return node;
-  const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT);
-  if (direction === "forward") return walker.nextNode();
-  let last: Node | null = null;
-  while (walker.nextNode()) last = walker.currentNode;
-  return last;
-}
+  const range = document.createRange()
+  range.setStart(text, anchor.startOffset)
+  range.setEnd(text,   anchor.startOffset)
+  const rect = range.getClientRects()[0]
+  if (!rect) return null
 
-function coerceRangeEndsToText(range: Range): { start: Node; startOffset: number; end: Node; endOffset: number } {
-  let { startContainer, startOffset, endContainer, endOffset } = range;
-
-  // START
-  if (startContainer.nodeType !== Node.TEXT_NODE) {
-    const base = (startContainer.childNodes[startOffset] ?? startContainer);
-    const t = firstTextNodeWithin(base, "forward") ?? firstTextNodeWithin(startContainer, "forward");
-    if (t) {
-      startContainer = t;
-      startOffset = 0;
-    }
-  }
-
-  // END
-  if (endContainer.nodeType !== Node.TEXT_NODE) {
-    const base = (endContainer.childNodes[endOffset - 1] ?? endContainer);
-    const t = firstTextNodeWithin(base, "backward") ?? firstTextNodeWithin(endContainer, "backward");
-    if (t) {
-      endContainer = t;
-      endOffset = (endContainer as Text).data.length;
-    }
-  }
-
-  return { start: startContainer, startOffset, end: endContainer, endOffset };
+  const base = root.getBoundingClientRect()
+  return new DOMRect(rect.left - base.left, rect.top - base.top, rect.width, rect.height)
 }
 
 function getAnchorRects(anchor: Anchor, root: HTMLElement): DOMRect[] {
-  // Build a full text range for the anchor, then get all client rects
-  let n: Node | null = root
-  for (const i of anchor.startPath) n = n?.childNodes[i] ?? null
-  let m: Node | null = root
-  for (const i of anchor.endPath)   m = m?.childNodes[i] ?? null
-  if (!n || !m) return []
-
-  // Coerce to text if needed
-  if (n.nodeType !== Node.TEXT_NODE) n = firstTextNodeWithin(n) as Node
-  if (m.nodeType !== Node.TEXT_NODE) m = firstTextNodeWithin(m, "backward") as Node
-  if (!n || !m) return []
+  // full selection rects (for overlays)
+  let s: Node | null = root
+  for (const i of anchor.startPath) s = s?.childNodes[i] ?? null
+  let e: Node | null = root
+  for (const i of anchor.endPath)   e = e?.childNodes[i] ?? null
+  if (!s || !e) return []
+  const start = s.nodeType === Node.TEXT_NODE ? s as Text : firstTextNodeWithin(s)
+  const end   = e.nodeType === Node.TEXT_NODE ? e as Text : firstTextNodeWithin(e, "backward")
+  if (!start || !end) return []
 
   const r = document.createRange()
-  r.setStart(n, anchor.startOffset)
-  r.setEnd(m, anchor.endOffset)
+  r.setStart(start, anchor.startOffset)
+  r.setEnd(end,     anchor.endOffset)
 
   const base = root.getBoundingClientRect()
   return Array.from(r.getClientRects()).map(rect =>
     new DOMRect(rect.left - base.left, rect.top - base.top, rect.width, rect.height)
   )
+}
+
+
+type Cluster = { top: number; items: string[] }  // ids
+
+function clusterByTop(positions: Record<string, DOMRect | undefined>, threshold = 40): Cluster[] {
+  const entries = Object.entries(positions)
+    .filter(([, r]) => r)
+    .map(([id, r]) => ({ id, top: r!.top }))
+    .sort((a, b) => a.top - b.top)
+
+  const clusters: Cluster[] = []
+  for (const e of entries) {
+    const last = clusters[clusters.length - 1]
+    if (!last || Math.abs(e.top - last.top) > threshold) {
+      clusters.push({ top: e.top, items: [e.id] })
+    } else {
+      last.items.push(e.id)
+      // nudge centroid slightly
+      last.top = (last.top * (last.items.length - 1) + e.top) / last.items.length
+    }
+  }
+  return clusters
 }
 
 function CommentRail({
@@ -199,9 +174,11 @@ function CommentRail({
   setOpenId: (id: string | null) => void
 }) {
   // one-line items, collision-resolved
+  // bump minGap from 18 → 22 for a touch more air
   const items = solveCollisions(
-    threads.map(t => ({ id: t.id, top: (positions[t.id]?.top ?? 0) - 8, left: 0 }))
+    threads.map(t => ({ id: t.id, top: (positions[t.id]?.top ?? 0), left: 0 })), 28
   )
+
 
   return (
     <div className="relative min-h-[1px] h-full">
@@ -214,8 +191,8 @@ function CommentRail({
           <button
             key={t.id}
             className={`absolute right-0 translate-y-[-50%] truncate w-full text-left m-2
-                       text-xs px-2 py-1 rounded border bg-white/30 backdrop-blur
-                       shadow-sm hover:bg-white transition
+                       text-xs px-2 py-1 rounded-md border bg-white/70 shadow-md
+                        hover:bg-white transition
                        ${active ? 'border-amber-400' : 'border-neutral-200'}`}
             style={{ top: p.top }}
             onClick={() => setOpenId(t.id)}
@@ -242,41 +219,6 @@ function solveCollisions(items: PinPos[], minGap = 18): PinPos[] {
   return sorted
 }
 
-// function buildAnchorFromSelection(root: HTMLElement, sel: Selection): { anchor: Anchor; rect: DOMRect } | null {
-//   if (!sel.rangeCount) return null;
-//   const r = sel.getRangeAt(0);
-//   if (r.collapsed) return null;
-
-//   const { start, startOffset, end, endOffset } = coerceRangeEndsToText(r);
-//   const startPath = nodePathFromRoot(root, start);
-//   const endPath   = nodePathFromRoot(root, end);
-
-//   const rect = r.getBoundingClientRect();
-//   const base = root.getBoundingClientRect();
-//   const localRect = new DOMRect(rect.left - base.left, rect.top - base.top, rect.width, rect.height);
-
-//   const anchor: Anchor = { startPath, startOffset, endPath, endOffset };
-//   return { anchor, rect: localRect };
-// }
-
-function getAnchorStartRect(anchor: Anchor, root: HTMLElement): DOMRect | null {
-  let node: Node | null = root;
-  for (const idx of anchor.startPath) node = node?.childNodes[idx] ?? null;
-  if (!node) return null;
-
-  if (node.nodeType !== Node.TEXT_NODE) node = firstTextNodeWithin(node) as Node;
-  if (!node) return null;
-
-  const range = document.createRange();
-  range.setStart(node, anchor.startOffset);
-  range.setEnd(node, anchor.startOffset);
-
-  const rect = range.getClientRects()[0];
-  if (!rect) return null;
-
-  const base = root.getBoundingClientRect();
-  return new DOMRect(rect.left - base.left, rect.top - base.top, rect.width, rect.height);
-}
 
 /* ---------------------------- Component ----------------------------- */
 
@@ -296,6 +238,7 @@ export default function ArticleReaderWithPins({
   threads: initialThreads,
   articleSlug,
 }: Props) {
+  const frameRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 const bubbleRef    = useRef<HTMLDivElement>(null);   // 👈 NEW
   const [openId, setOpenId] = useState<string | null>(null);
@@ -305,6 +248,9 @@ const bubbleRef    = useRef<HTMLDivElement>(null);   // 👈 NEW
 
   const [hoverId, setHoverId] = useState<string | null>(null)
   const [adder, setAdder] = useState<{ anchor: Anchor; rect: DOMRect } | null>(null)
+  const [selectionRects, setSelectionRects] = useState<DOMRect[] | null>(null)  // visual highlight
+  
+
   const rectsByThread = useMemo(() => {
     const root = containerRef.current
     if (!root) return {} as Record<string, DOMRect[]>
@@ -368,20 +314,22 @@ useEffect(() => {
   return () => document.removeEventListener('pointerdown', onDocPointerDown);
 }, [bubble]);
 
-  // selection capture
-  const onMouseUpCapture: React.MouseEventHandler<HTMLDivElement> = () => {
-    const root = containerRef.current
-    if (!root) return
-    const sel = window.getSelection()
-    if (!sel || sel.isCollapsed) {
-      setAdder(null)
-      setBubble(null)
-      return
-    }
-    const packed = buildAnchorFromSelection(root, sel)
-    if (!packed) return
-  
-    setAdder({ anchor: packed.anchor, rect: packed.rect })
+
+const onMouseUpCapture: React.MouseEventHandler<HTMLDivElement> = () => {
+  const root = containerRef.current
+  if (!root) return
+  const sel = window.getSelection()
+  if (!sel || sel.isCollapsed) {
+    setAdder(null)
+    setSelectionRects(null)
+    return
+  }
+  const packed = buildAnchorFromSelection(root, sel)
+  if (!packed) return
+
+  // show the adder but keep selection; also draw our own highlight
+  setAdder({ anchor: packed.anchor, rect: packed.rect })
+  setSelectionRects(getAnchorRects(packed.anchor, root))
     setBubble(null) // don’t open yet
   }
 
@@ -409,6 +357,15 @@ useEffect(() => {
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
         {/* Article + pins */}
         <div className="relative pl-8">
+        <div ref={frameRef} className="relative">
+          {/* visual selection overlay so highlight remains visible */}
+{selectionRects?.map((r, i) => (
+  <div
+    key={`sel-${i}`}
+    className="absolute z-0 pointer-events-none bg-amber-800/30 rounded-sm"
+    style={{ top: r.top, left: r.left, width: r.width, height: r.height }}
+  />
+))}
           <div
             ref={containerRef}
             className="prose max-w-none"
@@ -418,8 +375,8 @@ useEffect(() => {
             {/* line highlights for active/hovered thread */}
   {(openId || hoverId) && rectsByThread[openId || hoverId!]?.map((r, i) => (
     <div
-      key={i}
-      className="absolute pointer-events-none bg-amber-200/30 rounded-sm"
+    key={`hl-${i}`}
+      className="absolute z-10  pointer-events-none bg-indigo-500/10  align-center  rounded-sm"
       style={{ top: r.top, left: r.left, width: r.width, height: r.height }}
     />
   ))}
@@ -434,7 +391,7 @@ useEffect(() => {
 
   {/* pin layer in the left gutter */}
  
-<div className="absolute inset-y-0 left-0 w-8 select-none hidden md:block">
+<div className="absolute flex inset-y-0 inline-flex mt-2.5  inset-x-[-40px]  w-4 select-none hidden md:block">
   {clusters.map((c, i) => {
     const key = `c${i}-${Math.round(c.top)}`
     const many = c.items.length > 3
@@ -445,7 +402,7 @@ useEffect(() => {
       return (
         <div key={key} className="absolute" style={{ top: c.top - 8, left: 4 }}>
           <button
-            className="w-6 h-6 rounded-full bg-amber-500 text-white text-xs shadow ring-1 ring-amber-500/30"
+            className="w-6 h-6 shadow-xl rounded-full bg-amber-500 text-white text-xs "
             onClick={() => setExpandedCluster(key)}
             title={`${c.items.length} comments`}
           >
@@ -467,8 +424,8 @@ useEffect(() => {
              onMouseEnter={() => setHoverId(t.id)} onMouseLeave={() => setHoverId(null)}>
           <button
             className={`w-4 h-4 rounded-full grid place-items-center text-[10px] leading-none
-                        ring-1 shadow ${t.resolved ? 'bg-neutral-300 ring-neutral-300/40' : 'bg-amber-400 ring-amber-500/30'}
-                        ${active ? 'opacity-100' : 'opacity-70 hover:opacity-100'}`}
+                        shadow-lg ${t.resolved ? 'bg-neutral-300 shadow-md' : 'bg-amber-500 '}
+                        ${active ? 'opacity-100 ' : 'opacity-70 hover:opacity-100'}`}
             onClick={() => { setOpenId(t.id); setExpandedCluster(null) }}
             aria-label="Open comment"
           >●</button>
@@ -497,9 +454,10 @@ useEffect(() => {
           {/* Small “+” adder above selection */}
 {adder && (
   <button
-    className="absolute z-30 w-6 h-6 rounded-full bg-amber-500 text-white text-sm grid place-items-center shadow-lg"
+    className="absolute flex flex-col z-30 w-fit h-fit rounded-xl bg-amber-500 p-[6px] text-white text-center 
+    justify-center text-sm  place-items-center shadow-xl"
     style={{
-      top: Math.max(0, adder.rect.top - 28),
+      top: Math.max(0, adder.rect.top - 36),
       left: adder.rect.left + adder.rect.width / 2 - 12,
     }}
     onMouseDown={e => e.preventDefault()}       // keep selection
@@ -510,10 +468,19 @@ useEffect(() => {
       const first = rects[0] ?? adder.rect
       setBubble({ anchor: adder.anchor, rect: first, text: window.getSelection()?.toString().slice(0, 280) ?? '' })
       setAdder(null)
+      setSelectionRects(null)
+      
     }}
     aria-label="Comment on selection"
   >
-    +
+    <Image
+              src="/assets/document--comment.svg"
+              alt={"text"}
+              className="flex flex-1"
+              width={20}
+              height={20}
+            />
+
   </button>
 )}
 
@@ -554,6 +521,8 @@ useEffect(() => {
               </div>
             </div>
           )}
+                    </div>
+
         </div>
 
         <div className="relative">
