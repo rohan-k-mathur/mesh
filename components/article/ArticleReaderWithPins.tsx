@@ -110,6 +110,7 @@ export default function ArticleReaderWithPins({
   articleSlug,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
+const bubbleRef    = useRef<HTMLDivElement>(null);   // 👈 NEW
   const [openId, setOpenId] = useState<string | null>(null);
   const [threads, setThreads] = useState<CommentThread[]>(initialThreads);
   const [tick, setTick] = useState(0);
@@ -146,16 +147,29 @@ export default function ArticleReaderWithPins({
   }, [threads, html, tick]);
 
   // click‑outside to close bubble
-  useEffect(() => {
-    function onDocMouseDown(e: MouseEvent) {
-      const root = containerRef.current;
-      if (!root) return;
-      const target = e.target as HTMLElement;
-      if (bubble && !root.contains(target)) setBubble(null);
-    }
-    document.addEventListener("mousedown", onDocMouseDown);
-    return () => document.removeEventListener("mousedown", onDocMouseDown);
-  }, [bubble]);
+  // replace your existing "click outside" effect with this:
+useEffect(() => {
+  function onDocPointerDown(e: PointerEvent) {
+    if (!bubble) return;
+
+    const root = containerRef.current;
+    const bub  = bubbleRef.current;
+    const target = e.target as Node;
+
+    // If you click inside the bubble, keep it open
+    if (bub && bub.contains(target)) return;
+
+    // Clicks inside the article are handled by onMouseUpCapture (selection logic),
+    // so don’t close here. That handler will close if the selection is collapsed.
+    if (root && root.contains(target)) return;
+
+    // Anywhere else (outside article + bubble) → close bubble
+    setBubble(null);
+  }
+
+  document.addEventListener('pointerdown', onDocPointerDown);
+  return () => document.removeEventListener('pointerdown', onDocPointerDown);
+}, [bubble]);
 
   // selection capture
   const onMouseUpCapture: React.MouseEventHandler<HTMLDivElement> = () => {
@@ -222,11 +236,14 @@ export default function ArticleReaderWithPins({
           {/* Floating composer bubble */}
           {bubble && (
             <div
+            ref={bubbleRef}                              // 👈 NEW
               className="absolute z-30 w-72 rounded-md border bg-white shadow-lg"
               style={{
                 top: Math.max(0, bubble.rect.top - 56),
                 left: bubble.rect.left,
               }}
+              onPointerDown={(e) => e.stopPropagation()}   // 👈 keep global handler from seeing this
+              onMouseDown={(e) => e.stopPropagation()}     // (older browsers / safety)
             >
               <div className="p-3 border-b text-xs text-neutral-600 line-clamp-2">
                 {bubble.text}
