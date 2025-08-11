@@ -1281,6 +1281,27 @@ model Annotation {
   @@map("annotations")
 }
 
+model CommentThread {
+  id          String   @id @default(cuid())
+  articleId   String
+  anchor      Json     // see Anchor type below
+  resolved    Boolean  @default(false)
+  createdBy   String   // userId
+  createdAt   DateTime @default(now())
+
+  comments Comment[]   // threaded posts
+}
+
+model Comment {
+  id          String   @id @default(cuid())
+  threadId    String   @index
+  body        String
+  createdBy   String   // userId
+  createdAt   DateTime @default(now())
+  upvotes     Int      @default(0)
+  downvotes   Int      @default(0)
+}
+
 model Article {
   id           String        @id @default(uuid())
   authorId     String

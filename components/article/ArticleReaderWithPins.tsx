@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useState, useMemo } from "react"
+import { useRef, useState, useMemo, useEffect } from "react"
 import ArticleReader from "@/components/article/ArticleReader"
 import CommentSidebar from "@/components/article/CommentSidebar"
 import { CommentThread, Anchor } from "@/types/comments"
@@ -15,40 +15,66 @@ interface ArticleReaderWithPinsProps {
   onResolve?: (threadId: string) => void
   onVote?: (commentId: string, delta: number) => void
 }
-
 function getAnchorRect(anchor: Anchor, root: HTMLElement): DOMRect | null {
-  let node: Node | null = root
-  for (const index of anchor.startPath) {
-    node = node?.childNodes[index] ?? null
-    if (!node) return null
+  let node: Node | null = root;
+  for (const idx of anchor.startPath) {
+    node = node?.childNodes[idx] ?? null;
+    if (!node) return null;
   }
-  const range = document.createRange()
-  range.setStart(node!, anchor.startOffset)
-  range.setEnd(node!, anchor.startOffset)
-  const rect = range.getClientRects()[0]
-  return rect ?? null
+
+  // Ensure we point at a TEXT node
+  if (node.nodeType !== Node.TEXT_NODE) {
+    const tw = document.createTreeWalker(node, NodeFilter.SHOW_TEXT);
+    node = tw.nextNode();
+    if (!node) return null;
+  }
+
+  const range = document.createRange();
+  range.setStart(node, anchor.startOffset);
+  range.setEnd(node, anchor.startOffset);
+
+  const rect = range.getClientRects()[0];
+  if (!rect) return null;
+
+  const base = root.getBoundingClientRect();
+  return new DOMRect(rect.left - base.left, rect.top - base.top, rect.width, rect.height);
 }
 
-export default function ArticleReaderWithPins({
-  template,
-  heroSrc,
-  html,
-  threads,
-  currentUser,
-  onSubmit,
-  onResolve,
-  onVote,
-}: ArticleReaderWithPinsProps) {
-  const containerRef = useRef<HTMLDivElement>(null)
-  const [openId, setOpenId] = useState<string | null>(null)
+export default function ArticleReaderWithPins(props: {
+  template: string;
+  heroSrc?: string | null;
+  html: string;
+  threads: CommentThread[];
+  currentUser?: unknown;
+  onSubmit?: (threadId: string, body: string) => void;
+  onResolve?: (threadId: string) => void;
+  onVote?: (commentId: string, delta: number) => void;
+}) {
+  const { template, heroSrc, html, threads, currentUser, onSubmit, onResolve, onVote } = props;
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    const ro = new ResizeObserver(() => setTick(t => t + 1));
+    const onScroll = () => setTick(t => t + 1);
+    if (containerRef.current) ro.observe(containerRef.current);
+    window.addEventListener('scroll', onScroll, true);
+    window.addEventListener('resize', onScroll);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('scroll', onScroll, true);
+      window.removeEventListener('resize', onScroll);
+    };
+  }, []);
 
   const positions = useMemo(() => {
-    const root = containerRef.current
-    if (!root) return {}
+    const root = containerRef.current;
+    if (!root) return {};
     return Object.fromEntries(
-      threads.map((t) => [t.id, getAnchorRect(t.anchor, root)])
-    )
-  }, [threads, html])
+      threads.map(t => [t.id, getAnchorRect(t.anchor, root)])
+    );
+  }, [threads, html, tick]);
 
   return (
     <ArticleReader template={template} heroSrc={heroSrc}>
@@ -58,16 +84,16 @@ export default function ArticleReaderWithPins({
           className="prose max-w-none"
           dangerouslySetInnerHTML={{ __html: html }}
         />
-        {threads.map((t) => (
+        {threads.map(t => (
           <button
             key={t.id}
+            className={`pin ${t.resolved ? "pin--resolved" : ""} absolute z-20`}
             style={{
-              position: "absolute",
-              top: positions[t.id]?.top ?? 0,
+              top:  positions[t.id]?.top  ?? 0,
               left: (positions[t.id]?.left ?? 0) - 24,
             }}
-            className={t.resolved ? "opacity-30" : ""}
             onClick={() => setOpenId(t.id)}
+            aria-label="Open comment"
           >
             ●
           </button>
@@ -82,5 +108,5 @@ export default function ArticleReaderWithPins({
         />
       </div>
     </ArticleReader>
-  )
+  );
 }
