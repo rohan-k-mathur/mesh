@@ -1,33 +1,84 @@
-"use client"
+"use client";
 
-import { useRef, useState, useMemo, useEffect } from "react"
-import ArticleReader from "@/components/article/ArticleReader"
-import CommentSidebar from "@/components/article/CommentSidebar"
-import { CommentThread, Anchor } from "@/types/comments"
+import { useEffect, useMemo, useRef, useState } from "react";
+import ArticleReader from "@/components/article/ArticleReader";
+import CommentSidebar from "@/components/article/CommentSidebar";
+import type { Anchor, CommentThread } from "@/types/comments";
 
-interface ArticleReaderWithPinsProps {
-  template: string
-  heroSrc?: string | null
-  html: string
-  threads: CommentThread[]
-  currentUser?: unknown
-  onSubmit?: (threadId: string, body: string) => void
-  onResolve?: (threadId: string) => void
-  onVote?: (commentId: string, delta: number) => void
+/* ----------------------- DOM ↔ anchor helpers ----------------------- */
+
+function nodePathFromRoot(root: Node, target: Node): number[] {
+  const path: number[] = [];
+  let n: Node | null = target;
+  while (n && n !== root) {
+    const parent = n.parentNode;
+    if (!parent) break;
+    const idx = Array.prototype.indexOf.call(parent.childNodes, n);
+    path.unshift(idx);
+    n = parent;
+  }
+  return path;
 }
-function getAnchorRect(anchor: Anchor, root: HTMLElement): DOMRect | null {
-  let node: Node | null = root;
-  for (const idx of anchor.startPath) {
-    node = node?.childNodes[idx] ?? null;
-    if (!node) return null;
+
+function firstTextNodeWithin(node: Node, direction: "forward" | "backward" = "forward"): Node | null {
+  if (node.nodeType === Node.TEXT_NODE) return node;
+  const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT);
+  if (direction === "forward") return walker.nextNode();
+  let last: Node | null = null;
+  while (walker.nextNode()) last = walker.currentNode;
+  return last;
+}
+
+function coerceRangeEndsToText(range: Range): { start: Node; startOffset: number; end: Node; endOffset: number } {
+  let { startContainer, startOffset, endContainer, endOffset } = range;
+
+  // START
+  if (startContainer.nodeType !== Node.TEXT_NODE) {
+    const base = (startContainer.childNodes[startOffset] ?? startContainer);
+    const t = firstTextNodeWithin(base, "forward") ?? firstTextNodeWithin(startContainer, "forward");
+    if (t) {
+      startContainer = t;
+      startOffset = 0;
+    }
   }
 
-  // Ensure we point at a TEXT node
-  if (node.nodeType !== Node.TEXT_NODE) {
-    const tw = document.createTreeWalker(node, NodeFilter.SHOW_TEXT);
-    node = tw.nextNode();
-    if (!node) return null;
+  // END
+  if (endContainer.nodeType !== Node.TEXT_NODE) {
+    const base = (endContainer.childNodes[endOffset - 1] ?? endContainer);
+    const t = firstTextNodeWithin(base, "backward") ?? firstTextNodeWithin(endContainer, "backward");
+    if (t) {
+      endContainer = t;
+      endOffset = (endContainer as Text).data.length;
+    }
   }
+
+  return { start: startContainer, startOffset, end: endContainer, endOffset };
+}
+
+function buildAnchorFromSelection(root: HTMLElement, sel: Selection): { anchor: Anchor; rect: DOMRect } | null {
+  if (!sel.rangeCount) return null;
+  const r = sel.getRangeAt(0);
+  if (r.collapsed) return null;
+
+  const { start, startOffset, end, endOffset } = coerceRangeEndsToText(r);
+  const startPath = nodePathFromRoot(root, start);
+  const endPath   = nodePathFromRoot(root, end);
+
+  const rect = r.getBoundingClientRect();
+  const base = root.getBoundingClientRect();
+  const localRect = new DOMRect(rect.left - base.left, rect.top - base.top, rect.width, rect.height);
+
+  const anchor: Anchor = { startPath, startOffset, endPath, endOffset };
+  return { anchor, rect: localRect };
+}
+
+function getAnchorStartRect(anchor: Anchor, root: HTMLElement): DOMRect | null {
+  let node: Node | null = root;
+  for (const idx of anchor.startPath) node = node?.childNodes[idx] ?? null;
+  if (!node) return null;
+
+  if (node.nodeType !== Node.TEXT_NODE) node = firstTextNodeWithin(node) as Node;
+  if (!node) return null;
 
   const range = document.createRange();
   range.setStart(node, anchor.startOffset);
@@ -40,71 +91,176 @@ function getAnchorRect(anchor: Anchor, root: HTMLElement): DOMRect | null {
   return new DOMRect(rect.left - base.left, rect.top - base.top, rect.width, rect.height);
 }
 
-export default function ArticleReaderWithPins(props: {
+/* ---------------------------- Component ----------------------------- */
+
+type Props = {
   template: string;
   heroSrc?: string | null;
   html: string;
   threads: CommentThread[];
+  articleSlug: string;                       // 👈 for API calls
   currentUser?: unknown;
-  onSubmit?: (threadId: string, body: string) => void;
-  onResolve?: (threadId: string) => void;
-  onVote?: (commentId: string, delta: number) => void;
-}) {
-  const { template, heroSrc, html, threads, currentUser, onSubmit, onResolve, onVote } = props;
+};
+
+export default function ArticleReaderWithPins({
+  template,
+  heroSrc,
+  html,
+  threads: initialThreads,
+  articleSlug,
+}: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [threads, setThreads] = useState<CommentThread[]>(initialThreads);
   const [tick, setTick] = useState(0);
 
+  // selection bubble state
+  const [bubble, setBubble] = useState<{
+    anchor: Anchor;
+    rect: DOMRect;
+    text: string;
+  } | null>(null);
+  const [draftBody, setDraftBody] = useState("");
+
+  // recalc on scroll/resize
   useEffect(() => {
     const ro = new ResizeObserver(() => setTick(t => t + 1));
     const onScroll = () => setTick(t => t + 1);
     if (containerRef.current) ro.observe(containerRef.current);
-    window.addEventListener('scroll', onScroll, true);
-    window.addEventListener('resize', onScroll);
+    window.addEventListener("scroll", onScroll, true);
+    window.addEventListener("resize", onScroll);
     return () => {
       ro.disconnect();
-      window.removeEventListener('scroll', onScroll, true);
-      window.removeEventListener('resize', onScroll);
+      window.removeEventListener("scroll", onScroll, true);
+      window.removeEventListener("resize", onScroll);
     };
   }, []);
 
+  // recompute pin positions
   const positions = useMemo(() => {
     const root = containerRef.current;
     if (!root) return {};
     return Object.fromEntries(
-      threads.map(t => [t.id, getAnchorRect(t.anchor, root)])
+      threads.map((t) => [t.id, getAnchorStartRect(t.anchor, root)])
     );
   }, [threads, html, tick]);
 
+  // click‑outside to close bubble
+  useEffect(() => {
+    function onDocMouseDown(e: MouseEvent) {
+      const root = containerRef.current;
+      if (!root) return;
+      const target = e.target as HTMLElement;
+      if (bubble && !root.contains(target)) setBubble(null);
+    }
+    document.addEventListener("mousedown", onDocMouseDown);
+    return () => document.removeEventListener("mousedown", onDocMouseDown);
+  }, [bubble]);
+
+  // selection capture
+  const onMouseUpCapture: React.MouseEventHandler<HTMLDivElement> = () => {
+    const root = containerRef.current;
+    if (!root) return;
+    const sel = window.getSelection();
+    if (!sel || sel.isCollapsed) {
+      setBubble(null);
+      return;
+    }
+    const packed = buildAnchorFromSelection(root, sel);
+    if (!packed) return;
+
+    const text = sel.toString().slice(0, 280);
+    setDraftBody("");
+    setBubble({ anchor: packed.anchor, rect: packed.rect, text });
+  };
+
+  async function createThread() {
+    if (!bubble || !draftBody.trim()) return;
+    const res = await fetch(`/api/articles/${encodeURIComponent(articleSlug)}/threads`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ anchor: bubble.anchor, body: draftBody }),
+    });
+    if (!res.ok) return; // TODO: toast error
+    const created: CommentThread = await res.json();
+
+    // optimistic add & open
+    setThreads((cur) => [created, ...cur]);
+    setOpenId(created.id);
+    setBubble(null);
+    setDraftBody("");
+  }
+
   return (
     <ArticleReader template={template} heroSrc={heroSrc}>
-      <div className="relative">
-        <div
-          ref={containerRef}
-          className="prose max-w-none"
-          dangerouslySetInnerHTML={{ __html: html }}
-        />
-        {threads.map(t => (
-          <button
-            key={t.id}
-            className={`pin ${t.resolved ? "pin--resolved" : ""} absolute z-20`}
-            style={{
-              top:  positions[t.id]?.top  ?? 0,
-              left: (positions[t.id]?.left ?? 0) - 24,
-            }}
-            onClick={() => setOpenId(t.id)}
-            aria-label="Open comment"
-          >
-            ●
-          </button>
-        ))}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
+        {/* Article + pins */}
+        <div className="relative">
+          <div
+            ref={containerRef}
+            className="prose max-w-none"
+            dangerouslySetInnerHTML={{ __html: html }}
+            onMouseUpCapture={onMouseUpCapture}
+          />
+
+          {/* Existing pins */}
+          {threads.map((t) => (
+            <button
+              key={t.id}
+              className={`absolute z-20 w-5 h-5 rounded-full grid place-items-center text-xs font-semibold bg-amber-400 text-white shadow ring-1 ring-amber-500/30 ${t.resolved ? "opacity-40" : ""}`}
+              style={{
+                top: positions[t.id]?.top ?? 0,
+                left: (positions[t.id]?.left ?? 0) - 24,
+              }}
+              onClick={() => setOpenId(t.id)}
+              aria-label="Open comment"
+            >
+              ●
+            </button>
+          ))}
+
+          {/* Floating composer bubble */}
+          {bubble && (
+            <div
+              className="absolute z-30 w-72 rounded-md border bg-white shadow-lg"
+              style={{
+                top: Math.max(0, bubble.rect.top - 56),
+                left: bubble.rect.left,
+              }}
+            >
+              <div className="p-3 border-b text-xs text-neutral-600 line-clamp-2">
+                {bubble.text}
+              </div>
+              <div className="p-2 space-y-2">
+                <textarea
+                  value={draftBody}
+                  onChange={(e) => setDraftBody(e.target.value)}
+                  placeholder="Add a comment…"
+                  className="w-full resize-none border rounded p-2 text-sm outline-none"
+                  rows={3}
+                />
+                <div className="flex items-center justify-end gap-2">
+                  <button className="text-sm text-neutral-500" onClick={() => setBubble(null)}>
+                    Cancel
+                  </button>
+                  <button
+                    className="px-3 py-1.5 rounded bg-amber-500 text-white text-sm"
+                    onClick={createThread}
+                  >
+                    Comment
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Sidebar */}
         <CommentSidebar
           threads={threads}
           activeThreadId={openId}
-          onSubmit={onSubmit}
-          onResolve={onResolve}
-          onVote={onVote}
-          currentUser={currentUser}
+          // wire actions later:
+          // onSubmit, onResolve, onVote
         />
       </div>
     </ArticleReader>

@@ -1241,7 +1241,7 @@ model LibraryPost {
   uploader    User         @relation(fields: [uploader_id], references: [id], onDelete: Cascade)
   feedPosts   FeedPost[]
 
-@@index([uploader_id, created_at])
+  @@index([uploader_id, created_at])
   @@index([stack_id])
   @@map("library_posts")
 }
@@ -1282,24 +1282,29 @@ model Annotation {
 }
 
 model CommentThread {
-  id          String   @id @default(cuid())
-  articleId   String
-  anchor      Json     // see Anchor type below
-  resolved    Boolean  @default(false)
-  createdBy   String   // userId
-  createdAt   DateTime @default(now())
+  id        String    @id @default(cuid())
+  articleId String
+  article   Article   @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  anchor    Json // { startPath, startOffset, endPath, endOffset }
+  resolved  Boolean   @default(false)
+  createdBy String
+  createdAt DateTime  @default(now())
+  comments  Comment[]
 
-  comments Comment[]   // threaded posts
+  @@index([articleId])
 }
 
 model Comment {
-  id          String   @id @default(cuid())
-  threadId    String   @index
-  body        String
-  createdBy   String   // userId
-  createdAt   DateTime @default(now())
-  upvotes     Int      @default(0)
-  downvotes   Int      @default(0)
+  id        String        @id @default(cuid())
+  threadId  String
+  thread    CommentThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  body      String
+  createdBy String
+  createdAt DateTime      @default(now())
+  upvotes   Int           @default(0)
+  downvotes Int           @default(0)
+
+  @@index([threadId])
 }
 
 model Article {
@@ -1315,6 +1320,10 @@ model Article {
   analytics    Json?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
+
+  allowAnnotations Boolean         @default(true)
+  revisionId       String?
+  threads          CommentThread[]
 
   @@map("articles")
 }

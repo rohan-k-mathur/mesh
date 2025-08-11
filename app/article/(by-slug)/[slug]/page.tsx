@@ -25,17 +25,36 @@ import {
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 
-
-export default async function ArticlePage({
-  params,
-}: {
-  params: { slug: string };
-}) {
-  /* 1️⃣ fetch the published record */
-  const article = await prisma.article.findUnique({
-    where: { slug: params.slug },
-  });
+export default async function ArticlePage({ params }: { params: { slug: string } }) {
+  
+  const article = await prisma.article.findUnique({ where: { slug: params.slug } });
   if (!article) notFound();
+  
+
+  const threadsDb = await prisma.commentThread.findMany({
+    where: { articleId: article.id },
+    include: { comments: { orderBy: { createdAt: "asc" } } },
+    orderBy: { createdAt: "asc" },
+  });
+
+
+  const threads = threadsDb.map(t => ({
+    id: t.id,
+    articleId: t.articleId,
+    anchor: t.anchor as any,
+    resolved: t.resolved,
+    createdBy: t.createdBy,
+    createdAt: t.createdAt.toISOString(),
+    comments: t.comments.map(c => ({
+      id: c.id,
+      threadId: c.threadId,
+      body: c.body,
+      createdBy: c.createdBy,
+      createdAt: c.createdAt.toISOString(),
+      upvotes: c.upvotes,
+      downvotes: c.downvotes,
+    })),
+  }));
 
   /* 2️⃣ convert TipTap JSON → HTML (use SAME extensions as editor) */
   const html = generateHTML(article.astJson as any, [
@@ -63,10 +82,11 @@ export default async function ArticlePage({
 
   return (
     <ArticleReaderWithPins
-      template={article.template}
-      heroSrc={article.heroImageKey}
-      html={html}
-      threads={[]}
+    template={article.template}
+    heroSrc={article.heroImageKey}
+    html={html}
+    threads={threads}
+    articleSlug={params.slug} 
     />
   );
 }
