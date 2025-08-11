@@ -11,15 +11,8 @@ import TextStyle from "@tiptap/extension-text-style";
 import Underline from "@tiptap/extension-underline";
 import Highlight from "@tiptap/extension-highlight";
 import TextAlign from "@tiptap/extension-text-align";
-import ArticleReader from "@/components/article/ArticleReader"; // your wrapper
-import HeroRenderer from "@/components/article/HeroRenderer"; // optional
-import { EditorContent } from "@tiptap/react";
+import ArticleReaderWithPins from "@/components/article/ArticleReaderWithPins";
 import Link from "@tiptap/extension-link";
-import Placeholder from "@tiptap/extension-placeholder";
-import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
-import Collaboration from "@tiptap/extension-collaboration";
-import CollaborationCursor from "@tiptap/extension-collaboration-cursor";
-import CharacterCount from "@tiptap/extension-character-count";
 import Color from "@tiptap/extension-color";
 import {
   PullQuote,
@@ -69,19 +62,11 @@ export default async function ArticlePage({
 ])
 
   return (
-    <ArticleReader template={article.template} heroSrc={article.heroImageKey}>
-    {article.heroImageKey && (
-      <HeroRenderer
-        src={article.heroImageKey}
-        template={article.template}
-      />
-    )}
-  
-    {/* TipTap HTML goes here */}
-    <div
-  className="ProseMirror  "
-  dangerouslySetInnerHTML={{ __html: html }}
-/>
-  </ArticleReader>
+    <ArticleReaderWithPins
+      template={article.template}
+      heroSrc={article.heroImageKey}
+      html={html}
+      threads={[]}
+    />
   );
 }
