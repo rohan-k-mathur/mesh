@@ -25,11 +25,15 @@ import {
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 
-export default async function ArticlePage({ params }: { params: { slug: string } }) {
-  
-  const article = await prisma.article.findUnique({ where: { slug: params.slug } });
+export default async function ArticlePage({
+  params,
+}: { params: { key: string } }) {
+  const key = params.key;
+  const where = /^[0-9a-f-]{36}$/i.test(key) ? { id: key } : { slug: key };
+  const article = await prisma.article.findUnique({ where });
   if (!article) notFound();
-  
+
+
 
   const threadsDb = await prisma.commentThread.findMany({
     where: { articleId: article.id },
@@ -86,7 +90,7 @@ export default async function ArticlePage({ params }: { params: { slug: string }
     heroSrc={article.heroImageKey}
     html={html}
     threads={threads}
-    articleSlug={params.slug} 
+    articleSlug={params.key} 
     />
   );
 }
