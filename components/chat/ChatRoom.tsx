@@ -4,12 +4,14 @@
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { supabase } from "@/lib/supabaseclient";
-import type { Message } from "@/contexts/useChatStore";
+import type { Message, PollUI } from "@/contexts/useChatStore";
 import { useChatStore } from "@/contexts/useChatStore";
 import { ChatMessage, ChatMessageContent, ChatMessageAvatar } from "@/components/ui/chat-message";
 import { usePrivateChatManager } from "@/contexts/PrivateChatManager";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { roomKey } from "@/lib/chat/roomKey";
+import PollChip from "@/components/chat/PollChip";
+import type { PollStateDTO } from "@/types/poll";
 
 type Props = {
   conversationId: string;
@@ -56,11 +58,15 @@ const MessageRow = memo(function MessageRow({
   currentUserId,
   onOpen,
   onPrivateReply,
+  onCreateOptions,
+  onCreateTemp,
 }: {
   m: Message;
   currentUserId: string;
   onOpen: (peerId: string, peerName: string, peerImage?: string | null) => void;
   onPrivateReply?: (m: Message) => void;
+  onCreateOptions: (m: Message) => void;
+  onCreateTemp: (m: Message) => void;
 }) {
   const isMine = String(m.senderId) === String(currentUserId);
 
@@ -84,6 +90,12 @@ const MessageRow = memo(function MessageRow({
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => onPrivateReply?.(m)}>
               🔒 Reply privately with {m.sender?.name || "User"}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onCreateOptions(m)}>
+              📊 Create poll (options…)
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onCreateTemp(m)}>
+              🌡 Temperature check
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -120,7 +132,11 @@ export default function ChatRoom({ conversationId, currentUserId, initialMessage
     [allMessages, conversationId]
   );
   const setMessages = useChatStore((s) => s.setMessages);
-    const appendMessage = useChatStore((s) => s.appendMessage);
+  const appendMessage = useChatStore((s) => s.appendMessage);
+  const pollsByMessageId = useChatStore((s) => s.pollsByMessageId);
+  const upsertPoll = useChatStore((s) => s.upsertPoll);
+  const applyPollState = useChatStore((s) => s.applyPollState);
+  const setMyVote = useChatStore((s) => s.setMyVote);
 
   const appendRef = useRef(appendMessage);
   useEffect(() => { appendRef.current = appendMessage; }, [appendMessage]);
@@ -136,9 +152,20 @@ export default function ChatRoom({ conversationId, currentUserId, initialMessage
     const channel = supabase.channel(`conversation-${conversationId}`);
     const handler = ({ payload }: any) => appendRef.current(conversationId, payload as Message);
     channel.on("broadcast", { event: "new_message" }, handler);
+    channel.on("broadcast", { event: "poll_create" }, ({ payload }) => {
+      upsertPoll(payload.poll, payload.state ?? null, payload.my ?? null);
+    });
+    channel.on("broadcast", { event: "poll_state" }, ({ payload }) => {
+      applyPollState(payload as PollStateDTO);
+    });
     channel.subscribe();
-    return () => { try { channel.unsubscribe?.(); } catch {} supabase.removeChannel(channel); };
-  }, [conversationId]);
+    return () => {
+      try {
+        channel.unsubscribe?.();
+      } catch {}
+      supabase.removeChannel(channel);
+    };
+  }, [conversationId, upsertPoll, applyPollState]);
 
 
   const onPrivateReply = useCallback((m: Message) => {
@@ -157,6 +184,68 @@ export default function ChatRoom({ conversationId, currentUserId, initialMessage
       },
     });
   }, [conversationId, currentUserId, open]);
+
+  const onCreateOptions = useCallback(
+    async (m: Message) => {
+      const options: string[] = [];
+      for (let i = 0; i < 4; i++) {
+        const val = window.prompt(`Option ${i + 1}`);
+        if (!val) break;
+        options.push(val);
+      }
+      if (options.length < 2) return;
+      const { poll } = await fetch("/api/polls", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          conversationId,
+          messageId: m.id,
+          kind: "OPTIONS",
+          options,
+        }),
+      }).then((r) => r.json());
+      upsertPoll(poll, null, null);
+      supabase
+        .channel(`conversation-${conversationId}`)
+        .send({ type: "broadcast", event: "poll_create", payload: { poll, state: null, my: null } });
+    },
+    [conversationId, upsertPoll]
+  );
+
+  const onCreateTemp = useCallback(
+    async (m: Message) => {
+      const { poll } = await fetch("/api/polls", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ conversationId, messageId: m.id, kind: "TEMP" }),
+      }).then((r) => r.json());
+      upsertPoll(poll, null, null);
+      supabase
+        .channel(`conversation-${conversationId}`)
+        .send({ type: "broadcast", event: "poll_create", payload: { poll, state: null, my: null } });
+    },
+    [conversationId, upsertPoll]
+  );
+
+  const onVote = useCallback(
+    async (poll: PollUI, body: any) => {
+      const { state } = await fetch(`/api/polls/${poll.poll.id}/vote`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind: poll.kind, ...body }),
+      }).then((r) => r.json());
+      applyPollState(state);
+      if (poll.kind === "OPTIONS") {
+        setMyVote({ kind: "OPTIONS", pollId: poll.poll.id, optionIdx: body.optionIdx });
+      } else {
+        setMyVote({ kind: "TEMP", pollId: poll.poll.id, value: body.value });
+      }
+      supabase
+        .channel(`conversation-${conversationId}`)
+        .send({ type: "broadcast", event: "poll_state", payload: state });
+    },
+    [applyPollState, setMyVote, conversationId]
+  );
 
   useEffect(() => {
     if (!highlightMessageId) return;
@@ -183,7 +272,15 @@ export default function ChatRoom({ conversationId, currentUserId, initialMessage
               currentUserId={currentUserId}
               onOpen={handleOpen}
               onPrivateReply={onPrivateReply}
+              onCreateOptions={onCreateOptions}
+              onCreateTemp={onCreateTemp}
             />
+            {pollsByMessageId[m.id] && (
+              <PollChip
+                poll={pollsByMessageId[m.id]}
+                onVote={(body) => onVote(pollsByMessageId[m.id], body)}
+              />
+            )}
             {anchored && (
               <button
                 className="text-[11px] px-2 py-[2px] rounded bg-white/70 border hover:bg-white"
