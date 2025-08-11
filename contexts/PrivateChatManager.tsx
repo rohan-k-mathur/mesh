@@ -3,6 +3,16 @@ import React, { createContext, useContext, useMemo, useReducer, useCallback, use
 
 export type Msg = { paneId: string; from: string; body: string; ts: number };
 
+
+export type PaneAnchor = {
+  messageId: string;
+  messageText?: string | null;
+  authorId: string;
+  authorName?: string | null;
+  conversationId: string;
+};
+
+
 export type Pane = {
   id: string;                 // roomId
   conversationId: string;
@@ -13,6 +23,7 @@ export type Pane = {
   minimised: boolean;
   unread?: number;
   pos: { x: number; y: number };
+  anchor?: PaneAnchor;
 };
 
 type State = { panes: Record<string, Pane> };
@@ -30,7 +41,7 @@ type Action =
   | { type: "SET_POS"; id: string; pos: { x: number; y: number } }
   | { type: "ADD_MSG"; id: string; msg: Msg };
 
-  const DEBUG = true;
+  const DEBUG = false;
 
 function debug(action: Action, next: State) {
   if (!DEBUG) return;
@@ -48,7 +59,13 @@ function reducer(state: State, action: Action): State {
     case "OPEN": {
       const p = state.panes[action.pane.id];
       if (p) {
-        return { ...state, panes: { ...state.panes, [p.id]: { ...p, minimised: false, unread: 0 } } };
+        return {
+          ...state,
+          panes: {
+            ...state.panes,
+            [p.id]: { ...p, minimised: false, unread: 0, anchor: action.pane.anchor ?? p.anchor },
+          },
+        };
       }
       const offset = Object.keys(state.panes).length * 40;
       return {
@@ -101,8 +118,32 @@ function reducer(state: State, action: Action): State {
     case "OPEN_OR_INCREMENT": {
       const p = state.panes[action.pane.id];
       const next = p
-        ? { ...state, panes: { ...state.panes, [p.id]: { ...p, peerName: action.pane.peerName || p.peerName, peerImage: action.pane.peerImage ?? p.peerImage, unread: p.minimised ? (p.unread ?? 0) + 1 : p.unread ?? 0 } } }
-        : { ...state, panes: { ...state.panes, [action.pane.id]: { ...action.pane, msgs: [], minimised: true, unread: 1, pos: action.pane.pos ?? { x: 420, y: 24 } } } };
+      ? {
+        ...state,
+        panes: {
+          ...state.panes,
+          [p.id]: {
+            ...p,
+            peerName: action.pane.peerName || p.peerName,
+            peerImage: action.pane.peerImage ?? p.peerImage,
+            unread: p.minimised ? (p.unread ?? 0) + 1 : p.unread ?? 0,
+            anchor: action.pane.anchor ?? p.anchor,
+          },
+        },
+      }
+    : {
+        ...state,
+        panes: {
+          ...state.panes,
+          [action.pane.id]: {
+            ...action.pane,
+            msgs: [],
+            minimised: true,
+            unread: 1,
+            pos: action.pane.pos ?? { x: 420, y: 24 },
+          },
+        },
+      };
       debug(action, next);
       return next;
     }
@@ -184,7 +225,7 @@ case "ADD_MSG": {
 
 // ---- persistence helpers (sessionStorage)
 type Persisted = {
-  v: 1;
+  v: 2;
   panes: Record<string, {
     id: string;
     conversationId: string;
@@ -195,6 +236,7 @@ type Persisted = {
     unread?: number;
     pos: { x: number; y: number };
     msgs?: Msg[];
+    anchor?: PaneAnchor;
   }>;
 };
 
@@ -213,10 +255,11 @@ function serialize(state: State): Persisted {
         pos: p.pos,
         // keep the last 25 msgs for lightweight restore
         msgs: p.msgs.slice(-25),
+        anchor: p.anchor ?? undefined,
       },
     ])
   );
-  return { v: 1, panes };
+  return { v: 2, panes };
 }
 
 function mergeLocalPrefs(p: Persisted["panes"][string]): Persisted["panes"][string] {
@@ -234,7 +277,7 @@ function mergeLocalPrefs(p: Persisted["panes"][string]): Persisted["panes"][stri
 function deserialize(raw: string): State {
   try {
     const data: Persisted = JSON.parse(raw);
-    if (data?.v !== 1 || !data.panes) return { panes: {} };
+    if (!data?.panes) return { panes: {} };
     const panes: Record<string, Pane> = {};
     for (const [id, p] of Object.entries(data.panes)) {
       const merged = mergeLocalPrefs(p);
@@ -248,6 +291,7 @@ function deserialize(raw: string): State {
         minimised: !!merged.minimised,
         unread: merged.unread ?? 0,
         pos: merged.pos ?? { x: 420, y: 24 },
+        anchor: merged.anchor,
       };
     }
     return { panes };
@@ -261,6 +305,7 @@ type OpenOptions = {
   peerImage?: string | null;
   roomId?: string;
   pos?: { x: number; y: number };
+  anchor?: PaneAnchor;
 };
 
 type Ctx = {
@@ -326,6 +371,7 @@ export function PrivateChatProvider(
         peerName,
         peerImage: opts?.peerImage ?? null,
         pos: opts?.pos ?? { x: 420, y: 24 },
+        anchor: opts?.anchor,
       },
     });
   }, []);

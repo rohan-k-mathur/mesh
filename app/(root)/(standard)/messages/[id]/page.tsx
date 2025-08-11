@@ -1,8 +1,7 @@
 
-import { useUserInbox } from "@/hooks/useUserInbox";
 import { fetchMessages } from "@/lib/actions/message.actions";
 import { fetchConversation } from "@/lib/actions/conversation.actions";
-import { getUserFromCookies } from '@/lib/server/getUser';
+import { getUserFromCookies } from "@/lib/server/getUser";
 import { redirect, notFound } from "next/navigation";
 import ChatRoom from "@/components/chat/ChatRoom";
 import MessageComposer from "@/components/chat/MessageComposer";
@@ -12,7 +11,7 @@ import Image from "next/image";
 
 
 
-export default async function Page({ params }: { params: { id: string } }) {
+export default async function Page({ params, searchParams }: { params: { id: string }; searchParams: { mid?: string } }) {
   const user = await getUserFromCookies();
   if (!user?.userId) redirect("/login");
 
@@ -83,10 +82,12 @@ export default async function Page({ params }: { params: { id: string } }) {
   //   })),
   // }));
 
+  const highlightMessageId = searchParams?.mid || null;
+
   return (
     <main className="p-4 mt-[-4rem] items-center justify-center">
- <div className="flex w-full h-full items-center justify-center align-center gap-4">
-        {isGroup ? (
+      <div className="flex w-full h-full items-center justify-center align-center gap-4">
+                {isGroup ? (
           // Composite avatar (up to 4 faces)
           <div className="flex flex-wrap rounded-full gap-4 ">
             {headerUsers.slice(0, 4).map((u, i) => (
@@ -124,6 +125,7 @@ export default async function Page({ params }: { params: { id: string } }) {
           conversationId={params.id}             // pass as string
           currentUserId={user.userId.toString()} // pass as string
           initialMessages={initialMessages}
+          highlightMessageId={highlightMessageId}
         />
         <hr />
         <MessageComposer conversationId={params.id} />

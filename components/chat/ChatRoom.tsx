@@ -15,7 +15,16 @@ type Props = {
   conversationId: string;
   currentUserId: string;
   initialMessages: Message[];
+  highlightMessageId?: string | null;
 };
+
+
+function excerpt(text?: string | null, len = 100) {
+  if (!text) return null;
+  const t = text.replace(/\s+/g, " ").trim();
+  return t.length > len ? t.slice(0, len - 1) + "…" : t;
+}
+
 
 function Attachment({ a }: { a: { id: string; path: string; type: string; size: number } }) {
   const [url, setUrl] = useState<string | null>(null);
@@ -46,15 +55,22 @@ const MessageRow = memo(function MessageRow({
   m,
   currentUserId,
   onOpen,
+  onPrivateReply,
 }: {
   m: Message;
   currentUserId: string;
   onOpen: (peerId: string, peerName: string, peerImage?: string | null) => void;
+  onPrivateReply?: (m: Message) => void;
 }) {
   const isMine = String(m.senderId) === String(currentUserId);
 
   return (
-    <ChatMessage type={isMine ? "outgoing" : "incoming"} id={m.id} variant="bubble">
+    <ChatMessage
+    type={isMine ? "outgoing" : "incoming"}
+    id={m.id}
+    variant="bubble"
+    data-msg-id={m.id}
+  >
       {!isMine && (
         <DropdownMenu>
           <DropdownMenuTrigger className="cursor-pointer">
@@ -65,6 +81,9 @@ const MessageRow = memo(function MessageRow({
               onClick={() => onOpen(String(m.senderId), m.sender?.name ?? "User", m.sender?.image ?? null)}
             >
               💬 Chat
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onPrivateReply?.(m)}>
+              🔒 Reply privately with {m.sender?.name || "User"}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -83,8 +102,8 @@ const MessageRow = memo(function MessageRow({
   );
 });
 
-export default function ChatRoom({ conversationId, currentUserId, initialMessages }: Props) {
-  const { open } = usePrivateChatManager();
+export default function ChatRoom({ conversationId, currentUserId, initialMessages, highlightMessageId }: Props) {
+  const { open, state } = usePrivateChatManager();
 
   const handleOpen = useCallback(
     (peerId: string, peerName: string, peerImage?: string | null) => {
@@ -100,8 +119,8 @@ export default function ChatRoom({ conversationId, currentUserId, initialMessage
     () => allMessages[conversationId] ?? [],
     [allMessages, conversationId]
   );
-    const setMessages = useChatStore((s) => s.setMessages);
-  const appendMessage = useChatStore((s) => s.appendMessage);
+  const setMessages = useChatStore((s) => s.setMessages);
+    const appendMessage = useChatStore((s) => s.appendMessage);
 
   const appendRef = useRef(appendMessage);
   useEffect(() => { appendRef.current = appendMessage; }, [appendMessage]);
@@ -121,16 +140,67 @@ export default function ChatRoom({ conversationId, currentUserId, initialMessage
     return () => { try { channel.unsubscribe?.(); } catch {} supabase.removeChannel(channel); };
   }, [conversationId]);
 
+
+  const onPrivateReply = useCallback((m: Message) => {
+    const authorId = String(m.senderId);
+    if (authorId === String(currentUserId)) return;
+    const rid = roomKey(conversationId, currentUserId, authorId);
+    open(authorId, m.sender?.name ?? "User", conversationId, {
+      roomId: rid,
+      peerImage: m.sender?.image ?? null,
+      anchor: {
+        messageId: m.id,
+        messageText: excerpt(m.text),
+        authorId,
+        authorName: m.sender?.name ?? "User",
+        conversationId,
+      },
+    });
+  }, [conversationId, currentUserId, open]);
+
+  useEffect(() => {
+    if (!highlightMessageId) return;
+    const el = document.querySelector(`[data-msg-id="${highlightMessageId}"]`) as HTMLElement | null;
+    if (el) {
+      el.scrollIntoView({ block: "center", behavior: "smooth" });
+      el.classList.add("ring-2", "ring-indigo-400", "ring-offset-2");
+      setTimeout(() => el.classList.remove("ring-2", "ring-indigo-400", "ring-offset-2"), 2000);
+    }
+  }, [highlightMessageId, messages.length]);
+
+
   return (
     <div className="space-y-3">
-    {messages.map((m) => (
-      <MessageRow
-        key={m.id}
-        m={m}
-        currentUserId={currentUserId}
-        onOpen={handleOpen}
-      />
-    ))}
-  </div>
+       {messages.map((m) => {
+        const panes = Object.values(state.panes);
+        const anchored = panes.find(
+          (p) => p.anchor?.messageId === m.id && p.peerId === String(m.senderId)
+        );
+        return (
+          <div key={m.id} className="space-y-1" data-msg-id={m.id}>
+            <MessageRow
+              m={m}
+              currentUserId={currentUserId}
+              onOpen={handleOpen}
+              onPrivateReply={onPrivateReply}
+            />
+            {anchored && (
+              <button
+                className="text-[11px] px-2 py-[2px] rounded bg-white/70 border hover:bg-white"
+                onClick={() =>
+                  open(anchored.peerId, anchored.peerName, conversationId, {
+                    roomId: anchored.id,
+                    peerImage: anchored.peerImage ?? null,
+                  })
+                }
+                title="Open private side chat"
+              >
+                Side chat
+              </button>
+            )}
+          </div>
+        );
+      })}
+    </div>
   );
 }
