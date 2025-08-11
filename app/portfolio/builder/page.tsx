@@ -65,12 +65,10 @@ import { getBoundingRect } from "@/lib/portfolio/selection";
 type Corner = "nw" | "ne" | "sw" | "se";
 type ResizeTarget = { id: string; kind: "text" | "image" | "video" | "link" };
 
-
 type DrawMode = null | "text" | "image" | "video" | "link";
 
- // px – change whenever you want
+// px – change whenever you want
 // const snap = (v: number) => Math.round(v / gridSize) * gridSize;
-
 
 function mkElement(
   type: "image" | "video" | "link",
@@ -84,12 +82,7 @@ function mkElement(
     ...pos,
   };
 }
-function fitIntoBox(
-  boxW: number,
-  boxH: number,
-  natW: number,
-  natH: number
-) {
+function fitIntoBox(boxW: number, boxH: number, natW: number, natH: number) {
   const scale = Math.min(boxW / natW, boxH / natH);
   return { width: Math.round(natW * scale), height: Math.round(natH * scale) };
 }
@@ -116,6 +109,7 @@ interface DroppableCanvasProps {
   color: string;
   drawMode: DrawMode;
   showGrid: boolean;
+  gridSize: number;
   setDrawMode: React.Dispatch<React.SetStateAction<DrawMode>>;
   canvasRef: React.MutableRefObject<HTMLDivElement | null>;
   selectedId: string | null;
@@ -145,15 +139,15 @@ function CanvasItem({
   const { attributes, listeners, setNodeRef } = useDraggable({ id });
   const dispatch = useCanvasDispatch();
   const mergedListeners = {
-        ...listeners,
-        onPointerDown: (e: React.PointerEvent) => {
-          const isMeta = e.metaKey || e.ctrlKey;
-          if (isMeta) dispatch({ type: "toggleSelect", id });
-          else dispatch({ type: "selectOne", id });
-          // invoke the original pointerDown so the drag still starts
-          (listeners as any).onPointerDown?.(e);
-        },
-      };
+    ...listeners,
+    onPointerDown: (e: React.PointerEvent) => {
+      const isMeta = e.metaKey || e.ctrlKey;
+      if (isMeta) dispatch({ type: "toggleSelect", id });
+      else dispatch({ type: "selectOne", id });
+      // invoke the original pointerDown so the drag still starts
+      (listeners as any).onPointerDown?.(e);
+    },
+  };
   const style: React.CSSProperties = {
     position: "absolute",
     left: x,
@@ -163,7 +157,7 @@ function CanvasItem({
     zIndex: 1,
   };
   // const handlePointerDown = (e: React.PointerEvent) => {
-    const handleSelectCapture = (e: React.PointerEvent) => {
+  const handleSelectCapture = (e: React.PointerEvent) => {
     const isMeta = e.metaKey || e.ctrlKey;
     if (isMeta) dispatch({ type: "toggleSelect", id });
     else dispatch({ type: "selectOne", id });
@@ -184,32 +178,32 @@ function CanvasItem({
 }
 
 function SortableCanvasItem({
-    id,
-    w,
-    h,
-    children,
-  }: {
-    id: string;
-    w: number;
-    h: number;
-    children: React.ReactNode;
-  }) {
+  id,
+  w,
+  h,
+  children,
+}: {
+  id: string;
+  w: number;
+  h: number;
+  children: React.ReactNode;
+}) {
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id });
-    const dispatch = useCanvasDispatch();
+  const dispatch = useCanvasDispatch();
   const mergedListeners = {
-        ...listeners,
-        onPointerDown: (e: React.PointerEvent) => {
-          const isMeta = e.metaKey || e.ctrlKey;
-          if (isMeta) dispatch({ type: "toggleSelect", id });
-          else dispatch({ type: "selectOne", id });
-          // invoke the original pointerDown so the drag still starts
-          (listeners as any).onPointerDown?.(e);
-        },
-      };
+    ...listeners,
+    onPointerDown: (e: React.PointerEvent) => {
+      const isMeta = e.metaKey || e.ctrlKey;
+      if (isMeta) dispatch({ type: "toggleSelect", id });
+      else dispatch({ type: "selectOne", id });
+      // invoke the original pointerDown so the drag still starts
+      (listeners as any).onPointerDown?.(e);
+    },
+  };
   const style = {
-    width:w,
-    height:h,
+    width: w,
+    height: h,
     transform: CSS.Transform.toString(transform),
     transition,
   } as React.CSSProperties;
@@ -217,8 +211,8 @@ function SortableCanvasItem({
     <div
       ref={setNodeRef}
       style={style}
-          {...mergedListeners}
-            {...attributes}
+      {...mergedListeners}
+      {...attributes}
       className="cursor-move"
     >
       {children}
@@ -383,10 +377,10 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
     );
     const [draggingState, setDraggingState] = useState<DragState | null>(null);
     const [gridSize, setGridSize] = useState(30);
-const snap = useCallback(
-  (v: number) => Math.round(v / gridSize) * gridSize,
-  [gridSize]
-);
+    const snap = useCallback(
+      (v: number) => Math.round(v / gridSize) * gridSize,
+      [gridSize]
+    );
     const resizeRef = useRef<ResizeState | null>(null);
     const dragRef = useRef<DragState | null>(null);
     const { setNodeRef } = useDroppable({ id: "canvas" });
@@ -395,16 +389,25 @@ const snap = useCallback(
     const elementsMap = useCanvasElements();
     const elements = useMemo(
       () => Array.from(elementsMap.values()),
-      [elementsMap],
+      [elementsMap]
     );
     const boxes = useMemo(
-      () => elements.filter((e): e is TextBoxRecord => (e as any).kind === "text"),
-      [elements],
+      () =>
+        elements.filter((e): e is TextBoxRecord => (e as any).kind === "text"),
+      [elements]
     );
     const selectionBox = React.useMemo(() => {
       if (selection.length <= 1) return null;
       const map = new Map(
-        elements.map((e) => [e.id, { x: e.x || 0, y: e.y || 0, width: e.width || 0, height: e.height || 0 }]),
+        elements.map((e) => [
+          e.id,
+          {
+            x: e.x || 0,
+            y: e.y || 0,
+            width: e.width || 0,
+            height: e.height || 0,
+          },
+        ])
       );
       return getBoundingRect(selection, map);
     }, [selection, elements]);
@@ -476,8 +479,8 @@ const snap = useCallback(
           d = dragRef.current;
         if (r) {
           const rect = canvasRef.current!.getBoundingClientRect();
-          const dx = snap(ev.clientX - rect.left)  - r.startX;
-          const dy = snap(ev.clientY - rect.top)   - r.startY;
+          const dx = snap(ev.clientX - rect.left) - r.startX;
+          const dy = snap(ev.clientY - rect.top) - r.startY;
           const calc = (c: Corner, dx: number, dy: number) => {
             switch (c) {
               case "se":
@@ -520,18 +523,18 @@ const snap = useCallback(
         if (d) {
           const rect = canvasRef.current!.getBoundingClientRect();
 
-          const pointerX  = ev.clientX - rect.left;
-          const pointerY  = ev.clientY - rect.top;
-        
+          const pointerX = ev.clientX - rect.left;
+          const pointerY = ev.clientY - rect.top;
+
           const newLeft = snap(d.startLeft + pointerX - d.startX);
-          const newTop  = snap(d.startTop  + pointerY - d.startY);
+          const newTop = snap(d.startTop + pointerY - d.startY);
 
           dispatch({
             type: "patch",
             id: d.id,
             patch: { x: newLeft, y: newTop },
           });
-          
+
           // const dx = snap(ev.clientX - rect.left) - d.startX;
           // const dy = snap(ev.clientY - rect.top)  - d.startY;
           // setBoxes((bs) =>
@@ -561,7 +564,6 @@ const snap = useCallback(
     const isDrawing = drawMode !== null;
 
     const startDraw = (e: React.MouseEvent<HTMLDivElement>) => {
-      
       if (!isDrawing || e.target !== canvasRef.current) return;
       setSelectedId(null);
       const rect = canvasRef.current!.getBoundingClientRect();
@@ -575,8 +577,9 @@ const snap = useCallback(
       const rect = canvasRef.current!.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
-      setDraft((d) => (d ? { ...d, width: snap(x) - d.x,
-        height: snap(y) - d.y } : null));
+      setDraft((d) =>
+        d ? { ...d, width: snap(x) - d.x, height: snap(y) - d.y } : null
+      );
     };
 
     const endDraw = () => {
@@ -662,7 +665,6 @@ const snap = useCallback(
             backgroundSize: `${gridSize}px ${gridSize}px`,
           }),
         }}
-    
         onPointerDown={(e) => {
           if (e.target === e.currentTarget) dispatch({ type: "clearSelect" });
         }}
@@ -672,40 +674,7 @@ const snap = useCallback(
       >
         {children}
 
-        {boxes.map((box) => (
-          <div
-            key={box.id}
-            className="absolute border-2 border-dashed border-gray-400 bg-white cursor-move"
-            style={{
-              left: box.x,
-              top: box.y,
-              width: box.width,
-              height: box.height,
-            }}
-            onPointerDown={(e) => handleBoxPointerDown(e, box)}
-          >
-            {(["nw", "ne", "sw", "se"] as Corner[]).map((c) => (
-              <div
-                key={c}
-                className={styles[`handle-${c}`]}
-                onPointerDown={(e) =>
-                  handleResizeStart(e, { id: box.id, kind: "text" }, c)
-                }
-              />
-            ))}
-            <EditableBox
-              box={box}
-              onInput={(content) =>
-                dispatch({
-                  type: "patch",
-                  id: box.id,
-                  patch: { content },
-                })
-              }
-              onSelect={() => setSelectedId(box.id)}
-            />
-          </div>
-        ))}
+        
 
         {draft && (
           <div
@@ -912,19 +881,21 @@ DroppableCanvas.displayName = "DroppableCanvas";
 // );
 // DroppableCanvas.displayName = "DroppableCanvas";
 
-  function PortfolioBuilderInner({
-    initialLayout = "free",
-    initialColor = "bg-white",
-  }: {
-    initialLayout?: "column" | "grid" | "free";
-    initialColor?: string;
-  }) {
+function PortfolioBuilderInner({
+  initialLayout = "free",
+  initialColor = "bg-white",
+}: {
+  initialLayout?: "column" | "grid" | "free";
+  initialColor?: string;
+}) {
   //return <h1 style={{color:'red'}}>If you can see this, the file is routed correctly</h1>;
-  const [showGrid, setShowGrid] = useState(true);   // ← NEW
+  const [showGrid, setShowGrid] = useState(true); // ← NEW
 
   const canvasRef = useRef<HTMLDivElement>(null);
   const [color, setColor] = useState(initialColor);
-  const [layout, setLayout] = useState<"column" | "grid" | "free">(initialLayout);
+  const [layout, setLayout] = useState<"column" | "grid" | "free">(
+    initialLayout
+  );
   const [template, setTemplate] = useState<string>("");
   const [drawMode, setDrawMode] = useState<DrawMode>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -938,11 +909,11 @@ DroppableCanvas.displayName = "DroppableCanvas";
   const elementsMap = useCanvasElements();
   const elements = useMemo(
     () => Array.from(elementsMap.values()),
-    [elementsMap],
+    [elementsMap]
   );
   const textBoxes = useMemo(
     () => elements.filter((e): e is TextBoxRecord => e.kind === "text"),
-    [elements],
+    [elements]
   );
   const lastDrag = useRef({ x: 0, y: 0 });
   const snap = useCallback(
@@ -1063,7 +1034,6 @@ DroppableCanvas.displayName = "DroppableCanvas";
     // if (upload.error) return;
     const { w, h } = await getImageSizeFromFile(file);
     // const fit = fitIntoBox(el.width, el.height, w, h);
-    
 
     if (!res.error) {
       dispatch({
@@ -1132,7 +1102,7 @@ DroppableCanvas.displayName = "DroppableCanvas";
       ...serialize(),
       absolutes: buildAbsoluteExport(),
     };
-    setShowGrid(false);            // hide grid for snapshot/export
+    setShowGrid(false); // hide grid for snapshot/export
 
     /* 2) POST to the export route – it now returns the PNG */
     const res = await fetch("/api/portfolio/export", {
@@ -1179,7 +1149,6 @@ DroppableCanvas.displayName = "DroppableCanvas";
   }
   const sensors = useSensors(useSensor(PointerSensor));
 
- 
   const handleStart = (event: DragStartEvent) => {
     setActiveId(event.active.id);
     handleDragStart(event);
@@ -1192,238 +1161,230 @@ DroppableCanvas.displayName = "DroppableCanvas";
     setActiveId(null);
   };
   const selectedEl = elementsMap.get(selectedId ?? "");
-const isTextBox = selectedEl && selectedEl.kind === "text";
+  const isTextBox = selectedEl && selectedEl.kind === "text";
   return (
-      <DndContext
-        sensors={sensors}
-        onDragStart={handleStart}
-        onDragMove={handleMoveWrapper}
-        onDragEnd={handleEnd}
-        collisionDetection={pointerWithin}
-      >
-        {/* <DragOverlay zIndex={1000}>
+    <DndContext
+      sensors={sensors}
+      onDragStart={handleStart}
+      onDragMove={handleMoveWrapper}
+      onDragEnd={handleEnd}
+      collisionDetection={pointerWithin}
+    >
+      {/* <DragOverlay zIndex={1000}>
           {activeId ? (
             <PreviewOfItem id={activeId} elements={elements} />
           ) : null}
         </DragOverlay> */}
-        <div className="flex h-screen">
-          <div className=" flex-grow-0 flex-shrink-0 border-r py-2 px-4 space-y-4  mt-12">
+      <div className="flex h-screen">
+        <div className=" flex-grow-0 flex-shrink-0 border-r py-2 px-4 space-y-4  mt-12">
           <button
-    onClick={() => setShowGrid(g => !g)}
-    className={`w-full px-4 py-2 rounded-md lockbutton ${
-      showGrid ? "bg-slate-300" : "bg-white"
-    }`}
-  >
-    {showGrid ? "Hide Grid" : "Show Grid"}
-  </button>
-  <label className="block mt-2 text-xs">
-  Grid&nbsp;size
-  <input
-    type="number"
-    min={5}
-    step={5}
-    className="w-full mt-1 border rounded px-2 py-1 text-center"
-    value={gridSize}
-    onChange={e => setGridSize(Math.max(5, +e.target.value))}
-  />
-</label>
-            <button
-              className={` flex gap-2 w-full justify-start px-4 py-2 rounded-md l
+            onClick={() => setShowGrid((g) => !g)}
+            className={`w-full px-4 py-2 rounded-md lockbutton ${
+              showGrid ? "bg-slate-300" : "bg-white"
+            }`}
+          >
+            {showGrid ? "Hide Grid" : "Show Grid"}
+          </button>
+          <label className="block mt-2 text-xs">
+            Grid&nbsp;size
+            <input
+              type="number"
+              min={5}
+              step={5}
+              className="w-full mt-1 border rounded px-2 py-1 text-center"
+              value={gridSize}
+              onChange={(e) => setGridSize(Math.max(5, +e.target.value))}
+            />
+          </label>
+          <button
+            className={` flex gap-2 w-full justify-start px-4 py-2 rounded-md l
              lockbutton tracking-wide ${
                drawMode === "text"
                  ? "bg-slate-300 cursor-crosshair"
                  : "bg-white"
              }`}
-              onClick={() => setDrawMode((d) => (d === "text" ? null : "text"))}
-              aria-label="Add text box"
-            >
-              {drawMode === "text" ? "Text Box" : "Text Box"}
-              <Image
-                src="/assets/text--creation.svg"
-                alt={"text"}
-                className="p-0 flex-grow-0 flex-shrink-0"
-                width={24}
-                height={24}
-              />
-            </button>
+            onClick={() => setDrawMode((d) => (d === "text" ? null : "text"))}
+            aria-label="Add text box"
+          >
+            {drawMode === "text" ? "Text Box" : "Text Box"}
+            <Image
+              src="/assets/text--creation.svg"
+              alt={"text"}
+              className="p-0 flex-grow-0 flex-shrink-0"
+              width={24}
+              height={24}
+            />
+          </button>
 
-            <button
-              className={` flex gap-2 w-full justify-start px-4 py-2 rounded-md l
+          <button
+            className={` flex gap-2 w-full justify-start px-4 py-2 rounded-md l
              lockbutton tracking-wide ${
                drawMode === "image"
                  ? "bg-slate-300 cursor-crosshair"
                  : "bg-white"
              }`}
-              onClick={() =>
-                setDrawMode((d) => (d === "image" ? null : "image"))
-              }
-              aria-label="Add image"
-            >
-              Image
-              <Image
-                src="/assets/image.svg"
-                alt={"image"}
-                className="p-0 flex-grow-0 flex-shrink-0"
-                width={24}
-                height={24}
-              />
-            </button>
+            onClick={() => setDrawMode((d) => (d === "image" ? null : "image"))}
+            aria-label="Add image"
+          >
+            Image
+            <Image
+              src="/assets/image.svg"
+              alt={"image"}
+              className="p-0 flex-grow-0 flex-shrink-0"
+              width={24}
+              height={24}
+            />
+          </button>
 
-            <button
-              className={` flex gap-2 w-full justify-start px-4 py-2 rounded-md l
+          <button
+            className={` flex gap-2 w-full justify-start px-4 py-2 rounded-md l
              lockbutton tracking-wide ${
                drawMode === "video"
                  ? "bg-slate-300 cursor-crosshair"
                  : "bg-white"
              }`}
-              onClick={() =>
-                setDrawMode((d) => (d === "video" ? null : "video"))
-              }
-              aria-label="Add video"
-            >
-              Video
-              <Image
-                src="/assets/video.svg"
-                alt={"video"}
-                className="p-0 flex-grow-0 flex-shrink-0"
-                width={24}
-                height={24}
-              />
-            </button>
+            onClick={() => setDrawMode((d) => (d === "video" ? null : "video"))}
+            aria-label="Add video"
+          >
+            Video
+            <Image
+              src="/assets/video.svg"
+              alt={"video"}
+              className="p-0 flex-grow-0 flex-shrink-0"
+              width={24}
+              height={24}
+            />
+          </button>
 
-            <button
-              className={` flex gap-2 w-full justify-start px-4 py-2 rounded-md l
+          <button
+            className={` flex gap-2 w-full justify-start px-4 py-2 rounded-md l
              lockbutton tracking-wide ${
                drawMode === "link"
                  ? "bg-slate-300 cursor-crosshair"
                  : "bg-white"
              }`}
-              onClick={() => setDrawMode((d) => (d === "link" ? null : "link"))}
-              aria-label="Add link"
-            >
-              Link
-              <Image
-                src="/assets/link.svg"
-                alt={"globe"}
-                className="mr-2"
-                width={24}
-                height={24}
-              />
-            </button>
-            {isTextBox && (
-  <StylePanel
-    box={selectedEl as TextBoxRecord}
-    onChange={(patch) => dispatch({ type: "patch", id: selectedId!, patch })}
-  />
-)}
-          </div>
-
-          {/* ---------- canvas ---------- */}
-          <DroppableCanvas
-            ref={canvasHandle}
-            layout={layout}
-            color={color}
-            drawMode={drawMode}
-            setDrawMode={setDrawMode}
-              showGrid={showGrid}
-            canvasRef={canvasRef}
-            selectedId={selectedId}
-            setSelectedId={setSelectedId}
+            onClick={() => setDrawMode((d) => (d === "link" ? null : "link"))}
+            aria-label="Add link"
           >
-            {elements.map((el) =>
-              template === "" ? (
-                <CanvasItem
-                  key={el.id}
-                  id={el.id}
-                  x={el.x}
-                  y={el.y}
-                  w={el.width}
-                  h={el.height}
+            Link
+            <Image
+              src="/assets/link.svg"
+              alt={"globe"}
+              className="mr-2"
+              width={24}
+              height={24}
+            />
+          </button>
+          {isTextBox && (
+            <StylePanel
+              box={selectedEl as TextBoxRecord}
+              onChange={(patch) =>
+                dispatch({ type: "patch", id: selectedId!, patch })
+              }
+            />
+          )}
+        </div>
+
+        {/* ---------- canvas ---------- */}
+        <DroppableCanvas
+          ref={canvasHandle}
+          layout={layout}
+          color={color}
+          drawMode={drawMode}
+          setDrawMode={setDrawMode}
+          showGrid={showGrid}
+          canvasRef={canvasRef}
+          selectedId={selectedId}
+          setSelectedId={setSelectedId}
+        >
+          {elements.map((el) =>
+            template === "" ? (
+              <CanvasItem
+                key={el.id}
+                id={el.id}
+                x={el.x}
+                y={el.y}
+                w={el.width}
+                h={el.height}
+              >
+                {/* <div className="py-8 px-8 border-[1px] rounded-none border-black savebutton bg-white space-y-2"> */}
+                <div
+                  className="relative border-2 border-dashed
+                border-gray-500/60 bg-white box-border "
+                  style={{ width: el.width, height: el.height }}
                 >
-                  {/* <div className="py-8 px-8 border-[1px] rounded-none border-black savebutton bg-white space-y-2"> */}
-                  <div className="relative border-2 border-dashed
-                border-gray-500/60 bg-transparent box-border "
-     style={{ width: el.width, height: el.height }}>
-                    {el.kind === "text" && (
-                      
-                      <div
-                      
-                        contentEditable
-                        suppressContentEditableWarning
-                        className="text-block outline-none "
-                        onPointerDown={(e) => e.stopPropagation()}
-                        onInput={(e) =>
+                  {el.kind === "text" && (
+                    <>
+                      <EditableBox
+                        box={el as TextBoxRecord}
+                        onSelect={() =>
+                          dispatch({ type: "selectOne", id: el.id })
+                        }
+                        onInput={(content) =>
                           dispatch({
                             type: "patch",
                             id: el.id,
-                            patch: {
-                              content: (e.target as HTMLElement).innerText,
-                            },
+                            patch: { content },
                           })
                         }
-                      >
-                            {el.content || "Edit text"}
-
-                            {(["nw","ne","sw","se"] as const).map((corner) => (
+                      />
+                      {(["nw", "ne", "sw", "se"] as const).map((corner) => (
                         <ResizeHandle
-                        key={corner}
-                        corner={corner}
-                        onPointerDown={(ev) =>
-                          startResize(ev, { id: el.id, kind: "text" }, corner)
-                        }
-                    />
-                    
+                          key={corner}
+                          corner={corner}
+                          onPointerDown={(ev) =>
+                            startResize(ev, { id: el.id, kind: "text" }, corner)
+                          }
+                        />
                       ))}
-                        {/* {el.content || "Edit text"} */}
-                      </div>
-                    )}
-                    {el.kind === "image" && (
-                      <div
-                        style={{
-                  
-                          width: el.width,
-                          height: el.height,
-                          boxSizing: 'border-box'  // ← keeps border inside the rectangle
+                    </>
+                  )}
 
-                        }}
-                        className=" border-2 border-dashed border-gray-500/60 bg-white w-full "        
-                        // onPointerDown={(e) => handleDragEnd(e, el)}
-                      >
-  <div className=" w-full h-full ">
-                          {el.src ? (
-                            <Image
-                              src={el.src}
-                              alt="uploaded"
-                              width={400}
-                              height={400}
+                  {el.kind === "image" && (
+                    <div
+                      style={{
+                        width: el.width,
+                        height: el.height,
+                        boxSizing: "border-box", // ← keeps border inside the rectangle
+                      }}
+                      className=" border-2 border-dashed border-gray-500/60 bg-white w-full "
+                      // onPointerDown={(e) => handleDragEnd(e, el)}
+                    >
+                      <div className=" w-full h-full ">
+                        {el.src ? (
+                          <Image
+                            src={el.src}
+                            alt="uploaded"
+                            width={400}
+                            height={400}
+                            draggable={false}
+                            className="object-contain items-center justify-center w-full h-full"
+                            crossOrigin="anonymous"
+                            onLoad={(e) =>
+                              recordNaturalSize(
+                                el.id,
+                                (e.target as HTMLImageElement).naturalWidth,
+                                (e.target as HTMLImageElement).naturalHeight
+                              )
+                            }
+                          />
+                        ) : (
+                          <label className="flex flex-1 items-center justify-center  h-fit bg-slate-200  cursor-pointer">
+                            <input
+                              type="file"
                               draggable={false}
-                              className="object-contain items-center justify-center w-full h-full"
-                              crossOrigin="anonymous"
-                              onLoad={(e) =>
-                                recordNaturalSize(
-                                  el.id,
-                                  (e.target as HTMLImageElement).naturalWidth,
-                                  (e.target as HTMLImageElement).naturalHeight
-                                )
-                              }
+                              accept="image/*"
+                              className="relative flex flex-1 justify-center items-center shadow-md w-full h-full rounded-xl p-3"
+                              onPointerDown={(e) => e.stopPropagation()}
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleImageSelect(el.id, file);
+                              }}
                             />
-                          ) : (
-                            <label className="flex flex-1 items-center justify-center  h-fit bg-slate-200  cursor-pointer">
-                              <input
-                                type="file"
-                                draggable={false}
-                                accept="image/*"
-                                className="relative flex flex-1 justify-center items-center shadow-md w-full h-full rounded-xl p-3"
-                                onPointerDown={(e) => e.stopPropagation()}
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) handleImageSelect(el.id, file);
-                                }}
-                              />
-                              {/* <span className="text-xs text-gray-600">Choose file</span> */}
-                            </label>
-                          )}
-                          {/* {(["nw", "ne", "sw", "se"] as Corner[]).map(
+                            {/* <span className="text-xs text-gray-600">Choose file</span> */}
+                          </label>
+                        )}
+                        {/* {(["nw", "ne", "sw", "se"] as Corner[]).map(
                           (corner) => (
                             <div
                               key={corner}
@@ -1440,202 +1401,158 @@ const isTextBox = selectedEl && selectedEl.kind === "text";
                             />
                           )
                         )} */}
-                          {(["nw", "ne", "sw", "se"] as const).map((corner) => (
-                            <ResizeHandle
-                              key={corner}
-                              corner={corner}
-                              onPointerDown={(ev) =>
-                                startResize(
-                                  ev,
-                                  { id: el.id, kind: "image" },
-                                  corner
-                                )
-                              }
-                            />
-                          ))}
-                        </div>
-                        <button
-                          className="flex flex-col rounded-md mt-2 ml-5 lockbutton "
-                          onPointerDown={(e) =>
-                            e.stopPropagation()
-                          } /* ⬅︎ PREVENT DRAG  */
-                          onClick={(e) => {
-                            /* ⬅︎ ACTUAL DELETE */
-                            e.stopPropagation(); // safety for touch events
-                            dispatch({ type: "remove", id: el.id });
-                          }}
-                          aria-label="Delete"
-                        >
-                          <Image
-                            src="/assets/trash-can.svg"
-                            alt={"globe"}
-                            className="justify-center  "
-                            width={14}
-                            height={14}
-                          />
-                        </button>
-                      </div>
-                    )}
-                    {el.kind === "video" && (
-                      <div className="p-1 border border-transparent">
-                        {el.src ? (
-                          <iframe
-                            src={el.src}
-                            width={el.width}
-                            height={el.height}
-                            className="pointer-events-none"
-                            allow="autoplay; encrypted-media"
-                            allowFullScreen
-                          />
-                        ) : (
-                          <input
-                            placeholder="https://www.youtube.com/embed/…"
-                            className="w-full h-full p-1"
-                            onPointerDown={(e) => e.stopPropagation()}
-                            onChange={(e) =>
-                              dispatch({
-                                type: "patch",
-                                id: el.id,
-                                patch: { src: e.target.value },
-                              })
+                        {(["nw", "ne", "sw", "se"] as const).map((corner) => (
+                          <ResizeHandle
+                            key={corner}
+                            corner={corner}
+                            onPointerDown={(ev) =>
+                              startResize(
+                                ev,
+                                { id: el.id, kind: "image" },
+                                corner
+                              )
                             }
                           />
-                        )}
-                        {(["nw", "ne", "sw", "se"] as Corner[]).map(
-                          (corner) => (
-                            <div
-                              key={corner}
-                              onPointerDown={(e) =>
-                                proxyResizeStart(
-                                  e,
-                                  { id: el.id, kind: "video" },
-                                  corner
-                                )
-                              }
-                              className={`resize-handle handle-${corner}`}
-                            />
-                          )
-                        )}
+                        ))}
                       </div>
-                    )}
-                    {el.kind === "box" && (
-                      <div className="w-20 h-20 border bg-gray-200" />
-                    )}
-                    {el.kind === "link" && (
-                      <input
-                        className="border p-1 text-sm"
-                        placeholder="https://example.com"
-                        value={el.href || ""}
-                        onPointerDown={(e) => e.stopPropagation()}
-                        onChange={(e) =>
-                          dispatch({
-                            type: "patch",
-                            id: el.id,
-                            patch: { href: e.target.value },
-                          })
-                        }
-                      />
-                    )}
-                  </div>
-                </CanvasItem>
-              ) : (
-                <SortableCanvasItem key={el.id} id={el.id} w={el.width} h={el.height}>
-                  <div className="p-2 border bg-white space-y-2">
-                    {el.kind === "text" && (
-                      <div
-                        contentEditable
-                        suppressContentEditableWarning
-                        className="text-block outline-none"
-                        onPointerDown={(e) => e.stopPropagation()}
-                        onInput={(e) =>
-                          dispatch({
-                            type: "patch",
-                            id: el.id,
-                            patch: {
-                              content: (e.target as HTMLElement).innerText,
-                            },
-                          })
-                        }
+                      <button
+                        className="flex flex-col rounded-md mt-2 ml-5 lockbutton "
+                        onPointerDown={(e) =>
+                          e.stopPropagation()
+                        } /* ⬅︎ PREVENT DRAG  */
+                        onClick={(e) => {
+                          /* ⬅︎ ACTUAL DELETE */
+                          e.stopPropagation(); // safety for touch events
+                          dispatch({ type: "remove", id: el.id });
+                        }}
+                        aria-label="Delete"
                       >
-                        {el.content || "Edit text"}
-                      </div>
-                    )}
-                    {el.kind === "image" && (
-                      <div>
-                        <div className="relative inline-block">
-                          {el.src ? (
-                            <Image
-                              src={el.src}
-                              alt="uploaded"
-                              width={el.width}
-                              height={el.height}
-                              draggable={false}
-                              className="object-contain "
-                              crossOrigin="anonymous"
-                              onLoad={(e) =>
-                                recordNaturalSize(
-                                  el.id,
-                                  (e.target as HTMLImageElement).naturalWidth,
-                                  (e.target as HTMLImageElement).naturalHeight
-                                )
-                              }
-                            />
-                          ) : (
-                            <input
-                              type="file"
-                              accept="image/*"
-                              className="w-full h-full"
-                              onPointerDown={(e) => e.stopPropagation()}
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) handleImageSelect(el.id, file);
-                              }}
-                            />
-                          )}
-                          {(["nw", "ne", "sw", "se"] as Corner[]).map(
-                            (corner) => (
-                              <div
-                                key={corner}
-                                onPointerDown={(e) =>
-                                  startResize(
-                                    e,
-                                    { id: box.id, kind: "text" },
-                                    corner
-                                  )
-                                }
-                                className={`resize-handle handle-${corner}`}
-                              />
+                        <Image
+                          src="/assets/trash-can.svg"
+                          alt={"globe"}
+                          className="justify-center  "
+                          width={14}
+                          height={14}
+                        />
+                      </button>
+                    </div>
+                  )}
+                  {el.kind === "video" && (
+                    <div className="p-1 border border-transparent">
+                      {el.src ? (
+                        <iframe
+                          src={el.src}
+                          width={el.width}
+                          height={el.height}
+                          className="pointer-events-none"
+                          allow="autoplay; encrypted-media"
+                          allowFullScreen
+                        />
+                      ) : (
+                        <input
+                          placeholder="https://www.youtube.com/embed/…"
+                          className="w-full h-full p-1"
+                          onPointerDown={(e) => e.stopPropagation()}
+                          onChange={(e) =>
+                            dispatch({
+                              type: "patch",
+                              id: el.id,
+                              patch: { src: e.target.value },
+                            })
+                          }
+                        />
+                      )}
+                      {(["nw", "ne", "sw", "se"] as Corner[]).map((corner) => (
+                        <div
+                          key={corner}
+                          onPointerDown={(e) =>
+                            proxyResizeStart(
+                              e,
+                              { id: el.id, kind: "video" },
+                              corner
                             )
-                          )}
-                        </div>
-                      </div>
-                    )}
-                    {el.kind === "video" && (
-                      <div className="p-1 border border-transparent">
+                          }
+                          className={`resize-handle handle-${corner}`}
+                        />
+                      ))}
+                    </div>
+                  )}
+                  {el.kind === "box" && (
+                    <div className="w-20 h-20 border bg-gray-200" />
+                  )}
+                  {el.kind === "link" && (
+                    <input
+                      className="border p-1 text-sm"
+                      placeholder="https://example.com"
+                      value={el.href || ""}
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onChange={(e) =>
+                        dispatch({
+                          type: "patch",
+                          id: el.id,
+                          patch: { href: e.target.value },
+                        })
+                      }
+                    />
+                  )}
+                </div>
+              </CanvasItem>
+            ) : (
+              <SortableCanvasItem
+                key={el.id}
+                id={el.id}
+                w={el.width}
+                h={el.height}
+              >
+                <div className="p-2 border bg-white space-y-2">
+                  {el.kind === "text" && (
+                    <div
+                      contentEditable
+                      suppressContentEditableWarning
+                      className="text-block outline-none"
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onInput={(e) =>
+                        dispatch({
+                          type: "patch",
+                          id: el.id,
+                          patch: {
+                            content: (e.target as HTMLElement).innerText,
+                          },
+                        })
+                      }
+                    >
+                      {el.content || "Edit text"}
+                    </div>
+                  )}
+                  {el.kind === "image" && (
+                    <div>
+                      <div className="relative inline-block">
                         {el.src ? (
-                          <iframe
+                          <Image
                             src={el.src}
+                            alt="uploaded"
                             width={el.width}
                             height={el.height}
-                            className="pointer-events-none"
-                            allow="autoplay; encrypted-media"
-                            allowFullScreen
+                            draggable={false}
+                            className="object-contain "
+                            crossOrigin="anonymous"
+                            onLoad={(e) =>
+                              recordNaturalSize(
+                                el.id,
+                                (e.target as HTMLImageElement).naturalWidth,
+                                (e.target as HTMLImageElement).naturalHeight
+                              )
+                            }
                           />
                         ) : (
                           <input
-                            placeholder="https://www.youtube.com/embed/..."
+                            type="file"
+                            accept="image/*"
                             className="w-full h-full"
                             onPointerDown={(e) => e.stopPropagation()}
                             onChange={(e) => {
-                              const url = e.target.value.trim();
-                              if (!isSafeYoutubeEmbed(url)) return; // ignore invalid input
-
-                              // `el` is already in scope (we're inside elements.map(render))
-                              dispatch({
-                                type: "patch",
-                                id: el.id,
-                                patch: { src: url },
-                              });
+                              const file = e.target.files?.[0];
+                              if (file) handleImageSelect(el.id, file);
                             }}
                           />
                         )}
@@ -1644,9 +1561,9 @@ const isTextBox = selectedEl && selectedEl.kind === "text";
                             <div
                               key={corner}
                               onPointerDown={(e) =>
-                                proxyResizeStart(
+                                startResize(
                                   e,
-                                  { id: el.id, kind: "video" },
+                                  { id: box.id, kind: "text" },
                                   corner
                                 )
                               }
@@ -1655,147 +1572,198 @@ const isTextBox = selectedEl && selectedEl.kind === "text";
                           )
                         )}
                       </div>
-                    )}
-                    {el.kind === "box" && (
-                      <div className="w-20 h-20 border bg-gray-200" />
-                    )}
-                    {el.kind === "link" && (
-                      <input
-                        className="border p-1 text-sm"
-                        placeholder="https://example.com"
-                        value={el.href || ""}
-                        onPointerDown={(e) => e.stopPropagation()}
-                        /* link input */
-                        onChange={(e) => {
-                          const v = e.target.value.trim();
-                          if (!isSafeHttpLink(v)) return; // bail out on invalid link
+                    </div>
+                  )}
+                  {el.kind === "video" && (
+                    <div className="p-1 border border-transparent">
+                      {el.src ? (
+                        <iframe
+                          src={el.src}
+                          width={el.width}
+                          height={el.height}
+                          className="pointer-events-none"
+                          allow="autoplay; encrypted-media"
+                          allowFullScreen
+                        />
+                      ) : (
+                        <input
+                          placeholder="https://www.youtube.com/embed/..."
+                          className="w-full h-full"
+                          onPointerDown={(e) => e.stopPropagation()}
+                          onChange={(e) => {
+                            const url = e.target.value.trim();
+                            if (!isSafeYoutubeEmbed(url)) return; // ignore invalid input
 
-                          dispatch({
-                            type: "patch",
-                            id: el.id,
-                            patch: { href: v },
-                          });
-                        }}
-                      />
-                    )}
-                    <button
-                      className="text-xs text-red-500"
-                      onClick={() =>
-                        dispatch({ type: "remove", id: el.id })
-                      }
-                      aria-label="Delete"
-                    >
-                      <Image
-                        src="/assets/trash-can.svg"
-                        alt={"globe"}
-                        className="mr-2"
-                        width={24}
-                        height={24}
-                      />
-                    </button>
-                  </div>
-                </SortableCanvasItem>
-              )
-            )}
-          </DroppableCanvas>
-          <div className="w-fit border-l px-4 py-2 mt-8 space-y-4">
-            <div className="rounded-xl bg-transparent border-[1px] border-black p-3 ">
-              <p className="text-sm mb-1">Template</p>
-              <select
-                className="w-full rounded-xl lockbutton mt-1 border-black bg-gray-100 border-[1px] p-1"
-                value={template}
-                onChange={(e) => applyTemplate(e.target.value)}
-              >
-                <option value="">Blank</option>
-                {templates.map((t) => (
-                  <option key={t.name} value={t.name}>
-                    {t.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="rounded-xl bg-transparent border-[1px] border-black p-3 ">
-              <p className="text-sm mb-1">Background</p>
-              <select
-                className="w-full rounded-xl lockbutton mt-1 border-black bg-gray-100 border-[1px] p-1"
-                value={color}
-                onChange={(e) => {
-                  setColor(e.target.value);
-                  dispatch({ type: "setColor", color: e.target.value });
-                }}
-              >
-                <option value="bg-white">White</option>
-                <option value="bg-gray-200">Gray</option>
-                <option value="bg-blue-200">Blue</option>
-              </select>
-            </div>
-            <div className="rounded-xl bg-transparent border-[1px] border-black p-3 ">
-              <p className="text-sm mb-1">Layout</p>
-              <select
-                className="w-full rounded-xl lockbutton mt-1 border-black bg-gray-100 border-[1px] p-1"
-                value={layout}
-                onChange={(e) => {
-                  const v = e.target.value as "column" | "grid" | "free";
-                  setLayout(v);
-                  dispatch({ type: "setLayout", layout: v });
-                }}
-              >
-                <option value="free">Free</option>
+                            // `el` is already in scope (we're inside elements.map(render))
+                            dispatch({
+                              type: "patch",
+                              id: el.id,
+                              patch: { src: url },
+                            });
+                          }}
+                        />
+                      )}
+                      {(["nw", "ne", "sw", "se"] as Corner[]).map((corner) => (
+                        <div
+                          key={corner}
+                          onPointerDown={(e) =>
+                            proxyResizeStart(
+                              e,
+                              { id: el.id, kind: "video" },
+                              corner
+                            )
+                          }
+                          className={`resize-handle handle-${corner}`}
+                        />
+                      ))}
+                    </div>
+                  )}
+                  {el.kind === "box" && (
+                    <div className="w-20 h-20 border bg-gray-200" />
+                  )}
+                  {el.kind === "link" && (
+                    <input
+                      className="border p-1 text-sm"
+                      placeholder="https://example.com"
+                      value={el.href || ""}
+                      onPointerDown={(e) => e.stopPropagation()}
+                      /* link input */
+                      onChange={(e) => {
+                        const v = e.target.value.trim();
+                        if (!isSafeHttpLink(v)) return; // bail out on invalid link
 
-                <option value="column">Column</option>
-                <option value="grid">Grid</option>
-              </select>
-            </div>
-            <div className="flex gap-2">
-              <button onClick={undo} title="Undo (⌘Z)" aria-label="Undo">
-                <Image src="/assets/undo.svg" width={20} height={20} alt="" />
-              </button>
-              <button onClick={redo} title="Redo (⇧⌘Z)" aria-label="Redo">
-                <Image src="/assets/redo.svg" width={20} height={20} alt="" />
-              </button>
-            </div>
-            <button
-              className="w-full  bg-gray-100 border-black border-[1px] lockbutton  text-black  px-1 py-2
-            tracking-wide text-[1.1rem] rounded-xl"
-              onClick={handlePublish}
+                        dispatch({
+                          type: "patch",
+                          id: el.id,
+                          patch: { href: v },
+                        });
+                      }}
+                    />
+                  )}
+                  <button
+                    className="text-xs text-red-500"
+                    onClick={() => dispatch({ type: "remove", id: el.id })}
+                    aria-label="Delete"
+                  >
+                    <Image
+                      src="/assets/trash-can.svg"
+                      alt={"globe"}
+                      className="mr-2"
+                      width={24}
+                      height={24}
+                    />
+                  </button>
+                </div>
+              </SortableCanvasItem>
+            )
+          )}
+        </DroppableCanvas>
+        <div className="w-fit border-l px-4 py-2 mt-8 space-y-4">
+          <div className="rounded-xl bg-transparent border-[1px] border-black p-3 ">
+            <p className="text-sm mb-1">Template</p>
+            <select
+              className="w-full rounded-xl lockbutton mt-1 border-black bg-gray-100 border-[1px] p-1"
+              value={template}
+              onChange={(e) => applyTemplate(e.target.value)}
             >
-              Publish
+              <option value="">Blank</option>
+              {templates.map((t) => (
+                <option key={t.name} value={t.name}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="rounded-xl bg-transparent border-[1px] border-black p-3 ">
+            <p className="text-sm mb-1">Background</p>
+            <select
+              className="w-full rounded-xl lockbutton mt-1 border-black bg-gray-100 border-[1px] p-1"
+              value={color}
+              onChange={(e) => {
+                setColor(e.target.value);
+                dispatch({ type: "setColor", color: e.target.value });
+              }}
+            >
+              <option value="bg-white">White</option>
+              <option value="bg-gray-200">Gray</option>
+              <option value="bg-blue-200">Blue</option>
+            </select>
+          </div>
+          <div className="rounded-xl bg-transparent border-[1px] border-black p-3 ">
+            <p className="text-sm mb-1">Layout</p>
+            <select
+              className="w-full rounded-xl lockbutton mt-1 border-black bg-gray-100 border-[1px] p-1"
+              value={layout}
+              onChange={(e) => {
+                const v = e.target.value as "column" | "grid" | "free";
+                setLayout(v);
+                dispatch({ type: "setLayout", layout: v });
+              }}
+            >
+              <option value="free">Free</option>
+
+              <option value="column">Column</option>
+              <option value="grid">Grid</option>
+            </select>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={undo} title="Undo (⌘Z)" aria-label="Undo">
+              <Image src="/assets/undo.svg" width={20} height={20} alt="" />
+            </button>
+            <button onClick={redo} title="Redo (⇧⌘Z)" aria-label="Redo">
+              <Image src="/assets/redo.svg" width={20} height={20} alt="" />
             </button>
           </div>
+          <button
+            className="w-full  bg-gray-100 border-black border-[1px] lockbutton  text-black  px-1 py-2
+            tracking-wide text-[1.1rem] rounded-xl"
+            onClick={handlePublish}
+          >
+            Publish
+          </button>
         </div>
-
-        
-      </DndContext>
- 
+      </div>
+    </DndContext>
   );
 }
-
-/* 2️⃣  outer wrapper – injects the context */
 export default function PortfolioBuilder() {
   const projectId = "draft";
   const projectKey = `pbuilder:${projectId}`;
+
+  // keep autosave as-is
   const saveDraft = useRef(
     debounce((s: CanvasState) => {
-      localStorage.setItem(projectKey, serialize(s));
-    }, 800),
+      try { localStorage.setItem(projectKey, serialize(s)); } catch {}
+    }, 800)
   ).current;
 
-  const draftJson =
-    typeof window !== "undefined" ? localStorage.getItem(projectKey) : null;
-  const initialStateFromDraft = useMemo(() => {
-    if (!draftJson) return null;
+  // undefined = not loaded yet; null = loaded but no draft
+  const [initial, setInitial] = useState<CanvasState | null | undefined>(undefined);
+
+  useEffect(() => {
     try {
-      const obj = JSON.parse(draftJson);
-      return jsonToCanvasState(obj, projectKey);
+      const json = localStorage.getItem(projectKey);
+      if (json) {
+        const obj = JSON.parse(json);
+        setInitial(jsonToCanvasState(obj, projectKey));
+      } else {
+        setInitial(null);
+      }
     } catch {
-      return null;
+      setInitial(null);
     }
-  }, [draftJson, projectKey]);
-  const initialLayout = initialStateFromDraft?.layout ?? "free";
-  const initialColor = initialStateFromDraft?.color ?? "bg-white";
+  }, [projectKey]);
+
+  // Render an SSR-safe placeholder so server & first client paint match
+  if (initial === undefined) {
+    return <div className="flex h-screen" />; // or a small skeleton
+  }
+
+  const initialLayout = initial?.layout ?? "free";
+  const initialColor  = initial?.color  ?? "bg-white";
 
   return (
-    <CanvasProvider initial={initialStateFromDraft} onChange={saveDraft}>
+    <CanvasProvider initial={initial} onChange={saveDraft}>
       <PortfolioBuilderInner
         initialLayout={initialLayout}
         initialColor={initialColor}
@@ -1804,9 +1772,10 @@ export default function PortfolioBuilder() {
   );
 }
 
+
 function PreviewOfItem({ id, elements }: PreviewProps) {
   const el = elements.find((e) => e.id === id);
-  
+
   if (!el) return null; // shouldn't happen
 
   switch (el.kind) {

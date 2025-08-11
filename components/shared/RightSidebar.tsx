@@ -117,7 +117,7 @@ function RightSidebar() {
           {loungeId && <CreateLoungePost roomId={loungeId} />}
 
           <button
-            className="flex likebutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent"
+            className="flex  sidebarbutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent"
             onClick={newlounge}
           >
             <div className="flex align-center gap-3">
@@ -137,7 +137,7 @@ function RightSidebar() {
             </div>
           </button>
           <button
-            className="flex likebutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent"
+            className="flex  sidebarbutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent"
             onClick={newroom}
           >
             <div className="flex align-center gap-3">
@@ -157,7 +157,7 @@ function RightSidebar() {
             </div>
           </button>
           <button
-            className="flex likebutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent"
+            className="flex  sidebarbutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent"
             onClick={gotomessages}
           >
             <div className="flex align-center gap-3">
@@ -178,7 +178,7 @@ function RightSidebar() {
           </button>
           
 
-          <button className="flex likebutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent">
+          <button className="flex  sidebarbutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent">
             <div className="flex align-center gap-3">
               <Image
                 src="/assets/members.svg"
@@ -195,7 +195,7 @@ function RightSidebar() {
               </div>
             </div>
           </button>
-          <button className="flex likebutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent">
+          <button className="flex  sidebarbutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent">
             <div className="flex align-center gap-3">
               <Image
                 src="/assets/group--access.svg"
@@ -213,7 +213,7 @@ function RightSidebar() {
             </div>
           </button>
           <button
-            className="flex likebutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent"
+            className="flex  sidebarbutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent"
             onClick={gotosettings}
           >
             <div className="flex align-center gap-3">
@@ -234,7 +234,7 @@ function RightSidebar() {
           </button>
           {isUserSignedIn && (
            <button
-           className="mt-[5rem] flex likebutton  rightsidebar_link align-center rightsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent"
+           className="mt-[5rem] flex  sidebarbutton  rightsidebar_link align-center rightsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent"
            onClick={handleLogout}
      >
         <div className="flex align-center gap-3">
@@ -281,7 +281,7 @@ function RightSidebar() {
               <Link key={r.id} href={`/room/${r.id}`}>
                 <Button
                   variant={"outline"}
-                  className="rounded-lg likebutton items-center justify-center bg-transparent outline-blue border-none"
+                  className="rounded-lg  sidebarbutton items-center justify-center bg-transparent outline-blue border-none"
                 >
                   {r.id}
                 </Button>
@@ -302,7 +302,7 @@ function RightSidebar() {
               <Link key={u.id.toString()} href={`/profile/${u.id}`}>
                 <Button
                   variant={"outline"}
-                  className="rounded-lg likebutton items-center justify-center bg-transparent outline-blue border-none"
+                  className="rounded-lg  sidebarbutton items-center justify-center bg-transparent outline-blue border-none"
                 >
                   {u.name}
                   {u.score !== undefined && (

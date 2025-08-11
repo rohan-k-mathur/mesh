@@ -17,28 +17,30 @@ export default function MessageComposer({ conversationId }: Props) {
   const [progress, setProgress] = useState(0);
   const [previews, setPreviews] = useState<string[]>([]);
 
-function onFilesSelected(list: FileList | null) {
-  if (!list) return;
-  const filesArray = Array.from(list);
-  const urls = filesArray.map((f) => f.type.startsWith("image/") ? URL.createObjectURL(f) : "");
-  setFiles((prev) => [...prev, ...filesArray]);
-  setPreviews((prev) => [...prev, ...urls]);
-}
+  function onFilesSelected(list: FileList | null) {
+    if (!list) return;
+    const filesArray = Array.from(list);
+    const urls = filesArray.map((f) =>
+      f.type.startsWith("image/") ? URL.createObjectURL(f) : ""
+    );
+    setFiles((prev) => [...prev, ...filesArray]);
+    setPreviews((prev) => [...prev, ...urls]);
+  }
 
-function removeFile(idx: number) {
-  setFiles((prev) => prev.filter((_, i) => i !== idx));
-  setPreviews((prev) => {
-    const [toRevoke] = prev.slice(idx, idx + 1);
-    if (toRevoke) URL.revokeObjectURL(toRevoke);
-    return prev.filter((_, i) => i !== idx);
-  });
-}
+  function removeFile(idx: number) {
+    setFiles((prev) => prev.filter((_, i) => i !== idx));
+    setPreviews((prev) => {
+      const [toRevoke] = prev.slice(idx, idx + 1);
+      if (toRevoke) URL.revokeObjectURL(toRevoke);
+      return prev.filter((_, i) => i !== idx);
+    });
+  }
 
-useEffect(() => {
-  return () => {
-    previews.forEach((url) => url && URL.revokeObjectURL(url));
-  };
-}, [previews]);
+  useEffect(() => {
+    return () => {
+      previews.forEach((url) => url && URL.revokeObjectURL(url));
+    };
+  }, [previews]);
 
   // function onFilesSelected(list: FileList | null) {
   //   if (!list) return;
@@ -50,7 +52,6 @@ useEffect(() => {
   // }
 
   async function send() {
-    
     if (uploading) return;
     if (!text.trim() && files.length === 0) return;
     const form = new FormData();
@@ -65,7 +66,8 @@ useEffect(() => {
     };
     xhr.onload = () => {
       try {
-        if (xhr.status < 200 || xhr.status >= 300) throw new Error("Upload failed");
+        if (xhr.status < 200 || xhr.status >= 300)
+          throw new Error("Upload failed");
         const msg = JSON.parse(xhr.responseText);
         appendMessage(conversationId, msg);
       } catch (e) {
@@ -92,7 +94,6 @@ useEffect(() => {
     send();
   }
   return (
-    
     <div
       className="relative"
       onDragOver={(e) => {
@@ -121,9 +122,17 @@ useEffect(() => {
               const isImg = file.type.startsWith("image/");
               const url = isImg ? URL.createObjectURL(file) : undefined;
               return (
-                <div key={i} className="relative w-20 h-20 border rounded-md overflow-hidden">
+                <div
+                  key={i}
+                  className="relative w-20 h-20 border rounded-md overflow-hidden"
+                >
                   {isImg ? (
-                    <Image src={url!} alt={file.name} fill className="object-cover" />
+                    <Image
+                      src={url!}
+                      alt={file.name}
+                      fill
+                      className="object-cover"
+                    />
                   ) : (
                     <div className="flex items-center justify-center w-full h-full bg-gray-100">
                       <FileIcon className="w-8 h-8" />
@@ -141,102 +150,84 @@ useEffect(() => {
             })}
           </div>
         )}
-          <form
-      onSubmit={handleSubmit}
-      className="relative"
-      onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-      onDragLeave={(e) => { e.preventDefault(); setDragOver(false); }}
-      onDrop={(e) => { e.preventDefault(); setDragOver(false); onFilesSelected(e.dataTransfer.files); }}
-    >
-<div className="flex gap-5">
-  <textarea
-              className="flex-1 h-full bg-white bg-opacity-20 text-start align-center rounded-xl px-4 py-3 text-[.9rem] tracking-wider bg-white/50 messagefield text-black"
-
-    rows={1}
-    value={text}
-    onChange={(e) => setText(e.target.value)}
-    onKeyDown={(e) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        if (!uploading) send();
-      }
-    }}
-    disabled={uploading}
-  />
-
-  <button
-    className="flex bg-white/30 sendbutton min-w-[4rem] h-fit w-fit text-black tracking-widest text-[1.1rem] rounded-xl px-5 py-2"
-    onClick={send}
-    disabled={uploading}
-  >
-    <Image src="/assets/send--alt.svg" alt="share" width={24} height={24} className="cursor-pointer object-contain" />
-  </button>
-{/*         
-          <input
-            type="text"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            className="flex-1 h-full bg-white bg-opacity-20 text-start align-center rounded-xl px-4 py-3 text-[.9rem] tracking-wider bg-white/50 messagefield text-black"
-            disabled={uploading}
-          />
-          <textarea
-  rows={1}
-  value={text}
-  onChange={(e) => setText(e.target.value)}
-  onKeyDown={(e) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      if (!uploading) send();
-    }
-  }}
-  className="flex-1 bg-white bg-opacity-20 rounded-xl px-3 py-2 bg-transparent text-black resize-none"
-/>
-          <button
-            className="flex bg-white/30 sendbutton min-w-[4rem] h-fit w-fit text-black tracking-widest text-[1.1rem] rounded-xl px-5 py-2"
-            onClick={send}
-            disabled={uploading}
-          > */}
-             {/* <Image
-    src="/assets/send--alt.svg"
-    alt="share"
-    width={24}
-    height={24}
-    className="cursor-pointer object-contain flex flex-1 justify-center items-center w-fit h-fit"></Image> */}
-            
-          {/* </button> */}
-          <button             className="flex bg-white/30 sendbutton  h-fit w-fit text-black tracking-widest text-[1.1rem] rounded-xl px-3 py-2"
->
-            <input
-              type="file"
-              multiple
-              accept="image/*,application/pdf,application/zip"
-              onChange={(e) => onFilesSelected(e.target.files)}
-              className="hidden"
+        <form
+          onSubmit={handleSubmit}
+          className="relative"
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDragOver(true);
+          }}
+          onDragLeave={(e) => {
+            e.preventDefault();
+            setDragOver(false);
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            setDragOver(false);
+            onFilesSelected(e.dataTransfer.files);
+          }}
+        >
+          <div className="flex flex-1 w-full  align-center  gap-3">
+            <button className="flex flex-1 w-full">
+            <textarea
+              className="flex flex-1 h-full w-full text-start align-center rounded-xl bg-white/70 px-4 py-3 text-[.9rem] tracking-wider  messagefield text-black"
+              rows={1}
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  if (!uploading) send();
+                }
+              }}
+              disabled={uploading}
             />
-            {/* <Paperclip className="w-[24px] h-[24px]  cursor-pointer" /> */}
-            <Image
-    src="/assets/attachment.svg"
-    alt="share"
-    width={24}
-    height={24}
-    className="cursor-pointer object-contain flex  justify-center items-center "></Image>
-          </button>
-        </div>
-        {uploading && (
-          <div className="h-2 bg-gray-200 rounded-full mt-5">
-            <div
-              className="h-full bg-indigo-300 rounded-full transition-all"
-              style={{ width: `${progress}%` }}
-            />
+</button>
+            <button
+              className="flex bg-white/70 sendbutton  h-fit w-fit text-black tracking-widest text-[1.1rem] rounded-xl px-5 py-2"
+              onClick={send}
+              disabled={uploading}
+            >
+              <Image
+                src="/assets/send--alt.svg"
+                alt="share"
+                width={24}
+                height={24}
+                className="cursor-pointer object-contain"
+              />
+            </button>
+
+            <button className="flex bg-white/70 sendbutton  h-fit w-fit text-black tracking-widest text-[1.1rem] rounded-xl px-3 py-2">
+              <input
+                type="file"
+                multiple
+                accept="image/*,application/pdf,application/zip"
+                onChange={(e) => onFilesSelected(e.target.files)}
+                className="hidden"
+              />
+              {/* <Paperclip className="w-[24px] h-[24px]  cursor-pointer" /> */}
+              <Image
+                src="/assets/attachment.svg"
+                alt="share"
+                width={24}
+                height={24}
+                className="cursor-pointer object-contain flex  justify-center items-center "
+              ></Image>
+            </button>
           </div>
-          
-        )}
+          {uploading && (
+            <div className="h-2 bg-gray-200 rounded-full mt-5">
+              <div
+                className="h-full bg-indigo-300 rounded-full transition-all"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          )}
         </form>
       </div>
     </div>
   );
 }
-
 
 // components/chat/MessageComposer.tsx (snippet for adding realtime presence ui)
 // const { sendTyping } = useConversationRealtime(conversationId, {

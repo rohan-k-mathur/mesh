@@ -225,7 +225,7 @@ useEffect(() => {
 
             <div className="px-2 py-3 border-t flex">
               <input
-                className="pcp-input bg-white/80 flex-1 border px-3 py-2 rounded-xl text-sm outline-none"
+                className="bg-white/80 flex-1 border px-3 py-2 rounded-xl text-[.9rem] tracking-wide outline-none pcpfield"
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 placeholder="Send a message…"
@@ -237,7 +237,7 @@ useEffect(() => {
                 }}
               />
               <button
-                className="ml-2 rounded-xl px-3 py-1 text-sm text-slate-700 bg-white/80"
+                className="ml-2 rounded-xl px-3 py-1 text-[.9rem] tracking-wide text-slate-700 bg-white/60  pcp-button"
                 onClick={handleSend}
                 disabled={!text.trim()}
               >

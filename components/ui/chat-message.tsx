@@ -86,7 +86,7 @@ ChatMessage.displayName = "ChatMessage";
 // Avatar component
 
 const chatMessageAvatarVariants = cva(
-	"w-8 h-8 flex items-center rounded-full justify-center profile-shadow shrink-0  overflow-hidden",
+	"w-8 h-8 flex items-center rounded-full justify-center chat-bubble shrink-0  overflow-hidden",
 	{
 		variants: {
 			type: {
@@ -149,12 +149,12 @@ const chatMessageContentVariants = cva("flex flex-col gap-2 ", {
 		{
 			variant: "bubble",
 			type: "incoming",
-			className: "bg-sky-100   px-3  py-1 tracking-wide max-w-[60%] bg-opacity-40 chat-bubble outline-transparent text-[.9rem] text-shadow-md text-slate-950 dark:bg-slate-50 dark:text-slate-900",
+			className: "bg-sky-50   px-3  py-1 tracking-wide max-w-[60%] bg-opacity-70 chat-bubble outline-transparent text-[.9rem] text-shadow-md text-slate-950 dark:bg-slate-50 dark:text-slate-900",
 		},
 		{
 			variant: "bubble",
 			type: "outgoing",
-			className: "bg-red-100  px-3  py-1 tracking-wide max-w-[60%] bg-opacity-40 chat-bubble outline-transparent text-[.95rem] text-slate-950 text-shadow-md dark:bg-slate-50 dark:text-slate-900",
+			className: "bg-fuchsia-50  px-3  py-1 tracking-wide max-w-[60%] bg-opacity-70 chat-bubble outline-transparent text-[.95rem] text-slate-950 text-shadow-md dark:bg-slate-50 dark:text-slate-900",
 		},
 	],
 	defaultVariants: {

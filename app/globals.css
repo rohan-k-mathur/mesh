@@ -231,7 +231,8 @@
 {
   border-radius: 20px;
   /*background: linear-gradient(145deg, #c5c9d8, #eaefff);*/
-  background: transparent;
+  background: white;
+  
   box-shadow:  inset 17px 17px 49px #F4F4F5,
                inset -17px -17px 49px #CCDAF8;
 }
@@ -920,6 +921,25 @@ textarea {
   box-shadow: .5px .5px .25px .25px rgba(0,0,0,0.25);
 
 }
+.sidebarbutton {
+  background-color: rgba(255,255,255,.3);
+  padding: 2px;
+  outline: transparent;
+  outline-style: solid;
+  outline-width: .25px;
+  border-radius: 4px;
+  box-shadow:   3px 3px 7px #dec7cc,
+  -1px 2px 7px rgba(0, 0, 0, 0.25);
+
+  
+}
+.sidebarbutton:hover{
+  background-color: rgba(255,255,255,.3);
+
+  box-shadow:   2px 2px 4px rgba(222,199,204,.53),
+  -.5px 1px 4px rgba(0, 0, 0, 0.35);
+
+}
 .likebutton {
   background-color: transparent;
   padding: 2px;
@@ -928,7 +948,7 @@ textarea {
   outline-width: .25px;
   border-radius: 4px;
   box-shadow:   3px 3px 7px #dec7cc,
-  -1px 2px 7px rgba(0, 0, 0, 0.15);
+  -1px 2px 7px rgba(0, 0, 0, 0.25);
 
   
 }
@@ -1023,42 +1043,46 @@ textarea {
 .messagefield {
   outline:transparent;
   border:none;
-  box-shadow: inset  -3px -1px 7px rgba(253, 195, 195, 0.9),
-  inset  3px 4px 7px rgba(176, 161, 161, 0.85);
+
+
+  box-shadow:  inset -2px -2px 4px rgba(253, 205, 215, 0.95),
+  inset 2px 2px 4px rgba(176, 141, 151, 0.95);
 
 }
 .messagefield:hover {
+
   outline:transparent;
   border:none;
-  box-shadow: inset  -3px -1px 7px rgba(233, 185, 185, 0.95),
-  inset  3px 4px 7px rgba(170, 155, 155, 0.9);
 
+
+  box-shadow:  inset -3px -3px 4px rgba(253, 205, 215, 0.95),
+  inset 3px 3px 4px rgba(176, 141, 151, 0.95);
 }
 .messagefield:focus {
+
   outline:transparent;
   border:none;
-  box-shadow: inset  -3px -2px 7px rgba(233, 180, 180, 0.97),
-  inset  3px 4x 7px rgba(156, 151, 151, 0.95);
+  box-shadow:  inset -3px -3px 4px rgba(253, 205, 215, 0.95),
+  inset 3px 3px 4px rgba(176, 141, 151, 0.95);
 
 }
 
 .sendbutton {
-  background-color: transparent;
   padding: 2px;
   outline: transparent;
   outline-style: solid;
   outline-width: .25px;
   border-radius: 4px;
-  box-shadow:   3px 3px 7px rgba(253, 205, 205, 0.95),
-  1px -2px 7px rgba(176, 141, 141, 0.95);
+  box-shadow:   1px 1px 3px rgba(253, 205, 215, 0.95),
+  1px -1px 3px rgba(176, 141, 151, 0.95);
 
   
 }
 .sendbutton:hover{
   /* box-shadow:   2px 2px 4px rgba(253, 205, 205, 0.95),
   -.5px 1px 4px rgba(176, 141, 141, 0.95); */
-  box-shadow: inset  -3px -3px 7px rgba(253, 205, 205, 0.95),
-  inset 1px 2px 7px rgba(176, 141, 141, 0.95);
+  box-shadow: inset  -1px -1px 3px rgba(253, 205, 215, 0.95),
+  inset 1px 1px 3px rgba(176, 141, 151, 0.95);
 
 }
 
@@ -1115,22 +1139,28 @@ textarea {
 .chat-bubble
 {
 
-  background-color: transparent;
-  padding: 2px;
-  outline: transparent;
-  outline-style: solid;
-  outline-width: .25px;
-  border-radius: 4px;
-  box-shadow:   -3px 3px 7px rgba(222,199,204,.53),
-  3px 3px 7px rgba(0, 0, 0, 0.15);
+
+
+    background-color: transparent;
+    padding: 2px;
+    outline: transparent;
+    outline-style: solid;
+    outline-width: .25px;
+    border-radius: 4px;
+    box-shadow:   2px 2px 4px rgba(253, 205, 210, 0.75),
+    -1px -2px 4px rgba(176, 141, 161, 0.55);
+  
+
+  
 
 
 }
 .chat-bubble:hover
 {
 
-  box-shadow:   -3px 3px 7px rgba(222,199,204,.53),
-  3px 3px 7px rgba(0, 0, 0, 0.15);
+  box-shadow:   2px 2px 4px rgba(253, 205, 215, 0.75),
+  -1px -2px 4px rgba(176, 141, 161, 0.64);
+  
 
 
 

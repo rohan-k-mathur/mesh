@@ -78,7 +78,7 @@ function LeftSidebar({ userRooms }: Props) {
       <div className="flex  w-full flex flex-col gap-6 px-2 mt-3">
        
             <button
-              className="flex likebutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent"
+              className="flex sidebarbutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent"
               onClick={gotoglobal}
               >
                           <div className="flex align-center gap-3">
@@ -95,7 +95,7 @@ function LeftSidebar({ userRooms }: Props) {
             </button>
        
             <button
-              className="flex likebutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent"
+              className="flex  sidebarbutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent"
           onClick={openRoomsModal}
         >
                           <div className="flex align-center gap-3">
@@ -111,7 +111,7 @@ function LeftSidebar({ userRooms }: Props) {
             </button>
 
             <button
-              className="flex likebutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent"
+              className="flex  sidebarbutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent"
           onClick={gotoapplications}
         >
                                     <div className="flex align-center gap-3">
@@ -132,7 +132,7 @@ function LeftSidebar({ userRooms }: Props) {
 
         {isUserSignedIn && <CreateFeedPost />}
         <button
-            className="flex likebutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent"
+            className="flex  sidebarbutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent"
             onClick={gotosearch}
           >
             <div className="flex align-center gap-3">
@@ -154,7 +154,7 @@ function LeftSidebar({ userRooms }: Props) {
  
         {isUserSignedIn && (
           <button
-          className="flex likebutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent"
+          className="flex  sidebarbutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent"
           onClick={gotonotifications}
     >
        <div className="flex align-center gap-3">
@@ -173,7 +173,7 @@ function LeftSidebar({ userRooms }: Props) {
   
         {isUserSignedIn && (
           <button
-          className="flex likebutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent"
+          className="flex  sidebarbutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent"
           onClick={gotoprofile}
     >
        <div className="flex align-center gap-3">
