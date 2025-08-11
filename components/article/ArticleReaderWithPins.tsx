@@ -55,6 +55,42 @@ function coerceRangeEndsToText(range: Range): { start: Node; startOffset: number
   return { start: startContainer, startOffset, end: endContainer, endOffset };
 }
 
+function getAnchorRects(anchor: Anchor, root: HTMLElement): DOMRect[] {
+  // Build a full text range for the anchor, then get all client rects
+  let n: Node | null = root
+  for (const i of anchor.startPath) n = n?.childNodes[i] ?? null
+  let m: Node | null = root
+  for (const i of anchor.endPath)   m = m?.childNodes[i] ?? null
+  if (!n || !m) return []
+
+  // Coerce to text if needed
+  if (n.nodeType !== Node.TEXT_NODE) n = firstTextNodeWithin(n) as Node
+  if (m.nodeType !== Node.TEXT_NODE) m = firstTextNodeWithin(m, "backward") as Node
+  if (!n || !m) return []
+
+  const r = document.createRange()
+  r.setStart(n, anchor.startOffset)
+  r.setEnd(m, anchor.endOffset)
+
+  const base = root.getBoundingClientRect()
+  return Array.from(r.getClientRects()).map(rect =>
+    new DOMRect(rect.left - base.left, rect.top - base.top, rect.width, rect.height)
+  )
+}
+
+
+
+type PinPos = { id: string; top: number; left: number }
+function solveCollisions(items: PinPos[], minGap = 18): PinPos[] {
+  const sorted = [...items].sort((a, b) => a.top - b.top)
+  let last = -Infinity
+  for (const p of sorted) {
+    if (p.top < last + minGap) p.top = last + minGap
+    last = p.top
+  }
+  return sorted
+}
+
 function buildAnchorFromSelection(root: HTMLElement, sel: Selection): { anchor: Anchor; rect: DOMRect } | null {
   if (!sel.rangeCount) return null;
   const r = sel.getRangeAt(0);
@@ -114,7 +150,17 @@ const bubbleRef    = useRef<HTMLDivElement>(null);   // 👈 NEW
   const [openId, setOpenId] = useState<string | null>(null);
   const [threads, setThreads] = useState<CommentThread[]>(initialThreads);
   const [tick, setTick] = useState(0);
+  const GUTTER = 24 // px
 
+  const [hoverId, setHoverId] = useState<string | null>(null)
+  
+  const rectsByThread = useMemo(() => {
+    const root = containerRef.current
+    if (!root) return {} as Record<string, DOMRect[]>
+    const map: Record<string, DOMRect[]> = {}
+    for (const t of threads) map[t.id] = getAnchorRects(t.anchor, root)
+    return map
+  }, [threads, html, tick])
   // selection bubble state
   const [bubble, setBubble] = useState<{
     anchor: Anchor;
@@ -209,19 +255,81 @@ useEffect(() => {
     <ArticleReader template={template} heroSrc={heroSrc}>
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
         {/* Article + pins */}
-        <div className="relative">
+        <div className="relative pl-8">
           <div
             ref={containerRef}
             className="prose max-w-none"
             dangerouslySetInnerHTML={{ __html: html }}
             onMouseUpCapture={onMouseUpCapture}
           />
+            {/* line highlights for active/hovered thread */}
+  {(openId || hoverId) && rectsByThread[openId || hoverId!]?.map((r, i) => (
+    <div
+      key={i}
+      className="absolute pointer-events-none bg-amber-200/30 rounded-sm"
+      style={{ top: r.top, left: r.left, width: r.width, height: r.height }}
+    />
+  ))}
+<div className="md:hidden mb-3">
+  <button
+    className="px-3 py-1.5 rounded bg-amber-500 text-white text-sm"
+    onClick={() => setOpenId(threads[0]?.id ?? null)}
+  >
+    View comments ({threads.length})
+  </button>
+</div>
 
-          {/* Existing pins */}
+  {/* pin layer in the left gutter */}
+  <div className="absolute inset-y-0 left-0 w-8 select-none">
+    {solveCollisions(
+      threads.map(t => ({
+        id: t.id,
+        top: (positions[t.id]?.top ?? 0) - 8, // center the 16px pin
+        left: 4, // inside gutter
+      }))
+    ).map(p => {
+      const t = threads.find(x => x.id === p.id)!
+      const active = openId === t.id
+      const hovered = hoverId === t.id
+      const pos = positions[t.id]
+      const leaderLeft = GUTTER // content start
+      const leaderRight = Math.max(leaderLeft, (pos?.left ?? leaderLeft) - 4)
+
+      return (
+        <div key={t.id} className="absolute"
+             style={{ top: p.top, left: p.left }}
+             onMouseEnter={() => setHoverId(t.id)}
+             onMouseLeave={() => setHoverId(null)}>
+          {/* pin */}
+          <button
+            aria-label="Open comment"
+            className={`w-4 h-4 rounded-full grid place-items-center text-[10px] leading-none
+                        transition-opacity ring-1 shadow
+                        ${t.resolved ? "bg-neutral-300 ring-neutral-300/40" : "bg-amber-400 ring-amber-500/30"}
+                        ${active ? "opacity-100" : hovered ? "opacity-90" : "opacity-40 hover:opacity-80"}`}
+            onClick={() => setOpenId(t.id)}
+          >
+            ●
+          </button>
+
+          {/* leader line appears only on hover/active */}
+          {(active || hovered) && (
+            <div
+              className="absolute top-2 left-4 h-px bg-current opacity-30"
+              style={{ width: leaderRight - leaderLeft }}
+            />
+          )}
+        </div>
+      )
+    })}
+  </div>
+
+
+          {/* Existing pins
           {threads.map((t) => (
             <button
               key={t.id}
-              className={`absolute z-20 w-5 h-5 rounded-full grid place-items-center text-xs font-semibold bg-amber-400 text-white shadow ring-1 ring-amber-500/30 ${t.resolved ? "opacity-40" : ""}`}
+              className={`absolute flex z-20 w-5 h-5 rounded-full grid place-items-center  text-xs font-semibold bg-amber-400 text-white shadow ring-1 ring-amber-500/30 ${t.resolved ? "opacity-40" : ""}`}
               style={{
                 top: positions[t.id]?.top ?? 0,
                 left: (positions[t.id]?.left ?? 0) - 24,
@@ -231,7 +339,7 @@ useEffect(() => {
             >
               ●
             </button>
-          ))}
+          ))} */}
 
           {/* Floating composer bubble */}
           {bubble && (

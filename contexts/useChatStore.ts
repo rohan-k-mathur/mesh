@@ -74,8 +74,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
       },
     })),
 
-  upsertPoll: (poll, initState, myVote) =>
-    set((state) => {
+    upsertPoll: (poll, initState, myVote) =>
+        set((state) => {
+          if (!poll) {
+            console.warn("[polls] upsertPoll called without poll", { initState, myVote });
+            return {};
+          }
       let ui: PollUI;
       if (poll.kind === "OPTIONS") {
         const totals =

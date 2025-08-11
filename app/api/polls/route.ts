@@ -10,22 +10,20 @@ export async function POST(req: Request) {
       kind: body.kind,
       options: body.options,
     });
-    return NextResponse.json({
-      ok: true,
-      poll: {
-        ...poll,
-        id: String(poll.id),
-        conversationId: String(poll.conversation_id),
-        messageId: String(poll.message_id),
-        createdById: String(poll.created_by_id),
-        kind: poll.kind,
-        options: poll.options ?? undefined,
-        maxOptions: poll.max_options,
-        closesAt: poll.closes_at ? poll.closes_at.toISOString() : null,
-        anonymous: poll.anonymous,
-        createdAt: poll.created_at.toISOString(),
-      },
-    });
+    // IMPORTANT: do NOT spread the Prisma model (it has BigInts).
+    const dto = {
+         id: String(poll.id),
+         conversationId: String(poll.conversation_id),
+         messageId: String(poll.message_id),
+         createdById: String(poll.created_by_id),
+         kind: poll.kind,
+         options: poll.options ?? undefined,
+         maxOptions: poll.max_options,
+         closesAt: poll.closes_at ? poll.closes_at.toISOString() : null,
+         anonymous: poll.anonymous,
+         createdAt: poll.created_at.toISOString(),
+       };
+       return NextResponse.json({ ok: true, poll: dto });
   } catch (e: any) {
     return NextResponse.json({ ok: false, error: e.message }, { status: 400 });
   }

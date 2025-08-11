@@ -148,24 +148,69 @@ export default function ChatRoom({ conversationId, currentUserId, initialMessage
     initRef.current = conversationId;
   }, [conversationId, setMessages, initialMessages]);
 
-  useEffect(() => {
-    const channel = supabase.channel(`conversation-${conversationId}`);
-    const handler = ({ payload }: any) => appendRef.current(conversationId, payload as Message);
-    channel.on("broadcast", { event: "new_message" }, handler);
-    channel.on("broadcast", { event: "poll_create" }, ({ payload }) => {
-      upsertPoll(payload.poll, payload.state ?? null, payload.my ?? null);
-    });
-    channel.on("broadcast", { event: "poll_state" }, ({ payload }) => {
-      applyPollState(payload as PollStateDTO);
-    });
-    channel.subscribe();
-    return () => {
-      try {
-        channel.unsubscribe?.();
-      } catch {}
-      supabase.removeChannel(channel);
-    };
-  }, [conversationId, upsertPoll, applyPollState]);
+  // useEffect(() => {
+  //   const channel = supabase.channel(`conversation-${conversationId}`);
+  //   const handler = ({ payload }: any) => appendRef.current(conversationId, payload as Message);
+  //   channel.on("broadcast", { event: "new_message" }, handler);
+  //   channel.on("broadcast", { event: "poll_create" }, ({ payload }) => {
+  //     upsertPoll(payload.poll, payload.state ?? null, payload.my ?? null);
+  //   });
+  //   channel.on("broadcast", { event: "poll_state" }, ({ payload }) => {
+  //     applyPollState(payload as PollStateDTO);
+  //   });
+  //   channel.subscribe();
+  //   return () => {
+  //     try {
+  //       channel.unsubscribe?.();
+  //     } catch {}
+  //     supabase.removeChannel(channel);
+  //   };
+  // }, [conversationId, upsertPoll, applyPollState]);
+
+     // keep a ref to the subscribed channel so we can send on it later
+   const chRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+ 
+   // Helper: unwrap Supabase payload (sometimes {poll,...}, sometimes {payload:{poll,...}})
+   function unwrap<T extends object>(raw: any): any {
+     if (!raw) return null;
+     if (typeof raw === "object" && ("poll" in raw || "pollId" in raw)) return raw;
+     if (typeof raw === "object" && "payload" in raw) return (raw as any).payload;
+     return raw;
+   }
+ 
+   useEffect(() => {
+     const channel = supabase.channel(`conversation-${conversationId}`);
+     chRef.current = channel;
+ 
+     const msgHandler = ({ payload }: any) => {
+       appendRef.current(conversationId, payload as Message);
+     };
+     const pollCreateHandler = ({ payload }: any) => {
+       const data = unwrap(payload);
+       if (!data?.poll) {
+         console.warn("[polls] poll_create missing poll:", payload);
+         return;
+       }
+       upsertPoll(data.poll, data.state ?? null, data.my ?? null);
+     };
+     const pollStateHandler = ({ payload }: any) => {
+       const data = unwrap(payload);
+       if (!data) return;
+       applyPollState(data as PollStateDTO);
+     };
+ 
+     channel.on("broadcast", { event: "new_message" }, msgHandler);
+     channel.on("broadcast", { event: "poll_create" }, pollCreateHandler);
+     channel.on("broadcast", { event: "poll_state" }, pollStateHandler);
+     channel.subscribe();
+ 
+     return () => {
+       chRef.current = null;
+       try { channel.unsubscribe?.(); } catch {}
+       supabase.removeChannel(channel);
+     };
+   }, [conversationId, upsertPoll, applyPollState]);
+
 
 
   const onPrivateReply = useCallback((m: Message) => {
@@ -194,7 +239,7 @@ export default function ChatRoom({ conversationId, currentUserId, initialMessage
         options.push(val);
       }
       if (options.length < 2) return;
-      const { poll } = await fetch("/api/polls", {
+      const res = await fetch("/api/polls", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -203,27 +248,39 @@ export default function ChatRoom({ conversationId, currentUserId, initialMessage
           kind: "OPTIONS",
           options,
         }),
-      }).then((r) => r.json());
-      upsertPoll(poll, null, null);
-      supabase
-        .channel(`conversation-${conversationId}`)
-        .send({ type: "broadcast", event: "poll_create", payload: { poll, state: null, my: null } });
+      });
+             const data = await res.json();
+             if (!res.ok || !data?.ok) {
+               console.warn("[polls] create OPTIONS failed:", data);
+               alert(data?.error ?? "Failed to create poll");
+               return;
+             }
+             const poll = data.poll;
+             upsertPoll(poll, null, null);
+             chRef.current?.send({ type: "broadcast", event: "poll_create", payload: { poll, state: null, my: null } });
+           
     },
     [conversationId, upsertPoll]
   );
 
   const onCreateTemp = useCallback(
     async (m: Message) => {
-      const { poll } = await fetch("/api/polls", {
+      const res = await fetch("/api/polls", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ conversationId, messageId: m.id, kind: "TEMP" }),
-      }).then((r) => r.json());
-      upsertPoll(poll, null, null);
-      supabase
-        .channel(`conversation-${conversationId}`)
-        .send({ type: "broadcast", event: "poll_create", payload: { poll, state: null, my: null } });
-    },
+     
+      });
+             const data = await res.json();
+             if (!res.ok || !data?.ok) {
+               console.warn("[polls] create TEMP failed:", data);
+               alert(data?.error ?? "Failed to create poll");
+               return;
+             }
+             const poll = data.poll;
+             upsertPoll(poll, null, null);
+             chRef.current?.send({ type: "broadcast", event: "poll_create", payload: { poll, state: null, my: null } });
+           },
     [conversationId, upsertPoll]
   );
 
@@ -240,10 +297,12 @@ export default function ChatRoom({ conversationId, currentUserId, initialMessage
       } else {
         setMyVote({ kind: "TEMP", pollId: poll.poll.id, value: body.value });
       }
-      supabase
-        .channel(`conversation-${conversationId}`)
-        .send({ type: "broadcast", event: "poll_state", payload: state });
-    },
+      chRef.current?.send({
+                type: "broadcast",
+                event: "poll_state",
+                payload: state,
+              });
+             },
     [applyPollState, setMyVote, conversationId]
   );
 
