@@ -129,10 +129,10 @@ export default function ArticlesDashboard({
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search..."
-          className="border rounded w-1/3  modalfield px-2 py-[4px] text-sm"
+          className="border-[1px] border-indigo-300/80 rounded w-1/3  articlesearchfield px-2 py-[4px] text-sm"
         />
         <select
-          className="border rounded px-2 py-1 text-sm selectfield"
+          className="border-[1px] border-indigo-300/80 rounded px-2 py-1 text-sm selectfield"
           value={status}
           onChange={(e) => setStatus(e.target.value as any)}
         >
@@ -142,7 +142,7 @@ export default function ArticlesDashboard({
         </select>
  
 
-<select className="border rounded px-2 py-1 text-sm selectfield " value={template} onChange={e => setTemplate(e.target.value)}>
+<select className="border-[1px] border-indigo-300/80 rounded px-2 py-1 text-sm selectfield " value={template} onChange={e => setTemplate(e.target.value)}>
           <option value="ALL">All templates</option>
           <option value="standard">Standard</option>
           <option value="feature">Feature</option>
@@ -152,14 +152,14 @@ export default function ArticlesDashboard({
         <div className="ml-auto flex items-center gap-2">
         {isPending && <span className="text-sm text-neutral-500">Loading…</span>}
 
-          <button className={`px-2 selectfield border rounded text-[.9rem] ${view==='active'?'px-2  border rounded text-[.9rem] bg-neutral-100':'px-2  border rounded text-[.9rem] bg-neutral-50/30'}`} onClick={() => { setView('active'); setPage(1); startTransition(refresh) }}>Active</button>
-          <button className={`px-2 selectfield border rounded text-[.9rem]${view==='trash'?'px-2  border rounded text-[.9rem] bg-neutral-100':'px-2  border rounded text-[.9rem] bg-neutral-50/30'}`} onClick={() => { setView('trash'); setPage(1); startTransition(refresh) }}>Trash</button>
+          <button className={`px-2 py-0 lockbutton border-[1px] border-indigo-300/80 rounded text-[.9rem] ${view==='active'?'px-2  border rounded text-[.9rem] bg-neutral-100':'px-2  border rounded text-[.9rem] bg-neutral-50/30'}`} onClick={() => { setView('active'); setPage(1); startTransition(refresh) }}>Active</button>
+          <button className={`px-2 py-0 lockbutton border-[1px] border-indigo-300/80 rounded text-[.9rem]${view==='trash'?'px-2  border rounded text-[.9rem] bg-neutral-100':'px-2  border rounded text-[.9rem] bg-neutral-50/30'}`} onClick={() => { setView('trash'); setPage(1); startTransition(refresh) }}>Trash</button>
         </div>
       </div>
 
 
 
-      <div className="overflow-x-auto rounded border bg-white">
+      <div className="overflow-x-auto rounded border-[1px] border-indigo-300/80 bg-white">
         <table className="min-w-full text-sm">
           <thead className="bg-neutral-50 text-neutral-600">
             <tr>
@@ -229,9 +229,9 @@ export default function ArticlesDashboard({
       <div className="flex items-center justify-between text-sm">
         <div>{total !== null ? `Total: ${total}` : ''}</div>
         <div className="flex items-center gap-2">
-          <button className="px-2 py-1 border rounded" disabled={page<=1} onClick={() => onPageChange(page-1)}>Prev</button>
+          <button className="px-2 py-1  rounded bg-white/70 lockbutton" disabled={page<=1} onClick={() => onPageChange(page-1)}>Prev</button>
           <span>Page {page}</span>
-          <button className="px-2 py-1 border rounded" onClick={() => onPageChange(page+1)}>Next</button>
+          <button className="px-2 py-1  rounded bg-white/70 lockbutton" onClick={() => onPageChange(page+1)}>Next</button>
         </div>
         </div>
     </div>

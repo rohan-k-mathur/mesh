@@ -1179,7 +1179,22 @@ textarea {
   box-shadow:   1px 1px 3px #dec7cc,
   -1px 1px 3px rgba(0, 0, 0, 0.15);
 }
+.articlesearchfield{
+  box-shadow: inset  -1px -1px 4px rgba(203, 225, 253, 0.75),
+  inset  1px 1px 4px rgba(141, 141, 176, 0.95);
+}
+.articlesearchfield:hover {
 
+  box-shadow: inset  -2px -2px 4px rgba(193, 215, 243, 0.95),
+  inset  2px 2px 4px rgba(131, 131, 166, 0.95);
+
+}
+.articlesearchfield:focus {
+
+  box-shadow: inset  -2px -2px 4px rgba(193, 215, 243, 0.95),
+  inset  2px 2px 4px rgba(131, 131, 166, 0.95);
+
+}
 .modalfield {
   outline:transparent;
   border:none;
