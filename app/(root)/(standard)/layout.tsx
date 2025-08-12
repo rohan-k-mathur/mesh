@@ -20,6 +20,7 @@ import ClientProviders from "./client-providers";
 import PrivateChatDock from "@/components/chat/PrivateChatDock";
 import MessagesRealtimeBootstrap from "@/components/chat/MessagesRealtimeBootstrap";
 import { getCurrentUserId } from "@/lib/serverutils";
+
 export const metadata = {
   title: "Mesh",
   description: "A social media website",

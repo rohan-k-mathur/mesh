@@ -42,7 +42,8 @@ import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
 import enStrings from '@/public/locales/en/editor.json';
 import { useDebouncedCallback } from 'use-debounce';
-import { FontFamily } from './extensions/font-family';
+import { FontFamily } from '@/lib/tiptap/extensions/font-family'
+import { FontSize }   from '@/lib/tiptap/extensions/font-size'
 import { useEditor, Editor } from '@tiptap/react'
 
 import SlashCommand from './editor/SlashCommand';
@@ -323,10 +324,14 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
   const extensions = useMemo<Extension[]>(() => {
     return [
       TextStyle,
+      FontSize,
       FontFamily,
       Color,
       Highlight,
-      TextAlign.configure({ types: ['heading', 'paragraph'] }),
+      TextAlign.configure({
+        types: ['heading', 'paragraph', 'blockquote', 'listItem'],
+        alignments: ['left', 'center', 'right', 'justify'],
+      }),
       Underline,
       TaskList,
       TaskItem,

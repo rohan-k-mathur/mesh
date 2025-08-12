@@ -3,11 +3,11 @@ import { prisma } from "@/lib/prismaclient";
 import { notFound } from "next/navigation";
 import { generateHTML } from "@tiptap/html";
 import StarterKit from "@tiptap/starter-kit";
-import { FontFamily } from "@/components/article/extensions/font-family";
-
+import { FontFamily } from "@/lib/tiptap/extensions/font-family";
 // import ImageExt from "@tiptap/extension-image";
 // import TipTapLink       from '@tiptap/extension-link'
 import TextStyle from "@tiptap/extension-text-style";
+import { FontSize } from "@/lib/tiptap/extensions/font-size";
 import Underline from "@tiptap/extension-underline";
 import Highlight from "@tiptap/extension-highlight";
 import TextAlign from "@tiptap/extension-text-align";
@@ -59,31 +59,51 @@ export default async function ArticlePage({
       downvotes: c.downvotes,
     })),
   }));
-
+  console.log('AST on server:', JSON.stringify(article.astJson))
   /* 2️⃣ convert TipTap JSON → HTML (use SAME extensions as editor) */
   const html = generateHTML(article.astJson as any, [
-      // marks first
-  TextStyle,
-  Color,
-  FontFamily,
-  Underline,
-  Highlight,
-
-  // nodes
-  StarterKit,
-  CustomImage,
-  PullQuote,
-  Callout,
-  MathBlock,
-  MathInline,
-  TaskList,
-  TaskItem,
-
-  // utilities
-  Link,
-  TextAlign.configure({ types: ['heading', 'paragraph'] }),
-])
-
+    // marks first
+    TextStyle,
+    FontFamily,
+    FontSize,
+    Color,
+    Underline,
+    Highlight,
+  
+    // nodes
+    StarterKit,
+    CustomImage,
+    PullQuote,
+    Callout,
+    MathBlock,
+    MathInline,
+    TaskList,
+    TaskItem,
+  
+    // utilities
+    Link,
+    TextAlign.configure({
+      types: ['heading', 'paragraph', 'blockquote', 'listItem'],
+      alignments: ['left', 'center', 'right', 'justify'],
+    }),
+  ])
+  const doc = {
+    type: 'doc',
+    content: [{
+      type: 'paragraph',
+      attrs: { textAlign: 'center' },
+      content: [{
+        type: 'text',
+        text: 'WORLD',
+        marks: [{ type: 'textStyle', attrs: {
+          fontFamily: '"Founders",sans-serif',
+          fontSize: '24px'
+        }}]
+      }]
+    }]
+  }
+  
+  console.log(generateHTML(doc, [TextStyle, FontFamily, FontSize, StarterKit]))
   return (
     <ArticleReaderWithPins
     template={article.template}

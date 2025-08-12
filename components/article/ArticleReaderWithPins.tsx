@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import ArticleReader from "@/components/article/ArticleReader";
 import CommentSidebar from "@/components/article/CommentSidebar";
 import type { Anchor, CommentThread } from "@/types/comments";
+import { FontFamily } from '@/lib/tiptap/extensions/font-family'
+import { FontSize }   from '@/lib/tiptap/extensions/font-size'
 import Image from "next/image";
 /* ----------------------- DOM ↔ anchor helpers ----------------------- */
 

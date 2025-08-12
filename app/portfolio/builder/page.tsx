@@ -1721,8 +1721,8 @@ function PortfolioBuilderInner({
                           })
                         }
                       />
-                       <button
-                         className="absolute top-1 right-1 rounded-md lockbutton"
+                       <button hidden
+                         className="absolute bottom-[-28px] left-4 rounded-md lockbutton"
                          onPointerDown={(e) => e.stopPropagation()}
                          onClick={(e) => {
                            e.stopPropagation();
@@ -1731,7 +1731,7 @@ function PortfolioBuilderInner({
                          aria-label="Delete"
                          title="Delete"
                        >
-                         <Image src="/assets/trash-can.svg" alt="" width={14} height={14} />
+                         <Image  src="/assets/trash-can.svg" alt="" width={14} height={14} />
                       </button>
 
                       {(["nw", "ne", "sw", "se"] as const).map((corner) => (

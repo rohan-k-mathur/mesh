@@ -4,6 +4,7 @@ import {
   Italic,
   Underline,
   Strikethrough,
+  
   Code,
   List,
   ListOrdered,
@@ -12,11 +13,14 @@ import {
   AlignLeft,
   AlignCenter,
   AlignRight,
+  AlignJustify,
   Link2,
   Image as ImageIcon,
   Eraser,
 } from "lucide-react";
 import React from "react";
+import '@/lib/tiptap/extensions/font-family'
+import '@/lib/tiptap/extensions/font-size'
 
 type Props = { editor: Editor | null };
 
@@ -39,20 +43,52 @@ export default function Toolbar({ editor }: Props) {
 
   return (
     <div className="flex flex-wrap items-center gap-1 border rounded-md px-2 py-1 bg-white">
+    <select
+  className="text-sm border rounded"
+  defaultValue=""
+  onChange={(e) =>
+    editor.chain().focus().setFontFamily(e.target.value).run()
+  }
+  // onChange={(e) => editor
+  //   .chain()
+  //   .focus()
+  //   .setMark('textStyle', { fontFamily: e.target.value })
+  //   .run()
+  // }
+>
+  <option value="" disabled>Font</option>
+  <option value="inherit">System Sans</option>
+
+  {/* Founders Grotesk is sans-serif */}
+  <option value={'"Founders",sans-serif'}>
+    Founders
+  </option>
+
+  <option value={'"Bugrino", serif'}>Bugrino</option>
+  <option value={'"New Edge Test", serif'}>New Edge Test</option>
+  <option value={'"Kolonia", serif'}>Kolonia</option>
+</select>
       <select
-        onChange={(e) =>
-          editor.chain().focus().setFontFamily(e.target.value).run()
-        }
-        className="text-sm border rounded"
-        defaultValue=""
-      >
-        <option value="" disabled>
-          Font
-        </option>
-        <option value="inherit">Sans Serif</option>
-        <option value="Georgia,serif">Serif</option>
-        <option value="Mercury,serif">Mercury</option>
-      </select>
+  className="text-sm border rounded"
+  defaultValue=""
+  onChange={(e) => {
+    const v = e.target.value
+    if (!v) return
+    if (v === 'unset') editor.chain().focus().unsetFontSize().run()
+    else editor.chain().focus().setFontSize(v).run()
+  }}
+>
+  <option value="" disabled>Size</option>
+  <option value="unset">Default</option>
+  <option value="12px">12</option>
+  <option value="14px">14</option>
+  <option value="16px">16</option>
+  <option value="18px">18</option>
+  <option value="20px">20</option>
+  <option value="24px">24</option>
+  <option value="32px">32</option>
+  <option value="48px">48</option>
+</select>
 
       {btn(
         <Bold size={16} />,
@@ -119,6 +155,12 @@ export default function Toolbar({ editor }: Props) {
         () => editor.chain().focus().setTextAlign("right").run(),
         editor.isActive({ textAlign: "right" }),
       )}
+      {btn(
+  <AlignJustify size={16} />,
+  () => editor.chain().focus().setTextAlign("justify").run(),
+  editor.isActive({ textAlign: "justify" }),
+)}
+
 
       {btn(
         <Quote size={16} />,

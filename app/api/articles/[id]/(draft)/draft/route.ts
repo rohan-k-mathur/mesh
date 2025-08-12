@@ -3,12 +3,11 @@ import { prisma } from '@/lib/prismaclient'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 
-const schema = z
-  .object({
-    astJson: z.any(),
-    template: z.string().optional(),
-    heroImageKey: z.string().optional(),
-  })
+const schema = z.object({
+  astJson: z.any().optional(),
+  template: z.string().optional(),
+  heroImageKey: z.string().nullable().optional(), // 👈 allow null
+})
   .partial()                           // allow sparse payloads
 
   export async function PATCH(
@@ -29,6 +28,10 @@ const schema = z
       where: { id: params.id },
       data : { ...parsed.data, status: 'DRAFT' },
     })
+    if (!parsed.success) {
+      console.error(parsed.error.flatten())
+      return NextResponse.json({ error: 'Invalid body' }, { status: 400 })
+    }
   
     return NextResponse.json({ ok: true })
   }
