@@ -74,3 +74,13 @@
   .prose [data-clr="red"]    { color: var(--clr-red);    }
   .prose [data-clr="muted"]  { color: var(--clr-muted);  }
   
+  .lockbutton {
+
+    box-shadow: 1px 1px 1px 1px rgba(0,0,0,0.5);
+  
+  }
+  .lockbutton:hover{
+  
+    box-shadow: .5px .5px .25px .25px rgba(0,0,0,0.25);
+  
+  }
