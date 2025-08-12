@@ -1,24 +1,27 @@
 
 import { prisma } from "@/lib/prismaclient";
 import { notFound } from "next/navigation";
-import { generateHTML } from '@tiptap/html'
-import StarterKit from '@tiptap/starter-kit'
-import { TextStyleSSR } from '@/lib/tiptap/extensions/text-style-ssr'
-import TextAlign from '@tiptap/extension-text-align'
-import Underline from '@tiptap/extension-underline'
-import Highlight from '@tiptap/extension-highlight'
-import Link from '@tiptap/extension-link'
-import ArticleReaderWithPins from "@/components/article/ArticleReaderWithPins";
+import { generateHTML } from "@tiptap/html"
+import StarterKit from "@tiptap/starter-kit"
+import TextStyle from "@tiptap/extension-text-style"
+import { FontFamily } from "@/lib/tiptap/extensions/font-family"
+import { FontSize } from "@/lib/tiptap/extensions/font-size"
+import Color from "@tiptap/extension-color"
+import Highlight from "@tiptap/extension-highlight"
+import Underline from "@tiptap/extension-underline"
+import TextAlign from "@tiptap/extension-text-align"
+import Link from "@tiptap/extension-link"
+import ArticleReaderWithPins from "@/components/article/ArticleReaderWithPins"
 import {
   PullQuote,
   Callout,
   MathBlock,
   MathInline,
   CustomImage,
-} from '@/lib/tiptap/extensions'
+} from "@/lib/tiptap/extensions"
 
-import TaskList from "@tiptap/extension-task-list";
-import TaskItem from "@tiptap/extension-task-item";
+import TaskList from "@tiptap/extension-task-list"
+import TaskItem from "@tiptap/extension-task-item"
 
 export default async function ArticlePage({
   params,
@@ -54,55 +57,28 @@ export default async function ArticlePage({
       downvotes: c.downvotes,
     })),
   }));
-  console.log('AST on server:', JSON.stringify(article.astJson))
   /* 2️⃣ convert TipTap JSON → HTML (use SAME extensions as editor) */
-  // const html = generateHTML(article.astJson as any, [
-  //   // nodes & utilities first
-  //   StarterKit,
-  //   CustomImage,
-  //   PullQuote,
-  //   Callout,
-  //   MathBlock,
-  //   MathInline,
-  //   TaskList,
-  //   TaskItem,
-  //   Link,
-  //        TextAlign.configure({
-  //       types: ['heading', 'paragraph', 'blockquote', 'listItem'],
-  //       alignments: ['left', 'center', 'right', 'justify'],
-  //     }),
-  
-  //   TextStyleSSR,
-  // ])
   const html = generateHTML(article.astJson as any, [
-  StarterKit,
-  CustomImage, PullQuote, Callout, MathBlock, MathInline,
-  TaskList, TaskItem,
-  Link,
-  TextAlign.configure({ types: ['heading','paragraph','blockquote','listItem'] }),
-  TextStyleSSR, // LAST
-])
-  const testDoc = {
-    type: 'doc',
-    content: [{
-      type: 'paragraph',
-      content: [{
-        type: 'text',
-        text: 'HELLO WORLD',
-        marks: [{
-          type: 'textStyle',
-          attrs: { fontFamily: "'New Edge Test', serif", fontSize: '48px' }
-        }],
-      }],
-    }],
-  }
-  
-  console.log(generateHTML(testDoc, [StarterKit, TextStyleSSR]));
-  // expect: <p><span style="font-family:'New Edge Test', serif; font-size:48px">HELLO WORLD</span></p>
-
-  // => <p style="text-align:center"><span style="font-family:'Kolonia', serif; font-size:48px; color:#333">WORLD</span></p>
-  // expect: <p style="text-align:center"><span style="font-family:'Kolonia', serif; font-size:48px; color:#333333">WORLD</span></p>
-  // last
+    StarterKit,
+    TextStyle,
+    FontSize,
+    FontFamily,
+    Color,
+    Highlight,
+    Underline,
+    TextAlign.configure({
+      types: ["heading", "paragraph", "blockquote", "listItem"],
+      alignments: ["left", "center", "right", "justify"],
+    }),
+    TaskList,
+    TaskItem,
+    CustomImage,
+    PullQuote,
+    Callout,
+    MathBlock,
+    MathInline,
+    Link,
+  ])
   
   return (
     <ArticleReaderWithPins

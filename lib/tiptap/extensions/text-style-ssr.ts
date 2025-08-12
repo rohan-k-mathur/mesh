@@ -15,34 +15,35 @@ function quoteFontList(val?: string | null): string | null {
 }
 
 export const TextStyleSSR = Mark.create({
-  name: 'textStyle',
+  name: "textStyle",
 
-  // keep this lean; SSR only needs to *render*
+  // lean: only render attributes we care about for SSR
   addAttributes() {
     return {
       fontFamily: { default: null },
-      fontSize:   { default: null },
-      color:      { default: null },
+      fontSize: { default: null },
+      color: { default: null },
     }
   },
 
-  // (parseHTML not needed for SSR → we aren’t parsing from HTML)
-
-  renderHTML({ mark, HTMLAttributes }) {
-    const a = { ...(mark?.attrs ?? {}), ...(HTMLAttributes ?? {}) }
-
+  // server rendering only
+  renderHTML({ HTMLAttributes }) {
     const css: string[] = []
-    if (a.fontFamily) css.push(`font-family:${quoteFontList(a.fontFamily)}`)
-    if (a.fontSize)   css.push(`font-size:${a.fontSize}`)
-    if (a.color)      css.push(`color:${a.color}`)
+    if (HTMLAttributes.fontFamily)
+      css.push(`font-family:${quoteFontList(HTMLAttributes.fontFamily)}`)
+    if (HTMLAttributes.fontSize)
+      css.push(`font-size:${HTMLAttributes.fontSize}`)
+    if (HTMLAttributes.color) css.push(`color:${HTMLAttributes.color}`)
 
-    const style = [HTMLAttributes?.style, css.join('; ')].filter(Boolean).join('; ')
+    const style = [css.join("; "), HTMLAttributes.style]
+      .filter(Boolean)
+      .join("; ")
+
     const out = mergeAttributes(HTMLAttributes, style ? { style } : {})
-
     delete (out as any).fontFamily
     delete (out as any).fontSize
     delete (out as any).color
 
-    return ['span', out, 0]
+    return ["span", out, 0]
   },
 })
