@@ -56,27 +56,50 @@ export default async function ArticlePage({
   }));
   console.log('AST on server:', JSON.stringify(article.astJson))
   /* 2️⃣ convert TipTap JSON → HTML (use SAME extensions as editor) */
-  const html = generateHTML(article.astJson as any, [
-    // nodes & utilities first
-    StarterKit,
-    CustomImage,
-    PullQuote,
-    Callout,
-    MathBlock,
-    MathInline,
-    TaskList,
-    TaskItem,
-    Link,
-         TextAlign.configure({
-        types: ['heading', 'paragraph', 'blockquote', 'listItem'],
-        alignments: ['left', 'center', 'right', 'justify'],
-      }),
+  // const html = generateHTML(article.astJson as any, [
+  //   // nodes & utilities first
+  //   StarterKit,
+  //   CustomImage,
+  //   PullQuote,
+  //   Callout,
+  //   MathBlock,
+  //   MathInline,
+  //   TaskList,
+  //   TaskItem,
+  //   Link,
+  //        TextAlign.configure({
+  //       types: ['heading', 'paragraph', 'blockquote', 'listItem'],
+  //       alignments: ['left', 'center', 'right', 'justify'],
+  //     }),
   
-    TextStyleSSR,
-  ])
+  //   TextStyleSSR,
+  // ])
+  const html = generateHTML(article.astJson as any, [
+  StarterKit,
+  CustomImage, PullQuote, Callout, MathBlock, MathInline,
+  TaskList, TaskItem,
+  Link,
+  TextAlign.configure({ types: ['heading','paragraph','blockquote','listItem'] }),
+  TextStyleSSR, // LAST
+])
+  const testDoc = {
+    type: 'doc',
+    content: [{
+      type: 'paragraph',
+      content: [{
+        type: 'text',
+        text: 'HELLO WORLD',
+        marks: [{
+          type: 'textStyle',
+          attrs: { fontFamily: "'New Edge Test', serif", fontSize: '48px' }
+        }],
+      }],
+    }],
+  }
+  
+  console.log(generateHTML(testDoc, [StarterKit, TextStyleSSR]));
+  // expect: <p><span style="font-family:'New Edge Test', serif; font-size:48px">HELLO WORLD</span></p>
 
-  console.log('has-style?', /style="/.test(html), html.slice(0, 200))
-  console.log(html.includes('font-family:'))
   // => <p style="text-align:center"><span style="font-family:'Kolonia', serif; font-size:48px; color:#333">WORLD</span></p>
   // expect: <p style="text-align:center"><span style="font-family:'Kolonia', serif; font-size:48px; color:#333333">WORLD</span></p>
   // last

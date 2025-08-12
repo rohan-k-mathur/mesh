@@ -1,10 +1,10 @@
-import { mergeAttributes } from '@tiptap/core'
-import TextStyle from '@tiptap/extension-text-style'
+// lib/tiptap/extensions/text-style-ssr.ts
+import { Mark, mergeAttributes } from '@tiptap/core'
 
-// keep quoting helper as you had it
 function quoteFontList(val?: string | null): string | null {
   if (!val) return null
-  return val.split(',')
+  return val
+    .split(',')
     .map(s => s.trim())
     .filter(Boolean)
     .map(s => {
@@ -14,10 +14,10 @@ function quoteFontList(val?: string | null): string | null {
     .join(', ')
 }
 
-export const TextStyleSSR = TextStyle.extend({
+export const TextStyleSSR = Mark.create({
   name: 'textStyle',
-  priority: 1000, // ensure we beat anything else
 
+  // keep this lean; SSR only needs to *render*
   addAttributes() {
     return {
       fontFamily: { default: null },
@@ -26,21 +26,23 @@ export const TextStyleSSR = TextStyle.extend({
     }
   },
 
-  renderHTML({ HTMLAttributes }) {
-    const { fontFamily, fontSize, color, style, ...rest } = HTMLAttributes
-    const css = [
-      fontFamily && `font-family:${quoteFontList(fontFamily)}`,
-      fontSize   && `font-size:${fontSize}`,
-      color      && `color:${color}`,
-    ].filter(Boolean).join('; ')
+  // (parseHTML not needed for SSR → we aren’t parsing from HTML)
 
-    // TEMP: add a flag so we can see if this renderer is actually used
-    const attrs = mergeAttributes(
-      rest,
-      css || style ? { style: [style, css].filter(Boolean).join('; ') } : {},
-      { 'data-ssr-textstyle': '1' } // <-- remove after verifying
-    )
+  renderHTML({ mark, HTMLAttributes }) {
+    const a = { ...(mark?.attrs ?? {}), ...(HTMLAttributes ?? {}) }
 
-    return ['span', attrs, 0]
+    const css: string[] = []
+    if (a.fontFamily) css.push(`font-family:${quoteFontList(a.fontFamily)}`)
+    if (a.fontSize)   css.push(`font-size:${a.fontSize}`)
+    if (a.color)      css.push(`color:${a.color}`)
+
+    const style = [HTMLAttributes?.style, css.join('; ')].filter(Boolean).join('; ')
+    const out = mergeAttributes(HTMLAttributes, style ? { style } : {})
+
+    delete (out as any).fontFamily
+    delete (out as any).fontSize
+    delete (out as any).color
+
+    return ['span', out, 0]
   },
 })
