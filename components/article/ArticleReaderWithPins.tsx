@@ -285,6 +285,7 @@ type Props = {
   html: string;
   threads: CommentThread[];
   articleSlug: string; // 👈 for API calls
+    title?: string                 // ⬅️ new
   currentUser?: unknown;
 };
 
@@ -294,6 +295,7 @@ export default function ArticleReaderWithPins({
   html,
   threads: initialThreads,
   articleSlug,
+  title,
 }: Props) {
   const frameRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -414,11 +416,16 @@ export default function ArticleReaderWithPins({
   const [expandedCluster, setExpandedCluster] = useState<string | null>(null); // cluster key = `${top}` or a generated id
 
   return (
-    <ArticleReader template={template} heroSrc={heroSrc}>
+    <ArticleReader template={template} heroSrc={heroSrc} title={title}>
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
         {/* Article + pins */}
         <div className="relative ml-[7%] mt-[1%]">
+          
           <div ref={frameRef} className="relative">
+            {/* Title */}
+          {title && (
+            <h1 className="text-3xl font-semibold mb-4">{title}</h1>
+          )}
             {/* visual selection overlay so highlight remains visible */}
             {selectionRects?.map((r, i) => (
               <div

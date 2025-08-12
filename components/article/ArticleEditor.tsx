@@ -282,6 +282,9 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
   const [counter,       setCounter]       = useState({ words: 0, chars: 0 });
   const [editorRef, setEditorRef] = useState<Editor | null>(null)
   const [initialJson, setInitialJson] = useState<any>()
+  const [publishing, setPublishing] = useState(false)
+
+  const [title, setTitle] = useState<string>('Untitled')
   const router = useRouter();
 
   /* ------------------------------ y‑js / collab --------------------------- */
@@ -382,6 +385,7 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
         astJson: editorRef.getJSON(),
         template,
         heroImageKey,
+        title
       }
       fetch(`/api/articles/${articleId}/draft`, {
         method: 'PATCH',
@@ -410,12 +414,12 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
   /* ---------------------------------------------------------------------- */
 
   const saveDraftImmediate = useCallback(async () => {
-    if (!editor) return
-    if (!articleId) return
+    if (!editor || !articleId) return
     const body = {
       astJson: editor.getJSON(),
       template,
       heroImageKey,
+      title,
     }
     await fetch(`/api/articles/${articleId}/draft`, {
       method: 'PATCH',
@@ -428,7 +432,7 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
     )
     setIsDirty(false)
     setShowUnsaved(false)
-  }, [editor, template, heroImageKey, articleId])
+  }, [editor, articleId, template, heroImageKey, title])
 
   const saveDraft = useCallback(async () => {
     if (!editor) return
@@ -436,13 +440,14 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
       astJson: editor.getJSON(),
       template,
       heroImageKey,
+      title,
     }
     await fetch(`/api/articles/${articleId}/draft`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     })
-  }, [editor, articleId, template, heroImageKey])
+  }, [editor, articleId, template, heroImageKey, title])
 
   useEffect(() => {
     if (!editor) return
@@ -467,49 +472,39 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
 
 //     }
 //   }, [articleId, router]);
+
 const publishArticle = useCallback(async () => {
-  if (!articleId) return
-  if (!editor) return
-  // await saveDraftImmediate() 
-  const body = {
-    astJson: editor.getJSON(),
-    template,
-    heroImageKey,
-  }
-  const res = await fetch(`/api/articles/${articleId}/publish`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  })
-  if (!res.ok) {
-    // optional: surface error message
-    console.error('Publish failed', await res.text())
-    return
-  }
-  const { slug } = await res.json()
-  localStorage.removeItem('draftArticleId')
-  router.push(`/article/${slug}`)
-}, [articleId, editor, template, heroImageKey, router])
-  /* ---------------------------------------------------------------------- */
-  /*  Initial load (server copy + optional local override)                   */
-  /* ---------------------------------------------------------------------- */
+  if (!articleId || !editor || publishing) return
+  setPublishing(true)
+  try {
+    // ensure db has the latest title/JSON/etc.
+    await saveDraftImmediate()
 
-  useEffect(() => {
-    let cancelled = false
-    ;(async () => {
-      const res = await fetch(`/api/articles/${articleId}`)
-      const data = res.ok ? await res.json() : null
-      if (cancelled) return
-      setTemplate(data?.template ?? 'standard')
-      setHeroImageKey(data?.heroImageKey ?? null)
-      setInitialJson(
-        data?.astJson ?? { type: 'doc', content: [] }   // default empty doc
-      )
-    })()
-  
-    return () => { cancelled = true }
-  }, [articleId])
+    const res = await fetch(`/api/articles/${articleId}/publish`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        astJson: editor.getJSON(),
+        template,
+        heroImageKey,
+        title,
+      }),
+    })
 
+    if (!res.ok) {
+      const errText = await res.text().catch(() => 'Unknown error')
+      console.error('Publish failed:', res.status, errText)
+      // TODO: toast(errText)
+      return
+    }
+
+    const { slug } = await res.json()  // ← only read once
+    localStorage.removeItem('draftArticleId')
+    router.replace(`/article/${slug}`)
+  } finally {
+    setPublishing(false)
+  }
+}, [articleId, editor, template, heroImageKey, title, router, publishing, saveDraftImmediate])
   //   if (!editor) return;
   //   const controller = new AbortController();
 
@@ -868,6 +863,13 @@ const publishArticle = useCallback(async () => {
 
         {/* Editor ----------------------------------------------------------- */}
         <div className="h-full flex flex-col gap-2">
+        <input
+  className="w-full text-3xl font-semibold bg-transparent outline-none placeholder:text-neutral-400 mb-2"
+  placeholder="Title"
+  value={title}
+  onChange={(e) => setTitle(e.target.value.slice(0, 200))}
+  onBlur={saveDraftImmediate}
+/>
           <input id="image-upload" type="file" onChange={onImageUpload} hidden />
           <Toolbar editor={editor} />
           <div className="flex-1 overflow-auto">

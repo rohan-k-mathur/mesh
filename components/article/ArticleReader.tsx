@@ -9,6 +9,7 @@ interface ArticleReaderProps {
   template: string
   heroSrc?: string | null
   children: React.ReactNode
+    title?: string                 // ⬅️ new
 }
 
 
@@ -17,6 +18,7 @@ export default function ArticleReader({
   template,
   heroSrc,
   children,
+  title,
 }: ArticleReaderProps) {
   return (
     <article className={clsx(template, 'mx-auto')}>

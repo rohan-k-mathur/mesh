@@ -84,6 +84,7 @@ export default async function ArticlePage({
     html={html}
     threads={threads}
     articleSlug={params.key} 
+    title={article.title}     // ⬅️ pass it
     />
   );
 }
