@@ -1,0 +1,76 @@
+/* app/article/type-tokens.css */
+
+:root{
+    /* fonts */
+    --ff-system: ui-sans-serif, system-ui, "Segoe UI", Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+    --ff-founders: 'Founders', sans-serif;
+    --ff-bugrino: 'Bugrino', serif;
+    --ff-newedge: 'New Edge Test', serif;
+    --ff-kolonia: 'Kolonia', serif;
+  
+    /* sizes */
+    --fs-12: 12px; --fs-14: 14px; --fs-16: 16px; --fs-18: 18px;
+    --fs-20: 20px; --fs-24: 24px; --fs-32: 32px; --fs-48: 48px;
+  
+    /* colors */
+    --clr-accent: #333333;
+    --clr-red:    #d52020;
+    --clr-muted:  #6b7280; /* slate-500-ish */
+  }
+  
+  /* scope to both editor (.tiptap) and reader (.article-body) */
+  .tiptap [data-ff="system"], .article-body [data-ff="system"] { font-family: var(--ff-system); }
+  .tiptap [data-ff="founders"], .article-body [data-ff="founders"] { font-family: var(--ff-founders); }
+  .tiptap [data-ff="bugrino"], .article-body [data-ff="bugrino"] { font-family: var(--ff-bugrino); }
+  .tiptap [data-ff="newedge"], .article-body [data-ff="newedge"] { font-family: var(--ff-newedge); }
+  .tiptap [data-ff="kolonia"], .article-body [data-ff="kolonia"] { font-family: var(--ff-kolonia); }
+  
+  .tiptap [data-fs="12"], .article-body [data-fs="12"] { font-size: var(--fs-12); }
+  .tiptap [data-fs="14"], .article-body [data-fs="14"] { font-size: var(--fs-14); }
+  /* … */
+  .tiptap [data-fs="48"], .article-body [data-fs="48"] { font-size: var(--fs-48); }
+  
+  .tiptap [data-clr="accent"], .article-body [data-clr="accent"] { color: var(--clr-accent); }
+  .tiptap [data-clr="muted"],  .article-body [data-clr="muted"]  { color: var(--clr-muted); }
+  .tiptap [data-clr="red"],    .article-body [data-clr="red"]    { color: var(--clr-red); }
+  
+
+/* Per-template defaults (override per template class as needed) */
+.standard {
+    /* fonts */
+    --ff-system: ui-sans-serif, system-ui, "Segoe UI", Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+    --ff-founders: 'Founders', sans-serif;
+    --ff-bugrino: 'Bugrino', serif;
+    --ff-newedge: 'New Edge Test', serif;
+    --ff-kolonia: 'Kolonia', serif;
+  
+    /* sizes */
+    --fs-12: 12px; --fs-14: 14px; --fs-16: 16px; --fs-18: 18px;
+    --fs-20: 20px; --fs-24: 24px; --fs-32: 32px; --fs-48: 48px;
+  
+    /* colors */
+    --clr-accent: #333333;
+    --clr-red:    #d52020;
+    --clr-muted:  #6b7280; /* slate-500-ish */
+  }
+  
+  /* Map tokens → vars (works in editor + reader because both wrap content in .prose) */
+  .prose [data-ff="system"]  { font-family: var(--ff-system);  }
+  .prose [data-ff="founders"]{ font-family: var(--ff-founders);}
+  .prose [data-ff="bugrino"] { font-family: var(--ff-bugrino); }
+  .prose [data-ff="newedge"] { font-family: var(--ff-newedge); }
+  .prose [data-ff="kolonia"] { font-family: var(--ff-kolonia); }
+  
+  .prose [data-fs="12"] { font-size: var(--fs-12); }
+  .prose [data-fs="14"] { font-size: var(--fs-14); }
+  .prose [data-fs="16"] { font-size: var(--fs-16); }
+  .prose [data-fs="18"] { font-size: var(--fs-18); }
+  .prose [data-fs="20"] { font-size: var(--fs-20); }
+  .prose [data-fs="24"] { font-size: var(--fs-24); }
+  .prose [data-fs="32"] { font-size: var(--fs-32); }
+  .prose [data-fs="48"] { font-size: var(--fs-48); }
+  
+  .prose [data-clr="accent"] { color: var(--clr-accent); }
+  .prose [data-clr="red"]    { color: var(--clr-red);    }
+  .prose [data-clr="muted"]  { color: var(--clr-muted);  }
+  

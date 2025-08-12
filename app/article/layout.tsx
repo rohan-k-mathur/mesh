@@ -1,7 +1,7 @@
-import '@/app/globals.css';
 import '@/app/article.templates.css';   // <— single import
 // import './article.global.scss';
 import "@/app/article/editor.global.css";
+import "@/app/article/type-tokens.css";
 import '@/app/fonts/fonts.css';
 
 export const metadata = {

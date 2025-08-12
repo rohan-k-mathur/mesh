@@ -383,7 +383,7 @@ const onMouseUpCapture: React.MouseEventHandler<HTMLDivElement> = () => {
 ))}
           <div
             ref={containerRef}
-            className="prose max-w-none"
+            className="article-body prose max-w-none"
             dangerouslySetInnerHTML={{ __html: html }}
             onMouseUpCapture={onMouseUpCapture}
           />

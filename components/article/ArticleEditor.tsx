@@ -16,6 +16,7 @@ import {
   MathBlock as MathBlockBase,
   MathInline as MathInlineBase,
 } from '@/lib/tiptap/extensions';
+
 import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
 import Collaboration from '@tiptap/extension-collaboration';
@@ -41,9 +42,8 @@ import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
 import enStrings from '@/public/locales/en/editor.json';
 import { useDebouncedCallback } from 'use-debounce';
-import { FontFamily } from '@/lib/tiptap/extensions/font-family';
-import { FontSize }   from '@/lib/tiptap/extensions/font-size';
-import { TextStyleSSR } from '@/lib/tiptap/extensions/text-style-ssr';
+
+import { TextStyleTokens } from '@/lib/tiptap/extensions/text-style-ssr';
 import { useEditor, Editor } from '@tiptap/react'
 
 import SlashCommand from './editor/SlashCommand';
@@ -323,19 +323,17 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
 
   const extensions = useMemo<Extension[]>(() => {
     return [
-      TextStyle,
-      FontSize,
-      FontFamily,
-      Color,
+      StarterKit,
+
+      TaskList,
+      TaskItem,
       Highlight,
       TextAlign.configure({
         types: ['heading', 'paragraph', 'blockquote', 'listItem'],
         alignments: ['left', 'center', 'right', 'justify'],
       }),
       Underline,
-      TaskList,
-      TaskItem,
-      StarterKit,
+   
       CustomImage,
       Link,
       Placeholder.configure({ placeholder: 'Write something…' }),
@@ -343,6 +341,7 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
       Callout,
       MathBlock,
       MathInline,
+      TextStyleTokens,
       CharacterCount.configure({ limit: CHAR_LIMIT }),
       SlashCommand,
       COLLAB_ENABLED && provider && Collaboration.configure({ document: ydoc }),
@@ -874,7 +873,7 @@ const publishArticle = useCallback(async () => {
           <div className="flex-1 overflow-auto">
             {/* If you want a live outline component, pass `headings` + handler */}
             {/* <Outline headings={headings} onSelect={onSelectHeading} /> */}
-            <EditorContent editor={editor} className="px-0 py-0" />
+            <EditorContent editor={editor}  className="tiptap article-body prose max-w-none px-0 py-0" />
           </div>
         </div>
 

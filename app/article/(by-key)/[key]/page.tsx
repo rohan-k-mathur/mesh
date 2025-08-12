@@ -3,10 +3,7 @@ import { prisma } from "@/lib/prismaclient";
 import { notFound } from "next/navigation";
 import { generateHTML } from "@tiptap/html"
 import StarterKit from "@tiptap/starter-kit"
-import TextStyle from "@tiptap/extension-text-style"
-import { FontFamily } from "@/lib/tiptap/extensions/font-family"
-import { FontSize } from "@/lib/tiptap/extensions/font-size"
-import Color from "@tiptap/extension-color"
+
 import Highlight from "@tiptap/extension-highlight"
 import Underline from "@tiptap/extension-underline"
 import TextAlign from "@tiptap/extension-text-align"
@@ -22,6 +19,7 @@ import {
 
 import TaskList from "@tiptap/extension-task-list"
 import TaskItem from "@tiptap/extension-task-item"
+import { TextStyleTokens } from "@/lib/tiptap/extensions/text-style-ssr";
 
 export default async function ArticlePage({
   params,
@@ -60,16 +58,10 @@ export default async function ArticlePage({
   /* 2️⃣ convert TipTap JSON → HTML (use SAME extensions as editor) */
   const html = generateHTML(article.astJson as any, [
     StarterKit,
-    TextStyle,
-    FontSize,
-    FontFamily,
-    Color,
+    
     Highlight,
     Underline,
-    TextAlign.configure({
-      types: ["heading", "paragraph", "blockquote", "listItem"],
-      alignments: ["left", "center", "right", "justify"],
-    }),
+   
     TaskList,
     TaskItem,
     CustomImage,
@@ -78,6 +70,11 @@ export default async function ArticlePage({
     MathBlock,
     MathInline,
     Link,
+    TextAlign.configure({
+      types: ["heading", "paragraph", "blockquote", "listItem"],
+      alignments: ["left", "center", "right", "justify"],
+    }),
+    TextStyleTokens, // ⬅️ last
   ])
   
   return (

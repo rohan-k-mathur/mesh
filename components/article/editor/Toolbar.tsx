@@ -19,8 +19,7 @@ import {
   Eraser,
 } from "lucide-react";
 import React from "react";
-import '@/lib/tiptap/extensions/font-family'
-import '@/lib/tiptap/extensions/font-size'
+
 
 type Props = { editor: Editor | null };
 
@@ -40,44 +39,66 @@ export default function Toolbar({ editor }: Props) {
       {icon}
     </button>
   );
+  // Toolbar.tsx (only the changed parts)
+const fontOptions = [
+  { label: 'System Sans',   value: 'system'  },
+  { label: 'Founders',      value: 'founders'},
+  { label: 'Bugrino',       value: 'bugrino' },
+  { label: 'New Edge Test', value: 'newedge' },
+  { label: 'Kolonia',       value: 'kolonia' },
+]
+
+const sizeOptions = ['12','14','16','18','20','24','32','48']
+
+const colorOptions = [
+  { label: 'Accent', value: 'accent' },
+  { label: 'Muted',  value: 'muted'  },
+  { label: 'Red',    value: 'red'    },
+]
+
 
   return (
     <div className="flex flex-wrap items-center gap-1 border rounded-md px-2 py-1 bg-white">
-<select
-  className="text-sm border rounded"
-  defaultValue=""
-  onChange={(e) =>
-    editor!.chain().focus().setMark('textStyle', { fontFamily: e.target.value }).run()
-  }
->
-  <option value="" disabled>Font</option>
-  <option value="inherit">System Sans</option>
-  <option value="'Founders', sans-serif">Founders</option>
-  <option value="'Bugrino', serif">Bugrino</option>
-  <option value="'New Edge Test', serif">New Edge Test</option>
-  <option value="'Kolonia', serif">Kolonia</option>
-</select>
 
-      <select
+<select
   className="text-sm border rounded"
   defaultValue=""
   onChange={(e) => {
     const v = e.target.value
     if (!v) return
-    if (v === 'unset') editor.chain().focus().unsetFontSize().run()
-    else editor.chain().focus().setFontSize(v).run()
+    editor!.chain().focus().setMark('textStyle', { ff: v }).run()
+  }}
+>
+  <option value="" disabled>Font</option>
+  <option value="system">System Sans</option>
+  <option value="founders">Founders</option>
+  <option value="bugrino">Bugrino</option>
+  <option value="newedge">New Edge Test</option>
+  <option value="kolonia">Kolonia</option>
+</select>
+<select
+  className="text-sm border rounded"
+  defaultValue=""
+  onChange={(e) => {
+    const v = e.target.value
+    if (!v) return
+    if (v === 'unset') {
+      editor!.chain().focus().setMark('textStyle', { fs: null }).run()
+    } else {
+      editor!.chain().focus().setMark('textStyle', { fs: v }).run()
+    }
   }}
 >
   <option value="" disabled>Size</option>
   <option value="unset">Default</option>
-  <option value="12px">12</option>
-  <option value="14px">14</option>
-  <option value="16px">16</option>
-  <option value="18px">18</option>
-  <option value="20px">20</option>
-  <option value="24px">24</option>
-  <option value="32px">32</option>
-  <option value="48px">48</option>
+  <option value="12">12</option>
+  <option value="14">14</option>
+  <option value="16">16</option>
+  <option value="18">18</option>
+  <option value="20">20</option>
+  <option value="24">24</option>
+  <option value="32">32</option>
+  <option value="48">48</option>
 </select>
 
       {btn(
@@ -106,13 +127,18 @@ export default function Toolbar({ editor }: Props) {
         editor.isActive("code"),
       )}
 
-      <input
-        type="color"
-        onChange={(e) =>
-          editor.chain().focus().setColor(e.target.value).run()
-        }
-        className="h-5 w-5 p-[1px] cursor-pointer"
-      />
+<select
+  className="text-sm border rounded"
+  defaultValue=""
+  onChange={(e) => {
+    const v = e.target.value
+    if (!v) return
+    editor!.chain().focus().setMark('textStyle', { clr: v }).run()
+  }}
+>
+  <option value="" disabled>Color</option>
+  {colorOptions.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+</select>
 
       {btn(
         <List size={16} />,
@@ -179,6 +205,16 @@ export default function Toolbar({ editor }: Props) {
         <Eraser size={16} />,
         () => editor.chain().focus().clearNodes().unsetAllMarks().run(),
       )}
+      <button
+  onClick={() =>
+    editor!.chain().focus().setMark('textStyle', { ff: null, fs: null, clr: null }).run()
+  }
+  className="p-1.5"
+  type="button"
+>
+  Clear type
+</button>
     </div>
+    
   );
 }
