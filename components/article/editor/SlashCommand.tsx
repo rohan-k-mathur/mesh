@@ -15,10 +15,6 @@ const COMMANDS = [
     command: (editor: any) => editor.chain().focus().setNode("pullQuote").run(),
   },
   {
-    title: "Code",
-    command: (editor: any) => editor.chain().focus().setCodeBlock().run(),
-  },
-  {
     title: "Callout",
     command: (editor: any) => editor.chain().focus().setNode("callout").run(),
   },

@@ -14,7 +14,7 @@ export async function createPoll(input: {
 
   if (input.kind === "OPTIONS") {
     const opts = input.options ?? [];
-    if (opts.length < 2 || opts.length > 4) throw new Error("bad options");
+    if (opts.length < 2 || opts.length > 10) throw new Error("bad options");
   }
 
   const poll = await prisma.poll.create({

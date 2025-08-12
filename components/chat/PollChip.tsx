@@ -35,7 +35,7 @@
     // Not voted yet — show compact option chips
     if (myVote == null) {
       return (
-        <div className="inline-flex flex-col gap-1 rounded-md border bg-white/70 px-2 py-2">
+        <div className="rounded-xl border bg-white/30 px-8 py-4 mx-8 mt-8 w-full justify-center items-center inline-flex flex-col gap-1 ">
           <SmallMeta>📊 Poll · choose one</SmallMeta>
           <div className="mt-1 flex flex-wrap gap-1.5">
             {p.options!.map((opt, idx) => (
@@ -56,13 +56,12 @@
     // Voted — show results with animated bars (click row to change)
     return (
       <div
-        className="rounded-md border bg-white/70 px-2 py-2"
+        className="  rounded-xl justify-center items-center  bg-white/30 px-8 py-4 shadow-xl mx-auto  w-[70%] "
         role="group"
         aria-label="Poll results"
       >
-        <div className="flex justify-between items-baseline">
+        <div className="flex text-[1rem] text-center justify-between items-baseline">
           <SmallMeta>📊 Poll · {count} vote{count === 1 ? "" : "s"}</SmallMeta>
-          <SmallMeta>Tap an option to change</SmallMeta>
         </div>
         <div className="mt-1.5 space-y-1.5">
           {p.options!.map((opt, idx) => {
@@ -82,9 +81,9 @@
                   </span>
                   <span className="tabular-nums">{pct}%</span>
                 </div>
-                <div className="mt-0.5 h-1.5 rounded bg-slate-200 overflow-hidden">
+                <div className="mt-0.5 h-1.5 rounded bg-slate-300 overflow-hidden">
                   <div
-                    className={`h-1.5 rounded transition-all duration-300 ${mine ? "bg-indigo-500" : "bg-slate-400"}`}
+                    className={`h-1.5 rounded transition-all duration-300 ${mine ? "bg-indigo-500" : "bg-rose-400"}`}
                     style={{ width: `${pct}%` }}
                   />
                 </div>
@@ -113,7 +112,7 @@
     };
   
     return (
-      <div className="rounded-md border bg-white/70 px-3 py-2">
+      <div className="rounded-xl border bg-white/30 px-3 py-2 mx-8">
         <div className="flex items-baseline justify-between">
           <SmallMeta>🌡 Temperature check</SmallMeta>
           <SmallMeta>

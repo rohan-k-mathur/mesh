@@ -3,6 +3,10 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { X, File as FileIcon, Paperclip } from "lucide-react";
 import { useChatStore } from "@/contexts/useChatStore";
+import { supabase } from "@/lib/supabaseclient";
+import QuickPollModal from "@/components/chat/QuickPollModal";
+import QuickTempModal from "@/components/chat/QuickTempModal";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 
 interface Props {
   conversationId: string;
@@ -16,6 +20,8 @@ export default function MessageComposer({ conversationId }: Props) {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [previews, setPreviews] = useState<string[]>([]);
+ const [showPoll, setShowPoll] = useState(false);
+  const [showTemp, setShowTemp] = useState(false);
 
   function onFilesSelected(list: FileList | null) {
     if (!list) return;
@@ -93,6 +99,61 @@ export default function MessageComposer({ conversationId }: Props) {
     // reuse your existing send() logic
     send();
   }
+
+
+    // helper: create a plain text message and return its id    normalized DTO for local append
+    async function createQuestionMessage(question: string) {
+      const fd = new FormData();
+      fd.set("text", question);
+      const res = await fetch(`/api/messages/${conversationId}`, { method: "POST", body: fd });
+      if (!res.ok) throw new Error("Failed to create message");
+      const msg = await res.json(); // matches useChatStore Message dto
+      appendMessage(conversationId, msg);
+      return msg;
+    }
+  
+    async function createOptionsPoll(question: string, options: string[]) {
+      const msg = await createQuestionMessage(question);
+      const res = await fetch("/api/polls", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          conversationId,
+          messageId: msg.id,
+          kind: "OPTIONS",
+          options,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.ok) throw new Error(data?.error || "Failed to create poll");
+      // broadcast so everyone renders the chip under this message
+      supabase.channel(`conversation-${conversationId}`).send({
+        type: "broadcast",
+        event: "poll_create",
+        payload: { poll: data.poll, state: null, my: null },
+      });
+    }
+  
+    async function createTempCheck(question: string) {
+      const msg = await createQuestionMessage(question);
+      const res = await fetch("/api/polls", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          conversationId,
+          messageId: msg.id,
+          kind: "TEMP",
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.ok) throw new Error(data?.error || "Failed to create temperature check");
+      supabase.channel(`conversation-${conversationId}`).send({
+        type: "broadcast",
+        event: "poll_create",
+        payload: { poll: data.poll, state: null, my: null },
+      });
+    }
+  
   return (
     <div
       className="relative"
@@ -196,6 +257,43 @@ export default function MessageComposer({ conversationId }: Props) {
                 className="cursor-pointer object-contain"
               />
             </button>
+            <>
+       
+          <DropdownMenu>
+            <DropdownMenuTrigger className="rounded px-2 py-2 border bg-white/80 hover:bg-white" title="Create">
+                
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" sideOffset={6}>
+              <DropdownMenuItem onClick={() => setShowPoll(true)}>📊 Create poll…</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setShowTemp(true)}>🌡 Temperature check…</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+  
+  
+        <QuickPollModal
+          open={showPoll}
+          onClose={() => setShowPoll(false)}
+          onSubmit={async ({ question, options }) => {
+            try {
+              await createOptionsPoll(question, options);
+            } catch (e: any) {
+              alert(e?.message || "Failed to create poll");
+            }
+          }}
+        />
+  
+        <QuickTempModal
+          open={showTemp}
+          onClose={() => setShowTemp(false)}
+          onSubmit={async ({ question }) => {
+            try {
+              await createTempCheck(question);
+            } catch (e: any) {
+              alert(e?.message || "Failed to create temperature check");
+            }
+          }}
+        />
+      </>
 
             <button className="flex bg-white/70 sendbutton  h-fit w-fit text-black tracking-widest text-[1.1rem] rounded-xl px-3 py-2">
               <input

@@ -87,17 +87,17 @@ const MessageRow = memo(function MessageRow({
             <DropdownMenuItem
               onClick={() => onOpen(String(m.senderId), m.sender?.name ?? "User", m.sender?.image ?? null)}
             >
-              💬 Chat
+              💬 Private Chat
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => onPrivateReply?.(m)}>
-              🔒 Reply privately with {m.sender?.name || "User"}
+              🔒 Reply To {m.sender?.name || "User"}
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onCreateOptions(m)}>
-              📊 Create poll (options…)
+            {/* <DropdownMenuItem onClick={() => onCreateOptions(m)}>
+               Create poll (options…)
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => onCreateTemp(m)}>
-              🌡 Temperature check
-            </DropdownMenuItem>
+               Temperature check
+            </DropdownMenuItem> */}
           </DropdownMenuContent>
         </DropdownMenu>
       )}
@@ -343,7 +343,7 @@ export default function ChatRoom({ conversationId, currentUserId, initialMessage
           (p) => p.anchor?.messageId === m.id && p.peerId === String(m.senderId)
         );
         return (
-          <div key={m.id} className="space-y-1" data-msg-id={m.id}>
+          <div key={m.id} className="space-y-2" data-msg-id={m.id}>
             <MessageRow
               m={m}
               currentUserId={currentUserId}
@@ -352,19 +352,14 @@ export default function ChatRoom({ conversationId, currentUserId, initialMessage
               onCreateOptions={onCreateOptions}
               onCreateTemp={onCreateTemp}
             />
-              {composerFor === m.id && (
-              <QuickPollComposer
-                onSubmit={(opts) => submitOptionsPoll(m.id, opts)}
-                onCancel={() => setComposerFor(null)}
-              />
-            )}
+
 
             {pollsByMessageId[m.id] && (
               <PollChip
                 poll={pollsByMessageId[m.id]}
                 onVote={(body) => onVote(pollsByMessageId[m.id], body)}
               />
-            )}
+            )} 
             {anchored && (
               <button
                 className="text-[11px] px-2 py-[2px] rounded bg-white/70 border hover:bg-white"

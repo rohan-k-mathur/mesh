@@ -56,53 +56,30 @@ export default async function ArticlePage({
   }));
   console.log('AST on server:', JSON.stringify(article.astJson))
   /* 2️⃣ convert TipTap JSON → HTML (use SAME extensions as editor) */
+  const html = generateHTML(article.astJson as any, [
+    // nodes & utilities first
+    StarterKit,
+    CustomImage,
+    PullQuote,
+    Callout,
+    MathBlock,
+    MathInline,
+    TaskList,
+    TaskItem,
+    Link,
+         TextAlign.configure({
+        types: ['heading', 'paragraph', 'blockquote', 'listItem'],
+        alignments: ['left', 'center', 'right', 'justify'],
+      }),
   
-const html = generateHTML(article.astJson as any, [
-  // marks first — SSR renderer for textStyle only
-  TextStyleSSR,
+    TextStyleSSR,
+  ])
 
-  // nodes
-  StarterKit,
-  CustomImage,
-  PullQuote,
-  Callout,
-  MathBlock,
-  MathInline,
-  TaskList,
-  TaskItem,
-
-  // utilities
-  Link,
-  TextAlign.configure({
-    types: ['heading', 'paragraph', 'blockquote', 'listItem'],
-    alignments: ['left', 'center', 'right', 'justify'],
-  }),
-]
-
-)
-const doc = {
-  type: 'doc',
-  content: [{
-    type: 'paragraph',
-    attrs: { textAlign: 'center' },
-    content: [{
-      type: 'text',
-      text: 'WORLD',
-      marks: [{
-        type: 'textStyle',
-        attrs: {
-          fontFamily: '"Kolonia", serif',
-          fontSize: '48px',
-          color: '#333333',
-        },
-      }],
-    }],
-  }],
-}
-
-console.log('SSR test:', generateHTML(doc, [TextStyleSSR, StarterKit, TextAlign]))
-// expect: <p style="text-align:center"><span style="font-family:'Kolonia', serif; font-size:48px; color:#333333">WORLD</span></p>
-  
+  console.log('has-style?', /style="/.test(html), html.slice(0, 200))
+  console.log(html.includes('font-family:'))
+  // => <p style="text-align:center"><span style="font-family:'Kolonia', serif; font-size:48px; color:#333">WORLD</span></p>
+  // expect: <p style="text-align:center"><span style="font-family:'Kolonia', serif; font-size:48px; color:#333333">WORLD</span></p>
+  // last
   
   return (
     <ArticleReaderWithPins

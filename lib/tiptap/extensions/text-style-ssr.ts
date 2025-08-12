@@ -1,10 +1,10 @@
+import { mergeAttributes } from '@tiptap/core'
 import TextStyle from '@tiptap/extension-text-style'
 
-// makes font lists safe and consistently single‑quoted
+// keep quoting helper as you had it
 function quoteFontList(val?: string | null): string | null {
   if (!val) return null
-  return val
-    .split(',')
+  return val.split(',')
     .map(s => s.trim())
     .filter(Boolean)
     .map(s => {
@@ -16,6 +16,7 @@ function quoteFontList(val?: string | null): string | null {
 
 export const TextStyleSSR = TextStyle.extend({
   name: 'textStyle',
+  priority: 1000, // ensure we beat anything else
 
   addAttributes() {
     return {
@@ -27,14 +28,19 @@ export const TextStyleSSR = TextStyle.extend({
 
   renderHTML({ HTMLAttributes }) {
     const { fontFamily, fontSize, color, style, ...rest } = HTMLAttributes
-    const css: string[] = []
-    const ff = quoteFontList(fontFamily)
+    const css = [
+      fontFamily && `font-family:${quoteFontList(fontFamily)}`,
+      fontSize   && `font-size:${fontSize}`,
+      color      && `color:${color}`,
+    ].filter(Boolean).join('; ')
 
-    if (ff)       css.push(`font-family:${ff}`)
-    if (fontSize) css.push(`font-size:${fontSize}`)
-    if (color)    css.push(`color:${color}`)
-    if (style)    css.push(style)
+    // TEMP: add a flag so we can see if this renderer is actually used
+    const attrs = mergeAttributes(
+      rest,
+      css || style ? { style: [style, css].filter(Boolean).join('; ') } : {},
+      { 'data-ssr-textstyle': '1' } // <-- remove after verifying
+    )
 
-    return ['span', { ...rest, ...(css.length ? { style: css.join('; ') } : {}) }, 0]
+    return ['span', attrs, 0]
   },
 })

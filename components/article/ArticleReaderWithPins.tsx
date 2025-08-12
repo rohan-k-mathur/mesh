@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import ArticleReader from "@/components/article/ArticleReader";
-import CommentSidebar from "@/components/article/CommentSidebar";
+import CommentModal from "@/components/article/CommentModal";
 import type { Anchor, CommentThread } from "@/types/comments";
 
 import Image from "next/image";
@@ -168,11 +168,13 @@ function CommentRail({
   positions,
   openId,
   setOpenId,
+  onSelect,
 }: {
   threads: CommentThread[]
   positions: Record<string, DOMRect | undefined>
   openId: string | null
   setOpenId: (id: string | null) => void
+    onSelect: (thread: CommentThread) => void
 }) {
   // one-line items, collision-resolved
   // bump minGap from 18 → 22 for a touch more air
@@ -186,21 +188,32 @@ function CommentRail({
       {items.map(p => {
         const t = threads.find(x => x.id === p.id)!
         const active = openId === t.id
-        const firstLine = t.comments[0]?.body ?? ''
-        return (
-          <div className="space-y-4 gap-4 h-full">
+        const firstLine = t.comments[0]?.body ?? ""
+                return (
+          // <div className="space-y-4 gap-4 h-full">
+          // <button
+          //   key={t.id}
+          //   className={`absolute right-0 translate-y-[-50%] truncate w-full text-left m-2
+          <div key={t.id} className="space-y-4 gap-4 h-full">
           <button
-            key={t.id}
             className={`absolute right-0 translate-y-[-50%] truncate w-full text-left m-2
                        text-xs px-2 py-1 rounded-md border bg-white/70 shadow-md
                         hover:bg-white transition
                        ${active ? 'border-amber-400' : 'border-neutral-200'}`}
-            style={{ top: p.top }}
-            onClick={() => setOpenId(t.id)}
-            title={firstLine}
-          >
-            {firstLine.length > 60 ? firstLine.slice(0, 57) + '…' : firstLine}
-          </button>
+          //   style={{ top: p.top }}
+          //   onClick={() => setOpenId(t.id)}
+          //   title={firstLine}
+          // >
+          //   {firstLine.length > 60 ? firstLine.slice(0, 57) + '…' : firstLine}
+          style={{ top: p.top }}
+          onClick={() => {
+            setOpenId(t.id)
+            onSelect(t)
+          }}
+          title={firstLine}
+        >
+          {firstLine.length > 60 ? firstLine.slice(0, 57) + "…" : firstLine}
+        </button>
           </div>
         )
       })}
@@ -244,8 +257,9 @@ export default function ArticleReaderWithPins({
 const bubbleRef    = useRef<HTMLDivElement>(null);   // 👈 NEW
   const [openId, setOpenId] = useState<string | null>(null);
   const [threads, setThreads] = useState<CommentThread[]>(initialThreads);
+  const [activeThread, setActiveThread] = useState<CommentThread | null>(null);
   const [tick, setTick] = useState(0);
-  const GUTTER = 24 // px
+  const GUTTER = 100 // px
 
   const [hoverId, setHoverId] = useState<string | null>(null)
   const [adder, setAdder] = useState<{ anchor: Anchor; rect: DOMRect } | null>(null)
@@ -489,7 +503,7 @@ const onMouseUpCapture: React.MouseEventHandler<HTMLDivElement> = () => {
           {bubble && (
             <div
             ref={bubbleRef}                              // 👈 NEW
-              className="absolute z-30 w-72 rounded-md border bg-white shadow-lg"
+              className="absolute ml-[100px] mt-[50px] backdrop-blur-sm border-[1px]  border-white/50 p-3 z-30 w-72 rounded-xl border bg-white/30 shadow-lg"
               style={{
                 top: Math.max(0, bubble.rect.top - 56),
                 left: bubble.rect.left,
@@ -497,23 +511,23 @@ const onMouseUpCapture: React.MouseEventHandler<HTMLDivElement> = () => {
               onPointerDown={(e) => e.stopPropagation()}   // 👈 keep global handler from seeing this
               onMouseDown={(e) => e.stopPropagation()}     // (older browsers / safety)
             >
-              <div className="p-3 border-b text-xs text-neutral-600 line-clamp-2">
+              <div className="p-3 border-b text-xs text-neutral-600 line-clamp-2 ">
                 {bubble.text}
               </div>
-              <div className="p-2 space-y-2">
+              <div className="p-2 space-y-2 rounded-xl">
                 <textarea
                   value={draftBody}
                   onChange={(e) => setDraftBody(e.target.value)}
                   placeholder="Add a comment…"
-                  className="w-full resize-none border rounded p-2 text-sm outline-none"
+                  className="w-full resize-none border-none rounded p-2 text-sm outline-none"
                   rows={3}
                 />
-                <div className="flex items-center justify-end gap-2">
-                  <button className="text-sm text-neutral-500" onClick={() => setBubble(null)}>
+                <div className="flex items-center justify-end gap-4">
+                  <button className="text-sm text-neutral-700" onClick={() => setBubble(null)}>
                     Cancel
                   </button>
                   <button
-                    className="px-3 py-1.5 rounded bg-amber-500 text-white text-sm"
+                    className="px-2 py-1.5 rounded bg-amber-500 text-white text-sm"
                     onClick={createThread}
                   >
                     Comment
@@ -532,9 +546,20 @@ const onMouseUpCapture: React.MouseEventHandler<HTMLDivElement> = () => {
         positions={positions}
         openId={openId}
         setOpenId={setOpenId}
+        onSelect={setActiveThread}
       />
           </div>
       </div>
+      {activeThread && (
+        <CommentModal
+          thread={activeThread}
+          open={!!activeThread}
+          onClose={() => {
+            setActiveThread(null)
+            setOpenId(null)
+          }}
+        />
+      )}
     </ArticleReader>
   );
 }

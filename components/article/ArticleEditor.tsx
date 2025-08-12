@@ -18,7 +18,6 @@ import {
 } from '@/lib/tiptap/extensions';
 import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
-import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import Collaboration from '@tiptap/extension-collaboration';
 import CollaborationCursor from '@tiptap/extension-collaboration-cursor';
 import CharacterCount from '@tiptap/extension-character-count';
@@ -340,7 +339,6 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
       CustomImage,
       Link,
       Placeholder.configure({ placeholder: 'Write something…' }),
-      CodeBlockLowlight.configure({ lowlight }),
       PullQuote,
       Callout,
       MathBlock,
