@@ -42,8 +42,9 @@ import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
 import enStrings from '@/public/locales/en/editor.json';
 import { useDebouncedCallback } from 'use-debounce';
-import { FontFamily } from '@/lib/tiptap/extensions/font-family'
-import { FontSize }   from '@/lib/tiptap/extensions/font-size'
+import { FontFamily } from '@/lib/tiptap/extensions/font-family';
+import { FontSize }   from '@/lib/tiptap/extensions/font-size';
+import { TextStyleSSR } from '@/lib/tiptap/extensions/text-style-ssr';
 import { useEditor, Editor } from '@tiptap/react'
 
 import SlashCommand from './editor/SlashCommand';

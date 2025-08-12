@@ -1,26 +1,21 @@
 
 import { prisma } from "@/lib/prismaclient";
 import { notFound } from "next/navigation";
-import { generateHTML } from "@tiptap/html";
-import StarterKit from "@tiptap/starter-kit";
-import { FontFamily } from "@/lib/tiptap/extensions/font-family";
-// import ImageExt from "@tiptap/extension-image";
-// import TipTapLink       from '@tiptap/extension-link'
-import TextStyle from "@tiptap/extension-text-style";
-import { FontSize } from "@/lib/tiptap/extensions/font-size";
-import Underline from "@tiptap/extension-underline";
-import Highlight from "@tiptap/extension-highlight";
-import TextAlign from "@tiptap/extension-text-align";
+import { generateHTML } from '@tiptap/html'
+import StarterKit from '@tiptap/starter-kit'
+import { TextStyleSSR } from '@/lib/tiptap/extensions/text-style-ssr'
+import TextAlign from '@tiptap/extension-text-align'
+import Underline from '@tiptap/extension-underline'
+import Highlight from '@tiptap/extension-highlight'
+import Link from '@tiptap/extension-link'
 import ArticleReaderWithPins from "@/components/article/ArticleReaderWithPins";
-import Link from "@tiptap/extension-link";
-import Color from "@tiptap/extension-color";
 import {
   PullQuote,
   Callout,
   MathBlock,
   MathInline,
   CustomImage,
-} from "@/lib/tiptap/extensions";
+} from '@/lib/tiptap/extensions'
 
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
@@ -61,49 +56,54 @@ export default async function ArticlePage({
   }));
   console.log('AST on server:', JSON.stringify(article.astJson))
   /* 2️⃣ convert TipTap JSON → HTML (use SAME extensions as editor) */
-  const html = generateHTML(article.astJson as any, [
-    // marks first
-    TextStyle,
-    FontFamily,
-    FontSize,
-    Color,
-    Underline,
-    Highlight,
   
-    // nodes
-    StarterKit,
-    CustomImage,
-    PullQuote,
-    Callout,
-    MathBlock,
-    MathInline,
-    TaskList,
-    TaskItem,
-  
-    // utilities
-    Link,
-    TextAlign.configure({
-      types: ['heading', 'paragraph', 'blockquote', 'listItem'],
-      alignments: ['left', 'center', 'right', 'justify'],
-    }),
-  ])
-  const doc = {
-    type: 'doc',
+const html = generateHTML(article.astJson as any, [
+  // marks first — SSR renderer for textStyle only
+  TextStyleSSR,
+
+  // nodes
+  StarterKit,
+  CustomImage,
+  PullQuote,
+  Callout,
+  MathBlock,
+  MathInline,
+  TaskList,
+  TaskItem,
+
+  // utilities
+  Link,
+  TextAlign.configure({
+    types: ['heading', 'paragraph', 'blockquote', 'listItem'],
+    alignments: ['left', 'center', 'right', 'justify'],
+  }),
+]
+
+)
+const doc = {
+  type: 'doc',
+  content: [{
+    type: 'paragraph',
+    attrs: { textAlign: 'center' },
     content: [{
-      type: 'paragraph',
-      attrs: { textAlign: 'center' },
-      content: [{
-        type: 'text',
-        text: 'WORLD',
-        marks: [{ type: 'textStyle', attrs: {
-          fontFamily: '"Founders",sans-serif',
-          fontSize: '24px'
-        }}]
-      }]
-    }]
-  }
+      type: 'text',
+      text: 'WORLD',
+      marks: [{
+        type: 'textStyle',
+        attrs: {
+          fontFamily: '"Kolonia", serif',
+          fontSize: '48px',
+          color: '#333333',
+        },
+      }],
+    }],
+  }],
+}
+
+console.log('SSR test:', generateHTML(doc, [TextStyleSSR, StarterKit, TextAlign]))
+// expect: <p style="text-align:center"><span style="font-family:'Kolonia', serif; font-size:48px; color:#333333">WORLD</span></p>
   
-  console.log(generateHTML(doc, [TextStyle, FontFamily, FontSize, StarterKit]))
+  
   return (
     <ArticleReaderWithPins
     template={article.template}

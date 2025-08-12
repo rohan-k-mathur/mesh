@@ -43,31 +43,21 @@ export default function Toolbar({ editor }: Props) {
 
   return (
     <div className="flex flex-wrap items-center gap-1 border rounded-md px-2 py-1 bg-white">
-    <select
+<select
   className="text-sm border rounded"
   defaultValue=""
   onChange={(e) =>
-    editor.chain().focus().setFontFamily(e.target.value).run()
+    editor!.chain().focus().setMark('textStyle', { fontFamily: e.target.value }).run()
   }
-  // onChange={(e) => editor
-  //   .chain()
-  //   .focus()
-  //   .setMark('textStyle', { fontFamily: e.target.value })
-  //   .run()
-  // }
 >
   <option value="" disabled>Font</option>
   <option value="inherit">System Sans</option>
-
-  {/* Founders Grotesk is sans-serif */}
-  <option value={'"Founders",sans-serif'}>
-    Founders
-  </option>
-
-  <option value={'"Bugrino", serif'}>Bugrino</option>
-  <option value={'"New Edge Test", serif'}>New Edge Test</option>
-  <option value={'"Kolonia", serif'}>Kolonia</option>
+  <option value="'Founders', sans-serif">Founders</option>
+  <option value="'Bugrino', serif">Bugrino</option>
+  <option value="'New Edge Test', serif">New Edge Test</option>
+  <option value="'Kolonia', serif">Kolonia</option>
 </select>
+
       <select
   className="text-sm border rounded"
   defaultValue=""

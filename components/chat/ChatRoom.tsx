@@ -11,6 +11,7 @@ import { usePrivateChatManager } from "@/contexts/PrivateChatManager";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { roomKey } from "@/lib/chat/roomKey";
 import PollChip from "@/components/chat/PollChip";
+import QuickPollComposer from "@/components/chat/QuickPollComposer";
 import type { PollStateDTO } from "@/types/poll";
 
 type Props = {
@@ -137,16 +138,39 @@ export default function ChatRoom({ conversationId, currentUserId, initialMessage
   const upsertPoll = useChatStore((s) => s.upsertPoll);
   const applyPollState = useChatStore((s) => s.applyPollState);
   const setMyVote = useChatStore((s) => s.setMyVote);
-
+    const composerOpenForRef = React.useRef<string | null>(null);
+    const [composerFor, setComposerFor] = useState<string | null>(null);
   const appendRef = useRef(appendMessage);
   useEffect(() => { appendRef.current = appendMessage; }, [appendMessage]);
 
   const initRef = useRef<string | null>(null);
+  const hydratedRef = useRef(false);
   useEffect(() => {
     if (initRef.current === conversationId) return;
     setMessages(conversationId, initialMessages);
     initRef.current = conversationId;
   }, [conversationId, setMessages, initialMessages]);
+
+   // Hydrate existing polls for the messages we just loaded (run once per convo)
+    useEffect(() => {
+        if (hydratedRef.current) return;
+        const list = allMessages[conversationId] ?? [];
+        if (!list.length) return;
+        hydratedRef.current = true;
+        const ids = list.map((m) => m.id);
+        fetch("/api/polls/query", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ messageIds: ids }),
+        })
+          .then((r) => r.json())
+          .then((data) => {
+            if (data?.ok && Array.isArray(data.items)) {
+              data.items.forEach((it: any) => upsertPoll(it.poll, it.state, it.my));
+            }
+          })
+          .catch((e) => console.warn("[polls] hydrate failed:", e));
+    }, [allMessages, conversationId, upsertPoll]);
 
   // useEffect(() => {
   //   const channel = supabase.channel(`conversation-${conversationId}`);
@@ -230,38 +254,32 @@ export default function ChatRoom({ conversationId, currentUserId, initialMessage
     });
   }, [conversationId, currentUserId, open]);
 
-  const onCreateOptions = useCallback(
-    async (m: Message) => {
-      const options: string[] = [];
-      for (let i = 0; i < 4; i++) {
-        const val = window.prompt(`Option ${i + 1}`);
-        if (!val) break;
-        options.push(val);
-      }
-      if (options.length < 2) return;
-      const res = await fetch("/api/polls", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          conversationId,
-          messageId: m.id,
-          kind: "OPTIONS",
-          options,
-        }),
-      });
-             const data = await res.json();
-             if (!res.ok || !data?.ok) {
-               console.warn("[polls] create OPTIONS failed:", data);
-               alert(data?.error ?? "Failed to create poll");
-               return;
-             }
-             const poll = data.poll;
-             upsertPoll(poll, null, null);
-             chRef.current?.send({ type: "broadcast", event: "poll_create", payload: { poll, state: null, my: null } });
-           
-    },
-    [conversationId, upsertPoll]
-  );
+      // Open inline composer under message
+      const onCreateOptions = useCallback((m: Message) => {
+        setComposerFor(m.id);
+        composerOpenForRef.current = m.id;
+      }, []);
+    
+      // Actually create the poll (reuses your existing server endpoint)
+      const submitOptionsPoll = useCallback(
+        async (messageId: string, options: string[]) => {
+          const res = await fetch("/api/polls", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ conversationId, messageId, kind: "OPTIONS", options }),
+          });
+          const data = await res.json();
+          if (!res.ok || !data?.ok) {
+            console.warn("[polls] create OPTIONS failed:", data);
+            alert(data?.error ?? "Failed to create poll");
+            return;
+          }
+          const poll = data.poll;
+          upsertPoll(poll, null, null);
+          chRef.current?.send({ type: "broadcast", event: "poll_create", payload: { poll, state: null, my: null } });
+        },
+        [conversationId, upsertPoll]
+      );
 
   const onCreateTemp = useCallback(
     async (m: Message) => {
@@ -334,6 +352,13 @@ export default function ChatRoom({ conversationId, currentUserId, initialMessage
               onCreateOptions={onCreateOptions}
               onCreateTemp={onCreateTemp}
             />
+              {composerFor === m.id && (
+              <QuickPollComposer
+                onSubmit={(opts) => submitOptionsPoll(m.id, opts)}
+                onCancel={() => setComposerFor(null)}
+              />
+            )}
+
             {pollsByMessageId[m.id] && (
               <PollChip
                 poll={pollsByMessageId[m.id]}
