@@ -16,7 +16,7 @@ import {
   MathBlock as MathBlockBase,
   MathInline as MathInlineBase,
 } from '@/lib/tiptap/extensions';
-
+import { toast } from 'sonner'
 import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
 import Collaboration from '@tiptap/extension-collaboration';
@@ -283,7 +283,7 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
   const [editorRef, setEditorRef] = useState<Editor | null>(null)
   const [initialJson, setInitialJson] = useState<any>()
   const [publishing, setPublishing] = useState(false)
-
+  const [revs, setRevs] = useState<{id:string;createdAt:string}[]|null>(null)
   const [title, setTitle] = useState<string>('Untitled')
   const router = useRouter();
 
@@ -475,7 +475,9 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
 
 const publishArticle = useCallback(async () => {
   if (!articleId || !editor || publishing) return
+  
   setPublishing(true)
+  toast.loading('Publishing…', { id: 'pub' })
   try {
     // ensure db has the latest title/JSON/etc.
     await saveDraftImmediate()
@@ -499,48 +501,38 @@ const publishArticle = useCallback(async () => {
     }
 
     const { slug } = await res.json()  // ← only read once
+    toast.success('Published!', { id: 'pub' })
     localStorage.removeItem('draftArticleId')
     router.replace(`/article/${slug}`)
   } finally {
     setPublishing(false)
   }
 }, [articleId, editor, template, heroImageKey, title, router, publishing, saveDraftImmediate])
-  //   if (!editor) return;
-  //   const controller = new AbortController();
+  
 
-  //   (async () => {
-  //     try {
-  //       if (!articleId) return            // never hit the API with undefined
+//restore revisions
 
-  //       const res = await fetch(`/api/articles/${articleId}`, {
-  //         signal: controller.signal,
-  //       });
-  //       if (!res.ok) return;
-  //       const data = await res.json();         // consume body only once
-  //       const serverUpdated = new Date(data.updatedAt ?? 0).getTime();
 
-  //       editor.commands.setContent(data.astJson ?? []);
-  //       setTemplate(data.template ?? 'standard');
-  //       setHeroImageKey(data.heroImageKey ?? null);
-  //       setHeroPreview(data.heroImageKey ?? null);
+async function openRevisions() {
+  const res = await fetch(`/api/articles/${articleId}/revisions`, { cache: 'no-store' })
+  if (res.ok) setRevs(await res.json())
+}
 
-  //       /* … look for a fresher local backup … */
-  //       const local = localStorage.getItem(LOCAL_KEY(articleId));
-  //       if (local) {
-  //         const parsed: Backup = JSON.parse(local);
-  //         if (parsed.ts > serverUpdated) {
-  //           setPendingRestore(parsed);
-  //         }
-  //       }
-  //     } catch (err) {
-  //       if ((err as DOMException).name !== 'AbortError') {
-  //         console.error(err);
-  //       }
-  //     }
-  //   })();
+async function restoreRevision(revisionId: string) {
+  const res = await fetch(`/api/articles/${articleId}/restore`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ revisionId }),
+  })
+  if (res.ok) {
+    toast.success('Revision restored')
+    // reload current doc into editor
+    const fresh = await fetch(`/api/articles/${articleId}`).then(r => r.json())
+    editor?.commands.setContent(fresh.astJson)
+  }
+}
 
-  //   return () => controller.abort();
-  // }, [articleId, editor]);
+
 
   /* ---------------------------------------------------------------------- */
   /*  Live character counter                                                 */
@@ -817,12 +809,34 @@ const publishArticle = useCallback(async () => {
           </button>
       
 
-          <button
+          {/* <button
             className="savebutton rounded-xl bg-white/70 p-2 h-fit text-xs"
             onClick={() => setSuggestion(!suggestion)}
           >
             {suggestion ? t('suggestionOff') : t('suggestionMode')}
-          </button>
+          </button> */}
+          <button className="savebutton rounded-xl bg-white/70 p-2 h-fit text-xs" onClick={openRevisions}>
+  Revisions
+</button>
+
+{revs && (
+  <div className="fixed inset-0 bg-black/30 grid place-items-center">
+    <div className="bg-white rounded p-3 w-[360px] max-h-[70vh] overflow-auto">
+      <div className="text-sm font-semibold mb-2">Revisions</div>
+      <ul className="space-y-1">
+        {revs.map(r => (
+          <li key={r.id} className="flex items-center justify-between">
+            <span className="text-xs text-neutral-700">{new Date(r.createdAt).toLocaleString()}</span>
+            <button className="text-xs underline" onClick={() => restoreRevision(r.id)}>Restore</button>
+          </li>
+        ))}
+      </ul>
+      <div className="mt-3 text-right">
+        <button className="px-2 py-1 border rounded text-xs" onClick={() => setRevs(null)}>Close</button>
+      </div>
+    </div>
+  </div>
+)}
           <button
             className="savebutton rounded-xl bg-white/70 p-2 h-fit text-xs"
             onClick={saveDraftImmediate}

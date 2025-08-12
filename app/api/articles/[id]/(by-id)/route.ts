@@ -84,14 +84,20 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   return NextResponse.json({ ok: true })
 }
 
-
 export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
   const user = await getUserFromCookies()
   if (!user) return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 })
 
   const a = await prisma.article.findUnique({ where: { id: params.id } })
-  if (!a || a.authorId !== user.userId.toString()) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  if (!a || a.authorId !== user.userId.toString())
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
+    const hard = new URL(_req.url).searchParams.get('hard') === '1'
+if (hard) {
   await prisma.article.delete({ where: { id: params.id } })
+  return NextResponse.json({ ok: true })
+}
+
+  await prisma.article.update({ where: { id: params.id }, data: { deletedAt: new Date() } })
   return NextResponse.json({ ok: true })
 }

@@ -17,11 +17,11 @@ export default async function ArticlesPage() {
   })
 
   
-const items = raw.map(a => ({
-    ...a,
-    createdAt: a.createdAt.toISOString(),
-    updatedAt: a.updatedAt.toISOString(),
-  }))
+// const items = raw.map(a => ({
+//     ...a,
+//     createdAt: a.createdAt.toISOString(),
+//     updatedAt: a.updatedAt.toISOString(),
+//   }))
 
 //   const items = await prisma.article.findMany({
 //     where: { authorId: user.userId.toString() },
@@ -32,5 +32,20 @@ const items = raw.map(a => ({
 //     },
 //   })
 
-  return <ArticlesDashboard initialItems={items} />
+ // initial page (server render): only active items
+ const items = await prisma.article.findMany({
+    where: { authorId: user.userId.toString(), deletedAt: null },
+    orderBy: [{ updatedAt: 'desc' }],
+    select: { id:true,title:true,slug:true,status:true,createdAt:true,updatedAt:true,heroImageKey:true,template:true },
+  })
+
+  // serialize dates to strings for the client component type
+  const initial = items.map(i => ({
+    ...i,
+    createdAt: i.createdAt.toISOString(),
+    updatedAt: i.updatedAt.toISOString(),
+  }))
+
+  return <ArticlesDashboard initialItems={initial} />
+
 }

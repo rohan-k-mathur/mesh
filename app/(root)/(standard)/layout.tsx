@@ -20,6 +20,7 @@ import ClientProviders from "./client-providers";
 import PrivateChatDock from "@/components/chat/PrivateChatDock";
 import MessagesRealtimeBootstrap from "@/components/chat/MessagesRealtimeBootstrap";
 import { getCurrentUserId } from "@/lib/serverutils";
+import { Toaster } from 'sonner'
 
 export const metadata = {
   title: "Mesh",
@@ -64,8 +65,8 @@ export default async function StandardLayout({
         <AuthProvider user={user}>
         <ClientProviders>
           {/* <PrivateChatShell meId={user?.userId?.toString() ?? null}> */}
-            
-
+          <Toaster position="top-right" richColors />
+        
             <ScrollAnalytics />
             <main className="flex flex-row">
               <LeftSidebar userRooms={userRooms} />
