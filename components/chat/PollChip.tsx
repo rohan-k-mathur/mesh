@@ -1,3 +1,5 @@
+  /* components/chat/PollChip.tsx */
+  "use client";
   import * as React from "react";
   import { PollUI } from "@/contexts/useChatStore";
   
@@ -7,6 +9,25 @@
     return <div className="text-[11px] leading-4 text-slate-600">{children}</div>;
   }
   
+  function SummaryButton({
+    label,
+    onClick,
+  }: {
+    label: string;
+    onClick: () => void;
+  }) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className="flex flex-col justify-center   items-center mx-auto w-fit gap-2 px-2 py-2 rounded-xl  bg-white/70  text-xs sendbutton"
+        aria-expanded={false}
+      >
+        {label}
+      </button>
+    );
+  }
+  
   export default function PollChip({
     poll,
     onVote,
@@ -14,15 +35,97 @@
     poll: PollUI;
     onVote: (params: VoteBody) => void;
   }) {
-    if (poll.kind === "OPTIONS") return <OptionsPoll poll={poll} onVote={onVote} />;
-    return <TempPoll poll={poll} onVote={onVote} />;
+    const pollId = poll.poll.id;
+    const key = React.useMemo(() => `poll:collapsed:${pollId}`, [pollId]);
+    const voted =
+      poll.kind === "OPTIONS" ? poll.myVote != null : poll.myValue != null;
+  
+    // Default: not voted → expanded; voted → collapsed
+    const [collapsed, setCollapsed] = React.useState<boolean>(voted);
+  
+    // Hydrate from localStorage (if user toggled before)
+    React.useEffect(() => {
+      try {
+        const v = localStorage.getItem(key);
+        if (v !== null) setCollapsed(v === "1");
+        else setCollapsed(voted);
+      } catch {}
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [key]);
+  
+    // If user just voted and we have no stored pref yet, collapse by default
+    const prevVoted = React.useRef(voted);
+    React.useEffect(() => {
+      if (!prevVoted.current && voted) {
+        try {
+          const hadPref = localStorage.getItem(key);
+          if (hadPref === null) {
+            localStorage.setItem(key, "1");
+            setCollapsed(true);
+          }
+        } catch {}
+      }
+      prevVoted.current = voted;
+    }, [voted, key]);
+  
+    const persist = (v: boolean) => {
+      setCollapsed(v);
+      try {
+        localStorage.setItem(key, v ? "1" : "0");
+      } catch {}
+    };
+  
+    // If user hasn't voted yet, keep the current UI (never collapsed)
+    if (!voted) {
+      return poll.kind === "OPTIONS" ? (
+        <OptionsVoteView poll={poll} onVote={onVote} />
+      ) : (
+        <TempVoteView poll={poll} onVote={onVote} />
+      );
+    }
+  
+    // Collapsed: show a compact summary button
+    if (collapsed) {
+      const label =
+        poll.kind === "OPTIONS"
+          ? optionsSummaryLabel(poll)
+          : `🌡 View temperature • Avg ${poll.avg} (${poll.count})`;
+      return <SummaryButton label={label} onClick={() => persist(false)} />;
+    }
+  
+    // Expanded: show results with a small “×” to minimize
+    return poll.kind === "OPTIONS" ? (
+      <OptionsResultsView poll={poll} onVote={onVote} onClose={() => persist(true)} />
+    ) : (
+      <TempResultsView poll={poll} onVote={onVote} onClose={() => persist(true)} />
+    );
   }
   
-  function OptionsPoll({ poll, onVote }: { poll: Extract<PollUI, { kind: "OPTIONS" }>; onVote: (b: VoteBody) => void }) {
-    const { poll: p, totals, count, myVote } = poll;
-    const [submitting, setSubmitting] = React.useState<number | null>(null);
-    const total = Math.max(1, count);
+  /* ---------- OPTIONS ---------- */
   
+  function optionsSummaryLabel(p: Extract<PollUI, { kind: "OPTIONS" }>) {
+    const { totals, count } = p;
+    if (!p.poll.options?.length) return "📊 View poll results";
+    const total = Math.max(1, count);
+    let leader = 0;
+    for (let i = 1; i < p.poll.options.length; i  ++) {
+      if ((totals[i] ?? 0) > (totals[leader] ?? 0)) leader = i;
+    }
+    const pct = Math.round(((totals[leader] ?? 0) * 100) / total);
+    return `📊 View poll • ${count} vote${count === 1 ? "" : "s"} • Leading: “${
+      p.poll.options[leader]
+    }” (${pct}%)`;
+  }
+  
+  function OptionsVoteView({
+    poll,
+    onVote,
+  }: {
+    poll: Extract<PollUI, { kind: "OPTIONS" }>;
+    onVote: (b: VoteBody) => void;
+  }) {
+    const { poll: p } = poll;
+    const [submitting, setSubmitting] = React.useState<number | null>(null);
     const handle = async (idx: number) => {
       try {
         setSubmitting(idx);
@@ -31,35 +134,53 @@
         setSubmitting(null);
       }
     };
-  
-    // Not voted yet — show compact option chips
-    if (myVote == null) {
-      return (
-        <div className="rounded-xl border bg-white/30 px-8 py-4 mx-8 mt-8 w-full justify-center items-center inline-flex flex-col gap-1 ">
-          <SmallMeta>📊 Poll · choose one</SmallMeta>
-          <div className="mt-1 flex flex-wrap gap-1.5">
-            {p.options!.map((opt, idx) => (
-              <button
-                key={idx}
-                onClick={() => handle(idx)}
-                disabled={submitting !== null}
-                className="px-2 py-1 rounded-full border bg-white/80 hover:bg-white text-xs transition disabled:opacity-60"
-              >
-                {opt}
-              </button>
-            ))}
-          </div>
+    return (
+      <div className="rounded-xl border bg-white/30 px-8 py-4 mx-8 w-full justify-center items-center inline-flex flex-col gap-1">
+        <SmallMeta>📊 Poll · choose one</SmallMeta>
+        <div className="mt-1 flex flex-wrap gap-1.5">
+          {p.options!.map((opt, idx) => (
+            <button
+              key={idx}
+              onClick={() => handle(idx)}
+              disabled={submitting !== null}
+              className="px-2 py-1 rounded-full border bg-white/80 hover:bg-white text-xs transition disabled:opacity-60"
+            >
+              {opt}
+            </button>
+          ))}
         </div>
-      );
-    }
+      </div>
+    );
+  }
   
-    // Voted — show results with animated bars (click row to change)
+  function OptionsResultsView({
+    poll,
+    onVote,
+    onClose,
+  }: {
+    poll: Extract<PollUI, { kind: "OPTIONS" }>;
+    onVote: (b: VoteBody) => void;
+    onClose: () => void;
+  }) {
+    const { poll: p, totals, count, myVote } = poll;
+    const total = Math.max(1, count);
+    const handle = async (idx: number) => {
+      await onVote({ optionIdx: idx });
+    };
     return (
       <div
-        className="  rounded-xl justify-center items-center  bg-white/30 px-8 py-4 shadow-xl mx-auto  w-[70%] "
+        className="relative rounded-xl bg-white/30 px-8 py-4 shadow-xl mx-auto w-[70%]"
         role="group"
         aria-label="Poll results"
       >
+        <button
+          type="button"
+          aria-label="Minimize poll"
+          onClick={onClose}
+          className="absolute top-2 right-2 text-slate-500 hover:text-slate-700"
+        >
+          ×
+        </button>
         <div className="flex text-[1rem] text-center justify-between items-baseline">
           <SmallMeta>📊 Poll · {count} vote{count === 1 ? "" : "s"}</SmallMeta>
         </div>
@@ -68,12 +189,7 @@
             const pct = Math.round(((totals[idx] ?? 0) * 100) / total);
             const mine = myVote === idx;
             return (
-              <button
-                key={idx}
-                onClick={() => handle(idx)}
-                className="block w-full text-left"
-                aria-pressed={mine}
-              >
+              <button key={idx} onClick={() => handle(idx)} className="block w-full text-left" aria-pressed={mine}>
                 <div className="flex items-baseline justify-between text-[12px]">
                   <span className={mine ? "font-semibold" : ""}>
                     {mine ? "✓ " : ""}
@@ -95,13 +211,20 @@
     );
   }
   
-  function TempPoll({ poll, onVote }: { poll: Extract<PollUI, { kind: "TEMP" }>; onVote: (b: VoteBody) => void }) {
-    const { avg, count, myValue } = poll;
+  /* ---------- TEMPERATURE ---------- */
+  
+  function TempVoteView({
+    poll,
+    onVote,
+  }: {
+    poll: Extract<PollUI, { kind: "TEMP" }>;
+    onVote: (b: VoteBody) => void;
+  }) {
+    const { myValue } = poll;
     const [value, setValue] = React.useState<number>(myValue ?? 50);
     const [dragging, setDragging] = React.useState(false);
     const [pending, setPending] = React.useState(false);
   
-    // Commit only when interaction ends → good for mobile    avoids spamming the server
     const commit = async (v: number) => {
       setPending(true);
       try {
@@ -110,18 +233,12 @@
         setPending(false);
       }
     };
-  
     return (
       <div className="rounded-xl border bg-white/30 px-3 py-2 mx-8">
         <div className="flex items-baseline justify-between">
           <SmallMeta>🌡 Temperature check</SmallMeta>
-          <SmallMeta>
-            Avg <span className="tabular-nums">{avg}</span> · {count} vote{count === 1 ? "" : "s"}
-          </SmallMeta>
         </div>
-  
         <div className="mt-2">
-          {/* custom track with avg tick */}
           <div className="relative">
             <input
               type="range"
@@ -135,20 +252,11 @@
               className="w-full"
               aria-label="Set your temperature"
             />
-            {/* avg tick */}
-            <div
-              className="pointer-events-none absolute -top-1.5 h-4 w-px bg-indigo-500 opacity-70"
-              style={{ left: `${avg}%` }}
-              aria-hidden
-            />
           </div>
           <div className="mt-1 flex justify-between text-[11px] text-slate-600">
-            <span>0 · Nope</span>
-            <span>50 · Meh</span>
-            <span>100 · Yes</span>
+            <span>0 · Nope</span><span>50 · Meh</span><span>100 · Yes</span>
           </div>
         </div>
-  
         <div className="mt-1 text-[11px] text-slate-700">
           Your value: <span className="tabular-nums">{value}</span>
           {pending ? " • saving…" : dragging ? " • release to save" : null}
@@ -156,7 +264,32 @@
       </div>
     );
   }
-
-
-
   
+  function TempResultsView({
+    poll,
+    onVote,
+    onClose,
+  }: {
+    poll: Extract<PollUI, { kind: "TEMP" }>;
+    onVote: (b: VoteBody) => void;
+    onClose: () => void;
+  }) {
+    // Reuse the vote view as the expanded UI (allows adjusting), but add header and “×”
+    const { avg, count } = poll;
+    return (
+      <div className="relative">
+        <button
+          type="button"
+          aria-label="Minimize poll"
+          onClick={onClose}
+          className="absolute top-2 right-2 text-slate-500 hover:text-slate-700"
+        >
+          ×
+        </button>
+        <div className="mx-8 mb-1 flex items-baseline justify-between">
+          <SmallMeta>🌡 Temperature · Avg {avg} · {count} vote{count === 1 ? "" : "s"}</SmallMeta>
+        </div>
+        <TempVoteView poll={poll} onVote={onVote} />
+      </div>
+    );
+  }

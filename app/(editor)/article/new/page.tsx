@@ -97,5 +97,5 @@ export default function NewArticlePage() {
     })()
   }, [router])
 
-  return <div className="p-6 text-sm text-neutral-600">Creating draft…</div>
+  return <div className="p-[25%] text-[3rem]  text-neutral-600">Creating draft…</div>
 }

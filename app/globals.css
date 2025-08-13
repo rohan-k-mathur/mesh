@@ -1138,17 +1138,13 @@ textarea {
 }
 .bubblebutton
 {
-  background-color: rgba(255,255,255,.52);
-  padding: 2px;
-
-  border-radius: 4px;
+  background-color: rgba(255,255,255,.32);
 
   border:none;
 outline: none;
-    border-radius: 3%;
     /*background: linear-gradient(145deg, #c5c9d8, #eaefff);*/
-    box-shadow: inset 1px 2px 12px rgba(220,210,245,.45),
-    inset -2px -1px 14px rgb(254, 205, 211,.55),
+    box-shadow: inset 1px 2px 12px rgba(234, 233, 238, 0.45),
+    inset -2px -1px 14px rgba(244, 234, 235, 0.55),
       3px 3px 7px rgb(204, 199, 224,.35),
   -1px 2px 7px rgba(90, 45, 45, 0.25);
 

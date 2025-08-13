@@ -2,8 +2,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prismaclient";
 import { supabase } from "@/lib/supabaseclient";
+// import { getUserFromCookies } from "@/lib/server/getUser";
 import { getUserFromCookies } from "@/lib/serverutils";
-
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { ATTACHMENTS_BUCKET } from "@/lib/storage/constants";
 export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
@@ -31,10 +33,10 @@ export async function GET(
   if (a.message.conversation.participants.length === 0)
     return new NextResponse("Forbidden", { status: 403 });
 
-  const { data, error } = await supabase
-    .storage
-    .from("message-attachments")
-    .createSignedUrl(a.path, 60 * 60); // 1 hour
+     const { data, error } = await supabaseAdmin
+       .storage
+       .from(ATTACHMENTS_BUCKET)
+       .createSignedUrl(a.path, 60 * 60);
   if (error) return new NextResponse("Failed to sign", { status: 500 });
 
   return NextResponse.json({ url: data.signedUrl }, { status: 200 });

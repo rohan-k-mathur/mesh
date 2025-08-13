@@ -31,14 +31,34 @@ function excerpt(text?: string | null, len = 100) {
 
 function Attachment({ a }: { a: { id: string; path: string; type: string; size: number } }) {
   const [url, setUrl] = useState<string | null>(null);
-  useEffect(() => {
+  
+  React.useEffect(() => {
     let cancelled = false;
-    fetch(`/api/messages/attachments/${a.id}/sign`)
-      .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then(({ url }) => { if (!cancelled) setUrl(url); })
-      .catch(() => { if (!cancelled) setUrl(null); });
+
+    async function signWithRetry() {
+      for (let i = 0; i < 4; i++) {
+        try {
+          const r = await fetch(`/api/messages/attachments/${a.id}/sign`);
+          if (r.ok) {
+            const { url } = await r.json();
+            if (!cancelled) setUrl(url);
+            return;
+          } else {
+            const txt = await r.text();
+            console.warn(`[attachment] sign ${a.id} try ${i + 1} failed:`, r.status, txt);
+          }
+        } catch (e) {
+          console.warn(`[attachment] sign ${a.id} network error try ${i + 1}`, e);
+        }
+        await new Promise(res => setTimeout(res, 150 * (i + 1)));
+      }
+      if (!cancelled) setUrl(null);
+    }
+
+    signWithRetry();
     return () => { cancelled = true; };
   }, [a.id]);
+
   if (!url) return null;
 
   if (a.type.startsWith("image/")) {
@@ -353,7 +373,19 @@ export default function ChatRoom({ conversationId, currentUserId, initialMessage
               onCreateTemp={onCreateTemp}
             />
 
-
+{/* Render attachments OUTSIDE ChatMessage so they always show */}
+   {m.attachments?.length ? (
+     <div
+       className={[
+         "mt-1 flex flex-col gap-2 px-3",
+         String(m.senderId) === String(currentUserId) ? "items-end" : "items-start",
+       ].join(" ")}
+     >
+       {m.attachments.map((a) => (
+         <Attachment key={a.id} a={a} />
+       ))}
+     </div>
+   ) : null}
             {pollsByMessageId[m.id] && (
               <PollChip
                 poll={pollsByMessageId[m.id]}

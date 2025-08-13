@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchMessages, sendMessage } from "@/lib/actions/message.actions";
+import { prisma } from "@/lib/prismaclient";
+import { supabase } from "@/lib/supabaseclient";
 import { ensureParticipant } from "../ensureParticipant";
 import { jsonSafe } from "@/lib/bigintjson";
 
@@ -37,20 +39,70 @@ export async function POST(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const conversationId = BigInt(params.id);
-  const userCheck = await ensureParticipant(req, conversationId);
-  if (userCheck instanceof NextResponse) return userCheck;
-  const { userId } = userCheck;
-
-  const form = await req.formData();
-  const text = form.get("text") as string | null;
-  const files = form.getAll("files").filter(Boolean) as File[];
-  const message = await sendMessage({
-    conversationId,
-    senderId: userId,
-    text: text ?? undefined,
-    files: files.length ? files : undefined,
-  });
-  
-  return NextResponse.json(jsonSafe(message), { status: 201 });
+      try {
+          const conversationId = BigInt(params.id);
+          const userCheck = await ensureParticipant(req, conversationId);
+          if (userCheck instanceof NextResponse) return userCheck;
+          const { userId } = userCheck;
+      
+          const form = await req.formData();
+          const text = form.get("text") as string | null;
+          const files = form.getAll("files").filter(Boolean) as File[];
+      
+          const saved = await sendMessage({
+            conversationId,
+            senderId: userId,
+            text: text ?? undefined,
+            files: files.length ? files : undefined,
+          });
+      
+          // Coerce id to BigInt for Prisma in case sendMessage returned a string.
+          const savedId = typeof (saved as any).id === "bigint"
+            ? (saved as any).id
+            : BigInt((saved as any).id);
+      
+          // Small retry: attachment rows can lag a tick after message insert.
+          async function readFullMessage(retries = 2) {
+            for (let i = 0; i <= retries; i++) {
+            const full = await prisma.message.findUnique({
+              where: { id: savedId },
+                include: {
+                  sender: { select: { name: true, image: true } },
+                  attachments: { select: { id: true, path: true, type: true, size: true } },
+                },
+              });
+              if (full && (i === retries || full.attachments)) return full;
+              await new Promise(r => setTimeout(r, 25));
+            }
+            return null;
+          }
+      
+          const full = await readFullMessage();
+          if (!full) {
+            return NextResponse.json({ ok: false, error: "Message not found after save" }, { status: 500 });
+          }
+      
+          const dto = {
+            id: full.id.toString(),
+            text: full.text ?? null,
+            createdAt: full.created_at.toISOString(),
+            senderId: full.sender_id.toString(),
+            sender: { name: full.sender.name, image: full.sender.image },
+            attachments: full.attachments.map((a) => ({
+              id: a.id.toString(),
+              path: a.path,
+              type: a.type,
+              size: a.size,
+            })),
+          };
+      
+          // Do NOT broadcast from server here. Your existing realtime path can handle it.
+          // If you must broadcast here, do it fire-and-forget (and ensure your supabase client supports ws on server):
+          // supabase.channel(`conversation-${params.id}`).send({ type: "broadcast", event: "new_message", payload: dto }).catch(()=>{});
+      
+          return NextResponse.json(dto, { status: 201 });
+        } catch (e: any) {
+          console.error("POST /api/messages/:id failed", e);
+          return NextResponse.json({ ok: false, error: e?.message || "Internal Server Error" }, { status: 500 });
+        }
 }

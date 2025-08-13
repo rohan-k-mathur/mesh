@@ -78,6 +78,7 @@ export default function MessageComposer({ conversationId }: Props) {
         if (xhr.status < 200 || xhr.status >= 300)
           throw new Error("Upload failed");
         const msg = JSON.parse(xhr.responseText);
+        console.log('[send] server returned attachments:', msg.attachments?.length, msg.attachments);
         appendMessage(conversationId, msg);
       } catch (e) {
         // TODO: surface error toast

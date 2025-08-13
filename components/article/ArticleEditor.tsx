@@ -809,7 +809,7 @@ async function restoreRevision(revisionId: string) {
           </div>
           <div className="flex flex-1 flex-wrap space-x-3 gap-2 justify-end
            mb-3">
-          <button           className=" px-2 py-1 rounded-xl bg-white/70 savebutton text-[.8rem] text-center">
+          <button           className=" px-2 py-1 rounded-xl bg-white/70 sendbutton text-[.8rem] text-center">
             <input  type="file" onChange={onHeroUpload} hidden />
             Upload hero
           </button>
@@ -821,7 +821,7 @@ async function restoreRevision(revisionId: string) {
           >
             {suggestion ? t('suggestionOff') : t('suggestionMode')}
           </button> */}
-   <button           className=" px-2 py-1 rounded-xl bg-white/70 savebutton text-[.8rem] text-center"
+   <button           className=" px-2 py-1 rounded-xl bg-white/70 sendbutton text-[.8rem] text-center"
           onClick={openRevisions}>
   Revisions
 </button>
@@ -845,7 +845,7 @@ async function restoreRevision(revisionId: string) {
   </div>
 )}
       
- <button           className=" px-2 py-1 rounded-xl bg-white/70 savebutton text-[.8rem] text-center"
+ <button           className=" px-2 py-1 rounded-xl bg-white/70 sendbutton text-[.8rem] text-center"
              onClick={saveDraftImmediate}
           >
             {t('saveDraft')}
@@ -857,7 +857,7 @@ async function restoreRevision(revisionId: string) {
             {t('checkAccessibility')}
           </button> */}
              <button
-             className=" px-2 py-1 rounded-xl bg-white/70 savebutton text-[.8rem] text-center"
+             className=" px-2 py-1 rounded-xl bg-white/70 sendbutton text-[.8rem] text-center"
             onClick={publishArticle}
           >
             Publish
