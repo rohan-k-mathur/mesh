@@ -78,6 +78,33 @@ import { plainTextFromAst, computeExcerpt, readingTime } from '@/lib/article/tex
 //     { status: 201 },
 //   )
 // }
+// ── helpers ──────────────────────────────────────────────────────────────────
+function textContent(n: any): string {
+  if (!n) return ''
+  if (n.type === 'text' && n.text) return n.text
+  if (Array.isArray(n.content)) return n.content.map(textContent).join('')
+  return ''
+}
+function titleFromAst(ast: any): string | null {
+  if (!ast) return null
+  const stack = [ast]
+  while (stack.length) {
+    const node: any = stack.shift()
+    if (node?.type === 'heading' && (!node.attrs?.level || node.attrs.level <= 2)) {
+      const t = textContent(node).trim()
+      if (t) return t
+    }
+    if (node?.type === 'paragraph') {
+      const t = textContent(node).trim()
+      if (t) return t
+    }
+    if (Array.isArray(node?.content)) stack.unshift(...node.content)
+  }
+  return null
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
+
 
 export async function POST(_req: Request, { params }: { params: { id: string } }) {
   const user = await getUserFromCookies()
@@ -91,26 +118,45 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
   const safeJson = async () => { try { return await _req.json() } catch { return {} } }
   const body = await safeJson()
 
-    let slug = article.slug
-    const isKebab = /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(article.slug)
-    const looksRandom = /^[A-Za-z0-9_-]{16,}$/.test(article.slug) // rough nanoid-ish test
-    const isUntitled = /^untitled(?:-\d+)?$/.test(article.slug)
-  
-    if (!isKebab || looksRandom || isUntitled) {
-      const base = kebabCase(article.title || 'untitled') || 'untitled'
-      slug = base
-      for (let i = 1; await prisma.article.findUnique({ where: { slug } }); i++) {
-        slug = `${base}-${i}`
-      }
-    }
+    // choose the AST we’ll publish
+    const ast = body.astJson ?? article.astJson
 
-  const plain = body.astJson ? plainTextFromAst(body.astJson) : plainTextFromAst(article.astJson)
+      // compute derived fields
+  const plain   = plainTextFromAst(ast)
   const excerpt = computeExcerpt(plain)
   const minutes = readingTime(plain)
+
+   // 🔑 resolve title
+   const fromBody = typeof body.title === 'string' && body.title.trim() ? body.title.trim() : null
+   const current  = article.title && article.title !== 'Untitled' ? article.title : null
+   const derived  = fromBody ?? current ?? titleFromAst(ast) ?? 'Untitled'
+   const title    = derived
+ 
+
+
+  // 🔑 resolve slug — rewrite if kebab-invalid, random-ish, or “untitled”
+  const looksRandom = /^[A-Za-z0-9_-]{12,}$/.test(article.slug)
+  const isKebab     = /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(article.slug)
+  const isUntitled  = /^untitled(?:-\d+)?$/.test(article.slug)
+
+  let slug = article.slug
+  if (!isKebab || looksRandom || isUntitled) {
+    const base = kebabCase(title) || 'untitled'
+    slug = base
+    for (let i = 1; await prisma.article.findUnique({ where: { slug } }); i++) {
+      slug = `${base}-${i}`
+    }
+  }
+  
+
+  // const plain = body.astJson ? plainTextFromAst(body.astJson) : plainTextFromAst(article.astJson)
+  // const excerpt = computeExcerpt(plain)
+  // const minutes = readingTime(plain)
   
   const updated = await prisma.article.update({
     where: { id: params.id },
     data : {
+      ...(title !== article.title ? { title } : {}),
       slug,
       status: 'PUBLISHED',
       publishedAt: article.publishedAt ?? new Date(),
@@ -121,6 +167,11 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
       ...(body.heroImageKey && { heroImageKey: body.heroImageKey }),
     },
   })
+
+    // store a revision
+    await prisma.revision.create({ data: { articleId: updated.id, astJson: (body.astJson ?? updated.astJson) as any } })
+
+
   
 
   await prisma.revision.create({
@@ -131,6 +182,7 @@ const payload = {
   kind: 'article' as const,
   articleId: updated.id,
   slug: updated.slug,
+  
   title: updated.title,
   heroImageKey: updated.heroImageKey ?? null,
   excerpt: updated.excerpt ?? null,        // from Phase 1 earlier
@@ -147,8 +199,8 @@ const payload = {
           articleId: updated.id,
         })
   } catch (e) {
-    console.error('createFeedPost failed:', e)
-  }
+    console.error('createFeedPost failed:', e?.message, e)
+    }
 
   return NextResponse.json({ slug: updated.slug }, { status: 201 })
 }

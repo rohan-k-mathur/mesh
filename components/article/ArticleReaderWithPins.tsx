@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import ArticleReader from "@/components/article/ArticleReader";
 import CommentModal from "@/components/article/CommentModal";
 import type { Anchor, CommentThread } from "@/types/comments";
-
+import { useSelectionRects } from "@/hooks/useSelectionRects";
 import Image from "next/image";
 /* ----------------------- DOM ↔ anchor helpers ----------------------- */
 
@@ -298,6 +298,7 @@ export default function ArticleReaderWithPins({
   title,
 }: Props) {
   const frameRef = useRef<HTMLDivElement>(null);
+  const rects = useSelectionRects(frameRef)
   const containerRef = useRef<HTMLDivElement>(null);
   const bubbleRef = useRef<HTMLDivElement>(null); // 👈 NEW
   const [openId, setOpenId] = useState<string | null>(null);
@@ -417,20 +418,23 @@ export default function ArticleReaderWithPins({
 
   return (
     <ArticleReader template={template} heroSrc={heroSrc} title={title}>
+              <div ref={frameRef} className="relative ">
+
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
         {/* Article + pins */}
+
         <div className="relative ml-[7%] mt-[1%]">
           
-          <div ref={frameRef} className="relative">
             {/* Title */}
           {title && (
             <h1 className="text-3xl font-semibold mb-4">{title}</h1>
           )}
+              <div className="absolute inset-0 pointer-events-none">
             {/* visual selection overlay so highlight remains visible */}
-            {selectionRects?.map((r, i) => (
+            {rects.map((r, i) => (
               <div
                 key={`sel-${i}`}
-                className="absolute z-0 pointer-events-none bg-amber-800/30 rounded-sm"
+                className="absolute  pointer-events-none bg-amber-800/30 rounded-sm"
                 style={{
                   top: r.top,
                   left: r.left,
@@ -462,6 +466,7 @@ export default function ArticleReaderWithPins({
                   }}
                 />
               ))}
+              </div>
             <div className="md:hidden mb-3">
               <button
                 className="px-3 py-1.5 rounded bg-amber-500 text-white text-sm"
