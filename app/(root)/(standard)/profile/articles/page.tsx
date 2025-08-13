@@ -12,7 +12,7 @@ export default async function ArticlesPage() {
     orderBy: [{ updatedAt: 'desc' }],
     select: {
       id: true, title: true, slug: true, status: true,
-      createdAt: true, updatedAt: true, heroImageKey: true, template: true,
+      createdAt: true, updatedAt: true, heroImageKey: true, template: true, 
     },
   })
 

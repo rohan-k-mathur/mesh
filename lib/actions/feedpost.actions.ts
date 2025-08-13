@@ -23,6 +23,7 @@ interface CreateFeedPostParams {
   stackId?: string;
   libraryPostId?: string;
   postType: feed_post_type;
+  articleId?: string;
 }
 
 export async function createFeedPost({
@@ -35,6 +36,7 @@ export async function createFeedPost({
   productReview,
   stackId,
   libraryPostId,
+  articleId,
     postType,
 }: CreateFeedPostParams) {
   const user = await getUserFromCookies();
@@ -50,7 +52,7 @@ export async function createFeedPost({
       image_url: imageUrl ?? null,
       video_url: videoUrl ?? null,
       portfolio: portfolio ?? null, // don’t pass undefined
-
+      articleId: articleId ?? null,
       ...(stackId && { stack_id: stackId }),
       ...(libraryPostId && { library_post_id: libraryPostId }),
       // now a real enum value

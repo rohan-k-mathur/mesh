@@ -623,8 +623,8 @@ const CreateFeedPost = ({ roomId = "global" }: Props) => {
       >
 
          <button
-          className="sidebarbutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent"
-    >
+              className="flex  bubblebutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent"
+              >
        <div className="flex align-center gap-3">
           <Image
             src="/assets/add--alt.svg"

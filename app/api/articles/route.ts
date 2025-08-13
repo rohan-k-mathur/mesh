@@ -1,25 +1,6 @@
 // import { NextResponse } from "next/server";
 // import { prisma } from "@/lib/prismaclient";
 
-// export async function POST(req: Request) {
-//   try {
-//     const body = await req.json();
-
-//     const article = await prisma.article.create({
-//       data: {
-//         authorId: body.authorId,
-//         title: body.title,
-//         slug: body.slug,
-//         astJson: body.astJson,
-//       },
-//     });
-
-//     return NextResponse.json(article);
-//   } catch (err) {
-//     console.error("Error creating article:", err);
-//     return NextResponse.json({ error: "Failed to create article" }, { status: 500 });
-//   }
-// }
 
 // // (optional) GET for listing all articles
 // export async function GET() {
@@ -29,7 +10,8 @@
 import { prisma } from '@/lib/prismaclient'
 import { NextResponse } from 'next/server'
 import { getUserFromCookies } from '@/lib/serverutils'
-
+import { nanoid } from 'nanoid'
+import { z } from 'zod'
 export async function GET(req: Request) {
   const user = await getUserFromCookies()
   if (!user) return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 })
@@ -73,4 +55,50 @@ export async function GET(req: Request) {
   }))
 
   return NextResponse.json({ items, total, page, pageSize })
+}
+
+
+const CreateSchema = z.object({
+  title: z.string().min(1).max(200).optional(),
+  slug: z.string().optional(),
+  template: z.string().optional(),
+  heroImageKey: z.string().nullable().optional(),
+  astJson: z.unknown().optional(),
+})
+
+export async function POST(req: Request) {
+  try {
+    const user = await getUserFromCookies()
+    if (!user) return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 })
+
+    // tolerate empty body
+    const safe = await req.json().catch(() => ({} as unknown))
+    const parsed = CreateSchema.safeParse(safe)
+
+    const {
+      title = 'Untitled',
+      slug = nanoid(),
+      template = 'standard',
+      heroImageKey = null,
+      astJson = { type: 'doc', content: [] },
+    } = parsed.success ? parsed.data : {}
+
+    const article = await prisma.article.create({
+      data: {
+        authorId: user.userId.toString(),   // never trust client for this
+        title,
+        slug,
+        template,
+        heroImageKey,
+        astJson,
+        status: 'DRAFT',
+      },
+      select: { id: true },
+    })
+
+    return NextResponse.json({ id: article.id }, { status: 201 })
+  } catch (err) {
+    console.error('Error creating article:', err)
+    return NextResponse.json({ error: 'Failed to create article' }, { status: 500 })
+  }
 }

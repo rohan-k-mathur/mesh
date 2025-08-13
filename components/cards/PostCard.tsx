@@ -19,11 +19,12 @@ import Spline from "@splinetool/react-spline";
 import dynamic from "next/dynamic";
 import PredictionMarketCard from "./PredictionMarketCard";
 import LibraryCard from "./LibraryCard";
+import ArticleCard from "../article/ArticleCard";
 import type { Like, RealtimeLike } from "@prisma/client";
 import React from "react";
 import localFont from "next/font/local";
 import type { BasePost, CanvasState } from "@/lib/types/post";
-
+import { parseJson } from "@/lib/parsejsonhelper";
 const EmbeddedCanvas = dynamic(() => import("./EmbeddedCanvas"), {
   ssr: false,
 });
@@ -32,6 +33,19 @@ const founders = localFont({ src: "./NewEdgeTest-RegularRounded.otf" });
 const DrawCanvas = dynamic(() => import("./DrawCanvas"), { ssr: false });
 const LivechatCard = dynamic(() => import("./LivechatCard"), { ssr: false });
 const EntropyCard = dynamic(() => import("./EntropyCard"), { ssr: false });
+
+type ArticleFeedPayload = {
+  kind: 'article'
+  slug: string
+  title?: string
+  heroImageKey?: string | null
+  excerpt?: string | null
+  readingTime?: number | null
+  articleId?: string | null
+}
+
+const isArticleMeta = (v: any): v is ArticleFeedPayload =>
+  v && typeof v === 'object' && v.kind === 'article' && typeof v.slug === 'string'
 
 interface ExtraUIProps {
   currentUserId?: bigint | null;
@@ -145,13 +159,41 @@ const PostCard = ({
                 {content}
               </p>
             )}
-            {type === "ARTICLE" && content && (
-              <Link href={content}>
-                <button className="savebutton rounded-xl bg-white px-3 text-xs">
-                  View article
-                </button>
-              </Link>
-            )}
+
+{type === "ARTICLE" && (() => {
+  const meta = parseJson<any>(content)
+
+  // ✅ New payload path
+  if (isArticleMeta(meta)) {
+    return (
+      <div className="w-[400px] h-[300px] bg-white">
+        <ArticleCard
+          postId={id}
+          meta={{
+            articleId: meta.articleId ?? null,
+            slug: meta.slug,
+            title: meta.title ?? "Untitled",
+            heroImageKey: meta.heroImageKey ?? null,
+            excerpt: meta.excerpt ?? null,
+            readingTime: meta.readingTime ?? null,
+          }}
+        />
+      </div>
+    )
+  }
+
+  // 🕜 Legacy string fallback: content === "/article/slug"
+  if (typeof content === 'string' && content.startsWith('/article/')) {
+    return (
+      <Link href={content}>
+        <button className="px-2 py-1 border rounded text-sm">View article</button>
+      </Link>
+    )
+  }
+
+  // 🕳️ Nothing renderable—avoid crash
+  return null
+})()}
             {(type === "IMAGE" || type === "IMAGE_COMPUTE") && image_url && (
               <ImageCard
                 id={id}
@@ -179,9 +221,9 @@ const PostCard = ({
                 ></iframe>
               </div>
             )}
-        {type === "MUSIC" && video_url && (
-  <SoundCloudPlayer src={video_url} title={content || caption} />
-)}
+            {type === "MUSIC" && video_url && (
+              <SoundCloudPlayer src={video_url} title={content || caption} />
+            )}
             {type === "GALLERY" && content && (
               // <div className="ml-[7rem] w-[500px] justify-center items-center">
               <div className="grid justify-center items-center align-center w-full ">
@@ -193,12 +235,18 @@ const PostCard = ({
             )}
             {type === "LIBRARY" &&
               (() => {
-                const lib = library ?? (() => {
-                  try { return content ? JSON.parse(content) : null; } catch { return null; }
-                })();
+                const lib =
+                  library ??
+                  (() => {
+                    try {
+                      return content ? JSON.parse(content) : null;
+                    } catch {
+                      return null;
+                    }
+                  })();
                 if (!lib) return null;
                 return (
-                 <LibraryCard
+                  <LibraryCard
                     kind={lib.kind}
                     coverUrl={lib.coverUrl}
                     libraryPostId={lib.libraryPostId}
@@ -436,11 +484,11 @@ const PostCard = ({
                     : isFeedPost
                     ? { feedPostId: id }
                     : { feedPostId: id })}
-                  isOwned={currentUserId === author.id}
+                  isOwned={String(currentUserId ?? "") === String(author.id)}
                   expirationDate={expirationDate ?? undefined}
                 />
 
-                {currentUserId === author.id && (
+                {String(currentUserId ?? "") === String(author.id) && (
                   <DeleteCardButton
                     {...(isRealtimePost
                       ? { realtimePostId: id.toString() }

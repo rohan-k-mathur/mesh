@@ -113,26 +113,26 @@ export default function ArticlesDashboard({
   }
 
   return (
-    <div className="mx-auto max-w-5xl p-6 space-y-6">
-      <div className="flex items-center justify-between gap-3">
-        <div className="text-[1.8rem] font-semibold">Your Articles</div>
+    <div className="mx-auto max-w-5xl p-4 space-y-6 mt-[-3rem] custom-scrollbar">
+      <div className="flex items-center px-4 justify-between gap-3 ">
+        <div className="text-[1.8rem] text-slate-800  font-semibold">Your Articles</div>
         <button
           onClick={createNew}
-          className="px-3 py-1.5 rounded bg-amber-500 lockbutton text-white text-sm"
+          className="px-3  py-1.5 rounded-xl bg-amber-400 lockbutton text-black text-sm"
         >
           New article
         </button>
       </div>
 
-      <div className="flex flex-wrap gap-3 items-center">
+      <div className="flex flex-wrap gap-3 items-center px-2">
                 <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search..."
-          className="border-[1px] border-indigo-300/80 rounded w-1/3  articlesearchfield px-2 py-[4px] text-sm"
+          className="border-[1px] border-indigo-300/80 rounded-xl w-[40%]  articlesearchfield px-2 py-[5px] text-sm"
         />
         <select
-          className="border-[1px] border-indigo-300/80 rounded px-2 py-1 text-sm selectfield"
+          className="border-[1px] border-indigo-300/80 rounded px-2 py-1.5 rounded-xl text-sm selectfield"
           value={status}
           onChange={(e) => setStatus(e.target.value as any)}
         >
@@ -142,45 +142,49 @@ export default function ArticlesDashboard({
         </select>
  
 
-<select className="border-[1px] border-indigo-300/80 rounded px-2 py-1 text-sm selectfield " value={template} onChange={e => setTemplate(e.target.value)}>
-          <option value="ALL">All templates</option>
+<select className="border-[1px] border-indigo-300/80 rounded-xl px-2 py-1.5 text-sm selectfield " value={template} onChange={e => setTemplate(e.target.value)}>
+          <option value="ALL">All Templates</option>
           <option value="standard">Standard</option>
           <option value="feature">Feature</option>
           {/* add more templates if you have them */}
         </select>
 
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-3">
         {isPending && <span className="text-sm text-neutral-500">Loading…</span>}
 
-          <button className={`px-2 py-0 lockbutton border-[1px] border-indigo-300/80 rounded text-[.9rem] ${view==='active'?'px-2  border rounded text-[.9rem] bg-neutral-100':'px-2  border rounded text-[.9rem] bg-neutral-50/30'}`} onClick={() => { setView('active'); setPage(1); startTransition(refresh) }}>Active</button>
-          <button className={`px-2 py-0 lockbutton border-[1px] border-indigo-300/80 rounded text-[.9rem]${view==='trash'?'px-2  border rounded text-[.9rem] bg-neutral-100':'px-2  border rounded text-[.9rem] bg-neutral-50/30'}`} onClick={() => { setView('trash'); setPage(1); startTransition(refresh) }}>Trash</button>
+          <button className={`px-2 py-0 lockbutton  rounded-xl text-[.9rem] ${view==='active'?'px-2  border rounded text-[.9rem] bg-neutral-100':'px-2  border rounded text-[.9rem] bg-neutral-50/30'}`} onClick={() => { setView('active'); setPage(1); startTransition(refresh) }}>Active</button>
+          <button className={`px-2 py-0 lockbutton  rounded-xl text-[.9rem]${view==='trash'?'px-2  border rounded text-[.9rem] bg-neutral-100':'px-2  border rounded text-[.9rem] bg-neutral-50/30'}`} onClick={() => { setView('trash'); setPage(1); startTransition(refresh) }}>Trash</button>
         </div>
       </div>
 
 
 
-      <div className="overflow-x-auto rounded border-[1px] border-indigo-300/80 bg-white">
+      <div className="overflow-x-auto rounded-xl px-1 border-[1px] border-indigo-300/80 bg-white/10 backdrop-blur-lg   shadow-xl">
         <table className="min-w-full text-sm">
-          <thead className="bg-neutral-50 text-neutral-600">
+          {/* <thead className="bg-neutral-50  text-neutral-600">
             <tr>
-              <th className="text-left px-3 py-2">Title</th>
-              <th className="text-left px-3 py-2">Status</th>
-              <th className="text-left px-3 py-2">Updated</th>
-              <th className="text-right px-3 py-2">Actions</th>
+              <th className="text-left px-5 py-2">Title</th>
+              <th className="text-left px-5 py-2">Status</th>
+              <th className="text-left px-5 py-2">Updated</th>
+              <th className="text-left px-[10rem] py-2">Actions</th>
             </tr>
-          </thead>
+          </thead> */}
+
           <tbody>
             {filtered.map((i) => (
-              <tr key={i.id} className="border-t">
-                <td className="px-3 py-2">
+  
+
+              <tr key={i.id} className="border-t-0 border-b-[1px]   border-slate-400 rounded-xl">
+                <td className="align-center py-4  px-4 my-auto text-[1.0rem] leading-none tracking-wide font-light">
                   <InlineTitle
                     initial={i.title}
                     onSave={t => rename(i.id, t)}
                   />
                 </td>
-                <td className="px-3 py-2">
+                
+                <td className="px-1 text-center py-2">
                   <span
-                    className={`px-2 py-0.5 rounded text-xs ${
+                    className={`px-2 py-1 rounded text-xs ${
                       i.status === "PUBLISHED"
                         ? "bg-emerald-100 text-emerald-700"
                         : "bg-amber-100 text-amber-700"
@@ -189,12 +193,12 @@ export default function ArticlesDashboard({
                     {i.status.toLowerCase()}
                   </span>
                 </td>
-                <td className="px-3 py-2 text-neutral-600">
+                <td className="px-5 text-center py-2 text-neutral-600">
                   {new Date(i.updatedAt).toLocaleString()}
                 </td>
                 <td className="px-3 py-2">
 
-                   <div className="flex items-center gap-2 justify-end">
+                   <div className="flex items-center gap-2 justify-end px-2">
                     {view === 'trash' ? (
                       <>
                         <button className="px-2 py-1 border rounded" onClick={() => restore(i.id)}>Restore</button>
@@ -202,15 +206,19 @@ export default function ArticlesDashboard({
                       </>
                     ) : (
                       <>
-                        <button className="px-2 py-1 border rounded" onClick={() => edit(i)}>Edit</button>
-                        <button className="px-2 py-1 border rounded" onClick={() => viewArticle(i)}>View</button>
-                        <button className="px-2 py-1 border rounded" onClick={() => copyLink(i)}>Copy link</button>
-                        <button className="px-2 py-1 border rounded text-red-600" onClick={() => remove(i.id)}>Trash</button>
+                        <button className="px-2 py-.5 bg-white/30  rounded-xl savebutton" onClick={() => edit(i)}>Edit</button>
+                        <button className="px-2 py-.5 bg-white/30  rounded-xl savebutton" onClick={() => viewArticle(i)}>View</button>
+                        <button className="px-2 py-.5 bg-white/30  rounded-xl savebutton" onClick={() => copyLink(i)}>Copy link</button>
+                        <button className="px-2 py-.5 bg-white/30  rounded-xl text-red-600 savebutton" onClick={() => remove(i.id)}>Trash</button>
                       </>
                     )}
                   </div>
+
                 </td>
+
               </tr>
+                   
+
             ))}
             {!filtered.length && (
               <tr>
@@ -222,11 +230,13 @@ export default function ArticlesDashboard({
                 </td>
               </tr>
             )}
+            
           </tbody>
+
         </table>
         
       </div>
-      <div className="flex items-center justify-between text-sm">
+      <div className="flex items-center px-4 justify-between text-sm">
         <div>{total !== null ? `Total: ${total}` : ''}</div>
         <div className="flex items-center gap-2">
           <button className="px-2 py-1  rounded bg-white/70 lockbutton" disabled={page<=1} onClick={() => onPageChange(page-1)}>Prev</button>
@@ -242,7 +252,7 @@ function InlineTitle({ initial, onSave }: { initial: string; onSave: (t: string)
     const [val, setVal] = useState(initial)
     return (
       <input
-        className="w-full outline-none bg-transparent"
+        className="w-full  outline-none bg-transparent"
         value={val}
         onChange={e => setVal(e.target.value)}
         onBlur={() => { if (val.trim() && val !== initial) onSave(val.trim()) }}

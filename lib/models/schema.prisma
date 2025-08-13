@@ -1357,6 +1357,9 @@ model Article {
   analytics    Json?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
+  excerpt      String?
+  readingTime  Int?        // minutes
+  publishedAt  DateTime?   // set on publish
 
   allowAnnotations Boolean         @default(true)
   revisionId       String?

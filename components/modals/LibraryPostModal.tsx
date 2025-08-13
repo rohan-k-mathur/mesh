@@ -60,42 +60,29 @@ export default function LibraryPostModal({ onOpenChange }: Props) {
       // 2) create library posts (UPLOAD or IMPORT)
       const result = await createLibraryPost({
         files: tab === "upload" ? Array.from(files ?? []) : undefined,
-        urls:  tab === "url" ? list : undefined,
-        previews,
+        urls:  tab === "url" ? list : undefined,    // your /import route handles URLs (unchanged)
+        previews,                                   // data URLs we rendered client-side
         isPublic,
         caption,
-        // (optionally support appending to an existing stack)
-        // stackId, stackName
-      });
+        stackName: "My Stack",       });
+      
       // result MUST be { postIds: string[], stackId?: string }
   
       // 3) create the feed post, passing FK(s)
       const count = tab === "upload" ? (files?.length ?? 0) : list.length;
       const payload =
-        count <= 1
-          ? {
-              kind: "single",
-              libraryPostId: result.postIds?.[0] ?? null,
-              coverUrl: previews?.[0] ?? null,
-              coverUrls: [],
-              size: 1,
-            }
-          : {
-              kind: "stack",
-              stackId: result.stackId ?? null,
-              coverUrl: null,
-              coverUrls: previews ?? [],
-              size: count,
-            };
+      count <= 1
+      ? { kind: "single", libraryPostId: result.postIds?.[0] ?? null, coverUrl: result.coverUrls?.[0] ?? null, coverUrls: [], size: 1 }
+      : { kind: "stack",  stackId: result.stackId ?? null,            coverUrl: null,                     coverUrls: result.coverUrls ?? [], size: count };
+  
   
       await createFeedPost({
         type: "LIBRARY",
         content: JSON.stringify(payload),
         caption,
         isPublic,
-        stackId: result.stackId,                                // ✅ FK on feed post
-        libraryPostId: count === 1 ? result.postIds?.[0] : undefined, // ✅ FK on single
-      });
+        libraryPostId: count === 1 ? result.postIds?.[0] : undefined,
+        stackId: result.stackId ?? undefined,      });
   
       onOpenChange(false);
       router.refresh();

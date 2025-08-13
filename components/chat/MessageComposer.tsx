@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect,useRef } from "react";
 import Image from "next/image";
 import { X, File as FileIcon, Paperclip } from "lucide-react";
 import { useChatStore } from "@/contexts/useChatStore";
@@ -22,8 +22,9 @@ export default function MessageComposer({ conversationId }: Props) {
   const [previews, setPreviews] = useState<string[]>([]);
  const [showPoll, setShowPoll] = useState(false);
   const [showTemp, setShowTemp] = useState(false);
-
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   function onFilesSelected(list: FileList | null) {
+    console.log("[files] selected", list?.length);
     if (!list) return;
     const filesArray = Array.from(list);
     const urls = filesArray.map((f) =>
@@ -31,6 +32,8 @@ export default function MessageComposer({ conversationId }: Props) {
     );
     setFiles((prev) => [...prev, ...filesArray]);
     setPreviews((prev) => [...prev, ...urls]);
+    // allow picking the same file twice
+   if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
   function removeFile(idx: number) {
@@ -181,7 +184,8 @@ export default function MessageComposer({ conversationId }: Props) {
           <div className="flex flex-wrap gap-2">
             {files.map((file, i) => {
               const isImg = file.type.startsWith("image/");
-              const url = isImg ? URL.createObjectURL(file) : undefined;
+              ///const url = isImg ? URL.createObjectURL(file) : undefined;
+              const url = isImg ? previews[i] : undefined;
               return (
                 <div
                   key={i}
@@ -229,7 +233,7 @@ export default function MessageComposer({ conversationId }: Props) {
           }}
         >
           <div className="flex flex-1 w-full  align-center  gap-3">
-            <button className="flex flex-1 w-full">
+          <div className="flex flex-1 w-full">
             <textarea
               className="flex flex-1 h-full w-full text-start align-center rounded-xl bg-white/70 px-4 py-3 text-[.9rem] tracking-wider  messagefield text-black"
               rows={1}
@@ -243,10 +247,10 @@ export default function MessageComposer({ conversationId }: Props) {
               }}
               disabled={uploading}
             />
-</button>
-            <button
-              className="flex bg-white/70 sendbutton  h-fit w-fit text-black tracking-widest text-[1.1rem] rounded-xl px-5 py-2"
-              onClick={send}
+ </div>
+ <button
+              type="submit"
+              className="flex bg-white/70 sendbutton h-fit w-fit text-black tracking-widest text-[1.1rem] rounded-xl px-5 py-2"
               disabled={uploading}
             >
               <Image
@@ -259,9 +263,15 @@ export default function MessageComposer({ conversationId }: Props) {
             </button>
             <>
        
-          <DropdownMenu>
-            <DropdownMenuTrigger className="rounded px-2 py-2 border bg-white/80 hover:bg-white" title="Create">
-                
+            <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="flex bg-white/70 sendbutton h-fit w-fit text-black tracking-widest text-[1.1rem] rounded-xl px-2 py-2"
+                title="Create"
+              >
+                +
+              </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" sideOffset={6}>
               <DropdownMenuItem onClick={() => setShowPoll(true)}>📊 Create poll…</DropdownMenuItem>
@@ -295,7 +305,11 @@ export default function MessageComposer({ conversationId }: Props) {
         />
       </>
 
-            <button className="flex bg-white/70 sendbutton  h-fit w-fit text-black tracking-widest text-[1.1rem] rounded-xl px-3 py-2">
+            <button  
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            aria-label="Attach files"
+             className="flex bg-white/70 sendbutton  h-fit w-fit text-black tracking-widest text-[1.1rem] rounded-xl px-3 py-2">
               <input
                 type="file"
                 multiple
@@ -310,8 +324,17 @@ export default function MessageComposer({ conversationId }: Props) {
                 width={24}
                 height={24}
                 className="cursor-pointer object-contain flex  justify-center items-center "
-              ></Image>
+             />
+             
             </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept="image/*,application/pdf,application/zip"
+              onChange={(e) => onFilesSelected(e.target.files)}
+              className="hidden"
+            />
           </div>
           {uploading && (
             <div className="h-2 bg-gray-200 rounded-full mt-5">

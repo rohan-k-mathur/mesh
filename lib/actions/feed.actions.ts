@@ -38,6 +38,7 @@ export interface CreateFeedPostArgs {
   videoUrl?: string;
   caption?: string;
 
+
   productReview?: {
     productName: string;
     rating: number;
@@ -60,6 +61,7 @@ export interface CreateFeedPostArgs {
   coordinates: { x: number; y: number };
   realtimeRoomId: string;
   isPublic?: boolean;
+  articleId?: string;
   stackId?: string;         // 👈 NEW
   libraryPostId?: string;   // 👈 NEW
 library?: LibraryPayload;
@@ -105,7 +107,7 @@ export async function createFeedPost(
   //   },
   // });
 
-  const { type, isPublic = true, stackId, libraryPostId, ...rest } = args;
+  const { type, isPublic = true, ...rest } = args;
   const post = await prisma.feedPost.create({
     data: {
       author_id: BigInt(user.userId!),
@@ -116,8 +118,9 @@ export async function createFeedPost(
       ...(rest.videoUrl && { video_url: rest.videoUrl }),
       ...(rest.caption && { caption: rest.caption }),
       ...(rest.portfolio && { portfolio: rest.portfolio }),
-      ...(stackId && { stack_id: stackId }),
-      ...(libraryPostId && { library_post_id: libraryPostId }),
+      ...(rest.libraryPostId && { library_post_id: rest.libraryPostId }),
+      ...(rest.stackId && { stack_id: rest.stackId }),
+      ...(rest.articleId && { id: rest.articleId  }),
       ...(rest.productReview && {
         productReview: {
           create: {

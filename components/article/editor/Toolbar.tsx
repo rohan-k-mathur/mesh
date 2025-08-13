@@ -58,10 +58,10 @@ const colorOptions = [
 
 
   return (
-    <div className="flex flex-wrap items-center gap-1 border rounded-md px-2 py-1 bg-white">
+    <div className="flex flex-wrap items-center gap-1  rounded-xl px-3 py-3 bg-white/30">
 
 <select
-  className="text-sm border rounded"
+  className=" rounded-md bg-white/70 text-[.8rem] focus:outline-none"
   defaultValue=""
   onChange={(e) => {
     const v = e.target.value
@@ -77,7 +77,7 @@ const colorOptions = [
   <option value="kolonia">Kolonia</option>
 </select>
 <select
-  className="text-sm border rounded"
+  className=" rounded-md bg-white/70 text-[.8rem] focus:outline-none"
   defaultValue=""
   onChange={(e) => {
     const v = e.target.value
@@ -101,6 +101,18 @@ const colorOptions = [
   <option value="48">48</option>
 </select>
 
+<select
+  className=" rounded-md bg-white/70 text-[.8rem] focus:outline-none"
+  defaultValue=""
+  onChange={(e) => {
+    const v = e.target.value
+    if (!v) return
+    editor!.chain().focus().setMark('textStyle', { clr: v }).run()
+  }}
+>
+  <option value="" disabled>Color</option>
+  {colorOptions.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+</select>
       {btn(
         <Bold size={16} />,
         () => editor.chain().focus().toggleBold().run(),
@@ -127,18 +139,6 @@ const colorOptions = [
         editor.isActive("code"),
       )}
 
-<select
-  className="text-sm border rounded"
-  defaultValue=""
-  onChange={(e) => {
-    const v = e.target.value
-    if (!v) return
-    editor!.chain().focus().setMark('textStyle', { clr: v }).run()
-  }}
->
-  <option value="" disabled>Color</option>
-  {colorOptions.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-</select>
 
       {btn(
         <List size={16} />,
@@ -209,10 +209,10 @@ const colorOptions = [
   onClick={() =>
     editor!.chain().focus().setMark('textStyle', { ff: null, fs: null, clr: null }).run()
   }
-  className="p-1.5"
+  className="text-[.9rem]"
   type="button"
 >
-  Clear type
+  Clear
 </button>
     </div>
     

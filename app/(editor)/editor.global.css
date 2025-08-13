@@ -1,10 +1,13 @@
 /* styles/prosemirror.css  ➜ imported once in _app.tsx or the editor layout */
 
 .ProseMirror {
-    @apply  p-2 min-h-[500px] rounded-xl bg-white
+    @apply  px-2 py-3 min-h-[500px] rounded-xl bg-white border-none outline-none  shadow-md
             leading-relaxed text-slate-900;
   }
-  
+  .ProseMirror:focus
+  {
+    border: none;
+  }
   .ProseMirror p.is-editor-empty:first-child::before {
     content: attr(data-placeholder);
     @apply float-left h-0 text-slate-400 pointer-events-none;

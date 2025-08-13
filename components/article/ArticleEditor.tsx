@@ -792,7 +792,7 @@ async function restoreRevision(revisionId: string) {
   if (!editor) return <div>Loading editor…</div>
 
   return (
-    <div className="flex justify-center items-center ">
+    <div className="flex justify-center items-center mt-[-2rem]">
       <article className={template}>
         {/* Top‑bar ---------------------------------------------------------- */}
         {showUnsaved && (
@@ -803,7 +803,7 @@ async function restoreRevision(revisionId: string) {
        
           
           <div className="flex flex-1 flex-wrap space-x-3 gap-2 justify-center mb-3">
-          <button className=" savebutton rounded-xl bg-white/70  p-2  text-xs h-fit ">
+          <button className=" lockbutton rounded-xl bg-white/50  p-2  text-xs h-fit ">
             <input  type="file" onChange={onHeroUpload} hidden />
             Upload hero
           </button>
@@ -815,7 +815,7 @@ async function restoreRevision(revisionId: string) {
           >
             {suggestion ? t('suggestionOff') : t('suggestionMode')}
           </button> */}
-          <button className="savebutton rounded-xl bg-white/70 p-2 h-fit text-xs" onClick={openRevisions}>
+          <button className="lockbutton rounded-xl bg-white/50 p-2 h-fit text-xs" onClick={openRevisions}>
   Revisions
 </button>
 
@@ -838,7 +838,7 @@ async function restoreRevision(revisionId: string) {
   </div>
 )}
           <button
-            className="savebutton rounded-xl bg-white/70 p-2 h-fit text-xs"
+            className="lockbutton rounded-xl bg-white/50 p-2 h-fit text-xs"
             onClick={saveDraftImmediate}
           >
             {t('saveDraft')}
@@ -850,7 +850,7 @@ async function restoreRevision(revisionId: string) {
             {t('checkAccessibility')}
           </button> */}
              <button
-            className="savebutton rounded-xl bg-white/70 px-4   py-2 items-end justify-end h-fit text-xs"
+            className="lockbutton rounded-xl bg-white/50 px-4   py-2 items-end justify-end h-fit text-xs"
             onClick={publishArticle}
           >
             Publish
@@ -876,9 +876,9 @@ async function restoreRevision(revisionId: string) {
         )}
 
         {/* Editor ----------------------------------------------------------- */}
-        <div className="h-full flex flex-col gap-2">
+        <div className="h-full flex flex-col gap-2 mt-1">
         <input
-  className="w-full text-3xl font-semibold bg-transparent outline-none placeholder:text-neutral-400 mb-2"
+  className="w-full text-center text-3xl  tracking-wide bg-white/20 rounded-xl py-[5px] titlefield outline-none placeholder:text-neutral-400 mb-2"
   placeholder="Title"
   value={title}
   onChange={(e) => setTitle(e.target.value.slice(0, 200))}
@@ -886,15 +886,15 @@ async function restoreRevision(revisionId: string) {
 />
           <input id="image-upload" type="file" onChange={onImageUpload} hidden />
           <Toolbar editor={editor} />
-          <div className="flex-1 overflow-auto">
+          <div className="flex-1 overflow-auto py-2 w-full">
             {/* If you want a live outline component, pass `headings` + handler */}
             {/* <Outline headings={headings} onSelect={onSelectHeading} /> */}
-            <EditorContent editor={editor}  className="tiptap article-body prose max-w-none px-0 py-0" />
+            <EditorContent editor={editor}  className="tiptap article-body prose w-full max-w-none px-0 py-0 focus:border-none focus:outline-none focus:ring-none" />
           </div>
         </div>
 
         {/* Footer counter --------------------------------------------------- */}
-        <div className="text-xs p-2 tracking-wide">
+        <div className="text-xs p-2 text-center tracking-wide">
           <span
             className={`${styles.charCount} ${
               counter.chars > CHAR_LIMIT ? 'text-red-600' : ''

@@ -93,7 +93,6 @@ export default function NewArticlePage() {
         router.replace(`/article/by-id/${id}/edit`)
       } catch (err) {
         console.error('Failed to create draft:', err)
-        router.replace('/profile/articles')
       }
     })()
   }, [router])

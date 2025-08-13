@@ -117,7 +117,7 @@ function RightSidebar() {
           {loungeId && <CreateLoungePost roomId={loungeId} />}
 
           <button
-            className="flex  sidebarbutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent"
+            className="flex  bubblebutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent"
             onClick={newlounge}
           >
             <div className="flex align-center gap-3">
@@ -137,7 +137,7 @@ function RightSidebar() {
             </div>
           </button>
           <button
-            className="flex  sidebarbutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent"
+            className="flex  bubblebutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent"
             onClick={newroom}
           >
             <div className="flex align-center gap-3">
@@ -157,7 +157,7 @@ function RightSidebar() {
             </div>
           </button>
           <button
-            className="flex  sidebarbutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent"
+            className="flex  bubblebutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent"
             onClick={gotomessages}
           >
             <div className="flex align-center gap-3">
@@ -178,7 +178,7 @@ function RightSidebar() {
           </button>
           
 
-          <button className="flex  sidebarbutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent">
+          <button className="flex  bubblebutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent">
             <div className="flex align-center gap-3">
               <Image
                 src="/assets/members.svg"
@@ -195,7 +195,7 @@ function RightSidebar() {
               </div>
             </div>
           </button>
-          <button className="flex  sidebarbutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent">
+          <button className="flex  bubblebutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent">
             <div className="flex align-center gap-3">
               <Image
                 src="/assets/group--access.svg"
@@ -213,7 +213,7 @@ function RightSidebar() {
             </div>
           </button>
           <button
-            className="flex  sidebarbutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent"
+            className="flex  bubblebutton leftsidebar_link align-center leftsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent"
             onClick={gotosettings}
           >
             <div className="flex align-center gap-3">
@@ -234,7 +234,7 @@ function RightSidebar() {
           </button>
           {isUserSignedIn && (
            <button
-           className="mt-[5rem] flex  sidebarbutton  rightsidebar_link align-center rightsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent"
+           className="mt-[5rem] flex  bubblebutton  rightsidebar_link align-center rightsidebar-item items-start justify-start h-full px-4 py-3 rounded-xl border-[1px] border-transparent"
            onClick={handleLogout}
      >
         <div className="flex align-center gap-3">
