@@ -5,7 +5,7 @@ import { useCreateLibraryPost } from "@/lib/hooks/useCreateLibraryPost";
 import { useCreateFeedPost } from "@/lib/hooks/useCreateFeedPost";
 import { useRouter } from "next/navigation";
 
-type Props = { onOpenChange: (v: boolean) => void };
+type Props = { onOpenChange: (v: boolean) => void; stackId?: string };
 
 async function renderFirstPagePNG(file: File): Promise<string> {
   // 💡 lazy load in the browser to avoid SSR "DOMMatrix" issues
@@ -31,7 +31,7 @@ async function renderFirstPagePNG(file: File): Promise<string> {
   return canvas.toDataURL("image/png");
 }
 
-export default function LibraryPostModal({ onOpenChange }: Props) {
+export default function LibraryPostModal({ onOpenChange, stackId }: Props) {
   const createLibraryPost = useCreateLibraryPost();
   const createFeedPost = useCreateFeedPost();
   const router = useRouter();
@@ -60,20 +60,34 @@ export default function LibraryPostModal({ onOpenChange }: Props) {
       // 2) create library posts (UPLOAD or IMPORT)
       const result = await createLibraryPost({
         files: tab === "upload" ? Array.from(files ?? []) : undefined,
-        urls:  tab === "url" ? list : undefined,    // your /import route handles URLs (unchanged)
-        previews,                                   // data URLs we rendered client-side
+        urls:  tab === "url" ? list : undefined,
+        previews,
         isPublic,
         caption,
-        stackName: "My Stack",       });
+        stackId,
+        ...(stackId ? {} : { stackName: "My Stack" }),
+      });
       
       // result MUST be { postIds: string[], stackId?: string }
   
       // 3) create the feed post, passing FK(s)
       const count = tab === "upload" ? (files?.length ?? 0) : list.length;
       const payload =
-      count <= 1
-      ? { kind: "single", libraryPostId: result.postIds?.[0] ?? null, coverUrl: result.coverUrls?.[0] ?? null, coverUrls: [], size: 1 }
-      : { kind: "stack",  stackId: result.stackId ?? null,            coverUrl: null,                     coverUrls: result.coverUrls ?? [], size: count };
+        count <= 1
+          ? {
+              kind: "single",
+              libraryPostId: result.postIds?.[0] ?? null,
+              coverUrl: result.coverUrls?.[0] ?? null,
+              coverUrls: [],
+              size: 1,
+            }
+          : {
+              kind: "stack",
+              stackId: result.stackId ?? stackId ?? null,
+              coverUrl: null,
+              coverUrls: result.coverUrls ?? [],
+              size: count,
+            };
   
   
       await createFeedPost({
@@ -82,7 +96,8 @@ export default function LibraryPostModal({ onOpenChange }: Props) {
         caption,
         isPublic,
         libraryPostId: count === 1 ? result.postIds?.[0] : undefined,
-        stackId: result.stackId ?? undefined,      });
+        stackId: stackId || result.stackId || undefined,
+      });
   
       onOpenChange(false);
       router.refresh();
