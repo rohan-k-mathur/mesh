@@ -1,6 +1,7 @@
 "use client";
 import React from "react";
 import GalleryCarousel from "./GalleryCarousel";
+import Link from "next/link";
 
 export type LibraryCardProps = {
   kind: "single" | "stack";
@@ -88,12 +89,18 @@ export default function LibraryCard(props: LibraryCardProps) {
                <img key={i} src={u} alt={`PDF ${i}`} className="w-full aspect-[4/3] object-cover" />
              ))}
            </div>
-           <button
-             className="mt-2 text-sm underline"
-             onClick={() => stackId && onOpenStack?.(stackId)}
-           >
-             View Stack ({size})
-           </button>
+           {stackId ? (
+             <Link href={`/stacks/${stackId}`} className="mt-2 inline-block text-sm underline">
+               View Stack ({size})
+             </Link>
+           ) : (
+             <button
+               className="mt-2 text-sm underline"
+               onClick={() => stackId && onOpenStack?.(stackId)}
+             >
+               View Stack ({size})
+             </button>
+           )}
          </div>
        );
   }
