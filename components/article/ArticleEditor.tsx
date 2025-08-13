@@ -796,14 +796,20 @@ async function restoreRevision(revisionId: string) {
       <article className={template}>
         {/* Top‑bar ---------------------------------------------------------- */}
         {showUnsaved && (
-          <div className="fixed flex left-0 top-0 text-red-600">{t('unsavedChanges')}</div>
+          <div className="fixed flex left-3 top-3 tracking-wide text-red-700">{t('unsavedChanges')}</div>
         )}
 
-        <div className="flex flex-col ">
-       
-          
-          <div className="flex flex-1 flex-wrap space-x-3 gap-2 justify-center mb-3">
-          <button className=" lockbutton rounded-xl bg-white/50  p-2  text-xs h-fit ">
+        <div className="flex ">
+          <div className='justify-start'>
+        <TemplateSelector
+            articleId={articleId}
+            template={template}
+            onChange={setTemplate}
+          />
+          </div>
+          <div className="flex flex-1 flex-wrap space-x-3 gap-2 justify-end
+           mb-3">
+          <button           className=" px-2 py-1 rounded-xl bg-white/70 savebutton text-[.8rem] text-center">
             <input  type="file" onChange={onHeroUpload} hidden />
             Upload hero
           </button>
@@ -815,7 +821,8 @@ async function restoreRevision(revisionId: string) {
           >
             {suggestion ? t('suggestionOff') : t('suggestionMode')}
           </button> */}
-          <button className="lockbutton rounded-xl bg-white/50 p-2 h-fit text-xs" onClick={openRevisions}>
+   <button           className=" px-2 py-1 rounded-xl bg-white/70 savebutton text-[.8rem] text-center"
+          onClick={openRevisions}>
   Revisions
 </button>
 
@@ -837,9 +844,9 @@ async function restoreRevision(revisionId: string) {
     </div>
   </div>
 )}
-          <button
-            className="lockbutton rounded-xl bg-white/50 p-2 h-fit text-xs"
-            onClick={saveDraftImmediate}
+      
+ <button           className=" px-2 py-1 rounded-xl bg-white/70 savebutton text-[.8rem] text-center"
+             onClick={saveDraftImmediate}
           >
             {t('saveDraft')}
           </button>
@@ -850,17 +857,13 @@ async function restoreRevision(revisionId: string) {
             {t('checkAccessibility')}
           </button> */}
              <button
-            className="lockbutton rounded-xl bg-white/50 px-4   py-2 items-end justify-end h-fit text-xs"
+             className=" px-2 py-1 rounded-xl bg-white/70 savebutton text-[.8rem] text-center"
             onClick={publishArticle}
           >
             Publish
           </button>
           </div>
-          <TemplateSelector
-            articleId={articleId}
-            template={template}
-            onChange={setTemplate}
-          />
+          
        
         </div>
 
@@ -878,7 +881,7 @@ async function restoreRevision(revisionId: string) {
         {/* Editor ----------------------------------------------------------- */}
         <div className="h-full flex flex-col gap-2 mt-1">
         <input
-  className="w-full text-center text-3xl  tracking-wide bg-white/20 rounded-xl py-[5px] titlefield outline-none placeholder:text-neutral-400 mb-2"
+  className="w-full text-center text-3xl  tracking-wide bg-white/20 rounded-full py-[8px] titlefield outline-none placeholder:text-slate-400 mb-2"
   placeholder="Title"
   value={title}
   onChange={(e) => setTitle(e.target.value.slice(0, 200))}

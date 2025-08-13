@@ -1255,15 +1255,14 @@ outline: none;
 .titlefield {
   outline:transparent;
   border:none;
-  box-shadow: inset  -1px -1px 3px rgba(203, 205, 253, 0.75),
-  inset  1px 1px 3px rgba(141, 141, 176, 0.75);
+
 
 }
 .titlefield:hover {
   outline:transparent;
   border:none;
-  box-shadow: inset  -2px -2px 4px rgba(195, 195, 243, 0.95),
-  inset  2px 2px 4px rgba(131, 131, 165, 0.95);
+  box-shadow: inset  -1px -1px 3px rgba(203, 205, 253, 0.75),
+  inset  1px 1px 3px rgba(141, 141, 176, 0.75);
 
 }
 .titlefield:focus {

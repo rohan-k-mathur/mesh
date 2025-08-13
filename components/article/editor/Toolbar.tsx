@@ -58,10 +58,10 @@ const colorOptions = [
 
 
   return (
-    <div className="flex flex-wrap items-center gap-1  rounded-xl px-3 py-3 bg-white/30">
+    <div className="flex flex-wrap items-center gap-2  rounded-xl px-3 py-3 bg-white/50">
 
 <select
-  className=" rounded-md bg-white/70 text-[.8rem] focus:outline-none"
+  className=" rounded-md bg-white/70 lockbutton text-[.8rem] focus:outline-none"
   defaultValue=""
   onChange={(e) => {
     const v = e.target.value
@@ -77,7 +77,7 @@ const colorOptions = [
   <option value="kolonia">Kolonia</option>
 </select>
 <select
-  className=" rounded-md bg-white/70 text-[.8rem] focus:outline-none"
+  className=" rounded-md bg-white/70 lockbutton text-[.8rem] focus:outline-none"
   defaultValue=""
   onChange={(e) => {
     const v = e.target.value
@@ -102,7 +102,7 @@ const colorOptions = [
 </select>
 
 <select
-  className=" rounded-md bg-white/70 text-[.8rem] focus:outline-none"
+  className=" rounded-md bg-white/70 text-[.8rem] lockbutton focus:outline-none"
   defaultValue=""
   onChange={(e) => {
     const v = e.target.value

@@ -25,7 +25,7 @@ export default function TemplateSelector({ articleId, template, onChange }: Temp
         <button
           key={t.id}
           onClick={() => handleSelect(t.id)}
-          className="lockbutton px-2 py-0 rounded-md bg-white/50"
+          className=" px-2 py-1 rounded-xl bg-white/70 savebutton"
         >
           {t.label}
         </button>
