@@ -8,6 +8,9 @@
   function SmallMeta({ children }: { children: React.ReactNode }) {
     return <div className="text-[11px] leading-4 text-slate-600">{children}</div>;
   }
+  function MediumMeta({ children }: { children: React.ReactNode }) {
+    return <div className="text-[1rem] leading-4 text-slate-700">{children}</div>;
+  }
   
   function SummaryButton({
     label,
@@ -135,15 +138,16 @@
       }
     };
     return (
-      <div className="rounded-xl border bg-white/30 px-8 py-4 mx-8 w-full justify-center items-center inline-flex flex-col gap-1">
-        <SmallMeta>📊 Poll · choose one</SmallMeta>
-        <div className="mt-1 flex flex-wrap gap-1.5">
+
+      <div className="relative text-[1rem] rounded-xl text-center bg-white/30 px-8 py-4 shadow-xl mx-auto w-[50%] gap-2 ">
+        <MediumMeta >📊 Poll · Choose One</MediumMeta>
+        <div className="mt-4  justify-center items-center flex flex-wrap gap-4">
           {p.options!.map((opt, idx) => (
             <button
               key={idx}
               onClick={() => handle(idx)}
               disabled={submitting !== null}
-              className="px-2 py-1 rounded-full border bg-white/80 hover:bg-white text-xs transition disabled:opacity-60"
+              className="px-2 py-1 rounded-full  bg-white/70 sendbutton text-xs transition disabled:opacity-60"
             >
               {opt}
             </button>
