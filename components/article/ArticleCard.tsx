@@ -20,9 +20,10 @@ export default function ArticleCard({ meta, postId }: { meta: ArticleMeta; postI
     const onPreview = useCallback(() => {}, [postId])
  
     return (
-      <div className="rounded-xl border bg-white overflow-hidden w-full h-full ">
+        <div className='flex flex-1 w-[500px] justify-center items-center  h-[500px] shadow-xl rounded-xl border-[1px] border-amber-400'>
+      <div className=" rounded-xl flex-1 border bg-white/70 overflow-y-auto overflow-x-hidden w-full h-full ">
         {meta.heroImageKey && (
-          <div className="relative aspect-[16/9]">
+          <div className="relative w-full">
             <Image
               src={meta.heroImageKey}
               alt=""
@@ -33,30 +34,35 @@ export default function ArticleCard({ meta, postId }: { meta: ArticleMeta; postI
             />
           </div>
         )}
-        <div className="p-3">
+        <div className="py-4 px-5">
+            <div className="flex">
           <Link href={href} className="block">
-            <h3 className="text-[1.05rem] font-semibold leading-snug line-clamp-2" data-ff="founders">
+            <h3 className="text-[1.32rem] tracking-wider font-semibold leading-snug line-clamp-2" data-ff="founders">
               {meta.title}
             </h3>
           </Link>
-          {!!meta.excerpt && (
-            <p className="mt-1 text-sm text-neutral-600 line-clamp-3">{meta.excerpt}</p>
-          )}
-          <div className="mt-2 flex items-center gap-2 text-xs text-neutral-500">
-            {meta.readingTime ? <span>{meta.readingTime} min read</span> : null}
-          </div>
- 
-
-         <div className="mt-3 flex items-center gap-2">
+          <div className=" flex w-full mb-2 justify-end  items-end gap-2">
            <Dialog>
              <DialogTrigger asChild>
-               <button className="px-2 py-1 border rounded text-sm">Preview</button>
+               <button className="flex px-1 py-0 text-slate-600 lockbutton border rounded text-[.7rem] text-center">Preview</button>
              </DialogTrigger>
              <ArticlePostModal slug={meta.slug} />
            </Dialog>
-           <Link href={href} className="px-2 py-1 border rounded text-sm">Read</Link>
+           <Link href={href} className="flex px-1 py-0 lockbutton text-slate-600 border rounded text-[.7rem] text-center">Read</Link>
          </div>
+         </div>
+          <hr></hr>
+          {!!meta.excerpt && (
+            <p className="mt-2 text-[.9rem] text-neutral-800 line-clamp-10">{meta.excerpt}</p>
+          )}
+          {/* <div className="mt-3 p-1 flex items-center gap-2 text-[.7rem] text-neutral-500">
+            {meta.readingTime ? <span>{meta.readingTime} min read</span> : null}
+          </div>
+  */}
+
+         
         </div>
+      </div>
       </div>
     )
   }

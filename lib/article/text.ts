@@ -9,7 +9,7 @@ export function plainTextFromAst(ast: any): string {
     }
     return walk(ast).replace(/\s+/g, ' ').trim()
   }
-  export function computeExcerpt(text: string, max = 240): string {
+  export function computeExcerpt(text: string, max = 1200): string {
     if (!text) return ''
     if (text.length <= max) return text
     const cut = text.slice(0, max)

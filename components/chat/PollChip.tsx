@@ -4,6 +4,14 @@
   import { PollUI } from "@/contexts/useChatStore";
   
   type VoteBody = { optionIdx?: number; value?: number };
+
+  function leadingIndices(votes: number[]) {
+    const max = Math.max(0, ...votes);
+    if (max <= 0) return [];
+    const out: number[] = [];
+    votes.forEach((v, i) => { if (v === max) out.push(i); });
+    return out;
+  }
   
   function SmallMeta({ children }: { children: React.ReactNode }) {
     return <div className="text-[11px] leading-4 text-slate-600">{children}</div>;
@@ -194,9 +202,16 @@
   }) {
     const { poll: p, totals, count, myVote } = poll;
     const total = Math.max(1, count);
+
+      // tie detection for expanded view
+  const votes = p.options!.map((_, i) => totals[i] ?? 0);
+  const leaders = leadingIndices(votes);
+  const isTie = leaders.length >= 2;
+
     const handle = async (idx: number) => {
       await onVote({ optionIdx: idx });
     };
+
     return (
       <div
         className="relative rounded-xl bg-white/30 px-8 py-4 shadow-xl mx-auto w-[70%]"
@@ -212,26 +227,51 @@
           ×
         </button>
         <div className="flex text-[1rem] text-center justify-between items-baseline">
-          <SmallMeta>📊 Poll · {count} vote{count === 1 ? "" : "s"}</SmallMeta>
+          <SmallMeta>📊 Poll · {count} vote{count === 1 ? "" : "s"}
+          {isTie ? " · Leading: tie" : null}
+          </SmallMeta>
         </div>
         <div className="mt-1.5 space-y-1.5">
           {p.options!.map((opt, idx) => {
             const pct = Math.round(((totals[idx] ?? 0) * 100) / total);
             const mine = myVote === idx;
+            const isLeader = leaders.includes(idx);
+          const showTieBadge = isTie && isLeader;
+
             return (
-              <button key={idx} onClick={() => handle(idx)} className="block w-full text-left" aria-pressed={mine}>
+              <button key={idx} onClick={() => handle(idx)} className="block w-full text-left" aria-pressed={mine}
+              aria-label={
+                showTieBadge
+                  ? `${opt}, ${pct} percent, tied for lead`
+                  : `${opt}, ${pct} percent`
+              }>
                 <div className="flex items-baseline justify-between text-[12px]">
                   <span className={mine ? "font-semibold" : ""}>
                     {mine ? "✓ " : ""}
                     {opt}
+                    {showTieBadge && (
+                    <span
+                      className="ml-2 align-middle rounded-full px-1.5 py-0.5 text-[10px] bg-amber-200/70 text-amber-900"
+                      aria-hidden="true"
+                    >
+                      tie
+                    </span>
+                     )}
                   </span>
                   <span className="tabular-nums">{pct}%</span>
                 </div>
                 <div className="mt-0.5 h-1.5 rounded bg-slate-300 overflow-hidden">
-                  <div
-                    className={`h-1.5 rounded transition-all duration-300 ${mine ? "bg-indigo-500" : "bg-rose-400"}`}
-                    style={{ width: `${pct}%` }}
-                  />
+                <div
+                  className={[
+                    "h-1.5 rounded transition-all duration-300",
+                    mine
+                      ? "bg-indigo-500"
+                      : showTieBadge
+                      ? "bg-amber-400"
+                      : "bg-rose-400",
+                  ].join(" ")}
+                  style={{ width: `${pct}%` }}
+                />
                 </div>
               </button>
             );

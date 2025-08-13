@@ -169,7 +169,7 @@ const PostCard = ({
   // ✅ New payload path
   if (isArticleMeta(meta)) {
     return (
-      <div className="w-[400px] h-[300px] bg-white">
+      <div className="w-full flex px-8 flex-1 justify-center items-center">
         <ArticleCard
           postId={id}
           meta={{
@@ -181,7 +181,7 @@ const PostCard = ({
             readingTime: meta.readingTime ?? null,
           }}
         />
-      </div>
+       </div>
     )
   }
 
