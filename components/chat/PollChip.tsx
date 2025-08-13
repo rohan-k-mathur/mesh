@@ -106,19 +106,45 @@
   
   /* ---------- OPTIONS ---------- */
   
+  // function optionsSummaryLabel(p: Extract<PollUI, { kind: "OPTIONS" }>) {
+  //   const { totals, count } = p;
+  //   if (!p.poll.options?.length) return "📊 View poll results";
+  //   const total = Math.max(1, count);
+  //   let leader = 0;
+  //   for (let i = 1; i < p.poll.options.length; i  ++) {
+  //     if ((totals[i] ?? 0) > (totals[leader] ?? 0)) leader = i;
+  //   }
+  //   const pct = Math.round(((totals[leader] ?? 0) * 100) / total);
+  //   return `📊 View poll • ${count} vote${count === 1 ? "" : "s"} • Leading: “${
+  //     p.poll.options[leader]
+  //   }” (${pct}%)`;
+  // }
   function optionsSummaryLabel(p: Extract<PollUI, { kind: "OPTIONS" }>) {
     const { totals, count } = p;
-    if (!p.poll.options?.length) return "📊 View poll results";
-    const total = Math.max(1, count);
-    let leader = 0;
-    for (let i = 1; i < p.poll.options.length; i  ++) {
-      if ((totals[i] ?? 0) > (totals[leader] ?? 0)) leader = i;
+    const options = p.poll.options ?? [];
+    if (!options.length) return "📊 View poll results";
+  
+    const totalVotes = Math.max(1, count);
+    const votes = options.map((_, i) => totals[i] ?? 0);
+    const max = Math.max(0, ...votes);
+  
+    // Find all indices tied for the lead
+    const leaders = votes.reduce<number[]>((acc, v, i) => {
+      if (v === max) acc.push(i);
+      return acc;
+    }, []);
+  
+    // If there’s a real tie (>=2 leaders) and at least one vote has been cast
+    if (max > 0 && leaders.length >= 2) {
+      return `📊 View poll • ${count} vote${count === 1 ? "" : "s"} • Leading: tie`;
     }
-    const pct = Math.round(((totals[leader] ?? 0) * 100) / total);
-    return `📊 View poll • ${count} vote${count === 1 ? "" : "s"} • Leading: “${
-      p.poll.options[leader]
-    }” (${pct}%)`;
+  
+    // Otherwise show the leading option + its percentage
+    const leader = leaders[0] ?? 0;
+    const pct = Math.round(((votes[leader] ?? 0) * 100) / totalVotes);
+    return `📊 View poll • ${count} vote${count === 1 ? "" : "s"} • Leading: “${options[leader]}” (${pct}%)`;
   }
+  
   
   function OptionsVoteView({
     poll,

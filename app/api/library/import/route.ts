@@ -3,10 +3,9 @@
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
-import { createSupabaseServiceRoleClient } from "@/lib/supabase-server";
 import { getCurrentUserId } from "@/lib/serverutils";
 import { prisma } from "@/lib/prismaclient";
-
+import { supabaseAdmin } from "@/lib/supabase-server";
 
 
 function sanitizeFileName(name: string, ext = ".pdf") {
@@ -25,7 +24,7 @@ function buildKey(userId: bigint | number | string, rawName: string) {
 export async function POST(req: NextRequest) {
   
   try {
-    const supabase = createSupabaseServiceRoleClient();
+    const supabase = supabaseAdmin();
     const userId = await getCurrentUserId();
     if (!userId) return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
 

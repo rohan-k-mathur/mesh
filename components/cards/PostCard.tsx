@@ -18,6 +18,7 @@ import SoundCloudPlayer from "../players/SoundCloudPlayer";
 import Spline from "@splinetool/react-spline";
 import dynamic from "next/dynamic";
 import PredictionMarketCard from "./PredictionMarketCard";
+import PdfLightbox from "../modals/PdfLightbox";
 import LibraryCard from "./LibraryCard";
 import ArticleCard from "../article/ArticleCard";
 import type { Like, RealtimeLike } from "@prisma/client";
@@ -83,6 +84,8 @@ const PostCard = ({
   predictionMarket = null,
   library = null,
 }: PostCardProps) => {
+  const [openPdfId, setOpenPdfId] = React.useState<string | null>(null);
+ const [lightboxOpen, setLightboxOpen] = React.useState(false);
   if (content && content.startsWith("REPLICATE:")) {
     const dataStr = content.slice("REPLICATE:".length);
     // let originalId: bigint | null = null;
@@ -233,6 +236,7 @@ const PostCard = ({
                 />
               </div>
             )}
+            
             {type === "LIBRARY" &&
               (() => {
                 const lib =
@@ -246,6 +250,8 @@ const PostCard = ({
                   })();
                 if (!lib) return null;
                 return (
+                  <>
+
                   <LibraryCard
                     kind={lib.kind}
                     coverUrl={lib.coverUrl}
@@ -254,9 +260,27 @@ const PostCard = ({
                     coverUrls={lib.coverUrls}
                     size={lib.size}
                     caption={caption}
-                    onOpenPdf={(id) => console.debug("openPdfModal", id)}
+                    onOpenPdf={(id) => {
+                                     setOpenPdfId(id);
+                                      setLightboxOpen(true);
+                                  }}
                     onOpenStack={(id) => console.debug("openStack", id)}
                   />
+                  {/* PDF Lightbox mounted once per PostCard */}
+                  <PdfLightbox
+                    postId={openPdfId}
+                    open={lightboxOpen}
+                    onOpenChange={(v) => {
+                      if (!v) {
+                        setLightboxOpen(false);
+                        // small delay before clearing to avoid flicker between close/open
+                        setTimeout(() => setOpenPdfId(null), 150);
+                      } else {
+                        setLightboxOpen(true);
+                      }
+                    }}
+                  />
+                </>
                 );
               })()}
             {type === "LIVECHAT" &&
@@ -503,6 +527,7 @@ const PostCard = ({
         </div>
       </div>
     </article>
+
   );
 };
 
