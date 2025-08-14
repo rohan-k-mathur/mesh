@@ -1,6 +1,7 @@
 "use client";
 import React from "react";
 import GalleryCarousel from "./GalleryCarousel";
+import StackCarousel from "./StackCarousel";
 import Link from "next/link";
 
 export type LibraryCardProps = {
@@ -66,7 +67,7 @@ export default function LibraryCard(props: LibraryCardProps) {
     if (size <= 10 && (coverUrls?.length ?? 0) > 0) {
       return (
         <div className="grid justify-center items-center w-full">
-          <GalleryCarousel urls={coverUrls} caption={caption || undefined} />
+          <StackCarousel urls={coverUrls} caption={caption || undefined} />
         </div>
       );
     }

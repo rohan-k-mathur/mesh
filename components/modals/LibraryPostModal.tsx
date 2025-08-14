@@ -1,6 +1,11 @@
 "use client";
 import React, { useState } from "react";
-import { DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
+import {
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogClose,
+} from "@/components/ui/dialog";
 import { useCreateLibraryPost } from "@/lib/hooks/useCreateLibraryPost";
 import { useCreateFeedPost } from "@/lib/hooks/useCreateFeedPost";
 import { useRouter } from "next/navigation";
@@ -48,30 +53,41 @@ export default function LibraryPostModal({ onOpenChange, stackId }: Props) {
     setSubmitting(true);
     try {
       const list =
-        tab === "url" ? urls.split("\n").map(s => s.trim()).filter(Boolean) : [];
+        tab === "url"
+          ? urls
+              .split("\n")
+              .map((s) => s.trim())
+              .filter(Boolean)
+          : [];
       if (tab === "url" && !list.length && !(files && files.length)) return;
-  
+
       // 1) build client-side previews (optional)
       let previews: string[] = [];
       if (tab === "upload" && files?.length) {
-        previews = (await Promise.all(Array.from(files).map(renderFirstPagePNG))).filter(Boolean);
+        previews = (
+          await Promise.all(Array.from(files).map(renderFirstPagePNG))
+        ).filter(Boolean);
       }
-  
+
+      const defaultName = files?.length
+        ? `Uploads — ${new Date().toLocaleDateString()}`
+        : "My Stack";
+
       // 2) create library posts (UPLOAD or IMPORT)
       const result = await createLibraryPost({
         files: tab === "upload" ? Array.from(files ?? []) : undefined,
-        urls:  tab === "url" ? list : undefined,
+        urls: tab === "url" ? list : undefined,
         previews,
         isPublic,
         caption,
         stackId,
-        ...(stackId ? {} : { stackName: "My Stack" }),
+        ...(stackId ? {} : { stackName: defaultName }),
       });
-      
+
       // result MUST be { postIds: string[], stackId?: string }
-  
+
       // 3) create the feed post, passing FK(s)
-      const count = tab === "upload" ? (files?.length ?? 0) : list.length;
+      const count = tab === "upload" ? files?.length ?? 0 : list.length;
       const payload =
         count <= 1
           ? {
@@ -88,8 +104,7 @@ export default function LibraryPostModal({ onOpenChange, stackId }: Props) {
               coverUrls: result.coverUrls ?? [],
               size: count,
             };
-  
-  
+
       await createFeedPost({
         type: "LIBRARY",
         content: JSON.stringify(payload),
@@ -98,14 +113,13 @@ export default function LibraryPostModal({ onOpenChange, stackId }: Props) {
         libraryPostId: count === 1 ? result.postIds?.[0] : undefined,
         stackId: stackId || result.stackId || undefined,
       });
-  
+
       onOpenChange(false);
       router.refresh();
     } finally {
       setSubmitting(false);
     }
   }
-  
 
   return (
     <DialogContent className="max-w-[600px]">
@@ -114,14 +128,31 @@ export default function LibraryPostModal({ onOpenChange, stackId }: Props) {
       </DialogHeader>
 
       <div className="flex gap-3 text-sm">
-        <button className={tab === "upload" ? "underline" : ""} onClick={() => setTab("upload")}>Upload</button>
-        <button className={tab === "url" ? "underline" : ""} onClick={() => setTab("url")}>Paste URL(s)</button>
+        <button
+          className={tab === "upload" ? "underline" : ""}
+          onClick={() => setTab("upload")}
+        >
+          Upload
+        </button>
+        <button
+          className={tab === "url" ? "underline" : ""}
+          onClick={() => setTab("url")}
+        >
+          Paste URL(s)
+        </button>
       </div>
 
       {tab === "upload" ? (
         <div className="mt-3 space-y-3">
-          <input type="file" accept="application/pdf" multiple onChange={(e) => setFiles(e.target.files)} />
-          <div className="text-xs text-muted-foreground">You can select multiple PDFs.</div>
+          <input
+            type="file"
+            accept="application/pdf"
+            multiple
+            onChange={(e) => setFiles(e.target.files)}
+          />
+          <div className="text-xs text-muted-foreground">
+            You can select multiple PDFs.
+          </div>
         </div>
       ) : (
         <textarea
@@ -147,9 +178,15 @@ export default function LibraryPostModal({ onOpenChange, stackId }: Props) {
 
       <div className="mt-4 flex justify-end gap-2">
         <DialogClose asChild>
-          <button className="px-3 py-2 rounded border" disabled={submitting}>Cancel</button>
+          <button className="px-3 py-2 rounded border" disabled={submitting}>
+            Cancel
+          </button>
         </DialogClose>
-        <button className="px-3 py-2 rounded bg-black text-white" onClick={onSubmit} disabled={submitting}>
+        <button
+          className="px-3 py-2 rounded bg-black text-white"
+          onClick={onSubmit}
+          disabled={submitting}
+        >
           {submitting ? "Creating…" : "Create"}
         </button>
       </div>

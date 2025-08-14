@@ -69,6 +69,8 @@ model User {
   carts                     Cart[]
   settings                  UserSettings?
   Auction                   Auction[]
+  StackCollaborator         StackCollaborator[]
+  StackSubscription         StackSubscription[]
 
   @@map("users")
 }
@@ -620,13 +622,13 @@ model Poll {
   message_id      BigInt
   created_by_id   BigInt
   kind            PollKind
-  options         String[] @default([])
+  options         String[]  @default([])
   max_options     Int       @default(1)
   closes_at       DateTime? @db.Timestamptz(6)
   anonymous       Boolean   @default(false)
   created_at      DateTime  @default(now()) @db.Timestamptz(6)
 
-  votes        PollVote[]
+  votes PollVote[]
 
   @@index([conversation_id])
   @@map("polls")
@@ -1284,20 +1286,20 @@ model LibraryPost {
 }
 
 model Stack {
-  id          String        @id @default(cuid())
-  owner_id    BigInt
-  name        String
-  description String?
-  is_public   Boolean       @default(false)
-  order       String[]
-  created_at  DateTime      @default(now()) @db.Timestamptz(6)
-  parent_id   String?
-  slug        String?       @unique
-  owner       User          @relation(fields: [owner_id], references: [id], onDelete: Cascade)
-  posts       LibraryPost[]
-  parent      Stack?        @relation("StackHierarchy", fields: [parent_id], references: [id])
-  children    Stack[]       @relation("StackHierarchy")
-  feedPosts   FeedPost[]
+  id            String              @id @default(cuid())
+  owner_id      BigInt
+  name          String
+  description   String?
+  is_public     Boolean             @default(false)
+  order         String[]
+  created_at    DateTime            @default(now()) @db.Timestamptz(6)
+  parent_id     String?
+  slug          String?             @unique
+  owner         User                @relation(fields: [owner_id], references: [id], onDelete: Cascade)
+  posts         LibraryPost[]
+  parent        Stack?              @relation("StackHierarchy", fields: [parent_id], references: [id])
+  children      Stack[]             @relation("StackHierarchy")
+  feedPosts     FeedPost[]
   collaborators StackCollaborator[]
   subscribers   StackSubscription[]
 
@@ -1321,6 +1323,8 @@ model StackCollaborator {
   user  User  @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@id([stack_id, user_id])
+  @@index([user_id])
+  @@index([stack_id])
   @@map("stack_collaborators")
 }
 
@@ -1333,6 +1337,8 @@ model StackSubscription {
   user  User  @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@id([stack_id, user_id])
+  @@index([user_id])
+  @@index([stack_id])
   @@map("stack_subscriptions")
 }
 
@@ -1392,14 +1398,15 @@ model Article {
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   excerpt      String?
-  readingTime  Int?        // minutes
-  publishedAt  DateTime?   // set on publish
+  readingTime  Int? // minutes
+  publishedAt  DateTime? // set on publish
 
   allowAnnotations Boolean         @default(true)
   revisionId       String?
   threads          CommentThread[]
-  deletedAt    DateTime?
-    @@index([authorId, deletedAt, updatedAt])
+  deletedAt        DateTime?
+
+  @@index([authorId, deletedAt, updatedAt])
   @@index([authorId, status, updatedAt])
   @@map("articles")
 }

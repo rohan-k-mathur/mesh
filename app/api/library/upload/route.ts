@@ -4,6 +4,7 @@ import { getUserFromCookies } from "@/lib/serverutils";
 import { prisma } from "@/lib/prismaclient";
 import { supabaseAdmin } from "@/lib/supabase-server";
 import { getCurrentUserId } from "@/lib/serverutils";
+import { getOrCreateStackId } from "@/lib/server/stack-helpers";
 
 function sanitizeKey(name: string) {
   // keep ascii letters/digits/._- ; collapse others to _
@@ -150,6 +151,8 @@ function dataUrlToBuffer(dataUrl: string): { buf: Buffer; mime: string } | null 
 
 export async function POST(req: NextRequest) {
   try {
+    const user = await getUserFromCookies();
+    if (!user) return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
     // Identify user (Firebase cookie) — dev override header allowed
     const devHeader = req.headers.get("x-dev-user-id");
     let userId = devHeader ? BigInt(devHeader) : await getCurrentUserId();
@@ -158,6 +161,9 @@ export async function POST(req: NextRequest) {
     }
 
     const form = await req.formData();
+    const stackIdParam = form.get("stackId")?.toString() || undefined;
+    const stackName = form.get("stackName")?.toString() || undefined;
+    const isPublic = form.get("isPublic") === "true";
 
     const files = form.getAll("files").filter((f): f is File => f instanceof File);
     if (!files.length) {
@@ -165,28 +171,33 @@ export async function POST(req: NextRequest) {
     }
 
     const previews = parsePreviews(form); // optional data URLs aligned with files
-    const isPublic = parseBool(form.get("isPublic"), true);
-    const stackName = (form.get("stackName") as string) || "";
-    let stackId = (form.get("stackId") as string) || "";
+
+    // 👇 this line replaces any direct prisma.stack.create() you had
+    const stackId = await getOrCreateStackId({
+      ownerId: BigInt(user.userId),
+      stackId: stackIdParam,
+      stackName,
+      isPublic,
+    });
 
     const supabase = supabaseAdmin(); // service-role client
 
-    // Create a stack if needed (multiple files or explicit stackName)
-    if (!stackId && (files.length > 1 || stackName)) {
-      const name =
-        stackName ||
-        `Uploads ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`;
-      const stack = await prisma.stack.create({
-        data: {
-          owner_id: userId,
-          name,
-          is_public: isPublic,
-          order: [], // we’ll fill after we know all post IDs
-        },
-        select: { id: true },
-      });
-      stackId = stack.id;
-    }
+    // // Create a stack if needed (multiple files or explicit stackName)
+    // if (!stackId && (files.length > 1 || stackName)) {
+    //   const name =
+    //     stackName ||
+    //     `Uploads ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`;
+    //   const stack = await prisma.stack.create({
+    //     data: {
+    //       owner_id: userId,
+    //       name,
+    //       is_public: isPublic,
+    //       order: [], // we’ll fill after we know all post IDs
+    //     },
+    //     select: { id: true },
+    //   });
+    //   stackId = stack.id;
+    // }
 
     const postIds: string[] = [];
     const coverUrls: string[] = [];

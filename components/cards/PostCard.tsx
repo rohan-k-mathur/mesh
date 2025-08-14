@@ -22,6 +22,7 @@ import PdfLightbox from "../modals/PdfLightbox";
 import LibraryCard from "./LibraryCard";
 import ArticleCard from "../article/ArticleCard";
 import type { Like, RealtimeLike } from "@prisma/client";
+import { useState } from "react";
 import React from "react";
 import localFont from "next/font/local";
 import type { BasePost, CanvasState } from "@/lib/types/post";
@@ -84,7 +85,8 @@ const PostCard = ({
   predictionMarket = null,
   library = null,
 }: PostCardProps) => {
-  const [openPdfId, setOpenPdfId] = React.useState<string | null>(null);
+
+const [postId, setPostId] = useState<string | null>(null);
  const [lightboxOpen, setLightboxOpen] = React.useState(false);
   if (content && content.startsWith("REPLICATE:")) {
     const dataStr = content.slice("REPLICATE:".length);
@@ -238,6 +240,7 @@ const PostCard = ({
             )}
             
             {type === "LIBRARY" &&
+            
               (() => {
                 const lib =
                   library ??
@@ -261,25 +264,20 @@ const PostCard = ({
                     size={lib.size}
                     caption={caption}
                     onOpenPdf={(id) => {
-                                     setOpenPdfId(id);
-                                      setLightboxOpen(true);
-                                  }}
+                      setPostId(id);
+                      setLightboxOpen(true);
+                    }}
                     onOpenStack={(id) => console.debug("openStack", id)}
                   />
                   {/* PDF Lightbox mounted once per PostCard */}
                   <PdfLightbox
-                    postId={openPdfId}
-                    open={lightboxOpen}
-                    onOpenChange={(v) => {
-                      if (!v) {
-                        setLightboxOpen(false);
-                        // small delay before clearing to avoid flicker between close/open
-                        setTimeout(() => setOpenPdfId(null), 150);
-                      } else {
-                        setLightboxOpen(true);
-                      }
-                    }}
-                  />
+  open={lightboxOpen}
+  onOpenChange={(v) => {
+    setLightboxOpen(v);
+    if (!v) setTimeout(() => setPostId(null), 150);
+  }}
+  postId={postId ?? undefined}
+/>
                 </>
                 );
               })()}

@@ -15,35 +15,44 @@ function canEdit(stack: any, viewer: Viewer) {
       (c.role === "EDITOR" || c.role === "OWNER")
   );
 }
-
+ 
+function canView(stack: any, viewer: Viewer) {
+    if (stack.is_public) return true;
+    if (!viewer.id) return false;
+    if (stack.owner_id === viewer.id) return true;
+    // VIEWER/EDITOR/OWNER collaborators can see private stacks
+    return stack.collaborators?.some((c: any) => c.user_id === viewer.id) ?? false;
+  }
+  
 export async function getStackPageData(stackId: string) {
   const u = await getUserFromCookies();
   const viewerId = u?.userId ? BigInt(u.userId) : null;
-
-  const stack = await prisma.stack.findUnique({
-    where: { id: stackId },
-    include: {
-      owner: { select: { id: true, name: true, image: true } },
-      collaborators: true,
-      subscribers: viewerId
-        ? { where: { user_id: viewerId }, select: { user_id: true } }
-        : false,
-      posts: {
-        orderBy: { created_at: "asc" },
-        select: {
-          id: true,
-          title: true,
-          file_url: true,
-          thumb_urls: true,
-          page_count: true,
-          uploader_id: true,
-          created_at: true,
-        },
-      },
-    },
-  });
+       const include: any = {
+           owner: { select: { id: true, name: true, image: true } },
+           collaborators: true,
+           posts: {
+             orderBy: { created_at: "asc" },
+             select: {
+               id: true,
+               title: true,
+               file_url: true,
+               thumb_urls: true,
+               page_count: true,
+               uploader_id: true,
+               created_at: true,
+             },
+           },
+         };
+         if (viewerId) {
+           include.subscribers = { where: { user_id: viewerId }, select: { user_id: true } };
+         }
+       
+         const stack = await prisma.stack.findUnique({ where: { id: stackId }, include });
   if (!stack) return { notFound: true } as const;
-
+ 
+    // deny access to private stacks if viewer lacks permission
+    if (!canView(stack, { id: viewerId })) return { notFound: true } as const;
+  
   const editable = canEdit(stack, { id: viewerId });
   const subscribed = !!(stack as any).subscribers?.length;
 
@@ -76,6 +85,16 @@ export async function toggleStackSubscription(formData: FormData) {
   const stackId = String(formData.get("stackId") || "");
   const op = String(formData.get("op") || "toggle");
 
+       const stack = await prisma.stack.findUnique({
+           where: { id: stackId },
+           include: { collaborators: true },
+         });
+         if (!stack) throw new Error("Stack not found");
+         // Only allow subscribe if public OR viewer could view anyway.
+         if (!(stack.is_public || canView(stack, { id: userId }))) {
+           throw new Error("Forbidden");
+         }
+    
   const existing = await prisma.stackSubscription.findUnique({
     where: { stack_id_user_id: { stack_id: stackId, user_id: userId } },
   });
@@ -126,6 +145,7 @@ export async function reorderStack(formData: FormData) {
 
   const i = order.indexOf(postId);
   if (i < 0) return;
+
   if (direction === "up" && i > 0) {
     [order[i - 1], order[i]] = [order[i], order[i - 1]];
   } else if (direction === "down" && i < order.length - 1) {
@@ -155,16 +175,18 @@ export async function removeFromStack(formData: FormData) {
   if (!stack) throw new Error("Stack not found");
   if (!canEdit(stack, { id: userId })) throw new Error("Forbidden");
 
-  await prisma.$transaction([
-    prisma.libraryPost.update({
-      where: { id: postId },
-      data: { stack_id: null },
-    }),
-    prisma.stack.update({
-      where: { id: stackId },
-      data: { order: (stack.order ?? []).filter((id) => id !== postId) },
-    }),
-  ]);
+  await prisma.$transaction(async (tx) => {
+           // Only detach if the post truly belongs to this stack
+           const updated = await tx.libraryPost.updateMany({
+             where: { id: postId, stack_id: stackId },
+             data: { stack_id: null },
+           });
+           if (updated.count === 0) throw new Error("Post not in this stack");
+           await tx.stack.update({
+             where: { id: stackId },
+             data: { order: (stack.order ?? []).filter((id) => id !== postId) },
+           });
+      });
 
   revalidatePath(`/stacks/${stackId}`);
 }

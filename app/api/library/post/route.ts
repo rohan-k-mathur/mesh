@@ -1,32 +1,47 @@
-import { NextRequest, NextResponse } from "next/server";
+// app/api/library/post/route.ts
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prismaclient";
+import { createSupabaseServerClient } from "@/lib/supabase-server";
 
-/**
- * GET /api/library/post?id=<libraryPostId>
- * Returns the public file_url and metadata needed for viewing.
- */
-export async function GET(req: NextRequest) {
-  try {
-    const { searchParams } = new URL(req.url);
-    const id = searchParams.get("id") || searchParams.get("postId");
-    if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const id = searchParams.get("id");
+  if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
 
-    const p = await prisma.libraryPost.findUnique({
-      where: { id: String(id) },
-      select: { id: true, title: true, file_url: true, page_count: true, thumb_urls: true },
-    });
+  const post = await prisma.libraryPost.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      title: true,
+      file_url: true,
+      page_count: true,
+      thumb_urls: true,
+    },
+  });
+  if (!post) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    if (!p) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  let fileUrl = post.file_url;
 
-    return NextResponse.json({
-      id: p.id,
-      title: p.title ?? "PDF",
-      fileUrl: p.file_url,
-      pageCount: p.page_count,
-      thumbUrls: p.thumb_urls,
-    });
-  } catch (e: any) {
-    console.error("[library/post] error", e);
-    return NextResponse.json({ error: String(e?.message || e) }, { status: 500 });
+  // If you ever switch back to a private bucket, sign the URL here.
+  const isAlreadyPublic = fileUrl.includes("/storage/v1/object/public/");
+  const looksLikeSupabasePath = fileUrl.startsWith("pdfs/") || fileUrl.startsWith("private/");
+  if (!isAlreadyPublic && looksLikeSupabasePath) {
+    // e.g. you stored "pdfs/user_12/foo.pdf"
+    const sb = createSupabaseServerClient();
+    const { data, error } = await sb.storage
+      .from("pdfs")
+      .createSignedUrl(fileUrl.replace(/^pdfs\//, ""), 60 * 10 /* 10 mins */);
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    fileUrl = data.signedUrl;
   }
+
+  return NextResponse.json({
+    id: post.id,
+    title: post.title,
+    fileUrl,
+    pageCount: post.page_count,
+    thumbUrls: post.thumb_urls,
+  });
 }

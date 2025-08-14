@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import ArticleReader from "@/components/article/ArticleReader";
 import CommentModal from "@/components/article/CommentModal";
 import type { Anchor, CommentThread } from "@/types/comments";
-import { useSelectionRects } from "@/hooks/useSelectionRects";
 import Image from "next/image";
 /* ----------------------- DOM ↔ anchor helpers ----------------------- */
 
@@ -214,12 +213,14 @@ function CommentRail({
   openId,
   setOpenId,
   onSelect,
+  offsetTop = 0,
 }: {
   threads: CommentThread[];
   positions: Record<string, DOMRect | undefined>;
   openId: string | null;
   setOpenId: (id: string | null) => void;
   onSelect: (thread: CommentThread) => void;
+  offsetTop?: number;
 }) {
   // one-line items, collision-resolved
   // bump minGap from 18 → 22 for a touch more air
@@ -233,6 +234,7 @@ function CommentRail({
       {items.map((p) => {
         const t = threads.find((x) => x.id === p.id)!;
         const active = openId === t.id;
+
         const firstLine = t.comments[0]?.body ?? "";
         return (
           // <div className="space-y-4 gap-4 h-full">
@@ -241,16 +243,20 @@ function CommentRail({
           //   className={`absolute right-0 translate-y-[-50%] truncate w-full text-left m-2
           <div key={t.id} className="space-y-4 gap-4 h-full">
             <button
-              className={`absolute right-0 translate-y-[-50%] truncate w-full text-left m-2
+              className={`absolute right-0 translate-y-[-50%] truncate justify-end items-end text-left m-2 w-[200px]
                        text-xs px-3 py-1 rounded-md border bg-white/50 lockbutton
                         hover:bg-white/60 transition
-                       ${active ? "border-amber-400 border-2 bg-white/70" : "border-neutral-200"}`}
+                       ${
+                         active
+                           ? "border-amber-400 border-2 bg-white/70"
+                           : "border-neutral-200"
+                       }`}
               //   style={{ top: p.top }}
               //   onClick={() => setOpenId(t.id)}
               //   title={firstLine}
               // >
               //   {firstLine.length > 60 ? firstLine.slice(0, 57) + '…' : firstLine}
-              style={{ top: p.top }}
+              style={{ top: p.top + offsetTop }}
               onClick={() => {
                 setOpenId(t.id);
                 onSelect(t);
@@ -285,7 +291,7 @@ type Props = {
   html: string;
   threads: CommentThread[];
   articleSlug: string; // 👈 for API calls
-    title?: string                 // ⬅️ new
+  title?: string; // ⬅️ new
   currentUser?: unknown;
 };
 
@@ -297,10 +303,11 @@ export default function ArticleReaderWithPins({
   articleSlug,
   title,
 }: Props) {
-  const frameRef = useRef<HTMLDivElement>(null);
-  const rects = useSelectionRects(frameRef)
   const containerRef = useRef<HTMLDivElement>(null);
   const bubbleRef = useRef<HTMLDivElement>(null); // 👈 NEW
+  const railRef = useRef<HTMLDivElement>(null); // NEW
+  const [railHeight, setRailHeight] = useState<number>(0); // NEW
+  const [railOffsetTop, setRailOffsetTop] = useState<number>(0); // NEW
   const [openId, setOpenId] = useState<string | null>(null);
   const [threads, setThreads] = useState<CommentThread[]>(initialThreads);
   const [activeThread, setActiveThread] = useState<CommentThread | null>(null);
@@ -312,7 +319,16 @@ export default function ArticleReaderWithPins({
     null
   );
   const [selectionRects, setSelectionRects] = useState<DOMRect[] | null>(null); // visual highlight
-
+  const scrollToThread = (t: CommentThread) => {
+    const root = containerRef.current;
+    if (!root) return;
+    const rects = getAnchorRects(t.anchor, root);
+    const first = rects[0];
+    if (!first) return;
+    const rootBox = root.getBoundingClientRect();
+    const y = window.scrollY + rootBox.top + first.top - 120; // 120px viewport padding
+    window.scrollTo({ top: y, behavior: "smooth" });
+  };
   const rectsByThread = useMemo(() => {
     const root = containerRef.current;
     if (!root) return {} as Record<string, DOMRect[]>;
@@ -341,6 +357,37 @@ export default function ArticleReaderWithPins({
       window.removeEventListener("resize", onScroll);
     };
   }, []);
+
+  // Measure rail height and vertical offset so the right rail aligns to article
+  useEffect(() => {
+    const updateRailMetrics = () => {
+      const root = containerRef.current;
+      const rail = railRef.current;
+      if (!root || !rail) return;
+      // height: give the rail a real layout height equal to the article's height
+      setRailHeight(root.offsetHeight);
+      // vertical offset between rail container and article container
+      const rootTop = root.getBoundingClientRect().top + window.scrollY;
+      const railTop = rail.getBoundingClientRect().top + window.scrollY;
+      setRailOffsetTop(rootTop - railTop);
+    };
+    updateRailMetrics();
+    const ro = new ResizeObserver(updateRailMetrics);
+    if (containerRef.current) ro.observe(containerRef.current);
+    window.addEventListener("scroll", updateRailMetrics, { passive: true });
+    window.addEventListener("resize", updateRailMetrics);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("scroll", updateRailMetrics);
+      window.removeEventListener("resize", updateRailMetrics);
+    };
+  }, []);
+
+  // keep the visible selection overlay locked to the selection anchor
+  useEffect(() => {
+    if (!adder || !containerRef.current) return;
+    setSelectionRects(getAnchorRects(adder.anchor, containerRef.current));
+  }, [tick, adder]);
 
   // recompute pin positions
   const positions = useMemo(() => {
@@ -418,55 +465,55 @@ export default function ArticleReaderWithPins({
 
   return (
     <ArticleReader template={template} heroSrc={heroSrc} title={title}>
-              <div ref={frameRef} className="relative ">
+      <div className="relative">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
+          {/* Article + pins */}
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
-        {/* Article + pins */}
-
-        <div className="relative ml-[7%] mt-[1%]">
-          
+          <div className="relative ml-[7%] mt-[1%]">
             {/* Title */}
-          {title && (
-            <h1 className="text-3xl font-semibold mb-4">{title}</h1>
-          )}
-              <div className="absolute inset-0 pointer-events-none">
-            {/* visual selection overlay so highlight remains visible */}
-            {rects.map((r, i) => (
+            {title && <h1 className="text-3xl font-semibold mb-4">{title}</h1>}
+            {/* Article content (defines the coordinate space) */}
+            <div className="relative">
               <div
-                key={`sel-${i}`}
-                className="absolute  pointer-events-none bg-amber-800/30 rounded-sm"
-                style={{
-                  top: r.top,
-                  left: r.left,
-                  width: r.width,
-                  height: r.height,
-                }}
+                ref={containerRef}
+                className="article-body prose max-w-none"
+                data-ff="system"
+                data-fs="16"
+                data-clr="accent"
+                dangerouslySetInnerHTML={{ __html: html }}
+                onMouseUpCapture={onMouseUpCapture}
               />
-            ))}
-            <div
-              ref={containerRef}
-              className="article-body prose max-w-none"
-              data-ff="system"
-              data-fs="16"
-              data-clr="accent"
-              dangerouslySetInnerHTML={{ __html: html }}
-              onMouseUpCapture={onMouseUpCapture}
-            />
-            {/* line highlights for active/hovered thread */}
-            {(openId || hoverId) &&
-              rectsByThread[openId || hoverId!]?.map((r, i) => (
-                <div
-                  key={`hl-${i}`}
-                  className="absolute z-10  pointer-events-none bg-indigo-500/10  align-center  rounded-sm"
-                  style={{
-                    top: r.top,
-                    left: r.left,
-                    width: r.width,
-                    height: r.height,
-                  }}
-                />
-              ))}
+              {/* Absolute overlay aligned to the article box */}
+              <div className="pointer-events-none absolute inset-0 z-10">
+                {/* visual selection overlay for the *current* selection */}
+                {(selectionRects ?? []).map((r, i) => (
+                  <div
+                    key={`sel-${i}`}
+                    className="absolute bg-amber-800/30 rounded-sm"
+                    style={{
+                      top: r.top,
+                      left: r.left,
+                      width: r.width,
+                      height: r.height,
+                    }}
+                  />
+                ))}
+                {/* line highlights for active/hovered thread */}
+                {(openId || hoverId) &&
+                  rectsByThread[openId || hoverId!]?.map((r, i) => (
+                    <div
+                      key={`hl-${i}`}
+                      className="absolute bg-indigo-500/10 rounded-sm"
+                      style={{
+                        top: r.top,
+                        left: r.left,
+                        width: r.width,
+                        height: r.height,
+                      }}
+                    />
+                  ))}
               </div>
+            </div>
             <div className="md:hidden mb-3">
               <button
                 className="px-3 py-1.5 rounded bg-amber-500 text-white text-sm"
@@ -527,10 +574,10 @@ export default function ArticleReaderWithPins({
                         className={`w-[15px] h-[30px] rounded-sm lockbutton bg-slate-200/20   grid place-items-center border-amber-500
                          leading-none
                       ${
-                          t.resolved
-                            ? "bg-slate-400/50 lockbutton"
-                            : "bg-slate-200/20 lockbutton"
-                        }
+                        t.resolved
+                          ? "bg-slate-400/50 lockbutton"
+                          : "bg-slate-200/20 lockbutton"
+                      }
                         ${
                           active
                             ? "opacity-100 border-[1.4px] bg-amber-500/50  lockbutton"
@@ -542,7 +589,9 @@ export default function ArticleReaderWithPins({
                         }}
                         aria-label="Open comment"
                       >
-                        <p className="text-[6px] text-center text-amber-500">●</p>
+                        <p className="text-[6px] text-center text-amber-500">
+                          ●
+                        </p>
                       </button>
                     </div>
                   );
@@ -571,7 +620,7 @@ export default function ArticleReaderWithPins({
                 className="absolute flex flex-col z-30 w-fit h-fit rounded-xl bg-amber-500 p-[6px] text-white text-center 
     justify-center text-sm  place-items-center shadow-xl"
                 style={{
-                  top: Math.max(0, adder.rect.top - 36),
+                  top: Math.max(0, adder.rect.top + 6),
                   left: adder.rect.left + adder.rect.width / 2 - 12,
                 }}
                 onMouseDown={(e) => e.preventDefault()} // keep selection
@@ -643,13 +692,22 @@ export default function ArticleReaderWithPins({
           </div>
         </div>
 
-        <div className="relative">
+        {/* RIGHT RAIL — give it a real height and pass the vertical offset */}
+        <div
+          ref={railRef}
+          className="relative"
+          style={{ height: railHeight || undefined }}
+        >
           <CommentRail
             threads={threads}
             positions={positions}
             openId={openId}
             setOpenId={setOpenId}
-            onSelect={setActiveThread}
+            onSelect={(t) => {
+              setActiveThread(t);
+              scrollToThread(t); // NEW – scroll to the selected text
+            }}
+            offsetTop={railOffsetTop} // NEW – align tops
           />
         </div>
       </div>
