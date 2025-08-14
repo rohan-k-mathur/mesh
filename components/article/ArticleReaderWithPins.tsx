@@ -8,6 +8,14 @@ import Image from "next/image";
 /* ----------------------- DOM ↔ anchor helpers ----------------------- */
 
 /* ---------- Selection helpers (clean) ---------- */
+const PIN_Y_TWEAK = 0; // try +2 or -2 if your type scale changes
+
+function getAnchorCenterTop(anchor: Anchor, root: HTMLElement): number | null {
+  const rects = getAnchorRects(anchor, root);
+  const first = rects[0];
+  if (!first) return null;
+  return first.top + first.height / 2;
+}
 
 function firstTextNodeWithin(
   node: Node,
@@ -308,6 +316,8 @@ export default function ArticleReaderWithPins({
   const railRef = useRef<HTMLDivElement>(null); // NEW
   const [railHeight, setRailHeight] = useState<number>(0); // NEW
   const [railOffsetTop, setRailOffsetTop] = useState<number>(0); // NEW
+  const leftGutterRef = useRef<HTMLDivElement>(null); // NEW
+  const [gutterOffsetTop, setGutterOffsetTop] = useState<number>(0); // NEW
   const [openId, setOpenId] = useState<string | null>(null);
   const [threads, setThreads] = useState<CommentThread[]>(initialThreads);
   const [activeThread, setActiveThread] = useState<CommentThread | null>(null);
@@ -363,13 +373,27 @@ export default function ArticleReaderWithPins({
     const updateRailMetrics = () => {
       const root = containerRef.current;
       const rail = railRef.current;
-      if (!root || !rail) return;
+      const gutter = leftGutterRef.current;
+      // if (!root || !rail) return;
+      // // height: give the rail a real layout height equal to the article's height
+      // setRailHeight(root.offsetHeight);
+      // // vertical offset between rail container and article container
+      // const rootTop = root.getBoundingClientRect().top + window.scrollY;
+      // const railTop = rail.getBoundingClientRect().top + window.scrollY;
+      // setRailOffsetTop(rootTop - railTop);
+      if (!root) return;
       // height: give the rail a real layout height equal to the article's height
       setRailHeight(root.offsetHeight);
       // vertical offset between rail container and article container
       const rootTop = root.getBoundingClientRect().top + window.scrollY;
-      const railTop = rail.getBoundingClientRect().top + window.scrollY;
-      setRailOffsetTop(rootTop - railTop);
+      if (rail) {
+        const railTop = rail.getBoundingClientRect().top + window.scrollY;
+        setRailOffsetTop(rootTop - railTop);
+      }
+      if (gutter) {
+        const gutTop = gutter.getBoundingClientRect().top + window.scrollY;
+        setGutterOffsetTop(rootTop - gutTop);
+      }
     };
     updateRailMetrics();
     const ro = new ResizeObserver(updateRailMetrics);
@@ -394,7 +418,12 @@ export default function ArticleReaderWithPins({
     const root = containerRef.current;
     if (!root) return {};
     return Object.fromEntries(
-      threads.map((t) => [t.id, getAnchorStartRect(t.anchor, root)])
+      threads.map((t) => {
+        const centerY = getAnchorCenterTop(t.anchor, root);
+        if (centerY == null) return [t.id, undefined] as const;
+        // store as a DOMRect so clusterByTop continues to read `.top`
+        return [t.id, new DOMRect(0, centerY, 0, 0)] as const;
+      })
     );
   }, [threads, html, tick]);
 
@@ -525,7 +554,11 @@ export default function ArticleReaderWithPins({
 
             {/* pin layer in the left gutter */}
 
-            <div className="absolute flex inset-y-0 inline-flex mt-2.5  inset-x-[-40px]  w-4 select-none hidden md:block">
+            <div
+              ref={leftGutterRef}
+              className="absolute flex inset-y-0 inline-flex mt-2.5 inset-x-[-40px] w-4 select-none hidden md:block"
+            >
+              {" "}
               {clusters.map((c, i) => {
                 const key = `c${i}-${Math.round(c.top)}`;
                 const many = c.items.length > 3;
@@ -536,8 +569,8 @@ export default function ArticleReaderWithPins({
                   return (
                     <div
                       key={key}
-                      className="absolute"
-                      style={{ top: c.top - 8, left: 4 }}
+                      className="absolute translate-y-[-50%]"
+                      style={{ top: c.top + gutterOffsetTop + PIN_Y_TWEAK, left: 4 }}
                     >
                       <button
                         className="w-6 h-6 shadow-xl rounded-full bg-amber-500 text-white text-xs "
@@ -554,7 +587,7 @@ export default function ArticleReaderWithPins({
                 const stack = solveCollisions(
                   c.items.map((id, idx) => ({
                     id,
-                    top: c.top + idx * 16 - 8,
+                    top: c.top + idx * 16, // center-based now
                     left: -20,
                   })),
                   14
@@ -565,13 +598,13 @@ export default function ArticleReaderWithPins({
                   return (
                     <div
                       key={`${key}-${t.id}`}
-                      className="absolute"
-                      style={{ top: p.top, left: p.left }}
+                      className="absolute translate-y-[-50%]"
+                      style={{ top: p.top + gutterOffsetTop, left: p.left }}
                       onMouseEnter={() => setHoverId(t.id)}
                       onMouseLeave={() => setHoverId(null)}
                     >
                       <button
-                        className={`w-[15px] h-[30px] rounded-sm lockbutton bg-slate-200/20   grid place-items-center border-amber-500
+                        className={`w-[15px] h-[25px] rounded-sm lockbutton bg-slate-200/20   grid place-items-center border-amber-500
                          leading-none
                       ${
                         t.resolved
@@ -584,8 +617,10 @@ export default function ArticleReaderWithPins({
                             : "border-[1.1px] bg-slate-200/20 lockbutton hover:bg-slate-300/40"
                         }`}
                         onClick={() => {
-                          setOpenId(t.id);
+                         
                           setExpandedCluster(null);
+                          setActiveThread(t); // highlight the card/modal state
+                         scrollToThread(t);
                         }}
                         aria-label="Open comment"
                       >
