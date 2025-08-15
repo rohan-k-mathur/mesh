@@ -73,6 +73,7 @@ model User {
   StackSubscription         StackSubscription[]
   SheafAudienceList         SheafAudienceList[]
   roles                     UserRole[]
+    reactions       MessageReaction[]
 
   @@map("users")
 }
@@ -610,6 +611,7 @@ model Message {
   attachments      MessageAttachment[]
   SheafFacet       SheafFacet[]
   SheafMessageMeta SheafMessageMeta[]
+    reactions       MessageReaction[]
 
   @@index([conversation_id, created_at])
   @@map("messages")
@@ -1454,6 +1456,8 @@ model SheafFacet {
   attachments      SheafAttachment[]
   SheafMessageMeta SheafMessageMeta[]
 
+    reactions       MessageReaction[]
+
   @@index([messageId])
   @@index([audienceKind, audienceMode])
   @@index([audienceRole])
@@ -1545,4 +1549,24 @@ model UserRole {
   @@id([userId, role])
   @@index([role])
   @@map("user_roles")
+}
+
+model MessageReaction {
+  id        BigInt   @id @default(autoincrement())
+  messageId BigInt
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  /// Optional: the facet the viewer reacted to (safe to store; we filter on read)
+  facetId   BigInt?
+  facet     SheafFacet? @relation(fields: [facetId], references: [id], onDelete: Cascade)
+
+  userId    BigInt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  emoji     String
+  createdAt DateTime @default(now())
+
+  @@unique([messageId, facetId, userId, emoji], map: "uniq_reaction_per_facet")
+  @@index([messageId])
+  @@index([userId])
 }

@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import type { CSSProperties } from "react";
-
+import { ReactionSummary } from "../reactions/ReactionSummary";
+import { ReactionBar } from "../reactions/ReactionBar";
 type FacetDTO = {
   id: string;
   audience: any;
@@ -50,16 +51,21 @@ function renderBody(body: any) {
 }
 
 export function SheafMessageBubble(props: {
+  messageId: string;
+  conversationId: string;
+  currentUserId: string;
   facets: FacetDTO[];
   defaultFacetId?: string | null;
   style?: CSSProperties;
   className?: string;
 }) {
-  const { facets, defaultFacetId } = props;
+  // const { facets, defaultFacetId } = props;
+  const { messageId, conversationId, currentUserId, facets, defaultFacetId } = props;
+  const [activeId, setActiveId] = React.useState<string>(defaultFacetId ?? facets[0].id);
 
-  const [activeId, setActiveId] = React.useState<string | null>(
-    defaultFacetId ?? facets[0]?.id ?? null
-  );
+  // const [activeId, setActiveId] = React.useState<string | null>(
+    // defaultFacetId ?? facets[0]?.id ?? null
+  
 
   React.useEffect(() => {
     // If defaultFacetId changes (or the message re-renders), keep it in sync.
@@ -126,6 +132,13 @@ export function SheafMessageBubble(props: {
           ))}
         </ul>
       )}
+      <ReactionSummary messageId={messageId} />
+      <ReactionBar
+        conversationId={conversationId}
+        messageId={messageId}
+        userId={currentUserId}
+        activeFacetId={activeId}
+      />
     </div>
   );
 }

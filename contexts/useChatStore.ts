@@ -9,6 +9,8 @@ export interface Attachment {
   size: number;
 }
 
+export type ReactionAgg = { emoji: string; count: number; mine: boolean };
+
 // ---- Sheaf-aware Message type (you already had this; kept here for clarity)
 export interface Message {
   id: string;
@@ -89,13 +91,16 @@ interface ChatState {
   applyPollState: (state: PollStateDTO) => void;
   setMyVote: (my: MyVoteDTO) => void;
   sendMessage: (id: string, data: FormData) => Promise<void>;
+  reactionsByMessageId: Record<string, ReactionAgg[]>;
+  setReactions: (messageId: string, items: ReactionAgg[]) => void;
+  applyReactionDelta: (messageId: string, emoji: string, op: 'add'|'remove', byMe: boolean) => void;
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
   conversations: {},
   messages: {},
   pollsByMessageId: {},
-
+  reactionsByMessageId: {},
   setCurrentConversation: (id) => set({ currentConversation: id }),
 
   setConversations: (list) =>
@@ -111,6 +116,32 @@ export const useChatStore = create<ChatState>((set, get) => ({
         }),
       },
     })),
+
+    setReactions: (messageId, items) =>
+    set((state) => ({
+      reactionsByMessageId: { ...state.reactionsByMessageId, [messageId]: items },
+    })),
+
+    applyReactionDelta: (messageId, emoji, op, byMe) =>
+    set((state) => {
+      const current = state.reactionsByMessageId[messageId] ?? [];
+      const idx = current.findIndex((r) => r.emoji === emoji);
+      if (idx === -1) {
+        if (op === 'add') {
+          const next = [...current, { emoji, count: 1, mine: byMe }];
+          return { reactionsByMessageId: { ...state.reactionsByMessageId, [messageId]: next } };
+        }
+        return {}; // removing a non-existent agg: ignore
+      }
+      const row = { ...current[idx] };
+      row.count += (op === 'add' ? 1 : -1);
+      if (row.count < 0) row.count = 0;
+      if (byMe) row.mine = (op === 'add');
+      const next = current.slice();
+      if (row.count === 0) next.splice(idx, 1);
+      else next[idx] = row;
+      return { reactionsByMessageId: { ...state.reactionsByMessageId, [messageId]: next } };
+    }),
 
   appendMessage: (id, msg) =>
     set((state) => {
