@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prismaclient";
 import { supabase } from "@/lib/supabaseclient";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { uploadAttachment } from "@/lib/storage/uploadAttachment";
 import { jsonSafe } from "../bigintjson";
 type SendMessageArgs = {

@@ -106,7 +106,24 @@ export async function POST(req: NextRequest) {
     }
   
 
-    return NextResponse.json({ stackId: stack!.id, postIds });
+    if (stackId && postIds.length > 0) {
+      const stackInfo = await prisma.stack.findUnique({
+        where: { id: stackId },
+        select: { is_public: true, name: true },
+      });
+      await prisma.feedPost.create({
+        data: {
+          author_id: userId,
+          type: "TEXT",
+          isPublic: stackInfo?.is_public ?? true,
+          content: `added ${postIds.length} item${postIds.length > 1 ? "s" : ""} to`,
+          stack_id: stackId,
+          caption: stackInfo?.name,
+        },
+      });
+    }
+
+    return NextResponse.json({ stackId, postIds });
   } catch (e: any) {
     console.error("IMPORT_ERR:", e);
     return NextResponse.json({ error: e?.message || String(e) }, { status: 500 });

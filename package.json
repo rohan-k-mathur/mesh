@@ -10,6 +10,8 @@
     "lint": "next lint",
     "test": "jest",
     "vitest": "vitest",
+    "predev": "npm run -w @app/sheaf-acl build",
+    "prebuild": "npm run -w @app/sheaf-acl build",
     "postinstall": "prisma generate",
     "seed": "tsx --env-file=.env scripts/seed.ts",
     "gmail-token": "tsx --env-file=.env scripts/gmail-token.ts",

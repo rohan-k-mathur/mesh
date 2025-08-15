@@ -12,7 +12,7 @@ export function useSheafPreview() {
   const [error, setError] = React.useState<any>(null);
 
   const preview = async (req: PreviewReq) => {
-    setLoading(true); setError(null);
+        setLoading(true); setError(null);
     try {
       const res = await fetch('/api/sheaf/preview', {
         method: 'POST',
