@@ -108,7 +108,7 @@ const MessageRow = memo(function MessageRow({
             <DropdownMenuItem
               onClick={() => onOpen(String(m.senderId), m.sender?.name ?? "User", m.sender?.image ?? null)}
             >
-              💬 Private Chat
+              💬 Side Chat
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => onPrivateReply?.(m)}>
               🔒 Reply To {m.sender?.name || "User"}

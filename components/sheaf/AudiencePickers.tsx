@@ -60,9 +60,10 @@ export function AudiencePicker(props: {
   }, [kind, role, listId, mode, userIds, onChange]);
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center gap-6">
       <select
-        className="text-xs border rounded px-2 py-1 bg-white/70"
+                               className="text-xs lockbutton rounded-xl px-2 py-1 bg-white/70"
+
         value={kind}
         onChange={(e) => setKind(e.target.value as any)}
       >
@@ -74,8 +75,8 @@ export function AudiencePicker(props: {
 
       {kind === 'ROLE' && (
         <select
-          className="text-xs border rounded px-2 py-1 bg-white/70"
-          value={role}
+        className="text-xs lockbutton rounded-xl px-2 py-1 bg-white/70"
+        value={role}
           onChange={(e) => setRole(e.target.value)}
         >
           <option value="MOD">MOD</option>
@@ -86,8 +87,8 @@ export function AudiencePicker(props: {
       {kind === 'LIST' && (
         <>
           <select
-            className="text-xs border rounded px-2 py-1 bg-white/70"
-            value={listId}
+                               className="text-xs lockbutton rounded-xl px-2 py-1 bg-white/70"
+                               value={listId}
             onChange={(e) => setListId(e.target.value)}
           >
             <option value="">— choose list —</option>
@@ -96,8 +97,8 @@ export function AudiencePicker(props: {
             ))}
           </select>
           <select
-            className="text-xs border rounded px-2 py-1 bg-white/70"
-            value={mode}
+                               className="text-xs lockbutton rounded-xl px-2 py-1 bg-white/70"
+                               value={mode}
             onChange={(e) => setMode(e.target.value as any)}
             title="Snapshot = freeze membership at send time"
           >
@@ -110,8 +111,8 @@ export function AudiencePicker(props: {
       {kind === 'USERS' && (
         <>
           <select
-            className="text-xs border rounded px-2 py-1 bg-white/70"
-            multiple
+                               className="text-xs lockbutton rounded-xl px-2 py-1 bg-white/70"
+                               multiple
             value={userIds}
             onChange={(e) => {
               const sel = Array.from(e.target.selectedOptions).map((o) => o.value);
@@ -123,8 +124,8 @@ export function AudiencePicker(props: {
             ))}
           </select>
           <select
-            className="text-xs border rounded px-2 py-1 bg-white/70"
-            value={mode}
+                               className="text-xs lockbutton rounded-xl px-2 py-1 bg-white/70"
+                               value={mode}
             onChange={(e) => setMode(e.target.value as any)}
           >
             <option value="SNAPSHOT">Snapshot</option>

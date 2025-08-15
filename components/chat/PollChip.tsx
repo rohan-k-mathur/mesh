@@ -31,7 +31,7 @@
       <button
         type="button"
         onClick={onClick}
-        className="flex flex-col justify-center   items-center mx-auto w-fit gap-2 px-2 py-2 rounded-xl  bg-white/70  text-xs sendbutton"
+        className="flex flex-col justify-center   items-center mx-auto w-fit gap-2 px-2 py-2 rounded-xl  bg-white/70  text-[.85rem] sendbutton"
         aria-expanded={false}
       >
         {label}
@@ -181,7 +181,7 @@
               key={idx}
               onClick={() => handle(idx)}
               disabled={submitting !== null}
-              className="px-2 py-1 rounded-full  bg-white/70 sendbutton text-xs transition disabled:opacity-60"
+              className="px-3 pt-1 text-[1rem] tracking-wide rounded-full  bg-white/70 sendbutton text-xs transition disabled:opacity-60"
             >
               {opt}
             </button>

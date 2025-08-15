@@ -1196,14 +1196,14 @@ outline: none;
     outline-style: solid;
     outline-width: .25px;
     border-radius: 4px;
-    box-shadow:   2px 2px 4px rgba(212, 205, 210, 0.75),
-    -1px -2px 4px rgba(156, 151, 151, 0.55);
+    box-shadow:   2px 2px 4px rgba(212, 205, 240, 0.75),
+    -1px -2px 4px rgba(156, 151, 171, 0.55);
 }
 .sheaf-bubble:hover
 {
 
-  box-shadow:   2px 2px 4px rgba(212, 205, 210, 0.75),
-  -1px -2px 4px rgba(156, 151, 151, 0.55);
+  box-shadow:   2px 2px 4px rgba(212, 205, 240, 0.75),
+  -1px -2px 4px rgba(156, 151, 171, 0.55);
 
 
 }

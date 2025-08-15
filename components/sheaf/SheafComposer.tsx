@@ -158,7 +158,7 @@ export function SheafComposer(props: {
   
 
   return (
-<div className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+<div className="space-y-4  ">
           {/* View-as (preview which layers are visible for common audiences) */}
       <ViewAsBar
         facets={facets.map(f => ({
@@ -171,67 +171,72 @@ export function SheafComposer(props: {
         authorId={authorId}
       />
 {/* Add this block just before the facets map */}
-<div className="sticky top-0 z-10 bg-white/80 backdrop-blur p-2 border-b">
-      <span className="text-sm font-medium">Add layer:</span>
-
+<div className="sticky flex w-full flex-1 rounded-lg top-0 z-10  bg-indigo-300 px-3 py-2  h-fit">
+    
+      <p className="  text-sm py-1 w-fit h-fit text-slate-800  whitespace-nowrap font-medium">Add layer: </p>
+<div className='flex w-fit gap-3 ml-2 '>
   <button
     type="button"
-    className="px-2 py-1 rounded border bg-white/70 text-xs"
+    className="flex  px-2 py-0 align-center w-full  rounded-xl lockbutton border bg-white/70 text-xs"
     onClick={() => addFacet({ kind: 'EVERYONE' })}
     disabled={sending}
   >
-    + Public
+    <p className='flex text-center whitespace-nowrap mx-auto w-full justify-center align-center my-auto'>+ Public</p>
   </button>
 
   <button
     type="button"
-    className="px-2 py-1 rounded border bg-white/70 text-xs"
+    className="flex  px-2 py-0 align-center w-full  rounded-xl lockbutton border bg-white/70 text-xs"
     onClick={() => addFacet({ kind: 'ROLE', role: 'MOD', mode: 'DYNAMIC' })}
     disabled={sending}
   >
-    + Role: MOD
+        <p className='flex text-center whitespace-nowrap mx-auto w-full justify-center align-center my-auto'>+ Role: Mod</p>
   </button>
 
   <button
     type="button"
-    className="px-2 py-1 rounded border bg-white/70 text-xs"
+    className="flex  px-2 py-0 align-center w-full whitespace-nowrap rounded-xl lockbutton border bg-white/70 text-xs"
     onClick={() => addFacet({ kind: 'LIST', listId: 'core_team', mode: 'SNAPSHOT' })}
     disabled={sending}
     title="Snapshot freezes membership at send"
   >
-    + List: core_team (snapshot)
+            <p className='flex text-center whitespace-nowrap mx-auto w-full justify-center align-center my-auto'>+ List: Core Team</p>
+
+
   </button>
 
   <button
     type="button"
-    className="px-2 py-1 rounded border bg-white/70 text-xs"
+    className="flex  px-2 py-0 align-center w-full  rounded-xl lockbutton border bg-white/70 text-xs"
     onClick={() => addFacet({ kind: 'USERS', mode: 'SNAPSHOT', snapshotMemberIds: [] })}
     disabled={sending}
     title="Add specific people (choose in the Audience picker below)"
   >
-    + Specific people
+            <p className='flex text-center whitespace-nowrap mx-auto w-full justify-center align-center my-auto'>+ Choose People</p>
+
   </button>
+  </div>
 </div>
       {/* Facets */}
-      <div className="space-y-4">
+      <div className="space-y-4 ">
         {facets.map((f, idx) => (
-          <div key={f.id} className="rounded-xl border bg-white/60 p-3">
+          <div key={f.id} className="rounded-xl  bg-white/60 p-3">
             <div className="flex items-center justify-between gap-2">
-              <div className="text-xs text-slate-700">
+              <div className="text-[.95rem] tracking-wide font-semibold text-slate-800">
                 <strong>Layer {idx + 1}</strong>
               </div>
               <button
                 type="button"
-                className="text-xs px-2 py-1 rounded bg-white/70 border"
+                className="text-xs text-rose-700 px-2 py-1 rounded-xl bg-white/70 lockbutton"
                 disabled={facets.length === 1 || sending}
                 onClick={() => removeFacet(f.id)}
               >
                 Remove
               </button>
             </div>
-
-            <div className="mt-2">
-              <div className="text-xs font-medium text-slate-700 mb-1">Audience</div>
+<div className='flex flex-col gap-3'>
+            <div className="flex flex-col">
+              <div className="text-sm ml-1 mt-1 font-medium text-slate-800 mb-1">Audience</div>
               <AudiencePicker
                 value={f.audience}
                 onChange={(aud) => updateFacet(f.id, { audience: aud })}
@@ -240,10 +245,12 @@ export function SheafComposer(props: {
               />
             </div>
 
-            <div className="mt-2">
-              <label className="text-xs mr-2">Share policy:</label>
+            <div className="flex flex-col">
+              <label className="text-sm font-medium text-slate-700 mb-1 ">Share Policy</label>
               <select
-                className="text-xs border rounded px-2 py-1 bg-white/70"
+                               className="text-xs lockbutton w-fit rounded-xl px-2 py-1 bg-white/70"
+
+
                 value={f.sharePolicy}
                 onChange={(e) => updateFacet(f.id, { sharePolicy: e.target.value as SharePolicy })}
                 disabled={sending}
@@ -253,8 +260,10 @@ export function SheafComposer(props: {
                 <option value="FORBID">Forbid</option>
               </select>
             </div>
+            </div>
 
-            <div className="mt-2">
+
+            <div className="mt-4">
               <FacetEditor
                 value={f.body}
                 onChange={(json) => updateFacet(f.id, { body: json })}
@@ -302,7 +311,7 @@ export function SheafComposer(props: {
         <button
           type="button"
           onClick={send}
-          className={sending ? 'px-3 py-2 rounded text-sm opacity-60 cursor-not-allowed bg-indigo-300' : 'px-3 py-2 rounded text-sm bg-indigo-500 text-white'}
+          className={sending ? 'px-3 py-2 rounded-xl text-sm opacity-60 cursor-not-allowed bg-indigo-300' : 'px-3 py-2 rounded text-sm bg-indigo-500 text-white'}
           disabled={sending}
         >
           {sending ? 'Sending…' : 'Send layered message'}

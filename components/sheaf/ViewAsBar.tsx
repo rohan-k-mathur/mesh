@@ -58,10 +58,10 @@ export function ViewAsBar(props: {
   }, [who, JSON.stringify(facets)]);
 
   return (
-    <div className="rounded border bg-amber-50 text-amber-900 px-3 py-2 text-xs flex items-center gap-2">
-      <span className="font-medium">View as:</span>
+    <div className="rounded-lg  bg-white/10 text-amber-700 px-3 py-0 text-sm flex items-center gap-2">
+      <span className="font-medium">Preview as:</span>
       <select
-        className="border rounded px-2 py-1 bg-white/80"
+        className="rounded-md text-sm lockbutton  px-3 py-1 bg-white focus:border-none focus:outline-none"
         value={who}
         onChange={(e) => setWho(e.target.value as any)}
       >
@@ -72,10 +72,17 @@ export function ViewAsBar(props: {
       {loading && <span>Calculating…</span>}
       {!loading && err && <span className="text-rose-700">• {err}</span>}
       {!loading && !err && result && (
-        <span>
-          Visible layers: <strong>{result.visible.length}</strong>
+        <>
+        <span className='ml-2 text-sm font-bold'>
+        ¦
+
+        </span>
+                  <span className='ml-2 text-sm'>
+
+           Visible layers: <strong>{result.visible.length}</strong>
           {result.defaultFacetId ? ` • default: ${result.defaultFacetId}` : null}
         </span>
+        </>
       )}
     </div>
   );

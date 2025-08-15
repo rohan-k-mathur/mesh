@@ -290,18 +290,26 @@ export default function MessageComposer({
                     className="flex bg-white/70 sendbutton h-fit w-fit text-black tracking-widest text-[1.1rem] rounded-xl px-4 py-2"
                     title="Create"
                   >
-                    +
+                    <Image
+                src="/assets/layers--external.svg"
+                alt="share"
+                width={24}
+                height={24}
+                className="cursor-pointer object-contain flex  justify-center items-center "
+              />
+                  
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" sideOffset={6}>
-                  <DropdownMenuItem onClick={() => setShowPoll(true)}>
+                <DropdownMenuContent className="flex flex-col flex-1 bg-white/30 backdrop-blur rounded-xl max-w-[400px] py-2 max-h-[500px] w-full gap-1
+                h-full text-[1rem] tracking-wide" align="start" sideOffset={6}>
+                  <DropdownMenuItem className="rounded-xl w-full" onClick={() => setShowPoll(true)}>
                     📊 Create poll…
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setShowTemp(true)}>
+                  <DropdownMenuItem className="rounded-xl w-full" onClick={() => setShowTemp(true)}>
                     🌡 Temperature check…
                   </DropdownMenuItem>
                   {/* ✅ NEW: toggle Sheaf panel */}
-                  <DropdownMenuItem onClick={() => setShowSheaf((v) => !v)}>
+                  <DropdownMenuItem className="rounded-xl w-full" onClick={() => setShowSheaf((v) => !v)}>
                     🧩 Layered message…
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -338,12 +346,13 @@ export default function MessageComposer({
           </div>
         )} */}
               {/* Sheaf Modal */}
-              <Dialog open={showSheaf} onOpenChange={setShowSheaf}>
-                <DialogContent className="flex flex-col max-h-[90vh] max-w-2xl ">
-                  <DialogHeader>
-                    <DialogTitle>Create layered message</DialogTitle>
+              {/* <Dialog open={showSheaf} onOpenChange={setShowSheaf}>
+                <DialogContent className="flex flex-1 flex-col max-h-[90vh] max-w-3xl h-full w-full bg-slate-300 rounded-xl    ">
+                  <DialogHeader >
+                    <DialogTitle hidden className="py-0    my-0 tracking-wide">Create layered message</DialogTitle>
                   </DialogHeader>
-                  <div className="mt-2">
+                  <h1 className="text-[1.25rem] font-semibold tracking-wide py-0 my-0">Create layered message</h1>
+                  <div className="mt-0">
                     <SheafComposer
                       threadId={conversationId}
                       authorId={currentUserId}
@@ -358,7 +367,40 @@ export default function MessageComposer({
                     />
                   </div>
                 </DialogContent>
-              </Dialog>
+              </Dialog> */}
+
+              <Dialog open={showSheaf} onOpenChange={setShowSheaf}>
+  <DialogContent className="p-0 max-w-3xl w-full  rounded-xl border-none custom-scrollbar">
+    {/* The column wrapper needs an explicit height and min-h-0 so the middle can scroll */}
+    <div className="flex h-[90vh] max-h-[90vh] flex-col min-h-0  bg-slate-300 rounded-xl border-none custom-scrollbar">
+      {/* Header (not scrollable) */}
+      <div className="shrink-0 p-4">
+        <DialogHeader className="p-0  ">
+          <DialogTitle className="text-xl tracking-wide">Craft Layered Message</DialogTitle>
+        </DialogHeader>
+      </div>
+
+      {/* Body (scrollable) */}
+      <div className="flex-1 min-h-0 overflow-y-auto px-4">
+        <SheafComposer
+          threadId={conversationId}
+          authorId={currentUserId}
+          onSent={async ({ messageId }) => {
+            setShowSheaf(false);
+            await refreshAndAppendSheaf(messageId);
+          }}
+          onCancel={() => setShowSheaf(false)}
+        />
+      </div>
+
+      {/* Optional footer (fixed) */}
+      {/* <div className="shrink-0 p-4 border-t">
+        …anything fixed at bottom…
+      </div> */}
+    </div>
+  </DialogContent>
+</Dialog>
+
 
               <QuickPollModal
                 open={showPoll}

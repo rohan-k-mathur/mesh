@@ -33,10 +33,8 @@ export function FacetEditor(props: {
   }, [value, editor]);
 
   return (
-    <div className="rounded border bg-white/80 px-3 py-2">
-      {!value && placeholder ? (
-        <div className="text-xs text-slate-400 mb-1">{placeholder}</div>
-      ) : null}
+    <div className="rounded-xl border bg-white/70 px-3 py-2 modalfield max-h-[20px]">
+   
       <EditorContent editor={editor} />
     </div>
   );
