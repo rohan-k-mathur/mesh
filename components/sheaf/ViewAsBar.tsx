@@ -58,10 +58,10 @@ export function ViewAsBar(props: {
   }, [who, JSON.stringify(facets)]);
 
   return (
-    <div className="rounded-lg  bg-white/10 text-amber-700 px-3 py-0 text-sm flex items-center gap-2">
+    <div className="rounded-lg  bg-transparent text-indigo-300 px-3 py-0 text-sm flex items-center gap-2">
       <span className="font-medium">Preview as:</span>
       <select
-        className="rounded-md text-sm lockbutton  px-3 py-1 bg-white focus:border-none focus:outline-none"
+        className="rounded-md text-indigo-900 text-xs lockbutton  px-3 py-1 bg-white/70 focus:border-none focus:outline-none"
         value={who}
         onChange={(e) => setWho(e.target.value as any)}
       >

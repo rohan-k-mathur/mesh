@@ -836,6 +836,17 @@ textarea {
     rgba(0,0,0,0.03) 12px
   );
 }
+
+.sheaf-shadow {
+  /*background: linear-gradient(145deg, #c5c9d8, #eaefff);*/
+  box-shadow: inset 7px 7px 19px rgba(244, 227, 227, 0.25),
+    inset -7px -7px 19px rgb(224, 205, 205,.35),    
+    inset -7px -7px 19px rgba(244, 227, 227, 0.3);
+
+
+}
+
+
 .livestreamvideo {
   display: grid;
 
@@ -984,6 +995,23 @@ textarea {
 .savebutton:hover{
   box-shadow:  inset 1px 1px 3px rgb(222, 199, 204, .3),
   inset -1px 2px 3px rgba(70, 69, 69, 0.25);
+
+}
+.sheaf-button {
+  background-color: transparent;
+  padding: 2px;
+  outline: transparent;
+  outline-style: solid;
+  outline-width: .25px;
+  border-radius: 4px;
+  box-shadow:   1px 1px 3px rgb(200, 199, 232, .3),
+  -1px 2px 3px rgba(70, 69, 100, 0.25);
+
+  
+}
+.sheaf-button:hover{
+  box-shadow:  inset 1px 1px 3px rgb(200, 199, 232, .3),
+  inset -1px 2px 3px rgba(70, 69, 100, 0.25);
 
 }
 .notify {
