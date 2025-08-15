@@ -3,7 +3,9 @@
 import * as React from "react";
 import type { CSSProperties } from "react";
 import { ReactionSummary } from "../reactions/ReactionSummary";
-import { ReactionBar } from "../reactions/ReactionBar";
+import { ReactionTrigger } from "../reactions/ReactionTrigger";
+
+
 type FacetDTO = {
   id: string;
   audience: any;
@@ -61,25 +63,29 @@ export function SheafMessageBubble(props: {
 }) {
   // const { facets, defaultFacetId } = props;
   const { messageId, conversationId, currentUserId, facets, defaultFacetId } = props;
-  const [activeId, setActiveId] = React.useState<string>(defaultFacetId ?? facets[0].id);
-
+  const [activeId, setActiveId] = React.useState<string>(() => {
+    if (!facets?.length) return '';
+    const byId = new Set(facets.map(f => f.id));
+    if (defaultFacetId && byId.has(defaultFacetId)) return defaultFacetId;
+    // fall back to most-private (lowest priorityRank)
+    return [...facets].sort((a,b) => a.priorityRank - b.priorityRank)[0].id;
+  });
   // const [activeId, setActiveId] = React.useState<string | null>(
     // defaultFacetId ?? facets[0]?.id ?? null
   
-
-  React.useEffect(() => {
-    // If defaultFacetId changes (or the message re-renders), keep it in sync.
-    if (!activeId && (defaultFacetId || facets[0])) {
-      setActiveId(defaultFacetId ?? facets[0]?.id ?? null);
-    }
-  }, [defaultFacetId, facets, activeId]);
-
-  const active =
-    (activeId && facets.find((f) => f.id === activeId)) || facets[0] || null;
+    React.useEffect(() => {
+      if (!facets?.length) return;
+      const byId = new Set(facets.map(f => f.id));
+      if (defaultFacetId && byId.has(defaultFacetId)) setActiveId(defaultFacetId);
+    }, [defaultFacetId, facets]);
+  
+    const active = facets.find(f => f.id === activeId) ?? facets[0];
 
   if (!active) return null;
 
   return (
+    <>
+    
     <div className="bg-slate-100/70 align-center    px-3  h-fit pt-1 rounded-xl tracking-wide max-w-[60%]  sheaf-bubble outline-transparent 
     text-[.9rem] text-shadow-md text-slate-950 dark:bg-slate-50 dark:text-slate-900">
       {facets.length > 1 && (
@@ -132,13 +138,10 @@ export function SheafMessageBubble(props: {
           ))}
         </ul>
       )}
-      <ReactionSummary messageId={messageId} />
-      <ReactionBar
-        conversationId={conversationId}
-        messageId={messageId}
-        userId={currentUserId}
-        activeFacetId={activeId}
-      />
+
+          
     </div>
+  
+    </>
   );
 }

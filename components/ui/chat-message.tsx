@@ -86,7 +86,7 @@ ChatMessage.displayName = "ChatMessage";
 // Avatar component
 
 const chatMessageAvatarVariants = cva(
-	"w-8 h-8 flex items-center rounded-full justify-center chat-bubble shrink-0  overflow-hidden",
+	" flex items-center w-5 h-5 aspect-square rounded-full justify-center align-center my-auto py-auto chat-bubble  overflow-hidden",
 	{
 		variants: {
 			type: {
@@ -120,7 +120,9 @@ const ChatMessageAvatar = React.forwardRef<
 			{...props}
 		>
 			{imageSrc ? (
-				<Image src={imageSrc} alt="Avatar" width={0} height={0} sizes="30vw" className="object-fill rounded-full bg-white/20  w-full h-full" />
+				<Image src={imageSrc} alt="Avatar" 
+				width={0} height={0} sizes="30vw"  
+				className="object-fill w-full h-fit  aspect-square rounded-full bg-white/20 " />
 			) : (
 				<div className="translate-y-px [&_svg]:size-4 [&_svg]:shrink-0">
 					{icon}
@@ -137,7 +139,7 @@ const chatMessageContentVariants = cva("flex flex-col gap-2 ", {
 	variants: {
 		variant: {
 			default: "",
-			bubble: "rounded-xl px-2 py-1 ",
+			bubble: "rounded-xl px-2 py-0 ",
 			full: "",
 		},
 		type: {
@@ -149,12 +151,12 @@ const chatMessageContentVariants = cva("flex flex-col gap-2 ", {
 		{
 			variant: "bubble",
 			type: "incoming",
-			className: "bg-sky-50   px-3  pt-1 tracking-wide max-w-[60%] bg-opacity-70 chat-bubble outline-transparent text-[.95rem] text-shadow-md text-slate-950 dark:bg-slate-50 dark:text-slate-900",
+			className: "bg-sky-50   px-3  pt-.5 align-center my-auto pb-.5 tracking-wide max-w-[60%] bg-opacity-70 chat-bubble outline-transparent text-[.95rem] text-shadow-md text-slate-950 dark:bg-slate-50 dark:text-slate-900",
 		},
 		{
 			variant: "bubble",
 			type: "outgoing",
-			className: "bg-fuchsia-50  px-3  pt-1 tracking-wide max-w-[60%] bg-opacity-70 chat-bubble outline-transparent text-[.95rem] text-slate-950 text-shadow-md dark:bg-slate-50 dark:text-slate-900",
+			className: "bg-fuchsia-50  pt-1 px-3 pb-.5 tracking-wide max-w-[60%] bg-opacity-70 chat-bubble outline-transparent text-[.95rem] text-slate-950 text-shadow-md dark:bg-slate-50 dark:text-slate-900",
 		},
 	],
 	defaultVariants: {

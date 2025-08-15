@@ -6,14 +6,26 @@ import Image from "next/image";
 import { supabase } from "@/lib/supabaseclient";
 import type { Message, PollUI } from "@/contexts/useChatStore";
 import { useChatStore } from "@/contexts/useChatStore";
-import { ChatMessage, ChatMessageContent, ChatMessageAvatar } from "@/components/ui/chat-message";
+import {
+  ChatMessage,
+  ChatMessageContent,
+  ChatMessageAvatar,
+} from "@/components/ui/chat-message";
 import { SheafMessageBubble } from "@/components/sheaf/SheafMessageBubble";
 import { usePrivateChatManager } from "@/contexts/PrivateChatManager";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 import { roomKey } from "@/lib/chat/roomKey";
 import PollChip from "@/components/chat/PollChip";
 import QuickPollComposer from "@/components/chat/QuickPollComposer";
 import type { PollStateDTO } from "@/types/poll";
+import { ReactionSummary } from "@/components/reactions/ReactionSummary";
+import { ReactionBar } from "@/components/reactions/ReactionBar";
+import { ReactionTrigger } from "@/components/reactions/ReactionTrigger";
 
 type Props = {
   conversationId: string;
@@ -22,17 +34,19 @@ type Props = {
   highlightMessageId?: string | null;
 };
 
-
 function excerpt(text?: string | null, len = 100) {
   if (!text) return null;
   const t = text.replace(/\s+/g, " ").trim();
   return t.length > len ? t.slice(0, len - 1) + "…" : t;
 }
 
-
-function Attachment({ a }: { a: { id: string; path: string; type: string; size: number } }) {
+function Attachment({
+  a,
+}: {
+  a: { id: string; path: string; type: string; size: number };
+}) {
   const [url, setUrl] = useState<string | null>(null);
-  
+
   React.useEffect(() => {
     let cancelled = false;
 
@@ -46,29 +60,50 @@ function Attachment({ a }: { a: { id: string; path: string; type: string; size: 
             return;
           } else {
             const txt = await r.text();
-            console.warn(`[attachment] sign ${a.id} try ${i + 1} failed:`, r.status, txt);
+            console.warn(
+              `[attachment] sign ${a.id} try ${i + 1} failed:`,
+              r.status,
+              txt
+            );
           }
         } catch (e) {
-          console.warn(`[attachment] sign ${a.id} network error try ${i + 1}`, e);
+          console.warn(
+            `[attachment] sign ${a.id} network error try ${i + 1}`,
+            e
+          );
         }
-        await new Promise(res => setTimeout(res, 150 * (i + 1)));
+        await new Promise((res) => setTimeout(res, 150 * (i + 1)));
       }
       if (!cancelled) setUrl(null);
     }
 
     signWithRetry();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [a.id]);
 
   if (!url) return null;
 
   if (a.type.startsWith("image/")) {
-    return <Image src={url} alt="attachment" width={256} height={256} className="rounded-md max-h-64 object-cover" />;
+    return (
+      <Image
+        src={url}
+        alt="attachment"
+        width={256}
+        height={256}
+        className="rounded-md max-h-64 object-cover"
+      />
+    );
   }
 
   const name = a.path.split("/").pop();
   return (
-    <a href={url} download={name || undefined} className="flex items-center gap-2 text-blue-600 underline">
+    <a
+      href={url}
+      download={name || undefined}
+      className="flex items-center gap-2 text-blue-600 underline"
+    >
       <span>📎</span>
       <span>{(a.size / 1024).toFixed(1)} KB</span>
     </a>
@@ -78,6 +113,7 @@ function Attachment({ a }: { a: { id: string; path: string; type: string; size: 
 const MessageRow = memo(function MessageRow({
   m,
   currentUserId,
+  conversationId, // NEW
   onOpen,
   onPrivateReply,
   onCreateOptions,
@@ -85,6 +121,7 @@ const MessageRow = memo(function MessageRow({
 }: {
   m: Message;
   currentUserId: string;
+  conversationId: string; // NEW
   onOpen: (peerId: string, peerName: string, peerImage?: string | null) => void;
   onPrivateReply?: (m: Message) => void;
   onCreateOptions: (m: Message) => void;
@@ -94,19 +131,27 @@ const MessageRow = memo(function MessageRow({
 
   return (
     <ChatMessage
-    type={isMine ? "outgoing" : "incoming"}
-    id={m.id}
-    variant="bubble"
-    data-msg-id={m.id}
-  >
+      type={isMine ? "outgoing" : "incoming"}
+      id={m.id}
+      variant="bubble"
+      data-msg-id={m.id}
+    >
       {!isMine && (
         <DropdownMenu>
           <DropdownMenuTrigger className="cursor-pointer">
-            <ChatMessageAvatar imageSrc={m.sender?.image || "/assets/user-helsinki.svg"} />
+            <ChatMessageAvatar
+              imageSrc={m.sender?.image || "/assets/user-helsinki.svg"}
+            />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" sideOffset={6}>
             <DropdownMenuItem
-              onClick={() => onOpen(String(m.senderId), m.sender?.name ?? "User", m.sender?.image ?? null)}
+              onClick={() =>
+                onOpen(
+                  String(m.senderId),
+                  m.sender?.name ?? "User",
+                  m.sender?.image ?? null
+                )
+              }
             >
               💬 Side Chat
             </DropdownMenuItem>
@@ -132,35 +177,96 @@ const MessageRow = memo(function MessageRow({
     />
   ) : null}
 </ChatMessageContent> */}
-{Array.isArray(m.facets) && m.facets.length > 0 ? (
-  <SheafMessageBubble
-    facets={m.facets}
-    defaultFacetId={m.defaultFacetId}
-  />
+     {Array.isArray(m.facets) && m.facets.length > 0 ? (
+  <>
+    <div className={["relative group w-full", isMine ? "flex justify-end" : "flex justify-start"].join(" ")}>
+      <SheafMessageBubble
+        messageId={m.id}
+        conversationId={conversationId}
+        currentUserId={currentUserId}
+        facets={m.facets as any}
+        defaultFacetId={m.defaultFacetId}
+      />
+
+      {/* Trigger overlay: invisible until hover; correctly aligned */}
+      <div
+        className={[
+          "absolute -bottom-2 z-20 flex",
+          isMine ? "right-0" : "left-0", // ✅ outgoing → bottom-right, incoming → bottom-left
+          "invisible opacity-0 pointer-events-none",
+          "group-hover:visible group-hover:opacity-100 group-hover:pointer-events-auto",
+          "transition-opacity duration-150",
+        ].join(" ")}
+      >
+        {/* <ReactionTrigger
+          conversationId={conversationId}
+          messageId={m.id}
+          userId={currentUserId}
+          activeFacetId={null}
+        /> */}
+            {/* <ReactionSummary messageId={m.id} /> */}
+
+      </div>
+    </div>
+
+    {/* Summary below the bubble */}
+  </>
 ) : (
-  m.text && <ChatMessageContent content={m.text} />
-)}
+  <>
+  <div className={["relative group w-full", isMine ? "flex justify-end" : "flex justify-start"].join(" ")}>
+    {m.text && <ChatMessageContent content={m.text} />}
 
+    <div
+      className={[
+        "absolute  justify-center items-center -bottom-[100%] -left[50%] z-20 flex",
+        "invisible opacity-0 pointer-events-none",
+        "group-hover:visible group-hover:opacity-100 group-hover:pointer-events-auto",
+        "transition-opacity duration-150",
+      ].join(" ")}
+    >
+      {/* <ReactionTrigger
+      
+        conversationId={conversationId}
+        messageId={m.id}
+        userId={currentUserId}
+        activeFacetId={null}
+      /> */}
+   
+    </div>
+  </div>
 
+</>
+      )}
       {m.attachments?.length ? (
         <div className="mt-2 space-y-2">
-          {m.attachments.map((a) => <Attachment key={a.id} a={a} />)}
+          {m.attachments.map((a) => (
+            <Attachment key={a.id} a={a} />
+          ))}
         </div>
       ) : null}
-
-      {isMine && <ChatMessageAvatar imageSrc={m.sender?.image || "/assets/user-helsinki.svg"} />}
+      {isMine && (
+  <ChatMessageAvatar imageSrc={m.sender?.image || "/assets/user-helsinki.svg"} />
+)}
     </ChatMessage>
   );
 });
 
-export default function ChatRoom({ conversationId, currentUserId, initialMessages, highlightMessageId }: Props) {
+export default function ChatRoom({
+  conversationId,
+  currentUserId,
+  initialMessages,
+  highlightMessageId,
+}: Props) {
   const { open, state } = usePrivateChatManager();
 
   const handleOpen = useCallback(
     (peerId: string, peerName: string, peerImage?: string | null) => {
       // symmetric id so both sides land in the same room
       const rid = roomKey(conversationId, currentUserId, peerId);
-      open(peerId, peerName, conversationId, { roomId: rid, peerImage: peerImage ?? null });
+      open(peerId, peerName, conversationId, {
+        roomId: rid,
+        peerImage: peerImage ?? null,
+      });
     },
     [open, conversationId, currentUserId]
   );
@@ -176,10 +282,12 @@ export default function ChatRoom({ conversationId, currentUserId, initialMessage
   const upsertPoll = useChatStore((s) => s.upsertPoll);
   const applyPollState = useChatStore((s) => s.applyPollState);
   const setMyVote = useChatStore((s) => s.setMyVote);
-    const composerOpenForRef = React.useRef<string | null>(null);
-    const [composerFor, setComposerFor] = useState<string | null>(null);
+  const composerOpenForRef = React.useRef<string | null>(null);
+  const [composerFor, setComposerFor] = useState<string | null>(null);
   const appendRef = useRef(appendMessage);
-  useEffect(() => { appendRef.current = appendMessage; }, [appendMessage]);
+  useEffect(() => {
+    appendRef.current = appendMessage;
+  }, [appendMessage]);
 
   const initRef = useRef<string | null>(null);
   const hydratedRef = useRef(false);
@@ -189,26 +297,50 @@ export default function ChatRoom({ conversationId, currentUserId, initialMessage
     initRef.current = conversationId;
   }, [conversationId, setMessages, initialMessages]);
 
-   // Hydrate existing polls for the messages we just loaded (run once per convo)
-    useEffect(() => {
-        if (hydratedRef.current) return;
-        const list = allMessages[conversationId] ?? [];
-        if (!list.length) return;
-        hydratedRef.current = true;
-        const ids = list.map((m) => m.id);
-        fetch("/api/polls/query", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ messageIds: ids }),
-        })
-          .then((r) => r.json())
-          .then((data) => {
-            if (data?.ok && Array.isArray(data.items)) {
-              data.items.forEach((it: any) => upsertPoll(it.poll, it.state, it.my));
-            }
-          })
-          .catch((e) => console.warn("[polls] hydrate failed:", e));
-    }, [allMessages, conversationId, upsertPoll]);
+  // Hydrate existing polls for the messages we just loaded (run once per convo)
+  useEffect(() => {
+    if (hydratedRef.current) return;
+    const list = allMessages[conversationId] ?? [];
+    if (!list.length) return;
+    hydratedRef.current = true;
+    const ids = list.map((m) => m.id);
+    fetch("/api/polls/query", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ messageIds: ids }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.ok && Array.isArray(data.items)) {
+          data.items.forEach((it: any) => upsertPoll(it.poll, it.state, it.my));
+        }
+      })
+      .catch((e) => console.warn("[polls] hydrate failed:", e));
+  }, [allMessages, conversationId, upsertPoll]);
+
+  // NEW — hydrate reactions for the current message set (runs when ids change)
+  const reactionsHydratedKeyRef = useRef<string>("");
+  useEffect(() => {
+    const idsKey = messages.map((m) => m.id).join(",");
+    if (!idsKey || idsKey === reactionsHydratedKeyRef.current) return;
+    reactionsHydratedKeyRef.current = idsKey;
+
+    const setReactionsNow = useChatStore.getState().setReactions;
+    fetch(
+      `/api/reactions?userId=${encodeURIComponent(
+        currentUserId
+      )}&messageIds=${encodeURIComponent(idsKey)}`,
+      { cache: "no-store" }
+    )
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!data?.items) return;
+        data.items.forEach((row: { messageId: string; reactions: any[] }) => {
+          setReactionsNow(row.messageId, row.reactions);
+        });
+      })
+      .catch((e) => console.warn("[reactions] hydrate failed:", e));
+  }, [messages, currentUserId]);
 
   // useEffect(() => {
   //   const channel = supabase.channel(`conversation-${conversationId}`);
@@ -229,118 +361,169 @@ export default function ChatRoom({ conversationId, currentUserId, initialMessage
   //   };
   // }, [conversationId, upsertPoll, applyPollState]);
 
-     // keep a ref to the subscribed channel so we can send on it later
-   const chRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
- 
-   // Helper: unwrap Supabase payload (sometimes {poll,...}, sometimes {payload:{poll,...}})
-   function unwrap<T extends object>(raw: any): any {
-     if (!raw) return null;
-     if (typeof raw === "object" && ("poll" in raw || "pollId" in raw)) return raw;
-     if (typeof raw === "object" && "payload" in raw) return (raw as any).payload;
-     return raw;
-   }
- 
-   useEffect(() => {
-     const channel = supabase.channel(`conversation-${conversationId}`);
-     chRef.current = channel;
+  // keep a ref to the subscribed channel so we can send on it later
+  const chRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
-  // NEW — per-viewer hydration for layered messages
-  const msgHandler = ({ payload }: any) => {
-    // tolerate both shapes: {id,...} or {message:{id,...}}
-    const mid = String(payload?.id ?? payload?.message?.id ?? "");
-    if (!mid) {
-      // fallback for unknown payloads
-      appendRef.current(conversationId, payload as Message);
-      return;
-    }
+  // Helper: unwrap Supabase payload (sometimes {poll,...}, sometimes {payload:{poll,...}})
+  function unwrap<T extends object>(raw: any): any {
+    if (!raw) return null;
+    if (typeof raw === "object" && ("poll" in raw || "pollId" in raw))
+      return raw;
+    if (typeof raw === "object" && "payload" in raw)
+      return (raw as any).payload;
+    return raw;
+  }
 
-    // Fetch the viewer-filtered DTO (includes sender + only visible facets)
-    fetch(`/api/sheaf/messages?userId=${encodeURIComponent(currentUserId)}&messageId=${encodeURIComponent(mid)}`)
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        const hydrated = data?.messages?.[0] ?? data?.message ?? null;
-        if (hydrated) {
-          appendRef.current(conversationId, hydrated);
-        } else {
-          // fallback: append raw if hydration failed
-          appendRef.current(conversationId, payload as Message);
-        }
-      })
-      .catch(() => {
+  useEffect(() => {
+    const channel = supabase.channel(`conversation-${conversationId}`);
+    chRef.current = channel;
+
+    // NEW — per-viewer hydration for layered messages
+    const msgHandler = ({ payload }: any) => {
+      // tolerate both shapes: {id,...} or {message:{id,...}}
+      const mid = String(payload?.id ?? payload?.message?.id ?? "");
+      if (!mid) {
+        // fallback for unknown payloads
         appendRef.current(conversationId, payload as Message);
-      });
-  };
+        return;
+      }
 
-     const pollCreateHandler = ({ payload }: any) => {
-       const data = unwrap(payload);
-       if (!data?.poll) {
-         console.warn("[polls] poll_create missing poll:", payload);
-         return;
-       }
-       upsertPoll(data.poll, data.state ?? null, data.my ?? null);
-     };
-     const pollStateHandler = ({ payload }: any) => {
-       const data = unwrap(payload);
-       if (!data) return;
-       applyPollState(data as PollStateDTO);
-     };
- 
-     channel.on("broadcast", { event: "new_message" }, msgHandler);
-     channel.on("broadcast", { event: "poll_create" }, pollCreateHandler);
-     channel.on("broadcast", { event: "poll_state" }, pollStateHandler);
-     channel.subscribe();
- 
-     return () => {
-       chRef.current = null;
-       try { channel.unsubscribe?.(); } catch {}
-       supabase.removeChannel(channel);
-     };
-    }, [conversationId, currentUserId, upsertPoll, applyPollState]); // ← add currentUserId dep
-
-
-  const onPrivateReply = useCallback((m: Message) => {
-    const authorId = String(m.senderId);
-    if (authorId === String(currentUserId)) return;
-    const rid = roomKey(conversationId, currentUserId, authorId);
-    open(authorId, m.sender?.name ?? "User", conversationId, {
-      roomId: rid,
-      peerImage: m.sender?.image ?? null,
-      anchor: {
-        messageId: m.id,
-        messageText: excerpt(m.text),
-        authorId,
-        authorName: m.sender?.name ?? "User",
-        conversationId,
-      },
-    });
-  }, [conversationId, currentUserId, open]);
-
-      // Open inline composer under message
-      const onCreateOptions = useCallback((m: Message) => {
-        setComposerFor(m.id);
-        composerOpenForRef.current = m.id;
-      }, []);
-    
-      // Actually create the poll (reuses your existing server endpoint)
-      const submitOptionsPoll = useCallback(
-        async (messageId: string, options: string[]) => {
-          const res = await fetch("/api/polls", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ conversationId, messageId, kind: "OPTIONS", options }),
-          });
-          const data = await res.json();
-          if (!res.ok || !data?.ok) {
-            console.warn("[polls] create OPTIONS failed:", data);
-            alert(data?.error ?? "Failed to create poll");
-            return;
+      // Fetch the viewer-filtered DTO (includes sender + only visible facets)
+      fetch(
+        `/api/sheaf/messages?userId=${encodeURIComponent(
+          currentUserId
+        )}&messageId=${encodeURIComponent(mid)}`
+      )
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => {
+          const hydrated = data?.messages?.[0] ?? data?.message ?? null;
+          if (hydrated) {
+            appendRef.current(conversationId, hydrated);
+          } else {
+            // fallback: append raw if hydration failed
+            appendRef.current(conversationId, payload as Message);
           }
-          const poll = data.poll;
-          upsertPoll(poll, null, null);
-          chRef.current?.send({ type: "broadcast", event: "poll_create", payload: { poll, state: null, my: null } });
-        },
-        [conversationId, upsertPoll]
+        })
+        .catch(() => {
+          appendRef.current(conversationId, payload as Message);
+        });
+    };
+
+    const pollCreateHandler = ({ payload }: any) => {
+      const data = unwrap(payload);
+      if (!data?.poll) {
+        console.warn("[polls] poll_create missing poll:", payload);
+        return;
+      }
+      upsertPoll(data.poll, data.state ?? null, data.my ?? null);
+    };
+    const pollStateHandler = ({ payload }: any) => {
+      const data = unwrap(payload);
+      if (!data) return;
+      applyPollState(data as PollStateDTO);
+    };
+
+    // inside the supabase effect (where you already define append, upsertPollNow, etc.)
+    const applyReactionDeltaNow = (
+      messageId: string,
+      emoji: string,
+      op: "add" | "remove",
+      byMe: boolean
+    ) => useChatStore.getState().applyReactionDelta(messageId, emoji, op, byMe);
+
+    const reactionAdd = ({ payload }: any) => {
+      const { messageId, emoji, userId } = payload || {};
+      if (!messageId || !emoji) return;
+      applyReactionDeltaNow(
+        messageId,
+        emoji,
+        "add",
+        String(userId) === String(currentUserId)
       );
+    };
+
+    const reactionRemove = ({ payload }: any) => {
+      const { messageId, emoji, userId } = payload || {};
+      if (!messageId || !emoji) return;
+      applyReactionDeltaNow(
+        messageId,
+        emoji,
+        "remove",
+        String(userId) === String(currentUserId)
+      );
+    };
+
+    channel.on("broadcast", { event: "new_message" }, msgHandler);
+    channel.on("broadcast", { event: "poll_create" }, pollCreateHandler);
+    channel.on("broadcast", { event: "poll_state" }, pollStateHandler);
+    channel.on("broadcast", { event: "reaction_add" }, reactionAdd);
+    channel.on("broadcast", { event: "reaction_remove" }, reactionRemove);
+    channel.subscribe();
+
+    return () => {
+      chRef.current = null;
+      try {
+        channel.unsubscribe?.();
+      } catch {}
+      supabase.removeChannel(channel);
+    };
+  }, [conversationId, currentUserId, upsertPoll, applyPollState]); // ← add currentUserId dep
+
+  const onPrivateReply = useCallback(
+    (m: Message) => {
+      const authorId = String(m.senderId);
+      if (authorId === String(currentUserId)) return;
+      const rid = roomKey(conversationId, currentUserId, authorId);
+      open(authorId, m.sender?.name ?? "User", conversationId, {
+        roomId: rid,
+        peerImage: m.sender?.image ?? null,
+        anchor: {
+          messageId: m.id,
+          messageText: excerpt(m.text),
+          authorId,
+          authorName: m.sender?.name ?? "User",
+          conversationId,
+        },
+      });
+    },
+    [conversationId, currentUserId, open]
+  );
+
+  // Open inline composer under message
+  const onCreateOptions = useCallback((m: Message) => {
+    setComposerFor(m.id);
+    composerOpenForRef.current = m.id;
+  }, []);
+
+  // Actually create the poll (reuses your existing server endpoint)
+  const submitOptionsPoll = useCallback(
+    async (messageId: string, options: string[]) => {
+      const res = await fetch("/api/polls", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          conversationId,
+          messageId,
+          kind: "OPTIONS",
+          options,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.ok) {
+        console.warn("[polls] create OPTIONS failed:", data);
+        alert(data?.error ?? "Failed to create poll");
+        return;
+      }
+      const poll = data.poll;
+      upsertPoll(poll, null, null);
+      chRef.current?.send({
+        type: "broadcast",
+        event: "poll_create",
+        payload: { poll, state: null, my: null },
+      });
+    },
+    [conversationId, upsertPoll]
+  );
 
   const onCreateTemp = useCallback(
     async (m: Message) => {
@@ -348,18 +531,21 @@ export default function ChatRoom({ conversationId, currentUserId, initialMessage
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ conversationId, messageId: m.id, kind: "TEMP" }),
-     
       });
-             const data = await res.json();
-             if (!res.ok || !data?.ok) {
-               console.warn("[polls] create TEMP failed:", data);
-               alert(data?.error ?? "Failed to create poll");
-               return;
-             }
-             const poll = data.poll;
-             upsertPoll(poll, null, null);
-             chRef.current?.send({ type: "broadcast", event: "poll_create", payload: { poll, state: null, my: null } });
-           },
+      const data = await res.json();
+      if (!res.ok || !data?.ok) {
+        console.warn("[polls] create TEMP failed:", data);
+        alert(data?.error ?? "Failed to create poll");
+        return;
+      }
+      const poll = data.poll;
+      upsertPoll(poll, null, null);
+      chRef.current?.send({
+        type: "broadcast",
+        event: "poll_create",
+        payload: { poll, state: null, my: null },
+      });
+    },
     [conversationId, upsertPoll]
   );
 
@@ -372,33 +558,41 @@ export default function ChatRoom({ conversationId, currentUserId, initialMessage
       }).then((r) => r.json());
       applyPollState(state);
       if (poll.kind === "OPTIONS") {
-        setMyVote({ kind: "OPTIONS", pollId: poll.poll.id, optionIdx: body.optionIdx });
+        setMyVote({
+          kind: "OPTIONS",
+          pollId: poll.poll.id,
+          optionIdx: body.optionIdx,
+        });
       } else {
         setMyVote({ kind: "TEMP", pollId: poll.poll.id, value: body.value });
       }
       chRef.current?.send({
-                type: "broadcast",
-                event: "poll_state",
-                payload: state,
-              });
-             },
+        type: "broadcast",
+        event: "poll_state",
+        payload: state,
+      });
+    },
     [applyPollState, setMyVote, conversationId]
   );
 
   useEffect(() => {
     if (!highlightMessageId) return;
-    const el = document.querySelector(`[data-msg-id="${highlightMessageId}"]`) as HTMLElement | null;
+    const el = document.querySelector(
+      `[data-msg-id="${highlightMessageId}"]`
+    ) as HTMLElement | null;
     if (el) {
       el.scrollIntoView({ block: "center", behavior: "smooth" });
       el.classList.add("ring-2", "ring-indigo-400", "ring-offset-2");
-      setTimeout(() => el.classList.remove("ring-2", "ring-indigo-400", "ring-offset-2"), 2000);
+      setTimeout(
+        () => el.classList.remove("ring-2", "ring-indigo-400", "ring-offset-2"),
+        2000
+      );
     }
   }, [highlightMessageId, messages.length]);
 
-
   return (
     <div className="space-y-3">
-       {messages.map((m) => {
+      {messages.map((m) => {
         const panes = Object.values(state.panes);
         const anchored = panes.find(
           (p) => p.anchor?.messageId === m.id && p.peerId === String(m.senderId)
@@ -408,31 +602,34 @@ export default function ChatRoom({ conversationId, currentUserId, initialMessage
             <MessageRow
               m={m}
               currentUserId={currentUserId}
+              conversationId={conversationId} // NEW
               onOpen={handleOpen}
               onPrivateReply={onPrivateReply}
               onCreateOptions={onCreateOptions}
               onCreateTemp={onCreateTemp}
             />
 
-{/* Render attachments OUTSIDE ChatMessage so they always show */}
-   {m.attachments?.length ? (
-     <div
-       className={[
-         "mt-1 flex flex-col gap-2 px-3",
-         String(m.senderId) === String(currentUserId) ? "items-end" : "items-start",
-       ].join(" ")}
-     >
-       {m.attachments.map((a) => (
-         <Attachment key={a.id} a={a} />
-       ))}
-     </div>
-   ) : null}
+            {/* Render attachments OUTSIDE ChatMessage so they always show */}
+            {m.attachments?.length ? (
+              <div
+                className={[
+                  "mt-1 flex flex-col gap-2 px-3",
+                  String(m.senderId) === String(currentUserId)
+                    ? "items-end"
+                    : "items-start",
+                ].join(" ")}
+              >
+                {m.attachments.map((a) => (
+                  <Attachment key={a.id} a={a} />
+                ))}
+              </div>
+            ) : null}
             {pollsByMessageId[m.id] && (
               <PollChip
                 poll={pollsByMessageId[m.id]}
                 onVote={(body) => onVote(pollsByMessageId[m.id], body)}
               />
-            )} 
+            )}
             {anchored && (
               <button
                 className="text-[11px] px-2 py-[2px] rounded bg-white/70 border hover:bg-white"

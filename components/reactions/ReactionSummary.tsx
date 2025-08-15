@@ -2,18 +2,27 @@
 import * as React from 'react';
 import { useChatStore } from '@/contexts/useChatStore';
 
+type ReactionAgg = { emoji: string; count: number; mine: boolean };
+
+// ✅ stable fallback so selector doesn't create a new array each render
+const EMPTY: ReactionAgg[] = [];
+
 export function ReactionSummary({ messageId }: { messageId: string }) {
-  const items = useChatStore((s) => s.reactionsByMessageId[messageId] ?? []);
+  // ✅ memo the selector + return a stable reference when empty
+  const items = useChatStore(
+    React.useCallback((s) => s.reactionsByMessageId[messageId] ?? EMPTY, [messageId])
+  );
+
   if (!items.length) return null;
 
   return (
-    <div className="mt-1 flex flex-wrap gap-1">
+    <div className="mt-0 p-1 grid gap-1">
       {items.map((r) => (
         <span
           key={r.emoji}
           className={[
-            'inline-flex items-center gap-1 rounded-full border px-2 py-[2px] text-xs bg-white/70',
-            r.mine ? 'ring-1 ring-indigo-400' : '',
+            'flex inline-flex p-1 items-center gap-1 rounded-full   text-xs bg-white/70',
+            r.mine ? 'ring-0 ring-indigo-400' : '',
           ].join(' ')}
           title={r.mine ? 'You reacted' : undefined}
         >

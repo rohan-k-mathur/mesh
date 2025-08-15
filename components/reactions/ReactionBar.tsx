@@ -4,21 +4,27 @@ import { useChatStore } from '@/contexts/useChatStore';
 import { supabase } from '@/lib/supabaseclient';
 
 const QUICK = ['👍', '❤️', '🎉', '😄', '🙏', '👀'];
+const EMPTY: { emoji: string; count: number; mine: boolean }[] = []; // ✅ stable
 
 export function ReactionBar(props: {
-  conversationId: string;   // for Supabase channel
+  conversationId: string;
   messageId: string;
   userId: string;
-  activeFacetId?: string | null; // pass current facet for Sheaf messages
+  activeFacetId?: string | null;
 }) {
   const { conversationId, messageId, userId, activeFacetId } = props;
+
+  // ✅ stable selector; never returns a new array during the same render
+  const items = useChatStore(
+    React.useCallback((s) => s.reactionsByMessageId[messageId] ?? EMPTY, [messageId])
+  );
+
   const applyDelta = useChatStore((s) => s.applyReactionDelta);
-  const current = useChatStore((s) => s.reactionsByMessageId[messageId] ?? []);
-  const mine = new Set(current.filter((r) => r.mine).map((r) => r.emoji));
+  const mine = React.useMemo(() => new Set(items.filter(i => i.mine).map(i => i.emoji)), [items]);
 
   async function toggle(emoji: string) {
-    // optimistic
     const isMine = mine.has(emoji);
+    // optimistic update
     applyDelta(messageId, emoji, isMine ? 'remove' : 'add', true);
 
     try {
@@ -35,20 +41,13 @@ export function ReactionBar(props: {
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data?.ok) throw new Error(data?.error || 'Failed');
 
-      // broadcast (clients are already subscribed in ChatRoom)
-      supabase
-        .channel(`conversation-${conversationId}`)
-        .send({
-          type: 'broadcast',
-          event: `reaction_${data.action}`, // 'reaction_add' | 'reaction_remove'
-          payload: {
-            messageId,
-            facetId: activeFacetId ?? null,
-            emoji,
-            userId,
-          },
-        });
-    } catch (e) {
+      // broadcast
+      supabase.channel(`conversation-${conversationId}`).send({
+        type: 'broadcast',
+        event: `reaction_${data.action}`, // add|remove
+        payload: { messageId, facetId: activeFacetId ?? null, emoji, userId },
+      });
+    } catch {
       // revert optimistic
       applyDelta(messageId, emoji, isMine ? 'add' : 'remove', true);
     }
