@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { prisma } from "../_prisma";
+import { jsonSafe } from "@/lib/bigintjson";
 import { readJSON, ok, badRequest, toBigInt, s } from "../_util";
 import { toAclFacet, userCtxFrom } from "../_map";
 import type { AudienceSelector } from "@app/sheaf-acl";
@@ -45,6 +46,7 @@ export async function GET(req: NextRequest) {
       sender_id: true,
       created_at: true,
       text: true,
+      is_redacted: true, // ← include redaction flag
       sender: { select: { name: true, image: true } }, // 👈 avatar
       attachments: { select: { id: true, path: true, type: true, size: true } }, // 👈 top-level attachments
     },
@@ -114,6 +116,25 @@ export async function GET(req: NextRequest) {
   // Build DTOs
   const results = messages
     .map((m) => {
+ // 🔒 If the message is redacted, return a tombstone immediately
+        const isRedacted = !!(m as any).is_redacted;
+        if (isRedacted) {
+          return {
+            id: s(m.id),
+            senderId: s(m.sender_id),
+            sender: {
+              name: m.sender?.name ?? null,
+              image: m.sender?.image ?? null,
+            },
+            createdAt: m.created_at.toISOString(),
+            isRedacted: true,
+            facets: [],
+            defaultFacetId: null,
+            text: null,
+            attachments: [],
+          };
+        }
+
       const raw = byMessage.get(m.id.toString()) ?? [];
 
       // ✅ PLAIN MESSAGE: no Sheaf facets at all → return text + top-level attachments
@@ -126,6 +147,7 @@ export async function GET(req: NextRequest) {
             image: m.sender?.image ?? null,
           },
           createdAt: m.created_at.toISOString(),
+          isRedacted: false,
           facets: [], // no layers
           defaultFacetId: null,
           text: m.text ?? null,
@@ -157,6 +179,7 @@ export async function GET(req: NextRequest) {
               image: m.sender?.image ?? null,
             },
             createdAt: m.created_at.toISOString(),
+            isRedacted: false,
             facets: [],
             defaultFacetId: null,
             text: m.text ?? null,
@@ -182,6 +205,7 @@ export async function GET(req: NextRequest) {
           image: m.sender?.image ?? null,
         }, // 👈 avatar
         createdAt: m.created_at.toISOString(),
+        isRedacted: false,
         facets: visible.map((f: any) => ({
           id: f.id,
           audience: f.audience,

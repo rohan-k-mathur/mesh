@@ -73,7 +73,7 @@ model User {
   StackSubscription         StackSubscription[]
   SheafAudienceList         SheafAudienceList[]
   roles                     UserRole[]
-    reactions       MessageReaction[]
+  reactions                 MessageReaction[]
 
   @@map("users")
 }
@@ -600,20 +600,28 @@ model MessageAttachment {
 }
 
 model Message {
-  id               BigInt              @id @default(autoincrement())
-  conversation_id  BigInt
-  sender_id        BigInt
-  text             String?
-  created_at       DateTime            @default(now()) @db.Timestamptz(6)
-  conversation     Conversation        @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
-  sender           User                @relation(fields: [sender_id], references: [id], onDelete: Cascade)
-  notifications    Notification[]      @relation("NotificationMessage")
-  attachments      MessageAttachment[]
+  id              BigInt              @id @default(autoincrement())
+  conversation_id BigInt
+  sender_id       BigInt
+  text            String?
+  created_at      DateTime            @default(now()) @db.Timestamptz(6)
+  conversation    Conversation        @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
+  sender          User                @relation(fields: [sender_id], references: [id], onDelete: Cascade)
+  notifications   Notification[]      @relation("NotificationMessage")
+  attachments     MessageAttachment[]
+
+  // moderation / lifecycle
+  is_redacted Boolean   @default(false)
+  edited_at   DateTime? @db.Timestamptz(6)
+  deleted_at  DateTime? @db.Timestamptz(6)
+  client_id        String?             @db.VarChar(64)
+
   SheafFacet       SheafFacet[]
   SheafMessageMeta SheafMessageMeta[]
-    reactions       MessageReaction[]
+  reactions        MessageReaction[]
 
   @@index([conversation_id, created_at])
+  @@unique([conversation_id, client_id])
   @@map("messages")
 }
 
@@ -1456,7 +1464,7 @@ model SheafFacet {
   attachments      SheafAttachment[]
   SheafMessageMeta SheafMessageMeta[]
 
-    reactions       MessageReaction[]
+  reactions MessageReaction[]
 
   @@index([messageId])
   @@index([audienceKind, audienceMode])
@@ -1552,16 +1560,16 @@ model UserRole {
 }
 
 model MessageReaction {
-  id        BigInt   @id @default(autoincrement())
+  id        BigInt  @id @default(autoincrement())
   messageId BigInt
-  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  message   Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
 
   /// Optional: the facet the viewer reacted to (safe to store; we filter on read)
-  facetId   BigInt?
-  facet     SheafFacet? @relation(fields: [facetId], references: [id], onDelete: Cascade)
+  facetId BigInt?
+  facet   SheafFacet? @relation(fields: [facetId], references: [id], onDelete: Cascade)
 
-  userId    BigInt
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId BigInt
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   emoji     String
   createdAt DateTime @default(now())

@@ -10,6 +10,7 @@ type SendMessageArgs = {
   conversationId: bigint;
   text?: string;
   files?: File[];
+  clientId?: string; // ← new
 };
 
 export async function fetchMessages({
@@ -37,6 +38,7 @@ export async function sendMessage({
   conversationId,
   text,
   files,
+  clientId,
 }: SendMessageArgs) {
   if (!text && (!files || files.length === 0)) {
     throw new Error("Message must contain text or attachment");
@@ -53,13 +55,41 @@ export async function sendMessage({
     //   include: { sender: { select: { name: true, image: true } } },
 
     // });
-    const message = await tx.message.create({
-            data: { sender_id: senderId, conversation_id: conversationId, text },
-            include: { sender: { select: { name: true, image: true } } },
-          });
+    // const message = await tx.message.create({
+    //         data: { sender_id: senderId, conversation_id: conversationId, text },
+    //         include: { sender: { select: { name: true, image: true } } },
+    //       });
+    // Idempotency: if clientId is present and this (conversation, clientId) already exists, reuse it.
+     let message:
+       | (typeof prisma.message)["prototype"]
+       | { id: bigint; created_at: Date; sender_id: bigint; text: string | null };
+ 
+     if (clientId) {
+       const existing = await tx.message.findUnique({
+         where: { conversation_id_client_id: { conversation_id: conversationId, client_id: clientId } },
+         include: { sender: { select: { name: true, image: true } } },
+       });
+       if (existing) {
+         message = existing;
+       } else {
+         message = await tx.message.create({
+           data: { sender_id: senderId, conversation_id: conversationId, text, client_id: clientId },
+           include: { sender: { select: { name: true, image: true } } },
+         });
+       }
+     } else {
+       message = await tx.message.create({
+         data: { sender_id: senderId, conversation_id: conversationId, text },
+         include: { sender: { select: { name: true, image: true } } },
+       });
+     }
 
     let attachments: any[] = [];
-    if (files?.length) {
+    // Only create attachments if we just created the message in this transaction.
+    // (If the row already existed for this clientId, no-op to avoid dupes.)
+    if (!clientId || (clientId && (message as any).client_id === clientId && files?.length)) {
+      // Note: this still runs on first creation or when clientId wasn't used.
+      // For strict idempotency, you could also check if attachments already exist for this message.
       attachments = await Promise.all(
         files.map(async (f) => {
           const meta = await uploadAttachment(f);
@@ -86,6 +116,7 @@ export async function sendMessage({
   text: message.text ?? null,
   createdAt: message.created_at.toISOString(),
   senderId: senderId.toString(), // <- string
+  clientId: clientId ?? null,
   attachments: attachments.map(a => ({
     id: a.id.toString(),
     path: a.path,

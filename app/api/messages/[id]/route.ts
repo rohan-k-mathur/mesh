@@ -23,8 +23,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     text: m.text,
     createdAt: m.created_at,
     senderId: m.sender_id,
+    isRedacted: m.is_redacted,
     sender: { name: m.sender.name, image: m.sender.image },
-    attachments: m.attachments.map(a => ({
+    attachments: m.is_redacted ? [] : m.attachments.map(a => ({
       id: a.id,
       path: a.path,
       type: a.type,
@@ -48,12 +49,14 @@ export async function POST(
           const form = await req.formData();
           const text = form.get("text") as string | null;
           const files = form.getAll("files").filter(Boolean) as File[];
-      
+          const clientId = (form.get("clientId") as string | null) ?? undefined;
+
           const saved = await sendMessage({
             conversationId,
             senderId: userId,
             text: text ?? undefined,
             files: files.length ? files : undefined,
+            clientId,
           });
       
           // Coerce id to BigInt for Prisma in case sendMessage returned a string.
@@ -87,8 +90,10 @@ export async function POST(
             text: full.text ?? null,
             createdAt: full.created_at.toISOString(),
             senderId: full.sender_id.toString(),
+            clientId: clientId ?? null,
+            isRedacted: Boolean(full.is_redacted),
             sender: { name: full.sender.name, image: full.sender.image },
-            attachments: full.attachments.map((a) => ({
+            attachments: full.is_redacted ? [] : full.attachments.map((a) => ({
               id: a.id.toString(),
               path: a.path,
               type: a.type,

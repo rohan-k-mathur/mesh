@@ -79,9 +79,11 @@ export default function MessageComposer({
   async function send() {
     if (uploading) return;
     if (!text.trim() && files.length === 0) return;
+    const clientId = crypto.randomUUID();
     const form = new FormData();
     if (text.trim()) form.append("text", text);
     files.forEach((f) => form.append("files", f));
+    form.append("clientId", clientId);
     const xhr = new XMLHttpRequest();
     xhr.open("POST", `/api/messages/${conversationId}`);
     xhr.upload.onprogress = (e) => {

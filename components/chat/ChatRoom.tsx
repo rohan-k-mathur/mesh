@@ -27,6 +27,8 @@ import { ReactionSummary } from "@/components/reactions/ReactionSummary";
 import { ReactionBar } from "@/components/reactions/ReactionBar";
 import { ReactionTrigger } from "@/components/reactions/ReactionTrigger";
 
+const ENABLE_REACTIONS = false;
+
 type Props = {
   conversationId: string;
   currentUserId: string;
@@ -118,6 +120,7 @@ const MessageRow = memo(function MessageRow({
   onPrivateReply,
   onCreateOptions,
   onCreateTemp,
+  onDelete,
 }: {
   m: Message;
   currentUserId: string;
@@ -126,9 +129,10 @@ const MessageRow = memo(function MessageRow({
   onPrivateReply?: (m: Message) => void;
   onCreateOptions: (m: Message) => void;
   onCreateTemp: (m: Message) => void;
+  onDelete: (id: string) => void;
 }) {
   const isMine = String(m.senderId) === String(currentUserId);
-
+  const isRedacted = Boolean((m as any).isRedacted || (m as any).is_redacted);
   return (
     <ChatMessage
       type={isMine ? "outgoing" : "incoming"}
@@ -168,16 +172,16 @@ const MessageRow = memo(function MessageRow({
         </DropdownMenu>
       )}
 
-      {/* {m.text && <ChatMessageContent content={m.text} />} */}
-      {/* <ChatMessageContent content={m.text ?? ""}>
-  {Array.isArray((m as any).facets) && (m as any).facets.length > 0 ? (
-    <SheafMessageBubble
-      facets={(m as any).facets}
-      defaultFacetId={(m as any).defaultFacetId}
-    />
-  ) : null}
-</ChatMessageContent> */}
-     {Array.isArray(m.facets) && m.facets.length > 0 ? (
+{isRedacted ? (
+       <div className={["relative group w-full", isMine ? "flex justify-end" : "flex justify-start"].join(" ")}>
+         {/* Muted tombstone bubble */}
+         <ChatMessageContent
+           content="(redacted)"
+           className="opacity-70 italic"
+         />
+         {/* (Optional) you can still keep the hover menu for your own redacted msg if desired */}
+       </div>
+     ) : Array.isArray(m.facets) && m.facets.length > 0 ? (
   <>
     <div className={["relative group w-full", isMine ? "flex justify-end" : "flex justify-start"].join(" ")}>
       <SheafMessageBubble
@@ -188,23 +192,52 @@ const MessageRow = memo(function MessageRow({
         defaultFacetId={m.defaultFacetId}
       />
 
-      {/* Trigger overlay: invisible until hover; correctly aligned */}
+{/* Hover actions overlay */}
       <div
         className={[
-          "absolute -bottom-2 z-20 flex",
-          isMine ? "right-0" : "left-0", // ✅ outgoing → bottom-right, incoming → bottom-left
+          "absolute top-1 z-20 flex",
+          isMine ? "-right-0" : "left-0",
           "invisible opacity-0 pointer-events-none",
           "group-hover:visible group-hover:opacity-100 group-hover:pointer-events-auto",
           "transition-opacity duration-150",
         ].join(" ")}
       >
-        {/* <ReactionTrigger
-          conversationId={conversationId}
-          messageId={m.id}
-          userId={currentUserId}
-          activeFacetId={null}
-        /> */}
-            {/* <ReactionSummary messageId={m.id} /> */}
+     {isMine && (
+               <DropdownMenu>
+                 <DropdownMenuTrigger asChild>
+                   <button
+                     className="py-0 align-center my-auto px-0  savebutton w-fit h-fit 
+                     rounded-md  text-xs bg-amber-400/70 border-mnne focus:outline-none"
+                     title="Message actions"
+                     type="button"
+                   >
+                      <Image
+                src="/assets/overflow-menu--vertical.svg"
+                alt="share"
+                width={14}
+                height={14}
+                className="cursor-pointer object-contain w-[10px]"
+              />
+                   </button>
+                 </DropdownMenuTrigger>
+                 <DropdownMenuContent align={isMine ? "end" : "start"} sideOffset={6}>
+                   <DropdownMenuItem
+                     onClick={() => {
+                       // Placeholder for now
+                       alert("Edit is coming soon.");
+                     }}
+                   >
+                     ✏️ Edit
+                   </DropdownMenuItem>
+                   <DropdownMenuItem
+                     className="text-red-600"
+                     onClick={() => onDelete(m.id)}
+                   >
+                     🗑 Delete
+                   </DropdownMenuItem>
+                 </DropdownMenuContent>
+               </DropdownMenu>
+             )}
 
       </div>
     </div>
@@ -214,36 +247,57 @@ const MessageRow = memo(function MessageRow({
 ) : (
   <>
   <div className={["relative group w-full", isMine ? "flex justify-end" : "flex justify-start"].join(" ")}>
-    {m.text && <ChatMessageContent content={m.text} />}
+  {m.text ? (
+              <ChatMessageContent content={m.text} />
+            ) : (
+              // Safety: If we ever hit a “no text, no facets” non-redacted state,
+              // still render a placeholder bubble so the row doesn’t collapse.
+              <ChatMessageContent content="" className="min-h-6" />
+            )}
 
     <div
       className={[
-        "absolute  justify-center items-center -bottom-[100%] -left[50%] z-20 flex",
+        "absolute top-1 z-20 flex",
         "invisible opacity-0 pointer-events-none",
         "group-hover:visible group-hover:opacity-100 group-hover:pointer-events-auto",
         "transition-opacity duration-150",
       ].join(" ")}
     >
-      {/* <ReactionTrigger
-      
-        conversationId={conversationId}
-        messageId={m.id}
-        userId={currentUserId}
-        activeFacetId={null}
-      /> */}
+    {isMine && !isRedacted && (
+               <DropdownMenu>
+                 <DropdownMenuTrigger asChild>
+                 <button
+                     className="py-0 align-center my-auto px-0  savebutton w-fit h-fit 
+                     rounded-md  text-xs bg-amber-400/70 border-mnne focus:outline-none"
+                     title="Message actions"
+                     type="button"
+                   >
+                      <Image
+                src="/assets/overflow-menu--vertical.svg"
+                alt="share"
+                width={14}
+                height={14}
+                className="cursor-pointer object-contain w-[10px]"
+              />
+                   </button>
+                 </DropdownMenuTrigger>
+                 <DropdownMenuContent align={isMine ? "end" : "start"} sideOffset={6}>
+                   <DropdownMenuItem onClick={() => alert("Edit is coming soon.")}>
+                     ✏️ Edit
+                   </DropdownMenuItem>
+                   <DropdownMenuItem className="text-red-600" onClick={() => onDelete(m.id)}>
+                     🗑 Delete
+                   </DropdownMenuItem>
+                 </DropdownMenuContent>
+               </DropdownMenu>
+            )}
    
     </div>
   </div>
 
 </>
       )}
-      {m.attachments?.length ? (
-        <div className="mt-2 space-y-2">
-          {m.attachments.map((a) => (
-            <Attachment key={a.id} a={a} />
-          ))}
-        </div>
-      ) : null}
+      
       {isMine && (
   <ChatMessageAvatar imageSrc={m.sender?.image || "/assets/user-helsinki.svg"} />
 )}
@@ -289,6 +343,30 @@ export default function ChatRoom({
     appendRef.current = appendMessage;
   }, [appendMessage]);
 
+  const markAsRedacted = React.useCallback((mid: string) => {
+      const list = useChatStore.getState().messages[conversationId] ?? [];
+      setMessages(
+        conversationId,
+        list.map((row) =>
+          String(row.id) === String(mid)
+            ? { ...row, isRedacted: true, is_redacted: true, text: null, attachments: [], facets: [] }
+            : row
+        )
+      );
+    }, [conversationId, setMessages]);
+
+    const handleDelete = React.useCallback(async (mid: string) => {
+        // Optimistic tombstone
+        markAsRedacted(mid);
+        try {
+          const res = await fetch(`/api/messages/item/${encodeURIComponent(mid)}`, { method: "DELETE" });
+          if (!res.ok) throw new Error(await res.text());
+        } catch (e) {
+          console.warn("[delete] failed; consider refetch or revert", e);
+          // optionally revert here
+        }
+      }, [markAsRedacted]);
+
   const initRef = useRef<string | null>(null);
   const hydratedRef = useRef(false);
   useEffect(() => {
@@ -321,6 +399,7 @@ export default function ChatRoom({
   // NEW — hydrate reactions for the current message set (runs when ids change)
   const reactionsHydratedKeyRef = useRef<string>("");
   useEffect(() => {
+    if (!ENABLE_REACTIONS) return;
     const idsKey = messages.map((m) => m.id).join(",");
     if (!idsKey || idsKey === reactionsHydratedKeyRef.current) return;
     reactionsHydratedKeyRef.current = idsKey;
@@ -342,24 +421,6 @@ export default function ChatRoom({
       .catch((e) => console.warn("[reactions] hydrate failed:", e));
   }, [messages, currentUserId]);
 
-  // useEffect(() => {
-  //   const channel = supabase.channel(`conversation-${conversationId}`);
-  //   const handler = ({ payload }: any) => appendRef.current(conversationId, payload as Message);
-  //   channel.on("broadcast", { event: "new_message" }, handler);
-  //   channel.on("broadcast", { event: "poll_create" }, ({ payload }) => {
-  //     upsertPoll(payload.poll, payload.state ?? null, payload.my ?? null);
-  //   });
-  //   channel.on("broadcast", { event: "poll_state" }, ({ payload }) => {
-  //     applyPollState(payload as PollStateDTO);
-  //   });
-  //   channel.subscribe();
-  //   return () => {
-  //     try {
-  //       channel.unsubscribe?.();
-  //     } catch {}
-  //     supabase.removeChannel(channel);
-  //   };
-  // }, [conversationId, upsertPoll, applyPollState]);
 
   // keep a ref to the subscribed channel so we can send on it later
   const chRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
@@ -452,12 +513,27 @@ export default function ChatRoom({
         String(userId) === String(currentUserId)
       );
     };
+    const redactedHandler = ({ payload }: any) => {
+            const mid = String(payload?.id ?? payload?.messageId ?? "");
+            if (!mid) return;
+            markAsRedacted(mid);
+          };
 
     channel.on("broadcast", { event: "new_message" }, msgHandler);
     channel.on("broadcast", { event: "poll_create" }, pollCreateHandler);
     channel.on("broadcast", { event: "poll_state" }, pollStateHandler);
+    if (ENABLE_REACTIONS) {
     channel.on("broadcast", { event: "reaction_add" }, reactionAdd);
     channel.on("broadcast", { event: "reaction_remove" }, reactionRemove);
+
+
+  }
+  channel.on("broadcast", { event: "message_redacted" }, ({ payload }: any) => {
+    const mid = String(payload?.id ?? payload?.messageId ?? "");
+    if (!mid) return;
+    markAsRedacted(mid);
+  });
+ 
     channel.subscribe();
 
     return () => {
@@ -607,10 +683,11 @@ export default function ChatRoom({
               onPrivateReply={onPrivateReply}
               onCreateOptions={onCreateOptions}
               onCreateTemp={onCreateTemp}
+              onDelete={handleDelete}
             />
 
             {/* Render attachments OUTSIDE ChatMessage so they always show */}
-            {m.attachments?.length ? (
+            {!((m as any).isRedacted) && m.attachments?.length ? (
               <div
                 className={[
                   "mt-1 flex flex-col gap-2 px-3",
