@@ -4,7 +4,7 @@ import "./meta-bg.css";
 export default function MetaBg() {
   return (
     <svg
-      className="meta-bg justify-start"
+      className="meta-bg justify-start "
       width="100%"
       height="100%"
       preserveAspectRatio="xMidYMid slice"

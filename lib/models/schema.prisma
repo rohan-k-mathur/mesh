@@ -71,6 +71,8 @@ model User {
   Auction                   Auction[]
   StackCollaborator         StackCollaborator[]
   StackSubscription         StackSubscription[]
+  SheafAudienceList         SheafAudienceList[]
+  roles                     UserRole[]
 
   @@map("users")
 }
@@ -597,15 +599,17 @@ model MessageAttachment {
 }
 
 model Message {
-  id              BigInt              @id @default(autoincrement())
-  conversation_id BigInt
-  sender_id       BigInt
-  text            String?
-  created_at      DateTime            @default(now()) @db.Timestamptz(6)
-  conversation    Conversation        @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
-  sender          User                @relation(fields: [sender_id], references: [id], onDelete: Cascade)
-  notifications   Notification[]      @relation("NotificationMessage")
-  attachments     MessageAttachment[]
+  id               BigInt              @id @default(autoincrement())
+  conversation_id  BigInt
+  sender_id        BigInt
+  text             String?
+  created_at       DateTime            @default(now()) @db.Timestamptz(6)
+  conversation     Conversation        @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
+  sender           User                @relation(fields: [sender_id], references: [id], onDelete: Cascade)
+  notifications    Notification[]      @relation("NotificationMessage")
+  attachments      MessageAttachment[]
+  SheafFacet       SheafFacet[]
+  SheafMessageMeta SheafMessageMeta[]
 
   @@index([conversation_id, created_at])
   @@map("messages")
@@ -1420,4 +1424,125 @@ model Revision {
   article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
 
   @@map("article_revisions")
+}
+
+/// ---------- SHEAF (facets layered on existing Message) ----------
+model SheafFacet {
+  id        BigInt  @id @default(autoincrement())
+  messageId BigInt
+  message   Message @relation(fields: [messageId], references: [id])
+
+  audienceKind      AudienceKind
+  audienceMode      AudienceMode
+  audienceRole      String?
+  audienceListId    String?
+  snapshotMemberIds String[]
+  listVersionAtSend Int?
+  audienceUserIds   String[]
+
+  sharePolicy SharePolicy
+  expiresAt   DateTime?
+  createdAt   DateTime    @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime    @updatedAt
+
+  body Json
+
+  priorityRank  Int     @default(0)
+  visibilityKey String?
+
+  // ✅ opposite side of the relation:
+  attachments      SheafAttachment[]
+  SheafMessageMeta SheafMessageMeta[]
+
+  @@index([messageId])
+  @@index([audienceKind, audienceMode])
+  @@index([audienceRole])
+  @@index([audienceListId])
+  @@index([priorityRank, createdAt])
+  @@map("sheaf_facets")
+}
+
+model SheafMessageMeta {
+  // 1:1 with Message; keeps default facet without touching your Message shape
+  messageId      BigInt      @id
+  message        Message     @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  defaultFacetId BigInt?
+  defaultFacet   SheafFacet? @relation(fields: [defaultFacetId], references: [id])
+
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+
+  @@map("sheaf_message_meta")
+}
+
+model SheafAudienceList {
+  id        String   @id @default(cuid())
+  ownerId   BigInt
+  owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  name      String
+  memberIds String[] // Postgres text[]
+  version   Int      @default(1)
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+
+  @@index([ownerId])
+  @@map("sheaf_audience_lists")
+}
+
+model SheafBlob {
+  id        String   @id @default(cuid())
+  sha256    String   @unique
+  mime      String
+  size      Int
+  path      String?
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+
+  attachments SheafAttachment[]
+
+  @@map("sheaf_blobs")
+}
+
+model SheafAttachment {
+  id        BigInt   @id @default(autoincrement())
+  facetId   BigInt
+  blobId    String
+  name      String
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+
+  facet SheafFacet @relation(fields: [facetId], references: [id], onDelete: Cascade)
+  blob  SheafBlob  @relation(fields: [blobId], references: [id])
+
+  @@index([facetId])
+  @@index([blobId])
+  @@map("sheaf_attachments")
+}
+
+enum SharePolicy {
+  ALLOW
+  REDACT
+  FORBID
+}
+
+enum AudienceKind {
+  EVERYONE
+  ROLE
+  LIST
+  USERS
+}
+
+enum AudienceMode {
+  DYNAMIC
+  SNAPSHOT
+}
+
+model UserRole {
+  userId    BigInt
+  role      String
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, role])
+  @@index([role])
+  @@map("user_roles")
 }

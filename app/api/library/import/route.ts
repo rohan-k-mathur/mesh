@@ -6,7 +6,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUserId } from "@/lib/serverutils";
 import { prisma } from "@/lib/prismaclient";
 import { supabaseAdmin } from "@/lib/supabase-server";
-
+import { assertCanEditStack } from "@/lib/actions/stack.actions";
+import { getOrCreateStackId } from "@/lib/server/stack-helpers";
 
 function sanitizeFileName(name: string, ext = ".pdf") {
   const base = name.replace(/\.pdf$/i, "")
@@ -31,27 +32,26 @@ export async function POST(req: NextRequest) {
     const {
       objects = [],
       externalUrls = [],
-      stackId = null,
+      stackId: stackIdParam = null,
       stackName = "My Library",
       isPublic = true,
       // caption is ignored here; the feed post is created client-side
     } = await req.json();
 
-    // Resolve (or create) a stack
-    let stack = null as null | { id: string };
-    if (stackId) {
-      stack = await prisma.stack.findUnique({ where: { id: stackId }, select: { id: true } });
+        if (stackIdParam) {
+      try {
+        await assertCanEditStack(stackIdParam, userId);
+      } catch (e: any) {
+        return NextResponse.json({ error: e?.message || "Forbidden" }, { status: 403 });
+      }
     }
-    if (!stack) {
-      const found = await prisma.stack.findFirst({
-        where: { owner_id: userId, name: stackName },
-        select: { id: true },
-      });
-      stack = found ?? (await prisma.stack.create({
-        data: { owner_id: userId, name: stackName, is_public: !!isPublic, order: [] },
-        select: { id: true },
-      }));
-    }
+    const stackId = await getOrCreateStackId({
+      ownerId: userId,
+      stackId: stackIdParam ?? undefined,
+      stackName,
+      isPublic,
+    });
+
 
     const postIds: string[] = [];
 
@@ -64,8 +64,8 @@ export async function POST(req: NextRequest) {
       const created = await prisma.libraryPost.create({
         data: {
           uploader_id: userId,
-          stack_id: stack!.id,
-          title: obj.title ?? null,
+          stack_id: stackId!,
+                    title: obj.title ?? null,
           page_count: 1,
           file_url: obj.path,           // storage key in "pdfs"
           thumb_urls: thumbUrl ? [thumbUrl] : [],
@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
       const created = await prisma.libraryPost.create({
         data: {
           uploader_id: userId,
-          stack_id: stack!.id,
+          stack_id: stackId!,
           title: nameGuess,
           page_count: 1,
           file_url: up.data.path,

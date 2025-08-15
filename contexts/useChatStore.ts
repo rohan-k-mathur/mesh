@@ -9,6 +9,7 @@ export interface Attachment {
   size: number;
 }
 
+// ---- Sheaf-aware Message type (you already had this; kept here for clarity)
 export interface Message {
   id: string;
   text: string | null;
@@ -16,7 +17,20 @@ export interface Message {
   senderId: string;
   sender?: { name: string; image: string | null };
   attachments?: Attachment[];
+
+  facets?: {
+    id: string;
+    audience: any; // or AudienceSelector
+    sharePolicy: "ALLOW" | "REDACT" | "FORBID";
+    expiresAt: string | null;
+    body: any;
+    attachments?: any[];
+    priorityRank: number;
+    createdAt: string;
+  }[];
+  defaultFacetId?: string | null;
 }
+
 interface Conversation {
   id: string;
   title?: string | null;
@@ -26,6 +40,41 @@ export type PollUI =
   | { kind: "OPTIONS"; poll: PollDTO; totals: number[]; count: number; myVote: number | null }
   | { kind: "TEMP"; poll: PollDTO; avg: number; count: number; myValue: number | null };
 
+function normalizeMessage(incoming: any): Message {
+  // tolerate both envelope {message:{...}} and bare message {...}
+  const raw = incoming?.message ?? incoming;
+
+  const base: Message = {
+    id: String(raw.id),
+    text: raw.text ?? null,
+    createdAt: raw.createdAt ?? new Date().toISOString(),
+    senderId: String(raw.senderId),
+    sender: raw.sender ?? undefined,
+    attachments: Array.isArray(raw.attachments) ? raw.attachments : [],
+    defaultFacetId: raw.defaultFacetId ?? null,
+  };
+
+  if (Array.isArray(raw.facets)) {
+    base.facets = raw.facets
+      .map((f: any) => ({
+        id: String(f.id),
+        audience: f.audience,
+        sharePolicy: f.sharePolicy,
+        expiresAt: f.expiresAt ?? null,
+        body: f.body,
+        attachments: Array.isArray(f.attachments) ? f.attachments : [],
+        priorityRank:
+          typeof f.priorityRank === "number"
+            ? f.priorityRank
+            : 999, // last if unspecified
+        createdAt: f.createdAt ?? base.createdAt,
+      }))
+      .sort((a, b) => a.priorityRank - b.priorityRank);
+  }
+
+  return base;
+}
+
 interface ChatState {
   conversations: Record<string, Conversation>;
   currentConversation?: string;
@@ -33,8 +82,8 @@ interface ChatState {
   pollsByMessageId: Record<string, PollUI>;
   setCurrentConversation: (id: string) => void;
   setConversations: (list: Conversation[]) => void;
-  setMessages: (id: string, msgs: Message[]) => void;
-  appendMessage: (id: string, msg: Message) => void;
+  setMessages: (id: string, msgs: Message[] | any[]) => void;
+  appendMessage: (id: string, msg: Message | any) => void;
   setPolls: (conversationId: string, polls: PollUI[]) => void;
   upsertPoll: (poll: PollDTO, initState: PollStateDTO | null, myVote: MyVoteDTO | null) => void;
   applyPollState: (state: PollStateDTO) => void;
@@ -46,7 +95,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
   conversations: {},
   messages: {},
   pollsByMessageId: {},
+
   setCurrentConversation: (id) => set({ currentConversation: id }),
+
   setConversations: (list) =>
     set({ conversations: Object.fromEntries(list.map((c) => [c.id, c])) }),
 
@@ -54,16 +105,26 @@ export const useChatStore = create<ChatState>((set, get) => ({
     set((state) => ({
       messages: {
         ...state.messages,
-        [id]: msgs.map((m) => ({ ...m, attachments: m.attachments ?? [] })),
+        [id]: (msgs ?? []).map((m) => {
+          const normalized = normalizeMessage(m);
+          return { ...normalized, attachments: normalized.attachments ?? [] };
+        }),
       },
     })),
 
   appendMessage: (id, msg) =>
     set((state) => {
       const list = state.messages[id] || [];
-      if (list.some((m) => m.id === msg.id)) return { messages: state.messages };
-      const normalized = { ...msg, attachments: msg.attachments ?? [] };
-      return { messages: { ...state.messages, [id]: [...list, normalized] } };
+      const normalized = normalizeMessage(msg);
+      if (list.some((m) => m.id === normalized.id)) {
+        return { messages: state.messages };
+      }
+      return {
+        messages: {
+          ...state.messages,
+          [id]: [...list, { ...normalized, attachments: normalized.attachments ?? [] }],
+        },
+      };
     }),
 
   setPolls: (_cid, polls) =>
@@ -74,12 +135,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
       },
     })),
 
-    upsertPoll: (poll, initState, myVote) =>
-        set((state) => {
-          if (!poll) {
-            console.warn("[polls] upsertPoll called without poll", { initState, myVote });
-            return {};
-          }
+  upsertPoll: (poll, initState, myVote) =>
+    set((state) => {
+      if (!poll) {
+        console.warn("[polls] upsertPoll called without poll", { initState, myVote });
+        return {};
+      }
       let ui: PollUI;
       if (poll.kind === "OPTIONS") {
         const totals =
@@ -148,7 +209,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
   sendMessage: async (id, data) => {
     const res = await fetch(`/api/messages/${id}`, { method: "POST", body: data });
     if (!res.ok) throw new Error("Failed to send message");
-    const msg: Message = await res.json();
+    const msg = await res.json();
     get().appendMessage(id, msg);
   },
 }));

@@ -8,7 +8,8 @@ export default function StackAddModal({ stackId }: { stackId: string }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <button className="px-3 py-2 rounded bg-black text-white">Add PDFs</button>
+      <button className="px-3 py-1 text-sm bg-slate-100/70 sendbutton rounded-md text-slate-700 ">
+          Upload</button>
       </DialogTrigger>
       <LibraryPostModal onOpenChange={setOpen} stackId={stackId} />
     </Dialog>

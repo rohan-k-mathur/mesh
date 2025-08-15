@@ -24,13 +24,21 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./*"],
-      "swapmeet-api": ["services/swapmeet-api/src/index.ts"]
+      "swapmeet-api": ["services/swapmeet-api/src/index.ts"],
+      "@app/sheaf-acl": ["packages/sheaf-acl/src/index.ts"]
 
     }
+    
   },
-  "include": ["next-env.d.ts","shader.d.ts", "**/*.ts",     "types/osc.d.ts"
-,  "osc.d.ts",
-   "**/*.tsx","app/**/*", ".next/types/**/*.ts"],
-   
+  "include": [
+    "next-env.d.ts",
+    "shader.d.ts",
+    "**/*.ts",
+    "types/osc.d.ts",
+    "osc.d.ts",
+    "**/*.tsx",
+    "app/**/*",
+    ".next/types/**/*.ts"
+  ],
   "exclude": ["node_modules"]
 }

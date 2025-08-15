@@ -1,14 +1,8 @@
 // lib/server/stack-helpers.ts
 import { prisma } from "@/lib/prismaclient";
+import { slugify } from "@/lib/slug";
 
-export function slugify(base: string) {
-  return base
-    .toLowerCase()
-    .trim()
-    .replace(/[^\p{L}\p{N}]+/gu, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 60);
-}
+
 
 export async function ensureUniqueSlug(base: string) {
   let s = slugify(base) || "stack";

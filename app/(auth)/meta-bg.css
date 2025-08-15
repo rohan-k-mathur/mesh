@@ -8,21 +8,34 @@
     z-index: -1;
     pointer-events: none;
   }
-  
-/* Make SVG transforms predictable across browsers */
+  .postcard {
+    border-radius: 40px;
+    /*background: linear-gradient(145deg, #c5c9d8, #eaefff);*/
+    background: transparent;
+    box-shadow: inset 17px 17px 49px rgba(244,244,245,.35),
+      inset -17px -17px 49px #fecdd3;
+    border: 0.045rem solid #D1C6E7;
+  }
 .blob, .blobtwo { 
+  background: transparent;
+
   transform-origin: 50% 50%;
+  box-shadow: inset 17px 17px 49px rgba(244,244,245,.35),
+      inset -17px -17px 49px #fecdd3;
   transform-box: fill-box;        /* important for SVG */
-  will-change: transform;         /* hint GPU */
-}
+  will-change: transform;       
+} 
 
   /* —— ACCENT BLOBS ———————————————————————— */
   .blob {
    /* // fill: hsl(var(--accent-hue) 80% 55% ); */
-    fill: rgba(230,230,255,.5);
-    box-shadow: 30px 30px 40px rgba(255, 255, 255, 0.95);
+    fill: rgba(230,230,255,.05);
+    /* box-shadow: 30px 30px 40px rgba(255, 255, 255, 0.95); */
+    box-shadow: inset 17px 17px 49px rgba(244,244,245,.75),
+      inset -17px -17px 49px #fecdd3;
     transform-origin: 50% 50%;
     animation: float 30s alternate-reverse infinite;
+
   }
   .blobtwo {
     /* // fill: hsl(var(--accent-hue) 80% 55% ); */

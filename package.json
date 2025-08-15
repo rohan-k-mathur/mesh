@@ -2,6 +2,7 @@
   "name": "ephemera",
   "version": "0.1.0",
   "private": true,
+  "workspaces": ["packages/*"],
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -16,7 +17,11 @@
     "watch:worker": "nodemon",
     "size": "size-limit",
     "size:why": "size-limit --why",
-    "worker": "tsx -r dotenv/config workers/index.ts"
+    "worker": "tsx -r dotenv/config workers/index.ts",
+    "acl:build": "tsc -p packages/sheaf-acl/tsconfig.json",
+    "acl:watch": "tsc -w -p packages/sheaf-acl/tsconfig.json",
+    "acl:test": "vitest run packages/sheaf-acl",
+    "sheaf:seed": "tsx --env-file=.env scripts/sheaf-seed.ts"
   },
   "size-limit": [
     {
@@ -26,6 +31,7 @@
     }
   ],
   "dependencies": {
+    "@app/sheaf-acl": "file:packages/sheaf-acl",
     "@aws-sdk/client-s3": "^3.859.0",
     "@aws-sdk/client-ses": "^3.859.0",
     "@aws-sdk/client-sesv2": "^3.859.0",

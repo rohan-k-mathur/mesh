@@ -112,11 +112,11 @@ export default function Login() {
               >
                 {loading && <Spinner className="mr-2" />} {loading ? "Loading" : "Next"}
               </button>
-              <p className="text-[1.2rem] text-center mx-auto text-gray-500 dark:text-gray-400">
+              <p className="text-[1.2rem] text-center mx-auto text-gray-400 dark:text-gray-400">
                 No Account?{" "}
                 <Link
                   href="/register"
-                  className=" text-gray-200 hover:underline dark:text-gray-500"
+                  className=" text-gray-700 hover:underline dark:text-gray-500"
                 >
                   Register Here
                 </Link>

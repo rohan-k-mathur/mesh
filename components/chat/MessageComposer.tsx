@@ -1,18 +1,33 @@
 "use client";
-import { useState, useEffect,useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { X, File as FileIcon, Paperclip } from "lucide-react";
 import { useChatStore } from "@/contexts/useChatStore";
 import { supabase } from "@/lib/supabaseclient";
 import QuickPollModal from "@/components/chat/QuickPollModal";
 import QuickTempModal from "@/components/chat/QuickTempModal";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
-
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"; // shadcn dialog
+import { SheafComposer } from "../sheaf/SheafComposer";
 interface Props {
   conversationId: string;
+  currentUserId: string | number; // NEW
 }
 
-export default function MessageComposer({ conversationId }: Props) {
+export default function MessageComposer({
+  conversationId,
+  currentUserId,
+}: Props) {
   const appendMessage = useChatStore((s) => s.appendMessage);
   const [text, setText] = useState("");
   const [files, setFiles] = useState<File[]>([]);
@@ -20,7 +35,8 @@ export default function MessageComposer({ conversationId }: Props) {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [previews, setPreviews] = useState<string[]>([]);
- const [showPoll, setShowPoll] = useState(false);
+  const [showPoll, setShowPoll] = useState(false);
+  const [showSheaf, setShowSheaf] = useState(false);
   const [showTemp, setShowTemp] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   function onFilesSelected(list: FileList | null) {
@@ -33,7 +49,7 @@ export default function MessageComposer({ conversationId }: Props) {
     setFiles((prev) => [...prev, ...filesArray]);
     setPreviews((prev) => [...prev, ...urls]);
     // allow picking the same file twice
-   if (fileInputRef.current) fileInputRef.current.value = "";
+    if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
   function removeFile(idx: number) {
@@ -78,7 +94,11 @@ export default function MessageComposer({ conversationId }: Props) {
         if (xhr.status < 200 || xhr.status >= 300)
           throw new Error("Upload failed");
         const msg = JSON.parse(xhr.responseText);
-        console.log('[send] server returned attachments:', msg.attachments?.length, msg.attachments);
+        console.log(
+          "[send] server returned attachments:",
+          msg.attachments?.length,
+          msg.attachments
+        );
         appendMessage(conversationId, msg);
       } catch (e) {
         // TODO: surface error toast
@@ -104,60 +124,87 @@ export default function MessageComposer({ conversationId }: Props) {
     send();
   }
 
+  // helper: create a plain text message and return its id    normalized DTO for local append
+  async function createQuestionMessage(question: string) {
+    const fd = new FormData();
+    fd.set("text", question);
+    // const res = await fetch(`/api/messages/${conversationId}`, {
+    //   method: "POST",
+    //   body: fd,
+    // });
+    const res = await fetch(
+      `/api/sheaf/messages?conversationId=${conversationId}&userId=${currentUserId}`,
+      { cache: "no-store" }
+    );
+    if (!res.ok) throw new Error("Failed to create message");
+    const msg = await res.json(); // matches useChatStore Message dto
+    appendMessage(conversationId, msg);
+    return msg;
+  }
 
-    // helper: create a plain text message and return its id    normalized DTO for local append
-    async function createQuestionMessage(question: string) {
-      const fd = new FormData();
-      fd.set("text", question);
-      const res = await fetch(`/api/messages/${conversationId}`, { method: "POST", body: fd });
-      if (!res.ok) throw new Error("Failed to create message");
-      const msg = await res.json(); // matches useChatStore Message dto
-      appendMessage(conversationId, msg);
-      return msg;
-    }
-  
-    async function createOptionsPoll(question: string, options: string[]) {
-      const msg = await createQuestionMessage(question);
-      const res = await fetch("/api/polls", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          conversationId,
-          messageId: msg.id,
-          kind: "OPTIONS",
-          options,
-        }),
-      });
+  async function createOptionsPoll(question: string, options: string[]) {
+    const msg = await createQuestionMessage(question);
+    const res = await fetch("/api/polls", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        conversationId,
+        messageId: msg.id,
+        kind: "OPTIONS",
+        options,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok || !data?.ok)
+      throw new Error(data?.error || "Failed to create poll");
+    // broadcast so everyone renders the chip under this message
+    supabase.channel(`conversation-${conversationId}`).send({
+      type: "broadcast",
+      event: "poll_create",
+      payload: { poll: data.poll, state: null, my: null },
+    });
+  }
+
+  async function createTempCheck(question: string) {
+    const msg = await createQuestionMessage(question);
+    const res = await fetch("/api/polls", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        conversationId,
+        messageId: msg.id,
+        kind: "TEMP",
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok || !data?.ok)
+      throw new Error(data?.error || "Failed to create temperature check");
+    supabase.channel(`conversation-${conversationId}`).send({
+      type: "broadcast",
+      event: "poll_create",
+      payload: { poll: data.poll, state: null, my: null },
+    });
+  }
+  async function refreshAndAppendSheaf(messageId: string) {
+    try {
+      const res = await fetch(
+        `/api/sheaf/messages?userId=${currentUserId}&conversationId=${conversationId}`
+      );
+      if (!res.ok) return;
       const data = await res.json();
-      if (!res.ok || !data?.ok) throw new Error(data?.error || "Failed to create poll");
-      // broadcast so everyone renders the chip under this message
-      supabase.channel(`conversation-${conversationId}`).send({
-        type: "broadcast",
-        event: "poll_create",
-        payload: { poll: data.poll, state: null, my: null },
-      });
+      // data: { userId, messages: [...] }
+      const found = (data?.messages || []).find(
+        (m: any) => String(m.id) === String(messageId)
+      );
+      if (found) {
+        appendMessage(conversationId, found);
+      }
+    } catch (e) {
+      // non-fatal
+      console.warn("[Sheaf] append fallback failed", e);
     }
-  
-    async function createTempCheck(question: string) {
-      const msg = await createQuestionMessage(question);
-      const res = await fetch("/api/polls", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          conversationId,
-          messageId: msg.id,
-          kind: "TEMP",
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data?.ok) throw new Error(data?.error || "Failed to create temperature check");
-      supabase.channel(`conversation-${conversationId}`).send({
-        type: "broadcast",
-        event: "poll_create",
-        payload: { poll: data.poll, state: null, my: null },
-      });
-    }
-  
+  }
+
   return (
     <div
       className="relative"
@@ -234,83 +281,116 @@ export default function MessageComposer({ conversationId }: Props) {
           }}
         >
           <div className="flex flex-1 w-full  align-center  gap-3">
-          <div className="flex flex-1 w-full">
-            <textarea
-              className="flex flex-1 h-full w-full text-start align-center rounded-xl bg-white/70 px-4 py-3 text-[.9rem] tracking-wider  messagefield text-black"
-              rows={1}
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  if (!uploading) send();
-                }
-              }}
-              disabled={uploading}
-            />
- </div>
- <button
-              type="submit"
-              className="flex bg-white/70 sendbutton h-fit w-fit text-black tracking-widest text-[1.1rem] rounded-xl px-5 py-2"
-              disabled={uploading}
-            >
-              <Image
-                src="/assets/send--alt.svg"
-                alt="share"
-                width={24}
-                height={24}
-                className="cursor-pointer object-contain"
-              />
-            </button>
+            
             <>
-       
-            <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className="flex bg-white/70 sendbutton h-fit w-fit text-black tracking-widest text-[1.1rem] rounded-xl px-4 py-2"
+                    title="Create"
+                  >
+                    +
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" sideOffset={6}>
+                  <DropdownMenuItem onClick={() => setShowPoll(true)}>
+                    📊 Create poll…
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setShowTemp(true)}>
+                    🌡 Temperature check…
+                  </DropdownMenuItem>
+                  {/* ✅ NEW: toggle Sheaf panel */}
+                  <DropdownMenuItem onClick={() => setShowSheaf((v) => !v)}>
+                    🧩 Layered message…
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* ✅ NEW: Inline Sheaf panel (collapsible)
+        {showSheaf && (
+          <div className="mt-3 rounded-xl border bg-white/60 p-3 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-sm font-medium">Sheaf message</div>
               <button
                 type="button"
-                className="flex bg-white/70 sendbutton h-fit w-fit text-black tracking-widest text-[1.1rem] rounded-xl px-2 py-2"
-                title="Create"
+                className="text-xs px-2 py-1 rounded bg-white/70 border"
+                onClick={() => setShowSheaf(false)}
               >
-                +
+                Close
               </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" sideOffset={6}>
-              <DropdownMenuItem onClick={() => setShowPoll(true)}>📊 Create poll…</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setShowTemp(true)}>🌡 Temperature check…</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-  
-  
-        <QuickPollModal
-          open={showPoll}
-          onClose={() => setShowPoll(false)}
-          onSubmit={async ({ question, options }) => {
-            try {
-              await createOptionsPoll(question, options);
-            } catch (e: any) {
-              alert(e?.message || "Failed to create poll");
-            }
-          }}
-        />
-  
-        <QuickTempModal
-          open={showTemp}
-          onClose={() => setShowTemp(false)}
-          onSubmit={async ({ question }) => {
-            try {
-              await createTempCheck(question);
-            } catch (e: any) {
-              alert(e?.message || "Failed to create temperature check");
-            }
-          }}
-        />
-      </>
+            </div>
 
-            <button  
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            aria-label="Attach files"
-             className="flex bg-white/70 sendbutton  h-fit w-fit text-black tracking-widest text-[1.1rem] rounded-xl px-3 py-2">
+            <SheafComposer
+              threadId={conversationId}
+              authorId={currentUserId}
+              onSent={({ messageId }) => {
+                // You can optionally fetch the message and append, or rely on realtime.
+                // Close panel after successful send:
+                setShowSheaf(false);
+                // console.log('Sheaf sent', messageId);
+              }}
+              viewAsCandidates={[
+                { id: "MOD", label: "Role: MOD", type: "role" },
+                // add more view-as entries if needed
+              ]}
+            />
+          </div>
+        )} */}
+              {/* Sheaf Modal */}
+              <Dialog open={showSheaf} onOpenChange={setShowSheaf}>
+                <DialogContent className="flex flex-col max-h-[90vh] max-w-2xl ">
+                  <DialogHeader>
+                    <DialogTitle>Create layered message</DialogTitle>
+                  </DialogHeader>
+                  <div className="mt-2">
+                    <SheafComposer
+                      threadId={conversationId}
+                      authorId={currentUserId}
+                      onSent={async ({ messageId }) => {
+                        setShowSheaf(false);
+                        await refreshAndAppendSheaf(messageId);
+                      }}
+                      onCancel={() => setShowSheaf(false)}
+                      viewAsCandidates={[
+                        { id: "MOD", label: "Role: MOD", type: "role" },
+                      ]}
+                    />
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              <QuickPollModal
+                open={showPoll}
+                onClose={() => setShowPoll(false)}
+                onSubmit={async ({ question, options }) => {
+                  try {
+                    await createOptionsPoll(question, options);
+                  } catch (e: any) {
+                    alert(e?.message || "Failed to create poll");
+                  }
+                }}
+              />
+
+              <QuickTempModal
+                open={showTemp}
+                onClose={() => setShowTemp(false)}
+                onSubmit={async ({ question }) => {
+                  try {
+                    await createTempCheck(question);
+                  } catch (e: any) {
+                    alert(e?.message || "Failed to create temperature check");
+                  }
+                }}
+              />
+            </>
+
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              aria-label="Attach files"
+              className="flex bg-white/70 sendbutton  h-fit w-fit text-black tracking-widest text-[1.1rem] rounded-xl px-3 py-2"
+            >
               <input
                 type="file"
                 multiple
@@ -325,8 +405,7 @@ export default function MessageComposer({ conversationId }: Props) {
                 width={24}
                 height={24}
                 className="cursor-pointer object-contain flex  justify-center items-center "
-             />
-             
+              />
             </button>
             <input
               ref={fileInputRef}
@@ -336,6 +415,34 @@ export default function MessageComposer({ conversationId }: Props) {
               onChange={(e) => onFilesSelected(e.target.files)}
               className="hidden"
             />
+            <div className="flex flex-1 w-full">
+              <textarea
+                className="flex flex-1 h-full w-full text-start align-center rounded-xl bg-white/70 px-4 py-3 text-[.9rem] tracking-wider  messagefield text-black"
+                rows={1}
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    if (!uploading) send();
+                  }
+                }}
+                disabled={uploading}
+              />
+            </div>
+            <button
+              type="submit"
+              className="flex bg-white/70 sendbutton h-fit w-fit text-black tracking-widest text-[1.1rem] rounded-xl px-5 py-2"
+              disabled={uploading}
+            >
+              <Image
+                src="/assets/send--alt.svg"
+                alt="share"
+                width={24}
+                height={24}
+                className="cursor-pointer object-contain"
+              />
+            </button>
           </div>
           {uploading && (
             <div className="h-2 bg-gray-200 rounded-full mt-5">

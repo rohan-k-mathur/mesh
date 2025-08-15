@@ -617,9 +617,8 @@ export default function ArticleReaderWithPins({
                             : "border-[1.1px] bg-slate-200/20 lockbutton hover:bg-slate-300/40"
                         }`}
                         onClick={() => {
-                         
+                          setOpenId(t.id);
                           setExpandedCluster(null);
-                          setActiveThread(t); // highlight the card/modal state
                          scrollToThread(t);
                         }}
                         aria-label="Open comment"

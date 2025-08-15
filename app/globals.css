@@ -1171,8 +1171,6 @@ outline: none;
 .chat-bubble
 {
 
-
-
     background-color: transparent;
     padding: 2px;
     outline: transparent;
@@ -1181,19 +1179,31 @@ outline: none;
     border-radius: 4px;
     box-shadow:   2px 2px 4px rgba(253, 205, 210, 0.75),
     -1px -2px 4px rgba(176, 141, 161, 0.55);
-  
-
-  
-
-
 }
 .chat-bubble:hover
 {
 
   box-shadow:   2px 2px 4px rgba(253, 205, 215, 0.75),
   -1px -2px 4px rgba(176, 141, 161, 0.64);
-  
 
+}
+.sheaf-bubble
+{
+
+    background-color: transparent;
+    padding: 2px;
+    outline: transparent;
+    outline-style: solid;
+    outline-width: .25px;
+    border-radius: 4px;
+    box-shadow:   2px 2px 4px rgba(212, 205, 210, 0.75),
+    -1px -2px 4px rgba(156, 151, 151, 0.55);
+}
+.sheaf-bubble:hover
+{
+
+  box-shadow:   2px 2px 4px rgba(212, 205, 210, 0.75),
+  -1px -2px 4px rgba(156, 151, 151, 0.55);
 
 
 }
@@ -1268,6 +1278,30 @@ outline: none;
   inset  2px 2px 4px rgba(131, 131, 165, 0.95);
 
 }
+
+.commentfield {
+  outline:transparent;
+  border:none;
+  box-shadow: inset  -.4px -.5px 1px rgba(253, 205, 214, 0.75),
+  inset  .5px .4px 1px rgba(176, 141, 141, 0.75);
+
+}
+.commentfield:hover {
+  outline:transparent;
+  border:none;
+  box-shadow: inset  -1px -1px 3px rgba(253, 205, 214, 0.75),
+  inset  1px 1px 3px rgba(176, 141, 141, 0.75);
+
+}
+.commentfield:focus {
+  outline:transparent;
+  border:none;
+  box-shadow: inset  -2px -2px 4px rgba(243, 195, 195, 0.95),
+  inset  2px 2px 4px rgba(165, 131, 131, 0.95);
+
+}
+
+
 
 .selectfield{
   box-shadow:   0px 0px 10px rgba(171, 171, 206, 0.75);

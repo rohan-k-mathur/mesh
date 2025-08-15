@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabaseclient";
 import type { Message, PollUI } from "@/contexts/useChatStore";
 import { useChatStore } from "@/contexts/useChatStore";
 import { ChatMessage, ChatMessageContent, ChatMessageAvatar } from "@/components/ui/chat-message";
+import { SheafMessageBubble } from "@/components/sheaf/SheafMessageBubble";
 import { usePrivateChatManager } from "@/contexts/PrivateChatManager";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { roomKey } from "@/lib/chat/roomKey";
@@ -122,7 +123,24 @@ const MessageRow = memo(function MessageRow({
         </DropdownMenu>
       )}
 
-      {m.text && <ChatMessageContent content={m.text} />}
+      {/* {m.text && <ChatMessageContent content={m.text} />} */}
+      {/* <ChatMessageContent content={m.text ?? ""}>
+  {Array.isArray((m as any).facets) && (m as any).facets.length > 0 ? (
+    <SheafMessageBubble
+      facets={(m as any).facets}
+      defaultFacetId={(m as any).defaultFacetId}
+    />
+  ) : null}
+</ChatMessageContent> */}
+{Array.isArray(m.facets) && m.facets.length > 0 ? (
+  <SheafMessageBubble
+    facets={m.facets}
+    defaultFacetId={m.defaultFacetId}
+  />
+) : (
+  m.text && <ChatMessageContent content={m.text} />
+)}
+
 
       {m.attachments?.length ? (
         <div className="mt-2 space-y-2">
@@ -225,10 +243,34 @@ export default function ChatRoom({ conversationId, currentUserId, initialMessage
    useEffect(() => {
      const channel = supabase.channel(`conversation-${conversationId}`);
      chRef.current = channel;
- 
-     const msgHandler = ({ payload }: any) => {
-       appendRef.current(conversationId, payload as Message);
-     };
+
+  // NEW — per-viewer hydration for layered messages
+  const msgHandler = ({ payload }: any) => {
+    // tolerate both shapes: {id,...} or {message:{id,...}}
+    const mid = String(payload?.id ?? payload?.message?.id ?? "");
+    if (!mid) {
+      // fallback for unknown payloads
+      appendRef.current(conversationId, payload as Message);
+      return;
+    }
+
+    // Fetch the viewer-filtered DTO (includes sender + only visible facets)
+    fetch(`/api/sheaf/messages?userId=${encodeURIComponent(currentUserId)}&messageId=${encodeURIComponent(mid)}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        const hydrated = data?.messages?.[0] ?? data?.message ?? null;
+        if (hydrated) {
+          appendRef.current(conversationId, hydrated);
+        } else {
+          // fallback: append raw if hydration failed
+          appendRef.current(conversationId, payload as Message);
+        }
+      })
+      .catch(() => {
+        appendRef.current(conversationId, payload as Message);
+      });
+  };
+
      const pollCreateHandler = ({ payload }: any) => {
        const data = unwrap(payload);
        if (!data?.poll) {
@@ -253,8 +295,7 @@ export default function ChatRoom({ conversationId, currentUserId, initialMessage
        try { channel.unsubscribe?.(); } catch {}
        supabase.removeChannel(channel);
      };
-   }, [conversationId, upsertPoll, applyPollState]);
-
+    }, [conversationId, currentUserId, upsertPoll, applyPollState]); // ← add currentUserId dep
 
 
   const onPrivateReply = useCallback((m: Message) => {

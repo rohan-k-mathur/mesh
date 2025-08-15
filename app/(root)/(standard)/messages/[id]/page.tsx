@@ -8,7 +8,7 @@ import MessageComposer from "@/components/chat/MessageComposer";
 import MessengerPane from "@/components/chat/MessengerPane";
 import Image from "next/image";
 
-
+import { headers } from "next/headers";
 
 
 export default async function Page({ params, searchParams }: { params: { id: string }; searchParams: { mid?: string } }) {
@@ -52,19 +52,19 @@ export default async function Page({ params, searchParams }: { params: { id: str
 
   // Messages newest->oldest then flip so newest at bottom
   const rows = (await fetchMessages({ conversationId })).reverse();
-  const initialMessages = rows.map((m) => ({
-    id: m.id.toString(),
-    text: m.text ?? null,
-    createdAt: m.created_at.toISOString(),
-    senderId: m.sender_id.toString(),
-    sender: { name: m.sender.name, image: m.sender.image },
-    attachments: m.attachments.map((a) => ({
-      id: a.id.toString(),
-      path: a.path,
-      type: a.type,
-      size: a.size,
-    })),
-  }));
+  // const initialMessages = rows.map((m) => ({
+  //   id: m.id.toString(),
+  //   text: m.text ?? null,
+  //   createdAt: m.created_at.toISOString(),
+  //   senderId: m.sender_id.toString(),
+  //   sender: { name: m.sender.name, image: m.sender.image },
+  //   attachments: m.attachments.map((a) => ({
+  //     id: a.id.toString(),
+  //     path: a.path,
+  //     type: a.type,
+  //     size: a.size,
+  //   })),
+  // }));
   // Fetch newest->oldest then flip so newest is at the bottom in the UI
   // const rows = (await fetchMessages({ conversationId })).reverse();
 
@@ -83,7 +83,18 @@ export default async function Page({ params, searchParams }: { params: { id: str
   // }));
 
   const highlightMessageId = searchParams?.mid || null;
+ // Build an absolute base URL for server-side fetch
+const h = headers();
+const host = h.get("x-forwarded-host") ?? h.get("host");
+const proto = h.get("x-forwarded-proto") ?? "http";
+const base = `${proto}://${host}`;
 
+// Get Layer-aware messages (viewer-filtered + sender object)
+const res = await fetch(
+  `${base}/api/sheaf/messages?conversationId=${conversationId.toString()}&userId=${user.userId.toString()}`,
+  { cache: "no-store" }
+);
+const { messages: initialMessages } = await res.json();
   return (
     <main className="p-4 mt-[-4rem] items-center justify-center">
       <div className="flex w-full h-full items-center justify-center align-center gap-4">
@@ -119,7 +130,7 @@ export default async function Page({ params, searchParams }: { params: { id: str
       </div>
       <hr className="mt-3"/>
 
-
+{/* 
       <div className="mt-6 space-y-6">
         <ChatRoom
           conversationId={params.id}             // pass as string
@@ -128,9 +139,28 @@ export default async function Page({ params, searchParams }: { params: { id: str
           highlightMessageId={highlightMessageId}
         />
         <hr />
-        <MessageComposer conversationId={params.id} />
+        <MessageComposer
+  conversationId={String(conversationId)}
+  currentUserId={user.userId.toString()}   // ← make sure this is passed
+/>
       </div>
       <MessengerPane currentUserId={user.userId.toString()} />
-    </main>
-  );
+    </main> */}
+
+  <div className="mt-6 space-y-6">
+      <ChatRoom
+        conversationId={params.id}
+        currentUserId={user.userId.toString()}
+        initialMessages={initialMessages}
+        highlightMessageId={highlightMessageId ?? null}
+      />
+      <hr />
+      <MessageComposer
+        conversationId={String(conversationId)}
+        currentUserId={user.userId.toString()}
+      />
+    </div>
+    <MessengerPane currentUserId={user.userId.toString()} />
+  </main>
+    );
 }

@@ -6,6 +6,7 @@ import {
 } from "next-firebase-auth-edge";
 import { firebaseConfig, serverConfig } from "@/lib/firebase/config";
 
+
 const PUBLIC_PATHS = ["/register", "/login", "/reset-password", "/room/global"];
 
 export async function middleware(request: NextRequest) {
