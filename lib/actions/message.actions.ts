@@ -10,6 +10,7 @@ type SendMessageArgs = {
   conversationId: bigint;
   text?: string;
   files?: File[];
+  driftId?: bigint;
   clientId?: string; // ← new
 };
 
@@ -32,12 +33,12 @@ export async function fetchMessages({
     include: { sender: true, attachments: true },
   });
 }
-
 export async function sendMessage({
   senderId,
   conversationId,
   text,
   files,
+  driftId,
   clientId,
 }: SendMessageArgs) {
   if (!text && (!files || files.length === 0)) {
@@ -45,51 +46,55 @@ export async function sendMessage({
   }
 
   return prisma.$transaction(async (tx) => {
+    // must be participant
     const member = await tx.conversationParticipant.findFirst({
       where: { conversation_id: conversationId, user_id: senderId },
       select: { user_id: true },
     });
     if (!member) throw new Error("Not a participant in this conversation");
-    // const message = await tx.message.create({
-    //   data: { sender_id: senderId, conversation_id: conversationId, text },
-    //   include: { sender: { select: { name: true, image: true } } },
 
-    // });
-    // const message = await tx.message.create({
-    //         data: { sender_id: senderId, conversation_id: conversationId, text },
-    //         include: { sender: { select: { name: true, image: true } } },
-    //       });
-    // Idempotency: if clientId is present and this (conversation, clientId) already exists, reuse it.
-     let message:
-       | (typeof prisma.message)["prototype"]
-       | { id: bigint; created_at: Date; sender_id: bigint; text: string | null };
- 
-     if (clientId) {
-       const existing = await tx.message.findUnique({
-         where: { conversation_id_client_id: { conversation_id: conversationId, client_id: clientId } },
-         include: { sender: { select: { name: true, image: true } } },
-       });
-       if (existing) {
-         message = existing;
-       } else {
-         message = await tx.message.create({
-           data: { sender_id: senderId, conversation_id: conversationId, text, client_id: clientId },
-           include: { sender: { select: { name: true, image: true } } },
-         });
-       }
-     } else {
-       message = await tx.message.create({
-         data: { sender_id: senderId, conversation_id: conversationId, text },
-         include: { sender: { select: { name: true, image: true } } },
-       });
-     }
+    let message:
+      | Awaited<ReturnType<typeof tx.message.create>>
+      | Awaited<ReturnType<typeof tx.message.findUnique>>;
+    let createdNow = false;
 
+    if (clientId) {
+      // idempotency: look up first
+      const existing = await tx.message.findUnique({
+        where: { conversation_id_client_id: { conversation_id: conversationId, client_id: clientId } },
+        include: { sender: { select: { name: true, image: true } } },
+      });
+      if (existing) {
+        message = existing;
+      } else {
+        message = await tx.message.create({
+          data: {
+            sender_id: senderId,
+            conversation_id: conversationId,
+            text,
+            drift_id: driftId ?? undefined,
+            client_id: clientId,
+          },
+          include: { sender: { select: { name: true, image: true } } },
+        });
+        createdNow = true;
+      }
+    } else {
+      message = await tx.message.create({
+        data: {
+          sender_id: senderId,
+          conversation_id: conversationId,
+          text,
+          drift_id: driftId ?? undefined,
+        },
+        include: { sender: { select: { name: true, image: true } } },
+      });
+      createdNow = true;
+    }
+
+    // attachments only on first creation
     let attachments: any[] = [];
-    // Only create attachments if we just created the message in this transaction.
-    // (If the row already existed for this clientId, no-op to avoid dupes.)
-    if (!clientId || (clientId && (message as any).client_id === clientId && files?.length)) {
-      // Note: this still runs on first creation or when clientId wasn't used.
-      // For strict idempotency, you could also check if attachments already exist for this message.
+    if (createdNow && files?.length) {
       attachments = await Promise.all(
         files.map(async (f) => {
           const meta = await uploadAttachment(f);
@@ -104,32 +109,69 @@ export async function sendMessage({
         })
       );
     }
-        await tx.conversation.update({
-           where: { id: conversationId },
-           data: { updated_at: new Date() },
-        });
 
-    const channel = supabase.channel(`conversation-${conversationId.toString()}`);
-    const payload = {
-  id: message.id.toString(),
-  conversationId: conversationId.toString(),
-  text: message.text ?? null,
-  createdAt: message.created_at.toISOString(),
-  senderId: senderId.toString(), // <- string
-  clientId: clientId ?? null,
-  attachments: attachments.map(a => ({
-    id: a.id.toString(),
-    path: a.path,
-    type: a.type,
-    size: a.size,
-  })),
-};
-    const safe = jsonSafe(payload);    // bigint→number, Date→ISO string
+    // touch conversation always (ok either way)
+    await tx.conversation.update({
+      where: { id: conversationId },
+      data: { updated_at: new Date() },
+    });
 
-    await supabase.channel(`conversation-${conversationId.toString()}`)
-    .send({ type: "broadcast", event: "new_message", payload: safe });
+    // drift counters only on first creation
+    if (createdNow && driftId) {
+      const updated = await tx.drift.update({
+        where: { id: driftId },
+        data: { message_count: { increment: 1 }, last_message_at: new Date() },
+        select: { message_count: true, last_message_at: true },
+      });
+      // live counters
+      supabase
+        .channel(`conversation-${conversationId.toString()}`)
+        .send({
+          type: "broadcast",
+          event: "drift_counters",
+          payload: {
+            driftId: driftId.toString(),
+            messageCount: updated.message_count,
+            lastMessageAt: updated.last_message_at?.toISOString() ?? null,
+          },
+        })
+        .catch(() => {});
+    }
 
-  // return the same shape the client expects
-  return safe;
+    // broadcast only on first creation (avoid dupes)
+    if (createdNow) {
+      const payload = {
+        id: message.id.toString(),
+        conversationId: conversationId.toString(),
+        text: message.text ?? null,
+        createdAt: message.created_at.toISOString(),
+        senderId: senderId.toString(),
+        driftId: message.drift_id ? message.drift_id.toString() : null,
+        clientId: clientId ?? null,
+        attachments: attachments.map((a) => ({
+          id: a.id.toString(),
+          path: a.path,
+          type: a.type,
+          size: a.size,
+        })),
+      };
+      const safe = jsonSafe(payload);
+      await supabase
+        .channel(`conversation-${conversationId.toString()}`)
+        .send({ type: "broadcast", event: "new_message", payload: safe });
+      return safe;
+    }
+
+    // If not createdNow (idempotent replay), return a minimal DTO (client hydrates by id)
+    return jsonSafe({
+      id: message.id.toString(),
+      conversationId: conversationId.toString(),
+      text: message.text ?? null,
+      createdAt: message.created_at.toISOString(),
+      senderId: senderId.toString(),
+      driftId: message.drift_id ? message.drift_id.toString() : null,
+      clientId: clientId ?? null,
+      attachments: [] as any[],
+    });
   });
 }

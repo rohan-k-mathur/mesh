@@ -16,9 +16,10 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const limit  = limitParam ? parseInt(limitParam, 10) : undefined;
 
   const rows = await fetchMessages({ conversationId, cursor, limit });
+  const topLevel = rows.filter((m) => m.drift_id == null);
 
   // Map to UI shape, then jsonSafe
-  const payload = rows.map(m => ({
+  const payload = topLevel.map(m => ({
     id: m.id,
     text: m.text,
     createdAt: m.created_at,
@@ -49,6 +50,7 @@ export async function POST(
           const form = await req.formData();
           const text = form.get("text") as string | null;
           const files = form.getAll("files").filter(Boolean) as File[];
+          const driftIdIn = form.get("driftId") as string | null;
           const clientId = (form.get("clientId") as string | null) ?? undefined;
 
           const saved = await sendMessage({
@@ -56,6 +58,7 @@ export async function POST(
             senderId: userId,
             text: text ?? undefined,
             files: files.length ? files : undefined,
+            driftId: driftIdIn ? BigInt(driftIdIn) : undefined,
             clientId,
           });
       
@@ -90,6 +93,7 @@ export async function POST(
             text: full.text ?? null,
             createdAt: full.created_at.toISOString(),
             senderId: full.sender_id.toString(),
+            driftId: full.drift_id ? full.drift_id.toString() : null,
             clientId: clientId ?? null,
             isRedacted: Boolean(full.is_redacted),
             sender: { name: full.sender.name, image: full.sender.image },

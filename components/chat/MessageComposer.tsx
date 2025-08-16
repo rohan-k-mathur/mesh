@@ -22,11 +22,13 @@ import { SheafComposer } from "../sheaf/SheafComposer";
 interface Props {
   conversationId: string;
   currentUserId: string | number; // NEW
+  driftId?: string;               // NEW (optional)
 }
 
 export default function MessageComposer({
   conversationId,
   currentUserId,
+  driftId,
 }: Props) {
   const appendMessage = useChatStore((s) => s.appendMessage);
   const [text, setText] = useState("");
@@ -82,6 +84,8 @@ export default function MessageComposer({
     const clientId = crypto.randomUUID();
     const form = new FormData();
     if (text.trim()) form.append("text", text);
+    
+    if (driftId) form.append("driftId", driftId); // ← tag to a drift
     files.forEach((f) => form.append("files", f));
     form.append("clientId", clientId);
     const xhr = new XMLHttpRequest();
@@ -304,6 +308,35 @@ export default function MessageComposer({
                   <DropdownMenuItem className="rounded-xl w-full" onClick={() => setShowTemp(true)}>
                     🌡 Temperature check…
                   </DropdownMenuItem>
+                  <DropdownMenuItem
+                     className="rounded-xl w-full"
+                     onClick={async () => {
+                       const title = prompt("Drift title");
+                       if (!title) return;
+                       try {
+                        const res = await fetch("/api/drifts", {
+                             method: "POST",
+                             headers: { "Content-Type": "application/json" },
+                             body: JSON.stringify({ conversationId, title }),
+                          });
+                           if (!res.ok) throw new Error(await res.text());
+                           const data = await res.json();
+                           const { anchor, drift } = data;
+                           // 1) insert anchor into the main timeline
+                           useChatStore.getState().appendMessage(String(conversationId), anchor);
+                           // 2) upsert drift metadata for the chip
+                           useChatStore.getState().upsertDrift({
+                             drift,
+                             my: { collapsed: true, pinned: false, muted: false, lastReadAt: null }
+                          });
+                          
+                       } catch (e: any) {
+                         alert(e?.message ?? "Failed to create drift");
+                       }
+                     }}
+                   >
+                     🌀 New drift…
+                   </DropdownMenuItem>
                   {/* ✅ NEW: toggle Sheaf panel */}
                   <DropdownMenuItem className="rounded-xl w-full" onClick={() => setShowSheaf((v) => !v)}>
                     🧩 Layered message…

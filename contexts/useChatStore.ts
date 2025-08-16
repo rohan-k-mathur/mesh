@@ -31,12 +31,29 @@ export interface Message {
     createdAt: string;
   }[];
   defaultFacetId?: string | null;
+  isRedacted?: boolean;
+   meta?: any;           // 👈 allow anchors to carry drift info
+    driftId?: string | null;
 }
 
 interface Conversation {
   id: string;
   title?: string | null;
 }
+export type DriftUI = {
+  drift: {
+    id: string;
+    conversationId: string;
+    title: string;
+    isClosed: boolean;
+    isArchived: boolean;
+    messageCount: number;
+    lastMessageAt: string | null;
+    anchorMessageId: string;
+  };
+  my?: { collapsed: boolean; pinned: boolean; muted: boolean; lastReadAt: string | null };
+};
+
 
 export type PollUI =
   | { kind: "OPTIONS"; poll: PollDTO; totals: number[]; count: number; myVote: number | null }
@@ -94,6 +111,13 @@ interface ChatState {
   reactionsByMessageId: Record<string, ReactionAgg[]>;
   setReactions: (messageId: string, items: ReactionAgg[]) => void;
   applyReactionDelta: (messageId: string, emoji: string, op: 'add'|'remove', byMe: boolean) => void;
+  driftsByAnchorId: Record<string, DriftUI>;
+  driftMessages: Record<string /*driftId*/, any[]>;
+  setDrifts: (items: DriftUI[]) => void;
+  upsertDrift: (item: DriftUI) => void;
+  setDriftMessages: (driftId: string, rows: any[]) => void;
+  appendDriftMessage: (driftId: string, msg: any) => void;
+  updateDriftCounters: (driftId: string, patch: { messageCount?: number; lastMessageAt?: string | null }) => void;
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -243,4 +267,45 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const msg = await res.json();
     get().appendMessage(id, msg);
   },
+  driftsByAnchorId: {},
+  driftMessages: {},
+  setDrifts: (items) =>
+    set((s) => {
+      const copy = { ...s.driftsByAnchorId };
+      items.forEach((it) => (copy[it.drift.anchorMessageId] = it));
+      return { driftsByAnchorId: copy };
+    }),
+  upsertDrift: (item) =>
+    set((s) => ({
+      driftsByAnchorId: { ...s.driftsByAnchorId, [item.drift.anchorMessageId]: item },
+    })),
+  setDriftMessages: (driftId, rows) =>
+    set((s) => ({ driftMessages: { ...s.driftMessages, [driftId]: rows } })),
+  appendDriftMessage: (driftId, msg) =>
+    set((s) => {
+      const list = s.driftMessages[driftId] ?? [];
+      return { driftMessages: { ...s.driftMessages, [driftId]: [...list, msg] } };
+    }),
+  updateDriftCounters: (driftId, patch) =>
+    set((s) => {
+      // find the anchor entry that points to this drift
+      const entries = Object.entries(s.driftsByAnchorId);
+      const found = entries.find(([, v]) => v.drift.id === driftId);
+      if (!found) return {};
+      const [anchorId, v] = found;
+      return {
+        driftsByAnchorId: {
+          ...s.driftsByAnchorId,
+          [anchorId]: {
+            ...v,
+            drift: {
+              ...v.drift,
+              messageCount: patch.messageCount ?? v.drift.messageCount,
+              lastMessageAt: patch.lastMessageAt ?? v.drift.lastMessageAt,
+            },
+          },
+        },
+      };
+    }),
+  
 }));

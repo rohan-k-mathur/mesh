@@ -74,6 +74,7 @@ model User {
   SheafAudienceList         SheafAudienceList[]
   roles                     UserRole[]
   reactions                 MessageReaction[]
+  driftMembers              DriftMember[]
 
   @@map("users")
 }
@@ -565,6 +566,7 @@ model Conversation {
   messages      Message[]
   notifications Notification[]            @relation("NotificationConversation")
   participants  ConversationParticipant[]
+  drifts        Drift[]                   @relation("ConversationDrifts")
 
   @@unique([user1_id, user2_id])
   @@index([user1_id])
@@ -614,15 +616,76 @@ model Message {
   is_redacted Boolean   @default(false)
   edited_at   DateTime? @db.Timestamptz(6)
   deleted_at  DateTime? @db.Timestamptz(6)
-  client_id        String?             @db.VarChar(64)
+  client_id   String?   @db.VarChar(64)
 
+  // Drifts & Threads
+  drift_id      BigInt? // FK column
+  reply_to      BigInt?
+  reply_count   Int       @default(0)
+  last_reply_at DateTime?
+  anchoredDrift Drift?    @relation("DriftAnchor")
+
+  // Misc
+  meta Json?
+
+  // relations
+
+  reactions        MessageReaction[]
   SheafFacet       SheafFacet[]
   SheafMessageMeta SheafMessageMeta[]
-  reactions        MessageReaction[]
 
-  @@index([conversation_id, created_at])
+  // 👇 exactly ONE relation field to Drift, named `drift` (or `Drift`, but only once)
+  drift Drift? @relation("DriftMessages", fields: [drift_id], references: [id])
+
   @@unique([conversation_id, client_id])
+  @@index([conversation_id, created_at])
+  @@index([drift_id])
+  @@index([reply_to])
   @@map("messages")
+}
+
+model Drift {
+  id                BigInt    @id @default(autoincrement())
+  conversation_id   BigInt
+  created_by        BigInt
+  title             String
+  created_at        DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime  @updatedAt @db.Timestamptz(6)
+  is_closed         Boolean   @default(false)
+  is_archived       Boolean   @default(false)
+  message_count     Int       @default(0)
+  last_message_at   DateTime?
+  anchor_message_id BigInt    @unique
+
+  // relations
+  conversation   Conversation @relation("ConversationDrifts", fields: [conversation_id], references: [id], onDelete: Cascade)
+  anchor_message Message      @relation("DriftAnchor", fields: [anchor_message_id], references: [id], onDelete: Cascade)
+
+  // 👇 inverse side of the relation; MUST use the same name "DriftMessages"
+  messages Message[] @relation("DriftMessages")
+
+  members DriftMember[]
+
+  @@index([conversation_id, updated_at])
+  @@map("drifts")
+}
+
+model DriftMember {
+  id           BigInt    @id @default(autoincrement())
+  drift_id     BigInt
+  user_id      BigInt
+  joined_at    DateTime  @default(now()) @db.Timestamptz(6)
+  collapsed    Boolean   @default(true)
+  pinned       Boolean   @default(false)
+  muted        Boolean   @default(false)
+  last_read_at DateTime?
+
+  drift Drift @relation(fields: [drift_id], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([drift_id, user_id])
+  @@index([user_id])
+  @@map("drift_members")
 }
 
 enum PollKind {

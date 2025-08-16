@@ -17,6 +17,7 @@ export async function GET(req: NextRequest) {
 
   const convo = searchParams.get("conversationId");
   const messageId = searchParams.get("messageId");
+  const driftId = searchParams.get("driftId");
 
   // Build where
   let whereMsg: any = {};
@@ -25,6 +26,19 @@ export async function GET(req: NextRequest) {
   } else if (convo) {
     whereMsg.conversation_id = toBigInt(convo);
   }
+   // 🔒 Main timeline: exclude drift children on conversation view.
+  // We only want top-level messages (anchors are top-level too since drift_id is null).
+  if (!messageId && convo && !driftId) {
+    whereMsg.drift_id = null;
+  }
+  // When a drift is requested explicitly, scope to that drift.
+  if (driftId) {
+    whereMsg.drift_id = toBigInt(driftId);
+  }
+  if (driftId) {
+        // When driftId is present, scope to messages inside that drift
+        whereMsg.drift_id = toBigInt(driftId);
+      }
 
   const viewer = await prisma.user.findUnique({
     where: { id: toBigInt(userId) },
@@ -46,7 +60,10 @@ export async function GET(req: NextRequest) {
       sender_id: true,
       created_at: true,
       text: true,
-      is_redacted: true, // ← include redaction flag
+      drift_id: true,
+      meta: true,
+      is_redacted: true,
+     
       sender: { select: { name: true, image: true } }, // 👈 avatar
       attachments: { select: { id: true, path: true, type: true, size: true } }, // 👈 top-level attachments
     },
@@ -127,6 +144,8 @@ export async function GET(req: NextRequest) {
               image: m.sender?.image ?? null,
             },
             createdAt: m.created_at.toISOString(),
+            driftId: m.drift_id ? s(m.drift_id) : null,
+          meta: (m.meta as any) ?? null,
             isRedacted: true,
             facets: [],
             defaultFacetId: null,
@@ -147,6 +166,8 @@ export async function GET(req: NextRequest) {
             image: m.sender?.image ?? null,
           },
           createdAt: m.created_at.toISOString(),
+          driftId: m.drift_id ? s(m.drift_id) : null,
+          meta: (m.meta as any) ?? null,
           isRedacted: false,
           facets: [], // no layers
           defaultFacetId: null,
@@ -179,6 +200,8 @@ export async function GET(req: NextRequest) {
               image: m.sender?.image ?? null,
             },
             createdAt: m.created_at.toISOString(),
+            driftId: m.drift_id ? s(m.drift_id) : null,
+                    meta: (m.meta as any) ?? null,
             isRedacted: false,
             facets: [],
             defaultFacetId: null,
@@ -206,6 +229,8 @@ export async function GET(req: NextRequest) {
         }, // 👈 avatar
         createdAt: m.created_at.toISOString(),
         isRedacted: false,
+        driftId: m.drift_id ? s(m.drift_id) : null,
+        meta: (m.meta as any) ?? null,
         facets: visible.map((f: any) => ({
           id: f.id,
           audience: f.audience,

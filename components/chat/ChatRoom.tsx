@@ -26,6 +26,8 @@ import type { PollStateDTO } from "@/types/poll";
 import { ReactionSummary } from "@/components/reactions/ReactionSummary";
 import { ReactionBar } from "@/components/reactions/ReactionBar";
 import { ReactionTrigger } from "@/components/reactions/ReactionTrigger";
+import { DriftChip } from "@/components/chat/DriftChip";
+import { DriftPane } from "@/components/chat/DriftPane";
 
 const ENABLE_REACTIONS = false;
 
@@ -206,22 +208,27 @@ const MessageRow = memo(function MessageRow({
                <DropdownMenu>
                  <DropdownMenuTrigger asChild>
                    <button
-                     className="py-0 align-center my-auto px-0  savebutton w-fit h-fit 
-                     rounded-md  text-xs bg-amber-400/70 border-mnne focus:outline-none"
+                      className="py-0 align-center my-auto px-0  shadow-md hover:shadow-none w-fit h-fit 
+                      rounded-md  text-xs  focus:outline-none"
                      title="Message actions"
                      type="button"
                    >
                       <Image
-                src="/assets/overflow-menu--vertical.svg"
+                src="/assets/radio-button--checked.svg"
                 alt="share"
-                width={14}
-                height={14}
+                width={28}
+                height={28}
                 className="cursor-pointer object-contain w-[10px]"
               />
                    </button>
                  </DropdownMenuTrigger>
-                 <DropdownMenuContent align={isMine ? "end" : "start"} sideOffset={6}>
+                
+                 <DropdownMenuContent className="flex flex-col flex-1 bg-white/30 backdrop-blur rounded-xl max-w-[400px] py-2 max-h-[500px] w-full gap-1
+                h-full text-[1rem] tracking-wide"
+                 align={isMine ? "end" : "start"} sideOffset={6}>
                    <DropdownMenuItem
+                                         className=" rounded-xl w-full"
+
                      onClick={() => {
                        // Placeholder for now
                        alert("Edit is coming soon.");
@@ -230,7 +237,8 @@ const MessageRow = memo(function MessageRow({
                      ✏️ Edit
                    </DropdownMenuItem>
                    <DropdownMenuItem
-                     className="text-red-600"
+                     className="text-red-600 rounded-xl w-full"
+
                      onClick={() => onDelete(m.id)}
                    >
                      🗑 Delete
@@ -267,25 +275,27 @@ const MessageRow = memo(function MessageRow({
                <DropdownMenu>
                  <DropdownMenuTrigger asChild>
                  <button
-                     className="py-0 align-center my-auto px-0  savebutton w-fit h-fit 
-                     rounded-md  text-xs bg-amber-400/70 border-mnne focus:outline-none"
+                     className="py-0 align-center my-auto px-0  shadow-md w-fit h-fit 
+                     rounded-md  text-xs hover:shadow-none focus:outline-none"
                      title="Message actions"
                      type="button"
                    >
                       <Image
-                src="/assets/overflow-menu--vertical.svg"
+                src="/assets/radio-button--checked.svg"
                 alt="share"
-                width={14}
-                height={14}
+                width={28}
+                height={28}
                 className="cursor-pointer object-contain w-[10px]"
               />
                    </button>
                  </DropdownMenuTrigger>
-                 <DropdownMenuContent align={isMine ? "end" : "start"} sideOffset={6}>
-                   <DropdownMenuItem onClick={() => alert("Edit is coming soon.")}>
+                 <DropdownMenuContent className="flex flex-col flex-1 bg-white/30 backdrop-blur rounded-xl max-w-[400px] py-2 max-h-[500px] w-full gap-1
+                h-full text-[1rem] tracking-wide"
+                  align={isMine ? "end" : "start"} sideOffset={6}>
+                   <DropdownMenuItem className="rounded-xl w-full" onClick={() => alert("Edit is coming soon.")}>
                      ✏️ Edit
                    </DropdownMenuItem>
-                   <DropdownMenuItem className="text-red-600" onClick={() => onDelete(m.id)}>
+                   <DropdownMenuItem className="rounded-xl w-full text-red-600" onClick={() => onDelete(m.id)}>
                      🗑 Delete
                    </DropdownMenuItem>
                  </DropdownMenuContent>
@@ -312,6 +322,21 @@ export default function ChatRoom({
   highlightMessageId,
 }: Props) {
   const { open, state } = usePrivateChatManager();
+
+  const driftsByAnchorId = useChatStore(s => s.driftsByAnchorId);
+    const driftMessages = useChatStore((s) => s.driftMessages);
+  const setDrifts = useChatStore((s) => s.setDrifts);
+  const upsertDrift = useChatStore((s) => s.upsertDrift);
+  const setDriftMessages = useChatStore((s) => s.setDriftMessages);
+  const appendDriftMessage = useChatStore((s) => s.appendDriftMessage);
+
+  const [openDrifts, setOpenDrifts] = useState<Record<string, boolean>>({});
+  const openDrift = React.useCallback((driftId: string) => {
+    setOpenDrifts((prev) => ({ ...prev, [driftId]: true }));
+  }, []);
+  const closeDrift = React.useCallback((driftId: string) => {
+    setOpenDrifts((prev) => ({ ...prev, [driftId]: false }));
+  }, []);
 
   const handleOpen = useCallback(
     (peerId: string, peerName: string, peerImage?: string | null) => {
@@ -421,7 +446,37 @@ export default function ChatRoom({
       .catch((e) => console.warn("[reactions] hydrate failed:", e));
   }, [messages, currentUserId]);
 
+  const hydratedAnchorIdsRef = useRef<Set<string>>(new Set());
 
+  useEffect(() => {
+    // only consider anchors not already in the store
+    const unseen = messages
+      .filter((m) => (m as any).meta?.kind === "DRIFT_ANCHOR")
+      .map((m) => m.id)
+      .filter((id) => !driftsByAnchorId[id] && !hydratedAnchorIdsRef.current.has(id));
+  
+    if (unseen.length === 0) return;
+  
+    // mark as in-flight so we don't queue multiple fetches while this effect runs
+    unseen.forEach((id) => hydratedAnchorIdsRef.current.add(id));
+  
+    fetch("/api/drifts/query", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ anchorMessageIds: unseen }),
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!data?.ok || !Array.isArray(data.items)) return;
+        setDrifts(
+          data.items.map((it: any) => ({
+            drift: it.drift,
+            my: it.my,
+          }))
+        );
+      })
+      .catch((e) => console.warn("[drifts] hydrate failed:", e));
+  }, [messages, driftsByAnchorId, setDrifts]);
   // keep a ref to the subscribed channel so we can send on it later
   const chRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
@@ -459,7 +514,11 @@ export default function ChatRoom({
         .then((data) => {
           const hydrated = data?.messages?.[0] ?? data?.message ?? null;
           if (hydrated) {
-            appendRef.current(conversationId, hydrated);
+            if (hydrated.driftId) {
+                            appendDriftMessage(hydrated.driftId, hydrated);
+                          } else {
+                            appendRef.current(conversationId, hydrated);
+                          }
           } else {
             // fallback: append raw if hydration failed
             appendRef.current(conversationId, payload as Message);
@@ -513,20 +572,43 @@ export default function ChatRoom({
         String(userId) === String(currentUserId)
       );
     };
+    const driftCreateHandler = ({ payload }: any) => {
+           const { anchor, drift } = payload || {};
+          if (!anchor || !drift) return;
+            appendRef.current(conversationId, anchor);
+            upsertDrift({ drift, my: { collapsed: true, pinned: false, muted: false, lastReadAt: null } });
+            
+          };
+      
+          const driftCountersHandler = ({ payload }: any) => {
+            const { driftId, messageCount, lastMessageAt } = payload || {};
+            if (!driftId) return;
+            useChatStore.getState().updateDriftCounters?.(driftId, {
+              messageCount,
+              lastMessageAt,
+            });
+          };
+      
+
     const redactedHandler = ({ payload }: any) => {
             const mid = String(payload?.id ?? payload?.messageId ?? "");
             if (!mid) return;
             markAsRedacted(mid);
           };
 
+ 
+
     channel.on("broadcast", { event: "new_message" }, msgHandler);
     channel.on("broadcast", { event: "poll_create" }, pollCreateHandler);
     channel.on("broadcast", { event: "poll_state" }, pollStateHandler);
+    channel.on("broadcast", { event: "drift_create" }, driftCreateHandler);
+    channel.on("broadcast", { event: "drift_counters" }, driftCountersHandler);
+
+ 
+   
     if (ENABLE_REACTIONS) {
     channel.on("broadcast", { event: "reaction_add" }, reactionAdd);
     channel.on("broadcast", { event: "reaction_remove" }, reactionRemove);
-
-
   }
   channel.on("broadcast", { event: "message_redacted" }, ({ payload }: any) => {
     const mid = String(payload?.id ?? payload?.messageId ?? "");
@@ -669,13 +751,21 @@ export default function ChatRoom({
   return (
     <div className="space-y-3">
       {messages.map((m) => {
+ 
         const panes = Object.values(state.panes);
         const anchored = panes.find(
           (p) => p.anchor?.messageId === m.id && p.peerId === String(m.senderId)
         );
-        return (
-          <div key={m.id} className="space-y-2" data-msg-id={m.id}>
-            <MessageRow
+          // Drift anchor detection via store (reactive)
+  const driftEntry = driftsByAnchorId[m.id]; // { drift, my } | undefined
+  const isDriftAnchor = !!driftEntry;
+
+  
+        // const isDriftAnchor = (m as any).meta?.kind === "DRIFT_ANCHOR";
+                return (
+                  <div key={m.id} className="space-y-2" data-msg-id={m.id}>
+                    {!isDriftAnchor && (
+                      <MessageRow
               m={m}
               currentUserId={currentUserId}
               conversationId={conversationId} // NEW
@@ -684,10 +774,11 @@ export default function ChatRoom({
               onCreateOptions={onCreateOptions}
               onCreateTemp={onCreateTemp}
               onDelete={handleDelete}
+            
             />
-
+      )}
             {/* Render attachments OUTSIDE ChatMessage so they always show */}
-            {!((m as any).isRedacted) && m.attachments?.length ? (
+            {!isDriftAnchor && !((m as any).isRedacted) && m.attachments?.length ? (
               <div
                 className={[
                   "mt-1 flex flex-col gap-2 px-3",
@@ -707,6 +798,35 @@ export default function ChatRoom({
                 onVote={(body) => onVote(pollsByMessageId[m.id], body)}
               />
             )}
+                {/* Drift anchor chip + pane (purely store-driven; no meta) */}
+{isDriftAnchor && driftEntry && (
+  <>
+    <DriftChip
+      title={driftEntry.drift.title}
+      count={driftEntry.drift.messageCount}
+      onOpen={() => openDrift(driftEntry.drift.id)}
+    />
+    {openDrifts[driftEntry.drift.id] && (
+     <DriftPane
+       key={driftEntry.drift.id}
+        drift={{
+          id: driftEntry.drift.id,
+          title: driftEntry.drift.title,
+          isClosed: driftEntry.drift.isClosed,
+          isArchived: driftEntry.drift.isArchived,
+        }}
+        conversationId={String(conversationId)}
+        currentUserId={currentUserId}
+        onClose={() => closeDrift(driftEntry.drift.id)}
+      />
+    )}
+  </>
+)}
+
+             
+             {anchored && (
+               <button /* … existing side chat opener … */>Side chat</button>
+          )}
             {anchored && (
               <button
                 className="text-[11px] px-2 py-[2px] rounded bg-white/70 border hover:bg-white"
