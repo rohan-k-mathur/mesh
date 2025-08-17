@@ -1,3 +1,8 @@
+export const runtime = "nodejs";
+export const revalidate = 0;                  // Next.js: no ISR
+export const dynamic = "force-dynamic";   
+
+
 import { NextRequest } from "next/server";
 import { prisma } from "../_prisma";
 import { jsonSafe } from "@/lib/bigintjson";
