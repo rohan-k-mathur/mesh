@@ -75,6 +75,7 @@ model User {
   roles                     UserRole[]
   reactions                 MessageReaction[]
   driftMembers              DriftMember[]
+  MessageMention            MessageMention[]
 
   @@map("users")
 }
@@ -635,7 +636,8 @@ model Message {
   SheafMessageMeta SheafMessageMeta[]
 
   // 👇 exactly ONE relation field to Drift, named `drift` (or `Drift`, but only once)
-  drift Drift? @relation("DriftMessages", fields: [drift_id], references: [id])
+  drift          Drift?           @relation("DriftMessages", fields: [drift_id], references: [id])
+  MessageMention MessageMention[]
 
   @@unique([conversation_id, client_id])
   @@index([conversation_id, created_at])
@@ -1527,7 +1529,9 @@ model SheafFacet {
   attachments      SheafAttachment[]
   SheafMessageMeta SheafMessageMeta[]
 
-  reactions MessageReaction[]
+  reactions      MessageReaction[]
+  MessageMention MessageMention[]
+  LinkPreview    LinkPreview[]
 
   @@index([messageId])
   @@index([audienceKind, audienceMode])
@@ -1642,32 +1646,38 @@ model MessageReaction {
   @@index([userId])
 }
 
+// --- Mentions ---
 model MessageMention {
   id        BigInt   @id @default(autoincrement())
   messageId BigInt
-  facetId   BigInt?
+  facetId   BigInt? // mention occurred in this facet body (optional for plain)
   userId    BigInt
-  createdAt DateTime @default(now())
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
 
-  message Message    @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  facet   SheafFacet @relation(fields: [facetId], references: [id], onDelete: Cascade)
-  user    User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  message Message     @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  facet   SheafFacet? @relation(fields: [facetId], references: [id], onDelete: Cascade)
+  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
   @@index([messageId])
   @@index([facetId])
+  @@map("message_mentions")
 }
 
+// --- Link preview cache (server-fetched, SSRF-safe) ---
 model LinkPreview {
   urlHash   String   @id
   url       String
   title     String?
   desc      String?
   image     String?
-  fetchedAt DateTime @default(now())
-  status    String   // "ok" | "blocked" | "noindex" | "error"
+  fetchedAt DateTime @default(now()) @db.Timestamptz(6)
+  status    String // "ok" | "blocked" | "noindex" | "error"
   facetId   BigInt?
+
+  facet SheafFacet? @relation(fields: [facetId], references: [id], onDelete: SetNull)
 
   @@index([facetId])
   @@index([fetchedAt])
+  @@map("link_previews")
 }

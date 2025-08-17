@@ -75,7 +75,18 @@ function normalizeMessage(incoming: any): Message {
     sender: raw.sender ?? undefined,
     attachments: Array.isArray(raw.attachments) ? raw.attachments : [],
     defaultFacetId: raw.defaultFacetId ?? null,
-  };
+   // 🔽 pass-throughs (new)
+   driftId: raw.driftId ?? raw.drift_id ?? null,
+   isRedacted: raw.isRedacted ?? raw.is_redacted ?? false,
+   meta: raw.meta ?? undefined,
+   // not in Message interface explicitly, but we read it in UI via (m as any).edited
+   linkPreviews: Array.isArray(raw.linkPreviews) ? raw.linkPreviews : undefined,
+   // If you want, add `edited?: boolean` to the Message interface too.
+   // @ts-ignore
+   edited: raw.edited ?? false,
+   // @ts-ignore — keep quotes on the object, UI reads via (m as any).quotes
+   quotes: Array.isArray(raw.quotes) ? raw.quotes : undefined,
+ };
 
   if (Array.isArray(raw.facets)) {
     base.facets = raw.facets
@@ -91,6 +102,15 @@ function normalizeMessage(incoming: any): Message {
             ? f.priorityRank
             : 999, // last if unspecified
         createdAt: f.createdAt ?? base.createdAt,
+      // Facet-level edited info (UI reads via (facet as any).isEdited)
+        // @ts-ignore
+        isEdited: f.isEdited ?? (f.updatedAt ? new Date(f.updatedAt).getTime() > new Date(f.createdAt ?? base.createdAt).getTime() : false),
+        // keep updatedAt if present (some UIs display it)
+        // @ts-ignore
+        updatedAt: f.updatedAt ?? null,
+        // optional: link previews if you add them later
+        // @ts-ignore
+        linkPreviews: Array.isArray(f.linkPreviews) ? f.linkPreviews : undefined,
       }))
       .sort((a, b) => a.priorityRank - b.priorityRank);
   }

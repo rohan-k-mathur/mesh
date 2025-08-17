@@ -29,6 +29,7 @@ import { ReactionTrigger } from "@/components/reactions/ReactionTrigger";
 import { DriftChip } from "@/components/chat/DriftChip";
 import { DriftPane } from "@/components/chat/DriftPane";
 import { QuoteBlock } from "@/components/chat/QuoteBlock";
+import { LinkCard } from "@/components/chat/LinkCard";
 
 const ENABLE_REACTIONS = false;
 
@@ -44,6 +45,24 @@ function excerpt(text?: string | null, len = 100) {
   if (!text) return null;
   const t = text.replace(/\s+/g, " ").trim();
   return t.length > len ? t.slice(0, len - 1) + "…" : t;
+}
+
+// Minimal TipTap → text for inline label
+function textFromTipTap(node: any): string {
+  if (!node) return "";
+  if (typeof node === "string") return node;
+  if (Array.isArray(node)) return node.map(textFromTipTap).join("");
+  if (typeof node === "object") {
+    if (node.text) return String(node.text);
+    if (Array.isArray(node.content))
+      return node.content.map(textFromTipTap).join("");
+    return textFromTipTap(node.content);
+  }
+  return "";
+}
+function toSnippet(raw: string, max = 48) {
+  const s = raw.replace(/\s+/g, " ").trim();
+  return s.length > max ? s.slice(0, max - 1) + "…" : s;
 }
 
 function Attachment({
@@ -228,45 +247,81 @@ const MessageRow = memo(function MessageRow({
               ].join(" ")}
             >
               <DropdownMenu>
-    <DropdownMenuTrigger asChild>
-    <button
-        className="py-0  px-0 mr-[1px] align-center my-auto bg-slate-500 shadow-md hover:shadow-none  rounded-md text-xs focus:outline-none"
-        title="Message actions"
-        type="button"
-      >
-        <Image src="/assets/dot-mark.svg" alt="actions" width={32} height={32} className="cursor-pointer object-fill w-[8px] "  />
-      </button>
-    </DropdownMenuTrigger>
-    <DropdownMenuContent align={isMine ? "end" : "start"} sideOffset={6}
-      className="flex flex-col bg-white/30 backdrop-blur rounded-xl max-w-[400px] py-2">
-      {isMine ? (
-        <>
-          <DropdownMenuItem onClick={() => alert("Edit is coming soon.")}>✏️ Edit</DropdownMenuItem>
-          <DropdownMenuItem className="text-red-600" onClick={() => onDelete(m.id)}>🗑 Delete</DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => {
-              const facetId = (m as any).defaultFacetId ?? (Array.isArray(m.facets) && m.facets[0]?.id) ?? undefined;
-              useChatStore.getState().setQuoteDraft(conversationId, { messageId: m.id, facetId });
-            }}
-          >
-            🧩 Quote
-          </DropdownMenuItem>
-        </>
-      ) : (
-        <>
-          <DropdownMenuItem
-            onClick={() => {
-              const facetId = (m as any).defaultFacetId ?? (Array.isArray(m.facets) && m.facets[0]?.id) ?? undefined;
-              useChatStore.getState().setQuoteDraft(conversationId, { messageId: m.id, facetId });
-            }}
-          >
-            🧩 Quote
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => onPrivateReply?.(m)}>↩️ Reply in DM</DropdownMenuItem>
-        </>
-      )}
-    </DropdownMenuContent>
- </DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className="py-0  px-0 mr-[1px] align-center my-auto bg-slate-500 shadow-md hover:shadow-none  rounded-md text-xs focus:outline-none"
+                    title="Message actions"
+                    type="button"
+                  >
+                    <Image
+                      src="/assets/dot-mark.svg"
+                      alt="actions"
+                      width={32}
+                      height={32}
+                      className="cursor-pointer object-fill w-[8px] "
+                    />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align={isMine ? "end" : "start"}
+                  sideOffset={6}
+                  className="flex flex-col bg-white/30 backdrop-blur rounded-xl max-w-[400px] py-2"
+                >
+                  {isMine ? (
+                    <>
+                      <DropdownMenuItem
+                        onClick={() => alert("Edit is coming soon.")}
+                      >
+                        ✏️ Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="text-red-600"
+                        onClick={() => onDelete(m.id)}
+                      >
+                        🗑 Delete
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => {
+                          const facetId =
+                            (m as any).defaultFacetId ??
+                            (Array.isArray(m.facets) && m.facets[0]?.id) ??
+                            undefined;
+                          useChatStore
+                            .getState()
+                            .setQuoteDraft(conversationId, {
+                              messageId: m.id,
+                              facetId,
+                            });
+                        }}
+                      >
+                        🧩 Quote
+                      </DropdownMenuItem>
+                    </>
+                  ) : (
+                    <>
+                      <DropdownMenuItem
+                        onClick={() => {
+                          const facetId =
+                            (m as any).defaultFacetId ??
+                            (Array.isArray(m.facets) && m.facets[0]?.id) ??
+                            undefined;
+                          useChatStore
+                            .getState()
+                            .setQuoteDraft(conversationId, {
+                              messageId: m.id,
+                              facetId,
+                            });
+                        }}
+                      >
+                        🧩 Quote
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onPrivateReply?.(m)}>
+                        ↩️ Reply in DM
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
 
@@ -302,45 +357,81 @@ const MessageRow = memo(function MessageRow({
               ].join(" ")}
             >
               <DropdownMenu>
-    <DropdownMenuTrigger asChild>
-    <button
-        className="py-0  px-0 mr-[1px] align-center my-auto bg-slate-500 shadow-md hover:shadow-none  rounded-md text-xs focus:outline-none"
-        title="Message actions"
-        type="button"
-      >
-        <Image src="/assets/dot-mark.svg" alt="actions" width={32} height={32} className="cursor-pointer object-fill w-[8px] "  />
-      </button>
-    </DropdownMenuTrigger>
-    <DropdownMenuContent align={isMine ? "end" : "start"} sideOffset={6}
-      className="flex flex-col bg-white/30 backdrop-blur rounded-xl max-w-[400px] py-2">
-      {isMine ? (
-        <>
-          <DropdownMenuItem onClick={() => alert("Edit is coming soon.")}>✏️ Edit</DropdownMenuItem>
-          <DropdownMenuItem className="text-red-600" onClick={() => onDelete(m.id)}>🗑 Delete</DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => {
-              const facetId = (m as any).defaultFacetId ?? (Array.isArray(m.facets) && m.facets[0]?.id) ?? undefined;
-              useChatStore.getState().setQuoteDraft(conversationId, { messageId: m.id, facetId });
-            }}
-          >
-            🧩 Quote
-          </DropdownMenuItem>
-        </>
-      ) : (
-        <>
-          <DropdownMenuItem
-            onClick={() => {
-              const facetId = (m as any).defaultFacetId ?? (Array.isArray(m.facets) && m.facets[0]?.id) ?? undefined;
-              useChatStore.getState().setQuoteDraft(conversationId, { messageId: m.id, facetId });
-            }}
-          >
-            🧩 Quote
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => onPrivateReply?.(m)}>↩️ Reply in DM</DropdownMenuItem>
-        </>
-      )}
-    </DropdownMenuContent>
- </DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className="py-0  px-0 mr-[1px] align-center my-auto bg-slate-500 shadow-md hover:shadow-none  rounded-md text-xs focus:outline-none"
+                    title="Message actions"
+                    type="button"
+                  >
+                    <Image
+                      src="/assets/dot-mark.svg"
+                      alt="actions"
+                      width={32}
+                      height={32}
+                      className="cursor-pointer object-fill w-[8px] "
+                    />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align={isMine ? "end" : "start"}
+                  sideOffset={6}
+                  className="flex flex-col bg-white/30 backdrop-blur rounded-xl max-w-[400px] py-2"
+                >
+                  {isMine ? (
+                    <>
+                      <DropdownMenuItem
+                        onClick={() => alert("Edit is coming soon.")}
+                      >
+                        ✏️ Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="text-red-600"
+                        onClick={() => onDelete(m.id)}
+                      >
+                        🗑 Delete
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => {
+                          const facetId =
+                            (m as any).defaultFacetId ??
+                            (Array.isArray(m.facets) && m.facets[0]?.id) ??
+                            undefined;
+                          useChatStore
+                            .getState()
+                            .setQuoteDraft(conversationId, {
+                              messageId: m.id,
+                              facetId,
+                            });
+                        }}
+                      >
+                        🧩 Quote
+                      </DropdownMenuItem>
+                    </>
+                  ) : (
+                    <>
+                      <DropdownMenuItem
+                        onClick={() => {
+                          const facetId =
+                            (m as any).defaultFacetId ??
+                            (Array.isArray(m.facets) && m.facets[0]?.id) ??
+                            undefined;
+                          useChatStore
+                            .getState()
+                            .setQuoteDraft(conversationId, {
+                              messageId: m.id,
+                              facetId,
+                            });
+                        }}
+                      >
+                        🧩 Quote
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onPrivateReply?.(m)}>
+                        ↩️ Reply in DM
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </>
@@ -592,7 +683,7 @@ export default function ChatRoom({
         .then((r) => (r.ok ? r.json() : null))
         .then((data) => {
           const hydrated = data?.messages?.[0] ?? data?.message ?? null;
-          console.log('hydrated quotes for', mid, hydrated?.quotes);
+          console.log("hydrated quotes for", mid, hydrated?.quotes);
           if (hydrated) {
             if (hydrated.driftId) {
               appendDriftMessage(hydrated.driftId, hydrated);
@@ -608,6 +699,32 @@ export default function ChatRoom({
           appendRef.current(conversationId, payload as Message);
         });
     };
+
+    const linkPreviewHandler = async ({ payload }: any) => {
+      const mid = String(payload?.messageId ?? "");
+      if (!mid) return;
+      try {
+        const r = await fetch(
+          `/api/sheaf/messages?userId=${encodeURIComponent(
+            currentUserId
+          )}&messageId=${encodeURIComponent(mid)}`,
+          { cache: "no-store" }
+        );
+        const data = await r.json();
+        const hydrated = data?.messages?.[0] ?? data?.message ?? null;
+        if (!hydrated) return;
+        const list = useChatStore.getState().messages[conversationId] ?? [];
+        const next = list.map((row: any) =>
+          String(row.id) === String(mid) ? hydrated : row
+        );
+        useChatStore.getState().setMessages(conversationId, next);
+      } catch {}
+    };
+    channel.on(
+      "broadcast",
+      { event: "link_preview_update" },
+      linkPreviewHandler
+    );
 
     const pollCreateHandler = ({ payload }: any) => {
       const data = unwrap(payload);
@@ -832,6 +949,7 @@ export default function ChatRoom({
   return (
     <div className="space-y-3">
       {messages.map((m) => {
+        const isMine = String(m.senderId) === String(currentUserId);
         const panes = Object.values(state.panes);
         const anchored = panes.find(
           (p) => p.anchor?.messageId === m.id && p.peerId === String(m.senderId)
@@ -872,8 +990,8 @@ export default function ChatRoom({
                 ))}
               </div>
             ) : null}
-             {/* Reply/quote preview (right below the bubble) */}
- {/* {Array.isArray((m as any).quotes) && (m as any).quotes.length > 0 && (
+            {/* Reply/quote preview (right below the bubble) */}
+            {/* {Array.isArray((m as any).quotes) && (m as any).quotes.length > 0 && (
    <div className={["px-3", String(m.senderId) === String(currentUserId) ? "items-end" : "items-start"].join(" ")}>
      <div className="mt-1 text-[11px] text-slate-500 flex items-center gap-1">
        <span className="inline-block h-1.5 w-1.5 rounded-full bg-slate-400" />
@@ -892,20 +1010,88 @@ export default function ChatRoom({
    </div>
  )} */}
 
+            {Array.isArray((m as any).quotes) &&
+              (m as any).quotes.length > 0 &&
+              (() => {
+                const isMine = String(m.senderId) === String(currentUserId);
+                const q0 = (m as any).quotes[0];
+                // Prefer author; else show a 48-char snippet of the quoted text
+                const textRaw =
+                  typeof q0?.body === "string"
+                    ? q0.body
+                    : q0?.body
+                    ? textFromTipTap(q0.body)
+                    : "";
+                const inlineLabel =
+                  q0?.sourceAuthor?.name || toSnippet(textRaw, 48);
+                return (
+                  <div
+                    className={[
+                      "px-3 mt-1 flex",
+                      isMine ? "justify-end" : "justify-start",
+                    ].join(" ")}
+                  >
+                    <div className="max-w-[60%]">
+                      <div className="text-[11px] text-slate-500 flex items-center gap-1">
+                        <span className="inline-block h-1.5 w-1.5 rounded-full bg-slate-400" />
+                        <span>Replying to&nbsp;</span>
+                        <span className="font-medium text-slate-700">
+                          {inlineLabel}
+                        </span>
+                      </div>
+                      <div
+                        className={[
+                          "mt-1 pl-3 border-l-2",
+                          isMine ? "border-fuchsia-200" : "border-sky-200",
+                        ].join(" ")}
+                      >
+                        {(m as any).quotes.map((q: any, i: number) => (
+                          <QuoteBlock key={`${m.id}-q-${i}`} q={q} compact />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
 
-{Array.isArray((m as any).quotes) && (m as any).quotes.length > 0 && (
-  <div className={["px-3", String(m.senderId) === String(currentUserId) ? "items-end" : "items-start"].join(" ")}>
-    <div className="mt-1 text-[11px] text-slate-500 flex items-center gap-1">
-      <span className="inline-block h-1.5 w-1.5 rounded-full bg-slate-400" />
-      <span>Replying to</span>
-    </div>
-    <div className="mt-1 pl-3 border-l-2 border-slate-200">
-      {(m as any).quotes.map((q: any, i: number) => (
-        <QuoteBlock key={`${m.id}-q-${i}`} q={q} />
-      ))}
-    </div>
+           {/* Plain message link previews */}
+{!Array.isArray((m as any).facets) &&
+ Array.isArray((m as any).linkPreviews) &&
+ (m as any).linkPreviews.length > 0 && (
+  <div
+    className={[
+      "mt-2 flex flex-col gap-2 px-3",
+      String(m.senderId) === String(currentUserId) ? "items-end" : "items-start",
+    ].join(" ")}
+  >
+    {(m as any).linkPreviews.slice(0, 3).map((p: any) => (
+      <LinkCard key={p.urlHash} p={p} />
+    ))}
   </div>
 )}
+
+{/* Sheaf (default facet) link previews */}
+{Array.isArray((m as any).facets) &&
+ (m as any).facets.length > 0 &&
+ (() => {
+   const defId = (m as any).defaultFacetId ?? (m as any).facets[0]?.id;
+   const def =
+     (m as any).facets.find((f: any) => f.id === defId) ??
+     (m as any).facets[0];
+   if (!def?.linkPreviews?.length) return null;
+   return (
+     <div
+       className={[
+         "mt-2 flex flex-col gap-2 px-3",
+         String(m.senderId) === String(currentUserId) ? "items-end" : "items-start",
+       ].join(" ")}
+     >
+       {def.linkPreviews.slice(0, 3).map((p: any) => (
+         <LinkCard key={p.urlHash} p={p} />
+       ))}
+     </div>
+   );
+ })()}
 
             {pollsByMessageId[m.id] && (
               <PollChip
@@ -913,8 +1099,7 @@ export default function ChatRoom({
                 onVote={(body) => onVote(pollsByMessageId[m.id], body)}
               />
             )}
-            
-            
+
             {/* Drift anchor chip + pane (purely store-driven; no meta) */}
             {isDriftAnchor && driftEntry && (
               <>

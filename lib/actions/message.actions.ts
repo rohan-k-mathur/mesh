@@ -5,6 +5,10 @@ import { supabase } from "@/lib/supabaseclient";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { uploadAttachment } from "@/lib/storage/uploadAttachment";
 import { jsonSafe } from "../bigintjson";
+import { extractUrls } from "@/lib/text/urls";
+import { parseMentionsFromText } from "@/lib/text/mentions";
+import { getOrFetchLinkPreview, hashUrl } from "@/lib/unfurl";
+
 type SendMessageArgs = {
   senderId: bigint;
   conversationId: bigint;
@@ -41,27 +45,28 @@ export async function sendMessage({
   files,
   driftId,
   clientId,
-  meta,      
+  meta,
 }: SendMessageArgs) {
   if (!text && (!files || files.length === 0)) {
     throw new Error("Message must contain text or attachment");
   }
 
-  return prisma.$transaction(async (tx) => {
-    // must be participant
+  // 1) DB transaction: create/reuse message, attachments, mentions, touch convo, drift counters
+  const result = await prisma.$transaction(async (tx) => {
+    // ensure participant
     const member = await tx.conversationParticipant.findFirst({
       where: { conversation_id: conversationId, user_id: senderId },
       select: { user_id: true },
     });
     if (!member) throw new Error("Not a participant in this conversation");
 
+    // create or reuse (idempotency)
     let message:
       | Awaited<ReturnType<typeof tx.message.create>>
       | Awaited<ReturnType<typeof tx.message.findUnique>>;
     let createdNow = false;
 
     if (clientId) {
-      // idempotency: look up first
       const existing = await tx.message.findUnique({
         where: { conversation_id_client_id: { conversation_id: conversationId, client_id: clientId } },
         include: { sender: { select: { name: true, image: true } } },
@@ -76,7 +81,7 @@ export async function sendMessage({
             text,
             drift_id: driftId ?? undefined,
             client_id: clientId,
-            meta: meta ?? undefined, // ← write meta
+            meta: meta ?? undefined,
           },
           include: { sender: { select: { name: true, image: true } } },
         });
@@ -89,45 +94,82 @@ export async function sendMessage({
           conversation_id: conversationId,
           text,
           drift_id: driftId ?? undefined,
-          meta: meta ?? undefined, // ← write meta
+          meta: meta ?? undefined,
         },
         include: { sender: { select: { name: true, image: true } } },
       });
       createdNow = true;
     }
 
-    // attachments only on first creation
-    let attachments: any[] = [];
+    // attachments on first creation only
+    let attachments: { id: bigint; path: string; type: string; size: number }[] = [];
     if (createdNow && files?.length) {
       attachments = await Promise.all(
         files.map(async (f) => {
-          const meta = await uploadAttachment(f);
+          const up = await uploadAttachment(f);
           return tx.messageAttachment.create({
             data: {
               message_id: message.id,
-              path: meta.path,
-              type: meta.type,
-              size: meta.size,
+              path: up.path,
+              type: up.type,
+              size: up.size,
             },
           });
         })
       );
     }
 
-    // touch conversation always (ok either way)
+    // mentions (plain text only) — inside txn
+    if (message.text) {
+      const tokens = await parseMentionsFromText(
+        message.text,
+        undefined,
+        async (names) => {
+          const users = await tx.user.findMany({
+            where: { username: { in: names } },
+            select: { id: true, username: true },
+          });
+          return users.map((u) => ({ id: u.id.toString(), username: u.username }));
+        }
+      );
+
+      if (tokens.length) {
+        const ids = tokens
+          .map((t) => BigInt(t.userId))
+          .filter((uid) => uid !== senderId);
+        if (ids.length) {
+          const participants = await tx.conversationParticipant.findMany({
+            where: { conversation_id: conversationId, user_id: { in: ids } },
+            select: { user_id: true },
+          });
+          const allowed = new Set(participants.map((p) => p.user_id.toString()));
+          const rows = tokens
+            .filter((t) => allowed.has(t.userId) && BigInt(t.userId) !== senderId)
+            .map((t) => ({ messageId: message.id, facetId: null, userId: BigInt(t.userId) }));
+          if (rows.length) {
+            await tx.messageMention.createMany({ data: rows, skipDuplicates: true });
+            // TODO optional: insert notifications here
+          }
+        }
+      }
+    }
+
+    // collect URLs (we'll unfurl after commit)
+    const urlList = extractUrls(message.text ?? "");
+
+    // touch conversation
     await tx.conversation.update({
       where: { id: conversationId },
       data: { updated_at: new Date() },
     });
 
-    // drift counters only on first creation
+    // drift counters (notify live). This can be inside txn (cheap) or after.
     if (createdNow && driftId) {
       const updated = await tx.drift.update({
         where: { id: driftId },
         data: { message_count: { increment: 1 }, last_message_at: new Date() },
         select: { message_count: true, last_message_at: true },
       });
-      // live counters
       supabase
         .channel(`conversation-${conversationId.toString()}`)
         .send({
@@ -142,40 +184,63 @@ export async function sendMessage({
         .catch(() => {});
     }
 
-    // broadcast only on first creation (avoid dupes)
-    if (createdNow) {
-      const payload = {
-        id: message.id.toString(),
-        conversationId: conversationId.toString(),
-        text: message.text ?? null,
-        createdAt: message.created_at.toISOString(),
-        senderId: senderId.toString(),
-        driftId: message.drift_id ? message.drift_id.toString() : null,
-        clientId: clientId ?? null,
-        attachments: attachments.map((a) => ({
-          id: a.id.toString(),
-          path: a.path,
-          type: a.type,
-          size: a.size,
-        })),
-      };
-      const safe = jsonSafe(payload);
-      await supabase
-        .channel(`conversation-${conversationId.toString()}`)
-        .send({ type: "broadcast", event: "new_message", payload: safe });
-      return safe;
-    }
+    return { message, createdNow, attachments, urlList };
+  });
 
-    // If not createdNow (idempotent replay), return a minimal DTO (client hydrates by id)
-    return jsonSafe({
+  const { message, createdNow, attachments, urlList } = result;
+
+  // 2) Broadcast new_message once (on first creation)
+  if (createdNow) {
+    const payload = {
       id: message.id.toString(),
-      conversationId: conversationId.toString(),
+      conversationId: message.conversation_id.toString(),
       text: message.text ?? null,
       createdAt: message.created_at.toISOString(),
-      senderId: senderId.toString(),
+      senderId: message.sender_id.toString(),
       driftId: message.drift_id ? message.drift_id.toString() : null,
       clientId: clientId ?? null,
-      attachments: [] as any[],
-    });
+      attachments: attachments.map((a) => ({
+        id: a.id.toString(),
+        path: a.path,
+        type: a.type,
+        size: a.size,
+      })),
+    };
+    await supabase
+      .channel(`conversation-${message.conversation_id.toString()}`)
+      .send({ type: "broadcast", event: "new_message", payload: jsonSafe(payload) })
+      .catch(() => {});
+  }
+
+  // 3) Post-commit unfurl (warm cache) and patch open clients
+  if (createdNow && Array.isArray(urlList) && urlList.length) {
+    for (const url of urlList.slice(0, 8)) {
+      getOrFetchLinkPreview(url)
+        .then(() =>
+          supabase
+            .channel(`conversation-${message.conversation_id.toString()}`)
+            .send({
+              type: "broadcast",
+              event: "link_preview_update",
+              payload: { messageId: message.id.toString(), urlHash: hashUrl(url) },
+            })
+            .catch(() => {})
+        )
+        .catch(() => {});
+    }
+  }
+
+  // 4) Return the same shape ChatRoom expects (client hydrates later anyway)
+  return jsonSafe({
+    id: message.id.toString(),
+    conversationId: message.conversation_id.toString(),
+    text: message.text ?? null,
+    createdAt: message.created_at.toISOString(),
+    senderId: message.sender_id.toString(),
+    driftId: message.drift_id ? message.drift_id.toString() : null,
+    clientId: clientId ?? null,
+    attachments: [] as any[],
   });
 }
+
+     

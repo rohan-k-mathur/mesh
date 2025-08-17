@@ -10,6 +10,11 @@ import {
   defaultFacetFor,
   priorityRank,
 } from "@app/sheaf-acl";
+import { facetToPlainText, parseMentionsFromText } from "@/lib/text/mentions";
+import { extractUrls } from "@/lib/text/urls";
+import { getOrFetchLinkPreview, hashUrl } from "@/lib/unfurl";
+import { canUserSeeFacetNow } from "@/lib/sheaf/visibility";
+import { supabase } from "@/lib/supabaseclient";
 
 // util at top of the file (or a shared util module)
 function toMs(v?: number | string | Date | null): number {
@@ -169,6 +174,45 @@ export async function GET(req: NextRequest) {
     resolvedQuotesByMsg.set(m.id.toString(), resolved);
   }
 
+// ---------- Link preview collection (batched) ----------
+const plainHashesByMsg = new Map<string, string[]>();      // msgId -> [hash]
+const facetHashesByFacetId = new Map<string, string[]>();  // facetId -> [hash]
+const allHashes = new Set<string>();
+
+// Plain message urls (skip redacted)
+for (const m of messages) {
+  if (m.is_redacted) continue;
+  const hashes = extractUrls(m.text ?? "").map(hashUrl);
+  if (hashes.length) {
+    plainHashesByMsg.set(m.id.toString(), hashes);
+    hashes.forEach((h) => allHashes.add(h));
+  }
+}
+
+// Facet urls (collect for all; we’ll render only visible later)
+for (const f of facets) {
+  const text = facetToPlainText((f as any).body);
+  const hashes = extractUrls(text).map(hashUrl);
+  if (hashes.length) {
+    facetHashesByFacetId.set(f.id.toString(), hashes);
+    hashes.forEach((h) => allHashes.add(h));
+  }
+}
+
+// One DB call to hydrate all previews
+const previewRows = allHashes.size
+  ? await prisma.linkPreview.findMany({ where: { urlHash: { in: Array.from(allHashes) } } })
+  : [];
+
+const previewByHash = new Map(previewRows.map((lp) => [lp.urlHash, lp]));
+
+// ---------- Mentions (batched) ----------
+const mentionRows = await prisma.messageMention.findMany({
+  where: { messageId: { in: messageIds }, userId: toBigInt(userId) },
+  select: { messageId: true },
+});
+const mentionedMsgIds = new Set(mentionRows.map((r) => r.messageId.toString()));
+
   // ---------- Build DTOs ----------
   const results = messages
     .map((m) => {
@@ -195,6 +239,21 @@ export async function GET(req: NextRequest) {
       // Plain (no facets)
       if (raw.length === 0) {
         const edited = !!m.edited_at;
+        const hashes = plainHashesByMsg.get(m.id.toString()) ?? [];
+        const linkPreviews = hashes
+          .map((h) => previewByHash.get(h))
+          .filter(Boolean)
+          .map((lp: any) => ({
+            urlHash: lp.urlHash,
+            url: lp.url,
+            title: lp.title,
+            desc: lp.desc,
+            image: lp.image,
+            status: lp.status,
+          }));
+      
+        const mentionsMe = mentionedMsgIds.has(m.id.toString());
+      
         return {
           id: s(m.id),
           senderId: s(m.sender_id),
@@ -205,10 +264,13 @@ export async function GET(req: NextRequest) {
           facets: [],
           defaultFacetId: null,
           text: m.text ?? null,
-          attachments: m.attachments.map(a => ({ id: a.id.toString(), path: a.path, type: a.type, size: a.size })),
+          attachments: m.attachments.map((a) => ({ id: a.id.toString(), path: a.path, type: a.type, size: a.size })),
           isRedacted: false,
           edited,
           quotes,
+          // ✅ new
+          linkPreviews,
+          mentionsMe,
         };
       }
 
@@ -243,6 +305,7 @@ export async function GET(req: NextRequest) {
       const defObj = visible.find((f: any) => f.id === defId) ?? visible[0];
 
       const edited = toMs(defObj?.updatedAt) > toMs(defObj?.createdAt);
+      const mentionsMe = mentionedMsgIds.has(m.id.toString());
 
       return {
         id: s(m.id),
@@ -251,24 +314,42 @@ export async function GET(req: NextRequest) {
         createdAt: m.created_at.toISOString(),
         driftId: m.drift_id ? s(m.drift_id) : null,
         meta: (m.meta as any) ?? null,
-        facets: visible.map((f: any) => ({
-          id: f.id,
-          audience: f.audience,
-          sharePolicy: f.sharePolicy,
-          expiresAt: f.expiresAt ?? null,
-          body: f.body,
-          attachments: f.attachments ?? [],
-          priorityRank: f.priorityRank,
-          createdAt: f.createdAt,
-          updatedAt: f.updatedAt ?? null,
-          isEdited: toMs(f.updatedAt) > toMs(f.createdAt),
-        })),
+        facets: visible.map((f: any) => {
+          const fHashes = facetHashesByFacetId.get(f.id) ?? [];
+          const fPreviews = fHashes
+            .map((h) => previewByHash.get(h))
+            .filter(Boolean)
+            .map((lp: any) => ({
+              urlHash: lp.urlHash,
+              url: lp.url,
+              title: lp.title,
+              desc: lp.desc,
+              image: lp.image,
+              status: lp.status,
+            }));
+        
+          return {
+            id: f.id,
+            audience: f.audience,
+            sharePolicy: f.sharePolicy,
+            expiresAt: f.expiresAt ?? null,
+            body: f.body,
+            attachments: f.attachments ?? [],
+            priorityRank: f.priorityRank,
+            createdAt: f.createdAt,
+            updatedAt: f.updatedAt ?? null,
+            isEdited: toMs(f.updatedAt) > toMs(f.createdAt),
+            // NEW:
+            linkPreviews: fPreviews,
+          };
+        }),
         defaultFacetId: defId,
         text: m.text ?? null,
         attachments: m.attachments.map(a => ({ id: a.id.toString(), path: a.path, type: a.type, size: a.size })),
         isRedacted: false,
         edited,    // neutral indicator for the shown facet
         quotes,
+        mentionsMe,
       };
     })
     .filter((x): x is NonNullable<typeof x> => x !== null);
@@ -542,6 +623,48 @@ export async function POST(req: NextRequest) {
   }));
 
   const visible = visibleFacetsFor(ctx, fs as any);
+// After facets are created (dbFacets or createdFacets visible)
+// 1) Mentions per facet
+for (const f of dbFacets) {
+  const text = facetToPlainText(f.body as any);
+  const tokens = await parseMentionsFromText(text, undefined, async (names) => {
+    const users = await prisma.user.findMany({ where: { username: { in: names } }, select: { id: true, username: true } });
+    return users.map(u => ({ id: u.id.toString(), username: u.username }));
+  });
+  if (!tokens.length) continue;
+
+  const allowed: bigint[] = [];
+  await Promise.all(tokens.map(async t => {
+    const uid = BigInt(t.userId);
+    if (uid === toBigInt(authorId)) return; // skip self
+    if (await canUserSeeFacetNow(uid, f as any)) allowed.push(uid);
+  }));
+
+  if (allowed.length) {
+    await prisma.messageMention.createMany({
+      data: allowed.map(uid => ({ messageId: message.id, facetId: f.id, userId: uid })),
+      skipDuplicates: true,
+    });
+    // TODO (opt): notifications
+  }
+}
+
+// 2) Unfurl per facet (post-response fire-and-forget)
+const facetUrls = dbFacets.flatMap(f => extractUrls(facetToPlainText(f.body as any)));
+Promise.resolve().then(() => {
+  for (const url of facetUrls.slice(0, 8)) {
+    getOrFetchLinkPreview(url, /* facetId */ undefined)
+      .then(() => supabase
+        .channel(`conversation-${String(conversationId)}`)
+        .send({
+          type: "broadcast",
+          event: "link_preview_update",
+          payload: { messageId: String(message.id), urlHash: hashUrl(url) },
+        }).catch(() => {}))
+      .catch(() => {});
+  }
+});
+
   const def = visible.length
     ? defaultFacetFor(ctx, fs as any)?.id ?? visible[0].id
     : null;
