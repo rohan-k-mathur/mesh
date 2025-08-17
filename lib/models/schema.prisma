@@ -646,6 +646,11 @@ model Message {
   @@map("messages")
 }
 
+enum DriftKind {
+  DRIFT // independent, named drift (current behavior)
+  THREAD // dependent drift attached to a root message
+}
+
 model Drift {
   id                BigInt    @id @default(autoincrement())
   conversation_id   BigInt
@@ -666,8 +671,11 @@ model Drift {
   // 👇 inverse side of the relation; MUST use the same name "DriftMessages"
   messages Message[] @relation("DriftMessages")
 
-  members DriftMember[]
+  members         DriftMember[]
+  kind            DriftKind     @default(DRIFT)
+  root_message_id BigInt? // when kind = THREAD, equals the root message id
 
+  @@unique([root_message_id])
   @@index([conversation_id, updated_at])
   @@map("drifts")
 }

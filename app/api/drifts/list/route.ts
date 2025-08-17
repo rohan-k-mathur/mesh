@@ -33,6 +33,8 @@ export async function GET(req: NextRequest) {
         message_count: true,
         last_message_at: true,
         anchor_message_id: true,
+        kind: true,
+       root_message_id: true,
       },
       orderBy: { updated_at: "desc" },
     });

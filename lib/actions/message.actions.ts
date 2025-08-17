@@ -119,6 +119,15 @@ export async function sendMessage({
       createdNow = true;
     }
 
+      // Final guard: if driftId was supplied but message still lacks drift_id, set it now.
+   if (driftId && !message.drift_id) {
+       message = await tx.message.update({
+         where: { id: message.id },
+         data: { drift_id: driftId },
+       include: { sender: { select: { name: true, image: true } } },
+       });
+     }
+
     // attachments on first creation only
     let attachments: { id: bigint; path: string; type: string; size: number }[] = [];
     if (createdNow && files?.length) {
@@ -183,11 +192,11 @@ export async function sendMessage({
 
     // drift counters (notify live). This can be inside txn (cheap) or after.
     if (createdNow && driftId) {
-      const updated = await tx.drift.update({
-        where: { id: driftId },
-        data: { message_count: { increment: 1 }, last_message_at: new Date() },
-        select: { message_count: true, last_message_at: true },
-      });
+        const updated = await tx.drift.update({
+            where: { id: driftId },
+            data: { message_count: { increment: 1 }, last_message_at: new Date() },
+            select: { message_count: true, last_message_at: true, kind: true, root_message_id: true },
+          });
       supabase
         .channel(`conversation-${conversationId.toString()}`)
         .send({
@@ -197,6 +206,7 @@ export async function sendMessage({
             driftId: driftId.toString(),
             messageCount: updated.message_count,
             lastMessageAt: updated.last_message_at?.toISOString() ?? null,
+            rootMessageId: updated.kind === "THREAD" && updated.root_message_id ? updated.root_message_id.toString() : null,
           },
         })
         .catch(() => {});
