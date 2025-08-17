@@ -68,25 +68,36 @@ export function DriftPane({
     const fetchedForRef = React.useRef<string | null>(null);
     const listRef = React.useRef<HTMLDivElement | null>(null);
 
-  // Lazy load exactly once per drift id (even if it has 0 messages)
-  React.useEffect(() => {
-        // If we already have messages for this drift, or we already fetched once, skip.
-        if (fetchedForRef.current === drift.id) return;
-        fetchedForRef.current = drift.id;
+    React.useEffect(() => {
       let aborted = false;
-        (async () => {
-          const r = await fetch(
-               `/api/drifts/${encodeURIComponent(drift.id)}/messages?userId=${encodeURIComponent(currentUserId)}`,
-               { cache: "no-store" }
-             );
-             const data = await r.json();
-             if (!aborted && Array.isArray(data?.messages)) {
-               // already ASC from the API
-               setDriftMessages(drift.id, data.messages);
-             }
-      })().catch(() => {});
-          return () => { aborted = true; };
-        }, [drift.id, currentUserId, setDriftMessages, msgs.length]);
+      (async () => {
+        // 🔎 debug so you can correlate requests in FF vs Chrome
+        console.log("[DriftPane] fetch", { driftId: drift.id, as: currentUserId });
+    
+        const r = await fetch(
+          `/api/drifts/${encodeURIComponent(drift.id)}/messages?userId=${encodeURIComponent(
+            currentUserId
+          )}&_t=${Date.now()}`, // cache buster for FF/proxies
+          { cache: "no-store", headers: { "cache-control": "no-store" } }
+        );
+    
+        if (!r.ok) {
+          console.warn("[DriftPane] fetch failed", r.status, await r.text().catch(() => ""));
+          return;
+        }
+        const data = await r.json();
+        if (!aborted && Array.isArray(data?.messages)) {
+          const asc = [...data.messages].sort(
+            (a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          );
+          setDriftMessages(drift.id, asc);
+          console.log("[DriftPane] fetched", drift.id, asc.length);
+        }
+      })().catch((e) => console.warn("[DriftPane] fetch error", e));
+    
+      return () => { aborted = true; };
+      // ⬇️ run on mount/when drift id or viewer changes
+    }, [drift.id, currentUserId, setDriftMessages]);
 
 
    // Auto-scroll: jump to bottom on open

@@ -1,8 +1,10 @@
+export const runtime = "nodejs"
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prismaclient";
 import { getUserFromCookies } from "@/lib/serverutils";
 import { jsonSafe } from "@/lib/bigintjson";
 import { supabase } from "@/lib/supabaseclient";
+import { broadcast } from "@/lib/realtime/broadcast";
 
 export async function POST(req: NextRequest) {
   try {
@@ -68,12 +70,26 @@ export async function POST(req: NextRequest) {
     };
 
     // Realtime notify room
-    await supabase
-      .channel(`conversation-${String(conversationId)}`)
-      .send({
-        type: "broadcast",
-        event: "drift_create",
-        payload: jsonSafe({ anchor: anchorDto, drift: {
+    // await supabase
+    //   .channel(`conversation-${String(conversationId)}`)
+    //   .send({
+    //     type: "broadcast",
+    //     event: "drift_create",
+    //     payload: jsonSafe({ anchor: anchorDto, drift: {
+    //       id: created.drift.id.toString(),
+    //       conversationId: String(conversationId),
+    //       title: created.drift.title,
+    //       isClosed: created.drift.is_closed,
+    //       isArchived: created.drift.is_archived,
+    //       messageCount: created.drift.message_count,
+    //       lastMessageAt: created.drift.last_message_at ? created.drift.last_message_at.toISOString() : null,
+    //       anchorMessageId: created.drift.anchor_message_id.toString(),
+    //     }}),
+    //   });
+
+      await broadcast(`conversation-${String(conversationId)}`, "drift_create", {
+        anchor: anchorDto,
+        drift: {
           id: created.drift.id.toString(),
           conversationId: String(conversationId),
           title: created.drift.title,
@@ -82,7 +98,7 @@ export async function POST(req: NextRequest) {
           messageCount: created.drift.message_count,
           lastMessageAt: created.drift.last_message_at ? created.drift.last_message_at.toISOString() : null,
           anchorMessageId: created.drift.anchor_message_id.toString(),
-        }}),
+        },
       });
 
     return NextResponse.json(jsonSafe({ ok: true, anchor: anchorDto, drift: {

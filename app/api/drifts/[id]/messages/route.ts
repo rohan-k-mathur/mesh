@@ -1,3 +1,7 @@
+export const runtime = "nodejs";
+export const revalidate = 0;                  // Next.js: no ISR
+export const dynamic = "force-dynamic";   
+
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prismaclient";
 import { toAclFacet, userCtxFrom } from "@/app/api/sheaf/_map";
@@ -406,14 +410,24 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
     const nextCursor =
       results.length > 0 ? results[results.length - 1].id : null;
-
-    return NextResponse.json({
-      ok: true,
-      conversationId: s(drift.conversation_id),
-      driftId: s(driftId),
-      messages: results,
-      nextCursor,
-    });
+      return NextResponse.json(
+        {
+          ok: true,
+          conversationId: s(drift.conversation_id),
+          driftId: s(driftId),
+          messages: results,
+          nextCursor,
+        },
+        {
+          headers: {
+            // belt & suspenders for any aggressive caches
+            "Cache-Control": "no-store, no-cache, must-revalidate",
+            Pragma: "no-cache",
+            Expires: "0",
+          },
+        }
+      );
+      
   } catch (e: any) {
     console.error("[GET /api/drifts/:id/messages] error", e);
     return NextResponse.json({ ok: false, error: e?.message ?? "Internal error" }, { status: 500 });

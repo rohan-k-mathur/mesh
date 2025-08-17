@@ -7,6 +7,7 @@ import { uploadAttachment } from "@/lib/storage/uploadAttachment";
 import { jsonSafe } from "../bigintjson";
 import { extractUrls } from "@/lib/text/urls";
 import { parseMentionsFromText } from "@/lib/text/mentions";
+import { broadcast } from "@/lib/realtime/broadcast";
 import { getOrFetchLinkPreview, hashUrl } from "@/lib/unfurl";
 
 type SendMessageArgs = {
@@ -199,7 +200,17 @@ export async function sendMessage({
             lastMessageAt: updated.last_message_at?.toISOString() ?? null,
           },
         })
-        .catch(() => {});
+       // after updating drift counters in DB
+try {
+  await broadcast(`conversation-${message.conversation_id.toString()}`, "drift_counters", {
+    driftId: driftId.toString(),
+    messageCount: updated.message_count,
+    lastMessageAt: updated.last_message_at?.toISOString() ?? null,
+  });
+} catch (e) {
+  console.error("[broadcast] drift_counters failed", e);
+}
+
     }
 
     return { message, createdNow, attachments, urlList };
@@ -209,15 +220,16 @@ export async function sendMessage({
 
   // 2) Broadcast new_message once (on first creation)
   if (createdNow) {
+    const topic = `conversation-${message.conversation_id.toString()}`;
     const payload = {
       id: message.id.toString(),
       conversationId: message.conversation_id.toString(),
       text: message.text ?? null,
       createdAt: message.created_at.toISOString(),
       senderId: message.sender_id.toString(),
-      sender: { name: (message as any).sender?.name ?? null, image: (message as any).sender?.image ?? null },
       driftId: message.drift_id ? message.drift_id.toString() : null,
       clientId: clientId ?? null,
+      sender: { name: (message as any).sender?.name ?? null, image: (message as any).sender?.image ?? null },
       attachments: attachments.map((a) => ({
         id: a.id.toString(),
         path: a.path,
@@ -225,12 +237,15 @@ export async function sendMessage({
         size: a.size,
       })),
     };
-    await supabase
-      .channel(`conversation-${message.conversation_id.toString()}`)
-      .send({ type: "broadcast", event: "new_message", payload: jsonSafe(payload) })
-      .catch(() => {});
+  
+    try {
+      await broadcast(topic, "new_message", payload);
+    } catch (e) {
+      console.error("[broadcast] new_message failed", e);
+    }
   }
-
+  
+  
   // 3) Post-commit unfurl (warm cache) and patch open clients
   if (createdNow && Array.isArray(urlList) && urlList.length) {
     for (const url of urlList.slice(0, 8)) {

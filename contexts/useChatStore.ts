@@ -34,6 +34,7 @@ export interface Message {
   isRedacted?: boolean;
    meta?: any;           // 👈 allow anchors to carry drift info
     driftId?: string | null;
+    mentionsMe?: boolean;
 }
 
 interface Conversation {
@@ -79,6 +80,7 @@ export type PollUI =
       // pass-throughs you already handle elsewhere
       // @ts-ignore
       driftId: raw.driftId ?? raw.drift_id ?? null,
+      mentionsMe: typeof raw.mentionsMe === "boolean" ? raw.mentionsMe : undefined,
       // @ts-ignore
       isRedacted: raw.isRedacted ?? raw.is_redacted ?? false,
       // @ts-ignore
@@ -196,6 +198,9 @@ interface ChatState {
   quoteDraftByConversationId: Record<string, QuoteRef | undefined>;
   setQuoteDraft: (conversationId: string, ref?: QuoteRef) => void;
   clearQuoteDraft: (conversationId: string) => void;
+  replaceMessageInConversation: (conversationId: string, msg: Message | any) => void;
+  markMessageRedacted: (conversationId: string, messageId: string) => void;
+  appendManyDriftMessages: (driftId: string, rows: any[]) => void;
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -221,12 +226,38 @@ export const useChatStore = create<ChatState>((set, get) => ({
         }),
       },
     })),
-
+    replaceMessageInConversation: (conversationId, msg) => {
+      const normalized = normalizeMessage(msg);
+      set((state) => {
+        const list = state.messages[conversationId] ?? [];
+        const i = list.findIndex((m) => String(m.id) === String(normalized.id));
+        if (i === -1) return { messages: state.messages }; // not found: no op
+        const next = list.slice();
+        next[i] = { ...normalized, attachments: normalized.attachments ?? [] };
+        return { messages: { ...state.messages, [conversationId]: next } };
+      });
+    },
     setReactions: (messageId, items) =>
     set((state) => ({
       reactionsByMessageId: { ...state.reactionsByMessageId, [messageId]: items },
     })),
-
+    markMessageRedacted: (conversationId, messageId) =>
+    set((state) => {
+      const list = state.messages[conversationId] ?? [];
+      const next = list.map((row) =>
+        String(row.id) === String(messageId)
+          ? {
+              ...row,
+              isRedacted: true,
+              // keep parity with server tombstone semantics
+              text: null,
+              attachments: [],
+              facets: [],
+            }
+          : row
+      );
+      return { messages: { ...state.messages, [conversationId]: next } };
+    }),
     applyReactionDelta: (messageId, emoji, op, byMe) =>
     set((state) => {
       const current = state.reactionsByMessageId[messageId] ?? [];
@@ -247,7 +278,16 @@ export const useChatStore = create<ChatState>((set, get) => ({
       else next[idx] = row;
       return { reactionsByMessageId: { ...state.reactionsByMessageId, [messageId]: next } };
     }),
-
+    appendManyDriftMessages: (driftId, rows) =>
+    set((s) => {
+      const existing = s.driftMessages[driftId] ?? [];
+      const add = rows.map((m) => normalizeDriftMessage(m));
+      // de-dupe by id
+      const seen = new Set(existing.map((m) => String(m.id)));
+      const merged = existing.concat(add.filter((m) => !seen.has(String(m.id))));
+      merged.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+      return { driftMessages: { ...s.driftMessages, [driftId]: merged } };
+    }),
   appendMessage: (id, msg) =>
     set((state) => {
       const list = state.messages[id] || [];

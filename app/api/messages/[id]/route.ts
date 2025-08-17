@@ -1,9 +1,15 @@
+export const runtime = "nodejs"; // 👈 add at top
+
 import { NextRequest, NextResponse } from "next/server";
 import { fetchMessages, sendMessage } from "@/lib/actions/message.actions";
 import { prisma } from "@/lib/prismaclient";
 import { supabase } from "@/lib/supabaseclient";
 import { ensureParticipant } from "../ensureParticipant";
 import { jsonSafe } from "@/lib/bigintjson";
+
+
+// ...inside POST after calling sendMessage (unchanged)...
+
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const conversationId = BigInt(params.id);
