@@ -75,23 +75,18 @@ export function DriftPane({
         fetchedForRef.current = drift.id;
       let aborted = false;
         (async () => {
-          // const r = await fetch(
-          //      `/api/drifts/${encodeURIComponent(drift.id)}/messages?userId=${encodeURIComponent(currentUserId)}`,
-          //      { cache: "no-store" },
-          //   );
-          //    const data = await r.json();
-          //    if (!aborted && Array.isArray(data?.messages)) {
-          //      // already ASC from the API
-          //      setDriftMessages(drift.id, data.messages);
-          //    }
-          const r = await fetch(`/api/drifts/${encodeURIComponent(drift.id)}/messages`, { cache: "no-store" });
-const data = await r.json();
-if (!aborted && data?.ok && Array.isArray(data.messages)) {
-  setDriftMessages(drift.id, data.messages); // already ascending from API
-}
+          const r = await fetch(
+               `/api/drifts/${encodeURIComponent(drift.id)}/messages?userId=${encodeURIComponent(currentUserId)}`,
+               { cache: "no-store" }
+             );
+             const data = await r.json();
+             if (!aborted && Array.isArray(data?.messages)) {
+               // already ASC from the API
+               setDriftMessages(drift.id, data.messages);
+             }
       })().catch(() => {});
           return () => { aborted = true; };
-        }, [drift.id, setDriftMessages]);
+        }, [drift.id, currentUserId, setDriftMessages, msgs.length]);
 
 
    // Auto-scroll: jump to bottom on open

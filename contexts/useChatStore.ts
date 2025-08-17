@@ -50,8 +50,6 @@ export type DriftUI = {
     messageCount: number;
     lastMessageAt: string | null;
     anchorMessageId: string;
-    kind?: "DRIFT" | "THREAD";
- rootMessageId?: string | null;
   };
   my?: { collapsed: boolean; pinned: boolean; muted: boolean; lastReadAt: string | null };
 };
@@ -375,10 +373,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     }),
   upsertDrift: (item) =>
     set((s) => ({
-      driftsByAnchorId: {
-                ...s.driftsByAnchorId,
-                [item.drift.anchorMessageId]: item,
-              },
+      driftsByAnchorId: { ...s.driftsByAnchorId, [item.drift.anchorMessageId]: item },
     })),
   setDriftMessages: (driftId, rows) =>
     set((s) => ({

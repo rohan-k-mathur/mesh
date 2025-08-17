@@ -133,10 +133,8 @@ const { sendTyping } = useConversationRealtime(
         const clientId = crypto.randomUUID();
     const form = new FormData();
     if (text.trim()) form.append("text", text);
-    form.append("clientId", clientId);
-
+  
     if (driftId) form.append("driftId", driftId); // ← tag to a drift
-    console.log("[send] driftId posted?", driftId);
     if (quoteDraft) console.log("sending meta", { quotes: [{ sourceMessageId: quoteDraft.messageId, sourceFacetId: quoteDraft.facetId ?? null }]});
     if (quoteDraft) {
            // Use set() so there is exactly one meta value
@@ -153,6 +151,7 @@ const { sendTyping } = useConversationRealtime(
            );
          }
     files.forEach((f) => form.append("files", f));
+    form.append("clientId", clientId);
     const xhr = new XMLHttpRequest();
     xhr.open("POST", `/api/messages/${conversationId}`);
     xhr.upload.onprogress = (e) => {

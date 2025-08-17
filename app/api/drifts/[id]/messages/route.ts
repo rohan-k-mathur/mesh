@@ -25,12 +25,11 @@ const s = (b: bigint) => b.toString();
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   try {
     const { searchParams } = new URL(req.url);
-        const me = await getUserFromCookies();
-        if (!me?.userId) return new NextResponse("Unauthorized", { status: 401 });
-    
-        const driftId = BigInt(params.id);
-        const viewerId = me.userId; // already a bigint in your app
-    
+    const userIdStr = searchParams.get("userId");
+    if (!userIdStr) return NextResponse.json({ ok: false, error: "Missing userId" }, { status: 400 });
+
+    const driftId = BigInt(params.id);
+    const viewerId = BigInt(userIdStr);
 
     // Resolve drift → conversation and ACL-check membership
     const drift = await prisma.drift.findUnique({

@@ -147,7 +147,6 @@ const MessageRow = memo(function MessageRow({
   onCreateOptions,
   onCreateTemp,
   onDelete,
-  onOpenThread,
 }: {
   m: Message;
   currentUserId: string;
@@ -157,7 +156,6 @@ const MessageRow = memo(function MessageRow({
   onCreateOptions: (m: Message) => void;
   onCreateTemp: (m: Message) => void;
   onDelete: (id: string) => void;
-  onOpenThread?: (driftId: string) => void;
 }) {
   const setQuoteDraft = useChatStore((s) => s.setQuoteDraft);
   const isMine = String(m.senderId) === String(currentUserId);
@@ -274,7 +272,6 @@ const MessageRow = memo(function MessageRow({
                 >
                   {isMine ? (
                     <>
-                    
                       <DropdownMenuItem
                         onClick={() => alert("Edit is coming soon.")}
                       >
@@ -305,24 +302,6 @@ const MessageRow = memo(function MessageRow({
                     </>
                   ) : (
                     <>
-                    <DropdownMenuItem
-  onClick={async () => {
-    try {
-      const r = await fetch("/api/threads/start", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ conversationId, rootMessageId: m.id }),
-      });
-      const data = await r.json();
-      const driftId = data?.drift?.id;
-      if (driftId) onOpenThread?.(driftId); // we'll pass this handler from ChatRoom
-    } catch (e) {
-      console.warn("[thread] start failed", e);
-    }
-  }}
->
-  🧵 Reply in thread
-</DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => {
                           const facetId =
@@ -433,45 +412,26 @@ const MessageRow = memo(function MessageRow({
                     </>
                   ) : (
                     <>
-                    <DropdownMenuItem
-                      onClick={async () => {
-                        try {
-                          const r = await fetch("/api/threads/start", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ conversationId, rootMessageId: m.id }),
-                          });
-                          const data = await r.json();
-                          const driftId = data?.drift?.id;
-                          if (driftId) onOpenThread?.(driftId);
-                        } catch (e) {
-                          console.warn("[thread] start failed", e);
-                        }
-                      }}
-                    >
-                      🧵 Reply in thread
-                    </DropdownMenuItem>
-                  
-                    <DropdownMenuItem
-                      onClick={() => {
-                        const facetId =
-                          (m as any).defaultFacetId ??
-                          (Array.isArray(m.facets) && m.facets[0]?.id) ??
-                          undefined;
-                        useChatStore.getState().setQuoteDraft(conversationId, {
-                          messageId: m.id,
-                          facetId,
-                        });
-                      }}
-                    >
-                      🧩 Quote
-                    </DropdownMenuItem>
-                  
-                    <DropdownMenuItem onClick={() => onPrivateReply?.(m)}>
-                      ↩️ Reply in DM
-                    </DropdownMenuItem>
-                  </>
-                  
+                      <DropdownMenuItem
+                        onClick={() => {
+                          const facetId =
+                            (m as any).defaultFacetId ??
+                            (Array.isArray(m.facets) && m.facets[0]?.id) ??
+                            undefined;
+                          useChatStore
+                            .getState()
+                            .setQuoteDraft(conversationId, {
+                              messageId: m.id,
+                              facetId,
+                            });
+                        }}
+                      >
+                        🧩 Quote
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onPrivateReply?.(m)}>
+                        ↩️ Reply in DM
+                      </DropdownMenuItem>
+                    </>
                   )}
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -732,31 +692,6 @@ export default function ChatRoom({
       .catch((e) => console.warn("[drifts] hydrate failed:", e));
   }, [messages, driftsByAnchorId, setDrifts]);
 
-  // Lazily hydrate thread drifts for visible root ids
-useEffect(() => {
-  if (!messages.length) return;
-  // roots for which we don't have a drift entry yet
-  const unknownRoots = messages
-    .map((m) => m.id)
-    .filter((id) => !driftsByAnchorId[id]);
-
-  if (unknownRoots.length === 0) return;
-
-  fetch("/api/threads/query", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ conversationId, rootIds: unknownRoots }),
-  })
-    .then((r) => (r.ok ? r.json() : null))
-    .then((data) => {
-      if (!data?.items) return;
-      setDrifts(
-        data.items.map((it: any) => ({ drift: it.drift, my: it.my }))
-      );
-    })
-    .catch((e) => console.warn("[threads] hydrate failed:", e));
-}, [messages, conversationId, driftsByAnchorId, setDrifts]);
-
   useEffect(() => {
     if (driftsListHydratedRef.current) return;
     driftsListHydratedRef.current = true;
@@ -775,8 +710,6 @@ useEffect(() => {
       })
       .catch((e) => console.warn("[drifts] list hydrate failed:", e));
   }, [conversationId, setDrifts]);
-
-  
 
   // keep a ref to the subscribed channel so we can send on it later
   const chRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
@@ -839,7 +772,6 @@ useEffect(() => {
     // NEW — per-viewer hydration for layered messages
     const msgHandler = ({ payload }: any) => {
       // tolerate both shapes: {id,...} or {message:{id,...}}
-      console.log("[rt] new_message payload", payload);
       const mid = String(payload?.id ?? payload?.message?.id ?? "");
        const payloadDriftId = String(
            payload?.driftId ?? payload?.message?.driftId ?? ""
@@ -892,9 +824,7 @@ useEffect(() => {
           } else {
             appendRef.current(conversationId, payload as Message);
           }
-          console.log("[rt] hydrated", mid, { hydratedDriftId: hydrated?.driftId, payloadDriftId });
         })
-        
         .catch(() => {
           // Network hiccup? Still make sure we route to the drift if we can.
           if (payloadDriftId) {
@@ -986,17 +916,13 @@ useEffect(() => {
       );
     };
     const driftCreateHandler = ({ payload }: any) => {
-      const { anchor, drift } = payload || payload?.payload || {};
-  if (!drift) return;
-  // Independent drift: append the anchor message bubble into timeline
-  if (anchor && drift.kind !== "THREAD") {
-    appendRef.current(conversationId, anchor);
-  }
-  // Both DRIFT and THREAD: index/update the drift
-  upsertDrift({
-    drift,
-    my: { collapsed: true, pinned: false, muted: false, lastReadAt: null },
-  });
+      const { anchor, drift } = payload || {};
+      if (!anchor || !drift) return;
+      appendRef.current(conversationId, anchor);
+      upsertDrift({
+        drift,
+        my: { collapsed: true, pinned: false, muted: false, lastReadAt: null },
+      });
     };
 
     const driftCountersHandler = ({ payload }: any) => {
@@ -1191,8 +1117,7 @@ useEffect(() => {
         );
         // Drift anchor detection via store (reactive)
         const driftEntry = driftsByAnchorId[m.id]; // { drift, my } | undefined
-        const isThread = driftEntry?.drift?.kind === "THREAD";
-        const isDriftAnchor = !!driftEntry && driftEntry.drift.kind !== "THREAD"; // hide only pure DRIFT anchors
+        const isDriftAnchor = !!driftEntry;
 
         // const isDriftAnchor = (m as any).meta?.kind === "DRIFT_ANCHOR";
 
@@ -1210,8 +1135,6 @@ useEffect(() => {
                 onCreateOptions={onCreateOptions}
                 onCreateTemp={onCreateTemp}
                 onDelete={handleDelete}
-                onOpenThread={(driftId) => openDrift(driftId)}
-                
               />
             )}
             {/* Render attachments OUTSIDE ChatMessage so they always show */}
@@ -1221,7 +1144,9 @@ useEffect(() => {
               <div
                 className={[
                   "mt-1 flex flex-col gap-2 px-3",
-                  isMine ? "items-end" : "items-start",
+                  String(m.senderId) === String(currentUserId)
+                    ? "items-end"
+                    : "items-start",
                 ].join(" ")}
               >
                 {m.attachments.map((a) => (
@@ -1230,55 +1155,62 @@ useEffect(() => {
               </div>
             ) : null}
 
-{Array.isArray((m as any).quotes) && (m as any).quotes.length > 0 &&
-  (() => {
-    const q0 = (m as any).quotes[0];
-    const textRaw =
-      typeof q0?.body === "string"
-        ? q0.body
-        : q0?.body
-        ? textFromTipTap(q0.body)
-        : "";
-    const inlineLabel = q0?.sourceAuthor?.name || toSnippet(textRaw, 48);
-    return (
-      <div
-        className={[
-          "px-3 mt-1 flex",
-          isMine ? "justify-end" : "justify-start",
-        ].join(" ")}
-      >
-        <div className="max-w-[60%]">
-          <div className="text-[11px] text-slate-500 flex items-center gap-1">
-            <span className="inline-block h-1.5 w-1.5 rounded-full bg-slate-400" />
-            <span>Replying to&nbsp;</span>
-            <span className="font-medium text-slate-700">{inlineLabel}</span>
-          </div>
-          <div
-            className={[
-              "mt-1 pl-3 border-l-2",
-              isMine ? "border-fuchsia-200" : "border-sky-200",
-            ].join(" ")}
-          >
-            {(m as any).quotes.map((q: any, i: number) => (
-              <QuoteBlock key={`${m.id}-q-${i}`} q={q} compact />
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  })()
-}
+            {Array.isArray((m as any).quotes) &&
+              (m as any).quotes.length > 0 &&
+              (() => {
+                const isMine = String(m.senderId) === String(currentUserId);
+                const q0 = (m as any).quotes[0];
+                // Prefer author; else show a 48-char snippet of the quoted text
+                const textRaw =
+                  typeof q0?.body === "string"
+                    ? q0.body
+                    : q0?.body
+                    ? textFromTipTap(q0.body)
+                    : "";
+                const inlineLabel =
+                  q0?.sourceAuthor?.name || toSnippet(textRaw, 48);
+                return (
+                  <div
+                    className={[
+                      "px-3 mt-1 flex",
+                      isMine ? "justify-end" : "justify-start",
+                    ].join(" ")}
+                  >
+                    <div className="max-w-[60%]">
+                      <div className="text-[11px] text-slate-500 flex items-center gap-1">
+                        <span className="inline-block h-1.5 w-1.5 rounded-full bg-slate-400" />
+                        <span>Replying to&nbsp;</span>
+                        <span className="font-medium text-slate-700">
+                          {inlineLabel}
+                        </span>
+                      </div>
+                      <div
+                        className={[
+                          "mt-1 pl-3 border-l-2",
+                          isMine ? "border-fuchsia-200" : "border-sky-200",
+                        ].join(" ")}
+                      >
+                        {(m as any).quotes.map((q: any, i: number) => (
+                          <QuoteBlock key={`${m.id}-q-${i}`} q={q} compact />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
 
             {/* Plain message link previews */}
             {!Array.isArray((m as any).facets) &&
               Array.isArray((m as any).linkPreviews) &&
               (m as any).linkPreviews.length > 0 && (
                 <div
-                className={[
-                  "mt-2 flex flex-col gap-2 px-3",
-                  isMine ? "items-end" : "items-start",
-                ].join(" ")}
-              >
+                  className={[
+                    "mt-2 flex flex-col gap-2 px-3",
+                    String(m.senderId) === String(currentUserId)
+                      ? "items-end"
+                      : "items-start",
+                  ].join(" ")}
+                >
                   {(m as any).linkPreviews.slice(0, 3).map((p: any) => (
                     <LinkCard key={p.urlHash} p={p} />
                   ))}
@@ -1297,11 +1229,13 @@ useEffect(() => {
                 if (!def?.linkPreviews?.length) return null;
                 return (
                   <div
-                  className={[
-                    "mt-2 flex flex-col gap-2 px-3",
-                    isMine ? "items-end" : "items-start",
-                  ].join(" ")}
-                >
+                    className={[
+                      "mt-2 flex flex-col gap-2 px-3",
+                      String(m.senderId) === String(currentUserId)
+                        ? "items-end"
+                        : "items-start",
+                    ].join(" ")}
+                  >
                     {def.linkPreviews.slice(0, 3).map((p: any) => (
                       <LinkCard key={p.urlHash} p={p} />
                     ))}
@@ -1319,59 +1253,34 @@ useEffect(() => {
             {/* {lastMsg && String(lastMsg.senderId) === String(currentUserId) && (
   <div className="px-3 text-[11px] text-slate-500">Seen by {seenCount}</div>
 )} */}
-           {/* Independent drift (old behavior) */}
-{isDriftAnchor && driftEntry && (
-  <>
-    <DriftChip
-      title={driftEntry.drift.title}
-      count={driftEntry.drift.messageCount}
-      onOpen={() => openDrift(driftEntry.drift.id)}
-    />
-    {openDrifts[driftEntry.drift.id] && (
-      <DriftPane
-        key={driftEntry.drift.id}
-        drift={{
-          id: driftEntry.drift.id,
-          title: driftEntry.drift.title,
-          isClosed: driftEntry.drift.isClosed,
-          isArchived: driftEntry.drift.isArchived,
-        }}
-        conversationId={String(conversationId)}
-        currentUserId={currentUserId}
-        onClose={() => closeDrift(driftEntry.drift.id)}
-      />
-    )}
-  </>
-)}
-{/* Thread chip: show under the root (we do not hide the root row) */}
-{!isDriftAnchor && isThread && (
-  <>
-    <div className="px-3">
-      <button
-        className="text-[11px] px-2 py-[2px] rounded bg-white/70 border hover:bg-white"
-        onClick={() => openDrift(driftEntry.drift.id)}
-      >
-        {driftEntry.drift.messageCount}{" "}
-        {driftEntry.drift.messageCount === 1 ? "reply" : "replies"} · View thread
-      </button>
-    </div>
-    {openDrifts[driftEntry.drift.id] && (
-      <DriftPane
-        key={driftEntry.drift.id}
-        drift={{
-          id: driftEntry.drift.id,
-          title: "Thread",
-          isClosed: driftEntry.drift.isClosed,
-          isArchived: driftEntry.drift.isArchived,
-        }}
-        conversationId={String(conversationId)}
-        currentUserId={currentUserId}
-        onClose={() => closeDrift(driftEntry.drift.id)}
-      />
-    )}
-  </>
-)}
-
+            {/* Drift anchor chip + pane (purely store-driven; no meta) */}
+            {isDriftAnchor && driftEntry && (
+              <>
+                <DriftChip
+                  title={driftEntry.drift.title}
+                  count={driftEntry.drift.messageCount}
+                  onOpen={() => openDrift(driftEntry.drift.id)}
+                />
+           
+                {openDrifts[driftEntry.drift.id] && (
+                  <>
+                       <hr></hr>
+                  <DriftPane
+                    key={driftEntry.drift.id}
+                    drift={{
+                      id: driftEntry.drift.id,
+                      title: driftEntry.drift.title,
+                      isClosed: driftEntry.drift.isClosed,
+                      isArchived: driftEntry.drift.isArchived,
+                    }}
+                    conversationId={String(conversationId)}
+                    currentUserId={currentUserId}
+                    onClose={() => closeDrift(driftEntry.drift.id)}
+                  />
+                  </>
+                )}
+              </>
+            )}
             {anchored && (
               <button /* … existing side chat opener … */>Side chat</button>
             )}
