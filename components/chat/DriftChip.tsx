@@ -15,8 +15,8 @@ export function DriftChip({
       <button
         type="button"
         onClick={onOpen}
-        className="w-full justify-center items-center text-center text-[0.9rem] py-3 px-3 rounded-xl 
-        bg-white/30 backdrop-blur-sm border bubblebutton [data-effects='off']:backdrop-blur-0 [data-effects='off']:bg-white/45"
+        className="w-full justify-center items-center text-center text-[0.9rem] py-3 px-3 rounded-xl
+        bg-white/50 driftbutton [data-effects='off']:backdrop-blur-0 [data-effects='off']:bg-white/45"
         title="Open drift"
       >
         🌀 <span className="font-medium">{title}</span>

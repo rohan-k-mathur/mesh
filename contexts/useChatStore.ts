@@ -63,6 +63,57 @@ export type PollUI =
   | { kind: "OPTIONS"; poll: PollDTO; totals: number[]; count: number; myVote: number | null }
   | { kind: "TEMP"; poll: PollDTO; avg: number; count: number; myValue: number | null };
 
+  function normalizeDriftMessage(incoming: any): Message {
+    const raw = incoming?.message ?? incoming;
+  
+    // Coerce to the same shape your UI expects
+    const base: Message = {
+      id: String(raw.id),
+      text: raw.text ?? null,
+      createdAt: raw.createdAt ?? raw.created_at ?? new Date().toISOString(),
+      senderId: String(raw.senderId ?? raw.sender_id ?? ""),
+      sender: raw.sender ?? undefined,
+      attachments: Array.isArray(raw.attachments) ? raw.attachments : [],
+      defaultFacetId: raw.defaultFacetId ?? null,
+  
+      // pass-throughs you already handle elsewhere
+      // @ts-ignore
+      driftId: raw.driftId ?? raw.drift_id ?? null,
+      // @ts-ignore
+      isRedacted: raw.isRedacted ?? raw.is_redacted ?? false,
+      // @ts-ignore
+      meta: raw.meta ?? undefined,
+      // @ts-ignore
+      edited: raw.edited ?? false,
+      // @ts-ignore
+      quotes: Array.isArray(raw.quotes) ? raw.quotes : undefined,
+      // @ts-ignore
+      linkPreviews: Array.isArray(raw.linkPreviews) ? raw.linkPreviews : undefined,
+    };
+  
+    if (Array.isArray(raw.facets)) {
+      base.facets = raw.facets.map((f: any) => ({
+        id: String(f.id),
+        audience: f.audience,
+        sharePolicy: f.sharePolicy,
+        expiresAt: f.expiresAt ?? null,
+        body: f.body,
+        attachments: Array.isArray(f.attachments) ? f.attachments : [],
+        priorityRank: typeof f.priorityRank === "number" ? f.priorityRank : 999,
+        createdAt: f.createdAt ?? base.createdAt,
+        // @ts-ignore
+        isEdited: f.isEdited ?? false,
+        // @ts-ignore
+        updatedAt: f.updatedAt ?? null,
+        // @ts-ignore
+        linkPreviews: Array.isArray(f.linkPreviews) ? f.linkPreviews : undefined,
+      }))
+      .sort((a, b) => a.priorityRank - b.priorityRank);
+    }
+  
+    return base;
+  }
+
 function normalizeMessage(incoming: any): Message {
   // tolerate both envelope {message:{...}} and bare message {...}
   const raw = incoming?.message ?? incoming;
@@ -71,7 +122,7 @@ function normalizeMessage(incoming: any): Message {
     id: String(raw.id),
     text: raw.text ?? null,
     createdAt: raw.createdAt ?? new Date().toISOString(),
-    senderId: String(raw.senderId),
+    senderId: String(raw.senderId ?? raw.sender_id ?? ""),
     sender: raw.sender ?? undefined,
     attachments: Array.isArray(raw.attachments) ? raw.attachments : [],
     defaultFacetId: raw.defaultFacetId ?? null,
@@ -79,7 +130,7 @@ function normalizeMessage(incoming: any): Message {
    driftId: raw.driftId ?? raw.drift_id ?? null,
    isRedacted: raw.isRedacted ?? raw.is_redacted ?? false,
    meta: raw.meta ?? undefined,
-   // not in Message interface explicitly, but we read it in UI via (m as any).edited
+    // @ts-ignore to avoid widening your Message type if you prefer
    linkPreviews: Array.isArray(raw.linkPreviews) ? raw.linkPreviews : undefined,
    // If you want, add `edited?: boolean` to the Message interface too.
    // @ts-ignore
@@ -325,12 +376,31 @@ export const useChatStore = create<ChatState>((set, get) => ({
       driftsByAnchorId: { ...s.driftsByAnchorId, [item.drift.anchorMessageId]: item },
     })),
   setDriftMessages: (driftId, rows) =>
-    set((s) => ({ driftMessages: { ...s.driftMessages, [driftId]: rows } })),
-  appendDriftMessage: (driftId, msg) =>
-    set((s) => {
-      const list = s.driftMessages[driftId] ?? [];
-      return { driftMessages: { ...s.driftMessages, [driftId]: [...list, msg] } };
-    }),
+    set((s) => ({
+        driftMessages: {
+          ...s.driftMessages,
+          [driftId]: (rows ?? []).map((m: any) => normalizeDriftMessage(m)),
+        },
+      })),  
+      appendDriftMessage: (driftId, msg) =>
+      set((s) => {
+        const list = s.driftMessages[driftId] ?? [];
+        const normalized = normalizeDriftMessage(msg);
+        if (list.some((m) => String(m.id) === String(normalized.id))) {
+          return {};
+        }
+        const next = [...list, normalized].sort(
+          (a, b) =>
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
+        return {
+          driftMessages: {
+            ...s.driftMessages,
+            [driftId]: next,
+          },
+        };
+      }),
+    
   updateDriftCounters: (driftId, patch) =>
     set((s) => {
       // find the anchor entry that points to this drift

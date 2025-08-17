@@ -25,7 +25,10 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     createdAt: m.created_at,
     senderId: m.sender_id,
     isRedacted: m.is_redacted,
+    meta: m.meta,                // lets the client see DRIFT_ANCHOR immediately
+    driftId: m.drift_id,         // consistency with the rest of your DTOs
     sender: { name: m.sender.name, image: m.sender.image },
+    
     attachments: m.is_redacted ? [] : m.attachments.map(a => ({
       id: a.id,
       path: a.path,

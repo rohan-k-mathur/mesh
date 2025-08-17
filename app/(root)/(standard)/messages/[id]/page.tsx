@@ -9,7 +9,6 @@ import MessengerPane from "@/components/chat/MessengerPane";
 import Image from "next/image";
 import { headers } from "next/headers";
 
-type QuoteRef = { messageId: string; facetId?: string };
 
 export default async function Page({ params, searchParams }: { params: { id: string }; searchParams: { mid?: string } }) {
   const user = await getUserFromCookies();
@@ -102,6 +101,8 @@ const { messages: initialMessages } = await res.json();
           // Composite avatar (up to 4 faces)
           <div className="flex flex-wrap rounded-full gap-4 ">
             {headerUsers.slice(0, 4).map((u, i) => (
+                        <button className="flex w-[2.5rem] h-[2.5rem]">
+
               <Image
                 key={i}
                 src={u.image || "/assets/user-helsinki.svg"}
@@ -110,6 +111,8 @@ const { messages: initialMessages } = await res.json();
                 height={50}
                 className="rounded-full object-fill p-1 profile-shadow bg-white/20 align-center justify-center items-center"
                 />
+                     </button>
+
             ))}
           </div>
         ) : (
@@ -152,6 +155,8 @@ const { messages: initialMessages } = await res.json();
   <ChatRoom
         conversationId={params.id}
         currentUserId={user.userId.toString()}
+        currentUserName={user.username ?? ""}
+ currentUserImage={user.photoURL ?? null}
         initialMessages={initialMessages}
         highlightMessageId={highlightMessageId ?? null}
       />
@@ -159,6 +164,8 @@ const { messages: initialMessages } = await res.json();
       <MessageComposer
         conversationId={String(conversationId)}
         currentUserId={user.userId.toString()}
+        currentUserName={user.username ?? ""}
+ currentUserImage={user.photoURL ?? null}
       />
     </div>
     <MessengerPane currentUserId={user.userId.toString()} />

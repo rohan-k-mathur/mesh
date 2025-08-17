@@ -15,14 +15,15 @@ function throttle<T extends (...a: any[]) => any>(fn: T, ms: number) {
   };
 }
 
-type OnlineMeta = { name: string; image: string | null };
+ type OnlineMeta = { name: string; image: string | null };
+ type TypingEntry = { until: number; name?: string | null };
 
 export function useConversationRealtime(
   conversationId: string,
   currentUser: { id: string; name: string; image: string | null }
 ) {
   const [online, setOnline] = useState<Record<string, OnlineMeta>>({});
-  const [typing, setTyping] = useState<Record<string, number>>({});
+  const [typing, setTyping] = useState<Record<string, TypingEntry>>({});
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   // join + presence sync
@@ -42,11 +43,27 @@ export function useConversationRealtime(
       setOnline(flattened);
     });
 
+    channel.on("presence", { event: "join" }, ({ key, newPresences }: any) => {
+           const meta = newPresences?.[0] || {};
+           setOnline((prev) => ({ ...prev, [String(key)]: { name: meta.name ?? "", image: meta.image ?? null } }));
+         });
+         channel.on("presence", { event: "leave" }, ({ key }: any) => {
+           // Remove only if no devices remain for that user
+           const state = channel.presenceState() as Record<string, unknown[]>;
+           if (!state[String(key)]?.length) {
+             setOnline((prev) => {
+               const next = { ...prev };
+               delete next[String(key)];
+               return next;
+             });
+           }
+         });
+
     channel.on("broadcast", { event: "typing" }, ({ payload }) => {
-      const { userId, until } = payload as { userId: string; until: number };
+      const { userId, until, name } = payload as { userId: string; until: number; name?: string | null };
       if (userId === currentUser.id) return;
-      setTyping((prev) => ({ ...prev, [userId]: until }));
-    });
+       setTyping((prev) => ({ ...prev, [userId]: { until, name: name ?? prev[userId]?.name } }));
+        });
 
     channel.subscribe(async (status) => {
       if (status === "SUBSCRIBED") {
@@ -72,8 +89,8 @@ export function useConversationRealtime(
       setTyping((prev) => {
         const next = { ...prev };
         for (const uid of Object.keys(next)) {
-          if (next[uid] <= now) delete next[uid];
-        }
+                   if (next[uid].until <= now) delete next[uid];
+                 }
         return next;
       });
     }, 1000);
@@ -87,10 +104,10 @@ export function useConversationRealtime(
         channelRef.current?.send({
           type: "broadcast",
           event: "typing",
-          payload: { userId: currentUser.id, until },
+          payload: { userId: currentUser.id, name: currentUser.name, until },
         });
       }, 1000), // send at most once/sec
-    [currentUser.id]
+      [currentUser.id, currentUser.name]
   );
 
   return { online, typing, sendTyping };

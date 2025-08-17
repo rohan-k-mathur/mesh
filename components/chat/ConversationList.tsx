@@ -45,7 +45,7 @@ export default function ConversationList({
 }: Props) {
   return (
     <div className="flex flex-1 gap-4 mt-6 ">
-    <ul className="flex flex-wrap gap-4 h-fit w-fit ">
+    <ul className="flex flex-wrap gap-5 h-fit w-fit ">
       {conversations.map((c) => {
         const last = c.lastMessage;
         if (c.isGroup) {
@@ -57,8 +57,8 @@ export default function ConversationList({
               .join(", ");
           return (
             <li
-              key={c.id}
-              className="flex flex-1 flex-wrap w-fit bg-white/30 items-center gap-3 likebutton px-1 py-1 rounded-xl "
+            key={c.id}
+            className="flex flex-1 flex-wrap w-fit sheaf-bubble bg-white/20 items-center gap-3 likebutton px-1 py-1 rounded-xl "
               >
                 <hr className="w-full  border-[1px] border-transparent"></hr>
                 <div className="flex w-full h-full align-center px-2 gap-2 ml-2">
@@ -86,11 +86,11 @@ export default function ConversationList({
         return (
           <li
             key={c.id}
-            className="flex flex-1 flex-wrap w-fit bg-white/30 items-center gap-3 likebutton px-1 py-1 rounded-xl "
+            className="flex flex-1 flex-wrap w-fit sheaf-bubble bg-white/20 items-center gap-3 likebutton px-1 py-1 rounded-xl "
             >            <hr className="w-full  border-[1px] border-transparent"></hr>
 
                           <div className="flex w-full h-full align-center px-2 gap-2 ml-2">
-            <button className="flex w-[3.7rem] h-[3.7rem]  border-2 border-transparent">
+            <button className="flex w-[3.7rem] h-[3.7rem]  border-2 border-transparent ">
             {/* <div className="flex h-[3.1rem] w-[3.1rem]"> */}
               <Image
                 src={other.image || "/assets/user-helsinki.svg"}

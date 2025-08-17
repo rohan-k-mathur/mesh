@@ -66,42 +66,59 @@ export function DriftPane({
   );
     const setDriftMessages = useChatStore((s) => s.setDriftMessages);
     const fetchedForRef = React.useRef<string | null>(null);
+    const listRef = React.useRef<HTMLDivElement | null>(null);
 
   // Lazy load exactly once per drift id (even if it has 0 messages)
   React.useEffect(() => {
         // If we already have messages for this drift, or we already fetched once, skip.
-      if (msgs.length > 0 || fetchedForRef.current === drift.id) return;
+        if (fetchedForRef.current === drift.id) return;
         fetchedForRef.current = drift.id;
       let aborted = false;
         (async () => {
-        const r = await fetch(
-          `/api/sheaf/messages?driftId=${encodeURIComponent(drift.id)}&userId=${encodeURIComponent(
-            currentUserId,
-          )}`,
-          { cache: "no-store" },
-        );
-        const data = await r.json();
-        if (!aborted && Array.isArray(data?.messages)) {
-          const sorted = [...data.messages].sort(
-            (a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-          );
-          setDriftMessages(drift.id, sorted);
-        }
+          const r = await fetch(
+               `/api/drifts/${encodeURIComponent(drift.id)}/messages?userId=${encodeURIComponent(currentUserId)}`,
+               { cache: "no-store" }
+             );
+             const data = await r.json();
+             if (!aborted && Array.isArray(data?.messages)) {
+               // already ASC from the API
+               setDriftMessages(drift.id, data.messages);
+             }
       })().catch(() => {});
           return () => { aborted = true; };
         }, [drift.id, currentUserId, setDriftMessages, msgs.length]);
 
+
+   // Auto-scroll: jump to bottom on open
+   React.useEffect(() => {
+     const el = listRef.current;
+     if (!el) return;
+     el.scrollTo({ top: el.scrollHeight });
+   }, [drift.id]);
+ 
+   // Auto-scroll: smooth scroll on new message
+   React.useEffect(() => {
+     const el = listRef.current;
+     if (!el) return;
+     el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+   }, [msgs.length]);
+
+   // (optional) debug log when msgs update
+   React.useEffect(() => {
+     console.log("[DriftPane] rows", drift.id, msgs.length);
+   }, [drift.id, msgs.length]);
+
+
   return (
-    <div className="mx-auto my-2 w-full max-w-[720px] rounded-xl border bg-white/70 backdrop-blur px-3 py-2 shadow-sm">
+    <div className="mx-auto my-2 w-full max-w-[720px] rounded-xl border bg-white/50 px-3 py-2 shadow-sm">
       {/* Header */}
       <div className="flex items-center justify-between py-1">
         <div className="flex items-center gap-2">
-          <span>🌀</span>
-          <span className="font-medium">{drift.title}</span>
+          <span className=" text-[1rem] tracking-wide font-medium">🌀 {drift.title}</span>
           {drift.isClosed && <span className="ml-1 text-xs rounded bg-slate-200 px-2 py-0.5">closed</span>}
           {drift.isArchived && <span className="ml-1 text-xs rounded bg-slate-200 px-2 py-0.5">archived</span>}
         </div>
-        <button onClick={onClose} className="text-xs px-2 py-1 rounded bg-white border hover:bg-slate-50">
+        <button onClick={onClose} className="text-xs px-3 py-1 rounded-xl bg-white/50 sendbutton hover:bg-slate-50">
           Close
         </button>
       </div>
@@ -109,7 +126,8 @@ export function DriftPane({
       <hr className="my-2" />
 
       {/* Body */}
-      <div className="flex max-h-[50vh] flex-col gap-3 overflow-y-auto px-1 py-1">
+      {/* <div className="flex max-h-[50vh] flex-col gap-3 overflow-y-auto px-1 py-1"> */}
+      <div ref={listRef} className="flex max-h-[50vh] flex-col gap-3 overflow-y-auto px-1 py-1">
         {msgs.map((m: any) => {
           const isMine = String(m.senderId) === String(currentUserId);
           const redacted = !!m.isRedacted;
@@ -146,8 +164,8 @@ export function DriftPane({
       <div className="mt-2">
         {/* Disabled when closed/archived */}
         <fieldset disabled={drift.isClosed || drift.isArchived} className="disabled:opacity-60">
-          <div className="border rounded-lg p-2 bg-white/60">
-            <p className="text-xs text-slate-600 mb-1">Reply in drift</p>
+          <div className="border rounded-xl p-2 bg-white/50">
+            <p className="text-xs text-slate-600 mb-1">Send in Drift</p>
             <div className="mt-1">
               <MessageComposer
                 conversationId={conversationId}

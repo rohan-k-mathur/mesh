@@ -1681,3 +1681,13 @@ model LinkPreview {
   @@index([fetchedAt])
   @@map("link_previews")
 }
+
+model ConversationState {
+  conversationId BigInt
+  userId         BigInt
+  lastReadAt     DateTime @default(now()) @db.Timestamptz(6)
+
+  @@id([conversationId, userId])
+  @@index([userId])
+  @@map("conversation_state")
+}

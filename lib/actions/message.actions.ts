@@ -60,6 +60,16 @@ export async function sendMessage({
     });
     if (!member) throw new Error("Not a participant in this conversation");
 
+
+       // If a driftId is provided, validate it belongs to this conversation
+       if (driftId) {
+         const d = await tx.drift.findFirst({
+           where: { id: driftId, conversation_id: conversationId },
+           select: { id: true },
+         });
+         if (!d) throw new Error("Invalid driftId for this conversation");
+       }
+
     // create or reuse (idempotency)
     let message:
       | Awaited<ReturnType<typeof tx.message.create>>
@@ -73,6 +83,14 @@ export async function sendMessage({
       });
       if (existing) {
         message = existing;
+          // 🩹 Repair: if caller passed driftId but reused row has no drift_id, set it now.
+       if (driftId && !existing.drift_id) {
+           message = await tx.message.update({
+             where: { id: existing.id },
+             data: { drift_id: driftId },
+             include: { sender: { select: { name: true, image: true } } },
+           });
+         }
       } else {
         message = await tx.message.create({
           data: {
@@ -197,6 +215,7 @@ export async function sendMessage({
       text: message.text ?? null,
       createdAt: message.created_at.toISOString(),
       senderId: message.sender_id.toString(),
+      sender: { name: (message as any).sender?.name ?? null, image: (message as any).sender?.image ?? null },
       driftId: message.drift_id ? message.drift_id.toString() : null,
       clientId: clientId ?? null,
       attachments: attachments.map((a) => ({

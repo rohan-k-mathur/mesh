@@ -30,6 +30,7 @@ import { DriftChip } from "@/components/chat/DriftChip";
 import { DriftPane } from "@/components/chat/DriftPane";
 import { QuoteBlock } from "@/components/chat/QuoteBlock";
 import { LinkCard } from "@/components/chat/LinkCard";
+import { useConversationRealtime } from "@/hooks/useConversationRealtime";
 
 const ENABLE_REACTIONS = false;
 
@@ -38,6 +39,8 @@ type Props = {
   currentUserId: string;
   initialMessages: Message[];
   highlightMessageId?: string | null;
+  currentUserName?: string;
+ currentUserImage?: string | null;
   onQuote?: (qr: { messageId: string; facetId?: string }) => void;
 };
 
@@ -249,7 +252,7 @@ const MessageRow = memo(function MessageRow({
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
-                    className="py-0  px-0 mr-[1px] align-center my-auto bg-slate-500 shadow-md hover:shadow-none  rounded-md text-xs focus:outline-none"
+                    className="py-0  px-0 mr-[1px] align-center my-auto bg-indigo-500 shadow-md hover:shadow-none  rounded-md text-xs focus:outline-none"
                     title="Message actions"
                     type="button"
                   >
@@ -258,7 +261,7 @@ const MessageRow = memo(function MessageRow({
                       alt="actions"
                       width={32}
                       height={32}
-                      className="cursor-pointer object-fill w-[8px] "
+                      className="cursor-pointer object-fill w-[10px] "
                     />
                   </button>
                 </DropdownMenuTrigger>
@@ -359,7 +362,7 @@ const MessageRow = memo(function MessageRow({
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
-                    className="py-0  px-0 mr-[1px] align-center my-auto bg-slate-500 shadow-md hover:shadow-none  rounded-md text-xs focus:outline-none"
+                    className="py-0  px-0 mr-[1px] align-center my-auto bg-indigo-500 shadow-md hover:shadow-none  rounded-md text-xs focus:outline-none"
                     title="Message actions"
                     type="button"
                   >
@@ -368,7 +371,7 @@ const MessageRow = memo(function MessageRow({
                       alt="actions"
                       width={32}
                       height={32}
-                      className="cursor-pointer object-fill w-[8px] "
+                      className="cursor-pointer object-fill w-[10px] "
                     />
                   </button>
                 </DropdownMenuTrigger>
@@ -451,6 +454,8 @@ export default function ChatRoom({
   currentUserId,
   initialMessages,
   highlightMessageId,
+  currentUserName = "",
+ currentUserImage = null,
 }: Props) {
   const { open, state } = usePrivateChatManager();
 
@@ -494,6 +499,65 @@ export default function ChatRoom({
   const setMyVote = useChatStore((s) => s.setMyVote);
   const composerOpenForRef = React.useRef<string | null>(null);
   const [composerFor, setComposerFor] = useState<string | null>(null);
+  // Presence + typing for this conversation
+  const { online, typing } = useConversationRealtime(conversationId, {
+    id: String(currentUserId),
+    name: currentUserName, image: currentUserImage, 
+  });
+  const [readers, setReaders] = useState<
+    { userId: string; lastReadAt: string }[]
+  >([]);
+
+  // Throttle "read" posts
+  const lastReadSentAtRef = useRef(0);
+  const markRead = useCallback((convId: string) => {
+    const now = Date.now();
+    if (now - lastReadSentAtRef.current < 1500) return; // 1.5s throttle
+    lastReadSentAtRef.current = now;
+    fetch(`/api/conversations/${encodeURIComponent(convId)}/read`, {
+      method: "POST",
+    }).catch(() => {});
+  }, []);
+
+  const lastMsg = messages[messages.length - 1];
+  const seenCount = React.useMemo(() => {
+    if (!lastMsg) return 0;
+    const t = new Date((lastMsg as any).createdAt ?? Date.now()).getTime();
+    return readers.filter(
+      (r) =>
+        r.userId !== String(currentUserId) &&
+        new Date(r.lastReadAt).getTime() >= t
+    ).length;
+  }, [readers, messages.length, currentUserId]);
+  // Render helpers for presence/typing (exclude me)
+  const othersOnline = React.useMemo(
+    () =>
+      Object.entries(online || {}).filter(
+        ([uid]) => uid !== String(currentUserId)
+      ),
+    [online, currentUserId]
+  );
+  const othersTypingIds = React.useMemo(
+    () =>
+      Object.keys(typing || {}).filter((uid) => uid !== String(currentUserId)),
+    [typing, currentUserId]
+  );
+
+  const getTypingName = useCallback((uid: string) => {
+    const nameFromTyping = (typing as any)?.[uid]?.name;
+    if (nameFromTyping && nameFromTyping.trim()) return nameFromTyping;
+  
+    const nameFromOnline = (online as any)?.[uid]?.name;
+    if (nameFromOnline && nameFromOnline.trim()) return nameFromOnline;
+  
+    // Last resort: look up any message by that sender (we store sender names in the list)
+    const msg = messages.find((mm) => String(mm.senderId) === String(uid));
+    const nameFromMsg = msg?.sender?.name;
+    if (nameFromMsg && nameFromMsg.trim()) return nameFromMsg;
+  
+    return "Someone";
+  }, [typing, online, messages]);
+
   const appendRef = useRef(appendMessage);
   useEffect(() => {
     appendRef.current = appendMessage;
@@ -661,6 +725,47 @@ export default function ChatRoom({
   }
 
   useEffect(() => {
+    const root = document.querySelector("[data-chat-root]");
+    if (!root) return;
+
+    const nodes = root.querySelectorAll("[data-msg-id]");
+    const last = nodes[nodes.length - 1] as HTMLElement | null;
+    if (!last) return;
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting && document.visibilityState === "visible") {
+            markRead(conversationId);
+          }
+        }
+      },
+      { root: null, threshold: 0.8 }
+    );
+
+    io.observe(last);
+    return () => io.disconnect();
+  }, [conversationId, messages.length, markRead]);
+
+  useEffect(() => {
+    const onFocus = () => markRead(conversationId);
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [conversationId, markRead]);
+
+  useEffect(() => {
+    if (!lastMsg) return;
+    fetch(`/api/conversations/${encodeURIComponent(conversationId)}/readers`, {
+      cache: "no-store",
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.items) setReaders(data.items);
+      })
+      .catch(() => {});
+  }, [conversationId, lastMsg?.id]);
+
+  useEffect(() => {
     const channel = supabase.channel(`conversation-${conversationId}`);
     chRef.current = channel;
 
@@ -668,6 +773,13 @@ export default function ChatRoom({
     const msgHandler = ({ payload }: any) => {
       // tolerate both shapes: {id,...} or {message:{id,...}}
       const mid = String(payload?.id ?? payload?.message?.id ?? "");
+       const payloadDriftId = String(
+           payload?.driftId ?? payload?.message?.driftId ?? ""
+         );
+         const from = String(payload?.senderId ?? payload?.message?.senderId ?? "");
+
+         // helpful debug
+         console.log("[rt] new_message payload", { mid, payloadDriftId, from });
       if (!mid) {
         // fallback for unknown payloads
         appendRef.current(conversationId, payload as Message);
@@ -683,22 +795,56 @@ export default function ChatRoom({
         .then((r) => (r.ok ? r.json() : null))
         .then((data) => {
           const hydrated = data?.messages?.[0] ?? data?.message ?? null;
-          console.log("hydrated quotes for", mid, hydrated?.quotes);
+          const hydratedDriftId = hydrated?.driftId ? String(hydrated.driftId) : "";
+          const driftKey = hydratedDriftId || payloadDriftId || "";
+          console.log("[rt] hydrated", mid, { hydratedDriftId, payloadDriftId });
+    
           if (hydrated) {
-            if (hydrated.driftId) {
-              appendDriftMessage(hydrated.driftId, hydrated);
+            if (driftKey) {
+              appendDriftMessage(driftKey, hydrated);
             } else {
               appendRef.current(conversationId, hydrated);
             }
+            return;
+          }
+    
+          // No hydration? Still route to drift if payload gives us a driftId
+          if (payloadDriftId) {
+            appendDriftMessage(payloadDriftId, {
+              id: mid,
+              text: payload?.text ?? null,
+              createdAt: payload?.createdAt ?? new Date().toISOString(),
+              senderId: from,
+              driftId: payloadDriftId,
+              sender: payload?.sender ?? undefined,
+              attachments: Array.isArray(payload?.attachments)
+                ? payload.attachments
+                : [],
+            });
           } else {
-            // fallback: append raw if hydration failed
             appendRef.current(conversationId, payload as Message);
           }
         })
         .catch(() => {
-          appendRef.current(conversationId, payload as Message);
+          // Network hiccup? Still make sure we route to the drift if we can.
+          if (payloadDriftId) {
+            appendDriftMessage(payloadDriftId, {
+              id: mid,
+              text: payload?.text ?? null,
+              createdAt: payload?.createdAt ?? new Date().toISOString(),
+              senderId: String(payload?.senderId ?? ""),
+              driftId: payloadDriftId,
+              sender: payload?.sender ?? undefined,
+              attachments: Array.isArray(payload?.attachments)
+                ? payload.attachments
+                : [],
+            });
+          } else {
+            appendRef.current(conversationId, payload as Message);
+          }
         });
     };
+    
 
     const linkPreviewHandler = async ({ payload }: any) => {
       const mid = String(payload?.messageId ?? "");
@@ -793,6 +939,21 @@ export default function ChatRoom({
       if (!mid) return;
       markAsRedacted(mid);
     };
+
+    const readHandler = ({ payload }: any) => {
+      const { userId, ts } = payload || {};
+      if (!userId || !ts) return;
+      setReaders((prev) => {
+        const i = prev.findIndex((p) => p.userId === String(userId));
+        if (i >= 0) {
+          const next = prev.slice();
+          next[i] = { userId: String(userId), lastReadAt: ts };
+          return next;
+        }
+        return [...prev, { userId: String(userId), lastReadAt: ts }];
+      });
+    };
+    channel.on("broadcast", { event: "read" }, readHandler);
 
     channel.on("broadcast", { event: "new_message" }, msgHandler);
     channel.on("broadcast", { event: "poll_create" }, pollCreateHandler);
@@ -947,7 +1108,7 @@ export default function ChatRoom({
   }, [highlightMessageId, messages.length]);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3" data-chat-root>
       {messages.map((m) => {
         const isMine = String(m.senderId) === String(currentUserId);
         const panes = Object.values(state.panes);
@@ -959,8 +1120,11 @@ export default function ChatRoom({
         const isDriftAnchor = !!driftEntry;
 
         // const isDriftAnchor = (m as any).meta?.kind === "DRIFT_ANCHOR";
+
         return (
           <div key={m.id} className="space-y-2" data-msg-id={m.id}>
+            {/* Presence row */}
+
             {!isDriftAnchor && (
               <MessageRow
                 m={m}
@@ -990,25 +1154,6 @@ export default function ChatRoom({
                 ))}
               </div>
             ) : null}
-            {/* Reply/quote preview (right below the bubble) */}
-            {/* {Array.isArray((m as any).quotes) && (m as any).quotes.length > 0 && (
-   <div className={["px-3", String(m.senderId) === String(currentUserId) ? "items-end" : "items-start"].join(" ")}>
-     <div className="mt-1 text-[11px] text-slate-500 flex items-center gap-1">
-       <span className="inline-block h-1.5 w-1.5 rounded-full bg-slate-400" />
-       <span>Replying to</span>
-     </div>
-     <div className="mt-1 pl-3 border-l-2 border-slate-200">
-     <span>Replying to</span>
-
-       {(m as any).quotes.map((q: any, i: number) => (
-        <>
-             <span>Replying to</span>
-         <QuoteBlock key={`${m.id}-q-${i}`} q={q} />
-         </>
-       ))}
-     </div>
-   </div>
- )} */}
 
             {Array.isArray((m as any).quotes) &&
               (m as any).quotes.length > 0 &&
@@ -1054,44 +1199,49 @@ export default function ChatRoom({
                 );
               })()}
 
-           {/* Plain message link previews */}
-{!Array.isArray((m as any).facets) &&
- Array.isArray((m as any).linkPreviews) &&
- (m as any).linkPreviews.length > 0 && (
-  <div
-    className={[
-      "mt-2 flex flex-col gap-2 px-3",
-      String(m.senderId) === String(currentUserId) ? "items-end" : "items-start",
-    ].join(" ")}
-  >
-    {(m as any).linkPreviews.slice(0, 3).map((p: any) => (
-      <LinkCard key={p.urlHash} p={p} />
-    ))}
-  </div>
-)}
+            {/* Plain message link previews */}
+            {!Array.isArray((m as any).facets) &&
+              Array.isArray((m as any).linkPreviews) &&
+              (m as any).linkPreviews.length > 0 && (
+                <div
+                  className={[
+                    "mt-2 flex flex-col gap-2 px-3",
+                    String(m.senderId) === String(currentUserId)
+                      ? "items-end"
+                      : "items-start",
+                  ].join(" ")}
+                >
+                  {(m as any).linkPreviews.slice(0, 3).map((p: any) => (
+                    <LinkCard key={p.urlHash} p={p} />
+                  ))}
+                </div>
+              )}
 
-{/* Sheaf (default facet) link previews */}
-{Array.isArray((m as any).facets) &&
- (m as any).facets.length > 0 &&
- (() => {
-   const defId = (m as any).defaultFacetId ?? (m as any).facets[0]?.id;
-   const def =
-     (m as any).facets.find((f: any) => f.id === defId) ??
-     (m as any).facets[0];
-   if (!def?.linkPreviews?.length) return null;
-   return (
-     <div
-       className={[
-         "mt-2 flex flex-col gap-2 px-3",
-         String(m.senderId) === String(currentUserId) ? "items-end" : "items-start",
-       ].join(" ")}
-     >
-       {def.linkPreviews.slice(0, 3).map((p: any) => (
-         <LinkCard key={p.urlHash} p={p} />
-       ))}
-     </div>
-   );
- })()}
+            {/* Sheaf (default facet) link previews */}
+            {Array.isArray((m as any).facets) &&
+              (m as any).facets.length > 0 &&
+              (() => {
+                const defId =
+                  (m as any).defaultFacetId ?? (m as any).facets[0]?.id;
+                const def =
+                  (m as any).facets.find((f: any) => f.id === defId) ??
+                  (m as any).facets[0];
+                if (!def?.linkPreviews?.length) return null;
+                return (
+                  <div
+                    className={[
+                      "mt-2 flex flex-col gap-2 px-3",
+                      String(m.senderId) === String(currentUserId)
+                        ? "items-end"
+                        : "items-start",
+                    ].join(" ")}
+                  >
+                    {def.linkPreviews.slice(0, 3).map((p: any) => (
+                      <LinkCard key={p.urlHash} p={p} />
+                    ))}
+                  </div>
+                );
+              })()}
 
             {pollsByMessageId[m.id] && (
               <PollChip
@@ -1099,7 +1249,10 @@ export default function ChatRoom({
                 onVote={(body) => onVote(pollsByMessageId[m.id], body)}
               />
             )}
-
+          
+            {/* {lastMsg && String(lastMsg.senderId) === String(currentUserId) && (
+  <div className="px-3 text-[11px] text-slate-500">Seen by {seenCount}</div>
+)} */}
             {/* Drift anchor chip + pane (purely store-driven; no meta) */}
             {isDriftAnchor && driftEntry && (
               <>
@@ -1108,7 +1261,10 @@ export default function ChatRoom({
                   count={driftEntry.drift.messageCount}
                   onOpen={() => openDrift(driftEntry.drift.id)}
                 />
+           
                 {openDrifts[driftEntry.drift.id] && (
+                  <>
+                       <hr></hr>
                   <DriftPane
                     key={driftEntry.drift.id}
                     drift={{
@@ -1121,6 +1277,7 @@ export default function ChatRoom({
                     currentUserId={currentUserId}
                     onClose={() => closeDrift(driftEntry.drift.id)}
                   />
+                  </>
                 )}
               </>
             )}
@@ -1141,9 +1298,22 @@ export default function ChatRoom({
                 Side chat
               </button>
             )}
+             
           </div>
+          
         );
       })}
+       {/* Typing indicator */}
+       {othersTypingIds.length > 0 && (
+  <div className="px-3 text-[12px] text-slate-500 italic">
+    {othersTypingIds.length === 1
+      ? `${getTypingName(othersTypingIds[0])} is typing…`
+      : "Several people are typing…"}
+  </div>
+)}
+
     </div>
+    
   );
+
 }

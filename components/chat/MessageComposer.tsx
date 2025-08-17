@@ -12,6 +12,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
+import { useConversationRealtime } from "@/hooks/useConversationRealtime";
 import {
   Dialog,
   DialogContent,
@@ -23,6 +24,8 @@ interface Props {
   conversationId: string;
   currentUserId: string | number; // NEW
   driftId?: string;               // NEW (optional)
+  currentUserName?: string;
+   currentUserImage?: string | null;
 }
 type QuoteRef = { messageId: string; facetId?: string };
 
@@ -30,6 +33,8 @@ export default function MessageComposer({
   conversationId,
   currentUserId,
   driftId,
+  currentUserName = "",
+   currentUserImage = null,
 
   
 }: Props) {
@@ -47,6 +52,13 @@ export default function MessageComposer({
 //    const quoteDraft = useChatStore((s) => s.quoteDraftByConversationId[conversationId]);
 //  const setQuoteDraft = useChatStore((s) => s.setQuoteDraft);
 //  const clearQuoteDraft = () => setQuoteDraft(conversationId, undefined);
+
+const { sendTyping } = useConversationRealtime(
+  conversationId,
+  { id: String(currentUserId), name: String(currentUserName), image: currentUserImage }
+);
+
+
   function onFilesSelected(list: FileList | null) {
     console.log("[files] selected", list?.length);
     if (!list) return;
@@ -85,6 +97,29 @@ export default function MessageComposer({
   // }
 
   // read quote draft from store
+
+
+  async function hydrateAndAppendById(messageId: string, driftId?: string | null) {
+    try {
+      const r = await fetch(
+        `/api/sheaf/messages?userId=${encodeURIComponent(String(currentUserId))}&messageId=${encodeURIComponent(messageId)}`,
+        { cache: "no-store" }
+      );
+      const data = await r.json();
+      const hydrated = data?.messages?.[0] ?? data?.message ?? null;
+      if (!hydrated) return;
+      if (hydrated.driftId || driftId) {
+        // route to drift pane
+        useChatStore.getState().appendDriftMessage(hydrated.driftId ?? String(driftId), hydrated);
+      } else {
+        // main timeline
+        useChatStore.getState().appendMessage(conversationId, hydrated);
+      }
+    } catch (e) {
+      console.warn("[Drift] hydrate after send failed", e);
+    }
+  }
+  
  const quoteDraft = useChatStore(
      useCallback((s) => s.quoteDraftByConversationId[conversationId], [conversationId])
    );
@@ -128,6 +163,14 @@ export default function MessageComposer({
       try {
         if (xhr.status < 200 || xhr.status >= 300)
           throw new Error("Upload failed");
+             // Parse the minimal DTO returned by POST /api/messages/:id
+             const resp = JSON.parse(xhr.responseText);
+             const mid = String(resp?.id ?? "");
+             const did = resp?.driftId ? String(resp.driftId) : (driftId ? String(driftId) : null);
+             if (mid) {
+               // Immediately rehydrate + append to the correct place (pane or main)
+               hydrateAndAppendById(mid, did ?? undefined);
+             }
        
       } catch (e) {
         // TODO: surface error toast
@@ -541,7 +584,10 @@ export default function MessageComposer({
                 className="flex flex-1 h-full w-full text-start align-center rounded-xl bg-white/70 px-4 py-3 text-[.9rem] tracking-wider  messagefield text-black"
                 rows={1}
                 value={text}
-                onChange={(e) => setText(e.target.value)}
+                onChange={(e) => {
+                  setText(e.target.value);
+                  if (e.target.value.trim()) sendTyping(); // hook can debounce/throttle internally
+                }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();

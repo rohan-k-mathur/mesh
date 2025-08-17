@@ -38,7 +38,12 @@ export function AudiencePicker(props: {
   React.useEffect(() => {
     fetch(`/api/sheaf/participants?conversationId=${conversationId}`)
       .then((r) => r.ok ? r.json() : { users: [] })
-      .then((d) => setPeople(d.users ?? []))
+      .then((d) =>
+            setPeople((d.users ?? []).map((u: any) => ({
+              id: String(u.id),
+              name: u.name ?? "User",
+            })))
+          )
       .catch(() => {});
   }, [conversationId]);
 
@@ -110,19 +115,26 @@ export function AudiencePicker(props: {
 
       {kind === 'USERS' && (
         <>
-          <select
-                               className="text-xs lockbutton rounded-xl px-2 py-1 bg-white/70"
-                               multiple
-            value={userIds}
-            onChange={(e) => {
-              const sel = Array.from(e.target.selectedOptions).map((o) => o.value);
-              setUserIds(sel);
-            }}
-          >
-            {people.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
+            <div className="flex flex-col gap-1 max-h-48 overflow-y-auto rounded-md border bg-white/70 px-2 py-2">
+      {people.map((p) => {
+        const checked = userIds.includes(p.id);
+        return (
+          <label key={p.id} className="flex items-center gap-2 cursor-pointer text-xs">
+            <input
+              type="checkbox"
+              className="h-3.5 w-3.5"
+              checked={checked}
+              onChange={(e) =>
+                setUserIds((prev) =>
+                  e.target.checked ? [...prev, p.id] : prev.filter((id) => id !== p.id)
+                )
+              }
+            />
+            <span className="truncate">{p.name}</span>
+          </label>
+        );
+      })}
+    </div>
           <select
                                className="text-xs lockbutton rounded-xl px-2 py-1 bg-white/70"
                                value={mode}

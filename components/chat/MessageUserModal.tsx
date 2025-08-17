@@ -233,13 +233,13 @@ export default function MessageUserModal() {
         </div>
 
         <div className="flex justify-start">
-          <Button
+          <button
             onClick={handleSend}
             disabled={!selected}
-            className="rounded-xl bg-white px-5 py-1 text-[1.05rem] tracking-wide"
+            className="rounded-xl bg-white px-5 py-1 savebutton text-[1.05rem] tracking-wide"
           >
             Send
-          </Button>
+          </button>
         </div>
       </DialogContent>
     </Dialog>
