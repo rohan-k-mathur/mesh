@@ -12,6 +12,7 @@ type SendMessageArgs = {
   files?: File[];
   driftId?: bigint;
   clientId?: string; // ← new
+  meta?: any;             // ← NEW
 };
 
 export async function fetchMessages({
@@ -40,6 +41,7 @@ export async function sendMessage({
   files,
   driftId,
   clientId,
+  meta,      
 }: SendMessageArgs) {
   if (!text && (!files || files.length === 0)) {
     throw new Error("Message must contain text or attachment");
@@ -74,6 +76,7 @@ export async function sendMessage({
             text,
             drift_id: driftId ?? undefined,
             client_id: clientId,
+            meta: meta ?? undefined, // ← write meta
           },
           include: { sender: { select: { name: true, image: true } } },
         });
@@ -86,6 +89,7 @@ export async function sendMessage({
           conversation_id: conversationId,
           text,
           drift_id: driftId ?? undefined,
+          meta: meta ?? undefined, // ← write meta
         },
         include: { sender: { select: { name: true, image: true } } },
       });

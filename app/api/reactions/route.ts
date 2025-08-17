@@ -1,7 +1,8 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '../sheaf/_prisma';
-import { readJSON, ok, badRequest, toBigInt, s } from '../sheaf/_util';
-import { toAclFacet, userCtxFrom } from '../sheaf/_map';
+import { readJSON, ok, badRequest, toBigInt, s } from '@/app/api/sheaf/_util';
+import { toAclFacet, userCtxFrom } from '@/app/api/sheaf/_map';
+
 import { visibleFacetsFor } from '@app/sheaf-acl';
 
 /**

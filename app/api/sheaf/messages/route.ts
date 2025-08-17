@@ -1,56 +1,51 @@
 import { NextRequest } from "next/server";
 import { prisma } from "../_prisma";
 import { jsonSafe } from "@/lib/bigintjson";
-import { readJSON, ok, badRequest, toBigInt, s } from "../_util";
-import { toAclFacet, userCtxFrom } from "../_map";
+import { readJSON, ok, badRequest, toBigInt, s } from '@/app/api/sheaf/_util';
+import { toAclFacet, userCtxFrom } from '@/app/api/sheaf/_map';
 import type { AudienceSelector } from "@app/sheaf-acl";
+import { resolveQuoteForViewer, QuoteSpec } from "@/lib/sheaf/resolveQuote";
 import {
   visibleFacetsFor,
   defaultFacetFor,
   priorityRank,
 } from "@app/sheaf-acl";
+
+// util at top of the file (or a shared util module)
+function toMs(v?: number | string | Date | null): number {
+  if (!v) return 0;
+  if (typeof v === "number") return v;                  // already ms (or s) – adjust if needed
+  const t = new Date(v as any).getTime();
+  return Number.isFinite(t) ? t : 0;
+}
+
 // ---------- GET /api/sheaf/messages?userId=...&conversationId=...&messageId=... ----------
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const userId = searchParams.get("userId");
   if (!userId) return badRequest("Missing userId");
 
-  const convo = searchParams.get("conversationId");
+  const convo    = searchParams.get("conversationId");
   const messageId = searchParams.get("messageId");
-  const driftId = searchParams.get("driftId");
+  const driftId   = searchParams.get("driftId");
 
   // Build where
-  let whereMsg: any = {};
-  if (messageId) {
-    whereMsg.id = toBigInt(messageId);
-  } else if (convo) {
-    whereMsg.conversation_id = toBigInt(convo);
-  }
-   // 🔒 Main timeline: exclude drift children on conversation view.
-  // We only want top-level messages (anchors are top-level too since drift_id is null).
-  if (!messageId && convo && !driftId) {
-    whereMsg.drift_id = null;
-  }
-  // When a drift is requested explicitly, scope to that drift.
-  if (driftId) {
-    whereMsg.drift_id = toBigInt(driftId);
-  }
-  if (driftId) {
-        // When driftId is present, scope to messages inside that drift
-        whereMsg.drift_id = toBigInt(driftId);
-      }
+  const whereMsg: any = {};
+  if (messageId) whereMsg.id = toBigInt(messageId);
+  else if (convo) whereMsg.conversation_id = toBigInt(convo);
 
-  const viewer = await prisma.user.findUnique({
-    where: { id: toBigInt(userId) },
-  });
+  // Main timeline excludes drift children
+  if (!messageId && convo && !driftId) whereMsg.drift_id = null;
+  // Drift view: only drift children
+  if (driftId) whereMsg.drift_id = toBigInt(driftId);
+
+  const viewer = await prisma.user.findUnique({ where: { id: toBigInt(userId) } });
   if (!viewer) return badRequest("Unknown userId");
 
-  const viewerRoles = await prisma.userRole.findMany({
-    where: { userId: viewer.id },
-  });
-  const rolesArr = viewerRoles.map((r) => r.role);
+  const viewerRoles = await prisma.userRole.findMany({ where: { userId: viewer.id } });
+  const rolesArr = viewerRoles.map(r => r.role);
 
-  // Load messages (with sender + top-level attachments)
+  // Load messages
   const messages = await prisma.message.findMany({
     where: whereMsg,
     orderBy: messageId ? undefined : { created_at: "desc" },
@@ -63,60 +58,35 @@ export async function GET(req: NextRequest) {
       drift_id: true,
       meta: true,
       is_redacted: true,
-     
-      sender: { select: { name: true, image: true } }, // 👈 avatar
-      attachments: { select: { id: true, path: true, type: true, size: true } }, // 👈 top-level attachments
+      edited_at: true,
+      sender: { select: { name: true, image: true } },
+      attachments: { select: { id: true, path: true, type: true, size: true } },
     },
   });
 
-  const messageIds = messages.map((m) => m.id);
+  const messageIds = messages.map(m => m.id);
   if (messageIds.length === 0) return ok({ userId, messages: [] });
 
-  // Load Sheaf facets (if any)
-  const facets = await prisma.sheafFacet.findMany({
-    where: { messageId: { in: messageIds } },
-  });
+  // Load facets for these messages
+  const facets = await prisma.sheafFacet.findMany({ where: { messageId: { in: messageIds } } });
 
-  // Preload lists for dynamic checks
-  const listIds = Array.from(
-    new Set(facets.map((f) => f.audienceListId).filter((x): x is string => !!x))
-  );
+  // Preload lists for ACL
+  const listIds = Array.from(new Set(facets.map(f => f.audienceListId).filter((x): x is string => !!x)));
   const lists = new Map(
-    (
-      await prisma.sheafAudienceList.findMany({
-        where: { id: { in: listIds } },
-      })
-    ).map((l) => [l.id, l])
+    (await prisma.sheafAudienceList.findMany({ where: { id: { in: listIds } } })).map(l => [l.id, l])
   );
 
   // Facet attachments
-  const facetIds = facets.map((f) => f.id);
+  const facetIds = facets.map(f => f.id);
   const atts = await prisma.sheafAttachment.findMany({
     where: { facetId: { in: facetIds } },
     include: { blob: true },
   });
-  const attByFacet = new Map<
-    string,
-    {
-      id: string;
-      name: string;
-      mime: string;
-      size: number;
-      sha256: string;
-      path?: string | null;
-    }[]
-  >();
+  const attByFacet = new Map<string, { id: string; name: string; mime: string; size: number; sha256: string; path?: string | null }[]>();
   for (const a of atts) {
     const key = a.facetId.toString();
     const list = attByFacet.get(key) ?? [];
-    list.push({
-      id: a.id.toString(),
-      name: a.name,
-      mime: a.blob.mime,
-      size: a.blob.size,
-      sha256: a.blob.sha256,
-      path: a.blob.path ?? null,
-    });
+    list.push({ id: a.id.toString(), name: a.name, mime: a.blob.mime, size: a.blob.size, sha256: a.blob.sha256, path: a.blob.path ?? null });
     attByFacet.set(key, list);
   }
 
@@ -130,105 +100,155 @@ export async function GET(req: NextRequest) {
 
   const ctx = userCtxFrom(viewer, rolesArr, lists);
 
-  // Build DTOs
+  // ---------- Collect quote refs & preload sources ----------
+  const quotesByMsg = new Map<string, QuoteSpec[]>();
+  const allSourceIds = new Set<bigint>();
+  for (const m of messages) {
+    const meta = (m.meta ?? {}) as any;
+    const arr = Array.isArray(meta?.quotes) ? meta.quotes : [];
+    const list: QuoteSpec[] = [];
+    for (const q of arr) {
+      try {
+        const sid = toBigInt(String(q.sourceMessageId));
+        const sfid = q.sourceFacetId ? toBigInt(String(q.sourceFacetId)) : null;
+        if (sid) { list.push({ sourceMessageId: sid, sourceFacetId: sfid ?? null }); allSourceIds.add(sid); }
+      } catch {}
+    }
+    if (list.length) quotesByMsg.set(m.id.toString(), list);
+  }
+
+  const srcMsgs = allSourceIds.size
+    ? await prisma.message.findMany({
+        where: { id: { in: Array.from(allSourceIds) } },
+        select: {
+          id: true,
+          text: true,
+          is_redacted: true,
+          edited_at: true,
+          sender: { select: { name: true, image: true } },
+          attachments: { select: { id: true, path: true, type: true, size: true } },
+        },
+      })
+    : [];
+  const srcMsgById = new Map<string, (typeof srcMsgs)[number]>();
+  for (const sm of srcMsgs) srcMsgById.set(sm.id.toString(), sm);
+
+  const srcFacets = allSourceIds.size
+    ? await prisma.sheafFacet.findMany({ where: { messageId: { in: Array.from(allSourceIds) } } })
+    : [];
+  const srcFacetById = new Map<string, (typeof srcFacets)[number]>();
+  for (const f of srcFacets) srcFacetById.set(f.id.toString(), f);
+
+  const srcFacetIds = srcFacets.map(f => f.id);
+  const srcAtts = srcFacetIds.length
+    ? await prisma.sheafAttachment.findMany({ where: { facetId: { in: srcFacetIds } }, include: { blob: true } })
+    : [];
+  const srcAttByFacet = new Map<string, any[]>();
+  for (const a of srcAtts) {
+    const key = a.facetId.toString();
+    const list = srcAttByFacet.get(key) ?? [];
+    list.push({ id: a.id.toString(), name: a.name, mime: a.blob.mime, size: a.blob.size, sha256: a.blob.sha256, path: a.blob.path ?? null });
+    srcAttByFacet.set(key, list);
+  }
+
+  // Resolve all quotes once (no await in the DTO map)
+  const resolvedQuotesByMsg = new Map<string, any[]>();
+  for (const m of messages) {
+    const specs = quotesByMsg.get(m.id.toString()) ?? [];
+    if (!specs.length) continue;
+    const resolved = await Promise.all(
+      specs.map(q =>
+        resolveQuoteForViewer(q, {
+          srcMsgById,
+          srcFacetById,
+          srcAttByFacet,
+          requireSourceVisibility: false, // switch to true if you want stricter policy
+        })
+      )
+    );
+    resolvedQuotesByMsg.set(m.id.toString(), resolved);
+  }
+
+  // ---------- Build DTOs ----------
   const results = messages
     .map((m) => {
- // 🔒 If the message is redacted, return a tombstone immediately
-        const isRedacted = !!(m as any).is_redacted;
-        if (isRedacted) {
-          return {
-            id: s(m.id),
-            senderId: s(m.sender_id),
-            sender: {
-              name: m.sender?.name ?? null,
-              image: m.sender?.image ?? null,
-            },
-            createdAt: m.created_at.toISOString(),
-            driftId: m.drift_id ? s(m.drift_id) : null,
-          meta: (m.meta as any) ?? null,
-            isRedacted: true,
-            facets: [],
-            defaultFacetId: null,
-            text: null,
-            attachments: [],
-          };
-        }
-
-      const raw = byMessage.get(m.id.toString()) ?? [];
-
-      // ✅ PLAIN MESSAGE: no Sheaf facets at all → return text + top-level attachments
-      if (raw.length === 0) {
+      // Tombstone for redacted
+      if (m.is_redacted) {
         return {
           id: s(m.id),
           senderId: s(m.sender_id),
-          sender: {
-            name: m.sender?.name ?? null,
-            image: m.sender?.image ?? null,
-          },
+          sender: { name: m.sender?.name ?? null, image: m.sender?.image ?? null },
           createdAt: m.created_at.toISOString(),
           driftId: m.drift_id ? s(m.drift_id) : null,
           meta: (m.meta as any) ?? null,
-          isRedacted: false,
-          facets: [], // no layers
+          isRedacted: true,
+          facets: [],
           defaultFacetId: null,
-          text: m.text ?? null,
-          attachments: m.attachments.map((a) => ({
-            id: a.id.toString(),
-            path: a.path,
-            type: a.type,
-            size: a.size,
-          })),
+          text: null,
+          attachments: [],
         };
       }
 
-      // Sheaf message with facets
-      const fs = raw.map(toAclFacet).map((af) => ({
-        ...af,
-        attachments: attByFacet.get(af.id) ?? [],
-      }));
+      const raw = byMessage.get(m.id.toString()) ?? [];
+      const quotes = resolvedQuotesByMsg.get(m.id.toString()) ?? [];
 
+      // Plain (no facets)
+      if (raw.length === 0) {
+        const edited = !!m.edited_at;
+        return {
+          id: s(m.id),
+          senderId: s(m.sender_id),
+          sender: { name: m.sender?.name ?? null, image: m.sender?.image ?? null },
+          createdAt: m.created_at.toISOString(),
+          driftId: m.drift_id ? s(m.drift_id) : null,
+          meta: (m.meta as any) ?? null,
+          facets: [],
+          defaultFacetId: null,
+          text: m.text ?? null,
+          attachments: m.attachments.map(a => ({ id: a.id.toString(), path: a.path, type: a.type, size: a.size })),
+          isRedacted: false,
+          edited,
+          quotes,
+        };
+      }
+
+      // Sheaf (with visible facets)
+      const fs = raw.map(toAclFacet).map(af => ({ ...af, attachments: attByFacet.get(af.id) ?? [] }));
       const visible = visibleFacetsFor(ctx, fs as any);
 
-      // If viewer can’t see any facet, but the message has a plain text fallback, show text.
       if (visible.length === 0) {
         if (m.text || m.attachments.length) {
+          const edited = !!m.edited_at;
           return {
             id: s(m.id),
             senderId: s(m.sender_id),
-            sender: {
-              name: m.sender?.name ?? null,
-              image: m.sender?.image ?? null,
-            },
+            sender: { name: m.sender?.name ?? null, image: m.sender?.image ?? null },
             createdAt: m.created_at.toISOString(),
             driftId: m.drift_id ? s(m.drift_id) : null,
-                    meta: (m.meta as any) ?? null,
+            meta: (m.meta as any) ?? null,
             isRedacted: false,
             facets: [],
             defaultFacetId: null,
             text: m.text ?? null,
-            attachments: m.attachments.map((a) => ({
-              id: a.id.toString(),
-              path: a.path,
-              type: a.type,
-              size: a.size,
-            })),
+            attachments: m.attachments.map(a => ({ id: a.id.toString(), path: a.path, type: a.type, size: a.size })),
+            edited,
+            quotes,
           };
         }
-        // Otherwise, hidden to this viewer
         return null;
       }
 
       const def = defaultFacetFor(ctx, fs as any);
+      const defId = def?.id ?? visible[0].id;
+      const defObj = visible.find((f: any) => f.id === defId) ?? visible[0];
+
+      const edited = toMs(defObj?.updatedAt) > toMs(defObj?.createdAt);
 
       return {
         id: s(m.id),
         senderId: s(m.sender_id),
-        sender: {
-          name: m.sender?.name ?? null,
-          image: m.sender?.image ?? null,
-        }, // 👈 avatar
+        sender: { name: m.sender?.name ?? null, image: m.sender?.image ?? null },
         createdAt: m.created_at.toISOString(),
-        isRedacted: false,
         driftId: m.drift_id ? s(m.drift_id) : null,
         meta: (m.meta as any) ?? null,
         facets: visible.map((f: any) => ({
@@ -240,25 +260,22 @@ export async function GET(req: NextRequest) {
           attachments: f.attachments ?? [],
           priorityRank: f.priorityRank,
           createdAt: f.createdAt,
+          updatedAt: f.updatedAt ?? null,
+          isEdited: toMs(f.updatedAt) > toMs(f.createdAt),
         })),
-        defaultFacetId: def?.id ?? visible[0].id,
+        defaultFacetId: defId,
         text: m.text ?? null,
-        attachments: m.attachments.map((a) => ({
-          id: a.id.toString(),
-          path: a.path,
-          type: a.type,
-          size: a.size,
-        })),
+        attachments: m.attachments.map(a => ({ id: a.id.toString(), path: a.path, type: a.type, size: a.size })),
+        isRedacted: false,
+        edited,    // neutral indicator for the shown facet
+        quotes,
       };
     })
     .filter((x): x is NonNullable<typeof x> => x !== null);
 
   const ordered = messageId
-    ? results // single hydrate: keep as-is
-    : [...results].sort(
-        (a, b) =>
-          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-      );
+    ? results
+    : [...results].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
   return ok({ userId, messages: ordered });
 }
@@ -302,6 +319,7 @@ export async function POST(req: NextRequest) {
     text?: string | null;
     facets: FacetIn[];
     defaultFacetIndex?: number;
+    meta?: any; // ← NEW
   };
 
   let body: Body;
@@ -311,7 +329,7 @@ export async function POST(req: NextRequest) {
     return badRequest("Invalid JSON");
   }
 
-  const { conversationId, authorId, facets, text, defaultFacetIndex } = body;
+  const { conversationId, authorId, facets, text, defaultFacetIndex, meta } = body;
 
   // Helpful 400
   if (
@@ -342,6 +360,7 @@ export async function POST(req: NextRequest) {
       conversation_id: toBigInt(conversationId),
       sender_id: toBigInt(authorId),
       text: text ?? null,
+      meta: meta ?? undefined, // ← write meta
     },
     select: { id: true, created_at: true },
   });

@@ -54,6 +54,10 @@ export type DriftUI = {
   my?: { collapsed: boolean; pinned: boolean; muted: boolean; lastReadAt: string | null };
 };
 
+// Types
+type QuoteRef = { messageId: string; facetId?: string };
+
+
 
 export type PollUI =
   | { kind: "OPTIONS"; poll: PollDTO; totals: number[]; count: number; myVote: number | null }
@@ -118,6 +122,9 @@ interface ChatState {
   setDriftMessages: (driftId: string, rows: any[]) => void;
   appendDriftMessage: (driftId: string, msg: any) => void;
   updateDriftCounters: (driftId: string, patch: { messageCount?: number; lastMessageAt?: string | null }) => void;
+  quoteDraftByConversationId: Record<string, QuoteRef | undefined>;
+  setQuoteDraft: (conversationId: string, ref?: QuoteRef) => void;
+  clearQuoteDraft: (conversationId: string) => void;
 }
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -126,6 +133,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
   pollsByMessageId: {},
   reactionsByMessageId: {},
   setCurrentConversation: (id) => set({ currentConversation: id }),
+  // State
+  quoteDraftByConversationId: {},
+
 
   setConversations: (list) =>
     set({ conversations: Object.fromEntries(list.map((c) => [c.id, c])) }),
@@ -259,6 +269,21 @@ export const useChatStore = create<ChatState>((set, get) => ({
       return {
         pollsByMessageId: { ...state.pollsByMessageId, [entryKey]: updated },
       };
+    }),
+
+    setQuoteDraft: (conversationId, ref) =>
+    set((state) => ({
+      quoteDraftByConversationId: {
+        ...state.quoteDraftByConversationId,
+        [conversationId]: ref,
+      },
+    })),
+
+  clearQuoteDraft: (conversationId) =>
+    set((state) => {
+      const next = { ...state.quoteDraftByConversationId };
+      delete next[conversationId];
+      return { quoteDraftByConversationId: next };
     }),
 
   sendMessage: async (id, data) => {

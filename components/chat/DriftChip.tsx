@@ -11,11 +11,12 @@ export function DriftChip({
   onOpen?: () => void;
 }) {
   return (
-    <div className="mx-auto mt-2 max-w-[70%]">
+    <div className="mx-auto mt-4  min-w-[25%] max-w-[40%]">
       <button
         type="button"
         onClick={onOpen}
-        className="w-full justify-center items-center text-center text-[0.9rem] px-3 py-2 rounded-lg bg-white/70 border hover:bg-white shadow-sm"
+        className="w-full justify-center items-center text-center text-[0.9rem] py-3 px-3 rounded-xl 
+        bg-white/30 backdrop-blur-sm border bubblebutton [data-effects='off']:backdrop-blur-0 [data-effects='off']:bg-white/45"
         title="Open drift"
       >
         🌀 <span className="font-medium">{title}</span>

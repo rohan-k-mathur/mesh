@@ -28,6 +28,7 @@ import { ReactionBar } from "@/components/reactions/ReactionBar";
 import { ReactionTrigger } from "@/components/reactions/ReactionTrigger";
 import { DriftChip } from "@/components/chat/DriftChip";
 import { DriftPane } from "@/components/chat/DriftPane";
+import { QuoteBlock } from "@/components/chat/QuoteBlock";
 
 const ENABLE_REACTIONS = false;
 
@@ -36,6 +37,7 @@ type Props = {
   currentUserId: string;
   initialMessages: Message[];
   highlightMessageId?: string | null;
+  onQuote?: (qr: { messageId: string; facetId?: string }) => void;
 };
 
 function excerpt(text?: string | null, len = 100) {
@@ -133,6 +135,7 @@ const MessageRow = memo(function MessageRow({
   onCreateTemp: (m: Message) => void;
   onDelete: (id: string) => void;
 }) {
+  const setQuoteDraft = useChatStore((s) => s.setQuoteDraft);
   const isMine = String(m.senderId) === String(currentUserId);
   const isRedacted = Boolean((m as any).isRedacted || (m as any).is_redacted);
   return (
@@ -174,143 +177,180 @@ const MessageRow = memo(function MessageRow({
         </DropdownMenu>
       )}
 
-{isRedacted ? (
-       <div className={["relative group w-full", isMine ? "flex justify-end" : "flex justify-start"].join(" ")}>
-         {/* Muted tombstone bubble */}
-         <ChatMessageContent
-           content="(redacted)"
-           className="opacity-70 italic"
-         />
-         {/* (Optional) you can still keep the hover menu for your own redacted msg if desired */}
-       </div>
-     ) : Array.isArray(m.facets) && m.facets.length > 0 ? (
-  <>
-    <div className={["relative group w-full", isMine ? "flex justify-end" : "flex justify-start"].join(" ")}>
-      <SheafMessageBubble
-        messageId={m.id}
-        conversationId={conversationId}
-        currentUserId={currentUserId}
-        facets={m.facets as any}
-        defaultFacetId={m.defaultFacetId}
-      />
+      {isRedacted ? (
+        <div
+          className={[
+            "relative group w-full",
+            isMine ? "flex justify-end" : "flex justify-start",
+          ].join(" ")}
+        >
+          {/* Muted tombstone bubble */}
+          <ChatMessageContent
+            content="(redacted)"
+            className="opacity-70 italic"
+          />
+          {/* (Optional) you can still keep the hover menu for your own redacted msg if desired */}
+        </div>
+      ) : Array.isArray(m.facets) && m.facets.length > 0 ? (
+        <>
+          <div
+            className={[
+              "relative group w-full",
+              isMine ? "flex justify-end" : "flex justify-start",
+            ].join(" ")}
+          >
+            <SheafMessageBubble
+              messageId={m.id}
+              conversationId={conversationId}
+              currentUserId={currentUserId}
+              facets={m.facets as any}
+              defaultFacetId={m.defaultFacetId}
+            />
+            {(m as any).edited ? (
+              <div
+                className={[
+                  "mt-1 text-[11px] text-slate-500 italic",
+                  isMine ? "text-right" : "text-left",
+                ].join(" ")}
+              >
+                (edited)
+              </div>
+            ) : null}
 
-{/* Hover actions overlay */}
-      <div
-        className={[
-          "absolute top-1 z-20 flex",
-          isMine ? "-right-0" : "left-0",
-          "invisible opacity-0 pointer-events-none",
-          "group-hover:visible group-hover:opacity-100 group-hover:pointer-events-auto",
-          "transition-opacity duration-150",
-        ].join(" ")}
+            {/* Hover actions overlay */}
+            <div
+              className={[
+                "absolute top-1 z-20 flex",
+                isMine ? "-right-0" : "left-0",
+                "invisible opacity-0 pointer-events-none",
+                "group-hover:visible group-hover:opacity-100 group-hover:pointer-events-auto",
+                "transition-opacity duration-150",
+              ].join(" ")}
+            >
+              <DropdownMenu>
+    <DropdownMenuTrigger asChild>
+    <button
+        className="py-0  px-0 mr-[1px] align-center my-auto bg-slate-500 shadow-md hover:shadow-none  rounded-md text-xs focus:outline-none"
+        title="Message actions"
+        type="button"
       >
-     {isMine && (
-               <DropdownMenu>
-                 <DropdownMenuTrigger asChild>
-                   <button
-                      className="py-0 align-center my-auto px-0  shadow-md hover:shadow-none w-fit h-fit 
-                      rounded-md  text-xs  focus:outline-none"
-                     title="Message actions"
-                     type="button"
-                   >
-                      <Image
-                src="/assets/radio-button--checked.svg"
-                alt="share"
-                width={28}
-                height={28}
-                className="cursor-pointer object-contain w-[10px]"
-              />
-                   </button>
-                 </DropdownMenuTrigger>
-                
-                 <DropdownMenuContent className="flex flex-col flex-1 bg-white/30 backdrop-blur rounded-xl max-w-[400px] py-2 max-h-[500px] w-full gap-1
-                h-full text-[1rem] tracking-wide"
-                 align={isMine ? "end" : "start"} sideOffset={6}>
-                   <DropdownMenuItem
-                                         className=" rounded-xl w-full"
+        <Image src="/assets/dot-mark.svg" alt="actions" width={32} height={32} className="cursor-pointer object-fill w-[8px] "  />
+      </button>
+    </DropdownMenuTrigger>
+    <DropdownMenuContent align={isMine ? "end" : "start"} sideOffset={6}
+      className="flex flex-col bg-white/30 backdrop-blur rounded-xl max-w-[400px] py-2">
+      {isMine ? (
+        <>
+          <DropdownMenuItem onClick={() => alert("Edit is coming soon.")}>✏️ Edit</DropdownMenuItem>
+          <DropdownMenuItem className="text-red-600" onClick={() => onDelete(m.id)}>🗑 Delete</DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => {
+              const facetId = (m as any).defaultFacetId ?? (Array.isArray(m.facets) && m.facets[0]?.id) ?? undefined;
+              useChatStore.getState().setQuoteDraft(conversationId, { messageId: m.id, facetId });
+            }}
+          >
+            🧩 Quote
+          </DropdownMenuItem>
+        </>
+      ) : (
+        <>
+          <DropdownMenuItem
+            onClick={() => {
+              const facetId = (m as any).defaultFacetId ?? (Array.isArray(m.facets) && m.facets[0]?.id) ?? undefined;
+              useChatStore.getState().setQuoteDraft(conversationId, { messageId: m.id, facetId });
+            }}
+          >
+            🧩 Quote
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onPrivateReply?.(m)}>↩️ Reply in DM</DropdownMenuItem>
+        </>
+      )}
+    </DropdownMenuContent>
+ </DropdownMenu>
+            </div>
+          </div>
 
-                     onClick={() => {
-                       // Placeholder for now
-                       alert("Edit is coming soon.");
-                     }}
-                   >
-                     ✏️ Edit
-                   </DropdownMenuItem>
-                   <DropdownMenuItem
-                     className="text-red-600 rounded-xl w-full"
-
-                     onClick={() => onDelete(m.id)}
-                   >
-                     🗑 Delete
-                   </DropdownMenuItem>
-                 </DropdownMenuContent>
-               </DropdownMenu>
-             )}
-
-      </div>
-    </div>
-
-    {/* Summary below the bubble */}
-  </>
-) : (
-  <>
-  <div className={["relative group w-full", isMine ? "flex justify-end" : "flex justify-start"].join(" ")}>
-  {m.text ? (
+          {/* Summary below the bubble */}
+        </>
+      ) : (
+        <>
+          <div
+            className={[
+              "relative group w-full",
+              isMine ? "flex justify-end" : "flex justify-start",
+            ].join(" ")}
+          >
+            {m.text ? (
               <ChatMessageContent content={m.text} />
             ) : (
               // Safety: If we ever hit a “no text, no facets” non-redacted state,
               // still render a placeholder bubble so the row doesn’t collapse.
               <ChatMessageContent content="" className="min-h-6" />
             )}
+            {(m as any).edited ? (
+              <div className="mt-1 text-[11px] text-slate-500 italic">
+                (edited)
+              </div>
+            ) : null}
 
-    <div
-      className={[
-        "absolute top-1 z-20 flex",
-        "invisible opacity-0 pointer-events-none",
-        "group-hover:visible group-hover:opacity-100 group-hover:pointer-events-auto",
-        "transition-opacity duration-150",
-      ].join(" ")}
-    >
-    {isMine && !isRedacted && (
-               <DropdownMenu>
-                 <DropdownMenuTrigger asChild>
-                 <button
-                     className="py-0 align-center my-auto px-0  shadow-md w-fit h-fit 
-                     rounded-md  text-xs hover:shadow-none focus:outline-none"
-                     title="Message actions"
-                     type="button"
-                   >
-                      <Image
-                src="/assets/radio-button--checked.svg"
-                alt="share"
-                width={28}
-                height={28}
-                className="cursor-pointer object-contain w-[10px]"
-              />
-                   </button>
-                 </DropdownMenuTrigger>
-                 <DropdownMenuContent className="flex flex-col flex-1 bg-white/30 backdrop-blur rounded-xl max-w-[400px] py-2 max-h-[500px] w-full gap-1
-                h-full text-[1rem] tracking-wide"
-                  align={isMine ? "end" : "start"} sideOffset={6}>
-                   <DropdownMenuItem className="rounded-xl w-full" onClick={() => alert("Edit is coming soon.")}>
-                     ✏️ Edit
-                   </DropdownMenuItem>
-                   <DropdownMenuItem className="rounded-xl w-full text-red-600" onClick={() => onDelete(m.id)}>
-                     🗑 Delete
-                   </DropdownMenuItem>
-                 </DropdownMenuContent>
-               </DropdownMenu>
-            )}
-   
-    </div>
-  </div>
-
-</>
+            <div
+              className={[
+                "absolute top-1 z-20 flex",
+                "invisible opacity-0 pointer-events-none",
+                "group-hover:visible group-hover:opacity-100 group-hover:pointer-events-auto",
+                "transition-opacity duration-150",
+              ].join(" ")}
+            >
+              <DropdownMenu>
+    <DropdownMenuTrigger asChild>
+    <button
+        className="py-0  px-0 mr-[1px] align-center my-auto bg-slate-500 shadow-md hover:shadow-none  rounded-md text-xs focus:outline-none"
+        title="Message actions"
+        type="button"
+      >
+        <Image src="/assets/dot-mark.svg" alt="actions" width={32} height={32} className="cursor-pointer object-fill w-[8px] "  />
+      </button>
+    </DropdownMenuTrigger>
+    <DropdownMenuContent align={isMine ? "end" : "start"} sideOffset={6}
+      className="flex flex-col bg-white/30 backdrop-blur rounded-xl max-w-[400px] py-2">
+      {isMine ? (
+        <>
+          <DropdownMenuItem onClick={() => alert("Edit is coming soon.")}>✏️ Edit</DropdownMenuItem>
+          <DropdownMenuItem className="text-red-600" onClick={() => onDelete(m.id)}>🗑 Delete</DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => {
+              const facetId = (m as any).defaultFacetId ?? (Array.isArray(m.facets) && m.facets[0]?.id) ?? undefined;
+              useChatStore.getState().setQuoteDraft(conversationId, { messageId: m.id, facetId });
+            }}
+          >
+            🧩 Quote
+          </DropdownMenuItem>
+        </>
+      ) : (
+        <>
+          <DropdownMenuItem
+            onClick={() => {
+              const facetId = (m as any).defaultFacetId ?? (Array.isArray(m.facets) && m.facets[0]?.id) ?? undefined;
+              useChatStore.getState().setQuoteDraft(conversationId, { messageId: m.id, facetId });
+            }}
+          >
+            🧩 Quote
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onPrivateReply?.(m)}>↩️ Reply in DM</DropdownMenuItem>
+        </>
       )}
-      
+    </DropdownMenuContent>
+ </DropdownMenu>
+            </div>
+          </div>
+        </>
+      )}
+
       {isMine && (
-  <ChatMessageAvatar imageSrc={m.sender?.image || "/assets/user-helsinki.svg"} />
-)}
+        <ChatMessageAvatar
+          imageSrc={m.sender?.image || "/assets/user-helsinki.svg"}
+        />
+      )}
     </ChatMessage>
   );
 });
@@ -323,8 +363,8 @@ export default function ChatRoom({
 }: Props) {
   const { open, state } = usePrivateChatManager();
 
-  const driftsByAnchorId = useChatStore(s => s.driftsByAnchorId);
-    const driftMessages = useChatStore((s) => s.driftMessages);
+  const driftsByAnchorId = useChatStore((s) => s.driftsByAnchorId);
+  const driftMessages = useChatStore((s) => s.driftMessages);
   const setDrifts = useChatStore((s) => s.setDrifts);
   const upsertDrift = useChatStore((s) => s.upsertDrift);
   const setDriftMessages = useChatStore((s) => s.setDriftMessages);
@@ -368,32 +408,49 @@ export default function ChatRoom({
     appendRef.current = appendMessage;
   }, [appendMessage]);
 
-  const markAsRedacted = React.useCallback((mid: string) => {
+  const markAsRedacted = React.useCallback(
+    (mid: string) => {
       const list = useChatStore.getState().messages[conversationId] ?? [];
       setMessages(
         conversationId,
         list.map((row) =>
           String(row.id) === String(mid)
-            ? { ...row, isRedacted: true, is_redacted: true, text: null, attachments: [], facets: [] }
+            ? {
+                ...row,
+                isRedacted: true,
+                is_redacted: true,
+                text: null,
+                attachments: [],
+                facets: [],
+              }
             : row
         )
       );
-    }, [conversationId, setMessages]);
+    },
+    [conversationId, setMessages]
+  );
 
-    const handleDelete = React.useCallback(async (mid: string) => {
-        // Optimistic tombstone
-        markAsRedacted(mid);
-        try {
-          const res = await fetch(`/api/messages/item/${encodeURIComponent(mid)}`, { method: "DELETE" });
-          if (!res.ok) throw new Error(await res.text());
-        } catch (e) {
-          console.warn("[delete] failed; consider refetch or revert", e);
-          // optionally revert here
-        }
-      }, [markAsRedacted]);
+  const handleDelete = React.useCallback(
+    async (mid: string) => {
+      // Optimistic tombstone
+      markAsRedacted(mid);
+      try {
+        const res = await fetch(
+          `/api/messages/item/${encodeURIComponent(mid)}`,
+          { method: "DELETE" }
+        );
+        if (!res.ok) throw new Error(await res.text());
+      } catch (e) {
+        console.warn("[delete] failed; consider refetch or revert", e);
+        // optionally revert here
+      }
+    },
+    [markAsRedacted]
+  );
 
   const initRef = useRef<string | null>(null);
   const hydratedRef = useRef(false);
+  const driftsListHydratedRef = useRef(false);
   useEffect(() => {
     if (initRef.current === conversationId) return;
     setMessages(conversationId, initialMessages);
@@ -453,13 +510,15 @@ export default function ChatRoom({
     const unseen = messages
       .filter((m) => (m as any).meta?.kind === "DRIFT_ANCHOR")
       .map((m) => m.id)
-      .filter((id) => !driftsByAnchorId[id] && !hydratedAnchorIdsRef.current.has(id));
-  
+      .filter(
+        (id) => !driftsByAnchorId[id] && !hydratedAnchorIdsRef.current.has(id)
+      );
+
     if (unseen.length === 0) return;
-  
+
     // mark as in-flight so we don't queue multiple fetches while this effect runs
     unseen.forEach((id) => hydratedAnchorIdsRef.current.add(id));
-  
+
     fetch("/api/drifts/query", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -477,6 +536,26 @@ export default function ChatRoom({
       })
       .catch((e) => console.warn("[drifts] hydrate failed:", e));
   }, [messages, driftsByAnchorId, setDrifts]);
+
+  useEffect(() => {
+    if (driftsListHydratedRef.current) return;
+    driftsListHydratedRef.current = true;
+
+    fetch(
+      `/api/drifts/list?conversationId=${encodeURIComponent(conversationId)}`,
+      { cache: "no-store" }
+    )
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!data?.ok || !Array.isArray(data.items)) return;
+        // Your setDrifts expects items shaped like { drift, my } and maps by drift.anchorMessageId
+        setDrifts(
+          data.items.map((it: any) => ({ drift: it.drift, my: it.my }))
+        );
+      })
+      .catch((e) => console.warn("[drifts] list hydrate failed:", e));
+  }, [conversationId, setDrifts]);
+
   // keep a ref to the subscribed channel so we can send on it later
   const chRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
@@ -513,12 +592,13 @@ export default function ChatRoom({
         .then((r) => (r.ok ? r.json() : null))
         .then((data) => {
           const hydrated = data?.messages?.[0] ?? data?.message ?? null;
+          console.log('hydrated quotes for', mid, hydrated?.quotes);
           if (hydrated) {
             if (hydrated.driftId) {
-                            appendDriftMessage(hydrated.driftId, hydrated);
-                          } else {
-                            appendRef.current(conversationId, hydrated);
-                          }
+              appendDriftMessage(hydrated.driftId, hydrated);
+            } else {
+              appendRef.current(conversationId, hydrated);
+            }
           } else {
             // fallback: append raw if hydration failed
             appendRef.current(conversationId, payload as Message);
@@ -573,30 +653,29 @@ export default function ChatRoom({
       );
     };
     const driftCreateHandler = ({ payload }: any) => {
-           const { anchor, drift } = payload || {};
-          if (!anchor || !drift) return;
-            appendRef.current(conversationId, anchor);
-            upsertDrift({ drift, my: { collapsed: true, pinned: false, muted: false, lastReadAt: null } });
-            
-          };
-      
-          const driftCountersHandler = ({ payload }: any) => {
-            const { driftId, messageCount, lastMessageAt } = payload || {};
-            if (!driftId) return;
-            useChatStore.getState().updateDriftCounters?.(driftId, {
-              messageCount,
-              lastMessageAt,
-            });
-          };
-      
+      const { anchor, drift } = payload || {};
+      if (!anchor || !drift) return;
+      appendRef.current(conversationId, anchor);
+      upsertDrift({
+        drift,
+        my: { collapsed: true, pinned: false, muted: false, lastReadAt: null },
+      });
+    };
+
+    const driftCountersHandler = ({ payload }: any) => {
+      const { driftId, messageCount, lastMessageAt } = payload || {};
+      if (!driftId) return;
+      useChatStore.getState().updateDriftCounters?.(driftId, {
+        messageCount,
+        lastMessageAt,
+      });
+    };
 
     const redactedHandler = ({ payload }: any) => {
-            const mid = String(payload?.id ?? payload?.messageId ?? "");
-            if (!mid) return;
-            markAsRedacted(mid);
-          };
-
- 
+      const mid = String(payload?.id ?? payload?.messageId ?? "");
+      if (!mid) return;
+      markAsRedacted(mid);
+    };
 
     channel.on("broadcast", { event: "new_message" }, msgHandler);
     channel.on("broadcast", { event: "poll_create" }, pollCreateHandler);
@@ -604,18 +683,20 @@ export default function ChatRoom({
     channel.on("broadcast", { event: "drift_create" }, driftCreateHandler);
     channel.on("broadcast", { event: "drift_counters" }, driftCountersHandler);
 
- 
-   
     if (ENABLE_REACTIONS) {
-    channel.on("broadcast", { event: "reaction_add" }, reactionAdd);
-    channel.on("broadcast", { event: "reaction_remove" }, reactionRemove);
-  }
-  channel.on("broadcast", { event: "message_redacted" }, ({ payload }: any) => {
-    const mid = String(payload?.id ?? payload?.messageId ?? "");
-    if (!mid) return;
-    markAsRedacted(mid);
-  });
- 
+      channel.on("broadcast", { event: "reaction_add" }, reactionAdd);
+      channel.on("broadcast", { event: "reaction_remove" }, reactionRemove);
+    }
+    channel.on(
+      "broadcast",
+      { event: "message_redacted" },
+      ({ payload }: any) => {
+        const mid = String(payload?.id ?? payload?.messageId ?? "");
+        if (!mid) return;
+        markAsRedacted(mid);
+      }
+    );
+
     channel.subscribe();
 
     return () => {
@@ -751,34 +832,33 @@ export default function ChatRoom({
   return (
     <div className="space-y-3">
       {messages.map((m) => {
- 
         const panes = Object.values(state.panes);
         const anchored = panes.find(
           (p) => p.anchor?.messageId === m.id && p.peerId === String(m.senderId)
         );
-          // Drift anchor detection via store (reactive)
-  const driftEntry = driftsByAnchorId[m.id]; // { drift, my } | undefined
-  const isDriftAnchor = !!driftEntry;
+        // Drift anchor detection via store (reactive)
+        const driftEntry = driftsByAnchorId[m.id]; // { drift, my } | undefined
+        const isDriftAnchor = !!driftEntry;
 
-  
         // const isDriftAnchor = (m as any).meta?.kind === "DRIFT_ANCHOR";
-                return (
-                  <div key={m.id} className="space-y-2" data-msg-id={m.id}>
-                    {!isDriftAnchor && (
-                      <MessageRow
-              m={m}
-              currentUserId={currentUserId}
-              conversationId={conversationId} // NEW
-              onOpen={handleOpen}
-              onPrivateReply={onPrivateReply}
-              onCreateOptions={onCreateOptions}
-              onCreateTemp={onCreateTemp}
-              onDelete={handleDelete}
-            
-            />
-      )}
+        return (
+          <div key={m.id} className="space-y-2" data-msg-id={m.id}>
+            {!isDriftAnchor && (
+              <MessageRow
+                m={m}
+                currentUserId={currentUserId}
+                conversationId={conversationId} // NEW
+                onOpen={handleOpen}
+                onPrivateReply={onPrivateReply}
+                onCreateOptions={onCreateOptions}
+                onCreateTemp={onCreateTemp}
+                onDelete={handleDelete}
+              />
+            )}
             {/* Render attachments OUTSIDE ChatMessage so they always show */}
-            {!isDriftAnchor && !((m as any).isRedacted) && m.attachments?.length ? (
+            {!isDriftAnchor &&
+            !(m as any).isRedacted &&
+            m.attachments?.length ? (
               <div
                 className={[
                   "mt-1 flex flex-col gap-2 px-3",
@@ -792,41 +872,76 @@ export default function ChatRoom({
                 ))}
               </div>
             ) : null}
+             {/* Reply/quote preview (right below the bubble) */}
+ {/* {Array.isArray((m as any).quotes) && (m as any).quotes.length > 0 && (
+   <div className={["px-3", String(m.senderId) === String(currentUserId) ? "items-end" : "items-start"].join(" ")}>
+     <div className="mt-1 text-[11px] text-slate-500 flex items-center gap-1">
+       <span className="inline-block h-1.5 w-1.5 rounded-full bg-slate-400" />
+       <span>Replying to</span>
+     </div>
+     <div className="mt-1 pl-3 border-l-2 border-slate-200">
+     <span>Replying to</span>
+
+       {(m as any).quotes.map((q: any, i: number) => (
+        <>
+             <span>Replying to</span>
+         <QuoteBlock key={`${m.id}-q-${i}`} q={q} />
+         </>
+       ))}
+     </div>
+   </div>
+ )} */}
+
+
+{Array.isArray((m as any).quotes) && (m as any).quotes.length > 0 && (
+  <div className={["px-3", String(m.senderId) === String(currentUserId) ? "items-end" : "items-start"].join(" ")}>
+    <div className="mt-1 text-[11px] text-slate-500 flex items-center gap-1">
+      <span className="inline-block h-1.5 w-1.5 rounded-full bg-slate-400" />
+      <span>Replying to</span>
+    </div>
+    <div className="mt-1 pl-3 border-l-2 border-slate-200">
+      {(m as any).quotes.map((q: any, i: number) => (
+        <QuoteBlock key={`${m.id}-q-${i}`} q={q} />
+      ))}
+    </div>
+  </div>
+)}
+
             {pollsByMessageId[m.id] && (
               <PollChip
                 poll={pollsByMessageId[m.id]}
                 onVote={(body) => onVote(pollsByMessageId[m.id], body)}
               />
             )}
-                {/* Drift anchor chip + pane (purely store-driven; no meta) */}
-{isDriftAnchor && driftEntry && (
-  <>
-    <DriftChip
-      title={driftEntry.drift.title}
-      count={driftEntry.drift.messageCount}
-      onOpen={() => openDrift(driftEntry.drift.id)}
-    />
-    {openDrifts[driftEntry.drift.id] && (
-     <DriftPane
-       key={driftEntry.drift.id}
-        drift={{
-          id: driftEntry.drift.id,
-          title: driftEntry.drift.title,
-          isClosed: driftEntry.drift.isClosed,
-          isArchived: driftEntry.drift.isArchived,
-        }}
-        conversationId={String(conversationId)}
-        currentUserId={currentUserId}
-        onClose={() => closeDrift(driftEntry.drift.id)}
-      />
-    )}
-  </>
-)}
-
-             
-             {anchored && (
-               <button /* … existing side chat opener … */>Side chat</button>
-          )}
+            
+            
+            {/* Drift anchor chip + pane (purely store-driven; no meta) */}
+            {isDriftAnchor && driftEntry && (
+              <>
+                <DriftChip
+                  title={driftEntry.drift.title}
+                  count={driftEntry.drift.messageCount}
+                  onOpen={() => openDrift(driftEntry.drift.id)}
+                />
+                {openDrifts[driftEntry.drift.id] && (
+                  <DriftPane
+                    key={driftEntry.drift.id}
+                    drift={{
+                      id: driftEntry.drift.id,
+                      title: driftEntry.drift.title,
+                      isClosed: driftEntry.drift.isClosed,
+                      isArchived: driftEntry.drift.isArchived,
+                    }}
+                    conversationId={String(conversationId)}
+                    currentUserId={currentUserId}
+                    onClose={() => closeDrift(driftEntry.drift.id)}
+                  />
+                )}
+              </>
+            )}
+            {anchored && (
+              <button /* … existing side chat opener … */>Side chat</button>
+            )}
             {anchored && (
               <button
                 className="text-[11px] px-2 py-[2px] rounded bg-white/70 border hover:bg-white"

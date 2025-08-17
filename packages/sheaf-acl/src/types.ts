@@ -43,6 +43,7 @@ export interface MessageFacet {
   attachments?: AttachmentRef[];
   createdAt?: number; // epoch ms; used for tie-break in sorting
   /** Optional cached rank (lower = more private), but recomputed if absent */
+  updatedAt?: number;
   priorityRank?: number;
 }
 

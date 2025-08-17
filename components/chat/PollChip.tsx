@@ -224,7 +224,8 @@
           onClick={onClose}
           className="absolute top-2 right-2 text-slate-500 hover:text-slate-700"
         >
-          ×
+          ｘ
+
         </button>
         <div className="flex text-[1rem] text-center justify-between items-baseline">
           <SmallMeta>📊 Poll · {count} vote{count === 1 ? "" : "s"}
@@ -282,13 +283,14 @@
   }
   
   /* ---------- TEMPERATURE ---------- */
-  
   function TempVoteView({
     poll,
     onVote,
+    framed = true, // ⬅️ new prop
   }: {
     poll: Extract<PollUI, { kind: "TEMP" }>;
     onVote: (b: VoteBody) => void;
+    framed?: boolean;
   }) {
     const { myValue } = poll;
     const [value, setValue] = React.useState<number>(myValue ?? 50);
@@ -303,11 +305,13 @@
         setPending(false);
       }
     };
-    return (
-      <div className="rounded-xl border bg-white/30 px-3 py-2 mx-8">
+  
+    const Inner = (
+      <>
         <div className="flex items-baseline justify-between">
           <SmallMeta>🌡 Temperature check</SmallMeta>
         </div>
+  
         <div className="mt-2">
           <div className="relative">
             <input
@@ -327,13 +331,27 @@
             <span>0 · Nope</span><span>50 · Meh</span><span>100 · Yes</span>
           </div>
         </div>
+  
         <div className="mt-1 text-[11px] text-slate-700">
           Your value: <span className="tabular-nums">{value}</span>
           {pending ? " • saving…" : dragging ? " • release to save" : null}
         </div>
+      </>
+    );
+  
+    if (!framed) return Inner;
+  
+    return (
+      <div
+        className="relative rounded-xl bg-white/30 px-8 py-4 shadow-xl mx-auto w-[70%]"
+        role="group"
+        aria-label="Temperature Check"
+      >
+        {Inner}
       </div>
     );
   }
+  
   
   function TempResultsView({
     poll,
@@ -344,22 +362,33 @@
     onVote: (b: VoteBody) => void;
     onClose: () => void;
   }) {
-    // Reuse the vote view as the expanded UI (allows adjusting), but add header and “×”
     const { avg, count } = poll;
+  
     return (
-      <div className="relative">
+      <div
+        className="relative rounded-xl bg-white/30 px-8 py-4 shadow-xl mx-auto w-[70%]"
+        role="group"
+        aria-label="Temperature results"
+      >
         <button
           type="button"
           aria-label="Minimize poll"
           onClick={onClose}
           className="absolute top-2 right-2 text-slate-500 hover:text-slate-700"
         >
-          ×
+          ｘ
+
         </button>
-        <div className="mx-8 mb-1 flex items-baseline justify-between">
-          <SmallMeta>🌡 Temperature · Avg {avg} · {count} vote{count === 1 ? "" : "s"}</SmallMeta>
+  
+        <div className="mb-1 flex items-baseline justify-between">
+          <SmallMeta>
+            🌡 Temperature · Avg {avg} · {count} vote{count === 1 ? "" : "s"}
+          </SmallMeta>
         </div>
-        <TempVoteView poll={poll} onVote={onVote} />
+  
+        {/* Render slider UI without its own frame */}
+        <TempVoteView poll={poll} onVote={onVote} framed={false} />
       </div>
     );
   }
+  

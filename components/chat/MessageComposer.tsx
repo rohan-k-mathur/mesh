@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import { X, File as FileIcon, Paperclip } from "lucide-react";
 import { useChatStore } from "@/contexts/useChatStore";
@@ -24,11 +24,14 @@ interface Props {
   currentUserId: string | number; // NEW
   driftId?: string;               // NEW (optional)
 }
+type QuoteRef = { messageId: string; facetId?: string };
 
 export default function MessageComposer({
   conversationId,
   currentUserId,
   driftId,
+
+  
 }: Props) {
   const appendMessage = useChatStore((s) => s.appendMessage);
   const [text, setText] = useState("");
@@ -41,6 +44,9 @@ export default function MessageComposer({
   const [showSheaf, setShowSheaf] = useState(false);
   const [showTemp, setShowTemp] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+//    const quoteDraft = useChatStore((s) => s.quoteDraftByConversationId[conversationId]);
+//  const setQuoteDraft = useChatStore((s) => s.setQuoteDraft);
+//  const clearQuoteDraft = () => setQuoteDraft(conversationId, undefined);
   function onFilesSelected(list: FileList | null) {
     console.log("[files] selected", list?.length);
     if (!list) return;
@@ -78,14 +84,37 @@ export default function MessageComposer({
   //   setFiles((prev) => prev.filter((_, i) => i !== idx));
   // }
 
+  // read quote draft from store
+ const quoteDraft = useChatStore(
+     useCallback((s) => s.quoteDraftByConversationId[conversationId], [conversationId])
+   );
+   const setQuoteDraft = useChatStore((s) => s.setQuoteDraft);
+   const clearQuoteDraft = useCallback(() => setQuoteDraft(conversationId, undefined), [conversationId, setQuoteDraft]);
+
   async function send() {
+
     if (uploading) return;
-    if (!text.trim() && files.length === 0) return;
-    const clientId = crypto.randomUUID();
+    if (!text.trim() && files.length === 0 && !quoteDraft) return; // allow “quote only”
+        const clientId = crypto.randomUUID();
     const form = new FormData();
     if (text.trim()) form.append("text", text);
-    
+  
     if (driftId) form.append("driftId", driftId); // ← tag to a drift
+    if (quoteDraft) console.log("sending meta", { quotes: [{ sourceMessageId: quoteDraft.messageId, sourceFacetId: quoteDraft.facetId ?? null }]});
+    if (quoteDraft) {
+           // Use set() so there is exactly one meta value
+           form.set(
+             "meta",
+             JSON.stringify({
+              quotes: [
+                 {
+                   sourceMessageId: quoteDraft.messageId,
+                   sourceFacetId: quoteDraft.facetId ?? null,
+                 },
+               ],
+             })
+           );
+         }
     files.forEach((f) => form.append("files", f));
     form.append("clientId", clientId);
     const xhr = new XMLHttpRequest();
@@ -105,6 +134,7 @@ export default function MessageComposer({
       } finally {
         setText("");
         setFiles([]);
+        clearQuoteDraft();        
         setUploading(false);
         setProgress(0);
       }
@@ -222,11 +252,28 @@ export default function MessageComposer({
         onFilesSelected(e.dataTransfer.files);
       }}
     >
+  {/* Quote pill (if quoting) */}
+      {quoteDraft && (
+       <div className="mb-2 mx-1 max-w-[720px] text-xs text-slate-600 flex items-center gap-2">
+         <span>
+           Quoting #{quoteDraft.messageId}
+           {quoteDraft.facetId ? ` · facet ${quoteDraft.facetId}` : ""}
+         </span>
+         <button
+           type="button"
+           className="px-2 py-0.5 border rounded bg-white/80 hover:bg-white"
+           onClick={clearQuoteDraft}
+         >
+           Clear
+         </button>
+       </div>
+     )}
       {dragOver && (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/50 text-white border-2 border-dashed rounded-md">
           Drop files here
         </div>
       )}
+
       <div className="space-y-2">
         {files.length > 0 && (
           <div className="flex flex-wrap gap-2">

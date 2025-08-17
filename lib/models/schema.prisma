@@ -1641,3 +1641,33 @@ model MessageReaction {
   @@index([messageId])
   @@index([userId])
 }
+
+model MessageMention {
+  id        BigInt   @id @default(autoincrement())
+  messageId BigInt
+  facetId   BigInt?
+  userId    BigInt
+  createdAt DateTime @default(now())
+
+  message Message    @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  facet   SheafFacet @relation(fields: [facetId], references: [id], onDelete: Cascade)
+  user    User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([messageId])
+  @@index([facetId])
+}
+
+model LinkPreview {
+  urlHash   String   @id
+  url       String
+  title     String?
+  desc      String?
+  image     String?
+  fetchedAt DateTime @default(now())
+  status    String   // "ok" | "blocked" | "noindex" | "error"
+  facetId   BigInt?
+
+  @@index([facetId])
+  @@index([fetchedAt])
+}

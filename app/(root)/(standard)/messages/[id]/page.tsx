@@ -7,9 +7,9 @@ import ChatRoom from "@/components/chat/ChatRoom";
 import MessageComposer from "@/components/chat/MessageComposer";
 import MessengerPane from "@/components/chat/MessengerPane";
 import Image from "next/image";
-
 import { headers } from "next/headers";
 
+type QuoteRef = { messageId: string; facetId?: string };
 
 export default async function Page({ params, searchParams }: { params: { id: string }; searchParams: { mid?: string } }) {
   const user = await getUserFromCookies();
@@ -148,7 +148,8 @@ const { messages: initialMessages } = await res.json();
     </main> */}
 
   <div className="mt-6 space-y-6">
-      <ChatRoom
+  
+  <ChatRoom
         conversationId={params.id}
         currentUserId={user.userId.toString()}
         initialMessages={initialMessages}

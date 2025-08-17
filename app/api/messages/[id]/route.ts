@@ -53,6 +53,14 @@ export async function POST(
           const driftIdIn = form.get("driftId") as string | null;
           const clientId = (form.get("clientId") as string | null) ?? undefined;
 
+           // NEW: accept optional meta (stringified JSON)
+           const metaRaw = form.get("meta");
+
+    let meta: any | undefined = undefined;
+    if (typeof metaRaw === "string" && metaRaw.trim().length) {
+      try { meta = JSON.parse(metaRaw); } catch {}
+    }
+
           const saved = await sendMessage({
             conversationId,
             senderId: userId,
@@ -60,6 +68,7 @@ export async function POST(
             files: files.length ? files : undefined,
             driftId: driftIdIn ? BigInt(driftIdIn) : undefined,
             clientId,
+            meta, 
           });
       
           // Coerce id to BigInt for Prisma in case sendMessage returned a string.
