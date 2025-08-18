@@ -28,11 +28,11 @@ export function useNotifications() {
 
   /** optimistic helpers */
   async function deleteNotification(id: bigint) {
-    /* 1. optimistic update */
-    mutate((prev: any[]) => prev.filter(n => n.id !== id), { revalidate: false });
-    /* 2. tell server */
-    await fetch(`/api/notifications/${id}`, { method: "DELETE" });
-    /* 3. re‑sync */
+    mutate(
+      (prev: any[] = []) => prev.filter((n) => n?.id?.toString() !== id.toString()),
+      { revalidate: false }
+    );
+    await fetch(`/api/notifications/${id.toString()}`, { method: "DELETE" });
     mutate();
   }
 

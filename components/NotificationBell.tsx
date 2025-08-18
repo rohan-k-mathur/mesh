@@ -10,13 +10,14 @@ import { useNotifications } from "@/hooks/useNotifications";
 
 export default function NotificationBell() {
   const { notifications, refreshNotifications } = useNotifications();
-  const unread = notifications.filter((n: any) => !n.read && !n.read_at);
+  const unread = notifications.filter((n: any) => !n.read);
 
-  async function markRead(id: bigint) {
+  async function markRead(id: string | number | bigint) {
+    const idStr = typeof id === "bigint" ? id.toString() : String(id);
     await fetch("/api/notifications/read", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ids: [id] }),
+      body: JSON.stringify({ ids: [idStr] }),
     });
     refreshNotifications();
   }

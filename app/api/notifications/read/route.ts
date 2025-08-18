@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
 
   await prisma.notification.updateMany({
     where: { id: { in: ids }, user_id: user.userId },
-    data: { read: true, ...( { read_at: new Date() } as any ) },
+    data: { read: true },
   });
 
   return NextResponse.json({ status: "ok" });
