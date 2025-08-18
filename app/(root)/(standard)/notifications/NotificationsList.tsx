@@ -34,11 +34,11 @@ export default function NotificationsList({ initial }: Props) {
               return (
                 <div
                   key={n.id.toString()}
-                  className="flex items-center gap-2 px-5 py-3 bg-indigo-300 bg-opacity-40 rounded-xl border-none notify inline-block"
+                  className="flex items-center gap-2 px-5 py-3 bg-indigo-300 bg-opacity-40 rounded-xl border-none sheaf-bubble inline-block"
                 >
                   <button
                     onClick={() => deleteNotification(id)}
-                    className="relative text-center align-center rounded-full  w-fit h-fit px-[.4rem] bg-white/30 shadow-sm text-[.75rem] font-bold mr-6"
+                    className="relative text-center align-center rounded-full  w-fit h-fit px-[.4rem] bg-transparent text-[.9rem] font-bold mr-6"
                     aria-label="delete"
                   >
                     ×

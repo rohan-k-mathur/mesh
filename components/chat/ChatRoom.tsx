@@ -622,7 +622,7 @@ const [showScrollDownDelayed, setShowScrollDownDelayed] = useState(false);
 useEffect(() => {
   let t: any;
   if (showScrollDown) {
-    t = setTimeout(() => setShowScrollDownDelayed(true), 250);
+    t = setTimeout(() => setShowScrollDownDelayed(true), 1050);
   } else {
     setShowScrollDownDelayed(false);
   }

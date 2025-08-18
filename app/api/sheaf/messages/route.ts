@@ -19,6 +19,7 @@ import { facetToPlainText, parseMentionsFromText } from "@/lib/text/mentions";
 import { extractUrls } from "@/lib/text/urls";
 import { getOrFetchLinkPreview, hashUrl } from "@/lib/unfurl";
 import { canUserSeeFacetNow } from "@/lib/sheaf/visibility";
+import { createMessageNotification } from "@/lib/actions/notification.actions";
 import { supabase } from "@/lib/supabaseclient";
 
 // util at top of the file (or a shared util module)
@@ -450,7 +451,11 @@ export async function POST(req: NextRequest) {
     },
     select: { id: true, created_at: true },
   });
-
+  await createMessageNotification({
+    conversationId,
+    messageId: msg.id,
+    senderId: user.userId,
+  });
   // Preload LISTs for SNAPSHOT freeze
   const listIdsRef = Array.from(
     new Set(
