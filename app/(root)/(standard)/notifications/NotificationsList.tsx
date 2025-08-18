@@ -17,6 +17,7 @@ export default function NotificationsList({ initial }: Props) {
   return (
     <>
       {list.length > 0 && (
+
         <button
           className="relative -right-[90%] mb-0 mt-4 bg-white bg-opacity-20 text-sm savebutton rounded-xl tracking-wide px-3 py-1 text-center"
           onClick={clearNotifications}
@@ -37,10 +38,10 @@ export default function NotificationsList({ initial }: Props) {
                 >
                   <button
                     onClick={() => deleteNotification(id)}
-                    className="relative text-center align-center rounded-full border-[1px] w-fit h-fit px-[.4rem] bg-white/50 shadow-sm text-[.75rem] font-bold mr-6"
+                    className="relative text-center align-center rounded-full  w-fit h-fit px-[.4rem] bg-white/30 shadow-sm text-[.75rem] font-bold mr-6"
                     aria-label="delete"
                   >
-                    x
+                    ×
                   </button>
                   <div className="flex inline-block align-center gap-2 tracking-wide">
                     <Image

@@ -49,6 +49,8 @@ export function DriftPane({
   conversationId,
   currentUserId,
   onClose,
+  variant = "drift",          // "drift" | "thread"
+  align = "center",           // "start" | "end" | "center"
 }: {
   drift: {
     id: string;
@@ -59,6 +61,8 @@ export function DriftPane({
   conversationId: string;
   currentUserId: string;
   onClose: () => void;
+  variant?: "drift" | "thread";
+  align?: "start" | "end" | "center";
 }) {
     const EMPTY: any[] = React.useMemo(() => [], []);
   const msgs = useChatStore(
@@ -121,7 +125,12 @@ export function DriftPane({
 
 
   return (
-    <div className="mx-auto my-2 w-full max-w-[720px] rounded-xl border bg-white/50 px-3 py-2 shadow-sm">
+    <div   className={[
+      "my-2 w-full px-3",             // base
+      variant === "thread" ? "max-w-[500px]" : "max-w-[690px]",
+      align === "start" ? "mr-auto" : align === "end" ? "ml-auto" : "mx-auto",
+      "rounded-xl border bg-white/50 backdrop-blur py-2 shadow-sm",
+    ].join(" ")}>
       {/* Header */}
       <div className="flex items-center justify-between py-1">
         <div className="flex items-center gap-2">
@@ -134,7 +143,7 @@ export function DriftPane({
         </button>
       </div>
 
-      <hr className="my-2" />
+      <hr className="my-2 border-slate-400/60 border-[.1px]" />
 
       {/* Body */}
       {/* <div className="flex max-h-[50vh] flex-col gap-3 overflow-y-auto px-1 py-1"> */}
@@ -172,10 +181,10 @@ export function DriftPane({
       </div>
 
       {/* Composer */}
-      <div className="mt-2">
+      <div className="mt-2 ">
         {/* Disabled when closed/archived */}
         <fieldset disabled={drift.isClosed || drift.isArchived} className="disabled:opacity-60">
-          <div className="border rounded-xl p-2 bg-white/50">
+          <div className=" sheaf-bubble  rounded-xl p-2 bg-white/50">
             <p className="text-xs text-slate-600 mb-1">Send in Drift</p>
             <div className="mt-1">
               <MessageComposer

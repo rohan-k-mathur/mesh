@@ -1198,23 +1198,20 @@ outline: none;
 }
 .driftbutton
 {
-  background-color: rgba(255,255,255,.32);
 
-  border:none;
+
 outline: none;
     /*background: linear-gradient(145deg, #c5c9d8, #eaefff);*/
-    box-shadow: inset 1px 2px 12px rgba(234, 233, 238, 0.45),
-    inset -2px -1px 14px rgba(244, 234, 255, 0.55),
-      3px 3px 7px rgb(204, 199, 224,.35),
-  -1px 2px 7px rgba(45, 45, 90, 0.25);
+    box-shadow: inset 1px 2px 12px rgba(234, 233, 238, 0.15),
+    inset -2px -1px 14px rgba(244, 234, 255, 0.35),
+      3px 3px 7px rgb(244, 199, 224,.35),
+  -1px 2px 7px rgba(75, 45, 90, 0.25);
 
  
 }
 .driftbutton:hover
 {
-  background-color: rgba(255,255,255,.52);
   padding: 2px;
-  outline: transparent;
   border:none;
   border-radius: 4px;
 

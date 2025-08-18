@@ -96,11 +96,11 @@ function ThreadSummary({
               <span className="text-[.8rem] inline-block mt-[5px] hover:underline">
                 {count} replies
               </span>
-              <div className=" mr-4 w-8 h-4 border-b-1 border-r-2 border-black"></div>
+              <div className=" mr-4 w-8 h-4 border-b-[1px] border-r-[1px] border-slate-600"></div>
             </>
           ) : (
             <>
-            <div className=" ml-4 w-8 h-4 border-b-2 border-l-2 border-black"></div>
+            <div className=" ml-4 w-8 h-4 border-b-[1px] border-l-[1px] border-slate-600"></div>
               <span className="text-[.8rem] inline-block mt-[5px] hover:underline">
                 {count} replies
               </span>
@@ -314,12 +314,9 @@ const MessageRow = memo(function MessageRow({
                       >
                         ✏️ Edit
                       </DropdownMenuItem>
-                      <DropdownMenuItem
-                        className="text-red-600"
-                        onClick={() => onDelete(m.id)}
-                      >
-                        🗑 Delete
-                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onReplyInThread(m.id)}>
+      🧵 Create Reply Thread
+    </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => {
                           const facetId =
@@ -334,12 +331,17 @@ const MessageRow = memo(function MessageRow({
                             });
                         }}
                       >
-                        🧩 Quote
+                        📋 Quote
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onReplyInThread(m.id)}>
-      🧵 Reply in thread
-    </DropdownMenuItem>
+                    
+    <DropdownMenuItem
+                        className="text-red-600"
+                        onClick={() => onDelete(m.id)}
+                      >
+                        🗑 Delete
+                      </DropdownMenuItem>
                     </>
+                    
                   ) : (
                     <>
                       <DropdownMenuItem
@@ -356,13 +358,13 @@ const MessageRow = memo(function MessageRow({
                             });
                         }}
                       >
-                        🧩 Quote
+                        📋 Quote
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => onPrivateReply?.(m)}>
-                        ↩️ Reply in DM
+                        ↩️ Reply in DMs
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => onReplyInThread(m.id)}>
-      🧵 Reply in thread
+      🧵 Create Reply Thread
     </DropdownMenuItem>
                     </>
                   )}
@@ -421,17 +423,16 @@ const MessageRow = memo(function MessageRow({
                 >
                   {isMine ? (
                     <>
+                      <DropdownMenuItem onClick={() => onReplyInThread(m.id)}>
+      🧵 Create Reply Thread
+    </DropdownMenuItem>
+               
                       <DropdownMenuItem
                         onClick={() => alert("Edit is coming soon.")}
                       >
                         ✏️ Edit
                       </DropdownMenuItem>
-                      <DropdownMenuItem
-                        className="text-red-600"
-                        onClick={() => onDelete(m.id)}
-                      >
-                        🗑 Delete
-                      </DropdownMenuItem>
+                    
                       <DropdownMenuItem
                         onClick={() => {
                           const facetId =
@@ -446,11 +447,14 @@ const MessageRow = memo(function MessageRow({
                             });
                         }}
                       >
-                        🧩 Quote
+                        📋 Quote
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onReplyInThread(m.id)}>
-      🧵 Reply in thread
-    </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="text-red-600"
+                        onClick={() => onDelete(m.id)}
+                      >
+                        🗑 Delete
+                      </DropdownMenuItem>
                     </>
                   ) : (
                     <>
@@ -468,13 +472,13 @@ const MessageRow = memo(function MessageRow({
                             });
                         }}
                       >
-                        🧩 Quote
+                        📋 Quote
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => onPrivateReply?.(m)}>
-                        ↩️ Reply in DM
+                        ↩️ Reply in DMs
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => onReplyInThread(m.id)}>
-      🧵 Reply in thread
+      🧵 Create Reply Thread
     </DropdownMenuItem>
                      
                     </>
@@ -1229,13 +1233,13 @@ const isDriftAnchor = !!driftEntry && (driftEntry.drift.kind !== "THREAD"); // h
                   >
                     <div className="max-w-[60%]">
                       <div className="text-slate-500 flex  items-center gap-1">
-                        <span className="flex mr-1 h-2 w-2 justify-center items-center align-center my-auto rounded-full bg-slate-600" />
-                        <span className="text-[.8rem] align-center  my-auto">Replying to&nbsp;{inlineLabel}</span>
+                        <span className="flex mr-1 h-2 w-2 mb-1 justify-center items-center align-center  rounded-full bg-slate-600" />
+                        <span className="text-[.75rem] align-center  my-auto">Replying to&nbsp;{inlineLabel}</span>
                         
                       </div>
                       <div
                         className={[
-                          "mt-1  pl-3 border-l-[1px]",
+                          "mt-1 h-fit  pl-3 border-l-[1px]",
                           isMine ? "border-rose-400 ml-1" : "border-indigo-400 mx-1",
                         ].join(" ")}
                       >
@@ -1343,6 +1347,8 @@ const isDriftAnchor = !!driftEntry && (driftEntry.drift.kind !== "THREAD"); // h
                   }}
                   conversationId={String(conversationId)}
                   currentUserId={currentUserId}
+                  variant="thread"
+                  align={isMine ? "end" : "start"} // right for my root, left for others
                   onClose={() =>
                     setOpenDrifts((prev) => ({
                       ...prev,

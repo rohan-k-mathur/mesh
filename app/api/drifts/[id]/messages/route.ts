@@ -56,6 +56,11 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     if (cursorIdStr) {
       whereMsg.id = { gt: BigInt(cursorIdStr) };
     }
+// read params
+const order = (searchParams.get("order") || "asc").toLowerCase();
+const limitParam = searchParams.get("limit");
+const summaryLimit = limitParam ? Math.min(Math.max(parseInt(limitParam, 10) || 1, 1), 200) : undefined;
+
 
     // Base rows
     const messages = await prisma.message.findMany({
