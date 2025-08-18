@@ -1,23 +1,15 @@
 
 
-import Image from "next/image";
-import Link from "next/link";
 import { fetchNotifications } from "@/lib/actions/notification.actions";
+import { jsonSafe } from "@/lib/bigintjson";
 import { getUserFromCookies } from "@/lib/serverutils";
 import { redirect } from "next/navigation";
-// import { useNotifications } from "@/hooks/useNotifications";
 import NotificationsList from "./NotificationsList";
 export default async function Page() {
   const user = await getUserFromCookies();
   if (!user?.userId) redirect("/login");
-  const initial = await fetchNotifications({ userId: user.userId });
-
-const notifications = await fetchNotifications({ userId: user.userId });
-  // const {
-  //   notifications,
-  //   deleteNotification,
-  //   clearNotifications,
-  // } = useNotifications();
+  const initialRaw = await fetchNotifications({ userId: user.userId });
+  const initial = jsonSafe(initialRaw);
 
   return (
     <section>
