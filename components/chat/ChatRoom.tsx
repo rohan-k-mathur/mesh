@@ -66,43 +66,53 @@ function toSnippet(raw: string, max = 48) {
   const s = raw.replace(/\s+/g, " ").trim();
   return s.length > max ? s.slice(0, max - 1) + "…" : s;
 }
-// --- Small presentational helper for the line under each root ---
 function ThreadSummary({
   threadEntry,
   messageId,
   isMine,
   onOpen,
-  onStart,
 }: {
   threadEntry?: DriftUI;
   messageId: string;
   isMine: boolean;
   onOpen: (driftId: string) => void;
-  onStart: (rootMessageId: string) => void;
 }) {
+  const count = Math.max(0, threadEntry?.drift?.messageCount ?? 0);
+  const hasReplies = count > 0;
   return (
-    <div className={["px-3", isMine ? "text-right" : "text-left"].join(" ")}>
-      {threadEntry ? (
-        <button
-          className="mt-1 text-[12px] text-slate-600 hover:underline"
-          onClick={() => onOpen(threadEntry.drift.id)}
-          title="Open thread"
-        >
-          🧵 {Math.max(0, threadEntry.drift.messageCount ?? 0)} replies · View
-          thread
-        </button>
-      ) : (
-        <button
-          className="mt-1 text-[12px] text-slate-500 hover:underline"
-          onClick={() => onStart(messageId)}
-          title="Start a thread"
-        >
-          🧵 Reply in thread
-        </button>
-      )}
+    <div className={["mx-[3%] px-3 mt-0 mb-0", isMine ? "text-right" : "text-left"].join(" ")}>
+      <button
+        type="button"
+        className={[
+          "mt-1 text-[12px] transition-opacity",
+          hasReplies ? "text-slate-800 " : "hidden",
+        ].join(" ")}
+        onClick={() => hasReplies && threadEntry && onOpen(threadEntry.drift.id)}
+        title="Open thread"
+      >
+        <div className="flex inline-block gap-2">
+          {isMine ? (
+            <>
+              <span className="text-[.8rem] inline-block mt-[5px] hover:underline">
+                {count} replies
+              </span>
+              <div className=" mr-4 w-8 h-4 border-b-1 border-r-2 border-black"></div>
+            </>
+          ) : (
+            <>
+            <div className=" ml-4 w-8 h-4 border-b-2 border-l-2 border-black"></div>
+              <span className="text-[.8rem] inline-block mt-[5px] hover:underline">
+                {count} replies
+              </span>
+            </>
+          )}
+        </div>
+      </button>
     </div>
   );
+  
 }
+
 
 function Attachment({
   a,
@@ -279,7 +289,7 @@ const MessageRow = memo(function MessageRow({
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
-                    className="py-0 px-0 mr-[1px] align-center my-auto bg-indigo-500 shadow-md hover:shadow-none rounded-md text-xs focus:outline-none"
+                    className="py-0 px-0  align-center my-auto bg-indigo-500 shadow-md hover:shadow-none rounded-md text-xs focus:outline-none"
                     title="Message actions"
                     type="button"
                   >
@@ -326,6 +336,9 @@ const MessageRow = memo(function MessageRow({
                       >
                         🧩 Quote
                       </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onReplyInThread(m.id)}>
+      🧵 Reply in thread
+    </DropdownMenuItem>
                     </>
                   ) : (
                     <>
@@ -349,8 +362,8 @@ const MessageRow = memo(function MessageRow({
                         ↩️ Reply in DM
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => onReplyInThread(m.id)}>
-                        🧵 Create Reply Thread
-                      </DropdownMenuItem>
+      🧵 Reply in thread
+    </DropdownMenuItem>
                     </>
                   )}
                 </DropdownMenuContent>
@@ -388,7 +401,7 @@ const MessageRow = memo(function MessageRow({
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
-                    className="py-0 px-0 mr-[1px] align-center my-auto bg-indigo-500 shadow-md hover:shadow-none rounded-md text-xs focus:outline-none"
+                    className="py-0 px-0  align-center my-auto bg-indigo-500 shadow-md hover:shadow-none rounded-md text-xs focus:outline-none"
                     title="Message actions"
                     type="button"
                   >
@@ -435,6 +448,9 @@ const MessageRow = memo(function MessageRow({
                       >
                         🧩 Quote
                       </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onReplyInThread(m.id)}>
+      🧵 Reply in thread
+    </DropdownMenuItem>
                     </>
                   ) : (
                     <>
@@ -457,6 +473,9 @@ const MessageRow = memo(function MessageRow({
                       <DropdownMenuItem onClick={() => onPrivateReply?.(m)}>
                         ↩️ Reply in DM
                       </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onReplyInThread(m.id)}>
+      🧵 Reply in thread
+    </DropdownMenuItem>
                      
                     </>
                   )}
@@ -647,6 +666,7 @@ export default function ChatRoom({
     if (!list.length) return;
     hydratedRef.current = true;
     const ids = list.map((m) => m.id);
+    
     fetch("/api/polls/query", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -713,6 +733,8 @@ export default function ChatRoom({
       .catch((e) => console.warn("[drifts] hydrate failed:", e));
   }, [messages, driftsByAnchorId, setDrifts]);
 
+
+
   useEffect(() => {
     if (driftsListHydratedRef.current) return;
     driftsListHydratedRef.current = true;
@@ -721,6 +743,7 @@ export default function ChatRoom({
       `/api/drifts/list?conversationId=${encodeURIComponent(conversationId)}`,
       { cache: "no-store" }
     )
+    
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (!data?.ok || !Array.isArray(data.items)) return;
@@ -730,6 +753,15 @@ export default function ChatRoom({
       })
       .catch((e) => console.warn("[drifts] list hydrate failed:", e));
   }, [conversationId, setDrifts]);
+
+   // 👉 Debug effect: log drifts after reload
+   useEffect(() => {
+    fetch(`/api/drifts/list?conversationId=${encodeURIComponent(conversationId)}`, { cache: "no-store" })
+      .then(r => r.json())
+      .then(d => console.log("[drifts/list]", d.items.map((x:any) => x.drift)))
+      .catch(e => console.warn("[drifts/list] debug failed:", e));
+  }, [conversationId]);
+
 
   useEffect(() => {
     const root = document.querySelector("[data-chat-root]");
@@ -1115,6 +1147,7 @@ export default function ChatRoom({
     }
   }, [highlightMessageId, messages.length]);
 
+
   return (
     <div className="space-y-3" data-chat-root>
       {messages.map((m) => {
@@ -1143,7 +1176,7 @@ const isDriftAnchor = !!driftEntry && (driftEntry.drift.kind !== "THREAD"); // h
               />
             )}
 
-            {!isDriftAnchor &&
+            {/* {!isDriftAnchor &&
             !(m as any).isRedacted &&
             m.attachments?.length ? (
               <div
@@ -1156,7 +1189,7 @@ const isDriftAnchor = !!driftEntry && (driftEntry.drift.kind !== "THREAD"); // h
                   <Attachment key={a.id} a={a as any} />
                 ))}
               </div>
-            ) : null}
+            ) : null} */}
 
             {/* Attachments (outside bubble) */}
             {!isDriftAnchor &&
@@ -1195,17 +1228,15 @@ const isDriftAnchor = !!driftEntry && (driftEntry.drift.kind !== "THREAD"); // h
                     ].join(" ")}
                   >
                     <div className="max-w-[60%]">
-                      <div className="text-[11px] text-slate-500 flex items-center gap-1">
-                        <span className="inline-block h-1.5 w-1.5 rounded-full bg-slate-400" />
-                        <span>Replying to&nbsp;</span>
-                        <span className="font-medium text-slate-700">
-                          {inlineLabel}
-                        </span>
+                      <div className="text-slate-500 flex  items-center gap-1">
+                        <span className="flex mr-1 h-2 w-2 justify-center items-center align-center my-auto rounded-full bg-slate-600" />
+                        <span className="text-[.8rem] align-center  my-auto">Replying to&nbsp;{inlineLabel}</span>
+                        
                       </div>
                       <div
                         className={[
-                          "mt-1 pl-3 border-l-2",
-                          isMine ? "border-fuchsia-200" : "border-sky-200",
+                          "mt-1  pl-3 border-l-[1px]",
+                          isMine ? "border-rose-400 ml-1" : "border-indigo-400 mx-1",
                         ].join(" ")}
                       >
                         {(m as any).quotes.map((q: any, i: number) => (
@@ -1264,7 +1295,12 @@ const isDriftAnchor = !!driftEntry && (driftEntry.drift.kind !== "THREAD"); // h
                 onVote={(body) => onVote(pollsByMessageId[m.id], body)}
               />
             )}
-
+     <ThreadSummary
+        threadEntry={threadEntry}
+        messageId={m.id}
+        isMine={isMine}
+        onOpen={(driftId) => setOpenDrifts((prev) => ({ ...prev, [driftId]: true }))}
+      />
             {/* Classic Drift anchor chip + pane */}
             {isDriftAnchor && driftEntry && (
               <>
@@ -1293,17 +1329,7 @@ const isDriftAnchor = !!driftEntry && (driftEntry.drift.kind !== "THREAD"); // h
               </>
             )}
 
-            {/* 🧵 Thread summary + thread pane */}
-            <ThreadSummary
-              threadEntry={threadEntry}
-              messageId={m.id}
-              isMine={isMine}
-              onOpen={(driftId) =>
-                setOpenDrifts((prev) => ({ ...prev, [driftId]: true }))
-              }
-              onStart={ensureAndOpenThread}
-            />
-
+         
             {threadEntry && openDrifts[threadEntry.drift.id] && (
               <>
                 <hr />

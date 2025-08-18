@@ -66,7 +66,7 @@ export function QuoteBlock({
       className="group text-left inline-block max-w-full"
       title="Jump to quoted message"
     >
-     <div className="rounded-md bg-white/70 px-2.5 py-1.5 sheaf-button max-w-full">
+     <div className="rounded-md bg-white/70 px-4 py-1 sheaf-button max-w-full">
         {/* Header: author + (edited) if not using the outer label */}
         {!compact && (q.sourceAuthor?.name || q.isEdited) && (
           <div className="text-[11px] text-slate-500 mb-0.5">

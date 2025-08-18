@@ -410,63 +410,68 @@ export const useChatStore = create<ChatState>((set, get) => ({
   },
 
   driftMessages: {},
+  // in initial state:
   setDrifts: (items) =>
-    set((s) => {
-      const byAnchor = { ...s.driftsByAnchorId };
-      const byRoot   = { ...s.driftsByRootMessageId };
-      for (const it of items) {
-        const d = it.drift || it; // tolerate shape
-        if (d.anchorMessageId && (d.kind ?? "DRIFT") === "DRIFT") byAnchor[d.anchorMessageId] = it;
-if (d.rootMessageId) byRoot[d.rootMessageId] = it;
+  set((s) => {
+    const byAnchor = { ...s.driftsByAnchorId };
+    const byRoot   = { ...s.driftsByRootMessageId };
+    for (const it of items) {
+      const d = (it as any).drift ?? it;
+      // Only index anchors for classic DRIFT (not THREAD)
+      if (d.anchorMessageId && (d.kind ?? "DRIFT") === "DRIFT") {
+        byAnchor[d.anchorMessageId] = it as DriftUI;
       }
-      return { driftsByAnchorId: byAnchor, driftsByRootMessageId: byRoot };
-    }),
-
-  upsertDrift: (item) =>
-    set((s) => {
-      const d = item.drift || item;
-      const byAnchor = { ...s.driftsByAnchorId };
-      const byRoot   = { ...s.driftsByRootMessageId };
-      if (d.anchorMessageId) byAnchor[d.anchorMessageId] = item as DriftUI;
-      if (d.rootMessageId)   byRoot[d.rootMessageId]     = item as DriftUI;
-      return { driftsByAnchorId: byAnchor, driftsByRootMessageId: byRoot };
-    }),
-
-  updateDriftCounters: (driftId, patch) =>
-    set((s) => {
-      // Update in whichever index holds that drift (anchor or root)
-      let changed = false;
-      const upd = (entry: DriftUI) => ({
-        ...entry,
-        drift: {
-          ...entry.drift,
-          messageCount: patch.messageCount ?? entry.drift.messageCount,
-          lastMessageAt: patch.lastMessageAt ?? entry.drift.lastMessageAt,
-        },
-      });
-
-      // byAnchor scan
-      const byAnchor = { ...s.driftsByAnchorId };
-      for (const [anchorId, v] of Object.entries(byAnchor)) {
-        if (v.drift.id === driftId) {
-          byAnchor[anchorId] = upd(v);
-          changed = true;
-          break;
-        }
+      if (d.rootMessageId) {
+        byRoot[d.rootMessageId] = it as DriftUI;
       }
+    }
+    return { driftsByAnchorId: byAnchor, driftsByRootMessageId: byRoot };
+  }),
 
-      // byRoot scan
-      const byRoot = { ...s.driftsByRootMessageId };
-      for (const [rootId, v] of Object.entries(byRoot)) {
-        if (v.drift.id === driftId) {
-          byRoot[rootId] = upd(v);
-          changed = true;
-          break;
-        }
+upsertDrift: (item) =>
+  set((s) => {
+    const d = (item as any).drift ?? item;
+    const byAnchor = { ...s.driftsByAnchorId };
+    const byRoot   = { ...s.driftsByRootMessageId };
+    if (d.anchorMessageId && (d.kind ?? "DRIFT") === "DRIFT") {
+      byAnchor[d.anchorMessageId] = item as DriftUI;
+    }
+    if (d.rootMessageId) {
+      byRoot[d.rootMessageId] = item as DriftUI;
+    }
+    return { driftsByAnchorId: byAnchor, driftsByRootMessageId: byRoot };
+  }),
+// Make counters update no matter which index the drift sits in:
+updateDriftCounters: (driftId, patch) =>
+  set((s) => {
+    let touched = false;
+    const touch = (v: DriftUI) => ({
+      ...v,
+      drift: {
+        ...v.drift,
+        messageCount: patch.messageCount ?? v.drift.messageCount,
+        lastMessageAt: patch.lastMessageAt ?? v.drift.lastMessageAt,
+      },
+    });
+
+    const byAnchor = { ...s.driftsByAnchorId };
+    for (const [k, v] of Object.entries(byAnchor)) {
+      if (v.drift.id === driftId) {
+        byAnchor[k] = touch(v);
+        touched = true;
+        break;
       }
-
-      return changed ? { driftsByAnchorId: byAnchor, driftsByRootMessageId: byRoot } : {};
-    }),
+    }
+    const byRoot = { ...s.driftsByRootMessageId };
+    for (const [k, v] of Object.entries(byRoot)) {
+      if (v.drift.id === driftId) {
+        byRoot[k] = touch(v);
+        touched = true;
+        break;
+      }
+    }
+    return touched ? { driftsByAnchorId: byAnchor, driftsByRootMessageId: byRoot } : {};
+  }),
   setDriftMessages: (driftId, rows) =>
     set((s) => ({
         driftMessages: {

@@ -42,6 +42,8 @@ export async function POST(req: NextRequest) {
         message_count: true,
         last_message_at: true,
         anchor_message_id: true,
+        kind: true,
+     root_message_id: true,
       },
     });
 
@@ -70,6 +72,8 @@ export async function POST(req: NextRequest) {
         messageCount: d.message_count,
         lastMessageAt: d.last_message_at ? d.last_message_at.toISOString() : null,
         anchorMessageId: d.anchor_message_id.toString(),
+        kind: d.kind,
+        rootMessageId: d.root_message_id ? d.root_message_id.toString() : null,
       },
       my: myByDrift.get(d.id.toString()) ?? { collapsed: true, pinned: false, muted: false, lastReadAt: null },
     }));

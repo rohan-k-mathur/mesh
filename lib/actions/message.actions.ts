@@ -187,20 +187,20 @@ export async function sendMessage({
       const updated = await tx.drift.update({
         where: { id: driftId },
         data: { message_count: { increment: 1 }, last_message_at: new Date() },
-        select: { message_count: true, last_message_at: true },
-      });
-      supabase
-        .channel(`conversation-${conversationId.toString()}`)
-        .send({
-          type: "broadcast",
-          event: "drift_counters",
-          payload: {
-            driftId: driftId.toString(),
-            messageCount: updated.message_count,
-            lastMessageAt: updated.last_message_at?.toISOString() ?? null,
-          },
-        })
-       // after updating drift counters in DB
+        select: { id: true, conversation_id: true, message_count: true, last_message_at: true },
+            });
+      // supabase
+      //   .channel(`conversation-${conversationId.toString()}`)
+      //   .send({
+      //     type: "broadcast",
+      //     event: "drift_counters",
+      //     payload: {
+      //       driftId: driftId.toString(),
+      //       messageCount: updated.message_count,
+      //       lastMessageAt: updated.last_message_at?.toISOString() ?? null,
+      //     },
+      //   })
+      //  // after updating drift counters in DB
 try {
   await broadcast(`conversation-${message.conversation_id.toString()}`, "drift_counters", {
     driftId: driftId.toString(),
