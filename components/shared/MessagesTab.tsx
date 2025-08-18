@@ -17,7 +17,7 @@ const MessagesTab = async ({ currentUserId, accountId }: Props) => {
   return (
 
     <div className="mt-9 space-y-4 justify-center items-center mx-auto">
-        <Link href="/profile/messages" className="items-cente flex gap-4 text-slate-900 hover:underline">
+        <Link href="/profile/messages" className="items-center flex gap-4 text-slate-900 hover:underline hover:underline-offset-4">
             <button className="likebutton flex  p-9 outline-indigo-500 w-fit h-fit text-[1.5    rem] font-light outline-1 ">
             <Image
                   src="/assets/message-queue.svg"

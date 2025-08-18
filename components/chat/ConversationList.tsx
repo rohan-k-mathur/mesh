@@ -58,7 +58,7 @@ export default function ConversationList({
           return (
             <li
             key={c.id}
-            className="flex flex-1 flex-wrap w-fit sheaf-bubble bg-white/20 items-center gap-3 likebutton px-1 py-1 rounded-xl "
+            className="flex flex-1 flex-wrap w-fit sheaf-bubble bg-white/20 items-center gap-3  px-1 py-1 rounded-xl "
               >
                 <hr className="w-full  border-[1px] border-transparent"></hr>
                 <div className="flex w-full h-full align-center px-2 gap-2 ml-2">
@@ -69,7 +69,7 @@ export default function ConversationList({
               <button className="flex text-start h-full align-center border-2 border-transparent ml-2">
 
               <Link href={`/messages/${c.id}`} className="flex flex-col align-center  flex-1 py-1 ">
-                <p className="font-bold tracking-wider text-[1.1rem] whitespace-nowrap">{title}</p>
+                <p className="font-bold tracking-wider text-[1.1rem] whitespace-nowrap hover:underline hover:underline-offset-4">{title}</p>
                 {last && (
                   <p className="text-[1rem] tracking-wide text-gray-700 truncate max-w-xs">{last}</p>
                 )}
@@ -86,7 +86,7 @@ export default function ConversationList({
         return (
           <li
             key={c.id}
-            className="flex flex-1 flex-wrap w-fit sheaf-bubble bg-white/20 items-center gap-3 likebutton px-1 py-1 rounded-xl "
+            className="flex flex-1 flex-wrap w-fit sheaf-bubble bg-white/20 items-center gap-3  px-1 py-1 rounded-xl "
             >            <hr className="w-full  border-[1px] border-transparent"></hr>
 
                           <div className="flex w-full h-full align-center px-2 gap-2 ml-2">
@@ -106,7 +106,7 @@ export default function ConversationList({
 
             <Link href={`/messages/${c.id}`} className="flex flex-col align-center  flex-1 py-1 ">
             
-              <p className="font-bold tracking-wider text-[1.1rem] whitespace-nowrap">{other.name}</p>
+              <p className="font-bold tracking-wider text-[1.1rem] whitespace-nowrap hover:underline hover:underline-offset-4">{other.name}</p>
               {last && (
                 <p className="text-[1rem] tracking-wide text-gray-700 truncate max-w-[10rem]">{last}</p>
               )}

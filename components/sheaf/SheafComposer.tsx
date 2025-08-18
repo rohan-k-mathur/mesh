@@ -171,7 +171,7 @@ export function SheafComposer(props: {
         authorId={authorId}
       />
 {/* Add this block just before the facets map */}
-<div className="sticky flex w-full flex-1 rounded-lg top-0 z-10 shadow-lg bg-indigo-300 px-3 py-2  h-fit">
+<div className="sticky flex w-full flex-1 rounded-lg top-0 z-10 shadow-lg bg-indigo-300 px-3 py-3  h-fit">
     
       <p className="  text-sm py-1 w-fit h-fit text-slate-800   whitespace-nowrap font-medium">Add layer: </p>
 <div className='flex w-fit gap-3 ml-2 '>
@@ -317,17 +317,17 @@ export function SheafComposer(props: {
 
       {/* Footer */}
       {error && <div className="text-xs text-rose-600">{error}</div>}
-      <div className="flex items-center gap-2 px-2 pb-3">
-        <button type="button" onClick={onCancel} className="px-3 py-2 rounded-xl lockbutton bg-white/70 text-sm" disabled={sending}>
+      <div className="flex items-center gap-4  pb-3">
+        <button type="button" onClick={onCancel} className="px-3 py-3 rounded-xl tracking-wide lockbutton bg-white/70 text-sm" disabled={sending}>
           Cancel
         </button>
         <button
           type="button"
           onClick={send}
-          className={sending ? 'px-3 py-2 rounded-xl lockbutton text-sm opacity-60 cursor-not-allowed bg-indigo-300' : 'px-3 py-2 rounded-xl lockbutton text-sm bg-indigo-500 text-white'}
+          className={sending ? 'px-3 py-3 rounded-xl tracking-wide lockbutton text-sm opacity-60 cursor-not-allowed bg-indigo-300' : 'px-3 py-3 tracking-wide rounded-xl lockbutton text-sm bg-indigo-500 text-white'}
           disabled={sending}
         >
-          {sending ? 'Sending…' : 'Send Message Layers'}
+          {sending ? 'Sending…' : 'Send Message'}
         </button>
       </div>
     </div>

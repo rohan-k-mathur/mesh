@@ -93,16 +93,17 @@ function ThreadSummary({
         <div className="flex inline-block gap-2">
           {isMine ? (
             <>
-              <span className="text-[.8rem] inline-block mt-[5px] hover:underline">
-                {count} replies
-              </span>
+              <span className="text-[.8rem] inline-block mt-[5px] hover:underline hover:underline-offset-4">
+  {count === 0 ? "reply" : `${count} ${count === 1 ? "reply" : "replies"}`}
+</span>
+
               <div className=" mr-4 w-8 h-4 border-b-[1px] border-r-[1px] border-slate-600"></div>
             </>
           ) : (
             <>
             <div className=" ml-4 w-8 h-4 border-b-[1px] border-l-[1px] border-slate-600"></div>
-              <span className="text-[.8rem] inline-block mt-[5px] hover:underline">
-                {count} replies
+              <span className="text-[.8rem] inline-block mt-[5px] hover:underline hover:underline-offset-4">
+              {count === 0 ? "reply" : `${count} ${count === 1 ? "reply" : "replies"}`}
               </span>
             </>
           )}
@@ -567,6 +568,7 @@ export default function ChatRoom({
   const upsertPoll = useChatStore((s) => s.upsertPoll);
   const applyPollState = useChatStore((s) => s.applyPollState);
   const setMyVote = useChatStore((s) => s.setMyVote);
+  
 
   const { online, typing } = useConversationRealtime(conversationId, {
     id: String(currentUserId),
@@ -610,7 +612,87 @@ export default function ChatRoom({
     },
     [typing, online, messages]
   );
+// ↓ anchor & state
+const bottomRef = useRef<HTMLDivElement | null>(null);
+const [showScrollDown, setShowScrollDown] = useState(false);
+const [showScrollDownDelayed, setShowScrollDownDelayed] = useState(false);
 
+
+// fade-in delay
+useEffect(() => {
+  let t: any;
+  if (showScrollDown) {
+    t = setTimeout(() => setShowScrollDownDelayed(true), 250);
+  } else {
+    setShowScrollDownDelayed(false);
+  }
+  return () => t && clearTimeout(t);
+}, [showScrollDown]);
+
+const scrollToBottom = useCallback(() => {
+  bottomRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
+}, []);
+
+// Find nearest scroll container for [data-chat-root] (or fall back to window)
+function getScrollContainer(node: HTMLElement | null): HTMLElement | null {
+  let n: HTMLElement | null = node;
+  while (n) {
+    const style = getComputedStyle(n);
+    const oy = style.overflowY;
+    if (oy === "auto" || oy === "scroll") return n;
+    n = n.parentElement;
+  }
+  return null;
+}
+// IntersectionObserver on the bottom anchor, but with the right root
+useEffect(() => {
+  const sentinel = bottomRef.current;
+  if (!sentinel) return;
+
+  const rootEl = document.querySelector("[data-chat-root]") as HTMLElement | null;
+  const scroller = getScrollContainer(rootEl) || null;
+
+  const io = new IntersectionObserver(
+    (entries) => {
+      const inView = entries.some((e) => e.isIntersecting);
+      setShowScrollDown(!inView);
+    },
+    {
+      root: scroller,       // if null, uses viewport
+      threshold: 0.01,
+      rootMargin: "0px 0px -15% 0px", // treat “near bottom” as visible
+    }
+  );
+
+  io.observe(sentinel);
+  return () => io.disconnect();
+}, [messages.length]); // rerun when list size changes
+
+// Scroll/resize fallback for environments where IO is finicky
+useEffect(() => {
+  const rootEl = document.querySelector("[data-chat-root]") as HTMLElement | null;
+  const scroller = getScrollContainer(rootEl);
+  const target: any = scroller || window;
+
+  const getMetrics = () => {
+    if (scroller) {
+      const gap = scroller.scrollHeight - scroller.clientHeight - scroller.scrollTop;
+      setShowScrollDown(gap > 160);
+    } else {
+      const doc = document.scrollingElement || document.documentElement;
+      const gap = doc.scrollHeight - doc.clientHeight - doc.scrollTop;
+      setShowScrollDown(gap > 160);
+    }
+  };
+
+  getMetrics();
+  target.addEventListener("scroll", getMetrics, { passive: true });
+  window.addEventListener("resize", getMetrics);
+  return () => {
+    target.removeEventListener("scroll", getMetrics);
+    window.removeEventListener("resize", getMetrics);
+  };
+}, [messages.length]);
   const appendRef = useRef(appendMessage);
   useEffect(() => {
     appendRef.current = appendMessage;
@@ -1358,10 +1440,31 @@ const isDriftAnchor = !!driftEntry && (driftEntry.drift.kind !== "THREAD"); // h
                 />
               </>
             )}
+                                <div ref={bottomRef} data-bottom-anchor />
+
           </div>
         );
-      })}
 
+      })}
+{showScrollDownDelayed && (
+  <button
+    type="button"
+    onClick={scrollToBottom}
+    className={[
+      "fixed z-[70]  bottom-32",              // position
+      "h-10 w-10 rounded-full shadow-md ",     // shape
+      "bg-white/50 backdrop-blur-sm likebutton",    // look
+      "flex items-center justify-center",            // center icon
+      "transition-transform hover:translate-y-[1px]" // tiny nudge
+    ].join(" ")}
+    title="Scroll to composer"
+    aria-label="Scroll to composer"
+  >
+    <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 4v14m0 0l-6-6m6 6l6-6" stroke="currentColor" strokeWidth="1" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  </button>
+)}
       {othersTypingIds.length > 0 && (
         <div className="px-3 text-[12px] text-slate-500 italic">
           {othersTypingIds.length === 1
