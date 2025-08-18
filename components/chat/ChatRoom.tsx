@@ -31,6 +31,11 @@ import { DriftPane } from "@/components/chat/DriftPane";
 import { QuoteBlock } from "@/components/chat/QuoteBlock";
 import { LinkCard } from "@/components/chat/LinkCard";
 import { useConversationRealtime } from "@/hooks/useConversationRealtime";
+import { useStars } from "@/hooks/useStars";
+import StarToggle from "@/components/chat/StarToggle";
+import StarredFilterToggle from "@/components/chat/StarredFilterToggle";
+import { useSearchParams } from "next/navigation";
+import { useBookmarks } from "@/hooks/useBooksmarks";
 
 const ENABLE_REACTIONS = false;
 
@@ -80,30 +85,41 @@ function ThreadSummary({
   const count = Math.max(0, threadEntry?.drift?.messageCount ?? 0);
   const hasReplies = count > 0;
   return (
-    <div className={["mx-[3%] px-3 mt-0 mb-0", isMine ? "text-right" : "text-left"].join(" ")}>
+    <div
+      className={[
+        "mx-[3%] px-3 mt-0 mb-0",
+        isMine ? "text-right" : "text-left",
+      ].join(" ")}
+    >
       <button
         type="button"
         className={[
           "mt-1 text-[12px] transition-opacity",
           hasReplies ? "text-slate-800 " : "hidden",
         ].join(" ")}
-        onClick={() => hasReplies && threadEntry && onOpen(threadEntry.drift.id)}
+        onClick={() =>
+          hasReplies && threadEntry && onOpen(threadEntry.drift.id)
+        }
         title="Open thread"
       >
         <div className="flex inline-block gap-2">
           {isMine ? (
             <>
               <span className="text-[.8rem] inline-block mt-[5px] hover:underline hover:underline-offset-4">
-  {count === 0 ? "reply" : `${count} ${count === 1 ? "reply" : "replies"}`}
-</span>
+                {count === 0
+                  ? "reply"
+                  : `${count} ${count === 1 ? "reply" : "replies"}`}
+              </span>
 
               <div className=" mr-4 w-8 h-4 border-b-[1px] border-r-[1px] border-slate-600"></div>
             </>
           ) : (
             <>
-            <div className=" ml-4 w-8 h-4 border-b-[1px] border-l-[1px] border-slate-600"></div>
+              <div className=" ml-4 w-8 h-4 border-b-[1px] border-l-[1px] border-slate-600"></div>
               <span className="text-[.8rem] inline-block mt-[5px] hover:underline hover:underline-offset-4">
-              {count === 0 ? "reply" : `${count} ${count === 1 ? "reply" : "replies"}`}
+                {count === 0
+                  ? "reply"
+                  : `${count} ${count === 1 ? "reply" : "replies"}`}
               </span>
             </>
           )}
@@ -111,9 +127,7 @@ function ThreadSummary({
       </button>
     </div>
   );
-  
 }
-
 
 function Attachment({
   a,
@@ -207,6 +221,13 @@ const MessageRow = memo(function MessageRow({
   const setQuoteDraft = useChatStore((s) => s.setQuoteDraft);
   const isMine = String(m.senderId) === String(currentUserId);
   const isRedacted = Boolean((m as any).isRedacted || (m as any).is_redacted);
+  // ★ Stars
+  const { isStarred, toggleStar } = useStars(conversationId);
+  const starred = isStarred(m.id);
+  // 🔖 Bookmarks
+  const { isBookmarked, toggleBookmark, labelFor } =
+    useBookmarks(conversationId);
+  const bookmarked = isBookmarked(m.id);
   return (
     <ChatMessage
       type={isMine ? "outgoing" : "incoming"}
@@ -316,8 +337,8 @@ const MessageRow = memo(function MessageRow({
                         ✏️ Edit
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => onReplyInThread(m.id)}>
-      🧵 Create Reply Thread
-    </DropdownMenuItem>
+                        🧵 Create Reply Thread
+                      </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => {
                           const facetId =
@@ -334,15 +355,33 @@ const MessageRow = memo(function MessageRow({
                       >
                         📋 Quote
                       </DropdownMenuItem>
-                    
-    <DropdownMenuItem
+                      <DropdownMenuItem
+                        onClick={() => {
+                          if (bookmarked) {
+                            // remove
+                            toggleBookmark(m.id);
+                          } else {
+                            // prompt optional label on add
+                            const label = (typeof window !== "undefined"
+                              ? window.prompt("Add a label (optional)", "")
+                              : "")?.trim();
+                            toggleBookmark(m.id, { label: label ? label : null });
+                          }
+                        }}
+                      >
+                        {bookmarked ? "🔖 Remove Bookmark" : "🔖 Bookmark…"}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => toggleStar(m.id)}>
+                        {starred ? "★ Unstar" : "☆ Star"}
+                      </DropdownMenuItem>
+
+                      <DropdownMenuItem
                         className="text-red-600"
                         onClick={() => onDelete(m.id)}
                       >
                         🗑 Delete
                       </DropdownMenuItem>
                     </>
-                    
                   ) : (
                     <>
                       <DropdownMenuItem
@@ -365,8 +404,25 @@ const MessageRow = memo(function MessageRow({
                         ↩️ Reply in DMs
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => onReplyInThread(m.id)}>
-      🧵 Create Reply Thread
-    </DropdownMenuItem>
+                        🧵 Create Reply Thread
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => {
+                          if (bookmarked) {
+                            toggleBookmark(m.id);
+                          } else {
+                            const label = (typeof window !== "undefined"
+                              ? window.prompt("Add a label (optional)", "")
+                              : "")?.trim();
+                            toggleBookmark(m.id, { label: label ? label : null });
+                          }
+                        }}
+                      >
+                        {bookmarked ? "🔖 Remove Bookmark" : "🔖 Bookmark…"}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => toggleStar(m.id)}>
+                        {starred ? "★ Unstar" : "☆ Star"}
+                      </DropdownMenuItem>
                     </>
                   )}
                 </DropdownMenuContent>
@@ -425,15 +481,15 @@ const MessageRow = memo(function MessageRow({
                   {isMine ? (
                     <>
                       <DropdownMenuItem onClick={() => onReplyInThread(m.id)}>
-      🧵 Create Reply Thread
-    </DropdownMenuItem>
-               
+                        🧵 Create Reply Thread
+                      </DropdownMenuItem>
+
                       <DropdownMenuItem
                         onClick={() => alert("Edit is coming soon.")}
                       >
                         ✏️ Edit
                       </DropdownMenuItem>
-                    
+
                       <DropdownMenuItem
                         onClick={() => {
                           const facetId =
@@ -449,6 +505,23 @@ const MessageRow = memo(function MessageRow({
                         }}
                       >
                         📋 Quote
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => {
+                          if (bookmarked) {
+                            toggleBookmark(m.id);
+                          } else {
+                            const label = (typeof window !== "undefined"
+                              ? window.prompt("Add a label (optional)", "")
+                              : "")?.trim();
+                            toggleBookmark(m.id, { label: label ? label : null });
+                          }
+                        }}
+                      >
+                        {bookmarked ? "🔖 Remove Bookmark" : "🔖 Bookmark…"}
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => toggleStar(m.id)}>
+                        {starred ? "★ Unstar" : "☆ Star"}
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         className="text-red-600"
@@ -475,13 +548,31 @@ const MessageRow = memo(function MessageRow({
                       >
                         📋 Quote
                       </DropdownMenuItem>
+
                       <DropdownMenuItem onClick={() => onPrivateReply?.(m)}>
                         ↩️ Reply in DMs
                       </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => toggleStar(m.id)}>
+                        {starred ? "★ Unstar" : "☆ Star"}
+                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => onReplyInThread(m.id)}>
-      🧵 Create Reply Thread
-    </DropdownMenuItem>
-                     
+                        🧵 Create Reply Thread
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => {
+                          if (bookmarked) {
+                            toggleBookmark(m.id);
+                          } else {
+                            const label = (typeof window !== "undefined"
+                              ? window.prompt("Add a label (optional)", "")
+                              : "")?.trim();
+                            toggleBookmark(m.id, { label: label ? label : null });
+                          }
+                        }}
+                      >
+                        {bookmarked ? "🔖 Remove Bookmark" : "🔖 Bookmark…"}
+                      </DropdownMenuItem>
+                      
                     </>
                   )}
                 </DropdownMenuContent>
@@ -568,7 +659,6 @@ export default function ChatRoom({
   const upsertPoll = useChatStore((s) => s.upsertPoll);
   const applyPollState = useChatStore((s) => s.applyPollState);
   const setMyVote = useChatStore((s) => s.setMyVote);
-  
 
   const { online, typing } = useConversationRealtime(conversationId, {
     id: String(currentUserId),
@@ -612,87 +702,91 @@ export default function ChatRoom({
     },
     [typing, online, messages]
   );
-// ↓ anchor & state
-const bottomRef = useRef<HTMLDivElement | null>(null);
-const [showScrollDown, setShowScrollDown] = useState(false);
-const [showScrollDownDelayed, setShowScrollDownDelayed] = useState(false);
+  // ↓ anchor & state
+  const bottomRef = useRef<HTMLDivElement | null>(null);
+  const [showScrollDown, setShowScrollDown] = useState(false);
+  const [showScrollDownDelayed, setShowScrollDownDelayed] = useState(false);
 
-
-// fade-in delay
-useEffect(() => {
-  let t: any;
-  if (showScrollDown) {
-    t = setTimeout(() => setShowScrollDownDelayed(true), 1050);
-  } else {
-    setShowScrollDownDelayed(false);
-  }
-  return () => t && clearTimeout(t);
-}, [showScrollDown]);
-
-const scrollToBottom = useCallback(() => {
-  bottomRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
-}, []);
-
-// Find nearest scroll container for [data-chat-root] (or fall back to window)
-function getScrollContainer(node: HTMLElement | null): HTMLElement | null {
-  let n: HTMLElement | null = node;
-  while (n) {
-    const style = getComputedStyle(n);
-    const oy = style.overflowY;
-    if (oy === "auto" || oy === "scroll") return n;
-    n = n.parentElement;
-  }
-  return null;
-}
-// IntersectionObserver on the bottom anchor, but with the right root
-useEffect(() => {
-  const sentinel = bottomRef.current;
-  if (!sentinel) return;
-
-  const rootEl = document.querySelector("[data-chat-root]") as HTMLElement | null;
-  const scroller = getScrollContainer(rootEl) || null;
-
-  const io = new IntersectionObserver(
-    (entries) => {
-      const inView = entries.some((e) => e.isIntersecting);
-      setShowScrollDown(!inView);
-    },
-    {
-      root: scroller,       // if null, uses viewport
-      threshold: 0.01,
-      rootMargin: "0px 0px -15% 0px", // treat “near bottom” as visible
-    }
-  );
-
-  io.observe(sentinel);
-  return () => io.disconnect();
-}, [messages.length]); // rerun when list size changes
-
-// Scroll/resize fallback for environments where IO is finicky
-useEffect(() => {
-  const rootEl = document.querySelector("[data-chat-root]") as HTMLElement | null;
-  const scroller = getScrollContainer(rootEl);
-  const target: any = scroller || window;
-
-  const getMetrics = () => {
-    if (scroller) {
-      const gap = scroller.scrollHeight - scroller.clientHeight - scroller.scrollTop;
-      setShowScrollDown(gap > 160);
+  // fade-in delay
+  useEffect(() => {
+    let t: any;
+    if (showScrollDown) {
+      t = setTimeout(() => setShowScrollDownDelayed(true), 500);
     } else {
-      const doc = document.scrollingElement || document.documentElement;
-      const gap = doc.scrollHeight - doc.clientHeight - doc.scrollTop;
-      setShowScrollDown(gap > 160);
+      setShowScrollDownDelayed(false);
     }
-  };
+    return () => t && clearTimeout(t);
+  }, [showScrollDown]);
 
-  getMetrics();
-  target.addEventListener("scroll", getMetrics, { passive: true });
-  window.addEventListener("resize", getMetrics);
-  return () => {
-    target.removeEventListener("scroll", getMetrics);
-    window.removeEventListener("resize", getMetrics);
-  };
-}, [messages.length]);
+  const scrollToBottom = useCallback(() => {
+    bottomRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
+  }, []);
+
+  // Find nearest scroll container for [data-chat-root] (or fall back to window)
+  function getScrollContainer(node: HTMLElement | null): HTMLElement | null {
+    let n: HTMLElement | null = node;
+    while (n) {
+      const style = getComputedStyle(n);
+      const oy = style.overflowY;
+      if (oy === "auto" || oy === "scroll") return n;
+      n = n.parentElement;
+    }
+    return null;
+  }
+  // IntersectionObserver on the bottom anchor, but with the right root
+  useEffect(() => {
+    const sentinel = bottomRef.current;
+    if (!sentinel) return;
+
+    const rootEl = document.querySelector(
+      "[data-chat-root]"
+    ) as HTMLElement | null;
+    const scroller = getScrollContainer(rootEl) || null;
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        const inView = entries.some((e) => e.isIntersecting);
+        setShowScrollDown(!inView);
+      },
+      {
+        root: scroller, // if null, uses viewport
+        threshold: 0.01,
+        rootMargin: "0px 0px -15% 0px", // treat “near bottom” as visible
+      }
+    );
+
+    io.observe(sentinel);
+    return () => io.disconnect();
+  }, [messages.length]); // rerun when list size changes
+
+  // Scroll/resize fallback for environments where IO is finicky
+  useEffect(() => {
+    const rootEl = document.querySelector(
+      "[data-chat-root]"
+    ) as HTMLElement | null;
+    const scroller = getScrollContainer(rootEl);
+    const target: any = scroller || window;
+
+    const getMetrics = () => {
+      if (scroller) {
+        const gap =
+          scroller.scrollHeight - scroller.clientHeight - scroller.scrollTop;
+        setShowScrollDown(gap > 160);
+      } else {
+        const doc = document.scrollingElement || document.documentElement;
+        const gap = doc.scrollHeight - doc.clientHeight - doc.scrollTop;
+        setShowScrollDown(gap > 160);
+      }
+    };
+
+    getMetrics();
+    target.addEventListener("scroll", getMetrics, { passive: true });
+    window.addEventListener("resize", getMetrics);
+    return () => {
+      target.removeEventListener("scroll", getMetrics);
+      window.removeEventListener("resize", getMetrics);
+    };
+  }, [messages.length]);
   const appendRef = useRef(appendMessage);
   useEffect(() => {
     appendRef.current = appendMessage;
@@ -752,7 +846,7 @@ useEffect(() => {
     if (!list.length) return;
     hydratedRef.current = true;
     const ids = list.map((m) => m.id);
-    
+
     fetch("/api/polls/query", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -819,8 +913,6 @@ useEffect(() => {
       .catch((e) => console.warn("[drifts] hydrate failed:", e));
   }, [messages, driftsByAnchorId, setDrifts]);
 
-
-
   useEffect(() => {
     if (driftsListHydratedRef.current) return;
     driftsListHydratedRef.current = true;
@@ -829,7 +921,6 @@ useEffect(() => {
       `/api/drifts/list?conversationId=${encodeURIComponent(conversationId)}`,
       { cache: "no-store" }
     )
-    
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (!data?.ok || !Array.isArray(data.items)) return;
@@ -840,14 +931,21 @@ useEffect(() => {
       .catch((e) => console.warn("[drifts] list hydrate failed:", e));
   }, [conversationId, setDrifts]);
 
-   // 👉 Debug effect: log drifts after reload
-   useEffect(() => {
-    fetch(`/api/drifts/list?conversationId=${encodeURIComponent(conversationId)}`, { cache: "no-store" })
-      .then(r => r.json())
-      .then(d => console.log("[drifts/list]", d.items.map((x:any) => x.drift)))
-      .catch(e => console.warn("[drifts/list] debug failed:", e));
+  // 👉 Debug effect: log drifts after reload
+  useEffect(() => {
+    fetch(
+      `/api/drifts/list?conversationId=${encodeURIComponent(conversationId)}`,
+      { cache: "no-store" }
+    )
+      .then((r) => r.json())
+      .then((d) =>
+        console.log(
+          "[drifts/list]",
+          d.items.map((x: any) => x.drift)
+        )
+      )
+      .catch((e) => console.warn("[drifts/list] debug failed:", e));
   }, [conversationId]);
-
 
   useEffect(() => {
     const root = document.querySelector("[data-chat-root]");
@@ -1233,7 +1331,6 @@ useEffect(() => {
     }
   }, [highlightMessageId, messages.length]);
 
-
   return (
     <div className="space-y-3" data-chat-root>
       {messages.map((m) => {
@@ -1243,7 +1340,8 @@ useEffect(() => {
           (p) => p.anchor?.messageId === m.id && p.peerId === String(m.senderId)
         );
         const driftEntry = driftsByAnchorId[m.id];
-const isDriftAnchor = !!driftEntry && (driftEntry.drift.kind !== "THREAD"); // hide chip for threads
+        const isDriftAnchor =
+          !!driftEntry && driftEntry.drift.kind !== "THREAD"; // hide chip for threads
         const threadEntry = driftsByRoot[m.id];
 
         return (
@@ -1316,13 +1414,16 @@ const isDriftAnchor = !!driftEntry && (driftEntry.drift.kind !== "THREAD"); // h
                     <div className="max-w-[60%]">
                       <div className="text-slate-500 flex  items-center gap-1">
                         <span className="flex mr-1 h-2 w-2 mb-1 justify-center items-center align-center  rounded-full bg-slate-600" />
-                        <span className="text-[.75rem] align-center  my-auto">Replying to&nbsp;{inlineLabel}</span>
-                        
+                        <span className="text-[.75rem] align-center  my-auto">
+                          Replying to&nbsp;{inlineLabel}
+                        </span>
                       </div>
                       <div
                         className={[
                           "mt-1 h-fit  pl-3 border-l-[1px]",
-                          isMine ? "border-rose-400 ml-1" : "border-indigo-400 mx-1",
+                          isMine
+                            ? "border-rose-400 ml-1"
+                            : "border-indigo-400 mx-1",
                         ].join(" ")}
                       >
                         {(m as any).quotes.map((q: any, i: number) => (
@@ -1381,12 +1482,14 @@ const isDriftAnchor = !!driftEntry && (driftEntry.drift.kind !== "THREAD"); // h
                 onVote={(body) => onVote(pollsByMessageId[m.id], body)}
               />
             )}
-     <ThreadSummary
-        threadEntry={threadEntry}
-        messageId={m.id}
-        isMine={isMine}
-        onOpen={(driftId) => setOpenDrifts((prev) => ({ ...prev, [driftId]: true }))}
-      />
+            <ThreadSummary
+              threadEntry={threadEntry}
+              messageId={m.id}
+              isMine={isMine}
+              onOpen={(driftId) =>
+                setOpenDrifts((prev) => ({ ...prev, [driftId]: true }))
+              }
+            />
             {/* Classic Drift anchor chip + pane */}
             {isDriftAnchor && driftEntry && (
               <>
@@ -1415,7 +1518,6 @@ const isDriftAnchor = !!driftEntry && (driftEntry.drift.kind !== "THREAD"); // h
               </>
             )}
 
-         
             {threadEntry && openDrifts[threadEntry.drift.id] && (
               <>
                 <hr />
@@ -1440,31 +1542,36 @@ const isDriftAnchor = !!driftEntry && (driftEntry.drift.kind !== "THREAD"); // h
                 />
               </>
             )}
-                                <div ref={bottomRef} data-bottom-anchor />
-
+            <div ref={bottomRef} data-bottom-anchor />
           </div>
         );
-
       })}
-{showScrollDownDelayed && (
-  <button
-    type="button"
-    onClick={scrollToBottom}
-    className={[
-      "fixed z-[70]  bottom-32",              // position
-      "h-10 w-10 rounded-full shadow-md ",     // shape
-      "bg-white/50 backdrop-blur-sm likebutton",    // look
-      "flex items-center justify-center",            // center icon
-      "transition-transform hover:translate-y-[1px]" // tiny nudge
-    ].join(" ")}
-    title="Scroll to composer"
-    aria-label="Scroll to composer"
-  >
-    <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M12 4v14m0 0l-6-6m6 6l6-6" stroke="currentColor" strokeWidth="1" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  </button>
-)}
+      {showScrollDownDelayed && (
+        <button
+          type="button"
+          onClick={scrollToBottom}
+          className={[
+            "fixed z-[70]  bottom-32", // position
+            "h-10 w-10 rounded-full shadow-md ", // shape
+            "bg-white/50 backdrop-blur-sm likebutton", // look
+            "flex items-center justify-center", // center icon
+            "transition-transform hover:translate-y-[1px]", // tiny nudge
+          ].join(" ")}
+          title="Scroll to composer"
+          aria-label="Scroll to composer"
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M12 4v14m0 0l-6-6m6 6l6-6"
+              stroke="currentColor"
+              strokeWidth="1"
+              fill="none"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </button>
+      )}
       {othersTypingIds.length > 0 && (
         <div className="px-3 text-[12px] text-slate-500 italic">
           {othersTypingIds.length === 1

@@ -5,6 +5,8 @@ import Image from "next/image";
 import { ChatMessage, ChatMessageContent, ChatMessageAvatar } from "@/components/ui/chat-message";
 import { SheafMessageBubble } from "@/components/sheaf/SheafMessageBubble";
 import { useChatStore } from "@/contexts/useChatStore";
+import MessageComposer from "@/components/chat/MessageComposer";
+
 
 function Attachment({ a }: { a: { id: string; path: string; type: string; size: number } }) {
   const [url, setUrl] = React.useState<string | null>(null);
@@ -200,4 +202,3 @@ export function DriftPane({
   );
 }
 
-import MessageComposer from "@/components/chat/MessageComposer";
