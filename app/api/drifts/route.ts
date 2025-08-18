@@ -36,16 +36,17 @@ export async function POST(req: NextRequest) {
         include: { sender: { select: { name: true, image: true } } },
       });
 
-      // 2) Create drift row, point to anchor
-      const drift = await tx.drift.create({
-        data: {
-          conversation_id: convoId,
-          created_by: me.userId,
-          title: String(title),
-          anchor_message_id: anchor.id,
-        },
-      });
-
+ // app/api/drifts/route.ts (classic drift)
+const drift = await tx.drift.create({
+  data: {
+    conversation_id:   convoId,
+    created_by:        me.userId,
+    title:             String(title),
+    kind:              "DRIFT",
+    anchor_message_id: anchor.id, // ✅ required for DRIFT
+  },
+});
+      
       // 3) Patch anchor meta with driftId
       await tx.message.update({
         where: { id: anchor.id },

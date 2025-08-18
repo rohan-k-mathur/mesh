@@ -50,7 +50,9 @@ export type DriftUI = {
     isArchived: boolean;
     messageCount: number;
     lastMessageAt: string | null;
-    anchorMessageId: string;
+    anchorMessageId?: string | null; // may be null for THREAD
+    kind?: "DRIFT" | "THREAD";
+    rootMessageId?: string | null;   // set for THREAD
   };
   my?: { collapsed: boolean; pinned: boolean; muted: boolean; lastReadAt: string | null };
 };
@@ -189,12 +191,13 @@ interface ChatState {
   setReactions: (messageId: string, items: ReactionAgg[]) => void;
   applyReactionDelta: (messageId: string, emoji: string, op: 'add'|'remove', byMe: boolean) => void;
   driftsByAnchorId: Record<string, DriftUI>;
+  driftsByRootMessageId: Record<string, DriftUI>; // NEW
   driftMessages: Record<string /*driftId*/, any[]>;
   setDrifts: (items: DriftUI[]) => void;
   upsertDrift: (item: DriftUI) => void;
+  updateDriftCounters: (driftId: string, patch: { messageCount?: number; lastMessageAt?: string | null }) => void;
   setDriftMessages: (driftId: string, rows: any[]) => void;
   appendDriftMessage: (driftId: string, msg: any) => void;
-  updateDriftCounters: (driftId: string, patch: { messageCount?: number; lastMessageAt?: string | null }) => void;
   quoteDraftByConversationId: Record<string, QuoteRef | undefined>;
   setQuoteDraft: (conversationId: string, ref?: QuoteRef) => void;
   clearQuoteDraft: (conversationId: string) => void;
@@ -211,6 +214,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
   setCurrentConversation: (id) => set({ currentConversation: id }),
   // State
   quoteDraftByConversationId: {},
+  driftsByAnchorId: {},
+  driftsByRootMessageId: {},
 
 
   setConversations: (list) =>
@@ -403,18 +408,65 @@ export const useChatStore = create<ChatState>((set, get) => ({
     const msg = await res.json();
     get().appendMessage(id, msg);
   },
-  driftsByAnchorId: {},
+
   driftMessages: {},
   setDrifts: (items) =>
     set((s) => {
-      const copy = { ...s.driftsByAnchorId };
-      items.forEach((it) => (copy[it.drift.anchorMessageId] = it));
-      return { driftsByAnchorId: copy };
+      const byAnchor = { ...s.driftsByAnchorId };
+      const byRoot   = { ...s.driftsByRootMessageId };
+      for (const it of items) {
+        const d = it.drift || it; // tolerate shape
+        if (d.anchorMessageId && (d.kind ?? "DRIFT") === "DRIFT") byAnchor[d.anchorMessageId] = it;
+if (d.rootMessageId) byRoot[d.rootMessageId] = it;
+      }
+      return { driftsByAnchorId: byAnchor, driftsByRootMessageId: byRoot };
     }),
+
   upsertDrift: (item) =>
-    set((s) => ({
-      driftsByAnchorId: { ...s.driftsByAnchorId, [item.drift.anchorMessageId]: item },
-    })),
+    set((s) => {
+      const d = item.drift || item;
+      const byAnchor = { ...s.driftsByAnchorId };
+      const byRoot   = { ...s.driftsByRootMessageId };
+      if (d.anchorMessageId) byAnchor[d.anchorMessageId] = item as DriftUI;
+      if (d.rootMessageId)   byRoot[d.rootMessageId]     = item as DriftUI;
+      return { driftsByAnchorId: byAnchor, driftsByRootMessageId: byRoot };
+    }),
+
+  updateDriftCounters: (driftId, patch) =>
+    set((s) => {
+      // Update in whichever index holds that drift (anchor or root)
+      let changed = false;
+      const upd = (entry: DriftUI) => ({
+        ...entry,
+        drift: {
+          ...entry.drift,
+          messageCount: patch.messageCount ?? entry.drift.messageCount,
+          lastMessageAt: patch.lastMessageAt ?? entry.drift.lastMessageAt,
+        },
+      });
+
+      // byAnchor scan
+      const byAnchor = { ...s.driftsByAnchorId };
+      for (const [anchorId, v] of Object.entries(byAnchor)) {
+        if (v.drift.id === driftId) {
+          byAnchor[anchorId] = upd(v);
+          changed = true;
+          break;
+        }
+      }
+
+      // byRoot scan
+      const byRoot = { ...s.driftsByRootMessageId };
+      for (const [rootId, v] of Object.entries(byRoot)) {
+        if (v.drift.id === driftId) {
+          byRoot[rootId] = upd(v);
+          changed = true;
+          break;
+        }
+      }
+
+      return changed ? { driftsByAnchorId: byAnchor, driftsByRootMessageId: byRoot } : {};
+    }),
   setDriftMessages: (driftId, rows) =>
     set((s) => ({
         driftMessages: {
@@ -441,26 +493,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
         };
       }),
     
-  updateDriftCounters: (driftId, patch) =>
-    set((s) => {
-      // find the anchor entry that points to this drift
-      const entries = Object.entries(s.driftsByAnchorId);
-      const found = entries.find(([, v]) => v.drift.id === driftId);
-      if (!found) return {};
-      const [anchorId, v] = found;
-      return {
-        driftsByAnchorId: {
-          ...s.driftsByAnchorId,
-          [anchorId]: {
-            ...v,
-            drift: {
-              ...v.drift,
-              messageCount: patch.messageCount ?? v.drift.messageCount,
-              lastMessageAt: patch.lastMessageAt ?? v.drift.lastMessageAt,
-            },
-          },
-        },
-      };
-    }),
+  
   
 }));

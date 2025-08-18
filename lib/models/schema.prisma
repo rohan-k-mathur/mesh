@@ -646,6 +646,11 @@ model Message {
   @@map("messages")
 }
 
+enum DriftKind {
+  DRIFT
+  THREAD
+}
+
 model Drift {
   id                BigInt    @id @default(autoincrement())
   conversation_id   BigInt
@@ -657,18 +662,22 @@ model Drift {
   is_archived       Boolean   @default(false)
   message_count     Int       @default(0)
   last_message_at   DateTime?
-  anchor_message_id BigInt    @unique
+  anchor_message_id BigInt?   @unique
+  kind              DriftKind @default(DRIFT)
+  root_message_id   BigInt? // <— root message for kind=THREAD
 
   // relations
   conversation   Conversation @relation("ConversationDrifts", fields: [conversation_id], references: [id], onDelete: Cascade)
-  anchor_message Message      @relation("DriftAnchor", fields: [anchor_message_id], references: [id], onDelete: Cascade)
+  anchor_message Message?     @relation("DriftAnchor", fields: [anchor_message_id], references: [id], onDelete: Cascade)
 
   // 👇 inverse side of the relation; MUST use the same name "DriftMessages"
   messages Message[] @relation("DriftMessages")
 
   members DriftMember[]
 
-  @@index([conversation_id, updated_at])
+  @@unique([conversation_id, root_message_id, kind], map: "uniq_thread_per_root")
+  @@index([conversation_id])
+  @@index([root_message_id])
   @@map("drifts")
 }
 

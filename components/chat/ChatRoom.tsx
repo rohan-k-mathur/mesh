@@ -4,7 +4,7 @@
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { supabase } from "@/lib/supabaseclient";
-import type { Message, PollUI } from "@/contexts/useChatStore";
+import type { DriftUI, Message, PollUI } from "@/contexts/useChatStore";
 import { useChatStore } from "@/contexts/useChatStore";
 import {
   ChatMessage,
@@ -66,8 +66,49 @@ function toSnippet(raw: string, max = 48) {
   const s = raw.replace(/\s+/g, " ").trim();
   return s.length > max ? s.slice(0, max - 1) + "…" : s;
 }
+// --- Small presentational helper for the line under each root ---
+function ThreadSummary({
+  threadEntry,
+  messageId,
+  isMine,
+  onOpen,
+  onStart,
+}: {
+  threadEntry?: DriftUI;
+  messageId: string;
+  isMine: boolean;
+  onOpen: (driftId: string) => void;
+  onStart: (rootMessageId: string) => void;
+}) {
+  return (
+    <div className={["px-3", isMine ? "text-right" : "text-left"].join(" ")}>
+      {threadEntry ? (
+        <button
+          className="mt-1 text-[12px] text-slate-600 hover:underline"
+          onClick={() => onOpen(threadEntry.drift.id)}
+          title="Open thread"
+        >
+          🧵 {Math.max(0, threadEntry.drift.messageCount ?? 0)} replies · View
+          thread
+        </button>
+      ) : (
+        <button
+          className="mt-1 text-[12px] text-slate-500 hover:underline"
+          onClick={() => onStart(messageId)}
+          title="Start a thread"
+        >
+          🧵 Reply in thread
+        </button>
+      )}
+    </div>
+  );
+}
 
-function Attachment({ a }: { a: { id: string; path: string; type: string; size: number } }) {
+function Attachment({
+  a,
+}: {
+  a: { id: string; path: string; type: string; size: number };
+}) {
   const [url, setUrl] = useState<string | null>(null);
 
   React.useEffect(() => {
@@ -82,17 +123,26 @@ function Attachment({ a }: { a: { id: string; path: string; type: string; size: 
             return;
           } else {
             const txt = await r.text();
-            console.warn(`[attachment] sign ${a.id} try ${i + 1} failed:`, r.status, txt);
+            console.warn(
+              `[attachment] sign ${a.id} try ${i + 1} failed:`,
+              r.status,
+              txt
+            );
           }
         } catch (e) {
-          console.warn(`[attachment] sign ${a.id} network error try ${i + 1}`, e);
+          console.warn(
+            `[attachment] sign ${a.id} network error try ${i + 1}`,
+            e
+          );
         }
         await new Promise((res) => setTimeout(res, 150 * (i + 1)));
       }
       if (!cancelled) setUrl(null);
     }
     signWithRetry();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [a.id]);
 
   if (!url) return null;
@@ -111,7 +161,11 @@ function Attachment({ a }: { a: { id: string; path: string; type: string; size: 
 
   const name = a.path.split("/").pop();
   return (
-    <a href={url} download={name || undefined} className="flex items-center gap-2 text-blue-600 underline">
+    <a
+      href={url}
+      download={name || undefined}
+      className="flex items-center gap-2 text-blue-600 underline"
+    >
       <span>📎</span>
       <span>{(a.size / 1024).toFixed(1)} KB</span>
     </a>
@@ -126,6 +180,7 @@ const MessageRow = memo(function MessageRow({
   onPrivateReply,
   onCreateOptions,
   onCreateTemp,
+  onReplyInThread,
   onDelete,
 }: {
   m: Message;
@@ -135,22 +190,34 @@ const MessageRow = memo(function MessageRow({
   onPrivateReply?: (m: Message) => void;
   onCreateOptions: (m: Message) => void;
   onCreateTemp: (m: Message) => void;
+  onReplyInThread: (messageId: string) => void; // NEW
   onDelete: (id: string) => void;
 }) {
   const setQuoteDraft = useChatStore((s) => s.setQuoteDraft);
   const isMine = String(m.senderId) === String(currentUserId);
   const isRedacted = Boolean((m as any).isRedacted || (m as any).is_redacted);
   return (
-    <ChatMessage type={isMine ? "outgoing" : "incoming"} id={m.id} variant="bubble" data-msg-id={m.id}>
+    <ChatMessage
+      type={isMine ? "outgoing" : "incoming"}
+      id={m.id}
+      variant="bubble"
+      data-msg-id={m.id}
+    >
       {!isMine && (
         <DropdownMenu>
           <DropdownMenuTrigger className="cursor-pointer">
-            <ChatMessageAvatar imageSrc={m.sender?.image || "/assets/user-helsinki.svg"} />
+            <ChatMessageAvatar
+              imageSrc={m.sender?.image || "/assets/user-helsinki.svg"}
+            />
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" sideOffset={6}>
             <DropdownMenuItem
               onClick={() =>
-                onOpen(String(m.senderId), m.sender?.name ?? "User", m.sender?.image ?? null)
+                onOpen(
+                  String(m.senderId),
+                  m.sender?.name ?? "User",
+                  m.sender?.image ?? null
+                )
               }
             >
               💬 Side Chat
@@ -163,12 +230,25 @@ const MessageRow = memo(function MessageRow({
       )}
 
       {isRedacted ? (
-        <div className={["relative group w-full", isMine ? "flex justify-end" : "flex justify-start"].join(" ")}>
-          <ChatMessageContent content="(redacted)" className="opacity-70 italic" />
+        <div
+          className={[
+            "relative group w-full",
+            isMine ? "flex justify-end" : "flex justify-start",
+          ].join(" ")}
+        >
+          <ChatMessageContent
+            content="(redacted)"
+            className="opacity-70 italic"
+          />
         </div>
       ) : Array.isArray(m.facets) && m.facets.length > 0 ? (
         <>
-          <div className={["relative group w-full", isMine ? "flex justify-end" : "flex justify-start"].join(" ")}>
+          <div
+            className={[
+              "relative group w-full",
+              isMine ? "flex justify-end" : "flex justify-start",
+            ].join(" ")}
+          >
             <SheafMessageBubble
               messageId={m.id}
               conversationId={conversationId}
@@ -177,7 +257,12 @@ const MessageRow = memo(function MessageRow({
               defaultFacetId={m.defaultFacetId}
             />
             {(m as any).edited ? (
-              <div className={["mt-1 text-[11px] text-slate-500 italic", isMine ? "text-right" : "text-left"].join(" ")}>
+              <div
+                className={[
+                  "mt-1 text-[11px] text-slate-500 italic",
+                  isMine ? "text-right" : "text-left",
+                ].join(" ")}
+              >
                 (edited)
               </div>
             ) : null}
@@ -198,7 +283,13 @@ const MessageRow = memo(function MessageRow({
                     title="Message actions"
                     type="button"
                   >
-                    <Image src="/assets/dot-mark.svg" alt="actions" width={32} height={32} className="cursor-pointer object-fill w-[10px]" />
+                    <Image
+                      src="/assets/dot-mark.svg"
+                      alt="actions"
+                      width={32}
+                      height={32}
+                      className="cursor-pointer object-fill w-[10px]"
+                    />
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
@@ -208,8 +299,15 @@ const MessageRow = memo(function MessageRow({
                 >
                   {isMine ? (
                     <>
-                      <DropdownMenuItem onClick={() => alert("Edit is coming soon.")}>✏️ Edit</DropdownMenuItem>
-                      <DropdownMenuItem className="text-red-600" onClick={() => onDelete(m.id)}>
+                      <DropdownMenuItem
+                        onClick={() => alert("Edit is coming soon.")}
+                      >
+                        ✏️ Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="text-red-600"
+                        onClick={() => onDelete(m.id)}
+                      >
                         🗑 Delete
                       </DropdownMenuItem>
                       <DropdownMenuItem
@@ -218,7 +316,12 @@ const MessageRow = memo(function MessageRow({
                             (m as any).defaultFacetId ??
                             (Array.isArray(m.facets) && m.facets[0]?.id) ??
                             undefined;
-                          useChatStore.getState().setQuoteDraft(conversationId, { messageId: m.id, facetId });
+                          useChatStore
+                            .getState()
+                            .setQuoteDraft(conversationId, {
+                              messageId: m.id,
+                              facetId,
+                            });
                         }}
                       >
                         🧩 Quote
@@ -232,12 +335,22 @@ const MessageRow = memo(function MessageRow({
                             (m as any).defaultFacetId ??
                             (Array.isArray(m.facets) && m.facets[0]?.id) ??
                             undefined;
-                          useChatStore.getState().setQuoteDraft(conversationId, { messageId: m.id, facetId });
+                          useChatStore
+                            .getState()
+                            .setQuoteDraft(conversationId, {
+                              messageId: m.id,
+                              facetId,
+                            });
                         }}
                       >
                         🧩 Quote
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onPrivateReply?.(m)}>↩️ Reply in DM</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onPrivateReply?.(m)}>
+                        ↩️ Reply in DM
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onReplyInThread(m.id)}>
+                        🧵 Create Reply Thread
+                      </DropdownMenuItem>
                     </>
                   )}
                 </DropdownMenuContent>
@@ -247,9 +360,22 @@ const MessageRow = memo(function MessageRow({
         </>
       ) : (
         <>
-          <div className={["relative group w-full", isMine ? "flex justify-end" : "flex justify-start"].join(" ")}>
-            {m.text ? <ChatMessageContent content={m.text} /> : <ChatMessageContent content="" className="min-h-6" />}
-            {(m as any).edited ? <div className="mt-1 text-[11px] text-slate-500 italic">(edited)</div> : null}
+          <div
+            className={[
+              "relative group w-full",
+              isMine ? "flex justify-end" : "flex justify-start",
+            ].join(" ")}
+          >
+            {m.text ? (
+              <ChatMessageContent content={m.text} />
+            ) : (
+              <ChatMessageContent content="" className="min-h-6" />
+            )}
+            {(m as any).edited ? (
+              <div className="mt-1 text-[11px] text-slate-500 italic">
+                (edited)
+              </div>
+            ) : null}
 
             <div
               className={[
@@ -266,7 +392,13 @@ const MessageRow = memo(function MessageRow({
                     title="Message actions"
                     type="button"
                   >
-                    <Image src="/assets/dot-mark.svg" alt="actions" width={32} height={32} className="cursor-pointer object-fill w-[10px]" />
+                    <Image
+                      src="/assets/dot-mark.svg"
+                      alt="actions"
+                      width={32}
+                      height={32}
+                      className="cursor-pointer object-fill w-[10px]"
+                    />
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
@@ -276,8 +408,15 @@ const MessageRow = memo(function MessageRow({
                 >
                   {isMine ? (
                     <>
-                      <DropdownMenuItem onClick={() => alert("Edit is coming soon.")}>✏️ Edit</DropdownMenuItem>
-                      <DropdownMenuItem className="text-red-600" onClick={() => onDelete(m.id)}>
+                      <DropdownMenuItem
+                        onClick={() => alert("Edit is coming soon.")}
+                      >
+                        ✏️ Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="text-red-600"
+                        onClick={() => onDelete(m.id)}
+                      >
                         🗑 Delete
                       </DropdownMenuItem>
                       <DropdownMenuItem
@@ -286,7 +425,12 @@ const MessageRow = memo(function MessageRow({
                             (m as any).defaultFacetId ??
                             (Array.isArray(m.facets) && m.facets[0]?.id) ??
                             undefined;
-                          useChatStore.getState().setQuoteDraft(conversationId, { messageId: m.id, facetId });
+                          useChatStore
+                            .getState()
+                            .setQuoteDraft(conversationId, {
+                              messageId: m.id,
+                              facetId,
+                            });
                         }}
                       >
                         🧩 Quote
@@ -300,12 +444,20 @@ const MessageRow = memo(function MessageRow({
                             (m as any).defaultFacetId ??
                             (Array.isArray(m.facets) && m.facets[0]?.id) ??
                             undefined;
-                          useChatStore.getState().setQuoteDraft(conversationId, { messageId: m.id, facetId });
+                          useChatStore
+                            .getState()
+                            .setQuoteDraft(conversationId, {
+                              messageId: m.id,
+                              facetId,
+                            });
                         }}
                       >
                         🧩 Quote
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onPrivateReply?.(m)}>↩️ Reply in DM</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onPrivateReply?.(m)}>
+                        ↩️ Reply in DM
+                      </DropdownMenuItem>
+                     
                     </>
                   )}
                 </DropdownMenuContent>
@@ -315,7 +467,11 @@ const MessageRow = memo(function MessageRow({
         </>
       )}
 
-      {isMine && <ChatMessageAvatar imageSrc={m.sender?.image || "/assets/user-helsinki.svg"} />}
+      {isMine && (
+        <ChatMessageAvatar
+          imageSrc={m.sender?.image || "/assets/user-helsinki.svg"}
+        />
+      )}
     </ChatMessage>
   );
 });
@@ -331,32 +487,57 @@ export default function ChatRoom({
   const { open, state } = usePrivateChatManager();
 
   const driftsByAnchorId = useChatStore((s) => s.driftsByAnchorId);
+  const driftsByRoot = useChatStore((s) => s.driftsByRootMessageId);
   const setDrifts = useChatStore((s) => s.setDrifts);
+  const upsertDrift = useChatStore((s) => s.upsertDrift);
   const setDriftMessages = useChatStore((s) => s.setDriftMessages);
   const appendDriftMessage = useChatStore((s) => s.appendDriftMessage);
 
   const [openDrifts, setOpenDrifts] = useState<Record<string, boolean>>({});
-  const openDrift = React.useCallback((driftId: string) => {
-    setOpenDrifts((prev) => ({ ...prev, [driftId]: true }));
-    // fire-and-forget refresh (debounced naturally by user behavior)
-    fetch(`/api/drifts/${encodeURIComponent(driftId)}/messages?userId=${encodeURIComponent(currentUserId)}&_t=${Date.now()}`, { cache: "no-store" })
-      .then(r => (r.ok ? r.json() : null))
-      .then(d => Array.isArray(d?.messages) && useChatStore.getState().setDriftMessages(driftId, d.messages))
-      .catch(() => {});
-  }, [currentUserId]);
+  const openDrift = React.useCallback(
+    (driftId: string) => {
+      setOpenDrifts((prev) => ({ ...prev, [driftId]: true }));
+      // fire-and-forget refresh (debounced naturally by user behavior)
+      fetch(
+        `/api/drifts/${encodeURIComponent(
+          driftId
+        )}/messages?userId=${encodeURIComponent(
+          currentUserId
+        )}&_t=${Date.now()}`,
+        { cache: "no-store" }
+      )
+        .then((r) => (r.ok ? r.json() : null))
+        .then(
+          (d) =>
+            Array.isArray(d?.messages) &&
+            useChatStore.getState().setDriftMessages(driftId, d.messages)
+        )
+        .catch(() => {});
+    },
+    [currentUserId]
+  );
 
-  const closeDrift = React.useCallback((driftId: string) => setOpenDrifts((p) => ({ ...p, [driftId]: false })), []);
+  const closeDrift = React.useCallback(
+    (driftId: string) => setOpenDrifts((p) => ({ ...p, [driftId]: false })),
+    []
+  );
 
   const handleOpen = useCallback(
     (peerId: string, peerName: string, peerImage?: string | null) => {
       const rid = roomKey(conversationId, currentUserId, peerId);
-      open(peerId, peerName, conversationId, { roomId: rid, peerImage: peerImage ?? null });
+      open(peerId, peerName, conversationId, {
+        roomId: rid,
+        peerImage: peerImage ?? null,
+      });
     },
     [open, conversationId, currentUserId]
   );
 
   const allMessages = useChatStore((s) => s.messages);
-  const messages = React.useMemo(() => allMessages[conversationId] ?? [], [allMessages, conversationId]);
+  const messages = React.useMemo(
+    () => allMessages[conversationId] ?? [],
+    [allMessages, conversationId]
+  );
   const setMessages = useChatStore((s) => s.setMessages);
   const appendMessage = useChatStore((s) => s.appendMessage);
   const pollsByMessageId = useChatStore((s) => s.pollsByMessageId);
@@ -370,7 +551,9 @@ export default function ChatRoom({
     image: currentUserImage,
   });
 
-  const [readers, setReaders] = useState<{ userId: string; lastReadAt: string }[]>([]);
+  const [readers, setReaders] = useState<
+    { userId: string; lastReadAt: string }[]
+  >([]);
   const chRef = useRef<any>(null);
 
   const lastReadSentAtRef = useRef(0);
@@ -378,15 +561,19 @@ export default function ChatRoom({
     const now = Date.now();
     if (now - lastReadSentAtRef.current < 1500) return;
     lastReadSentAtRef.current = now;
-    fetch(`/api/conversations/${encodeURIComponent(convId)}/read`, { method: "POST" }).catch(() => {});
+    fetch(`/api/conversations/${encodeURIComponent(convId)}/read`, {
+      method: "POST",
+    }).catch(() => {});
   }, []);
 
   const lastMsg = messages[messages.length - 1];
 
   const othersTypingIds = React.useMemo(
-    () => Object.keys(typing || {}).filter((uid) => uid !== String(currentUserId)),
+    () =>
+      Object.keys(typing || {}).filter((uid) => uid !== String(currentUserId)),
     [typing, currentUserId]
   );
+
   const getTypingName = useCallback(
     (uid: string) => {
       const nameFromTyping = (typing as any)?.[uid]?.name;
@@ -402,16 +589,25 @@ export default function ChatRoom({
   );
 
   const appendRef = useRef(appendMessage);
-  useEffect(() => { appendRef.current = appendMessage; }, [appendMessage]);
+  useEffect(() => {
+    appendRef.current = appendMessage;
+  }, [appendMessage]);
 
-  const markAsRedacted = React.useCallback(
+  const markAsRedacted = useCallback(
     (mid: string) => {
       const list = useChatStore.getState().messages[conversationId] ?? [];
       setMessages(
         conversationId,
         list.map((row) =>
           String(row.id) === String(mid)
-            ? { ...row, isRedacted: true, is_redacted: true, text: null, attachments: [], facets: [] }
+            ? {
+                ...row,
+                isRedacted: true,
+                is_redacted: true,
+                text: null,
+                attachments: [],
+                facets: [],
+              }
             : row
         )
       );
@@ -419,11 +615,14 @@ export default function ChatRoom({
     [conversationId, setMessages]
   );
 
-  const handleDelete = React.useCallback(
+  const handleDelete = useCallback(
     async (mid: string) => {
       markAsRedacted(mid);
       try {
-        const res = await fetch(`/api/messages/item/${encodeURIComponent(mid)}`, { method: "DELETE" });
+        const res = await fetch(
+          `/api/messages/item/${encodeURIComponent(mid)}`,
+          { method: "DELETE" }
+        );
         if (!res.ok) throw new Error(await res.text());
       } catch (e) {
         console.warn("[delete] failed; consider refetch or revert", e);
@@ -471,7 +670,9 @@ export default function ChatRoom({
 
     const setReactionsNow = useChatStore.getState().setReactions;
     fetch(
-      `/api/reactions?userId=${encodeURIComponent(currentUserId)}&messageIds=${encodeURIComponent(idsKey)}`,
+      `/api/reactions?userId=${encodeURIComponent(
+        currentUserId
+      )}&messageIds=${encodeURIComponent(idsKey)}`,
       { cache: "no-store" }
     )
       .then((r) => (r.ok ? r.json() : null))
@@ -489,7 +690,9 @@ export default function ChatRoom({
     const unseen = messages
       .filter((m) => (m as any).meta?.kind === "DRIFT_ANCHOR")
       .map((m) => m.id)
-      .filter((id) => !driftsByAnchorId[id] && !hydratedAnchorIdsRef.current.has(id));
+      .filter(
+        (id) => !driftsByAnchorId[id] && !hydratedAnchorIdsRef.current.has(id)
+      );
 
     if (unseen.length === 0) return;
 
@@ -503,7 +706,9 @@ export default function ChatRoom({
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (!data?.ok || !Array.isArray(data.items)) return;
-        setDrifts(data.items.map((it: any) => ({ drift: it.drift, my: it.my })));
+        setDrifts(
+          data.items.map((it: any) => ({ drift: it.drift, my: it.my }))
+        );
       })
       .catch((e) => console.warn("[drifts] hydrate failed:", e));
   }, [messages, driftsByAnchorId, setDrifts]);
@@ -512,11 +717,16 @@ export default function ChatRoom({
     if (driftsListHydratedRef.current) return;
     driftsListHydratedRef.current = true;
 
-    fetch(`/api/drifts/list?conversationId=${encodeURIComponent(conversationId)}`, { cache: "no-store" })
+    fetch(
+      `/api/drifts/list?conversationId=${encodeURIComponent(conversationId)}`,
+      { cache: "no-store" }
+    )
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (!data?.ok || !Array.isArray(data.items)) return;
-        setDrifts(data.items.map((it: any) => ({ drift: it.drift, my: it.my })));
+        setDrifts(
+          data.items.map((it: any) => ({ drift: it.drift, my: it.my }))
+        );
       })
       .catch((e) => console.warn("[drifts] list hydrate failed:", e));
   }, [conversationId, setDrifts]);
@@ -552,7 +762,9 @@ export default function ChatRoom({
 
   useEffect(() => {
     if (!lastMsg) return;
-    fetch(`/api/conversations/${encodeURIComponent(conversationId)}/readers`, { cache: "no-store" })
+    fetch(`/api/conversations/${encodeURIComponent(conversationId)}/readers`, {
+      cache: "no-store",
+    })
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (data?.items) setReaders(data.items);
@@ -562,101 +774,116 @@ export default function ChatRoom({
 
   // Keep a ref mirror of openDrifts for handlers
   const openDriftsRef = useRef(openDrifts);
-  useEffect(() => { openDriftsRef.current = openDrifts; }, [openDrifts]);
+  useEffect(() => {
+    openDriftsRef.current = openDrifts;
+  }, [openDrifts]);
 
   // Helper: unwrap payloads sometimes wrapped as { payload: {...} }
   function unwrap<T extends object>(raw: any): any {
     if (!raw) return null;
-    if (typeof raw === "object" && ("poll" in raw || "pollId" in raw)) return raw;
-    if (typeof raw === "object" && "payload" in raw) return (raw as any).payload;
+    if (typeof raw === "object" && ("poll" in raw || "pollId" in raw))
+      return raw;
+    if (typeof raw === "object" && "payload" in raw)
+      return (raw as any).payload;
     return raw;
   }
 
-  // === REALTIME CHANNEL EFFECT (fixed) ===
+  // === REALTIME CHANNEL EFFECT ===
   useEffect(() => {
-  const topic = `conversation-${conversationId}`;
+    const topic = `conversation-${conversationId}`;
+    const channel = supabase.channel(topic, {
+      config: { broadcast: { self: true } },
+    });
+    chRef.current = channel;
 
-  // Always create *our own* channel object
-  const channel = supabase.channel(topic, {
-    config: { broadcast: { self: true } }, // let us receive our own debug pings
-  });
-  chRef.current = channel;
+    const msgHandler = ({ payload }: any) => {
+      const mid = String(payload?.id ?? payload?.message?.id ?? "");
+      const payloadDriftId = String(
+        payload?.driftId ?? payload?.message?.driftId ?? ""
+      );
+      const from = String(
+        payload?.senderId ?? payload?.message?.senderId ?? ""
+      );
+      console.log("[rt] new_message payload", { mid, payloadDriftId, from });
+      if (!mid) {
+        appendRef.current(conversationId, payload as any);
+        return;
+      }
 
-  // --- handlers (same as you have) ---
-  const msgHandler = ({ payload }: any) => {
-    const mid = String(payload?.id ?? payload?.message?.id ?? "");
-    const payloadDriftId = String(payload?.driftId ?? payload?.message?.driftId ?? "");
-    const from = String(payload?.senderId ?? payload?.message?.senderId ?? "");
-    console.log("[rt] new_message payload", { mid, payloadDriftId, from });
-    if (!mid) { appendRef.current(conversationId, payload as any); return; }
-
-    fetch(`/api/sheaf/messages?userId=${encodeURIComponent(currentUserId)}&messageId=${encodeURIComponent(mid)}`)
-      .then(r => (r.ok ? r.json() : null))
-      .then((data) => {
-        const hydrated = data?.messages?.[0] ?? data?.message ?? null;
-        const hydratedDriftId = hydrated?.driftId ? String(hydrated.driftId) : "";
-        const driftKey = hydratedDriftId || payloadDriftId || "";
-        console.log("[rt] hydrated", mid, { hydratedDriftId, payloadDriftId });
-        if (hydrated) {
-          if (driftKey) appendDriftMessage(driftKey, hydrated);
-          else appendRef.current(conversationId, hydrated);
-          return;
-        }
-        if (payloadDriftId) {
-          appendDriftMessage(payloadDriftId, {
-            id: mid,
-            text: payload?.text ?? null,
-            createdAt: payload?.createdAt ?? new Date().toISOString(),
-            senderId: from,
-            driftId: payloadDriftId,
-            sender: payload?.sender ?? undefined,
-            attachments: Array.isArray(payload?.attachments) ? payload.attachments : [],
+      fetch(
+        `/api/sheaf/messages?userId=${encodeURIComponent(
+          currentUserId
+        )}&messageId=${encodeURIComponent(mid)}`
+      )
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => {
+          const hydrated = data?.messages?.[0] ?? data?.message ?? null;
+          const hydratedDriftId = hydrated?.driftId
+            ? String(hydrated.driftId)
+            : "";
+          const driftKey = hydratedDriftId || payloadDriftId || "";
+          console.log("[rt] hydrated", mid, {
+            hydratedDriftId,
+            payloadDriftId,
           });
-        } else {
-          appendRef.current(conversationId, payload as any);
-        }
-      })
-      .catch(() => {
-        if (payloadDriftId) {
-          appendDriftMessage(payloadDriftId, {
-            id: mid,
-            text: payload?.text ?? null,
-            createdAt: payload?.createdAt ?? new Date().toISOString(),
-            senderId: from,
-            driftId: payloadDriftId,
-            sender: payload?.sender ?? undefined,
-            attachments: Array.isArray(payload?.attachments) ? payload.attachments : [],
-          });
-        } else {
-          appendRef.current(conversationId, payload as any);
-        }
-      });
-  };
+          if (hydrated) {
+            if (driftKey) appendDriftMessage(driftKey, hydrated);
+            else appendRef.current(conversationId, hydrated);
+            return;
+          }
+          if (payloadDriftId) {
+            appendDriftMessage(payloadDriftId, {
+              id: mid,
+              text: payload?.text ?? null,
+              createdAt: payload?.createdAt ?? new Date().toISOString(),
+              senderId: from,
+              driftId: payloadDriftId,
+              sender: payload?.sender ?? undefined,
+              attachments: Array.isArray(payload?.attachments)
+                ? payload.attachments
+                : [],
+            });
+          } else {
+            appendRef.current(conversationId, payload as any);
+          }
+        })
+        .catch(() => {
+          if (payloadDriftId) {
+            appendDriftMessage(payloadDriftId, {
+              id: mid,
+              text: payload?.text ?? null,
+              createdAt: payload?.createdAt ?? new Date().toISOString(),
+              senderId: from,
+              driftId: payloadDriftId,
+              sender: payload?.sender ?? undefined,
+              attachments: Array.isArray(payload?.attachments)
+                ? payload.attachments
+                : [],
+            });
+          } else {
+            appendRef.current(conversationId, payload as any);
+          }
+        });
+    };
 
     const linkPreviewHandler = async ({ payload }: any) => {
       const mid = String(payload?.messageId ?? "");
       if (!mid) return;
       try {
         const r = await fetch(
-          `/api/sheaf/messages?userId=${encodeURIComponent(currentUserId)}&messageId=${encodeURIComponent(mid)}`,
+          `/api/sheaf/messages?userId=${encodeURIComponent(
+            currentUserId
+          )}&messageId=${encodeURIComponent(mid)}`,
           { cache: "no-store" }
         );
         const data = await r.json();
         const hydrated = data?.messages?.[0] ?? data?.message ?? null;
         if (!hydrated) return;
 
-        if (hydrated.driftId) {
-          // const did = String(hydrated.driftId);
-          // const cur = useChatStore.getState().driftMessages[did] ?? [];
-          // const next = cur.map((row: any) => (String(row.id) === String(mid) ? hydrated : row));
-          // useChatStore.getState().setDriftMessages(did, next);
-          useChatStore.getState().replaceMessageInConversation(conversationId, hydrated);
-        } else {
-          // const list = useChatStore.getState().messages[conversationId] ?? [];
-          // const next = list.map((row: any) => (String(row.id) === String(mid) ? hydrated : row));
-          useChatStore.getState().replaceMessageInConversation(conversationId, hydrated);
-          // useChatStore.getState().setMessages(conversationId, next);
-        }
+        // Replace where it lives (main or drift) — requires store helper
+        useChatStore
+          .getState()
+          .replaceMessageInConversation(conversationId, hydrated);
       } catch {}
     };
 
@@ -675,40 +902,70 @@ export default function ChatRoom({
       applyPollState(data as PollStateDTO);
     };
 
-    const applyReactionDeltaNow = (messageId: string, emoji: string, op: "add" | "remove", byMe: boolean) =>
-      useChatStore.getState().applyReactionDelta(messageId, emoji, op, byMe);
+    const applyReactionDeltaNow = (
+      messageId: string,
+      emoji: string,
+      op: "add" | "remove",
+      byMe: boolean
+    ) => useChatStore.getState().applyReactionDelta(messageId, emoji, op, byMe);
 
     const reactionAdd = ({ payload }: any) => {
       const { messageId, emoji, userId } = payload || {};
       if (!messageId || !emoji) return;
-      applyReactionDeltaNow(messageId, emoji, "add", String(userId) === String(currentUserId));
+      applyReactionDeltaNow(
+        messageId,
+        emoji,
+        "add",
+        String(userId) === String(currentUserId)
+      );
     };
 
     const reactionRemove = ({ payload }: any) => {
       const { messageId, emoji, userId } = payload || {};
       if (!messageId || !emoji) return;
-      applyReactionDeltaNow(messageId, emoji, "remove", String(userId) === String(currentUserId));
+      applyReactionDeltaNow(
+        messageId,
+        emoji,
+        "remove",
+        String(userId) === String(currentUserId)
+      );
     };
 
     const driftCreateHandler = ({ payload }: any) => {
       const { anchor, drift } = payload || {};
-      if (!anchor || !drift) return;
-      appendRef.current(conversationId, anchor);
-      setDrifts([{ drift, my: { collapsed: true, pinned: false, muted: false, lastReadAt: null } }]);
+      if (!drift) return;
+      if (anchor) appendRef.current(conversationId, anchor); // only classic drifts have anchors
+      setDrifts([
+        {
+          drift,
+          my: {
+            collapsed: true,
+            pinned: false,
+            muted: false,
+            lastReadAt: null,
+          },
+        },
+      ]);
     };
 
     const driftCountersHandler = ({ payload }: any) => {
       const { driftId, messageCount, lastMessageAt } = payload || {};
       if (!driftId) return;
-      useChatStore.getState().updateDriftCounters?.(driftId, { messageCount, lastMessageAt });
+      useChatStore
+        .getState()
+        .updateDriftCounters?.(driftId, { messageCount, lastMessageAt });
 
-      const have = (useChatStore.getState().driftMessages[driftId] ?? []).length;
+      const have = (useChatStore.getState().driftMessages[driftId] ?? [])
+        .length;
       const paneOpen = !!openDriftsRef.current?.[driftId];
 
       if (paneOpen || have < (messageCount ?? 0)) {
-        fetch(`/api/drifts/${encodeURIComponent(driftId)}/messages?userId=${encodeURIComponent(currentUserId)}`, {
-          cache: "no-store",
-        })
+        fetch(
+          `/api/drifts/${encodeURIComponent(
+            driftId
+          )}/messages?userId=${encodeURIComponent(currentUserId)}`,
+          { cache: "no-store" }
+        )
           .then((r) => (r.ok ? r.json() : null))
           .then((d) => {
             if (Array.isArray(d?.messages)) {
@@ -738,52 +995,55 @@ export default function ChatRoom({
         return [...prev, { userId: String(userId), lastReadAt: ts }];
       });
     };
-// Attach handlers
-channel.on("broadcast", { event: "new_message" }, msgHandler);
-channel.on("broadcast", { event: "link_preview_update" }, linkPreviewHandler);
-channel.on("broadcast", { event: "poll_create" }, pollCreateHandler);
-channel.on("broadcast", { event: "poll_state" }, pollStateHandler);
-channel.on("broadcast", { event: "drift_create" }, driftCreateHandler);
-channel.on("broadcast", { event: "drift_counters" }, driftCountersHandler);
-channel.on("broadcast", { event: "message_redacted" }, redactedHandler);
-channel.on("broadcast", { event: "read" }, readHandler);
 
-// Self-test pings so you know the channel is alive
-let pingTimer: any = null;
-channel.on("broadcast", { event: "debug_ping" }, (msg: any) => {
-  // proves we still receive broadcast events on this channel object
-  // console.log(`[rt:${topic}] got debug_ping`, msg?.payload ?? msg);
-});
+    channel.on("broadcast", { event: "new_message" }, msgHandler);
+    channel.on(
+      "broadcast",
+      { event: "link_preview_update" },
+      linkPreviewHandler
+    );
+    channel.on("broadcast", { event: "poll_create" }, pollCreateHandler);
+    channel.on("broadcast", { event: "poll_state" }, pollStateHandler);
+    channel.on("broadcast", { event: "drift_create" }, driftCreateHandler);
+    channel.on("broadcast", { event: "drift_counters" }, driftCountersHandler);
+    channel.on("broadcast", { event: "message_redacted" }, redactedHandler);
+    channel.on("broadcast", { event: "read" }, readHandler);
 
-console.log(`[rt:${topic}] subscribing`);
-channel.subscribe((status) => {
-  console.log(`[rt:${topic}] status`, status);
-  if (status === "SUBSCRIBED") {
-    channel.send({ type: "broadcast", event: "debug_ping", payload: { from: "ChatRoom", at: Date.now() } });
-    // periodic heartbeat (15s) to spot dead channel objects
-    pingTimer = setInterval(() => {
-      channel.send({ type: "broadcast", event: "debug_ping", payload: { from: "ChatRoom/heartbeat", at: Date.now() } });
-    }, 15000);
-  }
-});
+    let pingTimer: any = null;
+    channel.on("broadcast", { event: "debug_ping" }, () => {});
+    console.log(`[rt:${topic}] subscribing`);
+    channel.subscribe((status) => {
+      console.log(`[rt:${topic}] status`, status);
+      if (status === "SUBSCRIBED") {
+        channel.send({
+          type: "broadcast",
+          event: "debug_ping",
+          payload: { from: "ChatRoom", at: Date.now() },
+        });
+        pingTimer = setInterval(() => {
+          channel.send({
+            type: "broadcast",
+            event: "debug_ping",
+            payload: { from: "ChatRoom/heartbeat", at: Date.now() },
+          });
+        }, 15000);
+      }
+    });
 
-return () => {
-  console.log(`[rt:${topic}] cleanup`);
-  if (pingTimer) clearInterval(pingTimer);
-  chRef.current = null;
-  try { channel.unsubscribe?.(); } catch {}
-  supabase.removeChannel?.(channel);
-};
-// eslint-disable-next-line react-hooks/exhaustive-deps
-}, [conversationId, currentUserId]);
+    return () => {
+      console.log(`[rt:${topic}] cleanup`);
+      if (pingTimer) clearInterval(pingTimer);
+      chRef.current = null;
+      try {
+        channel.unsubscribe?.();
+      } catch {}
+      supabase.removeChannel?.(channel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversationId, currentUserId]);
 
   // Voting handlers
-  const onCreateOptions = useCallback((m: Message) => {
-    // (kept for compatibility; not used in this snippet)
-    // setComposerFor(m.id);
-    // composerOpenForRef.current = m.id;
-  }, []);
-
+  const onCreateOptions = useCallback((_m: Message) => {}, []);
   const onCreateTemp = useCallback(async (_m: Message) => {}, []);
 
   const onVote = useCallback(
@@ -795,22 +1055,63 @@ return () => {
       }).then((r) => r.json());
       applyPollState(state);
       if (poll.kind === "OPTIONS") {
-        setMyVote({ kind: "OPTIONS", pollId: poll.poll.id, optionIdx: body.optionIdx });
+        setMyVote({
+          kind: "OPTIONS",
+          pollId: poll.poll.id,
+          optionIdx: body.optionIdx,
+        });
       } else {
         setMyVote({ kind: "TEMP", pollId: poll.poll.id, value: body.value });
       }
-      chRef.current?.send({ type: "broadcast", event: "poll_state", payload: state });
+      chRef.current?.send({
+        type: "broadcast",
+        event: "poll_state",
+        payload: state,
+      });
     },
     [applyPollState, setMyVote, conversationId]
   );
 
+  // Ensure thread drift and open its pane
+  const ensureAndOpenThread = useCallback(
+    async (rootMessageId: string) => {
+      const have = useChatStore.getState().driftsByRootMessageId[rootMessageId];
+      if (have?.drift?.id) {
+        setOpenDrifts((prev) => ({ ...prev, [have.drift.id]: true }));
+        return;
+      }
+      const r = await fetch("/api/threads/ensure", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rootMessageId }),
+      });
+      const data = await r.json();
+      if (!r.ok || !data?.drift) {
+        console.warn("[thread] ensure failed:", data);
+        alert(data?.error ?? "Failed to start thread");
+        return;
+      }
+      upsertDrift({
+        drift: data.drift,
+        my: { collapsed: false, pinned: false, muted: false, lastReadAt: null },
+      });
+      setOpenDrifts((prev) => ({ ...prev, [data.drift.id]: true }));
+    },
+    [upsertDrift]
+  );
+
   useEffect(() => {
     if (!highlightMessageId) return;
-    const el = document.querySelector(`[data-msg-id="${highlightMessageId}"]`) as HTMLElement | null;
+    const el = document.querySelector(
+      `[data-msg-id="${highlightMessageId}"]`
+    ) as HTMLElement | null;
     if (el) {
       el.scrollIntoView({ block: "center", behavior: "smooth" });
       el.classList.add("ring-2", "ring-indigo-400", "ring-offset-2");
-      setTimeout(() => el.classList.remove("ring-2", "ring-indigo-400", "ring-offset-2"), 2000);
+      setTimeout(
+        () => el.classList.remove("ring-2", "ring-indigo-400", "ring-offset-2"),
+        2000
+      );
     }
   }, [highlightMessageId, messages.length]);
 
@@ -819,9 +1120,12 @@ return () => {
       {messages.map((m) => {
         const isMine = String(m.senderId) === String(currentUserId);
         const panes = Object.values(state.panes);
-        const anchored = panes.find((p) => p.anchor?.messageId === m.id && p.peerId === String(m.senderId));
+        const anchored = panes.find(
+          (p) => p.anchor?.messageId === m.id && p.peerId === String(m.senderId)
+        );
         const driftEntry = driftsByAnchorId[m.id];
-        const isDriftAnchor = !!driftEntry;
+const isDriftAnchor = !!driftEntry && (driftEntry.drift.kind !== "THREAD"); // hide chip for threads
+        const threadEntry = driftsByRoot[m.id];
 
         return (
           <div key={m.id} className="space-y-2" data-msg-id={m.id}>
@@ -834,11 +1138,14 @@ return () => {
                 onPrivateReply={() => {}}
                 onCreateOptions={onCreateOptions}
                 onCreateTemp={onCreateTemp}
-                onDelete={() => {}}
+                onReplyInThread={ensureAndOpenThread}
+                onDelete={handleDelete}
               />
             )}
 
-            {!isDriftAnchor && !(m as any).isRedacted && m.attachments?.length ? (
+            {!isDriftAnchor &&
+            !(m as any).isRedacted &&
+            m.attachments?.length ? (
               <div
                 className={[
                   "mt-1 flex flex-col gap-2 px-3",
@@ -851,55 +1158,121 @@ return () => {
               </div>
             ) : null}
 
-            {Array.isArray((m as any).quotes) && (m as any).quotes.length > 0 &&
+            {/* Attachments (outside bubble) */}
+            {!isDriftAnchor &&
+            !(m as any).isRedacted &&
+            m.attachments?.length ? (
+              <div
+                className={[
+                  "mt-1 flex flex-col gap-2 px-3",
+                  isMine ? "items-end" : "items-start",
+                ].join(" ")}
+              >
+                {m.attachments.map((a) => (
+                  <Attachment key={a.id} a={a as any} />
+                ))}
+              </div>
+            ) : null}
+
+            {/* Quotes */}
+            {Array.isArray((m as any).quotes) &&
+              (m as any).quotes.length > 0 &&
               (() => {
                 const q0 = (m as any).quotes[0];
-                const textRaw = typeof q0?.body === "string" ? q0.body : q0?.body ? textFromTipTap(q0.body) : "";
-                const inlineLabel = q0?.sourceAuthor?.name || toSnippet(textRaw, 48);
+                const textRaw =
+                  typeof q0?.body === "string"
+                    ? q0.body
+                    : q0?.body
+                    ? textFromTipTap(q0.body)
+                    : "";
+                const inlineLabel =
+                  q0?.sourceAuthor?.name || toSnippet(textRaw, 48);
                 return (
-                  <div className={["px-3 mt-1 flex", isMine ? "justify-end" : "justify-start"].join(" ")}>
+                  <div
+                    className={[
+                      "px-3 mt-1 flex",
+                      isMine ? "justify-end" : "justify-start",
+                    ].join(" ")}
+                  >
                     <div className="max-w-[60%]">
                       <div className="text-[11px] text-slate-500 flex items-center gap-1">
                         <span className="inline-block h-1.5 w-1.5 rounded-full bg-slate-400" />
                         <span>Replying to&nbsp;</span>
-                        <span className="font-medium text-slate-700">{inlineLabel}</span>
+                        <span className="font-medium text-slate-700">
+                          {inlineLabel}
+                        </span>
                       </div>
-                      <div className={["mt-1 pl-3 border-l-2", isMine ? "border-fuchsia-200" : "border-sky-200"].join(" ")}>
-                        {(m as any).quotes.map((q: any, i: number) => <QuoteBlock key={`${m.id}-q-${i}`} q={q} compact />)}
+                      <div
+                        className={[
+                          "mt-1 pl-3 border-l-2",
+                          isMine ? "border-fuchsia-200" : "border-sky-200",
+                        ].join(" ")}
+                      >
+                        {(m as any).quotes.map((q: any, i: number) => (
+                          <QuoteBlock key={`${m.id}-q-${i}`} q={q} compact />
+                        ))}
                       </div>
                     </div>
                   </div>
                 );
               })()}
 
+            {/* Plain message link previews */}
             {!Array.isArray((m as any).facets) &&
               Array.isArray((m as any).linkPreviews) &&
               (m as any).linkPreviews.length > 0 && (
-                <div className={["mt-2 flex flex-col gap-2 px-3", isMine ? "items-end" : "items-start"].join(" ")}>
-                  {(m as any).linkPreviews.slice(0, 3).map((p: any) => <LinkCard key={p.urlHash} p={p} />)}
+                <div
+                  className={[
+                    "mt-2 flex flex-col gap-2 px-3",
+                    isMine ? "items-end" : "items-start",
+                  ].join(" ")}
+                >
+                  {(m as any).linkPreviews.slice(0, 3).map((p: any) => (
+                    <LinkCard key={p.urlHash} p={p} />
+                  ))}
                 </div>
               )}
 
+            {/* Sheaf (default facet) link previews */}
             {Array.isArray((m as any).facets) &&
               (m as any).facets.length > 0 &&
               (() => {
-                const defId = (m as any).defaultFacetId ?? (m as any).facets[0]?.id;
-                const def = (m as any).facets.find((f: any) => f.id === defId) ?? (m as any).facets[0];
+                const defId =
+                  (m as any).defaultFacetId ?? (m as any).facets[0]?.id;
+                const def =
+                  (m as any).facets.find((f: any) => f.id === defId) ??
+                  (m as any).facets[0];
                 if (!def?.linkPreviews?.length) return null;
                 return (
-                  <div className={["mt-2 flex flex-col gap-2 px-3", isMine ? "items-end" : "items-start"].join(" ")}>
-                    {def.linkPreviews.slice(0, 3).map((p: any) => <LinkCard key={p.urlHash} p={p} />)}
+                  <div
+                    className={[
+                      "mt-2 flex flex-col gap-2 px-3",
+                      isMine ? "items-end" : "items-start",
+                    ].join(" ")}
+                  >
+                    {def.linkPreviews.slice(0, 3).map((p: any) => (
+                      <LinkCard key={p.urlHash} p={p} />
+                    ))}
                   </div>
                 );
               })()}
 
+            {/* Poll chip */}
             {pollsByMessageId[m.id] && (
-              <PollChip poll={pollsByMessageId[m.id]} onVote={(body) => onVote(pollsByMessageId[m.id], body)} />
+              <PollChip
+                poll={pollsByMessageId[m.id]}
+                onVote={(body) => onVote(pollsByMessageId[m.id], body)}
+              />
             )}
 
+            {/* Classic Drift anchor chip + pane */}
             {isDriftAnchor && driftEntry && (
               <>
-                <DriftChip title={driftEntry.drift.title} count={driftEntry.drift.messageCount} onOpen={() => openDrift(driftEntry.drift.id)} />
+                <DriftChip
+                  title={driftEntry.drift.title}
+                  count={driftEntry.drift.messageCount}
+                  onOpen={() => openDrift(driftEntry.drift.id)}
+                />
                 {openDrifts[driftEntry.drift.id] && (
                   <>
                     <hr />
@@ -919,9 +1292,44 @@ return () => {
                 )}
               </>
             )}
+
+            {/* 🧵 Thread summary + thread pane */}
+            <ThreadSummary
+              threadEntry={threadEntry}
+              messageId={m.id}
+              isMine={isMine}
+              onOpen={(driftId) =>
+                setOpenDrifts((prev) => ({ ...prev, [driftId]: true }))
+              }
+              onStart={ensureAndOpenThread}
+            />
+
+            {threadEntry && openDrifts[threadEntry.drift.id] && (
+              <>
+                <hr />
+                <DriftPane
+                  key={threadEntry.drift.id}
+                  drift={{
+                    id: threadEntry.drift.id,
+                    title: threadEntry.drift.title || "Thread",
+                    isClosed: threadEntry.drift.isClosed,
+                    isArchived: threadEntry.drift.isArchived,
+                  }}
+                  conversationId={String(conversationId)}
+                  currentUserId={currentUserId}
+                  onClose={() =>
+                    setOpenDrifts((prev) => ({
+                      ...prev,
+                      [threadEntry.drift.id]: false,
+                    }))
+                  }
+                />
+              </>
+            )}
           </div>
         );
       })}
+
       {othersTypingIds.length > 0 && (
         <div className="px-3 text-[12px] text-slate-500 italic">
           {othersTypingIds.length === 1
