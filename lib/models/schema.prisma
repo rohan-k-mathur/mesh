@@ -378,14 +378,15 @@ model FriendSuggestion {
   @@unique([user_id, suggested_user_id])
   @@map("friend_suggestions")
 }
+
 model Workflow {
-  id                 BigInt               @id @default(autoincrement())
-  owner_id           BigInt
-  name               String
-  is_active          Boolean              @default(true)
-  current_version    Int                  @default(1)
-  created_at         DateTime             @default(now()) @db.Timestamptz(6)
-  updated_at         DateTime             @default(now()) @updatedAt @db.Timestamptz(6)
+  id              BigInt   @id @default(autoincrement())
+  owner_id        BigInt
+  name            String
+  is_active       Boolean  @default(true)
+  current_version Int      @default(1)
+  created_at      DateTime @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime @default(now()) @updatedAt @db.Timestamptz(6)
 
   versions           WorkflowVersion[]
   runs               WorkflowRun[]
@@ -394,19 +395,20 @@ model Workflow {
   states             WorkflowState[]
   transitions        WorkflowTransition[]
 
-  owner              User                 @relation(fields: [owner_id], references: [id], onDelete: Cascade)
+  owner User @relation(fields: [owner_id], references: [id], onDelete: Cascade)
+
   @@map("workflows")
 }
 
 model WorkflowVersion {
-  id           BigInt   @id @default(autoincrement())
-  workflow_id  BigInt
-  version      Int
-  dsl          Json     // { steps: Step[], edges: Edge[] } for the linear builder
-  created_at   DateTime @default(now()) @db.Timestamptz(6)
-  created_by   BigInt?
+  id          BigInt   @id @default(autoincrement())
+  workflow_id BigInt
+  version     Int
+  dsl         Json // { steps: Step[], edges: Edge[] } for the linear builder
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  created_by  BigInt?
 
-  workflow     Workflow @relation(fields: [workflow_id], references: [id], onDelete: Cascade)
+  workflow Workflow @relation(fields: [workflow_id], references: [id], onDelete: Cascade)
 
   @@unique([workflow_id, version])
   @@map("workflow_versions")
@@ -426,14 +428,14 @@ model WorkflowRun {
   workflow_id     BigInt
   version         Int
   status          WorkflowRunStatus @default(PENDING)
-  trigger_kind    String?           // "cron" | "webhook" | "manual"
+  trigger_kind    String? // "cron" | "webhook" | "manual"
   trigger_payload Json?
   started_at      DateTime          @default(now()) @db.Timestamptz(6)
   finished_at     DateTime?         @db.Timestamptz(6)
   error           Json?
 
-  workflow        Workflow          @relation(fields: [workflow_id], references: [id], onDelete: Cascade)
-  steps           WorkflowRunStep[]
+  workflow Workflow          @relation(fields: [workflow_id], references: [id], onDelete: Cascade)
+  steps    WorkflowRunStep[]
 
   @@index([workflow_id, started_at])
   @@map("workflow_runs")
@@ -448,20 +450,20 @@ enum StepStatus {
 }
 
 model WorkflowRunStep {
-  id           BigInt     @id @default(autoincrement())
-  run_id       BigInt
-  step_id      String     // DSL Step.id
-  action_ref   String?
-  status       StepStatus @default(PENDING)
-  input        Json?
-  output       Json?
-  error        Json?
-  attempt      Int        @default(0)
-  started_at   DateTime?  @db.Timestamptz(6)
-  finished_at  DateTime?  @db.Timestamptz(6)
-  duration_ms  Int?
+  id          BigInt     @id @default(autoincrement())
+  run_id      BigInt
+  step_id     String // DSL Step.id
+  action_ref  String?
+  status      StepStatus @default(PENDING)
+  input       Json?
+  output      Json?
+  error       Json?
+  attempt     Int        @default(0)
+  started_at  DateTime?  @db.Timestamptz(6)
+  finished_at DateTime?  @db.Timestamptz(6)
+  duration_ms Int?
 
-  run          WorkflowRun @relation(fields: [run_id], references: [id], onDelete: Cascade)
+  run WorkflowRun @relation(fields: [run_id], references: [id], onDelete: Cascade)
 
   @@index([run_id, step_id])
   @@map("workflow_run_steps")
@@ -520,16 +522,15 @@ model ScheduledWorkflow {
   id          BigInt   @id @default(autoincrement())
   workflow_id BigInt
   cron        String?
-  trigger     String?  // e.g., "webhook" (plus secret in metadata)
+  trigger     String? // e.g., "webhook" (plus secret in metadata)
   metadata    Json?
   created_at  DateTime @default(now()) @db.Timestamptz(6)
   updated_at  DateTime @default(now()) @updatedAt @db.Timestamptz(6)
 
-  workflow    Workflow @relation(fields: [workflow_id], references: [id], onDelete: Cascade)
+  workflow Workflow @relation(fields: [workflow_id], references: [id], onDelete: Cascade)
 
   @@map("scheduled_workflows")
 }
-
 
 enum IntegrationStatus {
   CONNECTED
@@ -538,32 +539,29 @@ enum IntegrationStatus {
 }
 
 model Integration {
-  id          BigInt   @id @default(autoincrement())
-  user_id     BigInt
-  // Keep 'service' for now; treat as 'provider' (gmail, googleSheets, shopify, stripe, ...)
-  service     String
+  id                   BigInt            @id @default(autoincrement())
+  user_id              BigInt
+  service              String
+  external_account_id  String? // e.g. shop domain, gmail address, stripe_account id
+  scopes               String[]          @default([]) // least-privilege scope list
+  access_token_cipher  Bytes?
+  refresh_token_cipher Bytes?
+  expires_at           DateTime?         @db.Timestamptz(6)
+  status               IntegrationStatus @default(CONNECTED)
+  metadata             Json?
 
-  // New normalized fields
-  external_account_id   String?           // e.g. shop domain, gmail address, stripe_account id
-  scope                 String[]          @db.Text[] // least-privilege scope list
-  access_token_cipher   Bytes?
-  refresh_token_cipher  Bytes?
-  expires_at            DateTime?         @db.Timestamptz(6)
-  status                IntegrationStatus @default(CONNECTED)
-  metadata              Json?             // anything provider-specific (labels, emails, etc.)
+  // legacy field during transition (can remove after backfill)
+  credential String
 
-  // Transitional legacy field (to be deprecated after backfill)
-  credential            String
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  updated_at DateTime @default(now()) @updatedAt @db.Timestamptz(6)
 
-  created_at            DateTime          @default(now()) @db.Timestamptz(6)
-  updated_at            DateTime          @default(now()) @updatedAt @db.Timestamptz(6)
-  user                  User              @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@unique([user_id, service, external_account_id])
   @@index([user_id, service])
   @@map("integrations")
 }
-
 
 model LinkedAccount {
   id            BigInt    @id @default(autoincrement())
@@ -640,8 +638,6 @@ model ProductReviewVouch {
   @@unique([claim_id, user_id])
   @@map("product_review_vouches")
 }
-
-
 
 model Conversation {
   id            BigInt                    @id @default(autoincrement())
@@ -728,8 +724,8 @@ model Message {
   drift          Drift?           @relation("DriftMessages", fields: [drift_id], references: [id])
   MessageMention MessageMention[]
   // Stars & Bookmarks back-relations
-  stars         MessageStar[]
-  bookmarks     Bookmark[]
+  stars          MessageStar[]
+  bookmarks      Bookmark[]
 
   @@unique([conversation_id, client_id])
   @@index([conversation_id, created_at])

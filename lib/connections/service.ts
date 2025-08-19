@@ -1,33 +1,87 @@
-// lib/connections/service.ts (server only)
-import { decrypt } from "@/lib/crypto/encryption";
-import { db } from "@/lib/db"; // your Prisma instance
+// lib/connections/service.ts
+// server-only facade over prisma.Integration with decryption + scope checks
+import "server-only";
+import { prisma } from "@/lib/prismaclient";
+import { decryptBytesToString, decryptBytesToJson, encryptStringToBytes, encryptJsonToBytes } from "@/lib/crypto/encryption";
 
-export interface Connection {
+export type Connection = {
+  provider: string;            // e.g. "gmail", "googleSheets"
+  accessToken?: string;
+  refreshToken?: string | null;
+  expiresAt?: Date | null;
+  scopes: string[];
+  accountLabel?: string | null; // e.g. gmail address, shop domain
+  metadata?: Record<string, any> | null;
+};
+
+export async function getConnection(userId: bigint | number | string, provider: string): Promise<Connection> {
+  const row = await prisma.integration.findFirst({
+    where: { user_id: BigInt(userId as any), service: provider, status: "CONNECTED" },
+    orderBy: { updated_at: "desc" },
+  });
+  if (!row) throw new Error(`No connection for provider ${provider}`);
+
+  return {
+    provider,
+    accessToken: row.access_token_cipher ? decryptBytesToString(row.access_token_cipher) : undefined,
+    refreshToken: row.refresh_token_cipher ? decryptBytesToString(row.refresh_token_cipher) : null,
+    expiresAt: row.expires_at ?? null,
+    scopes: row.scopes ?? row.scope ?? [], // tolerate old column name if it exists
+    accountLabel: row.external_account_id ?? null,
+    metadata: row.metadata ? decryptBytesToJson(row.metadata as any) ?? {} : {}, // if you store encrypted JSON here
+  };
+}
+
+// Optional helper: verify required scopes before running an action
+export function requireScopes(conn: Connection, required: string[]) {
+  const missing = required.filter(s => !conn.scopes?.includes(s));
+  if (missing.length) {
+    const msg = `Missing scopes for ${conn.provider}: ${missing.join(", ")}`;
+    const err: any = new Error(msg);
+    err.code = "MISSING_SCOPES";
+    err.missingScopes = missing;
+    throw err;
+  }
+}
+
+// Optional helper: persist refreshed tokens back to DB
+export async function upsertConnectionTokens(args: {
+  userId: bigint | number | string;
   provider: string;
-  accountLabel?: string;
   accessToken?: string;
   refreshToken?: string | null;
   expiresAt?: Date | null;
   scopes?: string[];
-  email?: string; // e.g. for Gmail convenience
-}
+  externalAccountId?: string | null;
+  metadata?: Record<string, any> | null;
+}) {
+  const { userId, provider, accessToken, refreshToken, expiresAt, scopes, externalAccountId, metadata } = args;
 
-export async function getConnection(orgId: string, provider: string): Promise<Connection> {
-  const row = await db.integrations.findFirst({
-    where: { org_id: orgId, provider },
-    orderBy: { updated_at: "desc" }
+  const access_token_cipher = accessToken ? encryptStringToBytes(accessToken) : undefined;
+  const refresh_token_cipher = typeof refreshToken === "string" ? encryptStringToBytes(refreshToken) : undefined;
+
+  await prisma.integration.upsert({
+    where: { user_id_service_external_account_id: { user_id: BigInt(userId as any), service: provider, external_account_id: externalAccountId ?? "" } },
+    create: {
+      user_id: BigInt(userId as any),
+      service: provider,
+      external_account_id: externalAccountId ?? null,
+      access_token_cipher,
+      refresh_token_cipher,
+      expires_at: expiresAt ?? null,
+      scopes: scopes ?? [],
+      status: "CONNECTED",
+      metadata: metadata ? (encryptJsonToBytes(metadata) as any) : undefined,
+      credential: "", // legacy field—leave empty on new writes
+    },
+    update: {
+      external_account_id: externalAccountId ?? null,
+      access_token_cipher,
+      refresh_token_cipher,
+      expires_at: expiresAt ?? null,
+      scopes: scopes ?? undefined,
+      status: "CONNECTED",
+      metadata: metadata ? (encryptJsonToBytes(metadata) as any) : undefined,
+    },
   });
-  if (!row) throw new Error(`No connection for provider ${provider}`);
-
-  const accessToken = row.access_token_ciphertext ? await decrypt(row.access_token_ciphertext) : undefined;
-  const refreshToken = row.refresh_token_ciphertext ? await decrypt(row.refresh_token_ciphertext) : undefined;
-  // Optionally enrich email/accountLabel from provider metadata you store in another column
-  return {
-    provider: row.provider,
-    accessToken,
-    refreshToken,
-    expiresAt: row.expires_at ?? null,
-    scopes: row.scope ?? [],
-    // email/accountLabel: derive from metadata JSON if you store it
-  };
 }

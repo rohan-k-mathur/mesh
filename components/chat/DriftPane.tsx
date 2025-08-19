@@ -51,7 +51,7 @@ export function DriftPane({
   conversationId,
   currentUserId,
   onClose,
-  variant = "drift",          // "drift" | "thread"
+  variant = "drift",          // "drift" | "thread" | "proposal"
   align = "center",           // "start" | "end" | "center"
 }: {
   drift: {
@@ -63,7 +63,7 @@ export function DriftPane({
   conversationId: string;
   currentUserId: string;
   onClose: () => void;
-  variant?: "drift" | "thread";
+  variant?: "drift" | "thread" | "proposal";
   align?: "start" | "end" | "center";
 }) {
     const EMPTY: any[] = React.useMemo(() => [], []);
@@ -136,7 +136,9 @@ export function DriftPane({
       {/* Header */}
       <div className="flex items-center justify-between py-1">
         <div className="flex items-center gap-2">
-          <span className=" text-[1rem] tracking-wide font-medium">🌀 {drift.title}</span>
+        <span className=" text-[1rem] tracking-wide font-medium">
+            {variant === "proposal" ? "🪄" : "🌀"} {drift.title}
+          </span>
           {drift.isClosed && <span className="ml-1 text-xs rounded bg-slate-200 px-2 py-0.5">closed</span>}
           {drift.isArchived && <span className="ml-1 text-xs rounded bg-slate-200 px-2 py-0.5">archived</span>}
         </div>

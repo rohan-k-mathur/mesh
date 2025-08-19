@@ -36,6 +36,7 @@ import StarToggle from "@/components/chat/StarToggle";
 import StarredFilterToggle from "@/components/chat/StarredFilterToggle";
 import { useSearchParams } from "next/navigation";
 import { useBookmarks } from "@/hooks/useBooksmarks";
+import ProposalsCompareModal from "@/components/proposals/ProposalsCompareModal";
 
 const ENABLE_REACTIONS = false;
 
@@ -206,6 +207,9 @@ const MessageRow = memo(function MessageRow({
   onCreateOptions,
   onCreateTemp,
   onReplyInThread,
+    onProposeAlternative,
+  onCompareProposals,
+  onMergeProposal,
   onDelete,
 }: {
   m: Message;
@@ -216,6 +220,9 @@ const MessageRow = memo(function MessageRow({
   onCreateOptions: (m: Message) => void;
   onCreateTemp: (m: Message) => void;
   onReplyInThread: (messageId: string) => void; // NEW
+    onProposeAlternative: (rootMessageId: string) => void;
+  onCompareProposals: (rootMessageId: string) => void;
+  onMergeProposal: (rootMessageId: string) => void;
   onDelete: (id: string) => void;
 }) {
   const setQuoteDraft = useChatStore((s) => s.setQuoteDraft);
@@ -331,6 +338,15 @@ const MessageRow = memo(function MessageRow({
                 >
                   {isMine ? (
                     <>
+                                          <DropdownMenuItem onClick={() => onProposeAlternative(m.id)}>
+                        🪄 Propose an Alternative
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onCompareProposals(m.id)}>
+                        🧬 Compare Proposals
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onMergeProposal(m.id)}>
+                        ✅ Merge Proposal…
+                      </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => alert("Edit is coming soon.")}
                       >
@@ -338,6 +354,12 @@ const MessageRow = memo(function MessageRow({
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => onReplyInThread(m.id)}>
                         🧵 Create Reply Thread
+                      </DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => onProposeAlternative(m.id)}>
+                        🪄 Propose an Alternative
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onCompareProposals(m.id)}>
+                        🧬 Compare Proposals
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => {
@@ -480,6 +502,16 @@ const MessageRow = memo(function MessageRow({
                 >
                   {isMine ? (
                     <>
+                    
+                     <DropdownMenuItem onClick={() => onProposeAlternative(m.id)}>
+                        🪄 Propose an Alternative
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onCompareProposals(m.id)}>
+                        🧬 Compare Proposals
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onMergeProposal(m.id)}>
+                        ✅ Merge Proposal…
+                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => onReplyInThread(m.id)}>
                         🧵 Create Reply Thread
                       </DropdownMenuItem>
@@ -532,6 +564,12 @@ const MessageRow = memo(function MessageRow({
                     </>
                   ) : (
                     <>
+                    <DropdownMenuItem onClick={() => onProposeAlternative(m.id)}>
+                        🪄 Propose an Alternative
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onCompareProposals(m.id)}>
+                        🧬 Compare Proposals
+                      </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => {
                           const facetId =
@@ -607,6 +645,7 @@ export default function ChatRoom({
   const upsertDrift = useChatStore((s) => s.upsertDrift);
   const setDriftMessages = useChatStore((s) => s.setDriftMessages);
   const appendDriftMessage = useChatStore((s) => s.appendDriftMessage);
+  const [compareFor, setCompareFor] = useState<string | null>(null);
 
   const [openDrifts, setOpenDrifts] = useState<Record<string, boolean>>({});
   const openDrift = React.useCallback(
@@ -1316,6 +1355,49 @@ export default function ChatRoom({
     [upsertDrift]
   );
 
+   // Proposals: ensure and open
+   const ensureAndOpenProposal = useCallback(
+       async (rootMessageId: string) => {
+         try {
+           const r = await fetch("/api/proposals/ensure", {
+             method: "POST",
+             headers: { "Content-Type": "application/json" },
+             body: JSON.stringify({ rootMessageId }),
+           });
+           const data = await r.json();
+           if (!r.ok || !data?.drift?.id) {
+             alert((await r.text().catch(() => "")) || "Failed to start proposal");
+             return;
+           }
+           // Place into store and open
+           upsertDrift({
+             drift: {
+               id: data.drift.id,
+               title: data.drift.title,
+               kind: data.drift.kind || "PROPOSAL",
+               isClosed: Boolean(data.drift.isClosed),
+               isArchived: Boolean(data.drift.isArchived),
+             },
+             my: { collapsed: false, pinned: false, muted: false, lastReadAt: null },
+           });
+           setOpenDrifts((prev) => ({ ...prev, [data.drift.id]: true }));
+         } catch (e) {
+           console.warn("[proposal] ensure failed", e);
+         }
+       },
+       [upsertDrift]
+     );
+   
+     const onCompareProposals = useCallback((rootMessageId: string) => {
+       setCompareFor(rootMessageId);
+     }, []);
+   
+     const onMergeProposal = useCallback((rootMessageId: string) => {
+       // Open the compare modal; merging is actioned from there (choosing a proposal)
+       setCompareFor(rootMessageId);
+     }, []);
+   
+
   useEffect(() => {
     if (!highlightMessageId) return;
     const el = document.querySelector(
@@ -1333,6 +1415,16 @@ export default function ChatRoom({
 
   return (
     <div className="space-y-3" data-chat-root>
+       <ProposalsCompareModal
+        open={!!compareFor}
+        onClose={() => setCompareFor(null)}
+        rootMessageId={String(compareFor || "")}
+        currentUserId={currentUserId}
+        onOpenDrift={(driftId) => setOpenDrifts((prev) => ({ ...prev, [driftId]: true }))}
+        onMerged={() => {
+          // Optionally: refresh the root message; your existing hydration often handles it.
+        }}
+      />
       {messages.map((m) => {
         const isMine = String(m.senderId) === String(currentUserId);
         const panes = Object.values(state.panes);
@@ -1356,6 +1448,9 @@ export default function ChatRoom({
                 onCreateOptions={onCreateOptions}
                 onCreateTemp={onCreateTemp}
                 onReplyInThread={ensureAndOpenThread}
+                    onProposeAlternative={ensureAndOpenProposal}
+               onCompareProposals={onCompareProposals}
+                onMergeProposal={onMergeProposal}
                 onDelete={handleDelete}
               />
             )}
