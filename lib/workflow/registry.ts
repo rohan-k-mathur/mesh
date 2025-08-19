@@ -36,7 +36,6 @@ export interface TriggerDef {
 const ACTIONS = new Map<string, ActionDef>();
 const TRIGGERS = new Map<string, TriggerDef>();
 
-export const registerAction = (def: ActionDef) => ACTIONS.set(def.id, def);
 export const registerTrigger = (def: TriggerDef) => TRIGGERS.set(def.id, def);
 
 export const getActionDef = (id: string) => ACTIONS.get(id);
@@ -44,3 +43,7 @@ export const getTriggerDef = (id: string) => TRIGGERS.get(id);
 export const listActionDefs = () => Array.from(ACTIONS.values());
 export const listTriggerDefs = () => Array.from(TRIGGERS.values());
 
+export const registerAction = (def: ActionDef) => {
+    if (!ACTIONS.has(def.id)) ACTIONS.set(def.id, def);
+  };
+  

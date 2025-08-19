@@ -11,7 +11,7 @@
    const { user } = useAuth();
    const conv = conversationId != null ? toStr(conversationId) : undefined;
    const { data, mutate } = useSWR<{ items: { message_id: string; label: string | null }[] }>(
-     user && conv ? `/api/conversations/${conv}/bookmarks` : null,
+     user && conv ? `/api/conversations/${conv}/bookmark` : null,
      fetcher,
      { refreshInterval: 30000 }
    );

@@ -207,7 +207,7 @@ const MessageRow = memo(function MessageRow({
   onCreateOptions,
   onCreateTemp,
   onReplyInThread,
-    onProposeAlternative,
+  onProposeAlternative,
   onCompareProposals,
   onMergeProposal,
   onDelete,
@@ -220,7 +220,7 @@ const MessageRow = memo(function MessageRow({
   onCreateOptions: (m: Message) => void;
   onCreateTemp: (m: Message) => void;
   onReplyInThread: (messageId: string) => void; // NEW
-    onProposeAlternative: (rootMessageId: string) => void;
+  onProposeAlternative: (rootMessageId: string) => void;
   onCompareProposals: (rootMessageId: string) => void;
   onMergeProposal: (rootMessageId: string) => void;
   onDelete: (id: string) => void;
@@ -338,10 +338,14 @@ const MessageRow = memo(function MessageRow({
                 >
                   {isMine ? (
                     <>
-                                          <DropdownMenuItem onClick={() => onProposeAlternative(m.id)}>
+                      <DropdownMenuItem
+                        onClick={() => onProposeAlternative(m.id)}
+                      >
                         🪄 Propose an Alternative
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onCompareProposals(m.id)}>
+                      <DropdownMenuItem
+                        onClick={() => onCompareProposals(m.id)}
+                      >
                         🧬 Compare Proposals
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => onMergeProposal(m.id)}>
@@ -355,12 +359,7 @@ const MessageRow = memo(function MessageRow({
                       <DropdownMenuItem onClick={() => onReplyInThread(m.id)}>
                         🧵 Create Reply Thread
                       </DropdownMenuItem>
-                                            <DropdownMenuItem onClick={() => onProposeAlternative(m.id)}>
-                        🪄 Propose an Alternative
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onCompareProposals(m.id)}>
-                        🧬 Compare Proposals
-                      </DropdownMenuItem>
+                      
                       <DropdownMenuItem
                         onClick={() => {
                           const facetId =
@@ -384,10 +383,14 @@ const MessageRow = memo(function MessageRow({
                             toggleBookmark(m.id);
                           } else {
                             // prompt optional label on add
-                            const label = (typeof window !== "undefined"
-                              ? window.prompt("Add a label (optional)", "")
-                              : "")?.trim();
-                            toggleBookmark(m.id, { label: label ? label : null });
+                            const label = (
+                              typeof window !== "undefined"
+                                ? window.prompt("Add a label (optional)", "")
+                                : ""
+                            )?.trim();
+                            toggleBookmark(m.id, {
+                              label: label ? label : null,
+                            });
                           }
                         }}
                       >
@@ -422,6 +425,16 @@ const MessageRow = memo(function MessageRow({
                       >
                         📋 Quote
                       </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => onProposeAlternative(m.id)}
+                      >
+                        🪄 Propose an Alternative
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => onCompareProposals(m.id)}
+                      >
+                        🧬 Compare Proposals
+                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => onPrivateReply?.(m)}>
                         ↩️ Reply in DMs
                       </DropdownMenuItem>
@@ -433,10 +446,14 @@ const MessageRow = memo(function MessageRow({
                           if (bookmarked) {
                             toggleBookmark(m.id);
                           } else {
-                            const label = (typeof window !== "undefined"
-                              ? window.prompt("Add a label (optional)", "")
-                              : "")?.trim();
-                            toggleBookmark(m.id, { label: label ? label : null });
+                            const label = (
+                              typeof window !== "undefined"
+                                ? window.prompt("Add a label (optional)", "")
+                                : ""
+                            )?.trim();
+                            toggleBookmark(m.id, {
+                              label: label ? label : null,
+                            });
                           }
                         }}
                       >
@@ -502,11 +519,14 @@ const MessageRow = memo(function MessageRow({
                 >
                   {isMine ? (
                     <>
-                    
-                     <DropdownMenuItem onClick={() => onProposeAlternative(m.id)}>
+                      <DropdownMenuItem
+                        onClick={() => onProposeAlternative(m.id)}
+                      >
                         🪄 Propose an Alternative
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onCompareProposals(m.id)}>
+                      <DropdownMenuItem
+                        onClick={() => onCompareProposals(m.id)}
+                      >
                         🧬 Compare Proposals
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => onMergeProposal(m.id)}>
@@ -543,10 +563,14 @@ const MessageRow = memo(function MessageRow({
                           if (bookmarked) {
                             toggleBookmark(m.id);
                           } else {
-                            const label = (typeof window !== "undefined"
-                              ? window.prompt("Add a label (optional)", "")
-                              : "")?.trim();
-                            toggleBookmark(m.id, { label: label ? label : null });
+                            const label = (
+                              typeof window !== "undefined"
+                                ? window.prompt("Add a label (optional)", "")
+                                : ""
+                            )?.trim();
+                            toggleBookmark(m.id, {
+                              label: label ? label : null,
+                            });
                           }
                         }}
                       >
@@ -564,10 +588,14 @@ const MessageRow = memo(function MessageRow({
                     </>
                   ) : (
                     <>
-                    <DropdownMenuItem onClick={() => onProposeAlternative(m.id)}>
+                      <DropdownMenuItem
+                        onClick={() => onProposeAlternative(m.id)}
+                      >
                         🪄 Propose an Alternative
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onCompareProposals(m.id)}>
+                      <DropdownMenuItem
+                        onClick={() => onCompareProposals(m.id)}
+                      >
                         🧬 Compare Proposals
                       </DropdownMenuItem>
                       <DropdownMenuItem
@@ -601,16 +629,19 @@ const MessageRow = memo(function MessageRow({
                           if (bookmarked) {
                             toggleBookmark(m.id);
                           } else {
-                            const label = (typeof window !== "undefined"
-                              ? window.prompt("Add a label (optional)", "")
-                              : "")?.trim();
-                            toggleBookmark(m.id, { label: label ? label : null });
+                            const label = (
+                              typeof window !== "undefined"
+                                ? window.prompt("Add a label (optional)", "")
+                                : ""
+                            )?.trim();
+                            toggleBookmark(m.id, {
+                              label: label ? label : null,
+                            });
                           }
                         }}
                       >
                         {bookmarked ? "🔖 Remove Bookmark" : "🔖 Bookmark…"}
                       </DropdownMenuItem>
-                      
                     </>
                   )}
                 </DropdownMenuContent>
@@ -1355,48 +1386,59 @@ export default function ChatRoom({
     [upsertDrift]
   );
 
-   // Proposals: ensure and open
-   const ensureAndOpenProposal = useCallback(
-       async (rootMessageId: string) => {
-         try {
-           const r = await fetch("/api/proposals/ensure", {
-             method: "POST",
-             headers: { "Content-Type": "application/json" },
-             body: JSON.stringify({ rootMessageId }),
-           });
-           const data = await r.json();
-           if (!r.ok || !data?.drift?.id) {
-             alert((await r.text().catch(() => "")) || "Failed to start proposal");
-             return;
-           }
-           // Place into store and open
-           upsertDrift({
-             drift: {
-               id: data.drift.id,
-               title: data.drift.title,
-               kind: data.drift.kind || "PROPOSAL",
-               isClosed: Boolean(data.drift.isClosed),
-               isArchived: Boolean(data.drift.isArchived),
-             },
-             my: { collapsed: false, pinned: false, muted: false, lastReadAt: null },
-           });
-           setOpenDrifts((prev) => ({ ...prev, [data.drift.id]: true }));
-         } catch (e) {
-           console.warn("[proposal] ensure failed", e);
-         }
-       },
-       [upsertDrift]
-     );
-   
-     const onCompareProposals = useCallback((rootMessageId: string) => {
-       setCompareFor(rootMessageId);
-     }, []);
-   
-     const onMergeProposal = useCallback((rootMessageId: string) => {
-       // Open the compare modal; merging is actioned from there (choosing a proposal)
-       setCompareFor(rootMessageId);
-     }, []);
-   
+  // Proposals: ensure and open
+  const ensureAndOpenProposal = useCallback(
+    async (rootMessageId: string) => {
+      try {
+        const r = await fetch("/api/proposals/ensure", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ rootMessageId }),
+        });
+        // Parse JSON safely even on non-2xx
+        const raw = await r.text();
+        let data: any = null;
+        try { data = raw ? JSON.parse(raw) : null; } catch {}
+        if (!r.ok || !data?.drift?.id) {
+          console.warn("[proposal/ensure] server said:", raw);
+          alert((data?.error || raw) || "Failed to start proposal");
+          return;
+        }
+          // Place into store with all required fields so UI can render immediately
+          upsertDrift({
+            drift: {
+              id: data.drift.id,
+              conversationId: data.drift.conversationId ?? String(conversationId),
+              title: data.drift.title || "Proposal",
+              isClosed: Boolean(data.drift.isClosed),
+              isArchived: Boolean(data.drift.isArchived),
+              messageCount: Number(data.drift.messageCount ?? 0),
+              lastMessageAt: data.drift.lastMessageAt ?? null,
+              // IMPORTANT: proposals are rooted, not anchored
+              rootMessageId: data.drift.rootMessageId ?? rootMessageId,
+              // Force them down the thread rendering path; variant will relabel it as a proposal
+              kind: "THREAD",
+              // DO NOT set anchorMessageId here
+            },
+            my: { collapsed: false, pinned: false, muted: false, lastReadAt: null },
+          });
+          
+        setOpenDrifts((prev) => ({ ...prev, [data.drift.id]: true }));
+      } catch (e) {
+        console.warn("[proposal] ensure failed", e);
+      }
+    },
+    [upsertDrift, conversationId]
+  );
+
+  const onCompareProposals = useCallback((rootMessageId: string) => {
+    setCompareFor(rootMessageId);
+  }, []);
+
+  const onMergeProposal = useCallback((rootMessageId: string) => {
+    // Open the compare modal; merging is actioned from there (choosing a proposal)
+    setCompareFor(rootMessageId);
+  }, []);
 
   useEffect(() => {
     if (!highlightMessageId) return;
@@ -1415,12 +1457,14 @@ export default function ChatRoom({
 
   return (
     <div className="space-y-3" data-chat-root>
-       <ProposalsCompareModal
+      <ProposalsCompareModal
         open={!!compareFor}
         onClose={() => setCompareFor(null)}
         rootMessageId={String(compareFor || "")}
         currentUserId={currentUserId}
-        onOpenDrift={(driftId) => setOpenDrifts((prev) => ({ ...prev, [driftId]: true }))}
+        onOpenDrift={(driftId) =>
+          setOpenDrifts((prev) => ({ ...prev, [driftId]: true }))
+        }
         onMerged={() => {
           // Optionally: refresh the root message; your existing hydration often handles it.
         }}
@@ -1436,6 +1480,10 @@ export default function ChatRoom({
           !!driftEntry && driftEntry.drift.kind !== "THREAD"; // hide chip for threads
         const threadEntry = driftsByRoot[m.id];
 
+        const isProposal =
+  !!threadEntry?.drift?.title &&
+  threadEntry.drift.title.toLowerCase().startsWith("proposal:");
+
         return (
           <div key={m.id} className="space-y-2" data-msg-id={m.id}>
             {!isDriftAnchor && (
@@ -1448,8 +1496,8 @@ export default function ChatRoom({
                 onCreateOptions={onCreateOptions}
                 onCreateTemp={onCreateTemp}
                 onReplyInThread={ensureAndOpenThread}
-                    onProposeAlternative={ensureAndOpenProposal}
-               onCompareProposals={onCompareProposals}
+                onProposeAlternative={ensureAndOpenProposal}
+                onCompareProposals={onCompareProposals}
                 onMergeProposal={onMergeProposal}
                 onDelete={handleDelete}
               />
@@ -1620,13 +1668,13 @@ export default function ChatRoom({
                   key={threadEntry.drift.id}
                   drift={{
                     id: threadEntry.drift.id,
-                    title: threadEntry.drift.title || "Thread",
-                    isClosed: threadEntry.drift.isClosed,
+                    title: threadEntry.drift.title || (isProposal ? "Proposal" : "Thread"),
+                                        isClosed: threadEntry.drift.isClosed,
                     isArchived: threadEntry.drift.isArchived,
                   }}
                   conversationId={String(conversationId)}
                   currentUserId={currentUserId}
-                  variant="thread"
+                  variant={isProposal ? "proposal" : "thread"}   // 👈 show the 🪄 header
                   align={isMine ? "end" : "start"} // right for my root, left for others
                   onClose={() =>
                     setOpenDrifts((prev) => ({

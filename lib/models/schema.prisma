@@ -79,6 +79,10 @@ model User {
   // Stars & Bookmarks back-relations
   messageStars              MessageStar[]
   bookmarks                 Bookmark[]
+  ActivityPubKey            ActivityPubKey[]
+  ApFollower                ApFollower[]
+  ApFollowing               ApFollowing[]
+  ApOutboxActivity          ApOutboxActivity[]
 
   @@map("users")
 }
@@ -737,6 +741,7 @@ model Message {
 enum DriftKind {
   DRIFT
   THREAD
+  PROPOSAL
 }
 
 model Drift {
@@ -764,6 +769,7 @@ model Drift {
   members DriftMember[]
 
   @@unique([conversation_id, root_message_id, kind], map: "uniq_thread_per_root")
+  @@index([root_message_id, kind]) // ✅ add this line here
   @@index([conversation_id])
   @@index([root_message_id])
   @@map("drifts")
@@ -1816,4 +1822,98 @@ model ConversationState {
   @@id([conversationId, userId])
   @@index([userId])
   @@map("conversation_state")
+}
+
+model ActivityPubKey {
+  user_id     BigInt   @id
+  public_pem  String   @db.Text
+  private_pem String   @db.Text
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("activitypub_keys")
+}
+
+// --- ActivityPub federation state ---
+enum ApFollowState {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+model ApRemoteActor {
+  id                BigInt    @id @default(autoincrement())
+  url               String    @unique // canonical actor IRI
+  inbox             String?
+  sharedInbox       String?
+  preferredUsername String?
+  domain            String?
+  publicKeyPem      String?   @db.Text
+  lastSeen          DateTime? @db.Timestamptz(6)
+  blocked           Boolean   @default(false)
+
+  followers ApFollower[]
+  following ApFollowing[]
+
+  @@map("ap_remote_actors")
+}
+
+model ApFollower {
+  id              BigInt        @id @default(autoincrement())
+  user_id         BigInt
+  remote_actor_id BigInt
+  state           ApFollowState @default(ACCEPTED)
+  created_at      DateTime      @default(now()) @db.Timestamptz(6)
+  accepted_at     DateTime?     @db.Timestamptz(6)
+
+  user   User          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  remote ApRemoteActor @relation(fields: [remote_actor_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, remote_actor_id])
+  @@index([user_id])
+  @@map("ap_followers")
+}
+
+model ApFollowing {
+  id              BigInt        @id @default(autoincrement())
+  user_id         BigInt
+  remote_actor_id BigInt
+  state           ApFollowState @default(PENDING)
+  created_at      DateTime      @default(now()) @db.Timestamptz(6)
+  accepted_at     DateTime?     @db.Timestamptz(6)
+
+  user   User          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  remote ApRemoteActor @relation(fields: [remote_actor_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, remote_actor_id])
+  @@index([user_id])
+  @@map("ap_following")
+}
+
+model ApOutboxActivity {
+  id            BigInt   @id @default(autoincrement())
+  actor_user_id BigInt
+  activity_json Json
+  created_at    DateTime @default(now()) @db.Timestamptz(6)
+
+  user User @relation(fields: [actor_user_id], references: [id], onDelete: Cascade)
+
+  @@index([actor_user_id, created_at])
+  @@map("ap_outbox")
+}
+
+enum ApDomainRuleMode {
+  ALLOW
+  DENY
+}
+
+model ApDomainRule {
+  id         BigInt           @id @default(autoincrement())
+  domain     String           @unique
+  mode       ApDomainRuleMode
+  created_at DateTime         @default(now()) @db.Timestamptz(6)
+
+  @@map("ap_domain_rules")
 }

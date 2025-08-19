@@ -9,10 +9,36 @@ import { firebaseConfig, serverConfig } from "@/lib/firebase/config";
 
 const PUBLIC_PATHS = ["/register", "/login", "/reset-password", "/room/global"];
 
+function isApPath(pathname: string) {
+  if (pathname === "/.well-known/webfinger") return true;
+  if (pathname === "/inbox") return true; // shared inbox (optional, future-proof)
+  if (/^\/users\/[^/]+(\/(inbox|outbox|followers|following))?$/.test(pathname)) return true;
+  return false;
+}
+
+function isApNegotiation(req: NextRequest) {
+  const sp     = new URL(req.url).searchParams;
+  if (sp.has("__ap")) return true; // handy manual override in a browser
+
+  const accept = (req.headers.get("accept") || "").toLowerCase();
+  const ctype  = (req.headers.get("content-type") || "").toLowerCase();
+
+  const apJson = accept.includes("application/activity+json")
+              || accept.includes("application/ld+json"); // covers profile variant
+  const apPost = ctype.includes("application/activity+json")
+              || ctype.includes("application/ld+json");
+
+  return apJson || apPost;
+}
+
+
 export async function middleware(request: NextRequest) {
   if (request.nextUrl.pathname.startsWith("/portfolio/")) {
     return NextResponse.next();
   }
+
+  if (request.nextUrl.pathname === "/.well-known/webfinger") return NextResponse.next();
+  if (isApPath(request.nextUrl.pathname) && isApNegotiation(request)) return NextResponse.next();
 
   return authMiddleware(request, {
     loginPath: "/api/login",
@@ -96,7 +122,16 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
+  cookieSerializeOptions: {
+    path: "/",
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production", // ← true in prod
+    sameSite: "lax" as const,
+    maxAge: 12 * 60 * 60 * 24,
+  },
+  
   matcher: [
+    "/.well-known/:path*",     
     "/api/login",
     "/api/logout",
     "/((?!_next|favicon.ico|api|.*\\.).+)",
