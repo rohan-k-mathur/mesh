@@ -846,7 +846,7 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
         {/* Editor ----------------------------------------------------------- */}
         <div className="h-full flex flex-col gap-2 p-1 mt-[-1rem]">
           <input
-            className="w-1/2 justify-center items-center mx-auto text-center text-3xl  tracking-wide bg-white/20 rounded-xl py-[8px] titlefield outline-none placeholder:text-slate-400 mb-3"
+            className="w-1/2 justify-center items-center mx-auto text-center text-2xl titlefield border border-rose-400/30  tracking-wider bg-white/40 rounded-2xl py-[8px]  outline-none placeholder:text-slate-400 mb-3"
             placeholder="Title"
             value={title}
             onChange={(e) => setTitle(e.target.value.slice(0, 200))}
@@ -872,7 +872,7 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
               />
               <button className=" px-2 py-1 rounded-xl bg-white/50 sendbutton text-[.8rem] text-center">
                 <input type="file" onChange={onHeroUpload} hidden />
-                Upload Hero
+                Heading
               </button>
 
               {/* <button
@@ -942,7 +942,7 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
               </button>
             </div>
           </div>
-          <div className=" flex-1 w-full h-full rounded-xl bg-white/30 backdrop-blur-sm">
+          <div className=" flex-1 w-full h-full rounded-xl bg-white/50 editor-shadow backdrop-blur-sm">
             <input
               id="image-upload"
               type="file"
@@ -955,7 +955,7 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
               {/* <Outline headings={headings} onSelect={onSelectHeading} /> */}
               <EditorContent
                 editor={editor}
-                className="tiptap article-body prose w-full max-w-none px-2 py-2 focus:border-none focus:outline-none focus:ring-none"
+                className="tiptap article-body prose w-full max-w-none px-2 py-2 mt-1 focus:border-none focus:outline-none focus:ring-none"
               />
             </div>
           </div>

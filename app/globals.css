@@ -1313,22 +1313,27 @@ outline: none;
   inset  3px 3px 7px rgba(121, 121, 156, 0.95);
 
 }
+
+.editor-shadow{
+  /* box-shadow: 2px 3px 14px rgba(255, 181, 181,.3); */
+  box-shadow: -3px -2px 9px rgba(255, 181, 181,.3), 3px 3px 9px rgba(255, 181, 181,.3);
+
+}
+
 .titlefield {
   outline:transparent;
-  border:none;
 
 
 }
+
 .titlefield:hover {
   outline:transparent;
-  border:none;
   box-shadow: inset  -1px -1px 3px rgba(203, 205, 253, 0.75),
   inset  1px 1px 3px rgba(141, 141, 176, 0.75);
 
 }
 .titlefield:focus {
   outline:transparent;
-  border:none;
   box-shadow: inset  -2px -2px 4px rgba(195, 195, 243, 0.95),
   inset  2px 2px 4px rgba(131, 131, 165, 0.95);
 
