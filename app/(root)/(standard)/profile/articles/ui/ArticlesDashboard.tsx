@@ -118,7 +118,7 @@ export default function ArticlesDashboard({
         <div className="text-[1.8rem] text-slate-800  font-semibold">Your Articles</div>
         <button
           onClick={createNew}
-          className="px-3  py-1.5 rounded-xl bg-amber-400 lockbutton text-black text-sm"
+          className="px-3  py-1.5 rounded-xl bg-amber-300 lockbutton text-black text-sm"
         >
           New article
         </button>
@@ -153,13 +153,13 @@ export default function ArticlesDashboard({
         {isPending && <span className="text-sm text-neutral-500">Loading…</span>}
 
           <button className={`px-2 py-0 lockbutton  rounded-xl text-[.9rem] ${view==='active'?'px-2  border rounded text-[.9rem] bg-neutral-100':'px-2  border rounded text-[.9rem] bg-neutral-50/30'}`} onClick={() => { setView('active'); setPage(1); startTransition(refresh) }}>Active</button>
-          <button className={`px-2 py-0 lockbutton  rounded-xl text-[.9rem]${view==='trash'?'px-2  border rounded text-[.9rem] bg-neutral-100':'px-2  border rounded text-[.9rem] bg-neutral-50/30'}`} onClick={() => { setView('trash'); setPage(1); startTransition(refresh) }}>Trash</button>
+          <button className={`px-2 py-0 lockbutton  rounded-xl text-[.9rem]${view==='trash'?'px-2  border rounded text-[.9rem] bg-neutral-100':'px-2  border rounded text-[.9rem] bg-neutral-50/30'}`} onClick={() => { setView('trash'); setPage(1); startTransition(refresh) }}>Archived</button>
         </div>
       </div>
 
 
 
-      <div className="overflow-x-auto rounded-xl px-1 border-[1px] border-indigo-300/80 bg-white/10 backdrop-blur-lg   shadow-xl">
+      <div className="overflow-x-auto rounded-xl px-1 border-[1px] border-transparent  bg-white/30 backdrop-blur-lg   editor-shadow">
         <table className="min-w-full text-sm">
           {/* <thead className="bg-neutral-50  text-neutral-600">
             <tr>
@@ -209,7 +209,7 @@ export default function ArticlesDashboard({
                         <button className="px-2 py-.5 bg-white/30  rounded-xl savebutton" onClick={() => edit(i)}>Edit</button>
                         <button className="px-2 py-.5 bg-white/30  rounded-xl savebutton" onClick={() => viewArticle(i)}>View</button>
                         <button className="px-2 py-.5 bg-white/30  rounded-xl savebutton" onClick={() => copyLink(i)}>Copy link</button>
-                        <button className="px-2 py-.5 bg-white/30  rounded-xl text-red-600 savebutton" onClick={() => remove(i.id)}>Trash</button>
+                        <button className="px-2 py-.5 bg-white/30  rounded-xl text-red-600 savebutton" onClick={() => remove(i.id)}>Delete</button>
                       </>
                     )}
                   </div>

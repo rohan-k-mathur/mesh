@@ -11,6 +11,9 @@ import { areFriends, isFollowing } from "@/lib/actions/follow.actions";
 import { getUserFromCookies } from "@/lib/serverutils";
 import Image from "next/image";
 import { redirect, notFound } from "next/navigation";
+import ArticlePortal from "@/components/buttons/ArticlePortal";
+import StacksPortal from "@/components/buttons/StacksPortal";
+import SitesPortal from "@/components/buttons/SitesPortal";
 
 async function Page({ params }: { params: { id: string } }) {
   if (!params?.id && params?.id?.length !== 1) return notFound();
@@ -105,7 +108,22 @@ async function Page({ params }: { params: { id: string } }) {
             </TabsContent>
           ))}
         </Tabs>
+        <div className="flex flex-wrap w-full mt-12 gap-8">
+        <div className="flex flex-col w-fit tracking-wide rounded-3xl bg-white/20   p-5 likebutton">
+
+<ArticlePortal/>
+</div>
+<div className="flex flex-col w-fit tracking-wide rounded-3xl bg-white/20   p-5 likebutton">
+
+<SitesPortal/>
+</div>
+<div className="flex flex-col w-fit tracking-wide rounded-3xl bg-white/20   p-5 likebutton">
+
+<StacksPortal/>
+</div>
+</div>
       </div>
+   
     </section>
 
   );
