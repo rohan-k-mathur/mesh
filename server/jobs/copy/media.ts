@@ -49,6 +49,20 @@ export const copyConversationMedia: CopyStep = async (ctx) => {
     await copyObject(s3, sourceBucket, a.path, targetBucket, kmsKeyArn);
   }
 
+//   If you eventually want to also rewrite sheaf_blobs.path to the room bucket
+//    (instead of leaving the original path), add this after the copy:
+//   await prisma.$executeRawUnsafe(`
+//   UPDATE "public"."sheaf_blobs"
+//   SET "path" = regexp_replace("path", 's3://[^/]+/', 's3://${targetBucket}/')
+//   WHERE "id" IN (
+//     SELECT "blobId" FROM "public"."sheaf_attachments"
+//     WHERE "facetId" IN (
+//       SELECT id FROM "public"."sheaf_facets"
+//       WHERE "messageId" IN (SELECT id FROM "public"."messages" WHERE "conversation_id" = $1)
+//     )
+//   )
+// `, ctx.conversationId);
+
   const blobs = await prisma.$queryRawUnsafe<{ path: string | null }[]>(`
     SELECT "path" FROM "public"."sheaf_blobs"
     WHERE "id" IN (

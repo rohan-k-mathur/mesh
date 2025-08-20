@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+// middleware.ts
+import { NextResponse } from "next/server";
 import {
   authMiddleware,
   redirectToHome,
@@ -6,42 +7,45 @@ import {
 } from "next-firebase-auth-edge";
 import { firebaseConfig, serverConfig } from "@/lib/firebase/config";
 
-
 const PUBLIC_PATHS = ["/register", "/login", "/reset-password", "/room/global"];
 
 function isApPath(pathname: string) {
   if (pathname === "/.well-known/webfinger") return true;
-  if (pathname === "/inbox") return true; // shared inbox (optional, future-proof)
+  if (pathname === "/inbox") return true; // shared inbox (optional)
   if (/^\/users\/[^/]+(\/(inbox|outbox|followers|following))?$/.test(pathname)) return true;
   return false;
 }
 
-function isApNegotiation(req: NextRequest) {
-  const sp     = new URL(req.url).searchParams;
-  if (sp.has("__ap")) return true; // handy manual override in a browser
-
+function isApNegotiation(req: Request) {
+  const sp = new URL(req.url).searchParams;
+  if (sp.has("__ap")) return true;
   const accept = (req.headers.get("accept") || "").toLowerCase();
   const ctype  = (req.headers.get("content-type") || "").toLowerCase();
-
-  const apJson = accept.includes("application/activity+json")
-              || accept.includes("application/ld+json"); // covers profile variant
-  const apPost = ctype.includes("application/activity+json")
-              || ctype.includes("application/ld+json");
-
+  const apJson = accept.includes("application/activity+json") || accept.includes("application/ld+json");
+  const apPost = ctype.includes("application/activity+json") || ctype.includes("application/ld+json");
   return apJson || apPost;
 }
 
+export async function middleware(req: Request) {
+  const { pathname } = new URL(req.url);
 
-export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  const res = NextResponse.next();
+  // set cookies here (not in config)
+  res.cookies.set({
+    name: "mesh.sid",
+    value: "placeholder",
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/",
+    secure: process.env.NODE_ENV === "production",
+  });
 
-    // --- 0) Always allow cheap methods through (preflight, head) ---
-  if (request.method === "OPTIONS" || request.method === "HEAD") {
+  // 0) Preflight/head pass through
+  if (req.method === "OPTIONS" || req.method === "HEAD") {
     return NextResponse.next();
   }
 
-
-  // --- 1) Never run auth on static or public assets ---
+  // 1) Skip static/public assets
   if (
     pathname.startsWith("/_next/") ||
     pathname === "/favicon.ico" ||
@@ -55,17 +59,20 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-    // --- 2) Never run auth on ANY api routes (at any depth) ---
-  // (Prevents recursion when you fetch /swapmeet/api/spawn from middleware)
+  // 2) Skip ALL api routes (any depth) to avoid recursion
   if (pathname === "/api" || pathname.includes("/api/")) {
     return NextResponse.next();
   }
-  // --- 3) Your other allowlists ---
+
+  // 3) Other explicit allowlists
   if (pathname.startsWith("/portfolio/")) return NextResponse.next();
   if (pathname === "/.well-known/webfinger") return NextResponse.next();
-  if (isApPath(pathname) && isApNegotiation(request)) return NextResponse.next();
+  if (isApPath(pathname) && isApNegotiation(req)) return NextResponse.next();
 
-  // --- 4) Auth gate for everything else ---
+  // Treat the incoming object as NextRequest at call sites (runtime it already is)
+  const request = req as any;
+
+  // 4) Auth gate for everything else
   return authMiddleware(request, {
     loginPath: "/api/login",
     logoutPath: "/api/logout",
@@ -75,7 +82,7 @@ export async function middleware(request: NextRequest) {
     cookieSerializeOptions: {
       path: "/",
       httpOnly: true,
-      secure: false,
+      secure: process.env.NODE_ENV === "production",
       sameSite: "lax" as const,
       maxAge: 12 * 60 * 60 * 24,
     },
@@ -88,10 +95,9 @@ export async function middleware(request: NextRequest) {
 
       // Friendly redirect for /swapmeet
       if (pathname === "/swapmeet") {
-        // This will NOT recurse now because /swapmeet/api/spawn is excluded above.
-        const res = await fetch(new URL("/swapmeet/api/spawn", request.url));
-        if (res.ok) {
-          const { x, y } = (await res.json()) as { x: number; y: number };
+        const r = await fetch(new URL("/swapmeet/api/spawn", request.url));
+        if (r.ok) {
+          const { x, y } = (await r.json()) as { x: number; y: number };
           return NextResponse.redirect(new URL(`/swapmeet/market/${x}/${y}`, request.url));
         }
       }
@@ -109,18 +115,10 @@ export async function middleware(request: NextRequest) {
   });
 }
 
-// Matcher: apply to “pages” only; skip _next, root api, fonts/images/assets, files with dots
+// Only keep supported fields here
 export const config = {
-  cookieSerializeOptions: {
-    path: "/",
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax" as const,
-    maxAge: 12 * 60 * 60 * 24,
-  },
   matcher: [
     "/.well-known/:path*",
-    // let /api/* pass; it’s excluded inside anyway, but keeping it out here too helps:
     "/((?!_next|favicon.ico|api|fonts|images|assets|.*\\.).+)",
   ],
 };

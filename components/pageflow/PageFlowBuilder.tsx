@@ -8,7 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Step, Edge, Workflow } from "@/lib/workflow/types";
 import { runWorkflow } from "@/lib/workflow/runner";
 import { getActionDef, getTriggerDef, listActionDefs, listTriggerDefs } from "@/lib/workflow/registry";
-import { getConnection } from "@/lib/connections/service";
+ import {
+     getConnectionClient as getConnection,
+     upsertConnectionTokensClient as upsertConnectionTokens,
+     MissingScopesError
+   } from '@/lib/connections/client'
 import { DynamicForm } from "@/components/workflow/DynamicForm";
 import { resolveTemplate } from "@/lib/workflow/vars";
 

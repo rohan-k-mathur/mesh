@@ -23,11 +23,12 @@ import Placeholder from '@tiptap/extension-placeholder';
 import Collaboration from '@tiptap/extension-collaboration';
 import CollaborationCursor from '@tiptap/extension-collaboration-cursor';
 import CharacterCount from '@tiptap/extension-character-count';
-import TextStyle from '@tiptap/extension-text-style';
+import { TextStyleTokensLegacy as TextStyle } from '@/lib/tiptap/extensions/text-style-ssr';
 import Underline from '@tiptap/extension-underline';
 import Color from '@tiptap/extension-color';
 import Highlight from '@tiptap/extension-highlight';
-import TextAlign from '@tiptap/extension-text-align';
+import { SSRTextAlign } from '@/lib/tiptap/extensions/ssr-text-align';
+// import TextAlign from '@tiptap/extension-text-align';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
 import { createLowlight } from 'lowlight';
@@ -58,6 +59,7 @@ import Spinner from '../ui/spinner';
 import dynamic from 'next/dynamic';
 import NextImage from 'next/image';                              
 import { useRouter } from "next/navigation";
+import { BlockStyleTokens } from "@/lib/tiptap/extensions/block-style-ssr";
 import 'katex/dist/katex.min.css';
 
 /* -------------------------------------------------------------------------- */
@@ -335,7 +337,7 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
       TaskList,
       TaskItem,
       Highlight,
-      TextAlign.configure({
+      SSRTextAlign.configure({
         types: ['heading', 'paragraph', 'blockquote', 'listItem'],
         alignments: ['left', 'center', 'right', 'justify'],
       }),
@@ -350,6 +352,7 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
       MathBlock,
       MathInline,
       TextStyleTokens,
+      BlockStyleTokens,
       CharacterCount.configure({ limit: CHAR_LIMIT }),
       SlashCommand,
       COLLAB_ENABLED && provider && Collaboration.configure({ document: ydoc }),

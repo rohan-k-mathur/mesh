@@ -84,3 +84,68 @@
     box-shadow: .5px .5px .25px .25px rgba(0,0,0,0.25);
   
   }
+
+  /* === weights === */
+.tiptap [data-fw="300"], .article-body [data-fw="300"] { font-weight: 300; }
+.tiptap [data-fw="400"], .article-body [data-fw="400"] { font-weight: 400; }
+.tiptap [data-fw="500"], .article-body [data-fw="500"] { font-weight: 500; }
+.tiptap [data-fw="600"], .article-body [data-fw="600"] { font-weight: 600; }
+.tiptap [data-fw="700"], .article-body [data-fw="700"] { font-weight: 700; }
+.tiptap [data-fw="800"], .article-body [data-fw="800"] { font-weight: 800; }
+
+/* === line-height (inline-safe, but OK for spans/blocks) === */
+.tiptap [data-lh="tight"],  .article-body [data-lh="tight"]  { line-height: 1.35; }
+.tiptap [data-lh="normal"], .article-body [data-lh="normal"] { line-height: 1.65; }
+.tiptap [data-lh="loose"],  .article-body [data-lh="loose"]  { line-height: 1.9; }
+
+/* === letter-spacing === */
+.tiptap [data-ls="tight"],  .article-body [data-ls="tight"]  { letter-spacing: -0.01em; }
+.tiptap [data-ls="normal"], .article-body [data-ls="normal"] { letter-spacing: 0; }
+.tiptap [data-ls="wide"],   .article-body [data-ls="wide"]   { letter-spacing: 0.03em; }
+
+/* === text transform / caps === */
+.tiptap [data-tt="upper"],     .article-body [data-tt="upper"]     { text-transform: uppercase; }
+.tiptap [data-tt="lower"],     .article-body [data-tt="lower"]     { text-transform: lowercase; }
+.tiptap [data-tt="caps"],      .article-body [data-tt="caps"]      { text-transform: capitalize; }
+.tiptap [data-tt="smallcaps"], .article-body [data-tt="smallcaps"] { font-variant-caps: small-caps; }
+.tiptap [data-tt="none"],      .article-body [data-tt="none"]      { text-transform: none; }
+
+/* === highlight background === */
+.tiptap [data-bg="yellow"], .article-body [data-bg="yellow"] { background: #fff59a; }
+.tiptap [data-bg="blue"],   .article-body [data-bg="blue"]   { background: #cfe8ff; }
+.tiptap [data-bg="green"],  .article-body [data-bg="green"]  { background: #d6f7d6; }
+.tiptap [data-bg="red"],    .article-body [data-bg="red"]    { background: #ffd4cf; }
+
+/* === block margins / indent (paragraph, heading, li) === */
+.tiptap [data-mt="0"],    .article-body [data-mt="0"]    { margin-top: 0; }
+.tiptap [data-mt="xs"],   .article-body [data-mt="xs"]   { margin-top: .25rem; }
+.tiptap [data-mt="sm"],   .article-body [data-mt="sm"]   { margin-top: .5rem; }
+.tiptap [data-mt="md"],   .article-body [data-mt="md"]   { margin-top: 1rem; }
+.tiptap [data-mt="lg"],   .article-body [data-mt="lg"]   { margin-top: 1.5rem; }
+
+.tiptap [data-mb="0"],    .article-body [data-mb="0"]    { margin-bottom: 0; }
+.tiptap [data-mb="xs"],   .article-body [data-mb="xs"]   { margin-bottom: .25rem; }
+.tiptap [data-mb="sm"],   .article-body [data-mb="sm"]   { margin-bottom: .5rem; }
+.tiptap [data-mb="md"],   .article-body [data-mb="md"]   { margin-bottom: 1rem; }
+.tiptap [data-mb="lg"],   .article-body [data-mb="lg"]   { margin-bottom: 1.5rem; }
+
+/* First-line indent (paragraph/listItem only) */
+.tiptap p[data-indent="sm"], .article-body p[data-indent="sm"] { text-indent: 1.5em; }
+.tiptap p[data-indent="md"], .article-body p[data-indent="md"] { text-indent: 2em; }
+.tiptap p[data-indent="lg"], .article-body p[data-indent="lg"] { text-indent: 3em; }
+
+/* list styles */
+.tiptap ul[data-list="disc"],    .article-body ul[data-list="disc"]    { list-style-type: disc; }
+.tiptap ul[data-list="circle"],  .article-body ul[data-list="circle"]  { list-style-type: circle; }
+.tiptap ul[data-list="square"],  .article-body ul[data-list="square"]  { list-style-type: square; }
+
+.tiptap ol[data-list="decimal"],      .article-body ol[data-list="decimal"]      { list-style-type: decimal; }
+.tiptap ol[data-list="lower-roman"],  .article-body ol[data-list="lower-roman"]  { list-style-type: lower-roman; }
+.tiptap ol[data-list="upper-roman"],  .article-body ol[data-list="upper-roman"]  { list-style-type: upper-roman; }
+.tiptap ol[data-list="lower-alpha"],  .article-body ol[data-list="lower-alpha"]  { list-style-type: lower-alpha; }
+.tiptap ol[data-list="upper-alpha"],  .article-body ol[data-list="upper-alpha"]  { list-style-type: upper-alpha; }
+
+/* align mapping (keep these where you put them) */
+.article-body [data-align="center"],  .article-body .ta-center  { text-align: center; }
+.article-body [data-align="right"],   .article-body .ta-right   { text-align: right; }
+.article-body [data-align="justify"], .article-body .ta-justify { text-align: justify; }

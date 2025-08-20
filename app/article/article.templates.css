@@ -12,6 +12,11 @@
     --leading: 1.65;
   }
 }
+@layer utilities {
+    .article-body [data-align="center"],  .article-body .ta-center  { text-align: center; }
+    .article-body [data-align="right"],   .article-body .ta-right   { text-align: right; }
+    .article-body [data-align="justify"], .article-body .ta-justify { text-align: justify; }
+  }
 
 /* ========================================================== */
 /*  TEMPLATES (scoped by root class added by <ArticleReader>)  */

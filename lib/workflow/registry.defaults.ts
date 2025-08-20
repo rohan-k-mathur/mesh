@@ -2,7 +2,7 @@
 import { registerAction, registerTrigger, ActionDef, TriggerDef } from "@/lib/workflow/registry";
 import { sendEmail } from "@/lib/actions/gmail.actions";
 import { appendRow, createSpreadsheet, readRange } from "@/lib/actions/googleSheets.actions";
-import { requireScopes } from "@/lib/connections/service";
+import { requireScopesClient } from "@/lib/connections/client";
 
 let booted = false;
 export function registerDefaultWorkflowDefs() {
@@ -58,7 +58,7 @@ export function registerDefaultWorkflowDefs() {
     requiredScopes: ["gmail.send"],
     run: async (ctx, inputs) => {
       const conn = ctx.creds;
-      requireScopes(conn, ["gmail.send"]);
+      requireScopesClient(conn, ["gmail.send"]);
       const to = ctx.eval(inputs.to);
       const subject = ctx.eval(inputs.subject);
       const message = ctx.eval(inputs.message);

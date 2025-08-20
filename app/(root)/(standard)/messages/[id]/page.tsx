@@ -101,10 +101,8 @@ const { messages: initialMessages } = await res.json();
           // Composite avatar (up to 4 faces)
           <div className="flex flex-wrap rounded-full gap-4 ">
             {headerUsers.slice(0, 4).map((u, i) => (
-                        <button className="flex w-[2.5rem] h-[2.5rem]">
-
-              <Image
-                key={i}
+                       <button key={u?.name ?? i} className="flex w-[2.5rem] h-[2.5rem]">
+                         <Image
                 src={u.image || "/assets/user-helsinki.svg"}
                 alt={u.name}
                 width={50}

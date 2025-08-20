@@ -111,12 +111,15 @@
 }
 
 
-.article-body [data-align="center"], .article-body .ta-center { text-align: center !important;}
-.article-body [data-align="right"],  .article-body .ta-right  { text-align: right !important;}
-.article-body.prose p.ta-right { text-align: right !important; }
 
-.article-body [data-align="justify"],.article-body .ta-justify{ text-align: justify !important;}
+.article :global(.article-body [data-align=center]),
+.article :global(.article-body .ta-center) { text-align: center; }
 
+.article :global(.article-body [data-align=right]),
+.article :global(.article-body .ta-right) { text-align: right; }
+
+.article :global(.article-body [data-align=justify]),
+.article :global(.article-body .ta-justify) { text-align: justify; }
 .controls {
   margin-bottom: 1rem;
 }

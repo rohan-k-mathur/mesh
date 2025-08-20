@@ -51,11 +51,9 @@ export default function HalfwayPage() {
   const { isLoaded } = useLoadScript({ googleMapsApiKey: GOOGLE_MAPS_API_KEY, libraries });
   const acRefA = useRef<google.maps.places.Autocomplete | null>(null);
   const acRefB = useRef<google.maps.places.Autocomplete | null>(null);
-   const reqIdRef = useRef(0);
+  const reqIdRef = useRef(0);                // ✅ keep the ref, no early return here
 // /* inside handleFindMidpoint, just after aborting the previous one */
 // reqIdRef.current += 1;
- const myReq = reqIdRef.current;
- if (myReq !== reqIdRef.current) return; // obsolete request – ignore
 
   /* ───────────────────── memoised helpers ───────────────────────── */
   const venueCmp = useMemo(() => {
