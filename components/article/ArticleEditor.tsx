@@ -711,61 +711,78 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
           }
         };
 
-  const onImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setCropFile(file);
-    setCropImage(URL.createObjectURL(file));
-    e.target.value = "";
-  };
+        const onImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+          const file = e.target.files?.[0];
+          if (!file) return;
+          setReplaceSelectedImage(editor?.isActive('image') ?? false); // 👈 NEW
+          setCropFile(file);
+          setCropImage(URL.createObjectURL(file));
+          e.target.value = "";
+        };
 
   const onCropComplete = useCallback((_: any, area: any) => {
     setCroppedArea(area);
   }, []);
 
   const insertCroppedImage = async () => {
-    if (!cropFile || !croppedArea || !editor) return;
+    if (!cropImage || !editor) return;
+  
+    // Load the source image (local blob URL or remote URL)
     const img = new Image();
-    img.src = cropImage as string;
-    await new Promise((res) => (img.onload = res));
-
+    img.crossOrigin = "anonymous"; // safe for remote (requires proper CORS on storage)
+    img.src = cropImage;
+    await new Promise((res, rej) => {
+      img.onload = () => res(null);
+      img.onerror = (e) => rej(e);
+    });
+  
+    // Use pixel area from react-easy-crop
+    const { width, height, x, y } = croppedArea || {};
+    if (!width || !height) return;
+  
     const canvas = document.createElement("canvas");
-    canvas.width = croppedArea.width;
-    canvas.height = croppedArea.height;
-
+    canvas.width = Math.round(width);
+    canvas.height = Math.round(height);
+  
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-
+  
     ctx.drawImage(
       img,
-      croppedArea.x,
-      croppedArea.y,
-      croppedArea.width,
-      croppedArea.height,
-      0,
-      0,
-      croppedArea.width,
-      croppedArea.height
+      Math.round(x), Math.round(y),
+      Math.round(width), Math.round(height),
+      0, 0,
+      Math.round(width), Math.round(height)
     );
-
-    return new Promise<void>((resolve) => {
-      canvas.toBlob(async (blob) => {
-        if (!blob) return;
-        const file = new File([blob], cropFile.name, { type: cropFile.type });
-        const { fileURL } = await uploadFileToSupabase(file);
-        if (fileURL) {
-          const chain = editor.chain().focus();
-                    if (replaceSelectedImage && editor.isActive('image')) {
-                      chain.updateAttributes('image', { src: fileURL }).run();
-                    } else {
-                      chain.setImage({ src: fileURL, caption: "", align: "center", alt: "" }).run();
-                    }
-                  }
-                  setReplaceSelectedImage(false);
-                   resolve();
-                 });
-               });
-             };
+  
+    // Choose output content-type
+    const outType =
+      cropFile?.type && /jpe?g/i.test(cropFile.type) ? "image/jpeg" : "image/png";
+    const quality = outType === "image/jpeg" ? 0.9 : undefined;
+  
+    const blob: Blob | null = await new Promise((resolve) =>
+      canvas.toBlob(resolve, outType, quality)
+    );
+    if (!blob) return;
+  
+    const file = new File(
+      [blob],
+      cropFile?.name || `crop.${outType === "image/jpeg" ? "jpg" : "png"}`,
+      { type: outType }
+    );
+  
+    const { fileURL } = await uploadFileToSupabase(file);
+    if (!fileURL) return;
+  
+    const chain = editor.chain().focus();
+    if (replaceSelectedImage && editor.isActive("image")) {
+      chain.updateAttributes("image", { src: fileURL }).run();
+      toast.success("Image replaced");
+    } else {
+      chain.setImage({ src: fileURL, caption: "", align: "center", alt: "" }).run();
+      toast.success("Image inserted");
+    }
+  };
 
   const onSelectHeading = (id: string) => {
     const h = headings.find((x) => x.id === id);
@@ -1064,39 +1081,50 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
 
       {/* Cropper modal ------------------------------------------------------ */}
       {cropImage && (
-        <div className={styles.cropperModal}>
-          <Cropper
-            image={cropImage}
-            crop={crop}
-            zoom={zoom}
-            onCropChange={setCrop}
-            onZoomChange={setZoom}
-            onCropComplete={onCropComplete}
-            aspect={4 / 3}
-          />
-          <div className={styles.cropActions}>
-            <button
-              className="savebutton"
-              onClick={async () => {
-                await insertCroppedImage();
-                setCropFile(null);
-                setCropImage(null);
-              }}
-            >
-              Insert
-            </button>
-            <button
-              className="savebutton"
-              onClick={() => {
-                setCropFile(null);
-                setCropImage(null);
-              }}
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
+  <div className="fixed inset-0 z-[9999] bg-black/40 backdrop-blur-sm grid place-items-center">
+    <div className="relative bg-white rounded-xl shadow-xl p-4 w-[min(92vw,900px)] h-[min(80vh,640px)]">
+      <button
+        className="absolute top-2 right-2 w-8 h-8 grid place-items-center rounded hover:bg-neutral-100"
+        onClick={() => { setCropFile(null); setCropImage(null); setReplaceSelectedImage(false); }}
+        aria-label="Close"
+      >
+        ×
+      </button>
+
+      <div className="relative w-full h-[calc(100%-56px)] rounded overflow-hidden bg-neutral-100">
+        <Cropper
+          image={cropImage}
+          crop={crop}
+          zoom={zoom}
+          onCropChange={setCrop}
+          onZoomChange={setZoom}
+          onCropComplete={onCropComplete}
+          aspect={4 / 3}
+        />
+      </div>
+
+      <div className="mt-3 flex justify-end gap-2">
+        <button
+          className="px-3 py-1.5 rounded border"
+          onClick={() => { setCropFile(null); setCropImage(null); setReplaceSelectedImage(false); }}
+        >
+          Cancel
+        </button>
+        <button
+          className="px-3 py-1.5 rounded bg-amber-500 text-white"
+          onClick={async () => {
+            await insertCroppedImage();
+            setCropFile(null);
+            setCropImage(null);
+            setReplaceSelectedImage(false);
+          }}
+        >
+          Insert
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
       {/* Restore‑from‑local banner ----------------------------------------- */}
       {pendingRestore && (
