@@ -55,6 +55,8 @@ import * as Y from "yjs";
 import { WebsocketProvider } from "y-websocket";
 import enStrings from "@/public/locales/en/editor.json";
 import { useDebouncedCallback } from "use-debounce";
+import { BubbleMenu } from "@tiptap/react";
+  import { Scissors, Image as ImageIconLucide, Trash2, Type as TypeIcon, FileText } from "lucide-react";
 
 import { TextStyleTokens } from "@/lib/tiptap/extensions/text-style-ssr";
 import { useEditor, Editor } from "@tiptap/react";
@@ -290,6 +292,7 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
   const [headings, setHeadings] = useState<Heading[]>([]);
   const [cropFile, setCropFile] = useState<File | null>(null);
   const [cropImage, setCropImage] = useState<string | null>(null);
+  const [replaceSelectedImage, setReplaceSelectedImage] = useState(false);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedArea, setCroppedArea] = useState<any>(null);
@@ -532,7 +535,11 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
     });
     if (res.ok) setRevs(await res.json());
   }
-
+  async function saveSnapshot() {
+    await saveDraftImmediate();
+    await fetch(`/api/articles/${articleId}/revisions`, { method: "POST" });
+    toast.success("Snapshot saved");
+  }
   async function restoreRevision(revisionId: string) {
     const res = await fetch(`/api/articles/${articleId}/restore`, {
       method: "PUT",
@@ -542,10 +549,15 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
     if (res.ok) {
       toast.success("Revision restored");
       // reload current doc into editor
-      const fresh = await fetch(`/api/articles/${articleId}`).then((r) =>
-        r.json()
-      );
-      editor?.commands.setContent(fresh.astJson);
+      const fresh = await fetch(`/api/articles/${articleId}`, { cache: "no-store" }).then(r => r.json());
+            editor?.commands.setContent(fresh.astJson);
+            if (fresh.title) setTitle(fresh.title);
+            if (fresh.template) setTemplate(fresh.template);
+            if (fresh.heroImageKey !== undefined) {
+              setHeroImageKey(fresh.heroImageKey);
+              setHeroPreview(fresh.heroImageKey);
+            }
+            setRevs(null);
     }
   }
 
@@ -696,6 +708,7 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
     const publicUrl = uploadUrl.split("?")[0];
     setHeroImageKey(publicUrl);
     setHeroPreview(publicUrl);
+    toast.success("Hero image uploaded");
     e.target.value = "";
   };
 
@@ -742,21 +755,18 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
         const file = new File([blob], cropFile.name, { type: cropFile.type });
         const { fileURL } = await uploadFileToSupabase(file);
         if (fileURL) {
-          editor
-            .chain()
-            .focus()
-            .setImage({
-              src: fileURL,
-              caption: "",
-              align: "center",
-              alt: "",
-            })
-            .run();
-        }
-        resolve();
-      });
-    });
-  };
+          const chain = editor.chain().focus();
+                    if (replaceSelectedImage && editor.isActive('image')) {
+                      chain.updateAttributes('image', { src: fileURL }).run();
+                    } else {
+                      chain.setImage({ src: fileURL, caption: "", align: "center", alt: "" }).run();
+                    }
+                  }
+                  setReplaceSelectedImage(false);
+                   resolve();
+                 });
+               });
+             };
 
   const onSelectHeading = (id: string) => {
     const h = headings.find((x) => x.id === id);
@@ -870,10 +880,11 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
                 template={template}
                 onChange={setTemplate}
               />
-              <button className=" px-2 py-1 rounded-xl bg-white/50 sendbutton text-[.8rem] text-center">
-                <input type="file" onChange={onHeroUpload} hidden />
-                Heading
-              </button>
+              {/* Upload hero (native file picker) */}
+              <label htmlFor="hero-upload" className="px-2 py-1 rounded-xl bg-white/50 sendbutton text-[.8rem] text-center cursor-pointer">
+                Upload hero
+              </label>
+              <input id="hero-upload" type="file" accept="image/*" onChange={onHeroUpload} hidden />
 
               {/* <button
             className="savebutton rounded-xl bg-white/70 p-2 h-fit text-xs"
@@ -950,6 +961,85 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
               hidden
             />
             <Toolbar editor={editor} />
+
+ {/* Image bubble toolbar */}
+      {editor && (
+       <BubbleMenu
+         editor={editor}
+         shouldShow={({ editor }) => editor.isActive("image")}
+         tippyOptions={{ duration: 100, placement: "top" }}
+       >
+         <div className="flex items-center gap-1 rounded bg-white/90 p-1 shadow">
+           <button
+             className="px-1.5 py-1 rounded hover:bg-neutral-100"
+             title="Align left"
+             onClick={() => editor.chain().focus().updateAttributes("image", { align: "left" }).run()}
+           ><AlignLeft size={16} /></button>
+           <button
+             className="px-1.5 py-1 rounded hover:bg-neutral-100"
+             title="Align center"
+             onClick={() => editor.chain().focus().updateAttributes("image", { align: "center" }).run()}
+           ><AlignCenter size={16} /></button>
+           <button
+             className="px-1.5 py-1 rounded hover:bg-neutral-100"
+             title="Align right"
+             onClick={() => editor.chain().focus().updateAttributes("image", { align: "right" }).run()}
+           ><AlignRight size={16} /></button>
+ 
+           <div className="w-px h-5 bg-neutral-200 mx-1" />
+ 
+           <button
+             className="px-1.5 py-1 rounded hover:bg-neutral-100"
+             title="Replace image"
+             onClick={() => document.querySelector<HTMLInputElement>("#image-upload")?.click()}
+           ><ImageIconLucide size={16} /></button>
+           <button
+             className="px-1.5 py-1 rounded hover:bg-neutral-100"
+             title="Crop"
+             onClick={() => {
+               // open cropper with current image src
+               const attrs = editor.getAttributes("image");
+               if (attrs?.src) {
+                 setCropFile(new File([], "crop.png", { type: "image/png" })); // sentinel to trigger upload flow
+                 setCropImage(attrs.src);
+                 setReplaceSelectedImage(true);
+               }
+             }}
+           ><Scissors size={16} /></button>
+ 
+           <div className="w-px h-5 bg-neutral-200 mx-1" />
+ 
+           <button
+             className="px-1.5 py-1 rounded hover:bg-neutral-100"
+             title="Alt text"
+             onClick={() => {
+               const cur = editor.getAttributes("image")?.alt ?? "";
+               const alt = window.prompt("Alt text", cur);
+               if (alt !== null) editor.chain().focus().updateAttributes("image", { alt }).run();
+             }}
+           ><FileText size={16} /></button>
+           <button
+             className="px-1.5 py-1 rounded hover:bg-neutral-100"
+             title="Caption"
+             onClick={() => {
+               const cur = editor.getAttributes("image")?.caption ?? "";
+               const caption = window.prompt("Caption", cur);
+               if (caption !== null) editor.chain().focus().updateAttributes("image", { caption }).run();
+             }}
+           ><TypeIcon size={16} /></button>
+ 
+           <div className="w-px h-5 bg-neutral-200 mx-1" />
+ 
+           <button
+             className="px-1.5 py-1 rounded hover:bg-rose-50 text-rose-700"
+             title="Delete image"
+             onClick={() => editor.chain().focus().deleteSelection().run()}
+           ><Trash2 size={16} /></button>
+         </div>
+       </BubbleMenu>
+    )}
+
+
             <div className="flex-1 overflow-auto py-2 w-full">
               {/* If you want a live outline component, pass `headings` + handler */}
               {/* <Outline headings={headings} onSelect={onSelectHeading} /> */}

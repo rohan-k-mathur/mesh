@@ -4,6 +4,13 @@ import { notFound } from "next/navigation";
 import { generateHTML } from "@tiptap/html"
 import StarterKit from "@tiptap/starter-kit"
 
+import { createLowlight } from "lowlight";
+import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
+import javascript from "highlight.js/lib/languages/javascript";
+import typescript from "highlight.js/lib/languages/typescript";
+import python from "highlight.js/lib/languages/python";
+import bash from "highlight.js/lib/languages/bash";
+
 import Highlight from "@tiptap/extension-highlight"
 import Underline from "@tiptap/extension-underline"
 import { SSRTextAlign } from "@/lib/tiptap/extensions/ssr-text-align"
@@ -21,40 +28,7 @@ import {
 import TaskList from "@tiptap/extension-task-list"
 import TaskItem from "@tiptap/extension-task-item"
 import { TextStyleTokens } from "@/lib/tiptap/extensions/text-style-ssr";
-// ✅ SSR-safe align: uses data-attr + class, fully typed for TipTap
-// const SSRTextAlign = TextAlign.extend({
-//   addGlobalAttributes() {
-//     return [
-//       {
-//         types: ["heading", "paragraph", "blockquote", "listItem"],
-//         attributes: {
-//           textAlign: {
-//             default: null,
-//             renderHTML: (attributes) => {
-//               const align = attributes.textAlign;
-//               if (!align) return {};
-//               return {
-//                 "data-align": align,   // e.g. data-align="center"
-//                 class: `ta-${align}`,  // e.g. ta-center
-//               };
-//             },
-//             parseHTML: (element) => {
-//               // read from data-attr, then class, then fallback to inline style if present
-//               const data = element.getAttribute("data-align");
-//               if (data) return data;
-//               const cls = element.getAttribute("class") || "";
-//               const m = cls.match(/\bta-(left|right|center|justify)\b/);
-//               if (m) return m[1];
-//               // final fallback: inline style (if some old content still has it)
-//               // @ts-ignore - style may be undefined on non-HTMLElement nodes in types, runtime it's fine
-//               return element.style?.textAlign || null;
-//             },
-//           },
-//         },
-//       },
-//     ];
-//   },
-// });
+
 
 export default async function ArticlePage({
   params,
@@ -72,7 +46,12 @@ export default async function ArticlePage({
     orderBy: { createdAt: "asc" },
   });
 
-
+    const lowlight = createLowlight();
+    lowlight.register("js", javascript);
+    lowlight.register("ts", typescript);
+    lowlight.register("py", python);
+    lowlight.register("sh", bash);
+  
   const threads = threadsDb.map(t => ({
     id: t.id,
     articleId: t.articleId,
@@ -95,6 +74,7 @@ export default async function ArticlePage({
     StarterKit,
     Highlight,
     Underline,
+    CodeBlockLowlight.configure({ lowlight }),
     TaskList,
     TaskItem,
     CustomImage,

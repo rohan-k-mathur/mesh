@@ -1,12 +1,14 @@
 // app/(dashboard)/rooms/[id]/settings/SovereigntyPanel.tsx
 'use client';
 import { useState, useEffect } from 'react';
-
+import { useDecentraliseStatus } from '@/components/rooms/useDecentraliseStatus';
 export function SovereigntyPanel({ roomId }: { roomId: string }) {
   const [tier, setTier] = useState<'pooled'|'sovereign'|'portable'|'byoc'>('pooled');
   const [region, setRegion] = useState('us-east-1');
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const progress = useDecentraliseStatus(roomId);
+
 
   async function decentralise(kind: 'CONVERSATION'|'REALTIME') {
     setBusy(true);
@@ -39,6 +41,17 @@ export function SovereigntyPanel({ roomId }: { roomId: string }) {
           <option>eu-central-1</option>
         </select>
       </div>
+      {progress && (
+  <div className="text-sm">
+    <div>Step: <b>{progress.step}</b> {progress.status && `(${progress.status})`}</div>
+    {progress.step === 'verify' && (
+      <div>Parity {progress.table}: {progress.src} → {progress.dst} {progress.ok ? '✓' : '✕'}</div>
+    )}
+    {progress.step === 'done' && (
+      <div>Receipt: s3://{progress.bucket}/{progress.receiptKey}</div>
+    )}
+  </div>
+)}
       <div className="flex gap-2">
         <button disabled={busy} className="px-3 py-2 bg-black text-white rounded" onClick={()=>decentralise('CONVERSATION')}>Decentralise (Conversation)</button>
         <button disabled={busy} className="px-3 py-2 bg-black text-white rounded" onClick={()=>decentralise('REALTIME')}>Decentralise (Realtime)</button>

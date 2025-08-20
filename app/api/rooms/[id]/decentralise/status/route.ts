@@ -1,4 +1,5 @@
 // app/api/rooms/[id]/decentralise/status/route.ts
+
 import { NextRequest } from 'next/server';
 import { decentraliseEvents } from '@/server/jobs/decentralise.worker';
 
