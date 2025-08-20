@@ -56,8 +56,16 @@ import { WebsocketProvider } from "y-websocket";
 import enStrings from "@/public/locales/en/editor.json";
 import { useDebouncedCallback } from "use-debounce";
 import { BubbleMenu } from "@tiptap/react";
-  import { Scissors, Image as ImageIconLucide, Trash2, Type as TypeIcon, FileText } from "lucide-react";
-
+import {
+    Scissors,
+    Image as ImageIconLucide,
+    Trash2,
+    Type as TypeIcon,
+    FileText,
+    AlignLeft,
+    AlignCenter,
+    AlignRight,
+  } from "lucide-react";
 import { TextStyleTokens } from "@/lib/tiptap/extensions/text-style-ssr";
 import { useEditor, Editor } from "@tiptap/react";
 
@@ -692,25 +700,16 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const res = await fetch(
-      `/api/articles/presign?filename=${encodeURIComponent(
-        file.name
-      )}&contentType=${encodeURIComponent(file.type)}`
-    );
-    const { uploadUrl } = await res.json();
-
-    await fetch(uploadUrl, {
-      method: "PUT",
-      headers: { "Content-Type": file.type },
-      body: file,
-    });
-
-    const publicUrl = uploadUrl.split("?")[0];
-    setHeroImageKey(publicUrl);
-    setHeroPreview(publicUrl);
-    toast.success("Hero image uploaded");
-    e.target.value = "";
-  };
+        try {
+            const { fileURL } = await uploadFileToSupabase(file);
+            if (!fileURL) { toast.error("Hero upload failed"); return; }
+            setHeroImageKey(fileURL);
+            setHeroPreview(fileURL);
+            toast.success("Hero image uploaded");
+          } finally {
+            e.target.value = "";
+          }
+        };
 
   const onImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -842,16 +841,7 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
         </button> */}
 
       <article className={template}>
-        {/* Hero image ------------------------------------------------------- */}
-        {heroPreview && (
-          <NextImage
-            src={heroPreview}
-            alt="hero"
-            width={800}
-            height={400}
-            className={styles.hero}
-          />
-        )}
+       
 
         {/* Editor ----------------------------------------------------------- */}
         <div className="h-full flex flex-col gap-2 p-1 mt-[-1rem]">
@@ -880,11 +870,11 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
                 template={template}
                 onChange={setTemplate}
               />
-              {/* Upload hero (native file picker) */}
+              {/* Upload hero (native file picker)
               <label htmlFor="hero-upload" className="px-2 py-1 rounded-xl bg-white/50 sendbutton text-[.8rem] text-center cursor-pointer">
                 Upload hero
               </label>
-              <input id="hero-upload" type="file" accept="image/*" onChange={onHeroUpload} hidden />
+              <input id="hero-upload" type="file" accept="image/*" onChange={onHeroUpload} hidden /> */}
 
               {/* <button
             className="savebutton rounded-xl bg-white/70 p-2 h-fit text-xs"
@@ -1047,6 +1037,16 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
                 editor={editor}
                 className="tiptap article-body prose w-full max-w-none px-2 py-2 mt-1 focus:border-none focus:outline-none focus:ring-none"
               />
+               {/* Hero image -------------------------------------------------------
+        {heroPreview && (
+          <NextImage
+            src={heroPreview}
+            alt="hero"
+            width={800}
+            height={400}
+            className={styles.hero}
+          />
+        )} */}
             </div>
           </div>
         </div>

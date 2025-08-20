@@ -73,6 +73,8 @@ const nextConfig = {
           protocol: "https",
           hostname: "i.redd.it"
         },
+        { protocol: 'https', hostname: '**.supabase.co', pathname: '/**' },
+
         {
           protocol: 'https',
           hostname: '**.supabase.co',
