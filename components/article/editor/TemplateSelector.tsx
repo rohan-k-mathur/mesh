@@ -1,35 +1,47 @@
 "use client";
-
 import styles from "../article.module.scss";
 import { ARTICLE_TEMPLATES } from "../templates";
 
-interface TemplateSelectorProps {
-  articleId: string;
-  template: string;
-  onChange: (t: string) => void;
-}
-
-export default function TemplateSelector({ articleId, template, onChange }: TemplateSelectorProps) {
-  const handleSelect = async (id: string) => {
+export default function TemplateSelectorPopover({
+  articleId,
+  template,
+  onChange,
+}: { articleId: string; template: string; onChange: (t: string) => void }) {
+  async function apply(id: string) {
     onChange(id);
     await fetch(`/api/articles/${articleId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({  id }),
+      body: JSON.stringify({ template: id }),
     });
-  };
+  }
+
+  const current = ARTICLE_TEMPLATES.find((t) => t.id === template)?.label ?? "Template";
 
   return (
-    <div className={styles.templateSelector}>
-      {ARTICLE_TEMPLATES.map((t) => (
-        <button
-          key={t.id}
-          onClick={() => handleSelect(t.id)}
-          className=" px-2 py-1 rounded-xl bg-white/70 savebutton"
-        >
-          {t.label}
-        </button>
-      ))}
-    </div>
+    <details className="relative">
+      <summary className=" px-2 py-1 rounded-xl bg-white/50 sendbutton text-[.8rem] text-center cursor-pointer ">
+        {current}
+      </summary>
+      <div className="absolute z-50 mt-2 min-w-[160px] rounded-md  border bg-white shadow-md">
+        {ARTICLE_TEMPLATES.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            className={`w-full px-3 py-1.5 text-left text-sm hover:bg-neutral-50 ${
+              t.id === template ? "bg-neutral-100" : ""
+            }`}
+            onClick={() => {
+              (document.activeElement as HTMLElement)?.blur();
+              apply(t.id);
+            }}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+    </details>
   );
 }
+
+{/* <button           className=" px-2 py-1 rounded-xl bg-white/70 sendbutton text-[.8rem] text-center"> */}

@@ -6,6 +6,7 @@ import CommentModal from "@/components/article/CommentModal";
 import type { Anchor, CommentThread } from "@/types/comments";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import HomeButton from "../buttons/HomeButton";
 /* ----------------------- DOM ↔ anchor helpers ----------------------- */
 
 /* ---------- Selection helpers (clean) ---------- */
@@ -504,14 +505,16 @@ export default function ArticleReaderWithPins({
 
   return (
     <ArticleReader template={template} heroSrc={heroSrc} title={title}>
-
-<button
+      <div className='fixed flex left-5 top-12 tracking-wide z-[9000] rounded-xl bg-white/50  px-3 py-2 likebutton'>
+        <HomeButton/>
+        </div>
+{/* <button
           onClick={() => goHome()}
           className="fixed flex left-5 top-12 tracking-wide z-[9000] rounded-full bg-white/50  px-4 py-1 likebutton"
         >
           ⇤
   Home
-        </button>
+        </button> */}
       <div className="relative">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
           {/* Article + pins */}

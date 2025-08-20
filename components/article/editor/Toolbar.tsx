@@ -1,5 +1,5 @@
 import { Editor } from "@tiptap/react";
-import React, { useRef } from "react";
+import React from "react";
 import {
   Bold, Italic, Underline, Strikethrough, Code,
   List, ListOrdered, ListChecks, Quote,
@@ -7,55 +7,37 @@ import {
   Link2, Image as ImageIcon, Eraser,
   Type, ArrowUpDown, ArrowLeftRight, CaseSensitive,
   Highlighter, Pilcrow, ArrowUp, ArrowDown,
+  Palette, ZoomIn,
 } from "lucide-react";
 
 type Props = { editor: Editor | null };
 
-/* --- minimal popover using <details> for icon menus --- */
-function IconMenu({
+/** Icon-sized native select
+ * - Matches btn: 32x32, rounded, hover
+ * - Click opens system dropdown; no global CSS, no popovers
+ */
+function IconSelect({
+  title,
   icon,
-  label,
+  onChange,
   children,
 }: {
+  title: string;
   icon: React.ReactNode;
-  label: string; // tooltip
+  onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
   children: React.ReactNode;
 }) {
   return (
-    <details className="relative group">
-      <summary
-        title={label}
-        className="list-none p-1.5 rounded hover:bg-neutral-100 cursor-pointer select-none"
+    <button className="relative inline-grid h-8 w-8 place-items-center rounded hover:bg-neutral-100">
+      <span className="sr-only">{title}</span>
+      <select
+        title={title}
+        className="absolute inset-0 h-8 w-8 opacity-0 cursor-pointer"
+        onChange={onChange}
       >
-        <span className="sr-only">{label}</span>
-        {icon}
-      </summary>
-      <div className="absolute z-50 mt-1 min-w-[160px] rounded border bg-white shadow-md">
         {children}
-      </div>
-    </details>
-  );
-}
-
-function MenuItem({
-  children,
-  active,
-  onClick,
-}: {
-  children: React.ReactNode;
-  active?: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={[
-        "w-full px-3 py-1.5 text-left text-sm",
-        active ? "bg-neutral-100" : "hover:bg-neutral-50",
-      ].join(" ")}
-    >
-      {children}
+      </select>
+      <span className="pointer-events-none">{icon}</span>
     </button>
   );
 }
@@ -72,32 +54,6 @@ export default function Toolbar({ editor }: Props) {
       {icon}
     </button>
   );
-
-  // helpers for block attrs
-  const activeBlock = () =>
-    editor.isActive("heading")
-      ? "heading"
-      : editor.isActive("listItem")
-      ? "listItem"
-      : "paragraph";
-
-  const setBlockAttrs = (attrs: Record<string, any>) =>
-    editor.chain().focus().updateAttributes(activeBlock(), attrs).run();
-
-  const setULStyle = (list: "disc" | "circle" | "square") =>
-    editor.chain().focus().updateAttributes("bulletList", { list }).run();
-
-  const setOLStyle = (
-    list:
-      | "decimal"
-      | "lower-roman"
-      | "upper-roman"
-      | "lower-alpha"
-      | "upper-alpha",
-  ) => editor.chain().focus().updateAttributes("orderedList", { list }).run();
-
-  const setOLStart = (n: number) =>
-    editor.chain().focus().updateAttributes("orderedList", { start: n }).run();
 
   // options
   const fontOptions = [
@@ -139,195 +95,249 @@ export default function Toolbar({ editor }: Props) {
     { label: "Red", value: "red" },
   ];
 
-  // small numeric input for OL start
-  const startRef = useRef<HTMLInputElement>(null);
+  // helpers for block attrs
+  const activeBlock = () =>
+    editor!.isActive("heading")
+      ? "heading"
+      : editor!.isActive("listItem")
+      ? "listItem"
+      : "paragraph";
+
+  const setBlockAttrs = (attrs: Record<string, any>) =>
+    editor!.chain().focus().updateAttributes(activeBlock(), attrs).run();
+
+  const setULStyle = (list: "disc" | "circle" | "square") =>
+    editor!.chain().focus().updateAttributes("bulletList", { list }).run();
+
+  const setOLStyle = (
+    list:
+      | "decimal"
+      | "lower-roman"
+      | "upper-roman"
+      | "lower-alpha"
+      | "upper-alpha",
+  ) => editor!.chain().focus().updateAttributes("orderedList", { list }).run();
 
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-xl px-3 py-3 bg-white/50">
+    <div className="flex flex-wrap items-center justify-center gap-2 rounded-t-xl px-3 py-3 bg-white/50">
 
-      {/* Font family (compact select) */}
-      <select
-        className="rounded bg-white/70 lockbutton text-[.8rem] focus:outline-none"
-        defaultValue=""
+      {/* Font (iconized) */}
+      <IconSelect
         title="Font family"
+        icon={<Type size={16} />}
         onChange={(e) => {
           const v = e.target.value;
           if (!v) return;
-          editor.chain().focus().setTextStyleTokens({ ff: v }).run();
+          editor!.chain().focus().setTextStyleTokens({ ff: v }).run();
         }}
       >
+        {/* keep first option as a hint label in the menu */}
         <option value="" disabled>Font</option>
         {fontOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-      </select>
+      </IconSelect>
 
-      {/* Size */}
-      <select
-        className="rounded bg-white/70 lockbutton text-[.8rem] focus:outline-none"
-        defaultValue=""
+      {/* Size (iconized) */}
+      <IconSelect
         title="Font size"
+        icon={<ZoomIn size={16} />}
         onChange={(e) => {
           const v = e.target.value;
           if (!v) return;
           v === "unset"
-            ? editor.chain().focus().unsetTextStyleTokens(["fs"]).run()
-            : editor.chain().focus().setTextStyleTokens({ fs: v }).run();
+            ? editor!.chain().focus().unsetTextStyleTokens(["fs"]).run()
+            : editor!.chain().focus().setTextStyleTokens({ fs: v }).run();
         }}
       >
         <option value="" disabled>Size</option>
         <option value="unset">Default</option>
         {sizeOptions.map(s => <option key={s} value={s}>{s}</option>)}
-      </select>
+      </IconSelect>
 
-      {/* Color */}
-      <select
-        className="rounded bg-white/70 lockbutton text-[.8rem] focus:outline-none"
-        defaultValue=""
+      {/* Color (iconized) */}
+      <IconSelect
         title="Text color"
+        icon={<Palette size={16} />}
         onChange={(e) => {
           const v = e.target.value;
           if (!v) return;
           v === "unset"
-            ? editor.chain().focus().unsetTextStyleTokens(["clr"]).run()
-            : editor.chain().focus().setTextStyleTokens({ clr: v }).run();
+            ? editor!.chain().focus().unsetTextStyleTokens(["clr"]).run()
+            : editor!.chain().focus().setTextStyleTokens({ clr: v }).run();
         }}
       >
         <option value="" disabled>Color</option>
         <option value="unset">Default</option>
         {colorOptions.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
-      </select>
+      </IconSelect>
 
-      {/* ICON MENUS FOR TOKENS — compact, no text labels */}
+      {/* Advanced token controls (already iconized) */}
+      <IconSelect
+        title="Weight"
+        icon={<Type size={16} />}
+        onChange={(e) => {
+          const v = e.target.value;
+          v === "unset"
+            ? editor!.chain().focus().unsetTextStyleTokens(["fw"]).run()
+            : editor!.chain().focus().setTextStyleTokens({ fw: v as any }).run();
+        }}
+      >
+        <option value="unset">Default</option>
+        {weightOptions.map(w => <option key={w} value={w}>{w}</option>)}
+      </IconSelect>
 
-      {/* Weight */}
-      <IconMenu icon={<Type size={16} />} label="Weight">
-        <MenuItem onClick={() => editor.chain().focus().unsetTextStyleTokens(["fw"]).run()}>Default</MenuItem>
-        {weightOptions.map(w => (
-          <MenuItem key={w} onClick={() => editor.chain().focus().setTextStyleTokens({ fw: w as any }).run()}>
-            {w}
-          </MenuItem>
-        ))}
-      </IconMenu>
+      <IconSelect
+        title="Line height"
+        icon={<ArrowUpDown size={16} />}
+        onChange={(e) => {
+          const v = e.target.value;
+          v === "unset"
+            ? editor!.chain().focus().unsetTextStyleTokens(["lh"]).run()
+            : editor!.chain().focus().setTextStyleTokens({ lh: v as any }).run();
+        }}
+      >
+        <option value="unset">Default</option>
+        {lineHeightOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </IconSelect>
 
-      {/* Line height */}
-      <IconMenu icon={<ArrowUpDown size={16} />} label="Line height">
-        <MenuItem onClick={() => editor.chain().focus().unsetTextStyleTokens(["lh"]).run()}>Default</MenuItem>
-        {lineHeightOptions.map(o => (
-          <MenuItem key={o.value} onClick={() => editor.chain().focus().setTextStyleTokens({ lh: o.value as any }).run()}>
-            {o.label}
-          </MenuItem>
-        ))}
-      </IconMenu>
+      <IconSelect
+        title="Letter spacing"
+        icon={<ArrowLeftRight size={16} />}
+        onChange={(e) => {
+          const v = e.target.value;
+          v === "unset"
+            ? editor!.chain().focus().unsetTextStyleTokens(["ls"]).run()
+            : editor!.chain().focus().setTextStyleTokens({ ls: v as any }).run();
+        }}
+      >
+        <option value="unset">Default</option>
+        {letterSpaceOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </IconSelect>
 
-      {/* Letter spacing */}
-      <IconMenu icon={<ArrowLeftRight size={16} />} label="Letter spacing">
-        <MenuItem onClick={() => editor.chain().focus().unsetTextStyleTokens(["ls"]).run()}>Default</MenuItem>
-        {letterSpaceOptions.map(o => (
-          <MenuItem key={o.value} onClick={() => editor.chain().focus().setTextStyleTokens({ ls: o.value as any }).run()}>
-            {o.label}
-          </MenuItem>
-        ))}
-      </IconMenu>
+      <IconSelect
+        title="Transform"
+        icon={<CaseSensitive size={16} />}
+        onChange={(e) => {
+          const v = e.target.value;
+          v === "unset"
+            ? editor!.chain().focus().unsetTextStyleTokens(["tt"]).run()
+            : editor!.chain().focus().setTextStyleTokens({ tt: v as any }).run();
+        }}
+      >
+        <option value="unset">Default</option>
+        {transformOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </IconSelect>
 
-      {/* Transform */}
-      <IconMenu icon={<CaseSensitive size={16} />} label="Transform">
-        <MenuItem onClick={() => editor.chain().focus().unsetTextStyleTokens(["tt"]).run()}>Default</MenuItem>
-        {transformOptions.map(o => (
-          <MenuItem key={o.value} onClick={() => editor.chain().focus().setTextStyleTokens({ tt: o.value as any }).run()}>
-            {o.label}
-          </MenuItem>
-        ))}
-      </IconMenu>
+      <IconSelect
+        title="Highlight"
+        icon={<Highlighter size={16} />}
+        onChange={(e) => {
+          const v = e.target.value;
+          v === "unset" || v === "none"
+            ? editor!.chain().focus().unsetTextStyleTokens(["bg"]).run()
+            : editor!.chain().focus().setTextStyleTokens({ bg: v as any }).run();
+        }}
+      >
+        <option value="unset">None</option>
+        {["yellow","blue","green","red"].map(v => <option key={v} value={v}>{v}</option>)}
+      </IconSelect>
 
-      {/* Highlight */}
-      <IconMenu icon={<Highlighter size={16} />} label="Highlight">
-        <MenuItem onClick={() => editor.chain().focus().unsetTextStyleTokens(["bg"]).run()}>None</MenuItem>
-        {highlightOptions.filter(h => h.value !== "none").map(o => (
-          <MenuItem key={o.value} onClick={() => editor.chain().focus().setTextStyleTokens({ bg: o.value as any }).run()}>
-            {o.label}
-          </MenuItem>
-        ))}
-      </IconMenu>
+      {/* Inline marks */}
+      {btn(<Bold size={16} />, () => editor!.chain().focus().toggleBold().run(), editor!.isActive("bold"))}
+      {btn(<Italic size={16} />, () => editor!.chain().focus().toggleItalic().run(), editor!.isActive("italic"))}
+      {btn(<Underline size={16} />, () => editor!.chain().focus().toggleUnderline().run(), editor!.isActive("underline"))}
+      {btn(<Strikethrough size={16} />, () => editor!.chain().focus().toggleStrike().run(), editor!.isActive("strike"))}
+      {btn(<Code size={16} />, () => editor!.chain().focus().toggleCode().run(), editor!.isActive("code"))}
 
-      {/* INLINE MARKS */}
-      {btn(<Bold size={16} />, () => editor.chain().focus().toggleBold().run(), editor.isActive("bold"))}
-      {btn(<Italic size={16} />, () => editor.chain().focus().toggleItalic().run(), editor.isActive("italic"))}
-      {btn(<Underline size={16} />, () => editor.chain().focus().toggleUnderline().run(), editor.isActive("underline"))}
-      {btn(<Strikethrough size={16} />, () => editor.chain().focus().toggleStrike().run(), editor.isActive("strike"))}
-      {btn(<Code size={16} />, () => editor.chain().focus().toggleCode().run(), editor.isActive("code"))}
+      {/* Lists */}
+      {btn(<List size={16} />, () => editor!.chain().focus().toggleBulletList().run(), editor!.isActive("bulletList"))}
+      {btn(<ListOrdered size={16} />, () => editor!.chain().focus().toggleOrderedList().run(), editor!.isActive("orderedList"))}
+      {btn(<ListChecks size={16} />, () => editor!.chain().focus().toggleTaskList().run(), editor!.isActive("taskList"))}
 
-      {/* LIST TOGGLES */}
-      {btn(<List size={16} />, () => editor.chain().focus().toggleBulletList().run(), editor.isActive("bulletList"))}
-      {btn(<ListOrdered size={16} />, () => editor.chain().focus().toggleOrderedList().run(), editor.isActive("orderedList"))}
-      {btn(<ListChecks size={16} />, () => editor.chain().focus().toggleTaskList().run(), editor.isActive("taskList"))}
+      {/* Align */}
+      {btn(<AlignLeft size={16} />, () => editor!.chain().focus().setTextAlign("left").run(), editor!.isActive({ textAlign: "left" }))}
+      {btn(<AlignCenter size={16} />, () => editor!.chain().focus().setTextAlign("center").run(), editor!.isActive({ textAlign: "center" }))}
+      {btn(<AlignRight size={16} />, () => editor!.chain().focus().setTextAlign("right").run(), editor!.isActive({ textAlign: "right" }))}
+      {btn(<AlignJustify size={16} />, () => editor!.chain().focus().setTextAlign("justify").run(), editor!.isActive({ textAlign: "justify" }))}
 
-      {/* ALIGN */}
-      {btn(<AlignLeft size={16} />, () => editor.chain().focus().setTextAlign("left").run(), editor.isActive({ textAlign: "left" }))}
-      {btn(<AlignCenter size={16} />, () => editor.chain().focus().setTextAlign("center").run(), editor.isActive({ textAlign: "center" }))}
-      {btn(<AlignRight size={16} />, () => editor.chain().focus().setTextAlign("right").run(), editor.isActive({ textAlign: "right" }))}
-      {btn(<AlignJustify size={16} />, () => editor.chain().focus().setTextAlign("justify").run(), editor.isActive({ textAlign: "justify" }))}
+      {/* Paragraph block attrs */}
+      <IconSelect
+        title="Indent"
+        icon={<Pilcrow size={16} />}
+        onChange={(e) => {
+          const v = e.target.value; // 'unset' | sm | md | lg
+          setBlockAttrs({ indent: v === "unset" ? null : v });
+        }}
+      >
+        <option value="unset">None</option>
+        <option value="sm">Small</option>
+        <option value="md">Medium</option>
+        <option value="lg">Large</option>
+      </IconSelect>
 
-      {/* PARAGRAPH BLOCK CONTROLS */}
-      <IconMenu icon={<Pilcrow size={16} />} label="Indent">
-        <MenuItem onClick={() => setBlockAttrs({ indent: null })}>None</MenuItem>
-        <MenuItem onClick={() => setBlockAttrs({ indent: "sm" })}>Small</MenuItem>
-        <MenuItem onClick={() => setBlockAttrs({ indent: "md" })}>Medium</MenuItem>
-        <MenuItem onClick={() => setBlockAttrs({ indent: "lg" })}>Large</MenuItem>
-      </IconMenu>
+      <IconSelect
+        title="Margin top"
+        icon={<ArrowUp size={16} />}
+        onChange={(e) => {
+          const v = e.target.value; // '0' | xs | sm | md | lg
+          setBlockAttrs({ mt: v === "0" ? "0" : v });
+        }}
+      >
+        <option value="0">0</option>
+        <option value="xs">xs</option>
+        <option value="sm">sm</option>
+        <option value="md">md</option>
+        <option value="lg">lg</option>
+      </IconSelect>
 
-      <IconMenu icon={<ArrowUp size={16} />} label="Margin top">
-        {["0","xs","sm","md","lg"].map(v => (
-          <MenuItem key={v} onClick={() => setBlockAttrs({ mt: v === "0" ? "0" : v })}>
-            {v}
-          </MenuItem>
-        ))}
-      </IconMenu>
+      <IconSelect
+        title="Margin bottom"
+        icon={<ArrowDown size={16} />}
+        onChange={(e) => {
+          const v = e.target.value;
+          setBlockAttrs({ mb: v === "0" ? "0" : v });
+        }}
+      >
+        <option value="0">0</option>
+        <option value="xs">xs</option>
+        <option value="sm">sm</option>
+        <option value="md">md</option>
+        <option value="lg">lg</option>
+      </IconSelect>
 
-      <IconMenu icon={<ArrowDown size={16} />} label="Margin bottom">
-        {["0","xs","sm","md","lg"].map(v => (
-          <MenuItem key={v} onClick={() => setBlockAttrs({ mb: v === "0" ? "0" : v })}>
-            {v}
-          </MenuItem>
-        ))}
-      </IconMenu>
+      {/* List styles */}
+      <IconSelect
+        title="Bullet style"
+        icon={<List size={16} />}
+        onChange={(e) => setULStyle(e.target.value as any)}
+      >
+        <option value="disc">disc</option>
+        <option value="circle">circle</option>
+        <option value="square">square</option>
+      </IconSelect>
 
-      {/* LIST STYLE CONTROLS */}
-      <IconMenu icon={<List size={16} />} label="Bullet style">
-        {(["disc","circle","square"] as const).map(v => (
-          <MenuItem key={v} onClick={() => setULStyle(v)}>{v}</MenuItem>
-        ))}
-      </IconMenu>
+      <IconSelect
+        title="Number style"
+        icon={<ListOrdered size={16} />}
+        onChange={(e) => setOLStyle(e.target.value as any)}
+      >
+        <option value="decimal">decimal</option>
+        <option value="lower-roman">lower-roman</option>
+        <option value="upper-roman">upper-roman</option>
+        <option value="lower-alpha">lower-alpha</option>
+        <option value="upper-alpha">upper-alpha</option>
+      </IconSelect>
 
-      <IconMenu icon={<ListOrdered size={16} />} label="Number style">
-        {(["decimal","lower-roman","upper-roman","lower-alpha","upper-alpha"] as const).map(v => (
-          <MenuItem key={v} onClick={() => setOLStyle(v)}>{v}</MenuItem>
-        ))}
-        <div className="px-3 py-2 border-t text-sm flex items-center gap-2">
-          <span className="text-neutral-500">Start</span>
-          <input
-            ref={startRef}
-            type="number"
-            min={1}
-            defaultValue={1}
-            className="w-16 rounded border px-2 py-1 text-sm"
-            onChange={(e) => {
-              const n = parseInt(e.target.value || "1", 10);
-              if (Number.isFinite(n)) setOLStart(Math.max(1, n));
-            }}
-          />
-        </div>
-      </IconMenu>
-
-      {/* Quote */}
-      {btn(<Quote size={16} />, () => editor.chain().focus().toggleBlockquote().run(), editor.isActive("blockquote"))}
+      {/* Blockquote */}
+      {btn(<Quote size={16} />, () => editor!.chain().focus().toggleBlockquote().run(), editor!.isActive("blockquote"))}
 
       {/* Link / Image */}
       {btn(
         <Link2 size={16} />,
         () => {
           const url = prompt("URL")?.trim();
-          if (url) editor.chain().focus().setLink({ href: url }).run();
+          if (url) editor!.chain().focus().setLink({ href: url }).run();
         },
-        editor.isActive("link"),
+        editor!.isActive("link"),
       )}
       {btn(<ImageIcon size={16} />, () => {
         document.querySelector<HTMLInputElement>("#image-upload")?.click();
@@ -335,18 +345,18 @@ export default function Toolbar({ editor }: Props) {
 
       {/* Clear */}
       {btn(<Eraser size={16} />, () =>
-        editor.chain().focus().clearNodes().unsetAllMarks().run()
+        editor!.chain().focus().clearNodes().unsetAllMarks().run()
       )}
       <button
         onClick={() =>
-          editor.chain().focus()
+          editor!.chain().focus()
             .unsetTextStyleTokens(["ff","fs","clr","fw","lh","ls","tt","bg"])
             .run()
         }
         className="text-[.9rem]"
         type="button"
       >
-        Clear tokens
+        Clear
       </button>
     </div>
   );

@@ -1,5 +1,5 @@
 /* eslint‑disable max‑lines */
-'use client';
+"use client";
 
 import React, {
   useCallback,
@@ -7,66 +7,76 @@ import React, {
   useMemo,
   useRef,
   useState,
-} from 'react';
-import { EditorContent } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import ImageExt from '@tiptap/extension-image';
+} from "react";
+import { EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import ImageExt from "@tiptap/extension-image";
 import {
   PullQuote as PullQuoteBase,
   Callout as CalloutBase,
   MathBlock as MathBlockBase,
   MathInline as MathInlineBase,
-} from '@/lib/tiptap/extensions';
-import { toast } from 'sonner'
-import Link from '@tiptap/extension-link';
-import Placeholder from '@tiptap/extension-placeholder';
-import Collaboration from '@tiptap/extension-collaboration';
-import CollaborationCursor from '@tiptap/extension-collaboration-cursor';
-import CharacterCount from '@tiptap/extension-character-count';
-import { TextStyleTokensLegacy as TextStyle } from '@/lib/tiptap/extensions/text-style-ssr';
-import Underline from '@tiptap/extension-underline';
-import Color from '@tiptap/extension-color';
-import Highlight from '@tiptap/extension-highlight';
-import { SSRTextAlign } from '@/lib/tiptap/extensions/ssr-text-align';
+} from "@/lib/tiptap/extensions";
+import { toast } from "sonner";
+import Link from "@tiptap/extension-link";
+import Placeholder from "@tiptap/extension-placeholder";
+import Collaboration from "@tiptap/extension-collaboration";
+import CollaborationCursor from "@tiptap/extension-collaboration-cursor";
+import CharacterCount from "@tiptap/extension-character-count";
+import { TextStyleTokensLegacy as TextStyle } from "@/lib/tiptap/extensions/text-style-ssr";
+import Underline from "@tiptap/extension-underline";
+import Color from "@tiptap/extension-color";
+import Highlight from "@tiptap/extension-highlight";
+import { SSRTextAlign } from "@/lib/tiptap/extensions/ssr-text-align";
 // import TextAlign from '@tiptap/extension-text-align';
-import TaskList from '@tiptap/extension-task-list';
-import TaskItem from '@tiptap/extension-task-item';
-import { createLowlight } from 'lowlight';
-import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
+import TaskList from "@tiptap/extension-task-list";
+import TaskItem from "@tiptap/extension-task-item";
+import { createLowlight } from "lowlight";
+import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
 
-import javascript from 'highlight.js/lib/languages/javascript';
-import typescript from 'highlight.js/lib/languages/typescript';
-import python from 'highlight.js/lib/languages/python';
-import bash from 'highlight.js/lib/languages/bash';
-import katex from 'katex';
-import { keymap } from '@tiptap/pm/keymap';
-import { Node, mergeAttributes, type JSONContent, type Extension } from '@tiptap/core';
-import { ReactNodeViewRenderer, NodeViewWrapper, NodeViewContent } from '@tiptap/react';
-import * as Y from 'yjs';
-import { WebsocketProvider } from 'y-websocket';
-import enStrings from '@/public/locales/en/editor.json';
-import { useDebouncedCallback } from 'use-debounce';
+import javascript from "highlight.js/lib/languages/javascript";
+import typescript from "highlight.js/lib/languages/typescript";
+import python from "highlight.js/lib/languages/python";
+import bash from "highlight.js/lib/languages/bash";
+import katex from "katex";
+import { keymap } from "@tiptap/pm/keymap";
+import {
+  Node,
+  mergeAttributes,
+  type JSONContent,
+  type Extension,
+} from "@tiptap/core";
+import {
+  ReactNodeViewRenderer,
+  NodeViewWrapper,
+  NodeViewContent,
+} from "@tiptap/react";
+import * as Y from "yjs";
+import { WebsocketProvider } from "y-websocket";
+import enStrings from "@/public/locales/en/editor.json";
+import { useDebouncedCallback } from "use-debounce";
 
-import { TextStyleTokens } from '@/lib/tiptap/extensions/text-style-ssr';
-import { useEditor, Editor } from '@tiptap/react'
+import { TextStyleTokens } from "@/lib/tiptap/extensions/text-style-ssr";
+import { useEditor, Editor } from "@tiptap/react";
 
-import SlashCommand from './editor/SlashCommand';
-import Toolbar from './editor/Toolbar';
-import TemplateSelector from './editor/TemplateSelector';
-import { uploadFileToSupabase } from '@/lib/utils';
-import styles from './article.module.scss';
-import Spinner from '../ui/spinner';
-import dynamic from 'next/dynamic';
-import NextImage from 'next/image';                              
+import SlashCommand from "./editor/SlashCommand";
+import Toolbar from "./editor/Toolbar";
+import TemplateSelector from "./editor/TemplateSelector";
+import { uploadFileToSupabase } from "@/lib/utils";
+import styles from "./article.module.scss";
+import Spinner from "../ui/spinner";
+import dynamic from "next/dynamic";
+import NextImage from "next/image";
 import { useRouter } from "next/navigation";
 import { BlockStyleTokens } from "@/lib/tiptap/extensions/block-style-ssr";
-import 'katex/dist/katex.min.css';
+import "katex/dist/katex.min.css";
+import HomeButton from "../buttons/HomeButton";
 
 /* -------------------------------------------------------------------------- */
 /*  Dynamic imports                                                            */
 /* -------------------------------------------------------------------------- */
 
-const Cropper = dynamic(() => import('react-easy-crop'), {
+const Cropper = dynamic(() => import("react-easy-crop"), {
   ssr: false,
   loading: () => <Spinner />,
 });
@@ -75,7 +85,7 @@ const Cropper = dynamic(() => import('react-easy-crop'), {
 /*  Module augmentation for CharacterCount storage                             */
 /* -------------------------------------------------------------------------- */
 
-declare module '@tiptap/core' {
+declare module "@tiptap/core" {
   interface Storage {
     characterCount?: {
       words: () => number;
@@ -111,8 +121,9 @@ type Backup = {
 
 const LOCAL_KEY = (id: string) => `article_${id}_backup`;
 
-interface ArticleEditorProps { articleId: string }
-
+interface ArticleEditorProps {
+  articleId: string;
+}
 
 /* -------------------------------------------------------------------------- */
 /*  Custom nodes                                                               */
@@ -139,28 +150,31 @@ interface ArticleEditorProps { articleId: string }
 //   },
 // });
 const PullQuote = PullQuoteBase.extend({
-    addNodeView() {
-      return ReactNodeViewRenderer(({ node }) => (
-        <NodeViewWrapper as="blockquote" className={`pull-quote ${node.attrs.alignment || 'left'}`}>
-          <NodeViewContent />
-        </NodeViewWrapper>
-      ));
-    },
-  });
+  addNodeView() {
+    return ReactNodeViewRenderer(({ node }) => (
+      <NodeViewWrapper
+        as="blockquote"
+        className={`pull-quote ${node.attrs.alignment || "left"}`}
+      >
+        <NodeViewContent />
+      </NodeViewWrapper>
+    ));
+  },
+});
 
 const Callout = Node.create({
-  name: 'callout',
-  group: 'block',
-  content: 'paragraph+',
+  name: "callout",
+  group: "block",
+  content: "paragraph+",
   addAttributes() {
-    return { type: { default: 'info' } };
+    return { type: { default: "info" } };
   },
   parseHTML() {
-    return [{ tag: 'div.callout' }];
+    return [{ tag: "div.callout" }];
   },
   renderHTML({ HTMLAttributes }) {
     return [
-      'div',
+      "div",
       mergeAttributes(HTMLAttributes, {
         class: `callout ${HTMLAttributes.type}`,
       }),
@@ -170,19 +184,19 @@ const Callout = Node.create({
 });
 
 const MathBlock = Node.create({
-  name: 'mathBlock',
-  group: 'block',
+  name: "mathBlock",
+  group: "block",
   atom: true,
   addAttributes() {
-    return { latex: { default: '' } };
+    return { latex: { default: "" } };
   },
   parseHTML() {
-    return [{ tag: 'div[data-type=math-block]' }];
+    return [{ tag: "div[data-type=math-block]" }];
   },
   renderHTML({ HTMLAttributes }) {
     return [
-      'div',
-      mergeAttributes(HTMLAttributes, { 'data-type': 'math-block' }),
+      "div",
+      mergeAttributes(HTMLAttributes, { "data-type": "math-block" }),
     ];
   },
   addNodeView() {
@@ -200,20 +214,20 @@ const MathBlock = Node.create({
 });
 
 const MathInline = Node.create({
-  name: 'mathInline',
-  group: 'inline',
+  name: "mathInline",
+  group: "inline",
   inline: true,
   atom: true,
   addAttributes() {
-    return { latex: { default: '' } };
+    return { latex: { default: "" } };
   },
   parseHTML() {
-    return [{ tag: 'span[data-type=math-inline]' }];
+    return [{ tag: "span[data-type=math-inline]" }];
   },
   renderHTML({ HTMLAttributes }) {
     return [
-      'span',
-      mergeAttributes(HTMLAttributes, { 'data-type': 'math-inline' }),
+      "span",
+      mergeAttributes(HTMLAttributes, { "data-type": "math-inline" }),
     ];
   },
   addNodeView() {
@@ -235,22 +249,22 @@ const CustomImage = ImageExt.extend({
   addAttributes() {
     return {
       ...this.parent?.(),
-      caption: { default: '' },
-      align: { default: 'center' },
-      alt: { default: '' },
+      caption: { default: "" },
+      align: { default: "center" },
+      alt: { default: "" },
       missingAlt: { default: false },
     };
   },
   renderHTML({ HTMLAttributes }) {
     return [
-      'figure',
+      "figure",
       {
         class: `image align-${HTMLAttributes.align}${
-          HTMLAttributes.missingAlt ? ' a11y-error' : ''
+          HTMLAttributes.missingAlt ? " a11y-error" : ""
         }`,
       },
-      ['img', { src: HTMLAttributes.src, alt: HTMLAttributes.alt }],
-      ['figcaption', HTMLAttributes.caption],
+      ["img", { src: HTMLAttributes.src, alt: HTMLAttributes.alt }],
+      ["figcaption", HTMLAttributes.caption],
     ];
   },
 });
@@ -270,40 +284,42 @@ interface EditorProps {
 export default function ArticleEditor({ articleId }: ArticleEditorProps) {
   /* ------------------------------- state ---------------------------------- */
 
-  const [template,      setTemplate]      = useState('standard');
-  const [heroImageKey,  setHeroImageKey]  = useState<string | null>(null);
-  const [heroPreview,   setHeroPreview]   = useState<string | null>(null);
-  const [headings,      setHeadings]      = useState<Heading[]>([]);
-  const [cropFile,      setCropFile]      = useState<File | null>(null);
-  const [cropImage,     setCropImage]     = useState<string | null>(null);
-  const [crop,          setCrop]          = useState({ x: 0, y: 0 });
-  const [zoom,          setZoom]          = useState(1);
-  const [croppedArea,   setCroppedArea]   = useState<any>(null);
-  const [a11yErrors,    setA11yErrors]    = useState(0);
-  const [suggestion,    setSuggestion]    = useState(false);
-  const [isDirty,       setIsDirty]       = useState(false);
-  const [showUnsaved,   setShowUnsaved]   = useState(false);
-  const [pendingRestore,setPendingRestore]= useState<Backup | null>(null);
-  const [counter,       setCounter]       = useState({ words: 0, chars: 0 });
+  const [template, setTemplate] = useState("standard");
+  const [heroImageKey, setHeroImageKey] = useState<string | null>(null);
+  const [heroPreview, setHeroPreview] = useState<string | null>(null);
+  const [headings, setHeadings] = useState<Heading[]>([]);
+  const [cropFile, setCropFile] = useState<File | null>(null);
+  const [cropImage, setCropImage] = useState<string | null>(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedArea, setCroppedArea] = useState<any>(null);
+  const [a11yErrors, setA11yErrors] = useState(0);
+  const [suggestion, setSuggestion] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+  const [showUnsaved, setShowUnsaved] = useState(false);
+  const [pendingRestore, setPendingRestore] = useState<Backup | null>(null);
+  const [counter, setCounter] = useState({ words: 0, chars: 0 });
   // const [editorRef, setEditorRef] = useState<Editor | null>(null)
-  const [initialJson, setInitialJson] = useState<any>()
-  const [publishing, setPublishing] = useState(false)
-  const [revs, setRevs] = useState<{id:string;createdAt:string}[]|null>(null)
-  const [title, setTitle] = useState<string>('Untitled')
+  const [initialJson, setInitialJson] = useState<any>();
+  const [publishing, setPublishing] = useState(false);
+  const [revs, setRevs] = useState<{ id: string; createdAt: string }[] | null>(
+    null
+  );
+  const [title, setTitle] = useState<string>("Title");
   const router = useRouter();
-    const inflight = useRef<AbortController | null>(null);
-    const lastSentHash = useRef<string>("");
+  const inflight = useRef<AbortController | null>(null);
+  const lastSentHash = useRef<string>("");
   /* ------------------------------ y‑js / collab --------------------------- */
 
   const ydoc = useMemo(() => new Y.Doc(), []);
 
   const provider = useMemo(() => {
-    if (!COLLAB_ENABLED || typeof window === 'undefined') return null;
-    const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    if (!COLLAB_ENABLED || typeof window === "undefined") return null;
+    const proto = window.location.protocol === "https:" ? "wss" : "ws";
     return new WebsocketProvider(
       `${proto}://${window.location.host}/ws/article/${articleId}`,
       articleId,
-      ydoc,
+      ydoc
     );
   }, [articleId, ydoc]);
 
@@ -311,10 +327,10 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
 
   const lowlight = useMemo(() => {
     const ll = createLowlight();
-    ll.register('js', javascript);
-    ll.register('ts', typescript);
-    ll.register('py', python);
-    ll.register('sh', bash);
+    ll.register("js", javascript);
+    ll.register("ts", typescript);
+    ll.register("py", python);
+    ll.register("sh", bash);
     return ll;
   }, []);
 
@@ -327,8 +343,11 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
 
   /* ------------------------- editor extensions --------------------------- */
 
-  const userName  = useMemo(() => `User${Math.floor(Math.random() * 1000)}`, []);
-  const userColor = useMemo(() => `#${Math.floor(Math.random() * 0xffffff).toString(16)}`, []);
+  const userName = useMemo(() => `User${Math.floor(Math.random() * 1000)}`, []);
+  const userColor = useMemo(
+    () => `#${Math.floor(Math.random() * 0xffffff).toString(16)}`,
+    []
+  );
 
   const extensions = useMemo<Extension[]>(() => {
     return [
@@ -338,15 +357,15 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
       TaskItem,
       Highlight,
       SSRTextAlign.configure({
-        types: ['heading', 'paragraph', 'blockquote', 'listItem'],
-        alignments: ['left', 'center', 'right', 'justify'],
+        types: ["heading", "paragraph", "blockquote", "listItem"],
+        alignments: ["left", "center", "right", "justify"],
       }),
       Underline,
       TextStyle,
       Color,
       CustomImage,
       Link,
-      Placeholder.configure({ placeholder: 'Write something…' }),
+      Placeholder.configure({ placeholder: "Write something…" }),
       PullQuote,
       Callout,
       MathBlock,
@@ -356,12 +375,13 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
       CharacterCount.configure({ limit: CHAR_LIMIT }),
       SlashCommand,
       COLLAB_ENABLED && provider && Collaboration.configure({ document: ydoc }),
-      COLLAB_ENABLED && provider &&
+      COLLAB_ENABLED &&
+        provider &&
         CollaborationCursor.configure({
           provider,
           user: { name: userName, color: userColor },
         }),
-    ].filter(Boolean) as Extension[];          // TS narrow‑down
+    ].filter(Boolean) as Extension[]; // TS narrow‑down
   }, [lowlight, provider, userName, userColor, ydoc]);
 
   /* ---------------------------- TipTap editor ---------------------------- */
@@ -378,56 +398,60 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
   // )
   //  if (initialJson === undefined) return <div>Loading editor…</div>
 
-   const editor = useEditor({
-       extensions,
-       content: initialJson,
-       immediatelyRender: false,
-     })
+  const editor = useEditor({
+    extensions,
+    content: initialJson,
+    immediatelyRender: false,
+  });
 
-        // ---- Autosave (debounced   dedup   in-flight abort) -------------------
-        const makePayload = useCallback(() => {
-          if (!editor) return null
-          const payload: any = {
-            astJson: editor.getJSON(),
-            template,
-            heroImageKey,
-          }
-          const t = (title || '').trim()
-          if (t) payload.title = t           // don't send empty or "Untitled"
-          return payload
-        }, [editor, template, heroImageKey, title])
-      
-        const saveDraft = useCallback(async () => {
-          const payload = makePayload()
-          if (!payload) return
-          const hash = JSON.stringify(payload)
-          if (hash === lastSentHash.current) return
-      
-          inflight.current?.abort()
-          const ac = new AbortController()
-          inflight.current = ac
-      
-          try {
-            const res = await fetch(`/api/articles/${articleId}/draft`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(payload),
-              signal: ac.signal,
-            })
-            if (res.ok) {
-              lastSentHash.current = hash
-            }
-          } catch { /* aborted or failed; ignore */ }
-        }, [articleId, makePayload])
-      
-        const debouncedSave = useDebouncedCallback(() => { void saveDraft() }, 800)
+  // ---- Autosave (debounced   dedup   in-flight abort) -------------------
+  const makePayload = useCallback(() => {
+    if (!editor) return null;
+    const payload: any = {
+      astJson: editor.getJSON(),
+      template,
+      heroImageKey,
+    };
+    const t = (title || "").trim();
+    if (t) payload.title = t; // don't send empty or "Untitled"
+    return payload;
+  }, [editor, template, heroImageKey, title]);
+
+  const saveDraft = useCallback(async () => {
+    const payload = makePayload();
+    if (!payload) return;
+    const hash = JSON.stringify(payload);
+    if (hash === lastSentHash.current) return;
+
+    inflight.current?.abort();
+    const ac = new AbortController();
+    inflight.current = ac;
+
+    try {
+      const res = await fetch(`/api/articles/${articleId}/draft`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        signal: ac.signal,
+      });
+      if (res.ok) {
+        lastSentHash.current = hash;
+      }
+    } catch {
+      /* aborted or failed; ignore */
+    }
+  }, [articleId, makePayload]);
+
+  const debouncedSave = useDebouncedCallback(() => {
+    void saveDraft();
+  }, 800);
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
       e.preventDefault();
-      e.returnValue = '';
+      e.returnValue = "";
     };
-    if (isDirty) window.addEventListener('beforeunload', handler);
-    return () => window.removeEventListener('beforeunload', handler);
+    if (isDirty) window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
   }, [isDirty]);
 
   /* ---------------------------------------------------------------------- */
@@ -435,86 +459,95 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
   /* ---------------------------------------------------------------------- */
 
   const saveDraftImmediate = useCallback(async () => {
-        await saveDraft()
+    await saveDraft();
     localStorage.setItem(
       LOCAL_KEY(articleId),
-      JSON.stringify({ ts: Date.now(), ...(makePayload() || {}) }),
-      )
-    setIsDirty(false)
-    setShowUnsaved(false)
-  }, [articleId, saveDraft, makePayload])
-    // Hook editor updates -> debounced save
-    useEffect(() => {
-      if (!editor) return
-      const handler = () => {
-        setIsDirty(true)
-        setShowUnsaved(true)
-        debouncedSave()
+      JSON.stringify({ ts: Date.now(), ...(makePayload() || {}) })
+    );
+    setIsDirty(false);
+    setShowUnsaved(false);
+  }, [articleId, saveDraft, makePayload]);
+  // Hook editor updates -> debounced save
+  useEffect(() => {
+    if (!editor) return;
+    const handler = () => {
+      setIsDirty(true);
+      setShowUnsaved(true);
+      debouncedSave();
+    };
+    editor.on("update", handler);
+    return () => editor.off("update", handler);
+  }, [editor, debouncedSave]);
+
+  const publishArticle = useCallback(async () => {
+    if (!articleId || !editor || publishing) return;
+
+    setPublishing(true);
+    toast.loading("Publishing…", { id: "pub" });
+    try {
+      // ensure db has the latest title/JSON/etc.
+      await saveDraftImmediate();
+
+      const res = await fetch(`/api/articles/${articleId}/publish`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          astJson: editor.getJSON(),
+          template,
+          heroImageKey,
+          title,
+        }),
+      });
+
+      if (!res.ok) {
+        const errText = await res.text().catch(() => "Unknown error");
+        console.error("Publish failed:", res.status, errText);
+        // TODO: toast(errText)
+        return;
       }
-      editor.on('update', handler)
-      return () => editor.off('update', handler)
-    }, [editor, debouncedSave])
 
-const publishArticle = useCallback(async () => {
-  if (!articleId || !editor || publishing) return
-  
-  setPublishing(true)
-  toast.loading('Publishing…', { id: 'pub' })
-  try {
-    // ensure db has the latest title/JSON/etc.
-    await saveDraftImmediate()
-
-    const res = await fetch(`/api/articles/${articleId}/publish`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        astJson: editor.getJSON(),
-        template,
-        heroImageKey,
-        title,
-      }),
-    })
-
-    if (!res.ok) {
-      const errText = await res.text().catch(() => 'Unknown error')
-      console.error('Publish failed:', res.status, errText)
-      // TODO: toast(errText)
-      return
+      const { slug } = await res.json(); // ← only read once
+      toast.success("Published!", { id: "pub" });
+      localStorage.removeItem("draftArticleId");
+      router.replace(`/article/${slug}`);
+    } finally {
+      setPublishing(false);
     }
+  }, [
+    articleId,
+    editor,
+    template,
+    heroImageKey,
+    title,
+    router,
+    publishing,
+    saveDraftImmediate,
+  ]);
 
-    const { slug } = await res.json()  // ← only read once
-    toast.success('Published!', { id: 'pub' })
-    localStorage.removeItem('draftArticleId')
-    router.replace(`/article/${slug}`)
-  } finally {
-    setPublishing(false)
+  //restore revisions
+
+  async function openRevisions() {
+    const res = await fetch(`/api/articles/${articleId}/revisions`, {
+      cache: "no-store",
+    });
+    if (res.ok) setRevs(await res.json());
   }
-}, [articleId, editor, template, heroImageKey, title, router, publishing, saveDraftImmediate])
-  
 
-//restore revisions
-
-
-async function openRevisions() {
-  const res = await fetch(`/api/articles/${articleId}/revisions`, { cache: 'no-store' })
-  if (res.ok) setRevs(await res.json())
-}
-
-async function restoreRevision(revisionId: string) {
-  const res = await fetch(`/api/articles/${articleId}/restore`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ revisionId }),
-  })
-  if (res.ok) {
-    toast.success('Revision restored')
-    // reload current doc into editor
-    const fresh = await fetch(`/api/articles/${articleId}`).then(r => r.json())
-    editor?.commands.setContent(fresh.astJson)
+  async function restoreRevision(revisionId: string) {
+    const res = await fetch(`/api/articles/${articleId}/restore`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ revisionId }),
+    });
+    if (res.ok) {
+      toast.success("Revision restored");
+      // reload current doc into editor
+      const fresh = await fetch(`/api/articles/${articleId}`).then((r) =>
+        r.json()
+      );
+      editor?.commands.setContent(fresh.astJson);
+    }
   }
-}
-
-
 
   /* ---------------------------------------------------------------------- */
   /*  Live character counter                                                 */
@@ -529,8 +562,8 @@ async function restoreRevision(revisionId: string) {
     };
 
     updateCounter();
-    editor.on('update', updateCounter);
-    return () => editor.off('update', updateCounter);
+    editor.on("update", updateCounter);
+    return () => editor.off("update", updateCounter);
   }, [editor]);
 
   /* ---------------------------------------------------------------------- */
@@ -540,8 +573,8 @@ async function restoreRevision(revisionId: string) {
   useEffect(() => {
     if (!editor) return;
     const plugin = keymap({
-      'Mod-b': () => editor.chain().focus().toggleBold().run(),
-      'Mod-i': () => editor.chain().focus().toggleItalic().run(),
+      "Mod-b": () => editor.chain().focus().toggleBold().run(),
+      "Mod-i": () => editor.chain().focus().toggleItalic().run(),
     });
     editor.registerPlugin(plugin);
     return () => editor.unregisterPlugin(plugin.key);
@@ -575,13 +608,13 @@ async function restoreRevision(revisionId: string) {
       const hs: Heading[] = [];
 
       editor.state.doc.descendants((node, pos) => {
-        if (node.type.name !== 'heading') return;
+        if (node.type.name !== "heading") return;
 
         const text = node.textContent;
         let id = text
           .toLowerCase()
-          .replace(/[^a-z0-9]+/g, '-')
-          .replace(/(^-|-$)+/g, '');
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/(^-|-$)+/g, "");
 
         if (seen[id]) {
           id = `${id}-${seen[id]}`;
@@ -603,18 +636,16 @@ async function restoreRevision(revisionId: string) {
     };
 
     updateHeadings();
-    editor.on('update', updateHeadings);
-    return () => editor.off('update', updateHeadings);
+    editor.on("update", updateHeadings);
+    return () => editor.off("update", updateHeadings);
   }, [editor]);
 
   /* ---------------------------------------------------------------------- */
   /*  Dirty‑flag on change + queued save                                     */
   /* ---------------------------------------------------------------------- */
-  function goHome()
-  {
+  function goHome() {
     router.push("/");
   }
-
 
   /* also mark dirty when template or hero image changes */
   useEffect(() => {
@@ -650,20 +681,22 @@ async function restoreRevision(revisionId: string) {
     if (!file) return;
 
     const res = await fetch(
-      `/api/articles/presign?filename=${encodeURIComponent(file.name)}&contentType=${encodeURIComponent(file.type)}`,
+      `/api/articles/presign?filename=${encodeURIComponent(
+        file.name
+      )}&contentType=${encodeURIComponent(file.type)}`
     );
     const { uploadUrl } = await res.json();
 
     await fetch(uploadUrl, {
-      method: 'PUT',
-      headers: { 'Content-Type': file.type },
+      method: "PUT",
+      headers: { "Content-Type": file.type },
       body: file,
     });
 
-    const publicUrl = uploadUrl.split('?')[0];
+    const publicUrl = uploadUrl.split("?")[0];
     setHeroImageKey(publicUrl);
     setHeroPreview(publicUrl);
-    e.target.value = '';
+    e.target.value = "";
   };
 
   const onImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -671,7 +704,7 @@ async function restoreRevision(revisionId: string) {
     if (!file) return;
     setCropFile(file);
     setCropImage(URL.createObjectURL(file));
-    e.target.value = '';
+    e.target.value = "";
   };
 
   const onCropComplete = useCallback((_: any, area: any) => {
@@ -684,19 +717,23 @@ async function restoreRevision(revisionId: string) {
     img.src = cropImage as string;
     await new Promise((res) => (img.onload = res));
 
-    const canvas = document.createElement('canvas');
-    canvas.width  = croppedArea.width;
+    const canvas = document.createElement("canvas");
+    canvas.width = croppedArea.width;
     canvas.height = croppedArea.height;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     ctx.drawImage(
       img,
-      croppedArea.x,     croppedArea.y,
-      croppedArea.width, croppedArea.height,
-      0,                 0,
-      croppedArea.width, croppedArea.height,
+      croppedArea.x,
+      croppedArea.y,
+      croppedArea.width,
+      croppedArea.height,
+      0,
+      0,
+      croppedArea.width,
+      croppedArea.height
     );
 
     return new Promise<void>((resolve) => {
@@ -705,9 +742,16 @@ async function restoreRevision(revisionId: string) {
         const file = new File([blob], cropFile.name, { type: cropFile.type });
         const { fileURL } = await uploadFileToSupabase(file);
         if (fileURL) {
-          editor.chain().focus().setImage({
-            src: fileURL, caption: '', align: 'center', alt: '',
-          }).run();
+          editor
+            .chain()
+            .focus()
+            .setImage({
+              src: fileURL,
+              caption: "",
+              align: "center",
+              alt: "",
+            })
+            .run();
         }
         resolve();
       });
@@ -718,41 +762,47 @@ async function restoreRevision(revisionId: string) {
     const h = headings.find((x) => x.id === id);
     if (!h || !editor) return;
     const dom = editor.view.domAtPos(h.pos).node as HTMLElement;
-    dom.scrollIntoView({ behavior: 'smooth' });
+    dom.scrollIntoView({ behavior: "smooth" });
   };
 
   const runA11yCheck = () => {
     if (!editor) return;
     document
-      .querySelectorAll('.a11y-error')
-      .forEach((el) => el.classList.remove('a11y-error'));
+      .querySelectorAll(".a11y-error")
+      .forEach((el) => el.classList.remove("a11y-error"));
 
     let last = 0;
     let errors = 0;
 
     editor.state.doc.descendants((node, pos) => {
-      if (node.type.name === 'heading') {
+      if (node.type.name === "heading") {
         const dom = editor.view.nodeDOM(pos) as HTMLElement;
         const lvl = node.attrs.level;
         if (last && lvl > last + 1) {
-          dom.classList.add('a11y-error');
+          dom.classList.add("a11y-error");
           errors++;
         }
         last = lvl;
       }
 
-      if (node.type.name === 'image') {
+      if (node.type.name === "image") {
         const dom = editor.view.nodeDOM(pos) as HTMLElement;
         if (!node.attrs.alt) {
-          dom.classList.add('a11y-error');
+          dom.classList.add("a11y-error");
           editor.commands.command(({ tr }) => {
-            tr.setNodeMarkup(pos, undefined, { ...node.attrs, missingAlt: true });
+            tr.setNodeMarkup(pos, undefined, {
+              ...node.attrs,
+              missingAlt: true,
+            });
             return true;
           });
           errors++;
         } else {
           editor.commands.command(({ tr }) => {
-            tr.setNodeMarkup(pos, undefined, { ...node.attrs, missingAlt: false });
+            tr.setNodeMarkup(pos, undefined, {
+              ...node.attrs,
+              missingAlt: false,
+            });
             return true;
           });
         }
@@ -765,94 +815,23 @@ async function restoreRevision(revisionId: string) {
   /* ---------------------------------------------------------------------- */
   /*  Render                                                                 */
   /* ---------------------------------------------------------------------- */
-  if (!editor) return <div>Loading editor…</div>
+  if (!editor) return <div>Loading editor…</div>;
 
   return (
-    <div className="flex justify-center items-center mt-[-2rem]">
-       {/* bottom-left tab button */}
-
-        <button
+    <div className="flex justify-center items-center ">
+      {/* bottom-left tab button */}
+      <div className="absolute flex left-8 top-8 tracking-wide z-[9000] rounded-xl bg-white/50  px-3 py-2 likebutton">
+        <HomeButton />
+      </div>
+      {/* <button
           onClick={() => goHome()}
           className="fixed flex left-5 top-12 tracking-wide z-[9000] rounded-full bg-white/50  px-4 py-1 likebutton"
         >
           ⇤
   Home
-        </button>
+        </button> */}
 
       <article className={template}>
-        {/* Top‑bar ---------------------------------------------------------- */}
-        {showUnsaved && (
-          <div className="fixed flex left-3 top-3 tracking-wide text-red-700">{t('unsavedChanges')}</div>
-        )}
-
-        <div className="flex ">
-          <div className='justify-start'>
-        <TemplateSelector
-            articleId={articleId}
-            template={template}
-            onChange={setTemplate}
-          />
-          </div>
-          <div className="flex flex-1 flex-wrap space-x-3 gap-2 justify-end
-           mb-3">
-          <button           className=" px-2 py-1 rounded-xl bg-white/70 sendbutton text-[.8rem] text-center">
-            <input  type="file" onChange={onHeroUpload} hidden />
-            Upload hero
-          </button>
-      
-
-          {/* <button
-            className="savebutton rounded-xl bg-white/70 p-2 h-fit text-xs"
-            onClick={() => setSuggestion(!suggestion)}
-          >
-            {suggestion ? t('suggestionOff') : t('suggestionMode')}
-          </button> */}
-   <button           className=" px-2 py-1 rounded-xl bg-white/70 sendbutton text-[.8rem] text-center"
-          onClick={openRevisions}>
-  Revisions
-</button>
-
-{revs && (
-  <div className="fixed inset-0 bg-black/30 grid place-items-center">
-    <div className="bg-white rounded p-3 w-[360px] max-h-[70vh] overflow-auto">
-      <div className="text-sm font-semibold mb-2">Revisions</div>
-      <ul className="space-y-1">
-        {revs.map(r => (
-          <li key={r.id} className="flex items-center justify-between">
-            <span className="text-xs text-neutral-700">{new Date(r.createdAt).toLocaleString()}</span>
-            <button className="text-xs underline" onClick={() => restoreRevision(r.id)}>Restore</button>
-          </li>
-        ))}
-      </ul>
-      <div className="mt-3 text-right">
-        <button className="px-2 py-1 border rounded text-xs" onClick={() => setRevs(null)}>Close</button>
-      </div>
-    </div>
-  </div>
-)}
-      
- <button           className=" px-2 py-1 rounded-xl bg-white/70 sendbutton text-[.8rem] text-center"
-             onClick={saveDraftImmediate}
-          >
-            {t('saveDraft')}
-          </button>
-          {/* <button
-            className="savebutton rounded-xl bg-white p-2 text-xs h-fit"
-            onClick={runA11yCheck}
-          >
-            {t('checkAccessibility')}
-          </button> */}
-             <button
-             className=" px-2 py-1 rounded-xl bg-white/70 sendbutton text-[.8rem] text-center"
-            onClick={publishArticle}
-          >
-            Publish
-          </button>
-          </div>
-          
-       
-        </div>
-
         {/* Hero image ------------------------------------------------------- */}
         {heroPreview && (
           <NextImage
@@ -865,28 +844,127 @@ async function restoreRevision(revisionId: string) {
         )}
 
         {/* Editor ----------------------------------------------------------- */}
-        <div className="h-full flex flex-col gap-2 mt-1">
-        <input
-  className="w-full text-center text-3xl  tracking-wide bg-white/20 rounded-full py-[8px] titlefield outline-none placeholder:text-slate-400 mb-2"
-  placeholder="Title"
-  value={title}
-  onChange={(e) => setTitle(e.target.value.slice(0, 200))}
-  onBlur={saveDraftImmediate}
-/>
-          <input id="image-upload" type="file" onChange={onImageUpload} hidden />
-          <Toolbar editor={editor} />
-          <div className="flex-1 overflow-auto py-2 w-full">
-            {/* If you want a live outline component, pass `headings` + handler */}
-            {/* <Outline headings={headings} onSelect={onSelectHeading} /> */}
-            <EditorContent editor={editor}  className="tiptap article-body prose w-full max-w-none px-0 py-0 focus:border-none focus:outline-none focus:ring-none" />
+        <div className="h-full flex flex-col gap-2 p-1 mt-[-1rem]">
+          <input
+            className="w-1/2 justify-center items-center mx-auto text-center text-3xl  tracking-wide bg-white/20 rounded-xl py-[8px] titlefield outline-none placeholder:text-slate-400 mb-3"
+            placeholder="Title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value.slice(0, 200))}
+            onBlur={saveDraftImmediate}
+          />
+
+          {/* Top‑bar ---------------------------------------------------------- */}
+          {showUnsaved && (
+            <div className="absolute flex right-8 top-8  tracking-wide text-[.75rem] text-red-800">
+              {t("unsavedChanges")}
+            </div>
+          )}
+
+          <div className="flex ">
+            <div
+              className="flex flex-1 flex-wrap space-x-3 gap-2 justify-center
+           mb-3"
+            >
+              <TemplateSelector
+                articleId={articleId}
+                template={template}
+                onChange={setTemplate}
+              />
+              <button className=" px-2 py-1 rounded-xl bg-white/50 sendbutton text-[.8rem] text-center">
+                <input type="file" onChange={onHeroUpload} hidden />
+                Upload Hero
+              </button>
+
+              {/* <button
+            className="savebutton rounded-xl bg-white/70 p-2 h-fit text-xs"
+            onClick={() => setSuggestion(!suggestion)}
+          >
+            {suggestion ? t('suggestionOff') : t('suggestionMode')}
+          </button> */}
+              <button
+                className=" px-2 py-1 rounded-xl bg-white/50 sendbutton text-[.8rem] text-center"
+                onClick={openRevisions}
+              >
+                Revisions
+              </button>
+
+              {revs && (
+                <div className="fixed inset-0 bg-black/30 grid place-items-center">
+                  <div className="bg-white rounded p-3 w-[360px] max-h-[70vh] overflow-auto">
+                    <div className="text-sm font-semibold mb-2">Revisions</div>
+                    <ul className="space-y-1">
+                      {revs.map((r) => (
+                        <li
+                          key={r.id}
+                          className="flex items-center justify-between"
+                        >
+                          <span className="text-xs text-neutral-700">
+                            {new Date(r.createdAt).toLocaleString()}
+                          </span>
+                          <button
+                            className="text-xs underline"
+                            onClick={() => restoreRevision(r.id)}
+                          >
+                            Restore
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="mt-3 text-right">
+                      <button
+                        className="px-2 py-1 border rounded text-xs"
+                        onClick={() => setRevs(null)}
+                      >
+                        Close
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <button
+                className=" px-2 py-1 rounded-xl bg-white/50 sendbutton text-[.8rem] text-center"
+                onClick={saveDraftImmediate}
+              >
+                {t("saveDraft")}
+              </button>
+              {/* <button
+            className="savebutton rounded-xl bg-white p-2 text-xs h-fit"
+            onClick={runA11yCheck}
+          >
+            {t('checkAccessibility')}
+          </button> */}
+              <button
+                className=" px-2 py-1 rounded-xl bg-white/50 sendbutton text-[.8rem] text-center"
+                onClick={publishArticle}
+              >
+                Publish
+              </button>
+            </div>
+          </div>
+          <div className=" flex-1 w-full h-full rounded-xl bg-white/30 backdrop-blur-sm">
+            <input
+              id="image-upload"
+              type="file"
+              onChange={onImageUpload}
+              hidden
+            />
+            <Toolbar editor={editor} />
+            <div className="flex-1 overflow-auto py-2 w-full">
+              {/* If you want a live outline component, pass `headings` + handler */}
+              {/* <Outline headings={headings} onSelect={onSelectHeading} /> */}
+              <EditorContent
+                editor={editor}
+                className="tiptap article-body prose w-full max-w-none px-2 py-2 focus:border-none focus:outline-none focus:ring-none"
+              />
+            </div>
           </div>
         </div>
-
         {/* Footer counter --------------------------------------------------- */}
         <div className="text-xs p-2 text-center tracking-wide">
           <span
             className={`${styles.charCount} ${
-              counter.chars > CHAR_LIMIT ? 'text-red-600' : ''
+              counter.chars > CHAR_LIMIT ? "text-red-600" : ""
             }`}
           >
             {counter.words} words • {counter.chars}/{CHAR_LIMIT}

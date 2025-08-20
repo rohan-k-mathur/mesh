@@ -10,11 +10,11 @@
     "left": "Left",
     "center": "Center",
     "right": "Right",
-    "saveDraft": "Save draft",
-    "unsavedChanges": "Unsaved changes…",
+    "saveDraft": "Save Draft",
+    "unsavedChanges": "Unsaved Changes…",
     "suggestionMode": "Suggestion mode",
-    "suggestionOff": "Editing mode",
-    "checkAccessibility": "Check accessibility",
+    "suggestionOff": "Editing Mode",
+    "checkAccessibility": "Check Accessibility",
     "wordCount": "Words",
     "characterCount": "Characters"
   }
