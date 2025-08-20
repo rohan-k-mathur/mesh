@@ -110,6 +110,13 @@
   }
 }
 
+
+.article-body [data-align="center"], .article-body .ta-center { text-align: center !important;}
+.article-body [data-align="right"],  .article-body .ta-right  { text-align: right !important;}
+.article-body.prose p.ta-right { text-align: right !important; }
+
+.article-body [data-align="justify"],.article-body .ta-justify{ text-align: justify !important;}
+
 .controls {
   margin-bottom: 1rem;
 }

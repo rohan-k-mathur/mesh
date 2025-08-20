@@ -5,11 +5,11 @@ import { z } from 'zod'
 import { getUserFromCookies } from '@/lib/serverutils'
 // app/api/articles/[id]/draft/route.ts
 const schema = z.object({
-  astJson: z.any().optional(),
-  template: z.string().optional(),
-  heroImageKey: z.string().nullable().optional(),
-  title: z.string().min(1).max(200).optional(),   // ⬅️ add this
-}).partial()          
+    astJson: z.any().optional(),
+    template: z.string().optional(),
+    heroImageKey: z.string().nullable().optional(),
+    title: z.string().min(1).max(200).optional(),
+  })     
 
   export async function PATCH(
     req: Request,
@@ -28,47 +28,13 @@ const schema = z.object({
  if (!a || a.authorId !== user.userId.toString()) {
    return NextResponse.json({ error: 'Not found' }, { status: 404 })
  }
-
- await prisma.article.update({
-   where: { id: params.id },
-   data : parsed.data,
- })
-
+   const { title, ...rest } = parsed.data
+   const data: any = { ...rest }
+   // Only update title when it's present and non-empty (and not your sentinel)
+   if (typeof title === 'string' && title.trim() && title.trim() !== 'Untitled') {
+     data.title = title.trim()
+   }
+ 
+   await prisma.article.update({ where: { id: params.id }, data })
  return NextResponse.json({ ok: true })
 }
-// }
-//     // ↙ safeguard against empty body (avoids “Unexpected end of JSON”)
-//     const safeJson = async () => {
-//       try { return await req.json() } catch { return {} }
-//     }
-//     const body = await safeJson()
-//     const parsed = schema.safeParse(body)
-//     if (!parsed.success) {
-//       return NextResponse.json({ error: 'Invalid body' }, { status: 400 })
-//     }
-//     const a = await prisma.article.findUnique({ where: { id: params.id } })
-//   if (!a || a.authorId !== user.userId.toString()) {
-//     return NextResponse.json({ error: 'Not found' }, { status: 404 })
-//   }
-
-
-//   // ✔ do NOT force status back to DRAFT here
-//   await prisma.article.update({
-//     where: { id: params.id },
-//     data : { ...parsed.data },
-//   })
-
-//   return NextResponse.json({ ok: true })
-// }
-// }
-//     await prisma.article.update({
-//       where: { id: params.id },
-//       data : { ...parsed.data, status: 'DRAFT' },
-//     })
-//     if (!parsed.success) {
-//       console.error(parsed.error.flatten())
-//       return NextResponse.json({ error: 'Invalid body' }, { status: 400 })
-//     }
-  
-//     return NextResponse.json({ ok: true })
-//   }

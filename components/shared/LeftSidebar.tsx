@@ -40,6 +40,11 @@ function LeftSidebar({ userRooms }: Props) {
     await fetch("/api/logout");
     router.push("/login");
   }
+  function goHome()
+  {
+
+    router.push("/");
+  }
   function gotoprofile() {
     if (user.user?.userId) {
       router.push(`/profile/${user.user.userId}`);

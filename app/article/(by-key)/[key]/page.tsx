@@ -20,6 +20,40 @@ import {
 import TaskList from "@tiptap/extension-task-list"
 import TaskItem from "@tiptap/extension-task-item"
 import { TextStyleTokens } from "@/lib/tiptap/extensions/text-style-ssr";
+// ✅ SSR-safe align: uses data-attr + class, fully typed for TipTap
+const SSRTextAlign = TextAlign.extend({
+  addGlobalAttributes() {
+    return [
+      {
+        types: ["heading", "paragraph", "blockquote", "listItem"],
+        attributes: {
+          textAlign: {
+            default: null,
+            renderHTML: (attributes) => {
+              const align = attributes.textAlign;
+              if (!align) return {};
+              return {
+                "data-align": align,   // e.g. data-align="center"
+                class: `ta-${align}`,  // e.g. ta-center
+              };
+            },
+            parseHTML: (element) => {
+              // read from data-attr, then class, then fallback to inline style if present
+              const data = element.getAttribute("data-align");
+              if (data) return data;
+              const cls = element.getAttribute("class") || "";
+              const m = cls.match(/\bta-(left|right|center|justify)\b/);
+              if (m) return m[1];
+              // final fallback: inline style (if some old content still has it)
+              // @ts-ignore - style may be undefined on non-HTMLElement nodes in types, runtime it's fine
+              return element.style?.textAlign || null;
+            },
+          },
+        },
+      },
+    ];
+  },
+});
 
 export default async function ArticlePage({
   params,
@@ -55,13 +89,11 @@ export default async function ArticlePage({
       downvotes: c.downvotes,
     })),
   }));
-  /* 2️⃣ convert TipTap JSON → HTML (use SAME extensions as editor) */
+  // 🔁 Use the same extensions as the editor, but with SSRTextAlign
   const html = generateHTML(article.astJson as any, [
     StarterKit,
-    
     Highlight,
     Underline,
-   
     TaskList,
     TaskItem,
     CustomImage,
@@ -70,12 +102,10 @@ export default async function ArticlePage({
     MathBlock,
     MathInline,
     Link,
-    TextAlign.configure({
-      types: ["heading", "paragraph", "blockquote", "listItem"],
-      alignments: ["left", "center", "right", "justify"],
-    }),
-    TextStyleTokens, // ⬅️ last
-  ])
+    SSRTextAlign,     // ⬅️ use our SSR-safe aligner
+    TextStyleTokens,  // ⬅️ your fs/ff/clr tokenizer
+  ]);
+
   
   return (
     <ArticleReaderWithPins

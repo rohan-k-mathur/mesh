@@ -732,7 +732,10 @@ textarea {
   object-fit: cover;
 
 }
-
+/* Alignment mapping for the published reader */
+.article-body [data-align="center"], .article-body .ta-center { text-align: center !important;}
+.article-body [data-align="right"],  .article-body .ta-right  { text-align: right !important;}
+.article-body [data-align="justify"],.article-body .ta-justify{ text-align: justify !important;}
 
 .profile-name {
   display: flex;

@@ -33,13 +33,39 @@ function isApNegotiation(req: NextRequest) {
 
 
 export async function middleware(request: NextRequest) {
-  if (request.nextUrl.pathname.startsWith("/portfolio/")) {
+  const { pathname } = request.nextUrl;
+
+    // --- 0) Always allow cheap methods through (preflight, head) ---
+  if (request.method === "OPTIONS" || request.method === "HEAD") {
     return NextResponse.next();
   }
 
-  if (request.nextUrl.pathname === "/.well-known/webfinger") return NextResponse.next();
-  if (isApPath(request.nextUrl.pathname) && isApNegotiation(request)) return NextResponse.next();
 
+  // --- 1) Never run auth on static or public assets ---
+  if (
+    pathname.startsWith("/_next/") ||
+    pathname === "/favicon.ico" ||
+    pathname.startsWith("/fonts/") ||
+    pathname.startsWith("/images/") ||
+    pathname.startsWith("/assets/") ||
+    pathname === "/robots.txt" ||
+    pathname === "/sitemap.xml" ||
+    pathname === "/opensearch.xml"
+  ) {
+    return NextResponse.next();
+  }
+
+    // --- 2) Never run auth on ANY api routes (at any depth) ---
+  // (Prevents recursion when you fetch /swapmeet/api/spawn from middleware)
+  if (pathname === "/api" || pathname.includes("/api/")) {
+    return NextResponse.next();
+  }
+  // --- 3) Your other allowlists ---
+  if (pathname.startsWith("/portfolio/")) return NextResponse.next();
+  if (pathname === "/.well-known/webfinger") return NextResponse.next();
+  if (isApPath(pathname) && isApNegotiation(request)) return NextResponse.next();
+
+  // --- 4) Auth gate for everything else ---
   return authMiddleware(request, {
     loginPath: "/api/login",
     logoutPath: "/api/logout",
@@ -54,86 +80,47 @@ export async function middleware(request: NextRequest) {
       maxAge: 12 * 60 * 60 * 24,
     },
     serviceAccount: serverConfig.serviceAccount,
-    handleValidToken: async ({ token, decodedToken }, headers) => {
-      // Authenticated user should not be able to access /login, /register and /reset-password routes
-      if (
-        PUBLIC_PATHS.includes(request.nextUrl.pathname) &&
-        request.nextUrl.pathname !== "/room/global"
-      ) {
+    handleValidToken: async (_ctx, headers) => {
+      // Block auth'd users from auth pages (except /room/global)
+      if (PUBLIC_PATHS.includes(pathname) && pathname !== "/room/global") {
         return redirectToHome(request);
       }
 
-      // if (request.nextUrl.pathname === "/swapmeet") {
-      //   const { x, y } = await spawnSection();
-      //   return NextResponse.redirect(
-      //     new URL(`/swapmeet/market/${x}/${y}`, request.url),
-      //   );
-      // }
-            // 🔄  Edge‑safe fetch instead of direct Prisma call
-            // if (request.nextUrl.pathname === "/swapmeet") {
-            //   const apiUrl = new URL("/api/swapmeet/spawn", request.url);
-            //   const res    = await fetch(apiUrl, {
-            //     // pass session cookies / headers if your API route needs them
-            //     headers: { cookie: request.headers.get("cookie") ?? "" },
-            //   });
-      
-            //   if (res.ok) {
-            //     const { x, y } = await res.json();
-            //     return NextResponse.redirect(
-            //       new URL(`/swapmeet/market/${x}/${y}`, request.url),
-            //     );
-            //   }
-      
-            //   // Fallback if API failed
-            //   return NextResponse.next();
-            // }
-            if (request.nextUrl.pathname === "/swapmeet") {
-              const res = await fetch(new URL("/swapmeet/api/spawn", request.url));
-              if (res.ok) {
-                const { x, y } = (await res.json()) as { x: number; y: number };
-                return NextResponse.redirect(
-                  new URL(`/swapmeet/market/${x}/${y}`, request.url),
-                );
-              }
-            }
-      return NextResponse.next({
-        request: {
-          headers,
-        },
-      });
+      // Friendly redirect for /swapmeet
+      if (pathname === "/swapmeet") {
+        // This will NOT recurse now because /swapmeet/api/spawn is excluded above.
+        const res = await fetch(new URL("/swapmeet/api/spawn", request.url));
+        if (res.ok) {
+          const { x, y } = (await res.json()) as { x: number; y: number };
+          return NextResponse.redirect(new URL(`/swapmeet/market/${x}/${y}`, request.url));
+        }
+      }
+
+      return NextResponse.next({ request: { headers } });
     },
     handleInvalidToken: async (reason) => {
       console.info("Missing or malformed credentials", { reason });
-
-      return redirectToLogin(request, {
-        path: "/login",
-        publicPaths: PUBLIC_PATHS,
-      });
+      return redirectToLogin(request, { path: "/login", publicPaths: PUBLIC_PATHS });
     },
     handleError: async (error) => {
       console.error("Unhandled authentication error", { error });
-
-      return redirectToLogin(request, {
-        path: "/login",
-        publicPaths: PUBLIC_PATHS,
-      });
+      return redirectToLogin(request, { path: "/login", publicPaths: PUBLIC_PATHS });
     },
   });
 }
 
+// Matcher: apply to “pages” only; skip _next, root api, fonts/images/assets, files with dots
 export const config = {
   cookieSerializeOptions: {
     path: "/",
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production", // ← true in prod
+    secure: process.env.NODE_ENV === "production",
     sameSite: "lax" as const,
     maxAge: 12 * 60 * 60 * 24,
   },
-  
   matcher: [
-    "/.well-known/:path*",     
-    "/api/login",
-    "/api/logout",
-    "/((?!_next|favicon.ico|api|.*\\.).+)",
+    "/.well-known/:path*",
+    // let /api/* pass; it’s excluded inside anyway, but keeping it out here too helps:
+    "/((?!_next|favicon.ico|api|fonts|images|assets|.*\\.).+)",
   ],
 };

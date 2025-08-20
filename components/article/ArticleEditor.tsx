@@ -5,6 +5,7 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import { EditorContent } from '@tiptap/react';
@@ -30,6 +31,8 @@ import TextAlign from '@tiptap/extension-text-align';
 import TaskList from '@tiptap/extension-task-list';
 import TaskItem from '@tiptap/extension-task-item';
 import { createLowlight } from 'lowlight';
+import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
+
 import javascript from 'highlight.js/lib/languages/javascript';
 import typescript from 'highlight.js/lib/languages/typescript';
 import python from 'highlight.js/lib/languages/python';
@@ -37,7 +40,7 @@ import bash from 'highlight.js/lib/languages/bash';
 import katex from 'katex';
 import { keymap } from '@tiptap/pm/keymap';
 import { Node, mergeAttributes, type JSONContent, type Extension } from '@tiptap/core';
-import { ReactNodeViewRenderer } from '@tiptap/react';
+import { ReactNodeViewRenderer, NodeViewWrapper, NodeViewContent } from '@tiptap/react';
 import * as Y from 'yjs';
 import { WebsocketProvider } from 'y-websocket';
 import enStrings from '@/public/locales/en/editor.json';
@@ -53,7 +56,7 @@ import { uploadFileToSupabase } from '@/lib/utils';
 import styles from './article.module.scss';
 import Spinner from '../ui/spinner';
 import dynamic from 'next/dynamic';
-import NextImage from 'next/image';                              // 🆕 missing import
+import NextImage from 'next/image';                              
 import { useRouter } from "next/navigation";
 import 'katex/dist/katex.min.css';
 
@@ -134,14 +137,14 @@ interface ArticleEditorProps { articleId: string }
 //   },
 // });
 const PullQuote = PullQuoteBase.extend({
-  addNodeView() {
-    return ReactNodeViewRenderer(({ node }) => (
-      <blockquote className={`pull-quote ${node.attrs.alignment}`}>
-        {node.content.map(c => c.text).join(' ')}
-      </blockquote>
-    ))
-  },
-})
+    addNodeView() {
+      return ReactNodeViewRenderer(({ node }) => (
+        <NodeViewWrapper as="blockquote" className={`pull-quote ${node.attrs.alignment || 'left'}`}>
+          <NodeViewContent />
+        </NodeViewWrapper>
+      ));
+    },
+  });
 
 const Callout = Node.create({
   name: 'callout',
@@ -280,13 +283,14 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
   const [showUnsaved,   setShowUnsaved]   = useState(false);
   const [pendingRestore,setPendingRestore]= useState<Backup | null>(null);
   const [counter,       setCounter]       = useState({ words: 0, chars: 0 });
-  const [editorRef, setEditorRef] = useState<Editor | null>(null)
+  // const [editorRef, setEditorRef] = useState<Editor | null>(null)
   const [initialJson, setInitialJson] = useState<any>()
   const [publishing, setPublishing] = useState(false)
   const [revs, setRevs] = useState<{id:string;createdAt:string}[]|null>(null)
   const [title, setTitle] = useState<string>('Untitled')
   const router = useRouter();
-
+    const inflight = useRef<AbortController | null>(null);
+    const lastSentHash = useRef<string>("");
   /* ------------------------------ y‑js / collab --------------------------- */
 
   const ydoc = useMemo(() => new Y.Doc(), []);
@@ -327,7 +331,7 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
   const extensions = useMemo<Extension[]>(() => {
     return [
       StarterKit,
-
+      CodeBlockLowlight.configure({ lowlight }),
       TaskList,
       TaskItem,
       Highlight,
@@ -336,7 +340,8 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
         alignments: ['left', 'center', 'right', 'justify'],
       }),
       Underline,
-   
+      TextStyle,
+      Color,
       CustomImage,
       Link,
       Placeholder.configure({ placeholder: 'Write something…' }),
@@ -370,36 +375,49 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
   // )
   //  if (initialJson === undefined) return <div>Loading editor…</div>
 
- const editor = useEditor({
-   extensions,
-   content: initialJson,
-   immediatelyRender: false,
-   onCreate: ({ editor }) => setEditorRef(editor),
- })
+   const editor = useEditor({
+       extensions,
+       content: initialJson,
+       immediatelyRender: false,
+     })
 
-  /** 3️⃣ autosave once the editor is ready */
-  useEffect(() => {
-    if (!editorRef) return
-    const save = () => {
-      const body = {
-        astJson: editorRef.getJSON(),
-        template,
-        heroImageKey,
-        title
-      }
-      fetch(`/api/articles/${articleId}/draft`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      })
-    }
-    const id = setInterval(save, 1500)
-    return () => clearInterval(id)
-  }, [editorRef, articleId, template, heroImageKey])
-  /* ---------------------------------------------------------------------- */
-  /*  Dirty‑flag + “are you sure you want to leave?” browser dialog          */
-  /* ---------------------------------------------------------------------- */
-
+        // ---- Autosave (debounced   dedup   in-flight abort) -------------------
+        const makePayload = useCallback(() => {
+          if (!editor) return null
+          const payload: any = {
+            astJson: editor.getJSON(),
+            template,
+            heroImageKey,
+          }
+          const t = (title || '').trim()
+          if (t) payload.title = t           // don't send empty or "Untitled"
+          return payload
+        }, [editor, template, heroImageKey, title])
+      
+        const saveDraft = useCallback(async () => {
+          const payload = makePayload()
+          if (!payload) return
+          const hash = JSON.stringify(payload)
+          if (hash === lastSentHash.current) return
+      
+          inflight.current?.abort()
+          const ac = new AbortController()
+          inflight.current = ac
+      
+          try {
+            const res = await fetch(`/api/articles/${articleId}/draft`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+              signal: ac.signal,
+            })
+            if (res.ok) {
+              lastSentHash.current = hash
+            }
+          } catch { /* aborted or failed; ignore */ }
+        }, [articleId, makePayload])
+      
+        const debouncedSave = useDebouncedCallback(() => { void saveDraft() }, 800)
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
       e.preventDefault();
@@ -414,64 +432,25 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
   /* ---------------------------------------------------------------------- */
 
   const saveDraftImmediate = useCallback(async () => {
-    if (!editor || !articleId) return
-    const body = {
-      astJson: editor.getJSON(),
-      template,
-      heroImageKey,
-      title,
-    }
-    await fetch(`/api/articles/${articleId}/draft`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
+        await saveDraft()
     localStorage.setItem(
       LOCAL_KEY(articleId),
-      JSON.stringify({ ts: Date.now(), ...body }),
-    )
+      JSON.stringify({ ts: Date.now(), ...(makePayload() || {}) }),
+      )
     setIsDirty(false)
     setShowUnsaved(false)
-  }, [editor, articleId, template, heroImageKey, title])
-
-  const saveDraft = useCallback(async () => {
-    if (!editor) return
-    const body = {
-      astJson: editor.getJSON(),
-      template,
-      heroImageKey,
-      title,
-    }
-    await fetch(`/api/articles/${articleId}/draft`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
-  }, [editor, articleId, template, heroImageKey, title])
-
-  useEffect(() => {
-    if (!editor) return
-    const id = setInterval(saveDraft, 1500)
-    return () => clearInterval(id)
-  }, [editor, saveDraft])
-//   const publishArticle = useCallback(async () => {
-//     if (!articleId) return;
-// const res = await fetch(`/api/articles/${articleId}/publish`, { method: 'POST' })
-
-
-//     //localStorage.removeItem('draftArticleId')
-//     const { slug } = await res.json()
-
-//     if (res.ok) {
-//       const data = await res.json();
-//       //localStorage.removeItem(LOCAL_KEY(articleId));
-//       //localStorage.removeItem("draftArticleId");
-//       //router.push(`/article/${data.slug}`);
-//       router.push(`/article/${slug}`)           // open the published page
-//       localStorage.removeItem('draftArticleId')
-
-//     }
-//   }, [articleId, router]);
+  }, [articleId, saveDraft, makePayload])
+    // Hook editor updates -> debounced save
+    useEffect(() => {
+      if (!editor) return
+      const handler = () => {
+        setIsDirty(true)
+        setShowUnsaved(true)
+        debouncedSave()
+      }
+      editor.on('update', handler)
+      return () => editor.off('update', handler)
+    }, [editor, debouncedSave])
 
 const publishArticle = useCallback(async () => {
   if (!articleId || !editor || publishing) return
@@ -628,24 +607,18 @@ async function restoreRevision(revisionId: string) {
   /* ---------------------------------------------------------------------- */
   /*  Dirty‑flag on change + queued save                                     */
   /* ---------------------------------------------------------------------- */
+  function goHome()
+  {
+    router.push("/");
+  }
 
-  useEffect(() => {
-    if (!editor) return;
-    const handler = () => {
-      setIsDirty(true);
-      setShowUnsaved(true);
-      saveDraft();                // 2‑s debounce
-    };
-    editor.on('update', handler);
-    return () => editor.off('update', handler);
-  }, [editor, saveDraft]);
 
   /* also mark dirty when template or hero image changes */
   useEffect(() => {
     setIsDirty(true);
     setShowUnsaved(true);
-    saveDraft();
-  }, [template, heroImageKey, saveDraft]);
+    debouncedSave();
+  }, [template, heroImageKey, debouncedSave]);
 
   /* ---------------------------------------------------------------------- */
   /*  15‑second local backup                                                 */
@@ -793,6 +766,16 @@ async function restoreRevision(revisionId: string) {
 
   return (
     <div className="flex justify-center items-center mt-[-2rem]">
+       {/* bottom-left tab button */}
+
+        <button
+          onClick={() => goHome()}
+          className="fixed flex left-5 top-12 tracking-wide z-[9000] rounded-full bg-white/50  px-4 py-1 likebutton"
+        >
+          ⇤
+  Home
+        </button>
+
       <article className={template}>
         {/* Top‑bar ---------------------------------------------------------- */}
         {showUnsaved && (

@@ -64,7 +64,10 @@
     @apply bg-slate-200 font-medium;
   }
 }
-
+/* Alignment mapping for the published reader */
+.article-body [data-align="center"], .article-body .ta-center { text-align: center; }
+.article-body [data-align="right"],  .article-body .ta-right  { text-align: right; }
+.article-body [data-align="justify"],.article-body .ta-justify{ text-align: justify; }
 
 /* Hero image container ----------------------------------------------------- */
 .hero-img {

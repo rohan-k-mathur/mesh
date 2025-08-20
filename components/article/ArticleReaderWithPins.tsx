@@ -5,10 +5,12 @@ import ArticleReader from "@/components/article/ArticleReader";
 import CommentModal from "@/components/article/CommentModal";
 import type { Anchor, CommentThread } from "@/types/comments";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 /* ----------------------- DOM ↔ anchor helpers ----------------------- */
 
 /* ---------- Selection helpers (clean) ---------- */
 const PIN_Y_TWEAK = 0; // try +2 or -2 if your type scale changes
+
 
 function getAnchorCenterTop(anchor: Anchor, root: HTMLElement): number | null {
   const rects = getAnchorRects(anchor, root);
@@ -324,6 +326,12 @@ export default function ArticleReaderWithPins({
   const [tick, setTick] = useState(0);
   const GUTTER = 100; // px
 
+  const router = useRouter();
+  function goHome()
+  {
+    router.push("/");
+  }
+
   const [hoverId, setHoverId] = useState<string | null>(null);
   const [adder, setAdder] = useState<{ anchor: Anchor; rect: DOMRect } | null>(
     null
@@ -353,6 +361,8 @@ export default function ArticleReaderWithPins({
     text: string;
   } | null>(null);
   const [draftBody, setDraftBody] = useState("");
+
+
 
   // recalc on scroll/resize
   useEffect(() => {
@@ -494,13 +504,20 @@ export default function ArticleReaderWithPins({
 
   return (
     <ArticleReader template={template} heroSrc={heroSrc} title={title}>
+
+<button
+          onClick={() => goHome()}
+          className="fixed flex left-5 top-12 tracking-wide z-[9000] rounded-full bg-white/50  px-4 py-1 likebutton"
+        >
+          ⇤
+  Home
+        </button>
       <div className="relative">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
           {/* Article + pins */}
 
           <div className="relative ml-[7%] mt-[1%]">
-            {/* Title */}
-            {title && <h1 className="text-3xl font-semibold mb-4">{title}</h1>}
+        
             {/* Article content (defines the coordinate space) */}
             <div className="relative">
               <div

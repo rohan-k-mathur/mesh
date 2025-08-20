@@ -2,7 +2,6 @@
 'use client'
 
 import clsx from 'clsx'
-import Image from 'next/image'
 
 
 interface ArticleReaderProps {
@@ -22,6 +21,11 @@ export default function ArticleReader({
 }: ArticleReaderProps) {
   return (
     <article className={clsx(template, 'mx-auto')}>
+        {title && (
+        <header className="mb-6">
+          <h1 className="text-3xl font-semibold text-center tracking-wide">{title}</h1>
+        </header>
+      )}
       {heroSrc && (
         <img
           src={heroSrc}
