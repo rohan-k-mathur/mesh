@@ -53,15 +53,46 @@ export function jsonToCanvasState(
   obj: any,
   projectKey?: string,
 ): CanvasState | null {
+
   if (!obj || obj.schemaVersion !== 1) {
     if (projectKey && typeof window !== "undefined") {
       localStorage.removeItem(projectKey);
     }
     return null;
   }
+  
   const elements = new Map<string, ElementRecord>();
   if (Array.isArray(obj.elements)) {
     obj.elements.forEach((el: ElementRecord) => elements.set(el.id, el));
+  }
+  if (Array.isArray(obj?.elements)) {
+    obj.elements = obj.elements.map((e: any) => {
+      if (e?.kind === "component") {
+        // Ensure props exists
+        e.props = e.props ?? {};
+  
+        // Migrate GalleryCarousel: ensure animation default
+        if (e.component === "GalleryCarousel" && e.props.animation == null) {
+          e.props.animation = "cube";
+        }
+  
+        // Migrate Repeater: coerce map to generic Record<string,string>
+        if (e.component === "Repeater") {
+          if (e.props.map && typeof e.props.map === "object") {
+            // ok
+          } else if (e.props.urls || e.props.caption) {
+            const m: Record<string,string> = {};
+            if (e.props.urls) m.urls = e.props.urls;
+            if (e.props.caption) m.caption = e.props.caption;
+            e.props.map = m;
+            delete e.props.urls;
+            delete e.props.caption;
+          }
+          e.props.staticProps = e.props.staticProps ?? {};
+        }
+      }
+      return e;
+    });
   }
   const selected = new Set<string>(Array.isArray(obj.selected) ? obj.selected : []);
   return {

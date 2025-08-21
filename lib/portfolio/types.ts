@@ -8,24 +8,47 @@ export interface BaseGeometry {
 }
 
 export type ElementKind = 'text' | 'image' | 'video' | 'link' | 'component' | 'box';
+export type ComponentName = 'GalleryCarousel' | 'Repeater';
 
-// ---- Component allow-list & props map ----
-export type ComponentName = 'GalleryCarousel';
 
-export type ComponentPropsMap = {
-  GalleryCarousel: {
-    urls: string[];
-    caption?: string;
-    animation?: 'cylinder' | 'cube' | 'portal' | 'towardscreen';
-  };
+
+// Data source for Repeaters
+export type DataSource =
+  | { kind: 'static'; value: any[] }
+  | { kind: 'url'; href: string }
+  | { kind: 'supabase'; table: string; filter?: Record<string, any>; fields?: string[]; limit?: number };
+
+// Minimal field mapping for GalleryCarousel (Phase 1)
+export type GalleryMap = {
+  urls?: string;     // dot-path in each row that resolves to string[] or string
+  caption?: string;  // dot-path that resolves to string
 };
 
-export type ComponentElementRecord<C extends ComponentName = ComponentName> =
-  BaseGeometry & {
-    kind: 'component';
-    component: C;
-    props: ComponentPropsMap[C];
-  };
+
+// Component props map (handy for CanvasRenderer typing)
+export type ComponentPropsMap = {
+  GalleryCarousel: { urls: string[]; caption?: string; animation?: 'cylinder'|'cube'|'portal'|'towardscreen'; embed?: boolean; unoptimized?: boolean; sizes?: string };
+  Repeater: RepeaterProps;
+};
+
+// Component element
+export interface ComponentElementRecord {
+  id: string;
+  kind: 'component';
+  component: ComponentName;
+  // keep as loose record, but most code can import ComponentPropsMap for safety
+  props: Record<string, unknown>;
+  x: number; y: number; width: number; height: number;
+}
+
+// Repeater props
+export type RepeaterProps = {
+  of: 'GalleryCarousel';            // (Phase 1) we target the gallery
+  source: DataSource;
+  map?: GalleryMap;
+  layout?: 'grid' | 'column';       // how repeated items are arranged
+  limit?: number;
+};
 
 export type TextBoxRecord = BaseGeometry & {
   kind: "text";

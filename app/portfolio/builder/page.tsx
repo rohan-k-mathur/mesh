@@ -67,6 +67,13 @@ import {
 } from "@/components/ui/select";
 import { isSafeYoutubeEmbed, isSafeHttpLink } from "@/lib/utils/validators";
 import { getBoundingRect } from "@/lib/portfolio/selection";
+import Repeater from "@/components/cards/Repeater";
+import AutoInspector from "@/components/portfolio/AutoInspector";
+import RepeaterPropsPanel from "@/components/portfolio/RepeaterPropsPanel";
+import { registry } from "@/lib/portfolio/registry";
+import type { ComponentName } from "@/lib/portfolio/types";
+import { MacSwitch } from "@/components/ui/switch";
+import { Switch } from "@/components/ui/switch"
 
 /* ---------- Smart-guides helper ---------- */
 type GuideLines = { v: number[]; h: number[] };
@@ -160,18 +167,16 @@ type ResizeTarget = {
 
 type DrawMode = null | "text" | "image" | "video" | "link";
 
-function mkComponentElement(
-  component: "GalleryCarousel",
+function mkComponentElement<C extends ComponentName>(
+  component: C,
   pos: { x: number; y: number; width: number; height: number }
 ): ElementRecord {
+  const def = registry[component];
   return {
     id: nanoid(),
     kind: "component",
     component,
-    props:
-      component === "GalleryCarousel"
-        ? { urls: [], caption: "", animation: "cube" }
-        : {},
+    props: def?.defaultProps ?? {},
     ...pos,
   } as any;
 }
@@ -1116,181 +1121,6 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
 );
 DroppableCanvas.displayName = "DroppableCanvas";
 
-// function computeResize(corner: Corner, start: Dim, dx: number, dy: number) {
-//   switch (corner) {
-//     case "se": return { w: start.width + dx,  h: start.height + dy,  l: start.left,          t: start.top          };
-//     case "sw": return { w: start.width - dx,  h: start.height + dy,  l: start.left + dx,     t: start.top          };
-//     case "ne": return { w: start.width + dx,  h: start.height - dy,  l: start.left,          t: start.top + dy     };
-//     case "nw": return { w: start.width - dx,  h: start.height - dy,  l: start.left + dx,     t: start.top + dy     };
-//     default:   return start;                // satisfies TS exhaustiveness
-//   }
-// }
-// const handleBoxPointerDown = (e: React.PointerEvent, box: TextBoxRecord) => {
-//   if ((e.target as HTMLElement).classList.contains("resize-handle")) return;
-//   e.stopPropagation();
-//   setSelectedId(box.id);
-//   const rect = canvasRef.current!.getBoundingClientRect();
-//   setDragging({
-//     id: box.id,
-//     startX: e.clientX - rect.left,
-//     startY: e.clientY - rect.top,
-//     startLeft: box.x,
-//     startTop: box.y,
-//   });
-// };
-
-//     /* imperative handle exposed to parent */
-//     useImperativeHandle(ref, () => ({ startResize: handleResizeStart }), [
-//       handleResizeStart,
-//     ]);
-
-//     /* ---------- update routines used by global listener ---------- */
-//     const updateResize = (ev: PointerEvent, s: ResizeState) => {
-//       const rect = canvasRef.current!.getBoundingClientRect();
-//       const dx = ev.clientX - rect.left - s.startX;
-//       const dy = ev.clientY - rect.top  - s.startY;
-
-//       /* compute position/size */
-//       let { left, top, width: w, height: h } = (() => {
-//         switch (s.corner) {
-//           case "se": return { left: s.startLeft,           top: s.startTop,
-//                               width: Math.max(20, s.startWidth  + dx),
-//                               height: Math.max(20, s.startHeight + dy) };
-//           case "sw": return { left: s.startLeft + dx,      top: s.startTop,
-//                               width: Math.max(20, s.startWidth  - dx),
-//                               height: Math.max(20, s.startHeight + dy) };
-//           case "ne": return { left: s.startLeft,           top: s.startTop + dy,
-//                               width: Math.max(20, s.startWidth  + dx),
-//                               height: Math.max(20, s.startHeight - dy) };
-//           case "nw": return { left: s.startLeft + dx,      top: s.startTop + dy,
-//                               width: Math.max(20, s.startWidth  - dx),
-//                               height: Math.max(20, s.startHeight - dy) };
-//         }
-//       })();
-
-//       if (s.target.kind === "text") {
-//         setBoxes(bs => bs.map(b =>
-//           b.id === s.target.id ? { ...b, x: left, y: top, width: w, height: h } : b
-//         ));
-//       } else {
-//         setElements(es => es.map(el =>
-//           el.id === s.target.id ? { ...el, x: left, y: top, width: w, height: h } : el
-//         ));
-//       }
-//     };
-
-//     const updateDrag = (ev: PointerEvent, d: DragState) => {
-//       const rect = canvasRef.current!.getBoundingClientRect();
-//       const dx = ev.clientX - rect.left - d.startX;
-//       const dy = ev.clientY - rect.top  - d.startY;
-//       setBoxes(bs => bs.map(b =>
-//         b.id === d.id ? { ...b, x: d.startLeft + dx, y: d.startTop + dy } : b
-//       ));
-//     };
-
-//     /* ---------- global pointer listeners (mount once) ---------- */
-//     useEffect(() => {
-//       const onMove = (ev: PointerEvent) => {
-//         if (resizeRef.current) updateResize(ev, resizeRef.current);
-//         if (dragRef.current)   updateDrag(ev,   dragRef.current);
-//       };
-//       const onUp = () => {
-//         resizeRef.current = null;
-//         dragRef.current   = null;
-//         _setResizing(null);
-//         _setDragging(null);
-//       };
-//       window.addEventListener("pointermove", onMove);
-//       window.addEventListener("pointerup",   onUp);
-//       return () => {
-//         window.removeEventListener("pointermove", onMove);
-//         window.removeEventListener("pointerup",   onUp);
-//       };
-//     }, []);
-
-//     /* ---------- JSX ---------- */
-//     const layoutClass =
-//       layout === "free"
-//         ? "flex flex-col grow gap-2"
-//         : layout === "grid"
-//         ? "grid grid-cols-2 gap-2"
-//         : "flex flex-col gap-2";
-
-//     return (
-//       <div
-//         ref={(node) => {
-//           canvasRef.current = node;
-//         }}
-//         className={`relative flex-1 min-h-screen border border-dashed p-4 ${color} ${layoutClass}`}
-//         style={{ cursor: isDrawing ? "crosshair" : "default" }}
-//         onMouseDown={(e) => {
-//           if (e.target === canvasRef.current) setSelectedId(null);
-//           if (isDrawing) startDraw(e);
-//         }}
-//         onMouseMove={isDrawing ? moveDraw : undefined}
-//         onMouseUp={isDrawing ? endDraw : undefined}
-//       >
-//         {children}
-
-//         {/* --- render text boxes --- */}
-//         {boxes.map((box) => (
-//           <div
-//             key={box.id}
-//             style={{ left: box.x, top: box.y, width: box.width, height: box.height }}
-//             className="absolute border-2 border-dashed border-gray-400 bg-white cursor-move"
-//             onPointerDown={(e) => {
-//               if ((e.target as HTMLElement).classList.contains("resize-handle")) return;
-//               e.stopPropagation();
-//               const rect = canvasRef.current!.getBoundingClientRect();
-//               setDragging({
-//                 id: box.id,
-//                 startX: e.clientX - rect.left,
-//                 startY: e.clientY - rect.top,
-//                 startLeft: box.x,
-//                 startTop: box.y,
-//               });
-//               setSelectedId(box.id);
-//             }}
-//           >
-//             {/* resize handles */}
-//             {(["nw", "ne", "sw", "se"] as Corner[]).map((c) => (
-//               <div
-//                 key={c}
-//                 className={`${styles[`handle-${c}`]}`}
-//                 onPointerDown={(e) =>
-//                   handleResizeStart(e, { id: box.id, kind: "text" }, c)
-//                 }
-//               />
-//             ))}
-
-//             {/* editable text */}
-//             <EditableBox
-//               box={box}
-//               onInput={(t) => setBoxes(bs =>
-//                 bs.map(b => (b.id === box.id ? { ...b, text: t } : b))
-//               )}
-//             />
-//           </div>
-//         ))}
-
-//         {/* selection draft rectangle */}
-//         {draft && (
-//           <div
-//             style={{
-//               left: draft.width < 0 ? draft.x + draft.width : draft.x,
-//               top: draft.height < 0 ? draft.y + draft.height : draft.y,
-//               width: Math.abs(draft.width),
-//               height: Math.abs(draft.height),
-//             }}
-//             className="absolute border border-dashed border-gray-400 bg-white/50 pointer-events-none"
-//           />
-//         )}
-//       </div>
-//     );
-//   }
-// );
-// DroppableCanvas.displayName = "DroppableCanvas";
-
 function PortfolioBuilderInner({
   initialLayout = "free",
   initialColor = "bg-white",
@@ -1368,37 +1198,13 @@ function PortfolioBuilderInner({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [undo, redo]);
-  // const handleResizeStart = (
-  //   e: React.PointerEvent,
-  //   target: ResizeTarget,
-  //   corner: Corner
-  // ) => {
-  //   handleResizeStart.current?.(e, target, corner); // delegate
-  // };
-
 
   const proxyResizeStart = (
-    e: React.PointerEvent,  
+    e: React.PointerEvent,
     target: ResizeTarget,
     corner: Corner
   ) => canvasHandle.current?.startResize(e, target, corner);
 
-  // /* --- inside PortfolioBuilder --- */
-  // const resizeStartRef = useRef<
-  //   (e: React.PointerEvent, t: ResizeTarget, c: Corner) => void
-  // >();
-
-  // thin wrapper the JSX can call
-  // const proxyResizeStart = (
-  //   e: React.PointerEvent,
-  //   target: ResizeTarget,
-  //   corner: Corner
-  // ) => resizeStartRef.current?.(e, target, corner);
-
-  // Keep a ref so DroppableCanvas gives us its real implementation
-  // const canvasHandleResizeStart = useRef<
-  //   (e: React.PointerEvent, target: ResizeTarget, corner: Corner) => void
-  // >(null);
   const canvasHandle = useRef<DroppableCanvasHandle>(null);
 
   const startResize = (
@@ -1535,17 +1341,16 @@ function PortfolioBuilderInner({
       .map((e) => (e as any).href as string);
     return { text, images, links, layout, color };
   }
-  const { user } = useAuth(); 
+  const { user } = useAuth();
   const currentUserId = user?.userId;
   async function handlePublish() {
-
     const payload = {
       ...serialize(),
       absolutes: buildAbsoluteExport(),
       ownerId: user?.userId != null ? String(user.userId) : undefined, // ✅ JSON-safe
       meta: {
-        title: "Portfolio page",      // or derive from content
-        caption: "",                  // you can wire a field in the UI
+        title: "Portfolio page", // or derive from content
+        caption: "", // you can wire a field in the UI
       },
     };
     setShowGrid(false); // hide grid for snapshot/export
@@ -1578,52 +1383,7 @@ function PortfolioBuilderInner({
 
     router.push(url); // open the live page for the author
   }
-  function GalleryCarouselPropsEditor({
-    value,
-    onChange,
-  }: {
-    value: {
-      urls?: string[];
-      caption?: string;
-      animation?: "cylinder" | "cube" | "portal" | "towardscreen";
-    };
-    onChange: (patch: Partial<typeof value>) => void;
-  }) {
-    const urlsText = (value.urls || []).join("\n");
-    return (
-      <div className="flex flex-col space-y-3 mt-6">
-        <label className="block text-xs">Images (one URL per line)</label>
-        <textarea
-          className="w-64 h-36 border rounded p-2 text-sm bg-white"
-          value={urlsText}
-          onChange={(e) =>
-            onChange({
-              urls: e.target.value
-                .split("\n")
-                .map((s) => s.trim())
-                .filter(Boolean),
-            })
-          }
-        />
-        <label className="block text-xs">Caption</label>
-        <Input
-          value={value.caption ?? ""}
-          onChange={(e) => onChange({ caption: e.target.value })}
-        />
-        <label className="block text-xs">Animation</label>
-        <select
-          className="border rounded p-1 bg-white"
-          value={value.animation ?? "cube"}
-          onChange={(e) => onChange({ animation: e.target.value as any })}
-        >
-          <option value="cube">cube</option>
-          <option value="cylinder">cylinder</option>
-          <option value="portal">portal</option>
-          <option value="towardscreen">towardscreen</option>
-        </select>
-      </div>
-    );
-  }
+
   function applyTemplate(name: string) {
     const tpl = templates.find((t) => t.name === name);
     if (!tpl) return;
@@ -1725,20 +1485,22 @@ function PortfolioBuilderInner({
           ) : null}
         </DragOverlay> */}
       <div className="flex h-screen">
-        <div className=" flex-grow-0 flex-shrink-0 border-r py-2 px-4 space-y-4  mt-12">
+        <div className=" flex-grow-0 flex-shrink-0 border-r py-2 px-4 space-y-4  mt-12 h-max-screen overflow-y-auto">
           <div className="flex flex-col gap-2 w-fit">
-            <button
-              onClick={() => setShowGrid((g) => !g)}
-              className={`text-[.9rem] lockbutton
-            flex gap-2 w-full justify-start px-4 py-2 rounded-md l
-             lockbutton tracking-wide
-            ${showGrid ? "bg-slate-200" : "bg-white"}`}
-            >
-              {showGrid ? "Hide Grid" : "Show Grid"}
-            </button>
+
+            
+          <label className="flex items-center justify-center  gap-2 cursor-pointer">
+  <MacSwitch
+    checked={showGrid}
+    onCheckedChange={setShowGrid}
+
+  />
+    <span className="text-sm">{showGrid ? "Hide Grid" : "Show Grid"}</span>
+
+</label>
             <label
-              className="flex flex-col flex-1 justify-center items-center border-[1px] shadow-md shadow-black
-           rounded-md w-fit bg-white text-center mt-2 py-1 "
+              className="flex flex-col flex-1 justify-center items-center  labelbutton text-xs 
+           rounded-md w-fit bg-white text-center mt-2 pt-1 "
             >
               Grid&nbsp;Size
               <input
@@ -1746,7 +1508,7 @@ function PortfolioBuilderInner({
                 min={5}
                 step={5}
                 width={5}
-                className="flex flex-1  mt-1 border justify-center items-center bg-slate-200 px-2 py-1 text-center"
+                className="flex flex-1  mt-1 border justify-center items-center bg-slate-200 rounded-b-md px-2 py-2 text-center"
                 value={gridSize}
                 onChange={(e) => setGridSize(Math.max(5, +e.target.value))}
               />
@@ -1767,15 +1529,15 @@ function PortfolioBuilderInner({
               src="/assets/text--creation.svg"
               alt={"text"}
               className="p-0 flex-grow-0 flex-shrink-0"
-              width={24}
-              height={24}
+              width={20}
+              height={20}
             />
           </button>
           <div className="mt-6 space-y-2 border-t pt-4">
             <p className="text-xs uppercase tracking-wide text-slate-500">
               Components
             </p>
-            <button
+            {/* <button
               className="flex gap-2 w-full justify-start px-4 py-2 rounded-md bg-white lockbutton"
               onClick={() => {
                 const id = nanoid();
@@ -1796,7 +1558,7 @@ function PortfolioBuilderInner({
                 width={24}
                 height={24}
               />
-            </button>
+            </button> */}
           </div>
 
           <button
@@ -1838,6 +1600,50 @@ function PortfolioBuilderInner({
               height={24}
             />
           </button>
+          <button
+            className="flex gap-2 w-full justify-start px-4 py-2 rounded-md bg-white lockbutton"
+            onClick={() => {
+              const id = nanoid();
+              const el = {
+                id,
+                kind: "component",
+                component: "Repeater" as const,
+                props: {
+                  of: "GalleryCarousel",
+                  source: {
+                    kind: "static",
+                    value: [
+                      {
+                        images: ["https://picsum.photos/seed/a/800/600"],
+                        title: "Sample A",
+                      },
+                      {
+                        images: ["https://picsum.photos/seed/b/800/600"],
+                        title: "Sample B",
+                      },
+                    ],
+                  },
+                  map: { urls: "images", caption: "title" },
+                  layout: "grid",
+                  limit: 6,
+                },
+                x: 120,
+                y: 120,
+                width: 640,
+                height: 480,
+              } as const;
+              dispatch({ type: "add", element: el as any });
+              dispatch({ type: "selectOne", id: el.id });
+            }}
+          >
+            Repeater
+            <Image
+              src="/assets/replicate.svg"
+              alt="repeater"
+              width={24}
+              height={24}
+            />
+          </button>
 
           <button
             className={` flex gap-2 w-full justify-start px-4 py-2 rounded-md l
@@ -1858,6 +1664,30 @@ function PortfolioBuilderInner({
               height={24}
             />
           </button>
+          {Object.values(registry)
+  .filter((d) => d.name !== "Repeater") // you already show a custom Repeater button above
+  .map((def) => (
+    <button
+      key={def.name}
+      className="flex gap-2 w-full justify-start px-4 py-2 rounded-md bg-white lockbutton"
+      onClick={() => {
+        const id = nanoid();
+        const el = {
+          id,
+          kind: "component",
+          component: def.name,
+          props: def.defaultProps,
+          x: 120, y: 120, width: 600, height: 460,
+        };
+        dispatch({ type: "add", element: el as any });
+        dispatch({ type: "selectOne", id });
+      }}
+    >
+      {def.label ?? def.name}    {/* use label if you added it; else fallback to name */}
+      {def.icon && <Image src={def.icon} alt="icon" width={24} height={24} />}
+
+    </button>
+  ))}
           {isTextBox && (
             <StylePanel
               box={selectedEl as TextBoxRecord}
@@ -1988,23 +1818,7 @@ function PortfolioBuilderInner({
                             {/* <span className="text-xs text-gray-600">Choose file</span> */}
                           </label>
                         )}
-                        {/* {(["nw", "ne", "sw", "se"] as Corner[]).map(
-                          (corner) => (
-                            <div
-                              key={corner}
-                              onPointerDown={(e) =>
-                                startResize(
-                                  e,
-                                  { id: el.id, kind: "image" },
-                                  corner
-                                )
-                              }
-                              className={`${styles.handle} ${styles[`handle-${corner}`]}`}
 
-                              // className={`resize-handle rounded-full bg-black handle-${corner}`}
-                            />
-                          )
-                        )} */}
                         {(["nw", "ne", "sw", "se"] as const).map((corner) => (
                           <ResizeHandle
                             key={corner}
@@ -2105,6 +1919,51 @@ function PortfolioBuilderInner({
                         </div>
                       );
                     })()}
+
+                  {el.kind === "component" && el.component === "Repeater" && (
+                    <div
+                      className="relative w-full h-full border-2 border-dashed border-gray-500/60 bg-white"
+                      onPointerDownCapture={(e) =>
+                        dispatch({ type: "selectOne", id: el.id })
+                      }
+                    >
+                      <div className="pointer-events-none w-full h-full flex items-center justify-center">
+                        <div className="pointer-events-none w-full h-full">
+                          {/* Non-interactive preview so drag/resize still works */}
+                          <Repeater {...(el.props as any)} />
+                        </div>
+                      </div>
+
+                      {(["nw", "ne", "sw", "se"] as const).map((corner) => (
+                        <ResizeHandle
+                          key={corner}
+                          corner={corner}
+                          onPointerDown={(ev) =>
+                            startResize(
+                              ev,
+                              { id: el.id, kind: "component" },
+                              corner
+                            )
+                          }
+                        />
+                      ))}
+
+                      <button
+                        className="absolute -bottom-7 left-2 lockbutton rounded-md"
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onClick={() => dispatch({ type: "remove", id: el.id })}
+                        aria-label="Delete"
+                        title="Delete"
+                      >
+                        <Image
+                          src="/assets/trash-can.svg"
+                          alt=""
+                          width={14}
+                          height={14}
+                        />
+                      </button>
+                    </div>
+                  )}
                   {el.kind === "video" && (
                     <div className="p-1 border border-transparent">
                       {el.src ? (
@@ -2326,7 +2185,7 @@ function PortfolioBuilderInner({
             )
           )}
         </DroppableCanvas>
-        <div className="w-fit border-l px-4 py-2 mt-8 space-y-4">
+        <div className="w-fit border-l px-4 py-2 mt-8 space-y-4 max-h-screen overflow-y-auto">
           <div className="rounded-xl bg-transparent border-[1px] border-black p-3 ">
             <p className="text-sm mb-1">Template</p>
             <select
@@ -2374,14 +2233,17 @@ function PortfolioBuilderInner({
               <option value="grid">Grid</option>
             </select>
           </div>
-          <div className="flex gap-2">
-            <button onClick={undo} title="Undo (⌘Z)" aria-label="Undo">
+          <div className="flex gap-8 justify-center items-center">
+            <button onClick={undo} title="Undo (⌘Z)" aria-label="Undo" className="likebutton bg-white/50 rounded-xl p-1">
               <Image src="/assets/undo.svg" width={20} height={20} alt="" />
             </button>
-            <button onClick={redo} title="Redo (⇧⌘Z)" aria-label="Redo">
+            <button onClick={redo} title="Redo (⇧⌘Z)" aria-label="Redo" className="likebutton bg-white/50 rounded-xl p-1">
               <Image src="/assets/redo.svg" width={20} height={20} alt="" />
             </button>
+            
           </div>
+          <hr className="my-2" />
+
           {isComponent &&
             selectedEl.kind === "component" &&
             selectedEl.component === "GalleryCarousel" && (
@@ -2410,6 +2272,50 @@ function PortfolioBuilderInner({
                 }}
               />
             )}
+
+          {isComponent &&
+            selectedEl.kind === "component" &&
+            (() => {
+              const def =
+                registry[selectedEl.component as keyof typeof registry];
+              if (!def) return null;
+
+              if (selectedEl.component === "Repeater") {
+                return (
+                  <RepeaterPropsPanel
+                    value={(selectedEl as any).props}
+                    onChange={(next) =>
+                      dispatch({
+                        type: "patch",
+                        id: selectedEl.id,
+                        patch: {
+                          props: { ...(selectedEl as any).props, ...next },
+                        },
+                      })
+                    }
+                  />
+                );
+              }
+
+              // Generic panel for any other component
+              return (
+                <AutoInspector
+                  def={def}
+                  value={(selectedEl as any).props || def.defaultProps}
+                  onChange={(patch) =>
+                    dispatch({
+                      type: "patch",
+                      id: selectedEl.id,
+                      patch: {
+                        props: { ...(selectedEl as any).props, ...patch },
+                      },
+                    })
+                  }
+                  // Hide "embed" in the editor if you prefer it controlled by viewerDefaults
+                  excludeKeys={["unoptimized", "sizes"]}
+                />
+              );
+            })()}
           <button
             className="w-full  bg-gray-100 border-black border-[1px] lockbutton  text-black  px-1 py-2
             tracking-wide text-[1.1rem] rounded-xl"

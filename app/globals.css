@@ -922,7 +922,13 @@ textarea {
   color: #333;                /* text color */
   text-decoration: none;
 }
+.labelbutton {
+  background-color: transparent;
+  padding: 2px;
+  border-radius: 4px;
+  box-shadow: 1px 1px 1px 1px rgba(0,0,0,0.5);
 
+}
 .lockbutton {
   background-color: transparent;
   padding: 2px;

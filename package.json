@@ -15,10 +15,8 @@
     "predev": "npm run -w @app/sheaf-acl build",
     "db:push": "prisma db push",
     "post:db:push": "npm run gen:db:types",
-
     "migrate": "prisma migrate dev",
     "post:migrate": "npm run gen:db:types",
-
     "gen:db:types": "supabase gen types typescript --project-id $SUPABASE_PROJECT_ID --schema public,graphql_public > supabase/database-supabase.ts",
     "prepare:db:types": "bash -lc '[ -n \"$SUPABASE_ACCESS_TOKEN\" ] && npm run gen:db:types || echo \"skip: no SUPABASE_ACCESS_TOKEN\"'",
     "prebuild": "npm run -w @app/sheaf-acl build",
@@ -66,6 +64,7 @@
     "@radix-ui/react-select": "^2.1.6",
     "@radix-ui/react-slider": "^1.2.3",
     "@radix-ui/react-slot": "^1.1.0",
+    "@radix-ui/react-switch": "^1.2.6",
     "@radix-ui/react-tabs": "^1.1.0",
     "@react-google-maps/api": "^2.20.6",
     "@react-spring/web": "^10.0.1",
