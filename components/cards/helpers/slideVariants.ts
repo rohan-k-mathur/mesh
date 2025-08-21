@@ -1,6 +1,6 @@
 // helpers/slideVariants.ts
 import { Variants } from 'framer-motion';
-import { GalleryAnimationStyle } from '../GalleryCarousel';
+import type { GalleryAnimationStyle } from '../GalleryCarousel';
 export const buildSlideVariants = (
   style: GalleryAnimationStyle,
   radius= 400,
@@ -144,6 +144,10 @@ export const buildSlideVariants = (
     }
 
     default:
-      return {};
+      return {
+        enter: (dir: number) => ({ x: dir > 0 ? 120 : -120, opacity: 0 }),
+        center: { x: 0, opacity: 1 },
+        exit: (dir: number) => ({ x: dir > 0 ? -120 : 120, opacity: 0 }),
+      };
+    }
   }
-};

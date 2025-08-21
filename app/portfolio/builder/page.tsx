@@ -26,11 +26,15 @@ import {
   useSensors,
   pointerWithin,
 } from "@dnd-kit/core";
+import { useAuth } from "@/lib/AuthContext";
 import { useSortable, arrayMove } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { nanoid } from "nanoid";
 import { useRouter } from "next/navigation";
-import { uploadFileToSupabase } from "@/lib/utils";
+import {
+  uploadFileToSupabase,
+  uploadPortfolioFileToSupabase,
+} from "@/lib/utils";
 import { PortfolioExportData } from "@/lib/portfolio/export";
 import { templates } from "@/lib/portfolio/templates";
 import Image from "next/image";
@@ -39,6 +43,9 @@ import { feed_post_type } from "@prisma/client";
 import { Input } from "@/components/ui/input";
 import styles from "./resize-handles.module.css"; // CSS module for handles
 import { TextBoxRecord, ElementRecord } from "@/lib/portfolio/types";
+import GalleryCarousel from "@/components/cards/GalleryCarousel";
+import GalleryPropsPanel from "@/components/portfolio/GalleryPropsPanel";
+
 import {
   CanvasProvider,
   useCanvasDispatch,
@@ -61,63 +68,79 @@ import {
 import { isSafeYoutubeEmbed, isSafeHttpLink } from "@/lib/utils/validators";
 import { getBoundingRect } from "@/lib/portfolio/selection";
 
-
- 
- /* ---------- Smart-guides helper ---------- */
- type GuideLines = { v: number[]; h: number[] };
- function computeGuidesForMove(
-   base: { left: number; top: number; width: number; height: number },
-   elements: ElementRecord[],
-   excludeIds: string[],
-   cumX: number,
-   cumY: number,
-   gridSize: number,
-   tolerance = 6
- ): { snappedX: number; snappedY: number; guides: GuideLines } {
-   const moved = {
-     left: base.left + cumX,
-     top: base.top + cumY,
-     width: base.width,
-     height: base.height,
-   };
-  const movingX = [moved.left, moved.left + moved.width / 2, moved.left + moved.width];
-  const movingY = [moved.top, moved.top + moved.height / 2, moved.top + moved.height];
+/* ---------- Smart-guides helper ---------- */
+type GuideLines = { v: number[]; h: number[] };
+function computeGuidesForMove(
+  base: { left: number; top: number; width: number; height: number },
+  elements: ElementRecord[],
+  excludeIds: string[],
+  cumX: number,
+  cumY: number,
+  gridSize: number,
+  tolerance = 6
+): { snappedX: number; snappedY: number; guides: GuideLines } {
+  const moved = {
+    left: base.left + cumX,
+    top: base.top + cumY,
+    width: base.width,
+    height: base.height,
+  };
+  const movingX = [
+    moved.left,
+    moved.left + moved.width / 2,
+    moved.left + moved.width,
+  ];
+  const movingY = [
+    moved.top,
+    moved.top + moved.height / 2,
+    moved.top + moved.height,
+  ];
   const others = elements.filter((e) => !excludeIds.includes(e.id));
   const candX: number[] = [];
   const candY: number[] = [];
   for (const e of others) {
     candX.push(e.x, e.x + e.width / 2, e.x + e.width);
     candY.push(e.y, e.y + e.height / 2, e.y + e.height);
-   }
- 
-   let bestDX: number | null = null;
-   let bestDY: number | null = null;
-   let guideV: number | null = null;
-   let guideH: number | null = null;
- 
-   for (const a of movingX) {
-     for (const c of candX) {
-       const d = c - a;
-       if (Math.abs(d) <= tolerance && (bestDX === null || Math.abs(d) < Math.abs(bestDX))) {
-         bestDX = d;
-         guideV = c;
-       }
-     }
-   }
-   for (const a of movingY) {
-     for (const c of candY) {
-       const d = c - a;
-       if (Math.abs(d) <= tolerance && (bestDY === null || Math.abs(d) < Math.abs(bestDY))) {
-         bestDY = d;
-         guideH = c;
-       }
-     }
-   }
- 
-   const useGridX = bestDX === null;
-   const useGridY = bestDY === null;
-   const snappedX = useGridX ? Math.round(cumX / gridSize) * gridSize : cumX +  (bestDX as number);
-  const snappedY = useGridY ? Math.round(cumY / gridSize) * gridSize : cumY + (bestDY as number);
+  }
+
+  let bestDX: number | null = null;
+  let bestDY: number | null = null;
+  let guideV: number | null = null;
+  let guideH: number | null = null;
+
+  for (const a of movingX) {
+    for (const c of candX) {
+      const d = c - a;
+      if (
+        Math.abs(d) <= tolerance &&
+        (bestDX === null || Math.abs(d) < Math.abs(bestDX))
+      ) {
+        bestDX = d;
+        guideV = c;
+      }
+    }
+  }
+  for (const a of movingY) {
+    for (const c of candY) {
+      const d = c - a;
+      if (
+        Math.abs(d) <= tolerance &&
+        (bestDY === null || Math.abs(d) < Math.abs(bestDY))
+      ) {
+        bestDY = d;
+        guideH = c;
+      }
+    }
+  }
+
+  const useGridX = bestDX === null;
+  const useGridY = bestDY === null;
+  const snappedX = useGridX
+    ? Math.round(cumX / gridSize) * gridSize
+    : cumX + (bestDX as number);
+  const snappedY = useGridY
+    ? Math.round(cumY / gridSize) * gridSize
+    : cumY + (bestDY as number);
 
   return {
     snappedX,
@@ -129,12 +152,29 @@ import { getBoundingRect } from "@/lib/portfolio/selection";
   };
 }
 
-
 type Corner = "nw" | "ne" | "sw" | "se";
-type ResizeTarget = { id: string; kind: "text" | "image" | "video" | "link" };
+type ResizeTarget = {
+  id: string;
+  kind: "text" | "image" | "video" | "link" | "component";
+};
 
 type DrawMode = null | "text" | "image" | "video" | "link";
 
+function mkComponentElement(
+  component: "GalleryCarousel",
+  pos: { x: number; y: number; width: number; height: number }
+): ElementRecord {
+  return {
+    id: nanoid(),
+    kind: "component",
+    component,
+    props:
+      component === "GalleryCarousel"
+        ? { urls: [], caption: "", animation: "cube" }
+        : {},
+    ...pos,
+  } as any;
+}
 // px – change whenever you want
 // const snap = (v: number) => Math.round(v / gridSize) * gridSize;
 
@@ -245,7 +285,14 @@ function CanvasItem({
     </div>
   );
 }
-
+function normalizeSupabasePublicUrl(u: string): string {
+  // add “public/” segment after “…/object/” if missing
+  const fixed = u.includes("/storage/v1/object/public/")
+    ? u
+    : u.replace("/storage/v1/object/", "/storage/v1/object/public/");
+  // ensure proper encoding for spaces/parentheses
+  return encodeURI(fixed);
+}
 function SortableCanvasItem({
   id,
   w,
@@ -419,176 +466,183 @@ function StylePanel({
   );
 }
 
- /* ---------- Rulers (top   left) ---------- */
- function Rulers({
-     containerRef,
-     gridSize,
-   }: {
-     containerRef: React.MutableRefObject<HTMLDivElement | null>;
-     gridSize: number;
-   }) {
-     const [size, setSize] = useState({ w: 0, h: 0 });
-     useEffect(() => {
-       const el = containerRef.current;
-       if (!el) return;
-       const ro = new ResizeObserver((entries) => {
-         for (const e of entries) {
-           const cr = e.contentRect;
-           setSize({ w: Math.floor(cr.width), h: Math.floor(cr.height) });
-         }
-       });
-       ro.observe(el);
-       return () => ro.disconnect();
-     }, [containerRef]);
-   
-     const labelsX: number[] = [];
-     const labelsY: number[] = [];
-     for (let x = 0; x <= size.w; x += 100) labelsX.push(x);
-     for (let y = 0; y <= size.h; y += 100) labelsY.push(y);
-   
-     const minor = gridSize;
-     const major = gridSize * 5;
-   
-     return (
-       <>
-         {/* top ruler */}
-         <div
-           style={{
-             position: "absolute",
-             left: 0,
-             right: 0,
-             top: 0,
-             height: 24,
-             backgroundColor: "#f8fafc",
-             pointerEvents: "none",
-             borderBottom: "1px solid rgba(0,0,0,.1)",
-             backgroundImage: `
+/* ---------- Rulers (top   left) ---------- */
+function Rulers({
+  containerRef,
+  gridSize,
+}: {
+  containerRef: React.MutableRefObject<HTMLDivElement | null>;
+  gridSize: number;
+}) {
+  const [size, setSize] = useState({ w: 0, h: 0 });
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      for (const e of entries) {
+        const cr = e.contentRect;
+        setSize({ w: Math.floor(cr.width), h: Math.floor(cr.height) });
+      }
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [containerRef]);
+
+  const labelsX: number[] = [];
+  const labelsY: number[] = [];
+  for (let x = 0; x <= size.w; x += 100) labelsX.push(x);
+  for (let y = 0; y <= size.h; y += 100) labelsY.push(y);
+
+  const minor = gridSize;
+  const major = gridSize * 5;
+
+  return (
+    <>
+      {/* top ruler */}
+      <div
+        style={{
+          position: "absolute",
+          left: 0,
+          right: 0,
+          top: 0,
+          height: 24,
+          backgroundColor: "#f8fafc",
+          pointerEvents: "none",
+          borderBottom: "1px solid rgba(0,0,0,.1)",
+          backgroundImage: `
                repeating-linear-gradient(to right, rgba(0,0,0,.15) 0, rgba(0,0,0,.15) 1px, transparent 1px, transparent ${minor}px),
                repeating-linear-gradient(to right, rgba(0,0,0,.30) 0, rgba(0,0,0,.30) 1px, transparent 1px, transparent ${major}px)
              `,
-           }}
-         />
-         {/* left ruler */}
-         <div
-           style={{
-             position: "absolute",
-             left: 0,
-             top: 0,
-             bottom: 0,
-             width: 24,
-             backgroundColor: "#f8fafc",
-             pointerEvents: "none",
-             borderRight: "1px solid rgba(0,0,0,.1)",
-             backgroundImage: `
+        }}
+      />
+      {/* left ruler */}
+      <div
+        style={{
+          position: "absolute",
+          left: 0,
+          top: 0,
+          bottom: 0,
+          width: 24,
+          backgroundColor: "#f8fafc",
+          pointerEvents: "none",
+          borderRight: "1px solid rgba(0,0,0,.1)",
+          backgroundImage: `
                repeating-linear-gradient(to bottom, rgba(0,0,0,.15) 0, rgba(0,0,0,.15) 1px, transparent 1px, transparent ${minor}px),
                repeating-linear-gradient(to bottom, rgba(0,0,0,.30) 0, rgba(0,0,0,.30) 1px, transparent 1px, transparent ${major}px)
              `,
-           }}
-         />
-         {/* top-left square */}
-         <div
-           style={{
-             position: "absolute",
-             left: 0,
-             top: 0,
-             width: 24,
-             height: 24,
-             backgroundColor: "#f8fafc",
-             borderRight: "1px solid rgba(0,0,0,.1)",
-             borderBottom: "1px solid rgba(0,0,0,.1)",
-             pointerEvents: "none",
-           }}
-         />
-         {/* numeric labels */}
-         {labelsX.map((x) => (
-           <div
-             key={`tx-${x}`}
-             style={{
-               position: "absolute",
-               left: x + 2,
-               top: 0,
-               height: 24,
-               lineHeight: "24px",
-               fontSize: 10,
-               color: "rgba(0,0,0,.6)",
-               transform: "translateX(0px)",
-               pointerEvents: "none",
-             }}
-           >
-             {x}
-           </div>
-         ))}
-         {labelsY.map((y) => (
-           <div
-             key={`ty-${y}`}
-             style={{
-               position: "absolute",
-               left: 0,
-               top: y - 6,
-               width: 24,
-               textAlign: "right",
-               fontSize: 10,
-               color: "rgba(0,0,0,.6)",
-               paddingRight: 2,
-               pointerEvents: "none",
-             }}
-           >
-             {y}
-           </div>
-         ))}
-       </>
-     );
-   }
- /* ---------- Contextual toolbar over selection ---------- */
- function ContextToolbar({
-     rect,
-     element,
-     onBold,
-     onItalic,
-     onDelete,
-   }: {
-     rect: { left: number; top: number; width: number; height: number };
-     element: ElementRecord;
-     onBold?: () => void;
-     onItalic?: () => void;
-     onDelete: () => void;
-   }) {
-     const centerX = rect.left +  rect.width / 2;
-     const topY = Math.max(0, rect.top - 40);
-     return (
-       <div
-         style={{
-           position: "absolute",
-           left: centerX,
-           top: topY,
-           transform: "translate(-50%,-4px)",
-           zIndex: 20,
-           pointerEvents: "auto",
-         }}
-         className="rounded-md border bg-white shadow-md px-2 py-1 flex items-center gap-2"
+        }}
+      />
+      {/* top-left square */}
+      <div
+        style={{
+          position: "absolute",
+          left: 0,
+          top: 0,
+          width: 24,
+          height: 24,
+          backgroundColor: "#f8fafc",
+          borderRight: "1px solid rgba(0,0,0,.1)",
+          borderBottom: "1px solid rgba(0,0,0,.1)",
+          pointerEvents: "none",
+        }}
+      />
+      {/* numeric labels */}
+      {labelsX.map((x) => (
+        <div
+          key={`tx-${x}`}
+          style={{
+            position: "absolute",
+            left: x + 2,
+            top: 0,
+            height: 24,
+            lineHeight: "24px",
+            fontSize: 10,
+            color: "rgba(0,0,0,.6)",
+            transform: "translateX(0px)",
+            pointerEvents: "none",
+          }}
+        >
+          {x}
+        </div>
+      ))}
+      {labelsY.map((y) => (
+        <div
+          key={`ty-${y}`}
+          style={{
+            position: "absolute",
+            left: 0,
+            top: y - 6,
+            width: 24,
+            textAlign: "right",
+            fontSize: 10,
+            color: "rgba(0,0,0,.6)",
+            paddingRight: 2,
+            pointerEvents: "none",
+          }}
+        >
+          {y}
+        </div>
+      ))}
+    </>
+  );
+}
+/* ---------- Contextual toolbar over selection ---------- */
+function ContextToolbar({
+  rect,
+  element,
+  onBold,
+  onItalic,
+  onDelete,
+}: {
+  rect: { left: number; top: number; width: number; height: number };
+  element: ElementRecord;
+  onBold?: () => void;
+  onItalic?: () => void;
+  onDelete: () => void;
+}) {
+  const centerX = rect.left + rect.width / 2;
+  const topY = Math.max(0, rect.top - 40);
+  return (
+    <div
+      style={{
+        position: "absolute",
+        left: centerX,
+        top: topY,
+        transform: "translate(-50%,-4px)",
+        zIndex: 20,
+        pointerEvents: "auto",
+      }}
+      className="rounded-md border bg-white shadow-md px-2 py-1 flex items-center gap-2"
+    >
+      {element.kind === "text" && (
+        <>
+          <button
+            className="px-1 border rounded text-sm"
+            onClick={onBold}
+            title="Bold"
+          >
+            <b>B</b>
+          </button>
+          <button
+            className="px-1 border rounded text-sm"
+            onClick={onItalic}
+            title="Italic"
+          >
+            <i>I</i>
+          </button>
+        </>
+      )}
+      <button
+        className="px-1 border rounded text-sm"
+        onClick={onDelete}
+        title="Delete"
+        aria-label="Delete"
       >
-         {element.kind === "text" && (
-           <>
-             <button className="px-1 border rounded text-sm" onClick={onBold} title="Bold">
-               <b>B</b>
-             </button>
-             <button className="px-1 border rounded text-sm" onClick={onItalic} title="Italic">
-               <i>I</i>
-             </button>
-           </>
-         )}
-         <button
-           className="px-1 border rounded text-sm"
-           onClick={onDelete}
-           title="Delete"
-           aria-label="Delete"
-         >
-           🗑
-         </button>
-       </div>
-     );
-   }
-  
+        🗑
+      </button>
+    </div>
+  );
+}
 
 const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
   (
@@ -618,8 +672,11 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
       null
     );
     const [draggingState, setDraggingState] = useState<DragState | null>(null);
-        const [localGuides, setLocalGuides] = useState<GuideLines | null>(null);
-        const snap = useCallback((v: number) => Math.round(v / gridSize) * gridSize, [gridSize]);
+    const [localGuides, setLocalGuides] = useState<GuideLines | null>(null);
+    const snap = useCallback(
+      (v: number) => Math.round(v / gridSize) * gridSize,
+      [gridSize]
+    );
     const resizeRef = useRef<ResizeState | null>(null);
     const dragRef = useRef<DragState | null>(null);
     const { setNodeRef } = useDroppable({ id: "canvas" });
@@ -635,7 +692,7 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
         elements.filter((e): e is TextBoxRecord => (e as any).kind === "text"),
       [elements]
     );
-    
+
     const selectionBox = React.useMemo(() => {
       if (selection.length <= 1) return null;
       const map = new Map(
@@ -652,10 +709,10 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
       return getBoundingRect(selection, map);
     }, [selection, elements]);
     const singleSelected: ElementRecord | null = React.useMemo(() => {
-            if (selection.length !== 1) return null;
-            const id = selection[0];
-            return elements.find((e) => e.id === id) ?? null;
-          }, [selection, elements]);
+      if (selection.length !== 1) return null;
+      const id = selection[0];
+      return elements.find((e) => e.id === id) ?? null;
+    }, [selection, elements]);
     //  const setResizing = (s: ResizeState | null) => {
     //   resizeRef.current = s;
     //   _setResizing(s);
@@ -664,8 +721,6 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
     //   dragRef.current = d;
     //   _setDragging(d);
     // };
-
-    
 
     /* --- imperative resize entry point (exposed to parent) --- */
     const handleResizeStart = useCallback(
@@ -781,26 +836,35 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
           //   patch: { x: newLeft, y: newTop },
           // });
           const pointerX = ev.clientX - rect.left;
-                     const pointerY = ev.clientY - rect.top;
-                     const cumX = pointerX - d.startX;
-                     const cumY = pointerY - d.startY;
-           
-                     const el = elements.find((e) => e.id === d.id);
-                     if (el) {
-                       const base = { left: d.startLeft, top: d.startTop, width: el.width, height: el.height };
-                       const { snappedX, snappedY, guides } = computeGuidesForMove(
-                         base,
-                         elements,
-                         [d.id],
-                         cumX,
-                         cumY,
-                         gridSize
-                       );
-                       setLocalGuides(guides);
-                       const newLeft = d.startLeft +  snappedX;
-                       const newTop = d.startTop  + snappedY;
-                       dispatch({ type: "patch", id: d.id, patch: { x: newLeft, y: newTop } });
-                     }
+          const pointerY = ev.clientY - rect.top;
+          const cumX = pointerX - d.startX;
+          const cumY = pointerY - d.startY;
+
+          const el = elements.find((e) => e.id === d.id);
+          if (el) {
+            const base = {
+              left: d.startLeft,
+              top: d.startTop,
+              width: el.width,
+              height: el.height,
+            };
+            const { snappedX, snappedY, guides } = computeGuidesForMove(
+              base,
+              elements,
+              [d.id],
+              cumX,
+              cumY,
+              gridSize
+            );
+            setLocalGuides(guides);
+            const newLeft = d.startLeft + snappedX;
+            const newTop = d.startTop + snappedY;
+            dispatch({
+              type: "patch",
+              id: d.id,
+              patch: { x: newLeft, y: newTop },
+            });
+          }
           // const dx = snap(ev.clientX - rect.left) - d.startX;
           // const dy = snap(ev.clientY - rect.top)  - d.startY;
           // setBoxes((bs) =>
@@ -941,8 +1005,6 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
       >
         {children}
 
-        
-
         {draft && (
           <div
             style={{
@@ -967,74 +1029,87 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
             }}
           />
         )}
-          {/* smart-guides overlay (external from DnD + local from direct drag) */}
-         {((externalGuides && (externalGuides.v.length || externalGuides.h.length)) ||
-           (localGuides && (localGuides.v.length || localGuides.h.length))) && (
-           <>
-             {[...(externalGuides?.v || []), ...(localGuides?.v || [])].map((x, i) => (
-               <div
-                 key={`gv-${i}-${x}`}
-                 style={{
-                   position: "absolute",
-                   left: x,
-                   top: 0,
-                   bottom: 0,
-                   width: 0,
-                   borderLeft: "1px solid #ff00ff",
-                   pointerEvents: "none",
-                 }}
-               />
-             ))}
-             {[...(externalGuides?.h || []), ...(localGuides?.h || [])].map((y, i) => (
-               <div
-                 key={`gh-${i}-${y}`}
-                 style={{
-                   position: "absolute",
-                   top: y,
-                   left: 0,
-                   right: 0,
-                   height: 0,
-                   borderTop: "1px solid #ff00ff",
-                   pointerEvents: "none",
-                 }}
-               />
-             ))}
-           </>
-         )}
+        {/* smart-guides overlay (external from DnD + local from direct drag) */}
+        {((externalGuides &&
+          (externalGuides.v.length || externalGuides.h.length)) ||
+          (localGuides && (localGuides.v.length || localGuides.h.length))) && (
+          <>
+            {[...(externalGuides?.v || []), ...(localGuides?.v || [])].map(
+              (x, i) => (
+                <div
+                  key={`gv-${i}-${x}`}
+                  style={{
+                    position: "absolute",
+                    left: x,
+                    top: 0,
+                    bottom: 0,
+                    width: 0,
+                    borderLeft: "1px solid #ff00ff",
+                    pointerEvents: "none",
+                  }}
+                />
+              )
+            )}
+            {[...(externalGuides?.h || []), ...(localGuides?.h || [])].map(
+              (y, i) => (
+                <div
+                  key={`gh-${i}-${y}`}
+                  style={{
+                    position: "absolute",
+                    top: y,
+                    left: 0,
+                    right: 0,
+                    height: 0,
+                    borderTop: "1px solid #ff00ff",
+                    pointerEvents: "none",
+                  }}
+                />
+              )
+            )}
+          </>
+        )}
         {singleSelected && (
-           <ContextToolbar
-             rect={
-               selection.length > 1
-                 ? (selectionBox as any)
-                 : { left: singleSelected.x || 0, top: singleSelected.y || 0, width: singleSelected.width || 0, height: singleSelected.height || 0 }
-             }
-             element={singleSelected}
-             onBold={
-               singleSelected.kind === "text"
-                 ? () =>
-                     dispatch({
-                       type: "patch",
-                       id: singleSelected.id,
-                       patch: {
-                         fontWeight: (singleSelected as any).fontWeight === 700 ? 400 : 700,
-                       },
-                     })
-                 : undefined
-             }
-             onItalic={
-               singleSelected.kind === "text"
-                 ? () =>
-                     dispatch({
-                       type: "patch",
-                       id: singleSelected.id,
-                       patch: { italic: !(singleSelected as any).italic },
-                     })
-                 : undefined
-             }
-             onDelete={() => dispatch({ type: "remove", id: singleSelected.id })}
-           />
-         )}
-                <Rulers containerRef={canvasRef} gridSize={gridSize} />
+          <ContextToolbar
+            rect={
+              selection.length > 1
+                ? (selectionBox as any)
+                : {
+                    left: singleSelected.x || 0,
+                    top: singleSelected.y || 0,
+                    width: singleSelected.width || 0,
+                    height: singleSelected.height || 0,
+                  }
+            }
+            element={singleSelected}
+            onBold={
+              singleSelected.kind === "text"
+                ? () =>
+                    dispatch({
+                      type: "patch",
+                      id: singleSelected.id,
+                      patch: {
+                        fontWeight:
+                          (singleSelected as any).fontWeight === 700
+                            ? 400
+                            : 700,
+                      },
+                    })
+                : undefined
+            }
+            onItalic={
+              singleSelected.kind === "text"
+                ? () =>
+                    dispatch({
+                      type: "patch",
+                      id: singleSelected.id,
+                      patch: { italic: !(singleSelected as any).italic },
+                    })
+                : undefined
+            }
+            onDelete={() => dispatch({ type: "remove", id: singleSelected.id })}
+          />
+        )}
+        <Rulers containerRef={canvasRef} gridSize={gridSize} />
       </div>
     );
   }
@@ -1260,18 +1335,25 @@ function PortfolioBuilderInner({
     const onKey = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement).closest("input,textarea,[contenteditable]"))
         return;
-        if (e.key === "ArrowLeft" || e.key === "ArrowRight" || e.key === "ArrowUp" || e.key === "ArrowDown") {
-                   e.preventDefault();
-                   const step = e.shiftKey ? 10 : 1; // 10px with Shift, 1px default
-                   const dx = e.key === "ArrowLeft" ? -step : e.key === "ArrowRight" ? step : 0;
-                   const dy = e.key === "ArrowUp" ? -step : e.key === "ArrowDown" ? step : 0;
-                   if (selection.length) {
-                     dispatch({ type: "groupDragStart" });
-                     dispatch({ type: "groupDrag", dx, dy });
-                     dispatch({ type: "groupDragEnd", dx, dy });
-                   }
-                   return;
-                 }
+      if (
+        e.key === "ArrowLeft" ||
+        e.key === "ArrowRight" ||
+        e.key === "ArrowUp" ||
+        e.key === "ArrowDown"
+      ) {
+        e.preventDefault();
+        const step = e.shiftKey ? 10 : 1; // 10px with Shift, 1px default
+        const dx =
+          e.key === "ArrowLeft" ? -step : e.key === "ArrowRight" ? step : 0;
+        const dy =
+          e.key === "ArrowUp" ? -step : e.key === "ArrowDown" ? step : 0;
+        if (selection.length) {
+          dispatch({ type: "groupDragStart" });
+          dispatch({ type: "groupDrag", dx, dy });
+          dispatch({ type: "groupDragEnd", dx, dy });
+        }
+        return;
+      }
       const meta = e.metaKey || e.ctrlKey;
       if (!meta) return;
       if (e.key === "z") {
@@ -1293,8 +1375,10 @@ function PortfolioBuilderInner({
   // ) => {
   //   handleResizeStart.current?.(e, target, corner); // delegate
   // };
+
+
   const proxyResizeStart = (
-    e: React.PointerEvent,
+    e: React.PointerEvent,  
     target: ResizeTarget,
     corner: Corner
   ) => canvasHandle.current?.startResize(e, target, corner);
@@ -1331,13 +1415,13 @@ function PortfolioBuilderInner({
 
   const handleDragMove = (event: DragMoveEvent) => {
     const { delta, active } = event;
- // snap movement to grid by comparing snapped cumulative deltas
-     const prevSnapX = Math.round(lastDrag.current.x / gridSize) * gridSize;
-     const prevSnapY = Math.round(lastDrag.current.y / gridSize) * gridSize;
-     const currSnapX = Math.round(delta.x / gridSize) * gridSize;
-     const currSnapY = Math.round(delta.y / gridSize) * gridSize;
-     const dx = currSnapX - prevSnapX;
-     const dy = currSnapY - prevSnapY;
+    // snap movement to grid by comparing snapped cumulative deltas
+    const prevSnapX = Math.round(lastDrag.current.x / gridSize) * gridSize;
+    const prevSnapY = Math.round(lastDrag.current.y / gridSize) * gridSize;
+    const currSnapX = Math.round(delta.x / gridSize) * gridSize;
+    const currSnapY = Math.round(delta.y / gridSize) * gridSize;
+    const dx = currSnapX - prevSnapX;
+    const dy = currSnapY - prevSnapY;
 
     lastDrag.current = { x: delta.x, y: delta.y };
     dispatch({ type: "groupDrag", dx, dy });
@@ -1413,6 +1497,8 @@ function PortfolioBuilderInner({
       content: (e as any).content,
       src: (e as any).src,
       href: (e as any).href,
+      component: (e as any).component,
+      props: (e as any).props,
     }));
 
     // 2️⃣  From text boxes we drew
@@ -1449,12 +1535,29 @@ function PortfolioBuilderInner({
       .map((e) => (e as any).href as string);
     return { text, images, links, layout, color };
   }
+  const { user } = useAuth(); 
+  const currentUserId = user?.userId;
   async function handlePublish() {
+
     const payload = {
       ...serialize(),
       absolutes: buildAbsoluteExport(),
+      ownerId: user?.userId != null ? String(user.userId) : undefined, // ✅ JSON-safe
+      meta: {
+        title: "Portfolio page",      // or derive from content
+        caption: "",                  // you can wire a field in the UI
+      },
     };
     setShowGrid(false); // hide grid for snapshot/export
+
+    console.log("Publishing payload:", {
+      layout,
+      color,
+      compCount: elements.filter((e) => (e as any).kind === "component").length,
+      hasCompWithUrls: elements.some(
+        (e) => (e as any).kind === "component" && (e as any).props?.urls?.length
+      ),
+    });
 
     /* 2) POST to the export route – it now returns the PNG */
     const res = await fetch("/api/portfolio/export", {
@@ -1475,7 +1578,52 @@ function PortfolioBuilderInner({
 
     router.push(url); // open the live page for the author
   }
-
+  function GalleryCarouselPropsEditor({
+    value,
+    onChange,
+  }: {
+    value: {
+      urls?: string[];
+      caption?: string;
+      animation?: "cylinder" | "cube" | "portal" | "towardscreen";
+    };
+    onChange: (patch: Partial<typeof value>) => void;
+  }) {
+    const urlsText = (value.urls || []).join("\n");
+    return (
+      <div className="flex flex-col space-y-3 mt-6">
+        <label className="block text-xs">Images (one URL per line)</label>
+        <textarea
+          className="w-64 h-36 border rounded p-2 text-sm bg-white"
+          value={urlsText}
+          onChange={(e) =>
+            onChange({
+              urls: e.target.value
+                .split("\n")
+                .map((s) => s.trim())
+                .filter(Boolean),
+            })
+          }
+        />
+        <label className="block text-xs">Caption</label>
+        <Input
+          value={value.caption ?? ""}
+          onChange={(e) => onChange({ caption: e.target.value })}
+        />
+        <label className="block text-xs">Animation</label>
+        <select
+          className="border rounded p-1 bg-white"
+          value={value.animation ?? "cube"}
+          onChange={(e) => onChange({ animation: e.target.value as any })}
+        >
+          <option value="cube">cube</option>
+          <option value="cylinder">cylinder</option>
+          <option value="portal">portal</option>
+          <option value="towardscreen">towardscreen</option>
+        </select>
+      </div>
+    );
+  }
   function applyTemplate(name: string) {
     const tpl = templates.find((t) => t.name === name);
     if (!tpl) return;
@@ -1504,48 +1652,65 @@ function PortfolioBuilderInner({
   // smart-guides state for DnD path
   const [guides, setGuides] = useState<GuideLines | null>(null);
 
-
   const handleStart = (event: DragStartEvent) => {
     setActiveId(event.active.id);
     handleDragStart(event);
   };
-     const handleMoveWrapper = (event: DragMoveEvent) => {
-         // compute smart guides   snap for group drag
-         const { delta } = event;
-         // base rect for selection
-         if (selection.length) {
-           const map = new Map(
-             elements.map((e) => [
-               e.id,
-               { x: e.x || 0, y: e.y || 0, width: e.width || 0, height: e.height || 0 },
-             ])
-           );
-           const selRect = getBoundingRect(selection, map);
-           const { snappedX, snappedY, guides: g } = computeGuidesForMove(
-             { left: selRect.left, top: selRect.top, width: selRect.width, height: selRect.height },
-             elements,
-             selection,
-             delta.x,
-             delta.y,
-             gridSize
-           );
-           // turn cumulative snapped into step delta
-           const stepDx = snappedX - lastDrag.current.x;
-           const stepDy = snappedY - lastDrag.current.y;
-           lastDrag.current = { x: snappedX, y: snappedY };
-           setGuides(g);
-           dispatch({ type: "groupDrag", dx: stepDx, dy: stepDy });
-           return;
-         }
-         handleDragMove(event);
-       };
+  const handleMoveWrapper = (event: DragMoveEvent) => {
+    // compute smart guides   snap for group drag
+    const { delta } = event;
+    // base rect for selection
+    if (selection.length) {
+      const map = new Map(
+        elements.map((e) => [
+          e.id,
+          {
+            x: e.x || 0,
+            y: e.y || 0,
+            width: e.width || 0,
+            height: e.height || 0,
+          },
+        ])
+      );
+      const selRect = getBoundingRect(selection, map);
+      const {
+        snappedX,
+        snappedY,
+        guides: g,
+      } = computeGuidesForMove(
+        {
+          left: selRect.left,
+          top: selRect.top,
+          width: selRect.width,
+          height: selRect.height,
+        },
+        elements,
+        selection,
+        delta.x,
+        delta.y,
+        gridSize
+      );
+      // turn cumulative snapped into step delta
+      const stepDx = snappedX - lastDrag.current.x;
+      const stepDy = snappedY - lastDrag.current.y;
+      lastDrag.current = { x: snappedX, y: snappedY };
+      setGuides(g);
+      dispatch({ type: "groupDrag", dx: stepDx, dy: stepDy });
+      return;
+    }
+    handleDragMove(event);
+  };
   const handleEnd = (event: DragEndEvent) => {
     handleDragEnd(event);
     setActiveId(null);
     setGuides(null);
   };
-  const selectedEl = elementsMap.get(selectedId ?? "");
-  const isTextBox = selectedEl && selectedEl.kind === "text";
+  const selectedIds = useCanvasSelection();
+  const primaryId = selectedIds.length === 1 ? selectedIds[0] : null;
+  const selectedEl = primaryId ? elementsMap.get(primaryId) : null;
+  const isComponent = selectedEl?.kind === "component";
+  const isTextBox = selectedEl?.kind === "text";
+
   return (
     <DndContext
       sensors={sensors}
@@ -1562,30 +1727,30 @@ function PortfolioBuilderInner({
       <div className="flex h-screen">
         <div className=" flex-grow-0 flex-shrink-0 border-r py-2 px-4 space-y-4  mt-12">
           <div className="flex flex-col gap-2 w-fit">
-          <button
-            onClick={() => setShowGrid((g) => !g)}
-            className={`text-[.9rem] lockbutton
+            <button
+              onClick={() => setShowGrid((g) => !g)}
+              className={`text-[.9rem] lockbutton
             flex gap-2 w-full justify-start px-4 py-2 rounded-md l
              lockbutton tracking-wide
-            ${
-              showGrid ? "bg-slate-200" : "bg-white"
-            }`}
-          >
-            {showGrid ? "Hide Grid" : "Show Grid"}
-          </button>
-          <label className="flex flex-col flex-1 justify-center items-center border-[1px] shadow-md shadow-black
-           rounded-md w-fit bg-white text-center mt-2 py-1 ">
-            Grid&nbsp;Size
-            <input
-              type="number"
-              min={5}
-              step={5}
-              width={5}
-              className="flex flex-1  mt-1 border justify-center items-center bg-slate-200 px-2 py-1 text-center"
-              value={gridSize}
-              onChange={(e) => setGridSize(Math.max(5, +e.target.value))}
-            />
-          </label>
+            ${showGrid ? "bg-slate-200" : "bg-white"}`}
+            >
+              {showGrid ? "Hide Grid" : "Show Grid"}
+            </button>
+            <label
+              className="flex flex-col flex-1 justify-center items-center border-[1px] shadow-md shadow-black
+           rounded-md w-fit bg-white text-center mt-2 py-1 "
+            >
+              Grid&nbsp;Size
+              <input
+                type="number"
+                min={5}
+                step={5}
+                width={5}
+                className="flex flex-1  mt-1 border justify-center items-center bg-slate-200 px-2 py-1 text-center"
+                value={gridSize}
+                onChange={(e) => setGridSize(Math.max(5, +e.target.value))}
+              />
+            </label>
           </div>
           <button
             className={` flex gap-2 w-full justify-start px-4 py-2 rounded-md l
@@ -1606,6 +1771,33 @@ function PortfolioBuilderInner({
               height={24}
             />
           </button>
+          <div className="mt-6 space-y-2 border-t pt-4">
+            <p className="text-xs uppercase tracking-wide text-slate-500">
+              Components
+            </p>
+            <button
+              className="flex gap-2 w-full justify-start px-4 py-2 rounded-md bg-white lockbutton"
+              onClick={() => {
+                const id = nanoid();
+                const el = mkComponentElement("GalleryCarousel", {
+                  x: 120,
+                  y: 120,
+                  width: 600,
+                  height: 460, // sensible defaults
+                });
+                dispatch({ type: "add", element: el });
+                dispatch({ type: "selectOne", id: el.id });
+              }}
+            >
+              Gallery
+              <Image
+                src="/assets/carousel.svg"
+                alt="gallery"
+                width={24}
+                height={24}
+              />
+            </button>
+          </div>
 
           <button
             className={` flex gap-2 w-full justify-start px-4 py-2 rounded-md l
@@ -1670,7 +1862,7 @@ function PortfolioBuilderInner({
             <StylePanel
               box={selectedEl as TextBoxRecord}
               onChange={(patch) =>
-                dispatch({ type: "patch", id: selectedId!, patch })
+                dispatch({ type: "patch", id: primaryId!, patch })
               }
             />
           )}
@@ -1721,17 +1913,23 @@ function PortfolioBuilderInner({
                           })
                         }
                       />
-                       <button hidden
-                         className="absolute bottom-[-28px] left-4 rounded-md lockbutton"
-                         onPointerDown={(e) => e.stopPropagation()}
-                         onClick={(e) => {
-                           e.stopPropagation();
-                           dispatch({ type: "remove", id: el.id });
-                         }}
-                         aria-label="Delete"
-                         title="Delete"
-                       >
-                         <Image  src="/assets/trash-can.svg" alt="" width={14} height={14} />
+                      <button
+                        hidden
+                        className="absolute bottom-[-28px] left-4 rounded-md lockbutton"
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          dispatch({ type: "remove", id: el.id });
+                        }}
+                        aria-label="Delete"
+                        title="Delete"
+                      >
+                        <Image
+                          src="/assets/trash-can.svg"
+                          alt=""
+                          width={14}
+                          height={14}
+                        />
                       </button>
 
                       {(["nw", "ne", "sw", "se"] as const).map((corner) => (
@@ -1843,6 +2041,70 @@ function PortfolioBuilderInner({
                       </button>
                     </div>
                   )}
+                  {el.kind === "component" &&
+                    el.component === "GalleryCarousel" &&
+                    (() => {
+                      const urls = (
+                        ((el as any).props?.urls ?? []) as string[]
+                      ).map(normalizeSupabasePublicUrl);
+
+                      return (
+                        <div
+                          className="relative w-full h-full border-2 border-dashed border-gray-500/60 bg-white"
+                          onPointerDownCapture={() =>
+                            dispatch({ type: "selectOne", id: el.id })
+                          }
+                        >
+                          <div className="pointer-events-none w-full h-full flex items-center justify-center">
+                            {urls.length ? (
+                              <GalleryCarousel
+                                embed
+                                {...(el.props as any)}
+                                urls={urls}
+                              />
+                            ) : (
+                              <div className="w-full h-full grid place-items-center text-slate-400 text-sm">
+                                No images yet — use the Gallery panel to add
+                                some.
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Resize handles */}
+                          {(["nw", "ne", "sw", "se"] as const).map((corner) => (
+                            <ResizeHandle
+                              key={corner}
+                              corner={corner}
+                              onPointerDown={(ev) =>
+                                startResize(
+                                  ev,
+                                  { id: el.id, kind: "component" },
+                                  corner
+                                )
+                              }
+                            />
+                          ))}
+
+                          {/* Delete */}
+                          <button
+                            className="absolute -bottom-7 left-2 lockbutton rounded-md"
+                            onPointerDown={(e) => e.stopPropagation()}
+                            onClick={() =>
+                              dispatch({ type: "remove", id: el.id })
+                            }
+                            aria-label="Delete"
+                            title="Delete"
+                          >
+                            <Image
+                              src="/assets/trash-can.svg"
+                              alt=""
+                              width={14}
+                              height={14}
+                            />
+                          </button>
+                        </div>
+                      );
+                    })()}
                   {el.kind === "video" && (
                     <div className="p-1 border border-transparent">
                       {el.src ? (
@@ -2053,7 +2315,7 @@ function PortfolioBuilderInner({
                   >
                     <Image
                       src="/assets/trash-can.svg"
-                      alt={"globe"}
+                      alt={"trash"}
                       className="mr-2"
                       width={24}
                       height={24}
@@ -2120,6 +2382,34 @@ function PortfolioBuilderInner({
               <Image src="/assets/redo.svg" width={20} height={20} alt="" />
             </button>
           </div>
+          {isComponent &&
+            selectedEl.kind === "component" &&
+            selectedEl.component === "GalleryCarousel" && (
+              <GalleryPropsPanel
+                componentId={primaryId!}
+                value={
+                  (selectedEl as any).props || {
+                    urls: [],
+                    caption: "",
+                    animation: "cube",
+                  }
+                }
+                onChange={(next) => {
+                  console.log("Gallery props now:", (selectedEl as any).props);
+
+                  const prev = (selectedEl as any).props || {
+                    urls: [],
+                    caption: "",
+                    animation: "cube",
+                  };
+                  dispatch({
+                    type: "patch",
+                    id: selectedEl.id,
+                    patch: { props: { ...prev, ...next } },
+                  });
+                }}
+              />
+            )}
           <button
             className="w-full  bg-gray-100 border-black border-[1px] lockbutton  text-black  px-1 py-2
             tracking-wide text-[1.1rem] rounded-xl"
@@ -2139,22 +2429,35 @@ export default function PortfolioBuilder() {
   // keep autosave as-is
   const saveDraft = useRef(
     debounce((s: CanvasState) => {
-      try { localStorage.setItem(projectKey, serialize(s)); } catch {}
+      try {
+        localStorage.setItem(projectKey, serialize(s));
+      } catch {}
     }, 800)
   ).current;
 
   // undefined = not loaded yet; null = loaded but no draft
-  const [initial, setInitial] = useState<CanvasState | null | undefined>(undefined);
+  const [initial, setInitial] = useState<CanvasState | null | undefined>(
+    undefined
+  );
 
   useEffect(() => {
     try {
       const json = localStorage.getItem(projectKey);
-      if (json) {
-        const obj = JSON.parse(json);
-        setInitial(jsonToCanvasState(obj, projectKey));
-      } else {
-        setInitial(null);
+      if (!json) return setInitial(null);
+      const obj = JSON.parse(json);
+      // Minimal migration: ensure component props exist
+      if (Array.isArray(obj?.elements)) {
+        obj.elements = obj.elements.map((e: any) =>
+          e?.kind === "component"
+            ? {
+                ...e,
+                props: e.props ?? { urls: [], caption: "", animation: "cube" },
+              }
+            : e
+        );
       }
+
+      setInitial(jsonToCanvasState(obj, projectKey));
     } catch {
       setInitial(null);
     }
@@ -2166,7 +2469,7 @@ export default function PortfolioBuilder() {
   }
 
   const initialLayout = initial?.layout ?? "free";
-  const initialColor  = initial?.color  ?? "bg-white";
+  const initialColor = initial?.color ?? "bg-white";
 
   return (
     <CanvasProvider initial={initial} onChange={saveDraft}>
@@ -2177,7 +2480,6 @@ export default function PortfolioBuilder() {
     </CanvasProvider>
   );
 }
-
 
 function PreviewOfItem({ id, elements }: PreviewProps) {
   const el = elements.find((e) => e.id === id);

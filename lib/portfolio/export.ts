@@ -11,6 +11,9 @@ export interface PortfolioExportData {
   color: string;
   absolutes?: AbsoluteElement[];
 
+  // passthrough (not used by the generator)
+  ownerId?: string | number;                     // 👈 add
+  meta?: { title?: string; caption?: string };   // 👈 add
 
   snapshot?: string;          // public URL of PNG
   snapshotWidth?: number;     // optional natural size

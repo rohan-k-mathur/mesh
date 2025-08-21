@@ -1,3 +1,4 @@
+// portfolio/types.ts
 export interface BaseGeometry {
   id: string;
   x: number;
@@ -5,6 +6,26 @@ export interface BaseGeometry {
   width: number;
   height: number;
 }
+
+export type ElementKind = 'text' | 'image' | 'video' | 'link' | 'component' | 'box';
+
+// ---- Component allow-list & props map ----
+export type ComponentName = 'GalleryCarousel';
+
+export type ComponentPropsMap = {
+  GalleryCarousel: {
+    urls: string[];
+    caption?: string;
+    animation?: 'cylinder' | 'cube' | 'portal' | 'towardscreen';
+  };
+};
+
+export type ComponentElementRecord<C extends ComponentName = ComponentName> =
+  BaseGeometry & {
+    kind: 'component';
+    component: C;
+    props: ComponentPropsMap[C];
+  };
 
 export type TextBoxRecord = BaseGeometry & {
   kind: "text";
@@ -34,8 +55,14 @@ export type LinkRecord = BaseGeometry & {
   href: string;
 };
 
+export type BoxRecord = BaseGeometry & {
+  kind: "box";
+};
+
 export type ElementRecord =
   | TextBoxRecord
   | ImageRecord
   | VideoRecord
-  | LinkRecord;
+  | LinkRecord
+  | ComponentElementRecord
+  | BoxRecord;

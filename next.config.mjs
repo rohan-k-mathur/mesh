@@ -59,6 +59,11 @@ const nextConfig = {
         },
         {
           protocol: "https",
+          hostname: "**.supabase.co",
+          pathname: "/storage/v1/object/**", // covers public + any future paths
+        },
+        {
+          protocol: "https",
           hostname: "live.staticflickr.com",
         },
         {

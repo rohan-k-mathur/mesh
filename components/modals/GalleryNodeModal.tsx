@@ -57,16 +57,16 @@ const renderEdit = ({
   currentIsPublic: boolean;
   currentCaption?: string;
 }) => (
-  <div>
-      <DialogHeader className="dialog-header text-white text-lg py-4 mt-[-4rem] ml-2 ">
+  <div >
+      <DialogHeader className="dialog-header text-white text-lg py-4  ml-2 ">
       <b>Edit Gallery</b>
     </DialogHeader>
     <hr />
     <GalleryNodeForm
       onSubmit={onSubmit!}
-      currentImages={currentImages}
+      currentImages={[]}
       currentIsPublic={currentIsPublic}
-      isOwned={isOwned}
+      isOwned={true}
       currentCaption={currentCaption}
     />
   </div>

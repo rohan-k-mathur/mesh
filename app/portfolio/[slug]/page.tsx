@@ -25,24 +25,12 @@ export default async function PortfolioPage({
    const payload = rec.payload as any;
 
   /* 1️⃣  Prefer ‘snapshot’ */
-  if (payload?.snapshot) {
-    return (
-      <img
-        src={payload.snapshot}
-        alt="Portfolio snapshot"
-        className="max-w-full h-auto block mx-auto my-8"
-      />
-    );
-  }
-
-  /* 2️⃣  Render free‑layout JSON */
   if (payload?.layout === "free" && payload.absolutes?.length) {
-    return (
-      <CanvasRenderer
-        elements={payload.absolutes}
-        bgClass={payload.color}
-      />
-    );
+    return <CanvasRenderer elements={payload.absolutes} bgClass={payload.color} />;
+  }
+  // (Optional) only fall back to snapshot if there are no absolutes
+  if (payload?.snapshot) {
+    return <img src={payload.snapshot} alt="Portfolio snapshot" className="max-w-full h-auto block mx-auto my-8" />;
   }
 
   /* 3️⃣  Fallback to pre‑baked HTML (column / grid) */
