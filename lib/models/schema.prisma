@@ -1970,6 +1970,7 @@ model BlockManifest {
   originElId String?  @map("origin_el_id")
   forkOfId   String?  @map("fork_of_id")
   isPublic   Boolean  @default(true) @map("is_public")
+  thumbnail  String?  @map("thumbnail")        // 👈 NEW
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
 

@@ -45,7 +45,7 @@ import styles from "./resize-handles.module.css"; // CSS module for handles
 import { TextBoxRecord, ElementRecord } from "@/lib/portfolio/types";
 import GalleryCarousel from "@/components/cards/GalleryCarousel";
 import GalleryPropsPanel from "@/components/portfolio/GalleryPropsPanel";
-
+import BlockLibrary from "./BlockLibrary";
 import {
   CanvasProvider,
   useCanvasDispatch,
@@ -76,7 +76,9 @@ import { MacSwitch } from "@/components/ui/switch";
 import { Switch } from "@/components/ui/switch";
 import ControlsAccordion from "./RightPanelAccordians";
 import { toast } from "sonner";
-import useSWR from "swr";
+import useSWR, { mutate } from "swr";
+import { useSWRConfig } from "swr";
+
 
 import {
   Accordion,
@@ -84,7 +86,6 @@ import {
   AccordionTrigger,
   AccordionContent,
 } from "@/components/ui/accordion";
-
 
 /* ---------- Smart-guides helper ---------- */
 type GuideLines = { v: number[]; h: number[] };
@@ -191,49 +192,12 @@ function mkComponentElement<C extends ComponentName>(
     ...pos,
   } as any;
 }
+
 // px – change whenever you want
 // const snap = (v: number) => Math.round(v / gridSize) * gridSize;
 const fetcher = (u: string) =>
   fetch(u, { cache: "no-store" }).then((r) => r.json());
 
-function BlockLibrary({
-  onInsert,
-}: {
-  onInsert: (c: string, props: any) => void;
-}) {
-  const { user } = useAuth();
-  const ownerId = user?.userId ? String(user.userId) : null;
-
-  // only fetch when we have an id
-  const { data } = useSWR(
-    ownerId ? `/api/blocks?ownerId=${ownerId}` : null,
-    fetcher
-  );
-  const items: { id: string; component: string; props: any }[] =
-    data?.items ?? [];
-
-  return (
-    <div className="mt-4 space-y-2">
-      <p className="text-xs uppercase tracking-wide text-slate-500">Blocks</p>
-      {items.map((b) => (
-        <button
-          key={b.id}
-          className="flex items-center justify-between w-full px-4 py-2 rounded-md bg-white lockbutton"
-          onClick={() =>
-            onInsert(b.component, { ...b.props /* local override allowed */ })
-          }
-          title={`Insert ${b.component}`}
-        >
-          <span className="truncate">{b.component}</span>
-          <span className="text-xs text-slate-500">#{b.id.slice(0, 5)}</span>
-        </button>
-      ))}
-      {!items.length && (
-        <div className="text-xs text-slate-400">No blocks yet.</div>
-      )}
-    </div>
-  );
-}
 
 function mkElement(
   type: "image" | "video" | "link",
@@ -342,8 +306,6 @@ function CanvasItem({
     </div>
   );
 }
-
-
 
 function normalizeSupabasePublicUrl(u: string): string {
   // add “public/” segment after “…/object/” if missing
@@ -840,109 +802,109 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
         if (raf) return;
         raf = requestAnimationFrame(() => {
           raf = 0;
-        const r = resizeRef.current,
-          d = dragRef.current;
-        if (r) {
-          const rect = canvasRef.current!.getBoundingClientRect();
-          const dx = snap(ev.clientX - rect.left) - r.startX;
-          const dy = snap(ev.clientY - rect.top) - r.startY;
-          const calc = (c: Corner, dx: number, dy: number) => {
-            switch (c) {
-              case "se":
-                return {
-                  l: r.startLeft,
-                  t: r.startTop,
-                  w: r.startWidth + dx,
-                  h: r.startHeight + dy,
-                };
-              case "sw":
-                return {
-                  l: r.startLeft + dx,
-                  t: r.startTop,
-                  w: r.startWidth - dx,
-                  h: r.startHeight + dy,
-                };
-              case "ne":
-                return {
-                  l: r.startLeft,
-                  t: r.startTop + dy,
-                  w: r.startWidth + dx,
-                  h: r.startHeight - dy,
-                };
-              case "nw":
-                return {
-                  l: r.startLeft + dx,
-                  t: r.startTop + dy,
-                  w: r.startWidth - dx,
-                  h: r.startHeight - dy,
-                };
-            }
-          };
-          const { l, t, w, h } = calc(r.corner, dx, dy);
-          dispatch({
-            type: "patch",
-            id: r.target.id,
-            patch: { x: l, y: t, width: w, height: h },
-          });
-        }
-        if (d) {
-          const rect = canvasRef.current!.getBoundingClientRect();
-
-          // const pointerX = ev.clientX - rect.left;
-          // const pointerY = ev.clientY - rect.top;
-
-          // const newLeft = snap(d.startLeft + pointerX - d.startX);
-          // const newTop = snap(d.startTop + pointerY - d.startY);
-
-          // dispatch({
-          //   type: "patch",
-          //   id: d.id,
-          //   patch: { x: newLeft, y: newTop },
-          // });
-          const pointerX = ev.clientX - rect.left;
-          const pointerY = ev.clientY - rect.top;
-          const cumX = pointerX - d.startX;
-          const cumY = pointerY - d.startY;
-
-          const el = elements.find((e) => e.id === d.id);
-          if (el) {
-            const base = {
-              left: d.startLeft,
-              top: d.startTop,
-              width: el.width,
-              height: el.height,
+          const r = resizeRef.current,
+            d = dragRef.current;
+          if (r) {
+            const rect = canvasRef.current!.getBoundingClientRect();
+            const dx = snap(ev.clientX - rect.left) - r.startX;
+            const dy = snap(ev.clientY - rect.top) - r.startY;
+            const calc = (c: Corner, dx: number, dy: number) => {
+              switch (c) {
+                case "se":
+                  return {
+                    l: r.startLeft,
+                    t: r.startTop,
+                    w: r.startWidth + dx,
+                    h: r.startHeight + dy,
+                  };
+                case "sw":
+                  return {
+                    l: r.startLeft + dx,
+                    t: r.startTop,
+                    w: r.startWidth - dx,
+                    h: r.startHeight + dy,
+                  };
+                case "ne":
+                  return {
+                    l: r.startLeft,
+                    t: r.startTop + dy,
+                    w: r.startWidth + dx,
+                    h: r.startHeight - dy,
+                  };
+                case "nw":
+                  return {
+                    l: r.startLeft + dx,
+                    t: r.startTop + dy,
+                    w: r.startWidth - dx,
+                    h: r.startHeight - dy,
+                  };
+              }
             };
-            const { snappedX, snappedY, guides } = computeGuidesForMove(
-              base,
-              elements,
-              [d.id],
-              cumX,
-              cumY,
-              gridSize
-            );
-            setLocalGuides(guides);
-            const newLeft = d.startLeft + snappedX;
-            const newTop = d.startTop + snappedY;
+            const { l, t, w, h } = calc(r.corner, dx, dy);
             dispatch({
               type: "patch",
-              id: d.id,
-              patch: { x: newLeft, y: newTop },
+              id: r.target.id,
+              patch: { x: l, y: t, width: w, height: h },
             });
           }
-        
-          // const dx = snap(ev.clientX - rect.left) - d.startX;
-          // const dy = snap(ev.clientY - rect.top)  - d.startY;
-          // setBoxes((bs) =>
-          //   bs.map((b) =>
-          //     b.id === d.id
-          //       ? { ...b, x: d.startLeft   dx, y: d.startTop   dy }
-          //       : b
-          //   )
-          // );
-        }});
+          if (d) {
+            const rect = canvasRef.current!.getBoundingClientRect();
+
+            // const pointerX = ev.clientX - rect.left;
+            // const pointerY = ev.clientY - rect.top;
+
+            // const newLeft = snap(d.startLeft + pointerX - d.startX);
+            // const newTop = snap(d.startTop + pointerY - d.startY);
+
+            // dispatch({
+            //   type: "patch",
+            //   id: d.id,
+            //   patch: { x: newLeft, y: newTop },
+            // });
+            const pointerX = ev.clientX - rect.left;
+            const pointerY = ev.clientY - rect.top;
+            const cumX = pointerX - d.startX;
+            const cumY = pointerY - d.startY;
+
+            const el = elements.find((e) => e.id === d.id);
+            if (el) {
+              const base = {
+                left: d.startLeft,
+                top: d.startTop,
+                width: el.width,
+                height: el.height,
+              };
+              const { snappedX, snappedY, guides } = computeGuidesForMove(
+                base,
+                elements,
+                [d.id],
+                cumX,
+                cumY,
+                gridSize
+              );
+              setLocalGuides(guides);
+              const newLeft = d.startLeft + snappedX;
+              const newTop = d.startTop + snappedY;
+              dispatch({
+                type: "patch",
+                id: d.id,
+                patch: { x: newLeft, y: newTop },
+              });
+            }
+
+            // const dx = snap(ev.clientX - rect.left) - d.startX;
+            // const dy = snap(ev.clientY - rect.top)  - d.startY;
+            // setBoxes((bs) =>
+            //   bs.map((b) =>
+            //     b.id === d.id
+            //       ? { ...b, x: d.startLeft   dx, y: d.startTop   dy }
+            //       : b
+            //   )
+            // );
+          }
+        });
       };
-    
-    
+
       const onUp = () => {
         if (raf) cancelAnimationFrame(raf);
         raf = 0;
@@ -1535,53 +1497,78 @@ function PortfolioBuilderInner({
   const isComponent = selectedEl?.kind === "component";
   const isTextBox = selectedEl?.kind === "text";
 
-  const addToLibrary = React.useCallback(
-    async (pageSlug: string | null, elementId: string) => {
-      try {
-        let res: Response;
+  const ownerId = user?.userId ? String(user.userId) : (process.env.NEXT_PUBLIC_DEV_OWNER_ID ?? null);
+
+const { mutate } = useSWRConfig();
+const refreshLibrary = React.useCallback(() => {
+  if (ownerId) mutate(`/api/blocks?ownerId=${ownerId}`);
+}, [mutate, ownerId]);
+const [savingBlock, setSavingBlock] = useState(false);
+
+const addToLibrary = React.useCallback(
+  async (_pageSlug: string | null, elementId: string) => {
+    console.log("[Blocks] addToLibrary click", { elementId, ownerId });
+    if (savingBlock) return;
+    setSavingBlock(true);
   
-        if (pageSlug) {
-          res = await fetch("/api/blocks/from-element", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ pageSlug, elementId }),
-          });
-        } else {
-          const el = elementsMap.get(elementId);
-          if (!el || (el as any).kind !== "component") {
-            toast.error("Not a component");
-            return;
-          }
-          res = await fetch("/api/blocks", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              component: (el as any).component,
-              props: (el as any).props ?? {},
-              originSlug: null,
-              originElId: elementId,
-            }),
-          });
-        }
-  
-        if (!res.ok) throw new Error("Block create failed");
-        const row = await res.json(); // { id, component, props, ... }
-        dispatch({ type: "patch", id: elementId, patch: { blockId: row.id } as any });
-        toast.success("Added to Library");
-      } catch (e: any) {
-        toast.error(e.message || "Failed to add to Library");
+    try {
+      const el = elementsMap.get(elementId);
+      if (!el || (el as any).kind !== "component") {
+        toast.error("Select a component to add.");
+        return;
       }
-    },
-    [dispatch, elementsMap]
-  );
-  
+      if (!ownerId) {
+        toast.error("Please sign in to add to your library.");
+        return;
+      }
+
+      const res = await fetch("/api/blocks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          component: (el as any).component,
+          props: (el as any).props ?? {},
+          originSlug: null,
+          originElId: elementId,
+          ownerId,                         // 👈 send it
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error || `Block create failed (${res.status})`);
+      }
+
+      const row = await res.json();
+      dispatch({ type: "patch", id: elementId, patch: { blockId: row.id } as any });
+      refreshLibrary();
+      toast.success("Added to Library");
+      
+    } catch (e: any) {
+      console.error("[Blocks] addToLibrary error", e);
+      toast.error(e?.message || "Failed to add to Library");
+    }
+    finally {
+      setSavingBlock(false);
+    }
+  },
+  [savingBlock, dispatch, elementsMap, ownerId, refreshLibrary]
+);
+
+
   const remixBlock = React.useCallback(
     async (blockId: string) => {
-      const res = await fetch(`/api/blocks/${blockId}/fork`, { method: "POST" });
+      const res = await fetch(`/api/blocks/${blockId}/fork`, {
+        method: "POST",
+      });
       if (!res.ok) return toast.error("Fork failed");
       const row = await res.json();
       if (primaryId) {
-        dispatch({ type: "patch", id: primaryId, patch: { blockId: row.id } as any });
+        dispatch({
+          type: "patch",
+          id: primaryId,
+          patch: { blockId: row.id } as any,
+        });
       }
       toast.success("Remixed");
     },
@@ -1998,6 +1985,7 @@ function PortfolioBuilderInner({
                       const urls = (
                         ((el as any).props?.urls ?? []) as string[]
                       ).map(normalizeSupabasePublicUrl);
+                      const src = urls[0] ?? "";
 
                       return (
                         <div
@@ -2006,37 +1994,43 @@ function PortfolioBuilderInner({
                             dispatch({ type: "selectOne", id: el.id })
                           }
                         >
-                          <div className="pointer-events-none w-full h-full flex items-center justify-center">
-                            {urls.length ? (
-                              <GalleryCarousel
-                                embed
-                                {...(el.props as any)}
-                                urls={urls}
+                          <div className="pointer-events-none w-full h-full flex items-center justify-center overflow-hidden">
+                            {src ? (
+                              <img
+                                src={src}
+                                alt=""
+                                loading="lazy"
+                                decoding="async"
+                                draggable={false}
+                                style={{
+                                  width: "100%",
+                                  height: "100%",
+                                  objectFit: "contain",
+                                  display: "block",
+                                }}
                               />
                             ) : (
                               <div className="w-full h-full grid place-items-center text-slate-400 text-sm">
-                                No images yet — use the Gallery panel to add
-                                some.
+                                No images yet — use the Gallery inspector to
+                                upload.
                               </div>
                             )}
                           </div>
 
-                          {/* Resize handles */}
-                          {(["nw", "ne", "sw", "se"] as const).map((corner) => (
+                          {(["nw", "ne", "sw", "se"] as const).map((c) => (
                             <ResizeHandle
-                              key={corner}
-                              corner={corner}
+                              key={c}
+                              corner={c}
                               onPointerDown={(ev) =>
                                 startResize(
                                   ev,
                                   { id: el.id, kind: "component" },
-                                  corner
+                                  c
                                 )
                               }
                             />
                           ))}
 
-                          {/* Delete */}
                           <button
                             className="absolute -bottom-7 left-2 lockbutton rounded-md"
                             onPointerDown={(e) => e.stopPropagation()}
@@ -2065,7 +2059,10 @@ function PortfolioBuilderInner({
                       }
                     >
                       <div className="pointer-events-none w-full h-full overflow-hidden">
-                      <Repeater {...(el.props as any)} limit={Math.min((el.props as any).limit ?? 6, 4)} />
+                        <Repeater
+                          {...(el.props as any)}
+                          limit={Math.min((el.props as any).limit ?? 6, 4)}
+                        />
                       </div>
 
                       {(["nw", "ne", "sw", "se"] as const).map((corner) => (
@@ -2448,11 +2445,13 @@ function PortfolioBuilderInner({
               </button>
 
               <button
-                className="px-2 py-1 bg-white/70 rounded lockbutton"
-                onClick={() => addToLibrary(null, selectedEl.id)} // ✅ no slug needed
-              >
-                Add to Library
-              </button>
+  type="button"
+  disabled={savingBlock}
+  className="px-2 py-1 bg-white/70 rounded lockbutton disabled:opacity-50"
+  onClick={() => addToLibrary(null, selectedEl.id)}
+>
+  {savingBlock ? "Adding…" : "Add to Library"}
+</button>
 
               <button
                 className="px-2 py-1 bg-white/70 rounded lockbutton"

@@ -78,7 +78,7 @@ export default function GalleryCarousel({
   };
 
   return (
-    <div className="flex flex-col flex-1 p-1 w-full border border-indigo-200/50 rounded-xl items-center shadow-md bg-white/10">
+    <div className="flex flex-col flex-1 z-1000 p-1 w-full border border-indigo-200/50 rounded-xl items-center shadow-md bg-slate-300/10">
       <div className="w-full flex flex-1 flex-col justify-center items-center max-w-[90%] h-fit">
         <div className="relative w-[600px] h-[400px] overflow-hidden" style={{ perspective: 900 }}>
           <Dialog>

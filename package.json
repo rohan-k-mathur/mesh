@@ -26,6 +26,7 @@
     "sheets-token": "tsx --env-file=.env scripts/google-sheets-token.ts",
     "watch:worker": "nodemon",
     "size": "size-limit",
+    "backfill:block-thumbs": "tsx -r tsconfig-paths/register -r dotenv/config scripts/backfill-block-thumbnails.ts",
     "size:why": "size-limit --why",
     "worker": "tsx -r dotenv/config workers/index.ts",
     "acl:build": "tsc -p packages/sheaf-acl/tsconfig.json",

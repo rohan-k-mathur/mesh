@@ -101,6 +101,8 @@ import dynamic from "next/dynamic";
 // Components (lazy to avoid cycles)
 const GalleryCarousel = dynamic(() => import("@/components/cards/GalleryCarousel"), { ssr: false });
 const RepeaterComp    = dynamic(() => import("@/components/cards/Repeater"),         { ssr: false });
+const GalleryInspector = dynamic(() => import("@/components/portfolio/GalleryInspector"), { ssr: false });
+
 
 type Widget =
   | { kind: "string";  label?: string; textarea?: boolean; placeholder?: string }
@@ -132,7 +134,6 @@ const GalleryDef: ComponentDef<GalleryProps> = {
   name: "GalleryCarousel",
   component: GalleryCarousel as any,
   defaultProps: { urls: [], caption: "", animation: "cube" },
-  viewerDefaults: { embed: true, unoptimized: true },
   schema: GallerySchema,
   ui: {
     urls:    { kind: "string[]", label: "Image URLs", itemPlaceholder: "https://…" },
@@ -147,6 +148,8 @@ const GalleryDef: ComponentDef<GalleryProps> = {
       ],
     },
   },
+  Inspector: (props) => <GalleryInspector {...props as any} />, // 👈 use it
+
   visible: true,
 };
 
