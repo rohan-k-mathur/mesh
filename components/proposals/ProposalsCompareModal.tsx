@@ -32,7 +32,20 @@
        .catch((e) => setErr(e?.message || "Failed to load proposals"))
        .finally(() => setLoading(false));
    }, [open, rootMessageId]);
- 
+   async function mergeFacet(facetId: string) {
+    const resp = await fetch(`/api/proposals/merge`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ rootMessageId, facetId }),
+    });
+    if (!resp.ok) {
+      alert(await resp.text());
+      return;
+    }
+    onMerged?.();
+    onClose();
+  }
+  
    async function mergeMostRecent(driftId: string) {
      try {
        // Find most recent text message in that proposal drift

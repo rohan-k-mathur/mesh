@@ -73,7 +73,18 @@ import RepeaterPropsPanel from "@/components/portfolio/RepeaterPropsPanel";
 import { registry } from "@/lib/portfolio/registry";
 import type { ComponentName } from "@/lib/portfolio/types";
 import { MacSwitch } from "@/components/ui/switch";
-import { Switch } from "@/components/ui/switch"
+import { Switch } from "@/components/ui/switch";
+import ControlsAccordion from "./RightPanelAccordians";
+import { toast } from "sonner";
+import useSWR from "swr";
+
+import {
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from "@/components/ui/accordion";
+
 
 /* ---------- Smart-guides helper ---------- */
 type GuideLines = { v: number[]; h: number[] };
@@ -182,6 +193,47 @@ function mkComponentElement<C extends ComponentName>(
 }
 // px – change whenever you want
 // const snap = (v: number) => Math.round(v / gridSize) * gridSize;
+const fetcher = (u: string) =>
+  fetch(u, { cache: "no-store" }).then((r) => r.json());
+
+function BlockLibrary({
+  onInsert,
+}: {
+  onInsert: (c: string, props: any) => void;
+}) {
+  const { user } = useAuth();
+  const ownerId = user?.userId ? String(user.userId) : null;
+
+  // only fetch when we have an id
+  const { data } = useSWR(
+    ownerId ? `/api/blocks?ownerId=${ownerId}` : null,
+    fetcher
+  );
+  const items: { id: string; component: string; props: any }[] =
+    data?.items ?? [];
+
+  return (
+    <div className="mt-4 space-y-2">
+      <p className="text-xs uppercase tracking-wide text-slate-500">Blocks</p>
+      {items.map((b) => (
+        <button
+          key={b.id}
+          className="flex items-center justify-between w-full px-4 py-2 rounded-md bg-white lockbutton"
+          onClick={() =>
+            onInsert(b.component, { ...b.props /* local override allowed */ })
+          }
+          title={`Insert ${b.component}`}
+        >
+          <span className="truncate">{b.component}</span>
+          <span className="text-xs text-slate-500">#{b.id.slice(0, 5)}</span>
+        </button>
+      ))}
+      {!items.length && (
+        <div className="text-xs text-slate-400">No blocks yet.</div>
+      )}
+    </div>
+  );
+}
 
 function mkElement(
   type: "image" | "video" | "link",
@@ -290,6 +342,9 @@ function CanvasItem({
     </div>
   );
 }
+
+
+
 function normalizeSupabasePublicUrl(u: string): string {
   // add “public/” segment after “…/object/” if missing
   const fixed = u.includes("/storage/v1/object/public/")
@@ -780,7 +835,11 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
 
     /* --- pointer‑move / pointer‑up (global once) --- */
     useEffect(() => {
+      let raf = 0;
       const onMove = (ev: PointerEvent) => {
+        if (raf) return;
+        raf = requestAnimationFrame(() => {
+          raf = 0;
         const r = resizeRef.current,
           d = dragRef.current;
         if (r) {
@@ -870,6 +929,7 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
               patch: { x: newLeft, y: newTop },
             });
           }
+        
           // const dx = snap(ev.clientX - rect.left) - d.startX;
           // const dy = snap(ev.clientY - rect.top)  - d.startY;
           // setBoxes((bs) =>
@@ -879,9 +939,13 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
           //       : b
           //   )
           // );
-        }
+        }});
       };
+    
+    
       const onUp = () => {
+        if (raf) cancelAnimationFrame(raf);
+        raf = 0;
         resizeRef.current = null;
         dragRef.current = null;
         setResizingState(null);
@@ -894,7 +958,7 @@ const DroppableCanvas = forwardRef<DroppableCanvasHandle, DroppableCanvasProps>(
         window.removeEventListener("pointermove", onMove);
         window.removeEventListener("pointerup", onUp);
       };
-    }, [canvasRef, dispatch]);
+    }, [canvasRef, dispatch, gridSize]); // don’t depend on big objects like elements
 
     /* ---------- draw new element ---------- */
     const isDrawing = drawMode !== null;
@@ -1471,6 +1535,59 @@ function PortfolioBuilderInner({
   const isComponent = selectedEl?.kind === "component";
   const isTextBox = selectedEl?.kind === "text";
 
+  const addToLibrary = React.useCallback(
+    async (pageSlug: string | null, elementId: string) => {
+      try {
+        let res: Response;
+  
+        if (pageSlug) {
+          res = await fetch("/api/blocks/from-element", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ pageSlug, elementId }),
+          });
+        } else {
+          const el = elementsMap.get(elementId);
+          if (!el || (el as any).kind !== "component") {
+            toast.error("Not a component");
+            return;
+          }
+          res = await fetch("/api/blocks", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              component: (el as any).component,
+              props: (el as any).props ?? {},
+              originSlug: null,
+              originElId: elementId,
+            }),
+          });
+        }
+  
+        if (!res.ok) throw new Error("Block create failed");
+        const row = await res.json(); // { id, component, props, ... }
+        dispatch({ type: "patch", id: elementId, patch: { blockId: row.id } as any });
+        toast.success("Added to Library");
+      } catch (e: any) {
+        toast.error(e.message || "Failed to add to Library");
+      }
+    },
+    [dispatch, elementsMap]
+  );
+  
+  const remixBlock = React.useCallback(
+    async (blockId: string) => {
+      const res = await fetch(`/api/blocks/${blockId}/fork`, { method: "POST" });
+      if (!res.ok) return toast.error("Fork failed");
+      const row = await res.json();
+      if (primaryId) {
+        dispatch({ type: "patch", id: primaryId, patch: { blockId: row.id } as any });
+      }
+      toast.success("Remixed");
+    },
+    [dispatch, primaryId]
+  );
+
   return (
     <DndContext
       sensors={sensors}
@@ -1487,17 +1604,12 @@ function PortfolioBuilderInner({
       <div className="flex h-screen">
         <div className=" flex-grow-0 flex-shrink-0 border-r py-2 px-4 space-y-4  mt-12 h-max-screen overflow-y-auto">
           <div className="flex flex-col gap-2 w-fit">
-
-            
-          <label className="flex items-center justify-center  gap-2 cursor-pointer">
-  <MacSwitch
-    checked={showGrid}
-    onCheckedChange={setShowGrid}
-
-  />
-    <span className="text-sm">{showGrid ? "Hide Grid" : "Show Grid"}</span>
-
-</label>
+            <label className="flex items-center justify-center  gap-2 cursor-pointer">
+              <MacSwitch checked={showGrid} onCheckedChange={setShowGrid} />
+              <span className="text-sm">
+                {showGrid ? "Hide Grid" : "Show Grid"}
+              </span>
+            </label>
             <label
               className="flex flex-col flex-1 justify-center items-center  labelbutton text-xs 
            rounded-md w-fit bg-white text-center mt-2 pt-1 "
@@ -1614,11 +1726,11 @@ function PortfolioBuilderInner({
                     kind: "static",
                     value: [
                       {
-                        images: ["https://picsum.photos/seed/a/800/600"],
+                        images: ["https://picsum.photos/seed/a/400/300"],
                         title: "Sample A",
                       },
                       {
-                        images: ["https://picsum.photos/seed/b/800/600"],
+                        images: ["https://picsum.photos/seed/b/400/300"],
                         title: "Sample B",
                       },
                     ],
@@ -1664,30 +1776,55 @@ function PortfolioBuilderInner({
               height={24}
             />
           </button>
-          {Object.values(registry)
-  .filter((d) => d.name !== "Repeater") // you already show a custom Repeater button above
-  .map((def) => (
-    <button
-      key={def.name}
-      className="flex gap-2 w-full justify-start px-4 py-2 rounded-md bg-white lockbutton"
-      onClick={() => {
-        const id = nanoid();
-        const el = {
-          id,
-          kind: "component",
-          component: def.name,
-          props: def.defaultProps,
-          x: 120, y: 120, width: 600, height: 460,
-        };
-        dispatch({ type: "add", element: el as any });
-        dispatch({ type: "selectOne", id });
-      }}
-    >
-      {def.label ?? def.name}    {/* use label if you added it; else fallback to name */}
-      {def.icon && <Image src={def.icon} alt="icon" width={24} height={24} />}
 
-    </button>
-  ))}
+          {Object.values(registry)
+            .filter((d) => d.name !== "Repeater") // you already show a custom Repeater button above
+            .map((def) => (
+              <button
+                key={def.name}
+                className="flex gap-2 w-full justify-start px-4 py-2 rounded-md bg-white lockbutton"
+                onClick={() => {
+                  const id = nanoid();
+                  const el = {
+                    id,
+                    kind: "component",
+                    component: def.name,
+                    props: def.defaultProps,
+                    x: 120,
+                    y: 120,
+                    width: 600,
+                    height: 460,
+                  };
+                  dispatch({ type: "add", element: el as any });
+                  dispatch({ type: "selectOne", id });
+                }}
+              >
+                {def.label ?? def.name}{" "}
+                {/* use label if you added it; else fallback to name */}
+                {def.icon && (
+                  <Image src={def.icon} alt="icon" width={24} height={24} />
+                )}
+              </button>
+            ))}
+
+          <BlockLibrary
+            onInsert={(component, props) => {
+              const id = nanoid();
+              const el = {
+                id,
+                kind: "component",
+                component,
+                props,
+                x: 120,
+                y: 120,
+                width: 600,
+                height: 460,
+                // if this came from a block you can also set blockId to the manifest id
+              };
+              dispatch({ type: "add", element: el as any });
+              dispatch({ type: "selectOne", id });
+            }}
+          />
           {isTextBox && (
             <StylePanel
               box={selectedEl as TextBoxRecord}
@@ -1927,11 +2064,8 @@ function PortfolioBuilderInner({
                         dispatch({ type: "selectOne", id: el.id })
                       }
                     >
-                      <div className="pointer-events-none w-full h-full flex items-center justify-center">
-                        <div className="pointer-events-none w-full h-full">
-                          {/* Non-interactive preview so drag/resize still works */}
-                          <Repeater {...(el.props as any)} />
-                        </div>
+                      <div className="pointer-events-none w-full h-full overflow-hidden">
+                      <Repeater {...(el.props as any)} limit={Math.min((el.props as any).limit ?? 6, 4)} />
                       </div>
 
                       {(["nw", "ne", "sw", "se"] as const).map((corner) => (
@@ -2186,139 +2320,156 @@ function PortfolioBuilderInner({
           )}
         </DroppableCanvas>
         <div className="w-fit border-l px-4 py-2 mt-8 space-y-4 max-h-screen overflow-y-auto">
-          <div className="rounded-xl bg-transparent border-[1px] border-black p-3 ">
-            <p className="text-sm mb-1">Template</p>
-            <select
-              className="w-full rounded-xl lockbutton mt-1 border-black bg-gray-100 border-[1px] p-1"
-              value={template}
-              onChange={(e) => applyTemplate(e.target.value)}
-            >
-              <option value="">Blank</option>
-              {templates.map((t) => (
-                <option key={t.name} value={t.name}>
-                  {t.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="rounded-xl bg-transparent border-[1px] border-black p-3 ">
-            <p className="text-sm mb-1">Background</p>
-            <select
-              className="w-full rounded-xl lockbutton mt-1 border-black bg-gray-100 border-[1px] p-1"
-              value={color}
-              onChange={(e) => {
-                setColor(e.target.value);
-                dispatch({ type: "setColor", color: e.target.value });
-              }}
-            >
-              <option value="bg-white">White</option>
-              <option value="bg-gray-200">Gray</option>
-              <option value="bg-blue-200">Blue</option>
-            </select>
-          </div>
-          <div className="rounded-xl bg-transparent border-[1px] border-black p-3 ">
-            <p className="text-sm mb-1">Layout</p>
-            <select
-              className="w-full rounded-xl lockbutton mt-1 border-black bg-gray-100 border-[1px] p-1"
-              value={layout}
-              onChange={(e) => {
-                const v = e.target.value as "column" | "grid" | "free";
-                setLayout(v);
-                dispatch({ type: "setLayout", layout: v });
-              }}
-            >
-              <option value="free">Free</option>
+          {/* --- Controls: template / bg / layout --- */}
+          <ControlsAccordion
+            template={template}
+            templates={templates}
+            applyTemplate={applyTemplate}
+            color={color}
+            setColor={setColor}
+            layout={layout}
+            setLayout={setLayout}
+            dispatch={dispatch}
+          />
 
-              <option value="column">Column</option>
-              <option value="grid">Grid</option>
-            </select>
-          </div>
+          {/* --- Undo / Redo --- */}
           <div className="flex gap-8 justify-center items-center">
-            <button onClick={undo} title="Undo (⌘Z)" aria-label="Undo" className="likebutton bg-white/50 rounded-xl p-1">
+            <button
+              onClick={undo}
+              title="Undo (⌘Z)"
+              aria-label="Undo"
+              className="likebutton bg-white/50 rounded-xl p-1"
+            >
               <Image src="/assets/undo.svg" width={20} height={20} alt="" />
             </button>
-            <button onClick={redo} title="Redo (⇧⌘Z)" aria-label="Redo" className="likebutton bg-white/50 rounded-xl p-1">
+            <button
+              onClick={redo}
+              title="Redo (⇧⌘Z)"
+              aria-label="Redo"
+              className="likebutton bg-white/50 rounded-xl p-1"
+            >
               <Image src="/assets/redo.svg" width={20} height={20} alt="" />
             </button>
-            
           </div>
-          <hr className="my-2" />
 
-          {isComponent &&
-            selectedEl.kind === "component" &&
-            selectedEl.component === "GalleryCarousel" && (
-              <GalleryPropsPanel
-                componentId={primaryId!}
-                value={
-                  (selectedEl as any).props || {
-                    urls: [],
-                    caption: "",
-                    animation: "cube",
-                  }
-                }
-                onChange={(next) => {
-                  console.log("Gallery props now:", (selectedEl as any).props);
+          {/* --- Inspector (single mount; registry-driven) --- */}
+          <Accordion type="single" collapsible defaultValue="inspector">
+            <AccordionItem value="inspector">
+              <AccordionTrigger>Inspector</AccordionTrigger>
+              <AccordionContent
+                forceMount
+                className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up"
+              >
+                {/* Nothing selected */}
+                {!selectedEl && (
+                  <div className="text-xs text-slate-400 px-1 py-2">
+                    Select an element to edit its properties.
+                  </div>
+                )}
 
-                  const prev = (selectedEl as any).props || {
-                    urls: [],
-                    caption: "",
-                    animation: "cube",
-                  };
-                  dispatch({
-                    type: "patch",
-                    id: selectedEl.id,
-                    patch: { props: { ...prev, ...next } },
-                  });
-                }}
-              />
-            )}
-
-          {isComponent &&
-            selectedEl.kind === "component" &&
-            (() => {
-              const def =
-                registry[selectedEl.component as keyof typeof registry];
-              if (!def) return null;
-
-              if (selectedEl.component === "Repeater") {
-                return (
-                  <RepeaterPropsPanel
-                    value={(selectedEl as any).props}
-                    onChange={(next) =>
-                      dispatch({
-                        type: "patch",
-                        id: selectedEl.id,
-                        patch: {
-                          props: { ...(selectedEl as any).props, ...next },
-                        },
-                      })
+                {/* TEXT inspector */}
+                {selectedEl?.kind === "text" && (
+                  <StylePanel
+                    box={selectedEl as TextBoxRecord}
+                    onChange={(patch) =>
+                      dispatch({ type: "patch", id: primaryId!, patch })
                     }
                   />
-                );
-              }
+                )}
 
-              // Generic panel for any other component
-              return (
-                <AutoInspector
-                  def={def}
-                  value={(selectedEl as any).props || def.defaultProps}
-                  onChange={(patch) =>
-                    dispatch({
-                      type: "patch",
-                      id: selectedEl.id,
-                      patch: {
-                        props: { ...(selectedEl as any).props, ...patch },
-                      },
-                    })
-                  }
-                  // Hide "embed" in the editor if you prefer it controlled by viewerDefaults
-                  excludeKeys={["unoptimized", "sizes"]}
-                />
-              );
-            })()}
+                {/* COMPONENT inspector (custom if provided, else auto) */}
+                {selectedEl?.kind === "component" &&
+                  (() => {
+                    const compName = selectedEl.component as ComponentName;
+                    const def = registry[compName];
+                    if (!def)
+                      return (
+                        <div className="text-xs text-red-600">
+                          Unknown component: {String(compName)}
+                        </div>
+                      );
+                    if (def.Inspector) {
+                      const Custom = def.Inspector as any;
+                      return (
+                        <Custom
+                          value={(selectedEl as any).props ?? def.defaultProps}
+                          onChange={(patch: any) =>
+                            dispatch({
+                              type: "patch",
+                              id: primaryId!,
+                              patch: {
+                                props: {
+                                  ...(selectedEl as any).props,
+                                  ...patch,
+                                },
+                              },
+                            })
+                          }
+                        />
+                      );
+                    }
+                    return (
+                      <AutoInspector
+                        defKey={compName as any}
+                        value={(selectedEl as any).props ?? def.defaultProps}
+                        onChange={(patch: any) =>
+                          dispatch({
+                            type: "patch",
+                            id: primaryId!,
+                            patch: {
+                              props: { ...(selectedEl as any).props, ...patch },
+                            },
+                          })
+                        }
+                      />
+                    );
+                  })()}
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+
+          {/* --- Block actions (only for component elements) --- */}
+          {selectedEl?.kind === "component" && (
+            <div className="mt-2 flex gap-2">
+              <button
+                className="px-2 py-1 bg-white/70 rounded lockbutton"
+                onClick={() => {
+                  const origin = window.location.origin;
+                  const id = (selectedEl as any).blockId;
+                  if (!id)
+                    return toast.error(
+                      "No block id yet. Use ‘Add to Library’ first."
+                    );
+                  navigator.clipboard.writeText(`${origin}/blocks/${id}`);
+                  toast.success("Block link copied");
+                }}
+              >
+                Copy Link
+              </button>
+
+              <button
+                className="px-2 py-1 bg-white/70 rounded lockbutton"
+                onClick={() => addToLibrary(null, selectedEl.id)} // ✅ no slug needed
+              >
+                Add to Library
+              </button>
+
+              <button
+                className="px-2 py-1 bg-white/70 rounded lockbutton"
+                onClick={() => {
+                  const id = (selectedEl as any).blockId;
+                  if (!id) return toast.error("Select a block with a blockId");
+                  remixBlock(id);
+                }}
+              >
+                Remix
+              </button>
+            </div>
+          )}
+
+          {/* --- Publish --- */}
           <button
-            className="w-full  bg-gray-100 border-black border-[1px] lockbutton  text-black  px-1 py-2
-            tracking-wide text-[1.1rem] rounded-xl"
+            className="w-full bg-gray-100 border-black border-[1px] lockbutton text-black px-1 py-1 tracking-wide text-[1rem] rounded-md"
             onClick={handlePublish}
           >
             Publish

@@ -1,104 +1,150 @@
 "use client";
 
 import React from "react";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { ComponentDefinition, PropSpec } from "@/lib/portfolio/registry";
+import { z } from "zod";
+import { registry } from "@/lib/portfolio/registry";
 
-type Props = {
-  def: ComponentDefinition<any>;
-  value: Record<string, any>;
-  onChange: (patch: Record<string, any>) => void;
-  /** optional: hide certain fields (e.g., embed) */
-  excludeKeys?: string[];
+type Props<P> = {
+  defKey: keyof typeof registry;
+  value: P;
+  onChange: (patch: Partial<P>) => void;
 };
 
-export default function AutoInspector({ def, value, onChange, excludeKeys = [] }: Props) {
-  const entries = Object.entries(def.spec).filter(([k]) => !excludeKeys.includes(k));
+export default function AutoInspector<P>({ defKey, value, onChange }: Props<P>) {
+  const def = registry[defKey as any];
+  if (!def) return <div className="text-xs text-red-600">Unknown component: {String(defKey)}</div>;
+  if (def.Inspector) {
+    const C = def.Inspector as any;
+    return <C value={value} onChange={onChange} />;
+  }
+
+  const ui = def.ui ?? {};
+  function setK<K extends keyof P & string>(k: K, val: any) {
+    onChange({ [k]: val } as Partial<P>);
+  }
 
   return (
-    <div className="flex flex-col  text-sm">
-      {entries.map(([key, spec]) => (
-        <Field
-          key={key}
-          k={key}
-          spec={spec as PropSpec}
-          val={value[key]}
-          onChange={(v) => onChange({ [key]: v })}
-        />
-      ))}
+    <div className="space-y-3">
+      {Object.entries(ui).map(([k, w]) => {
+        const key = k as keyof P & string;
+        const current = (value as any)?.[key];
+
+        switch (w.kind) {
+          case "string":
+            return (
+              <div key={k}>
+                {w.label && <div className="text-xs text-slate-600 mb-1">{w.label}</div>}
+                <input
+                  className="border rounded px-2 py-1 text-sm w-full"
+                  placeholder={w.placeholder}
+                  value={current ?? ""}
+                  onChange={(e) => setK(key, e.target.value)}
+                />
+              </div>
+            );
+          case "number":
+            return (
+              <div key={k}>
+                {w.label && <div className="text-xs text-slate-600 mb-1">{w.label}</div>}
+                <input
+                  type="number"
+                  className="border rounded px-2 py-1 text-sm w-full"
+                  min={w.min}
+                  max={w.max}
+                  step={w.step ?? 1}
+                  value={Number.isFinite(current) ? current : ""}
+                  onChange={(e) => setK(key, e.target.value === "" ? undefined : Number(e.target.value))}
+                />
+              </div>
+            );
+          case "boolean":
+            return (
+              <label key={k} className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={!!current}
+                  onChange={(e) => setK(key, e.target.checked)}
+                />
+                {w.label ?? key}
+              </label>
+            );
+          case "enum":
+            return (
+              <div key={k}>
+                {w.label && <div className="text-xs text-slate-600 mb-1">{w.label}</div>}
+                <select
+                  className="border rounded px-2 py-1 text-sm w-full"
+                  value={current ?? ""}
+                  onChange={(e) => setK(key, e.target.value)}
+                >
+                  {w.options.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+              </div>
+            );
+          case "string[]":
+            return (
+              <div key={k}>
+                {w.label && <div className="text-xs text-slate-600 mb-1">{w.label}</div>}
+                <ArrayEditor
+                  values={Array.isArray(current) ? current : []}
+                  placeholder={w.itemPlaceholder}
+                  onChange={(vals) => setK(key, vals)}
+                />
+              </div>
+            );
+          default:
+            return null;
+        }
+      })}
     </div>
   );
 }
 
-function Field({
-  k, spec, val, onChange,
-}: { k: string; spec: PropSpec; val: any; onChange: (v: any) => void }) {
-  switch (spec.kind) {
-    case "string":
-      return (
-        <label className="block">
-          <div className="text-xs mb-1">{spec.label}</div>
-          {spec.textarea ? (
-            <textarea className="w-72 h-24 border rounded p-2 bg-white" value={val ?? ""} onChange={e => onChange(e.target.value)} />
-          ) : (
-            <Input value={val ?? ""} onChange={e => onChange(e.target.value)} />
-          )}
-        </label>
-      );
-
-    case "string[]":
-      return (
-        <label className="block">
-          <div className="text-xs mb-1">{spec.label}</div>
-          <textarea
-            className="w-72 h-24 border rounded p-2 bg-white"
-            value={Array.isArray(val) ? val.join("\n") : ""}
-            onChange={(e) => onChange(e.target.value.split("\n").map(s => s.trim()).filter(Boolean))}
-          />
-          {spec.help && <div className="text-[11px] text-slate-500 mt-1">{spec.help}</div>}
-        </label>
-      );
-
-    case "number":
-      return (
-        <label className="block">
-          <div className="text-xs mb-1">{spec.label}</div>
-          <Input
-            type="number"
-            value={val ?? 0}
-            min={spec.min}
-            max={spec.max}
-            step={spec.step ?? 1}
-            onChange={(e) => onChange(Number(e.target.value))}
-          />
-        </label>
-      );
-
-    case "boolean":
-      return (
-        <label className="flex items-center gap-2">
-          <input type="checkbox" checked={!!val} onChange={(e) => onChange(e.target.checked)} />
-          <span className="text-xs">{spec.label}</span>
-        </label>
-      );
-
-    case "enum":
-      return (
-        <label className="block">
-          <div className="text-xs mb-1">{spec.label}</div>
-          <Select value={String(val ?? spec.options[0])} onValueChange={(v) => onChange(v)}>
-            <SelectTrigger className="w-64">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {spec.options.map((opt) => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </label>
-      );
-
-    default:
-      return null;
+function ArrayEditor({
+  values,
+  onChange,
+  placeholder,
+}: {
+  values: string[];
+  onChange: (v: string[]) => void;
+  placeholder?: string;
+}) {
+  const [draft, setDraft] = React.useState("");
+  function add() {
+    const v = draft.trim();
+    if (!v) return;
+    onChange([...values, v]);
+    setDraft("");
   }
+  function remove(i: number) {
+    const next = [...values]; next.splice(i, 1); onChange(next);
+  }
+
+  return (
+    <div>
+      <div className="flex gap-2">
+        <input
+          className="border rounded px-2 py-1 text-sm flex-1"
+          value={draft}
+          placeholder={placeholder}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") add(); }}
+        />
+        <button className="px-2 py-1 text-sm rounded bg-white/60 lockbutton" onClick={add}>Add</button>
+      </div>
+      <div className="mt-2 space-y-1">
+        {values.map((v, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <input className="border rounded px-2 py-1 text-sm flex-1" value={v}
+              onChange={(e) => {
+                const next = [...values]; next[i] = e.target.value; onChange(next);
+              }} />
+            <button className="text-red-600" onClick={() => remove(i)}>✕</button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }

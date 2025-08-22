@@ -65,7 +65,8 @@ export default function RepeaterPropsPanel({
       <hr className="my-2" />
 
       {/* Data Source */}
-      <div className="text-xs uppercase text-slate-500">Data source</div>
+      <div class
+      ame="text-xs uppercase text-slate-500">Data source</div>
       <label className="block">
         <div className="text-xs mb-1">Kind</div>
         <Select

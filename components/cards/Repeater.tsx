@@ -1,94 +1,126 @@
+// components/cards/Repeater.tsx
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
-import type { ComponentName, DataSource } from "@/lib/portfolio/types";
+import React, { useMemo } from "react";
 import { registry } from "@/lib/portfolio/registry";
+import type { ComponentName } from "@/lib/portfolio/types";
 
-// tiny helpers
-const getPath = (obj: any, path?: string) =>
-  !path ? undefined : path.split(".").reduce((acc, k) => (acc == null ? undefined : acc[k]), obj);
-const toArray = (v: any) => (Array.isArray(v) ? v.map(String) : v == null ? [] : [String(v)]);
+type DataSource =
+  | { kind: "static"; value: any[] }
+  | { kind: "url" | "supabase"; [k: string]: any }; // disabled in baseline, but tolerated
 
-export type RepeaterProps = {
-  of: ComponentName;
-  source: DataSource;
-  map?: Record<string, string>;            // propName -> row path
-  staticProps?: Record<string, any>;       // constant overrides
-  layout?: "grid" | "column";
+type Mapping = Record<string, string>; // propName -> dot path (e.g., "images" or "media.urls")
+
+type Props = {
+  of: ComponentName;              // e.g., "GalleryCarousel"
+  source: DataSource;             // use { kind:"static", value:[...] }
+  map: Mapping;                   // e.g., { urls:"images", caption:"title" }
+  layout?: "grid" | "column";     // 2-cols grid or single column
   limit?: number;
+  className?: string;
 };
 
-async function fetchRows(ds: DataSource): Promise<any[]> {
-  try {
-    switch (ds.kind) {
-      case "static":
-        return Array.isArray(ds.value) ? ds.value : [];
-      case "url": {
-        const r = await fetch(ds.href, { cache: "no-store" });
-        const json = await r.json();
-        return Array.isArray(json) ? json : (Array.isArray(json?.items) ? json.items : []);
-      }
-      case "supabase": {
-        const { createClient } = await import("@supabase/supabase-js");
-        const client = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
-        let q = client.from(ds.table).select((ds.fields?.length ? ds.fields.join(",") : "*"), { head: false, count: "exact" });
-        if (ds.filter) q = q.match(ds.filter as any);
-        if (ds.limit)  q = q.limit(ds.limit);
-        const { data, error } = await q;
-        if (error) { console.warn("Repeater supabase error", error); return []; }
-        return data ?? [];
-      }
-      default:
-        return [];
-    }
-  } catch (e) {
-    console.warn("Repeater fetch failed", e);
-    return [];
-  }
+function getPath(obj: any, path?: string): any {
+  if (!path) return undefined;
+  return path.split(".").reduce((acc, k) => (acc == null ? undefined : acc[k]), obj);
 }
 
-export default function Repeater({ of, source, map = {}, staticProps = {}, layout = "grid", limit = 6 }: RepeaterProps) {
+export default function Repeater({
+  of,
+  source,
+  map,
+  layout = "grid",
+  limit,
+  className,
+}: Props) {
   const def = registry[of];
-  const [rows, setRows] = useState<any[]>([]);
+  if (!def) return <div className="text-xs text-red-600">Unknown component: {String(of)}</div>;
 
-  useEffect(() => {
-    let alive = true;
-    fetchRows(source).then((data) => { if (alive) setRows(limit ? data.slice(0, limit) : data); });
-    return () => { alive = false; };
-  }, [JSON.stringify(source), limit]);
+  // baseline: static data only; disable dynamic in safe mode
+  const rows = source?.kind === "static" && Array.isArray(source.value) ? source.value : [];
+  const take = typeof limit === "number" ? Math.min(limit, rows.length) : rows.length;
+  const list = rows.slice(0, take);
 
-  const bindable = def?.bindableProps ?? [];
+  const cols = layout === "grid" ? 2 : 1;
+  const rowCount = Math.max(1, Math.ceil(list.length / cols));
 
   return (
-    <div className={layout === "grid" ? "grid grid-cols-2 gap-4 w-full h-full p-2" : "flex flex-col gap-4 w-full h-full p-2 overflow-auto"}>
-      {rows.map((row, i) => {
-        // Start with defaults
-        let childProps: any = { ...def.defaultProps, ...staticProps };
-
-        // Fill bindable props from row (typed by spec.kind)
-        for (const key of bindable) {
-          const spec = def.spec[key];
-          const path = map[key];
-          const v = getPath(row, path);
-          if (spec?.kind === "string[]") childProps[key] = toArray(v);
-          else childProps[key] = v;
+    <div
+      className={`w-full h-full min-w-0 min-h-0 ${
+        layout === "grid" ? "grid gap-3" : "flex flex-col gap-3"
+      } ${className ?? ""}`}
+      style={
+        layout === "grid"
+          ? {
+              gridTemplateColumns: `repeat(${cols}, minmax(0,1fr))`,
+              gridTemplateRows: `repeat(${rowCount}, minmax(0,1fr))`,
+            }
+          : undefined
+      }
+    >
+      {list.map((row, idx) => {
+        // compute props for the child from mapping (dot paths)
+        const childProps: Record<string, any> = { ...def.defaultProps };
+        for (const [propKey, path] of Object.entries(map)) {
+          childProps[propKey] = getPath(row, path);
         }
 
-        // Viewer defaults + normalize
-        childProps = { ...(def.viewerDefaults ?? {}), ...childProps };
-        if (def.normalize) childProps = def.normalize(childProps);
+        // Special-case: when repeating GalleryCarousel, render a cheap <img> for preview
+        if (of === "GalleryCarousel") {
+          const urls = Array.isArray(childProps.urls)
+            ? (childProps.urls as string[])
+            : childProps.urls
+            ? [String(childProps.urls)]
+            : [];
+          const src = urls[0] ?? "";
+          return (
+            <div
+              key={idx}
+              className="relative w-full h-full min-w-0 min-h-0 overflow-hidden"
+              style={{ contain: "layout paint" }}
+            >
+              {src ? (
+                <img
+                  src={src}
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                  draggable={false}
+                  style={{
+                    position: "absolute",
+                    inset: 0,
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                    display: "block",
+                  }}
+                />
+              ) : (
+                <div className="w-full h-full grid place-items-center text-xs text-slate-400">
+                  No image
+                </div>
+              )}
+            </div>
+          );
+        }
 
-        const Comp = def.component as any;
+        // Other components: very safe placeholder (no motion / dialogs)
         return (
-          <div key={i} className="relative w-full h-[240px]">
-            <Comp {...childProps} />
+          <div
+            key={idx}
+            className="relative w-full h-full min-w-0 min-h-0 overflow-hidden"
+            style={{ contain: "layout paint" }}
+          >
+            <div className="w-full h-full grid place-items-center text-xs text-slate-400">
+              Preview disabled
+            </div>
           </div>
         );
       })}
 
-      {!rows.length && (
-        <div className="text-sm text-slate-500 grid place-items-center w-full h-full">
-          No data yet — configure the Repeater source.
+      {!list.length && (
+        <div className="text-xs text-slate-400">
+          {source?.kind === "static" ? "No data" : "Safe mode: dynamic sources disabled"}
         </div>
       )}
     </div>

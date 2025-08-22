@@ -52,17 +52,17 @@ export default function GalleryPropsPanel({
         Gallery
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex gap-4">
         <button
           type="button"
-          className="border px-2 py-1 rounded"
+          className="border border-black px-3 py-1 rounded-xl bg-white lockbutton"
           onClick={() => setOpenEdit(true)}
         >
-          Edit gallery…
+          Edit
         </button>
         <button
           type="button"
-          className="border px-2 py-1 rounded"
+          className="border border-black px-3 py-1 rounded-xl bg-white lockbutton"
           disabled={!value.urls?.length}
           onClick={() => setOpenView(true)}
         >
@@ -70,15 +70,16 @@ export default function GalleryPropsPanel({
         </button>
       </div>
 
-      <label className="block text-xs">Caption</label>
+      <p className="block text-xs ">Caption</p>
       <Input
+      className="titlefield labelbutton outline-none border-none "
         value={value.caption ?? ""}
         onChange={(e) => onChange({ ...value, caption: e.target.value })}
       />
 
       <label className="block text-xs">Animation</label>
       <select
-        className="border rounded p-1 bg-white"
+        className=" labelbutton border rounded p-1 text-xs bg-white focus:outline-none"
         value={value.animation ?? "cube"}
         onChange={(e) =>
           onChange({

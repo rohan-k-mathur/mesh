@@ -1,96 +1,187 @@
+// "use client";
+
+// import { z } from "zod";
+// import type { ComponentName } from "@/lib/portfolio/types";
+// import dynamic from "next/dynamic";
+
+// // ✅ LAZY import components to avoid cycles
+// const GalleryCarousel = dynamic(() => import("@/components/cards/GalleryCarousel"), { ssr: false });
+// const RepeaterComp    = dynamic(() => import("@/components/cards/Repeater"), { ssr: false });
+// const RepeaterInsp    = dynamic(() => import("@/components/portfolio/RepeaterInspector"), { ssr: false });
+
+// /** UI metadata */
+// type Widget =
+//   | { kind: "string";  label?: string; textarea?: boolean; placeholder?: string }
+//   | { kind: "number";  label?: string; min?: number; max?: number; step?: number }
+//   | { kind: "boolean"; label?: string }
+//   | { kind: "enum";    label?: string; options: { label: string; value: string }[] }
+//   | { kind: "string[]";label?: string; itemPlaceholder?: string };
+
+// export type ComponentDef<P> = {
+//   name: ComponentName;
+//   component: React.ComponentType<P>;
+//   defaultProps: P;
+//   schema: z.ZodType<P>;
+//   ui?: Record<string, Widget>;
+//   Inspector?: React.FC<{ value: P; onChange: (patch: Partial<P>) => void }>;
+//   normalize?: (p: P) => P;
+//   viewerDefaults?: Partial<P>;
+//   visible?: boolean;
+// };
+
+// // ---- Gallery ----
+// const GallerySchema = z.object({
+//   urls: z.array(z.string()).default([]),
+//   caption: z.string().default(""),
+//   animation: z.enum(["cylinder","cube","portal","towardscreen"]).default("cube"),
+// }).strict();
+// export type GalleryProps = z.infer<typeof GallerySchema>;
+
+// const GalleryDef: ComponentDef<GalleryProps> = {
+//   name: "GalleryCarousel",
+//   component: GalleryCarousel as any,
+//   defaultProps: { urls: [], caption: "", animation: "cube" },
+//   viewerDefaults: { embed: true, unoptimized: true },
+
+//   schema: GallerySchema,
+//   ui: {
+//     urls:    { kind: "string[]", label: "Image URLs", itemPlaceholder: "https://…" },
+//     caption: { kind: "string",   label: "Caption", placeholder: "Optional caption" },
+//     animation: {
+//       kind: "enum", label: "Animation",
+//       options: [
+//         { label: "Cylinder", value: "cylinder" },
+//         { label: "Cube",     value: "cube" },
+//         { label: "Portal",   value: "portal" },
+//         { label: "Toward Screen", value: "towardscreen" },
+//       ],
+//     },
+//   },
+//   visible: true,
+// };
+
+// // ---- Repeater ----
+// const RepeaterSchema = z.object({
+//   of: z.string(),
+//   source: z.any(),
+//   map: z.any(),
+//   layout: z.enum(["grid","column"]).default("grid").optional(),
+//   limit: z.number().int().positive().optional(),
+// }).strict();
+// export type RepeaterProps = z.infer<typeof RepeaterSchema>;
+
+// const RepeaterDef: ComponentDef<RepeaterProps> = {
+//   name: "Repeater",
+//   component: RepeaterComp as any,                 // ✅ lazy component
+//   defaultProps: { of: "GalleryCarousel", source: { kind: "static", value: [] }, map: {}, layout: "grid", limit: 6 },
+//   schema: RepeaterSchema,
+//   Inspector: (props) => <RepeaterInsp {...props as any} />,  // ✅ lazy inspector
+//   ui: {
+//     layout: { kind: "enum", label: "Layout", options: [
+//       { label: "Grid",   value: "grid" },
+//       { label: "Column", value: "column" },
+//     ]},
+//     limit: { kind: "number", label: "Limit", min: 1, max: 100, step: 1 },
+//   },
+//   visible: true,
+// };
+
+// export const registry: Record<ComponentName, ComponentDef<any>> = {
+//   GalleryCarousel: GalleryDef,
+//   Repeater: RepeaterDef,
+// };
+
+// lib/portfolio/registry.ts
 "use client";
 
+import { z } from "zod";
+import type { ComponentName } from "@/lib/portfolio/types";
 import dynamic from "next/dynamic";
-import type { ComponentType } from "react";
-import { normalizeSupabasePublicUrl } from "@/lib/utils";
-import type { ComponentName } from "./types";
 
-/** ========== Describe props so UIs can be generated ========== */
-
-export type PropSpec =
-  | { kind: "string";  label: string; textarea?: boolean; bindable?: boolean }
-  | { kind: "string[]";label: string; bindable?: boolean; help?: string }
-  | { kind: "number";  label: string; min?: number; max?: number; step?: number }
-  | { kind: "boolean"; label: string }
-  | { kind: "enum";    label: string; options: string[] };
-
-export type ComponentDefinition<P extends Record<string, any>> = {
-  /** Display name + React component */
-  name: ComponentName;
-  component: ComponentType<P>;
-
-  /** Default props used when the block is created */
-  defaultProps: P;
-
-  /** How to render an editor for props (auto if omitted) */
-  spec: Record<keyof P & string, PropSpec>;
-
-  /** Props that can be bound by Repeater (subset of spec keys) */
-  bindableProps?: (keyof P & string)[];
-
-  /** Optional: tweak props at render time (e.g., normalize URLs) */
-  normalize?: (props: P) => P;
-
-  /** Optional: default flags for viewer (e.g., `embed: true`) */
-  viewerDefaults?: Partial<P>;
-
-  icon?: string;
-
-  label?: string;
-};
-
-/** ========== Components ========== */
-
+// Components (lazy to avoid cycles)
 const GalleryCarousel = dynamic(() => import("@/components/cards/GalleryCarousel"), { ssr: false });
-const Repeater        = dynamic(() => import("@/components/cards/Repeater"),        { ssr: false });
+const RepeaterComp    = dynamic(() => import("@/components/cards/Repeater"),         { ssr: false });
 
-/** Gallery metadata */
-type GalleryProps = React.ComponentProps<typeof GalleryCarousel>;
-export const GalleryDef: ComponentDefinition<GalleryProps> = {
-  name: "GalleryCarousel",
-  component: GalleryCarousel,
-  defaultProps: { urls: [], caption: "", animation: "cube", embed: true },
-  spec: {
-    urls:      { kind: "string[]", label: "Image URLs", bindable: true, help: "For manual editing, enter one per line." },
-    caption:   { kind: "string",   label: "Caption",    bindable: true },
-    animation: { kind: "enum",     label: "Animation",  options: ["cube","cylinder","portal","towardscreen"] },
-    embed:     { kind: "boolean",  label: "Embed (fill box)" },
-    unoptimized: { kind: "boolean", label: "Unoptimized images" },
-    sizes:     { kind: "string",   label: "Next.js <Image> sizes", textarea: false },
-  },
-  bindableProps: ["urls", "caption"],
-  normalize: (p) => ({
-    ...p,
-    urls: Array.isArray(p.urls) ? p.urls.map(normalizeSupabasePublicUrl) : [],
-  }),
-  viewerDefaults: { embed: true, unoptimized: true },
-  label: "Gallery",
-  icon: "/assets/carousel.svg"
+type Widget =
+  | { kind: "string";  label?: string; textarea?: boolean; placeholder?: string }
+  | { kind: "number";  label?: string; min?: number; max?: number; step?: number }
+  | { kind: "boolean"; label?: string }
+  | { kind: "enum";    label?: string; options: { label: string; value: string }[] }
+  | { kind: "string[]";label?: string; itemPlaceholder?: string };
+
+export type ComponentDef<P> = {
+  name: ComponentName;
+  component: React.ComponentType<P>;
+  defaultProps: P;
+  schema: z.ZodType<P>;
+  ui?: Record<string, Widget>;
+  normalize?: (p: P) => P;
+  viewerDefaults?: Partial<P>;
+  visible?: boolean;
 };
 
-/** Repeater metadata (we still keep a dedicated panel for data mapping). */
-type RepeaterProps = React.ComponentProps<typeof Repeater>;
-export const RepeaterDef: ComponentDefinition<RepeaterProps> = {
+// ---- Gallery ----
+const GallerySchema = z.object({
+  urls: z.array(z.string()).default([]),
+  caption: z.string().default(""),
+  animation: z.enum(["cylinder","cube","portal","towardscreen"]).default("cube"),
+}).strict();
+type GalleryProps = z.infer<typeof GallerySchema>;
+
+const GalleryDef: ComponentDef<GalleryProps> = {
+  name: "GalleryCarousel",
+  component: GalleryCarousel as any,
+  defaultProps: { urls: [], caption: "", animation: "cube" },
+  viewerDefaults: { embed: true, unoptimized: true },
+  schema: GallerySchema,
+  ui: {
+    urls:    { kind: "string[]", label: "Image URLs", itemPlaceholder: "https://…" },
+    caption: { kind: "string",   label: "Caption", placeholder: "Optional caption" },
+    animation: {
+      kind: "enum", label: "Animation",
+      options: [
+        { label: "Cylinder", value: "cylinder" },
+        { label: "Cube",     value: "cube" },
+        { label: "Portal",   value: "portal" },
+        { label: "Toward Screen", value: "towardscreen" },
+      ],
+    },
+  },
+  visible: true,
+};
+
+// ---- Repeater (baseline) ----
+const RepeaterSchema = z.object({
+  of: z.string(),
+  source: z.object({ kind: z.literal("static"), value: z.array(z.any()) }).or(z.any()).default({ kind:"static", value: [] }),
+  map: z.record(z.string()).default({ urls: "images", caption: "title" }),
+  layout: z.enum(["grid","column"]).default("grid").optional(),
+  limit: z.number().int().positive().optional(),
+}).strict();
+type RepeaterProps = z.infer<typeof RepeaterSchema>;
+
+const RepeaterDef: ComponentDef<RepeaterProps> = {
   name: "Repeater",
-  component: Repeater,
+  component: RepeaterComp as any,
   defaultProps: {
     of: "GalleryCarousel",
     source: { kind: "static", value: [] },
-    map: {},
-    staticProps: {},
+    map: { urls: "images", caption: "title" },
     layout: "grid",
     limit: 6,
   },
-  spec: {
-    of:         { kind: "enum", label: "Component", options: ["GalleryCarousel"] },
-    layout:     { kind: "enum", label: "Layout", options: ["grid","column"] },
-    limit:      { kind: "number", label: "Limit", min: 1, max: 100, step: 1 },
-    // We intentionally do not auto‑render `source`/`map`/`staticProps` here –
-    // RepeaterPropsPanel handles these with a richer UI.
-  } as any,
+  schema: RepeaterSchema,
+  ui: {
+    layout: { kind: "enum", label: "Layout", options: [
+      { label: "Grid",   value: "grid" },
+      { label: "Column", value: "column" },
+    ]},
+    limit: { kind: "number", label: "Limit", min: 1, max: 100, step: 1 },
+  },
+  visible: true,
 };
 
-export const registry: Record<ComponentName, ComponentDefinition<any>> = {
+export const registry: Record<ComponentName, ComponentDef<any>> = {
   GalleryCarousel: GalleryDef,
   Repeater: RepeaterDef,
 };

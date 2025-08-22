@@ -11,6 +11,14 @@ export type ElementKind = 'text' | 'image' | 'video' | 'link' | 'component' | 'b
 export type ComponentName = 'GalleryCarousel' | 'Repeater';
 
 
+export type ComponentElement = {
+  id: string;
+  kind: "component";
+  component: ComponentName;
+  props: any;
+  blockId?: string; // ← provenance
+  x: number; y: number; width: number; height: number;
+};
 
 // Data source for Repeaters
 export type DataSource =
@@ -38,6 +46,7 @@ export interface ComponentElementRecord {
   component: ComponentName;
   // keep as loose record, but most code can import ComponentPropsMap for safety
   props: Record<string, unknown>;
+  blockId?: string; // ← provenance
   x: number; y: number; width: number; height: number;
 }
 

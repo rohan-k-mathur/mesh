@@ -53,6 +53,8 @@ const nextConfig = {
           protocol: "https",
           hostname: "placehold.co",
         },
+        { protocol: 'https', hostname: 'picsum.photos', pathname: '/**' },
+
         {
           protocol: "https",
           hostname: "i.imgur.com",

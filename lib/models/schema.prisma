@@ -1961,3 +1961,73 @@ enum RoomKind {
   CONVERSATION
   REALTIME
 }
+model BlockManifest {
+  id         String   @id        // nanoid
+  ownerId    BigInt   @map("owner_id")
+  component  String
+  props      Json
+  originSlug String?  @map("origin_slug")
+  originElId String?  @map("origin_el_id")
+  forkOfId   String?  @map("fork_of_id")
+  isPublic   Boolean  @default(true) @map("is_public")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@index([ownerId, createdAt])
+  @@map("block_manifests")
+}
+
+
+model PageComment {
+  id         BigInt   @id @default(autoincrement())
+  pageSlug   String
+  elementId  String
+  authorId   BigInt
+  text       String
+  xPct       Float
+  yPct       Float
+  createdAt  DateTime @default(now())
+}
+
+model PagePatch {
+  id         BigInt   @id @default(autoincrement())
+  pageSlug   String
+  elementId  String
+  authorId   BigInt
+  patch      Json           // Partial<ElementRecord>
+  status     String         // "proposed" | "accepted" | "rejected"
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+
+model Site {
+  id         BigInt   @id @default(autoincrement())
+  ownerId    BigInt
+  slug       String   @unique
+  theme      Json?
+  createdAt  DateTime @default(now())
+}
+
+model SitePage {
+  id         BigInt   @id @default(autoincrement())
+  siteId     BigInt
+  slug       String     // "home", "work", …
+  payload    Json       // CanvasState-like
+  order      Int        // nav order
+  createdAt  DateTime @default(now())
+  @@unique([siteId, slug])
+  @@index([siteId, order])
+}
+
+model MergeReceipt {
+  id             String    @id @default(cuid())
+  message_id     BigInt
+  version_hash   String
+  from_facet_ids String[]  @db.Text
+  merged_by      BigInt
+  merged_at      DateTime  @default(now()) @db.Timestamptz(6)
+  signature      String
+  @@index([message_id, merged_at])
+  @@map("merge_receipts")
+}

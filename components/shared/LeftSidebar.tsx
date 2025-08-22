@@ -42,7 +42,6 @@ function LeftSidebar({ userRooms }: Props) {
   }
   function goHome()
   {
-
     router.push("/");
   }
   function gotoprofile() {
