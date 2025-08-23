@@ -1548,8 +1548,8 @@ export default function ChatRoom({
         open={!!compareFor}
         onClose={() => setCompareFor(null)}
         rootMessageId={String(compareFor || "")}
-        conversationId={conversationId}
-        currentUserId={currentUserId}
+        conversationId={String(conversationId)}
+                currentUserId={currentUserId}
         onOpenDrift={(driftId) =>
           setOpenDrifts((prev) => ({ ...prev, [driftId]: true }))
         }

@@ -1,60 +1,63 @@
 "use client";
 import * as React from "react";
-import useSWR, { mutate as swrMutate } from "swr";
+import useSWR from "swr";
+
 const fetcher = (u: string) => fetch(u).then((r) => r.json());
 
 export default function ProposalsCompareModal({
   open,
   onClose,
   rootMessageId,
-  conversationId,          // ✅ add this prop
+  conversationId,    // required for signals
   currentUserId,
-  onOpenDrift,
+  onOpenDrift,       // not used yet, but keep for future
   onMerged,
 }: {
   open: boolean;
   onClose: () => void;
   rootMessageId: string;
-  conversationId: string;  // ✅ add this prop in callers
+  conversationId: string;
   currentUserId: string;
   onOpenDrift: (driftId: string) => void;
   onMerged?: () => void;
 }) {
-  const [loading, setLoading] = React.useState(false);
-  const [err, setErr] = React.useState<string | null>(null);
-  const [candidates, setCandidates] = React.useState<any[]>([]);
-
-  // ✅ counts for approvals/blocks via SWR
+  // ---- Counts (✅/⛔) via SWR; non-blocking
   const { data: listData, mutate: mutateCounts } = useSWR(
     open ? `/api/proposals/list?rootMessageId=${encodeURIComponent(rootMessageId)}` : null,
     fetcher
   );
   const counts = listData?.counts ?? {};
 
-  // ✅ fetch candidates (text & facet) when opened
+  // ---- Candidates (what you render)
+  const [candidates, setCandidates] = React.useState<any[]>([]);
+  const [candLoading, setCandLoading] = React.useState(false);
+  const [candErr, setCandErr] = React.useState<string | null>(null);
+
   React.useEffect(() => {
     if (!open) return;
-    setLoading(true);
-    setErr(null);
+    setCandLoading(true);
+    setCandErr(null);
     fetch(`/api/proposals/candidates?rootMessageId=${encodeURIComponent(rootMessageId)}`, {
       cache: "no-store",
     })
       .then((r) => (r.ok ? r.json() : r.text().then((t) => Promise.reject(new Error(t)))))
       .then((d) => setCandidates(Array.isArray(d?.items) ? d.items : []))
-      .catch((e) => setErr(e?.message || "Failed to load proposals"))
-      .finally(() => setLoading(false));
+      .catch((e) => setCandErr(e?.message || "Failed to load proposals"))
+      .finally(() => setCandLoading(false));
   }, [open, rootMessageId]);
 
-  // ✅ signal endpoints
+  // ✅ signals for Approve/Block/Clear
   async function signal(facetId: string, kind: "APPROVE" | "BLOCK" | "CLEAR") {
-    await fetch(`/api/proposals/signal`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messageId: rootMessageId, conversationId, facetId, kind }),
-    });
-    // Revalidate counts; let candidates be as-is
-    mutateCounts();
-    // If you also broadcast proposal_signal server-side, ChatRoom will call swrMutate globally
+    try {
+      await fetch(`/api/proposals/signal`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messageId: rootMessageId, conversationId, facetId, kind }),
+      });
+      mutateCounts(); // refresh counts; candidates list can stay as-is
+    } catch {
+      // non-blocking; counts will refresh on broadcast too
+    }
   }
 
   async function mergeFacet(facetId: string) {
@@ -96,18 +99,21 @@ export default function ProposalsCompareModal({
             Close
           </button>
         </div>
+
         <div className="mt-3">
-          {loading ? (
+          {candLoading ? (
             <div className="text-sm text-slate-600">Loading…</div>
-          ) : err ? (
-            <div className="text-sm text-red-600">{err}</div>
-          ) : candidates.length === 0 ? ( // ✅ empty check uses candidates
+          ) : candErr ? (
+            <div className="text-sm text-red-600">{candErr}</div>
+          ) : candidates.length === 0 ? (
             <div className="text-sm text-slate-600">No proposals yet.</div>
           ) : (
             <div className="space-y-2">
               {candidates.map((c) => {
                 const key = c.kind === "FACET" ? `f:${c.facetId}` : `m:${c.messageId}`;
-                const ctn = counts[c.facetId as string] || { approve: 0, block: 0 };
+                // counts only for facets; for TEXT candidates we don’t render counts
+                const ctn = c.kind === "FACET" ? counts[c.facetId as string] || { approve: 0, block: 0 } : null;
+
                 return (
                   <div
                     key={key}
@@ -121,7 +127,7 @@ export default function ProposalsCompareModal({
                       <div className="text-sm mt-1 line-clamp-3">{c.preview}</div>
                       {c.kind === "FACET" && (
                         <div className="mt-1 text-xs text-slate-600">
-                          ✅ {ctn.approve} · ⛔ {ctn.block}
+                          ✅ {ctn!.approve} · ⛔ {ctn!.block}
                         </div>
                       )}
                     </div>
@@ -168,6 +174,7 @@ export default function ProposalsCompareModal({
             </div>
           )}
         </div>
+
         <p className="mt-3 text-xs text-slate-500">
           Tip: Merging updates the original message. Receipts keep a signed history (vN).
         </p>
