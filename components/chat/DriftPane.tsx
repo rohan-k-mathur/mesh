@@ -136,13 +136,13 @@ export function DriftPane({
       {/* Header */}
       <div className="flex items-center justify-between py-1">
         <div className="flex items-center gap-2">
-        <span className=" text-[1rem] tracking-wide font-medium">
-            {variant === "proposal" ? "🪄" : "֍"} {drift.title}
+        <span className="flex tracking-wide ">
+            {variant === "proposal" ? "🪄" : "𒈝"} {drift.title}
           </span>
           {drift.isClosed && <span className="ml-1 text-xs rounded bg-slate-200 px-2 py-0.5">closed</span>}
           {drift.isArchived && <span className="ml-1 text-xs rounded bg-slate-200 px-2 py-0.5">archived</span>}
         </div>
-        <button onClick={onClose} className="text-xs px-3 py-1 rounded-xl bg-white/50 sendbutton hover:bg-slate-50">
+        <button onClick={onClose} className="text-xs px-4 py-1 rounded-xl bg-white/50 sendbutton hover:bg-slate-50">
           Close
         </button>
       </div>
@@ -189,7 +189,6 @@ export function DriftPane({
         {/* Disabled when closed/archived */}
         <fieldset disabled={drift.isClosed || drift.isArchived} className="disabled:opacity-60">
           <div className=" sheaf-bubble  rounded-xl p-2 bg-white/50">
-            <p className="text-xs text-slate-600 mb-1">Send in Drift</p>
             <div className="mt-1">
               <MessageComposer
                 conversationId={conversationId}

@@ -390,13 +390,20 @@ const { sendTyping } = useConversationRealtime(
                   
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="flex flex-col flex-1 bg-white/30 backdrop-blur rounded-xl max-w-[400px] py-2 max-h-[500px] w-full gap-1
+                <DropdownMenuContent className="flex flex-col flex-1 bg-white/30 backdrop-blur rounded-xl min-w-[200px] max-w-[400px] py-2 max-h-[500px] w-full gap-1
                 h-full text-[1rem] tracking-wide" align="start" sideOffset={6}>
-                  <DropdownMenuItem className="rounded-xl w-full" onClick={() => setShowPoll(true)}>
-                    📊 Create poll…
+                  <DropdownMenuItem className="rounded-xl  w-full" onClick={() => setShowPoll(true)}>
+                    <div className="flex  w-full gap-1">
+                  <p className="flex justify-start text-start">𒆝</p>  
+                  <p className="flex justify-center items-center text-center"> Create Poll</p> 
+                  </div>
                   </DropdownMenuItem>
                   <DropdownMenuItem className="rounded-xl w-full" onClick={() => setShowTemp(true)}>
-                    🌡 Temperature check…
+                  <div className="flex  w-full gap-1">
+                  <p className="flex justify-start text-start">𒋲</p>  
+                  <p className="flex justify-center items-center text-center"> Temp Check</p> 
+                  </div>
+
                   </DropdownMenuItem>
                   <DropdownMenuItem
                      className="rounded-xl w-full"
@@ -425,11 +432,17 @@ const { sendTyping } = useConversationRealtime(
                        }
                      }}
                    >
-                     🌀 New drift…
+                            <div className="flex  w-full gap-1">
+                  <p className="flex justify-start text-start">𒂝 </p>  
+                  <p className="flex justify-center items-center text-center">  Create Drift</p> 
+                  </div>
                    </DropdownMenuItem>
                   {/* ✅ NEW: toggle Sheaf panel */}
                   <DropdownMenuItem className="rounded-xl w-full" onClick={() => setShowSheaf((v) => !v)}>
-                    🧩 Layered message…
+                  <div className="flex  w-full gap-1">
+                  <p className="flex justify-start text-start">𒒚</p>  
+                  <p className="flex justify-end items-end text-center"> Stratified</p> 
+                  </div>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -489,15 +502,15 @@ const { sendTyping } = useConversationRealtime(
               </Dialog> */}
 
               <Dialog open={showSheaf} onOpenChange={setShowSheaf}>
-  <DialogContent className="p-3 sheaf-shadow max-w-3xl w-full  rounded-xl bg-white/10 border-[2px] border-indigo-300
-   backdrop-blur-md">
+  <DialogContent className="p-3 sheaf-shadow max-w-3xl w-full bg-white/10 rounded-xl  border-[2px] border-indigo-300
+   backdrop-blur-lg">
     {/* The column wrapper needs an explicit height and min-h-0 so the middle can scroll */}
     <div className="flex h-[90vh] max-h-[90vh] flex-col min-h-0  bg-transparent
  rounded-xl border-none custom-scrollbar">
       {/* Header (not scrollable) */}
       <div className="shrink-0 p-4">
         <DialogHeader className="p-0  ">
-          <DialogTitle className="text-xl text-slate-100 px-2 py-2 tracking-wide  ">Compose Layered Message</DialogTitle>
+          <DialogTitle className="text-xl text-slate-100 px-2 py-2 tracking-wide  ">Create Stratified Message</DialogTitle>
         </DialogHeader>
         <hr className="border-white/40 "></hr>
       </div>

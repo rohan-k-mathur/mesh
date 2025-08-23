@@ -85,8 +85,7 @@ export function SheafMessageBubble(props: {
 
   return (
     <>
-
-    <div className= "bg-slate-50  rounded-lg px-4   h-fit align-center my-auto py-[1.2px] tracking-wide max-w-[60%]   bg-opacity-70 sheaf-bubble outline-transparent text-[.9rem]  text-slate-950 dark:bg-slate-50 dark:text-slate-900">
+    <div className= "bg-slate-50  rounded-lg px-4   h-fit align-center  py-[1.2px] tracking-wide max-w-[60%]   bg-opacity-70 chat-bubble outline-transparent text-[.9rem]  text-slate-950 dark:bg-slate-50 dark:text-slate-900">
       {facets.length > 1 && (
         <div className="mb-2 flex flex-wrap gap-1">
           {facets.map((f) => (

@@ -318,16 +318,16 @@ export function SheafComposer(props: {
       {/* Footer */}
       {error && <div className="text-xs text-rose-600">{error}</div>}
       <div className="flex items-center gap-4  pb-3">
-        <button type="button" onClick={onCancel} className="px-3 py-3 rounded-xl tracking-wide lockbutton bg-white/70 text-sm" disabled={sending}>
-          Cancel
+        <button type="button" onClick={onCancel} className="px-4 py-3 rounded-xl tracking-wide lockbutton bg-white/70 text-sm" disabled={sending}>
+        𒁈
         </button>
         <button
           type="button"
           onClick={send}
-          className={sending ? 'px-3 py-3 rounded-xl tracking-wide lockbutton text-sm opacity-60 cursor-not-allowed bg-indigo-300' : 'px-3 py-3 tracking-wide rounded-xl lockbutton text-sm bg-indigo-500 text-white'}
+          className={sending ? 'px-4 py-3 rounded-xl tracking-wide lockbutton text-sm opacity-60 cursor-not-allowed bg-indigo-300' : 'px-3 py-3 tracking-wide rounded-xl lockbutton text-sm bg-indigo-500 text-white'}
           disabled={sending}
         >
-          {sending ? 'Sending…' : 'Send Message'}
+          {sending ? 'Sending…' : '𒓳𒓵'}
         </button>
       </div>
     </div>

@@ -76,6 +76,104 @@ function toSnippet(raw: string, max = 48) {
   const s = raw.replace(/\s+/g, " ").trim();
   return s.length > max ? s.slice(0, max - 1) + "…" : s;
 }
+
+// --- Merge / Edit summary chip (expandable), safe hook usage ---
+function MergeHistorySummary({
+  messageId,
+  isMine,
+  edited,
+}: {
+  messageId: string;
+  isMine: boolean;
+  edited?: boolean;
+}) {
+  const { list, latest, isLoading } = useReceipts(messageId);
+  const hasReceipts = Array.isArray(list) && list.length > 0;
+  const hasEditsOnly = !!edited && !hasReceipts;
+
+  if (!hasReceipts && !hasEditsOnly) return null;
+
+  const [open, setOpen] = React.useState(false);
+
+  // label summary (like your thread chip)
+  const label = hasReceipts
+    ? `v${latest?.v ?? list.length} • merged ${new Date(
+        (latest as any)?.mergedAt ?? (latest as any)?.merged_at ?? Date.now()
+      ).toLocaleString()}`
+    : "(edited)";
+
+  return (
+    <div className={["mx-[3%] px-3 mt-0 mb-0", isMine ? "text-right" : "text-left"].join(" ")}>
+      <button
+        type="button"
+        className={[
+          "mt-1 text-[12px] transition-opacity",
+          "text-slate-800 hover:underline hover:underline-offset-4",
+        ].join(" ")}
+        onClick={() => setOpen((o) => !o)}
+        title={hasReceipts ? "Show merge history" : "Show edit info"}
+      >
+        <div className="flex inline-block gap-2 items-center">
+          {isMine ? (
+            <>
+              <span className="text-[.75rem] opacity-90 inline-block mt-[5px]">{label}</span>
+              <div className="mr-4 w-8 h-4 border-b-[1px] border-r-[1px] border-slate-600"></div>
+            </>
+          ) : (
+            <>
+              <div className="ml-4 w-8 h-4 border-b-[1px] border-l-[1px] border-slate-600"></div>
+              <span className="text-[.75rem] opacity-90 inline-block mt-[5px]">{label}</span>
+            </>
+          )}
+        </div>
+      </button>
+
+      {/* expanded panel */}
+      {open && (
+        <div
+          className={[
+            "mt-2 inline-block max-w-[92%] rounded-xl border bg-white/70 backdrop-blur px-3 py-2",
+            isMine ? "text-right" : "text-left",
+          ].join(" ")}
+        >
+          {isLoading ? (
+            <div className="text-[12px] text-slate-600">Loading…</div>
+          ) : hasReceipts ? (
+            <div className="space-y-1">
+              {/* show newest first */}
+              {[...list].reverse().slice(0, 6).map((r: any) => {
+                const mergedAt = r.mergedAt ?? r.merged_at;
+                const v = r.v ?? "(?)";
+                return (
+                  <div key={`${messageId}-v-${v}`} className="text-[12px] text-slate-700">
+                    <span className="mr-2 font-medium">v{v}</span>
+                    <span className="mr-2 opacity-80">
+                      {mergedAt ? new Date(mergedAt).toLocaleString() : ""}
+                    </span>
+                    <a
+                      href={`/m/${encodeURIComponent(messageId)}/compare?v=${v}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="underline"
+                    >
+                      view
+                    </a>
+                  </div>
+                );
+              })}
+              {list.length > 6 && (
+                <div className="text-[12px] text-slate-500">… {list.length - 6} more</div>
+              )}
+            </div>
+          ) : (
+            <div className="text-[12px] text-slate-600">(edited)</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ThreadSummary({
   threadEntry,
   messageId,
@@ -210,10 +308,10 @@ function Attachment({
        <div
          className={[
            "mt-1 text-[11px] text-slate-500 italic",
-           isMine ? "text-right pr-3" : "text-left pl-3",
+           isMine ? "text-right flex flex-col pr-3" : "text-left flex flex-col pl-3",
          ].join(" ")}
        >
-         v{latest.v} • merged {mergedAt ? new Date(mergedAt).toLocaleString() : ""}
+         v{latest.v} merge at {mergedAt ? new Date(mergedAt).toLocaleString() : ""}
          {" "}
          <a
            className="underline"
@@ -221,7 +319,7 @@ function Attachment({
            target="_blank"
            rel="noreferrer"
          >
-           view
+           View 
          </a>
        </div>
      );
@@ -335,8 +433,12 @@ const MessageRow = memo(function MessageRow({
                 (edited)
               </div>
             ) : null}
+
+            {/* ✅ Receipt row lives OUTSIDE the bubble container */}
+<div className={isMine ? "mt-1 w-full flex justify-end pr-3" : "mt-1 w-full flex justify-start pl-3"}>
+  <ReceiptRow messageId={String(m.id)} isMine={isMine} />
+</div>
              {/* Merge receipt chip (safe hook usage in child) */}
-+            <ReceiptRow messageId={String(m.id)} isMine={isMine} />
 
             <div
               className={[
@@ -350,38 +452,39 @@ const MessageRow = memo(function MessageRow({
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
-                    className="py-0 px-0  align-center my-auto bg-indigo-500 shadow-md hover:shadow-none rounded-md text-xs focus:outline-none"
+                    className="py-0 px-0 bg-transparent align-center my-auto  rounded-md text-xs focus:outline-none"
                     title="Message actions"
                     type="button"
                   >
-                    <Image
+                    ᳀
+                    {/* <Image
                       src="/assets/dot-mark.svg"
                       alt="actions"
                       width={32}
                       height={32}
                       className="cursor-pointer object-fill w-[10px]"
-                    />
+                    /> */}
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
                   align={isMine ? "end" : "start"}
                   sideOffset={6}
-                  className="flex flex-col bg-white/30 backdrop-blur rounded-xl max-w-[400px] py-2"
+                  className="flex flex-col bg-white/30 border-none backdrop-blur rounded-xl max-w-[400px] py-2"
                 >
                   {isMine ? (
                     <>
                       <DropdownMenuItem
                         onClick={() => onProposeAlternative(m.id)}
                       >
-                        🪄 Propose an Alternative
+                        🪄 New Fork 
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => onCompareProposals(m.id)}
                       >
-                        🧬 Compare Proposals
+                        🧬 Compare Forks
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => onMergeProposal(m.id)}>
-                        ✅ Merge Proposal…
+                        ✅ Approve Merge
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => alert("Edit is coming soon.")}
@@ -389,7 +492,7 @@ const MessageRow = memo(function MessageRow({
                         ✏️ Edit
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => onReplyInThread(m.id)}>
-                        🧵 Create Reply Thread
+                        🧵 Reply
                       </DropdownMenuItem>
 
                       <DropdownMenuItem
@@ -460,18 +563,18 @@ const MessageRow = memo(function MessageRow({
                       <DropdownMenuItem
                         onClick={() => onProposeAlternative(m.id)}
                       >
-                        🪄 Propose an Alternative
+                        🪄 New Fork 
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => onCompareProposals(m.id)}
                       >
-                        🧬 Compare Proposals
+                        🧬 Compare Forks
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => onPrivateReply?.(m)}>
                         ↩️ Reply in DMs
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => onReplyInThread(m.id)}>
-                        🧵 Create Reply Thread
+                        🧵 Thread Reply 
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => {
@@ -503,9 +606,10 @@ const MessageRow = memo(function MessageRow({
         </>
       ) : (
         <>
+        
           <div
             className={[
-              "relative group w-full",
+              "relative  group w-full",
               isMine ? "flex justify-end" : "flex justify-start",
             ].join(" ")}
           >
@@ -514,12 +618,13 @@ const MessageRow = memo(function MessageRow({
             ) : (
               <ChatMessageContent content="" className="min-h-6" />
             )}
+
             {(m as any).edited ? (
-              <div className="mt-1 text-[11px] text-slate-500 italic">
+              <div className="mt-1 text-[11px] text-slate-700 italic">
                 (edited)
               </div>
             ) : null}
-              <ReceiptRow messageId={String(m.id)} isMine={isMine} />
+              
 
             <div
               className={[
@@ -532,41 +637,42 @@ const MessageRow = memo(function MessageRow({
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
-                    className="py-0 px-0  align-center my-auto bg-indigo-500 shadow-md hover:shadow-none rounded-md text-xs focus:outline-none"
+                    className="py-0 px-0 bg-transparent align-center my-auto  rounded-md text-xs focus:outline-none"
                     title="Message actions"
                     type="button"
                   >
-                    <Image
+                    ᳀
+                    {/* <Image
                       src="/assets/dot-mark.svg"
                       alt="actions"
                       width={32}
                       height={32}
                       className="cursor-pointer object-fill w-[10px]"
-                    />
+                    /> */}
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
                   align={isMine ? "end" : "start"}
                   sideOffset={6}
-                  className="flex flex-col bg-white/30 backdrop-blur rounded-xl max-w-[400px] py-2"
+                  className="flex flex-col bg-white/30 border-none backdrop-blur rounded-xl max-w-[400px] py-2"
                 >
                   {isMine ? (
                     <>
                       <DropdownMenuItem
                         onClick={() => onProposeAlternative(m.id)}
                       >
-                        🪄 Propose an Alternative
+                        🪄 New Fork
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => onCompareProposals(m.id)}
                       >
-                        🧬 Compare Proposals
+                        🧬 Compare Forks
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => onMergeProposal(m.id)}>
-                        ✅ Merge Proposal…
+                        ✅ Approve Merge
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => onReplyInThread(m.id)}>
-                        🧵 Create Reply Thread
+                        🧵 Thread Reply
                       </DropdownMenuItem>
 
                       <DropdownMenuItem
@@ -689,6 +795,7 @@ const MessageRow = memo(function MessageRow({
           imageSrc={m.sender?.image || "/assets/user-helsinki.svg"}
         />
       )}
+      
     </ChatMessage>
   );
 });
@@ -1713,6 +1820,13 @@ export default function ChatRoom({
                 onVote={(body) => onVote(pollsByMessageId[m.id], body)}
               />
             )}
+            <MergeHistorySummary
+  messageId={String(m.id)}
+  isMine={isMine}
+  edited={Boolean((m as any).edited)}
+/>
+
+
             <ThreadSummary
               threadEntry={threadEntry}
               messageId={m.id}

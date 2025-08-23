@@ -451,10 +451,12 @@ export async function POST(req: NextRequest) {
     },
     select: { id: true, created_at: true },
   });
+  const msg = message; // ✅ make msg defined for later uses
+
   await createMessageNotification({
-    conversationId,
+    conversationId: toBigInt(conversationId),
     messageId: msg.id,
-    senderId: user.userId,
+    senderId: toBigInt(authorId),
   });
   // Preload LISTs for SNAPSHOT freeze
   const listIdsRef = Array.from(
@@ -636,26 +638,30 @@ export async function POST(req: NextRequest) {
 // After facets are created (dbFacets or createdFacets visible)
 // 1) Mentions per facet
 for (const f of dbFacets) {
-  const text = facetToPlainText(f.body as any);
-  const tokens = await parseMentionsFromText(text, undefined, async (names) => {
-    const users = await prisma.user.findMany({ where: { username: { in: names } }, select: { id: true, username: true } });
-    return users.map(u => ({ id: u.id.toString(), username: u.username }));
-  });
-  if (!tokens.length) continue;
-
-  const allowed: bigint[] = [];
-  await Promise.all(tokens.map(async t => {
-    const uid = BigInt(t.userId);
-    if (uid === toBigInt(authorId)) return; // skip self
-    if (await canUserSeeFacetNow(uid, f as any)) allowed.push(uid);
-  }));
-
-  if (allowed.length) {
-    await prisma.messageMention.createMany({
-      data: allowed.map(uid => ({ messageId: message.id, facetId: f.id, userId: uid })),
-      skipDuplicates: true,
+  try {
+    const text = facetToPlainText(f.body as any);
+    const tokens = await parseMentionsFromText(text, undefined, async (names) => {
+      const users = await prisma.user.findMany({ where: { username: { in: names } }, select: { id: true, username: true } });
+      return users.map(u => ({ id: u.id.toString(), username: u.username }));
     });
-    // TODO (opt): notifications
+    if (!tokens.length) continue;
+
+    const allowed: bigint[] = [];
+    await Promise.all(tokens.map(async t => {
+      const uid = BigInt(t.userId);
+      if (uid === toBigInt(authorId)) return; // skip self
+      if (await canUserSeeFacetNow(uid, f as any)) allowed.push(uid);
+    }));
+
+    if (allowed.length) {
+      await prisma.messageMention.createMany({
+        data: allowed.map(uid => ({ messageId: message.id, facetId: f.id, userId: uid })),
+        skipDuplicates: true,
+      });
+      // TODO: notifications
+    }
+  } catch (e) {
+    console.warn("[sheaf] mention parse failed", e);
   }
 }
 

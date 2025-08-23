@@ -3,27 +3,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prismaclient";
 import { getUserFromCookies } from "@/lib/serverutils";
-
-// canonicalize + hash + signature (consistent)
-import { canonicalize } from "@/lib/receipts/jcs";          // <- your minimal JCS canonicalizer
-import { versionHashOf } from "@/lib/receipts/hash";        // sha256 over canonicalized bytes (returns "sha256:<hex>")
-import { signReceipt } from "@/lib/receipts/sign";          // returns { signature, keyId }
-
-// policy check (baseline owner-or-mod)
+import { versionHashOf } from "@/lib/receipts/hash";   // sha256 over canonicalized payload
+import { signReceipt } from "@/lib/receipts/sign";     // returns { signature, keyId }
 import { checkMergeAllowed, DefaultMergePolicy } from "@/lib/gitchat/policies";
 
 export const runtime = "nodejs";
 
 const bodySchema = z.object({
   rootMessageId: z.union([z.string(), z.number(), z.bigint()]).transform((v) => BigInt(v)),
-  proposalMessageId: z
-    .union([z.string(), z.number(), z.bigint()])
-    .transform((v) => BigInt(v))
-    .optional(),
+  proposalMessageId: z.union([z.string(), z.number(), z.bigint()]).transform((v) => BigInt(v)).optional(),
   facetId: z.union([z.string(), z.number(), z.bigint()]).transform((v) => BigInt(v)).optional(),
 });
 
-// additional pragmatic gate (owner/mod/proposal author)
+// pragmatic local gate: owner/mod/proposal author
 async function canMergeLocal({
   rootMessageId,
   userId,
@@ -39,10 +31,10 @@ async function canMergeLocal({
   });
   if (!root) return false;
 
-  // 1) Root author can merge
+  // 1) root author
   if (root.sender_id === userId) return true;
 
-  // 2) Mods/admins (if present on participant row)
+  // 2) mods/admins (if roles exist)
   const part = await prisma.conversationParticipant.findFirst({
     where: { conversation_id: root.conversation_id, user_id: userId },
     select: { role: true } as any,
@@ -50,10 +42,10 @@ async function canMergeLocal({
   const role = (part as any)?.role as string | undefined;
   if (role && ["ADMIN", "MOD", "OWNER"].includes(role.toUpperCase())) return true;
 
-  // 3) (Optional) allow any participant in dev
+  // 3) dev flag: any participant
   if (process.env.MERGE_ALLOW_PARTICIPANTS === "true" && part) return true;
 
-  // 4) Proposal author can merge their own candidate
+  // 4) proposal author (when merging from proposalMessageId)
   if (proposalMessageId) {
     const prop = await prisma.message.findUnique({
       where: { id: proposalMessageId },
@@ -65,36 +57,56 @@ async function canMergeLocal({
   return false;
 }
 
-/** Clone a facet to the root message. Tries to set a default facet if your schema has it; otherwise continues silently. */
+/** Clone a facet to the root message and set it as default via SheafMessageMeta. */
 async function cloneFacetToRoot(rootMessageId: bigint, facetId: bigint) {
   const facet = await prisma.sheafFacet.findUnique({
     where: { id: facetId },
-    select: { id: true, kind: true, content: true, meta: true },
+    select: {
+      id: true,
+      audienceKind: true,
+      audienceMode: true,
+      audienceRole: true,
+      audienceListId: true,
+      snapshotMemberIds: true,
+      listVersionAtSend: true,
+      audienceUserIds: true,
+      sharePolicy: true,
+      expiresAt: true,
+      body: true,
+      priorityRank: true,
+      visibilityKey: true,
+    },
   } as any);
   if (!facet) throw new Error("facet not found");
 
   const newFacet = await prisma.sheafFacet.create({
     data: {
-      message_id: rootMessageId,
-      kind: (facet as any).kind ?? "DEFAULT",
-      content: (facet as any).content,
-      meta: (facet as any).meta ?? null,
+      messageId: rootMessageId,
+      audienceKind: facet.audienceKind,
+      audienceMode: facet.audienceMode,
+      audienceRole: facet.audienceRole,
+      audienceListId: facet.audienceListId,
+      snapshotMemberIds: facet.snapshotMemberIds ?? [],
+      listVersionAtSend: facet.listVersionAtSend ?? null,
+      audienceUserIds: facet.audienceUserIds ?? [],
+      sharePolicy: facet.sharePolicy,
+      expiresAt: facet.expiresAt ?? null,
+      body: facet.body,
+      priorityRank: facet.priorityRank ?? 0,
+      visibilityKey: facet.visibilityKey ?? null,
     } as any,
   });
 
-  // Try to set default facet if column exists; ignore if schema doesn't have it
-  try {
-    await prisma.message.update({
-      where: { id: rootMessageId },
-      data: { defaultFacetId: newFacet.id as any, edited_at: new Date() as any } as any,
-    });
-  } catch {
-    // no-op: defaultFacetId not present in your schema
-  }
+  // Upsert SheafMessageMeta.defaultFacetId
+  await prisma.sheafMessageMeta.upsert({
+    where: { messageId: rootMessageId },
+    update: { defaultFacetId: newFacet.id },
+    create: { messageId: rootMessageId, defaultFacetId: newFacet.id },
+  });
 
-  // canonical bytes for the facet payload
-  const body = { type: "facet", facet: { kind: (facet as any).kind ?? "DEFAULT", content: (facet as any).content } };
-  return { newFacetId: newFacet.id as any, canon: canonicalize(body) };
+  // Canonical payload for hashing
+  const facetPayload = { type: "facet", body: facet.body };
+  return { newFacetId: newFacet.id as any, facetPayload };
 }
 
 export async function POST(req: NextRequest) {
@@ -103,36 +115,35 @@ export async function POST(req: NextRequest) {
 
   const { rootMessageId, proposalMessageId, facetId } = bodySchema.parse(await req.json());
 
-  // Policy gate (room/conversation policy)
+  // 1) policy gate (room/conversation)
   const allowed = await checkMergeAllowed(DefaultMergePolicy, me.userId, rootMessageId);
   if (!allowed) return new NextResponse("Forbidden", { status: 403 });
 
-  // Pragmatic gate (owner/mod/proposal author)
+  // 2) pragmatic local gate
   if (!(await canMergeLocal({ rootMessageId, userId: me.userId, proposalMessageId }))) {
     return new NextResponse("Forbidden", { status: 403 });
   }
 
-  // Decide merge mode
-  let canonBytes = "";
-  let fromFacetIds: string[] = [];
-  let mergedFromMessageId: string | null = null;
-
   try {
-    // Get the root's conversation (used later for broadcasts/note)
-    const msg = await prisma.message.findUnique({
+    // root message (for conversation id)
+    const root = await prisma.message.findUnique({
       where: { id: rootMessageId },
       select: { id: true, conversation_id: true },
     });
-    if (!msg) return new NextResponse("Not found", { status: 404 });
+    if (!root) return new NextResponse("Not found", { status: 404 });
+
+    let mergedFromMessageId: string | null = null;
+    let versionHash = "";
+    let fromFacetIds: string[] = [];
 
     if (facetId) {
-      // Facet merge: clone facet into root
-      const { newFacetId, canon } = await cloneFacetToRoot(rootMessageId, facetId);
-      canonBytes = canon;
+      // FACET merge
+      const { newFacetId, facetPayload } = await cloneFacetToRoot(rootMessageId, facetId);
       fromFacetIds = [String(facetId)];
-      mergedFromMessageId = null; // not text
+      versionHash = versionHashOf(facetPayload);
+      mergedFromMessageId = null;
     } else {
-      // Text merge: copy text from proposal message
+      // TEXT merge
       const candidate = await prisma.message.findUnique({
         where: { id: proposalMessageId! },
         select: { id: true, text: true },
@@ -146,39 +157,45 @@ export async function POST(req: NextRequest) {
         data: { text: candidate.text, edited_at: new Date() as any },
       });
 
-      canonBytes = canonicalize({ type: "text", text: candidate.text.trim() });
+      const textPayload = { type: "text", text: candidate.text.trim() };
+      versionHash = versionHashOf(textPayload);
       mergedFromMessageId = candidate.id.toString();
     }
 
-    // Compute version hash from canonical content
-    const versionHash = versionHashOf({ merged: canonBytes });
-
-    // Latest (by time) previous receipt for parent linkage
+    // Parent linkage (latest by time)
     const lastReceipt = await prisma.mergeReceipt.findFirst({
-      where: { message_id: msg.id },
+      where: { message_id: root.id },
       orderBy: [{ merged_at: "desc" }, { id: "desc" }],
       select: { version_hash: true },
     });
 
-    // Aggregate approvals/blocks for included facet (if any)
+    // approvals/blocks (only meaningful for facet merges)
     let approvals: any[] = [];
     let blocks: any[] = [];
     if (fromFacetIds.length > 0) {
       const sigRows = await prisma.proposalSignal.findMany({
-        where: { message_id: msg.id, facet_id: { in: fromFacetIds } },
+        where: { message_id: root.id, facet_id: { in: fromFacetIds } },
         select: { user_id: true, kind: true, created_at: true },
       });
       approvals = sigRows
         .filter((r) => r.kind === "APPROVE")
-        .map((r) => ({ userId: r.user_id.toString(), role: "member", at: r.created_at.toISOString() }));
+        .map((r) => ({
+          userId: r.user_id.toString(),
+          role: "member",
+          at: r.created_at.toISOString(),
+        }));
       blocks = sigRows
         .filter((r) => r.kind === "BLOCK")
-        .map((r) => ({ userId: r.user_id.toString(), role: "member", at: r.created_at.toISOString() }));
+        .map((r) => ({
+          userId: r.user_id.toString(),
+          role: "member",
+          at: r.created_at.toISOString(),
+        }));
     }
 
-    // Build & sign receipt (no v field—v is computed by the receipts API)
+    // Receipt body & signature (v is computed by the /receipts API)
     const receiptBody = {
-      messageId: msg.id.toString(),
+      messageId: root.id.toString(),
       versionHash,
       parents: lastReceipt?.version_hash ? [lastReceipt.version_hash] : [],
       fromFacetIds,
@@ -194,13 +211,13 @@ export async function POST(req: NextRequest) {
 
     await prisma.mergeReceipt.create({
       data: {
-        message_id: msg.id,
+        message_id: root.id,
         version_hash: versionHash,
         parents: receiptBody.parents as any,
         from_facet_ids: receiptBody.fromFacetIds as any,
         merged_by: me.userId,
         merged_at: new Date(receiptBody.mergedAt),
-        policy_id: "owner-or-mod@v1",
+        policy_id: receiptBody.policy.id,
         approvals: approvals as any,
         blocks: blocks as any,
         summary: receiptBody.summary,
@@ -209,7 +226,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Broadcast so UIs refresh the merged message + receipts chip
+    // Broadcast so open UIs refresh
     try {
       const { createClient } = await import("@supabase/supabase-js");
       const admin = createClient(
@@ -217,22 +234,22 @@ export async function POST(req: NextRequest) {
         process.env.SUPABASE_SERVICE_ROLE_KEY!
       );
       await admin
-        .channel(`conversation-${msg.conversation_id.toString()}`)
+        .channel(`conversation-${root.conversation_id.toString()}`)
         .send({
           type: "broadcast",
           event: "proposal_merge",
-          payload: { rootMessageId: msg.id.toString(), versionHash },
+          payload: { rootMessageId: root.id.toString(), versionHash },
         });
     } catch (e) {
       console.warn("[ap] proposal_merge broadcast failed", e);
     }
 
-    // Lightweight system note
+    // System note
     try {
       const count = await prisma.mergeReceipt.count({ where: { message_id: rootMessageId } });
       await prisma.message.create({
         data: {
-          conversation_id: msg.conversation_id,
+          conversation_id: root.conversation_id,
           sender_id: me.userId,
           text: `Merged to v${count} by user ${me.userId}`,
           meta: { kind: "MERGE_NOTE", rootMessageId: rootMessageId.toString() } as any,
