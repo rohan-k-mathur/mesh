@@ -728,9 +728,13 @@ model Message {
   // 👇 exactly ONE relation field to Drift, named `drift` (or `Drift`, but only once)
   drift          Drift?           @relation("DriftMessages", fields: [drift_id], references: [id])
   MessageMention MessageMention[]
+
   // Stars & Bookmarks back-relations
   stars          MessageStar[]
   bookmarks      Bookmark[]
+
+     // --- GitChat receipts ---
+   mergeReceipts   MergeReceipt[]
 
   @@unique([conversation_id, client_id])
   @@index([conversation_id, created_at])
@@ -2021,14 +2025,74 @@ model SitePage {
   @@index([siteId, order])
 }
 
-model MergeReceipt {
-  id             String    @id @default(cuid())
-  message_id     BigInt
-  version_hash   String
-  from_facet_ids String[]  @db.Text
-  merged_by      BigInt
-  merged_at      DateTime  @default(now()) @db.Timestamptz(6)
-  signature      String
-  @@index([message_id, merged_at])
-  @@map("merge_receipts")
+ 
+ // ----------------------------------------------------------
+ // GitChat: Merge receipts (append-only audit of version merges)
+ // ----------------------------------------------------------
+ model MergeReceipt {
+   id               BigInt   @id @default(autoincrement())
+   message_id       BigInt
+   v                Int
+   version_hash     String   @db.VarChar(128)
+   parents          Json?    // array of version_hash strings
+   from_facet_ids   Json?    // array of facetId strings considered/merged
+   merged_by        BigInt
+   merged_at        DateTime @default(now()) @db.Timestamptz(6)
+   policy_id        String   @db.VarChar(64)
+   approvals        Json?    // [{userId, role, at, sig}]
+   blocks           Json?    // [{userId, role, at, reason?}]
+   summary          String?  @db.VarChar(280)
+   prev_receipt_hash String? @db.VarChar(128)
+   signature        String?  @db.VarChar(512)
+ 
+   message          Message  @relation(fields: [message_id], references: [id], onDelete: Cascade)
+   mergedBy         User     @relation(fields: [merged_by], references: [id], onDelete: Cascade)
+ 
+   @@unique([message_id, v])
+   @@index([message_id, v])
+   @@index([version_hash])
+ }
+ 
+ // ----------------------------------------------------------
+ // GitChat: Proposal signals (Approve/Block per proposal facet)
+ // ----------------------------------------------------------
+ enum ProposalSignalKind {
+   APPROVE
+   BLOCK
+ }
+ 
+ model ProposalSignal {
+   id               BigInt             @id @default(autoincrement())
+   conversation_id  BigInt
+   message_id       BigInt
+   facet_id         String             @db.VarChar(64)
+   user_id          BigInt
+   kind             ProposalSignalKind
+   created_at       DateTime           @default(now()) @db.Timestamptz(6)
+ 
+   message          Message            @relation(fields: [message_id], references: [id], onDelete: Cascade)
+   user             User               @relation(fields: [user_id], references: [id], onDelete: Cascade)
+   conversation     Conversation       @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
+ 
+   @@unique([facet_id, user_id]) // one signal per user per proposal
+   @@index([message_id])
+   @@index([conversation_id])
+ }
+model AgreementLock {
+  id         BigInt   @id @default(autoincrement())
+  message_id BigInt   @unique
+  locked_by  BigInt
+  locked_at  DateTime @default(now()) @db.Timestamptz(6)
+
+  @@map("agreement_locks")
 }
+
+model AgreementAck {
+  message_id BigInt
+  user_id    BigInt
+  ack_at     DateTime @default(now()) @db.Timestamptz(6)
+
+  @@id([message_id, user_id])
+  @@map("agreement_acks")
+}
+

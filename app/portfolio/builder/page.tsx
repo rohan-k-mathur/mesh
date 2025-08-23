@@ -79,6 +79,9 @@ import { toast } from "sonner";
 import useSWR, { mutate } from "swr";
 import { useSWRConfig } from "swr";
 
+import { lintElements, type LintIssue } from "@/lib/portfolio/lint";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge"; // if you have it, else use spans
 
 import {
   Accordion,
@@ -1167,7 +1170,8 @@ function PortfolioBuilderInner({
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
   const [gridSize, setGridSize] = useState(30);
-
+  const [lintOpen, setLintOpen] = useState(false);
+  const [lintIssues, setLintIssues] = useState<LintIssue[]>([]);
   const dispatch = useCanvasDispatch();
   const selection = useCanvasSelection();
   const undo = useCanvasUndo();
@@ -1224,7 +1228,24 @@ function PortfolioBuilderInner({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [undo, redo]);
-
+  function runLints(): LintIssue[] {
+    // elements array already derived
+    return lintElements(elements as any);
+  }
+  
+  function applyAllFixes(issues: LintIssue[]) {
+    for (const it of issues) {
+      if (it.fix) it.fix(dispatch);
+    }
+    // recompute after fixes
+    const again = runLints();
+    setLintIssues(again);
+    if (again.length === 0) {
+      setLintOpen(false);
+      toast.success("All issues fixed");
+    }
+  }
+  
   const proxyResizeStart = (
     e: React.PointerEvent,
     target: ResizeTarget,
@@ -1369,7 +1390,55 @@ function PortfolioBuilderInner({
   }
   const { user } = useAuth();
   const currentUserId = user?.userId;
+  async function actuallyPublish() {
+    // … your previous publish body (serialize, POST, create feed, router.push) …
+    const payload = {
+      ...serialize(),
+      absolutes: buildAbsoluteExport(),
+      ownerId: user?.userId != null ? String(user.userId) : undefined, // ✅ JSON-safe
+      meta: {
+        title: "Portfolio page", // or derive from content
+        caption: "", // you can wire a field in the UI
+      },
+    };
+    setShowGrid(false); // hide grid for snapshot/export
+
+    console.log("Publishing payload:", {
+      layout,
+      color,
+      compCount: elements.filter((e) => (e as any).kind === "component").length,
+      hasCompWithUrls: elements.some(
+        (e) => (e as any).kind === "component" && (e as any).props?.urls?.length
+      ),
+    });
+
+    /* 2) POST to the export route – it now returns the PNG */
+    const res = await fetch("/api/portfolio/export", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error("export failed");
+
+    const { url, snapshot } = await res.json();
+
+    await createFeedPost({
+      caption: "", // or derive from textBoxes/elements
+      imageUrl: snapshot ?? undefined, // thumbnail in the feed
+      portfolio: { pageUrl: url, snapshot },
+      type: feed_post_type.PORTFOLIO,
+    });
+
+    router.push(url); // open the live page for the author
+  }
   async function handlePublish() {
+    const issues = runLints();
+  // you can block on "error", but we only warn/auto-fix here
+  if (issues.length) {
+    setLintIssues(issues);
+    setLintOpen(true);
+    return; // wait for user action
+  }
     const payload = {
       ...serialize(),
       absolutes: buildAbsoluteExport(),
@@ -2473,6 +2542,85 @@ const addToLibrary = React.useCallback(
           >
             Publish
           </button>
+
+          <Dialog open={lintOpen} onOpenChange={setLintOpen}>
+  <DialogContent className="max-w-lg">
+    <DialogHeader>
+      <DialogTitle>Pre-publish checks</DialogTitle>
+    </DialogHeader>
+
+    {lintIssues.length === 0 ? (
+      <div className="text-sm text-slate-600">All good 🎉</div>
+    ) : (
+      <div className="space-y-3 max-h-[50vh] overflow-auto">
+        {lintIssues.map((it) => (
+          <div key={it.id} className="flex items-start gap-2 text-sm">
+            <span
+              className={
+                it.severity === "error"
+                  ? "inline-block px-2 py-0.5 rounded bg-red-100 text-red-700 text-xs"
+                  : it.severity === "warning"
+                  ? "inline-block px-2 py-0.5 rounded bg-amber-100 text-amber-700 text-xs"
+                  : "inline-block px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-xs"
+              }
+            >
+              {it.severity}
+            </span>
+            <div className="flex-1">{it.message}</div>
+            {it.fix && (
+              <button
+                type="button"
+                className="text-xs px-2 py-1 rounded border bg-white"
+                onClick={() => {
+                  it.fix!(dispatch);
+                  // recompute after single fix
+                  const again = runLints();
+                  setLintIssues(again);
+                  if (again.length === 0) setLintOpen(false);
+                }}
+              >
+                Fix
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+    )}
+
+    <DialogFooter className="justify-between">
+      <button
+        type="button"
+        className="px-3 py-1 rounded border bg-white"
+        onClick={() => applyAllFixes(lintIssues)}
+        disabled={lintIssues.every((i) => !i.fix)}
+      >
+        Fix all
+      </button>
+
+      <div className="flex gap-2">
+        <button
+          type="button"
+          className="px-3 py-1 rounded border bg-white"
+          onClick={() => setLintOpen(false)}
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          className="px-3 py-1 rounded bg-black text-white"
+          onClick={async () => {
+            setLintOpen(false);
+            // proceed with your existing publish flow:
+            await actuallyPublish(); // see note below
+          }}
+        >
+          Publish anyway
+        </button>
+      </div>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
+
         </div>
       </div>
     </DndContext>

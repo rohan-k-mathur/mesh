@@ -37,6 +37,10 @@ import StarredFilterToggle from "@/components/chat/StarredFilterToggle";
 import { useSearchParams } from "next/navigation";
 import { useBookmarks } from "@/hooks/useBooksmarks";
 import ProposalsCompareModal from "@/components/proposals/ProposalsCompareModal";
+import { useReceipts } from "@/hooks/useReceipts";
+import ReceiptChip from "@/components/gitchat/ReceiptChip";
+import { mutate as swrMutate } from "swr";
+
 
 const ENABLE_REACTIONS = false;
 
@@ -198,6 +202,32 @@ function Attachment({
   );
 }
 
+ function ReceiptRow({ messageId, isMine }: { messageId: string; isMine: boolean }) {
+     const { latest } = useReceipts(messageId);
+     if (!latest) return null;
+     const mergedAt = (latest as any).mergedAt ?? (latest as any).merged_at;
+     return (
+       <div
+         className={[
+           "mt-1 text-[11px] text-slate-500 italic",
+           isMine ? "text-right pr-3" : "text-left pl-3",
+         ].join(" ")}
+       >
+         v{latest.v} • merged {mergedAt ? new Date(mergedAt).toLocaleString() : ""}
+         {" "}
+         <a
+           className="underline"
+           href={`/m/${encodeURIComponent(messageId)}/compare?v=${latest.v}`}
+           target="_blank"
+           rel="noreferrer"
+         >
+           view
+         </a>
+       </div>
+     );
+   }
+   
+
 const MessageRow = memo(function MessageRow({
   m,
   currentUserId,
@@ -305,6 +335,8 @@ const MessageRow = memo(function MessageRow({
                 (edited)
               </div>
             ) : null}
+             {/* Merge receipt chip (safe hook usage in child) */}
++            <ReceiptRow messageId={String(m.id)} isMine={isMine} />
 
             <div
               className={[
@@ -359,7 +391,7 @@ const MessageRow = memo(function MessageRow({
                       <DropdownMenuItem onClick={() => onReplyInThread(m.id)}>
                         🧵 Create Reply Thread
                       </DropdownMenuItem>
-                      
+
                       <DropdownMenuItem
                         onClick={() => {
                           const facetId =
@@ -487,6 +519,7 @@ const MessageRow = memo(function MessageRow({
                 (edited)
               </div>
             ) : null}
+              <ReceiptRow messageId={String(m.id)} isMine={isMine} />
 
             <div
               className={[
@@ -1262,6 +1295,8 @@ export default function ChatRoom({
       }
     };
 
+ 
+
     const redactedHandler = ({ payload }: any) => {
       const mid = String(payload?.id ?? payload?.messageId ?? "");
       if (!mid) return;
@@ -1282,6 +1317,48 @@ export default function ChatRoom({
       });
     };
 
+
+         // --- Refresh merged message   invalidate SWR keys on merge ---
+         const proposalMergeHandler = ({ payload }: any) => {
+           const rootId = String(payload?.rootMessageId ?? payload?.messageId ?? "");
+           const versionHash = String(payload?.versionHash ?? "");
+           if (!rootId) return;
+     
+           fetch(
+             `/api/sheaf/messages?userId=${encodeURIComponent(
+               currentUserId
+             )}&messageId=${encodeURIComponent(rootId)}`,
+             { cache: "no-store" }
+           )
+             .then((r) => (r.ok ? r.json() : null))
+             .then((data) => {
+               const hydrated = data?.messages?.[0] ?? data?.message ?? null;
+               if (hydrated) {
+                 useChatStore
+                   .getState()
+                   .replaceMessageInConversation(conversationId, hydrated);
+               }
+             })
+             .catch(() => {});
+     
+           // SWR invalidations: receipts chip   candidates   counts
+           swrMutate(`/api/messages/${encodeURIComponent(rootId)}/receipts?latest=1`);
+           swrMutate(`/api/proposals/candidates?rootMessageId=${encodeURIComponent(rootId)}`);
+           swrMutate(`/api/proposals/list?rootMessageId=${encodeURIComponent(rootId)}`);
+     
+           console.log("[rt] proposal_merge received", { rootId, versionHash });
+         };
+     
+         // --- Refresh proposal counts/candidates when someone approves/blocks ---
+         const proposalSignalHandler = ({ payload }: any) => {
+           const rootId = String(payload?.rootMessageId ?? "");
+           if (!rootId) return;
+           swrMutate(`/api/proposals/list?rootMessageId=${encodeURIComponent(rootId)}`);
+           swrMutate(`/api/proposals/candidates?rootMessageId=${encodeURIComponent(rootId)}`);
+           console.log("[rt] proposal_signal refresh", { rootId, facetId: payload?.facetId, kind: payload?.kind });
+        };
+
+
     channel.on("broadcast", { event: "new_message" }, msgHandler);
     channel.on(
       "broadcast",
@@ -1294,6 +1371,9 @@ export default function ChatRoom({
     channel.on("broadcast", { event: "drift_counters" }, driftCountersHandler);
     channel.on("broadcast", { event: "message_redacted" }, redactedHandler);
     channel.on("broadcast", { event: "read" }, readHandler);
+    channel.on("broadcast", { event: "proposal_merge" }, proposalMergeHandler); // ← added
+    channel.on("broadcast", { event: "proposal_signal" }, proposalSignalHandler);
+
 
     let pingTimer: any = null;
     channel.on("broadcast", { event: "debug_ping" }, () => {});
@@ -1398,31 +1478,38 @@ export default function ChatRoom({
         // Parse JSON safely even on non-2xx
         const raw = await r.text();
         let data: any = null;
-        try { data = raw ? JSON.parse(raw) : null; } catch {}
+        try {
+          data = raw ? JSON.parse(raw) : null;
+        } catch {}
         if (!r.ok || !data?.drift?.id) {
           console.warn("[proposal/ensure] server said:", raw);
-          alert((data?.error || raw) || "Failed to start proposal");
+          alert(data?.error || raw || "Failed to start proposal");
           return;
         }
-          // Place into store with all required fields so UI can render immediately
-          upsertDrift({
-            drift: {
-              id: data.drift.id,
-              conversationId: data.drift.conversationId ?? String(conversationId),
-              title: data.drift.title || "Proposal",
-              isClosed: Boolean(data.drift.isClosed),
-              isArchived: Boolean(data.drift.isArchived),
-              messageCount: Number(data.drift.messageCount ?? 0),
-              lastMessageAt: data.drift.lastMessageAt ?? null,
-              // IMPORTANT: proposals are rooted, not anchored
-              rootMessageId: data.drift.rootMessageId ?? rootMessageId,
-              // Force them down the thread rendering path; variant will relabel it as a proposal
-              kind: "THREAD",
-              // DO NOT set anchorMessageId here
-            },
-            my: { collapsed: false, pinned: false, muted: false, lastReadAt: null },
-          });
-          
+        // Place into store with all required fields so UI can render immediately
+        upsertDrift({
+          drift: {
+            id: data.drift.id,
+            conversationId: data.drift.conversationId ?? String(conversationId),
+            title: data.drift.title || "Proposal",
+            isClosed: Boolean(data.drift.isClosed),
+            isArchived: Boolean(data.drift.isArchived),
+            messageCount: Number(data.drift.messageCount ?? 0),
+            lastMessageAt: data.drift.lastMessageAt ?? null,
+            // IMPORTANT: proposals are rooted, not anchored
+            rootMessageId: data.drift.rootMessageId ?? rootMessageId,
+            // Force them down the thread rendering path; variant will relabel it as a proposal
+            kind: "THREAD",
+            // DO NOT set anchorMessageId here
+          },
+          my: {
+            collapsed: false,
+            pinned: false,
+            muted: false,
+            lastReadAt: null,
+          },
+        });
+
         setOpenDrifts((prev) => ({ ...prev, [data.drift.id]: true }));
       } catch (e) {
         console.warn("[proposal] ensure failed", e);
@@ -1461,6 +1548,7 @@ export default function ChatRoom({
         open={!!compareFor}
         onClose={() => setCompareFor(null)}
         rootMessageId={String(compareFor || "")}
+        conversationId={conversationId}
         currentUserId={currentUserId}
         onOpenDrift={(driftId) =>
           setOpenDrifts((prev) => ({ ...prev, [driftId]: true }))
@@ -1481,8 +1569,8 @@ export default function ChatRoom({
         const threadEntry = driftsByRoot[m.id];
 
         const isProposal =
-  !!threadEntry?.drift?.title &&
-  threadEntry.drift.title.toLowerCase().startsWith("proposal:");
+          !!threadEntry?.drift?.title &&
+          threadEntry.drift.title.toLowerCase().startsWith("proposal:");
 
         return (
           <div key={m.id} className="space-y-2" data-msg-id={m.id}>
@@ -1668,13 +1756,15 @@ export default function ChatRoom({
                   key={threadEntry.drift.id}
                   drift={{
                     id: threadEntry.drift.id,
-                    title: threadEntry.drift.title || (isProposal ? "Proposal" : "Thread"),
-                                        isClosed: threadEntry.drift.isClosed,
+                    title:
+                      threadEntry.drift.title ||
+                      (isProposal ? "Proposal" : "Thread"),
+                    isClosed: threadEntry.drift.isClosed,
                     isArchived: threadEntry.drift.isArchived,
                   }}
                   conversationId={String(conversationId)}
                   currentUserId={currentUserId}
-                  variant={isProposal ? "proposal" : "thread"}   // 👈 show the 🪄 header
+                  variant={isProposal ? "proposal" : "thread"} // 👈 show the 🪄 header
                   align={isMine ? "end" : "start"} // right for my root, left for others
                   onClose={() =>
                     setOpenDrifts((prev) => ({

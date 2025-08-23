@@ -1,3 +1,4 @@
+// app/api/proposals/ensure/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prismaclient";
@@ -13,20 +14,6 @@ function snippet(t: string | null | undefined, n = 42) {
   return s.length > n ? s.slice(0, n - 1) + "…" : s;
 }
 
-async function isParticipant(conversationId: bigint, userId: bigint) {
-  // Prefer ConversationParticipant; fall back to DM tuple
-  const part = await prisma.conversationParticipant.findFirst({
-    where: { conversation_id: conversationId, user_id: userId },
-    select: { user_id: true },
-  });
-  if (part) return true;
-  const dm = await prisma.conversation.findUnique({
-    where: { id: conversationId },
-    select: { user1_id: true, user2_id: true },
-  });
-  return !!dm && (dm.user1_id === userId || dm.user2_id === userId);
-}
-
 export async function POST(req: NextRequest) {
   try {
     const me = await getUserFromCookies();
@@ -35,63 +22,91 @@ export async function POST(req: NextRequest) {
     const json = await req.json().catch(() => ({}));
     const { rootMessageId } = bodySchema.parse(json);
 
-    // Root message (for access + titling)
+    // Load root + conversation for access keys/titling
     const root = await prisma.message.findUnique({
       where: { id: rootMessageId },
       select: { id: true, text: true, conversation_id: true },
     });
     if (!root) return NextResponse.json({ error: "Root message not found" }, { status: 404 });
 
-    if (!(await isParticipant(root.conversation_id, me.userId))) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    // One proposal drift per (root, user) (tweak if you want shared proposals)
-    let drift = await prisma.drift.findFirst({
-      where: { root_message_id: root.id, kind: "PROPOSAL" as any, created_by: me.userId },
+    // Optional: ensure requester is a participant
+    const part = await prisma.conversationParticipant.findFirst({
+      where: { conversation_id: root.conversation_id, user_id: me.userId },
+      select: { user_id: true },
     });
+    if (!part) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-    if (!drift) {
-      drift = await prisma.drift.create({
-        data: {
+    // === One shared PROPOSAL drift per (conversation, root) ===
+    // NOTE: relies on @@unique([conversation_id, root_message_id, kind]) in Prisma schema.
+    // Prisma exposes compound unique as conversation_id_root_message_id_kind
+    const drift = await prisma.drift.upsert({
+      where: {
+        conversation_id_root_message_id_kind: {
           conversation_id: root.conversation_id,
           root_message_id: root.id,
-          created_by: me.userId,
-          kind: "PROPOSAL" as any,          // ✅ uses your enum
-          title: `Proposal: ${snippet(root.text, 42)}`,
-        } as any,
-      });
-    }
+          kind: "PROPOSAL" as any,
+        },
+      } as any,
+      update: {}, // no-op: we only need the existing row
+      create: {
+        conversation_id: root.conversation_id,
+        root_message_id: root.id,
+        kind: "PROPOSAL" as any,
+        created_by: me.userId, // kept for attribution; doesn't affect uniqueness
+        title: `Proposal: ${snippet(root.text, 42)}`,
+      } as any,
+    });
 
-    // Normalize to your DriftUI shape (client union is "DRIFT" | "THREAD")
+    // Normalize payload to your DriftUI shape (force UI kind to "DRIFT")
     const payload = {
-      id: (drift as any)?.id?.toString?.() ?? "",
-      title: (drift as any)?.title || "Proposal",
-      isClosed: Boolean((drift as any)?.is_closed ?? (drift as any)?.isClosed ?? false),
-      isArchived: Boolean((drift as any)?.is_archived ?? (drift as any)?.isArchived ?? false),
-      kind: "DRIFT" as const, // map DB PROPOSAL → UI "DRIFT"
-      conversationId:
-        (drift as any)?.conversation_id?.toString?.() ??
-        (drift as any)?.conversationId?.toString?.() ??
-        root.conversation_id.toString(),
-      rootMessageId:
-        (drift as any)?.root_message_id?.toString?.() ??
-        (drift as any)?.rootMessageId?.toString?.() ??
-        root.id.toString(),
-      anchorMessageId: root.id.toString(), // handy for chips
-      messageCount: Number((drift as any)?.message_count ?? (drift as any)?.messageCount ?? 0),
-      lastMessageAt: (drift as any)?.last_message_at
+      id: (drift as any).id?.toString?.() ?? "",
+      title: (drift as any).title || "Proposal",
+      isClosed: Boolean((drift as any).is_closed ?? (drift as any).isClosed ?? false),
+      isArchived: Boolean((drift as any).is_archived ?? (drift as any).isArchived ?? false),
+      kind: "DRIFT" as const, // UI union is "DRIFT" | "THREAD"
+      conversationId: (drift as any).conversation_id?.toString?.() ?? "",
+      rootMessageId: (drift as any).root_message_id?.toString?.() ?? "",
+      messageCount: Number((drift as any).message_count ?? 0),
+      lastMessageAt: (drift as any).last_message_at
         ? new Date((drift as any).last_message_at).toISOString()
-        : ((drift as any)?.lastMessageAt ? new Date((drift as any).lastMessageAt).toISOString() : null),
+        : null,
     };
 
     return NextResponse.json({ ok: true, drift: payload });
   } catch (err: any) {
+    // If a race still slips through (rare), fall back to a find and return
+    if (err?.code === "P2002") {
+      const json = await req.json().catch(() => ({}));
+      const { rootMessageId } = bodySchema.parse(json);
+      const root = await prisma.message.findUnique({
+        where: { id: rootMessageId },
+        select: { id: true, conversation_id: true },
+      });
+      if (root) {
+        const d = await prisma.drift.findFirst({
+          where: { conversation_id: root.conversation_id, root_message_id: root.id, kind: "PROPOSAL" as any },
+        });
+        if (d) {
+          return NextResponse.json({
+            ok: true,
+            drift: {
+              id: d.id.toString(),
+              title: (d as any).title || "Proposal",
+              isClosed: Boolean((d as any).is_closed ?? false),
+              isArchived: Boolean((d as any).is_archived ?? false),
+              kind: "DRIFT" as const,
+              conversationId: (d as any).conversation_id?.toString?.() ?? "",
+              rootMessageId: (d as any).root_message_id?.toString?.() ?? "",
+              messageCount: Number((d as any).message_count ?? 0),
+              lastMessageAt: (d as any).last_message_at
+                ? new Date((d as any).last_message_at).toISOString()
+                : null,
+            },
+          });
+        }
+      }
+    }
     console.error("[proposals/ensure] error", err);
-    const msg =
-      (Array.isArray(err?.issues) && err.issues[0]?.message) ||
-      err?.message ||
-      "Internal Server Error";
-    return NextResponse.json({ error: msg }, { status: 500 });
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
