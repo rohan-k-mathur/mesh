@@ -100,7 +100,7 @@ function MergeHistorySummary({
     ? `v${latest?.v ?? list.length} • merged ${new Date(
         (latest as any)?.mergedAt ?? (latest as any)?.merged_at ?? Date.now()
       ).toLocaleString()}`
-    : "(edited)";
+    : <div className=" mt-2">(edited)</div>;
 
   return (
     <div className={["mx-[3%] px-3 mt-0 mb-0", isMine ? "text-right" : "text-left"].join(" ")}>
@@ -116,14 +116,15 @@ function MergeHistorySummary({
         <div className="flex inline-block gap-2 items-center">
           {isMine ? (
             <>
-              <span className="text-[.75rem] opacity-90 inline-block mt-[5px]">{label}</span>
-              <div className="mr-4 w-8 h-4 border-b-[1px] border-r-[1px] border-slate-600"></div>
+              <span className="text-[.8rem] inline-block  hover:underline hover:underline-offset-4">{label}</span>
+              <div className=" mr-4 w-8 h-3 border-b-[1px] border-r-[1px] border-slate-600"></div>
             </>
           ) : (
             <>
-              <div className="ml-4 w-8 h-4 border-b-[1px] border-l-[1px] border-slate-600"></div>
-              <span className="text-[.75rem] opacity-90 inline-block mt-[5px]">{label}</span>
-            </>
+            <div className=" ml-4 w-8 h-3 border-b-[1px] border-l-[1px] border-slate-600"></div>
+
+              <span className="text-[.8rem] inline-block  hover:underline hover:underline-offset-4">{label}</span>
+              </>
           )}
         </div>
       </button>
@@ -139,7 +140,7 @@ function MergeHistorySummary({
           {isLoading ? (
             <div className="text-[12px] text-slate-600">Loading…</div>
           ) : hasReceipts ? (
-            <div className="space-y-1">
+            <div className="space-y-1 ">
               {/* show newest first */}
               {[...list].reverse().slice(0, 6).map((r: any) => {
                 const mergedAt = r.mergedAt ?? r.merged_at;
@@ -166,7 +167,7 @@ function MergeHistorySummary({
               )}
             </div>
           ) : (
-            <div className="text-[12px] text-slate-600">(edited)</div>
+          <div className="text-[.75rem]">edited @</div>
           )}
         </div>
       )}
@@ -214,11 +215,11 @@ function ThreadSummary({
                   : `${count} ${count === 1 ? "reply" : "replies"}`}
               </span>
 
-              <div className=" mr-4 w-8 h-4 border-b-[1px] border-r-[1px] border-slate-600"></div>
+              <div className=" mr-4 w-12 h-4 border-b-[1px] border-r-[1px] border-slate-600"></div>
             </>
           ) : (
             <>
-              <div className=" ml-4 w-8 h-4 border-b-[1px] border-l-[1px] border-slate-600"></div>
+              <div className=" ml-4 w-12 h-4 border-b-[1px] border-l-[1px] border-slate-600"></div>
               <span className="text-[.8rem] inline-block mt-[5px] hover:underline hover:underline-offset-4">
                 {count === 0
                   ? "reply"
@@ -476,12 +477,12 @@ const MessageRow = memo(function MessageRow({
                       <DropdownMenuItem
                         onClick={() => onProposeAlternative(m.id)}
                       >
-                        🪄 New Fork 
+                        ሗ New Fork 
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => onCompareProposals(m.id)}
                       >
-                        🧬 Compare Forks
+                        𐂶 Compare Forks
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => onMergeProposal(m.id)}>
                         ✅ Approve Merge
@@ -563,12 +564,12 @@ const MessageRow = memo(function MessageRow({
                       <DropdownMenuItem
                         onClick={() => onProposeAlternative(m.id)}
                       >
-                        🪄 New Fork 
+                        ሗ New Fork 
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => onCompareProposals(m.id)}
                       >
-                        🧬 Compare Forks
+                        𐂶 Compare Forks
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => onPrivateReply?.(m)}>
                         ↩️ Reply in DMs
@@ -619,12 +620,7 @@ const MessageRow = memo(function MessageRow({
               <ChatMessageContent content="" className="min-h-6" />
             )}
 
-            {(m as any).edited ? (
-              <div className="mt-1 text-[11px] text-slate-700 italic">
-                (edited)
-              </div>
-            ) : null}
-              
+        
 
             <div
               className={[
@@ -661,12 +657,12 @@ const MessageRow = memo(function MessageRow({
                       <DropdownMenuItem
                         onClick={() => onProposeAlternative(m.id)}
                       >
-                        🪄 New Fork
+                        ሗ New Fork
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => onCompareProposals(m.id)}
                       >
-                        🧬 Compare Forks
+                        𐂶 Compare Forks
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => onMergeProposal(m.id)}>
                         ✅ Approve Merge

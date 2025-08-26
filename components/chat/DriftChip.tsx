@@ -19,7 +19,7 @@ export function DriftChip({
         bg-white/40 driftbutton [data-effects='off']:backdrop-blur-0 [data-effects='off']:bg-white/45"
         title="Open drift"
       >
-        𒂝<span className="ml-2 font-medium">{title}</span>
+        𒈝<span className="ml-2 font-medium">{title}</span>
         <span className="ml-2 text-slate-500">· {count} message{count === 1 ? "" : "s"}</span>
       </button>
     </div>

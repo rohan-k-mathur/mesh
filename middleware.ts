@@ -119,6 +119,8 @@ export async function middleware(req: Request) {
 export const config = {
   matcher: [
     "/.well-known/:path*",
+    "/api/proposals/:path*",  // ← add this
+
     "/((?!_next|favicon.ico|api|fonts|images|assets|.*\\.).+)",
   ],
 };

@@ -3,6 +3,9 @@ import { prisma } from "@/lib/prismaclient";
 import { notFound } from "next/navigation";
 import { generateHTML } from "@tiptap/html"
 import StarterKit from "@tiptap/starter-kit"
+import DeepDivePanel from '@/components/deepdive/DeepDivePanel';
+import { getOrCreateDeliberationId } from '@/lib/deepdive/upsert';
+import { getCurrentUserId } from "@/lib/serverutils";
 
 import { createLowlight } from "lowlight";
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
@@ -39,6 +42,14 @@ export default async function ArticlePage({
   if (!article) notFound();
 
 
+    // Optional - who owns the upsert (fallback to 'system' if unauth)
+    const userId = await getCurrentUserId ().catch(() => null);
+    const deliberationId = await getOrCreateDeliberationId(
+      'article',
+      article.id,
+      article.roomId ?? null,
+      userId ?? 'system'
+    );
 
   const threadsDb = await prisma.commentThread.findMany({
     where: { articleId: article.id },
@@ -98,6 +109,7 @@ export default async function ArticlePage({
     threads={threads}
     articleSlug={params.key} 
     title={article.title}     // ⬅️ pass it
+    deliberationId={deliberationId}
     />
   );
 }

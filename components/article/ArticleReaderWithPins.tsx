@@ -5,6 +5,7 @@ import ArticleReader from "@/components/article/ArticleReader";
 import CommentModal from "@/components/article/CommentModal";
 import type { Anchor, CommentThread } from "@/types/comments";
 import Image from "next/image";
+import DeepDivePanel from "../deepdive/DeepDivePanel";
 import { useRouter } from "next/navigation";
 import HomeButton from "../buttons/HomeButton";
 /* ----------------------- DOM ↔ anchor helpers ----------------------- */
@@ -304,6 +305,7 @@ type Props = {
   articleSlug: string; // 👈 for API calls
   title?: string; // ⬅️ new
   currentUser?: unknown;
+  deliberationId?: string;
 };
 
 export default function ArticleReaderWithPins({
@@ -313,6 +315,7 @@ export default function ArticleReaderWithPins({
   threads: initialThreads,
   articleSlug,
   title,
+  deliberationId,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const bubbleRef = useRef<HTMLDivElement>(null); // 👈 NEW
@@ -744,6 +747,13 @@ export default function ArticleReaderWithPins({
               </div>
             )}
           </div>
+               {/* ⬇️ Deep-dive lives below the article body */}
+            {deliberationId && (
+              <section className="mt-12">
+                <h2 className="text-base font-semibold mb-2">Discussion · Deep-dive</h2>
+                <DeepDivePanel deliberationId={deliberationId} />
+              </section>
+            )}
         </div>
 
         {/* RIGHT RAIL — give it a real height and pass the vertical offset */}

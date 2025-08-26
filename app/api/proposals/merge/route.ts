@@ -131,16 +131,63 @@ export async function POST(req: NextRequest) {
       select: { id: true, conversation_id: true },
     });
     if (!root) return new NextResponse("Not found", { status: 404 });
-
+  
     let mergedFromMessageId: string | null = null;
     let versionHash = "";
     let fromFacetIds: string[] = [];
-
+    let snapshot: any = null; // <— define once
+  
     if (facetId) {
       // FACET merge
-      const { newFacetId, facetPayload } = await cloneFacetToRoot(rootMessageId, facetId);
-      fromFacetIds = [String(facetId)];
+      const facet = await prisma.sheafFacet.findUnique({
+        where: { id: facetId },
+        select: {
+          id: true,
+          audienceKind: true,
+          audienceMode: true,
+          audienceRole: true,
+          audienceListId: true,
+          snapshotMemberIds: true,
+          listVersionAtSend: true,
+          audienceUserIds: true,
+          sharePolicy: true,
+          expiresAt: true,
+          body: true,
+          priorityRank: true,
+          visibilityKey: true,
+        },
+      } as any);
+      if (!facet) return new NextResponse("facet not found", { status: 400 });
+  
+      const newFacet = await prisma.sheafFacet.create({
+        data: {
+          messageId: rootMessageId,
+          audienceKind: facet.audienceKind,
+          audienceMode: facet.audienceMode,
+          audienceRole: facet.audienceRole,
+          audienceListId: facet.audienceListId,
+          snapshotMemberIds: facet.snapshotMemberIds ?? [],
+          listVersionAtSend: facet.listVersionAtSend ?? null,
+          audienceUserIds: facet.audienceUserIds ?? [],
+          sharePolicy: facet.sharePolicy,
+          expiresAt: facet.expiresAt ?? null,
+          body: facet.body,
+          priorityRank: facet.priorityRank ?? 0,
+          visibilityKey: facet.visibilityKey ?? null,
+        } as any,
+      });
+  
+      // default facet via SheafMessageMeta
+      await prisma.sheafMessageMeta.upsert({
+        where: { messageId: rootMessageId },
+        update: { defaultFacetId: newFacet.id },
+        create: { messageId: rootMessageId, defaultFacetId: newFacet.id },
+      });
+  
+      const facetPayload = { type: "facet", body: facet.body };
       versionHash = versionHashOf(facetPayload);
+      snapshot = facetPayload;              // <— set snapshot here
+      fromFacetIds = [String(facetId)];
       mergedFromMessageId = null;
     } else {
       // TEXT merge
@@ -151,24 +198,25 @@ export async function POST(req: NextRequest) {
       if (!candidate || !candidate.text) {
         return new NextResponse("No mergeable text", { status: 400 });
       }
-
+  
       await prisma.message.update({
         where: { id: rootMessageId },
         data: { text: candidate.text, edited_at: new Date() as any },
       });
-
+  
       const textPayload = { type: "text", text: candidate.text.trim() };
       versionHash = versionHashOf(textPayload);
+      snapshot = textPayload;               // <— set snapshot here
       mergedFromMessageId = candidate.id.toString();
     }
-
+  
     // Parent linkage (latest by time)
     const lastReceipt = await prisma.mergeReceipt.findFirst({
       where: { message_id: root.id },
       orderBy: [{ merged_at: "desc" }, { id: "desc" }],
       select: { version_hash: true },
     });
-
+  
     // approvals/blocks (only meaningful for facet merges)
     let approvals: any[] = [];
     let blocks: any[] = [];
@@ -192,40 +240,39 @@ export async function POST(req: NextRequest) {
           at: r.created_at.toISOString(),
         }));
     }
+  // Receipt body & signature (v is computed by the /receipts API)
+const receiptBody = {
+  messageId: root.id.toString(),
+  versionHash,
+  parents: lastReceipt?.version_hash ? [lastReceipt.version_hash] : [],
+  // fromFacetIds: <— REMOVE from signed body (or don’t include at all)
+  mergedBy: me.userId.toString(),
+  mergedAt: new Date().toISOString(),
+  policy: { id: "owner-or-mod@v1", quorum: null, minApprovals: null, timeoutSec: null },
+  approvals,
+  blocks,
+  prevReceiptHash: lastReceipt?.version_hash || null,
+  snapshot, // {type:"text", text:"..."} or {type:"facet", body:{...}}
+};
+const { signature } = signReceipt(receiptBody);
 
-    // Receipt body & signature (v is computed by the /receipts API)
-    const receiptBody = {
-      messageId: root.id.toString(),
-      versionHash,
-      parents: lastReceipt?.version_hash ? [lastReceipt.version_hash] : [],
-      fromFacetIds,
-      mergedBy: me.userId.toString(),
-      mergedAt: new Date().toISOString(),
-      policy: { id: "owner-or-mod@v1", quorum: null, minApprovals: null, timeoutSec: null },
-      approvals,
-      blocks,
-      summary: null as string | null,
-      prevReceiptHash: lastReceipt?.version_hash || null,
-    };
-    const { signature } = signReceipt(receiptBody);
-
-    await prisma.mergeReceipt.create({
-      data: {
-        message_id: root.id,
-        version_hash: versionHash,
-        parents: receiptBody.parents as any,
-        from_facet_ids: receiptBody.fromFacetIds as any,
-        merged_by: me.userId,
-        merged_at: new Date(receiptBody.mergedAt),
-        policy_id: receiptBody.policy.id,
-        approvals: approvals as any,
-        blocks: blocks as any,
-        summary: receiptBody.summary,
-        prev_receipt_hash: receiptBody.prevReceiptHash,
-        signature,
-      },
-    });
-
+await prisma.mergeReceipt.create({
+  data: {
+    message_id: root.id,
+    version_hash: versionHash,
+    parents: receiptBody.parents as any,
+    // from_facet_ids: <— REMOVE this line (field does not exist in schema)
+    merged_by: me.userId,
+    merged_at: new Date(receiptBody.mergedAt),
+    policy_id: receiptBody.policy.id,
+    approvals: approvals as any,
+    blocks: blocks as any,
+    prev_receipt_hash: receiptBody.prevReceiptHash,
+    signature,
+    snapshot: snapshot as any,
+  },
+});
+  
     // Broadcast so open UIs refresh
     try {
       const { createClient } = await import("@supabase/supabase-js");
@@ -243,7 +290,7 @@ export async function POST(req: NextRequest) {
     } catch (e) {
       console.warn("[ap] proposal_merge broadcast failed", e);
     }
-
+  
     // System note
     try {
       const count = await prisma.mergeReceipt.count({ where: { message_id: rootMessageId } });
@@ -256,7 +303,7 @@ export async function POST(req: NextRequest) {
         },
       });
     } catch {}
-
+  
     return NextResponse.json({
       ok: true,
       mode: facetId ? "FACET" : "TEXT",
