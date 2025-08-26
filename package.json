@@ -32,7 +32,10 @@
     "acl:build": "tsc -p packages/sheaf-acl/tsconfig.json",
     "acl:watch": "tsc -w -p packages/sheaf-acl/tsconfig.json",
     "acl:test": "vitest run packages/sheaf-acl",
-    "sheaf:seed": "tsx --env-file=.env scripts/sheaf-seed.ts"
+    "sheaf:seed": "tsx --env-file=.env scripts/sheaf-seed.ts",
+    "briefseed": "tsx --env-file=.env prisma/brief-seed.ts"
+
+
   },
   "size-limit": [
     {

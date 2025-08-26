@@ -2102,74 +2102,30 @@ model AgreementAck {
   @@map("agreement_acks")
 }
 
-/// --- P1: Deliberation Core ---
-enum DeliberationHostType {
-  article
-  post
-  room_thread
-  library_stack
-  site
-  inbox_thread
-}
-
-enum RepresentationRule {
-  utilitarian
-  harmonic
-  maxcov
-}
-
-enum EdgeType {
-  support
-  rebut
-  undercut
-}
-
-model Deliberation {
-  id          String               @id @default(cuid())
-  hostType    DeliberationHostType
-  hostId      String
-  roomId      String?
-  rule        RepresentationRule   @default(utilitarian)
-  k           Int                  @default(3)
-  createdById String
-  createdAt   DateTime             @default(now())
-  updatedAt   DateTime             @updatedAt
-
-  arguments  Argument[]
-  edges      ArgumentEdge[]
-  approvals  ArgumentApproval[]
-  selections ViewpointSelection[]
-
-  @@index([hostType, hostId])
-  @@index([roomId])
-}
-
-enum Quantifier { SOME MANY MOST ALL }
-enum Modality { COULD LIKELY NECESSARY }
-enum MediaType { text image video audio }
-
 model Argument {
-  id             String   @id @default(cuid())
+  id             String  @id @default(cuid())
   deliberationId String
   authorId       String
-  text           String   @db.Text
+  text           String  @db.Text
   sources        Json?
-  confidence     Float? // 0..1 (nullable = unspecified)
-  isImplicit     Boolean  @default(false)
+  confidence     Float?
+  isImplicit     Boolean @default(false)
 
-    // NEW P1b metadata
-  quantifier     Quantifier?
-  modality       Modality?
-  mediaType      MediaType     @default(text)
-  mediaUrl       String?
+  // NEW P1b metadata
+  quantifier Quantifier?
+  modality   Modality?
+  mediaType  MediaType   @default(text)
+  mediaUrl   String?
 
-  createdAt      DateTime @default(now())
+  createdAt DateTime @default(now())
 
   deliberation      Deliberation        @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
   outgoingEdges     ArgumentEdge[]      @relation("fromArg")
   incomingEdges     ArgumentEdge[]      @relation("toArg")
   approvals         ArgumentApproval[]
+  // (keep any other relations you already had)
   ViewpointArgument ViewpointArgument[]
+  IssueLink         IssueLink[]
 
   @@index([deliberationId])
 }
@@ -2236,32 +2192,158 @@ model ViewpointArgument {
   @@index([viewpoint])
 }
 
-/// If you don’t already have this, include it; otherwise reuse your existing event log.
-model AmplificationEvent {
+// --------- Clusters (basic) ----------
+enum ClusterType {
+  topic
+  affinity
+}
+
+model Cluster {
+  id          String        @id @default(cuid())
+  type        ClusterType
+  label       String
+  createdAt   DateTime      @default(now())
+  // optional: roomId scoping later
+  UserCluster UserCluster[]
+}
+
+// Map users to clusters (for outside-cluster checks)
+model UserCluster {
   id        String   @id @default(cuid())
-  kind      String
-  originId  String // e.g. selectionId
   userId    String
-  reason    String   @db.Text
-  payload   Json
+  clusterId String
   createdAt DateTime @default(now())
 
-  @@index([originId, createdAt])
+  cluster Cluster @relation(fields: [clusterId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, clusterId])
+}
+
+// --------- Bridge Builder ----------
+enum BridgeRequestStatus {
+  open
+  assigned
+  completed
+  expired
+}
+
+model BridgeRequest {
+  id              String              @id @default(cuid())
+  deliberationId  String
+  requestedById   String
+  targetClusterId String
+  status          BridgeRequestStatus @default(open)
+  expiresAt       DateTime?
+  createdAt       DateTime            @default(now())
+
+  assignments BridgeAssignment[]
+}
+
+model BridgeAssignment {
+  id            String    @id @default(cuid())
+  requestId     String
+  assigneeId    String
+  assignedAt    DateTime  @default(now())
+  acceptedAt    DateTime?
+  completedAt   DateTime?
+  summaryCardId String?
+  rewardCare    Int       @default(0)
+
+  request BridgeRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+}
+
+model AmplificationEvent {
+  id             String   @id @default(cuid())
+  deliberationId String?  // 👈 make optional for now
+  hostType       ContentTargetType?
+  hostId         String?
+  eventType      String?  // 👈 make optional for now
+  reason         String?
+  payload        Json?
+  createdById    String?
+  createdAt      DateTime @default(now())
+}
+
+
+// --------- Briefs ----------
+enum BriefStatus {
+  draft
+  published
+}
+
+enum Visibility {
+  public
+  unlisted
+  room_only
+}
+
+model Brief {
+  id               String      @id @default(cuid())
+  roomId           String
+  title            String
+  slug             String      @unique
+  status           BriefStatus @default(draft)
+  visibility       Visibility  @default(public)
+  createdById      String
+  currentVersionId String?     @unique // 👈 must be unique
+  createdAt        DateTime    @default(now())
+
+  // Relation 1: one-to-one
+  currentVersion BriefVersion? @relation("BriefCurrentVersion", fields: [currentVersionId], references: [id])
+
+  // Relation 2: one-to-many
+  versions BriefVersion[] @relation("BriefVersions")
+}
+
+model BriefVersion {
+  id                         String   @id @default(cuid())
+  briefId                    String
+  number                     Int
+  compiledFromDeliberationId String?
+  sectionsJson               Json
+  citations                  Json
+  createdById                String
+  createdAt                  DateTime @default(now())
+
+  // Relation 1 (opposite of Brief.currentVersion)
+  briefAsCurrent Brief? @relation("BriefCurrentVersion")
+
+  // Relation 2 (opposite of Brief.versions)
+  brief Brief @relation("BriefVersions", fields: [briefId], references: [id], onDelete: Cascade)
+
+  links BriefLink[] @relation("BriefVersionLinks")
+
+  @@unique([briefId, number])
+}
+
+enum BriefSourceType {
+  card
+  argument
+  post
+}
+
+model BriefLink {
+  id             String          @id @default(cuid())
+  briefVersionId String
+  sourceType     BriefSourceType
+  sourceId       String
+
+  version BriefVersion @relation("BriefVersionLinks", fields: [briefVersionId], references: [id], onDelete: Cascade)
 }
 
 model Issue {
-  id             String        @id @default(cuid())
+  id             String    @id @default(cuid())
   deliberationId String
-  label          String        // e.g., "Image – Appropriateness", "Data validity", etc.
+  label          String // e.g., "Image – Appropriateness", "Data validity", etc.
   description    String?
-  state          String        @default("open") // "open" | "closed"
+  state          String    @default("open") // "open" | "closed"
   createdById    String
   closedById     String?
-  createdAt      DateTime      @default(now())
+  createdAt      DateTime  @default(now())
   closedAt       DateTime?
 
-  deliberation   Deliberation  @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
-  links          IssueLink[]
+  deliberation Deliberation @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
+  links        IssueLink[]
 
   @@index([deliberationId, state])
 }
@@ -2269,10 +2351,239 @@ model Issue {
 model IssueLink {
   issueId    String
   argumentId String
-  role       String      @default("related") // "related" | "evidence" | etc.
+  role       String @default("related") // "related" | "evidence" | etc.
 
-  issue      Issue      @relation(fields: [issueId], references: [id], onDelete: Cascade)
-  argument   Argument   @relation(fields: [argumentId], references: [id], onDelete: Cascade)
+  issue    Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  argument Argument @relation(fields: [argumentId], references: [id], onDelete: Cascade)
 
   @@id([issueId, argumentId])
+}
+
+// ---------- Enums ----------
+enum ModerationStatus {
+  OK
+  NEEDS_SOURCES
+  WORKSHOP
+  OFF_TOPIC_REDIRECT
+  DUPLICATE_MERGE
+  DISPUTED
+  OUT_OF_BOUNDS
+}
+
+enum ContentTargetType {
+  article
+  post
+  room_thread
+  deliberation
+  argument
+  card
+  claim
+  brief
+  brief_version
+}
+
+enum PanelistRole {
+  member
+  chair
+  observer
+}
+
+enum PanelDecisionType {
+  APPROVE
+  WORKSHOP
+  REDIRECT
+}
+
+enum LogEntryType {
+  STATUS_CHANGE
+  PANEL_OPEN
+  PANEL_CLOSE
+  PANEL_DECISION
+  POLICY_CHANGE
+  NOTE
+}
+
+/// --- P1: Deliberation Core ---
+enum DeliberationHostType {
+  article
+  post
+  room_thread
+  library_stack
+  site
+  inbox_thread
+}
+
+enum RepresentationRule {
+  utilitarian
+  harmonic
+  maxcov
+}
+
+enum EdgeType {
+  support
+  rebut
+  undercut
+}
+
+enum Quantifier {
+  SOME
+  MANY
+  MOST
+  ALL
+}
+
+enum Modality {
+  COULD
+  LIKELY
+  NECESSARY
+}
+
+enum MediaType {
+  text
+  image
+  video
+  audio
+}
+
+model Deliberation {
+  id          String               @id @default(cuid())
+  hostType    DeliberationHostType
+  hostId      String
+  roomId      String?
+  rule        RepresentationRule   @default(utilitarian)
+  k           Int                  @default(3)
+  createdById String
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  arguments  Argument[]
+  edges      ArgumentEdge[]
+  approvals  ArgumentApproval[]
+  selections ViewpointSelection[]
+  Issue      Issue[]
+
+  @@index([hostType, hostId])
+  @@index([roomId])
+}
+
+// ---------- Governance core ----------
+model DecisionReceipt {
+  id         String            @id @default(cuid())
+  roomId     String
+  actorId    String
+  action     String // e.g., "STATUS_CHANGE", "PANEL_DECISION"
+  reason     String?
+  targetType ContentTargetType
+  targetId   String
+  panelId    String?
+  policyId   String?
+  createdAt  DateTime          @default(now())
+
+  panel Panel? @relation(fields: [panelId], references: [id])
+}
+
+model RoomLogbook {
+  id        String       @id @default(cuid())
+  roomId    String
+  entryType LogEntryType
+  summary   String
+  payload   Json?
+  createdAt DateTime     @default(now())
+}
+
+// Latest status for any polymorphic content in a room.
+// History is kept via DecisionReceipt + RoomLogbook (immutable).
+model ContentStatus {
+  id            String            @id @default(cuid())
+  roomId        String?
+  targetType    ContentTargetType
+  targetId      String
+  currentStatus ModerationStatus
+  prevStatus    ModerationStatus?
+  reason        String?
+  decidedById   String?
+  panelId       String?
+  createdAt     DateTime          @default(now())
+
+  @@unique([targetType, targetId]) // one "current" row per target
+}
+
+model Panel {
+  id        String            @id @default(cuid())
+  roomId    String
+  openedAt  DateTime          @default(now())
+  closedAt  DateTime?
+  panelists Panelist[]
+  receipts  DecisionReceipt[]
+}
+
+model Panelist {
+  id       String       @id @default(cuid())
+  panelId  String
+  userId   String
+  role     PanelistRole @default(member)
+  joinedAt DateTime     @default(now())
+
+  panel Panel @relation(fields: [panelId], references: [id])
+
+  @@unique([panelId, userId])
+}
+
+model DeliberationCard {
+  id                        String   @id @default(cuid())
+  deliberationId            String
+  authorId                  String
+  claimText                 String
+  reasonsText               String[] @db.Text
+  evidenceLinks             String[] @db.Text // URIs
+  anticipatedObjectionsText String[] @db.Text
+  counterText               String?
+  confidence                Float?
+  status                    String   @default("draft") // 'draft' | 'published'
+  hostEmbed                 String? // 'article' | 'post' | 'room_thread'
+  hostId                    String?
+  moid                      String // content hash (fill server-side)
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  cardCitations CardCitation[]
+}
+
+model CardCitation {
+  id           String  @id @default(cuid())
+  cardId       String
+  uri          String
+  locatorStart String? // e.g., CSS/XPath/char off
+  locatorEnd   String?
+  excerptHash  String?
+  snapshotKey  String?
+  cslJson      Json?
+
+  card DeliberationCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
+}
+
+model MissingPremise {
+  id             String    @id @default(cuid())
+  deliberationId String
+  targetType     String // 'argument' | 'card'
+  targetId       String
+  proposedById   String
+  text           String
+  status         String    @default("proposed") // 'proposed'|'accepted'|'declined'
+  premiseType    String    @default("premise") // 'premise'|'warrant'
+  createdAt      DateTime  @default(now())
+  decidedAt      DateTime?
+}
+
+// Optional storage for Rhetoric Lens v0 (client-heuristic can be ephemeral)
+model ArgumentAnnotation {
+  id          String   @id @default(cuid())
+  targetType  String // 'argument' | 'card'
+  targetId    String
+  type        String // 'metaphor'|'analogy'|'hedge'|'intensifier'|'implicature'
+  offsetStart Int
+  offsetEnd   Int
+  text        String
+  source      String // 'heuristic'|'human'|'ml'
+  createdAt   DateTime @default(now())
 }

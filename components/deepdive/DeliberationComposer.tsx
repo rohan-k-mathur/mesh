@@ -17,6 +17,7 @@ export default function DeliberationComposer({ deliberationId, onPosted, targetA
   const [confidence, setConfidence] = useState<number | undefined>(undefined);
   const [pending, setPending] = useState(false);
   const [edgeType, setEdgeType] = useState<'support' | 'rebut' | 'undercut' | null>(null);
+  const [imageUrl, setImageUrl] = useState('');
   const [quantifier, setQuantifier] = useState<'SOME'|'MANY'|'MOST'|'ALL'|undefined>();
  const [modality, setModality] = useState<'COULD'|'LIKELY'|'NECESSARY'|undefined>();
 
@@ -25,7 +26,15 @@ export default function DeliberationComposer({ deliberationId, onPosted, targetA
   };
 
   const post = async () => {
-    const body = { text, sources, confidence, quantifier, modality };
+    const body = {
+              text,
+              sources,
+              confidence,
+              quantifier,
+              modality,
+              mediaType: imageUrl ? 'image' : 'text',
+              mediaUrl: imageUrl || undefined,
+            };
     const parsed = schema.safeParse(body);
     if (!parsed.success) return alert('Please add a point (and valid sources if included).');
 
@@ -95,6 +104,21 @@ export default function DeliberationComposer({ deliberationId, onPosted, targetA
           Sources: {sources.map(s => <a key={s} href={s} target="_blank" className="underline mr-2">{s}</a>)}
         </div>
       )}
+       {/* Image argument adder */}
+ <div className="space-y-1">
+   <input
+     type="url"
+     placeholder="Paste image URL (optional)"
+     className="w-full border rounded px-2 py-1 text-sm"
+     value={imageUrl}
+     onChange={e => setImageUrl(e.target.value)}
+   />
+   {imageUrl && (
+     <div className="border rounded p-2">
+       <img src={imageUrl} alt="preview" className="max-h-40 object-contain mx-auto" />
+     </div>
+   )}
+ </div>
       {targetArgumentId && (
         <div className="flex gap-2 items-center">
           <span className="text-sm text-neutral-700">This is a reply:</span>

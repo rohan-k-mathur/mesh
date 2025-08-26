@@ -47,6 +47,11 @@ export default function ArgumentsList({
         {items.slice(0, 30).map(a => (
           <li key={a.id} className="p-2 border rounded">
             <div className="text-sm">{a.text}</div>
+            {a.mediaType === 'image' && a.mediaUrl && (
+  <div className="mt-2">
+    <img src={a.mediaUrl} alt="arg-img" className="max-h-40 object-contain border rounded" />
+  </div>
+)}
             {a.confidence != null && <div className="text-[11px] text-neutral-500">How sure: {(a.confidence*100).toFixed(0)}%</div>}
             <div className="mt-1 flex gap-2 text-[11px] text-neutral-600">
   {a.quantifier && <span className="px-1.5 py-0.5 border rounded">{a.quantifier}</span>}
