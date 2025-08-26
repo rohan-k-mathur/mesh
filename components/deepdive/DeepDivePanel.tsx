@@ -4,6 +4,9 @@ import DeliberationComposer from './DeliberationComposer';
 import { RepresentativeViewpoints } from './RepresentativeViewpoints';
 import ArgumentsList from './ArgumentsList';
 import IssueRegister from './IssueRegister';
+import CardComposerTab from '@/components/deepdive/CardComposerTab';
+import StatusChip from '@/components/governance/StatusChip';
+import { Tabs, TabsList, TabsContent, TabsTrigger } from '../ui/tabs';
 
 type Selection = {
   id: string; rule: 'utilitarian'|'harmonic'|'maxcov'; k: number;
@@ -15,6 +18,7 @@ export default function DeepDivePanel({ deliberationId }: { deliberationId: stri
   const [sel, setSel] = useState<Selection | null>(null);
   const [pending, setPending] = useState(false);
   const [replyTo, setReplyTo] = useState<string | null>(null);
+
 
   const compute = async (rule?: 'utilitarian'|'harmonic'|'maxcov') => {
     setPending(true);
@@ -45,6 +49,22 @@ export default function DeepDivePanel({ deliberationId }: { deliberationId: stri
         targetArgumentId={replyTo ?? undefined}
       />      {pending && <div className="text-xs text-neutral-500">Computing representative viewpoints…</div>}
       <RepresentativeViewpoints deliberationId={deliberationId} selection={sel} onReselect={compute} />
+      <StatusChip status={status} />
+
+      <Tabs defaultValue="arguments">
+  <TabsList>
+    <TabsTrigger value="arguments">Arguments</TabsTrigger>
+    <TabsTrigger value="card">Card mode</TabsTrigger>
+  </TabsList>
+
+  <TabsContent value="arguments">
+    {/* existing argument composer */}
+  </TabsContent>
+
+  <TabsContent value="card">
+    <CardComposerTab deliberationId={deliberationId} authorId={userId} hostEmbed={hostType} hostId={hostId} />
+  </TabsContent>
+</Tabs>
     </div>
   );
 }

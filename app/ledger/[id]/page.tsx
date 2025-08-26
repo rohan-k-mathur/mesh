@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/prismaclient';
 
 export default async function LedgerEvent({ params }: { params: { id: string } }) {
   const evt = await prisma.amplificationEvent.findUnique({ where: { id: params.id }});

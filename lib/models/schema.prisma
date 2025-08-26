@@ -2253,17 +2253,16 @@ model BridgeAssignment {
 }
 
 model AmplificationEvent {
-  id             String   @id @default(cuid())
-  deliberationId String?  // 👈 make optional for now
+  id             String             @id @default(cuid())
+  deliberationId String? // 👈 make optional for now
   hostType       ContentTargetType?
   hostId         String?
-  eventType      String?  // 👈 make optional for now
+  eventType      String? // 👈 make optional for now
   reason         String?
   payload        Json?
   createdById    String?
-  createdAt      DateTime @default(now())
+  createdAt      DateTime           @default(now())
 }
-
 
 // --------- Briefs ----------
 enum BriefStatus {
@@ -2461,6 +2460,8 @@ model Deliberation {
   approvals  ArgumentApproval[]
   selections ViewpointSelection[]
   Issue      Issue[]
+  Claim      Claim[]
+  ClaimEdge  ClaimEdge[]
 
   @@index([hostType, hostId])
   @@index([roomId])
@@ -2586,4 +2587,46 @@ model ArgumentAnnotation {
   text        String
   source      String // 'heuristic'|'human'|'ml'
   createdAt   DateTime @default(now())
+}
+
+/// ==== Thin CEG (M2) ====
+/// Minimal claims and edges to support "Promote to Claim" and supports/rebuts mini-map.
+
+enum ClaimEdgeType {
+  supports
+  rebuts
+}
+
+model Claim {
+  id             String   @id @default(cuid())
+  deliberationId String?
+  text           String   @db.Text
+  createdById    String
+  moid           String   @unique
+  createdAt      DateTime @default(now())
+
+  deliberation  Deliberation? @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
+  outgoingEdges ClaimEdge[]   @relation("fromClaim")
+  incomingEdges ClaimEdge[]   @relation("toClaim")
+
+  @@index([deliberationId])
+  @@index([createdById])
+}
+
+model ClaimEdge {
+  id             String        @id @default(cuid())
+  deliberationId String?
+  fromClaimId    String
+  toClaimId      String
+  type           ClaimEdgeType
+  createdById    String
+  createdAt      DateTime      @default(now())
+
+  deliberation Deliberation? @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
+  from         Claim         @relation("fromClaim", fields: [fromClaimId], references: [id], onDelete: Cascade)
+  to           Claim         @relation("toClaim", fields: [toClaimId], references: [id], onDelete: Cascade)
+
+  @@index([fromClaimId])
+  @@index([toClaimId])
+  @@index([deliberationId])
 }
