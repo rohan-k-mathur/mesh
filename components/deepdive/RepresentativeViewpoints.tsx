@@ -7,7 +7,7 @@ type Arg = { id: string; text: string; confidence?: number | null };
 type View = { index: number; arguments: Arg[] };
 
 
-function ViewControls({ rule, k, onApply }:{
+export function ViewControls({ rule, k, onApply }:{
     rule: 'utilitarian'|'harmonic'|'maxcov';
     k: number;
     onApply: (next:{ rule: 'utilitarian'|'harmonic'|'maxcov'; k:number }) => void;
@@ -18,7 +18,9 @@ function ViewControls({ rule, k, onApply }:{
   
     return (
       <div className="relative">
-        <button className="text-xs px-2 py-1 border rounded" onClick={()=>setOpen(v=>!v)} title="View settings">⚙️</button>
+        <button className="text-xs px-2 py-1 border rounded-xl bg-slate-300/50 " onClick={()=>setOpen(v=>!v)} title="View settings">
+          <p className="text-md">⚙️</p>
+          </button>
         {open && (
           <div className="absolute right-0 mt-2 z-10 bg-white border rounded p-3 w-48 text-xs shadow">
             <label className="block mb-2">Rule
@@ -80,9 +82,10 @@ function ViewControls({ rule, k, onApply }:{
   return (
     <div className="relative">
         
-      <button className="text-xs px-2 py-1 border rounded" onClick={()=>setOpen(v=>!v)} title="View settings">⚙️</button>
-      {open && (
-        <div className="absolute right-0 mt-2 z-10 bg-white border rounded p-3 w-48 text-xs shadow">
+        <button className="flex text-xs px-2 py-1 border rounded-xl bg-slate-200/50 " onClick={()=>setOpen(v=>!v)} title="View settings">
+          <p className="text-md">⚙️</p>
+          </button>      {open && (
+        <div className="absolute right-0 mt-2 z-10 bg-slate-100 border rounded p-3 w-48 text-xs shadow">
           <label className="block mb-2">Rule
             <select className="w-full border rounded px-2 py-1 mt-1"
               value={r} onChange={e=>setR(e.target.value as any)}>
@@ -142,11 +145,13 @@ function ViewControls({ rule, k, onApply }:{
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold">
           Representative viewpoints (k={s.k})
+          <div className="fle inline-block px-8">
           <ViewControls
   rule={s.rule}
   k={s.k}
   onApply={({ rule, k }) => props.onReselect?.(rule)} // if your onReselect supports k, pass it too
 />
+</div>
           {s.rule === "maxcov" && s.jrSatisfied && <JRBadge />}
           <WhyThis deliberationId={s.deliberationId} reason={humanReason} />
 
@@ -218,7 +223,7 @@ function ViewControls({ rule, k, onApply }:{
 
       <div className="flex items-center justify-between">
       <button
-           className="text-xs underline disabled:opacity-50"
+           className="text-sm underline underline-offset-4 disabled:opacity-50"
            disabled={pending}
            onClick={async () => {
              setPending(true);
@@ -229,7 +234,7 @@ function ViewControls({ rule, k, onApply }:{
              }
            }}
          >
-           {pending ? "Refreshing…" : "Refresh views"}
+           {pending ? "Refreshing…" : "Refresh Views"}
         </button>
         <div className="text-xs text-neutral-600 flex flex-col items-end gap-2">
           <ClaimMiniMap deliberationId={s.deliberationId} />

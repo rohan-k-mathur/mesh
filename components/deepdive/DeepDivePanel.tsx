@@ -12,7 +12,7 @@ import HelpModal from '@/components/help/HelpModal';
 import DiscusHelpPage from '../help/HelpPage';
 import ApprovalsHeatStrip from '@/components/deepdive/ApprovalsHeatStrip';
 import CardList from '@/components/deepdive/CardList';
-
+import { ViewControls } from './RepresentativeViewpoints';
 
 type Selection = {
   id: string;
@@ -22,6 +22,21 @@ type Selection = {
   coverageAvg: number; coverageMin: number; jrSatisfied: boolean;
   views: { index: number; arguments: { id: string; text: string; confidence?: number|null }[] }[];
 };
+
+export function SectionCard({ title, action, children }: { title?: string; action?: React.ReactNode; children: React.ReactNode }) {
+    return (
+      <section className="rounded-2xl border border-slate-200 bg-white/95 backdrop-blur shadow-sm">
+        {(title || action) && (
+          <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-100">
+            <h3 className="text-sm font-semibold text-slate-700">{title}</h3>
+            {action}
+          </div>
+        )}
+        <div className="px-4 py-3">{children}</div>
+      </section>
+    );
+  }
+  
 
 export default function DeepDivePanel({ deliberationId }: { deliberationId: string }) {
   const [sel, setSel] = useState<Selection | null>(null);
@@ -60,7 +75,7 @@ export default function DeepDivePanel({ deliberationId }: { deliberationId: stri
   useEffect(() => { compute(); /* initial */ }, []); // eslint-disable-line
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 p-3">
       {/* Header controls */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -83,53 +98,68 @@ export default function DeepDivePanel({ deliberationId }: { deliberationId: stri
         {pending && <div className="text-xs text-neutral-500">Computing…</div>}
       </div>
 
+  
+
       {/* Arguments + Composer */}
       <ArgumentsList
         deliberationId={deliberationId}
         onReplyTo={(id) => setReplyTo(id)}
         onChanged={() => compute(sel?.rule)}
       />
+      
       <DeliberationComposer
         deliberationId={deliberationId}
         onPosted={() => { setReplyTo(null); compute(sel?.rule); }}
         targetArgumentId={replyTo ?? undefined}
       />
+{/*  Mode Tabs */}
+<Tabs defaultValue="arguments">
+   
+
+   <hr className='w-full border border-white'></hr>
+   
+           <TabsList>
+             <TabsTrigger value="arguments">Arguments</TabsTrigger>
+             <TabsTrigger value="card">Create Card</TabsTrigger>
+             <TabsTrigger value="viewcard">View Cards</TabsTrigger>
+   
+           </TabsList>
+           <TabsContent value="arguments">
+             {/* (You already render arguments/composer above; keep this tab for future) */}
+           </TabsContent>
+           <TabsContent value="card">
+           <SectionCard title="Create Card">
+
+             <CardComposerTab deliberationId={deliberationId} />
+             
+     </SectionCard>
+
+           </TabsContent>
+
+           <TabsContent value="viewcard">
+           <SectionCard title="View Cards">
+
+             <div className="mt-4">
+       <CardList deliberationId={deliberationId} />
+     </div>
+     </SectionCard>
+
+           </TabsContent>
+         </Tabs>
+
 
       {/* Views + CEG widgets */}
+      <SectionCard >
+
       <RepresentativeViewpoints selection={sel} onReselect={compute} />
+</SectionCard>
+
       <ApprovalsHeatStrip deliberationId={deliberationId} />
 
       <CegMiniMap deliberationId={deliberationId} />
       <TopologyWidget deliberationId={deliberationId} />
 
-      {/* Card mode */}
-      <Tabs defaultValue="arguments">
-   
-
-<hr className='w-full border border-white'></hr>
-
-        <TabsList>
-          <TabsTrigger value="arguments">Arguments</TabsTrigger>
-          <TabsTrigger value="card">Create Card</TabsTrigger>
-          <TabsTrigger value="viewcard">View Cards</TabsTrigger>
-
-        </TabsList>
-        <TabsContent value="arguments">
-          {/* (You already render arguments/composer above; keep this tab for future) */}
-        </TabsContent>
-        <TabsContent value="card">
-          <CardComposerTab deliberationId={deliberationId} />
-          <div className="mt-4">
-    <CardList deliberationId={deliberationId} />
-  </div>
-        </TabsContent>
-        <TabsContent value="viewcard">
-          
-          <div className="mt-4">
-    <CardList deliberationId={deliberationId} />
-  </div>
-        </TabsContent>
-      </Tabs>
+    
     </div>
   );
 }
