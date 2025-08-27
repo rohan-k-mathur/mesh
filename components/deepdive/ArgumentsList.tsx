@@ -145,6 +145,7 @@ export default function ArgumentsList({
           const alt = a.text ? a.text.slice(0, 50) : "argument image";
 
           return (
+            
             <li
               key={a.id}
               className="p-2 border rounded focus:outline-none focus:ring-2 focus:ring-amber-300"
@@ -159,6 +160,33 @@ export default function ArgumentsList({
                 }
               }}
             >
+                {/* badges */}
+<div className="mt-1 flex flex-wrap gap-2 text-[11px]">
+  {a.quantifier && (
+    <span
+      className="px-1.5 py-0.5 rounded border border-blue-200 bg-blue-50 text-blue-700"
+      title="Quantifier"
+    >
+      {a.quantifier}
+    </span>
+  )}
+  {a.modality && (
+    <span
+      className="px-1.5 py-0.5 rounded border border-violet-200 bg-violet-50 text-violet-700"
+      title="Modality"
+    >
+      {a.modality}
+    </span>
+  )}
+  {a.mediaType && a.mediaType !== 'text' && (
+    <span
+      className="px-1.5 py-0.5 rounded border border-amber-200 bg-amber-50 text-amber-700"
+      title="Media type"
+    >
+      {a.mediaType}
+    </span>
+  )}
+</div>
               <div className="text-xs text-neutral-500 mb-1">
                 <span title={`Author: ${a.authorId}`}>{created}</span>
               </div>

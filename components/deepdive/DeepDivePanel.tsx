@@ -11,6 +11,7 @@ import TopologyWidget from './TopologyWidget';
 import HelpModal from '@/components/help/HelpModal';
 import DiscusHelpPage from '../help/HelpPage';
 import ApprovalsHeatStrip from '@/components/deepdive/ApprovalsHeatStrip';
+import CardList from '@/components/deepdive/CardList';
 
 
 type Selection = {
@@ -103,15 +104,30 @@ export default function DeepDivePanel({ deliberationId }: { deliberationId: stri
 
       {/* Card mode */}
       <Tabs defaultValue="arguments">
+   
+
+<hr className='w-full border border-white'></hr>
+
         <TabsList>
           <TabsTrigger value="arguments">Arguments</TabsTrigger>
-          <TabsTrigger value="card">Card mode</TabsTrigger>
+          <TabsTrigger value="card">Create Card</TabsTrigger>
+          <TabsTrigger value="viewcard">View Cards</TabsTrigger>
+
         </TabsList>
         <TabsContent value="arguments">
           {/* (You already render arguments/composer above; keep this tab for future) */}
         </TabsContent>
         <TabsContent value="card">
           <CardComposerTab deliberationId={deliberationId} />
+          <div className="mt-4">
+    <CardList deliberationId={deliberationId} />
+  </div>
+        </TabsContent>
+        <TabsContent value="viewcard">
+          
+          <div className="mt-4">
+    <CardList deliberationId={deliberationId} />
+  </div>
         </TabsContent>
       </Tabs>
     </div>

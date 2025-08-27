@@ -2139,6 +2139,8 @@ model ArgumentEdge {
   createdById    String
   createdAt      DateTime @default(now())
 
+  targetScope TargetScope @default(conclusion)
+
   deliberation Deliberation @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
   from         Argument     @relation("fromArg", fields: [fromArgumentId], references: [id], onDelete: Cascade)
   to           Argument     @relation("toArg", fields: [toArgumentId], references: [id], onDelete: Cascade)
@@ -2447,6 +2449,14 @@ enum EdgeType {
   support
   rebut
   undercut
+  concede
+}
+
+// IAMT granularity for counters
+enum TargetScope {
+  conclusion
+  premise
+  inference
 }
 
 enum Quantifier {
@@ -2467,30 +2477,6 @@ enum MediaType {
   image
   video
   audio
-}
-
-model Deliberation {
-  id          String               @id @default(cuid())
-  hostType    DeliberationHostType
-  hostId      String
-  roomId      String?
-  rule        RepresentationRule   @default(utilitarian)
-  k           Int                  @default(3)
-  createdById String
-  createdAt   DateTime             @default(now())
-  updatedAt   DateTime             @updatedAt
-
-  arguments  Argument[]
-  edges      ArgumentEdge[]
-  approvals  ArgumentApproval[]
-  selections ViewpointSelection[]
-  Issue      Issue[]
-  Claim      Claim[]
-  ClaimEdge  ClaimEdge[]
-  Cluster    Cluster[]
-
-  @@index([hostType, hostId])
-  @@index([roomId])
 }
 
 // ---------- Governance core ----------
@@ -2566,6 +2552,7 @@ model DeliberationCard {
   anticipatedObjectionsText String[] @db.Text
   counterText               String?
   confidence                Float?
+    warrantText   String?  
   status                    String   @default("draft") // 'draft' | 'published'
   hostEmbed                 String? // 'article' | 'post' | 'room_thread'
   hostId                    String?
@@ -2615,10 +2602,15 @@ model ArgumentAnnotation {
   createdAt   DateTime @default(now())
 }
 
-/// ==== Thin CEG (M2) ====
-/// Minimal claims and edges to support "Promote to Claim" and supports/rebuts mini-map.
-
-// ---------- M3: CEG & Precision IDs ----------
+// =====================
+// M3: Attack-kind enum
+// =====================
+enum ClaimAttackType {
+  SUPPORTS
+  REBUTS
+  UNDERCUTS
+  UNDERMINES
+}
 
 enum ClaimEdgeType {
   supports
@@ -2638,6 +2630,12 @@ enum UrnEntityType {
   brief_version
 }
 
+enum GroundLabel {
+  IN
+  OUT
+  UNDEC
+}
+
 model Claim {
   id          String   @id @default(cuid())
   text        String
@@ -2645,34 +2643,48 @@ model Claim {
   moid        String   @unique
   createdAt   DateTime @default(now())
 
-  // add this foreign key
   deliberationId String?
-
-  // and fix the relation
-  deliberation Deliberation? @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
+  deliberation   Deliberation? @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
 
   edgesFrom     ClaimEdge[]     @relation("fromClaim")
   edgesTo       ClaimEdge[]     @relation("toClaim")
   citations     ClaimCitation[]
   evidenceLinks EvidenceLink[]
   urns          Urn[]           @relation("ClaimUrns")
+  ClaimLabel    ClaimLabel?
 }
 
 model ClaimEdge {
-  id          String        @id @default(cuid())
+  id          String           @id @default(cuid())
   fromClaimId String
   toClaimId   String
   type        ClaimEdgeType
-  createdAt   DateTime      @default(now())
+  createdAt   DateTime         @default(now())
+  attackType  ClaimAttackType? // UNDERCUTS | UNDERMINES | REBUTS | SUPPORTS?
 
-  // relations (explicit names to avoid ambiguity)
-  from           Claim         @relation("fromClaim", fields: [fromClaimId], references: [id], onDelete: Cascade)
-  to             Claim         @relation("toClaim", fields: [toClaimId], references: [id], onDelete: Cascade)
-  Deliberation   Deliberation? @relation(fields: [deliberationId], references: [id])
   deliberationId String?
+  Deliberation   Deliberation? @relation(fields: [deliberationId], references: [id])
+
+  from Claim @relation("fromClaim", fields: [fromClaimId], references: [id], onDelete: Cascade)
+  to   Claim @relation("toClaim", fields: [toClaimId], references: [id], onDelete: Cascade)
 
   @@index([fromClaimId])
   @@index([toClaimId])
+  @@index([deliberationId])
+}
+
+model ClaimLabel {
+  id             String      @id @default(cuid())
+  deliberationId String?
+  claimId        String      @unique
+  semantics      String // 'grounded'
+  label          GroundLabel
+  explainJson    Json?
+  computedAt     DateTime    @default(now())
+
+  claim Claim @relation(fields: [claimId], references: [id], onDelete: Cascade)
+
+  @@index([deliberationId])
 }
 
 model ClaimCitation {
@@ -2711,4 +2723,82 @@ model Urn {
   createdAt  DateTime @default(now())
 
   claim Claim? @relation("ClaimUrns", fields: [entityId], references: [id])
+}
+
+model ArgumentScheme {
+  id             String           @id @default(cuid())
+  key            String           @unique // 'expert_opinion', 'good_consequences', ...
+  title          String
+  summary        String
+  cq             Json // [{id, text, attackKind: 'UNDERMINES'|'UNDERCUTS'|'REBUTS'}]
+  SchemeInstance SchemeInstance[]
+}
+
+model SchemeInstance {
+  id          String   @id @default(cuid())
+  targetType  String // 'card'|'claim'
+  targetId    String
+  schemeId    String
+  data        Json // filled slots: {expert:{name,field}, statement, sourceUri, ...}
+  createdById String
+  createdAt   DateTime @default(now())
+
+  scheme           ArgumentScheme     @relation(fields: [schemeId], references: [id], onDelete: Cascade)
+  CriticalQuestion CriticalQuestion[]
+
+  @@index([targetType, targetId])
+}
+
+model CriticalQuestion {
+  id           String   @id @default(cuid())
+  instanceId   String
+  cqId         String
+  text         String
+  attackKind   String // 'UNDERMINES'|'UNDERCUTS'|'REBUTS'
+  status       String // 'open'|'addressed'|'counter-posted'
+  openedById   String
+  resolvedById String?
+  createdAt    DateTime @default(now())
+
+  instance SchemeInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+
+  @@index([instanceId])
+}
+
+model DialogueMove {
+  id             String   @id @default(cuid())
+  deliberationId String
+  targetType     String // 'argument'|'claim'
+  targetId       String
+  kind           String // 'ASSERT'|'WHY'|'GROUNDS'|'RETRACT'
+  payload        Json?
+  actorId        String
+  createdAt      DateTime @default(now())
+
+  @@index([deliberationId])
+  @@index([targetType, targetId])
+}
+
+model Deliberation {
+  id          String               @id @default(cuid())
+  hostType    DeliberationHostType
+  hostId      String
+  roomId      String?
+  rule        RepresentationRule   @default(utilitarian)
+  k           Int                  @default(3)
+  createdById String
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  arguments  Argument[]
+  edges      ArgumentEdge[]
+  approvals  ArgumentApproval[]
+  selections ViewpointSelection[]
+  Issue      Issue[]
+  Claim      Claim[]
+  ClaimEdge  ClaimEdge[]
+  Cluster    Cluster[]
+
+  @@index([hostType, hostId])
+  @@index([roomId])
 }

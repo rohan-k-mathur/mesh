@@ -3,6 +3,8 @@ import { useState } from 'react';
 import { z } from 'zod';
 
 type Props = { deliberationId: string; onPosted?: () => void; targetArgumentId?: string };
+type CounterKind = 'none' | 'rebut_conclusion' | 'rebut_premise' | 'undercut_inference';
+
 
 const schema = z.object({
   text: z.string().min(1).max(5000),
@@ -20,6 +22,13 @@ export default function DeliberationComposer({ deliberationId, onPosted, targetA
   const [imageUrl, setImageUrl] = useState('');
   const [quantifier, setQuantifier] = useState<'SOME'|'MANY'|'MOST'|'ALL'|undefined>();
  const [modality, setModality] = useState<'COULD'|'LIKELY'|'NECESSARY'|undefined>();
+ const [counterKind, setCounterKind] = useState<CounterKind>('none');
+
+ const [showYesBut, setShowYesBut] = useState(false);
+ const [concession, setConcession] = useState('');
+ const [counter, setCounter] = useState('');
+
+
 
   const addSource = (url: string) => {
     try { new URL(url); setSources(prev => [...new Set([...prev, url])]); } catch {}
@@ -64,6 +73,96 @@ export default function DeliberationComposer({ deliberationId, onPosted, targetA
     }
   };
 
+  async function createArgument(argText: string) {
+    const res = await fetch(`/api/deliberations/${deliberationId}/arguments`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ text: argText }),
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error ?? 'Failed to create argument');
+    return data.argument as { id: string };
+  }
+
+  async function createEdge(fromArgumentId: string, toArgumentId: string, kind: CounterKind | 'support' | 'concede') {
+    // map to API payload
+    let type: 'support'|'rebut'|'undercut'|'concede' = 'support';
+    let targetScope: 'conclusion'|'premise'|'inference' | undefined;
+
+    if (kind === 'rebut_conclusion') { type = 'rebut'; targetScope = 'conclusion'; }
+    else if (kind === 'rebut_premise') { type = 'rebut'; targetScope = 'premise'; }
+    else if (kind === 'undercut_inference') { type = 'undercut'; targetScope = 'inference'; }
+    else if (kind === 'concede') { type = 'concede'; }
+
+    const res = await fetch(`/api/deliberations/${deliberationId}/edges`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        fromArgumentId,
+        toArgumentId,
+        type,
+        targetScope,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error ?? 'Failed to create edge');
+    return data.edge;
+  }
+
+  async function submitSimple() {
+    if (!text.trim()) return;
+    setPending(true);
+    try {
+      const created = await createArgument(text.trim());
+
+      // If this is a counter reply, attach the appropriate edge
+      if (targetArgumentId && counterKind !== 'none') {
+        await createEdge(created.id, targetArgumentId, counterKind);
+      }
+
+      setText('');
+      setCounterKind('none');
+      onPosted?.();
+    } catch (e: any) {
+      alert(e?.message ?? 'Failed');
+    } finally {
+        setPending(false);
+    }
+  }
+
+  async function submitYesBut() {
+    if (!targetArgumentId) return; // needs a target
+    const hasConcession = concession.trim().length > 0;
+    const hasCounter = counter.trim().length > 0;
+    if (!hasConcession && !hasCounter) return;
+
+    setPending(true);
+    try {
+      // (a) post concession (optional)
+      let concessionArgId: string | null = null;
+      if (hasConcession) {
+        const a = await createArgument(concession.trim());
+        concessionArgId = a.id;
+        await createEdge(concessionArgId, targetArgumentId, 'concede'); // visual concession link
+      }
+
+      // (b) post counter (required for counter effect)
+      if (hasCounter) {
+        const b = await createArgument(counter.trim());
+        await createEdge(b.id, targetArgumentId, 'rebut_conclusion'); // default rebut-to-conclusion
+      }
+
+      setConcession('');
+      setCounter('');
+      setShowYesBut(false);
+      onPosted?.();
+    } catch (e: any) {
+      alert(e?.message ?? 'Failed');
+    } finally {
+        setPending(false);
+    }
+  }
+
   return (
     <div className="rounded-md border p-4 space-y-3">
       <div className="text-sm font-semibold  text-neutral-600">Analysis</div>
@@ -104,6 +203,86 @@ export default function DeliberationComposer({ deliberationId, onPosted, targetA
           Sources: {sources.map(s => <a key={s} href={s} target="_blank" className="underline mr-2">{s}</a>)}
         </div>
       )}
+      {/* Counter toolbar (only when replying) */}
+      {targetArgumentId && !showYesBut && (
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <span className="text-neutral-500">Counter type:</span>
+          <button
+            className={`px-2 py-1 rounded border ${counterKind==='rebut_conclusion'?'bg-neutral-900 text-white':'hover:bg-neutral-50'}`}
+            onClick={() => setCounterKind(k => k==='rebut_conclusion'?'none':'rebut_conclusion')}
+          >
+            Rebut (conclusion)
+          </button>
+          <button
+            className={`px-2 py-1 rounded border ${counterKind==='rebut_premise'?'bg-neutral-900 text-white':'hover:bg-neutral-50'}`}
+            onClick={() => setCounterKind(k => k==='rebut_premise'?'none':'rebut_premise')}
+          >
+            Rebut premise
+          </button>
+          <button
+            className={`px-2 py-1 rounded border ${counterKind==='undercut_inference'?'bg-neutral-900 text-white':'hover:bg-neutral-50'}`}
+            onClick={() => setCounterKind(k => k==='undercut_inference'?'none':'undercut_inference')}
+          >
+            Undercut inference
+          </button>
+
+          <span className="mx-2 text-neutral-300">|</span>
+
+          <button
+            className="px-2 py-1 rounded border hover:bg-neutral-50"
+            onClick={() => { setShowYesBut(true); setCounterKind('none'); }}
+            title={`Posts two linked items: Concession + Counter\nConcession is linked with a "concede" edge; Counter rebuts the conclusion.`}
+          >
+            Yes, … but …
+          </button>
+        </div>
+      )}
+ 
+
+      {/* Yes, … but … template */}
+      {showYesBut && (
+        <div className="rounded border p-2 space-y-2 bg-amber-50/40">
+          <div className="text-xs font-medium">Yes, … but …</div>
+
+          <label className="text-xs text-neutral-600">Concession (what you agree with)</label>
+          <textarea
+            className="w-full border rounded px-2 py-1 text-sm min-h-[70px]"
+            placeholder="Briefly acknowledge the strongest part of the target…"
+            value={concession}
+            onChange={e=>setConcession(e.target.value)}
+          />
+
+          <label className="text-xs text-neutral-600">But… (your counter)</label>
+          <textarea
+            className="w-full border rounded px-2 py-1 text-sm min-h-[90px]"
+            placeholder="Present your counterpoint…"
+            value={counter}
+            onChange={e=>setCounter(e.target.value)}
+          />
+
+          <div className="flex items-center gap-2">
+            <button
+              className="px-3 py-1.5 rounded bg-emerald-600 text-white text-sm disabled:opacity-50"
+              onClick={submitYesBut}
+              disabled={pending || !(concession.trim() || counter.trim()) || !targetArgumentId}
+            >
+               {pending ? 'Posting…' : 'Post both'}
+            </button>
+            <button
+              className="px-3 py-1.5 rounded border text-sm"
+              onClick={()=>{ setShowYesBut(false); setConcession(''); setCounter(''); }}
+              disabled={pending}
+            >
+              Cancel
+            </button>
+          </div>
+
+          <div className="text-[11px] text-neutral-500">
+            This posts two linked arguments: a concession (linked via <code>concede</code>) and a counter (linked via <code>rebut</code> to the conclusion).
+          </div>
+        </div>
+      )}
+  
        {/* Image argument adder */}
  <div className="space-y-1">
    <input

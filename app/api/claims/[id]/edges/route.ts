@@ -42,6 +42,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prismaclient";
+import { recomputeGroundedForDelib } from '@/lib/ceg/grounded';
 
 export async function POST(
   req: NextRequest,
@@ -66,5 +67,7 @@ export async function POST(
   const edge = await prisma.claimEdge.create({
     data: { fromClaimId: fromId, toClaimId, type },
   });
+  await recomputeGroundedForDelib(edge.deliberationId ?? null);
+
   return NextResponse.json({ edge });
 }

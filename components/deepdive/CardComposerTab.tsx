@@ -15,6 +15,7 @@ export default function CardComposerTab(props: {
   const [conf, setConf] = useState(0.5);
   const [status, setStatus] = useState<'draft'|'published'>('draft');
   const [busy, setBusy] = useState(false);
+  const [warrant, setWarrant] = useState<string>('');
 
   function update<T>(setter: (x: T) => void) {
     return (idx: number, arr: T[], val: T) => {
@@ -32,13 +33,16 @@ export default function CardComposerTab(props: {
       method: 'POST',
       headers: { 'content-type':'application/json' },
       body: JSON.stringify({
-        status,
+        status: 'published',           // 👈 ensure publish mode
+
         claimText: claim.trim(),
         reasonsText: reasons.filter(Boolean),
         evidenceLinks: evidence.filter(Boolean),
         anticipatedObjectionsText: obs.filter(Boolean),
         counterText: counter.trim() || undefined,
         confidence: conf,
+        warrantText: warrant,  // server can persist to a column or JSON
+
         hostEmbed: props.hostEmbed,
         hostId: props.hostId,
       }),
@@ -71,6 +75,11 @@ export default function CardComposerTab(props: {
         ))}
         <button className="text-xs text-neutral-700" onClick={()=>setObs([...obs, ''])}>+ add objection</button>
       </div>
+<label className="text-xs block mt-2">Warrant (rule that links reasons to claim)
+  <textarea className="w-full text-sm border rounded px-2 py-1 mt-1"
+            value={warrant} onChange={e=>setWarrant(e.target.value)}
+            placeholder="e.g., If expert consensus holds in domain D, accept P unless rebutted" />
+</label>
       <input value={counter} onChange={e=>setCounter(e.target.value)} placeholder="Counter (optional)" className="w-full border rounded px-2 py-1" />
       <div className="flex items-center gap-3">
         <label className="text-sm">How sure:</label>

@@ -1,83 +1,132 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prismaclient';
+import { getCurrentUserId } from '@/lib/serverutils';
 import crypto from 'crypto';
-import { getUserIdFromRequest } from '@/lib/auth/serverUser';
-
 
 const SaveSchema = z.object({
-  status: z.enum(['draft','published']),
   claimText: z.string().min(2),
   reasonsText: z.array(z.string()).min(1),
   evidenceLinks: z.array(z.string().url()).optional().default([]),
   anticipatedObjectionsText: z.array(z.string()).optional().default([]),
   counterText: z.string().optional(),
   confidence: z.number().min(0).max(1).optional(),
+  status: z.enum(['draft','published']).default('draft'),
   hostEmbed: z.enum(['article','post','room_thread']).optional(),
   hostId: z.string().optional(),
-  cardId: z.string().optional(), // for updates
+  warrantText: z.string().optional(), // optional field we discussed
+  cardId: z.string().optional(),
 });
 
-function hashMoid(payload: any) {
-  return crypto.createHash('sha256').update(JSON.stringify(payload)).digest('hex');
+const canonicalize = (o: any) =>
+  JSON.stringify(o, Object.keys(o).sort(), 2)
+    .normalize('NFC')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+function mintMoid(payload: any) {
+  const canon = canonicalize(payload);
+  return crypto.createHash('sha256').update(canon).digest('hex');
 }
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
-  const body = await req.json().catch(() => ({}));
-  const parsed = SaveSchema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
-
+// GET /api/deliberations/[id]/cards?status=published|draft
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const deliberationId = params.id;
-  const {
-     status, claimText, reasonsText, evidenceLinks,
-    anticipatedObjectionsText, counterText, confidence, hostEmbed, hostId, cardId
-  } = parsed.data;
+  const url = new URL(req.url);
+  const status = url.searchParams.get('status') ?? undefined;
 
-  const authorId = await getUserIdFromRequest(req); // ✅ async
+  const where: any = { deliberationId };
+  if (status) where.status = status;
 
+  const rows = await prisma.deliberationCard.findMany({
+    where,
+    orderBy: { createdAt: 'desc' },
+    select: {
 
-  const moid = hashMoid({ claimText, reasonsText, evidenceLinks, counterText, anticipatedObjectionsText });
+      id: true,
+      deliberationId: true,               // 👈 ChallengeWarrantCard needs this
+      authorId: true,
+      status: true,
+      createdAt: true,
+      claimText: true,
+      reasonsText: true,
+      evidenceLinks: true,
+      anticipatedObjectionsText: true,
+      counterText: true,
+      confidence: true,
+      hostEmbed: true,
+      hostId: true,
+      warrantText: true,                  // 👈 return it
+    },
+  });
+  return NextResponse.json({ cards: rows });
+}
 
-  if (cardId) {
-    const updated = await prisma.deliberationCard.update({
-      where: { id: cardId },
+// POST create/update card (server derives author)
+export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const userId = await getCurrentUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const deliberationId = params.id;
+    const body = await req.json().catch(() => ({}));
+    const input = SaveSchema.parse(body);
+
+    // compute MOID from content fields (not status/host)
+    const moid = mintMoid({
+      claimText: input.claimText,
+      reasonsText: input.reasonsText,
+      evidenceLinks: input.evidenceLinks,
+      anticipatedObjectionsText: input.anticipatedObjectionsText,
+      counterText: input.counterText ?? null,
+      confidence: input.confidence ?? null,
+      warrantText: input.warrantText ?? null,
+    });
+
+    if (input.cardId) {
+      // update existing
+      const updated = await prisma.deliberationCard.update({
+        where: { id: input.cardId },
+        data: {
+          claimText: input.claimText,
+          reasonsText: input.reasonsText,
+          evidenceLinks: input.evidenceLinks,
+          anticipatedObjectionsText: input.anticipatedObjectionsText,
+          counterText: input.counterText ?? null,
+          confidence: input.confidence ?? null,
+          status: input.status,
+          warrantText: input.warrantText ?? null,
+          hostEmbed: input.hostEmbed ?? null,
+          hostId: input.hostId ?? null,
+          moid,
+          // warrantText: input.warrantText ?? null,
+        },
+      });
+      return NextResponse.json({ ok: true, card: updated });
+    }
+
+    // create new card
+    const created = await prisma.deliberationCard.create({
       data: {
-        claimText, reasonsText, evidenceLinks,
-        anticipatedObjectionsText, counterText: counterText ?? null,
-        confidence: confidence ?? null,
-        status, hostEmbed: hostEmbed ?? null, hostId: hostId ?? null,
+        deliberationId,
+        authorId: String(userId),
+        claimText: input.claimText,
+        reasonsText: input.reasonsText,
+        evidenceLinks: input.evidenceLinks,
+        anticipatedObjectionsText: input.anticipatedObjectionsText,
+        counterText: input.counterText ?? null,
+        confidence: input.confidence ?? null,
+        status: input.status,
+        hostEmbed: input.hostEmbed ?? null,
+        warrantText: input.warrantText ?? null,
+        hostId: input.hostId ?? null,
         moid,
+        // warrantText: input.warrantText ?? null,
       },
     });
-    return NextResponse.json({ ok: true, card: updated });
+    return NextResponse.json({ ok: true, card: created });
+  } catch (e: any) {
+    console.error('[cards] failed', e);
+    return NextResponse.json({ error: e?.message ?? 'Invalid request' }, { status: 400 });
   }
-
-  const created = await prisma.deliberationCard.create({
-    data: {
-      deliberationId,
-      authorId,
-      claimText,
-      reasonsText,
-      evidenceLinks,
-      anticipatedObjectionsText,
-      counterText: counterText ?? null,
-      confidence: confidence ?? null,
-      status,
-      hostEmbed: hostEmbed ?? null,
-      hostId: hostId ?? null,
-      moid,
-    },
-    select: { id: true },
-  });
-
-  return NextResponse.json({ ok: true, id: created.id });
-}
-
-export async function GET(_: NextRequest, { params }: { params: { id: string } }) {
-  const cards = await prisma.deliberationCard.findMany({
-    where: { deliberationId: params.id, status: 'published' },
-    orderBy: { createdAt: 'desc' },
-    include: { cardCitations: true },
-  });
-  return NextResponse.json({ cards });
 }

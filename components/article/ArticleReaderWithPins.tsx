@@ -508,7 +508,7 @@ export default function ArticleReaderWithPins({
 
   return (
     <ArticleReader template={template} heroSrc={heroSrc} title={title}>
-      <div className='absolute flex left-5 top-12 tracking-wide z-[9000] rounded-xl bg-white/50  px-3 py-2 likebutton'>
+      <div className='absolute flex left-5 top-8 tracking-wide z-[9000]  '>
         <HomeButton/>
         </div>
 {/* <button
