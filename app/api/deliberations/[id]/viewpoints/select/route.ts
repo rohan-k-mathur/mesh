@@ -11,6 +11,8 @@ const Body = z.object({
 });
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+    try {
+
   const userId = await getCurrentUserId();
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const userIdStr = asUserIdString(userId);
@@ -27,8 +29,13 @@ const delib = await prisma.deliberation.findUnique({
     : undefined;
   
   // Body parse after we know defaults
-  const parsed = Body.safeParse(await req.json());
-  let rule: 'utilitarian'|'harmonic'|'maxcov' =
+  let parsed;
+  try {
+    parsed = Body.safeParse(await req.json());
+  } catch {
+    parsed = Body.safeParse({});
+  }
+    let rule: 'utilitarian'|'harmonic'|'maxcov' =
     (parsed.success ? parsed.data.rule : undefined) ?? delib.rule ?? roomRule ?? 'utilitarian';
   const k: number = (parsed.success ? parsed.data.k : 3);
   // Load nodes, edges, approvals
@@ -89,19 +96,31 @@ const delib = await prisma.deliberation.findUnique({
   }
 
   // amplify ledger (human readable reason)
-  await prisma.amplificationEvent.create({
-    data: {
-      kind: 'deliberation_viewpoint_selected',
-      originId: selection.id,
-      userId: userIdStr,
-      reason: rule === 'utilitarian'
-        ? 'Chosen to maximize average coverage of approvals'
-        : rule === 'harmonic'
-          ? 'Chosen to balance average and fairness (harmonic weights)'
-          : 'Chosen to maximize the count of fully represented voters (JR-oriented)',
-      payload: { deliberationId, selectionId: selection.id, k, coverageAvg, coverageMin, jrSatisfied, rule },
-    },
-  });
+     await prisma.amplificationEvent.create({
+         data: {
+           eventType: 'deliberation_viewpoint_selected',
+          
+           createdById: userIdStr,
+           reason:
+             rule === 'utilitarian'
+               ? 'Chosen to maximize average coverage of approvals'
+               : rule === 'harmonic'
+               ? 'Chosen to balance average and fairness (harmonic weights)'
+               : 'Chosen to maximize the count of fully represented voters (JR-oriented)',
+           deliberationId,
+           viewpointSelectionId: selection.id, // ✅ real column now
+
+           payload: {
+             deliberationId,
+             selectionId: selection.id,
+             k,
+             coverageAvg,
+             coverageMin,
+             jrSatisfied,
+             rule,
+           },
+         },
+       });
 
   // hydrate response with argument snippets per viewpoint
   const mapText = new Map(args.map(a => [a.id, { text: a.text, confidence: a.confidence }]));
@@ -114,6 +133,8 @@ const delib = await prisma.deliberation.findUnique({
     ok: true,
     selection: {
       id: selection.id,
+      deliberationId,            // ✅ add this line
+
       rule,
       k,
       coverageAvg,
@@ -124,4 +145,8 @@ const delib = await prisma.deliberation.findUnique({
       views,
     },
   });
+} catch (e: any) {
+    console.error('[viewpoints/select] failed', e);
+    return NextResponse.json({ ok: false, error: e.message ?? 'unknown' }, { status: 500 });
+  }
 }

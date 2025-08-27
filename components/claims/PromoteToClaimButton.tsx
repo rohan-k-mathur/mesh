@@ -2,43 +2,70 @@
 import { useState } from 'react';
 
 type Props =
-  | { deliberationId?: string; target: { type: 'argument' | 'card'; id: string }; label?: string }
-  | { deliberationId?: string; text: string; label?: string };
+  | {
+      deliberationId?: string;
+      target: { type: 'argument' | 'card'; id: string };
+      label?: string;
+      onClaim?: (claimId: string) => void;
+    }
+  | {
+      deliberationId?: string;
+      text: string;
+      label?: string;
+      onClaim?: (claimId: string) => void;
+    };
 
 export default function PromoteToClaimButton(props: Props) {
   const [busy, setBusy] = useState(false);
-  const [ok, setOk] = useState<string | null>(null);
-  const [err, setErr] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
 
   async function promote() {
     setBusy(true);
-    setOk(null); setErr(null);
+    setToast(null);
     try {
       const res = await fetch('/api/claims', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...(props as any), text: (props as any).text }),
+        body: JSON.stringify({
+          ...(props as any),
+          text: (props as any).text, // safe for the text variant
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed');
-      setOk(data.created ? 'Claim created' : 'Already a claim');
+      const claimId = data?.claim?.id;
+      if (claimId && 'onClaim' in props && props.onClaim) {
+        props.onClaim(claimId);
+      }
+      setToast(data.created ? 'Claim created ✓' : 'Already promoted');
+      // auto-dismiss toast after 2.5s
+      setTimeout(() => setToast(null), 2500);
     } catch (e: any) {
-      setErr(e.message);
+      setToast(e.message ?? 'Error promoting');
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <button
-      disabled={busy}
-      onClick={promote}
-      className="text-xs px-2 py-1 rounded border border-slate-300 hover:bg-slate-50"
-      title="Promote to Claim (thin CEG)"
-    >
-      {busy ? 'Promoting…' : (('label' in props && props.label) || 'Promote to Claim')}
-      {ok && <span className="ml-2 text-emerald-600">{ok}</span>}
-      {err && <span className="ml-2 text-rose-600">{err}</span>}
-    </button>
+    <div className="inline-flex items-center gap-2">
+      <button
+        disabled={busy}
+        onClick={promote}
+        className="text-xs px-2 py-1 rounded border border-slate-300 hover:bg-slate-50 disabled:opacity-50"
+        title="Promote to Claim (thin CEG)"
+      >
+        {busy ? 'Promoting…' : (('label' in props && props.label) || 'Promote to Claim')}
+      </button>
+      {toast && (
+        <span
+          className={`text-[11px] ${
+            toast.includes('✓') ? 'text-emerald-600' : 'text-rose-600'
+          }`}
+        >
+          {toast}
+        </span>
+      )}
+    </div>
   );
 }

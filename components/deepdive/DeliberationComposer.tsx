@@ -66,10 +66,10 @@ export default function DeliberationComposer({ deliberationId, onPosted, targetA
 
   return (
     <div className="rounded-md border p-4 space-y-3">
-      <div className="text-sm text-neutral-600">Deep‑dive</div>
+      <div className="text-sm font-semibold  text-neutral-600">Analysis</div>
       <textarea
         className="w-full border rounded p-3" rows={4}
-        placeholder="Start by showing you got it… then add your point."
+        placeholder="Respond Here..."
         value={text} onChange={(e) => setText(e.target.value)}
       />
       <div className="flex flex-wrap gap-2">

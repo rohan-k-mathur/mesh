@@ -2174,7 +2174,10 @@ model ViewpointSelection {
   createdById    String
   createdAt      DateTime           @default(now())
 
-  deliberation  Deliberation        @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
+  deliberation Deliberation @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
+
+  amplificationEvents AmplificationEvent[] @relation("SelectionEvents")
+
   viewpointArgs ViewpointArgument[]
 
   @@index([deliberationId, createdAt])
@@ -2199,24 +2202,42 @@ enum ClusterType {
 }
 
 model Cluster {
-  id          String        @id @default(cuid())
-  type        ClusterType
-  label       String
-  createdAt   DateTime      @default(now())
-  // optional: roomId scoping later
-  UserCluster UserCluster[]
+  id             String   @id @default(cuid())
+  deliberationId String
+  type           String // 'affinity' | 'topic' (keep string for flexibility)
+  label          String?
+  createdAt      DateTime @default(now())
+
+  deliberation Deliberation      @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
+  users        UserCluster[]
+  arguments    ArgumentCluster[]
+
+  @@index([deliberationId, type])
 }
 
-// Map users to clusters (for outside-cluster checks)
 model UserCluster {
-  id        String   @id @default(cuid())
-  userId    String
+  id        String @id @default(cuid())
   clusterId String
-  createdAt DateTime @default(now())
+  userId    String
+  score     Float  @default(0)
 
   cluster Cluster @relation(fields: [clusterId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, clusterId])
+  @@index([clusterId])
+  @@index([userId])
+}
+
+model ArgumentCluster {
+  id         String @id @default(cuid())
+  clusterId  String
+  argumentId String
+  score      Float  @default(0)
+
+  cluster Cluster @relation(fields: [clusterId], references: [id], onDelete: Cascade)
+
+  // argumentId refers to your existing Argument model
+  @@index([clusterId])
+  @@index([argumentId])
 }
 
 // --------- Bridge Builder ----------
@@ -2262,6 +2283,9 @@ model AmplificationEvent {
   payload        Json?
   createdById    String?
   createdAt      DateTime           @default(now())
+
+  viewpointSelectionId String?
+  viewpointSelection   ViewpointSelection? @relation("SelectionEvents", fields: [viewpointSelectionId], references: [id])
 }
 
 // --------- Briefs ----------
@@ -2319,6 +2343,7 @@ enum BriefSourceType {
   card
   argument
   post
+  claim
 }
 
 model BriefLink {
@@ -2462,6 +2487,7 @@ model Deliberation {
   Issue      Issue[]
   Claim      Claim[]
   ClaimEdge  ClaimEdge[]
+  Cluster    Cluster[]
 
   @@index([hostType, hostId])
   @@index([roomId])
@@ -2592,41 +2618,97 @@ model ArgumentAnnotation {
 /// ==== Thin CEG (M2) ====
 /// Minimal claims and edges to support "Promote to Claim" and supports/rebuts mini-map.
 
+// ---------- M3: CEG & Precision IDs ----------
+
 enum ClaimEdgeType {
   supports
   rebuts
 }
 
+enum EvidenceKind {
+  primary
+  secondary
+  dataset
+  code
+}
+
+enum UrnEntityType {
+  claim
+  card
+  brief_version
+}
+
 model Claim {
-  id             String   @id @default(cuid())
+  id          String   @id @default(cuid())
+  text        String
+  createdById String
+  moid        String   @unique
+  createdAt   DateTime @default(now())
+
+  // add this foreign key
   deliberationId String?
-  text           String   @db.Text
-  createdById    String
-  moid           String   @unique
-  createdAt      DateTime @default(now())
 
-  deliberation  Deliberation? @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
-  outgoingEdges ClaimEdge[]   @relation("fromClaim")
-  incomingEdges ClaimEdge[]   @relation("toClaim")
+  // and fix the relation
+  deliberation Deliberation? @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
 
-  @@index([deliberationId])
-  @@index([createdById])
+  edgesFrom     ClaimEdge[]     @relation("fromClaim")
+  edgesTo       ClaimEdge[]     @relation("toClaim")
+  citations     ClaimCitation[]
+  evidenceLinks EvidenceLink[]
+  urns          Urn[]           @relation("ClaimUrns")
 }
 
 model ClaimEdge {
-  id             String        @id @default(cuid())
-  deliberationId String?
-  fromClaimId    String
-  toClaimId      String
-  type           ClaimEdgeType
-  createdById    String
-  createdAt      DateTime      @default(now())
+  id          String        @id @default(cuid())
+  fromClaimId String
+  toClaimId   String
+  type        ClaimEdgeType
+  createdAt   DateTime      @default(now())
 
-  deliberation Deliberation? @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
-  from         Claim         @relation("fromClaim", fields: [fromClaimId], references: [id], onDelete: Cascade)
-  to           Claim         @relation("toClaim", fields: [toClaimId], references: [id], onDelete: Cascade)
+  // relations (explicit names to avoid ambiguity)
+  from           Claim         @relation("fromClaim", fields: [fromClaimId], references: [id], onDelete: Cascade)
+  to             Claim         @relation("toClaim", fields: [toClaimId], references: [id], onDelete: Cascade)
+  Deliberation   Deliberation? @relation(fields: [deliberationId], references: [id])
+  deliberationId String?
 
   @@index([fromClaimId])
   @@index([toClaimId])
-  @@index([deliberationId])
+}
+
+model ClaimCitation {
+  id           String  @id @default(cuid())
+  claimId      String
+  uri          String
+  locatorStart Int?
+  locatorEnd   Int?
+  excerptHash  String
+  snapshotKey  String?
+  cslJson      Json?
+  note         String?
+
+  claim Claim @relation(fields: [claimId], references: [id], onDelete: Cascade)
+
+  @@index([claimId])
+}
+
+model EvidenceLink {
+  id          String       @id @default(cuid())
+  claimId     String
+  kind        EvidenceKind
+  uri         String
+  snapshotKey String?
+
+  claim Claim @relation(fields: [claimId], references: [id], onDelete: Cascade)
+
+  @@index([claimId])
+}
+
+model Urn {
+  id         String   @id @default(cuid())
+  entityId   String
+  entityType String
+  urn        String   @unique
+  createdAt  DateTime @default(now())
+
+  claim Claim? @relation("ClaimUrns", fields: [entityId], references: [id])
 }

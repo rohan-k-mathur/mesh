@@ -10,7 +10,7 @@ type Sections = {
 };
 export default function BriefDiffViewer({
   current,
-  versions,
+  versions = [],
 }: {
   current: { id: string; number: number; sectionsJson: Sections };
   versions: { id: string; number: number; sectionsJson: Sections }[];

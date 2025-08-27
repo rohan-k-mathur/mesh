@@ -1,43 +1,44 @@
 'use client';
 import { useState } from 'react';
 
-const choices = [
-  'OK','NEEDS_SOURCES','WORKSHOP','OFF_TOPIC_REDIRECT','DUPLICATE_MERGE','DISPUTED','OUT_OF_BOUNDS'
-] as const;
+const OPTIONS = ['OK','NEEDS_SOURCES','WORKSHOP','OFF_TOPIC_REDIRECT','DUPLICATE_MERGE','DISPUTED','OUT_OF_BOUNDS'] as const;
+type Opt = typeof OPTIONS[number];
 
-export default function StatusDropdown(props: {
+export default function StatusDropdown({
+  roomId,
+  actorId, // host/steward id; pass from server or inject via header in the API
+  targetType,
+  targetId,
+  initial,
+}: {
   roomId: string;
   actorId: string;
   targetType: 'article'|'post'|'room_thread'|'deliberation'|'argument'|'card'|'claim'|'brief'|'brief_version';
   targetId: string;
-  current?: string;
-  panelId?: string | null;
+  initial?: Opt;
 }) {
-  const [val, setVal] = useState(props.current ?? 'OK');
+  const [value, setValue] = useState<Opt>(initial ?? 'OK');
   const [busy, setBusy] = useState(false);
 
-  async function onChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    const newStatus = e.target.value;
-    setVal(newStatus);
+  async function update(next: Opt) {
     setBusy(true);
-    await fetch('/api/governance/status', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        roomId: props.roomId,
-        actorId: props.actorId,
-        targetType: props.targetType,
-        targetId: props.targetId,
-        newStatus,
-        panelId: props.panelId ?? undefined,
-      }),
-    });
-    setBusy(false);
+    try {
+      const res = await fetch('/api/governance/status', {
+        method: 'POST',
+        headers: { 'content-type':'application/json' },
+        body: JSON.stringify({
+          roomId, actorId, targetType, targetId,
+          newStatus: next,
+          reason: 'Host update',
+        }),
+      });
+      if (res.ok) setValue(next);
+    } finally { setBusy(false); }
   }
 
   return (
-    <select value={val} onChange={onChange} disabled={busy} className="border rounded px-2 py-1 text-sm">
-      {choices.map(c => <option key={c} value={c}>{c}</option>)}
+    <select className="text-xs border rounded px-2 py-1" value={value} onChange={(e)=>update(e.target.value as Opt)} disabled={busy}>
+      {OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
     </select>
   );
 }

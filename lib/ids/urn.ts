@@ -1,0 +1,8 @@
+import { hexToBase32 } from './canonicalize';
+
+type EntityCode = 'clm'|'crd'|'brf';
+
+export function mintUrn(entity: EntityCode, moidHex: string, semver?: string) {
+  const base32 = hexToBase32(moidHex);
+  return `urn:mesh:${entity}:${base32}${semver ? `:v${semver}` : ''}`;
+}

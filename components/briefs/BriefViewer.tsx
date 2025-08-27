@@ -1,15 +1,25 @@
 // components/briefs/BriefViewer.tsx (client component)
 "use client";
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import DiffSection from '@/components/briefs/DiffSection';
+import useSWR from 'swr';
+
+
+
+type Sections = { overview?: string; positions?: string; evidence?: string; openQuestions?: string; decision?: string };
 
 export default function BriefViewer({ brief }: { brief: any }) {
+    
   const [expanded, setExpanded] = useState<string|null>(null);
 
+  
+    
   return (
     <main className="max-w-3xl mx-auto px-4 py-8 space-y-10">
       <section>
         <h1 className="text-2xl font-semibold">{brief.title}</h1>
+
         <div className="text-sm text-neutral-600 mb-4">
           Current version v{brief.currentVersion.number} ·{' '}
           {new Date(brief.currentVersion.createdAt).toLocaleString()}
@@ -20,7 +30,7 @@ export default function BriefViewer({ brief }: { brief: any }) {
       <section>
         <h2 className="text-xl font-semibold mb-3">Version history</h2>
         <ul className="divide-y divide-neutral-200 border rounded">
-          {brief.versions.map((v: any) => (
+          {brief.versions?.map((v: any) => (
             <li key={v.id} className="p-4 space-y-2">
               <div className="flex justify-between items-center">
                 <div className="font-medium">
@@ -51,12 +61,13 @@ export default function BriefViewer({ brief }: { brief: any }) {
                 </div>
               )}
             </li>
-          ))}
+          ))
+          || <li className="p-4 text-sm text-neutral-500">No version history yet.</li>}
         </ul>
       </section>
     </main>
   );
-}
+
 
 function BriefSections({ version }: { version: any }) {
   const s = version.sectionsJson as any;
@@ -82,4 +93,5 @@ function BriefSections({ version }: { version: any }) {
       )}
     </div>
   );
-}
+            }
+        }

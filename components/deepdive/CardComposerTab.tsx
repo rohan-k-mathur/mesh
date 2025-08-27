@@ -3,7 +3,6 @@ import { useState } from 'react';
 
 export default function CardComposerTab(props: {
   deliberationId: string;
-  authorId: string;
   hostEmbed?: 'article'|'post'|'room_thread';
   hostId?: string;
   onSaved?: (id: string) => void;
@@ -33,7 +32,6 @@ export default function CardComposerTab(props: {
       method: 'POST',
       headers: { 'content-type':'application/json' },
       body: JSON.stringify({
-        authorId: props.authorId,
         status,
         claimText: claim.trim(),
         reasonsText: reasons.filter(Boolean),

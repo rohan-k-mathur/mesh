@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prismaclient';
 import crypto from 'crypto';
+import { getUserIdFromRequest } from '@/lib/auth/serverUser';
+
 
 const SaveSchema = z.object({
-  authorId: z.string(),
   status: z.enum(['draft','published']),
   claimText: z.string().min(2),
   reasonsText: z.array(z.string()).min(1),
@@ -28,9 +29,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
   const deliberationId = params.id;
   const {
-    authorId, status, claimText, reasonsText, evidenceLinks,
+     status, claimText, reasonsText, evidenceLinks,
     anticipatedObjectionsText, counterText, confidence, hostEmbed, hostId, cardId
   } = parsed.data;
+
+  const authorId = await getUserIdFromRequest(req); // ✅ async
+
 
   const moid = hashMoid({ claimText, reasonsText, evidenceLinks, counterText, anticipatedObjectionsText });
 

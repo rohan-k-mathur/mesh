@@ -508,7 +508,7 @@ export default function ArticleReaderWithPins({
 
   return (
     <ArticleReader template={template} heroSrc={heroSrc} title={title}>
-      <div className='fixed flex left-5 top-12 tracking-wide z-[9000] rounded-xl bg-white/50  px-3 py-2 likebutton'>
+      <div className='absolute flex left-5 top-12 tracking-wide z-[9000] rounded-xl bg-white/50  px-3 py-2 likebutton'>
         <HomeButton/>
         </div>
 {/* <button
@@ -747,13 +747,7 @@ export default function ArticleReaderWithPins({
               </div>
             )}
           </div>
-               {/* ⬇️ Deep-dive lives below the article body */}
-            {deliberationId && (
-              <section className="mt-12">
-                <h2 className="text-base font-semibold mb-2">Discussion · Deep-dive</h2>
-                <DeepDivePanel deliberationId={deliberationId} />
-              </section>
-            )}
+              
         </div>
 
         {/* RIGHT RAIL — give it a real height and pass the vertical offset */}
@@ -775,6 +769,16 @@ export default function ArticleReaderWithPins({
           />
         </div>
       </div>
+     
+      <div className="flex flex-col">
+      <hr className="w-full border-[1px] border-white"></hr>
+            {deliberationId && (
+              <section className="mt-4">
+                <h2 className="text-[1.5rem] font-semibold mb-2 px-2">Discussion</h2>
+                <DeepDivePanel deliberationId={deliberationId} />
+              </section>
+            )}
+            </div>
       {activeThread && (
         <CommentModal
           thread={activeThread}
