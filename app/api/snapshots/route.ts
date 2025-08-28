@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { sha256Hex } from '@/lib/ids/canonicalize';
+import { SNAPSHOTS_BUCKET } from '@/lib/storage/constants';
+
 
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
@@ -13,7 +15,7 @@ export async function POST(req: NextRequest) {
   const now = new Date().toISOString().replace(/[:.]/g, '-');
   const key = `snapshots/${now}-${sha256Hex(url).slice(0,8)}.http`;
 
-  const { error } = await supabase.storage.from('snapshots').upload(key, buf, {
+  const { error } = await supabase.storage.from(SNAPSHOTS_BUCKET).upload(key, buf, {
     contentType: res.headers.get('content-type') ?? 'application/octet-stream',
     upsert: false,
   });

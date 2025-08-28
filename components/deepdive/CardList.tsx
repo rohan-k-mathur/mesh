@@ -1,38 +1,79 @@
 'use client';
 import useSWR from 'swr';
 import { useState } from 'react';
+import SchemePicker from '@/components/cite/SchemePicker';
+import CriticalQuestions from '@/components/claims/CriticalQuestions';
 
 const fetcher = (u: string) => fetch(u, { cache: 'no-store' }).then(r => r.json());
 
-function ChallengeWarrantCard({ cardId, deliberationId }: { cardId: string; deliberationId: string }) {
-    const [counterClaimId, setCounterClaimId] = useState('');
-    const [pending, setPending] = useState(false);
-    const [msg, setMsg] = useState<string| null>(null);
-  
-    async function submit() {
-      if (!counterClaimId.trim()) { setMsg('Paste a counter Claim ID'); return; }
-      setPending(true); setMsg(null);
-      try {
-        const res = await fetch(`/api/deliberations/${deliberationId}/cards/${cardId}/warrant/undercut`, {
-          method: 'POST',
-          headers: { 'content-type':'application/json' },
-          body: JSON.stringify({ counterClaimId }),
-        });
-        const json = await res.json();
-        if (!res.ok || json.error) throw new Error(json.error ?? 'Failed');
-        setMsg('Warrant challenged ✓');
-        setCounterClaimId('');
-      } catch (e: any) {
-        setMsg(e?.message ?? 'Error');
-      } finally {
-        setPending(false);
+function ChallengeWarrantCard({ cardId, deliberationId, currentUserId }: { cardId: string; deliberationId: string; currentUserId?: string }) {
+  const [mode, setMode] = useState<'claimId'|'text'>('claimId');
+  const [counterClaimId, setCounterClaimId] = useState('');
+  const [counterText, setCounterText] = useState('');
+  const [pending, setPending] = useState(false);
+  const [msg, setMsg] = useState<string| null>(null);
+
+  async function promoteCounterTextToClaim(): Promise<string> {
+    const res = await fetch('/api/claims', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        deliberationId,
+        text: counterText.trim(),
+      }),
+    });
+    const json = await res.json();
+    if (!res.ok || json.error) throw new Error(json.error ?? 'promote_failed');
+    return json.claim?.id as string;
+  }
+
+  async function submit() {
+    try {
+      setMsg(null); setPending(true);
+      let claimId = counterClaimId.trim();
+
+      if (mode === 'text') {
+        if (!counterText.trim()) throw new Error('Write a counter text or switch to “Use claim ID”.');
+        claimId = await promoteCounterTextToClaim();
+      } else {
+        if (!claimId) throw new Error('Paste a counter Claim ID or switch to “Write text”.');
       }
+
+      const res = await fetch(`/api/deliberations/${deliberationId}/cards/${cardId}/warrant/undercut`, {
+        method: 'POST',
+        headers: { 'content-type':'application/json' },
+        body: JSON.stringify({ counterClaimId: claimId }),
+      });
+      const json = await res.json();
+      if (!res.ok || json.error) throw new Error(json.error ?? 'undercut_failed');
+
+      setMsg('Warrant challenged ✓');
+      setCounterClaimId('');
+      setCounterText('');
+    } catch (e:any) {
+      setMsg(e?.message ?? 'Error');
+    } finally {
+      setPending(false);
     }
-  
-    return (
-      <div className="mt-2 border rounded p-2 bg-amber-50/40">
-        <div className="text-xs font-semibold text-neutral-700">Challenge warrant</div>
-        <div className="flex items-center gap-2 mt-1">
+  }
+
+  return (
+    <div className="mt-2 border rounded p-2 bg-amber-50/40">
+      <div className="text-xs font-semibold text-neutral-700">Challenge warrant</div>
+
+      <div className="mt-1 flex gap-2 text-[11px]">
+        <button
+          className={`px-2 py-0.5 rounded border ${mode==='claimId'?'bg-white':'bg-transparent'}`}
+          onClick={()=>setMode('claimId')}
+        >Use claim ID</button>
+        <button
+          className={`px-2 py-0.5 rounded border ${mode==='text'?'bg-white':'bg-transparent'}`}
+          onClick={()=>setMode('text')}
+        >Write counter text</button>
+      </div>
+
+      {mode === 'claimId' && (
+        <div className="flex items-center gap-2 mt-2">
           <input
             className="text-xs border rounded px-2 py-1 flex-1"
             placeholder="Paste counter Claim ID"
@@ -48,10 +89,34 @@ function ChallengeWarrantCard({ cardId, deliberationId }: { cardId: string; deli
             {pending ? 'Posting…' : 'Undercut'}
           </button>
         </div>
-        {msg && <div className="text-[11px] text-neutral-600 mt-1">{msg}</div>}
-      </div>
-    );
-  }
+      )}
+
+      {mode === 'text' && (
+        <div className="mt-2">
+          <textarea
+            className="w-full text-xs border rounded px-2 py-1"
+            rows={3}
+            placeholder="Write a short counter…"
+            value={counterText}
+            onChange={e=>setCounterText(e.target.value)}
+          />
+          <div className="mt-2">
+            <button
+              className="text-xs px-2 py-1 rounded border disabled:opacity-50"
+              onClick={submit}
+              disabled={pending}
+              title="Promotes counter text to Claim then creates an UNDERCUTS edge"
+            >
+              {pending ? 'Posting…' : 'Promote & undercut'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {msg && <div className="text-[11px] text-neutral-600 mt-1">{msg}</div>}
+    </div>
+  );
+}
 
 export default function CardList({ deliberationId }: { deliberationId: string }) {
   const { data, isLoading } = useSWR(`/api/deliberations/${deliberationId}/cards?status=published`, fetcher);
@@ -131,8 +196,34 @@ export default function CardList({ deliberationId }: { deliberationId: string })
               How sure: {Math.round(c.confidence * 100)}%
             </div>
           )}
+           {/* Schemes & Critical Questions */}
+<div className="mt-2 rounded border border-slate-200 p-2 bg-white">
+  <div className="flex items-center justify-between">
+    <div className="text-xs font-semibold text-neutral-700">Schemes</div>
+    <SchemePicker
+      targetType="card"
+      targetId={c.id}
+      createdById={c.authorId /* or currentUserId if you prefer */}
+      onAttached={() => {/* optionally refetch with mutate() */}}
+    />
+  </div>
+
+  <div className="mt-2">
+    <CriticalQuestions
+      targetType="card"
+      targetId={c.id}
+      createdById={c.authorId /* or currentUserId */}
+      // If you want counters from here too, either:
+      // 1) pass an existing counter claimId, or
+      // 2) extend CriticalQuestions to accept counter text -> promote -> counter.
+      counterFromClaimId="" // optional; leave blank if not using from this panel
+    />
+  </div>
+</div>
         </div>
+        
       ))}
+     
     </div>
   );
 }

@@ -15,30 +15,69 @@ const CreateSchema = z.object({
   mediaUrl: z.string().url().optional(),
 });
 
+const ArgumentResponseSchema = z.object({
+  id: z.string(),
+  deliberationId: z.string(),
+  authorId: z.string(),
+  text: z.string(),
+  sources: z.any().optional(),   // you might refine this to array of URLs
+  confidence: z.number().nullable(),
+  isImplicit: z.boolean(),
+  quantifier: z.enum(['SOME','MANY','MOST','ALL']).nullable(),
+  modality: z.enum(['COULD','LIKELY','NECESSARY']).nullable(),
+  mediaType: z.enum(['text','image','video','audio']),
+  mediaUrl: z.string().url().nullable(),
+  createdAt: z.string(), // ISO datetime
+  edgesOut: z.array(z.object({
+    fromArgumentId: z.string(),
+    toArgumentId: z.string(),
+    type: z.enum(['rebut','undercut']),
+    targetScope: z.string().optional(),
+  })),
+  claimId: z.string().nullable(),
+  approvedByUser: z.boolean(),
+});
+
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+  const userId = await getCurrentUserId();
   const deliberationId = params.id;
 
-  const rows = await prisma.argument.findMany({
+  const args = await prisma.argument.findMany({
     where: { deliberationId },
     orderBy: { createdAt: 'asc' },
-    select: {
-      id: true,
-      deliberationId: true,
-      authorId: true,
-      text: true,
-      sources: true,
-      confidence: true,
-      isImplicit: true,
-      quantifier: true,
-      modality: true,
-      mediaType: true,
-      mediaUrl: true,
-      createdAt: true,
+    include: {
+      outgoingEdges: {
+        where: { type: { in: ['rebut', 'undercut'] } },
+        select: { fromArgumentId: true, toArgumentId: true, type: true, targetScope: true },
+      },
+      claim: { select: { id: true } },
+      approvals: userId
+        ? { where: { userId: String(userId) }, select: { userId: true } }
+        : false,
     },
   });
 
+  const rows = args.map(a => ({
+    id: a.id,
+    deliberationId: a.deliberationId,
+    authorId: a.authorId,
+    text: a.text,
+    sources: a.sources,
+    confidence: a.confidence,
+    isImplicit: a.isImplicit,
+    quantifier: a.quantifier,
+    modality: a.modality,
+    mediaType: a.mediaType,
+    mediaUrl: a.mediaUrl,
+    createdAt: a.createdAt,
+    edgesOut: a.outgoingEdges ?? [],
+    claimId: a.claim?.id ?? null,
+    approvedByUser: !!(a.approvals && a.approvals.length),
+  }));
+
   return NextResponse.json({ arguments: rows });
 }
+
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {

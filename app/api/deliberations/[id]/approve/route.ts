@@ -10,7 +10,8 @@ const Body = z.object({
 });
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
-  const userId = await getCurrentUserId();
+  const userId = (await getCurrentUserId())?.toString();
+
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const userIdStr = asUserIdString(userId);
   const deliberationId = params.id;
@@ -19,8 +20,17 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   // Simple toggle
   if (approve) {
     await prisma.argumentApproval.upsert({
-      where: { argumentId_userId: { argumentId, userIdStr } },
-      create: { deliberationId, argumentId, userIdStr },
+      where: {
+        argumentId_userId: {
+          argumentId,
+          userId,            // ✅ correct
+        },
+      },
+      create: {
+        deliberationId,
+        argumentId,
+        userId,             // ✅ correct
+      },
       update: {},
     });
   } else {

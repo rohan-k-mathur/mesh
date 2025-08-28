@@ -52,13 +52,19 @@ export default function DeepDivePanel({ deliberationId }: { deliberationId: stri
       .catch(()=>{});
   }, [deliberationId]);
 
-  const compute = async (forcedRule?: 'utilitarian'|'harmonic'|'maxcov') => {
+  const compute = async (
+    forcedRule?: 'utilitarian'|'harmonic'|'maxcov',
+    forcedK?: number
+  ) => {
     setPending(true);
     try {
       const res = await fetch(`/api/deliberations/${deliberationId}/viewpoints/select`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ k: 3, rule: forcedRule ?? rule }),
+        body: JSON.stringify({
+          rule: forcedRule ?? rule,
+          k: forcedK ?? sel?.k ?? 3,   // ✅ preserve current k unless overridden
+        }),
         cache: 'no-store',
       });
       if (!res.ok) {
@@ -151,13 +157,24 @@ export default function DeepDivePanel({ deliberationId }: { deliberationId: stri
       {/* Views + CEG widgets */}
       <SectionCard >
 
-      <RepresentativeViewpoints selection={sel} onReselect={compute} />
+      <RepresentativeViewpoints
+  selection={sel}
+  onReselect={(nextRule, nextK) => compute(nextRule, nextK)}
+/>
+
 </SectionCard>
+<SectionCard >
 
       <ApprovalsHeatStrip deliberationId={deliberationId} />
+      </SectionCard>
+      <SectionCard >
 
       <CegMiniMap deliberationId={deliberationId} />
+      </SectionCard>
+      <SectionCard >
+
       <TopologyWidget deliberationId={deliberationId} />
+      </SectionCard>
 
     
     </div>

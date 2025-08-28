@@ -11,6 +11,7 @@ type Arg = {
   createdAt: string;
   authorId: string;
   mediaUrl?: string;
+  claimId?: string;
   quantifier?: "SOME" | "MANY" | "MOST" | "ALL" | null;
   modality?: "COULD" | "LIKELY" | "NECESSARY" | null;
   mediaType?: "text" | "image" | "video" | "audio" | null;
@@ -136,7 +137,7 @@ export default function ArgumentsList({
   }
 
   return (
-    <div className="rounded-md border p-3 space-y-2">
+    <div className="relative z-10 w-full  rounded-md border p-3 space-y-2">
       <div className="text-sm font-medium">Arguments</div>
       <ul className="space-y-2">
         {items.slice(0, 30).map((a) => {
@@ -145,7 +146,6 @@ export default function ArgumentsList({
           const alt = a.text ? a.text.slice(0, 50) : "argument image";
 
           return (
-            
             <li
               key={a.id}
               className="p-2 border rounded focus:outline-none focus:ring-2 focus:ring-amber-300"
@@ -160,36 +160,70 @@ export default function ArgumentsList({
                 }
               }}
             >
-                {/* badges */}
-<div className="mt-1 flex flex-wrap gap-2 text-[11px]">
-  {a.quantifier && (
-    <span
-      className="px-1.5 py-0.5 rounded border border-blue-200 bg-blue-50 text-blue-700"
-      title="Quantifier"
-    >
-      {a.quantifier}
-    </span>
-  )}
-  {a.modality && (
-    <span
-      className="px-1.5 py-0.5 rounded border border-violet-200 bg-violet-50 text-violet-700"
-      title="Modality"
-    >
-      {a.modality}
-    </span>
-  )}
-  {a.mediaType && a.mediaType !== 'text' && (
-    <span
-      className="px-1.5 py-0.5 rounded border border-amber-200 bg-amber-50 text-amber-700"
-      title="Media type"
-    >
-      {a.mediaType}
-    </span>
-  )}
-</div>
+              {/* badges */}
+              <div className="mt-1 flex flex-wrap gap-2 text-[11px]">
+                {a.quantifier && (
+                  <span
+                    className="px-1.5 py-0.5 rounded border border-blue-200 bg-blue-50 text-blue-700"
+                    title="Quantifier"
+                  >
+                    {a.quantifier}
+                  </span>
+                )}
+                {a.modality && (
+                  <span
+                    className="px-1.5 py-0.5 rounded border border-violet-200 bg-violet-50 text-violet-700"
+                    title="Modality"
+                  >
+                    {a.modality}
+                  </span>
+                )}
+                {a.mediaType && a.mediaType !== "text" && (
+                  <span
+                    className="px-1.5 py-0.5 rounded border border-amber-200 bg-amber-50 text-amber-700"
+                    title="Media type"
+                  >
+                    {a.mediaType}
+                  </span>
+                )}
+              </div>
               <div className="text-xs text-neutral-500 mb-1">
                 <span title={`Author: ${a.authorId}`}>{created}</span>
               </div>
+              {Array.isArray((a as any).edgesOut) &&
+                (a as any).edgesOut.length > 0 && (
+                  <div className="mt-1 flex flex-wrap gap-1.5">
+                    {(a as any).edgesOut.map((e: any, i: number) => {
+                      if (e.type !== "rebut" && e.type !== "undercut")
+                        return null;
+                      const label =
+                        e.type === "undercut"
+                          ? "inference"
+                          : e.targetScope === "premise"
+                          ? "premise"
+                          : "conclusion";
+                      const style =
+                        label === "inference"
+                          ? "border-violet-200 bg-violet-50 text-violet-700"
+                          : label === "premise"
+                          ? "border-amber-200 bg-amber-50 text-amber-700"
+                          : "border-blue-200 bg-blue-50 text-blue-700";
+                      return (
+                        <span
+                          key={i}
+                          className={`text-[10px] px-1.5 py-0.5 rounded border ${style}`}
+                          title={
+                            e.type === "undercut"
+                              ? "Undercuts the inference (warrant)"
+                              : `Rebuts the ${label}`
+                          }
+                        >
+                          {label}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
 
               <div className="text-sm whitespace-pre-wrap">{a.text}</div>
 
@@ -265,14 +299,23 @@ export default function ArgumentsList({
                   Reply
                 </button>
 
-                <PromoteToClaimButton
-                  deliberationId={deliberationId}
-                  target={{ type: "argument", id: a.id }}
-                  onClaim={(claimId) => {
-                    console.log("Got claimId", claimId);
-                    // optional: auto-open CitePickerInline with this claimId
-                  }}
-                />
+                {/* Promote to Claim */}
+                {a.claimId ? (
+                  <span className="text-[11px] px-2 py-1 rounded border border-emerald-300 bg-emerald-50 text-emerald-700">
+                    Promoted ✓
+                  </span>
+                ) : (
+                  <PromoteToClaimButton
+                    deliberationId={deliberationId}
+                    target={{ type: "argument", id: a.id }}
+                    onClaim={(claimId) => {
+                      console.log("Got claimId", claimId);
+                      // optional: trigger mutate() here if using SWR
+                    }}
+                  />
+                )}
+
+                {/* Cite */}
                 <button
                   className="px-2 py-1 border rounded text-xs disabled:opacity-50"
                   onClick={() =>
@@ -283,22 +326,24 @@ export default function ArgumentsList({
                 >
                   {citeOpenId === a.id ? "Close cite" : "Cite"}
                 </button>
-                <button
-                  className="px-2 py-1 border rounded text-xs disabled:opacity-50"
-                  onClick={() => approve(a.id, true)}
-                  aria-label="Approve argument"
-                  disabled={busy}
-                >
-                  Approve
-                </button>
-                <button
-                  className="px-2 py-1 border rounded text-xs disabled:opacity-50"
-                  onClick={() => approve(a.id, false)}
-                  aria-label="Unapprove argument"
-                  disabled={busy}
-                >
-                  Unapprove
-                </button>
+                {/* Approve / Unapprove */}
+                {a.approvedByUser ? (
+                  <button
+                    className="px-2 py-1 border rounded text-xs bg-emerald-50 border-emerald-300 text-emerald-700"
+                    onClick={() => approve(a.id, false)}
+                    disabled={busy}
+                  >
+                    Approved ✓ (Unapprove)
+                  </button>
+                ) : (
+                  <button
+                    className="px-2 py-1 border rounded text-xs disabled:opacity-50"
+                    onClick={() => approve(a.id, true)}
+                    disabled={busy}
+                  >
+                    Approve
+                  </button>
+                )}
 
                 {a.mediaType === "image" && (
                   <>
@@ -307,7 +352,6 @@ export default function ArgumentsList({
                       onClick={() =>
                         openDispute(a.id, "Image – Appropriateness")
                       }
-                      aria-label="Dispute image appropriateness"
                       disabled={busy}
                     >
                       Dispute image (Appropriateness)
@@ -315,7 +359,6 @@ export default function ArgumentsList({
                     <button
                       className="px-2 py-1 border rounded text-xs disabled:opacity-50"
                       onClick={() => openDispute(a.id, "Image – Depiction")}
-                      aria-label="Dispute image depiction"
                       disabled={busy}
                     >
                       Dispute image (Depiction)

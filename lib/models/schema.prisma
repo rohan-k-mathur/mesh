@@ -2119,6 +2119,9 @@ model Argument {
 
   createdAt DateTime @default(now())
 
+claimId String?
+claim   Claim? @relation("ArgumentClaim", fields: [claimId], references: [id])
+
   deliberation      Deliberation        @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
   outgoingEdges     ArgumentEdge[]      @relation("fromArg")
   incomingEdges     ArgumentEdge[]      @relation("toArg")
@@ -2645,6 +2648,10 @@ model Claim {
 
   deliberationId String?
   deliberation   Deliberation? @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
+
+arguments Argument[] @relation("ArgumentClaim")
+
+
 
   edgesFrom     ClaimEdge[]     @relation("fromClaim")
   edgesTo       ClaimEdge[]     @relation("toClaim")

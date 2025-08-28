@@ -11,142 +11,210 @@ const Body = z.object({
 });
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
-    try {
-
-  const userId = await getCurrentUserId();
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  const userIdStr = asUserIdString(userId);
-  const deliberationId = params.id;
-// Load deliberation + (optional) room default
-const delib = await prisma.deliberation.findUnique({
-    where: { id: deliberationId },
-    select: { id: true, rule: true, roomId: true }
-  });
-  if (!delib) return NextResponse.json({ error: 'Deliberation not found' }, { status: 404 });
-  
-  const roomRule = delib.roomId
-    ? (await prisma.room.findUnique({ where: { id: delib.roomId }, select: { representationRule: true } }))?.representationRule
-    : undefined;
-  
-  // Body parse after we know defaults
-  let parsed;
   try {
-    parsed = Body.safeParse(await req.json());
-  } catch {
-    parsed = Body.safeParse({});
-  }
-    let rule: 'utilitarian'|'harmonic'|'maxcov' =
-    (parsed.success ? parsed.data.rule : undefined) ?? delib.rule ?? roomRule ?? 'utilitarian';
-  const k: number = (parsed.success ? parsed.data.k : 3);
-  // Load nodes, edges, approvals
-  const [args, edges, approvalsRaw] = await Promise.all([
-    prisma.argument.findMany({ where: { deliberationId }, select: { id: true, text: true, confidence: true } }),
-    prisma.argumentEdge.findMany({ where: { deliberationId }, select: { fromArgumentId: true, toArgumentId: true, type: true } }),
-    prisma.argumentApproval.findMany({ where: { deliberationId }, select: { userId: true, argumentId: true } }),
-  ]);
+    const userId = await getCurrentUserId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const userIdStr = asUserIdString(userId);
+    const deliberationId = params.id;
 
-  const nodes = args.map(a => a.id);
-  const edgeList = edges.map(e => ({ from: e.fromArgumentId, to: e.toArgumentId, type: e.type })) as any;
+    // Load deliberation (and room default)
+    const delib = await prisma.deliberation.findUnique({
+      where: { id: deliberationId },
+      select: { id: true, rule: true, roomId: true },
+    });
+    if (!delib) return NextResponse.json({ error: 'Deliberation not found' }, { status: 404 });
 
-  const approvals = new Map<string, Set<string>>();
-  for (const a of approvalsRaw) {
-    if (!approvals.has(a.userId)) approvals.set(a.userId, new Set());
-    approvals.get(a.userId)!.add(a.argumentId);
-  }
+    const roomRule = delib.roomId
+      ? (await prisma.room.findUnique({
+          where: { id: delib.roomId },
+          select: { representationRule: true },
+        }))?.representationRule
+      : undefined;
 
-  const { chosen, coverageAvg, coverageMin, jrSatisfied, repVector, bestPossibleAvg, conflictsTopPairs } =
-    selectViewpoints(nodes, edgeList, approvals, { k, rule: rule as SelectionRule });
+    // Parse body
+    let parsed = Body.safeParse(await req.json().catch(() => ({})));
+    const rule: 'utilitarian'|'harmonic'|'maxcov' =
+      (parsed.success ? parsed.data.rule : undefined) ?? delib.rule ?? roomRule ?? 'utilitarian';
+    const k: number = (parsed.success ? parsed.data.k : 3);
 
-  // persist selection
-  const selection = await prisma.viewpointSelection.create({
-    data: {
-      deliberationId,
-      rule,
-      k,
+    // --- CACHE SHORT-CIRCUIT (if nothing changed since last selection for same rule/k)
+    const [lastEdge, lastApproval] = await Promise.all([
+      prisma.argumentEdge.findFirst({
+        where: { deliberationId },
+        orderBy: { createdAt: 'desc' },
+        select: { createdAt: true },
+      }),
+      prisma.argumentApproval.findFirst({
+        where: { deliberationId },
+        orderBy: { createdAt: 'desc' },
+        select: { createdAt: true },
+      }),
+    ]);
+
+    const lastChangedAt = new Date(
+      Math.max(
+        lastEdge?.createdAt?.getTime() ?? 0,
+        lastApproval?.createdAt?.getTime() ?? 0
+      )
+    );
+
+    const cached = await prisma.viewpointSelection.findFirst({
+      where: { deliberationId, rule, k },
+      orderBy: { createdAt: 'desc' },
+      include: { viewpointArgs: true },
+    });
+
+    if (cached && cached.createdAt > lastChangedAt) {
+      // Hydrate views from cached viewpointArgs + arguments
+      const argIdsByView: Record<number, string[]> = {};
+      for (const va of cached.viewpointArgs) {
+        (argIdsByView[va.viewpoint] ??= []).push(va.argumentId);
+      }
+      const argIds = Object.values(argIdsByView).flat();
+      const argRows = await prisma.argument.findMany({
+        where: { id: { in: argIds } },
+        select: { id: true, text: true, confidence: true },
+      });
+      const aMap = new Map(argRows.map(a => [a.id, a]));
+      const views = Object.entries(argIdsByView)
+        .sort((a,b) => Number(a[0]) - Number(b[0]))
+        .map(([idx, ids]) => ({
+          index: Number(idx),
+          arguments: ids.map(id => ({
+            id,
+            text: aMap.get(id)?.text ?? '',
+            confidence: aMap.get(id)?.confidence ?? null,
+          })),
+        }));
+
+      return NextResponse.json({
+        ok: true,
+        selection: {
+          id: cached.id,
+          deliberationId,
+          rule: cached.rule as SelectionRule,
+          k: cached.k,
+          coverageAvg: cached.coverageAvg,
+          coverageMin: cached.coverageMin,
+          jrSatisfied: cached.jrSatisfied,
+          bestPossibleAvg: (cached.explainJson as any)?.bestPossibleAvg ?? undefined,
+          conflictsTopPairs: (cached.explainJson as any)?.conflictsTopPairs ?? [],
+          views,
+          ledgerEventId: undefined, // could fetch most recent event if desired
+        },
+      });
+    }
+
+    // --- COMPUTE FRESH SELECTION
+    const [args, edges, approvalsRaw] = await Promise.all([
+      prisma.argument.findMany({
+        where: { deliberationId },
+        select: { id: true, text: true, confidence: true },
+      }),
+      prisma.argumentEdge.findMany({
+        where: { deliberationId },
+        select: { fromArgumentId: true, toArgumentId: true, type: true },
+      }),
+      prisma.argumentApproval.findMany({
+        where: { deliberationId },
+        select: { userId: true, argumentId: true },
+      }),
+    ]);
+
+    const nodes = args.map(a => a.id);
+    const edgeList = edges.map(e => ({ from: e.fromArgumentId, to: e.toArgumentId, type: e.type })) as any;
+
+    const approvals = new Map<string, Set<string>>();
+    for (const a of approvalsRaw) {
+      if (!approvals.has(a.userId)) approvals.set(a.userId, new Set());
+      approvals.get(a.userId)!.add(a.argumentId);
+    }
+
+    const {
+      chosen,
       coverageAvg,
       coverageMin,
       jrSatisfied,
-      createdById: userIdStr,
-      explainJson: {
-        repVector,
-        counts: {
-          users: approvals.size,
-          nodes: nodes.length,
-          edges: edgeList.length,
+      repVector,
+      bestPossibleAvg,
+      conflictsTopPairs,
+    } = selectViewpoints(nodes, edgeList, approvals, { k, rule: rule as SelectionRule });
+
+    // Persist selection
+    const selection = await prisma.viewpointSelection.create({
+      data: {
+        deliberationId,
+        rule,
+        k,
+        coverageAvg,
+        coverageMin,
+        jrSatisfied,
+        createdById: userIdStr,
+        explainJson: {
+          repVector,
+          counts: { users: approvals.size, nodes: nodes.length, edges: edgeList.length },
+          bestPossibleAvg,
+          conflictsTopPairs,
         },
-        repVector,
+      },
+    });
+
+    // Persist viewpoint arguments
+    const vpArgsCreate = chosen.flatMap((set, idx) =>
+      [...set].map(argId => ({
+        selectionId: selection.id,
+        argumentId: argId,
+        viewpoint: idx,
+      })),
+    );
+    if (vpArgsCreate.length) {
+      await prisma.viewpointArgument.createMany({ data: vpArgsCreate, skipDuplicates: true });
+    }
+
+    // Create amplification event once and capture id
+    const reasonText =
+      rule === 'utilitarian'
+        ? 'Chosen to maximize average coverage of approvals'
+        : rule === 'harmonic'
+        ? 'Chosen to balance average and fairness (harmonic weights)'
+        : 'Chosen to maximize the count of fully represented voters (JR-oriented)';
+
+    const evt = await prisma.amplificationEvent.create({
+      data: {
+        eventType: 'deliberation_viewpoint_selected',
+        createdById: userIdStr,
+        reason: reasonText,
+        deliberationId,
+        viewpointSelectionId: selection.id,
+        payload: { deliberationId, selectionId: selection.id, k, coverageAvg, coverageMin, jrSatisfied, rule },
+      },
+    });
+
+    // Hydrate response
+    const mapText = new Map(args.map(a => [a.id, { text: a.text, confidence: a.confidence }]));
+    const views = chosen.map((set, idx) => ({
+      index: idx,
+      arguments: [...set].map(id => ({ id, ...mapText.get(id)! })),
+    }));
+
+    return NextResponse.json({
+      ok: true,
+      selection: {
+        id: selection.id,
+        deliberationId,
+        rule,
+        k,
+        coverageAvg,
+        coverageMin,
+        jrSatisfied,
         bestPossibleAvg,
         conflictsTopPairs,
-        counts: { users: approvals.size, nodes: nodes.length, edges: edgeList.length },
-      
+        views,
+        ledgerEventId: evt.id, // ✅ for WhyThis "View ledger"
       },
-    },
-  });
-
-  // write viewpoint arguments
-  const vpArgsCreate = chosen.flatMap((set, idx) =>
-    [...set].map(argId => ({
-      selectionId: selection.id,
-      argumentId: argId,
-      viewpoint: idx,
-    })),
-  );
-  if (vpArgsCreate.length) {
-    await prisma.viewpointArgument.createMany({ data: vpArgsCreate, skipDuplicates: true });
-  }
-
-  // amplify ledger (human readable reason)
-     await prisma.amplificationEvent.create({
-         data: {
-           eventType: 'deliberation_viewpoint_selected',
-          
-           createdById: userIdStr,
-           reason:
-             rule === 'utilitarian'
-               ? 'Chosen to maximize average coverage of approvals'
-               : rule === 'harmonic'
-               ? 'Chosen to balance average and fairness (harmonic weights)'
-               : 'Chosen to maximize the count of fully represented voters (JR-oriented)',
-           deliberationId,
-           viewpointSelectionId: selection.id, // ✅ real column now
-
-           payload: {
-             deliberationId,
-             selectionId: selection.id,
-             k,
-             coverageAvg,
-             coverageMin,
-             jrSatisfied,
-             rule,
-           },
-         },
-       });
-
-  // hydrate response with argument snippets per viewpoint
-  const mapText = new Map(args.map(a => [a.id, { text: a.text, confidence: a.confidence }]));
-  const views = chosen.map((set, idx) => ({
-    index: idx,
-    arguments: [...set].map(id => ({ id, ...mapText.get(id)! })),
-  }));
-
-  return NextResponse.json({
-    ok: true,
-    selection: {
-      id: selection.id,
-      deliberationId,            // ✅ add this line
-
-      rule,
-      k,
-      coverageAvg,
-      coverageMin,
-      jrSatisfied,
-            bestPossibleAvg,
-     conflictsTopPairs,
-      views,
-    },
-  });
-} catch (e: any) {
+    });
+  } catch (e: any) {
     console.error('[viewpoints/select] failed', e);
-    return NextResponse.json({ ok: false, error: e.message ?? 'unknown' }, { status: 500 });
+    return NextResponse.json({ ok: false, error: e?.message ?? 'unknown' }, { status: 500 });
   }
 }
