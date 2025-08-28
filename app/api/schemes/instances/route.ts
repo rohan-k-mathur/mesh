@@ -21,20 +21,51 @@ async function ensureExpertOpinion() {
 }
 
 export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const targetType = searchParams.get('targetType') ?? undefined;
-  const targetId   = searchParams.get('targetId') ?? undefined;
-  if (!targetType || !targetId) return NextResponse.json({ instances: [] });
-  const out = await prisma.schemeInstance.findMany({
-    where: { targetType, targetId },
-    include: { scheme: true },
-  });
-  // include CQs
-  const instances = await Promise.all(out.map(async (inst) => {
-    const cqs = await prisma.criticalQuestion.findMany({ where: { instanceId: inst.id } });
-    return { ...inst, criticalQuestions: cqs };
-  }));
-  return NextResponse.json({ instances });
+  try {
+    const url = new URL(req.url);
+    const deliberationId = url.searchParams.get('deliberationId') ?? '';
+    const targetType = url.searchParams.get('targetType') ?? 'claim';
+
+    if (!deliberationId) {
+      return NextResponse.json({ error: 'deliberationId required' }, { status: 400 });
+    }
+
+    // For claims, find the set of claim IDs in this deliberation
+    let targetIds: string[] = [];
+    if (targetType === 'claim') {
+      const claims = await prisma.claim.findMany({
+        where: { deliberationId },
+        select: { id: true },
+      });
+      targetIds = claims.map(c => c.id);
+    } else {
+      // You could add card support later: pull cards by deliberationId
+      return NextResponse.json({ instances: [] });
+    }
+
+    if (targetIds.length === 0) return NextResponse.json({ instances: [] });
+
+    const instances = await prisma.schemeInstance.findMany({
+      where: {
+        targetType,
+        targetId: { in: targetIds },
+      },
+      select: {
+        id: true,
+        targetType: true,
+        targetId: true,
+        scheme: { select: { key: true, title: true } },
+        data: true,
+        createdById: true,
+        createdAt: true,
+      },
+    });
+
+    return NextResponse.json({ instances });
+  } catch (e: any) {
+    console.error('[schemes/instances] failed', e);
+    return NextResponse.json({ error: e?.message ?? 'failed' }, { status: 400 });
+  }
 }
 
 export async function POST(req: NextRequest) {

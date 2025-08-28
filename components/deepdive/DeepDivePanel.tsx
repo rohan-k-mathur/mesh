@@ -13,6 +13,8 @@ import DiscusHelpPage from '../help/HelpPage';
 import ApprovalsHeatStrip from '@/components/deepdive/ApprovalsHeatStrip';
 import CardList from '@/components/deepdive/CardList';
 import { ViewControls } from './RepresentativeViewpoints';
+import GraphPanel from '@/components/graph/GraphPanel';
+
 
 type Selection = {
   id: string;
@@ -167,10 +169,13 @@ export default function DeepDivePanel({ deliberationId }: { deliberationId: stri
 
       <ApprovalsHeatStrip deliberationId={deliberationId} />
       </SectionCard>
-      <SectionCard >
+      {/* <SectionCard >
 
       <CegMiniMap deliberationId={deliberationId} />
-      </SectionCard>
+      </SectionCard> */}
+      <SectionCard>
+  <GraphPanel deliberationId={deliberationId} />
+</SectionCard>
       <SectionCard >
 
       <TopologyWidget deliberationId={deliberationId} />
