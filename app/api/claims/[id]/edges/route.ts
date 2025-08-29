@@ -1,73 +1,66 @@
-// import { NextResponse } from 'next/server';
-// import { z } from 'zod';
-// import { prisma } from '@/lib/prismaclient';
-
-// const EdgeSchema = z.object({
-//   toClaimId: z.string(),
-//   type: z.enum(['supports', 'rebuts']),
-//   deliberationId: z.string().optional(),
-// });
-
-// function getUserId(req: Request) {
-//   return (req.headers.get('x-user-id') ?? 'system').toString();
-// }
-
-// export async function POST(req: Request, { params }: { params: { id: string } }) {
-//   try {
-//     const body = await req.json();
-//     const input = EdgeSchema.parse(body);
-
-//     // Ensure both claims exist
-//     const [from, to] = await Promise.all([
-//       prisma.claim.findUnique({ where: { id: params.id } }),
-//       prisma.claim.findUnique({ where: { id: input.toClaimId } }),
-//     ]);
-//     if (!from || !to) return NextResponse.json({ error: 'Claim not found' }, { status: 404 });
-
-//     const edge = await prisma.claimEdge.create({
-//       data: {
-//         fromClaimId: from.id,
-//         toClaimId: to.id,
-//         type: input.type,
-//         deliberationId: input.deliberationId ?? from.deliberationId ?? to.deliberationId ?? undefined,
-//         createdById: getUserId(req),
-//       },
-//     });
-
-//     return NextResponse.json({ edge });
-//   } catch (err: any) {
-//     return NextResponse.json({ error: err?.message ?? 'Invalid request' }, { status: 400 });
-//   }
-// }
-
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prismaclient";
+// app/api/claims/[id]/edges/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prismaclient';
+import { ClaimAttackType, ClaimEdgeType } from '@prisma/client';
 import { recomputeGroundedForDelib } from '@/lib/ceg/grounded';
 
-export async function POST(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const fromId = params.id;
-  const { toClaimId, type } = await req.json();
-  if (!toClaimId || !["supports", "rebuts"].includes(type)) {
-    return NextResponse.json(
-      { error: "toClaimId + type required" },
-      { status: 400 }
-    );
+  const { toClaimId, type, attackType: attackTypeRaw, targetScope } = await req.json();
+
+  if (!toClaimId || !['supports', 'rebuts'].includes(String(type))) {
+    return NextResponse.json({ error: 'toClaimId + type required' }, { status: 400 });
   }
-  // prevent self-loop
   if (toClaimId === fromId) {
-    return NextResponse.json(
-      { error: "cannot link a claim to itself" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: 'cannot link a claim to itself' }, { status: 400 });
   }
 
-  const edge = await prisma.claimEdge.create({
-    data: { fromClaimId: fromId, toClaimId, type },
-  });
-  await recomputeGroundedForDelib(edge.deliberationId ?? null);
+  // both claims + same deliberation
+  const [fromClaim, toClaim] = await Promise.all([
+    prisma.claim.findUnique({ where: { id: fromId }, select: { deliberationId: true } }),
+    prisma.claim.findUnique({ where: { id: toClaimId }, select: { deliberationId: true } }),
+  ]);
+  if (!fromClaim || !toClaim) return NextResponse.json({ error: 'Claim(s) not found' }, { status: 404 });
+  if (fromClaim.deliberationId !== toClaim.deliberationId) {
+    return NextResponse.json({ error: 'Claims are in different deliberations' }, { status: 400 });
+  }
+  const deliberationId = fromClaim.deliberationId!;
 
+  const typeEnum: ClaimEdgeType = String(type) === 'rebuts' ? ClaimEdgeType.rebuts : ClaimEdgeType.supports;
+  const attackEnum: ClaimAttackType =
+    attackTypeRaw
+      ? (String(attackTypeRaw).toUpperCase() as keyof typeof ClaimAttackType) in ClaimAttackType
+        ? (ClaimAttackType as any)[String(attackTypeRaw).toUpperCase()]
+        : (typeEnum === ClaimEdgeType.rebuts ? ClaimAttackType.REBUTS : ClaimAttackType.SUPPORTS)
+      : (typeEnum === ClaimEdgeType.rebuts ? ClaimAttackType.REBUTS : ClaimAttackType.SUPPORTS);
+
+  const scope: 'premise' | 'inference' | 'conclusion' | null =
+    targetScope ??
+    (attackEnum === ClaimAttackType.UNDERCUTS ? 'inference'
+      : attackEnum === ClaimAttackType.UNDERMINES ? 'premise'
+      : typeEnum === ClaimEdgeType.rebuts ? 'conclusion'
+      : null);
+
+  const edge = await prisma.claimEdge.upsert({
+    where: {
+      unique_from_to_type_attack: {
+        fromClaimId: fromId,
+        toClaimId,
+        type: typeEnum,
+        attackType: attackEnum,
+      },
+    },
+    update: { targetScope: scope ?? undefined },
+    create: {
+      deliberationId,
+      fromClaimId: fromId,
+      toClaimId,
+      type: typeEnum,
+      attackType: attackEnum,
+      targetScope: scope ?? undefined,
+    },
+  });
+
+  await recomputeGroundedForDelib(deliberationId);
   return NextResponse.json({ edge });
 }

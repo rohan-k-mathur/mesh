@@ -4,6 +4,9 @@ import { prisma } from '@/lib/prismaclient';
 import { mintClaimMoid } from '@/lib/ids/mintMoid';
 import { mintUrn } from '@/lib/ids/urn';
 import { getCurrentUserId } from '@/lib/serverutils';
+import { maybeUpsertClaimEdgeFromArgumentEdge } from '@/lib/deepdive/claimEdgeHelpers';
+import { recomputeGroundedForDelib } from '@/lib/ceg/grounded';
+
 
 const PromoteSchema = z.object({
   deliberationId: z.string().optional(),
@@ -19,11 +22,11 @@ const PromoteSchema = z.object({
 async function getTextFromTarget(target?: { type: 'argument' | 'card'; id: string }) {
   if (!target) return null;
   if (target.type === 'argument') {
-    const a = await prisma.argument.findUnique({
-      where: { id: target.id },
-      select: { text: true },
-    });
-    return a?.text ?? null;
+        const a = await prisma.argument.findUnique({
+            where: { id: target.id },
+            select: { text: true, claimId: true, deliberationId: true },
+          });
+          return a?.text ?? null;
   }
   if (target.type === 'card') {
     const c = await prisma.deliberationCard.findUnique({
@@ -54,6 +57,25 @@ export async function POST(req: Request) {
     const moid = mintClaimMoid(text);
     const existing = await prisma.claim.findUnique({ where: { moid } });
     if (existing) {
+            // If promoting an argument, back-link argument to existing claim
+      if (input.target?.type === 'argument') {
+        await prisma.argument.update({
+          where: { id: input.target.id },
+          data: { claimId: existing.id },
+        });
+        // retroactively upsert claimEdges
+        const incident = await prisma.argumentEdge.findMany({
+          where: {
+            OR: [{ fromArgumentId: input.target.id }, { toArgumentId: input.target.id }],
+          },
+          select: { id: true },
+        });
+        for (const e of incident) {
+          await maybeUpsertClaimEdgeFromArgumentEdge(e.id);
+       }
+       await recomputeGroundedForDelib(deliberationId);
+
+      }
       return NextResponse.json({ claim: existing, created: false });
     }
 
@@ -62,11 +84,11 @@ export async function POST(req: Request) {
     if (!deliberationId && input.target) {
       if (input.target.type === 'argument') {
         deliberationId = (
-          await prisma.argument.findUnique({
-            where: { id: input.target.id },
-            select: { deliberationId: true },
-          })
-        )?.deliberationId ?? null;
+                    await prisma.argument.findUnique({
+                      where: { id: input.target.id },
+                      select: { deliberationId: true },
+                    })
+                  )?.deliberationId ?? null;
       } else {
         deliberationId = (
           await prisma.deliberationCard.findUnique({
@@ -95,6 +117,24 @@ export async function POST(req: Request) {
         },
       },
     });
+
+    
+    // If this came from an argument, link it  upsert claimEdges
+    if (input.target?.type === 'argument') {
+      await prisma.argument.update({
+        where: { id: input.target.id },
+        data: { claimId: claim.id },
+      });
+      const incident = await prisma.argumentEdge.findMany({
+        where: {
+          OR: [{ fromArgumentId: input.target.id }, { toArgumentId: input.target.id }],
+        },
+        select: { id: true },
+      });
+      for (const e of incident) {
+        await maybeUpsertClaimEdgeFromArgumentEdge(e.id);
+      }
+    }
 
     return NextResponse.json({ claim, created: true });
   } catch (err: any) {

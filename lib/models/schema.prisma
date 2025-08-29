@@ -2666,6 +2666,8 @@ model ClaimEdge {
   fromClaimId String
   toClaimId   String
   type        ClaimEdgeType
+    targetScope    String? // 'premise' | 'inference' | 'conclusion'
+
   createdAt   DateTime         @default(now())
   attackType  ClaimAttackType? // UNDERCUTS | UNDERMINES | REBUTS | SUPPORTS?
 
@@ -2674,6 +2676,8 @@ model ClaimEdge {
 
   from Claim @relation("fromClaim", fields: [fromClaimId], references: [id], onDelete: Cascade)
   to   Claim @relation("toClaim", fields: [toClaimId], references: [id], onDelete: Cascade)
+
+  @@unique([fromClaimId, toClaimId, type, attackType], name: "unique_from_to_type_attack")
 
   @@index([fromClaimId])
   @@index([toClaimId])

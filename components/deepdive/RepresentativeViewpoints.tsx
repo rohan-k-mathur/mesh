@@ -315,9 +315,9 @@ export function RepresentativeViewpoints(props: {
       
   
       {/* Footer actions + mini-map */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col justify-start">
         <button
-          className="text-sm underline underline-offset-4 disabled:opacity-50"
+          className="text-sm text-start underline underline-offset-4 disabled:opacity-50"
           disabled={pending}
           onClick={async () => {
             setPending(true);
@@ -331,7 +331,7 @@ export function RepresentativeViewpoints(props: {
         >
           {pending ? "Refreshing…" : "Refresh Views"}
         </button>
-        <div className="text-xs text-neutral-600 flex flex-col items-end gap-2">
+        <div className="text-xs text-neutral-600 flex flex-col gap-2">
           <ClaimMiniMap deliberationId={s.deliberationId} />
         </div>
       </div>

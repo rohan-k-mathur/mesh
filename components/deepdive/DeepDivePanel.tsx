@@ -85,7 +85,14 @@ export default function DeepDivePanel({ deliberationId }: { deliberationId: stri
   return (
     <div className="space-y-5 p-3">
       {/* Header controls */}
-      <div className="flex items-center justify-between">
+     
+
+  
+
+      {/* Arguments + Composer */}
+      <SectionCard>
+
+      <div className="relative z- 10 flex items-center justify-between">
         <div className="flex items-center gap-2">
           {status && <StatusChip status={status} />}
           <label className="text-xs text-neutral-600 flex items-center gap-1">
@@ -106,20 +113,22 @@ export default function DeepDivePanel({ deliberationId }: { deliberationId: stri
         {pending && <div className="text-xs text-neutral-500">Computing…</div>}
       </div>
 
-  
 
-      {/* Arguments + Composer */}
       <ArgumentsList
         deliberationId={deliberationId}
         onReplyTo={(id) => setReplyTo(id)}
         onChanged={() => compute(sel?.rule)}
       />
-      
+      </SectionCard>
+      <SectionCard >
+
       <DeliberationComposer
         deliberationId={deliberationId}
         onPosted={() => { setReplyTo(null); compute(sel?.rule); }}
         targetArgumentId={replyTo ?? undefined}
       />
+            </SectionCard>
+
 {/*  Mode Tabs */}
 <Tabs defaultValue="arguments">
    
@@ -174,8 +183,11 @@ export default function DeepDivePanel({ deliberationId }: { deliberationId: stri
       <CegMiniMap deliberationId={deliberationId} />
       </SectionCard> */}
       <SectionCard>
+
   <GraphPanel deliberationId={deliberationId} />
+
 </SectionCard>
+
       <SectionCard >
 
       <TopologyWidget deliberationId={deliberationId} />

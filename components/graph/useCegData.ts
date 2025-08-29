@@ -1,46 +1,47 @@
+// components/graph/useCegData.ts
 'use client';
-import useSWR from 'swr';
 
-type RawMini =
-  | { nodes: { id: string; text: string }[]; edges: any[] }
-  | { claims: { id: string; text: string }[]; edges: any[] };
+import { useEffect, useState } from 'react';
 
-type LabelRow = { claimId: string; label: 'IN'|'OUT'|'UNDEC' };
+export type CegNode = {
+  id: string;
+  type: 'claim';
+  text: string;
+  label?: 'IN'|'OUT'|'UNDEC';
+  approvals: number;
+  schemeIcon?: string | null;
+};
 
-const fetcher = (u: string) => fetch(u, { cache: 'no-store' }).then(r => r.json());
-
-export type CegNode = { id: string; text: string; label?: 'IN'|'OUT'|'UNDEC' };
 export type CegEdge = {
   id: string;
   source: string;
   target: string;
-  // Your schema may use either or both of these:
-  type?: 'supports' | 'rebuts';
+  type: 'supports'|'rebuts';
   attackType?: 'SUPPORTS'|'REBUTS'|'UNDERCUTS'|'UNDERMINES';
   targetScope?: 'premise'|'inference'|'conclusion'|null;
 };
 
 export function useCegData(deliberationId: string) {
-  const { data: mini } = useSWR<RawMini>(`/api/deliberations/${deliberationId}/ceg/mini`, fetcher);
-  const { data: labelsResp } = useSWR<{labels: LabelRow[]}>(`/api/claims/labels?deliberationId=${deliberationId}`, fetcher);
+  const [nodes, setNodes] = useState<CegNode[]>([]);
+  const [edges, setEdges] = useState<CegEdge[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState<string|null>(null);
 
-  const nodes: CegNode[] = (mini?.nodes ?? (mini as any)?.claims ?? [])?.map((n: any) => ({
-    id: n.id, text: n.text,
-  })) ?? [];
+  useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    setErr(null);
+    fetch(`/api/deliberations/${deliberationId}/graph`, { cache: 'no-store' })
+      .then(r => r.json())
+      .then(json => {
+        if (!alive) return;
+        setNodes(Array.isArray(json.nodes) ? json.nodes : []);
+        setEdges(Array.isArray(json.edges) ? json.edges : []);
+      })
+      .catch(e => { if (alive) setErr(e?.message ?? 'Failed to load graph'); })
+      .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, [deliberationId]);
 
-  const labelMap = new Map<string, CegNode['label']>();
-  for (const row of labelsResp?.labels ?? []) labelMap.set(row.claimId, row.label);
-
-  const nodesWithLabels = nodes.map(n => ({ ...n, label: labelMap.get(n.id) ?? 'UNDEC' }));
-
-  const edges: CegEdge[] = (mini as any)?.edges?.map((e: any, idx: number) => ({
-    id: e.id ?? `e${idx}`,
-    source: e.fromClaimId ?? e.source,
-    target: e.toClaimId ?? e.target,
-    type: e.type, // 'supports' | 'rebuts'
-    attackType: e.attackType, // 'REBUTS'|'UNDERCUTS'|'UNDERMINES'|'SUPPORTS'
-    targetScope: e.targetScope ?? e.scope ?? null,
-  })) ?? [];
-
-  return { nodes: nodesWithLabels, edges };
+  return { nodes, edges, loading, err };
 }

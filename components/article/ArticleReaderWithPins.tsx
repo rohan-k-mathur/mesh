@@ -13,7 +13,6 @@ import HomeButton from "../buttons/HomeButton";
 /* ---------- Selection helpers (clean) ---------- */
 const PIN_Y_TWEAK = 0; // try +2 or -2 if your type scale changes
 
-
 function getAnchorCenterTop(anchor: Anchor, root: HTMLElement): number | null {
   const rects = getAnchorRects(anchor, root);
   const first = rects[0];
@@ -331,8 +330,7 @@ export default function ArticleReaderWithPins({
   const GUTTER = 100; // px
 
   const router = useRouter();
-  function goHome()
-  {
+  function goHome() {
     router.push("/");
   }
 
@@ -366,8 +364,6 @@ export default function ArticleReaderWithPins({
   } | null>(null);
   const [draftBody, setDraftBody] = useState("");
 
-
-
   // recalc on scroll/resize
   useEffect(() => {
     const ro = new ResizeObserver(() => setTick((t) => t + 1));
@@ -384,36 +380,43 @@ export default function ArticleReaderWithPins({
 
   // Measure rail height and vertical offset so the right rail aligns to article
   useEffect(() => {
+    let scheduled = false;
+  
     const updateRailMetrics = () => {
-      const root = containerRef.current;
-      const rail = railRef.current;
-      const gutter = leftGutterRef.current;
-      // if (!root || !rail) return;
-      // // height: give the rail a real layout height equal to the article's height
-      // setRailHeight(root.offsetHeight);
-      // // vertical offset between rail container and article container
-      // const rootTop = root.getBoundingClientRect().top + window.scrollY;
-      // const railTop = rail.getBoundingClientRect().top + window.scrollY;
-      // setRailOffsetTop(rootTop - railTop);
-      if (!root) return;
-      // height: give the rail a real layout height equal to the article's height
-      setRailHeight(root.offsetHeight);
-      // vertical offset between rail container and article container
-      const rootTop = root.getBoundingClientRect().top + window.scrollY;
-      if (rail) {
-        const railTop = rail.getBoundingClientRect().top + window.scrollY;
-        setRailOffsetTop(rootTop - railTop);
-      }
-      if (gutter) {
-        const gutTop = gutter.getBoundingClientRect().top + window.scrollY;
-        setGutterOffsetTop(rootTop - gutTop);
-      }
+      if (scheduled) return;
+      scheduled = true;
+      requestAnimationFrame(() => {
+        scheduled = false;
+  
+        const root = containerRef.current;           // article box
+        const anchor = railAnchorRef.current;        // stable flow anchor
+        if (!root || !anchor) return;
+  
+        // 1) Match rail height to article height
+        setRailHeight(root.offsetHeight);
+  
+        // 2) Vertical delta between article and anchor
+        const rootTop   = root.getBoundingClientRect().top   + window.scrollY;
+        const anchorTop = anchor.getBoundingClientRect().top + window.scrollY;
+        setRailOffsetTop(rootTop - anchorTop);
+  
+        // (optional) If you still use left gutter offset:
+        const gutter = leftGutterRef.current;
+        if (gutter) {
+          const gutTop = gutter.getBoundingClientRect().top + window.scrollY;
+          setGutterOffsetTop(rootTop - gutTop);
+        }
+      });
     };
+  
     updateRailMetrics();
+  
     const ro = new ResizeObserver(updateRailMetrics);
     if (containerRef.current) ro.observe(containerRef.current);
+  
     window.addEventListener("scroll", updateRailMetrics, { passive: true });
     window.addEventListener("resize", updateRailMetrics);
+  
     return () => {
       ro.disconnect();
       window.removeEventListener("scroll", updateRailMetrics);
@@ -505,13 +508,14 @@ export default function ArticleReaderWithPins({
   }
   const clusters = useMemo(() => clusterByTop(positions, 40), [positions]);
   const [expandedCluster, setExpandedCluster] = useState<string | null>(null); // cluster key = `${top}` or a generated id
+  const railAnchorRef = useRef<HTMLDivElement>(null);
 
   return (
     <ArticleReader template={template} heroSrc={heroSrc} title={title}>
-      <div className='absolute flex left-5 top-8 tracking-wide z-[9000]  '>
-        <HomeButton/>
-        </div>
-{/* <button
+      <div className="absolute flex left-6 top-6 tracking-wide z-[9000]  ">
+        <HomeButton />
+      </div>
+      {/* <button
           onClick={() => goHome()}
           className="fixed flex left-5 top-12 tracking-wide z-[9000] rounded-full bg-white/50  px-4 py-1 likebutton"
         >
@@ -523,12 +527,11 @@ export default function ArticleReaderWithPins({
           {/* Article + pins */}
 
           <div className="relative ml-[7%] mt-[1%]">
-        
             {/* Article content (defines the coordinate space) */}
             <div className="relative">
               <div
                 ref={containerRef}
-                className="article-body prose max-w-none"
+                className="article-body prose max-w-none [&>*:last-child]:mb-0"
                 data-ff="system"
                 data-fs="16"
                 data-clr="accent"
@@ -593,7 +596,10 @@ export default function ArticleReaderWithPins({
                     <div
                       key={key}
                       className="absolute translate-y-[-50%]"
-                      style={{ top: c.top + gutterOffsetTop + PIN_Y_TWEAK, left: 4 }}
+                      style={{
+                        top: c.top + gutterOffsetTop + PIN_Y_TWEAK,
+                        left: 4,
+                      }}
                     >
                       <button
                         className="w-6 h-6 shadow-xl rounded-full bg-amber-500 text-white text-xs "
@@ -627,7 +633,7 @@ export default function ArticleReaderWithPins({
                       onMouseLeave={() => setHoverId(null)}
                     >
                       <button
-                        className={`w-[15px] h-[25px] rounded-sm lockbutton bg-slate-200/20   grid place-items-center border-amber-500
+                        className={`w-[25px] h-[10px] rounded-sm lockbutton bg-slate-200/20   grid place-items-center border-amber-500
                          leading-none
                       ${
                         t.resolved
@@ -642,7 +648,7 @@ export default function ArticleReaderWithPins({
                         onClick={() => {
                           setOpenId(t.id);
                           setExpandedCluster(null);
-                         scrollToThread(t);
+                          scrollToThread(t);
                         }}
                         aria-label="Open comment"
                       >
@@ -656,21 +662,6 @@ export default function ArticleReaderWithPins({
               })}
             </div>
 
-            {/* Existing pins
-          {threads.map((t) => (
-            <button
-              key={t.id}
-              className={`absolute flex z-20 w-5 h-5 rounded-full grid place-items-center  text-xs font-semibold bg-amber-400 text-white shadow ring-1 ring-amber-500/30 ${t.resolved ? "opacity-40" : ""}`}
-              style={{
-                top: positions[t.id]?.top ?? 0,
-                left: (positions[t.id]?.left ?? 0) - 24,
-              }}
-              onClick={() => setOpenId(t.id)}
-              aria-label="Open comment"
-            >
-              ●
-            </button>
-          ))} */}
             {/* Small “+” adder above selection */}
             {adder && (
               <button
@@ -747,48 +738,40 @@ export default function ArticleReaderWithPins({
               </div>
             )}
           </div>
-              
         </div>
 
         {/* RIGHT RAIL — give it a real height and pass the vertical offset */}
-        <div
-          ref={railRef}
-          className="relative"
-          style={{ height: railHeight || undefined }}
-        >
-          <CommentRail
-            threads={threads}
-            positions={positions}
-            openId={openId}
-            setOpenId={setOpenId}
-            onSelect={(t) => {
-              setActiveThread(t);
-              scrollToThread(t); // NEW – scroll to the selected text
-            }}
-            offsetTop={railOffsetTop} // NEW – align tops
-          />
-        </div>
+        <div className="relative h-0 overflow-visible">
+  <div ref={railAnchorRef} className="absolute inset-0 pointer-events-none" />
+  <div
+    ref={railRef}
+    className="absolute right-0 w-[320px] pointer-events-auto"
+    style={{ top: railOffsetTop, height: railHeight }}
+  >
+    <CommentRail
+      threads={threads}
+      positions={positions}
+      openId={openId}
+      setOpenId={setOpenId}
+      onSelect={(t) => { setActiveThread(t); scrollToThread(t); }}
+      offsetTop={0}
+    />
+  </div>
+</div>
       </div>
-     
+
       <div className="flex flex-col">
-      <hr className="w-full border-[1px] border-white"></hr>
-            {deliberationId && (
-              <section className="mt-4">
-                <h2 className="text-[1.5rem] font-semibold mb-2 px-2">Discussion</h2>
-                <DeepDivePanel deliberationId={deliberationId} />
-              </section>
-            )}
-            </div>
-      {activeThread && (
-        <CommentModal
-          thread={activeThread}
-          open={!!activeThread}
-          onClose={() => {
-            setActiveThread(null);
-            setOpenId(null);
-          }}
-        />
-      )}
+        <hr className="w-full border-[1px] border-white mt-4"></hr>
+        {deliberationId && (
+          <section className="mt-2">
+            <h2 className="text-[1.6rem] font-semibold tracking-wider text-center">
+              Discussion
+            </h2>
+            <DeepDivePanel deliberationId={deliberationId} />
+          </section>
+        )}
+      </div>
+      
     </ArticleReader>
   );
 }

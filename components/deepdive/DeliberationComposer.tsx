@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { z } from "zod";
+import { invalidateDeliberation } from '@/lib/deepdive/invalidate';
 
 type Props = {
   deliberationId: string;
@@ -92,6 +93,7 @@ export default function DeliberationComposer({
           }),
         });
       }
+      invalidateDeliberation(deliberationId);
 
       setText("");
       setSources([]);
@@ -166,6 +168,7 @@ export default function DeliberationComposer({
       if (targetArgumentId && counterKind !== "none") {
         await createEdge(created.id, targetArgumentId, counterKind);
       }
+      invalidateDeliberation(deliberationId);
 
       setText("");
       setCounterKind("none");
@@ -202,6 +205,8 @@ export default function DeliberationComposer({
       setConcession("");
       setCounter("");
       setShowYesBut(false);
+      invalidateDeliberation(deliberationId);
+
       onPosted?.();
     } catch (e: any) {
       alert(e?.message ?? "Failed");
