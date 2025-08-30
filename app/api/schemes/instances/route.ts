@@ -1,108 +1,102 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
+import { z } from 'zod';
 
-// Seed "Expert Opinion" scheme if missing
-async function ensureExpertOpinion() {
-  const key = 'expert_opinion';
-  const exists = await prisma.argumentScheme.findUnique({ where: { key } });
-  if (exists) return exists;
-  return prisma.argumentScheme.create({
-    data: {
-      key,
-      title: 'Argument from Expert Opinion',
-      summary: 'Expert E asserts that P is true in domain D',
-      cq: [
-        { id: 'cred', text: 'Is the cited person a credible expert in D?', attackKind: 'UNDERMINES' },
-        { id: 'cons', text: 'Is there consensus among relevant experts?', attackKind: 'UNDERCUTS' },
-        { id: 'bias', text: 'Is the expert unbiased / are there conflicts?', attackKind: 'UNDERCUTS' },
-      ] as any,
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+/* ---------- GET  /api/schemes/instances?targetType=claim&targetId=... ---------- */
+export async function GET(req: NextRequest) {
+  const url = new URL(req.url);
+  const targetType = url.searchParams.get('targetType') ?? '';
+  const targetId   = url.searchParams.get('targetId') ?? '';
+  const deliberationId = url.searchParams.get('deliberationId') ?? undefined;
+
+  if (!targetType || !targetId) {
+    return NextResponse.json({ error: 'targetType and targetId required' }, { status: 400 });
+  }
+  if (targetType !== 'claim') {
+    // If you truly want to support cards, add a branch here
+    return NextResponse.json({ error: 'Unsupported targetType. Use "claim".' }, { status: 400 });
+  }
+
+  // Optional: ensure target exists (helps fail-fast)
+  const exists = await prisma.claim.findUnique({ where: { id: targetId }, select: { id: true } });
+  if (!exists) return NextResponse.json({ error: 'Claim not found' }, { status: 404 });
+
+  const rows = await prisma.schemeInstance.findMany({
+    where: { targetType, targetId },
+    orderBy: { createdAt: 'desc' },
+    select: {
+      id: true,
+      schemeId: true,           // ✅ use schemeId
+      data: true,
+      createdAt: true,
+      createdById: true,
+      scheme: {                 // relation to ArgumentScheme
+        select: {
+          key: true,
+          title: true,
+          summary: true,
+        },
+      },
     },
   });
+
+// normalize for FE if you want name instead of title
+const instances = rows.map(r => ({
+  ...r,
+  scheme: { key: r.scheme?.key, name: r.scheme?.title ?? r.scheme?.key, summary: r.scheme?.summary ?? null },
+}));
+return NextResponse.json({ instances });
 }
 
-export async function GET(req: NextRequest) {
+/* ---------- POST /api/schemes/instances ---------- */
+const Body = z.object({
+  targetType: z.literal('claim'),
+  targetId: z.string().min(1),
+  schemeKey: z.string().min(1),
+  data: z.any().optional(),
+  createdById: z.string().min(1),
+});
+
+export async function POST(req: NextRequest) {
   try {
-    const url = new URL(req.url);
-    const deliberationId = url.searchParams.get('deliberationId') ?? '';
-    const targetType = url.searchParams.get('targetType') ?? 'claim';
+    const input = Body.parse(await req.json());
 
-    if (!deliberationId) {
-      return NextResponse.json({ error: 'deliberationId required' }, { status: 400 });
-    }
+    // 1) validate target
+    const claim = await prisma.claim.findUnique({ where: { id: input.targetId }, select: { id: true } });
+    if (!claim) return NextResponse.json({ error: 'Claim not found' }, { status: 404 });
 
-    // For claims, find the set of claim IDs in this deliberation
-    let targetIds: string[] = [];
-    if (targetType === 'claim') {
-      const claims = await prisma.claim.findMany({
-        where: { deliberationId },
-        select: { id: true },
-      });
-      targetIds = claims.map(c => c.id);
-    } else {
-      // You could add card support later: pull cards by deliberationId
-      return NextResponse.json({ instances: [] });
-    }
+    // 2) resolve schemeKey -> schemeId
+    const scheme = await prisma.argumentScheme.findUnique({
+      where: { key: input.schemeKey },
+      select: { id: true, key: true, title: true },
+    });
+    if (!scheme) return NextResponse.json({ error: 'Unknown scheme' }, { status: 400 });
 
-    if (targetIds.length === 0) return NextResponse.json({ instances: [] });
-
-    const instances = await prisma.schemeInstance.findMany({
-      where: {
-        targetType,
-        targetId: { in: targetIds },
+    // 3) create instance with schemeId
+    const inst = await prisma.schemeInstance.create({
+      data: {
+        targetType: input.targetType,
+        targetId: input.targetId,
+        schemeId: scheme.id,         // ✅ store schemeId, not schemeKey
+        data: input.data ?? {},
+        createdById: input.createdById,
       },
       select: {
         id: true,
-        targetType: true,
-        targetId: true,
-        scheme: { select: { key: true, title: true } },
+        schemeId: true,
         data: true,
-        createdById: true,
         createdAt: true,
+        createdById: true,
+        scheme: { select: { key: true, title: true } },
       },
     });
 
-    return NextResponse.json({ instances });
+    const out = { ...inst, scheme: { key: inst.scheme?.key, name: inst.scheme?.title ?? inst.scheme?.key } };
+    return NextResponse.json({ instance: out });
   } catch (e: any) {
-    console.error('[schemes/instances] failed', e);
-    return NextResponse.json({ error: e?.message ?? 'failed' }, { status: 400 });
+    return NextResponse.json({ error: e?.message ?? 'Invalid request' }, { status: 400 });
   }
-}
-
-export async function POST(req: NextRequest) {
-  const body = await req.json();
-  const { targetType, targetId, schemeKey, data, createdById } = body as {
-    targetType: 'card'|'claim',
-    targetId: string,
-    schemeKey?: string,
-    data?: any,
-    createdById: string,
-  };
-  if (!targetType || !targetId) return NextResponse.json({ error: 'Missing target' }, { status: 400 });
-  const scheme = schemeKey
-    ? await prisma.argumentScheme.findUnique({ where: { key: schemeKey } })
-    : await ensureExpertOpinion();
-
-  if (!scheme) return NextResponse.json({ error: 'Unknown scheme' }, { status: 400 });
-
-  const instance = await prisma.schemeInstance.create({
-    data: {
-      targetType, targetId, schemeId: scheme.id,
-      data: data ?? {},
-      createdById,
-    },
-  });
-
-  // Instantiate CriticalQuestions for this instance
-  const cq = (scheme.cq as any[] ?? []).map((q) => ({
-    instanceId: instance.id,
-    cqId: q.id,
-    text: q.text,
-    attackKind: q.attackKind,
-    status: 'open',
-    openedById: createdById,
-  }));
-  if (cq.length) await prisma.criticalQuestion.createMany({ data: cq });
-
-  const cqs = await prisma.criticalQuestion.findMany({ where: { instanceId: instance.id } });
-  return NextResponse.json({ instance, criticalQuestions: cqs });
 }

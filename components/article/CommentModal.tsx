@@ -151,7 +151,7 @@ export default function CommentModal({
               />
               <div className="mt-2 flex items-center gap-2">
                 <button
-                  className="px-3 py-1.5 text-sm rounded bg-emerald-600 text-white disabled:opacity-50"
+                  className="px-4 py-1 text-sm rounded-md bg-emerald-600 text-white savebutton disabled:opacity-50"
                   onClick={() => handleReply(thread.comments[0].id)}
                   disabled={pending || !replyBody.trim()}
                 >
@@ -172,7 +172,7 @@ export default function CommentModal({
         
         </div>
         <DialogFooter>
-          <DialogClose className="px-4 py-1 lockbutton text-sm border-[1px] border-black bg-white rounded-xl">
+          <DialogClose className="px-4 py-1 savebutton text-sm  bg-white rounded-md">
             Close
           </DialogClose>
         </DialogFooter>

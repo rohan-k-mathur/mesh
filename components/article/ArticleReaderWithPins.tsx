@@ -262,14 +262,9 @@ function CommentRail({
                            ? "border-amber-400 border-2 bg-white/70"
                            : "border-neutral-200"
                        }`}
-              //   style={{ top: p.top }}
-              //   onClick={() => setOpenId(t.id)}
-              //   title={firstLine}
-              // >
-              //   {firstLine.length > 60 ? firstLine.slice(0, 57) + '…' : firstLine}
+
               style={{ top: p.top + offsetTop }}
               onClick={() => {
-                setOpenId(t.id);
                 onSelect(t);
               }}
               title={firstLine}
@@ -748,14 +743,18 @@ export default function ArticleReaderWithPins({
     className="absolute right-0 w-[320px] pointer-events-auto"
     style={{ top: railOffsetTop, height: railHeight }}
   >
-    <CommentRail
-      threads={threads}
-      positions={positions}
-      openId={openId}
-      setOpenId={setOpenId}
-      onSelect={(t) => { setActiveThread(t); scrollToThread(t); }}
-      offsetTop={0}
-    />
+<CommentRail
+  threads={threads}
+  positions={positions}
+  openId={openId}
+  setOpenId={setOpenId}
+  onSelect={(t) => {
+    setActiveThread(t);   // opens modal
+    setOpenId(t.id);      // highlights
+    scrollToThread(t);    // scrolls
+  }}
+  offsetTop={0}
+/>
   </div>
 </div>
       </div>
@@ -771,6 +770,16 @@ export default function ArticleReaderWithPins({
           </section>
         )}
       </div>
+      {activeThread && (
+  <CommentModal
+    thread={activeThread}
+    open={!!activeThread}
+    onClose={() => {
+      setActiveThread(null);
+      setOpenId(null);
+    }}
+  />
+)}
       
     </ArticleReader>
   );

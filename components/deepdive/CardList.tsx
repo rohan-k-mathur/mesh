@@ -1,8 +1,9 @@
 'use client';
-import useSWR from 'swr';
 import { useState } from 'react';
 import SchemePicker from '@/components/cite/SchemePicker';
 import CriticalQuestions from '@/components/claims/CriticalQuestions';
+import ToulminMini from '@/components/deepdive/ToulminMini';
+import useSWR, { mutate } from 'swr';
 
 const fetcher = (u: string) => fetch(u, { cache: 'no-store' }).then(r => r.json());
 
@@ -197,29 +198,34 @@ export default function CardList({ deliberationId }: { deliberationId: string })
             </div>
           )}
            {/* Schemes & Critical Questions */}
-<div className="mt-2 rounded border border-slate-200 p-2 bg-white">
-  <div className="flex items-center justify-between">
-    <div className="text-xs font-semibold text-neutral-700">Schemes</div>
-    <SchemePicker
-      targetType="card"
-      targetId={c.id}
-      createdById={c.authorId /* or currentUserId if you prefer */}
-      onAttached={() => {/* optionally refetch with mutate() */}}
-    />
+           <div className="mt-2 rounded border border-slate-200 p-2 bg-white">
+  <div className="flex items-center justify-start gap-8">
+    <div className="text-sm font-semibold text-neutral-700">Schemes</div>
+    {c.claimId && (
+  <SchemePicker
+    targetType="claim"
+    targetId={c.claimId}
+    createdById={c.authorId}
+    onAttached={() => mutate(`/api/claims/${c.claimId}/toulmin`)}
+  />
+)}
+
   </div>
 
+  {c.claimId && <ToulminMini claimId={c.claimId} />}
+
   <div className="mt-2">
-    <CriticalQuestions
-      targetType="card"
-      targetId={c.id}
-      createdById={c.authorId /* or currentUserId */}
-      // If you want counters from here too, either:
-      // 1) pass an existing counter claimId, or
-      // 2) extend CriticalQuestions to accept counter text -> promote -> counter.
-      counterFromClaimId="" // optional; leave blank if not using from this panel
-    />
+    {c.claimId && (
+      <CriticalQuestions
+        targetType="claim"     // ✅ fix
+        targetId={c.claimId}   // ✅ fix
+        createdById={c.authorId}
+        counterFromClaimId=""
+      />
+    )}
   </div>
 </div>
+
         </div>
         
       ))}

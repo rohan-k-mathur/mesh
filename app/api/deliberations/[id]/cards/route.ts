@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prismaclient';
 import { getCurrentUserId } from '@/lib/serverutils';
 import crypto from 'crypto';
+import { mintClaimMoid } from '@/lib/ids/mintMoid';
+
 
 const SaveSchema = z.object({
   claimText: z.string().min(2),
@@ -42,12 +44,12 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     where,
     orderBy: { createdAt: 'desc' },
     select: {
-
       id: true,
-      deliberationId: true,               // 👈 ChallengeWarrantCard needs this
+      deliberationId: true,
       authorId: true,
       status: true,
       createdAt: true,
+      claimId: true,             // ✅ include claimId
       claimText: true,
       reasonsText: true,
       evidenceLinks: true,
@@ -56,9 +58,17 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       confidence: true,
       hostEmbed: true,
       hostId: true,
-      warrantText: true,                  // 👈 return it
+      warrantText: true,
+      // Optionally include claim fields:
+      claim: {
+        select: {
+          id: true,
+          text: true,
+        },
+      },
     },
   });
+  
   return NextResponse.json({ cards: rows });
 }
 
@@ -104,26 +114,39 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       });
       return NextResponse.json({ ok: true, card: updated });
     }
+         // create or reuse claim first
+const moidClaim = crypto.createHash('sha256').update(input.claimText).digest('hex');
+const claim = await prisma.claim.upsert({
+  where: { moid: moidClaim },
+  update: {},
+  create: {
+    text: input.claimText,
+    createdById: String(userId),
+    deliberationId,
+    moid: moidClaim,
+  },
+});
 
-    // create new card
-    const created = await prisma.deliberationCard.create({
-      data: {
-        deliberationId,
-        authorId: String(userId),
-        claimText: input.claimText,
-        reasonsText: input.reasonsText,
-        evidenceLinks: input.evidenceLinks,
-        anticipatedObjectionsText: input.anticipatedObjectionsText,
-        counterText: input.counterText ?? null,
-        confidence: input.confidence ?? null,
-        status: input.status,
-        hostEmbed: input.hostEmbed ?? null,
-        warrantText: input.warrantText ?? null,
-        hostId: input.hostId ?? null,
-        moid,
-        // warrantText: input.warrantText ?? null,
-      },
-    });
+// then create the card linked to that claim
+const created = await prisma.deliberationCard.create({
+  data: {
+    deliberationId,
+    authorId: String(userId),
+    claimText: input.claimText,
+    claimId: claim.id,
+    reasonsText: input.reasonsText,
+    evidenceLinks: input.evidenceLinks,
+    anticipatedObjectionsText: input.anticipatedObjectionsText,
+    counterText: input.counterText ?? null,
+    confidence: input.confidence ?? null,
+    status: input.status,
+    hostEmbed: input.hostEmbed ?? null,
+    warrantText: input.warrantText ?? null,
+    hostId: input.hostId ?? null,
+    moid,
+  },
+});
+     
     return NextResponse.json({ ok: true, card: created });
   } catch (e: any) {
     console.error('[cards] failed', e);

@@ -147,6 +147,7 @@ export default function ArgumentsList({
 
           return (
             <li
+            id={`arg-${a.id}`}
               key={a.id}
               className="p-2 border rounded focus:outline-none focus:ring-2 focus:ring-amber-300"
               tabIndex={0}

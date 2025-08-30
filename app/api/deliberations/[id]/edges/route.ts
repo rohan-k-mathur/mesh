@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prismaclient';
 import { getCurrentUserId } from '@/lib/serverutils';
+import { maybeUpsertClaimEdgeFromArgumentEdge } from '@/lib/deepdive/claimEdgeHelpers';
+
 
 const Body = z.object({
   fromArgumentId: z.string(),
@@ -43,6 +45,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           : 'conclusion', // default / irrelevant for support/concede
       },
     });
+    await maybeUpsertClaimEdgeFromArgumentEdge(edge.id);
 
     return NextResponse.json({ ok: true, edge });
   } catch (e: any) {

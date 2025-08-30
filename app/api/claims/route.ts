@@ -73,7 +73,6 @@ export async function POST(req: Request) {
         for (const e of incident) {
           await maybeUpsertClaimEdgeFromArgumentEdge(e.id);
        }
-       await recomputeGroundedForDelib(deliberationId);
 
       }
       return NextResponse.json({ claim: existing, created: false });
@@ -98,6 +97,7 @@ export async function POST(req: Request) {
         )?.deliberationId ?? null;
       }
     }
+    await recomputeGroundedForDelib(deliberationId);
 
     const urnValue = mintUrn('claim', moid);
 

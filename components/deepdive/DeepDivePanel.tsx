@@ -14,6 +14,9 @@ import ApprovalsHeatStrip from '@/components/deepdive/ApprovalsHeatStrip';
 import CardList from '@/components/deepdive/CardList';
 import { ViewControls } from './RepresentativeViewpoints';
 import GraphPanel from '@/components/graph/GraphPanel';
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
+
+
 
 
 type Selection = {
@@ -24,6 +27,34 @@ type Selection = {
   coverageAvg: number; coverageMin: number; jrSatisfied: boolean;
   views: { index: number; arguments: { id: string; text: string; confidence?: number|null }[] }[];
 };
+
+
+function usePersisted(key: string, def = true) {
+  const [open, setOpen] = useState<boolean>(def);
+
+  // Read from localStorage only on the client
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(key);
+      if (saved != null) {
+        setOpen(saved === "1");
+      }
+    } catch {
+      // ignore if unavailable
+    }
+  }, [key]);
+
+  // Write whenever it changes
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(key, open ? "1" : "0");
+    } catch {
+      // ignore if unavailable
+    }
+  }, [key, open]);
+
+  return { open, setOpen };
+}
 
 export function SectionCard({ title, action, children }: { title?: string; action?: React.ReactNode; children: React.ReactNode }) {
     return (
@@ -81,6 +112,8 @@ export default function DeepDivePanel({ deliberationId }: { deliberationId: stri
   };
 
   useEffect(() => { compute(); /* initial */ }, []); // eslint-disable-line
+  const graphState = usePersisted(`dd:graph:${deliberationId}`);
+
 
   return (
     <div className="space-y-5 p-3">
@@ -183,9 +216,14 @@ export default function DeepDivePanel({ deliberationId }: { deliberationId: stri
       <CegMiniMap deliberationId={deliberationId} />
       </SectionCard> */}
       <SectionCard>
-
-  <GraphPanel deliberationId={deliberationId} />
-
+  <Collapsible open={graphState.open} onOpenChange={graphState.setOpen}>
+    <div className="flex items-center justify-between px-1">
+      <CollapsibleTrigger className="text-sm font-semibold border-[.5px] border-black px-3 rounded-md bg-slate-100 hover:bg-slate-200">{graphState.open ? 'Collapse Graph' : 'Expand Graph'}</CollapsibleTrigger>
+    </div>
+    <CollapsibleContent className="pt-2">
+      <GraphPanel deliberationId={deliberationId} />
+    </CollapsibleContent>
+  </Collapsible>
 </SectionCard>
 
       <SectionCard >

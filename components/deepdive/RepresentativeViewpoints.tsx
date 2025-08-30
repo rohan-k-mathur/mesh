@@ -20,7 +20,10 @@ export function ViewControls({
   const [r, setR] = useState<Rule>(rule);
   const [kk, setK] = useState<number>(k);
 
-  useEffect(() => { setR(rule); setK(k); }, [rule, k]);
+  useEffect(() => {
+    setR(rule);
+    setK(k);
+  }, [rule, k]);
 
   return (
     <div className="relative">
@@ -46,7 +49,9 @@ export function ViewControls({
             </select>
           </label>
           <label className="block mb-3">
-            <span className="block mb-1 text-[11px] text-slate-600">k = {kk}</span>
+            <span className="block mb-1 text-[11px] text-slate-600">
+              k = {kk}
+            </span>
             <input
               type="range"
               min={2}
@@ -97,9 +102,14 @@ export function RepresentativeViewpoints(props: {
 
   const [showCore, setShowCore] = useState(false);
   const [argsMap, setArgsMap] = useState<Record<string, string>>({});
-  const [scopeMap, setScopeMap] = useState<Record<string, "inference" | "premise" | "conclusion">>({});
+  const [scopeMap, setScopeMap] = useState<
+    Record<string, "inference" | "premise" | "conclusion">
+  >({});
   const [pending, setPending] = useState(false);
-  const [cohortSummary, setCohortSummary] = useState<{ totals: Record<string, number>, byArgument: Record<string, Record<string,string[]>> }|null>(null);
+  const [cohortSummary, setCohortSummary] = useState<{
+    totals: Record<string, number>;
+    byArgument: Record<string, Record<string, string[]>>;
+  } | null>(null);
 
   function JRBadge() {
     return (
@@ -109,15 +119,15 @@ export function RepresentativeViewpoints(props: {
     );
   }
 
-
-
-
   // Fetch all arguments to build:
   // - id -> text (for conflicts explained)
   // - id -> scope (derive from edgesOut: undercut => inference; rebut+premise => premise; rebut else => conclusion)
   useEffect(() => {
     (async () => {
-      const res = await fetch(`/api/deliberations/${s.deliberationId}/arguments`, { cache: "no-store" });
+      const res = await fetch(
+        `/api/deliberations/${s.deliberationId}/arguments`,
+        { cache: "no-store" }
+      );
       if (!res.ok) return;
       const data = await res.json();
       const map: Record<string, string> = {};
@@ -129,7 +139,9 @@ export function RepresentativeViewpoints(props: {
         // derive most specific scope: undercut > premise > conclusion
         if (eo.some((e) => e.type === "undercut")) {
           sc[a.id] = "inference";
-        } else if (eo.some((e) => e.type === "rebut" && e.targetScope === "premise")) {
+        } else if (
+          eo.some((e) => e.type === "rebut" && e.targetScope === "premise")
+        ) {
           sc[a.id] = "premise";
         } else if (eo.some((e) => e.type === "rebut")) {
           sc[a.id] = "conclusion";
@@ -139,7 +151,6 @@ export function RepresentativeViewpoints(props: {
       setScopeMap(sc);
     })();
   }, [s.deliberationId]);
-
 
   function ViewCohortBar({ argIds }: { argIds: string[] }) {
     if (!cohortSummary) return null;
@@ -153,24 +164,35 @@ export function RepresentativeViewpoints(props: {
       }
       return u.size;
     };
-    const allCovered = union('all');
-    const authorsCovered = union('authors');
+    const allCovered = union("all");
+    const authorsCovered = union("authors");
     const allPct = totals.all ? Math.round((allCovered / totals.all) * 100) : 0;
-    const authorsPct = totals.authors ? Math.round((authorsCovered / totals.authors) * 100) : 0;
-  
+    const authorsPct = totals.authors
+      ? Math.round((authorsCovered / totals.authors) * 100)
+      : 0;
+
     return (
       <div className="mt-2 space-y-1 text-[11px] text-neutral-600">
         <div className="flex items-center gap-2" title={`All: ${allPct}%`}>
           <span className="w-12">All</span>
           <div className="h-2 bg-slate-200 rounded w-28">
-            <div className="h-2 bg-emerald-500 rounded" style={{ width: `${allPct}%` }} />
+            <div
+              className="h-2 bg-emerald-500 rounded"
+              style={{ width: `${allPct}%` }}
+            />
           </div>
           <span>{allPct}%</span>
         </div>
-        <div className="flex items-center gap-2" title={`Authors: ${authorsPct}%`}>
+        <div
+          className="flex items-center gap-2"
+          title={`Authors: ${authorsPct}%`}
+        >
           <span className="w-12">Authors</span>
           <div className="h-2 bg-slate-200 rounded w-28">
-            <div className="h-2 bg-indigo-500 rounded" style={{ width: `${authorsPct}%` }} />
+            <div
+              className="h-2 bg-indigo-500 rounded"
+              style={{ width: `${authorsPct}%` }}
+            />
           </div>
           <span>{authorsPct}%</span>
         </div>
@@ -187,7 +209,11 @@ export function RepresentativeViewpoints(props: {
       : "Chosen to maximize the count of fully represented voters (JR-oriented)";
 
   // Chip for scope
-  const ScopeChip = ({ scope }: { scope?: "inference" | "premise" | "conclusion" }) => {
+  const ScopeChip = ({
+    scope,
+  }: {
+    scope?: "inference" | "premise" | "conclusion";
+  }) => {
     if (!scope) return null;
     const style =
       scope === "inference"
@@ -240,10 +266,13 @@ export function RepresentativeViewpoints(props: {
           <span aria-label="Coverage summary">
             Avg coverage:{" "}
             {(
-              (showCore ? s.bestPossibleAvg ?? s.coverageAvg : s.coverageAvg) * 100
+              (showCore ? s.bestPossibleAvg ?? s.coverageAvg : s.coverageAvg) *
+              100
             ).toFixed(0)}
             %
-            {!showCore && <span> · Min: {(s.coverageMin * 100).toFixed(0)}%</span>}
+            {!showCore && (
+              <span> · Min: {(s.coverageMin * 100).toFixed(0)}%</span>
+            )}
           </span>
           {typeof s.bestPossibleAvg === "number" && (
             <label className="inline-flex items-center gap-1 cursor-pointer">
@@ -264,26 +293,45 @@ export function RepresentativeViewpoints(props: {
           Conflicts explained:&nbsp;
           {s.conflictsTopPairs.slice(0, 3).map((p, i) => (
             <span key={i} className="mr-2">
-            <a href={`#arg-${p.a}`} title={argsMap[p.a] ?? p.a} className="underline">
-              “{(argsMap[p.a] ?? p.a).slice(0, 38)}”
-            </a>{" "}
-            ×{" "}
-            <a href={`#arg-${p.b}`} title={argsMap[p.b] ?? p.b} className="underline">
-              “{(argsMap[p.b] ?? p.b).slice(0, 38)}”
-            </a>{" "}
-            ({p.count})
-          </span>
+              <a
+                href={`#arg-${p.a}`}
+                title={argsMap[p.a] ?? p.a}
+                className="underline"
+              >
+                “{(argsMap[p.a] ?? p.a).slice(0, 38)}”
+              </a>{" "}
+              ×{" "}
+              <a
+                href={`#arg-${p.b}`}
+                title={argsMap[p.b] ?? p.b}
+                className="underline"
+              >
+                “{(argsMap[p.b] ?? p.b).slice(0, 38)}”
+              </a>{" "}
+              ({p.count})
+            </span>
           ))}
         </div>
       )}
       {s.rule === "maxcov" && (
-  <div className="text-[11px] text-emerald-700">
-    JR guarantee: at least one group of size ≥ n/k is fully represented
-  </div>
-)}
-
+        <div className="text-[11px] text-emerald-700">
+          JR guarantee: at least one group of size ≥ n/k is fully represented
+        </div>
+      )}
+<div className="text-[11px] text-neutral-500">
+  {`views: ${s.views.length} · rule: ${s.rule} · k: ${s.k}`}
+</div>
       {/* View cards */}
-      <div className={`grid gap-3 md:grid-cols-${Math.max(1, s.views.length)}`}>
+      <div
+        className="grid gap-3"
+        style={{
+          gridTemplateColumns: `repeat(${Math.max(
+            1,
+            s.views.length
+          )}, minmax(0,1fr))`,
+        }}
+      >
+        {" "}
         {s.views.map((v) => (
           <div key={v.index} className="border rounded p-3 space-y-2">
             <div className="text-xs uppercase tracking-wide text-neutral-500">
@@ -307,13 +355,11 @@ export function RepresentativeViewpoints(props: {
                 );
               })}
             </ul>
-            <ViewCohortBar argIds={v.arguments.map(a => a.id)} />
-
+            <ViewCohortBar argIds={v.arguments.map((a) => a.id)} />
           </div>
         ))}
       </div>
-      
-  
+
       {/* Footer actions + mini-map */}
       <div className="flex flex-col justify-start">
         <button

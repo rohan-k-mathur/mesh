@@ -24,41 +24,55 @@ function scopeFrom(attack: ClaimAttackType, t: ClaimEdgeType): 'premise'|'infere
 }
 
 export async function maybeUpsertClaimEdgeFromArgumentEdge(edgeId: string) {
-  // NOTE: ArgumentEdge has no attackType column in your DB; do not select it.
-  const e = await prisma.argumentEdge.findUnique({
-    where: { id: edgeId },
-    select: {
-      id: true,
-      type: true,            // 'support' | 'rebut' | 'undercut' | 'concede'
-      targetScope: true,     // may be null
-      fromArgument: { select: { claimId: true, deliberationId: true } },
-      toArgument:   { select: { claimId: true } },
-    },
-  });
-  if (!e?.fromArgument?.claimId || !e?.toArgument?.claimId) return;
-
-  const typeEnum = normalizeType(e.type);
-  // Map legacy 'undercut'/'concede' to rich attack enum via scope/type
-  const attackEnum = deriveAttackEnum(e.type, e.targetScope);
-  const scope = e.targetScope ?? scopeFrom(attackEnum, typeEnum);
-
-  await prisma.claimEdge.upsert({
-    where: {
-      unique_from_to_type_attack: {
-        fromClaimId: e.fromArgument.claimId,
-        toClaimId:   e.toArgument.claimId,
-        type:        typeEnum,
-        attackType:  attackEnum,
+    const e = await prisma.argumentEdge.findUnique({
+      where: { id: edgeId },
+      select: {
+        id: true,
+        type: true,
+        targetScope: true,
+        fromArgumentId: true,
+        toArgumentId: true,
+        deliberationId: true,
       },
-    },
-    update: { targetScope: scope ?? undefined },
-    create: {
-      deliberationId: e.fromArgument.deliberationId!,   // ✅ set it
-      fromClaimId: e.fromArgument.claimId,
-      toClaimId:   e.toArgument.claimId,
-      type:        typeEnum,
-      attackType:  attackEnum,
-      targetScope: scope ?? undefined,
-    },
-  });
-}
+    });
+    if (!e) return;
+  
+    const [fromArg, toArg] = await Promise.all([
+      prisma.argument.findUnique({
+        where: { id: e.fromArgumentId },
+        select: { claimId: true, deliberationId: true },
+      }),
+      prisma.argument.findUnique({
+        where: { id: e.toArgumentId },
+        select: { claimId: true },
+      }),
+    ]);
+  
+    if (!fromArg?.claimId || !toArg?.claimId) return;
+  
+    // normalize type/attackType
+    const typeEnum = normalizeType(e.type);
+    const attackEnum = deriveAttackEnum(e.type, e.targetScope);
+    const scope = e.targetScope ?? scopeFrom(attackEnum, typeEnum);
+  
+    await prisma.claimEdge.upsert({
+      where: {
+        unique_from_to_type_attack: {
+          fromClaimId: fromArg.claimId,
+          toClaimId:   toArg.claimId,
+          type: typeEnum,
+          attackType: attackEnum,
+        },
+      },
+      update: { targetScope: scope ?? undefined },
+      create: {
+        deliberationId: fromArg.deliberationId!,
+        fromClaimId: fromArg.claimId,
+        toClaimId:   toArg.claimId,
+        type: typeEnum,
+        attackType: attackEnum,
+        targetScope: scope ?? undefined,
+      },
+    });
+  }
+  

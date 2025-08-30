@@ -2546,30 +2546,41 @@ model Panelist {
 }
 
 model DeliberationCard {
-  id                        String   @id @default(cuid())
-  deliberationId            String
-  authorId                  String
-  claimText                 String
-  reasonsText               String[] @db.Text
-  evidenceLinks             String[] @db.Text // URIs
-  anticipatedObjectionsText String[] @db.Text
-  counterText               String?
-  confidence                Float?
-    warrantText   String?  
-  status                    String   @default("draft") // 'draft' | 'published'
-  hostEmbed                 String? // 'article' | 'post' | 'room_thread'
-  hostId                    String?
-  moid                      String // content hash (fill server-side)
-  createdAt                 DateTime @default(now())
-  updatedAt                 DateTime @updatedAt
+  id          String   @id @default(cuid())
+  deliberationId String
+  authorId    String
+  status      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  claimText   String
+  reasonsText String[]
+  evidenceLinks String[]
+  anticipatedObjectionsText String[]
+  counterText String?
+  confidence  Float?
+  warrantText String?
+  hostEmbed   String?
+  hostId      String?
+  moid        String   @unique
 
-  cardCitations CardCitation[]
+  // New relation to Claim
+  claimId   String?
+  claim     Claim? @relation(fields: [claimId], references: [id], onDelete: SetNull)
+
+  // Relation to Deliberation
+  deliberation Deliberation @relation(fields: [deliberationId], references: [id])
+
+  // Back relation for CardCitation
+  citations   CardCitation[]
 }
+
+
 
 model CardCitation {
   id           String  @id @default(cuid())
   cardId       String
   uri          String
+
   locatorStart String? // e.g., CSS/XPath/char off
   locatorEnd   String?
   excerptHash  String?
@@ -2645,6 +2656,7 @@ model Claim {
   createdById String
   moid        String   @unique
   createdAt   DateTime @default(now())
+  cards       DeliberationCard[]
 
   deliberationId String?
   deliberation   Deliberation? @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
@@ -2800,6 +2812,7 @@ model Deliberation {
   createdById String
   createdAt   DateTime             @default(now())
   updatedAt   DateTime             @updatedAt
+  cards DeliberationCard[]
 
   arguments  Argument[]
   edges      ArgumentEdge[]
