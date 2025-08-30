@@ -10,7 +10,18 @@ type ToulminData = {
   backing: { schemes: { key: string; name?: string | null; icon?: string; count: number }[]; citations: number; evidence: number };
   qualifier: { quantifier?: 'SOME'|'MANY'|'MOST'|'ALL'; modality?: 'COULD'|'LIKELY'|'NECESSARY'; confidenceAvg: number | null };
 };
-
+function iconForScheme(key?: string | null): string {
+  switch (key) {
+    case 'expert_opinion':
+      return '∴';   // therefore
+    case 'good_consequences':
+      return '⇒';   // implies
+    case 'analogy':
+      return '≈';   // approximate equality
+    default:
+      return '□';   // generic square
+  }
+}
 const fetcher = (u: string) => fetch(u, { cache: 'no-store' }).then(r => r.json());
 
 export default function ToulminMini({ claimId }: { claimId: string }) {
@@ -66,37 +77,51 @@ export default function ToulminMini({ claimId }: { claimId: string }) {
         </Slot>
 
         {/* Backing */}
-        <Slot title="Backing">
-          <div className="flex flex-wrap items-center gap-2">
-            {backing.schemes.length ? backing.schemes.slice(0, 3).map(s => (
-              <div key={s.key} className="flex items-center gap-1 border rounded px-2 py-0.5">
-                {s.icon && <img src={s.icon} alt={s.key} className="w-[14px] h-[14px]" />}
-                <span className="text-[12px]">{s.name ?? s.key}</span>
-                {s.count > 1 && <span className="text-[11px] text-neutral-500">×{s.count}</span>}
-              </div>
-            )) : <Empty>—</Empty>}
-          </div>
-          {(backing.citations > 0 || backing.evidence > 0) && (
-            <div className="text-[11px] text-neutral-500 mt-1">
-              {backing.citations > 0 && <span>{backing.citations} citation{backing.citations>1?'s':''}</span>}
-              {backing.citations > 0 && backing.evidence > 0 && <span> · </span>}
-              {backing.evidence > 0 && <span>{backing.evidence} evidence link{backing.evidence>1?'s':''}</span>}
-            </div>
-          )}
-        </Slot>
+<Slot title="Backing">
+  <div className="flex flex-wrap items-center gap-2">
+    {backing.schemes.length ? backing.schemes.slice(0, 3).map(s => (
+      <div key={s.key} className="flex items-center gap-1 border rounded px-2 py-0.5">
+        <span className="font-serif text-lg">{iconForScheme(s.key)}</span>
+        <span className="text-[12px]">{s.name ?? s.key}</span>
+        {s.count > 1 && (
+          <span className="text-[11px] text-neutral-500">×{s.count}</span>
+        )}
+      </div>
+    )) : <Empty>—</Empty>}
+  </div>
+  {(backing.citations > 0 || backing.evidence > 0) && (
+    <div className="text-[11px] text-neutral-500 mt-1">
+      {backing.citations > 0 && <span>{backing.citations} citation{backing.citations>1?'s':''}</span>}
+      {backing.citations > 0 && backing.evidence > 0 && <span> · </span>}
+      {backing.evidence > 0 && <span>{backing.evidence} evidence link{backing.evidence>1?'s':''}</span>}
+    </div>
+  )}
+</Slot>
 
         {/* Qualifier */}
         <Slot title="Qualifier">
-          {qualifier.quantifier || qualifier.modality || qualifier.confidenceAvg != null ? (
-            <div className="flex flex-wrap items-center gap-2 text-[12px]">
-              {qualifier.quantifier && <Chip>{qualifier.quantifier}</Chip>}
-              {qualifier.modality && <Chip>{qualifier.modality}</Chip>}
-              {qualifier.confidenceAvg != null && (
-                <span className="text-neutral-600">Confidence: {(qualifier.confidenceAvg * 100).toFixed(0)}%</span>
-              )}
-            </div>
-          ) : <Empty>—</Empty>}
-        </Slot>
+  {qualifier.quantifier || qualifier.modality || qualifier.confidenceAvg != null ? (
+    <div className="flex flex-col gap-2 text-[12px]">
+      <div className="flex flex-wrap gap-2">
+        {qualifier.quantifier && <Chip color="blue">{qualifier.quantifier}</Chip>}
+        {qualifier.modality && <Chip color="violet">{qualifier.modality}</Chip>}
+      </div>
+      {qualifier.confidenceAvg != null && (
+        <div className="flex items-center gap-2">
+          <div className="h-2 flex-1 bg-slate-200 rounded">
+            <div
+              className="h-2 bg-emerald-500 rounded"
+              style={{ width: `${qualifier.confidenceAvg * 100}%` }}
+            />
+          </div>
+          <span className="text-[11px] text-neutral-600 min-w-[40px] text-right">
+            {(qualifier.confidenceAvg * 100).toFixed(0)}%
+          </span>
+        </div>
+      )}
+    </div>
+  ) : <Empty>—</Empty>}
+</Slot>
 
         {/* Rebuttal */}
         <Slot title="Rebuttal">
@@ -128,8 +153,13 @@ function Empty({ children }: { children: React.ReactNode }) {
   return <span className="text-neutral-400">{children}</span>;
 }
 
-function Chip({ children }: { children: React.ReactNode }) {
-  return <span className="px-1.5 py-0.5 rounded border text-[11px] bg-slate-50">{children}</span>;
+function Chip({ children, color = "slate" }: { children: React.ReactNode; color?: "slate"|"blue"|"violet" }) {
+  const map = {
+    slate: "bg-slate-50 text-slate-700 border-slate-200",
+    blue: "bg-blue-50 text-blue-700 border-blue-200",
+    violet: "bg-violet-50 text-violet-700 border-violet-200",
+  };
+  return <span className={`px-1.5 py-0.5 rounded border text-[11px] ${map[color]}`}>{children}</span>;
 }
 
 function Badge({ color, children }: { color: 'violet' | 'slate'; children: React.ReactNode }) {

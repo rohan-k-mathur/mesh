@@ -2657,6 +2657,8 @@ model Claim {
   moid        String   @unique
   createdAt   DateTime @default(now())
   cards       DeliberationCard[]
+    warrant     ClaimWarrant?   // 👈 back-relation
+
 
   deliberationId String?
   deliberation   Deliberation? @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
@@ -2787,6 +2789,16 @@ model CriticalQuestion {
 
   @@index([instanceId])
 }
+
+model ClaimWarrant {
+  id        String   @id @default(cuid())
+  claimId   String   @unique
+  text      String
+  createdBy String
+  createdAt DateTime @default(now())
+  claim     Claim    @relation(fields: [claimId], references: [id], onDelete: Cascade)
+}
+
 
 model DialogueMove {
   id             String   @id @default(cuid())

@@ -16,6 +16,9 @@ export default function CardComposerTab(props: {
   const [status, setStatus] = useState<'draft'|'published'>('draft');
   const [busy, setBusy] = useState(false);
   const [warrant, setWarrant] = useState<string>('');
+  const [quantifier, setQuantifier] = useState<"SOME"|"MANY"|"MOST"|"ALL"|undefined>();
+const [modality, setModality] = useState<"COULD"|"LIKELY"|"NECESSARY"|undefined>();
+
 
   function update<T>(setter: (x: T) => void) {
     return (idx: number, arr: T[], val: T) => {
@@ -40,8 +43,10 @@ export default function CardComposerTab(props: {
         evidenceLinks: evidence.filter(Boolean),
         anticipatedObjectionsText: obs.filter(Boolean),
         counterText: counter.trim() || undefined,
+        quantifier,
+        modality,
         confidence: conf,
-        warrantText: warrant,  // server can persist to a column or JSON
+        warrantText: warrant,
 
         hostEmbed: props.hostEmbed,
         hostId: props.hostId,
@@ -80,6 +85,35 @@ export default function CardComposerTab(props: {
             value={warrant} onChange={e=>setWarrant(e.target.value)}
             placeholder="e.g., If expert consensus holds in domain D, accept P unless rebutted" />
 </label>
+{/* Quantifier */}
+<div className="flex items-center gap-2 text-sm">
+  <span className="text-neutral-500">Quantifier:</span>
+  {(["SOME", "MANY", "MOST", "ALL"] as const).map(q => (
+    <button
+      key={q}
+      type="button"
+      onClick={() => setQuantifier(q)}
+      className={`px-2 py-1 border rounded ${quantifier===q ? "bg-neutral-200" : "bg-white"}`}
+    >
+      {q}
+    </button>
+  ))}
+</div>
+
+{/* Modality */}
+<div className="flex items-center gap-2 text-sm">
+  <span className="text-neutral-500">Modality:</span>
+  {(["COULD", "LIKELY", "NECESSARY"] as const).map(m => (
+    <button
+      key={m}
+      type="button"
+      onClick={() => setModality(m)}
+      className={`px-2 py-1 border rounded ${modality===m ? "bg-neutral-200" : "bg-white"}`}
+    >
+      {m}
+    </button>
+  ))}
+</div>
       <input value={counter} onChange={e=>setCounter(e.target.value)} placeholder="Counter (optional)" className="w-full border rounded px-2 py-1" />
       <div className="flex items-center gap-3">
         <label className="text-sm">How sure:</label>

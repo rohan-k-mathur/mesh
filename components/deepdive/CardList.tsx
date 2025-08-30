@@ -4,6 +4,7 @@ import SchemePicker from '@/components/cite/SchemePicker';
 import CriticalQuestions from '@/components/claims/CriticalQuestions';
 import ToulminMini from '@/components/deepdive/ToulminMini';
 import useSWR, { mutate } from 'swr';
+import { AddGround, AddRebut } from './AddGroundRebut';
 
 const fetcher = (u: string) => fetch(u, { cache: 'no-store' }).then(r => r.json());
 
@@ -213,6 +214,15 @@ export default function CardList({ deliberationId }: { deliberationId: string })
   </div>
 
   {c.claimId && <ToulminMini claimId={c.claimId} />}
+  <div className="mt-2 grid gap-2">
+  {c.claimId && (
+    <>
+      <AddGround claimId={c.claimId} deliberationId={c.deliberationId} createdById={c.authorId} />
+      <AddRebut  claimId={c.claimId} deliberationId={c.deliberationId} createdById={c.authorId} />
+    </>
+  )}
+</div>
+
 
   <div className="mt-2">
     {c.claimId && (

@@ -17,6 +17,8 @@ const SaveSchema = z.object({
   hostEmbed: z.enum(['article','post','room_thread']).optional(),
   hostId: z.string().optional(),
   warrantText: z.string().optional(), // optional field we discussed
+  quantifier: z.enum(["SOME","MANY","MOST","ALL"]).optional(),
+modality: z.enum(["COULD","LIKELY","NECESSARY"]).optional(),
   cardId: z.string().optional(),
 });
 
@@ -94,7 +96,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     });
 
     if (input.cardId) {
-      // update existing
       const updated = await prisma.deliberationCard.update({
         where: { id: input.cardId },
         data: {
@@ -109,11 +110,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           hostEmbed: input.hostEmbed ?? null,
           hostId: input.hostId ?? null,
           moid,
-          // warrantText: input.warrantText ?? null,
         },
       });
       return NextResponse.json({ ok: true, card: updated });
     }
+    
          // create or reuse claim first
 const moidClaim = crypto.createHash('sha256').update(input.claimText).digest('hex');
 const claim = await prisma.claim.upsert({
@@ -146,8 +147,118 @@ const created = await prisma.deliberationCard.create({
     moid,
   },
 });
+
+// 👇 auto-create an Argument that carries qualifier info
+await prisma.argument.create({
+  data: {
+    deliberationId,
+    claimId: claim.id,
+    text: input.claimText,
+    quantifier: input.quantifier ?? null,
+    modality: input.modality ?? null,
+    confidence: input.confidence ?? null,
+    createdById: String(userId),
+  },
+});
+
+
+// Auto-harvest reasons -> supports edges
+for (const r of input.reasonsText) {
+  if (!r.trim()) continue;
+  const moid = crypto.createHash('sha256').update(r.trim()).digest('hex');
+  const reasonClaim = await prisma.claim.upsert({
+    where: { moid },
+    update: {},
+    create: {
+      text: r.trim(),
+      createdById: String(userId),
+      deliberationId,
+      moid,
+    },
+  });
+  await prisma.claimEdge.upsert({
+    where: {
+      unique_from_to_type_attack: {
+        fromClaimId: reasonClaim.id,
+        toClaimId: claim.id,
+        type: 'supports',
+        attackType: 'SUPPORTS',
+      },
+    },
+    update: {},
+    create: {
+      deliberationId,
+      fromClaimId: reasonClaim.id,
+      toClaimId: claim.id,
+      type: 'supports',
+      attackType: 'SUPPORTS',
+    },
+  });
+}
+// Auto-harvest objections -> rebuts edges
+for (const o of input.anticipatedObjectionsText) {
+  if (!o.trim()) continue;
+  try {
+    const moid = crypto.createHash('sha256').update(o.trim()).digest('hex');
+    const objClaim = await prisma.claim.upsert({
+      where: { moid },
+      update: {},
+      create: {
+        text: o.trim(),
+        createdById: String(userId),
+        deliberationId,
+        moid,
+      },
+    });
+
+    await prisma.claimEdge.upsert({
+      where: {
+        unique_from_to_type_attack: {
+          fromClaimId: objClaim.id,
+          toClaimId: claim.id,
+          type: 'rebuts',
+          attackType: 'REBUTS',
+        },
+      },
+      update: { targetScope: 'conclusion' },
+      create: {
+        deliberationId,
+        fromClaimId: objClaim.id,
+        toClaimId: claim.id,
+        type: 'rebuts',
+        attackType: 'REBUTS',
+        targetScope: 'conclusion',
+      },
+    });
+  } catch (err) {
+    console.error(`[auto-harvest objection] failed for "${o}"`, err);
+    // you could also collect these in an array if you want to report partial failures
+  }
+}
+
+// Auto-harvest warrant text -> ClaimWarrant
+if (input.warrantText?.trim()) {
+  try {
+    await prisma.claimWarrant.upsert({
+      where: { claimId: claim.id },
+      update: { text: input.warrantText.trim() },
+      create: {
+        claimId: claim.id,
+        text: input.warrantText.trim(),
+        createdBy: String(userId),
+      },
+    });
+  } catch (err) {
+    console.error(`[auto-harvest warrant] failed for claim ${claim.id}`, err);
+  }
+}
+
      
-    return NextResponse.json({ ok: true, card: created });
+return NextResponse.json({
+  ok: true,
+  card: created,
+  harvested: { reasons: input.reasonsText.length, objections: input.anticipatedObjectionsText.length }
+});
   } catch (e: any) {
     console.error('[cards] failed', e);
     return NextResponse.json({ error: e?.message ?? 'Invalid request' }, { status: 400 });

@@ -89,16 +89,20 @@ const schemes = await prisma.schemeInstance.findMany({
   ]);
 
   // 4) Qualifier (from arguments promoted to this claim)
-  const argRows = await prisma.argument.findMany({
+const argRows = await prisma.argument.findMany({
+  where: { claimId },
+  select: { quantifier: true, modality: true, confidence: true },
+});
+const qualifier = {
+  quantifier: mode<( 'SOME' | 'MANY' | 'MOST' | 'ALL')>(argRows.map(a => a.quantifier as any)),
+  modality: mode<('COULD' | 'LIKELY' | 'NECESSARY')>(argRows.map(a => a.modality as any)),
+  confidenceAvg:
+    argRows.length ? (argRows.reduce((s, a) => s + (a.confidence ?? 0), 0) / argRows.length) : null,
+};
+  const warrant = await prisma.claimWarrant.findUnique({
     where: { claimId },
-    select: { quantifier: true, modality: true, confidence: true },
+    select: { text: true },
   });
-  const qualifier = {
-    quantifier: mode<( 'SOME' | 'MANY' | 'MOST' | 'ALL')>(argRows.map(a => a.quantifier as any)),
-    modality: mode<('COULD' | 'LIKELY' | 'NECESSARY')>(argRows.map(a => a.modality as any)),
-    confidenceAvg:
-      argRows.length ? (argRows.reduce((s, a) => s + (a.confidence ?? 0), 0) / argRows.length) : null,
-  };
 
   return NextResponse.json({
     claim: { id: claim.id, text: claim.text },
@@ -111,5 +115,7 @@ const schemes = await prisma.schemeInstance.findMany({
       evidence: evidenceCount,
     },
     qualifier,
+    warrantText: warrant?.text ?? null,
+
   });
 }
