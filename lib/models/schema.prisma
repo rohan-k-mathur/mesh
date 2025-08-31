@@ -2102,6 +2102,9 @@ model AgreementAck {
   @@map("agreement_acks")
 }
 
+
+
+
 model Argument {
   id             String  @id @default(cuid())
   deliberationId String
@@ -2220,6 +2223,7 @@ model Cluster {
   arguments    ArgumentCluster[]
 
   @@index([deliberationId, type])
+  @@index([deliberationId, createdAt])
 }
 
 model UserCluster {

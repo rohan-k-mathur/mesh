@@ -1,6 +1,6 @@
 import type { Node, Edge } from "@xyflow/react";
 import type { Like, RealtimeLike } from "@prisma/client";
-import { ProductReviewPayload } from "../actions/feed.actions";
+
 export interface CanvasState {
   nodes: Node[];
   edges: Edge[];

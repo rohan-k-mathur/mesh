@@ -7,6 +7,7 @@ import dagre from 'cytoscape-dagre';
 import navigator from 'cytoscape-navigator';
 import CyCanvas from './CyCanvas';
 import SchemeOverlayFetch from './SchemeOverlayFetch';
+import HullOverlay from './HullOverlay';
 
 cytoscape.use(navigator);
 try { (cytoscape as any).__dagre__ || (cytoscape as any).use(dagre); (cytoscape as any).__dagre__ = true; } catch {}
@@ -41,6 +42,35 @@ function colorFor(label?: 'IN'|'OUT'|'UNDEC') {
 
 export default function AFLens({ deliberationId, height = 420 }: { deliberationId: string; height?: number }) {
   const [focusId, setFocusId] = useState<string | null>(null);
+  const [extraQuery, setExtraQuery] = useState('');
+  const hasFocus = extraQuery.includes('focusClusterId=');
+  const [showHulls, setShowHulls] = useState<boolean>(() => {
+    try { return localStorage.getItem('graph:showHulls') === '1'; } catch { return true; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem('graph:showHulls', showHulls ? '1' : '0'); } catch {}
+  }, [showHulls]);
+  
+
+  
+// event bus: focus one or multiple clusters
+useEffect(() => {
+  const handler = (ev: any) => {
+    if (ev?.detail?.deliberationId !== deliberationId) return;
+    const ids: string[] = ev.detail.clusterIds || (ev.detail.clusterId ? [ev.detail.clusterId] : []);
+    if (ids.length >= 2) {
+      setExtraQuery(`&focusClusterIds=${encodeURIComponent(ids.join(','))}`);
+    } else if (ids.length === 1) {
+      setExtraQuery(`&focusClusterId=${encodeURIComponent(ids[0])}`);
+    } else {
+      setExtraQuery('');
+    }
+  };
+  window.addEventListener('mesh:graph:focusCluster', handler as any);
+  return () => window.removeEventListener('mesh:graph:focusCluster', handler as any);
+}, [deliberationId]);
+
+
   const radius = 1;
   const maxNodes = 400;
 
@@ -50,7 +80,13 @@ export default function AFLens({ deliberationId, height = 420 }: { deliberationI
     return focusId ? `${base}&focus=${focusId}&radius=${radius}` : base;
   }, [deliberationId, focusId]);
 
-  const { data } = useSWR<GraphResponse>(key, fetcher, { revalidateOnFocus: false });
+  // const { data } = useSWR<GraphResponse>(key, fetcher, { revalidateOnFocus: false });
+  // change SWR key:
+  const { data } = useSWR<GraphResponse>(
+    deliberationId ? `/api/deliberations/${deliberationId}/graph?lens=af${extraQuery}` : null,
+    fetcher,
+    { revalidateOnFocus: false }
+  );
 
   const cyRef = useRef<cytoscape.Core | null>(null);
 
@@ -198,14 +234,31 @@ export default function AFLens({ deliberationId, height = 420 }: { deliberationI
   }, [focusId]);
 
 
-
+// add effect:
+useEffect(() => {
+  const handler = (ev: any) => {
+    if (ev?.detail?.deliberationId !== deliberationId) return;
+    const id = ev.detail.clusterId as string;
+    setExtraQuery(id ? `&focusClusterId=${encodeURIComponent(id)}` : '');
+  };
+  window.addEventListener('mesh:graph:focusCluster', handler as any);
+  return () => window.removeEventListener('mesh:graph:focusCluster', handler as any);
+}, [deliberationId]);
 
   return (
-    <div className="rounded border bg-white">
+    <div className="relative z-10 rounded border bg-white">
       <div className="flex items-center justify-between p-2 text-xs text-neutral-600">
         <div>Abstract AF (grounded labels)</div>
         <div className="flex items-center gap-3">
           <span>● IN ○ OUT ◐ UNDEC</span>
+          <label className="inline-flex items-center gap-1">
+      <input
+        type="checkbox"
+        checked={showHulls}
+        onChange={(e)=>setShowHulls(e.target.checked)}
+      />
+      Show hulls
+    </label>
           <button className="px-2 py-0.5 border rounded" onClick={runLayout}>Re-layout</button>
         </div>
       </div>
@@ -217,6 +270,7 @@ export default function AFLens({ deliberationId, height = 420 }: { deliberationI
   height={height}
   onReady={handleReady}
 />
+{hasFocus && showHulls && <HullOverlay cy={cyRef.current} height={height} enabled />}
 
       </div>
 

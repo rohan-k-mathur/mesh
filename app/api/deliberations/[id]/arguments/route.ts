@@ -7,7 +7,9 @@ import { since as startTimer, addServerTiming } from '@/lib/server/timing';
 
 const Query = PaginationQuery.extend({
   claimId: z.string().optional(),
+  clusterId: z.string().optional(), // NEW
 });
+
 
 
 // ---------- Zod schemas ----------
@@ -60,12 +62,26 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
-  const { cursor, limit, sort, claimId } = parsed.data;
+  const { cursor, limit, sort, claimId, clusterId } = parsed.data;
   const [field, dir] = sort.split(':') as ['createdAt','asc'|'desc'];
 
+
+  let argIdFilter: string[] | null = null;
+  if (clusterId) {
+    const rows = await prisma.argumentCluster.findMany({
+      where: { clusterId },
+      select: { argumentId: true },
+    });
+    argIdFilter = rows.map(r => r.argumentId);
+  }
+
   const rows = await prisma.argument.findMany({
-    where: { deliberationId: params.id, ...(claimId ? { claimId } : {}) },
-    orderBy: [{ [field]: dir }, { id: dir }],          // stable order for cursoring
+    where: {
+      deliberationId: params.id,
+      ...(claimId ? { claimId } : {}),
+      ...(argIdFilter ? { id: { in: argIdFilter } } : {}),
+    },
+        orderBy: [{ [field]: dir }, { id: dir }],          // stable order for cursoring
     take: limit + 1,
     ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
     include: {

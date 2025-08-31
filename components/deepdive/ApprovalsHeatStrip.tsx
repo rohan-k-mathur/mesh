@@ -96,11 +96,11 @@ export default function ApprovalsHeatStrip({
           <tbody>
             {rows.map((r) => (
               <tr key={r.id}>
-                <td className="pr-3 py-1 align-top w-[260px]">
+                <td className=" py-1 align-top w-fit max-w-[50%]">
                   <span title={r.full || r.id}>{r.short || r.id}</span>
                 </td>
                 {cohorts.map((c) => (
-                  <td key={c} className="px-2 py-1">
+                  <td key={c} className=" align-center justify-center px-5 py-1">
                     <Cell pct={r.columns[c]} />
                   </td>
                 ))}

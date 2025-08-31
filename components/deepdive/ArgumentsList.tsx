@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useRef, useEffect } from "react";
+import { useMemo, useRef,useState, useEffect } from "react";
 import useSWRInfinite from "swr/infinite";
 import { Virtuoso } from "react-virtuoso";
 import PromoteToClaimButton from "../claims/PromoteToClaimButton";
@@ -37,10 +37,26 @@ export default function ArgumentsList({
   onReplyTo: (id: string) => void;
   onChanged?: () => void;
 }) {
+
+  const [clusterId, setClusterId] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    const handler = (ev: any) => {
+      if (ev?.detail?.deliberationId !== deliberationId) return;
+      const ids: string[] = ev.detail.clusterIds || (ev.detail.clusterId ? [ev.detail.clusterId] : []);
+      setClusterId(ids[0]); // for list, we’ll filter by the first selected cluster
+      // Optionally scroll to top:
+      const el = document.getElementById('arguments-top');
+      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    };
+    window.addEventListener('mesh:list:filterCluster', handler as any);
+    return () => window.removeEventListener('mesh:list:filterCluster', handler as any);
+  }, [deliberationId]);
+  
   const getKey = (index: number, prev: any) => {
     if (prev && !prev.nextCursor) return null;
-    const cursor = index === 0 ? "" : `&cursor=${prev.nextCursor}`;
-    return `/api/deliberations/${deliberationId}/arguments?limit=${PAGE}${cursor}&sort=createdAt:desc`;
+    const cursor = index === 0 ? '' : `&cursor=${prev.nextCursor}`;
+    const clusterQ = clusterId ? `&clusterId=${encodeURIComponent(clusterId)}` : '';
+    return `/api/deliberations/${deliberationId}/arguments?limit=${PAGE}${cursor}&sort=createdAt:desc${clusterQ}`;
   };
 
   const { data, size, setSize, isValidating, error, mutate } = useSWRInfinite(getKey, fetcher, {
@@ -108,7 +124,7 @@ export default function ArgumentsList({
   }
 
   return (
-    <div className="relative z-10 w-full px-2 rounded-md border ">
+    <div id="arguments-top" className="relative z-10 w-full px-2 rounded-md border ">
       <div className="px-3 py-2 text-md font-medium">Arguments</div>
       <div className="rounded-md border py-1">
       <Virtuoso

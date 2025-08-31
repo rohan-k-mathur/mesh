@@ -51,6 +51,13 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const t = startTimer();
   const deliberationId = params.id;
   const url = new URL(req.url);
+// parse both single and multi-cluster focus
+const focusClusterId = url.searchParams.get('focusClusterId') ?? null;
+const focusClusterIdsParam = url.searchParams.get('focusClusterIds') ?? null;
+const focusClusterIds = focusClusterIdsParam
+  ? focusClusterIdsParam.split(',').map(s => s.trim()).filter(Boolean)
+  : (focusClusterId ? [focusClusterId] : []);
+
   const parsed = Query.safeParse({
     lens: url.searchParams.get('lens') ?? undefined,
     focus: url.searchParams.get('focus') ?? undefined,
@@ -101,6 +108,39 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     keepIds = new Set(Array.from(claimIds).slice(0, maxNodes));
   }
 
+  let allowedClaimIds: Set<string> | null = null;
+  
+
+if (focusClusterId) {
+  // Find argument IDs in that cluster, map to claimIds (non-null), use those as focus
+  const argIds = await prisma.argumentCluster.findMany({
+    where: { clusterId: focusClusterId },
+    select: { argumentId: true },
+  });
+  const argIdSet = new Set(argIds.map(a => a.argumentId));
+  const claimIdsFromArgs = await prisma.argument.findMany({
+    where: { id: { in: [...argIdSet] }, claimId: { not: null } },
+    select: { claimId: true },
+  });
+  allowedClaimIds = new Set(claimIdsFromArgs.map(a => a.claimId!) );
+}
+
+if (focusClusterIds.length) {
+  // gather all argumentIds for clusters
+  const memberships = await prisma.argumentCluster.findMany({
+    where: { clusterId: { in: focusClusterIds } },
+    select: { argumentId: true },
+  });
+  const argIds = [...new Set(memberships.map(m => m.argumentId))];
+
+  // map to claimIds
+  const argToClaim = await prisma.argument.findMany({
+    where: { id: { in: argIds }, claimId: { not: null } },
+    select: { claimId: true },
+  });
+  allowedClaimIds = new Set(argToClaim.map(a => a.claimId!));
+}
+
   const nodesBase = await prisma.claim.findMany({
     where: { id: { in: Array.from(keepIds) } },
     select: { id: true, text: true, deliberationId: true },
@@ -150,6 +190,13 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     },
     select: { id: true, fromClaimId: true, toClaimId: true, type: true, attackType: true, targetScope: true },
   });
+
+
+// later when building nodes/edges:
+const filteredClaims = allowedClaimIds
+? claims.filter(c => allowedClaimIds!.has(c.id))
+: claims;
+
 
   const nodes: Node[] = nodesBase.map(n => ({
     id: n.id,
