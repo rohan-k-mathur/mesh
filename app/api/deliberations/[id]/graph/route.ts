@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
 import { ClaimAttackType, ClaimEdgeType } from '@prisma/client';
+import { z } from 'zod';
+import { since as startTimer, addServerTiming } from '@/lib/server/timing';
 
 type Node = {
   id: string;
@@ -10,7 +12,6 @@ type Node = {
   approvals: number;
   schemeIcon?: string | null;
 };
-
 type Edge = {
   id: string;
   source: string;
@@ -20,13 +21,19 @@ type Edge = {
   targetScope?: 'premise' | 'inference' | 'conclusion' | null;
 };
 
-function scopeFrom(t: { attackType?: string | null; type: 'supports' | 'rebuts' }): 'premise'|'inference'|'conclusion'|null {
+const Query = z.object({
+  lens: z.enum(['af','bipolar']).default('af'),
+  focus: z.string().optional(),                      // claim id to center
+  radius: z.coerce.number().int().min(0).max(3).default(1),
+  maxNodes: z.coerce.number().int().positive().max(400).default(400),
+});
+
+function scopeFrom(t: { attackType?: string | null; type: 'supports'|'rebuts' }): 'premise'|'inference'|'conclusion'|null {
   if (t.attackType === 'UNDERCUTS')  return 'inference';
   if (t.attackType === 'UNDERMINES') return 'premise';
   if (t.type === 'rebuts' || t.attackType === 'REBUTS') return 'conclusion';
   return null;
 }
-
 function iconForScheme(key?: string | null): string | undefined {
   if (!key) return undefined;
   switch (key) {
@@ -41,41 +48,82 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+  const t = startTimer();
   const deliberationId = params.id;
   const url = new URL(req.url);
-  const lens = url.searchParams.get('lens') ?? 'af';
+  const parsed = Query.safeParse({
+    lens: url.searchParams.get('lens') ?? undefined,
+    focus: url.searchParams.get('focus') ?? undefined,
+    radius: url.searchParams.get('radius') ?? undefined,
+    maxNodes: url.searchParams.get('maxNodes') ?? undefined,
+  });
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+  }
+  const { lens, focus, radius, maxNodes } = parsed.data;
 
-  // 1) Claims in this deliberation
+  // Pull all claim ids for the deliberation (cheap – indexed)
   const claims = await prisma.claim.findMany({
     where: { deliberationId },
     select: { id: true, text: true },
   });
-  const claimIds = claims.map(c => c.id);
+  const claimIds = new Set(claims.map(c => c.id));
 
-  // 2) Ground labels (optional)
-  const labels = await prisma.claimLabel.findMany({
-    where: { deliberationId, claimId: { in: claimIds } },
-    select: { claimId: true, label: true },
-  });
-  const labelByClaim = new Map<string, 'IN'|'OUT'|'UNDEC'>(
-    labels.map(l => [l.claimId, l.label as any])
-  );
-
-  // 3) Scheme badge (first instance per claim)
-  const schemeInstances = await prisma.schemeInstance.findMany({
-    where: { targetType: 'claim', targetId: { in: claimIds } },
-    select: { targetId: true, scheme: { select: { key: true } } },
-  });
-  const schemeIconByClaim = new Map<string, string | undefined>();
-  for (const inst of schemeInstances) {
-    if (!schemeIconByClaim.has(inst.targetId)) {
-      schemeIconByClaim.set(inst.targetId, iconForScheme(inst.scheme?.key));
+  // Neighborhood set
+  let keepIds: Set<string>;
+  if (focus && claimIds.has(focus)) {
+    keepIds = new Set<string>([focus]);
+    let frontier = new Set<string>([focus]);
+    for (let r = 0; r < radius; r++) {
+      if (keepIds.size >= maxNodes) break;
+      const ids = Array.from(frontier);
+      const edges = await prisma.claimEdge.findMany({
+        where: {
+          deliberationId,
+          OR: [{ fromClaimId: { in: ids } }, { toClaimId: { in: ids } }],
+        },
+        select: { fromClaimId: true, toClaimId: true },
+        take: 2000,  // guard
+      });
+      const next = new Set<string>();
+      for (const e of edges) {
+        if (!keepIds.has(e.fromClaimId)) next.add(e.fromClaimId);
+        if (!keepIds.has(e.toClaimId))   next.add(e.toClaimId);
+      }
+      next.forEach(id => keepIds.add(id));
+      frontier = next;
+      if (keepIds.size >= maxNodes) break;
     }
+    // clip
+    keepIds = new Set(Array.from(keepIds).slice(0, maxNodes));
+  } else {
+    // fallback (legacy): show everything but cap by maxNodes
+    keepIds = new Set(Array.from(claimIds).slice(0, maxNodes));
   }
 
-  // 4) Approvals rolled up from promoted arguments (optional)
+  const nodesBase = await prisma.claim.findMany({
+    where: { id: { in: Array.from(keepIds) } },
+    select: { id: true, text: true, deliberationId: true },
+  });
+
+  // Labels (optional)
+  const labels = await prisma.claimLabel.findMany({
+    where: { deliberationId, claimId: { in: nodesBase.map(n => n.id) } },
+    select: { claimId: true, label: true },
+  });
+  const labelBy = new Map(labels.map(l => [l.claimId, l.label as any]));
+
+  // Scheme icon (first instance)
+  const schemeInstances = await prisma.schemeInstance.findMany({
+    where: { targetType: 'claim', targetId: { in: nodesBase.map(n => n.id) } },
+    select: { targetId: true, scheme: { select: { key: true } } },
+  });
+  const iconBy = new Map<string, string | undefined>();
+  for (const si of schemeInstances) if (!iconBy.has(si.targetId)) iconBy.set(si.targetId, iconForScheme(si.scheme?.key));
+
+  // Approvals via promoted args
   const promotedArgs = await prisma.argument.findMany({
-    where: { deliberationId, claimId: { not: null } },
+    where: { deliberationId, claimId: { in: nodesBase.map(n => n.id) } },
     select: { id: true, claimId: true },
   });
   const approvalsGrouped = await prisma.argumentApproval.groupBy({
@@ -84,45 +132,41 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     _count: { argumentId: true },
   });
   const approvalsPerArg = new Map(approvalsGrouped.map(g => [g.argumentId, g._count.argumentId]));
-  const approvalsPerClaim = new Map<string, number>();
-  for (const a of promotedArgs) {
-    const inc = approvalsPerArg.get(a.id) ?? 0;
-    approvalsPerClaim.set(a.claimId!, (approvalsPerClaim.get(a.claimId!) ?? 0) + inc);
-  }
+  const statRows = await prisma.claimStats.findMany({
+    where: { deliberationId, claimId: { in: nodesBase.map(n => n.id) } },
+    select: { claimId: true, approvalsCount: true },
+  });
+  const approvalsPerClaim = new Map<string, number>(
+    statRows.map(s => [s.claimId, s.approvalsCount ?? 0])
+  );
+    for (const a of promotedArgs) approvalsPerClaim.set(a.claimId!, (approvalsPerClaim.get(a.claimId!) ?? 0) + (approvalsPerArg.get(a.id) ?? 0));
 
-  // 5) Materialized claim→claim edges (the only source of edges now)
-  const claimEdges = await prisma.claimEdge.findMany({
+  // Edges only among kept nodes
+  const edgesRaw = await prisma.claimEdge.findMany({
     where: {
-      deliberationId,                // ← ensure set in write paths
-      fromClaimId: { in: claimIds },
-      toClaimId:   { in: claimIds },
+      deliberationId,
+      fromClaimId: { in: nodesBase.map(n => n.id) },
+      toClaimId:   { in: nodesBase.map(n => n.id) },
     },
-    select: {
-      id: true, fromClaimId: true, toClaimId: true,
-      type: true,                  // enum ClaimEdgeType
-      attackType: true,            // enum ClaimAttackType | null
-      targetScope: true,           // string | null
-    },
+    select: { id: true, fromClaimId: true, toClaimId: true, type: true, attackType: true, targetScope: true },
   });
 
-  const nodes: Node[] = claims.map(c => ({
-    id: c.id,
+  const nodes: Node[] = nodesBase.map(n => ({
+    id: n.id,
     type: 'claim',
-    text: c.text,
-    label: labelByClaim.get(c.id) ?? 'UNDEC',
-    approvals: approvalsPerClaim.get(c.id) ?? 0,
-    schemeIcon: schemeIconByClaim.get(c.id) ?? null,
+    text: n.text,
+    label: labelBy.get(n.id) ?? 'UNDEC',
+    approvals: approvalsPerClaim.get(n.id) ?? 0,
+    schemeIcon: iconBy.get(n.id) ?? null,
   }));
 
-  const edges: Edge[] = claimEdges.map(e => {
-    // Enums serialize as their textual value in Prisma client
+  const edges: Edge[] = edgesRaw.map(e => {
     const type = e.type === ClaimEdgeType.rebuts ? 'rebuts' : 'supports';
     const attackType =
       e.attackType === ClaimAttackType.REBUTS     ? 'REBUTS'     :
       e.attackType === ClaimAttackType.UNDERCUTS  ? 'UNDERCUTS'  :
       e.attackType === ClaimAttackType.UNDERMINES ? 'UNDERMINES' :
       'SUPPORTS';
-
     return {
       id: e.id,
       source: e.fromClaimId,
@@ -133,5 +177,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     };
   });
 
-  return NextResponse.json({ nodes, edges, version: Date.now(), lens });
+  const res = NextResponse.json({ nodes, edges, version: Date.now(), lens, capped: claimIds.size > keepIds.size }, {
+    headers: { 'Cache-Control': 'no-store' },
+  });
+  addServerTiming(res, [{ name: 'total', durMs: t() }]);
+  return res;
 }

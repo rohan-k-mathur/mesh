@@ -9,6 +9,8 @@ type ToulminData = {
   undercuts: { id: string; text: string }[];
   backing: { schemes: { key: string; name?: string | null; icon?: string; count: number }[]; citations: number; evidence: number };
   qualifier: { quantifier?: 'SOME'|'MANY'|'MOST'|'ALL'; modality?: 'COULD'|'LIKELY'|'NECESSARY'; confidenceAvg: number | null };
+  warrant: string | null;   // explicit warrant text if provided
+
 };
 function iconForScheme(key?: string | null): string {
   switch (key) {
@@ -34,7 +36,7 @@ export default function ToulminMini({ claimId }: { claimId: string }) {
   if (isLoading) return <div className="text-xs text-neutral-500 border rounded p-3">Loading Toulmin…</div>;
   if (error || !data) return <div className="text-xs text-rose-600 border rounded p-3">Failed to load Toulmin.</div>;
 
-  const { claim, grounds, rebuttals, undercuts, backing, qualifier } = data;
+   const { claim, grounds, rebuttals, undercuts, backing, qualifier, warrant } = data;
   const hasWarrantIssue = (undercuts?.length ?? 0) > 0;
 
   return (
@@ -63,18 +65,32 @@ export default function ToulminMini({ claimId }: { claimId: string }) {
 
         {/* Warrant */}
         <Slot title="Warrant">
-          {hasWarrantIssue ? (
-            <div className="text-[12px]">
-              <Badge color="violet">contested</Badge>{' '}
-              <span className="text-neutral-700">Undercut(s) challenge the rule linking Grounds → Claim.</span>
-            </div>
-          ) : (
-            <div className="text-[12px] text-neutral-700">
-              <Badge color="slate">inferred</Badge>{' '}
-              If grounds hold, then (normally) the claim follows.
-            </div>
-          )}
-        </Slot>
+  {warrant ? (
+    <div className="text-[12px] text-neutral-700 mb-1">{warrant}</div>
+  ) : null}
+
+  {undercuts.length > 0 && (
+    <div className="text-[12px] text-rose-700">
+<span
+  title="This claim’s warrant is challenged by counter-claims (undercuts)."
+>
+  <Badge color="violet">contested</Badge>
+</span>      <ul className="list-disc ml-4 mt-1 space-y-1">
+        {undercuts.slice(0, 2).map(u => (
+          <li key={u.id}>{u.text}</li>
+        ))}
+      </ul>
+    </div>
+  )}
+
+  {!warrant && undercuts.length === 0 && (
+    <div className="text-[12px] text-neutral-700">
+      <Badge color="slate">inferred</Badge>{' '}
+      If grounds hold, then (normally) the claim follows.
+    </div>
+  )}
+</Slot>
+
 
         {/* Backing */}
 <Slot title="Backing">

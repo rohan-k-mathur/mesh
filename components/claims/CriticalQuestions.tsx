@@ -1,66 +1,261 @@
 'use client';
-import useSWR from 'swr';
-import { useState } from 'react';
 
-const fetcher = (u: string) => fetch(u).then(r => r.json());
+import * as React from 'react';
+import useSWR, { mutate as globalMutate } from 'swr';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+
+type RebutScope = 'premise' | 'conclusion';
+type Suggestion = { type: 'undercut' | 'rebut'; scope?: RebutScope } | null;
+type CQ = { key: string; text: string; satisfied: boolean; suggestion?: Suggestion };
+type Scheme = { key: string; title: string; cqs: CQ[] };
+type CQsResponse = { targetType: 'claim'; targetId: string; schemes: Scheme[] };
+
+const fetcher = async (u: string) => {
+  const res = await fetch(u, { cache: 'no-store' });
+  if (!res.ok) throw new Error(await res.text());
+  return (await res.json()) as CQsResponse;
+};
+
+const CQS_KEY = (id: string, scheme?: string) =>
+  `/api/cqs?targetType=claim&targetId=${id}${scheme ? `&scheme=${scheme}` : ''}`;
+const TOULMIN_KEY = (id: string) => `/api/claims/${id}/toulmin`;
+const GRAPH_KEY = (roomId: string, lens: string, audienceId?: string) =>
+  `graph:${roomId}:${lens}:${audienceId ?? 'none'}`;
 
 export default function CriticalQuestions({
-  targetType, targetId, createdById, counterFromClaimId,
+  targetType,
+  targetId,
+  createdById, // unused here, kept for parity
+  roomId,
+  currentLens,
+  currentAudienceId,
+  selectedAttackerClaimId, // optional: if user has a selected counter-claim already
 }: {
-  targetType: 'card'|'claim';
+  targetType: 'claim';
   targetId: string;
   createdById: string;
-  counterFromClaimId?: string; // a claim you want to use as counter; for MVP pass it
+  roomId?: string;
+  currentLens?: string;
+  currentAudienceId?: string;
+  selectedAttackerClaimId?: string;
 }) {
-  const { data, mutate } = useSWR(
-    `/api/schemes/instances?targetType=${targetType}&targetId=${targetId}`,
-    fetcher
-  );
-  const [posting, setPosting] = useState<string | null>(null);
+  const { data, error, isLoading, mutate } = useSWR<CQsResponse>(CQS_KEY(targetId), fetcher);
 
-  async function postCounter(cqId: string) {
-    if (!counterFromClaimId) { alert('Provide a counter claim first.'); return; }
-    setPosting(cqId);
-    const res = await fetch(`/api/schemes/questions/${cqId}/counter`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ counterFromClaimId, createdById }),
-    });
-    setPosting(null);
-    if (res.ok) mutate();
-    else alert('Failed to post counter');
+  const [composeOpen, setComposeOpen] = React.useState(false);
+  const [composeText, setComposeText] = React.useState('');
+  const [composeLoading, setComposeLoading] = React.useState(false);
+  const [pendingAttach, setPendingAttach] = React.useState<{
+    schemeKey: string;
+    cqKey: string;
+  } | null>(null);
+  const [attachError, setAttachError] = React.useState<string | null>(null);
+
+  if (isLoading) return <div className="text-xs text-neutral-500">Loading CQs…</div>;
+  if (error) return <div className="text-xs text-red-600">Failed to load CQs.</div>;
+
+  const schemes: Scheme[] = Array.isArray(data?.schemes) ? data!.schemes : [];
+  if (!schemes.length) return <div className="text-xs text-neutral-500">No critical questions yet.</div>;
+
+  async function revalidateAll(schemeKey?: string) {
+    await Promise.all([
+      mutate(CQS_KEY(targetId, schemeKey)),
+      globalMutate(TOULMIN_KEY(targetId)),
+      roomId && currentLens ? globalMutate(GRAPH_KEY(roomId, currentLens, currentAudienceId)) : Promise.resolve(),
+    ]);
   }
 
-  const instances = data?.instances ?? [];
-  if (instances.length === 0) return null;
+  async function toggleCQ(schemeKey: string, cqKey: string, next: boolean) {
+    const prev = data;
+    mutate(
+      (current) => {
+        if (!current) return current;
+        return {
+          ...current,
+          schemes: current.schemes.map((s) =>
+            s.key !== schemeKey ? s : { ...s, cqs: s.cqs.map((cq) => (cq.key === cqKey ? { ...cq, satisfied: next } : cq)) }
+          ),
+        };
+      },
+      { revalidate: false }
+    );
+
+    try {
+      const res = await fetch('/api/cqs/toggle', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ targetType, targetId, schemeKey, cqKey, satisfied: next }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+    } catch {
+      mutate(prev, { revalidate: false });
+    } finally {
+      await revalidateAll(schemeKey);
+    }
+  }
+
+  // Entry point when user clicks "Attach"
+  async function onAttachClick(schemeKey: string, cqKey: string) {
+    setAttachError(null);
+    // If a counter claim is already selected in UI, use it directly
+    if (selectedAttackerClaimId) {
+      await attachWithAttacker(schemeKey, cqKey, selectedAttackerClaimId);
+      return;
+    }
+    // else open quick composer
+    setPendingAttach({ schemeKey, cqKey });
+    setComposeText('');
+    setComposeOpen(true);
+  }
+
+  async function attachWithAttacker(schemeKey: string, cqKey: string, attackerClaimId: string) {
+    setAttachError(null);
+    // satisfied=false + attachSuggestion + attackerClaimId → server will create ClaimEdge
+    const res = await fetch('/api/cqs/toggle', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        targetType,
+        targetId,
+        schemeKey,
+        cqKey,
+        satisfied: false,
+        attachSuggestion: true,
+        attackerClaimId,
+      }),
+    });
+    if (!res.ok) {
+      const msg = await res.text().catch(() => '');
+      throw new Error(msg || 'Failed to attach');
+    }
+    await revalidateAll(schemeKey);
+  }
+
+  async function handleComposeSubmit() {
+    if (!pendingAttach) return;
+    try {
+      setComposeLoading(true);
+      setAttachError(null);
+
+      // 1) create the counter-claim in same deliberation
+      const ccRes = await fetch('/api/claims/quick-create', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ targetClaimId: targetId, text: composeText.trim() }),
+      });
+      if (!ccRes.ok) throw new Error(await ccRes.text());
+      const { claimId: attackerClaimId } = (await ccRes.json()) as { claimId: string };
+
+      // 2) attach using that new claim
+      await attachWithAttacker(pendingAttach.schemeKey, pendingAttach.cqKey, attackerClaimId);
+
+      setComposeOpen(false);
+      setPendingAttach(null);
+      setComposeText('');
+    } catch (e: any) {
+      setAttachError(e?.message || 'Failed to attach');
+    } finally {
+      setComposeLoading(false);
+    }
+  }
 
   return (
-    <div className="mt-2">
-      {instances.map((inst: any) => (
-        <div key={inst.id} className="mb-2">
-          <div className="text-xs text-slate-600">
-            Scheme: {inst.scheme?.title ?? inst.schemeId}
+    <>
+      <div className="space-y-3">
+        {schemes.map((s) => (
+          <div key={s.key} className="rounded border p-2">
+            <div className="text-xs font-semibold">{s.title}</div>
+            <ul className="mt-1 space-y-1">
+              {s.cqs.map((cq) => {
+                const id = `${s.key}__${cq.key}`;
+                const attachLabel =
+                  cq.suggestion?.type === 'undercut'
+                    ? 'Attach undercut'
+                    : cq.suggestion?.type === 'rebut'
+                    ? `Attach rebut (${cq.suggestion.scope ?? 'conclusion'})`
+                    : 'Attach';
+
+                return (
+                  <li key={cq.key} className="flex items-center justify-between text-sm">
+                    <label htmlFor={id} className="flex items-center gap-2 cursor-pointer">
+                      <Checkbox
+                        id={id}
+                        checked={cq.satisfied}
+                        onCheckedChange={(val) => toggleCQ(s.key, cq.key, Boolean(val))}
+                      />
+                      <span>{cq.text}</span>
+                    </label>
+
+                    {!cq.satisfied && cq.suggestion && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onAttachClick(s.key, cq.key)}
+                        title={attachLabel}
+                        className="text-[11px] px-2 py-1 h-7"
+                      >
+                        Attach
+                      </Button>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
           </div>
-          <div className="flex flex-wrap gap-2 mt-1">
-            {(inst.criticalQuestions ?? []).map((q: any) => (
-              <span key={q.id} className="inline-flex items-center gap-2 text-xs border rounded px-2 py-1">
-                {q.text}
-                <span className="text-[10px] px-1 rounded bg-slate-100">{q.attackKind}</span>
-                {q.status === 'open' && (
-                  <button
-                    className="underline"
-                    onClick={() => postCounter(q.id)}
-                    disabled={posting === q.id}
-                    title="Create a counter edge of the indicated attack kind"
-                  >
-                    {posting === q.id ? 'Posting…' : 'Post counter'}
-                  </button>
-                )}
-                {q.status !== 'open' && <span className="text-[10px] text-emerald-700">resolved</span>}
-              </span>
-            ))}
+        ))}
+      </div>
+
+      {/* Quick-compose dialog */}
+      <Dialog open={composeOpen} onOpenChange={(o) => !composeLoading && setComposeOpen(o)}>
+        <DialogContent className="sm:max-w-[520px]">
+          <DialogHeader>
+            <DialogTitle>Add a counter-claim</DialogTitle>
+            <DialogDescription>
+              Write a concise counter-claim to attach as an undercut/rebut for the unmet CQ.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            <label className="text-xs font-medium">Counter-claim text</label>
+            <Textarea
+              value={composeText}
+              onChange={(e) => setComposeText(e.target.value)}
+              placeholder="e.g., The cited expert’s field is unrelated to the claim under discussion."
+              disabled={composeLoading}
+              rows={5}
+            />
+            {/* optional: quick metadata */}
+            {/* <Input placeholder="(optional) source URL" /> */}
+            {attachError && <div className="text-xs text-red-600">{attachError}</div>}
           </div>
-        </div>
-      ))}
-    </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="ghost"
+              onClick={() => setComposeOpen(false)}
+              disabled={composeLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleComposeSubmit}
+              disabled={composeLoading || composeText.trim().length < 3}
+            >
+              {composeLoading ? 'Attaching…' : 'Create & Attach'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

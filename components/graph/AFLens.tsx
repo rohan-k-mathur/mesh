@@ -40,14 +40,19 @@ function colorFor(label?: 'IN'|'OUT'|'UNDEC') {
 }
 
 export default function AFLens({ deliberationId, height = 420 }: { deliberationId: string; height?: number }) {
-  const { data } = useSWR<GraphResponse>(
-    deliberationId ? `/api/deliberations/${deliberationId}/graph?lens=af` : null,
-    fetcher,
-    { revalidateOnFocus: false }
-  );
+  const [focusId, setFocusId] = useState<string | null>(null);
+  const radius = 1;
+  const maxNodes = 400;
+
+  const key = useMemo(() => {
+    if (!deliberationId) return null;
+    const base = `/api/deliberations/${deliberationId}/graph?lens=af&maxNodes=${maxNodes}`;
+    return focusId ? `${base}&focus=${focusId}&radius=${radius}` : base;
+  }, [deliberationId, focusId]);
+
+  const { data } = useSWR<GraphResponse>(key, fetcher, { revalidateOnFocus: false });
 
   const cyRef = useRef<cytoscape.Core | null>(null);
-  const [focusId, setFocusId] = useState<string | null>(null);
 
   // Build Cytoscape elements from server data
   const elements = useMemo(() => {
@@ -151,22 +156,16 @@ export default function AFLens({ deliberationId, height = 420 }: { deliberationI
   
   function handleReady(cy: cytoscape.Core) {
     cyRef.current = cy;
-    // initNavigator();
-
-  
-  
-  
-const restored = loadLayout();
-if (!restored) {
-  cy.layout({ name: 'dagre', nodeSep: 30, rankSep: 70, rankDir: 'TB', padding: 20 }).run();
-}
-cy.on('layoutstop', saveLayout);
-
-cy.on('tap', 'node', evt => {
-  const id = evt.target.id();
-  setFocusId(prev => (prev === id ? null : id));
-});
-}
+    const restored = loadLayout();
+    if (!restored) {
+      cy.layout({ name: 'dagre', nodeSep: 30, rankSep: 70, rankDir: 'TB', padding: 20 }).run();
+    }
+    cy.on('layoutstop', saveLayout);
+    cy.on('tap', 'node', evt => {
+      const id = evt.target.id();
+      setFocusId(prev => (prev === id ? null : id));
+    });
+  }
 
   useEffect(() => {
     const cy = cyRef.current;

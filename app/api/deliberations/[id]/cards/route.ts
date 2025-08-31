@@ -4,6 +4,9 @@ import { prisma } from '@/lib/prismaclient';
 import { getCurrentUserId } from '@/lib/serverutils';
 import crypto from 'crypto';
 import { mintClaimMoid } from '@/lib/ids/mintMoid';
+import { PaginationQuery, makePage } from '@/lib/server/pagination';
+import { since as startTimer, addServerTiming } from '@/lib/server/timing';
+import { isValid, parseISO } from 'date-fns';
 
 
 const SaveSchema = z.object({
@@ -33,45 +36,85 @@ function mintMoid(payload: any) {
   return crypto.createHash('sha256').update(canon).digest('hex');
 }
 
-// GET /api/deliberations/[id]/cards?status=published|draft
+const Query = PaginationQuery.extend({
+  status: z.enum(['draft','published']).optional(),
+  authorId: z.string().optional(),
+  since: z.string().optional(),  // ISO date/time
+  until: z.string().optional(),  // ISO date/time (exclusive)
+});
+
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+  const t = startTimer();
   const deliberationId = params.id;
   const url = new URL(req.url);
-  const status = url.searchParams.get('status') ?? undefined;
+
+  const wantsPage = url.searchParams.has('cursor') || url.searchParams.has('limit') || url.searchParams.get('page') === '1';
+
+  const parsed = Query.safeParse({
+    cursor: url.searchParams.get('cursor') ?? undefined,
+    limit: url.searchParams.get('limit') ?? undefined,
+    sort: url.searchParams.get('sort') ?? undefined,
+    status: url.searchParams.get('status') ?? undefined,
+    authorId: url.searchParams.get('authorId') ?? undefined,
+    since: url.searchParams.get('since') ?? undefined,
+    until: url.searchParams.get('until') ?? undefined,
+  });
+
+  if (!parsed.success && wantsPage) {
+    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+  }
+
+  // Legacy (no pagination flags): keep old response shape, but apply filters too
+  if (!wantsPage) {
+    const q = parsed.success ? parsed.data : { status: url.searchParams.get('status') ?? undefined } as any;
+    const where: any = { deliberationId };
+    if (q.status) where.status = q.status;
+    if (q.authorId) where.authorId = q.authorId;
+    if (q.since) where.createdAt = { ...(where.createdAt ?? {}), gte: parseISO(q.since) };
+    if (q.until) where.createdAt = { ...(where.createdAt ?? {}), lt: parseISO(q.until) };
+
+    const rows = await prisma.deliberationCard.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true, deliberationId: true, authorId: true, status: true, createdAt: true,
+        claimId: true, claimText: true, reasonsText: true, evidenceLinks: true,
+        anticipatedObjectionsText: true, counterText: true, confidence: true,
+        hostEmbed: true, hostId: true, warrantText: true,
+        claim: { select: { id: true, text: true } },
+      },
+    });
+    return NextResponse.json({ cards: rows });
+  }
+
+  // Paginated path
+  const { cursor, limit, sort, status, authorId, since, until } = parsed.data!;
+  const [field, dir] = (sort ?? 'createdAt:desc').split(':') as ['createdAt','asc'|'desc'];
 
   const where: any = { deliberationId };
   if (status) where.status = status;
+  if (authorId) where.authorId = authorId;
+  if (since) where.createdAt = { ...(where.createdAt ?? {}), gte: parseISO(since) };
+  if (until) where.createdAt = { ...(where.createdAt ?? {}), lt: parseISO(until) };
 
   const rows = await prisma.deliberationCard.findMany({
     where,
-    orderBy: { createdAt: 'desc' },
+    orderBy: [{ [field]: dir }, { id: dir }],
+    take: (limit ?? 50) + 1,
+    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
     select: {
-      id: true,
-      deliberationId: true,
-      authorId: true,
-      status: true,
-      createdAt: true,
-      claimId: true,             // ✅ include claimId
-      claimText: true,
-      reasonsText: true,
-      evidenceLinks: true,
-      anticipatedObjectionsText: true,
-      counterText: true,
-      confidence: true,
-      hostEmbed: true,
-      hostId: true,
-      warrantText: true,
-      // Optionally include claim fields:
-      claim: {
-        select: {
-          id: true,
-          text: true,
-        },
-      },
+      id: true, deliberationId: true, authorId: true, status: true, createdAt: true,
+      claimId: true, claimText: true, reasonsText: true, evidenceLinks: true,
+      anticipatedObjectionsText: true, counterText: true, confidence: true,
+      hostEmbed: true, hostId: true, warrantText: true,
+      claim: { select: { id: true, text: true } },
     },
   });
-  
-  return NextResponse.json({ cards: rows });
+
+  const page = makePage(rows, limit ?? 50);
+  const res = NextResponse.json(page, { headers: { 'Cache-Control': 'no-store' } });
+  addServerTiming(res, [{ name: 'total', durMs: t() }]);
+  return res;
 }
 
 // POST create/update card (server derives author)
@@ -148,18 +191,7 @@ const created = await prisma.deliberationCard.create({
   },
 });
 
-// 👇 auto-create an Argument that carries qualifier info
-await prisma.argument.create({
-  data: {
-    deliberationId,
-    claimId: claim.id,
-    text: input.claimText,
-    quantifier: input.quantifier ?? null,
-    modality: input.modality ?? null,
-    confidence: input.confidence ?? null,
-    createdById: String(userId),
-  },
-});
+
 
 
 // Auto-harvest reasons -> supports edges
@@ -253,11 +285,26 @@ if (input.warrantText?.trim()) {
   }
 }
 
-     
+     // Create the argument with qualifiers
+const argument = await prisma.argument.create({
+  data: {
+    deliberationId,
+    claimId: claim.id,
+    text: input.claimText,
+    quantifier: input.quantifier ?? null,
+    modality: input.modality ?? null,
+    confidence: input.confidence ?? null,
+    authorId: String(userId),
+  },
+});
 return NextResponse.json({
   ok: true,
   card: created,
-  harvested: { reasons: input.reasonsText.length, objections: input.anticipatedObjectionsText.length }
+  argument, // ✅ now it's defined
+  harvested: {
+    reasons: input.reasonsText.length,
+    objections: input.anticipatedObjectionsText.length,
+  },
 });
   } catch (e: any) {
     console.error('[cards] failed', e);

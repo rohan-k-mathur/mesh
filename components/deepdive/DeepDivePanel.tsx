@@ -1,31 +1,44 @@
-'use client';
-import { useEffect, useState } from 'react';
-import DeliberationComposer from './DeliberationComposer';
-import { RepresentativeViewpoints } from './RepresentativeViewpoints';
-import ArgumentsList from './ArgumentsList';
-import CardComposerTab from '@/components/deepdive/CardComposerTab';
-import StatusChip from '@/components/governance/StatusChip';
-import { Tabs, TabsList, TabsContent, TabsTrigger } from '../ui/tabs';
-import CegMiniMap from './CegMiniMap';
-import TopologyWidget from './TopologyWidget';
-import HelpModal from '@/components/help/HelpModal';
-import DiscusHelpPage from '../help/HelpPage';
-import ApprovalsHeatStrip from '@/components/deepdive/ApprovalsHeatStrip';
-import CardList from '@/components/deepdive/CardList';
-import { ViewControls } from './RepresentativeViewpoints';
-import GraphPanel from '@/components/graph/GraphPanel';
-import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
+"use client";
+import { useEffect, useState } from "react";
+import DeliberationComposer from "./DeliberationComposer";
+import { RepresentativeViewpoints } from "./RepresentativeViewpoints";
+import ArgumentsList from "./ArgumentsList";
+import CardComposerTab from "@/components/deepdive/CardComposerTab";
+import StatusChip from "@/components/governance/StatusChip";
+import { Tabs, TabsList, TabsContent, TabsTrigger } from "../ui/tabs";
+import CegMiniMap from "./CegMiniMap";
+import TopologyWidget from "./TopologyWidget";
+import HelpModal from "@/components/help/HelpModal";
+import DiscusHelpPage from "../help/HelpPage";
+import ApprovalsHeatStrip from "@/components/deepdive/ApprovalsHeatStrip";
+import CardList from "@/components/deepdive/CardList";
+import { ViewControls } from "./RepresentativeViewpoints";
+import GraphPanel from "@/components/graph/GraphPanel";
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from "@/components/ui/collapsible";
+import CardListVirtuoso from "@/components/deepdive/CardListVirtuoso";
+import dynamic from "next/dynamic";
+import { useAuth } from "@/lib/AuthContext";
 
-
-
+const LazyGraphPanel = dynamic(() => import("@/components/graph/GraphPanel"), {
+  ssr: false,
+});
 
 type Selection = {
   id: string;
   deliberationId: string; // ✅ selection now includes this
-  rule: 'utilitarian'|'harmonic'|'maxcov';
+  rule: "utilitarian" | "harmonic" | "maxcov";
   k: number;
-  coverageAvg: number; coverageMin: number; jrSatisfied: boolean;
-  views: { index: number; arguments: { id: string; text: string; confidence?: number|null }[] }[];
+  coverageAvg: number;
+  coverageMin: number;
+  jrSatisfied: boolean;
+  views: {
+    index: number;
+    arguments: { id: string; text: string; confidence?: number | null }[];
+  }[];
 };
 
 
@@ -56,52 +69,72 @@ function usePersisted(key: string, def = true) {
   return { open, setOpen };
 }
 
-export function SectionCard({ title, action, children }: { title?: string; action?: React.ReactNode; children: React.ReactNode }) {
-    return (
-      <section className="rounded-2xl border border-slate-200 bg-white/95 backdrop-blur shadow-sm">
-        {(title || action) && (
-          <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-100">
-            <h3 className="text-sm font-semibold text-slate-700">{title}</h3>
-            {action}
-          </div>
-        )}
-        <div className="px-4 py-3">{children}</div>
-      </section>
-    );
-  }
-  
+export function SectionCard({
+  title,
+  action,
+  children,
+}: {
+  title?: string;
+  action?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white/75  shadow-md">
+      {(title || action) && (
+        <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-100">
+          <h3 className="text-sm font-semibold text-slate-700">{title}</h3>
+          {action}
+        </div>
+      )}
+      <div className="px-3 py-4">{children}</div>
+    </section>
+  );
+}
 
-export default function DeepDivePanel({ deliberationId }: { deliberationId: string }) {
+export default function DeepDivePanel({
+  deliberationId,
+}: {
+  deliberationId: string;
+}) {
   const [sel, setSel] = useState<Selection | null>(null);
   const [pending, setPending] = useState(false);
   const [replyTo, setReplyTo] = useState<string | null>(null);
-  const [status, setStatus] = useState<string|null>(null);
-  const [rule, setRule] = useState<'utilitarian'|'harmonic'|'maxcov'>('utilitarian');
+  const [status, setStatus] = useState<string | null>(null);
+  const [rule, setRule] = useState<"utilitarian" | "harmonic" | "maxcov">(
+    "utilitarian"
+  );
+  const { user } = useAuth();                // e.g., { userId?: string | number | bigint | null }
+  const authorId = user?.userId != null ? String(user.userId) : undefined;
 
   useEffect(() => {
-    fetch(`/api/content-status?targetType=deliberation&targetId=${deliberationId}`)
-      .then(r => r.json())
-      .then(d => setStatus(d.status))
-      .catch(()=>{});
+    fetch(
+      `/api/content-status?targetType=deliberation&targetId=${deliberationId}`
+    )
+      .then((r) => r.json())
+      .then((d) => setStatus(d.status))
+      .catch(() => {});
   }, [deliberationId]);
 
   const compute = async (
-    forcedRule?: 'utilitarian'|'harmonic'|'maxcov',
+    forcedRule?: "utilitarian" | "harmonic" | "maxcov",
     forcedK?: number
   ) => {
     setPending(true);
     try {
-      const res = await fetch(`/api/deliberations/${deliberationId}/viewpoints/select`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          rule: forcedRule ?? rule,
-          k: forcedK ?? sel?.k ?? 3,   // ✅ preserve current k unless overridden
-        }),
-        cache: 'no-store',
-      });
+      const res = await fetch(
+        `/api/deliberations/${deliberationId}/viewpoints/select`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            rule: forcedRule ?? rule,
+            k: forcedK ?? sel?.k ?? 3, // ✅ preserve current k unless overridden
+          }),
+          cache: "no-store",
+        }
+      );
       if (!res.ok) {
-        console.error('Viewpoints select failed', res.status);
+        console.error("Viewpoints select failed", res.status);
         return;
       }
       const data = await res.json().catch(() => null);
@@ -111,127 +144,132 @@ export default function DeepDivePanel({ deliberationId }: { deliberationId: stri
     }
   };
 
-  useEffect(() => { compute(); /* initial */ }, []); // eslint-disable-line
-  const graphState = usePersisted(`dd:graph:${deliberationId}`);
-
+  useEffect(() => {
+    compute(); /* initial */
+  }, []); // eslint-disable-line
+  const graphState = usePersisted(`dd:graph:${deliberationId}`, false);
 
   return (
     <div className="space-y-5 p-3">
       {/* Header controls */}
-     
-
-  
 
       {/* Arguments + Composer */}
       <SectionCard>
-
-      <div className="relative z- 10 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          {status && <StatusChip status={status} />}
-          <label className="text-xs text-neutral-600 flex items-center gap-1">
-            Rule:
-            <select
-              className="text-xs border rounded px-2 py-1"
-              value={rule}
-              onChange={(e)=>{ setRule(e.target.value as any); compute(e.target.value as any); }}
-            >
-              <option value="utilitarian">Utilitarian</option>
-              <option value="harmonic">Harmonic</option>
-              <option value="maxcov">MaxCov</option>
-            </select>
-          </label>
-          {/* <HelpModal /> */}
-          <DiscusHelpPage/>
+        <div className="relative  flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {status && <StatusChip status={status} />}
+            <label className="text-xs text-neutral-600 flex items-center gap-1">
+              Rule:
+              <select
+                className="text-xs border rounded px-2 py-1"
+                value={rule}
+                onChange={(e) => {
+                  setRule(e.target.value as any);
+                  compute(e.target.value as any);
+                }}
+              >
+                <option value="utilitarian">Utilitarian</option>
+                <option value="harmonic">Harmonic</option>
+                <option value="maxcov">MaxCov</option>
+              </select>
+            </label>
+            {/* <HelpModal /> */}
+            <DiscusHelpPage />
+          </div>
+          {pending && (
+            <div className="text-xs text-neutral-500">Computing…</div>
+          )}
         </div>
-        {pending && <div className="text-xs text-neutral-500">Computing…</div>}
-      </div>
 
-
-      <ArgumentsList
-        deliberationId={deliberationId}
-        onReplyTo={(id) => setReplyTo(id)}
-        onChanged={() => compute(sel?.rule)}
-      />
+        <ArgumentsList
+          deliberationId={deliberationId}
+          onReplyTo={(id) => setReplyTo(id)}
+          onChanged={() => compute(sel?.rule)}
+        />
       </SectionCard>
-      <SectionCard >
+      <SectionCard>
+        <DeliberationComposer
+          deliberationId={deliberationId}
+          onPosted={() => {
+            setReplyTo(null);
+            compute(sel?.rule);
+          }}
+          targetArgumentId={replyTo ?? undefined}
+        />
+      </SectionCard>
 
-      <DeliberationComposer
-        deliberationId={deliberationId}
-        onPosted={() => { setReplyTo(null); compute(sel?.rule); }}
-        targetArgumentId={replyTo ?? undefined}
-      />
-            </SectionCard>
+      {/*  Mode Tabs */}
+      <Tabs defaultValue="arguments">
+        <hr className="w-full border border-white"></hr>
 
-{/*  Mode Tabs */}
-<Tabs defaultValue="arguments">
-   
+        <TabsList>
+          <TabsTrigger value="arguments">Arguments</TabsTrigger>
+          <TabsTrigger value="card">Create Card</TabsTrigger>
+          <TabsTrigger value="viewcard">View Cards</TabsTrigger>
+        </TabsList>
+        <TabsContent value="arguments">
+          {/* (You already render arguments/composer above; keep this tab for future) */}
+        </TabsContent>
+        <TabsContent value="card">
+          <SectionCard title="Create Card">
+            <CardComposerTab deliberationId={deliberationId} />
+          </SectionCard>
+        </TabsContent>
 
-   <hr className='w-full border border-white'></hr>
-   
-           <TabsList>
-             <TabsTrigger value="arguments">Arguments</TabsTrigger>
-             <TabsTrigger value="card">Create Card</TabsTrigger>
-             <TabsTrigger value="viewcard">View Cards</TabsTrigger>
-   
-           </TabsList>
-           <TabsContent value="arguments">
-             {/* (You already render arguments/composer above; keep this tab for future) */}
-           </TabsContent>
-           <TabsContent value="card">
-           <SectionCard title="Create Card">
-
-             <CardComposerTab deliberationId={deliberationId} />
-             
-     </SectionCard>
-
-           </TabsContent>
-
-           <TabsContent value="viewcard">
-           <SectionCard title="View Cards">
-
-             <div className="mt-4">
-       <CardList deliberationId={deliberationId} />
-     </div>
-     </SectionCard>
-
-           </TabsContent>
-         </Tabs>
-
-
-      {/* Views + CEG widgets */}
-      <SectionCard >
-
-      <RepresentativeViewpoints
-  selection={sel}
-  onReselect={(nextRule, nextK) => compute(nextRule, nextK)}
+        <TabsContent value="viewcard">
+          <SectionCard title="View Cards">
+            <div className="mt-4">
+              {/* <CardList deliberationId={deliberationId} /> */}
+              <CardListVirtuoso
+  deliberationId={deliberationId}
+  filters={{
+    status: 'published',
+    authorId,                         // now string | undefined
+    since: '2025-08-01T00:00:00Z',
+    sort: 'createdAt:desc',
+  }}
 />
 
-</SectionCard>
-<SectionCard >
+            </div>
+          </SectionCard>
+        </TabsContent>
+      </Tabs>
 
-      <ApprovalsHeatStrip deliberationId={deliberationId} />
+      {/* Views + CEG widgets */}
+      <SectionCard>
+        <RepresentativeViewpoints
+          selection={sel}
+          onReselect={(nextRule, nextK) => compute(nextRule, nextK)}
+        />
       </SectionCard>
+
       {/* <SectionCard >
 
       <CegMiniMap deliberationId={deliberationId} />
       </SectionCard> */}
       <SectionCard>
-  <Collapsible open={graphState.open} onOpenChange={graphState.setOpen}>
-    <div className="flex items-center justify-between px-1">
-      <CollapsibleTrigger className="text-sm font-semibold border-[.5px] border-black px-3 rounded-md bg-slate-100 hover:bg-slate-200">{graphState.open ? 'Collapse Graph' : 'Expand Graph'}</CollapsibleTrigger>
-    </div>
-    <CollapsibleContent className="pt-2">
-      <GraphPanel deliberationId={deliberationId} />
-    </CollapsibleContent>
-  </Collapsible>
-</SectionCard>
-
-      <SectionCard >
-
-      <TopologyWidget deliberationId={deliberationId} />
+        <Collapsible open={graphState.open} onOpenChange={graphState.setOpen}>
+          <div className="flex items-center justify-between px-1">
+            <CollapsibleTrigger
+              aria-expanded={graphState.open}
+              className="text-sm font-semibold border-[.5px] border-black px-3 rounded-md bg-slate-100 hover:bg-slate-200"
+            >
+              {graphState.open ? "Collapse Graph" : "Expand Graph"}
+            </CollapsibleTrigger>
+          </div>
+          <CollapsibleContent className="pt-2">
+            {graphState.open && (
+              <LazyGraphPanel deliberationId={deliberationId} />
+            )}
+          </CollapsibleContent>
+        </Collapsible>
       </SectionCard>
-
-    
+      <SectionCard>
+        <ApprovalsHeatStrip deliberationId={deliberationId} />
+      </SectionCard>
+      <SectionCard>
+        <TopologyWidget deliberationId={deliberationId} />
+      </SectionCard>
     </div>
   );
 }

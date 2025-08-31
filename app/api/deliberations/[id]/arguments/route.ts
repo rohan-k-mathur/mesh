@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prismaclient';
 import { getCurrentUserId } from '@/lib/serverutils';
+import { PaginationQuery, makePage } from '@/lib/server/pagination';
+import { since as startTimer, addServerTiming } from '@/lib/server/timing';
+
+const Query = PaginationQuery.extend({
+  claimId: z.string().optional(),
+});
+
 
 // ---------- Zod schemas ----------
 const CreateSchema = z.object({
@@ -38,13 +45,29 @@ const ArgumentResponseSchema = z.object({
   approvedByUser: z.boolean(),
 });
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
-  const userId = await getCurrentUserId();
-  const deliberationId = params.id;
 
-  const args = await prisma.argument.findMany({
-    where: { deliberationId },
-    orderBy: { createdAt: 'asc' },
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+  const t = startTimer();
+  const userId = await getCurrentUserId();
+  const url = new URL(req.url);
+
+  const parsed = Query.safeParse({
+    cursor: url.searchParams.get('cursor') ?? undefined,
+    limit: url.searchParams.get('limit') ?? undefined,
+    sort: url.searchParams.get('sort') ?? undefined,
+    claimId: url.searchParams.get('claimId') ?? undefined,
+  });
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+  }
+  const { cursor, limit, sort, claimId } = parsed.data;
+  const [field, dir] = sort.split(':') as ['createdAt','asc'|'desc'];
+
+  const rows = await prisma.argument.findMany({
+    where: { deliberationId: params.id, ...(claimId ? { claimId } : {}) },
+    orderBy: [{ [field]: dir }, { id: dir }],          // stable order for cursoring
+    take: limit + 1,
+    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
     include: {
       outgoingEdges: {
         where: { type: { in: ['rebut', 'undercut'] } },
@@ -57,7 +80,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     },
   });
 
-  const rows = args.map(a => ({
+  const items = rows.slice(0, limit).map(a => ({
     id: a.id,
     deliberationId: a.deliberationId,
     authorId: a.authorId,
@@ -75,9 +98,11 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     approvedByUser: !!(a.approvals && a.approvals.length),
   }));
 
-  return NextResponse.json({ arguments: rows });
+  const page = makePage(items, limit);
+  const res = NextResponse.json(page, { headers: { 'Cache-Control': 'no-store' } });
+  addServerTiming(res, [{ name: 'total', durMs: t() }]);
+  return res;
 }
-
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {

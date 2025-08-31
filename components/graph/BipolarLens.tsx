@@ -26,16 +26,21 @@ type GraphEdge = {
 type GraphResponse = { nodes: GraphNode[]; edges: GraphEdge[]; version?: number|string };
 
 export default function BipolarLens({ deliberationId, height = 420 }: { deliberationId: string; height?: number }) {
-  const { data } = useSWR<GraphResponse>(
-    deliberationId ? `/api/deliberations/${deliberationId}/graph?lens=bipolar` : null,
-    fetcher,
-    { revalidateOnFocus: false }
-  );
+  const [focusId, setFocusId] = useState<string | null>(null);
+  const radius = 1;
+  const maxNodes = 400;
+
+  const key = useMemo(() => {
+    if (!deliberationId) return null;
+    const base = `/api/deliberations/${deliberationId}/graph?lens=bipolar&maxNodes=${maxNodes}`;
+    return focusId ? `${base}&focus=${focusId}&radius=${radius}` : base;
+  }, [deliberationId, focusId]);
+
+  const { data } = useSWR<GraphResponse>(key, fetcher, { revalidateOnFocus: false });
 
   const cyRef = useRef<cytoscape.Core | null>(null);
   const navRef = useRef<any>(null);
   const minimapRef = useRef<HTMLDivElement>(null);
-  const [focusId, setFocusId] = useState<string | null>(null);
 
   // Build Cy elements from server data
   const elements = useMemo(() => {

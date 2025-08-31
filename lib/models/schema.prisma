@@ -2112,11 +2112,10 @@ model Argument {
   isImplicit     Boolean @default(false)
 
   // NEW P1b metadata
-  quantifier Quantifier?
-  modality   Modality?
+  quantifier String?
+  modality   String?
   mediaType  MediaType   @default(text)
   mediaUrl   String?
-
   createdAt DateTime @default(now())
 
 claimId String?
@@ -2131,6 +2130,9 @@ claim   Claim? @relation("ArgumentClaim", fields: [claimId], references: [id])
   IssueLink         IssueLink[]
 
   @@index([deliberationId])
+    @@index([deliberationId, createdAt])              // arguments by delib
+  @@index([deliberationId, claimId, createdAt])     // arguments by claim in a delib
+
 }
 
 model ArgumentEdge {
@@ -2482,6 +2484,14 @@ enum MediaType {
   audio
 }
 
+enum TargetType {
+  claim
+  card
+  warrant
+  rebuttal
+}
+
+
 // ---------- Governance core ----------
 model DecisionReceipt {
   id         String            @id @default(cuid())
@@ -2572,6 +2582,10 @@ model DeliberationCard {
 
   // Back relation for CardCitation
   citations   CardCitation[]
+    @@index([deliberationId, createdAt])  // cards by delib, time-sorted
+      @@index([deliberationId, status, createdAt])
+  @@index([deliberationId, authorId, createdAt])
+
 }
 
 
@@ -2673,6 +2687,11 @@ arguments Argument[] @relation("ArgumentClaim")
   evidenceLinks EvidenceLink[]
   urns          Urn[]           @relation("ClaimUrns")
   ClaimLabel    ClaimLabel?
+
+    @@index([deliberationId, createdAt])  // claims by delib, time-sorted
+      @@index([deliberationId, createdById, createdAt])
+
+
 }
 
 model ClaimEdge {
@@ -2696,6 +2715,8 @@ model ClaimEdge {
   @@index([fromClaimId])
   @@index([toClaimId])
   @@index([deliberationId])
+    @@index([toClaimId, createdAt])     // inbound edges
+  @@index([fromClaimId, createdAt])   // outbound edges
 }
 
 model ClaimLabel {
@@ -2728,6 +2749,22 @@ model ClaimCitation {
   @@index([claimId])
 }
 
+model ClaimStats {
+  deliberationId String
+  claimId        String
+  approvalsCount Int      @default(0)
+  supportsCount  Int      @default(0)
+  rebutsCount    Int      @default(0)
+  undercutsCount Int      @default(0)
+  updatedAt      DateTime @default(now())
+
+  @@id([deliberationId, claimId])
+  @@map("claim_stats")
+  @@index([deliberationId])
+  @@index([approvalsCount])
+  @@index([undercutsCount])
+}
+
 model EvidenceLink {
   id          String       @id @default(cuid())
   claimId     String
@@ -2755,8 +2792,42 @@ model ArgumentScheme {
   key            String           @unique // 'expert_opinion', 'good_consequences', ...
   title          String
   summary        String
-  cq             Json // [{id, text, attackKind: 'UNDERMINES'|'UNDERCUTS'|'REBUTS'}]
+  cq       Json   @default("{}") // we'll set a DB default to [] below; this avoids null
   SchemeInstance SchemeInstance[]
+}
+
+model CQStatus {
+  id          String     @id @default(cuid())
+  targetType  TargetType
+  targetId    String
+  schemeKey   String
+  cqKey       String
+  satisfied   Boolean    @default(false)
+  createdById String
+  roomId      String?    // denormalized at write-time for RLS
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@unique([targetType, targetId, schemeKey, cqKey])
+  @@index([targetType, targetId])
+  @@index([roomId])
+}
+
+
+// If you need a simple edge model for the /api/attacks route (optional — skip if you already have edges):
+model GraphEdge {
+  id          String   @id @default(cuid())
+  fromId      String
+  toId        String
+  type        String   // 'undercut' | 'rebut'
+  scope       String?  // 'premise' | 'conclusion' (for rebut)
+  roomId      String
+  createdById String
+  meta        Json?    // { schemeKey, cqKey }
+  createdAt   DateTime @default(now())
+
+  @@index([roomId])
+  @@index([fromId, toId])
 }
 
 model SchemeInstance {

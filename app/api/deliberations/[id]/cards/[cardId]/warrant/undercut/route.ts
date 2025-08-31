@@ -1,19 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
 import { recomputeGroundedForDelib } from '@/lib/ceg/grounded';
+import { getCurrentUserId } from '@/lib/serverutils';
+import crypto from 'crypto';
+import { mintClaimMoid } from '@/lib/ids/mintMoid';
 
 export async function POST(
   req: NextRequest,
   { params }: { params: { delib: string; id: string } }
 ) {
   try {
-    const deliberationId = params.delib;
-    const cardId = params.id;
-    const { counterClaimId } = (await req.json()) as { counterClaimId: string };
-    if (!counterClaimId) {
-      return NextResponse.json({ error: 'counterClaimId required' }, { status: 400 });
+    const userId = await getCurrentUserId();
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const deliberationId = params.delib;
+    const cardId = params.id;
+    const { counterClaimId, counterText } = await req.json();
+
+    if (!counterClaimId && !counterText?.trim()) {
+      return NextResponse.json({ error: 'counterClaimId or counterText required' }, { status: 400 });
+    }
+
+    // 1) Ensure target claim
     const card = await prisma.deliberationCard.findFirst({
       where: { id: cardId, deliberationId },
       select: { claimId: true, claimText: true },
@@ -22,39 +32,58 @@ export async function POST(
       return NextResponse.json({ error: 'Card not found in deliberation' }, { status: 404 });
     }
 
-    // Ensure the target claim exists (cards now always have claimId, but fallback just in case)
-let targetClaimId = card.claimId;
-if (!targetClaimId) {
-  const moid = crypto.createHash('sha256').update(card.claimText).digest('hex');
-  const claim = await prisma.claim.upsert({
-    where: { moid },
-    update: {}, // nothing to update
-    create: {
-      text: card.claimText,
-      createdById: 'system',
-      deliberationId,
-      moid,
-    },
-  });
-  targetClaimId = claim.id;
-  await prisma.deliberationCard.update({
-    where: { id: cardId },
-    data: { claimId: claim.id },
-  });
-}
+    let targetClaimId = card.claimId;
+    if (!targetClaimId) {
+      const moid = mintClaimMoid(card.claimText);
+      const claim = await prisma.claim.upsert({
+        where: { moid },
+        update: {},
+        create: {
+          text: card.claimText,
+          createdById: String(userId),
+          deliberationId,
+          moid,
+        },
+      });
+      targetClaimId = claim.id;
+      await prisma.deliberationCard.update({
+        where: { id: cardId },
+        data: { claimId: claim.id },
+      });
+    }
 
-const edge = await prisma.claimEdge.create({
-  data: {
-    fromClaimId: counterClaimId,
-    toClaimId: targetClaimId,
-    type: 'rebuts',
-    attackType: 'UNDERCUTS',
-    targetScope: 'inference',
-    deliberationId,
-  },
-});
+    // 2) Ensure counter claim
+    let fromClaimId = counterClaimId;
+    if (!fromClaimId && counterText?.trim()) {
+      const moid = mintClaimMoid(counterText.trim());
+      const counterClaim = await prisma.claim.upsert({
+        where: { moid },
+        update: {},
+        create: {
+          text: counterText.trim(),
+          createdById: String(userId),
+          deliberationId,
+          moid,
+        },
+      });
+      fromClaimId = counterClaim.id;
+    }
 
-    try { await recomputeGroundedForDelib(deliberationId); } catch {}
+    // 3) Create undercut edge
+    const edge = await prisma.claimEdge.create({
+      data: {
+        fromClaimId,
+        toClaimId: targetClaimId,
+        type: 'rebuts',
+        attackType: 'UNDERCUTS',
+        targetScope: 'inference',
+        deliberationId,
+      },
+    });
+
+    try {
+      await recomputeGroundedForDelib(deliberationId);
+    } catch {}
 
     return NextResponse.json({ ok: true, edgeId: edge.id, targetClaimId });
   } catch (e: any) {

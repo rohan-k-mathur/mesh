@@ -99,10 +99,14 @@ const qualifier = {
   confidenceAvg:
     argRows.length ? (argRows.reduce((s, a) => s + (a.confidence ?? 0), 0) / argRows.length) : null,
 };
-  const warrant = await prisma.claimWarrant.findUnique({
-    where: { claimId },
-    select: { text: true },
-  });
+
+// 5) Warrant text
+const warrantRow = await prisma.claimWarrant.findUnique({
+  where: { claimId },
+  select: { text: true },
+});
+const warrant = warrantRow?.text ?? null;
+
 
   return NextResponse.json({
     claim: { id: claim.id, text: claim.text },
@@ -115,7 +119,8 @@ const qualifier = {
       evidence: evidenceCount,
     },
     qualifier,
-    warrantText: warrant?.text ?? null,
+    warrant, // 👈
+
 
   });
 }

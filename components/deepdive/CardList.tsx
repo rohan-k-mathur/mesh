@@ -8,51 +8,59 @@ import { AddGround, AddRebut } from './AddGroundRebut';
 
 const fetcher = (u: string) => fetch(u, { cache: 'no-store' }).then(r => r.json());
 
-function ChallengeWarrantCard({ cardId, deliberationId, currentUserId }: { cardId: string; deliberationId: string; currentUserId?: string }) {
-  const [mode, setMode] = useState<'claimId'|'text'>('claimId');
+type Props = {
+  cardId: string;
+  claimId: string;         // target claim (the card’s claim)
+  deliberationId: string;
+  currentUserId?: string;
+};
+
+
+export  function ChallengeWarrantCard({
+  cardId,
+  claimId: targetClaimId,
+  deliberationId,
+}: Props) {
+  const [mode, setMode] = useState<'claimId' | 'text'>('claimId');
   const [counterClaimId, setCounterClaimId] = useState('');
   const [counterText, setCounterText] = useState('');
   const [pending, setPending] = useState(false);
-  const [msg, setMsg] = useState<string| null>(null);
+  const [msg, setMsg] = useState<string | null>(null);
 
-  async function promoteCounterTextToClaim(): Promise<string> {
-    const res = await fetch('/api/claims', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        deliberationId,
-        text: counterText.trim(),
-      }),
-    });
-    const json = await res.json();
-    if (!res.ok || json.error) throw new Error(json.error ?? 'promote_failed');
-    return json.claim?.id as string;
+  function claimIdOrThrow() {
+    const v = counterClaimId.trim();
+    if (!v) throw new Error('Paste a counter Claim ID or switch to “Write text”.');
+    return v;
   }
 
   async function submit() {
     try {
-      setMsg(null); setPending(true);
-      let claimId = counterClaimId.trim();
+      setMsg(null);
+      setPending(true);
 
-      if (mode === 'text') {
-        if (!counterText.trim()) throw new Error('Write a counter text or switch to “Use claim ID”.');
-        claimId = await promoteCounterTextToClaim();
-      } else {
-        if (!claimId) throw new Error('Paste a counter Claim ID or switch to “Write text”.');
-      }
+      const body =
+        mode === 'claimId'
+          ? { counterClaimId: claimIdOrThrow() }
+          : { counterText: counterText.trim() };
 
-      const res = await fetch(`/api/deliberations/${deliberationId}/cards/${cardId}/warrant/undercut`, {
-        method: 'POST',
-        headers: { 'content-type':'application/json' },
-        body: JSON.stringify({ counterClaimId: claimId }),
-      });
+      const res = await fetch(
+        `/api/deliberations/${deliberationId}/cards/${cardId}/warrant/undercut`,
+        {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(body),
+        }
+      );
       const json = await res.json();
       if (!res.ok || json.error) throw new Error(json.error ?? 'undercut_failed');
+
+      // ✅ Revalidate Toulmin for the TARGET claim (the card’s claim), not the counter
+      mutate(`/api/claims/${targetClaimId}/toulmin`);
 
       setMsg('Warrant challenged ✓');
       setCounterClaimId('');
       setCounterText('');
-    } catch (e:any) {
+    } catch (e: any) {
       setMsg(e?.message ?? 'Error');
     } finally {
       setPending(false);
@@ -65,51 +73,63 @@ function ChallengeWarrantCard({ cardId, deliberationId, currentUserId }: { cardI
 
       <div className="mt-1 flex gap-2 text-[11px]">
         <button
-          className={`px-2 py-0.5 rounded border ${mode==='claimId'?'bg-white':'bg-transparent'}`}
-          onClick={()=>setMode('claimId')}
-        >Use claim ID</button>
+          type="button"
+          className={`px-2 py-0.5 rounded border ${
+            mode === 'claimId' ? 'bg-white' : 'bg-transparent'
+          }`}
+          onClick={() => setMode('claimId')}
+        >
+          Use claim ID
+        </button>
         <button
-          className={`px-2 py-0.5 rounded border ${mode==='text'?'bg-white':'bg-transparent'}`}
-          onClick={()=>setMode('text')}
-        >Write counter text</button>
+          type="button"
+          className={`px-2 py-0.5 rounded border ${
+            mode === 'text' ? 'bg-white' : 'bg-transparent'
+          }`}
+          onClick={() => setMode('text')}
+        >
+          Write counter text
+        </button>
       </div>
 
-      {mode === 'claimId' && (
+      {mode === 'claimId' ? (
         <div className="flex items-center gap-2 mt-2">
           <input
             className="text-xs border rounded px-2 py-1 flex-1"
             placeholder="Paste counter Claim ID"
             value={counterClaimId}
-            onChange={e=>setCounterClaimId(e.target.value)}
+            onChange={(e) => setCounterClaimId(e.target.value)}
+            aria-label="Counter Claim ID"
           />
           <button
+            type="button"
             className="text-xs px-2 py-1 rounded border disabled:opacity-50"
             onClick={submit}
-            disabled={pending}
+            disabled={pending || !counterClaimId.trim()}
             title="Creates an UNDERCUTS edge from your counter claim to this card's target claim"
           >
             {pending ? 'Posting…' : 'Undercut'}
           </button>
         </div>
-      )}
-
-      {mode === 'text' && (
+      ) : (
         <div className="mt-2">
           <textarea
             className="w-full text-xs border rounded px-2 py-1"
             rows={3}
-            placeholder="Write a short counter…"
+            placeholder="Write a counter-warrant…"
             value={counterText}
-            onChange={e=>setCounterText(e.target.value)}
+            onChange={(e) => setCounterText(e.target.value)}
+            aria-label="Counter-warrant text"
           />
           <div className="mt-2">
             <button
+              type="button"
               className="text-xs px-2 py-1 rounded border disabled:opacity-50"
               onClick={submit}
-              disabled={pending}
+              disabled={pending || !counterText.trim()}
               title="Promotes counter text to Claim then creates an UNDERCUTS edge"
             >
-              {pending ? 'Posting…' : 'Promote & undercut'}
+              {pending ? 'Posting…' : 'Undercut Warrant'}
             </button>
           </div>
         </div>
@@ -177,12 +197,13 @@ export default function CardList({ deliberationId }: { deliberationId: string })
             </div>
           )}
           {/* Challenge warrant */}
-{c.warrantText && (
-  <ChallengeWarrantCard
-    cardId={c.id}
-    deliberationId={c.deliberationId}
-  />
-)}
+           {c.claimId && (
+   <ChallengeWarrantCard
+     cardId={c.id}
+     claimId={c.claimId}
+     deliberationId={c.deliberationId}
+   />
+ )}
 
           {/* Counter (if present) */}
           {c.counterText && (

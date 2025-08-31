@@ -51,13 +51,13 @@ export default function ClaimMiniMap({ deliberationId }: { deliberationId: strin
   return (
     <div className="mt-4 rounded-lg border border-slate-200 p-3">
       <div className="text-sm font-medium mb-2">Claim mini‑map</div>
-      <div className="space-y-2">
+      <div className=" flex flex-wrap  gap-4">
         {claims.map((c) => {
           const lab = labels[c.id]?.label ?? 'UNDEC';
           const why = labels[c.id]?.explainJson;
           const tip = why ? JSON.stringify(why) : undefined;
           return (
-            <div key={c.id} className="flex items-start gap-3" title={tip}>
+            <div key={c.id} className="flex border rounded-lg border-slate-200 items-start p-1 gap-3 w-fit" title={tip}>
               <div className="mt-1"><Dot label={lab} /></div>
               <div className="flex-1 text-sm line-clamp-2">{c.text}</div>
               <div className="shrink-0 flex items-center gap-2">
@@ -69,7 +69,7 @@ export default function ClaimMiniMap({ deliberationId }: { deliberationId: strin
         })}
         {claims.length === 0 && <div className="text-xs text-slate-500">No claims yet.</div>}
       </div>
-      <div className="text-[11px] text-slate-500 mt-2">Dots: ● IN · ○ OUT · ◐ UNDEC (grounded semantics)</div>
+      <div className="text-[11px] text-slate-500 mt-4"> ● IN · ○ OUT · ◐ UNDEC (grounded semantics)</div>
     </div>
   );
 }
