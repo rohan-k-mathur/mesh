@@ -8,6 +8,7 @@ import Image from "next/image";
 import DeepDivePanel from "../deepdive/DeepDivePanel";
 import { useRouter } from "next/navigation";
 import HomeButton from "../buttons/HomeButton";
+import { RhetoricProvider } from "../rhetoric/RhetoricContext";
 /* ----------------------- DOM ↔ anchor helpers ----------------------- */
 
 /* ---------- Selection helpers (clean) ---------- */
@@ -767,7 +768,9 @@ export default function ArticleReaderWithPins({
               Discussion
             </h2>
             <hr></hr>
-            <DeepDivePanel deliberationId={deliberationId} />
+            <RhetoricProvider>
+  <DeepDivePanel deliberationId={deliberationId}/>
+</RhetoricProvider>
           </section>
         )}
       </div>

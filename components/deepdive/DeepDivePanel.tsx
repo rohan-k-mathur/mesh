@@ -14,6 +14,9 @@ import ApprovalsHeatStrip from "@/components/deepdive/ApprovalsHeatStrip";
 import CardList from "@/components/deepdive/CardList";
 import { ViewControls } from "./RepresentativeViewpoints";
 import GraphPanel from "@/components/graph/GraphPanel";
+import { RhetoricProvider, useRhetoric } from '@/components/rhetoric/RhetoricContext';
+import RhetoricControls from '@/components/rhetoric/RhetoricControls';
+
 import {
   Collapsible,
   CollapsibleTrigger,
@@ -41,6 +44,19 @@ type Selection = {
   }[];
 };
 
+// header toggle component
+function RhetoricToggle() {
+  const { mode, setMode } = useRhetoric();
+  return (
+    <label className="text-xs flex items-center gap-1">
+      Lens:
+      <select className="border rounded px-1 py-0.5" value={mode} onChange={e=>setMode(e.target.value as any)}>
+        <option value="content">Content</option>
+        <option value="style">Style</option>
+      </select>
+    </label>
+  );
+}
 
 function usePersisted(key: string, def = true) {
   const [open, setOpen] = useState<boolean>(def);
@@ -105,6 +121,7 @@ export default function DeepDivePanel({
   );
   const { user } = useAuth();                // e.g., { userId?: string | number | bigint | null }
   const authorId = user?.userId != null ? String(user.userId) : undefined;
+  const [rhetoricSample, setRhetoricSample] = useState<string>('');
 
   useEffect(() => {
     fetch(
@@ -150,6 +167,7 @@ export default function DeepDivePanel({
   const graphState = usePersisted(`dd:graph:${deliberationId}`, false);
 
   return (
+
     <div className="space-y-5 p-3">
       {/* Header controls */}
 
@@ -176,9 +194,11 @@ export default function DeepDivePanel({
             {/* <HelpModal /> */}
             <DiscusHelpPage />
           </div>
-          {pending && (
-            <div className="text-xs text-neutral-500">Computing…</div>
-          )}
+          <div className="flex items-center gap-4">
+              <RhetoricControls />
+
+              {pending && <div className="text-xs text-neutral-500">Computing…</div>}
+            </div>
         </div>
 
         <ArgumentsList
@@ -271,5 +291,6 @@ export default function DeepDivePanel({
         <TopologyWidget deliberationId={deliberationId} />
       </SectionCard>
     </div>
+
   );
 }

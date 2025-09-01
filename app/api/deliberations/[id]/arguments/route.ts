@@ -58,6 +58,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     limit: url.searchParams.get('limit') ?? undefined,
     sort: url.searchParams.get('sort') ?? undefined,
     claimId: url.searchParams.get('claimId') ?? undefined,
+    clusterId: url.searchParams.get('clusterId') ?? undefined, // 👈 add this
+
   });
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
@@ -73,6 +75,11 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       select: { argumentId: true },
     });
     argIdFilter = rows.map(r => r.argumentId);
+    if (argIdFilter.length === 0) {
+      const res = NextResponse.json(makePage([], limit), { headers: { 'Cache-Control': 'no-store' } });
+      addServerTiming(res, [{ name: 'total', durMs: t() }]);
+      return res;
+    }
   }
 
   const rows = await prisma.argument.findMany({
@@ -108,7 +115,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     modality: a.modality,
     mediaType: a.mediaType,
     mediaUrl: a.mediaUrl,
-    createdAt: a.createdAt,
+    createdAt: a.createdAt.toISOString(),
     edgesOut: a.outgoingEdges ?? [],
     claimId: a.claim?.id ?? null,
     approvedByUser: !!(a.approvals && a.approvals.length),

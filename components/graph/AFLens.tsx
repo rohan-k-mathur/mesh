@@ -8,6 +8,7 @@ import navigator from 'cytoscape-navigator';
 import CyCanvas from './CyCanvas';
 import SchemeOverlayFetch from './SchemeOverlayFetch';
 import HullOverlay from './HullOverlay';
+import React from 'react';
 
 cytoscape.use(navigator);
 try { (cytoscape as any).__dagre__ || (cytoscape as any).use(dagre); (cytoscape as any).__dagre__ = true; } catch {}
@@ -43,6 +44,9 @@ function colorFor(label?: 'IN'|'OUT'|'UNDEC') {
 export default function AFLens({ deliberationId, height = 420 }: { deliberationId: string; height?: number }) {
   const [focusId, setFocusId] = useState<string | null>(null);
   const [extraQuery, setExtraQuery] = useState('');
+  const [audience, setAudience] = useState<string|null>(null);
+  
+
   const hasFocus = extraQuery.includes('focusClusterId=');
   const [showHulls, setShowHulls] = useState<boolean>(() => {
     try { return localStorage.getItem('graph:showHulls') === '1'; } catch { return true; }
@@ -74,16 +78,47 @@ useEffect(() => {
   const radius = 1;
   const maxNodes = 400;
 
+  const AudKey = deliberationId
+  ? `/api/deliberations/${deliberationId}/graph?lens=${audience ? 'value' : 'af'}${audience ? `&audience=${encodeURIComponent(audience)}` : ''}`
+  : null;
+//const { data } = useSWR<GraphResponse>(AudKey, fetcher, { revalidateOnFocus:false });
+
+
   const key = useMemo(() => {
     if (!deliberationId) return null;
     const base = `/api/deliberations/${deliberationId}/graph?lens=af&maxNodes=${maxNodes}`;
     return focusId ? `${base}&focus=${focusId}&radius=${radius}` : base;
   }, [deliberationId, focusId]);
 
-  // const { data } = useSWR<GraphResponse>(key, fetcher, { revalidateOnFocus: false });
+
+  // parse cluster IDs out of extraQuery
+const focusedPairs = React.useMemo(() => {
+  const m = extraQuery.match(/focusClusterIds=([^&]+)/);
+  if (!m) return null;
+  const decoded = decodeURIComponent(m[1]);
+  const ids = decoded.split(',').filter(Boolean);
+  return ids.length === 2 ? ids as [string, string] : null;
+}, [extraQuery]);
+
+// fetch labels if needed
+const { data: cl } = useSWR<{ items: { id:string; label:string }[] }>(
+  focusedPairs ? `/api/deliberations/${deliberationId}/clusters?type=topic` : null,
+  fetcher,
+  { revalidateOnFocus: false }
+);
+const labelFor = (id:string) => cl?.items?.find(x=>x.id===id)?.label ?? id.slice(0,6);
+
+function clearCompare() {
+  // dispatch empty focus
+  window.dispatchEvent(new CustomEvent('mesh:graph:focusCluster', {
+    detail: { deliberationId, clusterIds: [] }
+  }));
+  setExtraQuery('');
+}
+   const { data } = useSWR<GraphResponse>(key, fetcher, { revalidateOnFocus: false });
   // change SWR key:
-  const { data } = useSWR<GraphResponse>(
-    deliberationId ? `/api/deliberations/${deliberationId}/graph?lens=af${extraQuery}` : null,
+  const { data: preview } = useSWR<{ pairs: Array<{ source: string; target: string }> }>(
+    focusedPairs ? `/api/deliberations/${deliberationId}/bridges/preview?clusterA=${encodeURIComponent(focusedPairs[0])}&clusterB=${encodeURIComponent(focusedPairs[1])}&limit=60` : null,
     fetcher,
     { revalidateOnFocus: false }
   );
@@ -123,8 +158,18 @@ useEffect(() => {
       els.push({ data: { id: e.id, source: e.source, target: e.target }, classes: klass });
     }
 
-    return els;
-  }, [data]);
+// add preview bridges (dotted)
+if (preview?.pairs?.length) {
+  for (const p of preview.pairs) {
+    // only include if both nodes exist (in focused union they should)
+    els.push({
+      data: { id: `preview:${p.source}:${p.target}`, source: p.source, target: p.target },
+      classes: 'preview-bridge',
+    });
+  }
+}
+return els;
+}, [data, preview]);
 
   const stylesheet: cytoscape.Stylesheet[] = [
     {
@@ -165,6 +210,17 @@ useEffect(() => {
         'background-position-y': '5%',
       },
     },
+    { selector: 'edge.preview-bridge',
+    style: {
+      'curve-style': 'bezier',
+      'line-style': 'dotted',
+      'line-color': '#94a3b8',           // slate-400
+      'target-arrow-color': '#94a3b8',
+      'target-arrow-shape': 'vee',
+      'width': 1.5,
+      'opacity': 0.85,
+    }
+  },
   ];
 
   const cacheKey = `cy-layout:af:${deliberationId}`;
@@ -192,6 +248,7 @@ useEffect(() => {
   
   function handleReady(cy: cytoscape.Core) {
     cyRef.current = cy;
+
     const restored = loadLayout();
     if (!restored) {
       cy.layout({ name: 'dagre', nodeSep: 30, rankSep: 70, rankDir: 'TB', padding: 20 }).run();
@@ -203,8 +260,25 @@ useEffect(() => {
     });
   }
 
+
+
   useEffect(() => {
     const cy = cyRef.current;
+      // after cyRef.current = cy;
+function focusListener(ev: any) {
+  const id = ev?.detail?.id;
+  if (!id || !cyRef.current) return;
+  const cy = cyRef.current;
+  const ele = cy.getElementById(id);
+  if (ele && ele.nonempty()) {
+    cy.animate({ center: { eles: ele }, duration: 300 });
+    ele.addClass('pulse');
+    setTimeout(()=> ele.removeClass('pulse'), 1200);
+  }
+}
+window.addEventListener('mesh:graph:focusNode', focusListener);
+cy.on('destroy', () => window.removeEventListener('mesh:graph:focusNode', focusListener));
+
     if (!cy || !data) return;
   
     // Build fresh elements from server data
@@ -249,6 +323,15 @@ useEffect(() => {
     <div className="relative z-10 rounded border bg-white">
       <div className="flex items-center justify-between p-2 text-xs text-neutral-600">
         <div>Abstract AF (grounded labels)</div>
+        {focusedPairs && (
+      <div className="ml-2 inline-flex items-center gap-2 px-2 py-0.5 rounded border bg-slate-50">
+        <span className="text-[11px]">
+          Compare:&nbsp;
+          <strong>{labelFor(focusedPairs[0])}</strong> vs <strong>{labelFor(focusedPairs[1])}</strong>
+        </span>
+        <button className="text-[11px] underline" onClick={clearCompare}>Clear</button>
+      </div>
+    )}
         <div className="flex items-center gap-3">
           <span>● IN ○ OUT ◐ UNDEC</span>
           <label className="inline-flex items-center gap-1">

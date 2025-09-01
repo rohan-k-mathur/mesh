@@ -7,7 +7,7 @@ import { mintClaimMoid } from '@/lib/ids/mintMoid';
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { delib: string; id: string } }
+  { params }: { params: { id: string; cardId: string } }
 ) {
   try {
     const userId = await getCurrentUserId();
@@ -15,8 +15,8 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const deliberationId = params.delib;
-    const cardId = params.id;
+    const deliberationId = params.id;
+    const cardId = params.cardId;
     const { counterClaimId, counterText } = await req.json();
 
     if (!counterClaimId && !counterText?.trim()) {

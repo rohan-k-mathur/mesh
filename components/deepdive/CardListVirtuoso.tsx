@@ -5,14 +5,17 @@ import useSWRInfinite from 'swr/infinite';
 import { Virtuoso } from 'react-virtuoso';
 import { mutate as globalMutate } from 'swr';
 
+import CQBar from './CQBar';
+import { useCQSummaryBatch } from '@/components/cq/useCQSummaryBatch';
+
 // Detail modules
 import SchemePicker from '@/components/cite/SchemePicker';
 import CriticalQuestions from '@/components/claims/CriticalQuestions';
 import ToulminMini from '@/components/deepdive/ToulminMini';
 import { AddGround, AddRebut } from './AddGroundRebut';
-import { ChallengeWarrantCard } from './CardList';
+import { ChallengeWarrantCard } from './ChallengeWarrantCard';
 
-// shadcn/ui (swap if you use different UI lib)
+// shadcn/ui
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,8 +31,8 @@ const fetcher = (u: string) =>
 export type CardFilters = {
   status?: 'published' | 'draft';
   authorId?: string;
-  since?: string; // YYYY-MM-DD or ISO
-  until?: string; // YYYY-MM-DD or ISO (exclusive on server)
+  since?: string;
+  until?: string;
   sort?: 'createdAt:desc' | 'createdAt:asc';
 };
 
@@ -48,25 +51,21 @@ export default function CardListVirtuoso({
   deliberationId: string;
   filters?: CardFilters;
 }) {
-  // ----- Filter state (controlled locally, defaulting from props) -----
-  const [status, setStatus] = React.useState<'published' | 'draft'>(
-    initialFilters.status ?? 'published'
-  );
+  // filters
+  const [status, setStatus] = React.useState<'published' | 'draft'>(initialFilters.status ?? 'published');
   const [author, setAuthor] = React.useState<string>(initialFilters.authorId ?? '');
   const [since, setSince] = React.useState<string>(initialFilters.since ?? '');
   const [until, setUntil] = React.useState<string>(initialFilters.until ?? '');
-  const [sort, setSort] = React.useState<'createdAt:desc' | 'createdAt:asc'>(
-    initialFilters.sort ?? 'createdAt:desc'
-  );
+  const [sort, setSort] = React.useState<'createdAt:desc' | 'createdAt:asc'>(initialFilters.sort ?? 'createdAt:desc');
 
-  // Debounce authorId to avoid SWR key thrash as you type
+  // debounce author
   const [authorDebounced, setAuthorDebounced] = React.useState(author);
   React.useEffect(() => {
     const id = setTimeout(() => setAuthorDebounced(author.trim() || ''), 250);
     return () => clearTimeout(id);
   }, [author]);
 
-  // ----- SWR Infinite (key includes filters) -----
+  // SWR Infinite
   const getKey = (index: number, prev: any) => {
     if (prev && !prev.nextCursor) return null;
     const cursor = index === 0 ? undefined : prev.nextCursor;
@@ -90,27 +89,29 @@ export default function CardListVirtuoso({
   const items = React.useMemo(() => (data ?? []).flatMap((d) => d.items ?? []), [data]);
   const nextCursor = data?.[data.length - 1]?.nextCursor ?? null;
 
-  // ----- UI: Filter bar -----
+  // compute CQ summaries for the visible page
+  const visibleClaimIds = React.useMemo(
+    () => (items as any[]).map((c) => c.claimId).filter(Boolean) as string[],
+    [items]
+  );
+  const { byId: cqById } = useCQSummaryBatch(deliberationId, visibleClaimIds);
+
   function resetFilters() {
     setStatus('published');
     setAuthor('');
     setSince('');
     setUntil('');
     setSort('createdAt:desc');
-    // revalidate first page
     mutate();
   }
 
-  // ----- Rendering -----
-  if (error)
+  if (error) {
     return (
       <div className="text-xs text-rose-600">
-        Failed to load cards.{' '}
-        <button className="underline" onClick={() => mutate()}>
-          Retry
-        </button>
+        Failed to load cards. <button className="underline" onClick={() => mutate()}>Retry</button>
       </div>
     );
+  }
 
   return (
     <div className="space-y-2">
@@ -128,29 +129,14 @@ export default function CardListVirtuoso({
 
         <div className="flex items-center gap-2">
           <label className="text-xs text-neutral-600">Author</label>
-          <Input
-            value={author}
-            onChange={(e) => setAuthor(e.target.value)}
-            placeholder="authorId…"
-            className="h-8 w-[160px]"
-          />
+          <Input value={author} onChange={(e) => setAuthor(e.target.value)} placeholder="authorId…" className="h-8 w-[160px]" />
         </div>
 
         <div className="flex items-center gap-2">
           <label className="text-xs text-neutral-600">Since</label>
-          <Input
-            type="date"
-            value={since}
-            onChange={(e) => setSince(e.target.value)}
-            className="h-8"
-          />
+          <Input type="date" value={since} onChange={(e) => setSince(e.target.value)} className="h-8" />
           <label className="text-xs text-neutral-600">Until</label>
-          <Input
-            type="date"
-            value={until}
-            onChange={(e) => setUntil(e.target.value)}
-            className="h-8"
-          />
+          <Input type="date" value={until} onChange={(e) => setUntil(e.target.value)} className="h-8" />
         </div>
 
         <div className="flex items-center gap-2">
@@ -167,12 +153,8 @@ export default function CardListVirtuoso({
         </div>
 
         <div className="ml-auto flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => mutate()}>
-            Refresh
-          </Button>
-          <Button variant="ghost" size="sm" onClick={resetFilters}>
-            Reset
-          </Button>
+          <Button variant="outline" size="sm" onClick={() => mutate()}>Refresh</Button>
+          <Button variant="ghost" size="sm" onClick={resetFilters}>Reset</Button>
         </div>
       </div>
 
@@ -185,10 +167,12 @@ export default function CardListVirtuoso({
         <Virtuoso
           style={{ height: 520 }}
           data={items}
-          itemContent={(i, c: any) => <CardRow c={c} />}
+          itemKey={(i, c: any) => c.id}
+          overscan={200}
           endReached={() => !isValidating && nextCursor && setSize((s) => s + 1)}
-          overscan={200} // small overscan for smoothness
-          itemKey={(i, c: any) => c.id} // stable keys help with reflows
+          itemContent={(i, c: any) => (
+            <CardRow c={c} cqById={cqById} />
+          )}
           components={{
             Footer: () => (
               <div className="py-3 text-center text-xs text-neutral-500">
@@ -202,8 +186,50 @@ export default function CardListVirtuoso({
   );
 }
 
-/** Extracted row for readability & memoization */
-const CardRow = React.memo(function CardRow({ c }: { c: any }) {
+/** CQ section for one card (safe hooks) */
+function CardCQSection({ claimId, authorId, cqSummary,deliberationId }: {
+  claimId: string;
+  authorId: string;
+  deliberationId: string;
+  cqSummary?: { satisfied: number; required: number; openByScheme: Record<string,string[]> };
+}) {
+  const [showCq, setShowCq] = React.useState(false);
+  return (
+    <div className="mt-2">
+      {cqSummary && <CQBar satisfied={cqSummary.satisfied} required={cqSummary.required} />}
+      <div className="mt-1">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowCq((v) => !v)}
+          disabled={!cqSummary || !cqSummary.required}
+          title="Address open critical questions"
+          className="text-xs px-2 py-1 h-7"
+        >
+          Address CQs
+        </Button>
+      </div>
+      {showCq && (
+        <div className="mt-2">
+          <CriticalQuestions
+            targetType="claim"
+            targetId={claimId}
+            createdById={authorId}
+            counterFromClaimId=""
+            deliberationId={deliberationId}   // 👈 now passed properly
+
+            // prefilterKeys={Object.entries(cqSummary?.openByScheme ?? {}).flatMap(([sk, arr]) => arr.map(k => ({ schemeKey: sk, cqKey: k })))}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Row (memoized) */
+const CardRow = React.memo(function CardRow({ c, cqById }: { c: any; cqById: Map<string, any> }) {
+  const cqSummary = c.claimId ? cqById.get(c.claimId) : undefined;
+
   return (
     <div className="border rounded p-3 space-y-2 mb-2 bg-white">
       {/* Meta */}
@@ -219,9 +245,7 @@ const CardRow = React.memo(function CardRow({ c }: { c: any }) {
         <div>
           <div className="text-xs font-semibold text-neutral-700">Reasons</div>
           <ul className="list-disc ml-5 text-sm">
-            {c.reasonsText.map((r: string, idx: number) => (
-              <li key={idx}>{r}</li>
-            ))}
+            {c.reasonsText.map((r: string, idx: number) => <li key={idx}>{r}</li>)}
           </ul>
         </div>
       )}
@@ -231,9 +255,7 @@ const CardRow = React.memo(function CardRow({ c }: { c: any }) {
         <div className="text-xs text-neutral-600">
           <span className="font-semibold text-neutral-700">Evidence: </span>
           {c.evidenceLinks.map((u: string) => (
-            <a key={u} href={u} className="underline mr-2" target="_blank" rel="noreferrer">
-              {u}
-            </a>
+            <a key={u} href={u} className="underline mr-2" target="_blank" rel="noreferrer">{u}</a>
           ))}
         </div>
       )}
@@ -243,14 +265,12 @@ const CardRow = React.memo(function CardRow({ c }: { c: any }) {
         <div>
           <div className="text-xs font-semibold text-neutral-700">Anticipated objections</div>
           <ul className="list-disc ml-5 text-sm">
-            {c.anticipatedObjectionsText.map((o: string, idx: number) => (
-              <li key={idx}>{o}</li>
-            ))}
+            {c.anticipatedObjectionsText.map((o: string, idx: number) => <li key={idx}>{o}</li>)}
           </ul>
         </div>
       )}
 
-      {/* Warrant (if present) */}
+      {/* Warrant */}
       {c.warrantText && (
         <div className="text-sm">
           <span className="text-xs font-semibold text-neutral-700">Warrant: </span>
@@ -259,11 +279,9 @@ const CardRow = React.memo(function CardRow({ c }: { c: any }) {
       )}
 
       {/* Challenge warrant */}
-      {c.claimId && (
-        <ChallengeWarrantCard cardId={c.id} claimId={c.claimId} deliberationId={c.deliberationId} />
-      )}
+      {c.claimId && <ChallengeWarrantCard cardId={c.id} claimId={c.claimId} deliberationId={c.deliberationId} />}
 
-      {/* Counter (if present) */}
+      {/* Counter */}
       {c.counterText && (
         <div className="text-sm">
           <span className="text-xs font-semibold text-neutral-700">Counter: </span>
@@ -301,16 +319,8 @@ const CardRow = React.memo(function CardRow({ c }: { c: any }) {
           )}
         </div>
 
-        <div className="mt-2">
-          {c.claimId && (
-            <CriticalQuestions
-              targetType="claim"
-              targetId={c.claimId}
-              createdById={c.authorId}
-              counterFromClaimId=""
-            />
-          )}
-        </div>
+        {/* CQ section */}
+        {c.claimId && <CardCQSection claimId={c.claimId} authorId={c.authorId} cqSummary={cqSummary} deliberationId={c.deliberationId} />}
       </div>
     </div>
   );

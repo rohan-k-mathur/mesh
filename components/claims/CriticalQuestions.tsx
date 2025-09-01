@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 import useSWR, { mutate as globalMutate } from 'swr';
+import { useMemo, useState } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,7 +14,6 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
 
 type RebutScope = 'premise' | 'conclusion';
 type Suggestion = { type: 'undercut' | 'rebut'; scope?: RebutScope } | null;
@@ -37,48 +37,71 @@ export default function CriticalQuestions({
   targetType,
   targetId,
   createdById, // unused here, kept for parity
+  deliberationId,          // 👈 add this
+
   roomId,
   currentLens,
   currentAudienceId,
-  selectedAttackerClaimId, // optional: if user has a selected counter-claim already
+  selectedAttackerClaimId,
+  prefilterKeys, // [{schemeKey,cqKey}]
 }: {
   targetType: 'claim';
   targetId: string;
   createdById: string;
+  deliberationId: string;  // 👈 required
+
+  prefilterKeys?: Array<{ schemeKey: string; cqKey: string }>;
   roomId?: string;
   currentLens?: string;
   currentAudienceId?: string;
   selectedAttackerClaimId?: string;
 }) {
-  const { data, error, isLoading, mutate } = useSWR<CQsResponse>(CQS_KEY(targetId), fetcher);
+  // ----- hooks always run in the same order -----
+  const { data, error, isLoading } = useSWR<CQsResponse>(CQS_KEY(targetId), fetcher);
 
-  const [composeOpen, setComposeOpen] = React.useState(false);
-  const [composeText, setComposeText] = React.useState('');
-  const [composeLoading, setComposeLoading] = React.useState(false);
-  const [pendingAttach, setPendingAttach] = React.useState<{
-    schemeKey: string;
-    cqKey: string;
-  } | null>(null);
-  const [attachError, setAttachError] = React.useState<string | null>(null);
+  const [composeOpen, setComposeOpen] = useState(false);
+  const [composeText, setComposeText] = useState('');
+  const [composeLoading, setComposeLoading] = useState(false);
+  const [pendingAttach, setPendingAttach] = useState<{ schemeKey: string; cqKey: string } | null>(null);
+  const [attachError, setAttachError] = useState<string | null>(null);
 
+  // Build filtered view *before* any early returns so hooks don't change count
+  const filtered = useMemo(() => {
+    if (!data || !prefilterKeys?.length) return data || null;
+    const wanted = new Set(prefilterKeys.map(k => `${k.schemeKey}:${k.cqKey}`));
+    const schemes = data.schemes
+      .map((s) => ({
+        ...s,
+        cqs: s.cqs.filter((cq) => !cq.satisfied && wanted.has(`${s.key}:${cq.key}`)),
+      }))
+      .filter((s) => s.cqs.length);
+    return { ...data, schemes };
+  }, [data, prefilterKeys]);
+
+  // Always compute `view` and `schemes` from filtered/data (no conditional hooks)
+  const view = filtered ?? data ?? { targetType: 'claim', targetId, schemes: [] as Scheme[] };
+  const schemes: Scheme[] = Array.isArray(view.schemes) ? view.schemes : [];
+
+  // ----- after all hooks, render conditions -----
   if (isLoading) return <div className="text-xs text-neutral-500">Loading CQs…</div>;
   if (error) return <div className="text-xs text-red-600">Failed to load CQs.</div>;
-
-  const schemes: Scheme[] = Array.isArray(data?.schemes) ? data!.schemes : [];
   if (!schemes.length) return <div className="text-xs text-neutral-500">No critical questions yet.</div>;
 
   async function revalidateAll(schemeKey?: string) {
     await Promise.all([
-      mutate(CQS_KEY(targetId, schemeKey)),
-      globalMutate(TOULMIN_KEY(targetId)),
-      roomId && currentLens ? globalMutate(GRAPH_KEY(roomId, currentLens, currentAudienceId)) : Promise.resolve(),
+      globalMutate(CQS_KEY(targetId, schemeKey)), // revalidate CQs (optionally narrowed to a scheme)
+      globalMutate(TOULMIN_KEY(targetId)),        // refresh Toulmin mini
+      roomId && currentLens
+        ? globalMutate(GRAPH_KEY(roomId, currentLens, currentAudienceId))
+        : Promise.resolve(),
     ]);
   }
 
   async function toggleCQ(schemeKey: string, cqKey: string, next: boolean) {
-    const prev = data;
-    mutate(
-      (current) => {
+    // optimistic update against the SWR cache
+    globalMutate(
+      CQS_KEY(targetId),
+      (current: CQsResponse | undefined) => {
         if (!current) return current;
         return {
           ...current,
@@ -94,25 +117,27 @@ export default function CriticalQuestions({
       const res = await fetch('/api/cqs/toggle', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ targetType, targetId, schemeKey, cqKey, satisfied: next }),
+        body: JSON.stringify({
+          targetType,
+          targetId,
+          schemeKey,
+          cqKey,
+          satisfied: next,
+          deliberationId,       // 👈 use correct prop, not roomId
+        }),
       });
       if (!res.ok) throw new Error(await res.text());
-    } catch {
-      mutate(prev, { revalidate: false });
     } finally {
       await revalidateAll(schemeKey);
     }
   }
 
-  // Entry point when user clicks "Attach"
   async function onAttachClick(schemeKey: string, cqKey: string) {
     setAttachError(null);
-    // If a counter claim is already selected in UI, use it directly
     if (selectedAttackerClaimId) {
       await attachWithAttacker(schemeKey, cqKey, selectedAttackerClaimId);
       return;
     }
-    // else open quick composer
     setPendingAttach({ schemeKey, cqKey });
     setComposeText('');
     setComposeOpen(true);
@@ -120,7 +145,6 @@ export default function CriticalQuestions({
 
   async function attachWithAttacker(schemeKey: string, cqKey: string, attackerClaimId: string) {
     setAttachError(null);
-    // satisfied=false + attachSuggestion + attackerClaimId → server will create ClaimEdge
     const res = await fetch('/api/cqs/toggle', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -146,8 +170,6 @@ export default function CriticalQuestions({
     try {
       setComposeLoading(true);
       setAttachError(null);
-
-      // 1) create the counter-claim in same deliberation
       const ccRes = await fetch('/api/claims/quick-create', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -155,10 +177,7 @@ export default function CriticalQuestions({
       });
       if (!ccRes.ok) throw new Error(await ccRes.text());
       const { claimId: attackerClaimId } = (await ccRes.json()) as { claimId: string };
-
-      // 2) attach using that new claim
       await attachWithAttacker(pendingAttach.schemeKey, pendingAttach.cqKey, attackerClaimId);
-
       setComposeOpen(false);
       setPendingAttach(null);
       setComposeText('');
@@ -171,9 +190,9 @@ export default function CriticalQuestions({
 
   return (
     <>
-      <div className="space-y-3">
+      <div className="space-y-3 ">
         {schemes.map((s) => (
-          <div key={s.key} className="rounded border p-2">
+          <div key={s.key} className="rounded border border-black bg-white p-2">
             <div className="text-xs font-semibold">{s.title}</div>
             <ul className="mt-1 space-y-1">
               {s.cqs.map((cq) => {
@@ -217,7 +236,7 @@ export default function CriticalQuestions({
 
       {/* Quick-compose dialog */}
       <Dialog open={composeOpen} onOpenChange={(o) => !composeLoading && setComposeOpen(o)}>
-        <DialogContent className="sm:max-w-[520px]">
+        <DialogContent className="bg-slate-200 rounded-xl sm:max-w-[520px]">
           <DialogHeader>
             <DialogTitle>Add a counter-claim</DialogTitle>
             <DialogDescription>
@@ -234,23 +253,14 @@ export default function CriticalQuestions({
               disabled={composeLoading}
               rows={5}
             />
-            {/* optional: quick metadata */}
-            {/* <Input placeholder="(optional) source URL" /> */}
             {attachError && <div className="text-xs text-red-600">{attachError}</div>}
           </div>
 
           <DialogFooter className="gap-2">
-            <Button
-              variant="ghost"
-              onClick={() => setComposeOpen(false)}
-              disabled={composeLoading}
-            >
+            <Button variant="ghost" onClick={() => setComposeOpen(false)} disabled={composeLoading}>
               Cancel
             </Button>
-            <Button
-              onClick={handleComposeSubmit}
-              disabled={composeLoading || composeText.trim().length < 3}
-            >
+            <Button onClick={handleComposeSubmit} disabled={composeLoading || composeText.trim().length < 3}>
               {composeLoading ? 'Attaching…' : 'Create & Attach'}
             </Button>
           </DialogFooter>

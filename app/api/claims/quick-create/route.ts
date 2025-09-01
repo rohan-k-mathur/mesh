@@ -25,16 +25,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unable to resolve deliberation for target' }, { status: 404 });
   }
 
-  // create a simple claim in the same deliberation
-  const claim = await prisma.claim.create({
+
+// ✅ ensure new claim has deliberationId
+const claim = await prisma.claim.create({
     data: {
       text,
       createdById: String(userId),
-      deliberationId,
-      moid: `cq-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, // quick unique
+      deliberationId,  // <-- this is the one line that fixes the orphan problem
+      moid: `cq-${Date.now()}-${Math.random().toString(36).slice(2,8)}`,
     },
     select: { id: true },
   });
-
-  return NextResponse.json({ ok: true, claimId: claim.id });
+  
+  return NextResponse.json({ ok: true, claimId: claim.id, deliberationId });
 }

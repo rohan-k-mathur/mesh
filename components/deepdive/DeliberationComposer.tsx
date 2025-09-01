@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { z } from "zod";
 import { invalidateDeliberation } from '@/lib/deepdive/invalidate';
+import EnthymemeNudge from '@/components/deepdive/EnthymemeNudge';
 
 type Props = {
   deliberationId: string;
@@ -19,6 +20,8 @@ const schema = z.object({
   sources: z.array(z.string().url()).optional(),
   confidence: z.number().min(0).max(1).optional(),
   isImplicit: z.boolean().optional(),
+  quantifier: z.enum(['SOME','MANY','MOST','ALL']).optional(),
+   modality: z.enum(['COULD','LIKELY','NECESSARY']).optional(),
 });
 
 export default function DeliberationComposer({
@@ -225,7 +228,13 @@ export default function DeliberationComposer({
         value={text}
         onChange={(e) => setText(e.target.value)}
       />
-      <div className="flex flex-wrap gap-2">
+      <EnthymemeNudge
+  targetType="argument"
+  targetId={targetArgumentId}
+  draft={text}
+  onPosted={() => {/* optional toast */}}
+/>
+      <div className="relative flex flex-wrap gap-2">
         <button
           className="px-2 py-1 border rounded-xl text-sm bg-white/70 "
           onClick={() => {
@@ -238,7 +247,7 @@ export default function DeliberationComposer({
         <div className="h-8 border-r-[1px] border-slate-700" />
 
         {/* Quantifier chips */}
-        <div className="flex items-center gap-1 text-sm">
+        <div className="relative flex items-center gap-1 text-sm">
           <span className="text-neutral-500 ">Quantifier:</span>
           {(["SOME", "MANY", "MOST", "ALL"] as const).map((q) => (
             <button
@@ -254,7 +263,7 @@ export default function DeliberationComposer({
           <div className="h-8 border-r-[1px] border-slate-700" />
         </div>
         {/* Modality chips */}
-        <div className="flex items-center gap-1 text-sm">
+        <div className="relative flex items-center gap-1 text-sm">
           <span className="text-neutral-500 mr-1">Modality:</span>
           {(["COULD", "LIKELY", "NECESSARY"] as const).map((m) => (
             <button

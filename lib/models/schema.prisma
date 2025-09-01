@@ -2102,9 +2102,6 @@ model AgreementAck {
   @@map("agreement_acks")
 }
 
-
-
-
 model Argument {
   id             String  @id @default(cuid())
   deliberationId String
@@ -2117,12 +2114,12 @@ model Argument {
   // NEW P1b metadata
   quantifier String?
   modality   String?
-  mediaType  MediaType   @default(text)
+  mediaType  MediaType @default(text)
   mediaUrl   String?
-  createdAt DateTime @default(now())
+  createdAt  DateTime  @default(now())
 
-claimId String?
-claim   Claim? @relation("ArgumentClaim", fields: [claimId], references: [id])
+  claimId String?
+  claim   Claim?  @relation("ArgumentClaim", fields: [claimId], references: [id])
 
   deliberation      Deliberation        @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
   outgoingEdges     ArgumentEdge[]      @relation("fromArg")
@@ -2133,9 +2130,8 @@ claim   Claim? @relation("ArgumentClaim", fields: [claimId], references: [id])
   IssueLink         IssueLink[]
 
   @@index([deliberationId])
-    @@index([deliberationId, createdAt])              // arguments by delib
-  @@index([deliberationId, claimId, createdAt])     // arguments by claim in a delib
-
+  @@index([deliberationId, createdAt]) // arguments by delib
+  @@index([deliberationId, claimId, createdAt]) // arguments by claim in a delib
 }
 
 model ArgumentEdge {
@@ -2222,6 +2218,7 @@ model Cluster {
   users        UserCluster[]
   arguments    ArgumentCluster[]
 
+  @@index([deliberationId, type, createdAt])
   @@index([deliberationId, type])
   @@index([deliberationId, createdAt])
 }
@@ -2247,6 +2244,7 @@ model ArgumentCluster {
   cluster Cluster @relation(fields: [clusterId], references: [id], onDelete: Cascade)
 
   // argumentId refers to your existing Argument model
+  @@index([clusterId, argumentId])
   @@index([clusterId])
   @@index([argumentId])
 }
@@ -2495,7 +2493,6 @@ enum TargetType {
   rebuttal
 }
 
-
 // ---------- Governance core ----------
 model DecisionReceipt {
   id         String            @id @default(cuid())
@@ -2510,6 +2507,8 @@ model DecisionReceipt {
   createdAt  DateTime          @default(now())
 
   panel Panel? @relation(fields: [panelId], references: [id])
+
+  @@index([roomId, createdAt])
 }
 
 model RoomLogbook {
@@ -2560,44 +2559,42 @@ model Panelist {
 }
 
 model DeliberationCard {
-  id          String   @id @default(cuid())
-  deliberationId String
-  authorId    String
-  status      String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  claimText   String
-  reasonsText String[]
-  evidenceLinks String[]
+  id                        String   @id @default(cuid())
+  deliberationId            String
+  authorId                  String
+  status                    String
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+  claimText                 String
+  reasonsText               String[]
+  evidenceLinks             String[]
   anticipatedObjectionsText String[]
-  counterText String?
-  confidence  Float?
-  warrantText String?
-  hostEmbed   String?
-  hostId      String?
-  moid        String   @unique
+  counterText               String?
+  confidence                Float?
+  warrantText               String?
+  hostEmbed                 String?
+  hostId                    String?
+  moid                      String   @unique
 
   // New relation to Claim
-  claimId   String?
-  claim     Claim? @relation(fields: [claimId], references: [id], onDelete: SetNull)
+  claimId String?
+  claim   Claim?  @relation(fields: [claimId], references: [id], onDelete: SetNull)
 
   // Relation to Deliberation
   deliberation Deliberation @relation(fields: [deliberationId], references: [id])
 
   // Back relation for CardCitation
-  citations   CardCitation[]
-    @@index([deliberationId, createdAt])  // cards by delib, time-sorted
-      @@index([deliberationId, status, createdAt])
-  @@index([deliberationId, authorId, createdAt])
+  citations CardCitation[]
 
+  @@index([deliberationId, createdAt]) // cards by delib, time-sorted
+  @@index([deliberationId, status, createdAt])
+  @@index([deliberationId, authorId, createdAt])
 }
 
-
-
 model CardCitation {
-  id           String  @id @default(cuid())
-  cardId       String
-  uri          String
+  id     String @id @default(cuid())
+  cardId String
+  uri    String
 
   locatorStart String? // e.g., CSS/XPath/char off
   locatorEnd   String?
@@ -2669,21 +2666,18 @@ enum GroundLabel {
 }
 
 model Claim {
-  id          String   @id @default(cuid())
+  id          String             @id @default(cuid())
   text        String
   createdById String
-  moid        String   @unique
-  createdAt   DateTime @default(now())
+  moid        String             @unique
+  createdAt   DateTime           @default(now())
   cards       DeliberationCard[]
-    warrant     ClaimWarrant?   // 👈 back-relation
-
+  warrant     ClaimWarrant? // 👈 back-relation
 
   deliberationId String?
   deliberation   Deliberation? @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
 
-arguments Argument[] @relation("ArgumentClaim")
-
-
+  arguments Argument[] @relation("ArgumentClaim")
 
   edgesFrom     ClaimEdge[]     @relation("fromClaim")
   edgesTo       ClaimEdge[]     @relation("toClaim")
@@ -2691,22 +2685,21 @@ arguments Argument[] @relation("ArgumentClaim")
   evidenceLinks EvidenceLink[]
   urns          Urn[]           @relation("ClaimUrns")
   ClaimLabel    ClaimLabel?
+  claimValues   ClaimValue[] // <— opposite side for ClaimValue.claim
 
-    @@index([deliberationId, createdAt])  // claims by delib, time-sorted
-      @@index([deliberationId, createdById, createdAt])
-
-
+  @@index([deliberationId, createdAt]) // claims by delib, time-sorted
+  @@index([deliberationId, createdById, createdAt])
 }
 
 model ClaimEdge {
-  id          String           @id @default(cuid())
+  id          String        @id @default(cuid())
   fromClaimId String
   toClaimId   String
   type        ClaimEdgeType
-    targetScope    String? // 'premise' | 'inference' | 'conclusion'
+  targetScope String? // 'premise' | 'inference' | 'conclusion'
 
-  createdAt   DateTime         @default(now())
-  attackType  ClaimAttackType? // UNDERCUTS | UNDERMINES | REBUTS | SUPPORTS?
+  createdAt  DateTime         @default(now())
+  attackType ClaimAttackType? // UNDERCUTS | UNDERMINES | REBUTS | SUPPORTS?
 
   deliberationId String?
   Deliberation   Deliberation? @relation(fields: [deliberationId], references: [id])
@@ -2715,12 +2708,11 @@ model ClaimEdge {
   to   Claim @relation("toClaim", fields: [toClaimId], references: [id], onDelete: Cascade)
 
   @@unique([fromClaimId, toClaimId, type, attackType], name: "unique_from_to_type_attack")
-
   @@index([fromClaimId])
   @@index([toClaimId])
   @@index([deliberationId])
-    @@index([toClaimId, createdAt])     // inbound edges
-  @@index([fromClaimId, createdAt])   // outbound edges
+  @@index([toClaimId, createdAt]) // inbound edges
+  @@index([fromClaimId, createdAt]) // outbound edges
 }
 
 model ClaimLabel {
@@ -2763,10 +2755,10 @@ model ClaimStats {
   updatedAt      DateTime @default(now())
 
   @@id([deliberationId, claimId])
-  @@map("claim_stats")
   @@index([deliberationId])
   @@index([approvalsCount])
   @@index([undercutsCount])
+  @@map("claim_stats")
 }
 
 model EvidenceLink {
@@ -2796,7 +2788,7 @@ model ArgumentScheme {
   key            String           @unique // 'expert_opinion', 'good_consequences', ...
   title          String
   summary        String
-  cq       Json   @default("{}") // we'll set a DB default to [] below; this avoids null
+  cq             Json             @default("{}") // we'll set a DB default to [] below; this avoids null
   SchemeInstance SchemeInstance[]
 }
 
@@ -2808,26 +2800,26 @@ model CQStatus {
   cqKey       String
   satisfied   Boolean    @default(false)
   createdById String
-  roomId      String?    // denormalized at write-time for RLS
+  roomId      String? // denormalized at write-time for RLS
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
   @@unique([targetType, targetId, schemeKey, cqKey])
+  @@index([targetType, targetId, schemeKey])
   @@index([targetType, targetId])
   @@index([roomId])
 }
-
 
 // If you need a simple edge model for the /api/attacks route (optional — skip if you already have edges):
 model GraphEdge {
   id          String   @id @default(cuid())
   fromId      String
   toId        String
-  type        String   // 'undercut' | 'rebut'
-  scope       String?  // 'premise' | 'conclusion' (for rebut)
+  type        String // 'undercut' | 'rebut'
+  scope       String? // 'premise' | 'conclusion' (for rebut)
   roomId      String
   createdById String
-  meta        Json?    // { schemeKey, cqKey }
+  meta        Json? // { schemeKey, cqKey }
   createdAt   DateTime @default(now())
 
   @@index([roomId])
@@ -2874,7 +2866,6 @@ model ClaimWarrant {
   claim     Claim    @relation(fields: [claimId], references: [id], onDelete: Cascade)
 }
 
-
 model DialogueMove {
   id             String   @id @default(cuid())
   deliberationId String
@@ -2899,7 +2890,7 @@ model Deliberation {
   createdById String
   createdAt   DateTime             @default(now())
   updatedAt   DateTime             @updatedAt
-  cards DeliberationCard[]
+  cards       DeliberationCard[]
 
   arguments  Argument[]
   edges      ArgumentEdge[]
@@ -2912,4 +2903,75 @@ model Deliberation {
 
   @@index([hostType, hostId])
   @@index([roomId])
+}
+
+model Value {
+  id          String       @id @default(cuid())
+  key         String       @unique
+  label       String
+  // ADD THIS:
+  claimValues ClaimValue[] // <— opposite side for ClaimValue.value
+}
+
+model ClaimValue {
+  claimId String
+  valueId String
+  weight  Int    @default(1)
+
+  claim Claim @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  value Value @relation(fields: [valueId], references: [id], onDelete: Cascade)
+
+  @@id([claimId, valueId])
+  @@index([valueId])
+}
+
+model AudiencePreference {
+  id        String   @id @default(cuid())
+  ownerType String // 'user'|'room'|'cohort'
+  ownerId   String
+  order     String // e.g. "Fairness>Autonomy>Efficiency"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerType, ownerId])
+}
+
+model CareLedger {
+  id        String   @id @default(cuid())
+  userId    String
+  delta     Int
+  reason    String // 'bridge_completed'|'synthesis_accepted'|...
+  refType   String // 'assignment'|'bounty'
+  refId     String
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+// ----- bounties -----
+model Bounty {
+  id          String             @id @default(cuid())
+  roomId      String
+  type        String // 'synthesis' | 'source' | 'replication' | 'bridge'
+  title       String
+  brief       String
+  rewardCare  Int
+  status      String             @default("open")
+  opensAt     DateTime?
+  closesAt    DateTime?
+  createdAt   DateTime           @default(now())
+  // ADD THIS:
+  submissions BountySubmission[] // <— opposite side
+}
+
+model BountySubmission {
+  id             String   @id @default(cuid())
+  bountyId       String
+  submitterId    String
+  submissionType String // 'card'|'brief'|'claim'
+  submissionId   String
+  status         String   @default("submitted")
+  createdAt      DateTime @default(now())
+
+  bounty Bounty @relation(fields: [bountyId], references: [id], onDelete: Cascade)
 }

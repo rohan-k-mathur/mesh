@@ -74,28 +74,24 @@ export default function TopologyWidget({ deliberationId }: { deliberationId: str
     );
   }
   function focusClusterIds(ids: string[]) {
-    // Graph focus
     window.dispatchEvent(new CustomEvent('mesh:graph:focusCluster', { detail: { deliberationId, clusterIds: ids } }));
-    // List filter (first cluster)
     window.dispatchEvent(new CustomEvent('mesh:list:filterCluster', { detail: { deliberationId, clusterIds: ids } }));
   }
-
-  // Simple click: single cluster; Ctrl/Cmd click: compare with second cluster
-function onChipClick(e: React.MouseEvent, clusterId: string) {
-  if (e.metaKey || e.ctrlKey) {
-    // compare: if there’s already an active, pair them; else set as active
-    if (activeClusterId && activeClusterId !== clusterId) {
-      focusClusterIds([activeClusterId, clusterId]);
-      setActiveClusterId(activeClusterId); // keep original active
+  
+  function onChipClick(e: React.MouseEvent, clusterId: string) {
+    if (e.metaKey || e.ctrlKey) {
+      if (activeClusterId && activeClusterId !== clusterId) {
+        focusClusterIds([activeClusterId, clusterId]);  // pair mode → preview dotted edges
+        // keep existing active visually; optionally store pair state if you want a badge
+      } else {
+        setActiveClusterId(clusterId);
+        focusClusterIds([clusterId]);
+      }
     } else {
       setActiveClusterId(clusterId);
       focusClusterIds([clusterId]);
     }
-  } else {
-    setActiveClusterId(clusterId);
-    focusClusterIds([clusterId]);
   }
-}
 
   function clearFocus() {
     setActiveClusterId(null);

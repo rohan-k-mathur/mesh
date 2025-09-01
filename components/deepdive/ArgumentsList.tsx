@@ -6,7 +6,7 @@ import PromoteToClaimButton from "../claims/PromoteToClaimButton";
 import CitePickerInline from "@/components/citations/CitePickerInline";
 import { SkeletonLines } from "@/components/ui/SkeletonB";
 import React from "react";
-
+import RhetoricText from "../rhetoric/RhetoricText";
 const PAGE = 20;
 const fetcher = (u: string) => fetch(u, { cache: "no-store" }).then(r => {
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -32,10 +32,13 @@ export default function ArgumentsList({
   deliberationId,
   onReplyTo,
   onChanged,
+  onVisibleTextsChanged
 }: {
   deliberationId: string;
   onReplyTo: (id: string) => void;
   onChanged?: () => void;
+    onVisibleTextsChanged?: (texts: string[]) => void;  // NEW
+
 }) {
 
   const [clusterId, setClusterId] = useState<string | undefined>(undefined);
@@ -65,6 +68,13 @@ export default function ArgumentsList({
   });
 
   const items: Arg[] = useMemo(() => (data ?? []).flatMap((d) => d.items), [data]);
+
+  useEffect(()=>{
+    if (onVisibleTextsChanged) {
+      onVisibleTextsChanged(items.slice(0, 40).map(a => a.text || '')); // first N items
+    }
+  }, [items, onVisibleTextsChanged]);
+
   const nextCursor = data?.[data.length - 1]?.nextCursor ?? null;
 
   // Approve action (kept as-is, optimistically revalidates lists + any parent recompute)
@@ -161,7 +171,8 @@ export default function ArgumentsList({
                 </div>
               )}
 
-              <div className="text-sm whitespace-pre-wrap line-clamp-3">{a.text}</div>
+              <div className="text-sm whitespace-pre-wrap line-clamp-3">  <RhetoricText text={a.text} />
+</div>
 
               {a.mediaType === "image" && a.mediaUrl && (
                 <div className="mt-2"><img src={a.mediaUrl} alt={alt} loading="lazy" className="max-h-40 object-contain border rounded" /></div>
