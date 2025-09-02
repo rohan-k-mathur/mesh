@@ -8,6 +8,9 @@ import { useCQSummaryBatch } from '@/components/cq/useCQSummaryBatch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import CriticalQuestions from '@/components/claims/CriticalQuestions';
+import StyleDensityBadge from '@/components/rhetoric/StyleDensityBadge';
+import PracticalLedger from '@/components/practical/PracticalLedger';
+
 
 type Arg = { id: string; text: string; confidence?: number | null };
 type View = { index: number; arguments: Arg[] };
@@ -299,7 +302,10 @@ export function RepresentativeViewpoints(props: {
                 ))}
               </ul>
                         <ViewCohortBar argIds={v.arguments.map((a) => a.id)} />
-
+                        <div className="flex items-center justify-between">
+  <div className="text-xs uppercase tracking-wide text-neutral-500">View {v.index+1}</div>
+  <StyleDensityBadge texts={v.arguments.map(a => a.text || '')} />
+</div>
               {/* CQ bar + Missing CQs */}
               <div className="mt-1 relative z-10 flex items-center gap-2">
                 <CQBar satisfied={agg.satisfied} required={agg.required} compact />

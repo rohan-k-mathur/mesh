@@ -14,6 +14,7 @@ import CriticalQuestions from '@/components/claims/CriticalQuestions';
 import ToulminMini from '@/components/deepdive/ToulminMini';
 import { AddGround, AddRebut } from './AddGroundRebut';
 import { ChallengeWarrantCard } from './ChallengeWarrantCard';
+import SchemeCues from '../rhetoric/SchemeCues';
 
 // shadcn/ui
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -309,6 +310,13 @@ const CardRow = React.memo(function CardRow({ c, cqById }: { c: any; cqById: Map
         </div>
 
         {c.claimId && <ToulminMini claimId={c.claimId} />}
+
+        {c.claimId && (
+  <div className="mt-2">
+    {/* Scheme-aware cues + CQ prefilter button */}
+    <SchemeCues deliberationId={c.deliberationId} claimId={c.claimId} />
+  </div>
+)}
 
         <div className="mt-2 grid gap-2">
           {c.claimId && (

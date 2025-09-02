@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { prisma } from '@/lib/prisma';
-import { getCurrentUserId } from '@/lib/auth';
+import { prisma } from '@/lib/prismaclient';
+import { getCurrentUserId } from '@/lib/serverutils';
+
 import { asUserIdString } from '@/lib/auth/normalize';
 
 const CreateBody = z.object({
