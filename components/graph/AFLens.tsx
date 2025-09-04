@@ -9,6 +9,8 @@ import CyCanvas from './CyCanvas';
 import SchemeOverlayFetch from './SchemeOverlayFetch';
 import HullOverlay from './HullOverlay';
 import React from 'react';
+import type { AFNode, AFEdge } from '@/lib/argumentation/afEngine';
+
 
 cytoscape.use(navigator);
 try { (cytoscape as any).__dagre__ || (cytoscape as any).use(dagre); (cytoscape as any).__dagre__ = true; } catch {}
@@ -35,6 +37,8 @@ type GraphResponse = {
   version?: number | string;
 };
 
+
+
 function colorFor(label?: 'IN'|'OUT'|'UNDEC') {
   if (label === 'IN') return '#d1fae5';
   if (label === 'OUT') return '#e0f2fe';
@@ -45,6 +49,9 @@ export default function AFLens({ deliberationId, height = 420 }: { deliberationI
   const [focusId, setFocusId] = useState<string | null>(null);
   const [extraQuery, setExtraQuery] = useState('');
   const [audience, setAudience] = useState<string|null>(null);
+  const [typeFilter, setTypeFilter] = useState<{DN:boolean;IH:boolean;TC:boolean;OP:boolean}>({
+    DN:true, IH:true, TC:true, OP:true
+  });
   
 
   const hasFocus = extraQuery.includes('focusClusterId=');
@@ -332,6 +339,19 @@ useEffect(() => {
         <button className="text-[11px] underline" onClick={clearCompare}>Clear</button>
       </div>
     )}
+    <div className="flex items-center gap-2">
+  <span className="text-[11px]">Theory Types:</span>
+  {(['DN','IH','TC','OP'] as const).map(tt => (
+    <label key={tt} className="inline-flex items-center gap-1 text-[11px]">
+      <input
+        type="checkbox"
+        checked={typeFilter[tt]}
+        onChange={(e)=> setTypeFilter(prev => ({ ...prev, [tt]: e.target.checked }))}
+      />
+      {tt}
+    </label>
+  ))}
+</div>
         <div className="flex items-center gap-3">
           <span>● IN ○ OUT ◐ UNDEC</span>
           <label className="inline-flex items-center gap-1">

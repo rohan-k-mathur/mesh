@@ -763,10 +763,11 @@ export default function ArticleReaderWithPins({
       <div className="flex flex-col">
         <hr className="w-full border-[1px] border-white mt-4"></hr>
         {deliberationId && (
-          <section className="mt-2">
+          <section className="mt-0">
             <h2 className="text-[2.6rem] font-semibold tracking-wider text-center">
               Discussion
             </h2>
+            <div className=" justify-center items-center mx-auto border-b-[1px] border-white w-[75%] "/>
             <hr></hr>
             <RhetoricProvider>
   <DeepDivePanel deliberationId={deliberationId}/>

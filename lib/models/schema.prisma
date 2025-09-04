@@ -2892,14 +2892,16 @@ model Deliberation {
   updatedAt   DateTime             @updatedAt
   cards       DeliberationCard[]
 
-  arguments  Argument[]
-  edges      ArgumentEdge[]
-  approvals  ArgumentApproval[]
-  selections ViewpointSelection[]
-  Issue      Issue[]
-  Claim      Claim[]
-  ClaimEdge  ClaimEdge[]
-  Cluster    Cluster[]
+  arguments     Argument[]
+  edges         ArgumentEdge[]
+  approvals     ArgumentApproval[]
+  selections    ViewpointSelection[]
+  Issue         Issue[]
+  Claim         Claim[]
+  ClaimEdge     ClaimEdge[]
+  Cluster       Cluster[]
+  TheoryWork    TheoryWork[]
+  KnowledgeEdge KnowledgeEdge[]
 
   @@index([hostType, hostId])
   @@index([roomId])
@@ -2974,4 +2976,133 @@ model BountySubmission {
   createdAt      DateTime @default(now())
 
   bounty Bounty @relation(fields: [bountyId], references: [id], onDelete: Cascade)
+}
+
+/// ====== Sprint 1: Framing & Knowledge edges ======
+
+enum PhilosophyTheoryType {
+  DN // Descriptive–Nomological
+  IH // Idealizing–Hermeneutic
+  TC // Technical–Constructive
+  OP // Ontic–Practical
+}
+
+/// A long-form “work” (article/essay) framed by a philosophical Theory Type.
+/// Kept separate from other content models (Argument, Brief, Card) to avoid collisions.
+model TheoryWork {
+  id             String                @id @default(cuid())
+  deliberationId String
+  authorId       String
+  title          String
+  body           String                @db.Text
+  theoryType     PhilosophyTheoryType?
+  standardOutput String?
+
+  // existing relations (example)
+  deliberation Deliberation @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
+
+  // 1:1 children — parent side has ONLY the relation name, no fields/references
+  practicalJustification WorkPracticalJustification? @relation("Work_Practical")
+  hermeneutic            WorkHermeneuticProject?     @relation("Work_to_HermeneuticProject")
+  pascal                 WorkPascalModel?            @relation("Work_to_PascalModel")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([deliberationId, theoryType, createdAt])
+  @@index([authorId, createdAt])
+}
+
+model WorkPracticalJustification {
+  id      String @id @default(cuid())
+  // Child side owns FK; unique enforces 1:1
+  workId  String @unique
+  purpose String @default("")
+
+  // MCDA payloads
+  criteria Json @default("[]")
+  options  Json @default("[]")
+  scores   Json @default("{}")
+  result   Json @default("{}")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Child side declares fields/references/onDelete AND uses SAME relation name
+  work TheoryWork @relation("Work_Practical", fields: [workId], references: [id], onDelete: Cascade)
+}
+
+/// ========= IH (interpretive phase) =========
+model WorkHermeneuticProject {
+  id           String   @id @default(cuid())
+  workId       String   @unique
+  corpusUrl    String?
+  facts        Json     @default("[]")
+  hypotheses   Json     @default("[]")
+  plausibility Json     @default("[]")
+  selectedIds  Json     @default("[]")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // child owns FK and declares fields/references + SAME relation name
+  work TheoryWork @relation("Work_to_HermeneuticProject", fields: [workId], references: [id], onDelete: Cascade)
+}
+
+/// ========= OP (Pascal-as-if) =========
+model WorkPascalModel {
+  id           String   @id @default(cuid())
+  workId       String   @unique
+  propositions Json     @default("[]")
+  actions      Json     @default("[]")
+  utilities    Json     @default("{}")
+  assumption   String?
+  decision     Json     @default("{}")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // child owns FK and declares fields/references + SAME relation name
+  work TheoryWork @relation("Work_to_PascalModel", fields: [workId], references: [id], onDelete: Cascade)
+}
+
+// (optional) history table if you want revisions now
+model WorkPracticalRevision {
+  id        String   @id @default(cuid())
+  workId    String
+  snapshot  Json // entire justification row at save time
+  createdAt DateTime @default(now())
+
+  @@index([workId, createdAt])
+}
+
+/// Cross-object typed edges for knowledge integration: DN → IH/TC/OP (SUPPLIES_PREMISE) and basic inter-work/claim relations.
+/// Keep this distinct from ClaimEdge/ArgumentEdge; this is *meta* knowledge plumbing, not AF attack edges.
+enum KnowledgeEdgeKind {
+  SUPPLIES_PREMISE // DN work supplies a premise to another work/claim
+  REVISES
+  CHALLENGES
+  SUPPORTS
+  REBUTS
+  UNDERCUTS
+  UNDERMINES
+}
+
+model KnowledgeEdge {
+  id             String            @id @default(cuid())
+  deliberationId String
+  kind           KnowledgeEdgeKind
+  meta           Json?
+
+  // Allow work<->work, work<->claim, claim<->claim; keep fields optional but validate in app layer
+  fromWorkId  String?
+  toWorkId    String?
+  fromClaimId String?
+  toClaimId   String?
+
+  createdAt DateTime @default(now())
+
+  deliberation Deliberation @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
+
+  @@index([deliberationId, kind, createdAt])
+  @@index([fromWorkId, toWorkId])
+  @@index([fromClaimId, toClaimId])
 }

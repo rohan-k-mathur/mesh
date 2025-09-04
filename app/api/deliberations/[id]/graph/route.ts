@@ -3,6 +3,9 @@ import { prisma } from '@/lib/prismaclient';
 import { ClaimAttackType, ClaimEdgeType } from '@prisma/client';
 import { z } from 'zod';
 import { since as startTimer, addServerTiming } from '@/lib/server/timing';
+import { toAif } from '@/lib/export/aif';
+import { projectToAF, grounded, preferred, labelingFromExtension } from '@/lib/argumentation/afEngine';
+
 
 type Node = {
   id: string;
@@ -37,10 +40,10 @@ function scopeFrom(t: { attackType?: string | null; type: 'supports'|'rebuts' })
 function iconForScheme(key?: string | null): string | undefined {
   if (!key) return undefined;
   switch (key) {
-    case 'expert_opinion':    return '/icons/scheme-expert-opinion.svg';
-    case 'good_consequences': return '/icons/scheme-consequences.svg';
-    case 'analogy':           return '/icons/scheme-analogy.svg';
-    default:                  return '/icons/scheme-generic.svg';
+    case 'expert_opinion':    return 'eo';
+    case 'good_consequences': return 'gc';
+    case 'analogy':           return 'an';
+    default:                  return '***';
   }
 }
 
@@ -52,6 +55,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const deliberationId = params.id;
   const url = new URL(req.url);
 // parse both single and multi-cluster focus
+const semantics = (url.searchParams.get('semantics') as 'grounded'|'preferred'|null) || null;
+const supportDefense = url.searchParams.get('supportDefense') === '1';
+const format = url.searchParams.get('format'); // 'aif' -> export
 const focusClusterId = url.searchParams.get('focusClusterId') ?? null;
 const focusClusterIdsParam = url.searchParams.get('focusClusterIds') ?? null;
 const focusClusterIds = focusClusterIdsParam
@@ -63,6 +69,7 @@ const focusClusterIds = focusClusterIdsParam
     focus: url.searchParams.get('focus') ?? undefined,
     radius: url.searchParams.get('radius') ?? undefined,
     maxNodes: url.searchParams.get('maxNodes') ?? undefined,
+    
   });
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
@@ -223,6 +230,53 @@ const filteredClaims = allowedClaimIds
       targetScope: e.targetScope ?? scopeFrom({ attackType, type }),
     };
   });
+
+  // AIF export (raw graph)
+if (format === 'aif') {
+  const aif = toAif(
+    nodes.map(n => ({ id: n.id, text: n.text, type: 'claim' })),
+    edges.map(e => ({
+      source: e.source,
+      target: e.target,
+      type: e.type,
+      attackType: e.attackType,
+      targetScope: e.targetScope ?? null
+    }))
+  );
+  return NextResponse.json(aif, { headers: { 'Cache-Control': 'no-store' } });
+}
+
+// Optional: Dung labeling (override existing labels) when semantics is requested
+if (semantics) {
+  // Build AF nodes/attacks from your claim graph
+  const afNodes = nodes.map(n => ({ id: n.id }));
+  const afEdges = edges.map(e => {
+    const isAttack =
+      e.type === 'rebuts' ||
+      e.attackType === 'REBUTS' ||
+      e.attackType === 'UNDERCUTS' ||
+      e.attackType === 'UNDERMINES';
+    return { from: e.source, to: e.target, type: isAttack ? 'attack' : 'support' as const };
+  });
+
+  const AF = projectToAF(afNodes as any, afEdges as any, { supportDefensePropagation: supportDefense, supportClosure: false });
+  const labeling = (() => {
+    if (semantics === 'grounded') {
+      const E = grounded(AF.A, AF.R);
+      return labelingFromExtension(AF.A, AF.R, E);
+    } else {
+      const prefs = preferred(AF.A, AF.R);
+      const INunion = new Set<string>();
+      for (const E of prefs) for (const a of E) INunion.add(a);
+      return labelingFromExtension(AF.A, AF.R, INunion);
+    }
+  })();
+
+  // override labels on nodes
+  for (const n of nodes) {
+    n.label = labeling.IN.has(n.id) ? 'IN' : labeling.OUT.has(n.id) ? 'OUT' : 'UNDEC';
+  }
+}
 
   const res = NextResponse.json({ nodes, edges, version: Date.now(), lens, capped: claimIds.size > keepIds.size }, {
     headers: { 'Cache-Control': 'no-store' },

@@ -14,7 +14,7 @@ const ORDER: Category[] = [
    // Prefer Logos over bare evidence numbers
   'logos',
   'connective-support','connective-result','connective-contrast','connective-concession','connective-condition',
-  'weasel','evidence','ethos','rhet-question',
+  'ethos','weasel','evidence','rhet-question',
 
   'inference-deductive','inference-inductive','inference-abductive',
 
@@ -48,103 +48,6 @@ const TOGGLE_MAP = {
   pathos: 'pathos',
   logos: 'logos',
 } as const;
-
-
-
-//  type Span = {
-//        start: number;
-//        end: number;
-//        cues: {
-//          source: 'detector' | 'nlp' | 'lexicon';
-//          key: string; // e.g., 'hedge', 'logos:evidence', etc.
-//          label: string;
-//        }[];
-//      };
-     
-//      const PRIORITY: Record<Span['cues'][number]['source'], number> = {
-//        detector: 3,
-//        nlp: 2,
-//        lexicon: 1,
-//      };
-     
-//      function tooltipForLexKind(k: LexKind): string {
-//        const family = k.family;
-//        const tag = (k as any).tag;
-//        if (family === 'emotion') return `Emotion (${tag})`;
-//        if (family === 'frames') return `Frame (${tag})`;
-//        if (family === 'liwc') return `LIWC-lite (${tag})`;
-//        if (family === 'logos') {
-//          const map: Record<string, string> = {
-//            evidence: 'Logos: evidentiary term',
-//            quant: 'Logos: quantitative term',
-//            logic: 'Logos: logical connective/term',
-//            method: 'Logos: methodological term',
-//          };
-//          return map[tag] ?? 'Logos';
-//        }
-//        if (family === 'ethos') {
-//          const map: Record<string, string> = {
-//            credentials: 'Ethos: credential signal',
-//            duty: 'Ethos: duty/standard',
-//            integrity: 'Ethos: integrity/neutrality',
-//            collective: 'Ethos: collective/representation',
-//          };
-//          return map[tag] ?? 'Ethos';
-//        }
-//        return 'Lexicon';
-//      }
-     
-//      function classForCue(sources: Span['cues']): string {
-//        // Choose the highest-priority cue to color the background lightly; add underline for multiples
-//        const top = [...sources].sort((a, b) => PRIORITY[b.source] - PRIORITY[a.source])[0];
-//        const multi = sources.length > 1;
-//        // Tailwind utility blend: subtle background   dotted underline for stacked cues
-//        const base =
-//          top?.source === 'detector'
-//            ? 'bg-blue-200/40 dark:bg-blue-900/20 ring-1 ring-blue-400/40'
-//            : top?.source === 'nlp'
-//            ? 'bg-purple-200/40 dark:bg-purple-900/20 ring-1 ring-purple-400/40'
-//            : 'bg-amber-200/30 dark:bg-amber-900/20 ring-1 ring-amber-400/30';
-//        const emphasis = multi ? ' underline decoration-dotted underline-offset-2' : '';
-//        return `rounded-sm ${base}${emphasis} px-0.5`;
-//      }
-     
-//      function mergeSpans(length: number, layers: Span[]): Span[] {
-//        // Sweep line: create change events for efficient merge of overlapping spans
-//        type Ev = { i: number; open?: Span['cues']; close?: Span['cues'] };
-//        const events: Ev[] = [];
-//        for (const s of layers) {
-//          events.push({ i: s.start, open: s.cues });
-//          events.push({ i: s.end, close: s.cues });
-//        }
-//        events.sort((a, b) => a.i - b.i);
-//        const out: Span[] = [];
-//        let active: Span['cues'] = [];
-//        let cursor = 0;
-//        const flush = (to: number) => {
-//          if (to <= cursor) return;
-//          if (active.length) out.push({ start: cursor, end: to, cues: [...active] });
-//          cursor = to;
-//        };
-//        for (const ev of events) {
-//          flush(ev.i);
-//          if (ev.close) {
-//            // remove by identity (best‑effort)
-//            for (const c of ev.close) {
-//              const idx = active.findIndex((x) => x.source === c.source && x.key === c.key);
-//              if (idx >= 0) active.splice(idx, 1);
-//            }
-//          }
-//          if (ev.open) {
-//            for (const c of ev.open) {
-//              if (!active.find((x) => x.source === c.source && x.key === c.key)) active.push(c);
-//            }
-//          }
-//        }
-//        flush(length);
-//        return out;
-//      }
-    
 
 
 export default function RhetoricText({ text, onHits }: Props) {
@@ -246,20 +149,50 @@ function filterByToggles(hits: Hit[], enabled: Record<RhetoricCategory, boolean>
 }
 
 function mergeByPriority(hits: Hit[]): Hit[] {
-      // Defensive: drop malformed entries
-      const safe = hits.filter((h: any) =>
-        h && typeof h.start === 'number' && typeof h.end === 'number' && typeof h.match === 'string' && typeof h.cat === 'string'
-      ) as Hit[];
-      const sorted = [...safe].sort((a, b) => {
-    const p = ORDER.indexOf(a.cat) - ORDER.indexOf(b.cat);
-    return p !== 0 ? p : a.start - b.start;
-  });
-  const out: Hit[] = [];
-  let lastEnd = -1;
-  for (const h of sorted) {
-    if (h.start >= lastEnd) { out.push(h); lastEnd = h.end; }
-  }
-  return out;
+       // Defensive: shape check
+       const safe = hits.filter(
+         (h: any) =>
+           h &&
+           typeof h.start === "number" &&
+           typeof h.end === "number" &&
+           typeof h.match === "string" &&
+           typeof h.cat === "string"
+       ) as Hit[];
+     
+       const pri = (c: Category) => {
+         const i = ORDER.indexOf(c);
+         return i === -1 ? 999 : i;
+       };
+       const len = (h: Hit) => h.end - h.start;
+     
+       // Sort by position first; tie-break by better category priority, then longer span
+       const sorted = [...safe].sort((a, b) => {
+         if (a.start !== b.start) return a.start - b.start;
+         const pa = pri(a.cat), pb = pri(b.cat);
+         if (pa !== pb) return pa - pb;
+         return len(b) - len(a);
+       });
+     
+       const out: Hit[] = [];
+       for (const h of sorted) {
+         if (out.length === 0) { out.push(h); continue; }
+         const last = out[out.length - 1];
+         if (h.start >= last.end) { out.push(h); continue; }
+         
+        //  const ETHOS_PREF = new Set(['evidence', 'weasel']);
+        //  if (h.cat === 'ethos' && ETHOS_PREF.has(last.cat)) {
+        //    out[out.length - 1] = h;
+        //    continue;
+        //  }
+
+         // Overlap: keep the better span by category priority; tie-break by longer length
+         const keepH =
+           pri(h.cat) < pri(last.cat) ||
+           (pri(h.cat) === pri(last.cat) && len(h) > len(last));
+         if (keepH) out[out.length - 1] = h; // replace last with better span
+         // else drop h
+       }
+      return out;
 }
 
 function renderWithHighlights(text: string, hits: Hit[]) {

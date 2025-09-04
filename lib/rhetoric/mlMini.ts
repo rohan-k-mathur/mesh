@@ -57,19 +57,19 @@ type Weights = { b: number; w: Partial<Record<keyof FeatureVector, number>> };
 const W: Record<keyof Mix, Weights> = {
   // Biases are conservative; weights emphasize the most diagnostic features.
   ethos: {
-    b: -0.35,
+    b: -0.45,
     w: {
-      lex_ethos: 1.40,
-      det_evidence: 0.15,
+      lex_ethos: 1.0,
+      det_evidence: 0.05,
       nlp_passive: 0.05,
     },
   },
   logos: {
-    b: -0.30,
+    b: -0.35,
     w: {
-      lex_logos: 1.30,
-      det_connectives: 0.25,
-      det_evidence: 0.20,
+      lex_logos: 1.60,
+      det_connectives: 0.35,
+      det_evidence: 0.30,
       nlp_negation: 0.10, // mild: negation often appears in careful logical refutation
     },
   },
@@ -92,8 +92,13 @@ const W: Record<keyof Mix, Weights> = {
 
 const clamp01 = (x: number) => (x < 0 ? 0 : x > 1 ? 1 : x);
 
-const densityPer100 = (count: number, words: number) =>
-  (count / Math.max(1, words)) * 100;
+ const rawPer100 = (count: number, words: number) =>
+   (count / Math.max(1, words)) * 100;
+ 
+ // Mild squash to avoid any single family dominating on short texts.
+ // sqrt keeps ordering but compresses large counts.
+ const squash = (x: number) => Math.sqrt(Math.max(0, x));
+ const densityPer100 = (count: number, words: number) => squash(rawPer100(count, words));
 
 const sum = (xs: number[]) => xs.reduce((a, b) => a + b, 0);
 

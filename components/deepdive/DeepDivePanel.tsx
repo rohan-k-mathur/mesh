@@ -168,7 +168,7 @@ export default function DeepDivePanel({
 
   return (
 
-    <div className="space-y-5 p-3">
+    <div className="space-y-5 py-3 px-6">
       {/* Header controls */}
 
       {/* Arguments + Composer */}
@@ -195,7 +195,8 @@ export default function DeepDivePanel({
             <DiscusHelpPage />
           </div>
           <div className="flex items-center gap-4">
-              <RhetoricControls />
+          <RhetoricControls sample={rhetoricSample} />
+
 
               {pending && <div className="text-xs text-neutral-500">Computing…</div>}
             </div>
@@ -203,6 +204,8 @@ export default function DeepDivePanel({
 
         <ArgumentsList
           deliberationId={deliberationId}
+          onVisibleTextsChanged={(texts)=>setRhetoricSample(texts.join(' '))}
+
           onReplyTo={(id) => setReplyTo(id)}
           onChanged={() => compute(sel?.rule)}
         />
@@ -269,15 +272,16 @@ export default function DeepDivePanel({
       </SectionCard> */}
       <SectionCard>
         <Collapsible open={graphState.open} onOpenChange={graphState.setOpen}>
-          <div className="flex items-center justify-between px-1">
+          <div className="relative flex items-center justify-between px-1">
             <CollapsibleTrigger
               aria-expanded={graphState.open}
-              className="text-sm font-semibold border-[.5px] border-black px-3 rounded-md bg-slate-100 hover:bg-slate-200"
+              className="text-sm font-semibold border-[.5px] border-black px-8 py-1 tracking-wider
+               rounded-md bg-slate-100 hover:bg-slate-200"
             >
               {graphState.open ? "Collapse Graph" : "Expand Graph"}
             </CollapsibleTrigger>
           </div>
-          <CollapsibleContent className="pt-2">
+          <CollapsibleContent className="relative pt-2">
             {graphState.open && (
               <LazyGraphPanel deliberationId={deliberationId} />
             )}

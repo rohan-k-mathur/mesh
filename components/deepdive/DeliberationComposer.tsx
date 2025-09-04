@@ -3,6 +3,9 @@ import { useState } from "react";
 import { z } from "zod";
 import { invalidateDeliberation } from '@/lib/deepdive/invalidate';
 import EnthymemeNudge from '@/components/deepdive/EnthymemeNudge';
+import { TheoryFraming } from "../compose/TheoryFraming";
+import React from "react";
+import { useAuth } from "@/lib/AuthContext";
 
 type Props = {
   deliberationId: string;
@@ -44,12 +47,36 @@ export default function DeliberationComposer({
     "COULD" | "LIKELY" | "NECESSARY" | undefined
   >();
   const [counterKind, setCounterKind] = useState<CounterKind>("none");
+  const [workTitle, setWorkTitle] = useState("");
+const [workBody, setWorkBody]   = useState("");
 
   const [showYesBut, setShowYesBut] = useState(false);
   const [concession, setConcession] = useState("");
   const [counter, setCounter] = useState("");
 
-  const addSource = (url: string) => {
+  const [showWorkFields, setShowWorkFields] = useState(false);
+  const [savedWorkId, setSavedWorkId] = React.useState<string | null>(null);
+
+
+  const [framing, setFraming] = React.useState<{ theoryType:'DN'|'IH'|'TC'|'OP'; standardOutput?:string }>({
+    theoryType: 'DN',
+  });
+  
+  const { user } = useAuth();
+// Derive an id from common providers
+const effectiveUserId =
+  // Supabase / Clerk
+  (user as any)?.id ??
+  // Custom contexts that use userId
+  (user as any)?.userId ??
+  // Firebase
+  (user as any)?.uid ??
+  // Auth0
+  (user as any)?.sub ??
+  null;
+
+  // const userId = effectiveUserId;
+    const addSource = (url: string) => {
     try {
       new URL(url);
       setSources((prev) => [...new Set([...prev, url])]);
@@ -222,7 +249,7 @@ export default function DeliberationComposer({
     <div className="relative z-10 w-full  rounded-md border p-4 space-y-3">
       <div className="text-md font-semibold  text-neutral-600">Analysis</div>
       <textarea
-        className="w-full border rounded p-3"
+        className="w-full border rounded p-3 "
         rows={4}
         placeholder="Respond Here..."
         value={text}
@@ -321,6 +348,99 @@ export default function DeliberationComposer({
        
       </div>
       
+<div className="flex items-center justify-between mb-1">
+  <span className="text-sm text-neutral-700">Optional: Save as a Theory Work</span>
+  <button
+    type="button"
+    className="px-2 py-1 text-[11px] border rounded"
+    onClick={() => setShowWorkFields(v => !v)}
+  >
+    {showWorkFields ? 'Hide' : 'Show'}
+  </button>
+</div>
+
+{showWorkFields && (
+  <div className="rounded border p-3 space-y-2 bg-white/60">
+
+    {/* 🔸 Keep a SINGLE TheoryFraming, wired to show summary + builder when savedWorkId exists */}
+    <TheoryFraming
+      key={savedWorkId ?? 'no-work'}             // force remount on first save so the builder opens
+      value={framing}
+      onChange={setFraming}
+      workId={savedWorkId ?? undefined}          // enables PracticalSummary/Builder after save
+      canEditPractical={true}
+      defaultOpenBuilder={!!savedWorkId}         // auto-open builder after first save
+      className="mb-2"
+    />
+
+    {/* Work fields (title/body) + Save button */}
+    <label className="block text-xs text-neutral-600">Work Title</label>
+    <input
+      className="w-full border rounded px-2 py-1 text-sm"
+      placeholder="Title for this work"
+      value={workTitle}
+      onChange={(e) => setWorkTitle(e.target.value)}
+    />
+
+    <label className="block text-xs text-neutral-600">Work Body</label>
+    <textarea
+      className="w-full border rounded px-2 py-1 text-sm min-h-[120px]"
+      placeholder="Write the body of the work"
+      value={workBody}
+      onChange={(e) => setWorkBody(e.target.value)}
+    />
+
+    <button
+      className="px-3 py-1 rounded border text-sm bg-white disabled:opacity-50"
+      onClick={async () => {
+        if (!workTitle.trim() || !workBody.trim()) {
+          alert('Please provide a work title and body.');
+          return;
+        }
+
+        const payload = {
+          deliberationId,
+          title: workTitle.trim(),
+          body: workBody.trim(),
+          ...(framing?.theoryType ? { theoryType: framing.theoryType } : {}),
+          standardOutput: framing?.standardOutput ?? null,
+        };
+
+        try {
+          const res = await fetch('/api/theoryworks', {
+            method: 'POST',
+            headers: { 'Content-Type':'application/json' },
+            body: JSON.stringify(payload)
+          });
+
+          const text = await res.text();
+          let json: any = null;
+          try { json = JSON.parse(text); } catch {}
+
+          if (!res.ok) {
+            const msg = json?.error || json?.message || text || `HTTP ${res.status}`;
+            alert(`Save failed: ${msg}`);
+            return;
+          }
+
+          const { ok, work } = json;
+          if (ok && work?.id) {
+            setSavedWorkId(work.id);     // 👈 triggers remount/open of builder
+          }
+          alert('Work saved.');
+        } catch (err:any) {
+          console.error(err);
+          alert(`Save failed: ${err?.message ?? 'Unknown error'}`);
+        }
+      }}
+    >
+      Save Work
+    </button>
+  </div>
+)}
+
+
+
       {/* Counter toolbar (only when replying) */}
       {targetArgumentId && !showYesBut && (
         <div className="flex flex-wrap items-center gap-2 text-xs">

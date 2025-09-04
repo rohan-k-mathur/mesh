@@ -25,6 +25,13 @@ import PracticalLedger from '@/components/practical/PracticalLedger';
 import MethodChip from "@/components/rhetoric/MethodChip";
 import DialogueMoves from "@/components/dialogue/DialogueMoves";
 import AnchorToMapButton from "../map/AnchorToMapButton";
+import MiniStructureBox from "../rhetoric/MiniStructureBox";
+import DialogicalPanel from '@/components/dialogue/DialogicalPanel';
+import NegotiationDrawer from "../map/NegotiationDrawer";
+import { toAFFromArguments } from '@/lib/argumentation/toAF'; // the adapter above
+import { useDeliberationAF } from "../dialogue/useGraphAF";
+import NegotiationDrawerV2 from "@/components/map/NegotiationDrawerV2";
+import ScrollReveal from '@/components/ui/ScrollReveal';
 
 
 const PAGE = 20;
@@ -52,6 +59,20 @@ type Arg = {
   approvedByUser?: boolean;
 };
 
+
+function RowLexSnapshot({ text }: { text: string }) {
+  const { liwcCounts, topFrames } = React.useMemo(() => analyzeLexiconsMany([text]), [text]);
+  return (
+    <span className="text-[10px] text-neutral-600 ml-2">
+      · certainty {liwcCounts.certainty} · tentative {liwcCounts.tentative} · neg {liwcCounts.negation}
+      {topFrames.length ? <> · frames {topFrames.map(f => f.key).join('/')}</> : null}
+    </span>
+  );
+}
+
+
+
+
 export default function ArgumentsList({
   deliberationId,
   onReplyTo,
@@ -64,6 +85,11 @@ export default function ArgumentsList({
   onVisibleTextsChanged?: (texts: string[]) => void; // NEW
 }) {
   const [clusterId, setClusterId] = useState<string | undefined>(undefined);
+    const { modelLens } = useRhetoric();
+  const [negOpen, setNegOpen] = useState(false);
+  const [listExpanded, setListExpanded] = useState(false);
+
+
   useEffect(() => {
     const handler = (ev: any) => {
       if (ev?.detail?.deliberationId !== deliberationId) return;
@@ -102,6 +128,14 @@ export default function ArgumentsList({
     () => (data ?? []).flatMap((d) => d.items),
     [data]
   );
+  // NEW: build AF slice once (memoized) for the current visible items
+  const { nodes, edges } = useDeliberationAF(deliberationId);
+  const titlesByTarget = useMemo(
+   () => Object.fromEntries(items.map(a => [a.id, (a.text || '').slice(0, 80)])),
+    [items]
+  );
+  
+
   const { liwcCounts } = useMemo(
     () => analyzeLexiconsMany(items.slice(0, 10).map(a => a.text || '')),
     [items]
@@ -180,15 +214,29 @@ export default function ArgumentsList({
       </div>
     );
   }
-  const { modelLens } = useRhetoric();
-
+  const virtuosoOverflowClass = listExpanded ? 'overflow-y-auto ' : 'overflow-y-hidden ';
 
   return (
     <div
       id="arguments-top"
       className="relative z-10 w-full px-2 rounded-md border "
     >
-      <div className="px-3 py-2 text-md font-medium">Arguments</div>
+      {/* <div className="px-3 py-2 text-md font-medium">Arguments</div> */}
+      <div className="px-3 py-2 text-md font-medium flex items-center justify-between">
+  <span>Arguments</span>
+
+      <button
+    type="button"
+    className="relative max-w-[300px] w-full justify-center items-center text-center mx-auto px-4 py-1 
+    text-xs tracking-wider  rounded-lg border bg-slate-100 lockbutton"
+    onClick={() => setListExpanded((v) => !v)}
+    aria-expanded={listExpanded}
+  >
+    {listExpanded ? 'Lock Scrolling' : 'Enable Scrolling'}
+  </button>
+</div>
+
+      
       <StyleDensityBadge texts={items.slice(0, 10).map((a) => a.text || "")} />
       <EmotionBadge texts={items.slice(0, 10).map(a => a.text || '')} />
   <FrameChips texts={items.slice(0, 10).map(a => a.text || '')} />
@@ -202,20 +250,38 @@ export default function ArgumentsList({
   </span>
 )}
       <div className="rounded-md border py-1">
-      <Virtuoso
+        {/* When in Dialogical lens, show the panel ONCE above the list */}
+      {modelLens === 'dialogical' && (
+        <>
+          <div className="flex items-center justify-between px-3 py-1">
+            <div className="text-sm font-medium">Dialogical view</div>
+            <button className="px-2 py-1 border rounded text-xs" onClick={() => setNegOpen(true)}>
+              Open negotiation
+            </button>
+          </div>
+          <DialogicalPanel deliberationId={deliberationId} nodes={nodes} edges={edges} />
+          <div className="z-1000">
+     <NegotiationDrawerV2 deliberationId={deliberationId} open={negOpen} onClose={() => setNegOpen(false)} titlesByTarget={titlesByTarget} />
+          </div>
+        </>
+      )}
+
+      {/* <Virtuoso
   style={{ height: 520 }}
   data={items}
   computeItemKey={(_index, a) => a.id} // ✅ proper prop; avoid unused index
   endReached={() => !isValidating && nextCursor && setSize((s) => s + 1)}
   itemContent={(index: number, a: Arg) =>
-    modelLens === 'dialogical' ? (
-      <DialogicalRow
-        a={a}
-        deliberationId={deliberationId}
-        onReplyTo={onReplyTo}
-        onOpenDispute={openDispute}
-      />
-    ) : (
+    modelLens === 'dialogical'
+                ? (
+                  <DialogicalRow
+                    a={a}
+                    deliberationId={deliberationId}
+                    onReplyTo={onReplyTo}
+                    onOpenDispute={openDispute}
+                  />
+                )
+                : (
       <ArgRow
         a={a}
         deliberationId={deliberationId}
@@ -227,6 +293,7 @@ export default function ArgumentsList({
       />
     )
   }
+  
    
   components={{
     Footer: () => (
@@ -235,10 +302,59 @@ export default function ArgumentsList({
       </div>
     ),
   }}
-/>
+/> */}
+<div className={"h-[500px]"}>
+
+<Virtuoso
+  className={virtuosoOverflowClass}   // 👈 toggles inner scroll
+  data={items}
+  computeItemKey={(_index, a) => a.id}
+  endReached={() => !isValidating && nextCursor && setSize((s) => s + 1)}
+  itemContent={(index: number, a: Arg) =>
+    modelLens === 'dialogical'
+      ? (
+          <DialogicalRow
+            a={a}
+            deliberationId={deliberationId}
+            onReplyTo={onReplyTo}
+            onOpenDispute={openDispute}
+          />
+        )
+      : (
+          <ArgRow
+            a={a}
+            deliberationId={deliberationId}
+            onReplyTo={onReplyTo}
+            onApprove={approve}
+            onOpenDispute={openDispute}
+            refetch={mutate}
+            modelLens={modelLens}
+          />
+        )
+  }
+  components={{
+    Footer: () => (
+      <div className="py-3 px-4 mx-4 text-center text-[12px] gap-4 text-neutral-500">
+        {isValidating ? 'Loading…' : nextCursor ? 'Scroll to load more' : 'End'}
+       
       </div>
+    ),
+  }}
+/>
+
+</div>
+      </div>
+   
     </div>
   );
+}
+function EvidenceChecklist({ text }: { text: string }) {
+  const hasUrl = /\bhttps?:\/\/\S+/.test(text);
+  const hasDoi = /\bdoi:\s*\S+/i.test(text) || /doi\.org\//i.test(text);
+  const hasNum = /\b\d+(?:\.\d+)?\s?(%|percent|ratio|CI|R²|p[<=>])\b/i.test(text);
+  const hasYear = /\b(19|20)\d{2}\b/.test(text);
+  const pill = (ok:boolean, label:string) => <span className={`px-1 py-0.5 rounded border text-[10px] ${ok?'bg-emerald-50 border-emerald-200 text-emerald-700':'bg-neutral-50 border-neutral-200 text-neutral-600'}`}>{label}</span>;
+  return <div className="flex flex-wrap gap-1 mt-1">{pill(hasUrl,'URL')}{pill(hasDoi,'DOI')}{pill(hasNum,'#s')}{pill(hasYear,'Year')}</div>;
 }
 
 
@@ -315,6 +431,9 @@ function ArgRow({
           </span>
         )}
                 {modelLens === 'monological' && <MethodChip text={a.text} />}
+                {modelLens === 'monological' && <MiniStructureBox text={a.text} />}
+                {modelLens === 'monological' && <RowLexSnapshot text={a.text} />}
+                {modelLens === 'monological' && <EvidenceChecklist text={a.text} />}
 
         {/* NEW: Mini-ML mix badge */}
         {miniMix && <MixBadge mix={miniMix} className="ml-auto" />}
@@ -482,7 +601,7 @@ function DialogicalRow({
       
       <div className="mt-2 flex items-center gap-2">
       <AnchorToMapButton argumentId={a.id} />
-        <DialogueMoves deliberationId={deliberationId} argumentId={a.id} />
+       <DialogueMoves deliberationId={deliberationId} targetType="argument" targetId={a.id} />
         <button className="px-2 py-1 border rounded text-xs" onClick={() => onReplyTo(a.id)}>Reply</button>
         <button className="px-2 py-1 border rounded text-xs" onClick={() => onOpenDispute(a.id, 'Meaning / Scope')}>Open issue</button>
       </div>

@@ -6,13 +6,23 @@ import { ClaimAttackType, ClaimEdgeType } from '@prisma/client';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
+// function iconForScheme(key?: string | null): string | undefined {
+//   if (!key) return undefined;
+//   switch (key) {
+//     case 'expert_opinion':     return '/icons/scheme-expert-opinion.svg';
+//     case 'good_consequences':  return '/icons/scheme-consequences.svg';
+//     case 'analogy':            return '/icons/scheme-analogy.svg';
+//     default:                   return '/icons/scheme-generic.svg';
+//   }
+// }
+
 function iconForScheme(key?: string | null): string | undefined {
   if (!key) return undefined;
   switch (key) {
-    case 'expert_opinion':     return '/icons/scheme-expert-opinion.svg';
-    case 'good_consequences':  return '/icons/scheme-consequences.svg';
-    case 'analogy':            return '/icons/scheme-analogy.svg';
-    default:                   return '/icons/scheme-generic.svg';
+    case 'expert_opinion':    return 'eo';
+    case 'good_consequences': return 'gc';
+    case 'analogy':           return 'an';
+    default:                  return '***';
   }
 }
 
