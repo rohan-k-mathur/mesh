@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState,useEffect } from "react";
 import { z } from "zod";
 import { invalidateDeliberation } from '@/lib/deepdive/invalidate';
 import EnthymemeNudge from '@/components/deepdive/EnthymemeNudge';
@@ -56,6 +56,7 @@ const [workBody, setWorkBody]   = useState("");
 
   const [showWorkFields, setShowWorkFields] = useState(false);
   const [savedWorkId, setSavedWorkId] = React.useState<string | null>(null);
+  const framingRef = React.useRef<HTMLDivElement|null>(null);
 
 
   const [framing, setFraming] = React.useState<{ theoryType:'DN'|'IH'|'TC'|'OP'; standardOutput?:string }>({
@@ -244,6 +245,22 @@ const effectiveUserId =
       setPending(false);
     }
   }
+  // inside DeliberationComposer (add this effect near other hooks)
+useEffect(() => {
+  const handler = (ev: CustomEvent) => {
+    if (!ev?.detail) return;
+    if (ev.detail.deliberationId !== deliberationId) return;
+    setShowWorkFields(true);
+    // optional: focus title for quick typing
+    setTimeout(() => {
+      const el = document.getElementById('work-title-input');
+      if (el) (el as HTMLInputElement).focus();
+    }, 0);
+  };
+  window.addEventListener('mesh:open-work-fields', handler as any);
+  return () => window.removeEventListener('mesh:open-work-fields', handler as any);
+}, [deliberationId]);
+
 
   return (
     <div className="relative z-10 w-full  rounded-md border p-4 space-y-3">
@@ -348,19 +365,20 @@ const effectiveUserId =
        
       </div>
       
-<div className="flex items-center justify-between mb-1">
-  <span className="text-sm text-neutral-700">Optional: Save as a Theory Work</span>
+<div className="flex justify-start gap-4 py-1 mb-1">
+  <span className="text-sm text-neutral-700">Theory Builder</span>
   <button
     type="button"
-    className="px-2 py-1 text-[11px] border rounded"
+    className="px-5 py-0 text-xs bg-white border rounded lockbutton"
     onClick={() => setShowWorkFields(v => !v)}
   >
-    {showWorkFields ? 'Hide' : 'Show'}
+    {showWorkFields ? 'Hide' : 'Expand'}
   </button>
 </div>
 
 {showWorkFields && (
   <div className="rounded border p-3 space-y-2 bg-white/60">
+<div ref={framingRef}>
 
     {/* 🔸 Keep a SINGLE TheoryFraming, wired to show summary + builder when savedWorkId exists */}
     <TheoryFraming
@@ -372,10 +390,13 @@ const effectiveUserId =
       defaultOpenBuilder={!!savedWorkId}         // auto-open builder after first save
       className="mb-2"
     />
+</div>
 
     {/* Work fields (title/body) + Save button */}
     <label className="block text-xs text-neutral-600">Work Title</label>
     <input
+      id="work-title-input"  // 👈 add this
+
       className="w-full border rounded px-2 py-1 text-sm"
       placeholder="Title for this work"
       value={workTitle}
@@ -400,6 +421,7 @@ const effectiveUserId =
 
         const payload = {
           deliberationId,
+
           title: workTitle.trim(),
           body: workBody.trim(),
           ...(framing?.theoryType ? { theoryType: framing.theoryType } : {}),
@@ -426,6 +448,8 @@ const effectiveUserId =
           const { ok, work } = json;
           if (ok && work?.id) {
             setSavedWorkId(work.id);     // 👈 triggers remount/open of builder
+            setTimeout(() => framingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+
           }
           alert('Work saved.');
         } catch (err:any) {

@@ -2,6 +2,7 @@
 'use client';
 export default function ValueToggle({ onChange }:{ onChange:(aud:string|null)=>void }) {
   return (
+    <>
     <label className="text-xs inline-flex items-center gap-1">
       Value lens:
       <select className="border rounded px-1 py-0.5"
@@ -11,5 +12,7 @@ export default function ValueToggle({ onChange }:{ onChange:(aud:string|null)=>v
         <option value="user:me">My preferences</option>
       </select>
     </label>
+    
+    </>
   );
 }

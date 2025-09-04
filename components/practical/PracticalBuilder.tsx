@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-
+import { mcdaResult, sensitivity } from '@/lib/practical/compute';
 type Crit = { id: string; label: string; weight: number; kind?: 'prudential'|'moral' };
 type Opt  = { id: string; label: string; desc?: string };
 type Scores = Record<string, Record<string, number>>;
@@ -131,6 +131,9 @@ export default function PracticalBuilder({
       setSaving(false);
     }
   };
+  const res = mcdaResult(criteria, options, scores);
+const sen = sensitivity(criteria, options, scores, 0.1);
+
 
   return (
     <section className={`rounded border ${className}`}>
@@ -278,6 +281,15 @@ export default function PracticalBuilder({
                     Best: <b>{(options.find(o => o.id === result.bestOptionId)?.label) ?? result.bestOptionId}</b>
                   </span>
                 )}
+                <div className="text-xs mt-1">
+  {sen.stable
+    ? <span className="text-emerald-700">Sensitivity: stable (±10% weights keeps {res.bestOptionId})</span>
+    : <span className="text-amber-700">
+        Sensitivity: fragile — flips if {sen.flips.slice(0,3).map(f => `${f.criterionId}${f.dir}`).join(', ')}
+        {sen.flips.length>3 ? ` +${sen.flips.length-3}` : ''}
+      </span>
+  }
+</div>
               </div>
             </>
           )}

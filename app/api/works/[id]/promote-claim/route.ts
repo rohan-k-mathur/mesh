@@ -1,0 +1,51 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prismaclient';
+import { z } from 'zod';
+import { getUserFromCookies } from '@/lib/serverutils';
+
+export const dynamic = 'force-dynamic';
+
+const Body = z.object({
+  text: z.string().min(3).max(4000),
+  locatorStart: z.number().int().nonnegative(),
+  locatorEnd: z.number().int().nonnegative().refine((v,ctx)=>v>ctx.parent.locatorStart, 'locatorEnd>locatorStart'),
+  excerptHash: z.string().min(8).max(128).optional(),
+});
+
+export async function POST(req: NextRequest, { params }: { params: { id: string }}) {
+  const user = await getUserFromCookies();
+  if (!user?.userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const workId = params.id;
+  const body = await req.json();
+  const parsed = Body.safeParse(body);
+  if (!parsed.success) return NextResponse.json({ error: parsed.error.message }, { status: 400 });
+  const { text, locatorStart, locatorEnd, excerptHash } = parsed.data;
+
+  // Fetch work to get deliberationId
+  const work = await prisma.theoryWork.findUnique({ where: { id: workId }});
+  if (!work) return NextResponse.json({ error: 'Work not found' }, { status: 404 });
+
+  // Create claim in the same deliberation
+  const claim = await prisma.claim.create({
+    data: {
+      text,
+      createdById: String(user.userId),
+      deliberationId: work.deliberationId,
+      moid: crypto.randomUUID(), // you already enforce uniqueness here
+    },
+  });
+
+  // Link citation back to the Work location
+  await prisma.claimCitation.create({
+    data: {
+      claimId: claim.id,
+      uri: `/works/${workId}#loc=${locatorStart}-${locatorEnd}`,
+      locatorStart,
+      locatorEnd,
+      excerptHash: excerptHash ?? undefined,
+    },
+  });
+
+  return NextResponse.json({ ok: true, claim });
+}

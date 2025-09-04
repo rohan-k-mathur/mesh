@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useRef, useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import useSWRInfinite from "swr/infinite";
 import { Virtuoso } from "react-virtuoso";
 import PromoteToClaimButton from "../claims/PromoteToClaimButton";
@@ -8,11 +8,16 @@ import { SkeletonLines } from "@/components/ui/SkeletonB";
 import React from "react";
 import RhetoricText from "../rhetoric/RhetoricText";
 import StyleDensityBadge from "@/components/rhetoric/StyleDensityBadge";
-import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle } from "../ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "../ui/dialog";
 import { Hit } from "../rhetoric/detectors";
 import SaveHighlights from "../rhetoric/SaveHighlights";
-import EmotionBadge from '@/components/rhetoric/EmotionBadge';
-import FrameChips from '@/components/rhetoric/FrameChips';
+import EmotionBadge from "@/components/rhetoric/EmotionBadge";
+import FrameChips from "@/components/rhetoric/FrameChips";
 import { analyzeLexiconsMany } from "../rhetoric/lexiconAnalyzers";
 // NEW imports for mini-ML
 import { useRhetoric } from "@/components/rhetoric/RhetoricContext";
@@ -21,18 +26,13 @@ import { featuresFromPipeline, predictMix } from "@/lib/rhetoric/mlMini";
 import { MixBadge } from "@/components/rhetoric/MixBadge";
 import { SourceQualityBadge } from "../rhetoric/SourceQualityBadge";
 import { FallacyBadge } from "../rhetoric/FallacyBadge";
-import PracticalLedger from '@/components/practical/PracticalLedger';
 import MethodChip from "@/components/rhetoric/MethodChip";
 import DialogueMoves from "@/components/dialogue/DialogueMoves";
 import AnchorToMapButton from "../map/AnchorToMapButton";
 import MiniStructureBox from "../rhetoric/MiniStructureBox";
-import DialogicalPanel from '@/components/dialogue/DialogicalPanel';
-import NegotiationDrawer from "../map/NegotiationDrawer";
-import { toAFFromArguments } from '@/lib/argumentation/toAF'; // the adapter above
-import { useDeliberationAF } from "../dialogue/useGraphAF";
+import DialogicalPanel from "@/components/dialogue/DialogicalPanel";
 import NegotiationDrawerV2 from "@/components/map/NegotiationDrawerV2";
-import ScrollReveal from '@/components/ui/ScrollReveal';
-
+import { useDeliberationAF } from "../dialogue/useGraphAF";
 
 const PAGE = 20;
 const fetcher = (u: string) =>
@@ -59,19 +59,18 @@ type Arg = {
   approvedByUser?: boolean;
 };
 
-
 function RowLexSnapshot({ text }: { text: string }) {
-  const { liwcCounts, topFrames } = React.useMemo(() => analyzeLexiconsMany([text]), [text]);
+  const { liwcCounts, topFrames } = React.useMemo(
+    () => analyzeLexiconsMany([text]),
+    [text]
+  );
   return (
     <span className="text-[10px] text-neutral-600 ml-2">
       · certainty {liwcCounts.certainty} · tentative {liwcCounts.tentative} · neg {liwcCounts.negation}
-      {topFrames.length ? <> · frames {topFrames.map(f => f.key).join('/')}</> : null}
+      {topFrames.length ? <> · frames {topFrames.map((f) => f.key).join("/")}</> : null}
     </span>
   );
 }
-
-
-
 
 export default function ArgumentsList({
   deliberationId,
@@ -82,13 +81,12 @@ export default function ArgumentsList({
   deliberationId: string;
   onReplyTo: (id: string) => void;
   onChanged?: () => void;
-  onVisibleTextsChanged?: (texts: string[]) => void; // NEW
+  onVisibleTextsChanged?: (texts: string[]) => void;
 }) {
   const [clusterId, setClusterId] = useState<string | undefined>(undefined);
-    const { modelLens } = useRhetoric();
+  const { modelLens } = useRhetoric();
   const [negOpen, setNegOpen] = useState(false);
   const [listExpanded, setListExpanded] = useState(false);
-
 
   useEffect(() => {
     const handler = (ev: any) => {
@@ -96,8 +94,7 @@ export default function ArgumentsList({
       const ids: string[] =
         ev.detail.clusterIds ||
         (ev.detail.clusterId ? [ev.detail.clusterId] : []);
-      setClusterId(ids[0]); // for list, we’ll filter by the first selected cluster
-      // Optionally scroll to top:
+      setClusterId(ids[0]);
       const el = document.getElementById("arguments-top");
       if (el) el.scrollIntoView({ behavior: "smooth" });
     };
@@ -109,9 +106,7 @@ export default function ArgumentsList({
   const getKey = (index: number, prev: any) => {
     if (prev && !prev.nextCursor) return null;
     const cursor = index === 0 ? "" : `&cursor=${prev.nextCursor}`;
-    const clusterQ = clusterId
-      ? `&clusterId=${encodeURIComponent(clusterId)}`
-      : "";
+    const clusterQ = clusterId ? `&clusterId=${encodeURIComponent(clusterId)}` : "";
     return `/api/deliberations/${deliberationId}/arguments?limit=${PAGE}${cursor}&sort=createdAt:desc${clusterQ}`;
   };
 
@@ -128,27 +123,100 @@ export default function ArgumentsList({
     () => (data ?? []).flatMap((d) => d.items),
     [data]
   );
-  // NEW: build AF slice once (memoized) for the current visible items
+
+  // ===== CHANGED: compute claimIds BEFORE we use them for fetching work mappings
+  const claimIds = useMemo(() => {
+    const set = new Set<string>();
+    for (const a of items) if (a.claimId) set.add(a.claimId);
+    return Array.from(set);
+  }, [items]);
+
+  // Map claimId -> { workId, title } if the claim cites a TheoryWork
+  const [workByClaimId, setWorkByClaimId] = useState<
+    Record<string, { workId: string; title: string } | undefined>
+  >({});
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!claimIds.length) {
+        setWorkByClaimId({});
+        return;
+      }
+      // 1) fetch claim citations
+      const qs = encodeURIComponent(claimIds.join(","));
+      const res = await fetch(`/api/claim-citations?claimIds=${qs}`);
+      if (!res.ok) return;
+      const json = (await res.json()) as {
+        ok: boolean;
+        citations: Record<string, string[]>;
+      };
+      if (!json.ok) return;
+
+      // 2) detect workIds from citation URIs
+      const workIdFromUri = (u: string) => {
+        const m = u.match(/^\/works\/([^#?\/]+)/);
+        return m?.[1];
+      };
+
+      const map: Record<string, { workId: string; title: string } | undefined> = {};
+      const workIds = new Set<string>();
+      for (const [cid, uris] of Object.entries(json.citations)) {
+        const wid = uris?.map(workIdFromUri).find(Boolean);
+        if (wid) {
+          map[cid] = { workId: wid!, title: "" };
+          workIds.add(wid!);
+        }
+      }
+
+      if (!workIds.size) {
+        if (!cancelled) setWorkByClaimId(map);
+        return;
+      }
+
+      // 3) hydrate titles
+      const idsQS = encodeURIComponent(Array.from(workIds).join(","));
+      const resp = await fetch(`/api/works/by-ids?ids=${idsQS}`);
+      if (!resp.ok) {
+        if (!cancelled) setWorkByClaimId(map);
+        return;
+      }
+      const j = (await resp.json()) as {
+        ok: boolean;
+        works: { id: string; title: string }[];
+      };
+      const titleById = Object.fromEntries((j.works ?? []).map((w) => [w.id, w.title]));
+      for (const cid of Object.keys(map)) {
+        const wid = map[cid]!.workId;
+        map[cid]!.title = titleById[wid] ?? "Work";
+      }
+      if (!cancelled) setWorkByClaimId(map);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [claimIds.join(",")]); // eslint-disable-line react-hooks/exhaustive-deps
+  // ===== /CHANGED
+
+  // AF slice for dialogical lens
   const { nodes, edges } = useDeliberationAF(deliberationId);
+
   const titlesByTarget = useMemo(
-   () => Object.fromEntries(items.map(a => [a.id, (a.text || '').slice(0, 80)])),
+    () => Object.fromEntries(items.map((a) => [a.id, (a.text || "").slice(0, 80)])),
     [items]
   );
-  
 
   const { liwcCounts } = useMemo(
-    () => analyzeLexiconsMany(items.slice(0, 10).map(a => a.text || '')),
+    () => analyzeLexiconsMany(items.slice(0, 10).map((a) => a.text || "")),
     [items]
   );
+
   useEffect(() => {
-    if (onVisibleTextsChanged) {
-      onVisibleTextsChanged(items.slice(0, 40).map((a) => a.text || "")); // first N items
-    }
+    onVisibleTextsChanged?.(items.slice(0, 40).map((a) => a.text || ""));
   }, [items, onVisibleTextsChanged]);
 
   const nextCursor = data?.[data.length - 1]?.nextCursor ?? null;
 
-  // Approve action (kept as-is, optimistically revalidates lists + any parent recompute)
   const approve = async (id: string, approve: boolean) => {
     try {
       const res = await fetch(`/api/deliberations/${deliberationId}/approve`, {
@@ -158,7 +226,7 @@ export default function ArgumentsList({
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       onChanged?.();
-      mutate(); // refresh first page
+      mutate();
     } catch (e) {
       console.error("approve failed", e);
     }
@@ -181,12 +249,8 @@ export default function ArgumentsList({
     return (
       <div className="rounded-md border p-3 space-y-2">
         <div className="text-sm font-medium">Arguments</div>
-        <div className="p-2 border rounded">
-          <SkeletonLines lines={3} />
-        </div>
-        <div className="p-2 border rounded">
-          <SkeletonLines lines={3} />
-        </div>
+        <div className="p-2 border rounded"><SkeletonLines lines={3} /></div>
+        <div className="p-2 border rounded"><SkeletonLines lines={3} /></div>
       </div>
     );
   }
@@ -194,12 +258,8 @@ export default function ArgumentsList({
     return (
       <div className="rounded-md border p-3 space-y-2">
         <div className="text-sm font-medium">Arguments</div>
-        <div className="text-xs text-rose-600">
-          {String(error?.message || "Failed to load")}
-        </div>
-        <button className="text-xs underline" onClick={() => mutate()}>
-          Retry
-        </button>
+        <div className="text-xs text-rose-600">{String(error?.message || "Failed to load")}</div>
+        <button className="text-xs underline" onClick={() => mutate()}>Retry</button>
       </div>
     );
   }
@@ -208,155 +268,126 @@ export default function ArgumentsList({
       <div className="rounded-md border p-3 space-y-2">
         <div className="text-sm font-medium">Arguments</div>
         <div className="text-xs text-neutral-600">
-          No arguments yet — start by adding your <b>Point</b> and optional{" "}
-          <b>Sources</b>.
+          No arguments yet — start by adding your <b>Point</b> and optional <b>Sources</b>.
         </div>
       </div>
     );
   }
-  const virtuosoOverflowClass = listExpanded ? 'overflow-y-auto ' : 'overflow-y-hidden ';
+
+  const virtuosoOverflowClass = listExpanded ? "overflow-y-auto" : "overflow-y-hidden";
 
   return (
-    <div
-      id="arguments-top"
-      className="relative z-10 w-full px-2 rounded-md border "
-    >
-      {/* <div className="px-3 py-2 text-md font-medium">Arguments</div> */}
+    <div id="arguments-top" className="relative z-10 w-full px-2 rounded-md border">
       <div className="px-3 py-2 text-md font-medium flex items-center justify-between">
-  <span>Arguments</span>
+        <span>Arguments</span>
+        <button
+          type="button"
+          className="relative max-w-[300px] w-full justify-center items-center text-center mx-auto px-4 py-1 
+                     text-xs tracking-wider rounded-lg border bg-slate-100 lockbutton"
+          onClick={() => setListExpanded((v) => !v)}
+          aria-expanded={listExpanded}
+        >
+          {listExpanded ? "Lock Scrolling" : "Enable Scrolling"}
+        </button>
+      </div>
 
-      <button
-    type="button"
-    className="relative max-w-[300px] w-full justify-center items-center text-center mx-auto px-4 py-1 
-    text-xs tracking-wider  rounded-lg border bg-slate-100 lockbutton"
-    onClick={() => setListExpanded((v) => !v)}
-    aria-expanded={listExpanded}
-  >
-    {listExpanded ? 'Lock Scrolling' : 'Enable Scrolling'}
-  </button>
-</div>
-
-      
       <StyleDensityBadge texts={items.slice(0, 10).map((a) => a.text || "")} />
-      <EmotionBadge texts={items.slice(0, 10).map(a => a.text || '')} />
-  <FrameChips texts={items.slice(0, 10).map(a => a.text || '')} />
-  <span className="ml-2 text-[11px] text-neutral-500">· Model: {modelLens}</span>
-
-  {liwcCounts && (
-  <span className="ml-2 text-[11px] text-neutral-600">
-    · certainty {liwcCounts.certainty}
-    · tentative {liwcCounts.tentative}
-    · negation {liwcCounts.negation}
-  </span>
-)}
-      <div className="rounded-md border py-1">
-        {/* When in Dialogical lens, show the panel ONCE above the list */}
-      {modelLens === 'dialogical' && (
-        <>
-          <div className="flex items-center justify-between px-3 py-1">
-            <div className="text-sm font-medium">Dialogical view</div>
-            <button className="px-2 py-1 border rounded text-xs" onClick={() => setNegOpen(true)}>
-              Open negotiation
-            </button>
-          </div>
-          <DialogicalPanel deliberationId={deliberationId} nodes={nodes} edges={edges} />
-          <div className="z-1000">
-     <NegotiationDrawerV2 deliberationId={deliberationId} open={negOpen} onClose={() => setNegOpen(false)} titlesByTarget={titlesByTarget} />
-          </div>
-        </>
+      <EmotionBadge texts={items.slice(0, 10).map((a) => a.text || "")} />
+      <FrameChips texts={items.slice(0, 10).map((a) => a.text || "")} />
+      <span className="ml-2 text-[11px] text-neutral-500">· Model: {modelLens}</span>
+      {liwcCounts && (
+        <span className="ml-2 text-[11px] text-neutral-600">
+          · certainty {liwcCounts.certainty} · tentative {liwcCounts.tentative} · negation {liwcCounts.negation}
+        </span>
       )}
 
-      {/* <Virtuoso
-  style={{ height: 520 }}
-  data={items}
-  computeItemKey={(_index, a) => a.id} // ✅ proper prop; avoid unused index
-  endReached={() => !isValidating && nextCursor && setSize((s) => s + 1)}
-  itemContent={(index: number, a: Arg) =>
-    modelLens === 'dialogical'
-                ? (
-                  <DialogicalRow
-                    a={a}
-                    deliberationId={deliberationId}
-                    onReplyTo={onReplyTo}
-                    onOpenDispute={openDispute}
-                  />
-                )
-                : (
-      <ArgRow
-        a={a}
-        deliberationId={deliberationId}
-        onReplyTo={onReplyTo}
-        onApprove={approve}
-        onOpenDispute={openDispute}
-        refetch={mutate}
-        modelLens={modelLens} // pass through for per-row tweaks
-      />
-    )
-  }
-  
-   
-  components={{
-    Footer: () => (
-      <div className="py-3 text-center text-xs text-neutral-500">
-        {isValidating ? 'Loading…' : nextCursor ? 'Scroll to load more' : 'End'}
-      </div>
-    ),
-  }}
-/> */}
-<div className={"h-[500px]"}>
+      <div className="rounded-md border py-1">
+        {modelLens === "dialogical" && (
+          <>
+            <div className="flex items-center justify-between px-3 py-1">
+              <div className="text-sm font-medium">Dialogical view</div>
+              <button className="px-2 py-1 border rounded text-xs" onClick={() => setNegOpen(true)}>
+                Open negotiation
+              </button>
+            </div>
+            <DialogicalPanel deliberationId={deliberationId} nodes={nodes} edges={edges} />
+            <div className="z-1000">
+              <NegotiationDrawerV2
+                deliberationId={deliberationId}
+                open={negOpen}
+                onClose={() => setNegOpen(false)}
+                titlesByTarget={titlesByTarget}
+              />
+            </div>
+          </>
+        )}
 
-<Virtuoso
-  className={virtuosoOverflowClass}   // 👈 toggles inner scroll
-  data={items}
-  computeItemKey={(_index, a) => a.id}
-  endReached={() => !isValidating && nextCursor && setSize((s) => s + 1)}
-  itemContent={(index: number, a: Arg) =>
-    modelLens === 'dialogical'
-      ? (
-          <DialogicalRow
-            a={a}
-            deliberationId={deliberationId}
-            onReplyTo={onReplyTo}
-            onOpenDispute={openDispute}
+        <div className="h-[500px]">
+          <Virtuoso
+            className={virtuosoOverflowClass}
+            data={items}
+            computeItemKey={(_index, a) => a.id}
+            endReached={() => !isValidating && nextCursor && setSize((s) => s + 1)}
+            itemContent={(index: number, a: Arg) =>
+              modelLens === "dialogical" ? (
+                <DialogicalRow
+                  a={a}
+                  deliberationId={deliberationId}
+                  onReplyTo={onReplyTo}
+                  onOpenDispute={openDispute}
+                />
+              ) : (
+                <ArgRow
+                  a={a}
+                  deliberationId={deliberationId}
+                  onReplyTo={onReplyTo}
+                  onApprove={approve}
+                  onOpenDispute={openDispute}
+                  refetch={mutate}
+                  modelLens={modelLens as any}
+                  workByClaimId={workByClaimId} // ===== CHANGED: pass mapping down
+                />
+              )
+            }
+            components={{
+              Footer: () => (
+                <div className="py-3 px-4 mx-4 text-center text-[12px] gap-4 text-neutral-500">
+                  {isValidating ? "Loading…" : nextCursor ? "Scroll to load more" : "End"}
+                </div>
+              ),
+            }}
           />
-        )
-      : (
-          <ArgRow
-            a={a}
-            deliberationId={deliberationId}
-            onReplyTo={onReplyTo}
-            onApprove={approve}
-            onOpenDispute={openDispute}
-            refetch={mutate}
-            modelLens={modelLens}
-          />
-        )
-  }
-  components={{
-    Footer: () => (
-      <div className="py-3 px-4 mx-4 text-center text-[12px] gap-4 text-neutral-500">
-        {isValidating ? 'Loading…' : nextCursor ? 'Scroll to load more' : 'End'}
-       
+        </div>
       </div>
-    ),
-  }}
-/>
-
-</div>
-      </div>
-   
     </div>
   );
 }
+
 function EvidenceChecklist({ text }: { text: string }) {
   const hasUrl = /\bhttps?:\/\/\S+/.test(text);
   const hasDoi = /\bdoi:\s*\S+/i.test(text) || /doi\.org\//i.test(text);
   const hasNum = /\b\d+(?:\.\d+)?\s?(%|percent|ratio|CI|R²|p[<=>])\b/i.test(text);
   const hasYear = /\b(19|20)\d{2}\b/.test(text);
-  const pill = (ok:boolean, label:string) => <span className={`px-1 py-0.5 rounded border text-[10px] ${ok?'bg-emerald-50 border-emerald-200 text-emerald-700':'bg-neutral-50 border-neutral-200 text-neutral-600'}`}>{label}</span>;
-  return <div className="flex flex-wrap gap-1 mt-1">{pill(hasUrl,'URL')}{pill(hasDoi,'DOI')}{pill(hasNum,'#s')}{pill(hasYear,'Year')}</div>;
+  const pill = (ok: boolean, label: string) => (
+    <span
+      className={`px-1 py-0.5 rounded border text-[10px] ${
+        ok
+          ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+          : "bg-neutral-50 border-neutral-200 text-neutral-600"
+      }`}
+    >
+      {label}
+    </span>
+  );
+  return (
+    <div className="flex flex-wrap gap-1 mt-1">
+      {pill(hasUrl, "URL")}
+      {pill(hasDoi, "DOI")}
+      {pill(hasNum, "#s")}
+      {pill(hasYear, "Year")}
+    </div>
+  );
 }
-
 
 function ArgRow({
   a,
@@ -365,8 +396,8 @@ function ArgRow({
   onApprove,
   onOpenDispute,
   refetch,
-  modelLens,                                // ← NEW
-
+  modelLens,
+  workByClaimId, // ===== CHANGED
 }: {
   a: Arg;
   deliberationId: string;
@@ -374,42 +405,41 @@ function ArgRow({
   onApprove: (id: string, approve: boolean) => Promise<void> | void;
   onOpenDispute: (id: string, label: string) => Promise<void> | void;
   refetch: () => void;
-  modelLens: 'monological' | 'dialogical' | 'rhetorical'; // ← NEW
-
+  modelLens: "monological" | "dialogical" | "rhetorical";
+  workByClaimId: Record<string, { workId: string; title: string } | undefined>;
 }) {
-  const { settings } = useRhetoric(); // <— read enableMiniMl
+  const { settings } = useRhetoric();
   const [modalOpen, setModalOpen] = useState(false);
   const [lastHits, setLastHits] = useState<Hit[]>([]);
 
-
-
   const created = new Date(a.createdAt).toLocaleString();
-  const alt = a.text ? a.text.slice(0, 50) : 'argument image';
+  const alt = a.text ? a.text.slice(0, 50) : "argument image";
 
-  // Build mini-ML features lazily & memoized when enabled.
-  // We reuse lastHits (from <RhetoricText onHits>) to include NLP cues without re-running NLP.
   const miniMix = useMemo(() => {
     if (!settings.enableMiniMl || !a.text) return null;
-
-    // Derive detector analysis for this one argument (cheap & sync).
     const det = analyzeText(a.text);
-
-    // Filter NLP hits out of the merged list we already collect:
-    const NLP_CATS = new Set([
-      'imperative','passive','nominalization','parallelism',
-      'modal-certainty','modal-uncertainty','negation','pronoun-you','pronoun-we',
-    ] as Hit['cat'][]);
-    const nlpHits = lastHits?.filter(h => NLP_CATS.has(h.cat)) ?? [];
-
-    // Build features and predict mix (sync, dependency-free).
-    const feats = featuresFromPipeline({
-      det,
-      nlpHits,
-      text: a.text,
-      // lexSummary/lexHits are optional; we let the helper derive what it needs for Logos/Ethos
-    });
+    const NLP_CATS = new Set(
+      ["imperative", "passive", "nominalization", "parallelism", "modal-certainty", "modal-uncertainty", "negation", "pronoun-you", "pronoun-we"] as Hit["cat"][]
+    );
+    const nlpHits = lastHits?.filter((h) => NLP_CATS.has(h.cat)) ?? [];
+    const feats = featuresFromPipeline({ det, nlpHits, text: a.text });
     return predictMix(feats, { temperature: 1.0 });
   }, [settings.enableMiniMl, a.text, lastHits]);
+
+  // ===== CHANGED: derive work chip for this row if claim traces to a work
+  const workChip =
+    a.claimId && workByClaimId[a.claimId]
+      ? (
+          <a
+            className="px-1.5 py-0.5 rounded border text-[10px] bg-neutral-50 hover:bg-neutral-100"
+            href={`/works/${workByClaimId[a.claimId]!.workId}`}
+            title="Open source work"
+          >
+            ⇢ Work: {workByClaimId[a.claimId]!.title || "Open"}
+          </a>
+        )
+      : null;
+  // ===== /CHANGED
 
   return (
     <div id={`arg-${a.id}`} className="p-3 border-b focus:outline-none">
@@ -425,23 +455,23 @@ function ArgRow({
             {a.modality}
           </span>
         )}
-        {a.mediaType && a.mediaType !== 'text' && (
+        {a.mediaType && a.mediaType !== "text" && (
           <span className="px-1.5 py-0.5 rounded border border-amber-200 bg-amber-50 text-amber-700">
             {a.mediaType}
           </span>
         )}
-                {modelLens === 'monological' && <MethodChip text={a.text} />}
-                {modelLens === 'monological' && <MiniStructureBox text={a.text} />}
-                {modelLens === 'monological' && <RowLexSnapshot text={a.text} />}
-                {modelLens === 'monological' && <EvidenceChecklist text={a.text} />}
+        {modelLens === "monological" && <MethodChip text={a.text} />}
+        {modelLens === "monological" && <MiniStructureBox text={a.text} />}
+        {modelLens === "monological" && <RowLexSnapshot text={a.text} />}
+        {modelLens === "monological" && <EvidenceChecklist text={a.text} />}
+
+        {/* NEW: Work chip when claim is sourced from a TheoryWork */}
+        {workChip}
 
         {/* NEW: Mini-ML mix badge */}
         {miniMix && <MixBadge mix={miniMix} className="ml-auto" />}
         {a.text && <SourceQualityBadge text={a.text} />}
         {a.text && <FallacyBadge text={a.text} />}
-
-
-
       </div>
 
       <div className="text-xs text-neutral-500 mb-1">{created}</div>
@@ -449,15 +479,14 @@ function ArgRow({
       {Array.isArray(a.edgesOut) && a.edgesOut.length > 0 && (
         <div className="mt-1 flex flex-wrap gap-1.5">
           {a.edgesOut.map((e, i) => {
-            if (e.type !== 'rebut' && e.type !== 'undercut') return null;
-            const label =
-              e.type === 'undercut' ? 'inference' : (e.targetScope ?? 'conclusion');
+            if (e.type !== "rebut" && e.type !== "undercut") return null;
+            const label = e.type === "undercut" ? "inference" : e.targetScope ?? "conclusion";
             const style =
-              label === 'inference'
-                ? 'border-violet-200 bg-violet-50 text-violet-700'
-                : label === 'premise'
-                ? 'border-amber-200 bg-amber-50 text-amber-700'
-                : 'border-blue-200 bg-blue-50 text-blue-700';
+              label === "inference"
+                ? "border-violet-200 bg-violet-50 text-violet-700"
+                : label === "premise"
+                ? "border-amber-200 bg-amber-50 text-amber-700"
+                : "border-blue-200 bg-blue-50 text-blue-700";
             return (
               <span key={i} className={`text-[10px] px-1.5 py-0.5 rounded border ${style}`}>
                 {label}
@@ -468,16 +497,12 @@ function ArgRow({
       )}
 
       {/* truncated body */}
-      <div className={`text-sm whitespace-pre-wrap ${a.text.length > 240 && !modalOpen ? 'line-clamp-3' : ''}`}>
-        {/* onHits gives us merged cues (detector+NLP+lexicon); we filter NLP above */}
+      <div className={`text-sm whitespace-pre-wrap ${a.text.length > 240 && !modalOpen ? "line-clamp-3" : ""}`}>
         <RhetoricText text={a.text} onHits={setLastHits} />
       </div>
 
       {a.text && a.text.length > 240 && (
-        <button
-          className="text-xs underline mt-1"
-          onClick={() => setModalOpen(true)}
-        >
+        <button className="text-xs underline mt-1" onClick={() => setModalOpen(true)}>
           Expand
         </button>
       )}
@@ -489,30 +514,35 @@ function ArgRow({
             <DialogTitle>Full argument</DialogTitle>
           </DialogHeader>
           <div className="whitespace-pre-wrap text-sm">
-            <RhetoricText text={a.text} onHits={setLastHits}/>
+            <RhetoricText text={a.text} onHits={setLastHits} />
             <SaveHighlights
               targetType="argument"
               targetId={a.id}
-              highlights={lastHits.map(h => ({ kind: h.cat, text: h.match, start: h.start, end: h.end }))}
+              highlights={lastHits.map((h) => ({
+                kind: h.cat,
+                text: h.match,
+                start: h.start,
+                end: h.end,
+              }))}
             />
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* media (unchanged) */}
-      {a.mediaType === 'image' && a.mediaUrl && (
+      {/* media */}
+      {a.mediaType === "image" && a.mediaUrl && (
         <div className="mt-2">
           <img src={a.mediaUrl} alt={alt} loading="lazy" className="max-h-40 object-contain border rounded" />
         </div>
       )}
-      {a.mediaType === 'video' && a.mediaUrl && (
+      {a.mediaType === "video" && a.mediaUrl && (
         <div className="mt-2">
           <video controls preload="metadata" className="max-h-52 border rounded">
             <source src={a.mediaUrl} />
           </video>
         </div>
       )}
-      {a.mediaType === 'audio' && a.mediaUrl && (
+      {a.mediaType === "audio" && a.mediaUrl && (
         <div className="mt-2">
           <audio controls preload="metadata" className="w-full">
             <source src={a.mediaUrl} />
@@ -521,9 +551,7 @@ function ArgRow({
       )}
 
       {a.confidence != null && (
-        <div className="text-[11px] text-neutral-500 mt-1">
-          How sure: {(a.confidence * 100).toFixed(0)}%
-        </div>
+        <div className="text-[11px] text-neutral-500 mt-1">How sure: {(a.confidence * 100).toFixed(0)}%</div>
       )}
 
       <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
@@ -538,7 +566,7 @@ function ArgRow({
         ) : (
           <PromoteToClaimButton
             deliberationId={deliberationId}
-            target={{ type: 'argument', id: a.id }}
+            target={{ type: "argument", id: a.id }}
             onClaim={() => refetch()}
           />
         )}
@@ -553,25 +581,22 @@ function ArgRow({
             Approved ✓ (Unapprove)
           </button>
         ) : (
-          <button
-            className="px-2 py-1 border rounded text-xs"
-            onClick={() => onApprove(a.id, true)}
-          >
+          <button className="px-2 py-1 border rounded text-xs" onClick={() => onApprove(a.id, true)}>
             Approve
           </button>
         )}
 
-        {a.mediaType === 'image' && (
+        {a.mediaType === "image" && (
           <>
             <button
               className="px-2 py-1 border rounded text-xs"
-              onClick={() => onOpenDispute(a.id, 'Image – Appropriateness')}
+              onClick={() => onOpenDispute(a.id, "Image – Appropriateness")}
             >
               Dispute image (Appropriateness)
             </button>
             <button
               className="px-2 py-1 border rounded text-xs"
-              onClick={() => onOpenDispute(a.id, 'Image – Depiction')}
+              onClick={() => onOpenDispute(a.id, "Image – Depiction")}
             >
               Dispute image (Depiction)
             </button>
@@ -598,12 +623,16 @@ function DialogicalRow({
     <div id={`arg-${a.id}`} className="p-3 border-b">
       <div className="text-xs text-neutral-500 mb-1">{created}</div>
       <div className="text-sm whitespace-pre-wrap line-clamp-3">{a.text}</div>
-      
+
       <div className="mt-2 flex items-center gap-2">
-      <AnchorToMapButton argumentId={a.id} />
-       <DialogueMoves deliberationId={deliberationId} targetType="argument" targetId={a.id} />
-        <button className="px-2 py-1 border rounded text-xs" onClick={() => onReplyTo(a.id)}>Reply</button>
-        <button className="px-2 py-1 border rounded text-xs" onClick={() => onOpenDispute(a.id, 'Meaning / Scope')}>Open issue</button>
+        <AnchorToMapButton argumentId={a.id} />
+        <DialogueMoves deliberationId={deliberationId} targetType="argument" targetId={a.id} />
+        <button className="px-2 py-1 border rounded text-xs" onClick={() => onReplyTo(a.id)}>
+          Reply
+        </button>
+        <button className="px-2 py-1 border rounded text-xs" onClick={() => onOpenDispute(a.id, "Meaning / Scope")}>
+          Open issue
+        </button>
       </div>
     </div>
   );
@@ -621,19 +650,12 @@ function CiteInline({
   const [open, setOpen] = React.useState(false);
   return (
     <>
-      <button
-        className="px-2 py-1 border rounded text-xs"
-        onClick={() => setOpen((o) => !o)}
-      >
+      <button className="px-2 py-1 border rounded text-xs" onClick={() => setOpen((o) => !o)}>
         {open ? "Close cite" : "Cite"}
       </button>
       {open && (
         <div className="mt-2">
-          <CitePickerInline
-            deliberationId={deliberationId}
-            argumentText={text}
-            onDone={() => setOpen(false)}
-          />
+          <CitePickerInline deliberationId={deliberationId} argumentText={text} onDone={() => setOpen(false)} />
         </div>
       )}
     </>

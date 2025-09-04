@@ -1,16 +1,30 @@
-// components/integrity/IntegrityBadge.tsx
 'use client';
-import useSWR from 'swr';
+import * as React from 'react';
 
-const fetcher = (u:string) => fetch(u, { cache: 'no-store' }).then(r => r.json());
+export function IntegrityBadge({
+  workId, theoryType,
+}: { workId:string; theoryType:'DN'|'IH'|'TC'|'OP' }) {
+  const [state, setState] = React.useState<{ hasHerm?:boolean; hasPrac?:boolean; hasPascal?:boolean; hasStd?:boolean }|null>(null);
 
-export default function IntegrityBadge({ workId, theoryType }:{ workId: string; theoryType?: 'DN'|'IH'|'TC'|'OP' }) {
-  const needsPractical = theoryType === 'IH' || theoryType === 'TC' || theoryType === 'DN';
-  const { data } = useSWR(needsPractical ? `/api/works/${workId}/practical` : null, fetcher);
-  if (!needsPractical) return null;
+  React.useEffect(() => {
+    (async () => {
+      const res = await fetch(`/api/works/${workId}/integrity`);
+      const j = await res.json();
+      setState(j ?? null);
+    })();
+  }, [workId]);
 
-  const has = data && (Array.isArray(data.criteria) ? data.criteria.length > 0 : false);
-  return has
-    ? <span className="text-[11px] px-1.5 py-0.5 rounded border bg-emerald-50 border-emerald-200 text-emerald-700">Practical: present</span>
-    : <span className="text-[11px] px-1.5 py-0.5 rounded border bg-amber-50 border-amber-200 text-amber-700">Tip: add Practical Argument</span>;
+  if (!state) return null;
+
+  let ok = false; let msg = '';
+  if (theoryType === 'IH') { ok = !!(state.hasHerm && state.hasPrac && state.hasStd); msg = ok?'Complete':'Add hermeneutic + practical + standard output'; }
+  if (theoryType === 'TC') { ok = !!(state.hasPrac && state.hasStd); msg = ok?'Complete':'Add practical + standard output'; }
+  if (theoryType === 'OP') { ok = !!state.hasPascal; msg = ok?'Complete':'Add Pascal decision'; }
+  if (theoryType === 'DN') { ok = true; msg = 'Extract claims & link supplies (optional)'; }
+
+  return (
+    <span className={`px-1.5 py-0.5 rounded text-[10px] border ${ok?'bg-emerald-50 border-emerald-200 text-emerald-700':'bg-amber-50 border-amber-200 text-amber-800'}`}>
+      {msg}
+    </span>
+  );
 }

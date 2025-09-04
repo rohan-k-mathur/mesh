@@ -16,7 +16,8 @@ import { ViewControls } from "./RepresentativeViewpoints";
 import GraphPanel from "@/components/graph/GraphPanel";
 import { RhetoricProvider, useRhetoric } from '@/components/rhetoric/RhetoricContext';
 import RhetoricControls from '@/components/rhetoric/RhetoricControls';
-
+import WorksRail from "../work/WorksRail";
+import WorksList from "../work/WorksList";
 import {
   Collapsible,
   CollapsibleTrigger,
@@ -43,7 +44,24 @@ type Selection = {
     arguments: { id: string; text: string; confidence?: number | null }[];
   }[];
 };
-
+function WorksCounts({ deliberationId }:{ deliberationId:string }) {
+  const [counts, setCounts] = useState<{DN:number;IH:number;TC:number;OP:number}>({DN:0,IH:0,TC:0,OP:0});
+  useEffect(() => {
+    if (!deliberationId) return;
+    (async () => {
+      const res = await fetch(`/api/works?deliberationId=${encodeURIComponent(deliberationId)}`, { cache:'no-store' });
+      const json = await res.json();
+      const tallies = { DN:0, IH:0, TC:0, OP:0 } as any;
+      for (const w of (json.works ?? [])) tallies[w.theoryType] = (tallies[w.theoryType] ?? 0) + 1;
+      setCounts(tallies);
+    })();
+  }, [deliberationId]);
+  return (
+    <span className="text-[10px] text-neutral-500">
+      DN {counts.DN} · IH {counts.IH} · TC {counts.TC} · OP {counts.OP}
+    </span>
+  );
+}
 // header toggle component
 function RhetoricToggle() {
   const { mode, setMode } = useRhetoric();
@@ -116,6 +134,8 @@ export default function DeepDivePanel({
   const [pending, setPending] = useState(false);
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
+  const [tab, setTab] = useState<'arguments'|'works'|'card'|'viewcard'>('arguments');
+
   const [rule, setRule] = useState<"utilitarian" | "harmonic" | "maxcov">(
     "utilitarian"
   );
@@ -173,7 +193,7 @@ export default function DeepDivePanel({
 
       {/* Arguments + Composer */}
       <SectionCard>
-        <div className="relative  flex items-center justify-between">
+        <div className="relative  flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             {status && <StatusChip status={status} />}
             <label className="text-xs text-neutral-600 flex items-center gap-1">
@@ -196,21 +216,45 @@ export default function DeepDivePanel({
           </div>
           <div className="flex items-center gap-4">
           <RhetoricControls sample={rhetoricSample} />
-
+          <button
+    className="px-2 py-1 border rounded text-xs bg-white"
+    onClick={() => {
+      setTab('works');
+    // double-RAF ensures tab state has applied before we scroll
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        document.getElementById('deepdive-tabs-anchor')
+          ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+  }}
+>
+  Open Works
+</button>
+  <WorksCounts deliberationId={deliberationId} />
+          {/* <div id="work-composer" /> 
+      WorksRail deliberationId={deliberationId} /> */}
+          <div className="flex items-center justify-between px-3 py-2">
 
               {pending && <div className="text-xs text-neutral-500">Computing…</div>}
             </div>
         </div>
 
-        <ArgumentsList
+        </div>
+
+      <ArgumentsList
           deliberationId={deliberationId}
           onVisibleTextsChanged={(texts)=>setRhetoricSample(texts.join(' '))}
 
           onReplyTo={(id) => setReplyTo(id)}
           onChanged={() => compute(sel?.rule)}
         />
-      </SectionCard>
+
+</SectionCard>
       <SectionCard>
+      
+      
+
         <DeliberationComposer
           deliberationId={deliberationId}
           onPosted={() => {
@@ -222,16 +266,18 @@ export default function DeepDivePanel({
       </SectionCard>
 
       {/*  Mode Tabs */}
-      <Tabs defaultValue="arguments">
+      {/* <Tabs defaultValue="arguments">
         <hr className="w-full border border-white"></hr>
 
         <TabsList>
           <TabsTrigger value="arguments">Arguments</TabsTrigger>
+          <TabsTrigger value="works">Works</TabsTrigger> 
+
           <TabsTrigger value="card">Create Card</TabsTrigger>
           <TabsTrigger value="viewcard">View Cards</TabsTrigger>
         </TabsList>
         <TabsContent value="arguments">
-          {/* (You already render arguments/composer above; keep this tab for future) */}
+        
         </TabsContent>
         <TabsContent value="card">
           <SectionCard title="Create Card">
@@ -242,7 +288,7 @@ export default function DeepDivePanel({
         <TabsContent value="viewcard">
           <SectionCard title="View Cards">
             <div className="mt-4">
-              {/* <CardList deliberationId={deliberationId} /> */}
+        
               <CardListVirtuoso
   deliberationId={deliberationId}
   filters={{
@@ -254,10 +300,67 @@ export default function DeepDivePanel({
 />
 
             </div>
+           
           </SectionCard>
         </TabsContent>
-      </Tabs>
+        <div className="mt-4">
 
+
+<TabsContent value="works">
+  <SectionCard title="Theory Works">
+    <WorksList
+      deliberationId={deliberationId}
+      currentUserId={authorId}   // string | undefined
+    />
+  </SectionCard>
+</TabsContent>
+</div>
+  
+      </Tabs> */}
+{/* was: <Tabs defaultValue="arguments"> */}
+<div id="deepdive-tabs-anchor" className="scroll-mt-24" /> 
+
+<Tabs value={tab} onValueChange={(v)=>setTab(v as any)}>
+  <hr className="w-full border border-white" />
+  <div id="work-composer" /> 
+
+  <TabsList>
+    <TabsTrigger value="arguments">Arguments</TabsTrigger>
+    <TabsTrigger value="works">Works</TabsTrigger>
+    <TabsTrigger value="card">Create Card</TabsTrigger>
+    <TabsTrigger value="viewcard">View Cards</TabsTrigger>
+  </TabsList>
+  <TabsContent value="arguments">{/* (keep empty or future) */}</TabsContent>
+
+  {/* Works tab content — move it here (no extra wrapping div outside Tabs) */}
+  <TabsContent value="works">
+    <SectionCard title="Theory Works">
+      <WorksList deliberationId={deliberationId} currentUserId={authorId} />
+    </SectionCard>
+  </TabsContent>
+
+  <TabsContent value="card">
+    <SectionCard title="Create Card">
+      <CardComposerTab deliberationId={deliberationId} />
+    </SectionCard>
+  </TabsContent>
+
+  <TabsContent value="viewcard">
+    <SectionCard title="View Cards">
+      <div className="mt-4">
+        <CardListVirtuoso
+          deliberationId={deliberationId}
+          filters={{
+            status: 'published',
+            authorId,
+            since: '2025-08-01T00:00:00Z',
+            sort: 'createdAt:desc',
+          }}
+        />
+      </div>
+    </SectionCard>
+  </TabsContent>
+</Tabs>
       {/* Views + CEG widgets */}
       <SectionCard>
         <RepresentativeViewpoints
@@ -295,6 +398,5 @@ export default function DeepDivePanel({
         <TopologyWidget deliberationId={deliberationId} />
       </SectionCard>
     </div>
-
   );
 }

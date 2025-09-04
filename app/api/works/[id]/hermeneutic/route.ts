@@ -1,90 +1,87 @@
 // app/api/works/[id]/hermeneutic/route.ts
-import { NextResponse } from 'next/server';
-import { z } from 'zod';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
 import { getUserFromCookies } from '@/lib/serverutils';
+import { z } from 'zod';
 
 export const dynamic = 'force-dynamic';
 
-const PutSchema = z.object({
-  corpusUrl: z.string().url().optional().or(z.literal('')).optional(),
-  facts: z.array(z.object({
-    id: z.string(),
-    text: z.string(),
-    source: z.string().optional(),
-    justification: z.enum(['PERCEPTION','INSTRUMENT','INTERPRETIVE','TESTIMONY']).optional(),
-  })).optional(),
-  hypotheses: z.array(z.object({
-    id: z.string(),
-    text: z.string(),
-    notes: z.string().optional(),
-  })).optional(),
-  plausibility: z.array(z.object({
-    hypothesisId: z.string(),
-    score: z.number().min(0).max(1),
-  })).optional(),
-  selectedIds: z.array(z.string()).optional(),
+const FactSchema = z.object({
+  id: z.string().optional(),
+  text: z.string().min(1),
+  sourceUrl: z.string().url().optional(),
+  justification: z.enum(['PERCEPTION','INSTRUMENT','INTERPRETIVE','TESTIMONY']).optional(),
 });
 
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
-  const workId = params.id;
-  const [work, hp] = await Promise.all([
-    prisma.theoryWork.findUnique({ where: { id: workId }, select: { id: true, authorId: true, theoryType: true } }),
-    prisma.workHermeneuticProject.findUnique({ where: { workId } }),
-  ]);
+const HypothesisSchema = z.object({
+  id: z.string().optional(),
+  text: z.string().min(1),
+  notes: z.string().optional(),
+  prior: z.number().min(0).max(1).optional(),
+});
+
+const PlausibilitySchema = z.object({
+  hypothesisId: z.string(),
+  score: z.number().min(0).max(1),
+  method: z.enum(['bayes','heuristic']).default('heuristic'),
+});
+
+const BodySchema = z.object({
+  corpusUrl: z.string().url().optional().nullable(),
+  facts: z.array(FactSchema).default([]),
+  hypotheses: z.array(HypothesisSchema).default([]),
+  plausibility: z.array(PlausibilitySchema).default([]),
+  selectedIds: z.array(z.string()).default([]),
+});
+
+export async function GET(_req: NextRequest, { params }: { params: { id: string }}) {
+  const work = await prisma.theoryWork.findUnique({
+    where: { id: params.id },
+    select: { id: true }
+  });
   if (!work) return NextResponse.json({ error: 'Work not found' }, { status: 404 });
 
-  return NextResponse.json({
-    ok: true,
-    work: { id: work.id, theoryType: work.theoryType },
-    hermeneutic: hp ?? {
-      id: null,
-      workId,
-      corpusUrl: '',
-      facts: [],
-      hypotheses: [],
-      plausibility: [],
-      selectedIds: [],
-    },
+  const herm = await prisma.workHermeneuticProject.findUnique({
+    where: { workId: work.id },
   });
+
+  return NextResponse.json({ ok: true, hermeneutic: herm ?? null });
 }
 
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
-  const workId = params.id;
+export async function PUT(req: NextRequest, { params }: { params: { id: string }}) {
   const user = await getUserFromCookies();
-  if (!user?.userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const work = await prisma.theoryWork.findUnique({ where: { id: workId } });
+  const work = await prisma.theoryWork.findUnique({ where: { id: params.id } });
   if (!work) return NextResponse.json({ error: 'Work not found' }, { status: 404 });
-  if (String(work.authorId) !== String(user.userId)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
+  if (work.authorId !== user.userId) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-  const body = await req.json();
-  const parsed = PutSchema.safeParse(body);
+  const json = await req.json();
+  const parsed = BodySchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: 'Invalid payload', issues: parsed.error.issues }, { status: 400 });
+    return NextResponse.json({ error: parsed.error.message }, { status: 400 });
   }
 
-  const payload = parsed.data;
-  const hp = await prisma.workHermeneuticProject.upsert({
-    where: { workId },
+  const { corpusUrl, facts, hypotheses, plausibility, selectedIds } = parsed.data;
+
+  const herm = await prisma.workHermeneuticProject.upsert({
+    where: { workId: work.id },
     create: {
-      workId,
-      corpusUrl: payload.corpusUrl || null,
-      facts: payload.facts ?? [],
-      hypotheses: payload.hypotheses ?? [],
-      plausibility: payload.plausibility ?? [],
-      selectedIds: payload.selectedIds ?? [],
+      workId: work.id,
+      corpusUrl: corpusUrl ?? null,
+      facts,
+      hypotheses,
+      plausibility,
+      selectedIds,
     },
     update: {
-      corpusUrl: payload.corpusUrl || null,
-      facts: payload.facts ?? [],
-      hypotheses: payload.hypotheses ?? [],
-      plausibility: payload.plausibility ?? [],
-      selectedIds: payload.selectedIds ?? [],
+      corpusUrl: corpusUrl ?? null,
+      facts,
+      hypotheses,
+      plausibility,
+      selectedIds,
     },
   });
 
-  return NextResponse.json({ ok: true, hermeneutic: hp });
+  return NextResponse.json({ ok: true, hermeneutic: herm });
 }
