@@ -1,33 +1,35 @@
-// app/works/[id]/page.tsx
 import { prisma } from '@/lib/prismaclient';
 import WorkDetailClient from '@/components/work/WorkDetailClient';
 
-export default async function WorkDetailPage({ params }:{ params:{ id:string }}) {
+export default async function Page({ params }: { params: { id: string } }) {
   const work = await prisma.theoryWork.findUnique({
     where: { id: params.id },
     select: {
-      id: true,
-      deliberationId: true,
-      title: true,
-      theoryType: true,
-      standardOutput: true,
-      createdAt: true,
-      authorId: true,
-    }
+      id: true, title: true, theoryType: true, standardOutput: true, deliberationId: true,
+      deliberation: { select: { hostType: true, hostId: true } },
+    },
   });
+  if (!work) throw new Error('Work not found');
 
-  if (!work) {
-    return <div className="max-w-3xl mx-auto p-4 text-sm">Work not found.</div>;
+  let backHref: string | undefined;
+  if (work.deliberation?.hostType === 'article') {
+    // Try key, then slug (name may differ in your Article model)
+    const article = await prisma.article.findUnique({
+              where: { id: work.deliberation.hostId },
+              select: { slug: true },
+            });
+            if (article?.slug) backHref = `/article/${article.slug}`;
   }
 
-  // Pass only serializable props to the client
   return (
     <WorkDetailClient
       id={work.id}
       deliberationId={work.deliberationId}
       title={work.title}
-      theoryType={work.theoryType as 'DN'|'IH'|'TC'|'OP'}
+      theoryType={work.theoryType as any}
       standardOutput={work.standardOutput ?? undefined}
+      backHref={backHref}
+      
     />
   );
 }

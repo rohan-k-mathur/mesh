@@ -102,10 +102,35 @@ export function RepresentativeViewpoints(props: {
     });
   }, [s, argToClaim]);
 
-  const unionClaimIds = useMemo(() => [...new Set(viewClaimIds.flat())], [viewClaimIds]);
+    const unionClaimIds = useMemo(() => [...new Set(viewClaimIds.flat())], [viewClaimIds]);
 
+    // also include IDs mentioned in conflictsTopPairs (they can be claim IDs)
+    const conflictIds = useMemo(
+      () => [...new Set((s?.conflictsTopPairs ?? []).flatMap(p => [p.a, p.b]))],
+      [s]
+    );
+    const claimIdsForFetch = useMemo(
+      () => [...new Set([...unionClaimIds, ...conflictIds])],
+      [unionClaimIds, conflictIds]
+    );
   // batch CQ summary for all claims used by views
   const { byId: cqById } = useCQSummaryBatch(s?.deliberationId || '', unionClaimIds);
+
+     // --- NEW: fetch claim texts so we can label conflict pairs & the claim picker ---
+     const claimCsv = claimIdsForFetch.length ? claimIdsForFetch.sort().join(',') : '';
+   const { data: claimMapData } = useSWR<{ items: { id: string; text: string }[] }>(
+     claimCsv ? `/api/claims/batch?ids=${encodeURIComponent(claimCsv)}` : null,
+     fetcher,
+     { revalidateOnFocus: false }
+   );
+   const claimsById = useMemo(() => {
+     const m = new Map<string, string>();
+     (claimMapData?.items ?? []).forEach((r) => m.set(r.id, r.text));
+     return m;
+   }, [claimMapData]);
+   const labelFor = (id: string) => (argsMap[id] ?? claimsById.get(id) ?? id);
+    const anchorFor = (id: string) => `${argsMap[id] ? 'arg' : 'claim'}-${id}`;
+
 
   // cohort coverage for bars (optional)
   const { data: cohortData } = useSWR<CohortSummary>(
@@ -258,8 +283,14 @@ export function RepresentativeViewpoints(props: {
           Conflicts explained:&nbsp;
           {s.conflictsTopPairs.slice(0,3).map((p,i)=>(
             <span key={i} className="mr-2">
-              <a href={`#arg-${p.a}`} title={argsMap[p.a] ?? p.a} className="underline">“{(argsMap[p.a] ?? p.a).slice(0,38)}”</a> ×
-              <a href={`#arg-${p.b}`} title={argsMap[p.b] ?? p.b} className="underline"> “{(argsMap[p.b] ?? p.b).slice(0,38)}”</a> ({p.count})
+             <a href={`#${anchorFor(p.a)}`} title={labelFor(p.a)} className="underline">
+                “{labelFor(p.a).slice(0, 60)}”
+              </a>
+              &nbsp;×&nbsp;
+              <a href={`#${anchorFor(p.b)}`} title={labelFor(p.b)} className="underline">
+                “{labelFor(p.b).slice(0, 60)}”
+              </a>
+              &nbsp;({p.count})
             </span>
           ))}
         </div>
@@ -296,6 +327,23 @@ export function RepresentativeViewpoints(props: {
                     <div className="flex items-center gap-2">
                       <span className="block">{a.text}</span>
                       <ScopeChip scope={scopeMap[a.id]} />
+                      {/* CQ chip if this arg maps to a claim with open CQs */}
+     {(() => {
+       const cid = argToClaim.get(a.id);
+       const sum = cid ? cqById.get(cid) : undefined;
+       if (!cid || !sum) return null;
+       const open = (sum.required ?? 0) - (sum.satisfied ?? 0);
+       if (open <= 0) return null;
+       return (
+         <button
+           className="text-[10px] px-1.5 py-0.5 rounded border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100"
+           title="View critical questions for this claim"
+           onClick={() => { setTargetClaim(cid); setOpenCQView(v.index); }}
+         >
+           CQs {sum.satisfied}/{sum.required}
+         </button>
+       );
+    })()}
                     </div>
                     {a.confidence!=null && <span className="text-[11px] text-neutral-500">How sure: {(a.confidence*100).toFixed(0)}%</span>}
                   </li>
@@ -307,20 +355,19 @@ export function RepresentativeViewpoints(props: {
   <StyleDensityBadge texts={v.arguments.map(a => a.text || '')} />
 </div>
               {/* CQ bar + Missing CQs */}
-              <div className="mt-1 relative z-10 flex items-center gap-2">
+              <div className="mt-1 relative z-10 flex items-center align-center gap-4">
                 <CQBar satisfied={agg.satisfied} required={agg.required} compact />
                 {/* CQ bar + Missing CQs */}
-<div className="mt-1 flex items-center gap-2">
-  <CQBar satisfied={agg.satisfied} required={agg.required} compact />
+
   <button
-    className="text-[11px] underline"
+    className="text-xs  border-[1px] px-2 rounded-md lockbutton  align-center items-center my-auto gap-4"
     onClick={() => openAddressCQs(v.index)}
     disabled={!agg.required}
     title="Open Critical Questions for this view"
   >
     Address CQs
   </button>
-</div>
+
 
 {/* Address CQs modal */}
 {openCQView === v.index && (
@@ -328,6 +375,11 @@ export function RepresentativeViewpoints(props: {
     <DialogContent className="bg-slate-200 rounded-xl sm:max-w-[640px]">
       <DialogHeader>
         <DialogTitle>Address Critical Questions — View {v.index+1}</DialogTitle>
+        {targetClaim && (
+    <div className="mt-1 text-[11px] text-neutral-600">
+      for: “{(claimsById.get(targetClaim) ?? targetClaim).slice(0, 120)}”
+    </div>
+  )}
       </DialogHeader>
 
       <div className="text-[12px] text-neutral-600 mb-2">
@@ -343,9 +395,9 @@ export function RepresentativeViewpoints(props: {
           <SelectValue placeholder="Pick a claim…" />
         </SelectTrigger>
         <SelectContent>
-          {(Object.keys(missingByClaim[v.index] || {})).map(cid => (
+        {(Object.keys(missingByClaim[v.index] || {})).map(cid => (
             <SelectItem key={cid} value={cid}>
-              {cid.slice(0,6)} — {(cqById.get(cid)?.satisfied ?? 0)}/{(cqById.get(cid)?.required ?? 0)} CQs met
+              {(claimsById.get(cid) ?? cid).slice(0, 80)} — {(cqById.get(cid)?.satisfied ?? 0)}/{(cqById.get(cid)?.required ?? 0)} CQs met
             </SelectItem>
           ))}
         </SelectContent>

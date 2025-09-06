@@ -8,7 +8,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-interface Props {
+interface Props 
+{
   id?: string;
   isOwned: boolean;
   onSubmit?: (values: z.infer<typeof YoutubePostValidation>) => void;

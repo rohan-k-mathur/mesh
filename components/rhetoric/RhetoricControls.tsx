@@ -4,6 +4,7 @@
 import { useMemo } from 'react';
 import { useRhetoric, RhetoricCategory, RhetoricMode } from './RhetoricContext';
 import { analyzeText } from './detectors';
+import { ModelLens } from './RhetoricContext';
 import {
   DropdownMenu,
   DropdownMenuTrigger,

@@ -33,6 +33,8 @@ import MiniStructureBox from "../rhetoric/MiniStructureBox";
 import DialogicalPanel from "@/components/dialogue/DialogicalPanel";
 import NegotiationDrawerV2 from "@/components/map/NegotiationDrawerV2";
 import { useDeliberationAF } from "../dialogue/useGraphAF";
+import { ToulminBox } from "../monological/ToulminBox";
+import { QuantifierModalityPicker } from "../monological/QuantifierModalityPicker";
 
 const PAGE = 20;
 const fetcher = (u: string) =>
@@ -461,9 +463,44 @@ function ArgRow({
           </span>
         )}
         {modelLens === "monological" && <MethodChip text={a.text} />}
-        {modelLens === "monological" && <MiniStructureBox text={a.text} />}
-        {modelLens === "monological" && <RowLexSnapshot text={a.text} />}
+          {modelLens === "monological" && (
+    <>
+      <MiniStructureBox text={a.text} />
+      <ToulminBox
+        text={a.text}
+        onAddMissing={(slot) => {
+          // quick stub: write a MissingPremise row (premise/warrant)
+          fetch('/api/missing-premises', {
+            method: 'POST', headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({
+              deliberationId, targetType: 'argument', targetId: a.id,
+              text: slot === 'warrant' ? 'Add warrant…' : 'Add missing premise…',
+              premiseType: slot === 'warrant' ? 'warrant' : 'premise',
+            }),
+          }).catch(()=>{});
+        }}
+        onPromoteConclusion={(conclusion) => {
+          fetch('/api/claims/quick-create', {
+            method: 'POST', headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ targetArgumentId: a.id, text: conclusion, deliberationId }),
+          }).then(()=>refetch());
+        }}
+      />
+    </>
+  )}        {modelLens === "monological" && <RowLexSnapshot text={a.text} />}
         {modelLens === "monological" && <EvidenceChecklist text={a.text} />}
+          {modelLens === "monological" && (
+    <QuantifierModalityPicker
+      initialQuantifier={a.quantifier ?? null}
+      initialModality={a.modality ?? null}
+      onChange={(q, m) => {
+        fetch(`/api/arguments/${a.id}/meta`, {
+          method: 'PUT', headers: {'content-type':'application/json'},
+          body: JSON.stringify({ quantifier: q, modality: m }),
+        }).then(()=>refetch());
+      }}
+    />
+  )}
 
         {/* NEW: Work chip when claim is sourced from a TheoryWork */}
         {workChip}

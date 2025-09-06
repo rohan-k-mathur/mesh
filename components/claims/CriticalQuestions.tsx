@@ -27,11 +27,14 @@ const fetcher = async (u: string) => {
   return (await res.json()) as CQsResponse;
 };
 
+
 const CQS_KEY = (id: string, scheme?: string) =>
   `/api/cqs?targetType=claim&targetId=${id}${scheme ? `&scheme=${scheme}` : ''}`;
 const TOULMIN_KEY = (id: string) => `/api/claims/${id}/toulmin`;
 const GRAPH_KEY = (roomId: string, lens: string, audienceId?: string) =>
   `graph:${roomId}:${lens}:${audienceId ?? 'none'}`;
+
+  const ATTACH_KEY = (id: string) => `/api/cqs/attachments?targetType=claim&targetId=${id}`;
 
 export default function CriticalQuestions({
   targetType,
@@ -58,25 +61,31 @@ export default function CriticalQuestions({
 }) {
   // ----- hooks always run in the same order -----
   const { data, error, isLoading } = useSWR<CQsResponse>(CQS_KEY(targetId), fetcher);
+    const { data: attachData } = useSWR<{ attached: Record<string, boolean> }>(ATTACH_KEY(targetId), fetcher);
+  const [lingerKeys, setLingerKeys] = useState<Set<string>>(new Set());
 
   const [composeOpen, setComposeOpen] = useState(false);
   const [composeText, setComposeText] = useState('');
   const [composeLoading, setComposeLoading] = useState(false);
-  const [pendingAttach, setPendingAttach] = useState<{ schemeKey: string; cqKey: string } | null>(null);
+  const [pendingAttach, setPendingAttach] = useState<{ schemeKey: string; cqKey: string; suggestion?: Suggestion } | null>(null);
   const [attachError, setAttachError] = useState<string | null>(null);
 
   // Build filtered view *before* any early returns so hooks don't change count
   const filtered = useMemo(() => {
-    if (!data || !prefilterKeys?.length) return data || null;
-    const wanted = new Set(prefilterKeys.map(k => `${k.schemeKey}:${k.cqKey}`));
-    const schemes = data.schemes
-      .map((s) => ({
-        ...s,
-        cqs: s.cqs.filter((cq) => !cq.satisfied && wanted.has(`${s.key}:${cq.key}`)),
-      }))
-      .filter((s) => s.cqs.length);
-    return { ...data, schemes };
-  }, [data, prefilterKeys]);
+         if (!data || !prefilterKeys?.length) return data || null;
+         const wanted = new Set(prefilterKeys.map(k => `${k.schemeKey}:${k.cqKey}`));
+         const schemes = data.schemes
+           .map((s) => ({
+             ...s,
+             cqs: s.cqs.filter((cq) => {
+               const key = `${s.key}:${cq.key}`;
+               // show if it’s wanted AND (still open OR temporarily lingering after being checked)
+               return wanted.has(key) && (!cq.satisfied || lingerKeys.has(key));
+             }),
+           }))
+           .filter((s) => s.cqs.length);
+         return { ...data, schemes };
+      }, [data, prefilterKeys, lingerKeys]);
 
   // Always compute `view` and `schemes` from filtered/data (no conditional hooks)
   const view = filtered ?? data ?? { targetType: 'claim', targetId, schemes: [] as Scheme[] };
@@ -94,10 +103,25 @@ export default function CriticalQuestions({
       roomId && currentLens
         ? globalMutate(GRAPH_KEY(roomId, currentLens, currentAudienceId))
         : Promise.resolve(),
+        globalMutate(ATTACH_KEY(targetId)),
     ]);
   }
 
   async function toggleCQ(schemeKey: string, cqKey: string, next: boolean) {
+
+    const sig = `${schemeKey}:${cqKey}`;
+     // If marking satisfied, keep it visible briefly with a “Addressed ✓” affordance
+     if (next) {
+       setLingerKeys((prev) => new Set(prev).add(sig));
+       setTimeout(() => {
+         setLingerKeys((prev) => {
+           const n = new Set(prev);
+           n.delete(sig);
+           return n;
+         });
+       }, 1000);
+    }
+
     // optimistic update against the SWR cache
     globalMutate(
       CQS_KEY(targetId),
@@ -132,18 +156,18 @@ export default function CriticalQuestions({
     }
   }
 
-  async function onAttachClick(schemeKey: string, cqKey: string) {
+  async function onAttachClick(schemeKey: string, cqKey: string, suggestion?: Suggestion) {
     setAttachError(null);
     if (selectedAttackerClaimId) {
-      await attachWithAttacker(schemeKey, cqKey, selectedAttackerClaimId);
+      await attachWithAttacker(schemeKey, cqKey, selectedAttackerClaimId, suggestion);
       return;
     }
-    setPendingAttach({ schemeKey, cqKey });
+    setPendingAttach({ schemeKey, cqKey, suggestion });
     setComposeText('');
     setComposeOpen(true);
   }
 
-  async function attachWithAttacker(schemeKey: string, cqKey: string, attackerClaimId: string) {
+  async function attachWithAttacker(schemeKey: string, cqKey: string, attackerClaimId: string, suggestion?: Suggestion) {
     setAttachError(null);
     const res = await fetch('/api/cqs/toggle', {
       method: 'POST',
@@ -156,6 +180,8 @@ export default function CriticalQuestions({
         satisfied: false,
         attachSuggestion: true,
         attackerClaimId,
+        suggestion,
+        deliberationId,
       }),
     });
     if (!res.ok) {
@@ -177,7 +203,8 @@ export default function CriticalQuestions({
       });
       if (!ccRes.ok) throw new Error(await ccRes.text());
       const { claimId: attackerClaimId } = (await ccRes.json()) as { claimId: string };
-      await attachWithAttacker(pendingAttach.schemeKey, pendingAttach.cqKey, attackerClaimId);
+      await attachWithAttacker(pendingAttach.schemeKey, pendingAttach.cqKey, attackerClaimId, pendingAttach.suggestion);
+  
       setComposeOpen(false);
       setPendingAttach(null);
       setComposeText('');
@@ -197,6 +224,10 @@ export default function CriticalQuestions({
             <ul className="mt-1 space-y-1">
               {s.cqs.map((cq) => {
                 const id = `${s.key}__${cq.key}`;
+                const sig = `${s.key}:${cq.key}`;
+                const isLinger = lingerKeys.has(sig) && cq.satisfied;
+                const isAttached = Boolean(attachData?.attached?.[sig]); // server truth: has undercut/rebut/evidence attached
+            const canMarkAddressed = cq.satisfied || isAttached;
                 const attachLabel =
                   cq.suggestion?.type === 'undercut'
                     ? 'Attach undercut'
@@ -205,21 +236,26 @@ export default function CriticalQuestions({
                     : 'Attach';
 
                 return (
-                  <li key={cq.key} className="flex items-center justify-between text-sm">
-                    <label htmlFor={id} className="flex items-center gap-2 cursor-pointer">
-                      <Checkbox
-                        id={id}
-                        checked={cq.satisfied}
-                        onCheckedChange={(val) => toggleCQ(s.key, cq.key, Boolean(val))}
-                      />
-                      <span>{cq.text}</span>
-                    </label>
+                  <li key={cq.key} className="flex items-center justify-between text-sm transition-opacity">
+                     <label htmlFor={id} className="flex items-center gap-2 cursor-pointer">
+                       <Checkbox
+                         id={id}
+                         checked={cq.satisfied}
+                         onCheckedChange={(val) => toggleCQ(s.key, cq.key, Boolean(val))}
+                         disabled={isLinger || !canMarkAddressed}
+                       />
+                       <span className={isLinger ? 'line-through opacity-60' : ''}>{cq.text}</span>
+                       {isLinger && <span className="text-[10px] text-emerald-700 ml-2">Addressed ✓</span>}
+                       {!cq.satisfied && !isAttached && (
+                        <span className="text-[10px] text-neutral-500 ml-2">(attach a counter/evidence to enable)</span>
+                      )}
+                     </label>
 
                     {!cq.satisfied && cq.suggestion && (
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => onAttachClick(s.key, cq.key)}
+                        onClick={() => onAttachClick(s.key, cq.key, cq.suggestion ?? undefined)} 
                         title={attachLabel}
                         className="text-[11px] px-2 py-1 h-7"
                       >

@@ -1,77 +1,87 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { z } from 'zod';
+// app/api/cqs/toggle/route.ts
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
-import { getCurrentUserId } from '@/lib/serverutils';
-import { suggestionForCQ } from '@/lib/argumentation/cqSuggestions';
-import { resolveClaimContext } from '@/lib/server/resolveRoom';
-import { createClaimAttack } from '@/lib/argumentation/createClaimAttack';
 
-const BodySchema = z.object({
-    targetType: z.literal('claim'),
-    targetId: z.string().min(1),
-    schemeKey: z.string().min(1),
-    cqKey: z.string().min(1),
-    satisfied: z.boolean(),
-    deliberationId: z.string().optional(),   // 👈 allow fallback
-    attachSuggestion: z.boolean().optional(),
-    attackerClaimId: z.string().min(1).optional(),
+type Body = {
+  targetType: 'claim';
+  targetId: string;
+  schemeKey: string;
+  cqKey: string;
+  satisfied: boolean;
+  deliberationId?: string;
+  attachSuggestion?: boolean;
+  attackerClaimId?: string;
+  suggestion?: { type?: 'undercut' | 'rebut'; scope?: 'premise' | 'conclusion' };
+};
+
+export async function POST(req: Request) {
+  const b = (await req.json()) as Body;
+  if (b.targetType !== 'claim') {
+    return NextResponse.json({ error: 'unsupported targetType' }, { status: 400 });
+  }
+
+  // 1) Mark CQ status
+  await prisma.cQStatus.upsert({
+    where: {
+      targetType_targetId_schemeKey_cqKey: {
+        targetType: 'claim',
+        targetId: b.targetId,
+        schemeKey: b.schemeKey,
+        cqKey: b.cqKey,
+      },
+    },
+    update: { satisfied: b.satisfied },
+    create: {
+      targetType: 'claim',
+      targetId: b.targetId,
+      schemeKey: b.schemeKey,
+      cqKey: b.cqKey,
+      satisfied: b.satisfied,
+      createdById: 'system', // or real user if you thread auth here
+      roomId: undefined,
+    },
   });
 
-  export async function POST(req: NextRequest) {
-    const userId = await getCurrentUserId();
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  
-    const parsed = BodySchema.safeParse(await req.json());
-    if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
-    }
-  
-    const { targetId, schemeKey, cqKey, satisfied, attachSuggestion, attackerClaimId, deliberationId: delibFromBody } = parsed.data;
-  
-    // Resolve deliberation + room
-    let { deliberationId, roomId } = await resolveClaimContext(targetId);
-    if (!deliberationId && delibFromBody) {
-      deliberationId = delibFromBody;
-      const room = await prisma.deliberation.findUnique({
-        where: { id: deliberationId },
-        select: { roomId: true },
-      });
-      roomId = room?.roomId ?? null;
-    }
-    if (!deliberationId) {
-      return NextResponse.json({ error: 'Unable to resolve deliberation/room for claim' }, { status: 404 });
-    }
-  
-    // Validate scheme
-    const scheme = await prisma.argumentScheme.findUnique({ where: { key: schemeKey }, select: { key: true } });
-    if (!scheme) return NextResponse.json({ error: 'Unknown schemeKey' }, { status: 400 });
-  
-    // Upsert CQStatus
-    const status = await prisma.cQStatus.upsert({
-      where: {
-        targetType_targetId_schemeKey_cqKey: { targetType: 'claim', targetId, schemeKey, cqKey },
+  // 2) If we were asked to attach a counter/evidence, create edges and a GraphEdge with meta
+  if (b.attachSuggestion && b.attackerClaimId) {
+    const sgType = b.suggestion?.type ?? 'rebut';
+    const scope  = b.suggestion?.scope; // 'premise' | 'conclusion' | undefined
+
+    // Create an attacker edge at the claim layer
+    await prisma.claimEdge.create({
+      data: {
+        fromClaimId: b.attackerClaimId,
+        toClaimId: b.targetId,
+        type: 'rebuts',
+        attackType: sgType === 'undercut' ? 'UNDERCUTS' : 'REBUTS',
+        targetScope: scope, // 'premise'|'conclusion' (undercut often targets 'inference')
+        deliberationId: b.deliberationId,
       },
-      update: { satisfied, updatedAt: new Date() },
-      create: { targetType: 'claim', targetId, schemeKey, cqKey, satisfied, createdById: String(userId), roomId },
-    });
-  
-    // Handle attach suggestion
-    let edgeCreated = false;
-    if (attachSuggestion && !satisfied) {
-      const suggest = suggestionForCQ(schemeKey, cqKey);
-      if (suggest && attackerClaimId) {
-        await createClaimAttack({
-          fromClaimId: attackerClaimId,
-          toClaimId: targetId,
-          deliberationId,
-          suggestion: suggest,
-        });
-        edgeCreated = true;
-      } else if (suggest && !attackerClaimId) {
-        return NextResponse.json({ error: 'attackerClaimId required to attach suggestion' }, { status: 400 });
-      }
-    }
-  
-    return NextResponse.json({ ok: true, status, edgeCreated });
+    }).catch(() => { /* idempotency / duplicates */ });
+
+    // Resolve room for GraphEdge (optional but useful for analytics)
+    let roomId = 'unknown';
+    try {
+      const claim = await prisma.claim.findUnique({
+        where: { id: b.targetId },
+        select: { deliberation: { select: { roomId: true } } },
+      });
+      roomId = claim?.deliberation?.roomId ?? roomId;
+    } catch {}
+
+    // GraphEdge with scheme/cq meta so the UI can unlock this exact checkbox
+    await prisma.graphEdge.create({
+      data: {
+        fromId: b.attackerClaimId,
+        toId: b.targetId,
+        type: sgType === 'undercut' ? 'undercut' : 'rebut',
+        scope: scope ?? (sgType === 'undercut' ? 'inference' : 'conclusion'),
+        roomId,
+        createdById: 'system',
+        meta: { schemeKey: b.schemeKey, cqKey: b.cqKey },
+      },
+    }).catch(() => {});
   }
-  
+
+  return NextResponse.json({ ok: true });
+}
