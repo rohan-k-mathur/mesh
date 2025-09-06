@@ -1,5 +1,6 @@
 'use client';
 import * as React from 'react';
+import { useLegalMoves } from './useLegalMoves';
 
 type Kind = 'ASSERT'|'WHY'|'GROUNDS'|'RETRACT';
 

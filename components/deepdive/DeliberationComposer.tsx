@@ -6,6 +6,11 @@ import EnthymemeNudge from '@/components/deepdive/EnthymemeNudge';
 import { TheoryFraming } from "../compose/TheoryFraming";
 import React from "react";
 import { useAuth } from "@/lib/AuthContext";
+import { useLegalMoves } from "../dialogue/useLegalMoves";
+import useSWR from 'swr';
+
+const fetcher = (u:string)=>fetch(u,{cache:'no-store'}).then(r=>r.json());
+
 
 type Props = {
   deliberationId: string;
@@ -26,6 +31,19 @@ const schema = z.object({
   quantifier: z.enum(['SOME','MANY','MOST','ALL']).optional(),
    modality: z.enum(['COULD','LIKELY','NECESSARY']).optional(),
 });
+
+function mapKeyToTemplate(key: string): string {
+  const T: Record<string, string> = {
+    attack_antecedent: 'I contest the antecedent: …',
+    request_consequent: 'Please commit to the consequent: …',
+    challenge_premise: 'Why should we accept the premise “…”, and what is its source?',
+    pick_disjunct: 'Let’s focus on the “… or …” branch: I pick “…”.',
+    split_conjunct: 'I challenge the conjunct “…”, not the other part.',
+    instantiate_forall: 'Consider the instance “…”. Does it satisfy your claim?',
+    challenge_exists: 'Provide a concrete instance (witness) of “…”.',
+  };
+  return T[key] ?? 'Please provide a reason or evidence for “…”.';
+}
 
 export default function DeliberationComposer({
   deliberationId,
@@ -189,6 +207,14 @@ const effectiveUserId =
     return data.edge;
   }
 
+  const { data: targetArg } = useSWR(
+    targetArgumentId ? `/api/arguments/${targetArgumentId}` : null,
+    fetcher,
+    { revalidateOnFocus: false }
+  );
+  
+  const targetText: string = targetArg?.argument?.text ?? '';
+  
   async function submitSimple() {
     if (!text.trim()) return;
     setPending(true);
@@ -261,6 +287,7 @@ useEffect(() => {
   return () => window.removeEventListener('mesh:open-work-fields', handler as any);
 }, [deliberationId]);
 
+const { data: lm } = useLegalMoves(targetText);
 
   return (
     <div className="relative z-10 w-full  rounded-md border p-4 space-y-3">
@@ -466,6 +493,7 @@ useEffect(() => {
 
 
       {/* Counter toolbar (only when replying) */}
+      
       {targetArgumentId && !showYesBut && (
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <span className="text-neutral-500">Counter type:</span>
@@ -512,7 +540,9 @@ useEffect(() => {
             Undercut inference
           </button>
 
-          <span className="mx-2 text-neutral-300">|</span>
+
+
+<span className="mx-2 text-neutral-300">|</span>
 
           <button
             className="px-2 py-1 rounded border hover:bg-neutral-50"
@@ -526,6 +556,35 @@ useEffect(() => {
           </button>
         </div>
       )}
+
+{/* {lm?.ok && lm.options?.length ? (
+  <div className="flex flex-wrap gap-2 mt-2">
+    {lm.options.map((o:any) => (
+      <button key={o.key} className="px-2 py-1 border rounded text-xs"
+        onClick={() => applyTemplate(o.key)}>
+        {o.label}
+      </button>
+    ))}
+  </div>
+) : null} */}
+      
+      {targetArgumentId && lm?.ok && lm.options?.length ? (
+  <div className="flex flex-wrap gap-2 mt-2">
+    {lm.options.map((o: any) => (
+      <button
+        key={o.key}
+        className="px-2 py-1 border rounded text-xs"
+        onClick={() => {
+          // if your API returns `template`, prefer using it directly:
+          const tmpl = o.template ?? mapKeyToTemplate(o.key);
+          setText((prev) => (prev ? prev + '\n\n' + tmpl : tmpl));
+        }}
+      >
+        {o.label}
+      </button>
+    ))}
+  </div>
+) : null}
 
       {/* Yes, … but … template */}
       {showYesBut && (

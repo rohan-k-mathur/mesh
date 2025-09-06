@@ -2876,6 +2876,11 @@ model DialogueMove {
   actorId        String
   createdAt      DateTime @default(now())
 
+  // add fields (null-safe for backward compat)
+  polarity       String? // 'P'|'O'
+  locusId        String?
+  endsWithDaimon Boolean @default(false)
+
   @@index([deliberationId])
   @@index([targetType, targetId])
 }
@@ -3105,4 +3110,71 @@ model KnowledgeEdge {
   @@index([deliberationId, kind, createdAt])
   @@index([fromWorkId, toWorkId])
   @@index([fromClaimId, toClaimId])
+}
+
+model NLILink {
+  id     String  @id @default(cuid())
+  // Optional: persist only when you know the graph ids for provenance
+  fromId String? // claimId or argumentId that acts as premise/attacker
+  toId   String? // claimId or argumentId that acts as hypothesis/target
+
+  relation String // 'entails' | 'contradicts' | 'neutral'
+  score    Float
+
+  // Optional: who asked for this adjudication (visibility/audit)
+  createdById String?
+  createdAt   DateTime @default(now())
+
+  @@index([fromId, toId])
+  @@index([relation, score])
+}
+
+model EristicMark {
+  id             String   @id @default(cuid())
+  deliberationId String
+  targetType     String // 'argument'|'claim'|'move'
+  targetId       String
+  tactic         String // 'loaded_question'|'equivocation'|...
+  detector       String // 'rule'|'ml'|'mod'
+  strength       Float    @default(0)
+  createdById    String?
+  createdAt      DateTime @default(now())
+
+  @@index([deliberationId, targetType, targetId])
+}
+
+model DialogueLocus {
+  id             String   @id @default(cuid())
+  deliberationId String
+  address        String // e.g., '0/1/2'
+  parentLocusId  String?
+  openedByMoveId String
+  createdAt      DateTime @default(now())
+
+  @@index([deliberationId, address])
+}
+
+model DialogueChronicle {
+  id             String   @id @default(cuid())
+  deliberationId String
+  locusId        String
+  order          Int
+  moveId         String
+  polarity       String // 'P'|'O'
+  note           String?
+  createdAt      DateTime @default(now())
+
+  @@index([deliberationId, locusId, order])
+}
+
+model DialogueNormScore {
+  id             String   @id @default(cuid())
+  deliberationId String
+  windowStart    DateTime
+  windowEnd      DateTime
+  deScore        Float
+  details        Json
+  computedAt     DateTime @default(now())
+
+  @@index([deliberationId, computedAt])
 }

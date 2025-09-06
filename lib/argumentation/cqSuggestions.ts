@@ -1,24 +1,16 @@
-export type CQSuggestionType = 'undercut' | 'rebut';
-export type RebutScope = 'premise' | 'conclusion';
+import { presetsForCQ } from './cqPresets';
 
-export type CQSuggestion = {
-  type: CQSuggestionType;
-  scope?: RebutScope;
-};
+export function suggestionForCQ(schemeKey: string, cqKey?: string) {
+  const presets = presetsForCQ(schemeKey, cqKey);
+  if (!presets.length) return null;
 
-const MAP: Record<string, Record<string, CQSuggestion>> = {
-  expert_opinion: {
-    credibility: { type: 'undercut' },            // challenges the warrant
-    consensus:   { type: 'rebut', scope: 'conclusion' }, // conclusion undermined
-    context:     { type: 'rebut', scope: 'premise' },    // premise accuracy challenged
-  },
-  // consequences: {...}
-  // analogy: {...}
-};
-
-export function suggestionForCQ(
-  schemeKey: string,
-  cqKey: string
-): CQSuggestion | undefined {
-  return MAP[schemeKey]?.[cqKey];
+  // pick first preset’s primary option as default suggestion
+  const primary = presets[0].options[0];
+  return {
+    type: primary.type as 'rebut'|'undercut',
+    scope: primary.targetScope ?? 'conclusion',
+    template: primary.template,
+    shape: presets[0].shape,
+    options: presets.flatMap(p => p.options),
+  };
 }

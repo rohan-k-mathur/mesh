@@ -1,87 +1,183 @@
-// app/api/cqs/toggle/route.ts
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { prisma } from '@/lib/prismaclient';
+import { getCurrentUserId } from '@/lib/serverutils';
+import { suggestionForCQ } from '@/lib/argumentation/cqSuggestions';
+import { resolveClaimContext } from '@/lib/server/resolveRoom';
+import { createClaimAttack } from '@/lib/argumentation/createClaimAttack';
+import { getNLIAdapter } from '@/lib/nli/adapter';
 
-type Body = {
-  targetType: 'claim';
-  targetId: string;
-  schemeKey: string;
-  cqKey: string;
-  satisfied: boolean;
-  deliberationId?: string;
-  attachSuggestion?: boolean;
-  attackerClaimId?: string;
-  suggestion?: { type?: 'undercut' | 'rebut'; scope?: 'premise' | 'conclusion' };
-};
+const BodySchema = z.object({
+  targetType: z.literal('claim'),
+  targetId: z.string().min(1),
+  schemeKey: z.string().min(1),
+  cqKey: z.string().min(1),
+  satisfied: z.boolean(),
+  deliberationId: z.string().optional(),
+  attachSuggestion: z.boolean().optional(),
+  attackerClaimId: z.string().min(1).optional(),
+});
 
-export async function POST(req: Request) {
-  const b = (await req.json()) as Body;
-  if (b.targetType !== 'claim') {
-    return NextResponse.json({ error: 'unsupported targetType' }, { status: 400 });
+const NLI_THRESHOLD = 0.72; // conservative; tune later
+
+export async function POST(req: NextRequest) {
+  const userId = await getCurrentUserId().catch(() => null);
+  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const parsed = BodySchema.safeParse(await req.json());
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  // 1) Mark CQ status
-  await prisma.cQStatus.upsert({
-    where: {
-      targetType_targetId_schemeKey_cqKey: {
-        targetType: 'claim',
-        targetId: b.targetId,
-        schemeKey: b.schemeKey,
-        cqKey: b.cqKey,
-      },
-    },
-    update: { satisfied: b.satisfied },
-    create: {
-      targetType: 'claim',
-      targetId: b.targetId,
-      schemeKey: b.schemeKey,
-      cqKey: b.cqKey,
-      satisfied: b.satisfied,
-      createdById: 'system', // or real user if you thread auth here
-      roomId: undefined,
-    },
+  const {
+    targetId, schemeKey, cqKey, satisfied,
+    attachSuggestion, attackerClaimId, deliberationId: delibFromBody
+  } = parsed.data;
+
+  // Resolve deliberation + room
+  let { deliberationId, roomId } = await resolveClaimContext(targetId);
+  if (!deliberationId && delibFromBody) {
+    deliberationId = delibFromBody;
+    const room = await prisma.deliberation.findUnique({
+      where: { id: deliberationId }, select: { roomId: true },
+    });
+    roomId = room?.roomId ?? null;
+  }
+  if (!deliberationId) {
+    return NextResponse.json({ error: 'Unable to resolve deliberation/room for claim' }, { status: 404 });
+  }
+
+  // Validate scheme exists
+  const scheme = await prisma.argumentScheme.findUnique({ where: { key: schemeKey }, select: { key: true } });
+  if (!scheme) return NextResponse.json({ error: 'Unknown schemeKey' }, { status: 400 });
+
+  // Optionally attach suggestion first
+  let edgeCreated = false;
+  if (attachSuggestion && !satisfied) {
+    const suggest = suggestionForCQ(schemeKey, cqKey);
+    if (suggest && attackerClaimId) {
+      await createClaimAttack({
+        fromClaimId: attackerClaimId,
+        toClaimId: targetId,
+        deliberationId,
+        suggestion: suggest,
+      });
+      edgeCreated = true;
+    } else if (suggest && !attackerClaimId) {
+      return NextResponse.json({ error: 'attackerClaimId required to attach suggestion' }, { status: 400 });
+    }
+  }
+
+  // Upsert CQStatus early (optimistic), we may revise below if guard fails
+  const status = await prisma.cQStatus.upsert({
+    where: { targetType_targetId_schemeKey_cqKey: { targetType: 'claim', targetId, schemeKey, cqKey } },
+    update: { satisfied, updatedAt: new Date() },
+    create: { targetType: 'claim', targetId, schemeKey, cqKey, satisfied, createdById: String(userId), roomId },
   });
 
-  // 2) If we were asked to attach a counter/evidence, create edges and a GraphEdge with meta
-  if (b.attachSuggestion && b.attackerClaimId) {
-    const sgType = b.suggestion?.type ?? 'rebut';
-    const scope  = b.suggestion?.scope; // 'premise' | 'conclusion' | undefined
+  // --- HARD GUARD only applies when trying to set satisfied:true ---
+  let hasEdge = false;
+  let nli: { relation: 'entails'|'contradicts'|'neutral'; score: number } | null = null;
+  let requiredAttack: 'rebut'|'undercut'|null = null;
 
-    // Create an attacker edge at the claim layer
-    await prisma.claimEdge.create({
-      data: {
-        fromClaimId: b.attackerClaimId,
-        toClaimId: b.targetId,
-        type: 'rebuts',
-        attackType: sgType === 'undercut' ? 'UNDERCUTS' : 'REBUTS',
-        targetScope: scope, // 'premise'|'conclusion' (undercut often targets 'inference')
-        deliberationId: b.deliberationId,
-      },
-    }).catch(() => { /* idempotency / duplicates */ });
+  if (satisfied === true) {
+    const suggest = suggestionForCQ(schemeKey, cqKey); // may be null
+    // If we know the intended attack, enforce it; else fall back to "some inbound attack"
+    requiredAttack = suggest?.type ?? null;
 
-    // Resolve room for GraphEdge (optional but useful for analytics)
-    let roomId = 'unknown';
-    try {
-      const claim = await prisma.claim.findUnique({
-        where: { id: b.targetId },
-        select: { deliberation: { select: { roomId: true } } },
+    // 1) Check for a matching edge
+    if (requiredAttack === 'rebut') {
+      const e = await prisma.claimEdge.findFirst({
+        where: {
+          toClaimId: targetId,
+          OR: [
+            { type: 'rebuts' },
+            { attackType: 'REBUTS' as any }, // your schema uses both in places
+          ],
+        },
+        select: { id: true, fromClaimId: true },
       });
-      roomId = claim?.deliberation?.roomId ?? roomId;
-    } catch {}
+      hasEdge = !!e;
 
-    // GraphEdge with scheme/cq meta so the UI can unlock this exact checkbox
-    await prisma.graphEdge.create({
-      data: {
-        fromId: b.attackerClaimId,
-        toId: b.targetId,
-        type: sgType === 'undercut' ? 'undercut' : 'rebut',
-        scope: scope ?? (sgType === 'undercut' ? 'inference' : 'conclusion'),
-        roomId,
-        createdById: 'system',
-        meta: { schemeKey: b.schemeKey, cqKey: b.cqKey },
-      },
-    }).catch(() => {});
+      // 2) If attackerClaimId was supplied, run NLI as an additional check (and cache)
+      if (attackerClaimId) {
+        const adapter = getNLIAdapter();
+        const attacker = await prisma.claim.findUnique({ where: { id: attackerClaimId }, select: { text: true } });
+        const target = await prisma.claim.findUnique({ where: { id: targetId }, select: { text: true } });
+        if (attacker?.text && target?.text) {
+          const [res] = await adapter.batch([{ premise: attacker.text, hypothesis: target.text }]);
+          nli = res;
+          // cache
+          await prisma.nLILink.create({
+            data: { fromId: attackerClaimId, toId: targetId, relation: res.relation, score: res.score, createdById: String(userId) },
+          }).catch(() => null);
+        }
+      }
+    } else if (requiredAttack === 'undercut') {
+      const e = await prisma.claimEdge.findFirst({
+        where: {
+          toClaimId: targetId,
+          OR: [
+            { type: 'undercuts' as any },     // if you store it this way in some places
+            { attackType: 'UNDERCUTS' as any }
+          ],
+        },
+        select: { id: true },
+      });
+      hasEdge = !!e;
+      // Under-cuts are about warrants, NLI on conclusion is weak evidence; we do not gate on NLI here.
+      nli = null;
+    } else {
+      // Unknown/unspecified: accept any inbound attack edge as satisfying
+      const e = await prisma.claimEdge.findFirst({
+        where: {
+          toClaimId: targetId,
+          OR: [
+            { type: 'rebuts' }, { attackType: 'REBUTS' as any },
+            { type: 'undercuts' as any }, { attackType: 'UNDERCUTS' as any },
+          ],
+        },
+        select: { id: true },
+      });
+      hasEdge = !!e;
+    }
+
+    // Decide if we allow satisfied:true
+    const allow =
+      hasEdge ||
+      (requiredAttack === 'rebut' && nli?.relation === 'contradicts' && (nli?.score ?? 0) >= NLI_THRESHOLD);
+
+    if (!allow) {
+      // revert the optimistic upsert → set back to false
+      await prisma.cQStatus.update({
+        where: { targetType_targetId_schemeKey_cqKey: { targetType: 'claim', targetId, schemeKey, cqKey } },
+        data: { satisfied: false, updatedAt: new Date() },
+      });
+      return NextResponse.json({
+        ok: false,
+        blocked: true,
+        reason: 'CQ requires an attached attack (rebut/undercut) or a strong NLI contradiction.',
+        details: {
+          requiredAttack,
+          hasEdge,
+          nliRelation: nli?.relation ?? null,
+          nliScore: nli?.score ?? null,
+          nliThreshold: NLI_THRESHOLD,
+        },
+      }, { status: 409 });
+    }
   }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({
+    ok: true,
+    status,
+    edgeCreated,
+    guard: {
+      requiredAttack,
+      hasEdge,
+      nliRelation: nli?.relation ?? null,
+      nliScore: nli?.score ?? null,
+      nliThreshold: NLI_THRESHOLD,
+    },
+  });
 }

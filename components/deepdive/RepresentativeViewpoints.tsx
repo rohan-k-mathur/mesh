@@ -10,10 +10,19 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 import CriticalQuestions from '@/components/claims/CriticalQuestions';
 import StyleDensityBadge from '@/components/rhetoric/StyleDensityBadge';
 import PracticalLedger from '@/components/practical/PracticalLedger';
-
+import SequentBadge from "../views/SequentBadge";
+import { SequentDetails } from "../views/SequentDetails";
 
 type Arg = { id: string; text: string; confidence?: number | null };
-type View = { index: number; arguments: Arg[] };
+// (1) Widen the View type locally — no server change required.
+type View = {
+  index: number;
+  id?: string;
+  arguments: Arg[];
+  // OPTIONAL manual overrides. If provided, these take precedence.
+  gammaClaimIds?: string[];
+  deltaClaimIds?: string[];
+};
 type Rule = "utilitarian" | "harmonic" | "maxcov";
 
 type CohortSummary = {
@@ -22,6 +31,31 @@ type CohortSummary = {
 };
 
 const fetcher = (u:string)=>fetch(u,{cache:'no-store'}).then(r=>r.json());
+
+
+// (2) Small helper to assemble Γ/Δ (ids + texts) for a view.
+function buildSequentForView(
+  v: View,
+  // all claim ids mapped from this view’s arguments (fallback Γ)
+  fallbackViewClaimIds: string[],
+  // { claimId -> text }
+  claimsById: Map<string, string>
+) {
+  // Γ: manual override if present, else all claims in the view
+  const gammaIds = (v.gammaClaimIds?.length ? v.gammaClaimIds : fallbackViewClaimIds) ?? [];
+  const dedupe = (xs: string[]) => Array.from(new Set(xs));
+
+  // Δ: manual override if present, else the first 1–3 of Γ as the view's main conclusions
+  const deltaIds =
+    v.deltaClaimIds?.length
+      ? v.deltaClaimIds
+      : dedupe(gammaIds).slice(0, Math.min(3, gammaIds.length));
+
+  const gammaTexts = dedupe(gammaIds).map((id) => claimsById.get(id) ?? id);
+  const deltaTexts = dedupe(deltaIds).map((id) => claimsById.get(id) ?? id);
+
+  return { gammaIds: dedupe(gammaIds), deltaIds: dedupe(deltaIds), gammaTexts, deltaTexts };
+}
 
 export function ViewControls({ rule, k, onApply }: { rule: Rule; k: number; onApply: (next:{rule:Rule;k:number})=>void; }) {
   const [open, setOpen] = useState(false);
@@ -156,6 +190,7 @@ export function RepresentativeViewpoints(props: {
       return m;
     });
   }, [s, viewClaimIds, cqById]);
+  const [openSequentView, setOpenSequentView] = useState<number | null>(null);
 
   // modal state per view
   const [openCQView, setOpenCQView] = useState<number | null>(null);
@@ -301,6 +336,8 @@ export function RepresentativeViewpoints(props: {
 </div>
       <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${Math.max(1, s.views.length)}, minmax(0,1fr))`}}>
         {s.views.map(v => {
+            const seq = buildSequentForView(v, viewClaimIds[v.index] || [], claimsById);
+
           const claims = viewClaimIds[v.index] || [];
           // aggregate CQ across claims in this view
           const agg = claims.reduce((acc, cid) => {
@@ -317,6 +354,8 @@ export function RepresentativeViewpoints(props: {
               mergedOpen[sk]!.push(...arr);
             })
           );
+
+          
 
           return (
             <div key={v.index} className="border rounded p-3 space-y-2">
@@ -349,6 +388,32 @@ export function RepresentativeViewpoints(props: {
                   </li>
                 ))}
               </ul>
+
+              <div className="flex items-center justify-between">
+  <div className="text-xs uppercase tracking-wide text-neutral-500">View {v.index + 1}</div>
+  <StyleDensityBadge texts={v.arguments.map(a => a.text || '')} />
+</div>
+
+{/* Sequent status: Γ ⊢ Δ */}
+<SequentBadge
+  gammaTexts={seq.gammaTexts}
+  deltaTexts={seq.deltaTexts}
+  onClick={() => setOpenSequentView(v.index)}
+/>
+
+{openSequentView === v.index && (
+  <SequentDetails
+    gammaTexts={seq.gammaTexts}
+    deltaTexts={seq.deltaTexts}
+    onInsertTemplate={(tmpl) => {
+      // pipe to the composer
+      window.dispatchEvent(
+        new CustomEvent('mesh:composer:insert', { detail: { template: tmpl } })
+      );
+    }}
+    onClose={() => setOpenSequentView(null)}
+  />
+)}
                         <ViewCohortBar argIds={v.arguments.map((a) => a.id)} />
                         <div className="flex items-center justify-between">
   <div className="text-xs uppercase tracking-wide text-neutral-500">View {v.index+1}</div>

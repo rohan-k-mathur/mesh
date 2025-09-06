@@ -5,7 +5,7 @@ import type { AFNode, AFEdge } from '@/lib/argumentation/afEngine';
 import { projectToAF, grounded, preferred, labelingFromExtension } from '@/lib/argumentation/afEngine';
 import { inferSchemesFromText, questionsForScheme, cqUndercuts } from '@/lib/argumentation/criticalQuestions';
 import { useDialogueMoves } from '@/components/dialogue/useDialogueMoves';
-
+import { WinningnessBadge } from './WinningnessBadge';
 type Props = {
   deliberationId: string;
   nodes: AFNode[];                    // arguments in scope (e.g., visible items)
@@ -22,8 +22,8 @@ export default function DialogicalPanel({ deliberationId, nodes, edges }: Props)
  const [openCQs, setOpenCQs] = React.useState<Record<string, string[]>>({});
 
    // NEW: unresolved WHY moves → implicit undercuts (virtual attackers)
+   const { unresolvedByTarget, moves, mutate: refetchMoves } = useDialogueMoves(deliberationId);
 
-  const { unresolvedByTarget, mutate: refetchMoves } = useDialogueMoves(deliberationId);
     // 🔔 Listen for “dialogue:moves:refresh” and revalidate SWR
     React.useEffect(() => {
       const h = () => refetchMoves();
@@ -144,6 +144,7 @@ export default function DialogicalPanel({ deliberationId, nodes, edges }: Props)
                >
                  {st}
                </span>
+               
                <span className="text-neutral-800">{(n.text || n.label || '').slice(0, 120)}</span>
                {openWhy && (
                  <span className="ml-2 px-1.5 py-0.5 rounded border text-[10px] bg-rose-50 border-rose-200 text-rose-700">
@@ -155,12 +156,35 @@ export default function DialogicalPanel({ deliberationId, nodes, edges }: Props)
          })}
        </div>
 
+
+
+
       {/* Edge summary */}
       <div className="text-xs text-neutral-600">
         AF: |A|={AF.A.length}, |R|={AF.R.length}
       </div>
+       {/* Selected argument: winningness meter + scheme/CQs */}
+       {selectedNode && (
+  <>
+    <div className="mt-2">
+      <WinningnessBadge
+        moves={moves}                // <- array of DialogueMove
+        targetId={selectedNode.id}   // <- the node currently selected
+      />
+    </div>
 
-      {/* Selected argument: scheme + CQs */}
+    <ArgumentInspector
+      deliberationId={deliberationId}
+      node={selectedNode}
+      onCqToggle={(cqId, on) => setOpenCQs(prev => {
+        const arr = new Set(prev[selectedNode.id] || []);
+        on ? arr.add(cqId) : arr.delete(cqId);
+        return { ...prev, [selectedNode.id]: Array.from(arr) };
+      })}
+    />
+  </>
+)}
+      {/* Selected argument: scheme + CQs
       {selectedNode && (
         <ArgumentInspector
           deliberationId={deliberationId}
@@ -171,7 +195,7 @@ export default function DialogicalPanel({ deliberationId, nodes, edges }: Props)
             return { ...prev, [selectedNode.id]: Array.from(arr) };
           })}
         />
-      )}
+      )} */}
     </div>
   );
 }

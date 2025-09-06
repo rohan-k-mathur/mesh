@@ -14,6 +14,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import { suggestionForCQ } from '@/lib/argumentation/cqSuggestions';
 
 type RebutScope = 'premise' | 'conclusion';
 type Suggestion = { type: 'undercut' | 'rebut'; scope?: RebutScope } | null;
@@ -191,6 +192,35 @@ export default function CriticalQuestions({
     await revalidateAll(schemeKey);
   }
 
+
+  function RowActions({
+    schemeKey,
+    cqKey,
+    rowSuggestion,
+  }: {
+    schemeKey: string;
+    cqKey: string;
+    rowSuggestion: Suggestion | null;
+  }) {
+    if (!rowSuggestion) return null;
+    const label =
+      rowSuggestion.type === 'undercut'
+        ? 'Attach undercut'
+        : `Attach rebut (${rowSuggestion.scope ?? 'conclusion'})`;
+  
+    return (
+      <Button
+        variant="outline"
+        size="sm"
+        title={label}
+        className="text-[11px] px-2 py-1 h-7"
+        onClick={() => onAttachClick(schemeKey, cqKey, rowSuggestion)}
+      >
+        Attach
+      </Button>
+    );
+  }
+
   async function handleComposeSubmit() {
     if (!pendingAttach) return;
     try {
@@ -228,6 +258,11 @@ export default function CriticalQuestions({
                 const isLinger = lingerKeys.has(sig) && cq.satisfied;
                 const isAttached = Boolean(attachData?.attached?.[sig]); // server truth: has undercut/rebut/evidence attached
             const canMarkAddressed = cq.satisfied || isAttached;
+
+// ✅ row-level suggestion (cq payload OR fallback by scheme/cq)
+const rowSug: Suggestion =
+cq.suggestion ?? suggestionForCQ(s.key, cq.key);
+
                 const attachLabel =
                   cq.suggestion?.type === 'undercut'
                     ? 'Attach undercut'
@@ -237,6 +272,8 @@ export default function CriticalQuestions({
 
                 return (
                   <li key={cq.key} className="flex items-center justify-between text-sm transition-opacity">
+                                <div className="flex items-center justify-between">
+
                      <label htmlFor={id} className="flex items-center gap-2 cursor-pointer">
                        <Checkbox
                          id={id}
@@ -251,17 +288,33 @@ export default function CriticalQuestions({
                       )}
                      </label>
 
-                    {!cq.satisfied && cq.suggestion && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => onAttachClick(s.key, cq.key, cq.suggestion ?? undefined)} 
-                        title={attachLabel}
-                        className="text-[11px] px-2 py-1 h-7"
+                       {/* Attach button if we have a suggestion */}
+              {!cq.satisfied && <RowActions schemeKey={s.key} cqKey={cq.key} rowSuggestion={rowSug} />}
+            </div>
+
+
+
+            {!cq.satisfied && rowSug && (
+              <div className="flex flex-wrap gap-1 pl-6">
+                {/* You likely have suggestionForCQ returning options with templates */}
+                {'options' in rowSug
+                  ? (rowSug as any).options?.map((o: any) => (
+                      <button
+                        key={o.key}
+                        className="px-2 py-0.5 border rounded text-[11px] bg-white hover:bg-slate-50"
+                        onClick={() =>
+                          window.dispatchEvent(
+                            new CustomEvent('mesh:composer:insert', { detail: { template: o.template } })
+                          )
+                        }
+                        title={`Shape: ${o.shape ?? rowSug.type}`}
                       >
-                        Attach
-                      </Button>
-                    )}
+                        {o.label}
+                      </button>
+                    ))
+                  : null}
+              </div>
+            )}
                   </li>
                 );
               })}
@@ -269,7 +322,7 @@ export default function CriticalQuestions({
           </div>
         ))}
       </div>
-
+      
       {/* Quick-compose dialog */}
       <Dialog open={composeOpen} onOpenChange={(o) => !composeLoading && setComposeOpen(o)}>
         <DialogContent className="bg-slate-200 rounded-xl sm:max-w-[520px]">
