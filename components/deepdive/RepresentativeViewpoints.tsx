@@ -335,170 +335,167 @@ export function RepresentativeViewpoints(props: {
    {`views: ${s.views.length} · rule: ${s.rule} · k: ${s.k}`}
 </div>
       <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${Math.max(1, s.views.length)}, minmax(0,1fr))`}}>
-        {s.views.map(v => {
-            const seq = buildSequentForView(v, viewClaimIds[v.index] || [], claimsById);
+      { s.views.map(v => {
+  // Build Γ/Δ via helper (manual overrides win; else fallback to claims in the view)
+  const seq = buildSequentForView(
+    v,
+    viewClaimIds[v.index] || [],
+    claimsById
+  );
 
-          const claims = viewClaimIds[v.index] || [];
-          // aggregate CQ across claims in this view
-          const agg = claims.reduce((acc, cid) => {
-            const it = cqById.get(cid);
-            if (it) { acc.satisfied += it.satisfied; acc.required += it.required; acc.openByScheme.push(it.openByScheme); }
-            return acc;
-          }, { satisfied: 0, required: 0, openByScheme: [] as Record<string,string[]>[] });
+  const claims = viewClaimIds[v.index] || [];
 
-          // flatten open CQs for display
-          const mergedOpen: Record<string, string[]> = {};
-          agg.openByScheme.forEach(m =>
-            Object.entries(m).forEach(([sk, arr]) => {
-              if (!mergedOpen[sk]) mergedOpen[sk] = [];
-              mergedOpen[sk]!.push(...arr);
-            })
-          );
+  // aggregate CQ across claims in this view
+  const agg = claims.reduce((acc, cid) => {
+    const it = cqById.get(cid);
+    if (it) { acc.satisfied += it.satisfied; acc.required += it.required; acc.openByScheme.push(it.openByScheme); }
+    return acc;
+  }, { satisfied: 0, required: 0, openByScheme: [] as Record<string,string[]>[] });
 
-          
+  const mergedOpen: Record<string,string[]> = {};
+  agg.openByScheme.forEach(m =>
+    Object.entries(m).forEach(([sk, arr]) => {
+      if (!mergedOpen[sk]) mergedOpen[sk] = [];
+      mergedOpen[sk]!.push(...arr);
+    })
+  );
 
-          return (
-            <div key={v.index} className="border rounded p-3 space-y-2">
-              <div className="text-xs uppercase tracking-wide text-neutral-500">View {v.index+1}</div>
-              <ul className="space-y-2">
-                {v.arguments.slice(0,6).map(a => (
-                  <li key={a.id} className="text-sm">
-                    <div className="flex items-center gap-2">
-                      <span className="block">{a.text}</span>
-                      <ScopeChip scope={scopeMap[a.id]} />
-                      {/* CQ chip if this arg maps to a claim with open CQs */}
-     {(() => {
-       const cid = argToClaim.get(a.id);
-       const sum = cid ? cqById.get(cid) : undefined;
-       if (!cid || !sum) return null;
-       const open = (sum.required ?? 0) - (sum.satisfied ?? 0);
-       if (open <= 0) return null;
-       return (
-         <button
-           className="text-[10px] px-1.5 py-0.5 rounded border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100"
-           title="View critical questions for this claim"
-           onClick={() => { setTargetClaim(cid); setOpenCQView(v.index); }}
-         >
-           CQs {sum.satisfied}/{sum.required}
-         </button>
-       );
-    })()}
-                    </div>
-                    {a.confidence!=null && <span className="text-[11px] text-neutral-500">How sure: {(a.confidence*100).toFixed(0)}%</span>}
-                  </li>
-                ))}
-              </ul>
+  return (
+    <div key={v.index} className="border rounded p-3 space-y-2">
+      <div className="text-xs uppercase tracking-wide text-neutral-500">View {v.index+1}</div>
 
-              <div className="flex items-center justify-between">
-  <div className="text-xs uppercase tracking-wide text-neutral-500">View {v.index + 1}</div>
-  <StyleDensityBadge texts={v.arguments.map(a => a.text || '')} />
-</div>
+      <ul className="space-y-2">
+        {v.arguments.slice(0,6).map(a => (
+          <li key={a.id} className="text-sm">
+            <div className="flex items-center gap-2">
+              <span className="block">{a.text}</span>
+              <ScopeChip scope={scopeMap[a.id]} />
+              {(() => {
+                const cid = argToClaim.get(a.id);
+                const sum = cid ? cqById.get(cid) : undefined;
+                if (!cid || !sum) return null;
+                const open = (sum.required ?? 0) - (sum.satisfied ?? 0);
+                if (open <= 0) return null;
+                return (
+                  <button
+                    className="text-[10px] px-1.5 py-0.5 rounded border border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100"
+                    title="View critical questions for this claim"
+                    onClick={() => { setTargetClaim(cid); setOpenCQView(v.index); }}
+                  >
+                    CQs {sum.satisfied}/{sum.required}
+                  </button>
+                );
+              })()}
+            </div>
+            {a.confidence!=null && (
+              <span className="text-[11px] text-neutral-500">
+                How sure: {(a.confidence*100).toFixed(0)}%
+              </span>
+            )}
+          </li>
+        ))}
+      </ul>
 
-{/* Sequent status: Γ ⊢ Δ */}
-<SequentBadge
-  gammaTexts={seq.gammaTexts}
-  deltaTexts={seq.deltaTexts}
-  onClick={() => setOpenSequentView(v.index)}
-/>
-
-{openSequentView === v.index && (
-  <SequentDetails
-    gammaTexts={seq.gammaTexts}
-    deltaTexts={seq.deltaTexts}
-    onInsertTemplate={(tmpl) => {
-      // pipe to the composer
-      window.dispatchEvent(
-        new CustomEvent('mesh:composer:insert', { detail: { template: tmpl } })
-      );
-    }}
-    onClose={() => setOpenSequentView(null)}
-  />
-)}
-                        <ViewCohortBar argIds={v.arguments.map((a) => a.id)} />
-                        <div className="flex items-center justify-between">
-  <div className="text-xs uppercase tracking-wide text-neutral-500">View {v.index+1}</div>
-  <StyleDensityBadge texts={v.arguments.map(a => a.text || '')} />
-</div>
-              {/* CQ bar + Missing CQs */}
-              <div className="mt-1 relative z-10 flex items-center align-center gap-4">
-                <CQBar satisfied={agg.satisfied} required={agg.required} compact />
-                {/* CQ bar + Missing CQs */}
-
-  <button
-    className="text-xs  border-[1px] px-2 rounded-md lockbutton  align-center items-center my-auto gap-4"
-    onClick={() => openAddressCQs(v.index)}
-    disabled={!agg.required}
-    title="Open Critical Questions for this view"
-  >
-    Address CQs
-  </button>
-
-
-{/* Address CQs modal */}
-{openCQView === v.index && (
-  <Dialog open onOpenChange={(o)=>!o && setOpenCQView(null)}>
-    <DialogContent className="bg-slate-200 rounded-xl sm:max-w-[640px]">
-      <DialogHeader>
-        <DialogTitle>Address Critical Questions — View {v.index+1}</DialogTitle>
-        {targetClaim && (
-    <div className="mt-1 text-[11px] text-neutral-600">
-      for: “{(claimsById.get(targetClaim) ?? targetClaim).slice(0, 120)}”
-    </div>
-  )}
-      </DialogHeader>
-
-      <div className="text-[12px] text-neutral-600 mb-2">
-        Choose which claim in this view to address first (only claims with open CQs are shown).
+      <div className="flex items-center justify-between">
+        <div className="text-xs uppercase tracking-wide text-neutral-500">View {v.index+1}</div>
+        <StyleDensityBadge texts={v.arguments.map(a => a.text || '')} />
       </div>
 
-      {/* claim selector */}
-      <Select
-        value={targetClaim ?? ''}
-        onValueChange={(val)=>setTargetClaim(val || null)}
-      >
-        <SelectTrigger className="w-full mb-2">
-          <SelectValue placeholder="Pick a claim…" />
-        </SelectTrigger>
-        <SelectContent>
-        {(Object.keys(missingByClaim[v.index] || {})).map(cid => (
-            <SelectItem key={cid} value={cid}>
-              {(claimsById.get(cid) ?? cid).slice(0, 80)} — {(cqById.get(cid)?.satisfied ?? 0)}/{(cqById.get(cid)?.required ?? 0)} CQs met
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-
-      {/* filtered CQ panel */}
-      {targetClaim ? (
-        <div className="mt-2">
-          <CriticalQuestions
-            targetType="claim"
-            targetId={targetClaim}
-            createdById={s.deliberationId /* not used, but kept parity */}
-            prefilterKeys={(missingByClaim[v.index]?.[targetClaim] ?? [])}
-            deliberationId={s.deliberationId}   // 👈 now passed properly
-
+      {/* Sequent status: Γ ⊢ Δ */}
+      {seq.gammaTexts.length && seq.deltaTexts.length ? (
+        <>
+          <SequentBadge
+            gammaTexts={seq.gammaTexts}
+            deltaTexts={seq.deltaTexts}
+            onClick={() => setOpenSequentView(v.index)}
           />
-        </div>
-      ) : (
-        <div className="text-xs text-neutral-500">No claim selected.</div>
+          {openSequentView === v.index && (
+            <SequentDetails
+              gammaTexts={seq.gammaTexts}
+              deltaTexts={seq.deltaTexts}
+              onInsertTemplate={(tmpl) => {
+                window.dispatchEvent(
+                  new CustomEvent('mesh:composer:insert', { detail: { template: tmpl } })
+                );
+              }}
+              onClose={() => setOpenSequentView(null)}
+            />
+          )}
+        </>
+      ) : null}
+
+      <ViewCohortBar argIds={v.arguments.map((a) => a.id)} />
+
+      <div className="mt-1 relative z-10 flex items-center align-center gap-4">
+        <CQBar satisfied={agg.satisfied} required={agg.required} compact />
+        <button
+          className="text-xs border px-2 rounded-md lockbutton"
+          onClick={() => openAddressCQs(v.index)}
+          disabled={!agg.required}
+          title="Open Critical Questions for this view"
+        >
+          Address CQs
+        </button>
+      </div>
+
+      {openCQView === v.index && (
+        <Dialog open onOpenChange={(o)=>!o && setOpenCQView(null)}>
+          <DialogContent className="bg-slate-200 rounded-xl sm:max-w-[640px]">
+            <DialogHeader>
+              <DialogTitle>Address Critical Questions — View {v.index+1}</DialogTitle>
+              {targetClaim && (
+                <div className="mt-1 text-[11px] text-neutral-600">
+                  for: “{(claimsById.get(targetClaim) ?? targetClaim).slice(0, 120)}”
+                </div>
+              )}
+            </DialogHeader>
+
+            <div className="text-[12px] text-neutral-600 mb-2">
+              Choose which claim in this view to address first (only claims with open CQs are shown).
+            </div>
+
+            <Select value={targetClaim ?? ''} onValueChange={(val)=>setTargetClaim(val || null)}>
+              <SelectTrigger className="w-full mb-2">
+                <SelectValue placeholder="Pick a claim…" />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(missingByClaim[v.index] || {})).map(cid => (
+                  <SelectItem key={cid} value={cid}>
+                    {(claimsById.get(cid) ?? cid).slice(0, 80)} — {(cqById.get(cid)?.satisfied ?? 0)}/{(cqById.get(cid)?.required ?? 0)} CQs met
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {targetClaim ? (
+              <div className="mt-2">
+                <CriticalQuestions
+                  targetType="claim"
+                  targetId={targetClaim}
+                  createdById={s.deliberationId}
+                  prefilterKeys={(missingByClaim[v.index]?.[targetClaim] ?? [])}
+                  deliberationId={s.deliberationId}
+                />
+              </div>
+            ) : (
+              <div className="text-xs text-neutral-500">No claim selected.</div>
+            )}
+
+            <DialogFooter>
+              <button className="text-xs px-2 py-1 border rounded" onClick={()=>setOpenCQView(null)}>Close</button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
 
-      <DialogFooter>
-        <button className="text-xs px-2 py-1 border rounded" onClick={()=>setOpenCQView(null)}>Close</button>
-      </DialogFooter>
-    </DialogContent>
-  </Dialog>
-)}
-              </div>
-              {openCQView===v.index && (
-                <div className="mt-1 rounded border p-2 bg-white text-[11px]">
-                  <div className="font-semibold mb-1">Open critical questions</div>
-                  <ul className="list-disc ml-5">
-                    {Object.entries(mergedOpen).map(([sk, arr])=>(
-                      <li key={sk}><span className="font-medium">{sk}</span>: {arr.slice(0,8).join(', ')}</li>
-                    ))}
-                  </ul>
+      {openCQView===v.index && (
+        <div className="mt-1 rounded border p-2 bg-white text-[11px]">
+          <div className="font-semibold mb-1">Open critical questions</div>
+          <ul className="list-disc ml-5">
+            {Object.entries(mergedOpen).map(([sk, arr])=>(
+              <li key={sk}><span className="font-medium">{sk}</span>: {arr.slice(0,8).join(', ')}</li>
+            ))}
+          </ul>
                 </div>
               )}
             </div>

@@ -5,6 +5,7 @@ import BipolarLens from './BipolarLens';
 
 export default function GraphPanel({ deliberationId }: { deliberationId: string }) {
   const [lens, setLens] = useState<'af'|'bipolar'>('af');
+  
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-white/95 shadow-sm">

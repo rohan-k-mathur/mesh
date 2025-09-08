@@ -6,17 +6,56 @@ import { projectToAF, grounded, preferred, labelingFromExtension } from '@/lib/a
 import { inferSchemesFromText, questionsForScheme, cqUndercuts } from '@/lib/argumentation/criticalQuestions';
 import { useDialogueMoves } from '@/components/dialogue/useDialogueMoves';
 import { WinningnessBadge } from './WinningnessBadge';
+
 type Props = {
   deliberationId: string;
   nodes: AFNode[];                    // arguments in scope (e.g., visible items)
   edges: AFEdge[];                    // support/rebut/undercut edges between those nodes
 };
 
+
+// Simple stable extension enumerator (OK for small panels; falls back to grounded for big AFs)
+function computeStableExtension(
+  A: { id: string }[],
+  R: Array<[string, string]>
+): Set<string> | null {
+  const ids = A.map(a => a.id);
+  if (ids.length > 18) return null; // keep it safe; use grounded fallback for large sets
+  const attacks = new Set(R.map(([x, y]) => `${x}→${y}`));
+
+  const n = ids.length;
+  const total = 1 << n;
+  for (let mask = 0; mask < total; mask++) {
+    const E = new Set<string>();
+    for (let i = 0; i < n; i++) if (mask & (1 << i)) E.add(ids[i]);
+
+    // conflict-free
+    let ok = true;
+    outer: for (const a of E) for (const b of E) {
+      if (a !== b && attacks.has(`${a}→${b}`)) { ok = false; break outer; }
+    }
+    if (!ok) continue;
+
+    // attacks every outside node
+    const outside = ids.filter(x => !E.has(x));
+    for (const y of outside) {
+      let attacked = false;
+      for (const a of E) if (attacks.has(`${a}→${y}`)) { attacked = true; break; }
+      if (!attacked) { ok = false; break; }
+    }
+    if (ok) return E;
+  }
+  return null; // no stable extension exists
+}
+
+
 export default function DialogicalPanel({ deliberationId, nodes, edges }: Props) {
   const [semantics, setSemantics] = React.useState<'grounded'|'preferred'>('grounded');
   const [supportProp, setSupportProp] = React.useState(true);
   const [selected, setSelected] = React.useState<string | null>(null);
   const selectedNode = nodes.find(n => n.id === selected) || null;
+
+
 
 // Track any locally opened CQs (checkboxes) → implicit undercuts
  const [openCQs, setOpenCQs] = React.useState<Record<string, string[]>>({});
@@ -83,11 +122,21 @@ export default function DialogicalPanel({ deliberationId, nodes, edges }: Props)
       const E = grounded(AF.A, AF.R);
       return labelingFromExtension(AF.A, AF.R, E);
     }
-    const prefs = preferred(AF.A, AF.R);
-    // Show union of IN across preferred (skeptical acceptance)
-    const INunion = new Set<string>();
-    for (const E of prefs) for (const a of E) INunion.add(a);
-    return labelingFromExtension(AF.A, AF.R, INunion);
+    if (semantics === 'preferred') {
+      const prefs = preferred(AF.A, AF.R);
+      // Keep your previous behavior: union of IN across preferred
+      const INunion = new Set<string>();
+      for (const E of prefs) for (const a of E) INunion.add(a);
+      return labelingFromExtension(AF.A, AF.R, INunion);
+    }
+    // stable
+    if (semantics === 'stable') {
+      const ext = computeStableExtension(AF.A, AF.R) || grounded(AF.A, AF.R);
+      return labelingFromExtension(AF.A, AF.R, ext);
+    }
+    // fallback
+    const E = grounded(AF.A, AF.R);
+    return labelingFromExtension(AF.A, AF.R, E);
   }, [AF, semantics]);
 
   const status = (id: string): 'IN'|'OUT'|'UNDEC' => {
@@ -120,6 +169,8 @@ export default function DialogicalPanel({ deliberationId, nodes, edges }: Props)
           <select className="border rounded px-1 py-0.5" value={semantics} onChange={e => setSemantics(e.target.value as any)}>
             <option value="grounded">Grounded (skeptical)</option>
             <option value="preferred">Preferred (credulous union)</option>
+           <option value="stable">Stable (if exists)</option>
+
           </select>
         </label>
         <label className="flex items-center gap-1" title="Treat supporters of a node as defenders against its attackers">
@@ -129,32 +180,40 @@ export default function DialogicalPanel({ deliberationId, nodes, edges }: Props)
       </div>
 
              {/* Node list with statuses   open-CQ badge */}
-       <div className="max-h-[260px] overflow-y-auto border rounded">
-         {nodes.map(n => {
-           const st = status(n.id);
-           const stCls = st === 'IN' ? 'bg-emerald-600' : st === 'OUT' ? 'bg-rose-600' : 'bg-amber-600';
-           const openWhy = unresolvedByTarget.has(n.id);
-           return (
-             <div key={n.id}
-                  className={`px-2 py-1 text-sm cursor-pointer border-b last:border-0 ${selected === n.id ? 'bg-slate-50' : ''}`}
-                  onClick={() => setSelected(n.id)}>
-               <span
-                 className={`mr-2 inline-block min-w-[44px] text-[10px] text-white px-1.5 py-0.5 rounded ${stCls}`}
-                 title={explain(n.id)}
-               >
-                 {st}
-               </span>
-               
-               <span className="text-neutral-800">{(n.text || n.label || '').slice(0, 120)}</span>
-               {openWhy && (
-                 <span className="ml-2 px-1.5 py-0.5 rounded border text-[10px] bg-rose-50 border-rose-200 text-rose-700">
-                   WHY
-                 </span>
-               )}
-             </div>
-           );
-         })}
-       </div>
+             <div className="max-h-[260px] overflow-y-auto border rounded">
+  {nodes.map(n => {
+    const st = status(n.id);
+    const stCls = st === 'IN' ? 'bg-emerald-600' : st === 'OUT' ? 'bg-rose-600' : 'bg-amber-600';
+    const openWhy = unresolvedByTarget.has(n.id);
+
+    return (
+      <div
+        key={n.id}
+        className={`px-2 py-1 text-sm cursor-pointer border-b last:border-0 ${selected === n.id ? 'bg-slate-50' : ''}`}
+        onClick={() => setSelected(n.id)}
+      >
+        <span
+          className={`mr-2 inline-block min-w-[44px] text-[10px] text-white px-1.5 py-0.5 rounded ${stCls}`}
+          title={explain(n.id)}
+        >
+          {st}
+        </span>
+
+        <span className="text-neutral-800">{(n.text || n.label || '').slice(0, 120)}</span>
+
+        {openWhy && (
+          <span className="ml-2 px-1.5 py-0.5 rounded border text-[10px] bg-rose-50 border-rose-200 text-rose-700">
+            WHY
+          </span>
+        )}
+
+        <span className="ml-2 align-middle">
+          <WinningnessBadge moves={moves} targetId={n.id} />
+        </span>
+      </div>
+    );
+  })}
+</div>
 
 
 

@@ -33,6 +33,7 @@ import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 import { createLowlight } from "lowlight";
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
+import DOMPurify from 'dompurify';
 
 import javascript from "highlight.js/lib/languages/javascript";
 import typescript from "highlight.js/lib/languages/typescript";
@@ -81,6 +82,9 @@ import { useRouter } from "next/navigation";
 import { BlockStyleTokens } from "@/lib/tiptap/extensions/block-style-ssr";
 import "katex/dist/katex.min.css";
 import HomeButton from "../buttons/HomeButton";
+
+import { tiptapSharedExtensions } from '@/lib/tiptap/extensions/shared';
+
 
 /* -------------------------------------------------------------------------- */
 /*  Dynamic imports                                                            */
@@ -139,26 +143,6 @@ interface ArticleEditorProps {
 /*  Custom nodes                                                               */
 /* -------------------------------------------------------------------------- */
 
-// const PullQuote = Node.create({
-//   name: 'pullQuote',
-//   group: 'block',
-//   content: 'inline*',
-//   addAttributes() {
-//     return { alignment: { default: 'left' } };
-//   },
-//   parseHTML() {
-//     return [{ tag: 'blockquote.pull-quote' }];
-//   },
-//   renderHTML({ HTMLAttributes }) {
-//     return [
-//       'blockquote',
-//       mergeAttributes(HTMLAttributes, {
-//         class: `pull-quote ${HTMLAttributes.alignment}`,
-//       }),
-//       0,
-//     ];
-//   },
-// });
 const PullQuote = PullQuoteBase.extend({
   addNodeView() {
     return ReactNodeViewRenderer(({ node }) => (
@@ -362,37 +346,27 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
 
   const extensions = useMemo<Extension[]>(() => {
     return [
-      StarterKit,
+      ...tiptapSharedExtensions(),                 // ✅ SAME base as reader
       CodeBlockLowlight.configure({ lowlight }),
       TaskList,
       TaskItem,
-      Highlight,
-      SSRTextAlign.configure({
-        types: ["heading", "paragraph", "blockquote", "listItem"],
-        alignments: ["left", "center", "right", "justify"],
-      }),
-      Underline,
-      TextStyle,
-      Color,
       CustomImage,
-      Link,
-      Placeholder.configure({ placeholder: "Write something…" }),
+
       PullQuote,
       Callout,
       MathBlock,
       MathInline,
-      TextStyleTokens,
+      TextStyleTokens,                              // token emitters (OK on editor too)
       BlockStyleTokens,
+      Placeholder.configure({ placeholder: "Write something…" }),
       CharacterCount.configure({ limit: CHAR_LIMIT }),
       SlashCommand,
       COLLAB_ENABLED && provider && Collaboration.configure({ document: ydoc }),
-      COLLAB_ENABLED &&
-        provider &&
-        CollaborationCursor.configure({
-          provider,
-          user: { name: userName, color: userColor },
-        }),
-    ].filter(Boolean) as Extension[]; // TS narrow‑down
+      COLLAB_ENABLED && provider && CollaborationCursor.configure({
+        provider,
+        user: { name: userName, color: userColor },
+      }),
+    ].filter(Boolean) as Extension[];
   }, [lowlight, provider, userName, userColor, ydoc]);
 
   /* ---------------------------- TipTap editor ---------------------------- */
@@ -413,6 +387,12 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
     extensions,
     content: initialJson,
     immediatelyRender: false,
+    editorProps: {
+      // 1) Pure transform, no insertion — prevents double paste
+      transformPastedHTML: (html) => sanitizeAndNormalize(html),
+      // 2) Do NOT insert anything here. Let ProseMirror handle it.
+      handlePaste: (_view, _event) => false, // keep default insertion
+    },
   });
 
   // ---- Autosave (debounced   dedup   in-flight abort) -------------------
@@ -887,18 +867,7 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
                 template={template}
                 onChange={setTemplate}
               />
-              {/* Upload hero (native file picker)
-              <label htmlFor="hero-upload" className="px-2 py-1 rounded-xl bg-white/50 sendbutton text-[.8rem] text-center cursor-pointer">
-                Upload hero
-              </label>
-              <input id="hero-upload" type="file" accept="image/*" onChange={onHeroUpload} hidden /> */}
-
-              {/* <button
-            className="savebutton rounded-xl bg-white/70 p-2 h-fit text-xs"
-            onClick={() => setSuggestion(!suggestion)}
-          >
-            {suggestion ? t('suggestionOff') : t('suggestionMode')}
-          </button> */}
+             
               <button
                 className=" px-2 py-1 rounded-xl bg-white/50 sendbutton text-[.8rem] text-center"
                 onClick={openRevisions}
@@ -946,12 +915,7 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
               >
                 {t("saveDraft")}
               </button>
-              {/* <button
-            className="savebutton rounded-xl bg-white p-2 text-xs h-fit"
-            onClick={runA11yCheck}
-          >
-            {t('checkAccessibility')}
-          </button> */}
+             
               <button
                 className=" px-2 py-1 rounded-xl bg-white/50 sendbutton text-[.8rem] text-center"
                 onClick={publishArticle}
@@ -1054,16 +1018,7 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
                 editor={editor}
                 className="tiptap article-body prose w-full max-w-none px-2 py-2 mt-1 focus:border-none focus:outline-none focus:ring-none"
               />
-               {/* Hero image -------------------------------------------------------
-        {heroPreview && (
-          <NextImage
-            src={heroPreview}
-            alt="hero"
-            width={800}
-            height={400}
-            className={styles.hero}
-          />
-        )} */}
+               
             </div>
           </div>
         </div>

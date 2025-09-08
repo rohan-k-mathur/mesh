@@ -32,6 +32,34 @@
     max-width: var(--measure);
     line-height: var(--leading);
   }
+/* Standard template — reader */
+.standard .article-body {
+  max-width: var(--measure);
+  line-height: var(--leading);
+  margin-inline: auto;
+  padding-inline: 1rem; /* mirrors editor px-4 */
+}
+
+/* Feature template — reader */
+.feature .article-body {
+  max-width: var(--measure);
+  line-height: var(--leading);
+  margin-inline: auto;
+  padding-inline: 1rem;
+}
+/* in article.templates.css */
+.standard .article-body {  /* reader */
+  max-width: var(--measure);
+  line-height: var(--leading);
+  margin-inline: auto;
+  padding-inline: 1rem;
+}
+.feature  .article-body { /* similarly for feature */
+  max-width: var(--measure);
+  line-height: var(--leading);
+  margin-inline: auto;
+  padding-inline: 1rem;
+}
 
   
 

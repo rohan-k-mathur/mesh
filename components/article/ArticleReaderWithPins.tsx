@@ -255,13 +255,13 @@ function CommentRail({
           //   className={`absolute right-0 translate-y-[-50%] truncate w-full text-left m-2
           <div key={t.id} className="space-y-4 gap-4 h-full">
             <button
-              className={`absolute right-0 translate-y-[-50%] truncate justify-end items-end text-left m-2 w-[200px]
-                       text-xs px-3 py-1 rounded-md border bg-white/50 lockbutton
-                        hover:bg-white/60 transition
+              className={`absolute right-0 translate-y-[-50%] truncate justify-end items-end text-left m-2 w-[170px]
+                       text-xs px-3 py-1 rounded-sm   lockbutton
+                       
                        ${
                          active
-                           ? "border-amber-400 border-2 bg-white/70"
-                           : "border-neutral-200"
+                           ? "border-amber-400 border-2 bg-white"
+                           : "border-[.5px] border-slate-400 bg-white"
                        }`}
 
               style={{ top: p.top + offsetTop }}
@@ -342,7 +342,7 @@ export default function ArticleReaderWithPins({
     const first = rects[0];
     if (!first) return;
     const rootBox = root.getBoundingClientRect();
-    const y = window.scrollY + rootBox.top + first.top - 120; // 120px viewport padding
+    const y = window.scrollY + rootBox.top + first.top - 350; // 120px viewport padding
     window.scrollTo({ top: y, behavior: "smooth" });
   };
   const rectsByThread = useMemo(() => {
@@ -518,8 +518,8 @@ export default function ArticleReaderWithPins({
           ⇤
   Home
         </button> */}
-      <div className="relative">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
+      <div className="relative ">
+        <div className="flex flex-col w-[72%] justify-center items-center mx-auto px-3 gap-6">
           {/* Article + pins */}
 
           <div className="relative ml-[7%] mt-[1%]">
@@ -598,7 +598,7 @@ export default function ArticleReaderWithPins({
                       }}
                     >
                       <button
-                        className="w-6 h-6 shadow-xl rounded-full bg-amber-500 text-white text-xs "
+                        className="w-6 h-6  lockbutton rounded-md bg-slate-200/20 border-[1.4px] border-amber-500 text-amber-500 text-xs "
                         onClick={() => setExpandedCluster(key)}
                         title={`${c.items.length} comments`}
                       >
@@ -629,7 +629,7 @@ export default function ArticleReaderWithPins({
                       onMouseLeave={() => setHoverId(null)}
                     >
                       <button
-                        className={`w-[25px] h-[10px] rounded-sm lockbutton bg-slate-200/20   grid place-items-center border-amber-500
+                        className={`w-[25px] h-[14px] rounded-sm lockbutton bg-white  grid place-items-center border-amber-500
                          leading-none
                       ${
                         t.resolved
@@ -639,7 +639,7 @@ export default function ArticleReaderWithPins({
                         ${
                           active
                             ? "opacity-100 border-[1.4px] bg-amber-500/50  lockbutton"
-                            : "border-[1.1px] bg-slate-200/20 lockbutton hover:bg-slate-300/40"
+                            : "border-[1.1px] bg-slate-200/20 lockbutton "
                         }`}
                         onClick={() => {
                           setOpenId(t.id);
@@ -648,7 +648,7 @@ export default function ArticleReaderWithPins({
                         }}
                         aria-label="Open comment"
                       >
-                        <p className="text-[6px] text-center text-amber-500">
+                        <p className="text-[5px] text-center text-amber-500">
                           ●
                         </p>
                       </button>
@@ -760,14 +760,14 @@ export default function ArticleReaderWithPins({
 </div>
       </div>
 
-      <div className="flex flex-col">
-        <hr className="w-full border-[1px] border-white mt-4"></hr>
+      <div className="flex flex-col mt-4">
+        <hr className="w-full border-[.5px] border-slate-700/70 mt-4"></hr>
         {deliberationId && (
           <section className="mt-0">
-            <h2 className="text-[2.6rem] font-semibold tracking-wider text-center">
+            <h2 className="text-[2.6rem] font-semibold tracking-wider text-center mb-2">
               Discussion
             </h2>
-            <div className=" justify-center items-center mx-auto border-b-[1px] border-white w-[75%] "/>
+            <div className=" justify-center items-center mx-auto border-b-[.5px] border-slate-700/70 w-[75%] mb-2"/>
             <hr></hr>
             <RhetoricProvider>
   <DeepDivePanel deliberationId={deliberationId}/>
