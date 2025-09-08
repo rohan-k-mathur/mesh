@@ -7,6 +7,7 @@ import Color from '@tiptap/extension-color';
 // Your SSR-friendly TextAlign extension (you already referenced this)
 import { SSRTextAlign } from '@/lib/tiptap/extensions/ssr-text-align';
 import { FancyTextStyle } from './FancyTextStyle';
+import { SectionBreak } from './sectionBreak';
 
 
 // If you later add font family/size/letter/line/transform, we’ll extend TextStyle (see next section)
@@ -23,5 +24,7 @@ export function tiptapSharedExtensions() {
     Highlight,
     Link.configure({ openOnClick: true, autolink: true }),
     SSRTextAlign.configure({ types: ['heading', 'paragraph'] }),
+    SectionBreak,                                  // 👈 include here
+
   ];
 }

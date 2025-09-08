@@ -47,20 +47,22 @@
   margin-inline: auto;
   padding-inline: 1rem;
 }
-/* in article.templates.css */
-.standard .article-body {  /* reader */
-  max-width: var(--measure);
-  line-height: var(--leading);
-  margin-inline: auto;
-  padding-inline: 1rem;
-}
-.feature  .article-body { /* similarly for feature */
-  max-width: var(--measure);
-  line-height: var(--leading);
-  margin-inline: auto;
-  padding-inline: 1rem;
-}
 
+/* .section-break,
+.article-body hr[data-section-break] {
+  border: 0;
+  border-top-width: 1px;
+  border-top-style: dashed;
+  border-top-color: rgba(0,0,0,.25);
+  margin: 1rem 0;
+} */
+
+.section-break,
+.article-body hr[data-section-break] {
+  border: 0;
+  border-top: 3px solid rgba(0,0,0,.95);
+  margin: 1rem 0;
+}
   
 
   /* subtle drop‑cap on first paragraph (desktop) */
@@ -153,4 +155,25 @@
 
   /* eyebrow kicker */
   .eyebrow                { @apply block text-xs uppercase tracking-widest text-gray-500; }
+
+/* marker reset for all browsers */
+.article-section > summary::marker { display: none; }
+.article-section > summary::-webkit-details-marker { display: none; }
+
+/* clickable row */
+.article-section > summary {
+  cursor: pointer;
+  list-style: none;
+  font-weight: 600;
+  color: var(--clr-accent, #333);
+  padding: .25rem 0;
 }
+
+/* caret */
+.article-section[open] > summary::after { content: "▾"; float: right; opacity: .55; }
+.article-section:not([open]) > summary::after { content: "▸"; float: right; opacity: .55; }
+
+/* avoid selection getting in the way of toggling */
+.article-section > summary * { pointer-events: none; }
+}
+

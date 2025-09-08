@@ -33,6 +33,12 @@
   .tiptap [data-clr="accent"], .article-body [data-clr="accent"] { color: var(--clr-accent); }
   .tiptap [data-clr="muted"],  .article-body [data-clr="muted"]  { color: var(--clr-muted); }
   .tiptap [data-clr="red"],    .article-body [data-clr="red"]    { color: var(--clr-red); }
+
+  /* app/article/type-tokens.css (already where tokens live) */
+.tiptap p[data-indent="sm"], .article-body p[data-indent="sm"] { text-indent: 1.5em; }
+.tiptap p[data-indent="md"], .article-body p[data-indent="md"] { text-indent: 2em; }
+.tiptap p[data-indent="lg"], .article-body p[data-indent="lg"] { text-indent: 3em; }
+
   
 
 /* Per-template defaults (override per template class as needed) */

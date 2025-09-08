@@ -3079,10 +3079,12 @@ model WorkPracticalRevision {
   @@index([workId, createdAt])
 }
 
-/// Cross-object typed edges for knowledge integration: DN → IH/TC/OP (SUPPLIES_PREMISE) and basic inter-work/claim relations.
-/// Keep this distinct from ClaimEdge/ArgumentEdge; this is *meta* knowledge plumbing, not AF attack edges.
+/// =========================
+/// Aux: Knowledge / NLI / Eristic
+/// =========================
+
 enum KnowledgeEdgeKind {
-  SUPPLIES_PREMISE // DN work supplies a premise to another work/claim
+  SUPPLIES_PREMISE
   REVISES
   CHALLENGES
   SUPPORTS
@@ -3096,14 +3098,11 @@ model KnowledgeEdge {
   deliberationId String
   kind           KnowledgeEdgeKind
   meta           Json?
-
-  // Allow work<->work, work<->claim, claim<->claim; keep fields optional but validate in app layer
-  fromWorkId  String?
-  toWorkId    String?
-  fromClaimId String?
-  toClaimId   String?
-
-  createdAt DateTime @default(now())
+  fromWorkId     String?
+  toWorkId       String?
+  fromClaimId    String?
+  toClaimId      String?
+  createdAt      DateTime          @default(now())
 
   deliberation Deliberation @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
 
@@ -3113,15 +3112,11 @@ model KnowledgeEdge {
 }
 
 model NLILink {
-  id     String  @id @default(cuid())
-  // Optional: persist only when you know the graph ids for provenance
-  fromId String? // claimId or argumentId that acts as premise/attacker
-  toId   String? // claimId or argumentId that acts as hypothesis/target
-
-  relation String // 'entails' | 'contradicts' | 'neutral'
-  score    Float
-
-  // Optional: who asked for this adjudication (visibility/audit)
+  id          String   @id @default(cuid())
+  fromId      String?
+  toId        String?
+  relation    String
+  score       Float
   createdById String?
   createdAt   DateTime @default(now())
 
@@ -3132,10 +3127,10 @@ model NLILink {
 model EristicMark {
   id             String   @id @default(cuid())
   deliberationId String
-  targetType     String // 'argument'|'claim'|'move'
+  targetType     String
   targetId       String
-  tactic         String // 'loaded_question'|'equivocation'|...
-  detector       String // 'rule'|'ml'|'mod'
+  tactic         String
+  detector       String
   strength       Float    @default(0)
   createdById    String?
   createdAt      DateTime @default(now())
@@ -3143,38 +3138,159 @@ model EristicMark {
   @@index([deliberationId, targetType, targetId])
 }
 
-model DialogueLocus {
-  id             String   @id @default(cuid())
-  deliberationId String
-  address        String // e.g., '0/1/2'
-  parentLocusId  String?
-  openedByMoveId String
-  createdAt      DateTime @default(now())
-
-  @@index([deliberationId, address])
+/// =========================
+/// Ludics: enums
+/// =========================
+enum LudicPolarity {
+  P
+  O
 }
 
-model DialogueChronicle {
-  id             String   @id @default(cuid())
-  deliberationId String
-  locusId        String
-  order          Int
-  moveId         String
-  polarity       String // 'P'|'O'
-  note           String?
-  createdAt      DateTime @default(now())
-
-  @@index([deliberationId, locusId, order])
+enum LudicActKind {
+  PROPER
+  DAIMON
 }
 
-model DialogueNormScore {
-  id             String   @id @default(cuid())
-  deliberationId String
-  windowStart    DateTime
-  windowEnd      DateTime
-  deScore        Float
-  details        Json
-  computedAt     DateTime @default(now())
+enum LudicTraceStatus {
+  ONGOING
+  CONVERGENT
+  DIVERGENT
+}
 
-  @@index([deliberationId, computedAt])
+/// =========================
+/// Ludics: core models
+/// =========================
+
+model LudicLocus {
+  id              String       @id @default(cuid())
+  path            String       @db.VarChar(255)
+  parentId        String?
+  parent          LudicLocus?  @relation("LocusChildren", fields: [parentId], references: [id])
+  children        LudicLocus[] @relation("LocusChildren")
+  createdByTurnId String?
+  extJson         Json?
+
+  // ⬇️ back-relations for the two distinct relations in LudicFaxMap
+  faxFrom                LudicFaxMap[]            @relation("FaxFrom")
+  faxTo                  LudicFaxMap[]            @relation("FaxTo")
+  LudicDesign            LudicDesign[]
+  LudicAct               LudicAct[]
+  LudicCommitmentElement LudicCommitmentElement[]
+
+  @@index([path])
+}
+
+model LudicDesign {
+  id             String     @id @default(cuid())
+  deliberationId String
+  participantId  String
+  rootLocusId    String
+  rootLocus      LudicLocus @relation(fields: [rootLocusId], references: [id])
+  semantics      String     @default("ludics-v1")
+  hasDaimon      Boolean    @default(false)
+  version        Int        @default(1)
+  extJson        Json?
+
+  chronicles LudicChronicle[]
+  acts       LudicAct[]
+
+  // traces (already fixed)
+  tracesAsPos LudicTrace[] @relation("Trace_Pos")
+  tracesAsNeg LudicTrace[] @relation("Trace_Neg")
+
+  // ⬇️ add this (implicit M:N back-relation)
+  commitmentElements LudicCommitmentElement[]
+
+  @@index([deliberationId, participantId])
+}
+
+model LudicAct {
+  id       String      @id @default(cuid())
+  designId String
+  design   LudicDesign @relation(fields: [designId], references: [id])
+
+  kind     LudicActKind
+  polarity LudicPolarity?
+  locusId  String?
+  locus    LudicLocus?    @relation(fields: [locusId], references: [id])
+
+  ramification String[] // allowed next sub-addresses
+  expression   String?
+  metaJson     Json?
+  isAdditive   Boolean  @default(false)
+
+  orderInDesign  Int
+  extJson        Json?
+  LudicChronicle LudicChronicle[]
+
+  @@index([designId, orderInDesign])
+}
+
+model LudicChronicle {
+  id       String      @id @default(cuid())
+  designId String
+  design   LudicDesign @relation(fields: [designId], references: [id])
+  order    Int
+  actId    String
+  act      LudicAct    @relation(fields: [actId], references: [id])
+}
+
+model LudicTrace {
+  id                            String           @id @default(cuid())
+  deliberationId                String
+  posDesignId                   String
+  negDesignId                   String
+  startLocusId                  String?
+  steps                         Json
+  status                        LudicTraceStatus
+  endedAtDaimonForParticipantId String?
+  createdAt                     DateTime         @default(now())
+  extJson                       Json?
+
+  posDesign LudicDesign @relation("Trace_Pos", fields: [posDesignId], references: [id])
+  negDesign LudicDesign @relation("Trace_Neg", fields: [negDesignId], references: [id])
+
+  @@index([deliberationId, createdAt])
+  @@index([posDesignId])
+  @@index([negDesignId])
+}
+
+model LudicCommitmentElement {
+  id           String     @id @default(cuid())
+  ownerId      String
+  basePolarity String // 'pos' | 'neg'
+  baseLocusId  String
+  baseLocus    LudicLocus @relation(fields: [baseLocusId], references: [id])
+  label        String?
+  extJson      Json?
+
+  // ⬇️ implicit M:N (no @relation name needed)
+  designs                LudicDesign[]
+  LudicCommitmentState   LudicCommitmentState? @relation(fields: [ludicCommitmentStateId], references: [id])
+  ludicCommitmentStateId String?
+
+  @@index([ownerId, basePolarity])
+}
+
+model LudicCommitmentState {
+  id        String   @id @default(cuid())
+  ownerId   String
+  updatedAt DateTime @default(now())
+  extJson   Json?
+
+  elements LudicCommitmentElement[]
+
+  @@index([ownerId])
+}
+
+model LudicFaxMap {
+  id          String   @id @default(cuid())
+  fromLocusId String
+  toLocusId   String
+  createdBy   String?
+  createdAt   DateTime @default(now())
+  extJson     Json?
+
+  from LudicLocus @relation("FaxFrom", fields: [fromLocusId], references: [id])
+  to   LudicLocus @relation("FaxTo", fields: [toLocusId], references: [id])
 }

@@ -6,13 +6,15 @@ import DeepDivePanel from '@/components/deepdive/DeepDivePanel';
 import { getOrCreateDeliberationId } from '@/lib/deepdive/upsert';
 import { getCurrentUserId } from "@/lib/serverutils";
 import { tiptapSharedExtensions } from '@/lib/tiptap/extensions/shared';
-
 import { createLowlight } from "lowlight";
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
 import javascript from "highlight.js/lib/languages/javascript";
 import typescript from "highlight.js/lib/languages/typescript";
 import python from "highlight.js/lib/languages/python";
 import bash from "highlight.js/lib/languages/bash";
+import { wrapSections } from '@/lib/article/wrapSections';
+import { SectionBreak } from "@/lib/tiptap/extensions/sectionBreak";
+import { ParagraphKeepEmptySSR } from '@/lib/tiptap/extensions/ParagraphKeepEmptySSR';
 
 import Link from "@tiptap/extension-link";
 import ArticleReaderWithPins from "@/components/article/ArticleReaderWithPins";
@@ -90,7 +92,10 @@ export default async function ArticlePage({ params }: { params: { key: string } 
     Callout,
     MathBlock,
     MathInline,
+
     Link.configure({ openOnClick: true, autolink: true }),
+    ParagraphKeepEmptySSR,      // <-- last, to override paragraph renderHTML in SSR
+
     // keep your SSR tokenizers if they add data-* attrs you rely on:
     TextStyleTokens,
     BlockStyleTokens,
@@ -101,12 +106,14 @@ export default async function ArticlePage({ params }: { params: { key: string } 
     console.error('TipTap SSR failed', e);
     html = '<p>Sorry — this article could not be rendered.</p>';
   }
+  // html = wrapSections(html, { collapsed: false, articleId: article.id });
 
   return (
     <ArticleReaderWithPins
       template={article.template}
       heroSrc={article.heroImageKey}
       html={html}
+
       threads={threads}
       articleSlug={params.key}
       title={article.title}

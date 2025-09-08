@@ -157,6 +157,7 @@
     "jszip": "^3.10.1",
     "katex": "^0.16.22",
     "leo-profanity": "^1.8.0",
+    "linkedom": "^0.18.12",
     "linkifyjs": "4.3.2",
     "livekit-client": "^2.5.2",
     "livekit-server-sdk": "^2.6.2",

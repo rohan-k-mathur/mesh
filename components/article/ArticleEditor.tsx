@@ -82,6 +82,11 @@ import { useRouter } from "next/navigation";
 import { BlockStyleTokens } from "@/lib/tiptap/extensions/block-style-ssr";
 import "katex/dist/katex.min.css";
 import HomeButton from "../buttons/HomeButton";
+import { Indent } from '@/lib/tiptap/extensions/indent';
+import { CodeBlockTab } from '@/lib/tiptap/extensions/code-tab';
+import { MoveBlock } from '@/lib/tiptap/extensions/block-move';
+import { QuickLink } from '@/lib/tiptap/extensions/quick-link';
+import { SectionBreak } from '@/lib/tiptap/extensions/sectionBreak';
 
 import { tiptapSharedExtensions } from '@/lib/tiptap/extensions/shared';
 
@@ -263,6 +268,89 @@ const CustomImage = ImageExt.extend({
   },
 });
 
+
+
+function sanitizeAndNormalize(html: string) {
+  const clean = DOMPurify.sanitize(html, {
+    USE_PROFILES: { html: true },
+    ALLOWED_ATTR: ['href','target','rel','class','style','id','name'],
+  });
+  const doc = new DOMParser().parseFromString(clean, 'text/html');
+
+  // Strip “site styling” but keep what your system understands.
+  doc.querySelectorAll<HTMLElement>('[style]').forEach(el => {
+    const st = el.style;
+
+    // map color → data token (or keep Color mark)
+    if (st.color) {
+      el.setAttribute('data-clr', colorToToken(st.color)); // or keep st.color if you rely on Color mark
+      st.removeProperty('color');
+    }
+
+    // map font-size → data token
+    if (st.fontSize) {
+      el.setAttribute('data-fs', sizeToToken(st.fontSize));
+      st.removeProperty('font-size');
+    }
+
+    // (optional) map weight/transform/letter/lineheight to your tokens…
+    if (st.fontWeight) { el.setAttribute('data-fw', st.fontWeight); st.removeProperty('font-weight'); }
+    if (st.textTransform) { el.setAttribute('data-tt', st.textTransform); st.removeProperty('text-transform'); }
+    if (st.letterSpacing) { el.setAttribute('data-ls', st.letterSpacing); st.removeProperty('letter-spacing'); }
+    if (st.lineHeight) { el.setAttribute('data-lh', lineHeightToToken(st.lineHeight)); st.removeProperty('line-height'); }
+
+    // drop empty style=""
+    if (!el.getAttribute('style')) el.removeAttribute('style');
+  });
+
+  // Convert legacy anchors <a name="x"> → id
+  doc.querySelectorAll('a[name]').forEach(a => {
+    const name = a.getAttribute('name'); if (!name) return;
+    if (!a.id) a.id = name;
+    a.removeAttribute('name');
+  });
+
+
+  // Convert TWO consecutive empty paragraphs into a section break
+  const ps = Array.from(doc.querySelectorAll('p'));
+  for (let i = 0; i < ps.length - 1; i++) {
+    const a = ps[i], b = ps[i+1];
+    const empty = (el: HTMLElement) => el.textContent?.trim() === '' && el.innerHTML.replace(/<br\s*\/?>/gi,'').trim() === '';
+    if (empty(a) && empty(b)) {
+      const hr = doc.createElement('hr');
+      hr.setAttribute('data-section-break', '1');
+      a.replaceWith(hr);
+      b.remove();
+      i++; // skip next
+    }
+  }
+
+  return doc.body.innerHTML;
+}
+
+function colorToToken(c:string){ // very simple; extend as needed
+  if (/red/i.test(c)) return 'red';
+  if (/gray|slate|muted/i.test(c)) return 'muted';
+  return 'accent'; // default
+}
+function sizeToToken(fs:string){
+  const px = parseFloat(fs);
+  if (px <= 12) return '12';
+  if (px <= 14) return '14';
+  if (px <= 16) return '16';
+  if (px <= 18) return '18';
+  if (px <= 20) return '20';
+  if (px <= 24) return '24';
+  if (px <= 32) return '32';
+  return '48';
+}
+function lineHeightToToken(lh:string){
+  const n = parseFloat(lh);
+  if (n && n <= 1.45) return 'tight';
+  if (n && n >= 1.8)  return 'loose';
+  return 'normal';
+}
+
 /* -------------------------------------------------------------------------- */
 /*  Props                                                                     */
 /* -------------------------------------------------------------------------- */
@@ -356,6 +444,13 @@ export default function ArticleEditor({ articleId }: ArticleEditorProps) {
       Callout,
       MathBlock,
       MathInline,
+      SectionBreak,   
+ // QoL upgrades:
+ Indent,
+ CodeBlockTab,
+ MoveBlock,
+ QuickLink,
+
       TextStyleTokens,                              // token emitters (OK on editor too)
       BlockStyleTokens,
       Placeholder.configure({ placeholder: "Write something…" }),

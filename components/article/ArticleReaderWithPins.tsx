@@ -255,8 +255,8 @@ function CommentRail({
           //   className={`absolute right-0 translate-y-[-50%] truncate w-full text-left m-2
           <div key={t.id} className="space-y-4 gap-4 h-full">
             <button
-              className={`absolute right-0 translate-y-[-50%] truncate justify-end items-end text-left m-2 w-[170px]
-                       text-xs px-3 py-1 rounded-sm   lockbutton
+              className={`absolute right-0 translate-y-[-50%] truncate justify-end items-end text-left m-2 w-[170px] 
+                       text-xs px-2 py-0 rounded-sm   lockbutton
                        
                        ${
                          active
@@ -764,7 +764,7 @@ export default function ArticleReaderWithPins({
         <hr className="w-full border-[.5px] border-slate-700/70 mt-4"></hr>
         {deliberationId && (
           <section className="mt-0">
-            <h2 className="text-[2.6rem] font-semibold tracking-wider text-center mb-2">
+            <h2 className="text-4xl font-semibold tracking-wide text-center my-4">
               Discussion
             </h2>
             <div className=" justify-center items-center mx-auto border-b-[.5px] border-slate-700/70 w-[75%] mb-2"/>
