@@ -235,13 +235,22 @@ async function checkOrthogonal() {
 
       <div className="grid md:grid-cols-2 gap-4">
         {data?.designs?.map((d:any) => (
-          <div key={d.id} className="border rounded p-2">
-            <div className="text-xs mb-1"><b>{d.participantId}</b> · {d.id.slice(0,6)}
-            <span className="px-1.5 py-0.5 rounded border bg-slate-50">{start}</span>
-            </div>
-            <LociTree root={shapeToTree(d)} onPickBranch={pickAdditive} usedAdditive={trace?.usedAdditive} />
-
-          </div>
+        <div key={d.id} className="border rounded p-2">
+          {(() => {
+            const first = (d.acts ?? [])[0];
+            const start =
+              first?.polarity === 'O' ? 'Start: Negative'
+              : first?.polarity === 'P' ? 'Start: Positive'
+              : 'Start: —';
+            return (
+              <div className="text-xs mb-1 flex items-center gap-2">
+                <b>{d.participantId}</b> · {d.id.slice(0,6)}
+                <span className="px-1.5 py-0.5 rounded border bg-slate-50">{start}</span>
+              </div>
+            );
+          })()}
+          <LociTree root={shapeToTree(d)} onPickBranch={pickAdditive} usedAdditive={trace?.usedAdditive} />
+       </div>
         ))}
       </div>
 

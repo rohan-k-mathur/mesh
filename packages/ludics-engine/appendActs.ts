@@ -4,7 +4,7 @@ import { Hooks } from './hooks';
 import { Prisma, PrismaClient } from '@prisma/client';
 
 // Narrow type so both PrismaClient and TransactionClient work
-type DB = PrismaClient;
+type DB = PrismaClient | Prisma.TransactionClient;
 
 // --- helpers use the provided db (tx) ---
 async function ensureLocus(
@@ -30,24 +30,37 @@ async function ensureLocus(
 }
 
 // (optional) strict additive guard — pass db and use it
-async function assertAdditiveNotReused(db: PrismaClient, dialogueId: string, locusPath: string) {
+
+async function assertAdditiveNotReused(
+    db: DB,
+    dialogueId: string,
+    locusPath: string
+  ) {
     const parts = locusPath.split('.').filter(Boolean);
-  if (parts.length < 2) return;
-  const parentPath = parts.slice(0, -1).join('.');
-
-  const parent = await db.ludicLocus.findFirst({
-    where: { dialogueId, path: parentPath },
-    include: { LudicAct: { where: { isAdditive: true } } },
-  });
-  if (!parent || parent.LudicAct.length === 0) return;
-
-  const prefix = `${parentPath}.`;
-  const existingChild = await db.ludicLocus.findFirst({
-    where: { dialogueId, path: { startsWith: prefix }, NOT: { path: locusPath } },
-    select: { id: true },
-  });
-  if (existingChild) throw new Error('ADDITIVE_REUSE');
-}
+    if (parts.length < 2) return; // no parent
+    const parentPath = parts.slice(0, -1).join('.');
+  
+    // Is parent additive?
+    const parent = await db.ludicLocus.findFirst({
+      where: { dialogueId, path: parentPath },
+      include: { LudicAct: { where: { isAdditive: true } } },
+    });
+    if (!parent || parent.LudicAct.length === 0) return;
+  
+    // If any sibling already exists under parent, forbid another child
+    const prefix = `${parentPath}.`;
+    const existingChild = await db.ludicLocus.findFirst({
+      where: {
+        dialogueId,
+        path: { startsWith: prefix },
+        NOT: { path: locusPath },
+      },
+      select: { id: true },
+    });
+    if (existingChild) {
+      throw new Error('ADDITIVE_REUSE');
+    }
+  }
 
 // Main entry — pass tx db from compileFromMoves
 export async function appendActs(

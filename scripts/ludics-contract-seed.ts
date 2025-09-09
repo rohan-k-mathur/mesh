@@ -1,4 +1,4 @@
-import 'ts-node/register';
+
 import { prisma } from '@/lib/prisma-cli';
 import { compileFromMoves } from '@/packages/ludics-engine/compileFromMoves';
 import { appendActs } from '@/packages/ludics-engine/appendActs';
