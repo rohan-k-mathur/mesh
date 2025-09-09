@@ -19,14 +19,17 @@ import SaveHighlights from "../rhetoric/SaveHighlights";
 import EmotionBadge from "@/components/rhetoric/EmotionBadge";
 import FrameChips from "@/components/rhetoric/FrameChips";
 import { analyzeLexiconsMany } from "../rhetoric/lexiconAnalyzers";
-// NEW imports for mini-ML
+
+// Mini-ML
 import { useRhetoric } from "@/components/rhetoric/RhetoricContext";
 import { analyzeText } from "@/components/rhetoric/detectors";
 import { featuresFromPipeline, predictMix } from "@/lib/rhetoric/mlMini";
 import { MixBadge } from "@/components/rhetoric/MixBadge";
+
 import { SourceQualityBadge } from "../rhetoric/SourceQualityBadge";
 import { FallacyBadge } from "../rhetoric/FallacyBadge";
 import MethodChip from "@/components/rhetoric/MethodChip";
+
 import DialogueMoves from "@/components/dialogue/DialogueMoves";
 import AnchorToMapButton from "../map/AnchorToMapButton";
 import MiniStructureBox from "../rhetoric/MiniStructureBox";
@@ -35,8 +38,14 @@ import NegotiationDrawerV2 from "@/components/map/NegotiationDrawerV2";
 import { useDeliberationAF } from "../dialogue/useGraphAF";
 import { ToulminBox } from "../monological/ToulminBox";
 import { QuantifierModalityPicker } from "../monological/QuantifierModalityPicker";
-import { LudicsBadge } from '@/components/dialogue/LudicsBadge';
 
+// Dialectic + RSA
+import { useDialecticStats } from '@/packages/hooks/useDialecticStats';
+import { DialBadge } from '@/packages/components/DialBadge';
+import { RSAChip } from '@/packages/components/RSAChip';
+import { useRSABatch } from '@/packages/hooks/useRSABatch';
+
+import { LudicsBadge } from '@/components/dialogue/LudicsBadge';
 
 const PAGE = 20;
 const fetcher = (u: string) =>
@@ -70,7 +79,7 @@ function RowLexSnapshot({ text }: { text: string }) {
   );
   return (
     <span className="text-[10px] text-neutral-600 ml-2">
-      · certainty {liwcCounts.certainty} · tentative {liwcCounts.tentative} · neg {liwcCounts.negation}
+       certainty {liwcCounts.certainty} · tentative {liwcCounts.tentative} · neg {liwcCounts.negation}
       {topFrames.length ? <> · frames {topFrames.map((f) => f.key).join("/")}</> : null}
     </span>
   );
@@ -123,19 +132,23 @@ export default function ArgumentsList({
     }
   );
 
+  // Compute items FIRST so downstream hooks can depend on it
   const items: Arg[] = useMemo(
     () => (data ?? []).flatMap((d) => d.items),
     [data]
   );
 
-  // ===== CHANGED: compute claimIds BEFORE we use them for fetching work mappings
+  // AF slice for dialogical lens
+  const { nodes, edges } = useDeliberationAF(deliberationId);
+
+  // Claim IDs for work mapping
   const claimIds = useMemo(() => {
     const set = new Set<string>();
     for (const a of items) if (a.claimId) set.add(a.claimId);
     return Array.from(set);
   }, [items]);
 
-  // Map claimId -> { workId, title } if the claim cites a TheoryWork
+  // Map claimId -> { workId, title }
   const [workByClaimId, setWorkByClaimId] = useState<
     Record<string, { workId: string; title: string } | undefined>
   >({});
@@ -200,10 +213,15 @@ export default function ArgumentsList({
       cancelled = true;
     };
   }, [claimIds.join(",")]); // eslint-disable-line react-hooks/exhaustive-deps
-  // ===== /CHANGED
 
-  // AF slice for dialogical lens
-  const { nodes, edges } = useDeliberationAF(deliberationId);
+  // RSA (batch for first ~20) + Dialectic stats once
+  const argTargets = React.useMemo(() => {
+    const ids = (items ?? []).slice(0, 20).map(a => `argument:${a.id}`);
+    return Array.from(new Set(ids));
+  }, [items]);
+
+  const { byTarget: rsaByTarget } = useRSABatch({ deliberationId, targets: argTargets });
+  const { stats: dialStats } = useDialecticStats(deliberationId);
 
   const titlesByTarget = useMemo(
     () => Object.fromEntries(items.map((a) => [a.id, (a.text || "").slice(0, 80)])),
@@ -286,7 +304,7 @@ export default function ArgumentsList({
         <span>Arguments</span>
         <button
           type="button"
-          className="relative max-w-[300px] w-full justify-center items-center text-center mx-auto px-4 py-1 
+          className="relative max-w-[300px] w/full justify-center items-center text-center mx-auto px-4 py-1 
                      text-xs tracking-wider rounded-lg border bg-slate-100 lockbutton"
           onClick={() => setListExpanded((v) => !v)}
           aria-expanded={listExpanded}
@@ -310,22 +328,18 @@ export default function ArgumentsList({
           <>
             <div className="flex items-center justify-between px-3 py-1">
               <div className="text-sm font-medium">Dialogical view</div>
-              {/* <button className="px-2 py-1 border rounded text-xs" onClick={() => setNegOpen(true)}>
-                Open negotiation
-              </button> */}
               <button
-   className="px-2 py-1 border rounded text-xs"
-   onClick={async () => {
-     setNegOpen(true);
-     await fetch('/api/ludics/compile-step', {
-       method: 'POST', headers:{'content-type':'application/json'},
-       body: JSON.stringify({ deliberationId, phase: 'neutral' })
-     }).catch(()=>{});
-     // let panels listening via SWR know to refresh
-     window.dispatchEvent(new CustomEvent('dialogue:moves:refresh'));
-   }}>
-   Open negotiation
- </button>
+                className="px-2 py-1 border rounded text-xs"
+                onClick={async () => {
+                  setNegOpen(true);
+                  await fetch('/api/ludics/compile-step', {
+                    method: 'POST', headers:{'content-type':'application/json'},
+                    body: JSON.stringify({ deliberationId, phase: 'neutral' })
+                  }).catch(()=>{});
+                  window.dispatchEvent(new CustomEvent('dialogue:moves:refresh'));
+                }}>
+                Open negotiation
+              </button>
             </div>
             <DialogicalPanel deliberationId={deliberationId} nodes={nodes} edges={edges} />
             <div className="z-1000">
@@ -362,7 +376,10 @@ export default function ArgumentsList({
                   onOpenDispute={openDispute}
                   refetch={mutate}
                   modelLens={modelLens as any}
-                  workByClaimId={workByClaimId} // ===== CHANGED: pass mapping down
+                  workByClaimId={workByClaimId}
+                  // NEW: pass RSA + Dial maps to the row
+                  rsaByTarget={rsaByTarget}
+                  dialStats={dialStats}
                 />
               )
             }
@@ -397,7 +414,7 @@ function EvidenceChecklist({ text }: { text: string }) {
     </span>
   );
   return (
-    <div className="flex flex-wrap gap-1 mt-1">
+    <div className="flex flex-wrap gap-1 ">
       {pill(hasUrl, "URL")}
       {pill(hasDoi, "DOI")}
       {pill(hasNum, "#s")}
@@ -406,6 +423,8 @@ function EvidenceChecklist({ text }: { text: string }) {
   );
 }
 
+// ------ Row component (now *receives* Dial & RSA maps) ------
+type RSARes = { R:number; S:number; A:number };
 function ArgRow({
   a,
   deliberationId,
@@ -414,7 +433,9 @@ function ArgRow({
   onOpenDispute,
   refetch,
   modelLens,
-  workByClaimId, // ===== CHANGED
+  workByClaimId,
+  rsaByTarget,
+  dialStats,
 }: {
   a: Arg;
   deliberationId: string;
@@ -424,6 +445,8 @@ function ArgRow({
   refetch: () => void;
   modelLens: "monological" | "dialogical" | "rhetorical";
   workByClaimId: Record<string, { workId: string; title: string } | undefined>;
+  rsaByTarget: Record<string, RSARes>;
+  dialStats: Record<string, any> | undefined;
 }) {
   const { settings } = useRhetoric();
   const [modalOpen, setModalOpen] = useState(false);
@@ -443,7 +466,6 @@ function ArgRow({
     return predictMix(feats, { temperature: 1.0 });
   }, [settings.enableMiniMl, a.text, lastHits]);
 
-  // ===== CHANGED: derive work chip for this row if claim traces to a work
   const workChip =
     a.claimId && workByClaimId[a.claimId]
       ? (
@@ -456,12 +478,16 @@ function ArgRow({
           </a>
         )
       : null;
-  // ===== /CHANGED
+
+  // Pull batch RSA for this row
+  const rsaForRow = rsaByTarget[`argument:${a.id}`];
 
   return (
     <div id={`arg-${a.id}`} className="p-3 border-b focus:outline-none">
       {/* badges */}
+   
       <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px]">
+      <div className="flex flex-col">
         {a.quantifier && (
           <span className="px-1.5 py-0.5 rounded border border-blue-200 bg-blue-50 text-blue-700">
             {a.quantifier}
@@ -472,62 +498,95 @@ function ArgRow({
             {a.modality}
           </span>
         )}
+</div>
+<div className="flex flex-col  ">
+
         <LudicsBadge deliberationId={deliberationId} targetType="argument" targetId={a.id} />
+        <DialBadge stats={dialStats} targetType="argument" targetId={a.id} />
+        {rsaForRow && <RSAChip {...rsaForRow} />}
+
         {a.mediaType && a.mediaType !== "text" && (
           <span className="px-1.5 py-0.5 rounded border border-amber-200 bg-amber-50 text-amber-700">
             {a.mediaType}
           </span>
         )}
-        {modelLens === "monological" && <MethodChip text={a.text} />}
-          {modelLens === "monological" && (
-    <>
-      <MiniStructureBox text={a.text} />
-      <ToulminBox
-        text={a.text}
-        onAddMissing={(slot) => {
-          // quick stub: write a MissingPremise row (premise/warrant)
-          fetch('/api/missing-premises', {
-            method: 'POST', headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({
-              deliberationId, targetType: 'argument', targetId: a.id,
-              text: slot === 'warrant' ? 'Add warrant…' : 'Add missing premise…',
-              premiseType: slot === 'warrant' ? 'warrant' : 'premise',
-            }),
-          }).catch(()=>{});
-        }}
-        onPromoteConclusion={(conclusion) => {
-          fetch('/api/claims/quick-create', {
-            method: 'POST', headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ targetArgumentId: a.id, text: conclusion, deliberationId }),
-          }).then(()=>refetch());
-        }}
-      />
-    </>
-  )}        {modelLens === "monological" && <RowLexSnapshot text={a.text} />}
-        {modelLens === "monological" && <EvidenceChecklist text={a.text} />}
-          {modelLens === "monological" && (
-    <QuantifierModalityPicker
-      initialQuantifier={a.quantifier ?? null}
-      initialModality={a.modality ?? null}
-      onChange={(q, m) => {
-        fetch(`/api/arguments/${a.id}/meta`, {
-          method: 'PUT', headers: {'content-type':'application/json'},
-          body: JSON.stringify({ quantifier: q, modality: m }),
-        }).then(()=>refetch());
-      }}
-    />
-  )}
+        </div>
+        <div className="flex flex-col  ">
 
-        {/* NEW: Work chip when claim is sourced from a TheoryWork */}
+        {modelLens === "monological" && <MethodChip text={a.text} />}
+
+        <div className="border rounded px-1.5 py-0.5">
+
+        {modelLens === "monological" && <RowLexSnapshot text={a.text} />}
+        </div>
+        <div className="border rounded px-1.5 py-0.5">
+
+        {modelLens === "monological" && <EvidenceChecklist text={a.text} />}
+        </div>
+        </div>
+        {modelLens === "monological" && (
+          <QuantifierModalityPicker
+            initialQuantifier={a.quantifier ?? null}
+            initialModality={a.modality ?? null}
+            onChange={(q, m) => {
+              fetch(`/api/arguments/${a.id}/meta`, {
+                method: 'PUT', headers: {'content-type':'application/json'},
+                body: JSON.stringify({ quantifier: q, modality: m }),
+              }).then(()=>refetch());
+            }}
+          />
+        )}
+        {modelLens === "monological" && (
+          <>
+            <MiniStructureBox text={a.text} />
+            <ToulminBox
+              text={a.text}
+              onAddMissing={(slot) => {
+                fetch('/api/missing-premises', {
+                  method: 'POST', headers: { 'content-type': 'application/json' },
+                  body: JSON.stringify({
+                    deliberationId, targetType: 'argument', targetId: a.id,
+                    text: slot === 'warrant' ? 'Add warrant…' : 'Add missing premise…',
+                    premiseType: slot === 'warrant' ? 'warrant' : 'premise',
+                  }),
+                }).catch(()=>{});
+              }}
+              onPromoteConclusion={(conclusion) => {
+                fetch('/api/claims/quick-create', {
+                  method: 'POST', headers: { 'content-type': 'application/json' },
+                  body: JSON.stringify({ targetArgumentId: a.id, text: conclusion, deliberationId }),
+                }).then(()=>refetch());
+              }}
+            />
+          </>
+        )}
+  
+
+        {/* Show items with open WHY ≥ 48h
+        <label className="text-xs ml-2">
+          <input
+            type="checkbox"
+            onChange={()=>{
+              const openOver48 = Object.entries(dialStats ?? {})
+                .filter(([, s]: any) => s.openWhy > 0 && ((Date.now() - Date.parse(s.lastWhyAt || '')) / 36e5) >= 48)
+                .map(([k]) => k);
+              window.dispatchEvent(new CustomEvent('mesh:list:filterOpenWhy', { detail: { keys: openOver48 } }));
+            }}
+          />{" "}
+          Show Items
+        </label> */}
+
+        {/* Source work chip */}
         {workChip}
 
-        {/* NEW: Mini-ML mix badge */}
+        {/* Mini ML */}
         {miniMix && <MixBadge mix={miniMix} className="ml-auto" />}
+
         {a.text && <SourceQualityBadge text={a.text} />}
         {a.text && <FallacyBadge text={a.text} />}
       </div>
 
-      <div className="text-xs text-neutral-500 mb-1">{created}</div>
+      <div className="text-xs text-neutral-500 mb-1 mt-1">{created}</div>
 
       {Array.isArray(a.edgesOut) && a.edgesOut.length > 0 && (
         <div className="mt-1 flex flex-wrap gap-1.5">
@@ -621,10 +680,7 @@ function ArgRow({
             deliberationId={deliberationId}
             target={{ type: "argument", id: a.id }}
             onClaim={async (newClaimId) => {
-              // (1) refetch usual lists
               refetch();
-          
-              // (2) tell Ludics about the new Claim
               await fetch('/api/dialogue/move', {
                 method: 'POST',
                 headers: { 'content-type': 'application/json' },
@@ -634,13 +690,11 @@ function ArgRow({
                   targetId: newClaimId,
                   kind: 'ASSERT',
                   payload: { note: 'Promoted to Claim' },
-                  actorId: 'Proponent',      // or current user
+                  actorId: 'Proponent',
                   autoCompile: true,
                   autoStep: true
                 })
               }).catch(()=>{});
-          
-              // (3) nudge dialogical views to refresh
               window.dispatchEvent(new CustomEvent('dialogue:moves:refresh'));
             }}
           />

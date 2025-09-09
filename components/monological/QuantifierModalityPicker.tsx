@@ -15,7 +15,7 @@ export function QuantifierModalityPicker({
   const [m, setM] = React.useState(initialModality ?? null);
 
   return (
-    <div className="flex items-center gap-2 text-[11px]">
+    <div className="flex flex-col  text-[11px]">
       <select className="border rounded px-1 py-0.5"
         value={q ?? ''} onChange={e => { const v = (e.target.value || null) as any; setQ(v); onChange(v, m); }}>
         <option value="">Quantifier…</option>

@@ -7,6 +7,7 @@ import { mutate as globalMutate } from 'swr';
 
 import CQBar from './CQBar';
 import { useCQSummaryBatch } from '@/components/cq/useCQSummaryBatch';
+import { EntailmentWidget } from '../entail/EntailmentWidget';
 
 // Detail modules
 import SchemePicker from '@/components/cite/SchemePicker';
@@ -21,6 +22,11 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+
+  import { useRSABatch } from '@/packages/hooks/useRSABatch';
+  import { RSAChip } from '@/packages/components/RSAChip';
+  import { useDialecticStats } from '@/packages/hooks/useDialecticStats';
+  import { DialBadge } from '@/packages/components/DialBadge';
 
 const PAGE = 10;
 const fetcher = (u: string) =>
@@ -95,7 +101,18 @@ export default function CardListVirtuoso({
     () => (items as any[]).map((c) => c.claimId).filter(Boolean) as string[],
     [items]
   );
+
+
+  // Batch RSA for first ~20 visible claims
+
+
   const { byId: cqById } = useCQSummaryBatch(deliberationId, visibleClaimIds);
+    // build RSA batch for first ~20 claimIds
+  const claimTargets = React.useMemo(() => {
+    return Array.from(new Set(visibleClaimIds.slice(0,20).map(id => `claim:${id}`)));
+  }, [visibleClaimIds]);
+  const { byTarget: rsaByTarget } = useRSABatch({ deliberationId, targets: claimTargets });
+  const { stats: dialStats } = useDialecticStats(deliberationId);
 
   function resetFilters() {
     setStatus('published');
@@ -172,7 +189,7 @@ export default function CardListVirtuoso({
           overscan={200}
           endReached={() => !isValidating && nextCursor && setSize((s) => s + 1)}
           itemContent={(i, c: any) => (
-            <CardRow c={c} cqById={cqById} />
+            <CardRow c={c} cqById={cqById} rsaByTarget={rsaByTarget} dialStats={dialStats} />
           )}
           components={{
             Footer: () => (
@@ -233,6 +250,7 @@ function CardCQSection({ claimId, authorId, cqSummary,deliberationId }: {
 
             // prefilterKeys={Object.entries(cqSummary?.openByScheme ?? {}).flatMap(([sk, arr]) => arr.map(k => ({ schemeKey: sk, cqKey: k })))}
           />
+          
         </div>
       )}
     </div>
@@ -240,7 +258,18 @@ function CardCQSection({ claimId, authorId, cqSummary,deliberationId }: {
 }
 
 /** Row (memoized) */
-const CardRow = React.memo(function CardRow({ c, cqById }: { c: any; cqById: Map<string, any> }) {
+type RSARes = { R:number; S:number; A:number };
+  const CardRow = React.memo(function CardRow({
+    c,
+    cqById,
+    rsaByTarget,
+    dialStats,
+  }: {
+    c: any;
+    cqById: Map<string, any>;
+    rsaByTarget: Record<string, RSARes>;
+    dialStats: Record<string, any>;
+  }) {
   const cqSummary = c.claimId ? cqById.get(c.claimId) : undefined;
 
   return (
@@ -251,7 +280,15 @@ const CardRow = React.memo(function CardRow({ c, cqById }: { c: any; cqById: Map
       </div>
 
       {/* Claim */}
-      <div className="text-sm font-medium">{c.claimText}</div>
+        <div className="text-sm font-medium flex items-center gap-2">
+    <span>{c.claimText}</span>
+    {c.claimId && rsaByTarget?.[`claim:${c.claimId}`] && (
+          <RSAChip {...rsaByTarget[`claim:${c.claimId}`]} />
+        )}
+        {c.claimId && dialStats && (
+          <DialBadge stats={dialStats} targetType="claim" targetId={c.claimId} />
+        )}
+  </div>
 
       {/* Reasons */}
       {Array.isArray(c.reasonsText) && c.reasonsText.length > 0 && (
@@ -338,7 +375,13 @@ const CardRow = React.memo(function CardRow({ c, cqById }: { c: any; cqById: Map
             </>
           )}
         </div>
-
+        <EntailmentWidget
+  seedSentences={[
+    'If it rains then streets are wet',
+    'It rains'
+  ]}
+  seedHypothesis="streets are wet"
+/>
         {/* CQ section */}
         {c.claimId && <CardCQSection claimId={c.claimId} authorId={c.authorId} cqSummary={cqSummary} deliberationId={c.deliberationId} />}
       </div>

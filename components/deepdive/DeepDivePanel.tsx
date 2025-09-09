@@ -32,6 +32,9 @@ const LazyGraphPanel = dynamic(() => import("@/components/graph/GraphPanel"), {
   ssr: false,
 });
 
+type PrefProfile = 'community' | 'policy' | 'scientific';
+type PrefState = { profile: PrefProfile };
+
 type Selection = {
   id: string;
   deliberationId: string; // ✅ selection now includes this
@@ -144,6 +147,9 @@ export default function DeepDivePanel({
   const authorId = user?.userId != null ? String(user.userId) : undefined;
   const [rhetoricSample, setRhetoricSample] = useState<string>('');
 
+const [pref, setPref] = useState<PrefState>({ profile: 'community' });
+const [prefLoading, setPrefLoading] = useState(false);
+
   useEffect(() => {
     fetch(
       `/api/content-status?targetType=deliberation&targetId=${deliberationId}`
@@ -187,10 +193,60 @@ export default function DeepDivePanel({
   }, []); // eslint-disable-line
   const graphState = usePersisted(`dd:graph:${deliberationId}`, false);
 
+
+// Load current prefs
+useEffect(() => {
+  let alive = true;
+  (async () => {
+    try {
+      setPrefLoading(true);
+      const r = await fetch(`/api/deliberations/${encodeURIComponent(deliberationId)}/prefs`, { cache: 'no-store' });
+      if (!r.ok) throw new Error(`GET prefs ${r.status}`);
+      const j = await r.json();
+      if (alive && j?.ok) setPref({ profile: j.profile as PrefProfile });
+    } catch {
+      // fall back to default 'community'
+    } finally {
+      if (alive) setPrefLoading(false);
+    }
+  })();
+  return () => { alive = false; };
+}, [deliberationId]);
+
+async function updatePref(next: PrefProfile) {
+  setPref(prev => ({ ...prev, profile: next })); // optimistic
+  try {
+    const r = await fetch(`/api/deliberations/${encodeURIComponent(deliberationId)}/prefs`, {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ profile: next }),
+    });
+    if (!r.ok) throw new Error(`PUT prefs ${r.status}`);
+    // if your backend returns computed thresholds, you could merge them here
+  } catch (e) {
+    // revert on error (optional)
+    // setPref(prev => ({ ...prev, profile: 'community' }));
+    console.error('Update prefs failed', e);
+  }
+}
+
   return (
 
     <div className="space-y-5 py-3 px-6">
       {/* Header controls */}
+      <label className="text-xs flex items-center gap-2">
+  Audience profile:
+  <select
+    className="text-xs border rounded px-2 py-1"
+    value={pref.profile}
+    disabled={prefLoading}
+    onChange={(e) => updatePref(e.target.value as PrefProfile)}
+  >
+    <option value="community">Community</option>
+    <option value="policy">Policy</option>
+    <option value="scientific">Scientific</option>
+  </select>
+</label>
 
       {/* Arguments + Composer */}
       <SectionCard>

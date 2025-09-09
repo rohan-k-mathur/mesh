@@ -2913,6 +2913,16 @@ model Deliberation {
   @@index([roomId])
 }
 
+model DeliberationPref {
+  deliberationId String @id
+  profile        String           // 'community' | 'policy' | 'scientific'
+  minRelevance   Float  @default(0.5)
+  minSufficiency Float  @default(0.5)
+  minAcceptability Float @default(0.5)
+  updatedAt      DateTime @updatedAt
+  createdAt      DateTime @default(now())
+}
+
 model Value {
   id          String       @id @default(cuid())
   key         String       @unique
@@ -3267,9 +3277,9 @@ model LudicCommitmentElement {
   baseLocusId  String
   baseLocus    LudicLocus @relation(fields: [baseLocusId], references: [id])
   label        String?
-    entitled     Boolean?  @default(true)  // 👈 NEW
+  entitled     Boolean?   @default(true) // 👈 NEW
 
-  extJson      Json?
+  extJson Json?
 
   // ⬇️ implicit M:N (no @relation name needed)
   designs                LudicDesign[]

@@ -12,7 +12,7 @@ export default function EmotionBadge({ texts }: { texts: string[] }) {
 
   return (
     <div className="inline-flex items-center gap-2 rounded border px-2 py-1 text-xs bg-white/70">
-      <span className="font-medium">Pathos:</span>
+      {/* <span className="font-medium">Pathos:</span> */}
       <span title="(positive - negative) per 100 words" className="px-1 rounded bg-emerald-50 border border-emerald-200 text-emerald-700">
         Valence {valenceScorePer100w >= 0 ? '+' : ''}{valenceScorePer100w}
       </span>
