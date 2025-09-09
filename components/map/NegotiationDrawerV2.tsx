@@ -2,14 +2,20 @@
 import * as React from 'react';
 import { createPortal } from 'react-dom';
 import { useDialogueMoves } from '../dialogue/useDialogueMoves';
-import DialogueMoves from '../dialogue/DialogueMoves';
-import { DialogueMove } from '../dialogue/useDialogueMoves';
+
 type Props = {
   deliberationId: string;
   open: boolean;
   onClose: () => void;
   /** Optional: friendly labels for targetId → "short text…" */
   titlesByTarget?: Record<string, string>;
+};
+
+type DM = {
+  id: string;
+  kind: 'ASSERT'|'WHY'|'GROUNDS'|'RETRACT'|string;
+  payload?: any;
+  createdAt: string; // ISO
 };
 
 function timeAgo(ts: string | number) {
@@ -25,6 +31,13 @@ function timeAgo(ts: string | number) {
   return `${d2}d ago`;
 }
 
+function hoursLeft(iso?: string) {
+  if (!iso) return null;
+  const ms = Date.parse(iso) - Date.now();
+  if (Number.isNaN(ms)) return null;
+  return Math.max(0, Math.ceil(ms / 36e5));
+}
+
 function chip(kind: string) {
   const base = 'px-1.5 py-0.5 rounded text-[10px] border';
   if (kind === 'WHY') return <span className={`${base} bg-rose-50 border-rose-200 text-rose-700`}>WHY</span>;
@@ -37,29 +50,96 @@ function chip(kind: string) {
 export default function NegotiationDrawerV2({ deliberationId, open, onClose, titlesByTarget }: Props) {
   const { byTarget, latestByTarget, moves, mutate } = useDialogueMoves(deliberationId);
 
+  // ✅ Safe defaults (prevents .entries() / .get() crashes)
+  const safeByTarget = React.useMemo(() => byTarget ?? new Map<string, DM[]>(), [byTarget]);
+  const safeLatest = React.useMemo(() => latestByTarget ?? new Map<string, DM>(), [latestByTarget]);
+  const safeMoves: DM[] = React.useMemo(() => (moves ?? []) as DM[], [moves]);
+
+     const byTargetFallback = React.useMemo(() => {
+         if (safeByTarget.size > 0 || safeMoves.length === 0) return null;
+         // Group raw moves into argument:ID / claim:ID / card:ID buckets
+         const m = new Map<string, DM[]>();
+         for (const mv of safeMoves) {
+           const tt = (mv as any).targetType ?? 'argument';
+           const tid = (mv as any).targetId ?? '';
+           const key = `${tt}:${tid}`;
+           if (!m.has(key)) m.set(key, []);
+           m.get(key)!.push(mv);
+         }
+         // compute latest map too
+         const latest = new Map<string, DM>();
+         for (const [k, list] of m.entries()) {
+          list.sort((a,b) => +new Date(a.createdAt) - +new Date(b.createdAt));
+           latest.set(k, list[list.length - 1]);
+         }
+         return { m, latest };
+      }, [safeByTarget, safeMoves]);
+      const [q, setQ] = React.useState('');
+      const [filter, setFilter] = React.useState<'all'|'why'|'resolved'|'conceded'|'retracted'>('all');
+        function statusOf(latest?: DM) {
+            if (!latest) return '—';
+            if (latest.kind === 'WHY') return 'why';
+            if (latest.kind === 'GROUNDS') return 'resolved';
+            if (latest.kind === 'RETRACT') return 'retracted';
+            if (latest.kind === 'ASSERT' && latest.payload?.as === 'CONCEDE') return 'conceded';
+            return '—';
+          }
   const [loading, setLoading] = React.useState(false);
+     const [quick, setQuick] = React.useState<{targetType:'argument'|'claim'|'card'; targetId:string; note:string; ttl:number}>({
+         targetType: 'argument', targetId: '', note: '', ttl: 24,
+       });
+     
+       async function postMove(targetType:'argument'|'claim'|'card', targetId:string, kind:'WHY'|'GROUNDS'|'RETRACT'|'CONCEDE', payload:any = {}) {
+         // normalize CONCEDE → ASSERT(as:CONCEDE) happens server-side, we still send kind:'CONCEDE' for clarity
+         await fetch('/api/dialogue/move', {
+           method:'POST', headers:{'content-type':'application/json'},
+           body: JSON.stringify({
+             deliberationId, targetType, targetId, kind, payload,
+             autoCompile: true, autoStep: true,
+           })
+         }).catch(()=>{});
+         // keep everyone in sync
+         window.dispatchEvent(new CustomEvent('dialogue:moves:refresh'));
+         await refresh();
+       }
   const refresh = async () => {
     setLoading(true);
     await mutate();
     setLoading(false);
   };
 
-  React.useEffect(() => { if (open) void refresh(); }, [open]);
+  // On open: compile+step then refresh to align timeline with Ludics
+  React.useEffect(() => {
+    if (!open) return;
+    (async () => {
+      try {
+        await fetch('/api/ludics/compile-step', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ deliberationId, phase: 'neutral' }),
+        });
+      } catch {}
+      await refresh();
+    })();
+  }, [open, deliberationId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!open) return null;
 
-  const sections = Array.from(byTarget.entries())
+    const sourceMap = (byTargetFallback?.m ?? safeByTarget);
+   const latestMap = (byTargetFallback?.latest ?? safeLatest);
+   
+   const sections = Array.from(sourceMap.entries())
     .map(([targetId, list]) => {
-      const latest = latestByTarget.get(targetId);
-      // Fold WHY→GROUNDS pairs that are within 2s into a single “resolved” visual
-      const compact: DialogueMove[] = [];
+      // Fold WHY→GROUNDS within 2s into a single “resolved” visual row
+      const latest = latestMap.get(targetId);
+      const compact: DM[] = [];
       for (let i = 0; i < list.length; i++) {
         const m = list[i];
         if (m.kind === 'WHY' && list[i + 1]?.kind === 'GROUNDS') {
           const t1 = new Date(m.createdAt).getTime();
           const t2 = new Date(list[i + 1].createdAt).getTime();
           if (t2 - t1 <= 2000) {
-            compact.push(list[i + 1]); // Keep only GROUNDS
+            compact.push(list[i + 1]); // keep only GROUNDS
             i += 1;
             continue;
           }
@@ -72,7 +152,17 @@ export default function NegotiationDrawerV2({ deliberationId, open, onClose, tit
       const tA = a.latest ? new Date(a.latest.createdAt).getTime() : 0;
       const tB = b.latest ? new Date(b.latest.createdAt).getTime() : 0;
       return tB - tA;
-    });
+    })
+    //.filter(s => filter==='all' || statusOf(s.latest)===filter);
+      .filter(s => {
+          if (filter!=='all' && statusOf(s.latest)!==filter) return false;
+          if (!q.trim()) return true;
+          const title = (titlesByTarget?.[s.targetId] || s.targetId || '').toLowerCase();
+          return title.includes(q.toLowerCase());
+        });
+
+  // If portal target is missing (extremely rare), bail
+  if (typeof document === 'undefined' || !document.body) return null;
 
   return createPortal(
     <div className="fixed inset-0 z-[9999]">
@@ -91,39 +181,151 @@ export default function NegotiationDrawerV2({ deliberationId, open, onClose, tit
             </button>
           </div>
         </div>
-
+ {/* Quick add WHY */}
+          <div className="mb-3 rounded border p-2 bg-slate-50/50">
+           <div className="flex flex-wrap items-end gap-2">
+             <label className="text-[11px] text-neutral-600">Target</label>
+             <select
+               className="h-7 border rounded px-1 text-xs"
+               value={quick.targetType}
+               onChange={e => setQuick(q => ({...q, targetType: e.target.value as any}))}
+             >
+               <option value="argument">argument</option>
+               <option value="claim">claim</option>
+               <option value="card">card</option>
+             </select>
+               <input
+    className="mb-2 w-full border rounded px-2 py-1 text-[12px]"
+    placeholder="Search target…"
+    value={q}
+    onChange={e=>setQ(e.target.value)}
+ />
+             <input
+               className="h-7 border rounded px-2 text-xs flex-1 min-w-[160px]"
+               placeholder="targetId…"
+               value={quick.targetId}
+               onChange={e => setQuick(q => ({...q, targetId: e.target.value}))}
+             />
+             <input
+               className="h-7 border rounded px-2 text-xs flex-1 min-w-[160px]"
+               placeholder="note (optional)…"
+               value={quick.note}
+               onChange={e => setQuick(q => ({...q, note: e.target.value}))}
+             />
+             <button
+               className="h-7 px-2 border rounded text-xs"
+               disabled={!quick.targetId.trim()}
+               onClick={() => postMove(quick.targetType, quick.targetId.trim(), 'WHY', quick.note ? { note: quick.note } : {})}
+               title="Post WHY and update Dialogue Engine"
+             >
+               New WHY
+             </button>
+           </div>
+      </div>
         <div className="space-y-3">
+           {/* tiny debug chip so you know the drawer actually fetched moves */}
+          <div className="text-[11px] text-neutral-500">
+            fetched moves: <b>{safeMoves.length}</b> • groups: <b>{sections.length}</b>
+          </div>
+            <div className="mb-2 flex flex-wrap gap-2 text-[11px]">
+    {(['all','why','resolved','conceded','retracted'] as const).map(f => (
+      <button key={f}
+        className={`px-2 py-0.5 rounded border ${filter===f?'bg-slate-100':'bg-white'}`}
+        onClick={() => setFilter(f)}>{f}</button>
+    ))}
+  </div>
           {sections.map(({ targetId, latest, moves }) => {
+            const conceded = latest?.kind === 'ASSERT' && latest?.payload?.as === 'CONCEDE';
             const state =
               latest?.kind === 'WHY' ? 'Open WHY' :
               latest?.kind === 'GROUNDS' ? 'Resolved' :
               latest?.kind === 'RETRACT' ? 'Retracted' :
-              (latest?.kind === 'ASSERT' && latest?.payload?.as === 'CONCEDE') ? 'Conceded' :
-              '—';
+              conceded ? 'Conceded' : '—';
+
             const chipEl =
               latest?.kind === 'WHY' ? chip('WHY') :
               latest?.kind === 'GROUNDS' ? chip('GROUNDS') :
               latest?.kind === 'RETRACT' ? chip('RETRACT') :
-              (latest?.kind === 'ASSERT' && latest?.payload?.as === 'CONCEDE') ? chip('CONCEDE') :
+              conceded ? chip('CONCEDE') :
               chip(latest?.kind || '—');
 
+            const ttlHrs = latest?.kind === 'WHY' ? hoursLeft(latest?.payload?.deadlineAt) : null;
             const title = titlesByTarget?.[targetId] || targetId;
 
             return (
-              <div key={targetId} className="rounded border p-2">
+              <div
+                key={targetId}
+                className="rounded border p-2 hover:bg-slate-50 transition-colors cursor-pointer"
+                onClick={() => {
+                  // Focus Ludics panel on this target (listeners will compile-step)
+                  window.dispatchEvent(new CustomEvent('ludics:focus', {
+                    detail: { deliberationId, phase: 'focus-P' }
+                  }));
+                }}
+                title="Focus this line in Dialogue Engine"
+              >
                 <div className="flex items-center justify-between">
                   <div className="text-sm font-medium truncate max-w-[75%]">{title}</div>
                   <div className="flex items-center gap-2">
                     {chipEl}
+                      {ttlHrs !== null && latest?.kind === 'WHY' && (
+    <span className={`text-[10px] px-1 py-0.5 rounded border ${
+      ttlHrs <= 0 ? 'bg-rose-50 border-rose-200 text-rose-700' : 'bg-amber-50 border-amber-200 text-amber-700'
+    }`}>
+      ⏱ {Math.max(0, ttlHrs)}h
+    </span>
+  )}
                     {latest && <span className="text-[10px] text-neutral-600">{timeAgo(latest.createdAt)}</span>}
                   </div>
                 </div>
+   {/* Row-level actions */}
+                    <div className="mt-2 flex flex-wrap gap-2">
+                   <button className="px-2 py-0.5 border rounded text-[11px]"
+                     onClick={(e) => { e.stopPropagation(); postMove('argument',''+targetId,'WHY',{ note:'Why?' }); }}>
+                     WHY
+                   </button>
+                   <button className="px-2 py-0.5 border rounded text-[11px]"
+                     onClick={(e) => { e.stopPropagation(); postMove('argument',''+targetId,'GROUNDS',{ note:'Grounds submitted' }); }}>
+                     GROUNDS
+                   </button>
+                   <button className="px-2 py-0.5 border rounded text-[11px]"
+                     onClick={(e) => { e.stopPropagation(); postMove('argument',''+targetId,'RETRACT',{ text:'Retract' }); }}>
+                     RETRACT
+                   </button>
+                   <button className="px-2 py-0.5 border rounded text-[11px]"
+                     onClick={(e) => { e.stopPropagation(); postMove('argument',''+targetId,'CONCEDE',{ note:'Concede' }); }}>
+                     CONCEDE
+                   </button>
+                 </div>
+                 <div className="mt-2 flex gap-2 items-center">
+    <input
+      className="border rounded px-2 py-0.5 text-[11px] flex-1"
+      placeholder="Reply with grounds…"
+      onKeyDown={async (e) => {
+        const el = e.currentTarget as HTMLInputElement;
+        if (e.key === 'Enter' && el.value.trim()) {
+          e.stopPropagation();
+          await postMove('argument', ''+targetId, 'GROUNDS', { brief: el.value.trim() });
+          el.value = '';
+        }
+      }}
+    />
+    <button className="px-2 py-0.5 border rounded text-[11px]"
+      onClick={async (e) => {
+        const box = (e.currentTarget.previousSibling as HTMLInputElement);
+        const v = box.value.trim();
+        if (!v) return;
+        e.stopPropagation();
+        await postMove('argument', ''+targetId, 'GROUNDS', { brief: v });
+        box.value = '';
+      }}>
+      Send
+    </button>
+  </div>
                 <div className="mt-2 space-y-1">
                   {moves.map((m) => (
                     <div key={m.id} className="flex items-center gap-2 text-sm">
-                      {chip(
-                        m.kind === 'ASSERT' && m.payload?.as === 'CONCEDE' ? 'CONCEDE' : m.kind
-                      )}
+                      {chip(m.kind === 'ASSERT' && m.payload?.as === 'CONCEDE' ? 'CONCEDE' : m.kind)}
                       <span className="text-[11px] text-neutral-600">{timeAgo(m.createdAt)}</span>
                       {m.payload && (
                         <span className="truncate text-[11px] text-neutral-600 max-w-[65%]">
@@ -136,6 +338,7 @@ export default function NegotiationDrawerV2({ deliberationId, open, onClose, tit
               </div>
             );
           })}
+
           {!sections.length && (
             <div className="rounded border p-2 text-sm text-neutral-600">
               No dialogue moves yet.

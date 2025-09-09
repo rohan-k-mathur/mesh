@@ -34,6 +34,22 @@ export function ChallengeWarrantCard({ cardId, claimId: targetClaimId, deliberat
       // ✅ Revalidate Toulmin for the TARGET claim (the card’s claim), not the counter
       mutate(`/api/claims/${targetClaimId}/toulmin`);
 
+      try {
+           await fetch('/api/dialogue/move', {
+             method: 'POST', headers: { 'content-type':'application/json' },
+             body: JSON.stringify({
+               deliberationId,
+               targetType: 'claim',
+               targetId: targetClaimId,
+               kind: 'WHY',
+               payload: { about: 'warrant', note: 'Counter-warrant posted' },
+               autoCompile: true,
+               autoStep: true,
+           })
+           });
+           window.dispatchEvent(new CustomEvent('dialogue:moves:refresh'));
+         } catch {}
+
       setMsg('Warrant challenged ✓');
       setCounterText('');
     } catch (e: any) {

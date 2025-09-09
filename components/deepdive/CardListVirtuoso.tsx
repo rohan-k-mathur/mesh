@@ -202,7 +202,19 @@ function CardCQSection({ claimId, authorId, cqSummary,deliberationId }: {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => setShowCq((v) => !v)}
+          onClick={async () => {
+            setShowCq((v) => !v);
+           try {
+             await fetch('/api/dialogue/move', {
+               method:'POST', headers:{'content-type':'application/json'},
+               body: JSON.stringify({
+                 deliberationId, targetType:'claim', targetId: claimId,
+                 kind: 'GROUNDS', payload: { via: 'CQPanel' }, autoCompile:true, autoStep:true
+               })
+             });
+             window.dispatchEvent(new CustomEvent('dialogue:moves:refresh'));
+           } catch {}
+          }}
           disabled={!cqSummary || !cqSummary.required}
           title="Address open critical questions"
           className="text-xs px-2 py-1 h-7"

@@ -35,6 +35,8 @@ import NegotiationDrawerV2 from "@/components/map/NegotiationDrawerV2";
 import { useDeliberationAF } from "../dialogue/useGraphAF";
 import { ToulminBox } from "../monological/ToulminBox";
 import { QuantifierModalityPicker } from "../monological/QuantifierModalityPicker";
+import { LudicsBadge } from '@/components/dialogue/LudicsBadge';
+
 
 const PAGE = 20;
 const fetcher = (u: string) =>
@@ -308,9 +310,22 @@ export default function ArgumentsList({
           <>
             <div className="flex items-center justify-between px-3 py-1">
               <div className="text-sm font-medium">Dialogical view</div>
-              <button className="px-2 py-1 border rounded text-xs" onClick={() => setNegOpen(true)}>
+              {/* <button className="px-2 py-1 border rounded text-xs" onClick={() => setNegOpen(true)}>
                 Open negotiation
-              </button>
+              </button> */}
+              <button
+   className="px-2 py-1 border rounded text-xs"
+   onClick={async () => {
+     setNegOpen(true);
+     await fetch('/api/ludics/compile-step', {
+       method: 'POST', headers:{'content-type':'application/json'},
+       body: JSON.stringify({ deliberationId, phase: 'neutral' })
+     }).catch(()=>{});
+     // let panels listening via SWR know to refresh
+     window.dispatchEvent(new CustomEvent('dialogue:moves:refresh'));
+   }}>
+   Open negotiation
+ </button>
             </div>
             <DialogicalPanel deliberationId={deliberationId} nodes={nodes} edges={edges} />
             <div className="z-1000">
@@ -457,6 +472,7 @@ function ArgRow({
             {a.modality}
           </span>
         )}
+        <LudicsBadge deliberationId={deliberationId} targetType="argument" targetId={a.id} />
         {a.mediaType && a.mediaType !== "text" && (
           <span className="px-1.5 py-0.5 rounded border border-amber-200 bg-amber-50 text-amber-700">
             {a.mediaType}
@@ -604,7 +620,29 @@ function ArgRow({
           <PromoteToClaimButton
             deliberationId={deliberationId}
             target={{ type: "argument", id: a.id }}
-            onClaim={() => refetch()}
+            onClaim={async (newClaimId) => {
+              // (1) refetch usual lists
+              refetch();
+          
+              // (2) tell Ludics about the new Claim
+              await fetch('/api/dialogue/move', {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({
+                  deliberationId,
+                  targetType: 'claim',
+                  targetId: newClaimId,
+                  kind: 'ASSERT',
+                  payload: { note: 'Promoted to Claim' },
+                  actorId: 'Proponent',      // or current user
+                  autoCompile: true,
+                  autoStep: true
+                })
+              }).catch(()=>{});
+          
+              // (3) nudge dialogical views to refresh
+              window.dispatchEvent(new CustomEvent('dialogue:moves:refresh'));
+            }}
           />
         )}
 

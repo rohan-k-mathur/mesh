@@ -18,6 +18,7 @@ import { RhetoricProvider, useRhetoric } from '@/components/rhetoric/RhetoricCon
 import RhetoricControls from '@/components/rhetoric/RhetoricControls';
 import WorksRail from "../work/WorksRail";
 import WorksList from "../work/WorksList";
+import { LudicsPanel } from "./LudicsPanel";
 import {
   Collapsible,
   CollapsibleTrigger,
@@ -327,6 +328,8 @@ export default function DeepDivePanel({
   <TabsList>
     <TabsTrigger value="arguments">Arguments</TabsTrigger>
     <TabsTrigger value="works">Works</TabsTrigger>
+    <TabsTrigger value="ludics">Ludics</TabsTrigger> {/* NEW */}
+
     <TabsTrigger value="card">Create Card</TabsTrigger>
     <TabsTrigger value="viewcard">View Cards</TabsTrigger>
   </TabsList>
@@ -338,7 +341,9 @@ export default function DeepDivePanel({
       <WorksList deliberationId={deliberationId} currentUserId={authorId} />
     </SectionCard>
   </TabsContent>
-
+  <TabsContent value="ludics">
+    <LudicsPanel deliberationId={deliberationId} />
+  </TabsContent>
   <TabsContent value="card">
     <SectionCard title="Create Card">
       <CardComposerTab deliberationId={deliberationId} />

@@ -13,7 +13,11 @@ type Props = {
   edges: AFEdge[];                    // support/rebut/undercut edges between those nodes
 };
 
-
+function hoursLeft(iso?: string) {
+  if (!iso) return null;
+  const ms = Date.parse(iso) - Date.now();
+  return Math.max(0, Math.ceil(ms / 36e5)); // hours
+}
 // Simple stable extension enumerator (OK for small panels; falls back to grounded for big AFs)
 function computeStableExtension(
   A: { id: string }[],
@@ -185,6 +189,9 @@ export default function DialogicalPanel({ deliberationId, nodes, edges }: Props)
     const st = status(n.id);
     const stCls = st === 'IN' ? 'bg-emerald-600' : st === 'OUT' ? 'bg-rose-600' : 'bg-amber-600';
     const openWhy = unresolvedByTarget.has(n.id);
+    const whyMove = unresolvedByTarget.get(n.id) as any | undefined;
+const dueHrs = hoursLeft(whyMove?.payload?.deadlineAt);
+
 
     return (
       <div
@@ -203,7 +210,8 @@ export default function DialogicalPanel({ deliberationId, nodes, edges }: Props)
 
         {openWhy && (
           <span className="ml-2 px-1.5 py-0.5 rounded border text-[10px] bg-rose-50 border-rose-200 text-rose-700">
-            WHY
+               WHY{typeof dueHrs === 'number' ? ` · ⏱ ${dueHrs}h` : ''}
+
           </span>
         )}
 
@@ -292,7 +300,7 @@ function ArgumentInspector({
 
   const postMove = async (kind: 'WHY'|'GROUNDS', payload: any) => {
   await fetch('/api/dialogue/move', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ deliberationId, targetType: 'argument', targetId: node.id, kind, payload, actorId: 'me' }) });
+    body: JSON.stringify({ deliberationId, targetType: 'argument', targetId: node.id, kind, payload, actorId: 'me', autoCompile: true, autoStep: true }) });
   window.dispatchEvent(new CustomEvent('dialogue:moves:refresh'));
 };
 

@@ -2881,6 +2881,7 @@ model DialogueMove {
   locusId        String?
   endsWithDaimon Boolean @default(false)
 
+  @@index([deliberationId, targetType, targetId, createdAt])
   @@index([deliberationId])
   @@index([targetType, targetId])
 }
@@ -3163,6 +3164,7 @@ enum LudicTraceStatus {
 
 model LudicLocus {
   id              String       @id @default(cuid())
+  dialogueId      String? // NEW: scope by dialogue to avoid global "0" clashes
   path            String       @db.VarChar(255)
   parentId        String?
   parent          LudicLocus?  @relation("LocusChildren", fields: [parentId], references: [id])
@@ -3170,14 +3172,15 @@ model LudicLocus {
   createdByTurnId String?
   extJson         Json?
 
-  // ⬇️ back-relations for the two distinct relations in LudicFaxMap
+  // existing back-relations...
   faxFrom                LudicFaxMap[]            @relation("FaxFrom")
   faxTo                  LudicFaxMap[]            @relation("FaxTo")
   LudicDesign            LudicDesign[]
   LudicAct               LudicAct[]
   LudicCommitmentElement LudicCommitmentElement[]
 
-  @@index([path])
+  @@unique([dialogueId, path]) // ✅ was: @unique on path; now scoped
+  @@index([dialogueId, path])
 }
 
 model LudicDesign {
@@ -3224,6 +3227,8 @@ model LudicAct {
   LudicChronicle LudicChronicle[]
 
   @@index([designId, orderInDesign])
+  @@index([locusId])
+  @@index([designId, locusId])
 }
 
 model LudicChronicle {
@@ -3262,6 +3267,8 @@ model LudicCommitmentElement {
   baseLocusId  String
   baseLocus    LudicLocus @relation(fields: [baseLocusId], references: [id])
   label        String?
+    entitled     Boolean?  @default(true)  // 👈 NEW
+
   extJson      Json?
 
   // ⬇️ implicit M:N (no @relation name needed)
