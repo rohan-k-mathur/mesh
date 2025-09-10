@@ -26,6 +26,7 @@ export function LudicsPanel({ deliberationId }: { deliberationId: string }) {
   const [orthogonal, setOrthogonal] = React.useState<boolean|null>(null);
   const [decisive, setDecisive] = React.useState<number[]|null>(null);
   const [focusTarget, setFocusTarget] = React.useState<string|null>(null);
+  const [showGuide, setShowGuide] = React.useState(false);
 
 
   async function analyzeNLI() {
@@ -66,17 +67,57 @@ export function LudicsPanel({ deliberationId }: { deliberationId: string }) {
     return null;
   }
 
+  function legendBlock() {
+    return (
+      <div className="text-xs grid gap-2 md:grid-cols-2">
+        <div className="border rounded p-2 bg-slate-50">
+          <div className="font-semibold mb-1">Legend</div>
+          <ul className="list-disc ml-4 space-y-1">
+            <li><b>P</b> / <b>O</b>: Proponent / Opponent.</li>
+            <li><b>† Daimon</b>: dialogue branch ends (accept / failure).</li>
+            <li><b>⊕ Additive</b>: a choice point — choose one child branch.</li>
+            <li><b>Locus</b> <code>0.1.2</code>: root → child 1 → child 2.</li>
+            <li><b>Orthogonal</b>: designs interact cleanly (no illegal reuse).</li>
+          </ul>
+        </div>
+        <div className="border rounded p-2 bg-slate-50">
+          <div className="font-semibold mb-1">Statuses</div>
+          <ul className="list-disc ml-4 space-y-1">
+            <li><b>ONGOING</b>: the exchange can continue.</li>
+            <li><b>CONVERGENT</b>: traversal reached † (winning path found).</li>
+            <li><b>DIVERGENT</b>: traversal failed or got stuck.</li>
+          </ul>
+        </div>
+      </div>
+    );
+  }
+  
+  function narratedLines(): Array<{ i:number; text:string }> {
+    const list: Array<{ i:number; text:string }> = [];
+    const steps = trace?.steps ?? [];
+    for (let i = 0; i < steps.length; i++) {
+      const p = steps[i];
+      const pos = p?.posActId ? findActById(p.posActId) : null;
+      const neg = p?.negActId ? findActById(p.negActId) : null;
+      const locus = (pos?.locus?.path ?? neg?.locus?.path ?? '0').toString();
+      const left  = pos?.expression ? `P asserts “${String(pos.expression)}”` : '—';
+      const right = neg?.expression ? `O replies “${String(neg.expression)}”` : '—';
+      list.push({ i, text: `${i+1}) At ${locus}: ${left}; ${right}` });
+    }
+    return list;
+  }
   async function checkStable() {
     const res = await fetch(`/api/af/stable?deliberationId=${encodeURIComponent(deliberationId)}`).then(r=>r.json());
     setStable(res.count ?? 0);
   }
-
   const compRef = React.useRef(false);
+
+  const [busy, setBusy] = React.useState(false);
 
  // compile  step in one hop (keeps ribbon/trace fresh)
    async function compileStep(phase: 'focus-P'|'focus-O'|'neutral' = 'neutral') {
     if (compRef.current) return;
-    compRef.current = true;
+    compRef.current = true; setBusy(true);
     try {
       const r  = await fetch('/api/ludics/compile-step', {
           method:'POST', headers:{'content-type':'application/json'},
@@ -94,7 +135,7 @@ export function LudicsPanel({ deliberationId }: { deliberationId: string }) {
         }
       }
       finally {
-        compRef.current = false;
+        compRef.current = false; setBusy(false);
       }
     }
     
@@ -204,13 +245,26 @@ async function checkOrthogonal() {
   return (
     <div className="space-y-3">
       <div className="flex gap-2">
-        <button className="px-2 py-1 border rounded" onClick={compile}>Compile from moves</button>
-        <button className="px-2 py-1 border rounded" onClick={step}>Step</button>
-        <button className="px-2 py-1 border rounded" onClick={appendDaimonToNext}>Append † to next</button>
-        <button className="px-2 py-1 border rounded" onClick={checkOrthogonal}>Check orthogonality</button>
+      <button className="px-2 py-1 border rounded disabled:opacity-50" onClick={compile} disabled={busy}>
+           {busy ? 'Compiling…' : 'Compile from moves'}
+         </button>
+         <button className="px-2 py-1 border rounded disabled:opacity-50" onClick={step} disabled={busy}>
+           {busy ? 'Stepping…' : 'Step'}
+         </button>
+         <button className="px-2 py-1 border rounded disabled:opacity-50" onClick={appendDaimonToNext} disabled={busy}>
+           {busy ? 'Working…' : 'Append † to next'}
+         </button>
+         <button className="px-2 py-1 border rounded disabled:opacity-50" onClick={checkOrthogonal} disabled={busy}>
+           {busy ? 'Checking…' : 'Check orthogonality'}
+        </button>
 {orthogonal === true && <span className="text-xs px-2 py-0.5 border rounded bg-green-50">✔ Orthogonal</span>}
 {orthogonal === false && <span className="text-xs px-2 py-0.5 border rounded bg-amber-50">Not orthogonal</span>}
-        <button className="px-2 py-1 border rounded" onClick={analyzeNLI}>Analyze NLI</button>
+<button className="px-2 py-1 border rounded disabled:opacity-50" onClick={analyzeNLI} disabled={busy}>
+          {busy ? 'Analyzing…' : 'Analyze NLI'}
+        </button>
+        <button className="px-2 py-1 border rounded" onClick={()=>setShowGuide(s=>!s)}>
+  {showGuide ? 'Hide legend' : 'Legend & narrative'}
+</button>
 
         <button className="px-2 py-1 border rounded" onClick={checkStable}>Stable sets</button>
   {stable !== null && <span className="text-xs px-2 py-1 rounded border bg-slate-50">stable: {stable}</span>}
@@ -225,6 +279,35 @@ async function checkOrthogonal() {
     badges={badges}
     onFocus={(i)=>setFocusIdx(i)}
   />
+)}
+{trace?.decisiveIndices?.length ? (
+  <span className="text-[10px] px-1.5 py-0.5 rounded border bg-indigo-50 border-indigo-200 text-indigo-700">
+    decisive: {trace.decisiveIndices.map(i=>i+1).join(', ')}
+  </span>
+) : null}
+
+{showGuide && (
+  <div className="space-y-2">
+    {legendBlock()}
+    <div className="border rounded p-2">
+      <div className="font-semibold text-xs mb-1">Narrated trace</div>
+      <ol className="list-decimal ml-5 space-y-1 text-sm">
+        {narratedLines().map(({i, text}) => (
+          <li key={i}>
+            <button
+              className={`text-left underline decoration-dotted ${
+                focusIdx === i ? 'text-sky-700' : 'text-neutral-800'
+              }`}
+              onClick={() => setFocusIdx(i)}
+              title="Focus this step"
+            >
+              {text}
+            </button>
+          </li>
+        ))}
+      </ol>
+    </div>
+  </div>
 )}
 
 {trace?.endorsement && (

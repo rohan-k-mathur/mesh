@@ -50,7 +50,7 @@ export default function NewArticlePage() {
       <div className="relative z-10 mx-auto max-w-2xl px-4 py-16">
         <div className="mb-6 inline-flex select-none items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-3 py-1 text-xs text-slate-600 backdrop-blur">
           <Terminal className="h-3.5 w-3.5 text-indigo-500" />
-          <span>Launching Mesh Editor</span>
+          <span>Launching Article Editor</span>
         </div>
 
         <ConsoleCard error={!!error} message={error ?? undefined} />
@@ -108,7 +108,7 @@ function ConsoleCard({ error, message }: { error?: boolean; message?: string }) 
                 transition={{ duration: 0.35 }}
                 className="flex items-center gap-2"
               >
-                <span className="text-slate-400">{timestamp(i)}</span>
+                <span className="text-slate-400">[{String(i + 1).padStart(2, '0')}]</span>
                 <span className="text-indigo-600">$</span>
                 <span className="text-slate-700">{line}</span>
                 {i === visibleLines - 1 && <Caret />}
@@ -149,14 +149,8 @@ const LOGS = [
   'Fetching user preferences…',
   'Linking extensions & shortcuts…',
   'Starting collaboration layer…',
-  'Creating a fresh draft…',
+  'Creating a fresh draft…'
 ]
-
-function timestamp(i: number) {
-  const d = new Date()
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
-}
 
 function Caret() {
   return (
@@ -168,30 +162,30 @@ function Caret() {
   )
 }
 
+
+// Fancy stroke-dashoffset pulse spinner
 function Spinner({ prefersReduced }: { prefersReduced: boolean }) {
   return (
-    <motion.svg
-      viewBox="0 0 50 50"
-      className="h-10 w-10 text-indigo-400"
-      initial={false}
-      animate={{ rotate: prefersReduced ? 0 : 360 }}
-      transition={{ duration: 1.8, repeat: Infinity, ease: 'linear' }}
-    >
-      <circle
-        cx="25"
-        cy="25"
-        r="20"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="4"
-        strokeLinecap="round"
-        strokeDasharray="60 120"
-        strokeDashoffset="0"
-      />
-    </motion.svg>
+  <motion.svg
+  viewBox="0 0 50 50"
+  className="h-10 w-10 text-indigo-400"
+  aria-hidden
+  >
+  <motion.circle
+  cx="25"
+  cy="25"
+  r="20"
+  fill="none"
+  stroke="currentColor"
+  strokeWidth="4"
+  strokeLinecap="round"
+  strokeDasharray="60 120"
+  animate={{ strokeDashoffset: [60, 180, 60] }}
+  transition={{ duration: prefersReduced ? 0 : 1.5, repeat: Infinity, ease: 'easeInOut' }}
+  />
+  </motion.svg>
   )
-}
-
+  }
 /* ----------------------------- Background FX ----------------------------- */
 function GridBG() {
   return (

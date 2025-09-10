@@ -7,7 +7,7 @@ import Link from "next/link";
 
 export default function HomeButton() {
   return (
-    <button className="savebutton p-1 bg-white/50 rounded-xl">
+    <button className="lockbutton p-1 bg-white/20 rounded-xl">
     <Link
       href={`/`}
 

@@ -46,6 +46,8 @@ import { RSAChip } from '@/packages/components/RSAChip';
 import { useRSABatch } from '@/packages/hooks/useRSABatch';
 
 import { LudicsBadge } from '@/components/dialogue/LudicsBadge';
+import { InlineMoveForm } from '@/components/dialogue/InlineMoveForm';
+
 
 const PAGE = 20;
 const fetcher = (u: string) =>
@@ -585,6 +587,42 @@ function ArgRow({
         {a.text && <SourceQualityBadge text={a.text} />}
         {a.text && <FallacyBadge text={a.text} />}
       </div>
+
+      {/* Inline WHY */}
+<InlineMoveForm
+  placeholder="Challenge this: WHY …"
+  onSubmit={async (note) => {
+    // optimistic nudge
+    window.dispatchEvent(new CustomEvent('dialogue:moves:refresh'));
+    await fetch('/api/dialogue/move', {
+      method:'POST', headers:{'content-type':'application/json'},
+      body: JSON.stringify({
+        deliberationId, targetType:'argument', targetId: a.id,
+        kind:'WHY', payload:{ note },
+        autoCompile: true, autoStep: true
+      })
+    });
+    // tell Ludics & drawer to refresh
+    window.dispatchEvent(new CustomEvent('dialogue:moves:refresh'));
+  }}
+/>
+
+{/* Inline GROUNDS */}
+<InlineMoveForm
+  placeholder="Provide grounds…"
+  onSubmit={async (brief) => {
+    window.dispatchEvent(new CustomEvent('dialogue:moves:refresh'));
+    await fetch('/api/dialogue/move', {
+      method:'POST', headers:{'content-type':'application/json'},
+      body: JSON.stringify({
+        deliberationId, targetType:'argument', targetId: a.id,
+        kind:'GROUNDS', payload:{ brief },
+        autoCompile: true, autoStep: true
+      })
+    });
+    window.dispatchEvent(new CustomEvent('dialogue:moves:refresh'));
+  }}
+/>
 
       <div className="text-xs text-neutral-500 mb-1 mt-1">{created}</div>
 

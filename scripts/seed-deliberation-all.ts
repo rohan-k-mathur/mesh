@@ -1,9 +1,16 @@
+
 // scripts/seed-deliberation-all.ts
 import 'dotenv/config';
-import { prisma } from '@/lib/prismaclient';
+import { prisma } from '@/lib/prisma-cli';
 import { mintClaimMoid } from '@/lib/ids/mintMoid';
 import { mintUrn } from '@/lib/ids/urn';
+
+
 import { maybeUpsertClaimEdgeFromArgumentEdge } from '@/lib/deepdive/claimEdgeHelpers';
+
+// NEW: Ludics compile + step
+import { compileFromMoves } from 'packages/ludics-engine/compileFromMoves';
+import { stepInteraction } from 'packages/ludics-engine/stepper';
 
 // Optional (skip if not present)
 let recomputeGroundedForDelib: undefined | ((d: string) => Promise<void>);
@@ -17,8 +24,10 @@ type EdgeKind = 'support' | 'rebut' | 'rebut_premise' | 'undercut_inference';
 type MoveKind = 'assertion'|'grounds'|'warrant'|'backing'|'qualifier'|'rebuttal'|'counter_rebuttal';
 type ModelFlavor = 'dialogical'|'monological'|'rhetorical';
 
+type MintUrnEntityCode = Parameters<typeof mintUrn>[0];
+
+
 async function ensureUser(authId: string, username: string, name: string) {
-  // Uses the main users table (BigInt id, unique auth_id)
   const u = await prisma.user.findUnique({ where: { auth_id: authId } });
   if (u) return u;
   return prisma.user.create({ data: { auth_id: authId, username, name } });
@@ -35,7 +44,8 @@ async function promoteToClaim(deliberationId: string, text: string, createdById:
   const moid = mintClaimMoid(text);
   const existing = await prisma.claim.findUnique({ where: { moid } });
   if (existing) return existing;
-  const urn  = mintUrn('claim', moid);
+  const urn = mintUrn('claim' as MintUrnEntityCode, moid);
+
   const claim = await prisma.claim.create({
     data: {
       deliberationId,
@@ -50,7 +60,7 @@ async function promoteToClaim(deliberationId: string, text: string, createdById:
 
 async function linkArgumentToClaim(argumentId: string, claimId: string) {
   await prisma.argument.update({ where: { id: argumentId }, data: { claimId } });
-  // refresh any claim-edges from existing arg-edges
+  // refresh claim-edges from any existing arg-edges incident to the argument
   const incident = await prisma.argumentEdge.findMany({
     where: { OR: [{ fromArgumentId: argumentId }, { toArgumentId: argumentId }] },
     select: { id: true },
@@ -59,16 +69,12 @@ async function linkArgumentToClaim(argumentId: string, claimId: string) {
 }
 
 async function addEvidenceLink(claimId: string, uri: string) {
-  // EvidenceKind.secondary is valid per schema
   await prisma.evidenceLink.create({ data: { claimId, kind: 'secondary', uri } });
 }
 
 async function addClaimCitation(claimId: string, uri: string) {
-  // ClaimCitation.excerptHash is required
   await prisma.claimCitation.create({
-    data: {
-      claimId, uri, excerptHash: `seed#${claimId}`, locatorStart: 0, locatorEnd: 0,
-    },
+    data: { claimId, uri, excerptHash: `seed#${claimId}`, locatorStart: 0, locatorEnd: 0 },
   });
 }
 
@@ -77,11 +83,15 @@ function nowPlus(days = 0) {
   d.setDate(d.getDate() + days);
   return d;
 }
+function nowPlusHours(h = 24) {
+  const d = new Date();
+  d.setHours(d.getHours() + h);
+  return d.toISOString();
+}
 
 // --------------------- Seed: arguments, edges, approvals ---------------------
 async function seedArgumentsBundle(deliberationId: string, actors: {authId: string; userId: string; name: string}[]) {
   const createdByAuth = actors[0].authId;
-  const createdById   = actors[0].userId; // BigInt -> string cast not needed here since createdById is String in deliberation models
 
   const A: Record<string, { id: string }> = {};
 
@@ -89,7 +99,7 @@ async function seedArgumentsBundle(deliberationId: string, actors: {authId: stri
     const arg = await prisma.argument.create({
       data: {
         deliberationId,
-        authorId: authorAuth, // String (we use auth_id convention)
+        authorId: authorAuth,
         text,
         mediaType: 'text',
         sources: {
@@ -193,16 +203,45 @@ async function seedArgumentsBundle(deliberationId: string, actors: {authId: stri
     },
   });
 
-  // Dialogue moves
-  await prisma.dialogueMove.createMany({
-    data: [
-      { deliberationId, targetType: 'argument', targetId: A['C'].id, kind: 'ASSERT', payload: {}, actorId: P.authId },
-      { deliberationId, targetType: 'argument', targetId: A['G'].id, kind: 'WHY',    payload: {}, actorId: D.authId },
-    ],
-    skipDuplicates: true,
-  });
+  return { A, claimC, claimAL, claimW, createdByAuth, createdById: actors[0].userId, P, D, C, F };
+}
 
-  return { A, claimC, claimAL, claimW, createdByAuth, createdById };
+// --------------------- NEW: Dialogue moves rich seeding (WHY/GROUNDS/RETRACT/CONCEDE + additive) ---------------------
+async function seedDialogueMovesRich(
+  deliberationId: string,
+  actors: { P: {authId:string}, D:{authId:string}, C:{authId:string}, F:{authId:string} },
+  A: Record<string, { id: string }>,
+  claimCId: string
+) {
+  const moves = [
+    // Start with a P assertion on the main claim locus, mark it additive so LociTree shows radio choices under it
+    { deliberationId, targetType:'claim', targetId: claimCId, kind: 'ASSERT',  payload: { text:'Adopt Policy P next quarter.', additive: true }, actorId: actors.P.authId },
+
+    // Opponent opens a challenge on the main claim (with a deadline)
+    { deliberationId, targetType:'claim', targetId: claimCId, kind: 'WHY',     payload: { note:'Why accept?', deadlineAt: nowPlusHours(36) },   actorId: actors.D.authId },
+
+    // Proponent provides two grounds as children (additive branch 1 and 2)
+    { deliberationId, targetType:'claim', targetId: claimCId, kind: 'GROUNDS', payload: { brief:'Absenteeism falls ~30%', childSuffix: '1' },  actorId: actors.P.authId },
+    { deliberationId, targetType:'claim', targetId: claimCId, kind: 'GROUNDS', payload: { brief:'Ops cost low (<$15k/mo)', childSuffix: '2' }, actorId: actors.P.authId },
+
+    // Opponent WHY on argument G and W (targets by argument ids)
+    { deliberationId, targetType:'argument', targetId: A['G'].id, kind: 'WHY', payload: { note:'Bias risk?' }, actorId: actors.D.authId },
+    { deliberationId, targetType:'argument', targetId: A['W'].id, kind: 'WHY', payload: { note:'Low-cost assumption?' }, actorId: actors.C.authId },
+
+    // Proponent answers with GROUNDS on those argument targets
+    { deliberationId, targetType:'argument', targetId: A['G'].id, kind: 'GROUNDS', payload: { brief:'Trim-and-fill; diagnostics OK' }, actorId: actors.P.authId },
+    { deliberationId, targetType:'argument', targetId: A['W'].id, kind: 'GROUNDS', payload: { brief:'Compliance cost ~2 min/shift' }, actorId: actors.P.authId },
+
+    // A clean RETRACT on AL1 to exercise the RETRACT → daimon(RETRACT) path
+    { deliberationId, targetType:'argument', targetId: A['AL1'].id, kind: 'RETRACT', payload: { text:'Retract alternative claim for now' }, actorId: actors.F.authId },
+
+    // A simple “concession-like” closure: Opponent acknowledges the cost ground (drawer will show as GROUNDS latest)
+    { deliberationId, targetType:'argument', targetId: A['W'].id, kind: 'GROUNDS', payload: { note:'Acknowledged.' }, actorId: actors.D.authId },
+  ];
+
+  await prisma.dialogueMove.createMany({ data: moves as any, skipDuplicates: true });
+
+  return { count: moves.length };
 }
 
 // --------------------- Seed: Works (DN/IH/TC/OP) + supplies ---------------------
@@ -361,7 +400,6 @@ async function seedWorks(deliberationId: string, authorId: string) {
   await addClaimCitation(tcClaim.id, `/works/${tc.id}#loc=0-0`);
   await addClaimCitation(opClaim.id, `/works/${op.id}#loc=0-0`);
 
-  // Optional knowledge links work→claim
   await prisma.knowledgeEdge.createMany({
     data: [
       { deliberationId, kind:'SUPPORTS', fromWorkId: ih.id, toClaimId: ihClaim.id },
@@ -376,7 +414,6 @@ async function seedWorks(deliberationId: string, authorId: string) {
 
 // --------------------- Seed: Viewpoints, clusters, bridge, amplification ---------------------
 async function seedViewpointsClustersBridge(deliberationId: string, actorAuths: string[], Aids: Record<string, string>) {
-  // Viewpoint selection (harmonic) with k=3
   const selection = await prisma.viewpointSelection.create({
     data: {
       deliberationId,
@@ -388,7 +425,6 @@ async function seedViewpointsClustersBridge(deliberationId: string, actorAuths: 
       createdById: actorAuths[0],
     },
   });
-  // Assign a few arguments to viewpoints
   await prisma.viewpointArgument.createMany({
     data: [
       { selectionId: selection.id, argumentId: Aids['C'],   viewpoint: 0 },
@@ -398,7 +434,6 @@ async function seedViewpointsClustersBridge(deliberationId: string, actorAuths: 
     skipDuplicates: true,
   });
 
-  // Clusters
   const topic = await prisma.cluster.create({
     data: { deliberationId, type: 'topic', label: 'Costs vs Benefits' },
   });
@@ -420,7 +455,6 @@ async function seedViewpointsClustersBridge(deliberationId: string, actorAuths: 
     }).catch(() => {});
   }
 
-  // Bridge request targeting the topic cluster
   const br = await prisma.bridgeRequest.create({
     data: {
       deliberationId,
@@ -430,11 +464,10 @@ async function seedViewpointsClustersBridge(deliberationId: string, actorAuths: 
       expiresAt: nowPlus(7),
     },
   });
-  const assign = await prisma.bridgeAssignment.create({
+  await prisma.bridgeAssignment.create({
     data: { requestId: br.id, assigneeId: actorAuths[2], rewardCare: 10, acceptedAt: new Date() },
   });
 
-  // Amplification Event bound to the selection
   await prisma.amplificationEvent.create({
     data: {
       deliberationId,
@@ -447,7 +480,7 @@ async function seedViewpointsClustersBridge(deliberationId: string, actorAuths: 
     },
   });
 
-  return { selection, topic, affinity, br, assign };
+  return { selection, topic, affinity, br };
 }
 
 // --------------------- Seed: Card, Brief(+Version), Issues, Governance, CQ, Values, Bounty ---------------------
@@ -460,26 +493,28 @@ async function seedCardsBriefsGovernanceCQEtc(
 ) {
   const P = actors[0], D = actors[1];
 
-  // DeliberationCard linked to claim
-  const card = await prisma.deliberationCard.create({
-    data: {
-      deliberationId,
-      authorId: P.authId,
-      status: 'published',
-      claimText: 'Adopt Policy P next quarter.',
-      reasonsText: ['Absenteeism reduction', 'Low cost'],
-      evidenceLinks: ['doi:10.0000/example'],
-      anticipatedObjectionsText: ['Publication bias', 'Compliance burden'],
-      warrantText: 'Cost-benefit justification is acceptable.',
-      moid: mintClaimMoid('card: adopt policy P'),
-      claimId: claimAdoptId, // <- use FK
-    },
-  });
+  const cardMoid = mintClaimMoid('card: adopt policy P');
+  let card = await prisma.deliberationCard.findUnique({ where: { moid: cardMoid } });
+  if (!card) {
+    card = await prisma.deliberationCard.create({
+      data: {
+        deliberationId,
+        authorId: P.authId,
+        status: 'published',
+        claimText: 'Adopt Policy P next quarter.',
+        reasonsText: ['Absenteeism reduction', 'Low cost'],
+        evidenceLinks: ['doi:10.0000/example'],
+        anticipatedObjectionsText: ['Publication bias', 'Compliance burden'],
+        warrantText: 'Cost-benefit justification is acceptable.',
+        moid: cardMoid,
+        claimId: claimAdoptId,
+      },
+    });
+  }
   await prisma.cardCitation.create({
     data: { cardId: card.id, uri: '/cards/' + card.id, locatorStart: '0', locatorEnd: '0' },
   });
 
-  // Brief + Version
   const brief = await prisma.brief.create({
     data: {
       roomId: roomId ?? 'seed-room',
@@ -505,13 +540,11 @@ async function seedCardsBriefsGovernanceCQEtc(
     data: { briefVersionId: version.id, sourceType: 'claim', sourceId: claimAdoptId },
   });
 
-  // Issue + link
   const issue = await prisma.issue.create({
     data: { deliberationId, label: 'Data validity', description: 'Check meta-analysis bias.', createdById: D.authId },
   });
   await prisma.issueLink.create({ data: { issueId: issue.id, argumentId: Aids['G'], role: 'related' } });
 
-  // Governance: Panel, Panelists, Status, DecisionReceipt
   const panel = await prisma.panel.create({ data: { roomId: roomId ?? 'seed-room' } });
   for (const a of actors) {
     await prisma.panelist.create({
@@ -519,12 +552,7 @@ async function seedCardsBriefsGovernanceCQEtc(
     }).catch(() => {});
   }
   await prisma.contentStatus.create({
-    data: {
-      roomId: roomId ?? 'seed-room',
-      targetType: 'claim',
-      targetId: claimAdoptId,
-      currentStatus: 'OK',
-    },
+    data: { roomId: roomId ?? 'seed-room', targetType: 'claim', targetId: claimAdoptId, currentStatus: 'OK' },
   }).catch(() => {});
   await prisma.decisionReceipt.create({
     data: {
@@ -541,22 +569,17 @@ async function seedCardsBriefsGovernanceCQEtc(
     data: { roomId: roomId ?? 'seed-room', entryType: 'NOTE', summary: 'Seeded brief & moderation.' },
   });
 
-  // CQ / Schemes
+  // Schemes + CQs
   const scheme = await prisma.argumentScheme.upsert({
     where: { key: 'expert_opinion' },
     create: {
-      key: 'expert_opinion',
-      title: 'Appeal to Expert Opinion',
-      summary: 'Uses an expert’s statement as support.',
+      key: 'expert_opinion', title: 'Appeal to Expert Opinion', summary: 'Uses an expert’s statement as support.',
       cq: { questions: ['Is the source a genuine expert?', 'Is there consensus?', 'Is the field relevant?'] },
-    } as any,
-    update: {},
+    } as any, update: {},
   });
   const inst = await prisma.schemeInstance.create({
     data: {
-      targetType: 'claim',
-      targetId: claimAdoptId,
-      schemeId: scheme.id,
+      targetType: 'claim', targetId: claimAdoptId, schemeId: scheme.id,
       data: { expert: { name:'Dr. Rivera', field:'Operations' }, statement:'P cuts absenteeism ~30%' },
       createdById: actors[0].authId,
     } as any,
@@ -579,12 +602,8 @@ async function seedCardsBriefsGovernanceCQEtc(
   }).catch(() => {});
 
   // Values & preferences
-  const vAut = await prisma.value.upsert({
-    where: { key: 'autonomy' }, create: { key:'autonomy', label:'Autonomy' }, update: {},
-  });
-  const vEff = await prisma.value.upsert({
-    where: { key: 'efficiency' }, create: { key:'efficiency', label:'Efficiency' }, update: {},
-  });
+  const vAut = await prisma.value.upsert({ where: { key: 'autonomy' }, create: { key:'autonomy', label:'Autonomy' }, update: {} });
+  const vEff = await prisma.value.upsert({ where: { key: 'efficiency' }, create: { key:'efficiency', label:'Efficiency' }, update: {} });
   await prisma.claimValue.createMany({
     data: [
       { claimId: claimAdoptId, valueId: vAut.id, weight: 2 },
@@ -592,11 +611,7 @@ async function seedCardsBriefsGovernanceCQEtc(
     ],
     skipDuplicates: true,
   });
-  await prisma.audiencePreference.create({
-    data: { ownerType: 'room', ownerId: roomId ?? 'seed-room', order: 'Efficiency>Autonomy' },
-  }).catch(() => {});
 
-  // Bounty + submission (bridge/synthesis)
   const bounty = await prisma.bounty.create({
     data: {
       roomId: roomId ?? 'seed-room',
@@ -617,7 +632,6 @@ async function seedCardsBriefsGovernanceCQEtc(
     },
   });
 
-  // Warrant for the claim
   await prisma.claimWarrant.create({
     data: { claimId: claimAdoptId, text: 'Low-cost effectiveness warrants adoption.', createdBy: actors[0].authId },
   }).catch(() => {});
@@ -627,7 +641,6 @@ async function seedCardsBriefsGovernanceCQEtc(
 
 // --------------------- Seed: Claim edges + labels + stats ---------------------
 async function seedClaimEdgesLabelsStats(deliberationId: string, claimC: string, claimAL: string, claimW: string) {
-  // Claim edges: W supports C; AL rebuts C
   await prisma.claimEdge.createMany({
     data: [
       { fromClaimId: claimW,  toClaimId: claimC,  type: 'supports', attackType: 'SUPPORTS', deliberationId },
@@ -636,7 +649,6 @@ async function seedClaimEdgesLabelsStats(deliberationId: string, claimC: string,
     skipDuplicates: true,
   });
 
-  // Basic labels
   await prisma.claimLabel.upsert({
     where: { claimId: claimC },
     update: { semantics: 'grounded', label: 'IN', explainJson: { note: 'seed' } as any },
@@ -648,13 +660,11 @@ async function seedClaimEdgesLabelsStats(deliberationId: string, claimC: string,
     create: { claimId: claimAL, semantics: 'grounded', label: 'UNDEC' },
   });
 
-  // Stats recompute (light)
   const [supportsCount, rebutsCount, undercutsCount] = await Promise.all([
     prisma.claimEdge.count({ where: { toClaimId: claimC, type: 'supports' } }),
     prisma.claimEdge.count({ where: { toClaimId: claimC, type: 'rebuts'   } }),
     prisma.claimEdge.count({ where: { toClaimId: claimC, attackType: 'UNDERCUTS' } }),
   ]);
-  // approvalsCount is for Claims; we use Argument approvals as proxy (linked by any Argument with this claimId)
   const argForC = await prisma.argument.findFirst({ where: { claimId: claimC }, select: { id: true } });
   const approvalsCount = argForC ? await prisma.argumentApproval.count({ where: { argumentId: argForC.id } }) : 0;
 
@@ -669,7 +679,7 @@ async function seedClaimEdgesLabelsStats(deliberationId: string, claimC: string,
 async function main() {
   const deliberationId = process.argv[2] || 'cmf5x2hcr0033rmy4278kber0';
 
-  // Actors (User table with BigInt id; we use auth_id String everywhere in deliberation models)
+  // Actors
   const users = await Promise.all([
     ensureUser('demo-auth-1', 'demo1', 'Ada'),
     ensureUser('demo-auth-2', 'demo2', 'Bo'),
@@ -681,20 +691,37 @@ async function main() {
   // 1) Arguments + claims + approvals
   const seeded = await seedArgumentsBundle(deliberationId, actors);
 
-  // 2) Works (DN/IH/TC/OP) + knowledge edges
+  // 2) Dialogue moves (WHY/GROUNDS/RETRACT + additive locus) to exercise Negotiation + Ludics
+  const dlg = await seedDialogueMovesRich(
+    deliberationId,
+    { P: seeded.P, D: seeded.D, C: seeded.C, F: seeded.F },
+    seeded.A,
+    seeded.claimC.id
+  );
+
+  // 3) Compile moves → Ludics designs & run a step (so LudicsPanel/DefenseTree have content)
+  const compiled = await compileFromMoves(deliberationId);
+  const [posDesignId, negDesignId] = compiled.designs; // order: Proponent, Opponent
+  const stepped = await stepInteraction({
+    dialogueId: deliberationId,
+    posDesignId,
+    negDesignId,
+    phase: 'neutral',
+    maxPairs: 64,
+  }).catch(() => null);
+
+  // 4) Works (DN/IH/TC/OP) + knowledge edges
   const works = await seedWorks(deliberationId, actors[0].authId);
 
-  // 3) Viewpoints, clusters, bridge, amplification
+  // 5) Viewpoints, clusters, bridge, amplification
   await seedViewpointsClustersBridge(
     deliberationId,
     actors.map(a => a.authId),
     Object.fromEntries(Object.entries(seeded.A).map(([k, v]) => [k, v.id]))
   );
 
-  // Fetch deliberation room (if present) for governance/AudiencePreference
+  // 6) Cards, brief, governance, CQ, values, bounty
   const delib = await prisma.deliberation.findUnique({ where: { id: deliberationId }, select: { roomId: true } });
-
-  // 4) Cards, brief, governance, CQ, values, bounty
   await seedCardsBriefsGovernanceCQEtc(
     deliberationId,
     delib?.roomId ?? null,
@@ -703,10 +730,10 @@ async function main() {
     Object.fromEntries(Object.entries(seeded.A).map(([k, v]) => [k, v.id]))
   );
 
-  // 5) Claim edges + labels + stats
+  // 7) Claim edges + labels + stats
   await seedClaimEdgesLabelsStats(deliberationId, seeded.claimC.id, seeded.claimAL.id, seeded.claimW.id);
 
-  // 6) Recompute grounded semantics (if available)
+  // 8) Recompute grounded semantics (optional)
   try { await recomputeGroundedForDelib?.(deliberationId); } catch {}
 
   // Summary
@@ -715,11 +742,16 @@ async function main() {
     { Kind: 'Claim',   Id: seeded.claimC.id,  Text: 'Adopt Policy P next quarter.' },
     { Kind: 'Claim',   Id: seeded.claimAL.id, Text: 'Prefer alternative Q over P.' },
     { Kind: 'Claim',   Id: seeded.claimW.id,  Text: 'Low-cost + reduced absenteeism justifies adoption.' },
-    { Kind: 'Work',    Id: works.dn.id,       Text: 'DN' },
-    { Kind: 'Work',    Id: works.ih.id,       Text: 'IH' },
-    { Kind: 'Work',    Id: works.tc.id,       Text: 'TC' },
-    { Kind: 'Work',    Id: works.op.id,       Text: 'OP' },
+    { Kind: 'Works',   Id: `${works.dn.id.slice(0,6)}…/${works.ih.id.slice(0,6)}…/${works.tc.id.slice(0,6)}…/${works.op.id.slice(0,6)}…`, Text: 'DN/IH/TC/OP' },
   ]);
+  console.log(`Dialogue moves inserted: ${dlg.count}`);
+  if (stepped) {
+    const s = (stepped as any);
+    console.log('[Ludics] step:', { status: s.status, pairs: (s.pairs?.length ?? s.steps?.length ?? 0) });
+    if (s.endorsement) console.log('  endorsement:', s.endorsement);
+  } else {
+    console.log('[Ludics] step: (no result)');
+  }
 }
 
 if (require.main === module) {

@@ -14,10 +14,11 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { suggestionForCQ } from '@/lib/argumentation/cqSuggestions';
 
 type RebutScope = 'premise' | 'conclusion';
-type Suggestion = { type: 'undercut' | 'rebut'; scope?: RebutScope } | null;
+type Suggestion = { type: 'undercut' | 'rebut'; scope?: RebutScope; options?: Array<{key:string;label:string;template:string;shape?:string}> } | null;
 type CQ = { key: string; text: string; satisfied: boolean; suggestion?: Suggestion };
 type Scheme = { key: string; title: string; cqs: CQ[] };
 type CQsResponse = { targetType: 'claim'; targetId: string; schemes: Scheme[] };
@@ -25,216 +26,231 @@ type CQsResponse = { targetType: 'claim'; targetId: string; schemes: Scheme[] };
 const fetcher = async (u: string) => {
   const res = await fetch(u, { cache: 'no-store' });
   if (!res.ok) throw new Error(await res.text());
-  return (await res.json()) as CQsResponse;
+  return res.json();
 };
 
-
-const CQS_KEY = (id: string, scheme?: string) =>
-  `/api/cqs?targetType=claim&targetId=${id}${scheme ? `&scheme=${scheme}` : ''}`;
+const CQS_KEY   = (id: string, scheme?: string) => `/api/cqs?targetType=claim&targetId=${id}${scheme ? `&scheme=${scheme}` : ''}`;
 const TOULMIN_KEY = (id: string) => `/api/claims/${id}/toulmin`;
-const GRAPH_KEY = (roomId: string, lens: string, audienceId?: string) =>
-  `graph:${roomId}:${lens}:${audienceId ?? 'none'}`;
+const GRAPH_KEY = (roomId: string, lens: string, audienceId?: string) => `graph:${roomId}:${lens}:${audienceId ?? 'none'}`;
+const ATTACH_KEY = (id: string) => `/api/cqs/attachments?targetType=claim&targetId=${id}`;
 
-  const ATTACH_KEY = (id: string) => `/api/cqs/attachments?targetType=claim&targetId=${id}`;
+// OPTIONAL: if you have a search endpoint; component degrades gracefully if not present.
+async function trySearchClaims(q: string): Promise<Array<{id:string;text:string}>> {
+  try {
+    const r = await fetch(`/api/claims/search?q=${encodeURIComponent(q)}`, { cache:'no-store' });
+    if (!r.ok) return [];
+    const j = await r.json();
+    return Array.isArray(j.items) ? j.items.slice(0, 10) : [];
+  } catch { return []; }
+}
 
 export default function CriticalQuestions({
   targetType,
   targetId,
-  createdById, // unused here, kept for parity
-  deliberationId,          // 👈 add this
-
+  createdById,             // kept for parity; not used here directly
+  deliberationId,
   roomId,
   currentLens,
   currentAudienceId,
-  selectedAttackerClaimId,
-  prefilterKeys, // [{schemeKey,cqKey}]
+  selectedAttackerClaimId, // when the user preselected a counter-claim elsewhere
+  prefilterKeys,           // [{schemeKey,cqKey}]
 }: {
   targetType: 'claim';
   targetId: string;
   createdById: string;
-  deliberationId: string;  // 👈 required
-
-  prefilterKeys?: Array<{ schemeKey: string; cqKey: string }>;
+  deliberationId: string;
   roomId?: string;
   currentLens?: string;
   currentAudienceId?: string;
   selectedAttackerClaimId?: string;
+  prefilterKeys?: Array<{ schemeKey: string; cqKey: string }>;
 }) {
-  // ----- hooks always run in the same order -----
+  // ----- data -----
   const { data, error, isLoading } = useSWR<CQsResponse>(CQS_KEY(targetId), fetcher);
-    const { data: attachData } = useSWR<{ attached: Record<string, boolean> }>(ATTACH_KEY(targetId), fetcher);
-  const [lingerKeys, setLingerKeys] = useState<Set<string>>(new Set());
+  const { data: attachData } = useSWR<{ attached: Record<string, boolean> }>(ATTACH_KEY(targetId), fetcher);
 
+  // ----- local ui state -----
+  const [lingerKeys, setLingerKeys] = useState<Set<string>>(new Set());      // “Addressed ✓” ephemeral
+  const [justGrounded, setJustGrounded] = useState<Set<string>>(new Set());  // client-side permission to mark satisfied
+  const [postingKey, setPostingKey] = useState<string|null>(null);
+  const [okKey, setOkKey] = useState<string|null>(null);
+
+  // compose new attacker (quick-create)
   const [composeOpen, setComposeOpen] = useState(false);
   const [composeText, setComposeText] = useState('');
   const [composeLoading, setComposeLoading] = useState(false);
   const [pendingAttach, setPendingAttach] = useState<{ schemeKey: string; cqKey: string; suggestion?: Suggestion } | null>(null);
   const [attachError, setAttachError] = useState<string | null>(null);
 
-  // Build filtered view *before* any early returns so hooks don't change count
-  const filtered = useMemo(() => {
-         if (!data || !prefilterKeys?.length) return data || null;
-         const wanted = new Set(prefilterKeys.map(k => `${k.schemeKey}:${k.cqKey}`));
-         const schemes = data.schemes
-           .map((s) => ({
-             ...s,
-             cqs: s.cqs.filter((cq) => {
-               const key = `${s.key}:${cq.key}`;
-               // show if it’s wanted AND (still open OR temporarily lingering after being checked)
-               return wanted.has(key) && (!cq.satisfied || lingerKeys.has(key));
-             }),
-           }))
-           .filter((s) => s.cqs.length);
-         return { ...data, schemes };
-      }, [data, prefilterKeys, lingerKeys]);
+  // attach existing claim popover (lightweight)
+  const [attachExistingFor, setAttachExistingFor] = useState<{schemeKey:string; cqKey:string} | null>(null);
+  const [searchQ, setSearchQ] = useState('');
+  const [searchRes, setSearchRes] = useState<Array<{id:string;text:string}>>([]);
+  const [searchBusy, setSearchBusy] = useState(false);
 
-  // Always compute `view` and `schemes` from filtered/data (no conditional hooks)
+  // inline grounds map: sig → text
+  const [groundsDraft, setGroundsDraft] = useState<Record<string,string>>({});
+
+  // Filtered schemes view (stable hooks → compute via memo)
+  const filtered = useMemo(() => {
+    if (!data || !prefilterKeys?.length) return data || null;
+    const wanted = new Set(prefilterKeys.map(k => `${k.schemeKey}:${k.cqKey}`));
+    const schemes = data.schemes
+      .map(s => ({
+        ...s,
+        cqs: s.cqs.filter(cq => {
+          const sig = `${s.key}:${cq.key}`;
+          return wanted.has(sig) && (!cq.satisfied || lingerKeys.has(sig));
+        }),
+      }))
+      .filter(s => s.cqs.length);
+    return { ...data, schemes };
+  }, [data, prefilterKeys, lingerKeys]);
+
   const view = filtered ?? data ?? { targetType: 'claim', targetId, schemes: [] as Scheme[] };
   const schemes: Scheme[] = Array.isArray(view.schemes) ? view.schemes : [];
 
-  // ----- after all hooks, render conditions -----
-  if (isLoading) return <div className="text-xs text-neutral-500">Loading CQs…</div>;
-  if (error) return <div className="text-xs text-red-600">Failed to load CQs.</div>;
-  if (!schemes.length) return <div className="text-xs text-neutral-500">No critical questions yet.</div>;
+  // ----- helpers -----
+  function sigOf(schemeKey: string, cqKey: string) { return `${schemeKey}:${cqKey}`; }
 
   async function revalidateAll(schemeKey?: string) {
     await Promise.all([
-      globalMutate(CQS_KEY(targetId, schemeKey)), // revalidate CQs (optionally narrowed to a scheme)
-      globalMutate(TOULMIN_KEY(targetId)),        // refresh Toulmin mini
-      roomId && currentLens
-        ? globalMutate(GRAPH_KEY(roomId, currentLens, currentAudienceId))
-        : Promise.resolve(),
-        globalMutate(ATTACH_KEY(targetId)),
+      globalMutate(CQS_KEY(targetId, schemeKey)),
+      globalMutate(TOULMIN_KEY(targetId)),
+      globalMutate(ATTACH_KEY(targetId)),
+      roomId && currentLens ? globalMutate(GRAPH_KEY(roomId, currentLens, currentAudienceId)) : Promise.resolve(),
     ]);
   }
 
-  async function toggleCQ(schemeKey: string, cqKey: string, next: boolean) {
+  function flashOk(sig: string) {
+    setOkKey(sig);
+    setTimeout(() => setOkKey(k => (k === sig ? null : k)), 1000);
+  }
 
-    const sig = `${schemeKey}:${cqKey}`;
-     // If marking satisfied, keep it visible briefly with a “Addressed ✓” affordance
-     if (next) {
-       setLingerKeys((prev) => new Set(prev).add(sig));
-       setTimeout(() => {
-         setLingerKeys((prev) => {
-           const n = new Set(prev);
-           n.delete(sig);
-           return n;
-         });
-       }, 1000);
+  function canMarkAddressed(sig: string, satisfied: boolean) {
+    if (satisfied) return true;
+    const attached = !!attachData?.attached?.[sig];
+    const grounded = justGrounded.has(sig);
+    return attached || grounded;
+  }
+
+  // ----- actions -----
+
+  // Toggle satisfied (with linger ✓)
+  async function toggleCQ(schemeKey: string, cqKey: string, next: boolean) {
+    const sig = sigOf(schemeKey, cqKey);
+
+    if (next) {
+      setLingerKeys(p => new Set(p).add(sig));
+      setTimeout(() => setLingerKeys(p => { const n = new Set(p); n.delete(sig); return n; }), 1000);
     }
 
-    // optimistic update against the SWR cache
+    // optimistic CQ cache
     globalMutate(
       CQS_KEY(targetId),
-      (current: CQsResponse | undefined) => {
-        if (!current) return current;
+      (cur: CQsResponse | undefined) => {
+        if (!cur) return cur;
         return {
-          ...current,
-          schemes: current.schemes.map((s) =>
-            s.key !== schemeKey ? s : { ...s, cqs: s.cqs.map((cq) => (cq.key === cqKey ? { ...cq, satisfied: next } : cq)) }
-          ),
+          ...cur,
+          schemes: cur.schemes.map(s => s.key !== schemeKey ? s : {
+            ...s, cqs: s.cqs.map(cq => cq.key === cqKey ? { ...cq, satisfied: next } : cq),
+          })
         };
       },
       { revalidate: false }
     );
 
     try {
-      const res = await fetch('/api/cqs/toggle', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          targetType,
-          targetId,
-          schemeKey,
-          cqKey,
-          satisfied: next,
-          deliberationId,       // 👈 use correct prop, not roomId
-        }),
+      setPostingKey(sig);
+      await fetch('/api/cqs/toggle', {
+        method: 'POST', headers: { 'content-type':'application/json' },
+        body: JSON.stringify({ targetType, targetId, schemeKey, cqKey, satisfied: next, deliberationId }),
       });
-      if (!res.ok) throw new Error(await res.text());
+      window.dispatchEvent(new CustomEvent('dialogue:moves:refresh'));
+      flashOk(sig);
     } finally {
+      setPostingKey(null);
       await revalidateAll(schemeKey);
     }
   }
 
-  async function onAttachClick(schemeKey: string, cqKey: string, suggestion?: Suggestion) {
+  // Resolve via grounds: post GROUNDS move (and optionally tick satisfied)
+  async function resolveViaGrounds(schemeKey: string, cqKey: string, brief: string, alsoMark = true) {
+    const sig = sigOf(schemeKey, cqKey);
+    if (!brief.trim()) return;
+    try {
+      setPostingKey(sig);
+      await fetch('/api/dialogue/move', {
+        method: 'POST', headers: { 'content-type':'application/json' },
+        body: JSON.stringify({
+          deliberationId,
+          targetType: 'claim',
+          targetId,
+          kind: 'GROUNDS',
+          payload: { schemeKey, cqKey, brief },
+          autoCompile: true,
+          autoStep: true,
+        }),
+      });
+      setJustGrounded(p => new Set(p).add(sig));
+      window.dispatchEvent(new CustomEvent('dialogue:moves:refresh'));
+      if (alsoMark) await toggleCQ(schemeKey, cqKey, true);
+      flashOk(sig);
+    } finally {
+      setPostingKey(null);
+      setGroundsDraft(g => ({ ...g, [sig]: '' }));
+    }
+  }
+
+  // Attach suggestion (existing selectedAttackerClaimId, or quick-create)
+  async function attachWithAttacker(schemeKey: string, cqKey: string, attackerClaimId: string, suggestion?: Suggestion) {
+    const sig = sigOf(schemeKey, cqKey);
+    try {
+      setPostingKey(sig);
+      await fetch('/api/cqs/toggle', {
+        method: 'POST', headers: { 'content-type':'application/json' },
+        body: JSON.stringify({
+          targetType, targetId, schemeKey, cqKey,
+          satisfied: false,
+          attachSuggestion: true,
+          attackerClaimId,
+          suggestion,
+          deliberationId,
+        }),
+      });
+      window.dispatchEvent(new CustomEvent('dialogue:moves:refresh'));
+      flashOk(sig);
+    } finally {
+      setPostingKey(null);
+      await revalidateAll(schemeKey);
+    }
+  }
+
+  async function onAttachClick(schemeKey: string, cqKey: string, rowSuggestion?: Suggestion) {
     setAttachError(null);
     if (selectedAttackerClaimId) {
-      await attachWithAttacker(schemeKey, cqKey, selectedAttackerClaimId, suggestion);
+      await attachWithAttacker(schemeKey, cqKey, selectedAttackerClaimId, rowSuggestion);
       return;
     }
-    setPendingAttach({ schemeKey, cqKey, suggestion });
+    setPendingAttach({ schemeKey, cqKey, suggestion: rowSuggestion });
     setComposeText('');
     setComposeOpen(true);
   }
 
-  async function attachWithAttacker(schemeKey: string, cqKey: string, attackerClaimId: string, suggestion?: Suggestion) {
-    setAttachError(null);
-    const res = await fetch('/api/cqs/toggle', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        targetType,
-        targetId,
-        schemeKey,
-        cqKey,
-        satisfied: false,
-        attachSuggestion: true,
-        attackerClaimId,
-        suggestion,
-        deliberationId,
-      }),
-    });
-    if (!res.ok) {
-      const msg = await res.text().catch(() => '');
-      throw new Error(msg || 'Failed to attach');
-    }
-    await revalidateAll(schemeKey);
-  }
-
-
-  function RowActions({
-    schemeKey,
-    cqKey,
-    rowSuggestion,
-  }: {
-    schemeKey: string;
-    cqKey: string;
-    rowSuggestion: Suggestion | null;
-  }) {
-    if (!rowSuggestion) return null;
-    const label =
-      rowSuggestion.type === 'undercut'
-        ? 'Attach undercut'
-        : `Attach rebut (${rowSuggestion.scope ?? 'conclusion'})`;
-  
-    return (
-      <Button
-        variant="outline"
-        size="sm"
-        title={label}
-        className="text-[11px] px-2 py-1 h-7"
-        onClick={() => onAttachClick(schemeKey, cqKey, rowSuggestion)}
-      >
-        Attach
-      </Button>
-    );
-  }
-
+  // quick-create a counter and attach
   async function handleComposeSubmit() {
     if (!pendingAttach) return;
+    const { schemeKey, cqKey, suggestion } = pendingAttach;
     try {
       setComposeLoading(true);
       setAttachError(null);
       const ccRes = await fetch('/api/claims/quick-create', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        method: 'POST', headers: { 'content-type':'application/json' },
         body: JSON.stringify({ targetClaimId: targetId, text: composeText.trim() }),
       });
       if (!ccRes.ok) throw new Error(await ccRes.text());
-      const { claimId: attackerClaimId } = (await ccRes.json()) as { claimId: string };
-      await attachWithAttacker(pendingAttach.schemeKey, pendingAttach.cqKey, attackerClaimId, pendingAttach.suggestion);
-  
+      const { claimId: attackerClaimId } = await ccRes.json() as { claimId: string };
+      await attachWithAttacker(schemeKey, cqKey, attackerClaimId, suggestion);
       setComposeOpen(false);
       setPendingAttach(null);
       setComposeText('');
@@ -245,76 +261,141 @@ export default function CriticalQuestions({
     }
   }
 
+  // Attach existing (paste/search)
+  async function onSearch() {
+    if (!searchQ.trim()) { setSearchRes([]); return; }
+    setSearchBusy(true);
+    try { setSearchRes(await trySearchClaims(searchQ.trim())); }
+    finally { setSearchBusy(false); }
+  }
+
+  // ----- rendering -----
+  if (isLoading) return <div className="text-xs text-neutral-500">Loading CQs…</div>;
+  if (error) return <div className="text-xs text-red-600">Failed to load CQs.</div>;
+  if (!schemes.length) return <div className="text-xs text-neutral-500">No critical questions yet.</div>;
+
   return (
     <>
-      <div className="space-y-3 ">
-        {schemes.map((s) => (
-          <div key={s.key} className="rounded border border-black bg-white p-2">
-            <div className="text-xs font-semibold">{s.title}</div>
-            <ul className="mt-1 space-y-1">
-              {s.cqs.map((cq) => {
-                const id = `${s.key}__${cq.key}`;
-                const sig = `${s.key}:${cq.key}`;
-                const isLinger = lingerKeys.has(sig) && cq.satisfied;
-                const isAttached = Boolean(attachData?.attached?.[sig]); // server truth: has undercut/rebut/evidence attached
-            const canMarkAddressed = cq.satisfied || isAttached;
+      <div className="space-y-3">
+        {schemes.map(s => (
+          <div key={s.key} className="rounded border bg-white p-2">
+            <div className="text-sm font-semibold">{s.title}</div>
+            <ul className="mt-1 space-y-2">
+              {s.cqs.map(cq => {
+                const sig = sigOf(s.key, cq.key);
+                const isAttached = !!attachData?.attached?.[sig];
+                const satisfied = cq.satisfied;
+                const canAddress = canMarkAddressed(sig, satisfied);
+                const posting = postingKey === sig;
+                const ok = okKey === sig;
 
-// ✅ row-level suggestion (cq payload OR fallback by scheme/cq)
-const rowSug: Suggestion =
-cq.suggestion ?? suggestionForCQ(s.key, cq.key);
-
-                const attachLabel =
-                  cq.suggestion?.type === 'undercut'
-                    ? 'Attach undercut'
-                    : cq.suggestion?.type === 'rebut'
-                    ? `Attach rebut (${cq.suggestion.scope ?? 'conclusion'})`
-                    : 'Attach';
+                const rowSug: Suggestion = cq.suggestion ?? suggestionForCQ(s.key, cq.key);
+                const groundsVal = groundsDraft[sig] ?? '';
 
                 return (
-                  <li key={cq.key} className="flex items-center justify-between text-sm transition-opacity">
-                                <div className="flex items-center justify-between">
+                  <li key={cq.key} className="text-sm p-2 border-[1px] border-slate-200 rounded-md">
+                    <div className="flex items-start justify-between gap-2">
+                      {/* left: text + checkbox */}
+                      <label className="flex-1 flex items-start gap-2 cursor-pointer">
+                        <Checkbox
+                        className='flex mt-1 border border-black'
+                          checked={satisfied}
+                          onCheckedChange={(val) => toggleCQ(s.key, cq.key, Boolean(val))}
+                          disabled={!canAddress || posting}
+                        />
+                        <span className={`${satisfied ? 'opacity-70 line-through' : ''}`}>
+                          {cq.text}
+                        </span>
+                        {ok && <span className="text-[10px] text-emerald-700 ml-1 ">✓</span>}
+                        {!satisfied && !canAddress && (
+                          <span className="text-[10px] text-neutral-500 ml-2 ">(add)</span>
+                        )}
+                      </label>
 
-                     <label htmlFor={id} className="flex items-center gap-2 cursor-pointer">
-                       <Checkbox
-                         id={id}
-                         checked={cq.satisfied}
-                         onCheckedChange={(val) => toggleCQ(s.key, cq.key, Boolean(val))}
-                         disabled={isLinger || !canMarkAddressed}
-                       />
-                       <span className={isLinger ? 'line-through opacity-60' : ''}>{cq.text}</span>
-                       {isLinger && <span className="text-[10px] text-emerald-700 ml-2">Addressed ✓</span>}
-                       {!cq.satisfied && !isAttached && (
-                        <span className="text-[10px] text-neutral-500 ml-2">(attach a counter/evidence to enable)</span>
+                      {/* right: attach suggestion */}
+                      {!satisfied && rowSug && (
+                        <button
+                          className="text-[11px] px-2 py-0 border rounded-md lockbutton"
+                          disabled={posting}
+                          onClick={() => onAttachClick(s.key, cq.key, rowSug)}
+                          title={
+                            rowSug.type === 'undercut'
+                              ? 'Attach undercut'
+                              : `Attach rebut (${rowSug.scope ?? 'conclusion'})`
+                          }
+                        >
+                          {posting ? 'Attaching…' : 'Attach'}
+                        </button>
                       )}
-                     </label>
+                    </div>
 
-                       {/* Attach button if we have a suggestion */}
-              {!cq.satisfied && <RowActions schemeKey={s.key} cqKey={cq.key} rowSuggestion={rowSug} />}
-            </div>
+                    {/* inline grounds */}
+                    {!satisfied && (
+                      <div className="mt-1 pl-6 flex items-center gap-2">
+                        <Input
+                          className="h-8 text-[12px]"
+                          placeholder="Reply with grounds…"
+                          value={groundsVal}
+                          onChange={e => setGroundsDraft(g => ({ ...g, [sig]: e.target.value }))}
+                          onKeyDown={async (e) => {
+                            if (e.key === 'Enter' && groundsVal.trim() && !posting) {
+                              await resolveViaGrounds(s.key, cq.key, groundsVal.trim(), true);
+                            }
+                          }}
+                          disabled={posting}
+                        />
+                        <Button
+                          size="sm"
+                          className="h-8 text-[12px]"
+                          disabled={!groundsVal.trim() || posting}
+                          onClick={() => resolveViaGrounds(s.key, cq.key, groundsVal.trim(), true)}
+                          title="Post grounds and mark addressed"
+                        >
+                          {posting ? 'Posting…' : 'Resolve via grounds'}
+                        </Button>
+                        {/* (optional) just post grounds without marking satisfied */}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 text-[12px]"
+                          disabled={!groundsVal.trim() || posting}
+                          onClick={() => resolveViaGrounds(s.key, cq.key, groundsVal.trim(), false)}
+                          title="Post grounds (do not mark yet)"
+                        >
+                          Save only
+                        </Button>
+                      </div>
+                    )}
 
+                    {/* suggestion quick templates */}
+                    {!satisfied && rowSug?.options?.length ? (
+                      <div className="mt-1 pl-6 flex flex-wrap gap-1">
+                        {rowSug.options.map(o => (
+                          <button
+                            key={o.key}
+                            className="px-2 py-0.5 border rounded text-[11px] bg-white hover:bg-slate-50"
+                            onClick={() => window.dispatchEvent(
+                              new CustomEvent('mesh:composer:insert', { detail: { template: o.template } })
+                            )}
+                            title={`Shape: ${o.shape ?? rowSug.type}`}
+                          >
+                            {o.label}
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
 
-
-            {!cq.satisfied && rowSug && (
-              <div className="flex flex-wrap gap-1 pl-6">
-                {/* You likely have suggestionForCQ returning options with templates */}
-                {'options' in rowSug
-                  ? (rowSug as any).options?.map((o: any) => (
-                      <button
-                        key={o.key}
-                        className="px-2 py-0.5 border rounded text-[11px] bg-white hover:bg-slate-50"
-                        onClick={() =>
-                          window.dispatchEvent(
-                            new CustomEvent('mesh:composer:insert', { detail: { template: o.template } })
-                          )
-                        }
-                        title={`Shape: ${o.shape ?? rowSug.type}`}
-                      >
-                        {o.label}
-                      </button>
-                    ))
-                  : null}
-              </div>
-            )}
+                    {/* attach existing (tiny inline) */}
+                    {!satisfied && (
+                      <div className="pl-6 mt-1">
+                        <button
+                          className="text-[11px] underline"
+                          onClick={() => setAttachExistingFor({ schemeKey: s.key, cqKey: cq.key })}
+                        >
+                          Attach existing counter…
+                        </button>
+                      </div>
+                    )}
                   </li>
                 );
               })}
@@ -322,8 +403,8 @@ cq.suggestion ?? suggestionForCQ(s.key, cq.key);
           </div>
         ))}
       </div>
-      
-      {/* Quick-compose dialog */}
+
+      {/* Quick-compose dialog (new counter) */}
       <Dialog open={composeOpen} onOpenChange={(o) => !composeLoading && setComposeOpen(o)}>
         <DialogContent className="bg-slate-200 rounded-xl sm:max-w-[520px]">
           <DialogHeader>
@@ -332,7 +413,6 @@ cq.suggestion ?? suggestionForCQ(s.key, cq.key);
               Write a concise counter-claim to attach as an undercut/rebut for the unmet CQ.
             </DialogDescription>
           </DialogHeader>
-
           <div className="space-y-3">
             <label className="text-xs font-medium">Counter-claim text</label>
             <Textarea
@@ -344,14 +424,71 @@ cq.suggestion ?? suggestionForCQ(s.key, cq.key);
             />
             {attachError && <div className="text-xs text-red-600">{attachError}</div>}
           </div>
-
           <DialogFooter className="gap-2">
-            <Button variant="ghost" onClick={() => setComposeOpen(false)} disabled={composeLoading}>
-              Cancel
-            </Button>
+            <Button variant="ghost" onClick={() => setComposeOpen(false)} disabled={composeLoading}>Cancel</Button>
             <Button onClick={handleComposeSubmit} disabled={composeLoading || composeText.trim().length < 3}>
               {composeLoading ? 'Attaching…' : 'Create & Attach'}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Attach existing (paste / search) */}
+      <Dialog open={!!attachExistingFor} onOpenChange={(o) => !o && setAttachExistingFor(null)}>
+        <DialogContent className="bg-slate-200 rounded-xl sm:max-w-[560px]">
+          <DialogHeader>
+            <DialogTitle>Attach existing counter-claim</DialogTitle>
+            <DialogDescription>Paste a claim ID, or search if available.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <div className="flex gap-2">
+              <Input
+                value={searchQ}
+                onChange={(e)=>setSearchQ(e.target.value)}
+                placeholder="Search text or paste a claim ID…"
+              />
+              <Button variant="outline" onClick={onSearch} disabled={searchBusy}>
+                {searchBusy ? 'Searching…' : 'Search'}
+              </Button>
+            </div>
+            {!!searchRes.length && (
+              <div className="max-h-48 overflow-y-auto border rounded bg-white">
+                {searchRes.map(r => (
+                  <div key={r.id} className="px-2 py-1 text-sm border-b last:border-0 flex items-center justify-between">
+                    <span className="truncate mr-2">{r.text}</span>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        if (!attachExistingFor) return;
+                        attachWithAttacker(attachExistingFor.schemeKey, attachExistingFor.cqKey, r.id);
+                        setAttachExistingFor(null);
+                      }}
+                    >
+                      Attach
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {/* Paste-only fallback */}
+            <div className="text-[11px] text-neutral-600">Or paste a claim ID below and press Attach:</div>
+            <div className="flex gap-2">
+              <Input id="attach-paste" placeholder="claim_…" />
+              <Button
+                onClick={() => {
+                  const el = document.getElementById('attach-paste') as HTMLInputElement | null;
+                  const id = el?.value.trim();
+                  if (!id || !attachExistingFor) return;
+                  attachWithAttacker(attachExistingFor.schemeKey, attachExistingFor.cqKey, id);
+                  setAttachExistingFor(null);
+                }}
+              >
+                Attach
+              </Button>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setAttachExistingFor(null)}>Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

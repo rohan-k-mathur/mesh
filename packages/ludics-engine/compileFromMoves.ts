@@ -72,7 +72,8 @@ export async function compileFromMoves(
         data: { deliberationId, participantId: 'Opponent', rootLocusId: root.id },
       });
       return { proponentId: proponent.id, opponentId: opponent.id };
-    }, { timeout: 15_000, maxWait: 5_000 });
+    }, { timeout: 30_000, maxWait: 5_000 });
+
 
     // Build synthetic design refs (we just need the ids here)
     const proponent = { id: proponentId, participantId: 'Proponent' as const };
@@ -117,9 +118,10 @@ export async function compileFromMoves(
         kind;
 
       // We need a tx client for this helper; use a short tx wrapper to read the path once
-      const locFromId = await prisma.$transaction(async (txRead) => {
-        return await locusPathFromId(txRead, m.locusId ?? undefined);
-      });
+
+      const locFromId = m.locusId
+  ? (await prisma.ludicLocus.findUnique({ where: { id: m.locusId } }))?.path ?? null
+  : null;
 
       const defaultDesign = kind === 'WHY' ? opponent : proponent;
       const design =
@@ -202,14 +204,17 @@ export async function compileFromMoves(
     }
 
     // ---- Batched appends in short txs ----
-    const BATCH = 100;
-    for (let i = 0; i < acts.length; i += BATCH) {
-      const chunk = acts.slice(i, i + BATCH);
-      await prisma.$transaction(async (tx2) => {
-        for (const { designId, act } of chunk) {
-          await appendActs(designId, [act], { enforceAlternation: false }, tx2);
-        }
-      }, { timeout: 10_000, maxWait: 5_000 });
+    // const BATCH = 100;
+    // for (let i = 0; i < acts.length; i += BATCH) {
+    //   const chunk = acts.slice(i, i + BATCH);
+    //   await prisma.$transaction(async (tx2) => {
+    //     for (const { designId, act } of chunk) {
+    //       await appendActs(designId, [act], { enforceAlternation: false }, tx2);
+    //     }
+    //   }, { timeout: 10_000, maxWait: 5_000 });
+    // }
+    for (const { designId, act } of acts) {
+      await appendActs(designId, [act], { enforceAlternation: false }, prisma);
     }
 
     // ---- Run visibility after all writes commit ----

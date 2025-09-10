@@ -440,7 +440,7 @@ export function RepresentativeViewpoints(props: {
 
       {openCQView === v.index && (
         <Dialog open onOpenChange={(o)=>!o && setOpenCQView(null)}>
-          <DialogContent className="bg-slate-200 rounded-xl sm:max-w-[640px]">
+          <DialogContent className="bg-slate-200 rounded-xl max-h-[700px] overflow-y-auto sm:max-w-[640px]">
             <DialogHeader>
               <DialogTitle>Address Critical Questions — View {v.index+1}</DialogTitle>
               {targetClaim && (

@@ -50,67 +50,66 @@ function chip(kind: string) {
 export default function NegotiationDrawerV2({ deliberationId, open, onClose, titlesByTarget }: Props) {
   const { byTarget, latestByTarget, moves, mutate } = useDialogueMoves(deliberationId);
 
-  // ✅ Safe defaults (prevents .entries() / .get() crashes)
+  // ✅ Safe defaults
   const safeByTarget = React.useMemo(() => byTarget ?? new Map<string, DM[]>(), [byTarget]);
-  const safeLatest = React.useMemo(() => latestByTarget ?? new Map<string, DM>(), [latestByTarget]);
+  const safeLatest   = React.useMemo(() => latestByTarget ?? new Map<string, DM>(), [latestByTarget]);
   const safeMoves: DM[] = React.useMemo(() => (moves ?? []) as DM[], [moves]);
 
-     const byTargetFallback = React.useMemo(() => {
-         if (safeByTarget.size > 0 || safeMoves.length === 0) return null;
-         // Group raw moves into argument:ID / claim:ID / card:ID buckets
-         const m = new Map<string, DM[]>();
-         for (const mv of safeMoves) {
-           const tt = (mv as any).targetType ?? 'argument';
-           const tid = (mv as any).targetId ?? '';
-           const key = `${tt}:${tid}`;
-           if (!m.has(key)) m.set(key, []);
-           m.get(key)!.push(mv);
-         }
-         // compute latest map too
-         const latest = new Map<string, DM>();
-         for (const [k, list] of m.entries()) {
-          list.sort((a,b) => +new Date(a.createdAt) - +new Date(b.createdAt));
-           latest.set(k, list[list.length - 1]);
-         }
-         return { m, latest };
-      }, [safeByTarget, safeMoves]);
-      const [q, setQ] = React.useState('');
-      const [filter, setFilter] = React.useState<'all'|'why'|'resolved'|'conceded'|'retracted'>('all');
-        function statusOf(latest?: DM) {
-            if (!latest) return '—';
-            if (latest.kind === 'WHY') return 'why';
-            if (latest.kind === 'GROUNDS') return 'resolved';
-            if (latest.kind === 'RETRACT') return 'retracted';
-            if (latest.kind === 'ASSERT' && latest.payload?.as === 'CONCEDE') return 'conceded';
-            return '—';
-          }
+  const byTargetFallback = React.useMemo(() => {
+    if (safeByTarget.size > 0 || safeMoves.length === 0) return null;
+    const m = new Map<string, DM[]>();
+    for (const mv of safeMoves) {
+      const tt  = (mv as any).targetType ?? 'argument';
+      const tid = (mv as any).targetId ?? '';
+      const key = `${tt}:${tid}`;
+      if (!m.has(key)) m.set(key, []);
+      m.get(key)!.push(mv);
+    }
+    const latest = new Map<string, DM>();
+    for (const [k, list] of m.entries()) {
+      list.sort((a,b)=>+new Date(a.createdAt) - +new Date(b.createdAt));
+      latest.set(k, list[list.length-1]);
+    }
+    return { m, latest };
+  }, [safeByTarget, safeMoves]);
+
+  const [q, setQ] = React.useState('');
+  const [filter, setFilter] = React.useState<'all'|'why'|'resolved'|'conceded'|'retracted'>('all');
+  function statusOf(latest?: DM) {
+    if (!latest) return '—';
+    if (latest.kind === 'WHY') return 'why';
+    if (latest.kind === 'GROUNDS') return 'resolved';
+    if (latest.kind === 'RETRACT') return 'retracted';
+    if (latest.kind === 'ASSERT' && latest.payload?.as === 'CONCEDE') return 'conceded';
+    return '—';
+  }
+  const [activeReplyFor, setActiveReplyFor] = React.useState<string|null>(null);
+
   const [loading, setLoading] = React.useState(false);
-     const [quick, setQuick] = React.useState<{targetType:'argument'|'claim'|'card'; targetId:string; note:string; ttl:number}>({
-         targetType: 'argument', targetId: '', note: '', ttl: 24,
-       });
-     
-       async function postMove(targetType:'argument'|'claim'|'card', targetId:string, kind:'WHY'|'GROUNDS'|'RETRACT'|'CONCEDE', payload:any = {}) {
-         // normalize CONCEDE → ASSERT(as:CONCEDE) happens server-side, we still send kind:'CONCEDE' for clarity
-         await fetch('/api/dialogue/move', {
-           method:'POST', headers:{'content-type':'application/json'},
-           body: JSON.stringify({
-             deliberationId, targetType, targetId, kind, payload,
-             autoCompile: true, autoStep: true,
-           })
-         }).catch(()=>{});
-         // keep everyone in sync
-         window.dispatchEvent(new CustomEvent('dialogue:moves:refresh'));
-         await refresh();
-       }
-  const refresh = async () => {
+  const [postingKey, setPostingKey] = React.useState<string|null>(null);
+  const [okKey, setOkKey] = React.useState<string|null>(null);
+  const [quick, setQuick] = React.useState<{targetType:'argument'|'claim'|'card'; targetId:string; note:string; ttl:number}>({
+    targetType: 'argument', targetId: '', note: '', ttl: 24,
+  });
+
+  // ref map to focus inputs by target
+const replyRefs = React.useRef<Map<string, HTMLInputElement>>(new Map());
+const setReplyRef = (key: string) => (el: HTMLInputElement | null) => {
+  if (!el) { replyRefs.current.delete(key); return; }
+  replyRefs.current.set(key, el);
+};
+
+  // central refresh
+  const refresh = React.useCallback(async () => {
     setLoading(true);
     await mutate();
     setLoading(false);
-  };
+  }, [mutate]);
 
-  // On open: compile+step then refresh to align timeline with Ludics
+  // 🔔 On open: compile+step once, then refresh the drawer
   React.useEffect(() => {
     if (!open) return;
+    let aborted = false;
     (async () => {
       try {
         await fetch('/api/ludics/compile-step', {
@@ -119,9 +118,36 @@ export default function NegotiationDrawerV2({ deliberationId, open, onClose, tit
           body: JSON.stringify({ deliberationId, phase: 'neutral' }),
         });
       } catch {}
-      await refresh();
+      if (!aborted) await refresh();
     })();
-  }, [open, deliberationId]); // eslint-disable-line react-hooks/exhaustive-deps
+    return () => { aborted = true; };
+  }, [open, deliberationId, refresh]);
+
+  async function postMove(
+    targetType:'argument'|'claim'|'card',
+    targetId:string,
+    kind:'WHY'|'GROUNDS'|'RETRACT'|'CONCEDE',
+    payload:any = {}
+  ) {
+    const key = `${targetType}:${targetId}`;
+    setPostingKey(key); setOkKey(null);
+    try {
+      await fetch('/api/dialogue/move', {
+        method: 'POST',
+        headers: { 'content-type':'application/json' },
+        body: JSON.stringify({
+          deliberationId, targetType, targetId, kind, payload,
+          autoCompile: true, autoStep: true,
+        })
+      });
+      window.dispatchEvent(new CustomEvent('dialogue:moves:refresh'));
+      await refresh();
+      setOkKey(key);
+      setTimeout(() => setOkKey(null), 1200);
+    } finally {
+      setPostingKey(null);
+    }
+  }
 
   if (!open) return null;
 
@@ -182,46 +208,68 @@ export default function NegotiationDrawerV2({ deliberationId, open, onClose, tit
           </div>
         </div>
  {/* Quick add WHY */}
-          <div className="mb-3 rounded border p-2 bg-slate-50/50">
-           <div className="flex flex-wrap items-end gap-2">
-             <label className="text-[11px] text-neutral-600">Target</label>
-             <select
-               className="h-7 border rounded px-1 text-xs"
-               value={quick.targetType}
-               onChange={e => setQuick(q => ({...q, targetType: e.target.value as any}))}
-             >
-               <option value="argument">argument</option>
-               <option value="claim">claim</option>
-               <option value="card">card</option>
-             </select>
-               <input
-    className="mb-2 w-full border rounded px-2 py-1 text-[12px]"
-    placeholder="Search target…"
-    value={q}
-    onChange={e=>setQ(e.target.value)}
- />
-             <input
-               className="h-7 border rounded px-2 text-xs flex-1 min-w-[160px]"
-               placeholder="targetId…"
-               value={quick.targetId}
-               onChange={e => setQuick(q => ({...q, targetId: e.target.value}))}
-             />
-             <input
-               className="h-7 border rounded px-2 text-xs flex-1 min-w-[160px]"
-               placeholder="note (optional)…"
-               value={quick.note}
-               onChange={e => setQuick(q => ({...q, note: e.target.value}))}
-             />
-             <button
-               className="h-7 px-2 border rounded text-xs"
-               disabled={!quick.targetId.trim()}
-               onClick={() => postMove(quick.targetType, quick.targetId.trim(), 'WHY', quick.note ? { note: quick.note } : {})}
-               title="Post WHY and update Dialogue Engine"
-             >
-               New WHY
-             </button>
-           </div>
-      </div>
+<div className="mb-3 rounded border p-2 bg-slate-50/50">
+  <div className="flex flex-wrap items-end gap-2">
+    <label className="text-[11px] text-neutral-600">Target</label>
+    <select
+      className="h-7 border rounded px-1 text-xs"
+      value={quick.targetType}
+      onChange={e => setQuick(q => ({...q, targetType: e.target.value as any}))}
+    >
+      <option value="argument">argument</option>
+      <option value="claim">claim</option>
+      <option value="card">card</option>
+    </select>
+
+    <input
+      className="mb-2 w-full border rounded px-2 py-1 text-[12px]"
+      placeholder="Search target…"
+      value={q}
+      onChange={e=>setQ(e.target.value)}
+    />
+
+    <input
+      className="h-7 border rounded px-2 text-xs flex-1 min-w-[160px]"
+      placeholder="targetId…"
+      value={quick.targetId}
+      onChange={e => setQuick(q => ({...q, targetId: e.target.value}))}
+    />
+
+    <input
+      className="h-7 border rounded px-2 text-xs flex-1 min-w-[160px]"
+      placeholder="note (optional)…"
+      value={quick.note}
+      onChange={e => setQuick(q => ({...q, note: e.target.value}))}
+    />
+
+    {(() => {
+      const key = `${quick.targetType}:${quick.targetId.trim()}`;
+      const disabled = !quick.targetId.trim() || postingKey === key;
+      return (
+        <div className="flex items-center gap-2">
+          <button
+            className="h-7 px-2 border rounded text-xs disabled:opacity-50"
+            disabled={disabled}
+            onClick={() =>
+              postMove(
+                quick.targetType,
+                quick.targetId.trim(),
+                'WHY',
+                quick.note ? { note: quick.note } : {}
+              )
+            }
+            title="Post WHY and update Dialogue Engine"
+          >
+            {postingKey === key ? 'Posting…' : 'New WHY'}
+          </button>
+          {okKey === key && (
+            <span className="text-[10px] text-emerald-700">✓ posted</span>
+          )}
+        </div>
+      );
+    })()}
+  </div>
+</div>
         <div className="space-y-3">
            {/* tiny debug chip so you know the drawer actually fetched moves */}
           <div className="text-[11px] text-neutral-500">
@@ -268,6 +316,8 @@ export default function NegotiationDrawerV2({ deliberationId, open, onClose, tit
                   <div className="text-sm font-medium truncate max-w-[75%]">{title}</div>
                   <div className="flex items-center gap-2">
                     {chipEl}
+                        {okKey === targetId && <span className="text-[10px] text-emerald-700">✓ posted</span>}
+
                       {ttlHrs !== null && latest?.kind === 'WHY' && (
     <span className={`text-[10px] px-1 py-0.5 rounded border ${
       ttlHrs <= 0 ? 'bg-rose-50 border-rose-200 text-rose-700' : 'bg-amber-50 border-amber-200 text-amber-700'
@@ -281,19 +331,35 @@ export default function NegotiationDrawerV2({ deliberationId, open, onClose, tit
    {/* Row-level actions */}
                     <div className="mt-2 flex flex-wrap gap-2">
                    <button className="px-2 py-0.5 border rounded text-[11px]"
-                     onClick={(e) => { e.stopPropagation(); postMove('argument',''+targetId,'WHY',{ note:'Why?' }); }}>
+                     onClick={(e) => { e.stopPropagation(); postMove('argument',''+targetId,'WHY',{ note:'Why?' }); }}
+                                  disabled={postingKey === targetId}>
                      WHY
                    </button>
                    <button className="px-2 py-0.5 border rounded text-[11px]"
-                     onClick={(e) => { e.stopPropagation(); postMove('argument',''+targetId,'GROUNDS',{ note:'Grounds submitted' }); }}>
-                     GROUNDS
-                   </button>
+                        onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveReplyFor(targetId);
+                              // optional: prefill a helpful stub
+                              const input = replyRefs.current.get(targetId);
+                              if (input) {
+                                if (!input.value) input.value = '';
+                                input.focus();
+                              } else {
+                                // focus after render
+                                requestAnimationFrame(() => replyRefs.current.get(targetId)?.focus());
+                              }
+                            }}
+                            disabled={postingKey === targetId}>
+                            GROUNDS
+                          </button>
                    <button className="px-2 py-0.5 border rounded text-[11px]"
-                     onClick={(e) => { e.stopPropagation(); postMove('argument',''+targetId,'RETRACT',{ text:'Retract' }); }}>
+                         onClick={(e) => { e.stopPropagation(); postMove('argument',''+targetId,'RETRACT',{ text:'Retract' }); }}
+                               disabled={postingKey === targetId}>
                      RETRACT
                    </button>
                    <button className="px-2 py-0.5 border rounded text-[11px]"
-                     onClick={(e) => { e.stopPropagation(); postMove('argument',''+targetId,'CONCEDE',{ note:'Concede' }); }}>
+                       onClick={(e) => { e.stopPropagation(); postMove('argument',''+targetId,'CONCEDE',{ note:'Concede' }); }}
+                             disabled={postingKey === targetId}>
                      CONCEDE
                    </button>
                  </div>
@@ -301,15 +367,18 @@ export default function NegotiationDrawerV2({ deliberationId, open, onClose, tit
     <input
       className="border rounded px-2 py-0.5 text-[11px] flex-1"
       placeholder="Reply with grounds…"
+      ref={setReplyRef(targetId)}
       onKeyDown={async (e) => {
         const el = e.currentTarget as HTMLInputElement;
         if (e.key === 'Enter' && el.value.trim()) {
           e.stopPropagation();
           await postMove('argument', ''+targetId, 'GROUNDS', { brief: el.value.trim() });
           el.value = '';
+          setActiveReplyFor(null);
         }
       }}
     />
+    
     <button className="px-2 py-0.5 border rounded text-[11px]"
       onClick={async (e) => {
         const box = (e.currentTarget.previousSibling as HTMLInputElement);
@@ -318,6 +387,7 @@ export default function NegotiationDrawerV2({ deliberationId, open, onClose, tit
         e.stopPropagation();
         await postMove('argument', ''+targetId, 'GROUNDS', { brief: v });
         box.value = '';
+        setActiveReplyFor(null);
       }}>
       Send
     </button>

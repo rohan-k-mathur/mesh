@@ -52,9 +52,10 @@ function computeStableExtension(
   return null; // no stable extension exists
 }
 
-
 export default function DialogicalPanel({ deliberationId, nodes, edges }: Props) {
-  const [semantics, setSemantics] = React.useState<'grounded'|'preferred'>('grounded');
+    // include 'stable' so the <option value="stable"> doesn't violate the union
+    const [semantics, setSemantics] = React.useState<'grounded'|'preferred'|'stable'>('grounded');
+  
   const [supportProp, setSupportProp] = React.useState(true);
   const [selected, setSelected] = React.useState<string | null>(null);
   const selectedNode = nodes.find(n => n.id === selected) || null;
@@ -298,12 +299,35 @@ function ArgumentInspector({
 //     window.dispatchEvent(new CustomEvent('dialogue:moves:refresh'));
 //   };
 
-  const postMove = async (kind: 'WHY'|'GROUNDS', payload: any) => {
-  await fetch('/api/dialogue/move', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ deliberationId, targetType: 'argument', targetId: node.id, kind, payload, actorId: 'me', autoCompile: true, autoStep: true }) });
-  window.dispatchEvent(new CustomEvent('dialogue:moves:refresh'));
-};
-
+const [posting, setPosting] = React.useState(false);
+   const [ok, setOk] = React.useState<null|boolean>(null);
+   const postMove = async (kind: 'WHY'|'GROUNDS', payload: any) => {
+     if (posting) return;
+     setPosting(true); setOk(null);
+     try {
+       await fetch('/api/dialogue/move', {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({
+           deliberationId,
+           targetType: 'argument',
+           targetId: node.id,
+           kind,
+           payload,
+           autoCompile: true,
+           autoStep: true,
+         }),
+       });
+       window.dispatchEvent(new CustomEvent('dialogue:moves:refresh'));
+       setOk(true);
+       setTimeout(()=>setOk(null), 1000);
+     } catch {
+       setOk(false);
+       setTimeout(()=>setOk(null), 1500);
+     } finally {
+       setPosting(false);
+     }
+   };
 const onToggleCQ = (cqId: string, on: boolean) => {
   onCqToggle(cqId, on);
   if (on) postMove('WHY', { cqId });
@@ -317,22 +341,24 @@ const onToggleCQ = (cqId: string, on: boolean) => {
         <select className="border rounded px-1 py-0.5 text-xs" value={scheme} onChange={e => setScheme(e.target.value as any)}>
           {schemes.concat(scheme).filter((v, i, a) => a.indexOf(v) === i).map(s => <option key={s} value={s}>{s}</option>)}
         </select>
+        {ok === true && <span className="text-[10px] text-emerald-700">✓</span>}
+        {ok === false && <span className="text-[10px] text-rose-700">✕</span>}
       </div>
       <div className="space-y-1">
         {cqs.map(q => (
           <label key={q.id} className="flex items-center gap-2 text-sm">
-            <input type="checkbox" onChange={e => onToggleCQ(q.id, e.target.checked)} />
+            <input type="checkbox" onChange={e => onToggleCQ(q.id, e.target.checked)} disabled={posting} />
             <span>{q.text}</span>
             {q.severity && <span className={`ml-1 text-[10px] px-1 rounded ${q.severity==='high'?'bg-rose-100 text-rose-700':q.severity==='med'?'bg-amber-100 text-amber-700':'bg-slate-100 text-slate-700'}`}>{q.severity}</span>}
           </label>
         ))}
       </div>
       <div className="flex gap-2">
-        <button className="px-2 py-1 border rounded text-xs" onClick={() => postMove('WHY', { note: 'Please address open critical questions' })}>
-          Challenge (WHY)
+      <button className="px-2 py-1 border rounded text-xs" onClick={() => postMove('WHY', { note: 'Please address open critical questions' })} disabled={posting}>
+         {posting ? 'Posting…' : 'Challenge (WHY)'}
         </button>
-        <button className="px-2 py-1 border rounded text-xs" onClick={() => postMove('GROUNDS', { note: 'Grounds submitted' })}>
-          Provide grounds
+        <button className="px-2 py-1 border rounded text-xs" onClick={() => postMove('GROUNDS', { note: 'Grounds submitted' })} disabled={posting}>
+          {posting ? 'Posting…' : 'Provide grounds'}
         </button>
       </div>
     </div>
