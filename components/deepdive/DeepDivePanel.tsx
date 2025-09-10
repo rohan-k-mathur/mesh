@@ -48,6 +48,20 @@ type Selection = {
     arguments: { id: string; text: string; confidence?: number | null }[];
   }[];
 };
+export function ScrollBody({
+  children,
+  maxH = '28rem',
+}: { children: React.ReactNode; maxH?: string }) {
+  return (
+    <div
+      className="overflow-auto [mask-image:linear-gradient(to_bottom,transparent,black_12px,black_calc(100%-12px),transparent)]"
+      style={{ maxHeight: maxH }}
+    >
+      {children}
+    </div>
+  );
+}
+
 function WorksCounts({ deliberationId }:{ deliberationId:string }) {
   const [counts, setCounts] = useState<{DN:number;IH:number;TC:number;OP:number}>({DN:0,IH:0,TC:0,OP:0});
   useEffect(() => {
@@ -70,6 +84,7 @@ function WorksCounts({ deliberationId }:{ deliberationId:string }) {
 function RhetoricToggle() {
   const { mode, setMode } = useRhetoric();
   return (
+    
     <label className="text-xs flex items-center gap-1">
       Lens:
       <select className="border rounded px-1 py-0.5" value={mode} onChange={e=>setMode(e.target.value as any)}>
@@ -107,25 +122,240 @@ function usePersisted(key: string, def = true) {
   return { open, setOpen };
 }
 
+// export function SectionCard({
+//   title,
+//   action,
+//   children,
+// }: {
+//   title?: string;
+//   action?: React.ReactNode;
+//   children: React.ReactNode;
+// }) {
+//   return (
+//     <section className="rounded-2xl border border-slate-200 bg-white/75  shadow-md">
+//       {(title || action) && (
+//         <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-100">
+//           <h3 className="text-sm font-semibold text-slate-700">{title}</h3>
+//           {action}
+//         </div>
+//       )}
+//       <div className="px-3 py-4">{children}</div>
+//     </section>
+//   );
+// }
 export function SectionCard({
+  id,
   title,
+  subtitle,
+  icon,
   action,
+  footer,
   children,
+  className = "",
+  dense = false,
+  stickyHeader = false,
+  busy = false,
+
+  isLoading = false,
+  emptyText,
+  tone = "default",
+  padded = true,
 }: {
+  id?: string;
   title?: string;
+  subtitle?: string;
+  icon?: React.ReactNode;
   action?: React.ReactNode;
+  footer?: React.ReactNode;
   children: React.ReactNode;
+  className?: string;
+  /** compact padding */
+  dense?: boolean;
+  /** make header sticky inside the card */
+  stickyHeader?: boolean;
+  busy?: boolean;
+  /** quick skeleton state */
+  isLoading?: boolean;
+  /** dashed empty-state box message */
+  emptyText?: string;
+  /** accent ring/stripe */
+  tone?: "default" | "info" | "success" | "warn" | "danger";
+  /** remove inner padding entirely (e.g., for full-bleed graphs) */
+  padded?: boolean;
 }) {
+  const ringClass =
+    tone === "info"
+      ? "ring-sky-200/60 dark:ring-sky-400/40"
+      : tone === "success"
+      ? "ring-emerald-200/60 dark:ring-emerald-400/40"
+      : tone === "warn"
+      ? "ring-amber-200/60 dark:ring-amber-400/50"
+      : tone === "danger"
+      ? "ring-rose-200/60 dark:ring-rose-400/40"
+      : "ring-slate-200/60 dark:ring-slate-800/60";
+
+  const stripeClass =
+    tone === "info"
+      ? "bg-sky-400/60"
+      : tone === "success"
+      ? "bg-emerald-400/60"
+      : tone === "warn"
+      ? "bg-amber-400/70"
+      : tone === "danger"
+      ? "bg-rose-400/60"
+      : "";
+
+  const bodyPad = padded ? (dense ? "px-3 py-3" : "px-5 py-4") : "";
+
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white/75  shadow-md">
-      {(title || action) && (
-        <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-100">
-          <h3 className="text-sm font-semibold text-slate-700">{title}</h3>
-          {action}
+    <section
+      id={id}
+      className={[
+        "group relative overflow-hidden rounded-2xl",
+        "border border-slate-200/70 dark:border-slate-800/60",
+        "bg-white/70 dark:bg-slate-900/50",
+        "backdrop-blur supports-[backdrop-filter]:bg-white/60",
+        "shadow-sm hover:shadow-md transition-shadow",
+        className,
+      ].join(" ")}
+    >
+{busy && (
+  <div className="absolute inset-x-0 top-0 h-0.5 overflow-hidden rounded-t-2xl">
+    <div
+      className="h-full w-[45%] animate-[mesh-indeterminate_1.6s_infinite_cubic-bezier(0.4,0,0.2,1)]
+                 bg-[linear-gradient(90deg,theme(colors.indigo.400),theme(colors.fuchsia.400),theme(colors.sky.400))]"
+    />
+  </div>
+)}
+      {/* soft ring on hover/focus */}
+      <div
+        className={[
+          "pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-inset",
+          ringClass,
+          "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity",
+        ].join(" ")}
+        aria-hidden
+      />
+
+      {/* thin tone stripe */}
+      {tone !== "default" && (
+        <div
+          className={
+            "pointer-events-none absolute left-0 top-0 h-10 w-1.5 rounded-tr-md " +
+            stripeClass
+          }
+          aria-hidden
+        />
+      )}
+
+      {(title || action || subtitle || icon) && (
+        <div
+        onMouseMove={(e) => {
+          const t = e.currentTarget as HTMLElement;
+          const r = t.getBoundingClientRect();
+          t.style.setProperty('--mx', `${e.clientX - r.left}px`);
+          t.style.setProperty('--my', `${e.clientY - r.top}px`);
+        }}
+          className={[
+            stickyHeader ? "sticky top-0 z-10 -mx-px px-5 py-3" : "px-5 py-3",
+            "flex items-center justify-between gap-3",
+            "border-b border-slate-100/80 dark:border-slate-800/70",
+            "bg-white/60 dark:bg-slate-900/40 backdrop-blur-sm",
+            "relative before:pointer-events-none before:absolute before:inset-0",
+    "before:bg-[radial-gradient(120px_80px_at_var(--mx)_var(--my),rgba(99,102,241,0.10),transparent_70%)]",
+    "before:opacity-0 hover:before:opacity-100 before:transition-opacity"
+          ].join(" ")}
+        >
+          <div className="min-w-0 flex items-center gap-2">
+            {icon && (
+              <div className="grid size-6 shrink-0 place-items-center rounded-md bg-slate-100 dark:bg-slate-800">
+                {icon}
+              </div>
+            )}
+            <div className="min-w-0">
+              {title && (
+                <h3 className="truncate text-sm font-semibold tracking-wide text-slate-800 dark:text-slate-100">
+                  {title}
+                </h3>
+              )}
+              {subtitle && (
+                <p className="truncate text-xs text-slate-500 dark:text-slate-400">
+                  {subtitle}
+                </p>
+              )}
+            </div>
+          </div>
+          {action && <div className="shrink-0">{action}</div>}
         </div>
       )}
-      <div className="px-3 py-4">{children}</div>
+
+      <div className={bodyPad}>
+        {isLoading ? (
+          <div className="animate-pulse space-y-2">
+            <div className="h-4 w-3/5 rounded bg-slate-200/70 dark:bg-slate-700/60" />
+            <div className="h-4 w-full rounded bg-slate-200/70 dark:bg-slate-700/60" />
+            <div className="h-4 w-4/5 rounded bg-slate-200/70 dark:bg-slate-700/60" />
+          </div>
+        ) : emptyText ? (
+          <div className="rounded-lg border border-dashed border-slate-200 dark:border-slate-800 p-6 text-center text-sm text-slate-500 dark:text-slate-400">
+            {emptyText}
+          </div>
+        ) : (
+          children
+        )}
+      </div>
+
+      {footer && (
+        <div className="border-t border-slate-100/80 dark:border-slate-800/70 px-5 py-3 text-xs text-slate-500 dark:text-slate-400">
+          {footer}
+        </div>
+      )}
     </section>
+  );
+}
+
+function DeepDiveBackdrop() {
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 w-full h-full">
+      {/* pastel wash + grid */}
+      <div className="absolute inset-0 bg-gradient-to-b from-indigo-50 via-rose-50 to-slate-50" />
+      <div
+        className="absolute inset-0 opacity-[.06]"
+        style={{
+          backgroundImage:
+            'linear-gradient(to_right,rgba(15,23,42,.2)_1px,transparent_1px),linear-gradient(to_bottom,rgba(15,23,42,.2)_1px,transparent_1px)',
+          backgroundSize: '36px 36px',
+        }}
+      />
+      {/* drifting glows (very slow, motion-safe) */}
+      <style>{`
+        @media (prefers-reduced-motion: no-preference) {
+          @keyframes driftA { 0%{transform:translate(0,0)} 50%{transform:translate(16px,10px)} 100%{transform:translate(0,0)} }
+          @keyframes driftB { 0%{transform:translate(0,0)} 50%{transform:translate(-14px,-8px)} 100%{transform:translate(0,0)} }
+        }
+      `}</style>
+      <div
+        className="absolute left-1/3 -top-24 h-[26rem] w-[26rem] -translate-x-1/2 rounded-full opacity-25 blur-3xl"
+        style={{
+          background: 'radial-gradient(60% 60% at 50% 50%, rgba(99,102,241,0.45) 0%, transparent 60%)',
+          animation: 'driftA 14s ease-in-out infinite',
+        }}
+      />
+      <div
+        className="absolute right-1/4 bottom-0 h-[24rem] w-[24rem] translate-x-1/2 rounded-full opacity-25 blur-3xl"
+        style={{
+          background: 'radial-gradient(60% 60% at 50% 50%, rgba(244,114,182,0.45) 0%, transparent 60%)',
+          animation: 'driftB 16s ease-in-out infinite',
+        }}
+      />
+    </div>
+  );
+}
+function ChipBar({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex flex-wrap items-center gap-1 rounded-md border border-slate-200 bg-white/70 px-1 py-1 text-xs">
+      {children}
+    </div>
   );
 }
 
@@ -232,27 +462,16 @@ async function updatePref(next: PrefProfile) {
 
   return (
 
-    <div className="space-y-5 py-3 px-6">
+    <div className="space-y-5 py-3 px-6 relative">
       {/* Header controls */}
-      <label className="text-xs flex items-center gap-2">
-  Audience profile:
-  <select
-    className="text-xs border rounded px-2 py-1"
-    value={pref.profile}
-    disabled={prefLoading}
-    onChange={(e) => updatePref(e.target.value as PrefProfile)}
-  >
-    <option value="community">Community</option>
-    <option value="policy">Policy</option>
-    <option value="scientific">Scientific</option>
-  </select>
-</label>
+    
 
       {/* Arguments + Composer */}
-      <SectionCard>
+      <SectionCard busy={pending}>
         <div className="relative  flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             {status && <StatusChip status={status} />}
+                   <ChipBar>
             <label className="text-xs text-neutral-600 flex items-center gap-1">
               Rule:
               <select
@@ -268,6 +487,8 @@ async function updatePref(next: PrefProfile) {
                 <option value="maxcov">MaxCov</option>
               </select>
             </label>
+            </ChipBar>
+
             {/* <HelpModal /> */}
             <DiscusHelpPage />
           </div>
@@ -298,6 +519,7 @@ async function updatePref(next: PrefProfile) {
         </div>
 
         </div>
+        
 
       <ArgumentsList
           deliberationId={deliberationId}
@@ -306,6 +528,7 @@ async function updatePref(next: PrefProfile) {
           onReplyTo={(id) => setReplyTo(id)}
           onChanged={() => compute(sel?.rule)}
         />
+
 
 </SectionCard>
       <SectionCard>
@@ -459,5 +682,7 @@ async function updatePref(next: PrefProfile) {
         <TopologyWidget deliberationId={deliberationId} />
       </SectionCard>
     </div>
+
+
   );
 }

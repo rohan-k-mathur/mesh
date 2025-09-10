@@ -9,6 +9,7 @@ import DeepDivePanel from "../deepdive/DeepDivePanel";
 import { useRouter } from "next/navigation";
 import HomeButton from "../buttons/HomeButton";
 import { RhetoricProvider } from "../rhetoric/RhetoricContext";
+import { DeepDiveBackdrop } from "./DeepDiveBackground";
 /* ----------------------- DOM ↔ anchor helpers ----------------------- */
 
 /* ---------- Selection helpers (clean) ---------- */
@@ -760,10 +761,14 @@ export default function ArticleReaderWithPins({
 </div>
       </div>
 
-      <div className="flex flex-col mt-4">
+      <div className="relative flex flex-col mt-4">
+        
         <hr className="w-full border-[.5px] border-slate-700/70 mt-4"></hr>
+        
         {deliberationId && (
-          <section className="mt-0">
+
+<section className="relative mt-0">
+<DeepDiveBackdrop />
             <h2 className="text-4xl font-semibold tracking-wide text-center my-4">
               Discussion
             </h2>
@@ -775,6 +780,7 @@ export default function ArticleReaderWithPins({
           </section>
         )}
       </div>
+
       {activeThread && (
   <CommentModal
     thread={activeThread}
@@ -787,5 +793,6 @@ export default function ArticleReaderWithPins({
 )}
       
     </ArticleReader>
+    
   );
 }

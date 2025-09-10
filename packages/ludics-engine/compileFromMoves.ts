@@ -44,35 +44,40 @@ export async function compileFromMoves(
   deliberationId: string
 ): Promise<{ ok: true; designs: string[] }> {
   return withCompileLock(deliberationId, async () => {
-    // ---- Tx-1: cleanup + create designs (short) ----
-    const { proponentId, opponentId } = await prisma.$transaction(async (tx) => {
-      const root = await ensureRoot(tx, deliberationId);
+    // ---- Tx-1: cleanup + create designs (short, relation-based) ----
+const { proponentId, opponentId } = await prisma.$transaction(async (tx) => {
+  const root = await ensureRoot(tx as Tx, deliberationId);
 
-      // explicit ids, safe order
-      const oldDesigns = await tx.ludicDesign.findMany({
-        where: { deliberationId }, select: { id: true }
-      });
-      const oldIds = oldDesigns.map(d => d.id);
-      if (oldIds.length) {
-        await tx.ludicChronicle.deleteMany({ where: { designId: { in: oldIds } } });
-        const oldActs = await tx.ludicAct.findMany({ where: { designId: { in: oldIds } }, select: { id: true } });
-        const oldActIds = oldActs.map(a => a.id);
-        if (oldActIds.length) {
-          await tx.ludicChronicle.deleteMany({ where: { actId: { in: oldActIds } } });
-          await tx.ludicAct.deleteMany({ where: { id: { in: oldActIds } } });
-        }
-        await tx.ludicTrace.deleteMany({ where: { deliberationId } });
-        await tx.ludicDesign.deleteMany({ where: { id: { in: oldIds } } });
-      }
+  // 1) delete chronicles for any designs in this dialogue
+  await tx.ludicChronicle.deleteMany({
+    where: { design: { deliberationId } },
+  });
 
-      const proponent = await tx.ludicDesign.create({
-        data: { deliberationId, participantId: 'Proponent', rootLocusId: root.id },
-      });
-      const opponent = await tx.ludicDesign.create({
-        data: { deliberationId, participantId: 'Opponent', rootLocusId: root.id },
-      });
-      return { proponentId: proponent.id, opponentId: opponent.id };
-    }, { timeout: 30_000, maxWait: 5_000 });
+  // 2) delete acts for any designs in this dialogue
+  await tx.ludicAct.deleteMany({
+    where: { design: { deliberationId } },
+  });
+
+  // 3) delete traces referencing these designs/dialogue
+  await tx.ludicTrace.deleteMany({
+    where: { deliberationId },
+  });
+
+  // 4) now it's safe to delete designs
+  await tx.ludicDesign.deleteMany({
+    where: { deliberationId },
+  });
+
+  // 5) recreate pair
+  const proponent = await tx.ludicDesign.create({
+    data: { deliberationId, participantId: 'Proponent', rootLocusId: root.id },
+  });
+  const opponent = await tx.ludicDesign.create({
+    data: { deliberationId, participantId: 'Opponent',  rootLocusId: root.id },
+  });
+
+  return { proponentId: proponent.id, opponentId: opponent.id };
+}, { timeout: 30_000, maxWait: 5_000 });
 
 
     // Build synthetic design refs (we just need the ids here)
@@ -88,6 +93,13 @@ export async function compileFromMoves(
         polarity: true, locusId: true, endsWithDaimon: true,
       },
     });
+
+    const loci = await prisma.ludicLocus.findMany({
+      where: { dialogueId: deliberationId },
+      select: { id:true, path:true }
+    });
+    const pathById = new Map(loci.map(l => [l.id, l.path]));
+    
 
     // compile moves → ludic acts
     let nextTopIdx = 0;
@@ -119,9 +131,8 @@ export async function compileFromMoves(
 
       // We need a tx client for this helper; use a short tx wrapper to read the path once
 
-      const locFromId = m.locusId
-  ? (await prisma.ludicLocus.findUnique({ where: { id: m.locusId } }))?.path ?? null
-  : null;
+      const locFromId = m.locusId ? pathById.get(m.locusId) ?? null : null;
+
 
       const defaultDesign = kind === 'WHY' ? opponent : proponent;
       const design =

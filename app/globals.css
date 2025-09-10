@@ -508,6 +508,24 @@
   cursor: grab;
   color:rgb(0, 0, 0);
 }
+
+@keyframes mesh-indeterminate {
+  0%   { transform: translateX(-120%); }
+  100% { transform: translateX(220%); }
+}
+/* globals.css */
+*::-webkit-scrollbar { height: 10px; width: 10px; }
+*::-webkit-scrollbar-thumb { background: rgba(100,116,139,.35); border-radius: 9999px; }
+*::-webkit-scrollbar-thumb:hover { background: rgba(100,116,139,.55); }
+*::-webkit-scrollbar-track { background: transparent; }
+
+.tabular-nums
+{
+letter-spacing: .025rem;
+font-size: 10px;
+text-transform: uppercase;
+}
+
 /* re-usable helpers */
 .ubz-card { background: var(--ubz-card); box-shadow: var(--ubz-shadow-1); }
 .ubz-card-h:hover { box-shadow: var(--ubz-shadow-h); }

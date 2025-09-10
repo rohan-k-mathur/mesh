@@ -47,6 +47,8 @@ import { useRSABatch } from '@/packages/hooks/useRSABatch';
 
 import { LudicsBadge } from '@/components/dialogue/LudicsBadge';
 import { InlineMoveForm } from '@/components/dialogue/InlineMoveForm';
+import MonologicalToolbar from '@/components/monological/MonologicalToolbar';
+import { useAuth } from '@/lib/AuthContext';
 
 
 const PAGE = 20;
@@ -306,7 +308,7 @@ export default function ArgumentsList({
         <span>Arguments</span>
         <button
           type="button"
-          className="relative max-w-[300px] w/full justify-center items-center text-center mx-auto px-4 py-1 
+          className="relative max-w-[300px] w-full justify-center items-center text-center mx-auto px-4 py-1 
                      text-xs tracking-wider rounded-lg border bg-slate-100 lockbutton"
           onClick={() => setListExpanded((v) => !v)}
           aria-expanded={listExpanded}
@@ -454,6 +456,35 @@ function ArgRow({
   const [modalOpen, setModalOpen] = useState(false);
   const [lastHits, setLastHits] = useState<Hit[]>([]);
 
+  const [citeOpen, setCiteOpen] = useState(false);
+  const [prefillUrl, setPrefillUrl] = useState<string|undefined>(undefined);
+
+  function onOpenCitePicker(initialUrl?: string) {
+    setPrefillUrl(initialUrl);
+    setCiteOpen(true);
+  }  
+
+async function onPromoteWithEvidence(url: string, conclusionText?: string) {
+  // 1) promote (if you have conclusion from Toulmin)
+  const claimText = conclusionText || a.text.slice(0, 120);
+  const ccRes = await fetch('/api/claims/quick-create', {
+    method:'POST', headers:{'content-type':'application/json'},
+    body: JSON.stringify({ targetArgumentId: a.id, text: claimText, deliberationId })
+  });
+  if (!ccRes.ok) throw new Error(await ccRes.text());
+  const { claimId } = await ccRes.json();
+
+  // 2) attach evidence quickly
+  const ev = await fetch(`/api/claims/${encodeURIComponent(claimId)}/evidence`, {
+    method:'POST', headers:{'content-type':'application/json'},
+    body: JSON.stringify({ uri: url, kind: 'secondary', cite: true })
+  });
+  if (!ev.ok) throw new Error(await ev.text());
+
+  // 3) refresh row
+  await refetch();
+}
+
   const created = new Date(a.createdAt).toLocaleString();
   const alt = a.text ? a.text.slice(0, 50) : "argument image";
 
@@ -467,7 +498,17 @@ function ArgRow({
     const feats = featuresFromPipeline({ det, nlpHits, text: a.text });
     return predictMix(feats, { temperature: 1.0 });
   }, [settings.enableMiniMl, a.text, lastHits]);
-
+  const qmTimer = React.useRef<ReturnType<typeof setTimeout>|null>(null);
+  function saveQualifier(q:any, m:any) {
+    if (qmTimer.current) clearTimeout(qmTimer.current);
+    qmTimer.current = setTimeout(() => {
+      fetch(`/api/arguments/${a.id}/qualifier`, {
+        method: 'PUT',
+        headers: {'content-type':'application/json'},
+        body: JSON.stringify({ quantifier: q ?? null, modality: m ?? null }),
+      }).then(()=>refetch()).catch(()=>{});
+    }, 400);
+  }
   const workChip =
     a.claimId && workByClaimId[a.claimId]
       ? (
@@ -483,6 +524,10 @@ function ArgRow({
 
   // Pull batch RSA for this row
   const rsaForRow = rsaByTarget[`argument:${a.id}`];
+  const { user } = useAuth();
+
+  const canEditQM = String(user?.userId ?? '') === String(a.authorId);
+
 
   return (
     <div id={`arg-${a.id}`} className="p-3 border-b focus:outline-none">
@@ -503,9 +548,14 @@ function ArgRow({
 </div>
 <div className="flex flex-col  ">
 
-        <LudicsBadge deliberationId={deliberationId} targetType="argument" targetId={a.id} />
-        <DialBadge stats={dialStats} targetType="argument" targetId={a.id} />
-        {rsaForRow && <RSAChip {...rsaForRow} />}
+{modelLens === 'dialogical' && (
+    <>
+      <LudicsBadge deliberationId={deliberationId} targetType="argument" targetId={a.id} />
+      <DialBadge stats={dialStats} targetType="argument" targetId={a.id} />
+      {rsaForRow && <RSAChip {...rsaForRow} />}
+    </>
+  )}
+
 
         {a.mediaType && a.mediaType !== "text" && (
           <span className="px-1.5 py-0.5 rounded border border-amber-200 bg-amber-50 text-amber-700">
@@ -526,23 +576,31 @@ function ArgRow({
         {modelLens === "monological" && <EvidenceChecklist text={a.text} />}
         </div>
         </div>
-        {modelLens === "monological" && (
-          <QuantifierModalityPicker
-            initialQuantifier={a.quantifier ?? null}
-            initialModality={a.modality ?? null}
-            onChange={(q, m) => {
-              fetch(`/api/arguments/${a.id}/meta`, {
-                method: 'PUT', headers: {'content-type':'application/json'},
-                body: JSON.stringify({ quantifier: q, modality: m }),
-              }).then(()=>refetch());
-            }}
-          />
+        {modelLens === 'monological' && canEditQM &&(
+       <QuantifierModalityPicker
+         initialQuantifier={a.quantifier ?? null}
+         initialModality={a.modality ?? null}
+         onChange={saveQualifier}
+       />
         )}
+        {modelLens === 'monological' && (
+  <MonologicalToolbar
+    deliberationId={deliberationId}
+    argument={{ id: a.id, text: a.text, claimId: a.claimId ?? undefined }}
+    // You can pass CQ summary bonus if you have it available here; else omit
+    onChanged={() => refetch()}
+  />
+)}
         {modelLens === "monological" && (
           <>
             <MiniStructureBox text={a.text} />
             <ToulminBox
-              text={a.text}
+         text={a.text}
+         argumentId={a.id}
+         deliberationId={deliberationId}
+         claimId={a.claimId ?? null}
+         onOpenCitePicker={onOpenCitePicker}
+         onPromoteWithEvidence={onPromoteWithEvidence}
               onAddMissing={(slot) => {
                 fetch('/api/missing-premises', {
                   method: 'POST', headers: { 'content-type': 'application/json' },
@@ -562,32 +620,39 @@ function ArgRow({
             />
           </>
         )}
+        {modelLens === 'monological' && (
+  <div className="mt-2">
+    <button
+      className="px-2 py-1 border rounded text-[11px]"
+      title="Create a tiny P/O exchange from this argument and visualize it in the Ludics tab"
+      onClick={async () => {
+        await fetch('/api/monological/bridge', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ argumentId: a.id })
+        });
+        window.dispatchEvent(new CustomEvent('dialogue:moves:refresh'));
+      }}
+    >
+      Open in dialogue
+    </button>
+  </div>
+)}
   
 
-        {/* Show items with open WHY ≥ 48h
-        <label className="text-xs ml-2">
-          <input
-            type="checkbox"
-            onChange={()=>{
-              const openOver48 = Object.entries(dialStats ?? {})
-                .filter(([, s]: any) => s.openWhy > 0 && ((Date.now() - Date.parse(s.lastWhyAt || '')) / 36e5) >= 48)
-                .map(([k]) => k);
-              window.dispatchEvent(new CustomEvent('mesh:list:filterOpenWhy', { detail: { keys: openOver48 } }));
-            }}
-          />{" "}
-          Show Items
-        </label> */}
-
-        {/* Source work chip */}
         {workChip}
 
         {/* Mini ML */}
-        {miniMix && <MixBadge mix={miniMix} className="ml-auto" />}
-
-        {a.text && <SourceQualityBadge text={a.text} />}
-        {a.text && <FallacyBadge text={a.text} />}
+          {modelLens === 'rhetorical' && (
+    <>
+      {miniMix && <MixBadge mix={miniMix} className="ml-auto" />}
+      {a.text && <SourceQualityBadge text={a.text} />}
+      {a.text && <FallacyBadge text={a.text} />}
+    </>
+  )}
       </div>
-
+      {modelLens === 'dialogical' && (
+   <>
       {/* Inline WHY */}
 <InlineMoveForm
   placeholder="Challenge this: WHY …"
@@ -623,7 +688,8 @@ function ArgRow({
     window.dispatchEvent(new CustomEvent('dialogue:moves:refresh'));
   }}
 />
-
+   </>
+ )}
       <div className="text-xs text-neutral-500 mb-1 mt-1">{created}</div>
 
       {Array.isArray(a.edgesOut) && a.edgesOut.length > 0 && (
@@ -738,7 +804,15 @@ function ArgRow({
           />
         )}
 
-        <CiteInline deliberationId={deliberationId} argumentId={a.id} text={a.text} />
+<CiteInline
+  deliberationId={deliberationId}
+  argumentId={a.id}
+  text={a.text}
+  prefillUrl={prefillUrl}
+  open={citeOpen}
+  onClose={()=>{ setCiteOpen(false); setPrefillUrl(undefined); }}
+/>
+
 
         {a.approvedByUser ? (
           <button
@@ -805,24 +879,25 @@ function DialogicalRow({
   );
 }
 
-function CiteInline({
-  deliberationId,
-  argumentId,
-  text,
-}: {
-  deliberationId: string;
-  argumentId: string;
-  text: string;
+function CiteInline({ deliberationId, argumentId, text, prefillUrl, open:forcedOpen, onClose }:{
+  deliberationId:string; argumentId:string; text:string;
+  prefillUrl?: string; open?: boolean; onClose?: ()=>void;
 }) {
   const [open, setOpen] = React.useState(false);
+  React.useEffect(()=>{ if (forcedOpen !== undefined) setOpen(forcedOpen); }, [forcedOpen]);
   return (
     <>
-      <button className="px-2 py-1 border rounded text-xs" onClick={() => setOpen((o) => !o)}>
+      <button className="px-2 py-1 border rounded text-xs" onClick={() => setOpen(o => !o)}>
         {open ? "Close cite" : "Cite"}
       </button>
       {open && (
         <div className="mt-2">
-          <CitePickerInline deliberationId={deliberationId} argumentText={text} onDone={() => setOpen(false)} />
+          <CitePickerInline
+            deliberationId={deliberationId}
+            argumentText={text}
+            initialUrl={prefillUrl}
+            onDone={() => { setOpen(false); onClose?.(); }}
+          />
         </div>
       )}
     </>

@@ -87,6 +87,7 @@ export default function CriticalQuestions({
   const [searchQ, setSearchQ] = useState('');
   const [searchRes, setSearchRes] = useState<Array<{id:string;text:string}>>([]);
   const [searchBusy, setSearchBusy] = useState(false);
+  const [blockedMsg, setBlockedMsg] = useState<Record<string,string>>({});
 
   // inline grounds map: sig → text
   const [groundsDraft, setGroundsDraft] = useState<Record<string,string>>({});
@@ -126,12 +127,12 @@ export default function CriticalQuestions({
     setOkKey(sig);
     setTimeout(() => setOkKey(k => (k === sig ? null : k)), 1000);
   }
-
   function canMarkAddressed(sig: string, satisfied: boolean) {
     if (satisfied) return true;
-    const attached = !!attachData?.attached?.[sig];
-    const grounded = justGrounded.has(sig);
-    return attached || grounded;
+    const attachedSpecific = !!attachData?.attached?.[sig];
+    const attachedAny      = !!attachData?.attached?.['__ANY__']; // fallback: any inbound rebut/undercut found
+    // Note: posting grounds alone does not satisfy the guard; keep checkbox disabled until there is an attachment.
+    return attachedSpecific || attachedAny;
   }
 
   // ----- actions -----
@@ -139,7 +140,6 @@ export default function CriticalQuestions({
   // Toggle satisfied (with linger ✓)
   async function toggleCQ(schemeKey: string, cqKey: string, next: boolean) {
     const sig = sigOf(schemeKey, cqKey);
-
     if (next) {
       setLingerKeys(p => new Set(p).add(sig));
       setTimeout(() => setLingerKeys(p => { const n = new Set(p); n.delete(sig); return n; }), 1000);
@@ -162,10 +162,27 @@ export default function CriticalQuestions({
 
     try {
       setPostingKey(sig);
-      await fetch('/api/cqs/toggle', {
-        method: 'POST', headers: { 'content-type':'application/json' },
+      const res = await fetch('/api/cqs/toggle', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ targetType, targetId, schemeKey, cqKey, satisfied: next, deliberationId }),
       });
+  
+      if (res.status === 409) {
+        const j = await res.json().catch(()=>null);
+        const req = j?.guard?.requiredAttack as ('rebut'|'undercut'|null);
+        const msg = req
+          ? `Needs a ${req} attached (or strong NLI for rebut).`
+          : `Needs an attached counter (rebut/undercut).`;
+        setBlockedMsg(m => ({ ...m, [sig]: msg }));
+        // Re-sync from server
+        await revalidateAll(schemeKey);
+        return;
+      }
+  
+      if (!res.ok) throw new Error(await res.text());
+  
+      setBlockedMsg(m => { const c = { ...m }; delete c[sig]; return c; });
       window.dispatchEvent(new CustomEvent('dialogue:moves:refresh'));
       flashOk(sig);
     } finally {
@@ -175,7 +192,33 @@ export default function CriticalQuestions({
   }
 
   // Resolve via grounds: post GROUNDS move (and optionally tick satisfied)
-  async function resolveViaGrounds(schemeKey: string, cqKey: string, brief: string, alsoMark = true) {
+  // async function resolveViaGrounds(schemeKey: string, cqKey: string, brief: string, alsoMark = true) {
+  //   const sig = sigOf(schemeKey, cqKey);
+  //   if (!brief.trim()) return;
+  //   try {
+  //     setPostingKey(sig);
+  //     await fetch('/api/dialogue/move', {
+  //       method: 'POST', headers: { 'content-type':'application/json' },
+  //       body: JSON.stringify({
+  //         deliberationId,
+  //         targetType: 'claim',
+  //         targetId,
+  //         kind: 'GROUNDS',
+  //         payload: { schemeKey, cqKey, brief },
+  //         autoCompile: true,
+  //         autoStep: true,
+  //       }),
+  //     });
+  //     setJustGrounded(p => new Set(p).add(sig));
+  //     window.dispatchEvent(new CustomEvent('dialogue:moves:refresh'));
+  //     if (alsoMark) await toggleCQ(schemeKey, cqKey, true);
+  //     flashOk(sig);
+  //   } finally {
+  //     setPostingKey(null);
+  //     setGroundsDraft(g => ({ ...g, [sig]: '' }));
+  //   }
+  // }
+  async function resolveViaGrounds(schemeKey: string, cqKey: string, brief: string, alsoMark = false) {
     const sig = sigOf(schemeKey, cqKey);
     if (!brief.trim()) return;
     try {
@@ -192,13 +235,13 @@ export default function CriticalQuestions({
           autoStep: true,
         }),
       });
-      setJustGrounded(p => new Set(p).add(sig));
+      // grounds posted; do NOT auto-mark satisfied (will fail guard)
       window.dispatchEvent(new CustomEvent('dialogue:moves:refresh'));
-      if (alsoMark) await toggleCQ(schemeKey, cqKey, true);
       flashOk(sig);
     } finally {
       setPostingKey(null);
       setGroundsDraft(g => ({ ...g, [sig]: '' }));
+      await revalidateAll(schemeKey);
     }
   }
 
@@ -311,7 +354,9 @@ export default function CriticalQuestions({
                           <span className="text-[10px] text-neutral-500 ml-2 ">(add)</span>
                         )}
                       </label>
-
+                      {blockedMsg[sig] && !cq.satisfied && (
+  <div className="text-[11px] text-amber-700 ml-6 mt-1">{blockedMsg[sig]}</div>
+)}
                       {/* right: attach suggestion */}
                       {!satisfied && rowSug && (
                         <button
@@ -351,7 +396,7 @@ export default function CriticalQuestions({
                           onClick={() => resolveViaGrounds(s.key, cq.key, groundsVal.trim(), true)}
                           title="Post grounds and mark addressed"
                         >
-                          {posting ? 'Posting…' : 'Resolve via grounds'}
+                           {posting ? 'Posting…' : 'Post grounds'}
                         </Button>
                         {/* (optional) just post grounds without marking satisfied */}
                         <Button
@@ -362,7 +407,7 @@ export default function CriticalQuestions({
                           onClick={() => resolveViaGrounds(s.key, cq.key, groundsVal.trim(), false)}
                           title="Post grounds (do not mark yet)"
                         >
-                          Save only
+                          Clear
                         </Button>
                       </div>
                     )}
