@@ -1,8 +1,8 @@
+// app/api/deliberations/[id]/issues/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prismaclient';
 import { getCurrentUserId } from '@/lib/serverutils';
-
 import { asUserIdString } from '@/lib/auth/normalize';
 
 const CreateBody = z.object({
@@ -12,29 +12,59 @@ const CreateBody = z.object({
 });
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
-  const userId = await getCurrentUserId(); if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const userId = await getCurrentUserId();
+  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const uid = asUserIdString(userId);
+
   const deliberationId = params.id;
   const { label, description, links } = CreateBody.parse(await req.json());
 
   const issue = await prisma.issue.create({
     data: {
-      deliberationId, label, description: description ?? null, createdById: uid,
-      links: links?.length ? {
-        createMany: { data: links.map(aid => ({ argumentId: aid })) }
-      } : undefined
+      deliberationId,
+      label,
+      description: description ?? null,
+      createdById: uid,
+      links: links?.length
+        ? { createMany: { data: links.map((argumentId) => ({ argumentId })) } }
+        : undefined,
     },
-    include: { links: true }
+    include: { links: true, _count: { select: { links: true } } },
   });
+
   return NextResponse.json({ ok: true, issue });
 }
 
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+// NEW: richer list with filters/search
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const deliberationId = params.id;
+  const url = new URL(req.url);
+  const state = (url.searchParams.get('state') || 'open') as 'open' | 'closed' | 'all';
+  const search = url.searchParams.get('search') || '';
+  const limit = Math.min(Math.max(Number(url.searchParams.get('limit') ?? '50'), 1), 200);
+
+  const where = {
+    deliberationId,
+    ...(state !== 'all' ? { state } : {}),
+    ...(search
+      ? {
+          OR: [
+            { label: { contains: search, mode: 'insensitive' as const } },
+            { description: { contains: search, mode: 'insensitive' as const } },
+          ],
+        }
+      : {}),
+  };
+
   const list = await prisma.issue.findMany({
-    where: { deliberationId, state: 'open' },
+    where,
     orderBy: { createdAt: 'desc' },
-    include: { links: true }
+    take: limit,
+    include: {
+      links: true,
+      _count: { select: { links: true } }, // comments can be added later
+    },
   });
+
   return NextResponse.json({ ok: true, issues: list });
 }

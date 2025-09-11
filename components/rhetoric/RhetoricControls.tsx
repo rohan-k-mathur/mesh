@@ -16,6 +16,13 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 
+function ChipBar({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex flex-wrap items-center gap-1 rounded-md border border-slate-200 bg-slate-100/70 px-1 py-1 text-xs">
+      {children}
+    </div>
+  );
+}
 export default function RhetoricControls({ sample }: { sample?: string }) {
   const {
     mode,
@@ -92,6 +99,7 @@ export default function RhetoricControls({ sample }: { sample?: string }) {
   return (
     <div className="flex flex-wrap items-center gap-2 text-xs ">
       {/* Lens mode */}
+      <ChipBar>
       <label className="flex items-center gap-1">
         Lens:
         <select
@@ -112,7 +120,9 @@ export default function RhetoricControls({ sample }: { sample?: string }) {
           <option value="rhetorical">Rhetorical</option>
         </select>
       </label>
+      </ChipBar>
       {/* NLP toggle */}
+      <ChipBar>
       <label
         className="flex items-center gap-1"
         title="Imperatives, passive, modals, negation, etc. (local; falls back to regex if NLP is unavailable)"
@@ -136,10 +146,10 @@ export default function RhetoricControls({ sample }: { sample?: string }) {
           disabled={mode !== 'style'}
           aria-disabled={mode !== 'style'}
         />
-        Lexicon highlights
+        Lexicon 
       </label>
 
-<div className="flex items-center gap-2">
+
         <input
           id="mini-ml-toggle"
           type="checkbox"
@@ -147,14 +157,15 @@ export default function RhetoricControls({ sample }: { sample?: string }) {
           onChange={e => setSettings({ ...settings, enableMiniMl: e.target.checked })}
           />
         <label htmlFor="mini-ml-toggle" className="text-xs" title="Tiny, transparent scorer for E/L/P mix (beta)">
-          Mini-ML
+          Metrics
         </label>
-      </div>
+
+        </ChipBar>
 
       {/* Category dropdown */}
       <DropdownMenu >
         <DropdownMenuTrigger asChild>
-          <button className='savebutton px-2 rounded-md'>Cues</button>
+        <button className=" btnv2 rounded-full">Cues</button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-60 mt-1 max-h-[300px]  overflow-y-auto ">
           <DropdownMenuLabel>Core cues</DropdownMenuLabel>
@@ -197,9 +208,11 @@ export default function RhetoricControls({ sample }: { sample?: string }) {
 
       {/* Density */}
       {counts && (
+        <ChipBar>
         <span className="ml-1 text-neutral-600">
           Style density: <b>{counts.per100w}</b> / 100w
         </span>
+        </ChipBar>
       )}
     </div>
   );

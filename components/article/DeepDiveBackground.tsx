@@ -13,14 +13,7 @@ export function DeepDiveBackdrop({
         <div className="absolute inset-0 bg-gradient-to-b
                         from-indigo-50 via-rose-50 to-slate-50
                         dark:from-slate-900 dark:via-slate-900 dark:to-slate-900" />
-        <div
-          className="absolute inset-0 opacity-[.06] dark:opacity-[.10]"
-          style={{
-            backgroundImage:
-              'linear-gradient(to right, rgba(15,23,42,0.20) 1px, transparent 1px), linear-gradient(to bottom, rgba(15,23,42,0.20) 1px, transparent 1px)',
-            backgroundSize: '36px 36px',
-          }}
-        />
+      
         {/* drifting glows (very slow; reduced-motion safe via CSS media query) */}
         <style>{`
           @media (prefers-reduced-motion: no-preference) {

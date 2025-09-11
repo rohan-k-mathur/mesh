@@ -53,7 +53,7 @@ export default function AnchorToMapButton({ argumentId, onCreated }: Props) {
       style={{ left: 12, bottom: 24 }}
     >
       <span className="mr-2">Map as:</span>
-      <button className="px-1 py-0.5 border rounded mr-1" onClick={()=>createNode('claim')}>Claim</button>
+      <button className="px-1 py-0.5 border rounded mr-1 " onClick={()=>createNode('claim')}>Claim</button>
       <button className="px-1 py-0.5 border rounded mr-1" onClick={()=>createNode('reason')}>Reason</button>
       <button className="px-1 py-0.5 border rounded mr-1" onClick={()=>createNode('counter')}>Counter</button>
       <button className="px-1 py-0.5 border rounded" onClick={()=>createNode('evidence')}>Evidence</button>

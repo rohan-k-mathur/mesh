@@ -79,19 +79,197 @@
   .prose [data-clr="accent"] { color: var(--clr-accent); }
   .prose [data-clr="red"]    { color: var(--clr-red);    }
   .prose [data-clr="muted"]  { color: var(--clr-muted);  }
-  
-  .lockbutton {
+ /* === Aqua Glass Button v2.1 (Article scope) ============================== */
+/* Applies to .btnv2 and your legacy classes for drop-in compatibility */
+.btnv2,
+.savebutton,
+.lockbutton,
+.sheaf-button {
+  /* Theme hooks (RGB) */
+  --btn-accent: 129, 140, 248;    /* indigo-500 */
+  --btn-border: 15,23,42;       /* slate-900 */
+  --btn-text:   30,41,59;       /* slate-800 */
+  --btn-top:    255,255,255;
+  --btn-bot:    255,255,255;
 
-    box-shadow: 1px 1px 1px 1px rgba(0,0,0,0.5);
-  
-  }
-  .lockbutton:hover{
-  
-    box-shadow: .5px .5px .25px .25px rgba(0,0,0,0.25);
-  
-  }
+  -webkit-tap-highlight-color: transparent;
+  appearance: none;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .45rem;
 
-.savebutton {
+  padding: .36rem .72rem;       /* tighter, sleeker */
+  font-size: 12px; line-height: 1; font-weight: 450;
+  letter-spacing: .01em; -webkit-font-smoothing: antialiased;
+
+  border-radius: 10px;
+  border: 1.5px solid rgba(var(--btn-accent), .18);
+  outline: 1px solid rgba(var(--btn-accent), .12);
+  outline-offset: -2px;
+
+  
+  color: rgb(var(--btn-text));
+
+  /* Glass base + subtle accent wash */
+  background:
+    linear-gradient(180deg,
+      rgba(var(--btn-top), .92) 0%,
+      rgba(var(--btn-top), .50) 60%,
+      rgba(var(--btn-bot), .85) 100%
+    ),
+    linear-gradient(180deg,
+      rgba(var(--btn-accent), .08) 0%,
+      rgba(var(--btn-accent), .16) 100%
+    );
+  /* Soft elevation */
+  box-shadow:
+  inset 0 0 0 1px rgba(255,255,255,.45),
+  0 2px 6px rgba(51, 57, 82, 0.1),
+  0 14px 28px -14px rgba(98, 101, 114, 0.22);
+
+  backdrop-filter: saturate(2) blur(6px);
+
+  transition:
+    transform .08s ease,
+    box-shadow .08s ease,
+    border-color .18s ease,
+    background-color .18s ease,
+    color .18s ease;
+  cursor: pointer;
+}
+
+/* Top hairline highlight (Aqua-ish rim) */
+.btnv2::before,
+.savebutton::before,
+.lockbutton::before,
+.sheaf-button::before {
+  content: "";
+  position: absolute;
+  inset: 2px 2px auto 2px;      /* top strip */
+  height: 2.5px;
+  border-radius: 9px;
+  background: linear-gradient(180deg, rgba(255,255,255,.68), rgba(255,255,255,0));
+  pointer-events: none;
+}
+
+/* Soft specular sheen across upper half */
+.btnv2::after,
+.savebutton::after,
+.lockbutton::after,
+.sheaf-button::after {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 60% at 50% -20%,
+      rgba(255,255,255,.55) 0%,
+      rgba(255,255,255,.24) 35%,
+      rgba(255,255,255,0) 60%);
+  opacity: .65;
+  transition: opacity .18s ease;
+  /* respects reduced motion (no movement, just fade) */
+}
+
+/* Hover / active / focus */
+.btnv2:hover,
+.savebutton:hover,
+.lockbutton:hover,
+.sheaf-button:hover {
+  transform: translateY(-.5px);
+  box-shadow:
+
+    inset 0 0 0 1px rgba(255,255,255,.35),
+    0 1px 2px rgba(2,6,23,.06),
+    0 10px 20px -12px rgba(2,6,23,.16);
+}
+.btnv2:hover::after,
+.savebutton:hover::after,
+.lockbutton:hover::after,
+.sheaf-button:hover::after {
+  opacity: .8; /* a touch more shine on hover */
+}
+
+.btnv2:active,
+.savebutton:active,
+.lockbutton:active,
+.sheaf-button:active {
+  transform: translateY(0);
+  box-shadow: inset 0 2px 6px rgba(2,6,23,.18);
+}
+
+.btnv2:focus-visible,
+.savebutton:focus-visible,
+.lockbutton:focus-visible,
+.sheaf-button:focus-visible {
+  outline: none;
+  border-color: rgba(var(--btn-accent), .45);
+  box-shadow:
+    0 0 0 1px rgba(var(--btn-accent), .22),
+    inset 0 0 0 1px rgba(var(--btn-accent), .65);
+}
+
+/* Disabled */
+.btnv2[disabled],
+.savebutton[disabled],
+.lockbutton[disabled],
+.sheaf-button[disabled] {
+  opacity: .6;
+  cursor: not-allowed;
+  filter: grayscale(10%);
+}
+
+/* Dark mode tuning */
+.dark .btnv2,
+.dark .savebutton,
+.dark .lockbutton,
+.dark .sheaf-button {
+  --btn-text: 241,245,249;                 /* slate-50 */
+  --btn-top:  15,23,42; --btn-bot: 15,23,42;
+  border-color: rgba(148,163,184,.25);
+  background:
+    linear-gradient(180deg,
+      rgba(var(--btn-top), .64) 0%,
+      rgba(var(--btn-bot), .42) 100%
+    ),
+    linear-gradient(180deg,
+      rgba(var(--btn-accent), .18) 0%,
+      rgba(var(--btn-accent), .10) 100%
+    );
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.06),
+    0 1px 2px rgba(0,0,0,.35),
+    0 10px 20px -12px rgba(0,0,0,.5);
+}
+.dark .btnv2:hover,
+.dark .savebutton:hover,
+.dark .lockbutton:hover,
+.dark .sheaf-button:hover {
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.08),
+    0 2px 6px rgba(0,0,0,.45),
+    0 14px 28px -14px rgba(0,0,0,.6);
+}
+
+/* Sizes (optional) */
+.btnv2--sm { padding: .28rem .52rem; font-size: 12px; border-radius: 8px; }
+.btnv2--lg { padding: .56rem .96rem; font-size: 14px; border-radius: 12px; }
+
+/* Icon-only */
+.btnv2--icon { padding: .42rem; width: 2rem; height: 2rem; display: inline-grid; place-items: center; }
+
+/* Ghost variant */
+.btnv2--ghost { background: rgba(238, 242, 255,.22); backdrop-filter: none; border-width: .75px;  border-color: rgb(129, 140, 248,.75);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.22); }
+.btnv2--ghost:hover { box-shadow: inset 0 1px 2px rgba(2,6,23,.08), 0 4px 10px -8px rgba(2,6,23,.12); }
+
+
+
+
+.savebutton-article {
   background-color: transparent;
   padding: 2px;
   outline: transparent;
@@ -103,12 +281,12 @@
 
   
 }
-.savebutton:hover{
+.savebutton-article:hover{
   box-shadow:  inset 1px 1px 3px rgb(222, 199, 204, .3),
   inset -1px 2px 3px rgba(70, 69, 69, 0.25);
 
 }
-.sheaf-button {
+.sheaf-button-article {
   background-color: transparent;
   padding: 2px;
   outline: transparent;
@@ -120,9 +298,22 @@
 
   
 }
-.sheaf-button:hover{
+.sheaf-button-article:hover{
   box-shadow:  inset 1px 1px 3px rgb(200, 199, 232, .3),
   inset -1px 2px 3px rgba(70, 69, 100, 0.25);
+
+}
+
+.lockbutton-article {
+  background-color: transparent;
+  padding: 2px;
+  border-radius: 4px;
+  box-shadow: 1px 1px 1px 1px rgba(0,0,0,0.5);
+
+}
+.lockbutton-article:hover{
+
+  box-shadow: .5px .5px .25px .25px rgba(0,0,0,0.25);
 
 }
 

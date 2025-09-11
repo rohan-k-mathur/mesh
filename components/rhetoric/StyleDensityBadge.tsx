@@ -58,7 +58,7 @@ export default function StyleDensityBadge({ texts }: { texts: string[] }) {
   const absolutes = a.counts['absolute'] || 0;
 
   return (
-    <div className="text-[11px] px-2 py-0.5 rounded border bg-white/70 text-neutral-700"
+    <div className="inline-flex text-[11px] px-2 py-0.5 rounded border bg-white/70 text-neutral-700"
          title={`Style density: ${d} marks/100w • boosters:${boosters} hedges:${hedges} absolutes:${absolutes}`}>
       Style {d}/100w
     </div>

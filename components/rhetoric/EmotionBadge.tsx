@@ -11,16 +11,16 @@ export default function EmotionBadge({ texts }: { texts: string[] }) {
     .sort((a,b)=>b.n-a.n)[0];
 
   return (
-    <div className="inline-flex items-center gap-2 rounded border px-2 py-1 text-xs bg-white/70">
+    <div className="inline-flex items-center gap-1 rounded border px-2 py-.5 text-[11px] bg-white/70">
       {/* <span className="font-medium">Pathos:</span> */}
-      <span title="(positive - negative) per 100 words" className="px-1 rounded bg-emerald-50 border border-emerald-200 text-emerald-700">
+      <span title="(positive - negative) per 100 words" className="px-2 py-.5  rounded bg-emerald-50 border border-emerald-200 text-emerald-700">
         Valence {valenceScorePer100w >= 0 ? '+' : ''}{valenceScorePer100w}
       </span>
-      <span className="text-neutral-600">
-        pos {affectCounts.positive} / neg {affectCounts.negative}
+      <span className="text-neutral-600 py-.5 ">
+      · pos {affectCounts.positive} / neg {affectCounts.negative}
       </span>
       {topEmotion && topEmotion.n > 0 && (
-        <span className="text-neutral-600">
+        <span className="text-neutral-600 py-.5 ">
           · top emotion: <b>{topEmotion.k}</b> ({topEmotion.n})
         </span>
       )}

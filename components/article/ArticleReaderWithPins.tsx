@@ -256,8 +256,8 @@ function CommentRail({
           //   className={`absolute right-0 translate-y-[-50%] truncate w-full text-left m-2
           <div key={t.id} className="space-y-4 gap-4 h-full">
             <button
-              className={`absolute right-0 translate-y-[-50%] truncate justify-end items-end text-left m-2 w-[170px] 
-                       text-xs px-2 py-0 rounded-sm   lockbutton
+              className={`absolute right-0 translate-y-[-50%] truncate justify-end items-end text-left mr-6 w-[170px] 
+                       text-xs px-2 py-0 rounded-sm    lockbutton-article
                        
                        ${
                          active
@@ -599,7 +599,7 @@ export default function ArticleReaderWithPins({
                       }}
                     >
                       <button
-                        className="w-6 h-6  lockbutton rounded-md bg-slate-200/20 border-[1.4px] border-amber-500 text-amber-500 text-xs "
+                        className="w-6 h-6  lockbutton-article rounded-md bg-slate-200/20 border-[1.4px] border-amber-500 text-amber-500 text-xs "
                         onClick={() => setExpandedCluster(key)}
                         title={`${c.items.length} comments`}
                       >
@@ -630,17 +630,17 @@ export default function ArticleReaderWithPins({
                       onMouseLeave={() => setHoverId(null)}
                     >
                       <button
-                        className={`w-[25px] h-[14px] rounded-sm lockbutton bg-white  grid place-items-center border-amber-500
+                        className={`w-[25px] h-[14px] rounded-sm  lockbutton-article bg-white  grid place-items-center border-amber-500
                          leading-none
                       ${
                         t.resolved
-                          ? "bg-slate-400/50 lockbutton"
-                          : "bg-slate-200/20 lockbutton"
+                          ? "bg-slate-400/50  lockbutton-article"
+                          : "bg-slate-200/20  lockbutton-article"
                       }
                         ${
                           active
-                            ? "opacity-100 border-[1.4px] bg-amber-500/50  lockbutton"
-                            : "border-[1.1px] bg-slate-200/20 lockbutton "
+                            ? "opacity-100 border-[1.4px] bg-amber-500/50   lockbutton-article"
+                            : "border-[1.1px] bg-slate-200/20  lockbutton-article "
                         }`}
                         onClick={() => {
                           setOpenId(t.id);

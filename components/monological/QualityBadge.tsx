@@ -21,12 +21,14 @@ export function qualityScore({
 export default function QualityBadge({ score }: { score: number }) {
   const label = score >= 75 ? 'Strong' : score >= 50 ? 'Fair' : 'Weak';
   return (
-    <span className={`px-1.5 py-0.5 rounded border text-[10px] ${
+    <div className={`px-1.5 py-.5  rounded border text-[11px] ${
       score>=75 ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
       : score>=50 ? 'bg-amber-50 border-amber-200 text-amber-700'
                   : 'bg-rose-50 border-rose-200 text-rose-700'
-    }`} title={`Monological quality: ${score}/100`}>
+    }`}>
+    <span  title={`Monological quality: ${score}/100`}>
       {label} {score}
     </span>
+    </div>
   );
 }

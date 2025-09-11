@@ -27,10 +27,13 @@ import {
 import CardListVirtuoso from "@/components/deepdive/CardListVirtuoso";
 import dynamic from "next/dynamic";
 import { useAuth } from "@/lib/AuthContext";
+import useSWR from 'swr';
+const fetcher = (u:string)=>fetch(u,{cache:'no-store'}).then(r=>r.json());
 
 const LazyGraphPanel = dynamic(() => import("@/components/graph/GraphPanel"), {
   ssr: false,
 });
+
 
 type PrefProfile = 'community' | 'policy' | 'scientific';
 type PrefState = { profile: PrefProfile };
@@ -62,6 +65,40 @@ export function ScrollBody({
   );
 }
 
+
+function ActivityFeed({ deliberationId, authorId }:{ deliberationId:string; authorId:string }) {
+  const { data, error, isLoading } = useSWR(
+    `/api/deliberations/${encodeURIComponent(deliberationId)}/activity?authorId=${encodeURIComponent(authorId)}&limit=100`,
+    fetcher
+  );
+  if (isLoading) return <div className="text-xs text-neutral-500">Loading…</div>;
+  if (error)     return <div className="text-xs text-rose-600">Failed to load</div>;
+  const items = data?.items ?? [];
+  if (!items.length) return <div className="text-xs text-neutral-500">No recent activity</div>;
+
+  return (
+    <ul className="space-y-2">
+      {items.map((ev:any) => (
+        <li key={ev.id} className="text-sm flex justify-between border-b pb-1">
+          <span>
+            {ev.type === 'WHY' && <>❓ WHY on <b>{ev.targetType}</b></>}
+            {ev.type === 'GROUNDS' && <>💡 Grounds on <b>{ev.targetType}</b></>}
+            {ev.type === 'RETRACT' && <>🗑 Retracted <b>{ev.targetType}</b></>}
+            {ev.type === 'CONCEDE' && <>✅ Conceded on <b>{ev.targetType}</b></>}
+            {ev.type === 'APPROVAL' && <>👍 Approved your <b>argument</b></>}
+            {ev.type === 'CLAIM_SUPPORTED' && <>🧩 Support for your <b>claim</b></>}
+            {ev.type === 'CLAIM_REBUTTED' && <>⚔️ Rebuttal to your <b>claim</b></>}
+            {ev.type === 'ISSUE_LINK' && <>🔗 Issue linked to your <b>argument</b></>}
+          </span>
+          <span className="text-[11px] text-neutral-500">
+            {new Date(ev.createdAt).toLocaleString()}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function WorksCounts({ deliberationId }:{ deliberationId:string }) {
   const [counts, setCounts] = useState<{DN:number;IH:number;TC:number;OP:number}>({DN:0,IH:0,TC:0,OP:0});
   useEffect(() => {
@@ -75,9 +112,11 @@ function WorksCounts({ deliberationId }:{ deliberationId:string }) {
     })();
   }, [deliberationId]);
   return (
-    <span className="text-[10px] text-neutral-500">
+    <ChipBar>
+    <span className="text-[11px] text-neutral-500">
       DN {counts.DN} · IH {counts.IH} · TC {counts.TC} · OP {counts.OP}
     </span>
+    </ChipBar>
   );
 }
 // header toggle component
@@ -314,46 +353,10 @@ export function SectionCard({
   );
 }
 
-function DeepDiveBackdrop() {
-  return (
-    <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 w-full h-full">
-      {/* pastel wash + grid */}
-      <div className="absolute inset-0 bg-gradient-to-b from-indigo-50 via-rose-50 to-slate-50" />
-      <div
-        className="absolute inset-0 opacity-[.06]"
-        style={{
-          backgroundImage:
-            'linear-gradient(to_right,rgba(15,23,42,.2)_1px,transparent_1px),linear-gradient(to_bottom,rgba(15,23,42,.2)_1px,transparent_1px)',
-          backgroundSize: '36px 36px',
-        }}
-      />
-      {/* drifting glows (very slow, motion-safe) */}
-      <style>{`
-        @media (prefers-reduced-motion: no-preference) {
-          @keyframes driftA { 0%{transform:translate(0,0)} 50%{transform:translate(16px,10px)} 100%{transform:translate(0,0)} }
-          @keyframes driftB { 0%{transform:translate(0,0)} 50%{transform:translate(-14px,-8px)} 100%{transform:translate(0,0)} }
-        }
-      `}</style>
-      <div
-        className="absolute left-1/3 -top-24 h-[26rem] w-[26rem] -translate-x-1/2 rounded-full opacity-25 blur-3xl"
-        style={{
-          background: 'radial-gradient(60% 60% at 50% 50%, rgba(99,102,241,0.45) 0%, transparent 60%)',
-          animation: 'driftA 14s ease-in-out infinite',
-        }}
-      />
-      <div
-        className="absolute right-1/4 bottom-0 h-[24rem] w-[24rem] translate-x-1/2 rounded-full opacity-25 blur-3xl"
-        style={{
-          background: 'radial-gradient(60% 60% at 50% 50%, rgba(244,114,182,0.45) 0%, transparent 60%)',
-          animation: 'driftB 16s ease-in-out infinite',
-        }}
-      />
-    </div>
-  );
-}
+
 function ChipBar({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex flex-wrap items-center gap-1 rounded-md border border-slate-200 bg-white/70 px-1 py-1 text-xs">
+    <div className="flex flex-wrap items-center gap-1 rounded-md border border-slate-200 bg-slate-50/70 px-1.5 py-1 text-xs">
       {children}
     </div>
   );
@@ -495,7 +498,7 @@ async function updatePref(next: PrefProfile) {
           <div className="flex items-center gap-4">
           <RhetoricControls sample={rhetoricSample} />
           <button
-    className="px-2 py-1 border rounded text-xs bg-white"
+    className="btnv2 rounded-full"
     onClick={() => {
       setTab('works');
     // double-RAF ensures tab state has applied before we scroll
@@ -599,7 +602,7 @@ async function updatePref(next: PrefProfile) {
       </Tabs> */}
 {/* was: <Tabs defaultValue="arguments"> */}
 <div id="deepdive-tabs-anchor" className="scroll-mt-24" /> 
-
+<SectionCard>
 <Tabs value={tab} onValueChange={(v)=>setTab(v as any)}>
   <hr className="w-full border border-white" />
   <div id="work-composer" /> 
@@ -611,6 +614,8 @@ async function updatePref(next: PrefProfile) {
 
     <TabsTrigger value="card">Create Card</TabsTrigger>
     <TabsTrigger value="viewcard">View Cards</TabsTrigger>
+    <TabsTrigger value="activity">My Activity</TabsTrigger>
+
   </TabsList>
   <TabsContent value="arguments">{/* (keep empty or future) */}</TabsContent>
 
@@ -644,7 +649,13 @@ async function updatePref(next: PrefProfile) {
       </div>
     </SectionCard>
   </TabsContent>
+  <TabsContent value="activity">
+  <SectionCard title="Activity on my contributions">
+    <ActivityFeed deliberationId={deliberationId} authorId={authorId!} />
+  </SectionCard>
+</TabsContent>
 </Tabs>
+</SectionCard>
       {/* Views + CEG widgets */}
       <SectionCard>
         <RepresentativeViewpoints

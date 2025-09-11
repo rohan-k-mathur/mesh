@@ -31,13 +31,13 @@ export default function DialogueMoves({
   return (
     <div className="flex flex-wrap gap-1.5">
       {/* Challenge → WHY (starts a 24h clock via route-side default) */}
-      <button className="px-2 py-1 border rounded text-[10px]" onClick={() => post('WHY')}>Challenge</button>
+      <button className="px-2 py-1 btnv2--ghost  rounded text-xs" onClick={() => post('WHY')}>Challenge</button>
       {/* Defend → GROUNDS (supply brief rationale if you like) */}
-      <button className="px-2 py-1 border rounded text-[10px]" onClick={() => post('GROUNDS', { brief: 'see evidence inline' })}>Defend</button>
+      <button className="px-2 py-1 btnv2--ghost  rounded text-xs" onClick={() => post('GROUNDS', { brief: 'see evidence inline' })}>Defend</button>
       {/* Concede → represent as ASSERT with payload flag (no enum migration needed) */}
-      <button className="px-2 py-1 border rounded text-[10px]" onClick={() => post('ASSERT', { as: 'CONCEDE' })}>Concede</button>
+      <button className="px-2 py-1 btnv2--ghost  rounded text-xs" onClick={() => post('ASSERT', { as: 'CONCEDE' })}>Concede</button>
       {/* Retract → use existing kind */}
-      <button className="px-2 py-1 border rounded text-[10px]" onClick={() => post('RETRACT')}>Retract</button>
+      <button className="px-2 py-1 btnv2--ghost  rounded text-xs" onClick={() => post('RETRACT')}>Retract</button>
     </div>
   );
 }

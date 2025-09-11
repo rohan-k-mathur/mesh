@@ -42,6 +42,23 @@ export default function QualityBadgeBreakdown({
   const score = Math.min(100, base + bonus);
 
   const [open, setOpen] = React.useState(false);
+  const menuRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (!open) return;
+
+    function handleClickOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [open]);
+
 
   return (
     <div className="inline-flex items-center gap-2">
@@ -49,7 +66,10 @@ export default function QualityBadgeBreakdown({
         <QualityBadge score={score} />
       </div>
       {open && (
-        <div className="absolute z-30 mt-8 w-80 rounded border bg-white p-2 shadow-lg text-[12px]">
+        <div 
+        ref={menuRef}
+
+        className="absolute z-30 h-40 w-80 top-14 ml-2 rounded-xl border bg-white/50 backdrop-blur p-2 shadow-lg text-[12px] overflow-y-auto">
           <div className="font-semibold mb-1">Quality details</div>
           <ul className="space-y-1">
             <li>Grounds: {toulminPresence.grounds ? '✓' : '–'}</li>

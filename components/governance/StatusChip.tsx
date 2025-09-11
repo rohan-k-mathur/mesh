@@ -1,6 +1,6 @@
 export default function StatusChip({ status }:{ status: string }) {
     const map: Record<string, string> = {
-      OK: 'bg-slate-100 text-slate-700 border-slate-200',
+      OK: 'bg-green-50 text-slate-700 border-green-200',
       NEEDS_SOURCES: 'bg-amber-50 text-amber-700 border-amber-200',
       WORKSHOP: 'bg-blue-50 text-blue-700 border-blue-200',
       DISPUTED: 'bg-rose-50 text-rose-700 border-rose-200',
@@ -9,6 +9,6 @@ export default function StatusChip({ status }:{ status: string }) {
       OUT_OF_BOUNDS: 'bg-zinc-100 text-zinc-700 border-zinc-200',
     };
     const cls = map[status] ?? map.OK;
-    return <span className={`inline-block text-[11px] px-1.5 py-0.5 rounded border ${cls}`}>{status}</span>;
+    return <span className={`inline-block text-[11px] px-1.5 py-1 rounded border ${cls}`}>{status}</span>;
   }
   

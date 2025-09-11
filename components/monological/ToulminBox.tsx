@@ -85,16 +85,17 @@ function AttachEvidenceUnpromoted({
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-col  gap-2">
       <input
-        className="flex-1 border rounded px-2 py-1 text-[12px]"
+        className="flex-1 border rounded px-2 py-0.5 bg-white btnv2--ghost text-[12px]"
         placeholder="Paste DOI or URL…"
         value={url}
         onChange={e=>setUrl(e.target.value)}
         disabled={busy}
       />
+      <div className='flex gap-2'>
       <button
-        className="px-2 py-1 border rounded text-[11px]"
+        className="px-2 py-.5 btnv2--ghost bg-white rounded text-[11px]"
         title="Open cite picker"
         onClick={()=>onOpenCitePicker?.(url || undefined)}
         disabled={busy}
@@ -102,12 +103,13 @@ function AttachEvidenceUnpromoted({
         Cite…
       </button>
       <button
-        className="px-2 py-1 border rounded text-[11px]"
+        className="px-2 py-.5 btnv2--ghost rounded bg-white text-[11px]"
         onClick={promoteAndAttach}
         disabled={busy || !url.trim()}
       >
-        {busy ? 'Working…' : 'Promote with evidence'}
+        {busy ? 'Working…' : 'Provide Evidence'}
       </button>
+      </div>
       {ok && <span className="text-[10px] text-emerald-700">✓</span>}
       {err && <span className="text-[10px] text-rose-700">{err}</span>}
     </div>
@@ -342,7 +344,7 @@ export function ToulminBox({
   }
 
   return (
-    <div className={`mt-2 grid grid-cols-3 gap-2 ${className ?? ''}`}>
+    <div className={`mt-2 mb-2 grid grid-cols-3 gap-2 w-3/4 ${className ?? ''}`}>
       {section('grounds',  'Grounds',   'border-emerald-200 bg-emerald-50/60')}
       {section('warrant',  'Warrant',   'border-violet-200  bg-violet-50/60')}
       {section('backing',  'Backing',   'border-sky-200     bg-sky-50/60')}
@@ -350,20 +352,20 @@ export function ToulminBox({
       {section('rebuttal', 'Rebuttal',  'border-rose-200    bg-rose-50/60')}
 
       {/* Conclusion cell with actions */}
-      <div className="rounded border border-blue-200 bg-blue-50/60 p-2">
+      <div className="rounded border border-orange-200 bg-orange-50/60 p-2">
         <div className="text-[11px] font-semibold mb-1 flex items-center justify-between">
           <span>Conclusion</span>
           <div className="flex items-center gap-2">
             {/* Sequent */}
             {(gammaTexts.length && conclusion) ? (
-              <button className="text-[10px] underline" onClick={openSequent} title="View as Γ ⊢ Δ">Γ ⊢ Δ</button>
+              <button className="text-[10px] underline underline-offset-4" onClick={openSequent} title="View as Γ ⊢ Δ">Γ ⊢ Δ</button>
             ) : null}
             {/* Open in dialogue */}
-            {argumentId && deliberationId && (
+            {/* {argumentId && deliberationId && (
               <button className="text-[10px] underline" onClick={openDialogue} title="Open as dialogue (ASSERT/WHY/GROUNDS)">
                 Open in dialogue
               </button>
-            )}
+            )} */}
           </div>
         </div>
 

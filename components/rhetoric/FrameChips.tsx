@@ -13,7 +13,7 @@ export default function FrameChips({ texts }: { texts: string[] }) {
       {topFrames.map(f => (
         <span
           key={f.key}
-          className="text-[11px] px-1.5 py-0.5 rounded border bg-blue-50 border-blue-200 text-blue-700"
+          className="text-[11px] px-2 py-0.5 rounded border bg-blue-50 border-blue-200 text-blue-700 bg-white/70"
           title={`${f.count} matches in sample (~${Math.round((f.count/words)*10000)/100} / 100w)`}
         >
           {labelFor(f.key)} {f.count}

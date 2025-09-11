@@ -48,7 +48,7 @@ export default function MonologicalToolbar({
     return (
       <div className="text-[11px] text-neutral-600 flex flex-wrap gap-2">
         {need.map(s => (
-          <button key={s} className="px-1.5 py-0.5 border rounded" onClick={() => setEditing(s)}>
+          <button key={s} className="px-1.5 py-0.5  btnv2--ghost rounded" onClick={() => setEditing(s)}>
             □ {s}
           </button>
         ))}
@@ -72,7 +72,7 @@ const saveQualifier = React.useMemo(() => {
   return (
     <div className="mt-2 rounded-lg border bg-white/90 p-2">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-[11px] px-1.5 py-0.5 rounded border bg-slate-50">
+        <span className="text-[11px] px-1.5 py-.5 rounded border bg-slate-50">
           Toulmin completeness: {completeness}%
         </span>
 
@@ -84,18 +84,12 @@ const saveQualifier = React.useMemo(() => {
           cqRequired={cqSummary?.required ?? 0}
         />
 
-        <div className="ml-2">
-          <QuantifierModalityPicker
-            initialQuantifier={null}
-            initialModality={null}
-            onChange={(q,m)=>saveQualifier(a.id, q, m)}
-            />
-        </div>
+        
 
         <div className="ml-auto flex gap-2">
           {(['ground','warrant','backing','rebuttal'] as Slot[]).map(s => (
             <button key={s}
-              className="px-2 py-1 border rounded text-[11px]"
+              className="px-2 py-1  btnv2--ghost rounded text-[11px]"
               onClick={() => setEditing(s)}
               title={`Add ${s}`}
             >
@@ -103,7 +97,7 @@ const saveQualifier = React.useMemo(() => {
             </button>
           ))}
 
-          <button className="px-2 py-1 border rounded text-[11px]"
+          <button className="px-2 py-1 btnv2--ghost rounded text-[11px]"
             title="Extract & review"
             onClick={()=>{/* SWR already fetched; opening missing checklist helps */}}>
             Extract
@@ -114,8 +108,8 @@ const saveQualifier = React.useMemo(() => {
       <div className="mt-2">
         <MissingChecklist />
       </div>
-      <button
-  className="px-2 py-1 border rounded text-[11px]"
+<button
+  className="flex gap-4 px-2 py-1 btnv2--ghost rounded text-[11px] mt-2"
   onClick={async ()=>{
     await fetch('/api/monological/bridge',{
       method:'POST', headers:{'content-type':'application/json'},
@@ -127,6 +121,13 @@ const saveQualifier = React.useMemo(() => {
 >
   Open in dialogue
 </button>
+<div className="flex flex-col  w-fit mt-2">
+          <QuantifierModalityPicker
+            initialQuantifier={null}
+            initialModality={null}
+            onChange={(q,m)=>saveQualifier(a.id, q, m)}
+            />
+        </div>
       {editing && (
         <InlineSlotEditor
           argumentId={argument.id}
