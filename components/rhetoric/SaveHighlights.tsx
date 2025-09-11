@@ -31,7 +31,7 @@ export default function SaveHighlights({
 
   return (
     <div className="text-xs flex items-center gap-2">
-      <button className="px-2 py-0.5 border rounded" onClick={save} disabled={pending}>
+      <button className="btnv2" onClick={save} disabled={pending}>
         {pending ? 'Saving…' : 'Save highlights'}
       </button>
       {msg && <span className="text-neutral-500">{msg}</span>}

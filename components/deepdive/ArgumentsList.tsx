@@ -8,7 +8,7 @@ import { SkeletonLines } from "@/components/ui/SkeletonB";
 import React from "react";
 import RhetoricText from "../rhetoric/RhetoricText";
 import StyleDensityBadge from "@/components/rhetoric/StyleDensityBadge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
+import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
 import { Hit } from "../rhetoric/detectors";
 import SaveHighlights from "../rhetoric/SaveHighlights";
 import EmotionBadge from "@/components/rhetoric/EmotionBadge";
@@ -135,11 +135,36 @@ export default function ArgumentsList({
   const [issueTargetId, setIssueTargetId] = useState<string | null>(null);
   const [issueInitialLabel, setIssueInitialLabel] = useState<string>('');
 
+const [issueDrawerTargetId, setIssueDrawerTargetId] = useState<string | null>(null);
+
+function openIssuesFor(argumentId: string) {
+  setIssueDrawerTargetId(argumentId);
+  setIssuesOpen(true);
+}
+
   const handleOpenDispute = (argumentId: string, label: string) => {
     setIssueTargetId(argumentId);
     setIssueInitialLabel(label || '');
     setComposerOpen(true);
  };
+
+
+ useEffect(() => {
+  const handler = (ev: any) => {
+    if (ev?.detail?.deliberationId !== deliberationId) return;
+    setIssueDrawerTargetId(ev.detail.argumentId ?? null);
+    setIssuesOpen(true);
+  };
+  window.addEventListener('issues:open', handler);
+  return () => window.removeEventListener('issues:open', handler);
+}, [deliberationId]);
+
+<IssuesDrawer
+  deliberationId={deliberationId}
+  open={issuesOpen}
+  onOpenChange={(o)=>{ setIssuesOpen(o); if (!o) setIssueDrawerTargetId(null); }}
+  argumentId={issueDrawerTargetId ?? undefined}  // Drawer can treat as a filter
+/>
 
   useEffect(() => {
     const handler = (ev: any) => {
@@ -363,7 +388,8 @@ export default function ArgumentsList({
         </button>
         <button
           className="px-4 py-1 btnv2  rounded-full"
-          onClick={() => setIssuesOpen(true)}
+          onClick={() => { setIssueDrawerTargetId(null); setIssuesOpen(true); }}
+
         >
           Issues
         </button>
@@ -372,6 +398,8 @@ export default function ArgumentsList({
           deliberationId={deliberationId}
           open={issuesOpen}
           onOpenChange={setIssuesOpen}
+          argumentId={issueDrawerTargetId ?? undefined}  // 👈 new prop
+
         />
         <IssueComposer
     deliberationId={deliberationId}
@@ -462,6 +490,8 @@ export default function ArgumentsList({
                   onReplyTo={onReplyTo}
                   onApprove={approve}
                   onOpenDispute={handleOpenDispute}
+                  onOpenIssuesFor={openIssuesFor}   // 👈 pass through
+
                   refetch={mutate}
                   modelLens={modelLens as any}
                   workByClaimId={workByClaimId}
@@ -525,6 +555,8 @@ function ArgRow({
   onReplyTo,
   onApprove,
   onOpenDispute,
+  onOpenIssuesFor,     // 👈 NEW
+
   refetch,
   modelLens,
   workByClaimId,
@@ -536,6 +568,8 @@ function ArgRow({
   onReplyTo: (id: string) => void;
   onApprove: (id: string, approve: boolean) => Promise<void> | void;
   onOpenDispute: (id: string, label: string) => Promise<void> | void;
+  onOpenIssuesFor: (id: string) => void; // 👈 NEW
+
   refetch: () => void;
   modelLens: "monological" | "dialogical" | "rhetorical";
   workByClaimId: Record<string, { workId: string; title: string } | undefined>;
@@ -734,12 +768,16 @@ function ArgRow({
             </>
           )}
 
-          <IssueBadge
-            deliberationId={deliberationId}
-            argumentId={a.id}
-            onClick={() => onOpenDispute(a.id, '')}
+<IssueBadge
+  deliberationId={deliberationId}
+  argumentId={a.id}
+  onClick={() => {
+    window.dispatchEvent(new CustomEvent('issues:open', {
+      detail: { deliberationId, argumentId: a.id }
+    }));
+  }}
+/>
 
-          />
 
           {a.mediaType && a.mediaType !== "text" && (
             <span className="px-1.5 py-0.5 rounded border border-amber-200 bg-amber-50 text-amber-700">
@@ -910,6 +948,8 @@ function ArgRow({
           </DialogHeader>
           <div className="whitespace-pre-wrap text-sm">
             <RhetoricText text={a.text} onHits={setLastHits} />
+            <hr className="w-full my-2"></hr>
+            <div className="flex gap-3">
             <SaveHighlights
               targetType="argument"
               targetId={a.id}
@@ -920,6 +960,13 @@ function ArgRow({
                 end: h.end,
               }))}
             />
+                  <DialogClose
+            id="closearg"
+            className={`btnv2`}
+          >
+            Close
+          </DialogClose>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

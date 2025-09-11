@@ -32,6 +32,83 @@ const schema = z.object({
    modality: z.enum(['COULD','LIKELY','NECESSARY']).optional(),
 });
 
+// --- Helpers (no deps) ---
+
+function Segmented<T extends string>({
+  value,
+  onChange,
+  options,
+  ariaLabel,
+}: {
+  value?: T | null;
+  onChange: (v: T) => void;
+  options: { value: T; label: string }[];
+  ariaLabel?: string;
+}) {
+  return (
+    <div
+      role="tablist"
+      aria-label={ariaLabel}
+      className="inline-flex rounded-md border border-slate-200/80 bg-white/70 p-0.5 backdrop-blur"
+    >
+      {options.map((o) => {
+        const active = value === o.value;
+        return (
+          <button
+            key={String(o.value)}
+            role="tab"
+            aria-selected={active}
+            onClick={() => onChange(o.value)}
+            className={[
+              "px-2.5 py-1 text-xs rounded",
+              active
+                ? "bg-slate-900 text-white"
+                : "text-slate-700 hover:bg-white",
+            ].join(" ")}
+          >
+            {o.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// Insert text at the caret (or append if no focus)
+function useInsertAtCursor(
+  text: string,
+  setText: React.Dispatch<React.SetStateAction<string>>
+) {
+  const ref = React.useRef<HTMLTextAreaElement | null>(null);
+  function insert(snippet: string) {
+    const el = ref.current;
+    if (!el) {
+      setText((t) => (t ? t + "\n\n" + snippet : snippet));
+      return;
+    }
+    const start = el.selectionStart ?? text.length;
+    const end = el.selectionEnd ?? text.length;
+    const next = text.slice(0, start) + snippet + text.slice(end);
+    setText(next);
+    queueMicrotask(() => {
+      el.focus();
+      const pos = start + snippet.length;
+      el.setSelectionRange(pos, pos);
+    });
+  }
+  return { textareaRef: ref, insertAtCursor: insert };
+}
+
+// Auto-resize a textarea as content grows (caps at 320px)
+function useAutoGrow(ref: React.RefObject<HTMLTextAreaElement>, value: string) {
+  React.useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "0px";
+    el.style.height = Math.min(320, el.scrollHeight) + "px";
+  }, [ref, value]);
+}
+
 function mapKeyToTemplate(key: string): string {
   const T: Record<string, string> = {
     attack_antecedent: 'I contest the antecedent: …',
@@ -77,9 +154,40 @@ const [workBody, setWorkBody]   = useState("");
   const framingRef = React.useRef<HTMLDivElement|null>(null);
 
 
+
   const [framing, setFraming] = React.useState<{ theoryType:'DN'|'IH'|'TC'|'OP'; standardOutput?:string }>({
     theoryType: 'DN',
   });
+
+  const { textareaRef, insertAtCursor } = useInsertAtCursor(text, setText);
+useAutoGrow(textareaRef, text);
+
+const [sourceInput, setSourceInput] = useState("");
+const removeSource = (url: string) =>
+  setSources((prev) => prev.filter((u) => u !== url));
+
+// Accept “insert template” events from elsewhere (e.g., SequentDetails)
+useEffect(() => {
+  const handler = (ev: any) => {
+    const tmpl = ev?.detail?.template as string | undefined;
+    if (!tmpl) return;
+    insertAtCursor(tmpl);
+  };
+  window.addEventListener("mesh:composer:insert", handler);
+  return () => window.removeEventListener("mesh:composer:insert", handler);
+}, [insertAtCursor]);
+
+// Optional: Cmd/Ctrl + Enter to post
+useEffect(() => {
+  const onKey = (e: KeyboardEvent) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === "Enter" && text.trim() && !pending) {
+      e.preventDefault();
+      post();
+    }
+  };
+  window.addEventListener("keydown", onKey);
+  return () => window.removeEventListener("keydown", onKey);
+}, [text, pending]); 
   
   const { user } = useAuth();
 // Derive an id from common providers
@@ -288,422 +396,443 @@ useEffect(() => {
 }, [deliberationId]);
 
 const { data: lm } = useLegalMoves(targetText);
+return (
+  <div className="group relative rounded-2xl border border-slate-200 bg-white/70 p-4 shadow-sm backdrop-blur space-y-3">
+    {/* slim top shine */}
+    <div className="pointer-events-none absolute inset-x-2 top-1 h-px bg-gradient-to-b from-white/70 to-transparent" />
 
-  return (
-    <div className="relative z-10 w-full  rounded-md border p-4 space-y-3">
-      <div className="text-md font-semibold  text-neutral-600">Analysis</div>
+    {/* Header */}
+    <div className="flex items-center justify-between">
+      <div className="text-md font-semibold  text-slate-700">Compose</div>
+      <div className="text-[11px] text-neutral-500">
+        {pending ? "Posting…" : "⌘/Ctrl + Enter to post"}
+      </div>
+    </div>
+
+    {/* Replying-to context */}
+    {targetArgumentId && (
+      <div className="rounded-md border border-slate-200/80 bg-slate-50/70 p-2">
+        <div className="mb-1 flex items-center justify-between">
+          <span className="text-[10px] uppercase tracking-wide text-neutral-500">
+            Replying to
+          </span>
+          <button
+            className="btnv2--ghost btnv2--sm"
+            onClick={() =>
+              insertAtCursor(
+                targetText ? `> ${targetText}\n\n` : "> (quote)\n\n"
+              )
+            }
+            title="Insert a quote of the target"
+          >
+            Quote
+          </button>
+        </div>
+        <div className="line-clamp-2 text-[13px] text-slate-700">
+          {targetText || "…"}
+        </div>
+      </div>
+    )}
+
+    {/* Textarea + char counter */}
+    <div className="space-y-2">
       <textarea
-        className="w-full border rounded p-3 "
+        ref={textareaRef}
+        className="w-full resize-none rounded-lg border border-slate-200/80 bg-white/80 px-3 py-2 text-sm outline-none focus:border-indigo-300 focus:ring-0"
         rows={4}
-        placeholder="Respond Here..."
+        placeholder="Respond here…"
         value={text}
         onChange={(e) => setText(e.target.value)}
       />
+      {(() => {
+        const max = 5000;
+        const used = text.length;
+        const pct = Math.min(1, used / max);
+        return (
+          <>
+            <div className="h-1.5 overflow-hidden rounded bg-slate-200/70">
+              <div
+                className="h-full rounded bg-[linear-gradient(90deg,theme(colors.indigo.400),theme(colors.fuchsia.400),theme(colors.sky.400))]"
+                style={{ width: `${pct * 100}%` }}
+              />
+            </div>
+            <div className="text-[11px] text-neutral-500 tabular-nums">
+              {used}/{max}
+            </div>
+          </>
+        );
+      })()}
       <EnthymemeNudge
-  targetType="argument"
-  targetId={targetArgumentId}
-  draft={text}
-  onPosted={() => {/* optional toast */}}
-/>
-      <div className="relative flex flex-wrap gap-2">
+        targetType="argument"
+        targetId={targetArgumentId}
+        draft={text}
+        onPosted={() => {}}
+      />
+    </div>
+
+    {/* Controls rail */}
+    <div className="flex flex-wrap items-center gap-3">
+      {/* Sources */}
+      <div className="flex items-center gap-2">
+        <input
+          type="url"
+          placeholder="Paste source URL"
+          className="w-56 rounded border border-slate-200 px-2 py-1 text-xs"
+          value={sourceInput}
+          onChange={(e) => setSourceInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && sourceInput.trim()) {
+              addSource(sourceInput.trim());
+              setSourceInput("");
+            }
+          }}
+        />
         <button
-          className="px-2 py-1 border rounded-xl text-sm bg-white/70 "
+          className="btnv2--ghost btnv2--sm"
           onClick={() => {
-            const url = prompt("Add source URL");
-            if (url) addSource(url);
+            if (!sourceInput.trim()) return;
+            addSource(sourceInput.trim());
+            setSourceInput("");
           }}
         >
-          Add Source
+          Add
         </button>
-        <div className="h-8 border-r-[1px] border-slate-700" />
-
-        {/* Quantifier chips */}
-        <div className="relative flex items-center gap-1 text-sm">
-          <span className="text-neutral-500 ">Quantifier:</span>
-          {(["SOME", "MANY", "MOST", "ALL"] as const).map((q) => (
-            <button
-              key={q}
-              className={`px-2 py-1 border rounded ${
-                quantifier === q ? "bg-neutral-100" : ""
-              }`}
-              onClick={() => setQuantifier(q)}
-            >
-              {q}
-            </button>
-          ))}
-          <div className="h-8 border-r-[1px] border-slate-700" />
-        </div>
-        {/* Modality chips */}
-        <div className="relative flex items-center gap-1 text-sm">
-          <span className="text-neutral-500 mr-1">Modality:</span>
-          {(["COULD", "LIKELY", "NECESSARY"] as const).map((m) => (
-            <button
-              key={m}
-              className={`px-2 py-1 border rounded ${
-                modality === m ? "bg-neutral-100" : ""
-              }`}
-              onClick={() => setModality(m)}
-            >
-              {m}
-            </button>
-          ))}
-          <div className="h-8 border-r-[1px] border-slate-700" />
-        </div>
-        <div className="flex items-center gap-1 text-sm">
-          <span className="text-neutral-500 ">Confidence Level:</span>
-          <div className=" text-sm text-neutral-900">
-            <button
-              className="px-2 py-1 border rounded"
-              onClick={() => setConfidence(0.25)}
-            >
-              25%
-            </button>
-            <button
-              className="px-2 py-1 border rounded"
-              onClick={() => setConfidence(0.5)}
-            >
-              {" "}
-              50%
-            </button>
-            <button
-              className="px-2 py-1 border rounded"
-              onClick={() => setConfidence(0.75)}
-            >
-              75%
-            </button>
-            <button
-              className="px-2 py-1 border rounded"
-              onClick={() => setConfidence(1)}
-            >
-              100%
-            </button>
-          </div>
-           {sources.length > 0 && (
-        <div className="text-xs text-neutral-600">
-          Sources:{" "}
-          {sources.map((s) => (
-            <a key={s} href={s} target="_blank" className="underline mr-2">
-              {s}
-            </a>
-          ))}
-        </div>
-      )}
-        </div>
-       
       </div>
-      
-<div className="flex justify-start gap-4 py-1 mb-1">
-  <span className="text-sm text-neutral-700">Theory Builder</span>
-  <button
-    type="button"
-    className="px-5 py-0 text-xs bg-white border rounded lockbutton"
-    onClick={() => setShowWorkFields(v => !v)}
-  >
-    {showWorkFields ? 'Hide' : 'Expand'}
-  </button>
-</div>
-
-{showWorkFields && (
-  <div className="rounded border p-3 space-y-2 bg-white/60">
-<div ref={framingRef}>
-
-    {/* 🔸 Keep a SINGLE TheoryFraming, wired to show summary + builder when savedWorkId exists */}
-    <TheoryFraming
-      key={savedWorkId ?? 'no-work'}             // force remount on first save so the builder opens
-      value={framing}
-      onChange={setFraming}
-      workId={savedWorkId ?? undefined}          // enables PracticalSummary/Builder after save
-      canEditPractical={true}
-      defaultOpenBuilder={!!savedWorkId}         // auto-open builder after first save
-      className="mb-2"
-    />
-</div>
-
-    {/* Work fields (title/body) + Save button */}
-    <label className="block text-xs text-neutral-600">Work Title</label>
-    <input
-      id="work-title-input"  // 👈 add this
-
-      className="w-full border rounded px-2 py-1 text-sm"
-      placeholder="Title for this work"
-      value={workTitle}
-      onChange={(e) => setWorkTitle(e.target.value)}
-    />
-
-    <label className="block text-xs text-neutral-600">Work Body</label>
-    <textarea
-      className="w-full border rounded px-2 py-1 text-sm min-h-[120px]"
-      placeholder="Write the body of the work"
-      value={workBody}
-      onChange={(e) => setWorkBody(e.target.value)}
-    />
-
-    <button
-      className="px-3 py-1 rounded border text-sm bg-white disabled:opacity-50"
-      onClick={async () => {
-        if (!workTitle.trim() || !workBody.trim()) {
-          alert('Please provide a work title and body.');
-          return;
-        }
-
-        const payload = {
-          deliberationId,
-
-          title: workTitle.trim(),
-          body: workBody.trim(),
-          ...(framing?.theoryType ? { theoryType: framing.theoryType } : {}),
-          standardOutput: framing?.standardOutput ?? null,
-        };
-
-        try {
-          const res = await fetch('/api/theoryworks', {
-            method: 'POST',
-            headers: { 'Content-Type':'application/json' },
-            body: JSON.stringify(payload)
-          });
-
-          const text = await res.text();
-          let json: any = null;
-          try { json = JSON.parse(text); } catch {}
-
-          if (!res.ok) {
-            const msg = json?.error || json?.message || text || `HTTP ${res.status}`;
-            alert(`Save failed: ${msg}`);
-            return;
-          }
-
-          const { ok, work } = json;
-          if (ok && work?.id) {
-            setSavedWorkId(work.id);     // 👈 triggers remount/open of builder
-            setTimeout(() => framingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
-
-          }
-          alert('Work saved.');
-        } catch (err:any) {
-          console.error(err);
-          alert(`Save failed: ${err?.message ?? 'Unknown error'}`);
-        }
-      }}
-    >
-      Save Work
-    </button>
-  </div>
-)}
-
-
-
-      {/* Counter toolbar (only when replying) */}
-      
-      {targetArgumentId && !showYesBut && (
-        <div className="flex flex-wrap items-center gap-2 text-xs">
-          <span className="text-neutral-500">Counter type:</span>
-          <button
-            className={`px-2 py-1 rounded border ${
-              counterKind === "rebut_conclusion"
-                ? "bg-neutral-900 text-white"
-                : "hover:bg-neutral-50"
-            }`}
-            onClick={() =>
-              setCounterKind((k) =>
-                k === "rebut_conclusion" ? "none" : "rebut_conclusion"
-              )
-            }
-          >
-            Rebut (conclusion)
-          </button>
-          <button
-            className={`px-2 py-1 rounded border ${
-              counterKind === "rebut_premise"
-                ? "bg-neutral-900 text-white"
-                : "hover:bg-neutral-50"
-            }`}
-            onClick={() =>
-              setCounterKind((k) =>
-                k === "rebut_premise" ? "none" : "rebut_premise"
-              )
-            }
-          >
-            Rebut premise
-          </button>
-          <button
-            className={`px-2 py-1 rounded border ${
-              counterKind === "undercut_inference"
-                ? "bg-neutral-900 text-white"
-                : "hover:bg-neutral-50"
-            }`}
-            onClick={() =>
-              setCounterKind((k) =>
-                k === "undercut_inference" ? "none" : "undercut_inference"
-              )
-            }
-          >
-            Undercut inference
-          </button>
-
-
-
-<span className="mx-2 text-neutral-300">|</span>
-
-          <button
-            className="px-2 py-1 rounded border hover:bg-neutral-50"
-            onClick={() => {
-              setShowYesBut(true);
-              setCounterKind("none");
-            }}
-            title={`Posts two linked items: Concession + Counter\nConcession is linked with a "concede" edge; Counter rebuts the conclusion.`}
-          >
-            Yes, … but …
-          </button>
+      {sources.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1">
+          {sources.map((s) => (
+            <span
+              key={s}
+              className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white/70 px-1.5 py-0.5 text-[10px]"
+            >
+              <a href={s} target="_blank" className="underline">
+                {new URL(s).host}
+              </a>
+              <button
+                className="text-neutral-500 hover:text-rose-600"
+                title="Remove"
+                onClick={() => removeSource(s)}
+              >
+                ×
+              </button>
+            </span>
+          ))}
         </div>
       )}
 
-{/* {lm?.ok && lm.options?.length ? (
-  <div className="flex flex-wrap gap-2 mt-2">
-    {lm.options.map((o:any) => (
-      <button key={o.key} className="px-2 py-1 border rounded text-xs"
-        onClick={() => applyTemplate(o.key)}>
-        {o.label}
-      </button>
-    ))}
-  </div>
-) : null} */}
-      
-      {targetArgumentId && lm?.ok && lm.options?.length ? (
-  <div className="flex flex-wrap gap-2 mt-2">
-    {lm.options.map((o: any) => (
+      {/* Quantifier */}
+      <div className="flex items-center gap-2">
+        <span className="text-[11px] text-neutral-600">Quantifier</span>
+        <Segmented
+          ariaLabel="Quantifier"
+          value={quantifier ?? null}
+          onChange={(v) => setQuantifier(v)}
+          options={[
+            { value: "SOME", label: "Some" },
+            { value: "MANY", label: "Many" },
+            { value: "MOST", label: "Most" },
+            { value: "ALL", label: "All" },
+          ]}
+        />
+      </div>
+
+      {/* Modality */}
+      <div className="flex items-center gap-2">
+        <span className="text-[11px] text-neutral-600">Modality</span>
+        <Segmented
+          ariaLabel="Modality"
+          value={modality ?? null}
+          onChange={(v) => setModality(v)}
+          options={[
+            { value: "COULD", label: "Could" },
+            { value: "LIKELY", label: "Likely" },
+            { value: "NECESSARY", label: "Necessary" },
+          ]}
+        />
+      </div>
+
+      {/* Confidence */}
+      <div className="ml-auto flex items-center gap-2">
+        <span className="text-[11px] text-neutral-600">Confidence</span>
+        <input
+          type="range"
+          min={0}
+          max={1}
+          step={0.25}
+          value={confidence ?? 0.5}
+          onChange={(e) => setConfidence(Number(e.target.value))}
+          className="h-2 w-36 cursor-pointer accent-indigo-500"
+          title={`${Math.round((confidence ?? 0.5) * 100)}%`}
+        />
+        <span className="text-[11px] tabular-nums text-neutral-700">
+          {Math.round((confidence ?? 0.5) * 100)}%
+        </span>
+      </div>
+    </div>
+
+    {/* Theory Builder toggle */}
+    <div className="flex items-center gap-3">
+      <span className="text-sm text-neutral-700">Theory Builder</span>
       <button
-        key={o.key}
-        className="px-2 py-1 border rounded text-xs"
-        onClick={() => {
-          // if your API returns `template`, prefer using it directly:
-          const tmpl = o.template ?? mapKeyToTemplate(o.key);
-          setText((prev) => (prev ? prev + '\n\n' + tmpl : tmpl));
-        }}
+        type="button"
+        className="btnv2--ghost btnv2--sm"
+        onClick={() => setShowWorkFields((v) => !v)}
       >
-        {o.label}
+        {showWorkFields ? "Hide" : "Expand"}
       </button>
-    ))}
-  </div>
-) : null}
+    </div>
 
-      {/* Yes, … but … template */}
-      {showYesBut && (
-        <div className="rounded border p-2 space-y-2 bg-amber-50/40">
-          <div className="text-xs font-medium">Yes, … but …</div>
-
-          <label className="text-xs text-neutral-600">
-            Concession (what you agree with)
-          </label>
-          <textarea
-            className="w-full border rounded px-2 py-1 text-sm min-h-[70px]"
-            placeholder="Briefly acknowledge the strongest part of the target…"
-            value={concession}
-            onChange={(e) => setConcession(e.target.value)}
+    {showWorkFields && (
+      <div className="rounded-xl border border-slate-200 bg-white/60 p-3 space-y-2">
+        <div ref={framingRef}>
+          <TheoryFraming
+            key={savedWorkId ?? "no-work"}
+            value={framing}
+            onChange={setFraming}
+            workId={savedWorkId ?? undefined}
+            canEditPractical={true}
+            defaultOpenBuilder={!!savedWorkId}
+            className="mb-2"
           />
+        </div>
 
-          <label className="text-xs text-neutral-600">
-            But… (your counter)
-          </label>
-          <textarea
-            className="w-full border rounded px-2 py-1 text-sm min-h-[90px]"
-            placeholder="Present your counterpoint…"
-            value={counter}
-            onChange={(e) => setCounter(e.target.value)}
-          />
+        <label className="block text-xs text-neutral-600">Work Title</label>
+        <input
+          id="work-title-input"
+          className="w-full rounded border border-slate-200 px-2 py-1 text-sm"
+          placeholder="Title for this work"
+          value={workTitle}
+          onChange={(e) => setWorkTitle(e.target.value)}
+        />
 
-          <div className="flex items-center gap-2">
-            <button
-              className="px-3 py-1.5 rounded bg-emerald-600 text-white text-sm disabled:opacity-50"
-              onClick={submitYesBut}
-              disabled={
-                pending ||
-                !(concession.trim() || counter.trim()) ||
-                !targetArgumentId
+        <label className="block text-xs text-neutral-600">Work Body</label>
+        <textarea
+          className="min-h-[120px] w-full rounded border border-slate-200 px-2 py-1 text-sm"
+          placeholder="Write the body of the work"
+          value={workBody}
+          onChange={(e) => setWorkBody(e.target.value)}
+        />
+
+        <button
+          className="btnv2"
+          onClick={async () => {
+            if (!workTitle.trim() || !workBody.trim()) {
+              alert("Please provide a work title and body.");
+              return;
+            }
+            const payload = {
+              deliberationId,
+              title: workTitle.trim(),
+              body: workBody.trim(),
+              ...(framing?.theoryType ? { theoryType: framing.theoryType } : {}),
+              standardOutput: framing?.standardOutput ?? null,
+            };
+            try {
+              const res = await fetch("/api/theoryworks", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+              });
+              const text = await res.text();
+              let json: any = null;
+              try {
+                json = JSON.parse(text);
+              } catch {}
+              if (!res.ok) {
+                const msg = json?.error || json?.message || text || `HTTP ${res.status}`;
+                alert(`Save failed: ${msg}`);
+                return;
               }
-            >
-              {pending ? "Posting…" : "Post both"}
-            </button>
-            <button
-              className="px-3 py-1.5 rounded border text-sm"
-              onClick={() => {
-                setShowYesBut(false);
-                setConcession("");
-                setCounter("");
-              }}
-              disabled={pending}
-            >
-              Cancel
-            </button>
-          </div>
+              const { ok, work } = json;
+              if (ok && work?.id) {
+                setSavedWorkId(work.id);
+                setTimeout(
+                  () => framingRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }),
+                  50
+                );
+              }
+              alert("Work saved.");
+            } catch (err: any) {
+              console.error(err);
+              alert(`Save failed: ${err?.message ?? "Unknown error"}`);
+            }
+          }}
+        >
+          Save Work
+        </button>
+      </div>
+    )}
 
-          <div className="text-[11px] text-neutral-500">
-            This posts two linked arguments: a concession (linked via{" "}
-            <code>concede</code>) and a counter (linked via <code>rebut</code>{" "}
-            to the conclusion).
+    {/* Counter toolbar (reply only) */}
+    {targetArgumentId && !showYesBut && (
+      <div className="flex flex-wrap items-center gap-3 text-xs">
+        <span className="text-neutral-600">Counter type</span>
+        <Segmented
+          ariaLabel="Counter type"
+          value={
+            (counterKind === "rebut_conclusion" && "rebut_conclusion") ||
+            (counterKind === "rebut_premise" && "rebut_premise") ||
+            (counterKind === "undercut_inference" && "undercut_inference") ||
+            "none"
+          }
+          onChange={(v) =>
+            setCounterKind(
+              v as "none" | "rebut_conclusion" | "rebut_premise" | "undercut_inference"
+            )
+          }
+          options={[
+            { value: "none" as const, label: "None" },
+            { value: "rebut_conclusion" as const, label: "Rebut (conclusion)" },
+            { value: "rebut_premise" as const, label: "Rebut (premise)" },
+            { value: "undercut_inference" as const, label: "Undercut (inference)" },
+          ]}
+        />
+        <button
+          className="btnv2--ghost btnv2--sm"
+          onClick={() => {
+            setShowYesBut(true);
+            setCounterKind("none");
+          }}
+          title='Posts two linked items: Concession + Counter (concede + rebut)'
+        >
+          Yes, … but …
+        </button>
+      </div>
+    )}
+
+    {/* Legal moves */}
+    {targetArgumentId && lm?.ok && lm.options?.length ? (
+      <div className="flex flex-wrap gap-2">
+        {lm.options.map((o: any) => (
+          <button
+            key={o.key}
+            className="btnv2--ghost btnv2--sm"
+            onClick={() => {
+              const tmpl = o.template ?? mapKeyToTemplate(o.key);
+              insertAtCursor((text ? "\n\n" : "") + tmpl);
+            }}
+          >
+            {o.label}
+          </button>
+        ))}
+      </div>
+    ) : null}
+
+    {/* Yes, … but … */}
+    {showYesBut && (
+      <div className="space-y-2 rounded border border-amber-200 bg-amber-50/40 p-3">
+        <div className="text-xs font-medium">Yes, … but …</div>
+
+        <div className="grid gap-2 sm:grid-cols-2">
+          <div>
+            <label className="text-[11px] text-neutral-600">Concession</label>
+            <textarea
+              className="w-full rounded border border-slate-200 px-2 py-1 text-sm"
+              placeholder="Acknowledge the strongest part of the target…"
+              value={concession}
+              onChange={(e) => setConcession(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="text-[11px] text-neutral-600">Counter</label>
+            <textarea
+              className="w-full rounded border border-slate-200 px-2 py-1 text-sm"
+              placeholder="Present your counterpoint…"
+              value={counter}
+              onChange={(e) => setCounter(e.target.value)}
+            />
           </div>
         </div>
-      )}
 
-      {/* Image argument adder */}
-      <div className="space-y-1">
+        <div className="flex items-center gap-2">
+          <button
+            className="btnv2"
+            onClick={submitYesBut}
+            disabled={
+              pending ||
+              !(concession.trim() || counter.trim()) ||
+              !targetArgumentId
+            }
+          >
+            {pending ? "Posting…" : "Post both"}
+          </button>
+          <button
+            className="btnv2--ghost btnv2--sm"
+            onClick={() => {
+              setShowYesBut(false);
+              setConcession("");
+              setCounter("");
+            }}
+            disabled={pending}
+          >
+            Cancel
+          </button>
+        </div>
+
+        <div className="text-[11px] text-neutral-500">
+          This posts two linked arguments: a concession (<code>concede</code>) and a
+          counter (<code>rebut</code> to the conclusion).
+        </div>
+      </div>
+    )}
+
+    {/* Image argument */}
+    <div className="space-y-1">
+      <div className="flex items-center gap-2">
         <input
           type="url"
           placeholder="Paste image URL (optional)"
-          className="w-full border rounded px-2 py-1 text-sm"
+          className="w-full rounded border border-slate-200 px-2 py-1 text-sm"
           value={imageUrl}
           onChange={(e) => setImageUrl(e.target.value)}
         />
         {imageUrl && (
-          <div className="border rounded p-2">
-            <img
-              src={imageUrl}
-              alt="preview"
-              className="max-h-40 object-contain mx-auto"
-            />
-          </div>
+          <button className="btnv2--ghost btnv2--sm" onClick={() => setImageUrl("")}>
+            Clear
+          </button>
         )}
       </div>
-      {targetArgumentId && (
-        <div className="flex gap-2 items-center">
-          <span className="text-sm text-neutral-700">This is a reply:</span>
-          <button
-            className={`px-2 py-1 border rounded ${
-              edgeType === "support" ? "bg-neutral-100" : ""
-            }`}
-            onClick={() => setEdgeType("support")}
-          >
-            Support
-          </button>
-          <button
-            className={`px-2 py-1 border rounded ${
-              edgeType === "rebut" ? "bg-neutral-100" : ""
-            }`}
-            onClick={() => setEdgeType("rebut")}
-          >
-            Rebut
-          </button>
-          <button
-            className={`px-2 py-1 border rounded ${
-              edgeType === "undercut" ? "bg-neutral-100" : ""
-            }`}
-            onClick={() => setEdgeType("undercut")}
-          >
-            Undercut
-          </button>
-          <span className="text-xs text-neutral-500">
-            (“Undercut” challenges the link, not the claim.)
-          </span>
+      {imageUrl && (
+        <div className="rounded border border-slate-200 bg-white/80 p-2">
+          <img
+            src={imageUrl}
+            alt="preview"
+            className="mx-auto max-h-40 object-contain"
+          />
         </div>
       )}
-      <div className="flex justify-start">
-        <button
-          disabled={pending || !text.trim()}
-          onClick={post}
-          className="px-3 py-1 rounded-xl bg-white/70 text-black disabled:opacity-50"
-        >
-          {pending ? "Posting…" : "Post"}
-        </button>
-      </div>
     </div>
-  );
-}
+
+    {/* Edge type (support/rebut/undercut) */}
+    {targetArgumentId && (
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="text-sm text-neutral-700">This is a reply</span>
+        <Segmented
+          ariaLabel="Reply edge"
+          value={edgeType ?? null}
+          onChange={(v) => setEdgeType(v)}
+          options={[
+            { value: "support" as const, label: "Support" },
+            { value: "rebut" as const, label: "Rebut" },
+            { value: "undercut" as const, label: "Undercut" },
+          ]}
+        />
+        <span className="text-[11px] text-neutral-500">
+          “Undercut” challenges the link, not the claim.
+        </span>
+      </div>
+    )}
+
+    {/* Post */}
+    <div className="flex justify-start">
+      <button
+        disabled={pending || !text.trim()}
+        onClick={post}
+        className="btnv2"
+      >
+        {pending ? "Posting…" : "Post"}
+      </button>
+    </div>
+  </div>
+);
+        }

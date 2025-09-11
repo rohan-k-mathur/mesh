@@ -10,14 +10,23 @@ export default function IssuesDrawer({
   deliberationId,
   open,
   onOpenChange,
+  argumentId,           // 👈 NEW
+
 }: {
   deliberationId: string;
   open: boolean;
   onOpenChange: (o:boolean)=>void;
+  argumentId?: string;  // 👈 NEW
+
 }) {
   const [state, setState] = React.useState<'open'|'closed'|'all'>('open');
   const [q, setQ] = React.useState('');
   const [focus, setFocus] = React.useState<string|null>(null);
+  const [filters, setFilters] = React.useState<{ argumentId?: string }>({});
+
+  React.useEffect(() => {
+    if (open) setFilters(prev => ({ ...prev, argumentId }));
+  }, [open, argumentId]);
 
   const key = `/api/deliberations/${encodeURIComponent(deliberationId)}/issues?state=${state}&search=${encodeURIComponent(q)}`;
   const { data, isLoading } = useSWR<{ ok:true; issues:any[] }>(open ? key : null, fetcher, { revalidateOnFocus:false });
