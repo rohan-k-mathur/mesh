@@ -12,6 +12,7 @@ import StyleDensityBadge from '@/components/rhetoric/StyleDensityBadge';
 import PracticalLedger from '@/components/practical/PracticalLedger';
 import SequentBadge from "../views/SequentBadge";
 import { SequentDetails } from "../views/SequentDetails";
+import React from "react";
 
 type Arg = { id: string; text: string; confidence?: number | null };
 // (1) Widen the View type locally — no server change required.
@@ -31,6 +32,230 @@ type CohortSummary = {
 };
 
 const fetcher = (u:string)=>fetch(u,{cache:'no-store'}).then(r=>r.json());
+
+
+// --- Extracted, hook-safe child ---
+type CqSummary = {
+  satisfied: number;
+  required: number;
+  openByScheme: Record<string, string[]>;
+};
+
+function AddressCQsDialog({
+  open,
+  onClose,
+  viewIndex,
+  deliberationId,
+  missingByClaim,
+  targetClaim,
+  setTargetClaim,
+  claimsById,
+  cqById,
+}: {
+  open: boolean;
+  onClose: () => void;
+  viewIndex: number;
+  deliberationId: string;
+  missingByClaim: Record<number, Record<string, string[]>>;
+  targetClaim: string | null;
+  setTargetClaim: (id: string) => void;
+  claimsById: Map<string, string>;
+  cqById: Map<string, CqSummary>;
+}) {
+  // claims with open CQs in this view
+  const openClaimIds = Object.keys(missingByClaim[viewIndex] || {});
+  const openCQsFor = (cid: string | null) =>
+     (cid ? (missingByClaim[viewIndex]?.[cid] ?? []) : []) as Array<{ schemeKey: string; cqKey: string }>;
+
+  const idxOf = (cid: string | null) => (cid ? openClaimIds.indexOf(cid) : -1);
+  const goRel = (delta: number) => {
+    if (!openClaimIds.length) return;
+    const i = idxOf(targetClaim);
+    const next = i < 0 ? 0 : (i + delta + openClaimIds.length) % openClaimIds.length;
+    setTargetClaim(openClaimIds[next]);
+  };
+
+  // local quick-actions state (hook-safe here)
+  const [posting, setPosting] = React.useState<'WHY' | 'GROUNDS' | null>(null);
+  const [ok, setOk] = React.useState<null | 'WHY' | 'GROUNDS'>(null);
+  const [note, setNote] = React.useState('');
+     const openCQs = openCQsFor(targetClaim);
+     const [selectedCQ, setSelectedCQ] = React.useState<{schemeKey:string; cqKey:string} | null>(openCQs[0] ?? null);
+     React.useEffect(()=>{ setSelectedCQ(openCQs[0] ?? null); setNote(''); }, [viewIndex, targetClaim]);
+  
+     async function post(kind: 'WHY' | 'GROUNDS') {
+    if (!targetClaim) return;
+    setPosting(kind);
+    setOk(null);
+    try {
+      const payload =
+               kind === 'GROUNDS'
+                 ? { schemeKey: selectedCQ?.schemeKey, cqKey: selectedCQ?.cqKey, expression: note }
+                 : {};
+      await fetch('/api/dialogue/move', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          deliberationId,
+          targetType: 'claim',
+          targetId: targetClaim,
+          kind,
+          payload,
+          autoCompile: true,
+          autoStep: true,
+        }),
+      });
+      window.dispatchEvent(new CustomEvent('dialogue:moves:refresh'));
+      setOk(kind);
+      setTimeout(() => setOk(null), 1200);
+    } catch {
+      // swallow
+    }
+    setPosting(null);
+  }
+
+  const selectedSummary = targetClaim ? cqById.get(targetClaim) : undefined;
+  const satisfied = selectedSummary?.satisfied ?? 0;
+  const required = selectedSummary?.required ?? 0;
+
+  // small search on left list
+  const [filterQ, setFilterQ] = React.useState('');
+  const filteredIds = openClaimIds.filter((cid) =>
+    (claimsById.get(cid) ?? cid).toLowerCase().includes(filterQ.toLowerCase()),
+  );
+
+  if (!open) return null;
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="bg-white rounded-xl max-h-[720px] overflow-hidden sm:max-w-[880px] p-0">
+        <DialogHeader className="px-4 pt-4 pb-2 border-b">
+          <DialogTitle>Address Critical Questions — View {viewIndex + 1}</DialogTitle>
+          {targetClaim && (
+            <div className="mt-1 text-[11px] text-neutral-600">
+              Claim: “{(claimsById.get(targetClaim) ?? targetClaim).slice(0, 120)}”
+            </div>
+          )}
+        </DialogHeader>
+
+        {/* Two-pane layout */}
+        <div className="grid grid-cols-[240px_1fr] gap-0 h-[560px]">
+          {/* LEFT: Claim picker */}
+          <aside className="border-r p-3 bg-slate-50">
+            <input
+              className="w-full border rounded px-2 py-1 text-[12px] mb-2"
+              placeholder="Search claims…"
+              value={filterQ}
+              onChange={(e) => setFilterQ(e.target.value)}
+            />
+            <div className="text-[11px] text-neutral-600 mb-2">
+              Open in this view: <b>{openClaimIds.length}</b>
+            </div>
+            <div className="space-y-1 overflow-y-auto h-[480px] pr-1">
+              {filteredIds.map((cid) => {
+                const sum = cqById.get(cid);
+                const open = (sum?.required ?? 0) - (sum?.satisfied ?? 0);
+                const active = targetClaim === cid;
+                return (
+                  <button
+                    key={cid}
+                    className={`w-full text-left text-[12px] px-2 py-1 rounded border ${
+                      active
+                        ? 'bg-amber-50 border-amber-300'
+                        : 'bg-white border-neutral-200 hover:bg-neutral-50'
+                    }`}
+                    onClick={() => setTargetClaim(cid)}
+                    title={claimsById.get(cid) ?? cid}
+                  >
+                    {(claimsById.get(cid) ?? cid).slice(0, 80)}
+                    {!!open && <span className="ml-1 text-amber-700">· {open} open</span>}
+                  </button>
+                );
+              })}
+            </div>
+          </aside>
+
+          {/* RIGHT: Claim details + quick actions */}
+          <section className="p-4 space-y-3">
+            <div className="text-[12px] text-neutral-600">
+              CQs satisfied: <b>{satisfied}</b> / {required}
+            </div>
+ {/* Open CQs selector */}
+              <div className="space-y-2">
+               <div className="text-[11px] text-neutral-700 font-medium">Open CQs</div>
+               {openCQs.length ? (
+                 <div className="flex flex-wrap gap-1.5">
+                   {openCQs.map(({schemeKey,cqKey}) => {
+                     const key = `${schemeKey}:${cqKey}`;
+                     const active = selectedCQ?.schemeKey===schemeKey && selectedCQ?.cqKey===cqKey;
+                     return (
+                       <button
+                         key={key}
+                         onClick={()=>setSelectedCQ({schemeKey,cqKey})}
+                         className={`text-[11px] px-2 py-1 rounded border ${active ? 'bg-amber-50 border-amber-300' : 'bg-white border-neutral-200 hover:bg-neutral-50'}`}
+                         title={key}
+                       >
+                         {schemeKey} · {cqKey}
+                       </button>
+                     );
+                   })}
+                 </div>
+               ) : (
+                 <div className="text-[11px] text-neutral-500">No open CQs for this claim.</div>
+               )}
+             </div>
+ 
+             {/* Answer composer */}
+             {openCQs.length > 0 && (
+               <textarea
+                 className="w-full min-h-[96px] border rounded px-2 py-1 text-[12px]"
+                 placeholder="Write your grounds (reasons, warrant, evidence). Paste links or cite cards."
+                 value={note}
+                 onChange={(e)=>setNote(e.target.value)}
+               />
+             )}
+            <div className="flex items-center gap-2">
+               {/* Only show WHY when there are no open CQs (raising a new CQ) */}
+               {openCQs.length === 0 && (
+                 <button
+                   className="text-xs border px-2 py-1 rounded disabled:opacity-50"
+                   disabled={!targetClaim || posting === 'WHY'}
+                   onClick={() => post('WHY')}
+                   title="Raise a new critical question on this claim"
+                 >
+                   {posting === 'WHY' ? 'Posting…' : 'Raise CQ'}
+                 </button>
+               )}
+               {/* Answer selected CQ */}
+               {openCQs.length > 0 && (
+                 <button
+                   className="text-xs border px-2 py-1 rounded disabled:opacity-50"
+                   disabled={!targetClaim || !selectedCQ || !note.trim() || posting === 'GROUNDS'}
+                   onClick={() => post('GROUNDS')}
+                   title="Answer the selected CQ"
+                 >
+                   {posting === 'GROUNDS' ? 'Posting…' : 'Answer CQ'}
+                 </button>
+               )}
+              {ok && <span className="text-[11px] text-emerald-700">✓ {ok} posted</span>}
+              <div className="ml-auto flex items-center gap-2">
+                <button className="text-xs underline" onClick={() => goRel(-1)} title="Prev">
+                  ‹ Prev
+                </button>
+                <button className="text-xs underline" onClick={() => goRel(1)} title="Next">
+                  Next ›
+                </button>
+              </div>
+            </div>
+
+            {/* You can render your CQ details panel here if you have one */}
+            {/* <CriticalQuestions ... /> */}
+          </section>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 
 // (2) Small helper to assemble Γ/Δ (ids + texts) for a view.
@@ -438,55 +663,17 @@ export function RepresentativeViewpoints(props: {
         </button>
       </div>
 
-      {openCQView === v.index && (
-        <Dialog open onOpenChange={(o)=>!o && setOpenCQView(null)}>
-          <DialogContent className="bg-slate-200 rounded-xl max-h-[700px] overflow-y-auto sm:max-w-[640px]">
-            <DialogHeader>
-              <DialogTitle>Address Critical Questions — View {v.index+1}</DialogTitle>
-              {targetClaim && (
-                <div className="mt-1 text-[11px] text-neutral-600">
-                  for: “{(claimsById.get(targetClaim) ?? targetClaim).slice(0, 120)}”
-                </div>
-              )}
-            </DialogHeader>
-
-            <div className="text-[12px] text-neutral-600 mb-2">
-              Choose which claim in this view to address first (only claims with open CQs are shown).
-            </div>
-
-            <Select value={targetClaim ?? ''} onValueChange={(val)=>setTargetClaim(val || null)}>
-              <SelectTrigger className="w-full mb-2">
-                <SelectValue placeholder="Pick a claim…" />
-              </SelectTrigger>
-              <SelectContent>
-                {(Object.keys(missingByClaim[v.index] || {})).map(cid => (
-                  <SelectItem key={cid} value={cid}>
-                    {(claimsById.get(cid) ?? cid).slice(0, 80)} — {(cqById.get(cid)?.satisfied ?? 0)}/{(cqById.get(cid)?.required ?? 0)} CQs met
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {targetClaim ? (
-              <div className="mt-2">
-                <CriticalQuestions
-                  targetType="claim"
-                  targetId={targetClaim}
-                  createdById={s.deliberationId}
-                  prefilterKeys={(missingByClaim[v.index]?.[targetClaim] ?? [])}
-                  deliberationId={s.deliberationId}
-                />
-              </div>
-            ) : (
-              <div className="text-xs text-neutral-500">No claim selected.</div>
-            )}
-
-            <DialogFooter>
-              <button className="text-xs px-2 py-1 border rounded" onClick={()=>setOpenCQView(null)}>Close</button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
+      <AddressCQsDialog
+  open={openCQView === v.index}
+  onClose={() => setOpenCQView(null)}
+  viewIndex={v.index}
+  deliberationId={s.deliberationId /* or selection.deliberationId */}
+  missingByClaim={missingByClaim}
+  targetClaim={targetClaim}
+  setTargetClaim={setTargetClaim}
+  claimsById={claimsById}
+  cqById={cqById}
+/>
 
       {openCQView===v.index && (
         <div className="mt-1 rounded border p-2 bg-white text-[11px]">

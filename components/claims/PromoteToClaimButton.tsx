@@ -52,7 +52,7 @@ export default function PromoteToClaimButton(props: Props) {
       <button
         disabled={busy}
         onClick={promote}
-        className="text-xs px-2 py-1 btnv2--ghost rounded-sm"
+        className="text-xs px-2 py-1 btnv2--ghost rounded"
         title="Promote to Claim (thin CEG)"
       >
         {busy ? 'Promoting…' : (('label' in props && props.label) || 'Promote to Claim')}

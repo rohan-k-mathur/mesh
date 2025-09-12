@@ -397,7 +397,7 @@ useEffect(() => {
 
 const { data: lm } = useLegalMoves(targetText);
 return (
-  <div className="group relative rounded-2xl border border-slate-200 bg-white/70 p-4 shadow-sm backdrop-blur space-y-3">
+  <div className="group relative rounded-2xl panel-edge bg-white/70  p-4 backdrop-blur space-y-3">
     {/* slim top shine */}
     <div className="pointer-events-none absolute inset-x-2 top-1 h-px bg-gradient-to-b from-white/70 to-transparent" />
 

@@ -34,6 +34,8 @@ import { useDeliberationAF } from "../dialogue/useGraphAF";
 import { ToulminBox } from "../monological/ToulminBox";
 import { QuantifierModalityPicker } from "../monological/QuantifierModalityPicker";
 
+import { LegalMoveChips } from "../dialogue/LegalMoveChips";
+
 // Dialectic + RSA
 import { useDialecticStats } from "@/packages/hooks/useDialecticStats";
 import { DialBadge } from "@/packages/components/DialBadge";
@@ -373,7 +375,7 @@ function openIssuesFor(argumentId: string) {
   return (
     <div
       id="arguments-top"
-      className="relative z-10 w-full px-2 rounded-md border"
+      className="relative z-10 w-full px-2 rounded-md pt-1 pb-3 panel-edge"
     >
       <div className="px-3 py-2 text-md font-medium flex items-center justify-between">
         <span>Arguments</span>
@@ -387,7 +389,7 @@ function openIssuesFor(argumentId: string) {
           {listExpanded ? "Lock Scrolling" : "Enable Scrolling"}
         </button>
         <button
-          className="px-4 py-1 btnv2  rounded-full"
+          className="px-4 py-1 btnv2  button-edge  rounded-full"
           onClick={() => { setIssueDrawerTargetId(null); setIssuesOpen(true); }}
 
         >
@@ -435,7 +437,7 @@ function openIssuesFor(argumentId: string) {
             <div className="flex items-center justify-between px-3 py-1">
               <div className="text-sm font-medium">Dialogical view</div>
               <button
-                className="px-2 py-1 border rounded text-xs"
+                className="px-2 py-1 btnv2 rounded-full text-xs"
                 onClick={async () => {
                   setNegOpen(true);
                   await fetch("/api/ludics/compile-step", {
@@ -448,7 +450,7 @@ function openIssuesFor(argumentId: string) {
                   );
                 }}
               >
-                Open negotiation
+                Open Negotiation Panel
               </button>
             </div>
             <DialogicalPanel
@@ -467,7 +469,7 @@ function openIssuesFor(argumentId: string) {
           </>
         )}
 
-        <div className="h-[500px]">
+        <div className="h-[500px] ">
           <Virtuoso
             className={virtuosoOverflowClass}
             data={items}
@@ -684,8 +686,9 @@ function ArgRow({
   // Pull batch RSA for this row
   const rsaForRow = rsaByTarget[`argument:${a.id}`];
   const { user } = useAuth();
-
-  const canEditQM = String(user?.userId ?? "") === String(a.authorId);
+    const viewerId =
+      (user as any)?.userId ?? (user as any)?.id ?? (user as any)?.uid ?? (user as any)?.sub ?? null;
+    const isAuthor = viewerId != null && String(viewerId) === String(a.authorId);
 
   return (
     <div className="relative my-2  shadow-sm">
@@ -701,46 +704,35 @@ function ArgRow({
         />
       )}
 
-      {modelLens === "monological" && (
-        <>
-          <MiniStructureBox text={a.text} />
-          <ToulminBox
-            text={a.text}
-            argumentId={a.id}
-            deliberationId={deliberationId}
-            claimId={a.claimId ?? null}
-            onOpenCitePicker={onOpenCitePicker}
-            onPromoteWithEvidence={onPromoteWithEvidence}
-            onAddMissing={(slot) => {
-              fetch("/api/missing-premises", {
-                method: "POST",
-                headers: { "content-type": "application/json" },
-                body: JSON.stringify({
-                  deliberationId,
-                  targetType: "argument",
-                  targetId: a.id,
-                  text:
-                    slot === "warrant"
-                      ? "Add warrant…"
-                      : "Add missing premise…",
-                  premiseType: slot === "warrant" ? "warrant" : "premise",
-                }),
-              }).catch(() => {});
-            }}
-            onPromoteConclusion={(conclusion) => {
-              fetch("/api/claims/quick-create", {
-                method: "POST",
-                headers: { "content-type": "application/json" },
-                body: JSON.stringify({
-                  targetArgumentId: a.id,
-                  text: conclusion,
-                  deliberationId,
-                }),
-              }).then(() => refetch());
-            }}
-          />
-        </>
-      )}
+
+         {modelLens === "monological" && (
+           <>
+             <MiniStructureBox text={a.text} />
+             <ToulminBox
+               text={a.text}
+               argumentId={a.id}
+               deliberationId={deliberationId}
+               claimId={a.claimId ?? null}
+               onChanged={() => refetch()}
+               onAddMissing={(slot) => {
+                 fetch('/api/missing-premises', {
+                   method: 'POST', headers: { 'content-type': 'application/json' },
+                   body: JSON.stringify({
+                     deliberationId, targetType: 'argument', targetId: a.id,
+                     text: slot === 'warrant' ? 'Add warrant…' : 'Add missing premise…',
+                     premiseType: slot === 'warrant' ? 'warrant' : 'premise',
+                   }),
+                 }).catch(()=>{});
+               }}
+               onPromoteConclusion={(conclusion) => {
+                 fetch('/api/claims/quick-create', {
+                   method: 'POST', headers: { 'content-type': 'application/json' },
+                   body: JSON.stringify({ targetArgumentId: a.id, text: conclusion, deliberationId }),
+                 }).then(()=>refetch());
+               }}
+             />
+           </>
+         )}
 
       {/* badges */}
 
@@ -801,7 +793,7 @@ function ArgRow({
                 )}
               </div>
             </div>
-            {modelLens === "monological" && canEditQM && (
+            {modelLens === "monological" && isAuthor && (
               <QuantifierModalityPicker
                 initialQuantifier={a.quantifier ?? null}
                 initialModality={a.modality ?? null}
@@ -1016,33 +1008,37 @@ function ArgRow({
         </button>
 
         {a.claimId ? (
-          <span className="text-[11px] px-2 py-1 rounded border border-emerald-300 bg-emerald-50 text-emerald-700">
-            Promoted ✓
-          </span>
-        ) : (
-          <PromoteToClaimButton
-            deliberationId={deliberationId}
-            target={{ type: "argument", id: a.id }}
-            onClaim={async (newClaimId) => {
-              refetch();
-              await fetch("/api/dialogue/move", {
-                method: "POST",
-                headers: { "content-type": "application/json" },
-                body: JSON.stringify({
-                  deliberationId,
-                  targetType: "claim",
-                  targetId: newClaimId,
-                  kind: "ASSERT",
-                  payload: { note: "Promoted to Claim" },
-                  actorId: "Proponent",
-                  autoCompile: true,
-                  autoStep: true,
-                }),
-              }).catch(() => {});
-              window.dispatchEvent(new CustomEvent("dialogue:moves:refresh"));
-            }}
-          />
-        )}
+    <span className="text-[11px] px-2 py-1 rounded border border-emerald-300 bg-emerald-50 text-emerald-700">
+      Promoted ✓
+    </span>
+  ) : (
+
+      <PromoteToClaimButton
+        deliberationId={deliberationId}
+        target={{ type: "argument", id: a.id }}
+        onClaim={async (newClaimId) => {
+          refetch();
+          await fetch("/api/dialogue/move", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              deliberationId,
+              targetType: "claim",
+              targetId: newClaimId,
+              kind: "ASSERT",
+              payload: { note: "Promoted to Claim" },
+              actorId: "Proponent",
+              autoCompile: true,
+              autoStep: true,
+            }),
+          }).catch(() => {});
+          window.dispatchEvent(
+            new CustomEvent("dialogue:moves:refresh")
+          );
+        }}
+      />
+    
+  )}
 
         <CiteInline
           deliberationId={deliberationId}
@@ -1120,6 +1116,12 @@ function DialogicalRow({
           targetType="argument"
           targetId={a.id}
         />
+        <LegalMoveChips
+  deliberationId={deliberationId}
+  targetType="argument"
+  targetId={arg.id}
+  onPosted={() => {/* optional */}}
+/>
         <button
           className="px-2 py-1 btnv2--ghost  rounded text-xs"
           onClick={() => onReplyTo(a.id)}

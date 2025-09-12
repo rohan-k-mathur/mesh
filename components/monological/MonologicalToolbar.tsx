@@ -20,11 +20,19 @@ export default function MonologicalToolbar({
   cqSummary?: { satisfied: number; required: number };
   onChanged?: () => void;
 }) {
-  const { data: ex } = useSWR<{ ok: boolean; slots: Record<string,string[]> }>(
+    const { data: ex, mutate } = useSWR<{ ok: boolean; slots: Record<string,string[]> }>(
     argument?.id ? `/api/monological/extract?argumentId=${encodeURIComponent(argument.id)}` : null,
     fetcher,
     { revalidateOnFocus: false }
   );
+    React.useEffect(() => {
+        if (!argument?.id) return;
+        const h = (e: any) => {
+          if (e?.detail?.argumentId === argument.id) mutate();
+        };
+        window.addEventListener('monological:slots:changed', h);
+        return () => window.removeEventListener('monological:slots:changed', h);
+      }, [argument?.id, mutate]);
 
   const slots = ex?.slots ?? { claim:[], grounds:[], warrant:[], backing:[], qualifier:[], rebuttal:[] } as any;
   const have = {
@@ -84,8 +92,6 @@ const saveQualifier = React.useMemo(() => {
           cqRequired={cqSummary?.required ?? 0}
         />
 
-        
-
         <div className="ml-auto flex gap-2">
           {(['ground','warrant','backing','rebuttal'] as Slot[]).map(s => (
             <button key={s}
@@ -105,7 +111,8 @@ const saveQualifier = React.useMemo(() => {
         </div>
       </div>
 
-      <div className="mt-2">
+      <div className="inline-flex gap-2 mt-2">
+        <span className='text-xs flex gap-2'> {"Missing: "} </span>
         <MissingChecklist />
       </div>
 <button
@@ -113,7 +120,7 @@ const saveQualifier = React.useMemo(() => {
   onClick={async ()=>{
     await fetch('/api/monological/bridge',{
       method:'POST', headers:{'content-type':'application/json'},
-      body: JSON.stringify({ argumentId: a.id })
+      body: JSON.stringify({ argumentId: argument.id })
     });
     // let panels refresh
     window.dispatchEvent(new CustomEvent('dialogue:moves:refresh'));
@@ -125,7 +132,7 @@ const saveQualifier = React.useMemo(() => {
           <QuantifierModalityPicker
             initialQuantifier={null}
             initialModality={null}
-            onChange={(q,m)=>saveQualifier(a.id, q, m)}
+            onChange={(q,m)=>saveQualifier(argument.id, q, m)}
             />
         </div>
       {editing && (
@@ -134,7 +141,11 @@ const saveQualifier = React.useMemo(() => {
           deliberationId={deliberationId}
           claimId={argument.claimId ?? undefined}
           slot={editing}
-          onSaved={() => { setEditing(null); onChanged?.(); }}
+          onSaved={async () => {
+                        setEditing(null);
+                        await mutate();      // refresh extract
+                        onChanged?.();       // let parent refetch its list if it wants
+                      }}
           onCancel={() => setEditing(null)}
         />
       )}

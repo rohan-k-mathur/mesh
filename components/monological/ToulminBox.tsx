@@ -1,5 +1,8 @@
 'use client';
 import * as React from 'react';
+import useSWR from 'swr';
+
+const fetcher = (u: string)=>fetch(u,{cache:'no-store'}).then(r=>r.json());
 
 const CUES = {
   claim:     /\b(therefore|thus|so it follows|we should|hence|conclude|thereby|in conclusion)\b/i,
@@ -40,7 +43,7 @@ function AttachEvidenceQuick({ claimId, onDone }:{
     <div className="flex items-center gap-2">
       <input
         className="flex-1 border rounded px-2 py-1 text-[12px]"
-        placeholder="Paste DOI or URL…"
+        placeholder="                               89DOI or URL…"
         value={url}
         onChange={e=>setUrl(e.target.value)}
         disabled={busy}
@@ -156,6 +159,28 @@ export function ToulminBox({
 }) {
   const sents = React.useMemo(() => splitSents(text), [text]);
 
+
+   // pull server-extracted & saved slots
+   const { data: ex, mutate } = useSWR<{ ok:boolean; slots: Record<string,string[]> }>(
+     argumentId ? `/api/monological/extract?argumentId=${encodeURIComponent(argumentId)}` : null,
+     fetcher,
+     { revalidateOnFocus: false }
+   );
+
+     React.useEffect(() => {
+        if (!argumentId) return;
+        const h = (e: any) => {
+          if (e?.detail?.argumentId === argumentId) mutate();
+        };
+        window.addEventListener('monological:slots:changed', h);
+        return () => window.removeEventListener('monological:slots:changed', h);
+      }, [argumentId, mutate]);
+ 
+   // local optimistic adds so it shows up instantly
+   const [optimistic, setOptimistic] = React.useState<Record<Slot, string[]>>({
+     claim:[], grounds:[], warrant:[], backing:[], qualifier:[], rebuttal:[]
+   });
+
   const buckets = React.useMemo(() => {
     const m: Record<Slot, string[]> = { claim:[], grounds:[], warrant:[], backing:[], qualifier:[], rebuttal:[] };
     for (const s of sents) {
@@ -181,7 +206,19 @@ export function ToulminBox({
         if (seen.has(key)) return false; seen.add(key); return true;
       }).slice(0, 5);
     });
-    return m;
+    // merge persisted (server extract)   optimistic
+     const persisted = (ex?.slots ?? {}) as Record<string, string[]>;
+     const addAll = (k: Slot, arr?: string[]) => {
+       for (const t of (arr ?? [])) if (!m[k].includes(t)) m[k].push(t);
+     };
+     addAll('grounds',   persisted.grounds || persisted.ground || []);
+     addAll('warrant',   persisted.warrant);
+     addAll('backing',   persisted.backing);
+     addAll('qualifier', persisted.qualifier);
+     addAll('rebuttal',  persisted.rebuttal);
+     // optimistic last, so it always shows right after save
+     (Object.keys(optimistic) as Slot[]).forEach(k => addAll(k, optimistic[k]));
+     return m;
   }, [sents]);
 
   const has = (k: Slot) => (buckets[k]?.length ?? 0) > 0;
@@ -195,6 +232,13 @@ export function ToulminBox({
   const [busy, setBusy]       = React.useState(false);
   const [err, setErr]         = React.useState<string|null>(null);
 
+     // API expects "ground" (singular); our buckets use "grounds".
+   function apiSlot(s: Exclude<Slot,'claim'>):
+     'ground'|'warrant'|'backing'|'qualifier'|'rebuttal' {
+     return s === 'grounds' ? 'ground' : s;
+   }
+
+
   async function saveSlot(slot: Exclude<Slot,'claim'>, textVal: string) {
     if (!argumentId || !textVal.trim()) return;
     setBusy(true); setErr(null);
@@ -206,18 +250,28 @@ export function ToulminBox({
           argumentId,
           deliberationId,
           claimId: slot === 'warrant' ? (claimId ?? undefined) : undefined,
-          slot, // 'ground'|'warrant'|'backing'|'qualifier'|'rebuttal'
+          slot: apiSlot(slot), // normalize: 'grounds' -> 'ground'
           text: textVal.trim(),
         }),
       });
       if (!res.ok) throw new Error(await res.text());
+       // optimistic show
+       setOptimistic(o => ({
+           ...o,
+           [slot]: Array.from(new Set([...(o[slot]||[]), textVal.trim()]))
+         }));
       setEditing(null);
       setDraft('');
-      onChanged?.();
+         // revalidate server extract (so other panels update too)
+       await mutate();
+       onChanged?.();
     } catch (e: any) {
       setErr(e?.message || 'Failed to save');
     } finally {
       setBusy(false);
+      window.dispatchEvent(new CustomEvent('monological:slots:changed', {
+        detail: { argumentId }
+      }));
     }
   }
 

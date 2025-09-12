@@ -250,8 +250,8 @@ export function SectionCard({
     <section
       id={id}
       className={[
-        "group relative overflow-hidden rounded-2xl",
-        "border border-slate-200/70 dark:border-slate-800/60",
+        "group relative  overflow-hidden rounded-2xl",
+        "panel-edge dark:border-slate-800/60",
         "bg-white/70 dark:bg-slate-900/50",
         "backdrop-blur supports-[backdrop-filter]:bg-white/60",
         "shadow-sm hover:shadow-md transition-shadow",

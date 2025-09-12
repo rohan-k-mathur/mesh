@@ -45,30 +45,28 @@ export async function compileFromMoves(
 ): Promise<{ ok: true; designs: string[] }> {
   return withCompileLock(deliberationId, async () => {
     // ---- Tx-1: cleanup + create designs (short, relation-based) ----
-const { proponentId, opponentId } = await prisma.$transaction(async (tx) => {
-  const root = await ensureRoot(tx as Tx, deliberationId);
+ // ---- Tx-1: cleanup + create designs (short, relation-safe) ----
+     const { proponentId, opponentId } = await prisma.$transaction(async (tx) => {
+    const root = await ensureRoot(tx as Tx, deliberationId);
 
-  // 1) delete chronicles for any designs in this dialogue
+// 1) delete dependents (chronicles → acts → traces)
   await tx.ludicChronicle.deleteMany({
     where: { design: { deliberationId } },
   });
 
-  // 2) delete acts for any designs in this dialogue
   await tx.ludicAct.deleteMany({
     where: { design: { deliberationId } },
   });
 
-  // 3) delete traces referencing these designs/dialogue
   await tx.ludicTrace.deleteMany({
     where: { deliberationId },
   });
 
-  // 4) now it's safe to delete designs
   await tx.ludicDesign.deleteMany({
     where: { deliberationId },
   });
 
-  // 5) recreate pair
+ // 3) recreate pair
   const proponent = await tx.ludicDesign.create({
     data: { deliberationId, participantId: 'Proponent', rootLocusId: root.id },
   });
@@ -173,7 +171,11 @@ const { proponentId, opponentId } = await prisma.$transaction(async (tx) => {
           act: {
             kind: 'PROPER', polarity: 'O', locus,
             ramification: [], expression: expr,
-            meta: { justifiedByLocus: locus },
+            meta: {
+                     justifiedByLocus: locus,
+                     schemeKey: payload.schemeKey ?? null,
+                     cqId: payload.cqId ?? null
+                   },
           },
         });
         continue;
@@ -192,7 +194,11 @@ const { proponentId, opponentId } = await prisma.$transaction(async (tx) => {
           act: {
             kind: 'PROPER', polarity: 'P', locus: child,
             ramification: [], expression: expr,
-            meta: { justifiedByLocus: parent },
+            meta: {
+                     justifiedByLocus: parent,
+                     schemeKey: payload.schemeKey ?? null,
+                     cqId: payload.cqId ?? null
+                   },
           },
         });
 
@@ -225,8 +231,8 @@ const { proponentId, opponentId } = await prisma.$transaction(async (tx) => {
     //   }, { timeout: 10_000, maxWait: 5_000 });
     // }
     for (const { designId, act } of acts) {
-      await appendActs(designId, [act], { enforceAlternation: false }, prisma);
-    }
+            await appendActs(designId, [act], { enforceAlternation: false }, prisma);
+          }
 
     // ---- Run visibility after all writes commit ----
     await Promise.allSettled([

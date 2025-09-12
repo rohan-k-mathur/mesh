@@ -2102,6 +2102,8 @@ model AgreementAck {
   @@map("agreement_acks")
 }
 
+//Deliberation models and enums
+
 model Argument {
   id             String  @id @default(cuid())
   deliberationId String
@@ -2214,9 +2216,10 @@ model Cluster {
   label          String?
   createdAt      DateTime @default(now())
 
-  deliberation Deliberation      @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
-  users        UserCluster[]
-  arguments    ArgumentCluster[]
+  deliberation            Deliberation      @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
+  users                   UserCluster[]
+  arguments               ArgumentCluster[]
+  bridgeRequestsTargeting BridgeRequest[]   @relation("BridgeTargetCluster")
 
   @@index([deliberationId, type, createdAt])
   @@index([deliberationId, type])
@@ -2262,6 +2265,7 @@ model BridgeRequest {
   deliberationId  String
   requestedById   String
   targetClusterId String
+  targetCluster   Cluster             @relation("BridgeTargetCluster", fields: [targetClusterId], references: [id], onDelete: Cascade)
   status          BridgeRequestStatus @default(open)
   expiresAt       DateTime?
   createdAt       DateTime            @default(now())
@@ -2270,14 +2274,15 @@ model BridgeRequest {
 }
 
 model BridgeAssignment {
-  id            String    @id @default(cuid())
+  id            String            @id @default(cuid())
   requestId     String
   assigneeId    String
-  assignedAt    DateTime  @default(now())
+  assignedAt    DateTime          @default(now())
   acceptedAt    DateTime?
   completedAt   DateTime?
   summaryCardId String?
-  rewardCare    Int       @default(0)
+  summaryCard   DeliberationCard? @relation("BridgeSummaryCard", fields: [summaryCardId], references: [id], onDelete: SetNull)
+  rewardCare    Int               @default(0)
 
   request BridgeRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
 }
@@ -2534,7 +2539,7 @@ model ContentStatus {
   panelId       String?
   createdAt     DateTime          @default(now())
 
-  @@unique([targetType, targetId]) // one "current" row per target
+  @@unique([roomId, targetType, targetId])
 }
 
 model Panel {
@@ -2575,6 +2580,8 @@ model DeliberationCard {
   hostEmbed                 String?
   hostId                    String?
   moid                      String   @unique
+
+  bridgeSummaryAssignments BridgeAssignment[] @relation("BridgeSummaryCard")
 
   // New relation to Claim
   claimId String?
@@ -2881,6 +2888,9 @@ model DialogueMove {
   locusId        String?
   endsWithDaimon Boolean @default(false)
 
+  signature String @db.VarChar(255)
+
+  @@unique([deliberationId, signature], name: "dm_unique_signature")
   @@index([deliberationId, targetType, targetId, createdAt])
   @@index([deliberationId])
   @@index([targetType, targetId])
@@ -2914,13 +2924,13 @@ model Deliberation {
 }
 
 model DeliberationPref {
-  deliberationId String @id
-  profile        String           // 'community' | 'policy' | 'scientific'
-  minRelevance   Float  @default(0.5)
-  minSufficiency Float  @default(0.5)
-  minAcceptability Float @default(0.5)
-  updatedAt      DateTime @updatedAt
-  createdAt      DateTime @default(now())
+  deliberationId   String   @id
+  profile          String // 'community' | 'policy' | 'scientific'
+  minRelevance     Float    @default(0.5)
+  minSufficiency   Float    @default(0.5)
+  minAcceptability Float    @default(0.5)
+  updatedAt        DateTime @updatedAt
+  createdAt        DateTime @default(now())
 }
 
 model Value {

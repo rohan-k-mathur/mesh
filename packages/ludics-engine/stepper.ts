@@ -41,11 +41,24 @@ function computeDecisiveIndices(
     actById.get(pairs[i].posActId)?.locus?.path ??
     actById.get(pairs[i].negActId)?.locus?.path ?? '0';
 
+  const isUnder = (cur: string, root: string) => {
+    if (cur === root) return true;
+    const c = cur.split('.');
+    const r = root.split('.');
+    if (r.length > c.length) return false;
+    for (let idx = 0; idx < r.length; idx++) {
+      if (c[idx] !== r[idx]) return false;
+    }
+    return true;
+  };
+
   for (let k = i - 1; k >= 0; k--) {
     const pos = actById.get(pairs[k].posActId);
     const meta = (pos?.metaJson ?? {}) as any;
-    const just = meta?.justifiedByLocus as string | undefined;
-    if (just && (currentLocus === just || currentLocus.startsWith(just + '.'))) {
+    const rawJust = meta?.justifiedByLocus as string | undefined;
+    const just = typeof rawJust === 'string' ? rawJust.trim() : undefined;
+
+    if (just && isUnder(currentLocus, just)) {
       used.add(k);
       currentLocus = pos?.locus?.path ?? currentLocus;
     }
@@ -69,17 +82,33 @@ export async function stepInteraction(opts: {
   const { dialogueId } = opts;
   const maxPairs = Math.max(1, Math.min(opts.maxPairs ?? 10_000, 10_000));
 
-  const [posDesign, negDesign] = await Promise.all([
-    prisma.ludicDesign.findUnique({
-      where: { id: opts.posDesignId },
-      include: { acts: { include: { locus: true }, orderBy: { orderInDesign: 'asc' } } },
-    }),
-    prisma.ludicDesign.findUnique({
-      where: { id: opts.negDesignId },
-      include: { acts: { include: { locus: true }, orderBy: { orderInDesign: 'asc' } } },
-    }),
-  ]);
-  if (!posDesign || !negDesign) throw new Error('NO_SUCH_DESIGN');
+   // --- Resolve designs resiliently (handles stale IDs) ---
+   async function resolvePair() {
+       const [pos0, neg0] = await Promise.all([
+         prisma.ludicDesign.findUnique({
+           where: { id: opts.posDesignId },
+           include: { acts: { include: { locus: true }, orderBy: { orderInDesign: 'asc' } } },
+         }),
+         prisma.ludicDesign.findUnique({
+           where: { id: opts.negDesignId },
+           include: { acts: { include: { locus: true }, orderBy: { orderInDesign: 'asc' } } },
+         }),
+       ]);
+       let pos = pos0 && pos0.deliberationId === dialogueId ? pos0 : null;
+       let neg = neg0 && neg0.deliberationId === dialogueId ? neg0 : null;
+       if (!pos || !neg) {
+         const designs = await prisma.ludicDesign.findMany({
+           where: { deliberationId: dialogueId },
+           orderBy: [{ participantId: 'asc' }, { id: 'asc' }],
+           include: { acts: { include: { locus: true }, orderBy: { orderInDesign: 'asc' } } },
+         });
+         pos = pos ?? (designs.find(d => d.participantId === 'Proponent') ?? designs[0] ?? null);
+         neg = neg ?? (designs.find(d => d.participantId === 'Opponent')  ?? designs[1] ?? designs[0] ?? null);
+       }
+       if (!pos || !neg) throw new Error('NO_SUCH_DESIGN');
+       return { pos, neg };
+     }
+     let { pos: posDesign, neg: negDesign } = await resolvePair();
 
   const loci = await prisma.ludicLocus.findMany({ where: { dialogueId } });
   const pathById = new Map(loci.map(l => [l.id, l.path]));
@@ -198,7 +227,26 @@ export async function stepInteraction(opts: {
       steps: pairs,
       extJson: { usedAdditive }, // filled now; decisiveIndices below after we compute them
     },
-  });
+  }).catch(async (e: any) => {
+         // If a compile wiped designs between read & write, fall back to current pair and retry once.
+         if (String(e?.code) === 'P2003') {
+           const pair = await resolvePair();
+           const A2 = { design: pair.pos, acts: pair.pos.acts };
+           const B2 = { design: pair.neg, acts: pair.neg.acts };
+           return prisma.ludicTrace.create({
+             data: {
+               deliberationId: dialogueId,
+               posDesignId: A2.design.id,
+               negDesignId: B2.design.id,
+               status,
+               endedAtDaimonForParticipantId,
+               steps: pairs,
+               extJson: { usedAdditive },
+             },
+           });
+         }
+         throw e;
+       });
 
   Hooks.emitTraversal({
     dialogueId,

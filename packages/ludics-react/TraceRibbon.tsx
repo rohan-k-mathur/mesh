@@ -1,42 +1,58 @@
 'use client';
 import * as React from 'react';
 
-type Step = { posActId: string; negActId: string; ts: number };
+type Step = { posActId: string; negActId: string; ts?: number };
 
 export function TraceRibbon(props: {
-  steps?: Step[] | null;                      // ← make optional
+  steps?: Step[] | null;
   status?: 'ONGOING'|'CONVERGENT'|'DIVERGENT';
   badges?: Record<number, string>;
   onFocus?: (pairIndex: number) => void;
+  focusIndex?: number;
+  decisiveIndices?: number[];
 }) {
-  // Defensive defaults
   const steps: Step[] = Array.isArray(props.steps) ? props.steps : [];
   const status = props.status ?? 'ONGOING';
   const badges = props.badges ?? {};
+  const decisive = new Set(props.decisiveIndices ?? []);
+  const focus = typeof props.focusIndex === 'number' ? props.focusIndex : -1;
 
-  if (steps.length === 0) {
-    // Render a tiny placeholder or return null — your choice:
-    return <div className="text-xs opacity-60">No steps yet.</div>;
-    // return null;
-  }
+  if (!steps.length) return <div className="text-xs opacity-60">No steps yet.</div>;
+
+  const statusChip =
+    status === 'CONVERGENT' ? 'bg-emerald-50 border-emerald-200 text-emerald-700' :
+    status === 'DIVERGENT'  ? 'bg-rose-50 border-rose-200 text-rose-700' :
+                               'bg-slate-50 border-slate-200 text-slate-700';
 
   return (
-    <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
-      {steps.map((s, i) => (
-        <div key={i}
-             onClick={() => props.onFocus?.(i)}
-             style={{display:'flex',gap:6,alignItems:'center',cursor:'pointer', padding:4, border:'1px solid #ddd', borderRadius:6}}>
-          <span title={s.posActId}>P:{s.posActId.slice(0,4)}</span>
-          <span>⇄</span>
-          <span title={s.negActId}>O:{s.negActId.slice(0,4)}</span>
-          {badges[i] && (
-            <span style={{fontSize:10, padding:'1px 4px', border:'1px solid #f59e0b', borderRadius:4}}>
-              {badges[i]}
-            </span>
-          )}
-        </div>
-      ))}
-      <strong>{status === 'CONVERGENT' ? '†' : status}</strong>
+    <div className="flex flex-wrap items-center gap-2">
+      {steps.map((s, i) => {
+        const hi = decisive.has(i);
+        const focused = i === focus;
+        return (
+          <button
+            key={i}
+            onClick={() => props.onFocus?.(i)}
+            className={[
+              'flex items-center gap-2 rounded-md border px-2 py-1 text-xs transition',
+              hi ? 'border-green-300 bg-green-50/60' : 'border-slate-200 bg-white/70',
+              focused ? 'ring-2 ring-sky-300' : 'hover:bg-white'
+            ].join(' ')}
+            title={`#${i+1}`}
+          >
+            <span className="opacity-70">#{i+1}</span>
+            <span className="px-1.5 py-0.5 rounded border bg-slate-50">P:{s.posActId.slice(0,4)}</span>
+            <span>⇄</span>
+            <span className="px-1.5 py-0.5 rounded border bg-slate-50">O:{s.negActId.slice(0,4)}</span>
+            {badges[i] && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded border bg-amber-50 border-amber-200 text-amber-700">
+                {badges[i]}
+              </span>
+            )}
+          </button>
+        );
+      })}
+      <span className={`ml-2 text-[11px] px-2 py-0.5 rounded border ${statusChip}`}>{status === 'CONVERGENT' ? '† CONVERGENT' : status}</span>
     </div>
   );
 }

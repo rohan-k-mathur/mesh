@@ -120,7 +120,8 @@ export const config = {
   matcher: [
     "/.well-known/:path*",
     "/api/proposals/:path*",  // ← add this
-
+    '/((?!_next/static|_next/image|favicon.ico).*)',
+    '/api/:path*',
     "/((?!_next|favicon.ico|api|fonts|images|assets|.*\\.).+)",
   ],
 };

@@ -4,11 +4,20 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prismaclient';
 import { getCurrentUserId } from '@/lib/serverutils';
 
-const Body = z.object({
-  argumentId: z.string().min(5),
+ // Accept both "ground" and "grounds" but normalize to "ground"
+ const SlotZ = z.union([
+       z.literal('ground'),
+       z.literal('grounds').transform(() => 'ground' as const),
+       z.literal('warrant'),
+       z.literal('backing'),
+       z.literal('qualifier'),
+       z.literal('rebuttal'),
+     ]);
+     
+     const Body = z.object({  argumentId: z.string().min(5),
   deliberationId: z.string().optional(),
   claimId: z.string().optional(), // if available (for warrant/rebuttal attach)
-  slot: z.enum(['ground','warrant','backing','qualifier','rebuttal']),
+  slot: SlotZ,
   text: z.string().min(2).max(2000),
 });
 

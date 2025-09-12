@@ -47,7 +47,7 @@ export function JudgeConsole(props: {
     <button
       onClick={p.onClick}
       disabled={busy !== null || p.disabled}
-      className={`px-2 py-1 rounded border text-sm ${
+      className={`px-2 py-1 rounded btnv2 text-sm ${
         p.danger ? 'border-rose-300 bg-rose-50' : 'border-slate-300 bg-white'
       } disabled:opacity-50`}
       title={busy ? 'Working…' : undefined}
@@ -171,7 +171,7 @@ export function JudgeConsole(props: {
             <button
               key={'sugg-'+x}
               onClick={()=>setLocus(x)}
-              className="text-[11px] px-2 py-0.5 border rounded hover:bg-slate-50"
+              className="text-[11px] px-2 py-0.5 btnv2 rounded hover:bg-slate-50"
             >
               {x}
             </button>
