@@ -10,6 +10,7 @@ import { DefenseTree } from 'packages/ludics-react/DefenseTree';
 import { ActInspector } from '@/packages/ludics-react/ActInspector';
 import { narrateTrace } from '@/components/dialogue/narrateTrace';
 import { mergeDesignsToTree } from 'packages/ludics-react/mergeDesignsToTree';
+import { CommitmentDelta } from '@/components/dialogue/CommitmentDelta';
 
 const fetcher = (u: string) => fetch(u, { cache: 'no-store' }).then(r => r.json());
 
@@ -673,6 +674,7 @@ export function LudicsPanel({ deliberationId }: { deliberationId: string }) {
               usedAdditive={trace?.usedAdditive}
               onPickBranch={pickAdditive}
               focusPath={focusPath}
+              onCommitHere={commitAtPath}
               onFocusPathChange={onFocusPathChange}
               defaultCollapsedDepth={1}
               showExpressions
