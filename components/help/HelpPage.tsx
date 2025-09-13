@@ -322,7 +322,7 @@ export default function DiscusHelpPage() {
   return (
     <>
       <button
-        className="text-xs px-2 py-1 rounded border hover:bg-slate-50"
+        className="text-xs px-2 py-1 rounded-lg btnv2 bg-white"
         onClick={() => setOpen(true)}
         aria-haspopup="dialog"
         aria-controls="discus-help-modal"

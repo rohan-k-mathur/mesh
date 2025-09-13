@@ -59,6 +59,11 @@ function computeUnresolvedWhy(moves: Move[]) {
 }
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+
+     // 👇 sanity guard for bad segments
+   if (!params?.id || params.id === 'undefined' || params.id === 'null') {
+     return NextResponse.json({ ok:false, error:'INVALID_DELIBERATION_ID' }, { status: 400 });
+   }
   const userId = await getCurrentUserId().catch(() => null);
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 

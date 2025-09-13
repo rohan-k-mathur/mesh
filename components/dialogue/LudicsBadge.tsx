@@ -20,16 +20,17 @@ export function LudicsBadge({
 
     const fetchOpen = async () => {
       try {
-        const url = `/api/dialogue/open-cqs?deliberationId=${encodeURIComponent(
-          deliberationId
-        )}&targetId=${encodeURIComponent(targetId)}`;
+  
+       const url =
+         deliberationId && targetId
+         ? `/api/dialogue/open-cqs?deliberationId=${encodeURIComponent(deliberationId)}&targetId=${encodeURIComponent(targetId)}`
+           : null;
+       if (!url) return;                        // ✅ extra safety
         const res = await fetch(url, { cache: 'no-store', signal: ctrl.signal });
         const j = await res.json().catch(() => null);
         if (!alive) return;
         setUnresolved(Array.isArray(j?.cqOpen) && j.cqOpen.length > 0);
-      } catch {
-        /* ignore */
-      }
+      } catch { /* ignore */ }
     };
 
     fetchOpen();

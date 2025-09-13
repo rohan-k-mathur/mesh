@@ -11,6 +11,9 @@ import { ActInspector } from '@/packages/ludics-react/ActInspector';
 import { narrateTrace } from '@/components/dialogue/narrateTrace';
 import { mergeDesignsToTree } from 'packages/ludics-react/mergeDesignsToTree';
 import { CommitmentDelta } from '@/components/dialogue/CommitmentDelta';
+import { NLCommitPopover } from '@/components/dialogue/NLCommitPopover';
+import { useDialogueTarget } from '@/components/dialogue/DialogueTargetContext';
+
 
 const fetcher = (u: string) => fetch(u, { cache: 'no-store' }).then(r => r.json());
 
@@ -125,6 +128,23 @@ export function LudicsPanel({ deliberationId }: { deliberationId: string }) {
   const [showGuide, setShowGuide] = React.useState(false);
   const [phase, setPhase] = React.useState<'neutral' | 'focus-P' | 'focus-O'>('neutral');
   const [viewMode, setViewMode] = React.useState<'unified' | 'split'>('unified');
+  const [commitOpen, setCommitOpen] = React.useState(false);
+const [commitPath, setCommitPath] = React.useState<string | null>(null);
+
+const { target } = useDialogueTarget();
+const targetIdFromContext = target?.id ?? null;
+const targetTypeFromContext = target?.type ?? 'claim'; // sensible default
+
+const commitAtPath = React.useCallback((path: string) => {
+  setCommitPath(path);
+  setCommitOpen(true);
+}, []);
+
+
+  // Broadcast phase so other components (e.g., row chips) can derive commitOwner
+  React.useEffect(() => {
+    window.dispatchEvent(new CustomEvent('ludics:phase', { detail: { phase } }));
+  }, [phase]);
 
   // Throttled compile-step control
   const compRef = React.useRef(false);
@@ -454,25 +474,25 @@ export function LudicsPanel({ deliberationId }: { deliberationId: string }) {
     [designs, deliberationId, mutateDesigns, step]
   );
 
-     const commitAtPath = React.useCallback(async (path: string) => {
-     const label = window.prompt('New commitment label (fact):', '');
-     if (!label) return;
-     try {
-       await fetch('/api/commitments/apply', {
-         method:'POST', headers:{'content-type':'application/json'},
-         body: JSON.stringify({
-           dialogueId: deliberationId,
-           ownerId: 'Proponent',               // or current side
-           autoPersistDerived: false,
-           ops: { add: [{ label, basePolarity: 'pos', baseLocusPath: path, entitled: true }] }
-         })
-       });
-       window.dispatchEvent(new CustomEvent('dialogue:cs:refresh', { detail: { dialogueId: deliberationId, ownerId: 'Proponent' }}));
-       toast.show(`Committed “${label}” @ ${path}`, 'ok');
-     } catch (e:any) {
-       toast.show('Commit failed', 'err');
-     }
-  }, [deliberationId, toast]);
+  //    const commitAtPath = React.useCallback(async (path: string) => {
+  //    const label = window.prompt('New commitment label (fact):', '');
+  //    if (!label) return;
+  //    try {
+  //      await fetch('/api/commitments/apply', {
+  //        method:'POST', headers:{'content-type':'application/json'},
+  //        body: JSON.stringify({
+  //          dialogueId: deliberationId,
+  //          ownerId: 'Proponent',               // or current side
+  //          autoPersistDerived: false,
+  //          ops: { add: [{ label, basePolarity: 'pos', baseLocusPath: path, entitled: true }] }
+  //        })
+  //      });
+  //      window.dispatchEvent(new CustomEvent('dialogue:cs:refresh', { detail: { dialogueId: deliberationId, ownerId: 'Proponent' }}));
+  //      toast.show(`Committed “${label}” @ ${path}`, 'ok');
+  //    } catch (e:any) {
+  //      toast.show('Commit failed', 'err');
+  //    }
+  // }, [deliberationId, toast]);
 
   /* ------------------------- Sync + keyboard hooks ----------------------- */
   React.useEffect(() => {
@@ -604,7 +624,10 @@ export function LudicsPanel({ deliberationId }: { deliberationId: string }) {
         {trace?.decisiveIndices?.length ? (
           <div className="mt-1 text-[11px] text-indigo-700">decisive: {trace.decisiveIndices.map((i) => i + 1).join(', ')}</div>
         ) : null}
-      </div>
+        {/* commitment delta overlay */}
+  <CommitmentDelta dialogueId={deliberationId} refreshKey={`${trace?.status}:${trace?.steps?.length ?? 0}`} />
+ </div>
+
 
       {/* Legend + narrative */}
       {showGuide && (
@@ -649,7 +672,7 @@ export function LudicsPanel({ deliberationId }: { deliberationId: string }) {
                         ln.decisive ? 'font-semibold' : '',
                       ].join(' ')}
                       onClick={() => setFocusIdx(i)}
-                      title="Focus this step"
+                      title={ln.hover} 
                     >
                       {i + 1}) {ln.text}
                     </button>
@@ -683,6 +706,18 @@ export function LudicsPanel({ deliberationId }: { deliberationId: string }) {
               autoScrollOnFocus
               enableKeyboardNav
             />
+{commitOpen && commitPath && targetIdFromContext && (
+  <NLCommitPopover
+    open={commitOpen}
+    onOpenChange={setCommitOpen}
+    deliberationId={deliberationId}
+    targetType={targetTypeFromContext}
+    targetId={targetIdFromContext}
+    locusPath={commitPath}
+    defaultOwner="Proponent"
+    onDone={() => {/* refresh */}}
+  />
+)}
           </div>
         ) : (
           // Split view: one per design (kept for debugging/teaching)

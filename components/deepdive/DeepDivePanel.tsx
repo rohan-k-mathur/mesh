@@ -124,9 +124,9 @@ function RhetoricToggle() {
   const { mode, setMode } = useRhetoric();
   return (
     
-    <label className="text-xs flex items-center gap-1">
+    <label className="text-xs flex  items-center gap-1">
       Lens:
-      <select className="border rounded px-1 py-0.5" value={mode} onChange={e=>setMode(e.target.value as any)}>
+      <select className="menuv2 border rounded px-1 py-0.5" value={mode} onChange={e=>setMode(e.target.value as any)}>
         <option value="content">Content</option>
         <option value="style">Style</option>
       </select>
@@ -356,7 +356,7 @@ export function SectionCard({
 
 function ChipBar({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex flex-wrap items-center gap-1 rounded-md border border-slate-200 bg-slate-50/70 px-1.5 py-1 text-xs">
+    <div className="flex flex-wrap items-center gap-1 rounded-md border-[.5px] border-slate-400 bg-slate-50 px-1.5 py-1 text-xs">
       {children}
     </div>
   );
@@ -474,11 +474,11 @@ async function updatePref(next: PrefProfile) {
         <div className="relative  flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             {status && <StatusChip status={status} />}
-                   <ChipBar>
-            <label className="text-xs text-neutral-600 flex items-center gap-1">
+                   <ChipBar >
+            <label className="text-xs text-neutral-600 b flex items-center gap-1">
               Rule:
               <select
-                className="text-xs border rounded px-2 py-1"
+                className="text-xs menuv2--lite  rounded px-2 mx-2 py-1 "
                 value={rule}
                 onChange={(e) => {
                   setRule(e.target.value as any);

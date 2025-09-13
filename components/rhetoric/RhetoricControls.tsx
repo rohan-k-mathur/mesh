@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button';
 
 function ChipBar({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex flex-wrap items-center gap-1 rounded-md border border-slate-200 bg-slate-100/70 px-1 py-1 text-xs">
+    <div className="flex flex-wrap items-center gap-1 rounded-md border-[.5px] border-slate-400 bg-slate-50 px-1.5 py-1 text-xs">
       {children}
     </div>
   );
@@ -99,11 +99,12 @@ export default function RhetoricControls({ sample }: { sample?: string }) {
   return (
     <div className="flex flex-wrap items-center gap-2 text-xs ">
       {/* Lens mode */}
+      <div className='flex '>
       <ChipBar>
       <label className="flex items-center gap-1">
         Lens:
         <select
-          className="border rounded px-1 py-0.5"
+          className=" menuv2--lite rounded px-1 py-0.5"
           value={mode}
           onChange={(e) => setMode(e.target.value as RhetoricMode)}
         >
@@ -114,15 +115,17 @@ export default function RhetoricControls({ sample }: { sample?: string }) {
     {/* Model lens: Monological/Dialogical/Rhetorical */}
     <label className="flex items-center gap-1" title="Choose analytic model: micro-structure, dialogue graph, or persuasive signals">
         Model:
-        <select className="border rounded px-1 py-0.5" value={modelLens} onChange={(e) => setModelLens(e.target.value as ModelLens)} aria-label="Model lens">
+        <select className="menuv2--lite rounded px-1 py-0.5" value={modelLens} onChange={(e) => setModelLens(e.target.value as ModelLens)} aria-label="Model lens">
           <option value="monological">Monological</option>
           <option value="dialogical">Dialogical</option>
           <option value="rhetorical">Rhetorical</option>
         </select>
       </label>
       </ChipBar>
+      </div>
       {/* NLP toggle */}
       <ChipBar>
+        <div className='flex gap-2'>
       <label
         className="flex items-center gap-1"
         title="Imperatives, passive, modals, negation, etc. (local; falls back to regex if NLP is unavailable)"
@@ -130,17 +133,21 @@ export default function RhetoricControls({ sample }: { sample?: string }) {
         <input
           type="checkbox"
           checked={!!settings.enableNlp}
+          className='checkboxv2'
           onChange={(e) => setSettings({ ...settings, enableNlp: e.target.checked })}
                     disabled={mode !== 'style'}
                     aria-disabled={mode !== 'style'}        />
         NLP cues
       </label>
+      
             <label
         className="flex items-center gap-1"
         title="Highlight emotion/valence, policy frames, Logos/Ethos lexicons"
       >
         <input
           type="checkbox"
+          className='checkboxv2'
+
           checked={!!settings.highlightLexicon}
           onChange={e => setSettings({ ...settings, highlightLexicon: e.target.checked })}
           disabled={mode !== 'style'}
@@ -150,16 +157,19 @@ export default function RhetoricControls({ sample }: { sample?: string }) {
       </label>
 
 
+        
+        <label htmlFor="mini-ml-toggle" className="flex items-center gap-1 text-xs" title="Tiny, transparent scorer for E/L/P mix (beta)">
         <input
           id="mini-ml-toggle"
           type="checkbox"
+          className='checkboxv2 bg-white/70'
+
           checked={!!settings.enableMiniMl}
           onChange={e => setSettings({ ...settings, enableMiniMl: e.target.checked })}
           />
-        <label htmlFor="mini-ml-toggle" className="text-xs" title="Tiny, transparent scorer for E/L/P mix (beta)">
           Metrics
         </label>
-
+        </div>
         </ChipBar>
 
       {/* Category dropdown */}

@@ -62,8 +62,8 @@ function Segmented<T extends string>({
             className={[
               "px-2.5 py-1 text-xs rounded",
               active
-                ? "bg-slate-900 text-white"
-                : "text-slate-700 hover:bg-white",
+                ? "bg-slate-100  text-slate-900"
+                : "text-slate-900  hover:bg-slate-300",
             ].join(" ")}
           >
             {o.label}
@@ -397,7 +397,7 @@ useEffect(() => {
 
 const { data: lm } = useLegalMoves(targetText);
 return (
-  <div className="group relative rounded-2xl panel-edge bg-white/70  p-4 backdrop-blur space-y-3">
+  <div className="group relative rounded-2xl panel-edge bg-indigo-50/70  p-4 backdrop-blur space-y-3">
     {/* slim top shine */}
     <div className="pointer-events-none absolute inset-x-2 top-1 h-px bg-gradient-to-b from-white/70 to-transparent" />
 
@@ -438,7 +438,7 @@ return (
     <div className="space-y-2">
       <textarea
         ref={textareaRef}
-        className="w-full resize-none rounded-lg border border-slate-200/80 bg-white/80 px-3 py-2 text-sm outline-none focus:border-indigo-300 focus:ring-0"
+        className="w-full resize-none rounded-lg articlesearchfield px-3 py-2 bg-white text-sm "
         rows={4}
         placeholder="Respond here…"
         value={text}
@@ -477,7 +477,7 @@ return (
         <input
           type="url"
           placeholder="Paste source URL"
-          className="w-56 rounded border border-slate-200 px-2 py-1 text-xs"
+          className="w-56 rounded articlesearchfield border-slate-200 px-2 py-1 text-xs"
           value={sourceInput}
           onChange={(e) => setSourceInput(e.target.value)}
           onKeyDown={(e) => {
@@ -488,7 +488,7 @@ return (
           }}
         />
         <button
-          className="btnv2--ghost btnv2--sm"
+          className="btnv2--ghost btnv2--sm bg-white"
           onClick={() => {
             if (!sourceInput.trim()) return;
             addSource(sourceInput.trim());
@@ -522,9 +522,10 @@ return (
 
       {/* Quantifier */}
       <div className="flex items-center gap-2">
-        <span className="text-[11px] text-neutral-600">Quantifier</span>
+        <span className="text-[11px]  text-neutral-600">Quantifier</span>
         <Segmented
           ariaLabel="Quantifier"
+          
           value={quantifier ?? null}
           onChange={(v) => setQuantifier(v)}
           options={[
@@ -575,7 +576,7 @@ return (
       <span className="text-sm text-neutral-700">Theory Builder</span>
       <button
         type="button"
-        className="btnv2--ghost btnv2--sm"
+        className="btnv2--ghost btnv2--sm bg-white"
         onClick={() => setShowWorkFields((v) => !v)}
       >
         {showWorkFields ? "Hide" : "Expand"}
@@ -782,7 +783,7 @@ return (
         <input
           type="url"
           placeholder="Paste image URL (optional)"
-          className="w-full rounded border border-slate-200 px-2 py-1 text-sm"
+          className="w-full rounded articlesearchfield px-2 py-2 text-xs"
           value={imageUrl}
           onChange={(e) => setImageUrl(e.target.value)}
         />
@@ -828,7 +829,7 @@ return (
       <button
         disabled={pending || !text.trim()}
         onClick={post}
-        className="btnv2"
+        className="btnv2 px-5 py-2 text-xs tracking-wide"
       >
         {pending ? "Posting…" : "Post"}
       </button>

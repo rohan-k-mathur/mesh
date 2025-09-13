@@ -45,7 +45,9 @@ export default function NewArticlePage() {
   }, [router])
 
   return (
-    <div className="relative min-h-[80vh] overflow-hidden bg-gradient-to-b from-indigo-50 via-rose-50 to-slate-50 text-slate-900">
+    // <div className="relative min-h-[80vh] overflow-hidden bg-gradient-to-b from-indigo-50 via-rose-50 to-slate-50 text-slate-900">
+    <div className="fixed inset-0 z-50 isolate overflow-auto w-full h-full bg-gradient-to-b from-indigo-50 via-rose-50 to-slate-50 text-slate-900">
+
       <GridBG />
       <div className="relative z-10 mx-auto max-w-2xl px-4 py-16">
         <div className="mb-6 inline-flex select-none items-center gap-2 rounded-full border border-slate-200 bg-white/80 px-3 py-1 text-xs text-slate-600 backdrop-blur">
@@ -71,7 +73,8 @@ function ConsoleCard({ error, message }: { error?: boolean; message?: string }) 
   }, [error])
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white/85 shadow-[0_10px_40px_-10px_rgba(2,6,23,0.12)] backdrop-blur">
+    <div className="overflow-hidden max-h-screen
+     rounded-2xl border border-slate-200 bg-white/85 shadow-[0_10px_40px_-10px_rgba(2,6,23,0.12)] backdrop-blur">
       {/* Title bar */}
       <div className="flex items-center gap-2 border-b border-slate-200/90 bg-slate-50/60 px-4 py-2">
         <div className="flex items-center gap-1.5">

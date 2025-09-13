@@ -183,11 +183,14 @@
 .lockbutton:hover,
 .sheaf-button:hover {
   transform: translateY(-.5px);
+
   box-shadow:
 
     inset 0 0 0 1px rgba(255,255,255,.35),
     0 1px 2px rgba(2,6,23,.06),
     0 10px 20px -12px rgba(2,6,23,.16);
+
+
 }
 .btnv2:hover::after,
 .savebutton:hover::after,
@@ -287,6 +290,261 @@
 }
 
 
+/* ---------- Inputs & Textareas ---------- */
+.inputv2,
+.textareav2,
+input.inputv2[type="text"],
+input.inputv2[type="search"],
+input.inputv2[type="email"],
+input.inputv2[type="url"],
+input.inputv2[type="number"],
+textarea.textareav2 {
+
+  --ctl-accent: var(--btn-accent, 129,140,248); /* indigo-500 fallback */
+  --ctl-outline: var(--btn-outline, 99,110,218);
+  --ctl-text: 30,41,59;     /* slate-800-ish */
+  --ctl-top: 255,255,255;
+  --ctl-bot: 255,255,255;
+
+  -webkit-tap-highlight-color: transparent;
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  width: 100%;
+  padding: .45rem .65rem;
+  font-size: 13px; line-height: 1.25; font-weight: 450;
+  letter-spacing: .005em; color: rgb(var(--ctl-text));
+  border-radius: 10px;
+  border: 1.8px solid rgba(var(--ctl-accent), .22);
+  outline: 1.2px solid rgba(var(--ctl-outline), .12);
+  outline-offset: -2px;
+
+  background:
+    linear-gradient(180deg,
+      rgba(var(--ctl-top), .92) 0%,
+      rgba(var(--ctl-top), .52) 60%,
+      rgba(var(--ctl-bot), .86) 100%
+    ),
+    linear-gradient(180deg,
+      rgba(var(--ctl-accent), .06) 0%,
+      rgba(var(--ctl-accent), .12) 100%
+    );
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.45),
+    0 2px 6px rgba(51,57,82,.10),
+    0 14px 28px -14px rgba(98,101,114,.22);
+  backdrop-filter: saturate(1.8) blur(6px);
+  transition: border-color .15s, box-shadow .12s, background .15s, color .15s, transform .06s;
+}
+.inputv2::placeholder,
+.textareav2::placeholder { color: rgba(71,85,105,.66); }
+
+.inputv2:hover,
+.textareav2:hover {
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.35),
+    0 1px 2px rgba(2,6,23,.06),
+    0 10px 20px -12px rgba(2,6,23,.16);
+  transform: translateY(-.25px);
+}
+.inputv2:focus-visible,
+.textareav2:focus-visible {
+  outline: none;
+  border-color: rgba(var(--ctl-accent), .45);
+  box-shadow:
+    0 0 0 1px rgba(var(--ctl-accent), .20),
+    inset 0 0 0 1px rgba(var(--ctl-accent), .55);
+}
+.inputv2[disabled],
+.textareav2[disabled] {
+  opacity: .6; cursor: not-allowed; filter: grayscale(10%);
+}
+.textareav2 { min-height: 6.5rem; resize: vertical; }
+
+/* Sizes to mirror buttons */
+.inputv2--sm { padding: .34rem .52rem; font-size: 12px; border-radius: 8px; }
+.inputv2--lg { padding: .62rem .9rem;  font-size: 14px; border-radius: 12px; }
+
+/* ---------- Native Select ---------- */
+.selectv2, select.selectv2 {
+
+  --ctl-accent: var(--btn-accent, 129,140,248); /* indigo-500 fallback */
+  --ctl-outline: var(--btn-outline, 99,110,218);
+  --ctl-text: 30,41,59;     /* slate-800-ish */
+  --ctl-top: 255,255,255;
+  --ctl-bot: 255,255,255;
+
+  composes: inputv2;
+  -webkit-appearance: none; appearance: none;
+  padding-right: 2.1rem;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg width='18' height='18' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M4 7l5 5 5-5' fill='none' stroke='rgba(129,140,248,0.9)' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right .55rem center;
+}
+
+/* ---------- shadcn Select (Radix) ---------- */
+/* Add className='selectv2' to <SelectTrigger>; className='menuv2' to <SelectContent> */
+.selectv2[role="combobox"] { /* Radix trigger is a button */
+  composes: inputv2;
+  justify-content: space-between;
+}
+.selectv2[role="combobox"][data-state="open"] {
+  box-shadow:
+    0 0 0 1px rgba(var(--ctl-accent), .20),
+    inset 0 0 0 1px rgba(var(--ctl-accent), .55),
+    0 5px 12px -12px rgba(2,6,23,.20);
+}
+
+/* ---------- Dropdown / Menu / Popover ---------- */
+/* Use on Radix <SelectContent>, <DropdownMenuContent>, etc. */
+.menuv2 {
+
+  --ctl-accent: var(--btn-accent, 129,140,248); /* indigo-500 fallback */
+  --ctl-outline: var(--btn-outline, 99,110,218);
+  --ctl-text: 30,41,59;     /* slate-800-ish */
+  --ctl-top: 255,255,255;
+  --ctl-bot: 255,255,255;
+
+  --menu-bg: 255,255,255;
+  border-radius: 12px;
+  padding: .35rem;
+  border: 1.2px solid rgba(var(--ctl-accent), .20);
+  background:
+    linear-gradient(180deg, rgba(var(--menu-bg), .88) 0%, rgba(var(--menu-bg), .74) 100%),
+    linear-gradient(180deg, rgba(var(--ctl-accent), .10), rgba(var(--ctl-accent), .04));
+  box-shadow:
+    0 8px 24px rgba(2,6,23,.18),
+    0 2px 8px rgba(2,6,23,.08),
+    inset 0 0 0 1px rgba(255,255,255,.35);
+  backdrop-filter: saturate(1.6) blur(10px);
+}
+.menuv2 [data-radix-collection-item],
+.menuv2 .menu-itemv2 {
+  display: flex; align-items: center; gap: .5rem;
+  padding: .5rem .6rem; border-radius: 8px; font-size: 13px;
+}
+.menuv2 [data-highlighted],
+.menuv2 .menu-itemv2:hover {
+  background: rgba(var(--ctl-accent), .12);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.35);
+}
+.menuv2 .menu-sep { height: 1px; margin: .35rem .25rem; background: rgba(148,163,184,.35); }
+
+/* ---------- Checkbox ---------- */
+.checkboxv2 {
+
+  --ctl-accent: var(--btn-accent, 129,140,248); /* indigo-500 fallback */
+  --ctl-outline: var(--btn-outline, 99,110,218);
+  --ctl-text: 30,41,59;     /* slate-800-ish */
+  --ctl-top: 255,255,255;
+  --ctl-bot: 255,255,255;
+
+  -webkit-appearance: none; appearance: none;
+  width: 18px; height: 18px; border-radius: 6px;
+  border: .5px solid rgba(var(--ctl-accent), .86);
+  outline: none;
+  background:
+    linear-gradient(180deg, rgba(var(--ctl-top), .95), rgba(var(--ctl-bot), .85)),
+    linear-gradient(180deg, rgba(var(--ctl-accent), .06), rgba(var(--ctl-accent), .18));
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.55),
+    0 2px 2px rgba(2,6,23,.10);
+  cursor: pointer; transition: box-shadow .12s, border-color .12s;
+}
+.checkboxv2:hover { background-color: white;
+  outline: none;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.55),
+  inset 0 2px 2px rgba(2,6,23,.10);}
+.checkboxv2:checked {
+  border-color: rgba(var(--ctl-accent), .55);
+  background-image: url("data:image/svg+xml,%3Csvg width='14' height='14' viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3 8l3 3 7-7' fill='none' stroke='white' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: center;
+  background-color: rgba(var(--ctl-accent), .75);
+}
+
+/* ---------- Radio ---------- */
+.radiov2 {
+  -webkit-appearance: none; appearance: none;
+  width: 18px; height: 18px; border-radius: 9999px;
+  border: 1.8px solid rgba(var(--ctl-accent), .30);
+  background:
+    linear-gradient(180deg, rgba(var(--ctl-top), .95), rgba(var(--ctl-bot), .85));
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.55),
+    0 2px 5px rgba(2,6,23,.10);
+  cursor: pointer; position: relative;
+}
+.radiov2:checked {
+  border-color: rgba(var(--ctl-accent), .55);
+}
+.radiov2:checked::after {
+  content: ""; position: absolute; inset: 3px;
+  border-radius: 9999px; background: rgba(var(--ctl-accent), .85);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.45);
+}
+
+/* ---------- Switch (toggle) ----------
+   Markup:
+   <label class="switchv2"><input type="checkbox"><span></span></label>
+*/
+.switchv2 { display: inline-flex; align-items: center; gap: .5rem; cursor: pointer; }
+.switchv2 > input { position: absolute; opacity: 0; pointer-events: none; }
+.switchv2 > span {
+  width: 38px; height: 22px; border-radius: 9999px; position: relative;
+  border: 1.6px solid rgba(var(--ctl-accent), .30);
+  background:
+    linear-gradient(180deg, rgba(var(--ctl-top), .92), rgba(var(--ctl-bot), .82)),
+    linear-gradient(180deg, rgba(var(--ctl-accent), .06), rgba(var(--ctl-accent), .12));
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.45), 0 2px 6px rgba(2,6,23,.10);
+  transition: background-color .15s, border-color .15s;
+}
+.switchv2 > span::after {
+  content:""; position:absolute; top:2px; left:2px; width:18px; height:18px; border-radius:50%;
+  background: white; box-shadow: 0 2px 6px rgba(2,6,23,.22), inset 0 0 0 1px rgba(0,0,0,.04);
+  transition: transform .18s ease;
+}
+.switchv2 > input:checked + span {
+  border-color: rgba(var(--ctl-accent), .55);
+  background:
+    linear-gradient(180deg, rgba(var(--ctl-top), .92), rgba(var(--ctl-bot), .82)),
+    linear-gradient(180deg, rgba(var(--ctl-accent), .26), rgba(var(--ctl-accent), .16));
+}
+.switchv2 > input:checked + span::after { transform: translateX(16px); }
+
+/* ---------- Field group helpers ---------- */
+.fieldv2 { display: grid; gap: .35rem; }
+.fieldv2 .field-label { font-size: 12px; color: rgba(30,41,59,.9); }
+.fieldv2 .field-hint  { font-size: 11px; color: rgba(100,116,139,.9); }
+.fieldv2 .field-error { font-size: 11px; color: var(--clr-red); }
+.is-invalid.inputv2, .is-invalid.selectv2, .is-invalid.textareav2 {
+  border-color: rgba(213,32,32,.55)!important;
+  box-shadow: 0 0 0 1px rgba(213,32,32,.18), inset 0 0 0 1px rgba(213,32,32,.35)!important;
+}
+
+/* ---------- Dark mode tuning ---------- */
+.dark .inputv2,
+.dark .textareav2,
+.dark .selectv2,
+.dark .selectv2[role="combobox"] {
+  --ctl-text: 241,245,249;
+  --ctl-top: 15,23,42; --ctl-bot: 15,23,42;
+  border-color: rgba(148,163,184,.28);
+  background:
+    linear-gradient(180deg, rgba(var(--ctl-top), .64), rgba(var(--ctl-bot), .46)),
+    linear-gradient(180deg, rgba(var(--ctl-accent), .18), rgba(var(--ctl-accent), .10));
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.06),
+    0 1px 2px rgba(0,0,0,.35),
+    0 10px 20px -12px rgba(0,0,0,.5);
+}
+.dark .menuv2 {
+  --menu-bg: 17,24,39; /* slate-900-ish */
+  border-color: rgba(148,163,184,.28);
+  box-shadow:
+    0 10px 28px rgba(0,0,0,.48),
+    0 2px 8px rgba(0,0,0,.35),
+    inset 0 0 0 1px rgba(255,255,255,.06);
+}
 
 
 .savebutton-article {
@@ -336,6 +594,153 @@
   box-shadow: .5px .5px .25px .25px rgba(0,0,0,0.25);
 
 }
+
+.modalfield {
+  outline:transparent;
+  border:none;
+  box-shadow: inset  -3px -3px 7px rgba(203, 205, 253, 0.95),
+  inset  3px 3px 7px rgba(141, 141, 176, 0.95);
+
+}
+.modalfield:hover {
+  outline:transparent;
+  border:none;
+  box-shadow: inset  -3px -3px 7px rgba(195, 195, 243, 0.95),
+  inset  3px 3px 7px rgba(131, 131, 165, 0.95);
+
+}
+.modalfield:focus {
+  outline:transparent;
+  border:none;
+  box-shadow: inset  -3px -3px 7px rgba(195, 195, 243, 0.95),
+  inset  3px 3px 7px rgba(131, 131, 165, 0.95);
+
+}
+.articlesearchfield{
+  box-shadow: inset  -1px -1px 4px rgba(203, 225, 253, 0.75),
+  inset  1px 1px 4px rgba(141, 141, 176, 0.95);
+}
+.articlesearchfield:hover {
+
+  box-shadow: inset  -2px -2px 4px rgba(193, 215, 243, 0.95),
+  inset  2px 2px 4px rgba(131, 131, 166, 0.95);
+
+}
+.articlesearchfield:focus {
+
+  box-shadow: inset  -2px -2px 4px rgba(193, 215, 243, 0.95),
+  inset  2px 2px 4px rgba(131, 131, 166, 0.95);
+  outline: none;
+
+}
+
+/* Softer, lighter chrome */
+.menuv2--lite {
+
+  --ctl-accent: var(--btn-accent, 129,140,248); /* indigo-500 fallback */
+  --ctl-button: var(--btn-accent, 210,220,248); /* indigo-500 fallback */
+  --ctl-focus: var(--btn-accent, 99,110,218); /* indigo-500 fallback */
+
+  --ctl-outline: var(--btn-outline, 99,110,218);
+  --ctl-text: 30,41,59;     /* slate-800-ish */
+  --ctl-top: 255,255,255;
+  --ctl-bot: 255,255,255;
+
+  --menu-bg: 255,255,255; /* inherits dark-mode below */
+  border-radius: 10px;
+  padding: .28rem;
+  border: .5px solid rgba(var(--ctl-accent), .86);
+  background:
+    linear-gradient(180deg, rgba(var(--menu-bg), .96) 0%, rgba(var(--ctl-button), .40) 100%),
+    linear-gradient(180deg, rgba(var(--ctl-accent), .06), rgba(var(--ctl-accent), .04));
+  /* tiny, non-intrusive elevation */
+  box-shadow:
+    0 1px 2px rgba(2,6,23,.06),
+    0 4px 8px -6px rgba(2,6,23,.12);
+  backdrop-filter: saturate(1.25) blur(4px);
+  outline: none;
+}
+/* Softer, lighter chrome */
+.menuv2--lite:focus {
+  --menu-bg: 255,255,255; /* inherits dark-mode below */
+  border-radius: 10px;
+  padding: .28rem;
+  border: .5px solid rgba(var(--ctl-accent), .86);
+  background:
+  linear-gradient(180deg, rgba(var(--menu-bg), .96) 0%, rgba(var(--ctl-button), .40) 100%),
+  linear-gradient(180deg, rgba(var(--ctl-accent), .06), rgba(var(--ctl-accent), .04));
+  /* tiny, non-intrusive elevation */
+  box-shadow:
+    0 1px 2px rgba(2,6,23,.06),
+    0 4px 8px -6px rgba(2,6,23,.12);
+  backdrop-filter: saturate(1.25) blur(4px);
+  outline: none;
+}
+
+/* Denser layout for small/adjacent menus */
+.menuv2--compact {
+  padding: .22rem;
+  border-radius: 8px;
+}
+.menuv2--compact [data-radix-collection-item],
+.menuv2--compact .menu-itemv2 {
+  padding: .38rem .5rem;
+  border-radius: 6px;
+  font-size: 12px;
+}
+.menuv2--compact .menu-sep {
+  height: 1px;
+  margin: .25rem .2rem;
+  background: rgba(148,163,184,.28);
+}
+
+/* Almost flat: use when multiple menus are side-by-side on a toolbar */
+.menuv2--flat {
+  border-radius: 8px;
+  padding: .24rem;
+  border: 1px solid rgba(var(--ctl-accent), .14);
+  background: rgba(var(--menu-bg, 255,255,255), .98);
+  /* micro shadow only; no blur */
+  box-shadow: 0 1px 2px rgba(2,6,23,.05);
+  backdrop-filter: none;
+}
+
+/* Hover/highlight keep the gentleness */
+.menuv2--lite [data-highlighted],
+.menuv2--compact [data-highlighted],
+.menuv2--flat [data-highlighted],
+.menuv2--lite .menu-itemv2:hover,
+.menuv2--compact .menu-itemv2:hover,
+.menuv2--flat .menu-itemv2:hover {
+  background: rgba(var(--ctl-accent), .10);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.28);
+}
+
+/* Subtle “open” state ring without extra shadow stacking */
+.selectv2[role="combobox"][data-state="open"].lite,
+.selectv2[role="combobox"][data-state="open"].flat {
+  box-shadow:
+    0 0 0 1px rgba(var(--ctl-accent), .16),
+    inset 0 0 0 1px rgba(var(--ctl-accent), .45);
+}
+
+/* Dark mode tuning */
+.dark .menuv2--lite,
+.dark .menuv2--compact,
+.dark .menuv2--flat {
+  --menu-bg: 17,24,39; /* slate-900-ish */
+  border-color: rgba(148,163,184,.26);
+  background:
+    linear-gradient(180deg, rgba(var(--menu-bg), .94), rgba(var(--menu-bg), .88));
+  box-shadow:
+    0 1px 2px rgba(0,0,0,.45),
+    0 6px 12px -8px rgba(0,0,0,.55);
+}
+.dark .menuv2--flat {
+  background: rgba(var(--menu-bg), .96);
+  box-shadow: 0 1px 2px rgba(0,0,0,.38);
+}
+
 
   /* === weights === */
 .tiptap [data-fw="300"], .article-body [data-fw="300"] { font-weight: 300; }

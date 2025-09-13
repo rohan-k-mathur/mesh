@@ -2,9 +2,28 @@ import { prisma } from '@/lib/prismaclient';
 import type { StepResult } from 'packages/ludics-core/types';
 import { Hooks } from './hooks';
 
+
+// packages/ludics-engine/stepper.ts
+type Locus = { path: string; openings: string[]; additive?: boolean };
+type Act  = { polarity:'pos'|'neg'|'daimon'; locus:string; openings:string[]; additive?:boolean };
+
+
 function isACK(expr?: string | null, meta?: any) {
   const e = (expr ?? '').toLowerCase();
   return e === 'ack' || e === 'accepted' || meta?.ack === true;
+}
+
+function proposeDaimonIfClosed(locus: Locus): Act[] {
+  const hasOpen = locus.openings && locus.openings.length > 0;
+  return hasOpen ? [] : [{ polarity:'daimon', locus: locus.path, openings:[], additive:false }];
+}
+export function closedLocusSuggestions(locus: { path: string; openings?: string[] }): Act[] {
+  return proposeDaimonIfClosed({ path: locus.path, openings: locus.openings ?? [] } as any);
+}
+function chooseAdditiveChild(openings: string[], chosen?: string): string[] {
+  if (!openings?.length) return [];
+  // In additive mode, only one child can be active. If none chosen, pick the first deterministically.
+  return [chosen ?? openings[0]];
 }
 
 function allowInPhase(
@@ -71,6 +90,36 @@ function computeDecisiveIndices(
   return Array.from(used).sort((a, b) => a - b);
 }
 
+// NEW: compute † suggestions for loci that have no openings
+async function computeDaimonHints(dialogueId: string, posDesignId: string, negDesignId: string) {
+  // pull positive acts (openers) for both designs with their locus and ramification
+  const acts = await prisma.ludicAct.findMany({
+    where: {
+      kind: 'PROPER',
+      polarity: 'P',
+      designId: { in: [posDesignId, negDesignId] }
+    },
+    select: { locus: { select: { path: true } }, ramification: true }
+  });
+
+  // group: locusPath -> did any opener at this exact locus have openings?
+  const map = new Map<string, { hasOpenings: boolean }>();
+  for (const a of acts) {
+    const path = a.locus?.path ?? '0';
+    const entry = map.get(path) ?? { hasOpenings: false };
+    const has = Array.isArray(a.ramification) && a.ramification.length > 0;
+    map.set(path, { hasOpenings: entry.hasOpenings || has });
+  }
+
+  // for every locus mentioned in designs, if no opener had openings => † is available there
+  const hints: { locusPath: string; act: Act }[] = [];
+  for (const [path, { hasOpenings }] of map.entries()) {
+    if (!hasOpenings) {
+      hints.push({ locusPath: path, act: { polarity: 'daimon', locus: path, openings: [], additive: false } });
+    }
+  }
+  return hints;
+}
 export async function stepInteraction(opts: {
   dialogueId: string,
   posDesignId: string,
@@ -112,6 +161,8 @@ export async function stepInteraction(opts: {
 
   const loci = await prisma.ludicLocus.findMany({ where: { dialogueId } });
   const pathById = new Map(loci.map(l => [l.id, l.path]));
+  const idByPath = new Map(loci.map(l => [l.path, l.id]));
+
 
   const findNextPositive = (acts: typeof posDesign.acts, from: number) => {
     for (let i = from; i < acts.length; i++) {
@@ -131,14 +182,12 @@ export async function stepInteraction(opts: {
     return null;
   };
 
-  // Load previous additive picks (persisted in extJson.usedAdditive)
+
+
+
   type UsedAdditive = Record<string, string>;
   let usedAdditive: UsedAdditive = {};
-  const prevTrace = await prisma.ludicTrace.findFirst({
-    where: { deliberationId: dialogueId, posDesignId: posDesign.id, negDesignId: negDesign.id },
-    orderBy: { createdAt: 'desc' },
-    select: { extJson: true },
-  }).catch(() => null);
+  const prevTrace = await prisma.ludicTrace.findFirst({ /* unchanged */ }).catch(() => null);
   if (prevTrace?.extJson && typeof prevTrace.extJson === 'object') {
     usedAdditive = (prevTrace.extJson as any).usedAdditive ?? {};
   }
@@ -146,7 +195,7 @@ export async function stepInteraction(opts: {
   const isAdditiveParent = (childPath?: string | null) => {
     if (!childPath || childPath.indexOf('.') < 0) return null;
     const parentPath = childPath.split('.').slice(0, -1).join('.');
-    const parentId = loci.find(l => l.path === parentPath)?.id;
+    const parentId = idByPath.get(parentPath);
     if (!parentId) return null;
     const parentAdditive =
       posDesign.acts.some(a => a.locusId === parentId && a.isAdditive) ||
@@ -154,6 +203,8 @@ export async function stepInteraction(opts: {
     return parentAdditive ? parentPath : null;
   };
   const childSuffixOf = (path: string) => path.split('.').slice(-1)[0];
+
+
 
   const A = { design: posDesign, acts: posDesign.acts };
   const B = { design: negDesign, acts: negDesign.acts };
@@ -216,6 +267,12 @@ export async function stepInteraction(opts: {
     }
   }
 
+
+  
+  function nextFrom(a: Act, locus: Locus): string[] {
+    if (a.additive || locus.additive) return chooseAdditiveChild(a.openings ?? locus.openings ?? []);
+    return (a.openings ?? locus.openings ?? []);
+  }
   // Persist trace with additive choices & (later) decisive indices
   const traceRow = await prisma.ludicTrace.create({
     data: {
@@ -257,6 +314,8 @@ export async function stepInteraction(opts: {
     endedAtDaimonForParticipantId,
   });
 
+  
+
   // --- Endorsement (heuristic) ---
   let endorsement: StepResult['endorsement'];
   if (status === 'CONVERGENT' && pairs.length > 0) {
@@ -296,7 +355,9 @@ export async function stepInteraction(opts: {
     where: { id: traceRow.id },
     data: { extJson: { usedAdditive, decisiveIndices } },
   }).catch(() => undefined);
-
+  // NEW: † suggestions for closed loci (so UI can show "Close (†)")
+   const daimonHints = await computeDaimonHints(dialogueId, A.design.id, B.design.id);
+  
   return {
     status,
     pairs,
@@ -304,5 +365,7 @@ export async function stepInteraction(opts: {
     endorsement,
     decisiveIndices,
     usedAdditive,
+     daimonHints, // [{ locusPath, act: {polarity:'daimon', locus, …} }]
+
   };
 }

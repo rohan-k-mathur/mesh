@@ -27,7 +27,7 @@
 // }
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getState } from 'packages/ludics-engine/commitments';
+import { listCS } from 'packages/ludics-engine/commitments';
 
 const Q = z.object({
   dialogueId: z.string().min(5),
@@ -39,6 +39,6 @@ export async function GET(req: NextRequest) {
   const parsed = Q.safeParse(q);
   if (!parsed.success) return NextResponse.json({ ok:false, error: parsed.error.flatten() }, { status: 400 });
   const { dialogueId, ownerId } = parsed.data;
-  const data = await getState(dialogueId, ownerId);
+  const data = await listCS(dialogueId, ownerId);
   return NextResponse.json(data, { headers: { 'Cache-Control': 'no-store' } });
 }

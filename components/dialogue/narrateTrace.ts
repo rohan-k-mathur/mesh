@@ -1,11 +1,5 @@
 // components/dialogue/narrateTrace.ts
-type Act = {
-    polarity: 'P' | 'O';
-    locusPath: string;
-    expression?: string;
-    meta?: any;
-    isAdditive?: boolean;
-  };
+type Act = { polarity:'P'|'O'|'†'|null; locusPath?:string; expression?:string; meta?:any; isAdditive?:boolean };
   type Pair = { posActId: string; negActId: string; ts?: number };
   type StepResult = {
     status: 'ONGOING' | 'CONVERGENT' | 'DIVERGENT';
@@ -16,21 +10,37 @@ type Act = {
     endorsement?: { locusPath: string; byParticipantId: string; viaActId: string };
   };
   
-  // Null-safe classifier; falls back to sensible defaults
-  function classify(act?: Act | null) {
-    const pol = act?.polarity ?? 'P';
-    const meta = (act?.meta ?? {}) as any;
-    const locusPath = act?.locusPath ?? '0';
-    const locus = String(meta?.justifiedByLocus ?? locusPath);
-    const cq = meta?.cqId ?? meta?.schemeKey ?? undefined;
-  
-    if (meta?.justifiedByLocus && pol === 'O') return { kind: 'WHY' as const, cq, locus, locusPath };
-    if (meta?.justifiedByLocus && pol === 'P') return { kind: 'GROUNDS' as const, cq, locus, locusPath };
-    return { kind: 'ASSERT' as const, locus, locusPath };
+// Null-safe classifier; supports WHY, GROUNDS, ASSERT, and †
+function classify(act?: Act | null) {
+  // Support both your old 'P'|'O'|null and a future '†'
+  const rawPol = act?.polarity;
+  const pol = rawPol === '†' ? '†' : (rawPol ?? 'P'); // default 'P'
+  const meta = (act as any)?.meta ?? (act as any)?.metaJson ?? {};
+  const locusPath = (act as any)?.locusPath ?? (act as any)?.locus?.path ?? '0';
+  const locus = String(meta?.justifiedByLocus ?? locusPath);
+  const cq = meta?.cqId ?? meta?.schemeKey ?? undefined;
+
+  // † (daimon)
+  if (pol === '†') {
+    return { kind: 'DAIMON' as const, locus, locusPath };
   }
+
+  // WHY (negative act anchored at justifiedByLocus)
+  if (meta?.justifiedByLocus && pol === 'O') {
+    return { kind: 'WHY' as const, cq, locus, locusPath };
+  }
+
+  // GROUNDS (positive act justified at some parent locus)
+  if (meta?.justifiedByLocus && pol === 'P') {
+    return { kind: 'GROUNDS' as const, cq, locus, locusPath };
+  }
+
+  // default — simple positive/neutral assertion
+  return { kind: 'ASSERT' as const, locus, locusPath };
+}
   
   export function narrateTrace(trace: StepResult, acts: Record<string, Act | undefined>) {
-    const lines: { text: string; decisive?: boolean }[] = [];
+    const lines: { text:string; decisive?:boolean; hover?:string }[] = [];
     const decisive = new Set(trace.decisiveIndices ?? []);
   
     for (let i = 0; i < (trace.pairs ?? []).length; i++) {
@@ -39,10 +49,15 @@ type Act = {
       const B = acts[p.negActId];
       const a = classify(A);
       const b = classify(B);
-      const leftExpr = A?.expression ?? '—';
-      const rightExpr = B?.expression ?? '—';
+      // const leftExpr = A?.expression ?? '—';
+      // const rightExpr = B?.expression ?? '—';
+//       const leftExpr  = A?.meta?.original ?? A?.expression ?? '—';
+// const rightExpr = B?.meta?.original ?? B?.expression ?? '—';
       const mark = decisive.has(i);
-      const push = (t: string) => lines.push({ text: t, decisive: mark });
+      const leftExpr  = (A as any)?.meta?.original ?? (A as any)?.expression ?? '—';
+      const rightExpr = (B as any)?.meta?.original ?? (B as any)?.expression ?? '—';
+      const hover = `P: ${leftExpr} • O: ${rightExpr}`;
+          const push = (t:string)=>lines.push({ text:t, decisive: mark, hover });
   
       if (a.kind === 'ASSERT')  push(`Proponent asserts at ${a.locus}: ${leftExpr}`);
       if (a.kind === 'WHY')     push(`Opponent challenges at ${a.locus}: ${leftExpr}${a.cq ? ` (${a.cq})` : ''}`);

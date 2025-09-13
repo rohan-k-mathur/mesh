@@ -33,6 +33,8 @@ type Props = {
   /** notify parent when user focuses a locus via toolbar/keys */
   onFocusPathChange?: (path: string) => void;
   onCommitHere?: (path: string) => void;      // NEW
+  suggestCloseDaimonAt?: (path: string) => boolean;
+
   /** automatically scroll on focusPath */
   autoScrollOnFocus?: boolean;
   /** keyboard j/k navigation through visible loci */
@@ -51,6 +53,8 @@ export function LociTree({
   heatmap,
   stepIndexByActId,
   onFocusPathChange,
+  onCommitHere,
+  suggestCloseDaimonAt,
   autoScrollOnFocus = true,
   enableKeyboardNav = false,
   highlightDurationMs = 900,
@@ -268,6 +272,11 @@ export function LociTree({
             )}
 
             <code className="text-xs px-1.5 py-0.5 rounded border bg-slate-50">{n.path}</code>
+            {suggestCloseDaimonAt?.(n.path) ? (
+  <span className="text-[10px] px-1.5 py-0.5 rounded border bg-slate-50">
+    † available
+  </span>
+) : null}
 
             {additive && (
               <span
@@ -279,14 +288,14 @@ export function LociTree({
             )}
             
 
-<div className="ml-auto flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+<div className="ml-auto flex items-center gap-1 ">
             {onCommitHere && (
               <button
-                className="text-[11px] px-1.5 py-0.5 rounded border bg-white hover:bg-slate-50"
+                className="text-[11px] px-1.5 py-1 rounded-full btnv2 btnv2--ghost bg-white/50"
                 title="Add commitment at this locus"
                 onClick={() => onCommitHere(n.path)}
               >
-                Commit here
+                Commit
               </button>
            )}
            </div>

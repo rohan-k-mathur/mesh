@@ -16,6 +16,8 @@ import { wrapSections } from '@/lib/article/wrapSections';
 import { SectionBreak } from "@/lib/tiptap/extensions/sectionBreak";
 import { ParagraphKeepEmptySSR } from '@/lib/tiptap/extensions/ParagraphKeepEmptySSR';
 
+import NextLink from "next/link";                     // ✅ NEXT link (aliased)
+
 import Link from "@tiptap/extension-link";
 import ArticleReaderWithPins from "@/components/article/ArticleReaderWithPins";
 
@@ -109,6 +111,17 @@ export default async function ArticlePage({ params }: { params: { key: string } 
   // html = wrapSections(html, { collapsed: false, articleId: article.id });
 
   return (
+         <>
+       <div className="    absolute flex right-6 top-6 tracking-wide z-[9000] justify-end  mx-auto  ">
+         <NextLink
+           href={`/deliberation/${deliberationId}`}
+            className="lockbutton py-2 px-2 bg-white/20 rounded-xl"
+
+           prefetch
+         >
+          Discussion Page ↗
+         </NextLink>
+       </div>
     <ArticleReaderWithPins
       template={article.template}
       heroSrc={article.heroImageKey}
@@ -119,6 +132,7 @@ export default async function ArticlePage({ params }: { params: { key: string } 
       title={article.title}
       deliberationId={deliberationId}
     />
+   </>
   );
 
 }

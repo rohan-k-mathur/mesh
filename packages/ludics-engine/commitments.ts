@@ -119,33 +119,29 @@ export async function applyToCS(
   return { ok: true, csId: cs.id, added, erased };
 }
 
-export async function listCS(dialogueId: string, ownerId: string) {
-  const cs = await prisma.ludicCommitmentState.findFirst({
-    where: { ownerId },
-    include: {
-      elements: {
-        include: { baseLocus: true },
-        orderBy: { createdAt: 'asc' },
-      },
-    },
-  });
-  if (!cs) return { ok: true, facts: [], rules: [] };
-
-  const facts = cs.elements
-    .filter(e => e.basePolarity === 'pos')
-    .map(e => ({
-      label: e.label ?? '',
-      entitled: e.entitled !== false,
-      derived: !!(e.extJson as any)?.derived,
-      locusPath: e.baseLocus?.path ?? '0',
-    }));
-
-  const rules = cs.elements
-    .filter(e => e.basePolarity === 'neg')
-    .map(e => ({ label: e.label ?? '', locusPath: e.baseLocus?.path ?? '0' }));
-
-  return { ok: true, facts, rules };
-}
+ export async function listCS(dialogueId: string, ownerId: string) {
+     // Dialog-scoped read: pull rows directly from elements
+     const rows = await prisma.ludicCommitmentElement.findMany({
+       where: { ownerId, baseLocus: { dialogueId } },
+       include: { baseLocus: true },
+     });
+     if (!rows.length) return { ok: true, facts: [], rules: [] };
+   
+     const facts = rows
+       .filter((e) => e.basePolarity === 'pos')
+       .map((e) => ({
+         label: e.label ?? '',
+         entitled: e.entitled !== false,
+         derived: !!(e.extJson as any)?.derived,
+         locusPath: e.baseLocus?.path ?? '0',
+       }));
+   
+     const rules = rows
+       .filter((e) => e.basePolarity === 'neg')
+       .map((e) => ({ label: e.label ?? '', locusPath: e.baseLocus?.path ?? '0' }));
+   
+     return { ok: true, facts, rules };
+   }
 
 export async function interactCE(dialogueId: string, ownerId: string) {
   // load entitled elements only
@@ -158,7 +154,8 @@ export async function interactCE(dialogueId: string, ownerId: string) {
   const factRows = cs.elements.filter(e => e.basePolarity === 'pos' && e.entitled !== false);
   const ruleRows = cs.elements.filter(e => e.basePolarity === 'neg' && e.entitled !== false);
 
-  const facts = new Set(factRows.map(e => norm(e.label)).filter(Boolean));
+  const facts = new Set(factRows.map((e) => norm(e.label ?? '')).filter(Boolean));
+
   // allow “not X” style in facts
   const positives = new Set<string>();
   const negatives = new Set<string>();

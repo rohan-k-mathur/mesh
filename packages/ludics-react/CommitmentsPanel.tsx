@@ -199,7 +199,7 @@ export function CommitmentsPanel({
       <div className="flex gap-2">
         <input
           className="border rounded px-2 py-1 text-sm flex-1"
-          placeholder='Add fact or rule (e.g., "contract" or "contract & delivered -> to.pay")'
+          placeholder='Add a fact or a rule…  e.g. fact: congestion_high   •   rule: congestion_high & revenue_earmarked_transit -> net_public_benefit'
           value={label}
           onChange={e=>setLabel(e.target.value)}
           onKeyDown={e => {
@@ -209,6 +209,7 @@ export function CommitmentsPanel({
             }
           }}
         />
+        
           {/[=-]>\s|,|&/.test(label) && (
     <div className="text-[11px] mt-1 px-2 py-1 rounded border bg-slate-50">
       {parseRule(label)
@@ -225,14 +226,35 @@ export function CommitmentsPanel({
       </div>
 
       <details className="rounded border bg-slate-50/60 p-2 text-[12px]">
-        <summary className="cursor-pointer select-none">Rule syntax help</summary>
-        <div className="mt-1 leading-relaxed">
-          Use Horn‑clause style: <code>A &amp; B -&gt; C</code> or <code>A,B =&gt; C</code>.  
-          Negation: <code>not X</code> or <code>¬X</code>.  
-          Example: <code>contract &amp; delivered -&gt; to.pay</code>.  
-          Contradiction is detected when <code>X</code> and <code>not X</code> both hold.
-        </div>
-      </details>
+  <summary className="cursor-pointer select-none">How to write rules</summary>
+  <div className="mt-1 space-y-2 leading-relaxed">
+    <div>
+      <b>Facts</b> are single labels you believe are true now, e.g.
+      <code className="mx-1">contract</code>,
+      <code className="mx-1">delivered</code>,
+      <code className="mx-1">to.pay</code>.
+    </div>
+    <div>
+      <b>Rules</b> are written as <i>IF … THEN …</i>:
+      <div className="mt-1 rounded bg-white/70 p-2 text-[11px]">
+        <div><b>Format:</b> <code>A &amp; B -&gt; C</code> or <code>A,B =&gt; C</code></div>
+        <div className="mt-1"><b>Negation:</b> <code>not X</code> or <code>¬X</code></div>
+      </div>
+    </div>
+    <div>
+      <b>Examples</b>
+      <ul className="mt-1 list-disc pl-5">
+        <li><code>contract &amp; delivered -&gt; to.pay</code></li>
+        <li><code>charge_on_access &amp; not equity_program_in_place -&gt; regressive_impact</code></li>
+        <li><code>regressive_impact -&gt; not net_public_benefit</code></li>
+      </ul>
+    </div>
+    <div className="text-[11px] opacity-80">
+      Contradiction is flagged when <code>X</code> and <code>not X</code> both hold.
+      Only <b>entitled</b> items are used during inference (you can suspend a fact at any time).
+    </div>
+  </div>
+</details>
 
       {(summary.derived?.length || summary.contradictions?.length) && (
         <div className="flex flex-wrap gap-2 text-xs">

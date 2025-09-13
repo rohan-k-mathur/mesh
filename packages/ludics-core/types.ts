@@ -17,7 +17,22 @@ export type DaimonAct = {
   expression?: string;        // optional reason/label for †
 };
 
-export type DialogueAct = ProperAct | DaimonAct;
+// export type DialogueAct = ProperAct | DaimonAct;
+export type DialogueAct = {
+  polarity: 'pos' | 'neg' | 'daimon';
+  locusPath: string;         // e.g., "0.3"
+  openings?: string[];       // children opened by this act
+  expression?: string;       // canonical text
+  additive?: boolean;        // true = additive (exclusive), false/undefined = multiplicative
+};
+
+export type MovePayload = {
+  cqId?: string;
+  locusPath?: string;        // default "0"
+  expression?: string;
+  original?: string;
+  acts?: DialogueAct[];      // NEW
+};
 
 export type TracePair = {
   posActId: string;
@@ -32,13 +47,19 @@ export type Endorsement = {
   viaActId: string;
 };
 
+export type DaimonHint = {
+  locusPath: string;
+  act: { polarity: 'daimon'; locus: string; openings: []; additive: false };
+};
+
 export type StepResult = {
-  status: 'ONGOING'|'CONVERGENT'|'DIVERGENT';
+  status: 'ONGOING' | 'CONVERGENT' | 'DIVERGENT';
   pairs: { posActId: string; negActId: string; ts: number }[];
   endedAtDaimonForParticipantId?: string;
   endorsement?: Endorsement;
-  decisiveIndices?: number[];                 // 👈 NEW
-  usedAdditive?: Record<string, string>;      // 👈 optional convenience for UI
+  decisiveIndices?: number[];               // existing v2 field
+  usedAdditive?: Record<string, string>;    // existing v2 field
+  daimonHints?: DaimonHint[];               // 👈 NEW (optional)
 };
 
 export type FocusPhase = 'focus-P'|'focus-O'|'neutral';

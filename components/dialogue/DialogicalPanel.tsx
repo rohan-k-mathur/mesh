@@ -213,29 +213,62 @@ export default function DialogicalPanel({ deliberationId, nodes, edges }: Props)
   // Local CQs → implicit undercuts
   const [openCQs, setOpenCQs] = React.useState<Record<string, string[]>>({});
 
-  const fetcher = (u:string)=>fetch(u).then(r=>r.json());
-const { data: des } = useSWR(
-  deliberationId ? `/api/ludics/designs?deliberationId=${encodeURIComponent(deliberationId)}` : null,
-  fetcher, { revalidateOnFocus:false }
-);
-const posId = des?.designs?.find((d:any)=>d.participantId==='Proponent')?.id ?? des?.designs?.[0]?.id;
-const negId = des?.designs?.find((d:any)=>d.participantId==='Opponent')?.id  ?? des?.designs?.[1]?.id ?? des?.designs?.[0]?.id;
+  // typed fetcher that never caches
+const fetchJSON = async <T,>(u: string): Promise<T> => {
+  const r = await fetch(u, { cache: 'no-store' });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  return r.json();
+};
 
+ const toId = (v: any) => {
+     const s = (Array.isArray(v) ? v[0] : v) ?? '';
+     const t = String(s).trim();
+     if (!t || t === 'undefined' || t === 'null') return '';
+     return t;
+   };
+   const did = toId(deliberationId);
+
+// 1) Designs (Proponent/Opponent) — SWR tuple key
+type DesignsRes = { designs: Array<{ id: string; participantId: string; acts?: any[] }> };
+
+const { data: des } = useSWR<DesignsRes>(
+  did ? ['ludics-designs', did] : null,
+  (key) => {
+      const [, id] = key as [string, string];
+       return fetchJSON(`/api/ludics/designs?deliberationId=${encodeURIComponent(id)}`);
+     },
+   { revalidateOnFocus: false }
+);
+
+
+// Pick pos/neg ids once designs land (robust defaulting)
+const { posId, negId } = React.useMemo(() => {
+  const arr = des?.designs ?? [];
+  const pos = arr.find(d => d.participantId === 'Proponent') ?? arr[0];
+  const neg = arr.find(d => d.participantId === 'Opponent')  ?? arr[1] ?? arr[0];
+  return { posId: pos?.id, negId: neg?.id };
+}, [des]);
+
+
+// 2) Orthogonal trace (+ acts for narration) — tuple key with deps
+//    If you have a phase state, include it in the key and query.
 const { data: ortho } = useSWR(
-  posId && negId
-    ? `/api/ludics/orthogonal?dialogueId=${encodeURIComponent(deliberationId)}&posDesignId=${encodeURIComponent(posId)}&negDesignId=${encodeURIComponent(negId)}`
-    : null,
-  fetcher, { revalidateOnFocus:false }
+  did && posId && negId ? ['ludics-orthogonal', did, posId, negId, 'neutral'] : null,
+    (key) => {
+        const [, id, p, n, ph] = key as [string, string, string, string, string];
+        return fetchJSON(`/api/ludics/orthogonal?dialogueId=${encodeURIComponent(id)}&posDesignId=${encodeURIComponent(p)}&negDesignId=${encodeURIComponent(n)}&phase=${ph}`);
+      },
+  { revalidateOnFocus: false }
 );
 
-  // Dialogue moves (WHY/GROUNDS), unresolved WHYs per target
-  // Server-side moves + unresolved WHYs map
-const { moves, unresolvedByTarget, mutate: refetchMoves } = useDialogueMoves(deliberationId);
 
-// Server-authoritative open CQs for the currently selected node
-// (Hook is called every render; it internally pauses when ids are missing)
-const openCqIds = useOpenCqs(deliberationId, selectedNode?.id ?? '');
 
+const { moves, unresolvedByTarget, mutate: refetchMoves } = useDialogueMoves(did);
+
+const openCqIds = useOpenCqs(did, selectedNode?.id ?? '');
+
+
+  const fetcher = (u:string)=>fetch(u).then(r=>r.json());
 
   // inside DialogicalPanel component (top-level)
 function openCqIdsFor(targetId: string): Set<string> {

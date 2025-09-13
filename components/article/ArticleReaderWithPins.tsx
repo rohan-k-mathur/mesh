@@ -10,6 +10,8 @@ import { useRouter } from "next/navigation";
 import HomeButton from "../buttons/HomeButton";
 import { RhetoricProvider } from "../rhetoric/RhetoricContext";
 import { DeepDiveBackdrop } from "./DeepDiveBackground";
+import { DialogueTargetProvider } from '@/components/dialogue/DialogueTargetContext';
+
 /* ----------------------- DOM ↔ anchor helpers ----------------------- */
 
 /* ---------- Selection helpers (clean) ---------- */
@@ -775,7 +777,11 @@ export default function ArticleReaderWithPins({
             <div className=" justify-center items-center mx-auto border-b-[.5px] border-slate-700/70 w-[75%] mb-2"/>
             <hr></hr>
             <RhetoricProvider>
+            <DialogueTargetProvider>
+
   <DeepDivePanel deliberationId={deliberationId}/>
+  </DialogueTargetProvider>
+
 </RhetoricProvider>
           </section>
         )}

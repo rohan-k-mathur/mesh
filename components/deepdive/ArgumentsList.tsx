@@ -35,6 +35,8 @@ import { ToulminBox } from "../monological/ToulminBox";
 import { QuantifierModalityPicker } from "../monological/QuantifierModalityPicker";
 
 import { LegalMoveChips } from "../dialogue/LegalMoveChips";
+import { useLudicsPhase } from '@/components/dialogue/useLudicsPhase';
+
 
 // Dialectic + RSA
 import { useDialecticStats } from "@/packages/hooks/useDialecticStats";
@@ -43,12 +45,16 @@ import { RSAChip } from "@/packages/components/RSAChip";
 import { useRSABatch } from "@/packages/hooks/useRSABatch";
 import IssuesDrawer from "@/components/issues/IssuesDrawer";
 import { IssueBadge } from "@/components/issues/IssueBadge";
+
 import IssueComposer from "@/components/issues/IssueComposer";
 
 import { LudicsBadge } from "@/components/dialogue/LudicsBadge";
 import { InlineMoveForm } from "@/components/dialogue/InlineMoveForm";
 import MonologicalToolbar from "@/components/monological/MonologicalToolbar";
 import { useAuth } from "@/lib/AuthContext";
+
+import { useDialogueTarget } from '@/components/dialogue/DialogueTargetContext';
+
 
 const PAGE = 20;
 const fetcher = (u: string) =>
@@ -484,6 +490,8 @@ function openIssuesFor(argumentId: string) {
                   deliberationId={deliberationId}
                   onReplyTo={onReplyTo}
                   onOpenDispute={handleOpenDispute}
+                   // whyLocusPath={whyMeta?.locusPath /* "0.3" when known */}
+
                 />
               ) : (
                 <ArgRow
@@ -584,6 +592,9 @@ function ArgRow({
 
   const [citeOpen, setCiteOpen] = useState(false);
   const [prefillUrl, setPrefillUrl] = useState<string | undefined>(undefined);
+
+  const { setTarget } = useDialogueTarget();
+
 
   function onOpenCitePicker(initialUrl?: string) {
     setPrefillUrl(initialUrl);
@@ -751,6 +762,7 @@ function ArgRow({
                 targetType="argument"
                 targetId={a.id}
               />
+              
               <DialBadge
                 stats={dialStats}
                 targetType="argument"
@@ -1067,7 +1079,15 @@ function ArgRow({
             Approve
           </button>
         )}
-
+ <button
+    onClick={() => {
+      setTarget({ type: 'argument', id: a.id });
+      // also tell the panel to re-focus Ludics if you like:
+      window.dispatchEvent(new CustomEvent('ludics:focus', { detail: { phase: 'focus-P' } }));
+    }}
+  >
+    Discuss in Ludics
+  </button>
         {a.mediaType === "image" && (
           <>
             <button
@@ -1096,13 +1116,29 @@ function DialogicalRow({
   deliberationId,
   onReplyTo,
   onOpenDispute,
+  whyLocusPath,          // e.g., "0.3" if this row is about a specific WHY; optional
+
+  onPosted,
 }: {
   a: Arg;
   deliberationId: string;
   onReplyTo: (id: string) => void;
   onOpenDispute: (id: string, label: string) => void;
+  whyLocusPath?: string;              // pass from parent when known
+
+  onPosted?: () => void;
 }) {
   const created = new Date(a.createdAt).toLocaleString();
+
+  const phase = useLudicsPhase();     // 'neutral' | 'focus-P' | 'focus-O'
+  const commitOwner = phase === 'focus-O' ? 'Opponent' : 'Proponent';
+
+
+  const targetType: 'argument' | 'claim' = a.claimId ? 'claim' : 'argument';
+  const targetId = a.claimId ?? a.id;
+
+  const locusPath = whyLocusPath ?? '0';
+
   return (
     <div id={`arg-${a.id}`} className="p-3 border-b">
       <div className="text-xs text-neutral-500 mb-1">{created}</div>
@@ -1116,12 +1152,7 @@ function DialogicalRow({
           targetType="argument"
           targetId={a.id}
         />
-        <LegalMoveChips
-  deliberationId={deliberationId}
-  targetType="argument"
-  targetId={arg.id}
-  onPosted={() => {/* optional */}}
-/>
+  
         <button
           className="px-2 py-1 btnv2--ghost  rounded text-xs"
           onClick={() => onReplyTo(a.id)}
@@ -1134,6 +1165,14 @@ function DialogicalRow({
        </button>
   
       </div>
+      <LegalMoveChips
+        deliberationId={deliberationId}
+        targetType={targetType}
+        targetId={targetId}
+        locusPath={locusPath}
+        commitOwner={commitOwner}
+        onPosted={onPosted}
+      />
     </div>
     
   );
