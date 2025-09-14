@@ -287,8 +287,8 @@ export default function NegotiationDrawerV2({ deliberationId, open, onClose, tit
                   </button>
                   {/* Row-level actions (add Close †) */}
 <button className="px-2 py-0.5 border rounded text-[11px]"
-  onClick={(e) => { e.stopPropagation(); postMove('argument',''+targetId,'CLOSE',{ locusPath: '0' }); }}
-  disabled={postingKey === targetId}
+  onClick={(e) => { e.stopPropagation(); postMove('argument',''+tId,'CLOSE',{ locusPath: '0' }); }}
+  disabled={postingKey === tId}
   title="Close this thread (†)">
   Close (†)
 </button>

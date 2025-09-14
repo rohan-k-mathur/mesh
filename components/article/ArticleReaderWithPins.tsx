@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 import HomeButton from "../buttons/HomeButton";
 import { RhetoricProvider } from "../rhetoric/RhetoricContext";
 import { DeepDiveBackdrop } from "./DeepDiveBackground";
-import { DialogueTargetProvider } from '@/components/dialogue/DialogueTargetContext';
+import { DialogueTargetProvider } from "@/components/dialogue/DialogueTargetContext";
 
 /* ----------------------- DOM ↔ anchor helpers ----------------------- */
 
@@ -258,22 +258,22 @@ function CommentRail({
           //   className={`absolute right-0 translate-y-[-50%] truncate w-full text-left m-2
           <div key={t.id} className="space-y-4 gap-4 h-full">
             <button
-              className={`absolute right-0 translate-y-[-50%] truncate justify-end items-end text-left mr-6 w-[170px] 
-                       text-xs px-2 py-0 rounded-sm    lockbutton-article
+              className={`absolute right-0 translate-y-[-50%] flex justify-start items-center text-left mr-6 w-[170px] 
+                       text-[11px] px-2 py-1 text-slate-700 rounded-md btnv2  btnv2--comment"
                        
                        ${
                          active
-                           ? "border-amber-400 border-2 bg-white"
-                           : "border-[.5px] border-slate-400 bg-white"
+                           ? "btnv2  ring-indigo-400/50 ring-2 ring-offset-0  text-left"
+                           : "btnv2    text-left"
                        }`}
-
               style={{ top: p.top + offsetTop }}
               onClick={() => {
                 onSelect(t);
               }}
               title={firstLine}
+              
             >
-              {firstLine.length > 60 ? firstLine.slice(0, 57) + "…" : firstLine}
+             <span className="truncate"> {firstLine.length > 60 ? firstLine.slice(0, 57) + "…" : firstLine} </span>
             </button>
           </div>
         );
@@ -380,25 +380,25 @@ export default function ArticleReaderWithPins({
   // Measure rail height and vertical offset so the right rail aligns to article
   useEffect(() => {
     let scheduled = false;
-  
+
     const updateRailMetrics = () => {
       if (scheduled) return;
       scheduled = true;
       requestAnimationFrame(() => {
         scheduled = false;
-  
-        const root = containerRef.current;           // article box
-        const anchor = railAnchorRef.current;        // stable flow anchor
+
+        const root = containerRef.current; // article box
+        const anchor = railAnchorRef.current; // stable flow anchor
         if (!root || !anchor) return;
-  
+
         // 1) Match rail height to article height
         setRailHeight(root.offsetHeight);
-  
+
         // 2) Vertical delta between article and anchor
-        const rootTop   = root.getBoundingClientRect().top   + window.scrollY;
+        const rootTop = root.getBoundingClientRect().top + window.scrollY;
         const anchorTop = anchor.getBoundingClientRect().top + window.scrollY;
         setRailOffsetTop(rootTop - anchorTop);
-  
+
         // (optional) If you still use left gutter offset:
         const gutter = leftGutterRef.current;
         if (gutter) {
@@ -407,15 +407,15 @@ export default function ArticleReaderWithPins({
         }
       });
     };
-  
+
     updateRailMetrics();
-  
+
     const ro = new ResizeObserver(updateRailMetrics);
     if (containerRef.current) ro.observe(containerRef.current);
-  
+
     window.addEventListener("scroll", updateRailMetrics, { passive: true });
     window.addEventListener("resize", updateRailMetrics);
-  
+
     return () => {
       ro.disconnect();
       window.removeEventListener("scroll", updateRailMetrics);
@@ -601,7 +601,7 @@ export default function ArticleReaderWithPins({
                       }}
                     >
                       <button
-                        className="w-6 h-6  lockbutton-article rounded-md bg-slate-200/20 border-[1.4px] border-amber-500 text-amber-500 text-xs "
+                        className="w-6 h-6  btnv2 btnv2--coment rounded-md bg-slate-200/20  text-indigo-500 text-xs "
                         onClick={() => setExpandedCluster(key)}
                         title={`${c.items.length} comments`}
                       >
@@ -632,17 +632,18 @@ export default function ArticleReaderWithPins({
                       onMouseLeave={() => setHoverId(null)}
                     >
                       <button
-                        className={`w-[25px] h-[14px] rounded-sm  lockbutton-article bg-white  grid place-items-center border-amber-500
+                        className={`flex items-center justify-center rounded-md w-[45px] h-[15px] 
+                        px-3 py-1 rounded-md text-center align-center btnv2 btnv2--pin   
                          leading-none
                       ${
                         t.resolved
-                          ? "bg-slate-400/50  lockbutton-article"
-                          : "bg-slate-200/20  lockbutton-article"
+                          ? "bg-slate-400/50 btnv2  btnv2--pin"
+                          : "bg-slate-200/20 btnv2  btnv2--pin"
                       }
                         ${
                           active
-                            ? "opacity-100 border-[1.4px] bg-amber-500/50   lockbutton-article"
-                            : "border-[1.1px] bg-slate-200/20  lockbutton-article "
+                            ? "opacity-100 border-[1.4px] bg-amber-500/50 btnv2  btnv2--pin"
+                            : "border-[1.1px] bg-slate-200/20 btnv2 btnv2--pin "
                         }`}
                         onClick={() => {
                           setOpenId(t.id);
@@ -651,9 +652,8 @@ export default function ArticleReaderWithPins({
                         }}
                         aria-label="Open comment"
                       >
-                        <p className="text-[5px] text-center text-amber-500">
-                          ●
-                        </p>
+                        <span className="text-[8px] text-indigo-700 align-middle">፨</span>
+
                       </button>
                     </div>
                   );
@@ -700,7 +700,8 @@ export default function ArticleReaderWithPins({
             {bubble && (
               <div
                 ref={bubbleRef} // 👈 NEW
-                className="absolute ml-[100px] mt-[50px] backdrop-blur-sm border-[1px]  border-white/50 p-3 z-30 w-72 rounded-xl border bg-white/30 shadow-lg"
+                className="absolute ml-[100px] mt-[50px] backdrop-blur-sm px-3 py-2 z-30 w-[20rem] rounded-xl border-indigo-200 border-[2px]
+                 bg-slate-100/30 shadow-lg"
                 style={{
                   top: Math.max(0, bubble.rect.top - 56),
                   left: bubble.rect.left,
@@ -708,7 +709,7 @@ export default function ArticleReaderWithPins({
                 onPointerDown={(e) => e.stopPropagation()} // 👈 keep global handler from seeing this
                 onMouseDown={(e) => e.stopPropagation()} // (older browsers / safety)
               >
-                <div className="p-3 border-b text-xs text-neutral-600 line-clamp-2 ">
+                <div className="p-3 border-b border-slate-300 text-xs text-neutral-600 line-clamp-2 ">
                   {bubble.text}
                 </div>
                 <div className="p-2 space-y-2 rounded-xl">
@@ -716,18 +717,18 @@ export default function ArticleReaderWithPins({
                     value={draftBody}
                     onChange={(e) => setDraftBody(e.target.value)}
                     placeholder="Add a comment…"
-                    className="w-full resize-none border-none rounded p-2 text-sm outline-none"
+                    className="w-full resize-none border-indigo-200 border-[1px] rounded p-2 text-xs outline-none"
                     rows={3}
                   />
                   <div className="flex items-center justify-end gap-4">
                     <button
-                      className="text-sm text-neutral-700"
+                      className="text-xs text-neutral-700"
                       onClick={() => setBubble(null)}
                     >
                       Cancel
                     </button>
                     <button
-                      className="px-2 py-1.5 rounded bg-amber-500 text-white text-sm"
+                      className="px-2 py-1.5 rounded btnv2 btnv2--pin  text-xs"
                       onClick={createThread}
                     >
                       Comment
@@ -741,64 +742,62 @@ export default function ArticleReaderWithPins({
 
         {/* RIGHT RAIL — give it a real height and pass the vertical offset */}
         <div className="relative h-0 overflow-visible">
-  <div ref={railAnchorRef} className="absolute inset-0 pointer-events-none" />
-  <div
-    ref={railRef}
-    className="absolute right-0 w-[320px] pointer-events-auto"
-    style={{ top: railOffsetTop, height: railHeight }}
-  >
-<CommentRail
-  threads={threads}
-  positions={positions}
-  openId={openId}
-  setOpenId={setOpenId}
-  onSelect={(t) => {
-    setActiveThread(t);   // opens modal
-    setOpenId(t.id);      // highlights
-    scrollToThread(t);    // scrolls
-  }}
-  offsetTop={0}
-/>
-  </div>
-</div>
+          <div
+            ref={railAnchorRef}
+            className="absolute inset-0 pointer-events-none"
+          />
+          <div
+            ref={railRef}
+            className="absolute right-0 w-[320px] pointer-events-auto"
+            style={{ top: railOffsetTop, height: railHeight }}
+          >
+            <CommentRail
+              threads={threads}
+              positions={positions}
+              openId={openId}
+              setOpenId={setOpenId}
+              onSelect={(t) => {
+                setActiveThread(t); // opens modal
+                setOpenId(t.id); // highlights
+                scrollToThread(t); // scrolls
+              }}
+              offsetTop={0}
+            />
+          </div>
+        </div>
       </div>
 
       <div className="relative flex flex-col mt-4">
-        
         <hr className="w-full border-[.5px] border-slate-700/70 mt-4"></hr>
-        
-        {deliberationId && (
 
-<section className="relative mt-0">
-<DeepDiveBackdrop />
+        {deliberationId && (
+          <section className="relative mt-0">
+            <DeepDiveBackdrop attach="absolute"/>
             <h2 className="text-4xl font-semibold tracking-wide text-center my-4">
               Discussion
             </h2>
-            <div className=" justify-center items-center mx-auto border-b-[.5px] border-slate-700/70 w-[75%] mb-2"/>
-            <hr></hr>
+            <div className=" justify-center items-center mx-auto border-b-[.5px] border-slate-700/70 w-[75%] mb-2" />
+         <div className="px-10">
             <RhetoricProvider>
-            <DialogueTargetProvider>
-
-  <DeepDivePanel deliberationId={deliberationId}/>
-  </DialogueTargetProvider>
-
-</RhetoricProvider>
+              <DialogueTargetProvider>
+                <DeepDivePanel deliberationId={deliberationId} />
+              </DialogueTargetProvider>
+            </RhetoricProvider>
+            </div>
           </section>
         )}
       </div>
 
       {activeThread && (
-  <CommentModal
-    thread={activeThread}
-    open={!!activeThread}
-    onClose={() => {
-      setActiveThread(null);
-      setOpenId(null);
-    }}
-  />
-)}
-      
+        <CommentModal
+          thread={activeThread}
+          open={!!activeThread}
+          onClose={() => {
+            setActiveThread(null);
+            setOpenId(null);
+          }}
+        />
+      )}
     </ArticleReader>
-    
   );
 }

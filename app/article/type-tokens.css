@@ -81,84 +81,122 @@
   .prose [data-clr="muted"]  { color: var(--clr-muted);  }
  /* === Aqua Glass Button v2.1 (Article scope) ============================== */
 /* Applies to .btnv2 and your legacy classes for drop-in compatibility */
+/* === Aqua Glass Button v2.1 (Option B ring) ============================= */
 .btnv2,
 .savebutton,
 .lockbutton,
 .sheaf-button {
   /* Theme hooks (RGB) */
-  --btn-accent: 129, 140, 248;    /* indigo-500 */
-  --btn-border: 15,23,42;       /* slate-900 */
+  --btn-accent: 129, 140, 248;
+  --btn-lite: 200, 210, 248;
+--btn-heavy: 170,180,238;
+  --btn-border: 15,23,42;
   --btn-outline: 99,110,218;
-  --btn-text:   30,41,59;       /* slate-800 */
+  --btn-text:   30,41,59;
   --btn-top:    255,255,255;
   --btn-bot:    255,255,255;
+  --btn-ring: linear-gradient(
+    360deg,
+    rgba(var(--btn-heavy), 0.75) 0%,
+    rgba(var(--btn-top), .75) 20%,
+    rgba(var(--btn-heavy), .95) 50%,
+    rgba(var(--btn-top), .75) 70%,
+
+    rgba(var(--btn-heavy), .65) 100%
+
+    /* rgba(var(--btn-heavy), .75) 100% */
+    /* rgba(var(--btn-lite),  .55) 100% */
+  );
+  /* Ring controls (editable) */
+  --ring-w: 1.5px; /* thickness of the gradient ring */
+  --btn-ring-after: linear-gradient(
+    360deg,
+    rgba(var(--btn-lite), 0.55) 0%,
+    rgba(var(--btn-top), .75) 20%,
+    rgba(var(--btn-heavy), .95) 50%,
+    rgba(var(--btn-lite), .25) 70%,
+
+    rgba(var(--btn-heavy), .75) 100%
+    /* rgba(var(--btn-lite),  .55) 100% */
+  );
+
+  
+
+  /* Fill (you can keep tweaking this variable in :hover/dark) */
+  --btn-fill: linear-gradient(
+    180deg,
+    rgba(var(--btn-top), .55) 0%,
+    rgba(var(--btn-lite), .14) 25%,
+    rgba(var(--btn-lite), .25) 50%,
+    rgba(var(--btn-lite), .10) 75%,
+    rgba(var(--btn-top),  .45) 100%
+  );
 
   -webkit-tap-highlight-color: transparent;
   appearance: none;
-  position: relative;
+  position: relative; /* needed for ::before */
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: .45rem;
 
-  padding: .36rem .72rem;       /* tighter, sleeker */
+  padding: .36rem .72rem;
   font-size: 12px; line-height: 1; font-weight: 450;
   letter-spacing: .01em; -webkit-font-smoothing: antialiased;
 
+  /* Remove border-image & physical border; ring is drawn by ::before */
+  border: none;
   border-radius: 10px;
-  border: 2.3px solid rgba(var(--btn-accent), .25);
-  outline: 1.4px solid rgba(var(--btn-outline), .15);
-  outline-offset: -2px;
+
+  /* Inner rim (optional) */
+  outline: 1px solid rgba(var(--btn-heavy), .45);
+  outline-offset: -2.5px;
+
+  color: rgb(var(--btn-text));
+  background: var(--btn-fill);
+
 
   
-  color: rgb(var(--btn-text));
-
-  /* Glass base + subtle accent wash */
-  background:
-    linear-gradient(180deg,
-      rgba(var(--btn-top), .92) 0%,
-      rgba(var(--btn-top), .50) 60%,
-      rgba(var(--btn-bot), .85) 100%
-    ),
-    linear-gradient(180deg,
-      rgba(var(--btn-accent), .08) 0%,
-      rgba(var(--btn-accent), .16) 100%
-    );
-  /* Soft elevation */
   box-shadow:
-  inset 0 0 0 1px rgba(255,255,255,.45),
-  0 2px 6px rgba(51, 57, 82, 0.1),
-  0 14px 28px -14px rgba(98, 101, 114, 0.22);
-
+    inset 0 0 0 1px rgba(255,255,255,.45),
+    0 2px 6px rgba(51, 57, 82, 0.1),
+    0 14px 28px -14px rgba(98, 101, 114, 0.22);
   backdrop-filter: saturate(2) blur(6px);
 
   transition:
     transform .08s ease,
     box-shadow .08s ease,
-    border-color .18s ease,
     background-color .18s ease,
     color .18s ease;
   cursor: pointer;
 }
 
-/* Top hairline highlight (Aqua-ish rim) */
+
+
+/* Gradient ring via masked ::before (respects border-radius) */
 .btnv2::before,
 .savebutton::before,
 .lockbutton::before,
 .sheaf-button::before {
   content: "";
   position: absolute;
-  inset: 2px 2px auto 2px;      /* top strip */
-  height: 2.5px;
-  border-radius: 9px;
-  background: linear-gradient(180deg, rgba(255,255,255,.68), rgba(255,255,255,0));
-  pointer-events: none;
+  inset: 0;                  /* full button box */
+  padding: var(--ring-w);    /* ring thickness */
+  border-radius: inherit;
+  background: var(--btn-ring);
+
+  /* Punch out center so only a ring remains */
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+
+  pointer-events: none;      /* don’t block clicks */
 }
 
 
-
-/* Soft specular sheen across upper half */
-.btnv2::after,
+/* .btnv2::after,
 .savebutton::after,
 .lockbutton::after,
 .sheaf-button::after {
@@ -174,7 +212,19 @@
       rgba(255,255,255,0) 60%);
   opacity: .65;
   transition: opacity .18s ease;
-  /* respects reduced motion (no movement, just fade) */
+} */
+.btnv2::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: var(--ring-w);
+  border-radius: inherit;
+  background: var(--btn-ring);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .18s ease;
 }
 
 /* Hover / active / focus */
@@ -182,21 +232,27 @@
 .savebutton:hover,
 .lockbutton:hover,
 .sheaf-button:hover {
+  --btn-fill: linear-gradient(
+    180deg,
+    rgba(var(--btn-top), .05) 0%,
+    rgba(var(--btn-lite), .10) 25%,
+    rgba(var(--btn-lite), .35) 50%,
+    rgba(var(--btn-lite), .10) 75%,
+    rgba(var(--btn-top),  .05) 100%
+  );
+
   transform: translateY(-.5px);
-
   box-shadow:
-
     inset 0 0 0 1px rgba(255,255,255,.35),
     0 1px 2px rgba(2,6,23,.06),
     0 10px 20px -12px rgba(2,6,23,.16);
-
-
 }
 .btnv2:hover::after,
 .savebutton:hover::after,
 .lockbutton:hover::after,
 .sheaf-button:hover::after {
-  opacity: .8; /* a touch more shine on hover */
+  opacity: 1; /* a touch more shine on hover */
+ 
 }
 
 .btnv2:active,
@@ -204,20 +260,34 @@
 .lockbutton:active,
 .sheaf-button:active {
   transform: translateY(0);
-  box-shadow: inset 0 2px 6px rgba(2,6,23,.18);
+  box-shadow: inset 0 2px 6px rgba(42,46,73,.08);
 }
-
+@supports not ((-webkit-backdrop-filter: blur(0)) or (backdrop-filter: blur(0))) {
+  .btnv2, .savebutton, .lockbutton, .sheaf-button { backdrop-filter: none; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .btnv2, .savebutton, .lockbutton, .sheaf-button { backdrop-filter: none; }
+}
+@supports not ((mask-composite: exclude) or (-webkit-mask-composite: xor)) {
+  .btnv2, .savebutton, .lockbutton, .sheaf-button {
+    border: var(--ring-w) solid transparent;
+    background-image: var(--btn-fill), var(--btn-ring);
+    background-origin: border-box, border-box;
+    background-clip: padding-box, border-box;
+  }
+  .btnv2::before, .savebutton::before, .lockbutton::before, .sheaf-button::before { content: none; }
+}
 .btnv2:focus-visible,
 .savebutton:focus-visible,
 .lockbutton:focus-visible,
 .sheaf-button:focus-visible {
   outline: none;
-  border-color: rgba(var(--btn-accent), .45);
+  /* Emphasize via outer glow + slightly thicker ring */
+  --ring-w: 2px;
   box-shadow:
-    0 0 0 1px rgba(var(--btn-accent), .22),
-    inset 0 0 0 1px rgba(var(--btn-accent), .65);
+    0 0 0 2px rgba(var(--btn-accent), .22),
+    inset 0 0 0 1px rgba(var(--btn-accent), .35);
 }
-
 /* Disabled */
 .btnv2[disabled],
 .savebutton[disabled],
@@ -227,7 +297,20 @@
   cursor: not-allowed;
   filter: grayscale(10%);
 }
+.glass-surface .btnv2,
+.glass-surface .savebutton,
+.glass-surface .lockbutton,
+.glass-surface .sheaf-button {
+  backdrop-filter: blur(6px) saturate(1.8);
+  -webkit-backdrop-filter: blur(6px) saturate(1.8);
+}
 
+@media (prefers-reduced-transparency: reduce) {
+  .glass-surface .btnv2 { backdrop-filter: none; -webkit-backdrop-filter: none; }
+}
+@supports not ((-webkit-backdrop-filter: blur(0)) or (backdrop-filter: blur(0))) {
+  .glass-surface .btnv2 { backdrop-filter: none; -webkit-backdrop-filter: none; }
+}
 /* Dark mode tuning */
 .dark .btnv2,
 .dark .savebutton,
@@ -263,6 +346,17 @@
 /* Sizes (optional) */
 .btnv2--sm { padding: .28rem .52rem; font-size: 12px; border-radius: 8px; }
 .btnv2--lg { padding: .56rem .96rem; font-size: 14px; border-radius: 12px; }
+
+.btnv2--pin {
+  border: 1px solid rgba(var(--btn-accent), .25);
+  outline: 1px solid rgba(var(--btn-outline), .15);
+  outline-offset: -1px;
+
+}
+.btnv2--comment{
+  padding: 2px;
+text-align: left;
+}
 
 /* Icon-only */
 .btnv2--icon { padding: .42rem; width: 2rem; height: 2rem; display: inline-grid; place-items: center; }
@@ -333,7 +427,7 @@ textarea.textareav2 {
     inset 0 0 0 1px rgba(255,255,255,.45),
     0 2px 6px rgba(51,57,82,.10),
     0 14px 28px -14px rgba(98,101,114,.22);
-  backdrop-filter: saturate(1.8) blur(6px);
+  /* backdrop-filter: saturate(1.8) blur(6px); */
   transition: border-color .15s, box-shadow .12s, background .15s, color .15s, transform .06s;
 }
 .inputv2::placeholder,
@@ -651,7 +745,7 @@ textarea.textareav2 {
   padding: .28rem;
   border: .5px solid rgba(var(--ctl-accent), .86);
   background:
-    linear-gradient(180deg, rgba(var(--menu-bg), .96) 0%, rgba(var(--ctl-button), .40) 100%),
+    linear-gradient(180deg, rgba(var(--menu-bg), .96) 0%, rgba(var(--ctl-button), .10) 100%),
     linear-gradient(180deg, rgba(var(--ctl-accent), .06), rgba(var(--ctl-accent), .04));
   /* tiny, non-intrusive elevation */
   box-shadow:
@@ -659,6 +753,12 @@ textarea.textareav2 {
     0 4px 8px -6px rgba(2,6,23,.12);
   backdrop-filter: saturate(1.25) blur(4px);
   outline: none;
+}
+.menuv2--lite:hover
+{
+  background:
+    linear-gradient(180deg, rgba(var(--menu-bg), .96) 0%, rgba(var(--ctl-button), .50) 100%),
+    linear-gradient(180deg, rgba(var(--ctl-accent), .06), rgba(var(--ctl-accent), .04));
 }
 /* Softer, lighter chrome */
 .menuv2--lite:focus {

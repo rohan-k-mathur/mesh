@@ -322,7 +322,7 @@ export default function DiscusHelpPage() {
   return (
     <>
       <button
-        className="text-xs px-2 py-1 rounded-lg btnv2 bg-white"
+        className="text-xs px-2 py-1 rounded-lg btnv2 btnv2--lite border-[1px] border-indigo-200 outline-none"
         onClick={() => setOpen(true)}
         aria-haspopup="dialog"
         aria-controls="discus-help-modal"
@@ -342,7 +342,7 @@ export default function DiscusHelpPage() {
             if (e.target === e.currentTarget) setOpen(false);
           }}
         >
-          <div className="w-full max-w-screen-xl h-[92vh] rounded bg-white border shadow p-4 md:p-6 overflow-y-auto">
+          <div className="w-3/4 max-w-screen-xl h-[80vh] rounded-xl bg-white border shadow p-4 md:p-6 overflow-y-auto">
             <div className="flex items-center justify-between mb-3">
               <h1 id="discus-help-title" className="text-base md:text-lg font-semibold">
                 About Discus

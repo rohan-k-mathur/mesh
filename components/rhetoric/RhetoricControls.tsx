@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button';
 
 function ChipBar({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex flex-wrap items-center gap-1 rounded-md border-[.5px] border-slate-400 bg-slate-50 px-1.5 py-1 text-xs">
+    <div className="flex flex-wrap items-center gap-1 rounded-md border-[.5px] border-indigo-200 bg-slate-50 px-1.5 py-1 text-xs">
       {children}
     </div>
   );
@@ -96,15 +96,16 @@ export default function RhetoricControls({ sample }: { sample?: string }) {
     { key: 'logos',       label: 'Logos',       n: counts?.fam.logos },
   ];
 
+
   return (
-    <div className="flex flex-wrap items-center gap-2 text-xs ">
+    <div className="flex flex-wrap gap-2 text-xs ">
       {/* Lens mode */}
       <div className='flex '>
       <ChipBar>
-      <label className="flex items-center gap-1">
+      <label className="text-[11px] text-neutral-900 b flex  items-center gap-1">
         Lens:
         <select
-          className=" menuv2--lite rounded px-1 py-0.5"
+          className=" text-[11px] menuv2--lite  rounded   py-.5 "
           value={mode}
           onChange={(e) => setMode(e.target.value as RhetoricMode)}
         >
@@ -113,9 +114,11 @@ export default function RhetoricControls({ sample }: { sample?: string }) {
         </select>
       </label>
     {/* Model lens: Monological/Dialogical/Rhetorical */}
-    <label className="flex items-center gap-1" title="Choose analytic model: micro-structure, dialogue graph, or persuasive signals">
+    <label className="text-[11px] text-neutral-900 b flex  items-center gap-1"
+    title="Choose analytic model: micro-structure, dialogue graph, or persuasive signals">
         Model:
-        <select className="menuv2--lite rounded px-1 py-0.5" value={modelLens} onChange={(e) => setModelLens(e.target.value as ModelLens)} aria-label="Model lens">
+        <select  className=" text-[11px] menuv2--lite  rounded py-.5 "
+        value={modelLens} onChange={(e) => setModelLens(e.target.value as ModelLens)} aria-label="Model lens">
           <option value="monological">Monological</option>
           <option value="dialogical">Dialogical</option>
           <option value="rhetorical">Rhetorical</option>
@@ -125,15 +128,15 @@ export default function RhetoricControls({ sample }: { sample?: string }) {
       </div>
       {/* NLP toggle */}
       <ChipBar>
-        <div className='flex gap-2'>
+        <div className='flex py-1 gap-2'>
       <label
-        className="flex items-center gap-1"
+        className="flex text-[11px] items-center gap-1"
         title="Imperatives, passive, modals, negation, etc. (local; falls back to regex if NLP is unavailable)"
       >
         <input
           type="checkbox"
           checked={!!settings.enableNlp}
-          className='checkboxv2'
+          className='checkboxv2 rounded-full'
           onChange={(e) => setSettings({ ...settings, enableNlp: e.target.checked })}
                     disabled={mode !== 'style'}
                     aria-disabled={mode !== 'style'}        />
@@ -146,7 +149,7 @@ export default function RhetoricControls({ sample }: { sample?: string }) {
       >
         <input
           type="checkbox"
-          className='checkboxv2'
+          className='checkboxv2 rounded-full'
 
           checked={!!settings.highlightLexicon}
           onChange={e => setSettings({ ...settings, highlightLexicon: e.target.checked })}
@@ -162,7 +165,7 @@ export default function RhetoricControls({ sample }: { sample?: string }) {
         <input
           id="mini-ml-toggle"
           type="checkbox"
-          className='checkboxv2 bg-white/70'
+          className='checkboxv2 rounded-full'
 
           checked={!!settings.enableMiniMl}
           onChange={e => setSettings({ ...settings, enableMiniMl: e.target.checked })}
@@ -175,7 +178,7 @@ export default function RhetoricControls({ sample }: { sample?: string }) {
       {/* Category dropdown */}
       <DropdownMenu >
         <DropdownMenuTrigger asChild>
-        <button className=" btnv2 rounded-full">Cues</button>
+        <button className=" btnv2 text-[11px] rounded-full ">Cues</button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-60 mt-1 max-h-[300px]  overflow-y-auto ">
           <DropdownMenuLabel>Core cues</DropdownMenuLabel>
@@ -219,7 +222,7 @@ export default function RhetoricControls({ sample }: { sample?: string }) {
       {/* Density */}
       {counts && (
         <ChipBar>
-        <span className="ml-1 text-neutral-600">
+        <span className=" py-1 text-[11px] text-neutral-900">
           Style density: <b>{counts.per100w}</b> / 100w
         </span>
         </ChipBar>

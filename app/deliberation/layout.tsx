@@ -5,7 +5,6 @@ import "@/app/article/rhetoric.css";
 
 import "@/app/article/type-tokens.css";
 import '@/app/fonts/fonts.css';
-// import "@/app/globals.css";
 
 
 
@@ -21,7 +20,7 @@ export default function ReaderLayout({
 }) {
   return (
     <html lang="en">
-      <body className="justify-center items-center align-center  py-2 h-full w-full overflow-auto bg-slate-50 ">
+      <body className="flex  justify-center items-center align-center mt-2  py-2 h-full w-full  bg-slate-50">
       {children}
       </body>
     </html>

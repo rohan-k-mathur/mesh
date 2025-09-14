@@ -20,7 +20,7 @@ export default function ArticleReader({
   title,
 }: ArticleReaderProps) {
   return (
-    <article className={clsx(template, 'mx-auto')}>
+    <article className={clsx(template, 'w-full mx-auto')}>
         {title && (
         <header className="mb-4">
           <h1 className="relative text-4xl font-semibold text-center items-center justify-center tracking-wide mx-auto">{title}</h1>

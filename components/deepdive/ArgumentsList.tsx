@@ -387,15 +387,15 @@ function openIssuesFor(argumentId: string) {
         <span>Arguments</span>
         <button
           type="button"
-          className="relative max-w-[300px] w-full justify-center items-center text-center mx-auto px-4 py-1 
-                     text-xs tracking-wider rounded-full lockbutton"
+          className="relative max-w-[300px] w-full justify-center items-center text-center mx-auto px-4 py-2 
+                     text-[11px] tracking-wider rounded-full lockbutton"
           onClick={() => setListExpanded((v) => !v)}
           aria-expanded={listExpanded}
         >
           {listExpanded ? "Lock Scrolling" : "Enable Scrolling"}
         </button>
         <button
-          className="px-4 py-1 btnv2  button-edge  rounded-full"
+          className="px-4 py-2 text-[11px] btnv2  rounded-full"
           onClick={() => { setIssueDrawerTargetId(null); setIssuesOpen(true); }}
 
         >
@@ -443,7 +443,7 @@ function openIssuesFor(argumentId: string) {
             <div className="flex items-center justify-between px-3 py-1">
               <div className="text-sm font-medium">Dialogical view</div>
               <button
-                className="px-2 py-1 btnv2 rounded-full text-xs"
+                className="px-4 py-2 btnv2 rounded-full text-[11px]"
                 onClick={async () => {
                   setNegOpen(true);
                   await fetch("/api/ludics/compile-step", {
@@ -456,7 +456,7 @@ function openIssuesFor(argumentId: string) {
                   );
                 }}
               >
-                Open Negotiation Panel
+                Negotiation Panel
               </button>
             </div>
             <DialogicalPanel
@@ -820,7 +820,7 @@ function ArgRow({
         {/* Mini ML */}
         {modelLens === "rhetorical" && (
           <>
-            {miniMix && <MixBadge mix={miniMix} className="ml-auto" />}
+            {miniMix && <MixBadge mix={miniMix} className="ml-auto  " />}
             {a.text && <SourceQualityBadge text={a.text} />}
             {a.text && <FallacyBadge text={a.text} />}
           </>
@@ -876,7 +876,7 @@ function ArgRow({
         </>
       )}
       {/* <div className="text-[9px] text-neutral-500 mb-1 mt-1">{created}</div> */}
-      <div className="text-[9px] text-neutral-500 mb-2 mt-1">
+      <div className="text-[9px] text-neutral-500 mb-1 mt-1">
   <span className="inline-flex items-center rounded-full border border-slate-200 bg-white/70 px-2 py-0.5">
     {created}
   </span>
@@ -918,7 +918,7 @@ function ArgRow({
       )}
 
       {/* truncated body */}
-      <div className="w-fit h-fit px-2 py-1 bg-slate-50 border rounded">
+      <div className="w-fit h-fit px-2 py-1 bg-white shadow-md shadow-slate-300/40 border mb-3 mt-2 rounded-md">
 
       {/* <div
         className={`text-sm whitespace-pre-wrap ${

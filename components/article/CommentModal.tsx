@@ -151,7 +151,7 @@ export default function CommentModal({
               />
               <div className="mt-2 flex items-center gap-2">
                 <button
-                  className="px-4 py-1 text-sm rounded-md bg-emerald-600 text-white savebutton disabled:opacity-50"
+                  className="px-4 py-1 text-sm rounded-md text-slate-900 savebutton disabled:opacity-50"
                   onClick={() => handleReply(thread.comments[0].id)}
                   disabled={pending || !replyBody.trim()}
                 >

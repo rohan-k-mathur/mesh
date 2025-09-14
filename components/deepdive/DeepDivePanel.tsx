@@ -19,6 +19,7 @@ import RhetoricControls from '@/components/rhetoric/RhetoricControls';
 import WorksRail from "../work/WorksRail";
 import WorksList from "../work/WorksList";
 import { LudicsPanel } from "./LudicsPanel";
+import clsx from "clsx";
 import {
   Collapsible,
   CollapsibleTrigger,
@@ -113,8 +114,8 @@ function WorksCounts({ deliberationId }:{ deliberationId:string }) {
   }, [deliberationId]);
   return (
     <ChipBar>
-    <span className="text-[11px] text-neutral-500">
-      DN {counts.DN} · IH {counts.IH} · TC {counts.TC} · OP {counts.OP}
+    <span className="text-[11px] text-neutral-900 py-1">
+      DN <b>{counts.DN}</b> · IH <b>{counts.IH}</b> · TC <b>{counts.TC}</b> · OP <b>{counts.OP}</b>
     </span>
     </ChipBar>
   );
@@ -356,7 +357,7 @@ export function SectionCard({
 
 function ChipBar({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex flex-wrap items-center gap-1 rounded-md border-[.5px] border-slate-400 bg-slate-50 px-1.5 py-1 text-xs">
+    <div className="flex flex-wrap items-center gap-1 rounded-md border-[.5px] border-indigo-200 bg-slate-50 px-1.5 py-1 text-xs">
       {children}
     </div>
   );
@@ -364,8 +365,12 @@ function ChipBar({ children }: { children: React.ReactNode }) {
 
 export default function DeepDivePanel({
   deliberationId,
+  containerClassName,   // ⬅️ NEW: controls outer width/centering
+  className, 
 }: {
   deliberationId: string;
+  containerClassName?: string;
+  className?: string;
 }) {
   const [sel, setSel] = useState<Selection | null>(null);
   const [pending, setPending] = useState(false);
@@ -463,22 +468,22 @@ async function updatePref(next: PrefProfile) {
   }
 }
 
-  return (
 
-    <div className="space-y-5 py-3 px-6 relative">
-      {/* Header controls */}
-    
 
+      
+      const inner = (
+        <div className={clsx("space-y-5 py-3 px-6 relative", className)}>
+          {/* Header controls */}
       {/* Arguments + Composer */}
       <SectionCard busy={pending}>
-        <div className="relative  flex items-center justify-between mb-2">
+        <div className="relative  flex items-center gap-4 mx-auto mb-2">
           <div className="flex items-center gap-2">
             {status && <StatusChip status={status} />}
                    <ChipBar >
             <label className="text-xs text-neutral-600 b flex items-center gap-1">
               Rule:
               <select
-                className="text-xs menuv2--lite  rounded px-2 mx-2 py-1 "
+                className="text-xs menuv2--lite  rounded px-2 mx-2 py-.5 "
                 value={rule}
                 onChange={(e) => {
                   setRule(e.target.value as any);
@@ -495,10 +500,11 @@ async function updatePref(next: PrefProfile) {
             {/* <HelpModal /> */}
             <DiscusHelpPage />
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex gap-4">
           <RhetoricControls sample={rhetoricSample} />
+          <div className="flex gap-2">
           <button
-    className="btnv2 rounded-full"
+    className="btnv2 rounded-full py-2"
     onClick={() => {
       setTab('works');
     // double-RAF ensures tab state has applied before we scroll
@@ -510,9 +516,10 @@ async function updatePref(next: PrefProfile) {
     });
   }}
 >
-  Open Works
+  Open Models
 </button>
   <WorksCounts deliberationId={deliberationId} />
+  </div>
           {/* <div id="work-composer" /> 
       WorksRail deliberationId={deliberationId} /> */}
           <div className="flex items-center justify-between px-3 py-2">
@@ -673,8 +680,8 @@ async function updatePref(next: PrefProfile) {
           <div className="relative flex items-center justify-between px-1">
             <CollapsibleTrigger
               aria-expanded={graphState.open}
-              className="text-sm font-semibold border-[.5px] border-black px-8 py-1 tracking-wider
-               rounded-md bg-slate-100 hover:bg-slate-200"
+              className="text-sm font-semibold btnv2 px-8 py-1 tracking-wider
+               rounded-md "
             >
               {graphState.open ? "Collapse Graph" : "Expand Graph"}
             </CollapsibleTrigger>
@@ -692,8 +699,15 @@ async function updatePref(next: PrefProfile) {
       <SectionCard>
         <TopologyWidget deliberationId={deliberationId} />
       </SectionCard>
-    </div>
+      </div>
+   );
+ 
+   // If a containerClassName is provided, clamp & center the whole panel.
+   // Otherwise, behave exactly as before (no breaking change).
+   return containerClassName ? (
+     <div className={clsx(containerClassName)}>{inner}</div>
+  ) : inner;
 
 
-  );
+
 }

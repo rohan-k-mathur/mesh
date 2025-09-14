@@ -21,7 +21,7 @@ export default function ReaderLayout({
 }) {
   return (
     <html lang="en">
-      <body className="justify-center items-center align-center mt-9  py-2 h-full w-full overflow-auto bg-slate-50 ">
+      <body className="flex antialiased justify-center items-center align-center mt-5  py-2 h-full w-full  bg-slate-50 ">
       {children}
       </body>
     </html>

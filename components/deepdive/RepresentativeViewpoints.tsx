@@ -531,7 +531,7 @@ export function RepresentativeViewpoints(props: {
           </span>
           {typeof s.bestPossibleAvg === 'number' && (
             <label className="inline-flex items-center gap-1">
-              <input type="checkbox" checked={showCore} onChange={(e)=>setShowCore(e.target.checked)} />
+              <input type="checkbox" className="checkboxv2 rounded-full" checked={showCore} onChange={(e)=>setShowCore(e.target.checked)} />
               Best possible
             </label>
           )}

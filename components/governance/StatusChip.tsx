@@ -9,6 +9,6 @@ export default function StatusChip({ status }:{ status: string }) {
       OUT_OF_BOUNDS: 'bg-zinc-100 text-zinc-700 border-zinc-200',
     };
     const cls = map[status] ?? map.OK;
-    return <span className={`inline-block text-[11px] px-1.5 py-1 rounded border ${cls}`}>{status}</span>;
+    return <span className={`inline-block text-[11px]  px-1.5 py-1 rounded border ${cls}`}>{status}</span>;
   }
   
