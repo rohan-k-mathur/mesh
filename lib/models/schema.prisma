@@ -3016,12 +3016,12 @@ enum PhilosophyTheoryType {
 /// A long-form “work” (article/essay) framed by a philosophical Theory Type.
 /// Kept separate from other content models (Argument, Brief, Card) to avoid collisions.
 model TheoryWork {
-  id             String                @id @default(cuid())
+  id             String  @id @default(cuid())
   deliberationId String
   authorId       String
   title          String
-  body           String                @db.Text
-  theoryType     PhilosophyTheoryType?
+  body           String  @db.Text
+  theoryType     String?
   standardOutput String?
 
   // existing relations (example)
@@ -3032,11 +3032,89 @@ model TheoryWork {
   hermeneutic            WorkHermeneuticProject?     @relation("Work_to_HermeneuticProject")
   pascal                 WorkPascalModel?            @relation("Work_to_PascalModel")
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  // NEW one-to-ones for DN/TC/IH/OP structure:
+  dn WorkDnProject?
+  tc WorkTcProject?
+  op WorkOpProject?
+
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  WorkDNStructure WorkDNStructure?
+  WorkIHTheses    WorkIHTheses?
+  WorkTCTheses    WorkTCTheses?
+  WorkOPTheses    WorkOPTheses?
 
   @@index([deliberationId, theoryType, createdAt])
   @@index([authorId, createdAt])
+}
+
+model WorkDnProject {
+  workId           String     @id
+  // TDN1–TDN6
+  definitionsJson  Json? // array of {term, def, sources[]}
+  axiomsJson       Json? // array of {id, text, sources[]}
+  theoremsJson     Json? // array of {id, text, proofRefs[]}
+  confirmingJson   Json? // TDN4 — refs to data/claims/experiments
+  optimalityJson   Json? // TDN5 — {criteria:[], comparisons:[]}
+  applicationsJson Json? // TDN6 — list of explanatory applications
+  TheoryWork       TheoryWork @relation(fields: [workId], references: [id])
+}
+
+model WorkTcProject {
+  workId                 String     @id
+  structureDescription   String?
+  functionDescription    String?
+  explanationFunctioning String?
+  applicationsJson       Json? // {context, howToUse, expectedOutcomes}
+  TheoryWork             TheoryWork @relation(fields: [workId], references: [id])
+}
+
+model WorkOpProject {
+  workId                         String     @id
+  unrecognizabilityJustification String? // TOP2
+  // TOP3: link to Pascal.propositions/actions/utilities already stored
+  alternativesJson               Json? // aliased to pascal.propositions (optional copy)
+  TheoryWork                     TheoryWork @relation(fields: [workId], references: [id])
+}
+
+model WorkDNStructure {
+  id             String  @id @default(cuid())
+  workId         String  @unique
+  // TDN*: keep it simple and explicit
+  explanandum    String? // phenomenon described
+  nomological    String? // laws/regularities
+  ceterisParibus String?
+
+  work TheoryWork @relation(fields: [workId], references: [id], onDelete: Cascade)
+}
+
+model WorkIHTheses {
+  id          String  @id @default(cuid())
+  workId      String  @unique
+  structure   String? // TIH: structure
+  function    String? // TIH: function
+  objectivity String? // TIH: objectivity
+
+  work TheoryWork @relation(fields: [workId], references: [id], onDelete: Cascade)
+}
+
+model WorkTCTheses {
+  id                 String   @id @default(cuid())
+  workId             String   @unique
+  instrumentFunction String? // TTC: function
+  explanation        String? // TTC: explanation
+  applications       String[] // TTC: applications
+
+  work TheoryWork @relation(fields: [workId], references: [id], onDelete: Cascade)
+}
+
+model WorkOPTheses {
+  id                String   @id @default(cuid())
+  workId            String   @unique
+  unrecognizability String? // TOP: unrecognizability
+  alternatives      String[] // TOP: considered alts (labels)
+
+  work TheoryWork @relation(fields: [workId], references: [id], onDelete: Cascade)
 }
 
 model WorkPracticalJustification {
@@ -3112,6 +3190,8 @@ enum KnowledgeEdgeKind {
   REBUTS
   UNDERCUTS
   UNDERMINES
+  ALTERNATIVE_TO
+  EVALUATES
 }
 
 model KnowledgeEdge {

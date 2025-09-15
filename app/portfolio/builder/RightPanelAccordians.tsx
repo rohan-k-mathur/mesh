@@ -30,7 +30,6 @@ export default function ControlsCollapsible({
   const contentClass =
     "relative z-0 w-full overflow-hidden transform-gpu " +
     "grid grid-rows-[0fr] transition-[grid-template-rows,opacity] duration-300 " +
-    "ease-[cubic-bezier(0.22,1,0.36,1)] " +
     "data-[state=open]:grid-rows-[1fr] data-[state=open]:opacity-100 data-[state=closed]:opacity-0";
   const innerClass = "min-h-0"; // lets content shrink to 0fr cleanly
   const triggerClass =

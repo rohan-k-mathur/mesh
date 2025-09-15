@@ -89,6 +89,30 @@ export default function SupplyAuthoringInline({
         >
           Link as SUPPLIES_PREMISE
         </button>
+        <div className="flex items-center gap-2">
+  <button className="px-2 py-1 text-sm border rounded"
+    disabled={!selectedFromWorkId}
+    onClick={async ()=>{
+      await fetch('/api/knowledge-edges', {
+        method:'POST', headers:{'content-type':'application/json'},
+        body: JSON.stringify({ deliberationId, kind:'ALTERNATIVE_TO', fromWorkId: selectedFromWorkId, toWorkId })
+      }); alert('Alternative linked.');
+    }}>
+    Link as ALTERNATIVE_TO
+  </button>
+  <button className="px-2 py-1 text-sm border rounded"
+    disabled={!selectedFromWorkId}
+    onClick={async ()=>{
+      // pull the evaluator work’s MCDA snapshot
+      const pj = await fetch(`/api/works/${selectedFromWorkId}/practical`).then(r=>r.json()).catch(()=>null);
+      await fetch('/api/knowledge-edges', {
+        method:'POST', headers:{'content-type':'application/json'},
+        body: JSON.stringify({ deliberationId, kind:'EVALUATES', fromWorkId: selectedFromWorkId, toWorkId, meta:{ mcda: pj?.justification?.result ?? {} } })
+      }); alert('Evaluation linked.');
+    }}>
+    Link as EVALUATES (MCDA)
+  </button>
+</div>
         <div className="text-[11px] text-neutral-500">DN works and/or claims can supply premises to this work.</div>
       </div>
     </div>

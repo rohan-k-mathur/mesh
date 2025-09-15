@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
 import { z } from 'zod';
 import { getUserFromCookies } from '@/lib/serverutils';
+import crypto from 'crypto';
+
 
 export const dynamic = 'force-dynamic';
 
@@ -35,6 +37,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       moid: crypto.randomUUID(), // you already enforce uniqueness here
     },
   });
+  const hash = excerptHash ?? crypto.createHash('sha256').update(text).digest('hex').slice(0, 32);
 
   // Link citation back to the Work location
   await prisma.claimCitation.create({
@@ -43,7 +46,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       uri: `/works/${workId}#loc=${locatorStart}-${locatorEnd}`,
       locatorStart,
       locatorEnd,
-      excerptHash: excerptHash ?? undefined,
+      excerptHash: hash,
     },
   });
 

@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
 import { getUserFromCookies } from '@/lib/serverutils';
 import { z } from 'zod';
-
+import { canEditWorkOrClaimOrphan } from '@/lib/permissions/canEditWork';
 export const dynamic = 'force-dynamic';
 
 const PropositionSchema = z.object({
@@ -103,7 +103,11 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 export async function PUT(req: NextRequest, { params }: { params: { id: string }}) {
   const user = await getUserFromCookies();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
+  const perm = await canEditWorkOrClaimOrphan(params.id, String(user.userId));
+  if (!perm.ok) {
+    const code = perm.reason === 'not-found' ? 404 : 403;
+    return NextResponse.json({ error: perm.reason === 'not-found' ? 'Work not found' : 'Forbidden' }, { status: code });
+  }
   const work = await prisma.theoryWork.findUnique({ where: { id: params.id } });
   if (!work) return NextResponse.json({ error: 'Work not found' }, { status: 404 });
   if (work.authorId !== user.userId) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });

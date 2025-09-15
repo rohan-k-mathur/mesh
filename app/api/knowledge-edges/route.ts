@@ -1,17 +1,21 @@
-// app/api/knowledge-edges/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
 import { z } from 'zod';
 import { getUserFromCookies } from '@/lib/serverutils';
 
+const KindsEnum = z.enum([
+  'SUPPLIES_PREMISE','REVISES','CHALLENGES','REBUTS','UNDERCUTS','UNDERMINES','SUPPORTS',
+  'ALTERNATIVE_TO','EVALUATES', // NEW
+]);
+
 const Body = z.object({
   deliberationId: z.string(),
-  kind: z.enum(['SUPPLIES_PREMISE','REVISES','CHALLENGES','REBUTS','UNDERCUTS','UNDERMINES','SUPPORTS']),
+  kind: KindsEnum,
   fromWorkId: z.string().optional(),
   fromClaimId: z.string().optional(),
   toWorkId: z.string().optional(),
   toClaimId: z.string().optional(),
-  meta: z.any().optional(),
+  meta: z.any().optional(), // MCDA snapshot, adequacy blob, etc.
 }).refine(b => (b.fromWorkId || b.fromClaimId) && (b.toWorkId || b.toClaimId), {
   message: 'Need a from* and a to* id',
 });
@@ -19,30 +23,50 @@ const Body = z.object({
 export async function POST(req: NextRequest) {
   const user = await getUserFromCookies();
   if (!user?.userId) return NextResponse.json({ error:'Unauthorized' }, { status: 401 });
-  const body = await req.json();
-  const parsed = Body.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: parsed.error.message }, { status: 400 });
+
+  const parsed = Body.safeParse(await req.json());
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.message }, { status: 400 });
+  }
+
+  const { deliberationId, fromWorkId, fromClaimId, toWorkId, toClaimId, kind, meta } = parsed.data;
 
   // Optional de-dupe (same from/to/kind)
-  const { deliberationId, fromWorkId, fromClaimId, toWorkId, toClaimId, kind, meta } = parsed.data;
   const exists = await prisma.knowledgeEdge.findFirst({
     where: { deliberationId, fromWorkId, fromClaimId, toWorkId, toClaimId, kind },
     select: { id: true }
   });
   if (exists) return NextResponse.json({ ok:true, edgeId: exists.id, dedup:true }, { status: 200 });
 
-  const edge = await prisma.knowledgeEdge.create({ data: parsed.data });
+  const edge = await prisma.knowledgeEdge.create({ data: {
+    deliberationId, kind, fromWorkId, fromClaimId, toWorkId, toClaimId, meta
+  }});
   return NextResponse.json({ ok:true, edge }, { status: 201 });
 }
 
 export async function GET(req: NextRequest) {
-  const deliberationId = req.nextUrl.searchParams.get('deliberationId') ?? '';
-  const kind = req.nextUrl.searchParams.get('kind') ?? undefined;
+  const sp = req.nextUrl.searchParams;
+  const deliberationId = sp.get('deliberationId') ?? undefined;
+  const toWorkId       = sp.get('toWorkId') ?? undefined;
+  const fromWorkId     = sp.get('fromWorkId') ?? undefined;
+  const kindsParam     = sp.get('kinds') ?? sp.get('kind') ?? undefined;
 
-  if (!deliberationId) return NextResponse.json({ ok:true, edges: [] });
+  const where: any = {};
+  if (deliberationId) where.deliberationId = deliberationId;
+  if (toWorkId)       where.toWorkId = toWorkId;
+  if (fromWorkId)     where.fromWorkId = fromWorkId;
+  if (kindsParam) {
+    const kinds = kindsParam.split(',').map(s => s.trim()).filter(Boolean);
+    where.kind = kinds.length === 1 ? kinds[0] : { in: kinds };
+  }
+
+  if (!where.deliberationId && !where.toWorkId && !where.fromWorkId) {
+    // keep backward-compat but avoid scanning the world
+    return NextResponse.json({ ok:true, edges: [], works: [], claims: [] }, { status: 200 });
+  }
 
   const edges = await prisma.knowledgeEdge.findMany({
-    where: { deliberationId, ...(kind ? { kind: kind as any } : {}) },
+    where,
     orderBy: { createdAt: 'desc' },
   });
 

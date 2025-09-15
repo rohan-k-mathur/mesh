@@ -4,6 +4,11 @@ import PracticalBuilder from '../practical/PracticalBuilder';
 import PracticalSummary from '../practical/PracticalSummary';
 import HermeneuticBuilder from '../hermeneutic/HermeneuticBuilder';
 import PascalBuilder from '../pascal/PascalBuilder';
+import DNThesesEditor from '@/components/work/editors/DNThesesEditor';
+import IHThesesEditor from '@/components/work/editors/IHThesesEditor';
+import TCThesesEditor from '@/components/work/editors/TCThesesEditor';
+import OPThesesEditor from '@/components/work/editors/OPThesesEditor';
+import CompareAlternativesPanel from '@/components/work/CompareAlternativesPanel';
 
 type TheoryType = 'DN'|'IH'|'TC'|'OP';
 
@@ -66,7 +71,7 @@ export function TheoryFraming({
 
       {workId && (
         <div className="space-y-3">
-          {t === 'IH' && (
+          {/* {t === 'IH' && (
             <>
               <HermeneuticBuilder workId={workId} />
               <PracticalSummary workId={workId} />
@@ -74,9 +79,9 @@ export function TheoryFraming({
                 <PracticalBuilder workId={workId} defaultOpen={defaultOpenBuilder} />
               )}
             </>
-          )}
+          )} */}
 
-          {t === 'TC' && (
+          {/* {t === 'TC' && (
             <>
               <PracticalSummary workId={workId} />
               {canEditPractical && (
@@ -87,15 +92,47 @@ export function TheoryFraming({
                 interpreted practice.
               </div>
             </>
-          )}
+          )} */}
+          {t === 'IH' && (
+  <>
+    <HermeneuticBuilder workId={workId} />
+    <IHThesesEditor workId={workId} /> {/* NEW */}
+    <CompareAlternativesPanel workId={workId} /> {/* NEW */}
+    <PracticalSummary workId={workId} />
+    {canEditPractical && (<PracticalBuilder workId={workId} defaultOpen={defaultOpenBuilder} />)}
+  </>
+)}
 
-          {t === 'OP' && <PascalBuilder workId={workId} />}
+{t === 'TC' && (
+  <>
+    <TCThesesEditor workId={workId} /> {/* NEW */}
+    <CompareAlternativesPanel workId={workId} /> {/* NEW */}
+    <PracticalSummary workId={workId} />
+    {canEditPractical && (<PracticalBuilder workId={workId} defaultOpen={defaultOpenBuilder} />)}
+    <div className="text-[11px] text-neutral-500">
+      (Optional) Use the Hermeneutic builder if you want to ground your construction in interpreted practice.
+    </div>
+  </>
+)}
 
-          {t === 'DN' && (
-            <div className="text-[11px] text-neutral-500">
-              DN posts supply empirical premises. Link them later via the Supply function graph.
-            </div>
-          )}
+{t === 'OP' && (
+  <>
+    <OPThesesEditor workId={workId} /> {/* NEW */}
+    <PascalBuilder workId={workId} />
+  </>
+)}
+
+{t === 'DN' && (
+  <>
+    <DNThesesEditor workId={workId} /> {/* NEW */}
+    <div className="text-[11px] text-neutral-500">
+      DN posts supply empirical premises. Link them later via the Supply function graph.
+    </div>
+  </>
+)}
+
+
+          
         </div>
       )}
     </div>

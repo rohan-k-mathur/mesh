@@ -23,6 +23,19 @@ export default function WorkHeaderBar({
         <button className="px-2 py-1 border rounded text-xs bg-white" onClick={()=>setOpen(true)}>
           Dependencies…
         </button>
+        <button
+  className="px-2 py-1 border rounded text-xs bg-white"
+  onClick={async () => {
+    const res = await fetch(`/api/works/${workId}/dossier?format=md`);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `${title.replace(/\s+/g,'_')}_Dossier.md`;
+    a.click(); URL.revokeObjectURL(url);
+  }}
+>
+  Export Dossier
+</button>
       </div>
       <SupplyDrawer workId={workId} open={open} onClose={()=>setOpen(false)} />
     </div>
