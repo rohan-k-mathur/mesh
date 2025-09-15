@@ -381,7 +381,7 @@ function openIssuesFor(argumentId: string) {
   return (
     <div
       id="arguments-top"
-      className="relative z-10 w-full px-2 rounded-md pt-1 pb-3 panel-edge"
+      className="relative z-10 w-full px-2 rounded-xl pt-1 mt-3 pb-3 mb-1 panel-edge"
     >
       <div className="px-3 py-2 text-md font-medium flex items-center justify-between">
         <span>Arguments</span>

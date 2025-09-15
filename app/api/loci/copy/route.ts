@@ -1,18 +1,41 @@
+// app/api/loci/copy/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { z } from 'zod';
-import { copyAtLocus } from '@/packages/ludics-engine/copy';
+import { prisma } from '@/lib/prismaclient';
 
-const Body = z.object({
-  dialogueId: z.string().min(5),
-  basePath: z.string().min(1),     // e.g. "0" or "0.2"
-  count: z.number().int().min(1).max(8).default(2),
-});
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
-  const parsed = Body.safeParse(await req.json().catch(() => ({})));
-  if (!parsed.success) return NextResponse.json({ ok:false, error: parsed.error.flatten() }, { status: 400 });
+  const { dialogueId, baseLocus, count = 1 } = await req.json().catch(() => ({}));
+  if (!dialogueId || !baseLocus) return NextResponse.json({ error: 'dialogueId, baseLocus required' }, { status: 400 });
 
-  const { dialogueId, basePath, count } = parsed.data;
-  const out = await copyAtLocus(dialogueId, basePath, count);
-  return NextResponse.json({ ok:true, ...out }, { headers: { 'Cache-Control': 'no-store' } });
+  const base = await prisma.ludicLocus.findFirst({ where: { dialogueId, path: baseLocus }});
+  if (!base) return NextResponse.json({ error: 'BASE_NOT_FOUND' }, { status: 404 });
+
+  const ext = (base.extJson ?? {}) as any;
+  let n = Number(ext.childrenCounter ?? 0);
+
+  const children: string[] = [];
+  for (let i = 0; i < count; i++) {
+    n += 1;
+    children.push(`${baseLocus}.${n}`);
+  }
+
+  await prisma.$transaction(async (tx) => {
+    // upsert children loci
+    for (const p of children) {
+      await tx.ludicLocus.upsert({
+        where: { dialogueId_path: { dialogueId, path: p } },
+        update: {},
+        create: { dialogueId, path: p, parentId: base.id },
+      });
+    }
+    await tx.ludicLocus.update({
+      where: { id: base.id },
+      data: { extJson: { ...(ext||{}), childrenCounter: n } },
+    });
+  });
+
+  // child -> parent bijection (address-level contraction bookkeeping)
+  const bijection = Object.fromEntries(children.map(c => [c, baseLocus]));
+  return NextResponse.json({ ok: true, children, bijection });
 }

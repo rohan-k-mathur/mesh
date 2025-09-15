@@ -3032,17 +3032,20 @@ model TheoryWork {
   hermeneutic            WorkHermeneuticProject?     @relation("Work_to_HermeneuticProject")
   pascal                 WorkPascalModel?            @relation("Work_to_PascalModel")
 
+  // NEW: back-relations for the 4 theses-slot models
+  WorkDNStructure WorkDNStructure?
+  WorkIHTheses    WorkIHTheses?
+  WorkTCTheses    WorkTCTheses?
+  WorkOPTheses    WorkOPTheses?
+
   // NEW one-to-ones for DN/TC/IH/OP structure:
   dn WorkDnProject?
   tc WorkTcProject?
   op WorkOpProject?
 
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  WorkDNStructure WorkDNStructure?
-  WorkIHTheses    WorkIHTheses?
-  WorkTCTheses    WorkTCTheses?
-  WorkOPTheses    WorkOPTheses?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  Rule      Rule[]
 
   @@index([deliberationId, theoryType, createdAt])
   @@index([authorId, createdAt])
@@ -3178,6 +3181,27 @@ model WorkPracticalRevision {
   @@index([workId, createdAt])
 }
 
+model Rule {
+  id     String     @id @default(cuid())
+  workId String
+  kind   String // 'STRICT' | 'DEFEASIBLE'
+  head   String // x
+  body   String // y1 & ... & yn
+  meta   Json?
+  work   TheoryWork @relation(fields: [workId], references: [id], onDelete: Cascade)
+}
+
+model ReasonPair {
+  id             String   @id @default(cuid())
+  deliberationId String
+  claimId        String
+  reasonId       String // could point to a Claim, or a literal string y
+  stance         String // 'FOR'|'AGAINST'|'NOT_FOR'|'NOT_AGAINST'
+  strong         Boolean? // true if (¬y ∨ x) holds (LA strong link)
+  meta           Json?
+  createdAt      DateTime @default(now())
+}
+
 /// =========================
 /// Aux: Knowledge / NLI / Eristic
 /// =========================
@@ -3192,6 +3216,14 @@ enum KnowledgeEdgeKind {
   UNDERMINES
   ALTERNATIVE_TO
   EVALUATES
+  REASON_FOR           // (x, y)
+   REASON_AGAINST        // (¬x, y)
+   NOT_REASON_FOR        // ¬(x, y)
+   NOT_REASON_AGAINST    // ¬(¬x, y)
+  CONCLUSIVE_ABOUT      // (x, y) ∨ (¬x, y)
+   INCONCLUSIVE_ABOUT    // ¬(x, y) ∧ ¬(¬x, y)
+   ENTAILS;              // strong link (¬y ∨ x, >)
+  
 }
 
 model KnowledgeEdge {

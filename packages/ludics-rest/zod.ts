@@ -1,21 +1,6 @@
 import { z } from 'zod';
 
-// export const zAppendActs = z.object({
-//   designId: z.string(),
-//   enforceAlternation: z.boolean().optional(),
-//   acts: z.array(z.discriminatedUnion('kind', [
-//     z.object({
-//       kind: z.literal('PROPER'),
-//       polarity: z.enum(['P','O']),
-//       locusPath: z.string(),
-//       ramification: z.array(z.string()),
-//       expression: z.string().optional(),
-//       meta: z.record(z.any()).optional(),
-//       additive: z.boolean().optional(),
-//     }),
-//     z.object({ kind: z.literal('DAIMON'), expression: z.string().optional() }),
-//   ])),
-// });
+
 
 export const zStep = z.object({
   dialogueId: z.string(),
@@ -23,6 +8,21 @@ export const zStep = z.object({
   negDesignId: z.string(),
   startPosActId: z.string().optional(),
   maxPairs: z.number().int().min(1).max(256).optional(),
+});
+export const zStepExtended = z.object({
+  dialogueId: z.string().min(10),
+  posDesignId: z.string().min(10),
+  negDesignId: z.string().min(10),
+  startPosActId: z.string().optional(),
+  phase: z.enum(['focus-P','focus-O','neutral']).optional(),
+  fuel: z.number().int().min(1).max(10000).optional().default(2048),
+  compositionMode: z.enum(['assoc','partial','spiritual']).optional().default('assoc'),
+  testers: z.array(
+    z.union([
+      z.object({ kind: z.literal('herd-to'), parentPath: z.string(), child: z.string() }),
+      z.object({ kind: z.literal('timeout-draw'), atPath: z.string() }),
+    ])
+  ).optional(),
 });
 
 

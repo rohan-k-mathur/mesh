@@ -513,10 +513,10 @@ export function RepresentativeViewpoints(props: {
 
 
   return (
-    <div className="rounded-md border p-4 space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <h3 className="text-sm font-semibold">
+    <div className="relative z-10 w-full p-3 rounded-xl  mt-3  mb-1 panel-edge">
+      <div className="flex items-center justify-between ">
+        <div className="flex items-center gap-3 ">
+          <h3 className="text-md font-semibold">
             Representative viewpoints (k={s.k}) {s.rule==='maxcov' && s.jrSatisfied && <JRBadge/>}
           </h3>
           <ViewControls rule={s.rule} k={s.k} onApply={({rule,k})=>props.onReselect?.(rule,k)} />

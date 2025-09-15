@@ -14,6 +14,7 @@ import { CommitmentDelta } from '@/components/dialogue/CommitmentDelta';
 import { NLCommitPopover } from '@/components/dialogue/NLCommitPopover';
 import { useDialogueTarget } from '@/components/dialogue/DialogueTargetContext';
 
+import LociTreeWithControls from '@/components/ludics/LociTreeWithControls';
 
 const fetcher = (u: string) => fetch(u, { cache: 'no-store' }).then(r => r.json());
 
@@ -105,8 +106,11 @@ type StepResult = {
 };
 
 /* -------------------------------- Panel --------------------------------- */
-export function LudicsPanel({ deliberationId }: { deliberationId: string }) {
-  // Designs SWR
+export default function LudicsPanel({ deliberationId, proDesignId, oppDesignId }:{
+  deliberationId: string;
+  proDesignId: string;
+  oppDesignId: string;
+}) {  // Designs SWR
   const {
     data: designsData,
     mutate: mutateDesigns,
@@ -118,6 +122,8 @@ export function LudicsPanel({ deliberationId }: { deliberationId: string }) {
     { revalidateOnFocus: false }
   );
   const designs = designsData?.designs ?? [];
+    const pro = designs.find(d => d.participantId === 'Proponent') ?? designs[0];
+  const opp = designs.find(d => d.participantId === 'Opponent')  ?? designs[1] ?? designs[0];
 
   // Panel local UI state
   const [trace, setTrace] = React.useState<StepResult | null>(null);
@@ -692,7 +698,7 @@ const commitAtPath = React.useCallback((path: string) => {
               <b>Unified loci</b>
               <span className="px-1.5 py-0.5 rounded border bg-slate-50">acts {actsCount}</span>
             </div>
-            <LociTree
+            {/* <LociTree
               root={mergeDesignsToTree(designs)}
               usedAdditive={trace?.usedAdditive}
               onPickBranch={pickAdditive}
@@ -705,7 +711,13 @@ const commitAtPath = React.useCallback((path: string) => {
               stepIndexByActId={stepIndexByActId}
               autoScrollOnFocus
               enableKeyboardNav
-            />
+            /> */}
+               <LociTreeWithControls
+        dialogueId={deliberationId}
+        posDesignId={proDesignId}
+        negDesignId={oppDesignId}
+        defaultMode="assoc"
+      />
 {commitOpen && commitPath && targetIdFromContext && (
   <NLCommitPopover
     open={commitOpen}

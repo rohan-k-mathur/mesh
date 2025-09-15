@@ -27,15 +27,16 @@ export function TheoryFraming({
   defaultOpenBuilder?: boolean;
   className?: string;
 }) {
-  const t = value.theoryType;
+  const t = (value?.theoryType ?? 'DN') as TheoryType;
+
 
   return (
     <div className={`rounded border p-3 space-y-3 ${className}`}>
-      <div className="text-sm font-medium">Philosophical framing</div>
+      <div className="text-sm font-medium">Argument Framing</div>
 
       <label className="block text-xs text-neutral-600">Theory Type</label>
       <select
-        className="border rounded px-2 py-1 text-sm"
+        className=" menuv2--lite  px-2 py-1 text-sm"
         value={t}
         onChange={(e) => onChange({ ...value, theoryType: e.target.value as TheoryType })}
       >
@@ -44,7 +45,12 @@ export function TheoryFraming({
         <option value="TC">TC — Technical–Constructive (design an instrument)</option>
         <option value="OP">OP — Ontic–Practical (as‑if decision under uncertainty)</option>
       </select>
-
+      <div className="text-[11px] text-neutral-500 -mt-1">
+    {t==='DN' && 'Describe regularities, supply data & laws.'}
+    {t==='IH' && 'Interpret actual practice → propose an ideal standard.'}
+    {t==='TC' && 'Design an instrument to realize the standard output.'}
+    {t==='OP' && 'As-if decision under uncertainty; justify a necessary assumption.'}
+  </div>
       {(t === 'IH' || t === 'TC') && (
         <div>
           <label className="block text-xs text-neutral-600 mb-1">
@@ -63,13 +69,11 @@ export function TheoryFraming({
       )}
 
       {/* ==== Structured builders by type (requires a saved work) ==== */}
-      {!workId && (
-        <div className="text-[11px] text-neutral-500">
-          Save this Work to enable structured builders for {t}.
-        </div>
-      )}
-
-      {workId && (
+      {!workId ? (
+    <div className="text-[11px] text-neutral-500">
+      Save this work to enable structured builders for {t}.
+    </div>
+  ) : (
         <div className="space-y-3">
           {/* {t === 'IH' && (
             <>

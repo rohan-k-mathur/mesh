@@ -1,9 +1,11 @@
 import { prisma } from '@/lib/prismaclient';
 import type { StepResult } from 'packages/ludics-core/types';
 import { Hooks } from './hooks';
+import { detectDirectoryCollisions } from './detect-collisions';
 
 type Locus = { path: string; openings: string[]; additive?: boolean };
 type Act   = { polarity:'pos'|'neg'|'daimon'; locus:string; openings:string[]; additive?:boolean };
+export type CompositionMode = 'assoc'|'partial'|'spiritual';
 
 // Small helpers
 function isACK(expr?: string | null, meta?: any) {
@@ -163,11 +165,15 @@ export async function stepInteraction(opts: {
   startPosActId?: string,
   maxPairs?: number,
   phase?: 'focus-P'|'focus-O'|'neutral',
+  maskNamesAt?: string[], // bases where child names are hidden from testers
+
   // consensus testers
   virtualNegPaths?: string[],   // synthesize an O at these locus paths
   drawAtPaths?: string[],       // treat no-response here as draw by consensus
   // composition preflight
-  compositionMode?: 'assoc'|'partial'|'spiritual',
+  compositionMode?: CompositionMode,
+  focusAt?: string | null;  // pin traversal under this locus
+
 }): Promise<StepResult> {
   const {
     dialogueId,
@@ -177,12 +183,13 @@ export async function stepInteraction(opts: {
     phase,
     virtualNegPaths = [],
     drawAtPaths = [],
-    compositionMode = 'assoc'
   } = opts;
 
   const fuel = Math.max(1, Math.min(maxPairs, 10_000));
   const virtualNegByPath = new Set(virtualNegPaths);
   const drawAt = new Set(drawAtPaths);
+  const mode = opts.compositionMode ?? 'assoc';
+
 
   // -- resolve designs (robust to stale/cross-dialogue ids)
   async function resolvePair() {
@@ -213,7 +220,19 @@ export async function stepInteraction(opts: {
     return { pos, neg };
   }
   const { pos: posDesign, neg: negDesign } = await resolvePair();
-
+  const displayPath = (raw?: string) => {
+    if (!raw) return raw;
+    for (const b of opts.maskNamesAt ?? []) {
+      if (raw.startsWith(b + '.')) {
+        const segs = raw.split('.');
+        if (segs.length >= b.split('.').length + 1) {
+          segs[b.split('.').length] = '•'; // hide the name
+          return segs.join('.');
+        }
+      }
+    }
+    return raw;
+  };
   // -- loci maps
   const loci     = await prisma.ludicLocus.findMany({ where: { dialogueId } });
   const pathById = new Map(loci.map(l => [l.id, l.path]));
@@ -223,24 +242,28 @@ export async function stepInteraction(opts: {
   const A = { design: posDesign, acts: posDesign.acts };
   const B = { design: negDesign, acts: negDesign.acts };
 
-  // -- composition preflight (directory clash at base)
-  if (compositionMode !== 'assoc') {
-    const baseId = idByPath.get('0');
-    const dirA = new Set(
-      A.acts.filter(a => a.kind === 'PROPER' && a.polarity === 'P' && a.locusId === baseId)
-            .flatMap(a => (a as any).ramification ?? [])
-    );
-    const dirB = new Set(
-      B.acts.filter(a => a.kind === 'PROPER' && a.polarity === 'P' && a.locusId === baseId)
-            .flatMap(a => (a as any).ramification ?? [])
-    );
-    const collide = [...dirA].filter(x => dirB.has(x));
-    if (compositionMode === 'partial' && collide.length > 0) {
-      return { status: 'DIVERGENT', pairs: [], reason: 'incoherent-move' };
-      // In 'spiritual', callers should shift via /api/ludics/delocate then step again.
+   // --- Directory collision pre-flight (only matters for additives at the SAME base)
+   if (mode !== 'assoc') {
+    const collisions = await detectDirectoryCollisions({
+      dialogueId: opts.dialogueId, posDesignId: posDesign.id, negDesignId: negDesign.id
+    });
+    if (collisions.length) {
+      if (mode === 'partial') {
+        return {
+          status: 'DIVERGENT',
+          pairs: [],
+          reason: 'dir-collision',         // <<< explicit, matches StepResult
+          daimonHints: [],
+          usedAdditive: {},
+          decisiveIndices: [],
+          endorsement: undefined,
+          endedAtDaimonForParticipantId: undefined,
+        };
+      }
+      // spiritual: UI should call /api/ludics/delocate then re-run
+      (globalThis as any).__ludics__lastCollision = collisions;
     }
   }
-
   // -- previous additive choices (persisted)
   type UsedAdditive = Record<string, string>;
   let usedAdditive: UsedAdditive = {};
@@ -257,9 +280,15 @@ export async function stepInteraction(opts: {
   const findNextPositive = (acts: typeof posDesign.acts, from: number) => {
     for (let i = from; i < acts.length; i++) {
       const a = acts[i];
+      if (opts.focusAt) {
+        // skip positives that are not under focusAt prefix
+        const p = pathById.get(a.locusId!);
+        if (!p || !(p === opts.focusAt || p.startsWith(opts.focusAt + '.'))) continue;
+      }
       if (a.kind === 'DAIMON') return { idx: i, act: a };
       if (a.kind === 'PROPER' && a.polarity === 'P') return { idx: i, act: a };
     }
+    
     return null;
   };
 
@@ -337,7 +366,7 @@ export async function stepInteraction(opts: {
       const p = pathById.get(nextPos.act.locusId!);
       if (p && drawAt.has(p)) {
         status = 'DIVERGENT';
-        reason = 'incoherent-move'; // or 'consensus-draw' if you want a distinct label
+        reason = 'consensus-draw';
       } else {
         status = 'DIVERGENT';
         reason = reason ?? 'incoherent-move';

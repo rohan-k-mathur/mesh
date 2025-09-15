@@ -396,6 +396,79 @@ useEffect(() => {
 }, [deliberationId]);
 
 const { data: lm } = useLegalMoves(targetText);
+useEffect(() => {
+  if (!workTitle && !workBody) return;
+  const t = setTimeout(() => {
+    if (
+      !savedWorkId &&
+      (workTitle.trim().length || workBody.trim().length)
+    ) {
+      // Fire off a draft save
+      fetch("/api/theoryworks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          deliberationId,
+          title: workTitle.trim() || "(untitled)",
+          body: workBody.trim(),
+          draft: true,
+          ...(framing?.theoryType ? { theoryType: framing.theoryType } : {}),
+        }),
+      }).catch(() => {}); // ignore failures
+    }
+  }, 1500);
+  return () => clearTimeout(t);
+}, [workTitle, workBody, savedWorkId, deliberationId, framing]);
+
+
+async function saveWork() {
+  if (!workTitle.trim() || !workBody.trim()) {
+    alert("Please provide a work title and body.");
+    return;
+  }
+
+  const payload = {
+    deliberationId,
+    title: workTitle.trim(),
+    body: workBody.trim(),
+    ...(framing?.theoryType ? { theoryType: framing.theoryType } : {}),
+    standardOutput: framing?.standardOutput ?? null,
+  };
+
+  try {
+    const res = await fetch("/api/theoryworks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const text = await res.text();
+    let json: any = null;
+    try {
+      json = JSON.parse(text);
+    } catch {}
+    if (!res.ok) {
+      const msg = json?.error || json?.message || text || `HTTP ${res.status}`;
+      alert(`Save failed: ${msg}`);
+      return;
+    }
+    const { ok, work } = json;
+    if (ok && work?.id) {
+      setSavedWorkId(work.id);
+      setTimeout(
+        () =>
+          framingRef.current?.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          }),
+        50
+      );
+    }
+    alert("Work saved.");
+  } catch (err: any) {
+    console.error(err);
+    alert(`Save failed: ${err?.message ?? "Unknown error"}`);
+  }
+}
 return (
   <div className="group relative rounded-2xl panel-edge bg-indigo-50/70  p-4 backdrop-blur space-y-3">
     {/* slim top shine */}
@@ -585,6 +658,20 @@ return (
 
     {showWorkFields && (
       <div className="rounded-xl border border-slate-200 bg-white/60 p-3 space-y-2">
+          <div className="flex items-center justify-between">
+    <div>
+      <div className="text-sm font-semibold">Theory Builder</div>
+      <div className="text-[11px] text-neutral-600">
+        Pick a theory type, then give it a name and a short rationale.
+      </div>
+    </div>
+    {savedWorkId && (
+      <span className="text-[11px] px-2 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-emerald-700">
+        Draft saved
+      </span>
+    )}
+  </div>
+
         <div ref={framingRef}>
           <TheoryFraming
             key={savedWorkId ?? "no-work"}
@@ -597,71 +684,46 @@ return (
           />
         </div>
 
-        <label className="block text-xs text-neutral-600">Work Title</label>
+        {(framing.theoryType === 'IH' || framing.theoryType === 'TC') && (
+    <div className="text-[11px] text-neutral-500 -mt-2">
+      Your “Standard Output” tells us what success looks like.
+    </div>
+  )}
+
+
+        <label className="block text-xs text-neutral-600">Title</label>
         <input
           id="work-title-input"
           className="w-full rounded border border-slate-200 px-2 py-1 text-sm"
-          placeholder="Title for this work"
+          placeholder="Ex: Protocol_A v2"
           value={workTitle}
           onChange={(e) => setWorkTitle(e.target.value)}
+          maxLength={140}
         />
+  <div className="text-[10px] text-neutral-500">{workTitle.length}/140</div>
 
-        <label className="block text-xs text-neutral-600">Work Body</label>
+        <label className="block text-xs text-neutral-600">Body</label>
         <textarea
-          className="min-h-[120px] w-full rounded border border-slate-200 px-2 py-1 text-sm"
-          placeholder="Write the body of the work"
-          value={workBody}
-          onChange={(e) => setWorkBody(e.target.value)}
-        />
+    className="min-h-[120px] w-full rounded border px-2 py-1 text-sm"
+    placeholder="Context & intuition (why this matters; 3–5 sentences)... Tip: cite claims with [[claim:123]]"
+    value={workBody}
+    onChange={(e) => setWorkBody(e.target.value)}
+  />
 
         <button
           className="btnv2"
-          onClick={async () => {
-            if (!workTitle.trim() || !workBody.trim()) {
-              alert("Please provide a work title and body.");
-              return;
-            }
-            const payload = {
-              deliberationId,
-              title: workTitle.trim(),
-              body: workBody.trim(),
-              ...(framing?.theoryType ? { theoryType: framing.theoryType } : {}),
-              standardOutput: framing?.standardOutput ?? null,
-            };
-            try {
-              const res = await fetch("/api/theoryworks", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
-              });
-              const text = await res.text();
-              let json: any = null;
-              try {
-                json = JSON.parse(text);
-              } catch {}
-              if (!res.ok) {
-                const msg = json?.error || json?.message || text || `HTTP ${res.status}`;
-                alert(`Save failed: ${msg}`);
-                return;
-              }
-              const { ok, work } = json;
-              if (ok && work?.id) {
-                setSavedWorkId(work.id);
-                setTimeout(
-                  () => framingRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }),
-                  50
-                );
-              }
-              alert("Work saved.");
-            } catch (err: any) {
-              console.error(err);
-              alert(`Save failed: ${err?.message ?? "Unknown error"}`);
-            }
-          }}
+          onClick={saveWork} // extract your existing POST into a saveWork fn
+
+          
         >
-          Save Work
-        </button>
-      </div>
+                {savedWorkId ? 'Save changes' : 'Save & Open Full Builder'}
+
+                </button>
+    {/* <span className="text-[11px] text-neutral-500">
+      Fields autosave every few seconds.
+    </span> */}
+  </div>
+
     )}
 
     {/* Counter toolbar (reply only) */}

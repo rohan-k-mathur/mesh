@@ -18,9 +18,9 @@ import { RhetoricProvider, useRhetoric } from '@/components/rhetoric/RhetoricCon
 import RhetoricControls from '@/components/rhetoric/RhetoricControls';
 import WorksRail from "../work/WorksRail";
 import WorksList from "../work/WorksList";
-import { LudicsPanel } from "./LudicsPanel";
+import LudicsPanel from "./LudicsPanel";
 import BehaviourInspectorCard from '@/components/ludics/BehaviourInspectorCard';
-
+import React from "react";
 import clsx from "clsx";
 import {
   Collapsible,
@@ -67,7 +67,29 @@ export function ScrollBody({
     </div>
   );
 }
+function useCompileStep(deliberationId: string|undefined) {
+  const [state, setState] = React.useState<{
+    proId?: string;
+    oppId?: string;
+    trace?: any;
+    loading: boolean;
+  }>({ loading: true });
 
+  React.useEffect(() => {
+    if (!deliberationId) return;
+    setState({ loading: true });
+    (async () => {
+      const r = await fetch('/api/ludics/compile-step', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ deliberationId }),
+      }).then(res => res.json());
+      setState({ proId: r.proId, oppId: r.oppId, trace: r.trace, loading: false });
+    })();
+  }, [deliberationId]);
+
+  return state;
+}
 
 function ActivityFeed({ deliberationId, authorId }:{ deliberationId:string; authorId:string }) {
   const { data, error, isLoading } = useSWR(
@@ -374,6 +396,8 @@ export default function DeepDivePanel({
   containerClassName?: string;
   className?: string;
 }) {
+  const { proId, oppId, trace, loading } = useCompileStep(deliberationId);
+
   const [sel, setSel] = useState<Selection | null>(null);
   const [pending, setPending] = useState(false);
   const [replyTo, setReplyTo] = useState<string | null>(null);
@@ -390,14 +414,11 @@ export default function DeepDivePanel({
 const [pref, setPref] = useState<PrefState>({ profile: 'community' });
 const [prefLoading, setPrefLoading] = useState(false);
 
-  useEffect(() => {
-    fetch(
-      `/api/content-status?targetType=deliberation&targetId=${deliberationId}`
-    )
-      .then((r) => r.json())
-      .then((d) => setStatus(d.status))
-      .catch(() => {});
-  }, [deliberationId]);
+
+  // Defer gating of UI until render; always call hooks above.
+  const ready = !loading && !!proId && !!oppId;
+  const graphState = usePersisted(`dd:graph:${deliberationId}`, false);
+
 
   const compute = async (
     forcedRule?: "utilitarian" | "harmonic" | "maxcov",
@@ -427,11 +448,18 @@ const [prefLoading, setPrefLoading] = useState(false);
       setPending(false);
     }
   };
-
   useEffect(() => {
-    compute(); /* initial */
-  }, []); // eslint-disable-line
-  const graphState = usePersisted(`dd:graph:${deliberationId}`, false);
+    fetch(
+      `/api/content-status?targetType=deliberation&targetId=${deliberationId}`
+    )
+      .then((r) => r.json())
+      .then((d) => setStatus(d.status))
+      .catch(() => {});
+  }, [deliberationId]);
+
+
+
+  useEffect(() => { compute(); }, [deliberationId]); // remove eslint-disable comment
 
 
 // Load current prefs
@@ -478,7 +506,7 @@ async function updatePref(next: PrefProfile) {
           {/* Header controls */}
       {/* Arguments + Composer */}
       <SectionCard busy={pending}>
-        <div className="relative  flex items-center gap-4 mx-auto mb-2">
+        <div className="relative  flex items-center gap-4 mx-auto mb-2 ">
           <div className="flex items-center gap-2">
             {status && <StatusChip status={status} />}
                    <ChipBar >
@@ -635,7 +663,8 @@ async function updatePref(next: PrefProfile) {
     </SectionCard>
   </TabsContent>
   <TabsContent value="ludics">
-    <LudicsPanel deliberationId={deliberationId} />
+    <LudicsPanel deliberationId={deliberationId}  proDesignId={proId}
+        oppDesignId={oppId}/>
      <div className="mt-3">
     <BehaviourInspectorCard deliberationId={deliberationId} />
   </div>
@@ -663,7 +692,11 @@ async function updatePref(next: PrefProfile) {
   </TabsContent>
   <TabsContent value="activity">
   <SectionCard title="Activity on my contributions">
-    <ActivityFeed deliberationId={deliberationId} authorId={authorId!} />
+  {authorId && (
+  <SectionCard title="Activity on my contributions">
+    <ActivityFeed deliberationId={deliberationId} authorId={authorId} />
+  </SectionCard>
+)}
   </SectionCard>
 </TabsContent>
 </Tabs>
@@ -706,13 +739,16 @@ async function updatePref(next: PrefProfile) {
       </SectionCard>
       </div>
    );
- 
+
    // If a containerClassName is provided, clamp & center the whole panel.
    // Otherwise, behave exactly as before (no breaking change).
-   return containerClassName ? (
-     <div className={clsx(containerClassName)}>{inner}</div>
-  ) : inner;
-
-
-
-}
+     const placeholder = (
+        <div className="text-xs text-neutral-500 px-4 py-2">
+          {loading ? 'Loading…' : 'No designs found'}
+        </div>
+      );
+      const content = ready ? inner : placeholder;
+      return containerClassName
+        ? <div className={clsx(containerClassName)}>{content}</div>
+        : content;
+  }

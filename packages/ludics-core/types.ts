@@ -77,7 +77,8 @@ export type StepResult = {
   daimonHints?: DaimonHint[];                              // NEW
   endorsement?: Endorsement;
   reason?: 'timeout'|'incoherent-move'|'additive-violation'|'no-response'|'consensus-draw'|'dir-collision';
-
+  collisions?: { base: string; dirs: string[] }[];
+  shiftInserted?: boolean;
 };
 
 
