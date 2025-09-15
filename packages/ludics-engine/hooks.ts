@@ -5,7 +5,7 @@ export type ActAppendedEvt = {
   export type TraversalEvt = {
     dialogueId: string; posDesignId: string; negDesignId: string;
     pairs: { posActId: string; negActId: string; ts: number }[];
-    status: 'ONGOING'|'CONVERGENT'|'DIVERGENT'; endedAtDaimonForParticipantId?: string;
+    status: 'ONGOING'|'CONVERGENT'|'DIVERGENT' | "STUCK"; endedAtDaimonForParticipantId?: string;
   };
   export type CSUpdatedEvt = {
     ownerId: string; csId: string;

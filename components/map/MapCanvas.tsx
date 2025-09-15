@@ -20,7 +20,14 @@ type MapEdge = {
   createdAt?: string;
 };
 
-const fetcher = (u:string)=>fetch(u,{cache:'no-store'}).then(r=>r.json());
+const fetcher = async (u: string) => {
+  const r = await fetch(u, { cache: 'no-store' });
+  if (!r.ok) {
+    const text = await r.text().catch(() => '');
+    throw new Error(`${r.status} ${r.statusText} – ${u}\n${text}`);
+  }
+  return r.json();
+};
 
 const COLORS: Record<MapNode['kind'], string> = {
   claim:    '#2563eb',   // blue
@@ -66,6 +73,8 @@ export default function MapCanvas({
 
   // positions map
   const [pos, setPos] = React.useState<Record<string, Pos>>({});
+  const posRef = React.useRef(pos);
+React.useEffect(() => { posRef.current = pos }, [pos]);
 
   // pan/zoom
   const [zoom, setZoom] = React.useState(1);
@@ -75,6 +84,34 @@ export default function MapCanvas({
   const [selected, setSelected] = React.useState<string|null>(null);
   const [hovered, setHovered] = React.useState<string|null>(null);
   const [edgeKind, setEdgeKind] = React.useState<MapEdge['kind']>('relates');
+  const [seeding, setSeeding] = React.useState(false);
+const hasData = nodes.length > 0 || edges.length > 0;
+
+async function seedFromArguments() {
+  setSeeding(true);
+  try {
+    const r = await fetch('/api/map/seed', {
+      method: 'POST', headers: {'content-type':'application/json'},
+      body: JSON.stringify({ deliberationId }),
+    });
+    const j = await r.json().catch(()=>null);
+    // force-refresh both lists
+    await Promise.all([globalMutate(nodesKey), globalMutate(edgesKey)]);
+  } finally {
+    setSeeding(false);
+  }
+}
+
+
+  React.useEffect(() => {
+  const onRefresh = (ev: any) => {
+    if (ev?.detail?.deliberationId && ev.detail.deliberationId !== deliberationId) return;
+    globalMutate(nodesKey);
+    globalMutate(edgesKey);
+  };
+  window.addEventListener('map:refresh', onRefresh as any);
+  return () => window.removeEventListener('map:refresh', onRefresh as any);
+}, [nodesKey, edgesKey, deliberationId]);
 
   // fit container width
   React.useEffect(() => {
@@ -114,61 +151,83 @@ export default function MapCanvas({
   }, [nodes, size.w, size.h]);
 
   // basic force simulation
-  React.useEffect(() => {
-    let raf = 0;
-    let ticks = 0;
+  // basic force simulation (robust to async position seeding)
+React.useEffect(() => {
+  let raf = 0;
+  let alive = true;
+  let ticks = 0;
 
-    function step() {
-      ticks++;
-      const p = { ...pos };
+  function step() {
+    if (!alive) return;
+    ticks++;
 
-      // repulsion (O(n^2) is OK for small graphs)
-      for (let i=0;i<nodes.length;i++) {
-        const a = nodes[i]; const pa = p[a.id]; if (!pa) continue;
-        for (let j=i+1;j<nodes.length;j++) {
-          const b = nodes[j]; const pb = p[b.id]; if (!pb) continue;
-          const dx = pa.x - pb.x, dy = pa.y - pb.y;
-          let d2 = dx*dx + dy*dy;
-          if (d2 < 40) d2 = 40;                // prevent blow-up
-          const f = charge / d2;
-          const fx = f * (dx / Math.sqrt(d2));
-          const fy = f * (dy / Math.sqrt(d2));
-          if (!pa.fixed) { pa.vx += fx; pa.vy += fy; }
-          if (!pb.fixed) { pb.vx -= fx; pb.vy -= fy; }
-        }
+    // always read latest positions
+    const p: Record<string, Pos> = { ...posRef.current };
+
+    // safety: ensure every node has a point
+    for (const n of nodes) {
+      if (!p[n.id]) {
+        p[n.id] = {
+          x: (Math.random() - 0.5) * size.w * 0.6,
+          y: (Math.random() - 0.5) * size.h * 0.6,
+          vx: 0, vy: 0
+        };
       }
-
-      // spring on edges
-      for (const e of edges) {
-        const a = p[e.fromNodeId]; const b = p[e.toNodeId];
-        if (!a || !b) continue;
-        const dx = b.x - a.x, dy = b.y - a.y;
-        const d = Math.max(1, Math.sqrt(dx*dx + dy*dy));
-        const diff = d - linkDistance;
-        const k = spring * diff;
-        const fx = k * (dx / d);
-        const fy = k * (dy / d);
-        if (!a.fixed) { a.vx +=  fx; a.vy +=  fy; }
-        if (!b.fixed) { b.vx += -fx; b.vy += -fy; }
-      }
-
-      // integrate + damping + centering
-      for (const id of Object.keys(p)) {
-        const pt = p[id];
-        if (!pt.fixed) {
-          pt.vx *= damping; pt.vy *= damping;
-          pt.x = pt.x + pt.vx + (-pt.x * 0.002); // mild centering
-          pt.y = pt.y + pt.vy + (-pt.y * 0.002);
-        }
-      }
-
-      setPos(p);
-      if (ticks < 600) raf = requestAnimationFrame(step); // stop eventually
     }
-    raf = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(nodes.map(n=>n.id)), JSON.stringify(edges.map(e=>e.id)), linkDistance, charge, spring, damping]);
+
+    // --- repulsion (O(n^2)) ---
+    for (let i = 0; i < nodes.length; i++) {
+      const a = nodes[i]; const pa = p[a.id]; if (!pa) continue;
+      for (let j = i + 1; j < nodes.length; j++) {
+        const b = nodes[j]; const pb = p[b.id]; if (!pb) continue;
+        const dx = pa.x - pb.x, dy = pa.y - pb.y;
+        let d2 = dx*dx + dy*dy;
+        if (d2 < 40) d2 = 40;
+        const f  = charge / d2;
+        const invd = 1 / Math.sqrt(d2);
+        const fx = f * dx * invd;
+        const fy = f * dy * invd;
+        if (!pa.fixed) { pa.vx +=  fx; pa.vy +=  fy; }
+        if (!pb.fixed) { pb.vx += -fx; pb.vy += -fy; }
+      }
+    }
+
+    // --- springs (edges) ---
+    for (const e of edges) {
+      const a = p[e.fromNodeId]; const b = p[e.toNodeId];
+      if (!a || !b) continue;
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const d = Math.max(1, Math.sqrt(dx*dx + dy*dy));
+      const diff = d - linkDistance;
+      const k = spring * diff;
+      const fx = k * (dx / d);
+      const fy = k * (dy / d);
+      if (!a.fixed) { a.vx +=  fx; a.vy +=  fy; }
+      if (!b.fixed) { b.vx += -fx; b.vy += -fy; }
+    }
+
+    // --- integrate + damping + mild centering ---
+    for (const id of Object.keys(p)) {
+      const pt = p[id];
+      if (!pt.fixed) {
+        pt.vx *= damping; pt.vy *= damping;
+        pt.x = pt.x + pt.vx + (-pt.x * 0.002);
+        pt.y = pt.y + pt.vy + (-pt.y * 0.002);
+      }
+    }
+
+    setPos(p);
+    if (ticks < 600) raf = requestAnimationFrame(step);
+  }
+
+  raf = requestAnimationFrame(step);
+  return () => { alive = false; cancelAnimationFrame(raf); };
+// restart when the set of nodes/edges or constants change
+}, [
+  nodes.length, edges.length, // keep simple; ids-length is enough for restarts
+  size.w, size.h,
+  linkDistance, charge, spring, damping
+]);
 
   // mouse interactions: drag node
   const dragState = React.useRef<{ id:string|null; last:{x:number;y:number} | null }>({ id:null, last:null });
@@ -252,6 +311,19 @@ export default function MapCanvas({
 
   return (
     <div ref={containerRef} className="relative w-full" onWheel={onWheel} onPointerMove={onPointerMove} onPointerUp={onPointerUp}>
+       {!hasData && (
+      <div className="absolute z-20 left-2 top-2 rounded border bg-white/90 px-2 py-1 text-[11px]">
+        <span className="mr-2 text-neutral-600">No map nodes yet.</span>
+        <button
+          className="px-2 py-0.5 rounded border bg-amber-50 border-amber-200 text-amber-700"
+          onClick={seedFromArguments}
+          disabled={seeding}
+          title="Create one map node per argument and map edges from argument relations"
+        >
+          {seeding ? 'Seeding…' : 'Seed from arguments'}
+        </button>
+      </div>
+    )}
       {/* Controls */}
       <div className="absolute z-10 top-2 left-2 bg-white/90 border rounded px-2 py-1 text-[11px] flex items-center gap-2">
         <span className="text-neutral-600">Add edge:</span>
@@ -275,6 +347,9 @@ export default function MapCanvas({
           </div>
         ))}
       </div>
+      <div className="absolute z-10 bottom-2 right-2 bg-white/90 border rounded px-2 py-1 text-[10px]">
+  N:{nodes.length} E:{edges.length}
+</div>
 
       {/* SVG scene */}
       <svg width="100%" height={size.h} style={{ background:'#f8fafc' }} onPointerDown={onPointerUp}>

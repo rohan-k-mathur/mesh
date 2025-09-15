@@ -19,6 +19,8 @@ import RhetoricControls from '@/components/rhetoric/RhetoricControls';
 import WorksRail from "../work/WorksRail";
 import WorksList from "../work/WorksList";
 import { LudicsPanel } from "./LudicsPanel";
+import BehaviourInspectorCard from '@/components/ludics/BehaviourInspectorCard';
+
 import clsx from "clsx";
 import {
   Collapsible,
@@ -522,9 +524,9 @@ async function updatePref(next: PrefProfile) {
   </div>
           {/* <div id="work-composer" /> 
       WorksRail deliberationId={deliberationId} /> */}
-          <div className="flex items-center justify-between px-3 py-2">
+          <div className="flex px-3 py-2">
 
-              {pending && <div className="text-xs text-neutral-500">Computing…</div>}
+              {pending && <div className="text-[8px] text-neutral-500">Computing…</div>}
             </div>
         </div>
 
@@ -634,6 +636,9 @@ async function updatePref(next: PrefProfile) {
   </TabsContent>
   <TabsContent value="ludics">
     <LudicsPanel deliberationId={deliberationId} />
+     <div className="mt-3">
+    <BehaviourInspectorCard deliberationId={deliberationId} />
+  </div>
   </TabsContent>
   <TabsContent value="card">
     <SectionCard title="Create Card">

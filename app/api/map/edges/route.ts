@@ -103,6 +103,13 @@ export async function GET(req: NextRequest) {
     //  2) Fetch map-node annotations whose targetId is in those argument ids
     //  3) Restrict edges to fromId/toId in that annotation-id set
     let allowedNodeIds: string[] | null = null;
+//     if (allowedNodeIds && allowedNodeIds.length) {
+//   where.fromId = { in: allowedNodeIds };
+//   where.toId   = { in: allowedNodeIds };
+// } else if (deliberationId) {
+//   // no nodes in this deliberation => no edges
+//   return NextResponse.json({ ok: true, edges: [] });
+// }
     if (deliberationId) {
       const args = await prisma.argument.findMany({
         where: { deliberationId },

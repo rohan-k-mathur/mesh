@@ -2,6 +2,8 @@ export type LocusPath = string;          // "0.1.2"
 export type Polarity = 'P' | 'O';
 export type TravelStatus = 'ONGOING'|'CONVERGENT'|'DIVERGENT';
 
+
+
 export type ProperAct = {
   kind: 'PROPER';
   polarity: Polarity;
@@ -9,6 +11,8 @@ export type ProperAct = {
   ramification: string[];     // child suffixes or named slots
   expression?: string;
   additive?: boolean;         // additive gate at THIS locus
+  isAdditive?: boolean;
+
   meta?: Record<string, unknown>;
 };
 
@@ -49,17 +53,32 @@ export type Endorsement = {
 
 export type DaimonHint = {
   locusPath: string;
-  act: { polarity: 'daimon'; locus: string; openings: []; additive: false };
+  act: { polarity: 'daimon'; locus: string; openings: []; additive: false;reason: 'no-openings' };
 };
 
+// export type StepResult = {
+//   status: 'ONGOING' | 'CONVERGENT' | 'DIVERGENT';
+//   pairs: { posActId: string; negActId: string; ts: number }[];
+//   endedAtDaimonForParticipantId?: string;
+//   endorsement?: Endorsement;
+//   decisiveIndices?: number[];               // existing v2 field
+//   usedAdditive?: Record<string, string>;    // existing v2 field
+//   daimonHints?: DaimonHint[];               // 👈 NEW (optional)
+// };
+
+
+
 export type StepResult = {
-  status: 'ONGOING' | 'CONVERGENT' | 'DIVERGENT';
-  pairs: { posActId: string; negActId: string; ts: number }[];
-  endedAtDaimonForParticipantId?: string;
+  status: 'ONGOING'|'CONVERGENT'|'DIVERGENT'|'STUCK';
+  pairs: { posActId?: string; negActId?: string; locusPath: string; ts: number }[];
+  decisiveIndices?: number[];                      // explain “why it ended”
+  endedAtDaimonForParticipantId?: 'Proponent'|'Opponent';
+  usedAdditive?: Record<string,string>;            // parentPath -> chosen child suffix
+  daimonHints?: DaimonHint[];                              // NEW
   endorsement?: Endorsement;
-  decisiveIndices?: number[];               // existing v2 field
-  usedAdditive?: Record<string, string>;    // existing v2 field
-  daimonHints?: DaimonHint[];               // 👈 NEW (optional)
+  reason?: 'timeout'|'incoherent-move'|'additive-violation'|'no-response'|'consensus-draw'|'dir-collision';
+
 };
+
 
 export type FocusPhase = 'focus-P'|'focus-O'|'neutral';

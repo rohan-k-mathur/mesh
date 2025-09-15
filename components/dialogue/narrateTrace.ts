@@ -9,7 +9,30 @@ type Act = { polarity:'P'|'O'|'†'|null; locusPath?:string; expression?:string;
     endedAtDaimonForParticipantId?: 'Proponent' | 'Opponent';
     endorsement?: { locusPath: string; byParticipantId: string; viaActId: string };
   };
+  export function classifyAct(act?: {
+    kind?: 'PROPER'|'DAIMON';
+    polarity?: 'P'|'O';
+    expression?: string | null;
+    locus?: { path?: string | null };
+    metaJson?: any;
+  }): { kind:'ASSERT'|'WHY'|'GROUNDS'|'DAIMON', locus: string, locusPath: string, cq?: string } {
+    if (!act) return { kind: 'ASSERT', locus: '0', locusPath: '0' };
   
+    if (act.kind === 'DAIMON') {
+      const p = act.locus?.path ?? '0';
+      return { kind: 'DAIMON', locus: p, locusPath: p };
+    }
+  
+    const pol = act.polarity ?? 'P';
+    const meta = (act.metaJson ?? {}) as any;
+    const locusPath = act.locus?.path ?? '0';
+    const just = typeof meta.justifiedByLocus === 'string' ? meta.justifiedByLocus.trim() : undefined;
+    const cq = meta?.cqId ?? meta?.schemeKey ?? undefined;
+  
+    if (just && pol === 'O') return { kind: 'WHY', cq, locus: just, locusPath };
+    if (just && pol === 'P') return { kind: 'GROUNDS', cq, locus: just, locusPath };
+    return { kind: 'ASSERT', locus: locusPath, locusPath };
+  }
 // Null-safe classifier; supports WHY, GROUNDS, ASSERT, and †
 function classify(act?: Act | null) {
   // Support both your old 'P'|'O'|null and a future '†'

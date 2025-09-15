@@ -1,5 +1,6 @@
 // components/dialogue/DialogicalPanel.tsx
 'use client';
+
 import * as React from 'react';
 import type { AFNode, AFEdge } from '@/lib/argumentation/afEngine';
 import {
@@ -23,9 +24,6 @@ import {
 import useSWR from 'swr';
 import CriticalQuestions from '@/components/claims/CriticalQuestions';
 
-
-
-
 /* ------------------------------- Types ---------------------------------- */
 type Props = {
   deliberationId: string;
@@ -33,14 +31,39 @@ type Props = {
   edges: AFEdge[];
 };
 
+type DesignsRes = { designs: Array<{ id: string; participantId: 'Proponent'|'Opponent'|string; acts?: any[] }> };
+type StepLike = {
+  status?: 'ONGOING'|'CONVERGENT'|'DIVERGENT'|'STUCK';
+  pairs?: Array<{ posActId?: string; negActId?: string; ts: number }>;
+  trace?: { status?: string; pairs?: any[] };
+};
+
+type OrthoRes = StepLike & { ok?: boolean };
+
 /* -------------------------- Small local helpers ------------------------- */
-function hoursLeft(iso?: string) {
+const fetchJSON = async <T,>(url: string, init?: RequestInit): Promise<T> => {
+  const r = await fetch(url, { cache: 'no-store', ...(init ?? {}) });
+  if (!r.ok) {
+    let msg = `HTTP ${r.status}`;
+    try { msg += `: ${JSON.stringify(await r.json())}`; } catch {}
+    throw new Error(msg);
+  }
+  return r.json() as Promise<T>;
+};
+
+const normId = (v: unknown) => {
+  const s = String(Array.isArray(v) ? v[0] : v ?? '').trim();
+  return s && s !== 'undefined' && s !== 'null' ? s : '';
+};
+
+const hoursLeft = (iso?: string) => {
   if (!iso) return null;
   const ms = Date.parse(iso) - Date.now();
+  if (Number.isNaN(ms)) return null;
   return Math.max(0, Math.ceil(ms / 36e5));
-}
+};
 
-// Stable extension enumerator (safe for small AFs; otherwise falls back)
+// Stable stable-extension enumerator (only for small AFs; falls back when large)
 function computeStableExtension(A: { id: string }[], R: Array<[string, string]>): Set<string> | null {
   const ids = A.map((a) => a.id);
   if (ids.length > 18) return null;
@@ -69,7 +92,7 @@ function computeStableExtension(A: { id: string }[], R: Array<[string, string]>)
   return null;
 }
 
-/* ---------- Glassy UI helpers (no deps; consistent with your style) ----- */
+/* ---------- Glassy UI helpers (match your style; minimal deps) ---------- */
 function ChipBar({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex flex-wrap items-center gap-1.5 rounded-md border border-slate-200/80 bg-white/70 px-2.5 py-1 text-xs backdrop-blur">
@@ -77,7 +100,6 @@ function ChipBar({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
-
 
 const FancyScroller = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   function FancyScroller({ className = '', children, ...props }, ref) {
@@ -106,24 +128,6 @@ const FancyScroller = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTML
     );
   }
 );
-
-
-function ClampedBody({
-  text,
-  lines = 4,
-  onMore,
-}: { text: string; lines?: number; onMore: () => void }) {
-  return (
-    <div className="relative">
-      <div className="text-sm whitespace-pre-wrap line-clamp-4">{text}</div>
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-white/90 to-transparent dark:from-slate-900/80" />
-      <button className="btnv2--ghost py-0 px-6 rounded btnv2--sm absolute right-0 bottom-0 translate-y-1 translate-x-2"
-              onClick={onMore}>
-        More
-      </button>
-    </div>
-  );
-}
 
 function Segmented<T extends string>({
   value,
@@ -185,18 +189,10 @@ function StatusPill({ st, title }: { st: 'IN' | 'OUT' | 'UNDEC'; title?: string 
   );
 }
 
-
-function MapTab({ deliberationId }: { deliberationId: string }) {
-  return (
-    <div className="rounded border bg-white p-2">
-      <div className="mb-2 text-sm font-semibold">Argument Map</div>
-      <MapCanvas deliberationId={deliberationId} height={420} />
-    </div>
-  );
-}
-
 /* ----------------------------- Main panel ------------------------------- */
 export default function DialogicalPanel({ deliberationId, nodes, edges }: Props) {
+  const did = normId(deliberationId);
+
   const [semantics, setSemantics] = React.useState<'grounded' | 'preferred' | 'stable'>('grounded');
   const [supportProp, setSupportProp] = React.useState(true);
 
@@ -209,82 +205,43 @@ export default function DialogicalPanel({ deliberationId, nodes, edges }: Props)
 
   const [modalOpen, setModalOpen] = React.useState(false);
 
+  // Designs (Proponent/Opponent)
+  const designsKey = did ? (['ludics-designs', did] as const) : null;
+  const { data: des } = useSWR<DesignsRes>(
+    designsKey,
+    async ([, id]) => fetchJSON<DesignsRes>(`/api/ludics/designs?deliberationId=${encodeURIComponent(id)}`),
+    { revalidateOnFocus: false }
+  );
 
-  // Local CQs → implicit undercuts
-  const [openCQs, setOpenCQs] = React.useState<Record<string, string[]>>({});
+  const { posId, negId } = React.useMemo(() => {
+    const arr = des?.designs ?? [];
+    const pos = arr.find(d => d.participantId === 'Proponent') ?? arr[0];
+    const neg = arr.find(d => d.participantId === 'Opponent')  ?? arr[1] ?? arr[0];
+    return { posId: pos?.id, negId: neg?.id };
+  }, [des]);
 
-  // typed fetcher that never caches
-const fetchJSON = async <T,>(u: string): Promise<T> => {
-  const r = await fetch(u, { cache: 'no-store' });
-  if (!r.ok) throw new Error(`HTTP ${r.status}`);
-  return r.json();
-};
+  // One-step orthogonality/trace view (use POST /api/ludics/step for freshest)
+  const stepKey = did && posId && negId ? (['ludics-step', did, posId, negId, 'neutral'] as const) : null;
+  const { data: stepRes } = useSWR<OrthoRes>(
+    stepKey,
+    async ([, id, p, n, phase]) => fetchJSON<OrthoRes>(
+      '/api/ludics/step',
+      { method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ dialogueId: id, posDesignId: p, negDesignId: n, phase, maxPairs: 4096 })
+      }
+    ),
+    { revalidateOnFocus: false }
+  );
 
- const toId = (v: any) => {
-     const s = (Array.isArray(v) ? v[0] : v) ?? '';
-     const t = String(s).trim();
-     if (!t || t === 'undefined' || t === 'null') return '';
-     return t;
-   };
-   const did = toId(deliberationId);
+  // Fallback-friendly status/pairs for the header chip
+  const traceStatus = (stepRes?.trace?.status ?? stepRes?.status) as string | undefined;
+  const tracePairs  = (stepRes?.trace?.pairs ?? stepRes?.pairs) as any[] | undefined;
 
-// 1) Designs (Proponent/Opponent) — SWR tuple key
-type DesignsRes = { designs: Array<{ id: string; participantId: string; acts?: any[] }> };
+  // Moves + open WHYs
+  const { moves, unresolvedByTarget, mutate: refetchMoves } = useDialogueMoves(did);
+  const openCqIds = useOpenCqs(did, selectedNode?.id ?? '');
 
-const { data: des } = useSWR<DesignsRes>(
-  did ? ['ludics-designs', did] : null,
-  (key) => {
-      const [, id] = key as [string, string];
-       return fetchJSON(`/api/ludics/designs?deliberationId=${encodeURIComponent(id)}`);
-     },
-   { revalidateOnFocus: false }
-);
-
-
-// Pick pos/neg ids once designs land (robust defaulting)
-const { posId, negId } = React.useMemo(() => {
-  const arr = des?.designs ?? [];
-  const pos = arr.find(d => d.participantId === 'Proponent') ?? arr[0];
-  const neg = arr.find(d => d.participantId === 'Opponent')  ?? arr[1] ?? arr[0];
-  return { posId: pos?.id, negId: neg?.id };
-}, [des]);
-
-
-// 2) Orthogonal trace (+ acts for narration) — tuple key with deps
-//    If you have a phase state, include it in the key and query.
-const { data: ortho } = useSWR(
-  did && posId && negId ? ['ludics-orthogonal', did, posId, negId, 'neutral'] : null,
-    (key) => {
-        const [, id, p, n, ph] = key as [string, string, string, string, string];
-        return fetchJSON(`/api/ludics/orthogonal?dialogueId=${encodeURIComponent(id)}&posDesignId=${encodeURIComponent(p)}&negDesignId=${encodeURIComponent(n)}&phase=${ph}`);
-      },
-  { revalidateOnFocus: false }
-);
-
-
-
-const { moves, unresolvedByTarget, mutate: refetchMoves } = useDialogueMoves(did);
-
-const openCqIds = useOpenCqs(did, selectedNode?.id ?? '');
-
-
-  const fetcher = (u:string)=>fetch(u).then(r=>r.json());
-
-  // inside DialogicalPanel component (top-level)
-function openCqIdsFor(targetId: string): Set<string> {
-  const entry: any = unresolvedByTarget.get(targetId);
-  const arr = Array.isArray(entry) ? entry : entry ? [entry] : [];
-  const set = new Set<string>();
-  for (const mv of arr) {
-    const cid = mv?.payload?.cqId;
-    if (cid) set.add(cid);
-  }
-  return set;
-}
-
-
-
-
+  // Refresh hook
   React.useEffect(() => {
     const h = () => refetchMoves();
     window.addEventListener('dialogue:moves:refresh', h as any);
@@ -297,6 +254,7 @@ function openCqIdsFor(targetId: string): Set<string> {
   }, [selected, nodes]);
 
   // Virtual attackers from unresolved WHY + locally toggled CQs
+  const [openCQsLocal, setOpenCQsLocal] = React.useState<Record<string, string[]>>({});
   const cqVirtual = React.useMemo(() => {
     const n: AFNode[] = [];
     const e: AFEdge[] = [];
@@ -309,16 +267,16 @@ function openCqIdsFor(targetId: string): Set<string> {
       e.push(...u.edges);
     }
 
-    for (const argId of Object.keys(openCQs)) {
+    for (const argId of Object.keys(openCQsLocal)) {
       const u = cqUndercuts(
         argId,
-        (openCQs[argId] || []).map((id) => ({ id, text: id }))
+        (openCQsLocal[argId] || []).map((id) => ({ id, text: id }))
       );
       n.push(...u.nodes);
       e.push(...u.edges);
     }
     return { nodes: n, edges: e };
-  }, [unresolvedByTarget, openCQs]);
+  }, [unresolvedByTarget, openCQsLocal]);
 
   // Build AF with optional Support→Defense propagation
   const AF = React.useMemo(() => {
@@ -344,18 +302,18 @@ function openCqIdsFor(targetId: string): Set<string> {
     return labelingFromExtension(AF.A, AF.R, ext);
   }, [AF, semantics]);
 
-  const status = (id: string): 'IN' | 'OUT' | 'UNDEC' => {
+  const status = React.useCallback((id: string): 'IN' | 'OUT' | 'UNDEC' => {
     if (labeling.IN.has(id)) return 'IN';
     if (labeling.OUT.has(id)) return 'OUT';
     return 'UNDEC';
-  };
+  }, [labeling]);
 
   const attackersOf = React.useCallback(
     (a: string) => AF.R.filter(([x, y]) => y === a).map(([x]) => x),
     [AF]
   );
 
-  const explain = (id: string) => {
+  const explain = React.useCallback((id: string) => {
     const st = status(id);
     if (st === 'IN')   return 'Accepted (all attackers are counterattacked)';
     if (st === 'OUT')  {
@@ -363,7 +321,7 @@ function openCqIdsFor(targetId: string): Set<string> {
       return atks.length ? `Out: attacked by ${atks.length} accepted attackers` : 'Out: attacked';
     }
     return 'Undecided';
-  };
+  }, [status, attackersOf]);
 
   // Filter + sort list
   const list = React.useMemo(() => {
@@ -390,40 +348,40 @@ function openCqIdsFor(targetId: string): Set<string> {
     });
 
     return arr;
-  }, [nodes, q, onlyWhy, statusFilter, unresolvedByTarget, labeling]);
+  }, [nodes, q, onlyWhy, statusFilter, unresolvedByTarget, labeling, status]);
 
   // Quick row actions (WHY/GROUNDS)
   const [postingId, setPostingId] = React.useState<string | null>(null);
-const postMove = async (targetId: string, kind: 'WHY' | 'GROUNDS', payload: any) => {
-  if (postingId === targetId) return;           // per-row idempotency
-  setPostingId(targetId);
-  try {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 12000);
-    const res = await fetch('/api/dialogue/move', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        deliberationId,
-        targetType: 'argument',
-        targetId,
-        kind,
-        payload,
-        autoCompile: true,
-        autoStep: true,
-      }),
-      signal: controller.signal,
-    });
-    clearTimeout(timer);
-    // (optional) if (!res.ok) console.warn(await res.text());
-    window.dispatchEvent(new CustomEvent('dialogue:moves:refresh'));
-  } catch {
-    // swallow; UI will unstick on finally
-  } finally {
-    setPostingId(null);
-  }
-};
+  const postMove = React.useCallback(async (targetId: string, kind: 'WHY' | 'GROUNDS', payload: any) => {
+    if (postingId === targetId) return; // per-row idempotency
+    setPostingId(targetId);
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 12000);
+      await fetch('/api/dialogue/move', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          deliberationId: did,
+          targetType: 'argument',
+          targetId,
+          kind,
+          payload,
+          autoCompile: true,
+          autoStep: true,
+        }),
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+      window.dispatchEvent(new CustomEvent('dialogue:moves:refresh'));
+    } catch {
+      // no-op
+    } finally {
+      setPostingId(null);
+    }
+  }, [postingId, did]);
 
+  /* ----------------------------- Render ---------------------------------- */
   return (
     <div className="relative rounded-2xl border border-slate-200 bg-slate-50/70 p-3 shadow-sm backdrop-blur space-y-3">
       <div className="pointer-events-none absolute inset-x-2 top-1 h-px bg-gradient-to-b from-white/70 to-transparent" />
@@ -434,12 +392,12 @@ const postMove = async (targetId: string, kind: 'WHY' | 'GROUNDS', payload: any)
           <ChipBar>
             <span className="text-[11px] text-neutral-600">|A| {AF.A.length}</span>
             <span className="text-[11px] text-neutral-600">|R| {AF.R.length}</span>
-            {ortho?.trace?.status && (
-    <span className="text-[11px] text-neutral-600">
-      trace {String(ortho.trace.status).toLowerCase()}
-      {Array.isArray(ortho?.trace?.pairs) ? ` · ${ortho.trace.pairs.length} pairs` : ''}
-    </span>
-  )}
+            {traceStatus && (
+              <span className="text-[11px] text-neutral-600">
+                trace {String(traceStatus).toLowerCase()}
+                {Array.isArray(tracePairs) ? ` · ${tracePairs.length} pairs` : ''}
+              </span>
+            )}
           </ChipBar>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -461,7 +419,6 @@ const postMove = async (targetId: string, kind: 'WHY' | 'GROUNDS', payload: any)
               type="checkbox"
               checked={supportProp}
               onChange={(e) => setSupportProp(e.target.checked)}
-              
             />
             Support→Defense
           </label>
@@ -529,21 +486,21 @@ const postMove = async (targetId: string, kind: 'WHY' | 'GROUNDS', payload: any)
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <StatusPill st={st} title={explain(n.id)} />
-                        {status(n.id)==='OUT' && acceptedAttackers.length>0 && (
-  <div className="inline-block ml-2 relative group">
-    <button className="text-[10px] underline decoration-dotted">why?</button>
-    <div className="absolute z-20 hidden group-hover:block mt-1 rounded border bg-white p-2 shadow text-[11px] w-[220px]">
-      <div className="font-medium mb-1">Out because:</div>
-      <ul className="list-disc ml-4">
-        {acceptedAttackers.map(a => (
-          <li key={a}>
-            <span className="font-mono">{a.slice(0,8)}</span> attacks this node
-          </li>
-        ))}
-      </ul>
-    </div>
-  </div>
-)}
+                        {st==='OUT' && acceptedAttackers.length>0 && (
+                          <div className="inline-block ml-2 relative group">
+                            <button className="text-[10px] underline decoration-dotted" type="button">why?</button>
+                            <div className="absolute z-20 hidden group-hover:block mt-1 rounded border bg-white p-2 shadow text-[11px] w-[220px]">
+                              <div className="font-medium mb-1">Out because:</div>
+                              <ul className="list-disc ml-4">
+                                {acceptedAttackers.map(a => (
+                                  <li key={a}>
+                                    <span className="font-mono">{a.slice(0,8)}</span> attacks this node
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          </div>
+                        )}
                         <div className="truncate text-sm text-slate-800">
                           {(n.text || n.label || '').slice(0, 180)}
                         </div>
@@ -605,18 +562,16 @@ const postMove = async (targetId: string, kind: 'WHY' | 'GROUNDS', payload: any)
               </div>
 
               <ArgumentInspector
-                deliberationId={deliberationId}
+                deliberationId={did}
                 node={selectedNode}
                 openCqIds={openCqIds}
-
                 onCqToggle={(cqId, on) =>
-                  setOpenCQs((prev) => {
+                  setOpenCQsLocal((prev) => {
                     const arr = new Set(prev[selectedNode.id] || []);
                     on ? arr.add(cqId) : arr.delete(cqId);
                     return { ...prev, [selectedNode.id]: Array.from(arr) };
                   })
                 }
-
               />
 
               {/* Attacker peek */}
@@ -638,57 +593,54 @@ const postMove = async (targetId: string, kind: 'WHY' | 'GROUNDS', payload: any)
                   </div>
                 );
               })()}
-
             </>
-
           )}
         </div>
+
+        {/* Map modal */}
         <div className="rounded border bg-white p-2">
-  <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-    <DialogTrigger asChild>
-      <button
-        type="button"
-        className="mb-2 text-sm font-semibold"
-        aria-label="Open argument map"
-      >
-        Argument Map
-      </button>
-    </DialogTrigger>
+          <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+            <DialogTrigger asChild>
+              <button
+                type="button"
+                className="mb-2 text-sm font-semibold"
+                aria-label="Open argument map"
+              >
+                Argument Map
+              </button>
+            </DialogTrigger>
 
-    <DialogContent className="max-w-2xl bg-slate-50 rounded-xl p-0 overflow-hidden">
-      <DialogHeader className="px-4 pt-4 pb-2 border-b">
-        <DialogTitle>Argument Map</DialogTitle>
-        {/* Optional: <DialogDescription>Explore relationships between claims and arguments.</DialogDescription> */}
-      </DialogHeader>
+            <DialogContent className="max-w-2xl bg-slate-50 rounded-xl p-0 overflow-hidden">
+              <DialogHeader className="px-4 pt-4 pb-2 border-b">
+                <DialogTitle>Argument Map</DialogTitle>
+              </DialogHeader>
 
-      {/* Body */}
-      <div className="p-4 max-h-[500px] overflow-y-auto">
-        <MapCanvas deliberationId={deliberationId} height={420} />
-      </div>
+              <div className="p-4 max-h-[500px] overflow-y-auto">
+                <MapCanvas deliberationId={did} height={420} />
+              </div>
 
-      <div className="px-4 pb-4 pt-2 border-t flex justify-end">
-        <DialogClose asChild>
-          <button id="closemap" type="button" className="btnv2">
-            Close
-          </button>
-        </DialogClose>
-      </div>
-    </DialogContent>
-  </Dialog>
-</div>
+              <div className="px-4 pb-4 pt-2 border-t flex justify-end">
+                <DialogClose asChild>
+                  <button id="closemap" type="button" className="btnv2">
+                    Close
+                  </button>
+                </DialogClose>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
     </div>
   );
 }
-/* --------------------------- ArgumentInspector -------------------------- */
 
-const fetcher = (u:string)=>fetch(u,{cache:'no-store'}).then(r=>r.json());
+/* --------------------------- ArgumentInspector -------------------------- */
 
 function ArgumentInspector({
   deliberationId,
   node,
   onCqToggle,
-  openCqIds,                       // 👈 NEW: real open WHYs for this node (by cqId)
+  openCqIds,                       // server-observed open WHYs for this node (by cqId)
 }: {
   deliberationId: string;
   node: AFNode;
@@ -704,48 +656,47 @@ function ArgumentInspector({
   const [okSig, setOkSig] = React.useState<string | null>(null);
   const [uiOpen, setUiOpen] = React.useState<Set<string>>(new Set());
 
+  const isRowPosting = React.useCallback(
+    (sig: string) => !!postingMap[sig],
+    [postingMap]
+  );
+  const setRowPosting = React.useCallback((sig: string, v: boolean) => {
+    setPostingMap((prev) => (v ? { ...prev, [sig]: true } : (() => {
+      const n = { ...prev }; delete n[sig]; return n;
+    })()));
+  }, []);
 
-const isRowPosting = React.useCallback(
-  (sig: string) => !!postingMap[sig],
-  [postingMap]
-);
-const setRowPosting = React.useCallback((sig: string, v: boolean) => {
-  setPostingMap((prev) => (v ? { ...prev, [sig]: true } : (() => {
-    const n = { ...prev }; delete n[sig]; return n;
-  })()));
-}, []);
+  // keep UI checkboxes in sync with server open WHYs
+  const openKey = React.useMemo(
+    () => [...(openCqIds ?? new Set<string>())].sort().join('|'),
+    [openCqIds]
+  );
+  React.useEffect(() => {
+    setUiOpen(new Set(openCqIds ?? []));
+  }, [openKey, scheme, openCqIds]);
 
-// AFTER
-const openKey = React.useMemo(
-  () => [...(openCqIds ?? new Set<string>())].sort().join('|'),
-  [openCqIds]
-);
-React.useEffect(() => {
-  setUiOpen(new Set(openCqIds ?? []));
-}, [openKey, scheme]);
-
-const { data: openFromServer } = useSWR(
-  node?.id ? `/api/dialogue/open-cqs?deliberationId=${encodeURIComponent(deliberationId)}&targetId=${encodeURIComponent(node.id)}` : null,
-  (u)=>fetch(u).then(r=>r.json()),
-  { revalidateOnFocus:false }
-);
-
-React.useEffect(()=>{
-  if (openFromServer?.ok && Array.isArray(openFromServer.cqOpen)) {
-    setUiOpen(new Set(openFromServer.cqOpen));
-  }
-}, [openFromServer?.ok, openFromServer?.cqOpen?.length, scheme]);
-
-  // const isRowPosting = (sig: string) => postingKey === sig;
+  // Also fetch directly (belt & suspenders) and accept server truth
+  const { data: openFromServer } = useSWR(
+    node?.id
+      ? `/api/dialogue/open-cqs?deliberationId=${encodeURIComponent(deliberationId)}&targetId=${encodeURIComponent(node.id)}`
+      : null,
+    (u) => fetchJSON<{ ok: boolean; cqOpen: string[] }>(u),
+    { revalidateOnFocus: false }
+  );
+  React.useEffect(() => {
+    if (openFromServer?.ok && Array.isArray(openFromServer.cqOpen)) {
+      setUiOpen(new Set(openFromServer.cqOpen));
+    }
+  }, [openFromServer?.ok, openFromServer?.cqOpen]);
 
   async function postMove(kind: 'WHY'|'GROUNDS', payload: any, sig: string) {
     if (isRowPosting(sig)) return true; // ignore duplicates while in flight
     setRowPosting(sig, true);
-  
+
     let ok = false;
     try {
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 12000); // 12s failsafe
+      const timer = setTimeout(() => controller.abort(), 12000);
       const res = await fetch('/api/dialogue/move', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -762,22 +713,19 @@ React.useEffect(()=>{
       });
       clearTimeout(timer);
       ok = res.ok;
-      // trigger refetch/AF recompute
       window.dispatchEvent(new CustomEvent('dialogue:moves:refresh'));
       if (ok) {
         setOkSig(sig);
         setTimeout(() => setOkSig((s) => (s === sig ? null : s)), 900);
-      } else {
-        // optional: console.warn(await res.text());
       }
-    } catch (e) {
-      // optional: console.error(e);
+    } catch {
+      // no-op
     } finally {
       setRowPosting(sig, false);
     }
     return ok;
   }
-  
+
   // also clear any lingering "posting" on global refresh (extra safety)
   React.useEffect(() => {
     const h = () => setPostingMap({});
@@ -790,46 +738,36 @@ React.useEffect(()=>{
     const sig = `${schemeKey}:${cqId}`;
     const serverOpen = openCqIds?.has(cqId) ?? false;
     const locallyOpen = uiOpen.has(cqId);
-  
+
     if (on) {
-      // open in UI + AF injection
       setUiOpen((s) => new Set(s).add(cqId));
       onCqToggle(cqId, true);
-  
-      // idempotent WHY
+
+      // Only send WHY if not already open (server or local)
       if (serverOpen || locallyOpen) return;
-  
       await postMove('WHY', { schemeKey, cqId }, sig);
     } else {
-      // close in UI + AF
       setUiOpen((s) => {
-        const n = new Set(s);
-        n.delete(cqId);
-        return n;
+        const n = new Set(s); n.delete(cqId); return n;
       });
       onCqToggle(cqId, false);
-  
-      // only send GROUNDS if server had it open
-      if (serverOpen) {
-        await postMove('GROUNDS', { schemeKey, cqId }, sig);
-      }
+
+      // Only GROUNDS if server had it open (prevents noisy closes)
+      if (serverOpen) await postMove('GROUNDS', { schemeKey, cqId }, sig);
     }
   };
+
   // Claim lookup → enable full, guarded CQ flow
-  const {
-    data: argRes,
-    mutate: refetchArg,
-  } = useSWR(
+  const { data: argRes, mutate: refetchArg } = useSWR(
     node?.id ? `/api/arguments/${encodeURIComponent(node.id)}` : null,
-    fetcher,
+    (u) => fetchJSON<any>(u),
     { revalidateOnFocus: false }
   );
-  
-  const [claimIdOverride, setClaimIdOverride] = React.useState<string | null>(null);
-  const claimId: string | undefined =
-    claimIdOverride ?? argRes?.argument?.claimId ?? undefined;
 
-  // Open claim-level panel (prefilter to all currently open CQs for this scheme)
+  const [claimIdOverride, setClaimIdOverride] = React.useState<string | null>(null);
+  const claimId: string | undefined = claimIdOverride ?? argRes?.argument?.claimId ?? undefined;
+
+  // Open claim-level panel
   const [fullOpen, setFullOpen] = React.useState(false);
   const prefilterKeys = React.useMemo(() => {
     const open = new Set<string>([...(openCqIds ?? new Set()), ...uiOpen]);
@@ -851,9 +789,8 @@ React.useEffect(()=>{
       return;
     }
     const { claimId: newId } = await res.json() as { claimId: string };
-    setClaimIdOverride(newId);     // <- use local override immediately
+    setClaimIdOverride(newId);
     setFullOpen(true);
-    // optional: also refresh the argument so it now has claimId for future renders
     refetchArg().catch(() => {});
   }
 
@@ -888,42 +825,41 @@ React.useEffect(()=>{
             <option key={s} value={s}>{s}</option>
           ))}
         </select>
-  
       </div>
 
       {/* Checklist (controlled; pre-checked from open WHYs) */}
       <div className="space-y-1">
-      {cqs.map((q) => {
-  const checked = (openCqIds?.has(q.id) ?? false) || uiOpen.has(q.id);
-  const sig = `${scheme}:${q.id}`;
-  return (
-    <label key={q.id} className="flex items-center gap-2 text-sm">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onToggleCQ(scheme, q.id, e.target.checked)}
-        disabled={isRowPosting(sig)}
-      />
-      <span>{q.text}</span>
-      {okSig === sig && <span className="text-[10px] text-emerald-700">✓</span>}
-      {q.severity && (
-        <span className={
-          'ml-1 text-[10px] px-1 rounded ' +
-          (q.severity === 'high'
-            ? 'bg-rose-100 text-rose-700'
-            : q.severity === 'med'
-            ? 'bg-amber-100 text-amber-700'
-            : 'bg-slate-100 text-slate-700')
-        }>
-          {q.severity}
-        </span>
-      )}
-    </label>
-  );
-})}
+        {cqs.map((q) => {
+          const checked = (openCqIds?.has(q.id) ?? false) || uiOpen.has(q.id);
+          const sig = `${scheme}:${q.id}`;
+          return (
+            <label key={q.id} className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={checked}
+                onChange={(e) => onToggleCQ(scheme, q.id, e.target.checked)}
+                disabled={isRowPosting(sig)}
+              />
+              <span>{q.text}</span>
+              {okSig === sig && <span className="text-[10px] text-emerald-700">✓</span>}
+              {q.severity && (
+                <span className={
+                  'ml-1 text-[10px] px-1 rounded ' +
+                  (q.severity === 'high'
+                    ? 'bg-rose-100 text-rose-700'
+                    : q.severity === 'med'
+                    ? 'bg-amber-100 text-amber-700'
+                    : 'bg-slate-100 text-slate-700')
+                }>
+                  {q.severity}
+                </span>
+              )}
+            </label>
+          );
+        })}
       </div>
 
-      {/* Quick WHY / GROUNDS on selected scheme (optional helpers) */}
+      {/* Quick WHY / GROUNDS on selected scheme */}
       <div className="flex gap-2">
         <button
           className="btnv2--ghost btnv2--sm"
@@ -952,7 +888,7 @@ React.useEffect(()=>{
               <CriticalQuestions
                 targetType="claim"
                 targetId={claimId}
-                createdById={deliberationId}    // ok as a placeholder id in your app
+                createdById={deliberationId}
                 deliberationId={deliberationId}
                 prefilterKeys={prefilterKeys}
               />
