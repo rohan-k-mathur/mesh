@@ -4,10 +4,23 @@ import { prisma } from '@/lib/prismaclient';
 export const dynamic = 'force-dynamic';
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string }}) {
-  const w = await prisma.theoryWork.findUnique({
-    where: { id: params.id },
-    include: { ih: true, tc: true, alternativesTo: true }, // adjust to your relation names
-  });
+    const w = await prisma.theoryWork.findUnique({
+             where: { id: params.id },
+             include: {
+               // keep whatever 1:1s you actually use here:
+               ih: true, // if you added WorkIhProject
+               tc: true,
+               practicalJustification: true,
+               hermeneutic: true,
+               pascal: true,
+               WorkDNStructure: true,
+               WorkIHTheses: true,
+               WorkTCTheses: true,
+               WorkOPTheses: true,
+               dn: true,
+               op: true,
+             },
+           });
   if (!w) return NextResponse.json({ ok:false, testers: [] });
 
   const testers: any[] = [];

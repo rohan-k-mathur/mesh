@@ -3042,6 +3042,8 @@ model TheoryWork {
   dn WorkDnProject?
   tc WorkTcProject?
   op WorkOpProject?
+  ih WorkIhProject?
+
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -3050,6 +3052,18 @@ model TheoryWork {
   @@index([deliberationId, theoryType, createdAt])
   @@index([authorId, createdAt])
 }
+
+ 
+ model WorkIhProject {
+   workId                String     @id
+   // TIH: lightweight project wrapper (complements WorkIHTheses   Hermeneutic builder)
+   practiceDescription   String?    // describe current practice you're interpreting
+   idealStandard         String?    // brief of the proposed ideal standard (TIH9/TTC2)
+   methodNotes           String?    // notes on interpretation method / sources
+   corroborationJson     Json?      // e.g., { sources:[], stakeholders:[] }
+   applicationsJson      Json?      // contexts where the ideal applies
+   TheoryWork            TheoryWork @relation(fields: [workId], references: [id])
+ }
 
 model WorkDnProject {
   workId           String     @id
@@ -3216,13 +3230,13 @@ enum KnowledgeEdgeKind {
   UNDERMINES
   ALTERNATIVE_TO
   EVALUATES
-  REASON_FOR           // (x, y)
-   REASON_AGAINST        // (¬x, y)
+  REASON_FOR           
+   REASON_AGAINST        
    NOT_REASON_FOR        // ¬(x, y)
    NOT_REASON_AGAINST    // ¬(¬x, y)
   CONCLUSIVE_ABOUT      // (x, y) ∨ (¬x, y)
-   INCONCLUSIVE_ABOUT    // ¬(x, y) ∧ ¬(¬x, y)
-   ENTAILS;              // strong link (¬y ∨ x, >)
+   INCONCLUSIVE_ABOUT   
+   ENTAILS              // strong link (¬y ∨ x, >)
   
 }
 

@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
 
   // Always allow WHY when no open WHYs (simple policy)
   if (!openKeys.length) {
-    moves.push({ kind:'WHY', label: 'Ask WHY' });
+    moves.push({ kind:'WHY', label: 'CHALLENGE' });
   }
 
   // Concede / Retract are always available (UI can gate by role/phase)

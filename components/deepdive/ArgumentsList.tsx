@@ -1138,6 +1138,7 @@ function DialogicalRow({
   const targetId = a.claimId ?? a.id;
 
   const locusPath = whyLocusPath ?? '0';
+  const showDevMoves = false; // or from env/config
 
   return (
     <div id={`arg-${a.id}`} className="p-3 border-b">
@@ -1147,12 +1148,25 @@ function DialogicalRow({
 </div>
       <div className="mt-2 flex items-center gap-2">
         <AnchorToMapButton argumentId={a.id} />
-        <DialogueMoves
-          deliberationId={deliberationId}
-          targetType="argument"
-          targetId={a.id}
-        />
+       
+{showDevMoves && (
+  <DialogueMoves
+    deliberationId={deliberationId}
+    targetType={targetType}
+    targetId={targetId}
+    onMoved={() => onPosted?.()}
+/>
+)}
   
+
+<LegalMoveChips
+  deliberationId={deliberationId}
+  targetType={targetType}         // claim vs argument
+  targetId={targetId}
+  locusPath={locusPath}           // row- or thread-specific
+  commitOwner={commitOwner}       // derived from phase
+  onPosted={onPosted}
+/>
         <button
           className="px-2 py-1 btnv2--ghost  rounded text-xs"
           onClick={() => onReplyTo(a.id)}
@@ -1165,14 +1179,7 @@ function DialogicalRow({
        </button>
   
       </div>
-      <LegalMoveChips
-        deliberationId={deliberationId}
-        targetType={targetType}
-        targetId={targetId}
-        locusPath={locusPath}
-        commitOwner={commitOwner}
-        onPosted={onPosted}
-      />
+
     </div>
     
   );

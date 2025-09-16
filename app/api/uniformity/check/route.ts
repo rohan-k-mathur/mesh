@@ -23,7 +23,12 @@ export async function POST(req: NextRequest) {
     stepInteraction({ dialogueId, posDesignId, negDesignId, maxPairs: fuel, virtualNegPaths: [childA], focusAt: childA }),
     stepInteraction({ dialogueId, posDesignId, negDesignId, maxPairs: fuel, virtualNegPaths: [childB], focusAt: childB }),
   ]);
-
+ 
+     // Type guard: keep only pairs that have both act ids
+     type PairBoth = { posActId: string; negActId: string; locusPath: string; ts: number };
+     const hasBoth = (p: { posActId?: string; negActId?: string; locusPath: string; ts: number }): p is PairBoth =>
+       typeof p.posActId === 'string' && typeof p.negActId === 'string';
+   
   const allIds = Array.from(new Set([
     ...ra.pairs.flatMap(p => [p.posActId, p.negActId]),
     ...rb.pairs.flatMap(p => [p.posActId, p.negActId]),
@@ -34,8 +39,8 @@ export async function POST(req: NextRequest) {
     : [];
   const byId = new Map(acts.map(a => [a.id, a]));
 
-  const A = normalizeTrace(ra.pairs, byId);
-  const B = normalizeTrace(rb.pairs, byId);
+  const A = normalizeTrace(ra.pairs.filter(hasBoth), byId);
+ const B = normalizeTrace(rb.pairs.filter(hasBoth), byId);
 
   const uniform = alphaEquivalent(A, B, baseLocus);
   return NextResponse.json({

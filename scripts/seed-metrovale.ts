@@ -50,18 +50,18 @@ async function ensureDesigns(dialogueId: string, rootId: string) {
 async function seedActs(Pid: string, Oid: string) {
   // P facts at loci 0.1, 0.2, 0.3 (+ ACK by O)
   await appendActs(Pid, [
-    { kind:'PROPER', polarity:'P', locus:'0.1', ramification:[], expression:'congestion_high' },
-    { kind:'PROPER', polarity:'P', locus:'0.2', ramification:[], expression:'revenue_earmarked_transit' },
-    { kind:'PROPER', polarity:'P', locus:'0.3', ramification:['1'], expression:'equity_program_in_place' },
+    { kind:'PROPER', polarity:'pos', locus:'0.1', ramification:[], expression:'congestion_high' },
+    { kind:'PROPER', polarity:'pos', locus:'0.2', ramification:[], expression:'revenue_earmarked_transit' },
+    { kind:'PROPER', polarity:'pos', locus:'0.3', ramification:['1'], expression:'equity_program_in_place' },
   ], { enforceAlternation:false }, prisma as any);
   await appendActs(Oid, [
-    { kind:'PROPER', polarity:'O', locus:'0.3.1', ramification:[], expression:'ACK' },
+    { kind:'PROPER', polarity:'neg', locus:'0.3.1', ramification:[], expression:'ACK' },
   ], { enforceAlternation:false }, prisma as any);
 
   // O facts at 0.4, 0.5
   await appendActs(Oid, [
-    { kind:'PROPER', polarity:'P', locus:'0.4', ramification:[], expression:'small_business_margin_thin' },
-    { kind:'PROPER', polarity:'P', locus:'0.5', ramification:[], expression:'charge_on_access' },
+    { kind:'PROPER', polarity:'pos', locus:'0.4', ramification:[], expression:'small_business_margin_thin' },
+    { kind:'PROPER', polarity:'pos', locus:'0.5', ramification:[], expression:'charge_on_access' },
   ], { enforceAlternation:false }, prisma as any);
 }
 

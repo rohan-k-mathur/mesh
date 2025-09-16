@@ -814,6 +814,8 @@ const commitAtPath = React.useCallback((path: string) => {
         dialogueId={deliberationId}
         posDesignId={proDesignId}
         negDesignId={oppDesignId}
+         heatmap={heatmap}
+              stepIndexByActId={stepIndexByActId}
         defaultMode="assoc"
       />
       

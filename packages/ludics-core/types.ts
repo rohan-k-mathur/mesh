@@ -23,8 +23,12 @@ export type DaimonAct = {
 
 // export type DialogueAct = ProperAct | DaimonAct;
 export type DialogueAct = {
-  polarity: 'pos' | 'neg' | 'daimon';
-  locusPath: string;         // e.g., "0.3"
+  kind?: string;
+  polarity: 'pos' | 'neg' | 'daimon' | 'O' | 'P';
+  locus?: string;
+  ramification?: string[];     // child suffixes or named slots
+
+  locusPath?: string;         // e.g., "0.3"
   openings?: string[];       // children opened by this act
   expression?: string;       // canonical text
   additive?: boolean;        // true = additive (exclusive), false/undefined = multiplicative

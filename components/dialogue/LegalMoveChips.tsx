@@ -110,13 +110,15 @@ export function LegalMoveChips({
   const moves = Array.isArray(data?.moves) ? data!.moves : [];
   if (!deliberationId || !targetId || !Array.isArray(moves)) return null;
 
+
+
   const cls = (m: Move) => [
-    'rounded border px-2 py-0.5 text-xs transition',
-    m.kind === 'GROUNDS' ? 'border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-50' :
-    m.kind === 'WHY'     ? 'border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-50' :
-    m.kind === 'CONCEDE' ? 'border-slate-300 bg-white text-slate-700 hover:bg-white' :
-    m.kind === 'RETRACT' ? 'border-slate-300 bg-white text-slate-700 hover:bg-white' :
-                           'border-slate-200 bg-white text-slate-700 hover:bg-white',
+    'px-2 py-1  btnv2--ghost  rounded  text-xs ',
+    m.kind === 'GROUNDS' ? ' text-emerald-700' :
+    m.kind === 'WHY'     ? ' text-amber-700 ' :
+    m.kind === 'CONCEDE' ? 'text-slate-700 ' :
+    m.kind === 'RETRACT' ? 'text-slate-700 ' :
+                           ' text-slate-700 ',
     (m.disabled ? 'opacity-50 cursor-not-allowed' : '')
   ].join(' ');
 
@@ -132,7 +134,7 @@ export function LegalMoveChips({
               className={cls(m)}
             >
               {m.kind === 'GROUNDS' ? `Answer ${m.label}` :
-               m.kind === 'WHY'     ? (m.label || 'Ask WHY') :
+               m.kind === 'WHY'     ? (m.label || 'CHALLENGE') :
                m.label}
             </button>
 

@@ -29,17 +29,30 @@ type DB = PrismaClient | Prisma.TransactionClient;
 //   return db.ludicLocus.create({ data: { dialogueId, path, parentId } });
 // }
 // --- helpers ---
-async function ensureLocus(db: DB, dialogueId: string, path: string, parentPath?: string) {
-  const existing = await db.ludicLocus.findFirst({ where: { dialogueId, path } });
-  if (existing) return existing;
-  let parentId: string | undefined = undefined;
-  if (parentPath && parentPath.length) {
-    const pp = parentPath.split('.').slice(0, -1).join('.');
-    const parent = await ensureLocus(db, dialogueId, parentPath, pp);
-    parentId = parent.id;
-  }
-  return db.ludicLocus.create({ data: { dialogueId, path, parentId } });
-}
+ // --- helpers use the provided db (tx) ---
+ // Explicit return type breaks the TS recursive inference loop.
+ async function ensureLocus(
+     db: DB,
+     dialogueId: string,
+     path: string,
+     parentPath?: string
+   ): Promise<{ id: string; path: string }> {
+     const existing = await db.ludicLocus.findFirst({
+       where: { dialogueId, path },
+       select: { id: true, path: true },
+     });
+     if (existing) return existing;
+     let parentId: string | undefined = undefined;
+     if (parentPath && parentPath.length) {
+       const pp = parentPath.split('.').slice(0, -1).join('.');
+       const parent = await ensureLocus(db, dialogueId, parentPath, pp);
+       parentId = parent.id;
+     }
+     return db.ludicLocus.create({
+       data: { dialogueId, path, parentId },
+       select: { id: true, path: true },
+     });
+   }
 
 // (optional) strict additive guard — pass db and use it
 
@@ -121,16 +134,25 @@ export async function appendActs(
   // NOTE: alternation across designs is enforced by the stepper; do not enforce inside a single design
   // let lastPolarity: 'P'|'O'|null = last?.polarity ?? null;
 
-  for (const a of acts) {
-    if (a.kind === 'PROPER') {
-      const parts = a.locus.split('.').filter(Boolean);
-      const parent = parts.length > 1 ? parts.slice(0, -1).join('.') : undefined;
+     // Persist polarity as the design's participant ('P'|'O') — do not
+   // reuse DialogueAct's 'pos'|'neg' which is propositional sign.
+   const designPolarity: 'P'|'O' =
+     design.participantId === 'Proponent' ? 'P' : 'O';
+ 
+   for (const a of acts) {
+     if (a.kind === 'PROPER') {
+       // Accept either a.locus or a.locusPath from callers
+       const locusPath = a.locus ?? a.locusPath;
+       if (!locusPath) throw new Error('MISSING_LOCUS');
+       const parts = locusPath.split('.').filter(Boolean);
+       const parent = parts.length > 1 ? parts.slice(0, -1).join('.') : undefined;
+ 
 
       if (opts?.enforceAdditiveOnce) {
-        await assertAdditiveNotReused(db, design.deliberationId, a.locus);
+        await assertAdditiveNotReused(db, design.deliberationId, locusPath);
       }
 
-      const locus = await ensureLocus(db, design.deliberationId, a.locus, parent);
+      const locus = await ensureLocus(db, design.deliberationId, locusPath, parent);
 
       // ❌ remove per-design alternation check
       // if (opts?.enforceAlternation && lastPolarity && lastPolarity === a.polarity) throw new Error('ALTERNATION');
@@ -139,12 +161,12 @@ export async function appendActs(
         data: {
           designId,
           kind: 'PROPER',
-          polarity: a.polarity,               // 'P' or 'O'
+          polarity: designPolarity, // 'P' | 'O'             // 'P' or 'O'
           locusId: locus.id,
           ramification: a.ramification ?? [],
           expression: a.expression,
-          metaJson: (a.meta ?? {}) as Prisma.InputJsonValue,
-          isAdditive: !!a.additive,
+          metaJson: ((a as any).meta ?? {}) as Prisma.InputJsonValue,
+             isAdditive: (a as any).isAdditive ?? !!a.additive,
           orderInDesign: ++order,
         },
       });
@@ -158,7 +180,13 @@ export async function appendActs(
         dialogueId: design.deliberationId,
         actId: act.id,
         orderInDesign: order,
-        act: { kind: 'PROPER', polarity: a.polarity, locusPath: a.locus, expression: a.expression, additive: !!a.additive },
+        act: {
+                     kind: 'PROPER',
+                     polarity: designPolarity,       // 'P' | 'O'
+                     locusPath,                      // normalized
+                     expression: a.expression,
+                     additive: (a as any).isAdditive ?? !!a.additive
+                   },
       });
     } else {
       const act = await db.ludicAct.create({

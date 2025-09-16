@@ -5,12 +5,16 @@ import * as React from 'react';
 type Mode = 'assoc'|'partial'|'spiritual';
 type Badge = 'ok'|'warn'|'err';
 
-const fetchJSON = async <T,>(url: string, init?: RequestInit): Promise<T> => {
-  const r = await fetch(url, { cache: 'no-store', ...(init ?? {}) });
-  const j = await r.json().catch(() => null);
-  if (!r.ok) throw new Error(String(j?.error ?? r.status));
-  return j as T;
-};
+ const fetchJSON = async <T,>(url: string, init?: RequestInit): Promise<T> => {
+       const r = await fetch(url, { cache: 'no-store', ...(init ?? {}) });
+       let j: any = null;
+       try { j = await r.json(); } catch {}
+       if (!r.ok) {
+         const msg = j?.error || j?.reason || r.statusText || r.status;
+         throw new Error(`${msg} @ ${url}`);
+       }
+       return j as T;
+     };
 
 function Chip({ kind='ok', children }:{ kind?: Badge; children: React.ReactNode }) {
   const cls = kind==='ok' ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
@@ -20,6 +24,7 @@ function Chip({ kind='ok', children }:{ kind?: Badge; children: React.ReactNode 
 }
 
 export function BehaviourInspectorCard({ deliberationId }: { deliberationId: string }) {
+    const dialogueId = deliberationId;
   const [mode, setMode] = React.useState<Mode>('assoc');
   const [busy, setBusy] = React.useState<boolean>(false);
 
@@ -39,29 +44,63 @@ export function BehaviourInspectorCard({ deliberationId }: { deliberationId: str
   const [childB, setChildB] = React.useState<string>('');
   const [uniform, setUniform] = React.useState<{ ok?: boolean; a?: string[]; b?: string[] } | null>(null);
 
-  // boot: discover current designs (pos/neg) once
-  React.useEffect(() => {
-    let alive = true;
-    (async () => {
-      try {
-        const j = await fetchJSON<{ designs: { id:string; participantId:string }[] }>(
-          `/api/ludics/designs?deliberationId=${encodeURIComponent(deliberationId)}`
-        );
-        const P = j.designs.find(d => d.participantId==='Proponent') ?? j.designs[0];
-        const O = j.designs.find(d => d.participantId==='Opponent')  ?? j.designs[1] ?? j.designs[0];
-        if (alive && P && O) { setPosId(P.id); setNegId(O.id); }
-      } catch {}
-    })();
-    return () => { alive = false; };
-  }, [deliberationId]);
-
+  // ---- Design discovery   ensure a proper pair (P, O) ----
+   async function loadDesigns() {
+         const resp = await fetchJSON<any>(`/api/ludics/designs?deliberationId=${encodeURIComponent(dialogueId)}`);
+         // robust to {designs:[]}, {data:[]}, or bare array
+         const arr: Array<{id:string; participantId?:string}> =
+           Array.isArray(resp) ? resp :
+           Array.isArray(resp?.designs) ? resp.designs :
+           Array.isArray(resp?.data) ? resp.data : [];
+         return arr;
+       }
+     
+       async function ensureDesignPair() {
+         let arr = await loadDesigns();
+         let P = arr.find(d => d.participantId === 'Proponent') ?? arr[0];
+         let O = arr.find(d => d.participantId === 'Opponent')  ?? arr.find(d => d.id !== P?.id);
+     
+         // If missing or identical, ask server to (re)compile a proper pair
+         if (!P || !O || P.id === O.id) {
+           await fetchJSON(`/api/ludics/compile`, {
+             method: 'POST',
+             headers: { 'content-type': 'application/json' },
+             body: JSON.stringify({ dialogueId }),
+           });
+           arr = await loadDesigns();
+           P = arr.find(d => d.participantId === 'Proponent') ?? arr[0];
+           O = arr.find(d => d.participantId === 'Opponent')  ?? arr.find(d => d.id !== P?.id);
+         }
+     
+         if (!P || !O || P.id === O.id) {
+           throw new Error('Could not resolve Proponent/Opponent designs');
+         }
+         setPosId(P.id); setNegId(O.id);
+       }
+     
+       // boot
+       React.useEffect(() => {
+         let alive = true;
+         (async () => {
+           try {
+             setBusy(true);
+             await ensureDesignPair();
+           } catch (e:any) {
+             if (alive) setNote(String(e?.message || e));
+           } finally { if (alive) setBusy(false); }
+         })();
+         return () => { alive = false; };
+       }, [dialogueId]);
   async function preflight() {
-    if (!posId || !negId) return;
+    if (!posId || !negId) { try { await ensureDesignPair(); } catch(e:any){ setNote(String(e?.message||e)); return; } }
     setBusy(true);
     try {
       const j = await fetchJSON<any>('/api/compose/preflight', {
         method:'POST', headers:{'content-type':'application/json'},
-        body: JSON.stringify({ dialogueId: deliberationId, posDesignId: posId, negDesignId: negId, mode }),
+                 body: JSON.stringify({
+                       dialogueId, posDesignId: posId, negDesignId: negId,
+                       mode, compositionMode: mode
+                     }),
       });
       if (j.ok) {
         setNote(j.note ?? '');
@@ -72,7 +111,9 @@ export function BehaviourInspectorCard({ deliberationId }: { deliberationId: str
         setNote(String(j.reason ?? 'blocked'));
         setCollisions(j.collisions ?? []);
       }
-    } finally { setBusy(false); }
+    } catch (e:any) {
+               setNote(String(e?.message || e));
+             } finally { setBusy(false); }
   }
 
   async function doCopy() {
@@ -81,17 +122,20 @@ export function BehaviourInspectorCard({ deliberationId }: { deliberationId: str
       const j = await fetchJSON<{ ok:boolean; children:string[]; bijection:Record<string,string> }>(
         '/api/loci/copy', {
           method:'POST', headers:{'content-type':'application/json'},
-          body: JSON.stringify({ dialogueId, basePath, count: 2 }),
+          body: JSON.stringify({ dialogueId, baseLocus: basePath, count: 2 }),
         }
       );
       setChildren(j.children ?? []);
       // pick two by default for uniformity inputs
       setChildA(j.children?.[0] ?? ''); setChildB(j.children?.[1] ?? '');
-    } finally { setBusy(false); }
+          } catch (e:any) {
+              setNote(String(e?.message || e));
+            } finally { setBusy(false); }
   }
 
   async function saturate() {
     if (!children.length) return;
+        if (!posId || !negId) { try { await ensureDesignPair(); } catch(e:any){ setNote(String(e?.message||e)); return; } }
     setBusy(true);
     try {
       // quick harness: run step once per child with a virtual-nega focus
@@ -107,32 +151,49 @@ export function BehaviourInspectorCard({ deliberationId }: { deliberationId: str
         results.push({ locusPath: c, status: r.status, reason: r.reason });
       }
       setSat(results);
-    } finally { setBusy(false); }
+           } catch (e:any) {
+               setNote(String(e?.message || e));
+             } finally { setBusy(false); }
   }
 
   async function checkUniformity() {
     if (!childA || !childB) return;
-    setBusy(true);
+    if (!posId || !negId) { try { await ensureDesignPair(); } catch(e:any){ setNote(String(e?.message||e)); return; } }
+     setBusy(true);
     try {
       const j = await fetchJSON<any>('/api/uniformity/check', {
         method:'POST', headers:{'content-type':'application/json'},
         body: JSON.stringify({
-          dialogueId, posDesignId: posId, negDesignId: negId,
-          childA, childB, fuel: 1024,
+                    dialogueId,
+                    posDesignId: posId,
+                    negDesignId: negId,
+                    baseLocus: basePath || '0',   // ← required by the route
+                    childA,
+                    childB,
+                 fuel: 1024,
         }),
       });
       setUniform(j.uniform ? { ok:true } : { ok:false, a: j.counterexample?.a ?? [], b: j.counterexample?.b ?? [] });
-    } finally { setBusy(false); }
-  }
-
+    }
+      catch (e:any) {
+              setNote(String(e?.message || e));
+            } finally { setBusy(false); }
+        } 
+  
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white/75 shadow-md">
-      <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-100">
+    <section className="rounded-2xl border border-slate-200 bg-white/75 shadow-md ">
+      <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-100 ">
         <h3 className="text-sm font-semibold text-slate-700">Behaviour Inspector</h3>
         {busy && <span className="text-[11px] text-neutral-500">Working…</span>}
       </div>
 
       <div className="px-3 py-3 space-y-4">
+      {!!note && (
+           <div className="rounded border p-2 text-[11px]">
+             <span className="font-semibold mr-1">Note:</span>
+             <span>{note}</span>
+           </div>
+        )}
         {/* A) Composition mode */}
         <div className="rounded border p-2">
           <div className="text-xs font-semibold mb-1">Composition preflight</div>

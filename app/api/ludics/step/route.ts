@@ -28,6 +28,7 @@ export async function POST(req: NextRequest) {
     if (!parsed.success) {
       return NextResponse.json({ ok:false, error: parsed.error.flatten() }, { status: 400 });
     }
+    
     const { dialogueId, posDesignId, negDesignId, startPosActId, phase, fuel, compositionMode, testers = [] } = parsed.data;
 
     // Map testers → stepper virtuals
