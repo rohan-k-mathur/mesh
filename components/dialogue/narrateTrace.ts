@@ -1,14 +1,15 @@
 // components/dialogue/narrateTrace.ts
+import type { StepResult } from "@/packages/ludics-core/types";
 type Act = { polarity:'P'|'O'|'†'|null; locusPath?:string; expression?:string; meta?:any; isAdditive?:boolean };
   type Pair = { posActId: string; negActId: string; ts?: number };
-  type StepResult = {
-    status: 'ONGOING' | 'CONVERGENT' | 'DIVERGENT';
-    pairs: Pair[];
-    decisiveIndices?: number[];
-    usedAdditive?: Record<string, string>;
-    endedAtDaimonForParticipantId?: 'Proponent' | 'Opponent';
-    endorsement?: { locusPath: string; byParticipantId: string; viaActId: string };
-  };
+  // type StepResult = {
+  //   status: 'ONGOING' | 'CONVERGENT' | 'DIVERGENT';
+  //   pairs: Pair[];
+  //   decisiveIndices?: number[];
+  //   usedAdditive?: Record<string, string>;
+  //   endedAtDaimonForParticipantId?: 'Proponent' | 'Opponent';
+  //   endorsement?: { locusPath: string; byParticipantId: string; viaActId: string };
+  // };
   export function classifyAct(act?: {
     kind?: 'PROPER'|'DAIMON';
     polarity?: 'P'|'O';
@@ -68,7 +69,7 @@ function classify(act?: Act | null) {
   
     for (let i = 0; i < (trace.pairs ?? []).length; i++) {
       const p = trace.pairs[i];
-      const A = acts[p.posActId];
+      const A = acts[p?.posActId];
       const B = acts[p.negActId];
       const a = classify(A);
       const b = classify(B);

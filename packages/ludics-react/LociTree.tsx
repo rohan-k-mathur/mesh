@@ -228,7 +228,7 @@ export function LociTree({
       >
         <div
           className={[
-            'relative grid items-start gap-2 px-1.5 py-1 rounded transition',
+            'relative grid items-start gap-2 px-1.5 py-1 rounded-xl border transition bg-slate-100',
             // braided 3-column header: [P rail] [center locus+chooser] [O rail]
             'md:grid-cols-[minmax(6rem,1fr)_auto_minmax(6rem,1fr)]',
             isFocused ? 'ring-1 ring-sky-300 bg-sky-50/50' : '',

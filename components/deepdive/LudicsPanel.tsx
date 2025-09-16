@@ -13,7 +13,7 @@ import { mergeDesignsToTree } from 'packages/ludics-react/mergeDesignsToTree';
 import { CommitmentDelta } from '@/components/dialogue/CommitmentDelta';
 import { NLCommitPopover } from '@/components/dialogue/NLCommitPopover';
 import { useDialogueTarget } from '@/components/dialogue/DialogueTargetContext';
-
+import type { StepResult } from '@/packages/ludics-core/types';
 import LociTreeWithControls from '@/components/ludics/LociTreeWithControls';
 
 const fetcher = (u: string) => fetch(u, { cache: 'no-store' }).then(r => r.json());
@@ -96,14 +96,14 @@ function SkeletonCard({ lines = 3 }: { lines?: number }) {
 }
 
 /* ------------------------------- Types ---------------------------------- */
-type StepResult = {
-  steps: Array<{ posActId: string; negActId: string; ts?: number }>;
-  status: 'ONGOING' | 'CONVERGENT' | 'DIVERGENT';
-  endedAtDaimonForParticipantId?: string;
-  endorsement?: { locusPath: string; byParticipantId: string; viaActId: string };
-  decisiveIndices?: number[];
-  usedAdditive?: Record<string, string>;
-};
+// type StepResult = {
+//   steps: Array<{ posActId: string; negActId: string; ts?: number }>;
+//   status: 'ONGOING' | 'CONVERGENT' | 'DIVERGENT';
+//   endedAtDaimonForParticipantId?: string;
+//   endorsement?: { locusPath: string; byParticipantId: string; viaActId: string };
+//   decisiveIndices?: number[];
+//   usedAdditive?: Record<string, string>;
+// };
 
 /* -------------------------------- Panel --------------------------------- */
 export default function LudicsPanel({ deliberationId, proDesignId, oppDesignId }:{
@@ -631,10 +631,10 @@ const commitAtPath = React.useCallback((path: string) => {
           <button className="btnv2" aria-label="Analyze NLI" onClick={analyzeNLI} disabled={!!busy}>
             {busy === 'nli' ? 'Analyzing…' : 'NLI'}
           </button>
-          <button className="btnv2 btnv2--ghost" aria-label="Legend & narrative" onClick={() => setShowGuide((v) => !v)}>
-            {showGuide ? 'Hide legend' : 'Legend & narrative'}
+          <button className="btnv2 btnv2--ghost" aria-label="Trace Log" onClick={() => setShowGuide((v) => !v)}>
+            {showGuide ? 'Hide log' : 'Trace log'}
           </button>
-          <button className="btnv2 btnv2--ghost" aria-label="Stable sets" onClick={checkStable}>
+          <button className="btnv2 btnv2--ghost" aria-label="Stable ets" onClick={checkStable}>
             Stable sets
           </button>
           <button
@@ -642,7 +642,7 @@ const commitAtPath = React.useCallback((path: string) => {
   onClick={() => setShowAttach(v => !v)}
   aria-expanded={showAttach}
 >
-  {showAttach ? 'Hide testers' : 'Attach Testers'}
+  {showAttach ? 'Hide testers' : 'Attach testers'}
 </button>
 
           
@@ -653,12 +653,10 @@ const commitAtPath = React.useCallback((path: string) => {
       <div className="rounded-md border border-slate-200 bg-white/60 p-2">
         {trace ? (
           <TraceRibbon
-            steps={trace.steps}
-            status={trace.status}
+          steps={trace?.pairs}  
+          status={trace?.status}
             badges={badges}
-            focusIndex={focusIdx ?? undefined}
-            decisiveIndices={trace.decisiveIndices ?? []}
-            onFocus={(i) => setFocusIdx(i)}
+            decisiveIndices={trace?.decisiveIndices}
           />
         ) : (
           <div className="text-xs text-neutral-500">No traversal yet.</div>
@@ -814,8 +812,6 @@ const commitAtPath = React.useCallback((path: string) => {
         dialogueId={deliberationId}
         posDesignId={proDesignId}
         negDesignId={oppDesignId}
-         heatmap={heatmap}
-              stepIndexByActId={stepIndexByActId}
         defaultMode="assoc"
       />
       

@@ -24,7 +24,7 @@ export type DaimonAct = {
 // export type DialogueAct = ProperAct | DaimonAct;
 export type DialogueAct = {
   kind?: string;
-  polarity: 'pos' | 'neg' | 'daimon' | 'O' | 'P';
+  polarity?: 'pos' | 'neg' | 'daimon' | 'O' | 'P';
   locus?: string;
   ramification?: string[];     // child suffixes or named slots
 

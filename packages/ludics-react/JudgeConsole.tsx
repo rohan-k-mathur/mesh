@@ -47,7 +47,7 @@ export function JudgeConsole(props: {
     <button
       onClick={p.onClick}
       disabled={busy !== null || p.disabled}
-      className={`px-2 py-1 rounded btnv2 text-sm ${
+      className={`px-3 py-2 rounded-lg btnv2 text-xs ${
         p.danger ? 'border-rose-300 bg-rose-50' : 'border-slate-300 bg-white'
       } disabled:opacity-50`}
       title={busy ? 'Working…' : undefined}
@@ -67,10 +67,11 @@ export function JudgeConsole(props: {
       </div>
 
       {/* Target side */}
-      <div className="flex items-center gap-2 text-xs">
-        <span className="opacity-70">target:</span>
+      <div className='flex flex-wrap gap-4'>
+      <div className="flex  items-center gap-2 text-sm">
+        <span className="opacity-70">Target:</span>
         <label className="inline-flex items-center gap-1 cursor-pointer">
-          <input type="radio" name="jt-side" checked={target==='Opponent'} onChange={()=>setTarget('Opponent')} />
+          <input type="radio"  name="jt-side" checked={target==='Opponent'} onChange={()=>setTarget('Opponent')} />
           Opponent
         </label>
         <label className="inline-flex items-center gap-1 cursor-pointer">
@@ -86,7 +87,7 @@ export function JudgeConsole(props: {
           placeholder="locus path (e.g. 0.1)"
           value={locus}
           onChange={e=>setLocus(e.target.value)}
-          className={`border rounded px-2 py-1 text-sm flex-1 ${!locusOK ? 'border-rose-400' : 'border-slate-300'}`}
+          className={`border minorfield rounded px-2 py-1 text-sm flex-1 ${!locusOK ? 'border-rose-400' : 'border-slate-300'}`}
         />
         {props.locusSuggestions?.length ? (
           <datalist id="jt-locus-suggest">
@@ -95,24 +96,25 @@ export function JudgeConsole(props: {
         ) : null}
         {!locusOK && <span className="text-[11px] text-rose-600">invalid</span>}
       </div>
+      </div>
 
       {/* ACK / Concession inputs */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
         <div className="flex items-center gap-2">
-          <label className="text-xs w-20">ACK text</label>
+          <label className="text-sm ">ACK text</label>
           <input
             value={ackText}
             onChange={e=>setAckText(e.target.value)}
-            className="border rounded px-2 py-1 text-sm flex-1"
+            className="border minorfield rounded px-2 py-1 text-sm flex-1 focus:outline-none"
             placeholder="ACK"
           />
         </div>
         <div className="flex items-center gap-2">
-          <label className="text-xs w-20">proposition</label>
+          <label className="text-sm ">Proposition</label>
           <input
             value={prop}
             onChange={e=>setProp(e.target.value)}
-            className="border rounded px-2 py-1 text-sm flex-1"
+            className="border minorfield rounded px-2 py-1 text-sm flex-1 focus:outline-none"
             placeholder="delivered"
           />
         </div>
@@ -166,12 +168,12 @@ export function JudgeConsole(props: {
       {/* Quick locus suggestions as chips */}
       {props.locusSuggestions?.length ? (
         <div className="flex flex-wrap gap-1 pt-1">
-          <span className="text-[11px] opacity-70 pr-1">suggested:</span>
+          <span className="text-[11px] opacity-70 pr-1">Suggested:</span>
           {props.locusSuggestions.map(x => (
             <button
               key={'sugg-'+x}
               onClick={()=>setLocus(x)}
-              className="text-[11px] px-2 py-0.5 btnv2 rounded hover:bg-slate-50"
+              className="text-[11px] px-2 py-0.5 btnv2 mx-1 rounded "
             >
               {x}
             </button>

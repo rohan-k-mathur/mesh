@@ -136,7 +136,7 @@ export async function appendActs(
 
      // Persist polarity as the design's participant ('P'|'O') — do not
    // reuse DialogueAct's 'pos'|'neg' which is propositional sign.
-   const designPolarity: 'P'|'O' =
+   const designPolarity: 'pos' | 'neg' | 'daimon' | 'O' | 'P' =
      design.participantId === 'Proponent' ? 'P' : 'O';
  
    for (const a of acts) {
@@ -190,7 +190,7 @@ export async function appendActs(
       });
     } else {
       const act = await db.ludicAct.create({
-        data: { designId, kind: 'DAIMON', orderInDesign: ++order, expression: a.expression },
+        data: { designId, kind: 'DAIMON', polarity: designPolarity, orderInDesign: ++order, expression: a.expression },
       });
       await db.ludicChronicle.create({ data: { designId, order, actId: act.id } });
       appended.push({ actId: act.id, orderInDesign: order });
@@ -200,8 +200,9 @@ export async function appendActs(
         designId,
         dialogueId: design.deliberationId,
         actId: act.id,
+
         orderInDesign: order,
-        act: { kind: 'DAIMON', expression: a.expression },
+        act: { kind: 'DAIMON', polarity: designPolarity, expression: a.expression },
       });
     }
   }

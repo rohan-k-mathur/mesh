@@ -543,7 +543,7 @@ export default function ArticleReaderWithPins({
                 {(selectionRects ?? []).map((r, i) => (
                   <div
                     key={`sel-${i}`}
-                    className="absolute bg-amber-800/30 rounded-sm"
+                    className="absolute bg-sky-700/30 rounded-sm"
                     style={{
                       top: r.top,
                       left: r.left,
@@ -664,8 +664,8 @@ export default function ArticleReaderWithPins({
             {/* Small “+” adder above selection */}
             {adder && (
               <button
-                className="absolute flex flex-col z-30 w-fit h-fit rounded-xl bg-amber-500 p-[6px] text-white text-center 
-    justify-center text-sm  place-items-center shadow-xl"
+                className="absolute  mt-4 flex flex-col z-30 w-fit h-fit rounded-xl bg-indigo-300 p-[6px] text-white text-center 
+    justify-center text-sm  place-items-center shadow-md shadow-slate-500/70 btnv2--ghost"
                 style={{
                   top: Math.max(0, adder.rect.top + 6),
                   left: adder.rect.left + adder.rect.width / 2 - 12,
@@ -690,8 +690,8 @@ export default function ArticleReaderWithPins({
                   src="/assets/document--comment.svg"
                   alt={"text"}
                   className="flex flex-1"
-                  width={20}
-                  height={20}
+                  width={15}
+                  height={15}
                 />
               </button>
             )}

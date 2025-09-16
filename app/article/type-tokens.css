@@ -713,6 +713,8 @@ textarea.textareav2 {
 .articlesearchfield{
   box-shadow: inset  -1px -1px 4px rgba(203, 225, 253, 0.75),
   inset  1px 1px 4px rgba(141, 141, 176, 0.95);
+    transition: 0.3s;
+
 }
 .articlesearchfield:hover {
 

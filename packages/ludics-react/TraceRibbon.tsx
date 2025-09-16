@@ -1,7 +1,9 @@
 'use client';
 import * as React from 'react';
 
-type Step = { posActId: string; negActId: string; ts?: number };
+type Step = { posActId?: string; negActId?: string; locusPath?: string; ts?: number };
+
+
 
 export function TraceRibbon(props: {
   steps?: Step[] | null;
@@ -17,7 +19,7 @@ export function TraceRibbon(props: {
   const decisive = new Set(props.decisiveIndices ?? []);
   const focus = typeof props.focusIndex === 'number' ? props.focusIndex : -1;
 
-  if (!steps.length) return <div className="text-xs opacity-60">No steps yet.</div>;
+  // if (!steps.length) return <div className="text-xs opacity-60">No steps yet.</div>;
 
   const statusChip =
     status === 'CONVERGENT' ? 'bg-emerald-50 border-emerald-200 text-emerald-700' :
@@ -25,7 +27,7 @@ export function TraceRibbon(props: {
                                'bg-slate-50 border-slate-200 text-slate-700';
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2 ">
       {steps.map((s, i) => {
         const hi = decisive.has(i);
         const focused = i === focus;
@@ -41,10 +43,15 @@ export function TraceRibbon(props: {
             title={`#${i+1}`}
           >
             <span className="opacity-70">#{i+1}</span>
-            <span className="px-1.5 py-0.5 rounded border bg-slate-50">P:{s.posActId.slice(0,4)}</span>
-            <span>⇄</span>
-            <span className="px-1.5 py-0.5 rounded border bg-slate-50">O:{s.negActId.slice(0,4)}</span>
-            {badges[i] && (
+            <span className="px-1.5 py-0.5 rounded border bg-slate-50">
+              P:{s.posActId ? s.posActId.slice(0,4) : '∅'}
+            </span>            <span>⇄</span>
+            <span className="px-1.5 py-0.5 rounded border bg-slate-50">
+               O:{s.negActId ? s.negActId.slice(0,4) : '∅'}
+             </span>
+             {s.locusPath && (
+               <code className="text-[10px] px-1 py-0.5 rounded border bg-white/60">{s.locusPath}</code>
+             )}            {badges[i] && (
               <span className="text-[10px] px-1.5 py-0.5 rounded border bg-amber-50 border-amber-200 text-amber-700">
                 {badges[i]}
               </span>

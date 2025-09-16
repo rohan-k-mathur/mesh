@@ -640,18 +640,18 @@ async function updatePref(next: PrefProfile) {
 {/* was: <Tabs defaultValue="arguments"> */}
 <div id="deepdive-tabs-anchor" className="scroll-mt-24" /> 
 <SectionCard>
-<Tabs value={tab} onValueChange={(v)=>setTab(v as any)}>
+<Tabs  value={tab} onValueChange={(v)=>setTab(v as any)}>
   <hr className="w-full border border-white" />
   <div id="work-composer" /> 
 
-  <TabsList>
-    <TabsTrigger value="arguments">Arguments</TabsTrigger>
-    <TabsTrigger value="works">Works</TabsTrigger>
-    <TabsTrigger value="ludics">Ludics</TabsTrigger> {/* NEW */}
+  <TabsList >
+    <TabsTrigger className="hover:bg-slate-100" value="arguments">Arguments</TabsTrigger>
+    <TabsTrigger className="hover:bg-slate-100" value="works">Works</TabsTrigger>
+    <TabsTrigger className="hover:bg-slate-100" value="ludics">Ludics</TabsTrigger> {/* NEW */}
 
-    <TabsTrigger value="card">Create Card</TabsTrigger>
-    <TabsTrigger value="viewcard">View Cards</TabsTrigger>
-    <TabsTrigger value="activity">My Activity</TabsTrigger>
+    <TabsTrigger className="hover:bg-slate-100" value="card">Create Card</TabsTrigger>
+    <TabsTrigger className="hover:bg-slate-100" value="viewcard">View Cards</TabsTrigger>
+    <TabsTrigger className="hover:bg-slate-100" value="activity">My Activity</TabsTrigger>
 
   </TabsList>
   <TabsContent value="arguments">{/* (keep empty or future) */}</TabsContent>

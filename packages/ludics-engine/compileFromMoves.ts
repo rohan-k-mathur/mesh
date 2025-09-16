@@ -403,8 +403,9 @@ async function maybeDelocateForEvidence(m: Move, locus: string) {
 
   const d = await prisma.ludicDesign.findUnique({
     where: { id: evid },
-    select: { id: true, base: true },
-  });
+     // current schema has no `base` column; we only need the id to annotate provenance
+    select: { id: true },
+});
   if (!d) return null;
 
   // Just annotate; let renderer/inspector explain provenance
@@ -505,10 +506,10 @@ export async function compileFromMoves(dialogueId: string): Promise<{ ok: true; 
       // ----- A) prefer multi‑act payloads -----
       const protoActs = Array.isArray((m.payload as any)?.acts) ? expandActsFromMove(m as any) : [];
       if (protoActs.length) {
-        const defaultAnchor =
-          (m.locusId ? pathById.get(m.locusId) ?? null : null) ??
-          (targetKey ? anchorForTarget.get(targetKey) ?? null : null) ??
-          lastAssertLocus ?? '0';
+        const defaultAnchor: string =
+                 (m.locusId ? pathById.get(m.locusId) ?? null : null) ??
+                  (targetKey ? anchorForTarget.get(targetKey) ?? null : null) ??
+                  lastAssertLocus ?? '0';
 
         const designFor = (pol?: string) => {
           if (pol === 'neg') return O;
@@ -548,7 +549,7 @@ export async function compileFromMoves(dialogueId: string): Promise<{ ok: true; 
 
         // maintain anchor for follow‑on WHY/GROUNDS
         const firstPos = protoActs.find(a => a.polarity === 'pos');
-        const anchor = (firstPos?.locusPath?.trim() || defaultAnchor);
+       const anchor: string = firstPos?.locusPath?.trim() || defaultAnchor;
         if (anchor && targetKey) anchorForTarget.set(targetKey, anchor);
         lastAssertLocus = anchor ?? lastAssertLocus;
         continue; // handled this move
@@ -639,15 +640,25 @@ export async function compileFromMoves(dialogueId: string): Promise<{ ok: true; 
 
     // 4) batched appends (D) — robust to concurrent compiles
     const BATCH = 100;
+     const skippedAdditive: Array<{ locus: string; designId: string }> = [];
     for (let i = 0; i < outActs.length; i += BATCH) {
       const chunk = outActs.slice(i, i + BATCH);
       await prisma.$transaction(async (tx2) => {
-        for (const { designId, act } of chunk) {
-          await appendActs(designId, [act], { enforceAlternation: true }, tx2);
-        }
-      }, { timeout: 10_000, maxWait: 5_000 });
+               for (const { designId, act } of chunk) {
+                 try {
+                   // compile should be tolerant; stepper will report violations
+                   await appendActs(designId, [act], { enforceAdditiveOnce: false }, tx2);
+                  } catch (e: any) {
+                               if (String(e?.message || e) === 'ADDITIVE_REUSE') {
+                                 skippedAdditive.push({ locus: act.locus, designId });
+                                 continue;
+                               }
+                   throw e;
+                 }
+               }
+             }, { timeout: 10_000, maxWait: 5_000 });
     }
-
+    (globalThis as any).__ludics__compile_skipped_additive = skippedAdditive;
     await Promise.allSettled([ validateVisibility(proponentId), validateVisibility(opponentId) ]);
     return { ok: true, designs: [proponentId, opponentId] };
   });

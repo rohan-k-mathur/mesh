@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prismaclient';
-import type { StepResult } from 'packages/ludics-core/types';
+import type { StepResult, DaimonHint } from 'packages/ludics-core/types';
 import { Hooks } from './hooks';
 import { detectDirectoryCollisions } from './detect-collisions';
 
@@ -323,7 +323,7 @@ export async function stepInteraction(opts: {
   // -- traversal
   let cursorA = 0, cursorB = 0;
   let side: 'A'|'B' = 'A';
-  const pairs: { posActId: string; negActId: string; ts: number }[] = [];
+  const pairs: { posActId: string; negActId: string; locusPath: string; ts: number }[] = [];
   let status: StepResult['status'] = 'ONGOING';
   let reason: StepResult['reason'] | undefined;
   let endedAtDaimonForParticipantId: 'Proponent'|'Opponent'|undefined;
@@ -374,14 +374,31 @@ export async function stepInteraction(opts: {
       break;
     }
 
-    pairs.push({ posActId: nextPos.act.id, negActId: dual.act.id, ts: Date.now() });
+    pairs.push({
+             posActId: nextPos.act.id,
+             negActId: dual.act.id,
+             locusPath: locusPath ?? '0',
+             ts: Date.now(),
+           });
 
     if (side === 'A') { cursorA = nextPos.idx + 1; cursorB = dual.idx + 1; side = 'B'; }
     else              { cursorB = nextPos.idx + 1; cursorA = dual.idx + 1; side = 'A'; }
   }
 
   // hints for † at closed loci (no openings)
-  const daimonHints = computeDaimonHints(A.acts, B.acts);
+ // hints for † at closed loci (no openings) -> full DaimonHint objects
+ // hints for † at closed loci (no openings) → full DaimonHint objects (keep literals narrow)
+ const daimonHints: DaimonHint[] = computeDaimonHints(A.acts, B.acts).map((h) => {
+     const lp = h.locusPath;
+     const act: DaimonHint['act'] = {
+       polarity: 'daimon',
+       locus: lp,
+       openings: [],       // typed as [] not never[]
+       additive: false,    // literal false
+       reason: 'no-openings',
+     };
+     return { locusPath: lp, act };
+   });
 
   // event for live panels
   Hooks.emitTraversal({

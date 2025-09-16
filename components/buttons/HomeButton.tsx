@@ -7,7 +7,7 @@ import Link from "next/link";
 
 export default function HomeButton() {
   return (
-    <button className="lockbutton p-1 bg-white/20 rounded-xl">
+    <button className="lockbutton p-2 bg-white/20 rounded-xl">
     <Link
       href={`/`}
 
@@ -15,9 +15,9 @@ export default function HomeButton() {
       <Image
         src="/assets/home.svg"
         alt="reply"
-        width={28}
-        height={28}
-        className="cursor-pointer object-contain"
+        width={26}
+        height={26}
+        className="cursor-pointer  object-contain"
       />
     </Link>
     {/* <span className="text-subtle-medium text-black">{commentCount}</span> */}
