@@ -25,14 +25,65 @@ export default function SupplyDrawer({
   open,
   onClose,
 }: { workId: string; open: boolean; onClose: () => void }) {
+
+
+  const [evalCandidates, setEvalCandidates] = React.useState<{ id:string; title:string; theoryType:string }[]>([]);
+  const [selectedEval, setSelectedEval] = React.useState('');
+  const [loadingEvalCandidates, setLoadingEvalCandidates] = React.useState(false);
+  
+  const [workMeta, setWorkMeta] = React.useState<{ deliberationId?: string } | null>(null);
+
+
   const [onlyDN, setOnlyDN] = React.useState(true);
-  const [candidates, setCandidates] = React.useState<{ id:string; title:string; theoryType:string }[]>([]);
-  const [selectedAlt, setSelectedAlt] = React.useState('');
-  const [loadingCandidates, setLoadingCandidates] = React.useState(false);
+
   // --- Data sources (lazy when closed) ---
   const suppliesKey = open ? `/api/works/${workId}/supplies` : null;
   const altsKey     = open ? `/api/knowledge-edges?toWorkId=${workId}&kinds=ALTERNATIVE_TO` : null;
   const evalsKey    = open ? `/api/knowledge-edges?toWorkId=${workId}&kinds=EVALUATES` : null;
+
+  // fetch IH/TC candidates (reuse the same request you used for alternatives)
+React.useEffect(() => {
+  if (!open) return;
+  (async () => {
+    setLoadingEvalCandidates(true);
+    try {
+      const res = await fetch(`/api/works?deliberationId=${encodeURIComponent(workId)}`, { cache:'no-store' });
+      const j = await res.json();
+      const ihTc = (j.works ?? []).filter((w:any) => w.theoryType==='IH' || w.theoryType==='TC');
+      setEvalCandidates(ihTc);
+    } catch {}
+    setLoadingEvalCandidates(false);
+  })();
+}, [open, workId]);
+
+// fetch deliberation for this work once the drawer opens
+React.useEffect(() => {
+  if (!open) return;
+  (async () => {
+    const r = await fetch(`/api/works/${workId}`, { cache:'no-store' }).then(r=>r.json()).catch(()=>null);
+    setWorkMeta(r?.work ? { deliberationId: r.work.deliberationId } : null);
+  })();
+}, [open, workId]);
+
+
+// candidate works for alternatives/evaluations
+const [candidates, setCandidates] = React.useState<{ id:string; title:string; theoryType:string }[]>([]);
+const [selectedAlt, setSelectedAlt] = React.useState('');
+const [loadingCandidates, setLoadingCandidates] = React.useState(false);
+
+React.useEffect(() => {
+  if (!open || !workMeta?.deliberationId) return;
+  (async () => {
+    setLoadingCandidates(true);
+    try {
+      const res = await fetch(`/api/works?deliberationId=${encodeURIComponent(workMeta.deliberationId)}`, { cache:'no-store' });
+      const j = await res.json();
+      const ihTc = (j.works ?? []).filter((w:any) => w.theoryType==='IH' || w.theoryType==='TC');
+      setCandidates(ihTc);
+    } catch {}
+    setLoadingCandidates(false);
+  })();
+}, [open, workMeta?.deliberationId]);
 
   const {
     data: supRes,
@@ -215,7 +266,8 @@ React.useEffect(() => {
                   method:'POST',
                   headers:{ 'content-type':'application/json' },
                   body: JSON.stringify({
-                    deliberationId: workId, // or deliberationId if you have it
+                    deliberationId: workMeta?.deliberationId ?? '',  // was workId; fix here
+
                     kind: 'ALTERNATIVE_TO',
                     fromWorkId: selectedAlt,
                     toWorkId: workId,
@@ -244,40 +296,72 @@ React.useEffect(() => {
 
           {/* EVALUATIONS */}
           <TabsContent value="evaluations">
-            <div className="mt-2 space-y-2">
-              {loadingEvals && <div className="text-xs text-neutral-500">Loading…</div>}
-              {!loadingEvals && emptyEva && <div className="text-xs text-neutral-500">No evaluations yet.</div>}
+  <div className="mt-2 space-y-2">
+    {loadingEvals && <div className="text-xs text-neutral-500">Loading…</div>}
+    {!loadingEvals && emptyEva && <div className="text-xs text-neutral-500">No evaluations yet.</div>}
 
-              {evalEdges.map((e) => {
-                const mcda = e.meta?.mcda;
-                return (
-                  <div key={e.id} className="border rounded p-2 text-sm">
-                    <div className="text-[11px] text-neutral-500">EVALUATES</div>
-                    <div>
-                      From Work:{' '}
-                      <b>{workMap[e.fromWorkId ?? '']?.title ?? e.fromWorkId}</b>{' '}
-                      <span className="text-[11px] text-neutral-500">
-                        [{workMap[e.fromWorkId ?? '']?.theoryType ?? '—'}]
-                      </span>
-                    </div>
-                    {e.meta?.verdict && (
-                      <div className="text-[11px] mt-1">Verdict: {e.meta.verdict}</div>
-                    )}
-                    {mcda && (
-                      <div className="text-[11px] text-neutral-600 mt-1">
-                        Best option: <b>{mcda.bestOptionId ?? '—'}</b> · k={Object.keys(mcda.totals || {}).length}
-                      </div>
-                    )}
-                    {e.meta?.adequacy?.items && (
-                      <div className="text-[11px] text-neutral-600 mt-1">
-                        Adequacy: {e.meta.adequacy.items.map((it: any) => `${it.criterion}:${it.result}`).join(', ')}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+    {evalEdges.map((e) => {
+      const mcda = e.meta?.mcda;
+      return (
+        <div key={e.id} className="border rounded p-2 text-sm">
+          <div className="text-[11px] text-neutral-500">EVALUATES</div>
+          <div>
+            From Work:{' '}
+            <b>{workMap[e.fromWorkId ?? '']?.title ?? e.fromWorkId}</b>{' '}
+            <span className="text-[11px] text-neutral-500">
+              [{workMap[e.fromWorkId ?? '']?.theoryType ?? '—'}]
+            </span>
+          </div>
+          {e.meta?.verdict && <div className="text-[11px] mt-1">Verdict: {e.meta.verdict}</div>}
+          {mcda && (
+            <div className="text-[11px] text-neutral-600 mt-1">
+              Best option: <b>{mcda.bestOptionId ?? '—'}</b> · k={Object.keys(mcda.totals || {}).length}
             </div>
-          </TabsContent>
+          )}
+          {e.meta?.adequacy?.items && (
+            <div className="text-[11px] text-neutral-600 mt-1">
+              Adequacy: {e.meta.adequacy.items.map((it: any) => `${it.criterion}:${it.result}`).join(', ')}
+            </div>
+          )}
+        </div>
+      );
+    })}
+
+    {/* Add evaluation form */}
+<div className="mt-3 rounded border p-2 text-sm bg-neutral-50">
+  <div className="font-medium text-xs mb-1">Add evaluation</div>
+  {loadingCandidates ? (
+    <div className="text-xs text-neutral-500">Loading IH/TC works…</div>
+  ) : (
+    <>
+      <select
+        className="border rounded px-2 py-1 text-xs w-full mb-2"
+        value={selectedAlt}
+        onChange={e=>setSelectedAlt(e.target.value)}
+      >
+        <option value="">— Select IH/TC Work —</option>
+        {candidates.map(c => (
+          <option key={c.id} value={c.id}>{c.title} [{c.theoryType}]</option>
+        ))}
+      </select>
+      <button
+        className="px-2 py-1 border rounded text-xs bg-white"
+        disabled={!selectedAlt}
+        onClick={() => {
+          // Source = selectedAlt (has its own MCDA), target = current workId
+          window.dispatchEvent(new CustomEvent('mesh:open-evaluation-sheet', {
+            detail: { fromWorkId: selectedAlt, toWorkId: workId }
+          }));
+          setSelectedAlt('');
+        }}
+      >
+        Open EvaluationSheet
+      </button>
+    </>
+  )}
+</div>
+  </div>
+</TabsContent>
         </Tabs>
       </div>
     </div>

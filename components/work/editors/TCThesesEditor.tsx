@@ -1,6 +1,7 @@
 'use client';
 import * as React from 'react';
-
+import { slotAnchorId } from './slot-helpers';
+import PromoteSlotButton from '../PromoteSlotButton';
 type Tc = {
   instrumentFunction?: string | null;
   explanation?: string | null;
@@ -56,7 +57,9 @@ export default function TCThesesEditor({ workId }: { workId: string }) {
     <div className="rounded border p-2 space-y-2 bg-white/70">
       <div className="text-sm font-medium">TC Theses</div>
 
-      <label className="text-xs text-neutral-600">Instrument function (TTC)</label>
+      <label  id={slotAnchorId('TC.function')} className="text-xs text-neutral-600">Instrument function (TTC)</label>
+      <PromoteSlotButton workId={workId} slotKey="TC.function" getText={() => val.instrumentFunction ?? ''} />
+
       <textarea className="w-full border rounded px-2 py-1 text-sm" rows={2}
         placeholder="What function does the instrument perform?"
         value={val.instrumentFunction ?? ''} onChange={e => setVal(v => ({ ...v, instrumentFunction: e.target.value }))} />

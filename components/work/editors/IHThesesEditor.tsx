@@ -1,5 +1,8 @@
 'use client';
 import * as React from 'react';
+import { slotAnchorId } from './slot-helpers';
+import PromoteSlotButton from '../PromoteSlotButton';
+
 
 type Ih = {
   structure?: string | null;
@@ -39,7 +42,9 @@ export default function IHThesesEditor({ workId }: { workId: string }) {
     <div className="rounded border p-2 space-y-2 bg-white/70">
       <div className="text-sm font-medium">IH Theses</div>
 
-      <label className="text-xs text-neutral-600">Structure (TIH)</label>
+      <label id={slotAnchorId('IH.structure')} className="text-xs text-neutral-600">Structure (TIH)</label>
+      <PromoteSlotButton workId={workId} slotKey="IH.explanandum" getText={() => val.structure ?? ''} />
+
       <textarea className="w-full border rounded px-2 py-1 text-sm" rows={2}
         placeholder="Describe the structure of the practice/system"
         value={val.structure ?? ''} onChange={e => setVal(v => ({ ...v, structure: e.target.value }))} />

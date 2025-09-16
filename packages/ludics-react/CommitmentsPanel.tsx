@@ -198,7 +198,7 @@ export function CommitmentsPanel({
 
       <div className="flex gap-2">
         <input
-          className="border rounded px-2 py-1 text-sm flex-1"
+          className="discussionfield rounded-md border px-2 py-1 text-sm flex-1"
           placeholder='Add a fact or a rule…  e.g. fact: congestion_high   •   rule: congestion_high & revenue_earmarked_transit -> net_public_benefit'
           value={label}
           onChange={e=>setLabel(e.target.value)}
@@ -217,15 +217,15 @@ export function CommitmentsPanel({
         : <span className="text-rose-700">Malformed rule — try “A &amp; B -&gt; C”.</span>}
     </div>
  )}
-        <button className="px-2 py-1 btnv2 rounded text-sm" onClick={addFact} disabled={busy}>+ Fact</button>
+        <button className="px-2 py-1 btnv2 rounded text-xs" onClick={addFact} disabled={busy}>+ Fact</button>
           <button
-    className="px-2 py-1 btnv2 rounded text-sm"
+    className="px-2 py-1 btnv2 rounded text-xs"
     onClick={addRule}
     disabled={busy || (/[=-]>\s|,|&/.test(label) && !parseRule(label))}
   >+ Rule</button>
       </div>
 
-      <details className="rounded border bg-slate-50/60 p-2 text-[12px]">
+      <details className="rounded border bg-slate-200 p-2 text-[12px]">
   <summary className="cursor-pointer select-none">How to write rules</summary>
   <div className="mt-1 space-y-2 leading-relaxed">
     <div>
@@ -273,14 +273,14 @@ export function CommitmentsPanel({
 
       <div className="flex items-center gap-2">
         <input
-          className="border rounded px-2 py-1 text-[12px] flex-1"
+          className="border rounded minorfield px-2 py-1 text-[12px] flex-1"
           placeholder="Filter…"
           value={filter}
           onChange={e=>setFilter(e.target.value)}
         />
         <button className="text-[11px] px-2 py-1 rounded border bg-white" onClick={load} disabled={busy}>Reload</button>
         <button className="text-[11px] px-2 py-1 rounded border bg-white" onClick={clearDerived} disabled={busy}>Clear derived</button>
-        <button className="px-2 py-1 btnv2 rounded text-sm" onClick={apply} disabled={busy}>Infer</button>
+        <button className="px-2 py-1 btnv2 rounded text-xs" onClick={apply} disabled={busy}>Infer</button>
       </div>
 
       <div className="grid md:grid-cols-2 gap-3 text-sm">

@@ -21,7 +21,11 @@ export default function WorksList({
   const [mineOnly, setMineOnly] = React.useState(false);
   const [theoryFilter, setTheoryFilter] = React.useState<'ALL'|'DN'|'IH'|'TC'|'OP'>('ALL');
   const [loading, setLoading] = React.useState(false);
- // const [works, setWorks] = React.useState<Work[]>([]);
+  const [onlyComplete, setOnlyComplete] = React.useState(false);
+
+ const [works, setWorks] = React.useState<Work[]>([]);
+
+
 
   const qs = React.useMemo(() => {
     const p = new URLSearchParams({ deliberationId });
@@ -32,7 +36,7 @@ export default function WorksList({
 
 
   const { data, isLoading, mutate } = useSWR(qs, fetcher, { keepPreviousData:true });
-  const works = data?.works ?? [];
+setWorks(data?.works ?? []);
   async function load() {
     setLoading(true);
     try {
@@ -47,7 +51,15 @@ export default function WorksList({
       setLoading(false);
     }
   }
-
+  const filtered = onlyComplete ? works.filter(w => {
+    const t = w.theoryType;
+    const i = (w as any).integrity ?? {};
+    if (t==='IH') return i.hasHerm && i.hasPrac && i.hasStd && i.hasIH;
+    if (t==='TC') return i.hasPrac && i.hasStd && i.hasTC;
+    if (t==='OP') return i.hasPascal && i.hasOP;
+    if (t==='DN') return i.hasDN; // or keep permissive
+    return false;
+  }) : works;
 //   React.useEffect(() => { load(); }, [deliberationId, mineOnly, theoryFilter]);
   //  React.useEffect(() => {
   //      if (!deliberationId) { setWorks([]); return; }

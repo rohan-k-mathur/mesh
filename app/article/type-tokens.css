@@ -727,6 +727,28 @@ textarea.textareav2 {
   outline: none;
 
 }
+.discussionfield{
+  box-shadow: inset  -1px -1px 4px rgba(203, 225, 253, 0.35),
+  inset  1px 1px 4px rgba(141, 141, 176, 0.45);
+}
+.discussionfield:hover {
+
+  box-shadow: inset  -1.4px -1.4px 3px rgba(193, 215, 243, 0.45),
+  inset  1.4px 1.4px 1.4px rgba(131, 131, 166, 0.55);
+
+}
+.discussionfield:focus {
+
+  box-shadow: inset  -2px -2px 2px rgba(193, 215, 243, 0.55),
+  inset  2px 2px 4px rgba(131, 131, 166, 0.65);
+  outline: none;
+
+}
+.minorfield
+{
+  box-shadow: inset  -1px -1px 4px rgba(203, 225, 253, 0.35),
+  inset  1px 1px 4px rgba(141, 141, 176, 0.45);
+}
 
 /* Softer, lighter chrome */
 .menuv2--lite {

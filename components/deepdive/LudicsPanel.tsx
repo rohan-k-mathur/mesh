@@ -137,6 +137,33 @@ export default function LudicsPanel({ deliberationId, proDesignId, oppDesignId }
   const [commitOpen, setCommitOpen] = React.useState(false);
 const [commitPath, setCommitPath] = React.useState<string | null>(null);
 
+const [showAttach, setShowAttach] = React.useState(false);
+const [attachLoading, setAttachLoading] = React.useState(false);
+const [attachPick, setAttachPick] = React.useState(''); // selected workId
+const [attachCandidates, setAttachCandidates] = React.useState<
+  { id: string; title: string; theoryType: 'IH'|'TC'|'DN'|'OP' }[]
+>([]);
+
+// When the attach section opens, list IH/TC works in this deliberation
+
+// When the attach section opens, list IH/TC works in this deliberation
+React.useEffect(() => {
+  if (!showAttach) return;
+  let cancelled = false;
+  (async () => {
+    try {
+      setAttachLoading(true);
+      const r = await fetch(`/api/works?deliberationId=${encodeURIComponent(deliberationId)}`, { cache:'no-store' });
+      const j = await r.json();
+      if (cancelled) return;
+      setAttachCandidates((j.works ?? []).filter((w:any) => w.theoryType==='IH' || w.theoryType==='TC'));
+    } finally {
+      if (!cancelled) setAttachLoading(false);
+    }
+  })();
+  return () => { cancelled = true; };
+}, [showAttach, deliberationId]);
+
 const { target } = useDialogueTarget();
 const targetIdFromContext = target?.id ?? null;
 const targetTypeFromContext = target?.type ?? 'claim'; // sensible default
@@ -610,6 +637,15 @@ const commitAtPath = React.useCallback((path: string) => {
           <button className="btnv2 btnv2--ghost" aria-label="Stable sets" onClick={checkStable}>
             Stable sets
           </button>
+          <button
+  className="btnv2 btnv2--ghost"
+  onClick={() => setShowAttach(v => !v)}
+  aria-expanded={showAttach}
+>
+  {showAttach ? 'Hide testers' : 'Attach Testers'}
+</button>
+
+          
         </div>
       </div>
 
@@ -633,7 +669,69 @@ const commitAtPath = React.useCallback((path: string) => {
         {/* commitment delta overlay */}
   <CommitmentDelta dialogueId={deliberationId} refreshKey={`${trace?.status}:${trace?.steps?.length ?? 0}`} />
  </div>
+ {showAttach && (
+  <div className="mt-2 rounded border bg-white/60 p-2 text-xs">
+    <div className="flex items-center gap-2">
+      <span className="text-neutral-600">Source Work:</span>
+      <select
+        className="border rounded px-2 py-1"
+        value={attachPick}
+        onChange={e=>setAttachPick(e.target.value)}
+      >
+        <option value="">— Select IH/TC Work —</option>
+        {attachCandidates.map(w => (
+          <option key={w.id} value={w.id}>{w.title} [{w.theoryType}]</option>
+        ))}
+      </select>
 
+      <button
+        className="px-2 py-1 border rounded bg-white"
+        disabled={!attachPick || attachLoading || isDesignsLoading}
+        onClick={async () => {
+          try {
+            setAttachLoading(true);
+            // Get suggested testers from the selected Work
+            const j = await fetch(`/api/works/${attachPick}/ludics-testers`, { cache:'no-store' })
+              .then(r=>r.json()).catch(()=>null);
+
+            // Resolve designs (pos/neg) from SWR data you already loaded
+            const pos = pro?.id ?? designs[0]?.id;
+            const neg = opp?.id ?? designs[1]?.id ?? designs[0]?.id;
+            if (!pos || !neg) throw new Error('Missing designs');
+
+            // Attach testers by stepping with them
+            const r = await fetch('/api/ludics/step', {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({
+                dialogueId: deliberationId,
+                posDesignId: pos,
+                negDesignId: neg,
+                testers: j?.testers ?? [],
+                fuel: 2048,
+              }),
+            });
+
+            if (!r.ok) throw new Error(await r.text());
+            toast.show('Testers attached', 'ok');
+
+            // Refresh panels that depend on the run/designs
+            await Promise.all([refreshOrth(), mutateDesigns()]);
+          } catch (e:any) {
+            toast.show(`Attach failed: ${e?.message ?? 'error'}`, 'err');
+          } finally {
+            setAttachLoading(false);
+          }
+        }}
+      >
+        {attachLoading ? 'Attaching…' : 'Attach'}
+      </button>
+    </div>
+    <div className="text-[11px] text-neutral-500 mt-1">
+      Tip: you can refine loci in Evaluation/Loci tools after attaching.
+    </div>
+  </div>
+)}
 
       {/* Legend + narrative */}
       {showGuide && (
@@ -718,6 +816,7 @@ const commitAtPath = React.useCallback((path: string) => {
         negDesignId={oppDesignId}
         defaultMode="assoc"
       />
+      
 {commitOpen && commitPath && targetIdFromContext && (
   <NLCommitPopover
     open={commitOpen}

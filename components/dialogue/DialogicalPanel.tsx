@@ -486,7 +486,7 @@ export default function DialogicalPanel({ deliberationId, nodes, edges }: Props)
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <StatusPill st={st} title={explain(n.id)} />
-                        {st==='OUT' && acceptedAttackers.length>0 && (
+                        {/* {st==='OUT' && acceptedAttackers.length>0 && (
                           <div className="inline-block ml-2 relative group">
                             <button className="text-[10px] underline decoration-dotted" type="button">why?</button>
                             <div className="absolute z-20 hidden group-hover:block mt-1 rounded border bg-white p-2 shadow text-[11px] w-[220px]">
@@ -500,7 +500,7 @@ export default function DialogicalPanel({ deliberationId, nodes, edges }: Props)
                               </ul>
                             </div>
                           </div>
-                        )}
+                        )} */}
                         <div className="truncate text-sm text-slate-800">
                           {(n.text || n.label || '').slice(0, 180)}
                         </div>

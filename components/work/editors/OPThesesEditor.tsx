@@ -1,5 +1,8 @@
 'use client';
 import * as React from 'react';
+import { slotAnchorId } from './slot-helpers';
+import PromoteSlotButton from '../PromoteSlotButton';
+
 
 type Op = {
   unrecognizability?: string | null;
@@ -46,7 +49,9 @@ export default function OPThesesEditor({ workId }: { workId: string }) {
     <div className="rounded border p-2 space-y-2 bg-white/70">
       <div className="text-sm font-medium">OP Theses</div>
 
-      <label className="text-xs text-neutral-600">Unrecognizability (TOP)</label>
+      <label id={slotAnchorId('OP.unrecognizability')} className="text-xs text-neutral-600">Unrecognizability (TOP)</label>
+      <PromoteSlotButton workId={workId} slotKey="OP.unrecognizability" getText={() => val.unrecognizability ?? ''} />
+
       <textarea className="w-full border rounded px-2 py-1 text-sm" rows={2}
         placeholder="Why no adequate theoretical evidence is possible"
         value={val.unrecognizability ?? ''} onChange={e => setVal(v => ({ ...v, unrecognizability: e.target.value }))} />

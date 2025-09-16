@@ -1,5 +1,7 @@
 'use client';
 import * as React from 'react';
+import { slotAnchorId } from './slot-helpers';
+import PromoteSlotButton from '../PromoteSlotButton';
 
 type Dn = {
   explanandum?: string | null;
@@ -38,12 +40,13 @@ export default function DNThesesEditor({ workId }: { workId: string }) {
       setSaving(false);
     }
   }
-
   return (
     <div className="rounded border p-2 space-y-2 bg-white/70">
       <div className="text-sm font-medium">DN Theses</div>
 
-      <label className="text-xs text-neutral-600">Explanandum (TDN)</label>
+      <label id={slotAnchorId('DN.explanandum')} className="text-xs text-neutral-600">Explanandum (TDN)</label>
+      <PromoteSlotButton workId={workId} slotKey="DN.explanandum" getText={() => val.explanandum ?? ''} />
+
       <textarea className="w-full border rounded px-2 py-1 text-sm" rows={2}
         placeholder="What phenomenon is described/explained?"
         value={val.explanandum ?? ''}

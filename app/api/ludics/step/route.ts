@@ -18,6 +18,8 @@ const Body = z.object({
       z.object({ kind: z.literal('timeout-draw'), atPath: z.string() }),
     ])
   ).optional(),
+  focusAt: z.string().optional(), // optional pin
+
 });
 
 export async function POST(req: NextRequest) {
@@ -29,12 +31,9 @@ export async function POST(req: NextRequest) {
     const { dialogueId, posDesignId, negDesignId, startPosActId, phase, fuel, compositionMode, testers = [] } = parsed.data;
 
     // Map testers → stepper virtuals
-    const virtualNegPaths: string[] = [];
-    const drawAtPaths: string[] = [];
-    for (const t of testers) {
-      if (t.kind === 'herd-to') virtualNegPaths.push(`${t.parentPath}.${t.child}`);
-      if (t.kind === 'timeout-draw') drawAtPaths.push(t.atPath);
-    }
+    // const testers = parsed.data.testers ?? [];
+const virtuals = testers.length ? (await import('@/packages/ludics-engine/testers')).buildVirtuals(testers) : { virtualNegPaths: [], drawAtPaths: [] };
+
 
     const res = await stepInteraction({
       dialogueId, posDesignId, negDesignId,
@@ -42,9 +41,27 @@ export async function POST(req: NextRequest) {
       phase: phase ?? 'neutral',
       maxPairs: fuel,
       compositionMode,
-      virtualNegPaths,
-      drawAtPaths,
+      virtualNegPaths: virtuals.virtualNegPaths,
+      drawAtPaths: virtuals.drawAtPaths,
     });
+
+
+    // const virtualNegPaths: string[] = [];
+    // const drawAtPaths: string[] = [];
+    // // for (const t of testers) {
+    // //   if (t.kind === 'herd-to') virtualNegPaths.push(`${t.parentPath}.${t.child}`);
+    // //   if (t.kind === 'timeout-draw') drawAtPaths.push(t.atPath);
+    // // }
+
+    // const res = await stepInteraction({
+    //   dialogueId, posDesignId, negDesignId,
+    //   startPosActId,
+    //   phase: phase ?? 'neutral',
+    //   maxPairs: fuel,
+    //   compositionMode,
+    //   virtualNegPaths: virtuals.virtualNegPaths,
+    //   drawAtPaths: virtuals.drawAtPaths,
+    // });
 
     return NextResponse.json({ ok:true, ...res }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (err: any) {
