@@ -7,7 +7,7 @@ import { CompositionModeToggle } from '../engine/CompositionModeToggle';
 import LocusControls from './LocusControls';
 import { LociTree } from 'packages/ludics-react/LociTree';
 import { mergeDesignsToTree } from '@/packages/ludics-react/mergeDesignsToTree';
-
+import { MODE_LABEL } from 'packages/ludics-react/modeLabels';
 type Mode = 'assoc' | 'partial' | 'spiritual';
 
 // helpers
@@ -155,7 +155,7 @@ export default function LociTreeWithControls({
           onClick={stepWithMode}
           title="Run one step and refresh"
         >
-          Step with composition = {mode}
+          Step with composition = {MODE_LABEL[mode]}
         </button>
       </div>
 

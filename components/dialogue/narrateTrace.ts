@@ -69,7 +69,7 @@ function classify(act?: Act | null) {
   
     for (let i = 0; i < (trace.pairs ?? []).length; i++) {
       const p = trace.pairs[i];
-      const A = acts[p?.posActId];
+      const A = acts[p.posActId];
       const B = acts[p.negActId];
       const a = classify(A);
       const b = classify(B);

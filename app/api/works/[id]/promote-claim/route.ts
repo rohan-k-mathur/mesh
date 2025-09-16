@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prismaclient';
 import { z } from 'zod';
 import { getUserFromCookies } from '@/lib/serverutils';
 import crypto from 'crypto';
-
+import { canEditWorkOrClaimOrphan } from '@/lib/permissions/canEditWork';
 
 export const dynamic = 'force-dynamic';
 
