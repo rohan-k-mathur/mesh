@@ -2,22 +2,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
 import { z } from 'zod';
+import crypto from "crypto";
+import { Prisma } from '@prisma/client';
+import { getCurrentUserId } from '@/lib/serverutils';
+
 import { compileFromMoves } from '@/packages/ludics-engine/compileFromMoves';
 import { stepInteraction } from '@/packages/ludics-engine/stepper';
-import { getCurrentUserId } from '@/lib/serverutils';
-import { Prisma } from '@prisma/client';
-import { MovePayload, DialogueAct } from '@/packages/ludics-core/types';
-//import { bus } from '@/lib/bus';
-import { bus } from '@/lib/server/bus';
+import type { MovePayload, DialogueAct } from '@/packages/ludics-core/types';
 
+import { emitBus } from '@/lib/server/bus'; // ✅ use the helper only
 
+function sig(s: string) { return crypto.createHash("sha1").update(s, "utf8").digest("hex"); }
 const WHY_TTL_HOURS = 24;
 
 const Body = z.object({
   deliberationId: z.string().min(1),
   targetType: z.enum(['argument','claim','card']),
   targetId: z.string().min(1),
-  // NEW: add 'CLOSE' which maps to a daimon act
   kind: z.enum(['ASSERT','WHY','GROUNDS','RETRACT','CONCEDE','CLOSE']),
   payload: z.any().optional(),
   autoCompile: z.boolean().optional().default(true),
@@ -25,7 +26,6 @@ const Body = z.object({
   phase: z.enum(['focus-P','focus-O','neutral']).optional().default('neutral'),
 });
 
-// --- signature helpers (unchanged from your version) ---
 function cqKey(p: any) { return String(p?.cqId ?? p?.schemeKey ?? 'default'); }
 function hashExpr(s?: string) { if (!s) return '∅'; let h=0; for (let i=0;i<s.length;i++) h=((h<<5)-h)+s.charCodeAt(i)|0; return String(h); }
 function makeSignature(kind: string, targetType: string, targetId: string, payload: any) {
@@ -47,24 +47,14 @@ function makeSignature(kind: string, targetType: string, targetId: string, paylo
   return [kind, targetType, targetId, Date.now().toString(36), Math.random().toString(36).slice(2,8)].join(':');
 }
 
-// NEW: synthesize acts[] from legacy kinds if caller didn't pass payload.acts
 function synthesizeActs(kind: string, payload: any): DialogueAct[] {
   const locus = String(payload?.locusPath ?? '0');
-  const expr  = String(payload?.expression ?? payload?.brief ?? payload?.note ?? '');
-  if (kind === 'WHY') {
-    return [{ polarity:'neg', locusPath:locus, openings:[], expression: expr }];
-  }
-  if (kind === 'GROUNDS') {
-    return [{ polarity:'pos', locusPath:locus, openings:[], expression: expr, additive:false }];
-  }
-  if (kind === 'CONCEDE' || (kind === 'ASSERT' && payload?.as === 'CONCEDE')) {
-        // Mark concession at locus; let CLOSE (daimon) be a separate explicit act if desired
-        return [{ polarity:'pos', locusPath:locus, openings:[], expression: expr || 'conceded' }];
-      }
-  if (kind === 'CLOSE') {
-    return [{ polarity:'daimon', locusPath:locus, openings:[], expression:'†' }];
-  }
-  // Default ASSERT/replies -> a single positive act
+  const expr  = String(payload?.expression ?? payload?.brief ?? payload?.note ?? '').slice(0, 2000);
+  if (kind === 'WHY')     return [{ polarity:'neg', locusPath:locus, openings:[], expression: expr }];
+  if (kind === 'GROUNDS') return [{ polarity:'pos', locusPath:locus, openings:[], expression: expr, additive:false }];
+  if (kind === 'CONCEDE' || (kind === 'ASSERT' && payload?.as === 'CONCEDE'))
+                           return [{ polarity:'pos', locusPath:locus, openings:[], expression: expr || 'conceded' }];
+  if (kind === 'CLOSE')   return [{ polarity:'daimon', locusPath:locus, openings:[], expression:'†' }];
   return [{ polarity:'pos', locusPath:locus, openings:[], expression: expr }];
 }
 
@@ -74,16 +64,14 @@ export async function POST(req: NextRequest) {
 
   let { deliberationId, targetType, targetId, kind, payload, autoCompile, autoStep, phase } = parsed.data;
 
-  // normalize payload to object + defaults
-    if (!payload || typeof payload !== 'object') payload = {};
-    // clamp expression size to keep signatures   rows sane
-    if (typeof payload.expression === 'string' && payload.expression.length > 2000) {
-      payload.expression = payload.expression.slice(0, 2000);
-    }
-    // normalize locus
-    if (payload.locusPath && typeof payload.locusPath === 'string') {
-      payload.locusPath = payload.locusPath.trim() || '0';
-    }
+  // normalize payload object + clamp + locus
+  if (!payload || typeof payload !== 'object') payload = {};
+  ['expression','brief','note'].forEach((k) => {
+    if (typeof payload[k] === 'string') payload[k] = payload[k].slice(0, 2000);
+  });
+  if (typeof payload.locusPath === 'string') {
+    payload.locusPath = payload.locusPath.trim() || '0';
+  }
   if (kind === 'GROUNDS' && !payload.locusPath) payload.locusPath = '0';
 
   // optional: verify target belongs to deliberation
@@ -94,38 +82,33 @@ export async function POST(req: NextRequest) {
     } else if (targetType === 'claim') {
       const ok = await prisma.claim.findFirst({ where: { id: targetId, deliberationId }, select: { id:true } });
       if (!ok) return NextResponse.json({ error:'TARGET_MISMATCH' }, { status: 400 });
+    } else if (targetType === 'card') {
+      const ok = await prisma.deliberationCard.findFirst({ where: { id: targetId, deliberationId }, select: { id: true } });
+      if (!ok) return NextResponse.json({ error:'TARGET_MISMATCH' }, { status: 400 });
     }
-      else if (targetType === 'card') {
-       const ok = await prisma.deliberationCard.findFirst({ where: { id: targetId, deliberationId }, select: { id: true } });
-       if (!ok) return NextResponse.json({ error: 'TARGET_MISMATCH' }, { status: 400 });
-     }
-     }
-     
-  catch {}
+  } catch {}
 
-
-  // CONCEDE remains an ASSERT with marker (compat), but we also synthesize acts (see below)
+  // map CONCEDE to ASSERT + marker (compat)
   if (kind === 'CONCEDE') { kind = 'ASSERT'; payload = { ...(payload ?? {}), as: 'CONCEDE' }; }
 
-  // WHY deadline TTL
+  // WHY TTL
   if (kind === 'WHY') {
     const d = new Date(); d.setHours(d.getHours() + WHY_TTL_HOURS);
     payload = { ...(payload ?? {}), deadlineAt: payload?.deadlineAt || d.toISOString() };
   }
 
-  // Ensure acts[] present
-  const acts: DialogueAct[] = Array.isArray(payload?.acts) && payload.acts.length
-    ? payload.acts
-    : synthesizeActs(kind, payload);
+  // Ensure acts
+  const acts = Array.isArray(payload?.acts) && payload.acts.length ? payload.acts : synthesizeActs(kind, payload);
   (payload as MovePayload).acts = acts;
 
   // actor
-     const userId = await getCurrentUserId().catch(() => null);
-     // If you want moves to be auth-only, uncomment:
-     // if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-     const actorId = String(userId ?? 'unknown');
+  const userId = await getCurrentUserId().catch(() => null);
+  const actorId = String(userId ?? 'unknown');
+
+  // signature
   const signature = makeSignature(kind, targetType, targetId, payload);
 
+  // write (with P2002 de-dup)
   let move: any, dedup = false;
   try {
     move = await prisma.dialogueMove.create({
@@ -133,7 +116,6 @@ export async function POST(req: NextRequest) {
     });
   } catch (e: any) {
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
-      // Compound unique – fetch existing
       move = await prisma.dialogueMove.findUnique({
         where: { dm_unique_signature: { deliberationId, signature } },
       });
@@ -143,7 +125,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Compile & optional step
+  // compile & step
   let step: any = null;
   if (autoCompile && !(dedup && (kind === 'WHY' || kind === 'GROUNDS'))) {
     await compileFromMoves(deliberationId).catch(() => {});
@@ -157,13 +139,13 @@ export async function POST(req: NextRequest) {
     const pos = designs.find(d => d.participantId === 'Proponent') ?? designs[0];
     const neg = designs.find(d => d.participantId === 'Opponent')  ?? designs[1] ?? designs[0];
     if (pos && neg) {
-      step = await stepInteraction({
-        dialogueId: deliberationId, posDesignId: pos.id, negDesignId: neg.id,
-        phase, maxPairs: 1024,
-      }).catch(() => null);
+      step = await stepInteraction({ dialogueId: deliberationId, posDesignId: pos.id, negDesignId: neg.id, phase, maxPairs: 1024 }).catch(() => null);
     }
   }
 
-  bus.emitEvent('dialogue:moves:refresh', { deliberationId });
+  // bus/SSE
+  emitBus("dialogue:changed", { deliberationId, moveId: move?.id, kind });         // ✅ fix: move.id
+  emitBus("dialogue:moves:refresh", { deliberationId });
+
   return NextResponse.json({ ok: true, move, step, dedup });
 }

@@ -3,6 +3,8 @@
 import Image from "next/image";
 import { prisma } from "@/lib/prismaclient";
 import { getUserFromCookies } from "@/lib/serverutils";
+import LiftToDebateButton from "./LiftToDebateButton";
+import CommentComposer from "./CommentComposer";
 
 function timeAgo(d: Date) {
   const s = Math.floor((Date.now() - d.getTime()) / 1000);
@@ -131,6 +133,8 @@ export default async function StackDiscussion({
                     ))}
                   </div>
                 )}
+                  <LiftToDebateButton commentId={c.id.toString()} hostType="stack" hostId={root.stack_id!} />
+
               </div>
             </div>
           );

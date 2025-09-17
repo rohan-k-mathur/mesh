@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prismaclient";
 import { getUserFromCookies } from "@/lib/serverutils";
 import { revalidatePath } from "next/cache";
 import { feed_post_type } from "@prisma/client";
+import { emitBus } from "@/lib/bus";
 
 type Viewer = { id: bigint | null };
 
@@ -169,12 +170,16 @@ export async function toggleStackSubscription(formData: FormData) {
       await prisma.stackSubscription.delete({
         where: { stack_id_user_id: { stack_id: stackId, user_id: userId } },
       });
+       emitBus("stacks:changed", { stackId, op: "unsubscribe", userId: String(userId) });
+
     }
   } else {
     if (op !== "unsubscribe") {
       await prisma.stackSubscription.create({
         data: { stack_id: stackId, user_id: userId },
       });
+       emitBus("stacks:changed", { stackId, op: "subscribe", userId: String(userId) });
+
     }
   }
 
@@ -285,6 +290,7 @@ export async function reorderStack(formData: FormData) {
     where: { id: stackId },
     data: { order },
   });
+   emitBus("stacks:changed", { stackId, op: "reorder", postId });
 
   revalidatePath(`/stacks/${stackId}`);
 }
@@ -336,7 +342,7 @@ export async function reorderStack(formData: FormData) {
       },
       select: { id: true },
     });
-  
+    emitBus("comments:changed", { stackId, op: "add" });
     if (stackId) revalidatePath(`/stacks/${stackId}`);
     return created.id; // 👈 return the comment id
   }
@@ -379,6 +385,8 @@ export async function reorderStack(formData: FormData) {
        if (!allowed) throw new Error("Forbidden");
      
        await prisma.feedPost.delete({ where: { id: commentId } });
+        emitBus("comments:changed", { stackId, op: "delete" });
+
        if (stackId) revalidatePath(`/stacks/${stackId}`);
      }
 
@@ -409,6 +417,7 @@ export async function removeFromStack(formData: FormData) {
              data: { order: (stack.order ?? []).filter((id) => id !== postId) },
            });
       });
+       emitBus("stacks:changed", { stackId, op: "remove", postId });
 
   revalidatePath(`/stacks/${stackId}`);
 }

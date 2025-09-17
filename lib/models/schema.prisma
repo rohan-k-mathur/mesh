@@ -86,6 +86,7 @@ model User {
   ApOutboxActivity          ApOutboxActivity[]
   mergedReceipts            MergeReceipt[]            @relation("UserMergedReceipts")
   proposalSignals           ProposalSignal[]          @relation("UserProposalSignals")
+  expertiseTags             String[]                  @default([])
 
   @@map("users")
 }
@@ -1581,46 +1582,45 @@ model StackSubscription {
   @@map("stack_subscriptions")
 }
 
-
 model Source {
-  id            String   @id @default(cuid())
-  kind          String   // 'article' | 'book' | 'web' | 'dataset' | 'video' | 'other'
+  id            String    @id @default(cuid())
+  kind          String // 'article' | 'book' | 'web' | 'dataset' | 'video' | 'other'
   title         String?
-  authorsJson   Json?    // [{family, given}] CSL-esque
+  authorsJson   Json? // [{family, given}] CSL-esque
   year          Int?
-  container     String?  // journal / site / channel
+  container     String? // journal / site / channel
   publisher     String?
   volume        String?
   issue         String?
   pages         String?
-  doi           String?  @unique
-  url           String?  @unique
-  platform      String?  // 'arxiv' | 'substack' | 'twitter' | 'youtube' | ...
+  doi           String?   @unique
+  url           String?   @unique
+  platform      String? // 'arxiv' | 'substack' | 'twitter' | 'youtube' | ...
   accessedAt    DateTime?
-  archiveUrl    String?  // Wayback/perma.cc if available
-  zoteroKey     String?  // optional cross-ref key
-  libraryPostId String?  // link to your LibraryPost (Stack) row
-  fingerprint   String?  // sha1 of canonicalized url/doi/title to dedup
+  archiveUrl    String? // Wayback/perma.cc if available
+  zoteroKey     String? // optional cross-ref key
+  libraryPostId String? // link to your LibraryPost (Stack) row
+  fingerprint   String? // sha1 of canonicalized url/doi/title to dedup
   createdById   String
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
-  citations     Citation[]
+  citations Citation[]
 }
 
 model Citation {
-  id            String   @id @default(cuid())
-  targetType    String   // 'argument' | 'claim' | 'card' | 'comment' | 'move'
-  targetId      String
-  sourceId      String
-  locator       String?  // 'p. 13', 'fig. 2', timestamp '08:14', etc.
-  quote         String?  // short excerpt (<= 280 chars)
-  note          String?  // optional note / why relevant
-  relevance     Int?     // 1..5 quick signal
-  createdById   String
-  createdAt     DateTime @default(now())
+  id          String   @id @default(cuid())
+  targetType  String // 'argument' | 'claim' | 'card' | 'comment' | 'move'
+  targetId    String
+  sourceId    String
+  locator     String? // 'p. 13', 'fig. 2', timestamp '08:14', etc.
+  quote       String? // short excerpt (<= 280 chars)
+  note        String? // optional note / why relevant
+  relevance   Int? // 1..5 quick signal
+  createdById String
+  createdAt   DateTime @default(now())
 
-  source        Source   @relation(fields: [sourceId], references: [id])
+  source Source @relation(fields: [sourceId], references: [id])
 
   @@unique([targetType, targetId, sourceId, locator]) // prevents dup cites
 }
@@ -2963,8 +2963,41 @@ model Deliberation {
   TheoryWork    TheoryWork[]
   KnowledgeEdge KnowledgeEdge[]
 
+  tags  String[]           @default([]) // disciplines, methods, domains
+  // cohorts
+  roles DeliberationRole[]
+  calls DeliberationCall[]
+
   @@index([hostType, hostId])
   @@index([roomId])
+}
+
+model DeliberationRole {
+  id             String   @id @default(cuid())
+  deliberationId String
+  userId         String
+  role           String // 'author'|'methodologist'|'practitioner'|…
+  invitedById    String?
+  createdAt      DateTime @default(now())
+
+  deliberation Deliberation @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
+
+  @@unique([deliberationId, userId, role])
+  @@index([deliberationId, role])
+}
+
+model DeliberationCall {
+  id             String    @id @default(cuid())
+  deliberationId String
+  description    String
+  deadline       DateTime?
+  rolesNeeded    String[]  @default([]) // ['methodologist','domain-expert']
+  createdById    String
+  createdAt      DateTime  @default(now())
+
+  deliberation Deliberation @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
+
+  @@index([deliberationId, createdAt])
 }
 
 model DeliberationPref {
@@ -3088,7 +3121,6 @@ model TheoryWork {
   op WorkOpProject?
   ih WorkIhProject?
 
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   Rule      Rule[]
@@ -3097,17 +3129,16 @@ model TheoryWork {
   @@index([authorId, createdAt])
 }
 
- 
- model WorkIhProject {
-   workId                String     @id
-   // TIH: lightweight project wrapper (complements WorkIHTheses   Hermeneutic builder)
-   practiceDescription   String?    // describe current practice you're interpreting
-   idealStandard         String?    // brief of the proposed ideal standard (TIH9/TTC2)
-   methodNotes           String?    // notes on interpretation method / sources
-   corroborationJson     Json?      // e.g., { sources:[], stakeholders:[] }
-   applicationsJson      Json?      // contexts where the ideal applies
-   TheoryWork            TheoryWork @relation(fields: [workId], references: [id])
- }
+model WorkIhProject {
+  workId              String     @id
+  // TIH: lightweight project wrapper (complements WorkIHTheses   Hermeneutic builder)
+  practiceDescription String? // describe current practice you're interpreting
+  idealStandard       String? // brief of the proposed ideal standard (TIH9/TTC2)
+  methodNotes         String? // notes on interpretation method / sources
+  corroborationJson   Json? // e.g., { sources:[], stakeholders:[] }
+  applicationsJson    Json? // contexts where the ideal applies
+  TheoryWork          TheoryWork @relation(fields: [workId], references: [id])
+}
 
 model WorkDnProject {
   workId           String     @id
@@ -3274,14 +3305,13 @@ enum KnowledgeEdgeKind {
   UNDERMINES
   ALTERNATIVE_TO
   EVALUATES
-  REASON_FOR           
-   REASON_AGAINST        
-   NOT_REASON_FOR        // ¬(x, y)
-   NOT_REASON_AGAINST    // ¬(¬x, y)
-  CONCLUSIVE_ABOUT      // (x, y) ∨ (¬x, y)
-   INCONCLUSIVE_ABOUT   
-   ENTAILS              // strong link (¬y ∨ x, >)
-  
+  REASON_FOR
+  REASON_AGAINST
+  NOT_REASON_FOR // ¬(x, y)
+  NOT_REASON_AGAINST // ¬(¬x, y)
+  CONCLUSIVE_ABOUT // (x, y) ∨ (¬x, y)
+  INCONCLUSIVE_ABOUT
+  ENTAILS // strong link (¬y ∨ x, >)
 }
 
 model KnowledgeEdge {
@@ -3495,12 +3525,12 @@ model LudicFaxMap {
 model LudicDecisionReceipt {
   id             String   @id @default(cuid())
   deliberationId String
-  kind           String   // 'epistemic' | 'procedural' | 'allocative' | 'editorial'
-  subjectType    String   // 'claim' | 'locus' | 'view' | 'option' | 'card'
+  kind           String // 'epistemic' | 'procedural' | 'allocative' | 'editorial'
+  subjectType    String // 'claim' | 'locus' | 'view' | 'option' | 'card'
   subjectId      String
-  issuedBy       String   // 'system' | 'panel:<userId>' | 'vote'
+  issuedBy       String // 'system' | 'panel:<userId>' | 'vote'
   rationale      String?  @db.Text
-  inputsJson     Json     // AF labels, CQ summary, tally, RV, ludics trace id, etc.
+  inputsJson     Json // AF labels, CQ summary, tally, RV, ludics trace id, etc.
   version        Int      @default(1)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -3509,22 +3539,23 @@ model LudicDecisionReceipt {
 }
 
 model VoteSession {
-  id             String   @id @default(cuid())
+  id             String    @id @default(cuid())
   deliberationId String
-  subjectType    String   // 'option' | 'view' | 'claim'
+  subjectType    String // 'option' | 'view' | 'claim'
   subjectId      String
-  method         String   // 'approval' | 'rcv'
-  optionsJson    Json     // [{id,label,rvViewIndex?}]
+  method         String // 'approval' | 'rcv'
+  optionsJson    Json // [{id,label,rvViewIndex?}]
   quorumMinCount Int?
-  quorumMinPct   Float?   // active-30d share
+  quorumMinPct   Float? // active-30d share
   closesAt       DateTime
   closedAt       DateTime?
-  tallyJson      Json?    // cached final tally
+  tallyJson      Json? // cached final tally
   winnerId       String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
-  ballots        VoteBallot[]
+  ballots VoteBallot[]
+
   @@index([deliberationId, subjectType, subjectId])
 }
 
@@ -3532,10 +3563,64 @@ model VoteBallot {
   id            String   @id @default(cuid())
   sessionId     String
   voterId       String
-  approvalsJson Json?    // approval: {optId:true}
-  rankingJson   Json?    // rcv:     [optId,...]
+  approvalsJson Json? // approval: {optId:true}
+  rankingJson   Json? // rcv:     [optId,...]
   createdAt     DateTime @default(now())
 
   session VoteSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
   @@unique([sessionId, voterId])
+}
+
+model XRef {
+  id        String   @id @default(cuid())
+  fromType  String
+  fromId    String
+  toType    String
+  toId      String
+  relation  String // 'cites'|'evidence-for'|'discusses'|'originates-from'|'replies-to'|'cross-claim'|...
+  metaJson  Json?
+  createdAt DateTime @default(now())
+
+  @@unique([fromType, fromId, toType, toId, relation])
+  @@index([fromType, fromId])
+  @@index([toType, toId])
+  @@index([relation])
+  @@index([fromType, fromId, relation])
+  @@index([toType, toId, relation])
+}
+
+model WikiPage {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  title       String
+  entityUrn   String
+  createdById String
+  createdAt   DateTime @default(now())
+
+  // 1–1 pointer to the current revision
+  currentId String?       @unique
+  current   WikiRevision? @relation("CurrentRev", fields: [currentId], references: [id])
+
+  // 1–N: all revisions
+  revisions WikiRevision[] @relation("AllRevs")
+
+  @@index([entityUrn])
+}
+
+model WikiRevision {
+  id          String   @id @default(cuid())
+  pageId      String
+  body        String   @db.Text
+  citations   Json
+  createdById String
+  createdAt   DateTime @default(now())
+
+  // backref for 1–N
+  page WikiPage @relation("AllRevs", fields: [pageId], references: [id], onDelete: Cascade)
+
+  // backref for 1–1 "current"
+  currentOf WikiPage? @relation("CurrentRev")
+
+  @@index([pageId])
 }

@@ -282,6 +282,19 @@ export default function ArticlesDashboard({
                         <button className="px-2 py-.5 bg-white/30 rounded-xl savebutton" onClick={() => copyLink(i)}>
                           Copy link
                         </button>
+                        <button
+  className="px-2 py-1 border rounded"
+  onClick={async () => {
+    const res = await fetch("/api/deliberations/spawn", {
+      method: "POST", headers: {"content-type":"application/json"},
+      body: JSON.stringify({ hostType: "article", hostId: i.id, tags: ["methodology"] }),
+    });
+    const j = await res.json();
+    if (j.redirect) location.href = j.redirect;
+  }}
+>
+  Open discussion
+</button>
                         <button className="px-2 py-.5 bg-white/30 rounded-xl text-red-600 savebutton" onClick={() => remove(i.id)}>
                           Delete
                         </button>

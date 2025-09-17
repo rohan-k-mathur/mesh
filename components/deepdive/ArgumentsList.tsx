@@ -15,6 +15,7 @@ import EmotionBadge from "@/components/rhetoric/EmotionBadge";
 import FrameChips from "@/components/rhetoric/FrameChips";
 import { analyzeLexiconsMany } from "../rhetoric/lexiconAnalyzers";
 import CitePickerInlinePro from "@/components/citations/CitePickerInlinePro";
+import CitePickerModal from "@/components/citations/CitePickerModal";
 
 import { DecisionBanner } from "../decision/DecisionBanner";
 // import CitePickerInline from "@/components/citations/CitePickerInline";
@@ -1056,10 +1057,10 @@ function ArgRow({
           How sure: {(a.confidence * 100).toFixed(0)}%
         </div>
       )} */}
-            
+         <div className="flex " >  
       <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
         <button
-          className="px-2 py-1  rounded text-xs btnv2--ghost"
+          className="px-2 py-1 flex-none  rounded text-xs btnv2--ghost"
           onClick={() => { onReplyTo(a.id); scrollComposerIntoView(); }}
         >
           Reply
@@ -1098,16 +1099,6 @@ function ArgRow({
     
   )}
 
-<CiteInline
-           deliberationId={deliberationId}
-           argumentId={a.id}
-           claimId={a.claimId ?? null}
-           text={a.text}
-           prefillUrl={prefillUrl}
-           open={citeOpen}
-           onClose={() => { setCiteOpen(false); setPrefillUrl(undefined); }}
-           onPromoteWithEvidence={(url) => onPromoteWithEvidence(url)}
-         />
         {a.approvedByUser ? (
           <button
             className="px-2 py-1 border rounded text-xs bg-emerald-50 border-emerald-300 text-emerald-700"
@@ -1155,7 +1146,19 @@ function ArgRow({
           </>
         )}
       </div>
-      
+      <div className="relative flex inline gap-2 ml-2 mt-2">
+<CiteInline
+           deliberationId={deliberationId}
+           argumentId={a.id}
+           claimId={a.claimId ?? null}
+           text={a.text}
+           prefillUrl={prefillUrl}
+           open={citeOpen}
+           onClose={() => { setCiteOpen(false); setPrefillUrl(undefined); }}
+           onPromoteWithEvidence={(url) => onPromoteWithEvidence(url)}
+         />
+         </div>
+         </div>
     </div>
     </div>
   );
@@ -1296,6 +1299,9 @@ function scrollComposerIntoView() {
   }, 60);
 }
 
+
+
+
 function CiteInline({
   deliberationId,
   argumentId,
@@ -1317,17 +1323,28 @@ function CiteInline({
 }) {
   const [open, setOpen] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
+  const [initialUrl, setInitialUrl] = React.useState<string | undefined>(prefillUrl);
 
+  // respect forcedOpen (controlled opener from outside)
   React.useEffect(() => {
     if (forcedOpen !== undefined) setOpen(forcedOpen);
   }, [forcedOpen]);
 
+  // detect URLs from the row text
   const urls = React.useMemo(() => {
     const found = (text.match(/\bhttps?:\/\/[^\s)]+/gi) ?? []).map((u) =>
       u.replace(/[),.;]+$/, "")
     );
     return Array.from(new Set(found));
   }, [text]);
+
+  // chosen default url: prop prefill > first detected > undefined
+  React.useEffect(() => {
+    if (!initialUrl) {
+      setInitialUrl(prefillUrl ?? urls[0] ?? undefined);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefillUrl, urls]);
 
   async function handleCiteAndPromote(url: string) {
     if (!onPromoteWithEvidence) return;
@@ -1341,15 +1358,21 @@ function CiteInline({
     }
   }
 
+  // open modal, optionally with a specific url prefilled
+  function openModal(url?: string) {
+    if (url) setInitialUrl(url);
+    setOpen(true);
+  }
+
   return (
     <div className="relative">
       <div className="flex gap-2">
         <button
           className="px-2 py-1 btnv2--ghost rounded text-xs"
-          onClick={() => setOpen((o) => !o)}
+          onClick={() => openModal()}
           aria-expanded={open}
         >
-          {open ? "Close cite" : "Cite"}
+          Cite
         </button>
 
         {urls.length === 1 && (
@@ -1358,7 +1381,7 @@ function CiteInline({
               className="px-2 py-1 btnv2--ghost rounded text-xs"
               disabled={busy}
               title={urls[0]}
-              onClick={() => setOpen(true)}
+              onClick={() => openModal(urls[0])}
             >
               Cite detected link
             </button>
@@ -1388,7 +1411,7 @@ function CiteInline({
                 >
                   <button
                     className="text-[11px] underline"
-                    onClick={() => setOpen(true)}
+                    onClick={() => openModal(u)}
                     title={u}
                   >
                     {new URL(u).hostname}
@@ -1410,18 +1433,23 @@ function CiteInline({
         )}
       </div>
 
-      {open && (
-        <div className="mt-2">
-          <CitePickerInlinePro
-            targetType={claimId ? "claim" : "argument"}
-            targetId={claimId ?? argumentId}
-            onDone={() => {
-              setOpen(false);
-              onClose?.();
-            }}
-          />
-        </div>
-      )}
+      {/* Modal picker */}
+      <CitePickerModal
+        open={open}
+        onOpenChange={(v) => {
+          setOpen(v);
+          if (!v) onClose?.();
+        }}
+        targetType={claimId ? "claim" : "argument"}
+        targetId={claimId ?? argumentId}    
+        title="Attach citation"
+        initialUrl={initialUrl}
+        // you can pass initialQuote/Locator here if you have them
+        onDone={() => {
+          setOpen(false);
+          onClose?.();
+        }}
+      />
     </div>
   );
 }

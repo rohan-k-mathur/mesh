@@ -36,7 +36,7 @@ export default function LibrarySearchModal({
   return (
     <Dialog open={o} onOpenChange={setO}>
       {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
-      <DialogContent className="max-w-[560px]">
+      <DialogContent className="max-w-[560px] bg-slate-100">
         <DialogHeader>
           <DialogTitle>Find a library item</DialogTitle>
         </DialogHeader>
