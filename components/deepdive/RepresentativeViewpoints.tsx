@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useMemo } from "react";
-import useSWR from 'swr';
+
 import { WhyThis } from "../feed/WhyThis";
 import ClaimMiniMap from "@/components/claims/ClaimMiniMap";
 import CQBar from './CQBar';
@@ -12,7 +12,40 @@ import StyleDensityBadge from '@/components/rhetoric/StyleDensityBadge';
 import PracticalLedger from '@/components/practical/PracticalLedger';
 import SequentBadge from "../views/SequentBadge";
 import { SequentDetails } from "../views/SequentDetails";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
+  DropdownMenuItem, DropdownMenuSeparator
+} from '@/components/ui/dropdown-menu';
+import { MoreHorizontal } from 'lucide-react';
+import useSWR, { mutate as globalMutate } from 'swr';
+
+
+function useServerEvents(deliberationId: string | undefined) {
+  useEffect(() => {
+    if (!deliberationId) return;
+    const es = new EventSource(`/api/bus/subscribe`);
+    const reval = () => {
+      // touch the keys RV depends on:
+      globalMutate((k:string)=>k?.includes(`/api/claims/summary?deliberationId=${deliberationId}`));
+      globalMutate((k:string)=>k?.includes(`/api/claims/labels?deliberationId=${deliberationId}`));
+      globalMutate((k:string)=>k?.includes(`/api/deliberations/${deliberationId}/cq/summary`));
+      globalMutate((k:string)=>k?.includes(`/api/arguments/batch`));
+    };
+    es.addEventListener('message', (ev:any) => {
+      try {
+        const { type, deliberationId: d0 } = JSON.parse(ev.data);
+        if (!d0 || d0 === deliberationId) reval();
+      } catch {}
+    });
+    return () => es.close();
+  }, [deliberationId]);
+}
+
+
 import React from "react";
+import Chip from "../ui/Chip";
+
 
 type Arg = { id: string; text: string; confidence?: number | null };
 // (1) Widen the View type locally — no server change required.
@@ -40,6 +73,43 @@ type CqSummary = {
   required: number;
   openByScheme: Record<string, string[]>;
 };
+
+async function copySequentToClipboard(seq:{gammaTexts:string[];deltaTexts:string[]}) {
+  const t = `Γ (premises)\n${seq.gammaTexts.join('\n')}\n\nΔ (conclusions)\n${seq.deltaTexts.join('\n')}`;
+  await navigator.clipboard.writeText(t);
+}
+
+async function sendGammaToDialogue(deliberationId:string, texts:string[]) {
+  // Single batched move with acts (alternatively one move per premise)
+  const acts = texts.map((expression, i) => ({
+    polarity: 'pos', locusPath: `0.${i+1}`, openings: [], expression
+  }));
+  await fetch('/api/dialogue/move', {
+    method:'POST', headers:{'content-type':'application/json'},
+    body: JSON.stringify({
+      deliberationId, targetType:'argument', targetId:'(sequent)', // not used downstream
+      kind:'ASSERT', payload:{ acts }, autoCompile:true, autoStep:true, phase:'neutral'
+    })
+  });
+  window.dispatchEvent(new CustomEvent('dialogue:moves:refresh'));
+}
+
+async function exportAsCard(deliberationId:string, delta:string|undefined, gamma:string[]) {
+  if (!delta) return;
+  await fetch(`/api/deliberations/${deliberationId}/cards`, {
+    method:'POST', headers:{'content-type':'application/json'},
+    body: JSON.stringify({
+      status:'published', claimText: delta, reasonsText: gamma, evidenceLinks: [], anticipatedObjectionsText:[]
+    }),
+  });
+}
+function focusAndPulse(anchorId: string) {
+  const el = document.getElementById(anchorId);
+  if (!el) return;
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  el.classList.add('pulse-ring');
+  setTimeout(() => el.classList.remove('pulse-ring'), 1400);
+}
 
 function AddressCQsDialog({
   open,
@@ -180,76 +250,19 @@ function AddressCQsDialog({
             <div className="text-[12px] text-neutral-600">
               CQs satisfied: <b>{satisfied}</b> / {required}
             </div>
- {/* Open CQs selector */}
-              <div className="space-y-2">
-               <div className="text-[11px] text-neutral-700 font-medium">Open CQs</div>
-               {openCQs.length ? (
-                 <div className="flex flex-wrap gap-1.5">
-                   {openCQs.map(({schemeKey,cqKey}) => {
-                     const key = `${schemeKey}:${cqKey}`;
-                     const active = selectedCQ?.schemeKey===schemeKey && selectedCQ?.cqKey===cqKey;
-                     return (
-                       <button
-                         key={key}
-                         onClick={()=>setSelectedCQ({schemeKey,cqKey})}
-                         className={`text-[11px] px-2 py-1 rounded border ${active ? 'bg-amber-50 border-amber-300' : 'bg-white border-neutral-200 hover:bg-neutral-50'}`}
-                         title={key}
-                       >
-                         {schemeKey} · {cqKey}
-                       </button>
-                     );
-                   })}
-                 </div>
-               ) : (
-                 <div className="text-[11px] text-neutral-500">No open CQs for this claim.</div>
-               )}
-             </div>
- 
-             {/* Answer composer */}
-             {openCQs.length > 0 && (
-               <textarea
-                 className="w-full min-h-[96px] border rounded px-2 py-1 text-[12px]"
-                 placeholder="Write your grounds (reasons, warrant, evidence). Paste links or cite cards."
-                 value={note}
-                 onChange={(e)=>setNote(e.target.value)}
-               />
-             )}
-            <div className="flex items-center gap-2">
-               {/* Only show WHY when there are no open CQs (raising a new CQ) */}
-               {openCQs.length === 0 && (
-                 <button
-                   className="text-xs border px-2 py-1 rounded disabled:opacity-50"
-                   disabled={!targetClaim || posting === 'WHY'}
-                   onClick={() => post('WHY')}
-                   title="Raise a new critical question on this claim"
-                 >
-                   {posting === 'WHY' ? 'Posting…' : 'Raise CQ'}
-                 </button>
-               )}
-               {/* Answer selected CQ */}
-               {openCQs.length > 0 && (
-                 <button
-                   className="text-xs border px-2 py-1 rounded disabled:opacity-50"
-                   disabled={!targetClaim || !selectedCQ || !note.trim() || posting === 'GROUNDS'}
-                   onClick={() => post('GROUNDS')}
-                   title="Answer the selected CQ"
-                 >
-                   {posting === 'GROUNDS' ? 'Posting…' : 'Answer CQ'}
-                 </button>
-               )}
-              {ok && <span className="text-[11px] text-emerald-700">✓ {ok} posted</span>}
-              <div className="ml-auto flex items-center gap-2">
-                <button className="text-xs underline" onClick={() => goRel(-1)} title="Prev">
-                  ‹ Prev
-                </button>
-                <button className="text-xs underline" onClick={() => goRel(1)} title="Next">
-                  Next ›
-                </button>
-              </div>
-            </div>
-
-            {/* You can render your CQ details panel here if you have one */}
-            {/* <CriticalQuestions ... /> */}
+              {targetClaim ? (
+    <div className="mt-2 h-[490px] overflow-y-auto rounded border">
+      <CriticalQuestions
+        targetType="claim"
+        targetId={targetClaim}
+        createdById="current"                     // or actual viewer id
+        deliberationId={deliberationId}
+        prefilterKeys={openCQsFor(targetClaim)}   // focus on open CQs for this view
+      />
+    </div>
+  ) : (
+    <div className="text-[11px] text-neutral-500">Pick a claim on the left to address its CQs.</div>
+  )}
           </section>
         </div>
       </DialogContent>
@@ -330,6 +343,7 @@ export function RepresentativeViewpoints(props: {
   onReselect?: (rule?: Rule, k?: number) => void;
 }) {
   const s = props.selection;
+  useServerEvents(s?.deliberationId);
 
   // ---- gather argument ids across all views (stable hooks) ----
   const allArgIds = useMemo(() => {
@@ -427,33 +441,68 @@ export function RepresentativeViewpoints(props: {
     setOpenCQView(viewIdx);
   }
 
-  // arg text + scope chips (C/P/I)
-  const [argsMap, setArgsMap] = useState<Record<string,string>>({});
-  const [scopeMap, setScopeMap] = useState<Record<string,'inference'|'premise'|'conclusion'>>({});
-  useEffect(() => {
-    if (!s?.deliberationId) return;
-    (async () => {
-      const res = await fetch(`/api/deliberations/${s.deliberationId}/arguments`, { cache: 'no-store' });
-      if (!res.ok) return;
-      const data = await res.json();
-      const map: Record<string,string> = {};
-      const sc: Record<string,'inference'|'premise'|'conclusion'> = {};
-      (data.arguments ?? []).forEach((a:any) => {
-        map[a.id] = a.text;
-        const eo: any[] = a.outgoingEdges ?? a.edgesOut ?? [];
-        if (eo.some((e:any)=>e.type==='undercut')) sc[a.id] = 'inference';
-        else if (eo.some((e:any)=>e.type==='rebut' && e.targetScope==='premise')) sc[a.id] = 'premise';
-        else if (eo.some((e:any)=>e.type==='rebut')) sc[a.id] = 'conclusion';
-      });
-      setArgsMap(map); setScopeMap(sc);
-    })();
-  }, [s?.deliberationId]);
+   // arg text   scope chips (C/P/I) — prefer the batch we already call
+   // Extend /api/arguments/batch to include text   edge summary; client supports fallback.
+   const [argsMap, setArgsMap] = useState<Record<string,string>>({});
+   const [scopeMap, setScopeMap] =
+   useState<Record<string,'inference'|'premise'|'conclusion'>>({});
+
+   useEffect(() => {
+    const items = argMapData?.items ?? [];
+    const textMap: Record<string,string> = {};
+    const sc: Record<string,'inference'|'premise'|'conclusion'> = {};
+    for (const row of items) {
+      const id = (row as any).id;
+      const text = (row as any).text ?? (row as any).argument?.text;
+      if (text) textMap[id] = text;
+      const edges = (row as any).edgesOut ?? (row as any).outgoingEdges ?? [];
+      if (edges.some((e:any)=> e.type==='undercuts' || e.attackType==='UNDERCUTS' || e.type==='undercut'))
+        sc[id] = 'inference';
+      else if (edges.some((e:any)=> (e.type==='rebuts' || e.type==='rebut') && e.targetScope==='premise'))
+        sc[id] = 'premise';
+      else if (edges.some((e:any)=> e.type==='rebuts' || e.type==='rebut'))
+        sc[id] = 'conclusion';
+    }
+    setArgsMap(textMap);
+    setScopeMap(sc); // ← always an object
+  }, [argMapData]);
+ 
+   // Event-driven refresh (no polling storms)
+   useEffect(() => {
+     const onRefresh = () => {
+       // keys that matter inside this component
+       // SWR will dedupe if nothing changed
+       // (SWR hooks already mounted; they’ll revalidate automatically when we call globalMutate outside or refetch here)
+     };
+     window.addEventListener('dialogue:moves:refresh', onRefresh as any);
+     window.addEventListener('dialogue:cs:refresh', onRefresh as any);
+     window.addEventListener('mesh:loci-updated', onRefresh as any);
+     return () => {
+       window.removeEventListener('dialogue:moves:refresh', onRefresh as any);
+       window.removeEventListener('dialogue:cs:refresh', onRefresh as any);
+       window.removeEventListener('mesh:loci-updated', onRefresh as any);
+     };
+  }, []);
 
   const [showCore, setShowCore] = useState(false);
   const [pending, setPending] = useState(false);
 
   function JRBadge() {
-    return <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">JR</span>;
+    const chip = (
+      <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+        JR
+      </span>
+    );
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>{chip}</TooltipTrigger>
+          <TooltipContent className="text-[11px]">
+            Guarantees at least one cohort of size ≥ n/k is fully represented.
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
   }
 
   function ViewCohortBar({ argIds }: { argIds: string[] }) {
@@ -516,13 +565,16 @@ export function RepresentativeViewpoints(props: {
     <div className="relative z-10 w-full p-3 rounded-xl  mt-3  mb-1 panel-edge">
       <div className="flex items-center justify-between ">
         <div className="flex items-center gap-3 ">
-          <h3 className="text-md font-semibold">
+          <h3 className="flex text-md font-semibold">
             Representative viewpoints (k={s.k}) {s.rule==='maxcov' && s.jrSatisfied && <JRBadge/>}
           </h3>
           <ViewControls rule={s.rule} k={s.k} onApply={({rule,k})=>props.onReselect?.(rule,k)} />
-          <div className="text-xs text-neutral-600">
-            <WhyThis deliberationId={s.deliberationId} reason={humanReason}/>
+          <div className="inline-flex  text-center text-[11px] text-neutral-600">
+          {`views: ${s.views.length} · rule: ${s.rule} · k: ${s.k}`}
           </div>
+          {/* <div className="text-xs text-neutral-600">
+            <WhyThis deliberationId={s.deliberationId} reason={humanReason}/>
+          </div> */}
         </div>
         <div className="text-xs text-neutral-600 flex items-center gap-3">
           <span>
@@ -530,7 +582,7 @@ export function RepresentativeViewpoints(props: {
             {!showCore && <span> · Min: {(s.coverageMin*100).toFixed(0)}%</span>}
           </span>
           {typeof s.bestPossibleAvg === 'number' && (
-            <label className="inline-flex items-center gap-1">
+            <label className="inline-flex items-center gap-1" title="Upper bound if you could pick the globally best set of k arguments.">
               <input type="checkbox" className="checkboxv2 rounded-full" checked={showCore} onChange={(e)=>setShowCore(e.target.checked)} />
               Best possible
             </label>
@@ -538,28 +590,26 @@ export function RepresentativeViewpoints(props: {
         </div>
       </div>
 
-      {s.conflictsTopPairs?.length ? (
-        <div className="text-[11px] text-neutral-600">
-          Conflicts explained:&nbsp;
-          {s.conflictsTopPairs.slice(0,3).map((p,i)=>(
-            <span key={i} className="mr-2">
-             <a href={`#${anchorFor(p.a)}`} title={labelFor(p.a)} className="underline">
-                “{labelFor(p.a).slice(0, 60)}”
-              </a>
-              &nbsp;×&nbsp;
-              <a href={`#${anchorFor(p.b)}`} title={labelFor(p.b)} className="underline">
-                “{labelFor(p.b).slice(0, 60)}”
-              </a>
-              &nbsp;({p.count})
-            </span>
-          ))}
-        </div>
-      ) : null}
+      
       {s.rule==='maxcov' && <div className="text-[11px] text-emerald-700">JR guarantee: at least one group of size ≥ n/k is fully represented</div>}
        <div className="text-[11px] text-neutral-500">
-   {`views: ${s.views.length} · rule: ${s.rule} · k: ${s.k}`}
 </div>
-      <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${Math.max(1, s.views.length)}, minmax(0,1fr))`}}>
+{s.conflictsTopPairs?.length ? (
+  <div className="flex text-[11px] text-neutral-600 px-2 py-1">
+    Conflicts:&nbsp;
+    {s.conflictsTopPairs.slice(0,3).map((p,i)=>(
+      <button
+        key={i}
+        className="mr-2 underline hover:text-emerald-700"
+        title="Scroll to both items"
+        onClick={() => { focusAndPulse(anchorFor(p.a)); focusAndPulse(anchorFor(p.b)); }}
+      >
+        “{labelFor(p.a).slice(0,60)}” × “{labelFor(p.b).slice(0,60)}” 
+      </button>
+    ))}
+  </div>
+) : null}
+      <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${Math.max(1, s.views.length)}, minmax(0,1fr))`}}>
       { s.views.map(v => {
   // Build Γ/Δ via helper (manual overrides win; else fallback to claims in the view)
   const seq = buildSequentForView(
@@ -586,15 +636,34 @@ export function RepresentativeViewpoints(props: {
   );
 
   return (
-    <div key={v.index} className="border rounded p-3 space-y-2">
-      <div className="text-xs uppercase tracking-wide text-neutral-500">View {v.index+1}</div>
+    <div key={v.index} className="border shadow-sm shadow-slate-800/50 rounded px-2.5 py-1.5 space-y-2 mt-1.5 mb-1.5 mx-.5">
+      <div className="flex items-center justify-between">
+  <div className="text-xs uppercase tracking-wide text-neutral-500">View {v.index+1}</div>
+  <div className="flex items-center gap-2">
+    <StyleDensityBadge texts={v.arguments.map(a => a.text || '')} />
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button className="h-7 w-7 grid place-items-center rounded hover:bg-slate-50" aria-label="View actions">
+          <MoreHorizontal size={16} />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="text-[12px]">
+        <DropdownMenuItem onClick={() => openAddressCQs(v.index)}>Open all CQs</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => copySequentToClipboard(seq)}>Copy Γ/Δ as text</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => sendGammaToDialogue(s.deliberationId, seq.gammaTexts)}>Send Γ to dialogue</DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => exportAsCard(s.deliberationId, seq.deltaTexts[0], seq.gammaTexts)}>Export as card</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  </div>
+</div>
 
       <ul className="space-y-2">
-        {v.arguments.slice(0,6).map(a => (
-          <li key={a.id} className="text-sm">
+         {v.arguments.slice(0,6).map(a => (
+           <li key={a.id} id={`arg-${a.id}`} className="text-sm">
             <div className="flex items-center gap-2">
               <span className="block">{a.text}</span>
-              <ScopeChip scope={scopeMap[a.id]} />
+              <ScopeChip scope={scopeMap?.[a.id]} />
               {(() => {
                 const cid = argToClaim.get(a.id);
                 const sum = cid ? cqById.get(cid) : undefined;
@@ -621,18 +690,14 @@ export function RepresentativeViewpoints(props: {
         ))}
       </ul>
 
-      <div className="flex items-center justify-between">
-        <div className="text-xs uppercase tracking-wide text-neutral-500">View {v.index+1}</div>
-        <StyleDensityBadge texts={v.arguments.map(a => a.text || '')} />
-      </div>
-
+   
       {/* Sequent status: Γ ⊢ Δ */}
       {seq.gammaTexts.length && seq.deltaTexts.length ? (
         <>
           <SequentBadge
             gammaTexts={seq.gammaTexts}
             deltaTexts={seq.deltaTexts}
-            onClick={() => setOpenSequentView(v.index)}
+            onClick={() => setOpenSequentView(i => i === v.index ? null : v.index)}
           />
           {openSequentView === v.index && (
             <SequentDetails
@@ -651,10 +716,12 @@ export function RepresentativeViewpoints(props: {
 
       <ViewCohortBar argIds={v.arguments.map((a) => a.id)} />
 
-      <div className="mt-1 relative z-10 flex items-center align-center gap-4">
+      <div className="mt-1 pb-1 relative z-10 flex items-center align-center gap-4">
+        <div className="rounded-md border border-transparent">
         <CQBar satisfied={agg.satisfied} required={agg.required} compact />
+        </div>
         <button
-          className="text-xs border px-2 rounded-md lockbutton"
+          className="text-xs border px-2 rounded-md btnv2--ghost py-1"
           onClick={() => openAddressCQs(v.index)}
           disabled={!agg.required}
           title="Open Critical Questions for this view"
@@ -691,7 +758,7 @@ export function RepresentativeViewpoints(props: {
       </div>
 
       <div className="flex flex-col justify-start">
-        <button className="text-sm text-start underline underline-offset-4 disabled:opacity-50"
+        <button className="text-xs p-1.5 text-start underline underline-offset-4 disabled:opacity-50"
           disabled={pending}
           onClick={async ()=>{ setPending(true); try { props.onReselect?.(s.rule, s.k); } finally { setPending(false); } }}>
           {pending ? 'Refreshing…' : 'Refresh Views'}

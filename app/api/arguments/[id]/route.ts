@@ -30,6 +30,12 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   const userId = await getCurrentUserId().catch(() => null);
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+   //  (optional) ownership guard
+     const owner = await prisma.argument.findUnique({ where: { id: params.id }, select: { authorId: true } });
+     if (!owner) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+     if (String(owner.authorId) !== String(userId)) {
+       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+     }
   const body = await req.json().catch(() => ({}));
   const parsed = UpdateSchema.safeParse(body);
   if (!parsed.success) {
@@ -45,11 +51,19 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     return NextResponse.json({ ok: true, noop: true });
   }
 
-  const updated = await prisma.argument.update({
-    where: { id: params.id },
-    data,
-    select: selectArg,
-  });
+     try {
+         const updated = await prisma.argument.update({
+           where: { id: params.id },
+           data,
+           select: selectArg,
+         });
+         return NextResponse.json({ ok: true, argument: updated });
+       } catch (e: any) {
+         // P2025: record not found
+         if (e?.code === 'P2025') {
+           return NextResponse.json({ error: 'Not found' }, { status: 404 });
+         }
+         throw e;
+       }
 
-  return NextResponse.json({ ok: true, argument: updated });
 }

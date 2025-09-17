@@ -729,6 +729,18 @@ textarea.textareav2 {
   outline: none;
 
 }
+@keyframes pulseRing {
+  0% { box-shadow: 0 0 0 0 rgba(16,185,129,.5) }
+  70% { box-shadow: 0 0 0 6px rgba(16,185,129,0) }
+  100% { box-shadow: 0 0 0 0 rgba(16,185,129,0) }
+}
+.pulse-ring {
+  animation: pulseRing 900ms ease-out 2;
+  outline: 2px solid rgba(16,185,129,.6);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
 .discussionfield{
   box-shadow: inset  -1px -1px 4px rgba(203, 225, 253, 0.35),
   inset  1px 1px 4px rgba(141, 141, 176, 0.45);

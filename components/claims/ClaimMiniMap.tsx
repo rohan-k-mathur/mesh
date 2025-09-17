@@ -27,18 +27,20 @@ type ClaimRow = {
   
 
 export default function ClaimMiniMap({ deliberationId }: { deliberationId: string }) {
-  const { data, error, isLoading } = useSWR(`/api/claims/summary?deliberationId=${deliberationId}`, fetcher, { refreshInterval: 0 });
-  const { data: summary } = useSWR(
-    `/api/claims/summary?deliberationId=${deliberationId}`,
-    fetcher
-  );
+  const { data: summary, error, isLoading } = useSWR(
+         `/api/claims/summary?deliberationId=${deliberationId}`,
+         fetcher,
+         { revalidateOnFocus: false, dedupingInterval: 1200 }
+       );
+
   const { data: labelsData } = useSWR(
     `/api/claims/labels?deliberationId=${deliberationId}`,
-    fetcher
-  );
+    fetcher,
+    { revalidateOnFocus: false, dedupingInterval: 1200 }
+   );
 
   if (isLoading) return <div className="text-sm text-slate-500">Loading claims…</div>;
-  if (error || data?.error) return <div className="text-sm text-rose-600">Failed to load claims</div>;
+   if (error || summary?.error) return <div className="text-sm text-rose-600">Failed to load claims</div>;
 
  // const claims = (data?.claims ?? []) as { id: string; text: string; moid?: string; counts: { supports: number; rebuts: number } }[];
 
@@ -49,9 +51,9 @@ export default function ClaimMiniMap({ deliberationId }: { deliberationId: strin
   );
 
   return (
-    <div className="mt-4 rounded-lg border border-slate-200 p-3">
+    <div className="mt-4 rounded-lg border border-indigo-200 p-3 shadow-lg mb-1">
       <div className="text-sm font-medium mb-2">Claim mini‑map</div>
-      <div className=" flex flex-wrap  gap-4">
+      <div className=" flex flex-wrap  gap-3">
         {claims.map((c) => {
           const lab = labels[c.id]?.label ?? 'UNDEC';
           const why = labels[c.id]?.explainJson;
@@ -69,7 +71,11 @@ export default function ClaimMiniMap({ deliberationId }: { deliberationId: strin
         })}
         {claims.length === 0 && <div className="text-xs text-slate-500">No claims yet.</div>}
       </div>
-      <div className="text-[11px] text-slate-500 mt-4"> ● IN · ○ OUT · ◐ UNDEC (grounded semantics)</div>
-    </div>
+      <div className="text-[11px] text-slate-500 mt-4 flex items-center gap-3">
+         <span className="inline-flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> IN</span>
+         <span className="inline-flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-rose-500" /> OUT</span>
+         <span className="inline-flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-slate-400" /> UNDEC</span>
+         <span className="opacity-70">(grounded semantics)</span>
+       </div>    </div>
   );
 }

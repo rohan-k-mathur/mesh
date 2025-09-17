@@ -7,6 +7,8 @@ import { suggestionForCQ } from '@/lib/argumentation/cqSuggestions';
 import { resolveClaimContext } from '@/lib/server/resolveRoom';
 import { createClaimAttack } from '@/lib/argumentation/createClaimAttack';
 import { getNLIAdapter } from '@/lib/nli/adapter';
+import { bus } from '@/lib/bus';
+
 
 const BodySchema = z.object({
   targetType: z.literal('claim'),
@@ -81,7 +83,18 @@ export async function POST(req: NextRequest) {
     });
     edgeCreated = true;
   }
-
+     // (Optional) permission guard — only author/mods may flip CQs
+     const claim = await prisma.claim.findUnique({
+       where: { id: targetId }, select: { createdById: true }
+     });
+     const isAuthor = String(claim?.createdById) === String(userId);
+     // TODO: wire a real moderator check if you have one
+     const isModerator = false;
+     if (!isAuthor && !isModerator) {
+       return NextResponse.json({ ok:false, error:'Only the claim author (or a moderator) can mark CQs satisfied/unsatisfied.' }, { status: 403 });
+     }
+   
+     // 2) Upsert CQStatus (optimistic write; we might revert if a proof guard fails)
   // 2) Upsert CQStatus (optimistic write; we might revert if guard fails)
   const status = await prisma.cQStatus.upsert({
     where: {
@@ -107,18 +120,18 @@ export async function POST(req: NextRequest) {
 
     // Helper: does any inbound attack exist?
     async function anyInboundAttack() {
-      const e = await prisma.claimEdge.findFirst({
-        where: {
-          toClaimId: targetId,
-          OR: [
-            { type: 'rebuts' },     { attackType: 'REBUTS' as any },
-            { type: 'undercuts' },  { attackType: 'UNDERCUTS' as any },
-          ],
-        },
-        select: { id: true }
-      });
-      return !!e;
-    }
+             const e = await prisma.claimEdge.findFirst({
+               where: {
+                 toClaimId: targetId,
+                 OR: [
+                   { type: 'rebuts' },              // classic rebut
+                   { attackType: 'UNDERCUTS' },     // specific undercut
+                 ],
+               },
+               select: { id: true }
+             });
+             return !!e;
+           }
 
     if (requiredAttack === 'rebut') {
       // Need an inbound rebut OR strong NLI contradiction (if attacker is known)
@@ -152,14 +165,11 @@ export async function POST(req: NextRequest) {
         }
       }
     } else if (requiredAttack === 'undercut') {
-      // Require an inbound undercut edge (NLI on conclusion is not decisive for warrants)
-      const e = await prisma.claimEdge.findFirst({
-        where: {
-          toClaimId: targetId,
-          OR: [{ type: 'undercuts' as any }, { attackType: 'UNDERCUTS' as any }],
-        },
-        select: { id: true }
-      });
+             // Require an inbound undercut edge (prefer inference scope; optional)
+             const e = await prisma.claimEdge.findFirst({
+               where: { toClaimId: targetId, attackType: 'UNDERCUTS' /*, targetScope: 'inference' */ },
+               select: { id: true }
+             });
       hasEdge = !!e;
       nli = null; // not used for undercuts
     } else {
@@ -198,7 +208,8 @@ export async function POST(req: NextRequest) {
       }, { status: 409 });
     }
   }
-
+  bus.emit('dialogue:moves:refresh', { deliberationId });
+  bus.emit('claims:edges:changed', { deliberationId, targetId });
   return NextResponse.json({
     ok: true,
     status,

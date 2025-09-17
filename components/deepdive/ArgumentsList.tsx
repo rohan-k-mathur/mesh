@@ -83,7 +83,7 @@ type Arg = {
 
 function ChipBar({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex flex-wrap items-center gap-1 rounded-md border border-slate-200 bg-slate-100/70 px-[.72rem; ] py-[.36rem] text-xs">
+    <div className="flex flex-wrap items-center gap-1 rounded-md border border-slate-200 bg-slate-100/70 px-[.72rem ] py-[.36rem] text-xs">
       {children}
     </div>
   );
@@ -202,8 +202,10 @@ function openIssuesFor(argumentId: string) {
     getKey,
     fetcher,
     {
-      revalidateFirstPage: false,
-      keepPreviousData: true,
+          revalidateFirstPage: false,
+          keepPreviousData: true,
+          dedupingInterval: 1500,
+          revalidateOnFocus: false,
     }
   );
 
@@ -318,6 +320,16 @@ function openIssuesFor(argumentId: string) {
   useEffect(() => {
     onVisibleTextsChanged?.(items.slice(0, 40).map((a) => a.text || ""));
   }, [items, onVisibleTextsChanged]);
+
+     // Allow rows to request opening the negotiation drawer
+   useEffect(() => {
+     const h = (e: any) => {
+       if (e?.detail?.deliberationId !== deliberationId) return;
+       setNegOpen(true);
+     };
+     window.addEventListener('ludics:open', h);
+     return () => window.removeEventListener('ludics:open', h);
+  }, [deliberationId]);
 
   const nextCursor = data?.[data.length - 1]?.nextCursor ?? null;
 
@@ -480,6 +492,11 @@ function openIssuesFor(argumentId: string) {
             className={virtuosoOverflowClass}
             data={items}
             computeItemKey={(_index, a) => a.id}
+              increaseViewportBy={{ top: 240, bottom: 240 }}
+  rangeChanged={(range) => {
+    const slice = items.slice(range.startIndex, Math.min(items.length, range.endIndex +  1));
+   onVisibleTextsChanged?.(slice.map(a => a.text || ''));
+ }}
             endReached={() =>
               !isValidating && nextCursor && setSize((s) => s + 1)
             }
@@ -595,7 +612,18 @@ function ArgRow({
 
   const { setTarget } = useDialogueTarget();
 
-
+  const rowRef = React.useRef<HTMLDivElement | null>(null);
+  React.useEffect(() => {
+    const el = rowRef.current;
+    if (!el) return;
+    function onKey(e: KeyboardEvent) {
+      if (document.activeElement && !el.contains(document.activeElement)) return;
+      if (e.key.toLowerCase() === 'r') { onReplyTo(a.id); scrollComposerIntoView(); }
+      if (e.key.toLowerCase() === 'c') { setCiteOpen(true); }
+    }
+    el.addEventListener('keydown', onKey);
+    return () => el.removeEventListener('keydown', onKey);
+  }, [a.id, onReplyTo]);
   function onOpenCitePicker(initialUrl?: string) {
     setPrefillUrl(initialUrl);
     setCiteOpen(true);
@@ -703,7 +731,8 @@ function ArgRow({
 
   return (
     <div className="relative my-2  shadow-sm">
-    <div id={`arg-${a.id}`} className="group relative p-3 border-b focus:outline-none
+    <div id={`arg-${a.id}`} ref={rowRef} tabIndex={0} aria-label="Argument row"
+ className="group relative p-3 border-b focus:outline-none
                                    bg-white/40 hover:bg-white/65 backdrop-blur-[2px] transition-colors">
                                     
       {modelLens === "monological" && (
@@ -1014,7 +1043,7 @@ function ArgRow({
       <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
         <button
           className="px-2 py-1  rounded text-xs btnv2--ghost"
-          onClick={() => onReplyTo(a.id)}
+          onClick={() => { onReplyTo(a.id); scrollComposerIntoView(); }}
         >
           Reply
         </button>
@@ -1052,18 +1081,16 @@ function ArgRow({
     
   )}
 
-        <CiteInline
-          deliberationId={deliberationId}
-          argumentId={a.id}
-          text={a.text}
-          prefillUrl={prefillUrl}
-          open={citeOpen}
-          onClose={() => {
-            setCiteOpen(false);
-            setPrefillUrl(undefined);
-          }}
-        />
-
+<CiteInline
+           deliberationId={deliberationId}
+           argumentId={a.id}
+           claimId={a.claimId ?? null}
+           text={a.text}
+           prefillUrl={prefillUrl}
+           open={citeOpen}
+           onClose={() => { setCiteOpen(false); setPrefillUrl(undefined); }}
+           onPromoteWithEvidence={(url) => onPromoteWithEvidence(url)}
+         />
         {a.approvedByUser ? (
           <button
             className="px-2 py-1 border rounded text-xs bg-emerald-50 border-emerald-300 text-emerald-700"
@@ -1079,15 +1106,21 @@ function ArgRow({
             Approve
           </button>
         )}
- <button
-    onClick={() => {
-      setTarget({ type: 'argument', id: a.id });
-      // also tell the panel to re-focus Ludics if you like:
-      window.dispatchEvent(new CustomEvent('ludics:focus', { detail: { phase: 'focus-P' } }));
-    }}
-  >
-    Discuss in Ludics
-  </button>
+        <button
+  className="px-2 py-1 btnv2--ghost rounded text-xs"
+  onClick={() => {
+    const url = `${location.origin}${location.pathname}#arg-${a.id}`;
+    navigator.clipboard.writeText(url).catch(()=>{});
+  }}
+  title="Copy a direct link to this argument"
+>
+  Copy link
+</button>
+  <DiscussInLudicsButton
+    deliberationId={deliberationId}
+    argumentId={a.id}
+    setTarget={setTarget}
+  />
         {a.mediaType === "image" && (
           <>
             <button
@@ -1169,7 +1202,7 @@ function DialogicalRow({
 />
         <button
           className="px-2 py-1 btnv2--ghost  rounded text-xs"
-          onClick={() => onReplyTo(a.id)}
+          onClick={() => { onReplyTo(a.id); scrollComposerIntoView(); }}
         >
           Reply
         </button>
@@ -1185,45 +1218,197 @@ function DialogicalRow({
   );
   
 }
+function DiscussInLudicsButton({
+  deliberationId, argumentId, setTarget
+}: { deliberationId: string; argumentId: string; setTarget: (t:{type:'argument'|'claim',id:string})=>void }) {
+  const [busy, setBusy] = React.useState(false);
 
+  async function go() {
+    if (busy) return;
+    setBusy(true);
+    try {
+      // 1) bridge monological → dialogue (safe if already bridged)
+      await fetch('/api/monological/bridge', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ argumentId }),
+      }).catch(()=>{});
+
+      // 2) compile/step
+      await fetch('/api/ludics/compile-step', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ deliberationId, phase: 'neutral' }),
+      }).catch(()=>{});
+
+      // 3) focus the panel + set target
+      setTarget({ type: 'argument', id: argumentId });
+      window.dispatchEvent(new CustomEvent('dialogue:moves:refresh', { detail: { deliberationId } } as any));
+      window.dispatchEvent(new CustomEvent('ludics:open',           { detail: { deliberationId } } as any));
+      window.dispatchEvent(new CustomEvent('ludics:focus',          { detail: { phase: 'focus-P' } } as any));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <button
+      className="px-2 py-1 rounded text-xs btnv2--ghost"
+      onClick={go}
+      disabled={busy}
+      aria-busy={busy}
+      title="Bridge this argument into the dialogue and open the negotiation panel"
+    >
+      {busy ? 'Opening…' : 'Discuss in Ludics'}
+    </button>
+  );
+}
+function scrollComposerIntoView() {
+  // Let any listeners open/reveal the composer first
+  window.dispatchEvent(new CustomEvent('mesh:composer:focus'));
+  // DOM fallback after a short delay
+  setTimeout(() => {
+    const el =
+      document.getElementById('deliberation-composer') ||
+      document.querySelector('[data-role="deliberation-composer"]');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const input = el.querySelector('textarea, [contenteditable="true"], input[type="text"]') as HTMLElement | null;
+      if (input) input.focus();
+    }
+  }, 60);
+}
 function CiteInline({
   deliberationId,
   argumentId,
+  claimId,
   text,
   prefillUrl,
   open: forcedOpen,
   onClose,
+  onPromoteWithEvidence, // optional lift from row
 }: {
   deliberationId: string;
   argumentId: string;
+  claimId?: string | null;
   text: string;
   prefillUrl?: string;
   open?: boolean;
   onClose?: () => void;
+  onPromoteWithEvidence?: (url: string) => Promise<void>;
 }) {
   const [open, setOpen] = React.useState(false);
+  const [busy, setBusy] = React.useState(false);
+
   React.useEffect(() => {
     if (forcedOpen !== undefined) setOpen(forcedOpen);
   }, [forcedOpen]);
+
+  // shallow URL extractor with light punctuation trim
+  const urls = React.useMemo(() => {
+    const found = (text.match(/\bhttps?:\/\/[^\s)]+/gi) ?? []).map(u => u.replace(/[),.;]+$/, ''));
+    // de‑dupe
+    return Array.from(new Set(found));
+  }, [text]);
+
+  // default initial url: prefill > first detected > undefined
+  const defaultUrl = prefillUrl ?? urls[0] ?? undefined;
+
+  React.useEffect(() => {
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') setOpen(false); }
+    if (open) window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open]);
+
+  async function handleCiteAndPromote(url: string) {
+    if (!onPromoteWithEvidence) return;
+    setBusy(true);
+    try {
+      await onPromoteWithEvidence(url);
+      setOpen(false);
+      onClose?.();
+    } finally { setBusy(false); }
+  }
+
   return (
-    <div >
+    <div className="relative">
       <div className="flex gap-2">
-      <button
-        className="px-2 py-1  btnv2--ghost rounded text-xs"
-        onClick={() => setOpen((o) => !o)}
-      >
-        {open ? "Close cite" : "Cite"}
-      </button>
+        <button
+          className="px-2 py-1 btnv2--ghost rounded text-xs"
+          onClick={() => setOpen(o => !o)}
+          aria-expanded={open}
+          aria-controls={`cite-inline-${argumentId}`}
+        >
+          {open ? 'Close cite' : 'Cite'}
+        </button>
+
+        {/* If links were detected, offer quick actions aside from the full picker */}
+        {urls.length === 1 && (
+          <>
+            <button
+              className="px-2 py-1 btnv2--ghost rounded text-xs"
+              disabled={busy}
+              title={urls[0]}
+              onClick={() => setOpen(true)}
+            >
+              Cite detected link
+            </button>
+            {!claimId && onPromoteWithEvidence && (
+              <button
+                className="px-2 py-1 rounded text-xs border"
+                disabled={busy}
+                onClick={() => handleCiteAndPromote(urls[0])}
+                title="Promote to claim and attach this link as evidence"
+              >
+                Cite & Promote
+              </button>
+            )}
+          </>
+        )}
+
+        {urls.length > 1 && (
+          <details className="relative">
+            <summary className="list-none px-2 py-1 btnv2--ghost rounded text-xs cursor-pointer">
+              Cite detected links ▾
+            </summary>
+            <div className="absolute z-20 mt-1 rounded border bg-white shadow p-2 min-w-[240px]">
+              {urls.map((u) => (
+                <div key={u} className="flex items-center justify-between gap-2 py-0.5">
+                  <button
+                    className="text-[11px] underline"
+                    onClick={() => { setOpen(true); }}
+                    title={u}
+                  >
+                    {new URL(u).hostname}
+                  </button>
+                  {!claimId && onPromoteWithEvidence && (
+                    <button
+                      className="text-[11px] border rounded px-1"
+                      disabled={busy}
+                      onClick={() => handleCiteAndPromote(u)}
+                      title="Promote & attach"
+                    >
+                      Cite & Promote
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </details>
+        )}
       </div>
+
       {open && (
-        <div className="mt-2">
+        <div id={`cite-inline-${argumentId}`} className="mt-2">
           <CitePickerInline
             deliberationId={deliberationId}
             argumentText={text}
-            initialUrl={prefillUrl}
+            initialUrl={defaultUrl}
             onDone={() => {
               setOpen(false);
               onClose?.();
+              // Let other panels refresh
+              window.dispatchEvent(new CustomEvent('issues:refresh', { detail: { deliberationId } } as any));
             }}
           />
         </div>

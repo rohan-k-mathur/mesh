@@ -15,5 +15,6 @@ export async function GET(req: NextRequest) {
   // keep client-friendly order (as requested), fall back to found set
   const byId = new Map(claims.map(c => [c.id, c]));
   const items = ids.map(id => byId.get(id)).filter(Boolean);
-  return NextResponse.json({ items });
-}
+  return NextResponse.json({ items }, {
+    headers: { 'Cache-Control': 'public, max-age=0, s-maxage=20, stale-while-revalidate=60' }
+  });}

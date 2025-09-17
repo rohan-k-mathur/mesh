@@ -7,6 +7,7 @@ import { mintClaimMoid } from '@/lib/ids/mintMoid';
 import { PaginationQuery, makePage } from '@/lib/server/pagination';
 import { since as startTimer, addServerTiming } from '@/lib/server/timing';
 import { isValid, parseISO } from 'date-fns';
+import { bus } from '@/lib/bus';
 
 
 const SaveSchema = z.object({
@@ -155,6 +156,8 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           moid,
         },
       });
+      bus.emit('cards:changed', { deliberationId });
+
       return NextResponse.json({ ok: true, card: updated });
     }
     
@@ -297,6 +300,8 @@ const argument = await prisma.argument.create({
     authorId: String(userId),
   },
 });
+bus.emit('cards:changed', { deliberationId });
+
 return NextResponse.json({
   ok: true,
   card: created,

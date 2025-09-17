@@ -60,13 +60,13 @@ export function ChallengeWarrantCard({ cardId, claimId: targetClaimId, deliberat
   }
 
   return (
-    <div className="mt-2 border rounded p-2 bg-amber-50/40">
+    <div className="mt-2 border rounded p-2 bg-indigo-50/40">
       <div className="text-xs font-semibold text-neutral-700">Challenge warrant</div>
 
       {/* Quick compose only */}
       <div className="mt-2">
         <textarea
-          className="w-full text-xs border rounded px-2 py-1"
+          className="w-full text-xs border minorfield rounded px-2 py-1 focus:outline-none"
           rows={3}
           placeholder="Write a counter-warrant…"
           value={counterText}
@@ -76,12 +76,12 @@ export function ChallengeWarrantCard({ cardId, claimId: targetClaimId, deliberat
         <div className="mt-2">
           <button
             type="button"
-            className="text-xs px-2 py-1 rounded border disabled:opacity-50"
+            className="text-xs px-2 py-1 rounded btnv2--ghost bg-white disabled:opacity-50"
             onClick={submit}
             disabled={pending || !counterText.trim()}
-            title="Promotes counter text to Claim then creates an UNDERCUTS edge"
-          >
-            {pending ? 'Posting…' : 'Undercut Warrant'}
+            title="Creates an UNDERCUTS edge from your counter‑warrant"
+            >
+  {pending ? 'Posting…' : 'Post undercut'}
           </button>
         </div>
       </div>

@@ -11,9 +11,9 @@ export async function POST(req: NextRequest) {
     }
     // Create two temporary designs for visualization
     const root = await prisma.ludicLocus.upsert({
-      where: { path_dialogueId: { path:'0', dialogueId: deliberationId } },
+      where: { dialogueId_path: { dialogueId: deliberationId, path: '0' } },
       update: {},
-      create: { dialogueId, path:'0' },
+      create: { dialogueId: deliberationId, path: '0' },
       select: { id:true }
     });
 

@@ -134,11 +134,11 @@ export default function CardListVirtuoso({
   return (
     <div className="space-y-2">
       {/* Controls */}
-      <div className="flex flex-wrap items-end gap-2 rounded border p-2 bg-white">
+      <div className="flex flex-wrap items-end gap-2 rounded-md border p-2 bg-slate-50 mb-4">
         <div className="flex items-center gap-2">
           <span className="text-xs text-neutral-600">Status</span>
           <Tabs value={status} onValueChange={(v) => setStatus(v as any)}>
-            <TabsList>
+            <TabsList className='gap-0 mx-0'>
               <TabsTrigger value="published">Published</TabsTrigger>
               <TabsTrigger value="draft">Draft</TabsTrigger>
             </TabsList>
@@ -171,19 +171,24 @@ export default function CardListVirtuoso({
         </div>
 
         <div className="ml-auto flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => mutate()}>Refresh</Button>
-          <Button variant="ghost" size="sm" onClick={resetFilters}>Reset</Button>
+          <button className='btnv2--ghost' onClick={() => mutate()}>Refresh</button>
+          <button className='btnv2--ghost' onClick={resetFilters}>Reset</button>
         </div>
       </div>
 
       {/* List */}
       {!data && isValidating ? (
-        <div className="text-xs text-neutral-500">Loading cards…</div>
-      ) : !items.length ? (
-        <div className="text-xs text-neutral-500">No cards.</div>
-      ) : (
+  <div className="space-y-2">
+    {Array.from({length: 3}).map((_,i)=>(
+      <div key={i} className="h-28 rounded-md border bg-white animate-pulse" />
+    ))}
+  </div>
+) : !items.length ? (
+  <div className="text-xs text-neutral-500">No cards yet.</div>
+) : (
         <Virtuoso
           style={{ height: 520 }}
+          className='panel-edge'
           data={items}
           itemKey={(i, c: any) => c.id}
           overscan={200}
@@ -205,7 +210,7 @@ export default function CardListVirtuoso({
 }
 
 /** CQ section for one card (safe hooks) */
-function CardCQSection({ claimId, authorId, cqSummary,deliberationId }: {
+function CardCQSection({ claimId, authorId, cqSummary, deliberationId }: {
   claimId: string;
   authorId: string;
   deliberationId: string;
@@ -216,41 +221,25 @@ function CardCQSection({ claimId, authorId, cqSummary,deliberationId }: {
     <div className="mt-2">
       {cqSummary && <CQBar satisfied={cqSummary.satisfied} required={cqSummary.required} />}
       <div className="mt-1">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={async () => {
-            setShowCq((v) => !v);
-           try {
-             await fetch('/api/dialogue/move', {
-               method:'POST', headers:{'content-type':'application/json'},
-               body: JSON.stringify({
-                 deliberationId, targetType:'claim', targetId: claimId,
-                 kind: 'GROUNDS', payload: { via: 'CQPanel' }, autoCompile:true, autoStep:true
-               })
-             });
-             window.dispatchEvent(new CustomEvent('dialogue:moves:refresh'));
-           } catch {}
-          }}
+        <button
+         
+          onClick={() => setShowCq(v => !v)}
           disabled={!cqSummary || !cqSummary.required}
           title="Address open critical questions"
-          className="text-xs px-2 py-1 h-7"
+          className="text-xs px-2 py-1 h-7 btnv2"
         >
           Address CQs
-        </Button>
+        </button>
       </div>
       {showCq && (
         <div className="mt-2">
-          <CriticalQuestions
-            targetType="claim"
-            targetId={claimId}
-            createdById={authorId}
-            counterFromClaimId=""
-            deliberationId={deliberationId}   // 👈 now passed properly
-
-            // prefilterKeys={Object.entries(cqSummary?.openByScheme ?? {}).flatMap(([sk, arr]) => arr.map(k => ({ schemeKey: sk, cqKey: k })))}
-          />
-          
+         <CriticalQuestions
+  targetType="claim"
+  targetId={claimId}
+  createdById={authorId}
+  deliberationId={deliberationId}
+// selectedAttackerClaimId={preselectedCounterId} // optional
+/>
         </div>
       )}
     </div>
@@ -273,101 +262,83 @@ type RSARes = { R:number; S:number; A:number };
   const cqSummary = c.claimId ? cqById.get(c.claimId) : undefined;
 
   return (
-    <div className="border rounded p-3 space-y-2 mb-2 bg-white">
-      {/* Meta */}
-      <div className="text-xs text-neutral-500">
-        {new Date(c.createdAt).toLocaleString()} · by {c.authorId}
+    <div className="rounded-md border bg-slate-50 p-3 mb-2 shadow-[0_1px_0_#f1f5f9]">
+      {/* Header */}
+      <div className="flex  items-start gap-2">
+      <div className="flex-1 ">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="text-sm font-medium">{c.claimText}</div>
+          {/* qualifiers */}
+          {c.quantifier && <span className="text-[10px] px-1.5 py-0.5 rounded border bg-slate-50">{c.quantifier}</span>}
+          {c.modality && <span className="text-[10px] px-1.5 py-0.5 rounded border bg-slate-50">{c.modality}</span>}
+          {c.claimId && rsaByTarget?.[`claim:${c.claimId}`] && <div className='bg-white'>  <RSAChip {...rsaByTarget[`claim:${c.claimId}`]} /> </div>}
+          {c.claimId && dialStats && <DialBadge stats={dialStats} targetType="claim" targetId={c.claimId} />}
+        </div>
+        <div className="text-[11px] text-neutral-500 mt-0.5">
+          by {c.authorId} • {new Date(c.createdAt).toLocaleString()}
+        </div>
       </div>
 
-      {/* Claim */}
-        <div className="text-sm font-medium flex items-center gap-2">
-    <span>{c.claimText}</span>
-    {c.claimId && rsaByTarget?.[`claim:${c.claimId}`] && (
-          <RSAChip {...rsaByTarget[`claim:${c.claimId}`]} />
+      {/* Actions */}
+      <div className="flex items-center gap-1">
+        {typeof c.confidence === 'number' && (
+          <span className="text-[11px] text-neutral-500">Sure: {Math.round((c.confidence ?? 0)*100)}%</span>
         )}
-        {c.claimId && dialStats && (
-          <DialBadge stats={dialStats} targetType="claim" targetId={c.claimId} />
-        )}
-  </div>
+        {/* room for a dropdown menu */}
+      </div>
+    </div>
 
-      {/* Reasons */}
-      {Array.isArray(c.reasonsText) && c.reasonsText.length > 0 && (
-        <div>
-          <div className="text-xs font-semibold text-neutral-700">Reasons</div>
-          <ul className="list-disc ml-5 text-sm">
-            {c.reasonsText.map((r: string, idx: number) => <li key={idx}>{r}</li>)}
-          </ul>
-        </div>
-      )}
+    {/* Reasons / Evidence / Counter (compact) */}
+    {Array.isArray(c.reasonsText) && c.reasonsText.length > 0 && (
+      <div className="mt-2 text-sm">
+        <div className="text-xs font-semibold text-neutral-700">Reasons</div>
+        <ul className="list-disc ml-5">
+          {c.reasonsText.map((r: string, idx: number) => <li key={idx}>{r}</li>)}
+        </ul>
+      </div>
+    )}
+    {!!c.evidenceLinks?.length && (
+      <div className="text-xs text-neutral-600 mt-1">
+        <span className="font-semibold text-neutral-700">Evidence: </span>
+        {c.evidenceLinks.map((u: string) => (
+          <a key={u} href={u} className="underline mr-2 break-all" target="_blank" rel="noreferrer">{u}</a>
+        ))}
+      </div>
+    )}
+    {!!c.anticipatedObjectionsText?.length && (
+      <div className="mt-1">
+        <div className="text-xs font-semibold text-neutral-700">Anticipated objections</div>
+        <ul className="list-disc ml-5 text-sm">
+          {c.anticipatedObjectionsText.map((o: string, idx: number) => <li key={idx}>{o}</li>)}
+        </ul>
+      </div>
+    )}
+    {c.warrantText && (
+      <div className="mt-1 text-sm">
+        <span className="text-xs font-semibold text-neutral-700">Warrant: </span>
+        <span>{c.warrantText}</span>
+      </div>
+    )}
+    {c.counterText && (
+      <div className="mt-1 text-sm">
+        <span className="text-xs font-semibold text-neutral-700">Counter: </span>
+        <span>{c.counterText}</span>
+      </div>
+    )}
 
-      {/* Evidence */}
-      {Array.isArray(c.evidenceLinks) && c.evidenceLinks.length > 0 && (
-        <div className="text-xs text-neutral-600">
-          <span className="font-semibold text-neutral-700">Evidence: </span>
-          {c.evidenceLinks.map((u: string) => (
-            <a key={u} href={u} className="underline mr-2" target="_blank" rel="noreferrer">{u}</a>
-          ))}
-        </div>
-      )}
+    {c.claimId && <ChallengeWarrantCard cardId={c.id} claimId={c.claimId} deliberationId={c.deliberationId} />}
 
-      {/* Anticipated objections */}
-      {Array.isArray(c.anticipatedObjectionsText) && c.anticipatedObjectionsText.length > 0 && (
-        <div>
-          <div className="text-xs font-semibold text-neutral-700">Anticipated objections</div>
-          <ul className="list-disc ml-5 text-sm">
-            {c.anticipatedObjectionsText.map((o: string, idx: number) => <li key={idx}>{o}</li>)}
-          </ul>
-        </div>
-      )}
-
-      {/* Warrant */}
-      {c.warrantText && (
-        <div className="text-sm">
-          <span className="text-xs font-semibold text-neutral-700">Warrant: </span>
-          <span>{c.warrantText}</span>
-        </div>
-      )}
-
-      {/* Challenge warrant */}
-      {c.claimId && <ChallengeWarrantCard cardId={c.id} claimId={c.claimId} deliberationId={c.deliberationId} />}
-
-      {/* Counter */}
-      {c.counterText && (
-        <div className="text-sm">
-          <span className="text-xs font-semibold text-neutral-700">Counter: </span>
-          <span>{c.counterText}</span>
-        </div>
-      )}
-
-      {/* Confidence */}
-      {typeof c.confidence === 'number' && (
-        <div className="text-[11px] text-neutral-500">How sure: {Math.round(c.confidence * 100)}%</div>
-      )}
-
-      {/* Schemes + Toulmin + CQ + Ground/Rebut */}
-      <div className="mt-2 rounded border border-slate-200 p-2 bg-white">
-        <div className="flex items-center justify-start gap-8">
-          <div className="text-sm font-semibold text-neutral-700">Schemes</div>
-          {c.claimId && (
-            <SchemePicker
-              targetType="claim"
-              targetId={c.claimId}
-              createdById={c.authorId}
-              onAttached={() => globalMutate(`/api/claims/${c.claimId}/toulmin`)}
-            />
-          )}
-        </div>
-
+    {/* Collapsible details (keeps list light) */}
+    <details className="mt-2 rounded border bg-white">
+      <summary className="cursor-pointer text-xs px-2 py-2  text-neutral-600 select-none">Open analysis</summary>
+      <div className="p-2 space-y-2">
         {c.claimId && <ToulminMini claimId={c.claimId} />}
-
         {c.claimId && (
-  <div className="mt-2">
-    {/* Scheme-aware cues + CQ prefilter button */}
-    <SchemeCues deliberationId={c.deliberationId} claimId={c.claimId} />
-  </div>
-)}
-
-        <div className="mt-2 grid gap-2">
+          <div className="mt-2">
+            <SchemeCues deliberationId={c.deliberationId} claimId={c.claimId} />
+          </div>
+        )}
+        <div className="grid gap-2">
           {c.claimId && (
             <>
               <AddGround claimId={c.claimId} deliberationId={c.deliberationId} createdById={c.authorId} />
@@ -375,17 +346,29 @@ type RSARes = { R:number; S:number; A:number };
             </>
           )}
         </div>
+
         <EntailmentWidget
-  seedSentences={[
-    'If it rains then streets are wet',
-    'It rains'
-  ]}
-  seedHypothesis="streets are wet"
-/>
-        {/* CQ section */}
-        {c.claimId && <CardCQSection claimId={c.claimId} authorId={c.authorId} cqSummary={cqSummary} deliberationId={c.deliberationId} />}
+          deliberationId={c.deliberationId}
+          seedSentences={Array.isArray(c.reasonsText) ? c.reasonsText : []}
+          seedHypothesis={c.claimText ?? ''}
+          defaultNliAssist
+          defaultEmitViz={false}
+          dialogueTarget={c.claimId ? { targetType: 'claim', targetId: c.claimId } : undefined}
+          defaultCommitOwner="Proponent"
+          defaultLocus="0"
+        />
+
+        {c.claimId && (
+          <CardCQSection
+            claimId={c.claimId}
+            authorId={c.authorId}
+            cqSummary={cqById.get(c.claimId)}
+            deliberationId={c.deliberationId}
+          />
+        )}
       </div>
-    </div>
-  );
+    </details>
+  </div>
+);
 });
 CardRow.displayName = 'CardRow';

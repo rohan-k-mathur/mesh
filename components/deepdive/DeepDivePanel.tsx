@@ -645,13 +645,13 @@ async function updatePref(next: PrefProfile) {
   <div id="work-composer" /> 
 
   <TabsList >
-    <TabsTrigger className="hover:bg-slate-100" value="arguments">Arguments</TabsTrigger>
-    <TabsTrigger className="hover:bg-slate-100" value="works">Works</TabsTrigger>
-    <TabsTrigger className="hover:bg-slate-100" value="ludics">Ludics</TabsTrigger> {/* NEW */}
+    <TabsTrigger className="hover:rounded-xl hover:bg-slate-200" value="arguments">Arguments</TabsTrigger>
+    <TabsTrigger className="hover:bg-slate-200" value="works">Works</TabsTrigger>
+    <TabsTrigger className="hover:bg-slate-200" value="ludics">Ludics</TabsTrigger> {/* NEW */}
 
-    <TabsTrigger className="hover:bg-slate-100" value="card">Create Card</TabsTrigger>
-    <TabsTrigger className="hover:bg-slate-100" value="viewcard">View Cards</TabsTrigger>
-    <TabsTrigger className="hover:bg-slate-100" value="activity">My Activity</TabsTrigger>
+    <TabsTrigger className="hover:bg-slate-200" value="card">Create Card</TabsTrigger>
+    <TabsTrigger className="hover:bg-slate-200" value="viewcard">View Cards</TabsTrigger>
+    <TabsTrigger className="hover:bg-slate-200" value="activity">My Activity</TabsTrigger>
 
   </TabsList>
   <TabsContent value="arguments">{/* (keep empty or future) */}</TabsContent>
@@ -663,12 +663,23 @@ async function updatePref(next: PrefProfile) {
     </SectionCard>
   </TabsContent>
   <TabsContent value="ludics">
-    <LudicsPanel deliberationId={deliberationId}  proDesignId={proId}
-        oppDesignId={oppId}/>
-     <div className="mt-3">
-    <BehaviourInspectorCard deliberationId={deliberationId} />
-  </div>
-  </TabsContent>
+  {proId && oppId ? (
+    <div >
+      <LudicsPanel
+        deliberationId={deliberationId}
+        proDesignId={proId}   // now narrowed to string
+        oppDesignId={oppId}
+      />
+      <div className="mt-3">
+        <BehaviourInspectorCard deliberationId={deliberationId} />
+      </div>
+    </div>
+  ) : (
+    <SectionCard title="Ludics">
+      <div className="text-xs text-neutral-500">Preparing designs…</div>
+    </SectionCard>
+  )}
+</TabsContent>
   <TabsContent value="card">
     <SectionCard title="Create Card">
       <CardComposerTab deliberationId={deliberationId} />
@@ -677,7 +688,7 @@ async function updatePref(next: PrefProfile) {
 
   <TabsContent value="viewcard">
     <SectionCard title="View Cards">
-      <div className="mt-4">
+      <div className="mt-0">
         <CardListVirtuoso
           deliberationId={deliberationId}
           filters={{

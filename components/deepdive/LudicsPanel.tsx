@@ -18,6 +18,27 @@ import LociTreeWithControls from '@/components/ludics/LociTreeWithControls';
 
 const fetcher = (u: string) => fetch(u, { cache: 'no-store' }).then(r => r.json());
 
+type TraceLike = {
+  steps: { posActId?: string; negActId?: string; locusPath?: string; ts?: number }[];
+  status?: 'ONGOING' | 'CONVERGENT' | 'DIVERGENT';
+  decisiveIndices?: number[];
+};
+
+function asTraceLike(t?: StepResult | null): TraceLike | null {
+  if (!t) return null;
+  return {
+    steps: (t.pairs ?? []).map(p => ({
+      posActId: p.posActId,
+      negActId: p.negActId,
+      locusPath: p.locusPath,
+      ts: p.ts,
+    })),
+    // map STUCK → ONGOING so it fits the older UI type
+    status: t.status === 'STUCK' ? 'ONGOING' : t.status,
+    decisiveIndices: t.decisiveIndices,
+  };
+}
+
 /* ------------------------ UI helpers (consistent) ----------------------- */
 function ChipBar({ children }: { children: React.ReactNode }) {
   return (
@@ -552,8 +573,9 @@ const commitAtPath = React.useCallback((path: string) => {
   }, [compileStep, step, checkOrthogonal, analyzeNLI]);
 
   /* ------------------------------ Rendering ------------------------------ */
-  const steps = trace?.steps ?? [];
+  const steps = trace?.pairs ?? [];
   const actsCount = designs.reduce((acc: number, d: any) => acc + (d.acts?.length ?? 0), 0);
+  const traceLike = asTraceLike(trace) ?? { steps: [], status: 'ONGOING' as const };
 
   return (
     <div className="space-y-3 rounded-2xl  bg-slate-50/70 p-3 panel-edge backdrop-blur">
@@ -785,7 +807,11 @@ const commitAtPath = React.useCallback((path: string) => {
           </div>
         </div>
       )}
-
+{/* Inspector */}
+{focusIdx !== null && trace && (
+        <ActInspector pos={byAct.get(trace.steps[focusIdx]?.posActId)} 
+        neg={byAct.get(trace.steps[focusIdx]?.negActId)} onClose={() => setFocusIdx(null)} />
+      )}
       {/* Trees */}
       <div className="grid gap-4">
         {viewMode === 'unified' ? (
@@ -881,12 +907,13 @@ const commitAtPath = React.useCallback((path: string) => {
       </div>
 
       {/* Defense tree */}
-      <DefenseTree designs={designs} trace={trace ?? { steps: [], status: 'ONGOING' }} decisiveWindow={3} highlightIndices={trace?.decisiveIndices} />
-
-      {/* Inspector */}
-      {focusIdx !== null && trace && (
-        <ActInspector pos={byAct.get(trace.steps[focusIdx]?.posActId)} neg={byAct.get(trace.steps[focusIdx]?.negActId)} onClose={() => setFocusIdx(null)} />
-      )}
+      <DefenseTree
+  designs={designs}
+  trace={traceLike}
+  decisiveWindow={3}
+  highlightIndices={trace?.decisiveIndices}
+/>
+      
 
       {/* Judge tools */}
       <JudgeConsole

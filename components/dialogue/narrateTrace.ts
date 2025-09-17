@@ -1,7 +1,7 @@
 // components/dialogue/narrateTrace.ts
 import type { StepResult } from "@/packages/ludics-core/types";
 type Act = { polarity:'P'|'O'|'†'|null; locusPath?:string; expression?:string; meta?:any; isAdditive?:boolean };
-  type Pair = { posActId: string; negActId: string; ts?: number };
+ // type Pair = { posActId: string; negActId: string; ts?: number };
   // type StepResult = {
   //   status: 'ONGOING' | 'CONVERGENT' | 'DIVERGENT';
   //   pairs: Pair[];
@@ -68,9 +68,9 @@ function classify(act?: Act | null) {
     const decisive = new Set(trace.decisiveIndices ?? []);
   
     for (let i = 0; i < (trace.pairs ?? []).length; i++) {
-      const p = trace.pairs[i];
-      const A = acts[p.posActId];
-      const B = acts[p.negActId];
+          const p = trace.pairs[i];
+          const A = p.posActId ? acts[p.posActId] : undefined;
+          const B = p.negActId ? acts[p.negActId] : undefined;
       const a = classify(A);
       const b = classify(B);
       // const leftExpr = A?.expression ?? '—';
@@ -79,7 +79,7 @@ function classify(act?: Act | null) {
 // const rightExpr = B?.meta?.original ?? B?.expression ?? '—';
       const mark = decisive.has(i);
       const leftExpr  = (A as any)?.meta?.original ?? (A as any)?.expression ?? '—';
-      const rightExpr = (B as any)?.meta?.original ?? (B as any)?.expression ?? '—';
+          const rightExpr = (B as any)?.meta?.original ?? (B as any)?.expression ?? '—';
       const hover = `P: ${leftExpr} • O: ${rightExpr}`;
           const push = (t:string)=>lines.push({ text:t, decisive: mark, hover });
   

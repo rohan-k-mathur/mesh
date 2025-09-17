@@ -16,6 +16,8 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { suggestionForCQ } from '@/lib/argumentation/cqSuggestions';
+import { NLCommitPopover } from '@/components/dialogue/NLCommitPopover';
+
 
 type RebutScope = 'premise' | 'conclusion';
 type Suggestion = { type: 'undercut' | 'rebut'; scope?: RebutScope; options?: Array<{key:string;label:string;template:string;shape?:string}> } | null;
@@ -23,11 +25,19 @@ type CQ = { key: string; text: string; satisfied: boolean; suggestion?: Suggesti
 type Scheme = { key: string; title: string; cqs: CQ[] };
 type CQsResponse = { targetType: 'claim'; targetId: string; schemes: Scheme[] };
 
-const fetcher = async (u: string) => {
-  const res = await fetch(u, { cache: 'no-store' });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
-};
+const fetcher = (u:string)=>fetch(u,{cache:'no-store'}).then(r=>r.json());
+
+
+// const fetcher = async (u: string) => {
+//   const res = await fetch(u, { cache: 'no-store' });
+//     if (!res.ok) {
+//         let msg = 'Failed to toggle';
+//         try { const j = await res.json(); msg = j?.message || j?.error || msg; } catch { msg = await res.text().catch(()=>msg); }
+//         setBlockedMsg(m => ({ ...m, [sig]: msg }));
+//         return;
+//       }
+//   return res.json();
+// };
 
 const CQS_KEY   = (id: string, scheme?: string) => `/api/cqs?targetType=claim&targetId=${id}${scheme ? `&scheme=${scheme}` : ''}`;
 const TOULMIN_KEY = (id: string) => `/api/claims/${id}/toulmin`;
@@ -65,6 +75,12 @@ export default function CriticalQuestions({
   selectedAttackerClaimId?: string;
   prefilterKeys?: Array<{ schemeKey: string; cqKey: string }>;
 }) {
+
+
+const [blockedMsg, setBlockedMsg] = React.useState<Record<string,string>>({});
+const [commitOpen, setCommitOpen] = React.useState(false);
+const [commitCtx, setCommitCtx] = React.useState<{ locus: string; owner: 'Proponent'|'Opponent'; targetType:'claim'; targetId:string }|null>(null);
+const [locus, setLocus] = React.useState('0'); // default locus for WHY/GROUNDS
   // ----- data -----
   const { data, error, isLoading } = useSWR<CQsResponse>(CQS_KEY(targetId), fetcher);
   const { data: attachData } = useSWR<{ attached: Record<string, boolean> }>(ATTACH_KEY(targetId), fetcher);
@@ -87,8 +103,79 @@ export default function CriticalQuestions({
   const [searchQ, setSearchQ] = useState('');
   const [searchRes, setSearchRes] = useState<Array<{id:string;text:string}>>([]);
   const [searchBusy, setSearchBusy] = useState(false);
-  const [blockedMsg, setBlockedMsg] = useState<Record<string,string>>({});
+  // const [blockedMsg, setBlockedMsg] = useState<Record<string,string>>({});
 
+  async function postMove(kind:'WHY'|'GROUNDS', payload:any = {}) {
+    await fetch('/api/dialogue/move', {
+      method:'POST', headers:{'content-type':'application/json'},
+      body: JSON.stringify({
+        deliberationId, targetType:'claim', targetId,
+        kind, payload: { locusPath: locus, ...payload },
+        autoCompile: true, autoStep: true, phase: 'neutral',
+      }),
+    }).then(r=>r.json()).catch(()=>null);
+    window.dispatchEvent(new CustomEvent('dialogue:moves:refresh'));
+  }
+  
+  function sigOf(schemeKey: string, cqKey: string) { return `${schemeKey}:${cqKey}`; }
+
+  async function toggleCQ(schemeKey:string, cqKey:string, next:boolean, attackerClaimId?:string) {
+    const sig = sigOf(schemeKey, cqKey);
+    setBlockedMsg(m => ({ ...m, [sig]: '' }));
+  
+    // small “✓” linger when setting true
+    if (next) {
+      setOkKey(sig);
+      setTimeout(() => setOkKey(k => (k === sig ? null : k)), 1000);
+    }
+  
+    // optimistic local flip
+    globalMutate(
+      CQS_KEY(targetId),
+      (cur: CQsResponse | undefined) => {
+        if (!cur) return cur;
+        return {
+          ...cur,
+          schemes: cur.schemes.map(s => s.key !== schemeKey ? s : {
+            ...s, cqs: s.cqs.map(cq => cq.key === cqKey ? { ...cq, satisfied: next } : cq),
+          })
+        };
+      },
+      { revalidate: false }
+    );
+  
+    try {
+      const res = await fetch('/api/cqs/toggle', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ targetType, targetId, schemeKey, cqKey, satisfied: next, deliberationId, attackerClaimId }),
+      });
+  
+      if (res.status === 409) {
+        const j = await res.json().catch(()=>null);
+        const req = j?.guard?.requiredAttack as ('rebut'|'undercut'|null);
+        const msg = req
+          ? `Needs a ${req} attached (or strong NLI for rebut).`
+          : `Needs an attached counter (rebut/undercut).`;
+        setBlockedMsg(m => ({ ...m, [sig]: msg }));
+      }
+  
+      if (!res.ok && res.status !== 409) {
+        // generic failure
+        let msg = 'Failed to toggle';
+        try { const t = await res.text(); if (t) msg = t; } catch {}
+        setBlockedMsg(m => ({ ...m, [sig]: msg }));
+      }
+    } finally {
+      // re-sync caches no matter what
+      await Promise.all([
+        globalMutate(CQS_KEY(targetId)),
+        globalMutate(ATTACH_KEY(targetId)),
+        globalMutate(TOULMIN_KEY(targetId)),
+      ]);
+    }
+  }
+  
   // inline grounds map: sig → text
   const [groundsDraft, setGroundsDraft] = useState<Record<string,string>>({});
 
@@ -137,59 +224,59 @@ export default function CriticalQuestions({
 
   // ----- actions -----
 
-  // Toggle satisfied (with linger ✓)
-  async function toggleCQ(schemeKey: string, cqKey: string, next: boolean) {
-    const sig = sigOf(schemeKey, cqKey);
-    if (next) {
-      setLingerKeys(p => new Set(p).add(sig));
-      setTimeout(() => setLingerKeys(p => { const n = new Set(p); n.delete(sig); return n; }), 1000);
-    }
+  // // Toggle satisfied (with linger ✓)
+  // async function toggleCQ(schemeKey: string, cqKey: string, next: boolean) {
+  //   const sig = sigOf(schemeKey, cqKey);
+  //   if (next) {
+  //     setLingerKeys(p => new Set(p).add(sig));
+  //     setTimeout(() => setLingerKeys(p => { const n = new Set(p); n.delete(sig); return n; }), 1000);
+  //   }
 
-    // optimistic CQ cache
-    globalMutate(
-      CQS_KEY(targetId),
-      (cur: CQsResponse | undefined) => {
-        if (!cur) return cur;
-        return {
-          ...cur,
-          schemes: cur.schemes.map(s => s.key !== schemeKey ? s : {
-            ...s, cqs: s.cqs.map(cq => cq.key === cqKey ? { ...cq, satisfied: next } : cq),
-          })
-        };
-      },
-      { revalidate: false }
-    );
+  //   // optimistic CQ cache
+  //   globalMutate(
+  //     CQS_KEY(targetId),
+  //     (cur: CQsResponse | undefined) => {
+  //       if (!cur) return cur;
+  //       return {
+  //         ...cur,
+  //         schemes: cur.schemes.map(s => s.key !== schemeKey ? s : {
+  //           ...s, cqs: s.cqs.map(cq => cq.key === cqKey ? { ...cq, satisfied: next } : cq),
+  //         })
+  //       };
+  //     },
+  //     { revalidate: false }
+  //   );
 
-    try {
-      setPostingKey(sig);
-      const res = await fetch('/api/cqs/toggle', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ targetType, targetId, schemeKey, cqKey, satisfied: next, deliberationId }),
-      });
+  //   try {
+  //     setPostingKey(sig);
+  //     const res = await fetch('/api/cqs/toggle', {
+  //       method: 'POST',
+  //       headers: { 'content-type': 'application/json' },
+  //       body: JSON.stringify({ targetType, targetId, schemeKey, cqKey, satisfied: next, deliberationId }),
+  //     });
   
-      if (res.status === 409) {
-        const j = await res.json().catch(()=>null);
-        const req = j?.guard?.requiredAttack as ('rebut'|'undercut'|null);
-        const msg = req
-          ? `Needs a ${req} attached (or strong NLI for rebut).`
-          : `Needs an attached counter (rebut/undercut).`;
-        setBlockedMsg(m => ({ ...m, [sig]: msg }));
-        // Re-sync from server
-        await revalidateAll(schemeKey);
-        return;
-      }
+  //     if (res.status === 409) {
+  //       const j = await res.json().catch(()=>null);
+  //       const req = j?.guard?.requiredAttack as ('rebut'|'undercut'|null);
+  //       const msg = req
+  //         ? `Needs a ${req} attached (or strong NLI for rebut).`
+  //         : `Needs an attached counter (rebut/undercut).`;
+  //       setBlockedMsg(m => ({ ...m, [sig]: msg }));
+  //       // Re-sync from server
+  //       await revalidateAll(schemeKey);
+  //       return;
+  //     }
   
-      if (!res.ok) throw new Error(await res.text());
+  //     if (!res.ok) throw new Error(await res.text());
   
-      setBlockedMsg(m => { const c = { ...m }; delete c[sig]; return c; });
-      window.dispatchEvent(new CustomEvent('dialogue:moves:refresh'));
-      flashOk(sig);
-    } finally {
-      setPostingKey(null);
-      await revalidateAll(schemeKey);
-    }
-  }
+  //     setBlockedMsg(m => { const c = { ...m }; delete c[sig]; return c; });
+  //     window.dispatchEvent(new CustomEvent('dialogue:moves:refresh'));
+  //     flashOk(sig);
+  //   } finally {
+  //     setPostingKey(null);
+  //     await revalidateAll(schemeKey);
+  //   }
+  // }
 
   // Resolve via grounds: post GROUNDS move (and optionally tick satisfied)
   // async function resolveViaGrounds(schemeKey: string, cqKey: string, brief: string, alsoMark = true) {
@@ -339,24 +426,89 @@ export default function CriticalQuestions({
                   <li key={cq.key} className="text-sm p-2 border-[1px] border-slate-200 rounded-md">
                     <div className="flex items-start justify-between gap-2">
                       {/* left: text + checkbox */}
+
+                  
+                      
                       <label className="flex-1 flex items-start gap-2 cursor-pointer">
-                        <Checkbox
-                        className='flex mt-1 border border-black'
-                          checked={satisfied}
-                          onCheckedChange={(val) => toggleCQ(s.key, cq.key, Boolean(val))}
-                          disabled={!canAddress || posting}
-                        />
-                        <span className={`${satisfied ? 'opacity-70 line-through' : ''}`}>
-                          {cq.text}
-                        </span>
-                        {ok && <span className="text-[10px] text-emerald-700 ml-1 ">✓</span>}
-                        {!satisfied && !canAddress && (
-                          <span className="text-[10px] text-neutral-500 ml-2 ">(add)</span>
-                        )}
-                      </label>
-                      {blockedMsg[sig] && !cq.satisfied && (
-  <div className="text-[11px] text-amber-700 ml-6 mt-1">{blockedMsg[sig]}</div>
-)}
+        <Checkbox
+          className="flex mt-1"
+          checked={cq.satisfied}
+          onCheckedChange={(val) => toggleCQ(s.key, cq.key, Boolean(val))}
+          disabled={!canMarkAddressed(sigOf(s.key, cq.key), cq.satisfied) || postingKey === sigOf(s.key, cq.key)}
+        />
+        <span className={`${cq.satisfied ? 'opacity-70 line-through' : ''}`}>
+          {cq.text}
+        </span>
+        {okKey === sigOf(s.key, cq.key) && (
+          <span className="text-[10px] text-emerald-700 ml-1">✓</span>
+        )}
+        {!cq.satisfied && !canMarkAddressed(sigOf(s.key, cq.key), cq.satisfied) && (
+          <span className="text-[10px] text-neutral-500 ml-2">(add)</span>
+        )}
+      </label>
+
+
+ {/* actions */}
+ <div className="flex flex-col items-end gap-1">
+        {/* locus control */}
+        <div className="flex items-center gap-2">
+          <label className="text-[11px]">Locus</label>
+          <input
+            className="text-[11px] border rounded px-1 py-0.5 w-20"
+            value={locus}
+            onChange={e => setLocus(e.target.value)}
+          />
+        </div>
+
+
+
+                 {/* locus + owner strip */}
+<div className="flex items-center gap-2 mb-1">
+  <label className="text-[11px]">Locus</label>
+  <input className="text-[11px] border rounded px-1 py-0.5 w-20" value={locus} onChange={e=>setLocus(e.target.value)} />
+</div>
+
+<div className="flex flex-wrap items-center gap-2">
+          <button
+            className="text-[11px] px-2 py-0.5 border rounded"
+            onClick={() => postMove('WHY', { brief: `WHY: ${s.key}/${cq.key}` })}
+          >
+            Ask WHY
+          </button>
+          <button
+            className="text-[11px] px-2 py-0.5 border rounded"
+            onClick={async () => {
+              const brief = (window.prompt('Grounds (brief)', '') ?? '').trim();
+              if (!brief) return;
+              await postMove('GROUNDS', { brief, schemeKey: s.key, cqId: cq.key });
+              // Optional: open commit popover
+              setCommitCtx({ locus, owner: 'Proponent', targetType:'claim', targetId });
+              setCommitOpen(true);
+            }}
+          >
+            Supply GROUNDS
+          </button>
+          <button
+            className="text-[11px] px-2 py-0.5 border rounded"
+            onClick={() => toggleCQ(s.key, cq.key, true)}
+          >
+            Mark satisfied
+          </button>
+          <button
+            className="text-[11px] px-2 py-0.5 border rounded"
+            onClick={() => toggleCQ(s.key, cq.key, false)}
+          >
+            Mark unsatisfied
+          </button>
+        </div>
+        
+        {blockedMsg[`${s.key}:${cq.key}`] && (
+          <div className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1 mt-1">
+            {blockedMsg[`${s.key}:${cq.key}`]}
+          </div>
+        )}
+              </div>
+
                       {/* right: attach suggestion */}
                       {!satisfied && rowSug && (
                         <button
@@ -448,7 +600,21 @@ export default function CriticalQuestions({
           </div>
         ))}
       </div>
-
+      {commitCtx && (
+  <NLCommitPopover
+    open={commitOpen}
+    onOpenChange={setCommitOpen}
+    deliberationId={deliberationId}
+    targetType={commitCtx.targetType}
+    targetId={commitCtx.targetId}
+    locusPath={commitCtx.locus}
+    defaultOwner={commitCtx.owner}
+    onDone={() => {
+      window.dispatchEvent(new CustomEvent('dialogue:cs:refresh', { detail: { dialogueId: deliberationId, ownerId: commitCtx.owner } } as any));
+      window.dispatchEvent(new CustomEvent('dialogue:moves:refresh'));
+    }}
+  />
+)}
       {/* Quick-compose dialog (new counter) */}
       <Dialog open={composeOpen} onOpenChange={(o) => !composeLoading && setComposeOpen(o)}>
         <DialogContent className="bg-slate-200 rounded-xl sm:max-w-[520px]">

@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
       const n = await fetch(new URL('/api/nli/batch', req.url), {
         method: 'POST',
         headers: { 'content-type':'application/json' },
-        body: JSON.stringify({ items: [{ premise: textSentences.join('. '), hypothesis }] })
+            body: JSON.stringify({ pairs: [{ premise: textSentences.join('. '), hypothesis }], persist: false })
       }).then(r=>r.json());
       const r0 = n?.results?.[0];
       if (r0?.relation === 'entails' && (r0?.score ?? 0) >= NLI_TAU) {

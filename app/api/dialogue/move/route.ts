@@ -6,7 +6,9 @@ import { compileFromMoves } from '@/packages/ludics-engine/compileFromMoves';
 import { stepInteraction } from '@/packages/ludics-engine/stepper';
 import { getCurrentUserId } from '@/lib/serverutils';
 import { Prisma } from '@prisma/client';
-import type { DialogueAct, MovePayload } from '@/types/shared'; // NEW
+import { MovePayload, DialogueAct } from '@/packages/ludics-core/types';
+import { bus } from '@/lib/bus';
+
 
 const WHY_TTL_HOURS = 24;
 
@@ -55,11 +57,9 @@ function synthesizeActs(kind: string, payload: any): DialogueAct[] {
     return [{ polarity:'pos', locusPath:locus, openings:[], expression: expr, additive:false }];
   }
   if (kind === 'CONCEDE' || (kind === 'ASSERT' && payload?.as === 'CONCEDE')) {
-    return [
-      { polarity:'pos', locusPath:locus, openings:['/⊥'], expression: expr }, // content
-      { polarity:'neg', locusPath:'/⊥', openings:[], expression:'conceded' } // close that line
-    ];
-  }
+        // Mark concession at locus; let CLOSE (daimon) be a separate explicit act if desired
+        return [{ polarity:'pos', locusPath:locus, openings:[], expression: expr || 'conceded' }];
+      }
   if (kind === 'CLOSE') {
     return [{ polarity:'daimon', locusPath:locus, openings:[], expression:'†' }];
   }
@@ -74,7 +74,15 @@ export async function POST(req: NextRequest) {
   let { deliberationId, targetType, targetId, kind, payload, autoCompile, autoStep, phase } = parsed.data;
 
   // normalize payload to object + defaults
-  if (!payload || typeof payload !== 'object') payload = {};
+    if (!payload || typeof payload !== 'object') payload = {};
+    // clamp expression size to keep signatures   rows sane
+    if (typeof payload.expression === 'string' && payload.expression.length > 2000) {
+      payload.expression = payload.expression.slice(0, 2000);
+    }
+    // normalize locus
+    if (payload.locusPath && typeof payload.locusPath === 'string') {
+      payload.locusPath = payload.locusPath.trim() || '0';
+    }
   if (kind === 'GROUNDS' && !payload.locusPath) payload.locusPath = '0';
 
   // optional: verify target belongs to deliberation
@@ -86,7 +94,14 @@ export async function POST(req: NextRequest) {
       const ok = await prisma.claim.findFirst({ where: { id: targetId, deliberationId }, select: { id:true } });
       if (!ok) return NextResponse.json({ error:'TARGET_MISMATCH' }, { status: 400 });
     }
-  } catch {}
+      else if (targetType === 'card') {
+       const ok = await prisma.deliberationCard.findFirst({ where: { id: targetId, deliberationId }, select: { id: true } });
+       if (!ok) return NextResponse.json({ error: 'TARGET_MISMATCH' }, { status: 400 });
+     }
+     }
+     
+  catch {}
+
 
   // CONCEDE remains an ASSERT with marker (compat), but we also synthesize acts (see below)
   if (kind === 'CONCEDE') { kind = 'ASSERT'; payload = { ...(payload ?? {}), as: 'CONCEDE' }; }
@@ -104,9 +119,10 @@ export async function POST(req: NextRequest) {
   (payload as MovePayload).acts = acts;
 
   // actor
-  const userId = await getCurrentUserId().catch(() => null);
-  const actorId = String(userId ?? 'unknown');
-
+     const userId = await getCurrentUserId().catch(() => null);
+     // If you want moves to be auth-only, uncomment:
+     // if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+     const actorId = String(userId ?? 'unknown');
   const signature = makeSignature(kind, targetType, targetId, payload);
 
   let move: any, dedup = false;
@@ -128,7 +144,7 @@ export async function POST(req: NextRequest) {
 
   // Compile & optional step
   let step: any = null;
-  if (autoCompile && !(dedup && kind === 'WHY')) {
+  if (autoCompile && !(dedup && (kind === 'WHY' || kind === 'GROUNDS'))) {
     await compileFromMoves(deliberationId).catch(() => {});
   }
   if (autoStep) {
@@ -147,6 +163,6 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  try { (globalThis as any).meshBus?.emit?.('dialogue:moves:refresh', { deliberationId }); } catch {}
+  try {   bus.emit('dialogue:moves:refresh', { deliberationId });} catch {}
   return NextResponse.json({ ok: true, move, step, dedup });
 }

@@ -11,6 +11,8 @@ import HomeButton from "../buttons/HomeButton";
 import { RhetoricProvider } from "../rhetoric/RhetoricContext";
 import { DeepDiveBackdrop } from "./DeepDiveBackground";
 import { DialogueTargetProvider } from "@/components/dialogue/DialogueTargetContext";
+import { SWRConfig } from 'swr';
+
 
 /* ----------------------- DOM ↔ anchor helpers ----------------------- */
 
