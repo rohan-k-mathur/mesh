@@ -292,53 +292,54 @@ export async function reorderStack(formData: FormData) {
 
    /** POST a new comment under the stack’s discussion root. */
    export async function addStackComment(formData: FormData) {
-       const u = await getUserFromCookies();
-       if (!u) throw new Error("Unauthenticated");
-       const userId = BigInt(u.userId);
-     
-       const rootIdRaw = String(formData.get("rootId") || "");
-       const text = String(formData.get("text") || "").trim();
-       if (!rootIdRaw) throw new Error("Missing rootId");
-       if (!text) throw new Error("Empty comment");
-     
-       const rootId = BigInt(rootIdRaw);
-       const root = await prisma.feedPost.findUnique({
-         where: { id: rootId },
-         select: { isPublic: true, stack_id: true },
-       });
-       if (!root) throw new Error("Thread not found");
-     
-       // Permissions: public stacks => anyone; private => owner, editor, or subscriber
-       let stackId: string | null = root.stack_id;
-       if (stackId) {
-         const stack = await prisma.stack.findUnique({
-           where: { id: stackId },
-           include: {
-             collaborators: true,
-             subscribers: { where: { user_id: userId }, select: { user_id: true } },
-           },
-         });
-         const isOwner = stack?.owner_id === userId;
-         const isEditor = !!stack?.collaborators?.some(
-           (c) => c.user_id === userId && (c.role === "EDITOR" || c.role === "OWNER")
-         );
-         const isSub = !!stack?.subscribers?.length;
-         const allowed = stack?.is_public || isOwner || isEditor || isSub;
-         if (!allowed) throw new Error("Forbidden");
-       }
-     
-       await prisma.feedPost.create({
-         data: {
-           parent_id: rootId,
-           author_id: userId,
-           type: feed_post_type.TEXT,
-           content: text,
-           isPublic: root.isPublic,
-         },
-       });
-     
-       if (stackId) revalidatePath(`/stacks/${stackId}`);
-     }
+    const u = await getUserFromCookies();
+    if (!u) throw new Error("Unauthenticated");
+    const userId = BigInt(u.userId);
+  
+    const rootIdRaw = String(formData.get("rootId") || "");
+    const text = String(formData.get("text") || "").trim();
+    if (!rootIdRaw) throw new Error("Missing rootId");
+    if (!text) throw new Error("Empty comment");
+  
+    const rootId = BigInt(rootIdRaw);
+    const root = await prisma.feedPost.findUnique({
+      where: { id: rootId },
+      select: { isPublic: true, stack_id: true },
+    });
+    if (!root) throw new Error("Thread not found");
+  
+    let stackId: string | null = root.stack_id;
+    if (stackId) {
+      const stack = await prisma.stack.findUnique({
+        where: { id: stackId },
+        include: {
+          collaborators: true,
+          subscribers: { where: { user_id: userId }, select: { user_id: true } },
+        },
+      });
+      const isOwner = stack?.owner_id === userId;
+      const isEditor = !!stack?.collaborators?.some(
+        (c) => c.user_id === userId && (c.role === "EDITOR" || c.role === "OWNER")
+      );
+      const isSub = !!stack?.subscribers?.length;
+      const allowed = stack?.is_public || isOwner || isEditor || isSub;
+      if (!allowed) throw new Error("Forbidden");
+    }
+  
+    const created = await prisma.feedPost.create({
+      data: {
+        parent_id: rootId,
+        author_id: userId,
+        type: "TEXT",
+        content: text,
+        isPublic: root.isPublic,
+      },
+      select: { id: true },
+    });
+  
+    if (stackId) revalidatePath(`/stacks/${stackId}`);
+    return created.id; // 👈 return the comment id
+  }
      
      /** Delete a comment (author, owner, or editor). */
      export async function deleteStackComment(formData: FormData) {

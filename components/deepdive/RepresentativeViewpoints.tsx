@@ -17,7 +17,7 @@ import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
   DropdownMenuItem, DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal, MoreVertical } from 'lucide-react';
 import useSWR, { mutate as globalMutate } from 'swr';
 
 
@@ -121,28 +121,43 @@ function AddressCQsDialog({
   setTargetClaim,
   claimsById,
   cqById,
+  claimIdsInView,
 }: {
   open: boolean;
   onClose: () => void;
   viewIndex: number;
   deliberationId: string;
-  missingByClaim: Record<number, Record<string, string[]>>;
+   missingByClaim: Record<number, Record<string, Array<{ schemeKey: string; cqKey: string }>>>;
   targetClaim: string | null;
   setTargetClaim: (id: string) => void;
   claimsById: Map<string, string>;
   cqById: Map<string, CqSummary>;
+  claimIdsInView: string[];
 }) {
   // claims with open CQs in this view
-  const openClaimIds = Object.keys(missingByClaim[viewIndex] || {});
-  const openCQsFor = (cid: string | null) =>
-     (cid ? (missingByClaim[viewIndex]?.[cid] ?? []) : []) as Array<{ schemeKey: string; cqKey: string }>;
+  // const openClaimIds = Object.keys(missingByClaim[viewIndex] || {});
+  // const openCQsFor = (cid: string | null) =>
+  //    (cid ? (missingByClaim[viewIndex]?.[cid] ?? []) : []) as Array<{ schemeKey: string; cqKey: string }>;
 
-  const idxOf = (cid: string | null) => (cid ? openClaimIds.indexOf(cid) : -1);
-  const goRel = (delta: number) => {
-    if (!openClaimIds.length) return;
+   const opensMap = missingByClaim[viewIndex] || {};
+  const openCQsFor = (cid: string | null) => (cid ? (opensMap[cid] ?? []) : []);
+
+     // build the left list: all claims in this view, sorted by open count desc
+     const claimsLeft = React.useMemo(() => {
+       const scored = (claimIdsInView ?? []).map((cid) => {
+         const sum = cqById.get(cid);
+         const open = sum ? (sum.required - sum.satisfied) : 0;
+         return { cid, open };
+       });
+       scored.sort((a, b) => b.open - a.open || (claimsById.get(a.cid)?.localeCompare(claimsById.get(b.cid) ?? '') || 0));
+       return scored.map(s => s.cid);
+     }, [claimIdsInView, cqById, claimsById]);
+   
+    const idxOf = (cid: string | null) => (cid ? claimsLeft.indexOf(cid) : -1);  const goRel = (delta: number) => {
+      if (!claimsLeft.length) return;
     const i = idxOf(targetClaim);
-    const next = i < 0 ? 0 : (i + delta + openClaimIds.length) % openClaimIds.length;
-    setTargetClaim(openClaimIds[next]);
+    const next = i < 0 ? 0 : (i + delta + claimsLeft.length) % claimsLeft.length;
+      setTargetClaim(claimsLeft[next]);
   };
 
   // local quick-actions state (hook-safe here)
@@ -190,8 +205,8 @@ function AddressCQsDialog({
 
   // small search on left list
   const [filterQ, setFilterQ] = React.useState('');
-  const filteredIds = openClaimIds.filter((cid) =>
-    (claimsById.get(cid) ?? cid).toLowerCase().includes(filterQ.toLowerCase()),
+  const filteredIds = claimsLeft.filter((cid) =>
+      (claimsById.get(cid) ?? cid).toLowerCase().includes(filterQ.toLowerCase()),
   );
 
   if (!open) return null;
@@ -219,7 +234,7 @@ function AddressCQsDialog({
               onChange={(e) => setFilterQ(e.target.value)}
             />
             <div className="text-[11px] text-neutral-600 mb-2">
-              Open in this view: <b>{openClaimIds.length}</b>
+            Claims in this view: <b>{claimsLeft.length}</b>
             </div>
             <div className="space-y-1 overflow-y-auto h-[480px] pr-1">
               {filteredIds.map((cid) => {
@@ -238,7 +253,8 @@ function AddressCQsDialog({
                     title={claimsById.get(cid) ?? cid}
                   >
                     {(claimsById.get(cid) ?? cid).slice(0, 80)}
-                    {!!open && <span className="ml-1 text-amber-700">· {open} open</span>}
+                              <span className={`ml-1 ${open>0?'text-amber-700':'text-neutral-400'}`}>· {open} open</span>
+
                   </button>
                 );
               })}
@@ -257,8 +273,9 @@ function AddressCQsDialog({
         targetId={targetClaim}
         createdById="current"                     // or actual viewer id
         deliberationId={deliberationId}
-        prefilterKeys={openCQsFor(targetClaim)}   // focus on open CQs for this view
-      />
+          prefilterKeys={openCQsFor(targetClaim).length ? openCQsFor(targetClaim) : undefined}
+
+        />
     </div>
   ) : (
     <div className="text-[11px] text-neutral-500">Pick a claim on the left to address its CQs.</div>
@@ -326,6 +343,87 @@ export function ViewControls({ rule, k, onApply }: { rule: Rule; k: number; onAp
     </div>
   );
 }
+
+
+function ViewMenu({
+  deliberationId,
+  primaryClaimId,
+  onAfter,
+}: { deliberationId: string; primaryClaimId?: string; onAfter?: () => void }) {
+  const [open, setOpen] = React.useState(false);
+  const [busy, setBusy] = React.useState(false);
+
+  async function confirmOnly() {
+    if (!primaryClaimId) return;
+    setBusy(true);
+    try {
+      await fetch('/api/dialogue/panel/confirm', {
+        method:'POST', headers:{'content-type':'application/json'},
+      body: JSON.stringify({
+          deliberationId,
+          kind: 'epistemic',
+          subject: { type:'claim', id: primaryClaimId },
+          rationale: 'CQ satisfied; AF=IN',
+          inputs: { via: 'RV' },
+        }),
+      });
+      window.dispatchEvent(new CustomEvent('decision:changed', { detail:{ deliberationId } }));
+      onAfter?.();
+    } finally { setBusy(false); setOpen(false); }
+  }
+
+  async function confirmAndOpenVote() {
+    if (!primaryClaimId) return;
+    setBusy(true);
+    try {
+      // 1) confirm
+      await fetch('/api/dialogue/panel/confirm', {
+        method:'POST', headers:{'content-type':'application/json'},
+        body: JSON.stringify({
+          deliberationId,
+          kind: 'epistemic',
+          subject: { type:'claim', id: primaryClaimId },
+          rationale: 'CQ satisfied; AF=IN',
+          inputs: { via: 'RV' },
+        }),
+      });
+
+      // 2) open a quick approval vote for the claim
+      await fetch('/api/votes/sessions', {
+        method:'POST', headers:{'content-type':'application/json'},
+        body: JSON.stringify({
+          deliberationId,
+          subjectType: 'claim',
+          subjectId: primaryClaimId,
+          method: 'approval',
+          options: [{ id:'approve', label:'Approve' }, { id:'reject', label:'Reject' }],
+          closesAt: new Date(Date.now()+72*3600e3).toISOString(),
+          quorumMinCount: 5,
+          quorumMinPct: 0.1,
+        }),
+      });
+
+      window.dispatchEvent(new CustomEvent('decision:changed', { detail:{ deliberationId } }));
+      window.dispatchEvent(new CustomEvent('votes:changed',    { detail:{ deliberationId } }));
+      onAfter?.();
+    } finally { setBusy(false); setOpen(false); }
+  }
+
+  return (
+    <div className="relative">
+      <button className="flex text-[11px] text-center align-center p-2 btnv2  rounded-full " onClick={()=>setOpen(v=>!v)} title="Moderator actions"> </button>
+      {open && (
+        <div className="absolute right-0 z-20 mt-1.5 w-48 rounded border-2 border-indigo-100 bg-white shadow">
+          <button className="block w-full text-left px-2 py-1 text-[12px] hover:bg-slate-100" onClick={confirmOnly} disabled={busy || !primaryClaimId}>Confirm</button>
+          <button className="block w-full text-left px-2 py-1 text-[12px] hover:bg-slate-100" onClick={confirmAndOpenVote} disabled={busy || !primaryClaimId}>Confirm → Open vote</button>
+          <button className="block w-full text-left px-2 py-1 text-[12px] hover:bg-slate-100" onClick={()=>setOpen(false)}>Cancel</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
 
 export function RepresentativeViewpoints(props: {
   selection: {
@@ -436,37 +534,49 @@ export function RepresentativeViewpoints(props: {
   const [targetClaim, setTargetClaim] = useState<string | null>(null);
   function openAddressCQs(viewIdx: number) {
     const m = missingByClaim[viewIdx] || {};
-    const first = Object.keys(m)[0] || null;
+  const first = Object.keys(m)[0] || (viewClaimIds[viewIdx]?.[0] ?? null);
     setTargetClaim(first);
     setOpenCQView(viewIdx);
   }
 
+     // SSE: refresh when dialogue/decisions/votes change
+   useEffect(() => {
+     if (!s?.deliberationId) return;
+     const es = new EventSource(`/api/bus/sse?deliberationId=${encodeURIComponent(s.deliberationId)}`);
+     es.onmessage = (ev) => {
+       try {
+         const e = JSON.parse(ev.data);
+         // selectively mutate keys you rely on:
+         // - CQ summaries
+         // - arguments batch
+         // - claims batch
+         // - decisions
+         // You already have stable keys; revalidate lightly:
+         // (You can call SWR mutate here if you import it; or fire a window event the pages already respond to.)
+         window.dispatchEvent(new CustomEvent('dialogue:moves:refresh'));
+       } catch {}
+     };
+     return () => es.close();
+  }, [s?.deliberationId]);
+
    // arg text   scope chips (C/P/I) — prefer the batch we already call
    // Extend /api/arguments/batch to include text   edge summary; client supports fallback.
-   const [argsMap, setArgsMap] = useState<Record<string,string>>({});
-   const [scopeMap, setScopeMap] =
-   useState<Record<string,'inference'|'premise'|'conclusion'>>({});
-
-   useEffect(() => {
-    const items = argMapData?.items ?? [];
-    const textMap: Record<string,string> = {};
-    const sc: Record<string,'inference'|'premise'|'conclusion'> = {};
-    for (const row of items) {
-      const id = (row as any).id;
-      const text = (row as any).text ?? (row as any).argument?.text;
-      if (text) textMap[id] = text;
-      const edges = (row as any).edgesOut ?? (row as any).outgoingEdges ?? [];
-      if (edges.some((e:any)=> e.type==='undercuts' || e.attackType==='UNDERCUTS' || e.type==='undercut'))
-        sc[id] = 'inference';
-      else if (edges.some((e:any)=> (e.type==='rebuts' || e.type==='rebut') && e.targetScope==='premise'))
-        sc[id] = 'premise';
-      else if (edges.some((e:any)=> e.type==='rebuts' || e.type==='rebut'))
-        sc[id] = 'conclusion';
-    }
-    setArgsMap(textMap);
-    setScopeMap(sc); // ← always an object
-  }, [argMapData]);
- 
+      // Build argsMap   scopeMap from /api/arguments/batch (now returns text   edgesOut)
+      const argsMap = useMemo(() => {
+        const m: Record<string, string> = {};
+        (argMapData?.items ?? []).forEach((a:any) => { m[a.id] = a.text ?? ''; });
+        return m;
+      }, [argMapData]);
+      const scopeMap = useMemo(() => {
+        const sc: Record<string,'inference'|'premise'|'conclusion'> = {};
+        (argMapData?.items ?? []).forEach((a:any) => {
+          const eo = a.edgesOut ?? [];
+          if (eo.some((e:any)=>e.type==='undercut')) sc[a.id] = 'inference';
+          else if (eo.some((e:any)=>e.type==='rebut' && e.targetScope==='premise')) sc[a.id] = 'premise';
+          else if (eo.some((e:any)=>e.type==='rebut')) sc[a.id] = 'conclusion';
+        });
+        return sc;
+     }, [argMapData]);
    // Event-driven refresh (no polling storms)
    useEffect(() => {
      const onRefresh = () => {
@@ -595,7 +705,7 @@ export function RepresentativeViewpoints(props: {
        <div className="text-[11px] text-neutral-500">
 </div>
 {s.conflictsTopPairs?.length ? (
-  <div className="flex text-[11px] text-neutral-600 px-2 py-1">
+  <div className="flex text-[11px] text-neutral-600  py-1">
     Conflicts:&nbsp;
     {s.conflictsTopPairs.slice(0,3).map((p,i)=>(
       <button
@@ -617,6 +727,7 @@ export function RepresentativeViewpoints(props: {
     viewClaimIds[v.index] || [],
     claimsById
   );
+  const primaryConclusionId = seq.deltaIds?.[0]; // may be undefined if Δ empty
 
   const claims = viewClaimIds[v.index] || [];
 
@@ -635,20 +746,78 @@ export function RepresentativeViewpoints(props: {
     })
   );
 
+  async function confirmEpistemicThenOpenVote(claimId: string) {
+    // 1) Panel confirm
+    await fetch('/api/dialogue/panel/confirm', {
+      method:'POST', headers:{'content-type':'application/json'},
+      body: JSON.stringify({
+        deliberationId: s?.deliberationId,
+        kind: 'epistemic',
+        subject: { type:'claim', id: claimId },
+        rationale: 'CQ satisfied, AF=IN',
+        inputs: { /* cq / af snapshots if you want */ },
+      }),
+    });
+  
+    // 2) Open vote
+    await fetch('/api/votes/sessions', {
+      method:'POST', headers:{'content-type':'application/json'},
+      body: JSON.stringify({
+        deliberationId: s?.deliberationId, subjectType:'option', subjectId:'policy-fee',
+        method:'approval',
+        options:[{id:'o5',label:'$5'},{id:'o10',label:'$10'},{id:'o0',label:'$0'}],
+        closesAt:new Date(Date.now()+72*3600e3).toISOString(),
+        quorumMinCount:20, quorumMinPct:0.2,
+      }),
+    });
+  }
+
+
+  async function panelConfirmClaim(claimId: string) {
+    // fetch AF labels if you don’t already have them
+    const delibId = s?.deliberationId
+    const af = await fetch(`/api/claims/labels?deliberationId=${delibId}`).then(r=>r.json()).catch(()=>null);
+  
+    await fetch('/api/dialogue/panel/confirm', {
+      method:'POST', headers:{'content-type':'application/json'},
+      body: JSON.stringify({
+        deliberationId:s?.deliberationId,
+        kind: 'epistemic',
+        subject: { type:'claim', id: claimId },
+        rationale: 'CQ satisfied, AF=IN',
+        inputs: { cq: await (await fetch(`/api/claims/${claimId}/cq/summary`).then(r=>r.json()).catch(()=>({}))), af },
+      }),
+    });
+  }
+
   return (
-    <div key={v.index} className="border shadow-sm shadow-slate-800/50 rounded px-2.5 py-1.5 space-y-2 mt-1.5 mb-1.5 mx-.5">
+    <div key={v.index} className="border border-indigo-50 bg-slate-100/70 shadow-sm shadow-slate-800/50 rounded-lg px-2.5 py-1.5 space-y-2 mt-2.5 mb-2.5 mx-.5">
       <div className="flex items-center justify-between">
   <div className="text-xs uppercase tracking-wide text-neutral-500">View {v.index+1}</div>
   <div className="flex items-center gap-2">
     <StyleDensityBadge texts={v.arguments.map(a => a.text || '')} />
+    <ViewMenu
+      deliberationId={s.deliberationId}
+      primaryClaimId={primaryConclusionId}
+      onAfter={() => {
+        // light revalidate
+        window.dispatchEvent(new CustomEvent('decision:changed', { detail: { deliberationId: s.deliberationId } }));
+      }}
+    />
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="h-7 w-7 grid place-items-center rounded hover:bg-slate-50" aria-label="View actions">
-          <MoreHorizontal size={16} />
+        <button className="btnv2 rounded-full px-2 py-1  " aria-label="View actions">
+          <MoreHorizontal size={14} />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="text-[12px]">
         <DropdownMenuItem onClick={() => openAddressCQs(v.index)}>Open all CQs</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => panelConfirmClaim(seq.deltaIds[0] )}>
+  Confirm CQ/AF for this view
+</DropdownMenuItem>
+<DropdownMenuItem onClick={() => confirmEpistemicThenOpenVote(seq.deltaIds[0])}>
+  Confirm CQ/AF → Open vote
+</DropdownMenuItem>
         <DropdownMenuItem onClick={() => copySequentToClipboard(seq)}>Copy Γ/Δ as text</DropdownMenuItem>
         <DropdownMenuItem onClick={() => sendGammaToDialogue(s.deliberationId, seq.gammaTexts)}>Send Γ to dialogue</DropdownMenuItem>
         <DropdownMenuSeparator />
@@ -660,9 +829,10 @@ export function RepresentativeViewpoints(props: {
 
       <ul className="space-y-2">
          {v.arguments.slice(0,6).map(a => (
-           <li key={a.id} id={`arg-${a.id}`} className="text-sm">
+           <li key={a.id} id={`arg-${a.id}`} className="text-xs">
             <div className="flex items-center gap-2">
-              <span className="block">{a.text}</span>
+              <span className="block text-sm">{a.text}</span>
+              
               <ScopeChip scope={scopeMap?.[a.id]} />
               {(() => {
                 const cid = argToClaim.get(a.id);
@@ -721,7 +891,7 @@ export function RepresentativeViewpoints(props: {
         <CQBar satisfied={agg.satisfied} required={agg.required} compact />
         </div>
         <button
-          className="text-xs border px-2 rounded-md btnv2--ghost py-1"
+          className="text-[11px] border px-2 bg-white/50 rounded-md btnv2--ghost py-1"
           onClick={() => openAddressCQs(v.index)}
           disabled={!agg.required}
           title="Open Critical Questions for this view"
@@ -740,6 +910,7 @@ export function RepresentativeViewpoints(props: {
   setTargetClaim={setTargetClaim}
   claimsById={claimsById}
   cqById={cqById}
+  claimIdsInView={viewClaimIds[v.index] || []}
 />
 
       {openCQView===v.index && (

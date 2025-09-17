@@ -7,7 +7,8 @@ import { mintClaimMoid } from '@/lib/ids/mintMoid';
 import { PaginationQuery, makePage } from '@/lib/server/pagination';
 import { since as startTimer, addServerTiming } from '@/lib/server/timing';
 import { isValid, parseISO } from 'date-fns';
-import { bus } from '@/lib/bus';
+// import { bus } from '@/lib/bus';
+import { bus } from '@/lib/server/bus';
 
 
 const SaveSchema = z.object({

@@ -7,7 +7,8 @@ import { suggestionForCQ } from '@/lib/argumentation/cqSuggestions';
 import { resolveClaimContext } from '@/lib/server/resolveRoom';
 import { createClaimAttack } from '@/lib/argumentation/createClaimAttack';
 import { getNLIAdapter } from '@/lib/nli/adapter';
-import { bus } from '@/lib/bus';
+// import { bus } from '@/lib/bus';
+import { bus } from '@/lib/server/bus';
 
 
 const BodySchema = z.object({
@@ -208,8 +209,8 @@ export async function POST(req: NextRequest) {
       }, { status: 409 });
     }
   }
-  bus.emit('dialogue:moves:refresh', { deliberationId });
-  bus.emit('claims:edges:changed', { deliberationId, targetId });
+  bus.emitEvent('cqs:changed', { deliberationId, targetType: 'claim', targetId });
+  bus.emitEvent('dialogue:moves:refresh', { deliberationId });
   return NextResponse.json({
     ok: true,
     status,

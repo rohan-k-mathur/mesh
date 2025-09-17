@@ -17,6 +17,7 @@ import { AddGround, AddRebut } from './AddGroundRebut';
 import { ChallengeWarrantCard } from './ChallengeWarrantCard';
 import SchemeCues from '../rhetoric/SchemeCues';
 
+import { DecisionBanner } from '../decision/DecisionBanner';
 // shadcn/ui
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -171,8 +172,8 @@ export default function CardListVirtuoso({
         </div>
 
         <div className="ml-auto flex items-center gap-2">
-          <button className='btnv2--ghost' onClick={() => mutate()}>Refresh</button>
-          <button className='btnv2--ghost' onClick={resetFilters}>Reset</button>
+          <button className='text-xs rounded p-1 bg-white/50 btnv2--ghost' onClick={() => mutate()}>Refresh</button>
+          <button className='text-xs rounded p-1  bg-white/50 btnv2--ghost' onClick={resetFilters}>Reset</button>
         </div>
       </div>
 
@@ -188,7 +189,7 @@ export default function CardListVirtuoso({
 ) : (
         <Virtuoso
           style={{ height: 520 }}
-          className='panel-edge'
+          className='panel-edge rounded-xl bg-transparent'
           data={items}
           itemKey={(i, c: any) => c.id}
           overscan={200}
@@ -262,7 +263,7 @@ type RSARes = { R:number; S:number; A:number };
   const cqSummary = c.claimId ? cqById.get(c.claimId) : undefined;
 
   return (
-    <div className="rounded-md border bg-slate-50 p-3 mb-2 shadow-[0_1px_0_#f1f5f9]">
+    <div className="rounded-md border border-indigo-200/70 bg-slate-50 p-3 mb-2 shadow-[0_1px_0_#f1f5f9]">
       {/* Header */}
       <div className="flex  items-start gap-2">
       <div className="flex-1 ">
@@ -346,6 +347,7 @@ type RSARes = { R:number; S:number; A:number };
             </>
           )}
         </div>
+        <DecisionBanner deliberationId={c.deliberationId} subjectType="claim" subjectId={c.claimId}/>
 
         <EntailmentWidget
           deliberationId={c.deliberationId}

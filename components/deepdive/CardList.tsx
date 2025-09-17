@@ -5,7 +5,7 @@ import CriticalQuestions from '@/components/claims/CriticalQuestions';
 import ToulminMini from '@/components/deepdive/ToulminMini';
 import useSWR, { mutate } from 'swr';
 import { AddGround, AddRebut } from './AddGroundRebut';
-
+import { ChallengeWarrantCard } from './ChallengeWarrantCard';
 const fetcher = (u: string) => fetch(u, { cache: 'no-store' }).then(r => r.json());
 
 
@@ -120,7 +120,6 @@ export default function CardList({ deliberationId }: { deliberationId: string })
         targetType="claim"     // ✅ fix
         targetId={c.claimId}   // ✅ fix
         createdById={c.authorId}
-        counterFromClaimId=""
         deliberationId={c.deliberationId}   // 👈 now passed properly
 
       />

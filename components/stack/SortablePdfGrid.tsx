@@ -167,6 +167,15 @@ function SortableTile({
           </svg>
 </button>
       )}
+      {editable && (
+  <button
+    className="absolute bottom-2 left-2 px-2 py-1 text-xs rounded bg-white/90 border"
+    onClick={() => window.dispatchEvent(new CustomEvent('composer:cite', {
+      detail: { libraryPostId: tile.id }
+    }))}>
+    Cite
+  </button>
+)}
 
       {/* Remove button on hover (still using your existing server action) */}
       {editable && (

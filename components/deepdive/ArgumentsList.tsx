@@ -15,6 +15,9 @@ import EmotionBadge from "@/components/rhetoric/EmotionBadge";
 import FrameChips from "@/components/rhetoric/FrameChips";
 import { analyzeLexiconsMany } from "../rhetoric/lexiconAnalyzers";
 
+import { DecisionBanner } from "../decision/DecisionBanner";
+// import CitePickerInline from "@/components/citations/CitePickerInline";
+
 // Mini-ML
 import { useRhetoric } from "@/components/rhetoric/RhetoricContext";
 import { analyzeText } from "@/components/rhetoric/detectors";
@@ -351,7 +354,7 @@ function openIssuesFor(argumentId: string) {
   if (!data && isValidating) {
     return (
       <div className="rounded-md border p-3 space-y-2">
-        <div className="text-sm font-medium">Arguments</div>
+        <div className="text-md font-medium">Arguments</div>
         <div className="p-2 border rounded">
           <SkeletonLines lines={3} />
         </div>
@@ -364,7 +367,7 @@ function openIssuesFor(argumentId: string) {
   if (error) {
     return (
       <div className="rounded-md border p-3 space-y-2">
-        <div className="text-sm font-medium">Arguments</div>
+        <div className="text-md font-medium">Arguments</div>
         <div className="text-xs text-rose-600">
           {String(error?.message || "Failed to load")}
         </div>
@@ -377,7 +380,7 @@ function openIssuesFor(argumentId: string) {
   if (!items.length) {
     return (
       <div className="rounded-md border p-3 space-y-2">
-        <div className="text-sm font-medium">Arguments</div>
+        <div className="text-md font-medium">Arguments</div>
         <div className="text-xs text-neutral-600">
           No arguments yet — start by adding your <b>Point</b> and optional{" "}
           <b>Sources</b>.
@@ -395,11 +398,11 @@ function openIssuesFor(argumentId: string) {
       id="arguments-top"
       className="relative z-10 w-full px-2 rounded-xl pt-1 mt-3 pb-3 mb-1 panel-edge"
     >
-      <div className="px-3 py-2 text-md font-medium flex items-center justify-between">
+      <div className="px-3 py-2.5 text-md font-medium flex items-center justify-between">
         <span>Arguments</span>
         <button
           type="button"
-          className="relative max-w-[300px] w-full justify-center items-center text-center mx-auto px-4 py-2 
+          className="relative max-w-[300px] w-full justify-center items-center text-center mx-auto px-4 py-2.5 
                      text-[11px] tracking-wider rounded-full lockbutton"
           onClick={() => setListExpanded((v) => !v)}
           aria-expanded={listExpanded}
@@ -611,6 +614,7 @@ function ArgRow({
   const [prefillUrl, setPrefillUrl] = useState<string | undefined>(undefined);
 
   const { setTarget } = useDialogueTarget();
+  
 
   const rowRef = React.useRef<HTMLDivElement | null>(null);
   React.useEffect(() => {
@@ -791,7 +795,19 @@ function ArgRow({
                 targetType="argument"
                 targetId={a.id}
               />
-              
+              <DecisionBanner deliberationId={deliberationId} subjectType="claim" subjectId={a.claimId}/>
+              <DecisionBanner
+    deliberationId={deliberationId}
+    subjectType="claim"
+    subjectId={a.claimId}
+/>
+              {/* <button
+  className="text-[11px] px-2 py-0.5 border rounded"
+  onClick={() => panelConfirmClaim(targetId)}
+  title="Record a receipt confirming current CQ/AF state"
+>
+  Confirm (panel)
+</button> */}
               <DialBadge
                 stats={dialStats}
                 targetType="argument"
@@ -1299,6 +1315,8 @@ function CiteInline({
 }) {
   const [open, setOpen] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
+   const [citeOpen, setCiteOpen] = useState(false);
+  // const [prefillUrl, setPrefillUrl] = useState<string | undefined>(undefined);
 
   React.useEffect(() => {
     if (forcedOpen !== undefined) setOpen(forcedOpen);
@@ -1371,7 +1389,7 @@ function CiteInline({
             <summary className="list-none px-2 py-1 btnv2--ghost rounded text-xs cursor-pointer">
               Cite detected links ▾
             </summary>
-            <div className="absolute z-20 mt-1 rounded border bg-white shadow p-2 min-w-[240px]">
+            <div className="relative z-20 mt-1 rounded border bg-white shadow p-2 min-w-[240px]">
               {urls.map((u) => (
                 <div key={u} className="flex items-center justify-between gap-2 py-0.5">
                   <button
@@ -1399,18 +1417,14 @@ function CiteInline({
       </div>
 
       {open && (
-        <div id={`cite-inline-${argumentId}`} className="mt-2">
+        <div id={`cite-inline-${argumentId}`} className=" relative w-full h-full z-[10000] mt-2">
           <CitePickerInline
-            deliberationId={deliberationId}
-            argumentText={text}
-            initialUrl={defaultUrl}
-            onDone={() => {
-              setOpen(false);
-              onClose?.();
-              // Let other panels refresh
-              window.dispatchEvent(new CustomEvent('issues:refresh', { detail: { deliberationId } } as any));
-            }}
-          />
+  deliberationId={deliberationId}
+  targetType={claimId ? 'claim' : 'argument'}
+  targetId={claimId ?? id}
+  initialUrl={prefillUrl}
+  onDone={() => { setCiteOpen(false); setPrefillUrl(undefined); }}
+/>
         </div>
       )}
     </div>

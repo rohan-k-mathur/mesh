@@ -4,7 +4,8 @@ import { recomputeGroundedForDelib } from '@/lib/ceg/grounded';
 import { getCurrentUserId } from '@/lib/serverutils';
 import crypto from 'crypto';
 import { mintClaimMoid } from '@/lib/ids/mintMoid';
-import { bus } from '@/lib/bus';
+// import { bus } from '@/lib/bus';
+import { bus } from '@/lib/server/bus';
 
 
 export async function POST(
@@ -82,7 +83,7 @@ export async function POST(
         deliberationId,
       },
     });
-    bus.emit('claims:edges:changed', { deliberationId, targetClaimId });
+    bus.emitEvent('claims:edges:changed', { deliberationId, toClaimId: targetClaimId });
 
     try {
       await recomputeGroundedForDelib(deliberationId);

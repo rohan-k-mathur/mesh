@@ -199,7 +199,23 @@ const [locus, setLocus] = React.useState('0'); // default locus for WHY/GROUNDS
   const schemes: Scheme[] = Array.isArray(view.schemes) ? view.schemes : [];
 
   // ----- helpers -----
-  function sigOf(schemeKey: string, cqKey: string) { return `${schemeKey}:${cqKey}`; }
+  // function sigOf(schemeKey: string, cqKey: string) { return `${schemeKey}:${cqKey}`; }
+
+  async function panelConfirmClaim(claimId: string) {
+    // fetch AF labels if you don’t already have them
+    const af = await fetch(`/api/claims/labels?deliberationId=${deliberationId}`).then(r=>r.json()).catch(()=>null);
+  
+    await fetch('/api/dialogue/panel/confirm', {
+      method:'POST', headers:{'content-type':'application/json'},
+      body: JSON.stringify({
+        deliberationId,
+        kind: 'epistemic',
+        subject: { type:'claim', id: claimId },
+        rationale: 'CQ satisfied, AF=IN',
+        inputs: { cq: await (await fetch(`/api/claims/${claimId}/cq/summary`).then(r=>r.json()).catch(()=>({}))), af },
+      }),
+    });
+  }
 
   async function revalidateAll(schemeKey?: string) {
     await Promise.all([
@@ -508,6 +524,13 @@ const [locus, setLocus] = React.useState('0'); // default locus for WHY/GROUNDS
           </div>
         )}
               </div>
+                      <button
+  className="text-[11px] px-2 py-0.5 border rounded"
+  onClick={() => panelConfirmClaim(targetId)}
+  title="Record a receipt confirming current CQ/AF state"
+>
+  Confirm (panel)
+</button>
 
                       {/* right: attach suggestion */}
                       {!satisfied && rowSug && (

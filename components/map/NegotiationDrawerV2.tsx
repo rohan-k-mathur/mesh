@@ -41,6 +41,7 @@ function hoursLeft(iso?: string) {
   return Math.max(0, Math.ceil(ms / 36e5));
 }
 
+
 function chip(kind: string) {
   const base = "px-1.5 py-0.5 rounded text-[10px] border";
   if (kind === "WHY")
@@ -226,6 +227,12 @@ export default function NegotiationDrawerV2({
     };
   }, [open, deliberationId, refresh]);
 
+  async function panelDelocate(sourceDesignId: string, tag: string, rationale: string) {
+    await fetch('/api/dialogue/panel/delocate', {
+      method:'POST', headers:{'content-type':'application/json'},
+      body: JSON.stringify({ deliberationId, sourceDesignId, tag, rationale }),
+    });
+  }
   async function postMove(
     targetType: "argument" | "claim" | "card",
     targetId: string,
@@ -280,6 +287,13 @@ export default function NegotiationDrawerV2({
             </button>
           </div>
         </div>
+        {/* // moderator button:
+<button
+  className="text-[11px] px-2 py-0.5 border rounded"
+  onClick={() => panelDelocate(focusedDesignId, 'altA', 'Resolve directory collision by delocation')}
+>
+  Delocate to 0.altA
+</button> */}
 
         {/* Quick add WHY */}
         <QuickWhyComposer

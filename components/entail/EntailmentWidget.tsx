@@ -209,15 +209,15 @@ export function EntailmentWidget({
         />
 
         <div className="flex flex-wrap items-center gap-2">
-          <button className="px-2 py-1 border rounded text-xs bg-white" onClick={run} disabled={loading}>
+          <button className="px-2 py-1 btnv2--ghost rounded text-xs bg-white" onClick={run} disabled={loading}>
             {loading ? 'Checking…' : 'Check entailment'}
           </button>
           {hasSeeds && (
-            <button className="px-2 py-1 border rounded text-xs bg-white" onClick={resetToSeeds} disabled={loading}>
+            <button className="px-2 py-1 btnv2--ghost rounded text-xs bg-white" onClick={resetToSeeds} disabled={loading}>
               Reset to seeds
             </button>
           )}
-          <button className="px-2 py-1 border rounded text-xs bg-white" onClick={pasteSample} disabled={loading}>
+          <button className="px-2 py-1 btnv2--ghost rounded text-xs bg-white" onClick={pasteSample} disabled={loading}>
             Paste sample
           </button>
 

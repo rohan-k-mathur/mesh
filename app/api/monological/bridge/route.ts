@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prismaclient';
 import { z } from 'zod';
 import { compileFromMoves } from '@/packages/ludics-engine/compileFromMoves';
 import { stepInteraction } from '@/packages/ludics-engine/stepper';
+import { makeSignature, synthesizeActs } from '@/lib/dialogue/moves';
+
 
 // lightweight extractor (reuse the one in /api/monological/extract if you prefer)
 function splitSents(text:string){ return (text.match(/[^.!?]+[.!?]+/g) || [text]).map(t=>t.trim()).filter(Boolean); }
@@ -52,6 +54,16 @@ export async function POST(req: NextRequest) {
     { deliberationId: arg.deliberationId, targetType, targetId, kind:'ASSERT',  payload:{ text: claim, additive:false }, actorId: P },
   ] as any[];
 
+  // ... (after you build 'moves' array)
+const withSig = moves.map((m) => {
+  const payload = { ...(m.payload ?? {}) };
+  payload.acts = Array.isArray(payload.acts) && payload.acts.length ? payload.acts : synthesizeActs(m.kind, payload);
+  const signature = makeSignature(m.kind, m.targetType, m.targetId, payload);
+  return { ...m, payload, signature };
+});
+
+await prisma.dialogueMove.createMany({ data: withSig, skipDuplicates: true });
+
   if (rebuttals.length || !warrants.length) {
     moves.push({ deliberationId: arg.deliberationId, targetType, targetId, kind:'WHY', payload:{ note: warrants.length ? 'WHY' : 'Missing warrant?' }, actorId: O });
   }
@@ -74,6 +86,7 @@ await fetch(new URL('/api/ludics/compile-step', req.url), {
   });
   return NextResponse.json({ ok:true });
 }
+
 
 //   const compiled = await compileFromMoves(arg.deliberationId);
 //   const [posId, negId] = compiled.designs; // 'Proponent','Opponent' order

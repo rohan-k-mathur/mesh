@@ -7,7 +7,8 @@ import { stepInteraction } from '@/packages/ludics-engine/stepper';
 import { getCurrentUserId } from '@/lib/serverutils';
 import { Prisma } from '@prisma/client';
 import { MovePayload, DialogueAct } from '@/packages/ludics-core/types';
-import { bus } from '@/lib/bus';
+//import { bus } from '@/lib/bus';
+import { bus } from '@/lib/server/bus';
 
 
 const WHY_TTL_HOURS = 24;
@@ -163,6 +164,6 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  try {   bus.emit('dialogue:moves:refresh', { deliberationId });} catch {}
+  bus.emitEvent('dialogue:moves:refresh', { deliberationId });
   return NextResponse.json({ ok: true, move, step, dedup });
 }
