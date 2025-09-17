@@ -1,6 +1,4 @@
 // lib/bus.ts
-
-// lib/server/bus.ts
 type EventType =
   | 'dialogue:moves:refresh'
   | 'dialogue:cs:refresh'

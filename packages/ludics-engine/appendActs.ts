@@ -5,6 +5,8 @@ import { Prisma, PrismaClient } from '@prisma/client';
 
 // Narrow type so both PrismaClient and TransactionClient work
 type DB = PrismaClient | Prisma.TransactionClient;
+type Tx = Prisma.TransactionClient | PrismaClient;
+
 
 // --- helpers use the provided db (tx) ---
 // async function ensureLocus(
