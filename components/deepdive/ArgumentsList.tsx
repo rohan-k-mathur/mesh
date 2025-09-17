@@ -14,6 +14,7 @@ import SaveHighlights from "../rhetoric/SaveHighlights";
 import EmotionBadge from "@/components/rhetoric/EmotionBadge";
 import FrameChips from "@/components/rhetoric/FrameChips";
 import { analyzeLexiconsMany } from "../rhetoric/lexiconAnalyzers";
+import CitePickerInlinePro from "@/components/citations/CitePickerInlinePro";
 
 import { DecisionBanner } from "../decision/DecisionBanner";
 // import CitePickerInline from "@/components/citations/CitePickerInline";
@@ -1294,6 +1295,7 @@ function scrollComposerIntoView() {
     }
   }, 60);
 }
+
 function CiteInline({
   deliberationId,
   argumentId,
@@ -1302,7 +1304,7 @@ function CiteInline({
   prefillUrl,
   open: forcedOpen,
   onClose,
-  onPromoteWithEvidence, // optional lift from row
+  onPromoteWithEvidence,
 }: {
   deliberationId: string;
   argumentId: string;
@@ -1315,28 +1317,17 @@ function CiteInline({
 }) {
   const [open, setOpen] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
-   const [citeOpen, setCiteOpen] = useState(false);
-  // const [prefillUrl, setPrefillUrl] = useState<string | undefined>(undefined);
 
   React.useEffect(() => {
     if (forcedOpen !== undefined) setOpen(forcedOpen);
   }, [forcedOpen]);
 
-  // shallow URL extractor with light punctuation trim
   const urls = React.useMemo(() => {
-    const found = (text.match(/\bhttps?:\/\/[^\s)]+/gi) ?? []).map(u => u.replace(/[),.;]+$/, ''));
-    // de‑dupe
+    const found = (text.match(/\bhttps?:\/\/[^\s)]+/gi) ?? []).map((u) =>
+      u.replace(/[),.;]+$/, "")
+    );
     return Array.from(new Set(found));
   }, [text]);
-
-  // default initial url: prefill > first detected > undefined
-  const defaultUrl = prefillUrl ?? urls[0] ?? undefined;
-
-  React.useEffect(() => {
-    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') setOpen(false); }
-    if (open) window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open]);
 
   async function handleCiteAndPromote(url: string) {
     if (!onPromoteWithEvidence) return;
@@ -1345,7 +1336,9 @@ function CiteInline({
       await onPromoteWithEvidence(url);
       setOpen(false);
       onClose?.();
-    } finally { setBusy(false); }
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -1353,14 +1346,12 @@ function CiteInline({
       <div className="flex gap-2">
         <button
           className="px-2 py-1 btnv2--ghost rounded text-xs"
-          onClick={() => setOpen(o => !o)}
+          onClick={() => setOpen((o) => !o)}
           aria-expanded={open}
-          aria-controls={`cite-inline-${argumentId}`}
         >
-          {open ? 'Close cite' : 'Cite'}
+          {open ? "Close cite" : "Cite"}
         </button>
 
-        {/* If links were detected, offer quick actions aside from the full picker */}
         {urls.length === 1 && (
           <>
             <button
@@ -1389,12 +1380,15 @@ function CiteInline({
             <summary className="list-none px-2 py-1 btnv2--ghost rounded text-xs cursor-pointer">
               Cite detected links ▾
             </summary>
-            <div className="relative z-20 mt-1 rounded border bg-white shadow p-2 min-w-[240px]">
+            <div className="absolute z-20 mt-1 rounded border bg-white shadow p-2 min-w-[240px]">
               {urls.map((u) => (
-                <div key={u} className="flex items-center justify-between gap-2 py-0.5">
+                <div
+                  key={u}
+                  className="flex items-center justify-between gap-2 py-0.5"
+                >
                   <button
                     className="text-[11px] underline"
-                    onClick={() => { setOpen(true); }}
+                    onClick={() => setOpen(true)}
                     title={u}
                   >
                     {new URL(u).hostname}
@@ -1417,14 +1411,15 @@ function CiteInline({
       </div>
 
       {open && (
-        <div id={`cite-inline-${argumentId}`} className=" relative w-full h-full z-[10000] mt-2">
-          <CitePickerInline
-  deliberationId={deliberationId}
-  targetType={claimId ? 'claim' : 'argument'}
-  targetId={claimId ?? id}
-  initialUrl={prefillUrl}
-  onDone={() => { setCiteOpen(false); setPrefillUrl(undefined); }}
-/>
+        <div className="mt-2">
+          <CitePickerInlinePro
+            targetType={claimId ? "claim" : "argument"}
+            targetId={claimId ?? argumentId}
+            onDone={() => {
+              setOpen(false);
+              onClose?.();
+            }}
+          />
         </div>
       )}
     </div>

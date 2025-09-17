@@ -2,38 +2,33 @@
 "use client";
 import * as React from "react";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
+import CitePickerInlinePro from "@/components/citations/CitePickerInlinePro";
 
 type BaseProps = {
   title?: string;
-  /** Optional page hint to start at (appended to #page=) */
+  /** start at X (appended to #page=X) */
   startPage?: number;
+  /** optional: attach directly if provided */
+  citeTargetType?: "comment" | "claim" | "argument" | "card";
+  citeTargetId?: string;
 };
 
 type TriggeredProps = BaseProps & {
-  /** Self-managed dialog: render this as the click trigger */
   trigger: React.ReactNode;
   /** Provide either a direct fileUrl OR a postId */
   fileUrl?: string;
   postId?: string;
-  /** Controlled props are not allowed in trigger mode */
   open?: never;
   onOpenChange?: never;
 };
 
 type ControlledProps = BaseProps & {
-  /** Parent controls the dialog state */
   open: boolean;
   onOpenChange: (v: boolean) => void;
-  /** Provide either a direct fileUrl OR a postId */
   fileUrl?: string;
   postId?: string;
-  /** No trigger in controlled mode */
   trigger?: never;
 };
 
@@ -50,8 +45,8 @@ type PostInfo = {
 export default function PdfLightbox(props: PdfLightboxProps) {
   const isControlled = "open" in props && typeof props.open === "boolean";
   const [selfOpen, setSelfOpen] = React.useState(false);
-  const open = isControlled ? props.open : selfOpen;
-  const setOpen = isControlled ? props.onOpenChange : setSelfOpen;
+  const open = isControlled ? (props as ControlledProps).open : selfOpen;
+  const setOpen = isControlled ? (props as ControlledProps).onOpenChange : setSelfOpen;
 
   const [loading, setLoading] = React.useState(false);
   const [err, setErr] = React.useState<string | null>(null);
@@ -61,12 +56,18 @@ export default function PdfLightbox(props: PdfLightboxProps) {
   const title = props.title ?? info?.title ?? "PDF";
   const startPage = props.startPage ?? 1;
 
+  // “Cite” overlay state
+  const [citeOpen, setCiteOpen] = React.useState(false);
+  const [locator, setLocator] = React.useState(startPage ? `p. ${startPage}` : "");
+  const [quote, setQuote] = React.useState("");
+  const [note, setNote] = React.useState("");
+
   // When opened and a postId is provided (and no direct URL), fetch details.
   React.useEffect(() => {
     let cancelled = false;
     async function load() {
       if (!open) return;
-      if (!props.postId || directFileUrl) return; // nothing to fetch
+      if (!("postId" in props) || !props.postId || directFileUrl) return;
       setLoading(true);
       setErr(null);
       try {
@@ -85,41 +86,25 @@ export default function PdfLightbox(props: PdfLightboxProps) {
       }
     }
     load();
-    return () => {
-      cancelled = true;
-    };
-  }, [open, props.postId, directFileUrl]);
+    return () => { cancelled = true; };
+  }, [open, directFileUrl, props]);
 
-  const resolvedUrl =
-    directFileUrl ?? info?.fileUrl ?? ""; // final URL we’ll embed
-
+  const resolvedUrl = directFileUrl ?? info?.fileUrl ?? "";
   const iframeSrc =
     resolvedUrl && startPage > 1
       ? `${resolvedUrl}#page=${startPage}&view=FitH`
-      : resolvedUrl
-      ? `${resolvedUrl}#view=FitH`
-      : "";
+      : resolvedUrl ? `${resolvedUrl}#view=FitH` : "";
 
   const Header = (
     <DialogHeader>
-      <div className="flex  gap-3">
-        <DialogTitle hidden className="truncate">{title}</DialogTitle>
+      <div className="flex items-start justify-between gap-3">
+        <DialogTitle className="truncate">{title}</DialogTitle>
         {resolvedUrl ? (
-          <div className="flex items-end justify-end gap-2">
-            <a
-              href={resolvedUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="text-xs bg-white px-2 py-.5 rounded-xl lockbutton"
-            >
+          <div className="flex items-center gap-2">
+            <a href={resolvedUrl} target="_blank" rel="noreferrer" className="text-xs bg-white px-2 py-0.5 rounded-xl border">
               Open
             </a>
-            <a
-              href={`${resolvedUrl}${
-                resolvedUrl.includes("?") ? "&" : "?"
-              }download=1`}
-              className="text-xs bg-white px-2 py-.5 rounded-xl lockbutton"
-            >
+            <a href={`${resolvedUrl}${resolvedUrl.includes("?") ? "&" : "?"}download=1`} className="text-xs bg-white px-2 py-0.5 rounded-xl border">
               Download
             </a>
           </div>
@@ -129,18 +114,13 @@ export default function PdfLightbox(props: PdfLightboxProps) {
   );
 
   const Body = (
-    
-    <div className="w-full  h-[82vh] rounded-xl shadow-lg relative bg-white">
+    <div className="relative w-full h-[82vh] rounded-xl shadow-lg bg-white">
       {loading && (
         <div className="absolute inset-0 grid place-items-center text-sm text-gray-500">
           Loading PDF…
         </div>
       )}
-      {err && (
-        <div className="p-3 text-sm text-red-600">
-          Failed to load PDF: {err}
-        </div>
-      )}
+      {err && <div className="p-3 text-sm text-red-600">Failed to load PDF: {err}</div>}
       {!loading && !err && iframeSrc && (
         <iframe
           title={title}
@@ -150,17 +130,74 @@ export default function PdfLightbox(props: PdfLightboxProps) {
           referrerPolicy="no-referrer"
         />
       )}
+
+      {/* Cite overlay */}
+      {(props.citeTargetType && props.citeTargetId) && (
+        <div className="absolute bottom-2 right-2 flex flex-col items-end gap-2">
+          {!citeOpen ? (
+            <button
+              className="px-3 py-1 text-[11px] rounded bg-white/90 border"
+              onClick={() => setCiteOpen(true)}
+              title="Copy a selection from the PDF, then click to attach it"
+            >
+              Cite…
+            </button>
+          ) : (
+            <div className="w-[360px] rounded border bg-white p-2 shadow-xl">
+              <div className="text-[11px] text-slate-600 mb-1">Paste selection and locator</div>
+              <div className="grid grid-cols-2 gap-2 mb-2">
+                <input
+                  className="border rounded px-2 py-1 text-[12px]"
+                  placeholder="Locator (e.g., p. 5)"
+                  value={locator}
+                  onChange={(e) => setLocator(e.target.value)}
+                />
+                <input
+                  className="border rounded px-2 py-1 text-[12px]"
+                  placeholder="Note (optional)"
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                />
+              </div>
+              <textarea
+                className="w-full border rounded px-2 py-1 text-[12px]"
+                rows={2}
+                placeholder="Paste quote"
+                value={quote}
+                onChange={(e) => setQuote(e.target.value)}
+              />
+              <div className="mt-2 flex items-center gap-2">
+                <CitePickerInlinePro
+                  targetType={props.citeTargetType}
+                  targetId={props.citeTargetId}
+                  // Pre-seed: we can pass nothing; the picker will resolve a Source.
+                  // We'll piggyback locator/quote by overriding its inputs (post-attach update).
+                  onDone={() => {
+                    setQuote("");
+                    setNote("");
+                    setCiteOpen(false);
+                  }}
+                />
+                <button className="text-[11px] underline text-slate-600" onClick={() => setCiteOpen(false)}>
+                  Cancel
+                </button>
+              </div>
+              {/* If you want to attach *without* opening the picker, you can add a small custom attach flow here: resolve → attach with {locator, quote}. */}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 
-  // Triggered (self-managed) flavor
+  // Triggered (self-managed)
   if (!isControlled) {
     return (
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
           <div onClick={() => setOpen(true)}>{(props as TriggeredProps).trigger}</div>
         </DialogTrigger>
-        <DialogContent className="max-w-[50rem] w-full h-[93vh]  overflow-hidden bg-slate-400 border-2 border-slate-500">
+        <DialogContent className="max-w-[50rem] w-full h-[93vh] overflow-hidden bg-slate-100 border">
           {Header}
           {Body}
         </DialogContent>
@@ -168,10 +205,10 @@ export default function PdfLightbox(props: PdfLightboxProps) {
     );
   }
 
-  // Controlled flavor
+  // Controlled
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className="max-w-[50rem] w-full h-[93vh]  overflow-hidden bg-slate-400 border-2 border-slate-500">
+      <DialogContent className="max-w-[50rem] w-full h-[93vh] overflow-hidden bg-slate-100 border">
         {Header}
         {Body}
       </DialogContent>
