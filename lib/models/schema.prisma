@@ -3624,3 +3624,13 @@ model WikiRevision {
 
   @@index([pageId])
 }
+
+model AgoraFollow {
+  userId   String
+  kind     String   // 'room' | 'tag'
+  targetId String
+  createdAt DateTime @default(now())
+
+  @@id([userId, kind, targetId])
+  @@index([kind, targetId])
+}
