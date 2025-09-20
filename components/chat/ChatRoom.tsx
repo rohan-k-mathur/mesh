@@ -32,15 +32,12 @@ import { QuoteBlock } from "@/components/chat/QuoteBlock";
 import { LinkCard } from "@/components/chat/LinkCard";
 import { useConversationRealtime } from "@/hooks/useConversationRealtime";
 import { useStars } from "@/hooks/useStars";
-import StarToggle from "@/components/chat/StarToggle";
-import StarredFilterToggle from "@/components/chat/StarredFilterToggle";
-import { useSearchParams } from "next/navigation";
 import { useBookmarks } from "@/hooks/useBooksmarks";
 import ProposalsCompareModal from "@/components/proposals/ProposalsCompareModal";
 import { useReceipts } from "@/hooks/useReceipts";
-import ReceiptChip from "@/components/gitchat/ReceiptChip";
 import { mutate as swrMutate } from "swr";
 import { MessageListVirtual } from "./MessageListVirtual";
+import type { VirtuosoHandle } from "react-virtuoso";
 
 const ENABLE_REACTIONS = false;
 
@@ -804,7 +801,7 @@ export default function ChatRoom({
   currentUserName = "",
   currentUserImage = null,
 }: Props) {
-  const { open, state } = usePrivateChatManager();
+  const { open } = usePrivateChatManager();
 
   const driftsByAnchorId = useChatStore((s) => s.driftsByAnchorId);
   const driftsByRoot = useChatStore((s) => s.driftsByRootMessageId);
@@ -909,7 +906,7 @@ export default function ChatRoom({
     [typing, online, messages]
   );
   // ↓ anchor & state
-  const bottomRef = useRef<HTMLDivElement | null>(null);
+  const listRef = useRef<VirtuosoHandle | null>(null);
   const [showScrollDown, setShowScrollDown] = useState(false);
   const [showScrollDownDelayed, setShowScrollDownDelayed] = useState(false);
 
@@ -925,74 +922,76 @@ export default function ChatRoom({
   }, [showScrollDown]);
 
   const scrollToBottom = useCallback(() => {
-    bottomRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
-  }, []);
-
-  // Find nearest scroll container for [data-chat-root] (or fall back to window)
-  function getScrollContainer(node: HTMLElement | null): HTMLElement | null {
-    let n: HTMLElement | null = node;
-    while (n) {
-      const style = getComputedStyle(n);
-      const oy = style.overflowY;
-      if (oy === "auto" || oy === "scroll") return n;
-      n = n.parentElement;
-    }
-    return null;
-  }
-  // IntersectionObserver on the bottom anchor, but with the right root
-  useEffect(() => {
-    const sentinel = bottomRef.current;
-    if (!sentinel) return;
-
-    const rootEl = document.querySelector(
-      "[data-chat-root]"
-    ) as HTMLElement | null;
-    const scroller = getScrollContainer(rootEl) || null;
-
-    const io = new IntersectionObserver(
-      (entries) => {
-        const inView = entries.some((e) => e.isIntersecting);
-        setShowScrollDown(!inView);
-      },
-      {
-        root: scroller, // if null, uses viewport
-        threshold: 0.01,
-        rootMargin: "0px 0px -15% 0px", // treat “near bottom” as visible
-      }
-    );
-
-    io.observe(sentinel);
-    return () => io.disconnect();
-  }, [messages.length]); // rerun when list size changes
-
-  // Scroll/resize fallback for environments where IO is finicky
-  useEffect(() => {
-    const rootEl = document.querySelector(
-      "[data-chat-root]"
-    ) as HTMLElement | null;
-    const scroller = getScrollContainer(rootEl);
-    const target: any = scroller || window;
-
-    const getMetrics = () => {
-      if (scroller) {
-        const gap =
-          scroller.scrollHeight - scroller.clientHeight - scroller.scrollTop;
-        setShowScrollDown(gap > 160);
-      } else {
-        const doc = document.scrollingElement || document.documentElement;
-        const gap = doc.scrollHeight - doc.clientHeight - doc.scrollTop;
-        setShowScrollDown(gap > 160);
-      }
-    };
-
-    getMetrics();
-    target.addEventListener("scroll", getMetrics, { passive: true });
-    window.addEventListener("resize", getMetrics);
-    return () => {
-      target.removeEventListener("scroll", getMetrics);
-      window.removeEventListener("resize", getMetrics);
-    };
+    if (!messages.length) return;
+    listRef.current?.scrollToIndex({ index: messages.length - 1, align: "end" });
   }, [messages.length]);
+  const loadingOlderRef = useRef(false);
+
+  const loadOlder = useCallback(async () => {
+    if (loadingOlderRef.current) return;
+    const oldest = messages[0];
+    if (!oldest) return;
+
+    loadingOlderRef.current = true;
+    try {
+      const cursor = encodeURIComponent(String(oldest.id));
+      const baseRes = await fetch(
+        `/api/messages/${encodeURIComponent(String(conversationId))}?cursor=${cursor}&limit=20`,
+        { cache: "no-store" }
+      );
+      if (!baseRes.ok) {
+        console.warn(
+          "[chat] loadOlder failed",
+          baseRes.status,
+          await baseRes.text().catch(() => "")
+        );
+        return;
+      }
+      const baseRows: any[] = await baseRes.json();
+      if (!Array.isArray(baseRows) || baseRows.length === 0) {
+        return;
+      }
+
+      const hydrated = await Promise.all(
+        baseRows.map(async (row: any) => {
+          try {
+            const detailRes = await fetch(
+              `/api/sheaf/messages?userId=${encodeURIComponent(String(
+                currentUserId
+              ))}&messageId=${encodeURIComponent(String(row.id))}`,
+              { cache: "no-store" }
+            );
+            if (!detailRes.ok) return null;
+            const detail = await detailRes.json();
+            const message = detail?.messages?.[0] ?? detail?.message ?? null;
+            return message ?? null;
+          } catch (e) {
+            console.warn("[chat] loadOlder hydrate failed", e);
+            return null;
+          }
+        })
+      );
+
+      const deduped = hydrated
+        .filter((msg): msg is Message => Boolean(msg))
+        .filter(
+          (msg) =>
+            !messages.some((existing) => String(existing.id) === String(msg.id))
+        );
+
+      if (deduped.length) {
+        const asc = [...deduped].sort(
+          (a, b) =>
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
+        setMessages(conversationId, [...asc, ...messages]);
+      }
+    } catch (e) {
+      console.warn("[chat] loadOlder failed", e);
+    } finally {
+      loadingOlderRef.current = false;
+    }
+  }, [conversationId, currentUserId, messages, setMessages]);
   const appendRef = useRef(appendMessage);
   useEffect(() => {
     appendRef.current = appendMessage;
@@ -1644,338 +1643,298 @@ export default function ChatRoom({
       );
     }
   }, [highlightMessageId, messages.length]);
+  const renderMessage = useCallback(
+    (m: Message) => {
+      const isMine = String(m.senderId) === String(currentUserId);
+      const driftEntry = driftsByAnchorId[m.id];
+      const threadEntry = driftsByRoot[m.id];
+      const isDriftAnchor =
+        !!driftEntry && driftEntry.drift.kind !== "THREAD";
+      const isProposal =
+        !!threadEntry?.drift?.title &&
+        threadEntry.drift.title.toLowerCase().startsWith("proposal:");
 
-//   return (
-//     <div className="space-y-3" data-chat-root>
-//       <ProposalsCompareModal
-//         open={!!compareFor}
-//         onClose={() => setCompareFor(null)}
-//         rootMessageId={String(compareFor || "")}
-//         conversationId={String(conversationId)}
-//                 currentUserId={currentUserId}
-//         onOpenDrift={(driftId) =>
-//           setOpenDrifts((prev) => ({ ...prev, [driftId]: true }))
-//         }
-//         onMerged={() => {
-//           // Optionally: refresh the root message; your existing hydration often handles it.
-//         }}
-//       />
-//       {messages.map((m) => {
-//         const isMine = String(m.senderId) === String(currentUserId);
-//         const panes = Object.values(state.panes);
-//         const anchored = panes.find(
-//           (p) => p.anchor?.messageId === m.id && p.peerId === String(m.senderId)
-//         );
-//         const driftEntry = driftsByAnchorId[m.id];
-//         const isDriftAnchor =
-//           !!driftEntry && driftEntry.drift.kind !== "THREAD"; // hide chip for threads
-//         const threadEntry = driftsByRoot[m.id];
+      const showAttachments =
+        !isDriftAnchor &&
+        !(m as any).isRedacted &&
+        Array.isArray(m.attachments) &&
+        m.attachments.length > 0;
 
-//         const isProposal =
-//           !!threadEntry?.drift?.title &&
-//           threadEntry.drift.title.toLowerCase().startsWith("proposal:");
+      const quotes = Array.isArray((m as any).quotes)
+        ? (m as any).quotes
+        : [];
+      const hasQuotes = quotes.length > 0;
+      const firstQuote = hasQuotes ? quotes[0] : null;
+      const quoteLabel = hasQuotes
+        ? firstQuote?.sourceAuthor?.name ||
+          toSnippet(
+            typeof firstQuote?.body === "string"
+              ? firstQuote.body
+              : firstQuote?.body
+              ? textFromTipTap(firstQuote.body)
+              : "",
+            48
+          )
+        : null;
 
-//         return (
-//           <div key={m.id} className="space-y-2" data-msg-id={m.id}>
-//             {!isDriftAnchor && (
-//               <MessageRow
-//                 m={m}
-//                 currentUserId={currentUserId}
-//                 conversationId={conversationId}
-//                 onOpen={handleOpen}
-//                 onPrivateReply={() => {}}
-//                 onCreateOptions={onCreateOptions}
-//                 onCreateTemp={onCreateTemp}
-//                 onReplyInThread={ensureAndOpenThread}
-//                 onProposeAlternative={ensureAndOpenProposal}
-//                 onCompareProposals={onCompareProposals}
-//                 onMergeProposal={onMergeProposal}
-//                 onDelete={handleDelete}
-//               />
-//             )}
-//   <MessageListVirtual
-//     items={messages}
-//     renderItem={(m) => <MessageRow key={m.id} message={m} />}
-//     onReachTop={() => loadOlder?.()}
-//     follow
-//  />
-//             {/* {!isDriftAnchor &&
-//             !(m as any).isRedacted &&
-//             m.attachments?.length ? (
-//               <div
-//                 className={[
-//                   "mt-1 flex flex-col gap-2 px-3",
-//                   isMine ? "items-end" : "items-start",
-//                 ].join(" ")}
-//               >
-//                 {m.attachments.map((a) => (
-//                   <Attachment key={a.id} a={a as any} />
-//                 ))}
-//               </div>
-//             ) : null} */}
+      const plainPreviews =
+        !Array.isArray((m as any).facets) &&
+        Array.isArray((m as any).linkPreviews) &&
+        (m as any).linkPreviews.length > 0
+          ? (m as any).linkPreviews.slice(0, 3)
+          : null;
 
-//             {/* Attachments (outside bubble) */}
-//             {!isDriftAnchor &&
-//             !(m as any).isRedacted &&
-//             m.attachments?.length ? (
-//               <div
-//                 className={[
-//                   "mt-1 flex flex-col gap-2 px-3",
-//                   isMine ? "items-end" : "items-start",
-//                 ].join(" ")}
-//               >
-//                 {m.attachments.map((a) => (
-//                   <Attachment key={a.id} a={a as any} />
-//                 ))}
-//               </div>
-//             ) : null}
-
-//             {/* Quotes */}
-//             {Array.isArray((m as any).quotes) &&
-//               (m as any).quotes.length > 0 &&
-//               (() => {
-//                 const q0 = (m as any).quotes[0];
-//                 const textRaw =
-//                   typeof q0?.body === "string"
-//                     ? q0.body
-//                     : q0?.body
-//                     ? textFromTipTap(q0.body)
-//                     : "";
-//                 const inlineLabel =
-//                   q0?.sourceAuthor?.name || toSnippet(textRaw, 48);
-//                 return (
-//                   <div
-//                     className={[
-//                       "px-3 mt-1 flex",
-//                       isMine ? "justify-end" : "justify-start",
-//                     ].join(" ")}
-//                   >
-//                     <div className="max-w-[60%]">
-//                       <div className="text-slate-500 flex  items-center gap-1">
-//                         <span className="flex mr-1 h-2 w-2 mb-1 justify-center items-center align-center  rounded-full bg-slate-600" />
-//                         <span className="text-[.75rem] align-center  my-auto">
-//                           Replying to&nbsp;{inlineLabel}
-//                         </span>
-//                       </div>
-//                       <div
-//                         className={[
-//                           "mt-1 h-fit  pl-3 border-l-[1px]",
-//                           isMine
-//                             ? "border-rose-400 ml-1"
-//                             : "border-indigo-400 mx-1",
-//                         ].join(" ")}
-//                       >
-//                         {(m as any).quotes.map((q: any, i: number) => (
-//                           <QuoteBlock key={`${m.id}-q-${i}`} q={q} compact />
-//                         ))}
-//                       </div>
-//                     </div>
-//                   </div>
-//                 );
-//               })()}
-
-//             {/* Plain message link previews */}
-//             {!Array.isArray((m as any).facets) &&
-//               Array.isArray((m as any).linkPreviews) &&
-//               (m as any).linkPreviews.length > 0 && (
-//                 <div
-//                   className={[
-//                     "mt-2 flex flex-col gap-2 px-3",
-//                     isMine ? "items-end" : "items-start",
-//                   ].join(" ")}
-//                 >
-//                   {(m as any).linkPreviews.slice(0, 3).map((p: any) => (
-//                     <LinkCard key={p.urlHash} p={p} />
-//                   ))}
-//                 </div>
-//               )}
-
-//             {/* Sheaf (default facet) link previews */}
-//             {Array.isArray((m as any).facets) &&
-//               (m as any).facets.length > 0 &&
-//               (() => {
-//                 const defId =
-//                   (m as any).defaultFacetId ?? (m as any).facets[0]?.id;
-//                 const def =
-//                   (m as any).facets.find((f: any) => f.id === defId) ??
-//                   (m as any).facets[0];
-//                 if (!def?.linkPreviews?.length) return null;
-//                 return (
-//                   <div
-//                     className={[
-//                       "mt-2 flex flex-col gap-2 px-3",
-//                       isMine ? "items-end" : "items-start",
-//                     ].join(" ")}
-//                   >
-//                     {def.linkPreviews.slice(0, 3).map((p: any) => (
-//                       <LinkCard key={p.urlHash} p={p} />
-//                     ))}
-//                   </div>
-//                 );
-//               })()}
-
-//             {/* Poll chip */}
-//             {pollsByMessageId[m.id] && (
-//               <PollChip
-//                 poll={pollsByMessageId[m.id]}
-//                 onVote={(body) => onVote(pollsByMessageId[m.id], body)}
-//               />
-//             )}
-//             <MergeHistorySummary
-//   messageId={String(m.id)}
-//   isMine={isMine}
-//   edited={Boolean((m as any).edited)}
-// />
-
-
-//             <ThreadSummary
-//               threadEntry={threadEntry}
-//               messageId={m.id}
-//               isMine={isMine}
-//               onOpen={(driftId) =>
-//                 setOpenDrifts((prev) => ({ ...prev, [driftId]: true }))
-//               }
-//             />
-//             {/* Classic Drift anchor chip + pane */}
-//             {isDriftAnchor && driftEntry && (
-//               <>
-//                 <DriftChip
-//                   title={driftEntry.drift.title}
-//                   count={driftEntry.drift.messageCount}
-//                   onOpen={() => openDrift(driftEntry.drift.id)}
-//                 />
-//                 {openDrifts[driftEntry.drift.id] && (
-//                   <>
-//                     <hr />
-//                     <DriftPane
-//                       key={driftEntry.drift.id}
-//                       drift={{
-//                         id: driftEntry.drift.id,
-//                         title: driftEntry.drift.title,
-//                         isClosed: driftEntry.drift.isClosed,
-//                         isArchived: driftEntry.drift.isArchived,
-//                       }}
-//                       conversationId={String(conversationId)}
-//                       currentUserId={currentUserId}
-//                       onClose={() => closeDrift(driftEntry.drift.id)}
-//                     />
-//                   </>
-//                 )}
-//               </>
-//             )}
-
-//             {threadEntry && openDrifts[threadEntry.drift.id] && (
-//               <>
-//                 <hr />
-//                 <DriftPane
-//                   key={threadEntry.drift.id}
-//                   drift={{
-//                     id: threadEntry.drift.id,
-//                     title:
-//                       threadEntry.drift.title ||
-//                       (isProposal ? "Proposal" : "Thread"),
-//                     isClosed: threadEntry.drift.isClosed,
-//                     isArchived: threadEntry.drift.isArchived,
-//                   }}
-//                   conversationId={String(conversationId)}
-//                   currentUserId={currentUserId}
-//                   variant={isProposal ? "proposal" : "thread"} // 👈 show the 🪄 header
-//                   align={isMine ? "end" : "start"} // right for my root, left for others
-//                   onClose={() =>
-//                     setOpenDrifts((prev) => ({
-//                       ...prev,
-//                       [threadEntry.drift.id]: false,
-//                     }))
-//                   }
-//                 />
-//               </>
-//             )}
-//             <div ref={bottomRef} data-bottom-anchor />
-//           </div>
-//         );
-//       })}
-//       {showScrollDownDelayed && (
-//         <button
-//           type="button"
-//           onClick={scrollToBottom}
-//           className={[
-//             "fixed z-[70]  bottom-32", // position
-//             "h-10 w-10 rounded-full shadow-md ", // shape
-//             "bg-white/50 backdrop-blur-sm likebutton", // look
-//             "flex items-center justify-center", // center icon
-//             "transition-transform hover:translate-y-[1px]", // tiny nudge
-//           ].join(" ")}
-//           title="Scroll to composer"
-//           aria-label="Scroll to composer"
-//         >
-//           <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
-//             <path
-//               d="M12 4v14m0 0l-6-6m6 6l6-6"
-//               stroke="currentColor"
-//               strokeWidth="1"
-//               fill="none"
-//               strokeLinecap="round"
-//               strokeLinejoin="round"
-//             />
-//           </svg>
-//         </button>
-//       )}
-//       {othersTypingIds.length > 0 && (
-//         <div className="px-3 text-[12px] text-slate-500 italic">
-//           {othersTypingIds.length === 1
-//             ? `${getTypingName(othersTypingIds[0])} is typing…`
-//             : "Several people are typing…"}
-//         </div>
-//       )}
-//     </div>
-//   );
-// }
-return (
-  <div className="space-y-3" data-chat-root>
-    <ProposalsCompareModal
-      open={!!compareFor}
-      onClose={() => setCompareFor(null)}
-      rootMessageId={String(compareFor || "")}
-      conversationId={String(conversationId)}
-      currentUserId={currentUserId}
-      onOpenDrift={(driftId) => setOpenDrifts((prev) => ({ ...prev, [driftId]: true }))}
-      onMerged={() => {}}
-    />
-
-
-    <MessageListVirtual
-      items={messages}
-      renderItem={renderMessage}
-      onReachTop={loadOlder}
-      onBottomStateChange={(atBottom) => setShowScrollDown(!atBottom)}
-      follow
-    />
-    {/* “scroll to composer” nudge (use Virtuoso’s atBottomStateChange in MessageListVirtual) */}
-    {showScrollDownDelayed && (
-      <button
-        type="button"
-        onClick={scrollToBottom}
-        className={[
-          "fixed z-[70] bottom-32 h-10 w-10 rounded-full shadow-md",
-          "bg-white/50 backdrop-blur-sm likebutton flex items-center justify-center",
-          "transition-transform hover:translate-y-[1px]",
-        ].join(" ")}
-        title="Scroll to composer"
-        aria-label="Scroll to composer"
-      >
-        <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M12 4v14m0 0l-6-6m6 6l6-6" stroke="currentColor" strokeWidth="1" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </button>
-    )}
-
-    {othersTypingIds.length > 0 && (
-      <div className="px-3 text-[12px] text-slate-500 italic">
-        {othersTypingIds.length === 1
-          ? `${getTypingName(othersTypingIds[0])} is typing…`
-          : "Several people are typing…"}
-      </div>
-    )}
-  </div>
-);
+      let facetPreviews: any[] | null = null;
+      if (Array.isArray((m as any).facets) && (m as any).facets.length > 0) {
+        const defId =
+          (m as any).defaultFacetId ?? (m as any).facets[0]?.id ?? null;
+        const def =
+          (m as any).facets.find((f: any) => f.id === defId) ??
+          (m as any).facets[0];
+        if (def?.linkPreviews?.length) {
+          facetPreviews = def.linkPreviews.slice(0, 3);
         }
+      }
+
+      return (
+        <div className="space-y-2" data-msg-id={m.id}>
+          {!isDriftAnchor && (
+            <MessageRow
+              m={m}
+              currentUserId={currentUserId}
+              conversationId={conversationId}
+              onOpen={handleOpen}
+              onCreateOptions={onCreateOptions}
+              onCreateTemp={onCreateTemp}
+              onReplyInThread={ensureAndOpenThread}
+              onProposeAlternative={ensureAndOpenProposal}
+              onCompareProposals={onCompareProposals}
+              onMergeProposal={onMergeProposal}
+              onDelete={handleDelete}
+            />
+          )}
+
+          {showAttachments ? (
+            <div
+              className={[
+                "mt-1 flex flex-col gap-2 px-3",
+                isMine ? "items-end" : "items-start",
+              ].join(" ")}
+            >
+              {(m.attachments ?? []).map((a) => (
+                <Attachment key={a.id} a={a as any} />
+              ))}
+            </div>
+          ) : null}
+
+          {hasQuotes && quoteLabel && (
+            <div
+              className={[
+                "px-3 mt-1 flex",
+                isMine ? "justify-end" : "justify-start",
+              ].join(" ")}
+            >
+              <div className="max-w-[60%]">
+                <div className="text-slate-500 flex  items-center gap-1">
+                  <span className="flex mr-1 h-2 w-2 mb-1 justify-center items-center align-center  rounded-full bg-slate-600" />
+                  <span className="text-[.75rem] align-center  my-auto">
+                    Replying to&nbsp;{quoteLabel}
+                  </span>
+                </div>
+                <div
+                  className={[
+                    "mt-1 h-fit  pl-3 border-l-[1px]",
+                    isMine ? "border-rose-400 ml-1" : "border-indigo-400 mx-1",
+                  ].join(" ")}
+                >
+                  {quotes.map((q: any, i: number) => (
+                    <QuoteBlock key={`${m.id}-q-${i}`} q={q} compact />
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {plainPreviews ? (
+            <div
+              className={[
+                "mt-2 flex flex-col gap-2 px-3",
+                isMine ? "items-end" : "items-start",
+              ].join(" ")}
+            >
+              {plainPreviews.map((p: any) => (
+                <LinkCard key={p.urlHash ?? p.url} p={p} />
+              ))}
+            </div>
+          ) : null}
+
+          {facetPreviews ? (
+            <div
+              className={[
+                "mt-2 flex flex-col gap-2 px-3",
+                isMine ? "items-end" : "items-start",
+              ].join(" ")}
+            >
+              {facetPreviews.map((p: any) => (
+                <LinkCard key={p.urlHash ?? p.url} p={p} />
+              ))}
+            </div>
+          ) : null}
+
+          {pollsByMessageId[m.id] ? (
+            <PollChip
+              poll={pollsByMessageId[m.id]}
+              onVote={(body) => onVote(pollsByMessageId[m.id], body)}
+            />
+          ) : null}
+
+          <MergeHistorySummary
+            messageId={String(m.id)}
+            isMine={isMine}
+            edited={Boolean((m as any).edited)}
+          />
+
+          <ThreadSummary
+            threadEntry={threadEntry}
+            messageId={m.id}
+            isMine={isMine}
+            onOpen={(driftId) =>
+              setOpenDrifts((prev) => ({ ...prev, [driftId]: true }))
+            }
+          />
+
+          {isDriftAnchor && driftEntry ? (
+            <>
+              <DriftChip
+                title={driftEntry.drift.title}
+                count={driftEntry.drift.messageCount}
+                onOpen={() => openDrift(driftEntry.drift.id)}
+              />
+              {openDrifts[driftEntry.drift.id] && (
+                <>
+                  <hr />
+                  <DriftPane
+                    key={driftEntry.drift.id}
+                    drift={{
+                      id: driftEntry.drift.id,
+                      title: driftEntry.drift.title,
+                      isClosed: driftEntry.drift.isClosed,
+                      isArchived: driftEntry.drift.isArchived,
+                    }}
+                    conversationId={String(conversationId)}
+                    currentUserId={currentUserId}
+                    onClose={() => closeDrift(driftEntry.drift.id)}
+                  />
+                </>
+              )}
+            </>
+          ) : null}
+
+          {threadEntry && openDrifts[threadEntry.drift.id] && (
+            <>
+              <hr />
+              <DriftPane
+                key={threadEntry.drift.id}
+                drift={{
+                  id: threadEntry.drift.id,
+                  title:
+                    threadEntry.drift.title ||
+                    (isProposal ? "Proposal" : "Thread"),
+                  isClosed: threadEntry.drift.isClosed,
+                  isArchived: threadEntry.drift.isArchived,
+                }}
+                conversationId={String(conversationId)}
+                currentUserId={currentUserId}
+                variant={isProposal ? "proposal" : "thread"}
+                align={isMine ? "end" : "start"}
+                onClose={() =>
+                  setOpenDrifts((prev) => ({
+                    ...prev,
+                    [threadEntry.drift.id]: false,
+                  }))
+                }
+              />
+            </>
+          )}
+        </div>
+      );
+    },
+    [
+      closeDrift,
+      conversationId,
+      currentUserId,
+      driftsByAnchorId,
+      driftsByRoot,
+      ensureAndOpenProposal,
+      ensureAndOpenThread,
+      handleDelete,
+      handleOpen,
+      onCompareProposals,
+      onCreateOptions,
+      onCreateTemp,
+      onMergeProposal,
+      onVote,
+      openDrift,
+      openDrifts,
+      pollsByMessageId,
+      setOpenDrifts,
+    ]
+  );
+
+  return (
+    <div className="space-y-3" data-chat-root>
+      <ProposalsCompareModal
+        open={!!compareFor}
+        onClose={() => setCompareFor(null)}
+        rootMessageId={String(compareFor || "")}
+        conversationId={String(conversationId)}
+        currentUserId={currentUserId}
+        onOpenDrift={(driftId) =>
+          setOpenDrifts((prev) => ({ ...prev, [driftId]: true }))
+        }
+        onMerged={() => {}}
+      />
+
+      <MessageListVirtual
+        ref={listRef}
+        items={messages}
+        renderItem={renderMessage}
+        onReachTop={loadOlder}
+        onBottomStateChange={(atBottom) => setShowScrollDown(!atBottom)}
+        follow
+      />
+      {showScrollDownDelayed && (
+        <button
+          type="button"
+          onClick={scrollToBottom}
+          className={[
+            "fixed z-[70] bottom-32 h-10 w-10 rounded-full shadow-md",
+            "bg-white/50 backdrop-blur-sm likebutton flex items-center justify-center",
+            "transition-transform hover:translate-y-[1px]",
+          ].join(" ")}
+          title="Scroll to composer"
+          aria-label="Scroll to composer"
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M12 4v14m0 0l-6-6m6 6l6-6"
+              stroke="currentColor"
+              strokeWidth="1"
+              fill="none"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </button>
+      )}
+
+      {othersTypingIds.length > 0 && (
+        <div className="px-3 text-[12px] text-slate-500 italic">
+          {othersTypingIds.length === 1
+            ? `${getTypingName(othersTypingIds[0])} is typing…`
+            : "Several people are typing…"}
+        </div>
+      )}
+    </div>
+  );
+}
