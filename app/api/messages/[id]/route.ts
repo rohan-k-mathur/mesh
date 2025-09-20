@@ -60,7 +60,11 @@ export async function POST(
           const text = form.get("text") as string | null;
           const files = form.getAll("files").filter(Boolean) as File[];
           const driftIdIn = form.get("driftId") as string | null;
-          const clientId = (form.get("clientId") as string | null) ?? undefined;
+          //const clientId = (form.get("clientId") as string | null) ?? undefined;
+             const clientId =
+     (form.get("clientId") as string | null)
+     ?? req.headers.get("x-idempotency-key")
+     ?? undefined;
 
            // NEW: accept optional meta (stringified JSON)
            const metaRaw = form.get("meta");
@@ -79,6 +83,30 @@ export async function POST(
             clientId,
             meta, 
           });
+            //  try {
+            //      const saved = await sendMessage({
+            //        conversationId,
+            //        senderId: userId,
+            //        text: text ?? undefined,
+            //        files: files.length ? files : undefined,
+            //        driftId: driftIdIn ? BigInt(driftIdIn) : undefined,
+            //        clientId,
+            //        meta,
+            //      });
+            //      return NextResponse.json({ id: String(saved.id), driftId: saved.driftId ? String(saved.driftId) : null }, { status: 201 });
+            //    } catch (e:any) {
+            //      // If client_id collided, surface the existing row
+            //      if (e?.code === "P2002" && String(e?.meta?.target || "").includes("message_client_id_key") && clientId) {
+            //        const existing = await prisma.message.findFirst({
+            //          where: { client_id: clientId },
+            //          select: { id: true, drift_id: true },
+            //        });
+            //        if (existing) {
+            //          return NextResponse.json({ id: String(existing.id), driftId: existing.drift_id ? String(existing.drift_id) : null }, { status: 200 });
+            //        }
+            //      }
+            //      throw e;
+            //    }
       
           // Coerce id to BigInt for Prisma in case sendMessage returned a string.
           const savedId = typeof (saved as any).id === "bigint"
