@@ -3,7 +3,8 @@ import { prisma } from "@/lib/prismaclient";
 import { getUserFromCookies } from "@/lib/serverutils";
 import { revalidatePath } from "next/cache";
 import { feed_post_type } from "@prisma/client";
-import { emitBus } from "@/lib/bus";
+import { emitBus } from "@/lib/server/bus";
+
 
 type Viewer = { id: bigint | null };
 

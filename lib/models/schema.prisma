@@ -2968,8 +2968,34 @@ model Deliberation {
   roles DeliberationRole[]
   calls DeliberationCall[]
 
+  anchors                DeliberationAnchor[]
+  // ⬅️ Back-relation for Discussion.upgradedToDeliberation
+  upgradedFromDiscussion Discussion?          @relation("DiscussionToDeliberation")
+
+  //@@unique([hostType, hostId], name: "hostType_hostId")
   @@index([hostType, hostId])
   @@index([roomId])
+}
+
+model DeliberationAnchor {
+  id String @id @default(cuid())
+
+  deliberationId String
+  deliberation   Deliberation @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
+
+  targetType   String // 'stack' | 'stack:item' | 'article' | 'comment' | 'selection' | 'image' | 'video'
+  targetId     String? // id when applicable
+  selectorJson Json? // W3C Web Annotation selectors, media fragments (#t=), bbox, etc.
+  title        String?
+  snippet      String?
+  createdById  String
+  createdAt    DateTime @default(now())
+  // Optional: avoid duplicate anchors per target
+  // @@unique([deliberationId, targetType, targetId])
+
+  @@index([deliberationId])
+  @@index([targetType, targetId])
+  @@index([createdById])
 }
 
 model DeliberationRole {
@@ -3626,11 +3652,93 @@ model WikiRevision {
 }
 
 model AgoraFollow {
-  userId   String
-  kind     String   // 'room' | 'tag'
-  targetId String
+  userId    String
+  kind      String // 'room' | 'tag'
+  targetId  String
   createdAt DateTime @default(now())
 
   @@id([userId, kind, targetId])
   @@index([kind, targetId])
+}
+
+model Discussion {
+  id           String   @id @default(cuid())
+  hostType     String // mirrors the thing this discussion is about (stack, article, adhoc, …)
+  hostId       String
+  title        String?
+  visibility   String   @default("inherit") // inherit | public | private
+  mode         String   @default("live") // live | threaded | mixed
+  ephemeralTTL Int? // seconds; if set, messages can auto-expire
+  createdById  String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Optional soft link when promoted/upgraded
+  upgradedToDeliberationId String? @unique
+
+  upgradedToDeliberation Deliberation? @relation("DiscussionToDeliberation", fields: [upgradedToDeliberationId], references: [id], onDelete: SetNull)
+
+  messages     DiscussionMessage[]
+  participants DiscussionParticipant[]
+
+  @@index([hostType, hostId])
+  @@index([createdById])
+}
+
+model DiscussionMessage {
+  id String @id @default(cuid())
+
+  discussionId String
+  discussion   Discussion @relation(fields: [discussionId], references: [id], onDelete: Cascade)
+
+  // Threading
+  parentId String?
+  parent   DiscussionMessage?  @relation("DiscussionMessageReplies", fields: [parentId], references: [id], onDelete: SetNull)
+  replies  DiscussionMessage[] @relation("DiscussionMessageReplies")
+
+  authorId String
+  kind     String  @default("text") // text | media | system | poll | note | …
+  text     String?
+  richJson Json?
+
+  // Ephemeral / pinning
+  isPinned    Boolean   @default(false)
+  isEphemeral Boolean   @default(false)
+  expiresAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  reactions DiscussionReaction[]
+
+  @@index([discussionId])
+  @@index([parentId])
+  @@index([authorId])
+  @@index([expiresAt])
+  @@index([isPinned])
+}
+
+model DiscussionReaction {
+  id        String            @id @default(cuid())
+  messageId String
+  message   DiscussionMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  userId    String
+  kind      String // e.g. 'like', 'emoji:👍', 'flag'
+  createdAt DateTime          @default(now())
+
+  @@unique([messageId, userId, kind])
+  @@index([userId])
+}
+
+model DiscussionParticipant {
+  discussionId String
+  userId       String
+  role         String    @default("member") // member | moderator | owner
+  lastReadAt   DateTime?
+  createdAt    DateTime  @default(now())
+
+  discussion Discussion @relation(fields: [discussionId], references: [id], onDelete: Cascade)
+
+  @@id([discussionId, userId])
+  @@index([userId])
 }

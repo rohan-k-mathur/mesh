@@ -12,25 +12,25 @@ export function TopBar({
   ];
   
   return (
-    <div className="sticky top-0 z-10 bg-gradient-to-b from-white/70 to-white/30 backdrop-blur rounded-b-xl">
-      <div className="flex items-center gap-2 py-2">
-        <div className="flex items-center gap-1">
+    <div className="sticky max-w-screen w-full h-full top-0 z-10 bg-gradient-to-b from-indgo-50/30 to-slate-100/30 backdrop-blur rounded-md-b-xl">
+      <div className="flex items-center gap-3 p-3">
+        <div className="flex items-center gap-3">
           {tabs.map(([k,label]) => (
             <button
               key={k}
               onClick={() => onTab(k)}
-              className={`px-2 py-1 rounded text-sm ${tab===k ? "bg-white border" : "hover:bg-white/60 border"}`}
+              className={`px-4 py-1 agoratab   rounded-md text-xs ${tab===k ? " text-slate-900 ring-[3px] ring-offset-0 ring-emerald-400/50 " : " text-slate-900 "}`}
             >{label}</button>
           ))}
         </div>
         <div className="ml-auto flex items-center gap-2">
           <input
-            className="border rounded px-2 py-1 text-sm w-[260px] bg-white/80"
+            className=" rounded-md px-2 py-1 text-xs w-[260px] bg-white/80 minorfield border border-indigo-100 focus:outline-none"
             placeholder="Search rooms, claims, sources…"
             value={q}
             onChange={(e) => onQ(e.target.value)}
           />
-          <button onClick={onPause} className={`px-2 py-1 rounded text-sm border ${paused ? "bg-amber-100" : "bg-white/80"}`}>
+          <button onClick={onPause} className={`px-4 py-1 agoratab   rounded-md text-xs  ${paused ? "bg-emerald-100" : "bg-white/80"}`}>
             {paused ? "Resume" : "Pause"}
           </button>
         </div>

@@ -1,3 +1,4 @@
+// components/stack/SortablePdfGrid.tsx
 "use client";
 
 import React from "react";
@@ -44,7 +45,6 @@ export default function SortablePdfGrid({ stackId, posts, editable }: Props) {
   }, [posts]);
 
   const sensors = useSensors(
-    // PointerSensor with a small activation distance avoids accidental drags on click
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
     useSensor(KeyboardSensor)
   );
@@ -67,11 +67,9 @@ export default function SortablePdfGrid({ stackId, posts, editable }: Props) {
     // submit new order to the server
     const ids = next.map((i) => i.id);
     if (orderInputRef.current) orderInputRef.current.value = JSON.stringify(ids);
-    // Request submit (so it works in all browsers)
     if (formRef.current) formRef.current.requestSubmit();
   }
 
-  // Readable small tile component
   return (
     <>
       {/* Hidden form posts to setStackOrder (server action) */}
@@ -148,7 +146,7 @@ function SortableTile({
         title={title}
       />
 
-      {/* Drag handle (only when editable). Keep handle separate so clicks on the image open the lightbox. */}
+      {/* Drag handle */}
       {editable && (
         <button
           className="absolute top-2 left-2 p-1 rounded bg-white/90 border opacity-0 group-hover:opacity-100 transition cursor-grab active:cursor-grabbing"
@@ -165,19 +163,17 @@ function SortableTile({
             <circle cx="8" cy="8" r="1.5" />
             <circle cx="13" cy="8" r="1.5" />
           </svg>
-</button>
+        </button>
       )}
-      {editable && (
-  <button
-    className="absolute bottom-2 left-2 px-2 py-1 text-xs rounded bg-white/90 border"
-    onClick={() => window.dispatchEvent(new CustomEvent('composer:cite', {
-      detail: { libraryPostId: tile.id }
-    }))}>
-    Cite
-  </button>
-)}
 
-      {/* Remove button on hover (still using your existing server action) */}
+      {/* Cite popover */}
+      {editable && (
+        <div className="absolute bottom-2 left-2">
+          <CiteButton libraryPostId={tile.id} />
+        </div>
+      )}
+
+      {/* Remove button on hover */}
       {editable && (
         <form action={removeFromStack} className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition">
           <input type="hidden" name="stackId" value={stackId} />
@@ -186,9 +182,40 @@ function SortableTile({
             className="px-2 py-1 text-xs rounded bg-white/90 border"
             type="submit"
           >
-            Remove
+            ⌫
           </button>
         </form>
+      )}
+    </div>
+  );
+}
+
+function CiteButton({ libraryPostId }: { libraryPostId: string }) {
+  const [open, setOpen] = React.useState(false);
+  return (
+    <div className="relative ">
+      <button className="px-2 py-1 text-xs rounded-lg bg-white/90 border" onClick={() => setOpen((x) => !x)}>Cite</button>
+      {open && (
+        <div className="relative z-20 mt-1 w-44 rounded border bg-slate-50 shadow-lg border-[2px] border-indigo-300">
+          <button
+            className="w-full text-left px-3 py-1.5 text-xs hover:bg-slate-200"
+            onClick={() => {
+              setOpen(false);
+              window.dispatchEvent(new CustomEvent("composer:cite", { detail: { libraryPostId, mode: "quick" } }));
+            }}
+          >
+            Quick cite
+          </button>
+          <button
+            className="w-full text-left px-3 py-1.5 text-xs hover:bg-slate-200"
+            onClick={() => {
+              setOpen(false);
+              window.dispatchEvent(new CustomEvent("composer:cite", { detail: { libraryPostId, mode: "details" } }));
+            }}
+          >
+            Cite with details…
+          </button>
+        </div>
       )}
     </div>
   );

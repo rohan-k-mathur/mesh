@@ -18,6 +18,28 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   return NextResponse.json({ ok: true });
 }
 
+
+export async function GET(_req: Request, { params }: { params: { id: string } }) {
+  const st = await prisma.stack.findUnique({
+    where: { id: params.id },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      is_public: true,
+      subscribers: { select: { user_id: true } },
+    },
+  });
+  if (!st) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  return NextResponse.json({
+    id: st.id,
+    name: st.name,
+    slug: st.slug ?? null,
+    is_public: st.is_public,
+    subscriberCount: st.subscribers.length,
+  });
+}
+
 export async function DELETE(req: Request, { params }: { params: { id: string } }) {
   const user = await getUserFromCookies();
   if (!user) return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 });

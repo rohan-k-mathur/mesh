@@ -5,6 +5,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import CitePickerInlinePro from "@/components/citations/CitePickerInlinePro";
+import CitePickerModal from "@/components/citations/CitePickerModal";
 
 type BaseProps = {
   title?: string;
@@ -95,6 +96,14 @@ export default function PdfLightbox(props: PdfLightboxProps) {
       ? `${resolvedUrl}#page=${startPage}&view=FitH`
       : resolvedUrl ? `${resolvedUrl}#view=FitH` : "";
 
+      function dispatchCite(mode: "quick" | "details") {
+        const libId = ("postId" in props ? props.postId : undefined) || info?.id;
+        const detail: any = { mode, locator, quote, note };
+        if (libId) detail.libraryPostId = libId;
+        window.dispatchEvent(new CustomEvent("composer:cite", { detail }));
+      }
+    
+
   const Header = (
     <DialogHeader>
       <div className="flex items-start justify-between gap-3">
@@ -114,7 +123,7 @@ export default function PdfLightbox(props: PdfLightboxProps) {
   );
 
   const Body = (
-    <div className="relative w-full h-[82vh] rounded-xl shadow-lg bg-white">
+    <div className="relative flex w-[700px] h-[82vh] rounded-xl shadow-lg bg-white">
       {loading && (
         <div className="absolute inset-0 grid place-items-center text-sm text-gray-500">
           Loading PDF…
@@ -125,70 +134,32 @@ export default function PdfLightbox(props: PdfLightboxProps) {
         <iframe
           title={title}
           src={iframeSrc}
-          className="w-full h-full rounded-xl"
+          className="w-full  rounded-xl"
           style={{ border: "none" }}
           referrerPolicy="no-referrer"
         />
       )}
 
-      {/* Cite overlay */}
-      {(props.citeTargetType && props.citeTargetId) && (
-        <div className="absolute bottom-2 right-2 flex flex-col items-end gap-2">
-          {!citeOpen ? (
-            <button
-              className="px-3 py-1 text-[11px] rounded bg-white/90 border"
-              onClick={() => setCiteOpen(true)}
-              title="Copy a selection from the PDF, then click to attach it"
-            >
-              Cite…
-            </button>
-          ) : (
-            <div className="w-[360px] rounded border bg-white p-2 shadow-xl">
-              <div className="text-[11px] text-slate-600 mb-1">Paste selection and locator</div>
-              <div className="grid grid-cols-2 gap-2 mb-2">
-                <input
-                  className="border rounded px-2 py-1 text-[12px]"
-                  placeholder="Locator (e.g., p. 5)"
-                  value={locator}
-                  onChange={(e) => setLocator(e.target.value)}
-                />
-                <input
-                  className="border rounded px-2 py-1 text-[12px]"
-                  placeholder="Note (optional)"
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                />
-              </div>
-              <textarea
-                className="w-full border rounded px-2 py-1 text-[12px]"
-                rows={2}
-                placeholder="Paste quote"
-                value={quote}
-                onChange={(e) => setQuote(e.target.value)}
-              />
-              <div className="mt-2 flex items-center gap-2">
-                <CitePickerInlinePro
-                  targetType={props.citeTargetType}
-                  targetId={props.citeTargetId}
-                  // Pre-seed: we can pass nothing; the picker will resolve a Source.
-                  // We'll piggyback locator/quote by overriding its inputs (post-attach update).
-                  onDone={() => {
-                    setQuote("");
-                    setNote("");
-                    setCiteOpen(false);
-                  }}
-                />
-                <button className="text-[11px] underline text-slate-600" onClick={() => setCiteOpen(false)}>
-                  Cancel
-                </button>
-              </div>
-              {/* If you want to attach *without* opening the picker, you can add a small custom attach flow here: resolve → attach with {locator, quote}. */}
-            </div>
-          )}
+{/* 
+     {/* Simple cite overlay */}
+      <div className="fixed w-full bottom-0 right-0 ml-[100px] flex flex-col items-end gap-2">
+        <div className="w-[270px] rounded border border-slate-300 bg-white/50 backdrop-blur p-2 shadow-xl">
+          <div className="text-[11px] text-slate-600 mb-1">Paste selection & locator (optional)</div>
+          <div className="grid grid-cols-2 gap-2 mb-2">
+            <input className="border rounded px-2 py-1 text-[11px]" placeholder="Locator (e.g., p. 5)" value={locator} onChange={(e) => setLocator(e.target.value)} />
+            <input className="border rounded px-2 py-1 text-[11px]" placeholder="Note (optional)" value={note} onChange={(e) => setNote(e.target.value)} />
+          </div>
+          <textarea className="w-full border border-slate-200 shadow-none rounded px-2 py-1 text-[11px]" rows={2} placeholder="Paste quote (optional)" value={quote} onChange={(e) => setQuote(e.target.value)} />
+          <div className="mt-2 flex items-center gap-2">
+            <button className="px-2 py-1 text-[11px] rounded border bg-white hover:bg-slate-50" onClick={() => dispatchCite("quick")} title="Attach immediately">Quick cite</button>
+            <button className="px-2 py-1 text-[11px] rounded border bg-white hover:bg-slate-50" onClick={() => dispatchCite("details")} title="Open the cite picker">Cite with details…</button>
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
+
+  
 
   // Triggered (self-managed)
   if (!isControlled) {

@@ -942,3 +942,266 @@ textarea.textareav2 {
 .article-body [data-align="center"],  .article-body .ta-center  { text-align: center; }
 .article-body [data-align="right"],   .article-body .ta-right   { text-align: right; }
 .article-body [data-align="justify"], .article-body .ta-justify { text-align: justify; }
+
+
+
+/* === Aqua Glass Button v2.1 (Article scope) ============================== */
+/* Applies to .agoratab and your legacy classes for drop-in compatibility */
+/* === Aqua Glass Button v2.1 (Option B ring) ============================= */
+.agoratab{
+  /* Theme hooks (RGB) */
+  --btn-accent: 179, 200, 220;
+  --btn-lite: 210, 220, 230;
+--btn-heavy: 180,180,245;
+  --btn-border: 15,23,42;
+  --btn-outline: 99,110,218;
+  --btn-text:   30,41,59;
+  --btn-top:    200,220,230;
+  --btn-bot:    240,200,230;
+  --btn-ring: linear-gradient(
+    360deg,
+    rgba(var(--btn-heavy), 0.75) 0%,
+    rgba(var(--btn-top), .75) 20%,
+    rgba(var(--btn-heavy), .95) 50%,
+    rgba(var(--btn-top), .75) 70%,
+
+    rgba(var(--btn-heavy), .65) 100%
+
+    /* rgba(var(--btn-heavy), .75) 100% */
+    /* rgba(var(--btn-lite),  .55) 100% */
+  );
+  /* Ring controls (editable) */
+  --ring-w: 1.5px; /* thickness of the gradient ring */
+  --btn-ring-after: linear-gradient(
+    360deg,
+    rgba(var(--btn-lite), 0.55) 0%,
+    rgba(var(--btn-top), .75) 20%,
+    rgba(var(--btn-heavy), .95) 50%,
+    rgba(var(--btn-lite), .25) 70%,
+
+    rgba(var(--btn-heavy), .75) 100%
+    /* rgba(var(--btn-lite),  .55) 100% */
+  );
+
+  
+
+  /* Fill (you can keep tweaking this variable in :hover/dark) */
+  --btn-fill: linear-gradient(
+    180deg,
+    rgba(var(--btn-top), .55) 0%,
+    rgba(var(--btn-lite), .14) 25%,
+    rgba(var(--btn-top), .25) 50%,
+    rgba(var(--btn-lite), .10) 75%,
+    rgba(var(--btn-top),  .45) 100%
+  );
+
+  -webkit-tap-highlight-color: transparent;
+  appearance: none;
+  position: relative; /* needed for ::before */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .45rem;
+
+  padding: .36rem .72rem;
+  font-size: 12px; line-height: 1; font-weight: 450;
+  letter-spacing: .01em; -webkit-font-smoothing: antialiased;
+
+  /* Remove border-image & physical border; ring is drawn by ::before */
+  border: none;
+  border-radius: 10px;
+
+  /* Inner rim (optional) */
+  outline: 1px solid rgba(var(--btn-heavy), .45);
+  outline-offset: -2.5px;
+
+  color: rgb(var(--btn-text));
+  background: var(--btn-fill);
+
+
+  
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.45),
+    0 2px 6px rgba(51, 57, 82, 0.1),
+    0 14px 28px -14px rgba(98, 101, 114, 0.22);
+  backdrop-filter: saturate(2) blur(6px);
+
+  transition:
+    transform .08s ease,
+    box-shadow .08s ease,
+    background-color .18s ease,
+    color .18s ease;
+  cursor: pointer;
+}
+
+
+
+/* Gradient ring via masked ::before (respects border-radius) */
+.agoratab::before {
+  content: "";
+  position: absolute;
+  inset: 0;                  /* full button box */
+  padding: var(--ring-w);    /* ring thickness */
+  border-radius: inherit;
+  background: var(--btn-ring);
+
+  /* Punch out center so only a ring remains */
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+
+  pointer-events: none;      /* don’t block clicks */
+}
+
+
+/* .agoratab::after,
+.savebutton::after,
+.lockbutton::after,
+.sheaf-button::after {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 60% at 50% -20%,
+      rgba(255,255,255,.55) 0%,
+      rgba(255,255,255,.24) 35%,
+      rgba(255,255,255,0) 60%);
+  opacity: .65;
+  transition: opacity .18s ease;
+} */
+.agoratab::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: var(--ring-w);
+  border-radius: inherit;
+  background: var(--btn-fill);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .18s ease;
+}
+
+/* Hover / active / focus */
+.agoratab:hover
+ {
+  --btn-fill: linear-gradient(
+    180deg,
+    rgba(var(--btn-top), .05) 0%,
+    rgba(var(--btn-lite), .10) 25%,
+    rgba(var(--btn-top), .35) 50%,
+    rgba(var(--btn-lite), .10) 75%,
+    rgba(var(--btn-top),  .05) 100%
+  );
+
+  transform: translateY(-.5px);
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.35),
+    0 1px 2px rgba(2,6,23,.06),
+    0 10px 20px -12px rgba(2,6,23,.16);
+}
+.agoratab:hover::after
+ {
+  opacity: 1; /* a touch more shine on hover */
+ 
+}
+
+.agoratab:active{
+  box-shadow: none;
+
+  transform: translateY(0);
+  box-shadow: inset 0 2px 6px rgba(42,46,73,.08);
+}
+@supports not ((-webkit-backdrop-filter: blur(0)) or (backdrop-filter: blur(0))) {
+  .agoratab { backdrop-filter: none; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .agoratab{ backdrop-filter: none; }
+}
+@supports not ((mask-composite: exclude) or (-webkit-mask-composite: xor)) {
+  .agoratab {
+    border: var(--ring-w) solid transparent;
+    background-image: var(--btn-fill), var(--btn-ring);
+    background-origin: border-box, border-box;
+    background-clip: padding-box, border-box;
+  }
+  .agoratab::before, .savebutton::before, .lockbutton::before, .sheaf-button::before { content: none; }
+}
+.agoratab:focus-visible {
+  outline: none;
+  /* Emphasize via outer glow + slightly thicker ring */
+  --ring-w: 2px;
+  box-shadow:
+    0 0 0 2px rgba(var(--btn-accent), .22),
+    inset 0 0 0 1px rgba(var(--btn-accent), .35);
+}
+/* Disabled */
+.agoratab[disabled] {
+  opacity: .6;
+  cursor: not-allowed;
+  filter: grayscale(10%);
+}
+.glass-surface .agoratab {
+  backdrop-filter: blur(6px) saturate(1.8);
+  -webkit-backdrop-filter: blur(6px) saturate(1.8);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass-surface .agoratab { backdrop-filter: none; -webkit-backdrop-filter: none; }
+}
+@supports not ((-webkit-backdrop-filter: blur(0)) or (backdrop-filter: blur(0))) {
+  .glass-surface .agoratab { backdrop-filter: none; -webkit-backdrop-filter: none; }
+}
+/* Dark mode tuning */
+.dark .agoratab{
+  --btn-text: 241,245,249;                 /* slate-50 */
+  --btn-top:  15,23,42; --btn-bot: 15,23,42;
+  border-color: rgba(148,163,184,.25);
+  background:
+    linear-gradient(180deg,
+      rgba(var(--btn-top), .64) 0%,
+      rgba(var(--btn-bot), .42) 100%
+    ),
+    linear-gradient(180deg,
+      rgba(var(--btn-accent), .18) 0%,
+      rgba(var(--btn-accent), .10) 100%
+    );
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.06),
+    0 1px 2px rgba(0,0,0,.35),
+    0 10px 20px -12px rgba(0,0,0,.5);
+}
+.dark .agoratab:hover{
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.08),
+    0 2px 6px rgba(0,0,0,.45),
+    0 14px 28px -14px rgba(0,0,0,.6);
+}
+
+/* Sizes (optional) */
+.agoratab--sm { padding: .28rem .52rem; font-size: 12px; border-radius: 8px; }
+.agoratab--lg { padding: .56rem .96rem; font-size: 14px; border-radius: 12px; }
+
+.agoratab--pin {
+  border: 1px solid rgba(var(--btn-accent), .25);
+  outline: 1px solid rgba(var(--btn-outline), .15);
+  outline-offset: -1px;
+
+}
+.agoratab--comment{
+  padding: 2px;
+text-align: left;
+}
+
+/* Icon-only */
+.agoratab--icon { padding: .42rem; width: 2rem; height: 2rem; display: inline-grid; place-items: center; }
+
+/* Ghost variant */
+.agoratab--ghost { background: rgba(238, 242, 255,.22); backdrop-filter: none; border-width: .75px;  border-color: rgb(129, 140, 248,.75);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.22); }
+.agoratab--ghost:hover { box-shadow: inset 0 1px 2px rgba(2,6,23,.08), 0 4px 10px -8px rgba(2,6,23,.12); }

@@ -125,13 +125,13 @@ export default function CitePickerInlinePro({
   }
 
   return (
-    <div className="border rounded p-2 bg-white/90 w-full max-w-[680px]">
+    <div className="border rounded-xl px-3 bg-white/70 w-full max-w-[680px] py-3">
       {/* Tabs */}
       <div className="flex gap-2 mb-2">
         {(["url", "doi", "library"] as const).map((t) => (
           <button
             key={t}
-            className={`text-[11px] px-2 py-1 rounded border ${tab === t ? "bg-slate-100" : ""}`}
+            className={`text-[11px] px-2 py-1 rounded border ${tab === t ? "bg-slate-300" : "bg-white"}`}
             onClick={() => setTab(t)}
           >
             {t.toUpperCase()}
@@ -234,7 +234,7 @@ export default function CitePickerInlinePro({
         />
       </div>
       <textarea
-        className="w-full border rounded px-2 py-1 text-sm"
+        className="w-full border rounded px-2 py-1 text-sm commentfield"
         rows={2}
         placeholder="Quote (optional, <280 chars)"
         value={quote}

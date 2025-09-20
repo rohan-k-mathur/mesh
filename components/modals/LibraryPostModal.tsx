@@ -122,36 +122,41 @@ export default function LibraryPostModal({ onOpenChange, stackId }: Props) {
   }
 
   return (
-    <DialogContent className="max-w-[600px]">
+    <DialogContent className="max-w-[600px] bg-slate-300">
       <DialogHeader>
-        <DialogTitle>New Library</DialogTitle>
+        <DialogTitle hidden> <span className="text-[20px]">New Library</span></DialogTitle>
       </DialogHeader>
 
-      <div className="flex gap-3 text-sm">
+      <div className="flex flex-col gap-3 text-sm">
+      <span className="flex font-semibold text-[22px] pb-1">New Library</span>
+      <hr className="border-slate-600"></hr>
+      <div className="flex gap-2 mt-1">
         <button
-          className={tab === "upload" ? "underline" : ""}
+          className={tab === "upload" ? "flex  bg-slate-200 p-1 rounded" : "flex bg-transparent p-1 rounded "}
           onClick={() => setTab("upload")}
         >
           Upload
         </button>
         <button
-          className={tab === "url" ? "underline" : ""}
+          className={tab === "url" ? "flex  bg-slate-200 p-1 rounded" : "flex bg-transparent p-1 rounded"}
           onClick={() => setTab("url")}
         >
           Paste URL(s)
         </button>
+        </div>
       </div>
 
       {tab === "upload" ? (
-        <div className="mt-3 space-y-3">
+        <div className="mt-0 space-y-2 p-1">
           <input
             type="file"
             accept="application/pdf"
             multiple
+            className="text-sm"
             onChange={(e) => setFiles(e.target.files)}
           />
           <div className="text-xs text-muted-foreground">
-            You can select multiple PDFs.
+            You can select multiple files.
           </div>
         </div>
       ) : (
@@ -170,20 +175,20 @@ export default function LibraryPostModal({ onOpenChange, stackId }: Props) {
       </label> */}
 
       <input
-        className="mt-3 w-full rounded border p-2"
+        className="mt-1 w-full text-xs rounded border p-2 commentfield rounded-lg"
         placeholder="Optional caption"
         value={caption}
         onChange={(e) => setCaption(e.target.value)}
       />
 
-      <div className="mt-4 flex justify-end gap-2">
+      <div className="mt-1 flex justify-end gap-2">
         <DialogClose asChild>
-          <button className="px-3 py-2 rounded border" disabled={submitting}>
+          <button className="text-xs px-3 py-2 rounded bg-slate-400/50 border" disabled={submitting}>
             Cancel
           </button>
         </DialogClose>
         <button
-          className="px-3 py-2 rounded bg-black text-white"
+          className="px-3 py-2 rounded text-xs bg-black text-white"
           onClick={onSubmit}
           disabled={submitting}
         >

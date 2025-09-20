@@ -1,39 +1,82 @@
 // app/api/bus/subscribe/route.ts
-import { NextRequest } from 'next/server';
-import { bus } from '@/lib/bus';
+import { NextRequest } from "next/server";
+import { bus } from "@/lib/server/bus";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
+  const url = new URL(req.url);
+  const topics = (url.searchParams.get("topics") || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  // sensible defaults if none provided
+  const listen = topics.length ? topics : [
+    "dialogue:moves:refresh",
+    "dialogue:changed",
+    "citations:changed",
+    "comments:changed",
+    "deliberations:created",
+    "decision:changed",
+    "votes:changed",
+    "xref:changed",
+    "stacks:changed",
+  ];
+
+  const encoder = new TextEncoder();
+  let closed = false;            // prevent post-close writes
+  let cleanup: () => void = () => {};
+
   const stream = new ReadableStream({
     start(controller) {
-      const enc = (data:any) => `data: ${JSON.stringify(data)}\n\n`;
-      const send = (type:string, detail:any={}) => controller.enqueue(new TextEncoder().encode(enc({ type, ...detail })));
+      const send = (payload: any) => {
+        if (closed) return;
+        try {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
+        } catch {
+          // controller already closed
+        }
+      };
 
-      const unsubs = [
-        bus.on('dialogue:moves:refresh', (d) => send('dialogue:moves:refresh', d)),
-        bus.on('dialogue:cs:refresh',     (d) => send('dialogue:cs:refresh', d)),
-        bus.on('claims:edges:changed',    (d) => send('claims:edges:changed', d)),
-        bus.on('cards:changed',           (d) => send('cards:changed', d)),
-      ];
+      const unsubs: Array<() => void> = [];
+      for (const t of listen) {
+        const h = (detail: any) => send({ type: t, ts: Date.now(), ...(detail || {}) });
+        (bus as any).on(t, h);
+        unsubs.push(() => (bus as any).off?.(t, h));
+      }
 
-      // keep‑alive
-      const ping = setInterval(() => controller.enqueue(new TextEncoder().encode(`: ping\n\n`)), 15000);
+      const ping = setInterval(() => send({ type: "ping", ts: Date.now() }), 15_000);
 
-      // close
-      (req as any).signal?.addEventListener?.('abort', () => {
+      // Initial hello
+      send({ type: "hello", ts: Date.now(), topics: listen });
+
+      cleanup = () => {
+        if (closed) return;
+        closed = true;
         clearInterval(ping);
-        unsubs.forEach(u => u());
-        controller.close();
-      });
-    }
+        unsubs.forEach((fn) => {
+          try { fn(); } catch {}
+        });
+        try { controller.close(); } catch {}
+      };
+
+      // Abort from client
+      try {
+        (req as any).signal?.addEventListener?.("abort", cleanup);
+      } catch {}
+    },
+
+    cancel() {
+      try { cleanup(); } catch {}
+    },
   });
 
   return new Response(stream, {
     headers: {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache, no-transform',
-      Connection: 'keep-alive',
+      "Content-Type": "text/event-stream; charset=utf-8",
+      "Cache-Control": "no-cache, no-transform",
+      Connection: "keep-alive",
     },
   });
 }

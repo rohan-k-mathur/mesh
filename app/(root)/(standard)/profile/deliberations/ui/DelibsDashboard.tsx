@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import useSWRInfinite from "swr/infinite";
+import { useFollowing } from "@/lib/client/useFollowing";
+
 
 type Item = {
   id: string;
@@ -24,6 +26,8 @@ export default function DelibsDashboard({ initialItems }: { initialItems: Item[]
   const [q, setQ] = useState("");
   const [host, setHost] = useState<"ALL" | "article" | "post" | "room">("ALL");
   const [page, setPage] = useState(1);
+  const { isFollowingRoom, followRoom, unfollowRoom } = useFollowing();
+
 
   const getKey = (index: number, prev: PageData | null) => {
     if (prev && (!prev.items || prev.items.length === 0)) return null;
@@ -127,6 +131,11 @@ export default function DelibsDashboard({ initialItems }: { initialItems: Item[]
                     <button className="px-2 py-.5 bg-white/30 rounded-xl savebutton" onClick={() => copyLink(i)}>
                       Copy link
                     </button>
+                    {isFollowingRoom(i.id) ? (
+  <button className="px-2 py-.5 bg-emerald-50 border-emerald-200 rounded-xl" onClick={() => unfollowRoom(i.id)}>Following ✓</button>
+) : (
+  <button className="px-2 py-.5 bg-white/30 rounded-xl" onClick={() => followRoom(i.id)}>Follow</button>
+)}
                   </div>
                 </td>
               </tr>

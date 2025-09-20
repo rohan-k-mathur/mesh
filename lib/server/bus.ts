@@ -13,6 +13,7 @@ type BusEvent =
   | 'comments:changed'
   | 'xref:changed'
   | 'citations:changed'
+  | 'stacks:changed'
   | 'dialogue:changed';
 
 export type BusPayload = Record<string, any>;

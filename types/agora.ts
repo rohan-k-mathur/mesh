@@ -1,7 +1,7 @@
 export type BusEvent =
   | "dialogue:moves:refresh" | "dialogue:cs:refresh"
   | "claims:edges:changed"   | "cqs:changed" | "cards:changed"
-  | "decision:changed"       | "votes:changed"
+  | "decision:changed"       | "votes:changed" | "stacks:changed"
   | "deliberations:created"  | "comments:changed" | "xref:changed" | "citations:changed";
 
 export type AgoraEvent = {

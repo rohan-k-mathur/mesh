@@ -20,8 +20,8 @@ function timeAgo(d: Date) {
 // small inline formatter; you also have /api/citations/format for batch
 function formatCasualChip(s: any, locator?: string | null) {
   const base =
-    s.title?.slice(0, 60) ||
-    s.url?.replace(/^https?:\/\//, "")?.slice(0, 60) ||
+    (typeof s.title === "string" && s.title.trim()) ||
+    (typeof s.url === "string" && s.url.replace(/^https?:\/\//, "").slice(0, 80)) ||
     "Source";
   return locator ? `${base} · ${locator}` : base;
 }

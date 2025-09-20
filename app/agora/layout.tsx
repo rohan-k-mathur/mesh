@@ -17,7 +17,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="flex antialiased justify-center items-center align-center mt-5  py-2 h-full w-full  bg-slate-50 ">
+      <body className="flex antialiased justify-center items-center align-center mt-0  py-0 h-full w-full  bg-slate-50 ">
         {children}
         </body>
     </html>

@@ -51,36 +51,7 @@ export default async function Page({ params, searchParams }: { params: { id: str
 
   // Messages newest->oldest then flip so newest at bottom
   const rows = (await fetchMessages({ conversationId })).reverse();
-  // const initialMessages = rows.map((m) => ({
-  //   id: m.id.toString(),
-  //   text: m.text ?? null,
-  //   createdAt: m.created_at.toISOString(),
-  //   senderId: m.sender_id.toString(),
-  //   sender: { name: m.sender.name, image: m.sender.image },
-  //   attachments: m.attachments.map((a) => ({
-  //     id: a.id.toString(),
-  //     path: a.path,
-  //     type: a.type,
-  //     size: a.size,
-  //   })),
-  // }));
-  // Fetch newest->oldest then flip so newest is at the bottom in the UI
-  // const rows = (await fetchMessages({ conversationId })).reverse();
-
-  // const initialMessages = rows.map((m) => ({
-  //   id: m.id.toString(),
-  //   text: m.text ?? null,
-  //   createdAt: m.created_at.toISOString(),
-  //   senderId: m.sender_id.toString(),
-  //   sender: { name: m.sender.name, image: m.sender.image },
-  //   attachments: m.attachments.map((a) => ({
-  //     id: a.id.toString(),
-  //     path: a.path,
-  //     type: a.type,
-  //     size: a.size,
-  //   })),
-  // }));
-
+  
   const highlightMessageId = searchParams?.mid || null;
  // Build an absolute base URL for server-side fetch
 const h = headers();
@@ -131,22 +102,7 @@ const { messages: initialMessages } = await res.json();
       </div>
       <hr className="mt-3"/>
 
-{/* 
-      <div className="mt-6 space-y-6">
-        <ChatRoom
-          conversationId={params.id}             // pass as string
-          currentUserId={user.userId.toString()} // pass as string
-          initialMessages={initialMessages}
-          highlightMessageId={highlightMessageId}
-        />
-        <hr />
-        <MessageComposer
-  conversationId={String(conversationId)}
-  currentUserId={user.userId.toString()}   // ← make sure this is passed
-/>
-      </div>
-      <MessengerPane currentUserId={user.userId.toString()} />
-    </main> */}
+
 
   <div className="mt-6 space-y-6">
   
