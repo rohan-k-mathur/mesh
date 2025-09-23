@@ -3720,6 +3720,7 @@ model ForumComment {
   updatedAt DateTime @updatedAt
 
   // prevents duplicate promote spam:
+  @@index([discussionId, parentId]) // on ForumComment
   @@unique([discussionId, sourceMessageId])
   @@index([discussionId])
   @@index([parentId])
@@ -3793,4 +3794,25 @@ model DiscussionParticipant {
 
   @@id([discussionId, userId])
   @@index([userId])
+}
+
+model ForumVote {
+  userId    BigInt
+  commentId BigInt
+  dir       Int            // -1, 0, 1
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@id([userId, commentId])
+  @@index([commentId])
+}
+
+// Saves (bookmarks) are simple toggles
+model ForumSave {
+  userId    BigInt
+  commentId BigInt
+  createdAt DateTime @default(now())
+
+  @@id([userId, commentId])
+  @@index([commentId])
 }

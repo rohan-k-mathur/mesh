@@ -1,3 +1,4 @@
+// components/discussion/ForumPane.tsx
 "use client";
 
 import * as React from "react";
@@ -16,8 +17,7 @@ type ForumComment = {
   sourceMessageId?: string | null;
   score: number;
   createdAt: string; // ISO
-  // UI-only fields:
-  _children?: ForumComment[]; // future: threaded fetch
+  _children?: ForumComment[]; // for future threaded rendering
 };
 
 const fetcher = (u: string) => fetch(u, { cache: "no-store" }).then((r) => r.json());
@@ -26,7 +26,17 @@ function cx(...parts: Array<string | false | null | undefined>) {
   return parts.filter(Boolean).join(" ");
 }
 
-// --- text normalization (do NOT import from MessageComposer) ---
+function collectIds(list: ForumComment[]): string[] {
+    const out: string[] = [];
+    const walk = (n: ForumComment) => {
+      out.push(String(n.id));
+      (n._children ?? []).forEach(walk);
+    };
+    list.forEach(walk);
+    return Array.from(new Set(out));
+  }
+
+// --- text normalization (keep local to avoid cross-imports) ---
 function plainFromNode(n: any): string {
   if (!n) return "";
   if (typeof n === "string") return n;
@@ -52,7 +62,6 @@ function normalizeBodyText(row: { bodyText?: string | null; body?: any }) {
   }
 }
 
-// terse time-ago
 function timeAgo(iso: string) {
   const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
   if (s < 60) return `${s}s ago`;
@@ -79,34 +88,46 @@ function formatCount(n: number) {
 export default function ForumPane({
   discussionId,
   conversationId, // string | null
-  opUserId,       // optional (if you later pass discussion author for OP badge)
+  opUserId,
 }: {
   discussionId: string;
   conversationId: string | null;
   opUserId?: string | number | null;
 }) {
-  // Sorting state (client side for now, but we pass to server as well)
   const [sort, setSort] = React.useState<"best" | "top" | "new" | "old">("best");
   const [limit, setLimit] = React.useState<number>(30);
-  const [cursor, setCursor] = React.useState<string | null>(null); // id (BigInt as string)
+  const [cursor, setCursor] = React.useState<string | null>(null);
+  const [compact, setCompact] = React.useState(false);
 
+  // Track URL hash for anchor highlight
+  const [highlightId, setHighlightId] = React.useState<string | null>(null);
+  React.useEffect(() => {
+    const get = () => {
+      const h = (location.hash || "").replace(/^#c-/, "");
+      setHighlightId(h || null);
+    };
+    get();
+    const onHash = () => get();
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
+
+  // Build query (server can later support ?sort=…)
   const query = React.useMemo(() => {
     const sp = new URLSearchParams();
     sp.set("limit", String(limit));
     if (cursor) sp.set("cursor", cursor);
-    // feel free to add ?sort= later on server
     sp.set("sort", sort);
     return sp.toString();
   }, [limit, cursor, sort]);
 
   const { data, mutate, isLoading, error } = useSWR<{ items: ForumComment[] }>(
-    `/api/discussions/${discussionId}/forum?` + query,
+    `/api/discussions/${discussionId}/forum?${query}&includeReplies=all`,
     fetcher
   );
 
   const items = React.useMemo(() => {
     const rows = data?.items ?? [];
-    // Client sort fallback (server can later implement exact semantics)
     const sorter = {
       best: (a: ForumComment, b: ForumComment) => b.score - a.score || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
       top: (a: ForumComment, b: ForumComment) => b.score - a.score,
@@ -116,11 +137,35 @@ export default function ForumPane({
     return [...rows].sort(sorter);
   }, [data?.items, sort]);
 
-  // Composer
+  // collect all ids for me-state fetch
+const allIds = React.useMemo(() => collectIds(items), [items]);
+
+const { data: meState } = useSWR<{ ok: boolean; votes: Record<string, number>; saves: Record<string, boolean> }>(
+  allIds.length ? `/api/discussions/${discussionId}/forum/me?ids=${allIds.join(",")}` : null,
+  fetcher
+);
+const meVotes = meState?.votes ?? {};
+const meSaves = meState?.saves ?? {};
+
+  // --- Draft persistence for the top composer
+  const DRAFT_KEY = `forum:draft:${discussionId}`;
   const [posting, setPosting] = React.useState(false);
   const [body, setBody] = React.useState("");
   const charLimit = 5000;
   const remaining = charLimit - body.length;
+
+  React.useEffect(() => {
+    try {
+      const saved = localStorage.getItem(DRAFT_KEY);
+      if (saved) setBody(saved);
+    } catch {}
+  }, [DRAFT_KEY]);
+
+  React.useEffect(() => {
+    try {
+      localStorage.setItem(DRAFT_KEY, body);
+    } catch {}
+  }, [DRAFT_KEY, body]);
 
   async function submitNew() {
     if (!body.trim() || posting) return;
@@ -137,19 +182,42 @@ export default function ForumPane({
       if (res.ok && j?.comment) {
         await mutate((prev) => ({ items: [j.comment, ...(prev?.items ?? [])] }), { revalidate: false });
       } else {
-        await mutate(); // fallback
+        await mutate();
       }
       setBody("");
+      try { localStorage.removeItem(DRAFT_KEY); } catch {}
     } finally {
       setPosting(false);
     }
   }
 
+  // Collapse/expand all (broadcast simple events consumed by items)
+  function collapseAll() {
+    window.dispatchEvent(new CustomEvent("forum:collapse", { detail: { discussionId } }));
+  }
+  function expandAll() {
+    window.dispatchEvent(new CustomEvent("forum:expand", { detail: { discussionId } }));
+  }
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 w-full">
       {/* Header: sort & meta */}
-      <div className="flex items-center justify-between">
-        <SortControl sort={sort} onChange={setSort} />
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-3">
+          <SortControl sort={sort} onChange={setSort} />
+          <div className="flex items-center gap-2">
+            <button className="text-xs px-2 py-1 rounded border bg-white hover:bg-slate-50" onClick={collapseAll}>
+              Collapse all
+            </button>
+            <button className="text-xs px-2 py-1 rounded border bg-white hover:bg-slate-50" onClick={expandAll}>
+              Expand all
+            </button>
+            <label className="text-xs inline-flex items-center gap-1 cursor-pointer">
+              <input type="checkbox" checked={compact} onChange={(e) => setCompact(e.target.checked)} />
+              Compact
+            </label>
+          </div>
+        </div>
         <div className="text-xs text-slate-600">
           {isLoading ? "Loading…" : `${data?.items?.length ?? 0} comment${(data?.items?.length ?? 0) === 1 ? "" : "s"}`}
         </div>
@@ -197,22 +265,33 @@ export default function ForumPane({
         </div>
       )}
 
-      <ul className="space-y-3">
-        {items.map((row) => (
-          <li key={row.id} id={`c-${row.id}`}>
-            <ForumCommentItem
-              discussionId={discussionId}
-              conversationId={conversationId}
-              comment={row}
-              opUserId={opUserId}
-              onLocalEdit={async () => mutate()}
-              onLocalDelete={async () => mutate()}
-            />
-          </li>
-        ))}
-      </ul>
+ <ul className={cx("space-y-3", compact && "space-y-2")}>
+  {items.map((row) => {
+    // ✅ local const: no "?" in a const type
+    const keyWithState =
+      `${row.id}:${meVotes[row.id] ?? 0}:${meSaves[row.id] ? 1 : 0}`;
 
-      {/* Load more (cursor pagination) — if your GET returns fewer than limit, you can hide this automatically */}
+    return (
+      <li key={keyWithState} id={`c-${row.id}`}>
+        <ForumCommentItem
+          discussionId={discussionId}
+          conversationId={conversationId}
+          comment={row}
+          opUserId={opUserId}
+          compact={compact}
+          highlighted={highlightId === String(row.id)}
+          onLocalEdit={async () => mutate()}
+          onLocalDelete={async () => mutate()}
+          // ✅ cast to the union your prop expects
+          initialVote={(meVotes[row.id] ?? 0) as 0 | 1 | -1}
+          initialSaved={!!meSaves[row.id]}
+        />
+      </li>
+    );
+  })}
+</ul>
+
+      {/* Load more (cursor pagination) */}
       <div className="flex justify-center">
         <button
           className="text-xs px-3 py-1 rounded border bg-white hover:bg-slate-50 disabled:opacity-50"
@@ -265,57 +344,128 @@ function ForumCommentItem({
   conversationId,
   comment,
   opUserId,
+  compact,
+  highlighted,
   onLocalEdit,
   onLocalDelete,
+  initialVote = 0,
+  initialSaved = false,
 }: {
   discussionId: string;
   conversationId: string | null;
   comment: ForumComment;
   opUserId?: string | number | null;
+  compact?: boolean;
+  highlighted?: boolean;
   onLocalEdit: () => void;
   onLocalDelete: () => void;
+  initialVote?: 0 | 1 | -1;
+  initialSaved?: boolean;
 }) {
   const { user } = useAuth();
   const meId = user?.userId ? String(user.userId) : null;
 
-  // UI state
   const [collapsed, setCollapsed] = React.useState(false);
   const [replyOpen, setReplyOpen] = React.useState(false);
-  const [saved, setSaved] = React.useState(false);
-  const [vote, setVote] = React.useState<0 | 1 | -1>(0); // local
+  const [saved, setSaved] = React.useState(initialSaved);
+  const [vote, setVote] = React.useState<0 | 1 | -1>(initialVote);
   const [score, setScore] = React.useState<number>(comment.score);
 
   const text = normalizeBodyText(comment);
-
   const authorIsOP = opUserId != null && String(opUserId) === String(comment.authorId);
   const mine = meId != null && String(meId) === String(comment.authorId);
 
-  function toggleVote(dir: 1 | -1) {
-    setScore((s) => s - vote + dir);
-    setVote((v) => (v === dir ? 0 : dir));
-    // TODO: call POST /vote with {dir} then refetch; keep optimistic
-  }
+  // Listen to global collapse/expand
+  React.useEffect(() => {
+    const onCollapse = (e: any) => {
+      if (e?.detail?.discussionId === discussionId) setCollapsed(true);
+    };
+    const onExpand = (e: any) => {
+      if (e?.detail?.discussionId === discussionId) setCollapsed(false);
+    };
+    window.addEventListener("forum:collapse", onCollapse as any);
+    window.addEventListener("forum:expand", onExpand as any);
+    return () => {
+      window.removeEventListener("forum:collapse", onCollapse as any);
+      window.removeEventListener("forum:expand", onExpand as any);
+    };
+  }, [discussionId]);
 
+  // Soft highlight when navigated by hash
+  const [flash, setFlash] = React.useState(false);
+  React.useEffect(() => {
+    if (!highlighted) return;
+    setFlash(true);
+    const t = setTimeout(() => setFlash(false), 1800);
+    return () => clearTimeout(t);
+  }, [highlighted]);
+
+function toggleVote(dir: 1 | -1) {
+    const next = vote === dir ? 0 : dir;
+    setScore((s) => s - vote + next);
+    setVote(next);
+    fetch(`/api/discussions/${discussionId}/forum/${comment.id}/vote`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ dir: next }),
+    })
+      .then((r) => r.json().catch(() => null))
+      .then((j) => {
+        if (!j?.ok) return;
+        if (typeof j.score === "number") setScore(j.score);
+        if (typeof j.vote === "number") setVote(j.vote);
+      })
+      .catch(() => {});
+  }
   function toggleSave() {
-    setSaved((v) => !v);
-    // TODO: call POST /save toggle
+    const next = !saved;
+    setSaved(next);
+    fetch(`/api/discussions/${discussionId}/forum/${comment.id}/save`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ saved: next }),
+    }).catch(() => {});
   }
 
   async function handleDelete() {
-    // TODO: call DELETE /api/discussions/[id]/forum/:commentId
-    onLocalDelete();
+    // Soft delete (tombstone)
+    const res = await fetch(
+      `/api/discussions/${discussionId}/forum/${comment.id}`,
+      { method: "DELETE" }
+    );
+    if (!res.ok) {
+      const t = await res.text().catch(() => "");
+      alert(`Delete failed: ${res.status} ${t}`);
+      return;
+    }
+    onLocalDelete(); // parent calls mutate()
   }
-
+  
   async function handleEdit(next: string) {
-    // TODO: call PATCH /api/discussions/[id]/forum (id + new content)
-    onLocalEdit();
+    const payload = {
+      content: { type: "paragraph", content: [{ type: "text", text: next }] },
+    };
+    const res = await fetch(
+      `/api/discussions/${discussionId}/forum/${comment.id}`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      }
+    );
+    if (!res.ok) {
+      const t = await res.text().catch(() => "");
+      alert(`Save failed: ${res.status} ${t}`);
+      return;
+    }
+    onLocalEdit(); // parent calls mutate()
   }
-
   return (
     <article
       className={cx(
-        "rounded border bg-white/80 p-3",
-        collapsed && "opacity-90"
+        "rounded border bg-white/80 p-3 transition-shadow",
+        compact && "p-2",
+        flash && "ring-2 ring-indigo-300 bg-indigo-50/70"
       )}
       tabIndex={0}
       onKeyDown={(e) => {
@@ -326,11 +476,11 @@ function ForumCommentItem({
       aria-expanded={!collapsed}
       aria-controls={`comment-body-${comment.id}`}
     >
-      {/* Header row */}
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <AvatarSeed id={comment.authorId} />
-          <div className="text-sm">
+          <div className={cx("text-sm", compact && "text-[12px]")}>
             <span className="font-medium">User {String(comment.authorId)}</span>
             {authorIsOP && (
               <span className="ml-2 text-[11px] px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
@@ -342,7 +492,7 @@ function ForumCommentItem({
         </div>
 
         <div className="flex items-center gap-3">
-          <VoteControls score={score} vote={vote} onVote={toggleVote} />
+          <VoteControls score={score} vote={vote} onVote={toggleVote} compact={!!compact} />
           <button
             className="text-xs px-2 py-1 rounded border bg-white hover:bg-slate-50"
             onClick={() => setCollapsed((v) => !v)}
@@ -355,28 +505,22 @@ function ForumCommentItem({
 
       {/* Body */}
       {!collapsed && (
-        <div id={`comment-body-${comment.id}`} className="mt-2 text-sm whitespace-pre-wrap">
+        <div
+          id={`comment-body-${comment.id}`}
+          className={cx("mt-2 whitespace-pre-wrap", compact ? "text-[13px]" : "text-sm")}
+        >
           {text || "(no text)"}
         </div>
       )}
 
       {/* Toolbar */}
       {!collapsed && (
-        <div className="mt-2 flex flex-wrap items-center gap-2 text-[12px] text-slate-600">
+        <div className={cx("mt-2 flex flex-wrap items-center gap-2 text-[12px] text-slate-600", compact && "mt-1")}>
           <button className="underline" onClick={() => setReplyOpen((v) => !v)}>Reply</button>
           <span>•</span>
-          <QuoteInChatButton
-            discussionId={discussionId}
-            conversationId={conversationId}
-            text={text}
-          />
+          <QuoteInChatButton discussionId={discussionId} conversationId={conversationId} text={text} />
           <span>•</span>
-          <button
-            className={cx("underline", saved && "text-emerald-700")}
-            onClick={toggleSave}
-          >
-            {saved ? "Saved" : "Save"}
-          </button>
+          <SaveButton saved={saved} onToggle={toggleSave} />
           <span>•</span>
           <ShareButton discussionId={discussionId} commentId={comment.id} />
           {mine && (
@@ -384,53 +528,50 @@ function ForumCommentItem({
               <span>•</span>
               <EditButton initial={text} onSave={handleEdit} />
               <span>•</span>
-              <button className="underline text-rose-600" onClick={handleDelete}>
-                Delete
-              </button>
+              <button className="underline text-rose-600" onClick={handleDelete}>Delete</button>
             </>
           )}
-          {/* Optional: moderation affordances (show if user has mod role) */}
-          {/* <span>•</span>
-          <button className="underline text-amber-700">Remove</button>
-          <span>•</span>
-          <button className="underline">Lock</button>
-          <span>•</span>
-          <button className="underline">Pin</button> */}
         </div>
       )}
-
-      {/* Reply composer (UI only; posts to same POST with parentId) */}
+{/* Replies (one level) */}
+{!collapsed && (comment._children?.length ?? 0) > 0 && (
+  <div className={cx("mt-3 pl-4 border-l", compact ? "space-y-2" : "space-y-3")}>
+    {comment._children!.map((child) => (
+      <ForumCommentItem
+        key={child.id}
+        discussionId={discussionId}
+        conversationId={conversationId}
+        comment={child}
+        opUserId={opUserId}
+        compact={compact}
+        highlighted={false}
+        onLocalEdit={onLocalEdit}
+        onLocalDelete={onLocalDelete}
+      />
+    ))}
+  </div>
+)}
+{/* {!collapsed && (
+  <Replies
+    discussionId={discussionId}
+    parentId={comment.id}
+    have={comment._children ?? null}
+    conversationId={conversationId}
+    onBump={() => { onLocalEdit(); }}
+    compact={compact}
+    opUserId={opUserId}
+  />
+)} */}
+      {/* Reply composer */}
       {replyOpen && !collapsed && (
         <div className="mt-3">
           <ReplyComposer
             discussionId={discussionId}
             parentId={comment.id}
-            onPosted={() => {
-              // Optimistic UI only; your GET currently returns only parentId=null.
-              // Once you add a /forum/tree or ?parent= endpoint, this can mutate replies.
-              setReplyOpen(false);
-            }}
+            onPosted={() => setReplyOpen(false)}
           />
         </div>
       )}
-
-      {/* Future: render children (once API returns threaded data)
-      {comment._children?.length ? (
-        <div className="mt-3 pl-4 border-l space-y-2">
-          {comment._children.map((child) => (
-            <ForumCommentItem
-              key={child.id}
-              discussionId={discussionId}
-              conversationId={conversationId}
-              comment={child}
-              opUserId={opUserId}
-              onLocalEdit={onLocalEdit}
-              onLocalDelete={onLocalDelete}
-            />
-          ))}
-        </div>
-      ) : null}
-      */}
     </article>
   );
 }
@@ -439,10 +580,12 @@ function VoteControls({
   score,
   vote,
   onVote,
+  compact,
 }: {
   score: number;
   vote: 0 | 1 | -1;
   onVote: (dir: 1 | -1) => void;
+  compact?: boolean;
 }) {
   return (
     <div className="flex items-center gap-2">
@@ -456,7 +599,9 @@ function VoteControls({
       >
         ▲
       </button>
-      <span className="text-sm min-w-[2ch] text-center">{formatCount(score)}</span>
+      <span className={cx("min-w-[2ch] text-center", compact ? "text-[12px]" : "text-sm")}>
+        {formatCount(score)}
+      </span>
       <button
         className={cx(
           "h-6 w-6 rounded border bg-white hover:bg-slate-50 leading-none",
@@ -518,18 +663,10 @@ function ReplyComposer({
         }}
       />
       <div className="mt-2 flex justify-end gap-2">
-        <button
-          className="text-xs px-2 py-1 rounded border bg-white hover:bg-slate-50"
-          onClick={() => setText("")}
-          disabled={busy || !text}
-        >
+        <button className="text-xs px-2 py-1 rounded border bg-white hover:bg-slate-50" onClick={() => setText("")} disabled={busy || !text}>
           Clear
         </button>
-        <button
-          className="text-xs px-2 py-1 rounded border bg-white hover:bg-slate-50 disabled:opacity-50"
-          onClick={submit}
-          disabled={busy || !text.trim()}
-        >
+        <button className="text-xs px-2 py-1 rounded border bg-white hover:bg-slate-50 disabled:opacity-50" onClick={submit} disabled={busy || !text.trim()}>
           {busy ? "Posting…" : "Reply"}
         </button>
       </div>
@@ -572,11 +709,7 @@ function EditButton({
             <button className="text-xs px-2 py-1 rounded border bg-white hover:bg-slate-50" onClick={() => setOpen(false)}>
               Cancel
             </button>
-            <button
-              className="text-xs px-2 py-1 rounded border bg-white hover:bg-slate-50 disabled:opacity-50"
-              onClick={submit}
-              disabled={busy}
-            >
+            <button className="text-xs px-2 py-1 rounded border bg-white hover:bg-slate-50 disabled:opacity-50" onClick={submit} disabled={busy}>
               {busy ? "Saving…" : "Save"}
             </button>
           </div>
@@ -586,24 +719,34 @@ function EditButton({
   );
 }
 
+function SaveButton({ saved, onToggle }: { saved: boolean; onToggle: () => void }) {
+  return (
+    <button className={cx("underline", saved && "text-emerald-700")} onClick={onToggle}>
+      {saved ? "Saved" : "Save"}
+    </button>
+  );
+}
+
 function ShareButton({ discussionId, commentId }: { discussionId: string; commentId: string }) {
+  const [copied, setCopied] = React.useState(false);
   async function copy() {
     try {
       const url = `${location.origin}/discussions/${discussionId}#c-${commentId}`;
       await navigator.clipboard.writeText(url);
-      alert("Link copied");
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1200);
     } catch {
+      // fallback
       alert("Copy failed");
     }
   }
   return (
     <button className="underline" onClick={copy}>
-      Share
+      {copied ? "Copied!" : "Share"}
     </button>
   );
 }
 
-// Minimal avatar fallback (initial-based)
 function AvatarSeed({ id }: { id: string | number }) {
   const seed = String(id);
   const ch = seed.replace(/[^a-z0-9]/gi, "").charAt(0).toUpperCase() || "U";
@@ -643,9 +786,62 @@ function QuoteInChatButton({
     );
   }
 
-  return (
-    <button className="underline" onClick={go}>
-      Quote in chat
-    </button>
-  );
+  return <button className="underline" onClick={go}>Quote in chat</button>;
 }
+
+function Replies({
+    discussionId,
+    parentId,
+    have,
+    conversationId,
+    compact,
+    opUserId,
+    onBump,
+  }: {
+    discussionId: string;
+    parentId: string;
+    have: any[] | null;
+    conversationId: string | null;
+    compact?: boolean;
+    opUserId?: string | number | null;
+    onBump: () => void;
+  }) {
+    const [open, setOpen] = React.useState(!!have && have.length > 0);
+    const { data, isLoading } = useSWR<{ items: any[] }>(
+      open && !have ? `/api/discussions/${discussionId}/forum?parentId=${parentId}` : null,
+      (u) => fetch(u, { cache: "no-store" }).then((r) => r.json())
+    );
+    const kids = have ?? data?.items ?? [];
+  
+    if (!open) {
+      return (
+        <button className="mt-2 text-[12px] underline" onClick={() => setOpen(true)}>
+          View replies
+        </button>
+      );
+    }
+  
+    if (!kids.length && isLoading) {
+      return <div className="mt-2 text-[12px] text-slate-500">Loading…</div>;
+    }
+  
+    if (!kids.length) return null;
+  
+    return (
+      <div className={cx("mt-3 pl-4 border-l", compact ? "space-y-2" : "space-y-3")}>
+        {kids.map((child) => (
+          <ForumCommentItem
+            key={child.id}
+            discussionId={discussionId}
+            conversationId={conversationId}
+            comment={child}
+            opUserId={opUserId}
+            compact={compact}
+            highlighted={false}
+            onLocalEdit={onBump}
+            onLocalDelete={onBump}
+          />
+        ))}
+      </div>
+    );
+  }

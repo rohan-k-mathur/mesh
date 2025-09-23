@@ -8,6 +8,8 @@ import { useChatStore } from "@/contexts/useChatStore";
 import { useAuth } from "@/lib/AuthContext";
 import MessageComposer from "../chat/MessageComposer";
 import MessengerPane from "../chat/MessengerPane";
+import ThreadListSidebar from "./ThreadListSidebar";
+import ForumRulesCard from "./ForumRulesCard";
 export default function DiscussionView({
   discussion,
   conversationId,
@@ -77,7 +79,7 @@ React.useEffect(() => {
   }, []);
 
   return (
-    <div className="mx-auto max-w-5xl p-3 space-y-3">
+    <div className="mx-auto max-w-5xl p-3 space-y-3 w-full">
       <header className="flex items-center justify-between">
         <div>
           <h1 className="text-lg font-semibold">{discussion.title}</h1>
@@ -135,10 +137,17 @@ commentId={discussion.commentId}
           <div className="text-sm text-slate-600">This discussion has no chat yet.</div>
         )
       ) : (
+        <div className="flex gap-4 w-full">
         <ForumPane
           discussionId={discussion.id}
-          conversationId={conversationId}          // pass through for quote/ensure-member
+          conversationId={conversationId}
+          // opUserId={discussion.authorId ?? null} // if you have it, pass for OP badge
         />
+        {/* <aside className="space-y-3">
+          <ThreadListSidebar discussionId={discussion.id} />
+          <ForumRulesCard />
+        </aside> */}
+      </div>
       )}
     </div>
   );
