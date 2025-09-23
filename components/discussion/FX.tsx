@@ -4,8 +4,8 @@ import { motion, useReducedMotion } from "framer-motion";
 
 export function GridBG({ className = "" }: { className?: string }) {
   return (
-    <div aria-hidden className={`pointer-events-none absolute inset-0 ${className}`}>
-      <div className="absolute inset-0 bg-gradient-to-b from-indigo-100/60 via-rose-100/60 to-slate-100/60" />
+    <div aria-hidden className={`pointer-events-none max-w-screen rounded-xl p-1 w-full absolute inset-0 ${className}`}>
+      <div className="absolute rounded-xl w-full p-2 inset-0 bg-gradient-to-b from-indigo-100/60 via-rose-100/60 to-slate-100/60" />
       <div
         className="absolute inset-0"
         style={{
