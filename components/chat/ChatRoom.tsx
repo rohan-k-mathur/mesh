@@ -41,6 +41,8 @@ import { useReceipts } from "@/hooks/useReceipts";
 import ReceiptChip from "@/components/gitchat/ReceiptChip";
 import { mutate as swrMutate } from "swr";
 
+import { useDiscussionId } from "@/components/discussion/DiscussionContext";
+import OpenInDiscussionsButton from "../common/OpenInDiscussionsButton";
 
 const ENABLE_REACTIONS = false;
 const scalesTextSymbol = "⚖\uFE0E";
@@ -76,6 +78,29 @@ function textFromTipTap(node: any): string {
 function toSnippet(raw: string, max = 48) {
   const s = raw.replace(/\s+/g, " ").trim();
   return s.length > max ? s.slice(0, max - 1) + "…" : s;
+}
+
+
+function PromoteToForumMenuItem({ messageId }: { messageId: string | number }) {
+  const discussionId = useDiscussionId();
+  if (!discussionId) return null; // Only show inside a Discussion page
+  return (
+    <DropdownMenuItem
+      onClick={async () => {
+        const r = await fetch(`/api/discussions/${discussionId}/bridge/promote`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Idempotency-Key": `${discussionId}:${messageId}` },
+          body: JSON.stringify({ messageId }),
+        });
+        if (!r.ok) {
+          const t = await r.text().catch(() => r.statusText);
+          console.warn("[promote] failed", t);
+        }
+      }}
+    >
+      Promote to forum
+    </DropdownMenuItem>
+  );
 }
 
 // --- Merge / Edit summary chip (expandable), safe hook usage ---
@@ -454,7 +479,9 @@ const MessageRow = memo(function MessageRow({
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
+                  
                     className="py-0 px-0 bg-transparent align-center my-auto  rounded-md text-xs focus:outline-none"
+                    
                     title="Message actions"
                     type="button"
                   >
@@ -513,6 +540,7 @@ const MessageRow = memo(function MessageRow({
                       >
                         ❝ Quote
                       </DropdownMenuItem>
+                      <PromoteToForumMenuItem messageId={m.id} />
                       <DropdownMenuItem
                         onClick={() => {
                           if (bookmarked) {
@@ -599,6 +627,8 @@ const MessageRow = memo(function MessageRow({
                       <DropdownMenuItem onClick={() => toggleStar(m.id)}>
                         {starred ? "★ Unstar" : "☆ Star"}
                       </DropdownMenuItem>
+                      <PromoteToForumMenuItem messageId={m.id} />
+
                     </>
                   )}
                 </DropdownMenuContent>
@@ -677,6 +707,7 @@ const MessageRow = memo(function MessageRow({
                       >
                         ✎ Edit
                       </DropdownMenuItem>
+                      <PromoteToForumMenuItem messageId={m.id} />
 
                       <DropdownMenuItem
                         onClick={() => {
@@ -710,7 +741,7 @@ const MessageRow = memo(function MessageRow({
                           }
                         }}
                       >
-                       {bookmarked ? "⛉ Remove Bookmark" : "⛉ Bookmark…"}
+                       {bookmarked ? "⛉ Remove Bookmark" : "⛉ Bookmark"}
 
 
                       </DropdownMenuItem>
@@ -752,6 +783,7 @@ const MessageRow = memo(function MessageRow({
                       >
                         ❝ Quote
                       </DropdownMenuItem>
+                      <PromoteToForumMenuItem messageId={m.id} />
 
                       <DropdownMenuItem onClick={() => onPrivateReply?.(m)}>
                       {"↪\uFE0E"}  Reply in DMs
@@ -778,7 +810,7 @@ const MessageRow = memo(function MessageRow({
                           }
                         }}
                       >
-                        {bookmarked ? "⛉ Remove Bookmark" : "⛉ Bookmark…"}
+                        {bookmarked ? "⛉ Remove Bookmark" : "⛉ Bookmark"}
                       </DropdownMenuItem>
                     </>
                   )}

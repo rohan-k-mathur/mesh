@@ -6,8 +6,7 @@ import Image from "next/image";
 import { useFormStatus } from "react-dom";
 import { addStackComment } from "@/lib/actions/stack.actions";
 import CitePickerInlinePro from "@/components/citations/CitePickerInlinePro";
-import CitePickerModal from "@/components/citations/CitePickerModal";
-
+import CitePickerModal from "../citations/CitePickerModal";
 function SubmitBtn() {
   const { pending } = useFormStatus();
   return (

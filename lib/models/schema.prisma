@@ -662,6 +662,7 @@ model Conversation {
   participants    ConversationParticipant[]
   drifts          Drift[]                   @relation("ConversationDrifts")
   proposalSignals ProposalSignal[]          @relation("ConversationProposalSignals")
+  Discussion      Discussion?
 
   @@unique([user1_id, user2_id])
   @@index([user1_id])
@@ -676,6 +677,8 @@ model ConversationParticipant {
   joined_at       DateTime     @default(now()) @db.Timestamptz(6)
   conversation    Conversation @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
   user            User         @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  discussion      Discussion?  @relation(fields: [discussionId], references: [id])
+  discussionId    String?
 
   @@unique([conversation_id, user_id])
   @@index([user_id])
@@ -2968,9 +2971,10 @@ model Deliberation {
   roles DeliberationRole[]
   calls DeliberationCall[]
 
-  anchors                DeliberationAnchor[]
-  // ⬅️ Back-relation for Discussion.upgradedToDeliberation
-  upgradedFromDiscussion Discussion?          @relation("DiscussionToDeliberation")
+  anchors DeliberationAnchor[]
+
+  upgradedFromDiscussionId String?     @unique
+  upgradedFromDiscussion   Discussion? @relation("DiscussionToDeliberation", fields: [upgradedFromDiscussionId], references: [id])
 
   //@@unique([hostType, hostId], name: "hostType_hostId")
   @@index([hostType, hostId])
@@ -3662,27 +3666,75 @@ model AgoraFollow {
 }
 
 model Discussion {
-  id           String   @id @default(cuid())
-  hostType     String // mirrors the thing this discussion is about (stack, article, adhoc, …)
-  hostId       String
-  title        String?
-  visibility   String   @default("inherit") // inherit | public | private
-  mode         String   @default("live") // live | threaded | mixed
-  ephemeralTTL Int? // seconds; if set, messages can auto-expire
-  createdById  String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id          String  @id @default(cuid())
+  slug        String? @unique
+  title       String
+  description String?
+  createdById String
+  visibility  String  @default("public") // "public" | "private" | "unlisted"
 
-  // Optional soft link when promoted/upgraded
-  upgradedToDeliberationId String? @unique
+  // Link to existing chat conversation (optional at creation; we can create on demand)
+  conversationId BigInt? @unique
 
-  upgradedToDeliberation Deliberation? @relation("DiscussionToDeliberation", fields: [upgradedToDeliberationId], references: [id], onDelete: SetNull)
+  conversation Conversation? @relation(fields: [conversationId], references: [id])
 
-  messages     DiscussionMessage[]
-  participants DiscussionParticipant[]
+  // Polymorphic attachment to any object (optional)
+  attachedToType String? // e.g. "article" | "comment" | "stack" | "claim" | "post"
+  attachedToId   String? // store as string; can hold cuid, uuid, bigint, etc.
 
-  @@index([hostType, hostId])
-  @@index([createdById])
+  upgradedToDeliberation Deliberation?           @relation("DiscussionToDeliberation")
+  messages               DiscussionMessage[] // 👈 back-rel for DiscussionMessage.discussion
+  participants           DiscussionParticipant[] // 👈 back-rel for DiscussionParticipant.discussion
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  forumComments ForumComment[]
+  deliberations DiscussionDeliberation[]
+
+  ConversationParticipant ConversationParticipant[]
+
+  @@index([attachedToType, attachedToId])
+}
+
+model ForumComment {
+  id           BigInt     @id @default(autoincrement())
+  discussionId String
+  discussion   Discussion @relation(fields: [discussionId], references: [id])
+  parentId     BigInt?
+  authorId     String
+
+  // content
+  body     Json // tiptap JSON (or your rich JSON format)
+  bodyText String? // search/snippet convenience
+
+  // cross-post source (chat → forum)
+  sourceMessageId      Int? // original chat message id, for “promoted from chat”
+  // (optional) if you ever need the conversation too:
+  sourceConversationId Int?
+
+  score     Int      @default(0)
+  isDeleted Boolean  @default(false)
+  isRemoved Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // prevents duplicate promote spam:
+  @@unique([discussionId, sourceMessageId])
+  @@index([discussionId])
+  @@index([parentId])
+  @@index([sourceMessageId])
+}
+
+model DiscussionDeliberation {
+  id             String     @id @default(cuid())
+  discussionId   String
+  discussion     Discussion @relation(fields: [discussionId], references: [id])
+  deliberationId String // your existing deliberation id (string in your events route)
+  createdById    String
+  createdAt      DateTime   @default(now())
+
+  @@unique([discussionId, deliberationId])
 }
 
 model DiscussionMessage {

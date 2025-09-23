@@ -26,8 +26,47 @@ interface Props {
   driftId?: string;               // NEW (optional)
   currentUserName?: string;
    currentUserImage?: string | null;
+  discussionId?: string, commentId?:string
 }
 type QuoteRef = { messageId: string; facetId?: string };
+
+function asBlockquote(text: string) {
+  return text.replace(/\r\n/g, "\n").split("\n").map(l => (l.trim() ? `> ${l}` : `>`)).join("\n");
+}
+
+export function plainFromNode(n: any): string {
+  if (!n) return "";
+  if (typeof n === "string") return n;
+  if (Array.isArray(n)) return n.map(plainFromNode).join("");
+  if (n.type === "text") return n.text || "";
+  if (Array.isArray(n.content)) return n.content.map(plainFromNode).join("");
+  return "";
+}
+function normalizeForumText(raw: string) {
+  const s = raw?.trim() ?? "";
+  if (!s) return "";
+  if (s.startsWith("{") || s.startsWith("[")) {
+    try {
+      const obj = JSON.parse(s);
+      // local plain-from-node to avoid circular imports
+      const plain = (function plainFromNode(n:any): string {
+        if (!n) return "";
+        if (typeof n === "string") return n;
+        if (Array.isArray(n)) return n.map(plainFromNode).join("");
+        if (n.type === "text") return n.text || "";
+        if (Array.isArray(n.content)) return n.content.map(plainFromNode).join("");
+        return "";
+      })(obj);
+      return plain;
+    } catch { /* fall through */ }
+  }
+  return s;
+}
+
+// const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+
+// const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
 export default function MessageComposer({
   conversationId,
@@ -35,7 +74,8 @@ export default function MessageComposer({
   driftId,
   currentUserName = "",
    currentUserImage = null,
-
+  discussionId,
+  commentId,
   
 }: Props) {
   const appendMessage = useChatStore((s) => s.appendMessage);
@@ -52,6 +92,8 @@ export default function MessageComposer({
 //    const quoteDraft = useChatStore((s) => s.quoteDraftByConversationId[conversationId]);
 //  const setQuoteDraft = useChatStore((s) => s.setQuoteDraft);
 //  const clearQuoteDraft = () => setQuoteDraft(conversationId, undefined);
+const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
 
 const { sendTyping } = useConversationRealtime(
   conversationId,
@@ -87,6 +129,19 @@ const { sendTyping } = useConversationRealtime(
     };
   }, [previews]);
 
+  useEffect(() => {
+    function onQuoteFromForum(evt: any) {
+      const raw: string = (evt?.detail?.text ?? "").toString();
+      const clean = normalizeForumText(raw);
+      if (!clean) return;
+      const quoted = `> _From forum:_\n` + asBlockquote(clean);
+      setText(prev => (prev ? prev + "\n\n" : "") + quoted + "\n\n");
+      setTimeout(() => textareaRef.current?.focus(), 0);
+    }
+    window.addEventListener("discussion:quote-for-chat", onQuoteFromForum as any);
+    return () => window.removeEventListener("discussion:quote-for-chat", onQuoteFromForum as any);
+  }, []);
+
   // function onFilesSelected(list: FileList | null) {
   //   if (!list) return;
   //   setFiles((prev) => [...prev, ...Array.from(list)]);
@@ -119,6 +174,22 @@ const { sendTyping } = useConversationRealtime(
       console.warn("[Drift] hydrate after send failed", e);
     }
   }
+  useEffect(() => {
+    const key = `dq:conv:${String(conversationId)}`;
+    try {
+      const raw = sessionStorage.getItem(key);
+      if (raw) {
+        const { text: q } = JSON.parse(raw) as { text?: string };
+        const clean = normalizeForumText(q ?? "");
+        if (clean) {
+          const quoted = `> _From forum:_\n` + asBlockquote(clean);
+          setText(prev => (prev ? prev + "\n\n" : "") + quoted + "\n\n");
+          setTimeout(() => textareaRef.current?.focus(), 0);
+        }
+        sessionStorage.removeItem(key);
+      }
+    } catch {}
+  }, [conversationId]);
   
  const quoteDraft = useChatStore(
      useCallback((s) => s.quoteDraftByConversationId[conversationId], [conversationId])
@@ -594,6 +665,7 @@ const { sendTyping } = useConversationRealtime(
             />
             <div className="flex flex-1 w-full">
               <textarea
+                ref={textareaRef}   
                 className="flex flex-1 h-full w-full text-start align-center rounded-xl bg-white/70 px-4 py-3 text-[.9rem] tracking-wider  messagefield text-black"
                 rows={1}
                 value={text}

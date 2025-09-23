@@ -9,7 +9,24 @@ const fetcher = (u: string) => fetch(u, { cache: "no-store" }).then((r) => r.jso
 export default function ForumTab({ deliberationId }: { deliberationId: string }) {
   const { data, mutate, isLoading } = useSWR<{ roots: any[] }>(`/api/dialogue/forum?deliberationId=${deliberationId}`, fetcher);
 
+// in ForumPane.tsx
+async function go() {
+  if (conversationId) {
+    await fetch(`/api/conversations/${conversationId}/ensure-member`, { method: "POST" }).catch(()=>{});
+    // <-- stash for when composer mounts after the tab switch
+    sessionStorage.setItem(
+      `dq:conv:${conversationId}`,
+      JSON.stringify({ text: bodyText ?? "" })
+    );
+  }
 
+  // flip to Chat (DiscussionView listens and switches tab)
+  window.dispatchEvent(
+    new CustomEvent("discussion:quote-for-chat", {
+      detail: { discussionId, text: bodyText ?? "" },
+    })
+  );
+}
 
   useBusEffect(
     ["dialogue:changed", "comments:changed", "votes:changed", "decision:changed"],

@@ -60,9 +60,9 @@ export async function middleware(req: Request) {
   }
 
   // 2) Skip ALL api routes (any depth) to avoid recursion
-  if (pathname === "/api" || pathname.includes("/api/")) {
-    return NextResponse.next();
-  }
+  // if (pathname === "/api" || pathname.includes("/api/")) {
+  //   return NextResponse.next();
+  // }
 
   // 3) Other explicit allowlists
   if (pathname.startsWith("/portfolio/")) return NextResponse.next();
@@ -120,6 +120,14 @@ export const config = {
   matcher: [
     "/.well-known/:path*",
     "/api/proposals/:path*",  // ← add this
+    "/api/discussions/:path*",
+    "/api/messages/:path*",
+    "/api/conversations/:path*",
+    "/api/drifts/:path*",            // 👈 add this
+    "/api/me",                        // 👈 and this
+    "/api/sheaf/:path*",
+    "/discussions/:path*",
+    "/messages/:path*",
     '/((?!_next/static|_next/image|favicon.ico).*)',
     '/api/:path*',
     "/((?!_next|favicon.ico|api|fonts|images|assets|.*\\.).+)",
