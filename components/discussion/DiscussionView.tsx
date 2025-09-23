@@ -10,6 +10,8 @@ import MessageComposer from "../chat/MessageComposer";
 import MessengerPane from "../chat/MessengerPane";
 import ThreadListSidebar from "./ThreadListSidebar";
 import ForumRulesCard from "./ForumRulesCard";
+import { GridBG } from "./FX";
+
 export default function DiscussionView({
   discussion,
   conversationId,
@@ -79,79 +81,78 @@ React.useEffect(() => {
   }, []);
 
   return (
-    <div className="mx-auto max-w-5xl p-3 space-y-3 w-full">
-      <header className="flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-semibold">{discussion.title}</h1>
-          {discussion.description && (
-            <p className="text-sm text-slate-600">{discussion.description}</p>
-          )}
-        </div>
-        <DeliberateButton discussionId={discussion.id} />
-      </header>
-
-      <div className="flex gap-2">
-        <button
-          className={`px-3 py-1 rounded border ${tab === "chat" ? "bg-white" : "bg-white/70"}`}
-          onClick={() => setTab("chat")}
-        >
-          Chat
-        </button>
-        <button
-          className={`px-3 py-1 rounded border ${tab === "forum" ? "bg-white" : "bg-white/70"}`}
-          onClick={() => setTab("forum")}
-        >
-          Forum
-        </button>
-      </div>
-
-      {tab === "chat" ? (
-        conversationId ? (
-          me ? (
-<div>
-            <div className="mt-6 space-y-6">
-  
-<ChatRoom
-      conversationId={conversationId}
-      currentUserId={me}
-      currentUserName={currentUserName}
-currentUserImage={currentUserImage}
-      initialMessages={initialMessages}
-    />
-    <hr />
-    <MessageComposer
-      conversationId={String(conversationId)}
-      currentUserId={me}
-      currentUserName={currentUserName}
-currentUserImage={currentUserImage}
-discussionId={discussion.id}
-commentId={discussion.commentId}
-    />
-  </div>
-
-  </div>
+    <div className="relative isolate w-full">
+      <GridBG />
+      <div className="relative z-10 mx-auto max-w-5xl p-3 space-y-3 w-full">
+      <header className="glass-surface rounded-2xl panel-edge border bg-white/70 px-4 py-3 shadow-[0_10px_40px_-10px_rgba(2,6,23,0.12)]">
+      <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <h1 className="truncate text-sm font-semibold tracking-wide">{discussion.title}</h1>
+              {discussion.description && (
+                <p className="mt-0.5 text-sm text-slate-600">{discussion.description}</p>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setTab("chat")}
+                className={`btnv2 btnv2--sm text-xs px-3 py-1.5 ${tab === "chat" ? "" : "btnv2--ghost"}`}
+                aria-pressed={tab === "chat"}
+              >
+                Chat
+              </button>
+              <button
+                onClick={() => setTab("forum")}
+                className={`btnv2 btnv2--sm text-xs px-3 py-1.5 ${tab === "forum" ? "" : "btnv2--ghost"}`}
+                aria-pressed={tab === "forum"}
+              >
+                Forum
+              </button>
+              <DeliberateButton discussionId={discussion.id} />
+            </div>
+          </div>
+        </header>
+ {/* Body */}
+ {tab === "chat" ? (
+          conversationId ? (
+            me ? (
+              <div className="glass-surface rounded-2xl panel-edge border bg-white/70 p-4">
+                <div className="space-y-6">
+                  <ChatRoom
+                    conversationId={conversationId}
+                    currentUserId={me}
+                    currentUserName={currentUserName}
+                    currentUserImage={currentUserImage}
+                    initialMessages={initialMessages}
+                  />
+                  <hr className="border-white/60" />
+                  <MessageComposer
+                    conversationId={String(conversationId)}
+                    currentUserId={me}
+                    currentUserName={currentUserName}
+                    currentUserImage={currentUserImage}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-xl border bg-white/70 p-4 text-sm text-slate-600">
+                Sign in to view this chat.
+              </div>
+            )
           ) : (
-            <div className="text-sm text-slate-600">Sign in to view this chat.</div>
+            <div className="rounded-xl border bg-white/70 p-4 text-sm text-slate-600">
+              This discussion has no chat yet.
+            </div>
           )
         ) : (
-          <div className="text-sm text-slate-600">This discussion has no chat yet.</div>
-        )
-      ) : (
-        <div className="flex gap-4 w-full">
-        <ForumPane
-          discussionId={discussion.id}
-          conversationId={conversationId}
-          // opUserId={discussion.authorId ?? null} // if you have it, pass for OP badge
-        />
-        {/* <aside className="space-y-3">
-          <ThreadListSidebar discussionId={discussion.id} />
-          <ForumRulesCard />
-        </aside> */}
+          <div className="glass-surface rounded-2xl panel-edge border bg-white/70 p-3">
+            <ForumPane
+              discussionId={discussion.id}
+              conversationId={conversationId}
+            />
+          </div>
+        )}
       </div>
-      )}
     </div>
   );
 }
-
-
 

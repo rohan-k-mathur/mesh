@@ -4,6 +4,9 @@
 import * as React from "react";
 import useSWR from "swr";
 import { useAuth } from "@/lib/AuthContext";
+import { Spinner } from "./FX";
+import { motion } from "framer-motion";
+import { Bookmark, Share2, ChevronsUpDown, Minimize, Expand } from "lucide-react";
 
 /* ----------------------------- types & utils ----------------------------- */
 
@@ -206,31 +209,39 @@ const meSaves = meState?.saves ?? {};
         <div className="flex items-center gap-3">
           <SortControl sort={sort} onChange={setSort} />
           <div className="flex items-center gap-2">
-            <button className="text-xs px-2 py-1 rounded border bg-white hover:bg-slate-50" onClick={collapseAll}>
-              Collapse all
-            </button>
-            <button className="text-xs px-2 py-1 rounded border bg-white hover:bg-slate-50" onClick={expandAll}>
-              Expand all
-            </button>
-            <label className="text-xs inline-flex items-center gap-1 cursor-pointer">
-              <input type="checkbox" checked={compact} onChange={(e) => setCompact(e.target.checked)} />
-              Compact
-            </label>
+          <button className="btnv2 btnv2--sm btnv2--ghost p-2" onClick={collapseAll}>Collapse All</button>
+            <button className="btnv2 btnv2--sm btnv2--ghost p-2" onClick={expandAll}>Expand All</button>
+            {/* <label className="text-xs flex text-center align-center items-center gap-1 cursor-pointer my-auto py-2 h-full
+             ">
+              <input type="checkbox" className="checkboxv2 flex" checked={compact} onChange={(e) => setCompact(e.target.checked)} />
+              <span className="flex ml-0 h-full text-sm
+               text-gray-700 text-center align-center items-center gap-1 cursor-pointer mt-1">Compact</span>
+
+            </label> */}
           </div>
         </div>
         <div className="text-xs text-slate-600">
-          {isLoading ? "Loading…" : `${data?.items?.length ?? 0} comment${(data?.items?.length ?? 0) === 1 ? "" : "s"}`}
+          {isLoading ? (
+            <span className="inline-flex items-center gap-2"><Spinner /> Loading…</span>
+          ) : (
+            `${data?.items?.length ?? 0} comment${(data?.items?.length ?? 0) === 1 ? "" : "s"}`
+          )}
         </div>
       </div>
-
-      {/* New post composer */}
-      <div className="rounded border bg-white/80 p-3">
+      {/* Composer */}
+      <motion.div
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25 }}
+        className="rounded-xl border bg-white/80 p-3 panel-edge"
+      >
         <textarea
-          className="w-full text-sm bg-transparent outline-none resize-y min-h-[72px]"
+          className="w-full text-sm bg-transparent border-none rounded-lg outline-[1px] outline-indigo-300 discussionfield
+           resize-y min-h-[72px]"
+          placeholder="Respond here…"
           value={body}
           maxLength={charLimit}
           onChange={(e) => setBody(e.target.value)}
-          placeholder="Write a comment…"
           onKeyDown={(e) => {
             if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
               e.preventDefault();
@@ -241,60 +252,50 @@ const meSaves = meState?.saves ?? {};
         <div className="mt-2 flex items-center justify-between text-xs text-slate-600">
           <span>{remaining} chars left</span>
           <div className="flex gap-2">
-            <button
-              className="px-3 py-1 rounded border bg-white hover:bg-slate-50 disabled:opacity-50"
-              onClick={submitNew}
-              disabled={posting || !body.trim()}
-            >
+            <button className="btnv2 btnv2--sm btnv2--ghost" onClick={() => setBody("")} disabled={!body}>
+              Clear
+            </button>
+            <button className="btnv2 btnv2--sm" onClick={submitNew} disabled={posting || !body.trim()}>
               {posting ? "Posting…" : "Post"}
             </button>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Error / Empty / List */}
       {error && (
-        <div className="rounded border bg-rose-50 text-rose-700 text-sm p-3">
-          Failed to load comments.
-        </div>
+        <div className="rounded border bg-rose-50 text-rose-700 text-sm p-3">Failed to load comments.</div>
       )}
 
       {!isLoading && items.length === 0 && !error && (
-        <div className="rounded border bg-white/70 p-6 text-center text-sm text-slate-600">
-          No comments yet — be the first to post.
-        </div>
+        <EmptyState />
       )}
 
- <ul className={cx("space-y-3", compact && "space-y-2")}>
-  {items.map((row) => {
-    // ✅ local const: no "?" in a const type
-    const keyWithState =
-      `${row.id}:${meVotes[row.id] ?? 0}:${meSaves[row.id] ? 1 : 0}`;
+      {isLoading && !error ? (
+        <SkeletonList />
+      ) : (
+        <ul className={cx("space-y-3", compact && "space-y-2")}>
+          {items.map((row) => (
+            <li key={row.id} id={`c-${row.id}`}>
+              <ForumCommentItem
+                discussionId={discussionId}
+                conversationId={conversationId}
+                comment={row}
+                opUserId={opUserId}
+                compact={compact}
+                highlighted={highlightId === String(row.id)}
+                onLocalEdit={async () => mutate()}
+                onLocalDelete={async () => mutate()}
+              />
+            </li>
+          ))}
+        </ul>
+      )}
 
-    return (
-      <li key={keyWithState} id={`c-${row.id}`}>
-        <ForumCommentItem
-          discussionId={discussionId}
-          conversationId={conversationId}
-          comment={row}
-          opUserId={opUserId}
-          compact={compact}
-          highlighted={highlightId === String(row.id)}
-          onLocalEdit={async () => mutate()}
-          onLocalDelete={async () => mutate()}
-          // ✅ cast to the union your prop expects
-          initialVote={(meVotes[row.id] ?? 0) as 0 | 1 | -1}
-          initialSaved={!!meSaves[row.id]}
-        />
-      </li>
-    );
-  })}
-</ul>
-
-      {/* Load more (cursor pagination) */}
+      {/* Load more */}
       <div className="flex justify-center">
         <button
-          className="text-xs px-3 py-1 rounded border bg-white hover:bg-slate-50 disabled:opacity-50"
+          className="btnv2 btnv2--sm btnv2--ghost"
           onClick={() => {
             const last = data?.items?.[data.items.length - 1];
             if (last) setCursor(String(last.id));
@@ -309,35 +310,44 @@ const meSaves = meState?.saves ?? {};
   );
 }
 
-/* ------------------------------- subparts ------------------------------- */
 
+/* ------------------------------- subparts ------------------------------- */
 function SortControl({
-  sort,
-  onChange,
-}: {
-  sort: "best" | "top" | "new" | "old";
-  onChange: (v: "best" | "top" | "new" | "old") => void;
-}) {
-  return (
-    <div className="flex items-center gap-2 text-sm">
-      <span className="text-slate-600">Sort</span>
-      <div className="flex rounded border bg-white/70 overflow-hidden">
-        {(["best", "top", "new", "old"] as const).map((k) => (
-          <button
-            key={k}
-            className={cx(
-              "px-3 py-1 border-r last:border-r-0",
-              sort === k ? "bg-white" : "hover:bg-white/80"
-            )}
-            onClick={() => onChange(k)}
-          >
-            {k[0].toUpperCase() + k.slice(1)}
-          </button>
-        ))}
+    sort,
+    onChange,
+  }: {
+    sort: "best" | "top" | "new" | "old";
+    onChange: (v: "best" | "top" | "new" | "old") => void;
+  }) {
+    const tabs: Array<{ key: typeof sort; label: string }> = [
+      { key: "best", label: "Best" },
+      { key: "top",  label: "Top"  },
+      { key: "new",  label: "New"  },
+      { key: "old",  label: "Old"  },
+    ];
+    return (
+      <div className="px-2 flex items-center gap-2 text-xs">
+        <span className="align-center flex my-auto text-slate-600">Sort by:</span>
+        <div className="flex rounded-xl border bg-slate-200/80 overflow-hidden panel-edge">
+          {tabs.map(({ key, label }, idx) => (
+            <button
+              key={key}
+              className={cx(
+                "px-3 py-1 border-r last:border-r-0 transition",
+                sort === key ? "bg-white" : "hover:bg-slate-300/80"
+              )}
+              style={{ borderColor: "rgba(148,163,184,.35)" }}
+              onClick={() => onChange(key)}
+              aria-pressed={sort === key}
+              aria-label={`Sort by ${label}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
 function ForumCommentItem({
   discussionId,
@@ -461,9 +471,13 @@ function toggleVote(dir: 1 | -1) {
     onLocalEdit(); // parent calls mutate()
   }
   return (
-    <article
+    <motion.article
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25 }}
       className={cx(
-        "rounded border bg-white/80 p-3 transition-shadow",
+        "rounded-xl border bg-white/80 p-3 transition",
+        "panel-edge",
         compact && "p-2",
         flash && "ring-2 ring-indigo-300 bg-indigo-50/70"
       )}
@@ -478,9 +492,9 @@ function toggleVote(dir: 1 | -1) {
     >
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <AvatarSeed id={comment.authorId} />
-          <div className={cx("text-sm", compact && "text-[12px]")}>
+        <div className="flex items-center gap-2 min-w-0">
+          <PatternAvatar id={comment.authorId} />
+          <div className={cx("text-sm truncate", compact && "text-[12px]")}>
             <span className="font-medium">User {String(comment.authorId)}</span>
             {authorIsOP && (
               <span className="ml-2 text-[11px] px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
@@ -490,25 +504,21 @@ function toggleVote(dir: 1 | -1) {
             <span className="ml-2 text-[12px] text-slate-600">{timeAgo(comment.createdAt)}</span>
           </div>
         </div>
-
         <div className="flex items-center gap-3">
           <VoteControls score={score} vote={vote} onVote={toggleVote} compact={!!compact} />
           <button
-            className="text-xs px-2 py-1 rounded border bg-white hover:bg-slate-50"
+            className="btnv2 btnv2--sm btnv2--ghost"
             onClick={() => setCollapsed((v) => !v)}
             aria-label={collapsed ? "Expand" : "Collapse"}
           >
-            {collapsed ? "Expand" : "Collapse"}
+            {collapsed ? <Expand className="h-3.5 w-3.5" /> : <Minimize className="h-3.5 w-3.5" />}
           </button>
         </div>
       </div>
 
       {/* Body */}
       {!collapsed && (
-        <div
-          id={`comment-body-${comment.id}`}
-          className={cx("mt-2 whitespace-pre-wrap", compact ? "text-[13px]" : "text-sm")}
-        >
+        <div id={`comment-body-${comment.id}`} className={cx("mt-2 whitespace-pre-wrap", compact ? "text-[13px]" : "text-sm")}>
           {text || "(no text)"}
         </div>
       )}
@@ -516,278 +526,294 @@ function toggleVote(dir: 1 | -1) {
       {/* Toolbar */}
       {!collapsed && (
         <div className={cx("mt-2 flex flex-wrap items-center gap-2 text-[12px] text-slate-600", compact && "mt-1")}>
-          <button className="underline" onClick={() => setReplyOpen((v) => !v)}>Reply</button>
-          <span>•</span>
+         
+          <button className="btnv2  py-1 text-center align-center my-auto px-2 text-xs" onClick={() => setReplyOpen((v) => !v)}>
+        <div className="flex align-center px-1 text-center my-auto">Reply</div>
+    </button>
+          <span className="text-slate-400">•</span>
           <QuoteInChatButton discussionId={discussionId} conversationId={conversationId} text={text} />
-          <span>•</span>
+          <span className="text-slate-400">•</span>
           <SaveButton saved={saved} onToggle={toggleSave} />
-          <span>•</span>
+          <span className="text-slate-400">•</span>
           <ShareButton discussionId={discussionId} commentId={comment.id} />
           {mine && (
             <>
-              <span>•</span>
+              <span className="text-slate-400">•</span>
               <EditButton initial={text} onSave={handleEdit} />
-              <span>•</span>
-              <button className="underline text-rose-600" onClick={handleDelete}>Delete</button>
+              <span className="text-slate-400">•</span>
+              <button className="underline underline-offset-4 text-rose-600" onClick={handleDelete}>Delete</button>
             </>
           )}
         </div>
       )}
-{/* Replies (one level) */}
-{!collapsed && (comment._children?.length ?? 0) > 0 && (
-  <div className={cx("mt-3 pl-4 border-l", compact ? "space-y-2" : "space-y-3")}>
-    {comment._children!.map((child) => (
-      <ForumCommentItem
-        key={child.id}
-        discussionId={discussionId}
-        conversationId={conversationId}
-        comment={child}
-        opUserId={opUserId}
-        compact={compact}
-        highlighted={false}
-        onLocalEdit={onLocalEdit}
-        onLocalDelete={onLocalDelete}
-      />
-    ))}
-  </div>
-)}
-{/* {!collapsed && (
-  <Replies
-    discussionId={discussionId}
-    parentId={comment.id}
-    have={comment._children ?? null}
-    conversationId={conversationId}
-    onBump={() => { onLocalEdit(); }}
-    compact={compact}
-    opUserId={opUserId}
-  />
-)} */}
-      {/* Reply composer */}
-      {replyOpen && !collapsed && (
-        <div className="mt-3">
-          <ReplyComposer
-            discussionId={discussionId}
-            parentId={comment.id}
-            onPosted={() => setReplyOpen(false)}
-          />
+
+      {/* Deep replies */}
+      {!collapsed && (comment._children?.length ?? 0) > 0 && (
+        <div className={cx("mt-3 pl-4 border-l", compact ? "space-y-2" : "space-y-3")}>
+          {comment._children!.map((child) => (
+            <ForumCommentItem
+              key={child.id}
+              discussionId={discussionId}
+              conversationId={conversationId}
+              comment={child}
+              opUserId={opUserId}
+              compact={compact}
+              highlighted={false}
+              onLocalEdit={onLocalEdit}
+              onLocalDelete={onLocalDelete}
+            />
+          ))}
         </div>
       )}
-    </article>
+
+      {/* Inline reply */}
+      {replyOpen && !collapsed && (
+        <div className="mt-3">
+          <ReplyComposer discussionId={discussionId} parentId={comment.id} onPosted={() => setReplyOpen(false)} />
+        </div>
+      )}
+    </motion.article>
   );
 }
 
 function VoteControls({
-  score,
-  vote,
-  onVote,
-  compact,
-}: {
-  score: number;
-  vote: 0 | 1 | -1;
-  onVote: (dir: 1 | -1) => void;
-  compact?: boolean;
-}) {
-  return (
-    <div className="flex items-center gap-2">
-      <button
-        className={cx(
-          "h-6 w-6 rounded border bg-white hover:bg-slate-50 leading-none",
-          vote === 1 && "border-emerald-400"
-        )}
-        title="Upvote (u)"
-        onClick={() => onVote(1)}
-      >
-        ▲
-      </button>
-      <span className={cx("min-w-[2ch] text-center", compact ? "text-[12px]" : "text-sm")}>
-        {formatCount(score)}
-      </span>
-      <button
-        className={cx(
-          "h-6 w-6 rounded border bg-white hover:bg-slate-50 leading-none",
-          vote === -1 && "border-rose-400"
-        )}
-        onClick={() => onVote(-1)}
-        title="Downvote"
-      >
-        ▼
-      </button>
-    </div>
-  );
-}
-
-function ReplyComposer({
-  discussionId,
-  parentId,
-  onPosted,
-}: {
-  discussionId: string;
-  parentId: string;
-  onPosted: () => void;
-}) {
-  const [text, setText] = React.useState("");
-  const [busy, setBusy] = React.useState(false);
-  const charLimit = 5000;
-
-  async function submit() {
-    if (!text.trim() || busy) return;
-    setBusy(true);
-    try {
-      await fetch(`/api/discussions/${discussionId}/forum`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          parentId,
-          content: { type: "paragraph", content: [{ type: "text", text: text.slice(0, charLimit) }] },
-        }),
-      });
-      setText("");
-      onPosted();
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <div className="rounded border bg-white/70 p-2">
-      <textarea
-        className="w-full text-sm bg-transparent outline-none resize-y min-h-[56px]"
-        placeholder="Write a reply…"
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        onKeyDown={(e) => {
-          if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
-            e.preventDefault();
-            submit();
-          }
-        }}
-      />
-      <div className="mt-2 flex justify-end gap-2">
-        <button className="text-xs px-2 py-1 rounded border bg-white hover:bg-slate-50" onClick={() => setText("")} disabled={busy || !text}>
-          Clear
+    score,
+    vote,
+    onVote,
+    compact,
+  }: {
+    score: number;
+    vote: 0 | 1 | -1;
+    onVote: (dir: 1 | -1) => void;
+    compact?: boolean;
+  }) {
+    return (
+      <div className="flex items-center gap-2">
+        <button
+          className={cx("btnv2  leading-none", vote === 1 && "ring-1 ring-emerald-300")}
+          title="Upvote (u)"
+          onClick={() => onVote(1)}
+        >
+          ▲
         </button>
-        <button className="text-xs px-2 py-1 rounded border bg-white hover:bg-slate-50 disabled:opacity-50" onClick={submit} disabled={busy || !text.trim()}>
-          {busy ? "Posting…" : "Reply"}
+        <span className={cx("min-w-[2ch] text-center", compact ? "text-[12px]" : "text-sm")}>
+          {formatCount(score)}
+        </span>
+        <button
+          className={cx("btnv2  leading-none", vote === -1 && "ring-1 ring-rose-300")}
+          onClick={() => onVote(-1)}
+          title="Downvote"
+        >
+          ▼
         </button>
       </div>
-    </div>
-  );
-}
-
-function EditButton({
-  initial,
-  onSave,
-}: {
-  initial: string;
-  onSave: (next: string) => void | Promise<void>;
-}) {
-  const [open, setOpen] = React.useState(false);
-  const [text, setText] = React.useState(initial);
-  const [busy, setBusy] = React.useState(false);
-
-  async function submit() {
-    setBusy(true);
-    try {
-      await onSave(text);
-      setOpen(false);
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <>
-      <button className="underline" onClick={() => setOpen(true)}>Edit</button>
-      {open && (
-        <div className="mt-2 rounded border bg-white/70 p-2">
-          <textarea
-            className="w-full text-sm bg-transparent outline-none min-h-[80px]"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-          />
-          <div className="mt-2 flex justify-end gap-2">
-            <button className="text-xs px-2 py-1 rounded border bg-white hover:bg-slate-50" onClick={() => setOpen(false)}>
-              Cancel
-            </button>
-            <button className="text-xs px-2 py-1 rounded border bg-white hover:bg-slate-50 disabled:opacity-50" onClick={submit} disabled={busy}>
-              {busy ? "Saving…" : "Save"}
-            </button>
-          </div>
-        </div>
-      )}
-    </>
-  );
-}
-
-function SaveButton({ saved, onToggle }: { saved: boolean; onToggle: () => void }) {
-  return (
-    <button className={cx("underline", saved && "text-emerald-700")} onClick={onToggle}>
-      {saved ? "Saved" : "Save"}
-    </button>
-  );
-}
-
-function ShareButton({ discussionId, commentId }: { discussionId: string; commentId: string }) {
-  const [copied, setCopied] = React.useState(false);
-  async function copy() {
-    try {
-      const url = `${location.origin}/discussions/${discussionId}#c-${commentId}`;
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1200);
-    } catch {
-      // fallback
-      alert("Copy failed");
-    }
-  }
-  return (
-    <button className="underline" onClick={copy}>
-      {copied ? "Copied!" : "Share"}
-    </button>
-  );
-}
-
-function AvatarSeed({ id }: { id: string | number }) {
-  const seed = String(id);
-  const ch = seed.replace(/[^a-z0-9]/gi, "").charAt(0).toUpperCase() || "U";
-  return (
-    <div className="h-7 w-7 rounded-full bg-slate-200 text-slate-700 text-xs flex items-center justify-center border">
-      {ch}
-    </div>
-  );
-}
-
-/* -------------------------- quote in chat button -------------------------- */
-
-function QuoteInChatButton({
-  discussionId,
-  conversationId,
-  text,
-}: {
-  discussionId: string;
-  conversationId: string | null;
-  text?: string;
-}) {
-  const safe = (text ?? "").trim();
-  const asBlockquote = (t: string) => t.split("\n").map((l) => `> ${l}`).join("\n");
-
-  async function go() {
-    const payload = safe ? `> _From forum:_\n${asBlockquote(safe)}` : "> _From forum:_";
-    if (conversationId) {
-      await fetch(`/api/conversations/${conversationId}/ensure-member`, { method: "POST" }).catch(() => {});
-      try {
-        sessionStorage.setItem(`dq:conv:${conversationId}`, JSON.stringify({ text: payload }));
-      } catch {}
-    }
-    window.dispatchEvent(
-      new CustomEvent("discussion:quote-for-chat", {
-        detail: { discussionId, text: payload },
-      })
     );
   }
-
-  return <button className="underline" onClick={go}>Quote in chat</button>;
-}
+  
+  function ReplyComposer({
+    discussionId,
+    parentId,
+    onPosted,
+  }: {
+    discussionId: string;
+    parentId: string;
+    onPosted: () => void;
+  }) {
+    const [text, setText] = React.useState("");
+    const [busy, setBusy] = React.useState(false);
+    const charLimit = 5000;
+  
+    async function submit() {
+      if (!text.trim() || busy) return;
+      setBusy(true);
+      try {
+        await fetch(`/api/discussions/${discussionId}/forum`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            parentId,
+            content: { type: "paragraph", content: [{ type: "text", text: text.slice(0, charLimit) }] },
+          }),
+        });
+        setText("");
+        onPosted();
+      } finally {
+        setBusy(false);
+      }
+    }
+  
+    return (
+      <div className="rounded-xl border bg-white/70 p-2 panel-edge">
+        <textarea
+          className="w-full text-sm bg-transparent outline-none resize-y min-h-[56px]"
+          placeholder="Write a reply…"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+              e.preventDefault();
+              submit();
+            }
+          }}
+        />
+        <div className="mt-2 flex justify-end gap-2">
+          <button className="btnv2 btnv2--sm btnv2--ghost" onClick={() => setText("")} disabled={busy || !text}>
+            Clear
+          </button>
+          <button className="btnv2 btnv2--sm" onClick={submit} disabled={busy || !text.trim()}>
+            {busy ? "Posting…" : "Reply"}
+          </button>
+        </div>
+      </div>
+    );
+  }
+  
+  function EditButton({
+    initial,
+    onSave,
+  }: {
+    initial: string;
+    onSave: (next: string) => void | Promise<void>;
+  }) {
+    const [open, setOpen] = React.useState(false);
+    const [text, setText] = React.useState(initial);
+    const [busy, setBusy] = React.useState(false);
+  
+    async function submit() {
+      setBusy(true);
+      try {
+        await onSave(text);
+        setOpen(false);
+      } finally {
+        setBusy(false);
+      }
+    }
+  
+    return (
+      <>
+        <button className="underline underline-offset-4" onClick={() => setOpen(true)}>Edit</button>
+        {open && (
+          <div className="mt-2 rounded-xl border bg-white/70 p-2 panel-edge">
+            <textarea
+              className="w-full text-sm bg-transparent outline-none min-h-[80px]"
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+            />
+            <div className="mt-2 flex justify-end gap-2">
+              <button className="btnv2 btnv2--sm btnv2--ghost" onClick={() => setOpen(false)}>
+                Cancel
+              </button>
+              <button className="btnv2 btnv2--sm" onClick={submit} disabled={busy}>
+                {busy ? "Saving…" : "Save"}
+              </button>
+            </div>
+          </div>
+        )}
+      </>
+    );
+  }
+  
+  function SaveButton({ saved, onToggle }: { saved: boolean; onToggle: () => void }) {
+    return (
+      <button className={cx("inline-flex items-center gap-1 underline underline-offset-4", saved && "text-emerald-700")} onClick={onToggle}>
+        <Bookmark className="h-3.5 w-3.5" />
+        {saved ? "Saved" : "Save"}
+      </button>
+    );
+  }
+  
+  function ShareButton({ discussionId, commentId }: { discussionId: string; commentId: string }) {
+    const [copied, setCopied] = React.useState(false);
+    async function copy() {
+      try {
+        const url = `${location.origin}/discussions/${discussionId}#c-${commentId}`;
+        await navigator.clipboard.writeText(url);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1200);
+      } catch {
+        alert("Copy failed");
+      }
+    }
+    return (
+      <button className="inline-flex items-center gap-1 underline underline-offset-4" onClick={copy}>
+        <Share2 className="h-3.5 w-3.5" />
+        {copied ? "Copied!" : "Share"}
+      </button>
+    );
+  }
+  
+  function PatternAvatar({ id }: { id: string | number }) {
+    const seed = String(id);
+    // cheap deterministic hue
+    let h = 0; for (let i=0;i<seed.length;i++) h = (h*31 + seed.charCodeAt(i)) % 360;
+    const bg = `linear-gradient(135deg, hsl(${h} 70% 75% / .9), hsl(${(h+40)%360} 70% 85% / .9))`;
+    const ch = seed.replace(/[^a-z0-9]/gi, "").charAt(0).toUpperCase() || "U";
+    return (
+      <div
+        className="h-7 w-7 rounded-full text-slate-700 text-xs flex items-center justify-center border"
+        style={{ background: bg, borderColor: "rgba(148,163,184,.35)" }}
+      >
+        {ch}
+      </div>
+    );
+  }
+  
+  /* -------------------------- quote in chat button -------------------------- */
+  
+  function QuoteInChatButton({
+    discussionId,
+    conversationId,
+    text,
+  }: {
+    discussionId: string;
+    conversationId: string | null;
+    text?: string;
+  }) {
+    const safe = (text ?? "").trim();
+    const asBlockquote = (t: string) => t.split("\n").map((l) => `> ${l}`).join("\n");
+  
+    async function go() {
+      const payload = safe ? `> _From forum:_\n${asBlockquote(safe)}` : "> _From forum:_";
+      if (conversationId) {
+        await fetch(`/api/conversations/${conversationId}/ensure-member`, { method: "POST" }).catch(() => {});
+        try { sessionStorage.setItem(`dq:conv:${conversationId}`, JSON.stringify({ text: payload })); } catch {}
+      }
+      window.dispatchEvent(new CustomEvent("discussion:quote-for-chat", { detail: { discussionId, text: payload } }));
+    }
+  
+    return <button className="btnv2  py-1 text-center align-center my-auto px-2 text-xs" onClick={go}>
+        <div className="flex align-center text-center my-auto">Quote</div>
+    </button>;
+  }
+  
+  /* ------------------------- skeleton / empty state ------------------------- */
+  
+  function SkeletonList() {
+    return (
+      <ul className="space-y-3">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <li key={i} className="rounded-xl border bg-white/70 p-3 panel-edge">
+            <div className="animate-pulse space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="h-7 w-7 rounded-full bg-slate-200" />
+                <div className="h-3 w-40 rounded bg-slate-200" />
+              </div>
+              <div className="h-3 w-11/12 rounded bg-slate-200" />
+              <div className="h-3 w-9/12 rounded bg-slate-200" />
+            </div>
+          </li>
+        ))}
+      </ul>
+    );
+  }
+  
+  function EmptyState() {
+    return (
+      <div className="rounded-xl border bg-white/70 p-8 text-center text-sm text-slate-600 panel-edge">
+        No comments yet — be the first to post.
+      </div>
+    );
+  }
 
 function Replies({
     discussionId,
@@ -815,7 +841,7 @@ function Replies({
   
     if (!open) {
       return (
-        <button className="mt-2 text-[12px] underline" onClick={() => setOpen(true)}>
+        <button className="mt-2 text-[12px] underline underline-offset-4" onClick={() => setOpen(true)}>
           View replies
         </button>
       );

@@ -24,7 +24,7 @@ export function DeliberateButton({ discussionId }: { discussionId: string }) {
   }
 
   return (
-    <button className="px-3 py-1 rounded border bg-white hover:bg-slate-50" onClick={attachNew} disabled={busy}>
+    <button className="btnv2 btnv2--sm text-xs px-3 py-1.5 " onClick={attachNew} disabled={busy}>
       {busy ? "Attaching…" : "Deliberate"}
     </button>
   );
