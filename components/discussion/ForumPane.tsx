@@ -28,6 +28,54 @@ const fetcher = (u: string) => fetch(u, { cache: "no-store" }).then((r) => r.jso
 function cx(...parts: Array<string | false | null | undefined>) {
   return parts.filter(Boolean).join(" ");
 }
+function hueFromSeed(seed: string | number) {
+  const s = String(seed);
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 360;
+  return h;
+}
+
+/**
+ * Softer pastel tone styles.
+ * - Lower saturation + smaller hue offset = calmer wash
+ * - Higher lightness + lower alpha = subtler presence
+ * - Softer border/left rule so blocks read without shouting
+ */
+function toneStyles(depth: number, authorId: string | number) {
+  const GOLDEN = 67.50776405;
+  const base = hueFromSeed(authorId);
+  const h = (base + depth * GOLDEN) % 360;
+
+  // Gentle variety by hue bucket
+  const bucket = Math.round((h / 360) * 6) % 6; // 0..5
+  const sat = 56 + (bucket % 3) * 3;            // 56–62% (↓ from ~74–82)
+  const lift = 0.98 + (bucket % 2) * 0.01;      // tiny brightness wobble
+
+  // Lighter, subtler gradient
+  const L_TOP = Math.max(96 - depth * 0.6, 92) * lift; // 96→92
+  const L_BOT = Math.max(98 - depth * 0.4, 94) * lift; // 98→94
+
+  // Lower alpha overall
+  const A_TOP = depth === 0 ? 0.16 : 0.12;
+  const A_BOT = depth === 0 ? 0.26 : 0.20;
+
+  // Smaller hue shift for a calmer blend
+  const h2 = (h + 14) % 360;
+
+  const background =
+    `linear-gradient(180deg, ` +
+    `hsla(${h} ${sat}% ${L_BOT}% / ${A_BOT}), ` +
+    `hsla(${h2} ${Math.min(sat + 4, 66)}% ${L_TOP}% / ${A_TOP}) )`;
+
+  // Softer border/left rule
+  const border = `hsla(${h} ${sat + 6}% ${Math.max(L_BOT - 18, 60)}% / .28)`;
+
+  return {
+    background,
+    borderColor: border,
+    ...(depth > 0 ? { boxShadow: `inset 3px 0 0 0 ${border}` } : null),
+  } as React.CSSProperties;
+}
 
 function collectIds(list: ForumComment[]): string[] {
     const out: string[] = [];
@@ -209,8 +257,8 @@ const meSaves = meState?.saves ?? {};
         <div className="flex items-center gap-3">
           <SortControl sort={sort} onChange={setSort} />
           <div className="flex items-center gap-2">
-          <button className="btnv2 btnv2--sm btnv2--ghost p-2" onClick={collapseAll}>Collapse All</button>
-            <button className="btnv2 btnv2--sm btnv2--ghost p-2" onClick={expandAll}>Expand All</button>
+          <button className="btnv2 px-2 py-1.5" onClick={collapseAll}>Collapse All</button>
+            <button className="btnv2  px-2 py-1.5" onClick={expandAll}>Expand All</button>
             {/* <label className="text-xs flex text-center align-center items-center gap-1 cursor-pointer my-auto py-2 h-full
              ">
               <input type="checkbox" className="checkboxv2 flex" checked={compact} onChange={(e) => setCompact(e.target.checked)} />
@@ -252,12 +300,22 @@ const meSaves = meState?.saves ?? {};
         <div className="mt-2 flex items-center justify-between text-xs text-slate-600">
           <span>{remaining} chars left</span>
           <div className="flex gap-2">
-            <button className="btnv2 btnv2--sm btnv2--ghost" onClick={() => setBody("")} disabled={!body}>
+            {/* <button className="btnv2 btnv2--sm btnv2--ghost" onClick={() => setBody("")} disabled={!body}>
               Clear
-            </button>
-            <button className="btnv2 btnv2--sm" onClick={submitNew} disabled={posting || !body.trim()}>
+            </button> */}
+            <button className="btnv2  py-1 text-center align-center my-auto px-3 text-xs"  
+            onClick={() => setBody("")} disabled={!body}>
+        <div className="flex align-center text-center my-auto">Clear</div>
+    </button>
+            {/* <button className="btnv2 btnv2--sm" onClick={submitNew} disabled={posting || !body.trim()}>
               {posting ? "Posting…" : "Post"}
-            </button>
+            </button> */}
+            <button className="btnv2  py-1 text-center align-center my-auto px-3 text-xs"  
+            onClick={submitNew} disabled={posting || !body.trim()}>
+        <div className="flex align-center text-center my-auto">      
+                {posting ? "Posting…" : "Post"}
+</div>
+    </button>
           </div>
         </div>
       </motion.div>
@@ -281,6 +339,7 @@ const meSaves = meState?.saves ?? {};
                 discussionId={discussionId}
                 conversationId={conversationId}
                 comment={row}
+                depth={0}
                 opUserId={opUserId}
                 compact={compact}
                 highlighted={highlightId === String(row.id)}
@@ -328,7 +387,7 @@ function SortControl({
     return (
       <div className="px-2 flex items-center gap-2 text-xs">
         <span className="align-center flex my-auto text-slate-600">Sort by:</span>
-        <div className="flex rounded-xl border bg-slate-200/80 overflow-hidden panel-edge">
+        <div className="flex rounded-xl border-[1.5px] border-indigo-200 bg-slate-200/80 overflow-hidden panel-edge">
           {tabs.map(({ key, label }, idx) => (
             <button
               key={key}
@@ -360,6 +419,8 @@ function ForumCommentItem({
   onLocalDelete,
   initialVote = 0,
   initialSaved = false,
+  depth = 0,
+  parentUnclamped = false,
 }: {
   discussionId: string;
   conversationId: string | null;
@@ -371,7 +432,11 @@ function ForumCommentItem({
   onLocalDelete: () => void;
   initialVote?: 0 | 1 | -1;
   initialSaved?: boolean;
+  depth?: number;
+  parentUnclamped?: boolean;
 }) {
+      // Toggle if/when you want hotkeys back
+ const ENABLE_HOTKEYS = false;
   const { user } = useAuth();
   const meId = user?.userId ? String(user.userId) : null;
 
@@ -384,6 +449,16 @@ function ForumCommentItem({
   const text = normalizeBodyText(comment);
   const authorIsOP = opUserId != null && String(opUserId) === String(comment.authorId);
   const mine = meId != null && String(meId) === String(comment.authorId);
+
+  const MAX_NEST = 5;
+    const [unclampBranch, setUnclampBranch] = React.useState(false);
+    const isUnclamped = parentUnclamped || unclampBranch;
+    const rawDepth = depth ?? 0;
+    const visualDepth = isUnclamped ? rawDepth : Math.min(rawDepth, MAX_NEST);
+    const overflow = isUnclamped ? 0 : Math.max(0, rawDepth - MAX_NEST); // only show overf
+const parentAnchor = comment.parentId ? `#c-${comment.parentId}` : null;
+const shouldIndentChildren = rawDepth < MAX_NEST || isUnclamped;
+
 
   // Listen to global collapse/expand
   React.useEffect(() => {
@@ -470,8 +545,48 @@ function toggleVote(dir: 1 | -1) {
     }
     onLocalEdit(); // parent calls mutate()
   }
-  return (
-    <motion.article
+     function isTypingTarget(el: EventTarget | null) {
+         const t = el as HTMLElement | null;
+         if (!t) return false;
+         const tag = t.tagName;
+         return (
+           t.isContentEditable ||
+           tag === "INPUT" ||
+           tag === "TEXTAREA" ||
+           (t.closest("input,textarea,[contenteditable=''],[contenteditable='true']") != null)
+         );
+       }
+     
+  // 👉 NEW: compute the children block once, reuse inside/outside
+  const childrenBlock = !collapsed && (comment._children?.length ?? 0) > 0 ? (
+    <div
+      className={cx(
+        "mt-3",
+        compact ? "space-y-2" : "space-y-3",
+        shouldIndentChildren && "pl-3 border-l" // indent only while < clamp OR explicitly unclamped
+      )}
+    >
+      {comment._children!.map((child) => (
+        <ForumCommentItem
+          key={child.id}
+          discussionId={discussionId}
+          conversationId={conversationId}
+          comment={child}
+          depth={rawDepth + 1}
+          parentUnclamped={isUnclamped}
+          opUserId={opUserId}
+          compact={compact}
+          highlighted={false}
+          onLocalEdit={onLocalEdit}
+          onLocalDelete={onLocalDelete}
+        />
+      ))}
+    </div>
+  ) : null;
+
+       return (
+        <>
+       <motion.article
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25 }}
@@ -481,12 +596,19 @@ function toggleVote(dir: 1 | -1) {
         compact && "p-2",
         flash && "ring-2 ring-indigo-300 bg-indigo-50/70"
       )}
-      tabIndex={0}
+      // style={toneStyles(depth, comment.authorId)}
+      style={toneStyles(visualDepth, comment.authorId)}
+      
+      
+      tabIndex={0}  
       onKeyDown={(e) => {
-        if (e.key.toLowerCase() === "r") setReplyOpen((v) => !v);
-        if (e.key.toLowerCase() === "c") setCollapsed((v) => !v);
-        if (e.key.toLowerCase() === "u") toggleVote(1);
-      }}
+                 if (!ENABLE_HOTKEYS) return;
+                 if (isTypingTarget(e.target)) return;
+                 const k = e.key.toLowerCase();
+                 if (k === "r") setReplyOpen((v) => !v);
+                 if (k === "c") setCollapsed((v) => !v);
+                 if (k === "u") toggleVote(1);
+               }}
       aria-expanded={!collapsed}
       aria-controls={`comment-body-${comment.id}`}
     >
@@ -502,6 +624,46 @@ function toggleVote(dir: 1 | -1) {
               </span>
             )}
             <span className="ml-2 text-[12px] text-slate-600">{timeAgo(comment.createdAt)}</span>
+
+          {overflow > 0 && (
+  <span
+    className="ml-2 inline-flex items-center rounded-full px-2 py-0.5 text-[11px]"
+    style={{
+      // derive a pill from parent hue; slightly stronger for visibility
+      background: 'hsla(0 0% 100% / .6)',
+      boxShadow: 'inset 0 0 0 1px rgba(148,163,184,.35)'
+    }}
+    title={`Reply depth +${overflow} (clamped)`}
+  >
+    ↳ depth +{overflow}
+  </span>
+)}
+  {overflow > 0 && (
+    <button
+      className="ml-2 text-[11px] underline text-slate-600 hover:text-slate-800"
+      onClick={() => setUnclampBranch(true)}
+      title="Temporarily expand this branch beyond the nesting limit"
+    >
+      Show full chain
+    </button>
+  )}
+  {isUnclamped && rawDepth >= MAX_NEST && (
+    <button
+      className="ml-2 text-[11px] underline text-slate-600 hover:text-slate-800"
+      onClick={() => setUnclampBranch(false)}
+      title="Collapse this branch back to the nesting limit"
+    >
+      Collapse chain
+    </button>
+  )}
+
+{/* Optional: show once when overflow begins */}
+{overflow === 1 && parentAnchor && (
+  <div className="mt-1 text-[12px] text-slate-500 italic">
+    in reply to <a className="underline" href={parentAnchor}>parent</a>
+  </div>
+)}
+
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -528,11 +690,19 @@ function toggleVote(dir: 1 | -1) {
         <div className={cx("mt-2 flex flex-wrap items-center gap-2 text-[12px] text-slate-600", compact && "mt-1")}>
          
           <button className="btnv2  py-1 text-center align-center my-auto px-2 text-xs" onClick={() => setReplyOpen((v) => !v)}>
-        <div className="flex align-center px-1 text-center my-auto">Reply</div>
+        <div className="flex align-center text-center my-auto">Reply</div>
     </button>
+
+
+
+
+    
           <span className="text-slate-400">•</span>
           <QuoteInChatButton discussionId={discussionId} conversationId={conversationId} text={text} />
           <span className="text-slate-400">•</span>
+          
+
+
           <SaveButton saved={saved} onToggle={toggleSave} />
           <span className="text-slate-400">•</span>
           <ShareButton discussionId={discussionId} commentId={comment.id} />
@@ -546,16 +716,36 @@ function toggleVote(dir: 1 | -1) {
           )}
         </div>
       )}
-
-      {/* Deep replies */}
-      {!collapsed && (comment._children?.length ?? 0) > 0 && (
-        <div className={cx("mt-3 pl-4 border-l", compact ? "space-y-2" : "space-y-3")}>
+{/* overflow connector stub (a hair inset for a “hook” feel) */}
+{overflow > 0 && (
+  <div
+    aria-hidden
+    className="mt-2"
+    style={{
+      height: 6,
+      borderLeft: '2px dotted rgba(148,163,184,.45)',
+      marginLeft: 8,   // 👈 slight inset to visually connect
+      opacity: .9
+    }}
+  />
+)}
+      {/* Deep replies
+       {!collapsed && (comment._children?.length ?? 0) > 0 && (
+   <div
+     className={cx(
+       "mt-3",
+       compact ? "space-y-2" : "space-y-3",
+       (rawDepth < MAX_NEST || isUnclamped) && "pl-3 border-l" // 👈 only indent while < clamp OR this branch is expanded
+     )}
+  >
           {comment._children!.map((child) => (
             <ForumCommentItem
               key={child.id}
               discussionId={discussionId}
               conversationId={conversationId}
               comment={child}
+              depth={rawDepth + 1}
+        parentUnclamped={isUnclamped}
               opUserId={opUserId}
               compact={compact}
               highlighted={false}
@@ -564,7 +754,26 @@ function toggleVote(dir: 1 | -1) {
             />
           ))}
         </div>
-      )}
+      )} */}
+
+
+        {/* overflow connector (optional)
+        {overflow > 0 && (
+          <div
+            aria-hidden
+            className="mt-2"
+            style={{
+              height: 6,
+              borderLeft: "2px dotted rgba(148,163,184,.45)",
+              marginLeft: 8,
+              opacity: 0.9,
+            }}
+          />
+        )} */}
+
+        {/* 👇 render children INSIDE only if we still want indentation */}
+        {shouldIndentChildren && childrenBlock}
+
 
       {/* Inline reply */}
       {replyOpen && !collapsed && (
@@ -572,7 +781,12 @@ function toggleVote(dir: 1 | -1) {
           <ReplyComposer discussionId={discussionId} parentId={comment.id} onPosted={() => setReplyOpen(false)} />
         </div>
       )}
-    </motion.article>
+     </motion.article>
+ {/* 👇 when clamped and not unclamped, render children OUTSIDE the card */}
+ {!shouldIndentChildren && childrenBlock && (
+   <div className="-mt-2">{childrenBlock}</div>
+)}
+</>
   );
 }
 
@@ -645,7 +859,9 @@ function VoteControls({
     return (
       <div className="rounded-xl border bg-white/70 p-2 panel-edge">
         <textarea
-          className="w-full text-sm bg-transparent outline-none resize-y min-h-[56px]"
+          className="w-full text-sm bg-transparent min-h-[56px]
+            border-none rounded-lg outline-[1px] outline-indigo-300 discussionfield
+           resize-y"
           placeholder="Write a reply…"
           value={text}
           onChange={(e) => setText(e.target.value)}
@@ -656,7 +872,7 @@ function VoteControls({
             }
           }}
         />
-        <div className="mt-2 flex justify-end gap-2">
+        <div className="mt-2 flex justify-start gap-2">
           <button className="btnv2 btnv2--sm btnv2--ghost" onClick={() => setText("")} disabled={busy || !text}>
             Clear
           </button>

@@ -22,7 +22,7 @@ export default function DiscussionView({
   initialMessages?: any[];
 
 }) {
-  const [tab, setTab] = React.useState<"chat" | "forum">("chat");
+  const [tab, setTab] = React.useState<"chat" | "forum">("forum");
   const setMessages = useChatStore((s) => s.setMessages);
   const { user } = useAuth();
   const me = user?.userId ? String(user.userId) : null; // real DB userId as string
