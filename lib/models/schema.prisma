@@ -3083,6 +3083,17 @@ model CareLedger {
   @@index([userId, createdAt])
 }
 
+model Commitment {
+  id             String   @id @default(cuid())
+  deliberationId String
+  participantId  String
+  proposition    String    // e.g., claim id or normalized proposition key
+  locusPath      String?   // optional: bind to a locus for fine-grain closure
+  isRetracted    Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  @@index([deliberationId, participantId])
+}
+
 // ----- bounties -----
 model Bounty {
   id          String             @id @default(cuid())

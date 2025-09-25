@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prismaclient';
 import { stepInteraction } from '@/packages/ludics-engine/stepper';
-
+import { getCurrentUserId } from '@/lib/serverutils';
 const Q = z.object({
   deliberationId: z.string().min(5),
   targetType: z.enum(['argument','claim','card']),
@@ -45,14 +45,40 @@ export async function GET(req: NextRequest) {
 
   const moves: Move[] = [];
 
-  // Answer each open CQ (GROUNDS)
-  for (const k of openKeys) {
-    moves.push({ kind:'GROUNDS', label: `Answer ${k}`, payload: { cqId: k } });
+    // Find target author to gate moves by role
+  let targetAuthorId: string | null = null;
+  if (targetType === 'argument') {
+    const a = await prisma.argument.findFirst({ where: { id: targetId }, select: { authorId:true } });
+    targetAuthorId = a?.authorId ?? null;
+  } else if (targetType === 'claim') {
+    const c = await prisma.claim.findFirst({ where: { id: targetId }, select: { createdById:true } });
+    targetAuthorId = c?.createdById ?? null;
   }
 
-  // Always allow WHY when no open WHYs (simple policy)
+  // (you may get actorId the same way as in /move)
+  // const actorId = await getCurrentUserId().catch(() => null);
+  const actor = await getCurrentUserId().catch(() => null);
+  const actorId = actor ? String(actor) : null;
+
+  // Answer each open CQ (GROUNDS)
+
+  for (const k of openKeys) {
+    moves.push({
+      kind:'GROUNDS',
+      label:`Answer ${k}`,
+      payload:{ cqId:k },
+      disabled: actorId && targetAuthorId && actorId !== String(targetAuthorId),
+      reason: actorId && targetAuthorId && actorId !== String(targetAuthorId) ? 'Only the author may answer this WHY' : undefined
+    });
+  }
+
   if (!openKeys.length) {
-    moves.push({ kind:'WHY', label: 'Ask WHY' });
+    moves.push({
+      kind:'WHY',
+      label:'Ask WHY',
+      disabled: actorId && targetAuthorId && actorId === String(targetAuthorId),
+      reason: actorId && targetAuthorId && actorId === String(targetAuthorId) ? 'You cannot ask WHY on your own claim' : undefined
+    });
   }
 
   // Concede / Retract are always available (UI can gate by role/phase)

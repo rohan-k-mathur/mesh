@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { faxDelocate } from 'packages/ludics-engine/fax';
+ import { faxDelocate } from 'packages/ludics-engine/fax';
+import { delocate } from '@/packages/ludics-engine/delocate';
 
 const zBody = z.object({
   dialogueId: z.string(),
