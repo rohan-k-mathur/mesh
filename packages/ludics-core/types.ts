@@ -1,7 +1,8 @@
 export type LocusPath = string;          // "0.1.2"
-export type Polarity = 'P' | 'O';
+// export type Polarity = 'P' | 'O';
 export type TravelStatus = 'ONGOING'|'CONVERGENT'|'DIVERGENT';
 
+export type Polarity = 'P' | 'O' | 'pos' | 'neg' | 'daimon';
 
 
 export type ProperAct = {
@@ -47,6 +48,16 @@ export type TracePair = {
   negActId: string;
   ts: number;
   actor?: string;
+};
+
+export type InteractionTrace = {
+  convergent: boolean;
+  divergent: boolean;
+  reason?: string;
+  /** The ordered handshake pairs we visited. */
+  pairs: TracePair[];
+  /** If convergent, where † happened. */
+  daimonAt?: LocusPath;
 };
 
 export type Endorsement = {

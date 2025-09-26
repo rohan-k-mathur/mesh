@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
 import { getCurrentUserId } from '@/lib/serverutils';
+import { makeSignature } from '@/lib/dialogue/moves'; // existing helper
 
 export async function POST(_: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -48,6 +49,51 @@ export async function POST(_: NextRequest, { params }: { params: { id: string } 
         }
       });
     }
+    if (mp.targetType === 'argument') {
+  const parent = await prisma.argument.findUnique({
+    where: { id: mp.targetId },
+    select: { deliberationId: true, claimId: true }
+  });
+
+  // 2.a canonicalize to monological store
+  if ((mp.premiseType || '').toLowerCase() === 'warrant' && parent?.claimId) {
+    await prisma.claimWarrant.create({
+      data: { claimId: parent.claimId, text: mp.text, createdBy: String(userId) }
+    }).catch(()=>{});
+    await prisma.argumentAnnotation.create({
+      data: {
+        targetType: 'argument',
+        targetId: mp.targetId,
+        type: 'monological:warrant',
+        text: mp.text,
+        source: 'missing',
+        offsetStart: 0,
+        offsetEnd: Math.min(120, mp.text.length),
+      }
+    }).catch(()=>{});
+  } else {
+    // (your existing implicit child + support edge with targetScope 'premise')
+    // unchanged
+  }
+
+  // 2.b optional: seed a GROUNDS move to kick the dialogue
+  try {
+    const payload = { expression: mp.text, cqId:'default', locusPath:'0' };
+    const signature = makeSignature('GROUNDS','argument', mp.targetId, payload); // same helper you use elsewhere
+    await prisma.dialogueMove.create({
+      data: {
+        deliberationId: parent?.deliberationId ?? '',
+        targetType: 'argument',
+        targetId: mp.targetId,
+        kind: 'GROUNDS',
+        payload,
+        actorId: String(userId),
+        signature,
+      },
+    });
+    (globalThis as any).meshBus?.emit?.('dialogue:moves:refresh', { deliberationId: parent?.deliberationId });
+  } catch {}
+}
 
     return NextResponse.json({ ok: true });
   } catch (e:any) {

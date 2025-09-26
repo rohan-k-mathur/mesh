@@ -7,6 +7,15 @@ import LiftToDebateButton from "./LiftToDebateButton";
 import CommentComposer from "./CommentComposer";
 import OpenInDiscussionsButton from "../common/OpenInDiscussionsButton";
 
+function commentSnippet(raw: string, max = 96) {
+  const s = (raw ?? "").replace(/\s+/g, " ").trim();
+  if (s.length <= max) return s;
+  const cut = s.slice(0, max - 1);
+  const atWord = cut.lastIndexOf(" ");
+  return (atWord > 40 ? cut.slice(0, atWord) : cut).trim() + "…";
+}
+
+
 function timeAgo(d: Date) {
   const s = Math.floor((Date.now() - d.getTime()) / 1000);
   if (s < 60) return `${s}s`;
@@ -86,6 +95,9 @@ export default async function StackDiscussion({
       {/* List */}
       <div className="space-y-4">
         {comments.map((c) => {
+          if (!c.content) return null;
+         const titleForDiscussion = `Thread for: ${commentSnippet(c.content, 96)}`;
+
           const cCites = citesByComment.get(c.id.toString()) ?? [];
           return (
             <div key={c.id.toString()} className="flex gap-3">
@@ -138,7 +150,8 @@ export default async function StackDiscussion({
                   <OpenInDiscussionsButton
   attachedToType="comment"
   attachedToId={String(c.id)}
-  title="Discuss this comment"
+    title={titleForDiscussion}   // ✅ exact comment text, truncated
+
   selectExisting
 />
               </div>

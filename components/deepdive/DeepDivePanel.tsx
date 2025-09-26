@@ -534,7 +534,7 @@ async function updatePref(next: PrefProfile) {
           <RhetoricControls sample={rhetoricSample} />
           <div className="flex gap-2">
           <button
-    className="btnv2 rounded-full py-2"
+    className="menuv2--lite px-2 text-[11px] rounded py-1"
     onClick={() => {
       setTab('works');
     // double-RAF ensures tab state has applied before we scroll

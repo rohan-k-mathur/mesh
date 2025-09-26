@@ -28,6 +28,9 @@ export default function DiscussionView({
   const me = user?.userId ? String(user.userId) : null; // real DB userId as string
   const currentUserName = user?.username ?? user?.displayName ?? "";
   const currentUserImage = user?.photoURL ?? null;
+const displayTitle = discussion.title && discussion.title.trim()
+  ? discussion.title
+  : "Discussion"; // or compute a fallback if you also fetch the attached comment text
 
 
 
@@ -87,7 +90,7 @@ React.useEffect(() => {
       <header className="glass-surface rounded-2xl panel-edge border bg-white/70 px-4 py-3 shadow-[0_10px_40px_-10px_rgba(2,6,23,0.12)]">
       <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <h1 className="truncate text-sm font-semibold tracking-wide">{discussion.title}</h1>
+              <h1 className="truncate text-sm font-semibold tracking-wide">{displayTitle}</h1>
               {discussion.description && (
                 <p className="mt-0.5 text-sm text-slate-600">{discussion.description}</p>
               )}

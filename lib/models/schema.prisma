@@ -2183,14 +2183,26 @@ model Argument {
   @@index([deliberationId, claimId, createdAt]) // arguments by claim in a delib
 }
 
+enum ArgumentAttackSubtype {
+  SUPPORT_ATTACK
+  CONSEQUENCE_ATTACK
+  JUSTIFICATION_ATTACK
+  UNDERMINE
+  REBUT
+  UNDERCUT
+  OVERCUT
+}
+
 model ArgumentEdge {
-  id             String   @id @default(cuid())
+  id             String                 @id @default(cuid())
   deliberationId String
   fromArgumentId String
   toArgumentId   String
   type           EdgeType
-  createdById    String
-  createdAt      DateTime @default(now())
+  attackSubtype  ArgumentAttackSubtype? // NEW
+
+  createdById String
+  createdAt   DateTime @default(now())
 
   targetScope TargetScope @default(conclusion)
 
@@ -2201,6 +2213,18 @@ model ArgumentEdge {
   @@index([deliberationId])
   @@index([fromArgumentId])
   @@index([toArgumentId])
+}
+
+model DefaultRule {
+  id             String   @id @default(cuid())
+  deliberationId String
+  argumentId     String
+  role           String // 'premise' | 'claim'
+  antecedent     String // α
+  justification  String // β
+  consequent     String // γ
+  createdBy      String
+  createdAt      DateTime @default(now())
 }
 
 model ArgumentApproval {
@@ -3092,8 +3116,8 @@ model Commitment {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  @@index([deliberationId, participantId])
   @@unique([deliberationId, participantId, proposition])
+  @@index([deliberationId, participantId])
 }
 
 // ----- bounties -----
@@ -3732,9 +3756,9 @@ model ForumComment {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@unique([discussionId, sourceMessageId])
   // prevents duplicate promote spam:
   @@index([discussionId, parentId]) // on ForumComment
-  @@unique([discussionId, sourceMessageId])
   @@index([discussionId])
   @@index([parentId])
   @@index([sourceMessageId])
@@ -3812,7 +3836,7 @@ model DiscussionParticipant {
 model ForumVote {
   userId    BigInt
   commentId BigInt
-  dir       Int            // -1, 0, 1
+  dir       Int // -1, 0, 1
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

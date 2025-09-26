@@ -1,3 +1,4 @@
+// app/api/monological/extract/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
 
@@ -18,19 +19,18 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok:false, error:'argumentId required' }, { status: 400 });
   }
 
-  // Find related claim (optional), handy for warrants/backing
+  // ✅ include text so we can safely test connectives
   const arg = await prisma.argument.findUnique({
     where: { id: argumentId },
-    select: { id: true, claimId: true },
+    select: { id: true, claimId: true, text: true }, // <-- added text
   });
 
-  // 1) MissingPremise (our canonical store for ground/warrant/backing/qualifier/rebuttal)
+  // canonical stores
   const mp = await prisma.missingPremise.findMany({
     where: { targetType: 'argument', targetId: argumentId },
     select: { premiseType: true, text: true },
   });
 
-  // 2) ArgumentAnnotation with "monological:*"
   const aa = await prisma.argumentAnnotation.findMany({
     where: {
       targetType: 'argument',
@@ -40,7 +40,6 @@ export async function GET(req: NextRequest) {
     select: { type: true, text: true },
   });
 
-  // 3) ClaimWarrant if argument was promoted
   const cw = arg?.claimId
     ? await prisma.claimWarrant.findMany({
         where: { claimId: arg.claimId },
@@ -48,16 +47,23 @@ export async function GET(req: NextRequest) {
       })
     : [];
 
-  // Map everything into slot arrays
+  // 🔸 optional: defaults (enthymemes) attached to this argument
+  const dr = await prisma.defaultRule.findMany({
+    where: { argumentId },
+    select: {
+      id: true, role: true, antecedent: true, justification: true, consequent: true, createdAt: true
+    }
+  });
+
+  // collect slots
   const acc: Record<'grounds'|'warrant'|'backing'|'qualifier'|'rebuttal'|'claim', string[]> = {
     grounds: [], warrant: [], backing: [], qualifier: [], rebuttal: [], claim: [],
   };
 
-  // MissingPremise: premiseType can be 'ground' | 'grounds' | 'warrant' | ...
   for (const r of mp) {
     const t = (r.premiseType || '').toLowerCase();
     const slot =
-      t === 'ground' || t === 'grounds' ? 'grounds' :
+      t === 'ground' || t === 'grounds' || t === 'premise' ? 'grounds' :
       t === 'warrant'  ? 'warrant'  :
       t === 'backing'  ? 'backing'  :
       t === 'qualifier'? 'qualifier':
@@ -65,7 +71,6 @@ export async function GET(req: NextRequest) {
     if (slot) acc[slot].push(r.text);
   }
 
-  // ArgumentAnnotation: type = 'monological:<slot>'
   for (const r of aa) {
     const t = (r.type || '').toLowerCase().replace('monological:', '');
     const slot =
@@ -77,10 +82,8 @@ export async function GET(req: NextRequest) {
     if (slot) acc[slot].push(r.text);
   }
 
-  // ClaimWarrant → warrants
   for (const r of cw) acc.warrant.push(r.text);
 
-  // Dedup & cap reasonable counts
   const slots = {
     claim:     uniq(acc.claim).slice(0, 5),
     grounds:   uniq(acc.grounds).slice(0, 5),
@@ -90,5 +93,11 @@ export async function GET(req: NextRequest) {
     rebuttal:  uniq(acc.rebuttal).slice(0, 5),
   };
 
-  return NextResponse.json({ ok: true, slots });
+  // ✅ connective cues use arg?.text safely now
+  const connectives = {
+    therefore: /\b(therefore|thus|hence|so|thereby)\b/i.test(arg?.text ?? ''),
+    suppose:   /\b(suppose|assuming that|let's assume|let us assume)\b/i.test(arg?.text ?? '')
+  };
+
+  return NextResponse.json({ ok: true, slots, meta: { defaults: dr, connectives } });
 }

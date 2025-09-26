@@ -1,8 +1,28 @@
 'use client';
 import * as React from 'react';
 import useSWR from 'swr';
-
+import DefaultRuleEditor from '../DefaultRuleEditor';
 const fetcher = (u: string)=>fetch(u,{cache:'no-store'}).then(r=>r.json());
+
+type Slot = 'claim'|'grounds'|'warrant'|'backing'|'qualifier'|'rebuttal';
+
+type DefaultRule = {
+  id: string;
+  role: string; // e.g. 'premise'|'claim'|'attack' etc. (keep wide unless you have an enum)
+  antecedent: string | null;
+  justification: string | null;
+  consequent: string | null;
+  createdAt: string; // ISO
+};
+
+type ExtractResp = {
+  ok: boolean;
+  slots: Record<string, string[]>;
+  meta?: {
+    defaults?: DefaultRule[];
+    connectives?: { therefore?: boolean; suppose?: boolean };
+  };
+};
 
 const CUES = {
   claim:     /\b(therefore|thus|so it follows|we should|hence|conclude|thereby|in conclusion)\b/i,
@@ -125,7 +145,6 @@ function splitSents(text: string): string[] {
   return s.filter(Boolean);
 }
 
-type Slot = 'claim'|'grounds'|'warrant'|'backing'|'qualifier'|'rebuttal';
 const ORDER: Slot[] = ['grounds','warrant','backing','qualifier','rebuttal','claim'];
 
 export function ToulminBox({
@@ -161,11 +180,18 @@ export function ToulminBox({
 
 
    // pull server-extracted & saved slots
-   const { data: ex, mutate } = useSWR<{ ok:boolean; slots: Record<string,string[]> }>(
-     argumentId ? `/api/monological/extract?argumentId=${encodeURIComponent(argumentId)}` : null,
-     fetcher,
-     { revalidateOnFocus: false }
-   );
+  //  const { data: ex, mutate } = useSWR<{ ok:boolean; slots: Record<string,string[]> }>(
+  //    argumentId ? `/api/monological/extract?argumentId=${encodeURIComponent(argumentId)}` : null,
+  //    fetcher,
+  //    { revalidateOnFocus: false }
+  //  );
+
+   const { data: ex, mutate } = useSWR<ExtractResp>(
+  argumentId ? `/api/monological/extract?argumentId=${encodeURIComponent(argumentId)}` : null,
+  fetcher,
+  { revalidateOnFocus: false }
+);
+
 
      React.useEffect(() => {
         if (!argumentId) return;
@@ -219,7 +245,7 @@ export function ToulminBox({
      // optimistic last, so it always shows right after save
      (Object.keys(optimistic) as Slot[]).forEach(k => addAll(k, optimistic[k]));
      return m;
-  }, [sents]);
+  }, [sents, ex?.slots, optimistic]);
 
   const has = (k: Slot) => (buckets[k]?.length ?? 0) > 0;
   const completeness = (['grounds','warrant','claim'] as Slot[]).filter(has).length / 3;
@@ -340,7 +366,36 @@ export function ToulminBox({
                 + Add another
               </button>
               
+              
             )}
+            {slot === 'warrant' && ex?.meta?.defaults?.length ? (
+  <div className="mt-2 text-[11px]">
+    <div className="font-semibold mb-1">Implicit (default) warrants</div>
+    <div className="flex flex-col gap-0.5">
+      {ex!.meta!.defaults!
+        .filter(d => d.role === 'premise')
+        .map(d => (
+          <div key={d.id} className="text-[11px]">
+            α: <code>{d.antecedent}</code>{' '}
+            : β/<code>{d.justification}</code>{' '}
+            / γ: <code>{d.consequent}</code>
+          </div>
+        ))}
+    </div>
+
+    {argumentId && (
+      <div className="mt-2">
+        <DefaultRuleEditor
+          argumentId={argumentId}
+          role="premise"
+          onSaved={async ()=>{ await mutate(); onChanged?.(); }}
+          onCancel={()=>{}}
+        />
+      </div>
+    )}
+  </div>
+) : null}
+
           </div>
         )}
         {slot === 'backing' && (

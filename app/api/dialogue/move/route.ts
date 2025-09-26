@@ -5,6 +5,7 @@ import { z } from 'zod';
 import crypto from "crypto";
 import { Prisma } from '@prisma/client';
 import { getCurrentUserId } from '@/lib/serverutils';
+import { computeLegalMoves } from '@/lib/dialogue/legalMovesServer';
 
 import { compileFromMoves } from '@/packages/ludics-engine/compileFromMoves';
 import { stepInteraction } from '@/packages/ludics-engine/stepper';
@@ -95,6 +96,27 @@ export async function POST(req: NextRequest) {
   }
   if (kind === 'GROUNDS' && !payload.locusPath) payload.locusPath = '0';
 
+  const userId = await getCurrentUserId().catch(() => null);
+const actorId = String(userId ?? 'unknown');
+
+// Enforce allowed shape (R4/R5/R7)
+const allowed = await computeLegalMoves({
+  deliberationId, targetType, targetId, locusPath: payload?.locusPath ?? '0', actorId
+});
+
+const allowedActive = allowed.moves.filter(m => !m.disabled);
+const ok = allowedActive.some(m => {
+  const kindOk = m.kind === kind;
+  const locusOk = !m.payload?.locusPath || m.payload.locusPath === (payload?.locusPath ?? '0');
+  const cqOk = !m.payload?.cqId || m.payload.cqId === (payload?.cqId ?? payload?.schemeKey);
+  const postAsOk = !m.postAs || (m.postAs.targetType === targetType && m.postAs.targetId === targetId);
+  return kindOk && locusOk && cqOk && postAsOk;
+});
+
+if (!ok) {
+  return NextResponse.json({ error: 'MOVE_ILLEGAL', details: allowed }, { status: 400 });
+}
+
   // optional: verify target belongs to deliberation
   try {
     if (targetType === 'argument') {
@@ -124,9 +146,6 @@ const originalKind = kind;
   const acts = Array.isArray(payload?.acts) && payload.acts.length ? payload.acts : synthesizeActs(kind, payload);
   (payload as MovePayload).acts = acts;
 
-  // actor
-  const userId = await getCurrentUserId().catch(() => null);
-  const actorId = String(userId ?? 'unknown');
 
   // signature
   const signature = makeSignature(kind, targetType, targetId, payload);

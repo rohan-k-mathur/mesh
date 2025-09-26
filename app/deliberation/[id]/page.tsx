@@ -34,7 +34,7 @@ export default async function DeliberationPage({
           {article && (
               <NextLink
                 href={`/article/${article.slug}`}
-                className="text-xs font-semibold absolute ml-12 left-0 top-8 mt-[2px] btnv2"
+                className="absolute text-xs font-semibold ml-12 left-0 top-8  btnv2"
                 prefetch
               >
                 ← Return{article.title ? `: ${article.title}` : ""}

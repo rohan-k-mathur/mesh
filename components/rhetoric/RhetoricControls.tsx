@@ -177,10 +177,10 @@ export default function RhetoricControls({ sample }: { sample?: string }) {
 
       {/* Category dropdown */}
       <DropdownMenu >
-        <DropdownMenuTrigger asChild>
-        <button className=" btnv2 text-[11px] rounded-full ">Cues</button>
+        <DropdownMenuTrigger asChild >
+        <button className=" menuv2--lite px-2 text-[11px] rounded ">Cues</button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-60 mt-1 max-h-[300px]  overflow-y-auto ">
+        <DropdownMenuContent align="end" className=" z-10 w-60 mt-1 max-h-[300px]  overflow-y-auto ">
           <DropdownMenuLabel>Core cues</DropdownMenuLabel>
           <DropdownMenuSeparator />
           {coreItems.map(({ key, label, n }) => (

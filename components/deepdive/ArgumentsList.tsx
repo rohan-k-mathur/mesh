@@ -1,6 +1,7 @@
 "use client";
 import { useMemo, useState, useEffect } from "react";
 import useSWRInfinite from "swr/infinite";
+import useSWR from "swr";
 import { Virtuoso } from "react-virtuoso";
 import PromoteToClaimButton from "../claims/PromoteToClaimButton";
 import CitePickerInline from "@/components/citations/CitePickerInline";
@@ -447,6 +448,10 @@ function openIssuesFor(argumentId: string) {
       <span className="ml-2 text-[11px] text-neutral-500">
         · Model: {modelLens}
       </span>
+        {modelLens === 'monological' && (
+    <DelibMixBadge deliberationId={deliberationId} />
+  )}
+
       {liwcCounts && (
         <span className="ml-2 text-[11px] text-neutral-600">
           · certainty {liwcCounts.certainty} · tentative {liwcCounts.tentative}{" "}
@@ -619,17 +624,17 @@ function ArgRow({
   
 
   const rowRef = React.useRef<HTMLDivElement | null>(null);
-  React.useEffect(() => {
-    const el = rowRef.current;
-    if (!el) return;
-    function onKey(e: KeyboardEvent) {
-      if (document.activeElement && !el.contains(document.activeElement)) return;
-      if (e.key.toLowerCase() === 'r') { onReplyTo(a.id); scrollComposerIntoView(); }
-      if (e.key.toLowerCase() === 'c') { setCiteOpen(true); }
-    }
-    el.addEventListener('keydown', onKey);
-    return () => el.removeEventListener('keydown', onKey);
-  }, [a.id, onReplyTo]);
+  // React.useEffect(() => {
+  //   const el = rowRef.current;
+  //   if (!el) return;
+  //   function onKey(e: KeyboardEvent) {
+  //     if (document.activeElement && !el.contains(document.activeElement)) return;
+  //     if (e.key.toLowerCase() === 'r') { onReplyTo(a.id); scrollComposerIntoView(); }
+  //     if (e.key.toLowerCase() === 'c') { setCiteOpen(true); }
+  //   }
+  //   el.addEventListener('keydown', onKey);
+  //   return () => el.removeEventListener('keydown', onKey);
+  // }, [a.id, onReplyTo]);
   function onOpenCitePicker(initialUrl?: string) {
     setPrefillUrl(initialUrl);
     setCiteOpen(true);
@@ -754,6 +759,7 @@ function ArgRow({
          {modelLens === "monological" && (
            <>
              <MiniStructureBox text={a.text} />
+             <div className="px-2 py-1 border rounded-lg bg-slate-50/50 my-2">
              <ToulminBox
                text={a.text}
                argumentId={a.id}
@@ -777,6 +783,7 @@ function ArgRow({
                  }).then(()=>refetch());
                }}
              />
+             </div>
            </>
          )}
 
@@ -1453,3 +1460,19 @@ function CiteInline({
     </div>
   );
 }
+
+
+ function DelibMixBadge({ deliberationId }:{ deliberationId:string }) {
+   const { data } = useSWR(
+     `/api/monological/telemetry?deliberationId=${encodeURIComponent(deliberationId)}`,
+     fetcher, { revalidateOnFocus:false }
+   );
+   if (!data?.totals) return null;
+   const t = data.totals, sat = data.saturation?.likely;
+   return (
+     <span className={`ml-2 text-[11px] px-2 py-0.5 rounded border ${sat ? 'border-amber-300 bg-amber-50 text-amber-700' : 'bg-white/70'}`}
+       title={sat ? 'Qualifiers high & rebuttals low — consider inviting counter-cases' : 'Deliberation‑level mix'}>
+       Delib mix: G{t.grounds} · Q{t.qualifiers} · R{t.rebuttals}{sat ? ' · likely saturation' : ''}
+     </span>
+   );
+ }

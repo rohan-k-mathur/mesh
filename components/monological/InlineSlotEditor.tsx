@@ -38,6 +38,10 @@ export default function InlineSlotEditor({
       });
       if (!res.ok) throw new Error(await res.text());
       onSaved?.();
+      // let other panels refresh (Toolbar listens for this)
+     window.dispatchEvent(new CustomEvent('monological:slots:changed', {
+       detail: { argumentId }
+     }));
     } catch (e: any) {
       setErr(e?.message || 'Failed to save');
     } finally {
@@ -62,7 +66,7 @@ export default function InlineSlotEditor({
         disabled={busy}
       />
       {err && <div className="text-[11px] text-rose-600 mt-1">{err}</div>}
-      <div className="mt-2 flex gap-2 justify-end">
+      <div className="mt-2 flex gap-2 justify-start">
         <button className="px-2 py-1 border rounded text-xs" onClick={onCancel} disabled={busy}>Cancel</button>
         <button className="px-2 py-1 border rounded text-xs bg-emerald-600 text-white disabled:opacity-60"
           onClick={save} disabled={busy || text.trim().length < 2}>
