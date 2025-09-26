@@ -7,6 +7,7 @@ import { mintClaimMoid } from '@/lib/ids/mintMoid';
 import { PaginationQuery, makePage } from '@/lib/server/pagination';
 import { since as startTimer, addServerTiming } from '@/lib/server/timing';
 import { isValid, parseISO } from 'date-fns';
+import { emitBus } from '@/lib/server/bus';
 // import { bus } from '@/lib/bus';
 import { bus } from '@/lib/server/bus';
 
@@ -157,7 +158,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
           moid,
         },
       });
-      bus.emit('cards:changed', { deliberationId });
+      emitBus('cards:changed', { deliberationId });
 
       return NextResponse.json({ ok: true, card: updated });
     }

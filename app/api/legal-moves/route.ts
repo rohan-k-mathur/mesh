@@ -3,16 +3,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prismaclient';
 import { stepInteraction } from '@/packages/ludics-engine/stepper';
-import { getCurrentUserId } from '@/lib/serverutils';
+import { classifyForce } from '@/lib/dialogue/types';
+
+
 const Q = z.object({
   deliberationId: z.string().min(5),
   targetType: z.enum(['argument','claim','card']),
   targetId: z.string().min(5),
-  locusPath: z.string().optional(),  // 👈 NEW (optional)
+  locusPath: z.string().optional(),
 });
 
 type Move = {
-  kind: 'ASSERT'|'WHY'|'GROUNDS'|'RETRACT'|'CONCEDE'|'CLOSE'; // 👈 allow CLOSE
+  kind: 'ASSERT'|'WHY'|'GROUNDS'|'RETRACT'|'CONCEDE'|'CLOSE';
   label: string;
   payload?: any;
   disabled?: boolean;
@@ -27,7 +29,7 @@ export async function GET(req: NextRequest) {
   }
   const { deliberationId, targetType, targetId, locusPath } = parsed.data;
 
-  // Open CQs for this target (WHY not superseded by later GROUNDS)
+  // Open CQs (WHY not yet answered by later GROUNDS)
   const rows = await prisma.dialogueMove.findMany({
     where: { deliberationId, targetId, kind: { in: ['WHY','GROUNDS'] } },
     orderBy: { createdAt: 'asc' },
@@ -41,58 +43,66 @@ export async function GET(req: NextRequest) {
     const prev = latestByKey.get(key);
     if (!prev || r.createdAt > prev.createdAt) latestByKey.set(key, r);
   }
-  const openKeys = [...latestByKey.entries()].filter(([,v]) => v.kind === 'WHY').map(([k]) => k);
+  const openKeys = [...latestByKey.entries()]
+    .filter(([,v]) => v.kind === 'WHY')
+    .map(([k]) => k);
 
-  const moves: Move[] = [];
-
-    // Find target author to gate moves by role
+  // Who can answer / who can ask?
+  // (robust to either authorId or createdById on the target)
   let targetAuthorId: string | null = null;
   if (targetType === 'argument') {
-    const a = await prisma.argument.findFirst({ where: { id: targetId }, select: { authorId:true } });
+    const a = await prisma.argument.findFirst({ where: { id: targetId }, select: { authorId: true } });
     targetAuthorId = a?.authorId ?? null;
   } else if (targetType === 'claim') {
-    const c = await prisma.claim.findFirst({ where: { id: targetId }, select: { createdById:true } });
+    const c = await prisma.claim.findFirst({ where: { id: targetId }, select: { createdById: true } });
     targetAuthorId = c?.createdById ?? null;
   }
 
-  // (you may get actorId the same way as in /move)
-  // const actorId = await getCurrentUserId().catch(() => null);
-  const actor = await getCurrentUserId().catch(() => null);
-  const actorId = actor ? String(actor) : null;
+  // Optional: fetch actor if you want role-gated chips
+  // If you don't need it, skip and omit disabled/reason below.
+  let actorId: string | null = null;
+  try {
+    const mod = await import('@/lib/serverutils');
+    const me = await mod.getCurrentUserId().catch(() => null);
+    actorId = me ? String(me) : null;
+  } catch {}
 
-  // Answer each open CQ (GROUNDS)
+  const moves: Move[] = [];
 
-  for (const k of openKeys) {
-    moves.push({
-      kind:'GROUNDS',
-      label:`Answer ${k}`,
-      payload:{ cqId:k },
-      disabled: actorId && targetAuthorId && actorId !== String(targetAuthorId),
-      reason: actorId && targetAuthorId && actorId !== String(targetAuthorId) ? 'Only the author may answer this WHY' : undefined
-    });
-  }
+  // GROUNDS for each open key
+const onlyAuthorMayAnswer = Boolean(actorId && targetAuthorId && actorId !== String(targetAuthorId));
+const cannotAskSelf       = Boolean(actorId && targetAuthorId && actorId === String(targetAuthorId));
+  
+moves.push({
+  kind:'GROUNDS',
+  label:`Answer ${k}`,
+  payload:{ cqId:k },
+  disabled: onlyAuthorMayAnswer,
+  reason: onlyAuthorMayAnswer ? 'Only the author may answer this WHY' : undefined,
+  // optional: echo the force so UI can style it
+  // @ts-expect-error passthrough field for UI only
+  force: classifyForce('GROUNDS'),
+});
 
-  if (!openKeys.length) {
-    moves.push({
-      kind:'WHY',
-      label:'Ask WHY',
-      disabled: actorId && targetAuthorId && actorId === String(targetAuthorId),
-      reason: actorId && targetAuthorId && actorId === String(targetAuthorId) ? 'You cannot ask WHY on your own claim' : undefined
-    });
-  }
+if (!openKeys.length) {
+  moves.push({
+    kind: 'WHY',
+    label: 'Ask WHY',
+    disabled: cannotAskSelf,
+    reason: cannotAskSelf ? 'You cannot ask WHY on your own claim' : undefined,
+  });
+}
 
-  // Concede / Retract are always available (UI can gate by role/phase)
-  moves.push({ kind:'CONCEDE', label:'Concede' });
-  moves.push({ kind:'RETRACT', label:'Retract' });
+  // Concede / Retract are always listed (server enforces invariants on POST)
+  moves.push({ kind: 'CONCEDE', label: 'Concede' });
+  moves.push({ kind: 'RETRACT', label: 'Retract' });
 
-
-  // 2) If a concrete locusPath is given, ask the stepper whether † is legal there
+  // † Close when stepper hints that this locus is closable
   if (locusPath) {
-    // find current designs; tolerate races by picking current P/O
     const designs = await prisma.ludicDesign.findMany({
       where: { deliberationId },
       orderBy: [{ participantId: 'asc' }, { id: 'asc' }],
-      select: { id:true, participantId:true }
+      select: { id:true, participantId:true },
     });
     const pos = designs.find(d => d.participantId === 'Proponent') ?? designs[0];
     const neg = designs.find(d => d.participantId === 'Opponent')  ?? designs[1] ?? designs[0];
@@ -102,7 +112,7 @@ export async function GET(req: NextRequest) {
         posDesignId: pos.id,
         negDesignId: neg.id,
         phase: 'neutral',
-        maxPairs: 256
+        maxPairs: 256,
       }).catch(() => null);
       const closable = new Set(trace?.daimonHints?.map(h => h.locusPath) ?? []);
       if (closable.has(locusPath)) {
@@ -111,7 +121,5 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  
-
-  return NextResponse.json({ ok:true, moves }, { headers: { 'Cache-Control': 'no-store' } });
+  return NextResponse.json({ ok: true, moves }, { headers: { 'Cache-Control': 'no-store' } });
 }

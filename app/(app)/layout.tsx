@@ -1,15 +1,39 @@
 'use client';
 import { useEffect } from 'react';
 
+const TOPICS = [
+  "dialogue:moves:refresh","dialogue:cs:refresh","claims:edges:changed","cqs:changed","cards:changed",
+  "decision:changed","votes:changed","stacks:changed","deliberations:created","comments:changed",
+  "xref:changed","citations:changed","dialogue:changed"
+];
+
 function LiveEvents() {
   useEffect(() => {
-    const es = new EventSource('/api/events'); 
+    const es = new EventSource('/api/events');
+
+    // default (unlabeled)
     es.onmessage = (ev) => {
       try {
         const m = JSON.parse(ev.data);
-        window.dispatchEvent(new CustomEvent(m.type, { detail: m }));
+        // normalize {type,payload}
+        const flat = m?.payload && typeof m.payload === 'object' ? { type: m.type, ...m.payload } : m;
+        if (flat?.type) {
+          window.dispatchEvent(new CustomEvent(flat.type, { detail: flat }));
+        }
       } catch {}
     };
+
+    // named events
+    for (const name of TOPICS) {
+      es.addEventListener(name, (ev: MessageEvent) => {
+        try {
+          const data = JSON.parse(ev.data);
+          const flat = data?.payload && typeof data.payload === 'object' ? { type: name, ...data.payload } : { type: name, ...data };
+          window.dispatchEvent(new CustomEvent(name, { detail: flat }));
+        } catch {}
+      });
+    }
+
     return () => es.close();
   }, []);
   return null;
@@ -19,7 +43,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body>
-        {/* Global SSE wire — runs once per tab */}
         <LiveEvents />
         {children}
       </body>

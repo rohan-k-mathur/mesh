@@ -160,13 +160,13 @@ type DecisionReceiptInput = {
 export const bus = (globalThis as any).__meshBus__ ??= { /* on/emit as implemented */ };
 
 // e.g. /api/dialogue/move
-bus.emit('dialogue:moves:refresh', { deliberationId });
+bus.emitEvent('dialogue:moves:refresh', { deliberationId });
 
 // e.g. /api/claims/[id]/rebut or undercut
-bus.emit('claims:edges:changed', { deliberationId, toClaimId: id });
+bus.emitEvent('claims:edges:changed', { deliberationId, toClaimId: id });
 
 // e.g. after vote closes
-bus.emit('decision:changed', { deliberationId, subject: {type:'option', id:'fee-10'} });
+bus.emitEvent('decision:changed', { deliberationId, subject: {type:'option', id:'fee-10'} });
 ```
 
 > RV subscribes once (via SSE or window events) and **mutates SWR keys** that match.

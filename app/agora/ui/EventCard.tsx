@@ -1,7 +1,7 @@
 // components/agora/EventCard.tsx
 "use client";
 import Link from "next/link";
-import type { AgoraEvent } from "@/types/agora";
+import type { AgoraEvent } from "@/lib/server/bus"; // import type from server module
 
 export function EventCard({
   ev, onSelect, isFollowing, onFollow, onUnfollow, pending = false, ok = false,

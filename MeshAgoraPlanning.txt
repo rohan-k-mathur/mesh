@@ -1,0 +1,691 @@
+Amazing—thanks for the code drop. I read through the three bundles and mapped them to the research roadmap so we can wire features precisely where they belong.
+Below is a refined, file‑aware roadmap with surgical code changes (diffs/snippets) for the current Mesh/Agora codebase. I cite your files inline so you can see exactly what I’m building on.
+
+0) What’s already in place (from your code)
+	•	Move API: POST /api/dialogue/move already accepts kind: 'ASSERT'|'WHY'|'GROUNDS'|'RETRACT'|'CONCEDE'|'CLOSE', synthesizes acts (including daimon for CLOSE), dedups via a signature, compiles designs, and optionally steps the interaction; it emits bus events (dialogue:changed, dialogue:moves:refresh). It also normalizes CONCEDE to ASSERT with payload.as='CONCEDE'. The payload leverages locusPath, and there’s a TTL for WHY. 
+	•	Legal‑moves API (basic): GET /api/dialogue/legal-moves currently:
+	◦	lists GROUNDS for open CQs (by key),
+	◦	allows WHY when there is no open WHY for that key,
+	◦	always offers CONCEDE and RETRACT,
+	◦	optionally offers CLOSE (†) when stepper hints the locus is closable (via daimonHints). This is a great skeleton to formalize R‑rules, relevance hints, and “force” classification. 
+	•	Open CQ helper: /api/dialogue/open-cqs returns the set of open CQ keys for a target (WHY not yet answered by later GROUNDS). 
+	•	Dialogue “forum”: /api/dialogue/forum threads ASSERT/WHY/GROUNDS by nearest prior ASSERT with same locusId. (Good quick view; we’ll tighten this once we record explicit reply targets.) 
+	•	Lib building blocks:
+	◦	lib/dialogue/moves.ts centralizes signatures and act synthesis; CLOSE produces daimon. Use this to keep POST signature logic consistent across endpoints. 
+	◦	lib/dialogue/legalMoves.ts and lib/dialogue/legalAttacks.ts already detect shapes (conditional, ∀/∃, disjunction, conjunction, presupposition cue) and propose attack templates—perfect to enrich /legal-moves with R‑shaped options and presupposition challenges. 
+	◦	BAF/AF infra and selection (VAF‑adjacent) are present via lib/deepdive/*. Prisma has Argument/ArgumentEdge (+ EdgeType support|rebut|undercut|concede) and helpers to derive ClaimEdge rows. We’ll reuse these for support edges and AF reductions. 
+
+1) Phase 1 — Protocol hardening (R1–R7), force chips, and status
+Goal: Make the existing endpoints enforce the liberal protocol (explicit replies; attack vs surrender; no self‑reply; no duplicates; no attack after surrender; R7 acceptance guard), expose turn and branch status, and annotate legal moves with force and relevance hints.
+1.1 Add explicit reply targeting (non‑breaking)
+	•	Body (optional, additive) for POST /api/dialogue/move:
+	◦	replyToMoveId?: string
+	◦	replyTarget?: 'claim'|'argument'|'premise'|'link'|'presupposition' If absent, we keep current targetType/targetId + payload.locusPath behavior. (UI can start sending replyToMoveId when available.)
+Why now? It lets us enforce per‑move invariants (R4 “no duplicate reply to this exact target” and R5 “no attack after surrender on this node”) without disturbing your current “targetType/targetId” shape.
+Minimal zod tweak (excerpt):
+// app/api/dialogue/move/route.ts
+const Body = z.object({
+  deliberationId: z.string().min(1),
+  targetType: z.enum(['argument','claim','card']),
+  targetId: z.string().min(1),
+  kind: z.enum(['ASSERT','WHY','GROUNDS','RETRACT','CONCEDE','CLOSE']),
+  payload: z.any().optional(),
+  autoCompile: z.boolean().optional().default(true),
+  autoStep: z.boolean().optional().default(true),
+  phase: z.enum(['focus-P','focus-O','neutral']).optional().default('neutral'),
+  // 👇 new, optional
+  replyToMoveId: z.string().optional(),
+  replyTarget: z.enum(['claim','argument','premise','link','presupposition']).optional(),
+});
+
+1.2 Enforce R‑rules at the API boundary
+Create a small validator that runs before insert and returns reason codes. The checks rely on:
+	•	replyToMoveId when present (precise),
+	•	else fallback to targetType/targetId + current branch state and open CQ map (which you already compute in /legal-moves and /open-cqs). 
+Reason codes (suggested):
+	•	R1_TURN_VIOLATION
+	•	R2_INVALID_SHAPE (e.g., GROUNDS without open WHY for key)
+	•	R3_SELF_REPLY
+	•	R4_DUPLICATE_REPLY
+	•	R5_AFTER_SURRENDER
+	•	R6_INITIAL_MOVE_VIOLATION
+	•	R7_ACCEPT_ARGUMENT_REQUIRED
+Validator stub (drop‑in):
+// lib/dialogue/validate.ts
+export type ReasonCode = 'R1_TURN_VIOLATION'|'R2_INVALID_SHAPE'|'R3_SELF_REPLY'|
+  'R4_DUPLICATE_REPLY'|'R5_AFTER_SURRENDER'|'R6_INITIAL_MOVE_VIOLATION'|'R7_ACCEPT_ARGUMENT_REQUIRED';
+
+export async function validateMove(input: {
+  deliberationId: string;
+  actorId: string;
+  kind: 'ASSERT'|'WHY'|'GROUNDS'|'RETRACT'|'CONCEDE'|'CLOSE';
+  targetType: 'argument'|'claim'|'card';
+  targetId: string;
+  replyToMoveId?: string | null;
+  replyTarget?: string | null;
+  payload: any;
+}) : Promise<{ ok: true } | { ok: false; reasons: ReasonCode[] }> {
+  const reasons: ReasonCode[] = [];
+
+  // R3 self-reply (when precise replyTo available)
+  if (input.replyToMoveId) {
+    const m = await prisma.dialogueMove.findUnique({ where: { id: input.replyToMoveId }, select: { actorId: true, kind: true, payload: true }});
+    if (m && m.actorId === input.actorId) reasons.push('R3_SELF_REPLY');
+
+    // R7: trying to CONCEDE φ after ARGUE that answered a WHY φ → must ACCEPT_ARGUMENT instead
+    if ((input.kind === 'CONCEDE' || input.payload?.as === 'CONCEDE') && m?.kind === 'GROUNDS') {
+      // (You can refine by checking that m is the answer to a WHY for same cq/key/claim)
+      reasons.push('R7_ACCEPT_ARGUMENT_REQUIRED');
+    }
+  }
+
+  // R4 duplicate reply (signature already helps for WHY/GROUNDS; enforce for others)
+  // Quick check: is there an existing move with same signature or same (replyToMoveId, kind, replyTarget)?
+  // ... add your query here ...
+
+  // R5: no attack after surrender — if target is surrendered/closed, block WHY/GROUNDS/ASSERT (attacks)
+  // ... read branch state cache or scan for recent CONCEDE/CLOSE on same node/locus ...
+
+  // R1, R2, R6 can be layered here or in Phase 1.3 (legal-moves)
+  return reasons.length ? { ok:false, reasons } : { ok:true };
+}
+Then in POST /api/dialogue/move:
+const legal = await validateMove({ deliberationId, actorId, kind, targetType, targetId, replyToMoveId, replyTarget, payload });
+if (!('ok' in legal) || !legal.ok) {
+  return NextResponse.json({ ok:false, reasonCodes: legal.reasons }, { status: 409 });
+}
+
+✅ This places R7 exactly where your code already maps CONCEDE to ASSERT…as='CONCEDE', so we can convert the attempted concession into an ACCEPT_ARGUMENT flow in the UI (see 1.4).
+1.3 Upgrade /api/dialogue/legal-moves: force + relevance + shapes
+We’ll enrich the existing endpoint instead of introducing a new one.
+	•	Add force: 'ATTACK'|'SURRENDER'|'NEUTRAL'.
+	•	Add relevance: 'likely'|'unlikely'|null (soft relevance).
+	•	For targetType='claim'|'argument', look up the text and feed it into lib/dialogue/legalMoves or legalAttacks to provide shape‑specific prompts (including presupposition challenge). 
+Diff sketch:
+// app/api/dialogue/legal-moves/route.ts
+type Move = {
+  kind: 'ASSERT'|'WHY'|'GROUNDS'|'RETRACT'|'CONCEDE'|'CLOSE';
+  label: string;
+  payload?: any;
+  disabled?: boolean;
+  reason?: string;
+  // 👇 new
+  force?: 'ATTACK'|'SURRENDER'|'NEUTRAL';
+  relevance?: 'likely'|'unlikely'|null;
+};
+
+...
+// Fetch target text to detect shapes
+let targetText: string | null = null;
+if (targetType === 'claim') {
+  const row = await prisma.claim.findUnique({ where: { id: targetId }, select: { text: true }});
+  targetText = row?.text ?? null;
+} else if (targetType === 'argument') {
+  const row = await prisma.argument.findUnique({ where: { id: targetId }, select: { text: true }});
+  targetText = row?.text ?? null;
+}
+// Derive shape-based suggestions (optional: merge into WHY label choices)
+if (targetText) {
+  const { on, options } = legalAttacksFor(targetText); // from lib/dialogue/legalMoves.ts
+  // e.g., if on === 'presupposition', push a WHY with a "Challenge presupposition" label
+}
+
+...
+// force tagging
+for (const m of moves) {
+  if (m.kind === 'WHY' || m.kind === 'GROUNDS') m.force = 'ATTACK';
+  else if (m.kind === 'CONCEDE' || m.kind === 'RETRACT' || m.kind === 'CLOSE') m.force = 'SURRENDER';
+  else m.force = 'NEUTRAL';
+}
+
+// soft relevance (cheap): if a branch is already "closed", any ATTACK is unlikely relevant
+for (const m of moves) {
+  m.relevance = m.force === 'ATTACK' ? (/* open? */ 'likely' : 'unlikely') : null;
+}
+You already compute CLOSE (†) legality from stepInteraction—we’ll keep that as is and simply tag force.
+1.4 R7 UX: offer Accept Argument instead of Concede ϕ
+In the composer UI (where you render the /legal-moves list), when a CONCEDE is disabled due to R7_ACCEPT_ARGUMENT_REQUIRED, present an ACCEPT_ARGUMENT action that posts:
+// POST /api/dialogue/move
+// keep existing shape, but mark as acceptance
+{ kind: 'ASSERT', payload: { as:'ACCEPT_ARGUMENT', locusPath, expression: 'accept: <arg-id or brief>' } }
+This reuses your ASSERT path and signatures while distinguishing in payload.as. Later, we can add a first‑class kind: 'ACCEPT_ARGUMENT' enum once DB/everything is ready.
+1.5 Dialogue status endpoint for clients
+Add: GET /api/dialogues/[id]/status → { turnHolders: string[]; branches: Array<{ locusPath: string; open: boolean }>; terminatedFor?: string[] }
+	•	Turn model: after move 2, include both participants (you already pass phase and use stepper; we’ll keep turn logic simple and auditable in this endpoint).
+	•	A simple branch cache can be derived by scanning latest surrender vs attack events per locus (or by asking the stepper for daimonHints and open loci). 
+
+2) Phase 2 — Commitments (use what you have) + viewer
+You already apply to the Commitment Store in POST /api/dialogue/answer-and-commit, calling applyToCS and emitting events (dialogue CS refresh). Let’s reuse that path rather than invent a new table right now.
+	•	Add: GET /api/dialogue/commitments?deliberationId=…&owner=Proponent|Opponent to return the current CS snapshot (adapter around applyToCS’s storage schema).
+	•	UI: commitments popover on participant chips (lists entries; show “via argument …” when we have a justification ref).
+Later, if we do persist CS to Prisma, we can keep the adapter API stable.
+
+3) Phase 3 — Relevance (soft now, strict later)
+	•	Soft relevance is already wired in 1.3.
+	•	Strict relevance auditor: a small worker that simulates whether a candidate move could change the dialogical status; annotate moves with strictRelevant: boolean asynchronously and emit dialogue:status:refresh.
+Nothing in your current endpoints conflicts with this; we only add the annotation channel.
+
+4) Phase 4 — Values (VAF) + Support (BAF)
+We can stand this up quickly with models and libs you already have:
+	•	Arguments & edges: Prisma models (Argument, ArgumentEdge, EdgeType support|rebut|undercut|concede) and claim‑edge helpers are present. We’ll use these to power support relations in the UI and propagate them into the AF projection when desired. 
+	•	AF engine (lib/argumentation/afEngine.ts) and selection (lib/deepdive/selection.ts) are ready to compute preferred extensions / viewers for RightRail. We’ll add a minimal Audience store + ordering and compute objective/subjective acceptance tags. 
+
+5) Phase 5 — Presuppositions & divergence (Ludics polish)
+	•	You already detect presupposition cues in lib/dialogue/legalMoves.ts. We will:
+	◦	surface a “Challenge presupposition” legal option in /legal-moves,
+	◦	add a replyTarget: 'presupposition' when the user picks it, so analytics and guards can reason about it. 
+	•	Divergence: when a reply maps to no valid locus (no dual), return a gentle “repair” reason from the validator and show a rephrase prompt. (The stepper/daimon hints you’re already using will help here.) 
+
+6) Phase 6 — Asymmetric burden of proof (room pref)
+	•	Add prefs.asymmetricProof on the deliberation/room and switch aggregation rules in the status computation. (No API changes to /move; only status/outcome labels change.)
+
+7) Phase 7 — Exports (AIF, DSS/DML)
+	•	With Argument/Claim/Edges and DialogueMove in place, the exporter can be added as two GET endpoints that traverse your existing graph and pack I/S nodes (AIF) and DSS/DML instances.
+
+8) “Glue” changes (diff‑style) you can drop in now
+8.1 Strengthen signature & unique index
+You’re already relying on a composite unique (deliberationId, signature) (see dm_unique_signature usage). Double‑check Prisma has that unique declared on DialogueMove. If not, add:
+// schema.prisma
+model DialogueMove {
+  id              String   @id @default(cuid())
+  deliberationId  String
+  targetType      String
+  targetId        String
+  kind            String
+  payload         Json?
+  actorId         String
+  signature       String   // sha or compact signature
+
+  createdAt       DateTime @default(now())
+
+  @@unique([deliberationId, signature], name: "dm_unique_signature")
+}
+This matches the P2002 handling in POST /api/dialogue/move.
+8.2 Extend /legal-moves with force/relevance and shape prompts
+ // app/api/dialogue/legal-moves/route.ts
++ import { legalAttacksFor } from '@/lib/dialogue/legalMoves';
+
+ type Move = {
+   kind: 'ASSERT'|'WHY'|'GROUNDS'|'RETRACT'|'CONCEDE'|'CLOSE';
+   label: string;
+   payload?: any;
+   disabled?: boolean;
+   reason?: string;
++  force?: 'ATTACK'|'SURRENDER'|'NEUTRAL';
++  relevance?: 'likely'|'unlikely'|null;
+ };
+
+ export async function GET(req: NextRequest) {
+   ...
++  // fetch target text
++  let targetText: string | null = null;
++  if (targetType === 'claim') {
++    const row = await prisma.claim.findUnique({ where: { id: targetId }, select: { text: true }});
++    targetText = row?.text ?? null;
++  } else if (targetType === 'argument') {
++    const row = await prisma.argument.findUnique({ where: { id: targetId }, select: { text: true }});
++    targetText = row?.text ?? null;
++  }
+
+   const moves: Move[] = [];
+   ...
+   // existing WHY/GROUNDS/CONCEDE/RETRACT/CLOSE logic
+
++  // mark force
++  for (const m of moves) {
++    m.force = (m.kind === 'WHY' || m.kind === 'GROUNDS') ? 'ATTACK'
++            : (m.kind === 'CONCEDE' || m.kind === 'RETRACT' || m.kind === 'CLOSE') ? 'SURRENDER'
++            : 'NEUTRAL';
++  }
++  // soft relevance
++  const branchOpen = true; // TODO: compute from branch cache or last surrender
++  for (const m of moves) m.relevance = m.force === 'ATTACK' ? (branchOpen ? 'likely' : 'unlikely') : null;
+
++  // shape-based prompts (presuppositions etc.)
++  if (targetText) {
++    const { on, options } = legalAttacksFor(targetText);
++    if (on === 'presupposition') {
++      moves.unshift({ kind:'WHY', label:'Challenge presupposition', payload:{ cqId:'presup' }, force:'ATTACK', relevance:'likely' });
++    }
++    // (optionally add finer-grained WHY labels based on options[])
++  }
+   return NextResponse.json({ ok:true, moves }, { headers: { 'Cache-Control': 'no-store' } });
+ }
+8.3 Add validator call to /move (R‑rules)
+ // app/api/dialogue/move/route.ts
++ import { validateMove } from '@/lib/dialogue/validate';
+
+ // actor
+ const userId = await getCurrentUserId().catch(() => null);
+ const actorId = String(userId ?? 'unknown');
+
++ // R-rules guard
++ const legal = await validateMove({
++   deliberationId, actorId, kind, targetType, targetId,
++   replyToMoveId: (parsed.data as any).replyToMoveId,
++   replyTarget: (parsed.data as any).replyTarget ?? null,
++   payload
++ });
++ if (!('ok' in legal) || !legal.ok) {
++   return NextResponse.json({ ok:false, reasonCodes: legal.reasons }, { status: 409 });
++ }
+
+
+9) Forum threading (quick win)
+Your /api/dialogue/forum currently attaches WHY/GROUNDS to the nearest prior ASSERT with the same locusId. Once replyToMoveId lands, switch to that (with fallback to locusId). This aligns the visible tree with the explicit reply structure our legality engine uses.
+
+10) Acceptance checklist (for this pass)
+	•	R7 guard: Attempting CONCEDE φ immediately after an ARGUE answering WHY φ returns 409 with reasonCodes:['R7_ACCEPT_ARGUMENT_REQUIRED']; UI offers Accept Argument alternative. 
+	•	No self‑reply / no duplicate reply / no attack after surrender: guarded via validateMove() with precise reasons; dedup remains via signature.
+	•	Legal‑moves shows force and soft relevance; includes presupposition challenge when detected from target text.
+	•	Status endpoint returns turn holders (after move 2, both) and branch open/close. († remains surfaced from stepper hints.) 
+	•	Commitments: a read endpoint reflects updates made by answer-and-commit. 
+
+11) What I’ll use next from your code (to keep momentum)
+	•	Prisma models for Arguments/Edges/Claims to stand up support edges and the AF projection for RightRail acceptance chips. 
+	•	lib/argumentation/afEngine.ts + lib/deepdive/selection.ts to compute viewer sets and integrate the Audience lens for VAF. 
+
+Want me to produce the concrete validateMove() with queries tailored to your tables (including R5 “surrendered/closed” detection by scanning recent CONCEDE|CLOSE on the same target/locus) and the /dialogues/[id]/status route stub? I can draft those against these files so you can drop them in with minimal edits.
+
+Fantastic—thanks for sharing MeshResearchNotes.txt. I read it closely and folded its Ludics‑centric insights, protocol nuances, and interop goals into a concrete, implementation‑ready roadmap that plugs directly into your current codebase (routes, libs, Prisma). I’ve annotated key items with inline citations back to the compendium and to the relevant code surfaces you already have.
+
+Digital Agora — Roadmap v3 (incorporating MeshResearchNotes)
+Phase 0 — Commit to public semantics, name the invariants (short spike)
+Why: The notes emphasize the design choice between public and private semantics; Agora should be explicitly public so moderation and auditability remain tractable. 【Public vs private semantics, implication for Mesh. 】
+Work
+	•	Add a Room Policy flag dialogueSemantics = 'public' (default) and document it in the room’s settings/help.
+	•	Server: log this in /api/dialogue/* responses (meta.semantics: 'public').
+	•	UI: small banner in the Dialogical panel that reads “Public semantics: legality computed from the public record.”
+Acceptance
+	•	Policy shows in the room config; responses include meta.semantics.
+	•	Moderator guide references public semantics explicitly. 【Design implication spelled out. 】
+
+Phase 1 — Protocol core: reply structure, acts, daimon close, soft legality
+Why: The compendium pushes us to represent interventions as sequences of acts at loci, and to make reply‑to + attack/surrender first‑class. It also specifies terminal CLOSE/CONCEDE ⇒ convergence († daimon). 【Ludics acts/loci/trace & convergence with †; acceptance examples. 】
+What we already have to leverage
+	•	POST /api/dialogue/move accepts/derives payload.acts, maps CLOSE to a daimon act, and dedups by signature; it also recompiles and steps the Ludics designs. 【Route behavior, synthesizeActs, CLOSE mapping, compileFromMoves/stepInteraction wired. 】
+	•	GET /api/dialogue/legal-moves suggests WHY/GROUNDS/CONCEDE/RETRACT, and conditionally CLOSE by probing daimon hints from a step trace. 【Legal moves w/ daimon‑enabled CLOSE. 】
+	•	lib/dialogue/moves.ts provides the shared synthesizeActs/makeSignature helpers we can extend. 
+Work
+	1	Reply targeting & loci
+	•	Extend DialogueMove persistence to always carry payload.acts[] with locusPath + openings (already modeled in the notes) and a justifiedBy (reply‑to locusPath). 【Multi‑act payload shape and locus ramifications. 】
+	•	Enforce: every non‑initial move replies to a specific locus (explicit reply structure). 【Importance of explicit reply structure for legality/backtracking/parallel lines. 】
+	2	Attack vs surrender typing
+	•	In POST /api/dialogue/move, classify moves as attack (WHY, GROUNDS) vs surrender (CONCEDE, RETRACT) to drive open/closed branch UI and legality. 【Attack vs surrender as formal properties. 】
+	3	Terminal close (†)
+	•	Keep current CLOSE ⇒ daimon behavior, and surface it clearly in the trace UI as Convergent. 【CLOSE/CONCEDE ⇒ Convergent trace (†) acceptance criteria. 】
+	4	Soft legal moves
+	•	Keep GET /api/dialogue/legal-moves fast; annotate “likely relevant” (soft) based on open branches/loci; wire strict checking later (Phase 4).
+Acceptance
+	•	A WHY followed by a GROUNDS compiles to paired -/+ acts on the same locus (e.g., 0.1) and shows as such in the trace. 【Concrete acceptance example. 】
+	•	A CLOSE or CONCEDE leads the stepper to report a convergent trace with †. 【Trace status/daimon. 】
+	•	Legal‑moves API includes CLOSE only when the stepper hints that locus is closable. 
+
+Phase 2 — UI surfaces for Ludics: Trace Ribbon, Locus Heatmap, Additive choice
+Why: The notes call for rendering the abstruse Ludics machinery as intuitive UI: narrated trace, heatmaps of loci, and enforced additive choices (⊕). 【Trace ribbon, locus heatmap, additive picker. 】
+Work
+	•	NegotiationDrawer.tsx: add a Trace Ribbon showing “P challenges at 0.1” / “O defends at 0.1”, highlighting decisive indices. 【UI/acceptance and decisive indices. 】
+	•	LociTreeWithControls.tsx: render heatmap intensity by act frequency; highlight hot spots. 
+	•	Additive Choice Picker: when a positive act opens multiple openings with isAdditive=true, prompt the opponent to pick a branch; persist the chosen branch (usedAdditive). 
+	•	Delocation/Faxing: expose a moderator action to delocate a congested branch to a fresh base locus—tie to an API (see Phase 3). 【Delocation design + acceptance. 】
+Acceptance
+	•	The Trace Ribbon narrates moves as in the examples; the Additive picker blocks progress until a branch is chosen; a mod can delocate a branch. 【All three acceptance bullets. 】
+
+Phase 3 — Operational tools: Delocation route + Receipts
+Why: The compendium proposes delocation as a formal remedy for “directory clashes” and suggests recording these as procedural receipts. 【Delocation (faxing) and affected surfaces. 】
+Work
+	•	Add /api/ludics/delocate that clones a design and shifts a branch to a fresh base address. 【Proposed route. 】 Note: you already have a panel delocation action wired as /api/dialogue/panel/delocate; we can either alias or migrate to the Ludics namespace so both the panel and NegotiationDrawer call the same service. 
+	•	Create a DecisionReceipt entry when delocation occurs (subject=locus), so the audit trail is append‑only. 
+Acceptance
+	•	Calling the delocate API produces a new base (e.g., 0.tag), emits SSE to refresh, and writes a procedural receipt. 
+
+Phase 4 — Relevance & termination semantics (gradual)
+Why: Strict relevance (legality only if the move can flip the dialogical status) is powerful but expensive; adopt a soft‑now / strict‑later posture. 【Strict relevance is costly; use as a later layer. 】
+Work
+	•	Soft relevance (real‑time): label moves “likely relevant” if they target an open locus that still influences the root status; show a subtle warning when not.
+	•	Strict relevance (batch): offline job recomputes dialogical status and annotates moves/branches; room policy can enforce strict mode for high‑stakes rooms.
+Acceptance
+	•	Soft chip appears immediately; strict annotations land asynchronously and can be toggled in filters. 【Relevance discussion and cost. 】
+
+Phase 5 — Evidence → Rule heuristics (CBR‑inspired)
+Why: When users attach evidence, they are often implicitly proposing a defeasible rule (e.g., “when {A, B}, usually C”). Surface this as a guided suggestion. 【CBR heuristics; evidence implies rules; suggest generalization. 】
+Work
+	•	In CitePicker / composer, after adding a citation, prompt: “Extract a general rule?” with a structured form to mint a reusable pattern; store alongside the argument as a warrant/background rule.
+	•	Allow distinguish/“doesn’t apply because…” counters that target the rule’s factors, not just the conclusion. 【Dialectical multi‑argument structure of precedents; fine‑grained cite‑portions. 】
+Acceptance
+	•	Posting a citation can create a rule; later counters can distinguish by contesting the rule’s factors.
+
+Phase 6 — Interop: AIF export (and later import)
+Why: Avoid a walled garden; AIF is the standard for moving structured debates between tools. 【AIF rationale + endpoint sketch and acceptance. 】
+Work
+	•	Implement GET /api/deliberations/[id]/aif with an I‑Node/S‑Node mapping from your Claim/Argument+scheme metadata. Create lib/export/aif.ts.
+Acceptance
+	•	Exported AIF JSON validates and opens in OVA+/Carneades. 
+
+Phase 7 — Representative Viewpoints 2.0 (expose what we already compute)
+Why: You already have foundational models and selection routines for viewpoints; surface them in the Agora context to show plural extensions and audience coverage. 【Models & selection pipeline – components and route sketch. 】
+Work
+	•	Add /api/deliberations/[id]/viewpoints/select that calls the selection routine; render in components/deepdive/RepresentativeViewpoints.tsx with coverage metrics and conflict pairs.
+	•	Reuse your AF/VAF/BAF helpers for edges (support vs rebut/undercut) so views can be filtered by edge semantics.
+Acceptance
+	•	Users can toggle between 1..k representative views; coverage/min coverage reported; top conflict pairs highlighted.
+
+Phase 8 — Metrics & outcomes (make progress legible)
+Why: The notes propose a solid set of metrics to validate the multi‑layered approach (dialogical vs monological). 【Proposed metrics list. 】
+Work
+	•	Add a Deliberation Metrics panel: Argument Quality (defended rate), Deliberation Depth, User Engagement (challenges/undercuts), Resolution Rate (convergent branches), Persuasive Efficacy (opt‑in survey). 
+Acceptance
+	•	Metrics visible per deliberation; resolution rate aligns with trace convergence; depth >1 on non‑trivial topics.
+
+File‑level changes & where they land
+	•	API
+	◦	/api/dialogue/move: keep signature/dedup & CLOSE⇒†; require reply locus for non‑initial; persist acts[] fully. 
+	◦	/api/dialogue/legal-moves: continue soft legality; add “likely relevant” hint; preserve CLOSE via stepper hints. 
+	◦	/api/ludics/delocate: new route (alias/migrate from panel delocate for consistency).
+	◦	/api/deliberations/[id]/aif: new export route. 
+	◦	/api/deliberations/[id]/viewpoints/select: selection endpoint. 
+	•	Lib
+	◦	packages/ludics-engine/compileFromMoves & stepper: keep as the source of truth for compile/step; expose decisive indices/daimon‑hints in the trace payload. 
+	◦	lib/dialogue/moves.ts: extend synthesizeActs to include openings, isAdditive, justifiedBy. 
+	◦	lib/export/aif.ts: new serializer. 
+	◦	lib/deepdive/*: reuse AF/selection helpers for Representative Viewpoints. 
+	•	DB (Prisma)
+	◦	Ensure DialogueMove.payload is canonical acts[] (notes show target shape). 
+	◦	Add receipts for delocation (if not already present as DecisionReceipt). 
+	•	UI
+	◦	components/map/NegotiationDrawer.tsx: Trace Ribbon + decisive index markers; “Resolve (†)” indicator on convergent branches. 
+	◦	components/ludics/LociTreeWithControls.tsx: heatmap + additive choice UI. 
+	◦	components/deepdive/RepresentativeViewpoints.tsx: surface k‑views with coverage stats. 
+
+Risks & mitigations
+	•	Performance (relevance, step‑traces): keep strict relevance offline; paginate long traces; cache daimon hints per locus. 【Strict relevance cost note. 】
+	•	UX complexity: start with soft chips (relevance / convergence) and progressive disclosure; use the Trace Ribbon as the primary explainer. 
+	•	Interop drift: validate AIF export against OVA+/Carneades samples as part of CI. 
+
+What’s different vs. the prior roadmap
+	•	Moves are multi‑act at explicit loci (not monolithic), enabling additive choices and presupposition/ramification handling. 【Multi‑act interventions & ramifications. 】
+	•	We surface a Convergence/Daimon vocabulary in UI/metrics so people can tell why a thread is “done.” 【Convergence with † in acceptance. 】
+	•	We add CBR‑style evidence → rule prompts to make implicit warrants explicit. 【Evidence ⇒ rule heuristic. 】
+	•	We prioritize AIF export and Representative Viewpoints to connect Agora to the broader ecosystem and to show plural, defensible summaries. 
+
+Suggested PR sequence (low‑risk chunks)
+	1	Acts + Reply invariants (API/DB; small UI affordance).
+	2	Trace Ribbon (read‑only) + CLOSE (†) polish. 
+	3	Additive picker and soft relevance chips.
+	4	Delocation route + receipt; wire to NegotiationDrawer and Panel.
+	5	Evidence → rule prompt in composer. 
+	6	AIF export (JSON) + Representative Viewpoints surface. 
+	7	Metrics panel (depth, convergence rate, defended rate). 
+This plan stays true to MeshResearchNotes while aligning with the code you’ve already shipped (/api/dialogue/move, /api/dialogue/legal-moves, Ludics compile/step, panel tools). If you want, I can start with (1) and (2)—the minimal changes that unlock the rest—using the exact files/paths cited above.
+
+Absolutely—here’s a full second‑pass “comb through” of MeshResearchNotes.txt, pulling in everything it covers (not just Ludics) and tying each theme to a crisp takeaway we can carry into the Agora roadmap.
+
+1) Formal dialogue systems (beyond Ludics)
+Prakken‑style persuasion protocols (PPD). The notes stress the explicit reply structure (every move replies to a specific prior move), the distinction between attacks (WHY/ARGUE) that keep a branch open and surrenders (CONCEDE/RETRACT) that close it, and the role of relevance (a move is legal only if it can change the root’s dialogical status). Termination and liberal back‑replying/parallel lines are part of the model, not UI polish. This is the bedrock for IN/OUT computation and backtracking in Agora.
+Event Calculus (EC) implementations. The notes highlight EC as a declarative way to encode turn‑taking, legality, and status—legality persists by inertia until terminated (e.g., by surrender or by making the move). That matters for a fast, cacheable “dialogue consultant” on the server (who has the turn, which replies are legal now, was move X legal then?).
+Public vs. private semantics (design choice). The document calls out that we should commit to public semantics (legality and status from the public record), in contrast to systems where legality depends on an agent’s private beliefs (PWA). This is essential for auditability, moderation, and shared ground truth.
+Legal reasoning patterns (beyond “logic”). A deeper nuance: case‑based reasoning (analogize/distinguish) is treated as heuristics that introduce defeasible rules into the dialogue—not just “more content.” When a user cites a precedent, they’re often proposing a general rule. The notes recommend prompting users to surface that rule explicitly (“In contexts with {A,B}, usually C”), making the implicit defeasible commitment visible and debatable.
+
+2) Structured & abstract argumentation (AFs) and a database‑native path
+AFs as databases (repairs = extensions). The notes include a strong, implementable angle: represent attack graphs relationally and compute preferred/stage/semi‑stable extensions via consistent query answering (repairs satisfying FDs/IDs), not just in memory. Benefits: scalability, integrity, and richer queries (e.g., “defended against X but not Y”), with a clean mapping between AF semantics and DB constraints.
+
+3) Discourse & rhetoric (RST, concessions, coherence)
+RST‑driven structure suggestions in the Composer. The notes detail how an RST parser can detect nucleus/satellite relations (Evidence/Justify/Elaboration/Contrast/Condition) and auto‑propose Claim/Grounds scaffolding, map rhetorical relations to support/rebut/undercut, and even combine (“glue”) adjacent segments into a single argumentative unit (ADU). This reduces cognitive load and raises structural quality.
+“Yes, but…” scaffolding (Concession → rebuttal). Automatic detection of Concession turns on a two‑move template: first a concede to the opponent’s point, then a targeted rebut—explicitly wiring the dialogical move sequence the protocol expects.
+Coherence scoring. An RST‑based “coherence score” can flag fragmented drafts and suggest connective cues (“because/however”)—useful, low‑friction feedback while composing.
+
+4) Interoperability & knowledge ecosystem
+AIF import/export. Adopt AIF to avoid a walled garden: map our Claims/Arguments/Edges to AIF I‑nodes/S‑nodes, expose an export route, and ensure round‑trip with OVA+/Carneades. This gives Agora scholarly and toolchain interop.
+
+5) Synthesis & representation of viewpoints
+Representative Viewpoints (RV) and entailment UI. The notes include a concrete plan for viewpoint selection (route + algorithms + UI) and a SequentBadge for entailment (Γ ⊢ Δ), so the system can present small, representative sets of arguments and show what they jointly support. This couples argumentation semantics with an audience‑friendly presentation layer.
+
+6) Metrics & evaluation (to prove it works)
+What to measure beyond monological outputs. Track Argument Quality (defended vs defeated), Deliberation Depth (length of attack/defense chains), User Engagement (WHY/rebut/undercut rates), Consensus/Resolution Rate (stable statuses), and Persuasive Efficacy (belief change). These metrics are specific to dialogical/rhetorical systems and are explicitly proposed in the notes as our yardstick.
+
+7) Advanced Ludics hooks the notes mention (to round the picture)
+Daimon closure (†) and “delocation.” Beyond the basic compile/step, the notes identify (a) making CLOSE (†) an explicit move when the locus is closable and (b) a delocation operation to resolve additive collisions by shifting a design to a fresh branch. These are operational levers for real dialogues (and show how the Ludics layer complements PPD/AF/RST rather than replacing them).
+
+8) Research‑ops: how we keep our work grounded
+NotebookLM setup and guardrails. There’s a concrete plan to use NotebookLM with our schema/routes/components so analyses always cite the real files, plus a prompt library and guardrails (“map ideas to Claims/Edges/CQStatus/DialogueMove, Ludics compile/step/trace, RV selection, AF labels; use CQ guard; name components to touch”). This is about reproducible, source‑grounded research engineering.
+
+9) What this adds to the roadmap (delta from the first pass)
+	•	Public semantics as a formal principle (documented and enforced): legality/status computed from the public record + commitments; no hidden belief bases. 
+	•	Dialogue consultant endpoints (turn holders, legal moves by locus, status “then/now”) backed by EC‑style persistence rules. 
+	•	RST pipeline in the Composer: structure suggestions, “Yes, but…” template, glue operation, coherence scoring. 
+	•	CBR prompts on citation: when a source is attached, offer to surface a proposed defeasible rule. 
+	•	Database‑native AF module (optional path) for large rooms: compute extensions as DB repairs; enable richer queries. 
+	•	AIF export route + serializer; RV selection route + UI with SequentBadge. 
+	•	Metrics suite (quality, depth, resolution, engagement, persuasion) in dashboards. 
+	•	Ludics quality‑of‑life: expose CLOSE (†) when legal; enable delocation ops for additive collisions. 
+
+TL;DR
+The notes cover a complete stack for deliberation:
+	•	Procedural (PPD+EC), structural (AFs, DB‑native), rhetorical (RST, concession/glue/coherence), interoperability (AIF), synthesis (RV/Γ⊢Δ), evaluation (dialogical metrics), and advanced interaction (†/delocation)—with research‑ops to keep us honest. If we reflect all of these in the roadmap, we get a platform that’s not just argument‑mapped, but dialogue‑sound, rhetorically aware, scalable, exportable, and measurable. 
+If you want, I can fold these deltas directly into the step‑by‑step implementation plan you approved earlier so we have one unified, engineering‑ready roadmap.
+
+Perfect—here’s a short → long‑term roadmap that folds in all the context you shared (research compendia + current Mesh codepaths). I’ve aligned it to what you already have in app/api/dialogue/*, Prisma models, and the deep‑dive libs, and I’ve organized it into PR‑sized steps with crisp acceptance criteria.
+
+Guiding principles (grounded in your current code & prior v2 plan)
+	•	Public semantics, explicit reply, idempotent moves. Keep the debate state computable from the public record, enforce explicit replies, and make every move idempotent via signatures. Your current /api/dialogue/move already synthesizes acts, dedups on a unique signature, and compiles/steps Ludics on write—great foundation to harden. 
+	•	Protocol first, then semantics, then geometry. Phase 1: hard rules for legal moves. Phase 2: dialectical semantics (AF). Phase 3: Ludics geometry surfaced in UI. This sequencing matches the “Unified Discourse Core → Semantics → Ludics” strategy in your v2 roadmap. 
+	•	Re‑use what’s in repo. You already ship legal-moves, open-cqs, Ludics compile/step, AF semantics helpers, and a representative‑viewpoints selector—this roadmap wires and hardens them rather than reinventing.
+
+Phase 0 (Week 0–1): Hardening & alignment
+0.1 Unify signatures & act synthesis (eliminate drift).
+	•	Replace route‑local makeSignature/synthesizeActs with the single source of truth in lib/dialogue/moves.ts (and/or lib/dialogue/signature.ts if you standardize on sha256). Guard to keep dm_unique_signature stable. Acceptance: round‑trip creates identical signatures for the same payload; duplicate POST returns {dedup:true}.
+0.2 Normalize WHY TTL & CLOSE gating.
+	•	Move WHY_TTL_HOURS into a server config; annotate WHY payloads with deadlineAt consistently (already done), and keep CLOSE (†) eligibility via stepper daimon hints (already implemented in legal-moves). Add tests. 
+0.3 Align edge types across layers.
+	•	Ensure ArgumentEdge.type (rebut/undercut/support) is canonical, and keep ClaimEdge derivation in sync via maybeUpsertClaimEdgeFromArgumentEdge. Acceptance: creating a rebut/undercut edge auto‑materializes the corresponding ClaimEdge with correct attackType/targetScope.
+0.4 Bus/SSE topic hygiene.
+	•	Standardize on dialogue:changed, dialogue:moves:refresh, decision:changed as emitted today; document payload contracts. 
+
+Phase 1 (Weeks 1–3): Protocol & invariants
+1.1 Legal‑moves engine v1 (explicit reply surface).
+	•	/api/dialogue/legal-moves currently proposes WHY/answer/CONCEDE/RETRACT and CLOSE (if closable). Extend it to accept a concrete locusPath and encode minimal invariants: no duplicate same‑CQ WHY, GROUNDS only for open CQs, and block attacks on surrendered nodes. Add unit tests. 
+	•	UI: render LegalMoveChips in your composer (e.g., DeliberationComposer.tsx) using this endpoint. Acceptance: chips reflect open‑CQ state from open-cqs and expose CLOSE when daimonHints allow. 
+1.2 Attack granularity in the UI (rebut vs undercut).
+	•	Use lib/dialogue/legalAttacks.ts / legalMoves.ts to propose move‑specific scaffolds (e.g., “challenge antecedent”, “ask witness”), tagging the move payload so the server can record intended attack scope (premise/inference/conclusion). Acceptance: posting a counter from these options writes an ArgumentEdge with the proper type/targetScope and triggers ClaimEdge upsert.
+1.3 Commitments (thin slice).
+	•	Start with the route you already have—/api/dialogue/answer-and-commit—to record a GROUNDS + commitment in one transaction. Expose a read‑only Commitments pane per participant (derived from moves/receipts) and a minimal “retract commitment” act that toggles state. Acceptance: answering a WHY via this route both closes the CQ and creates a visible commitment record for the chosen owner (P/O). 
+
+Phase 2 (Weeks 3–6): CQ wiring & dialectical status
+2.1 CQs as first‑class moves.
+	•	Replace “toggle satisfied” UX with ASK/ANSWER wiring you already model: clicking a CQ spawns a WHY (with schemeKey/cqId in payload). Answering is a GROUNDS move to the same locus (the server already dedups by signature). Acceptance: open-cqs shows no key after a valid GROUNDS; the Dialogical/RightRail reflects that the virtual attacker is OUT. 
+2.2 Dialectical labels (AF preferred/grounded).
+	•	Implement /api/deliberations/[id]/dialectic using lib/deepdive/af.ts: build attack map from ArgumentEdge (rebut/undercut), compute preferred/grounded, and return IN/OUT/UNDEC per node. UI: badges on cards and filters in RightRail. Acceptance: cycles marked UNDEC (preferred), unattacked nodes IN, attacked‑by‑IN nodes OUT. 
+2.3 Protocol presets (room pref).
+	•	Add a deliberation.prefs flag for asymmetric proof and strict relevance (feature flag off by default). For now, only show soft relevance warnings client‑side based on unresolved loci; strict relevance can be an offline auditor later (Phase 4). Acceptance: toggling asymmetricProof changes labels for edge cases in AF (documented examples). 
+
+Phase 3 (Weeks 6–10): Ludics geometry → usable tools
+3.1 Compile & step already‑there Ludics.
+	•	/api/dialogue/move is already compiling designs and stepping interaction († close hints). Add a Trace Ribbon and Locus Heatmap to NegotiationDrawer to visualize traces and hotspots; annotate indices where convergence/divergence is determined. Acceptance: after a sequence WHY→GROUNDS, the ribbon shows paired acts at the shared locus (e.g., 0.1) and the CLOSE chip appears when daimon conditions are met. 
+3.2 Delocation (faxing) as moderator tool.
+	•	Wire /api/dialogue/panel/delocate (already implemented) into a small moderator UI control to “move” a congested branch to a fresh base locus; log via ludicDecisionReceipt. Acceptance: clicking Delocate clones & shifts design, produces a procedural receipt, and emits refresh events. 
+3.3 Panel receipts (auditable actions).
+	•	Use /api/dialogue/panel/confirm to mint epistemic/procedural/policy receipts for “we consider branch X resolved” operations; show on the deliberation timeline. Acceptance: receipts render with subject, rationale, and link back to nodes. 
+
+Phase 4 (Weeks 10–14): Value lenses, support edges, relevance auditor
+4.1 Support edges & value lenses.
+	•	Extend UI to create support edges distinctly from defenses; in AF, keep support out of conflict but surface as strength cues. Add a minimal Audience/Value selector (start with a static ordering per room) to color chips per audience, matching the v2 roadmap concept. Acceptance: arguments display support counters and audience‑specific “accepted” chips. 
+4.2 Offline relevance auditor.
+	•	Batch job: simulate potential moves to compute strict relevance (expensive) and annotate nodes with “strictly relevant/irrelevant”. Client continues to use soft gating; moderators see strict labels. Acceptance: nightly task writes annotations; UI shows a subtle badge; no sync path blocking. 
+
+Phase 5 (Weeks 14–20): Synthesis & decision support
+5.1 Representative viewpoints.
+	•	Expose /api/deliberations/[id]/viewpoints/select backed by lib/deepdive/selection.ts (utilitarian/harmonic/maxcov), using approvals as utility signal. Render 2–5 Viewpoint cards with coverage stats and an optional DecisionReceipt when one is adopted. Acceptance: top‑k viewpoints computed; coverageAvg/min surfaced; adopting a viewpoint creates a receipt.
+5.2 Briefs from deliberations.
+	•	Use existing Brief/BriefVersion/BriefLink models to compile a brief from a deliberation (current selection or AF IN‑set). Acceptance: clicking Compile Brief creates a version with links to arguments/claims; renders in Brief viewer. 
+
+Phase 6 (20+ weeks): Interop & research‑grade features
+6.1 AIF export/import.
+	•	Add /api/deliberations/[id]/aif to serialize I‑nodes/S‑nodes from your internal graph; basic import for OVA/Carneades. Acceptance: round‑trip a small map. 
+6.2 Case‑based reasoning helpers.
+	•	When a citation is attached, prompt to induce a defeasible rule (analogize/distinguish) and store as warrant metadata; surface “distinguish” affordances on follow‑up claims. (Research flag.) 
+
+Cross‑cutting engineering tasks
+	•	Migrations & indexes. Confirm uniqueness on (deliberationId, signature) for DialogueMove and ensure fast lookups for findMany in /moves with composite [createdAt,id] order. 
+	•	Test kit. Route unit tests for /move, /legal-moves, /moves, /open-cqs, AF engine golden cases (A↔B cycle), and viewpoint selector.
+	•	UX fit‑and‑finish. LegalMoveChips, CQ chips, AF status badges, receipts timeline, and Ludics trace/heatmap in NegotiationDrawer. (You can crib labels from lib/dialogue/legalAttacks.ts/legalMoves.ts.) 
+	•	Observability. Log structured audit events for every dialogue mutation + receipt issuance; show them in a developer “Events” pane. (Your merge/receipt style in other areas is a good pattern.) 
+
+What “done” looks like at each horizon
+	•	Short term (≤ 3 weeks): Stable legal‑moves flow with explicit replies and CQ closure; dedup/idempotent moves; CLOSE (†) shows up when appropriate; commitments pane; AF labels visible.
+	•	Mid term (≈ 6–10 weeks): Ludics trace + heatmap in UI; delocation and panel receipts; support edges & value lens; nightly relevance auditor annotates threads.
+	•	Long term (≈ 14–20+ weeks): Representative viewpoints & decision receipts integrated; brief compilation; AIF interop; optional CBR prompts for evidence‑to‑rule induction.
+
+Why this is safe and efficient for your codebase
+It stays inside the lanes you already paved—your API routes, Prisma models, and deep‑dive libs—and layers theory‑driven features in a way that always leaves the platform in a working, incrementally better state. The plan also matches the architectural direction of your Roadmap v2 while being concrete about files, endpoints, and acceptance checks.
+If you want, I can start by opening the Phase 0/1 PR set (signatures alignment + legal‑moves invariants + UI chips) since all the touchpoints are already in app/api/dialogue/* and lib/dialogue/*.
+
+Absolutely—here’s a tight, third‑pass audit across the research compendia and your current Agora code to catch anything still missing or under‑specified. I’ve organized it as (A) theory items we should surface explicitly, (B) what your code already covers (with gaps), and (C) concrete “delta” tasks to eliminate the omissions. Citations point to the passages in your compendia and the relevant code files I inspected.
+
+A) Theory details that must be first‑class (and how they alter the plan)
+	1	Game‑theoretic links between AF semantics and dialogue play The compendium spells out that winning strategies for PRO under different semantics (grounded vs. preferred credulous/skeptical) correspond to different legality / repetition constraints in the dialogue game. That’s more than a nice‑to‑have; it means Agora should let a room choose a semantics and then enforce the corresponding move constraints (e.g., who may repeat which arguments). Add a Semantics preset that maps to grounded or preferred (credulous/skeptical) and adjusts legality accordingly.
+	2	Case‑Based Reasoning (CBR) as premise‑introduction moves The “analogize / broaden / distinguish” repertoire isn’t just annotations—it’s a procedural layer for growing the rule pool during the dispute. We should expose these as explicit composer templates (CBR palette) with structured payloads, and evaluate dialogical status relative to the dynamically introduced rules.
+	3	Precedent as a dialectical multi‑argument structure (not a single fact) Evidence should be linkable to another deliberation’s winning and defeated lines (with priority reasons), so a participant can cite parts of a precedent or distinguish it precisely. This argues for first‑class cross‑deliberation links + “import a sub‑tree” affordances in the editor.
+	4	Schemes + CQs: make the prompts do real work Schemes come with critical questions; we should attach those CQs to WHY/GROUNDS guidance and drive one‑click legal move scaffolds (e.g., “expert opinion → ask for domain, track record, consensus”). Your current open‑CQ plumbing is a good start; pair it with scheme libraries. 
+	5	Public vs. private semantics (make it explicit) Your architecture implicitly uses public semantics (good), but we should declare and enforce it at the API boundary (legality depends only on public record, not private beliefs) and keep “private scratchpads” as authoring aids only.
+	6	Dialectical asymmetry (“strict defeat” for the proponent) For legal/policy modes, the proponent must strictly defeat the opponent; the opponent need only defeat. This should be a room preference that changes status aggregation and legality (e.g., what counts as a successful defense).
+	7	Relevance = “can flip the root’s dialogical status” (costly) True relevance requires simulating the move’s impact on status; it is heavy and was explicitly hard in the EC formalization. Keep soft relevance (fast, UI warning) and batch a strict auditor that annotates threads post‑hoc.
+	8	Priority rules are themselves debatable Defeat via rebut/undercut and priority are objects of argument too. We should allow users to argue a priority between rules/arguments and reflect that in status updates. 
+
+B) Where the code stands (and what that implies)
+1) Dialogue Move pipeline
+	•	Route: /api/dialogue/move normalizes payloads, generates a signature (idempotent insert), enforces WHY TTL, synthesizes Ludics acts (including CLOSE/†), compiles/steps designs, and emits SSE. Good foundation. Gap: the signature logic here differs from lib/dialogue/signature.ts; unify to avoid drift and collisions. 
+	•	Acts: synthesizeActs supports WHY/GROUNDS/CLOSE; extend to “Accept argument” vs “Concede claim” to enforce the R7‑style guard (accept the argument when it’s a reply to WHY). 
+2) Legality & CQs
+	•	Route: /api/dialogue/legal-moves collects open CQs and exposes GROUNDS/WHY/CONCEDE/RETRACT; if a locusPath is provided, it calls the stepper and offers CLOSE (†) when legal. Great. Gaps: (a) add “duplicate‑reply” and “no attack after surrender” checks; (b) surface R7 (“concede conclusion” blocked when you owe “accept argument”). 
+	•	Route: /api/dialogue/open-cqs already computes open keys per target; hook scheme metadata here so CQs carry scheme‑specific prompts. 
+3) AF / selection & clustering
+	•	AF: lib/deepdive/af.ts builds Dung AFs; preferredExtensions enumerates/heuristically grows preferred sets; this is the right abstraction to back a Semantics toggle in the UI and status engine. 
+	•	Selection: lib/deepdive/selection.ts already computes representative viewpoints with utilitarian/harmonic/maxcov rules—perfect to surface “representative bundles” and to wire audience/value lenses later. 
+	•	Models: Prisma has Claim/Argument/Edges (rebuts/supports, targetScope), Clusters, BridgeRequests, Briefs/Versions, Issues—we can align legal support edges (BAF) and future value lenses (VAF) on top of these. 
+4) Attack suggestion helpers
+	•	legalAttacks.ts / legalMoves.ts detect basic shapes (conditional/conjunction/disjunction/∀/∃/presupposition), returning move templates. Great seed for the attack palette and presupposition‑challenge chip. 
+5) Panel actions & Ludics
+	•	Confirm writes a decision receipt; Delocate clones/retags designs and records a procedural receipt, then refreshes moves. These are the right “procedural rails” to expose Resolve events and † closures in UI. 
+6) AIF export stub in notes
+	•	Your notes earmark lib/export/aif.ts—good; let’s implement minimal AIF now so evidence/arguments can be exported cleanly. 
+
+C) “Delta” checklist — concrete items to eliminate omissions
+Below are implementation‑sized tasks with where they live and what to change.
+Protocol invariants & guards
+	•	Duplicate reply (R4) & “no attack after surrender” (R5): add to /api/dialogue/legal-moves (and server guard shared util), backed by a small index over (replyTo, kind) in moves, plus a branch‑state cache. 
+	•	R7‑style guard (“Accept argument” vs “Concede claim”): extend synthesizeActs and legal‑moves so that when replying to WHY, “Concede” becomes “Accept this argument” (and closes the branch); block raw concede in that locus. 
+Semantics & status
+	•	AF semantics toggle (grounded / preferred‑credulous / preferred‑skeptical):
+	◦	Add a room pref.
+	◦	In status computation, enforce repetition constraints and set evaluation accordingly; reuse preferredExtensions for preferred, and add a grounded labelling pass.
+	•	Dialectical asymmetry: boolean pref to switch strict defeat for PRO in status/legality aggregation. 
+	•	Relevance: keep soft relevance (target is unresolved/open) inline; write a batch auditor process that simulates potential moves on the AF to compute “strict relevance” badges. 
+CBR & cross‑debate evidence
+	•	CBR palette (Analogize/Broaden/Distinguish templates) in the composer; persist as structured payloads; show rule deltas in the Right Rail. Evaluate status vs. the grown rule pool. 
+	•	Cross‑deliberation evidence: allow citing portions of another deliberation’s tree (winning/defeated/priority nodes) as sources with deep links, not just URLs. 
+Schemes, CQs & presuppositions
+	•	Attach CQs to schemes in open-cqs (add scheme metadata) and populate composer prompts accordingly. 
+	•	Presupposition chip: if legalMoves.detectShape === 'presupposition', show a “Challenge presupposition” quick action that spawns a targeted WHY. 
+Interop & receipts
+	•	AIF export minimal pass (I‑nodes/S‑nodes) for arguments and citations; wire to Briefs. 
+	•	Resolve / CLOSE (†) UX: promote your legal‑moves “CLOSE” suggestion into a visible Resolve branch button; log a procedural receipt (you already do for panel ops). 
+Consistency & signatures
+	•	Unify signatures: replace custom makeSignature in the route with computeDialogueMoveSignature from lib/dialogue/signature.ts (or vice‑versa) to guarantee idempotence across services.
+
+D) Tiny but important UX clarifications we should add
+	•	Open vs. closed branch pills + “Show full chain” / “Collapse chain” (you already do variants in Forum): mirror that in deliberation trees, tied to surrenders and CLOSE (†). 
+	•	Attack palette always contextualized by shape (IF/AND/OR/∀/∃) and CQs; it should never suggest illegal attacks (e.g., on a surrendered target). 
+	•	Public semantics notice in-room: “Legality is computed from the public record; drafts don’t affect it.” 
+
+E) Why this closes the remaining theoretical gaps
+	•	It binds semantics (grounded/preferred) to protocol behavior, aligning UI options with formal games. 
+	•	It turns CBR from narrative advice into concrete legal moves that dynamically alter what’s in play. 
+	•	It makes priorities and relevance explicit, auditable, and (for relevance) pragmatically computed.
+	•	It upgrades evidence to structured, cross‑debate citations that match the legal‑style dialectical model. 
+
+Quick “first PRs” I can cut immediately (each is bite‑sized)
+	1	R4/R5 legality guards + R7 accept‑argument gate in /api/dialogue/legal-moves (+ shared util) and synthesizeActs.
+	2	Semantics toggle (grounded/preferred) wired through AF status using af.ts + selection heuristics. 
+	3	CBR move templates in the composer (broaden/distinguish) with rule‑pool deltas in the Right Rail. 
+	4	AIF export minimal I/S‑nodes for arguments/citations. 
+	5	Signature unification to ensure idempotent inserts are consistent system‑wide. 
+If you want me to start cutting code for (1) and (5) first, I’ll deliver those changes in the existing files you’ve shared (/api/dialogue/legal-moves, /api/dialogue/move, lib/dialogue/signature.ts, lib/dialogue/moves.ts). The rest can follow in the order above.
+
+
+Here’s a final audit pass—tight, implementation‑ready, and cross‑checked against your research compendia and the current Agora code. I’ve grouped the findings into (A) theory guarantees we must uphold, (B) what the codebase already does, (C) gaps + exact fixes (files to touch), and (D) a short PR stack with crisp acceptance checks.
+
+A) Theory guarantees we must uphold (non‑negotiables)
+	•	Explicit reply structure (tree), not just sequence. Every non‑initial move must reply to a specific prior move; attacks keep a branch open, surrenders close it; legality and status (IN/OUT) depend on this tree. Back‑replies and parallel attacks must be legal. 
+	•	Protocol rules R4/R5/R7, turn model, termination. No duplicate replies to the same target (R4); after surrender, further attacks on that target are illegal (R5); if an argument was offered in answer to why φ, you can’t jump to concede φ—you must accept the argument, not just the conclusion (R7). After the first two moves, both players “have the turn” (no simultaneous speech), and a dialogue terminates when a turn‑holder has no legal moves. These drive the legality oracle and UI affordances. 
+	•	Public semantics by design. All legality and status are derived from the public record, not private beliefs (PWA is a different, private‑semantics family). This matches the Agora transparency ideal. 
+	•	Relevance (soft now, strict later). True relevance = “could this move flip the root’s status?”—powerful but expensive; run soft guards in realtime, strict validator offline. 
+	•	Dialects & values. Asymmetric burdens of proof (legal/policy rooms) and audience/value lenses (VAF) are first‑class roadmap items. 
+
+B) What the codebase already does well (quick wins we can build on)
+	•	Move API with idempotency for key kinds. /api/dialogue/move writes moves with a per‑kind signature (idempotent for WHY/GROUNDS/CLOSE/CONCEDE mapping), TTL for WHY, auto‑compilation into Ludics designs, and optional stepping + SSE bus events. 
+	•	Legal‑moves prototype. /api/dialogue/legal-moves proposes GROUNDS for open CQs, otherwise WHY, plus CONCEDE/RETRACT; it can gate CLOSE (†) when the stepper signals a closable locus. 
+	•	Shared helpers. lib/dialogue/moves.ts provides makeSignature/synthesizeActs; lib/dialogue/legalMoves.ts detects shapes (conditional, disjunction, presupposition, …) to suggest attack options; lib/deepdive/af.ts computes preferred extensions for Dung AFs. 
+	•	Prisma scaffolding for deliberation & synthesis. Argument/Edge with targetScope (premise/inference/conclusion), approvals, ViewpointSelection + ViewpointArgument, clusters/bridge‑builder, and Decision receipts (the “panel confirm” route is in place). Great substrate for Representative Viewpoints + auditable decisions. 
+
+C) Gaps & precise fixes (file‑level actions)
+The bullets below cite both the research intent and exact files requiring edits.
+	1	Persist the reply structure (locus + reply‑to) on every move.
+	◦	Why: Our move rows have targetType/targetId and an optional payload.locusPath, but no durable field for the explicit reply locus / replied move. We need justifiedByLocus and/or replyToMoveId to make R4/R5/R7 enforceable and to support back‑replies and parallel lines cleanly.
+	◦	Where: Prisma DialogueMove (add justifiedByLocus String?, replyToMoveId String? + FK), write path in /api/dialogue/move, and have composers set it.
+	2	Enforce R4/R5/R7 and the turn model in the legality oracle.
+	◦	Why: Current /api/dialogue/legal-moves is CQ‑oriented and permissive; it doesn’t block duplicates (R4), post‑surrender attacks (R5), or force “Accept argument” vs “Concede φ” (R7), nor does it encode the “both have the turn after move 2 / no simultaneous speech” model.
+	◦	Where: Extend /api/dialogue/legal-moves to consult recent moves on the target locus/reply chain, refuse illegal acts, and surface “Accept argument” as a first‑class option when an argue answered a WHY. Use lib/dialogue/legalMoves.ts patterns to keep UX helpful, but make the server authoritative.
+	3	Unify signatures & idempotency (eliminate drift).
+	◦	Why: We now have two signature strategies: the bespoke makeSignature in the route and the deterministic computeDialogueMoveSignature utility; they don’t align, risking surprise dedup behavior across endpoints.
+	◦	Where: Replace the ad‑hoc per‑route signature with computeDialogueMoveSignature (or centralize in lib/dialogue/moves.ts) and ensure a unique index (deliberationId, signature) exists. Keep special‑case idempotency for WHY/GROUNDS/CLOSE by stabilizing payload fields used in the hash. 
+	4	Add a Commitment store and derive it from moves.
+	◦	Why: Public commitments are essential (concede/retract should update CS). This enables consistency checks and “you can’t concede ¬φ while committed to φ” room policies.
+	◦	Where: Prisma: Commitment { deliberationId, participantId, proposition, isRetracted }. Update /api/dialogue/move to write commitments when CONCEDE/RETRACT land; add /api/dialogue/commitments. 
+	5	Soft relevance now; strict relevance offline.
+	◦	Why: True relevance (flip root’s status) is expensive but necessary for high‑quality rooms. We can ship soft guards immediately (target unresolved loci), while a job recomputes strict relevance badges. 
+	◦	Where: Extend /api/dialogue/legal-moves to mark moves “likely irrelevant”; add a nightly job to annotate moves with strict relevance results, and surface chips in the panel. 
+	6	Asymmetric burden toggle & AF integration.
+	◦	Why: Legal/policy rooms often require strict defeat for proponents; expose this as a room pref and reflect it in AF status/labels. 
+	◦	Where: Add deliberation.prefs.asymmetricProof and adapt lib/deepdive/af.ts status computation (strict vs normal defeat). UI: badge in RightRail. 
+	7	Presupposition challenges (already detected, not surfaced).
+	◦	Why: lib/dialogue/legalMoves.ts can detect “loaded” presupposition cues; hook this into the WHY/CQ flow so users can challenge presuppositions as first‑class attacks. 
+	◦	Where: When detectShape(text) === 'presupposition', offer a “Challenge presupposition” WHY with a labeled payload; ensure /api/dialogue/legal-moves suggests it when relevant. 
+	8	Support edges and VAF lens (planning hooks exist, finalize).
+	◦	Why: Separate support from defense, and allow audience/value orderings (objective vs subjective acceptance). The Prisma + helper that maps ArgumentEdge→ClaimEdge is already moving in this direction—complete the loop. 
+	◦	Where: Confirm EdgeType and ClaimAttackType enums cover support/rebut/undercut and scopes; add Value/Audience tables and minimal calculations for Obj/Sub acceptance chips. 
+	9	Consistency & API cleanliness.
+	◦	Bus usage: Standardize on one emitter (emitBus vs bus.emitEvent) so clients don’t miss events. 
+	◦	Auth: legal-moves currently unauthenticated; if room policies vary by role/participant, require auth to compute permissible moves. 
+	◦	Design selection: The stepInteraction fallback picks designs by naive order; resolve P/O by participant mapping for stability. 
+	10	Interchange & synthesis.
+	•	AIF export: Keep in the plan (not yet in code) so arguments/links map to I‑/S‑nodes for external analysis. 
+	•	Representative Viewpoints: You already have ViewpointSelection + Decision receipts; wire the selection service to AF status + approvals so “receipt → chosen viewpoint → AF snapshot” is fully auditable. 
+
+D) Short PR stack (sequenced, low‑risk, high‑impact)
+	1	Reply structure & R4/R5/R7 guardrails
+	◦	Files: Prisma (DialogueMove), /api/dialogue/move, /api/dialogue/legal-moves, lib/dialogue/legalMoves.ts.
+	◦	Checks: Attempting an attack after surrender is blocked; attempting Concede φ when an argument answered why φ yields “Accept argument” action.
+	2	Signature unification & unique index
+	◦	Files: lib/dialogue/signature.ts, /api/dialogue/move (use the shared function), Prisma unique on (deliberationId, signature).
+	◦	Checks: Double‑submit on WHY/GROUNDS/CLOSE dedups reliably; other kinds behave predictably.
+	3	Commitment store
+	◦	Files: Prisma (Commitment), /api/dialogue/move (derive), /api/dialogue/commitments (read).
+	◦	Checks: CONCEDE adds a row; RETRACT flips isRetracted; commitments render in UI. 
+	4	Soft relevance badges + presupposition challenges
+	◦	Files: /api/dialogue/legal-moves, lib/dialogue/legalMoves.ts, UI badges.
+	◦	Checks: Irrelevant moves get a warning; presupposition CQs appear when detected.
+	5	Asymmetric burden toggle & AF
+	◦	Files: Prisma (prefs), lib/deepdive/af.ts, UI chips.
+	◦	Checks: Toggling flips certain branches IN→OUT under strict defeat; labels update.
+	6	Support/VAF minimal slice
+	◦	Files: Prisma (values/audiences), AF adaptor, RightRail lens.
+	◦	Checks: Selecting an audience re‑colors acceptance (Obj/Sub). 
+	7	AIF export + Decision receipts wiring
+	◦	Files: /api/deliberations/[id]/aif, serializer, DecisionReceipt ↔ selection pipeline.
+	◦	Checks: Export imports cleanly in AIF tools; receipts link to AF snapshot and selected viewpoint.
+
+Why I’m confident this is “last missing pieces”
+	•	The research compendium gives us the exact invariants to enforce (reply tree, attack/surrender, R4/R5/R7, public semantics, relevance, turn/termination), and we’ve mapped each to server/DB/UI changes. 
+	•	The v2 roadmap already anticipates many of these (commitments, asymmetric proof, schemes/CQs as moves, Ludics hooks, AIF), and this audit just snaps them precisely to the code you’ve uploaded.
+	•	The current APIs/libs are close: idempotent inserts, CQ‑aware legal moves, Ludics compile/step, AF utilities, claim‑edge helpers, and decision receipts are all in reach—this is wiring + invariants work, not a rewrite.
+If you want, I can start with PR‑1 (reply structure + R4/R5/R7) and PR‑2 (signature unification) immediately; everything else chains cleanly from there.

@@ -628,7 +628,7 @@ export default function ArticleReaderWithPins({
                   return (
                     <div
                       key={`${key}-${t.id}`}
-                      className="absolute translate-y-[-50%]"
+                      className="absolute translate-x-[-50%] translate-y-[-50%]"
                       style={{ top: p.top + gutterOffsetTop, left: p.left }}
                       onMouseEnter={() => setHoverId(t.id)}
                       onMouseLeave={() => setHoverId(null)}

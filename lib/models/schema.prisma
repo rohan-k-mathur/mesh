@@ -3087,11 +3087,13 @@ model Commitment {
   id             String   @id @default(cuid())
   deliberationId String
   participantId  String
-  proposition    String    // e.g., claim id or normalized proposition key
-  locusPath      String?   // optional: bind to a locus for fine-grain closure
-  isRetracted    Boolean   @default(false)
-  createdAt      DateTime  @default(now())
+  proposition    String   @db.Text
+  isRetracted    Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
   @@index([deliberationId, participantId])
+  @@unique([deliberationId, participantId, proposition])
 }
 
 // ----- bounties -----
