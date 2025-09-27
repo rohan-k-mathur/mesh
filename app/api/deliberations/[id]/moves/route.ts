@@ -83,7 +83,12 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     select: { id:true, deliberationId:true, targetType:true, targetId:true, kind:true, payload:true, actorId:true, createdAt:true },
   });
 
-  const items: Move[] = rows.map(r => ({ ...r, createdAt: r.createdAt.toISOString() }));
+  const items: Move[] = rows.map(r => ({
+    ...r,
+    createdAt: r.createdAt.toISOString(),
+    targetType: r.targetType as "argument" | "claim" | "card",
+    kind: r.kind as "ASSERT" | "WHY" | "GROUNDS" | "RETRACT"
+  }));
   const unresolvedByTarget = computeUnresolvedWhy(items);
 
   // Counts (for this page of results)

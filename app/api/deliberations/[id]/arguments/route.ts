@@ -65,7 +65,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
   const { cursor, limit, sort, claimId, clusterId } = parsed.data;
-  const [field, dir] = sort.split(':') as ['createdAt','asc'|'desc'];
+  const [field, dir] = (sort ?? 'createdAt:desc').split(':') as ['createdAt','asc'|'desc'];
+
+  // const [field, dir] = sort.split(':') as ['createdAt','asc'|'desc'];
 
 
   let argIdFilter: string[] | null = null;

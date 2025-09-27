@@ -8,27 +8,39 @@ export const revalidate = 0;
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   const deliberationId = params.id;
-
-  const claims = await prisma.claim.findMany({
+const [claims, edgesRaw] = await prisma.$transaction([
+  prisma.claim.findMany({ where: { deliberationId }, select: { id: true, text: true } }),
+  prisma.claimEdge.findMany({
     where: { deliberationId },
-    select: { id: true, text: true },
-  });
-  const edgesRaw = await prisma.claimEdge.findMany({
-    where: { deliberationId, fromClaimId: { in: claims.map(c => c.id) }, toClaimId: { in: claims.map(c => c.id) } },
     select: { fromClaimId: true, toClaimId: true, type: true, attackType: true, targetScope: true },
-  });
+  }),
+]);
+if (claims.length > 10_000) {
+  return NextResponse.json({ error: 'too large to export' }, { status: 413 });
+}
+  // const claims = await prisma.claim.findMany({
+  //   where: { deliberationId },
+  //   select: { id: true, text: true },
+  // });
+  // const edgesRaw = await prisma.claimEdge.findMany({
+  //   where: { deliberationId, fromClaimId: { in: claims.map(c => c.id) }, toClaimId: { in: claims.map(c => c.id) } },
+  //   select: { fromClaimId: true, toClaimId: true, type: true, attackType: true, targetScope: true },
+  // });
 
   const nodes = claims.map(c => ({ id: c.id, text: c.text, type: 'claim' as const }));
-  const edges = edgesRaw.map(e => ({
+  const edges: { source: string; target: string; type: "supports" | "rebuts"; attackType: "SUPPORTS" | "REBUTS" | "UNDERCUTS" | "UNDERMINES" | undefined; targetScope: "conclusion" | "premise" | "inference" | null | undefined }[] = edgesRaw.map(e => ({
     source: e.fromClaimId,
     target: e.toClaimId,
-    type: e.type === ClaimEdgeType.rebuts ? 'rebuts' : 'supports',
+    type: e.type === ClaimEdgeType.rebuts ? "rebuts" : "supports",
     attackType:
-      e.attackType === ClaimAttackType.REBUTS     ? 'REBUTS'     :
-      e.attackType === ClaimAttackType.UNDERCUTS  ? 'UNDERCUTS'  :
-      e.attackType === ClaimAttackType.UNDERMINES ? 'UNDERMINES' :
-      'SUPPORTS',
-    targetScope: e.targetScope ?? null,
+      e.attackType === ClaimAttackType.REBUTS     ? "REBUTS"     :
+      e.attackType === ClaimAttackType.UNDERCUTS  ? "UNDERCUTS"  :
+      e.attackType === ClaimAttackType.UNDERMINES ? "UNDERMINES" :
+      e.attackType === ClaimAttackType.SUPPORTS   ? "SUPPORTS"   :
+      undefined,
+    targetScope: (e.targetScope === "conclusion" || e.targetScope === "premise" || e.targetScope === "inference")
+      ? e.targetScope
+      : null,
   }));
 
   const aif = toAif(nodes, edges);
@@ -49,7 +61,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     await prisma.claim.upsert({
       where: { id: n.id },
       update: { text: n.text },
-      create: { id: n.id, deliberationId, text: n.text },
+      create: { id: n.id, deliberationId, text: n.text, createdById: "system", moid: "" },
     });
   }
 

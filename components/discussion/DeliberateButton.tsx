@@ -2,30 +2,69 @@
 "use client";
 import * as React from "react";
 
-export function DeliberateButton({ discussionId }: { discussionId: string }) {
+type Props = {
+  discussionId: string;
+  conversationId?: string | null;  // if your Discussion has a chat thread
+  seedClaimText?: string;          // optional
+};
+
+export default function DeliberateButton({
+  discussionId,
+  conversationId,
+  seedClaimText,
+}: Props) {
   const [busy, setBusy] = React.useState(false);
 
-  async function attachNew() {
+  async function go() {
     if (busy) return;
     setBusy(true);
     try {
-      // Replace with your actual create deliberation API
-      const create = await fetch("/api/deliberations", { method: "POST" });
-      const { deliberation } = await create.json();
+      const hostType = conversationId ? "inbox_thread" : "discussion";
+      const hostId = String(conversationId ?? discussionId);
+
+      const r = await fetch("/api/deliberations/ensure", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ hostType, hostId }),
+      });
+
+      const j: any = await r.json().catch(() => ({}));
+      if (!r.ok || !j?.id) {
+        alert(j?.error || `Failed to open deliberation (HTTP ${r.status})`);
+        return;
+      }
+      const deliberationId = j.id;
+
+      // optional: seed a first claim
+      if (seedClaimText) {
+        await fetch("/api/dialogue/move", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            deliberationId,
+            targetType: "claim",
+            kind: "ASSERT",
+            payload: { text: seedClaimText },
+          }),
+        }).catch(() => {});
+      }
+
+      // optional: link back to the discussion (if you have this API)
       await fetch(`/api/discussions/${discussionId}/deliberations`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ deliberationId: deliberation.id }),
-      });
-      location.href = `/deliberation/${deliberation.id}`;
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ deliberationId }),
+      }).catch(() => {});
+
+      location.href = `/deliberation/${deliberationId}`;
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <button className="btnv2 btnv2--sm text-xs px-3 py-1.5 " onClick={attachNew} disabled={busy}>
-      {busy ? "Attaching…" : "Deliberate"}
+    <button className="btn" onClick={go} disabled={busy}>
+      {busy ? "Opening…" : "Deliberate"}
     </button>
   );
 }

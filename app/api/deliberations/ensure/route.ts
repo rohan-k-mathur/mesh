@@ -3,21 +3,82 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prismaclient";
 import { getCurrentUserId } from "@/lib/serverutils";
 import { emitBus } from "@/lib/server/bus";
+import { z } from "zod";
+
+const Allowed = new Set([
+  "article",
+  "post",
+  "room_thread",
+  "library_stack",
+  "site",
+  "inbox_thread",
+] as const);
+
+const Body = z.object({
+  hostType: z.string(),
+  hostId: z.string(),
+  anchor: z
+    .object({
+      targetType: z.string().optional(),
+      targetId: z.string().nullable().optional(),
+      selectorJson: z.any().optional(),
+      title: z.string().nullable().optional(),
+      snippet: z.string().nullable().optional(),
+    })
+    .optional(),
+});
 
 export async function POST(req: NextRequest) {
   const me = await getCurrentUserId();
   if (!me) return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
-  const { hostType, hostId, anchor } = await req.json();
 
-  let d = await prisma.deliberation.findFirst({ where: { hostType, hostId }, select: { id: true } });
+  const parsed = Body.safeParse(await req.json().catch(() => null));
+  if (!parsed.success) return NextResponse.json({ error: "Bad body" }, { status: 400 });
+
+  let { hostType, hostId, anchor } = parsed.data;
+
+  // Map synthetic host type "discussion" → enum-backed "inbox_thread"
+  if (hostType === "discussion") {
+    const discussion = await prisma.discussion.findUnique({
+      where: { id: hostId },
+      select: { conversationId: true },
+    });
+    if (!discussion) {
+      return NextResponse.json({ error: "Discussion not found" }, { status: 404 });
+    }
+
+    let convId = discussion.conversationId;
+    if (!convId) {
+      // Ensure a conversation exists for this discussion
+      const conv = await prisma.$transaction(async (tx) => {
+        const c = await tx.conversation.create({ data: {} });
+        await tx.discussion.update({ where: { id: hostId }, data: { conversationId: c.id } });
+        return c;
+      });
+      convId = conv.id;
+    }
+
+    hostType = "inbox_thread";
+    hostId = String(convId);
+  }
+
+  if (!Allowed.has(hostType as any)) {
+    return NextResponse.json({ error: `Invalid hostType '${hostType}'` }, { status: 400 });
+  }
+
+  let d = await prisma.deliberation.findFirst({
+    where: { hostType: hostType as any, hostId },
+    select: { id: true },
+  });
+
   let created = false;
   if (!d) {
     d = await prisma.deliberation.create({
-      data: { hostType, hostId, createdById: String(me) },
+      data: { hostType: hostType as any, hostId, createdById: String(me) },
       select: { id: true },
     });
     created = true;
-    emitBus("deliberations:created", { id: d.id, hostType, hostId, source: "deliberate" });
+    emitBus("deliberations:created", { id: d.id, hostType, hostId, source: "ensure" });
   }
 
   let anchorId: string | undefined;
@@ -25,13 +86,14 @@ export async function POST(req: NextRequest) {
     const a = await prisma.deliberationAnchor.create({
       data: {
         deliberationId: d.id,
-        targetType: anchor.targetType,
+        targetType: anchor.targetType ?? null,
         targetId: anchor.targetId ?? null,
         selectorJson: anchor.selectorJson ?? null,
         title: anchor.title ?? null,
         snippet: anchor.snippet ?? null,
         createdById: String(me),
-      }, select: { id: true }
+      },
+      select: { id: true },
     });
     anchorId = a.id;
     emitBus("anchors:changed", { deliberationId: d.id, op: "add", anchorId });

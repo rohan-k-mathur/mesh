@@ -1,16 +1,11 @@
+// app/agora/page.tsx
 import Agora from "./ui/Agora";
 export const dynamic = "force-dynamic";
 
-function abs(path: string) {
-  const base =
-    process.env.NEXT_PUBLIC_BASE_URL ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : `http://localhost:${process.env.PORT || 3000}`);
-  return `${base}${path}`;
-}
-
 export default async function AgoraPage() {
-  // SSR initial events
-  const res = await fetch(abs("/api/agora/events?limit=30"), { cache: "no-store" }).catch(() => null);
-  const initial = (await res?.json().catch(() => null))?.events ?? [];
+  const res = await fetch("/api/agora/events?limit=30", { cache: "no-store" }).catch(() => null);
+  const j = await res?.json().catch(() => null);
+  // Use items; keep a short fallback to avoid a blank feed during migration
+  const initial = Array.isArray(j?.items) ? j.items : (Array.isArray(j?.events) ? j.events : []);
   return <Agora initialEvents={initial} />;
 }

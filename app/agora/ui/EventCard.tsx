@@ -1,7 +1,12 @@
 // components/agora/EventCard.tsx
 "use client";
 import Link from "next/link";
-import type { AgoraEvent } from "@/lib/server/bus"; // import type from server module
+import useSWR from 'swr';
+import AgoraEvent from "@/lib/server/bus";
+
+function isExternal(href: string) {
+  try { const u = new URL(href); return !!u.protocol && !!u.host; } catch { return false; }
+}
 
 export function EventCard({
   ev, onSelect, isFollowing, onFollow, onUnfollow, pending = false, ok = false,
@@ -18,7 +23,14 @@ export function EventCard({
   const MAX_CHIPS = 5;
   const displayChips = chips.slice(0, MAX_CHIPS);
   const extra = Math.max(0, chips.length - MAX_CHIPS);
-
+const statusUrl = ev.type==='bundle' && ev.deliberationId
+    ? `/api/dialogues/${ev.deliberationId}/status`
+    : null;
+  const { data: st } = useSWR(
+    statusUrl,
+    (u)=>fetch(u).then(r=>r.ok ? r.json() : Promise.resolve(null)),
+    { revalidateOnFocus:false, shouldRetryOnError:false }
+  );
   return (
     <div
       role="button" tabIndex={0}
@@ -41,6 +53,12 @@ export function EventCard({
             {ev.meta && (
               <div className="text-[11px] text-slate-600 mt-0.5 line-clamp-2">{ev.meta}</div>
             )}
+            <div className="text-[11px] text-slate-600">
+     
+  {st?.ok && typeof st.openBranches==='number' && (
+    <> · Open branches: {st.openBranches}</>
+  )}
+</div>
 
             {!!displayChips.length && (
               <div className="mt-1 flex flex-wrap items-center gap-1">
@@ -86,11 +104,17 @@ export function EventCard({
 
       <div className="mt-2 flex flex-wrap items-center gap-2">
         {/* Generic Open (hide for citations, which have their own CTAs) */}
-        {ev.link && ev.type !== "citations:changed" && (
-          <Link href={ev.link} className="text-xs px-2 py-1 rounded-md btnv2--ghost" aria-label="Open">
-            Open
-          </Link>
-        )}
+{ev.link && ev.type !== "citations:changed" && (
+    isExternal(ev.link) ? (
+      <a href={ev.link} target="_blank" rel="noreferrer noopener" className="text-xs px-2 py-1 rounded-md btnv2--ghost" aria-label="Open">
+        Open
+      </a>
+    ) : (
+      <Link href={ev.link} className="text-xs px-2 py-1 rounded-md btnv2--ghost" aria-label="Open">
+        Open
+      </Link>
+    )
+  )}
 
         {ev.type === "dialogue:changed" && ev.deliberationId && (
           <Link href={`/deliberation/${ev.deliberationId}?mode=forum`} className="text-xs px-2 py-1 rounded-md btnv2--ghost" aria-label="Reply in forum">

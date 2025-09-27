@@ -4,15 +4,7 @@ import useSWR from 'swr';
 import { useMemo } from 'react';
 import { NLCommitPopover } from '@/components/dialogue/NLCommitPopover';
 import { useBusEffect } from '@/lib/client/useBusEffect';
-
-type Move = {
-  kind: 'ASSERT'|'WHY'|'GROUNDS'|'RETRACT'|'CONCEDE'|'CLOSE';
-  label: string;
-  payload?: any;
-  disabled?: boolean;
-  reason?: string;
-  postAs?: { targetType:'argument'|'claim'|'card'; targetId:string };
-};
+import type { Move } from '@/app/api/dialogue/legal-moves/route';
 
 function useMicroToast() {
   const [msg, setMsg] = React.useState<{ kind:'ok'|'err'; text:string }|null>(null);
@@ -52,6 +44,8 @@ export function LegalMoveChips({
 
   const fetcher = (u:string)=>fetch(u,{cache:'no-store'}).then(r=>r.json());
   const { data, mutate, isLoading } = useSWR<{ ok:boolean; moves: Move[] }>(key, fetcher, { revalidateOnFocus:false });
+
+  
 
   // live refresh on server events
   useBusEffect(['dialogue:changed','dialogue:moves:refresh'], () => mutate(), { retry: true });
@@ -122,6 +116,8 @@ export function LegalMoveChips({
 
   const sorted = useMemo(() => [...moves].sort((a,b) => priority(a) - priority(b)), [moves]);
 
+
+
   const cls = (m: Move) => [
     'px-2 py-1 rounded text-xs btnv2--ghost',
     m.kind === 'GROUNDS' ? ' text-emerald-700' :
@@ -171,6 +167,29 @@ export function LegalMoveChips({
             )}
           </div>
         ))}
+        {sorted.map(m => (
+  <div key={`${m.kind}-${m.label ?? ""}`} className="inline-flex items-center gap-1">
+    <button
+      disabled={!!m.disabled || !!busy || m.relevance === 'unlikely'}
+      title={m.reason || m.label}
+      onClick={() => postMove(m)}
+      className={[
+        'px-2 py-1 rounded text-xs border transition',
+        m.force === 'ATTACK' ? 'border-amber-200 hover:bg-amber-50' :
+        m.force === 'SURRENDER' ? 'border-slate-200 hover:bg-slate-50' :
+        'border-slate-200',
+        m.relevance === 'unlikely' ? 'opacity-60 cursor-not-allowed' : ''
+      ].join(' ')}
+    >
+      {m.label || m.kind}
+    </button>
+    {m.kind === 'GROUNDS' && !m.disabled && (
+      <button className="text-[11px] underline decoration-dotted" onClick={()=>{ setPendingMove(m); setOpen(true); }}>
+        + commit
+      </button>
+    )}
+  </div>
+))}
       </div>
 
       {open && pendingMove && (

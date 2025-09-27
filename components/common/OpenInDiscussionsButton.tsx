@@ -21,7 +21,6 @@ type Props = {
   /** if true, when multiple discussions exist show a chooser; else open latest */
   selectExisting?: boolean;
 };
-
 export default function OpenInDiscussionsButton({
   attachedToType,
   attachedToId,
@@ -30,7 +29,7 @@ export default function OpenInDiscussionsButton({
   createConversation = true,
   mode = "ensure",
   onCreated,
-  className = "text-[11px] border rounded px-1.5 py-0.5 ml-2",
+  className = "btnv2 btnv2--sm text-xs px-3 py-1.5 ml-2",
   children = "Open in discussions",
   disabled,
   selectExisting = false,

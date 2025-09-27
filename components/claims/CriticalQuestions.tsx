@@ -524,6 +524,21 @@ const [locus, setLocus] = React.useState('0'); // default locus for WHY/GROUNDS
           </div>
         )}
               </div>
+              <button
+  className="text-[11px] border rounded px-2 py-0.5"
+  onClick={async ()=>{
+    await fetch('/api/dialogue/move', {
+      method:'POST', headers:{'content-type':'application/json'},
+      body: JSON.stringify({
+        deliberationId, targetType:'claim', targetId, kind:'WHY',
+        payload:{ cqId: cq.key, locusPath: '0' }, autoCompile:true, autoStep:true
+      })
+    });
+    window.dispatchEvent(new CustomEvent('dialogue:moves:refresh'));
+  }}
+>
+  Ask WHY on this CQ
+</button>
                       <button
   className="text-[11px] px-2 py-0.5 border rounded"
   onClick={() => panelConfirmClaim(targetId)}

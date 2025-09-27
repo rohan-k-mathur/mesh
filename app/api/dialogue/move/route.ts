@@ -10,6 +10,7 @@ import { computeLegalMoves } from '@/lib/dialogue/legalMovesServer';
 import { compileFromMoves } from '@/packages/ludics-engine/compileFromMoves';
 import { stepInteraction } from '@/packages/ludics-engine/stepper';
 import type { MovePayload, DialogueAct } from '@/packages/ludics-core/types';
+import { validateMove } from '@/lib/dialogue/validate';
 
 import { emitBus } from '@/lib/server/bus'; // ✅ use the helper only
 
@@ -25,7 +26,10 @@ const Body = z.object({
   autoCompile: z.boolean().optional().default(true),
   autoStep: z.boolean().optional().default(true),
   phase: z.enum(['focus-P','focus-O','neutral']).optional().default('neutral'),
-});
+  replyToMoveId: z.string().optional(),
+  replyTarget: z.enum(['claim','argument','premise','link','presupposition']).optional(),
+ });
+
 
 function cqKey(p: any) { return String(p?.cqId ?? p?.schemeKey ?? 'default'); }
 function hashExpr(s?: string) { if (!s) return '∅'; let h=0; for (let i=0;i<s.length;i++) h=((h<<5)-h)+s.charCodeAt(i)|0; return String(h); }
@@ -84,7 +88,8 @@ export async function POST(req: NextRequest) {
   const parsed = Body.safeParse(await req.json().catch(() => ({})));
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
-  let { deliberationId, targetType, targetId, kind, payload, autoCompile, autoStep, phase } = parsed.data;
+  // let { deliberationId, targetType, targetId, kind, payload, autoCompile, autoStep, phase } = parsed.data;
+ let { deliberationId, targetType, targetId, kind, payload, autoCompile, autoStep, phase, replyToMoveId, replyTarget } = parsed.data;
 
   // normalize payload object + clamp + locus
   if (!payload || typeof payload !== 'object') payload = {};
@@ -98,6 +103,13 @@ export async function POST(req: NextRequest) {
 
   const userId = await getCurrentUserId().catch(() => null);
 const actorId = String(userId ?? 'unknown');
+
+
+    // ---- Protocol validator (R1…R7) ----
+    const legal = await validateMove({ deliberationId, actorId, kind, targetType, targetId, replyToMoveId, replyTarget, payload });
+    if (!('ok' in legal) || !legal.ok) {
+      return NextResponse.json({ ok:false, reasonCodes: legal.reasons }, { status: 409 });
+    }
 
 // Enforce allowed shape (R4/R5/R7)
 const allowed = await computeLegalMoves({
@@ -154,7 +166,7 @@ const originalKind = kind;
   let move: any, dedup = false;
   try {
     move = await prisma.dialogueMove.create({
-      data: { deliberationId, targetType, targetId, kind, payload, actorId, signature },
+      data: { deliberationId, targetType, targetId, kind, payload, actorId, signature, replyToMoveId, replyTarget },
     });
   } catch (e: any) {
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {

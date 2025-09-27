@@ -18,5 +18,6 @@ export default function LiftToDebateButton({ commentId, hostType, hostId }:{
       alert(j?.error || `Lift failed (HTTP ${r.status})`);
     }
   }
-  return <button onClick={go} className="text-[11px] border rounded px-1.5 py-0.5 ml-2">Lift to debate</button>;
+  return <button onClick={go} className="btnv2 btnv2--sm text-xs px-3 py-1.5  ml-2">Deliberate</button>;
 }
+   

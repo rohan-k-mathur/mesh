@@ -2,6 +2,44 @@
 import * as React from "react";
 import { createPortal } from "react-dom";
 import { useDialogueMoves } from "../dialogue/useDialogueMoves"; // ensure this is your current hook
+import useSWR from 'swr';
+import { ForceChip } from '@/components/dialogue/ForceChip';
+
+
+function MoveChipsRow({ deliberationId, tType, tId, locusPath }:{
+  deliberationId:string; tType:'argument'|'claim'|'card'; tId:string; locusPath?:string|null;
+}) {
+  const url = `/api/dialogue/legal-moves?` +
+    new URLSearchParams({ deliberationId, targetType: tType, targetId: tId, ...(locusPath ? { locusPath } : {}) }).toString();
+  const { data } = useSWR<{ok:true; moves:Array<any>}>(url, (u)=>fetch(u,{cache:'no-store'}).then(r=>r.json()));
+  const moves = data?.moves ?? [];
+  if (!moves.length) return null;
+  return (
+    <div className="flex flex-wrap gap-1 mt-1">
+      {moves.map((m:any, idx:number)=>(
+        <button
+          key={idx}
+          disabled={!!m.disabled}
+          title={m.reason || m.label}
+          onClick={async ()=>{
+            const body:any = {
+              deliberationId, targetType: tType, targetId: tId, kind: m.kind, payload: m.payload ?? {},
+              autoCompile:true, autoStep:true,
+            };
+            // R7 hint: if postAs is present, switch target for this move
+            if (m.postAs) { body.targetType = m.postAs.targetType; body.targetId = m.postAs.targetId; }
+            await fetch('/api/dialogue/move',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)});
+            window.dispatchEvent(new CustomEvent('dialogue:moves:refresh'));
+          }}
+          className={`text-[11px] border rounded px-2 py-0.5 ${m.disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
+        >
+          <span className="mr-1">{m.label}</span>
+          <ForceChip force={m.force} relevance={m.relevance}/>
+        </button>
+      ))}
+    </div>
+  );
+}
 
 type Props = {
   deliberationId: string;
@@ -10,6 +48,8 @@ type Props = {
   /** Optional: friendly labels for "type:id" or for just id */
   titlesByTarget?: Record<string, string>;
 };
+type ReplyKind = "WHY" | "GROUNDS" | "BECAUSE" | "RETRACT" | "CONCEDE" | "CLOSE" | "EXPLAIN";
+type AnswerMode = "WHY"|"GROUNDS" | "BECAUSE";
 
 type DM = {
   id: string;
@@ -20,6 +60,31 @@ type DM = {
   targetType?: "argument" | "claim" | "card";
   targetId?: string;
 };
+
+function renderDefaultRuleTrios(moves: DM[]) {
+  // group by defaultRuleId on payload
+  const byId = new Map<string, { a?: string; b?: string; c?: string }>();
+  for (const m of moves) {
+    const id = m?.payload?.defaultRuleId;
+    if (!id) continue;
+    const slot = byId.get(id) ?? {};
+    if (m.kind === "SUPPOSE") slot.a = m.payload?.text ?? "";
+    if (m.kind === "UNLESS")  slot.b = m.payload?.text ?? "";
+    if (m.kind === "THEREFORE") slot.c = m.payload?.text ?? "";
+    byId.set(id, slot);
+  }
+  const items: JSX.Element[] = [];
+  byId.forEach((v, id) => {
+    if (!v.a && !v.c) return; // need at least α and γ to show
+    items.push(
+      <span key={id} className="inline-flex items-center gap-1 rounded border px-2 py-0.5 text-[11px] bg-white/70 mr-1 mb-1">
+        ⟨<i>{v.a || 'α'}</i>{v.b ? <>, ¬<i>{v.b}</i></> : null}⟩ ⟹ <i>{v.c || 'γ'}</i>
+      </span>
+    );
+  });
+  return items.length ? <div className="mt-1">{items}</div> : null;
+}
+
 
 function timeAgo(ts: string | number) {
   const d = typeof ts === "string" ? new Date(ts).getTime() : ts;
@@ -42,51 +107,116 @@ function hoursLeft(iso?: string) {
 }
 
 
-function chip(kind: string) {
+// function chip(kind: string) {
+//   const base = "px-1.5 py-0.5 rounded text-[10px] border";
+//   if (kind === "WHY")
+//     return (
+//       <span className={`${base} bg-rose-50 border-rose-200 text-rose-700`}>
+//         WHY
+//       </span>
+//     );
+//   if (kind === "GROUNDS")
+//     return (
+//       <span
+//         className={`${base} bg-emerald-50 border-emerald-200 text-emerald-700`}
+//       >
+//         GROUNDS
+//       </span>
+//     );
+//   if (kind === "RETRACT")
+//     return (
+//       <span className={`${base} bg-slate-50 border-slate-200 text-slate-700`}>
+//         RETRACT
+//       </span>
+//     );
+//   if (kind === "CONCEDE")
+//     return (
+//       <span className={`${base} bg-sky-50 border-sky-200 text-sky-700`}>
+//         CONCEDE
+//       </span>
+//     );
+//   return (
+//     <span
+//       className={`${base} bg-neutral-50 border-neutral-200 text-neutral-700`}
+//     >
+//       {kind}
+//     </span>
+//   );
+// }
+
+function chip(kind: string, payload?: any) {
   const base = "px-1.5 py-0.5 rounded text-[10px] border";
-  if (kind === "WHY")
-    return (
-      <span className={`${base} bg-rose-50 border-rose-200 text-rose-700`}>
-        WHY
-      </span>
-    );
-  if (kind === "GROUNDS")
-    return (
-      <span
-        className={`${base} bg-emerald-50 border-emerald-200 text-emerald-700`}
-      >
-        GROUNDS
-      </span>
-    );
-  if (kind === "RETRACT")
-    return (
-      <span className={`${base} bg-slate-50 border-slate-200 text-slate-700`}>
-        RETRACT
-      </span>
-    );
-  if (kind === "CONCEDE")
-    return (
-      <span className={`${base} bg-sky-50 border-sky-200 text-sky-700`}>
-        CONCEDE
-      </span>
-    );
+
+  const K = kind.toUpperCase();
+   if (K === "REBUT") // common extra kind
+   return <span className={`${base} bg-rose-50 border-rose-200 text-rose-700`}>REBUT</span>;
+  if (K === "WHY")
+    return <span className={`${base} bg-rose-50 border-rose-200 text-rose-700`}>WHY</span>;
+  if (K === "GROUNDS")
+    return <span className={`${base} bg-emerald-50 border-emerald-200 text-emerald-700`}>GROUNDS</span>;
+  if (K === "BECAUSE")
+    return <span className={`${base} bg-sky-50 border-sky-200 text-sky-700`}>BECAUSE</span>;
+  if (K === "EXPLAIN")
+    return <span className={`${base} bg-sky-50 border-sky-200 text-sky-700`}>EXPLAIN</span>;
+  if (K === "SUPPOSE")
+    return <span className={`${base} bg-indigo-50 border-indigo-200 text-indigo-700`}>SUPPOSE</span>;
+  if (K === "UNLESS")
+    return <span className={`${base} bg-amber-50 border-amber-200 text-amber-700`}>UNLESS</span>;
+  if (K === "THEREFORE")
+    return <span className={`${base} bg-violet-50 border-violet-200 text-violet-700`}>∴ THEREFORE</span>;
+  if (K === "RETRACT")
+    return <span className={`${base} bg-slate-50 border-slate-200 text-slate-700`}>RETRACT</span>;
+  if (K === "CONCEDE")
+    return <span className={`${base} bg-sky-50 border-sky-200 text-sky-700`}>CONCEDE</span>;
+  if (K === "CLOSE")
+    return <span className={`${base} bg-slate-900 border-slate-900 text-white`}>† CLOSE</span>;
+
+  return <span className={`${base} bg-neutral-50 border-neutral-200 text-neutral-700`}>{kind}</span>;
+}
+
+function DrawerLegendBar() {
   return (
-    <span
-      className={`${base} bg-neutral-50 border-neutral-200 text-neutral-700`}
-    >
-      {kind}
-    </span>
+    <div className="mb-2 flex flex-wrap items-center gap-2 text-[10px]">
+      <span className="font-medium pr-1">Legend:</span>
+      {chip("WHY")}
+      {chip("GROUNDS")}
+      {chip("BECAUSE")}
+      {chip("EXPLAIN")}
+      {chip("SUPPOSE")}
+      {chip("UNLESS")}
+      {chip("THEREFORE")}
+      {chip("RETRACT")}
+      {chip("CONCEDE")}
+      {chip("CLOSE")}
+      <span
+        className="inline-flex items-center gap-1 rounded border px-2 py-0.5 bg-white/70"
+        title="Default rule: SUPPOSE α; UNLESS ¬β; THEREFORE γ"
+      >
+        ⟨<i>α</i>, ¬<i>β</i>⟩ ⟹ <i>γ</i>
+        <span className="ml-1 opacity-60">(default rule)</span>
+      </span>
+    </div>
   );
 }
 
-function statusOf(latest?: DM) {
-  if (!latest) return "—";
-  if (latest.kind === "WHY") return "why";
-  if (latest.kind === "GROUNDS") return "resolved";
-  if (latest.kind === "RETRACT") return "retracted";
-  if (latest.kind === "ASSERT" && latest.payload?.as === "CONCEDE")
-    return "conceded";
-  return "—";
+// function statusOf(latest?: DM) {
+//   if (!latest) return "—";
+
+//    const k = (latest.kind || "").toUpperCase();
+//    if (k === "WHY") return "why";
+//    if (k === "GROUNDS" || k === "BECAUSE") return "resolved";
+//    if (k === "RETRACT") return "retracted";
+//    if (k === "CONCEDE" || (k === "ASSERT" && latest.payload?.as === "CONCEDE")) return "conceded";
+//   return "—";
+// }
+
+function statusOf(m?: DM): 'why'|'resolved'|'conceded'|'retracted'|'other' {
+  if (!m) return 'other';
+  if (m.kind === 'WHY') return 'why';
+  if (m.kind === 'GROUNDS') return 'resolved';
+  if (m.kind === 'RETRACT') return 'retracted';
+  if (m.kind === 'ASSERT' && m.payload?.as === 'CONCEDE') return 'conceded';
+  return 'other';
 }
 
 export default function NegotiationDrawerV2({
@@ -111,6 +241,23 @@ export default function NegotiationDrawerV2({
     },
     []
   );
+
+  async function quickAction(kind: 'WHY'|'GROUNDS'|'RETRACT'|'CONCEDE'|'CLOSE',
+  tType: "argument"|"claim"|"card", tId: string, fallbackPayload: any = {}) {
+  const url = `/api/dialogue/legal-moves?` + new URLSearchParams({
+    deliberationId, targetType: tType, targetId: tId, locusPath: fallbackPayload.locusPath ?? '0'
+  }).toString();
+  const res = await fetch(url, { cache: 'no-store' });
+  const { moves } = await res.json();
+  const m = (moves as any[]).find(x => x.kind === kind);
+  if (!m) return;                   // not legal now
+  if (m.disabled) {                 // show hint if you want
+    if (m.reason) console.warn(m.reason);
+    return;
+  }
+  const target = m.postAs ?? { targetType: tType, targetId: tId };
+  await postMove(target.targetType, target.targetId, kind, { ...(m.payload||{}), ...fallbackPayload });
+}
 
   const safeMoves: DM[] = React.useMemo(
     () => (Array.isArray(moves) ? (moves as DM[]) : []),
@@ -139,7 +286,7 @@ export default function NegotiationDrawerV2({
         | "claim"
         | "card";
       const tId = String(mv.targetId ?? mv.payload?.targetId ?? "");
-      const key = `${tType}:${tId}`;
+      const key = `${tType}:${tId || 'unknown'}`;
       if (!groups.has(key)) groups.set(key, { tType, tId, list: [] });
       groups.get(key)!.list.push(mv);
     }
@@ -159,7 +306,10 @@ export default function NegotiationDrawerV2({
       const compact: DM[] = [];
       for (let i = 0; i < sorted.length; i++) {
         const m = sorted[i];
-        if (m.kind === "WHY" && sorted[i + 1]?.kind === "GROUNDS") {
+         if (
+   (m.kind === "WHY"     && sorted[i + 1]?.kind === "GROUNDS") ||
+   (m.kind === "EXPLAIN" && sorted[i + 1]?.kind === "BECAUSE")
+ ) {
           const t1 = +new Date(m.createdAt);
           const t2 = +new Date(sorted[i + 1].createdAt);
           if (t2 - t1 <= 2000) {
@@ -181,7 +331,7 @@ export default function NegotiationDrawerV2({
     );
     return out;
   }, [safeMoves]);
-
+const [answerMode, setAnswerMode] = React.useState<AnswerMode>("GROUNDS");
   const [q, setQ] = React.useState("");
   const [filter, setFilter] = React.useState<
     "all" | "why" | "resolved" | "conceded" | "retracted"
@@ -226,6 +376,15 @@ export default function NegotiationDrawerV2({
       aborted = true;
     };
   }, [open, deliberationId, refresh]);
+const lastOpenWhy = React.useMemo(()=>{
+  // last WHY without a later GROUNDS (simple local heuristic)
+  const whys = moves.filter(m => m.kind === 'WHY').sort((a,b)=>+new Date(b.createdAt)-+new Date(a.createdAt));
+  for (const w of whys) {
+    const answered = moves.some(g => g.kind === 'GROUNDS' && +new Date(g.createdAt) > +new Date(w.createdAt));
+    if (!answered) return w;
+  }
+  return null;
+}, [moves]);
 
   async function panelDelocate(sourceDesignId: string, tag: string, rationale: string) {
     await fetch('/api/dialogue/panel/delocate', {
@@ -233,29 +392,38 @@ export default function NegotiationDrawerV2({
       body: JSON.stringify({ deliberationId, sourceDesignId, tag, rationale }),
     });
   }
-  async function postMove(
-    targetType: "argument" | "claim" | "card",
-    targetId: string,
-    kind: "WHY" | "GROUNDS" | "RETRACT" | "CONCEDE" | "CLOSE",
-    payload: any = {}
-  ) {
+   async function postMove(targetType, targetId, kind: ReplyKind, payload: any = {},
+     extra?: { replyToMoveId?: string, replyTarget?: 'argument'|'claim'|'premise'|'link'|'presupposition' }) {
     const key = `${targetType}:${targetId}`;
     setPostingKey(key);
     setOkKey(null);
+      const body:any = { deliberationId, targetType, targetId, kind, payload, autoCompile:true, autoStep:true };
+
     try {
+       if (extra?.replyToMoveId) body.replyToMoveId = extra.replyToMoveId;
+ if (extra?.replyTarget) body.replyTarget = extra.replyTarget;
       const r = await fetch("/api/dialogue/move", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          deliberationId,
-          targetType,
-          targetId,
-          kind,
-          payload,
-          autoCompile: true,
-          autoStep: true,
-        }),
-      });
+        body: JSON.stringify(body) });
+     
+      if (r.status === 409) {
+  const j = await r.json().catch(()=>({}));
+  if (Array.isArray(j.reasonCodes) && j.reasonCodes.includes('R7_ACCEPT_ARGUMENT_REQUIRED')) {
+    // Show fallback action
+    // Or auto-post acceptance:
+    await fetch('/api/dialogue/move', {
+      method:'POST',
+      headers:{'content-type':'application/json'},
+      body: JSON.stringify({
+        deliberationId,
+        targetType, targetId, kind:'ASSERT',
+        payload:{ as:'ACCEPT_ARGUMENT', locusPath: payload?.locusPath ?? '0' },
+        autoCompile:true, autoStep:true
+      })
+    });
+  }
+}
       if (!r.ok) console.warn("postMove failed", await r.text());
       window.dispatchEvent(new CustomEvent("dialogue:moves:refresh"));
       await refresh();
@@ -287,6 +455,7 @@ export default function NegotiationDrawerV2({
             </button>
           </div>
         </div>
+        <DrawerLegendBar />
         {/* // moderator button:
 <button
   className="text-[11px] px-2 py-0.5 border rounded"
@@ -396,8 +565,7 @@ export default function NegotiationDrawerV2({
             const chipEl =
               latest?.kind === "WHY"
                 ? chip("WHY")
-                : latest?.kind === "GROUNDS"
-                ? chip("GROUNDS")
+              : latest?.kind === "GROUNDS" || latest?.kind === "BECAUSE" ? chip(latest.kind)
                 : latest?.kind === "RETRACT"
                 ? chip("RETRACT")
                 : conceded
@@ -452,48 +620,37 @@ export default function NegotiationDrawerV2({
                     )}
                   </div>
                 </div>
-
+<div className="text-[12px] font-medium">{titlesByTarget?.[key] ?? key}</div>
+<MoveChipsRow deliberationId={deliberationId} tType={tType} tId={tId} />
                 {/* Row actions */}
                 <div className="mt-2 flex flex-wrap gap-2">
+
                   <button
                     className="px-2 py-0.5 border rounded text-[11px]"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      postMove(tType, tId, "WHY", { note: "Why?" });
-                    }}
+                 onClick={(e) => { e.stopPropagation(); quickAction("WHY", tType, tId); }}
                     disabled={postingKey === key}
                   >
                     WHY
                   </button>
                   <button
                     className="px-2 py-0.5 border rounded text-[11px]"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setActiveReplyFor(key);
-                      requestAnimationFrame(() =>
-                        replyRefs.current.get(key)?.focus()
-                      );
-                    }}
+                    onClick={(e) => { e.stopPropagation(); setActiveReplyFor(key); requestAnimationFrame(()=>replyRefs.current.get(key)?.focus()); }}
                     disabled={postingKey === key}
                   >
                     GROUNDS
                   </button>
                   <button
                     className="px-2 py-0.5 border rounded text-[11px]"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      postMove(tType, tId, "RETRACT", { text: "Retract" });
-                    }}
+                    onClick={(e) => { e.stopPropagation(); quickAction("RETRACT", tType, tId); }}
+
                     disabled={postingKey === key}
                   >
                     RETRACT
                   </button>
                   <button
                     className="px-2 py-0.5 border rounded text-[11px]"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      postMove(tType, tId, "CONCEDE", { note: "Concede" });
-                    }}
+                  onClick={(e) => { e.stopPropagation(); quickAction("CONCEDE", tType, tId); }} // will honor postAs (R7)
+
                     disabled={postingKey === key}
                   >
                     CONCEDE
@@ -501,18 +658,15 @@ export default function NegotiationDrawerV2({
                   {/* Row-level actions (add Close †) */}
                   <button
                     className="px-2 py-0.5 border rounded text-[11px]"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      postMove("argument", "" + tId, "CLOSE", {
-                        locusPath: "0",
-                      });
-                    }}
-                    disabled={postingKey === tId}
+                    onClick={(e) => { e.stopPropagation(); quickAction("CLOSE", tType, tId, { locusPath: "0" }); }}
+ disabled={postingKey === key}
                     title="Close this thread (†)"
                   >
                     Close (†)
                   </button>
                 </div>
+                
+{renderDefaultRuleTrios(moves)}
 
                 {/* Reply inline */}
                 <div className="mt-2 flex gap-2 items-center">
@@ -524,10 +678,8 @@ export default function NegotiationDrawerV2({
                       const el = e.currentTarget as HTMLInputElement;
                       if (e.key === "Enter" && el.value.trim()) {
                         e.stopPropagation();
-                        await postMove(tType, tId, "GROUNDS", {
-                          brief: el.value.trim(),
-                          locusPath: "0",
-                        });
+                        await postMove(tType, tId, answerMode, { brief: el.value.trim(), locusPath: "0" }, 
+                        lastOpenWhy ? { replyToMoveId: lastOpenWhy.id, replyTarget: 'argument' } : undefined);
                         el.value = "";
                         setActiveReplyFor(null);
                       }
@@ -545,10 +697,7 @@ export default function NegotiationDrawerV2({
                       requestAnimationFrame(() =>
                         replyRefs.current.get(key)?.focus()
                       );
-                      await postMove(tType, tId, "GROUNDS", {
-                        brief: v,
-                        locusPath: "0",
-                      });
+                       await postMove(tType, tId, answerMode, { brief: v, locusPath: "0" });
                       box.value = "";
                       setActiveReplyFor(null);
                     }}
@@ -568,15 +717,7 @@ export default function NegotiationDrawerV2({
                       <span className="text-[11px] text-neutral-600">
                         {timeAgo(m.createdAt)}
                       </span>
-                      {m.payload && (
-                        <span className="truncate text-[11px] text-neutral-600 max-w-[65%]">
-                          {/* show something meaningful */}
-                          {m.payload.note ||
-                            m.payload.brief ||
-                            m.payload.expression ||
-                            ""}
-                        </span>
-                      )}
+                      
                       {Array.isArray(m.payload?.acts) &&
                       m.payload.acts.length > 0 ? (
                         <span className="truncate text-[11px] text-neutral-600 max-w-[65%]">
@@ -591,7 +732,7 @@ export default function NegotiationDrawerV2({
                       ) : (
                         m.payload && (
                           <span className="truncate text-[11px] text-neutral-600 max-w-[65%]">
-                            {m.payload.note || m.payload.deadlineAt || ""}
+       {m.payload.note || m.payload.brief || m.payload.expression || m.payload.text || m.payload.deadlineAt || ""}
                           </span>
                         )
                       )}
@@ -624,12 +765,8 @@ function QuickWhyComposer({
   deliberationId: string;
   postingKey: string | null;
   okKey: string | null;
-  onPost: (
-    tType: "argument" | "claim" | "card",
-    tId: string,
-    k: "WHY" | "GROUNDS" | "RETRACT" | "CONCEDE",
-    p?: any
-  ) => Promise<void>;
+ onPost: (tType: "argument" | "claim" | "card", tId: string, k: ReplyKind, p?: any) => Promise<void>;
+
 }) {
   const [q, setQ] = React.useState("");
   const [quick, setQuick] = React.useState<{
@@ -641,7 +778,7 @@ function QuickWhyComposer({
     targetId: "",
     note: "",
   });
-
+ const [answerMode, setAnswerMode] = React.useState<AnswerMode>("GROUNDS");
   const key = `${quick.targetType}:${quick.targetId.trim()}`;
   const disabled = !quick.targetId.trim() || postingKey === key;
 
@@ -676,7 +813,23 @@ function QuickWhyComposer({
             setQuick((q) => ({ ...q, targetId: e.target.value }))
           }
         />
-
+<div className="flex items-center gap-2 text-[11px]">
+  <span className="opacity-60">Answer as</span>
+  <button
+    className={`px-2 py-0.5 rounded border ${answerMode==='GROUNDS' ? 'bg-slate-100' : 'bg-white'}`}
+    onClick={()=>setAnswerMode('GROUNDS')}
+    title="Post a justificatory reply"
+  >
+    GROUNDS
+  </button>
+  <button
+    className={`px-2 py-0.5 rounded border ${answerMode==='BECAUSE' ? 'bg-slate-100' : 'bg-white'}`}
+    onClick={()=>setAnswerMode('BECAUSE')}
+    title="Post an explanatory reply"
+  >
+    BECAUSE
+  </button>
+</div>
         <input
           className="h-7 border rounded px-2 text-xs flex-1 min-w-[160px]"
           placeholder="note (optional)…"

@@ -242,7 +242,7 @@
     "@types/ioredis-mock": "^8",
     "@types/jest": "^30.0.0",
     "@types/mime-types": "^3.0.1",
-    "@types/node": "^20.19.13",
+    "@types/node": "^20.19.17",
     "@types/pg": "^8",
     "@types/react": "^18",
     "@types/react-cytoscapejs": "^1.2.5",
@@ -261,6 +261,7 @@
     "ioredis-mock": "^8.9.0",
     "jest": "^30.0.3",
     "jest-environment-jsdom": "^29.6.3",
+    "node-fetch": "^3.3.2",
     "pg": "^8.16.3",
     "pg-mock": "^1.0.1",
     "playwright": "^1.54.1",
@@ -275,7 +276,7 @@
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "tsx": "^4.20.5",
-    "typescript": "^5.5.4",
+    "typescript": "^5.9.2",
     "vitest": "^3.2.4"
   }
 }

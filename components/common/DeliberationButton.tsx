@@ -1,28 +1,70 @@
-// components/common/DeliberateButton.tsx
+// components/discussion/DeliberateButton.tsx
 "use client";
-export function DeliberateButton({ target }: { target: DeliberateTarget }) {
+import * as React from "react";
+
+type Props = {
+  discussionId: string;
+  conversationId?: string | null;  // if your Discussion has a chat thread
+  seedClaimText?: string;          // optional
+};
+
+export default function DeliberateButton({
+  discussionId,
+  conversationId,
+  seedClaimText,
+}: Props) {
+  const [busy, setBusy] = React.useState(false);
+
   async function go() {
-    const r = await fetch("/api/deliberations/ensure", {
-      method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ hostType: target.hostType, hostId: target.hostId, anchor: target.anchor }),
-    });
-    const j = await r.json();
-    if (j?.id) {
-      const url = `/deliberation/${j.id}${target.anchor?.selectorJson ? `#a=${j.anchorId}` : ""}`;
-      // Seed claim if provided
-      if (target.seed?.claimText) {
+    if (busy) return;
+    setBusy(true);
+    try {
+const hostType = conversationId ? "inbox_thread" : "discussion";
+const hostId = conversationId ? String(conversationId) : discussionId;
+
+      const r = await fetch("/api/deliberations/ensure", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ hostType, hostId }),
+      });
+
+      const j: any = await r.json().catch(() => ({}));
+      if (!r.ok || !j?.id) {
+        alert(j?.error || `Failed to open deliberation (HTTP ${r.status})`);
+        return;
+      }
+      const deliberationId = j.id;
+
+      // optional: seed a first claim
+      if (seedClaimText) {
         await fetch("/api/dialogue/move", {
-          method: "POST", headers: { "content-type": "application/json" },
+          method: "POST",
+          headers: { "content-type": "application/json" },
           body: JSON.stringify({
-            deliberationId: j.id,
+            deliberationId,
             targetType: "claim",
             kind: "ASSERT",
-            payload: { text: target.seed.claimText },
+            payload: { text: seedClaimText },
           }),
-        });
+        }).catch(() => {});
       }
-      location.href = url;
+
+      // optional: link back to the discussion (if you have this API)
+      await fetch(`/api/discussions/${discussionId}/deliberations`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ deliberationId }),
+      }).catch(() => {});
+
+      location.href = `/deliberation/${deliberationId}`;
+    } finally {
+      setBusy(false);
     }
   }
-  return <button onClick={go} className="btn">Deliberate</button>;
+
+  return (
+    <button className="btnv2 btnv2--sm text-xs px-3 py-1.5 "  onClick={go} disabled={busy}>
+      {busy ? "Opening…" : "Deliberate"}
+    </button>
+  );
 }

@@ -1,96 +1,79 @@
-import { NextRequest } from "next/server";
-import { bus } from "@/lib/server/bus";
+// app/api/events/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+import bus, { onBus, offBus } from '@/lib/server/bus';
+import { BUS_EVENTS } from '@/lib/events/topics';
+import { EventEmitter } from 'node:events';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
+
+// TEMP during refactor
+EventEmitter.defaultMaxListeners = Math.max(EventEmitter.defaultMaxListeners, 50);
+
+type FeedEvent = { id: string; ts: number; type: string; [k: string]: any };
+const RING = (globalThis as any).__agoraRing__ ??= { buf: [] as FeedEvent[], cap: 2048 };
+let seq = (globalThis as any).__agoraSeq__ ??= 0;
+
+function pushRing(e: Omit<FeedEvent,'id'>): FeedEvent {
+  const full = { ...e, id: String(++seq) };
+  RING.buf.push(full);
+  if (RING.buf.length > RING.cap) RING.buf.shift();
+  return full;
+}
 
 export async function GET(req: NextRequest) {
+  const { readable, writable } = new TransformStream();
+  const writer = writable.getWriter();
+  const enc = (s: string) => writer.write(new TextEncoder().encode(s));
+
+  const headers = {
+    'Content-Type': 'text/event-stream; charset=utf-8',
+    'Cache-Control': 'no-cache, no-transform',
+    Connection: 'keep-alive',
+  } as const;
+
   const url = new URL(req.url);
-  const deliberationFilter = url.searchParams.get("deliberationId") ?? undefined;
+  const lastQ = url.searchParams.get('lastEventId');
+  const lastH = req.headers.get('last-event-id');
+  const last  = lastQ ?? lastH ?? undefined;
 
-  // Topics you want to fan out. Add/remove as needed.
-  const topics: string[] = [
-    "dialogue:moves:refresh",
-    "dialogue:changed",
-    "citations:changed",
-    "comments:changed",
-    "deliberations:created",
-    "decision:changed",
-    "votes:changed",
-    "xref:changed",
-    "stacks:changed",
-  ];
-
-  const encoder = new TextEncoder();
-
-  // We'll store a cleanup closure here so both `cancel` and `abort` can invoke it
-  let cleanup: () => void = () => {};
-
-  const stream = new ReadableStream({
-    start(controller) {
-      // Safe send wrapper — never throw if controller is already closed.
-      const send = (payload: any) => {
-        // Optional per-room filtering
-        if (deliberationFilter && payload?.deliberationId && payload.deliberationId !== deliberationFilter) {
-          return;
-        }
-        try {
-          controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify(payload)}\n\n`)
-          );
-        } catch {
-          // controller already closed; ignore
-        }
-      };
-
-      // Register bus handlers
-      const handlers = topics.map((t) => {
-        const h = (detail: any) => {
-          // Normalize payload to include `type` and `ts` so clients can rely on it
-          const evt = { type: t, ts: Date.now(), ...(detail || {}) };
-          send(evt);
-        };
-        (bus as any).on(t, h);
-        return { t, h };
-      });
-
-      // Heartbeat every 15s; useful for proxies that kill idle connections
-      const heartbeat = setInterval(() => {
-        try {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "ping", ts: Date.now() })}\n\n`));
-        } catch {
-          // stream closed
-        }
-      }, 15_000);
-
-      // Initial hello
-      send({ type: "hello", ts: Date.now(), deliberationId: deliberationFilter });
-
-      // Compose cleanup
-      cleanup = () => {
-        clearInterval(heartbeat);
-        handlers.forEach(({ t, h }) => (bus as any).off?.(t, h));
-        try { controller.close(); } catch {}
-      };
-
-      // Abort from client/network (NextRequest has an AbortSignal)
+  if (last) {
+    const sinceId = Number(last);
+    const backlog = RING.buf.filter((e) => Number(e.id) > sinceId);
+    for (const e of backlog) {
       try {
-        (req as any).signal?.addEventListener?.("abort", cleanup);
-      } catch {
-        // ignore
-      }
-    },
+        await enc(`id: ${e.id}\n`);
+        await enc(`event: ${e.type}\n`);
+        await enc(`data: ${JSON.stringify(e)}\n\n`);
+      } catch { /* client gone; close below */ }
+    }
+  }
 
-    cancel() {
-      // Reader canceled the stream; make sure everything is torn down
-      try { cleanup(); } catch {}
-    },
-  });
+  await enc(`retry: 10000\n\n`); // backoff hint
+  const beat = setInterval(() => enc(`:hb ${Date.now()}\n\n`).catch(()=>{}), 20_000);
 
-  return new Response(stream, {
-    headers: {
-      "Content-Type": "text/event-stream; charset=utf-8",
-      "Cache-Control": "no-cache, no-transform",
-      Connection: "keep-alive",
-    },
-  });
+  const handler = async (msg: any) => {
+    try {
+      const payload = msg && typeof msg === 'object' ? { ...msg } : {};
+      // normalize to { type, ts, ...payload } if coming from legacy emitters
+      const type = payload.type || 'message';
+      const ts   = Number.isFinite(payload.ts) ? payload.ts : Date.now();
+      const full = pushRing({ ts, type, ...payload });
+      await enc(`id: ${full.id}\n`);
+      await enc(`event: ${full.type}\n`);
+      await enc(`data: ${JSON.stringify(full)}\n\n`);
+    } catch {
+      close();
+    }
+  };
+
+  BUS_EVENTS.forEach((t) => onBus(t, handler));
+
+  const close = () => {
+    clearInterval(beat);
+    try { BUS_EVENTS.forEach((t) => offBus(t, handler)); } catch {}
+    try { writer.close(); } catch {}
+  };
+
+  req.signal.addEventListener('abort', close);
+  return new NextResponse(readable as any, { headers });
 }

@@ -177,6 +177,35 @@ function Legend() {
   );
 }
 
+function DefaultRuleLegend() {
+  return (
+    <div className="inline-flex flex-wrap items-center gap-2 text-[11px]">
+      {/* default-rule trio */}
+      <span
+        className="inline-flex items-center gap-1 rounded border px-2 py-0.5 bg-white/70"
+        title="Default rule: SUPPOSE α; UNLESS ¬β; THEREFORE γ"
+      >
+        ⟨<i>α</i>, ¬<i>β</i>⟩ ⟹ <i>γ</i>
+        <span className="ml-1 opacity-70">[SUPPOSE/UNLESS/THEREFORE]</span>
+      </span>
+
+      {/* justificatory vs explanatory labels */}
+      <span
+        className="inline-flex items-center gap-1 rounded border px-2 py-0.5 bg-emerald-50 border-emerald-200 text-emerald-700"
+        title="Justificatory answer to a WHY"
+      >
+        GROUNDS
+      </span>
+      <span
+        className="inline-flex items-center gap-1 rounded border px-2 py-0.5 bg-sky-50 border-sky-200 text-sky-700"
+        title="Explanatory answer (BECAUSE …)"
+      >
+        BECAUSE
+      </span>
+    </div>
+  );
+}
+
 function StatusPill({ st, title }: { st: 'IN' | 'OUT' | 'UNDEC'; title?: string }) {
   const cls = st === 'IN' ? 'bg-emerald-600' : st === 'OUT' ? 'bg-rose-600' : 'bg-amber-600';
   return (
@@ -242,11 +271,11 @@ export default function DialogicalPanel({ deliberationId, nodes, edges }: Props)
   const openCqIds = useOpenCqs(did, selectedNode?.id ?? '');
 
   // Refresh hook
-  React.useEffect(() => {
-    const h = () => refetchMoves();
-    window.addEventListener('dialogue:moves:refresh', h as any);
-    return () => window.removeEventListener('dialogue:moves:refresh', h as any);
-  }, [refetchMoves]);
+  // React.useEffect(() => {
+  //   const h = () => refetchMoves();
+  //   window.addEventListener('dialogue:moves:refresh', h as any);
+  //   return () => window.removeEventListener('dialogue:moves:refresh', h as any);
+  // }, [refetchMoves]);
 
   // Auto-select first node for quicker flow
   React.useEffect(() => {
@@ -432,6 +461,9 @@ export default function DialogicalPanel({ deliberationId, nodes, edges }: Props)
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-3">
           <Legend />
+          <div className="mt-2">
+  <DefaultRuleLegend />
+</div>
           <label className="text-xs flex items-center gap-1">
             Status:
             <select

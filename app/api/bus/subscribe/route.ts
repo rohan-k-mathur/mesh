@@ -1,82 +1,84 @@
 // app/api/bus/subscribe/route.ts
-import { NextRequest } from "next/server";
-import { bus } from "@/lib/server/bus";
+import { NextRequest } from 'next/server';
+import bus, { onBus, offBus } from '@/lib/server/bus';
+import { BUS_EVENTS, type BusEvent } from '@/lib/events/topics';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
+
+type Envelope = { id: string; ts: number; type: BusEvent; [k: string]: any };
+
+// Global, monotonic id for this process (dev hot-reload safe)
+const SEQ = (globalThis as any).__busSeq__ ??= { v: 0 };
+const nextId = () => String(++SEQ.v);
 
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
-  const topics = (url.searchParams.get("topics") || "")
-    .split(",")
+  const topicsRaw = (url.searchParams.get('topics') || '')
+    .split(',')
     .map((s) => s.trim())
     .filter(Boolean);
 
-  // sensible defaults if none provided
-  const listen = topics.length ? topics : [
-    "dialogue:moves:refresh",
-    "dialogue:changed",
-    "citations:changed",
-    "comments:changed",
-    "deliberations:created",
-    "decision:changed",
-    "votes:changed",
-    "xref:changed",
-    "stacks:changed",
-  ];
-
+  // Validate + dedupe topics
+  const allow = new Set(BUS_EVENTS);
+  const wanted = topicsRaw.length
+    ? Array.from(new Set(topicsRaw.filter((t) => allow.has(t as BusEvent)))) as BusEvent[]
+    : (['dialogue:moves:refresh','dialogue:changed','citations:changed','comments:changed','deliberations:created','decision:changed','votes:changed','xref:changed','stacks:changed'] as BusEvent[]);
   const encoder = new TextEncoder();
-  let closed = false;            // prevent post-close writes
+
+  let closed = false;
   let cleanup: () => void = () => {};
 
-  const stream = new ReadableStream({
+  const stream = new ReadableStream<Uint8Array>({
     start(controller) {
-      const send = (payload: any) => {
+      const send = (e: Envelope) => {
         if (closed) return;
         try {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify(payload)}\n\n`));
+          controller.enqueue(encoder.encode(`id: ${e.id}\nevent: ${e.type}\ndata: ${JSON.stringify(e)}\n\n`));
         } catch {
-          // controller already closed
+          closed = true;
+          try { cleanup(); } catch {}
         }
       };
 
+      // Subscribe
       const unsubs: Array<() => void> = [];
-      for (const t of listen) {
-        const h = (detail: any) => send({ type: t, ts: Date.now(), ...(detail || {}) });
-        (bus as any).on(t, h);
-        unsubs.push(() => (bus as any).off?.(t, h));
+      for (const t of wanted) {
+        const h = (detail: any) => {
+          const env: Envelope = { id: nextId(), ts: Date.now(), type: t, ...(detail || {}) };
+          send(env);
+        };
+        onBus(t, h);
+        unsubs.push(() => offBus(t, h));
       }
 
-      const ping = setInterval(() => send({ type: "ping", ts: Date.now() }), 15_000);
+      // Backoff hint + heartbeat
+      controller.enqueue(encoder.encode(`retry: 10000\n\n`));
+      const ping = setInterval(() => {
+        try { controller.enqueue(encoder.encode(`:hb ${Date.now()}\n\n`)); } catch {}
+      }, 15_000);
 
       // Initial hello
-      send({ type: "hello", ts: Date.now(), topics: listen });
+      send({ id: nextId(), type: 'dialogue:changed', ts: Date.now(), hello: true, topics: wanted } as Envelope);
 
       cleanup = () => {
         if (closed) return;
         closed = true;
         clearInterval(ping);
-        unsubs.forEach((fn) => {
-          try { fn(); } catch {}
-        });
+        unsubs.forEach((fn) => { try { fn(); } catch {} });
         try { controller.close(); } catch {}
       };
 
       // Abort from client
-      try {
-        (req as any).signal?.addEventListener?.("abort", cleanup);
-      } catch {}
+      try { req.signal.addEventListener('abort', cleanup); } catch {}
     },
-
-    cancel() {
-      try { cleanup(); } catch {}
-    },
+    cancel() { try { cleanup(); } catch {} },
   });
 
   return new Response(stream, {
     headers: {
-      "Content-Type": "text/event-stream; charset=utf-8",
-      "Cache-Control": "no-cache, no-transform",
-      Connection: "keep-alive",
+      'Content-Type': 'text/event-stream; charset=utf-8',
+      'Cache-Control': 'no-cache, no-transform',
+      Connection: 'keep-alive',
     },
   });
 }

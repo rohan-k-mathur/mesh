@@ -5,7 +5,7 @@ import { getCurrentUserId } from '@/lib/serverutils';
 import crypto from 'crypto';
 import { mintClaimMoid } from '@/lib/ids/mintMoid';
 // import { bus } from '@/lib/bus';
-import { bus } from '@/lib/server/bus';
+import  bus  from '@/lib/server/bus';
 
 
 export async function POST(
@@ -73,17 +73,26 @@ export async function POST(
     }
 
     // 3) Create undercut edge
-    const edge = await prisma.claimEdge.create({
-      data: {
-        fromClaimId,
-        toClaimId: targetClaimId,
-        type: 'rebuts',
-        attackType: 'UNDERCUTS',
-        targetScope: 'inference',
-        deliberationId,
-      },
-    });
-    bus.emitEvent('claims:edges:changed', { deliberationId, toClaimId: targetClaimId });
+    const edge = // 3) Create undercut edge (idempotent)
+await prisma.claimEdge.upsert({
+  where: {
+    unique_from_to_type_attack: {
+      fromClaimId,
+      toClaimId: targetClaimId,
+      type: 'rebuts',
+      attackType: 'UNDERCUTS',
+    },
+  },
+  update: { targetScope: 'inference' },
+  create: {
+    deliberationId,
+    fromClaimId,
+    toClaimId: targetClaimId,
+    type: 'rebuts',
+    attackType: 'UNDERCUTS',
+    targetScope: 'inference',
+  },
+});
 
     try {
       await recomputeGroundedForDelib(deliberationId);

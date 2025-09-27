@@ -8,7 +8,7 @@ import LocusControls from './LocusControls';
 import { LociTree } from 'packages/ludics-react/LociTree';
 import { mergeDesignsToTree } from '@/packages/ludics-react/mergeDesignsToTree';
 import { MODE_LABEL } from 'packages/ludics-react/modeLabels';
-type Mode = 'assoc' | 'partial' | 'spiritual';
+type Mode = 'assoc' | 'partial' | 'spiritual' | 'split';
 
 // helpers
 const get = (u: string) => fetch(u, { cache: 'no-store' }).then(r => r.json());
@@ -22,19 +22,17 @@ const post = async <T,>(u: string, body: any): Promise<T> => {
   if (!r.ok || j?.ok === false) throw new Error(String(j?.error ?? j?.reason ?? r.status));
   return j as T;
 };
+ type Props = {
+   dialogueId: string;
+   posDesignId: string;
+   negDesignId: string;
+   defaultMode?: 'assoc' | 'split';
+  suggestCloseDaimonAt?: (path: string) => boolean;
+ };
+ export default function LociTreeWithControls(props: Props) {
+  const { dialogueId, posDesignId, negDesignId, defaultMode = 'assoc', suggestCloseDaimonAt } = props;
 
-export default function LociTreeWithControls({
-  dialogueId,
-  posDesignId,
-  negDesignId,
-  defaultMode = 'assoc',
-}: {
-  dialogueId: string;
-  posDesignId: string;
-  negDesignId: string;
-  defaultMode?: Mode;
-}) {
-  const [mode, setMode] = React.useState<Mode>(defaultMode);
+ const [mode, setMode] = React.useState<Mode>(defaultMode);
   const [version, setVersion] = React.useState(0);        // force refresh ticker
   const [selected, setSelected] = React.useState('0');    // focused base locus
   const [children, setChildren] = React.useState<string[]>([]);
@@ -179,6 +177,7 @@ export default function LociTreeWithControls({
               setSelected(p || '0');
               setChildren(childPathsFor(p || '0'));
             }}
+            suggestCloseDaimonAt={suggestCloseDaimonAt} 
           />
         ) : (
           <div className="p-3 text-xs text-neutral-500">Loading loci…</div>

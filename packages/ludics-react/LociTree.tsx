@@ -59,7 +59,6 @@ export function LociTree({
   enableKeyboardNav = false,
   highlightDurationMs = 900,
 }: Props) {
-  if (!root) return null;
 
   // -------------------------- helpers --------------------------
   const isAdditiveParent = (n: LociNode) =>
@@ -75,6 +74,13 @@ export function LociTree({
     return 'Choice';
   };
 
+    // Always have a safe root to avoid early-return-before-hooks
+    const SAFE_EMPTY: LociNode = React.useMemo(
+      () => ({ id: '0', path: '0', acts: [], children: [] }),
+      []
+    );
+  const treeRoot = root ?? SAFE_EMPTY;
+
   // --------------------- collapsed/open state -------------------
   const seedOpen = React.useCallback((node: LociNode, maxDepth: number) => {
     const open = new Set<string>();
@@ -86,11 +92,11 @@ export function LociTree({
     return open;
   }, []);
 
-  const [open, setOpen] = React.useState<Set<string>>(() => seedOpen(root, defaultCollapsedDepth));
+  const [open, setOpen] = React.useState<Set<string>>(() => seedOpen(treeRoot, defaultCollapsedDepth));
 
   React.useEffect(() => {
-    setOpen(seedOpen(root, defaultCollapsedDepth));
-  }, [root, defaultCollapsedDepth, seedOpen]);
+    setOpen(seedOpen(treeRoot, defaultCollapsedDepth));
+  }, [treeRoot, defaultCollapsedDepth, seedOpen]);
 
   const isOpen = (p: string) => open.has(p);
   const toggle = (p: string, force?: boolean) =>
@@ -120,6 +126,12 @@ export function LociTree({
 
   // ---------------- focus & autoscroll + flash ring --------------
   const nodeRefs = React.useRef<Record<string, HTMLLIElement | null>>({});
+      const setNodeRef = React.useCallback(
+      (path: string) => (el: HTMLLIElement | null) => {
+        nodeRefs.current[path] = el; // <-- returns void
+      },
+      []
+    );
   const [flashPath, setFlashPath] = React.useState<string | null>(null);
   const effectiveFocusPath = focusPath ?? null;
 
@@ -145,9 +157,9 @@ export function LociTree({
       out.push(n.path);
       if (isOpen(n.path)) for (const c of n.children ?? []) walk(c);
     };
-    walk(root);
+    walk(treeRoot);
     return out;
-  }, [root, open]);
+   }, [treeRoot, open]);
 
   React.useEffect(() => {
     if (!enableKeyboardNav) return;
@@ -222,9 +234,11 @@ export function LociTree({
     return (
       <li
         key={n.id}
-        ref={(el) => (nodeRefs.current[n.path] = el)}
-        data-path={n.path}
-        className="mb-1 group"
+        ref={setNodeRef(n.path)}
+    role="treeitem"
+    aria-level={n.path.split('.').length}
+    aria-expanded={kids.length > 0 ? isOpen(n.path) : undefined}
+     className="mb-1 group"
       >
         <div
           className={[
@@ -257,7 +271,7 @@ export function LociTree({
             {kids.length > 0 ? (
               <button
                 onClick={() => toggle(n.path)}
-                aria-label={isOpen(n.path) ? 'Collapse' : 'Expand'}
+                aria-label={isOpen(n.path) ? 'Collapse node' : 'Expand node'}
                 aria-expanded={isOpen(n.path)}
                 className={[
                   'inline-flex h-5 w-5 items-center justify-center rounded border border-slate-200 bg-white text-[10px]',
@@ -378,12 +392,17 @@ export function LociTree({
         )}
 
         {/* children */}
-        {kids.length > 0 && isOpen(n.path) && (
-          <ul className="ml-6 mt-1 border-l border-slate-200 pl-3">{kids.map(render)}</ul>
-        )}
+               {kids.length > 0 && isOpen(n.path) && (
+            <ul role="group" className="ml-6 mt-1 border-l border-slate-200 pl-3">
+              {kids.map(render)}
+            </ul>
+          )}
       </li>
     );
   };
-
-  return <ul className="list-none pl-0">{render(root)}</ul>;
+    return (
+      <ul className="list-none pl-0" role="tree" aria-label="Loci tree">
+        {render(root)}
+      </ul>
+    );
 }

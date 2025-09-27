@@ -15,14 +15,23 @@ type DefaultRule = {
   createdAt: string; // ISO
 };
 
+// shared local type in ToulminBox.tsx and MonologicalToolbar.tsx
 type ExtractResp = {
   ok: boolean;
   slots: Record<string, string[]>;
   meta?: {
-    defaults?: DefaultRule[];
+    defaults?: Array<{
+      id: string;
+      role: string;            // 'premise' | 'claim'
+      antecedent: string;      // α
+      justification: string;   // β
+      consequent: string;      // γ
+      createdAt: string;
+    }>;
     connectives?: { therefore?: boolean; suppose?: boolean };
   };
 };
+
 
 const CUES = {
   claim:     /\b(therefore|thus|so it follows|we should|hence|conclude|thereby|in conclusion)\b/i,
@@ -191,6 +200,7 @@ export function ToulminBox({
   fetcher,
   { revalidateOnFocus: false }
 );
+const defaults = React.useMemo(() => ex?.meta?.defaults ?? [], [ex?.meta?.defaults]);
 
 
      React.useEffect(() => {
@@ -302,6 +312,7 @@ export function ToulminBox({
   }
 
   function section(slot: Exclude<Slot,'claim'>, title: string, color: string) {
+
     const items = (buckets[slot] ?? []).slice(0, 3);
     const empty = items.length === 0;
     const explain: Record<string,string> = {
@@ -311,6 +322,7 @@ export function ToulminBox({
       qualifier: 'Strength: SOME/MANY/MOST/ALL; COULD/LIKELY/NECESSARY.',
       rebuttal:  'Exceptions/objections that limit the conclusion.',
     };
+    
 
     return (
       <div className={`rounded border ${color} p-2`}>
@@ -368,33 +380,35 @@ export function ToulminBox({
               
               
             )}
-            {slot === 'warrant' && ex?.meta?.defaults?.length ? (
-  <div className="mt-2 text-[11px]">
-    <div className="font-semibold mb-1">Implicit (default) warrants</div>
-    <div className="flex flex-col gap-0.5">
-      {ex!.meta!.defaults!
-        .filter(d => d.role === 'premise')
-        .map(d => (
-          <div key={d.id} className="text-[11px]">
-            α: <code>{d.antecedent}</code>{' '}
-            : β/<code>{d.justification}</code>{' '}
-            / γ: <code>{d.consequent}</code>
-          </div>
-        ))}
-    </div>
+            {/* FIX IS HERE: Removed the invalid ": null" at the end */}
+           {slot === 'warrant' && defaults.length > 0 && (
+              <div className="mt-2 text-[11px]">
+                <div className="font-semibold mb-1">Implicit (default) warrants</div>
+                <div className="flex flex-col gap-0.5">
+                  {defaults
+                    .filter(d => d.role === 'premise')
+                    .map(d => (
+                      <div key={d.id} className="text-[11px]">
+                        α: <code>{d.antecedent}</code>{' '}
+                        : β/<code>{d.justification}</code>{' '}
+                        / γ: <code>{d.consequent}</code>
+                      </div>
+                    ))}
+                </div>
 
-    {argumentId && (
-      <div className="mt-2">
-        <DefaultRuleEditor
-          argumentId={argumentId}
-          role="premise"
-          onSaved={async ()=>{ await mutate(); onChanged?.(); }}
-          onCancel={()=>{}}
-        />
-      </div>
-    )}
-  </div>
-) : null}
+                {argumentId && (
+                  <div className="mt-2">
+                    <DefaultRuleEditor
+                      argumentId={argumentId}
+                      role="premise"
+                      onSaved={async ()=>{ await mutate(); onChanged?.(); }}
+                      onCancel={()=>{}}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+            {/* The ": null" that was here has been removed */}
 
           </div>
         )}

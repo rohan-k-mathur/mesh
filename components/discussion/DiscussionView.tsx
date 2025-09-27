@@ -3,7 +3,7 @@
 import * as React from "react";
 import ChatRoom from "@/components/chat/ChatRoom";
 import ForumPane from "./ForumPane";
-import { DeliberateButton } from "./DeliberateButton";
+import DeliberateButton from "../common/DeliberationButton";
 import { useChatStore } from "@/contexts/useChatStore";
 import { useAuth } from "@/lib/AuthContext";
 import MessageComposer from "../chat/MessageComposer";
@@ -28,6 +28,8 @@ export default function DiscussionView({
   const me = user?.userId ? String(user.userId) : null; // real DB userId as string
   const currentUserName = user?.username ?? user?.displayName ?? "";
   const currentUserImage = user?.photoURL ?? null;
+
+
 const displayTitle = discussion.title && discussion.title.trim()
   ? discussion.title
   : "Discussion"; // or compute a fallback if you also fetch the attached comment text

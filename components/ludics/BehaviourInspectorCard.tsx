@@ -31,7 +31,8 @@ export function BehaviourInspectorCard({ deliberationId }: { deliberationId: str
   // resolved design pair (preflight may shift them)
   const [posId, setPosId] = React.useState<string>('');
   const [negId, setNegId] = React.useState<string>('');
-  const [note, setNote]   = React.useState<string>('');     // e.g., "shift-inserted"
+  const [note, setNote]   = React.useState<string>('');     // system note
+ const [error, setError] = React.useState<string>('');     // transport/logic error
   const [collisions, setCollisions] = React.useState<string[]>([]);
 
   // copy → children + saturation results
@@ -92,7 +93,7 @@ export function BehaviourInspectorCard({ deliberationId }: { deliberationId: str
          return () => { alive = false; };
        }, [dialogueId]);
   async function preflight() {
-    if (!posId || !negId) { try { await ensureDesignPair(); } catch(e:any){ setNote(String(e?.message||e)); return; } }
+    if (!posId || !negId) { try { await ensureDesignPair(); } catch(e:any){ setError(String(e?.message||e)); return; } }
     setBusy(true);
     try {
       const j = await fetchJSON<any>('/api/compose/preflight', {
@@ -161,7 +162,7 @@ export function BehaviourInspectorCard({ deliberationId }: { deliberationId: str
     if (!posId || !negId) { try { await ensureDesignPair(); } catch(e:any){ setNote(String(e?.message||e)); return; } }
      setBusy(true);
     try {
-      const j = await fetchJSON<any>('/api/uniformity/check', {
+     const j = await fetchJSON<any>('/api/ludics/uniformity/check', {
         method:'POST', headers:{'content-type':'application/json'},
         body: JSON.stringify({
                     dialogueId,
@@ -184,7 +185,8 @@ export function BehaviourInspectorCard({ deliberationId }: { deliberationId: str
     <section className="rounded-2xl border border-slate-200 bg-white/75 shadow-md ">
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-100 ">
         <h3 className="text-sm font-semibold text-slate-700">Behaviour Inspector</h3>
-        {busy && <span className="text-[11px] text-neutral-500">Working…</span>}
+      {busy && <span className="text-[11px] text-neutral-500">Working…</span>}
+ {!!error && <span className="text-[11px] text-rose-700">{error}</span>}
       </div>
 
       <div className="px-3 py-3 space-y-4">

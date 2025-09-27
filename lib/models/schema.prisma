@@ -2239,6 +2239,7 @@ model ArgumentApproval {
 
   @@unique([argumentId, userId])
   @@index([deliberationId, userId])
+  @@index([deliberationId, argumentId], name: "argapproval_delib_argument") // NEW
 }
 
 model ViewpointSelection {
@@ -2259,6 +2260,7 @@ model ViewpointSelection {
 
   viewpointArgs ViewpointArgument[]
 
+  @@index([deliberationId, rule, k, createdAt], name: "vp_sel_delib_rule_k_createdAt") // NEW
   @@index([deliberationId, createdAt])
 }
 
@@ -2272,6 +2274,7 @@ model ViewpointArgument {
 
   @@id([selectionId, argumentId])
   @@index([viewpoint])
+  @@index([selectionId, viewpoint, argumentId], name: "vp_arg_selection_viewpoint_argument") // NEW
 }
 
 // --------- Clusters (basic) ----------
@@ -2765,6 +2768,7 @@ model Claim {
   ClaimLabel    ClaimLabel?
   claimValues   ClaimValue[] // <— opposite side for ClaimValue.claim
 
+  @@index([deliberationId, id], name: "claim_delib_id") // NEW
   @@index([deliberationId, createdAt]) // claims by delib, time-sorted
   @@index([deliberationId, createdById, createdAt])
 }
@@ -2786,6 +2790,8 @@ model ClaimEdge {
   to   Claim @relation("toClaim", fields: [toClaimId], references: [id], onDelete: Cascade)
 
   @@unique([fromClaimId, toClaimId, type, attackType], name: "unique_from_to_type_attack")
+  @@index([deliberationId, fromClaimId], name: "claimedge_delib_from") // NEW
+  @@index([deliberationId, toClaimId], name: "claimedge_delib_to") // NEW
   @@index([fromClaimId])
   @@index([toClaimId])
   @@index([deliberationId])
@@ -2944,6 +2950,14 @@ model ClaimWarrant {
   claim     Claim    @relation(fields: [claimId], references: [id], onDelete: Cascade)
 }
 
+enum ReplyTarget {
+  claim
+  argument
+  premise
+  link
+  presupposition
+}
+
 model DialogueMove {
   id             String   @id @default(cuid())
   deliberationId String
@@ -2953,6 +2967,9 @@ model DialogueMove {
   payload        Json?
   actorId        String
   createdAt      DateTime @default(now())
+
+  replyToMoveId String? // explicit reply threading (nullable, backfill later)
+  replyTarget   ReplyTarget? // scope of reply (nullable, backfill later)
 
   // add fields (null-safe for backward compat)
   polarity       String? // 'P'|'O'
@@ -2965,6 +2982,11 @@ model DialogueMove {
   @@index([deliberationId, targetType, targetId, createdAt])
   @@index([deliberationId])
   @@index([targetType, targetId])
+}
+
+enum ProofMode {
+  symmetric
+  asymmetric // stricter burden for Proponent
 }
 
 model Deliberation {
@@ -2989,6 +3011,8 @@ model Deliberation {
   Cluster       Cluster[]
   TheoryWork    TheoryWork[]
   KnowledgeEdge KnowledgeEdge[]
+
+  proofMode ProofMode @default(symmetric)
 
   tags  String[]           @default([]) // disciplines, methods, domains
   // cohorts
@@ -3589,6 +3613,29 @@ model LudicFaxMap {
   to   LudicLocus @relation("FaxTo", fields: [toLocusId], references: [id])
 }
 
+model LudicBehaviour {
+  id             String   @id @default(cuid())
+  deliberationId String // scope to a dialogue
+  base           String // e.g., "⊢ ξ" or "ξ ⊢"
+  polarity       String // 'positive' | 'negative'
+  regular        Boolean? // computed flag
+  uniformBound   Int? // if known/claimed
+  createdAt      DateTime @default(now())
+
+  // Membership (incarnation)
+  materialDesigns LudicMaterialDesign[]
+}
+
+model LudicMaterialDesign {
+  id               String          @id @default(cuid())
+  behaviourId      String
+  designId         String // FK to your existing ludicDesign
+  asOfStepId       String? // provenance
+  pathsJson        Json // positive-ended chronicles for this material design
+  LudicBehaviour   LudicBehaviour? @relation(fields: [ludicBehaviourId], references: [id])
+  ludicBehaviourId String?
+}
+
 model LudicDecisionReceipt {
   id             String   @id @default(cuid())
   deliberationId String
@@ -3852,4 +3899,19 @@ model ForumSave {
 
   @@id([userId, commentId])
   @@index([commentId])
+}
+
+model AgoraOutbox {
+  id             String   @id @default(cuid())
+  ts             DateTime @default(now())
+  topic          String
+  roomId         String?
+  deliberationId String?
+  targetType     String?
+  targetId       String?
+  payload        Json?
+  delivered      Boolean  @default(false)
+
+  @@index([ts])
+  @@index([topic, deliberationId])
 }

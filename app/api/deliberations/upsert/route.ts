@@ -1,4 +1,4 @@
-// lib/deepdive/upsert.ts
+//api/deliberations/upsert/route.ts
 import { prisma } from '@/lib/prismaclient';
 import { asUserIdString } from '@/lib/auth/normalize';
 
@@ -13,7 +13,8 @@ export async function getOrCreateDeliberationId(
     select: { id: true }
   });
   if (existing) return existing.id;
-  const userIdStr = asUserIdString(hostId);
+  const userIdStr = asUserIdString(createdById);
+
   const created = await prisma.deliberation.create({
     data: {
       hostType,

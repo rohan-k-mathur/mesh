@@ -1,5 +1,7 @@
 'use client';
 import { useEffect } from 'react';
+import { LiveEventsProvider } from '@/app/agora/LiveEventsProvider';
+
 
 const TOPICS = [
   "dialogue:moves:refresh","dialogue:cs:refresh","claims:edges:changed","cqs:changed","cards:changed",
@@ -39,12 +41,23 @@ function LiveEvents() {
   return null;
 }
 
+// export default function AppLayout({ children }: { children: React.ReactNode }) {
+//   return (
+//     <html lang="en">
+//       <body>
+//         <LiveEvents />
+//         {children}
+//       </body>
+//     </html>
+//   );
+// }
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body>
-        <LiveEvents />
-        {children}
+        <LiveEventsProvider>
+          {children}
+        </LiveEventsProvider>
       </body>
     </html>
   );

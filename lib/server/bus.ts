@@ -1,102 +1,48 @@
 // lib/server/bus.ts
-import { EventEmitter } from 'events';
+import { EventEmitter } from 'node:events'; // explicit Node entrypoint
+import { BUS_EVENTS, type BusEvent } from '@/lib/events/topics';
 
-/* --------------------------- Event names (source of truth) --------------------------- */
-
-export const BUS_EVENTS = [
-  'dialogue:moves:refresh',
-  'dialogue:cs:refresh',
-  'claims:edges:changed',
-  'cqs:changed',
-  'cards:changed',
-  'decision:changed',
-  'votes:changed',
-  'stacks:changed',
-  'deliberations:created',
-  'comments:changed',
-  'xref:changed',
-  'citations:changed',
-  'dialogue:changed',
-] as const;
-
-export type BusEvent = typeof BUS_EVENTS[number];
-
-/* ---------------------------- Payload typing (optional) ---------------------------- */
-
+/* ---------------------------- Typed payloads (extend as you go) ---------------------------- */
 export interface BusPayloadMap {
-  'dialogue:moves:refresh': { deliberationId: string };
-  'dialogue:cs:refresh': { deliberationId: string; participantId?: string };
-  'dialogue:changed': { deliberationId: string; moveId?: string; kind?: string };
+  'dialogue:moves:refresh': { deliberationId: string; moveId?: string; kind?: string };
+  'dialogue:cs:refresh':    { deliberationId: string; participantId?: string };
+  'dialogue:changed':       { deliberationId: string; moveId?: string; kind?: string; chips?: string[] };
   // add more as you standardize them
 }
 
 export type BusPayload<T extends BusEvent> =
   T extends keyof BusPayloadMap ? BusPayloadMap[T] : Record<string, any>;
 
-export type BusEnvelope<T extends BusEvent = BusEvent> = {
-  type: T;
-  ts: number;
-} 
-
-/* --------------------------------- Bus class --------------------------------- */
-
-export class MeshBus extends EventEmitter {
-  emitEvent<T extends BusEvent>(type: T, payload?: BusPayload<T>): void {
-    const envelope: BusEnvelope<T> = {
-      ...(payload as object),
-      type,
-      ts: Date.now(),
-    } as BusEnvelope<T>;
-    super.emit(type, envelope);
-  }
-
-  /** Typed listener helpers (use these if you want type inference on handlers) */
-  onEvent<T extends BusEvent>(type: T, listener: (e: BusEnvelope<T>) => void): this {
-    super.on(type, listener as any);
-    return this;
-  }
-
-  onceEvent<T extends BusEvent>(type: T, listener: (e: BusEnvelope<T>) => void): this {
-    super.once(type, listener as any);
-    return this;
-  }
-}
-
+export type BusEnvelope<T extends BusEvent = BusEvent> =
+  { type: T; ts: number } & BusPayload<T>;
 
 /* ------------------------------- Global singleton ------------------------------- */
-
 declare global {
   // eslint-disable-next-line no-var
-  var __meshBus__: MeshBus | undefined;
+  var __meshBus__: EventEmitter | undefined;
+}
+const bus: EventEmitter = globalThis.__meshBus__ ??= new EventEmitter();
+
+// TEMP ceiling while migrating to one subscriber; remove later.
+if ((EventEmitter as any).defaultMaxListeners < 50) {
+  (EventEmitter as any).defaultMaxListeners = 50;
+}
+bus.setMaxListeners(50);
+
+export default bus;
+
+/* --------------------------------- Helpers --------------------------------- */
+export function emitBus<T extends BusEvent>(type: T, payload: BusPayload<T>): BusEnvelope<T> {
+  const env = { type, ts: Date.now(), ...(payload || {}) } as BusEnvelope<T>;
+  bus.emit(type, env);
+  return env;
 }
 
-export const bus: MeshBus =
-  globalThis.__meshBus__ ?? (globalThis.__meshBus__ = new MeshBus());
-
-/* --------------------------------- Emit helper --------------------------------- */
-
-export function emitBus<T extends BusEvent>(type: T, payload: BusPayload<T>): void {
-  bus.emitEvent(type, payload);
+export function onBus<T extends BusEvent>(type: T, fn: (e: BusEnvelope<T>) => void) {
+  bus.on(type, fn as any);
 }
 
-/* ------------------------------- Back-compat shim ------------------------------- */
-/** Allow legacy code that calls `bus.emit(type, payload)` */
-;(bus as any).emit = (type: BusEvent, payload?: Record<string, any>) => {
-  bus.emitEvent(type as any, payload as any);
-};
+export function offBus<T extends BusEvent>(type: T, fn: (e: BusEnvelope<T>) => void) {
+  (bus as any).off ? (bus as any).off(type, fn as any) : bus.removeListener(type, fn as any);
+}
 
-/* ------------------------------- Feed types to UI ------------------------------- */
-
-export type AgoraEvent = {
-  id: string;          // stable id for UI keys
-  type: BusEvent;      // normalized event type
-  ts: number;          // epoch ms
-  title: string;       // card title / summary
-  meta?: string;       // one-liner detail
-  chips?: string[];    // tags/labels
-  link?: string;       // primary link (room/claim)
-  deliberationId?: string;
-  targetType?: string;
-  targetId?: string;
-  icon?: string;       // "move"|"link"|"check"|"vote"|"branch"
-};

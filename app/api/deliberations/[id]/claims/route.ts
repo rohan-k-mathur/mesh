@@ -26,7 +26,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
   const { cursor, limit, sort, authorId, since, until } = parsed.data;
-  const [field, dir] = sort.split(':') as ['createdAt','asc'|'desc'];
+const [field, dir] = (sort ?? 'createdAt:desc').split(':') as ['createdAt','asc'|'desc'];
 
   const where: any = { deliberationId: params.id };
   if (authorId) where.createdById = authorId;

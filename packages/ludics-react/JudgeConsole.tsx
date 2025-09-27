@@ -19,7 +19,7 @@ export function JudgeConsole(props: {
   locusSuggestions?: string[];  // e.g., ["0.1","0.2","0.2.1"]
   defaultTarget?: Side;         // default Opponent
 }) {
-  const [target, setTarget] = React.useState<Side>(props.defaultTarget ?? 'Opponent');
+   const [target, setTarget] = React.useState<Side>(props.defaultTarget ?? 'Opponent');
   const [locus, setLocus]   = React.useState('');
   const [ackText, setAckText] = React.useState('ACK');
   const [prop, setProp]     = React.useState('delivered');
@@ -42,6 +42,7 @@ export function JudgeConsole(props: {
       setBusy(null);
     }
   }
+  const listId = React.useId();
 
   const ActionButton = (p: {label:string; onClick:()=>void; danger?:boolean; disabled?:boolean}) => (
     <button
@@ -82,15 +83,14 @@ export function JudgeConsole(props: {
 
       {/* Locus row */}
       <div className="flex items-center gap-2">
-        <input
-          list="jt-locus-suggest"
+        <input list={listId} 
           placeholder="locus path (e.g. 0.1)"
           value={locus}
           onChange={e=>setLocus(e.target.value)}
           className={`border minorfield rounded px-2 py-1 text-sm flex-1 ${!locusOK ? 'border-rose-400' : 'border-slate-300'}`}
         />
         {props.locusSuggestions?.length ? (
-          <datalist id="jt-locus-suggest">
+           <datalist id={listId}>
             {props.locusSuggestions.map(x => <option key={x} value={x} />)}
           </datalist>
         ) : null}

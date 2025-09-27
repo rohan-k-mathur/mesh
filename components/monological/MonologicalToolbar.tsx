@@ -4,7 +4,7 @@ import useSWR from 'swr';
 import InlineSlotEditor from './InlineSlotEditor';
 import QualityBadgeBreakdown from './QualityBadgeBreakdown';
 import { QuantifierModalityPicker } from './QuantifierModalityPicker';
-
+import { BehaviourHUD } from '../ludics/BehaviourHUD';
 type Slot = 'ground'|'warrant'|'backing'|'qualifier'|'rebuttal';
 
 const fetcher = (u: string)=>fetch(u,{cache:'no-store'}).then(r=>r.json());
@@ -134,6 +134,7 @@ const saveQualifier = React.useMemo(() => {
    );
    const m = mixArg?.perArgument?.[argument.id];
    const showMix = !!m;
+const [bridgeMode, setBridgeMode] = React.useState<'argument'|'explanation'>('argument');
 
   return (
     <div className="mt-2 rounded-lg border bg-white/90 p-2">
@@ -143,7 +144,7 @@ const saveQualifier = React.useMemo(() => {
   onClick={async ()=>{
     await fetch('/api/monological/bridge',{
       method:'POST', headers:{'content-type':'application/json'},
-      body: JSON.stringify({ argumentId: argument.id })
+   body: JSON.stringify({ argumentId: argument.id, mode: bridgeMode /* 'argument' | 'explanation' */ })
     });
     // let panels refresh
     window.dispatchEvent(new CustomEvent('dialogue:moves:refresh'));
@@ -151,8 +152,18 @@ const saveQualifier = React.useMemo(() => {
 >
   Open in dialogue
 </button>
+<BehaviourHUD deliberationId={deliberationId} />
 
-<div className="flex items-center gap-1 text-[10px]">
+<select
+  className="text-[10px] border rounded px-1 py-0"
+  value={bridgeMode}
+  onChange={e=>setBridgeMode(e.target.value as any)}
+  title="Choose dialogical reading"
+>
+  <option value="argument">Argument</option>
+  <option value="explanation">Explanation</option>
+</select>
+{/* <div className="flex items-center gap-1 text-[10px]">
   <button
     className={`px-2 py-0 rounded btnv2--ghost ${bridgeIntent==='justify'?'ring-1 ring-slate-300':''}`}
     onClick={()=>setBridgeIntent('justify')}
@@ -163,7 +174,7 @@ const saveQualifier = React.useMemo(() => {
     onClick={()=>setBridgeIntent('explain')}
     title="Build an explanation (EXPLAIN/BECAUSE)"
   >Explain</button>
-</div>
+</div> */}
 
         <span className="text-[11px] px-1.5 py-.5 rounded border bg-slate-50">
           Toulmin completeness: {completeness}%

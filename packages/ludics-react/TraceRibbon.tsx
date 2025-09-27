@@ -11,12 +11,14 @@ export function TraceRibbon(props: {
   onFocus?: (pairIndex: number) => void;
   focusIndex?: number;
   decisiveIndices?: number[];
+  revFailIndices?: number[];
 }) {
   const steps: Step[] = Array.isArray(props.steps) ? props.steps : [];
   const status = props.status ?? 'ONGOING';
   const badges = props.badges ?? {};
   const decisive = new Set(props.decisiveIndices ?? []);
   const focus = typeof props.focusIndex === 'number' ? props.focusIndex : -1;
+const revFail = new Set(props.revFailIndices ?? []);
 
   // if (!steps.length) return <div className="text-xs opacity-60">No steps yet.</div>;
 
@@ -55,6 +57,16 @@ export function TraceRibbon(props: {
                 {badges[i]}
               </span>
             )}
+            {/* ⊙ reversible indicator: red if dual(prefix) fails path check */}
+              <span
+                className={[
+                  'text-[10px] px-1.5 py-0.5 rounded border',
+                  revFail.has(i) ? 'bg-rose-50 border-rose-200 text-rose-700' : 'bg-slate-50 border-slate-200 text-slate-600'
+                ].join(' ')}
+                title={revFail.has(i) ? 'Dual(prefix) is not a path (negative-jump?)' : 'Reversible so far'}
+              >
+                ⊙
+              </span>
           </button>
         );
       })}

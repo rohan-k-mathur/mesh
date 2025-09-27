@@ -4,14 +4,13 @@ import { prisma } from '@/lib/prismaclient';
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const deliberationId = params.id;
   const url = new URL(req.url);
-  // cohorts=all,authors (more later)
   const cohorts = (url.searchParams.get('cohorts') ?? 'all,authors').split(',').map(s=>s.trim());
 
-  // pull arguments and authors (for “authors” cohort)
   const args = await prisma.argument.findMany({
     where: { deliberationId },
     select: { id: true, authorId: true },
   });
+  if (!args.length) return NextResponse.json({ totals: {}, byArgument: {} });
   const argIds = args.map(a => a.id);
 
   // approvals for this deliberation

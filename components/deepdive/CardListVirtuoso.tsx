@@ -65,6 +65,7 @@ export default function CardListVirtuoso({
   const [since, setSince] = React.useState<string>(initialFilters.since ?? '');
   const [until, setUntil] = React.useState<string>(initialFilters.until ?? '');
   const [sort, setSort] = React.useState<'createdAt:desc' | 'createdAt:asc'>(initialFilters.sort ?? 'createdAt:desc');
+const [range, setRange] = React.useState<[number,number]>([0, Math.min(9, items.length-1)]);
 
   // debounce author
   const [authorDebounced, setAuthorDebounced] = React.useState(author);
@@ -191,12 +192,14 @@ export default function CardListVirtuoso({
           style={{ height: 520 }}
           className='panel-edge rounded-xl bg-transparent'
           data={items}
-          itemKey={(i, c: any) => c.id}
           overscan={200}
           endReached={() => !isValidating && nextCursor && setSize((s) => s + 1)}
+            rangeChanged={({startIndex,endIndex}) => setRange([startIndex, endIndex])}
+
           itemContent={(i, c: any) => (
             <CardRow c={c} cqById={cqById} rsaByTarget={rsaByTarget} dialStats={dialStats} />
           )}
+          
           components={{
             Footer: () => (
               <div className="py-3 text-center text-xs text-neutral-500">

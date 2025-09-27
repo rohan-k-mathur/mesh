@@ -9,6 +9,12 @@ import { firebaseConfig, serverConfig } from "@/lib/firebase/config";
 
 const PUBLIC_PATHS = ["/register", "/login", "/reset-password", "/room/global"];
 
+
+const PUBLIC_API = [
+  /^\/api\/events$/,
+  /^\/api\/agora\/events/,
+];
+
 function isApPath(pathname: string) {
   if (pathname === "/.well-known/webfinger") return true;
   if (pathname === "/inbox") return true; // shared inbox (optional)
@@ -28,7 +34,9 @@ function isApNegotiation(req: Request) {
 
 export async function middleware(req: Request) {
   const { pathname } = new URL(req.url);
-
+  if (PUBLIC_API.some((rx) => rx.test(pathname))) {
+    return NextResponse.next();
+  }
   const res = NextResponse.next();
   // set cookies here (not in config)
   res.cookies.set({
@@ -129,6 +137,10 @@ export const config = {
     "/discussions/:path*",
     "/messages/:path*",
     '/((?!_next/static|_next/image|favicon.ico).*)',
+    '/api/ludics/:path*',
+    '/api/commitments/:path*',
+    '/api/compose/:path*',
+    '/api/loci/:path*',
     '/api/:path*',
     "/((?!_next|favicon.ico|api|fonts|images|assets|.*\\.).+)",
   ],

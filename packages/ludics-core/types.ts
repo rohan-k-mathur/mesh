@@ -43,6 +43,13 @@ export type MovePayload = {
   acts?: DialogueAct[];      // NEW
 };
 
+export type LudicDesign = {
+  id?: string;
+  /** Initial loci (default ["0"]). Only needed for validation; travel logic infers entry. */
+  base?: LocusPath[];
+  acts: DialogueAct[];
+};
+
 export type TracePair = {
   posActId: string;
   negActId: string;
@@ -94,6 +101,9 @@ export type StepResult = {
   reason?: 'timeout'|'incoherent-move'|'additive-violation'|'no-response'|'consensus-draw'|'dir-collision';
   collisions?: { base: string; dirs: string[] }[];
   shiftInserted?: boolean;
+  terminated?: boolean;
+  terminatedFor?: ('Proponent'|'Opponent')[];
+  traceId?: string;
 };
 
 

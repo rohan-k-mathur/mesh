@@ -11,14 +11,12 @@ const PatchBody = z.object({ state: z.enum(['open','closed']).optional() });
 export async function GET(_req: NextRequest, { params }: { params: { id: string; issueId: string } }) {
   const issue = await prisma.issue.findUnique({
     where: { id: params.issueId },
-    include: {
-      links: { select: { argumentId: true, role: true } },
-      _count: { select: { links: true } },
-    },
+    include: { links: { select: { argumentId: true, role: true } }, _count: { select: { links: true } } },
   });
-  if (!issue) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  if (!issue || issue.deliberationId !== params.id) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   return NextResponse.json({ ok: true, issue, links: issue.links, commentCount: 0 });
 }
+
 
 // Link/Relink an argument
 export async function POST(req: NextRequest, { params }: { params: { id: string; issueId: string } }) {
@@ -42,6 +40,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const body = await req.json().catch(() => ({}));
   const { state } = PatchBody.parse(body ?? {});
   const nextState = state ?? 'closed';
+  const current = await prisma.issue.findUnique({ where: { id: params.issueId }, select: { deliberationId: true } });
+  if (!current || current.deliberationId !== params.id) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   const updated = await prisma.issue.update({
     where: { id: params.issueId },
@@ -58,13 +58,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 export async function DELETE(req: NextRequest, { params }: { params: { id: string; issueId: string } }) {
   const userId = await getCurrentUserId();
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  const url = new URL(req.url);
+const url = new URL(req.url);
   const argumentId = url.searchParams.get('argumentId') || '';
   if (!argumentId) return NextResponse.json({ error: 'argumentId required' }, { status: 400 });
 
-  await prisma.issueLink.delete({
-    where: { issueId_argumentId: { issueId: params.issueId, argumentId } },
-  });
+  const current = await prisma.issue.findUnique({ where: { id: params.issueId }, select: { deliberationId: true } });
+  if (!current || current.deliberationId !== params.id) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
+  await prisma.issueLink.delete({ where: { issueId_argumentId: { issueId: params.issueId, argumentId } } });
   return NextResponse.json({ ok: true });
 }

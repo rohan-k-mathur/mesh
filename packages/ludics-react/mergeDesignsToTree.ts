@@ -43,11 +43,10 @@ export function mergeDesignsToTree(designs: RawDesign[]): LociNode {
   }
 
   // stitch children
-  const all = Array.from(byPath.values());
-  const dict = Object.fromEntries(all.map((n) => [n.path, n]));
-  for (const n of all) {
+  const dict = Object.fromEntries(Array.from(byPath.entries()));
+  for (const n of byPath.values()) {
     const parent = n.path.includes('.') ? n.path.split('.').slice(0, -1).join('.') : null;
     if (parent && dict[parent]) dict[parent].children.push(n);
   }
-  return dict['0'] || all[0] || { id: '0', path: '0', acts: [], children: [] };
+  return dict['0'] || { id: '0', path: '0', acts: [], children: [] };
 }

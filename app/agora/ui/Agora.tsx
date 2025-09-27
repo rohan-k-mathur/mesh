@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useBusEffect } from "@/lib/client/useBusEffect";
-import type { AgoraEvent } from "@/lib/server/bus";
+import type  AgoraEvent  from "@/lib/server/bus";
 import { EventCard } from "./EventCard";
 import { FiltersPanel } from "./FiltersPanels";
 import { RightRail } from "./RightRail";
@@ -159,6 +159,24 @@ export default function Agora({ initialEvents }: { initialEvents: AgoraEvent[] }
 
   const [pending, setPending] = React.useState<Set<string>>(new Set());
   const [ok, setOk] = React.useState<Set<string>>(new Set());
+
+
+  // Fallback hydrate if SSR didn’t deliver
+  React.useEffect(() => {
+    if (events.length > 0) return;
+    let alive = true;
+    (async () => {
+      try {
+        const r = await fetch("/api/agora/events?limit=30", { cache: "no-store", credentials: "same-origin" });
+        if (!r.ok) return;
+        const j = await r.json().catch(() => null);
+        const items = Array.isArray(j?.items) ? j.items : [];
+        if (alive && items.length) setEvents(items);
+      } catch {}
+    })();
+    return () => { alive = false; };
+  }, [events.length]);
+
 
   function setPendingOn(id: string, on: boolean) {
     setPending((prev) => {
