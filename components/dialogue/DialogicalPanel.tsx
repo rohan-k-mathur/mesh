@@ -31,6 +31,19 @@ type Props = {
   edges: AFEdge[];
 };
 
+type MoveSuggestion = {
+  kind: 'ASSERT'|'WHY'|'GROUNDS'|'RETRACT'|'CONCEDE'|'CLOSE'|'THEREFORE'|'SUPPOSE'|'DISCHARGE';
+  label: string;
+  payload?: any;
+  disabled?: boolean;
+  reason?: string;
+  force?: 'ATTACK'|'SURRENDER'|'NEUTRAL';
+  relevance?: 'likely'|'unlikely'|null;
+  verdict?: { code: string; context?: Record<string, any> };
+  postAs?: { targetType: 'argument'|'claim'|'card'; targetId: string };
+};
+
+
 type DesignsRes = { designs: Array<{ id: string; participantId: 'Proponent'|'Opponent'|string; acts?: any[] }> };
 type StepLike = {
   status?: 'ONGOING'|'CONVERGENT'|'DIVERGENT'|'STUCK';
@@ -129,6 +142,13 @@ const FancyScroller = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTML
   }
 );
 
+const verdictHelp: Record<string, string> = {
+  R3_SELF_REPLY: 'You cannot answer your own challenge.',
+  R2_NO_OPEN_CQ: 'No open WHY with this key at the selected locus.',
+  R5_AFTER_SURRENDER: 'This branch was conceded or closed (†).',
+  H1_SHAPE_ATTACK_SUGGESTION: 'Based on the claim shape, this is a likely attack.',
+  H2_CLOSABLE: 'This locus is convergent; you can close it (†).',
+};
 function Segmented<T extends string>({
   value,
   onChange,
@@ -206,6 +226,8 @@ function DefaultRuleLegend() {
   );
 }
 
+
+
 function StatusPill({ st, title }: { st: 'IN' | 'OUT' | 'UNDEC'; title?: string }) {
   const cls = st === 'IN' ? 'bg-emerald-600' : st === 'OUT' ? 'bg-rose-600' : 'bg-amber-600';
   return (
@@ -233,6 +255,47 @@ export default function DialogicalPanel({ deliberationId, nodes, edges }: Props)
   const [statusFilter, setStatusFilter] = React.useState<'all' | 'IN' | 'UNDEC' | 'OUT'>('all');
 
   const [modalOpen, setModalOpen] = React.useState(false);
+
+  const [locusPath, setLocusPath] = React.useState('0');
+
+
+const lmKey = selected && did
+  ? (['legal-moves', did, selected, locusPath] as const)
+  : null;
+
+const { data: lmRes, mutate: refetchLegal } = useSWR(
+  lmKey,
+  async ([, dlg, target, locus]) =>
+    fetchJSON<{ ok: boolean; moves: MoveSuggestion[] }>(
+      `/api/dialogue/legal-moves?deliberationId=${encodeURIComponent(dlg)}&targetType=argument&targetId=${encodeURIComponent(target)}&locusPath=${encodeURIComponent(locus)}`
+    ),
+  { revalidateOnFocus: false }
+);
+const legalMoves = lmRes?.moves ?? [];
+
+async function doMove(s: MoveSuggestion) {
+  if (!did || !selected) return;
+  const target = s.postAs ?? { targetType: 'argument' as const, targetId: selected };
+  try {
+    const res = await fetch('/api/dialogue/move', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        deliberationId: did,
+        targetType: target.targetType,
+        targetId: target.targetId,
+        kind: s.kind,
+        payload: { locusPath, ...(s.payload ?? {}) },
+        autoCompile: true,
+        autoStep: true,
+      })
+    });
+    // Even on 409 (validator), refresh so UI reflects latest open CQs / †
+    window.dispatchEvent(new CustomEvent('dialogue:moves:refresh'));
+  } finally {
+    await Promise.allSettled([refetchMoves(), refetchLegal()]);
+  }
+}
 
   // Designs (Proponent/Opponent)
   const designsKey = did ? (['ludics-designs', did] as const) : null;
@@ -478,6 +541,15 @@ export default function DialogicalPanel({ deliberationId, nodes, edges }: Props)
             </select>
           </label>
           <label className="text-xs flex items-center gap-1">
+  Locus:
+  <input
+    className="border rounded px-1 py-0.5 text-xs w-[84px]"
+    value={locusPath}
+    onChange={(e) => setLocusPath(e.target.value)}
+    placeholder="0"
+  />
+</label>
+          <label className="text-xs flex items-center gap-1">
             <input type="checkbox" checked={onlyWhy} onChange={(e) => setOnlyWhy(e.target.checked)} />
             With open WHY
           </label>
@@ -548,23 +620,47 @@ export default function DialogicalPanel({ deliberationId, nodes, edges }: Props)
                       </div>
                     </div>
 
-                    {/* Quick actions */}
-                    <div className="invisible group-hover:visible flex items-center gap-1">
-                      <button
-                        className="btnv2--ghost btnv2--sm"
-                        disabled={postingId === n.id}
-                        onClick={() => postMove(n.id, 'WHY', { note: 'Please address this point' })}
-                      >
-                        WHY
-                      </button>
-                      <button
-                        className="btnv2--ghost btnv2--sm"
-                        disabled={postingId === n.id}
-                        onClick={() => postMove(n.id, 'GROUNDS', { note: 'Providing grounds' })}
-                      >
-                        Grounds
-                      </button>
-                    </div>
+                {/* Quick actions */}
+<div className="invisible group-hover:visible flex items-center gap-1">
+  {/* keep your fast WHY/GROUNDS if you want */}
+  <button
+    className="btnv2--ghost btnv2--sm"
+    disabled={postingId === n.id}
+    onClick={() => postMove(n.id, 'WHY', { locusPath, note: 'Please address this point' })}
+  >
+    WHY
+  </button>
+  <button
+    className="btnv2--ghost btnv2--sm"
+    disabled={postingId === n.id}
+    onClick={() => postMove(n.id, 'GROUNDS', { locusPath, note: 'Providing grounds' })}
+  >
+    Grounds
+  </button>
+
+  {/* NEW: legal-move chips (only on the selected row) */}
+  {isSel && legalMoves.length > 0 && (
+    <div className="ml-1 flex flex-wrap gap-1">
+      {legalMoves.map((m) => (
+        <button
+          key={`${m.kind}-${m.label}`}
+          className="btnv2--ghost btnv2--sm"
+          disabled={m.disabled}
+          title={
+            m.verdict
+              ? `${verdictHelp[m.verdict.code] ?? m.verdict.code}${m.verdict.context ? ' — ' + JSON.stringify(m.verdict.context) : ''}`
+              : (m.reason || '')
+          }
+          onClick={() => doMove(m)}
+        >
+          <span className={`chip chip-${(m.force || 'NEUTRAL').toLowerCase()}`}>{m.force || 'NEUTRAL'}</span>
+          {m.label}
+          {m.relevance && <span className={`chip chip-rel-${m.relevance}`}>{m.relevance}</span>}
+        </button>
+      ))}
+    </div>
+  )}
+</div>
                   </div>
                 </div>
               );
@@ -801,13 +897,15 @@ function ArgumentInspector({
 
   // Open claim-level panel
   const [fullOpen, setFullOpen] = React.useState(false);
+  const [promoting, setPromoting] = React.useState(false);
   const prefilterKeys = React.useMemo(() => {
     const open = new Set<string>([...(openCqIds ?? new Set()), ...uiOpen]);
     return cqs.filter(q => open.has(q.id)).map(q => ({ schemeKey: scheme, cqKey: q.id }));
   }, [openCqIds, uiOpen, cqs, scheme]);
-
-  async function promoteThenOpen() {
-    const res = await fetch('/api/claims/quick-create', {
+ async function promoteThenOpen() {
+      if (promoting) return;
+      setPromoting(true);
+      const res = await fetch('/api/claims/quick-create', {
       method: 'POST',
       headers: { 'content-type':'application/json' },
       body: JSON.stringify({
@@ -816,16 +914,23 @@ function ArgumentInspector({
         deliberationId
       }),
     });
-    if (!res.ok) {
-      alert(await res.text());
-      return;
+         try {
+        const json = await res.json().catch(() => ({} as any));
+        const newId = json?.claimId ?? json?.existsClaimId ?? argRes?.argument?.claimId;
+        if (newId) {
+          setClaimIdOverride(newId);
+          setFullOpen(true);
+          refetchArg().catch(() => {});
+        } else {
+          console.error('quick-create did not return a claimId');
+        }
+      } finally {
+        setPromoting(false);
     }
-    const { claimId: newId } = await res.json() as { claimId: string };
-    setClaimIdOverride(newId);
-    setFullOpen(true);
-    refetchArg().catch(() => {});
   }
-
+React.useEffect(() => {
+  if (!fullOpen && claimId && promoting === false) setFullOpen(true);
+}, [claimId, fullOpen, promoting]);
   return (
     <div className="rounded border border-slate-200 bg-white/70 p-2 space-y-2">
       {/* Tier explainer + full CQ action */}
@@ -834,15 +939,20 @@ function ArgumentInspector({
           These CQs <b>simulate</b> attacks in the graph (WHY = attack, GROUNDS = release).
           For official, guarded resolution, open the <b>claim-level</b> panel.
         </div>
-        {claimId ? (
-          <button className="btnv2--ghost btnv2--sm" onClick={() => setFullOpen(true)}>
-            Open full CQs
-          </button>
-        ) : (
-          <button className="btnv2--ghost btnv2--sm" onClick={promoteThenOpen}>
-            Promote → Open full CQs
-          </button>
-        )}
+          {claimId ? (
+     <button className="btnv2--ghost btnv2--sm" onClick={() => setFullOpen(true)}>
+       Open full CQs
+     </button>
+   ) : (
+     <button
+       className="btnv2--ghost btnv2--sm"
+       onClick={promoteThenOpen}
+       disabled={promoting}
+       title={promoting ? 'Promoting…' : 'Promote argument to claim and open full CQs'}
+     >
+       {promoting ? 'Promoting…' : 'Promote → Open full CQs'}
+     </button>
+ )}
       </div>
 
       {/* Scheme picker */}
@@ -920,7 +1030,6 @@ function ArgumentInspector({
               <CriticalQuestions
                 targetType="claim"
                 targetId={claimId}
-                createdById={deliberationId}
                 deliberationId={deliberationId}
                 prefilterKeys={prefilterKeys}
               />

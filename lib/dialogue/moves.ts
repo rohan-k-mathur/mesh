@@ -1,5 +1,5 @@
 // lib/dialogue/moves.ts
-export type DialogueKind = 'ASSERT'|'WHY'|'GROUNDS'|'RETRACT'|'CONCEDE'|'CLOSE';
+export type DialogueKind ="ASSERT" | "WHY" | "GROUNDS" | "RETRACT" | "CONCEDE" | "CLOSE" | "THEREFORE" | "SUPPOSE" | "DISCHARGE";
 export type TargetType = 'argument'|'claim'|'card';
 
 export function cqKey(p:any){ return String(p?.cqId ?? p?.schemeKey ?? 'default'); }

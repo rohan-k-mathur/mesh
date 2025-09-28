@@ -11,7 +11,8 @@ import { compileFromMoves } from '@/packages/ludics-engine/compileFromMoves';
 import { stepInteraction } from '@/packages/ludics-engine/stepper';
 import type { MovePayload, DialogueAct } from '@/packages/ludics-core/types';
 import { validateMove } from '@/lib/dialogue/validate';
-
+ import { onDialogueMove } from '@/lib/issues/hooks';
+import type { MoveKind } from '@/lib/dialogue/types';
 import { emitBus } from '@/lib/server/bus'; // ✅ use the helper only
 
 function sig(s: string) { return crypto.createHash("sha1").update(s, "utf8").digest("hex"); }
@@ -21,7 +22,7 @@ const Body = z.object({
   deliberationId: z.string().min(1),
   targetType: z.enum(['argument','claim','card']),
   targetId: z.string().min(1),
-  kind: z.enum(['ASSERT','WHY','GROUNDS','RETRACT','CONCEDE','CLOSE']),
+ kind: z.enum(['ASSERT','WHY','GROUNDS','RETRACT','CONCEDE','CLOSE','THEREFORE','SUPPOSE','DISCHARGE']),
   payload: z.any().optional(),
   autoCompile: z.boolean().optional().default(true),
   autoStep: z.boolean().optional().default(true),
@@ -57,6 +58,9 @@ function synthesizeActs(kind: string, payload: any): DialogueAct[] {
   const expr  = String(payload?.expression ?? payload?.brief ?? payload?.note ?? '').slice(0, 2000);
 
   if (kind === 'WHY')     return [{ polarity:'neg', locusPath:locus, openings:[], expression: expr }];
+   if (kind === 'THEREFORE') return [{ polarity:'pos', locusPath:locus, openings:[], expression: expr, additive:false }];
+ if (kind === 'SUPPOSE')   return [{ polarity:'pos', locusPath:locus, openings:[], expression: expr || '+supposition', additive:false }];
+ if (kind === 'DISCHARGE') return [{ polarity:'pos', locusPath:locus, openings:[], expression: 'discharge', additive:false }];
   if (kind === 'GROUNDS') return [{ polarity:'pos', locusPath:locus, openings:[], expression: expr, additive:false }];
   if (payload?.as === 'CONCEDE') // 👈 key off marker, not kind
     return [{ polarity:'pos', locusPath:locus, openings:[], expression: expr || 'conceded' }];
@@ -66,6 +70,10 @@ function synthesizeActs(kind: string, payload: any): DialogueAct[] {
 
 function makeSignature(kind: string, targetType: string, targetId: string, payload: any) {
   if (kind === 'WHY') return ['WHY', targetType, targetId, cqKey(payload)].join(':');
+   if (kind === 'THEREFORE') return ['THEREFORE', targetType, targetId, String(payload?.locusPath ?? '0'), hashExpr(String(payload?.expression ?? ''))].join(':');
+ if (kind === 'SUPPOSE')   return ['SUPPOSE', targetType, targetId, String(payload?.locusPath ?? '0'), hashExpr(String(payload?.expression ?? ''))].join(':');
+ if (kind === 'DISCHARGE') return ['DISCHARGE', targetType, targetId, String(payload?.locusPath ?? '0')].join(':');
+
   if (kind === 'GROUNDS') {
     const key = cqKey(payload);
     const locus = String(payload?.locusPath ?? '');
@@ -238,5 +246,9 @@ const originalKind = kind;
   emitBus("dialogue:changed", { deliberationId, moveId: move?.id, kind });         // ✅ fix: move.id
   emitBus("dialogue:moves:refresh", { deliberationId });
 
+  try {
+    await onDialogueMove({ deliberationId, targetType, targetId, kind, payload });
+    emitBus('issues:changed', { deliberationId });
+  } catch {}
   return NextResponse.json({ ok: true, move, step, dedup });
 }

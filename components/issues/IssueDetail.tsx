@@ -2,7 +2,7 @@
 import * as React from 'react';
 import useSWR, { mutate as globalMutate } from 'swr';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-
+import { LegalMoveChips } from '../dialogue/LegalMoveChips';
 const fetcher = (u:string)=>fetch(u,{cache:'no-store'}).then(r=>r.json());
 
 export default function IssueDetail({
@@ -58,6 +58,19 @@ export default function IssueDetail({
             {(data.links ?? []).length === 0 && <li className="text-neutral-500">No links</li>}
           </ul>
         </div>
+
+          {(data.links?.[0]?.argumentId) && (
+    <div className="mt-3 rounded-md border p-2 bg-slate-50">
+      <div className="text-[11px] uppercase tracking-wide text-neutral-500 mb-1">Resolve here</div>
+      <LegalMoveChips
+        deliberationId={deliberationId}
+        targetType="argument"
+        targetId={data.links[0].argumentId}
+        onPosted={() => globalMutate(key)}
+      />
+    </div>
+  )}
+
 
         {/* Easy future hook: comments block (hidden by default if route missing) */}
         {/* You can add IssueComment UI here later */}

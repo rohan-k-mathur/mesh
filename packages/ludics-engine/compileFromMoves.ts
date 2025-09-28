@@ -355,7 +355,7 @@ import { Prisma } from '@prisma/client';
 import { delocate } from './delocate';
 
 type Tx = Prisma.TransactionClient;
-type MoveKind = 'ASSERT'|'WHY'|'GROUNDS'|'RETRACT';
+ type MoveKind = "ASSERT" | "WHY" | "GROUNDS" | "RETRACT" | "CONCEDE" | "CLOSE" | "THEREFORE" | "SUPPOSE" | "DISCHARGE";
 
 type Move = {
   id: string;

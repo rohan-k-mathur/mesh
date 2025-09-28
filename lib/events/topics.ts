@@ -13,6 +13,7 @@ export const BUS_EVENTS = [
   'xref:changed',
   'citations:changed',
   'dialogue:changed',
+  'issues:changed',
 ] as const;
 
 export type BusEvent = typeof BUS_EVENTS[number];

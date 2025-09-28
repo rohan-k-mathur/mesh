@@ -4,6 +4,8 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prismaclient';
 import { getCurrentUserId } from '@/lib/serverutils';
 import { asUserIdString } from '@/lib/auth/normalize';
+ import { emitBus } from '@/lib/server/bus';
+
 
 const LinkBody = z.object({ argumentId: z.string().min(1), role: z.string().optional() });
 const PatchBody = z.object({ state: z.enum(['open','closed']).optional() });
@@ -29,6 +31,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string;
     create: { issueId: params.issueId, argumentId, role: role ?? 'related' },
     update: { role: role ?? 'related' },
   });
+  try { emitBus('issues:changed', { deliberationId: params.id }); } catch {}
   return NextResponse.json({ ok: true });
 }
 
@@ -51,6 +54,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         : { state: 'open', closedById: null, closedAt: null },
   });
 
+   try { emitBus('issues:changed', { deliberationId: params.id }); } catch {}
   return NextResponse.json({ ok: true, issue: updated });
 }
 
@@ -66,5 +70,6 @@ const url = new URL(req.url);
   if (!current || current.deliberationId !== params.id) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   await prisma.issueLink.delete({ where: { issueId_argumentId: { issueId: params.issueId, argumentId } } });
+  try { emitBus('issues:changed', { deliberationId: params.id }); } catch {}
   return NextResponse.json({ ok: true });
 }

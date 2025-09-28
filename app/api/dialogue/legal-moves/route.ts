@@ -5,7 +5,8 @@ import { prisma } from '@/lib/prismaclient';
 import { stepInteraction } from '@/packages/ludics-engine/stepper';
 import { legalAttacksFor } from '@/lib/dialogue/legalMoves'; // shape cues
 import { getCurrentUserId } from '@/lib/serverutils';
-
+import type { RCode, WCode } from '@/lib/dialogue/codes';
+import { codeHelp } from '@/lib/dialogue/codes';
 const Q = z.object({
   deliberationId: z.string().min(5),
   targetType: z.enum(['argument','claim','card']),
@@ -23,6 +24,9 @@ export type Move = {
   relevance?: 'likely'|'unlikely'|null;
   postAs?: { targetType: 'argument'|'claim'|'card'; targetId: string }; // R7 hint
 };
+
+  type Verdict = { code: string; context?: Record<string, any> };
+  type MoveWithVerdict = Move & { verdict?: Verdict };
 
 export async function GET(req: NextRequest) {
   const qs = Object.fromEntries(new URL(req.url).searchParams);
@@ -81,7 +85,9 @@ export async function GET(req: NextRequest) {
   });
   const isClosed = !!lastTerminator;
 
-  const moves: Move[] = [];
+  //const moves: Move[] = [];
+    const moves: MoveWithVerdict[] = [];
+
 
   // GROUNDS for each open CQ — only author answers
   for (const k of openKeys) {
@@ -92,17 +98,23 @@ export async function GET(req: NextRequest) {
       payload: { cqId: k, locusPath: locusPath || '0' },
       disabled,
       reason: disabled ? 'Only the author may answer this WHY' : undefined,
+       verdict: disabled
+       ? { code: 'R4_ROLE_GUARD', context: { cqKey: k } }
+       : { code: 'R2_OPEN_CQ_SATISFIED', context: { cqKey: k } }
     });
   }
 
   // WHY when none open; prefer shape-aware label
   if (!openKeys.length) {
-    const base: Move = {
+    const base: MoveWithVerdict = {
       kind:'WHY',
       label:'Ask WHY',
       payload: { locusPath: locusPath || '0' },
       disabled: !!(actorId && targetAuthorId && actorId === String(targetAuthorId)),
       reason: (actorId && targetAuthorId && actorId === String(targetAuthorId)) ? 'You cannot ask WHY on your own claim' : undefined,
+       verdict: (actorId && targetAuthorId && actorId === String(targetAuthorId))
+       ? { code: 'R3_SELF_REPLY', context: { authorId: targetAuthorId } }
+       : { code: 'H1_SHAPE_ATTACK_SUGGESTION', context: { shape: 'auto' } }
     };
     if (targetText) {
       const { on, options } = legalAttacksFor(targetText);
@@ -149,7 +161,8 @@ export async function GET(req: NextRequest) {
       }).catch(() => null);
       const closable = new Set(trace?.daimonHints?.map((h:any) => h.locusPath) ?? []);
       if (closable.has(locusPath)) {
-        moves.push({ kind: 'CLOSE', label: 'Close (†)', payload: { locusPath } });
+        moves.push({ kind: 'CLOSE', label: 'Close (†)', verdict: { code: 'H2_CLOSABLE', context: { locusPath } }
+, payload: { locusPath } });
       }
     }
   }
@@ -160,7 +173,9 @@ export async function GET(req: NextRequest) {
       (m.kind === 'WHY' || m.kind === 'GROUNDS') ? 'ATTACK' :
       (m.kind === 'CONCEDE' || m.kind === 'RETRACT' || m.kind === 'CLOSE') ? 'SURRENDER' : 'NEUTRAL';
     m.relevance = m.force === 'ATTACK' ? (isClosed ? 'unlikely' : 'likely') : null;
-    if (isClosed && m.force === 'ATTACK') { m.disabled = true; m.reason = 'This branch is already closed.'; }
+    if (isClosed && m.force === 'ATTACK') { m.disabled = true; m.reason = 'This branch is already closed.';
+      m.verdict = { code: 'R5_AFTER_SURRENDER', context: { locusPath } };
+     }
   }
 
   return NextResponse.json({ ok:true, moves }, { headers: { 'Cache-Control': 'no-store' } });

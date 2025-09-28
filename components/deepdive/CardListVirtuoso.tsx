@@ -4,11 +4,12 @@ import * as React from 'react';
 import useSWRInfinite from 'swr/infinite';
 import { Virtuoso } from 'react-virtuoso';
 import { mutate as globalMutate } from 'swr';
+ import IssuesDrawer from '@/components/issues/IssuesDrawer';
 
 import CQBar from './CQBar';
 import { useCQSummaryBatch } from '@/components/cq/useCQSummaryBatch';
 import { EntailmentWidget } from '../entail/EntailmentWidget';
-
+import { IssueBadge } from '../issues/IssueBadge';
 // Detail modules
 import SchemePicker from '@/components/cite/SchemePicker';
 import CriticalQuestions from '@/components/claims/CriticalQuestions';
@@ -23,7 +24,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-
+import IssueComposer from '@/components/issues/IssueComposer';
   import { useRSABatch } from '@/packages/hooks/useRSABatch';
   import { RSAChip } from '@/packages/components/RSAChip';
   import { useDialecticStats } from '@/packages/hooks/useDialecticStats';
@@ -65,10 +66,11 @@ export default function CardListVirtuoso({
   const [since, setSince] = React.useState<string>(initialFilters.since ?? '');
   const [until, setUntil] = React.useState<string>(initialFilters.until ?? '');
   const [sort, setSort] = React.useState<'createdAt:desc' | 'createdAt:asc'>(initialFilters.sort ?? 'createdAt:desc');
-const [range, setRange] = React.useState<[number,number]>([0, Math.min(9, items.length-1)]);
-
+const [range, setRange] = React.useState<[number, number]>([0, 9]);
+ const [issueCompose, setIssueCompose] = React.useState<{open:boolean; label?:string} | null>(null);
   // debounce author
   const [authorDebounced, setAuthorDebounced] = React.useState(author);
+   const [issuesDrawer, setIssuesDrawer] = React.useState<{ open: boolean; claimId?: string } | null>(null);
   React.useEffect(() => {
     const id = setTimeout(() => setAuthorDebounced(author.trim() || ''), 250);
     return () => clearTimeout(id);
@@ -194,19 +196,40 @@ const [range, setRange] = React.useState<[number,number]>([0, Math.min(9, items.
           data={items}
           overscan={200}
           endReached={() => !isValidating && nextCursor && setSize((s) => s + 1)}
-            rangeChanged={({startIndex,endIndex}) => setRange([startIndex, endIndex])}
-
+          rangeChanged={({startIndex,endIndex}) => setRange([startIndex, endIndex])}
           itemContent={(i, c: any) => (
-            <CardRow c={c} cqById={cqById} rsaByTarget={rsaByTarget} dialStats={dialStats} />
+            <CardRow
+              c={c}
+              cqById={cqById}
+              rsaByTarget={rsaByTarget}
+              dialStats={dialStats}
+              onOpenIssue={(claimId) => setIssuesDrawer({ open: true, claimId })}
+            />
           )}
-          
           components={{
             Footer: () => (
               <div className="py-3 text-center text-xs text-neutral-500">
-                {isValidating ? 'Loading…' : nextCursor ? 'Scroll to load more' : 'End'}
+                {isValidating ? "Loading…" : nextCursor ? "Scroll to load more" : "End"}
               </div>
             ),
           }}
+        />
+      )}
+          {issuesDrawer?.open && (
+      <IssuesDrawer
+        deliberationId={deliberationId}
+        open
+        onOpenChange={(o) => !o && setIssuesDrawer(null)}
+        // requires the small prop tweak in §3 below
+        argumentId={issuesDrawer.claimId}
+      />
+  )}
+      {issueCompose?.open && (
+        <IssueComposer
+          deliberationId={deliberationId}
+          open
+          onOpenChange={(o) => !o && setIssueCompose(null)}
+          initialLabel={issueCompose.label}
         />
       )}
     </div>
@@ -214,11 +237,13 @@ const [range, setRange] = React.useState<[number,number]>([0, Math.min(9, items.
 }
 
 /** CQ section for one card (safe hooks) */
-function CardCQSection({ claimId, authorId, cqSummary, deliberationId }: {
+function CardCQSection({ claimId, authorId, cqSummary, deliberationId, onOpenIssue }: {
   claimId: string;
   authorId: string;
   deliberationId: string;
   cqSummary?: { satisfied: number; required: number; openByScheme: Record<string,string[]> };
+  onOpenIssue?: (label?: string) => void;
+  
 }) {
   const [showCq, setShowCq] = React.useState(false);
   return (
@@ -234,6 +259,21 @@ function CardCQSection({ claimId, authorId, cqSummary, deliberationId }: {
         >
           Address CQs
         </button>
+                 {onOpenIssue && (
+            <button
+              className="text-[11px] underline decoration-dotted ml-2"
+              onClick={() => {
+                // Try to craft a helpful default label from the first open CQ
+                let label = 'Open CQ';
+                const firstScheme = cqSummary && Object.keys(cqSummary.openByScheme || {})[0];
+                const firstCq = firstScheme && (cqSummary.openByScheme[firstScheme] || [])[0];
+                if (firstScheme && firstCq) label = `Open CQ: ${firstScheme}:${firstCq}`;
+                onOpenIssue(label);
+              }}
+            >
+              Open as issue
+            </button>
+          )}
       </div>
       {showCq && (
         <div className="mt-2">
@@ -252,27 +292,27 @@ function CardCQSection({ claimId, authorId, cqSummary, deliberationId }: {
 
 /** Row (memoized) */
 type RSARes = { R:number; S:number; A:number };
-  const CardRow = React.memo(function CardRow({
-    c,
-    cqById,
-    rsaByTarget,
-    dialStats,
-  }: {
-    c: any;
-    cqById: Map<string, any>;
-    rsaByTarget: Record<string, RSARes>;
-    dialStats: Record<string, any>;
+const CardRow = React.memo(function CardRow({
+  c, cqById, rsaByTarget, dialStats, onOpenIssue, onOpenIssuesFor
+}:{
+   c: any;
+   cqById: Map<string, any>;
+   rsaByTarget: Record<string, RSARes>;
+   dialStats: Record<string, any>;
+  onOpenIssue?: (label?: string) => void;
+   onOpenIssuesFor?: (f: { claimId?: string; argumentId?: string; cardId?: string }) => void;
+
   }) {
   const cqSummary = c.claimId ? cqById.get(c.claimId) : undefined;
 
   return (
     <div className="rounded-md border border-indigo-200/70 bg-slate-50 p-3 mb-2 shadow-[0_1px_0_#f1f5f9]">
-      {/* Header */}
+
       <div className="flex  items-start gap-2">
       <div className="flex-1 ">
         <div className="flex flex-wrap items-center gap-2">
           <div className="text-sm font-medium">{c.claimText}</div>
-          {/* qualifiers */}
+
           {c.quantifier && <span className="text-[10px] px-1.5 py-0.5 rounded border bg-slate-50">{c.quantifier}</span>}
           {c.modality && <span className="text-[10px] px-1.5 py-0.5 rounded border bg-slate-50">{c.modality}</span>}
           {c.claimId && rsaByTarget?.[`claim:${c.claimId}`] && <div className='bg-white'>  <RSAChip {...rsaByTarget[`claim:${c.claimId}`]} /> </div>}
@@ -281,6 +321,14 @@ type RSARes = { R:number; S:number; A:number };
         <div className="text-[11px] text-neutral-500 mt-0.5">
           by {c.authorId} • {new Date(c.createdAt).toLocaleString()}
         </div>
+        {c.claimId && (
+  <IssueBadge
+    deliberationId={c.deliberationId}
+    targetType="claim"
+    targetId={c.claimId}
+    onClick={() => onOpenIssuesFor?.({ claimId: c.claimId })}
+  />
+)}
       </div>
 
       {/* Actions */}
@@ -369,6 +417,7 @@ type RSARes = { R:number; S:number; A:number };
             authorId={c.authorId}
             cqSummary={cqById.get(c.claimId)}
             deliberationId={c.deliberationId}
+              onOpenIssue={onOpenIssue}
           />
         )}
       </div>

@@ -3,7 +3,7 @@ import * as React from 'react';
 import useSWR, { mutate as globalMutate } from 'swr';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import IssueDetail from './IssueDetail';
-
+import { useBusEffect } from '@/lib/client/useBusEffect';
 const fetcher = (u:string)=>fetch(u,{cache:'no-store'}).then(r=>r.json());
 
 export default function IssuesDrawer({
@@ -11,35 +11,49 @@ export default function IssuesDrawer({
   open,
   onOpenChange,
   argumentId,           // 👈 NEW
+  claimId,    
 
 }: {
   deliberationId: string;
   open: boolean;
   onOpenChange: (o:boolean)=>void;
   argumentId?: string;  // 👈 NEW
+  claimId?: string;     // 👈 NEW
 
 }) {
   const [state, setState] = React.useState<'open'|'closed'|'all'>('open');
   const [q, setQ] = React.useState('');
   const [focus, setFocus] = React.useState<string|null>(null);
-  const [filters, setFilters] = React.useState<{ argumentId?: string }>({});
+  //const [filters, setFilters] = React.useState<{ argumentId?: string }>({});
+  const [filters, setFilters] = React.useState<{ argumentId?: string; claimId?: string; cardId?: string }>({});
 
   React.useEffect(() => {
-    if (open) setFilters(prev => ({ ...prev, argumentId }));
-  }, [open, argumentId]);
 
-  const key = `/api/deliberations/${encodeURIComponent(deliberationId)}/issues?state=${state}&search=${encodeURIComponent(q)}`;
+   if (!open) return;
+   setFilters(prev => ({ ...prev, argumentId, claimId }));
+ }, [open, argumentId, claimId]);
+
+ const key = `/api/deliberations/${encodeURIComponent(deliberationId)}/issues` +
+   `?state=${state}&search=${encodeURIComponent(q)}` +
+   (filters.argumentId ? `&argumentId=${encodeURIComponent(filters.argumentId)}` : '') +
+   (filters.claimId ? `&claimId=${encodeURIComponent(filters.claimId)}` : '');
   const { data, isLoading } = useSWR<{ ok:true; issues:any[] }>(open ? key : null, fetcher, { revalidateOnFocus:false });
 
   // keep in sync via global event
-  React.useEffect(() => {
-    const refresh = (e:any) => {
-      if (e?.detail?.deliberationId !== deliberationId) return;
+  // React.useEffect(() => {
+  //   const refresh = (e:any) => {
+  //     if (e?.detail?.deliberationId !== deliberationId) return;
+  //     globalMutate(key);
+  //   };
+  //   window.addEventListener('issues:refresh', refresh as any);
+  //   return () => window.removeEventListener('issues:refresh', refresh as any);
+  // }, [key, deliberationId]);
+
+      useBusEffect(['issues:changed'], (p) => {
+      if (p?.deliberationId !== deliberationId) return;
       globalMutate(key);
-    };
-    window.addEventListener('issues:refresh', refresh as any);
-    return () => window.removeEventListener('issues:refresh', refresh as any);
-  }, [key, deliberationId]);
+ });
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -55,6 +69,13 @@ export default function IssuesDrawer({
           </select>
           <input className="border rounded px-2 py-1 text-xs flex-1" placeholder="Search…" value={q} onChange={e=>setQ(e.target.value)} />
         </div>
+
+            {(filters.argumentId || filters.claimId) && (
+     <div className="text-[10px] text-neutral-600 mb-2">
+       Filtered to {filters.claimId ? `claim ${filters.claimId.slice(0,6)}…` : `argument ${filters.argumentId?.slice(0,6)}…`}
+       <button className="ml-2 underline" onClick={()=>setFilters({})}>clear</button>
+     </div>
+   )}
 
         {/* List */}
         <div className="space-y-2">

@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prismaclient';
 import { getCurrentUserId } from '@/lib/serverutils';
 import { asUserIdString } from '@/lib/auth/normalize';
+ import { emitBus } from '@/lib/server/bus';
 
 const CreateBody = z.object({
   label: z.string().min(2).max(120),
@@ -31,7 +32,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     },
     include: { links: true, _count: { select: { links: true } } },
   });
-
+  try { emitBus('issues:changed', { deliberationId }); } catch {}
   return NextResponse.json({ ok: true, issue });
 }
 
@@ -42,8 +43,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const state = (url.searchParams.get('state') || 'open') as 'open' | 'closed' | 'all';
   const search = url.searchParams.get('search') || '';
   const limit = Math.min(Math.max(Number(url.searchParams.get('limit') ?? '50'), 1), 200);
-
-  const where = {
+  const argumentId = url.searchParams.get('argumentId') || '';
+  const claimId = url.searchParams.get('claimId') || '';
+  const baseWhere: any = {
     deliberationId,
     ...(state !== 'all' ? { state } : {}),
     ...(search
@@ -56,6 +58,23 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       : {}),
   };
 
+   let where: any = { ...baseWhere };
+    if (argumentId) {
+      where = { ...where, links: { some: { argumentId } } };
+    } else if (claimId) {
+      // find arguments that belong to this claim within the deliberation
+      const args = await prisma.argument.findMany({
+        where: { deliberationId, claimId },
+        select: { id: true },
+      });
+      const argIds = args.map(a => a.id);
+      if (argIds.length) {
+        where = { ...where, links: { some: { argumentId: { in: argIds } } } };
+      } else {
+        // return empty list early if no arguments map to the claim
+        return NextResponse.json({ ok: true, issues: [] });
+      }
+  }
   const list = await prisma.issue.findMany({
     where,
     orderBy: { createdAt: 'desc' },

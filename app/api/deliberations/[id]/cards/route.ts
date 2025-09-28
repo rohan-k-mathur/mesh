@@ -7,10 +7,9 @@ import { mintClaimMoid } from '@/lib/ids/mintMoid';
 import { PaginationQuery, makePage } from '@/lib/server/pagination';
 import { since as startTimer, addServerTiming } from '@/lib/server/timing';
 import { isValid, parseISO } from 'date-fns';
-import { emitBus } from '@/lib/server/bus';
+ import { emitBus } from '@/lib/server/bus';
 // import { bus } from '@/lib/bus';
 import  bus  from '@/lib/server/bus';
-import { emitBus } from '@/lib/server/bus';
 
 
 const SaveSchema = z.object({
@@ -303,7 +302,7 @@ const argument = await prisma.argument.create({
     authorId: String(userId),
   },
 });
-bus.emit('cards:changed', { deliberationId });
+// bus.emit('cards:changed', { deliberationId });
 
 return NextResponse.json({
   ok: true,

@@ -13,10 +13,14 @@ const fetcher = (u:string)=>fetch(u,{cache:'no-store'}).then(r=>r.json());
 
 
 type Props = {
+  key?: string;
   deliberationId: string;
   onPosted?: () => void;
   targetArgumentId?: string;
-};
+  targetPreviewText?: string;
+    isReplyMode?: boolean;                     // ← new
+  onClearReply?: () => void;                 // ← new
+} & React.HTMLAttributes<HTMLDivElement>; // <-- allow id/className/etc
 type CounterKind =
   | "none"
   | "rebut_conclusion"
@@ -33,6 +37,30 @@ const schema = z.object({
 });
 
 // --- Helpers (no deps) ---
+
+function MissingAxiomBar({ insert }:{ insert:(t:string)=>void }) {
+  return (
+    <div className="flex flex-wrap items-center gap-1.5 rounded-md border border-slate-200/80 bg-white/70 px-2.5 py-1 text-[11px] mb-2">
+      <span className="opacity-60 mr-1">Axiom prompts:</span>
+      <button className="px-2 py-0.5 rounded border"
+        onClick={() => insert('Default rule:\nSUPPOSE …\nUNLESS not(…)\nTHEREFORE …')}>
+        Default rule ⟨α, ¬β⟩ ⇒ γ
+      </button>
+      <button className="px-2 py-0.5 rounded border"
+        onClick={() => insert('∀x (…x…) — instantiate with x = …')}>
+        ∀‑instantiate
+      </button>
+      <button className="px-2 py-0.5 rounded border"
+        onClick={() => insert('∃x (…x…) — provide witness: x = …')}>
+        ∃‑witness
+      </button>
+      <button className="px-2 py-0.5 rounded border"
+        onClick={() => insert('Presupposition: “…” — please justify or revise.')}>
+        Presupposition?
+      </button>
+    </div>
+  );
+}
 
 function Segmented<T extends string>({
   value,
@@ -123,9 +151,15 @@ function mapKeyToTemplate(key: string): string {
 }
 
 export default function DeliberationComposer({
+key,
   deliberationId,
   onPosted,
   targetArgumentId,
+    targetPreviewText,
+  className,
+    isReplyMode = false,
+  onClearReply,
+  ...rest
 }: Props) {
   const [text, setText] = useState("");
   const [sources, setSources] = useState<string[]>([]);
@@ -165,6 +199,13 @@ useAutoGrow(textareaRef, text);
 const [sourceInput, setSourceInput] = useState("");
 const removeSource = (url: string) =>
   setSources((prev) => prev.filter((u) => u !== url));
+
+
+const [isFocused, setIsFocused] = React.useState(false);
+const [recentReply, setRecentReply] = React.useState<{ id: string; text: string } | null>(null);
+
+
+
 
 // Accept “insert template” events from elsewhere (e.g., SequentDetails)
 useEffect(() => {
@@ -251,7 +292,7 @@ const effectiveUserId =
         });
       }
       invalidateDeliberation(deliberationId);
-
+    recordRecentReply(); 
       setText("");
       setSources([]);
       setConfidence(undefined);
@@ -320,8 +361,21 @@ const effectiveUserId =
     fetcher,
     { revalidateOnFocus: false }
   );
-  
-  const targetText: string = targetArg?.argument?.text ?? '';
+  const swrText = targetArg?.argument?.text ?? '';
+  const targetText = swrText || targetPreviewText || '';
+
+  const showReplyContext = isReplyMode && !!targetArgumentId; // ← use this
+
+  // capture the active reply target as "recent" when a post succeeds
+const recordRecentReply = React.useCallback(() => {
+  if (targetArgumentId && (targetText || targetPreviewText)) {
+    setRecentReply({ id: targetArgumentId, text: targetText || targetPreviewText! });
+  }
+}, [targetArgumentId, targetText, targetPreviewText]);
+
+
+
+  //const targetText: string = targetArg?.argument?.text ?? '';
   
   async function submitSimple() {
     if (!text.trim()) return;
@@ -344,6 +398,24 @@ const effectiveUserId =
       setPending(false);
     }
   }
+
+
+useEffect(() => {
+  const onFocus = (ev: any) => {
+    if (!ev?.detail || ev.detail.deliberationId === deliberationId) {
+      textareaRef.current?.focus();
+    }
+  };
+  window.addEventListener('mesh:composer:focus', onFocus);
+  return () => window.removeEventListener('mesh:composer:focus', onFocus);
+}, [deliberationId]);
+
+// Also focus after a new reply target arrives (nice UX)
+useEffect(() => {
+  if (targetArgumentId) {
+    setTimeout(() => textareaRef.current?.focus(), 50);
+  }
+}, [targetArgumentId]);
 
   async function submitYesBut() {
     if (!targetArgumentId) return; // needs a target
@@ -470,7 +542,7 @@ async function saveWork() {
   }
 }
 return (
-  <div className="group relative rounded-2xl panel-edge bg-indigo-50/70  p-4 backdrop-blur space-y-3">
+  <div className="group relative rounded-2xl panel-edge bg-indigo-50/70  p-4 backdrop-blur space-y-3" id={key}>
     {/* slim top shine */}
     <div className="pointer-events-none absolute inset-x-2 top-1 h-px bg-gradient-to-b from-white/70 to-transparent" />
 
@@ -481,40 +553,55 @@ return (
         {pending ? "Posting…" : "⌘/Ctrl + Enter to post"}
       </div>
     </div>
-
+       {showReplyContext && (
+ <div
+      {...rest}
+      className={[
+        "group relative rounded-2xl panel-edge bg-indigo-50/70 p-4 backdrop-blur space-y-3",
+        "scroll-mt-24", // plays nice with sticky headers
+        className || ""
+      ].join(" ")}
+    >
     {/* Replying-to context */}
-    {targetArgumentId && (
-      <div className="rounded-md border border-slate-200/80 bg-slate-50/70 p-2">
-        <div className="mb-1 flex items-center justify-between">
-          <span className="text-[10px] uppercase tracking-wide text-neutral-500">
-            Replying to
-          </span>
-          <button
-            className="btnv2--ghost btnv2--sm"
-            onClick={() =>
-              insertAtCursor(
-                targetText ? `> ${targetText}\n\n` : "> (quote)\n\n"
-              )
-            }
-            title="Insert a quote of the target"
-          >
-            Quote
-          </button>
-        </div>
-        <div className="line-clamp-2 text-[13px] text-slate-700">
-          {targetText || "…"}
-        </div>
-      </div>
-    )}
 
+        <div className="rounded-md border-none bg-transparent p-0">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] uppercase tracking-wide text-neutral-500">
+              Replying to
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                className="btnv2--ghost btnv2--sm"
+                onClick={() => insertAtCursor(targetText ? `> ${targetText}\n\n` : '> (quote)\n\n')}
+              >
+                Quote
+              </button>
+              <button
+                className="btnv2--ghost btnv2--sm"
+                onClick={() => onClearReply?.()}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+          <div className="line-clamp-2 text-[13px] text-slate-700">
+            {targetText || '…'}
+          </div>
+        </div>
+
+    </div>
+          )}
     {/* Textarea + char counter */}
-    <div className="space-y-2">
+    <div className="space-y-2 ">
       <textarea
+      id="delib-composer-anchor"
         ref={textareaRef}
-        className="w-full resize-none rounded-lg articlesearchfield px-3 py-2 bg-white text-sm "
+        className="w-full resize-none rounded-lg articlesearchfield px-3 py-2 mt-4 bg-white text-sm "
         rows={4}
         placeholder="Respond here…"
         value={text}
+        onFocus={() => setIsFocused(true)}
+onBlur={() => setIsFocused(false)}
         onChange={(e) => setText(e.target.value)}
       />
       {(() => {
@@ -535,7 +622,10 @@ return (
           </>
         );
       })()}
+      <MissingAxiomBar insert={insertAtCursor} />
+
       <EnthymemeNudge
+      insert={insertAtCursor}
         targetType="argument"
         targetId={targetArgumentId}
         draft={text}
@@ -758,7 +848,7 @@ return (
           }}
           title='Posts two linked items: Concession + Counter (concede + rebut)'
         >
-          Yes, … but …
+         Counterargument
         </button>
       </div>
     )}
@@ -784,7 +874,7 @@ return (
     {/* Yes, … but … */}
     {showYesBut && (
       <div className="space-y-2 rounded border border-amber-200 bg-amber-50/40 p-3">
-        <div className="text-xs font-medium">Yes, … but …</div>
+        <div className="text-xs font-medium">Contingent Agreement</div>
 
         <div className="grid gap-2 sm:grid-cols-2">
           <div>
@@ -866,8 +956,7 @@ return (
       )}
     </div>
 
-    {/* Edge type (support/rebut/undercut) */}
-    {targetArgumentId && (
+    {/* {targetArgumentId && (
       <div className="flex flex-wrap items-center gap-3">
         <span className="text-sm text-neutral-700">This is a reply</span>
         <Segmented
@@ -884,7 +973,7 @@ return (
           “Undercut” challenges the link, not the claim.
         </span>
       </div>
-    )}
+    )} */}
 
     {/* Post */}
     <div className="flex justify-start">

@@ -20,7 +20,7 @@ import CitePickerModal from "@/components/citations/CitePickerModal";
 
 import { DecisionBanner } from "../decision/DecisionBanner";
 // import CitePickerInline from "@/components/citations/CitePickerInline";
-
+import { scrollIntoViewById } from "@/lib/client/scroll";
 // Mini-ML
 import { useRhetoric } from "@/components/rhetoric/RhetoricContext";
 import { analyzeText } from "@/components/rhetoric/detectors";
@@ -584,6 +584,118 @@ function EvidenceChecklist({ text }: { text: string }) {
   );
 }
 
+
+function ClampReveal({
+  id,
+  text,
+  lines = 4,
+}: { id: string; text: string; lines?: number }) {
+  const [open, setOpen] = React.useState<boolean>(() => {
+    try { return localStorage.getItem(`dlgrow:${id}:open`) === '1'; } catch { return false; }
+  });
+  const [showDialog, setShowDialog] = React.useState(false);
+  const [canExpand, setCanExpand] = React.useState(false);
+  const bodyRef = React.useRef<HTMLDivElement | null>(null);
+
+  // Re-check overflow when text changes or we toggle
+  React.useEffect(() => {
+    const el = bodyRef.current;
+    if (!el) return;
+    // Temporarily remove clamp to measure intrinsic height
+    const prev = el.style.webkitLineClamp as any;
+    el.style.webkitLineClamp = open ? 'unset' : String(lines);
+    // give the browser a tick
+    requestAnimationFrame(() => {
+      const overflow = el.scrollHeight > el.clientHeight + 1;
+      setCanExpand(overflow);
+      el.style.webkitLineClamp = prev ?? '';
+    });
+  }, [text, open, lines]);
+
+  function toggle() {
+    setOpen((o) => {
+      const n = !o;
+      try { localStorage.setItem(`dlgrow:${id}:open`, n ? '1' : '0'); } catch {}
+      return n;
+    });
+  }
+
+  const gradient =
+    'pointer-events-none absolute inset-x-0 bottom-0 h-8 ' +
+    'bg-gradient-to-t from-white/90 to-transparent dark:from-slate-900/80'; // consistent glass fade
+
+  return (
+    <div className="relative group">
+      {/* Body */}
+      <div
+        ref={bodyRef}
+        className={[
+          'text-sm whitespace-pre-wrap transition-all',
+          open ? '' : `line-clamp-${lines}`,
+        ].join(' ')}
+        // Accessibility
+        aria-expanded={open}
+        id={`dlg-body-${id}`}
+      >
+        {text}
+      </div>
+
+      {/* Fade when clamped */}
+      {!open && canExpand && <div className={gradient} />}
+
+      {/* Controls */}
+      {canExpand && (
+        <div className="mt-1 flex items-center gap-2">
+          <button
+            className="btnv2--ghost btnv2--sm px-2 py-0.5 rounded"
+            onClick={toggle}
+            aria-controls={`dlg-body-${id}`}
+          >
+            {open ? 'Less' : 'More'}
+          </button>
+
+          {/* Open in dialog */}
+          <button
+            className="btnv2--ghost btnv2--sm px-2 py-0.5 rounded"
+            onClick={() => setShowDialog(true)}
+            title="Open full text"
+          >
+            Open full
+          </button>
+        </div>
+      )}
+
+      {/* Full-screen dialog (copy-friendly) */}
+      <Dialog open={showDialog} onOpenChange={setShowDialog}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Argument text</DialogTitle>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-y-auto whitespace-pre-wrap text-sm">
+            {text}
+          </div>
+          <div className="mt-3 flex gap-2">
+            <button
+              className="btnv2--ghost btnv2--sm rounded px-2 py-1"
+              onClick={async () => {
+                try { await navigator.clipboard.writeText(text); } catch {}
+              }}
+            >
+              Copy
+            </button>
+            <button
+              className="btnv2--ghost btnv2--sm rounded px-2 py-1"
+              onClick={() => setShowDialog(false)}
+            >
+              Close
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 // ------ Row component (now *receives* Dial & RSA maps) ------
 type RSARes = { R: number; S: number; A: number };
 function ArgRow({
@@ -804,11 +916,11 @@ function ArgRow({
                 targetType="argument"
                 targetId={a.id}
               />
-              <DecisionBanner deliberationId={deliberationId} subjectType="claim" subjectId={a.claimId}/>
-              <DecisionBanner
-    deliberationId={deliberationId}
-    subjectType="claim"
-    subjectId={a.claimId}
+            <DecisionBanner deliberationId={deliberationId} subjectType="claim" subjectId={a.claimId ?? ""}/>
+            <DecisionBanner
+  deliberationId={deliberationId}
+  subjectType="claim"
+  subjectId={a.claimId ?? ""}
 />
               {/* <button
   className="text-[11px] px-2 py-0.5 border rounded"
@@ -818,7 +930,7 @@ function ArgRow({
   Confirm (panel)
 </button> */}
               <DialBadge
-                stats={dialStats}
+                stats={dialStats ?? {}}
                 targetType="argument"
                 targetId={a.id}
               />
@@ -828,12 +940,9 @@ function ArgRow({
 
 <IssueBadge
   deliberationId={deliberationId}
-  argumentId={a.id}
-  onClick={() => {
-    window.dispatchEvent(new CustomEvent('issues:open', {
-      detail: { deliberationId, argumentId: a.id }
-    }));
-  }}
+  targetType="argument"
+ targetId={a.id}
+ onClick={() => onOpenIssuesFor(a.id)}
 />
 
 
@@ -1068,7 +1177,7 @@ function ArgRow({
       <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
         <button
           className="px-2 py-1 flex-none  rounded text-xs btnv2--ghost"
-          onClick={() => { onReplyTo(a.id); scrollComposerIntoView(); }}
+  onClick={() => onReplyTo(a.id)} // <-- send preview
         >
           Reply
         </button>
@@ -1170,81 +1279,215 @@ function ArgRow({
     </div>
   );
 }
+// ------ DialogicalRow (upgrade) -------------------------------------------
+// import useSWR from 'swr';
+// import { InlineMoveForm } from '@/components/dialogue/InlineMoveForm';
+// import { useLudicsPhase } from '@/components/dialogue/useLudicsPhase';
+// import AnchorToMapButton from '@/components/map/AnchorToMapButton';
+// import { LegalMoveChips } from '@/components/dialogue/LegalMoveChips';
+
+// const fetcher = (u: string)=>fetch(u,{cache:'no-store'}).then(r=>r.json());
+
+function HUDBadge({ ok, label }:{ ok:boolean; label:string }) {
+  const cls = ok
+    ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+    : 'border-slate-200 bg-white/70 text-slate-700';
+  return <span className={`px-1.5 py-0.5 rounded border text-[10px] ${cls}`}>{label}</span>;
+}
+
+function StatPill({ tone, children }:{ tone:'attack'|'surrender'|'neutral'; children:React.ReactNode }) {
+  const cls =
+    tone === 'attack'
+      ? 'border-rose-200 bg-rose-50 text-rose-700'
+      : tone === 'surrender'
+      ? 'border-sky-200 bg-sky-50 text-sky-700'
+      : 'border-slate-200 bg-white/70 text-slate-700';
+  return <span className={`px-1.5 py-0.5 rounded border text-[10px] ${cls}`}>{children}</span>;
+}
 
 function DialogicalRow({
   a,
   deliberationId,
   onReplyTo,
   onOpenDispute,
-  whyLocusPath,          // e.g., "0.3" if this row is about a specific WHY; optional
-
+  whyLocusPath,          // e.g. "0.3" if this row is about a specific WHY; optional
   onPosted,
 }: {
   a: Arg;
   deliberationId: string;
   onReplyTo: (id: string) => void;
   onOpenDispute: (id: string, label: string) => void;
-  whyLocusPath?: string;              // pass from parent when known
-
+  whyLocusPath?: string;
   onPosted?: () => void;
 }) {
   const created = new Date(a.createdAt).toLocaleString();
 
+  // Derive the “commit owner” from the panel’s phase (matches LudicsPanel broadcast)
   const phase = useLudicsPhase();     // 'neutral' | 'focus-P' | 'focus-O'
   const commitOwner = phase === 'focus-O' ? 'Opponent' : 'Proponent';
 
-
+  // Target resolution: claim rows post to claim; otherwise to argument
   const targetType: 'argument' | 'claim' = a.claimId ? 'claim' : 'argument';
   const targetId = a.claimId ?? a.id;
 
+  // Prefer provided locusPath; default to root ("0")
   const locusPath = whyLocusPath ?? '0';
-  const showDevMoves = false; // or from env/config
+
+  // --- Row Move HUD: summarize legal options now (defensive to endpoint shape)
+  const lmKey = `/api/dialogue/legal-moves?deliberationId=${encodeURIComponent(deliberationId)}&targetType=${targetType}&targetId=${encodeURIComponent(targetId)}&locusPath=${encodeURIComponent(locusPath)}`;
+  const { data: legal } = useSWR<{ items?: Array<{kind:string;disabled?:boolean;force?:'ATTACK'|'SURRENDER'|'NEUTRAL'}> }>(lmKey, fetcher);
+
+  const attackCount =
+    (legal?.items || []).filter(m => (m.force ?? (m.kind === 'WHY' || m.kind === 'GROUNDS' ? 'ATTACK' : 'NEUTRAL')) === 'ATTACK' && !m.disabled).length;
+  const surrenderCount =
+    (legal?.items || []).filter(m => (m.force ?? (m.kind === 'CONCEDE' || m.kind === 'RETRACT' || m.kind === 'CLOSE' ? 'SURRENDER' : 'NEUTRAL')) === 'SURRENDER' && !m.disabled).length;
+  const canClose = (legal?.items || []).some(m => m.kind === 'CLOSE' && !m.disabled);
+
+  // CQ presence hint (claims only)
+  const { data: openCqs } = useSWR<{ ok:boolean; keys:string[] }>(
+    targetType === 'claim'
+      ? `/api/dialogue/open-cqs?deliberationId=${encodeURIComponent(deliberationId)}&targetId=${encodeURIComponent(targetId)}`
+      : null,
+    fetcher
+  );
+  const openCQCount = Array.isArray(openCqs?.keys) ? openCqs!.keys.length : 0;
+
+  // Row text (clamped, consistent with ArgumentsList's helper)
+  function Clamped({ text, lines = 3 }:{ text:string; lines?:number }) {
+    const [open, setOpen] = React.useState(false);
+    return open ? (
+      <div className="text-sm whitespace-pre-wrap">{text}</div>
+    ) : (
+      <div className="relative">
+        <div className={`text-sm whitespace-pre-wrap line-clamp-${lines}`}>{text}</div>
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-white/90 to-transparent" />
+        <button className="btnv2--ghost py-0 px-2 rounded btnv2--sm absolute right-0 bottom-0 translate-y-1 translate-x-2"
+                onClick={()=>setOpen(true)}>More</button>
+      </div>
+    );
+  }
+
+  async function post(kind:'WHY'|'GROUNDS'|'CONCEDE'|'RETRACT'|'CLOSE', payload:any = {}) {
+    await fetch('/api/dialogue/move', {
+      method:'POST',
+      headers:{'content-type':'application/json'},
+      body: JSON.stringify({
+        deliberationId,
+        targetType, targetId, kind,
+        payload: { locusPath, ...payload },
+        autoCompile:true, autoStep:true, phase:'neutral',
+      }),
+    }).catch(()=>null);
+    window.dispatchEvent(new CustomEvent('dialogue:moves:refresh'));
+    onPosted?.();
+  }
 
   return (
     <div id={`arg-${a.id}`} className="p-3 border-b">
-      <div className="text-xs text-neutral-500 mb-1">{created}</div>
-      <div className="w-fit h-fit px-2 py-1 bg-slate-50 border rounded">
-      <div className="text-sm whitespace-pre-wrap line-clamp-3">{a.text}</div>
-</div>
-      <div className="mt-2 flex items-center gap-2">
+      {/* Header strip */}
+      <div className="flex items-center justify-between mb-1">
+        <div className="text-[11px] text-neutral-500">
+          <span className="inline-flex items-center rounded-full border border-slate-200 bg-white/70 px-2 py-0.5">{created}</span>
+          <span className="ml-2 inline-flex items-center rounded-full border border-slate-200 bg-white/70 px-2 py-0.5">
+            Locus <b className="ml-1">{locusPath}</b>
+          </span>
+          <span className="ml-2 inline-flex items-center rounded-full border border-slate-200 bg-white/70 px-2 py-0.5">
+            Commit owner: <b className="ml-1">{commitOwner}</b>
+          </span>
+          {targetType === 'claim' && (
+            <span className="ml-2 inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-amber-700"
+                  title="Open critical questions for this claim">
+              CQs open: {openCQCount}
+            </span>
+          )}
+        </div>
         <AnchorToMapButton argumentId={a.id} />
-       
-{showDevMoves && (
-  <DialogueMoves
-    deliberationId={deliberationId}
-    targetType={targetType}
-    targetId={targetId}
-    onMoved={() => onPosted?.()}
-/>
-)}
-  
+      </div>
 
-<LegalMoveChips
-  deliberationId={deliberationId}
-  targetType={targetType}         // claim vs argument
-  targetId={targetId}
-  locusPath={locusPath}           // row- or thread-specific
-  commitOwner={commitOwner}       // derived from phase
-  onPosted={onPosted}
-/>
+      {/* Body */}
+      <div className="w-fit h-fit px-2 py-1 bg-slate-50 border rounded">
+        <ClampReveal id={a.id} text={a.text} lines={4} />
+
+      </div>
+
+      {/* Row Move HUD */}
+      <div className="mt-2 flex items-center gap-2">
+        <StatPill tone="attack">ATTACK: {attackCount}</StatPill>
+        <StatPill tone="surrender">CONCEDE: {surrenderCount}</StatPill>
+        <HUDBadge ok={!!canClose} label={canClose ? 'Closable (†)' : 'Not closable'} />
+      </div>
+
+      {/* Legal move chips (uses your existing component) */}
+      <div className="mt-2">
+        <LegalMoveChips
+          deliberationId={deliberationId}
+          targetType={targetType}
+          targetId={targetId}
+          locusPath={locusPath}
+          commitOwner={commitOwner}
+          onPosted={onPosted}
+        />
+      </div>
+
+      {/* Inline WHY & GROUNDS */}
+      <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
+        <InlineMoveForm
+          placeholder="Challenge this: WHY …"
+          onSubmit={async (note) => {
+            await post('WHY', { note });
+          }}
+        />
+        <InlineMoveForm
+          placeholder="Provide grounds…"
+          onSubmit={async (brief) => {
+            await post('GROUNDS', { brief });
+          }}
+        />
+      </div>
+
+      {/* Footer actions */}
+      <div className="mt-2 flex items-center gap-2">
         <button
-          className="px-2 py-1 btnv2--ghost  rounded text-xs"
-          onClick={() => { onReplyTo(a.id); scrollComposerIntoView(); }}
+          className="px-2 py-1 btnv2--ghost rounded text-xs"
+          onClick={() => onReplyTo(a.id)} // <-- send preview
+
+          
         >
           Reply
         </button>
-               <button className="px-2 py-1 btnv2--ghost  rounded text-xs"
-                onClick={() => onOpenDispute(a.id, 'Meaning / Scope')}>
-         Open issue
-       </button>
-  
+        <button
+          className="px-2 py-1 btnv2--ghost rounded text-xs"
+          onClick={() => onOpenDispute(a.id, targetType === 'claim' ? 'Meaning / Scope (claim)' : 'Meaning / Scope')}>
+          Open issue
+        </button>
+        {/* Quick surrender/close helpers */}
+        <button
+          className="px-2 py-1 btnv2--ghost rounded text-xs"
+          onClick={() => post('CONCEDE', { as:'CONCEDE' })}
+          title="Concede here"
+        >
+          Concede
+        </button>
+        <button
+          className="px-2 py-1 btnv2--ghost rounded text-xs"
+          onClick={() => post('RETRACT')}
+          title="Retract here"
+        >
+          Retract
+        </button>
+        <button
+          className="px-2 py-1 border rounded text-xs"
+          disabled={!canClose}
+          onClick={() => canClose && post('CLOSE')}
+          title="Close this locus (†)"
+        >
+          Close (†)
+        </button>
       </div>
-
     </div>
-    
   );
-  
 }
+
 function DiscussInLudicsButton({
   deliberationId, argumentId, setTarget
 }: { deliberationId: string; argumentId: string; setTarget: (t:{type:'argument'|'claim',id:string})=>void }) {
@@ -1263,7 +1506,9 @@ function DiscussInLudicsButton({
 
       // 2) compile/step
       await fetch('/api/ludics/compile-step', {
-        method: 'POST',
+        method: 'POST',  
+        credentials: 'include',
+
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ deliberationId, phase: 'neutral' }),
       }).catch(()=>{});

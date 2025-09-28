@@ -1,4 +1,4 @@
-export type MoveKind = 'ASSERT'|'WHY'|'GROUNDS'|'RETRACT'|'CLOSE';
+export type MoveKind = "ASSERT" | "WHY" | "GROUNDS" | "RETRACT" | "CONCEDE" | "CLOSE" | "THEREFORE" | "SUPPOSE" | "DISCHARGE";
 export type MoveForce = 'ATTACK'|'SURRENDER'|'NEUTRAL';
 
 // We treat "concede" as ASSERT with a marker

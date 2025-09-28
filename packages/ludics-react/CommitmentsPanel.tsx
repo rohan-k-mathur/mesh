@@ -23,28 +23,97 @@ export function CommitmentsPanel({
   const [persistDerived, setPersistDerived] = React.useState(true);
   const [filter, setFilter] = React.useState('');
 
-  const load = React.useCallback(async () => {
-    const res = await fetch(
-      `/api/commitments/state?dialogueId=${encodeURIComponent(dialogueId)}&ownerId=${encodeURIComponent(ownerId)}`,
-      { cache:'no-store' }
-    ).then(r=>r.json()).catch(()=>null);
-    if (res?.ok) {
-      setFacts((res.facts ?? []).map(toFact));
-      setRules((res.rules ?? []) as RuleRow[]);
-    }
-  }, [dialogueId, ownerId]);
 
-  React.useEffect(() => { load(); }, [load]);
+    // --- Debounced/coalesced loader state ---
+    const DEBOUNCE_MS = 240;
+    const schedRef = React.useRef<{
+      timer: ReturnType<typeof setTimeout> | null;
+      inflight: boolean;
+      next: boolean;
+      ac: AbortController | null;
+      mounted: boolean;
+    }>({ timer: null, inflight: false, next: false, ac: null, mounted: false });
+  
+    const doFetch = React.useCallback(async (signal?: AbortSignal) => {
+      const url = `/api/commitments/state?dialogueId=${encodeURIComponent(dialogueId)}&ownerId=${encodeURIComponent(ownerId)}`;
+      const r = await fetch(url, { cache:'no-store', signal });
+      if (!r.ok) throw new Error(`${r.status}`);
+      const j = await r.json();
+      return j;
+    }, [dialogueId, ownerId]);
+  
+    const applyState = React.useCallback((j:any) => {
+      setFacts((j.facts ?? []).map(toFact));
+      setRules((j.rules ?? []) as RuleRow[]);
+      // callers that need summary can compute locally on Infer; keep panel lean here
+    }, []);
+  
+    const flushNow = React.useCallback(async () => {
+      const s = schedRef.current;
+      if (s.inflight) { s.next = true; return; }
+      s.inflight = true;
+      try {
+        s.ac?.abort();
+        s.ac = new AbortController();
+        const j = await doFetch(s.ac.signal);
+        if (schedRef.current.mounted) applyState(j);
+      } catch (_) {
+        // ignore aborts
+      } finally {
+        s.inflight = false;
+        if (s.next) { s.next = false; // run once more immediately
+          // schedule microtask (no extra debounce), avoids recursion
+          Promise.resolve().then(flushNow);
+        }
+      }
+    }, [doFetch, applyState]);
+  
+    const scheduleLoad = React.useCallback((reason?: string) => {
+      const s = schedRef.current;
+      if (s.timer) clearTimeout(s.timer);
+      s.timer = setTimeout(() => {
+        s.timer = null;
+        flushNow();
+      }, DEBOUNCE_MS);
+    }, [flushNow]);
+
+      // ✅ Provide a stable alias used by the UI and helpers
+  const load = React.useCallback(async () => {
+    await flushNow();
+  }, [flushNow]);
+ 
+    // initial load
+    React.useEffect(() => {
+      const s = schedRef.current;
+      s.mounted = true;
+      scheduleLoad('mount');
+      return () => {
+        s.mounted = false;
+        if (s.timer) clearTimeout(s.timer);
+        s.ac?.abort();
+      };
+    }, [scheduleLoad, dialogueId, ownerId]);
 
   // event bus refresh (optional)
   React.useEffect(() => {
     const h = (e: any) => {
       const d = e?.detail;
-      if (d?.dialogueId === dialogueId && d?.ownerId === ownerId) load();
+      if (d?.dialogueId === dialogueId && d?.ownerId === ownerId) scheduleLoad('cs');
     };
     window.addEventListener('dialogue:cs:refresh', h as any);
     return () => window.removeEventListener('dialogue:cs:refresh', h as any);
-  }, [dialogueId, ownerId, load]);
+    }, [dialogueId, ownerId, scheduleLoad]);
+  
+    // coalesce general move bursts too
+    React.useEffect(() => {
+      const h = (e: any) => {
+        const d = e?.detail;
+        if (d?.deliberationId && d.deliberationId !== dialogueId) return;
+        scheduleLoad('moves');
+      };
+      window.addEventListener('dialogue:moves:refresh', h as any);
+      return () => window.removeEventListener('dialogue:moves:refresh', h as any);
+    }, [dialogueId, scheduleLoad]);
 
   async function apply() {
     setBusy(true);
@@ -66,6 +135,8 @@ export function CommitmentsPanel({
       const contradictions = (res?.contradictions ?? []) as {a:string;b:string}[];
 
       setSummary({ derived, contradictions });
+  // Use dialogueId as deliberationId for this context
+  const deliberationId = dialogueId;
   if ((contradictions ?? []).length) {
     fetch('/api/eristic/marks', {
       method: 'POST', headers: { 'content-type': 'application/json' },
@@ -83,7 +154,7 @@ export function CommitmentsPanel({
 }
       onChanged?.(res);
 
-      await load();
+     scheduleLoad('apply');
       // toast could use res.code === 'CS_CONTRADICTION'
     } finally { setBusy(false); }
   }
@@ -101,7 +172,7 @@ export function CommitmentsPanel({
           ops: { add: [{ label: v, basePolarity: 'pos' as const, baseLocusPath: '0' }] }
         }),
       });
-      await load();
+      scheduleLoad('add-fact');
     } finally { setBusy(false); }
   };
 
@@ -118,7 +189,7 @@ export function CommitmentsPanel({
           ops: { add: [{ label: v, basePolarity: 'neg' as const, baseLocusPath: '0' }] }
         }),
       });
-      await load();
+     scheduleLoad('add-rule');
     } finally { setBusy(false); }
   };
 
@@ -132,7 +203,7 @@ export function CommitmentsPanel({
           ops: { erase: [{ byLabel: label, byLocusPath: '0' }] }
         }),
       });
-      await load();
+      scheduleLoad('erase');
     } finally { setBusy(false); }
   };
 
@@ -145,7 +216,7 @@ export function CommitmentsPanel({
           dialogueId, ownerId, label: f.label, entitled: !(f.entitled !== false),
         }),
       });
-      await load();
+       scheduleLoad('entitlement');
     } finally { setBusy(false); }
   };
    function parseRule(s: string) {

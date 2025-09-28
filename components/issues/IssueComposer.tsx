@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 export default function IssueComposer({
   deliberationId,
   initialArgumentId,
+  initialTarget, // { type:'argument'|'claim'|'card', id:string }
   initialLabel,
   open,
   onOpenChange,
@@ -12,6 +13,8 @@ export default function IssueComposer({
 }: {
   deliberationId: string;
   initialArgumentId?: string;
+  initialTarget?: { type:'argument'|'claim'|'card'; id:string };
+   
   initialLabel?: string;
   open: boolean;
   onOpenChange: (o:boolean)=>void;
@@ -28,7 +31,12 @@ export default function IssueComposer({
     try {
       const res = await fetch(`/api/deliberations/${encodeURIComponent(deliberationId)}/issues`, {
         method:'POST', headers:{'content-type':'application/json'},
-        body: JSON.stringify({ label: label.trim(), description: desc.trim() || undefined, links: initialArgumentId ? [initialArgumentId] : [] }),
+          body: JSON.stringify({
+            label: label.trim(),
+            description: desc.trim() || undefined,
+            links: initialArgumentId ? [initialArgumentId] : [],
+            // optional: future—if you add polymorphic links, pass {targetType,id}
+          }),
       });
       if (!res.ok) throw new Error(await res.text());
       const { issue } = await res.json();

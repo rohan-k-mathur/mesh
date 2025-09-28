@@ -20,6 +20,8 @@ import WorksRail from "../work/WorksRail";
 import WorksList from "../work/WorksList";
 import LudicsPanel from "./LudicsPanel";
 import BehaviourInspectorCard from '@/components/ludics/BehaviourInspectorCard';
+import { scrollIntoViewById } from "@/lib/client/scroll";
+
 import React from "react";
 import clsx from "clsx";
 import {
@@ -413,7 +415,38 @@ export default function DeepDivePanel({
 
 const [pref, setPref] = useState<PrefState>({ profile: 'community' });
 const [prefLoading, setPrefLoading] = useState(false);
+  const [replyTargetId, setReplyTargetId] = React.useState<string|null>(null);
+const [replyTarget, setReplyTarget] = React.useState<{id:string; preview?:string} | null>(null);
 
+  const [replyPreview, setReplyPreview] = React.useState<string>("");
+
+  // function handleReplyTo(id: string, preview?: string) {
+  //   setReplyTargetId(id);
+  //   if (preview) setReplyPreview(preview);
+  //   // after state commits, scroll + focus
+  //   requestAnimationFrame(() => {
+  //     scrollIntoViewById("delib-composer-anchor", 80);
+  //     window.dispatchEvent(new CustomEvent('mesh:composer:focus', { detail: { deliberationId } }));
+  //   });
+  // }
+function handleReplyTo(id: string, preview?: string) {
+  setReplyTarget({ id, preview });
+  requestAnimationFrame(() => {
+    scrollIntoViewById("delib-composer-anchor", 80);
+    window.dispatchEvent(new CustomEvent("mesh:composer:focus", { detail: { deliberationId } }));
+  });
+}
+
+
+
+//   React.useEffect(() => {
+//   const fn = (e:any) => {
+//     if (e?.detail?.deliberationId && e.detail.deliberationId !== deliberationId) return;
+//     setReplyTargetId(null);
+//   };
+//   window.addEventListener('mesh:composer:clear-reply', fn);
+//   return () => window.removeEventListener('mesh:composer:clear-reply', fn);
+// }, [deliberationId]);
 
   // Defer gating of UI until render; always call hooks above.
   const ready = !loading && !!proId && !!oppId;
@@ -565,7 +598,8 @@ async function updatePref(next: PrefProfile) {
           deliberationId={deliberationId}
           onVisibleTextsChanged={(texts)=>setRhetoricSample(texts.join(' '))}
 
-          onReplyTo={(id) => setReplyTo(id)}
+          // onReplyTo={(id) => setReplyTo(id)}
+               onReplyTo={handleReplyTo}
           onChanged={() => compute(sel?.rule)}
         />
 
@@ -573,16 +607,32 @@ async function updatePref(next: PrefProfile) {
 </SectionCard>
       <SectionCard>
       
-      
-
+{/*       
         <DeliberationComposer
+        id="delib-composer-anchor"
           deliberationId={deliberationId}
+            isReplyMode={!!replyTarget}    
+           targetArgumentId={replyTargetId ?? undefined}
+                     targetPreviewText={replyPreview}
+onClearReply={() => setReplyTarget(null)}
           onPosted={() => {
-            setReplyTo(null);
+       setReplyTarget(null); 
             compute(sel?.rule);
           }}
-          targetArgumentId={replyTo ?? undefined}
-        />
+ 
+        /> */}
+        <DeliberationComposer
+  id="delib-composer-anchor"
+  deliberationId={deliberationId}
+  isReplyMode={!!replyTarget}           
+  targetArgumentId={replyTarget?.id}
+  targetPreviewText={replyTarget?.preview}
+  onClearReply={() => setReplyTarget(null)}  
+  onPosted={() => {
+    setReplyTarget(null);             
+    compute(sel?.rule);
+  }}
+/>
       </SectionCard>
 
       {/*  Mode Tabs */}

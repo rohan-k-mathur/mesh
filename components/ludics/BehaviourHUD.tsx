@@ -6,10 +6,10 @@ import useSWR from 'swr';
 import { isPrefixClosed, isDaimonClosed, isPositivelySaturated, isNegativelySaturated, isLudicable, dualPath, type Path, type Act } from '@/packages/ludics-core/ve';
 import { isPath } from '@/packages/ludics-core/ve/pathCheck';
 const fetcher = (u: string) => fetch(u, { cache: 'no-store' }).then(r => r.json());
-
+import type { MoveKind } from '@/lib/dialogue/types';
 type MoveRow = {
   id: string;
-  kind: 'ASSERT'|'WHY'|'GROUNDS'|'RETRACT'|'CONCEDE'|'CLOSE';
+  kind: MoveKind;
   payload: { acts?: any[] } | null;
   createdAt: string;
 };
@@ -188,7 +188,7 @@ export function BehaviourHUD({ deliberationId }: { deliberationId: string }) {
           {sizeHint==='C∞' && <span className="px-1.5 py-0.5 rounded border bg-indigo-50">≈ C∞ (reg. + unif. bounded)</span>}
           </div>
          <div className="text-[11px] opacity-70 mt-1">
-           Heuristic per Thm. 6.1: regular + (essentially finite ≈ small set of short paths) ↔ Cf; regular + uniformly bounded ↔ C∞. :contentReference[oaicite:10]{index=10}
+           Heuristic per Thm. 6.1: regular + (essentially finite ≈ small set of short paths) ↔ Cf; regular + uniformly bounded ↔ C∞. :contentReference[oaicite:10]{10}
          </div>
           <div className="mt-1 flex items-center gap-2">
             <span className="inline-block px-1.5 py-0.5 rounded bg-slate-50 border">Paths observed: {uniqueCount}</span>

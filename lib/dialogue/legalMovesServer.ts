@@ -1,9 +1,9 @@
 // lib/dialogue/legalMovesServer.ts
 import { prisma } from '@/lib/prismaclient';
 import { stepInteraction } from '@/packages/ludics-engine/stepper';
-
+import type { MoveKind } from './types';
 export type LegalMove = {
-  kind: 'ASSERT'|'WHY'|'GROUNDS'|'RETRACT'|'CONCEDE'|'CLOSE';
+  kind: MoveKind;
   label: string;
   payload?: any;
   disabled?: boolean;
