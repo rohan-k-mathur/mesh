@@ -60,6 +60,8 @@ import MonologicalToolbar from "@/components/monological/MonologicalToolbar";
 import { useAuth } from "@/lib/AuthContext";
 
 import { useDialogueTarget } from '@/components/dialogue/DialogueTargetContext';
+import { MoveKind } from "@/lib/dialogue/types";
+import { LegalMoveToolbar } from "@/components/dialogue/LegalMoveToolbar";
 
 
 const PAGE = 20;
@@ -517,7 +519,7 @@ function openIssuesFor(argumentId: string) {
                   deliberationId={deliberationId}
                   onReplyTo={onReplyTo}
                   onOpenDispute={handleOpenDispute}
-                   // whyLocusPath={whyMeta?.locusPath /* "0.3" when known */}
+          //  whyLocusPath={whyMeta?.locusPath /* "0.3" when known */}
 
                 />
               ) : (
@@ -1305,6 +1307,7 @@ function StatPill({ tone, children }:{ tone:'attack'|'surrender'|'neutral'; chil
   return <span className={`px-1.5 py-0.5 rounded border text-[10px] ${cls}`}>{children}</span>;
 }
 
+
 function DialogicalRow({
   a,
   deliberationId,
@@ -1335,13 +1338,20 @@ function DialogicalRow({
 
   // --- Row Move HUD: summarize legal options now (defensive to endpoint shape)
   const lmKey = `/api/dialogue/legal-moves?deliberationId=${encodeURIComponent(deliberationId)}&targetType=${targetType}&targetId=${encodeURIComponent(targetId)}&locusPath=${encodeURIComponent(locusPath)}`;
-  const { data: legal } = useSWR<{ items?: Array<{kind:string;disabled?:boolean;force?:'ATTACK'|'SURRENDER'|'NEUTRAL'}> }>(lmKey, fetcher);
+  // const { data: legal } = useSWR<{ items?: Array<{kind:string;disabled?:boolean;force?:'ATTACK'|'SURRENDER'|'NEUTRAL'}> }>(lmKey, fetcher);
 
-  const attackCount =
-    (legal?.items || []).filter(m => (m.force ?? (m.kind === 'WHY' || m.kind === 'GROUNDS' ? 'ATTACK' : 'NEUTRAL')) === 'ATTACK' && !m.disabled).length;
-  const surrenderCount =
-    (legal?.items || []).filter(m => (m.force ?? (m.kind === 'CONCEDE' || m.kind === 'RETRACT' || m.kind === 'CLOSE' ? 'SURRENDER' : 'NEUTRAL')) === 'SURRENDER' && !m.disabled).length;
-  const canClose = (legal?.items || []).some(m => m.kind === 'CLOSE' && !m.disabled);
+  // const attackCount =
+  //   (legal?.items || []).filter(m => (m.force ?? (m.kind === 'WHY' || m.kind === 'GROUNDS' ? 'ATTACK' : 'NEUTRAL')) === 'ATTACK' && !m.disabled).length;
+  // const surrenderCount =
+  //   (legal?.items || []).filter(m => (m.force ?? (m.kind === 'CONCEDE' || m.kind === 'RETRACT' || m.kind === 'CLOSE' ? 'SURRENDER' : 'NEUTRAL')) === 'SURRENDER' && !m.disabled).length;
+  // const canClose = (legal?.items || []).some(m => m.kind === 'CLOSE' && !m.disabled);
+
+const { data: legal } = useSWR<{ moves: Array<{ kind:string; disabled?:boolean; force?:'ATTACK'|'SURRENDER'|'NEUTRAL' }> }>(lmKey, fetcher);
+
+const attackCount = (legal?.moves || []).filter(m => (m.force ?? (m.kind === 'WHY' || m.kind === 'GROUNDS' ? 'ATTACK' : 'NEUTRAL')) === 'ATTACK' && !m.disabled).length;
+const surrenderCount = (legal?.moves || []).filter(m => (m.force ?? (m.kind === 'CONCEDE' || m.kind === 'RETRACT' || m.kind === 'CLOSE' ? 'SURRENDER' : 'NEUTRAL')) === 'SURRENDER' && !m.disabled).length;
+const canClose = (legal?.moves || []).some(m => m.kind === 'CLOSE' && !m.disabled);
+
 
   // CQ presence hint (claims only)
   const { data: openCqs } = useSWR<{ ok:boolean; keys:string[] }>(
@@ -1367,7 +1377,7 @@ function DialogicalRow({
     );
   }
 
-  async function post(kind:'WHY'|'GROUNDS'|'CONCEDE'|'RETRACT'|'CLOSE', payload:any = {}) {
+  async function post(kind:MoveKind, payload:any = {}) {
     await fetch('/api/dialogue/move', {
       method:'POST',
       headers:{'content-type':'application/json'},
@@ -1412,12 +1422,12 @@ function DialogicalRow({
 
       {/* Row Move HUD */}
       <div className="mt-2 flex items-center gap-2">
-        <StatPill tone="attack">ATTACK: {attackCount}</StatPill>
-        <StatPill tone="surrender">CONCEDE: {surrenderCount}</StatPill>
+        <StatPill tone="attack">ATTACKS: {attackCount}</StatPill>
+        <StatPill tone="surrender">CONCEDES: {surrenderCount}</StatPill>
         <HUDBadge ok={!!canClose} label={canClose ? 'Closable (†)' : 'Not closable'} />
       </div>
 
-      {/* Legal move chips (uses your existing component) */}
+      {/* Legal move chips (uses your existing component)
       <div className="mt-2">
         <LegalMoveChips
           deliberationId={deliberationId}
@@ -1430,7 +1440,7 @@ function DialogicalRow({
       </div>
 
       {/* Inline WHY & GROUNDS */}
-      <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
+      {/* <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
         <InlineMoveForm
           placeholder="Challenge this: WHY …"
           onSubmit={async (note) => {
@@ -1443,50 +1453,72 @@ function DialogicalRow({
             await post('GROUNDS', { brief });
           }}
         />
-      </div>
+      </div> */}
 
-      {/* Footer actions */}
-      <div className="mt-2 flex items-center gap-2">
-        <button
-          className="px-2 py-1 btnv2--ghost rounded text-xs"
-          onClick={() => onReplyTo(a.id)} // <-- send preview
 
-          
-        >
-          Reply
-        </button>
-        <button
-          className="px-2 py-1 btnv2--ghost rounded text-xs"
-          onClick={() => onOpenDispute(a.id, targetType === 'claim' ? 'Meaning / Scope (claim)' : 'Meaning / Scope')}>
-          Open issue
-        </button>
-        {/* Quick surrender/close helpers */}
-        <button
-          className="px-2 py-1 btnv2--ghost rounded text-xs"
-          onClick={() => post('CONCEDE', { as:'CONCEDE' })}
-          title="Concede here"
-        >
-          Concede
-        </button>
-        <button
-          className="px-2 py-1 btnv2--ghost rounded text-xs"
-          onClick={() => post('RETRACT')}
-          title="Retract here"
-        >
-          Retract
-        </button>
-        <button
-          className="px-2 py-1 border rounded text-xs"
-          disabled={!canClose}
-          onClick={() => canClose && post('CLOSE')}
-          title="Close this locus (†)"
-        >
-          Close (†)
-        </button>
-      </div>
+{/* Replace chips + inline forms */}
+<div className="mt-2">
+  <LegalMoveToolbar
+    deliberationId={deliberationId}
+    targetType={targetType}
+    targetId={targetId}
+    locusPath={locusPath}
+    commitOwner={commitOwner}
+    onPosted={onPosted}
+  />
+</div>
+
+    
+
+      {/* Footer – keep only neutral row actions */}
+<div className="mt-2 flex items-center gap-2">
+  <button className="px-2 py-1 btnv2--ghost rounded text-xs" onClick={() => onReplyTo(a.id)}>Reply</button>
+  <button className="px-2 py-1 btnv2--ghost rounded text-xs" onClick={() => onOpenDispute(a.id, targetType === "claim" ? "Meaning / Scope (claim)" : "Meaning / Scope")}>Open issue</button>
+  {/* leave Discuss in Ludics / Cite in your ArgRow variant */}
+</div>
     </div>
   );
 }
+
+ 
+//   <div className="mt-2 flex items-center gap-2">
+//         <button
+//           className="px-2 py-1 btnv2--ghost rounded text-xs"
+//           onClick={() => onReplyTo(a.id)} // <-- send preview
+
+          
+//         >
+//           Reply
+//         </button>
+//         <button
+//           className="px-2 py-1 btnv2--ghost rounded text-xs"
+//           onClick={() => onOpenDispute(a.id, targetType === 'claim' ? 'Meaning / Scope (claim)' : 'Meaning / Scope')}>
+//           Open issue
+//         </button>
+//         {/* Quick surrender/close helpers */}
+//         <button
+//           className="px-2 py-1 btnv2--ghost rounded text-xs"
+//           onClick={() => post('CONCEDE', { as:'CONCEDE' })}
+//           title="Concede here"
+//         >
+//           Concede
+//         </button>
+//         <button
+//           className="px-2 py-1 btnv2--ghost rounded text-xs"
+//           onClick={() => post('RETRACT')}
+//           title="Retract here"
+//         >
+//           Retract
+//         </button>
+//         <button
+//           className="px-2 py-1 border rounded text-xs"
+//           disabled={!canClose}
+//           onClick={() => canClose && post('CLOSE')}
+//           title="Close this locus (†)"
+//         >
+//           Close (†)
+//         </button>
+//       </div>
 
 function DiscussInLudicsButton({
   deliberationId, argumentId, setTarget

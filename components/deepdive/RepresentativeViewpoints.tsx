@@ -173,10 +173,14 @@ function AddressCQsDialog({
     setPosting(kind);
     setOk(null);
     try {
-      const payload =
-               kind === 'GROUNDS'
-                 ? { schemeKey: selectedCQ?.schemeKey, cqKey: selectedCQ?.cqKey, expression: note }
-                 : {};
+       const ctrl = new AbortController();
+     const to = setTimeout(() => ctrl.abort(), 12000);
+     const payload = {
+         schemeKey: selectedCQ?.schemeKey,
+         // server expects cqId (not cqKey) in other parts of your UI; align here too
+         cqId: selectedCQ?.cqKey,
+         ...(kind === 'GROUNDS' ? { expression: note } : {})
+       };
       await fetch('/api/dialogue/move', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -189,12 +193,18 @@ function AddressCQsDialog({
           autoCompile: true,
           autoStep: true,
         }),
+         signal: ctrl.signal,
       });
+       clearTimeout(to);
       window.dispatchEvent(new CustomEvent('dialogue:moves:refresh'));
       setOk(kind);
       setTimeout(() => setOk(null), 1200);
-    } catch {
-      // swallow
+
+      } catch (e: any) {
+        if (e?.name !== 'AbortError') {
+          // optional: surface a toast here
+     console.warn('CQ move failed', e);
+        }
     }
     setPosting(null);
   }
@@ -213,9 +223,9 @@ function AddressCQsDialog({
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="bg-white rounded-xl max-h-[720px] overflow-hidden sm:max-w-[880px] p-0">
+      <DialogContent className="bg-white  max-w-[1400px] w-full rounded-xl max-h-[820px] overflow-hidden sm:max-w-[880px] p-0">
         <DialogHeader className="px-4 pt-4 pb-2 border-b">
-          <DialogTitle>Address Critical Questions — View {viewIndex + 1}</DialogTitle>
+          <DialogTitle>Address Critical Questions — View {viewIndex   + 1}</DialogTitle>
           {targetClaim && (
             <div className="mt-1 text-[11px] text-neutral-600">
               Claim: “{(claimsById.get(targetClaim) ?? targetClaim).slice(0, 120)}”
@@ -269,9 +279,10 @@ function AddressCQsDialog({
               {targetClaim ? (
     <div className="mt-2 h-[490px] overflow-y-auto rounded border">
       <CriticalQuestions
+       key={targetClaim}  
         targetType="claim"
         targetId={targetClaim}
-        createdById="current"                     // or actual viewer id
+    
         deliberationId={deliberationId}
           prefilterKeys={openCQsFor(targetClaim).length ? openCQsFor(targetClaim) : undefined}
 
@@ -886,7 +897,7 @@ export function RepresentativeViewpoints(props: {
 
       <ViewCohortBar argIds={v.arguments.map((a) => a.id)} />
 
-      <div className="mt-1 pb-1 relative z-10 flex items-center align-center gap-4">
+      {/* <div className="mt-1 pb-1 relative z-10 flex items-center align-center gap-4">
         <div className="rounded-md border border-transparent">
         <CQBar satisfied={agg.satisfied} required={agg.required} compact />
         </div>
@@ -898,7 +909,7 @@ export function RepresentativeViewpoints(props: {
         >
           Address CQs
         </button>
-      </div>
+      </div> */}
 
       <AddressCQsDialog
   open={openCQView === v.index}

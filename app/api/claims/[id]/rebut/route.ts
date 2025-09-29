@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
 import crypto from 'crypto';
 // import { bus } from '@/lib/bus';
-import { bus } from '@/lib/server/bus';
+import  bus, { emitBus }  from '@/lib/server/bus';
 
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
@@ -44,6 +44,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       targetScope: scope ?? 'conclusion',
     },
   });
-  bus.emitEvent('claims:edges:changed', { deliberationId, toClaimId });
+  emitBus('claims:edges:changed', { deliberationId, toClaimId });
   return NextResponse.json({ ok: true, fromClaimId: rebutId, toClaimId, scope: scope ?? 'conclusion' });
 }

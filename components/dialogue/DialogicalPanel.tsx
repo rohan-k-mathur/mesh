@@ -301,7 +301,7 @@ async function doMove(s: MoveSuggestion) {
   const designsKey = did ? (['ludics-designs', did] as const) : null;
   const { data: des } = useSWR<DesignsRes>(
     designsKey,
-    async ([, id]) => fetchJSON<DesignsRes>(`/api/ludics/designs?deliberationId=${encodeURIComponent(id)}`),
+    async ([, id]) => fetchJSON<DesignsRes>(`/api/ludics/designs?deliberationId=${encodeURIComponent(String(id))}`),
     { revalidateOnFocus: false }
   );
 
@@ -762,13 +762,291 @@ async function doMove(s: MoveSuggestion) {
   );
 }
 
+// /* --------------------------- ArgumentInspector -------------------------- */
+
+// function ArgumentInspector({
+//   deliberationId,
+//   node,
+//   onCqToggle,
+//   openCqIds,                       // server-observed open WHYs for this node (by cqId)
+// }: {
+//   deliberationId: string;
+//   node: AFNode;
+//   onCqToggle: (cqId: string, on: boolean) => void;
+//   openCqIds?: Set<string>;
+// }) {
+//   const schemes = inferSchemesFromText(node.text || node.label || '');
+//   const [scheme, setScheme] = React.useState(schemes[0] || 'Consequences');
+//   const cqs = questionsForScheme(scheme);
+
+//   // Per-row posting + UI-open state
+//   const [postingMap, setPostingMap] = React.useState<Record<string, boolean>>({});
+//   const [okSig, setOkSig] = React.useState<string | null>(null);
+//   const [uiOpen, setUiOpen] = React.useState<Set<string>>(new Set());
+
+//   const isRowPosting = React.useCallback(
+//     (sig: string) => !!postingMap[sig],
+//     [postingMap]
+//   );
+//   const setRowPosting = React.useCallback((sig: string, v: boolean) => {
+//     setPostingMap((prev) => (v ? { ...prev, [sig]: true } : (() => {
+//       const n = { ...prev }; delete n[sig]; return n;
+//     })()));
+//   }, []);
+
+//   // keep UI checkboxes in sync with server open WHYs
+//   const openKey = React.useMemo(
+//     () => [...(openCqIds ?? new Set<string>())].sort().join('|'),
+//     [openCqIds]
+//   );
+//   React.useEffect(() => {
+//     setUiOpen(new Set(openCqIds ?? []));
+//   }, [openKey, scheme, openCqIds]);
+
+//   // Also fetch directly (belt & suspenders) and accept server truth
+//   const { data: openFromServer } = useSWR(
+//     node?.id
+//       ? `/api/dialogue/open-cqs?deliberationId=${encodeURIComponent(deliberationId)}&targetId=${encodeURIComponent(node.id)}`
+//       : null,
+//     (u) => fetchJSON<{ ok: boolean; cqOpen: string[] }>(u),
+//     { revalidateOnFocus: false }
+//   );
+//   React.useEffect(() => {
+//     if (openFromServer?.ok && Array.isArray(openFromServer.cqOpen)) {
+//       setUiOpen(new Set(openFromServer.cqOpen));
+//     }
+//   }, [openFromServer?.ok, openFromServer?.cqOpen]);
+
+//   async function postMove(kind: 'WHY'|'GROUNDS', payload: any, sig: string) {
+//     if (isRowPosting(sig)) return true; // ignore duplicates while in flight
+//     setRowPosting(sig, true);
+
+//     let ok = false;
+//     try {
+//       const controller = new AbortController();
+//       const timer = setTimeout(() => controller.abort(), 12000);
+//       const res = await fetch('/api/dialogue/move', {
+//         method: 'POST',
+//         headers: { 'Content-Type': 'application/json' },
+//         body: JSON.stringify({
+//           deliberationId,
+//           targetType: 'argument',
+//           targetId: node.id,
+//           kind,
+//           payload,                 // includes { schemeKey, cqId }
+//           autoCompile: true,
+//           autoStep: true,
+//         }),
+//         signal: controller.signal,
+//       });
+//       clearTimeout(timer);
+//       ok = res.ok;
+//       window.dispatchEvent(new CustomEvent('dialogue:moves:refresh'));
+//       if (ok) {
+//         setOkSig(sig);
+//         setTimeout(() => setOkSig((s) => (s === sig ? null : s)), 900);
+//       }
+//     } catch {
+//       // no-op
+//     } finally {
+//       setRowPosting(sig, false);
+//     }
+//     return ok;
+//   }
+
+//   // also clear any lingering "posting" on global refresh (extra safety)
+//   React.useEffect(() => {
+//     const h = () => setPostingMap({});
+//     window.addEventListener('dialogue:moves:refresh', h as any);
+//     return () => window.removeEventListener('dialogue:moves:refresh', h as any);
+//   }, []);
+
+//   // Idempotent toggle with scheme + cq in payload
+//   const onToggleCQ = async (schemeKey: string, cqId: string, on: boolean) => {
+//     const sig = `${schemeKey}:${cqId}`;
+//     const serverOpen = openCqIds?.has(cqId) ?? false;
+//     const locallyOpen = uiOpen.has(cqId);
+
+//     if (on) {
+//       setUiOpen((s) => new Set(s).add(cqId));
+//       onCqToggle(cqId, true);
+
+//       // Only send WHY if not already open (server or local)
+//       if (serverOpen || locallyOpen) return;
+//       await postMove('WHY', { schemeKey, cqId }, sig);
+//     } else {
+//       setUiOpen((s) => {
+//         const n = new Set(s); n.delete(cqId); return n;
+//       });
+//       onCqToggle(cqId, false);
+
+//       // Only GROUNDS if server had it open (prevents noisy closes)
+//       if (serverOpen) await postMove('GROUNDS', { schemeKey, cqId }, sig);
+//     }
+//   };
+
+//   // Claim lookup → enable full, guarded CQ flow
+//   const { data: argRes, mutate: refetchArg } = useSWR(
+//     node?.id ? `/api/arguments/${encodeURIComponent(node.id)}` : null,
+//     (u) => fetchJSON<any>(u),
+//     { revalidateOnFocus: false }
+//   );
+
+//   const [claimIdOverride, setClaimIdOverride] = React.useState<string | null>(null);
+//   const claimId: string | undefined = claimIdOverride ?? argRes?.argument?.claimId ?? undefined;
+
+//   // Open claim-level panel
+//   const [fullOpen, setFullOpen] = React.useState(false);
+//   const [promoting, setPromoting] = React.useState(false);
+//   const prefilterKeys = React.useMemo(() => {
+//     const open = new Set<string>([...(openCqIds ?? new Set()), ...uiOpen]);
+//     return cqs.filter(q => open.has(q.id)).map(q => ({ schemeKey: scheme, cqKey: q.id }));
+//   }, [openCqIds, uiOpen, cqs, scheme]);
+//  async function promoteThenOpen() {
+//       if (promoting) return;
+//       setPromoting(true);
+//       const res = await fetch('/api/claims/quick-create', {
+//       method: 'POST',
+//       headers: { 'content-type':'application/json' },
+//       body: JSON.stringify({
+//         targetArgumentId: node.id,
+//         text: node.text ?? node.label ?? '',
+//         deliberationId
+//       }),
+//     });
+//          try {
+//         const json = await res.json().catch(() => ({} as any));
+//         const newId = json?.claimId ?? json?.existsClaimId ?? argRes?.argument?.claimId;
+//         if (newId) {
+//           setClaimIdOverride(newId);
+//           setFullOpen(true);
+//           refetchArg().catch(() => {});
+//         } else {
+//           console.error('quick-create did not return a claimId');
+//         }
+//       } finally {
+//         setPromoting(false);
+//     }
+//   }
+// React.useEffect(() => {
+//   if (!fullOpen && claimId && promoting === false) setFullOpen(true);
+// }, [claimId, fullOpen, promoting]);
+//   return (
+//     <div className="rounded border border-slate-200 bg-white/70 p-2 space-y-2">
+//       {/* Tier explainer + full CQ action */}
+//       <div className="flex items-center justify-between gap-2">
+//         <div className="text-[11px] text-neutral-600">
+//           These CQs <b>simulate</b> attacks in the graph (WHY = attack, GROUNDS = release).
+//           For official, guarded resolution, open the <b>claim-level</b> panel.
+//         </div>
+//           {claimId ? (
+//      <button className="btnv2--ghost btnv2--sm" onClick={() => setFullOpen(true)}>
+//        Open full CQs
+//      </button>
+//    ) : (
+//      <button
+//        className="btnv2--ghost btnv2--sm"
+//        onClick={promoteThenOpen}
+//        disabled={promoting}
+//        title={promoting ? 'Promoting…' : 'Promote argument to claim and open full CQs'}
+//      >
+//        {promoting ? 'Promoting…' : 'Promote → Open full CQs'}
+//      </button>
+//  )}
+//       </div>
+
+//       {/* Scheme picker */}
+//       <div className="flex items-center gap-2">
+//         <div className="font-medium text-sm">Critical questions</div>
+//         <select
+//           className="border rounded px-1 py-0.5 text-xs"
+//           value={scheme}
+//           onChange={(e) => setScheme(e.target.value as any)}
+//         >
+//           {schemes.concat(scheme).filter((v, i, a) => a.indexOf(v) === i).map((s) => (
+//             <option key={s} value={s}>{s}</option>
+//           ))}
+//         </select>
+//       </div>
+
+//       {/* Checklist (controlled; pre-checked from open WHYs) */}
+//       <div className="space-y-1">
+//         {cqs.map((q) => {
+//           const checked = (openCqIds?.has(q.id) ?? false) || uiOpen.has(q.id);
+//           const sig = `${scheme}:${q.id}`;
+//           return (
+//             <label key={q.id} className="flex items-center gap-2 text-sm">
+//               <input
+//                 type="checkbox"
+//                 checked={checked}
+//                 onChange={(e) => onToggleCQ(scheme, q.id, e.target.checked)}
+//                 disabled={isRowPosting(sig)}
+//               />
+//               <span>{q.text}</span>
+//               {okSig === sig && <span className="text-[10px] text-emerald-700">✓</span>}
+//               {q.severity && (
+//                 <span className={
+//                   'ml-1 text-[10px] px-1 rounded ' +
+//                   (q.severity === 'high'
+//                     ? 'bg-rose-100 text-rose-700'
+//                     : q.severity === 'med'
+//                     ? 'bg-amber-100 text-amber-700'
+//                     : 'bg-slate-100 text-slate-700')
+//                 }>
+//                   {q.severity}
+//                 </span>
+//               )}
+//             </label>
+//           );
+//         })}
+//       </div>
+
+//       {/* Quick WHY / GROUNDS on selected scheme */}
+//       <div className="flex gap-2">
+//         <button
+//           className="btnv2--ghost btnv2--sm"
+//           onClick={() => postMove('WHY', { note: 'Please address open critical questions', schemeKey: scheme }, `${scheme}:__bulk`)}
+//           disabled={isRowPosting(`${scheme}:__bulk`)}
+//         >
+//           {isRowPosting(`${scheme}:__bulk`) ? 'Posting…' : 'Challenge (WHY)'}
+//         </button>
+//         <button
+//           className="btnv2--ghost btnv2--sm"
+//           onClick={() => postMove('GROUNDS', { note: 'Grounds submitted', schemeKey: scheme }, `${scheme}:__bulkG`)}
+//           disabled={isRowPosting(`${scheme}:__bulkG`)}
+//         >
+//           {isRowPosting(`${scheme}:__bulkG`) ? 'Posting…' : 'Provide grounds'}
+//         </button>
+//       </div>
+
+//       {/* Claim-level CQ modal */}
+//       {claimId && (
+//         <Dialog open={fullOpen} onOpenChange={setFullOpen}>
+//           <DialogContent className="bg-white rounded-xl sm:max-w-[880px]">
+//             <DialogHeader>
+//               <DialogTitle>Claim-level Critical Questions</DialogTitle>
+//             </DialogHeader>
+//             <div className="mt-2">
+//               <CriticalQuestions
+//                 targetType="claim"
+//                 targetId={claimId}
+//                 deliberationId={deliberationId}
+//                 prefilterKeys={prefilterKeys}
+//               />
+//             </div>
+//           </DialogContent>
+//         </Dialog>
+//       )}
+//     </div>
+//   );
+// }
 /* --------------------------- ArgumentInspector -------------------------- */
 
 function ArgumentInspector({
   deliberationId,
   node,
   onCqToggle,
-  openCqIds,                       // server-observed open WHYs for this node (by cqId)
+  openCqIds, // server-observed open WHYs for this node (by cqId)
 }: {
   deliberationId: string;
   node: AFNode;
@@ -778,6 +1056,18 @@ function ArgumentInspector({
   const schemes = inferSchemesFromText(node.text || node.label || '');
   const [scheme, setScheme] = React.useState(schemes[0] || 'Consequences');
   const cqs = questionsForScheme(scheme);
+
+  // 🔒 Robust target resolution: prefer explicit ids if parent provided them
+  const argumentId = React.useMemo<string | null>(() => {
+    // prefer explicit fields if the graph node carries them
+    const n: any = node ?? {};
+    return n.argumentId ?? n.meta?.argumentId ?? n.id ?? null;
+  }, [node]);
+
+  const claimIdFromNode = React.useMemo<string | null>(() => {
+    const n: any = node ?? {};
+    return n.claimId ?? n.meta?.claimId ?? null;
+  }, [node]);
 
   // Per-row posting + UI-open state
   const [postingMap, setPostingMap] = React.useState<Record<string, boolean>>({});
@@ -789,9 +1079,9 @@ function ArgumentInspector({
     [postingMap]
   );
   const setRowPosting = React.useCallback((sig: string, v: boolean) => {
-    setPostingMap((prev) => (v ? { ...prev, [sig]: true } : (() => {
-      const n = { ...prev }; delete n[sig]; return n;
-    })()));
+    setPostingMap((prev) =>
+      v ? { ...prev, [sig]: true } : (() => { const n = { ...prev }; delete n[sig]; return n; })()
+    );
   }, []);
 
   // keep UI checkboxes in sync with server open WHYs
@@ -803,10 +1093,10 @@ function ArgumentInspector({
     setUiOpen(new Set(openCqIds ?? []));
   }, [openKey, scheme, openCqIds]);
 
-  // Also fetch directly (belt & suspenders) and accept server truth
+  // ✅ Pull server truth for this *argument* (not claim)
   const { data: openFromServer } = useSWR(
-    node?.id
-      ? `/api/dialogue/open-cqs?deliberationId=${encodeURIComponent(deliberationId)}&targetId=${encodeURIComponent(node.id)}`
+    argumentId
+      ? `/api/dialogue/open-cqs?deliberationId=${encodeURIComponent(deliberationId)}&targetId=${encodeURIComponent(argumentId)}`
       : null,
     (u) => fetchJSON<{ ok: boolean; cqOpen: string[] }>(u),
     { revalidateOnFocus: false }
@@ -817,8 +1107,9 @@ function ArgumentInspector({
     }
   }, [openFromServer?.ok, openFromServer?.cqOpen]);
 
-  async function postMove(kind: 'WHY'|'GROUNDS', payload: any, sig: string) {
-    if (isRowPosting(sig)) return true; // ignore duplicates while in flight
+  async function postMove(kind: 'WHY' | 'GROUNDS', payload: any, sig: string) {
+    if (!argumentId) return false;         // 🚫 No argument id, no move.
+    if (isRowPosting(sig)) return true;    // ignore duplicates while in flight
     setRowPosting(sig, true);
 
     let ok = false;
@@ -831,9 +1122,9 @@ function ArgumentInspector({
         body: JSON.stringify({
           deliberationId,
           targetType: 'argument',
-          targetId: node.id,
+          targetId: argumentId,           // 🔒 always the argument id
           kind,
-          payload,                 // includes { schemeKey, cqId }
+          payload,                         // includes { schemeKey, cqId }
           autoCompile: true,
           autoStep: true,
         }),
@@ -841,10 +1132,11 @@ function ArgumentInspector({
       });
       clearTimeout(timer);
       ok = res.ok;
-      window.dispatchEvent(new CustomEvent('dialogue:moves:refresh'));
       if (ok) {
         setOkSig(sig);
         setTimeout(() => setOkSig((s) => (s === sig ? null : s)), 900);
+        // Hint: if you coalesce fetches elsewhere, you may not need this dispatch:
+        window.dispatchEvent(new CustomEvent('dialogue:moves:refresh'));
       }
     } catch {
       // no-op
@@ -870,30 +1162,19 @@ function ArgumentInspector({
     if (on) {
       setUiOpen((s) => new Set(s).add(cqId));
       onCqToggle(cqId, true);
-
       // Only send WHY if not already open (server or local)
-      if (serverOpen || locallyOpen) return;
-      await postMove('WHY', { schemeKey, cqId }, sig);
+      if (!serverOpen && !locallyOpen) await postMove('WHY', { schemeKey, cqId }, sig);
     } else {
-      setUiOpen((s) => {
-        const n = new Set(s); n.delete(cqId); return n;
-      });
+      setUiOpen((s) => { const n = new Set(s); n.delete(cqId); return n; });
       onCqToggle(cqId, false);
-
       // Only GROUNDS if server had it open (prevents noisy closes)
       if (serverOpen) await postMove('GROUNDS', { schemeKey, cqId }, sig);
     }
   };
 
-  // Claim lookup → enable full, guarded CQ flow
-  const { data: argRes, mutate: refetchArg } = useSWR(
-    node?.id ? `/api/arguments/${encodeURIComponent(node.id)}` : null,
-    (u) => fetchJSON<any>(u),
-    { revalidateOnFocus: false }
-  );
-
+  // 🎯 Claim lookup: prefer what the parent/graph already knows; otherwise promote
   const [claimIdOverride, setClaimIdOverride] = React.useState<string | null>(null);
-  const claimId: string | undefined = claimIdOverride ?? argRes?.argument?.claimId ?? undefined;
+  const claimId: string | undefined = claimIdOverride ?? claimIdFromNode ?? undefined;
 
   // Open claim-level panel
   const [fullOpen, setFullOpen] = React.useState(false);
@@ -902,35 +1183,39 @@ function ArgumentInspector({
     const open = new Set<string>([...(openCqIds ?? new Set()), ...uiOpen]);
     return cqs.filter(q => open.has(q.id)).map(q => ({ schemeKey: scheme, cqKey: q.id }));
   }, [openCqIds, uiOpen, cqs, scheme]);
- async function promoteThenOpen() {
-      if (promoting) return;
-      setPromoting(true);
+
+  const promoteThenOpen = React.useCallback(async () => {
+    if (promoting || !argumentId) return;
+    setPromoting(true);
+    try {
       const res = await fetch('/api/claims/quick-create', {
-      method: 'POST',
-      headers: { 'content-type':'application/json' },
-      body: JSON.stringify({
-        targetArgumentId: node.id,
-        text: node.text ?? node.label ?? '',
-        deliberationId
-      }),
-    });
-         try {
-        const json = await res.json().catch(() => ({} as any));
-        const newId = json?.claimId ?? json?.existsClaimId ?? argRes?.argument?.claimId;
-        if (newId) {
-          setClaimIdOverride(newId);
-          setFullOpen(true);
-          refetchArg().catch(() => {});
-        } else {
-          console.error('quick-create did not return a claimId');
-        }
-      } finally {
-        setPromoting(false);
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          targetArgumentId: argumentId,
+          text: node.text ?? node.label ?? '',
+          deliberationId,
+        }),
+      });
+      const json = await res.json().catch(() => ({} as any));
+      const newId = json?.claimId ?? json?.existsClaimId ?? null;
+      if (newId) {
+        setClaimIdOverride(newId);
+        setFullOpen(true);
+      } else {
+        console.error('quick-create did not return a claimId');
+      }
+    } finally {
+      setPromoting(false);
     }
-  }
-React.useEffect(() => {
-  if (!fullOpen && claimId && promoting === false) setFullOpen(true);
-}, [claimId, fullOpen, promoting]);
+  }, [promoting, argumentId, node?.text, node?.label, deliberationId]);
+
+  React.useEffect(() => {
+    if (!fullOpen && claimId && promoting === false) setFullOpen(true);
+  }, [claimId, fullOpen, promoting]);
+
+  const disabledAll = !argumentId;
+
   return (
     <div className="rounded border border-slate-200 bg-white/70 p-2 space-y-2">
       {/* Tier explainer + full CQ action */}
@@ -939,20 +1224,20 @@ React.useEffect(() => {
           These CQs <b>simulate</b> attacks in the graph (WHY = attack, GROUNDS = release).
           For official, guarded resolution, open the <b>claim-level</b> panel.
         </div>
-          {claimId ? (
-     <button className="btnv2--ghost btnv2--sm" onClick={() => setFullOpen(true)}>
-       Open full CQs
-     </button>
-   ) : (
-     <button
-       className="btnv2--ghost btnv2--sm"
-       onClick={promoteThenOpen}
-       disabled={promoting}
-       title={promoting ? 'Promoting…' : 'Promote argument to claim and open full CQs'}
-     >
-       {promoting ? 'Promoting…' : 'Promote → Open full CQs'}
-     </button>
- )}
+        {claimId ? (
+          <button className="btnv2--ghost btnv2--sm" onClick={() => setFullOpen(true)}>
+            Open full CQs
+          </button>
+        ) : (
+          <button
+            className="btnv2--ghost btnv2--sm"
+            onClick={promoteThenOpen}
+            disabled={promoting || disabledAll}
+            title={disabledAll ? 'No argument selected' : (promoting ? 'Promoting…' : 'Promote argument to claim and open full CQs')}
+          >
+            {promoting ? 'Promoting…' : 'Promote → Open full CQs'}
+          </button>
+        )}
       </div>
 
       {/* Scheme picker */}
@@ -970,7 +1255,7 @@ React.useEffect(() => {
       </div>
 
       {/* Checklist (controlled; pre-checked from open WHYs) */}
-      <div className="space-y-1">
+      <div className="space-y-1 opacity-[var(--oi,1)]" style={{ ['--oi' as any]: disabledAll ? 0.5 : 1 }}>
         {cqs.map((q) => {
           const checked = (openCqIds?.has(q.id) ?? false) || uiOpen.has(q.id);
           const sig = `${scheme}:${q.id}`;
@@ -980,7 +1265,8 @@ React.useEffect(() => {
                 type="checkbox"
                 checked={checked}
                 onChange={(e) => onToggleCQ(scheme, q.id, e.target.checked)}
-                disabled={isRowPosting(sig)}
+                disabled={disabledAll || isRowPosting(sig)}
+                title={disabledAll ? 'No argument id to target' : undefined}
               />
               <span>{q.text}</span>
               {okSig === sig && <span className="text-[10px] text-emerald-700">✓</span>}
@@ -1006,14 +1292,16 @@ React.useEffect(() => {
         <button
           className="btnv2--ghost btnv2--sm"
           onClick={() => postMove('WHY', { note: 'Please address open critical questions', schemeKey: scheme }, `${scheme}:__bulk`)}
-          disabled={isRowPosting(`${scheme}:__bulk`)}
+          disabled={disabledAll || isRowPosting(`${scheme}:__bulk`)}
+          title={disabledAll ? 'No argument id to target' : undefined}
         >
           {isRowPosting(`${scheme}:__bulk`) ? 'Posting…' : 'Challenge (WHY)'}
         </button>
         <button
           className="btnv2--ghost btnv2--sm"
           onClick={() => postMove('GROUNDS', { note: 'Grounds submitted', schemeKey: scheme }, `${scheme}:__bulkG`)}
-          disabled={isRowPosting(`${scheme}:__bulkG`)}
+          disabled={disabledAll || isRowPosting(`${scheme}:__bulkG`)}
+          title={disabledAll ? 'No argument id to target' : undefined}
         >
           {isRowPosting(`${scheme}:__bulkG`) ? 'Posting…' : 'Provide grounds'}
         </button>

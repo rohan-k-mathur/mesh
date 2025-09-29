@@ -6,7 +6,7 @@ import { mintUrn } from '@/lib/ids/urn';
 import { getCurrentUserId } from '@/lib/serverutils';
 import { maybeUpsertClaimEdgeFromArgumentEdge } from '@/lib/deepdive/claimEdgeHelpers';
 import { recomputeGroundedForDelib } from '@/lib/ceg/grounded';
-
+import type { EntityCode } from '@/lib/ids/urn';
 
 const PromoteSchema = z.object({
   deliberationId: z.string().optional(),
@@ -97,9 +97,9 @@ export async function POST(req: Request) {
         )?.deliberationId ?? null;
       }
     }
-    await recomputeGroundedForDelib(deliberationId);
+    // await recomputeGroundedForDelib(deliberationId);
 
-    const urnValue = mintUrn('claim', moid);
+    const urnValue = mintUrn('claim' as EntityCode, moid);
 
     // Build claim create payload
     const claim = await prisma.claim.create({

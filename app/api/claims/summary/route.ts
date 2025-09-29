@@ -7,9 +7,24 @@ export async function GET(req: Request) {
   if (!deliberationId) return NextResponse.json({ error: 'deliberationId required' }, { status: 400 });
 
   const [claims, edges] = await Promise.all([
-    prisma.claim.findMany({ where: { deliberationId }, select: { id: true, text: true, moid: true, createdAt: true } }),
+   prisma.claim.findMany({ where: { deliberationId }, select: { id: true, text: true, moid: true, createdAt: true } }),
     prisma.claimEdge.findMany({ where: { deliberationId }, select: { fromClaimId: true, type: true } }),
   ]);
+
+
+   // CQ completeness in one shot
+   const claimIds = claims.map(c => c.id);
+   const statuses = await prisma.cQStatus.findMany({
+     where: { targetType: 'claim', targetId: { in: claimIds } },
+     select: { targetId: true, satisfied: true },
+   });
+   const cqById: Record<string, { required: number; satisfied: number }> = {};
+   for (const s of statuses) {
+     const k = s.targetId;
+     (cqById[k] ??= { required: 0, satisfied: 0 }).required += 1;
+  if (s.satisfied) cqById[k].satisfied += 1;
+ }
+
 
   const counts: Record<string, { supports: number; rebuts: number }> = {};
   for (const c of claims) counts[c.id] = { supports: 0, rebuts: 0 };
@@ -20,6 +35,11 @@ export async function GET(req: Request) {
   }
 
   return NextResponse.json({
-    claims: claims.map((c) => ({ id: c.id, text: c.text, moid: c.moid, counts: counts[c.id] ?? { supports: 0, rebuts: 0 } })),
-  });
+claims: claims.map((c) => ({
+     id: c.id,
+     text: c.text,
+     moid: c.moid,
+     counts: counts[c.id] ?? { supports: 0, rebuts: 0 },
+     cq: cqById[c.id] ?? { required: 0, satisfied: 0 },
+   })),  });
 }

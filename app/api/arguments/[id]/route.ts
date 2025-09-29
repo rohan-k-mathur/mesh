@@ -30,18 +30,29 @@ const selectArg = {
   createdAt: true,
 } as const;
 
+
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
-  const arg = await prisma.argument.findUnique({
-    where: { id: params.id },
+  const id = decodeURIComponent(String(params.id || '')).trim();
+  if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 });
+
+  // 1) Try by argument id (authoritative)
+  const arg = await prisma.argument.findUnique({ where: { id }, select: selectArg });
+  if (arg) {
+    return NextResponse.json({ argument: arg }, { headers: { 'Cache-Control': 'no-store' } });
+  }
+
+  // 2) (Optional, safe) If someone accidentally sent a claimId, return the most recent argument for that claim
+  const alt = await prisma.argument.findFirst({
+    where: { claimId: id },
+    orderBy: { createdAt: 'desc' },
     select: selectArg,
   });
-  if (!arg) {
-    // Keep the error lightweight and predictable for callers like DeliberationComposer.
-    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  if (alt) {
+    return NextResponse.json({ argument: alt, via: 'claimId' }, { headers: { 'Cache-Control': 'no-store' } });
   }
-  return NextResponse.json({ argument: arg }, { headers: { 'Cache-Control': 'no-store' } });
-}
 
+  return NextResponse.json({ error: 'Not found' }, { status: 404 });
+}
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   // Author-only policy; drop this section if you later decide to allow public updates.
   const userId = await getCurrentUserId().catch(() => null);

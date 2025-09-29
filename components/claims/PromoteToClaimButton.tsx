@@ -23,20 +23,23 @@ export default function PromoteToClaimButton(props: Props) {
     setBusy(true);
     setToast(null);
     try {
-      const res = await fetch('/api/claims', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...(props as any),
-          text: (props as any).text, // safe for the text variant
-        }),
-      });
+           const ctrl = new AbortController();
+     const t = setTimeout(() => ctrl.abort(), 12000);
+          const forArgument = 'target' in props && props.target?.type === 'argument';
+     const url = forArgument ? '/api/claims' : '/api/claims';
+     const payload = forArgument
+       ? { deliberationId: props.deliberationId, targetArgumentId: props.target.id, text: (props as any).text }
+       : { deliberationId: props.deliberationId, target: (props as any).target, text: (props as any).text };
+     const res = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload), signal: ctrl.signal });
+        
+       clearTimeout(t);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed');
-      const claimId = data?.claim?.id;
-      if (claimId && 'onClaim' in props && props.onClaim) {
-        props.onClaim(claimId);
-      }
+     const claimId = data?.claim?.id ?? data?.claimId;
+      // Let claim lists update themselves
+ if (claimId) {
+   window.dispatchEvent(new CustomEvent('claims:changed', { detail: { claimId } }));
+ }
       setToast(data.created ? 'Claim created ✓' : 'Already promoted');
       // auto-dismiss toast after 2.5s
       setTimeout(() => setToast(null), 2500);
