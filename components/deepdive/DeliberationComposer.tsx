@@ -137,16 +137,21 @@ function useAutoGrow(ref: React.RefObject<HTMLTextAreaElement>, value: string) {
   }, [ref, value]);
 }
 
-function mapKeyToTemplate(key: string): string {
-  const T: Record<string, string> = {
+  function mapKeyToTemplate(rawKey: string): string {
+    const key = rawKey.replace(/[\s-]/g, '_'); // normalize
+    const T: Record<string, string> = {
     attack_antecedent: 'I contest the antecedent: …',
-    request_consequent: 'Please commit to the consequent: …',
-    challenge_premise: 'Why should we accept the premise “…”, and what is its source?',
+    ask_consequent: 'Please commit to the consequent: …',
     pick_disjunct: 'Let’s focus on the “… or …” branch: I pick “…”.',
-    split_conjunct: 'I challenge the conjunct “…”, not the other part.',
-    instantiate_forall: 'Consider the instance “…”. Does it satisfy your claim?',
-    challenge_exists: 'Provide a concrete instance (witness) of “…”.',
-  };
+
+      choose_left: 'Let’s focus on the left disjunct “…”.',
+      choose_right: 'Let’s focus on the right disjunct “…”.',
+      challenge_conjunct_1: 'I challenge the first conjunct “…”.',
+      challenge_conjunct_2: 'I challenge the second conjunct “…”.',
+      instantiate: '∀x (…x…) — instantiate with x = …',
+      ask_witness: '∃x (…x…) — provide witness: x = …',
+    challenge_presup: 'Presupposition: “…” — please justify or revise.',
+   };
   return T[key] ?? 'Please provide a reason or evidence for “…”.';
 }
 
@@ -625,6 +630,7 @@ onBlur={() => setIsFocused(false)}
       <MissingAxiomBar insert={insertAtCursor} />
 
       <EnthymemeNudge
+      deliberationId={deliberationId}
       insert={insertAtCursor}
         targetType="argument"
         targetId={targetArgumentId}

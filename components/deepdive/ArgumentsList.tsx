@@ -859,6 +859,11 @@ function ArgRow({
     <div id={`arg-${a.id}`} ref={rowRef} tabIndex={0} aria-label="Argument row"
  className="group relative p-3 border-b focus:outline-none
                                    bg-white/40 hover:bg-white/65 backdrop-blur-[2px] transition-colors">
+                                    <div
+  id={`row-${a.id}`}
+  onMouseEnter={() => window.dispatchEvent(new CustomEvent('mesh:select-node', { detail: { id: a.id } }))}
+  onClick={() => window.dispatchEvent(new CustomEvent('mesh:select-node', { detail: { id: a.id } }))}
+>
                                     
       {modelLens === "monological" && (
         <MonologicalToolbar
@@ -1277,6 +1282,7 @@ function ArgRow({
          />
          </div>
          </div>
+    </div>
     </div>
     </div>
   );

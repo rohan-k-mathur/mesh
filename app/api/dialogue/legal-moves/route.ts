@@ -7,6 +7,7 @@ import { legalAttacksFor } from '@/lib/dialogue/legalMoves'; // shape cues
 import { getCurrentUserId } from '@/lib/serverutils';
 import type { RCode, WCode } from '@/lib/dialogue/codes';
 import { codeHelp } from '@/lib/dialogue/codes';
+
 const Q = z.object({
   deliberationId: z.string().min(5),
   targetType: z.enum(['argument','claim','card']),
@@ -117,8 +118,15 @@ export async function GET(req: NextRequest) {
        : { code: 'H1_SHAPE_ATTACK_SUGGESTION', context: { shape: 'auto' } }
     };
     if (targetText) {
-      const { on, options } = legalAttacksFor(targetText);
-      if (options.length) base.label = `WHY — ${options[0].label}`;
+       const { on, options } = legalAttacksFor(targetText);
+       if (options.length) {
+         // prefer canonical chips
+         const l = options[0].label
+           .replace('Instantiate', '∀‑instantiate')
+           .replace('witness', '∃‑witness')
+           .replace('presupposition', 'Challenge presupposition');
+         base.label = `WHY — ${l}`;
+     }
     }
     moves.push(base);
   }

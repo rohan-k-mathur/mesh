@@ -8,12 +8,10 @@ function looksConclusive(text: string) {
 }
 
 export default function EnthymemeNudge({
-  targetType,            // 'argument' | 'card'
-  targetId,              // nudge only if replying to something
-  draft,                 // the composer text (for heuristics)
-  insert,                // insert(t: string) -> drops template into composer
-  onPosted,              // optional callback after successful POST
+  deliberationId,          // NEW: needed for /move
+  targetType, targetId, draft, insert, onPosted,
 }: {
+  deliberationId: string;
   targetType: 'argument' | 'card';
   targetId?: string;
   draft: string;
@@ -35,15 +33,19 @@ const suggest = Boolean(targetId) && (looksConclusive(draft) || draft.length >= 
     if (!targetId || !text.trim() || busy) return;
     try {
       setBusy(true);
-      const res = await fetch('/api/missing-premises', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          targetType,
-          targetId,
-          text: text.trim(),
-          premiseType: ptype,
-        }),
+        // (1) Look up an open CQ (fallback: none)
+        const lm = await fetch(`/api/dialogue/legal-moves?deliberationId=${encodeURIComponent(deliberationId)}&targetType=${targetType}&targetId=${targetId}`)
+          .then(r=>r.json()).catch(()=>null);
+        const openWhy = (lm?.moves ?? []).find((m:any)=>m.kind==='GROUNDS' && m.payload?.cqId);
+        const payload = openWhy?.payload?.cqId ? { cqId: openWhy.payload.cqId, expression: text.trim(), premiseType: ptype } 
+                                              : { expression: text.trim(), premiseType: ptype };
+        // (2) Prefer protocol move (GROUNDS). Server already records GROUNDS→CQ satisfied.
+        const res = await fetch('/api/dialogue/move', {
+          method:'POST', headers:{'content-type':'application/json'},
+          body: JSON.stringify({
+            deliberationId, targetType, targetId,
+            kind:'GROUNDS', payload, autoCompile:true, autoStep:true
+          })
       });
       if (!res.ok) throw new Error(await res.text().catch(() => 'Failed'));
       setOk(true);
