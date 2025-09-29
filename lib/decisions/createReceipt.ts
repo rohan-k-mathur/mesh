@@ -1,6 +1,5 @@
 import { prisma } from '@/lib/prismaclient';
-import { bus } from '@/lib/server/bus';
-
+import bus from '@/lib/server/bus';
 export type LudicDecisionReceiptInput = {
   deliberationId: string;
   kind: 'epistemic'|'procedural'|'allocative'|'editorial';
@@ -25,7 +24,7 @@ export async function createDecisionReceipt(input: LudicDecisionReceiptInput) {
     },
   });
 
-  bus.emitEvent('decision:changed', {
+  emitBus('decision:changed', {
     deliberationId: input.deliberationId,
     subjectType: input.subject.type,
     subjectId: input.subject.id,

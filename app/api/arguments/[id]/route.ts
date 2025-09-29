@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prismaclient';
 import { getCurrentUserId } from '@/lib/serverutils';
+ import { buildDiagramForArgument } from '@/lib/arguments/diagram';
+
 
 export const dynamic = 'force-dynamic';
 
@@ -31,9 +33,33 @@ const selectArg = {
 } as const;
 
 
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const id = decodeURIComponent(String(params.id || '')).trim();
   if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 });
+
+  const u = new URL(req.url);
+  const view = (u.searchParams.get('view') || '').toLowerCase();
+  if (view === 'diagram') {
+    // Option A: fetch a persisted diagram row (if you have this model)
+    try {
+      const diag = await prisma.argumentDiagram.findUnique({
+        where: { id },
+        include: {
+          statements: true,
+          inferences: { include: { premises: { include: { statement: true } }, conclusion: true } },
+          evidence:   { include: { evidence: true } },
+        },
+      });
+      if (diag) {
+        return NextResponse.json({ ok: true, diagram: diag }, { headers: { 'Cache-Control': 'no-store' } });
+      }
+    } catch {}
+
+    // Option B: compute a transient diagram from current data
+    const computed = await buildDiagramForArgument(id);
+    if (!computed) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    return NextResponse.json({ ok: true, diagram: computed }, { headers: { 'Cache-Control': 'no-store' } });
+  }
 
   // 1) Try by argument id (authoritative)
   const arg = await prisma.argument.findUnique({ where: { id }, select: selectArg });
@@ -53,6 +79,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 
   return NextResponse.json({ error: 'Not found' }, { status: 404 });
 }
+
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
   // Author-only policy; drop this section if you later decide to allow public updates.
   const userId = await getCurrentUserId().catch(() => null);

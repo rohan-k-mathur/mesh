@@ -9,6 +9,8 @@ import { RightRail } from "./RightRail";
 import { TopBar } from "./TopBar";
 import { useFollowing } from "@/lib/client/useFollowing";
 import { useStackFollowing } from "@/lib/client/useStackFollowing";
+import DebateSheetReader from "@/components/agora/DebateSheetReader";
+import clsx from "clsx";
 
 /* ------------------------------ helpers ------------------------------ */
 function niceDomain(url?: string | null, fallback?: string | null) {
@@ -161,6 +163,8 @@ export default function Agora({ initialEvents }: { initialEvents: AgoraEvent[] }
   const [ok, setOk] = React.useState<Set<string>>(new Set());
 
 
+
+
   // Fallback hydrate if SSR didn’t deliver
   React.useEffect(() => {
     if (events.length > 0) return;
@@ -220,6 +224,60 @@ export default function Agora({ initialEvents }: { initialEvents: AgoraEvent[] }
       setPendingOn(roomId, false);
     }
   }
+
+
+      // ---------------- Active room selection ----------------
+    const roomsFromEvents = React.useMemo(() => {
+      const ids = new Set<string>();
+      for (const e of events) if (e.deliberationId) ids.add(e.deliberationId);
+      return Array.from(ids);
+    }, [events]);
+  
+    const followedRooms = React.useMemo(() => Array.from(roomSet), [roomSet]);
+    const allRooms = React.useMemo(() => {
+      const s = new Set<string>([...followedRooms, ...roomsFromEvents]);
+      return Array.from(s);
+    }, [followedRooms, roomsFromEvents]);
+  
+    const [currentRoomId, setCurrentRoomId] = React.useState<string | null>(null);
+  
+    // Initialize from localStorage or fallbacks
+    React.useEffect(() => {
+      if (currentRoomId) return; // already set
+      try {
+        const stored = localStorage.getItem("agora:activeRoom");
+        if (stored) { setCurrentRoomId(stored); return; }
+      } catch {}
+      if (allRooms.length) setCurrentRoomId(allRooms[0]);
+    }, [currentRoomId, allRooms]);
+  
+    // Persist when it changes
+    React.useEffect(() => {
+      if (currentRoomId) {
+        try { localStorage.setItem("agora:activeRoom", currentRoomId); } catch {}
+      }
+    }, [currentRoomId]);
+  
+    function RoomPicker({ rooms, value, onChange }:{
+      rooms: string[]; value: string | null; onChange: (id: string) => void;
+    }) {
+      if (!rooms.length) return null;
+      return (
+        <div className="flex items-center gap-2 text-xs">
+          <label className="text-neutral-600">Active room</label>
+          <select
+            className="menuv2--lite rounded px-2 py-1"
+            value={value ?? ""}
+            onChange={(e) => onChange(e.target.value)}
+          >
+            {!value && <option value="">Select…</option>}
+            {rooms.map(rid => (
+              <option key={rid} value={rid}>room:{rid.slice(0,6)}…</option>
+            ))}
+          </select>
+        </div>
+      );
+    }
 
   // 🔊 Live events
   useBusEffect("*", (m) => {
@@ -472,6 +530,17 @@ export default function Agora({ initialEvents }: { initialEvents: AgoraEvent[] }
         </aside>
 
         <main className="col-span-12 lg:col-span-6 space-y-2">
+                      <div className={clsx("flex items-center justify-between")}>
+              <RoomPicker rooms={allRooms} value={currentRoomId} onChange={setCurrentRoomId} />
+            </div>
+            {currentRoomId ? (
+              <DebateSheetReader sheetId={`delib:${currentRoomId}`} />
+            ) : (
+              <div className="text-xs text-neutral-600 border rounded-xl bg-white/70 p-2">
+                Pick an active room to load its Debate Sheet.
+              </div>
+            )}
+
           {filtered.map((e) => {
             const rid = e.deliberationId || "";
             const following = !!rid && isFollowingRoom(rid);

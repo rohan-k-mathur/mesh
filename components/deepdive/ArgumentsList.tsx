@@ -17,7 +17,9 @@ import FrameChips from "@/components/rhetoric/FrameChips";
 import { analyzeLexiconsMany } from "../rhetoric/lexiconAnalyzers";
 import CitePickerInlinePro from "@/components/citations/CitePickerInlinePro";
 import CitePickerModal from "@/components/citations/CitePickerModal";
-
+import DiagramView from "../map/DiagramView";
+import type { Diagram } from "../map/DiagramView";
+import Spinner from "../ui/spinner";
 import { DecisionBanner } from "../decision/DecisionBanner";
 // import CitePickerInline from "@/components/citations/CitePickerInline";
 import { scrollIntoViewById } from "@/lib/client/scroll";
@@ -421,7 +423,7 @@ function openIssuesFor(argumentId: string) {
         >
           Issues
         </button>
-
+{/* {diag ? <DiagramView diagram={diag} /> : <Spinner/>} */}
         <IssuesDrawer
           deliberationId={deliberationId}
           open={issuesOpen}
@@ -667,6 +669,7 @@ function ClampReveal({
         </div>
       )}
 
+
       {/* Full-screen dialog (copy-friendly) */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent className="max-w-3xl">
@@ -859,11 +862,11 @@ function ArgRow({
     <div id={`arg-${a.id}`} ref={rowRef} tabIndex={0} aria-label="Argument row"
  className="group relative p-3 border-b focus:outline-none
                                    bg-white/40 hover:bg-white/65 backdrop-blur-[2px] transition-colors">
-                                    <div
+                                    {/* <div
   id={`row-${a.id}`}
   onMouseEnter={() => window.dispatchEvent(new CustomEvent('mesh:select-node', { detail: { id: a.id } }))}
   onClick={() => window.dispatchEvent(new CustomEvent('mesh:select-node', { detail: { id: a.id } }))}
->
+> */}
                                     
       {modelLens === "monological" && (
         <MonologicalToolbar
@@ -916,7 +919,7 @@ function ArgRow({
   </span>
 )}
         <div className="flex flex-col  ">
-          {modelLens === "dialogical" && (
+
             <>
               <LudicsBadge
                 deliberationId={deliberationId}
@@ -943,7 +946,7 @@ function ArgRow({
               />
               {rsaForRow && <RSAChip {...rsaForRow} />}
             </>
-          )}
+     
 
 <IssueBadge
   deliberationId={deliberationId}
@@ -1283,7 +1286,7 @@ function ArgRow({
          </div>
          </div>
     </div>
-    </div>
+    {/* </div> */}
     </div>
   );
 }

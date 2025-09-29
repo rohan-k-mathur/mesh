@@ -19,11 +19,16 @@ import RhetoricControls from '@/components/rhetoric/RhetoricControls';
 import WorksRail from "../work/WorksRail";
 import WorksList from "../work/WorksList";
 import LudicsPanel from "./LudicsPanel";
+import DiagramView from "../map/DiagramView";
 import BehaviourInspectorCard from '@/components/ludics/BehaviourInspectorCard';
 import { scrollIntoViewById } from "@/lib/client/scroll";
 import { CommandCard, performCommand } from '@/components/dialogue/command-card/CommandCard';
 import { legalMovesToCommandCard } from "../dialogue/command-card/adapters";
 import { computeFogForNodes } from "../dialogue/FogForNodesClient";
+ import { useMinimapData } from '@/lib/client/minimap/useMinimapData';
+import useSWR, { mutate as swrMutate } from "swr";
+import DebateSheetReader from "../agora/DebateSheetReader";
+
 import React from "react";
 import clsx from "clsx";
 import {
@@ -35,7 +40,6 @@ import { CommandCardAction } from "@/components/dialogue/command-card/types";
 import CardListVirtuoso from "@/components/deepdive/CardListVirtuoso";
 import dynamic from "next/dynamic";
 import { useAuth } from "@/lib/AuthContext";
-import useSWR from 'swr';
 
  import { AFMinimap } from '@/components/dialogue/minimap/AFMinimap';
  import type { MinimapNode, MinimapEdge } from '@/components/dialogue/minimap/types';
@@ -446,7 +450,7 @@ export default function DeepDivePanel({
   const [replyTo, setReplyTo] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [tab, setTab] = useState<'arguments'|'works'|'card'|'viewcard'>('arguments');
-  const [hudTarget, setHudTarget] = useState<{ type:'argument'|'claim'|'card'; id:string; locusPath?:string|null }|null>(null);
+ const [hudTarget, setHudTarget] = useState<{ type:'claim'; id:string; locusPath?:string|null }|null>(null);
 
 
 
@@ -480,28 +484,6 @@ function handleReplyTo(id: string, preview?: string) {
     window.dispatchEvent(new CustomEvent("mesh:composer:focus", { detail: { deliberationId } }));
   });
 }
-
-   // Listen for minimap → panel selections
-   useEffect(() => {
-     const onSelect = (e: any) => {
-       const { id, locusPath } = e?.detail || {};
-       if (!id) return;
-       setHudTarget({ type: 'argument', id, locusPath: locusPath ?? null }); // default; adjust if you tag nodes with kind
-       // optional: scroll the row into view if your rows have ids like row-<id>
-       document.getElementById(`row-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-     };
-     window.addEventListener('mesh:select-node', onSelect as any);
-     return () => window.removeEventListener('mesh:select-node', onSelect as any);
-   }, []);
-  
-   // Revalidate SWR caches after protocol moves
-   useEffect(() => {
-     const onRefresh = () => {
-       swrMutate((key: any) => typeof key === 'string' && key.startsWith('/api/dialogue/'), undefined, { revalidate: true });
-     };
-     window.addEventListener('mesh:dialogue:refresh', onRefresh);
-     return () => window.removeEventListener('mesh:dialogue:refresh', onRefresh);
-   }, []);
 
 
 //   React.useEffect(() => {
@@ -608,49 +590,106 @@ async function updatePref(next: PrefProfile) {
      fetcher
    );
   
-   // Map your backend payloads into MinimapNodes/Edges
-   const nodes: MinimapNode[] = useMemo(() => {
-     const claims = graphData?.claims ?? [];
-     const args   = graphData?.arguments ?? [];
-     // Build base nodes (you can refine: status/closable from your APIs)
-     const base: MinimapNode[] = [
-       ...claims.map((c: any) => ({ id: c.id, kind:'claim',  label: c.text?.slice(0,60), status: 'UNDEC' as const })),
-       ...args.map((a: any)   => ({ id: a.id, kind:'argument', label: a.text?.slice(0,60), status: 'UNDEC' as const })),
-     ];
-     // Fog
-     const nodeIds = base.map(n => n.id);
-     const fogMap = computeFogForNodes(nodeIds, (movesData?.items ?? []).map((m: any) => ({
-       kind: m.kind, targetId: m.targetId, fromId: m.fromId, toId: m.toId
-     })));
-     return base.map(n => ({ ...n, fogged: fogMap[n.id] ?? true }));
-   }, [graphData, movesData]);
-  
-   const edges: MinimapEdge[] = useMemo(() => {
-     const es = graphData?.edges ?? [];
-     return es.map((e: any, idx: number) => ({
-       id: e.id ?? `e${idx}`,
-       from: e.fromArgumentId ?? e.fromClaimId ?? e.fromId,
-       to:   e.toArgumentId   ?? e.toClaimId   ?? e.toId,
-       kind: (e.type ?? 'support') as any,
-     }));
- }, [graphData]);
+const ftch = (u:string)=>fetch(u,{cache:'no-store'}).then(r=>r.json());
 
-   // Command card actions for the current target (or noop if none selected yet)
+const { data: topArg } = useSWR(
+  hudTarget?.type === 'claim' ? `/api/claims/${encodeURIComponent(hudTarget.id)}/top-argument` : null,
+  ftch
+);
+
+const { data: diag } = useSWR(
+  topArg?.top?.id ? `/api/arguments/${encodeURIComponent(topArg.top.id)}?view=diagram` : null,
+  ftch
+);
+   // Listen for minimap → panel selections
+   useEffect(() => {
+     const onSelect = (e: any) => {
+       const { id, locusPath } = e?.detail || {};
+       if (!id) return;
+        setHudTarget({ type: 'claim', id, locusPath: locusPath ?? null });
+       // optional: scroll the row into view if your rows have ids like row-<id>
+       document.getElementById(`row-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+     };
+     window.addEventListener('mesh:select-node', onSelect as any);
+     return () => window.removeEventListener('mesh:select-node', onSelect as any);
+   }, []);
+
+
+   // Minimap data (grounded labeling    support-as-defense on)
+   const { nodes, edges } = useMinimapData(deliberationId, {
+     semantics: 'grounded',
+     supportDefense: true,
+     radius: 1,
+     maxNodes: 400,
+ });
+
+
+   // Command card actions for the selected claim
    const targetRef = hudTarget
-     ? { deliberationId, targetType: hudTarget.type, targetId: hudTarget.id, locusPath: hudTarget.locusPath }
+     ? { deliberationId, targetType: 'claim' as const, targetId: hudTarget.id, locusPath: hudTarget.locusPath }
      : null;
-  
    const { data: legalMoves } = useSWR(
      targetRef
-       ? `/api/dialogue/legal-moves?deliberationId=${encodeURIComponent(deliberationId)}&targetType=${targetRef.targetType}&targetId=${targetRef.targetId}${targetRef.locusPath ? `&locusPath=${encodeURIComponent(targetRef.locusPath)}` : ''}`
+       ? `/api/dialogue/legal-moves?deliberationId=${encodeURIComponent(deliberationId)}&targetType=claim&targetId=${encodeURIComponent(hudTarget!.id)}${hudTarget?.locusPath ? `&locusPath=${encodeURIComponent(hudTarget!.locusPath!)}` : ''}`
        : null,
      fetcher,
      { revalidateOnFocus: false }
    );
+ const cardActions = targetRef ? legalMovesToCommandCard(legalMoves?.moves ?? [], targetRef, true) : [];
   
-   const cardActions = useMemo(() => (
-     targetRef ? legalMovesToCommandCard(legalMoves?.moves ?? [], targetRef, /* includeScaffolds */ true) : []
- ), [legalMoves, targetRef]);
+   // Revalidate SWR caches after protocol moves
+   useEffect(() => {
+     const onRefresh = () => {
+       swrMutate((key: any) => typeof key === 'string' && key.startsWith('/api/dialogue/'), undefined, { revalidate: true });
+     };
+     window.addEventListener('mesh:dialogue:refresh', onRefresh);
+     return () => window.removeEventListener('mesh:dialogue:refresh', onRefresh);
+   }, []);
+
+
+//    // Map your backend payloads into MinimapNodes/Edges
+//    const nodes: MinimapNode[] = useMemo(() => {
+//      const claims = graphData?.claims ?? [];
+//      const args   = graphData?.arguments ?? [];
+//      // Build base nodes (you can refine: status/closable from your APIs)
+//      const base: MinimapNode[] = [
+//        ...claims.map((c: any) => ({ id: c.id, kind:'claim',  label: c.text?.slice(0,60), status: 'UNDEC' as const })),
+//        ...args.map((a: any)   => ({ id: a.id, kind:'argument', label: a.text?.slice(0,60), status: 'UNDEC' as const })),
+//      ];
+//      // Fog
+//      const nodeIds = base.map(n => n.id);
+//      const fogMap = computeFogForNodes(nodeIds, (movesData?.items ?? []).map((m: any) => ({
+//        kind: m.kind, targetId: m.targetId, fromId: m.fromId, toId: m.toId
+//      })));
+//      return base.map(n => ({ ...n, fogged: fogMap[n.id] ?? true }));
+//    }, [graphData, movesData]);
+  
+//    const edges: MinimapEdge[] = useMemo(() => {
+//      const es = graphData?.edges ?? [];
+//      return es.map((e: any, idx: number) => ({
+//        id: e.id ?? `e${idx}`,
+//        from: e.fromArgumentId ?? e.fromClaimId ?? e.fromId,
+//        to:   e.toArgumentId   ?? e.toClaimId   ?? e.toId,
+//        kind: (e.type ?? 'support') as any,
+//      }));
+//  }, [graphData]);
+
+//    // Command card actions for the current target (or noop if none selected yet)
+//    const targetRef = hudTarget
+//      ? { deliberationId, targetType: hudTarget.type, targetId: hudTarget.id, locusPath: hudTarget.locusPath }
+//      : null;
+  
+//    const { data: legalMoves } = useSWR(
+//      targetRef
+//        ? `/api/dialogue/legal-moves?deliberationId=${encodeURIComponent(deliberationId)}&targetType=${targetRef.targetType}&targetId=${targetRef.targetId}${targetRef.locusPath ? `&locusPath=${encodeURIComponent(targetRef.locusPath)}` : ''}`
+//        : null,
+//      fetcher,
+//      { revalidateOnFocus: false }
+//    );
+  
+//    const cardActions = useMemo(() => (
+//      targetRef ? legalMovesToCommandCard(legalMoves?.moves ?? [], targetRef, /* includeScaffolds */ true) : []
+//  ), [legalMoves, targetRef]);
       
       const inner = (
         <div className={clsx("space-y-5 py-3 px-6 relative", className)}>
@@ -865,7 +904,7 @@ onClearReply={() => setReplyTarget(null)}
       <SectionCard>
         <TopologyWidget deliberationId={deliberationId} />
       </SectionCard>
-        <SectionCard title="Map & Controls">
+           <SectionCard title="Map & Controls">
      <div className="grid grid-cols-12 gap-4 items-start">
        <div className="col-span-5">
          <AFMinimap
@@ -873,7 +912,6 @@ onClearReply={() => setReplyTarget(null)}
            edges={edges}
            selectedId={hudTarget?.id ?? null}
            onSelectNode={(id, locusPath) => {
-             // broadcast so lists/panels can react too
              window.dispatchEvent(new CustomEvent('mesh:select-node', { detail: { id, locusPath } }));
            }}
            width={260}
@@ -883,17 +921,22 @@ onClearReply={() => setReplyTarget(null)}
        <div className="col-span-7">
          <CommandCard
            actions={cardActions}
-           onPerform={performCommand}   // uses the helper from CommandCard.tsx
+           onPerform={performCommand}   // calls /api/dialogue/move or inserts scaffolds
            showHotkeyHints
          />
          {!hudTarget && (
            <div className="mt-2 text-[11px] text-neutral-600">
-             Select a node (minimap or argument row) to enable controls.
+             Select a claim (minimap or list) to enable controls.
            </div>
          )}
        </div>
      </div>
  </SectionCard>
+   <SectionCard title="Dialogue Diagram">
+     {diag?.diagram
+       ? <DiagramView diagram={diag.diagram} />
+       : <div className="text-xs text-neutral-500">Select a claim (minimap) to load its top argument.</div>}
+   </SectionCard>
       </div>
    );
 

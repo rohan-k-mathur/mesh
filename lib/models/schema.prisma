@@ -2760,13 +2760,13 @@ model Claim {
 
   arguments Argument[] @relation("ArgumentClaim")
 
-  edgesFrom     ClaimEdge[]     @relation("fromClaim")
-  edgesTo       ClaimEdge[]     @relation("toClaim")
-  citations     ClaimCitation[]
-  evidenceLinks EvidenceLink[]
-  urns          Urn[]           @relation("ClaimUrns")
-  ClaimLabel    ClaimLabel?
-  claimValues   ClaimValue[] // <— opposite side for ClaimValue.claim
+  edgesFrom ClaimEdge[]     @relation("fromClaim")
+  edgesTo   ClaimEdge[]     @relation("toClaim")
+  citations ClaimCitation[]
+
+  urns        Urn[]        @relation("ClaimUrns")
+  ClaimLabel  ClaimLabel?
+  claimValues ClaimValue[] // <— opposite side for ClaimValue.claim
 
   @@index([deliberationId, id], name: "claim_delib_id") // NEW
   @@index([deliberationId, createdAt]) // claims by delib, time-sorted
@@ -2843,18 +2843,6 @@ model ClaimStats {
   @@index([approvalsCount])
   @@index([undercutsCount])
   @@map("claim_stats")
-}
-
-model EvidenceLink {
-  id          String       @id @default(cuid())
-  claimId     String
-  kind        EvidenceKind
-  uri         String
-  snapshotKey String?
-
-  claim Claim @relation(fields: [claimId], references: [id], onDelete: Cascade)
-
-  @@index([claimId])
 }
 
 model Urn {
@@ -2980,8 +2968,7 @@ model DialogueMove {
 
   @@unique([deliberationId, signature], name: "dm_unique_signature")
   @@index([deliberationId, targetType, targetId, kind, createdAt], name: "dm_by_target_kind_time")
-    @@index([payload], type: Gin, name: "dm_payload_gin")
-
+  @@index([payload], type: Gin, name: "dm_payload_gin")
   @@index([deliberationId])
   @@index([targetType, targetId])
 }
@@ -3918,57 +3905,7 @@ model AgoraOutbox {
   @@index([topic, deliberationId])
 }
 
-model DebateSheet {
-  id           String       @id @default(cuid())
-  title        String
-  scope        String?
-  roles        String[]     @default([])
-  rulesetJson  Json?        // { semantics: ["grounded","preferred"], ... }
-  // Debate-level nodes & edges
-  nodes        DebateNode[]
-  edges        DebateEdge[]
-  loci         LocusStatus[]
-  acceptance   SheetAcceptance?
-  unresolved   UnresolvedCQ[]
-  outcomes     Outcome[]
-  // Provenance
-  createdById  String
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
-}
-
-model DebateNode {
-  id           String     @id @default(cuid())
-  sheetId      String
-  sheet        DebateSheet @relation(fields: [sheetId], references: [id], onDelete: Cascade)
-  title        String?
-  summary      String?
-  // Link to internals
-  diagramId    String?     @unique
-  diagram      ArgumentDiagram? @relation(fields: [diagramId], references: [id])
-  // Optional link to existing argument/claim (bridges today’s repo)
-  argumentId   String?     // prisma.argument id (if present in your db)
-  claimId      String?     // prisma.claim id (if present)
-  authorsJson  Json?       // ["Copleston"]
-  createdAt    DateTime    @default(now())
-}
-
-model DebateEdge {
-  id        String      @id @default(cuid())
-  sheetId   String
-  sheet     DebateSheet @relation(fields: [sheetId], references: [id], onDelete: Cascade)
-  fromId    String
-  toId      String
-  kind      DebateEdgeKind
-  thread    String?     // e.g., "main"
-  ord       Int?        // ordering within thread
-  rationale String?
-  createdAt DateTime    @default(now())
-
-  @@index([sheetId, fromId, toId, kind, thread])
-  @@unique([sheetId, fromId, toId, kind, thread], name: "edge_idempotent")
-}
-
+// ---------- Enums (top-level) ----------
 enum DebateEdgeKind {
   supports
   rebuts
@@ -3980,76 +3917,194 @@ enum DebateEdgeKind {
   depends_on
 }
 
+enum StatementRole {
+  premise
+  intermediate
+  conclusion
+  assumption
+  question
+}
+
+enum InferenceKind {
+  deductive
+  inductive
+  abductive
+  defeasible
+  analogy
+}
+
+model Outcome {
+  id            String       @id @default(cuid())
+  kind          String?
+  summary       String?
+  DebateSheet   DebateSheet? @relation(fields: [debateSheetId], references: [id])
+  debateSheetId String?
+}
+
+// ---------- DebateSheet substrate ----------
+model DebateSheet {
+  id          String   @id @default(cuid())
+  title       String
+  scope       String?
+  roles       String[] @default([])
+  rulesetJson Json?
+
+  nodes      DebateNode[]
+  edges      DebateEdge[]
+  loci       LocusStatus[]
+  acceptance SheetAcceptance?
+  unresolved UnresolvedCQ[]
+  outcomes   Outcome[]
+
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model DebateNode {
+  id      String      @id @default(cuid())
+  sheetId String
+  sheet   DebateSheet @relation(fields: [sheetId], references: [id], onDelete: Cascade)
+
+  title   String?
+  summary String?
+
+  // link to internal diagram (two-level expand/collapse)
+  diagramId String?          @unique
+  diagram   ArgumentDiagram? @relation(fields: [diagramId], references: [id])
+
+  // optional bridges to your existing Argument/Claim
+  argumentId String?
+  claimId    String?
+
+  authorsJson Json?
+  createdAt   DateTime @default(now())
+}
+
+model DebateEdge {
+  id        String         @id @default(cuid())
+  sheetId   String
+  sheet     DebateSheet    @relation(fields: [sheetId], references: [id], onDelete: Cascade)
+  fromId    String
+  toId      String
+  kind      DebateEdgeKind
+  thread    String?
+  ord       Int?
+  rationale String?
+  createdAt DateTime       @default(now())
+
+  @@unique([sheetId, fromId, toId, kind, thread], name: "edge_idempotent")
+  @@index([sheetId, fromId, toId, kind, thread])
+}
+
 model LocusStatus {
   id        String      @id @default(cuid())
   sheetId   String
   sheet     DebateSheet @relation(fields: [sheetId], references: [id], onDelete: Cascade)
   locusPath String
   open      Boolean     @default(true)
-  closable  Boolean?    // † hint
+  closable  Boolean?
 }
 
 model SheetAcceptance {
   id        String      @id @default(cuid())
   sheetId   String      @unique
   sheet     DebateSheet @relation(fields: [sheetId], references: [id], onDelete: Cascade)
-  semantics String      // "grounded" | "preferred" | "hybrid"
-  // label per DebateNode.id
-  labels    Json        // { "nodeId": "undecided" | "skeptical-accepted" | "credulous-accepted" | "rejected" }
+  semantics String // 'grounded' | 'preferred' | 'hybrid'
+  labels    Json // { "nodeId": "skeptical-accepted" | "credulous-accepted" | "rejected" | "undecided" }
 }
 
 model UnresolvedCQ {
-  id        String      @id @default(cuid())
-  sheetId   String
-  sheet     DebateSheet @relation(fields: [sheetId], references: [id], onDelete: Cascade)
-  nodeId    String
-  cqKey     String
+  id      String      @id @default(cuid())
+  sheetId String
+  sheet   DebateSheet @relation(fields: [sheetId], references: [id], onDelete: Cascade)
+  nodeId  String
+  cqKey   String
+
   @@index([sheetId, nodeId, cqKey], name: "unresolved_cq_idx")
 }
 
-// Argument internals (two-level representation)
+// ---------- Argument internals (two-level detail) ----------
 model ArgumentDiagram {
-  id          String      @id @default(cuid())
-  title       String?
-  statements  Statement[]
-  inferences  Inference[]
-  cqStatus    Json?       // { "CQ1": "open", ... }
-  evidence    EvidenceLink[]
+  id         String         @id @default(cuid())
+  title      String?
+  statements Statement[]
+  inferences Inference[]
+  cqStatus   Json?
+  evidence   EvidenceLink[]
+
   createdById String
   createdAt   DateTime    @default(now())
+  DebateNode  DebateNode?
 }
 
 model Statement {
-  id        String           @id @default(cuid())
+  id        String          @id @default(cuid())
   diagramId String
-  diagram   ArgumentDiagram  @relation(fields: [diagramId], references: [id], onDelete: Cascade)
+  diagram   ArgumentDiagram @relation(fields: [diagramId], references: [id], onDelete: Cascade)
   text      String
   role      StatementRole
   lang      String?
   tags      String[]
+
+  // back-relation for named relation "InferenceConclusion"
+  conclusionFor    Inference[]        @relation("InferenceConclusion")
+  InferencePremise InferencePremise[]
 }
 
-enum StatementRole { premise intermediate conclusion assumption question }
-
 model Inference {
-  id          String           @id @default(cuid())
-  diagramId   String
-  diagram     ArgumentDiagram  @relation(fields: [diagramId], references: [id], onDelete: Cascade)
-  kind        InferenceKind
+  id        String          @id @default(cuid())
+  diagramId String
+  diagram   ArgumentDiagram @relation(fields: [diagramId], references: [id], onDelete: Cascade)
+
+  kind InferenceKind
+
   conclusionId String
-  conclusion  Statement        @relation("InferenceConclusion", fields: [conclusionId], references: [id])
-  schemeKey   String?
-  // Many premises via join
-  premises    InferencePremise[]
-  cqKeys      String[]         @default([])
+  conclusion   Statement @relation("InferenceConclusion", fields: [conclusionId], references: [id])
+
+  schemeKey String?
+
+  // Many premises via join model
+  premises InferencePremise[]
+
+  cqKeys String[] @default([])
 }
 
 model InferencePremise {
   inferenceId String
   statementId String
-  inference   Inference @relation(fields: [inferenceId], references: [id], onDelete: Cascade)
-  statement   Statement @relation(fields: [statementId], references: [id], onDelete: Cascade)
+
+  inference Inference @relation(fields: [inferenceId], references: [id], onDelete: Cascade)
+  statement Statement @relation(fields: [statementId], references: [id], onDelete: Cascade)
+
   @@id([inferenceId, statementId])
 }
 
-enum InferenceKind { deductive inductive abductive defeasible analogy }
+// ---------- Evidence as first-class ----------
+model EvidenceNode {
+  id          String   @id @default(cuid())
+  url         String
+  title       String?
+  citation    String?
+  kind        String?
+  reliability Float?
+  addedById   String
+  addedAt     DateTime @default(now())
+
+  links EvidenceLink[]
+}
+
+model EvidenceLink {
+  id          String        @id @default(cuid())
+  evidenceId  String?       @default(cuid())
+  evidence    EvidenceNode? @relation(fields: [evidenceId], references: [id], onDelete: Cascade)
+  targetKind  String        @default("argument")
+  targetId    String?       @default(cuid())
+  selectors   Json? // annotation anchors
+  note        String?
+  uri         String
+  snapshotKey String?
+
+  ArgumentDiagram   ArgumentDiagram? @relation(fields: [argumentDiagramId], references: [id])
+  argumentDiagramId String?
+}
