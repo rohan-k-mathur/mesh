@@ -104,7 +104,6 @@ export function LegalMoveChips({
   };
 
   const moves = Array.isArray(data?.moves) ? (data!.moves as Move[]) : [];
-  if (!deliberationId || !targetId || (!isLoading && !moves.length)) return null;
 
   // 👇 priority: CLOSE (†) first, then GROUNDS, WHY, CONCEDE, RETRACT, everything else.
   const priority = (m: Move) =>
@@ -115,6 +114,8 @@ export function LegalMoveChips({
     m.kind === 'RETRACT' ? 4 : 9;
 
   const sorted = useMemo(() => [...moves].sort((a,b) => priority(a) - priority(b)), [moves]);
+
+  if (!deliberationId || !targetId || (!isLoading && !moves.length)) return null;
 
 
 

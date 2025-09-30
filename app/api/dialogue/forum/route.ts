@@ -60,10 +60,10 @@ export async function GET(req: NextRequest) {
      ?? roots[roots.length - 1];
         // 1) explicit reply
         const rm = moves.find(x => String(x.id) === String((m as any).replyToMoveId));
-        if (rm && nodes[rm.id]) parent = nodes[rm.id];
-        // 2) fallback: nearest ASSERT at same locus
-        if (!parent) parent = [...roots].reverse().find(r => r.locusId && r.locusId === n.locusId) ?? roots[roots.length - 1];
-       (parent?.replies ?? roots).push && parent ? parent.replies.push(n) : roots.push(n);
+      //   if (rm && nodes[rm.id]) parent = nodes[rm.id];
+      //   // 2) fallback: nearest ASSERT at same locus
+       // if (!parent) parent = [...roots].reverse().find(r => r.locusId && r.locusId === n.locusId) ?? roots[roots.length - 1];
+      // (parent?.replies ?? roots).push && parent ? parent.replies.push(n) : roots.push(n);
     }
   }
 

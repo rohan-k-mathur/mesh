@@ -1061,6 +1061,7 @@ const suggestClose = React.useCallback((path: string) => {
               posDesignId={proDesignId}
               negDesignId={oppDesignId}
               defaultMode="assoc"
+              suggestCloseDaimonAt={suggestClose}
             />
 
             {commitOpen && commitPath && targetIdFromContext && (

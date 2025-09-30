@@ -55,7 +55,11 @@ export default function PromoteToClaimButton(props: Props) {
       // auto-dismiss toast after 2.5s
       setTimeout(() => setToast(null), 2500);
     } catch (e: any) {
-      setToast(e.message ?? 'Error promoting');
+             if (e?.name === 'AbortError' || /aborted/i.test(String(e?.message))) {
+         setToast('Timed out while promoting. Please try again.');
+       } else {
+         setToast(e?.message ?? 'Error promoting');
+     }
     } finally {
       setBusy(false);
     }

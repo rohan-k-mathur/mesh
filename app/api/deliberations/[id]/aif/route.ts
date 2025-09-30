@@ -28,7 +28,7 @@ if (claims.length > 10_000) {
   // });
 
   const nodes = claims.map(c => ({ id: c.id, text: c.text, type: 'claim' as const }));
-  const edges: { source: string; target: string; type: "supports" | "rebuts"; attackType: "SUPPORTS" | "REBUTS" | "UNDERCUTS" | "UNDERMINES" | undefined; targetScope: "conclusion" | "premise" | "inference" | null | undefined }[] = edgesRaw.map(e => ({
+  const edges: { source: string; target: string; type: "supports" | "rebuts"; attackType: "SUPPORTS" | "REBUTS" | "UNDERCUTS" | "UNDERMINES" | undefined; targetScope: string | null }[] = edgesRaw.map(e => ({
     source: e.fromClaimId,
     target: e.toClaimId,
     type: e.type === ClaimEdgeType.rebuts ? "rebuts" : "supports",

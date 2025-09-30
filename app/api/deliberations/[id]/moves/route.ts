@@ -11,7 +11,7 @@ const qSchema = z.object({
   targetId: z.string().optional(),
   kind: z.enum(['ASSERT','WHY','GROUNDS','RETRACT']).optional(),
   cursor: z.string().optional(),       // ISO or id — here we’ll use ISO createdAt
-  limit: z.coerce.number().min(1).max(500).default(100),
+  limit: z.coerce.number().min(1).max(500).default(100),  
 });
 
 type Move = {

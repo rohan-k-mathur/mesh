@@ -51,7 +51,7 @@ async function main() {
           deliberationId: a.deliberationId,
           claimId: a.claimId!,
           argumentId: a.id,
-          base: {base },
+          base,
         }
       });
       created++;

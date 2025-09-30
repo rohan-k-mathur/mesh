@@ -92,7 +92,7 @@ export default function CriticalQuestions({
 }: {
   targetType: "claim";
   targetId: string;
-  createdById: string;
+  createdById?: string;
   deliberationId: string;
   roomId?: string;
   currentLens?: string;

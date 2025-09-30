@@ -45,10 +45,12 @@ function normalize(body: any): NormalizedInput | null {
   const l = LegacyBody.safeParse(body);
   if (l.success) {
     const { kind, url, id, itemId, role, locator, quote, note } = l.data;
-    const ref =
-      kind === "uri" ? { kind: "uri", url: url! } :
-      kind === "work" ? { kind: "work", id: id! } :
-      { kind: "stack:item", itemId: itemId! };
+    const ref: z.infer<typeof ResourceRef> =
+      kind === "uri"
+        ? { kind: "uri", url: url! }
+        : kind === "work"
+        ? { kind: "work", id: id! }
+        : { kind: "stack:item", itemId: itemId! };
     return { ref, role, locator, quote, note };
   }
   return null;

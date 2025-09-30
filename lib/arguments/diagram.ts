@@ -36,6 +36,7 @@ export async function buildDiagramForArgument(argumentId: string): Promise<Diagr
   const statements: Diagram['statements'] = [
     { id: arg.id, text: arg.text, kind: 'claim' },
     ...premiseArgs.map(p => ({ id: p.id, text: p.text, kind: "premise" as const }))
+    ,...rebutArgs.map(r => ({ id: r.id, text: r.text, kind: "rebuttal" as const }))
   ];
 
   const inferences: Diagram['inferences'] = [{
