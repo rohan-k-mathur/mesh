@@ -1,12 +1,26 @@
 'use client';
 import useSWR from 'swr';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
 import ArgumentPopout from './ArgumentPopout';
 
+function parseDelibId(sheetId:string){ return sheetId.startsWith('delib:') ? sheetId.slice(6) : null; }
+
+
 export default function DebateSheetReader({ sheetId }: { sheetId: string }) {
   const { data, error } = useSWR(`/api/sheets/${sheetId}`, r => fetch(r).then(x => x.json()), { refreshInterval: 0 });
+  const delibId = parseDelibId(sheetId);
+
+  const { data: ev } = useSWR(delibId ? `/api/deliberations/${delibId}/evidential?mode=product&includeContributors=1` : null,
+    r => fetch(r).then(x=>x.json()));
+  const scoreBy = useMemo(()=> {
+    const m = new Map<string, {score:number; list:any[]}>();
+    (ev?.items || []).forEach((it:any)=> m.set(it.claimId, { score: it.score, list: it.contributors || [] }));
+    return m;
+  }, [ev]);
+
   const [openNodeId, setOpenNodeId] = useState<string | null>(null);
+
 
   if (error) return <div className="text-xs text-red-600">Failed to load sheet</div>;
   if (!data?.sheet) return <div className="text-xs text-neutral-500">Loading…</div>;
@@ -41,23 +55,42 @@ export default function DebateSheetReader({ sheetId }: { sheetId: string }) {
               const label = acceptance.labels[n.id] ?? 'undecided';
               return (
                 <li key={n.id} className="border rounded p-2">
-                  <div className="flex items-center justify-between">
-                    <div className="font-medium">{n.title ?? n.id}</div>
-                    <Badge variant={label.includes('default') ? 'secondary' : label === 'rejected' ? 'destructive' : 'outline'}>{label}</Badge>
-                  </div>
+                    
+               
                   <div className="mt-2 text-xs flex gap-2">
                     <button className="underline" onClick={() => setOpenNodeId(n.id)} disabled={!n.diagramId}>Expand</button>
                     <span className="text-neutral-500">Edges: {edges.filter((e:any)=>e.fromId===n.id || e.toId===n.id).length}</span>
                   </div>
+                     <div className="flex flex-col gap-2">
+                    <div className="font-medium text-xs">{n.title ?? n.id}</div>
+                    <Badge className=' w-fit' variant={label.includes('accepted') ? 'secondary' : label === 'rejected' ? 'destructive' : 'outline'}>{label}</Badge>
+                  </div>
+           
+                  {/* support bar */}
+{scoreBy.has(n.id) && (
+  <div className="mt-2">
+    <div className="h-1.5 bg-slate-200 rounded">
+      <div className="h-1.5 bg-emerald-500 rounded" style={{ width: `${Math.round((scoreBy.get(n.id)!.score || 0)*100)}%` }} />
+    </div>
+    <div className="mt-1 flex flex-wrap gap-1">
+      {(scoreBy.get(n.id)!.list || []).slice(0,4).map((c:any)=>(
+        <span key={c.argumentId} className="px-1.5 py-[1px] rounded bg-emerald-50 text-[10px] text-emerald-700">
+          {Math.round(c.chainStrength*100)}% · {c.text?.slice(0,40) || c.argumentId.slice(0,6)+'…'}
+        </span>
+      ))}
+    </div>
+  </div>
+)}
                 </li>
               );
             })}
           </ul>
         </div>
-
+<div className='fixed top-[200px] left-0'>
         {openNodeId && (
           <ArgumentPopout node={nodes.find((n:any)=>n.id===openNodeId)} onClose={() => setOpenNodeId(null)} />
         )}
+        </div>
       </main>
     </div>
   );

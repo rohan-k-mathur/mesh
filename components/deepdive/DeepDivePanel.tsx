@@ -452,6 +452,7 @@ export default function DeepDivePanel({
   const [tab, setTab] = useState<'arguments'|'works'|'card'|'viewcard'>('arguments');
  const [hudTarget, setHudTarget] = useState<{ type:'claim'; id:string; locusPath?:string|null }|null>(null);
 
+const [confidenceMode, setConfidenceMode] = useState<'min'|'product'>('product');
 
 
   const [rule, setRule] = useState<"utilitarian" | "harmonic" | "maxcov">(
@@ -646,6 +647,16 @@ const { data: diag } = useSWR(
      return () => window.removeEventListener('mesh:dialogue:refresh', onRefresh);
    }, []);
 
+   // persist/restore from room rulesetJson.confidence.mode (optional)
+useEffect(() => {
+  (async () => {
+    const r = await fetch(`/api/deliberations/${encodeURIComponent(deliberationId)}/prefs`, { cache:'no-store' });
+    const j = await r.json().catch(()=>null);
+    const m = j?.rulesetJson?.confidence?.mode;
+    if (m === 'min' || m === 'product') setConfidenceMode(m);
+  })();
+}, [deliberationId]);
+
 
 //    // Map your backend payloads into MinimapNodes/Edges
 //    const nodes: MinimapNode[] = useMemo(() => {
@@ -716,6 +727,15 @@ const { data: diag } = useSWR(
               </select>
             </label>
             </ChipBar>
+<label className="text-xs text-neutral-600 flex items-center gap-1">
+  Confidence:
+  <select className="text-xs menuv2--lite rounded px-2 mx-2 py-.5"
+    value={confidenceMode}
+    onChange={(e)=>setConfidenceMode(e.target.value as any)}>
+    <option value="product">Product</option>
+    <option value="min">Weakest link</option>
+  </select>
+</label>
 
             {/* <HelpModal /> */}
             <DiscusHelpPage />

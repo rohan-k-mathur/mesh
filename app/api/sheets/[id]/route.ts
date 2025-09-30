@@ -80,7 +80,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const A = nodes.map(n => n.id);
   const attacks = aEdges
     .filter(e => e.type === 'rebut' || e.type === 'undercut')
-    .map(e => ({ from: e.fromArgumentId, to: e.toArgumentId, type: 'attack' as const }));
+    .map(e => ({ from: e.fromArgumentId, to: e.toArgumentId, type: e.type as 'rebut' | 'undercut' }));
 
   const attackMap = buildAttackGraph(A, attacks);
   let IN = new Set<string>();

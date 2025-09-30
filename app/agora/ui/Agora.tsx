@@ -18,23 +18,34 @@ import Plexus from "@/components/agora/Plexus"; // <-- rename + import
 function niceDomain(url?: string | null, fallback?: string | null) {
   if (fallback) return fallback;
   if (!url) return null;
-  try { return new URL(url).hostname.replace(/^www\./, "") || null; } catch { return null; }
+  try {
+    return new URL(url).hostname.replace(/^www\./, "") || null;
+  } catch {
+    return null;
+  }
 }
 function titleFromUrl(url: string) {
   try {
     const u = new URL(url);
     const domain = u.hostname.replace(/^www\./, "");
-    const tail = decodeURIComponent(u.pathname.split("/").filter(Boolean).pop() || "").slice(0, 80);
+    const tail = decodeURIComponent(
+      u.pathname.split("/").filter(Boolean).pop() || ""
+    ).slice(0, 80);
     return tail ? `${domain} · ${tail}` : domain;
-  } catch { return url; }
+  } catch {
+    return url;
+  }
 }
 function niceTitle(m: any) {
   const t = (m.title || "").trim();
   if (t && !/^https?:\/\//i.test(t)) return t;
   if (m.url && String(m.url).includes("doi.org")) {
-    try { const u = new URL(m.url); return `doi:${decodeURIComponent(u.pathname.replace(/^\/+/, ""))}`; } catch {}
+    try {
+      const u = new URL(m.url);
+      return `doi:${decodeURIComponent(u.pathname.replace(/^\/+/, ""))}`;
+    } catch {}
   }
-  return m.url ? titleFromUrl(m.url) : (m.domain || "Source");
+  return m.url ? titleFromUrl(m.url) : m.domain || "Source";
 }
 function cleanPreview(s?: string | null) {
   if (!s) return "";
@@ -50,8 +61,8 @@ function coalesce(prev: AgoraEvent[], ev: AgoraEvent): AgoraEvent[] {
   // CITATIONS bundle by (targetType:targetId)
   if (ev.type === "citations:changed") {
     const tgtType = (ev as any).targetType;
-    const tgtId   = (ev as any).targetId;
-    const tgtKey  = `${tgtType}:${tgtId}`;
+    const tgtId = (ev as any).targetId;
+    const tgtKey = `${tgtType}:${tgtId}`;
 
     const bundleIdx = prev.findIndex(
       (e: any) =>
@@ -63,7 +74,13 @@ function coalesce(prev: AgoraEvent[], ev: AgoraEvent): AgoraEvent[] {
     if (bundleIdx >= 0) {
       const b: any = prev[bundleIdx];
       const count = (b.count || 1) + 1;
-      const upd = { ...b, ts: ev.ts, count, title: `${count} sources attached`, meta: b.meta };
+      const upd = {
+        ...b,
+        ts: ev.ts,
+        count,
+        title: `${count} sources attached`,
+        meta: b.meta,
+      };
       return [upd, ...prev.filter((_, i) => i !== bundleIdx)];
     }
 
@@ -100,7 +117,10 @@ function coalesce(prev: AgoraEvent[], ev: AgoraEvent): AgoraEvent[] {
     const room = ev.deliberationId;
 
     const roomBundleIdx = prev.findIndex(
-      (e: any) => (e as any).type === "bundle" && e.deliberationId === room && ev.ts - e.ts <= BUNDLE_WINDOW_MS
+      (e: any) =>
+        (e as any).type === "bundle" &&
+        e.deliberationId === room &&
+        ev.ts - e.ts <= BUNDLE_WINDOW_MS
     );
     if (roomBundleIdx >= 0) {
       const b: any = prev[roomBundleIdx];
@@ -111,14 +131,19 @@ function coalesce(prev: AgoraEvent[], ev: AgoraEvent): AgoraEvent[] {
         ...b,
         ts: ev.ts,
         title: "Room burst",
-        meta: Object.entries(kinds).map(([kk, v]) => `${v} ${kk}`).join(" · "),
+        meta: Object.entries(kinds)
+          .map(([kk, v]) => `${v} ${kk}`)
+          .join(" · "),
         kinds,
       };
       return [upd, ...prev.filter((_, i) => i !== roomBundleIdx)];
     }
 
     const priorMoveIdx = prev.findIndex(
-      (e) => e.type === "dialogue:changed" && e.deliberationId === room && ev.ts - e.ts <= BUNDLE_WINDOW_MS
+      (e) =>
+        e.type === "dialogue:changed" &&
+        e.deliberationId === room &&
+        ev.ts - e.ts <= BUNDLE_WINDOW_MS
     );
     if (priorMoveIdx >= 0) {
       const base = prev[priorMoveIdx];
@@ -133,7 +158,9 @@ function coalesce(prev: AgoraEvent[], ev: AgoraEvent): AgoraEvent[] {
         type: "bundle",
         ts: ev.ts,
         title: "Room burst",
-        meta: Object.entries(kinds).map(([kk, v]) => `${v} ${kk}`).join(" · "),
+        meta: Object.entries(kinds)
+          .map(([kk, v]) => `${v} ${kk}`)
+          .join(" · "),
         chips: [`room:${room.slice(0, 6)}…`],
         link: `/deliberation/${room}`,
         deliberationId: room,
@@ -151,23 +178,27 @@ function coalesce(prev: AgoraEvent[], ev: AgoraEvent): AgoraEvent[] {
 }
 
 /* ------------------------------ component ---------------------------- */
-export default function Agora({ initialEvents }: { initialEvents: AgoraEvent[] }) {
+export default function Agora({
+  initialEvents,
+}: {
+  initialEvents: AgoraEvent[];
+}) {
   const [events, setEvents] = React.useState<AgoraEvent[]>(initialEvents);
   const [paused, setPaused] = React.useState(false);
-  const [tab, setTab] = React.useState<"all" | "following" | "calls" | "votes" | "accepted">("all");
-    const [view, setView] = React.useState<'feed'|'network'>('feed');   // ⬅️ NEW top-level view
+  const [tab, setTab] = React.useState<
+    "all" | "following" | "calls" | "votes" | "accepted"
+  >("all");
+  const [view, setView] = React.useState<"feed" | "network">("feed"); // ⬅️ NEW top-level view
 
   const [q, setQ] = React.useState("");
   const [selected, setSelected] = React.useState<AgoraEvent | null>(null);
 
-  const { roomSet, isFollowingRoom, isFollowingTag, followRoom, unfollowRoom } = useFollowing();
+  const { roomSet, isFollowingRoom, isFollowingTag, followRoom, unfollowRoom } =
+    useFollowing();
   const { stackSet, isFollowingStack } = useStackFollowing();
 
   const [pending, setPending] = React.useState<Set<string>>(new Set());
   const [ok, setOk] = React.useState<Set<string>>(new Set());
-
-
-
 
   // Fallback hydrate if SSR didn’t deliver
   React.useEffect(() => {
@@ -175,16 +206,20 @@ export default function Agora({ initialEvents }: { initialEvents: AgoraEvent[] }
     let alive = true;
     (async () => {
       try {
-        const r = await fetch("/api/agora/events?limit=30", { cache: "no-store", credentials: "same-origin" });
+        const r = await fetch("/api/agora/events?limit=30", {
+          cache: "no-store",
+          credentials: "same-origin",
+        });
         if (!r.ok) return;
         const j = await r.json().catch(() => null);
         const items = Array.isArray(j?.items) ? j.items : [];
         if (alive && items.length) setEvents(items);
       } catch {}
     })();
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, [events.length]);
-
 
   function setPendingOn(id: string, on: boolean) {
     setPending((prev) => {
@@ -213,7 +248,11 @@ export default function Agora({ initialEvents }: { initialEvents: AgoraEvent[] }
     try {
       await followRoom(roomId);
       flashOk(roomId);
-      window.dispatchEvent(new CustomEvent("follow:changed", { detail: { kind: "room", id: roomId, following: true } }));
+      window.dispatchEvent(
+        new CustomEvent("follow:changed", {
+          detail: { kind: "room", id: roomId, following: true },
+        })
+      );
     } finally {
       setPendingOn(roomId, false);
     }
@@ -223,72 +262,88 @@ export default function Agora({ initialEvents }: { initialEvents: AgoraEvent[] }
     try {
       await unfollowRoom(roomId);
       flashOk(roomId);
-      window.dispatchEvent(new CustomEvent("follow:changed", { detail: { kind: "room", id: roomId, following: false } }));
+      window.dispatchEvent(
+        new CustomEvent("follow:changed", {
+          detail: { kind: "room", id: roomId, following: false },
+        })
+      );
     } finally {
       setPendingOn(roomId, false);
     }
   }
 
+  // ---------------- Active room selection ----------------
+  const roomsFromEvents = React.useMemo(() => {
+    const ids = new Set<string>();
+    for (const e of events) if (e.deliberationId) ids.add(e.deliberationId);
+    return Array.from(ids);
+  }, [events]);
 
-      // ---------------- Active room selection ----------------
-    const roomsFromEvents = React.useMemo(() => {
-      const ids = new Set<string>();
-      for (const e of events) if (e.deliberationId) ids.add(e.deliberationId);
-      return Array.from(ids);
-    }, [events]);
-  
-    const followedRooms = React.useMemo(() => Array.from(roomSet), [roomSet]);
-    const allRooms = React.useMemo(() => {
-      const s = new Set<string>([...followedRooms, ...roomsFromEvents]);
-      return Array.from(s);
-    }, [followedRooms, roomsFromEvents]);
-  
-    const [currentRoomId, setCurrentRoomId] = React.useState<string | null>(null);
-  
-    // Initialize from localStorage or fallbacks
-    React.useEffect(() => {
-      if (currentRoomId) return; // already set
-      try {
-        const stored = localStorage.getItem("agora:activeRoom");
-        if (stored) { setCurrentRoomId(stored); return; }
-      } catch {}
-      if (allRooms.length) setCurrentRoomId(allRooms[0]);
-    }, [currentRoomId, allRooms]);
-  
-    // Persist when it changes
-    React.useEffect(() => {
-      if (currentRoomId) {
-        try { localStorage.setItem("agora:activeRoom", currentRoomId); } catch {}
+  const followedRooms = React.useMemo(() => Array.from(roomSet), [roomSet]);
+  const allRooms = React.useMemo(() => {
+    const s = new Set<string>([...followedRooms, ...roomsFromEvents]);
+    return Array.from(s);
+  }, [followedRooms, roomsFromEvents]);
+
+  const [currentRoomId, setCurrentRoomId] = React.useState<string | null>(null);
+
+  // Initialize from localStorage or fallbacks
+  React.useEffect(() => {
+    if (currentRoomId) return; // already set
+    try {
+      const stored = localStorage.getItem("agora:activeRoom");
+      if (stored) {
+        setCurrentRoomId(stored);
+        return;
       }
-    }, [currentRoomId]);
-  
-    function RoomPicker({ rooms, value, onChange }:{
-      rooms: string[]; value: string | null; onChange: (id: string) => void;
-    }) {
-      if (!rooms.length) return null;
-      return (
-        <div className="flex items-center gap-2 p-2 text-sm">
-          <label className="text-neutral-600">Active room:</label>
-          <select
-            className="menuv2--lite rounded px-2 py-1"
-            value={value ?? ""}
-            onChange={(e) => onChange(e.target.value)}
-          >
-            {!value && <option value="">Select…</option>}
-            {rooms.map(rid => (
-              <option key={rid} value={rid}>room:{rid.slice(0,6)}…</option>
-            ))}
-          </select>
-        </div>
-      );
+    } catch {}
+    if (allRooms.length) setCurrentRoomId(allRooms[0]);
+  }, [currentRoomId, allRooms]);
+
+  // Persist when it changes
+  React.useEffect(() => {
+    if (currentRoomId) {
+      try {
+        localStorage.setItem("agora:activeRoom", currentRoomId);
+      } catch {}
     }
+  }, [currentRoomId]);
+
+  function RoomPicker({
+    rooms,
+    value,
+    onChange,
+  }: {
+    rooms: string[];
+    value: string | null;
+    onChange: (id: string) => void;
+  }) {
+    if (!rooms.length) return null;
+    return (
+      <div className="flex items-center gap-2 p-2 text-sm">
+        <label className="text-neutral-600">Active room:</label>
+        <select
+          className="menuv2--lite rounded px-2 py-1"
+          value={value ?? ""}
+          onChange={(e) => onChange(e.target.value)}
+        >
+          {!value && <option value="">Select…</option>}
+          {rooms.map((rid) => (
+            <option key={rid} value={rid}>
+              room:{rid.slice(0, 6)}…
+            </option>
+          ))}
+        </select>
+      </div>
+    );
+  }
 
   // 🔊 Live events
   useBusEffect("*", (m) => {
     if (paused) return;
 
     const t = String(m?.type ?? "");
-    const ts = typeof m.ts === "number" ? m.ts : (Date.parse(m.ts) || Date.now());
+    const ts = typeof m.ts === "number" ? m.ts : Date.parse(m.ts) || Date.now();
     let ev: AgoraEvent | null = null;
 
     switch (t) {
@@ -298,9 +353,13 @@ export default function Agora({ initialEvents }: { initialEvents: AgoraEvent[] }
           type: "dialogue:changed",
           ts,
           title: `New move${m.kind ? ` (${m.kind})` : ""}`,
-          meta: m.deliberationId ? `room:${String(m.deliberationId).slice(0, 6)}…` : undefined,
+          meta: m.deliberationId
+            ? `room:${String(m.deliberationId).slice(0, 6)}…`
+            : undefined,
           chips: m.kind ? [m.kind] : [],
-          link: m.deliberationId ? `/deliberation/${m.deliberationId}` : undefined,
+          link: m.deliberationId
+            ? `/deliberation/${m.deliberationId}`
+            : undefined,
           deliberationId: m.deliberationId,
           icon: "move",
         };
@@ -312,44 +371,60 @@ export default function Agora({ initialEvents }: { initialEvents: AgoraEvent[] }
           type: "dialogue:changed",
           ts,
           title: `Room activity${m.kind ? ` (${m.kind})` : ""}`,
-          meta: m.deliberationId ? `room:${String(m.deliberationId).slice(0, 6)}…` : undefined,
+          meta: m.deliberationId
+            ? `room:${String(m.deliberationId).slice(0, 6)}…`
+            : undefined,
           chips: m.kind ? [m.kind] : [],
-          link: m.deliberationId ? `/deliberation/${m.deliberationId}` : undefined,
+          link: m.deliberationId
+            ? `/deliberation/${m.deliberationId}`
+            : undefined,
           deliberationId: m.deliberationId,
           icon: "move",
         };
         break;
 
       case "citations:changed": {
-        const titleTxt   = niceTitle(m);
+        const titleTxt = niceTitle(m);
         const targetLabel =
-          m.targetType === "comment" ? "Comment" :
-          m.targetType === "claim"   ? "Claim"   :
-          (m.targetType || "Target");
+          m.targetType === "comment"
+            ? "Comment"
+            : m.targetType === "claim"
+            ? "Claim"
+            : m.targetType || "Target";
 
-        const loc      = m.locator ? ` · ${m.locator}` : "";
+        const loc = m.locator ? ` · ${m.locator}` : "";
         const domLabel = niceDomain(m.url, m.domain);
-        const dom      = domLabel ? ` · ${domLabel}` : "";
-        const preview  = cleanPreview(m.targetPreview);
+        const dom = domLabel ? ` · ${domLabel}` : "";
+        const preview = cleanPreview(m.targetPreview);
 
-        const quoteChip = m.quote ? `“${String(m.quote).slice(0,120)}${String(m.quote).length>120?"…":""}”` : null;
-        const noteChip  = m.note  ? `Note: ${String(m.note).slice(0,80)}${String(m.note).length>80?"…":""}` : null;
-        const kindChip  = m.kind ? String(m.kind) : null;
-        const platChip  = m.platform ? String(m.platform) : null;
+        const quoteChip = m.quote
+          ? `“${String(m.quote).slice(0, 120)}${
+              String(m.quote).length > 120 ? "…" : ""
+            }”`
+          : null;
+        const noteChip = m.note
+          ? `Note: ${String(m.note).slice(0, 80)}${
+              String(m.note).length > 80 ? "…" : ""
+            }`
+          : null;
+        const kindChip = m.kind ? String(m.kind) : null;
+        const platChip = m.platform ? String(m.platform) : null;
 
         const rawChips = [
           ...(quoteChip ? [quoteChip] : []),
-          ...(noteChip  ? [noteChip]  : []),
-          ...(kindChip  ? [kindChip]  : []),
+          ...(noteChip ? [noteChip] : []),
+          ...(kindChip ? [kindChip] : []),
           ...(platChip && platChip !== kindChip ? [platChip] : []),
           "source",
         ];
         const chips = Array.from(new Set(rawChips));
 
         const contextLink =
-          m.stackId && m.targetType === "comment" ? `/stacks/${m.stackId}#c=${m.targetId}` :
-          m.targetType === "claim" ? `/claim/${m.targetId}` :
-          undefined;
+          m.stackId && m.targetType === "comment"
+            ? `/stacks/${m.stackId}#c=${m.targetId}`
+            : m.targetType === "claim"
+            ? `/claim/${m.targetId}`
+            : undefined;
 
         ev = {
           id: `ct:${ts}:${m.sourceId || ""}:${m.targetId || ""}`,
@@ -362,7 +437,7 @@ export default function Agora({ initialEvents }: { initialEvents: AgoraEvent[] }
           contextLink,
           icon: "link",
           targetType: m.targetType,
-          targetId:   m.targetId,
+          targetId: m.targetId,
           deliberationId: m.deliberationId || undefined,
         } as any;
         break;
@@ -376,7 +451,9 @@ export default function Agora({ initialEvents }: { initialEvents: AgoraEvent[] }
           title: "Decision recorded",
           meta: m.rationale || "",
           chips: [m.kind || "decision"],
-          link: m.deliberationId ? `/deliberation/${m.deliberationId}` : undefined,
+          link: m.deliberationId
+            ? `/deliberation/${m.deliberationId}`
+            : undefined,
           deliberationId: m.deliberationId,
           icon: "check",
         };
@@ -388,9 +465,13 @@ export default function Agora({ initialEvents }: { initialEvents: AgoraEvent[] }
           type: "votes:changed",
           ts,
           title: "Vote updated",
-          meta: m.sessionId ? `session:${String(m.sessionId).slice(0, 6)}…` : undefined,
+          meta: m.sessionId
+            ? `session:${String(m.sessionId).slice(0, 6)}…`
+            : undefined,
           chips: [m.method || "vote"],
-          link: m.deliberationId ? `/deliberation/${m.deliberationId}` : undefined,
+          link: m.deliberationId
+            ? `/deliberation/${m.deliberationId}`
+            : undefined,
           deliberationId: m.deliberationId,
           icon: "vote",
         };
@@ -404,7 +485,8 @@ export default function Agora({ initialEvents }: { initialEvents: AgoraEvent[] }
           title: "Cross-link added",
           meta: m.relation || "",
           chips: ["xref"],
-          link: m.toType === "deliberation" ? `/deliberation/${m.toId}` : undefined,
+          link:
+            m.toType === "deliberation" ? `/deliberation/${m.toId}` : undefined,
           deliberationId: m.toType === "deliberation" ? m.toId : undefined,
           icon: "branch",
         };
@@ -439,7 +521,9 @@ export default function Agora({ initialEvents }: { initialEvents: AgoraEvent[] }
           type: "stacks:changed",
           ts,
           title: titleMap[op] || "Stack updated",
-          meta: m.stackId ? `stack:${String(m.stackId).slice(0, 6)}…` : undefined,
+          meta: m.stackId
+            ? `stack:${String(m.stackId).slice(0, 6)}…`
+            : undefined,
           chips: [op],
           link: m.stackId ? `/stacks/${m.stackId}` : undefined,
           icon: "stack",
@@ -450,15 +534,19 @@ export default function Agora({ initialEvents }: { initialEvents: AgoraEvent[] }
       case "comments:changed": {
         const op = m.op || "update";
         const title =
-          op === "add"    ? "New comment on a stack" :
-          op === "delete" ? "Comment removed" :
-          "Comments updated";
+          op === "add"
+            ? "New comment on a stack"
+            : op === "delete"
+            ? "Comment removed"
+            : "Comments updated";
         ev = {
           id: `cm:${ts}`,
           type: "comments:changed",
           ts,
           title,
-          meta: m.stackId ? `stack:${String(m.stackId).slice(0, 6)}…` : undefined,
+          meta: m.stackId
+            ? `stack:${String(m.stackId).slice(0, 6)}…`
+            : undefined,
           chips: ["comment"],
           link: m.stackId ? `/stacks/${m.stackId}` : undefined,
           icon: "chat",
@@ -480,8 +568,9 @@ export default function Agora({ initialEvents }: { initialEvents: AgoraEvent[] }
   const filtered = React.useMemo(() => {
     let list = events;
 
-    if (tab === "accepted") list = list.filter((e) => e.type === "decision:changed");
-    if (tab === "votes")    list = list.filter((e) => e.type === "votes:changed");
+    if (tab === "accepted")
+      list = list.filter((e) => e.type === "decision:changed");
+    if (tab === "votes") list = list.filter((e) => e.type === "votes:changed");
 
     if (tab === "following") {
       if (!hasFollowData) {
@@ -489,8 +578,10 @@ export default function Agora({ initialEvents }: { initialEvents: AgoraEvent[] }
         return events;
       }
       list = list.filter((e) => {
-        const inRooms  = e.deliberationId ? roomSet.has(e.deliberationId) : false;
-        const inTags   = (e.chips || []).some((c) => isFollowingTag(c));
+        const inRooms = e.deliberationId
+          ? roomSet.has(e.deliberationId)
+          : false;
+        const inTags = (e.chips || []).some((c) => isFollowingTag(c));
 
         const inStacks =
           (e.type === "stacks:changed" || e.type === "comments:changed") &&
@@ -500,12 +591,12 @@ export default function Agora({ initialEvents }: { initialEvents: AgoraEvent[] }
 
         // citations considered "following" if tied to a followed room or stack
         const cit = e.type === "citations:changed" ? (e as any) : null;
-        const citInRoom =
-          cit?.deliberationId ? roomSet.has(cit.deliberationId) : false;
-        const citInStack =
-          cit?.contextLink?.includes("/stacks/")
-            ? isFollowingStack(cit.contextLink.split("/stacks/")[1].split("#")[0])
-            : false;
+        const citInRoom = cit?.deliberationId
+          ? roomSet.has(cit.deliberationId)
+          : false;
+        const citInStack = cit?.contextLink?.includes("/stacks/")
+          ? isFollowingStack(cit.contextLink.split("/stacks/")[1].split("#")[0])
+          : false;
 
         return inRooms || inTags || inStacks || citInRoom || citInStack;
       });
@@ -522,12 +613,28 @@ export default function Agora({ initialEvents }: { initialEvents: AgoraEvent[] }
     }
 
     return list;
-  }, [events, tab, q, roomSet, stackSet, isFollowingTag, isFollowingStack, hasFollowData]);
+  }, [
+    events,
+    tab,
+    q,
+    roomSet,
+    stackSet,
+    isFollowingTag,
+    isFollowingStack,
+    hasFollowData,
+  ]);
 
   /* ------------------------------ render ----------------------------- */
- return (
+  return (
     <div className="mx-auto w-full max-w-screen">
-      <TopBar tab={tab} onTab={setTab} q={q} onQ={setQ} paused={paused} onPause={() => setPaused(p => !p)} />
+      <TopBar
+        tab={tab}
+        onTab={setTab}
+        q={q}
+        onQ={setQ}
+        paused={paused}
+        onPause={() => setPaused((p) => !p)}
+      />
       <div className="grid grid-cols-12 gap-4 mt-3">
         <aside className="hidden lg:block col-span-3">
           <FiltersPanel />
@@ -537,15 +644,12 @@ export default function Agora({ initialEvents }: { initialEvents: AgoraEvent[] }
           <Tabs defaultValue="feed">
             <TabsList>
               <TabsTrigger value="feed">Feed</TabsTrigger>
-                    <TabsTrigger value="debates">Debates</TabsTrigger>
+              <TabsTrigger value="debates">Debates</TabsTrigger>
 
               <TabsTrigger value="plexus">Plexus</TabsTrigger>
-
             </TabsList>
 
             <TabsContent value="feed" className="space-y-2">
-            
-
               {filtered.map((e) => {
                 const rid = e.deliberationId || "";
                 const following = !!rid && isFollowingRoom(rid);
@@ -557,48 +661,67 @@ export default function Agora({ initialEvents }: { initialEvents: AgoraEvent[] }
                     ev={e}
                     onSelect={(x) => setSelected(x)}
                     isFollowing={following}
-                    onFollow={() => rid && (async () => { await followRoom(rid); })()}
-                    onUnfollow={() => rid && (async () => { await unfollowRoom(rid); })()}
+                    onFollow={() =>
+                      rid &&
+                      (async () => {
+                        await followRoom(rid);
+                      })()
+                    }
+                    onUnfollow={() =>
+                      rid &&
+                      (async () => {
+                        await unfollowRoom(rid);
+                      })()
+                    }
                     pending={isPending}
                     ok={isOk}
                   />
                 );
               })}
               {!filtered.length && (
-                <div className="text-sm text-slate-600 border rounded-xl bg-white/70 p-3">No events yet.</div>
+                <div className="text-sm text-slate-600 border rounded-xl bg-white/70 p-3">
+                  No events yet.
+                </div>
               )}
             </TabsContent>
 
-<TabsContent value="debates" className="p-2">
-                <div className={clsx("flex items-center justify-between")}>
-                <RoomPicker rooms={allRooms} value={currentRoomId} onChange={setCurrentRoomId} />
+            <TabsContent value="debates" className="p-2">
+              <div className={clsx("flex items-center justify-between")}>
+                <RoomPicker
+                  rooms={allRooms}
+                  value={currentRoomId}
+                  onChange={setCurrentRoomId}
+                />
               </div>
               {currentRoomId ? (
-                  <div className="my-2">
-                <DebateSheetReader sheetId={`delib:${currentRoomId}`} />
-                     </div>
+                <div className="my-2">
+                  <DebateSheetReader sheetId={`delib:${currentRoomId}`} />
+                </div>
               ) : (
                 <div className="text-xs text-neutral-600 border rounded-xl bg-white/70 p-2">
                   Pick an active room to load its Debate Sheet.
                 </div>
               )}
-                      
-
             </TabsContent>
 
             <TabsContent value="plexus">
               <Plexus
                 scope="public"
                 selectedRoomId={currentRoomId}
-                onSelectRoom={(rid) => setCurrentRoomId(rid)}
+                onSelectRoom={(rid) => {
+                  setCurrentRoomId(rid);
+                  // persist for user convenience (matches your existing store)
+                  try {
+                    localStorage.setItem("agora:activeRoom", rid);
+                  } catch {}
+                }}
               />
             </TabsContent>
-                
           </Tabs>
         </main>
 
         <aside className="hidden xl:block col-span-3">
-          <RightRail selected={selected}/>
+          <RightRail selected={selected} />
         </aside>
       </div>
     </div>

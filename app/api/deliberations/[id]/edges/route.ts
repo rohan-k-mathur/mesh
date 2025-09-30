@@ -10,6 +10,8 @@ const Body = z.object({
   toArgumentId: z.string(),
   type: z.enum(['support', 'rebut', 'undercut', 'concede']),
   targetScope: z.enum(['conclusion', 'premise', 'inference']).optional(),
+    targetInferenceId: z.string().optional(),             // NEW
+
 });
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
@@ -33,18 +35,17 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       return NextResponse.json({ error: 'Arguments not in this deliberation' }, { status: 400 });
     }
 
-    const edge = await prisma.argumentEdge.create({
-      data: {
-        deliberationId,
-        fromArgumentId: body.fromArgumentId,
-        toArgumentId: body.toArgumentId,
-        type: body.type as any,
-        createdById: String(userId),
-        targetScope: (body.type === 'rebut' || body.type === 'undercut')
-          ? (body.targetScope ?? 'conclusion')
-          : 'conclusion', // default / irrelevant for support/concede
-      },
-    });
+const edge = await prisma.argumentEdge.create({
+  data: {
+    deliberationId,
+    fromArgumentId: body.fromArgumentId,
+    toArgumentId: body.toArgumentId,
+    type: body.type as any,
+    targetScope: body.type === 'undercut' ? (body.targetScope ?? 'inference') : (body.targetScope ?? 'conclusion'),
+    targetInferenceId: body.type === 'undercut' ? (body.targetInferenceId ?? null) : null,
+    createdById: String(userId),
+  },
+});
     await maybeUpsertClaimEdgeFromArgumentEdge(edge.id);
 
     return NextResponse.json({ ok: true, edge });

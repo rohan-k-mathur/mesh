@@ -1529,22 +1529,23 @@ model LibraryPost {
 }
 
 model Stack {
-  id            String              @id @default(cuid())
-  owner_id      BigInt
-  name          String
-  description   String?
-  is_public     Boolean             @default(false)
-  order         String[]
-  created_at    DateTime            @default(now()) @db.Timestamptz(6)
-  parent_id     String?
-  slug          String?             @unique
-  owner         User                @relation(fields: [owner_id], references: [id], onDelete: Cascade)
-  posts         LibraryPost[]
-  parent        Stack?              @relation("StackHierarchy", fields: [parent_id], references: [id])
-  children      Stack[]             @relation("StackHierarchy")
-  feedPosts     FeedPost[]
-  collaborators StackCollaborator[]
-  subscribers   StackSubscription[]
+  id             String              @id @default(cuid())
+  owner_id       BigInt
+  name           String
+  description    String?
+  is_public      Boolean             @default(false)
+  order          String[]
+  created_at     DateTime            @default(now()) @db.Timestamptz(6)
+  parent_id      String?
+  slug           String?             @unique
+  owner          User                @relation(fields: [owner_id], references: [id], onDelete: Cascade)
+  posts          LibraryPost[]
+  parent         Stack?              @relation("StackHierarchy", fields: [parent_id], references: [id])
+  children       Stack[]             @relation("StackHierarchy")
+  feedPosts      FeedPost[]
+  collaborators  StackCollaborator[]
+  subscribers    StackSubscription[]
+  StackReference StackReference[]
 
   @@unique([owner_id, name])
   @@map("stacks")
@@ -2150,7 +2151,6 @@ model AgreementAck {
 }
 
 //Deliberation models and enums
-
 model Argument {
   id             String  @id @default(cuid())
   deliberationId String
@@ -2174,13 +2174,16 @@ model Argument {
   outgoingEdges     ArgumentEdge[]      @relation("fromArg")
   incomingEdges     ArgumentEdge[]      @relation("toArg")
   approvals         ArgumentApproval[]
-  // (keep any other relations you already had)
   ViewpointArgument ViewpointArgument[]
   IssueLink         IssueLink[]
 
+  // ✅ back-relations for ArgumentImport (argument side)
+  argImportsSource ArgumentImport[] @relation("ArgImpFromArg")
+  argImportsTarget ArgumentImport[] @relation("ArgImpToArg")
+
   @@index([deliberationId])
-  @@index([deliberationId, createdAt]) // arguments by delib
-  @@index([deliberationId, claimId, createdAt]) // arguments by claim in a delib
+  @@index([deliberationId, createdAt])
+  @@index([deliberationId, claimId, createdAt])
 }
 
 enum ArgumentAttackSubtype {
@@ -3003,17 +3006,26 @@ model Deliberation {
 
   proofMode ProofMode @default(symmetric)
 
-  tags  String[]           @default([]) // disciplines, methods, domains
-  // cohorts
-  roles DeliberationRole[]
-  calls DeliberationCall[]
-
+  tags    String[]             @default([])
+  roles   DeliberationRole[]
+  calls   DeliberationCall[]
   anchors DeliberationAnchor[]
 
   upgradedFromDiscussionId String?     @unique
   upgradedFromDiscussion   Discussion? @relation("DiscussionToDeliberation", fields: [upgradedFromDiscussionId], references: [id])
 
-  //@@unique([hostType, hostId], name: "hostType_hostId")
+  // ✅ back-relations for StackReference (two directed edges to Deliberation)
+  stackRefsFrom StackReference[] @relation("StackRefFrom")
+  stackRefsTo   StackReference[] @relation("StackRefTo")
+
+  // ✅ back-relations for ArgumentImport (two directed edges to Deliberation)
+  argImportsFrom ArgumentImport[] @relation("ArgImpFrom")
+  argImportsTo   ArgumentImport[] @relation("ArgImpTo")
+
+  // ✅ back-relations for SharedAuthorRoomEdge (two directed edges to Deliberation)
+  sharedAuthorsFrom SharedAuthorRoomEdge[] @relation("SharedAuthorFrom")
+  sharedAuthorsTo   SharedAuthorRoomEdge[] @relation("SharedAuthorTo")
+
   @@index([hostType, hostId])
   @@index([roomId])
 }
@@ -4107,4 +4119,101 @@ model EvidenceLink {
 
   ArgumentDiagram   ArgumentDiagram? @relation(fields: [argumentDiagramId], references: [id])
   argumentDiagramId String?
+}
+
+/// Edges induced when a stack in room A references (is attached to, cites, embeds) room B.
+/// We store both room ids for quick aggregation; optionally keep a stackId for provenance.
+model StackReference {
+  id                 String  @id @default(cuid())
+  fromDeliberationId String
+  toDeliberationId   String
+  stackId            String?
+  relation           String? // 'attached' | 'cites' | 'embeds' | ...
+
+  createdAt DateTime @default(now())
+
+  fromDeliberation Deliberation @relation("StackRefFrom", fields: [fromDeliberationId], references: [id], onDelete: Cascade)
+  toDeliberation   Deliberation @relation("StackRefTo", fields: [toDeliberationId], references: [id], onDelete: Cascade)
+
+  // Optional FK to your Stack model if present
+  stack Stack? @relation(fields: [stackId], references: [id], onDelete: SetNull)
+
+  @@unique([fromDeliberationId, toDeliberationId, stackId, relation])
+  @@index([fromDeliberationId])
+  @@index([toDeliberationId])
+  @@index([stackId])
+}
+
+/// Edges when arguments/claims are imported or restated across rooms.
+/// Keep both room ids; optionally track argument id mapping (from→to) and a kind.
+model ArgumentImport {
+  id                 String  @id @default(cuid())
+  fromDeliberationId String
+  toDeliberationId   String
+  fromArgumentId     String?
+  toArgumentId       String?
+  kind               String? // 'import' | 'restatement' | 'quote' | ...
+
+  createdAt DateTime @default(now())
+
+  fromDeliberation Deliberation @relation("ArgImpFrom", fields: [fromDeliberationId], references: [id], onDelete: Cascade)
+  toDeliberation   Deliberation @relation("ArgImpTo", fields: [toDeliberationId], references: [id], onDelete: Cascade)
+  fromArgument     Argument?    @relation("ArgImpFromArg", fields: [fromArgumentId], references: [id], onDelete: SetNull)
+  toArgument       Argument?    @relation("ArgImpToArg", fields: [toArgumentId], references: [id], onDelete: SetNull)
+
+  @@unique([fromArgumentId, toArgumentId, kind])
+  @@index([fromDeliberationId])
+  @@index([toDeliberationId])
+  @@index([fromArgumentId])
+  @@index([toArgumentId])
+}
+
+/// Weak ties when the same author(s) produce work in both rooms.
+/// Store only one directed record per unordered pair (canonicalize fromId < toId in app code).
+model SharedAuthorRoomEdge {
+  id        String   @id @default(cuid())
+  fromId    String
+  toId      String
+  strength  Int? // e.g., count of shared authorships or a weighted score
+  createdAt DateTime @default(now())
+
+  from Deliberation @relation("SharedAuthorFrom", fields: [fromId], references: [id], onDelete: Cascade)
+  to   Deliberation @relation("SharedAuthorTo", fields: [toId], references: [id], onDelete: Cascade)
+
+  @@unique([fromId, toId])
+  @@index([fromId])
+  @@index([toId])
+}
+
+/// ——— Evidence/strength over arguments that support a claim (hom(I, φ)) ———
+model ArgumentSupport {
+  id               String   @id @default(cuid())
+  deliberationId   String
+  claimId          String                    // supported φ
+  argumentId       String                    // supporting argument a
+  mode             String   @default("product") // scoring mode snapshot ("min"|"product"|custom)
+  strength         Float    @default(0.6)    // 0..1 scalar
+  composed         Boolean  @default(false)  // true if computed via chaining (not atomic)
+  rationale        String?                   // why this number (optional)
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([claimId, argumentId, mode])
+  @@index([deliberationId, claimId])
+}
+
+/// ——— Track tagged assumptions used by an argument ———
+model AssumptionUse {
+  id             String   @id @default(cuid())
+  deliberationId String
+  argumentId     String
+  assumptionId   String            // (claimId or a domain-specific atom id)
+  role           String   @default("premise")  // "premise"|"warrant"|"value"|...
+  weight         Float?              // optional local weight 0..1
+  metaJson       Json?
+
+  createdAt      DateTime @default(now())
+  @@index([argumentId])
+  @@index([assumptionId])
 }
