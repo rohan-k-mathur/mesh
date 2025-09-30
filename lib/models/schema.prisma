@@ -2208,6 +2208,8 @@ model ArgumentEdge {
   createdAt   DateTime @default(now())
 
   targetScope TargetScope @default(conclusion)
+  targetInferenceId String?             // NEW: specific inference inside toArgument
+  inferenceId String?
 
   deliberation Deliberation @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
   from         Argument     @relation("fromArg", fields: [fromArgumentId], references: [id], onDelete: Cascade)
@@ -4102,6 +4104,7 @@ model EvidenceNode {
   reliability Float?
   addedById   String
   addedAt     DateTime @default(now())
+  
 
   links EvidenceLink[]
 }
@@ -4195,6 +4198,7 @@ model ArgumentSupport {
   strength         Float    @default(0.6)    // 0..1 scalar
   composed         Boolean  @default(false)  // true if computed via chaining (not atomic)
   rationale        String?                   // why this number (optional)
+  base        Float?   // Confidence base value for argument support (added for backfill script)
 
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt

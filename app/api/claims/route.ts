@@ -41,7 +41,11 @@ async function getTextFromTarget(target?: { type: 'argument' | 'card'; id: strin
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const input = PromoteSchema.parse(body);
+    // Back-compat: normalize {targetArgumentId} -> {target:{type:'argument', id}}
+    const normalized = body?.targetArgumentId
+      ? { ...body, target: { type: 'argument', id: String(body.targetArgumentId) } }
+      : body;
+    const input = PromoteSchema.parse(normalized);
 
     let text = input.text ?? null;
     if (!text) text = await getTextFromTarget(input.target);
@@ -70,9 +74,11 @@ export async function POST(req: Request) {
           },
           select: { id: true },
         });
-        for (const e of incident) {
-          await maybeUpsertClaimEdgeFromArgumentEdge(e.id);
-       }
+ for (let i = 0; i < incident.length; i += 50) {
+   await Promise.all(
+     incident.slice(i, i + 50).map(e => maybeUpsertClaimEdgeFromArgumentEdge(e.id))
+   );
+ }
 
       }
       return NextResponse.json({ claim: existing, created: false });

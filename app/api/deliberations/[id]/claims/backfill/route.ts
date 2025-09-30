@@ -44,13 +44,21 @@ const argEdges = await prisma.argumentEdge.findMany({
     where: { deliberationId },
     select: {
       id: true,
-      fromArgument: { select: { claimId: true } },
-      toArgument:   { select: { claimId: true } },
+      fromArgumentId: true,
+      toArgumentId: true,
     },
   });
-  
+
   for (const e of argEdges) {
-    if (e.fromArgument?.claimId && e.toArgument?.claimId) {
+    // Look up claimIds for both ends
+    const fromArg = e.fromArgumentId
+      ? await prisma.argument.findUnique({ where: { id: e.fromArgumentId }, select: { claimId: true } })
+      : null;
+    const toArg = e.toArgumentId
+      ? await prisma.argument.findUnique({ where: { id: e.toArgumentId }, select: { claimId: true } })
+      : null;
+
+    if (fromArg?.claimId && toArg?.claimId) {
       try {
         await maybeUpsertClaimEdgeFromArgumentEdge(e.id);
         edgesUpserted++;

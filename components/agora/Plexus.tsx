@@ -52,6 +52,10 @@ export default function Plexus({
     xref: true, overlap: true, stack_ref: true, imports: true, shared_author: false
   });
 
+  const [show, setShow] = React.useState<Record<string, boolean>>({
+  xref: true, overlap: true, stack_ref: true, imports: true, shared_author: true
+});
+
   const E =
     data?.edges
       ? (data.edges as Array<{ from: string; to: string; kind: EdgeKind; weight: number }>)
@@ -133,10 +137,27 @@ export default function Plexus({
           </label>
         ))}
       </div>
+     
+<div className="flex flex-wrap items-center gap-3 mb-2 text-[11px]">
+  {(['xref','overlap','stack_ref','imports','shared_author'] as const).map(k => (
+    <label key={k} className="inline-flex items-center gap-1 cursor-pointer">
+      <input type="checkbox" checked={!!show[k]} onChange={()=>setShow(s=>({ ...s, [k]: !s[k] }))}/>
+      <span className="inline-flex items-center gap-1">
+        <span className="w-3 h-1 rounded-sm" style={{background:
+          k==='xref' ? '#6366f1' :
+          k==='overlap' ? '#ef4444' :
+          k==='stack_ref' ? '#10b981' :
+          k==='imports' ? '#f59e0b' :
+          '#64748b' }} />
+        {k}
+      </span>
+    </label>
+  ))}
+</div>
 
          <div className="relative overflow-hidden rounded-lg bg-slate-50">
         <svg width={W} height={H} className="block">
-          {E.map((e, i) => {
+         {E.filter(e => show[e.kind]).map((e, i) => { 
             const a = coords.get(e.from), b = coords.get(e.to);
             if (!a || !b) return null;
             const w = Math.min(6, 1 + (e.weight ?? 1));

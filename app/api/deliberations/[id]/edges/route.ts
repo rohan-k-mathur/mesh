@@ -11,6 +11,7 @@ const Body = z.object({
   type: z.enum(['support', 'rebut', 'undercut', 'concede']),
   targetScope: z.enum(['conclusion', 'premise', 'inference']).optional(),
     targetInferenceId: z.string().optional(),             // NEW
+  inferenceId: z.string().optional(),   // NEW
 
 });
 
@@ -43,9 +44,12 @@ const edge = await prisma.argumentEdge.create({
     type: body.type as any,
     targetScope: body.type === 'undercut' ? (body.targetScope ?? 'inference') : (body.targetScope ?? 'conclusion'),
     targetInferenceId: body.type === 'undercut' ? (body.targetInferenceId ?? null) : null,
+    inferenceId: body.inferenceId ?? null,
     createdById: String(userId),
   },
 });
+
+
     await maybeUpsertClaimEdgeFromArgumentEdge(edge.id);
 
     return NextResponse.json({ ok: true, edge });

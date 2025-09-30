@@ -454,6 +454,7 @@ export default function DeepDivePanel({
 
 const [confidenceMode, setConfidenceMode] = useState<'min'|'product'>('product');
 
+const [confMode, setConfMode] = React.useState<'product'|'min'>('product');
 
   const [rule, setRule] = useState<"utilitarian" | "harmonic" | "maxcov">(
     "utilitarian"
@@ -726,16 +727,21 @@ useEffect(() => {
                 <option value="maxcov">MaxCov</option>
               </select>
             </label>
+            
             </ChipBar>
+            <ChipBar>
 <label className="text-xs text-neutral-600 flex items-center gap-1">
   Confidence:
-  <select className="text-xs menuv2--lite rounded px-2 mx-2 py-.5"
-    value={confidenceMode}
-    onChange={(e)=>setConfidenceMode(e.target.value as any)}>
-    <option value="product">Product</option>
-    <option value="min">Weakest link</option>
+  <select
+    className="text-xs menuv2--lite rounded px-2 mx-2 py-.5"
+    value={confMode}
+    onChange={(e)=> setConfMode(e.target.value as any)}
+  >
+    <option value="product">Product (prob. OR)</option>
+    <option value="min">Min (weakest link)</option>
   </select>
 </label>
+</ChipBar>
 
             {/* <HelpModal /> */}
             <DiscusHelpPage />

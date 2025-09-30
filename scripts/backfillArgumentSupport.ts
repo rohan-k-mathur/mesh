@@ -1,49 +1,63 @@
-import { PrismaClient } from "@prisma/client";
+// scripts/backfillArgumentSupport.ts
+import { prisma } from '@/lib/prismaclient';
 
-const prisma = new PrismaClient();
+/**
+ * Heuristic: base confidence for an argument promoting a claim.
+ * - start from argument.confidence (0..1) if present, else 0.55
+ * - n approvals ⇒ gentle lift; cap at 0.9
+ */
+function computeBase(conf?: number|null, approvals = 0) {
+  const start = conf == null ? 0.55 : Math.max(0, Math.min(1, conf));
+  const lift  = Math.log1p(approvals) * 0.08;           // ~ +0.08..0.20 typical
+  return Math.min(0.9, +(start + lift).toFixed(3));
+}
 
 async function main() {
-  // Find arguments that *conclude a claim* (hom(I, φ) candidates)
   const args = await prisma.argument.findMany({
     where: { claimId: { not: null } },
-    select: { id: true, claimId: true, deliberationId: true, confidence: true },
+    select: { id:true, deliberationId:true, claimId:true, confidence:true }
   });
 
-  // Detect if an argument has *no incoming support* → atomic (I → a)
-  const incoming = new Set(
-    (await prisma.argumentEdge.findMany({
-      where: { type: 'support', toArgumentId: { in: args.map(a => a.id) } },
-      select: { toArgumentId: true },
-    })).map(e => e.toArgumentId)
-  );
+  if (!args.length) {
+    console.log('No arguments with claimId found — nothing to backfill.');
+    return;
+  }
 
-/// ——— Evidence/strength over arguments that support a claim (hom(I, φ)) ———
+  // approvals per argument (if present in your schema)
+  const approvals = await prisma.argumentApproval.groupBy({
+    by: ['argumentId'],
+    _count: { argumentId: true },
+    where: { argumentId: { in: args.map(a => a.id) } }
+  }).catch(()=>[] as any[]);
+  const countBy = new Map(approvals.map(r => [r.argumentId, r._count.argumentId as number]));
 
-// Fetch zero or more ArgumentSupports
-  let inserted = 0;
+  let created = 0, updated = 0;
   for (const a of args) {
-    const atomic = !incoming.has(a.id);
-    await prisma.argumentSupport.upsert({
-      where: {
-        // Replace with the correct unique constraint key from your Prisma schema
-        claimId_argumentId_mode: {
+    const base = computeBase(a.confidence as number|undefined, countBy.get(a.id) ?? 0);
+    const existing = await prisma.argumentSupport.findFirst({
+      where: { deliberationId: a.deliberationId, claimId: a.claimId!, argumentId: a.id },
+      select: { id:true }
+    }).catch(()=>null);
+
+    if (existing) {
+      await prisma.argumentSupport.update({
+        where: { id: existing.id },
+        data: { base }
+      });
+      updated++;
+    } else {
+      await prisma.argumentSupport.create({
+        data: {
+          deliberationId: a.deliberationId,
           claimId: a.claimId!,
           argumentId: a.id,
-          mode: "product"
+          base: {base },
         }
-      },
-      update: {},
-      create: {
-        deliberationId: a.deliberationId,
-        claimId: a.claimId!,
-        argumentId: a.id,
-        strength: typeof a.confidence === 'number' && a.confidence >= 0 && a.confidence <= 1 ? a.confidence : (atomic ? 0.65 : 0.55),
-        composed: !atomic,
-        rationale: atomic ? 'atomic support (no incoming premises)' : 'initial composed support',
-      }
-    });
-    inserted++;
+      });
+      created++;
+    }
   }
-  console.log(`Backfilled ${inserted} ArgumentSupport rows.`);
+  console.log(`ArgumentSupport backfill — created: ${created}, updated: ${updated}`);
 }
+
 main().catch(e => { console.error(e); process.exit(1); });

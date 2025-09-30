@@ -330,7 +330,7 @@ export default function Agora({
           {!value && <option value="">Select…</option>}
           {rooms.map((rid) => (
             <option key={rid} value={rid}>
-              room:{rid.slice(0, 6)}…
+              room:{rid.slice(0, 20)}…
             </option>
           ))}
         </select>

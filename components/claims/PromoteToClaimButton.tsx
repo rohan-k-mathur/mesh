@@ -22,17 +22,28 @@ export default function PromoteToClaimButton(props: Props) {
   async function promote() {
     setBusy(true);
     setToast(null);
-    try {
-           const ctrl = new AbortController();
-     const t = setTimeout(() => ctrl.abort(), 12000);
-          const forArgument = 'target' in props && props.target?.type === 'argument';
-     const url = forArgument ? '/api/claims' : '/api/claims';
-     const payload = forArgument
-       ? { deliberationId: props.deliberationId, targetArgumentId: props.target.id, text: (props as any).text }
-       : { deliberationId: props.deliberationId, target: (props as any).target, text: (props as any).text };
-     const res = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload), signal: ctrl.signal });
-        
-       clearTimeout(t);
+
+     const payload =
+       'target' in props
+         ? { deliberationId: props.deliberationId, target: props.target, text: (props as any).text }
+         : { deliberationId: props.deliberationId, text: (props as any).text };
+
+     // Prefer native timeout; fall back to AbortController
+     const useNativeTimeout = typeof AbortSignal !== 'undefined' && 'timeout' in AbortSignal;
+     const controller = useNativeTimeout ? null : new AbortController();
+     const signal = useNativeTimeout ? (AbortSignal as any).timeout(30000) : controller!.signal;
+     const tid = controller ? setTimeout(() => controller!.abort(), 30000) : null;
+  
+     try {
+       const res = await fetch('/api/claims', {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify(payload),
+         signal,
+       });
+     if (tid) clearTimeout(tid);
+
+
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed');
      const claimId = data?.claim?.id ?? data?.claimId;
