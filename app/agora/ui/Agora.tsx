@@ -1,8 +1,10 @@
 "use client";
 
 import React from "react";
+import clsx from "clsx";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useBusEffect } from "@/lib/client/useBusEffect";
-import type  AgoraEvent  from "@/lib/server/bus";
+import type AgoraEvent from "@/lib/server/bus";
 import { EventCard } from "./EventCard";
 import { FiltersPanel } from "./FiltersPanels";
 import { RightRail } from "./RightRail";
@@ -10,7 +12,7 @@ import { TopBar } from "./TopBar";
 import { useFollowing } from "@/lib/client/useFollowing";
 import { useStackFollowing } from "@/lib/client/useStackFollowing";
 import DebateSheetReader from "@/components/agora/DebateSheetReader";
-import clsx from "clsx";
+import Plexus from "@/components/agora/Plexus"; // <-- rename + import
 
 /* ------------------------------ helpers ------------------------------ */
 function niceDomain(url?: string | null, fallback?: string | null) {
@@ -153,6 +155,8 @@ export default function Agora({ initialEvents }: { initialEvents: AgoraEvent[] }
   const [events, setEvents] = React.useState<AgoraEvent[]>(initialEvents);
   const [paused, setPaused] = React.useState(false);
   const [tab, setTab] = React.useState<"all" | "following" | "calls" | "votes" | "accepted">("all");
+    const [view, setView] = React.useState<'feed'|'network'>('feed');   // ⬅️ NEW top-level view
+
   const [q, setQ] = React.useState("");
   const [selected, setSelected] = React.useState<AgoraEvent | null>(null);
 
@@ -263,8 +267,8 @@ export default function Agora({ initialEvents }: { initialEvents: AgoraEvent[] }
     }) {
       if (!rooms.length) return null;
       return (
-        <div className="flex items-center gap-2 text-xs">
-          <label className="text-neutral-600">Active room</label>
+        <div className="flex items-center gap-2 p-2 text-sm">
+          <label className="text-neutral-600">Active room:</label>
           <select
             className="menuv2--lite rounded px-2 py-1"
             value={value ?? ""}
@@ -521,7 +525,7 @@ export default function Agora({ initialEvents }: { initialEvents: AgoraEvent[] }
   }, [events, tab, q, roomSet, stackSet, isFollowingTag, isFollowingStack, hasFollowData]);
 
   /* ------------------------------ render ----------------------------- */
-  return (
+ return (
     <div className="mx-auto w-full max-w-screen">
       <TopBar tab={tab} onTab={setTab} q={q} onQ={setQ} paused={paused} onPause={() => setPaused(p => !p)} />
       <div className="grid grid-cols-12 gap-4 mt-3">
@@ -529,40 +533,68 @@ export default function Agora({ initialEvents }: { initialEvents: AgoraEvent[] }
           <FiltersPanel />
         </aside>
 
-        <main className="col-span-12 lg:col-span-6 space-y-2">
-                      <div className={clsx("flex items-center justify-between")}>
-              <RoomPicker rooms={allRooms} value={currentRoomId} onChange={setCurrentRoomId} />
-            </div>
-            {currentRoomId ? (
-              <DebateSheetReader sheetId={`delib:${currentRoomId}`} />
-            ) : (
-              <div className="text-xs text-neutral-600 border rounded-xl bg-white/70 p-2">
-                Pick an active room to load its Debate Sheet.
+        <main className="col-span-12 lg:col-span-6 space-y-2 ">
+          <Tabs defaultValue="feed">
+            <TabsList>
+              <TabsTrigger value="feed">Feed</TabsTrigger>
+                    <TabsTrigger value="debates">Debates</TabsTrigger>
+
+              <TabsTrigger value="plexus">Plexus</TabsTrigger>
+
+            </TabsList>
+
+            <TabsContent value="feed" className="space-y-2">
+            
+
+              {filtered.map((e) => {
+                const rid = e.deliberationId || "";
+                const following = !!rid && isFollowingRoom(rid);
+                const isPending = !!rid && pending.has(rid);
+                const isOk = !!rid && ok.has(rid);
+                return (
+                  <EventCard
+                    key={e.id}
+                    ev={e}
+                    onSelect={(x) => setSelected(x)}
+                    isFollowing={following}
+                    onFollow={() => rid && (async () => { await followRoom(rid); })()}
+                    onUnfollow={() => rid && (async () => { await unfollowRoom(rid); })()}
+                    pending={isPending}
+                    ok={isOk}
+                  />
+                );
+              })}
+              {!filtered.length && (
+                <div className="text-sm text-slate-600 border rounded-xl bg-white/70 p-3">No events yet.</div>
+              )}
+            </TabsContent>
+
+<TabsContent value="debates" className="p-2">
+                <div className={clsx("flex items-center justify-between")}>
+                <RoomPicker rooms={allRooms} value={currentRoomId} onChange={setCurrentRoomId} />
               </div>
-            )}
+              {currentRoomId ? (
+                  <div className="my-2">
+                <DebateSheetReader sheetId={`delib:${currentRoomId}`} />
+                     </div>
+              ) : (
+                <div className="text-xs text-neutral-600 border rounded-xl bg-white/70 p-2">
+                  Pick an active room to load its Debate Sheet.
+                </div>
+              )}
+                      
 
-          {filtered.map((e) => {
-            const rid = e.deliberationId || "";
-            const following = !!rid && isFollowingRoom(rid);
-            const isPending = !!rid && pending.has(rid);
-            const isOk = !!rid && ok.has(rid);
+            </TabsContent>
 
-            return (
-              <EventCard
-                key={e.id}
-                ev={e}
-                onSelect={(x) => setSelected(x)}
-                isFollowing={following}
-                onFollow={() => rid && doFollow(rid)}
-                onUnfollow={() => rid && doUnfollow(rid)}
-                pending={isPending}
-                ok={isOk}
+            <TabsContent value="plexus">
+              <Plexus
+                scope="public"
+                selectedRoomId={currentRoomId}
+                onSelectRoom={(rid) => setCurrentRoomId(rid)}
               />
-            );
-          })}
-          {!filtered.length && (
-            <div className="text-sm text-slate-600 border rounded-xl bg-white/70 p-3">No events yet.</div>
-          )}
+            </TabsContent>
+                
+          </Tabs>
         </main>
 
         <aside className="hidden xl:block col-span-3">
