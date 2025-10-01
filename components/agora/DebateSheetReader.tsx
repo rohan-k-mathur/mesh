@@ -65,7 +65,7 @@ export default function DebateSheetReader({ sheetId }: { sheetId: string }) {
     (claimId && supportByClaim.has(claimId)) ? supportByClaim.get(claimId)! : undefined;
 
   return (
-    <div className="border rounded-xl p-3 bg-slate-50 flex flex-col flex-wrap w-full gap-4">
+    <div className="border rounded-xl p-3 bg-slate-50 flex flex-col flex-wrap w-full gap-4 ">
       <aside className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="font-semibold">{title}</h2>
@@ -164,7 +164,7 @@ export default function DebateSheetReader({ sheetId }: { sheetId: string }) {
         )}
 
         {showArgsFor && (
-          <div className="rounded border p-3 bg-white">
+          <div className="rounded border p-3 ">
             <div className="flex items-center justify-between mb-2">
               <div className="text-sm font-semibold">Contributing arguments (I → φ)</div>
               <button className="text-xs underline" onClick={()=>setShowArgsFor(null)}>Close</button>

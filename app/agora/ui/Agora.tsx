@@ -637,9 +637,9 @@ export default function Agora({
         onPause={() => setPaused((p) => !p)}
       />
 
-  <div className="mb-2 mx-3">
+  <div className="mb-2 mx-4">
   <div className="inline-flex mt-3 rounded-xl border border-indigo-300 bg-white/70 text-sm overflow-hidden">
-    {(['feed','plexus','sheet'] as const).map(v => (
+    {(['feed','sheet','plexus'] as const).map(v => (
       <button
         key={v}
         className={clsx(
@@ -666,7 +666,7 @@ export default function Agora({
 {view === 'sheet' && (
   currentRoomId
     ? (
-        <div>
+        <div className="px-4">
           <RoomPicker
             rooms={allRooms}
             value={currentRoomId}
@@ -680,11 +680,12 @@ export default function Agora({
       </div>
 )}
 
+{view === 'feed' && (
+  
       <div className="grid grid-cols-12 gap-4 mt-3">
         <aside className="hidden lg:block col-span-3">
           <FiltersPanel />
         </aside>
-{view === 'feed' && (
         <div className="col-span-12 lg:col-span-6 space-y-2 ">
          
               {filtered.map((e) => {
@@ -721,12 +722,16 @@ export default function Agora({
                 </div>
               )}
          
-        </div>)}
-
-        <aside className="hidden xl:block col-span-3">
+        </div>
+             <aside className="hidden xl:block col-span-3">
           <RightRail selected={selected} />
         </aside>
       </div>
-    </div>
+    )}
+
+       </div>
+
+    
   );
+  
 }

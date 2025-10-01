@@ -11,6 +11,7 @@ const PUBLIC_PATHS = ["/register", "/login", "/reset-password", "/room/global"];
 
 
 const PUBLIC_API = [
+    /^\/api\/evidentialdev\//,         
   /^\/api\/events$/,
   /^\/api\/agora\/events/,
 ];
