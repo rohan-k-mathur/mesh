@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
   try {
     rooms = await prisma.deliberation.findMany({
       where: scope === 'public' ? ({ visibility: { in: ['public', 'PUBLIC'] } } as any) : {}, // TODO: following scope
-      select: { id: true, title: true },
+      select: { id: true },
       orderBy: { updatedAt: 'desc' as any },
       take: maxRooms,
     });

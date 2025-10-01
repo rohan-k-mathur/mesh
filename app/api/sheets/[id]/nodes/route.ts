@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { prisma, $Enums } from '@prisma/client';
-
+import {  $Enums } from '@prisma/client';
+import { prisma } from '@/lib/prismaclient';
 const Body = z.object({
   title: z.string().optional(),
   summary: z.string().optional(),
@@ -26,20 +26,21 @@ const Body = z.object({
   }).optional()
 });
 
-const toStatementRole = (r: 'premise'|'intermediate'|'conclusion'|'assumption'|'question'): $Enums.StatementRole => {
-  // Map authoring roles to your Prisma enum; adjust here if your enum differs.
-  if (r === 'conclusion')  return 'claim';
+const toStatementRole = (
+  r: 'premise'|'intermediate'|'conclusion'|'assumption'|'question'
+): $Enums.StatementRole => {
+  if (r === 'conclusion')  return 'conclusion'; // ✅ was 'claim'
   if (r === 'premise')     return 'premise';
-  if (r === 'intermediate')return 'premise';   // treat as derived premise
-  if (r === 'assumption')  return 'premise';   // assumptions can also be modeled via AssumptionUse
-  // 'question' → a harmless bucket
-  return 'context';
+  if (r === 'intermediate')return 'premise';    // treat as derived premise
+  if (r === 'assumption')  return 'premise';    // or represent via AssumptionUse
+  return 'premise'; // fallback to 'premise' for unknown roles
 };
+
 
 const toInferenceKind = (
   k: 'deductive'|'inductive'|'abductive'|'analogical'|'analogy'|'defeasible'|'causal'|'statistical'
 ): $Enums.InferenceKind => {
-  if (k === 'analogy') return 'analogical';
+  if (k === 'analogy' || k === 'analogical') return 'analogical' as $Enums.InferenceKind;
   return k as $Enums.InferenceKind;
 };
 

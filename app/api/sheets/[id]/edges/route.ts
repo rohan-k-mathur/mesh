@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { prisma, $Enums } from '@prisma/client';
+import {  $Enums } from '@prisma/client';
+import { prisma } from '@/lib/prismaclient';
 
 const Body = z.object({
   fromId: z.string().min(6),

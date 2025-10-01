@@ -1,6 +1,4 @@
-// app/api/deliberations/[id]/evidential/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import {  $Enums } from '@prisma/client';
 import { prisma } from '@/lib/prismaclient';
 
 export const dynamic = 'force-dynamic';
@@ -16,21 +14,21 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const mode: Mode = (url.searchParams.get('mode') === 'min' ? 'min' : 'product');
   const deliberationId = params.id;
 
-  // (1) Claims
+  // (1) Claims in this room
   const claims = await prisma.claim.findMany({
     where: { deliberationId },
     select: { id:true, text:true },
   });
   const claimIds = claims.map(c=>c.id);
 
-  // (1b) Concluding arguments for each claim (argument.claimId = claim.id)
+  // (1b) Concluding arguments for each claim
   const conclusions = await prisma.argument.findMany({
     where: { deliberationId, claimId: { in: claimIds } },
     select: { id:true, claimId:true },
   });
   const conclByClaim = new Map<string,string>(conclusions.map(a => [a.claimId!, a.id]));
 
-  // (2) Supports (backfilled base)
+  // (2) Supports (base confidence snapshots)
   const supports = await prisma.argumentSupport.findMany({
     where: { deliberationId, claimId: { in: claimIds } },
     select: { id:true, claimId:true, argumentId:true, base:true },
@@ -49,15 +47,22 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     select: { fromArgumentId:true, toArgumentId:true },
   });
   const byTo = new Map<string,string[]>();
-  for (const e of edges) (byTo.get(e.toArgumentId) ?? byTo.set(e.toArgumentId, []).get(e.toArgumentId)!).push(e.fromArgumentId);
+  for (const e of edges) {
+    if (!byTo.has(e.toArgumentId)) byTo.set(e.toArgumentId, []);
+    byTo.get(e.toArgumentId)!.push(e.fromArgumentId);
+  }
 
-  // (4) Assumptions
+  // (4) Assumptions (use `weight` in schema)
   const uses = await prisma.assumptionUse.findMany({
     where: { argumentId: { in: supports.map(s=>s.argumentId) } },
-    select: { argumentId:true, confidence:true },
+    select: { argumentId:true, weight:true },
   }).catch(()=>[] as any[]);
   const assumpByArg = new Map<string, number[]>();
-  for (const u of uses) (assumpByArg.get(u.argumentId) ?? assumpByArg.set(u.argumentId, []).get(u.argumentId)!).push(clamp01(u.confidence ?? 0.6));
+  for (const u of uses) {
+    const val = clamp01(u.weight ?? 0.6);
+    if (!assumpByArg.has(u.argumentId)) assumpByArg.set(u.argumentId, []);
+    assumpByArg.get(u.argumentId)!.push(val);
+  }
 
   // (5) Base map
   const baseByArg = new Map<string, number>(supports.map(s => [s.argumentId, s.base ?? 0.55]));
@@ -74,8 +79,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const assumpFactor = aBases.length ? compose(aBases, mode) : 1;
     const score = clamp01(compose([base, premFactor], mode) * assumpFactor);
 
-    (contributionsByClaim.get(s.claimId) ?? contributionsByClaim.set(s.claimId, []).get(s.claimId)!)
-      .push({ argumentId: s.argumentId, score, parts: { base, premises: premBases, assumptions: aBases } });
+    if (!contributionsByClaim.has(s.claimId)) contributionsByClaim.set(s.claimId, []);
+    contributionsByClaim.get(s.claimId)!.push({ argumentId: s.argumentId, score, parts: { base, premises: premBases, assumptions: aBases } });
   }
 
   const nodes = claims.map(c => {
@@ -83,8 +88,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const support = join(contribs.map(x=>x.score), mode);
     const top = contribs.slice(0, 5).map(x => ({ argumentId: x.argumentId, score: +x.score.toFixed(4) }));
     return {
-      id: c.id,                       // claim id
-      diagramId: conclByClaim.get(c.id) ?? null,  // <-- argument id for this claim
+      id: c.id,
+      diagramId: conclByClaim.get(c.id) ?? null, // argument id for this claim
       type: 'claim' as const,
       text: c.text,
       score: +support.toFixed(4),

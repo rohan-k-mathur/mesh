@@ -78,6 +78,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   let acceptance: { semantics: string; labels: Record<string, AcceptanceLabel> } = { semantics, labels: {} };
   let resolvedDelibId: string | null = null;
 
+  
+
   if (sheet) {
     // --- Mode B: real DebateSheet (DebateNode/DebateEdge)
     const [dNodes, dEdges] = await Promise.all([
@@ -92,19 +94,47 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     ]);
 
     // Prefer diagramId for UI id (matches your DebateSheetReader and ArgumentPopout)
-    nodes = dNodes.map(n => ({
-      id: n.diagramId ?? n.argumentId ?? n.id,
-      title: n.title ?? n.diagramId ?? n.id,
-      diagramId: n.diagramId ?? null,
-      claimId: n.claimId ?? null,
-    }));
+    // nodes = dNodes.map(n => ({
+    //   id: n.diagramId ?? n.argumentId ?? n.id,
+    //   title: n.title ?? n.diagramId ?? n.id,
+    //   diagramId: n.diagramId ?? null,
+    //   claimId: n.claimId ?? null,
+    // }));
 
-    edges = dEdges
-      .map(e => {
-        const k = normalizeEdgeKind(e.kind);
-        return k ? { fromId: e.fromId, toId: e.toId, kind: k, targetScope: k === 'undercut' ? 'inference' : k === 'rebut' ? 'conclusion' : null } : null;
-      })
-      .filter(Boolean) as SheetEdge[];
+    // edges = dEdges
+    //   .map(e => {
+    //     const k = normalizeEdgeKind(e.kind);
+    //     return k ? { fromId: e.fromId, toId: e.toId, kind: k, targetScope: k === 'undercut' ? 'inference' : k === 'rebut' ? 'conclusion' : null } : null;
+    //   })
+    //   .filter(Boolean) as SheetEdge[];
+    // Build nodes + a mapping from DebateNode.id -> renderId (diagramId|argumentId|id)
+const idMap = new Map<string,string>();
+nodes = dNodes.map(n => {
+  const renderId = n.diagramId ?? n.argumentId ?? n.id;
+  idMap.set(n.id, renderId);
+  return {
+    id: renderId,
+    title: n.title ?? renderId,
+    diagramId: n.diagramId ?? null,
+    claimId: n.claimId ?? null,
+  };
+});
+
+// Map edges to render ids and normalize kinds
+edges = dEdges
+  .map(e => {
+    const k = normalizeEdgeKind(e.kind);
+    if (!k) return null;
+    const fromId = idMap.get(e.fromId) ?? e.fromId;
+    const toId   = idMap.get(e.toId)   ?? e.toId;
+    return {
+      fromId,
+      toId,
+      kind: k,
+      targetScope: k === 'undercut' ? 'inference' : k === 'rebut' ? 'conclusion' : null
+    };
+  })
+  .filter(Boolean) as SheetEdge[];
 
     // Acceptance on AF projection of sheet edges
     const ids = nodes.map(n => n.id);

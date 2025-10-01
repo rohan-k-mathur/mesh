@@ -14,6 +14,7 @@ import { useStackFollowing } from "@/lib/client/useStackFollowing";
 import DebateSheetReader from "@/components/agora/DebateSheetReader";
 import Plexus from "@/components/agora/Plexus"; // <-- rename + import
 
+
 /* ------------------------------ helpers ------------------------------ */
 function niceDomain(url?: string | null, fallback?: string | null) {
   if (fallback) return fallback;
@@ -188,7 +189,7 @@ export default function Agora({
   const [tab, setTab] = React.useState<
     "all" | "following" | "calls" | "votes" | "accepted"
   >("all");
-  const [view, setView] = React.useState<"feed" | "network">("feed"); // ⬅️ NEW top-level view
+  const [view, setView] = React.useState<"feed" | "sheet" | "plexus">("feed"); // ⬅️ NEW top-level view
 
   const [q, setQ] = React.useState("");
   const [selected, setSelected] = React.useState<AgoraEvent | null>(null);
@@ -618,7 +619,6 @@ export default function Agora({
     tab,
     q,
     roomSet,
-    stackSet,
     isFollowingTag,
     isFollowingStack,
     hasFollowData,
@@ -635,18 +635,50 @@ export default function Agora({
         paused={paused}
         onPause={() => setPaused((p) => !p)}
       />
+  <div className="mb-2">
+  <div className="inline-flex rounded border bg-white/70 text-sm overflow-hidden">
+    {(['feed','plexus','sheet'] as const).map(v => (
+      <button
+        key={v}
+        className={clsx(
+          'px-3 py-1 border-r last:border-r-0',
+          view===v ? 'bg-slate-900 text-white' : 'hover:bg-slate-100'
+        )}
+        onClick={()=>setView(v)}
+      >
+        {v}
+      </button>
+    ))}
+  </div>
+</div>
+
+{view === 'plexus' && (
+  <Plexus
+    scope="public"
+    selectedRoomId={currentRoomId}
+    onSelectRoom={setCurrentRoomId}
+    onLinkCreated={()=>{/* toast if you want */}}
+  />
+)}
+
+{view === 'sheet' && (
+  currentRoomId
+    ? <DebateSheetReader sheetId={`delib:${currentRoomId}`} />
+    : <div className="text-xs text-neutral-600 border rounded-xl bg-white/70 p-2">
+        Pick an active room to load its Debate Sheet.
+      </div>
+)}
+
       <div className="grid grid-cols-12 gap-4 mt-3">
         <aside className="hidden lg:block col-span-3">
           <FiltersPanel />
         </aside>
-
-        <main className="col-span-12 lg:col-span-6 space-y-2 ">
+{view === 'feed' && (
+        <div className="col-span-12 lg:col-span-6 space-y-2 ">
           <Tabs defaultValue="feed">
             <TabsList>
               <TabsTrigger value="feed">Feed</TabsTrigger>
-              <TabsTrigger value="debates">Debates</TabsTrigger>
 
-              <TabsTrigger value="plexus">Plexus</TabsTrigger>
             </TabsList>
 
             <TabsContent value="feed" className="space-y-2">
@@ -685,40 +717,9 @@ export default function Agora({
               )}
             </TabsContent>
 
-            <TabsContent value="debates" className="p-2">
-              <div className={clsx("flex items-center justify-between")}>
-                <RoomPicker
-                  rooms={allRooms}
-                  value={currentRoomId}
-                  onChange={setCurrentRoomId}
-                />
-              </div>
-              {currentRoomId ? (
-                <div className="my-2">
-                  <DebateSheetReader sheetId={`delib:${currentRoomId}`} />
-                </div>
-              ) : (
-                <div className="text-xs text-neutral-600 border rounded-xl bg-white/70 p-2">
-                  Pick an active room to load its Debate Sheet.
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="plexus">
-              <Plexus
-                scope="public"
-                selectedRoomId={currentRoomId}
-                onSelectRoom={(rid) => {
-                  setCurrentRoomId(rid);
-                  // persist for user convenience (matches your existing store)
-                  try {
-                    localStorage.setItem("agora:activeRoom", rid);
-                  } catch {}
-                }}
-              />
-            </TabsContent>
+          
           </Tabs>
-        </main>
+        </div>)}
 
         <aside className="hidden xl:block col-span-3">
           <RightRail selected={selected} />
