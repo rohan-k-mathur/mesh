@@ -28,5 +28,11 @@ export async function POST(req: NextRequest) {
     select: { id: true, title: true }
   });
 
-  return NextResponse.json({ ok: true, sheet });
+ return NextResponse.json({
+  ok: true,
+  sheet,
+  links: { // optional sugar
+    open: `/sheets/${sheet.id}`,
+  }
+});
 }

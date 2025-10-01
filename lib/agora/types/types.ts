@@ -192,7 +192,8 @@
 
 // lib/agora/types.ts
 
-export type DebateEdgeKind =
+// Rename this so it never collides with Prisma's $Enums.DebateEdgeKind
+export type SheetEdgeKind =
   | 'supports'
   | 'rebuts'
   | 'objects'
@@ -202,7 +203,8 @@ export type DebateEdgeKind =
   | 'clarifies'
   | 'depends_on';
 
-export type StatementRole =
+// Keep your rich sheet StatementRole separate from Prisma's enum:
+export type SheetStatementRole =
   | 'claim'
   | 'premise'
   | 'warrant'
@@ -211,7 +213,8 @@ export type StatementRole =
   | 'evidence'
   | 'context';
 
-export type InferenceKind =
+
+export type SheetInferenceKind =
   | 'deductive'
   | 'inductive'
   | 'abductive'
@@ -219,7 +222,7 @@ export type InferenceKind =
   | 'causal'
   | 'statistical';
 
-export type DebateSheet = {
+export type SheetDebateSheet = {
   id: string;
   title: string;
   scope?: 'public' | 'followers' | 'org' | 'private';
@@ -229,25 +232,25 @@ export type DebateSheet = {
 
 export type DebateSheetRef = { kind: 'sheet'; sheetId: string }; // e.g., 'delib:<id>' or 'snapshot:<id>'
 
-export type Statement = {
+export type SheetStatement = {
   id: string;
   text: string;
-  role: StatementRole;
+  role: SheetStatementRole;
   lang?: string;
   tags?: string[];
 };
 
-export type Inference = {
+export type SheetInference = {
   id: string;
-  kind: InferenceKind;
-  premises: { statement: Statement }[];
-  conclusion: Statement | null;
+  kind: SheetInferenceKind;
+  premises: { statement: SheetStatement }[];
+  conclusion: SheetStatement | null;
   rationale?: string;
   schemeKey?: string;
   cqKeys?: string[];
 };
 
-export type EvidenceNode = {
+export type SheetEvidenceNode = {
   id: string;
   url: string;
   title?: string;
@@ -256,13 +259,13 @@ export type EvidenceNode = {
   reliability?: number; // 0..1 if you compute this
   addedById: string;
   addedAt: Date;
-  links?: EvidenceLink[];
+  links?: SheetEvidenceLink[];
 };
 
-export type EvidenceLink = {
+export type SheetEvidenceLink = {
   id: string;
   evidenceId?: string;
-  evidence?: EvidenceNode;
+  evidence?: SheetEvidenceNode;
   targetKind: 'diagram' | 'statement' | 'claim' | 'argument';
   targetId?: string;
   selectors?: any;     // annotation anchors
@@ -273,38 +276,38 @@ export type EvidenceLink = {
   argumentDiagramId?: string;
 };
 
-export interface ArgumentDiagram {
+export interface SheetArgumentDiagram {
   id: string;
   title?: string;
-  statements: Statement[];
-  inferences: Inference[];
+  statements: SheetStatement[];
+  inferences: SheetInference[];
   cqStatus?: any;
-  evidence: EvidenceLink[];
+  evidence: SheetEvidenceLink[];
   createdById: string;
   createdAt: Date;
 }
 
-export interface DebateNode {
+export interface SheetDebateNode {
   id: string;
   sheetId: string;
   sheet: DebateSheetRef;
   title?: string;
   summary?: string;
   diagramId?: string;
-  diagram?: ArgumentDiagram;
+  diagram?: SheetArgumentDiagram;
   argumentId?: string;
   claimId?: string;
   authorsJson?: any;
   createdAt: Date;
 }
 
-export type DebateEdge = {
+export type SheetDebateEdge = {
   id: string;
   sheetId: string;
-  sheet: DebateSheet;
+  sheet: SheetDebateSheet;
   fromId: string;
   toId: string;
-  kind: DebateEdgeKind;
+  kind: SheetEdgeKind;
   thread?: string;
   ord?: number;
   rationale?: string;

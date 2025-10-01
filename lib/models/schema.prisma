@@ -2207,9 +2207,9 @@ model ArgumentEdge {
   createdById String
   createdAt   DateTime @default(now())
 
-  targetScope TargetScope @default(conclusion)
-  targetInferenceId String?             // NEW: specific inference inside toArgument
-  inferenceId String?
+  targetScope       TargetScope @default(conclusion)
+  targetInferenceId String? // NEW: specific inference inside toArgument
+  inferenceId       String?
 
   deliberation Deliberation @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
   from         Argument     @relation("fromArg", fields: [fromArgumentId], references: [id], onDelete: Cascade)
@@ -4104,7 +4104,6 @@ model EvidenceNode {
   reliability Float?
   addedById   String
   addedAt     DateTime @default(now())
-  
 
   links EvidenceLink[]
 }
@@ -4190,34 +4189,43 @@ model SharedAuthorRoomEdge {
 
 /// ——— Evidence/strength over arguments that support a claim (hom(I, φ)) ———
 model ArgumentSupport {
-  id               String   @id @default(cuid())
-  deliberationId   String
-  claimId          String                    // supported φ
-  argumentId       String                    // supporting argument a
-  mode             String   @default("product") // scoring mode snapshot ("min"|"product"|custom)
-  strength         Float    @default(0.6)    // 0..1 scalar
-  composed         Boolean  @default(false)  // true if computed via chaining (not atomic)
-  rationale        String?                   // why this number (optional)
-  base        Float?   // Confidence base value for argument support (added for backfill script)
+  id             String @id @default(cuid())
+  deliberationId String
+  claimId        String // supported φ
+  argumentId     String // supporting argument a
 
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  mode      String  @default("product") // scoring mode snapshot ("min"|"product"|custom)
+  strength  Float   @default(0.6) // 0..1 scalar
+  composed  Boolean @default(false) // true if computed via chaining (not atomic)
+  rationale String? // why this number (optional)
+  base      Float? // Confidence base value for argument support (added for backfill script)
 
-  @@unique([claimId, argumentId, mode])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([claimId, argumentId, mode], name: "arg_support_unique")
   @@index([deliberationId, claimId])
+  @@index([argumentId])
 }
 
-/// ——— Track tagged assumptions used by an argument ———
+/// Tag a (possibly implicit) assumption that an argument a relies upon.
 model AssumptionUse {
-  id             String   @id @default(cuid())
+  id             String @id @default(cuid())
   deliberationId String
   argumentId     String
-  assumptionId   String            // (claimId or a domain-specific atom id)
-  role           String   @default("premise")  // "premise"|"warrant"|"value"|...
-  weight         Float?              // optional local weight 0..1
-  metaJson       Json?
 
-  createdAt      DateTime @default(now())
+  // Either tie to an existing claim…
+  assumptionClaimId String? // FK to Claim.id (nullable)
+  // …or store freeform text for a local assumption (one of the two must be present)
+  assumptionText    String?
+
+  role       String @default("premise") // 'premise'|'warrant'|'value'|… (open set)
+  weight     Float? // local weight 0..1 for this assumption (optional)
+  confidence Float? // confidence provided by author/UI (optional)
+  metaJson   Json?
+
+  createdAt DateTime @default(now())
+
   @@index([argumentId])
-  @@index([assumptionId])
+  @@index([assumptionClaimId])
 }
