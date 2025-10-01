@@ -11,6 +11,7 @@ import CartButton from "@/components/CartButton";
 import NotificationBell from "@/components/NotificationBell";
 import { Chakra_Petch } from "next/font/google";
 import localFont from 'next/font/local'
+
 const parabole = localFont({ src: './Parabole-DisplayRegular.woff2' })
 
 

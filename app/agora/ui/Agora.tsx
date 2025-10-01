@@ -13,6 +13,7 @@ import { useFollowing } from "@/lib/client/useFollowing";
 import { useStackFollowing } from "@/lib/client/useStackFollowing";
 import DebateSheetReader from "@/components/agora/DebateSheetReader";
 import Plexus from "@/components/agora/Plexus"; // <-- rename + import
+import HomeButton from "@/components/buttons/HomeButton";
 
 
 /* ------------------------------ helpers ------------------------------ */
@@ -626,7 +627,7 @@ export default function Agora({
 
   /* ------------------------------ render ----------------------------- */
   return (
-    <div className="mx-auto w-full max-w-screen justify-center px-4 pb-10 pt-3">
+    <div className="mx-auto w-full max-w-screen justify-center px-0 pb-10 pt-2">
       <TopBar
         tab={tab}
         onTab={setTab}
@@ -635,7 +636,8 @@ export default function Agora({
         paused={paused}
         onPause={() => setPaused((p) => !p)}
       />
-  <div className="mb-2">
+
+  <div className="mb-2 mx-3">
   <div className="inline-flex mt-3 rounded-xl border border-indigo-300 bg-white/70 text-sm overflow-hidden">
     {(['feed','plexus','sheet'] as const).map(v => (
       <button
@@ -663,7 +665,16 @@ export default function Agora({
 
 {view === 'sheet' && (
   currentRoomId
-    ? <DebateSheetReader sheetId={`delib:${currentRoomId}`} />
+    ? (
+        <div>
+          <RoomPicker
+            rooms={allRooms}
+            value={currentRoomId}
+            onChange={setCurrentRoomId}
+          />
+          <DebateSheetReader sheetId={`delib:${currentRoomId}`} />
+        </div>
+      )
     : <div className="text-xs text-neutral-600 border rounded-xl bg-white/70 p-2">
         Pick an active room to load its Debate Sheet.
       </div>
