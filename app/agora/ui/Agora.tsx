@@ -626,7 +626,7 @@ export default function Agora({
 
   /* ------------------------------ render ----------------------------- */
   return (
-    <div className="mx-auto w-full max-w-screen">
+    <div className="mx-auto w-full max-w-screen justify-center px-4 pb-10 pt-3">
       <TopBar
         tab={tab}
         onTab={setTab}
@@ -636,12 +636,12 @@ export default function Agora({
         onPause={() => setPaused((p) => !p)}
       />
   <div className="mb-2">
-  <div className="inline-flex rounded border bg-white/70 text-sm overflow-hidden">
+  <div className="inline-flex mt-3 rounded-xl border border-indigo-300 bg-white/70 text-sm overflow-hidden">
     {(['feed','plexus','sheet'] as const).map(v => (
       <button
         key={v}
         className={clsx(
-          'px-3 py-1 border-r last:border-r-0',
+          'px-5 py-1 border-r border-r-indigo-300 last:border-r-0 ',
           view===v ? 'bg-slate-900 text-white' : 'hover:bg-slate-100'
         )}
         onClick={()=>setView(v)}
@@ -675,13 +675,7 @@ export default function Agora({
         </aside>
 {view === 'feed' && (
         <div className="col-span-12 lg:col-span-6 space-y-2 ">
-          <Tabs defaultValue="feed">
-            <TabsList>
-              <TabsTrigger value="feed">Feed</TabsTrigger>
-
-            </TabsList>
-
-            <TabsContent value="feed" className="space-y-2">
+         
               {filtered.map((e) => {
                 const rid = e.deliberationId || "";
                 const following = !!rid && isFollowingRoom(rid);
@@ -715,10 +709,7 @@ export default function Agora({
                   No events yet.
                 </div>
               )}
-            </TabsContent>
-
-          
-          </Tabs>
+         
         </div>)}
 
         <aside className="hidden xl:block col-span-3">

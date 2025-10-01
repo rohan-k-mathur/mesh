@@ -16,6 +16,21 @@ export type BusPayload<T extends BusEvent> =
 export type BusEnvelope<T extends BusEvent = BusEvent> =
   { type: T; ts: number } & BusPayload<T>;
 
+  export type AgoraEvent = {
+  id: string;            // stable id for UI keys
+  type: BusEvent | "dialogue:changed"; // normalized
+  ts: number;            // epoch ms
+  title: string;         // card title / summary
+  meta?: string;         // one-liner detail
+  chips?: string[];      // tags/labels
+  link?: string;         // primary link (room/claim)
+  deliberationId?: string;
+  targetType?: string;
+  targetId?: string;
+  icon?: string;         // "move"|"link"|"check"|"vote"|"branch"
+};
+
+
 /* ------------------------------- Global singleton ------------------------------- */
 declare global {
   // eslint-disable-next-line no-var

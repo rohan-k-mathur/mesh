@@ -2,8 +2,7 @@
 "use client";
 import Link from "next/link";
 import useSWR from 'swr';
-import AgoraEvent from "@/lib/server/bus";
-
+import type { AgoraEvent } from "@/lib/server/bus";
 function isExternal(href: string) {
   try { const u = new URL(href); return !!u.protocol && !!u.host; } catch { return false; }
 }
@@ -23,7 +22,7 @@ export function EventCard({
   const MAX_CHIPS = 5;
   const displayChips = chips.slice(0, MAX_CHIPS);
   const extra = Math.max(0, chips.length - MAX_CHIPS);
-const statusUrl = ev.type==='bundle' && ev.deliberationId
+const statusUrl = (ev.type === "bundle" as AgoraEvent["type"]) && ev.deliberationId
     ? `/api/dialogues/${ev.deliberationId}/status`
     : null;
   const { data: st } = useSWR(
@@ -178,7 +177,8 @@ const statusUrl = ev.type==='bundle' && ev.deliberationId
 
 function iconEmoji(kind?: string) {
   switch (kind) {
-    case "move":  return "⩓";
+    case "move": return "»";
+
     case "link":  return "⛓";
     case "check": return "✓";
     case "vote":  return "☑";
