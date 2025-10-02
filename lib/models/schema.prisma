@@ -2984,17 +2984,20 @@ enum ProofMode {
 }
 
 model Deliberation {
-  id          String               @id @default(cuid())
-  hostType    DeliberationHostType
-  hostId      String
-  roomId      String?
-  rule        RepresentationRule   @default(utilitarian)
-  k           Int                  @default(3)
-  createdById String
-  createdAt   DateTime             @default(now())
-  updatedAt   DateTime             @updatedAt
-  cards       DeliberationCard[]
-
+  id            String               @id @default(cuid())
+  hostType      DeliberationHostType
+  hostId        String
+  rule          RepresentationRule   @default(utilitarian)
+  k             Int                  @default(3)
+  createdById   String
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+  cards         DeliberationCard[]
+  title         String?
+  AgoraRoom     AgoraRoom?           @relation(fields: [agoraRoomId], references: [id], onDelete: SetNull)
+  agoraRoomId   String?
+  agoraRoomID   String?
+  roomId        String?
   arguments     Argument[]
   edges         ArgumentEdge[]
   approvals     ArgumentApproval[]
@@ -3027,7 +3030,9 @@ model Deliberation {
   // ✅ back-relations for SharedAuthorRoomEdge (two directed edges to Deliberation)
   sharedAuthorsFrom SharedAuthorRoomEdge[] @relation("SharedAuthorFrom")
   sharedAuthorsTo   SharedAuthorRoomEdge[] @relation("SharedAuthorTo")
+  DebateSheet       DebateSheet[]
 
+  @@index([agoraRoomID])
   @@index([hostType, hostId])
   @@index([roomId])
 }
@@ -3963,6 +3968,10 @@ model DebateSheet {
   roles       String[] @default([])
   rulesetJson Json?
 
+  // NEW (optional link; synthetic sheets keep working without a row)
+  deliberationId String?
+  deliberation   Deliberation? @relation(fields: [deliberationId], references: [id], onDelete: SetNull)
+
   nodes      DebateNode[]
   edges      DebateEdge[]
   loci       LocusStatus[]
@@ -3973,6 +3982,8 @@ model DebateSheet {
   createdById String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([deliberationId])
 }
 
 model DebateNode {
@@ -4228,4 +4239,16 @@ model AssumptionUse {
 
   @@index([argumentId])
   @@index([assumptionClaimId])
+}
+
+model AgoraRoom {
+  id         String   @id @default(cuid())
+  slug       String   @unique
+  title      String
+  summary    String?
+  visibility String   @default("public") // or an enum if you prefer
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  deliberations Deliberation[]
 }

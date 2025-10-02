@@ -3,6 +3,10 @@ import useSWR from "swr";
 import { useState, useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import ArgumentPopout from "./ArgumentPopout";
+import React from "react";
+import { useConfidence } from "./useConfidence";
+
+const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 type EvNode = {
   id: string; // claimId
@@ -14,12 +18,16 @@ type EvNode = {
 type EvResp = {
   ok: boolean;
   deliberationId: string;
-  mode: "min" | "product";
+  mode: "min" | "product" | "ds";
   nodes: EvNode[];
   arguments: { id: string; text?: string }[];
   meta: any;
+  support?: Record<string, number>;
+  dsSupport?: Record<string, { bel:number; pl:number }>;
 };
-
+function refreshEv() {
+  // noop placeholder
+}
 export default function DebateSheetReader({ sheetId }: { sheetId: string }) {
   const { data, error } = useSWR(
     `/api/sheets/${sheetId}`,
@@ -27,19 +35,51 @@ export default function DebateSheetReader({ sheetId }: { sheetId: string }) {
     { refreshInterval: 0 }
   );
 
-  const [mode, setMode] = useState<"product" | "min" | "ds">("product");
+// const [mode, setMode] = useState<"product"|"min"|"ds">("product");
+const { mode, setMode } = useConfidence();
+
+
   const [openNodeId, setOpenNodeId] = useState<string | null>(null);
   const [showArgsFor, setShowArgsFor] = useState<string | null>(null); // claimId
+
+
+  // inside DebateSheetReader
+const isSynthetic = sheetId.startsWith('delib:');
+
+// when mode changes:
+
+React.useEffect(() => {
+  if (isSynthetic) return;
+  const sid = data?.sheet?.id ?? sheetId; // curated id
+  fetch(`/api/sheets/${sid}/ruleset`, {
+    method: 'PATCH',
+    headers: { 'Content-Type':'application/json' },
+    body: JSON.stringify({ confidence: { mode } }),
+  }).catch(()=>{ /* non-blocking */ });
+}, [mode, isSynthetic, data?.sheet?.id, sheetId]);
+
 
   const delibId = useMemo(() => {
     return data?.sheet?.deliberationId
       ?? (sheetId.startsWith("delib:") ? sheetId.slice("delib:".length) : null);
   }, [data?.sheet?.deliberationId, sheetId]);
 
-  const { data: ev, mutate: refreshEv } = useSWR<EvResp>(
-    delibId ? `/api/deliberations/${delibId}/evidential?mode=${mode === 'ds' ? 'product' : mode}` : null,
-    (u) => fetch(u, { cache: 'no-store' }).then(r => r.json())
-  );
+const { data: ev } = useSWR<EvResp>(
+  delibId ? `/api/deliberations/${delibId}/evidential?mode=${mode}` : null,
+  (u) => fetch(u, { cache: 'no-store' }).then(r => r.json())
+);
+
+
+// bar value helper
+function barFor(claimId?: string|null) {
+  if (!claimId || !ev) return null;
+  if (mode === 'ds') {
+    const pair = ev.dsSupport?.[claimId];
+    return pair ? { kind:'ds', bel: pair.bel, pl: pair.pl } : null;
+  }
+  const s = ev.support?.[claimId];
+  return typeof s === 'number' ? { kind:'scalar', s } : null;
+}
 
   // Build quick lookup maps from ev.nodes
   const supportByClaim = useMemo(() => {
@@ -63,6 +103,10 @@ export default function DebateSheetReader({ sheetId }: { sheetId: string }) {
 
   const supportOfClaimId = (claimId?: string|null) =>
     (claimId && supportByClaim.has(claimId)) ? supportByClaim.get(claimId)! : undefined;
+
+  function refreshEv() {
+    throw new Error("Function not implemented.");
+  }
 
   return (
     <div className="border rounded-xl p-3 bg-slate-50 flex flex-col flex-wrap w-full gap-4 ">
@@ -111,10 +155,39 @@ export default function DebateSheetReader({ sheetId }: { sheetId: string }) {
             {nodes.map((n:any) => {
               const label = acceptance.labels[n.id] ?? 'undecided';
               const s = supportOfClaimId(n.claimId);
+              const v = barFor(n.claimId);
+
               return (
                 <li key={n.id} className="border rounded p-2">
                   <div className="flex items-center justify-between">
                     <div className="font-medium">{n.title ?? n.id}</div>
+                    {v && v.kind === 'scalar' && (
+  <>
+    {/* <div className="flex items-center justify-between text-[11px] text-neutral-600 mb-0.5">
+      <span>{"Support" + " "}</span>
+      <span>{typeof v.s === "number" ?    (v.s * 100).toFixed(0) + "%" : "N/A"}</span>
+    </div> */}
+    <div className="h-1.5 bg-neutral-200 rounded">
+      <div className="h-1.5 rounded bg-emerald-500 transition-all" style={{ width: `${Math.max(0, Math.min(1, v.s ?? 0)) * 100}%` }} />
+    </div>
+  </>
+)}
+{v && v.kind === 'ds' && (
+  <>
+    <div className="flex items-center justify-between text-[11px] text-neutral-600 mb-0.5">
+      <span>Belief</span>
+      <span>{typeof v.bel === "number" ? (v.bel * 100).toFixed(0) + " " + "%" : "N/A"}</span>
+    </div>
+    <div className="h-1.5 bg-neutral-200 rounded">
+      <div className="h-1.5 rounded bg-emerald-500 transition-all" style={{ width: `${Math.max(0, Math.min(1, v.bel ?? 0)) * 100}%` }} />
+    </div>
+    <div className="mt-1 text-[11px] text-neutral-600">
+      Bel/Pl: 
+      {typeof v.bel === "number" ? (v.bel * 100).toFixed(0) + "%" : "N/A"} / 
+      {typeof v.pl === "number" ? (v.pl * 100).toFixed(0) + "%" : "N/A"}
+    </div>
+  </>
+)}
                     <Badge
                       variant={
                         label === 'accepted'

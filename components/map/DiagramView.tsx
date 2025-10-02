@@ -194,7 +194,7 @@ export default function DiagramView({
         {premises.map((s) => (
           <motion.div
             key={s.id}
-            ref={(el) => (premiseRefs.current[s.id] = el)}
+            ref={(el) => { premiseRefs.current[s.id] = el; }}
             onMouseEnter={() => setHoverId(s.id)}
             onMouseLeave={() => setHoverId(null)}
             onClick={() => onStatementClick?.(s.id)}

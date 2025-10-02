@@ -13,7 +13,9 @@ import { useFollowing } from "@/lib/client/useFollowing";
 import { useStackFollowing } from "@/lib/client/useStackFollowing";
 import DebateSheetReader from "@/components/agora/DebateSheetReader";
 import Plexus from "@/components/agora/Plexus"; // <-- rename + import
-import HomeButton from "@/components/buttons/HomeButton";
+// import SheetPicker from '@/components/agora/SheetPicker';
+import { RoomPicker, DebatePicker, SheetPicker } from '@/components/agora/RoomAndDebatePickers';
+import ConfidenceControls from '@/components/agora/ConfidenceControls';
 
 
 /* ------------------------------ helpers ------------------------------ */
@@ -202,6 +204,14 @@ export default function Agora({
   const [pending, setPending] = React.useState<Set<string>>(new Set());
   const [ok, setOk] = React.useState<Set<string>>(new Set());
 
+  const [currentSheetKey, setCurrentSheetKey] = React.useState<string | null>(null);
+const [roomId, setRoomId] = React.useState<string|null>(null);
+const [debateId, setDebateId] = React.useState<string|null>(null);
+const [sheetKey, setSheetKey] = React.useState<string|null>(null);
+  
+
+React.useEffect(()=>{ if (debateId) setSheetKey(`delib:${debateId}`); }, [debateId]);
+
   // Fallback hydrate if SSR didn’t deliver
   React.useEffect(() => {
     if (events.length > 0) return;
@@ -289,6 +299,23 @@ export default function Agora({
 
   const [currentRoomId, setCurrentRoomId] = React.useState<string | null>(null);
 
+
+// restore/persist:
+React.useEffect(() => {
+  try { const k = localStorage.getItem('agora:activeSheet'); if (k) setCurrentSheetKey(k); } catch {}
+}, []);
+React.useEffect(() => {
+  if (currentSheetKey) try { localStorage.setItem('agora:activeSheet', currentSheetKey); } catch {}
+}, [currentSheetKey]);
+
+// when plexus/room changes, you can optionally mirror it:
+React.useEffect(() => {
+  if (currentRoomId && (!currentSheetKey || currentSheetKey.startsWith('delib:'))) {
+    setCurrentSheetKey(`delib:${currentRoomId}`);
+  }
+}, [currentRoomId]); // optional
+
+
   // Initialize from localStorage or fallbacks
   React.useEffect(() => {
     if (currentRoomId) return; // already set
@@ -311,34 +338,34 @@ export default function Agora({
     }
   }, [currentRoomId]);
 
-  function RoomPicker({
-    rooms,
-    value,
-    onChange,
-  }: {
-    rooms: string[];
-    value: string | null;
-    onChange: (id: string) => void;
-  }) {
-    if (!rooms.length) return null;
-    return (
-      <div className="flex items-center gap-2 p-2 text-sm">
-        <label className="text-neutral-600">Active room:</label>
-        <select
-          className="menuv2--lite rounded px-2 py-1"
-          value={value ?? ""}
-          onChange={(e) => onChange(e.target.value)}
-        >
-          {!value && <option value="">Select…</option>}
-          {rooms.map((rid) => (
-            <option key={rid} value={rid}>
-              room:{rid.slice(0, 20)}…
-            </option>
-          ))}
-        </select>
-      </div>
-    );
-  }
+  // function RoomPicker({
+  //   rooms,
+  //   value,
+  //   onChange,
+  // }: {
+  //   rooms: string[];
+  //   value: string | null;
+  //   onChange: (id: string) => void;
+  // }) {
+  //   if (!rooms.length) return null;
+  //   return (
+  //     <div className="flex items-center gap-2 p-2 text-sm">
+  //       <label className="text-neutral-600">Active room:</label>
+  //       <select
+  //         className="menuv2--lite rounded px-2 py-1"
+  //         value={value ?? ""}
+  //         onChange={(e) => onChange(e.target.value)}
+  //       >
+  //         {!value && <option value="">Select…</option>}
+  //         {rooms.map((rid) => (
+  //           <option key={rid} value={rid}>
+  //             room:{rid.slice(0, 20)}…
+  //           </option>
+  //         ))}
+  //       </select>
+  //     </div>
+  //   );
+  // }
 
   // 🔊 Live events
   useBusEffect("*", (m) => {
@@ -627,6 +654,7 @@ export default function Agora({
 
   /* ------------------------------ render ----------------------------- */
   return (
+
     <div className="mx-auto w-full max-w-screen justify-center px-0 pb-10 pt-2">
       <TopBar
         tab={tab}
@@ -652,6 +680,7 @@ export default function Agora({
       </button>
     ))}
   </div>
+
 </div>
 
 {view === 'plexus' && (
@@ -663,7 +692,7 @@ export default function Agora({
   />
 )}
 
-{view === 'sheet' && (
+{/* {view === 'sheet' && (
   currentRoomId
     ? (
         <div className="px-4">
@@ -678,6 +707,27 @@ export default function Agora({
     : <div className="text-xs text-neutral-600 border rounded-xl bg-white/70 p-2">
         Pick an active room to load its Debate Sheet.
       </div>
+)} */}
+
+{view === 'sheet' && (
+
+<div className="space-y-2 px-4">
+  <div className="flex flex-wrap gap-3 p-2">
+    <RoomPicker  value={roomId}  onChange={(id)=>{ setRoomId(id); setDebateId(null); }} />
+    <DebatePicker roomId={roomId} value={debateId} onChange={setDebateId} />
+    <SheetPicker  deliberationId={debateId} value={sheetKey} onChange={setSheetKey} />
+      <div className="flex gap-5">
+   <ConfidenceControls />
+   </div>
+  </div>
+
+  {sheetKey
+    ? <DebateSheetReader sheetId={sheetKey} />
+    : <div className="text-xs text-neutral-600 border rounded-xl bg-white/70 p-2">
+        Pick a room → debate → sheet.
+      </div>
+  }
+</div>
 )}
 
 {view === 'feed' && (
@@ -731,7 +781,7 @@ export default function Agora({
 
        </div>
 
-    
+
   );
   
 }

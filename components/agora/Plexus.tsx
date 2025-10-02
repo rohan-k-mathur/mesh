@@ -369,7 +369,9 @@ export default function Plexus({
                 transform={`translate(${p.x},${p.y})`}
                 style={{ cursor: 'pointer' }}
                 onClick={() => toggleSel(r.id)}
-                onDoubleClick={() => window.location.assign(`/deliberation/${r.id}`)}
+                  onDoubleClick={() => window.location.assign(`/deliberation/${r.id}`)}
+
+                //onDoubleClick={() => window.location.assign(`/sheets/delib:${r.id}`)}
               >
                 <circle
                   r={size}
@@ -408,6 +410,10 @@ export default function Plexus({
       {sel.length === 2 && (
         <div className="mt-2 flex items-center gap-2 text-[12px]">
           <div className="text-neutral-600">Create link:</div>
+            <button className="px-2 py-1 rounded border hover:bg-slate-50"
+    onClick={() => window.location.assign(`/functor/transport?from=${sel[0]}&to=${sel[1]}`)}>
+    transport
+  </button>
           <button className="px-2 py-1 rounded border hover:bg-indigo-50" onClick={() => createLink('xref')}>
             xref
           </button>

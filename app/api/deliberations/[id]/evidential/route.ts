@@ -4,25 +4,48 @@ import { prisma } from '@/lib/prismaclient';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-type Mode = 'product' | 'min';
+type Mode = 'product'|'min'|'ds';
 
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
 const compose = (xs: number[], mode: Mode) =>
   !xs.length ? 0 : (mode === 'min' ? Math.min(...xs) : xs.reduce((a, b) => a * b, 1));
-const join = (xs: number[], mode: Mode) =>
-  !xs.length ? 0 : (mode === 'min' ? Math.max(...xs) : 1 - xs.reduce((a, s) => a * (1 - s), 1));
+
+
+
+// const join = (xs: number[], mode: Mode) =>
+//   !xs.length ? 0 : (mode === 'min' ? Math.max(...xs) : 1 - xs.reduce((a, s) => a * (1 - s), 1));
+
+// const join = (xs:number[], mode:Mode) => {
+//   if (!xs.length) return 0;
+//   if (mode==='min') return Math.max(...xs);
+//   // 'product' and 'ds' both use noisy-or for now; 'ds' can be returned as pair if you prefer.
+//   return 1 - xs.reduce((a,s)=> a*(1-s), 1);
+// };
+
+
+const join = (xs:number[], mode:Mode) => {
+  if (!xs.length) return 0;
+  if (mode==='min') return Math.max(...xs);
+  // product & ds: noisy-or accrual
+  return 1 - xs.reduce((a,s)=> a*(1-s), 1);
+};
+
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
-  const url = new URL(req.url);
-  const mode: Mode = (url.searchParams.get('mode') === 'min' ? 'min' : 'product');
+  // const url = new URL(req.url);
+  // const mode: Mode = (url.searchParams.get('mode') === 'min' ? 'min' : 'product');
   const deliberationId = params.id;
 
+    const url = new URL(req.url);
+  const q = (url.searchParams.get('mode') ?? 'product').toLowerCase();
+  const mode: Mode = (q === 'min' || q === 'ds') ? (q as Mode) : 'product';
   // (1) All claims for this room
   const claims = await prisma.claim.findMany({
     where: { deliberationId },
     select: { id: true, text: true },
   });
   const claimIds = claims.map(c => c.id);
+  
 
   // (2) All “promoted” arguments concluding each claim (argument.claimId = claim.id)
   const conclusions = await prisma.argument.findMany({
@@ -153,10 +176,19 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
   // (8) Claim‑level support and top contributors
   const support: Record<string, number> = {};
+    const dsSupport: Record<string,{bel:number; pl:number}> = {}; // NEW
+
   const nodes = claims.map(c => {
-    const contribs = (contributionsByClaim.get(c.id) ?? []).sort((a, b) => b.score - a.score);
+    const contribs = (contributionsByClaim.get(c.id) ?? []).sort((a,b)=>b.score - a.score);
     const s = join(contribs.map(x => x.score), mode);
     support[c.id] = +s.toFixed(4);
+
+    if (mode === 'ds') {
+      // first cut: no conflict mass computed yet → Pl = Bel
+      dsSupport[c.id] = { bel: support[c.id], pl: support[c.id] };
+    }
+    
+    //support[c.id] = +s.toFixed(4);
     const top = contribs.slice(0, 5).map(x => ({ argumentId: x.argumentId, score: +x.score.toFixed(4) }));
     return {
       id: c.id,
@@ -166,7 +198,10 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       score: support[c.id],
       top,
     };
+
   });
+
+  
 
   const argIds = Array.from(new Set(supports.map(s => s.argumentId)));
   const argumentsMeta = await prisma.argument.findMany({
@@ -178,18 +213,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const hom: Record<string, { args: string[] }> = {};
   for (const [claimId, argList] of argsByClaim) hom[`I|${claimId}`] = { args: Array.from(new Set(argList)) };
 
-  return NextResponse.json(
-    {
-      ok: true,
-      deliberationId,
-      mode,
-      support,
-      hom,
-      // keep these for advanced UIs
-      nodes,
-      arguments: argumentsMeta,
-      meta: { claims: claims.length, supports: supports.length, edges: edges.length, conclusions: conclusions.length },
-    },
-    { headers: { 'Cache-Control': 'no-store' } }
-  );
+  return NextResponse.json({
+    ok: true, deliberationId, mode, support, ...(mode==='ds' ? { dsSupport } : {}),
+    hom, nodes, arguments: argumentsMeta,
+    meta: { claims: claims.length, supports: supports.length, edges: edges.length, conclusions: conclusions.length }
+  }, { headers: { 'Cache-Control': 'no-store' } });
 }

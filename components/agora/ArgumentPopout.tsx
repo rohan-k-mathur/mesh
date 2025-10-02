@@ -1,10 +1,12 @@
 'use client';
 import useSWR from 'swr';
-
-type Diagram = {
+import DiagramView from '../map/DiagramView';
+import type { Diagram } from '../map/DiagramView';
+import { SectionCard } from '../deepdive/DeepDivePanel';
+type LocalDiagram = {
   id: string;
   title?: string | null;
-  statements: { id: string; text?: string | null; role?: string | null }[];
+  statements: { id: string; text: string; kind: string; role?: string | null }[];
   inferences: {
     id: string;
     kind?: string | null;
@@ -39,8 +41,8 @@ export default function ArgumentPopout({
     return (
       <div className="rounded border p-2 text-xs">Loading diagram…</div>
     );
-
-  const d: Diagram = data.diagram;
+  //const d: LocalDiagram = { ...data.diagram };
+  const d: LocalDiagram = data.diagram;
 
   // Precompute statement membership
   const conclIds = new Set(
@@ -62,7 +64,9 @@ export default function ArgumentPopout({
     (conclIds.has(s.id) ? 'C' : premiseIds.has(s.id) ? 'P' : 'S');
 
   return (
+    <div className='flex gap-5'>
     <div className=" relative border border-indigo-200 rounded-xl border p-3 bg-indigo-50/30 backdrop-blur-md z-10 shadow-lg w-full max-w-[420px]">
+      
       <div className="flex items-center justify-between">
         <h3 className="font-semibold">{node.title ?? d.title ?? 'Argument'}</h3>
         <button className="text-xs underline" onClick={onClose}>
@@ -104,6 +108,18 @@ export default function ArgumentPopout({
           </ul>
         </div>
       </div>
+    
     </div>
+      <div className="flex gap-8 border-l border-neutral-200 pl-4">
+        {d ? (
+                <div className=" relative border border-indigo-200 rounded-xl border p-3 bg-indigo-50/30 backdrop-blur-md z-10 shadow-lg w-full max-w-[420px]">
+
+               <DiagramView diagram={d as Diagram} />
+        </div>
+        ) : (
+          <div className="text-xs text-neutral-500">Select a claim (minimap) to load its top argument.</div>
+        )}
+      </div>
+      </div>
   );
 }
