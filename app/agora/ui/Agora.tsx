@@ -16,7 +16,8 @@ import Plexus from "@/components/agora/Plexus"; // <-- rename + import
 // import SheetPicker from '@/components/agora/SheetPicker';
 import { RoomPicker, DebatePicker, SheetPicker } from '@/components/agora/RoomAndDebatePickers';
 import ConfidenceControls from '@/components/agora/ConfidenceControls';
-
+import PlexusBoard from "@/components/agora/PlexusBoard";
+import PlexusMatrix from "@/components/agora/PlexusMatrix";
 
 /* ------------------------------ helpers ------------------------------ */
 function niceDomain(url?: string | null, fallback?: string | null) {
@@ -179,6 +180,32 @@ function coalesce(prev: AgoraEvent[], ev: AgoraEvent): AgoraEvent[] {
   }
 
   return [ev, ...prev];
+}
+
+
+export function PlexusShell({ scope='public' }: { scope?: 'public'|'following' }) {
+  const [view, setView] = React.useState<'graph'|'board'|'matrix'>('board'); // make Board the default
+
+  return (
+    <div className="space-y-2 p-5">
+      <div className="flex items-center gap-2">
+        <div className="text-md font-semibold">Plexus</div>
+        <div className="ml-2 flex items-center gap-1">
+          {(['board','graph','matrix'] as const).map(v => (
+            <button key={v}
+              onClick={()=>setView(v)}
+              className={`px-2 py-1 text-[12px] rounded border ${view===v?'bg-slate-900 text-white':'bg-white hover:bg-slate-50'}`}>
+              {v}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {view==='board'  && <PlexusBoard scope={scope} />}
+      {view==='graph'  && <Plexus scope={scope} />}
+      {view==='matrix' && <PlexusMatrix scope={scope} />}
+    </div>
+  );
 }
 
 /* ------------------------------ component ---------------------------- */
@@ -680,16 +707,31 @@ React.useEffect(() => {
       </button>
     ))}
   </div>
+  {/* <div className="inline-flex mt-3 rounded-xl border border-indigo-300 bg-white/70 text-sm overflow-hidden">
+    {(['all','following','calls','votes','accepted'] as const).map(v => (
+      <button
+        key={v}
+        className={clsx(
+          'px-5 py-1 border-r border-r-indigo-300 last:border-r-0 ',
+          view===v ? 'bg-slate-900 text-white' : 'hover:bg-slate-100'
+        )}
+        onClick={()=>setView(v)}
+      >
+        {v}
+      </button>
+    ))}
+  </div> */}
 
 </div>
 
 {view === 'plexus' && (
-  <Plexus
-    scope="public"
-    selectedRoomId={currentRoomId}
-    onSelectRoom={setCurrentRoomId}
-    onLinkCreated={()=>{/* toast if you want */}}
-  />
+  // <Plexus
+  //   scope="public"
+  //   selectedRoomId={currentRoomId}
+  //   onSelectRoom={setCurrentRoomId}
+  //   onLinkCreated={()=>{/* toast if you want */}}
+  // />
+  <PlexusShell scope="public" />
 )}
 
 {/* {view === 'sheet' && (
@@ -733,7 +775,7 @@ React.useEffect(() => {
 {view === 'feed' && (
   
       <div className="grid grid-cols-12 gap-4 mt-3">
-        <aside className="hidden lg:block col-span-3">
+        <aside className="hidden px-2 lg:block col-span-3">
           <FiltersPanel />
         </aside>
         <div className="col-span-12 lg:col-span-6 space-y-2 ">
@@ -773,7 +815,7 @@ React.useEffect(() => {
               )}
          
         </div>
-             <aside className="hidden xl:block col-span-3">
+             <aside className="hidden px-2 xl:block col-span-3">
           <RightRail selected={selected} />
         </aside>
       </div>

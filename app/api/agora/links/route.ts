@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
       });
     } else if (kind === 'imports') {
       await prisma.argumentImport.create({
-        data: { fromDeliberationId: fromId, toDeliberationId: toId, kind: 'import' }
+        data: { fromDeliberationId: fromId, toDeliberationId: toId, kind: 'import', fingerprint: `${fromId}:${toId}:import` }
       });
     }
 

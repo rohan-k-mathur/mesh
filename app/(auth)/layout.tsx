@@ -3,7 +3,6 @@ import "../globals.css";
 import "./auth-bg.css";
 import "./meta-bg.css";
 import MetaBg from "./MetaBg";   // ← path relative to this file
-
 export const metadata = {
   title: "Mesh",
   description: "A social media website",
