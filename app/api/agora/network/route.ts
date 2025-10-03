@@ -94,10 +94,13 @@ export async function GET(req: NextRequest) {
   } catch {
     // Optional fallback: canonical-claim overlap if XRef absent
     try {
-      const claims = await prisma.claim.findMany({
-        where: { deliberationId: { in: roomIds }, canonicalClaimId: { not: null } },
-        select: { deliberationId: true, canonicalClaimId: true },
-      });
+const claims = await prisma.claim.findMany({
+  where: {
+    deliberationId: { in: roomIds },
+    NOT: [{ canonicalClaimId: null }],   // ✅ avoids TS error on Nullable filter
+  },
+  select: { deliberationId: true, canonicalClaimId: true },
+});
       const byCanon = new Map<string, string[]>();
       for (const c of claims) {
         const arr = byCanon.get(c.canonicalClaimId!) ?? [];

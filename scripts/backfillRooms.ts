@@ -49,6 +49,7 @@ async function main() {
 // }
     const sheet = await prisma.debateSheet.create({
       data: {
+        id: `delib:${d.id}`,
         title: `Delib ${d.id.slice(0, 6)}`,
         roles: ['Proponent', 'Opponent', 'Curator'],
         deliberationId: d.id,

@@ -174,12 +174,12 @@ export default function DiagramView({
         ))}
       </svg>
 
-      {/* Legend (top-right) */}
+      {/* Legend (top-right)
       <div className="absolute right-2 top-2 z-10 text-xs text-slate-600 bg-white/70 backdrop-blur rounded-full px-2 py-1 shadow">
         <span className="inline-flex items-center gap-1 mr-2"><span className="w-2 h-2 rounded-sm bg-indigo-300"></span>Premise</span>
         <span className="inline-flex items-center gap-1 mr-2"><span className="w-2 h-2 rounded-sm bg-emerald-300"></span>Conclusion</span>
         <span className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-slate-300"></span>Link</span>
-      </div>
+      </div> */}
 
       {/* Title */}
       {diagram.title && (

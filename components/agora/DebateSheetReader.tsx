@@ -25,9 +25,7 @@ type EvResp = {
   support?: Record<string, number>;
   dsSupport?: Record<string, { bel:number; pl:number }>;
 };
-function refreshEv() {
-  // noop placeholder
-}
+
 export default function DebateSheetReader({ sheetId }: { sheetId: string }) {
   const { data, error } = useSWR(
     `/api/sheets/${sheetId}`,
@@ -42,6 +40,7 @@ const { mode, setMode } = useConfidence();
   const [openNodeId, setOpenNodeId] = useState<string | null>(null);
   const [showArgsFor, setShowArgsFor] = useState<string | null>(null); // claimId
 
+const [imports, setImports] = React.useState<'off'|'materialized'|'virtual'|'all'>('off');
 
   // inside DebateSheetReader
 const isSynthetic = sheetId.startsWith('delib:');
@@ -64,10 +63,17 @@ React.useEffect(() => {
       ?? (sheetId.startsWith("delib:") ? sheetId.slice("delib:".length) : null);
   }, [data?.sheet?.deliberationId, sheetId]);
 
-const { data: ev } = useSWR<EvResp>(
-  delibId ? `/api/deliberations/${delibId}/evidential?mode=${mode}` : null,
-  (u) => fetch(u, { cache: 'no-store' }).then(r => r.json())
+  //  const [imports, setImports] = React.useState<'none'|'virtual'>('none');
+  const { data: ev, mutate: refetchEv } = useSWR<EvResp>(
+    delibId ? `/api/deliberations/${delibId}/evidential?mode=${mode}&imports=${imports}` : null,
+    
+  u => fetch(u, { cache:'no-store' }).then(r => r.json())
 );
+
+// const { data: ev } = useSWR<EvResp>(
+//   delibId ? `/api/deliberations/${delibId}/evidential?mode=${mode}` : null,
+//   (u) => fetch(u, { cache: 'no-store' }).then(r => r.json())
+// );
 
 
 // bar value helper
@@ -118,12 +124,31 @@ function barFor(claimId?: string|null) {
             <select
               className="menuv2--lite rounded px-2 py-1 text-[12px]"
               value={mode}
-              onChange={e=>{ setMode(e.target.value as any); refreshEv(); }}
+              // onChange={e=>{ setMode(e.target.value as any); refreshEv(); }}
+                onChange={(e) => { setMode(e.target.value as any); refetchEv(); }}
+
             >
               <option value="min">weakest‑link (min)</option>
               <option value="product">independent (product)</option>
               <option value="ds">DS (β/π) — (UI only for now)</option>
             </select>
+            <label className="text-[11px] text-neutral-600">Imported</label>
+<select
+  className="menuv2--lite rounded px-2 py-1 text-[12px]"
+  value={imports}
+  onChange={e => setImports(e.target.value as any)}
+>
+  <option value="off">hide</option>
+  <option value="materialized">materialized</option>
+  <option value="virtual">virtual</option>
+  <option value="all">all</option>
+</select>
+
+            <label className="ml-3 text-[11px] inline-flex items-center gap-1">
+     <input type="checkbox" checked={imports==='virtual'}
+            onChange={e=> setImports(e.target.checked ? 'virtual' : 'off')} />
+     include imported lines (read‑only)
+   </label>
           </div>
         </div>
 
@@ -174,18 +199,19 @@ function barFor(claimId?: string|null) {
 )}
 {v && v.kind === 'ds' && (
   <>
-    <div className="flex items-center justify-between text-[11px] text-neutral-600 mb-0.5">
-      <span>Belief</span>
-      <span>{typeof v.bel === "number" ? (v.bel * 100).toFixed(0) + " " + "%" : "N/A"}</span>
+    <div className="flex items-center justify-between text-[11px] text-neutral-600 mb-0.5 gap-1">
+      <span >{"Belief:" + " "} </span>
+    
+      <span>{typeof v.bel === "number" ? (v.bel * 100).toFixed(0) +  "%" : "N/A"}</span>
     </div>
     <div className="h-1.5 bg-neutral-200 rounded">
       <div className="h-1.5 rounded bg-emerald-500 transition-all" style={{ width: `${Math.max(0, Math.min(1, v.bel ?? 0)) * 100}%` }} />
     </div>
-    <div className="mt-1 text-[11px] text-neutral-600">
+    {/* <div className="mt-1 text-[11px] text-neutral-600">
       Bel/Pl: 
       {typeof v.bel === "number" ? (v.bel * 100).toFixed(0) + "%" : "N/A"} / 
       {typeof v.pl === "number" ? (v.pl * 100).toFixed(0) + "%" : "N/A"}
-    </div>
+    </div> */}
   </>
 )}
                     <Badge

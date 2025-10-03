@@ -2181,6 +2181,8 @@ model Argument {
   argImportsSource ArgumentImport[] @relation("ArgImpFromArg")
   argImportsTarget ArgumentImport[] @relation("ArgImpToArg")
 
+  debateNodes DebateNode[] @relation(name: "ArgumentDebateNodes")
+
   @@index([deliberationId])
   @@index([deliberationId, createdAt])
   @@index([deliberationId, claimId, createdAt])
@@ -2773,8 +2775,24 @@ model Claim {
   ClaimLabel  ClaimLabel?
   claimValues ClaimValue[] // <— opposite side for ClaimValue.claim
 
+  ClaimEvidence ClaimEvidence[]
+
+  // NEW
+  canonicalClaimId String?
+  canonical        CanonicalClaim? @relation(fields: [canonicalClaimId], references: [id], onDelete: SetNull)
+
+  // NEW (optional negation link for DS pl later)
+  negatesClaimId String?
+  negates        Claim?  @relation("NegationClaims", fields: [negatesClaimId], references: [id], onDelete: SetNull)
+  negatedBy      Claim[] @relation("NegationClaims")
+
+  debateNodes DebateNode[] @relation(name: "ClaimDebateNodes")
+
   @@index([deliberationId, id], name: "claim_delib_id") // NEW
   @@index([deliberationId, createdAt]) // claims by delib, time-sorted
+  @@index([canonicalClaimId])
+  @@index([negatesClaimId])
+  @@index([deliberationId])
   @@index([deliberationId, createdById, createdAt])
 }
 
@@ -2848,6 +2866,30 @@ model ClaimStats {
   @@index([approvalsCount])
   @@index([undercutsCount])
   @@map("claim_stats")
+}
+
+model CanonicalClaim {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  title     String
+  summary   String?
+  createdAt DateTime @default(now())
+
+  claims Claim[]
+}
+
+model ClaimEvidence {
+  id        String   @id @default(cuid())
+  claimId   String
+  uri       String
+  title     String?
+  citation  String?
+  addedById String?
+  createdAt DateTime @default(now())
+
+  claim Claim @relation(fields: [claimId], references: [id], onDelete: Cascade)
+
+  @@index([claimId])
 }
 
 model Urn {
@@ -3961,6 +4003,8 @@ model Outcome {
 }
 
 // ---------- DebateSheet substrate ----------
+
+// --- DebateSheet: keep ONE link to AgoraRoom ---
 model DebateSheet {
   id          String   @id @default(cuid())
   title       String
@@ -3968,9 +4012,17 @@ model DebateSheet {
   roles       String[] @default([])
   rulesetJson Json?
 
-  // NEW (optional link; synthetic sheets keep working without a row)
+  // (optional) link to a deliberation if you added it earlier
   deliberationId String?
   deliberation   Deliberation? @relation(fields: [deliberationId], references: [id], onDelete: SetNull)
+
+  // ✅ keep ONE FK + relation to AgoraRoom, with a named relation
+  roomId String?
+  room   AgoraRoom? @relation(name: "RoomSheets", fields: [roomId], references: [id], onDelete: SetNull)
+
+  // REMOVE any duplicate fields like:
+  // AgoraRoom AgoraRoom? @relation(...)     // ❌ delete this line if present
+  // agoraRoom AgoraRoom? @relation(...)     // ❌ delete this line if present
 
   nodes      DebateNode[]
   edges      DebateEdge[]
@@ -3984,6 +4036,7 @@ model DebateSheet {
   updatedAt   DateTime @updatedAt
 
   @@index([deliberationId])
+  @@index([roomId])
 }
 
 model DebateNode {
@@ -3994,13 +4047,16 @@ model DebateNode {
   title   String?
   summary String?
 
-  // link to internal diagram (two-level expand/collapse)
+  // link to internal diagram
   diagramId String?          @unique
   diagram   ArgumentDiagram? @relation(fields: [diagramId], references: [id])
 
-  // optional bridges to your existing Argument/Claim
+  // NEW: actual relations (instead of just scalar ids)
   argumentId String?
-  claimId    String?
+  argument   Argument? @relation(name: "ArgumentDebateNodes", fields: [argumentId], references: [id])
+
+  claimId String?
+  claim   Claim?  @relation(name: "ClaimDebateNodes", fields: [claimId], references: [id])
 
   authorsJson Json?
   createdAt   DateTime @default(now())
@@ -4167,6 +4223,13 @@ model ArgumentImport {
   toArgumentId       String?
   kind               String? // 'import' | 'restatement' | 'quote' | ...
 
+  fromClaimId  String? // snapshot at import time
+  toClaimId    String? // snapshot at import time
+  baseAtImport Float? // snapshot
+
+  fingerprint String @unique // sha1(from|to|fromClaim|toClaim|fromArg)
+  metaJson    Json?
+
   createdAt DateTime @default(now())
 
   fromDeliberation Deliberation @relation("ArgImpFrom", fields: [fromDeliberationId], references: [id], onDelete: Cascade)
@@ -4179,6 +4242,9 @@ model ArgumentImport {
   @@index([toDeliberationId])
   @@index([fromArgumentId])
   @@index([toArgumentId])
+  @@index([fromDeliberationId, toDeliberationId])
+  @@index([toDeliberationId, toClaimId])
+  @@index([fromDeliberationId, fromClaimId])
 }
 
 /// Weak ties when the same author(s) produce work in both rooms.
@@ -4214,6 +4280,9 @@ model ArgumentSupport {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // NEW (lets us “include imported lines” only when asked)
+  provenanceJson Json? // e.g., {kind:'import', fingerprint, fromDeliberationId, fromArgumentId}
+
   @@unique([claimId, argumentId, mode], name: "arg_support_unique")
   @@index([deliberationId, claimId])
   @@index([argumentId])
@@ -4242,13 +4311,27 @@ model AssumptionUse {
 }
 
 model AgoraRoom {
-  id         String   @id @default(cuid())
-  slug       String   @unique
+  id         String        @id @default(cuid())
+  slug       String        @unique
   title      String
   summary    String?
-  visibility String   @default("public") // or an enum if you prefer
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  visibility String        @default("public") // or an enum if you prefer
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  sheets     DebateSheet[] @relation(name: "RoomSheets")
 
   deliberations Deliberation[]
+}
+
+model RoomFunctor {
+  id           String   @id @default(cuid())
+  fromRoomId   String // deliberationId
+  toRoomId     String // deliberationId
+  claimMapJson Json // { "<fromClaimId>": "<toClaimId>", ... }
+  notes        String?
+  createdById  String?
+  createdAt    DateTime @default(now())
+
+  @@unique([fromRoomId, toRoomId])
+  @@index([fromRoomId, toRoomId])
 }
