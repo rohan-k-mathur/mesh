@@ -4176,18 +4176,29 @@ model EvidenceNode {
 }
 
 model EvidenceLink {
-  id          String        @id @default(cuid())
-  evidenceId  String?       @default(cuid())
-  evidence    EvidenceNode? @relation(fields: [evidenceId], references: [id], onDelete: Cascade)
-  targetKind  String        @default("argument")
-  targetId    String?       @default(cuid())
+  id String @id @default(cuid())
+
+  // DO NOT auto-generate FKs; they must point to real rows
+  evidenceId String?
+  evidence   EvidenceNode? @relation(fields: [evidenceId], references: [id], onDelete: SetNull)
+
+  targetKind String  @default("argument") // e.g., "argument" | "claim" | "sheet"
+  targetId   String? // FK-ish string; leave nullable
+
   selectors   Json? // annotation anchors
   note        String?
-  uri         String
+  uri         String // redundant safety (snapshot of source URL)
   snapshotKey String?
 
-  ArgumentDiagram   ArgumentDiagram? @relation(fields: [argumentDiagramId], references: [id])
+  // Optional link to an argument diagram (kept nullable; set-null on deletion)
   argumentDiagramId String?
+  ArgumentDiagram   ArgumentDiagram? @relation(fields: [argumentDiagramId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([targetKind, targetId])
+  @@index([argumentDiagramId])
+  @@index([evidenceId])
 }
 
 /// Edges induced when a stack in room A references (is attached to, cites, embeds) room B.
@@ -4334,4 +4345,125 @@ model RoomFunctor {
 
   @@unique([fromRoomId, toRoomId])
   @@index([fromRoomId, toRoomId])
+}
+
+// ---------- Knowledge Base (Phase A) ----------
+enum KbVisibility {
+  public
+  org
+  followers
+  private
+}
+
+enum KbRole {
+  owner
+  editor
+  commenter
+  reader
+}
+
+enum KbSpaceKind {
+  personal
+  team
+  org
+  project
+}
+
+enum KbBlockType {
+  text
+  image
+  link
+  claim
+  claim_set
+  argument
+  sheet
+  room_summary
+  transport
+  evidence_list
+  cq_tracker
+  plexus_tile
+}
+
+model KbSpace {
+  id         String       @id @default(cuid())
+  slug       String       @unique
+  title      String
+  summary    String?
+  visibility KbVisibility @default(public)
+
+  kind        KbSpaceKind @default(personal) // <— added; used by create route
+  createdById String
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  pages   KbPage[]
+  members KbSpaceMember[]
+}
+
+model KbSpaceMember {
+  id        String   @id @default(cuid())
+  spaceId   String
+  userId    String
+  role      KbRole   @default(reader)
+  createdAt DateTime @default(now())
+
+  space KbSpace @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+
+  @@unique([spaceId, userId])
+  @@index([userId])
+}
+
+model KbPage {
+  id          String       @id @default(cuid())
+  spaceId     String
+  slug        String
+  title       String
+  summary     String?
+  visibility  KbVisibility @default(public)
+  tags        String[] // small, flexible
+  frontmatter Json? // { defaultLens, eval: { mode, tau }, ... }
+
+  createdById String
+  updatedById String? // <— added; used by PATCH
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  space     KbSpace      @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  blocks    KbBlock[]
+  snapshots KbSnapshot[]
+
+  @@unique([spaceId, slug])
+  @@index([spaceId, updatedAt])
+  @@index([createdById, updatedAt])
+}
+
+model KbBlock {
+  id          String      @id @default(cuid())
+  pageId      String
+  ord         Int
+  type        KbBlockType
+  live        Boolean     @default(true) // live vs pinned
+  dataJson    Json // discriminated payload by `type`
+  pinnedJson  Json? // when !live, frozen data
+  citations   Json? // [{ kind, id, uri, note }]
+  createdById String
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  page KbPage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@index([pageId, ord])
+}
+
+model KbSnapshot {
+  id          String   @id @default(cuid())
+  pageId      String
+  label       String?
+  atTime      DateTime @default(now())
+  createdById String
+  manifest    Json // { page, blocks: [{id, live, pinnedJson?, liveHash?}] }
+
+  page KbPage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@index([pageId, atTime])
 }

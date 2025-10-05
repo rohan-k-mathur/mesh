@@ -119,6 +119,29 @@ export default function Plexus({
   }, [allRooms]);
   const [selectedTags, setSelectedTags] = usePersistentState<string[]>('plexus:tags', []);
 
+  // NEW: centralized opener for Transport in a new tab
+  const openTransport = React.useCallback((fromId: string, toId: string) => {
+    const url = `/functor/transport?from=${encodeURIComponent(fromId)}&to=${encodeURIComponent(toId)}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }, []);
+
+    // Keyboard: Esc clears selection; Enter opens transport if 2 selected
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSel([]);
+      if (e.key.toLowerCase() === 'f' && (e.ctrlKey || e.metaKey)) {
+        const el = document.getElementById('plexus-search') as HTMLInputElement | null;
+        el?.focus(); e.preventDefault();
+      }
+      if (e.key === 'Enter' && sel.length === 2) {
+        // CHANGED: open in new tab
+        openTransport(sel[0], sel[1]);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [sel, openTransport]);
+
   // Link sketch mode
   const [linkMode, setLinkMode] = usePersistentState<boolean>('plexus:linkMode', false);
   const [linkKind, setLinkKind] = usePersistentState<LinkSketchKind>('plexus:linkKind', 'imports');
@@ -624,7 +647,8 @@ export default function Plexus({
         <div className="mt-2 flex items-center gap-2 text-[12px]">
           <div className="text-neutral-600">Create link:</div>
           <button className="px-2 py-1 rounded border hover:bg-slate-50"
-                  onClick={() => window.location.assign(`/functor/transport?from=${sel[0]}&to=${sel[1]}`)}>
+                  // onClick={() => window.location.assign(`/functor/transport?from=${sel[0]}&to=${sel[1]}`)}>
+                  onClick={() => openTransport(sel[0], sel[1])}>
             transport
           </button>
           <button className="px-2 py-1 rounded border hover:bg-indigo-50" onClick={() => createLink('xref', sel[0], sel[1])}>xref</button>

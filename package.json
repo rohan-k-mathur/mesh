@@ -55,6 +55,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@gsap/react": "^2.1.1",
     "@hookform/resolvers": "5.2.1",
+    "@lexical/react": "^0.36.2",
     "@livekit/components-react": "^2.5.4",
     "@livekit/components-styles": "^1.1.2",
     "@pinecone-database/pinecone": "^6.1.1",

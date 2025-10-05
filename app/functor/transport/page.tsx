@@ -85,6 +85,25 @@ export default function TransportPage() {
   const [note, setNote] = React.useState<string>('');
   const [err, setErr] = React.useState<string>('');
 
+
+const { data: fromNames } = useSWR(
+  fromId ? `/api/room-functor/claims?room=${encodeURIComponent(fromId)}` : null,
+  fetcher,
+  { revalidateOnFocus: false }
+);
+const { data: toNames } = useSWR(
+  toId ? `/api/room-functor/claims?room=${encodeURIComponent(toId)}` : null,
+  fetcher,
+  { revalidateOnFocus: false }
+);
+const nameOfFrom = React.useCallback((cid?:string|null) =>
+  (fromNames?.names?.[cid ?? ''] as string|undefined) ?? '', [fromNames]);
+const nameOfTo = React.useCallback((cid?:string|null) =>
+  (toNames?.names?.[cid ?? ''] as string|undefined) ?? '', [toNames]);
+
+const [showIds, setShowIds] = React.useState(false);
+
+
   // reset proposals when room pair changes
   React.useEffect(() => {
     setProposals(null);
@@ -224,22 +243,38 @@ export default function TransportPage() {
           >
             {busySuggest ? 'Suggesting…' : 'Suggest from overlaps'}
           </button>
+            <label className="ml-auto text-[11px] inline-flex items-center gap-1">
+    <input type="checkbox" className="accent-slate-600" checked={showIds}
+           onChange={(e)=>setShowIds(e.target.checked)} />
+    Show IDs
+  </label>
         </div>
 
         <ul className="text-sm space-y-1">
-          {Object.keys(claimMap).length ? (
-            Object.entries(claimMap).map(([fromClaimId, toClaimId]) => (
-              <li key={fromClaimId} className="grid grid-cols-2 gap-2">
-                <code className="truncate">{fromClaimId}</code>
-                <code className="truncate">→ {toClaimId}</code>
-              </li>
-            ))
-          ) : (
-            <li className="text-xs text-slate-500">
-              {isMapLoading ? 'Loading…' : 'No mappings yet. Click “Suggest”.'}
-            </li>
-          )}
-        </ul>
+  {Object.keys(claimMap).length ? (
+    Object.entries(claimMap).map(([fromClaimId, toClaimId]) => {
+      const ftxt = nameOfFrom(fromClaimId) || '(no text)';
+      const ttxt = nameOfTo(toClaimId)     || '(no text)';
+      return (
+        <li key={fromClaimId} className="grid grid-cols-[1fr_auto_1fr] items-start gap-2">
+          <div className="min-w-0">
+            <div className="truncate" title={ftxt}>{ftxt}</div>
+            {showIds && <div className="text-[11px] text-slate-500 font-mono truncate">{fromClaimId}</div>}
+          </div>
+          <div className="text-slate-400">→</div>
+          <div className="min-w-0">
+            <div className="truncate" title={ttxt}>{ttxt}</div>
+            {showIds && <div className="text-[11px] text-slate-500 font-mono truncate">{toClaimId}</div>}
+          </div>
+        </li>
+      );
+    })
+  ) : (
+    <li className="text-xs text-slate-500">
+      {isMapLoading ? 'Loading…' : 'No mappings yet. Click “Suggest”.'}
+    </li>
+  )}
+</ul>
       </div>
 
       <div className="flex items-center gap-2">
@@ -265,16 +300,23 @@ export default function TransportPage() {
       <div className="rounded border p-3">
         <div className="font-medium text-sm mb-2">Proposed imports</div>
         <ul className="text-sm space-y-2">
-          {proposals?.length ? (
-            proposals.map((p) => (
-              <li key={p.fingerprint} className="border rounded px-2 py-1">
-                <div className="text-[13px]">{p.previewText || '(no preview)'}</div>
-                <div className="text-[11px] text-slate-500">
-                  arg:{safeSlice(p.fromArgumentId)}… · {Math.round(((p.base ?? 0.55) * 100))}% · φ:{safeSlice(p.fromClaimId, 6)}… → φ′:{safeSlice(p.toClaimId, 6)}…
-                </div>
-              </li>
-            ))
-          ) : (
+          
+{proposals?.length ? (
+  proposals.map((p) => {
+    const leftTxt  = nameOfFrom(p.fromClaimId) || "";
+    const rightTxt = nameOfTo(p.toClaimId)     || "";
+    return (
+      <li key={p.fingerprint} className="border rounded px-2 py-1">
+        <div className="text-[13px]">{p.previewText || "(no preview)"}</div>
+        
+    <div className="text-[11px] text-slate-500">
+  arg:{p.fromArgumentId ? p.fromArgumentId.slice(0,8) : "—"}… · {Math.round((p.base ?? 0)*100)}% ·
+  φ:{leftTxt ? `"${leftTxt.slice(0,60)}"` : (p.fromClaimId ? p.fromClaimId.slice(0,6)+'…' : "—")} → φ′:{rightTxt ? `"${rightTxt.slice(0,60)}"` : (p.toClaimId ? p.toClaimId.slice(0,6)+'…' : "—")}
+</div>
+      </li>
+    );
+  })
+) : (
             <li className="text-xs text-slate-500">
               {busyPreview ? 'Computing…' : 'No proposals yet.'}
             </li>

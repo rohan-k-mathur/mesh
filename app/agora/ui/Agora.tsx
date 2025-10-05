@@ -18,7 +18,7 @@ import { RoomPicker, DebatePicker, SheetPicker } from '@/components/agora/RoomAn
 import ConfidenceControls from '@/components/agora/ConfidenceControls';
 import PlexusBoard from "@/components/agora/PlexusBoard";
 import PlexusMatrix from "@/components/agora/PlexusMatrix";
-
+import { NewKbButton } from "@/components/kb/NewKbButton";
 /* ------------------------------ helpers ------------------------------ */
 function niceDomain(url?: string | null, fallback?: string | null) {
   if (fallback) return fallback;
@@ -691,7 +691,7 @@ React.useEffect(() => {
         paused={paused}
         onPause={() => setPaused((p) => !p)}
       />
-
+<NewKbButton />
   <div className="mb-2 mx-4">
   <div className="inline-flex mt-3 rounded-xl border border-indigo-300 bg-white/70 text-sm overflow-hidden">
     {(['feed','sheet','plexus'] as const).map(v => (
