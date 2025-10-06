@@ -24,13 +24,21 @@ export default function KbEditor({ pageId, spaceId }:{ pageId:string; spaceId:st
   const [picker, setPicker] =
     React.useState<null|{kind:'claim'|'argument'|'room'|'sheet'|'transport'}>(null);
 
-  async function createBlock(type: string, data?: any) {
-    // Normalize text payloads to { md, lexical }
-    const payload = type === 'text' ? { md: String(data?.md ?? ''), lexical: data?.lexical ?? null } : (data ?? {});
+//   async function createBlock(type: string, data?: any) {
+//     // Normalize text payloads to { md, lexical }
+//     const payload = type === 'text' ? { md: String(data?.md ?? ''), lexical: data?.lexical ?? null } : (data ?? {});
+//     await fetch(`/api/kb/blocks`, {
+//       method:'POST',
+//       headers:{ 'Content-Type':'application/json' },
+//       body: JSON.stringify({ pageId, type, data: payload })
+//     });
+//     mutate();
+//   }
+
+    async function createBlock(type: string, data?: any) {
     await fetch(`/api/kb/blocks`, {
-      method:'POST',
-      headers:{ 'Content-Type':'application/json' },
-      body: JSON.stringify({ pageId, type, data: payload })
+      method:'POST', headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({ pageId, type, data })
     });
     mutate();
   }
@@ -76,6 +84,7 @@ export default function KbEditor({ pageId, spaceId }:{ pageId:string; spaceId:st
     });
     mutate();
   }
+
 
   /** ---------- Fallback prompt creators (Ctrl-/ menu) ---------- */
   function promptAndCreate(kind: 'claim'|'argument'|'sheet'|'room_summary'|'transport'|'image'|'link') {

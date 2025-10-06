@@ -47,8 +47,8 @@
 //     </a>
 //   ) : inner;
 // }
-import React from "react";
 'use client';
+import React from "react";
 
 export function ProvenanceChip({
   item, blockId, canToggle

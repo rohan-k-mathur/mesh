@@ -30,23 +30,28 @@ const BodyZ = z.object({
 
 type Item = z.infer<typeof ItemZ>;
 
-function urlOrigin(req: NextRequest) {
-  // Works in both dev and prod
-  return new URL(req.url).origin;
+function urlOrigin(req: NextRequest) { return new URL(req.url).origin; }
+function fwdAuthHeaders(req: NextRequest) {
+  const h = new Headers();
+  const cookie = req.headers.get('cookie');
+  const auth = req.headers.get('authorization');
+  if (cookie) h.set('cookie', cookie);
+  if (auth)   h.set('authorization', auth);
+  h.set('cache-control','no-store');
+  return h;
 }
 
 export async function POST(req: NextRequest) {
   try {
     const body = BodyZ.parse(await req.json());
-    // Enforce read access to space
     await requireKbRole(req, { spaceId: body.spaceId, need: 'reader' });
 
     const origin = urlOrigin(req);
+    const authHeaders = fwdAuthHeaders(req);
     const errors: Array<{ index: number; code: string; message?: string; ref?: any }> = [];
     const results: any[] = [];
 
-    // Pre‑resolve claim → deliberation if roomId not provided
-    async function findClaimRoomId(claimId: string): Promise<string | null> {
+    async function findClaimRoomId(claimId: string): Promise<string|null> {
       const c = await prisma.claim.findUnique({ where: { id: claimId }, select: { deliberationId: true } });
       return c?.deliberationId ?? null;
     }
@@ -56,137 +61,122 @@ export async function POST(req: NextRequest) {
       try {
         if (it.kind === 'claim') {
           const roomId = it.roomId ?? (await findClaimRoomId(it.id));
-          if (!roomId) {
-            results.push(null);
-            errors.push({ index: i, code: 'not_found', ref: { kind: it.kind, id: it.id } });
-            continue;
-          }
-          const qs = new URLSearchParams({
-            mode: body.eval.mode,
-            imports: body.eval.imports,
-          });
+          if (!roomId) { results.push(null); errors.push({ index:i, code:'not_found', ref:it }); continue; }
+          const qs = new URLSearchParams({ mode: body.eval.mode, imports: body.eval.imports });
           if (body.eval.tau != null) qs.set('confidence', String(body.eval.tau));
-          const ev = await fetch(`${origin}/api/deliberations/${roomId}/evidential?${qs}`, { cache: 'no-store' });
+
+          const ev = await fetch(`${origin}/api/deliberations/${roomId}/evidential?${qs}`, {
+            headers: authHeaders, redirect: 'manual'
+          });
           if (!ev.ok) throw new Error(`evidential HTTP ${ev.status}`);
           const ej = await ev.json();
-          // Support both scalar and DS shape
+
           const bel = ej?.dsSupport?.[it.id]?.bel ?? ej?.support?.[it.id] ?? 0;
           const pl  = ej?.dsSupport?.[it.id]?.pl  ?? bel;
-          const node = (ej?.nodes || []).find((n: any) => n.id === it.id);
-          const top = node?.top ?? [];
+          const node = (ej?.nodes || []).find((n:any)=>n.id===it.id);
+          const top  = node?.top ?? [];
 
           results.push({
-            kind: 'claim',
-            id: it.id,
-            live: true,
-            pinnedAt: null,
-            lens: it.lens ?? 'belpl',
+            kind:'claim', id: it.id, live:true, pinnedAt:null, lens: it.lens ?? 'belpl',
             data: { text: node?.text ?? '', bel, pl, top, roomId },
-            provenance: {
-              source: 'deliberation',
-              roomId,
-              endpoints: [`GET /api/deliberations/${roomId}/evidential?${qs}`],
-            },
-            actions: {
-              openRoom: `/deliberation/${roomId}`,
-              openSheet: `/sheets/delib:${roomId}`,
-            },
+            provenance: { source:'deliberation', roomId, endpoints:[`GET /api/deliberations/${roomId}/evidential?${qs}`] },
+            actions: { openRoom:`/deliberation/${roomId}`, openSheet:`/sheets/delib:${roomId}` }
           });
-        } else if (it.kind === 'argument') {
-          const r = await fetch(`${origin}/api/arguments/${it.id}?view=diagram`, { cache: 'no-store' });
+        }
+
+        else if (it.kind === 'argument') {
+          const r = await fetch(`${origin}/api/arguments/${it.id}?view=diagram`, {
+            headers: authHeaders, redirect: 'manual'
+          });
           if (!r.ok) throw new Error(`argument HTTP ${r.status}`);
           const diag = await r.json();
           results.push({
-            kind: 'argument',
-            id: it.id,
-            live: true,
-            pinnedAt: null,
-            lens: it.lens ?? 'diagram',
+            kind:'argument', id: it.id, live:true, pinnedAt:null, lens: it.lens ?? 'diagram',
             data: { diagram: diag },
-            provenance: { source: 'argument', endpoints: [`GET /api/arguments/${it.id}?view=diagram`] },
-            actions: { openArgument: `/api/arguments/${it.id}?view=diagram` },
+            provenance: { source:'argument', endpoints:[`GET /api/arguments/${it.id}?view=diagram`] },
+            actions: { openArgument:`/api/arguments/${it.id}?view=diagram` }
           });
-        } else if (it.kind === 'room_summary') {
-          const qs = new URLSearchParams({
-            mode: body.eval.mode,
-            imports: body.eval.imports,
-          });
+        }
+
+        else if (it.kind === 'room_summary') {
+          const qs = new URLSearchParams({ mode: body.eval.mode, imports: body.eval.imports });
           if (body.eval.tau != null) qs.set('confidence', String(body.eval.tau));
-          const ev = await fetch(`${origin}/api/deliberations/${it.id}/evidential?${qs}`, { cache: 'no-store' });
+          const ev = await fetch(`${origin}/api/deliberations/${it.id}/evidential?${qs}`, {
+            headers: authHeaders, redirect: 'manual'
+          });
           if (!ev.ok) throw new Error(`evidential HTTP ${ev.status}`);
           const ej = await ev.json();
           const claims = (ej?.nodes || [])
-            .sort((a: any, b: any) => (b.score ?? 0) - (a.score ?? 0))
+            .sort((a:any,b:any)=>(b.score??0)-(a.score??0))
             .slice(0, (it as any).limit ?? 5)
-            .map((n: any) => ({
-              id: n.id, text: n.text, score: n.score,
+            .map((n:any)=>({
+              id:n.id, text:n.text, score:n.score,
               bel: ej?.dsSupport?.[n.id]?.bel ?? n.score,
               pl:  ej?.dsSupport?.[n.id]?.pl  ?? n.score,
-              diagramId: n.diagramId ?? null,
+              diagramId: n.diagramId ?? null
             }));
           results.push({
-            kind: 'room_summary',
-            id: it.id,
-            live: true,
-            pinnedAt: null,
-            lens: it.lens ?? 'top_claims',
+            kind:'room_summary', id: it.id, live:true, pinnedAt:null, lens: it.lens ?? 'top_claims',
             data: { claims },
-            provenance: { source: 'deliberation', endpoints: [`GET /api/deliberations/${it.id}/evidential?${qs}`] },
-            actions: { openRoom: `/deliberation/${it.id}` },
+            provenance:{ source:'deliberation', endpoints:[`GET /api/deliberations/${it.id}/evidential?${qs}`] },
+            actions:{ openRoom:`/deliberation/${it.id}` }
           });
-        } else if (it.kind === 'sheet') {
-          const r = await fetch(`${origin}/api/sheets/${it.id}`, { cache: 'no-store' });
+        }
+
+        else if (it.kind === 'sheet') {
+          const r = await fetch(`${origin}/api/sheets/${it.id}`, {
+            headers: authHeaders, redirect:'manual'
+          });
           if (!r.ok) throw new Error(`sheet HTTP ${r.status}`);
           const s = await r.json();
           results.push({
-            kind: 'sheet',
-            id: it.id,
-            live: true,
-            pinnedAt: null,
-            lens: it.lens ?? 'nodes',
+            kind:'sheet', id: it.id, live:true, pinnedAt:null, lens: it.lens ?? 'nodes',
             data: s,
-            provenance: { source: 'sheet', endpoints: [`GET /api/sheets/${it.id}`] },
-            actions: { openSheet: `/sheets/${it.id}` },
+            provenance:{ source:'sheet', endpoints:[`GET /api/sheets/${it.id}`] },
+            actions:{ openSheet:`/sheets/${it.id}` }
           });
-        } else if (it.kind === 'transport') {
-          const mapRes = await fetch(`${origin}/api/room-functor/map?from=${it.fromId}&to=${it.toId}`, { cache: 'no-store' });
+        }
+
+        else if (it.kind === 'transport') {
+          const mapRes = await fetch(`${origin}/api/room-functor/map?from=${it.fromId}&to=${it.toId}`, {
+            headers: authHeaders, redirect:'manual'
+          });
           if (!mapRes.ok) throw new Error(`map HTTP ${mapRes.status}`);
           const map = await mapRes.json();
-          const claimMap = (map?.mapping?.claimMapJson ?? {}) as Record<string, string>;
+          const claimMap = (map?.mapping?.claimMapJson ?? {}) as Record<string,string>;
+
           const includeProposals = (it.lens ?? 'map') === 'map_proposals';
           let proposals: any[] = [];
           if (includeProposals) {
             const prev = await fetch(`${origin}/api/room-functor/preview`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              method:'POST',
+              headers: new Headers({ ...Object.fromEntries(authHeaders), 'Content-Type':'application/json' }),
               body: JSON.stringify({ fromId: it.fromId, toId: it.toId, claimMap }),
+              redirect:'manual'
             });
             if (prev.ok) {
               const pj = await prev.json();
               proposals = Array.isArray(pj?.proposals) ? pj.proposals : [];
             }
           }
+
           results.push({
-            kind: 'transport',
-            fromId: it.fromId,
-            toId: it.toId,
-            live: true,
-            pinnedAt: null,
-            lens: it.lens ?? 'map',
+            kind:'transport', fromId: it.fromId, toId: it.toId, live:true, pinnedAt:null, lens: it.lens ?? 'map',
             data: { claimMap, proposals },
-            provenance: { source: 'room_functor', endpoints: ['/api/room-functor/map', ...(includeProposals ? ['/api/room-functor/preview'] : [])] },
-            actions: { openTransport: `/functor/transport?from=${it.fromId}&to=${it.toId}` },
+            provenance:{ source:'room_functor', endpoints:['/api/room-functor/map', ...(includeProposals?['/api/room-functor/preview']:[]) ] },
+            actions:{ openTransport:`/functor/transport?from=${it.fromId}&to=${it.toId}` }
           });
         }
-      } catch (e: any) {
+
+      } catch (e:any) {
         results.push(null);
-        errors.push({ index: i, code: 'resolve_failed', message: e?.message, ref: it });
+        errors.push({ index:i, code:'resolve_failed', message:e?.message, ref:it });
       }
     }
 
-    // Live cache; pinned will be immutable later
-    return NextResponse.json({ ok: true, items: results, errors }, { headers: { 'Cache-Control': 'private, max-age=30' } });
-  } catch (err) {
-    return fail(err);
-  }
+    return NextResponse.json(
+      { ok:true, items: results, errors },
+      { headers: { 'Cache-Control': 'private, max-age=30' } }
+    );
+  } catch (err) { return fail(err); }
 }

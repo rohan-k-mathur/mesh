@@ -1,91 +1,106 @@
 // app/api/kb/pages/[id]/export/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
-import { requireKbRole, fail } from '@/lib/kb/withSpaceAuth';
+import { requireKbRole } from '@/lib/kb/withSpaceAuth';
 
-export const dynamic = 'force-dynamic'; export const revalidate = 0;
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
-export async function GET(req:NextRequest, { params }:{ params:{ id:string } }) {
-  try {
-    const u = new URL(req.url);
-    const as = (u.searchParams.get('as') ?? 'md').toLowerCase();
-    const at = u.searchParams.get('at'); // snapshotId or ISO (Phase‑B)
-    // Load page + blocks
-    const page = await prisma.kbPage.findUnique({
-      where: { id: params.id },
-      select: { id:true, title:true, spaceId:true, summary:true, frontmatter:true, blocks:{
-        orderBy:{ ord:'asc' },
-        select:{ id:true, type:true, live:true, dataJson:true, pinnedJson:true }
-      }}
-    });
-    if (!page) return NextResponse.json({ error:'not_found' }, { status:404 });
-    await requireKbRole(req, { spaceId: page.spaceId, need: 'reader' });
+function fwdAuth(req: NextRequest) {
+  const h = new Headers();
+  const cookie = req.headers.get('cookie'); if (cookie) h.set('cookie', cookie);
+  const auth   = req.headers.get('authorization'); if (auth) h.set('authorization', auth);
+  h.set('cache-control', 'no-store');
+  return h;
+}
 
-    if (as === 'pdf') {
-      // Optional: implement SSR-to-PDF using your renderer + Playwright/Puppeteer
-      return NextResponse.json({ error:'pdf_not_implemented' }, { status:501 });
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+  const as = (req.nextUrl.searchParams.get('as') ?? 'md').toLowerCase();
+  if (as !== 'md' && as !== 'pdf') return NextResponse.json({ error: 'unsupported' }, { status: 400 });
+
+  const page = await prisma.kbPage.findUnique({
+    where: { id: params.id },
+    select: { id:true, title:true, spaceId:true, frontmatter:true },
+  });
+  if (!page) return NextResponse.json({ error: 'not_found' }, { status: 404 });
+
+  await requireKbRole(req, { spaceId: page.spaceId, need: 'reader' });
+
+  const blocks = await prisma.kbBlock.findMany({
+    where: { pageId: page.id },
+    orderBy: { ord: 'asc' },
+    select: { id:true, type:true, dataJson:true, live:true, pinnedJson:true },
+  });
+
+  // Build transclusion request
+  const items: any[] = [];
+  const indexMap: number[] = [];
+  blocks.forEach((b, i) => {
+    const d = b.dataJson || {};
+    if (b.live === false && b.pinnedJson) return; // will use pinned directly
+    if (b.type === 'claim' && d.id) { items.push({kind:'claim', id:d.id, lens:d.lens, roomId:d.roomId}); indexMap.push(i); }
+    if (b.type === 'argument' && d.id) { items.push({kind:'argument', id:d.id, lens:d.lens}); indexMap.push(i); }
+    if (b.type === 'sheet' && d.id) { items.push({kind:'sheet', id:d.id, lens:d.lens}); indexMap.push(i); }
+    if (b.type === 'room_summary' && d.id) { items.push({kind:'room_summary', id:d.id, lens:d.lens, limit:d.limit??5}); indexMap.push(i); }
+    if (b.type === 'transport' && d.fromId && d.toId) { items.push({kind:'transport', fromId:d.fromId, toId:d.toId, lens:d.lens??'map'}); indexMap.push(i); }
+  });
+
+  let hydrated: any[] = new Array(blocks.length).fill(null);
+  if (items.length) {
+    const j = await fetch(new URL('/api/kb/transclude', req.url).toString(), {
+      method:'POST', headers: new Headers({ ...Object.fromEntries(fwdAuth(req)), 'Content-Type':'application/json' }),
+      body: JSON.stringify({ spaceId: page.spaceId, eval: (page.frontmatter?.eval ?? { mode:'product', imports:'off' }), at: null, items })
+    }).then(r => r.json()).catch(()=>({}));
+    if (Array.isArray(j?.items)) j.items.forEach((env:any, k:number) => { hydrated[indexMap[k]] = env; });
+  }
+
+  // Simple MD serialization
+  const lines: string[] = [`# ${page.title}`, ''];
+  blocks.forEach((b, i) => {
+    if (b.type === 'text') {
+      const md = String(b.dataJson?.md ?? '').trim();
+      if (md) lines.push(md, '');
+      else lines.push('<!-- empty text block -->', '');
+      return;
     }
+    const env = b.live === false && b.pinnedJson ? b.pinnedJson : hydrated[i];
+    if (!env) { lines.push('<!-- unresolved block -->', ''); return; }
 
-    // MD export (simple): use pinnedJson if !live, otherwise embed raw text / minimal summaries
-    const lines:string[] = [];
-    lines.push(`# ${page.title}`);
-    if (page.summary) lines.push('', page.summary);
-    lines.push('', '---');
-
-    for (const b of page.blocks) {
-      if (b.type === 'text') {
-        const md = (b.dataJson?.md ?? '').trim();
-        if (md) { lines.push('', md); continue; }
-      }
-      if (b.type === 'image') {
-        const src = b.dataJson?.src ?? '';
-        const alt = b.dataJson?.alt ?? '';
-        if (src) lines.push('', `![${alt}](${src})`);
-        continue;
-      }
-      if (b.type === 'link') {
-        const href = b.dataJson?.href ?? '';
-        const text = b.dataJson?.text ?? href;
-        if (href) lines.push('', `[${text}](${href})`);
-        continue;
-      }
-      // structured → use pinned if available, else a compact textual form
-      const env = b.live ? null : (b.pinnedJson ?? null);
-      if (b.type === 'claim') {
-        if (env?.data?.text) lines.push('', `> ${env.data.text}  \n> **Bel** ${Math.round((env.data.bel ?? 0)*100)}%`);
-        else lines.push('', `> (Claim ${b.dataJson?.id ?? ''})`);
-        continue;
-      }
-      if (b.type === 'room_summary') {
-        const rows = env?.data?.claims ?? [];
-        lines.push('', `### Room summary`);
-        rows.forEach((c:any)=>lines.push(`- ${c.text} (${Math.round((c.bel ?? c.score ?? 0)*100)}%)`));
-        continue;
-      }
-      if (b.type === 'argument') {
-        lines.push('', `**Argument ${b.dataJson?.id ?? ''}** *(diagram omitted)*`);
-        continue;
-      }
-      if (b.type === 'sheet') {
-        lines.push('', `**Sheet ${b.dataJson?.id ?? ''}** *(see app for full detail)*`);
-        continue;
-      }
-      if (b.type === 'transport') {
-        const m = env?.data?.claimMap ?? {};
-        const pairs = Object.entries(m);
-        lines.push('', `**Transport** (${pairs.length} mapped pairs)`);
-        pairs.slice(0,20).forEach(([a,b])=>lines.push(`- ${a} → ${b}`));
-        continue;
-      }
+    if (env.kind === 'claim') {
+      const d = env.data || {};
+      lines.push(`### Claim ${d?.text ? '— ' + d.text : ''}`);
+      lines.push(`- Bel: ${Math.round((d.bel ?? 0)*100)}%  Pl: ${Math.round((d.pl ?? d.bel ?? 0)*100)}%`);
+      lines.push('');
+    } else if (env.kind === 'argument') {
+      lines.push(`### Argument (diagram)`);
+      lines.push('```json'); lines.push(JSON.stringify(env.data?.diagram ?? {}, null, 2)); lines.push('```', '');
+    } else if (env.kind === 'room_summary') {
+      lines.push(`### Room summary (top claims)`);
+      (env.data?.claims ?? []).forEach((c:any)=>lines.push(`- ${c.text} (${Math.round((c.bel ?? c.score ?? 0)*100)}%)`));
+      lines.push('');
+    } else if (env.kind === 'sheet') {
+      lines.push(`### Sheet ${env.data?.title ? '— ' + env.data.title : ''}`);
+      lines.push('```json'); lines.push(JSON.stringify(env.data ?? {}, null, 2)); lines.push('```', '');
+    } else if (env.kind === 'transport') {
+      lines.push(`### Transport map`);
+      const pairs = Object.entries(env?.data?.claimMap ?? {});
+      pairs.forEach(([a,b]) => lines.push(`- ${a} → ${b}`));
+      lines.push('');
     }
+  });
 
-    const body = lines.join('\n');
-    return new NextResponse(body, {
-      headers: {
-        'Content-Type': 'text/markdown; charset=utf-8',
-        'Cache-Control': 'no-store',
-        'Content-Disposition': `attachment; filename="${page.title.replace(/\s+/g,'_')}.md"`
-      }
-    });
-  } catch (e) { return fail(e); }
+  const md = lines.join('\n');
+  if (as === 'pdf') {
+    // Keep it honest; wire real PDF later (Phase E).
+    return NextResponse.json({ error: 'pdf_not_implemented' }, { status: 501 });
+  }
+
+  return new NextResponse(md, {
+    status: 200,
+    headers: {
+      'Content-Type': 'text/markdown; charset=utf-8',
+      'Cache-Control': 'no-store',
+      'Content-Disposition': `attachment; filename="${page.title?.toLowerCase().replace(/\s+/g,'-').slice(0,40) || page.id}.md"`,
+    }
+  });
 }

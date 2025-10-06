@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
       where: like ? { text: { contains: like, mode: 'insensitive' } } : undefined,
       select: { id:true, text:true, deliberationId:true },
       take: p.limit,
-      orderBy: { updatedAt: 'desc' },
+      orderBy: { id: 'desc' },
     });
     return NextResponse.json({ ok:true, items: rows.map(r => ({ id:r.id, label:r.text, roomId:r.deliberationId })) });
   }
@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
       where: like ? { title: { contains: like, mode: 'insensitive' } } : undefined,
       select: { id:true, title:true },
       take: p.limit,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { id: 'desc' },
     });
     return NextResponse.json({ ok:true, items: rows.map(r => ({ id:r.id, label:r.title ?? `argument:${r.id.slice(0,6)}…` })) });
   }
@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
       where: like ? { title: { contains: like, mode: 'insensitive' } } : undefined,
       select: { id:true, title:true },
       take: p.limit,
-      orderBy: { updatedAt: 'desc' },
+      orderBy: { id: 'desc' },
     });
     return NextResponse.json({ ok:true, items: rows.map(r => ({ id:r.id, label:r.title ?? `room:${r.id.slice(0,6)}…` })) });
   }
@@ -51,7 +51,7 @@ export async function GET(req: NextRequest) {
       where: like ? { title: { contains: like, mode: 'insensitive' } } : undefined,
       select: { id:true, title:true },
       take: p.limit,
-      orderBy: { updatedAt: 'desc' },
+      orderBy: { id: 'desc' },
     });
     return NextResponse.json({ ok:true, items: rows.map(r => ({ id:r.id, label:r.title ?? `sheet:${r.id.slice(0,6)}…` })) });
   }
