@@ -1,22 +1,83 @@
+// components/kb/KbBlockRenderer.tsx
 'use client';
 import * as React from 'react';
 import { ProvenanceChip } from './ProvenanceChip';
 
-export function KbBlockRenderer({ block, hydrated }: { block: any; hydrated: any }) {
+export function KbBlockRenderer({
+  block, hydrated, canEdit, onTogglePin
+}: { block:any; hydrated:any; canEdit?:boolean; onTogglePin?:(env:any)=>void }) {
   const t = block.type as string;
 
-  // TEXT & IMAGE blocks render from dataJson without transclusion
-  if (t === 'text') {
-    const md = String(block?.dataJson?.md ?? '').trim();
+  // TEXT
+//   if (t === 'text') {
+//     // accept md (new) or legacy text
+//     const md = String(block?.dataJson?.md ?? block?.dataJson?.text ?? '').trim();
+//     return (
+//       <div className="rounded-lg border bg-white/80 p-4 prose prose-sm max-w-none">
+//         {md ? <pre className="whitespace-pre-wrap">{md}</pre> : <div className="text-slate-500 text-sm">Empty text block</div>}
+//       </div>
+//     );
+//   }
+ function PinToggle() {
+    if (!canEdit) return null;
+    if (!hydrated) return null;
+    const live = hydrated?.live !== false;
     return (
-      <div className="rounded-lg border bg-white/80 p-4 prose prose-sm max-w-none">
-        {md ? <pre className="whitespace-pre-wrap">{md}</pre> : <div className="text-slate-500 text-sm">Empty text block</div>}
-      </div>
+      <button
+        onClick={()=>onTogglePin?.(hydrated)}
+        className="ml-2 text-[11px] underline"
+        title={live ? 'Pin this block (freeze as‑of)' : 'Unpin (return to live)'}
+      >
+        {live ? 'Pin' : 'Unpin'}
+      </button>
+    );
+  }
+if (t === 'text') {
+  const md =
+    (block?.dataJson?.md ??       // new path from Lexical/textarea autosave
+     block?.dataJson?.text ??     // legacy
+     '').toString();
+
+  return (
+    <div className="rounded-lg border bg-white/80 p-4 prose prose-sm max-w-none">
+      {md.trim()
+        ? <pre className="whitespace-pre-wrap">{md}</pre>
+        : <div className="text-slate-500 text-sm">Empty text block</div>}
+    </div>
+  );
+}
+if (hydrated && hydrated.kind === 'error') {
+  return (
+    <div className="rounded-lg border bg-amber-50/70 p-3 text-xs text-amber-800">
+      Could not resolve this block ({block.type}). {hydrated.message ? `Reason: ${hydrated.message}` : ''}
+    </div>
+  );
+}
+  if (!hydrated) {
+    return <div className="rounded-lg border bg-white/60 p-3 text-xs text-slate-500">Loading…</div>;
+  }
+
+  // IMAGE
+  if (t === 'image') {
+    const src = String(block?.dataJson?.src ?? '');
+    const alt = String(block?.dataJson?.alt ?? '');
+    return (
+      <figure className="rounded-lg border bg-white/80 p-3">
+        {src ? <img src={src} alt={alt} className="max-w-full rounded" /> : <div className="text-xs text-slate-500">No image</div>}
+        {alt && <figcaption className="text-[11px] text-slate-600 mt-1">{alt}</figcaption>}
+      </figure>
     );
   }
 
-  if (!hydrated) {
-    return <div className="rounded-lg border bg-white/60 p-3 text-xs text-slate-500">Loading…</div>;
+  // LINK
+  if (t === 'link') {
+    const href = String(block?.dataJson?.href ?? '');
+    const text = String(block?.dataJson?.text ?? href);
+    return (
+      <div className="rounded-lg border bg-white/80 p-3 text-sm">
+        {href ? <a className="underline" href={href} target="_blank" rel="noopener noreferrer">{text}</a> : 'No link'}
+      </div>
+    );
   }
 
   // CLAIM
@@ -31,18 +92,24 @@ export function KbBlockRenderer({ block, hydrated }: { block: any; hydrated: any
             {d.top.slice(0,3).map((x:any) => <li key={x.argumentId}>arg {x.argumentId.slice(0,8)}… · {pct(x.score)}</li>)}
           </ul>
         )}
-        <div className="mt-2"><ProvenanceChip item={hydrated} /></div>
+        <div className="mt-2"><ProvenanceChip  item={hydrated} blockId={block.id} canToggle={true}  />
+              <PinToggle/>
+</div>
       </div>
     );
   }
 
-  // ARGUMENT (diagram)
+  // ARGUMENT
   if (t === 'argument' && hydrated.kind === 'argument') {
     return (
       <div className="rounded-lg border bg-white/80 p-4">
         <div className="text-sm font-medium mb-2">Argument (diagram)</div>
-        <pre className="text-[11px] bg-slate-50 border rounded p-2 overflow-auto max-h-56">{JSON.stringify(hydrated.data?.diagram, null, 2)}</pre>
-        <div className="mt-2"><ProvenanceChip item={hydrated} /></div>
+        <pre className="text-[11px] bg-slate-50 border rounded p-2 overflow-auto max-h-56">
+          {JSON.stringify(hydrated.data?.diagram, null, 2)}
+        </pre>
+        <div className="mt-2"><ProvenanceChip  item={hydrated} blockId={block.id} canToggle={true}  />
+              <PinToggle/>
+</div>
       </div>
     );
   }
@@ -61,10 +128,13 @@ export function KbBlockRenderer({ block, hydrated }: { block: any; hydrated: any
             </li>
           ))}
         </ul>
-        <div className="mt-2"><ProvenanceChip item={hydrated} /></div>
+        <div className="mt-2"><ProvenanceChip item={hydrated} blockId={block.id} canToggle={true} />
+      <PinToggle/>
+      </div>
       </div>
     );
   }
+
 
   // SHEET
   if (t === 'sheet' && hydrated.kind === 'sheet') {
@@ -72,8 +142,12 @@ export function KbBlockRenderer({ block, hydrated }: { block: any; hydrated: any
     return (
       <div className="rounded-lg border bg-white/80 p-4">
         <div className="text-sm font-medium mb-2">{s?.title ?? 'Sheet'}</div>
-        <pre className="text-[11px] bg-slate-50 border rounded p-2 overflow-auto max-h-56">{JSON.stringify(s, null, 2)}</pre>
-        <div className="mt-2"><ProvenanceChip item={hydrated} /></div>
+        <pre className="text-[11px] bg-slate-50 border rounded p-2 overflow-auto max-h-56">
+          {JSON.stringify(s, null, 2)}
+        </pre>
+        <div className="mt-2"><ProvenanceChip  item={hydrated} blockId={block.id} canToggle={true} />
+              <PinToggle/>
+</div>
       </div>
     );
   }
@@ -90,7 +164,9 @@ export function KbBlockRenderer({ block, hydrated }: { block: any; hydrated: any
             {pairs.map(([a,b]) => <li key={a}><code>{a.slice(0,8)}…</code> → <code>{b.slice(0,8)}…</code></li>)}
           </ul>
         ) : <div className="text-xs text-slate-500">No mapped claims yet.</div>}
-        <div className="mt-2"><ProvenanceChip item={hydrated} /></div>
+        <div className="mt-2"><ProvenanceChip  item={hydrated} blockId={block.id} canToggle={true}  />
+              <PinToggle/>
+</div>
       </div>
     );
   }

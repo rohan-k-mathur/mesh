@@ -10,7 +10,7 @@ export function ArgumentBlock({ env }: { env: any }) {
       <div className="text-sm font-semibold mb-1">Argument</div>
       <pre className="text-[11px] bg-slate-50 p-2 rounded overflow-auto">{JSON.stringify(diag, null, 2)}</pre>
       <div className="mt-2">
-        <ProvenanceChip source="argument" href={env?.actions?.openArgument} />
+<ProvenanceChip item={env} />
       </div>
     </div>
   );

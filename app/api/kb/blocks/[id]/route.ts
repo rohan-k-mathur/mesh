@@ -1,50 +1,64 @@
+// app/api/kb/blocks/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
+import { z } from 'zod';
 import { requireKbRole, fail } from '@/lib/kb/withSpaceAuth';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
+const NO_STORE = { headers: { 'Cache-Control': 'no-store' } } as const;
+
+async function loadBlockWithSpace(blockId: string) {
+  const b = await prisma.kbBlock.findUnique({
+    where: { id: blockId },
+    select: { id: true, pageId: true, ord: true, type: true, dataJson: true, live: true, pinnedJson: true,
+      page: { select: { spaceId: true } } },
+  });
+  if (!b) throw Object.assign(new Error('not_found'), { status: 404 });
+  return b;
+}
+
+const PatchZ = z.object({
+  ord: z.number().int().min(0).optional(),
+  dataJson: z.any().optional(),
+  live: z.boolean().optional(),
+  pinnedJson: z.any().optional(),
+  citations: z.any().optional(),
+});
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    // Look up page for auth
-    const blk = await prisma.kbBlock.findUnique({ where: { id: params.id }, select: { pageId: true, live: true, dataJson: true, pinnedJson: true } });
-    if (!blk) return NextResponse.json({ error: 'not_found' }, { status: 404 });
-    await requireKbRole(req, { pageId: blk.pageId, need: 'editor' });
+    const block = await loadBlockWithSpace(params.id);
+    await requireKbRole(req, { spaceId: block.page.spaceId, need: 'editor' });
 
-    const body = await req.json().catch(()=> ({} as any));
-    const data: any = {};
+    const body = PatchZ.parse(await req.json().catch(() => ({})));
 
-    if (typeof body?.ord === 'number') data.ord = Math.max(1, Math.floor(body.ord));
-    if (body?.dataJson && typeof body.dataJson === 'object') data.dataJson = body.dataJson;
-
-    if (typeof body?.live === 'boolean') {
-      data.live = body.live;
-      if (body.live === false) {
-        // pin: client can send pinnedJson; if absent, we snapshot current dataJson
-        data.pinnedJson = body?.pinnedJson && typeof body.pinnedJson === 'object'
-          ? body.pinnedJson
-          : (blk.pinnedJson ?? blk.dataJson ?? {});
-      } else {
-        // unpin
-        data.pinnedJson = null;
-      }
-    }
-
-    const row = await prisma.kbBlock.update({
-      where: { id: params.id }, data,
-      select: { id:true, ord:true, type:true, live:true, dataJson:true, pinnedJson:true, updatedAt:true }
+    const updated = await prisma.kbBlock.update({
+      where: { id: block.id },
+      data: {
+        ...(body.ord != null ? { ord: body.ord } : {}),
+        ...(body.dataJson !== undefined ? { dataJson: body.dataJson } : {}),
+        ...(body.live !== undefined ? { live: body.live } : {}),
+        ...(body.pinnedJson !== undefined ? { pinnedJson: body.pinnedJson } : {}),
+        ...(body.citations !== undefined ? { citations: body.citations } : {}),
+      },
+      select: { id:true, ord:true, type:true, dataJson:true, live:true, pinnedJson:true, updatedAt:true },
     });
-    return NextResponse.json({ ok: true, block: row });
-  } catch (e) { return fail(e); }
+
+    return NextResponse.json({ ok: true, block: updated }, NO_STORE);
+  } catch (e) {
+    return fail(e);
+  }
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const blk = await prisma.kbBlock.findUnique({ where: { id: params.id }, select: { pageId: true } });
-    if (!blk) return NextResponse.json({ error: 'not_found' }, { status: 404 });
-    await requireKbRole(req, { pageId: blk.pageId, need: 'editor' });
-    await prisma.kbBlock.delete({ where: { id: params.id } });
-    return NextResponse.json({ ok: true });
-  } catch (e) { return fail(e); }
+    const block = await loadBlockWithSpace(params.id);
+    await requireKbRole(req, { spaceId: block.page.spaceId, need: 'editor' });
+
+    await prisma.kbBlock.delete({ where: { id: block.id } });
+    return NextResponse.json({ ok: true }, NO_STORE);
+  } catch (e) {
+    return fail(e);
+  }
 }

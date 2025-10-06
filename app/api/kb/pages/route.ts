@@ -6,54 +6,45 @@ import { getUserFromCookies } from '@/lib/serverutils';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-const NO_STORE = { headers: { 'Cache-Control': 'no-store' } } as const;
-
 export async function POST(_req: NextRequest) {
   const user = await getUserFromCookies();
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
-  const userId = String((user as any).userId ?? user.id);
+  const userId = String(user.userId ?? user.id);
 
-  // 1) Ensure personal space (owner)
-  const label = 'Personal Space';
+  // Ensure a personal space (no `kind` field needed)
   let space = await prisma.kbSpace.findFirst({
-    where: { createdById: userId, title: label },
+    where: { createdById: userId, slug: { startsWith: `personal-${userId.slice(0,4)}-` } },
     select: { id: true },
   });
-
   if (!space) {
     space = await prisma.kbSpace.create({
       data: {
-        title: label,
-        slug: `personal-${userId.slice(0, 4)}-${Math.random().toString(36).slice(2, 6)}`,
-        createdById: userId,
+        slug: `personal-${userId.slice(0,4)}-${Math.random().toString(36).slice(2,6)}`,
+        title: 'Personal Space',
         visibility: 'private' as any,
+        createdById: userId,
       },
       select: { id: true },
     });
-
-    // Make sure the creator is listed as an owner member
-    await prisma.kbSpaceMember.upsert({
-      where: { spaceId_userId: { spaceId: space.id, userId } },
-      update: { role: 'owner' as any },
-      create: { spaceId: space.id, userId, role: 'owner' as any },
-    });
+    await prisma.kbSpaceMember.create({
+      data: { spaceId: space.id, userId, role: 'owner' as any },
+    }).catch(()=>{});
   }
 
-  // 2) Create a draft page in that space
   const page = await prisma.kbPage.create({
     data: {
-      spaceId: space.id,
+      id: `pg_${Math.random().toString(36).slice(2, 10)}`,
+      space: { connect: { id: space.id } },
       slug: `untitled-${Math.random().toString(36).slice(2, 6)}`,
       title: 'Untitled',
       summary: null,
       visibility: 'private' as any,
       tags: [],
-      frontmatter: { eval: { mode: 'product', tau: null, imports: 'off' } },
       createdById: userId,
     },
     select: { id: true },
   });
 
-  return NextResponse.json({ id: page.id }, NO_STORE);
+  return NextResponse.json({ id: page.id }, { headers: { 'Cache-Control': 'no-store' } });
 }

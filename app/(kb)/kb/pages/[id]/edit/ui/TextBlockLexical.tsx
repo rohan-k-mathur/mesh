@@ -7,7 +7,7 @@ import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
 import { ContentEditable } from '@lexical/react/LexicalContentEditable';
 import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';
 import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin';
-import { $getRoot, EditorState } from 'lexical';
+import { $getRoot, $createParagraphNode, $createTextNode, EditorState } from 'lexical';
 
 type Props = {
   blockId: string;
@@ -21,10 +21,22 @@ export default function TextBlockLexical({ blockId, initialState, onInsertBlock,
 
   const initialConfig = React.useMemo(() => ({
     namespace: `kb-text-${blockId}`,
-    editorState: (editor: any) => {
-      if (initialState) editor.parseEditorState(initialState).read(() => {});
-      else editor.update(() => { $getRoot().append($getRoot().createText('')); });
-    },
+    // This function runs inside an update; you can mutate the document directly.
+   editorState: (editor: any) => {
+     if (initialState) {
+       // initialState can be a serialized editor state (string or object produced by state.toJSON()).
+       const parsed = editor.parseEditorState(initialState);
+       editor.setEditorState(parsed);
+       return;
+     }
+     // Create an empty paragraph to start typing into.
+     const root = $getRoot();
+     if (root.getFirstChild() == null) {
+       const paragraph = $createParagraphNode();
+       paragraph.append($createTextNode(''));
+       root.append(paragraph);
+     }
+   },
     onError: (e: any) => console.error('Lexical error', e),
     theme: {
       paragraph: 'mb-2',

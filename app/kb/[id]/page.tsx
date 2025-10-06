@@ -2,6 +2,7 @@
 import * as React from 'react';
 import useSWR from 'swr';
 import clsx from 'clsx';
+import { ProvenanceChip } from '@/components/kb/ProvenanceChip';
 
 /** ---------- Shared types (match your API shapes) ---------- */
 type EvalMode = 'product'|'min'|'ds';
@@ -88,7 +89,7 @@ function Chip({ children }: { children: React.ReactNode }) {
   return <span className="text-[11px] px-1.5 py-[2px] rounded border bg-white">{children}</span>;
 }
 
-function ProvenanceChip({
+function InnerProvenanceChip({
   live, pinnedAt, evalMode, tau, imports, provenance
 }: {
   live?: boolean; pinnedAt?: string | null;
@@ -140,11 +141,13 @@ function ClaimBlock({ item, evalMode, tau, imports } : {
         {item.actions?.openSheet &&
           <button className="px-1.5 py-0.5 rounded border text-[12px]" onClick={() => window.open(item.actions!.openSheet!, '_blank', 'noopener,noreferrer')}>sheet</button>}
       </div>
-      <ProvenanceChip
+      <InnerProvenanceChip
         live={item.live} pinnedAt={item.pinnedAt}
         evalMode={evalMode} tau={tau} imports={imports}
         provenance={item.provenance}
       />
+      <ProvenanceChip item={hydrated} blockId={block.id} canToggle={true} />
+
     </div>
   );
 }

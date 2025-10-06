@@ -25,11 +25,11 @@ export async function POST(req: NextRequest) {
     const nextOrd = ord ?? ((max._max.ord ?? -1) + 1);
 
     const created = await prisma.kbBlock.create({
-      data: {
-        pageId, ord: nextOrd, type,
-        dataJson: data ?? (type === 'text' ? { lexical: null, md: '' } : {}),
-        createdById: 'system'
-      },
+  data: {
+  pageId, ord: nextOrd, type,
+  dataJson: (type === 'text') ? { md: '', lexical: null } : (data ?? {}),
+  createdById: 'system'
+},
       select: { id: true, pageId: true, ord: true, type: true, dataJson: true, live: true, updatedAt: true }
     });
 

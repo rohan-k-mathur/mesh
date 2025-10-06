@@ -1,56 +1,89 @@
+// app/api/kb/pages/[id]/blocks/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
 import { z } from 'zod';
+import { requireKbRole, fail } from '@/lib/kb/withSpaceAuth';
+import { KbBlockType } from '@/lib/kb/types'; // Ensure KbBlockType is exported as an enum or object, not just a type
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+const NO_STORE = { headers: { 'Cache-Control': 'no-store' } } as const;
 
-export const dynamic='force-dynamic'; export const revalidate=0;
+async function loadPageSpace(id: string) {
+  const p = await prisma.kbPage.findUnique({
+    where: { id },
+    select: { id: true, spaceId: true },
+  });
+  if (!p) throw Object.assign(new Error('not_found'), { status: 404 });
+  return p;
+}
 
-const Create = z.object({
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const page = await loadPageSpace(params.id);
+    await requireKbRole(req, { spaceId: page.spaceId, need: 'reader' });
+
+    const blocks = await prisma.kbBlock.findMany({
+      where: { pageId: page.id },
+      orderBy: { ord: 'asc' },
+      select: { id:true, pageId:true, ord:true, type:true, live:true, dataJson:true, pinnedJson:true, citations:true, createdAt:true, updatedAt:true },
+    });
+
+    return NextResponse.json({ ok: true, blocks }, NO_STORE);
+  } catch (e) {
+    return fail(e);
+  }
+}
+
+const CreateZ = z.object({
   type: z.enum([
-    'text','image','link','claim','claim_set','argument','sheet','room_summary','transport','evidence_list','cq_tracker','plexus_tile'
-  ]),
-  data: z.any().default({}),
-  citations: z.array(z.any()).optional(),
-  ord: z.number().int().optional(),
-  live: z.boolean().default(true),
+    "text",
+    "image",
+    "link",
+    "claim",
+    "claim_set",
+    "argument",
+    "sheet",
+    "room_summary",
+    "transport",
+    "evidence_list",
+    "cq_tracker",
+    "plexus_tile"
+  ]).default("text"),
+  ord: z.number().int().min(0).optional(),
+  dataJson: z.any().optional(), // defaulted per type
 });
 
-const Reorder = z.object({
-  order: z.array(z.object({ id:z.string().min(6), ord:z.number().int().min(0) })).min(1)
-});
+export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const page = await loadPageSpace(params.id);
+    await requireKbRole(req, { spaceId: page.spaceId, need: 'editor' });
 
-function norm(b:any){ return { id:b.id, pageId:b.pageId, ord:b.ord, type:b.type, live:b.live, data:b.dataJson ?? {}, pinned:b.pinnedJson ?? null, citations:b.citations ?? [] }; }
+    const body = CreateZ.parse(await req.json().catch(() => ({})));
+    const nextOrd = body.ord ?? (await prisma.kbblock.count({ where: { pageId: page.id } }));
 
-export async function GET(_:NextRequest,{ params }:{params:{id:string}}) {
-  const list = await prisma.kbBlock.findMany({
-    where:{ pageId: params.id },
-    orderBy:{ ord:'asc' },
-    select:{ id:true,pageId:true,ord:true,type:true,live:true,dataJson:true,pinnedJson:true,citations:true }
-  });
-  return NextResponse.json({ ok:true, blocks: list.map(norm) }, { headers:{'Cache-Control':'no-store'}});
-}
+    const defaultData =
+      body.type === 'text'
+        ? { text: '' }
+        : body.type === 'image'
+        ? { src: '', alt: '' }
+        : {};
 
-export async function POST(req:NextRequest,{ params }:{params:{id:string}}) {
-  const b = Create.parse(await req.json());
-  const max = await prisma.kbBlock.aggregate({
-    _max: { ord:true }, where: { pageId: params.id }
-  });
-  const ord = (b.ord ?? ((max._max.ord ?? -1) + 1));
-  const row = await prisma.kbBlock.create({
-    data: {
-      pageId: params.id, ord, type: b.type as any, live: b.live,
-      dataJson: b.data ?? {}, citations: b.citations ?? [], createdById: 'system'
-    },
-    select:{ id:true,pageId:true,ord:true,type:true,live:true,dataJson:true,pinnedJson:true,citations:true }
-  });
-  return NextResponse.json({ ok:true, block: norm(row) });
-}
+    const created = await prisma.kbBlock.create({
+      data: {
+        pageId: page.id,
+        ord: nextOrd,
+        type: body.type,
+        live: true,
+        dataJson: body.dataJson ?? defaultData,
+        pinnedJson: null,
+        citations: [],
+        createdById: 'system', // or actual user id if you pipe it here
+      },
+      select: { id: true, ord: true, type: true, dataJson: true, live: true },
+    });
 
-export async function PATCH(req:NextRequest,{ params }:{params:{id:string}}) {
-  const b = Reorder.parse(await req.json());
-  await prisma.$transaction(
-    b.order.map(item =>
-      prisma.kbBlock.update({ where: { id: item.id }, data: { ord: item.ord } })
-    )
-  );
-  return NextResponse.json({ ok:true });
+    return NextResponse.json({ ok: true, block: created }, NO_STORE);
+  } catch (e) {
+    return fail(e);
+  }
 }

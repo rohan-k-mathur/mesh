@@ -47,34 +47,43 @@
 //     </a>
 //   ) : inner;
 // }
+import React from "react";
 'use client';
-export function ProvenanceChip({ item }: { item: any }) {
-  const src = item?.provenance?.source ?? '—';
-  const eps = (item?.provenance?.endpoints ?? []) as string[];
-  const mode = (item?.lens ?? '').toString();
+
+export function ProvenanceChip({
+  item, blockId, canToggle
+}: { item:any; blockId?:string; canToggle?:boolean }) {
   const live = item?.live !== false;
+  const [busy, setBusy] = React.useState(false);
+  async function togglePin() {
+    if (!blockId) return;
+    setBusy(true);
+    // fetch current env for pin if going live→pinned
+    let pinnedJson:any = null;
+    if (live) {
+      const one = Array.isArray(item) ? item[0] : item;
+      pinnedJson = one || null;
+    }
+    const r = await fetch(`/api/kb/blocks/${blockId}`, {
+      method:'PATCH', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(live ? { live:false, pinnedJson } : { live:true, pinnedJson:null })
+    });
+    setBusy(false);
+    if (!r.ok) alert('Pin/unpin failed');
+  }
 
   return (
-    <div className="inline-flex items-center gap-2 rounded border bg-white/70 px-2 py-1 text-[11px] text-slate-700">
-      <span className="rounded bg-slate-100 px-1">{live ? 'live' : 'pinned'}</span>
+    <div className="inline-flex items-center gap-2 text-[11px] text-slate-700">
+      <span className="rounded border bg-white/70 px-1.5 py-[1px]">{live ? 'live' : 'pinned'}</span>
       <span className="text-slate-500">•</span>
-      <span>{src}</span>
-      {mode && (<><span className="text-slate-500">•</span><span>lens:{mode}</span></>)}
-      {!!eps.length && (
+      <span>{item?.provenance?.source ?? '—'}</span>
+      {canToggle && blockId && (
         <>
           <span className="text-slate-500">•</span>
-          <span className="truncate max-w-[240px]" title={eps.join(', ')}>{eps[0]}{eps.length>1?' …':''}</span>
+          <button className="underline disabled:opacity-50" disabled={busy} onClick={togglePin}>
+            {busy ? '…' : (live ? 'Pin here' : 'Unpin')}
+          </button>
         </>
-      )}
-      {/* Context actions (first common one if present) */}
-      {item?.actions?.openRoom && (
-        <a href={item.actions.openRoom} className="ml-2 underline">open</a>
-      )}
-      {item?.actions?.openSheet && (
-        <a href={item.actions.openSheet} className="underline">sheet</a>
-      )}
-      {item?.actions?.openTransport && (
-        <a href={item.actions.openTransport} className="underline">transport</a>
       )}
     </div>
   );

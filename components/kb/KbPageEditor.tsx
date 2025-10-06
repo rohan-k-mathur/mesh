@@ -1,8 +1,7 @@
 'use client';
 import * as React from 'react';
 import useSWR from 'swr';
-import KbBlockRenderer from './KbBlockRenderer';
-
+import { KbBlockRenderer } from './KbBlockRenderer';
 const fetcher = (u:string)=>fetch(u,{cache:'no-store'}).then(r=>r.json());
 
 export default function KbPageEditor({ pageId }: { pageId: string }) {
@@ -72,7 +71,7 @@ export default function KbPageEditor({ pageId }: { pageId: string }) {
                 }}>Delete</button>
               </div>
             </div>
-            <KbBlockRenderer block={b} />
+            <KbBlockRenderer block={b} hydrated={true} />
           </section>
         ))}
       </main>
