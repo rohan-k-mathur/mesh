@@ -2160,6 +2160,13 @@ model Argument {
   confidence     Float?
   isImplicit     Boolean @default(false)
 
+  schemeId          String?           @db.VarChar(64)
+  scheme            ArgumentScheme?   @relation(fields: [schemeId], references: [id])
+  conclusionClaimId String?
+  conclusion        Claim?             @relation("Conclusion", fields: [conclusionClaimId], references: [id])
+  premises          ArgumentPremise[]
+  implicitWarrant   Json? // optional enthymeme/warrant text or rule
+
   // NEW P1b metadata
   quantifier String?
   modality   String?
@@ -2198,6 +2205,17 @@ enum ArgumentAttackSubtype {
   OVERCUT
 }
 
+model ArgumentPremise {
+  argumentId String
+  claimId    String
+  isImplicit Boolean  @default(false)
+  argument   Argument @relation(fields: [argumentId], references: [id], onDelete: Cascade)
+  claim      Claim    @relation(fields: [claimId], references: [id], onDelete: Cascade)
+
+  // PK
+  @@id([argumentId, claimId])
+}
+
 model ArgumentEdge {
   id             String                 @id @default(cuid())
   deliberationId String
@@ -2212,6 +2230,11 @@ model ArgumentEdge {
   targetScope       TargetScope @default(conclusion)
   targetInferenceId String? // NEW: specific inference inside toArgument
   inferenceId       String?
+
+  cqKey           String? // optional Critical Question key
+  targetPremiseId String? // target premise Claim (for undermines)
+  targetClaimId   String? // target Claim (for rebuttals)
+  attackType      AttackType?
 
   deliberation Deliberation @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
   from         Argument     @relation("fromArg", fields: [fromArgumentId], references: [id], onDelete: Cascade)
@@ -2381,6 +2404,15 @@ model AmplificationEvent {
 
   viewpointSelectionId String?
   viewpointSelection   ViewpointSelection? @relation("SelectionEvents", fields: [viewpointSelectionId], references: [id])
+}
+
+model SchemeVariant {
+  id       String         @id @default(cuid())
+  schemeId String
+  key      String // e.g., 'pos_conseq' | 'neg_conseq'
+  name     String
+  notes    String?
+  scheme   ArgumentScheme @relation(fields: [schemeId], references: [id], onDelete: Cascade)
 }
 
 // --------- Briefs ----------
@@ -2719,9 +2751,16 @@ model ArgumentAnnotation {
   createdAt   DateTime @default(now())
 }
 
+enum AttackType {
+  REBUTS
+  UNDERCUTS
+  UNDERMINES
+}
+
 // =====================
 // M3: Attack-kind enum
 // =====================
+
 enum ClaimAttackType {
   SUPPORTS
   REBUTS
@@ -2786,7 +2825,11 @@ model Claim {
   negates        Claim?  @relation("NegationClaims", fields: [negatesClaimId], references: [id], onDelete: SetNull)
   negatedBy      Claim[] @relation("NegationClaims")
 
-  debateNodes DebateNode[] @relation(name: "ClaimDebateNodes")
+  debateNodes  DebateNode[] @relation(name: "ClaimDebateNodes")
+  canonicalKey String?      @unique
+
+  asPremiseOf  ArgumentPremise[]
+  asConclusion Argument[]        @relation("Conclusion")
 
   @@index([deliberationId, id], name: "claim_delib_id") // NEW
   @@index([deliberationId, createdAt]) // claims by delib, time-sorted
@@ -2903,30 +2946,58 @@ model Urn {
 }
 
 model ArgumentScheme {
-  id             String           @id @default(cuid())
-  key            String           @unique // 'expert_opinion', 'good_consequences', ...
-  title          String
+  id          String  @id @default(cuid())
+  key         String  @unique
+  name        String? 
+  description String?
+  title       String?
+
   summary        String
   cq             Json             @default("{}") // we'll set a DB default to [] below; this avoids null
   SchemeInstance SchemeInstance[]
+
+  // Macagno taxonomy:
+  purpose          String? // 'action' | 'state_of_affairs'
+  source           String? // 'internal' | 'external'
+  materialRelation String? // 'cause' | 'definition' | 'analogy' | 'authority' | ...
+  reasoningType    String? // 'deductive' | 'inductive' | 'abductive' | 'practical'
+  ruleForm         String? // 'MP' | 'MT' | 'defeasible_MP' | ...
+  conclusionType   String? // 'ought' | 'is' | ...
+  slotHints        Json? // UI slot descriptions
+  variants         SchemeVariant[]
+  cqs              CriticalQuestion[]
+  validators       Json? // CAS2-style v/e metadata (optional)
+  Argument         Argument[]
 }
 
 model CQStatus {
-  id          String     @id @default(cuid())
-  targetType  TargetType
-  targetId    String
+  id         String     @id @default(cuid())
+  targetType TargetType
+  targetId   String
+  argumentId String?
+  status     String? // 'open' | 'answered'
+
   schemeKey   String
   cqKey       String
-  satisfied   Boolean    @default(false)
+  satisfied   Boolean  @default(false)
   createdById String
   roomId      String? // denormalized at write-time for RLS
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@unique([targetType, targetId, schemeKey, cqKey])
   @@index([targetType, targetId, schemeKey])
   @@index([targetType, targetId])
   @@index([roomId])
+}
+
+enum Illocution {
+  Assert
+  Question
+  Argue
+  Concede
+  Retract
+  Close
 }
 
 // If you need a simple edge model for the /api/attacks route (optional — skip if you already have edges):
@@ -2961,18 +3032,24 @@ model SchemeInstance {
 }
 
 model CriticalQuestion {
-  id           String   @id @default(cuid())
+  id           String         @id @default(cuid())
   instanceId   String
-  cqId         String
+  schemeId     String?
+  scheme       ArgumentScheme? @relation(fields: [schemeId], references: [id], onDelete: Cascade)
+  cqKey        String?
+  cqId         String?
   text         String
   attackKind   String // 'UNDERMINES'|'UNDERCUTS'|'REBUTS'
   status       String // 'open'|'addressed'|'counter-posted'
   openedById   String
   resolvedById String?
-  createdAt    DateTime @default(now())
+  createdAt    DateTime       @default(now())
+  // for automation: how the CQ maps to an attack
+  attackType   AttackType? // REBUTS | UNDERCUTS | UNDERMINES
+  targetScope  TargetScope? // conclusion | inference | premise
+  instance     SchemeInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
 
-  instance SchemeInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
-
+  @@unique([schemeId, cqKey])
   @@index([instanceId])
 }
 
@@ -2994,7 +3071,11 @@ enum ReplyTarget {
 }
 
 model DialogueMove {
-  id             String   @id @default(cuid())
+  id         String      @id @default(cuid())
+  authorId   String?
+  type       String? // existing kind: ASSERT|WHY|GROUNDS|CONCEDE|RETRACT|CLOSE...
+  illocution Illocution?
+
   deliberationId String
   targetType     String // 'argument'|'claim'
   targetId       String
@@ -3010,6 +3091,7 @@ model DialogueMove {
   polarity       String? // 'P'|'O'
   locusId        String?
   endsWithDaimon Boolean @default(false)
+  argumentId     String? // GROUNDS (anchors an RA)
 
   signature String @db.VarChar(255)
 

@@ -1,0 +1,13 @@
+{
+  "@context": {
+    "aif": "http://www.arg.dundee.ac.uk/aif#",
+    "nodes": "@graph",
+    "text": "aif:text",
+    "usesScheme": "aif:usesScheme",
+    "Premise": "aif:Premise",
+    "Conclusion": "aif:Conclusion",
+    "Attacks": "aif:attacks",
+    "Illocutes": "aif:illocutes",
+    "Replies": "aif:replies"
+  }
+}
