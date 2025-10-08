@@ -167,9 +167,9 @@ export default function KbEditor({ pageId, spaceId }:{ pageId:string; spaceId:st
           Tip: inside a Text block press <kbd>Ctrl/Cmd</kbd> + <kbd>/</kbd> for inserts.
         </div>
 
-        <a className="ml-auto px-2 py-1 rounded border"
+        <a className="ml-auto text-xs btnv2 px-2 py-1 "
            href={`/api/kb/pages/${pageId}/export?as=md`} target="_blank" rel="noopener noreferrer">
-          Export .md
+          Export as MD
         </a>
       </div>
 

@@ -1,70 +1,47 @@
 // app/api/arguments/[id]/attacks/route.ts
-import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prismaclient";
-import { assertAttackLegality } from "@/lib/aif/guards";
-import type { AttackType, TargetScope } from "@prisma/client";
-import { EdgeType } from "@prisma/client";
+import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+import { prisma } from '@/lib/prismaclient';
+import { assertAttackLegality } from 'packages/aif-core/src/guards';
 
-type Payload = {
-  deliberationId: string;
-  createdById: string;
-  fromArgumentId: string;
-  attackType: AttackType;
-  targetScope: TargetScope;
-  toArgumentId?: string;
-  targetClaimId?: string;
-  targetPremiseId?: string;
-  targetInferenceId?: string;
-  cqKey?: string | null;
-};
-
-export async function POST(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
-  try {
-    const toArgumentIdParam = params.id; // convenience path param for "target RA"
-    const body = (await req.json()) as Payload;
-
-    // Prefer explicit toArgumentId in body; otherwise use :id
-    const payload: Payload = {
-      ...body,
-      toArgumentId: body.toArgumentId ?? toArgumentIdParam,
-    };
-
-    assertAttackLegality(payload);
-
-    const targetArg = await prisma.argument.findUnique({
-  where: { id: payload.toArgumentId! },
-  include: { premises: true },
+const Body = z.object({
+  deliberationId: z.string(),
+  createdById: z.string(),
+  fromArgumentId: z.string(),
+  attackType: z.enum(['REBUTS','UNDERCUTS','UNDERMINES']),
+  targetScope: z.enum(['conclusion','inference','premise']),
+  toArgumentId: z.string().optional(),      // for undercuts
+  targetClaimId: z.string().optional(),     // for rebuts
+  targetPremiseId: z.string().optional(),   // for undermines
+  cqKey: z.string().optional().nullable()
 });
-if (!targetArg || targetArg.deliberationId !== payload.deliberationId) {
-  throw new Error("TARGET_NOT_IN_DELIBERATION");
-}
-if (payload.attackType === "UNDERMINES") {
-  const ok = targetArg.premises.some(p => p.claimId === payload.targetPremiseId);
-  if (!ok) throw new Error("UNDERMINE_NOT_A_PREMISE");
-}
 
-    const created = await prisma.argumentEdge.create({
-      data: {
-        deliberationId: payload.deliberationId,
-        fromArgumentId: payload.fromArgumentId,
-        toArgumentId: payload.toArgumentId!, // Add required property
-        type: EdgeType.rebut, // Use EdgeType enum value for attacks
-        // type: "ATTACK", // Use EdgeType enum value for attacks
-        attackType: payload.attackType,
-        targetScope: payload.targetScope,
-        targetInferenceId: payload.targetInferenceId ?? null,
-        targetPremiseId: payload.targetPremiseId ?? null,
-        targetClaimId: payload.targetClaimId ?? null,
-        cqKey: payload.cqKey ?? null,
-        createdById: payload.createdById,
-      },
-    });
+export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+  const parsed = Body.safeParse(await req.json().catch(()=>null));
+  if (!parsed.success) return NextResponse.json({ ok:false, error: parsed.error.flatten() }, { status:400 });
+  const p = parsed.data;
+  // ensure target id consistency with path param
+  const targetArgumentId = params.id;
 
-    return NextResponse.json({ ok: true, edge: created }, { status: 201 });
-  } catch (e: any) {
-    return NextResponse.json({ ok: false, error: e.message }, { status: 400 });
+  try {
+    assertAttackLegality({ ...p, toArgumentId: p.toArgumentId ?? targetArgumentId });
+  } catch (e:any) {
+    return NextResponse.json({ ok:false, error: e.message }, { status: 400 });
   }
+
+  const edge = await prisma.argumentEdge.create({
+    data: {
+      deliberationId: p.deliberationId,
+      fromArgumentId: p.fromArgumentId,
+      toArgumentId: p.toArgumentId ?? targetArgumentId,
+      attackType: p.attackType,
+      targetScope: p.targetScope,
+      targetClaimId: p.targetClaimId ?? null,
+      targetPremiseId: p.targetPremiseId ?? null,
+      cqKey: p.cqKey ?? null,
+      createdById: p.createdById,
+    }
+  });
+
+  return NextResponse.json({ ok:true, edgeId: edge.id }, { status: 201 });
 }

@@ -1,9 +1,7 @@
 // app/api/arguments/[id]/cqs/[cqKey]/answer/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prismaclient";
-import { assertCreateArgumentLegality, assertAttackLegality } from "@/lib/aif/guards";
-
-const sig = (d:string,t:string,id:string,k:string,x?:string)=>`GROUNDS:${d}:${t}:${id}:${k}:${x??""}`;
+import { assertCreateArgumentLegality, assertAttackLegality } from "packages/aif-core/src/guards";
 
 export async function POST(req: Request, { params }: { params: { id: string; cqKey: string } }) {
   try {
@@ -16,98 +14,99 @@ export async function POST(req: Request, { params }: { params: { id: string; cqK
     });
     if (!arg?.scheme) return NextResponse.json({ ok:false, error:"Argument or scheme not found" }, { status: 404 });
 
-    const cq = arg.scheme.cqs.find(q => q.cqKey === params.cqKey);
+    const cq = arg.scheme.cqs.find((q) => q.cqKey === params.cqKey);
     if (!cq) return NextResponse.json({ ok:false, error:"CQ not found on scheme" }, { status: 404 });
 
     const result = await prisma.$transaction(async (tx) => {
-      // 1) mark answered
       const status = await tx.cQStatus.upsert({
-        where: { CQStatus_argumentId_cqKey: { argumentId: arg.id, cqKey: cq.cqKey } },
+        where: { argumentId_cqKey: { argumentId: arg.id, cqKey: cq.cqKey! } },
         update: { status: "answered" },
-        create: { argumentId: arg.id, cqKey: cq.cqKey, status: "answered" },
+        create: { argumentId: arg.id, cqKey: cq.cqKey!, status: "answered" },
       });
 
-      // 2) optional: create L-move (GROUNDS)
-      const move = authorId && deliberationId
+      const grounds = authorId && deliberationId
         ? await tx.dialogueMove.create({
             data: {
-              deliberationId,
-              kind: "GROUNDS",
-              illocution: "Argue",
-              targetType: "argument",
-              targetId: arg.id,
-              actorId: authorId,
-              signature: sig(deliberationId, "argument", arg.id, cq.cqKey, String(Date.now())),
+              deliberationId, authorId,
+              type: "GROUNDS", illocution: "Argue" as any,
               replyToMoveId: replyToMoveId ?? null,
-              payload: { cqId: cq.cqKey }
+              kind: "GROUNDS", actorId: authorId,
+              targetType: "argument", targetId: arg.id,
+              signature: ["GROUNDS", arg.id, cq.cqKey, Date.now()].join(":"),
+              argumentId: null
             },
           })
         : null;
 
-      // 3) optional: create defeating RA + CA (typed by CQ)
       let attacker: any = null;
       let edge: any = null;
 
       if (attackerArgument) {
-        const a = {
+        const payload = {
           deliberationId, authorId,
           conclusionClaimId: attackerArgument.conclusionClaimId,
           premiseClaimIds: attackerArgument.premiseClaimIds ?? [],
           schemeId: attackerArgument.schemeId ?? null,
           implicitWarrant: attackerArgument.implicitWarrant ?? null,
+          text: attackerArgument.text ?? ""
         };
-        assertCreateArgumentLegality(a);
+        assertCreateArgumentLegality(payload as any);
 
         attacker = await tx.argument.create({
           data: {
-            deliberationId: a.deliberationId,
-            authorId: a.authorId,
-            text: "",
-            schemeId: a.schemeId,
-            conclusionClaimId: a.conclusionClaimId,
-            implicitWarrant: a.implicitWarrant,
+            deliberationId, authorId, text: payload.text,
+            schemeId: payload.schemeId,
+            conclusionClaimId: payload.conclusionClaimId,
+            implicitWarrant: payload.implicitWarrant,
           },
         });
-        if (a.premiseClaimIds.length) {
+        if (payload.premiseClaimIds.length) {
           await tx.argumentPremise.createMany({
-            data: a.premiseClaimIds.map((cid: string) => ({ argumentId: attacker.id, claimId: cid, isImplicit: false })),
+            data: payload.premiseClaimIds.map((cid: string) => ({
+              argumentId: attacker.id, claimId: cid, isImplicit: false,
+            })),
             skipDuplicates: true,
           });
         }
 
-        const payload = {
-          deliberationId, createdById: authorId, fromArgumentId: attacker.id,
-          attackType: cq.attackType, targetScope: cq.targetScope,
-          toArgumentId: arg.id, cqKey: cq.cqKey,
+        const ap = {
+          deliberationId,
+          createdById: authorId,
+          fromArgumentId: attacker.id,
+          attackType: cq.attackType,
+          targetScope: cq.targetScope,
+          toArgumentId: arg.id,
+          cqKey: cq.cqKey!,
           targetClaimId: cq.attackType === "REBUTS" ? arg.conclusionClaimId : undefined,
-          targetPremiseId: cq.attackType === "UNDERMINES"
-            ? (targetPremiseId ?? arg.premises[0]?.claimId)
-            : undefined,
-        };
-        assertAttackLegality(payload as any);
+          targetPremiseId: cq.attackType === "UNDERMINES" ? (targetPremiseId ?? arg.premises[0]?.claimId) : undefined,
+        } as const;
+
+        // undermines must hit a real premise
+        if (ap.attackType === "UNDERMINES") {
+          const premIds = new Set(arg.premises.map(p => p.claimId));
+          if (!ap.targetPremiseId || !premIds.has(ap.targetPremiseId)) {
+            throw new Error("UNDERMINES must target an existing premise of the argument");
+          }
+        }
+        assertAttackLegality(ap as any);
 
         edge = await tx.argumentEdge.create({
           data: {
-            deliberationId,
-            fromArgumentId: attacker.id,
-            toArgumentId: arg.id,
-            attackType: payload.attackType!,
-            targetScope: payload.targetScope!,
-            targetClaimId: payload.targetClaimId ?? null,
-            targetPremiseId: payload.targetPremiseId ?? null,
-            cqKey: payload.cqKey ?? null,
-            createdById: authorId,
+            deliberationId, fromArgumentId: attacker.id, toArgumentId: arg.id,
+            attackType: ap.attackType, targetScope: ap.targetScope,
+            targetClaimId: ap.targetClaimId ?? null, targetPremiseId: ap.targetPremiseId ?? null,
+            cqKey: ap.cqKey, createdById: authorId,
           },
         });
 
-        if (move) await tx.dialogueMove.update({ where: { id: move.id }, data: { argumentId: attacker.id } });
+        if (grounds) await tx.dialogueMove.update({ where: { id: grounds.id }, data: { argumentId: attacker.id } });
       }
 
-      return { status, move, attacker, edge };
+      return { status, grounds, attacker, edge };
     });
 
     return NextResponse.json({ ok:true, ...result }, { status: 201 });
-  } catch (e: any) {
+  } catch (e:any) {
     return NextResponse.json({ ok:false, error: e.message }, { status: 400 });
   }
 }

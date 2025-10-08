@@ -1,56 +1,65 @@
 // lib/eval/af.ts
-export type AF = { nodes: string[]; attacks: [string, string][] };
+export type AF = { nodes: string[]; attacks: [string, string][] }; // [from, to]
 export type Label = 'IN'|'OUT'|'UNDEC';
 
+/** Grounded labels via iterative characteristic function. */
 export function groundedLabels(af: AF): Record<string, Label> {
   const { nodes, attacks } = af;
   const attackersOf = new Map<string, Set<string>>();
   for (const n of nodes) attackersOf.set(n, new Set());
   for (const [a,b] of attacks) attackersOf.get(b)!.add(a);
 
-  const IN = new Set<string>(), OUT = new Set<string>();
+  const IN = new Set<string>();
+  const OUT = new Set<string>();
   let changed = true;
+
   while (changed) {
     changed = false;
+    // Accept unattacked or whose attackers are all OUT
     for (const x of nodes) {
       if (!IN.has(x) && !OUT.has(x)) {
-        const atk = attackersOf.get(x)!;
-        if (atk.size === 0 || [...atk].every(a => OUT.has(a))) { IN.add(x); changed = true; }
+        const attackers = attackersOf.get(x)!;
+        const allOut = [...attackers].every(a => OUT.has(a));
+        if (attackers.size === 0 || allOut) { IN.add(x); changed = true; }
       }
     }
+    // Reject anything attacked by an IN
     for (const x of nodes) {
       if (!OUT.has(x)) {
-        const atk = attackersOf.get(x)!;
-        if ([...atk].some(a => IN.has(a))) { OUT.add(x); changed = true; }
+        const hasIn = [...attackersOf.get(x)!].some(a => IN.has(a));
+        if (hasIn) { OUT.add(x); changed = true; }
       }
     }
   }
-  const lab: Record<string, Label> = {};
-  for (const x of nodes) lab[x] = IN.has(x) ? 'IN' : OUT.has(x) ? 'OUT' : 'UNDEC';
-  return lab;
+  const labels: Record<string, Label> = {};
+  for (const x of nodes) labels[x] = IN.has(x) ? 'IN' : OUT.has(x) ? 'OUT' : 'UNDEC';
+  return labels;
 }
 
-// naive preferred (skeptical) for small graphs
+/** Naive preferred (skeptical): powerset enumeration; OK for small graphs. */
 export function preferredLabels(af: AF): Record<string, Label> {
   const { nodes, attacks } = af;
-  const out = new Map<string, Set<string>>();
-  for (const n of nodes) out.set(n, new Set());
-  for (const [a,b] of attacks) out.get(a)!.add(b);
+  const att = new Map<string, Set<string>>();
+  const tgt = new Map<string, Set<string>>();
+  for (const n of nodes) { att.set(n, new Set()); tgt.set(n, new Set()); }
+  for (const [a,b] of attacks) { att.get(a)!.add(b); tgt.get(b)!.add(a); }
 
-  const conflictFree = (S:Set<string>) => { for (const a of S) for (const b of S) if (out.get(a)!.has(b)) return false; return true; };
+  const conflictFree = (S:Set<string>) => {
+    for (const a of S) for (const b of S) if (att.get(a)!.has(b)) return false; return true;
+  };
   const defends = (S:Set<string>, x:string) =>
-    [...out.entries()].filter(([,ts])=>ts.has(x)).map(([att])=>att).every(attacker => [...S].some(s => out.get(s)!.has(attacker)));
+    [...tgt.get(x)!].every(attacker => [...S].some(s => att.get(s)!.has(attacker)));
 
+  // enumerate admissible sets
   const P: Set<string>[] = [];
   for (let m=0; m < (1<<nodes.length); m++) {
-    const S = new Set(nodes.filter((_,i)=> (m>>i)&1 ));
+    const S = new Set<string>(nodes.filter((_,i)=> (m>>i)&1 ));
     if (!conflictFree(S)) continue;
-    let admissible = true;
-    for (const x of S) if (!defends(S,x)) { admissible = false; break; }
-    if (admissible) P.push(S);
+    let ok = true;
+    for (const x of S) if (!defends(S,x)) { ok = false; break; }
+    if (ok) P.push(S);
   }
   const Preferred = P.filter(S => !P.some(T => S !== T && [...S].every(x=>T.has(x)) && T.size>S.size));
-
   const inAll = new Set(nodes.filter(n => Preferred.every(S => S.has(n))));
   const inSome = new Set(nodes.filter(n => Preferred.some(S => S.has(n))));
   const labels: Record<string, Label> = {};

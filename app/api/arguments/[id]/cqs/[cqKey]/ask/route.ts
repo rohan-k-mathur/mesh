@@ -2,10 +2,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prismaclient";
 
-const sig = (d: string, t: string, id: string, k: string) => `WHY:${d}:${t}:${id}:${k}`;
-
 export async function POST(req: Request, { params }: { params: { id: string; cqKey: string } }) {
-  const { authorId, deliberationId, replyToMoveId } = await req.json().catch(() => ({}));
+  const body = await req.json().catch(()=> ({}));
+  const { authorId, deliberationId, replyToMoveId } = body ?? {};
 
   const arg = await prisma.argument.findUnique({
     where: { id: params.id },
@@ -18,22 +17,22 @@ export async function POST(req: Request, { params }: { params: { id: string; cqK
 
   const [status, move] = await prisma.$transaction([
     prisma.cQStatus.upsert({
-      where: { CQStatus_argumentId_cqKey: { argumentId: arg.id, cqKey: cq.cqKey } },
+      where: { argumentId_cqKey: { argumentId: arg.id, cqKey: cq.cqKey! } },
       update: { status: "open" },
-      create: { argumentId: arg.id, cqKey: cq.cqKey, status: "open" },
+      create: { argumentId: arg.id, cqKey: cq.cqKey!, status: "open" },
     }),
     authorId && deliberationId
       ? prisma.dialogueMove.create({
           data: {
-            deliberationId,
+            authorId, deliberationId,
+            type: "WHY",
+            illocution: "Question" as any,
+            replyToMoveId: replyToMoveId ?? null,
             kind: "WHY",
-            illocution: "Question",
+            actorId: authorId,
             targetType: "argument",
             targetId: arg.id,
-            actorId: authorId,
-            signature: sig(deliberationId, "argument", arg.id, cq.cqKey),
-            replyToMoveId: replyToMoveId ?? null,
-            payload: { cqId: cq.cqKey }
+            signature: ["WHY", arg.id, cq.cqKey, Date.now()].join(":")
           },
         })
       : (null as any),

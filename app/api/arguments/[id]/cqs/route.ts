@@ -13,12 +13,11 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   const byKey = new Map(statuses.map(s => [s.cqKey, s.status]));
 
   const items = arg.scheme.cqs.map(cq => ({
-    cqKey: cq.cqKey,
+    cqKey: cq.cqKey!,  // ensure non-null in prisma schema
     text: cq.text,
     attackType: cq.attackType,
     targetScope: cq.targetScope,
-    status: byKey.get(cq.cqKey) ?? "open",
+    status: byKey.get(cq.cqKey!) ?? "open",
   }));
-
   return NextResponse.json({ ok: true, items });
 }

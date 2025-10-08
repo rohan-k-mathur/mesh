@@ -2163,7 +2163,7 @@ model Argument {
   schemeId          String?           @db.VarChar(64)
   scheme            ArgumentScheme?   @relation(fields: [schemeId], references: [id])
   conclusionClaimId String?
-  conclusion        Claim?             @relation("Conclusion", fields: [conclusionClaimId], references: [id])
+  conclusion        Claim?            @relation("Conclusion", fields: [conclusionClaimId], references: [id])
   premises          ArgumentPremise[]
   implicitWarrant   Json? // optional enthymeme/warrant text or rule
 
@@ -2948,7 +2948,7 @@ model Urn {
 model ArgumentScheme {
   id          String  @id @default(cuid())
   key         String  @unique
-  name        String? 
+  name        String?
   description String?
   title       String?
 
@@ -3032,7 +3032,7 @@ model SchemeInstance {
 }
 
 model CriticalQuestion {
-  id           String         @id @default(cuid())
+  id           String          @id @default(cuid())
   instanceId   String
   schemeId     String?
   scheme       ArgumentScheme? @relation(fields: [schemeId], references: [id], onDelete: Cascade)
@@ -3043,11 +3043,11 @@ model CriticalQuestion {
   status       String // 'open'|'addressed'|'counter-posted'
   openedById   String
   resolvedById String?
-  createdAt    DateTime       @default(now())
+  createdAt    DateTime        @default(now())
   // for automation: how the CQ maps to an attack
   attackType   AttackType? // REBUTS | UNDERCUTS | UNDERMINES
   targetScope  TargetScope? // conclusion | inference | premise
-  instance     SchemeInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instance     SchemeInstance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
 
   @@unique([schemeId, cqKey])
   @@index([instanceId])

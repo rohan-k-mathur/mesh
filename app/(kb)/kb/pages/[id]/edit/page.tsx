@@ -40,7 +40,7 @@ export default function EditPage({ params }: { params: { id: string } }) {
           placeholder="Page title…"
           className="text-xl font-semibold border rounded px-2 py-1 bg-white/80 w-full"
         />
-        <a href={`/kb/pages/${pageId}`} target="_blank" className="text-xs underline text-slate-600">view</a>
+        <a href={`/kb/pages/${pageId}/view`} target="_blank" className="text-sm btnv2 px-4 text-slate-600 ">View</a>
       </div>
 
       {/* The whole editor lives here now */}

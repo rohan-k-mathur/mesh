@@ -9,21 +9,26 @@ export async function buildAF(deliberationId: string) {
 
   const nodes = args.map(a => a.id);
 
-  const byConclusion = new Map<string,string[]>(
-    Object.entries(args.reduce((m:any,a)=>((m[a.conclusionClaimId]??=[]).push(a.id), m), {}))
+  // index helpers
+  const byConc = new Map<string,string[]>(
+    Object.entries(args.reduce((m:any,a)=>((m[a.conclusionClaimId] ??= []).push(a.id), m), {}))
   );
   const usesPrem = new Map<string,string[]>(
-    Object.entries(args.reduce((m:any,a)=>{ for (const p of a.premises) (m[p.claimId]??=[]).push(a.id); return m; }, {}))
+    Object.entries(args.reduce((m:any,a)=>{ for (const p of a.premises) (m[p.claimId] ??= []).push(a.id); return m; }, {}))
   );
 
   const attacks: [string,string][] = [];
   for (const e of edges) {
-    if (e.targetScope === 'inference' && e.toArgumentId)
-      attacks.push([e.fromArgumentId, e.toArgumentId]); // undercut RA
-    else if (e.targetScope === 'premise' && e.targetPremiseId)
-      for (const host of (usesPrem.get(e.targetPremiseId) ?? [])) attacks.push([e.fromArgumentId, host]); // undermine → all RAs using that premise
-    else if (e.targetScope === 'conclusion' && e.targetClaimId)
-      for (const host of (byConclusion.get(e.targetClaimId) ?? [])) attacks.push([e.fromArgumentId, host]); // rebut → all RAs concluding that claim
+    if (e.targetScope === 'inference' && e.toArgumentId) {
+      attacks.push([e.fromArgumentId, e.toArgumentId]);            // undercut → attacker → target RA
+    } else if (e.targetScope === 'premise' && e.targetPremiseId) {
+      for (const host of (usesPrem.get(e.targetPremiseId) ?? []))   // undermine → attacker → any RA using that premise
+        attacks.push([e.fromArgumentId, host]);
+    } else if (e.targetScope === 'conclusion' && e.targetClaimId) {
+      for (const host of (byConc.get(e.targetClaimId) ?? []))       // rebut → attacker → any RA concluding that claim
+        attacks.push([e.fromArgumentId, host]);
+    }
   }
+
   return { nodes, attacks };
 }
