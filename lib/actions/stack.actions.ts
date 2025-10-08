@@ -4,6 +4,7 @@ import { getUserFromCookies } from "@/lib/serverutils";
 import { revalidatePath } from "next/cache";
 import { feed_post_type } from "@prisma/client";
 import { emitBus } from "@/lib/server/bus";
+import { createSupabaseServerClient } from "@/lib/supabase-server";
 
 
 type Viewer = { id: bigint | null };
@@ -64,7 +65,12 @@ function canView(stack: any, viewer: Viewer) {
   }
   
 export async function getStackPageData(stackId: string) {
+  const sb = createSupabaseServerClient();
+
+  
+
   const u = await getUserFromCookies();
+    
   const viewerId = u?.userId ? BigInt(u.userId) : null;
        const include: any = {
            owner: { select: { id: true, name: true, image: true } },
@@ -88,10 +94,57 @@ export async function getStackPageData(stackId: string) {
        
          const stack = await prisma.stack.findUnique({ where: { id: stackId }, include });
   if (!stack) return { notFound: true } as const;
+
+  // const posts = await Promise.all(
+  //   (stack.posts as Array<{ id: string; thumb_urls?: string[] }>)
+  //     .filter((p) => "thumb_urls" in p)
+  //     .map(async (p) => ({
+  //       ...p,
+  //       thumb_urls: await Promise.all((p.thumb_urls ?? []).map(signThumb)),
+  //     }))
+  // );
+
+
  
     // deny access to private stacks if viewer lacks permission
     if (!canView(stack, { id: viewerId })) return { notFound: true } as const;
-  
+
+
+
+const signIfExists = async (u?: string|null) => {
+  if (!u) return null;
+  const m = u.match(/\/storage\/v1\/object\/public\/pdf-thumbs\/(.+)$/);
+  const key = m?.[1];
+  if (!key) return u; // already some absolute URL we won't sign
+  const { data, error } = await sb.storage.from("pdf-thumbs").createSignedUrl(key, 600);
+  return error ? null : (data?.signedUrl ?? null);
+};
+
+const tryDerivedThumb = async (fileUrl?: string|null) => {
+  if (!fileUrl) return null;
+  const M = fileUrl.match(/\/storage\/v1\/object\/public\/pdfs\/(.+)\.pdf$/i);
+  if (!M) return null;
+  const key = `${M[1]}.png`; // storage key in pdf-thumbs
+  const { data, error } = await sb.storage.from("pdf-thumbs").createSignedUrl(key, 600);
+  return error ? null : (data?.signedUrl ?? null);
+};
+
+// apply order first (as you already do)
+const raw = stack.posts;
+const order = stack.order ?? [];
+const inOrder = order.length
+  ? order.map(id => raw.find(p => p.id === id)).filter(Boolean) as typeof raw
+  : raw;
+
+// enhance with safe thumbs
+const posts = await Promise.all(
+  inOrder.map(async (p: any) => {
+    const first = p.thumb_urls?.[0] || null;
+    const signed = await signIfExists(first);
+    const fallback = signed ?? (await tryDerivedThumb(p.file_url));
+    return { ...p, thumb_urls: fallback ? [fallback] : [] };
+  })
+);
   // Ensure there is a root FeedPost to anchor the discussion for this stack
        const discussionKey = `stack:${stack.id}`;
        const discussionRoot = await prisma.feedPost.upsert({
@@ -112,13 +165,16 @@ export async function getStackPageData(stackId: string) {
   const editable = canEdit(stack, { id: viewerId });
   const subscribed = !!(stack as any).subscribers?.length;
 
-  const order = stack.order ?? [];
-  const postsById = new Map(stack.posts.map((p) => [p.id, p]));
-  const posts =
-    order.length > 0
-      ? order.map((id) => postsById.get(id)).filter(Boolean)
-      : stack.posts;
-
+  // const order = stack.order ?? [];
+  const postsById = new Map(
+    (stack.posts as Array<{ id: string }>).map((p) => [p.id, p])
+  );
+  // const posts =
+  //   order.length > 0
+  //     ? order.map((id) => postsById.get(id)).filter(Boolean)
+  //     : stack.posts;
+ 
+  // const posts = order.length > 0 ? [...ordered, ...missing] : stack.posts;
 
   const discussionPostId = await ensureStackDiscussionThread({
     id: stack.id,
@@ -147,7 +203,7 @@ export async function getStackPageData(stackId: string) {
 export async function toggleStackSubscription(formData: FormData) {
   const u = await getUserFromCookies();
   if (!u) throw new Error("Unauthenticated");
-  const userId = BigInt(u.userId);
+  const userId = BigInt(u.userId ?? 0);
 
   const stackId = String(formData.get("stackId") || "");
   const op = String(formData.get("op") || "toggle");
@@ -191,7 +247,7 @@ export async function toggleStackSubscription(formData: FormData) {
 export async function addCollaborator(formData: FormData) {
   const u = await getUserFromCookies();
   if (!u) throw new Error("Unauthenticated");
-  const ownerId = BigInt(u.userId);
+  const ownerId = BigInt(u.userId ?? 0);
 
   const stackId = String(formData.get("stackId") || "");
   const role = String(formData.get("role") || "EDITOR") as "EDITOR" | "VIEWER";
@@ -227,7 +283,7 @@ export async function addCollaborator(formData: FormData) {
 export async function removeCollaborator(formData: FormData) {
   const u = await getUserFromCookies();
   if (!u) throw new Error("Unauthenticated");
-  const ownerId = BigInt(u.userId);
+  const ownerId = BigInt(u.userId ?? 0);
   const stackId = String(formData.get("stackId") || "");
   const targetUserId = BigInt(String(formData.get("userId") || ""));
   const stack = await prisma.stack.findUnique({ where: { id: stackId } });
@@ -241,7 +297,7 @@ export async function removeCollaborator(formData: FormData) {
 export async function setStackOrder(formData: FormData) {
   const u = await getUserFromCookies();
   if (!u) throw new Error("Unauthenticated");
-  const userId = BigInt(u.userId);
+  const userId = BigInt(u.userId ?? 0);
   const stackId = String(formData.get("stackId") || "");
   const orderJson = String(formData.get("orderJson") || "[]");
   const order = JSON.parse(orderJson) as string[];
@@ -254,7 +310,7 @@ export async function setStackOrder(formData: FormData) {
 export async function reorderStack(formData: FormData) {
   const u = await getUserFromCookies();
   if (!u) throw new Error("Unauthenticated");
-  const userId = BigInt(u.userId);
+  const userId = BigInt(u.userId ?? 0);
 
   const stackId = String(formData.get("stackId") || "");
   const direction = String(formData.get("direction") || "up");
@@ -301,7 +357,7 @@ export async function reorderStack(formData: FormData) {
    export async function addStackComment(formData: FormData) {
     const u = await getUserFromCookies();
     if (!u) throw new Error("Unauthenticated");
-    const userId = BigInt(u.userId);
+    const userId = BigInt(u.userId ?? 0);
   
     const rootIdRaw = String(formData.get("rootId") || "");
     const text = String(formData.get("text") || "").trim();
@@ -352,7 +408,7 @@ export async function reorderStack(formData: FormData) {
      export async function deleteStackComment(formData: FormData) {
        const u = await getUserFromCookies();
        if (!u) throw new Error("Unauthenticated");
-       const userId = BigInt(u.userId);
+       const userId = BigInt(u.userId ?? 0);
      
        const commentIdRaw = String(formData.get("commentId") || "");
        if (!commentIdRaw) throw new Error("Missing commentId");
@@ -390,35 +446,41 @@ export async function reorderStack(formData: FormData) {
 
        if (stackId) revalidatePath(`/stacks/${stackId}`);
      }
-
+// lib/actions/stack.actions.ts
 export async function removeFromStack(formData: FormData) {
   const u = await getUserFromCookies();
   if (!u) throw new Error("Unauthenticated");
-  const userId = BigInt(u.userId);
+  const userId = BigInt(u.userId ?? 0);
 
   const stackId = String(formData.get("stackId") || "");
-  const postId = String(formData.get("postId") || "");
+  const postId  = String(formData.get("postId")  || "");
 
-  const stack = await prisma.stack.findUnique({
-    where: { id: stackId },
-    include: { collaborators: true },
-  });
+  const [stack, post] = await prisma.$transaction([
+    prisma.stack.findUnique({ where: { id: stackId }, include: { collaborators: true } }),
+    prisma.libraryPost.findUnique({ where: { id: postId }, select: { stack_id: true } }),
+  ]);
   if (!stack) throw new Error("Stack not found");
   if (!canEdit(stack, { id: userId })) throw new Error("Forbidden");
 
-  await prisma.$transaction(async (tx) => {
-           // Only detach if the post truly belongs to this stack
-           const updated = await tx.libraryPost.updateMany({
-             where: { id: postId, stack_id: stackId },
-             data: { stack_id: null },
-           });
-           if (updated.count === 0) throw new Error("Post not in this stack");
-           await tx.stack.update({
-             where: { id: stackId },
-             data: { order: (stack.order ?? []).filter((id) => id !== postId) },
-           });
-      });
-       emitBus("stacks:changed", { stackId, op: "remove", postId });
+  // If already detached or belongs elsewhere, just prune order and exit
+  if (!post || post.stack_id !== stackId) {
+    await prisma.stack.update({
+      where: { id: stackId },
+      data: { order: (stack.order ?? []).filter((id) => id !== postId) },
+    });
+    emitBus("stacks:changed", { stackId, op: "remove", postId });
+    revalidatePath(`/stacks/${stackId}`);
+    return;
+  }
 
+  // Normal detach + prune
+  await prisma.$transaction(async (tx) => {
+    await tx.libraryPost.update({ where: { id: postId }, data: { stack_id: null } });
+    await tx.stack.update({
+      where: { id: stackId },
+      data: { order: (stack.order ?? []).filter((id) => id !== postId) },
+    });
+  });
+  emitBus("stacks:changed", { stackId, op: "remove", postId });
   revalidatePath(`/stacks/${stackId}`);
 }

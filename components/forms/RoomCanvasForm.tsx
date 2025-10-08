@@ -19,7 +19,7 @@ export default function RoomCanvasForm({ onSubmit, currentRoomId, currentDescrip
   });
 
   return (
-    <form method="post" className="ml-3 mr-3" onSubmit={form.handleSubmit(onSubmit)}>
+    <form method="POST" className="ml-3 mr-3" onSubmit={form.handleSubmit(onSubmit)}>
       <hr />
       <div className="py-4 grid gap-2">
         <label className="flex flex-col text-white gap-3 text-[1rem]">

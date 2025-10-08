@@ -1,4 +1,4 @@
-// prisma/seed/schemes.seed.ts
+//scripts/schemes.seed.ts
 import { PrismaClient, AttackType, TargetScope } from "@prisma/client";
 const prisma = new PrismaClient();
 
@@ -138,6 +138,7 @@ async function main() {
       update: {
         name: s.name,
         description: s.description ?? null,
+        summary: s.description ?? "", // Add summary, fallback to description or empty string
         purpose: s.purpose,
         source: s.source,
         materialRelation: s.materialRelation,
@@ -150,6 +151,7 @@ async function main() {
         key: s.key,
         name: s.name,
         description: s.description ?? null,
+        summary: s.description ?? "", // Add summary, fallback to description or empty string
         purpose: s.purpose,
         source: s.source,
         materialRelation: s.materialRelation,
@@ -169,12 +171,14 @@ async function main() {
           targetScope: cq.targetScope,
         },
         create: {
-          schemeId: scheme.id,
-          cqKey: cq.cqKey,
-          text: cq.text,
-          attackType: cq.attackType,
-          targetScope: cq.targetScope,
-        },
+  schemeId: scheme.id,
+  cqKey: cq.cqKey,
+  text: cq.text,
+  attackType: cq.attackType,
+  targetScope: cq.targetScope,
+  attackKind: cq.attackType, // Ensure this maps correctly
+  status: "OPEN", // Default status for template CQs
+},
       });
     }
   }

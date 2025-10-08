@@ -18,7 +18,7 @@ const PortalNodeForm = ({ onSubmit, currentX, currentY }: Props) => {
   });
 
   return (
-    <form method="post" className="ml-3 mr-3" onSubmit={form.handleSubmit(onSubmit)}>
+    <form method="POST" className="ml-3 mr-3" onSubmit={form.handleSubmit(onSubmit)}>
       <hr />
       <div className="py-4 grid gap-2">
         <label className="flex flex-col text-slate-500 gap-3 text-[14px]">

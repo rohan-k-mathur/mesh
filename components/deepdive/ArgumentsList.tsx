@@ -28,7 +28,7 @@ import { useRhetoric } from "@/components/rhetoric/RhetoricContext";
 import { analyzeText } from "@/components/rhetoric/detectors";
 import { featuresFromPipeline, predictMix } from "@/lib/rhetoric/mlMini";
 import { MixBadge } from "@/components/rhetoric/MixBadge";
-
+import { TargetType } from "@prisma/client";
 import { SourceQualityBadge } from "../rhetoric/SourceQualityBadge";
 import { FallacyBadge } from "../rhetoric/FallacyBadge";
 import MethodChip from "@/components/rhetoric/MethodChip";
@@ -55,7 +55,7 @@ import IssuesDrawer from "@/components/issues/IssuesDrawer";
 import { IssueBadge } from "@/components/issues/IssueBadge";
 
 import IssueComposer from "@/components/issues/IssueComposer";
-
+import CriticalQuestions from "../claims/CriticalQuestions";
 import { LudicsBadge } from "@/components/dialogue/LudicsBadge";
 import { InlineMoveForm } from "@/components/dialogue/InlineMoveForm";
 import MonologicalToolbar from "@/components/monological/MonologicalToolbar";
@@ -64,7 +64,8 @@ import { useAuth } from "@/lib/AuthContext";
 import { useDialogueTarget } from '@/components/dialogue/DialogueTargetContext';
 import { MoveKind } from "@/lib/dialogue/types";
 import { LegalMoveToolbar } from "@/components/dialogue/LegalMoveToolbar";
-
+import { AttackMenuPro } from '@/components/arguments/AttackMenuPro';
+ import { LegalMoveToolbarAIF } from "../dialogue/LegalMoveToolbarAIF";
 
 const PAGE = 20;
 const fetcher = (u: string) =>
@@ -72,6 +73,8 @@ const fetcher = (u: string) =>
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     return r.json();
   });
+  const NOOP: any = null;
+
 
 type Arg = {
   id: string;
@@ -89,7 +92,54 @@ type Arg = {
     targetScope?: "premise" | "inference" | "conclusion";
   }>;
   approvedByUser?: boolean;
+    approvalsCount?: number;
+    conclusionClaimId?: string | null;
+  schemeId?: string | null;               // new: populated by createArgument v0.5
 };
+
+type AifMeta = {
+  id: string;
+  scheme?: { id: string; key: string; name: string; slotHints?: { premises?: { role: string; label: string }[] } | null };
+  conclusion?: { id: string; text: string };
+  premises?: Array<{ id: string; text: string; isImplicit?: boolean }>;
+  implicitWarrant?: { text: string } | null;
+  attacks?: { REBUTS: number; UNDERCUTS: number; UNDERMINES: number };
+  cq?: { required: number; satisfied: number };
+};
+
+
+// --- Small UI helpers (AIF pills) ---
+function SchemeBadge({ scheme }: { scheme?: AifMeta['scheme'] }) {
+  if (!scheme) return null;
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded-full border bg-indigo-50 text-indigo-700 border-indigo-200 px-2 py-0.5 text-[11px]"
+      title={scheme.slotHints?.premises?.length ? scheme.slotHints.premises.map(p => p.label).join(' · ') : scheme.name}
+    >
+      {scheme.name}
+    </span>
+  );
+}
+function CqMeter({ cq }: { cq?: { required: number; satisfied: number } }) {
+  const r = cq?.required ?? 0, s = cq?.satisfied ?? 0;
+  const pct = r ? Math.round((s / r) * 100) : 0;
+  return (
+    <span className="text-[10px] px-1 py-0.5 rounded border bg-white" title={r ? `${s}/${r} CQs satisfied` : 'No CQs yet'}>
+      CQ {pct}%
+    </span>
+  );
+}
+function AttackCounts({ a }: { a?: AifMeta['attacks'] }) {
+  if (!a) return null;
+  return (
+    <div className="inline-flex items-center gap-1 text-[11px]">
+      <span className="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200" title="Supports (from other RAs)">+{/* supports not from this endpoint; kept for parity */}</span>
+      <span className="px-1.5 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200" title="Rebuts">{a.REBUTS ?? 0}</span>
+      <span className="px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200" title="Undercuts">{a.UNDERCUTS ?? 0}</span>
+      <span className="px-1.5 py-0.5 rounded bg-slate-50 text-slate-700 border border-slate-200" title="Undermines premise">{a.UNDERMINES ?? 0}</span>
+    </div>
+  );
+}
 
 function ChipBar({ children }: { children: React.ReactNode }) {
   return (
@@ -129,6 +179,191 @@ function RowLexSnapshot({ text }: { text: string }) {
         <> · frames {topFrames.map((f) => f.key).join("/")}</>
       ) : null}
     </span>
+  );
+}
+
+// ---------- ArgumentsList (AIF-aware) ----------
+export function AIFList({
+  deliberationId,
+  onChanged,
+  onReplyTo,
+  onVisibleTextsChanged,
+}: {
+  deliberationId: string;
+  onChanged?: () => void;
+  onReplyTo?: (opts: { argumentId: string }) => void;
+  onVisibleTextsChanged?: (texts: string[]) => void;
+}) {
+  // 1) Base list (unchanged)
+  const getKey = (idx: number, prev: any) => {
+    if (prev && !prev.nextCursor) return null;
+    const cursor = prev?.nextCursor ? `&cursor=${encodeURIComponent(prev.nextCursor)}` : '';
+    return `/api/deliberations/${encodeURIComponent(deliberationId)}/arguments?limit=20${cursor}`;
+  };
+  const { data, error, size, setSize, isLoading } = useSWRInfinite(getKey, fetcher, { revalidateOnFocus: false });
+  const pages = data ?? [];
+  const rows: Arg[] = pages.flatMap(p => p?.items ?? []);
+
+  // 2) AIF meta (batch if available → fallback to per-row)
+  const ids = React.useMemo(() => rows.map(r => r.id), [rows]);
+  const idsParam = ids.length ? `ids=${ids.map(encodeURIComponent).join(',')}` : '';
+  const { data: aifBatch } = useSWR<{ items?: AifMeta[] }>(
+    ids.length ? `/api/arguments/batch?${idsParam}&include=aif` : null,
+    fetcher,
+    { revalidateOnFocus: false }
+  ); // If this is not implemented to return AIF meta yet, we fall back below.  :contentReference[oaicite:8]{index=8}
+
+  // Per-argument fallback meta loader
+  const [aifMap, setAifMap] = React.useState<Record<string, AifMeta>>({});
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const byId: Record<string, AifMeta> = {};
+      // First use whatever batch gave us
+      for (const it of (aifBatch?.items ?? [])) byId[it.id] = it;
+
+      // Fill gaps with lightweight calls we already have
+      const pending = ids.filter(id => !byId[id]);
+      await Promise.all(pending.map(async (id) => {
+        try {
+          const meta = { id } as AifMeta;
+          // premises & implicit warrant
+          const aAss = await fetch(`/api/arguments/${id}/assumptions`).then(r => r.json()).catch(()=>NOOP);
+          if (aAss?.premises) meta.premises = aAss.premises;
+          if (aAss?.implicitWarrant) meta.implicitWarrant = aAss.implicitWarrant;
+
+          // CQs (count → meter)
+          const aCq = await fetch(`/api/arguments/${id}/cqs`).then(r => r.json()).catch(()=>NOOP);
+          if (Array.isArray(aCq?.items)) {
+            const req = aCq.items.length;
+            const sat = aCq.items.filter((x: any) => x.status === 'answered').length;
+            meta.cq = { required: req, satisfied: sat };
+          }
+
+          // Attacks (group on client if server doesn’t)
+          const aAtk = await fetch(`/api/arguments/${id}/attacks`).then(r => r.json()).catch(()=>NOOP);
+          if (Array.isArray(aAtk?.items)) {
+            const g = { REBUTS: 0, UNDERCUTS: 0, UNDERMINES: 0 };
+            for (const e of aAtk.items) {
+              const t = (e.attackType ?? '').toUpperCase();
+              if (t in g) (g as any)[t] += 1;
+            }
+            meta.attacks = g;
+          }
+
+          byId[id] = meta;
+        } catch { /* ignore */ }
+      }));
+
+      if (!cancelled) setAifMap(byId);
+    })();
+    return () => { cancelled = true; };
+  }, [ids.join(','), aifBatch?.items?.length]);
+
+  // Also keep “visible texts” working (conclusion text preferred)
+  React.useEffect(() => {
+    if (!onVisibleTextsChanged) return;
+    const texts: string[] = [];
+    for (const r of rows) {
+      const claimText = (aifMap[r.id]?.conclusion?.text) ?? '';
+      const t = claimText || r.text || '';
+      if (t) texts.push(t);
+    }
+    onVisibleTextsChanged(texts);
+  }, [rows, aifMap, onVisibleTextsChanged]);
+
+  if (isLoading && rows.length === 0) {
+    return <div className="text-sm text-slate-500">Loading arguments…</div>;
+  }
+  if (error) {
+    return <div className="text-sm text-rose-600">Failed to load arguments</div>;
+  }
+
+  return (
+    <div className="space-y-2">
+      {rows.map((a) => {
+        const meta = aifMap[a.id] || aifBatch?.items?.find(x => x.id === a.id);
+        const conclusionText = meta?.conclusion?.text; // prefer I-node text if present
+        const title = conclusionText || a.text || a.id;
+
+        return (
+          <div key={a.id} className="rounded border bg-white/80 p-2">
+            {/* Header line: conclusion + scheme + CQ/attacks */}
+            <div className="flex items-start gap-2 justify-between">
+              <div className="flex-1">
+                <div className="text-sm font-medium leading-snug">{title}</div>
+                {/* Premises (chips) */}
+                {!!(meta?.premises?.length) && (
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {meta!.premises!.map(p => (
+                      <span key={p.id} className="text-[11px] px-1.5 py-0.5 rounded-full border bg-slate-50">
+                        {p.text || p.id}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {/* Implicit warrant */}
+                {!!meta?.implicitWarrant?.text && (
+                  <div className="mt-1 text-[11px] px-2 py-1 rounded bg-amber-50 border border-amber-200 text-amber-800">
+                    Warrant: {meta.implicitWarrant.text}
+                  </div>
+                )}
+              </div>
+
+              <div className="shrink-0 flex flex-col items-end gap-1">
+                <div className="flex items-center gap-2">
+                  <SchemeBadge scheme={meta?.scheme} />
+                  <CqMeter cq={meta?.cq} />
+                </div>
+                <AttackCounts a={meta?.attacks} />
+              </div>
+            </div>
+
+            {/* Row actions (unchanged affordances) */}
+            <div className="mt-2 flex items-center gap-3">
+              {/* Dialogue moves toolbar targets argument IFF we have an argument id; else claim */}
+              <LegalMoveToolbar
+                deliberationId={deliberationId}
+                targetType={a.id ? 'argument' : 'claim'}
+                targetId={a.id ? a.id : (a.claimId || '')}
+                onPosted={() => window.dispatchEvent(new CustomEvent('dialogue:moves:refresh', { detail:{ deliberationId } } as any))}
+              />
+
+              {/* Open argument-level CQs inline */}
+              <CriticalQuestions
+                targetType={'claim'}
+                targetId={a.id}
+                createdById="current"
+                deliberationId={deliberationId}
+              />
+
+              {/* Attack menu */}
+              <div className="ml-auto">
+                <AttackMenuPro
+                  deliberationId={deliberationId}
+                  authorId={a.authorId ?? 'current'}
+                  target={{
+                    id: a.id,
+                    conclusion: { id: meta?.conclusion?.id ?? (a.claimId || ''), text: conclusionText ?? '' },
+                    premises: meta?.premises ?? []
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        );
+      })}
+
+      {/* pager */}
+      {pages.at(-1)?.nextCursor && (
+        <div className="pt-2">
+          <button
+            onClick={() => setSize(size + 1)}
+            className="text-xs px-2 py-1 rounded border border-slate-300 bg-white hover:bg-slate-50"
+          >Load more</button>
+        </div>
+      )}
+    </div>
   );
 }
 

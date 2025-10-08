@@ -74,7 +74,7 @@ const ProductReviewNodeForm = ({
   return (
     <Form {...form}>
       <form
-        method="post"
+        method="POST"
         className="ml-3 mr-3"
         onSubmit={form.handleSubmit((vals) => {
           const filtered = vals.claims.filter((c) => c.trim() !== "");

@@ -21,6 +21,13 @@ import { CSS } from "@dnd-kit/utilities";
 import PdfLightbox from "@/components/modals/PdfLightbox";
 import { removeFromStack, setStackOrder } from "@/lib/actions/stack.actions";
 
+const SUPA = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+function deriveThumbFromPdfUrl(fileUrl?: string|null) {
+  if (!fileUrl) return null;
+  const m = fileUrl.match(/\/storage\/v1\/object\/public\/pdfs\/(.+)\.pdf$/i);
+  return m ? `${SUPA}/storage/v1/object/public/pdf-thumbs/${m[1]}.png` : null;
+}
+
 /** Minimal shape we need for tiles */
 export type StackPostTile = {
   id: string;
@@ -67,16 +74,17 @@ export default function SortablePdfGrid({ stackId, posts, editable }: Props) {
     // submit new order to the server
     const ids = next.map((i) => i.id);
     if (orderInputRef.current) orderInputRef.current.value = JSON.stringify(ids);
-    if (formRef.current) formRef.current.requestSubmit();
+   if (formRef.current) formRef.current.requestSubmit(submitBtnRef.current ?? undefined);
   }
-
+const submitBtnRef = React.useRef<HTMLButtonElement>(null);
   return (
     <>
       {/* Hidden form posts to setStackOrder (server action) */}
       {editable && (
-        <form action={setStackOrder} ref={formRef} className="hidden">
+        <form action={setStackOrder} method="POST" ref={formRef} className="hidden">
           <input type="hidden" name="stackId" value={stackId} />
           <input type="hidden" name="orderJson" ref={orderInputRef} />
+           <button type="submit" ref={submitBtnRef} className="hidden" />
         </form>
       )}
 
@@ -124,7 +132,9 @@ function SortableTile({
     boxShadow: isDragging ? "0 8px 24px rgba(0,0,0,.12)" : undefined,
   };
 
-  const cover = tile.thumb_urls?.[0] || "/assets/pdf-placeholder.png";
+  const cover = tile.thumb_urls?.[0]
+    ?? deriveThumbFromPdfUrl(tile.file_url)
+    ?? "/assets/PDF.svg";
   const title = tile.title || "PDF";
 
   return (
@@ -142,8 +152,10 @@ function SortableTile({
             draggable={false}
           />
         }
-        fileUrl={tile.file_url}
-        title={title}
+            postId={tile.id}   // let the lightbox fetch a fresh (signed) URL
+    title={title}
+        // fileUrl={tile.file_url}
+        // title={title}
       />
 
       {/* Drag handle */}
@@ -175,7 +187,7 @@ function SortableTile({
 
       {/* Remove button on hover */}
       {editable && (
-        <form action={removeFromStack} className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition">
+        <form action={removeFromStack} method="POST" className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition">
           <input type="hidden" name="stackId" value={stackId} />
           <input type="hidden" name="postId" value={tile.id} />
           <button

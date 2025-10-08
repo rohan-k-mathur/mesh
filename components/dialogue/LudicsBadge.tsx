@@ -20,14 +20,16 @@ export function LudicsBadge({
 
     const fetchOpen = async () => {
       try {
-  
-       const url =
-         deliberationId && targetId
-         ? `/api/dialogue/open-cqs?deliberationId=${encodeURIComponent(deliberationId)}&targetId=${encodeURIComponent(targetId)}`
-           : null;
+        const url =
+          deliberationId && targetId
+            ? `/api/dialogue/open-cqs?deliberationId=${encodeURIComponent(
+                deliberationId
+              )}&targetType=${encodeURIComponent(targetType)}&targetId=${encodeURIComponent(targetId)}`
+            : null;
        if (!url) return;                        // ✅ extra safety
-        const res = await fetch(url, { cache: 'no-store', signal: ctrl.signal });
-        const j = await res.json().catch(() => null);
+         const res = await fetch(url, { cache: 'no-store', signal: ctrl.signal });
+       if (!res.ok) return;
+       const j = await res.json().catch(() => null);
         if (!alive) return;
         setUnresolved(Array.isArray(j?.cqOpen) && j.cqOpen.length > 0);
       } catch { /* ignore */ }
@@ -42,7 +44,7 @@ export function LudicsBadge({
       ctrl.abort();
       window.removeEventListener('dialogue:moves:refresh', h as any);
     };
-  }, [deliberationId, targetId]);
+  },  [deliberationId, targetType, targetId]);
 
   return (
     <span

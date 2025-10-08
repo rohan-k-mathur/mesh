@@ -13,7 +13,12 @@ export default async function Page({ params }: { params: { id: string } }) {
   const user = await getUserFromCookies();
   if (!lounge.isPublic) {
     if (!user) redirect("/login");
-    if (!lounge.members.map((m) => m.user_id).includes(user.userId)) {
+    if (
+      !lounge.members
+        .map((m) => m.user_id)
+        .filter((id): id is bigint => id !== null)
+        .includes(user.userId as bigint)
+    ) {
       notFound();
     }
   }

@@ -15,10 +15,13 @@ type Props = { onOpenChange: (v: boolean) => void; stackId?: string };
 async function renderFirstPagePNG(file: File): Promise<string> {
   // 💡 lazy load in the browser to avoid SSR "DOMMatrix" issues
   const pdfjsLib: any = await import("pdfjs-dist/build/pdf");
+  // const workerUrl = (await import("pdfjs-dist/build/pdf.worker.min.mjs?url")).default;
+//const workerUrl = new URL("pdf.worker.min.mjs", import.meta.url);
 
   // 👉 point to the local worker you just copied
   pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
   // If you copied the .js version instead, use: "/pdf.worker.min.js"
+// pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
 
   const data = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data }).promise;
@@ -36,6 +39,29 @@ async function renderFirstPagePNG(file: File): Promise<string> {
   return canvas.toDataURL("image/png");
 }
 
+async function renderFirstPagePNGFromUrl(url: string): Promise<string|null> {
+  const pdfjsLib: any = await import("pdfjs-dist/build/pdf");
+  pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
+
+  const resp = await fetch(`/api/library/proxy?u=${encodeURIComponent(url)}`);
+  if (!resp.ok) return null;
+  const data = await resp.arrayBuffer();
+
+  const pdf = await pdfjsLib.getDocument({ data }).promise;
+  const page = await pdf.getPage(1);
+  const viewport = page.getViewport({ scale: 1 });
+  const targetWidth = 560;
+  const scale = targetWidth / viewport.width;
+  const scaled = page.getViewport({ scale });
+
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.floor(scaled.width);
+  canvas.height = Math.floor(scaled.height);
+  const ctx = canvas.getContext("2d")!;
+  await page.render({ canvasContext: ctx, viewport: scaled }).promise;
+  return canvas.toDataURL("image/png");
+}
+
 export default function LibraryPostModal({ onOpenChange, stackId }: Props) {
   const createLibraryPost = useCreateLibraryPost();
   const createFeedPost = useCreateFeedPost();
@@ -48,9 +74,15 @@ export default function LibraryPostModal({ onOpenChange, stackId }: Props) {
   const [isPublic, setIsPublic] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  async function onSubmit() {
-    if (submitting) return;
-    setSubmitting(true);
+async function onSubmit() {
+  if (submitting) return;
+  const list =
+    tab === "url"
+      ? urls.split("\n").map((s) => s.trim()).filter(Boolean)
+      : [];
+  if (tab === "upload" && !(files && files.length)) return; // <-- guard
+  if (tab === "url" && list.length === 0) return;           // <-- existing logic
+  setSubmitting(true);
     try {
       const list =
         tab === "url"
@@ -62,13 +94,25 @@ export default function LibraryPostModal({ onOpenChange, stackId }: Props) {
       if (tab === "url" && !list.length && !(files && files.length)) return;
 
       // 1) build client-side previews (optional)
-      let previews: string[] = [];
-      if (tab === "upload" && files?.length) {
-        previews = (
-          await Promise.all(Array.from(files).map(renderFirstPagePNG))
-        ).filter(Boolean);
-      }
-
+// let previews: string[] = [];
+// if (tab === "upload" && files?.length) {
+//   const results = await Promise.allSettled(
+//     Array.from(files).map(renderFirstPagePNG)
+//   );
+//   previews = results
+//     .filter((r): r is PromiseFulfilledResult<string> => r.status === "fulfilled")
+//     .map((r) => r.value);
+// }
+  let previews: Array<string | null> = [];
+if (tab === "upload" && files?.length) {
+  const settled = await Promise.allSettled(Array.from(files).map(renderFirstPagePNG));
+  previews = settled.map(r => (r.status === "fulfilled" ? r.value : null));
+    }
+    if (tab === "url" && list.length) {
+      const settled = await Promise.allSettled(list.map(renderFirstPagePNGFromUrl));
+      previews = settled.map(r => (r.status === "fulfilled" ? r.value : null));
+    }
+// form.append("previews", JSON.stringify(previews));
       const defaultName = files?.length
         ? `Uploads — ${new Date().toLocaleDateString()}`
         : "My Stack";
@@ -77,8 +121,9 @@ export default function LibraryPostModal({ onOpenChange, stackId }: Props) {
       const result = await createLibraryPost({
         files: tab === "upload" ? Array.from(files ?? []) : undefined,
         urls: tab === "url" ? list : undefined,
-        previews,
+        previews: previews.filter((p): p is string => p !== null),
         isPublic,
+
         caption,
         stackId,
         ...(stackId ? {} : { stackName: defaultName }),

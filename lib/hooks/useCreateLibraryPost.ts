@@ -33,7 +33,8 @@ export function useCreateLibraryPost() {
     if (input.files?.length) {
       const form = new FormData();
       input.files.forEach(f => form.append("files", f));
-      if (input.previews?.length) form.append("previews", JSON.stringify(input.previews));
+      //if (input.previews?.length) form.append("previews", JSON.stringify(input.previews));
+      form.append("previews", JSON.stringify(input.previews ?? []));
       if (input.stackId) form.append("stackId", input.stackId);
       if (input.stackName) form.append("stackName", input.stackName);
       form.append("isPublic", String(!!input.isPublic));

@@ -2151,6 +2151,87 @@ model AgreementAck {
 }
 
 //Deliberation models and enums
+
+
+// --- Propositions (workshopping layer) ---
+model Proposition {
+  id              String   @id @default(cuid())
+  deliberationId  String
+  authorId        String
+  text            String
+  mediaType       String   @default("text") // "text" | "image" | "video" | "audio"
+  mediaUrl        String?
+  status          PropositionStatus @default(PUBLISHED)
+  promotedClaimId String?  // FK to Claim.id (filled on promotion)
+  promotedAt      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Workshop signals (denormalized counters for list perf)
+  voteUpCount     Int      @default(0)
+  voteDownCount   Int      @default(0)
+  endorseCount    Int      @default(0)
+  replyCount      Int      @default(0)
+
+  votes           PropositionVote[]
+  endorsements    PropositionEndorsement[]
+  replies         PropositionReply[]
+  tags            PropositionTag[]
+
+  // optional: back-link
+  promotedClaim   Claim?   @relation(fields: [promotedClaimId], references: [id], onDelete: SetNull)
+
+  @@index([deliberationId, createdAt])
+}
+
+
+enum PropositionStatus {
+  DRAFT
+  PUBLISHED
+  CLAIMED
+  ARCHIVED
+}
+
+model PropositionVote {
+  id             String   @id @default(cuid())
+  propositionId  String
+  userId         String
+  value          Int      // -1, 0, +1
+  createdAt      DateTime @default(now())
+
+  proposition    Proposition @relation(fields: [propositionId], references: [id], onDelete: Cascade)
+  @@unique([propositionId, userId])
+  @@index([userId])
+}
+
+model PropositionEndorsement {
+  id             String   @id @default(cuid())
+  propositionId  String
+  userId         String
+  createdAt      DateTime @default(now())
+  proposition    Proposition @relation(fields: [propositionId], references: [id], onDelete: Cascade)
+  @@unique([propositionId, userId])
+}
+
+model PropositionReply {
+  id             String   @id @default(cuid())
+  propositionId  String
+  authorId       String
+  text           String
+  createdAt      DateTime @default(now())
+  proposition    Proposition @relation(fields: [propositionId], references: [id], onDelete: Cascade)
+  @@index([propositionId, createdAt])
+}
+
+model PropositionTag {
+  id             String   @id @default(cuid())
+  propositionId  String
+  key            String   // e.g. "topic:education"
+  createdAt      DateTime @default(now())
+  proposition    Proposition @relation(fields: [propositionId], references: [id], onDelete: Cascade)
+  @@index([propositionId, key])
+}
+
 model Argument {
   id             String  @id @default(cuid())
   deliberationId String
@@ -2605,6 +2686,7 @@ enum MediaType {
 }
 
 enum TargetType {
+  argument
   claim
   card
   warrant
@@ -2815,6 +2897,10 @@ model Claim {
   claimValues ClaimValue[] // <— opposite side for ClaimValue.claim
 
   ClaimEvidence ClaimEvidence[]
+
+   sourcePropositionId String?
+  sourceProposition   Proposition? @relation(fields: [sourcePropositionId], references: [id], onDelete: SetNull)
+
 
   // NEW
   canonicalClaimId String?
@@ -3033,7 +3119,7 @@ model SchemeInstance {
 
 model CriticalQuestion {
   id           String          @id @default(cuid())
-  instanceId   String
+  instanceId   String?
   schemeId     String?
   scheme       ArgumentScheme? @relation(fields: [schemeId], references: [id], onDelete: Cascade)
   cqKey        String?
@@ -3041,13 +3127,14 @@ model CriticalQuestion {
   text         String
   attackKind   String // 'UNDERMINES'|'UNDERCUTS'|'REBUTS'
   status       String // 'open'|'addressed'|'counter-posted'
-  openedById   String
+  openedById   String?
   resolvedById String?
   createdAt    DateTime        @default(now())
   // for automation: how the CQ maps to an attack
   attackType   AttackType? // REBUTS | UNDERCUTS | UNDERMINES
   targetScope  TargetScope? // conclusion | inference | premise
-  instance     SchemeInstance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instance     SchemeInstance?
+    @relation(fields: [instanceId], references: [id], onDelete: Cascade)
 
   @@unique([schemeId, cqKey])
   @@index([instanceId])

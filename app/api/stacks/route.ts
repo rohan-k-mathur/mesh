@@ -16,9 +16,12 @@ export async function GET(req: Request) {
   const sort     = url.searchParams.get('sort') || 'created_at:desc';
 
   const [field, dir] = sort.split(':') as [string, 'asc' | 'desc'];
-  const orderBy = [{ [field || 'created_at']: (dir === 'asc' ? 'asc' : 'desc') as const }, { id: 'desc' as const }];
+  const orderBy = [
+    { [field || "created_at"]: (dir === "asc" ? "asc" : "desc") as "asc" | "desc" },
+    { id: "desc" as "asc" | "desc" }
+  ];
 
-  const ownerId = BigInt(user.userId);
+  const ownerId = BigInt(user.userId ?? 0);
   const where: any = {
     owner_id: ownerId,
     ...(vis === 'PUBLIC' ? { is_public: true } : {}),

@@ -2,13 +2,15 @@
  import { NextRequest, NextResponse } from 'next/server'
  import { z } from 'zod'
  import { prisma } from '@/lib/prismaclient'
- 
+ export const dynamic = 'force-dynamic';
+ export const revalidate = 0;
 
- const Query = z.object({
-   deliberationId: z.string().min(5),
-   targetId: z.string().min(5),
- })
- 
+const Query = z.object({
+  deliberationId: z.string().min(5),
+  targetType: z.enum(['argument','claim','card']),
+  targetId: z.string().min(5),
+});
+
  export async function GET(req: NextRequest) {
 
    const url = new URL(req.url)
@@ -17,11 +19,12 @@
    if (!parsed.success) {
      return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 })
    }
-   const { deliberationId, targetId } = parsed.data
+  const { deliberationId, targetType, targetId } = parsed.data
  
    const rows = await prisma.dialogueMove.findMany({
      where: {
        deliberationId,
+        targetType,
        targetId,
        kind: { in: ['WHY', 'GROUNDS'] },
      },
@@ -43,5 +46,5 @@
      .filter(([, v]) => v.kind === 'WHY')
      .map(([k]) => k)
  
-   return NextResponse.json({ ok: true, cqOpen })
+   return NextResponse.json({ ok: true, cqOpen }, { headers: { 'Cache-Control': 'no-store' }})
  }

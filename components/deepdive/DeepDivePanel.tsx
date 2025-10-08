@@ -29,7 +29,8 @@ import { computeFogForNodes } from "../dialogue/FogForNodesClient";
 import useSWR, { mutate as swrMutate } from "swr";
 import DebateSheetReader from "../agora/DebateSheetReader";
 import { SchemeComposer } from "../arguments/SchemeComposer";
-
+import { AIFAuthoringPanel } from "./AIFAuthoringPanel";
+import { AIFList } from "./ArgumentsList";
 import React from "react";
 import clsx from "clsx";
 import {
@@ -41,9 +42,12 @@ import { CommandCardAction } from "@/components/dialogue/command-card/types";
 import CardListVirtuoso from "@/components/deepdive/CardListVirtuoso";
 import dynamic from "next/dynamic";
 import { useAuth } from "@/lib/AuthContext";
+import AIFArgumentsListPro from '@/components/arguments/AIFArgumentsListPro';
 
  import { AFMinimap } from '@/components/dialogue/minimap/AFMinimap';
  import type { MinimapNode, MinimapEdge } from '@/components/dialogue/minimap/types';
+import { use } from "chai";
+import { auth } from "googleapis/build/src/apis/abusiveexperiencereport";
 const fetcher = (u:string)=>fetch(u,{cache:'no-store'}).then(r=>r.json());
 
 const LazyGraphPanel = dynamic(() => import("@/components/graph/GraphPanel"), {
@@ -488,6 +492,13 @@ function handleReplyTo(id: string, preview?: string) {
   });
 }
 
+function handleReplyToAIF(opts: { argumentId: string; preview?: string }) {
+  setReplyTarget({ id: opts.argumentId, preview: opts.preview });
+  requestAnimationFrame(() => {
+    scrollIntoViewById("delib-composer-anchor", 80);
+    window.dispatchEvent(new CustomEvent("mesh:composer:focus", { detail: { deliberationId } }));
+  });
+}
 
 //   React.useEffect(() => {
 //   const fn = (e:any) => {
@@ -967,6 +978,28 @@ onClearReply={() => setReplyTarget(null)}
    {/* <SectionCard title="Scheme Composer">
     <SchemeComposer schemeKey={1}  />
    </SectionCard> */}
+   <SectionCard title="Scheme Composer">
+
+<AIFAuthoringPanel
+  deliberationId={deliberationId}
+  authorId={authorId || ''} // or 'current' if you enable server fallback
+  conclusionClaim={hudTarget?.id
+    ? { id: hudTarget.id, text: topArg?.top?.text ?? '' }
+    : { id: '', text: '' } // panel will prompt to choose
+  }
+
+/>
+  </SectionCard>
+  <SectionCard title="AIF LIST">
+ <AIFArgumentsListPro
+        deliberationId={deliberationId}
+        onVisibleTextsChanged={(texts)=> {
+          // keep existing analytics / summarizers in sync
+          window.dispatchEvent(new CustomEvent('mesh:texts:visible', { detail: { deliberationId, texts } }));
+        }}
+      />
+
+</SectionCard>
 
       </div>
    );

@@ -1,7 +1,11 @@
 // app/api/v2/favorites/spotify/summary/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromCookies }        from '@/lib/serverutils';
-import { supabase }                  from '@/lib/supabase-server';
+// import { supabase }                  from '@/lib/supabase-server';
+import { createSupabaseServerClient } from '@/lib/supabase-server';
+
+
+const supabase = createSupabaseServerClient();
 
 export async function GET(req: NextRequest) {
   const user = await getUserFromCookies();
