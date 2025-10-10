@@ -130,21 +130,35 @@ const tryDerivedThumb = async (fileUrl?: string|null) => {
 };
 
 // apply order first (as you already do)
-const raw = stack.posts;
+const raw = stack.posts as Array<any>;
 const order = stack.order ?? [];
-const inOrder = order.length
-  ? order.map(id => raw.find(p => p.id === id)).filter(Boolean) as typeof raw
-  : raw;
+const ordered = order.map(id => raw.find(p => p.id === id)).filter(Boolean) as any[];
+const missing = raw.filter(p => !order.includes(p.id));
+const seq = order.length ? [...ordered, ...missing] : raw;
+
+const SUPA = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const posts = seq.map(p => {
+  if (p.thumb_urls?.length) return p;
+  const m = p.file_url?.match(/\/storage\/v1\/object\/public\/pdfs\/(.+)\.pdf$/i);
+  const derived = m ? `${SUPA}/storage/v1/object/public/pdf-thumbs/${m[1]}.png` : null;
+  return { ...p, thumb_urls: derived ? [derived] : [] };
+});
+function deriveThumbKeyFromFile(fileUrl?: string|null) {
+  if (!fileUrl) return null;
+  const m = fileUrl.match(/\/storage\/v1\/object\/public\/pdfs\/(.+)\.pdf$/i);
+  return m ? `${m[1]}.png` : null;
+}
 
 // enhance with safe thumbs
-const posts = await Promise.all(
-  inOrder.map(async (p: any) => {
-    const first = p.thumb_urls?.[0] || null;
-    const signed = await signIfExists(first);
-    const fallback = signed ?? (await tryDerivedThumb(p.file_url));
-    return { ...p, thumb_urls: fallback ? [fallback] : [] };
-  })
-);
+// const posts = inOrder.map((p:any) => {
+//   // prefer DB
+//   if (p.thumb_urls?.length) return p;
+//   // conservative derived fallback: you can keep or drop this now that previews exist
+//   const key = deriveThumbKeyFromFile(p.file_url);
+//   const derived = key ? `${SUPA}/storage/v1/object/public/pdf-thumbs/${key}` : null;
+//   return { ...p, thumb_urls: derived ? [derived] : [] };
+// });
+
   // Ensure there is a root FeedPost to anchor the discussion for this stack
        const discussionKey = `stack:${stack.id}`;
        const discussionRoot = await prisma.feedPost.upsert({

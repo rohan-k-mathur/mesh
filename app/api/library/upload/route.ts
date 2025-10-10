@@ -11,6 +11,21 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 // --- helpers ---------------------------------------------------------------
+async function ensureThumbsBucket(sb: ReturnType<typeof supabaseAdmin>) {
+  try {
+    const { data } = await sb.storage.getBucket("pdf-thumbs");
+    if (data) return;
+  } catch {}
+  try {
+    await sb.storage.createBucket("pdf-thumbs", {
+      public: true,
+      fileSizeLimit: "10MB",
+      allowedMimeTypes: ["image/png"],
+    });
+  } catch {}
+}
+
+
 function safeFileName(name: string) {
   return name
     .normalize("NFKD")
@@ -46,7 +61,9 @@ export async function POST(req: NextRequest) {
 
     // Identify user (Firebase cookie) — dev override header allowed
     const devHeader = req.headers.get("x-dev-user-id");
-    const userId = devHeader ? BigInt(devHeader) : await getCurrentUserId();
+
+   //const userId = devHeader ? BigInt(devHeader) : await getCurrentUserId();
+    const userId = await getCurrentUserId();
     if (!userId) {
       return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
     }
@@ -71,9 +88,11 @@ export async function POST(req: NextRequest) {
     if (!files.length) {
       return NextResponse.json({ error: "No files provided" }, { status: 400 });
     }
+const previews = parsePreviews(form);
 
-    const previews = parsePreviews(form); // aligned 1:1 with files (string|null)
-
+   if (previews.length && previews.length !== files.length) {
+     console.warn("[upload] previews length mismatch", { previews: previews.length, files: files.length });
+   }
     if (user.userId == null) {
       return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
     }
@@ -85,6 +104,7 @@ export async function POST(req: NextRequest) {
     });
 
     const sb = supabaseAdmin(); // service-role client
+await ensureThumbsBucket(sb);
 
     const postIds: string[] = [];
     const coverUrls: string[] = [];
@@ -99,7 +119,7 @@ export async function POST(req: NextRequest) {
       // Unique storage key: user_<id>/<ts>_<rand>_<filename>.pdf
       const ts = Date.now();
       const rand = Math.random().toString(36).slice(2, 8);
-      const baseKey = `user_${userId}/${ts}_${rand}_${safeFileName(f.name)}`;
+      const baseKey = `user_${userId}/${ts}_${i}_${rand}_${safeFileName(f.name)}`;
       const pdfKey = baseKey.endsWith(".pdf") ? baseKey : `${baseKey}.pdf`;
       const pngKey = pdfKey.replace(/\.pdf$/i, ".png"); // used for preview & function
 
@@ -154,24 +174,24 @@ export async function POST(req: NextRequest) {
         select: { id: true, thumb_urls: true },
       });
 
-      postIds.push(lp.id);
-      if (lp.thumb_urls?.[0]) coverUrls.push(lp.thumb_urls[0]);
+   postIds.push(lp.id);
+ coverUrls.push(lp.thumb_urls?.[0] ?? ""); // keep alignment
 
-      // Kick off server-side thumbnailing (robust even if no client preview)
-      try {
-        await sb.functions.invoke("pdf-thumb", {
-          body: {
-            bucket: "pdfs",
-            path: pdfKey,          // STORAGE KEY
-            libraryPostId: lp.id,
-            thumbBucket: "pdf-thumbs",
-            thumbPath: pngKey,     // path inside the bucket
-          },
-        });
-      } catch (e: any) {
-        console.warn("[upload] pdf-thumb invoke failed:", e?.message || e);
-      }
-    }
+    //   // Kick off server-side thumbnailing (robust even if no client preview)
+    //   try {
+    //     await sb.functions.invoke("pdf-thumb", {
+    //       body: {
+    //         bucket: "pdfs",
+    //         path: pdfKey,          // STORAGE KEY
+    //         libraryPostId: lp.id,
+    //         thumbBucket: "pdf-thumbs",
+    //         thumbPath: pngKey,     // path inside the bucket
+    //       },
+    //     });
+    //   } catch (e: any) {
+    //     console.warn("[upload] pdf-thumb invoke failed:", e?.message || e);
+    //   }
+     }
 
     // Merge new ids into order (don't hide existing posts)
     if (stackId && postIds.length) {

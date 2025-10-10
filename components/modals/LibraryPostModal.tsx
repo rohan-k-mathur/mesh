@@ -12,55 +12,120 @@ import { useRouter } from "next/navigation";
 
 type Props = { onOpenChange: (v: boolean) => void; stackId?: string };
 
-async function renderFirstPagePNG(file: File): Promise<string> {
-  // 💡 lazy load in the browser to avoid SSR "DOMMatrix" issues
+async function renderFirstPagePNG(file: File): Promise<string|null> {
+  // Workerless to avoid any .mjs issues in Next
   const pdfjsLib: any = await import("pdfjs-dist/build/pdf");
-  // const workerUrl = (await import("pdfjs-dist/build/pdf.worker.min.mjs?url")).default;
-//const workerUrl = new URL("pdf.worker.min.mjs", import.meta.url);
 
-  // 👉 point to the local worker you just copied
-  pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
-  // If you copied the .js version instead, use: "/pdf.worker.min.js"
-// pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
+  try {
+    const data = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data, disableWorker: true }).promise;
+    const page = await pdf.getPage(1);
 
-  const data = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({ data }).promise;
-  const page = await pdf.getPage(1);
-  const viewport = page.getViewport({ scale: 1 });
-  const targetWidth = 560;
-  const scale = targetWidth / viewport.width;
-  const scaled = page.getViewport({ scale });
+    const viewport = page.getViewport({ scale: 1 });
+    const targetWidth = 560;
+    const scale = Math.max(0.5, Math.min(1.5, targetWidth / viewport.width));
+    const scaled = page.getViewport({ scale });
 
-  const canvas = document.createElement("canvas");
-  const ctx = canvas.getContext("2d")!;
-  canvas.width = Math.floor(scaled.width);
-  canvas.height = Math.floor(scaled.height);
-  await page.render({ canvasContext: ctx, viewport: scaled }).promise;
-  return canvas.toDataURL("image/png");
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.floor(scaled.width);
+    canvas.height = Math.floor(scaled.height);
+    const ctx = canvas.getContext("2d")!;
+    await page.render({ canvasContext: ctx, viewport: scaled }).promise;
+
+    // free memory
+    await page.cleanup?.();
+    await pdf.cleanup?.();
+    await pdf.destroy?.();
+
+    return canvas.toDataURL("image/png");
+  } catch (e) {
+    console.warn("[preview(upload)] failed:", (e as any)?.message || e);
+    return null; // keep index alignment
+  }
 }
 
 async function renderFirstPagePNGFromUrl(url: string): Promise<string|null> {
   const pdfjsLib: any = await import("pdfjs-dist/build/pdf");
-  pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
 
-  const resp = await fetch(`/api/library/proxy?u=${encodeURIComponent(url)}`);
-  if (!resp.ok) return null;
-  const data = await resp.arrayBuffer();
+  try {
+    // fetch via proxy to dodge CORS/redirects
+    const resp = await fetch(`/api/library/proxy?u=${encodeURIComponent(url)}`);
+    if (!resp.ok) return null;
+    const data = await resp.arrayBuffer();
 
-  const pdf = await pdfjsLib.getDocument({ data }).promise;
-  const page = await pdf.getPage(1);
-  const viewport = page.getViewport({ scale: 1 });
-  const targetWidth = 560;
-  const scale = targetWidth / viewport.width;
-  const scaled = page.getViewport({ scale });
+    const pdf = await pdfjsLib.getDocument({ data, disableWorker: true }).promise;
+    const page = await pdf.getPage(1);
 
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.floor(scaled.width);
-  canvas.height = Math.floor(scaled.height);
-  const ctx = canvas.getContext("2d")!;
-  await page.render({ canvasContext: ctx, viewport: scaled }).promise;
-  return canvas.toDataURL("image/png");
+    const viewport = page.getViewport({ scale: 1 });
+    const targetWidth = 560;
+    const scale = Math.max(0.5, Math.min(1.5, targetWidth / viewport.width));
+    const scaled = page.getViewport({ scale });
+
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.floor(scaled.width);
+    canvas.height = Math.floor(scaled.height);
+    const ctx = canvas.getContext("2d")!;
+    await page.render({ canvasContext: ctx, viewport: scaled }).promise;
+
+    await page.cleanup?.();
+    await pdf.cleanup?.();
+    await pdf.destroy?.();
+
+    return canvas.toDataURL("image/png");
+  } catch (e) {
+    console.warn("[preview(url)] failed:", (e as any)?.message || e);
+    return null;
+  }
 }
+
+// async function renderFirstPagePNG(file: File): Promise<string|null> {
+// const pdfjsLib: any = await import("pdfjs-dist/build/pdf");
+// //  pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.js";
+
+//   const data = await file.arrayBuffer();
+//   // const pdf = await pdfjsLib.getDocument({ data }).promise;
+//  const pdf = await pdfjsLib.getDocument({ data, disableWorker: true }).promise;
+
+//   const page = await pdf.getPage(1);
+
+//   const viewport = page.getViewport({ scale: 1 });
+//   const targetWidth = 560;
+//   const scale = targetWidth / viewport.width;
+//   const scaled = page.getViewport({ scale });
+
+//   const canvas = document.createElement("canvas");
+//   canvas.width = Math.floor(scaled.width);
+//   canvas.height = Math.floor(scaled.height);
+//   const ctx = canvas.getContext("2d")!;
+//   await page.render({ canvasContext: ctx, viewport: scaled }).promise;
+//   return canvas.toDataURL("image/png");
+// }
+
+// async function renderFirstPagePNGFromUrl(url: string): Promise<string|null> {
+//   const pdfjsLib: any = await import("pdfjs-dist/build/pdf");
+//  //pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.js";
+
+//   // use proxy to dodge CORS
+//   const resp = await fetch(`/api/library/proxy?u=${encodeURIComponent(url)}`);
+//   if (!resp.ok) return null;
+//   const data = await resp.arrayBuffer();
+
+//   // const pdf = await pdfjsLib.getDocument({ data }).promise;
+//   const pdf = await pdfjsLib.getDocument({ data, disableWorker: true }).promise;
+//   const page = await pdf.getPage(1);
+
+//   const viewport = page.getViewport({ scale: 1 });
+//   const targetWidth = 560;
+//   const scale = targetWidth / viewport.width;
+//   const scaled = page.getViewport({ scale });
+
+//   const canvas = document.createElement("canvas");
+//   canvas.width = Math.floor(scaled.width);
+//   canvas.height = Math.floor(scaled.height);
+//   const ctx = canvas.getContext("2d")!;
+//   await page.render({ canvasContext: ctx, viewport: scaled }).promise;
+//   return canvas.toDataURL("image/png");
+// }
 
 export default function LibraryPostModal({ onOpenChange, stackId }: Props) {
   const createLibraryPost = useCreateLibraryPost();
@@ -73,6 +138,8 @@ export default function LibraryPostModal({ onOpenChange, stackId }: Props) {
   const [caption, setCaption] = useState("");
   const [isPublic, setIsPublic] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+
+  const defaultName = "Untitled Stack";
 
 async function onSubmit() {
   if (submitting) return;
@@ -103,31 +170,60 @@ async function onSubmit() {
 //     .filter((r): r is PromiseFulfilledResult<string> => r.status === "fulfilled")
 //     .map((r) => r.value);
 // }
-  let previews: Array<string | null> = [];
+//   let previews: Array<string|null> = [];
+
+// if (tab === "upload" && files?.length) {
+//   const settled = await Promise.allSettled(Array.from(files).map(renderFirstPagePNG));
+//   previews = settled.map(r => (r.status === "fulfilled" ? r.value : null));
+// }
+
+// if (tab === "url" && list.length) {
+//   const settled = await Promise.allSettled(list.map(renderFirstPagePNGFromUrl));
+//   previews = settled.map(r => (r.status === "fulfilled" ? r.value : null));
+// }
+
+
+//  let previews: Array<string | null> = [];
+//   if (tab === "upload" && files?.length) {
+//    const results = await Promise.allSettled(Array.from(files).map(renderFirstPagePNG));
+//    previews = results.map(r => (r.status === "fulfilled" ? r.value : null));
+//  }
+
+//  if (tab === "url") {
+//    const list = urls.split("\n").map(s => s.trim()).filter(Boolean);
+//    const results = await Promise.allSettled(list.map(renderFirstPagePNGFromUrl));
+//    previews = results.map(r => (r.status === "fulfilled" ? r.value : null));
+//  }
+
+//  const result = await createLibraryPost({
+//    files: tab === "upload" ? Array.from(files ?? []) : undefined,
+//    urls:  tab === "url"    ? list : undefined,
+//    previews,               // keep 1:1 alignment
+//    isPublic, caption, stackId,
+//    ...(stackId ? {} : { stackName: defaultName }),
+// });
+
+let previews: Array<string|null> = [];
+
 if (tab === "upload" && files?.length) {
   const settled = await Promise.allSettled(Array.from(files).map(renderFirstPagePNG));
   previews = settled.map(r => (r.status === "fulfilled" ? r.value : null));
-    }
-    if (tab === "url" && list.length) {
-      const settled = await Promise.allSettled(list.map(renderFirstPagePNGFromUrl));
-      previews = settled.map(r => (r.status === "fulfilled" ? r.value : null));
-    }
-// form.append("previews", JSON.stringify(previews));
-      const defaultName = files?.length
-        ? `Uploads — ${new Date().toLocaleDateString()}`
-        : "My Stack";
+}
 
-      // 2) create library posts (UPLOAD or IMPORT)
-      const result = await createLibraryPost({
-        files: tab === "upload" ? Array.from(files ?? []) : undefined,
-        urls: tab === "url" ? list : undefined,
-        previews: previews.filter((p): p is string => p !== null),
-        isPublic,
+if (tab === "url") {
+  const list = urls.split("\n").map(s => s.trim()).filter(Boolean);
+  const settled = await Promise.allSettled(list.map(renderFirstPagePNGFromUrl));
+  previews = settled.map(r => (r.status === "fulfilled" ? r.value : null));
+}
 
-        caption,
-        stackId,
-        ...(stackId ? {} : { stackName: defaultName }),
-      });
+const result = await createLibraryPost({
+  files: tab === "upload" ? Array.from(files ?? []) : undefined,
+  urls:  tab === "url"    ? urls.split("\n").map(s => s.trim()).filter(Boolean) : undefined,
+  previews, // 👈 1:1 with files or URLs
+  isPublic, caption, stackId,
+  ...(stackId ? {} : { stackName: "Untitled Stack" }),
+});
+
 
       // result MUST be { postIds: string[], stackId?: string }
 

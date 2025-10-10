@@ -24,29 +24,25 @@ export function useCreateLibraryPost() {
   return async function createLibraryPost(input: {
     files?: File[];
     urls?: string[];
-    previews?: string[];
+    previews?: Array<string|null>;
     stackId?: string;
     stackName?: string;
     isPublic?: boolean;
     caption?: string;
-  }): Promise<CreateLibraryResult> {
+  }) {
     if (input.files?.length) {
       const form = new FormData();
       input.files.forEach(f => form.append("files", f));
-      //if (input.previews?.length) form.append("previews", JSON.stringify(input.previews));
-      form.append("previews", JSON.stringify(input.previews ?? []));
-      if (input.stackId) form.append("stackId", input.stackId);
+      form.append("previews", JSON.stringify(input.previews ?? [])); // 👈 always
+      if (input.stackId)  form.append("stackId", input.stackId);
       if (input.stackName) form.append("stackName", input.stackName);
       form.append("isPublic", String(!!input.isPublic));
       if (input.caption) form.append("caption", input.caption);
 
-      const res = await fetch("/api/library/upload", {
-        method: "POST",
-        body: form,
-        credentials: "include",
-      });
-      if (!res.ok) throw new Error(`Upload failed: ${(await res.text()) || res.statusText}`);
-      return res.json();   // ← { postIds, stackId? }
+      const res = await fetch("/api/library/upload", { method: "POST", body: form, credentials: "include" });
+      let payload: any = null; try { payload = await res.json(); } catch {}
+      if (!res.ok) throw new Error(payload?.error || res.statusText);
+      return payload;
     }
 
     if (input.urls?.length) {
@@ -54,10 +50,11 @@ export function useCreateLibraryPost() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify(input),
+        body: JSON.stringify(input),   // contains urls + previews[]
       });
-      if (!res.ok) throw new Error(`Import failed: ${(await res.text()) || res.statusText}`);
-      return res.json();   // ← { postIds, stackId? }
+      let payload: any = null; try { payload = await res.json(); } catch {}
+      if (!res.ok) throw new Error(payload?.error || res.statusText);
+      return payload;
     }
 
     throw new Error("No files or URLs provided");

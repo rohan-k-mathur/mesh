@@ -43,7 +43,7 @@ import CardListVirtuoso from "@/components/deepdive/CardListVirtuoso";
 import dynamic from "next/dynamic";
 import { useAuth } from "@/lib/AuthContext";
 import AIFArgumentsListPro from '@/components/arguments/AIFArgumentsListPro';
-
+import PropositionsList from "../propositions/PropositionsList";
  import { AFMinimap } from '@/components/dialogue/minimap/AFMinimap';
  import type { MinimapNode, MinimapEdge } from '@/components/dialogue/minimap/types';
 import { use } from "chai";
@@ -907,18 +907,18 @@ onClearReply={() => setReplyTarget(null)}
 </Tabs>
 </SectionCard>
       {/* Views + CEG widgets */}
-      <SectionCard>
+      {/* <SectionCard>
         <RepresentativeViewpoints
           selection={sel}
           onReselect={(nextRule, nextK) => compute(nextRule, nextK)}
         />
-      </SectionCard>
+      </SectionCard> */}
 
       {/* <SectionCard >
 
       <CegMiniMap deliberationId={deliberationId} />
       </SectionCard> */}
-      <SectionCard>
+      {/* <SectionCard>
         <Collapsible open={graphState.open} onOpenChange={graphState.setOpen}>
           <div className="relative flex items-center justify-between px-1">
             <CollapsibleTrigger
@@ -935,13 +935,13 @@ onClearReply={() => setReplyTarget(null)}
             )}
           </CollapsibleContent>
         </Collapsible>
-      </SectionCard>
-      <SectionCard>
+      </SectionCard> */}
+      {/* <SectionCard>
         <ApprovalsHeatStrip deliberationId={deliberationId} />
       </SectionCard>
       <SectionCard>
         <TopologyWidget deliberationId={deliberationId} />
-      </SectionCard>
+      </SectionCard> */}
            <SectionCard title="Map & Controls">
      <div className="grid grid-cols-12 gap-4 items-start">
        <div className="col-span-5">
@@ -990,7 +990,7 @@ onClearReply={() => setReplyTarget(null)}
 
 />
   </SectionCard>
-  <SectionCard title="AIF LIST">
+  {/* <SectionCard title="AIF LIST">
  <AIFArgumentsListPro
         deliberationId={deliberationId}
         onVisibleTextsChanged={(texts)=> {
@@ -999,6 +999,9 @@ onClearReply={() => setReplyTarget(null)}
         }}
       />
 
+</SectionCard> */}
+<SectionCard title="Proposition List">
+  <PropositionsList deliberationId={deliberationId} />
 </SectionCard>
 
       </div>

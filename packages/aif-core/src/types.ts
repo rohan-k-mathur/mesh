@@ -1,5 +1,5 @@
 // packages/aif-core/src/types.ts
-export type AifNodeType = 'I' | 'RA' | 'CA' | 'L';
+export type AifNodeType = 'I' | 'RA' | 'CA' | 'PA' | 'L';
 export type AttackType = 'REBUTS' | 'UNDERCUTS' | 'UNDERMINES';
 export type TargetScope = 'conclusion' | 'inference' | 'premise';
 
@@ -8,7 +8,14 @@ export type InformationNode = {
   id: string;
   text: string;
 };
-
+export type PANode = {
+  kind: 'PA';
+  id: string;
+  schemeKey?: string | null;
+  // exactly one preferred and one dispreferred (Def 2.1(5))
+  preferred: { kind: 'CLAIM' | 'RA' | 'SCHEME'; id: string };
+  dispreferred: { kind: 'CLAIM' | 'RA' | 'SCHEME'; id: string };
+};
 export type RANode = {
   kind: 'RA';
   id: string;
@@ -46,5 +53,7 @@ export type AifGraph = {
   claims: InformationNode[];
   arguments: RANode[];
   attacks: CANode[];
+    preferences?: PANode[];   // ← add PA
+
   locutions?: LNode[];
 };

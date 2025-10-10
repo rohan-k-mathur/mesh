@@ -3,7 +3,7 @@ import * as React from 'react';
 import useSWR from 'swr';
 import clsx from 'clsx';
 import { ProvenanceChip } from '@/components/kb/ProvenanceChip';
-
+import AifDiagramView from '@/components/map/AifDiagramView';
 /** ---------- Shared types (match your API shapes) ---------- */
 type EvalMode = 'product'|'min'|'ds';
 type ImportsQ = 'off'|'materialized'|'virtual'|'all';
@@ -146,7 +146,6 @@ function ClaimBlock({ item, evalMode, tau, imports } : {
         evalMode={evalMode} tau={tau} imports={imports}
         provenance={item.provenance}
       />
-      <ProvenanceChip item={hydrated} blockId={block.id} canToggle={true} />
 
     </div>
   );
@@ -154,10 +153,13 @@ function ClaimBlock({ item, evalMode, tau, imports } : {
 
 function ArgumentBlock({ item, evalMode, tau }: { item: TranscludeItemEnvelope; evalMode?: EvalMode; tau?: number | null; }) {
   const diag = item.data?.diagram;
+  const aif  = diag?.aif;
   return (
     <div className="rounded border p-3 bg-white/70">
       <div className="text-sm font-medium mb-1">Argument</div>
-      {diag?.statements?.length ? (
+      {aif?.nodes?.length && aif?.edges?.length ? (
+        <AifDiagramView aif={aif} className="mb-2" />
+      ) : diag?.statements?.length ? (
         <div className="text-[12px]">
           <div className="font-medium mb-1">Diagram</div>
           <ul className="list-disc pl-5">

@@ -94,15 +94,15 @@ export function SchemeComposer({ deliberationId, authorId, conclusionClaim, defa
 
   return (
     <div className=" space-y-4">
-      <div className="rounded-md border bg-white p-4">
+      <div className="rounded-md border bg-white p-4 ">
         <div className="text-sm text-gray-500 mb-2">
           {selected ? <>Using scheme: <b>{selected.name}</b></> : 'Freeform argument'}
         </div>
 
-        <div className="grid gap-3 md:grid-cols-3">
-          <label className="block md:col-span-1">
-            <span className="text-xs text-gray-600">Scheme</span>
-            <select className="w-full border rounded px-2 py-1"
+        <div className="grid gap-3  md:grid-cols-3">
+          <label className="flex flex-col gap-2 md:col-span-1">
+            <span className="text-sm text-gray-800">Scheme</span>
+            <select className="w-full border rounded px-2 py-1 text-sm menuv2--lite"
                     value={schemeKey}
                     onChange={e=>setSchemeKey(e.target.value)}>
               <option value="">(Choose)</option>
@@ -117,19 +117,19 @@ export function SchemeComposer({ deliberationId, authorId, conclusionClaim, defa
             ) : null}
           </label>
 
-          <label className="block md:col-span-2">
-            <span className="text-xs text-gray-600">Conclusion</span>
-            <div className="w-full border rounded px-2 py-1 bg-gray-50">
+          <label className="flex flex-col gap-2 md:col-span-2 ">
+            <span className="text-sm text-gray-800">Conclusion</span>
+            <div className="w-full border rounded px-3 py-1 bg-gray-50 text-sm tagfield">
               {conclusionClaim.text ?? conclusionClaim.id}
             </div>
           </label>
         </div>
 
         {/* Premises picker (replaces comma-separated IDs) */}
-        <div className="mt-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-gray-600">Premises</span>
-            <button className="text-xs px-2 py-1 rounded border bg-white hover:bg-slate-50"
+        <div className="mt-4">
+          <div className="flex items-center justify-start gap-3">
+            <span className="text-sm text-gray-800">Premises</span>
+            <button className="text-xs px-2 py-1 rounded-lg btnv2--ghost "
                     onClick={() => setPickerOpen(true)}>
               + Add premise
             </button>
@@ -144,19 +144,19 @@ export function SchemeComposer({ deliberationId, authorId, conclusionClaim, defa
               ))}
             </ul>
           ) : (
-            <div className="text-xs text-slate-500 mt-1">No premises yet.</div>
+            <div className="text-sm text-slate-500 mt-2">No premises yet.</div>
           )}
         </div>
 
         {/* Optional notes / warrant */}
-        <label className="block mt-3">
-          <span className="text-xs text-gray-600">Notes / implicit warrant (optional)</span>
-          <textarea className="w-full border rounded px-2 py-1" value={notes} onChange={e=>setNotes(e.target.value)} />
+        <label className="flex flex-col gap-2 mt-3">
+          <span className="text-sm text-gray-800">Notes / implicit warrant (optional)</span>
+          <textarea className="w-full articlesearchfield rounded-lg text-xs p-3" cols={3} value={notes} onChange={e=>setNotes(e.target.value)} />
         </label>
 
         <div className="flex items-center gap-3 mt-4">
        <button
-    className="px-3 py-1 rounded bg-black text-white disabled:opacity-50"
+    className="px-3 py-3 text-sm tracking-wide  font-medium rounded-xl btnv2 disabled:opacity-50"
     disabled={creating || !canCreate}
     onClick={handleCreate}
   >

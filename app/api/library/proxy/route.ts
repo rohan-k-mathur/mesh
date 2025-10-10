@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
   const target = u.searchParams.get("u");
   if (!target) return NextResponse.json({ error: "u required" }, { status: 400 });
 
-  // (Optional) add a whitelist check for domains you allow.
+  // (Optional) restrict allowed hosts here.
 
   const r = await fetch(target, { redirect: "follow" });
   if (!r.ok) return NextResponse.json({ error: `fetch failed ${r.status}` }, { status: 502 });

@@ -52,6 +52,14 @@ export async function POST(req: NextRequest) {
     authorId = user.userId;
   }
     
+// app/api/arguments/route.ts (POST) — add a friendlier error
+if (!Array.isArray(premiseClaimIds) || premiseClaimIds.length === 0) {
+  return NextResponse.json({
+    ok: false,
+    error: "An inference needs at least one premise. Tip: pick the ‘Bare Assertion’ scheme and add a quick reason."
+  }, { status: 400, ...NO_STORE });
+}
+
   if (!deliberationId || !authorId || !conclusionClaimId || !Array.isArray(premiseClaimIds) || premiseClaimIds.length === 0) {
     return NextResponse.json({ ok:false, error:'Invalid payload' }, { status:400, ...NO_STORE });
   }

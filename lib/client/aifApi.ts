@@ -82,11 +82,12 @@ export async function createArgument(payload: {
 }
 
 export async function getArgumentCQs(argumentId: string) {
-  const res = await fetch(`/api/arguments/${argumentId}/cqs`, { cache: 'no-store' });
-  const j = await asJson<{ items: Array<{ cqKey: string; text: string; status: 'open' | 'answered'; attackType: string; targetScope: string }> }>(res);
+  // If you renamed the folder to aif-cqs (recommended):
+  const res = await fetch(`/api/arguments/${argumentId}/aif-cqs`, { cache: 'no-store' });
+  const j = await res.json().catch(()=>({ items: [] }));
+  if (!res.ok) throw new Error(j?.error || `HTTP ${res.status}`);
   return j.items ?? [];
 }
-
 export async function askCQ(argumentId: string, cqKey: string, ctx: { authorId: string; deliberationId: string }) {
   const res = await fetch(`/api/arguments/${argumentId}/cqs/${encodeURIComponent(cqKey)}/ask`, {
     method: 'POST',

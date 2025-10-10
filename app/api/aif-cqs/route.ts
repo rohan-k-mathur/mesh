@@ -1,4 +1,4 @@
-// app/api/arguments/[id]/cqs/route.ts
+// app/api/arguments/[id]/afi-cqs/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prismaclient";
 

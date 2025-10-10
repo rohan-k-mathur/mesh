@@ -24,6 +24,7 @@ type AifRow = {
   // AIF meta
   aif: {
     scheme?: { id: string; key: string; name: string; slotHints?: any | null } | null;
+    preferences?: { preferredBy: number; dispreferredBy: number }; // simple view
     conclusion?: { id: string; text: string } | null;
     premises?: Array<{ id: string; text: string; isImplicit?: boolean }> | null;
     implicitWarrant?: { text?: string } | null;
@@ -117,14 +118,79 @@ if (pageRows.length === 0) {
   const schemeById = new Map(schemes.map(s => [s.id, s]));
   const textByClaimId = new Map(claims.map(c => [c.id, c.text ?? '']));
 
-  // Build a quick { argId -> { REBUTS, UNDERCUTS, UNDERMINES } }
-  const atkByArg: Record<string, { REBUTS: number; UNDERCUTS: number; UNDERMINES: number }> = {};
-  for (const g of attackCounts) {
-    const argId = g.toArgumentId as string;
-    atkByArg[argId] ??= { REBUTS: 0, UNDERCUTS: 0, UNDERMINES: 0 };
-    const t = String(g.attackType || '').toUpperCase() as 'REBUTS'|'UNDERCUTS'|'UNDERMINES';
-    if (t in atkByArg[argId]) (atkByArg[argId] as any)[t] += g._count._all;
+
+// 1) CA-based attack counts
+const caRows = await prisma.conflictApplication.findMany({
+  where: {
+    deliberationId: params.id,
+    OR: [
+      { conflictedArgumentId: { in: argIds } },         // undercuts (RA targets)
+      { conflictedClaimId: { in: claimIds } },          // rebuts/undermines (I targets)
+    ],
+  },
+  select: {
+    conflictedArgumentId: true,
+    conflictedClaimId: true,
+    legacyAttackType: true,
+  },
+});
+
+// Build: { argId -> { REBUTS, UNDERCUTS, UNDERMINES } }
+const atkByArg: Record<string, { REBUTS: number; UNDERCUTS: number; UNDERMINES: number }> = {};
+for (const a of pageRows) atkByArg[a.id] = { REBUTS: 0, UNDERCUTS: 0, UNDERMINES: 0 };
+const premiseIdsByArg = new Map(pageRows.map(r => [r.id, r.premises.map(p => p.claimId)]));
+
+for (const c of caRows) {
+  // Decide bucket:
+  let bucket: 'REBUTS' | 'UNDERCUTS' | 'UNDERMINES' | null = null;
+
+  if (c.legacyAttackType) {
+    bucket = c.legacyAttackType as any;
+  } else if (c.conflictedArgumentId) {
+    bucket = 'UNDERCUTS'; // CA → RA implies undercut
+  } else if (c.conflictedClaimId) {
+    // claim could be conclusion (rebut) or a premise (undermine)
+    const hitArg = pageRows.find(r => r.conclusionClaimId === c.conflictedClaimId);
+    if (hitArg) bucket = 'REBUTS';
+    else {
+      const argHit = pageRows.find(r => premiseIdsByArg.get(r.id)?.includes(c.conflictedClaimId!));
+      if (argHit) {
+        atkByArg[argHit.id].UNDERMINES += 1;
+        continue;
+      }
+    }
   }
+
+  if (bucket) {
+    // Map the target to an argument row
+    if (c.conflictedArgumentId && atkByArg[c.conflictedArgumentId]) {
+      atkByArg[c.conflictedArgumentId][bucket] += 1;
+    } else if (c.conflictedClaimId) {
+      const hitArg = pageRows.find(r => r.conclusionClaimId === c.conflictedClaimId);
+      if (hitArg) atkByArg[hitArg.id][bucket] += 1;
+    }
+  }
+}
+
+// 2) Preference counts (preferred/dispreferred by Argument)
+const [prefA, dispA] = await Promise.all([
+  prisma.preferenceApplication.groupBy({
+    by: ['preferredArgumentId'],
+    where: { preferredArgumentId: { in: argIds } },
+    _count: { _all: true },
+  }),
+  prisma.preferenceApplication.groupBy({
+    by: ['dispreferredArgumentId'],
+    where: { dispreferredArgumentId: { in: argIds } },
+    _count: { _all: true },
+  }),
+]);
+
+const preferredBy: Record<string, number> =
+  Object.fromEntries(prefA.map(x => [x.preferredArgumentId!, x._count._all]));
+const dispreferredBy: Record<string, number> =
+  Object.fromEntries(dispA.map(x => [x.dispreferredArgumentId!, x._count._all]));
+
 
   // Pack CQ meter per argument
   const cqMap: Record<string, { satisfied: number; seen: Set<string> }> = {};
@@ -137,6 +203,47 @@ if (pageRows.length === 0) {
       cqMap[keyArgId].seen.add(s.cqKey);
     }
   }
+
+  // Batch lookup: preferences for each argument
+// const prefRows = await prisma.preferenceApplication.groupBy({
+//   by: ["argumentId", "preference"],
+//   where: { argumentId: { in: argIds } },
+//   _count: { _all: true },
+// });
+//   const prefCounts: {
+//     preferredBy: Record<string, number>;
+//     dispreferredBy: Record<string, number>;
+//   } = {
+//     preferredBy: {},
+//     dispreferredBy: {},
+//   };
+
+//   for (const row of prefRows) {
+//     if (row.preference === "preferred") {
+//       prefCounts.preferredBy[row.argumentId] = row._count._all;
+//     } else if (row.preference === "dispreferred") {
+//       prefCounts.dispreferredBy[row.argumentId] = row._count._all;
+//     }
+//   }
+const [prefBy, dispBy] = await Promise.all([
+  prisma.preferenceApplication.groupBy({
+    by: ['preferredArgumentId'],
+    where: { preferredArgumentId: { in: argIds } },
+    _count: { _all: true },
+  }),
+  prisma.preferenceApplication.groupBy({
+    by: ['dispreferredArgumentId'],
+    where: { dispreferredArgumentId: { in: argIds } },
+    _count: { _all: true },
+  }),
+]);
+
+const preferredByMap = Object.fromEntries(
+  prefBy.filter(r => r.preferredArgumentId).map(r => [r.preferredArgumentId as string, r._count._all])
+);
+const dispreferredByMap = Object.fromEntries(
+  dispBy.filter(r => r.dispreferredArgumentId).map(r => [r.dispreferredArgumentId as string, r._count._all])
+);
 
   const items: AifRow[] = pageRows.map(r => {
     const scheme = r.schemeId ? schemeById.get(r.schemeId) : null;
@@ -161,10 +268,14 @@ if (pageRows.length === 0) {
         conclusion: r.conclusionClaimId ? { id: r.conclusionClaimId, text: textByClaimId.get(r.conclusionClaimId) ?? "" } : null,
         premises: r.premises.map(p => ({ id: p.claimId, text: textByClaimId.get(p.claimId) ?? "", isImplicit: (p as any).isImplicit ?? false })),
         implicitWarrant: (r.implicitWarrant as any) ?? null,
-        attacks: atkByArg[r.id] ?? { REBUTS: 0, UNDERCUTS: 0, UNDERMINES: 0 },
-        cq: { required, satisfied },
-      },
-    };
+         attacks: atkByArg[r.id] ?? { REBUTS: 0, UNDERCUTS: 0, UNDERMINES: 0 },
+  preferences: {
+    preferredBy: preferredBy[r.id] ?? 0,
+    dispreferredBy: dispreferredBy[r.id] ?? 0,
+  },
+  cq: { required, satisfied },
+
+    }}
   });
 
   const page = makePage(items, limit);

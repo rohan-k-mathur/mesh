@@ -2152,38 +2152,40 @@ model AgreementAck {
 
 //Deliberation models and enums
 
-
-// --- Propositions (workshopping layer) ---
+// Proposition model
 model Proposition {
-  id              String   @id @default(cuid())
-  deliberationId  String
-  authorId        String
-  text            String
-  mediaType       String   @default("text") // "text" | "image" | "video" | "audio"
-  mediaUrl        String?
-  status          PropositionStatus @default(PUBLISHED)
-  promotedClaimId String?  // FK to Claim.id (filled on promotion)
-  promotedAt      DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id             String            @id @default(cuid())
+  deliberationId String
+  authorId       String
+  text           String
+  mediaType      String            @default("text")
+  mediaUrl       String?
+  status         PropositionStatus @default(PUBLISHED)
 
-  // Workshop signals (denormalized counters for list perf)
-  voteUpCount     Int      @default(0)
-  voteDownCount   Int      @default(0)
-  endorseCount    Int      @default(0)
-  replyCount      Int      @default(0)
+  // Keep the FK here and make it one-to-one:
+  promotedClaimId String? @unique
+  promotedClaim   Claim?  @relation("PropositionClaim", fields: [promotedClaimId], references: [id], onDelete: SetNull)
 
-  votes           PropositionVote[]
-  endorsements    PropositionEndorsement[]
-  replies         PropositionReply[]
-  tags            PropositionTag[]
+  promotedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
-  // optional: back-link
-  promotedClaim   Claim?   @relation(fields: [promotedClaimId], references: [id], onDelete: SetNull)
+  // workshop counters etc…
+  voteUpCount   Int @default(0)
+  voteDownCount Int @default(0)
+  endorseCount  Int @default(0)
+  replyCount    Int @default(0)
+
+  votes        PropositionVote[]
+  endorsements PropositionEndorsement[]
+  replies      PropositionReply[]
+  tags         PropositionTag[]
+
+  // optional helper for idempotent migration
+  legacyArgumentId String? @unique
 
   @@index([deliberationId, createdAt])
 }
-
 
 enum PropositionStatus {
   DRAFT
@@ -2193,42 +2195,44 @@ enum PropositionStatus {
 }
 
 model PropositionVote {
-  id             String   @id @default(cuid())
-  propositionId  String
-  userId         String
-  value          Int      // -1, 0, +1
-  createdAt      DateTime @default(now())
+  id            String      @id @default(cuid())
+  propositionId String
+  userId        String
+  value         Int
+  createdAt     DateTime    @default(now())
+  proposition   Proposition @relation(fields: [propositionId], references: [id], onDelete: Cascade)
 
-  proposition    Proposition @relation(fields: [propositionId], references: [id], onDelete: Cascade)
-  @@unique([propositionId, userId])
-  @@index([userId])
+  @@unique([propositionId, userId], name: "propositionId_userId")
 }
 
 model PropositionEndorsement {
-  id             String   @id @default(cuid())
-  propositionId  String
-  userId         String
-  createdAt      DateTime @default(now())
-  proposition    Proposition @relation(fields: [propositionId], references: [id], onDelete: Cascade)
-  @@unique([propositionId, userId])
+  id            String      @id @default(cuid())
+  propositionId String
+  userId        String
+  createdAt     DateTime    @default(now())
+  proposition   Proposition @relation(fields: [propositionId], references: [id], onDelete: Cascade)
+
+  @@unique([propositionId, userId], name: "propositionId_userId")
 }
 
 model PropositionReply {
-  id             String   @id @default(cuid())
-  propositionId  String
-  authorId       String
-  text           String
-  createdAt      DateTime @default(now())
-  proposition    Proposition @relation(fields: [propositionId], references: [id], onDelete: Cascade)
+  id            String      @id @default(cuid())
+  propositionId String
+  authorId      String
+  text          String
+  createdAt     DateTime    @default(now())
+  proposition   Proposition @relation(fields: [propositionId], references: [id], onDelete: Cascade)
+
   @@index([propositionId, createdAt])
 }
 
 model PropositionTag {
-  id             String   @id @default(cuid())
-  propositionId  String
-  key            String   // e.g. "topic:education"
-  createdAt      DateTime @default(now())
-  proposition    Proposition @relation(fields: [propositionId], references: [id], onDelete: Cascade)
+  id            String      @id @default(cuid())
+  propositionId String
+  key           String // e.g. "topic:education"
+  createdAt     DateTime    @default(now())
+  proposition   Proposition @relation(fields: [propositionId], references: [id], onDelete: Cascade)
+
   @@index([propositionId, key])
 }
 
@@ -2324,6 +2328,87 @@ model ArgumentEdge {
   @@index([deliberationId])
   @@index([fromArgumentId])
   @@index([toArgumentId])
+}
+// --- lib/models/schema.prisma (additions) ---
+
+model ConflictScheme {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  name        String
+  description String?  @db.Text
+  createdAt   DateTime @default(now())
+
+  // Optional: pre-map to a legacy "attackType"/"targetScope" for AF compatibility
+  legacyAttackType  String?   // 'REBUTS' | 'UNDERCUTS' | 'UNDERMINES'
+  legacyTargetScope String?   // 'conclusion' | 'inference' | 'premise'
+
+  applications ConflictApplication[]
+}
+
+model ConflictApplication {
+  id             String   @id @default(cuid())
+  deliberationId String
+  schemeId       String?  // nullable: ad-hoc conflicts still allowed
+  createdById    String
+  createdAt      DateTime @default(now())
+
+  // Conflicting element: exactly one of these must be non-null
+  conflictingClaimId    String?
+  conflictingArgumentId String?
+
+  // Conflicted element: exactly one of these must be non-null
+  conflictedClaimId     String?
+  conflictedArgumentId  String?
+
+  // Optional: keep legacy AF view in sync
+  legacyAttackType  String?   // 'REBUTS'|'UNDERCUTS'|'UNDERMINES'
+  legacyTargetScope String?   // 'conclusion'|'inference'|'premise'
+
+  scheme  ConflictScheme? @relation(fields: [schemeId], references: [id], onDelete: SetNull)
+
+  @@index([deliberationId])
+  @@index([conflictingClaimId])
+  @@index([conflictingArgumentId])
+  @@index([conflictedClaimId])
+  @@index([conflictedArgumentId])
+}
+
+model PreferenceScheme {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  name        String
+  description String?  @db.Text
+  // optional: scope info (preferences between information, between RAs, or between schemes)
+  scope       String?  // 'info' | 'inference' | 'scheme' | 'mixed'
+  createdAt   DateTime @default(now())
+
+  applications PreferenceApplication[]
+}
+
+model PreferenceApplication {
+  id             String   @id @default(cuid())
+  deliberationId String
+  schemeId       String?   // nullable
+  createdById    String
+  createdAt      DateTime  @default(now())
+
+  // Preferred element (exactly one of these)
+  preferredClaimId     String?
+  preferredArgumentId  String?
+  preferredSchemeId    String?   // when preferring an inference scheme
+
+  // Dispreferred element (exactly one of these)
+  dispreferredClaimId     String?
+  dispreferredArgumentId  String?
+  dispreferredSchemeId    String?
+
+  scheme PreferenceScheme? @relation(fields: [schemeId], references: [id], onDelete: SetNull)
+
+  @@index([deliberationId])
+  @@index([preferredClaimId])
+  @@index([preferredArgumentId])
+  @@index([dispreferredClaimId])
+  @@index([dispreferredArgumentId])
 }
 
 model DefaultRule {
@@ -2898,9 +2983,7 @@ model Claim {
 
   ClaimEvidence ClaimEvidence[]
 
-   sourcePropositionId String?
-  sourceProposition   Proposition? @relation(fields: [sourcePropositionId], references: [id], onDelete: SetNull)
-
+  sourceProposition Proposition? @relation("PropositionClaim")
 
   // NEW
   canonicalClaimId String?
@@ -3133,8 +3216,7 @@ model CriticalQuestion {
   // for automation: how the CQ maps to an attack
   attackType   AttackType? // REBUTS | UNDERCUTS | UNDERMINES
   targetScope  TargetScope? // conclusion | inference | premise
-  instance     SchemeInstance?
-    @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  instance     SchemeInstance? @relation(fields: [instanceId], references: [id], onDelete: Cascade)
 
   @@unique([schemeId, cqKey])
   @@index([instanceId])

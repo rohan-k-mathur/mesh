@@ -1,7 +1,653 @@
+// //components/arguments/AIFArgumentsListPro.tsx
+// // --- imports ---
+// 'use client';
+
+// import * as React from 'react';
+// // import useSWR, { mutate as swrMutate } from "swr";
+// import { mutate as swrMutate } from "swr";
+// import useSWRInfinite from 'swr/infinite';
+// import { Virtuoso } from 'react-virtuoso';
+// import { AttackMenuPro } from '@/components/arguments/AttackMenuPro';
+// import { LegalMoveToolbar } from '@/components/dialogue/LegalMoveToolbar';
+// import { listSchemes, getArgumentCQs, askCQ } from '@/lib/client/aifApi';
+// import PromoteToClaimButton from '@/components/claims/PromoteToClaimButton';
+// import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
+// import Spinner from '@/components/ui/spinner';
+
+
+// type Arg = {
+//   id: string;
+//   text: string;
+//   createdAt: string;
+//   authorId: string;
+//   mediaType?: 'text'|'image'|'video'|'audio'|null;
+//   mediaUrl?: string|null;
+//   claimId?: string|null;
+//   schemeId?: string|null;
+//   approvalsCount?: number;
+// };
+
+
+// type AifMeta = {
+//   scheme?: { id: string; key: string; name: string; slotHints?: { premises?: { role: string; label: string }[] } | null } | null;
+//   conclusion?: { id: string; text: string } | null;
+//   premises?: Array<{ id: string; text: string; isImplicit?: boolean }> | null;
+//   implicitWarrant?: { text?: string } | null;
+//   attacks?: { REBUTS: number; UNDERCUTS: number; UNDERMINES: number };
+//   cq?: { required: number; satisfied: number };
+//   preferences?: { preferredBy?: number; dispreferredBy?: number }
+// };
+
+
+// type AifRow = {
+//   id: string;
+//   deliberationId: string;
+//   authorId: string;
+//   createdAt: string;
+//   text: string;
+//   mediaType: 'text'|'image'|'video'|'audio' | null;
+//   aif: AifMeta;
+//   claimId?: string | null;
+// };
+
+// const fetcher = (u: string) => fetch(u, { cache: 'no-store' }).then(async r => {
+//   const j = await r.json().catch(()=> ({}));
+//   if (!r.ok || (j && j.ok === false)) throw new Error(j?.error || `HTTP ${r.status}`);
+//   return j;
+// });
+
+
+
+// const PAGE = 20;
+
+// /** -------------------------------------------
+//  * Small visual atoms
+//  * ------------------------------------------*/
+
+// /* ---------- Small atoms ---------- */
+// function SchemeBadge({ scheme }: { scheme?: AifMeta['scheme'] }) {
+//   if (!scheme) return null;
+//   return (
+//     <span
+//       className="inline-flex items-center gap-1 rounded-full border bg-indigo-50 text-indigo-700 border-indigo-200 px-2 py-0.5 text-[11px]"
+//       title={scheme?.slotHints?.premises?.length ? scheme!.slotHints!.premises!.map(p => p.label).join(' · ') : scheme?.name}
+//     >
+//       {scheme?.name}
+//     </span>
+//   );
+// }
+// function PreferenceCounts({ p }:{ p?: { preferredBy?:number; dispreferredBy?:number }}) {
+//   if (!p) return null;
+//   return (
+//     <div className="inline-flex items-center gap-1 text-[11px]">
+//       <span className="px-1.5 py-0.5 rounded border bg-emerald-50 border-emerald-200 text-emerald-700" title="Preferred (PA)"> ⬆ {p.preferredBy ?? 0}</span>
+//       <span className="px-1.5 py-0.5 rounded border bg-rose-50 border-rose-200 text-rose-700" title="Dispreferred (PA)"> ⬇ {p.dispreferredBy ?? 0}</span>
+//     </div>
+//   );
+// }
+// function CqMeter({ cq }: { cq?: { required: number; satisfied: number } }) {
+//   const r = cq?.required ?? 0, s = cq?.satisfied ?? 0;
+//   const pct = r ? Math.round((s / r) * 100) : 0;
+//   return (
+//     <span className="text-[10px] px-1 py-0.5 rounded border bg-white" title={r ? `${s}/${r} CQs satisfied` : 'No CQs yet'}>
+//       CQ {pct}%
+//     </span>
+//   );
+// }
+// function AttackCounts({ a }: { a?: AifMeta['attacks'] }) {
+//   if (!a) return null;
+//   return (
+//     <div className="inline-flex items-center gap-1 text-[11px]">
+//       <span className="px-1.5 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200" title="Rebuts (attacks conclusion)">{a.REBUTS ?? 0}</span>
+//       <span className="px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200" title="Undercuts (attacks inference)">{a.UNDERCUTS ?? 0}</span>
+//       <span className="px-1.5 py-0.5 rounded bg-slate-50 text-slate-700 border border-slate-200" title="Undermines (attacks premise)">{a.UNDERMINES ?? 0}</span>
+//     </div>
+//   );
+// }
+// function ClampedBody({ text, lines = 4, onOpen }: { text: string; lines?: number; onOpen: () => void }) {
+//   return (
+//     <div className="relative">
+//       <div className={`text-sm whitespace-pre-wrap line-clamp-${lines}`}>{text}</div>
+//       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-white/90 to-transparent" />
+//       <button className="btnv2--ghost py-0 px-3 rounded btnv2--sm absolute right-0 bottom-0 translate-y-1 translate-x-2"
+//               onClick={onOpen}>More</button>
+//     </div>
+//   );
+// }
+
+
+// /* ---------- Quick PA widget ---------- */
+// function PreferenceQuick({
+//   deliberationId, argumentId, onDone,
+// }: { deliberationId:string; argumentId:string; onDone?:()=>void }) {
+//   const [open, setOpen] = React.useState<null | 'prefer' | 'disprefer'>(null);
+//   const [otherId, setOtherId] = React.useState('');
+//   const [busy, setBusy] = React.useState(false);
+
+//   async function submit() {
+//     if (!open || !otherId.trim() || busy) return;
+//     setBusy(true);
+//     try {
+//       const body = open === 'prefer'
+//         ? { deliberationId, preferredArgumentId: argumentId,   dispreferredArgumentId: otherId.trim() }
+//         : { deliberationId, preferredArgumentId: otherId.trim(), dispreferredArgumentId: argumentId   };
+//       const r = await fetch('/api/pa', {
+//         method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body),
+//       });
+//       const j = await r.json().catch(()=> ({}));
+//       if (!r.ok || j?.ok === false) throw new Error(j?.error || `HTTP ${r.status}`);
+//       setOtherId(''); setOpen(null);
+//       onDone?.();
+//     } catch (e) {
+//       console.error(e);
+//     } finally { setBusy(false); }
+//   }
+
+//   return (
+//     <div className="inline-flex items-center gap-1">
+//       <button className="px-2 py-1 btnv2--ghost rounded text-xs" onClick={()=>setOpen(open==='prefer'?null:'prefer')}>
+//         Prefer over…
+//       </button>
+//       <button className="px-2 py-1 btnv2--ghost rounded text-xs" onClick={()=>setOpen(open==='disprefer'?null:'disprefer')}>
+//         Disprefer to…
+//       </button>
+//       {open && (
+//         <div className="ml-2 inline-flex items-center gap-1">
+//           <input
+//             className="px-2 py-1 rounded border text-xs"
+//             placeholder="Argument ID…"
+//                 value={otherId}
+//             onChange={e=>setOtherId(e.target.value)}
+//           />
+//           <button className="px-2 py-1 btnv2 rounded text-xs" disabled={!otherId.trim() || busy} onClick={submit}>
+//             {busy ? 'Posting…' : 'Post'}
+//           </button>
+//           <button className="px-2 py-1 btnv2--ghost rounded text-xs" onClick={()=>{ setOpen(null); setOtherId(''); }}>
+//             Cancel
+//           </button>
+//         </div>
+//       )}
+//       </div>
+//   );
+// }
+
+// /** -------------------------------------------
+//  * Filter bar (client-side search + scheme filter)
+//  * ------------------------------------------*/
+// function Controls({
+//   schemes, schemeKey, setSchemeKey, q, setQ, showPremises, setShowPremises
+// }: {
+//   schemes: Array<{ key:string; name:string }>;
+//   schemeKey: string; setSchemeKey: (k:string)=>void;
+//   q: string; setQ: (s:string)=>void;
+//   showPremises: boolean; setShowPremises: (v:boolean)=>void;
+// }) {
+//   return (
+//     <div className="flex flex-col md:flex-row gap-2 md:items-center md:justify-between p-2 border-b bg-white/70 rounded-t-md">
+//       <div className="flex items-center gap-2">
+//         <label className="text-xs text-slate-600">
+//           <span className="mr-1">Scheme</span>
+//           <select value={schemeKey} onChange={e=>setSchemeKey(e.target.value)}
+//                   className="px-2 py-1 rounded border bg-white text-sm" aria-label="Filter by scheme">
+//             <option value="">All</option>
+//             {schemes.map(s => <option key={s.key} value={s.key}>{s.name}</option>)}
+//           </select>
+//         </label>
+//         <label className="text-xs text-slate-600">
+//           <span className="mr-1">Search</span>
+//           <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Conclusion or premise…"
+//                  className="px-2 py-1 rounded border bg-white text-sm min-w-[16rem]" aria-label="Search arguments" />
+//         </label>
+//       </div>
+//       <label className="text-xs text-slate-600 inline-flex items-center gap-2">
+//         <input type="checkbox" checked={showPremises} onChange={e=>setShowPremises(e.target.checked)} />
+//         Show premise chips
+//       </label>
+//     </div>
+//   );
+// }
+
+// /** -------------------------------------------
+//  * AIF row
+//  * ------------------------------------------*/
+
+// /* ---------- Row ---------- */
+// function Row({
+//   a, meta, deliberationId, showPremises, onPromoted, onRefresh
+// }: {
+//   a: AifRow;
+//   meta?: AifMeta;               // ← make optional
+//   deliberationId: string;
+//   showPremises: boolean;
+//   onPromoted: () => void;
+//   onRefresh: () => void;
+// }) {
+//   const [open, setOpen] = React.useState(false);
+//   const [cqs, setCqs] = React.useState<Array<{ cqKey:string; text:string; status:'open'|'answered'; attackType:string; targetScope:string }>>([]);
+//   const [obCq, setObCq] = React.useState<string | null>(null);
+//   const [obPremiseId, setObPremiseId] = React.useState<string>('');
+//   const [obText, setObText] = React.useState<string>(''); // for undercut text
+//   const [obClaim, setObClaim] = React.useState<{id:string; text:string}|null>(null);
+
+//   React.useEffect(() => {
+//     let cancel = false;
+//     (async () => {
+//       try {
+//         const items = await getArgumentCQs(a.id); // ensure this hits /aif-cqs (see aifApi patch)
+//         if (!cancel) setCqs(items || []);
+//       } catch {/* ignore */}
+//     })();
+//     return () => { cancel = true; };
+//   }, [a.id]);
+
+//   const conclusionText = meta?.conclusion?.text || a.text || '';
+
+//   return (
+//     <article id={`arg-${a.id}`} className="rounded border bg-white/80 p-2" aria-label={`Argument ${a.id}`}>
+//       <header className="flex items-start gap-2 justify-between">
+//         <div className="flex-1">
+//           <h4 className="text-sm font-medium leading-snug">{conclusionText}</h4>
+
+//           {showPremises && !!(meta?.premises?.length) && (
+//             <ul className="mt-1 flex flex-wrap gap-1" aria-label="Premises">
+//               {meta!.premises!.map(p => (
+//                 <li key={p.id} className="text-[11px] px-1.5 py-0.5 rounded-full border bg-slate-50">
+//                   {p.text || p.id}
+//                 </li>
+//               ))}
+//             </ul>
+//           )}
+
+//           {!!meta?.implicitWarrant?.text && (
+//             <div className="mt-1 text-[11px] px-2 py-1 rounded bg-amber-50 border border-amber-200 text-amber-800">
+//               Warrant: {meta.implicitWarrant.text}
+//             </div>
+//           )}
+//         </div>
+
+//         <div className="shrink-0 flex flex-col items-end gap-1">
+//           <div className="flex items-center gap-2">
+//             <SchemeBadge scheme={meta?.scheme} />
+//             <CqMeter cq={meta?.cq} />
+//             <PreferenceCounts p={meta?.preferences} />
+
+//           </div>
+//           <AttackCounts a={meta?.attacks} />
+//         </div>
+//       </header>
+
+//       <section className="mt-2">
+//         {a.text.length > 240 ? (
+//           <ClampedBody text={a.text} onOpen={()=>setOpen(true)} />
+//         ) : (
+//           <div className="text-sm whitespace-pre-wrap">{a.text}</div>
+//         )}
+//       </section>
+
+//       <footer className="mt-2 flex flex-wrap items-center gap-2">
+//         <LegalMoveToolbar
+//           deliberationId={deliberationId}
+//           targetType="argument"
+//           targetId={a.id}
+//           onPosted={() => window.dispatchEvent(new CustomEvent('dialogue:moves:refresh', { detail:{ deliberationId } } as any))}
+//         />
+
+//         {!!cqs.length && (
+//           <div className="ml-1 flex gap-1 flex-wrap" aria-label="Critical questions">
+//             {cqs.map(c => (
+//               <div key={c.cqKey} className="inline-flex items-center gap-1">
+//                 <button
+//                   className={`px-2 py-0.5 rounded-full text-[11px] border ${c.status==='answered' ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200'}`}
+//                   onClick={async () => {
+//                     await askCQ(a.id, c.cqKey, { authorId: a.authorId, deliberationId });
+//                     setCqs(cs => cs.map(x => x.cqKey === c.cqKey ? { ...x, status:'open' } : x));
+//                   }}
+//                   title={`${c.text} (${c.attackType.toLowerCase()}/${c.targetScope})`}
+//                 >
+//                   {c.status === 'answered' ? '✅' : '⚠️'} {c.cqKey}
+//                 </button>
+//                 <button
+//                   className="text-[10px] underline text-neutral-600"
+//                   title="Answer as objection…"
+//                   onClick={() => {
+//                     setObCq(prev => prev === c.cqKey ? null : c.cqKey);
+//                     setObPremiseId(meta?.premises?.[0]?.id ?? '');
+//                     setObText(''); setObClaim(null);
+//                   }}
+//                 >
+//                   objection…
+//                 </button>
+//                 {/* inline objection editor */}
+//                 {obCq === c.cqKey && (
+//                   <span className="ml-1 inline-flex items-center gap-1">
+//                     {c.attackType === 'REBUTS' && (
+//                       <>
+//                            <ClaimPicker deliberationId={deliberationId} authorId={a.authorId} label="Counter‑claim" onPick={setObClaim} />
+//                         <button
+//                           className="px-2 py-0.5 rounded border text-[11px]"
+//                           disabled={!obClaim}
+//                           onClick={async () => {
+//                             await fetch('/api/ca', {
+//                               method: 'POST', headers: { 'content-type': 'application/json' },
+//                               body: JSON.stringify({
+//                                 deliberationId,
+//                                 conflictingClaimId: obClaim!.id,
+//                                 conflictedClaimId: meta?.conclusion?.id ?? '',
+//                                 legacyAttackType: 'REBUTS',
+//                                 legacyTargetScope: 'conclusion',
+//                               }),
+//                             });
+//                             setObCq(null); onRefresh();
+//                           }}
+//                         >Post rebuttal</button>
+//                       </>
+//                     )}
+//                     {c.attackType === 'UNDERCUTS' && (
+//                       <>
+//                         <input
+//                           className="px-2 py-0.5 rounded border text-[11px]"
+//                           placeholder="Exception / rule‑defeater…"
+//                           value={obText} onChange={e=>setObText(e.target.value)}
+//                         />
+//                         <button
+//                           className="px-2 py-0.5 rounded border text-[11px]"
+//                           disabled={!obText.trim()}
+//                           onClick={async () => {
+//                             // create a quick claim for the exception text
+//                             const r = await fetch('/api/claims', {
+//                               method: 'POST', headers: { 'content-type': 'application/json' },
+//                               body: JSON.stringify({ deliberationId, authorId: a.authorId, text: obText.trim() })
+//                             });
+//                             const j = await r.json();
+//                             await fetch('/api/ca', {
+//                               method: 'POST', headers: { 'content-type': 'application/json' },
+//                               body: JSON.stringify({
+//                                 deliberationId,
+//                                 conflictingClaimId: j.id,
+//                                 conflictedArgumentId: a.id,
+//                                 legacyAttackType: 'UNDERCUTS',
+//                                 legacyTargetScope: 'inference',
+//                               }),
+//                             });
+//                             setObCq(null); setObText(''); onRefresh();
+//                           }}
+//                         >Post undercut</button>
+//                       </>
+//                     )}
+//                     {c.attackType === 'UNDERMINES' && (
+//                       <>
+//                         <select className="px-1 py-0.5 rounded border text-[11px]" value={obPremiseId} onChange={e=>setObPremiseId(e.target.value)}>
+//                           {(meta?.premises ?? []).map(p => <option key={p.id} value={p.id}>{p.text || p.id}</option>)}
+//                         </select>
+//                         <ClaimPicker deliberationId={deliberationId} authorId={a.authorId} label="Contradicting claim" onPick={setObClaim} />
+//                         <button
+//                           className="px-2 py-0.5 rounded border text-[11px]"
+//                           disabled={!obClaim || !obPremiseId}
+//                           onClick={async () => {
+//                             await fetch('/api/ca', {
+//                               method: 'POST', headers: { 'content-type': 'application/json' },
+//                               body: JSON.stringify({
+//                                 deliberationId,
+//                                 conflictingClaimId: obClaim!.id,
+//                                 conflictedClaimId: obPremiseId,
+//                                 legacyAttackType: 'UNDERMINES',
+//                                 legacyTargetScope: 'premise',
+//                               }),
+//                             });
+//                             setObCq(null); setObClaim(null); onRefresh();
+//                           }}
+//                         >Post undermine</button>
+//                       </>
+//                     )}
+//                   </span>
+//                 )}
+//               </div>
+//             ))}
+//           </div>
+//         )}
+
+//         <span className="ml-auto" />
+//                 <PreferenceQuick deliberationId={deliberationId} argumentId={a.id} onDone={onRefresh} />
+
+//         <AttackMenuPro
+//           deliberationId={deliberationId}
+//           authorId={a.authorId ?? 'current'}
+//           target={{
+//             id: a.id,
+//             conclusion: { id: meta?.conclusion?.id ?? '', text: conclusionText ?? '' },
+//             premises: meta?.premises ?? []
+//           }}
+//         />
+
+//         {/* “Promoted ✓” in the legacy sense is “has a claim record”.
+//             With AIF v0.5, we have a conclusion claim always; keep the affordance:
+//         */}
+//         {meta?.conclusion?.id ? (
+//           <span className="text-[11px] px-2 py-1 rounded border border-emerald-300 bg-emerald-50 text-emerald-700">Promoted ✓</span>
+//         ) : (
+//           <PromoteToClaimButton
+//             deliberationId={deliberationId}
+//             target={{ type: 'argument', id: a.id }}
+//             onClaim={async () => { onPromoted(); onRefresh(); }}
+//           />
+//         )}
+
+//         <button
+//           className="px-2 py-1 btnv2--ghost rounded text-xs"
+//           onClick={() => {
+//             const url = `${location.origin}${location.pathname}#arg-${a.id}`;
+//             navigator.clipboard.writeText(url).catch(()=>{});
+//           }}
+//           title="Copy a direct link to this argument"
+//         >
+//           Copy link
+//         </button>
+//       </footer>
+
+//       <Dialog open={open} onOpenChange={setOpen}>
+//         <DialogContent className="max-w-2xl max-h-[60vh] bg-slate-50 rounded-xl overflow-y-auto p-4">
+//           <DialogHeader><DialogTitle>Full argument</DialogTitle></DialogHeader>
+//           <div className="whitespace-pre-wrap text-sm">{a.text}</div>
+//           <div className="mt-3 flex justify-end"><DialogClose className="btnv2">Close</DialogClose></div>
+//         </DialogContent>
+//       </Dialog>
+//     </article>
+//   );
+// }
+
+// /** -------------------------------------------
+//  * Main list (non-destructive; lives next to existing ArgumentsList)
+//  * ------------------------------------------*/
+
+// // ---------- Main list ----------
+// export default function AIFArgumentsListPro({
+//   deliberationId, onVisibleTextsChanged,
+// }: { deliberationId: string; onVisibleTextsChanged?: (texts: string[]) => void; }) {
+
+//   // schemes
+//   const [schemes, setSchemes] = React.useState<Array<{ key:string; name:string }>>([]);
+//   React.useEffect(() => {
+//     let c = false;
+//     listSchemes()
+//       .then(items => { if (!c) setSchemes((items || []).map((s:any) => ({ key: s.key, name: s.name }))); })
+//       .catch(() => setSchemes([]));
+//     return () => { c = true; };
+//   }, []);
+
+//   // filters
+//   const [schemeKey, setSchemeKey] = React.useState('');
+//   const [q, setQ] = React.useState('');
+//   const [showPremises, setShowPremises] = React.useState(true);
+
+//   // base list
+//   const getKey = (_idx: number, prev: any) => {
+//     if (prev && !prev.nextCursor) return null;
+//     const cursor = prev?.nextCursor ? `&cursor=${encodeURIComponent(prev.nextCursor)}` : '';
+//     return `/api/deliberations/${encodeURIComponent(deliberationId)}/arguments/aif?limit=${PAGE}${cursor}`;
+//   };
+
+// const { data, error, size, setSize, isLoading, mutate } = useSWRInfinite(getKey, fetcher, { revalidateOnFocus: false });
+
+
+//   const pages = data ?? [];
+//   const rows: AifRow[] = pages.flatMap(p => p?.items ?? []);
+
+//   // per-row AIF meta hydration (only if one-shot /aif is missing)
+//   const [aifMap, setAifMap] = React.useState<Record<string, AifMeta>>({});
+//   const ids = React.useMemo(() => rows.map(r => r.id), [rows]);
+
+//   React.useEffect(() => {
+//     let cancelled = false;
+//     (async () => {
+//       const byId: Record<string, AifMeta> = {};
+
+//       // We only hydrate rows that didn't come with `a.aif`
+//       const pending = rows.filter(r => !r.aif).map(r => r.id);
+//       await Promise.all(pending.map(async (id) => {
+//         try {
+//           const one = await fetch(`/api/arguments/${id}/aif`).then(r => r.ok ? r.json() : null).catch(()=>null);
+//           if (one?.aif) {
+//             byId[id] = {
+//               scheme: one.aif.scheme ?? null,
+//               conclusion: one.aif.conclusion ?? null,
+//               premises: one.aif.premises ?? [],
+//               implicitWarrant: one.aif.implicitWarrant ?? null,
+//               attacks: one.aif.attacks ?? { REBUTS: 0, UNDERCUTS: 0, UNDERMINES: 0 },
+//               cq: one.aif.cq ?? { required: 0, satisfied: 0 },
+//               preferences: one.aif.preferences ?? { preferredBy: 0, dispreferredBy: 0 },
+//             };
+//             return;
+//           }
+
+//           // Light fallback (avoid dead endpoints):
+//           // 1) CQs
+//           const aCq = await fetch(`/api/arguments/${id}/aif-cqs`).then(r=>r.ok ? r.json() : null).catch(()=>null);
+//           const cq = Array.isArray(aCq?.items)
+//             ? { required: aCq.items.length, satisfied: aCq.items.filter((x:any)=>x.status==='answered').length }
+//             : undefined;
+
+//           // 2) CA-derived attack counts
+//           const ca = await fetch(`/api/ca?targetArgumentId=${encodeURIComponent(id)}&limit=200`)
+//                              .then(r => r.ok ? r.json() : null).catch(()=>null);
+//           const g = { REBUTS: 0, UNDERCUTS: 0, UNDERMINES: 0 };
+//           for (const e of (ca?.items ?? [])) {
+//             const t = String(e.legacyAttackType || '').toUpperCase();
+//             if (t && t in g) (g as any)[t] += 1;
+//           }
+
+//           byId[id] = { cq, attacks: g };
+//         } catch {}
+//       }));
+
+//       if (!cancelled) setAifMap(m => ({ ...m, ...byId }));
+//     })();
+//     return () => { cancelled = true; };
+//   }, [rows]);  // ← rows already memoized; no string join
+
+//   // visible texts
+//   React.useEffect(() => {
+//     if (!onVisibleTextsChanged) return;
+//     const texts: string[] = [];
+//     for (const r of rows) {
+//       const claimText = (r.aif?.conclusion?.text) ?? (aifMap[r.id]?.conclusion?.text) ?? '';
+//       const t = claimText || r.text || '';
+//       if (t) texts.push(t);
+//     }
+//     onVisibleTextsChanged(texts);
+//   }, [rows, aifMap, onVisibleTextsChanged]);
+
+//   // filtering
+//   const filtered: AifRow[] = React.useMemo(() => {
+//     const lower = q.trim().toLowerCase();
+//     return rows.filter(a => {
+//       const meta = a.aif || aifMap[a.id];
+//       const schemeOk = !schemeKey || (meta?.scheme?.key === schemeKey);
+//       const textBucket = [
+//         meta?.conclusion?.text || a.text || '',
+//         ...(meta?.premises?.map(p => p.text || '') ?? []),
+//         meta?.implicitWarrant?.text || ''
+//       ].join(' ').toLowerCase();
+//       const qOk = !lower || textBucket.includes(lower);
+//       return schemeOk && qOk;
+//     });
+//   }, [rows, aifMap, schemeKey, q]);
+
+
+//   // List states
+//   if (isLoading && rows.length === 0) {
+//     return (
+//       <section className="rounded-md border bg-white/60 p-3">
+//         <header className="text-md font-medium mb-2">Arguments (AIF)</header>
+//         <div className="flex items-center gap-2 text-sm text-slate-500"><Spinner /> Loading…</div>
+//       </section>
+//     );
+//   }
+//   if (error) {
+//     function revalidate(): void {
+//       swrMutate(getKey, undefined, { revalidate: true });
+//     }
+//     return (
+//       <section className="rounded-md border bg-white/60 p-3">
+//         <header className="text-md font-medium mb-2">Arguments (AIF)</header>
+//         <div className="text-xs text-rose-700">{String(error?.message || 'Failed to load')}</div>
+//         <button className="text-xs underline mt-1" onClick={()=>revalidate()}>Retry</button>
+//       </section>
+//     );
+//   }
+//   if (!rows.length) {
+//     return (
+//       <section className="rounded-md border bg-white/60 p-3">
+//         <header className="text-md font-medium mb-1">Arguments (AIF)</header>
+//         <p className="text-xs text-slate-600">No arguments yet.</p>
+//       </section>
+//     );
+//   }
+
+//   const nextCursor = data?.[data.length - 1]?.nextCursor ?? null;
+
+//   return (
+//     <section aria-label="AIF arguments list" className="w-full rounded-xl border bg-white/70 h-full 
+//     flex flex-col min-h-[300px] overflow-y-auto">
+//       <Controls
+//         schemes={schemes}
+//         schemeKey={schemeKey}
+//         setSchemeKey={setSchemeKey}
+//         q={q}
+//         setQ={setQ}
+//         showPremises={showPremises}
+//         setShowPremises={setShowPremises}
+//       />
+//       <div className="h-[560px]">
+//          <Virtuoso
+//           data={filtered}
+//           computeItemKey={(_i, a) => a.id}
+//           itemContent={(_index, a) => {
+//             const meta = a.aif || aifMap[a.id];
+//             return (
+//               <div className="px-2 py-1">
+//                 <Row
+//                   a={a}
+//                   meta={meta}
+//                   deliberationId={deliberationId}
+//                   showPremises={showPremises}
+//                   onPromoted={() => window.dispatchEvent(new CustomEvent('claims:changed', { detail: { deliberationId } }))}
+//                   onRefresh={() => mutate()}  // ← now defined
+//                 />
+//               </div>
+//             );
+//           }}
+//           endReached={() => !isLoading && nextCursor && setSize(s => s + 1)}
+//           components={{ Footer: () => <div className="py-3 px-4 text-center text-[12px] text-neutral-500">{nextCursor ? 'Scroll to load more' : 'End'}</div> }}
+//         />
+//       </div>
+//     </section>
+//   );
+// }
+//components/arguments/AIFArgumentsListPro.tsx
 'use client';
 
 import * as React from 'react';
-import useSWR, { mutate as swrMutate } from "swr";
+import { mutate as swrMutate } from 'swr';
 import useSWRInfinite from 'swr/infinite';
 import { Virtuoso } from 'react-virtuoso';
 import { AttackMenuPro } from '@/components/arguments/AttackMenuPro';
@@ -10,18 +656,36 @@ import { listSchemes, getArgumentCQs, askCQ } from '@/lib/client/aifApi';
 import PromoteToClaimButton from '@/components/claims/PromoteToClaimButton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
 import Spinner from '@/components/ui/spinner';
-
-
+import {
+  Shield,
+  ShieldAlert,
+  ShieldX,
+  CheckCircle2,
+  AlertTriangle,
+  ChevronDown,
+  Search,
+  Filter,
+  Link2,
+  TrendingUp,
+  Sparkles,
+  ArrowUp,
+  ArrowDown,
+  MessageSquare,
+  Eye,
+  EyeOff,
+  Zap,
+  Target
+} from 'lucide-react';
 
 type Arg = {
   id: string;
   text: string;
   createdAt: string;
   authorId: string;
-  mediaType?: 'text'|'image'|'video'|'audio'|null;
-  mediaUrl?: string|null;
-  claimId?: string|null;
-  schemeId?: string|null;
+  mediaType?: 'text' | 'image' | 'video' | 'audio' | null;
+  mediaUrl?: string | null;
+  claimId?: string | null;
+  schemeId?: string | null;
   approvalsCount?: number;
 };
 
@@ -32,8 +696,8 @@ type AifMeta = {
   implicitWarrant?: { text?: string } | null;
   attacks?: { REBUTS: number; UNDERCUTS: number; UNDERMINES: number };
   cq?: { required: number; satisfied: number };
+  preferences?: { preferredBy?: number; dispreferredBy?: number };
 };
-
 
 type AifRow = {
   id: string;
@@ -41,242 +705,748 @@ type AifRow = {
   authorId: string;
   createdAt: string;
   text: string;
-  mediaType: 'text'|'image'|'video'|'audio' | null;
+  mediaType: 'text' | 'image' | 'video' | 'audio' | null;
   aif: AifMeta;
-  // optional: legacy fields may not exist on this route
   claimId?: string | null;
 };
 
-const fetcher = (u: string) => fetch(u, { cache: 'no-store' }).then(r => {
-  if (!r.ok) throw new Error(`HTTP ${r.status}`);
-  return r.json();
+const fetcher = (u: string) => fetch(u, { cache: 'no-store' }).then(async r => {
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok || (j && j.ok === false)) throw new Error(j?.error || `HTTP ${r.status}`);
+  return j;
 });
-
-
 
 const PAGE = 20;
 
 /** -------------------------------------------
- * Small visual atoms
+ * Enhanced visual components
  * ------------------------------------------*/
 
-/* ---------- Small atoms ---------- */
 function SchemeBadge({ scheme }: { scheme?: AifMeta['scheme'] }) {
   if (!scheme) return null;
+  
   return (
-    <span
-      className="inline-flex items-center gap-1 rounded-full border bg-indigo-50 text-indigo-700 border-indigo-200 px-2 py-0.5 text-[11px]"
-      title={scheme?.slotHints?.premises?.length ? scheme!.slotHints!.premises!.map(p => p.label).join(' · ') : scheme?.name}
+    <div
+      className="
+        inline-flex items-center gap-1.5 px-3 py-1 rounded-full
+        bg-gradient-to-r from-indigo-50 to-purple-50
+        border border-indigo-200 text-indigo-700
+        text-xs font-medium shadow-sm
+        transition-all duration-200 hover:shadow-md
+      "
+      title={scheme?.slotHints?.premises?.length ? scheme.slotHints.premises.map(p => p.label).join(' · ') : scheme?.name}
     >
-      {scheme?.name}
-    </span>
-  );
-}
-function CqMeter({ cq }: { cq?: { required: number; satisfied: number } }) {
-  const r = cq?.required ?? 0, s = cq?.satisfied ?? 0;
-  const pct = r ? Math.round((s / r) * 100) : 0;
-  return (
-    <span className="text-[10px] px-1 py-0.5 rounded border bg-white" title={r ? `${s}/${r} CQs satisfied` : 'No CQs yet'}>
-      CQ {pct}%
-    </span>
-  );
-}
-function AttackCounts({ a }: { a?: AifMeta['attacks'] }) {
-  if (!a) return null;
-  return (
-    <div className="inline-flex items-center gap-1 text-[11px]">
-      <span className="px-1.5 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200" title="Rebuts (attacks conclusion)">{a.REBUTS ?? 0}</span>
-      <span className="px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200" title="Undercuts (attacks inference)">{a.UNDERCUTS ?? 0}</span>
-      <span className="px-1.5 py-0.5 rounded bg-slate-50 text-slate-700 border border-slate-200" title="Undermines (attacks premise)">{a.UNDERMINES ?? 0}</span>
+      <Zap className="w-3 h-3" />
+      {scheme.name}
     </div>
   );
 }
+
+function PreferenceCounts({ p }: { p?: { preferredBy?: number; dispreferredBy?: number } }) {
+  if (!p || (p.preferredBy === 0 && p.dispreferredBy === 0)) return null;
+  
+  return (
+    <div className="inline-flex items-center gap-1.5">
+      {p.preferredBy !== 0 && (
+        <div className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-medium">
+          <ArrowUp className="w-3 h-3" />
+          {p.preferredBy}
+        </div>
+      )}
+      {p.dispreferredBy !== 0 && (
+        <div className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium">
+          <ArrowDown className="w-3 h-3" />
+          {p.dispreferredBy}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CqMeter({ cq }: { cq?: { required: number; satisfied: number } }) {
+  const r = cq?.required ?? 0;
+  const s = cq?.satisfied ?? 0;
+  const pct = r ? Math.round((s / r) * 100) : 0;
+  
+  const colorClass = 
+    pct === 100 ? 'bg-emerald-100 border-emerald-300 text-emerald-700' :
+    pct >= 50 ? 'bg-amber-100 border-amber-300 text-amber-700' :
+    pct > 0 ? 'bg-orange-100 border-orange-300 text-orange-700' :
+    'bg-slate-100 border-slate-300 text-slate-600';
+
+  const Icon = pct === 100 ? CheckCircle2 : pct > 0 ? AlertTriangle : MessageSquare;
+  
+  return (
+    <div
+      className={`
+        inline-flex items-center gap-1 px-2 py-1 rounded-full border text-xs font-medium
+        transition-all duration-200
+        ${colorClass}
+      `}
+      title={r ? `${s}/${r} Critical Questions satisfied` : 'No CQs yet'}
+    >
+      <Icon className="w-3 h-3" />
+      CQ {pct}%
+    </div>
+  );
+}
+
+function AttackCounts({ a }: { a?: AifMeta['attacks'] }) {
+  if (!a || (a.REBUTS === 0 && a.UNDERCUTS === 0 && a.UNDERMINES === 0)) return null;
+  
+  return (
+    <div className="inline-flex items-center gap-1.5">
+      {a.REBUTS > 0 && (
+        <div className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium"
+             title="Rebuts (attacks conclusion)">
+          <ShieldX className="w-3 h-3" />
+          {a.REBUTS}
+        </div>
+      )}
+      {a.UNDERCUTS > 0 && (
+        <div className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-xs font-medium"
+             title="Undercuts (attacks inference)">
+          <ShieldAlert className="w-3 h-3" />
+          {a.UNDERCUTS}
+        </div>
+      )}
+      {a.UNDERMINES > 0 && (
+        <div className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-slate-50 border border-slate-200 text-slate-700 text-xs font-medium"
+             title="Undermines (attacks premise)">
+          <Shield className="w-3 h-3" />
+          {a.UNDERMINES}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ClampedBody({ text, lines = 4, onOpen }: { text: string; lines?: number; onOpen: () => void }) {
+  const ref = React.useRef<HTMLDivElement>(null);
+  const [shouldClamp, setShouldClamp] = React.useState(false);
+
+  React.useEffect(() => {
+    if (ref.current) {
+      const lineHeight = parseInt(getComputedStyle(ref.current).lineHeight);
+      const maxHeight = lineHeight * lines;
+      setShouldClamp(ref.current.scrollHeight > maxHeight);
+    }
+  }, [text, lines]);
+
+  if (!shouldClamp) {
+    return <div ref={ref} className="text-sm leading-relaxed text-slate-700 whitespace-pre-wrap">{text}</div>;
+  }
+
   return (
     <div className="relative">
-      <div className={`text-sm whitespace-pre-wrap line-clamp-${lines}`}>{text}</div>
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-8 bg-gradient-to-t from-white/90 to-transparent" />
-      <button className="btnv2--ghost py-0 px-3 rounded btnv2--sm absolute right-0 bottom-0 translate-y-1 translate-x-2"
-              onClick={onOpen}>More</button>
+      <div ref={ref} className={`text-sm leading-relaxed text-slate-700 whitespace-pre-wrap line-clamp-${lines}`}>
+        {text}
+      </div>
+      <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-white via-white/90 to-transparent pointer-events-none" />
+      <button
+        className="
+          absolute bottom-0 right-0 px-3 py-1 text-xs font-medium
+          bg-white border border-slate-200 rounded-full
+          text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50
+          transition-all duration-200 shadow-sm hover:shadow
+          flex items-center gap-1
+        "
+        onClick={onOpen}
+      >
+        Read more
+        <ChevronDown className="w-3 h-3" />
+      </button>
     </div>
   );
 }
 
+/** -------------------------------------------
+ * Preference attack quick widget (enhanced)
+ * ------------------------------------------*/
+function PreferenceQuick({
+  deliberationId,
+  argumentId,
+  onDone,
+}: {
+  deliberationId: string;
+  argumentId: string;
+  onDone?: () => void;
+}) {
+  const [open, setOpen] = React.useState<null | 'prefer' | 'disprefer'>(null);
+  const [otherId, setOtherId] = React.useState('');
+  const [busy, setBusy] = React.useState(false);
+
+  async function submit() {
+    if (!open || !otherId.trim() || busy) return;
+    setBusy(true);
+    try {
+      const body = open === 'prefer'
+        ? { deliberationId, preferredArgumentId: argumentId, dispreferredArgumentId: otherId.trim() }
+        : { deliberationId, preferredArgumentId: otherId.trim(), dispreferredArgumentId: argumentId };
+      const r = await fetch('/api/pa', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || j?.ok === false) throw new Error(j?.error || `HTTP ${r.status}`);
+      setOtherId('');
+      setOpen(null);
+      onDone?.();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="inline-flex items-center gap-2 flex-wrap">
+      <button
+        className={`
+          inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium
+          transition-all duration-200
+          ${open === 'prefer'
+            ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+            : 'bg-white text-slate-600 border border-slate-200 hover:bg-emerald-50 hover:border-emerald-300'
+          }
+        `}
+        onClick={() => setOpen(open === 'prefer' ? null : 'prefer')}
+      >
+        <ArrowUp className="w-3 h-3" />
+        Prefer over…
+      </button>
+      <button
+        className={`
+          inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium
+          transition-all duration-200
+          ${open === 'disprefer'
+            ? 'bg-rose-100 text-rose-700 border border-rose-200'
+            : 'bg-white text-slate-600 border border-slate-200 hover:bg-rose-50 hover:border-rose-300'
+          }
+        `}
+        onClick={() => setOpen(open === 'disprefer' ? null : 'disprefer')}
+      >
+        <ArrowDown className="w-3 h-3" />
+        Disprefer to…
+      </button>
+      {open && (
+        <div className="inline-flex items-center gap-2 p-2 bg-slate-50 rounded-lg border border-slate-200 animate-in slide-in-from-top duration-200">
+          <input
+            className="px-3 py-1.5 rounded-lg border border-slate-300 text-xs focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all"
+            placeholder="Argument ID…"
+            value={otherId}
+            onChange={e => setOtherId(e.target.value)}
+          />
+          <button
+            className="px-3 py-1.5 rounded-lg text-xs font-medium bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 transition-all"
+            disabled={!otherId.trim() || busy}
+            onClick={submit}
+          >
+            {busy ? 'Posting…' : 'Post'}
+          </button>
+          <button
+            className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-200 transition-all"
+            onClick={() => {
+              setOpen(null);
+              setOtherId('');
+            }}
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 /** -------------------------------------------
- * Filter bar (client-side search + scheme filter)
+ * Enhanced filter controls
  * ------------------------------------------*/
 function Controls({
-  schemes, schemeKey, setSchemeKey, q, setQ, showPremises, setShowPremises
+  schemes,
+  schemeKey,
+  setSchemeKey,
+  q,
+  setQ,
+  showPremises,
+  setShowPremises,
 }: {
-  schemes: Array<{ key:string; name:string }>;
-  schemeKey: string; setSchemeKey: (k:string)=>void;
-  q: string; setQ: (s:string)=>void;
-  showPremises: boolean; setShowPremises: (v:boolean)=>void;
+  schemes: Array<{ key: string; name: string }>;
+  schemeKey: string;
+  setSchemeKey: (k: string) => void;
+  q: string;
+  setQ: (s: string) => void;
+  showPremises: boolean;
+  setShowPremises: (v: boolean) => void;
 }) {
+  const [showFilters, setShowFilters] = React.useState(false);
+  const activeFilters = (schemeKey || q.trim()) ? 1 : 0;
+
   return (
-    <div className="flex flex-col md:flex-row gap-2 md:items-center md:justify-between p-2 border-b bg-white/70 rounded-t-md">
-      <div className="flex items-center gap-2">
-        <label className="text-xs text-slate-600">
-          <span className="mr-1">Scheme</span>
-          <select value={schemeKey} onChange={e=>setSchemeKey(e.target.value)}
-                  className="px-2 py-1 rounded border bg-white text-sm" aria-label="Filter by scheme">
-            <option value="">All</option>
-            {schemes.map(s => <option key={s.key} value={s.key}>{s.name}</option>)}
-          </select>
-        </label>
-        <label className="text-xs text-slate-600">
-          <span className="mr-1">Search</span>
-          <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Conclusion or premise…"
-                 className="px-2 py-1 rounded border bg-white text-sm min-w-[16rem]" aria-label="Search arguments" />
-        </label>
+    <div className="px-4 py-3 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 flex-1">
+          <h2 className="text-lg font-semibold text-slate-900">Arguments (AIF)</h2>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowPremises(!showPremises)}
+            className={`
+              inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium
+              transition-all duration-200
+              ${showPremises
+                ? 'bg-indigo-100 text-indigo-700 border border-indigo-200'
+                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+              }
+            `}
+            title={showPremises ? 'Hide premises' : 'Show premises'}
+          >
+            {showPremises ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+            Premises
+          </button>
+
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={`
+              inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium
+              transition-all duration-200
+              ${showFilters || activeFilters > 0
+                ? 'bg-indigo-100 text-indigo-700 border border-indigo-200'
+                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+              }
+            `}
+          >
+            <Filter className="w-4 h-4" />
+            Filters
+            {activeFilters > 0 && (
+              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-indigo-600 text-white text-xs font-bold">
+                {activeFilters}
+              </span>
+            )}
+          </button>
+        </div>
       </div>
-      <label className="text-xs text-slate-600 inline-flex items-center gap-2">
-        <input type="checkbox" checked={showPremises} onChange={e=>setShowPremises(e.target.checked)} />
-        Show premise chips
-      </label>
+
+      {/* Filter panel */}
+      {showFilters && (
+        <div className="mt-3 p-3 bg-white rounded-lg border border-slate-200 animate-in slide-in-from-top duration-200">
+          <div className="flex flex-wrap gap-3">
+            {/* Search */}
+            <label className="flex-1 min-w-[240px]">
+              <span className="block text-xs font-medium text-slate-700 mb-1">Search</span>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input
+                  value={q}
+                  onChange={e => setQ(e.target.value)}
+                  placeholder="Search conclusion or premise…"
+                  className="
+                    w-full pl-9 pr-3 py-2 rounded-lg border border-slate-300
+                    focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100
+                    transition-all duration-200 text-sm
+                  "
+                  aria-label="Search arguments"
+                />
+              </div>
+            </label>
+
+            {/* Scheme filter */}
+            <label className="min-w-[200px]">
+              <span className="block text-xs font-medium text-slate-700 mb-1">Scheme</span>
+              <select
+                value={schemeKey}
+                onChange={e => setSchemeKey(e.target.value)}
+                className="
+                  w-full px-3 py-2 rounded-lg border border-slate-300
+                  focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100
+                  transition-all duration-200 text-sm bg-white
+                "
+                aria-label="Filter by scheme"
+              >
+                <option value="">All Schemes</option>
+                {schemes.map(s => (
+                  <option key={s.key} value={s.key}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 /** -------------------------------------------
- * AIF row
+ * Enhanced AIF row component
  * ------------------------------------------*/
-
-/* ---------- Row ---------- */
 function Row({
-  a, meta, deliberationId, showPremises, onPromoted, onRefresh
+  a,
+  meta,
+  deliberationId,
+  showPremises,
+  onPromoted,
+  onRefresh,
 }: {
   a: AifRow;
-  meta: AifMeta;
+  meta?: AifMeta;
   deliberationId: string;
   showPremises: boolean;
   onPromoted: () => void;
   onRefresh: () => void;
 }) {
   const [open, setOpen] = React.useState(false);
-  const [cqs, setCqs] = React.useState<Array<{ cqKey:string; text:string; status:'open'|'answered'; attackType:string; targetScope:string }>>([]);
+  const [cqs, setCqs] = React.useState<Array<{ cqKey: string; text: string; status: 'open' | 'answered'; attackType: string; targetScope: string }>>([]);
+  const [obCq, setObCq] = React.useState<string | null>(null);
+  const [obPremiseId, setObPremiseId] = React.useState<string>('');
+  const [obText, setObText] = React.useState<string>('');
+  const [obClaim, setObClaim] = React.useState<{ id: string; text: string } | null>(null);
+  const [showCopied, setShowCopied] = React.useState(false);
 
   React.useEffect(() => {
     let cancel = false;
     (async () => {
       try {
-        const items = await getArgumentCQs(a.id); // safe: handled internally; errors ignored
+        const items = await getArgumentCQs(a.id);
         if (!cancel) setCqs(items || []);
-      } catch {/* ignore; protected by asJson and effect */ }
+      } catch {
+        /* ignore */
+      }
     })();
-    return () => { cancel = true; };
+    return () => {
+      cancel = true;
+    };
   }, [a.id]);
 
   const conclusionText = meta?.conclusion?.text || a.text || '';
+  const created = new Date(a.createdAt).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+
+  const copyLink = () => {
+    const url = `${location.origin}${location.pathname}#arg-${a.id}`;
+    navigator.clipboard
+      .writeText(url)
+      .then(() => {
+        setShowCopied(true);
+        setTimeout(() => setShowCopied(false), 2000);
+      })
+      .catch(() => {});
+  };
 
   return (
-    <article id={`arg-${a.id}`} className="rounded border bg-white/80 p-2" aria-label={`Argument ${a.id}`}>
-      <header className="flex items-start gap-2 justify-between">
-        <div className="flex-1">
-          <h4 className="text-sm font-medium leading-snug">{conclusionText}</h4>
+    <article
+      id={`arg-${a.id}`}
+      className="
+        group relative p-5 bg-white border-b border-slate-100
+        hover:bg-slate-50/50 transition-all duration-200
+        hover:shadow-sm
+      "
+      aria-label={`Argument ${a.id}`}
+    >
+      {/* Status indicator */}
+      {meta?.conclusion?.id && (
+        <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-emerald-400 to-emerald-600" />
+      )}
 
-          {showPremises && !!(meta?.premises?.length) && (
-            <ul className="mt-1 flex flex-wrap gap-1" aria-label="Premises">
-              {meta!.premises!.map(p => (
-                <li key={p.id} className="text-[11px] px-1.5 py-0.5 rounded-full border bg-slate-50">
-                  {p.text || p.id}
-                </li>
-              ))}
-            </ul>
-          )}
+      <div className="flex flex-col gap-4">
+        {/* Header section */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            {/* Conclusion */}
+            <h4 className="text-base font-semibold text-slate-900 leading-snug mb-2">
+              {conclusionText}
+            </h4>
 
-          {!!meta?.implicitWarrant?.text && (
-            <div className="mt-1 text-[11px] px-2 py-1 rounded bg-amber-50 border border-amber-200 text-amber-800">
-              Warrant: {meta.implicitWarrant.text}
-            </div>
-          )}
-        </div>
+            {/* Premises */}
+            {showPremises && meta?.premises && meta.premises.length > 0 && (
+              <ul className="flex flex-wrap gap-1.5 mb-2" aria-label="Premises">
+                {meta.premises.map(p => (
+                  <li
+                    key={p.id}
+                    className="
+                      inline-flex items-center gap-1 px-2.5 py-1 rounded-full
+                      bg-slate-100 border border-slate-200 text-slate-700
+                      text-xs transition-all duration-200
+                      hover:bg-slate-200
+                    "
+                  >
+                    <Target className="w-3 h-3" />
+                    {p.text || p.id}
+                  </li>
+                ))}
+              </ul>
+            )}
 
-        <div className="shrink-0 flex flex-col items-end gap-1">
-          <div className="flex items-center gap-2">
-            <SchemeBadge scheme={meta?.scheme} />
-            <CqMeter cq={meta?.cq} />
+            {/* Implicit warrant */}
+            {meta?.implicitWarrant?.text && (
+              <div className="mt-2 p-2.5 rounded-lg bg-amber-50 border border-amber-200">
+                <div className="flex items-start gap-2">
+                  <Sparkles className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+                  <div>
+                    <div className="text-xs font-medium text-amber-900 mb-0.5">Implicit Warrant</div>
+                    <div className="text-xs text-amber-800">{meta.implicitWarrant.text}</div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-          <AttackCounts a={meta?.attacks} />
+
+          {/* Metadata badges */}
+          <div className="shrink-0 flex flex-col items-end gap-2">
+            <div className="flex items-center flex-wrap gap-1.5 justify-end">
+              <time className="text-xs text-slate-500 font-medium">{created}</time>
+              <SchemeBadge scheme={meta?.scheme} />
+              <CqMeter cq={meta?.cq} />
+            </div>
+            <div className="flex items-center flex-wrap gap-1.5 justify-end">
+              <PreferenceCounts p={meta?.preferences} />
+              <AttackCounts a={meta?.attacks} />
+            </div>
+          </div>
         </div>
-      </header>
 
-      <section className="mt-2">
-        {a.text.length > 240 ? (
-          <ClampedBody text={a.text} onOpen={()=>setOpen(true)} />
-        ) : (
-          <div className="text-sm whitespace-pre-wrap">{a.text}</div>
+        {/* Body text */}
+        {a.text && (
+          <section className="p-4 bg-gradient-to-br from-slate-50 to-white rounded-xl border border-slate-200">
+            {a.text.length > 240 ? (
+              <ClampedBody text={a.text} onOpen={() => setOpen(true)} />
+            ) : (
+              <div className="text-sm leading-relaxed text-slate-700 whitespace-pre-wrap">{a.text}</div>
+            )}
+          </section>
         )}
-      </section>
 
-      <footer className="mt-2 flex flex-wrap items-center gap-2">
-        <LegalMoveToolbar
-          deliberationId={deliberationId}
-          targetType="argument"
-          targetId={a.id}
-          onPosted={() => window.dispatchEvent(new CustomEvent('dialogue:moves:refresh', { detail:{ deliberationId } } as any))}
-        />
-
-        {!!cqs.length && (
-          <div className="ml-1 flex gap-1 flex-wrap" aria-label="Critical questions">
+        {/* Critical Questions */}
+        {cqs.length > 0 && (
+          <div className="flex flex-wrap gap-2" aria-label="Critical questions">
             {cqs.map(c => (
-              <button
-                key={c.cqKey}
-                className={`px-2 py-0.5 rounded-full text-[11px] border ${c.status==='answered' ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200'}`}
-                onClick={async () => {
-                  await askCQ(a.id, c.cqKey, { authorId: a.authorId, deliberationId });
-                  setCqs(cs => cs.map(x => x.cqKey === c.cqKey ? { ...x, status:'open' } : x));
-                }}
-                title={`${c.text} (${c.attackType.toLowerCase()}/${c.targetScope})`}
-              >
-                {c.status === 'answered' ? '✅' : '⚠️'} {c.cqKey}
-              </button>
+              <div key={c.cqKey} className="inline-flex items-center gap-2">
+                <button
+                  className={`
+                    inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium
+                    transition-all duration-200 hover:scale-105
+                    ${c.status === 'answered'
+                      ? 'bg-emerald-100 border border-emerald-300 text-emerald-700'
+                      : 'bg-amber-100 border border-amber-300 text-amber-700'
+                    }
+                  `}
+                  onClick={async () => {
+                    await askCQ(a.id, c.cqKey, { authorId: a.authorId, deliberationId });
+                    setCqs(cs => cs.map(x => (x.cqKey === c.cqKey ? { ...x, status: 'open' } : x)));
+                  }}
+                  title={`${c.text} (${c.attackType.toLowerCase()}/${c.targetScope})`}
+                >
+                  {c.status === 'answered' ? <CheckCircle2 className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />}
+                  {c.cqKey}
+                </button>
+                <button
+                  className="text-xs text-indigo-600 hover:text-indigo-700 font-medium hover:underline transition-colors"
+                  title="Answer as objection…"
+                  onClick={() => {
+                    setObCq(prev => (prev === c.cqKey ? null : c.cqKey));
+                    setObPremiseId(meta?.premises?.[0]?.id ?? '');
+                    setObText('');
+                    setObClaim(null);
+                  }}
+                >
+                  objection…
+                </button>
+
+                {/* Inline objection editor */}
+                {obCq === c.cqKey && (
+                  <span className="inline-flex items-center gap-2 p-2 bg-slate-50 rounded-lg border border-slate-200 animate-in slide-in-from-left duration-200">
+                    {c.attackType === 'REBUTS' && (
+                      <>
+                        <ClaimPicker deliberationId={deliberationId} authorId={a.authorId} label="Counter‑claim" onPick={setObClaim} />
+                        <button
+                          className="px-3 py-1.5 rounded-lg text-xs font-medium bg-rose-600 text-white hover:bg-rose-700 disabled:opacity-50 transition-all"
+                          disabled={!obClaim}
+                          onClick={async () => {
+                            await fetch('/api/ca', {
+                              method: 'POST',
+                              headers: { 'content-type': 'application/json' },
+                              body: JSON.stringify({
+                                deliberationId,
+                                conflictingClaimId: obClaim!.id,
+                                conflictedClaimId: meta?.conclusion?.id ?? '',
+                                legacyAttackType: 'REBUTS',
+                                legacyTargetScope: 'conclusion',
+                              }),
+                            });
+                            setObCq(null);
+                            onRefresh();
+                          }}
+                        >
+                          Post rebuttal
+                        </button>
+                      </>
+                    )}
+                    {c.attackType === 'UNDERCUTS' && (
+                      <>
+                        <input
+                          className="px-3 py-1.5 rounded-lg border border-slate-300 text-xs focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all"
+                          placeholder="Exception / rule‑defeater…"
+                          value={obText}
+                          onChange={e => setObText(e.target.value)}
+                        />
+                        <button
+                          className="px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-50 transition-all"
+                          disabled={!obText.trim()}
+                          onClick={async () => {
+                            const r = await fetch('/api/claims', {
+                              method: 'POST',
+                              headers: { 'content-type': 'application/json' },
+                              body: JSON.stringify({ deliberationId, authorId: a.authorId, text: obText.trim() }),
+                            });
+                            const j = await r.json();
+                            await fetch('/api/ca', {
+                              method: 'POST',
+                              headers: { 'content-type': 'application/json' },
+                              body: JSON.stringify({
+                                deliberationId,
+                                conflictingClaimId: j.id,
+                                conflictedArgumentId: a.id,
+                                legacyAttackType: 'UNDERCUTS',
+                                legacyTargetScope: 'inference',
+                              }),
+                            });
+                            setObCq(null);
+                            setObText('');
+                            onRefresh();
+                          }}
+                        >
+                          Post undercut
+                        </button>
+                      </>
+                    )}
+                    {c.attackType === 'UNDERMINES' && (
+                      <>
+                        <select
+                          className="px-2 py-1.5 rounded-lg border border-slate-300 text-xs focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all bg-white"
+                          value={obPremiseId}
+                          onChange={e => setObPremiseId(e.target.value)}
+                        >
+                          {(meta?.premises ?? []).map(p => (
+                            <option key={p.id} value={p.id}>
+                              {p.text || p.id}
+                            </option>
+                          ))}
+                        </select>
+                        <ClaimPicker deliberationId={deliberationId} authorId={a.authorId} label="Contradicting claim" onPick={setObClaim} />
+                        <button
+                          className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-600 text-white hover:bg-slate-700 disabled:opacity-50 transition-all"
+                          disabled={!obClaim || !obPremiseId}
+                          onClick={async () => {
+                            await fetch('/api/ca', {
+                              method: 'POST',
+                              headers: { 'content-type': 'application/json' },
+                              body: JSON.stringify({
+                                deliberationId,
+                                conflictingClaimId: obClaim!.id,
+                                conflictedClaimId: obPremiseId,
+                                legacyAttackType: 'UNDERMINES',
+                                legacyTargetScope: 'premise',
+                              }),
+                            });
+                            setObCq(null);
+                            setObClaim(null);
+                            onRefresh();
+                          }}
+                        >
+                          Post undermine
+                        </button>
+                      </>
+                    )}
+                  </span>
+                )}
+              </div>
             ))}
           </div>
         )}
 
-        <span className="ml-auto" />
-        <AttackMenuPro
-          deliberationId={deliberationId}
-          authorId={a.authorId ?? 'current'}
-          target={{
-            id: a.id,
-            conclusion: { id: meta?.conclusion?.id ?? '', text: conclusionText ?? '' },
-            premises: meta?.premises ?? []
-          }}
-        />
-
-        {/* “Promoted ✓” in the legacy sense is “has a claim record”.
-            With AIF v0.5, we have a conclusion claim always; keep the affordance:
-        */}
-        {meta?.conclusion?.id ? (
-          <span className="text-[11px] px-2 py-1 rounded border border-emerald-300 bg-emerald-50 text-emerald-700">Promoted ✓</span>
-        ) : (
-          <PromoteToClaimButton
+        {/* Actions footer */}
+        <footer className="flex flex-wrap items-center gap-2">
+          <LegalMoveToolbar
             deliberationId={deliberationId}
-            target={{ type: 'argument', id: a.id }}
-            onClaim={async () => { onPromoted(); onRefresh(); }}
+            targetType="argument"
+            targetId={a.id}
+            onPosted={() => window.dispatchEvent(new CustomEvent('dialogue:moves:refresh', { detail: { deliberationId } } as any))}
           />
-        )}
 
-        <button
-          className="px-2 py-1 btnv2--ghost rounded text-xs"
-          onClick={() => {
-            const url = `${location.origin}${location.pathname}#arg-${a.id}`;
-            navigator.clipboard.writeText(url).catch(()=>{});
-          }}
-          title="Copy a direct link to this argument"
-        >
-          Copy link
-        </button>
-      </footer>
+          <PreferenceQuick deliberationId={deliberationId} argumentId={a.id} onDone={onRefresh} />
 
+          <AttackMenuPro
+            deliberationId={deliberationId}
+            authorId={a.authorId ?? 'current'}
+            target={{
+              id: a.id,
+              conclusion: { id: meta?.conclusion?.id ?? '', text: conclusionText ?? '' },
+              premises: meta?.premises ?? [],
+            }}
+          />
+
+          <div className="flex-1" />
+
+          {/* Promote/promoted status */}
+          {meta?.conclusion?.id ? (
+            <a
+              href={`/claims/${meta.conclusion.id}`}
+              className="
+                inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
+                bg-emerald-100 text-emerald-700 border border-emerald-200
+                hover:bg-emerald-200 transition-all duration-200 shadow-sm hover:shadow
+              "
+            >
+              <TrendingUp className="w-4 h-4" />
+              View Claim
+            </a>
+          ) : (
+            <PromoteToClaimButton
+              deliberationId={deliberationId}
+              target={{ type: 'argument', id: a.id }}
+              onClaim={async () => {
+                onPromoted();
+                onRefresh();
+              }}
+            />
+          )}
+
+          {/* Copy link */}
+          <button
+            className="
+              inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium
+              bg-white text-slate-600 border border-slate-200
+              hover:border-slate-300 hover:bg-slate-50
+              transition-all duration-200
+            "
+            onClick={copyLink}
+            title="Copy link to this argument"
+          >
+            <Link2 className="w-4 h-4" />
+            {showCopied ? 'Copied!' : 'Share'}
+          </button>
+        </footer>
+      </div>
+
+      {/* Full text dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-2xl max-h-[60vh] bg-slate-50 rounded-xl overflow-y-auto p-4">
-          <DialogHeader><DialogTitle>Full argument</DialogTitle></DialogHeader>
-          <div className="whitespace-pre-wrap text-sm">{a.text}</div>
-          <div className="mt-3 flex justify-end"><DialogClose className="btnv2">Close</DialogClose></div>
+        <DialogContent className="max-w-2xl max-h-[60vh] bg-white rounded-xl overflow-y-auto p-6 shadow-xl">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-semibold">Full Argument</DialogTitle>
+          </DialogHeader>
+          <div className="whitespace-pre-wrap text-sm leading-relaxed text-slate-700 mt-4">{a.text}</div>
+          <div className="mt-6 flex justify-end">
+            <DialogClose className="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium transition-all">
+              Close
+            </DialogClose>
+          </div>
         </DialogContent>
       </Dialog>
     </article>
@@ -284,7 +1454,7 @@ function Row({
 }
 
 /** -------------------------------------------
- * Main list (non-destructive; lives next to existing ArgumentsList)
+ * Main list component
  * ------------------------------------------*/
 export default function AIFArgumentsListPro({
   deliberationId,
@@ -293,172 +1463,167 @@ export default function AIFArgumentsListPro({
   deliberationId: string;
   onVisibleTextsChanged?: (texts: string[]) => void;
 }) {
-  // scheme list for filter UI
-  const [schemes, setSchemes] = React.useState<Array<{ key:string; name:string }>>([]);
+  // Schemes
+  const [schemes, setSchemes] = React.useState<Array<{ key: string; name: string }>>([]);
   React.useEffect(() => {
     let c = false;
-    listSchemes().then(items => {
-      if (!c) setSchemes((items || []).map((s:any) => ({ key: s.key, name: s.name })));
-    }).catch(()=>setSchemes([]));
-    return () => { c = true; };
+    listSchemes()
+      .then(items => {
+        if (!c) setSchemes((items || []).map((s: any) => ({ key: s.key, name: s.name })));
+      })
+      .catch(() => setSchemes([]));
+    return () => {
+      c = true;
+    };
   }, []);
 
-  // client-side filters
+  // Filters
   const [schemeKey, setSchemeKey] = React.useState('');
   const [q, setQ] = React.useState('');
   const [showPremises, setShowPremises] = React.useState(true);
 
-  // base list
-  const getKey = (idx: number, prev: any) => {
-  if (prev && !prev.nextCursor) return null;
-  const cursor = prev?.nextCursor ? `&cursor=${encodeURIComponent(prev.nextCursor)}` : '';
-  return `/api/deliberations/${encodeURIComponent(deliberationId)}/arguments/aif?limit=20${cursor}`;
-};
+  // Base list
+  const getKey = (_idx: number, prev: any) => {
+    if (prev && !prev.nextCursor) return null;
+    const cursor = prev?.nextCursor ? `&cursor=${encodeURIComponent(prev.nextCursor)}` : '';
+    return `/api/deliberations/${encodeURIComponent(deliberationId)}/arguments/aif?limit=${PAGE}${cursor}`;
+  };
 
-const { data, error, size, setSize, isLoading } = useSWRInfinite(getKey, fetcher, { revalidateOnFocus: false });
-const pages = data ?? [];
-const rows = pages.flatMap(p => p?.items ?? []);            // each is AifRow
+  const { data, error, size, setSize, isLoading, mutate } = useSWRInfinite(getKey, fetcher, { revalidateOnFocus: false });
 
-// No need for extra AIF fetches:
-const aifBatch: { items?: AifMeta[] } | undefined = undefined;
-const [aifMap, setAifMap] = React.useState<Record<string, AifMeta>>({});
+  const pages = data ?? [];
+  const rows: AifRow[] = pages.flatMap(p => p?.items ?? []);
 
-  // AIF meta hydration: batch → row fallbacks
-  const ids = React.useMemo(() => rows.map(r => r.id), [rows]);
-  const idsParam = ids.length ? `ids=${ids.map(encodeURIComponent).join(',')}` : '';
-//   const { data: aifBatch } = useSWR<{ items?: AifMeta[] }>(
-//     ids.length ? `/api/arguments/batch?${idsParam}&include=aif` : null,
-//     fetcher,
-//     { revalidateOnFocus:false }
-//   );
+  // Per-row AIF meta hydration
+  const [aifMap, setAifMap] = React.useState<Record<string, AifMeta>>({});
 
-//   const [aifMap, setAifMap] = React.useState<Record<string, AifMeta>>({});
-// AIF meta hydration: batch → row fallbacks
-//   const ids = React.useMemo(() => rows.map(r => r.id), [rows]);
-//   const idsParam = ids.length ? `ids=${ids.map(encodeURIComponent).join(',')}` : '';
-//   const { data: aifBatch } = useSWR<{ items?: AifMeta[] }>(
-//     ids.length ? `/api/arguments/batch?${idsParam}&include=aif` : null,
-//     fetcher,
-//     { revalidateOnFocus:false }
-//   );
-
-//   const [aifMap, setAifMap] = React.useState<Record<string, AifMeta>>({}); 
   React.useEffect(() => {
     let cancelled = false;
     (async () => {
       const byId: Record<string, AifMeta> = {};
-      // 1) batch
-      for (const it of ((aifBatch as { items?: AifMeta[] } | undefined)?.items ?? [])) byId[it.id] = it;
+      const pending = rows.filter(r => !r.aif).map(r => r.id);
+      
+      await Promise.all(
+        pending.map(async id => {
+          try {
+            const one = await fetch(`/api/arguments/${id}/aif`)
+              .then(r => (r.ok ? r.json() : null))
+              .catch(() => null);
+            if (one?.aif) {
+              byId[id] = {
+                scheme: one.aif.scheme ?? null,
+                conclusion: one.aif.conclusion ?? null,
+                premises: one.aif.premises ?? [],
+                implicitWarrant: one.aif.implicitWarrant ?? null,
+                attacks: one.aif.attacks ?? { REBUTS: 0, UNDERCUTS: 0, UNDERMINES: 0 },
+                cq: one.aif.cq ?? { required: 0, satisfied: 0 },
+                preferences: one.aif.preferences ?? { preferredBy: 0, dispreferredBy: 0 },
+              };
+              return;
+            }
 
-      // 2) per-row fill (premises, warrant, CQ meter, attack counts)
-      const pending = ids.filter(id => !byId[id]);
-      await Promise.all(pending.map(async (id) => {
-        try {
-          // 1) try the one-shot AIF view
-          const aAif = await fetch(`/api/arguments/${id}/aif`).then(r => r.ok ? r.json() : null).catch(()=>null);
-          if (aAif?.aif) {
-            byId[id] = {
-              id,
-              scheme: aAif.aif.scheme ?? null,
-              conclusion: aAif.aif.conclusion ?? null,
-              premises: aAif.aif.premises ?? [],
-              implicitWarrant: aAif.aif.implicitWarrant ?? null,
-              attacks: aAif.aif.attacks ?? { REBUTS: 0, UNDERCUTS: 0, UNDERMINES: 0 },
-              cq: aAif.aif.cq ?? { required: 0, satisfied: 0 }
-            };
-       return;
-          }
-          // 2) fallback: assemble piecemeal
-          const meta = { id } as AifMeta;
-          const aAss = await fetch(`/api/arguments/${id}/assumptions`).then(r=>r.ok ? r.json() : null).catch(()=>null);
-          if (aAss?.premises) meta.premises = aAss.premises;
-          if (aAss?.implicitWarrant) meta.implicitWarrant = aAss.implicitWarrant;
-          const conc = await fetch(`/api/arguments/${id}/conclusion`).then(r=>r.ok ? r.json() : null).catch(()=>null);
-          if (conc?.id) meta.conclusion = conc;
-          const aCq = await fetch(`/api/arguments/${id}/cqs`).then(r=>r.ok ? r.json() : null).catch(()=>null);
-          if (Array.isArray(aCq?.items)) {
-            const req = aCq.items.length;
-            const sat = aCq.items.filter((x:any) => x.status === 'answered').length;
-            meta.cq = { required: req, satisfied: sat };
-          }
-     const aAtk = await fetch(`/api/arguments/${id}/attacks`).then(r=>r.ok ? r.json() : null).catch(()=>null);
-     if (Array.isArray(aAtk?.items)) {
-       const g = { REBUTS: 0, UNDERCUTS: 0, UNDERMINES: 0 };
-       for (const e of aAtk.items) {
-         const t = String(e.attackType || '').toUpperCase();
-         if (t in g) (g as any)[t] += 1;
-       }
-       meta.attacks = g;
-     }
+            // Light fallback
+            const aCq = await fetch(`/api/arguments/${id}/aif-cqs`)
+              .then(r => (r.ok ? r.json() : null))
+              .catch(() => null);
+            const cq = Array.isArray(aCq?.items)
+              ? { required: aCq.items.length, satisfied: aCq.items.filter((x: any) => x.status === 'answered').length }
+              : undefined;
 
-          byId[id] = meta;
-        } catch {/* ignore */}
-      }));
+            const ca = await fetch(`/api/ca?targetArgumentId=${encodeURIComponent(id)}&limit=200`)
+              .then(r => (r.ok ? r.json() : null))
+              .catch(() => null);
+            const g = { REBUTS: 0, UNDERCUTS: 0, UNDERMINES: 0 };
+            for (const e of ca?.items ?? []) {
+              const t = String(e.legacyAttackType || '').toUpperCase();
+              if (t && t in g) (g as any)[t] += 1;
+            }
 
-      if (!cancelled) setAifMap(byId);
+            byId[id] = { cq, attacks: g };
+          } catch {}
+        })
+      );
+
+      if (!cancelled) setAifMap(m => ({ ...m, ...byId }));
     })();
-    return () => { cancelled = true; };
-  }, [ids.join(','), aifBatch?.items?.length]);
+    return () => {
+      cancelled = true;
+    };
+  }, [rows]);
 
-  // visible texts (power other panels)
+  // Visible texts
   React.useEffect(() => {
     if (!onVisibleTextsChanged) return;
     const texts: string[] = [];
     for (const r of rows) {
-      const claimText = (aifMap[r.id]?.conclusion?.text) ?? '';
+      const claimText = r.aif?.conclusion?.text ?? aifMap[r.id]?.conclusion?.text ?? '';
       const t = claimText || r.text || '';
       if (t) texts.push(t);
     }
     onVisibleTextsChanged(texts);
   }, [rows, aifMap, onVisibleTextsChanged]);
 
-  // Apply client-side filters
-  const filtered: Arg[] = React.useMemo(() => {
+  // Filtering
+  const filtered: AifRow[] = React.useMemo(() => {
     const lower = q.trim().toLowerCase();
     return rows.filter(a => {
-      //const meta = aifMap[a.id] || aifBatch?.items?.find(x => x.id === a.id);
-const meta = (a as any).aif || aifMap[a.id];
-      const schemeOk = !schemeKey || (meta?.scheme?.key === schemeKey);
-      const textBucket = [
-        meta?.conclusion?.text || a.text || '',
-        ...(meta?.premises?.map(p => p.text || '') ?? []),
-        meta?.implicitWarrant?.text || ''
-      ].join(' ').toLowerCase();
+      const meta = a.aif || aifMap[a.id];
+      const schemeOk = !schemeKey || meta?.scheme?.key === schemeKey;
+      const textBucket = [meta?.conclusion?.text || a.text || '', ...(meta?.premises?.map(p => p.text || '') ?? []), meta?.implicitWarrant?.text || '']
+        .join(' ')
+        .toLowerCase();
       const qOk = !lower || textBucket.includes(lower);
       return schemeOk && qOk;
     });
-  }, [rows, aifMap, aifBatch?.items, schemeKey, q]);
+  }, [rows, aifMap, schemeKey, q]);
 
-  // List states
+  // Loading state
   if (isLoading && rows.length === 0) {
     return (
-      <section className="rounded-md border bg-white/60 p-3">
-        <header className="text-md font-medium mb-2">Arguments (AIF)</header>
-        <div className="flex items-center gap-2 text-sm text-slate-500"><Spinner /> Loading…</div>
+      <section className="w-full rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div className="p-8 text-center">
+          <div className="inline-block w-8 h-8 border-3 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4" />
+          <p className="text-sm text-slate-600">Loading arguments...</p>
+        </div>
       </section>
     );
   }
+
+  // Error state
   if (error) {
-    function mutate(): void {
-      swrMutate(
-        getKey, 
-        undefined, 
-        { revalidate: true }
-      );
+    function revalidate(): void {
+      swrMutate(getKey, undefined, { revalidate: true });
     }
     return (
-      <section className="rounded-md border bg-white/60 p-3">
-        <header className="text-md font-medium mb-2">Arguments (AIF)</header>
-        <div className="text-xs text-rose-700">{String(error?.message || 'Failed to load')}</div>
-        <button className="text-xs underline mt-1" onClick={()=>mutate()}>Retry</button>
+      <section className="w-full rounded-xl border border-rose-200 bg-rose-50 shadow-sm">
+        <div className="p-8 text-center">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-rose-100 mb-4">
+            <span className="text-2xl">⚠️</span>
+          </div>
+          <h3 className="text-sm font-medium text-rose-900 mb-2">Failed to load arguments</h3>
+          <p className="text-xs text-rose-700 mb-4">{String(error?.message || 'Unknown error')}</p>
+          <button
+            onClick={() => revalidate()}
+            className="px-4 py-2 rounded-lg text-sm font-medium bg-rose-600 text-white hover:bg-rose-700 transition-all duration-200 shadow-sm hover:shadow"
+          >
+            Try Again
+          </button>
+        </div>
       </section>
     );
   }
+
+  // Empty state
   if (!rows.length) {
     return (
-      <section className="rounded-md border bg-white/60 p-3">
-        <header className="text-md font-medium mb-1">Arguments (AIF)</header>
-        <p className="text-xs text-slate-600">No arguments yet.</p>
+      <section className="w-full rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white shadow-sm">
+        <div className="p-12 text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-indigo-100 mb-4">
+            <Shield className="w-8 h-8 text-indigo-600" />
+          </div>
+          <h3 className="text-lg font-semibold text-slate-900 mb-2">No arguments yet</h3>
+          <p className="text-sm text-slate-600 max-w-md mx-auto">Arguments will appear here as they are created with structured reasoning using AIF format.</p>
+        </div>
       </section>
     );
   }
@@ -466,47 +1631,49 @@ const meta = (a as any).aif || aifMap[a.id];
   const nextCursor = data?.[data.length - 1]?.nextCursor ?? null;
 
   return (
-    <section aria-label="AIF arguments list" className="w-full rounded-xl border bg-white/70 h-full 
-    flex flex-col min-h-[300px] overflow-y-auto">
-      <Controls
-        schemes={schemes}
-        schemeKey={schemeKey}
-        setSchemeKey={setSchemeKey}
-        q={q}
-        setQ={setQ}
-        showPremises={showPremises}
-        setShowPremises={setShowPremises}
-      />
-      <div className="h-[560px]">
+    <section aria-label="AIF arguments list" className="w-full rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col h-full">
+      <Controls schemes={schemes} schemeKey={schemeKey} setSchemeKey={setSchemeKey} q={q} setQ={setQ} showPremises={showPremises} setShowPremises={setShowPremises} />
+
+      <div className="h-[564px]">
         <Virtuoso
           data={filtered}
           computeItemKey={(_i, a) => a.id}
-          itemContent={(index, a) => {
-           const meta = (a as any).aif || aifMap[a.id] || aifBatch?.items?.find(x => x.id === a.id);
-
+          itemContent={(_index, a) => {
+            const meta = a.aif || aifMap[a.id];
             return (
-              <div className="px-2 py-1">
-                <Row
-                  a={a}
-                  meta={meta}
-                  deliberationId={deliberationId}
-                  showPremises={showPremises}
-                  onPromoted={() => window.dispatchEvent(new CustomEvent('claims:changed', { detail: { deliberationId } }))}
-                  onRefresh={() => mutate()}
-                />
+              <div>
+                <Row a={a} meta={meta} deliberationId={deliberationId} showPremises={showPremises} onPromoted={() => window.dispatchEvent(new CustomEvent('claims:changed', { detail: { deliberationId } }))} onRefresh={() => mutate()} />
               </div>
             );
           }}
           endReached={() => !isLoading && nextCursor && setSize(s => s + 1)}
           components={{
             Footer: () => (
-              <div className="py-3 px-4 text-center text-[12px] text-neutral-500">
-                {nextCursor ? 'Scroll to load more' : 'End'}
+              <div className="py-6 text-center border-t border-slate-100">
+                {isLoading ? (
+                  <div className="inline-flex items-center gap-2 text-sm text-slate-600">
+                    <div className="w-4 h-4 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" />
+                    Loading more...
+                  </div>
+                ) : nextCursor ? (
+                  <p className="text-sm text-slate-500">Scroll to load more</p>
+                ) : (
+                  <p className="text-sm text-slate-400">You've reached the end</p>
+                )}
               </div>
             ),
           }}
         />
       </div>
     </section>
+  );
+}
+
+// Placeholder ClaimPicker component (you'll need to import your actual one)
+function ClaimPicker({ deliberationId, authorId, label, onPick }: { deliberationId: string; authorId: string; label: string; onPick: (claim: { id: string; text: string }) => void }) {
+  return (
+    <button className="px-3 py-1.5 rounded-lg border border-slate-300 text-xs bg-white hover:bg-slate-50 transition-all" onClick={() => onPick({ id: 'placeholder', text: 'Placeholder claim' })}>
+      {label}
+    </button>
   );
 }

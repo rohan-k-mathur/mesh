@@ -18,6 +18,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
+
 import PdfLightbox from "@/components/modals/PdfLightbox";
 import { removeFromStack, setStackOrder } from "@/lib/actions/stack.actions";
 
@@ -81,7 +82,7 @@ const submitBtnRef = React.useRef<HTMLButtonElement>(null);
     <>
       {/* Hidden form posts to setStackOrder (server action) */}
       {editable && (
-        <form action={setStackOrder} method="POST" ref={formRef} className="hidden">
+        <form action={setStackOrder} ref={formRef} className="hidden">
           <input type="hidden" name="stackId" value={stackId} />
           <input type="hidden" name="orderJson" ref={orderInputRef} />
            <button type="submit" ref={submitBtnRef} className="hidden" />
@@ -132,9 +133,10 @@ function SortableTile({
     boxShadow: isDragging ? "0 8px 24px rgba(0,0,0,.12)" : undefined,
   };
 
-  const cover = tile.thumb_urls?.[0]
-    ?? deriveThumbFromPdfUrl(tile.file_url)
-    ?? "/assets/PDF.svg";
+ const coverCandidate =
+   tile.thumb_urls?.[0] ?? deriveThumbFromPdfUrl(tile.file_url) ?? "/assets/PDF.svg";
+ const [imgSrc, setImgSrc] = React.useState(coverCandidate);
+ React.useEffect(() => setImgSrc(coverCandidate), [coverCandidate]);
   const title = tile.title || "PDF";
 
   return (
@@ -146,14 +148,21 @@ function SortableTile({
       <PdfLightbox
         trigger={
           <img
-            src={cover}
+            src={imgSrc}
             alt={title}
             className="w-full aspect-[4/3] object-cover cursor-pointer select-none"
             draggable={false}
+            loading="lazy"
+            decoding="async"
+            referrerPolicy="no-referrer"
+            onError={() => {
+              if (imgSrc !== "/assets/PDF.svg") setImgSrc("/assets/PDF.svg");
+            }}
           />
         }
-            postId={tile.id}   // let the lightbox fetch a fresh (signed) URL
-    title={title}
+       // Let the lightbox fetch fresh (signed) info by postId:
+       postId={tile.id}
+       title={title}
         // fileUrl={tile.file_url}
         // title={title}
       />
@@ -187,7 +196,7 @@ function SortableTile({
 
       {/* Remove button on hover */}
       {editable && (
-        <form action={removeFromStack} method="POST" className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition">
+        <form action={removeFromStack}  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition">
           <input type="hidden" name="stackId" value={stackId} />
           <input type="hidden" name="postId" value={tile.id} />
           <button

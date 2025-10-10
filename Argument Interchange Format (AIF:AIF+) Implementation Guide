@@ -1,0 +1,5197 @@
+# Argument Interchange Format (AIF/AIF+) Implementation Guide
+## Comprehensive Technical Specification for Digital Agora
+
+**Version:** 1.0  
+**Date:** October 9, 2025  
+**Target Platform:** Digital Agora (TypeScript, Supabase, Next.js)  
+**Based on Research:**
+- Reed et al. (2008) - "AIF+: Dialogue in the Argument Interchange Format"
+- Bex et al. - "On Logical Specifications of the Argument Interchange Format"
+
+---
+
+## Table of Contents
+
+1. [Executive Summary](#executive-summary)
+2. [AIF Core Ontology](#aif-core-ontology)
+3. [AIF+ Dialogue Extensions](#aif-dialogue-extensions)
+4. [Formal Semantics: ASPIC+ Framework](#formal-semantics-aspic-framework)
+5. [Data Model Design](#data-model-design)
+6. [API Design Patterns](#api-design-patterns)
+7. [Translation Algorithms](#translation-algorithms)
+8. [Implementation Roadmap](#implementation-roadmap)
+9. [Testing & Validation](#testing-validation)
+10. [Interoperability & Serialization](#interoperability-serialization)
+
+---
+
+## Executive Summary
+
+### What is AIF?
+
+The **Argument Interchange Format (AIF)** is a formal ontology for representing argumentation structures in a machine-readable, interoperable way. It serves as an interlingua between different argumentation tools, theories, and computational frameworks.
+
+### Why AIF Matters for Digital Agora
+
+1. **Semantic Precision**: Transform discussions from unstructured text to formal argument graphs
+2. **Computational Reasoning**: Enable automated evaluation of argument strength and logical validity
+3. **Interoperability**: Exchange arguments with academic tools (AIFdb, OVA, Carneades)
+4. **Quality Assurance**: Apply formal constraints to ensure logical consistency
+5. **Advanced Features**: Support for dialogue protocols, argumentation schemes, and dialectical evaluation
+
+### Key Design Principles
+
+**Two-Level Architecture:**
+- **Upper Ontology**: Abstract node types and relationships
+- **Forms Ontology**: Specific schemes, patterns, and rules
+
+**Separation of Concerns:**
+- **Representation** (what arguments say) vs. **Processing** (what they mean)
+- **Descriptive** (what happened) vs. **Normative** (what should happen)
+
+**Progressive Disclosure:**
+- Simple UI for users ("Add support for this claim")
+- Complex graph structures maintained internally
+- Power users can access advanced features when needed
+
+---
+
+## AIF Core Ontology
+
+### 1.1 The Upper Ontology
+
+The AIF represents arguments as **typed directed graphs** consisting of nodes and edges.
+
+#### Node Types
+
+##### I-Nodes (Information Nodes)
+**Purpose:** Represent propositional content (claims, statements, data)
+
+**Properties:**
+```typescript
+interface INode {
+  id: string;                    // Unique identifier
+  nodeType: 'I';                 // Type discriminator
+  content: string;               // The actual claim/statement
+  metadata?: {
+    author?: string;
+    timestamp?: Date;
+    source?: string;
+  };
+}
+```
+
+**Examples:**
+- "Carbon pricing will reduce emissions"
+- "Expert testimony suggests X"
+- "Studies show Y correlation"
+
+**Key Characteristics:**
+- Can only connect to other I-nodes through S-nodes
+- Represent the *what* of argumentation
+- May be premises, conclusions, or intermediate claims
+
+---
+
+##### S-Nodes (Scheme Application Nodes)
+**Purpose:** Represent inferential, conflict, or preference relations between I-nodes
+
+S-nodes come in three subtypes:
+
+##### RA-Nodes (Rule Application / Inference Nodes)
+**Purpose:** Represent that one or more I-nodes support or imply another I-node
+
+**Properties:**
+```typescript
+interface RANode {
+  id: string;
+  nodeType: 'RA';
+  schemeType: 'deductive' | 'defeasible' | 'presumptive';
+  schemeId?: string;             // References Forms Ontology
+  metadata?: {
+    ruleName?: string;           // e.g., "Modus Ponens", "Expert Opinion"
+    confidence?: number;
+  };
+}
+```
+
+**Graph Pattern:**
+```
+[I-node: P] ----premise----> [RA-node] ----conclusion----> [I-node: Q]
+[I-node: P→Q] --premise----> [RA-node]
+```
+
+**Example:**
+```typescript
+// Argument from Expert Opinion
+const premises = [
+  { content: "Dr. Smith is an expert in climate science" },
+  { content: "Dr. Smith asserts carbon pricing reduces emissions" },
+  { content: "Carbon pricing is within Dr. Smith's domain of expertise" }
+];
+
+const raNode = {
+  id: "ra_001",
+  nodeType: "RA",
+  schemeType: "presumptive",
+  schemeId: "expert_opinion"
+};
+
+const conclusion = {
+  content: "Carbon pricing will reduce emissions"
+};
+```
+
+---
+
+##### CA-Nodes (Conflict Application Nodes)
+**Purpose:** Represent that one I-node attacks or conflicts with another
+
+**Properties:**
+```typescript
+interface CANode {
+  id: string;
+  nodeType: 'CA';
+  conflictType: 'rebut' | 'undercut' | 'undermine';
+  schemeId?: string;             // Optional conflict scheme
+}
+```
+
+**Graph Pattern:**
+```
+[I-node: P] ----conflicting----> [CA-node] ----conflicted----> [I-node: Q]
+```
+
+**Conflict Types:**
+
+1. **Rebut**: Attack a conclusion
+   ```
+   [I: "Carbon tax is ineffective"] --rebuts--> [I: "Carbon tax reduces emissions"]
+   ```
+
+2. **Undercut**: Attack an inference (the reasoning itself)
+   ```
+   [I: "The expert is biased"] --undercuts--> [RA: Expert Opinion inference]
+   ```
+
+3. **Undermine**: Attack a premise
+   ```
+   [I: "Study methodology was flawed"] --undermines--> [I: "Study shows X"]
+   ```
+
+---
+
+##### PA-Nodes (Preference Application Nodes)
+**Purpose:** Represent that one argument/rule/premise is preferred over another
+
+**Properties:**
+```typescript
+interface PANode {
+  id: string;
+  nodeType: 'PA';
+  preferenceType: 'argument' | 'rule' | 'premise';
+  justification?: string;
+}
+```
+
+**Graph Pattern:**
+```
+[I/RA: X] ----preferred----> [PA-node] ----dispreferred----> [I/RA: Y]
+```
+
+**Use Cases:**
+- Resolve conflicts when two arguments attack each other
+- Express source reliability hierarchies
+- Implement voting/consensus mechanisms
+
+---
+
+#### Edge Types
+
+AIF edges are **typed** to indicate the role of nodes in a relation:
+
+| Edge Type | Source | Target | Meaning |
+|-----------|--------|--------|---------|
+| `premise` | I-node or RA-node | RA-node | This is a premise for the inference |
+| `conclusion` | RA-node | I-node | This is the conclusion of the inference |
+| `conflicting` | I-node | CA-node | This attacks... |
+| `conflicted` | CA-node | I-node or RA-node | ...this target |
+| `preferred` | I-node or RA-node | PA-node | This is preferred... |
+| `dispreferred` | PA-node | I-node or RA-node | ...to this |
+
+---
+
+### 1.2 The Forms Ontology
+
+The Forms Ontology defines **reusable patterns** that node instances can fulfill.
+
+#### Inference Schemes
+
+**Definition**: General patterns of reasoning that can be applied to specific instances
+
+**Structure:**
+```typescript
+interface InferenceScheme {
+  id: string;
+  name: string;
+  category: 'deductive' | 'inductive' | 'presumptive';
+  premises: PremiseDescription[];
+  conclusion: ConclusionDescription;
+  presumptions: PresumptionDescription[];  // Implicit assumptions
+  exceptions: ExceptionDescription[];       // Defeating conditions
+  criticalQuestions: CriticalQuestion[];    // Pointers to potential attacks
+}
+
+interface PremiseDescription {
+  id: string;
+  template: string;        // e.g., "E is an expert in domain D"
+  required: boolean;
+}
+
+interface CriticalQuestion {
+  id: string;
+  question: string;
+  attackType: 'rebut' | 'undercut' | 'undermine';
+  targetElement: 'premise' | 'inference' | 'conclusion' | 'presumption';
+}
+```
+
+**Example: Argument from Expert Opinion**
+```typescript
+const expertOpinionScheme: InferenceScheme = {
+  id: "expert_opinion",
+  name: "Argument from Expert Opinion",
+  category: "presumptive",
+  premises: [
+    { id: "p1", template: "E is an expert in domain D", required: true },
+    { id: "p2", template: "E asserts that A is true", required: true },
+    { id: "p3", template: "A is within D", required: true }
+  ],
+  conclusion: {
+    template: "A may plausibly be taken as true"
+  },
+  presumptions: [
+    { template: "E is credible" },
+    { template: "E is unbiased" },
+    { template: "A is based on evidence" }
+  ],
+  exceptions: [
+    { template: "E is not reliable" },
+    { template: "A is not consistent with testimony of other experts" }
+  ],
+  criticalQuestions: [
+    {
+      id: "cq1",
+      question: "Is E really an expert in D?",
+      attackType: "undermine",
+      targetElement: "premise"
+    },
+    {
+      id: "cq2", 
+      question: "Is E biased?",
+      attackType: "undercut",
+      targetElement: "inference"
+    },
+    {
+      id: "cq3",
+      question: "Do other experts disagree?",
+      attackType: "rebut",
+      targetElement: "conclusion"
+    }
+  ]
+};
+```
+
+---
+
+#### Common Argumentation Schemes
+
+Based on Walton's catalog, Digital Agora should prioritize these schemes:
+
+| Scheme | Use Case | Frequency |
+|--------|----------|-----------|
+| **Expert Opinion** | Citing authorities | Very High |
+| **Cause to Effect** | Causal claims | Very High |
+| **Analogy** | Comparing situations | High |
+| **Consequences** | Policy outcomes | High |
+| **Sign** | Indicators/symptoms | Medium |
+| **Example** | Illustrative cases | Medium |
+| **Popular Opinion** | Public sentiment | Medium |
+| **Commitment** | Consistency arguments | Low |
+| **Bias** | Questioning motives | Low |
+
+**Implementation Priority:**
+1. **Phase 1**: Expert Opinion, Cause to Effect (covers 60% of arguments)
+2. **Phase 2**: Analogy, Consequences, Sign
+3. **Phase 3**: Remaining schemes + domain-specific additions
+
+---
+
+#### Conflict Schemes
+
+**Definition**: Patterns for how arguments attack each other
+
+```typescript
+interface ConflictScheme {
+  id: string;
+  name: string;
+  conflictingElement: string;    // What attacks
+  conflictedElement: string;     // What is attacked
+  conditions?: string[];         // When this conflict applies
+}
+```
+
+**Common Conflict Schemes:**
+
+1. **Logical Conflict**: Contradictory conclusions
+   ```typescript
+   {
+     id: "logical_conflict",
+     conflictingElement: "I-node: ¬P",
+     conflictedElement: "I-node: P"
+   }
+   ```
+
+2. **Conflict from Unreliability**: Expert bias defeats expert argument
+   ```typescript
+   {
+     id: "expert_unreliability",
+     conflictingElement: "I-node: 'Expert E is unreliable'",
+     conflictedElement: "RA-node: Expert Opinion scheme",
+     conditions: ["RA-node uses Expert Opinion scheme"]
+   }
+   ```
+
+3. **Exception Activation**: Exception defeats default rule
+   ```typescript
+   {
+     id: "exception_conflict",
+     conflictingElement: "I-node matching exception template",
+     conflictedElement: "RA-node with that exception",
+   }
+   ```
+
+---
+
+### 1.3 AIF Graph Constraints
+
+**Formal Definition:**
+An AIF argument graph G = (V, E) where:
+- V = I ∪ RA ∪ CA ∪ PA (set of all nodes)
+- E ⊆ V × V \ (I × I) (edges, but I-nodes never connect directly)
+
+**Constraints** (from Definition 2.1 in Bex et al.):
+
+1. **I-nodes only connect via S-nodes**
+   ```
+   ✓ I-node -> RA-node -> I-node
+   ✗ I-node -> I-node
+   ```
+
+2. **S-nodes must have predecessors and successors**
+   ```
+   Every RA-node has ≥1 premise and exactly 1 conclusion
+   Every CA-node has exactly 1 conflicting and 1 conflicted element
+   Every PA-node has exactly 1 preferred and 1 dispreferred element
+   ```
+
+3. **Initial nodes are I-nodes**
+   ```typescript
+   // Nodes with no predecessors must be I-nodes
+   const initialNodes = graph.nodes.filter(n => 
+     n.nodeType === 'I' && 
+     !graph.edges.some(e => e.target === n.id)
+   );
+   ```
+
+4. **Type-safe edge connections**
+   ```typescript
+   // Validation function
+   function validateEdge(edge: Edge, sourceNode: Node, targetNode: Node): boolean {
+     switch(edge.type) {
+       case 'premise':
+         return ['I', 'RA'].includes(sourceNode.nodeType) && targetNode.nodeType === 'RA';
+       case 'conclusion':
+         return sourceNode.nodeType === 'RA' && targetNode.nodeType === 'I';
+       case 'conflicting':
+         return sourceNode.nodeType === 'I' && targetNode.nodeType === 'CA';
+       case 'conflicted':
+         return sourceNode.nodeType === 'CA' && ['I', 'RA'].includes(targetNode.nodeType);
+       // ... similar for PA edges
+     }
+   }
+   ```
+
+---
+
+## AIF+ Dialogue Extensions
+
+### 2.1 Motivation: Argument₁ vs Argument₂
+
+**O'Keefe's Distinction:**
+- **Argument₁**: Monological structure (claims + reasons)
+- **Argument₂**: Dialogical exchange (people arguing)
+
+AIF handles Argument₁. **AIF+** extends to Argument₂.
+
+**Why This Matters:**
+- Real deliberation happens through dialogue
+- Dialogue protocols constrain what moves are allowed
+- Need to represent *who said what when* and *why that move was legal*
+
+### 2.2 Core Concepts
+
+#### L-Nodes (Locution Nodes)
+
+**Definition**: Subclass of I-nodes representing speech acts in dialogue
+
+**Key Innovation**: L-nodes are both:
+1. **Propositional content** (can be reasoned about)
+2. **Communicative acts** (have illocutionary force)
+
+**Properties:**
+```typescript
+interface LNode extends INode {
+  nodeType: 'L';                 // Subtype of I
+  speaker: string;               // Who made this move
+  timestamp: Date;               // When
+  illocutionType: IllocutionType;
+  propositionalContent?: string; // The claim being made
+  targetMove?: string;           // Reply to which move
+}
+
+type IllocutionType = 
+  | 'assert'                     // Make a claim
+  | 'question'                   // Ask for justification
+  | 'challenge'                  // Request grounds ("Why?")
+  | 'concede'                    // Accept an argument
+  | 'retract'                    // Withdraw a claim
+  | 'disagree';                  // Deny a claim
+```
+
+**Example:**
+```typescript
+// Alice makes a claim
+const aliceMove: LNode = {
+  id: "L1",
+  nodeType: "L",
+  speaker: "Alice",
+  timestamp: new Date("2025-01-15T10:00:00Z"),
+  illocutionType: "assert",
+  propositionalContent: "Carbon tax will reduce emissions",
+  content: "Alice asserts: Carbon tax will reduce emissions"
+};
+
+// Bob challenges
+const bobMove: LNode = {
+  id: "L2",
+  nodeType: "L",
+  speaker: "Bob",
+  timestamp: new Date("2025-01-15T10:05:00Z"),
+  illocutionType: "challenge",
+  propositionalContent: "Carbon tax will reduce emissions",
+  targetMove: "L1",
+  content: "Bob asks: Why is it that carbon tax will reduce emissions?"
+};
+```
+
+**Key Insight**: L-nodes have **propositional content** that can be extracted for monological reasoning:
+```typescript
+function extractClaim(lNode: LNode): INode {
+  return {
+    id: `I_${lNode.id}`,
+    nodeType: 'I',
+    content: lNode.propositionalContent || lNode.content
+  };
+}
+```
+
+---
+
+#### TA-Nodes (Transition Application Nodes)
+
+**Definition**: Subclass of RA-nodes representing legal moves in dialogue
+
+**Purpose**: Encode dialogue protocols as transition rules
+
+**Properties:**
+```typescript
+interface TANode extends RANode {
+  nodeType: 'TA';
+  protocolRule: string;          // Which rule from the protocol
+  preconditions?: Condition[];   // What must be true to apply
+  postconditions?: Effect[];     // What changes after application
+}
+```
+
+**Analogy to RA-nodes:**
+- RA-nodes: "Given premises P, we can infer Q"
+- TA-nodes: "Given locution L₁, participant may respond with L₂"
+
+**Graph Pattern:**
+```
+[L-node: previous move] ----start----> [TA-node: transition] ----end----> [L-node: next move]
+```
+
+**Example: Question → Answer Protocol**
+```typescript
+const questionAnswerTransition: TANode = {
+  id: "TA_Q_A",
+  nodeType: "TA",
+  protocolRule: "Answer to Question",
+  schemeType: "defeasible",
+  preconditions: [
+    "Previous move was a Question",
+    "Next move is from a different speaker"
+  ],
+  postconditions: [
+    "Question is resolved (if answer accepted)",
+    "New claim enters commitment store"
+  ]
+};
+
+// Graph:
+// [L: "Why P?"] ----start----> [TA: Q→A] ----end----> [L: "Because evidence E"]
+```
+
+---
+
+#### Dialogue Protocols
+
+**Definition**: Rules governing what moves are legal in a conversation
+
+**Structure:**
+```typescript
+interface DialogueProtocol {
+  id: string;
+  name: string;
+  roles: Role[];                 // Proponent, Opponent, Moderator, etc.
+  locutionRules: LocutionRule[]; // What can be said
+  commitmentRules: CommitmentRule[]; // What assertions obligate
+  dialogueRules: TransitionRule[];   // What moves follow what
+  terminationRules: TerminationRule[]; // When the dialogue ends
+}
+
+interface TransitionRule {
+  id: string;
+  fromLocution: IllocutionType;
+  toLocution: IllocutionType;
+  conditions?: Condition[];
+  constraints?: Constraint[];    // e.g., "Must be from different speaker"
+}
+```
+
+**Example: Persuasion Dialogue (PPD)**
+```typescript
+const persuasionProtocol: DialogueProtocol = {
+  id: "ppd",
+  name: "Persuasion Dialogue",
+  roles: [
+    { name: "Proponent", goal: "Prove thesis" },
+    { name: "Opponent", goal: "Challenge thesis" }
+  ],
+  locutionRules: [
+    { type: "assert", allowed: true, constraints: ["Must be speaker's commitment"] },
+    { type: "question", allowed: true, constraints: ["Targets other's assertion"] },
+    { type: "challenge", allowed: true, constraints: ["Requests justification"] },
+    { type: "concede", allowed: true },
+    { type: "retract", allowed: true, constraints: ["Must have made that claim before"] }
+  ],
+  dialogueRules: [
+    {
+      id: "R1",
+      fromLocution: "assert",
+      toLocution: "challenge",
+      conditions: ["Other party hasn't conceded"],
+      constraints: ["Must be from non-speaker"]
+    },
+    {
+      id: "R2",
+      fromLocution: "challenge",
+      toLocution: "assert",
+      conditions: ["Speaker has justification"],
+      constraints: ["Must provide grounds"]
+    },
+    {
+      id: "R3",
+      fromLocution: "assert",
+      toLocution: "concede",
+      conditions: ["Recipient finds argument convincing"]
+    }
+  ],
+  terminationRules: [
+    { condition: "Opponent concedes thesis", outcome: "Proponent wins" },
+    { condition: "Proponent cannot justify thesis", outcome: "Opponent wins" },
+    { condition: "Max turns reached", outcome: "Draw" }
+  ]
+};
+```
+
+---
+
+### 2.3 Example: ASD Protocol
+
+The **Argumentation Scheme Dialogue (ASD)** protocol from Reed & Walton (2007) illustrates AIF+ concepts.
+
+**Key Features:**
+- Built on formal CB game
+- Incorporates argumentation schemes
+- Supports critical questions
+- Tracks commitments
+
+**Locution Rules:**
+```typescript
+const ASD_Locutions = {
+  STATEMENT: {
+    form: "S",
+    meaning: "Assert statement S",
+    commitment: "S enters speaker's commitment store"
+  },
+  WITHDRAWAL: {
+    form: "no-commitment(S)",
+    meaning: "Retract S",
+    commitment: "S removed from speaker's commitment store"
+  },
+  QUESTION: {
+    form: "S?",
+    meaning: "Is S true?",
+    commitment: "S enters hearer's commitment store (unless immediately retracted)"
+  },
+  CHALLENGE: {
+    form: "Why(S)?",
+    meaning: "What justifies S?",
+    commitment: "Speaker requests grounds for S"
+  },
+  CRITICAL_ATTACK: {
+    form: "Pose(C)",
+    meaning: "Raise critical question C",
+    commitment: "Challenge presumption or exception of scheme"
+  }
+};
+```
+
+**Dialogue Rules (simplified):**
+```typescript
+const ASD_Transitions = {
+  R1: {
+    after: "Statement(S)",
+    legalReplies: [
+      "Question(S)?",
+      "Challenge(Why S?)",
+      "Statement(¬S)",  // Rebuttal
+    ]
+  },
+  R2: {
+    after: "Question(S)?",
+    legalReplies: [
+      "Statement(S)",
+      "Statement(¬S)",
+      "no-commitment(S)"
+    ]
+  },
+  R3: {
+    after: "Challenge(Why S?)",
+    legalReplies: [
+      "no-commitment(S)",
+      "Statement(T) where T ⇒ S"  // T is a premise supporting S
+    ]
+  },
+  R4: {
+    after: "Statement(T) supporting Statement(S)",
+    condition: "T,S instantiate argumentation scheme A",
+    legalReplies: [
+      "Pose(C) where C is a critical question of A"
+    ]
+  },
+  R5: {
+    after: "Pose(C)",
+    legalReplies: [
+      "Statement(C)",      // Satisfy the question
+      "Statement(¬C)",     // Deny the concern
+      "no-commitment(C)",  // Concede the point
+      "Challenge(Why ¬C?)" // (If C is an exception) Why not C?
+    ]
+  }
+};
+```
+
+**Example Dialogue:**
+```typescript
+// Wilma and Bob discuss OSSA conference attendance
+
+const dialogue = [
+  {
+    id: "L4",
+    speaker: "Wilma",
+    type: "question",
+    content: "Do you remember that expert piece by Alf saying most Canadian philosophers go to OSSA?",
+    propContent: "Alf said most Canadian philosophers go to OSSA"
+  },
+  {
+    id: "L5",
+    speaker: "Bob",
+    type: "assert",
+    targetMove: "L4",
+    content: "Yes, I remember",
+    propContent: "Alf said most Canadian philosophers go to OSSA"
+  },
+  {
+    id: "L6",
+    speaker: "Wilma",
+    type: "assert",
+    targetMove: "L5",
+    content: "Well Alf should know, so most Canadian philosophers do go",
+    propContent: "Most Canadian philosophers go to OSSA",
+    schemeUsed: "expert_opinion",
+    premises: [
+      "Alf said most Canadian philosophers go to OSSA",
+      "Alf is an expert in Canadian philosophy"
+    ]
+  },
+  {
+    id: "L7",
+    speaker: "Bob",
+    type: "critical_attack",
+    targetMove: "L6",
+    content: "Yes, but he'd have a biased opinion",
+    propContent: "Alf is biased",
+    criticalQuestion: "Is the expert unbiased?"
+  },
+  {
+    id: "L8",
+    speaker: "Wilma",
+    type: "challenge",
+    targetMove: "L7",
+    content: "Why do you think he's biased?",
+    propContent: "¬(Alf is biased)"
+  },
+  {
+    id: "L9",
+    speaker: "Bob",
+    type: "retract",
+    targetMove: "L7",
+    content: "Er, not sure—OK so what if he wasn't biased?",
+    propContent: "no-commitment(Alf is biased)"
+  }
+];
+
+// Extracted monological argument structure:
+// I1: Alf said [most Can. phil. go to OSSA]
+// I2: Alf is expert in Can. phil
+// RA1: Expert Opinion scheme
+// I3: Most Can. phil. go to OSSA (conclusion)
+// I4: Alf is biased
+// CA1: Conflict from Unreliability (I4 attacks RA1)
+// I5: ¬(Alf is biased) (retracted)
+```
+
+---
+
+### 2.4 Commitment Stores
+
+**Purpose**: Track what each participant has asserted and is thus obligated to defend
+
+```typescript
+interface CommitmentStore {
+  participant: string;
+  commitments: Set<string>;      // IDs of I-nodes committed to
+  history: CommitmentEvent[];    // Audit trail
+}
+
+interface CommitmentEvent {
+  timestamp: Date;
+  action: 'add' | 'remove';
+  claim: string;                 // I-node ID
+  cause: string;                 // Which dialogue move caused this
+}
+
+// Commitment rules (from ASD):
+const commitmentRules = {
+  onStatement: (speaker: string, claim: string) => {
+    // After making Statement(S), S enters speaker's commitment store
+    commitmentStore[speaker].add(claim);
+  },
+  
+  onWithdrawal: (speaker: string, claim: string) => {
+    // After no-commitment(S), S is removed
+    commitmentStore[speaker].delete(claim);
+  },
+  
+  onChallenge: (speaker: string, hearer: string, claim: string) => {
+    // After Why(S)?, S enters hearer's store unless immediately retracted
+    if (!immediatelyRetracted(hearer, claim)) {
+      commitmentStore[hearer].add(claim);
+    }
+  },
+  
+  onInference: (speaker: string, premises: string[], conclusion: string, scheme: string) => {
+    // If speaker shows premises ⇒ conclusion via scheme,
+    // conclusion enters hearer's store along with scheme's presumptions
+    const hearer = getOtherParticipant(speaker);
+    commitmentStore[hearer].add(conclusion);
+    const presumptions = getPresumptions(scheme);
+    presumptions.forEach(p => commitmentStore[hearer].add(p));
+  },
+  
+  preventWithdrawal: (speaker: string, claim: string) => {
+    // Cannot withdraw a commitment shown to follow from other commitments
+    const derivable = isDerivableFrom(claim, commitmentStore[speaker]);
+    return !derivable;
+  }
+};
+```
+
+---
+
+### 2.5 Benefits of AIF+ for Digital Agora
+
+1. **Protocol Enforcement**
+   - Prevent invalid moves (e.g., "Bob can't challenge his own claim")
+   - Guide users through structured deliberation
+   - Implement domain-specific protocols (e.g., policy debate, scientific peer review)
+
+2. **Dialogue Analysis**
+   - Track who convinced whom
+   - Identify unresolved challenges
+   - Measure engagement quality (not just quantity)
+
+3. **AI Integration**
+   - Train dialogue agents on real conversation patterns
+   - Generate suggested moves based on protocol
+   - Detect fallacies and protocol violations
+
+4. **Gamification**
+   - Award points for following protocol
+   - Track "wins" (successful persuasion)
+   - Create leaderboards based on argument quality
+
+5. **Research Value**
+   - Export real-world dialogue data for academic study
+   - Test theoretical protocols on actual communities
+   - Build corpora of natural argumentation
+
+---
+
+## Formal Semantics: ASPIC+ Framework
+
+### 3.1 Why Formal Semantics?
+
+AIF provides **representation**—how to structure arguments.  
+ASPIC+ provides **semantics**—what arguments *mean* and when they're *justified*.
+
+**Key Questions ASPIC+ Answers:**
+1. Which arguments are **acceptable** (rationally defensible)?
+2. Which arguments **defeat** which others?
+3. What is the **justified conclusion** given conflicting arguments?
+4. Are there **rational inconsistencies** in the argument graph?
+
+### 3.2 ASPIC+ Core Concepts
+
+#### Argumentation Theory
+
+**Definition**: A triple AT = (AS, KB, ≼) where:
+
+```typescript
+interface ArgumentationTheory {
+  system: ArgumentationSystem;   // AS: Rules and language
+  knowledgeBase: KnowledgeBase;  // KB: Facts and assumptions
+  ordering: ArgumentOrdering;    // ≼: Preference relation
+}
+```
+
+---
+
+#### Argumentation System
+
+**Components:**
+```typescript
+interface ArgumentationSystem {
+  language: Language;            // L: Set of well-formed formulas
+  contraryFunction: ContraryFn;  // ‾: Maps formulas to their contraries
+  strictRules: Rule[];           // Rs: Deductive inferences
+  defeasibleRules: Rule[];       // Rd: Presumptive inferences
+  ruleOrdering: PartialOrder;    // ≤: Preference over defeasible rules
+}
+
+type Language = Set<Formula>;
+
+type ContraryFn = (φ: Formula) => Set<Formula>;
+
+interface Rule {
+  id: string;
+  antecedents: Formula[];        // Premises
+  consequent: Formula;           // Conclusion
+  type: 'strict' | 'defeasible';
+}
+
+// Example rules
+const rules: Rule[] = [
+  {
+    id: "r1",
+    antecedents: ["bird(x)"],
+    consequent: "flies(x)",
+    type: "defeasible"
+  },
+  {
+    id: "r2",
+    antecedents: ["penguin(x)"],
+    consequent: "¬flies(x)",
+    type: "defeasible"
+  },
+  {
+    id: "r3",
+    antecedents: ["penguin(x)"],
+    consequent: "bird(x)",
+    type: "strict"
+  }
+];
+```
+
+---
+
+#### Knowledge Base
+
+**Structure:**
+```typescript
+interface KnowledgeBase {
+  axioms: Set<Formula>;          // Kn: Necessary truths (cannot be attacked)
+  premises: Set<Formula>;        // Kp: Ordinary premises (can be attacked)
+  assumptions: Set<Formula>;     // Ka: Assumptions (always defeated if attacked)
+  premiseOrdering: PartialOrder; // ≤': Preference over premises
+}
+
+// Example
+const kb: KnowledgeBase = {
+  axioms: new Set([
+    "2 + 2 = 4",
+    "All humans are mortal"
+  ]),
+  premises: new Set([
+    "Tweety is a bird",
+    "Tweety is yellow"
+  ]),
+  assumptions: new Set([
+    "Assume normal conditions",
+    "Assume no measurement error"
+  ]),
+  premiseOrdering: new PartialOrder([
+    ["Direct observation" > "Hearsay"],
+    ["Recent data" > "Old data"]
+  ])
+};
+```
+
+---
+
+#### Arguments in ASPIC+
+
+**Recursive Definition:**
+```typescript
+type Argument = 
+  | PremiseArgument
+  | InferenceArgument;
+
+interface PremiseArgument {
+  type: 'premise';
+  formula: Formula;              // φ ∈ KB
+  premises: Set<Formula>;        // Prem(A) = {φ}
+  conclusion: Formula;           // Conc(A) = φ
+  subArguments: Set<Argument>;   // Sub(A) = {φ}
+  rules: Set<Rule>;              // Rules(A) = ∅
+  topRule?: undefined;
+}
+
+interface InferenceArgument {
+  type: 'inference';
+  subArguments: Argument[];      // A1, ..., An
+  rule: Rule;                    // Conc(A1), ..., Conc(An) →/⇒ ψ
+  premises: Set<Formula>;        // Prem(A1) ∪ ... ∪ Prem(An)
+  conclusion: Formula;           // Conc(A) = ψ
+  subArguments: Set<Argument>;   // Sub(A1) ∪ ... ∪ Sub(An) ∪ {A}
+  rules: Set<Rule>;              // Rules(A1) ∪ ... ∪ Rules(An) ∪ {r}
+  topRule: Rule;                 // TopRule(A) = r
+}
+```
+
+**Example:**
+```typescript
+// Argument: "Tweety flies because Tweety is a bird"
+
+// A1: Tweety is a bird (premise)
+const A1: PremiseArgument = {
+  type: 'premise',
+  formula: "bird(tweety)",
+  premises: new Set(["bird(tweety)"]),
+  conclusion: "bird(tweety)",
+  subArguments: new Set([A1]),
+  rules: new Set()
+};
+
+// A2: Tweety flies (inferred from A1 via r1)
+const A2: InferenceArgument = {
+  type: 'inference',
+  subArguments: [A1],
+  rule: { id: "r1", antecedents: ["bird(x)"], consequent: "flies(x)", type: "defeasible" },
+  premises: new Set(["bird(tweety)"]),
+  conclusion: "flies(tweety)",
+  subArguments: new Set([A1, A2]),
+  rules: new Set([r1]),
+  topRule: r1
+};
+```
+
+---
+
+### 3.3 Attack and Defeat
+
+#### Three Types of Attack
+
+```typescript
+type Attack = 
+  | Undercut    // Attack an inference
+  | Rebut       // Attack a conclusion
+  | Undermine;  // Attack a premise
+
+interface Undercut {
+  type: 'undercut';
+  attacker: Argument;              // A
+  attacked: Argument;              // B
+  target: Rule;                    // Defeasible rule in B
+  condition: "Conc(A) ∈ ‾r";       // Conclusion of A is contrary of rule name
+}
+
+interface Rebut {
+  type: 'rebut';
+  attacker: Argument;              // A
+  attacked: Argument;              // B
+  target: Argument;                // Sub-argument B' of B
+  condition: "Conc(A) ∈ ‾Conc(B')"; // Contradictory conclusions
+}
+
+interface Undermine {
+  type: 'undermine';
+  attacker: Argument;              // A
+  attacked: Argument;              // B
+  target: Formula;                 // φ ∈ Prem(B) \ Kn
+  condition: "Conc(A) ∈ ‾φ";       // Contradictory premise
+}
+```
+
+**Example:**
+```typescript
+// Continuing Tweety example...
+
+// A3: Tweety is a penguin (premise)
+const A3: PremiseArgument = {
+  type: 'premise',
+  formula: "penguin(tweety)",
+  premises: new Set(["penguin(tweety)"]),
+  conclusion: "penguin(tweety)",
+  // ...
+};
+
+// A4: Tweety doesn't fly (inferred from A3 via r2)
+const A4: InferenceArgument = {
+  type: 'inference',
+  subArguments: [A3],
+  rule: r2,  // penguin(x) ⇒ ¬flies(x)
+  conclusion: "¬flies(tweety)",
+  // ...
+};
+
+// Attack: A4 rebuts A2
+const attack: Rebut = {
+  type: 'rebut',
+  attacker: A4,
+  attacked: A2,
+  target: A2,
+  condition: "¬flies(tweety) ∈ ‾flies(tweety)"  // Contradictory
+};
+```
+
+---
+
+#### From Attack to Defeat
+
+**Not all attacks succeed!** Defeat depends on **preferences**.
+
+```typescript
+interface Defeat extends Attack {
+  succeeds: boolean;  // Does attack result in defeat?
+}
+
+function computeDefeat(attack: Attack, ordering: ArgumentOrdering): Defeat {
+  const { attacker, attacked, target } = attack;
+  
+  // Preference-independent attacks always succeed
+  if (isPreferenceIndependent(attack)) {
+    return { ...attack, succeeds: true };
+  }
+  
+  // Preference-dependent attacks succeed only if attacker ⊀ target
+  // (i.e., target is NOT strictly preferred to attacker)
+  const targetArgument = getTargetArgument(attack, attacked);
+  const attackerNotWeaker = !ordering.strictlyPrefers(targetArgument, attacker);
+  
+  return { ...attack, succeeds: attackerNotWeaker };
+}
+
+function isPreferenceIndependent(attack: Attack): boolean {
+  // Undercuts, contrary-rebuts, and contrary-undermines are preference-independent
+  if (attack.type === 'undercut') return true;
+  if (attack.type === 'rebut' && isContrary(attack.attacker.conclusion, attack.target.conclusion)) {
+    return true;
+  }
+  if (attack.type === 'undermine' && 
+      (isContrary(attack.attacker.conclusion, attack.target) || 
+       attack.target in kb.assumptions)) {
+    return true;
+  }
+  return false;
+}
+```
+
+**Intuition:**
+- **Undercuts** always succeed (challenging the reasoning itself is strong)
+- **Contrary attacks** always succeed (direct contradictions are decisive)
+- **Contradictory attacks** succeed only if attacker is at least as strong as target
+
+---
+
+### 3.4 Argument Orderings
+
+**Purpose**: Resolve conflicts when arguments attack each other
+
+**Weakest Link Principle:**
+```typescript
+function weakestLink(A: Argument, B: Argument): number {
+  // A ≺ B iff B is strictly preferred on both rules and premises
+  
+  const Rd_A = getDefeasibleRules(A);
+  const Rd_B = getDefeasibleRules(B);
+  
+  // Check rules: For all rules in A, there exists a rule in B that's preferred
+  const rulesPreferred = Rd_A.every(rA => 
+    Rd_B.some(rB => ruleOrdering.strictlyPrefers(rB, rA))
+  );
+  
+  if (!rulesPreferred && Rd_A.size > 0) return 0; // Not preferred
+  
+  // If both are strict (no defeasible rules), check premises
+  if (Rd_A.size === 0 && Rd_B.size === 0) {
+    const Kp_A = getPremises(A).filter(p => p in kb.premises || p in kb.assumptions);
+    const Kp_B = getPremises(B).filter(p => p in kb.premises || p in kb.assumptions);
+    
+    const premisesPreferred = Kp_A.every(pA =>
+      Kp_B.some(pB => premiseOrdering.strictlyPrefers(pB, pA))
+    );
+    
+    if (!premisesPreferred) return 0;
+  }
+  
+  return -1; // A ≺ B (B is preferred)
+}
+```
+
+**Last Link Principle:**
+```typescript
+function lastLink(A: Argument, B: Argument): number {
+  // Only consider the last defeasible rule or (if strict) premises
+  
+  const lastRule_A = getLastDefeasibleRule(A);
+  const lastRule_B = getLastDefeasibleRule(B);
+  
+  if (lastRule_A && lastRule_B) {
+    if (ruleOrdering.strictlyPrefers(lastRule_B, lastRule_A)) return -1;
+    else return 0;
+  }
+  
+  // Both strict: check premises
+  if (!lastRule_A && !lastRule_B) {
+    // ... similar to weakest link premise check
+  }
+  
+  return 0;
+}
+```
+
+---
+
+### 3.5 Dung Semantics
+
+Once we have defeat relation, construct **Abstract Argumentation Framework**:
+
+```typescript
+interface AbstractAF {
+  arguments: Set<Argument>;
+  defeats: Set<[Argument, Argument]>;
+}
+
+// ASPIC+ theory → Abstract AF
+function toAbstractAF(theory: ArgumentationTheory): AbstractAF {
+  const args = constructArguments(theory);
+  const attacks = computeAttacks(args, theory.system);
+  const defeats = attacks.filter(atk => computeDefeat(atk, theory.ordering).succeeds);
+  
+  return {
+    arguments: args,
+    defeats: defeats.map(d => [d.attacker, d.attacked])
+  };
+}
+```
+
+**Semantics** (Dung 1995):
+
+```typescript
+function isConflictFree(S: Set<Argument>, defeats: Set<[Argument, Argument]>): boolean {
+  // No argument in S defeats another in S
+  return !defeats.some(([A, B]) => S.has(A) && S.has(B));
+}
+
+function defends(S: Set<Argument>, A: Argument, defeats: Set<[Argument, Argument]>): boolean {
+  // S defends A iff for every B that defeats A, some C in S defeats B
+  const attackersOfA = defeats.filter(([B, _]) => _[1] === A).map(([B, _]) => B);
+  return attackersOfA.every(B => 
+    defeats.some(([C, D]) => S.has(C) && D === B)
+  );
+}
+
+function admissibleExtension(S: Set<Argument>, AF: AbstractAF): boolean {
+  return isConflictFree(S, AF.defeats) &&
+         Array.from(S).every(A => defends(S, A, AF.defeats));
+}
+
+function preferredExtension(S: Set<Argument>, AF: AbstractAF): boolean {
+  // Maximal (under ⊆) admissible set
+  if (!admissibleExtension(S, AF)) return false;
+  
+  // Check maximality
+  return !Array.from(AF.arguments).some(A => {
+    if (S.has(A)) return false;
+    const S_plus_A = new Set([...S, A]);
+    return admissibleExtension(S_plus_A, AF);
+  });
+}
+
+function groundedExtension(AF: AbstractAF): Set<Argument> {
+  // Least fixed point of characteristic function
+  let E = new Set<Argument>();
+  let changed = true;
+  
+  while (changed) {
+    const E_next = new Set(E);
+    
+    for (const A of AF.arguments) {
+      if (!E.has(A) && defends(E, A, AF.defeats)) {
+        E_next.add(A);
+      }
+    }
+    
+    changed = E_next.size > E.size;
+    E = E_next;
+  }
+  
+  return E;
+}
+
+function stableExtension(S: Set<Argument>, AF: AbstractAF): boolean {
+  // Preferred extension that defeats all arguments outside S
+  if (!preferredExtension(S, AF)) return false;
+  
+  return Array.from(AF.arguments).every(B => {
+    if (S.has(B)) return true;
+    return AF.defeats.some(([A, C]) => S.has(A) && C === B);
+  });
+}
+```
+
+**Status of Arguments:**
+```typescript
+function skepticallyAccepted(A: Argument, AF: AbstractAF, semantics: 'preferred' | 'grounded'): boolean {
+  const extensions = computeExtensions(AF, semantics);
+  return extensions.every(E => E.has(A));
+}
+
+function credulouslyAccepted(A: Argument, AF: AbstractAF, semantics: 'preferred'): boolean {
+  const extensions = computeExtensions(AF, semantics);
+  return extensions.some(E => E.has(A));
+}
+```
+
+---
+
+### 3.6 E-ASPIC+: Argumentation About Preferences
+
+**Problem**: In ASPIC+, preferences (≼ and ≤) are *input* to the system. But real debates involve arguing *about* preferences!
+
+**E-ASPIC+ Solution**: 
+- Remove fixed orderings
+- Add **preference language** Lm: formulas like "r₁ > r₂"
+- Allow **arguments for preferences**
+- Preferences can be **attacked**!
+
+```typescript
+interface ExtendedArgumentationSystem {
+  language: Language ∪ LanguageM;     // Add preference formulas
+  strictRules: Rule[] + PP;           // Add preference axioms
+  // No more fixed orderings!
+}
+
+type LanguageM = {
+  preferenceFormulas: Set<PreferenceFormula>;
+};
+
+type PreferenceFormula = `${Formula} > ${Formula}`;
+
+// Axioms for partial preorder
+const PP: Rule[] = [
+  {
+    id: "transitivity",
+    antecedents: ["z > y", "y > x"],
+    consequent: "z > x",
+    type: "strict"
+  },
+  {
+    id: "asymmetry",
+    antecedents: ["y > x"],
+    consequent: "¬(x > y)",
+    type: "strict"
+  }
+];
+```
+
+**Preference Arguments:**
+```typescript
+// Example: "r₃ is preferred to r₂ because expert opinion beats general knowledge"
+
+const arg_pref: InferenceArgument = {
+  type: 'inference',
+  subArguments: [
+    { formula: "r₃ is expert opinion", ... },
+    { formula: "r₂ is general knowledge", ... },
+    { formula: "Expert opinion > General knowledge (in general)", ... }
+  ],
+  rule: {
+    antecedents: ["r₃ is expert opinion", "r₂ is general knowledge", "Expert opinion > General knowledge"],
+    consequent: "r₃ > r₂",
+    type: "defeasible"
+  },
+  conclusion: "r₃ > r₂",
+  // ...
+};
+```
+
+**Extended Argumentation Framework:**
+```typescript
+interface ExtendedAF {
+  arguments: Set<Argument>;
+  attacks: Set<[Argument, Argument]>;      // C ⊆ A × A
+  pref_attacks: Set<[Set<Argument>, Attack]>; // D ⊆ 2^A × C
+}
+
+// φ is a set of preference arguments
+// (A, B) is an attack
+// If φ proves B ≺ A, then φ pref-attacks (A, B), undermining the attack's success
+```
+
+**Defeat with Preferences:**
+```typescript
+function S_defeats(A: Argument, B: Argument, S: Set<Argument>, EAF: ExtendedAF): boolean {
+  // A defeats B relative to S iff:
+  // 1. A attacks B, AND
+  // 2. No subset φ ⊆ S pref-attacks (A, B)
+  
+  if (!EAF.attacks.some(([X, Y]) => X === A && Y === B)) {
+    return false;
+  }
+  
+  const prefAttackExists = EAF.pref_attacks.some(([φ, attack]) => {
+    return isSubset(φ, S) && 
+           attack[0] === A && 
+           attack[1] === B;
+  });
+  
+  return !prefAttackExists;
+}
+```
+
+**Modified Semantics:**
+```typescript
+function E_admissible(S: Set<Argument>, EAF: ExtendedAF): boolean {
+  // S is admissible iff:
+  // 1. Conflict-free relative to S
+  // 2. Defends itself relative to S
+  
+  const conflictFree = !Array.from(S).some(A =>
+    Array.from(S).some(B => S_defeats(A, B, S, EAF))
+  );
+  
+  if (!conflictFree) return false;
+  
+  const defends = Array.from(S).every(A => {
+    const attackers = EAF.attacks.filter(([_, B]) => B === A).map(([C, _]) => C);
+    return attackers.every(C =>
+      Array.from(S).some(D => S_defeats(D, C, S, EAF))
+    );
+  });
+  
+  return defends;
+}
+```
+
+**Preference Function:**
+```typescript
+// Extracts ordering from arguments
+type PreferenceFunction = (φ: Set<Argument>) => PartialOrder<Argument>;
+
+// Example: Weakest-link preference function
+function P_weakest(φ: Set<Argument>): PartialOrder<Argument> {
+  const order = new PartialOrder<Argument>();
+  
+  for (const [A, B] of allPairs(Arguments)) {
+    // A ≺ B ∈ P(φ) iff:
+    // For all defeasible rules r in A, there exists r' in B such that
+    // some argument in φ concludes r' > r
+    
+    const rulesA = getDefeasibleRules(A);
+    const rulesB = getDefeasibleRules(B);
+    
+    const preferred = rulesA.every(rA =>
+      rulesB.some(rB =>
+        φ.some(arg => arg.conclusion === `${rB.id} > ${rA.id}`)
+      )
+    );
+    
+    if (preferred) {
+      order.add(A, B); // B ≻ A
+    }
+  }
+  
+  return order;
+}
+```
+
+---
+
+## Data Model Design
+
+### 4.1 Supabase Schema for AIF
+
+```typescript
+// ============================================
+// TABLE: nodes
+// ============================================
+table nodes {
+  id: uuid primary key default uuid_generate_v4()
+  node_type: node_type_enum not null
+  content: text not null
+  metadata: jsonb default '{}'::jsonb
+  created_at: timestamp with time zone default now()
+  updated_at: timestamp with time zone default now()
+  creator_id: uuid references auth.users(id)
+  debate_id: uuid references debates(id) on delete cascade
+  
+  // Discriminated union fields
+  
+  // For I-nodes and L-nodes
+  claim_text: text?
+  
+  // For L-nodes only
+  speaker_id: uuid? references auth.users(id)
+  illocution_type: illocution_enum?
+  propositional_content: text?
+  target_move_id: uuid? references nodes(id)
+  
+  // For S-nodes (RA, CA, PA, TA)
+  scheme_id: uuid? references schemes(id)
+  scheme_type: scheme_type_enum?
+  
+  // For RA and TA only
+  inference_type: inference_type_enum?
+  
+  // For CA only
+  conflict_type: conflict_type_enum?
+  
+  // For PA only
+  preference_type: preference_type_enum?
+  justification: text?
+  
+  // For TA only
+  protocol_rule_id: uuid? references protocol_rules(id)
+  
+  // Indices
+  index idx_nodes_type on nodes(node_type)
+  index idx_nodes_debate on nodes(debate_id)
+  index idx_nodes_creator on nodes(creator_id)
+  index idx_nodes_speaker on nodes(speaker_id)
+  
+  // Constraints
+  check (
+    (node_type = 'I' and claim_text is not null) or
+    (node_type = 'L' and speaker_id is not null and illocution_type is not null) or
+    (node_type in ('RA', 'TA') and inference_type is not null) or
+    (node_type = 'CA' and conflict_type is not null) or
+    (node_type = 'PA' and preference_type is not null)
+  )
+}
+
+// Enums
+create type node_type_enum as enum ('I', 'L', 'RA', 'CA', 'PA', 'TA');
+create type illocution_enum as enum ('assert', 'question', 'challenge', 'concede', 'retract', 'disagree');
+create type scheme_type_enum as enum ('deductive', 'defeasible', 'presumptive', 'inductive');
+create type inference_type_enum as enum ('modus_ponens', 'modus_tollens', 'expert_opinion', 'cause_effect', 'analogy', 'sign', 'example', 'consequences', 'generic');
+create type conflict_type_enum as enum ('rebut', 'undercut', 'undermine', 'logical_conflict', 'expert_unreliability', 'exception');
+create type preference_type_enum as enum ('argument', 'rule', 'premise', 'source');
+
+// ============================================
+// TABLE: edges
+// ============================================
+table edges {
+  id: uuid primary key default uuid_generate_v4()
+  source_id: uuid not null references nodes(id) on delete cascade
+  target_id: uuid not null references nodes(id) on delete cascade
+  edge_type: edge_type_enum not null
+  metadata: jsonb default '{}'::jsonb
+  created_at: timestamp with time zone default now()
+  debate_id: uuid references debates(id) on delete cascade
+  
+  // Indices
+  index idx_edges_source on edges(source_id)
+  index idx_edges_target on edges(target_id)
+  index idx_edges_type on edges(edge_type)
+  unique index idx_edges_unique on edges(source_id, target_id, edge_type)
+  
+  // Constraint: I-nodes cannot connect directly
+  check (
+    not exists (
+      select 1 from nodes s, nodes t
+      where s.id = source_id and t.id = target_id
+        and s.node_type = 'I' and t.node_type = 'I'
+    )
+  )
+}
+
+create type edge_type_enum as enum (
+  'premise',
+  'conclusion', 
+  'presumption',
+  'conflicting',
+  'conflicted',
+  'preferred',
+  'dispreferred',
+  'start',      // For TA-nodes
+  'end'         // For TA-nodes
+);
+
+// ============================================
+// TABLE: schemes
+// ============================================
+table schemes {
+  id: uuid primary key default uuid_generate_v4()
+  name: text not null unique
+  category: scheme_category_enum not null
+  description: text
+  formal_structure: jsonb not null  // Premises, conclusion, presumptions, exceptions
+  source: text?                      // e.g., "Walton 2008"
+  is_system: boolean default false   // Built-in vs. user-defined
+  created_at: timestamp with time zone default now()
+  creator_id: uuid? references auth.users(id)
+  
+  index idx_schemes_category on schemes(category)
+  index idx_schemes_system on schemes(is_system)
+}
+
+create type scheme_category_enum as enum ('deductive', 'inductive', 'presumptive', 'conflict', 'preference');
+
+// ============================================
+// TABLE: critical_questions
+// ============================================
+table critical_questions {
+  id: uuid primary key default uuid_generate_v4()
+  scheme_id: uuid not null references schemes(id) on delete cascade
+  question_text: text not null
+  attack_type: attack_type_enum not null
+  target_element: target_element_enum not null
+  order_index: integer not null
+  
+  index idx_cq_scheme on critical_questions(scheme_id)
+}
+
+create type attack_type_enum as enum ('rebut', 'undercut', 'undermine');
+create type target_element_enum as enum ('premise', 'inference', 'conclusion', 'presumption');
+
+// ============================================
+// TABLE: protocol_rules
+// ============================================
+table protocol_rules {
+  id: uuid primary key default uuid_generate_v4()
+  protocol_id: uuid not null references protocols(id) on delete cascade
+  rule_name: text not null
+  from_locution: illocution_enum?
+  to_locution: illocution_enum?
+  conditions: jsonb default '[]'::jsonb
+  constraints: jsonb default '[]'::jsonb
+  order_index: integer not null
+  
+  index idx_protocol_rules_protocol on protocol_rules(protocol_id)
+}
+
+// ============================================
+// TABLE: protocols
+// ============================================
+table protocols {
+  id: uuid primary key default uuid_generate_v4()
+  name: text not null unique
+  description: text
+  roles: jsonb not null              // [{ name: "Proponent", goal: "..." }, ...]
+  termination_rules: jsonb not null
+  is_system: boolean default false
+  created_at: timestamp with time zone default now()
+  creator_id: uuid? references auth.users(id)
+  
+  index idx_protocols_system on protocols(is_system)
+}
+
+// ============================================
+// TABLE: commitment_stores
+// ============================================
+table commitment_stores {
+  id: uuid primary key default uuid_generate_v4()
+  debate_id: uuid not null references debates(id) on delete cascade
+  participant_id: uuid not null references auth.users(id)
+  committed_nodes: uuid[] not null default '{}'
+  history: jsonb not null default '[]'::jsonb
+  updated_at: timestamp with time zone default now()
+  
+  unique index idx_commitment_debate_participant on commitment_stores(debate_id, participant_id)
+}
+
+// ============================================
+// TABLE: debates (updated for AIF)
+// ============================================
+table debates {
+  id: uuid primary key default uuid_generate_v4()
+  title: text not null
+  description: text
+  protocol_id: uuid? references protocols(id)
+  root_claim_id: uuid? references nodes(id)
+  created_at: timestamp with time zone default now()
+  creator_id: uuid references auth.users(id)
+  status: debate_status_enum default 'active'
+  metadata: jsonb default '{}'::jsonb
+}
+
+create type debate_status_enum as enum ('active', 'closed', 'archived');
+```
+
+---
+
+### 4.2 Key Design Decisions
+
+#### Discriminated Union for Nodes
+
+**Rationale**: All node types share core fields but have type-specific attributes.
+
+**Alternative**: Separate tables for each node type (I_nodes, RA_nodes, etc.)
+- **Pros**: Stronger typing, cleaner schema
+- **Cons**: Complex joins, harder to query graph structure
+
+**Chosen Approach**: Single `nodes` table with nullable discriminated fields
+- **Pros**: Easier graph traversal, simpler queries
+- **Cons**: Looser typing, must enforce constraints
+
+**Validation**: Use check constraints and application-level validation
+
+```typescript
+function validateNode(node: Partial<Node>): Result<Node, ValidationError> {
+  switch (node.node_type) {
+    case 'I':
+      if (!node.claim_text) return error("I-node must have claim_text");
+      if (node.speaker_id) return error("I-node cannot have speaker_id");
+      break;
+    case 'L':
+      if (!node.speaker_id) return error("L-node must have speaker_id");
+      if (!node.illocution_type) return error("L-node must have illocution_type");
+      break;
+    case 'RA':
+    case 'TA':
+      if (!node.inference_type) return error("RA/TA-node must have inference_type");
+      break;
+    case 'CA':
+      if (!node.conflict_type) return error("CA-node must have conflict_type");
+      break;
+    case 'PA':
+      if (!node.preference_type) return error("PA-node must have preference_type");
+      break;
+  }
+  return ok(node as Node);
+}
+```
+
+---
+
+#### Edge Type Safety
+
+**Problem**: Not all edge types are valid for all node pairs.
+
+**Solution**: Database constraints + application validation
+
+```sql
+-- Example constraint: premise edges must target RA or TA nodes
+create function check_premise_edge()
+returns trigger as $$
+begin
+  if new.edge_type = 'premise' then
+    if not exists (
+      select 1 from nodes
+      where id = new.target_id
+        and node_type in ('RA', 'TA')
+    ) then
+      raise exception 'Premise edges must target RA or TA nodes';
+    end if;
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+create trigger enforce_premise_edge
+  before insert or update on edges
+  for each row execute function check_premise_edge();
+```
+
+```typescript
+// Application-level validation
+const VALID_EDGE_CONNECTIONS: Record<EdgeType, {from: NodeType[], to: NodeType[]}> = {
+  premise: { from: ['I', 'RA', 'PA'], to: ['RA', 'TA'] },
+  conclusion: { from: ['RA', 'TA'], to: ['I', 'PA'] },
+  presumption: { from: ['I'], to: ['RA', 'TA'] },
+  conflicting: { from: ['I', 'PA'], to: ['CA'] },
+  conflicted: { from: ['CA'], to: ['I', 'RA', 'PA'] },
+  preferred: { from: ['I', 'RA', 'PA'], to: ['PA'] },
+  dispreferred: { from: ['PA'], to: ['I', 'RA', 'PA'] },
+  start: { from: ['L'], to: ['TA'] },
+  end: { from: ['TA'], to: ['L'] }
+};
+
+function validateEdge(edge: Edge, sourceNode: Node, targetNode: Node): boolean {
+  const rule = VALID_EDGE_CONNECTIONS[edge.edge_type];
+  return rule.from.includes(sourceNode.node_type) && 
+         rule.to.includes(targetNode.node_type);
+}
+```
+
+---
+
+### 4.3 TypeScript Types
+
+```typescript
+// ======================
+// Core Types
+// ======================
+
+type NodeType = 'I' | 'L' | 'RA' | 'CA' | 'PA' | 'TA';
+type EdgeType = 'premise' | 'conclusion' | 'presumption' | 'conflicting' | 'conflicted' | 'preferred' | 'dispreferred' | 'start' | 'end';
+
+interface Node {
+  id: string;
+  nodeType: NodeType;
+  content: string;
+  metadata: Record<string, unknown>;
+  createdAt: Date;
+  updatedAt: Date;
+  creatorId: string;
+  debateId: string;
+}
+
+interface INode extends Node {
+  nodeType: 'I';
+  claimText: string;
+}
+
+interface LNode extends Node {
+  nodeType: 'L';
+  claimText: string;
+  speakerId: string;
+  ilocutionType: 'assert' | 'question' | 'challenge' | 'concede' | 'retract' | 'disagree';
+  propositionalContent?: string;
+  targetMoveId?: string;
+}
+
+interface RANode extends Node {
+  nodeType: 'RA';
+  schemeId?: string;
+  schemeType?: 'deductive' | 'defeasible' | 'presumptive' | 'inductive';
+  inferenceType: InferenceType;
+}
+
+interface CANode extends Node {
+  nodeType: 'CA';
+  schemeId?: string;
+  conflictType: 'rebut' | 'undercut' | 'undermine' | 'logical_conflict' | 'expert_unreliability' | 'exception';
+}
+
+interface PANode extends Node {
+  nodeType: 'PA';
+  schemeId?: string;
+  preferenceType: 'argument' | 'rule' | 'premise' | 'source';
+  justification?: string;
+}
+
+interface TANode extends Node {
+  nodeType: 'TA';
+  schemeId?: string;
+  schemeType?: 'deductive' | 'defeasible' | 'presumptive';
+  inferenceType: InferenceType;
+  protocolRuleId?: string;
+}
+
+type AnyNode = INode | LNode | RANode | CANode | PANode | TANode;
+
+interface Edge {
+  id: string;
+  sourceId: string;
+  targetId: string;
+  edgeType: EdgeType;
+  metadata: Record<string, unknown>;
+  createdAt: Date;
+  debateId: string;
+}
+
+// ======================
+// Graph Types
+// ======================
+
+interface AIFGraph {
+  nodes: AnyNode[];
+  edges: Edge[];
+  metadata?: {
+    title?: string;
+    description?: string;
+    created?: Date;
+    modified?: Date;
+    protocol?: string;
+  };
+}
+
+interface GraphQuery {
+  debateId: string;
+  nodeTypes?: NodeType[];
+  rootNodeId?: string;
+  maxDepth?: number;
+  includeMetadata?: boolean;
+}
+
+// ======================
+// Scheme Types
+// ======================
+
+interface Scheme {
+  id: string;
+  name: string;
+  category: 'deductive' | 'inductive' | 'presumptive' | 'conflict' | 'preference';
+  description?: string;
+  formalStructure: {
+    premises: PremiseDescription[];
+    conclusion: ConclusionDescription;
+    presumptions?: PresumptionDescription[];
+    exceptions?: ExceptionDescription[];
+  };
+  source?: string;
+  isSystem: boolean;
+  createdAt: Date;
+  creatorId?: string;
+}
+
+interface PremiseDescription {
+  id: string;
+  template: string;
+  required: boolean;
+  order: number;
+}
+
+interface ConclusionDescription {
+  template: string;
+}
+
+interface PresumptionDescription {
+  template: string;
+  order: number;
+}
+
+interface ExceptionDescription {
+  template: string;
+  order: number;
+}
+
+interface CriticalQuestion {
+  id: string;
+  schemeId: string;
+  questionText: string;
+  attackType: 'rebut' | 'undercut' | 'undermine';
+  targetElement: 'premise' | 'inference' | 'conclusion' | 'presumption';
+  orderIndex: number;
+}
+
+// ======================
+// Protocol Types
+// ======================
+
+interface Protocol {
+  id: string;
+  name: string;
+  description?: string;
+  roles: ProtocolRole[];
+  rules: ProtocolRule[];
+  terminationRules: TerminationRule[];
+  isSystem: boolean;
+  createdAt: Date;
+  creatorId?: string;
+}
+
+interface ProtocolRole {
+  name: string;
+  goal: string;
+  constraints?: string[];
+}
+
+interface ProtocolRule {
+  id: string;
+  protocolId: string;
+  ruleName: string;
+  fromLocution?: IlocutionType;
+  toLocution?: IlocutionType;
+  conditions: Condition[];
+  constraints: Constraint[];
+  orderIndex: number;
+}
+
+interface Condition {
+  type: 'speaker' | 'content' | 'commitment' | 'timing' | 'custom';
+  expression: string;
+  parameters?: Record<string, unknown>;
+}
+
+interface Constraint {
+  type: 'same_speaker' | 'different_speaker' | 'max_uses' | 'time_limit' | 'custom';
+  expression: string;
+  parameters?: Record<string, unknown>;
+}
+
+interface TerminationRule {
+  condition: string;
+  outcome: 'proponent_wins' | 'opponent_wins' | 'draw' | 'continued';
+}
+
+// ======================
+// Commitment Store Types
+// ======================
+
+interface CommitmentStore {
+  id: string;
+  debateId: string;
+  participantId: string;
+  committedNodes: string[];  // Node IDs
+  history: CommitmentEvent[];
+  updatedAt: Date;
+}
+
+interface CommitmentEvent {
+  timestamp: Date;
+  action: 'add' | 'remove' | 'challenge_accepted' | 'challenge_failed';
+  nodeId: string;
+  causeNodeId?: string;  // Which dialogue move caused this
+  reason?: string;
+}
+
+// ======================
+// ASPIC+ Types
+// ======================
+
+interface ArgumentationTheory {
+  language: Set<string>;
+  contraries: Map<string, Set<string>>;
+  strictRules: Rule[];
+  defeasibleRules: Rule[];
+  axioms: Set<string>;
+  premises: Set<string>;
+  assumptions: Set<string>;
+  ruleOrdering: PartialOrder<Rule>;
+  premiseOrdering: PartialOrder<string>;
+}
+
+interface Rule {
+  id: string;
+  antecedents: string[];
+  consequent: string;
+  type: 'strict' | 'defeasible';
+}
+
+interface Argument {
+  id: string;
+  type: 'premise' | 'inference';
+  premises: Set<string>;
+  conclusion: string;
+  subArguments: Argument[];
+  rules: Rule[];
+  topRule?: Rule;
+}
+
+interface Attack {
+  attacker: Argument;
+  attacked: Argument;
+  type: 'undercut' | 'rebut' | 'undermine';
+  target: Argument | string;  // Sub-argument or premise
+}
+
+interface Defeat extends Attack {
+  succeeds: boolean;
+}
+
+interface AbstractAF {
+  arguments: Argument[];
+  defeats: [Argument, Argument][];
+}
+
+interface Extension {
+  arguments: Set<Argument>;
+  semantics: 'grounded' | 'preferred' | 'stable' | 'complete';
+}
+```
+
+---
+
+## API Design Patterns
+
+### 5.1 RESTful Endpoints
+
+```typescript
+// ======================
+// Nodes API
+// ======================
+
+/**
+ * Create a node
+ * POST /api/debates/:debateId/nodes
+ */
+interface CreateNodeRequest {
+  nodeType: NodeType;
+  content: string;
+  metadata?: Record<string, unknown>;
+  
+  // Type-specific fields
+  claimText?: string;              // For I/L nodes
+  speakerId?: string;              // For L nodes
+  ilocutionType?: IlocutionType;   // For L nodes
+  propositionalContent?: string;   // For L nodes
+  targetMoveId?: string;           // For L nodes
+  schemeId?: string;               // For S nodes
+  schemeType?: SchemeType;         // For S nodes
+  inferenceType?: InferenceType;   // For RA/TA nodes
+  conflictType?: ConflictType;     // For CA nodes
+  preferenceType?: PreferenceType; // For PA nodes
+  justification?: string;          // For PA nodes
+  protocolRuleId?: string;         // For TA nodes
+}
+
+interface CreateNodeResponse {
+  node: AnyNode;
+  validationWarnings?: string[];
+}
+
+/**
+ * Get nodes with filtering
+ * GET /api/debates/:debateId/nodes?type=I,RA&creator=userId&scheme=expert_opinion
+ */
+interface GetNodesQuery {
+  type?: NodeType[];
+  creator?: string;
+  scheme?: string;
+  ilocution?: IlocutionType;
+  fromDate?: Date;
+  toDate?: Date;
+  limit?: number;
+  offset?: number;
+}
+
+interface GetNodesResponse {
+  nodes: AnyNode[];
+  total: number;
+  hasMore: boolean;
+}
+
+/**
+ * Update node
+ * PATCH /api/debates/:debateId/nodes/:nodeId
+ */
+interface UpdateNodeRequest {
+  content?: string;
+  metadata?: Record<string, unknown>;
+  // ... type-specific fields
+}
+
+/**
+ * Delete node
+ * DELETE /api/debates/:debateId/nodes/:nodeId
+ * 
+ * NOTE: Deleting an S-node may orphan I-nodes. Handle carefully.
+ */
+
+// ======================
+// Edges API
+// ======================
+
+/**
+ * Create edge
+ * POST /api/debates/:debateId/edges
+ */
+interface CreateEdgeRequest {
+  sourceId: string;
+  targetId: string;
+  edgeType: EdgeType;
+  metadata?: Record<string, unknown>;
+}
+
+interface CreateEdgeResponse {
+  edge: Edge;
+  validationErrors?: string[];
+  graphUpdates?: {
+    affectedNodes: string[];
+    newAttacks?: string[];
+    newDefenses?: string[];
+  };
+}
+
+/**
+ * Get edges
+ * GET /api/debates/:debateId/edges?source=nodeId&type=premise
+ */
+interface GetEdgesQuery {
+  source?: string;
+  target?: string;
+  type?: EdgeType[];
+  limit?: number;
+  offset?: number;
+}
+
+/**
+ * Delete edge
+ * DELETE /api/debates/:debateId/edges/:edgeId
+ */
+
+// ======================
+// Graph API
+// ======================
+
+/**
+ * Get full argument graph
+ * GET /api/debates/:debateId/graph
+ */
+interface GetGraphQuery {
+  rootNodeId?: string;      // Start from specific node
+  maxDepth?: number;        // Limit traversal depth
+  nodeTypes?: NodeType[];   // Filter by node types
+  includeOrphans?: boolean; // Include disconnected nodes
+  format?: 'aif' | 'cytoscape' | 'graphviz' | 'json-ld';
+}
+
+interface GetGraphResponse {
+  graph: AIFGraph;
+  stats: {
+    nodeCount: number;
+    edgeCount: number;
+    maxDepth: number;
+    connectedComponents: number;
+  };
+}
+
+/**
+ * Get subgraph rooted at node
+ * GET /api/debates/:debateId/nodes/:nodeId/subgraph
+ */
+interface GetSubgraphQuery {
+  direction?: 'forward' | 'backward' | 'both';
+  maxDepth?: number;
+  includeDialogue?: boolean;  // Include L/TA nodes
+}
+
+/**
+ * Validate graph
+ * POST /api/debates/:debateId/graph/validate
+ */
+interface ValidateGraphResponse {
+  valid: boolean;
+  errors: ValidationError[];
+  warnings: ValidationWarning[];
+}
+
+interface ValidationError {
+  type: 'orphan_s_node' | 'invalid_edge' | 'circular_dependency' | 'missing_conclusion' | 'protocol_violation';
+  nodeId?: string;
+  edgeId?: string;
+  message: string;
+}
+
+// ======================
+// Argumentation API
+// ======================
+
+/**
+ * Create argument from premises
+ * POST /api/debates/:debateId/arguments
+ */
+interface CreateArgumentRequest {
+  premiseIds: string[];      // I-node IDs
+  conclusionText: string;
+  schemeId?: string;         // Optional: suggest scheme
+  inferenceType?: InferenceType;
+}
+
+interface CreateArgumentResponse {
+  conclusionNode: INode;
+  raNode: RANode;
+  edges: Edge[];
+  suggestedCriticalQuestions?: CriticalQuestion[];
+}
+
+/**
+ * Add support for claim
+ * POST /api/debates/:debateId/claims/:claimId/support
+ */
+interface AddSupportRequest {
+  premiseTexts: string[];    // Create new I-nodes for these
+  schemeId?: string;
+}
+
+/**
+ * Attack claim
+ * POST /api/debates/:debateId/claims/:claimId/attack
+ */
+interface AttackClaimRequest {
+  attackType: 'rebut' | 'undercut' | 'undermine';
+  attackText: string;
+  targetScope?: 'premise' | 'inference' | 'conclusion';
+  targetNodeId?: string;     // For undermine/undercut
+}
+
+interface AttackClaimResponse {
+  attackNode: INode;
+  caNode: CANode;
+  edges: Edge[];
+  affectedArguments: string[];
+}
+
+/**
+ * Answer critical question
+ * POST /api/debates/:debateId/cq/:cqId/answer
+ */
+interface AnswerCQRequest {
+  answerType: 'satisfied' | 'denied' | 'conceded';
+  supportingText?: string;
+}
+
+/**
+ * Compute argument status
+ * GET /api/debates/:debateId/arguments/:argumentId/status
+ */
+interface ArgumentStatusQuery {
+  semantics?: 'grounded' | 'preferred' | 'stable';
+}
+
+interface ArgumentStatusResponse {
+  argumentId: string;
+  status: 'justified' | 'overruled' | 'defensible' | 'undecided';
+  inExtensions: string[];    // Extension IDs containing this argument
+  attackedBy: string[];      // Argument IDs
+  defends: string[];         // Argument IDs
+  reasoning: string;         // Explanation of status
+}
+
+/**
+ * Compute all extensions
+ * GET /api/debates/:debateId/extensions?semantics=preferred
+ */
+interface ComputeExtensionsResponse {
+  extensions: {
+    id: string;
+    arguments: string[];     // Argument/node IDs
+    justifiedClaims: string[];
+  }[];
+  semantics: 'grounded' | 'preferred' | 'stable';
+}
+
+// ======================
+// Dialogue API
+// ======================
+
+/**
+ * Make a dialogue move
+ * POST /api/debates/:debateId/moves
+ */
+interface MakeDialogueMoveRequest {
+  ilocutionType: IlocutionType;
+  content: string;
+  propositionalContent?: string;
+  targetMoveId?: string;     // Reply to which move
+  attachedPremises?: string[]; // For assertions with support
+}
+
+interface MakeDialogueMoveResponse {
+  move: LNode;
+  legalReplies: {
+    ilocutionType: IlocutionType;
+    description: string;
+    constraints: string[];
+  }[];
+  commitmentUpdates: {
+    added: string[];
+    removed: string[];
+  };
+  protocolViolations?: string[];
+}
+
+/**
+ * Get legal moves
+ * GET /api/debates/:debateId/moves/legal?after=moveId
+ */
+interface GetLegalMovesQuery {
+  afterMove?: string;        // After which move
+  forParticipant?: string;   // For which user
+}
+
+interface GetLegalMovesResponse {
+  legalMoves: {
+    ilocutionType: IlocutionType;
+    description: string;
+    constraints: string[];
+    template?: string;       // Suggested phrasing
+  }[];
+  currentProtocolState: {
+    phase: string;
+    turn: string;
+    constraints: string[];
+  };
+}
+
+/**
+ * Get commitment store
+ * GET /api/debates/:debateId/commitments/:participantId
+ */
+interface GetCommitmentsResponse {
+  commitments: {
+    nodeId: string;
+    content: string;
+    addedAt: Date;
+    source: string;          // Move ID that caused commitment
+  }[];
+  history: CommitmentEvent[];
+}
+
+// ======================
+// Schemes API
+// ======================
+
+/**
+ * List schemes
+ * GET /api/schemes?category=presumptive&search=expert
+ */
+interface ListSchemesQuery {
+  category?: SchemeCategory;
+  search?: string;
+  isSystem?: boolean;
+  limit?: number;
+  offset?: number;
+}
+
+/**
+ * Get scheme details
+ * GET /api/schemes/:schemeId
+ */
+interface GetSchemeResponse {
+  scheme: Scheme;
+  criticalQuestions: CriticalQuestion[];
+  usageCount?: number;
+  exampleArguments?: {
+    premises: string[];
+    conclusion: string;
+  }[];
+}
+
+/**
+ * Suggest scheme for argument
+ * POST /api/schemes/suggest
+ */
+interface SuggestSchemeRequest {
+  premises: string[];
+  conclusion: string;
+}
+
+interface SuggestSchemeResponse {
+  suggestions: {
+    scheme: Scheme;
+    confidence: number;
+    mapping: {
+      premiseIndex: number;
+      premiseTemplateId: string;
+    }[];
+  }[];
+}
+
+// ======================
+// Protocols API
+// ======================
+
+/**
+ * List protocols
+ * GET /api/protocols
+ */
+
+/**
+ * Get protocol details
+ * GET /api/protocols/:protocolId
+ */
+interface GetProtocolResponse {
+  protocol: Protocol;
+  rules: ProtocolRule[];
+  exampleDebates?: string[];
+}
+
+/**
+ * Set debate protocol
+ * PATCH /api/debates/:debateId/protocol
+ */
+interface SetProtocolRequest {
+  protocolId: string;
+  startingPhase?: string;
+  customRules?: Partial<ProtocolRule>[];
+}
+
+// ======================
+// Export API
+// ======================
+
+/**
+ * Export debate to AIF format
+ * GET /api/debates/:debateId/export?format=rdf
+ */
+interface ExportQuery {
+  format: 'json' | 'json-ld' | 'rdf' | 'cytoscape' | 'graphviz' | 'aifdb';
+  includeDialogue?: boolean;
+  includeMeta?: boolean;
+}
+
+/**
+ * Import AIF data
+ * POST /api/debates/import
+ */
+interface ImportRequest {
+  format: 'json' | 'json-ld' | 'rdf';
+  data: string | object;
+  createNewDebate?: boolean;
+  debateId?: string;         // Merge into existing
+}
+
+interface ImportResponse {
+  debateId: string;
+  nodesCreated: number;
+  edgesCreated: number;
+  warnings: string[];
+  errors: string[];
+}
+```
+
+---
+
+### 5.2 GraphQL Schema (Alternative/Supplement)
+
+```graphql
+# ======================
+# Node Types
+# ======================
+
+interface Node {
+  id: ID!
+  nodeType: NodeType!
+  content: String!
+  metadata: JSON
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  creator: User!
+  debate: Debate!
+  
+  # Edges
+  predecessors(type: EdgeType): [Edge!]!
+  successors(type: EdgeType): [Edge!]!
+  
+  # Graph queries
+  ancestors(maxDepth: Int): [Node!]!
+  descendants(maxDepth: Int): [Node!]!
+}
+
+type INode implements Node {
+  id: ID!
+  nodeType: NodeType!
+  content: String!
+  claimText: String!
+  # ... other fields
+  
+  # Specific queries
+  supportingArguments: [RANode!]!
+  attackingArguments: [CANode!]!
+}
+
+type LNode implements Node {
+  id: ID!
+  nodeType: NodeType!
+  content: String!
+  speaker: User!
+  ilocutionType: IlocutionType!
+  propositionalContent: String
+  targetMove: LNode
+  # ... other fields
+  
+  # Dialogue queries
+  replies: [LNode!]!
+  conversationThread: [LNode!]!
+}
+
+type RANode implements Node {
+  id: ID!
+  nodeType: NodeType!
+  content: String!
+  scheme: Scheme
+  schemeType: SchemeType
+  inferenceType: InferenceType!
+  # ... other fields
+  
+  # Argument structure
+  premises: [INode!]!
+  conclusion: INode!
+  presumptions: [INode!]!
+  
+  # Attacks
+  undercuttedBy: [CANode!]!
+  criticalQuestions: [CriticalQuestion!]!
+}
+
+# ... similar for CANode, PANode, TANode
+
+# ======================
+# Queries
+# ======================
+
+type Query {
+  # Node queries
+  node(id: ID!): Node
+  nodes(debateId: ID!, filter: NodeFilter): [Node!]!
+  
+  # Graph queries
+  debate(id: ID!): Debate!
+  graph(debateId: ID!, root: ID, maxDepth: Int): AIFGraph!
+  subgraph(nodeId: ID!, direction: Direction, maxDepth: Int): AIFGraph!
+  
+  # Argumentation queries
+  arguments(debateId: ID!): [Argument!]!
+  argumentStatus(argumentId: ID!, semantics: Semantics): ArgumentStatus!
+  extensions(debateId: ID!, semantics: Semantics): [Extension!]!
+  
+  # Dialogue queries
+  moves(debateId: ID!, after: DateTime): [LNode!]!
+  legalMoves(debateId: ID!, afterMove: ID, forParticipant: ID): [LegalMove!]!
+  commitments(debateId: ID!, participant: ID!): CommitmentStore!
+  
+  # Scheme queries
+  schemes(filter: SchemeFilter): [Scheme!]!
+  scheme(id: ID!): Scheme!
+  suggestScheme(premises: [String!]!, conclusion: String!): [SchemeSuggestion!]!
+  
+  # Protocol queries
+  protocols: [Protocol!]!
+  protocol(id: ID!): Protocol!
+}
+
+# ======================
+# Mutations
+# ======================
+
+type Mutation {
+  # Node mutations
+  createNode(debateId: ID!, input: CreateNodeInput!): Node!
+  updateNode(nodeId: ID!, input: UpdateNodeInput!): Node!
+  deleteNode(nodeId: ID!): Boolean!
+  
+  # Edge mutations
+  createEdge(debateId: ID!, input: CreateEdgeInput!): Edge!
+  deleteEdge(edgeId: ID!): Boolean!
+  
+  # Argument mutations
+  createArgument(debateId: ID!, input: CreateArgumentInput!): CreateArgumentResult!
+  addSupport(claimId: ID!, input: AddSupportInput!): AddSupportResult!
+  attackClaim(claimId: ID!, input: AttackClaimInput!): AttackClaimResult!
+  answerCriticalQuestion(cqId: ID!, input: AnswerCQInput!): AnswerCQResult!
+  
+  # Dialogue mutations
+  makeMove(debateId: ID!, input: MakeMoveInput!): MakeMoveResult!
+  retractMove(moveId: ID!): Boolean!
+  
+  # Debate mutations
+  createDebate(input: CreateDebateInput!): Debate!
+  setProtocol(debateId: ID!, protocolId: ID!): Debate!
+  
+  # Import/Export
+  importAIF(input: ImportAIFInput!): ImportResult!
+}
+
+# ======================
+# Subscriptions
+# ======================
+
+type Subscription {
+  # Real-time debate updates
+  debateUpdated(debateId: ID!): DebateUpdate!
+  nodeAdded(debateId: ID!): Node!
+  edgeAdded(debateId: ID!): Edge!
+  moveAdded(debateId: ID!): LNode!
+  
+  # Status updates
+  argumentStatusChanged(argumentId: ID!): ArgumentStatus!
+  commitmentUpdated(debateId: ID!, participantId: ID!): CommitmentStore!
+}
+
+# ======================
+# Input Types
+# ======================
+
+input CreateNodeInput {
+  nodeType: NodeType!
+  content: String!
+  claimText: String
+  speakerId: ID
+  ilocutionType: IlocutionType
+  propositionalContent: String
+  targetMoveId: ID
+  schemeId: ID
+  schemeType: SchemeType
+  inferenceType: InferenceType
+  conflictType: ConflictType
+  preferenceType: PreferenceType
+  justification: String
+  protocolRuleId: ID
+  metadata: JSON
+}
+
+input CreateEdgeInput {
+  sourceId: ID!
+  targetId: ID!
+  edgeType: EdgeType!
+  metadata: JSON
+}
+
+input CreateArgumentInput {
+  premiseIds: [ID!]!
+  conclusionText: String!
+  schemeId: ID
+  inferenceType: InferenceType
+}
+
+input AddSupportInput {
+  premiseTexts: [String!]!
+  schemeId: ID
+}
+
+input AttackClaimInput {
+  attackType: AttackType!
+  attackText: String!
+  targetScope: TargetScope
+  targetNodeId: ID
+}
+
+input MakeMoveInput {
+  ilocutionType: IlocutionType!
+  content: String!
+  propositionalContent: String
+  targetMoveId: ID
+  attachedPremises: [String!]
+}
+
+# ======================
+# Enums
+# ======================
+
+enum NodeType {
+  I
+  L
+  RA
+  CA
+  PA
+  TA
+}
+
+enum EdgeType {
+  PREMISE
+  CONCLUSION
+  PRESUMPTION
+  CONFLICTING
+  CONFLICTED
+  PREFERRED
+  DISPREFERRED
+  START
+  END
+}
+
+enum IlocutionType {
+  ASSERT
+  QUESTION
+  CHALLENGE
+  CONCEDE
+  RETRACT
+  DISAGREE
+}
+
+enum SchemeType {
+  DEDUCTIVE
+  DEFEASIBLE
+  PRESUMPTIVE
+  INDUCTIVE
+}
+
+enum InferenceType {
+  MODUS_PONENS
+  MODUS_TOLLENS
+  EXPERT_OPINION
+  CAUSE_EFFECT
+  ANALOGY
+  SIGN
+  EXAMPLE
+  CONSEQUENCES
+  GENERIC
+}
+
+enum ConflictType {
+  REBUT
+  UNDERCUT
+  UNDERMINE
+  LOGICAL_CONFLICT
+  EXPERT_UNRELIABILITY
+  EXCEPTION
+}
+
+enum AttackType {
+  REBUT
+  UNDERCUT
+  UNDERMINE
+}
+
+enum TargetScope {
+  PREMISE
+  INFERENCE
+  CONCLUSION
+}
+
+enum Semantics {
+  GROUNDED
+  PREFERRED
+  STABLE
+  COMPLETE
+}
+
+enum Direction {
+  FORWARD
+  BACKWARD
+  BOTH
+}
+
+# ======================
+# Supporting Types
+# ======================
+
+type AIFGraph {
+  nodes: [Node!]!
+  edges: [Edge!]!
+  metadata: JSON
+  stats: GraphStats!
+}
+
+type GraphStats {
+  nodeCount: Int!
+  edgeCount: Int!
+  maxDepth: Int!
+  connectedComponents: Int!
+}
+
+type Argument {
+  id: ID!
+  premises: [INode!]!
+  conclusion: INode!
+  subArguments: [Argument!]!
+  rules: [Rule!]!
+  topRule: Rule
+}
+
+type ArgumentStatus {
+  argument: Argument!
+  status: Status!
+  inExtensions: [ID!]!
+  attackedBy: [Argument!]!
+  defends: [Argument!]!
+  reasoning: String!
+}
+
+enum Status {
+  JUSTIFIED
+  OVERRULED
+  DEFENSIBLE
+  UNDECIDED
+}
+
+type Extension {
+  id: ID!
+  arguments: [Argument!]!
+  justifiedClaims: [INode!]!
+  semantics: Semantics!
+}
+
+type LegalMove {
+  ilocutionType: IlocutionType!
+  description: String!
+  constraints: [String!]!
+  template: String
+}
+
+type CommitmentStore {
+  participant: User!
+  commitments: [Commitment!]!
+  history: [CommitmentEvent!]!
+}
+
+type Commitment {
+  node: INode!
+  addedAt: DateTime!
+  source: LNode!
+}
+
+type Scheme {
+  id: ID!
+  name: String!
+  category: SchemeCategory!
+  description: String
+  formalStructure: SchemeStructure!
+  criticalQuestions: [CriticalQuestion!]!
+  source: String
+  isSystem: Boolean!
+}
+
+type SchemeStructure {
+  premises: [PremiseDescription!]!
+  conclusion: ConclusionDescription!
+  presumptions: [PresumptionDescription!]!
+  exceptions: [ExceptionDescription!]!
+}
+
+type CriticalQuestion {
+  id: ID!
+  questionText: String!
+  attackType: AttackType!
+  targetElement: TargetElement!
+}
+
+enum TargetElement {
+  PREMISE
+  INFERENCE
+  CONCLUSION
+  PRESUMPTION
+}
+
+type Protocol {
+  id: ID!
+  name: String!
+  description: String
+  roles: [ProtocolRole!]!
+  rules: [ProtocolRule!]!
+  terminationRules: [TerminationRule!]!
+}
+
+type ProtocolRole {
+  name: String!
+  goal: String!
+  constraints: [String!]
+}
+
+type ProtocolRule {
+  id: ID!
+  ruleName: String!
+  fromLocution: IlocutionType
+  toLocution: IlocutionType
+  conditions: [Condition!]!
+  constraints: [Constraint!]!
+}
+```
+
+---
+
+## Translation Algorithms
+
+### 6.1 AIF to ASPIC+ Translation
+
+Based on Bex et al. Definition 4.1.
+
+```typescript
+function aifToASPIC(graph: AIFGraph, schemes: Scheme[]): ArgumentationTheory {
+  // Step 1: Build language
+  const language = new Set<string>();
+  const LR = new Set<string>();  // Rule names
+  
+  for (const node of graph.nodes) {
+    if (node.nodeType === 'I') {
+      language.add(node.content);
+    } else if (node.nodeType === 'RA') {
+      language.add(node.id);
+      LR.add(node.id);
+    }
+  }
+  
+  // Step 2: Extract knowledge base
+  const initialNodes = graph.nodes.filter(n => 
+    n.nodeType === 'I' && 
+    !graph.edges.some(e => e.targetId === n.id)
+  );
+  
+  const axioms = new Set<string>();
+  const premises = new Set<string>();
+  const assumptions = new Set<string>();
+  
+  for (const node of initialNodes) {
+    // Check if node fulfills axiom/assumption form
+    const form = getNodeForm(node, schemes);
+    if (form === 'axiom') {
+      axioms.add(node.content);
+    } else if (form === 'assumption') {
+      assumptions.add(node.content);
+    } else {
+      premises.add(node.content);
+    }
+  }
+  
+  // Step 3: Extract inference rules
+  const strictRules: Rule[] = [];
+  const defeasibleRules: Rule[] = [];
+  
+  for (const raNode of graph.nodes.filter(n => n.nodeType === 'RA')) {
+    const scheme = schemes.find(s => s.id === raNode.schemeId);
+    
+    // Get premises (predecessors via 'premise' edges)
+    const premiseEdges = graph.edges.filter(e => 
+      e.targetId === raNode.id && e.edgeType === 'premise'
+    );
+    const premiseNodes = premiseEdges.map(e => 
+      graph.nodes.find(n => n.id === e.sourceId)!
+    );
+    const antecedents = premiseNodes.map(n => n.content);
+    
+    // Get conclusion (successor via 'conclusion' edge)
+    const conclusionEdge = graph.edges.find(e => 
+      e.sourceId === raNode.id && e.edgeType === 'conclusion'
+    );
+    const conclusionNode = graph.nodes.find(n => n.id === conclusionEdge!.targetId)!;
+    const consequent = conclusionNode.content;
+    
+    const rule: Rule = {
+      id: raNode.id,
+      antecedents,
+      consequent,
+      type: scheme?.category === 'deductive' ? 'strict' : 'defeasible'
+    };
+    
+    if (rule.type === 'strict') {
+      strictRules.push(rule);
+    } else {
+      defeasibleRules.push(rule);
+    }
+  }
+  
+  // Step 4: Extract contrariness relations
+  const contraries = new Map<string, Set<string>>();
+  
+  for (const caNode of graph.nodes.filter(n => n.nodeType === 'CA')) {
+    const conflictingEdge = graph.edges.find(e => 
+      e.targetId === caNode.id && e.edgeType === 'conflicting'
+    );
+    const conflictedEdge = graph.edges.find(e => 
+      e.sourceId === caNode.id && e.edgeType === 'conflicted'
+    );
+    
+    const conflictingNode = graph.nodes.find(n => n.id === conflictingEdge!.sourceId)!;
+    const conflictedNode = graph.nodes.find(n => n.id === conflictedEdge!.targetId)!;
+    
+    const conflictingContent = conflictingNode.nodeType === 'I' 
+      ? conflictingNode.content 
+      : conflictingNode.id;  // Rule name for undercutting
+    
+    const conflictedContent = conflictedNode.nodeType === 'I'
+      ? conflictedNode.content
+      : conflictedNode.id;
+    
+    if (!contraries.has(conflictingContent)) {
+      contraries.set(conflictingContent, new Set());
+    }
+    contraries.get(conflictingContent)!.add(conflictedContent);
+  }
+  
+  // Step 5: Extract preferences
+  const ruleOrdering = new PartialOrder<Rule>();
+  const premiseOrdering = new PartialOrder<string>();
+  
+  for (const paNode of graph.nodes.filter(n => n.nodeType === 'PA')) {
+    const preferredEdge = graph.edges.find(e => 
+      e.targetId === paNode.id && e.edgeType === 'preferred'
+    );
+    const dispreferredEdge = graph.edges.find(e => 
+      e.sourceId === paNode.id && e.edgeType === 'dispreferred'
+    );
+    
+    const preferredNode = graph.nodes.find(n => n.id === preferredEdge!.sourceId)!;
+    const dispreferredNode = graph.nodes.find(n => n.id === dispreferredEdge!.targetId)!;
+    
+    // Check if preference is between rules or premises
+    if (preferredNode.nodeType === 'RA' && dispreferredNode.nodeType === 'RA') {
+      const preferredRule = defeasibleRules.find(r => r.id === preferredNode.id)!;
+      const dispreferredRule = defeasibleRules.find(r => r.id === dispreferredNode.id)!;
+      ruleOrdering.add(dispreferredRule, preferredRule);  // dispreferred < preferred
+    } else if (preferredNode.nodeType === 'I' && dispreferredNode.nodeType === 'I') {
+      premiseOrdering.add(dispreferredNode.content, preferredNode.content);
+    }
+  }
+  
+  return {
+    language,
+    contraries,
+    strictRules,
+    defeasibleRules,
+    axioms,
+    premises,
+    assumptions,
+    ruleOrdering,
+    premiseOrdering
+  };
+}
+
+function getNodeForm(node: INode, schemes: Scheme[]): 'axiom' | 'assumption' | 'premise' {
+  // Check node metadata for explicit form annotation
+  if (node.metadata?.form === 'axiom') return 'axiom';
+  if (node.metadata?.form === 'assumption') return 'assumption';
+  
+  // Otherwise, default to ordinary premise
+  return 'premise';
+}
+```
+
+---
+
+### 6.2 ASPIC+ to AIF Translation
+
+Based on Bex et al. Definition 4.2.
+
+```typescript
+function aspicToAIF(
+  theory: ArgumentationTheory,
+  arguments: Argument[]
+): AIFGraph {
+  const nodes: AnyNode[] = [];
+  const edges: Edge[] = [];
+  const nodeMap = new Map<string, AnyNode>();  // content/id -> node
+  
+  // Step 1: Create I-nodes for all formulas
+  for (const arg of arguments) {
+    for (const formula of arg.premises.union(new Set([arg.conclusion]))) {
+      if (formula in theory.axioms || formula in theory.premises || formula in theory.assumptions) {
+        if (!nodeMap.has(formula)) {
+          const form = theory.axioms.has(formula) ? 'axiom' 
+            : theory.assumptions.has(formula) ? 'assumption' 
+            : 'premise';
+          
+          const iNode: INode = {
+            id: uuid(),
+            nodeType: 'I',
+            content: formula,
+            claimText: formula,
+            metadata: { form },
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            creatorId: 'system',  // Or extract from context
+            debateId: 'debate_id'  // From context
+          };
+          
+          nodes.push(iNode);
+          nodeMap.set(formula, iNode);
+        }
+      }
+    }
+  }
+  
+  // Step 2: Create RA-nodes for all rules used in arguments
+  for (const arg of arguments) {
+    for (const rule of arg.rules) {
+      if (!nodeMap.has(rule.id)) {
+        const raNode: RANode = {
+          id: uuid(),
+          nodeType: 'RA',
+          content: `${rule.antecedents.join(', ')} ${rule.type === 'strict' ? '→' : '⇒'} ${rule.consequent}`,
+          schemeType: rule.type === 'strict' ? 'deductive' : 'defeasible',
+          inferenceType: 'generic',  // Or infer from rule structure
+          metadata: { ruleId: rule.id },
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          creatorId: 'system',
+          debateId: 'debate_id'
+        };
+        
+        nodes.push(raNode);
+        nodeMap.set(rule.id, raNode);
+      }
+    }
+  }
+  
+  // Step 3: Create edges for inference structure
+  for (const arg of arguments) {
+    for (const rule of arg.rules) {
+      const raNode = nodeMap.get(rule.id)!;
+      
+      // Premise edges
+      for (const antecedent of rule.antecedents) {
+        const antecedentNode = nodeMap.get(antecedent) || nodeMap.get(antecedent);  // Could be formula or rule
+        if (antecedentNode) {
+          edges.push({
+            id: uuid(),
+            sourceId: antecedentNode.id,
+            targetId: raNode.id,
+            edgeType: 'premise',
+            metadata: {},
+            createdAt: new Date(),
+            debateId: 'debate_id'
+          });
+        }
+      }
+      
+      // Conclusion edge
+      const conclusionNode = nodeMap.get(rule.consequent);
+      if (!conclusionNode && rule.consequent) {
+        // Create I-node for conclusion if it doesn't exist
+        const newINode: INode = {
+          id: uuid(),
+          nodeType: 'I',
+          content: rule.consequent,
+          claimText: rule.consequent,
+          metadata: {},
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          creatorId: 'system',
+          debateId: 'debate_id'
+        };
+        nodes.push(newINode);
+        nodeMap.set(rule.consequent, newINode);
+      }
+      
+      const conclusionNodeFinal = nodeMap.get(rule.consequent)!;
+      edges.push({
+        id: uuid(),
+        sourceId: raNode.id,
+        targetId: conclusionNodeFinal.id,
+        edgeType: 'conclusion',
+        metadata: {},
+        createdAt: new Date(),
+        debateId: 'debate_id'
+      });
+    }
+  }
+  
+  // Step 4: Create CA-nodes for contrariness relations
+  for (const [conflicting, conflictedSet] of theory.contraries.entries()) {
+    for (const conflicted of conflictedSet) {
+      const conflictingNode = nodeMap.get(conflicting);
+      const conflictedNode = nodeMap.get(conflicted);
+      
+      if (conflictingNode && conflictedNode) {
+        const caNode: CANode = {
+          id: uuid(),
+          nodeType: 'CA',
+          content: `${conflicting} conflicts with ${conflicted}`,
+          conflictType: conflictedNode.nodeType === 'RA' ? 'undercut' : 'rebut',
+          metadata: {},
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          creatorId: 'system',
+          debateId: 'debate_id'
+        };
+        
+        nodes.push(caNode);
+        
+        edges.push(
+          {
+            id: uuid(),
+            sourceId: conflictingNode.id,
+            targetId: caNode.id,
+            edgeType: 'conflicting',
+            metadata: {},
+            createdAt: new Date(),
+            debateId: 'debate_id'
+          },
+          {
+            id: uuid(),
+            sourceId: caNode.id,
+            targetId: conflictedNode.id,
+            edgeType: 'conflicted',
+            metadata: {},
+            createdAt: new Date(),
+            debateId: 'debate_id'
+          }
+        );
+      }
+    }
+  }
+  
+  // Step 5: Create PA-nodes for preferences
+  for (const [lesser, greater] of theory.ruleOrdering.pairs()) {
+    const lesserNode = nodeMap.get(lesser.id);
+    const greaterNode = nodeMap.get(greater.id);
+    
+    if (lesserNode && greaterNode) {
+      const paNode: PANode = {
+        id: uuid(),
+        nodeType: 'PA',
+        content: `${greater.id} is preferred to ${lesser.id}`,
+        preferenceType: 'rule',
+        metadata: {},
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        creatorId: 'system',
+        debateId: 'debate_id'
+      };
+      
+      nodes.push(paNode);
+      
+      edges.push(
+        {
+          id: uuid(),
+          sourceId: greaterNode.id,
+          targetId: paNode.id,
+          edgeType: 'preferred',
+          metadata: {},
+          createdAt: new Date(),
+          debateId: 'debate_id'
+        },
+        {
+          id: uuid(),
+          sourceId: paNode.id,
+          targetId: lesserNode.id,
+          edgeType: 'dispreferred',
+          metadata: {},
+          createdAt: new Date(),
+          debateId: 'debate_id'
+        }
+      );
+    }
+  }
+  
+  // Similar for premise preferences...
+  
+  return {
+    nodes,
+    edges,
+    metadata: {
+      title: 'Translated from ASPIC+',
+      created: new Date()
+    }
+  };
+}
+```
+
+---
+
+### 6.3 Graph Operations
+
+```typescript
+// ======================
+// Graph Traversal
+// ======================
+
+function getSubgraph(
+  graph: AIFGraph,
+  rootId: string,
+  direction: 'forward' | 'backward' | 'both',
+  maxDepth: number = Infinity
+): AIFGraph {
+  const visited = new Set<string>();
+  const subgraphNodes: AnyNode[] = [];
+  const subgraphEdges: Edge[] = [];
+  
+  function traverse(nodeId: string, depth: number) {
+    if (depth > maxDepth || visited.has(nodeId)) return;
+    visited.add(nodeId);
+    
+    const node = graph.nodes.find(n => n.id === nodeId);
+    if (!node) return;
+    
+    subgraphNodes.push(node);
+    
+    // Get relevant edges
+    const edges = graph.edges.filter(e => {
+      if (direction === 'forward') return e.sourceId === nodeId;
+      if (direction === 'backward') return e.targetId === nodeId;
+      return e.sourceId === nodeId || e.targetId === nodeId;
+    });
+    
+    for (const edge of edges) {
+      subgraphEdges.push(edge);
+      
+      const nextId = edge.sourceId === nodeId ? edge.targetId : edge.sourceId;
+      traverse(nextId, depth + 1);
+    }
+  }
+  
+  traverse(rootId, 0);
+  
+  return {
+    nodes: subgraphNodes,
+    edges: subgraphEdges
+  };
+}
+
+// ======================
+// Graph Validation
+// ======================
+
+interface ValidationResult {
+  valid: boolean;
+  errors: ValidationError[];
+  warnings: ValidationWarning[];
+}
+
+function validateGraph(graph: AIFGraph): ValidationResult {
+  const errors: ValidationError[] = [];
+  const warnings: ValidationWarning[] = [];
+  
+  // Check 1: No orphan S-nodes
+  for (const node of graph.nodes) {
+    if (['RA', 'CA', 'PA', 'TA'].includes(node.nodeType)) {
+      const hasPredecessor = graph.edges.some(e => e.targetId === node.id);
+      const hasSuccessor = graph.edges.some(e => e.sourceId === node.id);
+      
+      if (!hasPredecessor) {
+        errors.push({
+          type: 'orphan_s_node',
+          nodeId: node.id,
+          message: `S-node ${node.id} has no predecessors`
+        });
+      }
+      if (!hasSuccessor) {
+        errors.push({
+          type: 'orphan_s_node',
+          nodeId: node.id,
+          message: `S-node ${node.id} has no successors`
+        });
+      }
+    }
+  }
+  
+  // Check 2: I-nodes don't connect directly
+  for (const edge of graph.edges) {
+    const source = graph.nodes.find(n => n.id === edge.sourceId);
+    const target = graph.nodes.find(n => n.id === edge.targetId);
+    
+    if (source?.nodeType === 'I' && target?.nodeType === 'I') {
+      errors.push({
+        type: 'invalid_edge',
+        edgeId: edge.id,
+        message: `I-nodes cannot connect directly: ${edge.sourceId} -> ${edge.targetId}`
+      });
+    }
+  }
+  
+  // Check 3: Edge type matches node types
+  for (const edge of graph.edges) {
+    const source = graph.nodes.find(n => n.id === edge.sourceId)!;
+    const target = graph.nodes.find(n => n.id === edge.targetId)!;
+    
+    if (!validateEdge(edge, source, target)) {
+      errors.push({
+        type: 'invalid_edge',
+        edgeId: edge.id,
+        message: `Invalid edge type ${edge.edgeType} from ${source.nodeType} to ${target.nodeType}`
+      });
+    }
+  }
+  
+  // Check 4: RA-nodes have exactly one conclusion
+  for (const node of graph.nodes) {
+    if (node.nodeType === 'RA') {
+      const conclusionEdges = graph.edges.filter(e => 
+        e.sourceId === node.id && e.edgeType === 'conclusion'
+      );
+      
+      if (conclusionEdges.length === 0) {
+        errors.push({
+          type: 'missing_conclusion',
+          nodeId: node.id,
+          message: `RA-node ${node.id} has no conclusion`
+        });
+      } else if (conclusionEdges.length > 1) {
+        errors.push({
+          type: 'invalid_edge',
+          nodeId: node.id,
+          message: `RA-node ${node.id} has multiple conclusions`
+        });
+      }
+    }
+  }
+  
+  // Check 5: No circular dependencies
+  const hasCycle = detectCycle(graph);
+  if (hasCycle) {
+    warnings.push({
+      type: 'circular_dependency',
+      message: 'Graph contains circular dependencies'
+    });
+  }
+  
+  return {
+    valid: errors.length === 0,
+    errors,
+    warnings
+  };
+}
+
+function detectCycle(graph: AIFGraph): boolean {
+  const visited = new Set<string>();
+  const recursionStack = new Set<string>();
+  
+  function dfs(nodeId: string): boolean {
+    visited.add(nodeId);
+    recursionStack.add(nodeId);
+    
+    const outgoingEdges = graph.edges.filter(e => e.sourceId === nodeId);
+    for (const edge of outgoingEdges) {
+      if (!visited.has(edge.targetId)) {
+        if (dfs(edge.targetId)) return true;
+      } else if (recursionStack.has(edge.targetId)) {
+        return true;  // Cycle detected
+      }
+    }
+    
+    recursionStack.delete(nodeId);
+    return false;
+  }
+  
+  for (const node of graph.nodes) {
+    if (!visited.has(node.id)) {
+      if (dfs(node.id)) return true;
+    }
+  }
+  
+  return false;
+}
+
+// ======================
+// Argument Construction
+// ======================
+
+function constructArguments(theory: ArgumentationTheory): Argument[] {
+  const arguments: Argument[] = [];
+  
+  // Step 1: Create premise arguments for all KB elements
+  for (const formula of [...theory.axioms, ...theory.premises, ...theory.assumptions]) {
+    arguments.push({
+      id: uuid(),
+      type: 'premise',
+      premises: new Set([formula]),
+      conclusion: formula,
+      subArguments: [],
+      rules: [],
+      topRule: undefined
+    });
+  }
+  
+  // Step 2: Iteratively apply inference rules
+  let changed = true;
+  let iteration = 0;
+  const MAX_ITERATIONS = 1000;  // Prevent infinite loops
+  
+  while (changed && iteration < MAX_ITERATIONS) {
+    changed = false;
+    iteration++;
+    
+    // Try to apply each rule
+    for (const rule of [...theory.strictRules, ...theory.defeasibleRules]) {
+      // Find arguments that match the rule's antecedents
+      const antecedentArgs: Argument[][] = [];
+      
+      for (const antecedent of rule.antecedents) {
+        const matchingArgs = arguments.filter(a => a.conclusion === antecedent);
+        if (matchingArgs.length === 0) break;  // Cannot apply this rule
+        antecedentArgs.push(matchingArgs);
+      }
+      
+      // If all antecedents found, create new arguments by combining them
+      if (antecedentArgs.length === rule.antecedents.length) {
+        for (const combination of cartesianProduct(antecedentArgs)) {
+          const newArg: Argument = {
+            id: uuid(),
+            type: 'inference',
+            premises: union(...combination.map(a => a.premises)),
+            conclusion: rule.consequent,
+            subArguments: combination,
+            rules: [...new Set([...flatten(combination.map(a => a.rules)), rule])],
+            topRule: rule
+          };
+          
+          // Check if this argument already exists
+          if (!arguments.some(a => argumentsEqual(a, newArg))) {
+            arguments.push(newArg);
+            changed = true;
+          }
+        }
+      }
+    }
+  }
+  
+  return arguments;
+}
+
+function argumentsEqual(a1: Argument, a2: Argument): boolean {
+  return a1.conclusion === a2.conclusion &&
+         setsEqual(a1.premises, a2.premises) &&
+         arraysEqual(a1.rules.map(r => r.id), a2.rules.map(r => r.id));
+}
+
+// ======================
+// Attack Computation
+// ======================
+
+function computeAttacks(
+  arguments: Argument[],
+  system: ArgumentationSystem
+): Attack[] {
+  const attacks: Attack[] = [];
+  
+  for (const attacker of arguments) {
+    for (const attacked of arguments) {
+      if (attacker === attacked) continue;
+      
+      // Check for undercut
+      if (attacked.topRule && attacked.topRule.type === 'defeasible') {
+        const ruleNameContraries = system.contraries.get(attacked.topRule.id) || new Set();
+        if (ruleNameContraries.has(attacker.conclusion)) {
+          attacks.push({
+            attacker,
+            attacked,
+            type: 'undercut',
+            target: attacked  // Target the whole argument
+          });
+        }
+      }
+      
+      // Check for rebut
+      for (const subArg of attacked.subArguments.concat([attacked])) {
+        if (subArg.topRule && subArg.topRule.type === 'defeasible') {
+          const conclusionContraries = system.contraries.get(subArg.conclusion) || new Set();
+          if (conclusionContraries.has(attacker.conclusion)) {
+            attacks.push({
+              attacker,
+              attacked,
+              type: 'rebut',
+              target: subArg
+            });
+          }
+        }
+      }
+      
+      // Check for undermine
+      for (const premise of attacked.premises) {
+        if (!system.axioms.has(premise)) {  // Can't attack axioms
+          const premiseContraries = system.contraries.get(premise) || new Set();
+          if (premiseContraries.has(attacker.conclusion)) {
+            attacks.push({
+              attacker,
+              attacked,
+              type: 'undermine',
+              target: premise
+            });
+          }
+        }
+      }
+    }
+  }
+  
+  return attacks;
+}
+
+// ======================
+// Semantics Computation
+// ======================
+
+function computeGroundedExtension(af: AbstractAF): Extension {
+  let extension = new Set<Argument>();
+  let changed = true;
+  
+  while (changed) {
+    changed = false;
+    
+    for (const arg of af.arguments) {
+      if (extension.has(arg)) continue;
+      
+      // Check if arg is defended by extension
+      const isDefended = af.defeats
+        .filter(([_, attacked]) => attacked === arg)
+        .every(([attacker, _]) => 
+          af.defeats.some(([defender, defeated]) => 
+            extension.has(defender) && defeated === attacker
+          )
+        );
+      
+      if (isDefended) {
+        extension.add(arg);
+        changed = true;
+      }
+    }
+  }
+  
+  return {
+    arguments: extension,
+    semantics: 'grounded'
+  };
+}
+
+function computePreferredExtensions(af: AbstractAF): Extension[] {
+  // Implementation of preferred semantics (more complex)
+  // Uses backtracking search to find maximal admissible sets
+  
+  function isAdmissible(S: Set<Argument>): boolean {
+    // Check conflict-free
+    for (const a1 of S) {
+      for (const a2 of S) {
+        if (af.defeats.some(([att, def]) => att === a1 && def === a2)) {
+          return false;
+        }
+      }
+    }
+    
+    // Check defends itself
+    for (const arg of S) {
+      const attackers = af.defeats.filter(([_, def]) => def === arg).map(([att, _]) => att);
+      for (const attacker of attackers) {
+        const defended = Array.from(S).some(defender =>
+          af.defeats.some(([a, d]) => a === defender && d === attacker)
+        );
+        if (!defended) return false;
+      }
+    }
+    
+    return true;
+  }
+  
+  function isMaximal(S: Set<Argument>): boolean {
+    return af.arguments.every(arg => {
+      if (S.has(arg)) return true;
+      const S_plus_arg = new Set([...S, arg]);
+      return !isAdmissible(S_plus_arg);
+    });
+  }
+  
+  // Naive approach: generate all subsets and filter
+  // In practice, use more efficient algorithms
+  const preferredExtensions: Extension[] = [];
+  
+  for (const subset of generateSubsets(af.arguments)) {
+    if (isAdmissible(subset) && isMaximal(subset)) {
+      preferredExtensions.push({
+        arguments: subset,
+        semantics: 'preferred'
+      });
+    }
+  }
+  
+  return preferredExtensions;
+}
+
+// ======================
+// Helper Functions
+// ======================
+
+function cartesianProduct<T>(arrays: T[][]): T[][] {
+  return arrays.reduce<T[][]>(
+    (acc, array) => acc.flatMap(x => array.map(y => [...x, y])),
+    [[]]
+  );
+}
+
+function union<T>(...sets: Set<T>[]): Set<T> {
+  const result = new Set<T>();
+  for (const set of sets) {
+    for (const item of set) {
+      result.add(item);
+    }
+  }
+  return result;
+}
+
+function flatten<T>(arrays: T[][]): T[] {
+  return arrays.reduce((acc, arr) => acc.concat(arr), []);
+}
+
+function setsEqual<T>(s1: Set<T>, s2: Set<T>): boolean {
+  if (s1.size !== s2.size) return false;
+  for (const item of s1) {
+    if (!s2.has(item)) return false;
+  }
+  return true;
+}
+
+function arraysEqual<T>(a1: T[], a2: T[]): boolean {
+  if (a1.length !== a2.length) return false;
+  return a1.every((item, index) => item === a2[index]);
+}
+
+function* generateSubsets<T>(items: T[]): Generator<Set<T>> {
+  const n = items.length;
+  const total = Math.pow(2, n);
+  
+  for (let i = 0; i < total; i++) {
+    const subset = new Set<T>();
+    for (let j = 0; j < n; j++) {
+      if ((i & (1 << j)) !== 0) {
+        subset.add(items[j]);
+      }
+    }
+    yield subset;
+  }
+}
+
+class PartialOrder<T> {
+  private pairs: Set<string> = new Set();
+  
+  add(lesser: T, greater: T) {
+    const key = JSON.stringify([lesser, greater]);
+    this.pairs.add(key);
+  }
+  
+  strictlyPrefers(greater: T, lesser: T): boolean {
+    const key = JSON.stringify([lesser, greater]);
+    return this.pairs.has(key);
+  }
+  
+  pairs*(): Generator<[T, T]> {
+    for (const key of this.pairs) {
+      yield JSON.parse(key);
+    }
+  }
+}
+```
+
+---
+
+## Implementation Roadmap
+
+### 7.1 Phase 1: Core AIF (Weeks 1-6)
+
+**Week 1-2: Database Foundation**
+- [ ] Create Supabase schema for nodes and edges
+- [ ] Implement check constraints and triggers
+- [ ] Write migration scripts
+- [ ] Seed database with example data
+
+**Week 3-4: Basic API**
+- [ ] Node CRUD endpoints
+- [ ] Edge CRUD endpoints
+- [ ] Graph query endpoint
+- [ ] Validation middleware
+
+**Week 5-6: UI Components**
+- [ ] Node visualization components
+- [ ] Edge rendering
+- [ ] Basic graph layout (force-directed or hierarchical)
+- [ ] Node creation forms
+
+**Deliverable**: Users can create I-nodes and RA-nodes, connect them with typed edges, and view argument graphs.
+
+---
+
+### 7.2 Phase 2: Schemes & Critical Questions (Weeks 7-10)
+
+**Week 7-8: Scheme Library**
+- [ ] Implement scheme database schema
+- [ ] Load Walton's top 20 schemes
+- [ ] Create scheme editor UI
+- [ ] Build scheme suggestion algorithm
+
+**Week 9-10: Critical Questions**
+- [ ] Critical question database schema
+- [ ] CQ UI components
+- [ ] Link CQs to attacks
+- [ ] Proof guard logic (CQ satisfaction tracking)
+
+**Deliverable**: Users can select argumentation schemes when making arguments, see relevant critical questions, and answer them.
+
+---
+
+### 7.3 Phase 3: Conflict & Preferences (Weeks 11-14)
+
+**Week 11-12: Conflict System**
+- [ ] CA-node creation and rendering
+- [ ] Implement rebut/undercut/undermine types
+- [ ] Attack visualization (red edges)
+- [ ] Conflict scheme library
+
+**Week 13-14: Preferences**
+- [ ] PA-node implementation
+- [ ] Preference UI (voting, source reliability)
+- [ ] Preference propagation
+- [ ] Conflict resolution based on preferences
+
+**Deliverable**: Users can attack arguments and express preferences to resolve conflicts.
+
+---
+
+### 7.4 Phase 4: ASPIC+ Integration (Weeks 15-20)
+
+**Week 15-16: Translation Layer**
+- [ ] AIF to ASPIC+ translation function
+- [ ] ASPIC+ to AIF translation function
+- [ ] Argument construction from graph
+- [ ] Attack computation
+
+**Week 17-18: Semantics Engine**
+- [ ] Grounded semantics computation
+- [ ] Preferred semantics computation
+- [ ] Status computation (justified/overruled/defensible)
+- [ ] Explanation generation
+
+**Week 19-20: UI for Status**
+- [ ] Argument status badges
+- [ ] Extension visualization
+- [ ] Attack graph viewer
+- [ ] "Why is this justified?" explanations
+
+**Deliverable**: Users can see which arguments are justified under formal semantics, with explanations.
+
+---
+
+### 7.5 Phase 5: Dialogue (AIF+) (Weeks 21-26)
+
+**Week 21-22: L-Nodes & Dialogue Moves**
+- [ ] L-node schema and API
+- [ ] Illocution types
+- [ ] Dialogue move UI
+- [ ] Conversation threading
+
+**Week 23-24: Protocols**
+- [ ] Protocol database schema
+- [ ] Implement PPD and ASD protocols
+- [ ] Legal move computation
+- [ ] Protocol violation detection
+
+**Week 25-26: Commitment Stores**
+- [ ] Commitment tracking
+- [ ] Commitment UI (player commitment sheets)
+- [ ] Commitment-based rule enforcement
+- [ ] Dialogue termination logic
+
+**Deliverable**: Users can engage in structured dialogues with protocol enforcement.
+
+---
+
+### 7.6 Phase 6: Advanced Features (Weeks 27-32)
+
+**Week 27-28: Interoperability**
+- [ ] JSON-LD serialization
+- [ ] RDF export
+- [ ] AIFdb integration
+- [ ] Import from other tools (Rationale, Araucaria)
+
+**Week 29-30: Analytics**
+- [ ] Debate statistics (nodes, edges, participants)
+- [ ] Argument quality metrics
+- [ ] Influence analysis (most attacked, most supported)
+- [ ] Dialogue analytics (move patterns, protocol compliance)
+
+**Week 31-32: Polish & Optimization**
+- [ ] Performance optimization (query caching, indexing)
+- [ ] UI/UX refinements
+- [ ] Accessibility improvements
+- [ ] Documentation
+
+**Deliverable**: Production-ready platform with full AIF/AIF+ support and interoperability.
+
+---
+
+## Testing & Validation
+
+### 8.1 Unit Tests
+
+```typescript
+// ======================
+// Node Validation Tests
+// ======================
+
+describe('Node Validation', () => {
+  test('I-node must have claimText', () => {
+    const node: Partial<INode> = {
+      nodeType: 'I',
+      content: 'Test claim',
+      // claimText missing
+    };
+    
+    const result = validateNode(node);
+    expect(result.isError()).toBe(true);
+    expect(result.error.message).toContain('must have claim_text');
+  });
+  
+  test('L-node must have speaker and illocution', () => {
+    const node: Partial<LNode> = {
+      nodeType: 'L',
+      content: 'I assert X',
+      // speakerId and ilocutionType missing
+    };
+    
+    const result = validateNode(node);
+    expect(result.isError()).toBe(true);
+  });
+  
+  test('RA-node must have inferenceType', () => {
+    const node: Partial<RANode> = {
+      nodeType: 'RA',
+      content: 'P implies Q',
+      // inferenceType missing
+    };
+    
+    const result = validateNode(node);
+    expect(result.isError()).toBe(true);
+  });
+});
+
+// ======================
+// Edge Validation Tests
+// ======================
+
+describe('Edge Validation', () => {
+  test('Premise edge must target RA or TA node', () => {
+    const edge: Edge = {
+      id: 'e1',
+      sourceId: 'i1',
+      targetId: 'i2',  // I-node, not RA/TA
+      edgeType: 'premise',
+      // ...
+    };
+    
+    const sourceNode: INode = { id: 'i1', nodeType: 'I', /* ... */ };
+    const targetNode: INode = { id: 'i2', nodeType: 'I', /* ... */ };
+    
+    const result = validateEdge(edge, sourceNode, targetNode);
+    expect(result).toBe(false);
+  });
+  
+  test('Conclusion edge must come from RA/TA node', () => {
+    const edge: Edge = {
+      id: 'e1',
+      sourceId: 'i1',  // I-node, not RA/TA
+      targetId: 'i2',
+      edgeType: 'conclusion',
+      // ...
+    };
+    
+    const sourceNode: INode = { id: 'i1', nodeType: 'I', /* ... */ };
+    const targetNode: INode = { id: 'i2', nodeType: 'I', /* ... */ };
+    
+    const result = validateEdge(edge, sourceNode, targetNode);
+    expect(result).toBe(false);
+  });
+  
+  test('I-nodes cannot connect directly', async () => {
+    const i1 = await createNode({ nodeType: 'I', claimText: 'P' });
+    const i2 = await createNode({ nodeType: 'I', claimText: 'Q' });
+    
+    await expect(
+      createEdge({ sourceId: i1.id, targetId: i2.id, edgeType: 'premise' })
+    ).rejects.toThrow('I-nodes cannot connect directly');
+  });
+});
+
+// ======================
+// Graph Validation Tests
+// ======================
+
+describe('Graph Validation', () => {
+  test('Detects orphan S-nodes', () => {
+    const graph: AIFGraph = {
+      nodes: [
+        { id: 'i1', nodeType: 'I', claimText: 'P', /* ... */ },
+        { id: 'ra1', nodeType: 'RA', /* ... */ },
+        // RA-node with no edges
+      ],
+      edges: []
+    };
+    
+    const result = validateGraph(graph);
+    expect(result.valid).toBe(false);
+    expect(result.errors).toHaveLength(2);  // No predecessor, no successor
+    expect(result.errors[0].type).toBe('orphan_s_node');
+  });
+  
+  test('Detects circular dependencies', () => {
+    const graph: AIFGraph = {
+      nodes: [
+        { id: 'i1', nodeType: 'I', /* ... */ },
+        { id: 'ra1', nodeType: 'RA', /* ... */ },
+        { id: 'i2', nodeType: 'I', /* ... */ },
+        { id: 'ra2', nodeType: 'RA', /* ... */ },
+      ],
+      edges: [
+        { sourceId: 'i1', targetId: 'ra1', edgeType: 'premise' },
+        { sourceId: 'ra1', targetId: 'i2', edgeType: 'conclusion' },
+        { sourceId: 'i2', targetId: 'ra2', edgeType: 'premise' },
+        { sourceId: 'ra2', targetId: 'i1', edgeType: 'conclusion' },  // Cycle!
+      ]
+    };
+    
+    const result = validateGraph(graph);
+    expect(result.warnings.some(w => w.type === 'circular_dependency')).toBe(true);
+  });
+});
+
+// ======================
+// Translation Tests
+// ======================
+
+describe('AIF to ASPIC+ Translation', () => {
+  test('Correctly extracts knowledge base', () => {
+    const graph: AIFGraph = {
+      nodes: [
+        { id: 'i1', nodeType: 'I', claimText: 'P', metadata: { form: 'axiom' } },
+        { id: 'i2', nodeType: 'I', claimText: 'Q', metadata: { form: 'premise' } },
+        { id: 'i3', nodeType: 'I', claimText: 'R', metadata: { form: 'assumption' } },
+      ],
+      edges: []
+    };
+    
+    const theory = aifToASPIC(graph, []);
+    
+    expect(theory.axioms.has('P')).toBe(true);
+    expect(theory.premises.has('Q')).toBe(true);
+    expect(theory.assumptions.has('R')).toBe(true);
+  });
+  
+  test('Correctly extracts inference rules', () => {
+    const graph: AIFGraph = {
+      nodes: [
+        { id: 'i1', nodeType: 'I', claimText: 'P' },
+        { id: 'i2', nodeType: 'I', claimText: 'Q' },
+        { id: 'ra1', nodeType: 'RA', schemeType: 'defeasible', inferenceType: 'generic' },
+      ],
+      edges: [
+        { sourceId: 'i1', targetId: 'ra1', edgeType: 'premise' },
+        { sourceId: 'ra1', targetId: 'i2', edgeType: 'conclusion' },
+      ]
+    };
+    
+    const theory = aifToASPIC(graph, []);
+    
+    expect(theory.defeasibleRules).toHaveLength(1);
+    expect(theory.defeasibleRules[0].antecedents).toContain('P');
+    expect(theory.defeasibleRules[0].consequent).toBe('Q');
+  });
+  
+  test('Correctly extracts contrariness relations', () => {
+    const graph: AIFGraph = {
+      nodes: [
+        { id: 'i1', nodeType: 'I', claimText: 'P' },
+        { id: 'i2', nodeType: 'I', claimText: 'Q' },
+        { id: 'ca1', nodeType: 'CA', conflictType: 'rebut' },
+      ],
+      edges: [
+        { sourceId: 'i1', targetId: 'ca1', edgeType: 'conflicting' },
+        { sourceId: 'ca1', targetId: 'i2', edgeType: 'conflicted' },
+      ]
+    };
+    
+    const theory = aifToASPIC(graph, []);
+    
+    expect(theory.contraries.get('P')?.has('Q')).toBe(true);
+  });
+});
+
+describe('ASPIC+ to AIF Translation', () => {
+  test('Round-trip preserves structure', () => {
+    const originalGraph: AIFGraph = createTestGraph();
+    
+    const theory = aifToASPIC(originalGraph, schemes);
+    const args = constructArguments(theory);
+    const reconstructedGraph = aspicToAIF(theory, args);
+    
+    expect(graphsIsomorphic(originalGraph, reconstructedGraph)).toBe(true);
+  });
+});
+
+// ======================
+// Argument Construction Tests
+// ======================
+
+describe('Argument Construction', () => {
+  test('Constructs premise arguments', () => {
+    const theory: ArgumentationTheory = {
+      language: new Set(['P', 'Q']),
+      contraries: new Map(),
+      strictRules: [],
+      defeasibleRules: [],
+      axioms: new Set(),
+      premises: new Set(['P', 'Q']),
+      assumptions: new Set(),
+      ruleOrdering: new PartialOrder(),
+      premiseOrdering: new PartialOrder()
+    };
+    
+    const args = constructArguments(theory);
+    
+    expect(args).toHaveLength(2);
+    expect(args.some(a => a.conclusion === 'P')).toBe(true);
+    expect(args.some(a => a.conclusion === 'Q')).toBe(true);
+  });
+  
+  test('Applies inference rules', () => {
+    const theory: ArgumentationTheory = {
+      language: new Set(['P', 'Q', 'R']),
+      contraries: new Map(),
+      strictRules: [],
+      defeasibleRules: [
+        { id: 'r1', antecedents: ['P', 'Q'], consequent: 'R', type: 'defeasible' }
+      ],
+      axioms: new Set(),
+      premises: new Set(['P', 'Q']),
+      assumptions: new Set(),
+      ruleOrdering: new PartialOrder(),
+      premiseOrdering: new PartialOrder()
+    };
+    
+    const args = constructArguments(theory);
+    
+    expect(args.some(a => a.conclusion === 'R')).toBe(true);
+    const rArg = args.find(a => a.conclusion === 'R')!;
+    expect(rArg.rules.some(r => r.id === 'r1')).toBe(true);
+  });
+});
+
+// ======================
+// Attack Computation Tests
+// ======================
+
+describe('Attack Computation', () => {
+  test('Detects undercut attacks', () => {
+    const system: ArgumentationSystem = {
+      language: new Set(['P', 'Q', 'r1']),
+      contraries: new Map([['r1', new Set(['¬r1'])]]),
+      strictRules: [],
+      defeasibleRules: [
+        { id: 'r1', antecedents: ['P'], consequent: 'Q', type: 'defeasible' }
+      ],
+      ruleOrdering: new PartialOrder()
+    };
+    
+    const A1: Argument = {
+      id: 'a1',
+      type: 'premise',
+      premises: new Set(['P']),
+      conclusion: 'P',
+      subArguments: [],
+      rules: [],
+    };
+    
+    const A2: Argument = {
+      id: 'a2',
+      type: 'inference',
+      premises: new Set(['P']),
+      conclusion: 'Q',
+      subArguments: [A1],
+      rules: [system.defeasibleRules[0]],
+      topRule: system.defeasibleRules[0]
+    };
+    
+    const A3: Argument = {
+      id: 'a3',
+      type: 'premise',
+      premises: new Set(['¬r1']),
+      conclusion: '¬r1',
+      subArguments: [],
+      rules: [],
+    };
+    
+    const attacks = computeAttacks([A1, A2, A3], system);
+    
+    expect(attacks).toHaveLength(1);
+    expect(attacks[0].type).toBe('undercut');
+    expect(attacks[0].attacker).toBe(A3);
+    expect(attacks[0].attacked).toBe(A2);
+  });
+  
+  test('Detects rebut attacks', () => {
+    const system: ArgumentationSystem = {
+      language: new Set(['P', 'Q', '¬Q']),
+      contraries: new Map([['Q', new Set(['¬Q'])], ['¬Q', new Set(['Q'])]]),
+      strictRules: [],
+      defeasibleRules: [
+        { id: 'r1', antecedents: ['P'], consequent: 'Q', type: 'defeasible' },
+        { id: 'r2', antecedents: ['P'], consequent: '¬Q', type: 'defeasible' }
+      ],
+      ruleOrdering: new PartialOrder()
+    };
+    
+    const A_premise: Argument = {
+      id: 'a0',
+      type: 'premise',
+      premises: new Set(['P']),
+      conclusion: 'P',
+      subArguments: [],
+      rules: [],
+    };
+    
+    const A_Q: Argument = {
+      id: 'a1',
+      type: 'inference',
+      premises: new Set(['P']),
+      conclusion: 'Q',
+      subArguments: [A_premise],
+      rules: [system.defeasibleRules[0]],
+      topRule: system.defeasibleRules[0]
+    };
+    
+    const A_notQ: Argument = {
+      id: 'a2',
+      type: 'inference',
+      premises: new Set(['P']),
+      conclusion: '¬Q',
+      subArguments: [A_premise],
+      rules: [system.defeasibleRules[1]],
+      topRule: system.defeasibleRules[1]
+    };
+    
+    const attacks = computeAttacks([A_premise, A_Q, A_notQ], system);
+    
+    expect(attacks).toHaveLength(2);  // Mutual rebut
+    expect(attacks.some(a => a.attacker === A_Q && a.attacked === A_notQ)).toBe(true);
+    expect(attacks.some(a => a.attacker === A_notQ && a.attacked === A_Q)).toBe(true);
+  });
+});
+
+// ======================
+// Semantics Tests
+// ======================
+
+describe('Grounded Semantics', () => {
+  test('Computes grounded extension for simple AF', () => {
+    const A: Argument = { id: 'A', /* ... */ };
+    const B: Argument = { id: 'B', /* ... */ };
+    const C: Argument = { id: 'C', /* ... */ };
+    
+    const af: AbstractAF = {
+      arguments: [A, B, C],
+      defeats: [
+        [B, A],  // B defeats A
+        [C, B],  // C defeats B
+      ]
+    };
+    
+    const ext = computeGroundedExtension(af);
+    
+    expect(ext.arguments.has(C)).toBe(true);
+    expect(ext.arguments.has(A)).toBe(true);  // A is defended by C
+    expect(ext.arguments.has(B)).toBe(false);
+  });
+});
+
+describe('Preferred Semantics', () => {
+  test('Finds all preferred extensions', () => {
+    const A: Argument = { id: 'A', /* ... */ };
+    const B: Argument = { id: 'B', /* ... */ };
+    
+    const af: AbstractAF = {
+      arguments: [A, B],
+      defeats: [
+        [A, B],  // A defeats B
+        [B, A],  // B defeats A (symmetric attack)
+      ]
+    };
+    
+    const exts = computePreferredExtensions(af);
+    
+    expect(exts).toHaveLength(2);
+    expect(exts.some(e => e.arguments.has(A) && !e.arguments.has(B))).toBe(true);
+    expect(exts.some(e => e.arguments.has(B) && !e.arguments.has(A))).toBe(true);
+  });
+});
+```
+
+---
+
+### 8.2 Integration Tests
+
+```typescript
+// ======================
+// End-to-End Argument Creation
+// ======================
+
+describe('E2E: Create Argument', () => {
+  test('User creates argument from scratch', async () => {
+    // Create debate
+    const debate = await createDebate({ title: 'Carbon Tax Debate' });
+    
+    // Create conclusion claim
+    const conclusion = await createNode({
+      debateId: debate.id,
+      nodeType: 'I',
+      claimText: 'Carbon tax will reduce emissions'
+    });
+    
+    // Create premises
+    const premise1 = await createNode({
+      debateId: debate.id,
+      nodeType: 'I',
+      claimText: 'Higher costs incentivize behavior change'
+    });
+    
+    const premise2 = await createNode({
+      debateId: debate.id,
+      nodeType: 'I',
+      claimText: 'Carbon tax increases costs of emissions'
+    });
+    
+    // Create inference
+    const raNode = await createNode({
+      debateId: debate.id,
+      nodeType: 'RA',
+      schemeId: 'cause_effect',
+      schemeType: 'defeasible',
+      inferenceType: 'cause_effect'
+    });
+    
+    // Connect premises to inference
+    await createEdge({
+      debateId: debate.id,
+      sourceId: premise1.id,
+      targetId: raNode.id,
+      edgeType: 'premise'
+    });
+    
+    await createEdge({
+      debateId: debate.id,
+      sourceId: premise2.id,
+      targetId: raNode.id,
+      edgeType: 'premise'
+    });
+    
+    // Connect inference to conclusion
+    await createEdge({
+      debateId: debate.id,
+      sourceId: raNode.id,
+      targetId: conclusion.id,
+      edgeType: 'conclusion'
+    });
+    
+    // Verify graph
+    const graph = await getGraph(debate.id);
+    expect(graph.nodes).toHaveLength(4);
+    expect(graph.edges).toHaveLength(3);
+    
+    const validation = validateGraph(graph);
+    expect(validation.valid).toBe(true);
+  });
+});
+
+// ======================
+// E2E: Attack Argument
+// ======================
+
+describe('E2E: Attack Argument', () => {
+  test('User rebuts argument', async () => {
+    const debate = await setupDebate();  // Helper that creates basic argument
+    
+    const originalClaim = await getNode(debate.nodes.conclusion);
+    
+    // Create rebuttal claim
+    const rebuttal = await createNode({
+      debateId: debate.id,
+      nodeType: 'I',
+      claimText: 'Carbon tax will NOT reduce emissions'
+    });
+    
+    // Create conflict
+    const caNode = await createNode({
+      debateId: debate.id,
+      nodeType: 'CA',
+      conflictType: 'rebut'
+    });
+    
+    await createEdge({
+      debateId: debate.id,
+      sourceId: rebuttal.id,
+      targetId: caNode.id,
+      edgeType: 'conflicting'
+    });
+    
+    await createEdge({
+      debateId: debate.id,
+      sourceId: caNode.id,
+      targetId: originalClaim.id,
+      edgeType: 'conflicted'
+    });
+    
+    // Verify attack was created
+    const graph = await getGraph(debate.id);
+    const attacks = computeAttacks(
+      await constructArgumentsFromGraph(graph),
+      await getArgumentationSystem(debate.id)
+    );
+    
+    expect(attacks.some(a => a.type === 'rebut')).toBe(true);
+  });
+  
+  test('User undercuts argument', async () => {
+    const debate = await setupDebate();
+    
+    const raNode = debate.nodes.find(n => n.nodeType === 'RA')!;
+    
+    // Create undercutting claim
+    const undercut = await createNode({
+      debateId: debate.id,
+      nodeType: 'I',
+      claimText: 'The cause-effect relationship is unreliable in this case'
+    });
+    
+    // Create conflict targeting the inference
+    const caNode = await createNode({
+      debateId: debate.id,
+      nodeType: 'CA',
+      conflictType: 'undercut'
+    });
+    
+    await createEdge({
+      debateId: debate.id,
+      sourceId: undercut.id,
+      targetId: caNode.id,
+      edgeType: 'conflicting'
+    });
+    
+    await createEdge({
+      debateId: debate.id,
+      sourceId: caNode.id,
+      targetId: raNode.id,  // Target the RA-node
+      edgeType: 'conflicted'
+    });
+    
+    // Verify undercut
+    const attacks = await computeAttacksForDebate(debate.id);
+    expect(attacks.some(a => a.type === 'undercut')).toBe(true);
+  });
+});
+
+// ======================
+// E2E: Compute Status
+// ======================
+
+describe('E2E: Compute Argument Status', () => {
+  test('Justified argument is marked as such', async () => {
+    const debate = await setupDebate();
+    
+    // No attacks on main argument
+    const status = await computeArgumentStatus({
+      argumentId: debate.arguments.main,
+      semantics: 'grounded'
+    });
+    
+    expect(status.status).toBe('justified');
+  });
+  
+  test('Overruled argument is marked as such', async () => {
+    const debate = await setupDebate();
+    
+    // Add stronger rebuttal
+    await addRebuttal(debate, {
+      claimText: 'Carbon tax is ineffective',
+      premises: ['Strong empirical evidence'],
+      preference: 'preferred'
+    });
+    
+    const status = await computeArgumentStatus({
+      argumentId: debate.arguments.main,
+      semantics: 'preferred'
+    });
+    
+    expect(status.status).toBe('overruled');
+  });
+  
+  test('Defensible argument has multiple extensions', async () => {
+    const debate = await setupDebate();
+    
+    // Add symmetric attack
+    await addRebuttal(debate, {
+      claimText: 'Carbon tax IS effective',
+      premises: ['Different evidence']
+    });
+    
+    const extensions = await computeExtensions({
+      debateId: debate.id,
+      semantics: 'preferred'
+    });
+    
+    expect(extensions.length).toBeGreaterThan(1);
+    
+    const status = await computeArgumentStatus({
+      argumentId: debate.arguments.main,
+      semantics: 'preferred'
+    });
+    
+    expect(status.status).toBe('defensible');
+  });
+});
+
+// ======================
+// E2E: Dialogue Protocol
+// ======================
+
+describe('E2E: Dialogue Protocol', () => {
+  test('Protocol enforces move legality', async () => {
+    const debate = await createDebate({
+      title: 'Structured Debate',
+      protocolId: 'ppd'  // Persuasion Dialogue
+    });
+    
+    const alice = await getUser('alice');
+    const bob = await getUser('bob');
+    
+    // Alice makes opening statement
+    const move1 = await makeDialogueMove({
+      debateId: debate.id,
+      speakerId: alice.id,
+      ilocutionType: 'assert',
+      content: 'Carbon tax is necessary',
+      propositionalContent: 'Carbon tax is necessary'
+    });
+    
+    expect(move1.legalReplies).toContainEqual(
+      expect.objectContaining({ ilocutionType: 'challenge' })
+    );
+    
+    // Bob challenges
+    const move2 = await makeDialogueMove({
+      debateId: debate.id,
+      speakerId: bob.id,
+      ilocutionType: 'challenge',
+      targetMoveId: move1.id,
+      content: 'Why is carbon tax necessary?'
+    });
+    
+    expect(move2.commitmentUpdates.added).toContain(move1.propositionalContent);
+    
+    // Alice tries to retract (should fail - committed)
+    await expect(
+      makeDialogueMove({
+        debateId: debate.id,
+        speakerId: alice.id,
+        ilocutionType: 'retract',
+        targetMoveId: move1.id
+      })
+    ).rejects.toThrow('Cannot retract commitment after challenge');
+  });
+});
+```
+
+---
+
+### 8.3 Performance Tests
+
+```typescript
+describe('Performance Tests', () => {
+  test('Graph query scales with size', async () => {
+    const sizes = [10, 100, 1000, 5000];
+    
+    for (const size of sizes) {
+      const debate = await createLargeDebate(size);  // Generate synthetic debate
+      
+      const start = performance.now();
+      const graph = await getGraph(debate.id);
+      const end = performance.now();
+      
+      console.log(`Size ${size}: ${end - start}ms`);
+      expect(end - start).toBeLessThan(size * 0.5);  // O(n) acceptable
+    }
+  });
+  
+  test('Argument construction is reasonable', async () => {
+    const debate = await createComplexDebate();  // ~100 nodes, 200 edges
+    
+    const start = performance.now();
+    const theory = await getArgumentationTheory(debate.id);
+    const args = constructArguments(theory);
+    const end = performance.now();
+    
+    console.log(`Constructed ${args.length} arguments in ${end - start}ms`);
+    expect(end - start).toBeLessThan(5000);  // 5 seconds max
+  });
+  
+  test('Extension computation is feasible', async () => {
+    const debate = await createMediumDebate();  // ~50 arguments
+    
+    const start = performance.now();
+    const exts = await computeExtensions({
+      debateId: debate.id,
+      semantics: 'preferred'
+    });
+    const end = performance.now();
+    
+    console.log(`Computed ${exts.length} extensions in ${end - start}ms`);
+    expect(end - start).toBeLessThan(10000);  // 10 seconds max
+  });
+});
+```
+
+---
+
+## Interoperability & Serialization
+
+### 9.1 JSON Format
+
+```typescript
+interface AIFJSONFormat {
+  '@context': {
+    aif: 'http://www.arg.dundee.ac.uk/aif#';
+  };
+  metadata: {
+    title: string;
+    description?: string;
+    created: string;  // ISO 8601
+    modified?: string;
+    creator?: string;
+    license?: string;
+    version: string;  // AIF version
+  };
+  nodes: {
+    id: string;
+    type: 'I' | 'L' | 'RA' | 'CA' | 'PA' | 'TA';
+    content: string;
+    metadata?: Record<string, unknown>;
+    // Type-specific fields
+    claimText?: string;
+    speakerId?: string;
+    ilocutionType?: string;
+    propositionalContent?: string;
+    targetMoveId?: string;
+    schemeId?: string;
+    schemeType?: string;
+    inferenceType?: string;
+    conflictType?: string;
+    preferenceType?: string;
+    justification?: string;
+    protocolRuleId?: string;
+  }[];
+  edges: {
+    id: string;
+    source: string;
+    target: string;
+    type: EdgeType;
+    metadata?: Record<string, unknown>;
+  }[];
+  schemes?: {
+    id: string;
+    name: string;
+    category: string;
+    description?: string;
+    structure: {
+      premises: { template: string; required: boolean }[];
+      conclusion: { template: string };
+      presumptions?: { template: string }[];
+      exceptions?: { template: string }[];
+    };
+    criticalQuestions?: {
+      question: string;
+      attackType: string;
+      targetElement: string;
+    }[];
+  }[];
+}
+
+function exportToJSON(graph: AIFGraph, schemes?: Scheme[]): string {
+  const output: AIFJSONFormat = {
+    '@context': {
+      aif: 'http://www.arg.dundee.ac.uk/aif#'
+    },
+    metadata: {
+      title: graph.metadata?.title || 'Untitled',
+      description: graph.metadata?.description,
+      created: (graph.metadata?.created || new Date()).toISOString(),
+      modified: graph.metadata?.modified?.toISOString(),
+      version: '1.0'
+    },
+    nodes: graph.nodes.map(n => ({
+      id: n.id,
+      type: n.nodeType,
+      content: n.content,
+      metadata: n.metadata,
+      // Include type-specific fields
+      ...(n.nodeType === 'I' && { claimText: (n as INode).claimText }),
+      ...(n.nodeType === 'L' && {
+        speakerId: (n as LNode).speakerId,
+        ilocutionType: (n as LNode).ilocutionType,
+        propositionalContent: (n as LNode).propositionalContent,
+        targetMoveId: (n as LNode).targetMoveId
+      }),
+      // ... etc for other types
+    })),
+    edges: graph.edges.map(e => ({
+      id: e.id,
+      source: e.sourceId,
+      target: e.targetId,
+      type: e.edgeType,
+      metadata: e.metadata
+    })),
+    schemes: schemes?.map(s => ({
+      id: s.id,
+      name: s.name,
+      category: s.category,
+      description: s.description,
+      structure: {
+        premises: s.formalStructure.premises.map(p => ({
+          template: p.template,
+          required: p.required
+        })),
+        conclusion: {
+          template: s.formalStructure.conclusion.template
+        },
+        presumptions: s.formalStructure.presumptions?.map(p => ({
+          template: p.template
+        })),
+        exceptions: s.formalStructure.exceptions?.map(e => ({
+          template: e.template
+        }))
+      },
+      criticalQuestions: /* ... */
+    }))
+  };
+  
+  return JSON.stringify(output, null, 2);
+}
+
+function importFromJSON(json: string): { graph: AIFGraph; schemes: Scheme[] } {
+  const data: AIFJSONFormat = JSON.parse(json);
+  
+  const nodes: AnyNode[] = data.nodes.map(n => ({
+    id: n.id,
+    nodeType: n.type,
+    content: n.content,
+    metadata: n.metadata || {},
+    createdAt: new Date(data.metadata.created),
+    updatedAt: new Date(data.metadata.modified || data.metadata.created),
+    creatorId: data.metadata.creator || 'imported',
+    debateId: 'imported',
+    // Type-specific fields
+    ...(n.type === 'I' && { claimText: n.claimText! }),
+    // ... etc
+  } as AnyNode));
+  
+  const edges: Edge[] = data.edges.map(e => ({
+    id: e.id,
+    sourceId: e.source,
+    targetId: e.target,
+    edgeType: e.type,
+    metadata: e.metadata || {},
+    createdAt: new Date(data.metadata.created),
+    debateId: 'imported'
+  }));
+  
+  const schemes: Scheme[] = data.schemes?.map(s => ({
+    id: s.id,
+    name: s.name,
+    category: s.category as SchemeCategory,
+    description: s.description,
+    formalStructure: {
+      premises: s.structure.premises.map((p, i) => ({
+        id: `p${i}`,
+        template: p.template,
+        required: p.required,
+        order: i
+      })),
+      conclusion: {
+        template: s.structure.conclusion.template
+      },
+      // ... etc
+    },
+    isSystem: false,
+    createdAt: new Date(),
+  })) || [];
+  
+  return {
+    graph: { nodes, edges, metadata: data.metadata },
+    schemes
+  };
+}
+```
+
+---
+
+### 9.2 RDF/OWL Format
+
+```turtle
+@prefix aif: <http://www.arg.dundee.ac.uk/aif#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix dc: <http://purl.org/dc/elements/1.1/> .
+
+# Debate metadata
+<http://digitalagora.example/debates/123>
+  a aif:DebateGraph ;
+  dc:title "Carbon Tax Debate" ;
+  dc:created "2025-01-15T10:00:00Z"^^xsd:dateTime ;
+  aif:hasNode <http://digitalagora.example/nodes/i1> ;
+  aif:hasNode <http://digitalagora.example/nodes/ra1> ;
+  aif:hasEdge <http://digitalagora.example/edges/e1> .
+
+# I-node
+<http://digitalagora.example/nodes/i1>
+  a aif:InformationNode ;
+  aif:claimText "Carbon pricing will reduce emissions" ;
+  aif:content "Carbon pricing will reduce emissions" ;
+  dc:creator <http://digitalagora.example/users/alice> .
+
+# RA-node
+<http://digitalagora.example/nodes/ra1>
+  a aif:RuleApplicationNode ;
+  aif:schemeType aif:DefeasibleScheme ;
+  aif:fulfills <http://digitalagora.example/schemes/expert_opinion> .
+
+# Edge
+<http://digitalagora.example/edges/e1>
+  a aif:Edge ;
+  aif:from <http://digitalagora.example/nodes/i1> ;
+  aif:to <http://digitalagora.example/nodes/ra1> ;
+  aif:edgeType aif:Premise .
+
+# Scheme
+<http://digitalagora.example/schemes/expert_opinion>
+  a aif:ArgumentationScheme ;
+  rdfs:label "Argument from Expert Opinion" ;
+  aif:category aif:PresumptiveScheme ;
+  aif:hasPremise <http://digitalagora.example/schemes/expert_opinion/p1> ;
+  aif:hasConclusion <http://digitalagora.example/schemes/expert_opinion/c1> .
+
+<http://digitalagora.example/schemes/expert_opinion/p1>
+  a aif:PremiseDescription ;
+  aif:template "E is an expert in domain D" ;
+  aif:required true ;
+  aif:order 1 .
+
+<http://digitalagora.example/schemes/expert_opinion/c1>
+  a aif:ConclusionDescription ;
+  aif:template "A may plausibly be taken as true" .
+```
+
+```typescript
+function exportToRDF(graph: AIFGraph, schemes?: Scheme[]): string {
+  const triples: string[] = [];
+  
+  // Namespaces
+  triples.push('@prefix aif: <http://www.arg.dundee.ac.uk/aif#> .');
+  triples.push('@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .');
+  triples.push('@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .');
+  triples.push('@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .');
+  triples.push('@prefix dc: <http://purl.org/dc/elements/1.1/> .');
+  triples.push('');
+  
+  const baseURI = 'http://digitalagora.example';
+  
+  // Debate metadata
+  triples.push(`<${baseURI}/debates/${graph.metadata?.debateId || 'default'}>`);
+  triples.push('  a aif:DebateGraph ;');
+  triples.push(`  dc:title "${escapeString(graph.metadata?.title || 'Untitled')}" ;`);
+  if (graph.metadata?.created) {
+    triples.push(`  dc:created "${graph.metadata.created.toISOString()}"^^xsd:dateTime ;`);
+  }
+  
+  // Reference all nodes
+  for (const node of graph.nodes) {
+    triples.push(`  aif:hasNode <${baseURI}/nodes/${node.id}> ;`);
+  }
+  
+  // Reference all edges
+  for (const edge of graph.edges) {
+    triples.push(`  aif:hasEdge <${baseURI}/edges/${edge.id}> ;`);
+  }
+  
+  triples.push('  .\n');
+  
+  // Nodes
+  for (const node of graph.nodes) {
+    triples.push(`<${baseURI}/nodes/${node.id}>`);
+    
+    switch (node.nodeType) {
+      case 'I':
+        triples.push('  a aif:InformationNode ;');
+        triples.push(`  aif:claimText "${escapeString((node as INode).claimText)}" ;`);
+        break;
+      case 'RA':
+        triples.push('  a aif:RuleApplicationNode ;');
+        triples.push(`  aif:schemeType aif:${(node as RANode).schemeType || 'Generic'}Scheme ;`);
+        if ((node as RANode).schemeId) {
+          triples.push(`  aif:fulfills <${baseURI}/schemes/${(node as RANode).schemeId}> ;`);
+        }
+        break;
+      case 'CA':
+        triples.push('  a aif:ConflictApplicationNode ;');
+        triples.push(`  aif:conflictType aif:${(node as CANode).conflictType} ;`);
+        break;
+      case 'PA':
+        triples.push('  a aif:PreferenceApplicationNode ;');
+        triples.push(`  aif:preferenceType aif:${(node as PANode).preferenceType} ;`);
+        break;
+      case 'L':
+        triples.push('  a aif:LocutionNode ;');
+        triples.push(`  aif:illocutionType aif:${(node as LNode).ilocutionType} ;`);
+        triples.push(`  aif:speaker <${baseURI}/users/${(node as LNode).speakerId}> ;`);
+        break;
+      case 'TA':
+        triples.push('  a aif:TransitionApplicationNode ;');
+        break;
+    }
+    
+    triples.push(`  aif:content "${escapeString(node.content)}" ;`);
+    triples.push(`  dc:creator <${baseURI}/users/${node.creatorId}> ;`);
+    triples.push('  .\n');
+  }
+  
+  // Edges
+  for (const edge of graph.edges) {
+    triples.push(`<${baseURI}/edges/${edge.id}>`);
+    triples.push('  a aif:Edge ;');
+    triples.push(`  aif:from <${baseURI}/nodes/${edge.sourceId}> ;`);
+    triples.push(`  aif:to <${baseURI}/nodes/${edge.targetId}> ;`);
+    triples.push(`  aif:edgeType aif:${edge.edgeType} ;`);
+    triples.push('  .\n');
+  }
+  
+  // Schemes
+  for (const scheme of schemes || []) {
+    triples.push(`<${baseURI}/schemes/${scheme.id}>`);
+    triples.push('  a aif:ArgumentationScheme ;');
+    triples.push(`  rdfs:label "${escapeString(scheme.name)}" ;`);
+    triples.push(`  aif:category aif:${scheme.category}Scheme ;`);
+    
+    for (let i = 0; i < scheme.formalStructure.premises.length; i++) {
+      const p = scheme.formalStructure.premises[i];
+      triples.push(`  aif:hasPremise <${baseURI}/schemes/${scheme.id}/p${i}> ;`);
+    }
+    
+    triples.push(`  aif:hasConclusion <${baseURI}/schemes/${scheme.id}/c> ;`);
+    triples.push('  .\n');
+    
+    // Premise descriptions
+    for (let i = 0; i < scheme.formalStructure.premises.length; i++) {
+      const p = scheme.formalStructure.premises[i];
+      triples.push(`<${baseURI}/schemes/${scheme.id}/p${i}>`);
+      triples.push('  a aif:PremiseDescription ;');
+      triples.push(`  aif:template "${escapeString(p.template)}" ;`);
+      triples.push(`  aif:required ${p.required} ;`);
+      triples.push(`  aif:order ${i + 1} ;`);
+      triples.push('  .\n');
+    }
+    
+    // Conclusion description
+    triples.push(`<${baseURI}/schemes/${scheme.id}/c>`);
+    triples.push('  a aif:ConclusionDescription ;');
+    triples.push(`  aif:template "${escapeString(scheme.formalStructure.conclusion.template)}" ;`);
+    triples.push('  .\n');
+  }
+  
+  return triples.join('\n');
+}
+
+function escapeString(s: string): string {
+  return s.replace(/\\/g, '\\\\')
+          .replace(/"/g, '\\"')
+          .replace(/\n/g, '\\n')
+          .replace(/\r/g, '\\r');
+}
+```
+
+---
+
+### 9.3 Cytoscape.js Format
+
+For visualization in the browser:
+
+```typescript
+interface CytoscapeElement {
+  data: {
+    id: string;
+    label: string;
+    type?: string;
+    [key: string]: any;
+  };
+  classes?: string;
+}
+
+interface CytoscapeEdge extends CytoscapeElement {
+  data: CytoscapeElement['data'] & {
+    source: string;
+    target: string;
+  };
+}
+
+function exportToCytoscape(graph: AIFGraph): {
+  nodes: CytoscapeElement[];
+  edges: CytoscapeEdge[];
+} {
+  const nodes: CytoscapeElement[] = graph.nodes.map(n => ({
+    data: {
+      id: n.id,
+      label: truncate(n.content, 50),
+      type: n.nodeType,
+      fullContent: n.content,
+      ...n.metadata
+    },
+    classes: `node-${n.nodeType.toLowerCase()}`
+  }));
+  
+  const edges: CytoscapeEdge[] = graph.edges.map(e => ({
+    data: {
+      id: e.id,
+      source: e.sourceId,
+      target: e.targetId,
+      label: e.edgeType,
+      type: e.edgeType,
+      ...e.metadata
+    },
+    classes: `edge-${e.edgeType.toLowerCase()}`
+  }));
+  
+  return { nodes, edges };
+}
+
+// Client-side rendering
+import cytoscape from 'cytoscape';
+
+function renderGraph(data: ReturnType<typeof exportToCytoscape>) {
+  const cy = cytoscape({
+    container: document.getElementById('cy'),
+    elements: [...data.nodes, ...data.edges],
+    style: [
+      {
+        selector: 'node',
+        style: {
+          'label': 'data(label)',
+          'text-valign': 'center',
+          'text-halign': 'center',
+          'background-color': '#666',
+          'color': '#fff',
+          'text-wrap': 'wrap',
+          'text-max-width': '100px',
+        }
+      },
+      {
+        selector: '.node-i',
+        style: {
+          'shape': 'rectangle',
+          'background-color': '#4A90E2',
+        }
+      },
+      {
+        selector: '.node-ra',
+        style: {
+          'shape': 'ellipse',
+          'background-color': '#7ED321',
+        }
+      },
+      {
+        selector: '.node-ca',
+        style: {
+          'shape': 'ellipse',
+          'background-color': '#D0021B',
+        }
+      },
+      {
+        selector: '.node-pa',
+        style: {
+          'shape': 'ellipse',
+          'background-color': '#F5A623',
+        }
+      },
+      {
+        selector: 'edge',
+        style: {
+          'width': 2,
+          'line-color': '#999',
+          'target-arrow-color': '#999',
+          'target-arrow-shape': 'triangle',
+          'curve-style': 'bezier',
+          'label': 'data(label)',
+          'font-size': '10px',
+        }
+      },
+      {
+        selector: '.edge-premise',
+        style: {
+          'line-style': 'solid',
+          'line-color': '#4A90E2',
+        }
+      },
+      {
+        selector: '.edge-conflicting',
+        style: {
+          'line-style': 'dashed',
+          'line-color': '#D0021B',
+        }
+      },
+    ],
+    layout: {
+      name: 'breadthfirst',
+      directed: true,
+      spacingFactor: 1.5,
+    }
+  });
+  
+  return cy;
+}
+```
+
+---
+
+## Conclusion
+
+This document provides a comprehensive technical specification for implementing the Argument Interchange Format (AIF) and its dialogue extension (AIF+) in Digital Agora.
+
+**Key Takeaways:**
+
+1. **Three-Layer Architecture**: Upper ontology (abstract concepts) → Forms ontology (schemes) → Object layer (actual arguments)
+
+2. **Two-Analogy Design**: L-nodes : I-nodes :: Dialogue moves : Propositions; TA-nodes : RA-nodes :: Dialogue transitions : Inferences
+
+3. **Formal Semantics**: ASPIC+ provides rigorous foundations for computing argument acceptability
+
+4. **Practical Implementation**: Concrete data models, APIs, and algorithms ready for development
+
+5. **Interoperability**: Standard serialization formats enable ecosystem participation
+
+**Next Steps:**
+
+1. Review this guide with the development team
+2. Set up development environment and database
+3. Begin Phase 1 implementation (Core AIF)
+4. Iterate based on user feedback and testing
+5. Gradually add advanced features (schemes, ASPIC+, dialogue)
+
+**Resources:**
+
+- Research Papers (provided)
+- AIFdb: http://www.arg.dundee.ac.uk/AIFdb/
+- OVA: http://www.arg.dundee.ac.uk/ova/
+- AIF Ontology: http://www.arg.dundee.ac.uk/aif/
+- ASPIC+ Paper: Prakken (2010)
+- Walton's Schemes: Walton et al. (2008)
+
+---
+
+**Document Version**: 1.0  
+**Last Updated**: October 9, 2025  
+**Author**: AI Assistant (based on Reed et al. 2008, Bex et al., and Digital Agora context)

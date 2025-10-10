@@ -88,10 +88,12 @@
 .sheaf-button {
   /* Theme hooks (RGB) */
   --btn-accent: 129, 140, 248;
+    --btn-field: 209, 220, 248;
+
   --btn-lite: 200, 210, 248;
---btn-heavy: 170,180,238;
-  --btn-border: 15,23,42;
-  --btn-outline: 99,110,218;
+  --btn-heavy: 170, 180, 238;
+  --btn-border: 15, 23, 42;
+  --btn-outline: 99, 110, 218;
   --btn-text:   30,41,59;
   --btn-top:    255,255,255;
   --btn-bot:    255,255,255;
@@ -763,7 +765,32 @@ textarea.textareav2 {
   box-shadow: inset  -1px -1px 4px rgba(203, 225, 253, 0.35),
   inset  1px 1px 4px rgba(141, 141, 176, 0.45);
 }
+.tagfield
+{
 
+  --ctl-accent: var(--btn-field, 229,240,248); /* indigo-500 fallback */
+  --ctl-button: var(--btn-field, 210,220,248); /* indigo-500 fallback */
+  --ctl-focus: var(--btn-field, 199,210,218); /* indigo-500 fallback */
+
+  --ctl-outline: var(--btn-outline, 99,110,218);
+  --ctl-text: 30,41,59;     /* slate-800-ish */
+  --ctl-top: 255,255,255;
+  --ctl-bot: 255,255,255;
+
+  --menu-bg: 255,255,255; /* inherits dark-mode below */
+  border-radius: 12px;
+  padding: .28rem;
+  border: .5px solid rgb(176, 183, 250);
+  background:
+    linear-gradient(360deg, rgba(var(--ctl-focus), .36) 0%, rgba(var(--ctl-button), .10) 50%),
+    linear-gradient(360deg, rgba(var(--ctl-button), .06) 50%, rgba(var(--ctl-accent), .34) 100%);
+  /* tiny, non-intrusive elevation */
+  box-shadow:
+    0 1px 2px rgba(2,6,23,.06),
+    0 4px 8px -6px rgba(2,6,23,.12);
+  backdrop-filter: saturate(1.25) blur(4px);
+  outline: none;
+}
 /* Softer, lighter chrome */
 .menuv2--lite {
 
@@ -790,6 +817,7 @@ textarea.textareav2 {
   backdrop-filter: saturate(1.25) blur(4px);
   outline: none;
 }
+
 .menuv2--lite:hover
 {
   background:

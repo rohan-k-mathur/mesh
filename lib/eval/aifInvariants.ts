@@ -1,7 +1,6 @@
 // lib/eval/aifInvariants.ts
 import type { AttackType, TargetScope } from "@prisma/client";
-import { assertAttackLegality } from "@/lib/aif/guards";
-
+import { assertAttackLegality } from "@/packages/aif-core/src/guards";
 export type AifArgument = { id: string; conclusionClaimId: string; premises: { claimId: string }[]; };
 export type AifAttack   = {
   id: string; attackType: AttackType; targetScope: TargetScope;

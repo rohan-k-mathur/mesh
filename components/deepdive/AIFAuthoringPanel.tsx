@@ -41,7 +41,7 @@ authorId = user?.userId || 'current'; // use 'current' to resolve from session o
   const readyForCompose = Boolean(authorId && conclusion?.id);
 
   return (
-    <div className="flex flex-col space-y-4 min-h-[800px] h-full overflow-y-auto">
+    <div className="flex flex-1 h-[500px] flex-col space-y-4  overflow-y-auto">
       {/* If missing author or conclusion, show a small guard panel */}
       {!authorId && (
         <div className="border rounded-md p-3 bg-amber-50 border-amber-200 text-amber-800 text-sm">
