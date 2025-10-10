@@ -643,6 +643,17 @@
 //     </section>
 //   );
 // }
+
+
+
+
+
+
+
+
+
+
+
 //components/arguments/AIFArgumentsListPro.tsx
 'use client';
 
@@ -650,11 +661,12 @@ import * as React from 'react';
 import { mutate as swrMutate } from 'swr';
 import useSWRInfinite from 'swr/infinite';
 import { Virtuoso } from 'react-virtuoso';
-import { AttackMenuPro } from '@/components/arguments/AttackMenuPro';
-import { LegalMoveToolbar } from '@/components/dialogue/LegalMoveToolbar';
+// import { AttackMenuPro } from '@/components/arguments/AttackMenuPro';
+// import { LegalMoveToolbar } from '@/components/dialogue/LegalMoveToolbar';
 import { listSchemes, getArgumentCQs, askCQ } from '@/lib/client/aifApi';
 import PromoteToClaimButton from '@/components/claims/PromoteToClaimButton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
+import { ClaimPicker } from '@/components/claims/ClaimPicker';
 import Spinner from '@/components/ui/spinner';
 import {
   Shield,
@@ -676,7 +688,9 @@ import {
   Zap,
   Target
 } from 'lucide-react';
-
+import dynamic from 'next/dynamic';
+const AttackMenuPro = dynamic(() => import('@/components/arguments/AttackMenuPro').then(m => m.AttackMenuPro), { ssr: false });
+const LegalMoveToolbar = dynamic(() => import('@/components/dialogue/LegalMoveToolbar').then(m => m.LegalMoveToolbar ), { ssr: false });
 type Arg = {
   id: string;
   text: string;
@@ -822,28 +836,29 @@ function AttackCounts({ a }: { a?: AifMeta['attacks'] }) {
 }
 
 function ClampedBody({ text, lines = 4, onOpen }: { text: string; lines?: number; onOpen: () => void }) {
-  const ref = React.useRef<HTMLDivElement>(null);
-  const [shouldClamp, setShouldClamp] = React.useState(false);
+//   const ref = React.useRef<HTMLDivElement>(null);
+//   const [shouldClamp, setShouldClamp] = React.useState(false);
 
-  React.useEffect(() => {
-    if (ref.current) {
-      const lineHeight = parseInt(getComputedStyle(ref.current).lineHeight);
-      const maxHeight = lineHeight * lines;
-      setShouldClamp(ref.current.scrollHeight > maxHeight);
-    }
-  }, [text, lines]);
+//   React.useEffect(() => {
+//     if (ref.current) {
+//       const lineHeight = parseInt(getComputedStyle(ref.current).lineHeight);
+//       const maxHeight = lineHeight * lines;
+//       setShouldClamp(ref.current.scrollHeight > maxHeight);
+//     }
+//   }, [text, lines]);
 
-  if (!shouldClamp) {
-    return <div ref={ref} className="text-sm leading-relaxed text-slate-700 whitespace-pre-wrap">{text}</div>;
-  }
+//   if (!shouldClamp) {
+//     return <div ref={ref} className="text-sm leading-relaxed text-slate-700 whitespace-pre-wrap">{text}</div>;
+//   }
+
 
   return (
     <div className="relative">
-      <div ref={ref} className={`text-sm leading-relaxed text-slate-700 whitespace-pre-wrap line-clamp-${lines}`}>
+      <div className={`text-sm leading-relaxed text-slate-700 whitespace-pre-wrap line-clamp-${lines}`}>
         {text}
       </div>
       <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-white via-white/90 to-transparent pointer-events-none" />
-      <button
+       <button
         className="
           absolute bottom-0 right-0 px-3 py-1 text-xs font-medium
           bg-white border border-slate-200 rounded-full
@@ -858,6 +873,28 @@ function ClampedBody({ text, lines = 4, onOpen }: { text: string; lines?: number
       </button>
     </div>
   );
+
+//   return (
+//     <div className="relative">
+//       <div ref={ref} className={`text-sm leading-relaxed text-slate-700 whitespace-pre-wrap line-clamp-${lines}`}>
+//         {text}
+//       </div>
+//       <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-white via-white/90 to-transparent pointer-events-none" />
+//       <button
+//         className="
+//           absolute bottom-0 right-0 px-3 py-1 text-xs font-medium
+//           bg-white border border-slate-200 rounded-full
+//           text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50
+//           transition-all duration-200 shadow-sm hover:shadow
+//           flex items-center gap-1
+//         "
+//         onClick={onOpen}
+//       >
+//         Read more
+//         <ChevronDown className="w-3 h-3" />
+//       </button>
+//     </div>
+//   );
 }
 
 /** -------------------------------------------
@@ -1083,20 +1120,20 @@ function Controls({
 /** -------------------------------------------
  * Enhanced AIF row component
  * ------------------------------------------*/
-function Row({
+function RowImpl({
   a,
   meta,
   deliberationId,
   showPremises,
-  onPromoted,
-  onRefresh,
+onPromoted, onRefreshRow, isVisible,
 }: {
   a: AifRow;
   meta?: AifMeta;
   deliberationId: string;
   showPremises: boolean;
   onPromoted: () => void;
-  onRefresh: () => void;
+  onRefreshRow: (id: string) => void;
+  isVisible: boolean;
 }) {
   const [open, setOpen] = React.useState(false);
   const [cqs, setCqs] = React.useState<Array<{ cqKey: string; text: string; status: 'open' | 'answered'; attackType: string; targetScope: string }>>([]);
@@ -1105,21 +1142,24 @@ function Row({
   const [obText, setObText] = React.useState<string>('');
   const [obClaim, setObClaim] = React.useState<{ id: string; text: string } | null>(null);
   const [showCopied, setShowCopied] = React.useState(false);
+  const [cqsLoaded, setCqsLoaded] = React.useState(false);
+  const [showCqs, setShowCqs] = React.useState(false);
 
+  // Lazy load only when needed
   React.useEffect(() => {
-    let cancel = false;
+    if (!showCqs || cqsLoaded === true) return;
+    let alive = true;
     (async () => {
       try {
         const items = await getArgumentCQs(a.id);
-        if (!cancel) setCqs(items || []);
-      } catch {
-        /* ignore */
-      }
+        if (alive) {
+          setCqs(items || []);
+          setCqsLoaded(true);
+        }
+      } catch {/* ignore */}
     })();
-    return () => {
-      cancel = true;
-    };
-  }, [a.id]);
+    return () => { alive = false; };
+  }, [showCqs, cqsLoaded, a.id]);
 
   const conclusionText = meta?.conclusion?.text || a.text || '';
   const created = new Date(a.createdAt).toLocaleDateString('en-US', {
@@ -1204,6 +1244,14 @@ function Row({
               <time className="text-xs text-slate-500 font-medium">{created}</time>
               <SchemeBadge scheme={meta?.scheme} />
               <CqMeter cq={meta?.cq} />
+              {/* Light toggle to fetch CQs on demand */}
+              <button
+                className="text-xs text-indigo-600 hover:underline"
+                onClick={() => setShowCqs(s => !s)}
+                title={showCqs ? 'Hide critical questions' : 'Show critical questions'}
+              >
+                {showCqs ? 'Hide CQs' : 'View CQs'}
+              </button>
             </div>
             <div className="flex items-center flex-wrap gap-1.5 justify-end">
               <PreferenceCounts p={meta?.preferences} />
@@ -1224,8 +1272,10 @@ function Row({
         )}
 
         {/* Critical Questions */}
-        {cqs.length > 0 && (
+       {showCqs && (
           <div className="flex flex-wrap gap-2" aria-label="Critical questions">
+            {cqs.length === 0 && !cqsLoaded && <span className="text-xs text-slate-500">Loading CQs…</span>}
+
             {cqs.map(c => (
               <div key={c.cqKey} className="inline-flex items-center gap-2">
                 <button
@@ -1281,7 +1331,7 @@ function Row({
                               }),
                             });
                             setObCq(null);
-                            onRefresh();
+                            onRefreshRow(a.id);
                           }}
                         >
                           Post rebuttal
@@ -1319,7 +1369,7 @@ function Row({
                             });
                             setObCq(null);
                             setObText('');
-                            onRefresh();
+                            onRefreshRow(a.id);
                           }}
                         >
                           Post undercut
@@ -1357,7 +1407,7 @@ function Row({
                             });
                             setObCq(null);
                             setObClaim(null);
-                            onRefresh();
+                            onRefreshRow(a.id);
                           }}
                         >
                           Post undermine
@@ -1380,9 +1430,9 @@ function Row({
             onPosted={() => window.dispatchEvent(new CustomEvent('dialogue:moves:refresh', { detail: { deliberationId } } as any))}
           />
 
-          <PreferenceQuick deliberationId={deliberationId} argumentId={a.id} onDone={onRefresh} />
+          <PreferenceQuick deliberationId={deliberationId} argumentId={a.id} onDone={onRefreshRow} />
 
-          <AttackMenuPro
+          {/* <AttackMenuPro
             deliberationId={deliberationId}
             authorId={a.authorId ?? 'current'}
             target={{
@@ -1390,8 +1440,17 @@ function Row({
               conclusion: { id: meta?.conclusion?.id ?? '', text: conclusionText ?? '' },
               premises: meta?.premises ?? [],
             }}
-          />
-
+          /> */}
+<AttackMenuPro
+  deliberationId={deliberationId}
+  authorId={a.authorId ?? 'current'}
+  target={{
+    id: a.id,
+    conclusion: { id: meta?.conclusion?.id ?? '', text: conclusionText ?? '' },
+    premises: meta?.premises ?? [],
+  }}
+  onDone={() => onRefreshRow(a.id)}  // Refreshes list after attack posted
+/>
           <div className="flex-1" />
 
           {/* Promote/promoted status */}
@@ -1413,7 +1472,7 @@ function Row({
               target={{ type: 'argument', id: a.id }}
               onClaim={async () => {
                 onPromoted();
-                onRefresh();
+                onRefreshRow(a.id);
               }}
             />
           )}
@@ -1453,6 +1512,31 @@ function Row({
   );
 }
 
+function metaSig(m?: AifMeta) {
+  if (!m) return '';
+  const a = m.attacks || { REBUTS:0, UNDERCUTS:0, UNDERMINES:0 };
+  const cq = m.cq || { required:0, satisfied:0 };
+  const p = m.preferences || { preferredBy:0, dispreferredBy:0 };
+  return [
+    m.scheme?.key || '',
+    m.conclusion?.id || '',
+    (m.premises?.length || 0),
+    a.REBUTS, a.UNDERCUTS, a.UNDERMINES,
+    cq.required, cq.satisfied,
+    p.preferredBy || 0, p.dispreferredBy || 0,
+  ].join('|');
+}
+
+export const Row = React.memo(RowImpl, (prev, next) => {
+  return (
+    prev.a.id === next.a.id &&
+    prev.showPremises === next.showPremises &&
+    metaSig(prev.meta) === metaSig(next.meta)
+  );
+});
+
+
+
 /** -------------------------------------------
  * Main list component
  * ------------------------------------------*/
@@ -1477,10 +1561,34 @@ export default function AIFArgumentsListPro({
     };
   }, []);
 
+
+  const refreshAifForId = React.useCallback(async (id: string) => {
+    try {
+      const one = await fetch(`/api/arguments/${id}/aif`).then(r => (r.ok ? r.json() : null));
+      if (one?.aif) {
+        setAifMap(prev => ({
+          ...prev,
+          [id]: {
+            scheme: one.aif.scheme ?? null,
+            conclusion: one.aif.conclusion ?? null,
+            premises: one.aif.premises ?? [],
+            implicitWarrant: one.aif.implicitWarrant ?? null,
+            attacks: one.aif.attacks ?? { REBUTS: 0, UNDERCUTS: 0, UNDERMINES: 0 },
+            cq: one.aif.cq ?? { required: 0, satisfied: 0 },
+            preferences: one.aif.preferences ?? { preferredBy: 0, dispreferredBy: 0 },
+          }
+        }));
+      }
+    } catch {/* ignore */}
+  }, []);
+
   // Filters
   const [schemeKey, setSchemeKey] = React.useState('');
   const [q, setQ] = React.useState('');
+  const dq = React.useDeferredValue(q);
+
   const [showPremises, setShowPremises] = React.useState(true);
+  const [visibleRange, setVisibleRange] = React.useState({ startIndex: 0, endIndex: Math.min(20, 0) });
 
   // Base list
   const getKey = (_idx: number, prev: any) => {
@@ -1489,20 +1597,32 @@ export default function AIFArgumentsListPro({
     return `/api/deliberations/${encodeURIComponent(deliberationId)}/arguments/aif?limit=${PAGE}${cursor}`;
   };
 
-  const { data, error, size, setSize, isLoading, mutate } = useSWRInfinite(getKey, fetcher, { revalidateOnFocus: false });
-
+  const { data, error, size, setSize, isLoading, isValidating, mutate } =
+    useSWRInfinite(getKey, fetcher, {
+      revalidateOnFocus: false,
+      keepPreviousData: true,
+      dedupingInterval: 1500,
+    });
   const pages = data ?? [];
   const rows: AifRow[] = pages.flatMap(p => p?.items ?? []);
 
   // Per-row AIF meta hydration
   const [aifMap, setAifMap] = React.useState<Record<string, AifMeta>>({});
 
+
+// Build a stable key from the current row ids
+const rowIdsKey = React.useMemo(() => rows.map(r => r.id).join(','), [rows]);
+
+  const aifMapRef = React.useRef(aifMap);
+  React.useEffect(() => { aifMapRef.current = aifMap; }, [aifMap]);
+
   React.useEffect(() => {
     let cancelled = false;
     (async () => {
       const byId: Record<string, AifMeta> = {};
-      const pending = rows.filter(r => !r.aif).map(r => r.id);
-      
+   const pending = rows
+     .filter(r => !r.aif && !aifMapRef.current[r.id])
+     .map(r => r.id);
       await Promise.all(
         pending.map(async id => {
           try {
@@ -1549,33 +1669,76 @@ export default function AIFArgumentsListPro({
     return () => {
       cancelled = true;
     };
-  }, [rows]);
-
+  }, [rowIdsKey]);
   // Visible texts
-  React.useEffect(() => {
-    if (!onVisibleTextsChanged) return;
-    const texts: string[] = [];
-    for (const r of rows) {
-      const claimText = r.aif?.conclusion?.text ?? aifMap[r.id]?.conclusion?.text ?? '';
-      const t = claimText || r.text || '';
-      if (t) texts.push(t);
-    }
-    onVisibleTextsChanged(texts);
-  }, [rows, aifMap, onVisibleTextsChanged]);
+//   const textsKey = React.useMemo(() => {
+//     return rows.map(r => (r.aif?.conclusion?.text ?? aifMap[r.id]?.conclusion?.text ?? r.text ?? '')).join('||');
+//   }, [rows, aifMap]);
+//   React.useEffect(() => {
+//     if (!onVisibleTextsChanged) return;
+//     const texts = textsKey ? textsKey.split('||').filter(Boolean) : [];
+//     onVisibleTextsChanged(texts);
+//   }, [textsKey, onVisibleTextsChanged]);
 
   // Filtering
+  // Cache row -> lowercased searchable text
+  const bucketRef = React.useRef<Record<string, string>>({});
+  React.useEffect(() => {
+    // update only for ids missing
+    for (const r of rows) {
+      if (!bucketRef.current[r.id]) {
+        const m = r.aif || aifMap[r.id];
+        bucketRef.current[r.id] = [
+          m?.conclusion?.text || r.text || '',
+          ...(m?.premises?.map(p => p.text || '') ?? []),
+          m?.implicitWarrant?.text || '',
+        ].join(' ').toLowerCase();
+      }
+    }
+  }, [rows, aifMap]); // cheap: only adds for new/changed ids if you also clear when meta changes
+
+  // Clear cache entries whose meta changed (simple heuristic: conclusion id / premises length)
+  React.useEffect(() => {
+    for (const r of rows) {
+      const m = r.aif || aifMap[r.id];
+      const sig = `${m?.conclusion?.id || ''}:${m?.premises?.length || 0}`;
+      const key = `${r.id}::${sig}`;
+      // store signature alongside bucket
+      if ((bucketRef.current as any)[`${r.id}__sig`] !== key) {
+        (bucketRef.current as any)[`${r.id}__sig`] = key;
+        // recompute
+        bucketRef.current[r.id] = [
+          m?.conclusion?.text || r.text || '',
+          ...(m?.premises?.map(p => p.text || '') ?? []),
+          m?.implicitWarrant?.text || '',
+        ].join(' ').toLowerCase();
+      }
+    }
+  }, [rows, aifMap]);
+
   const filtered: AifRow[] = React.useMemo(() => {
-    const lower = q.trim().toLowerCase();
+    const lower = dq.trim().toLowerCase();
     return rows.filter(a => {
-      const meta = a.aif || aifMap[a.id];
-      const schemeOk = !schemeKey || meta?.scheme?.key === schemeKey;
-      const textBucket = [meta?.conclusion?.text || a.text || '', ...(meta?.premises?.map(p => p.text || '') ?? []), meta?.implicitWarrant?.text || '']
-        .join(' ')
-        .toLowerCase();
-      const qOk = !lower || textBucket.includes(lower);
+      const m = a.aif || aifMap[a.id];
+      const schemeOk = !schemeKey || m?.scheme?.key === schemeKey;
+      const bucket = bucketRef.current[a.id] || '';
+      const qOk = !lower || bucket.includes(lower);
       return schemeOk && qOk;
     });
-  }, [rows, aifMap, schemeKey, q]);
+  }, [rows, aifMap, schemeKey, dq]);
+
+   React.useEffect(() => {
+   if (!onVisibleTextsChanged || filtered.length === 0) return;
+   const start = Math.max(0, visibleRange.startIndex);
+   const end = Math.min(filtered.length - 1, visibleRange.endIndex);
+   const texts: string[] = [];
+   for (let i = start; i <= end; i++) {
+     const r = filtered[i];
+     const t = r.aif?.conclusion?.text ?? aifMap[r.id]?.conclusion?.text ?? r.text ?? '';
+     if (t) texts.push(t);
+   }
+   onVisibleTextsChanged(texts);
+ }, [onVisibleTextsChanged, visibleRange, filtered, aifMap]);
 
   // Loading state
   if (isLoading && rows.length === 0) {
@@ -1588,6 +1751,7 @@ export default function AIFArgumentsListPro({
       </section>
     );
   }
+
 
   // Error state
   if (error) {
@@ -1638,15 +1802,30 @@ export default function AIFArgumentsListPro({
         <Virtuoso
           data={filtered}
           computeItemKey={(_i, a) => a.id}
+            increaseViewportBy={{ top: 200, bottom: 400 }}
+
           itemContent={(_index, a) => {
             const meta = a.aif || aifMap[a.id];
+            const isVisible = _index >= visibleRange.startIndex - 2 && _index <= visibleRange.endIndex + 2; // small prefetch window
+
             return (
               <div>
-                <Row a={a} meta={meta} deliberationId={deliberationId} showPremises={showPremises} onPromoted={() => window.dispatchEvent(new CustomEvent('claims:changed', { detail: { deliberationId } }))} onRefresh={() => mutate()} />
+                <Row
+                  a={a}
+                  meta={meta}
+                  deliberationId={deliberationId}
+                  showPremises={showPremises}
+                  onPromoted={() => window.dispatchEvent(new CustomEvent('claims:changed', { detail: { deliberationId } } as any))}
+                  onRefreshRow={refreshAifForId}   // added below
+                                    isVisible={isVisible}
+
+                />
               </div>
             );
           }}
-          endReached={() => !isLoading && nextCursor && setSize(s => s + 1)}
+          rangeChanged={(r) => setVisibleRange(r)}
+
+         endReached={() => !isValidating && nextCursor && setSize(s => s + 1)}
           components={{
             Footer: () => (
               <div className="py-6 text-center border-t border-slate-100">
@@ -1666,14 +1845,5 @@ export default function AIFArgumentsListPro({
         />
       </div>
     </section>
-  );
-}
-
-// Placeholder ClaimPicker component (you'll need to import your actual one)
-function ClaimPicker({ deliberationId, authorId, label, onPick }: { deliberationId: string; authorId: string; label: string; onPick: (claim: { id: string; text: string }) => void }) {
-  return (
-    <button className="px-3 py-1.5 rounded-lg border border-slate-300 text-xs bg-white hover:bg-slate-50 transition-all" onClick={() => onPick({ id: 'placeholder', text: 'Placeholder claim' })}>
-      {label}
-    </button>
   );
 }

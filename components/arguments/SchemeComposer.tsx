@@ -6,7 +6,7 @@ import { ClaimPicker } from '@/components/claims/ClaimPicker';
 import { LegalMoveToolbarAIF } from '@/components/dialogue/LegalMoveToolbarAIF';
 import { AttackMenuPro } from '@/components/arguments/AttackMenuPro';
 import { EntityPicker } from '@/components/kb/EntityPicker';
-
+import { SchemeComposerPicker } from '../ScchemeComposerPicker';
 
 
 type Props = {
@@ -95,14 +95,15 @@ export function SchemeComposer({ deliberationId, authorId, conclusionClaim, defa
   return (
     <div className=" space-y-4">
       <div className="rounded-md border bg-white p-4 ">
-        <div className="text-sm text-gray-500 mb-2">
+        <div className="text-[14px] text-gray-500 ">
           {selected ? <>Using scheme: <b>{selected.name}</b></> : 'Freeform argument'}
         </div>
+        <hr className="border-slate-200 my-2" />
 
         <div className="grid gap-3  md:grid-cols-3">
-          <label className="flex flex-col gap-2 md:col-span-1">
+          <label className="flex flex-col gap-1 md:col-span-1">
             <span className="text-sm text-gray-800">Scheme</span>
-            <select className="w-full border rounded px-2 py-1 text-sm menuv2--lite"
+            <select className="w-full border rounded px-2 py-1 text-xs menuv2--lite"
                     value={schemeKey}
                     onChange={e=>setSchemeKey(e.target.value)}>
               <option value="">(Choose)</option>
@@ -117,16 +118,17 @@ export function SchemeComposer({ deliberationId, authorId, conclusionClaim, defa
             ) : null}
           </label>
 
-          <label className="flex flex-col gap-2 md:col-span-2 ">
+          <label className="flex flex-col gap-1 md:col-span-2 ">
             <span className="text-sm text-gray-800">Conclusion</span>
-            <div className="w-full border rounded px-3 py-1 bg-gray-50 text-sm tagfield">
+            <div className="w-full border border-slate-500 rounded px-3 py-1  text-xs bg-white">
               {conclusionClaim.text ?? conclusionClaim.id}
             </div>
           </label>
         </div>
+        <hr className="border-slate-200 my-3" />
 
         {/* Premises picker (replaces comma-separated IDs) */}
-        <div className="mt-4">
+        <div className="mt-2">
           <div className="flex items-center justify-start gap-3">
             <span className="text-sm text-gray-800">Premises</span>
             <button className="text-xs px-2 py-1 rounded-lg btnv2--ghost "
@@ -135,7 +137,7 @@ export function SchemeComposer({ deliberationId, authorId, conclusionClaim, defa
             </button>
           </div>
           {premises.length ? (
-            <ul className="mt-2 flex flex-wrap gap-2">
+            <ul className="mt-3 flex flex-wrap gap-2">
               {premises.map(p => (
                 <li key={p.id} className="flex items-center gap-2 px-2 py-1 rounded-full border bg-slate-50">
                   <span className="text-xs">{p.text || p.id}</span>
@@ -147,16 +149,17 @@ export function SchemeComposer({ deliberationId, authorId, conclusionClaim, defa
             <div className="text-sm text-slate-500 mt-2">No premises yet.</div>
           )}
         </div>
+        <hr className="border-slate-200 my-3" />
 
         {/* Optional notes / warrant */}
-        <label className="flex flex-col gap-2 mt-3">
+        <label className="flex flex-col gap-2 mt-0">
           <span className="text-sm text-gray-800">Notes / implicit warrant (optional)</span>
-          <textarea className="w-full articlesearchfield rounded-lg text-xs p-3" cols={3} value={notes} onChange={e=>setNotes(e.target.value)} />
+          <textarea className="w-full articlesearchfield rounded-lg text-xs p-3 mt-1" cols={3} value={notes} onChange={e=>setNotes(e.target.value)} />
         </label>
 
         <div className="flex items-center gap-3 mt-4">
        <button
-    className="px-3 py-3 text-sm tracking-wide  font-medium rounded-xl btnv2 disabled:opacity-50"
+    className="px-3 py-2 text-sm tracking-wide  font-medium rounded-xl btnv2 disabled:opacity-50"
     disabled={creating || !canCreate}
     onClick={handleCreate}
   >
@@ -205,7 +208,7 @@ export function SchemeComposer({ deliberationId, authorId, conclusionClaim, defa
       />
 
       {/* ---- EntityPicker modal (reuse KB picker) ---- */}
-      <EntityPicker
+      <SchemeComposerPicker
         kind="claim"
         open={pickerOpen}
         onClose={() => setPickerOpen(false)}

@@ -48,6 +48,7 @@ import PropositionsList from "../propositions/PropositionsList";
  import type { MinimapNode, MinimapEdge } from '@/components/dialogue/minimap/types';
 import { use } from "chai";
 import { auth } from "googleapis/build/src/apis/abusiveexperiencereport";
+import PropositionComposer from "../propositions/PropositionComposer";
 const fetcher = (u:string)=>fetch(u,{cache:'no-store'}).then(r=>r.json());
 
 const LazyGraphPanel = dynamic(() => import("@/components/graph/GraphPanel"), {
@@ -979,7 +980,6 @@ onClearReply={() => setReplyTarget(null)}
     <SchemeComposer schemeKey={1}  />
    </SectionCard> */}
    <SectionCard title="Scheme Composer">
-
 <AIFAuthoringPanel
   deliberationId={deliberationId}
   authorId={authorId || ''} // or 'current' if you enable server fallback
@@ -990,7 +990,7 @@ onClearReply={() => setReplyTarget(null)}
 
 />
   </SectionCard>
-  {/* <SectionCard title="AIF LIST">
+  <SectionCard title="AIF LIST">
  <AIFArgumentsListPro
         deliberationId={deliberationId}
         onVisibleTextsChanged={(texts)=> {
@@ -999,7 +999,10 @@ onClearReply={() => setReplyTarget(null)}
         }}
       />
 
-</SectionCard> */}
+</SectionCard>
+<SectionCard title="Proposition Composer">
+  <PropositionComposer deliberationId={deliberationId} />
+</SectionCard>  
 <SectionCard title="Proposition List">
   <PropositionsList deliberationId={deliberationId} />
 </SectionCard>

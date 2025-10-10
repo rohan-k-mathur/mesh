@@ -23,10 +23,17 @@ async function asJson<T>(res: Response): Promise<T> {
 //   return j;
 // }
 
-export async function searchClaims(q: string, deliberationId: string) {
-  const u = `/api/claims?q=${encodeURIComponent(q)}&deliberationId=${encodeURIComponent(deliberationId)}&limit=12`;
-  const { items } = await asJson<{ items: ClaimLite[] }>(await fetch(u, { cache: 'no-store' }));
-  return items ?? [];
+export async function searchClaims(
+  q: string,
+  deliberationId: string,
+  opts?: { signal?: AbortSignal; limit?: number }
+): Promise<ClaimLite[]> {
+  const params = new URLSearchParams({ q, deliberationId });
+  if (opts?.limit) params.set('limit', String(opts.limit));
+  const r = await fetch(`/api/claims/search?${params}`, { signal: opts?.signal, cache: 'no-store' });
+  const j = await r.json();
+  if (!r.ok || j?.ok === false) throw new Error(j?.error || `HTTP ${r.status}`);
+  return Array.isArray(j.items) ? j.items : [];
 }
 
 export async function tryGetArgumentCQs(argumentId: string) {

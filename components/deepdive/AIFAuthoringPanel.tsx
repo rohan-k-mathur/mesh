@@ -3,6 +3,7 @@ import * as React from 'react';
 import { SchemeComposer } from '@/components/arguments/SchemeComposer';
 import { ArgumentCard } from '@/components/arguments/ArgumentCard';
 import { EntityPicker } from '@/components/kb/EntityPicker';
+import { SchemeComposerPicker } from '../ScchemeComposerPicker';
 import { getUserFromCookies } from '@/lib/server/getUser';
 import { get } from 'lodash';
 
@@ -82,7 +83,7 @@ authorId = user?.userId || 'current'; // use 'current' to resolve from session o
       )}
 
       {/* Conclusion picker modal */}
-      <EntityPicker
+      <SchemeComposerPicker
         kind="claim"
         open={pickConclusionOpen}
         onClose={() => setPickConclusionOpen(false)}
