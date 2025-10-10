@@ -330,8 +330,8 @@ export function SectionCard({
       className={[
         "group relative  overflow-hidden rounded-2xl",
         "panel-edge dark:border-slate-800/60",
-        "bg-white/70 dark:bg-slate-900/50",
-        "backdrop-blur supports-[backdrop-filter]:bg-white/60",
+        "bg-white/50 dark:bg-slate-900/50",
+        "backdrop-blur-md supports-[backdrop-filter]:bg-white/50",
         "shadow-sm hover:shadow-md transition-shadow",
         className,
       ].join(" ")}
@@ -1000,9 +1000,10 @@ onClearReply={() => setReplyTarget(null)}
       />
 
 </SectionCard>
-<SectionCard title="Proposition Composer">
+<SectionCard >
   <PropositionComposer deliberationId={deliberationId} />
 </SectionCard>  
+
 <SectionCard title="Proposition List">
   <PropositionsList deliberationId={deliberationId} />
 </SectionCard>

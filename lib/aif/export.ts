@@ -1,4 +1,4 @@
-// packages/aif-core/src/export.ts
+//lib/aif/export.ts
 import ctx from './context.json';
 import { prisma } from '@/lib/prismaclient';
 

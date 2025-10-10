@@ -691,7 +691,9 @@ React.useEffect(() => {
         paused={paused}
         onPause={() => setPaused((p) => !p)}
       />
+      <div className="flex mt-3 mx-auto justify-end px-8">
 <NewKbButton />
+</div>
   <div className="mb-2 mx-4">
   <div className="inline-flex mt-3 rounded-xl border border-indigo-300 bg-white/70 text-sm overflow-hidden">
     {(['feed','sheet','plexus'] as const).map(v => (

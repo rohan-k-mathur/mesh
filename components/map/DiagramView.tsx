@@ -1,3 +1,4 @@
+//components/map/DiagramView.tsx
 'use client';
 
 import * as React from 'react';
@@ -153,9 +154,26 @@ export default function DiagramView({
   }, [recompute]);
 
   // --------------- UI ---------------
-  const conclusion = inf ? byId.get(inf.conclusionId) : undefined;
-  const premises = inf ? inf.premiseIds.map((id) => byId.get(id)).filter(Boolean) as Statement[] : [];
+  // const conclusion = inf ? byId.get(inf.conclusionId) : undefined;
+  // const premises = inf ? inf.premiseIds.map((id) => byId.get(id)).filter(Boolean) as Statement[] : [];
 
+  const conclusion = inf ? byId.get(inf.conclusionId) : undefined;
+const premises = inf ? inf.premiseIds.map((id) => byId.get(id)).filter(Boolean) as Statement[] : [];
+
+
+// Add this check:
+if (!inf && diagram.statements.length > 0) {
+  return (
+    <div className="text-center py-8 text-slate-500 text-sm">
+      This argument has no structured inferences yet.
+      <div className="mt-2 text-xs">
+        {diagram.statements.map(s => (
+          <div key={s.id} className="mt-1">{s.text}</div>
+        ))}
+      </div>
+    </div>
+  );
+}
   return (
     <div ref={(el) => { containerRef.current = el; roRef.current = el; }}
          className={classNames('relative w-full', className)}>

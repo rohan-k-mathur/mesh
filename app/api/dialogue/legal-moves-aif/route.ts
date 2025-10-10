@@ -1,4 +1,4 @@
-// app/api/dialogue/legal-moves/route.ts
+// app/api/dialogue/legal-moves-aif/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
 
@@ -19,5 +19,9 @@ export async function GET(req: NextRequest) {
   const last = await prisma.dialogueMove.findUnique({ where: { id: at }, select: { id:true, type:true, illocution:true } });
   if (!last) return NextResponse.json({ ok:false, error:'not found' }, { status: 404 });
 
-  return NextResponse.json({ ok:true, allowed: legalReplies(last) });
+  if (!last.type) {
+    return NextResponse.json({ ok:false, error:'move type missing' }, { status: 400 });
+  }
+
+  return NextResponse.json({ ok:true, allowed: legalReplies({ type: last.type, illocution: last.illocution }) });
 }

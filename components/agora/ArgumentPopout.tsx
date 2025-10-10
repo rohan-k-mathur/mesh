@@ -1,3 +1,4 @@
+//components/agora/ArgumentPopout.tsx
 'use client';
 import useSWR from 'swr';
 import DiagramView from '../map/DiagramView';

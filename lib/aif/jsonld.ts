@@ -1,3 +1,5 @@
+// lib/aif/jsonld.ts
+
 import ctx from "@/lib/aif/context.json";
 import { prisma } from "@/lib/prismaclient";
 

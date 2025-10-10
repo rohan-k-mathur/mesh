@@ -91,7 +91,7 @@ export function LegalMoveToolbar({
 
   function Segmented() {
     return (
-      <div role="tablist" aria-label="Move intent" className="inline-flex rounded-md border border-slate-200/80 bg-white/70 p-0.5">
+      <div role="tablist" aria-label="Move intent" className="inline-flex rounded-md border border-slate-200/80 bg-white/70 p-0">
         {[
           ["challenge","Challenge"] as const,
           ["resolve","Resolve"] as const,
@@ -119,15 +119,15 @@ export function LegalMoveToolbar({
 
   return (
     <div className="rounded-md border border-slate-200 bg-white/60 p-2 space-y-2">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <Segmented />
           <Pill tone="attack">WHY {why ? "available" : "—"}</Pill>
           <Pill tone="resolve">{hasClose ? "Closable (†)" : "Not closable"}</Pill>
         </div>
         {disabled.length > 0 && (
-          <button className="text-[11px] underline decoration-dotted" onClick={() => setShowAll(v => !v)}>
-            {showAll ? "Hide illegal" : `Show ${disabled.length} illegal`}
+          <button className="text-[11px] underline underline-offset-4 decoration-dotted " onClick={() => setShowAll(v => !v)}>
+            {showAll ? "Hide restricted" : `Show ${disabled.length} restricted`}
           </button>
         )}
       </div>

@@ -1,8 +1,12 @@
+
+
 // app/deliberation/[id]/page.tsx
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prismaclient";
 import NextLink from "next/link";
 import DeliberationReader from "../components/DeliberationPage";
+import { GridBG } from "@/components/ui/GridBG";
+
 export default async function DeliberationPage({
   params,
 }: {
@@ -27,7 +31,8 @@ export default async function DeliberationPage({
       return (
         <div >
           {/* Optional backlink to host article */}
-            
+                  <GridBG />
+
     
           {/* Full discussion */}
           <DeliberationReader deliberationId={delib.id} />

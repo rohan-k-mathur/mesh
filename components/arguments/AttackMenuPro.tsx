@@ -1,3 +1,4 @@
+//components/arguments/AttackMenuPro.tsx
 'use client';
 
 import * as React from 'react';
@@ -16,7 +17,7 @@ import {
 
 // Lazy-load: ClaimPicker can be heavy (Command list, filters, fetches)
 const ClaimPicker = dynamic(
-  () => import('@/components/claims/ClaimPicker').then(m => m.ClaimPicker || m.default),
+  () => import('@/components/claims/ClaimPicker').then(m => m.ClaimPicker ),
   { ssr: false, loading: () => <div className="h-9 rounded bg-slate-100 animate-pulse" /> }
 );
 
@@ -56,19 +57,19 @@ export function AttackMenuPro({
       <DialogTrigger asChild>
         <button
           className="
-            inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium
-            bg-white text-slate-700 border border-slate-300
+            inline-flex items-center gap-2 px-3 py-1 rounded-lg text-xs font-medium
+            bg-white text-slate-700 border border-slate-300 btnv2 
             hover:bg-slate-50 hover:border-slate-400
             transition-all duration-200 shadow-sm hover:shadow
           "
         >
-          <Swords className="w-4 h-4" />
-          Attack
+          {/* <Swords className="w-4 h-4" /> */}
+          Counter
         </button>
       </DialogTrigger>
 
       <DialogContent
-        className="max-w-2xl max-h-[85vh] overflow-y-auto bg-gradient-to-br from-slate-50 to-white"
+        className="max-w-3xl max-h-[85vh] overflow-y-auto bg-slate-50  "
         // Avoid a big focus-scan; focus our heading instead.
         onOpenAutoFocus={(e) => {
           e.preventDefault();
@@ -82,16 +83,16 @@ export function AttackMenuPro({
               tabIndex={-1}
               className="outline-none focus-visible:ring-2 ring-indigo-200 text-xl font-bold text-slate-900 flex items-center gap-2"
             >
-              <Swords className="w-5 h-5 text-slate-600" />
-              Attack This Argument
+              {/* <Swords className="w-5 h-5 text-slate-600" /> */}
+              Challenge This Argument
             </DialogTitle>
           </div>
           <p className="text-sm text-slate-600 leading-relaxed">
-            Choose how to challenge this argument using one of three formal attack types.
+            Choose how to challenge this argument using a formal attack type.
           </p>
         </DialogHeader>
 
-        <div className="mt-6">
+        <div className="mt-0">
           {mounted ? (
             <AttackMenuContent
               deliberationId={deliberationId}
@@ -101,7 +102,7 @@ export function AttackMenuPro({
             />
           ) : (
             // Lightweight placeholder while we lazily mount
-            <div className="space-y-3">
+            <div className="space-y-5">
               <div className="h-28 rounded-lg border border-slate-200 bg-white animate-pulse" />
               <div className="h-28 rounded-lg border border-slate-200 bg-white animate-pulse" />
               <div className="h-28 rounded-lg border border-slate-200 bg-white animate-pulse" />
@@ -213,13 +214,13 @@ function AttackMenuContent({
   }, [busy, rebut, undercutText, premiseId, undermine, postCA, createClaim, deliberationId, target.id, target.conclusion.id, onDone]);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-6">
       {/* REBUT */}
-      <div className="group relative rounded-lg border border-rose-200 bg-gradient-to-br from-rose-50 to-white p-4 transition-all duration-200 hover:shadow-md">
+      <div className="group relative rounded-lg border border-rose-200 bg-rose-50  p-4 transition-all duration-200 hover:shadow-md">
         <div className="flex items-start gap-3 mb-3">
-          <div className="flex items-center justify-center w-10 h-10 rounded-full bg-rose-100 text-rose-600 shrink-0">
+          {/* <div className="flex items-center justify-center w-10 h-10 rounded-full bg-rose-100 text-rose-600 shrink-0">
             <ShieldX className="w-5 h-5" strokeWidth={2.5} />
-          </div>
+          </div> */}
           <div className="flex-1">
             <h3 className="text-sm font-semibold text-rose-900 mb-1">Rebut</h3>
             <p className="text-xs text-rose-700 leading-relaxed">
@@ -228,10 +229,10 @@ function AttackMenuContent({
           </div>
         </div>
 
-        <div className="space-y-3 pl-12">
+        <div className="space-y-3">
           <div className="p-2.5 bg-white rounded-lg border border-rose-100">
             <div className="flex items-start gap-2">
-              <Target className="w-4 h-4 text-rose-500 mt-0.5 shrink-0" />
+              {/* <Target className="w-4 h-4 text-rose-500 mt-0.5 shrink-0" /> */}
               <div>
                 <div className="text-xs font-medium text-rose-700 mb-1">Target Conclusion</div>
                 <div className="text-xs text-slate-700 leading-relaxed">{target.conclusion.text}</div>
@@ -244,7 +245,7 @@ function AttackMenuContent({
               className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium border border-rose-300 text-rose-700 hover:bg-rose-50 transition"
               onClick={() => setShowRebut(true)}
             >
-              <ShieldX className="w-4 h-4" />
+              {/* <ShieldX className="w-4 h-4" /> */}
               Start rebuttal
             </button>
           ) : (
@@ -261,7 +262,7 @@ function AttackMenuContent({
               {rebut && (
                 <div className="mt-2 p-2 bg-emerald-50 border border-emerald-200 rounded-lg">
                   <div className="flex items-start gap-2">
-                    <Sparkles className="w-3 h-3 text-emerald-600 mt-0.5 shrink-0" />
+                    {/* <Sparkles className="w-3 h-3 text-emerald-600 mt-0.5 shrink-0" /> */}
                     <div className="text-xs text-emerald-800">{rebut.text}</div>
                   </div>
                 </div>
@@ -284,7 +285,7 @@ function AttackMenuContent({
                   </>
                 ) : (
                   <>
-                    <ShieldX className="w-4 h-4" />
+                    {/* <ShieldX className="w-4 h-4" /> */}
                     Post Rebuttal
                     <ChevronRight className="w-4 h-4" />
                   </>
@@ -296,11 +297,11 @@ function AttackMenuContent({
       </div>
 
       {/* UNDERCUT */}
-      <div className="group relative rounded-lg border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-4 transition-all duration-200 hover:shadow-md">
+      <div className="group relative rounded-lg border border-amber-200 bg-amber-50 p-4 transition-all duration-200 hover:shadow-md">
         <div className="flex items-start gap-3 mb-3">
-          <div className="flex items-center justify-center w-10 h-10 rounded-full bg-amber-100 text-amber-600 shrink-0">
+          {/* <div className="flex items-center justify-center w-10 h-10 rounded-full bg-amber-100 text-amber-600 shrink-0">
             <ShieldAlert className="w-5 h-5" strokeWidth={2.5} />
-          </div>
+          </div> */}
           <div className="flex-1">
             <h3 className="text-sm font-semibold text-amber-900 mb-1">Undercut</h3>
             <p className="text-xs text-amber-700 leading-relaxed">
@@ -309,9 +310,9 @@ function AttackMenuContent({
           </div>
         </div>
 
-        <div className="space-y-3 pl-12">
+        <div className="space-y-3 ">
           <div className="flex items-start gap-2 p-2.5 bg-amber-50 border border-amber-200 rounded-lg">
-            <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+            {/* <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" /> */}
             <p className="text-xs text-amber-800 leading-relaxed">
               Explain why the inference from premises to conclusion might not hold in this case
             </p>
@@ -355,7 +356,7 @@ function AttackMenuContent({
               </>
             ) : (
               <>
-                <ShieldAlert className="w-4 h-4" />
+                {/* <ShieldAlert className="w-4 h-4" /> */}
                 Post Undercut
                 <ChevronRight className="w-4 h-4" />
               </>
@@ -365,11 +366,11 @@ function AttackMenuContent({
       </div>
 
       {/* UNDERMINE */}
-      <div className="group relative rounded-lg border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-4 transition-all duration-200 hover:shadow-md">
+      <div className="group relative rounded-lg border border-slate-200 bg-slate-100 p-4 transition-all duration-200 hover:shadow-md">
         <div className="flex items-start gap-3 mb-3">
-          <div className="flex items-center justify-center w-10 h-10 rounded-full bg-slate-100 text-slate-600 shrink-0">
+          {/* <div className="flex items-center justify-center w-10 h-10 rounded-full bg-slate-100 text-slate-600 shrink-0">
             <Shield className="w-5 h-5" strokeWidth={2.5} />
-          </div>
+          </div> */}
           <div className="flex-1">
             <h3 className="text-sm font-semibold text-slate-900 mb-1">Undermine</h3>
             <p className="text-xs text-slate-700 leading-relaxed">
@@ -378,7 +379,7 @@ function AttackMenuContent({
           </div>
         </div>
 
-        <div className="space-y-3 pl-12">
+        <div className="space-y-3 ">
           <div>
             <label className="block text-xs font-medium text-slate-700 mb-2">
               Select Target Premise
@@ -403,7 +404,7 @@ function AttackMenuContent({
           {premiseId && (
             <div className="p-2.5 bg-slate-100 border border-slate-200 rounded-lg">
               <div className="flex items-start gap-2">
-                <Target className="w-4 h-4 text-slate-500 mt-0.5 shrink-0" />
+                {/* <Target className="w-4 h-4 text-slate-500 mt-0.5 shrink-0" /> */}
                 <div>
                   <div className="text-xs font-medium text-slate-700 mb-1">Target Premise</div>
                   <div className="text-xs text-slate-600 leading-relaxed">
@@ -419,7 +420,7 @@ function AttackMenuContent({
               className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium border border-slate-300 text-slate-700 hover:bg-slate-50 transition"
               onClick={() => setShowUndermine(true)}
             >
-              <Shield className="w-4 h-4" />
+              {/* <Shield className="w-4 h-4" /> */}
               Pick contradicting claim
             </button>
           ) : (
@@ -436,7 +437,7 @@ function AttackMenuContent({
               {undermine && (
                 <div className="mt-2 p-2 bg-emerald-50 border border-emerald-200 rounded-lg">
                   <div className="flex items-start gap-2">
-                    <Sparkles className="w-3 h-3 text-emerald-600 mt-0.5 shrink-0" />
+                    {/* <Sparkles className="w-3 h-3 text-emerald-600 mt-0.5 shrink-0" /> */}
                     <div className="text-xs text-emerald-800">{undermine.text}</div>
                   </div>
                 </div>
@@ -459,7 +460,7 @@ function AttackMenuContent({
                   </>
                 ) : (
                   <>
-                    <Shield className="w-4 h-4" />
+                    {/* <Shield className="w-4 h-4" /> */}
                     Post Undermine
                     <ChevronRight className="w-4 h-4" />
                   </>

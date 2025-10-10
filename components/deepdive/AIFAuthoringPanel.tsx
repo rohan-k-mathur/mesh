@@ -42,7 +42,7 @@ authorId = user?.userId || 'current'; // use 'current' to resolve from session o
   const readyForCompose = Boolean(authorId && conclusion?.id);
 
   return (
-    <div className="flex flex-1 h-[500px] flex-col space-y-4  overflow-y-auto">
+    <div className="flex flex-1 h-[500px] bg-transparent backdrop-blur-md flex-col space-y-4  overflow-y-auto">
       {/* If missing author or conclusion, show a small guard panel */}
       {!authorId && (
         <div className="border rounded-md p-3 bg-amber-50 border-amber-200 text-amber-800 text-sm">
@@ -51,7 +51,7 @@ authorId = user?.userId || 'current'; // use 'current' to resolve from session o
       )}
 
       {!conclusion?.id && (
-        <div className="border rounded-md p-3 bg-slate-50 text-sm flex items-center justify-between">
+        <div className="border rounded-md p-3 bg-slate-50/50 text-sm flex items-center justify-between">
           <div>Select a conclusion claim to start composing an argument.</div>
           <button
             className="text-xs px-2 py-1 border rounded bg-white hover:bg-slate-50"

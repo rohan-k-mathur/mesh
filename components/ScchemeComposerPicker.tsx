@@ -1,3 +1,5 @@
+//components/ScchemeComposerPicker.tsx
+
 'use client';
 import * as React from 'react';
 
@@ -26,22 +28,22 @@ export function SchemeComposerPicker({
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50  flex items-start justify-center p-6" onClick={onClose}>
-      <div className="min-w-[460px] p-3 rounded-lg border border-indigo-200 bg-slate-100/50 backdrop-blur-md shadow-xl" onClick={e=>e.stopPropagation()}>
-        <div className="border-b px-3 py-2 text-sm font-medium">Insert {kind}</div>
-        <div className="p-3 border border-slate-200 bg-white rounded">
+      <div className="min-w-[460px] p-3 rounded-lg border border-indigo-200 bg-slate-100 shadow-xl" onClick={e=>e.stopPropagation()}>
+        <div className="border-b px-3 py-2 text-md font-medium">Insert {kind}</div>
+        <div className=" bg-white rounded-lg border-slate-300 border p-3">
           <input
             autoFocus value={q} onChange={e=>setQ(e.target.value)}
             placeholder={`Search ${kind}s…`}
-            className="w-full rounded border px-2 py-1 text-sm minorfield"
+            className="w-full rounded border px-2 py-2 text-sm articlesearchfield"
           />
-          <div className="mt-2 max-h-72 overflow-auto">
+          <div className="mt-2 max-h-72 overflow-auto ">
             {loading && <div className="text-xs text-slate-500 p-2">Searching…</div>}
             {!loading && items.length===0 && <div className="text-xs text-slate-500 p-2">No results</div>}
             <ul className="divide-y">
               {items.map(it => (
                 <li key={it.id}>
                   <button
-                    className="w-full text-left px-3 py-2 text-sm hover:bg-slate-50"
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-slate-100"
                     onClick={()=>{ onPick(it); onClose(); }}
                   >
                     <div className="truncate">{it.label || it.id}</div>
@@ -51,8 +53,8 @@ export function SchemeComposerPicker({
               ))}
             </ul>
           </div>
-          <div className="mt-2 flex justify-end">
-            <button className="text-sm px-3 py-1 btnv2--ghost rounded-lg bg-white" onClick={onClose}>Close</button>
+          <div className="mt-2  flex justify-end ">
+            <button className="text-[10px]   tracking-wide px-3 py-2 btnv2 border-none rounded outline-indigo-100 bg-slate-50/40" onClick={onClose}>Close</button>
           </div>
         </div>
       </div>

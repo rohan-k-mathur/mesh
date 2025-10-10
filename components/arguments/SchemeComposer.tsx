@@ -93,8 +93,8 @@ export function SchemeComposer({ deliberationId, authorId, conclusionClaim, defa
   }
 
   return (
-    <div className=" space-y-4">
-      <div className="rounded-md border bg-white p-4 ">
+    <div className="bg-transparent space-y-4">
+      <div className="rounded-md border bg-transparent p-4 ">
         <div className="text-[14px] text-gray-500 ">
           {selected ? <>Using scheme: <b>{selected.name}</b></> : 'Freeform argument'}
         </div>

@@ -1,3 +1,4 @@
+ // lib/arguments/diagram.ts
  import { prisma } from "../prismaclient";
  
  export type Diagram = {
@@ -224,13 +225,21 @@ export async function buildDiagramForArgument(argumentId: string): Promise<Diagr
   //   ,...rebutArgs.map(r => ({ id: r.id, text: r.text, kind: "rebuttal" as const }))
   // ];
 
-  const inferences: Diagram['inferences'] = premArgs.length ? [{
-    id: `inf_${arg.id}`,
-    kind: 'defeasible',
-    conclusion: { id: arg.id, text: arg.text },
-    premises: premArgs.map(p => ({ statement: { id: p.id, text: p.text } })),
-    scheme: null,
-  }] : [];
+  // const inferences: Diagram['inferences'] = premArgs.length ? [{
+  //   id: `inf_${arg.id}`,
+  //   kind: 'defeasible',
+  //   conclusion: { id: arg.id, text: arg.text },
+  //   premises: premArgs.map(p => ({ statement: { id: p.id, text: p.text } })),
+  //   scheme: null,
+  // }] : [];
+
+  const inferences: Diagram['inferences'] = [{
+  id: `inf_${arg.id}`,
+  kind: premArgs.length ? 'defeasible' : 'atomic',
+  conclusion: { id: arg.id, text: arg.text },
+  premises: premArgs.map(p => ({ statement: { id: p.id, text: p.text } })),
+  scheme: null,
+}];
 
   // If you store claim evidence via /api/claims/[id]/evidence, map it here
   const ev: Diagram['evidence'] = []; // optional: attach your citations

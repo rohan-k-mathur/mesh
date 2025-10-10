@@ -1,4 +1,4 @@
-// packages/aif-core/src/import.ts
+// lib/aif/import.ts
 import { prisma } from '@/lib/prismaclient';
 
 async function ensureArgumentForClaim(deliberationId: string, claimId: string) {

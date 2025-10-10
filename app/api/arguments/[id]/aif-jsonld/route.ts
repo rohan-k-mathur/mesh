@@ -1,3 +1,5 @@
+//app/api/arguments/[id]/aif-jsonld/route.ts
+
 import { NextRequest, NextResponse } from "next/server";
 import { buildAifGraphJSONLD } from "@/lib/aif/jsonld";
 
