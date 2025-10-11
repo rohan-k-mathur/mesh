@@ -38,6 +38,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
 // import { getServerSession } from 'next-auth'; // if you use NextAuth
 import { getUserFromCookies } from '@/lib/serverutils';
+import { TargetType } from '@prisma/client';
 const NO_STORE = { headers: { 'Cache-Control': 'no-store' } } as const;
 
 export async function POST(req: NextRequest) {
@@ -80,6 +81,35 @@ if (!Array.isArray(premiseClaimIds) || premiseClaimIds.length === 0) {
     });
     return a.id;
   });
+
+  const argId = created;
+
+// Seed CQ rows based on the scheme definition (if any)
+try {
+  if (schemeId) {
+    const sc = await prisma.argumentScheme.findUnique({
+      where: { id: schemeId },
+      select: { key: true, cqs: { select: { cqKey: true } } }
+    });
+    if (sc?.key && sc.cqs?.length) {
+      await prisma.cQStatus.createMany({
+        data: sc.cqs
+          .filter(c => c.cqKey)
+          .map(c => ({
+            targetType: "argument" as TargetType,
+            targetId: argId,
+            argumentId: argId,
+            status: "open",
+            schemeKey: sc.key!,
+            cqKey: c.cqKey!,
+            satisfied: false,
+            createdById: String(authorId),
+          })),
+        skipDuplicates: true,
+      });
+    }
+  }
+} catch {}
 
   return NextResponse.json({ ok:true, argumentId: created }, NO_STORE);
 }

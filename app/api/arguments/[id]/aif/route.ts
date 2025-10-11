@@ -62,6 +62,17 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     prisma.preferenceApplication.count({ where: { dispreferredArgumentId: a.id } }),
   ]);
 
+  // after computing `attacks` & CQ counts
+const prefRows = await prisma.preferenceApplication.findMany({
+  where: { OR: [{ preferredArgumentId: a.id }, { dispreferredArgumentId: a.id }] },
+  select: { preferredArgumentId: true, dispreferredArgumentId: true },
+});
+const preferences = {
+  preferredBy: prefRows.filter((r: any) => r.preferredArgumentId === a.id).length,
+  dispreferredBy: prefRows.filter((r: any) => r.dispreferredArgumentId === a.id).length,
+};
+
+
   return NextResponse.json({
     ok: true,
     id: a.id,
@@ -77,7 +88,8 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
       implicitWarrant: (a.implicitWarrant as any) ?? null,
       attacks,
       cq: { required, satisfied },
-      preferences: { preferredBy: prefBy, dispreferredBy: dispBy },
+    //   preferences: { preferredBy: prefBy, dispreferredBy: dispBy },
+    preferences,
     },
   }, NO_STORE);
 }

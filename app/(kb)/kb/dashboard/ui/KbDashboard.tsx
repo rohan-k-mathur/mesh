@@ -47,7 +47,7 @@ export default function KbDashboard({
               {x.status && <> • {x.status}</>}
             </div>
             <div className="mt-2 flex gap-2 text-sm">
-              <a className="rounded border px-2 py-1 hover:bg-slate-50" href={`/kb/pages/${x.id}`}>view</a>
+              <a className="rounded border px-2 py-1 hover:bg-slate-50" href={`/kb/pages/${x.id}/view`}>view</a>
               <a className="rounded border px-2 py-1 hover:bg-slate-50" href={`/kb/pages/${x.id}/edit`}>edit</a>
             </div>
           </li>

@@ -974,6 +974,7 @@ onClearReply={() => setReplyTarget(null)}
    <SectionCard title="Dialogue Diagram">
      {diag?.diagram
        ? <DiagramView diagram={diag.diagram} />
+
        : <div className="text-xs text-neutral-500">Select a claim (minimap) to load its top argument.</div>}
    </SectionCard>
    {/* <SectionCard title="Scheme Composer">

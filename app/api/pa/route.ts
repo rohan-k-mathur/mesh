@@ -60,28 +60,55 @@
 // }
 // app/api/pa/route.ts (shim that delegates)
 import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prismaclient';
+import { z } from 'zod';
+import { getCurrentUserId } from '@/lib/serverutils';
+
+const NO_STORE = { headers: { 'Cache-Control': 'no-store' } } as const;
+const CreatePA = z.object({
+  deliberationId: z.string().min(6),
+  schemeKey: z.string().optional(),
+  preferredArgumentId: z.string().optional(),
+  preferredClaimId: z.string().optional(),
+  preferredSchemeId: z.string().optional(),
+  dispreferredArgumentId: z.string().optional(),
+  dispreferredClaimId: z.string().optional(),
+  dispreferredSchemeId: z.string().optional(),
+});
+
 
 export async function POST(req: NextRequest) {
-  const legacy = await req.json().catch(()=> ({}));
-  const body = {
-    deliberationId: legacy.deliberationId,
-    createdById: 'self',                 // set from session in your server utils if you prefer
-    schemeKey: legacy.schemeKey ?? null,
-    preferred: legacy.preferredArgumentId
-      ? { kind: 'RA', id: legacy.preferredArgumentId }
-      : legacy.preferredClaimId
-      ? { kind: 'CLAIM', id: legacy.preferredClaimId }
-      : { kind: 'SCHEME', id: legacy.preferredSchemeId },
-    dispreferred: legacy.dispreferredArgumentId
-      ? { kind: 'RA', id: legacy.dispreferredArgumentId }
-      : legacy.dispreferredClaimId
-      ? { kind: 'CLAIM', id: legacy.dispreferredClaimId }
-      : { kind: 'SCHEME', id: legacy.dispreferredSchemeId },
-  };
-  const r = await fetch(new URL('/api/aif/preferences', req.url), {
-    method: 'POST', headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(body),
+  const uid = await getCurrentUserId().catch(()=>null);
+  if (!uid) return NextResponse.json({ error:'Unauthorized' }, { status:401, ...NO_STORE });
+  const p = CreatePA.safeParse(await req.json().catch(()=>({})));
+  if (!p.success) return NextResponse.json({ error:p.error.flatten() }, { status:400, ...NO_STORE });
+  const d = p.data;
+
+  // Enforce “exactly one” on both sides
+  const pref = [d.preferredArgumentId, d.preferredClaimId, d.preferredSchemeId].filter(Boolean).length;
+  const disp = [d.dispreferredArgumentId, d.dispreferredClaimId, d.dispreferredSchemeId].filter(Boolean).length;
+  if (pref !== 1 || disp !== 1) {
+    return NextResponse.json({ error:'PA requires exactly one preferred and one dispreferred element' }, { status:400, ...NO_STORE });
+  }
+
+  const scheme = d.schemeKey
+    ? await prisma.preferenceScheme.findUnique({ where: { key: d.schemeKey }, select: { id:true } })
+    : null;
+
+  const created = await prisma.preferenceApplication.create({
+    data: {
+      deliberationId: d.deliberationId,
+      schemeId: scheme?.id ?? null,
+      createdById: String(uid),
+      preferredArgumentId: d.preferredArgumentId ?? null,
+      preferredClaimId: d.preferredClaimId ?? null,
+      preferredSchemeId: d.preferredSchemeId ?? null,
+      dispreferredArgumentId: d.dispreferredArgumentId ?? null,
+      dispreferredClaimId: d.dispreferredClaimId ?? null,
+      dispreferredSchemeId: d.dispreferredSchemeId ?? null,
+    },
+    select: { id:true },
   });
-  const j = await r.json();
-  return NextResponse.json(j, { status: r.status, headers: { 'Cache-Control':'no-store' } });
+
+  return NextResponse.json({ ok:true, id: created.id }, NO_STORE);
 }

@@ -1,5 +1,3 @@
-
-
 // app/deliberation/[id]/page.tsx
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prismaclient";
@@ -28,24 +26,25 @@ export default async function DeliberationPage({
         })
       : null;
 
-      return (
-        <div >
-          {/* Optional backlink to host article */}
-                  <GridBG />
+ return (
+    // 1. Make this div the positioning context. It will now grow with its content.
+    <div className="relative w-full">
+      <GridBG />
 
-    
-          {/* Full discussion */}
-          <DeliberationReader deliberationId={delib.id} />
-          {article && (
-              <NextLink
-                href={`/article/${article.slug}`}
-                className="absolute text-xs font-semibold ml-12 left-0 top-8  btnv2"
-                prefetch
-              >
-                ← Return{article.title ? `: ${article.title}` : ""}
-              </NextLink>
-            )}
-
-        </div>
-      );
-    }
+   
+      {/* 2. Wrap your page content to control its stacking order. */}
+      <div className="relative z-10 mt-4">
+        <DeliberationReader deliberationId={delib.id} />
+        {article && (
+          <NextLink
+            href={`/article/${article.slug}`}
+            className="absolute text-xs font-semibold ml-12 left-0 top-0  btnv2"
+            prefetch
+          >
+            ← Return{article.title ? `: ${article.title}` : ""}
+          </NextLink>
+        )}
+      </div>
+    </div>
+  );
+}

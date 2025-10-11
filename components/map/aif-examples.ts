@@ -1,8 +1,7 @@
 // lib/arguments/aif-examples.ts
 // Example AIF graphs for testing, based on the AIF specification diagrams
-
-import type { AifSubgraph } from './diagram';
-
+import type { AifNode } from "@/lib/arguments/diagram";
+import type { AifSubgraph } from "@/lib/arguments/diagram";
 /**
  * Figure 2: Simple Defeasible Modus Ponens
  * Shows: p, p→q supporting q via ra2
@@ -11,13 +10,13 @@ export const defeasibleModusPonens: AifSubgraph = {
   nodes: [
     { id: 'I:p', kind: 'I', label: 'p' },
     { id: 'I:p_implies_q', kind: 'I', label: 'p → q' },
-    { id: 'RA:ra2', kind: 'RA', label: 'ra2' },
+    { id: 'cmf5xyhn4001brmbywr3d41a9', kind: 'RA', label: 'ra2' },
     { id: 'I:q', kind: 'I', label: 'q' },
   ],
   edges: [
-    { id: 'e1', from: 'I:p', to: 'RA:ra2', role: 'premise' },
-    { id: 'e2', from: 'I:p_implies_q', to: 'RA:ra2', role: 'premise' },
-    { id: 'e3', from: 'RA:ra2', to: 'I:q', role: 'conclusion' },
+    { id: 'e1', from: 'I:p', to: 'cmf5xyhn4001brmbywr3d41a9', role: 'premise' },
+    { id: 'e2', from: 'I:p_implies_q', to: 'cmf5xyhn4001brmbywr3d41a9', role: 'premise' },
+    { id: 'e3', from: 'cmf5xyhn4001brmbywr3d41a9', to: 'I:q', role: 'conclusion' },
   ],
 };
 
@@ -72,7 +71,7 @@ export const complexExample: AifSubgraph = {
     // Middle layer - inferences
     { id: 'RA:ra1', kind: 'RA', label: 'ra1' },
     { id: 'I:q', kind: 'I', label: 'q' },
-    { id: 'RA:ra2', kind: 'RA', label: 'ra2' },
+    { id: 'cmf5xyhn4001brmbywr3d41a9', kind: 'RA', label: 'ra2' },
     { id: 'RA:ra3', kind: 'RA', label: 'ra3' },
     
     // Top layer - conclusions
@@ -94,9 +93,9 @@ export const complexExample: AifSubgraph = {
     { id: 'e2', from: 'RA:ra1', to: 'I:q', role: 'conclusion' },
     
     // ra2: q → t
-    { id: 'e3', from: 'I:q', to: 'RA:ra2', role: 'premise' },
-    { id: 'e4', from: 'RA:ra2', to: 'I:t', role: 'conclusion' },
-    
+    { id: 'e3', from: 'I:q', to: 'cmf5xyhn4001brmbywr3d41a9', role: 'premise' },
+    { id: 'e4', from: 'cmf5xyhn4001brmbywr3d41a9', to: 'I:t', role: 'conclusion' },
+
     // ra3: s → ¬t
     { id: 'e5', from: 'I:s', to: 'RA:ra3', role: 'premise' },
     { id: 'e6', from: 'RA:ra3', to: 'I:not_t', role: 'conclusion' },
@@ -115,7 +114,7 @@ export const complexExample: AifSubgraph = {
     { id: 'e13', from: 'PA:pa1', to: 'I:s', role: 'dispreferredElement' },
     
     // pa2: Prefers ra2 over ra3
-    { id: 'e14', from: 'RA:ra2', to: 'PA:pa2', role: 'preferredElement' },
+    { id: 'e14', from: 'cmf5xyhn4001brmbywr3d41a9', to: 'PA:pa2', role: 'preferredElement' },
     { id: 'e15', from: 'PA:pa2', to: 'RA:ra3', role: 'dispreferredElement' },
   ],
 };
@@ -143,7 +142,7 @@ export const beachArgument: AifSubgraph = {
     
     // Conclusion
     { id: 'I:i11', kind: 'I', label: '*i1* I should go to the beach today' },
-    { id: 'RA:ra_beach_decision', kind: 'RA', label: 'RA' },
+    { id: 'RA:ra_beach_decision', kind: 'RA', label: 'RA'  },
   ],
   edges: [
     // Supporting: sunny → go to beach
@@ -169,6 +168,39 @@ export const beachArgument: AifSubgraph = {
     // Rebuttal: strong swimmer reduces danger
     { id: 'e11', from: 'I:i16', to: 'CA:ca_surf', role: 'conflictingElement' },
   ],
+};
+
+// lib/arguments/aif-examples.ts
+export const practicalCluster: AifSubgraph = {
+  nodes: [
+    { id:'I:goal',  kind:'I',  label:'Goal: reduce road fatalities' },
+    { id:'I:value', kind:'I',  label:'Value: Safety is strongly held' },
+    { id:'I:link',  kind:'I',  label:'Lowering promotes safety / achieves goal' },
+    { id:'RA:ra_vpr', kind:'RA', label:'value_based_pr' },
+    { id:'I:ought', kind:'I',  label:'We ought to lower to 25 mph' },
+
+    { id:'I:action',   kind:'I', label:'Action: Lower to 25 mph' },
+    { id:'I:neg_cons', kind:'I', label:'Congestion & delays increase' },
+    { id:'I:cause_neg',kind:'I', label:'Lowering tends to cause these effects' },
+    { id:'RA:ra_neg',  kind:'RA', label:'negative_consequences' },
+    { id:'I:not_ought',kind:'I', label:'We should not lower to 25 mph' },
+
+    { id:'CA:conflict', kind:'CA', label:'CA' }
+  ],
+  edges: [
+    { id:'e1',  from:'I:goal',   to:'RA:ra_vpr', role:'premise' },
+    { id:'e2',  from:'I:value',  to:'RA:ra_vpr', role:'premise' },
+    { id:'e3',  from:'I:link',   to:'RA:ra_vpr', role:'premise' },
+    { id:'e4',  from:'RA:ra_vpr',to:'I:ought',   role:'conclusion' },
+
+    { id:'e5',  from:'I:action',   to:'RA:ra_neg', role:'premise' },
+    { id:'e6',  from:'I:neg_cons', to:'RA:ra_neg', role:'premise' },
+    { id:'e7',  from:'I:cause_neg',to:'RA:ra_neg', role:'premise' },
+    { id:'e8',  from:'RA:ra_neg',  to:'I:not_ought', role:'conclusion' },
+
+    { id:'e9',  from:'I:not_ought', to:'CA:conflict', role:'conflictingElement' },
+    { id:'e10', from:'CA:conflict', to:'I:ought',     role:'conflictedElement' }
+  ]
 };
 
 /**
@@ -225,7 +257,10 @@ export const AIF_EXAMPLES = {
   bikeLanesArgument,
   emptyGraph,
   singleNode,
+  practicalCluster,
 };
+
+
 
 /**
  * Get example by name
@@ -263,6 +298,11 @@ export function listAifExamples(): Array<{ name: string; description: string; no
       name: 'bikeLanesArgument',
       description: 'Policy argument for protected bike lanes',
       nodeCount: bikeLanesArgument.nodes.length,
+    },
+     {
+      name: 'practicalCluster',
+      description: 'Practical reasoning about lowering speed limits',
+      nodeCount: practicalCluster.nodes.length,
     },
   ];
 }

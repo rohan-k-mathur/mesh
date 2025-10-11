@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
 import { z } from 'zod';
 import { getCurrentUserId } from '@/lib/serverutils';
-
+import { TargetType } from '@prisma/client';
 const NO_STORE = { headers: { 'Cache-Control': 'no-store' } } as const;
 
 const CreateCA = z.object({
@@ -53,6 +53,14 @@ export async function POST(req: NextRequest) {
     },
     select: { id:true }
   });
+  // inside POST, after create ConflictApplication (in same transaction if you prefer)
+const { schemeKey, cqKey, conflictedArgumentId } = d as any;
+if (schemeKey && cqKey && conflictedArgumentId) {
+  await prisma.cQStatus.updateMany({
+    where: { targetType: 'argument' as TargetType, targetId: conflictedArgumentId, schemeKey, cqKey },
+    data: { status: 'answered', satisfied: true }
+  }).catch(() => {});
+}
 
   // Optional AF materialization (only when attacking an Argument)
   if (d.legacyAttackType && d.conflictedArgumentId && d.conflictingArgumentId) {

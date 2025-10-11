@@ -142,3 +142,81 @@ export async function postAttack(
   });
   return asJson<{ ok: boolean; edgeId: string }>(res);
 }
+
+export type BatchMode = 'validate' | 'upsert';
+export async function batchAif(payload: any, mode: BatchMode = 'validate') {
+  const res = await fetch(`/api/batch/aif?mode=${encodeURIComponent(mode)}`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/ld+json' }, // allow plain JSON too
+    body: typeof payload === 'string' ? payload : JSON.stringify(payload),
+  });
+  return asJson<{ ok: boolean; report?: any; upserted?: any; rejected?: any[] }>(res);
+}
+
+// ---- AIF JSON-LD export (deliberation | argument) ----
+export async function exportAifJsonLd(params: { deliberationId?: string; argumentId?: string; includeLocutions?: boolean } ) {
+  const q = new URLSearchParams();
+  if (params.deliberationId) q.set('deliberationId', params.deliberationId);
+  if (params.argumentId) q.set('argumentId', params.argumentId);
+  if (params.includeLocutions) q.set('includeLocutions', '1');
+  const res = await fetch(`/api/export/aif-jsonld?${q}`, { cache: 'no-store' });
+  return asJson<any>(res); // returns a JSON-LD document with @context + @graph
+}
+
+// ---- listSchemes with facets ----
+export type SchemeFacets = {
+  purpose?: ('action' | 'state_of_affairs')[];
+  source?: ('internal' | 'external')[];
+  materialRelation?: string[];   // 'cause'|'definition'|'analogy'|'authority'|...
+  reasoningType?: ('deductive'|'inductive'|'abductive'|'practical')[];
+};
+export async function listSchemesWithFacets(facets?: SchemeFacets) {
+  const q = new URLSearchParams();
+  if (facets?.purpose?.length) facets.purpose.forEach(v => q.append('purpose', v));
+  if (facets?.source?.length) facets.source.forEach(v => q.append('source', v));
+  if (facets?.materialRelation?.length) facets.materialRelation.forEach(v => q.append('materialRelation', v));
+  if (facets?.reasoningType?.length) facets.reasoningType.forEach(v => q.append('reasoningType', v));
+  const res = await fetch(`/api/aif/schemes?${q.toString()}`, { cache: 'no-store' });
+  return asJson<{ items: Array<{
+    id: string; key: string; name: string;
+    purpose?: string|null; source?: string|null;
+    materialRelation?: string|null; reasoningType?: string|null;
+    slotHints?: any; cqs?: any[];
+  }> }>(res);
+}
+
+// ---- Critical Question helpers ----
+// Convenience wrapper for CQ lifecycle; optionally couples to CA posting.
+export async function openCQ(params: { argumentId: string; schemeKey: string; cqKey: string; authorId: string; deliberationId: string }) {
+  const res = await fetch('/api/cq', {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ action: 'open', ...params })
+  });
+  return asJson<{ ok:boolean }>(res);
+}
+export async function resolveCQ(params: {
+  argumentId: string; schemeKey: string; cqKey: string; authorId: string; deliberationId: string;
+  resolution?: 'answered'|'closed';
+  // optional CA coupling, e.g. when answering a WHY as a formal attack
+  attachCA?: {
+    attackType: 'REBUTS'|'UNDERCUTS'|'UNDERMINES';
+    targetScope: 'conclusion'|'inference'|'premise';
+    conflictingClaimId?: string; // for REBUTS/UNDERMINES
+    conflictedArgumentId?: string; // for UNDERCUTS
+    conflictedClaimId?: string; // for UNDERS/REB on claims
+  } | null;
+}) {
+  const res = await fetch('/api/cq', {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ action: 'resolve', ...params })
+  });
+  return asJson<{ ok:boolean }>(res);
+}
+export async function closeCQ(params: { argumentId: string; schemeKey: string; cqKey: string; authorId: string; deliberationId: string }) {
+  const res = await fetch('/api/cq', {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ action: 'close', ...params })
+  });
+  return asJson<{ ok:boolean }>(res);
+}
+

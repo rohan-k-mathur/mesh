@@ -6,7 +6,7 @@ import crypto from "crypto";
 import { Prisma } from '@prisma/client';
 import { getCurrentUserId } from '@/lib/serverutils';
 import { computeLegalMoves } from '@/lib/dialogue/legalMovesServer';
-
+import { TargetType } from '@prisma/client';
 import { compileFromMoves } from '@/packages/ludics-engine/compileFromMoves';
 import { stepInteraction } from '@/packages/ludics-engine/stepper';
 import type { MovePayload, DialogueAct } from '@/packages/ludics-core/types';
@@ -155,6 +155,24 @@ if (!ok) {
 const originalKind = kind;
  if (originalKind === 'CONCEDE') { kind = 'ASSERT'; payload = { ...(payload ?? {}), as: 'CONCEDE' }; }
   const wasConcede = originalKind === 'CONCEDE' || payload?.as === 'CONCEDE';
+
+  // ---- CQStatus integration for WHY / GROUNDS ----
+try {
+  const schemeKey = String(payload?.cqId ?? payload?.schemeKey ?? '');
+  if (kind === 'WHY' && schemeKey) {
+    await prisma.cQStatus.upsert({
+      where: { targetType_targetId_schemeKey_cqKey: { targetType: 'argument' as TargetType, targetId, schemeKey, cqKey: schemeKey } },
+      create: { targetType: 'argument' as TargetType, targetId, argumentId: targetType === 'argument' ? targetId : null,
+                status: 'open', schemeKey, cqKey: schemeKey, satisfied: false, createdById: actorId },
+      update: { status: 'open', satisfied: false },
+    });
+  } else if (kind === 'GROUNDS' && schemeKey) {
+    await prisma.cQStatus.updateMany({
+      where: { targetType: 'argument' as TargetType, targetId, schemeKey, cqKey: schemeKey },
+      data: { status: 'answered', satisfied: true },
+    });
+  }
+} catch {}
 
   // WHY TTL
   if (kind === 'WHY') {

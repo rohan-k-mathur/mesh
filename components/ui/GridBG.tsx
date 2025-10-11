@@ -1,12 +1,14 @@
-'use client';
-import { motion, useReducedMotion } from 'framer-motion'
+// components/ui/GridBG.tsx
 
+'use client';
+import { motion } from 'framer-motion'
 
 export function GridBG() {
   return (
-    <div aria-hidden className="pointer-events-none absolute flex flex-1 h-[3000px] inset-0">
+    // 3. Change h-[3000px] to h-full and set z-index to 0.
+    <div aria-hidden className="pointer-events-none absolute inset-0 z-0 h-full ">
       {/* soft grid over a pastel wash */}
-      <div className="absolute flex-1 h-full inset-0 bg-gradient-to-b from-indigo-100/30 via-rose-100/30 to-slate-100/30" />
+      <div className="absolute flex-1 h-full inset-0 bg-gradient-to-b from-indigo-100/30 via-rose-100/30 to-emerald-100/30" />
       <div
         className="absolute inset-0"
         style={{

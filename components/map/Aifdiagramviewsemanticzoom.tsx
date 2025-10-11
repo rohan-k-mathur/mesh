@@ -1,19 +1,17 @@
+/**
+ * Phase 3: AIF Diagram Viewer with Semantic Zoom
+ * 
+ * Enhances the interactive viewer with zoom-aware rendering
+ */
+
 'use client';
 
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import ELK from 'elkjs/lib/elk.bundled.js';
-import type { AifSubgraph, AifNode, AifEdge, AifNodeKind, AifEdgeRole } from '@/lib/arguments/diagram';
+import type { AifSubgraph, AifNode, AifEdge } from '@/lib/arguments/diagram';
+import { getNodeDimensions, getEdgeStyle } from './AifDiagramView';
+import { ZoomAwareAifNode } from './Enhancedaifnodes';
 
-// Import base component utilities from Phase 1
-import { 
-  getNodeDimensions, 
-  getEdgeStyle, 
-  AifNodeSvg, 
-  getNodeColor 
-} from './AifDiagramView';
-
-// ---------------- Enhanced Types  ----------------
 type ExpansionState = {
   expandedNodes: Set<string>;
   isExpanding: boolean;
@@ -27,12 +25,10 @@ type NeighborhoodSummary = {
   totalConnections: number;
 };
 
-// ---------------- Main Component ----------------
-export default function AifDiagramViewInteractive({
+export default function AifDiagramViewSemanticZoom({
   initialAif,
   rootArgumentId,
   className,
-  showMinimap = false,
   enableExpansion = true,
   maxDepth = 3,
   onNodeClick,
@@ -40,7 +36,6 @@ export default function AifDiagramViewInteractive({
   initialAif: AifSubgraph;
   rootArgumentId: string;
   className?: string;
-  showMinimap?: boolean;
   enableExpansion?: boolean;
   maxDepth?: number;
   onNodeClick?: (node: AifNode) => void;
@@ -56,10 +51,7 @@ export default function AifDiagramViewInteractive({
     expandingNodeId: null,
   });
 
-  // Node summaries (how many connections each node has)
   const [nodeSummaries, setNodeSummaries] = useState<Map<string, NeighborhoodSummary>>(new Map());
-
-  // View controls
   const [currentDepth, setCurrentDepth] = useState(1);
   const [filters, setFilters] = useState({
     includeSupporting: true,
@@ -69,7 +61,12 @@ export default function AifDiagramViewInteractive({
 
   // UI state
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
-  const [viewBox, setViewBox] = useState({ x: 0, y: 0, width: 1000, height: 1000 });
+  
+  // SEMANTIC ZOOM STATE
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
   const svgRef = useRef<SVGSVGElement>(null);
   const elk = useMemo(() => new ELK(), []);
@@ -113,7 +110,42 @@ export default function AifDiagramViewInteractive({
     computeLayout();
   }, [aif, elk]);
 
-  // Expand a node's neighborhood
+  // Zoom handlers
+  const handleWheel = useCallback((e: React.WheelEvent) => {
+    e.preventDefault();
+    const delta = -e.deltaY * 0.001;
+    const newZoom = Math.min(Math.max(zoom + delta, 0.2), 3);
+    setZoom(newZoom);
+  }, [zoom]);
+
+  // Pan handlers
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    if (e.shiftKey) {
+      setIsDragging(true);
+      setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+    }
+  }, [pan]);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (isDragging) {
+      setPan({
+        x: e.clientX - dragStart.x,
+        y: e.clientY - dragStart.y,
+      });
+    }
+  }, [isDragging, dragStart]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  // Reset view
+  const resetView = useCallback(() => {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+  }, []);
+
+  // Expand node (same as before)
   const expandNode = useCallback(async (nodeId: string) => {
     if (!enableExpansion) return;
     if (expansionState.expandedNodes.has(nodeId)) return;
@@ -122,7 +154,6 @@ export default function AifDiagramViewInteractive({
       return;
     }
 
-    // Extract argument ID from node ID (format: "RA:argId")
     const match = nodeId.match(/^RA:(.+)$/);
     if (!match) return;
     const argId = match[1];
@@ -144,7 +175,6 @@ export default function AifDiagramViewInteractive({
         throw new Error(data.error || 'Failed to fetch neighborhood');
       }
 
-      // Merge new nodes and edges into existing graph
       const newNodes = data.aif.nodes.filter(
         (n: AifNode) => !aif.nodes.some(existing => existing.id === n.id)
       );
@@ -164,7 +194,6 @@ export default function AifDiagramViewInteractive({
         expandingNodeId: null,
       }));
 
-      // Optionally increase depth
       setCurrentDepth(prev => Math.min(prev + 1, maxDepth));
 
     } catch (error) {
@@ -178,10 +207,9 @@ export default function AifDiagramViewInteractive({
     }
   }, [aif, currentDepth, enableExpansion, filters, maxDepth]);
 
-  // Fetch summaries for all RA-nodes
+  // Fetch summaries
   useEffect(() => {
     async function fetchSummaries() {
-      // FIX #1: Add null check before accessing aif.nodes
       if (!aif?.nodes) return;
       
       const raNodes = aif.nodes.filter(n => n.kind === 'RA');
@@ -191,7 +219,6 @@ export default function AifDiagramViewInteractive({
         if (!match) continue;
         const argId = match[1];
 
-        // Skip if already fetched or currently expanded
         if (nodeSummaries.has(node.id) || expansionState.expandedNodes.has(node.id)) {
           continue;
         }
@@ -214,14 +241,11 @@ export default function AifDiagramViewInteractive({
     if (enableExpansion) {
       fetchSummaries();
     }
-  }, [aif?.nodes, enableExpansion, expansionState.expandedNodes, nodeSummaries]); // Use optional chaining in dependency
+  }, [aif?.nodes, enableExpansion, expansionState.expandedNodes, nodeSummaries]);
 
-  // Handle node click
   const handleNodeClick = useCallback((node: AifNode) => {
-    // Call custom handler if provided
     onNodeClick?.(node);
 
-    // If it's an RA-node and expansion is enabled, expand it
     if (enableExpansion && node.kind === 'RA' && !expansionState.isExpanding) {
       expandNode(node.id);
     }
@@ -237,16 +261,24 @@ export default function AifDiagramViewInteractive({
     );
   }
 
-  const maxX = Math.max(...layout.children.map((n: any) => n.x + n.width), 0);
-  const maxY = Math.max(...layout.children.map((n: any) => n.y + n.height), 0);
+  const maxX = Math.max(...layout.children.map((n: any) => n.x + n.width), 1000);
+  const maxY = Math.max(...layout.children.map((n: any) => n.y + n.height), 1000);
+
+  // Calculate viewBox with zoom and pan
+  const viewBoxWidth = 1000 / zoom;
+  const viewBoxHeight = 800 / zoom;
+  const viewBoxX = -pan.x / zoom;
+  const viewBoxY = -pan.y / zoom;
 
   return (
     <div className={`relative ${className}`}>
       {/* Top controls */}
       <div className="absolute top-2 left-2 z-10 flex flex-col gap-2">
-        {/* Depth indicator */}
+        {/* Depth and zoom indicator */}
         <div className="bg-white/90 backdrop-blur border border-slate-300 rounded-lg px-3 py-2 shadow-sm text-xs">
-          <div className="font-semibold text-slate-700 mb-1">Depth: {currentDepth}/{maxDepth}</div>
+          <div className="font-semibold text-slate-700 mb-1">
+            Depth: {currentDepth}/{maxDepth} · Zoom: {(zoom * 100).toFixed(0)}%
+          </div>
           <div className="text-slate-600">
             {aif.nodes.length} nodes · {aif.edges.length} edges
           </div>
@@ -286,36 +318,39 @@ export default function AifDiagramViewInteractive({
           </div>
         )}
 
-        {/* Expansion status */}
-        {expansionState.isExpanding && (
-          <div className="bg-indigo-50 border border-indigo-300 rounded-lg px-3 py-2 shadow-sm text-xs">
-            <div className="flex items-center gap-2">
-              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-indigo-600" />
-              <span className="text-indigo-900 font-medium">Expanding...</span>
-            </div>
-          </div>
-        )}
+        {/* View controls */}
+        <div className="bg-white/90 backdrop-blur border border-slate-300 rounded-lg px-3 py-2 shadow-sm text-xs">
+          <button
+            onClick={resetView}
+            className="w-full px-2 py-1 bg-slate-100 hover:bg-slate-200 rounded text-slate-700 transition-colors"
+          >
+            Reset View
+          </button>
+        </div>
       </div>
 
       {/* SVG Canvas */}
       <svg
         ref={svgRef}
-        className="w-full h-full border border-slate-200 rounded-lg bg-slate-50"
-        viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`}
+        className="w-full h-full border border-slate-200 rounded-lg bg-slate-50 cursor-move"
+        viewBox={`${viewBoxX} ${viewBoxY} ${viewBoxWidth} ${viewBoxHeight}`}
+        onWheel={handleWheel}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
       >
-        {/* Grid background */}
         <defs>
-          <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+          <pattern id="grid-zoom" width="20" height="20" patternUnits="userSpaceOnUse">
             <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#e2e8f0" strokeWidth="0.5" />
           </pattern>
 
-          {/* Arrow markers */}
           {Array.from(new Set(aif.edges.map(e => e.role))).map(role => {
             const style = getEdgeStyle(role);
             return (
               <marker
                 key={role}
-                id={`arrow-${role}`}
+                id={`arrow-zoom-${role}`}
                 markerWidth="10"
                 markerHeight="10"
                 refX="9"
@@ -328,7 +363,7 @@ export default function AifDiagramViewInteractive({
           })}
         </defs>
 
-        <rect x={viewBox.x} y={viewBox.y} width={viewBox.width} height={viewBox.height} fill="url(#grid)" />
+        <rect x={viewBoxX} y={viewBoxY} width={viewBoxWidth} height={viewBoxHeight} fill="url(#grid-zoom)" />
 
         {/* Edges */}
         <g className="edges">
@@ -339,7 +374,6 @@ export default function AifDiagramViewInteractive({
             const sourceNode = layout.children.find((n: any) => n.id === edge.sources[0]);
             const targetNode = layout.children.find((n: any) => n.id === edge.targets[0]);
             
-            // FIX #2: Corrected logic - should be !sourceNode || !targetNode
             if (!sourceNode || !targetNode) {
               return null;
             }
@@ -357,15 +391,15 @@ export default function AifDiagramViewInteractive({
                 d={`M ${x1} ${y1} L ${x2} ${y2}`}
                 fill="none"
                 stroke={style.stroke}
-                strokeWidth={style.strokeWidth}
+                strokeWidth={style.strokeWidth * (zoom > 0.5 ? 1 : 0.7)}
                 strokeDasharray={style.strokeDasharray}
-                markerEnd={`url(#arrow-${aifEdge.role})`}
+                markerEnd={`url(#arrow-zoom-${aifEdge.role})`}
               />
             );
           })}
         </g>
 
-        {/* Nodes */}
+        {/* Nodes with semantic zoom */}
         <g className="nodes">
           {layout.children?.map((node: any) => {
             const aifNode = aif.nodes.find(n => n.id === node.id);
@@ -385,15 +419,16 @@ export default function AifDiagramViewInteractive({
                 onMouseLeave={() => setHoveredNode(null)}
                 className="cursor-pointer"
               >
-                <AifNodeSvg
+                <ZoomAwareAifNode
                   node={aifNode}
                   width={node.width}
                   height={node.height}
                   isHovered={hoveredNode === node.id}
+                  zoomLevel={zoom}
                 />
                 
                 {/* Expansion indicator */}
-                {enableExpansion && isExpandable && hasConnections && (
+                {enableExpansion && isExpandable && hasConnections && zoom > 0.5 && (
                   <g>
                     <circle
                       cx={node.width - 8}
@@ -420,11 +455,12 @@ export default function AifDiagramViewInteractive({
       </svg>
 
       {/* Help text */}
-      {enableExpansion && (
-        <div className="absolute bottom-2 right-2 bg-white/90 backdrop-blur border border-slate-300 rounded-lg px-3 py-2 shadow-sm text-xs text-slate-600">
-          💡 Click RA-nodes to expand their neighborhoods
-        </div>
-      )}
+      <div className="absolute bottom-2 right-2 bg-white/90 backdrop-blur border border-slate-300 rounded-lg px-3 py-2 shadow-sm text-xs text-slate-600">
+        <div className="font-semibold mb-1">Controls</div>
+        <div>🖱️ Scroll: Zoom in/out</div>
+        <div>⇧ + Drag: Pan view</div>
+        {enableExpansion && <div>🖱️ Click RA: Expand</div>}
+      </div>
     </div>
   );
 }

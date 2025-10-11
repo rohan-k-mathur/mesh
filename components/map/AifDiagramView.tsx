@@ -47,7 +47,7 @@ const ELK_OPTIONS = {
 };
 
 // ---------------- Node Dimensions ----------------
-function getNodeDimensions(kind: AifNodeKind): { width: number; height: number } {
+export function getNodeDimensions(kind: AifNodeKind): { width: number; height: number } {
   switch (kind) {
     case 'I':
       return { width: 180, height: 60 };
@@ -63,7 +63,7 @@ function getNodeDimensions(kind: AifNodeKind): { width: number; height: number }
 }
 
 // ---------------- Edge Styling ----------------
-function getEdgeStyle(role: AifEdgeRole): {
+export function getEdgeStyle(role: AifEdgeRole): {
   stroke: string;
   strokeWidth: number;
   strokeDasharray?: string;
@@ -431,7 +431,7 @@ export default function AifDiagramView({
         <div className="font-semibold mb-2 text-slate-700">Node Types</div>
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded border-2 border-blue-400 bg-blue-50" />
+            <div className="w-3 h-3 rounded border-2 border-[#3b82f6ff] bg-blue-50" />
             <span>I-Node (Statement)</span>
           </div>
           <div className="flex items-center gap-2">
@@ -447,14 +447,29 @@ export default function AifDiagramView({
             <span>PA-Node (Preference)</span>
           </div>
         </div>
+              {/* Edge Connections */}
+<div className="mt-3">
+  <div className="font-semibold mb-2 text-slate-700">Edge Connections</div>
+  <div className="space-y-1">
+    <LegendEdge color="#64748b" label="Premise (I → RA)" />
+    <LegendEdge color="#059669" label="Conclusion (RA → I)" />
+    <LegendEdge color="#ef4444" label="Conflicting element (attacker → CA)" />
+    <LegendEdge color="#dc2626" label="Conflicted element (CA → target)" />
+    <LegendEdge color="#8b5cf6" dash="8,4" label="Preferred element (preferred → PA)" />
+    <LegendEdge color="#6b7280" dash="6,3" label="Dispreferred element (PA → dispreferred)" />
+    <LegendEdge color="#94a3b8" label="Other / default" />
+  </div>
+</div>
       </div>
+
+
     </div>
   );
 }
 
 // ... (Your Node Rendering Components and getNodeColor helper function remain the same) ...
 // ---------------- Node Rendering Components ----------------
-function AifNodeSvg({
+export function AifNodeSvg({
   node,
   width,
   height,
@@ -587,12 +602,42 @@ function PANodeContent({ node, width, height }: { node: AifNode; width: number; 
 }
 
 // Helper function for minimap colors
-function getNodeColor(kind: AifNodeKind): string {
+export function getNodeColor(kind: AifNodeKind): string {
   switch (kind) {
-    case 'I': return '#3b82f6';
+    case 'I': return '#3b82f6ff';
     case 'RA': return '#10b981';
     case 'CA': return '#ef4444';
     case 'PA': return '#8b5cf6';
     default: return '#64748b';
   }
+}
+function LegendEdge({
+  color,
+  dash,
+  label,
+}: {
+  color: string;
+  dash?: string;
+  label: string;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <svg width="24" height="12" viewBox="0 0 54 12" aria-hidden="true">
+        {/* line */}
+        <line
+          x1="2"
+          y1="6"
+          x2="42"
+          y2="6"
+          stroke={color}
+          strokeWidth={3}
+          strokeDasharray={dash || undefined}
+          strokeLinecap="round"
+        />
+        {/* simple arrowhead */}
+        <path d="M44 6 L52 2 L52 10 Z" fill={color} />
+      </svg>
+      <span className="text-xs">{label}</span>
+    </div>
+  );
 }

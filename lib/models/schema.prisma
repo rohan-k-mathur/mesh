@@ -2329,6 +2329,7 @@ model ArgumentEdge {
   @@index([fromArgumentId])
   @@index([toArgumentId])
 }
+
 // --- lib/models/schema.prisma (additions) ---
 
 model ConflictScheme {
@@ -2339,8 +2340,8 @@ model ConflictScheme {
   createdAt   DateTime @default(now())
 
   // Optional: pre-map to a legacy "attackType"/"targetScope" for AF compatibility
-  legacyAttackType  String?   // 'REBUTS' | 'UNDERCUTS' | 'UNDERMINES'
-  legacyTargetScope String?   // 'conclusion' | 'inference' | 'premise'
+  legacyAttackType  String? // 'REBUTS' | 'UNDERCUTS' | 'UNDERMINES'
+  legacyTargetScope String? // 'conclusion' | 'inference' | 'premise'
 
   applications ConflictApplication[]
 }
@@ -2348,7 +2349,7 @@ model ConflictScheme {
 model ConflictApplication {
   id             String   @id @default(cuid())
   deliberationId String
-  schemeId       String?  // nullable: ad-hoc conflicts still allowed
+  schemeId       String? // nullable: ad-hoc conflicts still allowed
   createdById    String
   createdAt      DateTime @default(now())
 
@@ -2357,14 +2358,14 @@ model ConflictApplication {
   conflictingArgumentId String?
 
   // Conflicted element: exactly one of these must be non-null
-  conflictedClaimId     String?
-  conflictedArgumentId  String?
+  conflictedClaimId    String?
+  conflictedArgumentId String?
 
   // Optional: keep legacy AF view in sync
-  legacyAttackType  String?   // 'REBUTS'|'UNDERCUTS'|'UNDERMINES'
-  legacyTargetScope String?   // 'conclusion'|'inference'|'premise'
+  legacyAttackType  String? // 'REBUTS'|'UNDERCUTS'|'UNDERMINES'
+  legacyTargetScope String? // 'conclusion'|'inference'|'premise'
 
-  scheme  ConflictScheme? @relation(fields: [schemeId], references: [id], onDelete: SetNull)
+  scheme ConflictScheme? @relation(fields: [schemeId], references: [id], onDelete: SetNull)
 
   @@index([deliberationId])
   @@index([conflictingClaimId])
@@ -2379,7 +2380,7 @@ model PreferenceScheme {
   name        String
   description String?  @db.Text
   // optional: scope info (preferences between information, between RAs, or between schemes)
-  scope       String?  // 'info' | 'inference' | 'scheme' | 'mixed'
+  scope       String? // 'info' | 'inference' | 'scheme' | 'mixed'
   createdAt   DateTime @default(now())
 
   applications PreferenceApplication[]
@@ -2388,19 +2389,19 @@ model PreferenceScheme {
 model PreferenceApplication {
   id             String   @id @default(cuid())
   deliberationId String
-  schemeId       String?   // nullable
+  schemeId       String? // nullable
   createdById    String
-  createdAt      DateTime  @default(now())
+  createdAt      DateTime @default(now())
 
   // Preferred element (exactly one of these)
-  preferredClaimId     String?
-  preferredArgumentId  String?
-  preferredSchemeId    String?   // when preferring an inference scheme
+  preferredClaimId    String?
+  preferredArgumentId String?
+  preferredSchemeId   String? // when preferring an inference scheme
 
   // Dispreferred element (exactly one of these)
-  dispreferredClaimId     String?
-  dispreferredArgumentId  String?
-  dispreferredSchemeId    String?
+  dispreferredClaimId    String?
+  dispreferredArgumentId String?
+  dispreferredSchemeId   String?
 
   scheme PreferenceScheme? @relation(fields: [schemeId], references: [id], onDelete: SetNull)
 

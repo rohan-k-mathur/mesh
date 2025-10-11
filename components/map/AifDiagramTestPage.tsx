@@ -1,7 +1,10 @@
+//components/map/AifDiagramTestPage.tsx
+
 'use client';
 
 import { useState } from 'react';
 import AifDiagramView from '@/components/map/AifDiagramView';
+import AifDiagramViewInteractive from '@/components/map/AifDiagramViewInteractive';
 import { AIF_EXAMPLES, listAifExamples } from '@/components/map/aif-examples';
 import type { AifNode } from '@/lib/arguments/diagram';
 
@@ -18,6 +21,7 @@ export default function AifDiagramTestPage() {
   const [selectedExample, setSelectedExample] = useState<keyof typeof AIF_EXAMPLES>('defeasibleModusPonens');
   const [showMinimap, setShowMinimap] = useState(true);
   const [clickedNode, setClickedNode] = useState<AifNode | null>(null);
+  const [viewMode, setViewMode] = useState<'static' | 'interactive'>('static');
 
   const examples = listAifExamples();
   const currentGraph = AIF_EXAMPLES[selectedExample];
@@ -26,6 +30,9 @@ export default function AifDiagramTestPage() {
     setClickedNode(node);
     console.log('Clicked node:', node);
   };
+
+  // Extract root argument ID from the graph (first RA node)
+  const rootArgumentId = currentGraph.nodes.find(n => n.kind === 'RA')?.id || '';
 
   return (
     <div className="min-h-screen bg-slate-50 p-8">
@@ -71,20 +78,51 @@ export default function AifDiagramTestPage() {
 
             {/* Settings */}
             <div className="flex-shrink-0 w-64">
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
+              <label className="block text-sm font-semibold text-slate-700 mb-3">
                 Display Settings
               </label>
-              <div className="space-y-3">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={showMinimap}
-                    onChange={(e) => setShowMinimap(e.target.checked)}
-                    className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
-                  />
-                  <span className="text-sm text-slate-700">Show minimap</span>
-                </label>
+              
+              {/* View Mode Toggle */}
+              <div className="mb-4">
+                <div className="text-xs text-slate-600 mb-2">View Mode</div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setViewMode('static')}
+                    className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                      viewMode === 'static'
+                        ? 'bg-indigo-500 text-white'
+                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    }`}
+                  >
+                    Static
+                  </button>
+                  <button
+                    onClick={() => setViewMode('interactive')}
+                    className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                      viewMode === 'interactive'
+                        ? 'bg-indigo-500 text-white'
+                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    }`}
+                  >
+                    Interactive
+                  </button>
+                </div>
               </div>
+
+              {/* Minimap toggle (only for static view) */}
+              {viewMode === 'static' && (
+                <div className="space-y-3">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={showMinimap}
+                      onChange={(e) => setShowMinimap(e.target.checked)}
+                      className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
+                    />
+                    <span className="text-sm text-slate-700">Show minimap</span>
+                  </label>
+                </div>
+              )}
 
               {/* Graph stats */}
               <div className="mt-4 pt-4 border-t border-slate-200">
@@ -112,12 +150,34 @@ export default function AifDiagramTestPage() {
 
         {/* Diagram viewer */}
         <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
-          <AifDiagramView
-            aif={currentGraph}
-            className="h-[600px]"
-            showMinimap={showMinimap}
-            onNodeClick={handleNodeClick}
-          />
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-slate-900">
+              {viewMode === 'static' ? 'Static Viewer' : 'Interactive Viewer'}
+            </h2>
+            {viewMode === 'interactive' && (
+              <div className="text-xs text-slate-500">
+                Click RA-nodes to expand neighborhoods (requires API)
+              </div>
+            )}
+          </div>
+
+          {viewMode === 'static' ? (
+            <AifDiagramView
+              aif={currentGraph}
+              className="h-[600px]"
+              showMinimap={showMinimap}
+              onNodeClick={handleNodeClick}
+            />
+          ) : (
+            <AifDiagramViewInteractive
+              initialAif={currentGraph}
+              rootArgumentId={rootArgumentId}
+              className="h-[600px]"
+              enableExpansion={true}
+              maxDepth={3}
+              onNodeClick={handleNodeClick}
+            />
+          )}
         </div>
 
         {/* Clicked node info */}
@@ -153,18 +213,37 @@ export default function AifDiagramTestPage() {
             💡 Usage Tips
           </h3>
           <ul className="space-y-2 text-sm text-indigo-900">
-            <li className="flex gap-2">
-              <span className="text-indigo-400">•</span>
-              <span><strong>Pan:</strong> Hold Shift + Drag the diagram</span>
-            </li>
-            <li className="flex gap-2">
-              <span className="text-indigo-400">•</span>
-              <span><strong>Zoom:</strong> Use mouse wheel to zoom in/out</span>
-            </li>
-            <li className="flex gap-2">
-              <span className="text-indigo-400">•</span>
-              <span><strong>Reset:</strong> Click "Reset View" button to fit the entire graph</span>
-            </li>
+            {viewMode === 'static' ? (
+              <>
+                <li className="flex gap-2">
+                  <span className="text-indigo-400">•</span>
+                  <span><strong>Pan:</strong> Hold Shift + Drag the diagram</span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="text-indigo-400">•</span>
+                  <span><strong>Zoom:</strong> Use mouse wheel to zoom in/out</span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="text-indigo-400">•</span>
+                  <span><strong>Reset:</strong> Click "Reset View" button to fit the entire graph</span>
+                </li>
+              </>
+            ) : (
+              <>
+                <li className="flex gap-2">
+                  <span className="text-indigo-400">•</span>
+                  <span><strong>Expand:</strong> Click RA-nodes to load their neighborhoods</span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="text-indigo-400">•</span>
+                  <span><strong>Filter:</strong> Use the filters to control what gets loaded</span>
+                </li>
+                <li className="flex gap-2">
+                  <span className="text-indigo-400">•</span>
+                  <span><strong>Depth:</strong> Expansion is limited to max depth setting</span>
+                </li>
+              </>
+            )}
             <li className="flex gap-2">
               <span className="text-indigo-400">•</span>
               <span><strong>Hover:</strong> Hover over edges to see their role labels</span>
