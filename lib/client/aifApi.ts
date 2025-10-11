@@ -95,6 +95,23 @@ export async function getArgumentCQs(argumentId: string) {
   if (!res.ok) throw new Error(j?.error || `HTTP ${res.status}`);
   return j.items ?? [];
 }
+export async function exportAif(deliberationId: string, opts?: { includeLocutions?: boolean; includeCQs?: boolean }) {
+  const params = new URLSearchParams({ deliberationId });
+  if (opts?.includeLocutions) params.set('loc', '1');
+  if (opts?.includeCQs) params.set('cqs', '1');
+  const r = await fetch(`/api/aif/export?${params.toString()}`, { cache: 'no-store' });
+  const j = await asJson<any>(r);
+  return j;
+}
+
+export async function importAifBatch(doc: any, options: { mode: 'validate'|'upsert'; deliberationId?: string; authorId?: string }) {
+  const r = await fetch('/api/aif/batch', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ ...doc, options }),
+  });
+  return asJson<any>(r);
+}
 export async function askCQ(argumentId: string, cqKey: string, ctx: { authorId: string; deliberationId: string }) {
   const res = await fetch(`/api/arguments/${argumentId}/cqs/${encodeURIComponent(cqKey)}/ask`, {
     method: 'POST',

@@ -4,6 +4,9 @@ import useSWR from 'swr';
 import clsx from 'clsx';
 import { ProvenanceChip } from '@/components/kb/ProvenanceChip';
 import AifDiagramView from '@/components/map/AifDiagramView';
+import type { AifSubgraph } from '@/lib/arguments/diagram';
+
+
 /** ---------- Shared types (match your API shapes) ---------- */
 type EvalMode = 'product'|'min'|'ds';
 type ImportsQ = 'off'|'materialized'|'virtual'|'all';
@@ -150,6 +153,18 @@ function ClaimBlock({ item, evalMode, tau, imports } : {
     </div>
   );
 }
+const myAifData: AifSubgraph = {
+  nodes: [
+    { id: 'I:claim1', kind: 'I', label: 'The sky is blue' },
+    { id: 'RA:arg1', kind: 'RA', label: 'Modus Ponens' },
+    { id: 'I:claim2', kind: 'I', label: 'It is daytime' },
+  ],
+  edges: [
+    { id: 'e1', from: 'I:claim2', to: 'RA:arg1', role: 'premise' },
+    { id: 'e2', from: 'RA:arg1', to: 'I:claim1', role: 'conclusion' },
+  ]
+};
+
 
 function ArgumentBlock({ item, evalMode, tau }: { item: TranscludeItemEnvelope; evalMode?: EvalMode; tau?: number | null; }) {
   const diag = item.data?.diagram;
@@ -157,8 +172,14 @@ function ArgumentBlock({ item, evalMode, tau }: { item: TranscludeItemEnvelope; 
   return (
     <div className="rounded border p-3 bg-white/70">
       <div className="text-sm font-medium mb-1">Argument</div>
+      
       {aif?.nodes?.length && aif?.edges?.length ? (
-        <AifDiagramView aif={aif} className="mb-2" />
+        <AifDiagramView 
+  aif={aif}
+  className="h-[600px] mb-2"
+  showMinimap={true}
+  onNodeClick={(node) => console.log('Clicked:', node)}
+/>
       ) : diag?.statements?.length ? (
         <div className="text-[12px]">
           <div className="font-medium mb-1">Diagram</div>

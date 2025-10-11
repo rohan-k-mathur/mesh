@@ -12,6 +12,8 @@ import { listSchemes, getArgumentCQs, askCQ } from '@/lib/client/aifApi';
 import PromoteToClaimButton from '@/components/claims/PromoteToClaimButton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
 import { ClaimPicker } from '@/components/claims/ClaimPicker';
+import { exportAif } from '@/lib/client/aifApi';
+
 import Spinner from '@/components/ui/spinner';
 import {
   Shield,
@@ -353,6 +355,7 @@ function Controls({
   setQ,
   showPremises,
   setShowPremises,
+  onExport,
 }: {
   schemes: Array<{ key: string; name: string }>;
   schemeKey: string;
@@ -361,6 +364,7 @@ function Controls({
   setQ: (s: string) => void;
   showPremises: boolean;
   setShowPremises: (v: boolean) => void;
+   onExport: () => void;
 }) {
   const [showFilters, setShowFilters] = React.useState(false);
   const activeFilters = (schemeKey || q.trim()) ? 1 : 0;
@@ -373,6 +377,13 @@ function Controls({
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            onClick={onExport}
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 transition-all"
+            title="Download AIF JSON‑LD export"
+          >
+            Export JSON‑LD
+          </button>
           <button
             onClick={() => setShowPremises(!showPremises)}
             className={`
@@ -1141,8 +1152,25 @@ const rowIdsKey = React.useMemo(() => rows.map(r => r.id).join(','), [rows]);
 
   return (
     <section aria-label="AIF arguments list" className="w-full rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col h-full">
-      <Controls schemes={schemes} schemeKey={schemeKey} setSchemeKey={setSchemeKey} q={q} setQ={setQ} showPremises={showPremises} setShowPremises={setShowPremises} />
-
+      <Controls
+        schemes={schemes}
+        schemeKey={schemeKey}
+        setSchemeKey={setSchemeKey}
+        q={q}
+        setQ={setQ}
+        showPremises={showPremises}
+        setShowPremises={setShowPremises}
+        onExport={async () => {
+          try {
+            const doc = await exportAif(deliberationId, { includeLocutions: false, includeCQs: true });
+            const blob = new Blob([JSON.stringify(doc, null, 2)], { type: 'application/ld+json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = `aif-${deliberationId}.jsonld`;
+            a.click(); URL.revokeObjectURL(url);
+          } catch (e) { console.error(e); }
+        }}
+      />
       <div className="h-[564px]">
         <Virtuoso
           data={filtered}

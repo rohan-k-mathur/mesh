@@ -56,6 +56,12 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   const required = scheme?.cqs?.length ?? 0;
   const satisfied = new Set(cqAll.filter(s => s.status === 'answered' && s.cqKey).map(s => s.cqKey)).size;
 
+     // Preference counts (optional, cheap)
+  const [prefBy, dispBy] = await Promise.all([
+    prisma.preferenceApplication.count({ where: { preferredArgumentId: a.id } }),
+    prisma.preferenceApplication.count({ where: { dispreferredArgumentId: a.id } }),
+  ]);
+
   return NextResponse.json({
     ok: true,
     id: a.id,
@@ -71,6 +77,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
       implicitWarrant: (a.implicitWarrant as any) ?? null,
       attacks,
       cq: { required, satisfied },
+      preferences: { preferredBy: prefBy, dispreferredBy: dispBy },
     },
   }, NO_STORE);
 }

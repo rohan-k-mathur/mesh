@@ -203,6 +203,8 @@ export type SheetEdgeKind =
   | 'clarifies'
   | 'depends_on';
 
+  
+
 // Keep your rich sheet StatementRole separate from Prisma's enum:
 export type SheetStatementRole =
   | 'claim'
@@ -235,7 +237,7 @@ export type DebateSheetRef = { kind: 'sheet'; sheetId: string }; // e.g., 'delib
 export type SheetStatement = {
   id: string;
   text: string;
-  role: SheetStatementRole;
+  role?: SheetStatementRole;
   lang?: string;
   tags?: string[];
 };
@@ -244,11 +246,13 @@ export type SheetInference = {
   id: string;
   kind: SheetInferenceKind;
   premises: { statement: SheetStatement }[];
+
   conclusion: SheetStatement | null;
   rationale?: string;
   schemeKey?: string;
   cqKeys?: string[];
 };
+
 
 export type SheetEvidenceNode = {
   id: string;

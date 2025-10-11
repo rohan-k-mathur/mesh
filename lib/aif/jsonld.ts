@@ -2,7 +2,7 @@
 
 import ctx from "@/lib/aif/context.json";
 import { prisma } from "@/lib/prismaclient";
-
+import { TargetType } from "@prisma/client";
 /**
  * Build a JSON-LD @graph for a set of arguments (and their local neighborhood)
  * Emits I (claims), RA (arguments), CA (conflicts), PA (preferences), plus L (locutions, optional).
@@ -11,8 +11,10 @@ export async function buildAifGraphJSONLD(opts: {
   deliberationId?: string;
   argumentIds?: string[];        // if omitted + deliberationId set, we export all
   includeLocutions?: boolean;    // default false
+  includeCQs?: boolean;           
+  
 }) {
-  const { deliberationId, argumentIds = [], includeLocutions = false } = opts;
+const { deliberationId, argumentIds = [], includeLocutions = false, includeCQs = false } = opts;
 
   // 1) Pull arguments (scoped)
   const args = await prisma.argument.findMany({
@@ -77,28 +79,26 @@ export async function buildAifGraphJSONLD(opts: {
   // ---------- JSON-LD assembly ----------
   const N: any[] = [];   // @graph items (nodes + edge resources)
   const seen = new Set<string>();
+ const pushOnce = (o:any) => { const id=o['@id']; if (id && seen.has(id)) return; if (id) seen.add(id); N.push(o); };
 
   // I-nodes (claims)
   for (const c of claims) {
     const id = `I:${c.id}`;
-    if (!seen.has(id)) {
-      N.push({ "@id": id, "@type": "aif:InformationNode", "aif:text": textByClaimId.get(c.id) ?? "" });
-      seen.add(id);
-    }
+       pushOnce({ "@id": id, "@type": "aif:InformationNode", "aif:text": textByClaimId.get(c.id) ?? "" });
+
   }
 
   // RA-nodes (arguments) + premise/conclusion edges
   for (const a of args) {
     const sId = `S:${a.id}`;
-    if (!seen.has(sId)) {
-      N.push({
-        "@id": sId,
-        "@type": "aif:RA",
-        "aif:usesScheme": a.scheme?.key ?? null,
-        "aif:name": a.scheme?.name ?? null
-      });
-      seen.add(sId);
-    }
+     pushOnce({
+       "@id": sId,
+       // Keep canonical RA type, but also allow a scheme type (as:<key>) for consumers
+       "@type": ["aif:RA"].concat(a.scheme?.key ? [`as:${a.scheme.key}`] : []),
+       "aif:usesScheme": a.scheme?.key ?? null,
+       "aif:name": a.scheme?.name ?? null,
+       "as:appliesSchemeKey": a.scheme?.key ?? null
+     });
 
     // premises: I → RA
     for (const p of a.premises) {
@@ -116,12 +116,10 @@ export async function buildAifGraphJSONLD(opts: {
       const to = `I:${a.conclusionClaimId}`;
       N.push({ "@type": "aif:Conclusion", "aif:from": sId, "aif:to": to });
       const toId = `I:${a.conclusionClaimId}`;
-      if (!seen.has(toId)) {
-        N.push({ "@id": toId, "@type": "aif:InformationNode", "aif:text": textByClaimId.get(a.conclusionClaimId) ?? "" });
-        seen.add(toId);
-      }
+      pushOnce({ "@id": toId, "@type": "aif:InformationNode", "aif:text": textByClaimId.get(a.conclusionClaimId) ?? "" });
+     }
     }
-  }
+  
 
   // CA-nodes (conflict applications): conflicting → CA → conflicted
   for (const c of caRows) {
@@ -172,7 +170,9 @@ export async function buildAifGraphJSONLD(opts: {
       if (!seen.has(lId)) {
         N.push({
           "@id": lId, "@type": "aif:L",
-          "aif:text": String(m?.payload?.expression ?? m?.payload?.note ?? ""),
+          "aif:text": typeof m?.payload === "object" && m?.payload !== null
+            ? String((m.payload as Record<string, any>).expression ?? (m.payload as Record<string, any>).note ?? "")
+            : String(m?.payload ?? ""),
           "aif:illocution": m.kind ?? null, "aif:author": m.authorId ?? null
         });
         seen.add(lId);
@@ -184,6 +184,35 @@ export async function buildAifGraphJSONLD(opts: {
       }
       if (m.replyToMoveId) {
         N.push({ "@type":"aif:replies", "aif:from": `L:${m.replyToMoveId}`, "aif:to": lId });
+      }
+    }
+  }
+  // ---- Critical Questions (optional export) ----
+  if (includeCQs && args.length) {
+    const cqStatuses = await prisma.cQStatus.findMany({
+      where: {
+        OR: [
+              { argumentId: { in: args.map(a => a.id) } },
+          { targetType: 'argument' as TargetType, targetId: { in: args.map(a => a.id) } },
+        ],
+      },
+      select: { argumentId: true, targetId: true, targetType: true, schemeKey: true, cqKey: true, status: true }
+    });
+    const statusByArg = new Map<string, Array<{schemeKey:string, cqKey:string, status:string}>>();
+    for (const s of cqStatuses) {
+      const k = s.argumentId || (s.targetType === 'argument' as TargetType ? s.targetId : null);
+      if (!k) continue;
+      const arr = statusByArg.get(k) || [];
+      arr.push({ schemeKey: s.schemeKey, cqKey: s.cqKey, status: s.status || 'open' });
+      statusByArg.set(k, arr);
+    }
+    for (const a of args) {
+      const sId = `S:${a.id}`;
+      const items = statusByArg.get(a.id) || [];
+      for (const it of items) {
+        const qId = `CQ:${a.id}:${it.cqKey}`;
+        pushOnce({ "@id": qId, "@type": "cq:CriticalQuestion", "cq:key": it.cqKey, "cq:status": it.status });
+        N.push({ "@type": "as:hasCriticalQuestion", "aif:from": sId, "aif:to": qId });
       }
     }
   }
