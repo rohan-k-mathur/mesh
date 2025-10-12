@@ -1,3 +1,4 @@
+//app/works/[id]/page.tsx
 import { prisma } from '@/lib/prismaclient';
 import WorkDetailClient from '@/components/work/WorkDetailClient';
 
