@@ -10,7 +10,7 @@ export async function POST(_req: NextRequest) {
   const user = await getUserFromCookies();
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
-  const userId = String(user.userId ?? user.id);
+  const userId = String(user.userId);
 
   // Ensure a personal space (no `kind` field needed)
   let space = await prisma.kbSpace.findFirst({

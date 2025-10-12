@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prismaclient";
 import { getCurrentUserId } from "@/lib/serverutils";
+import { jsonSafe } from "@/lib/bigintjson";
 
 export const runtime = "nodejs";
 
@@ -23,7 +24,7 @@ export async function POST(req: NextRequest) {
 
     if (createConversation) {
       const conv = await tx.conversation.create({ data: {} });
-      conversationId = conv.id;
+      conversationId = Number(conv.id);
 
       // Ensure creator is a participant
       try {
@@ -53,6 +54,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Return only serializable fields; Prisma may still emit BigInt for BIGINT columns.
     return tx.discussion.create({
       data: {
         title,
@@ -60,10 +62,18 @@ export async function POST(req: NextRequest) {
         createdById: String(userId),
         attachedToType,
         attachedToId,
-        conversationId,
+        conversationId, // we set Number() above, but schema may still be BIGINT
+      },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        createdAt: true,
+        updatedAt: true,
+        conversationId: true, // normalize below via jsonSafe
       },
     });
   });
 
-  return NextResponse.json({ discussion }, { status: 201 });
+  return NextResponse.json(jsonSafe({ discussion }), { status: 201 });
 }

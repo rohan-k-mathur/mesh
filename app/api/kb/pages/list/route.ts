@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
   const cursorUpdatedAt = url.searchParams.get('cursorUpdatedAt');
   const cursorId = url.searchParams.get('cursorId');
 
-  const userId = String(user.userId ?? user.id);
+  const userId = String(user.userId);
 
   const items = await prisma.kbPage.findMany({
     where: { createdById: userId },

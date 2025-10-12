@@ -10,7 +10,9 @@ import MessageComposer from "../chat/MessageComposer";
 import MessengerPane from "../chat/MessengerPane";
 import ThreadListSidebar from "./ThreadListSidebar";
 import ForumRulesCard from "./ForumRulesCard";
-import { GridBG } from "./FX";
+// import { GridBG } from "./FX";
+import { GridBG } from "../ui/GridBG";
+import DiscussionTitleEditor from "./DiscussionTitleEditor";
 
 export default function DiscussionView({
   discussion,
@@ -30,10 +32,11 @@ export default function DiscussionView({
   const currentUserImage = user?.photoURL ?? null;
 
 
-const displayTitle = discussion.title && discussion.title.trim()
-  ? discussion.title
-  : "Discussion"; // or compute a fallback if you also fetch the attached comment text
+// const displayTitle = discussion.title && discussion.title.trim()
+//   ? discussion.title
+//   : "Discussion"; // or compute a fallback if you also fetch the attached comment text
 
+const canEditTitle = me && discussion?.createdById && String(discussion.createdById) === String(me);
 
 
   // Seed the store with server-hydrated messages once
@@ -86,14 +89,22 @@ React.useEffect(() => {
   }, []);
 
   return (
-    <div className="relative isolate w-full">
-      <GridBG />
-      <div className="relative z-10 mx-auto max-w-5xl p-3 space-y-3 w-full">
+
+    <div className="relative isolate w-full ">
+  
+      <div className="relative z-10 mx-auto max-w-5xl p-0 space-y-3 w-full">
       <header className="glass-surface rounded-2xl panel-edge border bg-white/70 px-4 py-3 shadow-[0_10px_40px_-10px_rgba(2,6,23,0.12)]">
       <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <h1 className="truncate text-sm font-semibold tracking-wide">{displayTitle}</h1>
-              {discussion.description && (
+              <DiscussionTitleEditor
+                id={discussion.id}
+                title={discussion.title ?? ''}
+                canEdit={!!canEditTitle}
+                onUpdated={(t) => { (discussion.title = t); /* local mutate ok */ }}
+                className=""
+              />
+           
+                      {discussion.description && (
                 <p className="mt-0.5 text-sm text-slate-600">{discussion.description}</p>
               )}
             </div>

@@ -34,7 +34,7 @@ export default async function Home() {
           initialIsNext={false}
           roomId="global"
           postTypes={[]}
-          currentUserId={user.userId}
+          currentUserId={user.userId ?? undefined}
           animated={USE_SCROLL_ANIMATION}
         />
       )}

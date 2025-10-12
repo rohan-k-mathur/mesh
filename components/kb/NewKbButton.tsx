@@ -2,20 +2,46 @@
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
 
-export function NewKbButton({ variant='solid' }: { variant?: 'solid'|'ghost' }) {
+export function NewKbButton() {
   const router = useRouter();
+  const [creating, setCreating] = React.useState(false);
+
+  async function handleCreate() {
+    setCreating(true);
+    try {
+      const res = await fetch('/api/kb/pages/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: 'Untitled' }),
+      });
+      
+      if (!res.ok) throw new Error('Failed to create');
+      
+      const data = await res.json();
+      router.push(`/kb/pages/${data.id}/edit`);
+    } catch (err) {
+      console.error('Create failed:', err);
+      setCreating(false);
+    }
+  }
+  
   return (
     <button
-      type="button"
       onClick={() => router.push('/kb/new')}
-      className={
-        variant === 'solid'
-          ? 'rounded-md bg-slate-900 px-3 py-1.5 text-sm text-white hover:bg-slate-800'
-          : 'rounded-md border px-3 py-1.5 text-sm hover:bg-slate-50'
-      }
-      title="Create a new Knowledge Base page"
+      disabled={creating}
+      className="btnv2 bg-white/50 flex items-center gap-2 text-[12px] px-3 py-3 rounded-xl"
     >
-      New KB Page
+      {creating ? (
+        <>
+          <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+          Creating…
+        </>
+      ) : (
+        <>
+        
+          ⊕ New Knowledge Base
+        </>
+      )}
     </button>
   );
 }

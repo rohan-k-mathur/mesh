@@ -450,7 +450,7 @@ function ForumCommentItem({
   const authorIsOP = opUserId != null && String(opUserId) === String(comment.authorId);
   const mine = meId != null && String(meId) === String(comment.authorId);
 
-  const MAX_NEST = 5;
+  const MAX_NEST = 7;
     const [unclampBranch, setUnclampBranch] = React.useState(false);
     const isUnclamped = parentUnclamped || unclampBranch;
     const rawDepth = depth ?? 0;

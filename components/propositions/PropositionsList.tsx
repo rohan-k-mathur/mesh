@@ -457,7 +457,7 @@ function Row({
             {/* Promote/promoted button */}
             {p.status === 'CLAIMED' && p.promotedClaimId ? (
               <a
-                href={`/claims/${p.promotedClaimId}`}
+                href={`/claim/${p.promotedClaimId}`}
                 className="
                   px-4 py-2 text-[12px] tracking-wide btnv2 font-medium rounded-full
                 "

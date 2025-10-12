@@ -498,7 +498,7 @@ const MessageRow = memo(function MessageRow({
                 <DropdownMenuContent
                   align={isMine ? "end" : "start"}
                   sideOffset={6}
-                  className="flex flex-col bg-white/30 border-none backdrop-blur rounded-xl max-w-[400px] py-2"
+                  className="flex flex-col bg-white/50 border-none backdrop-blur rounded-xl max-w-[400px] py-2"
                 >
                   {isMine ? (
                     <>
@@ -681,7 +681,7 @@ const MessageRow = memo(function MessageRow({
                 <DropdownMenuContent
                   align={isMine ? "end" : "start"}
                   sideOffset={6}
-                  className="flex flex-col bg-white/30 border-none backdrop-blur rounded-xl max-w-[400px] py-2"
+                  className="flex flex-col bg-white/30 border border-indigo-300 backdrop-blur-md rounded-xl max-w-[400px] py-2"
                 >
                   {isMine ? (
                     <>

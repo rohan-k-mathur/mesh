@@ -3,6 +3,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prismaclient";
 import { getCurrentUserId } from "@/lib/serverutils";
 import { emitBus } from "@/lib/server/bus";
+import { jsonSafe } from "@/lib/bigintjson";
+import { ensureBaselineLudicsDesigns } from "@/lib/ludics/ensureBaseline";
+import { TargetType } from "@prisma/client";
 import { z } from "zod";
 
 const Allowed = new Set([
@@ -79,14 +82,25 @@ export async function POST(req: NextRequest) {
     });
     created = true;
     emitBus("deliberations:created", { id: d.id, hostType, hostId, source: "ensure" });
-  }
+    // 👇 Ensure baseline Ludics designs exist so DeepDivePanel has something to render.
 
+   try {
+      const { proId, oppId } = await ensureBaselineLudicsDesigns({
+        deliberationId: d.id,
+        participantId: String(me),
+        seedActs: true,
+      });
+      
+    } catch (e) {
+      console.warn("[ludics] baseline seed failed:", e);
+    }
+   }
   let anchorId: string | undefined;
   if (anchor) {
     const a = await prisma.deliberationAnchor.create({
       data: {
         deliberationId: d.id,
-        targetType: anchor.targetType ?? null,
+        targetType: anchor.targetType ?? "unknown",
         targetId: anchor.targetId ?? null,
         selectorJson: anchor.selectorJson ?? null,
         title: anchor.title ?? null,
@@ -96,8 +110,7 @@ export async function POST(req: NextRequest) {
       select: { id: true },
     });
     anchorId = a.id;
-    emitBus("anchors:changed", { deliberationId: d.id, op: "add", anchorId });
   }
 
-  return NextResponse.json({ id: d.id, created, anchorId });
+ return NextResponse.json(jsonSafe({ id: d.id, created, anchorId }));
 }
