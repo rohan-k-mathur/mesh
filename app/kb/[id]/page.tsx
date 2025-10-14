@@ -195,7 +195,7 @@ function ArgumentBlock({ item, evalMode, tau }: { item: TranscludeItemEnvelope; 
         {item.actions?.openArgument &&
           <button className="px-1.5 py-0.5 rounded border text-[12px]" onClick={() => window.open(item.actions!.openArgument!, '_blank', 'noopener,noreferrer')}>open</button>}
       </div>
-      <ProvenanceChip live={item.live} pinnedAt={item.pinnedAt} evalMode={evalMode} tau={tau} provenance={item.provenance} />
+      <ProvenanceChip item={item} />
     </div>
   );
 }

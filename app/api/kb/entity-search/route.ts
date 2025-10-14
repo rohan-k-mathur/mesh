@@ -2,11 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prismaclient';
 
-export const dynamic = 'force-dynamic'; export const revalidate = 0;
+export const dynamic = 'force-dynamic'; 
+export const revalidate = 0;
 
 const Q = z.object({
   k: z.enum(['claim','argument','room','sheet']),
-  q: z.string().trim().default(''),
+//   q: z.string().trim().default(''),
+  q: z.string().optional().default(''),
+
   limit: z.coerce.number().int().min(1).max(20).default(8),
 });
 

@@ -1,7 +1,6 @@
 // components/arguments/ArgumentCard.tsx
 'use client';
 import * as React from 'react';
-import { AttackMenu } from './AttackMenu';
 import { createArgument, postAttack } from '@/lib/client/aifApi';
 import { AttackMenuPro } from './AttackMenuPro';
 type Prem = { id: string; text: string };

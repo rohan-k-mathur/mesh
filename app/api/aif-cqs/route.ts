@@ -26,7 +26,7 @@ export async function GET(
     text: cq.text,
     attackType: cq.attackType,
     targetScope: cq.targetScope,
-    status: byKey.get(cq.cqKey) ?? "open",
+    status: byKey.get(cq.cqKey ?? "") ?? "open",
   }));
 
   return NextResponse.json({ ok: true, items });

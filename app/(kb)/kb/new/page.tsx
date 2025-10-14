@@ -1,4 +1,4 @@
-// app/(kb)/kb/pages/new/page.tsx
+// app/(kb)/kb/new/page.tsx
 'use client';
 
 import { useEffect, useRef, useState } from 'react';

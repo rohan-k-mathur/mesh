@@ -80,8 +80,11 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         statements: stmts,
         inferences: infs.map(inf => ({
           id: inf.id,
-          conclusionId: inf.conclusion.id,
-          premiseIds: inf.premises.map(p => p.statement.id),
+          kind: inf.kind ?? "defeasible",
+          conclusion: { id: inf.conclusion.id, text: inf.conclusion.text },
+          premises: inf.premises.map(p => ({
+            statement: { id: p.statement.id, text: p.statement.text }
+          })),
           scheme: inf.scheme,
         })),
         evidence: pd.evidence,

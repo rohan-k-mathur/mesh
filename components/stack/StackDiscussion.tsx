@@ -146,7 +146,7 @@ export default async function StackDiscussion({
                     ))}
                   </div>
                 )}
-                  <LiftToDebateButton commentId={c.id.toString()} hostType="stack" hostId={root.stack_id!} />
+                  <LiftToDebateButton  commentId={c.id.toString()} hostType="stack" hostId={root.stack_id!} />
                   <OpenInDiscussionsButton
   attachedToType="comment"
   attachedToId={String(c.id)}

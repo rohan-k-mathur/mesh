@@ -10,7 +10,7 @@ export function SheetBlock({ env }: { env: any }) {
       <div className="text-sm font-semibold mb-1">{s?.title ?? 'Sheet'}</div>
       <div className="text-[11px] text-slate-600">nodes {s?.nodes?.length ?? 0}</div>
       <div className="mt-2">
-        <ProvenanceChip source="sheet" href={env?.actions?.openSheet} />
+        <ProvenanceChip item={env} />
       </div>
     </div>
   );

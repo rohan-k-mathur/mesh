@@ -15,11 +15,11 @@ export default function NewDiscussionPage() {
     (async () => {
       try {
         const payload = {
-          title: q.get('title') || 'Discussion',
-          description: q.get('description') || null,
-          attachedToType: q.get('attachedToType') || null,
-          attachedToId: q.get('attachedToId') || null,
-          createConversation: (q.get('createConversation') ?? '1') !== '0',
+          title: q?.get('title') || 'Discussion',
+          description: q?.get('description') || null,
+          attachedToType: q?.get('attachedToType') || null,
+          attachedToId: q?.get('attachedToId') || null,
+          createConversation: (q?.get('createConversation') ?? '1') !== '0',
         };
 
         const res = await fetch('/api/discussions', {

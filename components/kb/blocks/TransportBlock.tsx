@@ -25,7 +25,7 @@ export function TransportBlock({ env }: { env: any }) {
         </>
       )}
       <div className="mt-2">
-        <ProvenanceChip source="room_functor" href={env?.actions?.openTransport} />
+        <ProvenanceChip item={env} />
       </div>
     </div>
   );

@@ -1,3 +1,5 @@
+//lib/aif/counts.ts
+
 export type AifRowLite = {
   id: string;
   conclusionClaimId: string | null;

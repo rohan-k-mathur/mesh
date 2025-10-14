@@ -58,7 +58,8 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ ok: true }), { headers: { "content-type": "application/json" } });
   } catch (e) {
     console.error("[pdf-thumb] error", e);
-    return new Response(JSON.stringify({ error: String(e?.message ?? e) }), {
+    const errorMessage = e instanceof Error ? e.message : String(e);
+    return new Response(JSON.stringify({ error: errorMessage }), {
       status: 500,
       headers: { "content-type": "application/json" },
     });

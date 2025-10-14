@@ -4,7 +4,7 @@ import { getUserFromCookies } from '@/lib/serverutils';
 
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   const user = await getUserFromCookies();
-  if (!user) return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 });
+  if (!user || user.userId == null) return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 });
 
   const body = await req.json().catch(() => ({}));
   const name = typeof body?.name === 'string' ? body.name.trim() : '';

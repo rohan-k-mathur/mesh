@@ -25,7 +25,7 @@ export async function POST(_: NextRequest, { params }: { params: { id: string } 
     const fileName = `blocks/thumb-${id}.png`;
 
     const { fileURL: thumbnail, error } = await uploadFileToSupabase(
-      new File([png], fileName, { type: "image/png" })
+      new File([new Uint8Array(png)], fileName, { type: "image/png" })
     );
     if (error || !thumbnail) return NextResponse.json({ error: String(error) }, { status: 500 });
 

@@ -1,3 +1,5 @@
+//components/map/AifDiagramView.tsx
+
 'use client';
 
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';

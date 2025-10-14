@@ -2,23 +2,46 @@
 'use client';
 import * as React from 'react';
 
-export function BlockList({ blocks, onReorder, render }:{
+export function BlockList({ blocks , render }:{
   blocks:any[]; onReorder:(ids:string[])=>void; render:(b:any)=>React.ReactNode
 }) {
-  const [dragId, setDragId] = React.useState<string|null>(null);
+//   const [dragId, setDragId] = React.useState<string|null>(null);
 
-  function onDragStart(id:string) { setDragId(id); }
-  function onDragOver(e:React.DragEvent, overId:string) {
-    e.preventDefault();
-    if (!dragId || dragId===overId) return;
-    const ids = blocks.map(b=>b.id);
-    const from = ids.indexOf(dragId);
-    const to   = ids.indexOf(overId);
-    if (from<0 || to<0 || from===to) return;
-    const next = ids.slice();
-    next.splice(to, 0, next.splice(from,1)[0]);
-    onReorder(next);
-  }
+//   function onDragStart(id:string) { setDragId(id); }
+//   function onDragOver(e:React.DragEvent, overId:string) {
+//     e.preventDefault();
+//     if (!dragId || dragId===overId) return;
+//     const ids = blocks.map(b=>b.id);
+//     const from = ids.indexOf(dragId);
+//     const to   = ids.indexOf(overId);
+//     if (from<0 || to<0 || from===to) return;
+//     const next = ids.slice();
+//     next.splice(to, 0, next.splice(from,1)[0]);
+//     onReorder(next);
+//   }
+
+
+
+  const [dragId, setDragId] = React.useState<string|null>(null);
+const [order, setOrder] = React.useState<string[]>([]);
+React.useEffect(()=>{ setOrder(blocks.map(b=>b.id)); }, [blocks.map(b=>b.id).join(',')]);
+
+function onDragStart(id:string){ setDragId(id); }
+function onDragOver(id:string, e:React.DragEvent){ e.preventDefault(); if (!dragId || dragId===id) return;
+  const cur = [...order]; const from = cur.indexOf(dragId); const to = cur.indexOf(id);
+  if (from<0 || to<0 || from===to) return;
+  cur.splice(to, 0, cur.splice(from,1)[0]); // move
+  setOrder(cur);
+}
+async function onDrop() {
+  if (!dragId) return; setDragId(null);
+  await fetch(`/api/kb/pages/${pageId}/reorder`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ order })
+  });
+  refetchBlocks();
+}
+
 
   return (
     <ul className="space-y-3">

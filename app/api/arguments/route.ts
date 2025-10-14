@@ -111,5 +111,5 @@ try {
   }
 } catch {}
 
-  return NextResponse.json({ ok:true, argumentId: created }, NO_STORE);
+  return NextResponse.json({ ok:true, argumentId: argId }, NO_STORE);
 }

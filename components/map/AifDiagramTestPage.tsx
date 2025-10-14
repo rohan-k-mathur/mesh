@@ -8,6 +8,7 @@ import AifDiagramViewInteractive from '@/components/map/AifDiagramViewInteractiv
 import { AIF_EXAMPLES, listAifExamples } from '@/components/map/aif-examples';
 import type { AifNode } from '@/lib/arguments/diagram';
 
+
 /**
  * AIF Diagram Test Page
  * Use this to preview and test all AIF diagram examples

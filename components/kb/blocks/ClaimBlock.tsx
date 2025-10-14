@@ -19,10 +19,7 @@ export function ClaimBlock({ env }: { env: any }) {
       )}
       <div className="mt-2">
         <ProvenanceChip
-          source="deliberation"
-          href={`/deliberation/${roomId}`}
-          mode={undefined}
-          tau={undefined}
+          item={env.data}
         />
       </div>
     </div>

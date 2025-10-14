@@ -21,6 +21,8 @@
 //   }));
 //   return NextResponse.json({ ok: true, items });
 // }
+
+// app/api/arguments/[id]/cqs/route.ts
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
 
@@ -32,10 +34,15 @@ export async function GET(_req: Request, { params }: { params:{ id:string } }) {
 
   const statuses = await prisma.cQStatus.findMany({ where: { argumentId: arg.id } });
   const byKey = new Map(statuses.map(s => [s.cqKey, s.status]));
-  const items = arg.scheme.cqs.map(cq => ({
-    cqKey: cq.cqKey, text: cq.text,
-    attackType: cq.attackType, targetScope: cq.targetScope,
-    status: (byKey.get(cq.cqKey) as any) ?? 'open'
-  }));
+  const items = arg.scheme.cqs.map(cq => {
+    const cqKey = cq.cqKey ?? "";
+    return {
+      cqKey,
+      text: cq.text,
+      attackType: cq.attackType,
+      targetScope: cq.targetScope,
+      status: byKey.get(cqKey) ?? "open"
+    };
+  });
   return NextResponse.json({ ok:true, items }, { headers: { 'Cache-Control':'no-store' } });
 }

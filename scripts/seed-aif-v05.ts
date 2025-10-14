@@ -27,7 +27,7 @@ async function run() {
   });
 
   // Scheme (if not already in DB)
-  const schemefallback = await prisma.argumentScheme.upsert({
+  const scheme = await prisma.argumentScheme.upsert({
     where: { key: 'expert_opinion' },
     update: {},
     create: {

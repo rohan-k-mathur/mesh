@@ -11,7 +11,16 @@ export default function KbPageView({ params }: { params: { id: string } }) {
 
   const [hydrated, setHydrated] = React.useState<any[]|null>(null);
   const [err, setErr] = React.useState<string|undefined>();
-
+// add this handler inside component:
+async function togglePin(block:any, env:any) {
+  if (!meta?.page?.canEdit) return alert('No edit permission');
+  const nextLive = block.live === false; // unpin -> live, pin -> frozen
+  const payload: any = { live: nextLive };
+  if (!nextLive) payload.pinnedJson = env; else payload.pinnedJson = null;
+  await fetch(`/api/kb/blocks/${block.id}`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+  // re-hydrate
+  setHydrated(null);
+}
   React.useEffect(() => {
     (async () => {
       setErr(undefined);

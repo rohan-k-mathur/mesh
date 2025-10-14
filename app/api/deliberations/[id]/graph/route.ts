@@ -1,8 +1,11 @@
+//app/api/deliberations/[id]/graph/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
+
+
 
 type Mode = 'product' | 'min';
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x));

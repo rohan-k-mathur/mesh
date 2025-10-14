@@ -40,6 +40,8 @@
 
 //   return NextResponse.json({ ok:true, cq:{ cqKey: cq.cqKey, status: status.status }, whyMove: move ?? null }, { status: 201 });
 // }
+
+// app/api/arguments/[id]/cqs/[cqKey]/ask/route.ts
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
 

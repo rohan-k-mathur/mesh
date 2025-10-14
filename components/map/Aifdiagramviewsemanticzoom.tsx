@@ -68,6 +68,8 @@ export default function AifDiagramViewSemanticZoom({
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
+  
+
   const svgRef = useRef<SVGSVGElement>(null);
   const elk = useMemo(() => new ELK(), []);
 
@@ -205,7 +207,7 @@ export default function AifDiagramViewSemanticZoom({
         expandingNodeId: null,
       }));
     }
-  }, [aif, currentDepth, enableExpansion, filters, maxDepth]);
+  }, [aif, currentDepth, enableExpansion, filters, maxDepth, expansionState.expandedNodes]);
 
   // Fetch summaries
   useEffect(() => {
@@ -250,6 +252,8 @@ export default function AifDiagramViewSemanticZoom({
       expandNode(node.id);
     }
   }, [enableExpansion, expansionState.isExpanding, expandNode, onNodeClick]);
+
+  
 
   if (!layout) {
     return (

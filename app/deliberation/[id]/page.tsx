@@ -10,6 +10,8 @@ export default async function DeliberationPage({
 }: {
   params: { id: string };
 }) {
+
+
   // Ensure the deliberation exists
   const delib = await prisma.deliberation.findUnique({
     where: { id: params.id },

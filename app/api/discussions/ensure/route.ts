@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
     let conversationId: number | null = null;
     if (createConversation) {
       const conv = await tx.conversation.create({ data: {} });
-      conversationId = conv.id;
+      conversationId = Number(conv.id);
     }
     return tx.discussion.create({
       data: {

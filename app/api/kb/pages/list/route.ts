@@ -1,3 +1,4 @@
+//app/api/kb/pages/list/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
 import { getUserFromCookies } from '@/lib/serverutils';

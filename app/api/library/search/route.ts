@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
   const url = new URL(req.url);
   const q = (url.searchParams.get('q') || '').trim();
   const rows = await prisma.libraryPost.findMany({
-    where: { uploader_id: BigInt(user.userId), ...(q ? { title: { contains: q, mode: 'insensitive' } } : {}) },
+    where: { uploader_id: user.userId ? BigInt(user.userId) : undefined, ...(q ? { title: { contains: q, mode: 'insensitive' } } : {}) },
     take: 20, orderBy: { created_at: 'desc' },
     select: { id:true, title:true, file_url:true, thumb_urls:true, stack_id:true },
   });
