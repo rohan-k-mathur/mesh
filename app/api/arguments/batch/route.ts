@@ -1,3 +1,5 @@
+// API route to fetch multiple arguments by IDs with optional deliberation filter
+// app/api/arguments/batch/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
 

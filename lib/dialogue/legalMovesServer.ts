@@ -2,16 +2,19 @@
 import { prisma } from '@/lib/prismaclient';
 import { stepInteraction } from '@/packages/ludics-engine/stepper';
 import type { MoveKind } from './types';
-export type LegalMove = {
-  kind: MoveKind;
+import { legalAttacksFor } from '@/lib/dialogue/legalMoves';
+
+export type Move = {
+  kind: 'ASSERT'|'WHY'|'GROUNDS'|'RETRACT'|'CONCEDE'|'CLOSE'|'THEREFORE'|'SUPPOSE'|'DISCHARGE';
   label: string;
   payload?: any;
   disabled?: boolean;
   reason?: string;
-  /** When a UI asks for claim moves but R7 requires conceding the *argument*,
-   *  we return the correct posting target here. Client should POST with postAs.*. */
+  force?: 'ATTACK'|'SURRENDER'|'NEUTRAL';
+  relevance?: 'likely'|'unlikely'|null;
   postAs?: { targetType: 'argument'|'claim'|'card'; targetId: string };
 };
+
 
 type Input = {
   deliberationId: string;
@@ -192,3 +195,118 @@ export async function computeLegalMoves(input: Input): Promise<{ moves: LegalMov
     meta: { openWhyKeys, isClosed, anyGrounds, targetAuthorId, closable }
   };
 }
+
+
+
+// lib/dialogue/legalMovesServer.ts -- version you just sent
+// import { prisma } from '@/lib/prismaclient';
+// import { stepInteraction } from '@/packages/ludics-engine/stepper';
+// import { legalAttacksFor } from '@/lib/dialogue/legalMoves';
+
+// export type Move = {
+//   kind: 'ASSERT'|'WHY'|'GROUNDS'|'RETRACT'|'CONCEDE'|'CLOSE'|'THEREFORE'|'SUPPOSE'|'DISCHARGE';
+//   label: string;
+//   payload?: any;
+//   disabled?: boolean;
+//   reason?: string;
+//   force?: 'ATTACK'|'SURRENDER'|'NEUTRAL';
+//   relevance?: 'likely'|'unlikely'|null;
+//   postAs?: { targetType: 'argument'|'claim'|'card'; targetId: string };
+// };
+
+// export async function computeLegalMoves(opts: {
+//   deliberationId: string;
+//   targetType: 'argument'|'claim'|'card';
+//   targetId: string;
+//   locusPath?: string;
+//   actorId?: string | null;
+// }): Promise<{ moves: Move[] }> {
+//   const { deliberationId, targetType, targetId, locusPath = '0', actorId } = opts;
+
+//   // Who authored the target?
+//   let targetAuthorId: string | null = null;
+//   if (targetType === 'argument') {
+//     targetAuthorId = (await prisma.argument.findUnique({ where: { id: targetId }, select: { authorId: true } }))?.authorId ?? null;
+//   } else if (targetType === 'claim') {
+//     targetAuthorId = (await prisma.claim.findUnique({ where: { id: targetId }, select: { createdById: true } }))?.createdById ?? null;
+//   }
+
+//   // Open CQs on this target (WHY not answered by GROUNDS, per key)
+//   const rows = await prisma.dialogueMove.findMany({
+//     where: { deliberationId, targetType, targetId, kind: { in: ['WHY','GROUNDS'] } },
+//     orderBy: { createdAt: 'asc' },
+//     select: { kind: true, payload: true, createdAt: true }
+//   });
+
+//   type Row = { kind: 'WHY'|'GROUNDS'; payload: any; createdAt: Date };
+//   const latestByKey = new Map<string, Row>();
+//   for (const r of rows as Row[]) {
+//     const k = String(r?.payload?.cqId ?? r?.payload?.schemeKey ?? 'default');
+//     const prev = latestByKey.get(k);
+//     if (!prev || r.createdAt > prev.createdAt) latestByKey.set(k, r);
+//   }
+//   const openKeys = [...latestByKey.entries()].filter(([,v]) => v.kind === 'WHY').map(([k]) => k);
+//   const anyGrounds = [...latestByKey.values()].some(v => v.kind === 'GROUNDS');
+
+//   const moves: Move[] = [];
+
+//   // GROUNDS (only author answers)
+//   for (const k of openKeys) {
+//     const disabled = !!(actorId && targetAuthorId && actorId !== String(targetAuthorId));
+//     moves.push({
+//       kind: 'GROUNDS',
+//       label: `Answer ${k}`,
+//       payload: { cqId: k, locusPath },
+//       disabled,
+//       reason: disabled ? 'Only the author may answer this WHY' : undefined
+//     });
+//   }
+
+//   // WHY (if none open) + shape hint
+//   if (!openKeys.length) {
+//     let label = 'Ask WHY';
+//     const text =
+//       targetType === 'argument'
+//         ? (await prisma.argument.findUnique({ where: { id: targetId }, select: { text: true } }))?.text ?? null
+//         : (await prisma.claim.findUnique({ where: { id: targetId }, select: { text: true } }))?.text ?? null;
+//     if (text) {
+//       const { options } = legalAttacksFor(text);
+//       if (options.length) label = `WHY — ${options[0].label}`;
+//     }
+//     const disabled = !!(actorId && targetAuthorId && actorId === String(targetAuthorId));
+//     moves.push({ kind: 'WHY', label, payload: { locusPath }, disabled, reason: disabled ? 'You cannot ask WHY on your own item' : undefined });
+//   }
+
+//   // Surrenders/retreat
+//   if (targetType === 'claim' && anyGrounds) {
+//     const args = await prisma.argument.findMany({
+//       where: { deliberationId, conclusionClaimId: targetId },
+//       orderBy: { createdAt: 'desc' }, select: { id: true }
+//     });
+//     if (args.length) {
+//       moves.push({ kind: 'CONCEDE', label: 'Accept argument', postAs: { targetType: 'argument', targetId: args[0].id }, payload: { locusPath } });
+//     }
+//   } else {
+//     moves.push({ kind: 'CONCEDE', label: 'Concede', payload: { locusPath } });
+//   }
+//   moves.push({ kind: 'RETRACT', label: 'Retract', payload: { locusPath } });
+
+//   // † closability
+//   const designs = await prisma.ludicDesign.findMany({
+//     where: { deliberationId }, orderBy: [{ participantId: 'asc' }, { id: 'asc' }],
+//     select: { id: true, participantId: true }
+//   });
+//   const pos = designs.find(d => d.participantId === 'Proponent') ?? designs[0];
+//   const neg = designs.find(d => d.participantId === 'Opponent') ?? designs[1] ?? designs[0];
+//   if (pos && neg) {
+//     const trace = await stepInteraction({ dialogueId: deliberationId, posDesignId: pos.id, negDesignId: neg.id, phase: 'neutral', maxPairs: 256 }).catch(() => null);
+//     const closable = new Set((trace?.daimonHints ?? []).map((h: any) => h.locusPath));
+//     if (closable.has(locusPath)) moves.push({ kind: 'CLOSE', label: 'Close (†)', payload: { locusPath } });
+//   }
+
+//   // Tag force/relevance; disable ATTACK after close (lightweight; legal route adds exact verdicts)
+//   for (const m of moves) {
+//     m.force = (m.kind === 'WHY' || m.kind === 'GROUNDS') ? 'ATTACK' : (m.kind === 'CONCEDE' || m.kind === 'RETRACT' || m.kind === 'CLOSE') ? 'SURRENDER' : 'NEUTRAL';
+//   }
+//   return { moves };
+// }

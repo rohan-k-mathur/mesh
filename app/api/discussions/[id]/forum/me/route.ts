@@ -1,3 +1,4 @@
+//app/api/discussions/[id]/forum/me/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prismaclient";
 import { getCurrentUserId } from "@/lib/serverutils";

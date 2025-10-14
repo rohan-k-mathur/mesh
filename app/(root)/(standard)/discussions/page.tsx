@@ -1,3 +1,4 @@
+// app/(root)/(standard)/discussions/page.tsx
 import { prisma } from '@/lib/prismaclient';
 import { getUserFromCookies } from '@/lib/serverutils';
 import { redirect } from 'next/navigation';
@@ -10,7 +11,7 @@ export default async function DiscussionsPage() {
   const user = await getUserFromCookies();
   if (!user) redirect('/login');
 
-  const userId = String(user.userId );
+  const userId = String(user.userId);
 
   const items = await prisma.discussion.findMany({
     where: { createdById: userId },
@@ -23,6 +24,8 @@ export default async function DiscussionsPage() {
       createdAt: true,
       updatedAt: true,
       conversationId: true,
+      replyCount: true,
+      createdById: true,
     },
   });
 
@@ -44,6 +47,7 @@ export default async function DiscussionsPage() {
       initialItems={initialItems}
       initialNextCursor={initialNextCursor}
       pageSize={PAGE_SIZE}
+      userId={userId}
     />
   );
 }

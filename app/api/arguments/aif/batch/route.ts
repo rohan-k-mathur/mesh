@@ -1,6 +1,7 @@
 // app/api/arguments/aif/batch/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
+import { TargetType } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -50,7 +51,7 @@ export async function GET(req: NextRequest) {
       where: {
         OR: [
           { argumentId: { in: ids } },
-          { targetType: 'argument', targetId: { in: ids } },
+          { targetType: 'argument' as TargetType, targetId: { in: ids } },
         ],
       },
       select: { argumentId: true, targetId: true, cqKey: true, status: true },

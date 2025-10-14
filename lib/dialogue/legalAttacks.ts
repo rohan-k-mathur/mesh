@@ -1,3 +1,5 @@
+// Legal attacks based on simple linguistic cues in the text.
+//lib/dialogue/legalAttacks.ts
 export type Shape = 'conditional'|'conjunction'|'disjunction'|'forall'|'exists'|'premise'|'unknown';
 export type AttackOption =
   | { key: 'attack_antecedent'; label: string; template: string }

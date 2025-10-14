@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prismaclient';
 import { getCurrentUserId } from '@/lib/serverutils';
-import { bus } from '@/lib/bus';
+import { emitBus } from '@/lib/server/bus';
 
 const Body = z.object({
   deliberationId: z.string().min(6),
@@ -26,12 +26,11 @@ export async function POST(req: NextRequest) {
       subjectId: subject.id,
       rationale,
       inputsJson: inputs ?? {},
-      createdById: String(userId),
       issuedBy: `panel:${userId}`,
     },
     select: { id:true, kind:true, subjectType:true, subjectId:true, createdAt:true },
   });
 
-  try { bus.emitEvent('decision:changed', { deliberationId }); } catch {}
+  try { emitBus('decision:changed', { deliberationId }); } catch {}
   return NextResponse.json({ ok:true, receipt: row });
 }

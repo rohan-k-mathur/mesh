@@ -36,6 +36,22 @@ export function LegalMoveToolbarAIF({
 }) {
   const qs = new URLSearchParams({ deliberationId, targetType, targetId, locusPath }).toString();
   const { data, mutate } = useSWR<{ ok: boolean; moves: Move[] }>(`/api/dialogue/legal-moves?${qs}`, fetcher, { revalidateOnFocus: false });
+const argOpenCqsKey = `/api/dialogue/open-cqs?` + 
+  new URLSearchParams({ deliberationId, targetType: 'argument', targetId });
+
+const { data: cqs } = useSWR<{ ok:boolean; cqOpen:string[] }>(argOpenCqsKey, fetcher, { revalidateOnFocus:false });
+
+// We synthesize a move only when all WHYs for this argument are satisfied:
+const canAccept = cqs?.ok && Array.isArray(cqs.cqOpen) && cqs.cqOpen.length === 0;
+
+// Build the Accept move in the shape your poster expects:
+const acceptMove: Move = {
+  kind: 'ASSERT',
+  label: 'Accept argument',
+  payload: { locusPath, as: 'ACCEPT_ARGUMENT' },
+  force: 'SURRENDER',
+  postAs: { targetType: 'argument', targetId }, // ensure it posts against the argument
+};
 
   const moves = (data?.moves ?? []).filter(Boolean);
   const attacks   = moves.filter(m => m.force === "ATTACK"   && !m.disabled);
@@ -197,7 +213,7 @@ export function LegalMoveToolbarAIF({
         <div className="flex flex-wrap gap-2">
           {resolves.map((m, i) => (
             <button
-              key={`${m.kind}-${i}`}
+              key={`${m.kind}-${i}`} 
               className={[
                 "px-2 py-1 rounded text-xs border transition",
                 m.kind === "CLOSE" ? "border-indigo-300 text-indigo-800 bg-indigo-50 hover:bg-indigo-100 font-semibold" :
@@ -211,6 +227,15 @@ export function LegalMoveToolbarAIF({
               {m.label || m.kind}
             </button>
           ))}
+           {canAccept && (
+      <button
+        className="px-2 py-1 rounded text-xs border border-sky-200 text-sky-800 hover:bg-sky-50"
+        onClick={() => postMove(acceptMove)}
+      >
+        Accept argument
+      </button>
+    )}
+
         </div>
       )}
 

@@ -10,9 +10,13 @@ import MessageComposer from "../chat/MessageComposer";
 import MessengerPane from "../chat/MessengerPane";
 import ThreadListSidebar from "./ThreadListSidebar";
 import ForumRulesCard from "./ForumRulesCard";
+import DiscussionDescriptionEditor from './DiscussionDescriptionEditor';
+
 // import { GridBG } from "./FX";
 import { GridBG } from "../ui/GridBG";
 import DiscussionTitleEditor from "./DiscussionTitleEditor";
+import { SubscribeButton } from '@/components/discussion/SubscribeButton';
+
 
 export default function DiscussionView({
   discussion,
@@ -93,36 +97,48 @@ React.useEffect(() => {
     <div className="relative isolate w-full ">
   
       <div className="relative z-10 mx-auto max-w-5xl p-0 space-y-3 w-full">
-      <header className="glass-surface rounded-2xl panel-edge border bg-white/70 px-4 py-3 shadow-[0_10px_40px_-10px_rgba(2,6,23,0.12)]">
+      <header className=" panel-edge  rounded-2xl border bg-white/50 px-4 py-3 
+      shadow-[0_10px_40px_-10px_rgba(2,6,23,0.12)]">
       <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
+            <div className="flex min-w-0 gap-5">
               <DiscussionTitleEditor
                 id={discussion.id}
                 title={discussion.title ?? ''}
                 canEdit={!!canEditTitle}
                 onUpdated={(t) => { (discussion.title = t); /* local mutate ok */ }}
-                className=""
+                className="px-1"
               />
+              <div className="flex items-center h-5 border-l border-slate-400" />
+              <DiscussionDescriptionEditor
+        id={discussion.id}
+        description={discussion.description ?? null}
+        canEdit={!!canEditTitle}
+        onUpdated={(desc) => { discussion.description = desc; }}
+      />
            
-                      {discussion.description && (
+                      {/* {discussion.description && (
                 <p className="mt-0.5 text-sm text-slate-600">{discussion.description}</p>
-              )}
+              )} */}
             </div>
             <div className="flex items-center gap-2">
+                    <SubscribeButton variant="text-only" discussionId={discussion.id}  />
+              <div className="h-6 border-l border-slate-400" />
+
               <button
                 onClick={() => setTab("chat")}
-                className={`btnv2 btnv2--sm text-xs px-3 py-1.5 ${tab === "chat" ? "" : "btnv2--ghost"}`}
+                className={`btnv2 btnv2--sm text-xs px-3 py-1.5  ${tab === "chat" ? "bg-indigo-300/50" : "btnv2 "}`}
                 aria-pressed={tab === "chat"}
               >
                 Chat
               </button>
               <button
                 onClick={() => setTab("forum")}
-                className={`btnv2 btnv2--sm text-xs px-3 py-1.5 ${tab === "forum" ? "" : "btnv2--ghost"}`}
+                className={`btnv2 btnv2--sm text-xs px-3 py-1.5  ${tab === "forum" ? "bg-indigo-300/50" : "btnv2 "}`}
                 aria-pressed={tab === "forum"}
               >
                 Forum
               </button>
+              <div className="h-6 border-l border-slate-400" />
               <DeliberateButton discussionId={discussion.id} />
             </div>
           </div>

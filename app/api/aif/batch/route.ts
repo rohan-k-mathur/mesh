@@ -1,5 +1,8 @@
+// API route to handle batch import of AIF JSON-LD data
+// app/api/aif/batch/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
+import { TargetType } from '@prisma/client';
 
 type Mode = 'validate'|'upsert';
 
@@ -109,8 +112,8 @@ export async function POST(req: NextRequest) {
         const status = String(q?.['cq:status'] || 'open');
         if (!cqKey) continue;
         await tx.cQStatus.upsert({
-          where: { targetType_targetId_schemeKey_cqKey: { targetType: 'argument', targetId: a.id, schemeKey: schemeKey || 'unknown', cqKey } },
-          create: { targetType: 'argument', targetId: a.id, argumentId: a.id, schemeKey: schemeKey || 'unknown', cqKey, status, createdById: authorId },
+          where: { targetType_targetId_schemeKey_cqKey: { targetType: 'argument' as TargetType, targetId: a.id, schemeKey: schemeKey || 'unknown', cqKey } },
+          create: { targetType: 'argument' as TargetType, targetId: a.id, argumentId: a.id, schemeKey: schemeKey || 'unknown', cqKey, status, createdById: authorId },
           update: { status }
         });
       }

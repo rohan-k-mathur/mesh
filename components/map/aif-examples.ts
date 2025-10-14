@@ -306,3 +306,50 @@ export function listAifExamples(): Array<{ name: string; description: string; no
     },
   ];
 }
+
+export const aifFixture_RebutUndercut = {
+  "@context": "/public/ont/aif-context.jsonld",
+  "@graph": [
+    { "@id":"i:c1","@type":"aif:InformationNode","aif:text":"We should ban short‑haul flights." },
+    { "@id":"i:c2","@type":"aif:InformationNode","aif:text":"Banning short‑haul flights reduces emissions." },
+    { "@id":"i:c3","@type":"aif:InformationNode","aif:text":"Rail capacity is insufficient to replace short‑haul flights." },
+    { "@id":"i:c4","@type":"aif:InformationNode","aif:text":"The reduction claim assumes net modal shift to rail." },
+
+    { "@id":"ra:a1","@type":"aif:RA","as:appliesSchemeKey":"bare_assertion" },
+    { "@type":"aif:Premise","aif:from":"i:c2","aif:to":"ra:a1" },
+    { "@type":"aif:Conclusion","aif:from":"ra:a1","aif:to":"i:c1" },
+
+    // Rebut: c3 → (rebut conclusion of ra:a1)
+    { "@id":"ra:a2","@type":"aif:RA","as:appliesSchemeKey":"bare_assertion" },
+    { "@type":"aif:Premise","aif:from":"i:c3","aif:to":"ra:a2" },
+    // Model rebut as CA: ra:a2 (conflicting) vs ra:a1 (conflicted)
+    { "@id":"ca:rebut1","@type":"aif:CA","as:schemeKey":"REBUT" },
+    { "@type":"aif:ConflictingElement","aif:from":"ra:a2","aif:to":"ca:rebut1" },
+    { "@type":"aif:ConflictedElement","aif:from":"ra:a1","aif:to":"ca:rebut1" },
+
+    // Undercut: c4 → (attack the arrow/warrant of a1)
+    { "@id":"ra:a3","@type":"aif:RA","as:appliesSchemeKey":"bare_assertion" },
+    { "@type":"aif:Premise","aif:from":"i:c4","aif:to":"ra:a3" },
+    { "@id":"ca:uc1","@type":"aif:CA","as:schemeKey":"UNDERCUT" },
+    { "@type":"aif:ConflictingElement","aif:from":"ra:a3","aif:to":"ca:uc1" },
+    { "@type":"aif:ConflictedElement","aif:from":"ra:a1","aif:to":"ca:uc1" }
+  ]
+} as const;
+
+export const aifFixture_ExpertOpinionOpenCQ = {
+  "@context": "/public/ont/aif-context.jsonld",
+  "@graph": [
+    { "@id":"i:claim","@type":"aif:InformationNode","aif:text":"The reservoir levels will recover next winter." },
+    { "@id":"i:stmt","@type":"aif:InformationNode","aif:text":"Dr. Smith says reservoir levels will recover next winter." },
+    { "@id":"i:cred","@type":"aif:InformationNode","aif:text":"Dr. Smith is a hydrology expert." },
+
+    { "@id":"ra:eo1","@type":"aif:RA","as:appliesSchemeKey":"expert_opinion" },
+    { "@type":"aif:Premise","aif:from":"i:stmt","aif:to":"ra:eo1" },
+    { "@type":"aif:Premise","aif:from":"i:cred","aif:to":"ra:eo1" },
+    { "@type":"aif:Conclusion","aif:from":"ra:eo1","aif:to":"i:claim" },
+
+    // CQ1 open: "Is the source a genuine expert?"
+    { "@id":"cq:a","@type":"cq:Question","cq:key":"CQ1","cq:text":"Is the source a genuine expert?","cq:status":"open" },
+    { "@type":"as:hasCriticalQuestion","aif:from":"ra:eo1","aif:to":"cq:a" }
+  ]
+} as const;

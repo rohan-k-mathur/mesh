@@ -41,7 +41,7 @@ export default function DiscussionTitleEditor({
   }
 
   if (!canEdit) {
-    return <h1 className={className + ' truncate text-sm font-semibold tracking-wide'}>{display}</h1>;
+    return <h1 className={className + ' truncate text-sm  tracking-wide'}>{display}</h1>;
   }
 
   return (
@@ -75,17 +75,17 @@ export default function DiscussionTitleEditor({
           </button>
         </>
       ) : (
-        <>
-          <h1 className="truncate text-sm font-semibold tracking-wide">{display}</h1>
+        <div className='flex items-center gap-3'>
+          <h1 className="flex truncate text-sm  tracking-wider">{display}</h1>
           <button
             onClick={() => setEditing(true)}
-            className="rounded border px-2 py-1 text-[11px] hover:bg-slate-50"
+            className="flex items-center btnv2--ghost px-1.5 py-.5 text-[11px] text-slate-600 rounded-xl  hover:bg-slate-50"
             aria-label="Rename discussion"
             title="Rename"
           >
             ✎ Rename
           </button>
-        </>
+        </div>
       )}
     </div>
   );

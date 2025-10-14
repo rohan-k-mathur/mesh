@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { AttackMenu } from './AttackMenu';
 import { createArgument, postAttack } from '@/lib/client/aifApi';
-
+import { AttackMenuPro } from './AttackMenuPro';
 type Prem = { id: string; text: string };
 
 export function ArgumentCard({
@@ -66,7 +66,12 @@ export function ArgumentCard({
             <div className="text-xs text-indigo-900 mt-2">Undercuts (challenge reasoning) land on this box.</div>
           </div>
 
-          <AttackMenu onSelect={handleAttack} />
+          <AttackMenuPro
+            deliberationId={deliberationId}
+            authorId={authorId}
+            target={{ id, conclusion, premises }}
+            onDone={onAnyChange}
+          />
         </>
       ) : (
         <div className="text-sm text-gray-600 truncate">

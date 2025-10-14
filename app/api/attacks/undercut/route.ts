@@ -1,3 +1,4 @@
+// app/api/attacks/undercut/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
 import { z } from 'zod';
@@ -79,7 +80,7 @@ export async function POST(req: NextRequest) {
       fromArgumentId: fromId!,
       toArgumentId,
       type: 'undercut',
-      attackSubtype: 'UNDERCUT',
+      attackType: 'UNDERCUTS',
       targetScope: 'inference',
       targetInferenceId,
       createdById: String(userId),

@@ -908,17 +908,17 @@ onClearReply={() => setReplyTarget(null)}
 </Tabs>
 </SectionCard>
       {/* Views + CEG widgets */}
-      {/* <SectionCard>
+      <SectionCard>
         <RepresentativeViewpoints
           selection={sel}
           onReselect={(nextRule, nextK) => compute(nextRule, nextK)}
         />
-      </SectionCard> */}
+      </SectionCard>
 
-      {/* <SectionCard >
+      <SectionCard >
 
       <CegMiniMap deliberationId={deliberationId} />
-      </SectionCard> */}
+      </SectionCard>
       {/* <SectionCard>
         <Collapsible open={graphState.open} onOpenChange={graphState.setOpen}>
           <div className="relative flex items-center justify-between px-1">
@@ -937,12 +937,12 @@ onClearReply={() => setReplyTarget(null)}
           </CollapsibleContent>
         </Collapsible>
       </SectionCard> */}
-      {/* <SectionCard>
+      <SectionCard>
         <ApprovalsHeatStrip deliberationId={deliberationId} />
       </SectionCard>
       <SectionCard>
         <TopologyWidget deliberationId={deliberationId} />
-      </SectionCard> */}
+      </SectionCard>
            <SectionCard title="Map & Controls">
      <div className="grid grid-cols-12 gap-4 items-start">
        <div className="col-span-5">

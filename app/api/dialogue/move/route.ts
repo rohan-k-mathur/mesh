@@ -97,9 +97,17 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 
   // let { deliberationId, targetType, targetId, kind, payload, autoCompile, autoStep, phase } = parsed.data;
- let { deliberationId, targetType, targetId, kind, payload, autoCompile, autoStep, phase, replyToMoveId, replyTarget } = parsed.data;
+//  let { deliberationId, targetType, targetId, kind, payload, autoCompile, autoStep, phase, replyToMoveId, replyTarget } = parsed.data;
 
   // normalize payload object + clamp + locus
+
+
+const userId = await getCurrentUserId().catch(() => null);
+if (!userId) return NextResponse.json({ error:'Unauthorized' }, { status: 401 });
+  let { deliberationId, targetType, targetId, kind, payload, autoCompile, autoStep, phase, replyToMoveId, replyTarget } = parsed.data;
+
+
+
   if (!payload || typeof payload !== 'object') payload = {};
   ['expression','brief','note'].forEach((k) => {
     if (typeof payload[k] === 'string') payload[k] = payload[k].slice(0, 2000);
@@ -109,9 +117,8 @@ export async function POST(req: NextRequest) {
   }
   if (kind === 'GROUNDS' && !payload.locusPath) payload.locusPath = '0';
 
-  const userId = await getCurrentUserId().catch(() => null);
-const actorId = String(userId ?? 'unknown');
 
+  const actorId = String(userId ?? 'unknown');
 
     // ---- Protocol validator (R1…R7) ----
     const legal = await validateMove({ deliberationId, actorId, kind, targetType, targetId, replyToMoveId, replyTarget, payload });
@@ -153,8 +160,13 @@ if (!ok) {
 
   // map CONCEDE to ASSERT + marker (compat)
 const originalKind = kind;
- if (originalKind === 'CONCEDE') { kind = 'ASSERT'; payload = { ...(payload ?? {}), as: 'CONCEDE' }; }
-  const wasConcede = originalKind === 'CONCEDE' || payload?.as === 'CONCEDE';
+if (originalKind === 'CONCEDE') { kind = 'ASSERT'; payload = { ...(payload ?? {}), as: 'CONCEDE' }; }
+// NEW: map ACCEPT_ARGUMENT
+if (originalKind === 'ASSERT' && payload?.as === 'ACCEPT_ARGUMENT') {
+  // keep as ASSERT with marker; we’ll update acceptance ledger below
+}
+const wasConcede = originalKind === 'CONCEDE' || payload?.as === 'CONCEDE';
+const wasAccept  = payload?.as === 'ACCEPT_ARGUMENT';
 
   // ---- CQStatus integration for WHY / GROUNDS ----
 try {
@@ -222,25 +234,32 @@ try {
 
   const prop = await resolveProposition();
 
-  if (prop) {
-   if (wasConcede) {
-      await prisma.commitment.upsert({
-        where: { deliberationId_participantId_proposition: { deliberationId, participantId: actorId, proposition: prop } },
-        update: { isRetracted: false },
-        create: { deliberationId, participantId: actorId, proposition: prop, isRetracted: false },
-      }).catch(() => {});
-      emitBus("dialogue:cs:refresh", { deliberationId, participantId: actorId });
-
-    }
-    if (kind === 'RETRACT') {
-      await prisma.commitment.updateMany({
-        where: { deliberationId, participantId: actorId, proposition: prop, isRetracted: false },
-        data: { isRetracted: true },
-      }).catch(() => {});
-      emitBus("dialogue:cs:refresh", { deliberationId, participantId: actorId });
-
-    }
+if (prop) {
+  if (wasConcede) {
+    await prisma.commitment.upsert({
+      where: { deliberationId_participantId_proposition: { deliberationId, participantId: actorId, proposition: prop } },
+      update: { isRetracted: false },
+      create: { deliberationId, participantId: actorId, proposition: prop, isRetracted: false },
+    }).catch(() => {});
+    emitBus("dialogue:cs:refresh", { deliberationId, participantId: actorId });
   }
+  if (wasAccept) {
+    // Mark acceptance of the *argument* (or its proposition) — simple ledger reuse via commitment
+    await prisma.commitment.upsert({
+      where: { deliberationId_participantId_proposition: { deliberationId, participantId: actorId, proposition: `ACCEPT:${prop}` } },
+      update: { isRetracted: false },
+      create: { deliberationId, participantId: actorId, proposition: `ACCEPT:${prop}`, isRetracted: false },
+    }).catch(()=>{});
+    emitBus("dialogue:cs:refresh", { deliberationId, participantId: actorId });
+  }
+  if (kind === 'RETRACT') {
+    await prisma.commitment.updateMany({
+      where: { deliberationId, participantId: actorId, proposition: prop, isRetracted: false },
+      data: { isRetracted: true },
+    }).catch(() => {});
+    emitBus("dialogue:cs:refresh", { deliberationId, participantId: actorId });
+  }
+}
 
   // compile & step
   let step: any = null;

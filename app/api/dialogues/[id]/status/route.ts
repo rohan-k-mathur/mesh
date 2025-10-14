@@ -1,3 +1,5 @@
+// API route to get the status of branches in a dialogue (deliberation)
+// app/api/dialogues/[id]/status/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
 import { stepInteraction } from '@/packages/ludics-engine/stepper';

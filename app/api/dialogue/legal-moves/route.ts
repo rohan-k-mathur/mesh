@@ -16,7 +16,7 @@ const Q = z.object({
 });
 
 export type Move = {
-  kind: 'ASSERT'|'WHY'|'GROUNDS'|'RETRACT'|'CONCEDE'|'CLOSE';
+  kind: 'ASSERT'|'WHY'|'GROUNDS'|'RETRACT'|'CONCEDE'|'CLOSE'|'THEREFORE'|'SUPPOSE'|'DISCHARGE';
   label: string;
   payload?: any;
   disabled?: boolean;
@@ -36,6 +36,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok:false, error: parsed.error.flatten() }, { status: 400 });
   }
   const { deliberationId, targetType, targetId, locusPath } = parsed.data;
+
+//   const ruleset = await prisma.deliberation.findUnique({ where:{ id: deliberationId }, select:{ dialogicalPreset:true }});
+// const preset = ruleset?.dialogicalPreset ?? 'SR1c'; // classical starter
 
   // Target text for shape-aware WHY label
   let targetText: string | null = null;
@@ -103,6 +106,9 @@ export async function GET(req: NextRequest) {
        ? { code: 'R4_ROLE_GUARD', context: { cqKey: k } }
        : { code: 'R2_OPEN_CQ_SATISFIED', context: { cqKey: k } }
     });
+    moves.push({ kind:'THEREFORE', label:'Therefore… (test)', payload:{ locusPath: locusPath || '0' } });
+moves.push({ kind:'SUPPOSE',   label:'Suppose…',          payload:{ locusPath: locusPath || '0' } });
+moves.push({ kind:'DISCHARGE', label:'Discharge',          payload:{ locusPath: locusPath || '0' } });
   }
 
   // WHY when none open; prefer shape-aware label
@@ -135,7 +141,7 @@ export async function GET(req: NextRequest) {
   // — If claim has been answered by GROUNDS, hint to concede the *argument*
   if (targetType === 'claim' && anyGrounds) {
     const args = await prisma.argument.findMany({
-      where: { deliberationId, claimId: targetId },
+      where: { deliberationId, conclusionClaimId: targetId },
       orderBy: { createdAt: 'desc' },
       select: { id:true }
     });

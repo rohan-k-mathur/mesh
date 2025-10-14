@@ -1,3 +1,5 @@
+// app/api/dialogue/moves/route.ts
+
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prismaclient";
@@ -73,11 +75,11 @@ export async function GET(req: NextRequest) {
   };
 
   // Basic cursor support (id only, consistent with order by createdAt then id)
-  const take = limit ?? 200;
+   const take = (limit ?? 200);
   const rows = await prisma.dialogueMove.findMany({
     where,
     orderBy: [{ createdAt: order }, { id: order }],
-    take: take + (cursorId ? 1 : 0), // fetch one extra to skip the cursor row
+    take: take + 1,                      // always overfetch by 1
     ...(cursorId ? { cursor: { id: cursorId }, skip: 1 } : {}),
     select: {
       id: true,
@@ -92,10 +94,8 @@ export async function GET(req: NextRequest) {
   });
 
   // Prepare next cursor (use last row id when we hit the limit)
-  const items =
-    rows.length > take ? rows.slice(0, take) : rows;
-  const nextCursor = rows.length > take ? rows[rows.length - 1]?.id : null;
-
+  const items = rows.slice(0, take);
+  const nextCursor = rows.length > take ? items[items.length - 1]?.id : null;
   return NextResponse.json(
     {
       ok: true,

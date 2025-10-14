@@ -2742,6 +2742,7 @@ enum EdgeType {
   rebut
   undercut
   concede
+  CA
 }
 
 // IAMT granularity for counters
@@ -4072,6 +4073,12 @@ model Discussion {
   messages               DiscussionMessage[] // 👈 back-rel for DiscussionMessage.discussion
   participants           DiscussionParticipant[] // 👈 back-rel for DiscussionParticipant.discussion
 
+  subscriptions DiscussionSubscription[]
+
+  replyCount   Int      @default(0)
+  viewCount    Int      @default(0)
+  lastActiveAt DateTime @default(now())
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -4081,6 +4088,20 @@ model Discussion {
   ConversationParticipant ConversationParticipant[]
 
   @@index([attachedToType, attachedToId])
+}
+
+model DiscussionSubscription {
+  id           String   @id @default(cuid())
+  discussionId String
+  userId       String
+  createdAt    DateTime @default(now())
+
+  discussion Discussion @relation(fields: [discussionId], references: [id], onDelete: Cascade)
+
+  @@unique([discussionId, userId])
+  @@index([userId])
+  @@index([discussionId])
+  @@map("DiscussionSubscription")
 }
 
 model ForumComment {
