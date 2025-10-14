@@ -5,7 +5,7 @@ import * as React from 'react';
 import useSWRInfinite from 'swr/infinite';
 import { Virtuoso } from 'react-virtuoso';
 import { BookOpen, CheckOctagon, PlusHexagon } from "@mynaui/icons-react";
-import { Send, Share, TrendingUp, CheckSquare } from "@mynaui/icons-react";
+import { Send, Share,EnvelopeOpen, TrendingUp, CheckSquare } from "@mynaui/icons-react";
 
 
 import { 
@@ -139,6 +139,153 @@ function ClampedText({ text, lines = 4 }: { text: string; lines?: number }) {
   );
 }
 
+function RepliesModal({ 
+  propositionId, 
+  onClose 
+}: { 
+  propositionId: string; 
+  onClose: () => void;
+}) {
+  const [replies, setReplies] = React.useState<any[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
+  const [authors, setAuthors] = React.useState<Record<string, string>>({});
+
+  React.useEffect(() => {
+    let cancel = false;
+    (async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // Fetch replies with pagination
+        const r = await fetch(`/api/propositions/${encodeURIComponent(propositionId)}/replies?limit=100`, {
+          cache: "no-store"
+        });
+        const j = await r.json();
+        
+        if (!r.ok) {
+          throw new Error(j?.error || `HTTP ${r.status}`);
+        }
+        
+        if (!cancel) {
+          const items = j.items || [];
+          setReplies(items);
+          
+          // Fetch author names for unique authorIds
+          const uniqueAuthorIds = [...new Set(items.map((item: any) => item.authorId))];
+          const authorMap: Record<string, string> = {};
+          
+          await Promise.all(
+            uniqueAuthorIds.map(async (authorId) => {
+              try {
+                const userRes = await fetch(`/api/users/${encodeURIComponent(authorId)}`, {
+                  cache: "no-store"
+                });
+                const userData = await userRes.json();
+                if (userRes.ok && userData?.user) {
+                  authorMap[authorId] = userData.user.name || userData.user.username || "Anonymous";
+                }
+              } catch {
+                authorMap[authorId] = "Anonymous";
+              }
+            })
+          );
+          
+          if (!cancel) {
+            setAuthors(authorMap);
+          }
+        }
+      } catch (err) {
+        if (!cancel) {
+          setError(err instanceof Error ? err.message : "Failed to load replies");
+        }
+      } finally {
+        if (!cancel) {
+          setLoading(false);
+        }
+      }
+    })();
+    return () => { cancel = true; };
+  }, [propositionId]);
+
+  return (
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 max-h-[80vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-slate-900">Replies</h3>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-lg hover:bg-slate-100 transition-colors duration-200"
+            title="Close"
+          >
+            <svg className="w-5 h-5 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-6">
+          {loading && (
+            <div className="flex items-center justify-center py-12">
+              <div className="w-8 h-8 border-3 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+            </div>
+          )}
+
+          {error && (
+            <div className="text-center py-12">
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-rose-100 mb-4">
+                <span className="text-2xl">⚠️</span>
+              </div>
+              <p className="text-sm text-rose-700">{error}</p>
+            </div>
+          )}
+
+          {!loading && !error && replies.length === 0 && (
+            <div className="text-center py-12">
+              <MessageSquare className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+              <p className="text-sm text-slate-600">No replies yet</p>
+            </div>
+          )}
+
+          {!loading && !error && replies.length > 0 && (
+            <div className="space-y-4">
+              {replies.map((reply) => (
+                <div 
+                  key={reply.id} 
+                  className="p-4 bg-slate-50 rounded-lg border border-slate-200"
+                >
+                  <div className="flex items-center gap-2 mb-2 text-xs text-slate-500">
+                    <span className="font-medium">{authors[reply.authorId] || "Anonymous"}</span>
+                    <span>•</span>
+                    <time>
+                      {new Date(reply.createdAt).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        hour: "numeric",
+                        minute: "2-digit"
+                      })}
+                    </time>
+                  </div>
+                  <p className="text-sm text-slate-700 whitespace-pre-wrap">{reply.text}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Enhanced promote button with better states
 function PromoteButton({ 
   deliberationId, 
@@ -220,7 +367,8 @@ function Row({
   });
   const [openReply, setOpenReply] = React.useState(false);
   const [replyText, setReplyText] = React.useState('');
-  const [showCopied, setShowCopied] = React.useState(false);
+ const [showCopied, setShowCopied] = React.useState(false);
+  const [showRepliesModal, setShowRepliesModal] = React.useState(false);
 
   // Hydrate viewer state
   React.useEffect(() => {
@@ -309,6 +457,22 @@ function Row({
     }
   }
 
+  const openReplies = () => {
+    setShowRepliesModal(true);
+  };
+  const closeReplies = async () => {
+    setShowRepliesModal(false);
+    
+    // Refresh proposition data to get updated reply count
+    try {
+      const r = await fetch(`/api/propositions/${encodeURIComponent(p.id)}`, { cache: "no-store" });
+      const j = await r.json();
+      if (j?.proposition) {
+        setCounts(c => ({ ...c, replies: j.proposition.replyCount }));
+      }
+    } catch {}
+  };
+
   const copyLink = () => {
     const url = `${location.origin}${location.pathname}#prop-${p.id}`;
     navigator.clipboard.writeText(url).then(() => {
@@ -327,6 +491,7 @@ function Row({
   const netScore = counts.up - counts.down;
 
   return (
+    <>
     <article className="
       group relative
       p-5 bg-white border-b border-slate-100
@@ -435,7 +600,7 @@ function Row({
             >
               <Send className="w-4 h-4" />
 
-              Reply
+              Respond
             </button>
 
             {/* Copy link button */}
@@ -449,6 +614,20 @@ function Row({
             >
               <Share className="w-4 h-4" />
               {showCopied ? 'Copied!' : 'Share'}
+            </button>
+
+             {/* Copy link button */}
+            <button
+              onClick={openReplies}
+              className="
+             px-4 py-2 text-[12px] tracking-wide btnv2 font-medium rounded-xl shadow-md  transition-all duration-100 
+
+              "
+              title="View Replies"
+            >
+              <EnvelopeOpen className="w-4 h-4" />
+              {/* <Share className="w-4 h-4" /> */}
+              View Replies
             </button>
 
             <div className="flex-1" />
@@ -532,6 +711,14 @@ function Row({
         </div>
       </div>
     </article>
+    {showRepliesModal && (
+        <RepliesModal 
+          propositionId={p.id} 
+                    onClose={closeReplies} 
+
+        />
+      )}
+      </>
   );
 }
 

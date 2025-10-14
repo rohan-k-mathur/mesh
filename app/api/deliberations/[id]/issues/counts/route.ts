@@ -1,3 +1,4 @@
+// app/api/deliberations/[id]/issues/counts/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
 
@@ -7,16 +8,32 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
   // Back-compat: ?argumentIds=a,b,c
   const legacy = (url.searchParams.get('argumentIds') ?? '').trim();
-  const scope = (url.searchParams.get('scope') ?? (legacy ? 'argument' : 'argument')) as 'argument'|'claim'|'card';
+  const scope = (url.searchParams.get('scope') ?? (legacy ? 'argument' : 'argument')) as 'argument'|'claim'|'card'|'inference';
   const ids = (legacy || url.searchParams.get('ids') || '')
     .split(',').map(s => s.trim()).filter(Boolean);
 
   if (!ids.length) return NextResponse.json({ ok: true, counts: {} });
 
+
+  // Direct polymorphic counts helper
+  async function directCounts(t: 'claim'|'card'|'inference') {
+    const rows = await prisma.issueLink.groupBy({
+      by: ['targetId'],
+      where: { targetType: t, targetId: { in: ids }, issue: { deliberationId, state: 'open' } },
+      _count: { targetId: true },
+    });
+    const out: Record<string, number> = Object.fromEntries(ids.map(id => [id, 0]));
+    for (const r of rows) out[r.targetId] = r._count.targetId;
+    return out;
+  }
+
   // Map target ids -> argument ids used in issueLink
   let argIds = ids;
 
   if (scope === 'claim') {
+    // (A) direct claim links
+    const direct = await directCounts('claim');
+    // (B) legacy via arguments
     const rows = await prisma.argument.findMany({
       where: { deliberationId, claimId: { in: ids } },
       select: { id: true, claimId: true },
@@ -42,13 +59,15 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       const set = new Set(byClaim.get(claimId) ?? []);
       let n = 0;
       for (const g of links) if (set.has(g.argumentId)) n += g._count.argumentId;
-      counts[claimId] = n;
+      counts[claimId] = n + (direct[claimId] ?? 0);
     }
     return NextResponse.json({ ok: true, counts });
   }
 
   if (scope === 'card') {
-    // Count via claim -> arguments -> links (cards carry claimId in your list items)
+    // (A) direct card links
+    const direct = await directCounts('card');
+    // (B) legacy via card.claimId -> arguments
     const cards = await prisma.deliberationCard.findMany({
       where: { deliberationId, id: { in: ids } },
       select: { id: true, claimId: true },
@@ -74,11 +93,14 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       const set = new Set(byClaim.get(c.claimId!) ?? []);
       let n = 0;
       for (const g of links) if (set.has(g.argumentId)) n += g._count.argumentId;
-      counts[c.id] = n;
+      counts[c.id] = n + (direct[c.id] ?? 0);
     }
     return NextResponse.json({ ok: true, counts });
   }
-
+   if (scope === 'inference') {
+    const counts = await directCounts('inference');
+    return NextResponse.json({ ok: true, counts });
+  }
   // scope === 'argument'
   const links = await prisma.issueLink.groupBy({
     by: ['argumentId'],

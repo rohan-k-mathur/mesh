@@ -35,25 +35,35 @@ export async function GET(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ ok:false, error: parsed.error.flatten() }, { status: 400 });
   }
-  const { deliberationId, targetType, targetId, locusPath } = parsed.data;
+    const { deliberationId, targetType, targetId, locusPath } = parsed.data;
 
-//   const ruleset = await prisma.deliberation.findUnique({ where:{ id: deliberationId }, select:{ dialogicalPreset:true }});
-// const preset = ruleset?.dialogicalPreset ?? 'SR1c'; // classical starter
-
-  // Target text for shape-aware WHY label
-  let targetText: string | null = null;
-  if (targetType === 'claim') {
-    targetText = (await prisma.claim.findUnique({ where: { id: targetId }, select: { text:true } }))?.text ?? null;
-  } else if (targetType === 'argument') {
-    targetText = (await prisma.argument.findUnique({ where: { id: targetId }, select: { text:true } }))?.text ?? null;
-  }
-
-  // Open CQs: WHY not (yet) answered by later GROUNDS (per key)
-  const rows = await prisma.dialogueMove.findMany({
-  where: { deliberationId, targetType, targetId, kind: { in: ['WHY','GROUNDS'] } }, // include targetType
-    orderBy: { createdAt: 'asc' },
-    select: { kind: true, payload: true, createdAt: true },
-  });
+  // --- parallelize independent reads ---
+  const [targetTextRow, rows, targetAuthorRow, lastTerminator] = await Promise.all([
+    targetType === 'claim'
+      ? prisma.claim.findUnique({ where: { id: targetId }, select: { text: true } })
+      : prisma.argument.findUnique({ where: { id: targetId }, select: { text: true } }),
+  prisma.dialogueMove.findMany({
+      where: { deliberationId, targetType, targetId, kind: { in: ['WHY','GROUNDS'] } },
+      orderBy: { createdAt: 'asc' },
+      select: { kind: true, payload: true, createdAt: true },
+    }),
+    targetType === 'argument'
+      ? prisma.argument.findFirst({ where: { id: targetId }, select: { authorId: true } })
+      : prisma.claim.findFirst({ where: { id: targetId }, select: { createdById: true } }),
+    prisma.dialogueMove.findFirst({
+      where: {
+        deliberationId, targetType, targetId,
+        OR: [
+          { kind:'CLOSE', ...(locusPath ? { payload: { path:['locusPath'], equals: locusPath } } : {}) },
+          { kind:'ASSERT', payload: { path:['as'], equals: 'CONCEDE' } },
+        ],
+      },
+      orderBy: { createdAt: 'desc' },
+      select: { id:true, kind:true, createdAt:true }
+    })
+  ]);
+  const targetText = targetTextRow?.text ?? null;
+ 
 
   type Row = { kind:'WHY'|'GROUNDS'; payload:any; createdAt:Date };
   const latestByKey = new Map<string, Row>();
@@ -66,28 +76,25 @@ export async function GET(req: NextRequest) {
   const anyGrounds = [...latestByKey.values()].some(v => v.kind === 'GROUNDS');
 
   // Who can answer / who can ask?
-  let targetAuthorId: string | null = null;
-  if (targetType === 'argument') {
-    targetAuthorId = (await prisma.argument.findFirst({ where: { id: targetId }, select: { authorId: true } }))?.authorId ?? null;
-  } else if (targetType === 'claim') {
-    targetAuthorId = (await prisma.claim.findFirst({ where: { id: targetId }, select: { createdById: true } }))?.createdById ?? null;
-  }
+  const targetAuthorId: string | null =
+    (targetType === 'argument' ? (targetAuthorRow as any)?.authorId : (targetAuthorRow as any)?.createdById) ?? null;
  const actor = await getCurrentUserId().catch(() => null);
  const actorId = actor ? String(actor) : null;
 
   // Has surrender?
-  const lastTerminator = await prisma.dialogueMove.findFirst({
-    where: {
-      deliberationId, targetType, targetId,
-      OR: [
-        { kind:'CLOSE', ...(locusPath ? { payload: { path:['locusPath'], equals: locusPath } } : {}) },
-        { kind:'ASSERT', payload: { path:['as'], equals: 'CONCEDE' } }, // CONCEDE normalized to ASSERT+as
-      ],
-    },
-    orderBy: { createdAt: 'desc' },
-    select: { id:true, kind:true, createdAt:true }
-  });
-  const isClosed = !!lastTerminator;
+  // const lastTerminator = await prisma.dialogueMove.findFirst({
+  //   where: {
+  //     deliberationId, targetType, targetId,
+  //     OR: [
+  //       { kind:'CLOSE', ...(locusPath ? { payload: { path:['locusPath'], equals: locusPath } } : {}) },
+  //       { kind:'ASSERT', payload: { path:['as'], equals: 'CONCEDE' } }, // CONCEDE normalized to ASSERT+as
+  //     ],
+  //   },
+  //   orderBy: { createdAt: 'desc' },
+  //   select: { id:true, kind:true, createdAt:true }
+  // });
+  // const isClosed = !!lastTerminator;
+   const isClosed = !!lastTerminator;
 
   //const moves: Move[] = [];
     const moves: MoveWithVerdict[] = [];
@@ -106,11 +113,13 @@ export async function GET(req: NextRequest) {
        ? { code: 'R4_ROLE_GUARD', context: { cqKey: k } }
        : { code: 'R2_OPEN_CQ_SATISFIED', context: { cqKey: k } }
     });
-    moves.push({ kind:'THEREFORE', label:'Therefore… (test)', payload:{ locusPath: locusPath || '0' } });
-moves.push({ kind:'SUPPOSE',   label:'Suppose…',          payload:{ locusPath: locusPath || '0' } });
-moves.push({ kind:'DISCHARGE', label:'Discharge',          payload:{ locusPath: locusPath || '0' } });
+   
   }
-
+  // Structural (Phase-2+) – offer once, not per CQ
+  moves.push({ kind:'THEREFORE', label:'Therefore…', payload:{ locusPath: locusPath || '0' } });
+  moves.push({ kind:'SUPPOSE',   label:'Suppose…',   payload:{ locusPath: locusPath || '0' } });
+  moves.push({ kind:'DISCHARGE', label:'Discharge',  payload:{ locusPath: locusPath || '0' } });
+ 
   // WHY when none open; prefer shape-aware label
   if (!openKeys.length) {
     const base: MoveWithVerdict = {
@@ -147,12 +156,12 @@ moves.push({ kind:'DISCHARGE', label:'Discharge',          payload:{ locusPath: 
     });
     if (args.length) {
     moves.push({
-      kind: 'ASSERT',
-      label: 'Accept argument',
-      postAs: { targetType: 'argument', targetId: args[0].id },
-      payload: { locusPath: locusPath || '0', as: 'ACCEPT_ARGUMENT' },
-      verdict: { code: 'R7_ACCEPT_ARGUMENT', context:{ argumentId: args[0].id } }
-    });
+       kind: 'ASSERT',
+        label: 'Accept argument',
+        postAs: { targetType: 'argument', targetId: args[0].id },
+        payload: { locusPath: locusPath || '0', as: 'ACCEPT_ARGUMENT' },
+        verdict: { code: 'R7_ACCEPT_ARGUMENT', context:{ argumentId: args[0].id } }
+      });
     }
   } else {
     moves.push({ kind:'CONCEDE', label:'Concede', payload: { locusPath: locusPath || '0' }});

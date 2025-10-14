@@ -1,24 +1,14 @@
-
 //components/arguments/AIFArgumentsListPro.tsx
 'use client';
 
 import * as React from 'react';
 import { mutate as swrMutate } from 'swr';
 import useSWRInfinite from 'swr/infinite';
+import useSWR from 'swr';
 import { Virtuoso } from 'react-virtuoso';
-// import { AttackMenuPro } from '@/components/arguments/AttackMenuPro';
-// import { LegalMoveToolbar } from '@/components/dialogue/LegalMoveToolbar';
-import { listSchemes, getArgumentCQs, askCQ } from '@/lib/client/aifApi';
-import PromoteToClaimButton from '@/components/claims/PromoteToClaimButton';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
-import { ClaimPicker } from '@/components/claims/ClaimPicker';
-import { exportAif } from '@/lib/client/aifApi';
-
-import Spinner from '@/components/ui/spinner';
+import dynamic from 'next/dynamic';
 import {
   Shield,
-  ShieldAlert,
-  ShieldX,
   CheckCircle2,
   AlertTriangle,
   ChevronDown,
@@ -29,15 +19,23 @@ import {
   Sparkles,
   ArrowUp,
   ArrowDown,
-  MessageSquare,
   Eye,
   EyeOff,
-  Zap,
-  Target
 } from 'lucide-react';
-import dynamic from 'next/dynamic';
+
+import { listSchemes, getArgumentCQs, askCQ, exportAif } from '@/lib/client/aifApi';
+import PromoteToClaimButton from '@/components/claims/PromoteToClaimButton';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
+import { ClaimPicker } from '@/components/claims/ClaimPicker';
+import { useConfidence } from '@/components/agora/useConfidence';
+
 const AttackMenuPro = dynamic(() => import('@/components/arguments/AttackMenuPro').then(m => m.AttackMenuPro), { ssr: false });
-const LegalMoveToolbar = dynamic(() => import('@/components/dialogue/LegalMoveToolbar').then(m => m.LegalMoveToolbar ), { ssr: false });
+const LegalMoveToolbar = dynamic(() => import('@/components/dialogue/LegalMoveToolbar').then(m => m.LegalMoveToolbar), { ssr: false });
+
+// ============================================================================
+// TYPES
+// ============================================================================
+
 type Arg = {
   id: string;
   text: string;
@@ -71,21 +69,49 @@ type AifRow = {
   claimId?: string | null;
 };
 
+// ============================================================================
+// CONSTANTS & UTILITIES
+// ============================================================================
+
+const PAGE = 20;
+
 const fetcher = (u: string) => fetch(u, { cache: 'no-store' }).then(async r => {
   const j = await r.json().catch(() => ({}));
   if (!r.ok || (j && j.ok === false)) throw new Error(j?.error || `HTTP ${r.status}`);
   return j;
 });
 
-const PAGE = 20;
+function metaSig(m?: AifMeta) {
+  if (!m) return '';
+  const a = m.attacks || { REBUTS: 0, UNDERCUTS: 0, UNDERMINES: 0 };
+  const cq = m.cq || { required: 0, satisfied: 0 };
+  const p = m.preferences || { preferredBy: 0, dispreferredBy: 0 };
+  return [
+    m.scheme?.key || '',
+    m.conclusion?.id || '',
+    (m.premises?.length || 0),
+    a.REBUTS, a.UNDERCUTS, a.UNDERMINES,
+    cq.required, cq.satisfied,
+    p.preferredBy || 0, p.dispreferredBy || 0,
+  ].join('|');
+}
 
-/** -------------------------------------------
- * Enhanced visual components
- * ------------------------------------------*/
+// ============================================================================
+// UI COMPONENTS
+// ============================================================================
+
+function SupportBar({ value }: { value: number }) {
+  const v = Math.max(0, Math.min(1, value || 0));
+  return (
+    <div className="h-2 w-28 rounded bg-slate-200 overflow-hidden">
+      <div className="h-full bg-emerald-500" style={{ width: `${(v * 100).toFixed(1)}%` }} />
+    </div>
+  );
+}
 
 function SchemeBadge({ scheme }: { scheme?: AifMeta['scheme'] }) {
   if (!scheme) return null;
-  
+
   return (
     <div
       className="
@@ -97,7 +123,6 @@ function SchemeBadge({ scheme }: { scheme?: AifMeta['scheme'] }) {
       "
       title={scheme?.slotHints?.premises?.length ? scheme.slotHints.premises.map(p => p.label).join(' · ') : scheme?.name}
     >
-      <Zap className="w-3 h-3" />
       {scheme.name}
     </div>
   );
@@ -105,7 +130,7 @@ function SchemeBadge({ scheme }: { scheme?: AifMeta['scheme'] }) {
 
 function PreferenceCounts({ p }: { p?: { preferredBy?: number; dispreferredBy?: number } }) {
   if (!p || (p.preferredBy === 0 && p.dispreferredBy === 0)) return null;
-  
+
   return (
     <div className="inline-flex items-center gap-1.5">
       {p.preferredBy !== 0 && (
@@ -128,15 +153,15 @@ function CqMeter({ cq }: { cq?: { required: number; satisfied: number } }) {
   const r = cq?.required ?? 0;
   const s = cq?.satisfied ?? 0;
   const pct = r ? Math.round((s / r) * 100) : 0;
-  
-  const colorClass = 
-    pct === 100 ? 'bg-emerald-100 border-emerald-300 text-emerald-700' :
-    pct >= 50 ? 'bg-amber-100 border-amber-300 text-amber-700' :
-    pct > 0 ? 'bg-orange-100 border-orange-300 text-orange-700' :
-    'bg-slate-100 border-slate-300 text-slate-600';
 
-  const Icon = pct === 100 ? CheckCircle2 : pct > 0 ? AlertTriangle : MessageSquare;
-  
+  const colorClass =
+    pct === 100 ? 'bg-emerald-100 border-emerald-300 text-emerald-700' :
+      pct >= 50 ? 'bg-amber-100 border-amber-300 text-amber-700' :
+        pct > 0 ? 'bg-orange-100 border-orange-300 text-orange-700' :
+          'bg-slate-100 border-slate-300 text-slate-600';
+
+  const Icon = pct === 100 ? CheckCircle2 : pct > 0 ? AlertTriangle : AlertTriangle;
+
   return (
     <div
       className={`
@@ -154,27 +179,24 @@ function CqMeter({ cq }: { cq?: { required: number; satisfied: number } }) {
 
 function AttackCounts({ a }: { a?: AifMeta['attacks'] }) {
   if (!a || (a.REBUTS === 0 && a.UNDERCUTS === 0 && a.UNDERMINES === 0)) return null;
-  
+
   return (
     <div className="inline-flex items-center gap-1.5">
       {a.REBUTS > 0 && (
         <div className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium"
-             title="Rebuts (attacks conclusion)">
-          <ShieldX className="w-3 h-3" />
+          title="Rebuts (attacks conclusion)">
           {a.REBUTS}
         </div>
       )}
       {a.UNDERCUTS > 0 && (
         <div className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-xs font-medium"
-             title="Undercuts (attacks inference)">
-          <ShieldAlert className="w-3 h-3" />
+          title="Undercuts (attacks inference)">
           {a.UNDERCUTS}
         </div>
       )}
       {a.UNDERMINES > 0 && (
         <div className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-slate-50 border border-slate-200 text-slate-700 text-xs font-medium"
-             title="Undermines (attacks premise)">
-          <Shield className="w-3 h-3" />
+          title="Undermines (attacks premise)">
           {a.UNDERMINES}
         </div>
       )}
@@ -183,29 +205,13 @@ function AttackCounts({ a }: { a?: AifMeta['attacks'] }) {
 }
 
 function ClampedBody({ text, lines = 4, onOpen }: { text: string; lines?: number; onOpen: () => void }) {
-//   const ref = React.useRef<HTMLDivElement>(null);
-//   const [shouldClamp, setShouldClamp] = React.useState(false);
-
-//   React.useEffect(() => {
-//     if (ref.current) {
-//       const lineHeight = parseInt(getComputedStyle(ref.current).lineHeight);
-//       const maxHeight = lineHeight * lines;
-//       setShouldClamp(ref.current.scrollHeight > maxHeight);
-//     }
-//   }, [text, lines]);
-
-//   if (!shouldClamp) {
-//     return <div ref={ref} className="text-sm leading-relaxed text-slate-700 whitespace-pre-wrap">{text}</div>;
-//   }
-
-
   return (
     <div className="relative">
       <div className={`text-sm leading-relaxed text-slate-700 whitespace-pre-wrap line-clamp-${lines}`}>
         {text}
       </div>
       <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-white via-white/90 to-transparent pointer-events-none" />
-       <button
+      <button
         className="
           absolute bottom-0 right-0 px-3 py-1 text-xs font-medium
           bg-white border border-slate-200 rounded-full
@@ -220,33 +226,12 @@ function ClampedBody({ text, lines = 4, onOpen }: { text: string; lines?: number
       </button>
     </div>
   );
-
-//   return (
-//     <div className="relative">
-//       <div ref={ref} className={`text-sm leading-relaxed text-slate-700 whitespace-pre-wrap line-clamp-${lines}`}>
-//         {text}
-//       </div>
-//       <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-white via-white/90 to-transparent pointer-events-none" />
-//       <button
-//         className="
-//           absolute bottom-0 right-0 px-3 py-1 text-xs font-medium
-//           bg-white border border-slate-200 rounded-full
-//           text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50
-//           transition-all duration-200 shadow-sm hover:shadow
-//           flex items-center gap-1
-//         "
-//         onClick={onOpen}
-//       >
-//         Read more
-//         <ChevronDown className="w-3 h-3" />
-//       </button>
-//     </div>
-//   );
 }
 
-/** -------------------------------------------
- * Preference attack quick widget (enhanced)
- * ------------------------------------------*/
+// ============================================================================
+// PREFERENCE ATTACK WIDGET
+// ============================================================================
+
 function PreferenceQuick({
   deliberationId,
   argumentId,
@@ -344,9 +329,10 @@ function PreferenceQuick({
   );
 }
 
-/** -------------------------------------------
- * Enhanced filter controls
- * ------------------------------------------*/
+// ============================================================================
+// FILTER CONTROLS
+// ============================================================================
+
 function Controls({
   schemes,
   schemeKey,
@@ -364,7 +350,7 @@ function Controls({
   setQ: (s: string) => void;
   showPremises: boolean;
   setShowPremises: (v: boolean) => void;
-   onExport: () => void;
+  onExport: () => void;
 }) {
   const [showFilters, setShowFilters] = React.useState(false);
   const activeFilters = (schemeKey || q.trim()) ? 1 : 0;
@@ -422,11 +408,9 @@ function Controls({
         </div>
       </div>
 
-      {/* Filter panel */}
       {showFilters && (
         <div className="mt-3 p-3 bg-white rounded-lg border border-slate-200 animate-in slide-in-from-top duration-200">
           <div className="flex flex-wrap gap-3">
-            {/* Search */}
             <label className="flex-1 min-w-[240px]">
               <span className="block text-xs font-medium text-slate-700 mb-1">Search</span>
               <div className="relative">
@@ -445,7 +429,6 @@ function Controls({
               </div>
             </label>
 
-            {/* Scheme filter */}
             <label className="min-w-[200px]">
               <span className="block text-xs font-medium text-slate-700 mb-1">Scheme</span>
               <select
@@ -473,15 +456,20 @@ function Controls({
   );
 }
 
-/** -------------------------------------------
- * Enhanced AIF row component
- * ------------------------------------------*/
+// ============================================================================
+// ROW COMPONENT
+// ============================================================================
+
 function RowImpl({
   a,
   meta,
   deliberationId,
   showPremises,
-onPromoted, onRefreshRow, isVisible,
+  onPromoted,
+  onRefreshRow,
+  isVisible,
+  support,
+  accepted,
 }: {
   a: AifRow;
   meta?: AifMeta;
@@ -490,6 +478,8 @@ onPromoted, onRefreshRow, isVisible,
   onPromoted: () => void;
   onRefreshRow: (id: string) => void;
   isVisible: boolean;
+  support?: number;
+  accepted?: boolean;
 }) {
   const [open, setOpen] = React.useState(false);
   const [cqs, setCqs] = React.useState<Array<{ cqKey: string; text: string; status: 'open' | 'answered'; attackType: string; targetScope: string }>>([]);
@@ -501,7 +491,7 @@ onPromoted, onRefreshRow, isVisible,
   const [cqsLoaded, setCqsLoaded] = React.useState(false);
   const [showCqs, setShowCqs] = React.useState(false);
 
-  // Lazy load only when needed
+  // Lazy load CQs when needed
   React.useEffect(() => {
     if (!showCqs || cqsLoaded === true) return;
     let alive = true;
@@ -512,7 +502,7 @@ onPromoted, onRefreshRow, isVisible,
           setCqs(items || []);
           setCqsLoaded(true);
         }
-      } catch {/* ignore */}
+      } catch {/* ignore */ }
     })();
     return () => { alive = false; };
   }, [showCqs, cqsLoaded, a.id]);
@@ -533,7 +523,7 @@ onPromoted, onRefreshRow, isVisible,
         setShowCopied(true);
         setTimeout(() => setShowCopied(false), 2000);
       })
-      .catch(() => {});
+      .catch(() => { });
   };
 
   return (
@@ -546,7 +536,6 @@ onPromoted, onRefreshRow, isVisible,
       "
       aria-label={`Argument ${a.id}`}
     >
-      {/* Status indicator */}
       {meta?.conclusion?.id && (
         <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-emerald-400 to-emerald-600" />
       )}
@@ -555,12 +544,10 @@ onPromoted, onRefreshRow, isVisible,
         {/* Header section */}
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
-            {/* Conclusion */}
             <h4 className="text-base font-semibold text-slate-900 leading-snug mb-2">
               {conclusionText}
             </h4>
 
-            {/* Premises */}
             {showPremises && meta?.premises && meta.premises.length > 0 && (
               <ul className="flex flex-wrap gap-1.5 mb-2" aria-label="Premises">
                 {meta.premises.map(p => (
@@ -573,14 +560,12 @@ onPromoted, onRefreshRow, isVisible,
                       hover:bg-slate-200
                     "
                   >
-                    <Target className="w-3 h-3" />
                     {p.text || p.id}
                   </li>
                 ))}
               </ul>
             )}
 
-            {/* Implicit warrant */}
             {meta?.implicitWarrant?.text && (
               <div className="mt-2 p-2.5 rounded-lg bg-amber-50 border border-amber-200">
                 <div className="flex items-start gap-2">
@@ -600,7 +585,16 @@ onPromoted, onRefreshRow, isVisible,
               <time className="text-xs text-slate-500 font-medium">{created}</time>
               <SchemeBadge scheme={meta?.scheme} />
               <CqMeter cq={meta?.cq} />
-              {/* Light toggle to fetch CQs on demand */}
+              {typeof support === 'number' && (
+                <div className="inline-flex items-center gap-2 ml-1">
+                  <SupportBar value={support} />
+                  {accepted && (
+                    <span className="text-[11px] px-1.5 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-emerald-700">
+                      Accepted
+                    </span>
+                  )}
+                </div>
+              )}
               <button
                 className="text-xs text-indigo-600 hover:underline"
                 onClick={() => setShowCqs(s => !s)}
@@ -628,7 +622,7 @@ onPromoted, onRefreshRow, isVisible,
         )}
 
         {/* Critical Questions */}
-       {showCqs && (
+        {showCqs && (
           <div className="flex flex-wrap gap-2" aria-label="Critical questions">
             {cqs.length === 0 && !cqsLoaded && <span className="text-xs text-slate-500">Loading CQs…</span>}
 
@@ -786,9 +780,9 @@ onPromoted, onRefreshRow, isVisible,
             onPosted={() => window.dispatchEvent(new CustomEvent('dialogue:moves:refresh', { detail: { deliberationId } } as any))}
           />
 
-          <PreferenceQuick deliberationId={deliberationId} argumentId={a.id} onDone={onRefreshRow} />
+          <PreferenceQuick deliberationId={deliberationId} argumentId={a.id} onDone={() => onRefreshRow(a.id)} />
 
-          {/* <AttackMenuPro
+          <AttackMenuPro
             deliberationId={deliberationId}
             authorId={a.authorId ?? 'current'}
             target={{
@@ -796,30 +790,21 @@ onPromoted, onRefreshRow, isVisible,
               conclusion: { id: meta?.conclusion?.id ?? '', text: conclusionText ?? '' },
               premises: meta?.premises ?? [],
             }}
-          /> */}
-<AttackMenuPro
-  deliberationId={deliberationId}
-  authorId={a.authorId ?? 'current'}
-  target={{
-    id: a.id,
-    conclusion: { id: meta?.conclusion?.id ?? '', text: conclusionText ?? '' },
-    premises: meta?.premises ?? [],
-  }}
-  onDone={() => onRefreshRow(a.id)}  // Refreshes list after attack posted
-/>
+            onDone={() => onRefreshRow(a.id)}
+          />
+
           <div className="flex-1" />
 
-          {/* Promote/promoted status */}
           {meta?.conclusion?.id ? (
             <a
-              href={`/claims/${meta.conclusion.id}`}
+              href={`/claim/${meta.conclusion.id}`}
               className="
                 inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
                 bg-emerald-100 text-emerald-700 border border-emerald-200
                 hover:bg-emerald-200 transition-all duration-200 shadow-sm hover:shadow
               "
             >
-              <TrendingUp className="w-4 h-4" />
+              {/* <TrendingUp className="w-4 h-4" /> */}
               View Claim
             </a>
           ) : (
@@ -833,7 +818,6 @@ onPromoted, onRefreshRow, isVisible,
             />
           )}
 
-          {/* Copy link */}
           <button
             className="
               inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium
@@ -868,21 +852,6 @@ onPromoted, onRefreshRow, isVisible,
   );
 }
 
-function metaSig(m?: AifMeta) {
-  if (!m) return '';
-  const a = m.attacks || { REBUTS:0, UNDERCUTS:0, UNDERMINES:0 };
-  const cq = m.cq || { required:0, satisfied:0 };
-  const p = m.preferences || { preferredBy:0, dispreferredBy:0 };
-  return [
-    m.scheme?.key || '',
-    m.conclusion?.id || '',
-    (m.premises?.length || 0),
-    a.REBUTS, a.UNDERCUTS, a.UNDERMINES,
-    cq.required, cq.satisfied,
-    p.preferredBy || 0, p.dispreferredBy || 0,
-  ].join('|');
-}
-
 export const Row = React.memo(RowImpl, (prev, next) => {
   return (
     prev.a.id === next.a.id &&
@@ -891,11 +860,10 @@ export const Row = React.memo(RowImpl, (prev, next) => {
   );
 });
 
+// ============================================================================
+// MAIN LIST COMPONENT
+// ============================================================================
 
-
-/** -------------------------------------------
- * Main list component
- * ------------------------------------------*/
 export default function AIFArgumentsListPro({
   deliberationId,
   onVisibleTextsChanged,
@@ -903,20 +871,27 @@ export default function AIFArgumentsListPro({
   deliberationId: string;
   onVisibleTextsChanged?: (texts: string[]) => void;
 }) {
+  // Confidence settings
+  const { mode, tau } = useConfidence();
+  const apiMode = mode === 'product' ? 'prod' : mode;
+  const [sortBySupport, setSortBySupport] = React.useState<boolean>(false);
+
   // Schemes
   const [schemes, setSchemes] = React.useState<Array<{ key: string; name: string }>>([]);
   React.useEffect(() => {
-    let c = false;
+    let cancelled = false;
     listSchemes()
       .then(items => {
-        if (!c) setSchemes((items || []).map((s: any) => ({ key: s.key, name: s.name })));
+        if (!cancelled) setSchemes((items || []).map((s: any) => ({ key: s.key, name: s.name })));
       })
       .catch(() => setSchemes([]));
-    return () => {
-      c = true;
-    };
+    return () => { cancelled = true; };
   }, []);
 
+  // AIF metadata map
+  const [aifMap, setAifMap] = React.useState<Record<string, AifMeta>>({});
+  const aifMapRef = React.useRef(aifMap);
+  React.useEffect(() => { aifMapRef.current = aifMap; }, [aifMap]);
 
   const refreshAifForId = React.useCallback(async (id: string) => {
     try {
@@ -935,18 +910,17 @@ export default function AIFArgumentsListPro({
           }
         }));
       }
-    } catch {/* ignore */}
+    } catch {/* ignore */ }
   }, []);
 
   // Filters
   const [schemeKey, setSchemeKey] = React.useState('');
   const [q, setQ] = React.useState('');
   const dq = React.useDeferredValue(q);
-
   const [showPremises, setShowPremises] = React.useState(true);
-  const [visibleRange, setVisibleRange] = React.useState({ startIndex: 0, endIndex: Math.min(20, 0) });
+  const [visibleRange, setVisibleRange] = React.useState({ startIndex: 0, endIndex: 20 });
 
-  // Base list
+  // Base list with pagination
   const getKey = (_idx: number, prev: any) => {
     if (prev && !prev.nextCursor) return null;
     const cursor = prev?.nextCursor ? `&cursor=${encodeURIComponent(prev.nextCursor)}` : '';
@@ -959,26 +933,22 @@ export default function AIFArgumentsListPro({
       keepPreviousData: true,
       dedupingInterval: 1500,
     });
+
   const pages = data ?? [];
   const rows: AifRow[] = pages.flatMap(p => p?.items ?? []);
 
-  // Per-row AIF meta hydration
-  const [aifMap, setAifMap] = React.useState<Record<string, AifMeta>>({});
+  // Build stable key from row IDs
+  const rowIdsKey = React.useMemo(() => rows.map(r => r.id).join(','), [rows]);
 
-
-// Build a stable key from the current row ids
-const rowIdsKey = React.useMemo(() => rows.map(r => r.id).join(','), [rows]);
-
-  const aifMapRef = React.useRef(aifMap);
-  React.useEffect(() => { aifMapRef.current = aifMap; }, [aifMap]);
-
+  // Hydrate AIF metadata for rows
   React.useEffect(() => {
     let cancelled = false;
     (async () => {
       const byId: Record<string, AifMeta> = {};
-   const pending = rows
-     .filter(r => !r.aif && !aifMapRef.current[r.id])
-     .map(r => r.id);
+      const pending = rows
+        .filter(r => !r.aif && !aifMapRef.current[r.id])
+        .map(r => r.id);
+
       await Promise.all(
         pending.map(async id => {
           try {
@@ -998,7 +968,7 @@ const rowIdsKey = React.useMemo(() => rows.map(r => r.id).join(','), [rows]);
               return;
             }
 
-            // Light fallback
+            // Fallback: fetch CQs and attacks separately
             const aCq = await fetch(`/api/arguments/${id}/aif-cqs`)
               .then(r => (r.ok ? r.json() : null))
               .catch(() => null);
@@ -1016,53 +986,25 @@ const rowIdsKey = React.useMemo(() => rows.map(r => r.id).join(','), [rows]);
             }
 
             byId[id] = { cq, attacks: g };
-          } catch {}
+          } catch {/* ignore */ }
         })
       );
 
       if (!cancelled) setAifMap(m => ({ ...m, ...byId }));
     })();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [rowIdsKey]);
-  // Visible texts
-//   const textsKey = React.useMemo(() => {
-//     return rows.map(r => (r.aif?.conclusion?.text ?? aifMap[r.id]?.conclusion?.text ?? r.text ?? '')).join('||');
-//   }, [rows, aifMap]);
-//   React.useEffect(() => {
-//     if (!onVisibleTextsChanged) return;
-//     const texts = textsKey ? textsKey.split('||').filter(Boolean) : [];
-//     onVisibleTextsChanged(texts);
-//   }, [textsKey, onVisibleTextsChanged]);
 
-  // Filtering
-  // Cache row -> lowercased searchable text
+  // Search bucket cache
   const bucketRef = React.useRef<Record<string, string>>({});
-  React.useEffect(() => {
-    // update only for ids missing
-    for (const r of rows) {
-      if (!bucketRef.current[r.id]) {
-        const m = r.aif || aifMap[r.id];
-        bucketRef.current[r.id] = [
-          m?.conclusion?.text || r.text || '',
-          ...(m?.premises?.map(p => p.text || '') ?? []),
-          m?.implicitWarrant?.text || '',
-        ].join(' ').toLowerCase();
-      }
-    }
-  }, [rows, aifMap]); // cheap: only adds for new/changed ids if you also clear when meta changes
-
-  // Clear cache entries whose meta changed (simple heuristic: conclusion id / premises length)
   React.useEffect(() => {
     for (const r of rows) {
       const m = r.aif || aifMap[r.id];
       const sig = `${m?.conclusion?.id || ''}:${m?.premises?.length || 0}`;
       const key = `${r.id}::${sig}`;
-      // store signature alongside bucket
+
       if ((bucketRef.current as any)[`${r.id}__sig`] !== key) {
         (bucketRef.current as any)[`${r.id}__sig`] = key;
-        // recompute
         bucketRef.current[r.id] = [
           m?.conclusion?.text || r.text || '',
           ...(m?.premises?.map(p => p.text || '') ?? []),
@@ -1072,6 +1014,7 @@ const rowIdsKey = React.useMemo(() => rows.map(r => r.id).join(','), [rows]);
     }
   }, [rows, aifMap]);
 
+  // Filtering
   const filtered: AifRow[] = React.useMemo(() => {
     const lower = dq.trim().toLowerCase();
     return rows.filter(a => {
@@ -1083,18 +1026,68 @@ const rowIdsKey = React.useMemo(() => rows.map(r => r.id).join(','), [rows]);
     });
   }, [rows, aifMap, schemeKey, dq]);
 
-   React.useEffect(() => {
-   if (!onVisibleTextsChanged || filtered.length === 0) return;
-   const start = Math.max(0, visibleRange.startIndex);
-   const end = Math.min(filtered.length - 1, visibleRange.endIndex);
-   const texts: string[] = [];
-   for (let i = start; i <= end; i++) {
-     const r = filtered[i];
-     const t = r.aif?.conclusion?.text ?? aifMap[r.id]?.conclusion?.text ?? r.text ?? '';
-     if (t) texts.push(t);
-   }
-   onVisibleTextsChanged(texts);
- }, [onVisibleTextsChanged, visibleRange, filtered, aifMap]);
+  // Conclusion IDs for score fetching
+  const conclusionIds = React.useMemo(() => {
+    const s = new Set<string>();
+    for (const r of filtered) {
+      const id = r.aif?.conclusion?.id || aifMap[r.id]?.conclusion?.id;
+      if (id) s.add(id);
+    }
+    return Array.from(s);
+  }, [filtered, aifMap]);
+
+  // Fetch evidential scores
+  const scoreKey = conclusionIds.length
+    ? `/api/evidential/score?${new URLSearchParams({
+      deliberationId,
+      mode: apiMode,
+      ...(tau != null ? { tau: String(tau) } : {}),
+      ids: conclusionIds.join(',')
+    }).toString()}`
+    : null;
+
+  const { data: scoreDoc } = useSWR<{ ok: boolean; items: Array<{ id: string; score?: number; bel?: number; accepted?: boolean }> }>(
+    scoreKey,
+    (u) => fetch(u, { cache: 'no-store' }).then(r => r.json()),
+    { revalidateOnFocus: false }
+  );
+
+  const byClaimScore = React.useMemo(() => {
+    const m = new Map<string, { v: number; acc: boolean }>();
+    for (const it of (scoreDoc?.items ?? [])) {
+      const v = (typeof it.score === 'number' ? it.score : (typeof (it as any).bel === 'number' ? (it as any).bel : 0)) || 0;
+      m.set(it.id, { v, acc: !!it.accepted });
+    }
+    return m;
+  }, [scoreDoc]);
+
+  // Sorting by support
+  const sorted = React.useMemo(() => {
+    if (!sortBySupport) return filtered;
+    const cp = [...filtered];
+    cp.sort((a, b) => {
+      const aid = a.aif?.conclusion?.id || aifMap[a.id]?.conclusion?.id || '';
+      const bid = b.aif?.conclusion?.id || aifMap[b.id]?.conclusion?.id || '';
+      const av = byClaimScore.get(aid)?.v ?? 0;
+      const bv = byClaimScore.get(bid)?.v ?? 0;
+      return (bv - av) || (new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    });
+    return cp;
+  }, [filtered, aifMap, sortBySupport, byClaimScore]);
+
+  // Notify parent of visible texts
+  React.useEffect(() => {
+    if (!onVisibleTextsChanged || sorted.length === 0) return;
+    const start = Math.max(0, visibleRange.startIndex);
+    const end = Math.min(sorted.length - 1, visibleRange.endIndex);
+    const texts: string[] = [];
+    for (let i = start; i <= end; i++) {
+      const r = sorted[i];
+      const t = r.aif?.conclusion?.text ?? aifMap[r.id]?.conclusion?.text ?? r.text ?? '';
+      if (t) texts.push(t);
+    }
+    onVisibleTextsChanged(texts);
+  }, [onVisibleTextsChanged, visibleRange, sorted, aifMap]);
 
   // Loading state
   if (isLoading && rows.length === 0) {
@@ -1108,12 +1101,8 @@ const rowIdsKey = React.useMemo(() => rows.map(r => r.id).join(','), [rows]);
     );
   }
 
-
   // Error state
   if (error) {
-    function revalidate(): void {
-      swrMutate(getKey, undefined, { revalidate: true });
-    }
     return (
       <section className="w-full rounded-xl border border-rose-200 bg-rose-50 shadow-sm">
         <div className="p-8 text-center">
@@ -1123,7 +1112,7 @@ const rowIdsKey = React.useMemo(() => rows.map(r => r.id).join(','), [rows]);
           <h3 className="text-sm font-medium text-rose-900 mb-2">Failed to load arguments</h3>
           <p className="text-xs text-rose-700 mb-4">{String(error?.message || 'Unknown error')}</p>
           <button
-            onClick={() => revalidate()}
+            onClick={() => swrMutate(getKey, undefined, { revalidate: true })}
             className="px-4 py-2 rounded-lg text-sm font-medium bg-rose-600 text-white hover:bg-rose-700 transition-all duration-200 shadow-sm hover:shadow"
           >
             Try Again
@@ -1166,39 +1155,57 @@ const rowIdsKey = React.useMemo(() => rows.map(r => r.id).join(','), [rows]);
             const blob = new Blob([JSON.stringify(doc, null, 2)], { type: 'application/ld+json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = url; a.download = `aif-${deliberationId}.jsonld`;
-            a.click(); URL.revokeObjectURL(url);
+            a.href = url;
+            a.download = `aif-${deliberationId}.jsonld`;
+            a.click();
+            URL.revokeObjectURL(url);
           } catch (e) { console.error(e); }
         }}
       />
+
+      {/* Confidence & sorting toolbar */}
+      <div className="px-4 py-2 border-b border-slate-100 bg-white/70 flex items-center justify-between">
+        <div className="text-xs text-slate-600">
+          Confidence: <b>{mode.toUpperCase()}</b>
+          {tau != null && <span> · τ={tau.toFixed(2)}</span>}
+        </div>
+        <button
+          className="text-xs px-2 py-1 rounded border border-slate-200 hover:bg-slate-50"
+          onClick={() => setSortBySupport(v => !v)}
+          title="Sort list by support of each row's conclusion"
+        >
+          {sortBySupport ? 'Sort: Default' : 'Sort: Support'}
+        </button>
+      </div>
+
+      {/* Virtualized list */}
       <div className="h-[564px]">
         <Virtuoso
-          data={filtered}
+          data={sorted}
           computeItemKey={(_i, a) => a.id}
-            increaseViewportBy={{ top: 200, bottom: 400 }}
-
+          increaseViewportBy={{ top: 200, bottom: 400 }}
           itemContent={(index, a) => {
             const meta = a.aif || aifMap[a.id];
-            const isVisible = index >= visibleRange.startIndex - 2 && index <= visibleRange.endIndex + 2; // small prefetch window
+            const cid = meta?.conclusion?.id;
+            const sRec = cid ? byClaimScore.get(cid) : undefined;
+            const isVisible = index >= visibleRange.startIndex - 2 && index <= visibleRange.endIndex + 2;
 
             return (
-              <div>
-                <Row
-                  a={a}
-                  meta={meta}
-                  deliberationId={deliberationId}
-                  showPremises={showPremises}
-                  onPromoted={() => window.dispatchEvent(new CustomEvent('claims:changed', { detail: { deliberationId } } as any))}
-                  onRefreshRow={refreshAifForId}   // added below
-                                    isVisible={isVisible}
-
-                />
-              </div>
+              <Row
+                a={a}
+                meta={meta}
+                deliberationId={deliberationId}
+                showPremises={showPremises}
+                onPromoted={() => window.dispatchEvent(new CustomEvent('claims:changed', { detail: { deliberationId } } as any))}
+                onRefreshRow={refreshAifForId}
+                isVisible={isVisible}
+                support={sRec?.v}
+                accepted={sRec?.acc}
+              />
             );
           }}
           rangeChanged={(r) => setVisibleRange(r)}
-
-         endReached={() => !isValidating && nextCursor && setSize(s => s + 1)}
+          endReached={() => !isValidating && nextCursor && setSize(s => s + 1)}
           components={{
             Footer: () => (
               <div className="py-6 text-center border-t border-slate-100">
@@ -1210,7 +1217,7 @@ const rowIdsKey = React.useMemo(() => rows.map(r => r.id).join(','), [rows]);
                 ) : nextCursor ? (
                   <p className="text-sm text-slate-500">Scroll to load more</p>
                 ) : (
-                  <p className="text-sm text-slate-400">You've reached the end</p>
+                  <p className="text-sm text-slate-400">You&#39;ve reached the end</p>
                 )}
               </div>
             ),

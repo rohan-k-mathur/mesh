@@ -90,10 +90,14 @@ function getExcerpt(text: string, query: string, contextLength = 40): string {
 /**
  * Highlight query in text
  */
+function escapeRegExp(s: string) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 function highlightMatch(text: string, query: string): React.ReactNode {
-  if (!query) return text;
-  
-  const parts = text.split(new RegExp(`(${query})`, 'gi'));
+    if (!query) return text;
+  const safe = escapeRegExp(query);
+  const parts = text.split(new RegExp(`(${safe})`, 'gi'));
   return parts.map((part, i) =>
     part.toLowerCase() === query.toLowerCase() ? (
       <mark key={i} className="bg-yellow-200 font-semibold">
@@ -124,11 +128,12 @@ export function AifDiagramSearch({
   const [selectedIndex, setSelectedIndex] = useState(0);
   
   // Search results
-  const results = useMemo(() => {
-    const searchResults = searchGraph(graph, query);
-    onSearchChange?.(searchResults);
-    return searchResults;
-  }, [graph, query, onSearchChange]);
+  const results = useMemo(() => searchGraph(graph, query), [graph, query]);
+
+  // Notify parent AFTER render to avoid "update while rendering" warning
+  useEffect(() => {
+    onSearchChange?.(results);
+  }, [results, onSearchChange]);
 
   // Handle search input
   function handleQueryChange(value: string) {
@@ -145,9 +150,13 @@ export function AifDiagramSearch({
   }
 
   // Keyboard navigation
-  function handleKeyDown(e: React.KeyboardEvent) {
+      function handleKeyDown(e: React.KeyboardEvent) {
     if (!isOpen) return;
-    
+    if (results.length === 0) {
+      if (e.key === 'Escape') setIsOpen(false);
+      return;
+    }
+
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault();
@@ -176,7 +185,12 @@ export function AifDiagramSearch({
       setIsOpen(true);
     }
   }, [query]);
-
+  // Keep the selected index in range if the results list changes
+  useEffect(() => {
+    if (selectedIndex > Math.max(0, results.length - 1)) {
+      setSelectedIndex(0);
+    }
+  }, [results.length, selectedIndex]);
   return (
     <div className={`relative ${className}`}>
       {/* Search Input */}

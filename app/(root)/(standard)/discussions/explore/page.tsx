@@ -17,7 +17,7 @@ export default async function ExplorePage() {
       const userId = String(user.userId);
   // Initial load - hot discussions
   const items = await prisma.discussion.findMany({
-    orderBy: [{ updatedAt: 'desc' }, { replyCount: 'desc' }],
+    orderBy: [{ lastActiveAt: 'desc' }, { replyCount: 'desc' }],
     take: 21,
     select: {
       id: true,
@@ -25,6 +25,8 @@ export default async function ExplorePage() {
       description: true,
       createdAt: true,
       updatedAt: true,
+            lastActiveAt: true, // ✅ Added this
+
       replyCount: true,
       viewCount: true,
       createdById: true,
@@ -38,8 +40,12 @@ export default async function ExplorePage() {
     ...i,
     createdAt: i.createdAt.toISOString(),
     updatedAt: i.updatedAt.toISOString(),
+        lastActiveAt: i.lastActiveAt.toISOString(), // ✅ Serialize it
+
     // lastActiveAt: i.lastActiveAt?.toISOString() ?? i.updatedAt.toISOString(),
   }));
 
-  return <ExploreFeed currentUserId={userId} initialItems={initialItems} hasMore={hasMore} />;
+  return (<div className='w-full absolute inset-0 '>
+     <ExploreFeed currentUserId={userId} initialItems={initialItems} hasMore={hasMore} />
+     </div>);
 }

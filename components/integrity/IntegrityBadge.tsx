@@ -1,3 +1,4 @@
+// components/integrity/IntegrityBadge.tsx
 'use client';
 import * as React from 'react';
 

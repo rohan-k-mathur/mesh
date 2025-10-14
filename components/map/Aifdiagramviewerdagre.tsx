@@ -432,6 +432,14 @@ export function AifDiagramViewerDagre({
       />
       
       {/* Collapsible Legend */}
+<div className='absolute top-4 left-4 '>     {/* Controls info */}
+      <div className=" bg-white/90 border border-gray-300 rounded-lg px-3 py-2 text-xs text-gray-600">
+        <div className="font-semibold mb-1">Controls:</div>
+        <div>• Drag to pan</div>
+        <div>• Shift + Drag to zoom</div>
+        <div>• Click node to select</div>
+      </div>
+      </div>
       <div className="absolute bottom-4 left-4 bg-white/95 backdrop-blur border border-slate-300 rounded-lg shadow-lg text-xs max-w-xs">
         <button
           onClick={() => setShowLegend(!showLegend)}
@@ -488,21 +496,16 @@ export function AifDiagramViewerDagre({
             </div>
           </div>
         )}
+        
       </div>
       
-      {/* Controls info */}
-      <div className="absolute bottom-4 right-4 bg-white/90 border border-gray-300 rounded-lg px-3 py-2 text-xs text-gray-600">
-        <div className="font-semibold mb-1">Controls:</div>
-        <div>• Drag to pan</div>
-        <div>• Shift + Drag to zoom</div>
-        <div>• Click node to select</div>
-      </div>
+
       
       {/* Stats */}
       <div className="absolute top-4 right-4 bg-white border border-gray-300 rounded-lg px-4 py-2 text-xs">
         <div className="font-semibold text-gray-900">{graph.nodes.length} nodes</div>
         <div className="text-gray-500">{graph.edges.length} edges</div>
-        <div className="text-blue-600 mt-1">✨ Dagre layout</div>
+        <div className="text-blue-600 mt-1">Dagre layout</div>
       </div>
     </div>
   );

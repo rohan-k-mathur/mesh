@@ -23,6 +23,8 @@ export default async function DiscussionsPage() {
       description: true,
       createdAt: true,
       updatedAt: true,
+          lastActiveAt: true, // ✅ Added
+
       conversationId: true,
       replyCount: true,
       createdById: true,
@@ -35,6 +37,8 @@ export default async function DiscussionsPage() {
     ...i,
     createdAt: i.createdAt.toISOString(),
     updatedAt: i.updatedAt.toISOString(),
+      lastActiveAt: i.lastActiveAt.toISOString(), // ✅ Serialize
+
     conversationId: i.conversationId !== null ? Number(i.conversationId) : null,
   }));
   const last = page[page.length - 1];

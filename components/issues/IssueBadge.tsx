@@ -1,3 +1,4 @@
+// components/issues/IssueBadge.tsx
 'use client';
 import * as React from 'react';
 import useSWR from 'swr';
@@ -12,8 +13,8 @@ const fetcher = (u:string)=>fetch(u,{cache:'no-store'}).then(r=>r.json());
    onClick,
  }: {
    deliberationId: string;
-  targetType?: 'argument'|'claim'|'card';
- targetId: string;
+   targetType?: 'argument'|'claim'|'card'|'inference';
+   targetId: string;
    onClick?: () => void;
  }) {
   const qs = targetType === 'argument'

@@ -1,5 +1,7 @@
+// lib/issues/hooks.ts
 import { prisma } from '@/lib/prismaclient';
 import type { MoveKind } from '../dialogue/types';
+import { TargetType } from '@prisma/client';
 const LABEL_PREFIX = 'Open CQ'; // label convention
 
 export async function onDialogueMove(opts: {
@@ -33,7 +35,10 @@ export async function onDialogueMove(opts: {
   if (kind === 'WHY') {
     const label = `${LABEL_PREFIX}: ${cqKey}`;
     const existing = await prisma.issue.findFirst({
-      where: { deliberationId, state: 'open', label, ...(argumentId ? { links: { some: { argumentId } } } : {}) },
+       where: {
+        deliberationId, state: 'open', kind: 'cq', key: cqKey,
+        ...(argumentId ? { links: { some: { argumentId } } } : {})
+      },
       select: { id: true },
     });
     if (!existing) {
@@ -42,8 +47,12 @@ export async function onDialogueMove(opts: {
           deliberationId,
           label,
           description: String(payload?.note ?? payload?.brief ?? '').slice(0, 500) || null,
-          createdById: payload?.createdById ?? "", // Provide createdById from payload or fallback
-          links: argumentId ? { create: [{ argumentId }] } : undefined,
+           kind: 'cq',
+           key: cqKey,
+           createdById: BigInt(payload?.createdById ?? '0'),
+           links: argumentId
+             ? { create: [{ targetType: 'argument' as TargetType, targetId: argumentId, argumentId }] }
+             : undefined,
         },
       });
       return { createdId: issue.id };
@@ -55,7 +64,10 @@ export async function onDialogueMove(opts: {
   if (kind === 'GROUNDS' || kind === 'CONCEDE' || kind === 'CLOSE') {
     const label = `${LABEL_PREFIX}: ${cqKey}`;
     const open = await prisma.issue.findMany({
-      where: { deliberationId, state: 'open', label, ...(argumentId ? { links: { some: { argumentId } } } : {}) },
+      where: {
+        deliberationId, state: 'open', kind: 'cq', key: cqKey,
+        ...(argumentId ? { links: { some: { argumentId } } } : {})
+      },
       select: { id: true },
     });
     if (open.length) {

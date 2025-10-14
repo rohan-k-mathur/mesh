@@ -6,6 +6,7 @@ import { useMemo } from 'react';
 import { NLCommitPopover } from '@/components/dialogue/NLCommitPopover';
 import { useBusEffect } from '@/lib/client/useBusEffect';
 import type { Move } from '@/app/api/dialogue/legal-moves/route';
+import { TargetType } from '@prisma/client';
 
 function useMicroToast() {
   const [msg, setMsg] = React.useState<{ kind:'ok'|'err'; text:string }|null>(null);
@@ -31,7 +32,7 @@ export function LegalMoveChips({
   onPick,
 }: {
   deliberationId: string;
-  targetType: 'argument'|'claim'|'card';
+  targetType: TargetType;
   targetId: string;
   locusPath?: string;
   commitOwner?: 'Proponent'|'Opponent';
@@ -149,8 +150,12 @@ export function LegalMoveChips({
             <button
               disabled={!!m.disabled}
               title={m.reason || m.label}
-              onClick={() => postMove(m)}
-              className={cls(m)}
+              // onClick={() => postMove(m)}
+              // className={cls(m)}
+                onClick={() => postMove(m)}
+              className={(m.kind === 'ASSERT' && (m as any)?.payload?.as === 'ACCEPT_ARGUMENT')
+                ? 'px-2 py-1 rounded text-xs border border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100'
+                : cls(m)}
             >
               {m.kind === 'CLOSE'   ? (m.label || 'Close (†)') :
                m.kind === 'GROUNDS' ? `Answer ${m.label}` :

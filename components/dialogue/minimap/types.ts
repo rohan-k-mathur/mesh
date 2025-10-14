@@ -1,3 +1,5 @@
+// components/dialogue/minimap/types.ts
+// types for minimap component in dialogue panels
 export type NodeStatus = 'IN'|'OUT'|'UNDEC';
 export type NodeKind = 'argument'|'claim';
 export type EdgeKind = 'support'|'rebut'|'undercut';

@@ -761,7 +761,7 @@ React.useEffect(() => {
     <DebatePicker roomId={roomId} value={debateId} onChange={setDebateId} />
     <SheetPicker  deliberationId={debateId} value={sheetKey} onChange={setSheetKey} />
       <div className="flex gap-5">
-   <ConfidenceControls />
+   {/* <ConfidenceControls /> */}
    </div>
   </div>
 

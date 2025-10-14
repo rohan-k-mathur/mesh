@@ -1,3 +1,4 @@
+// components/dialogue/command-card/types.ts
 // Dialogical primitives
 export type Force = 'ATTACK' | 'SURRENDER' | 'NEUTRAL';
 export type Relevance = 'likely' | 'unlikely' | null;

@@ -1,3 +1,4 @@
+// components/issues/IssueComposer.tsx
 'use client';
 import * as React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -34,9 +35,9 @@ export default function IssueComposer({
           body: JSON.stringify({
             label: label.trim(),
             description: desc.trim() || undefined,
-            links: initialArgumentId ? [initialArgumentId] : [],
-            // optional: future—if you add polymorphic links, pass {targetType,id}
-          }),
+            links: initialArgumentId ? [initialArgumentId] : undefined,
+            targets: initialTarget ? [{ type: initialTarget.type, id: initialTarget.id, role: 'related' }] : undefined,
+         }),
       });
       if (!res.ok) throw new Error(await res.text());
       const { issue } = await res.json();

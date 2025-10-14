@@ -75,18 +75,21 @@ model User {
   SheafAudienceList         SheafAudienceList[]
   roles                     UserRole[]
   reactions                 MessageReaction[]
-  driftMembers              DriftMember[]
-  MessageMention            MessageMention[]
+  createdIssues             Issue[]                   @relation("CreatedIssues")
+  assignedIssues            Issue[]                   @relation("AssignedIssues")
+
+  driftMembers     DriftMember[]
+  MessageMention   MessageMention[]
   // Stars & Bookmarks back-relations
-  messageStars              MessageStar[]
-  bookmarks                 Bookmark[]
-  ActivityPubKey            ActivityPubKey[]
-  ApFollower                ApFollower[]
-  ApFollowing               ApFollowing[]
-  ApOutboxActivity          ApOutboxActivity[]
-  mergedReceipts            MergeReceipt[]            @relation("UserMergedReceipts")
-  proposalSignals           ProposalSignal[]          @relation("UserProposalSignals")
-  expertiseTags             String[]                  @default([])
+  messageStars     MessageStar[]
+  bookmarks        Bookmark[]
+  ActivityPubKey   ActivityPubKey[]
+  ApFollower       ApFollower[]
+  ApFollowing      ApFollowing[]
+  ApOutboxActivity ApOutboxActivity[]
+  mergedReceipts   MergeReceipt[]     @relation("UserMergedReceipts")
+  proposalSignals  ProposalSignal[]   @relation("UserProposalSignals")
+  expertiseTags    String[]           @default([])
 
   @@map("users")
 }
@@ -2649,32 +2652,76 @@ model BriefLink {
   version BriefVersion @relation("BriefVersionLinks", fields: [briefVersionId], references: [id], onDelete: Cascade)
 }
 
+enum IssueState {
+  open
+  pending
+  closed
+}
+
+enum IssueLinkTargetType {
+  argument
+  claim
+  card
+  inference
+}
+
+enum IssueLinkRole {
+  related
+  blocks
+  depends_on
+  warrant
+  evidence
+}
+
+enum IssueKind {
+  general
+  cq
+  moderation
+  evidence
+  structural
+  governance
+}
+
 model Issue {
-  id             String    @id @default(cuid())
+  id             String     @id @default(cuid())
   deliberationId String
-  label          String // e.g., "Image – Appropriateness", "Data validity", etc.
+  label          String
   description    String?
-  state          String    @default("open") // "open" | "closed"
-  createdById    String
+  state          IssueState @default(open)
+  createdById    BigInt // <-- FIXED: Was String
   closedById     String?
-  createdAt      DateTime  @default(now())
   closedAt       DateTime?
 
-  deliberation Deliberation @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
+  assigneeId BigInt? // <-- FIXED: Was String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // --- Relations ---
+  deliberation Deliberation @relation(fields: [deliberationId], references: [id])
+  createdBy    User         @relation("CreatedIssues", fields: [createdById], references: [id])
+  assignee     User?        @relation("AssignedIssues", fields: [assigneeId], references: [id])
   links        IssueLink[]
 
+  @@index([deliberationId])
   @@index([deliberationId, state])
 }
 
 model IssueLink {
+  id         String              @id @default(cuid())
   issueId    String
-  argumentId String
-  role       String @default("related") // "related" | "evidence" | etc.
+  targetType IssueLinkTargetType // NEW
+  targetId   String // NEW
+  // Back-compat (nullable): keep while migrating
+  argumentId String?
+  role       IssueLinkRole? // tighten if you like (else String)
+  createdAt  DateTime            @default(now())
 
-  issue    Issue    @relation(fields: [issueId], references: [id], onDelete: Cascade)
-  argument Argument @relation(fields: [argumentId], references: [id], onDelete: Cascade)
+  issue    Issue     @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  Argument Argument? @relation(fields: [argumentId], references: [id])
 
-  @@id([issueId, argumentId])
+  @@unique([issueId, targetType, targetId])
+  @@index([targetType, targetId])
+  @@index([argumentId]) // supports current counts route
 }
 
 // ---------- Enums ----------

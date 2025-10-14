@@ -99,11 +99,17 @@ export function EnhancedCANode({
   return (
     <g>
       {/* Main shape */}
-      <ellipse
+      {/* <ellipse
         cx={width / 2}
         cy={height / 2}
         rx={width / 2 - 2}
-        ry={height / 2 - 2}
+        ry={height / 2 - 2} */}
+         <rect
+        x={2}
+        y={2}
+        width={width - 4}
+        height={height - 4}
+        rx={4}
         fill={`${scheme.color}15`}
         stroke={scheme.color}
         strokeWidth={isHovered ? 3 : 2}

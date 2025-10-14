@@ -7,21 +7,28 @@ export default function UndercutPill({
   targetInferenceId,
   deliberationId,
   fromArgumentId,        // optional
+  toDiagramId,  
 }: {
   toArgumentId: string;
   targetInferenceId: string;
   deliberationId: string;
   fromArgumentId?: string;
+   toDiagramId?: string;
 }) {
   const [busy, setBusy] = React.useState(false);
   async function send() {
+        if (!deliberationId || !toArgumentId) {
+      console.warn('Undercut blocked: missing ids', { deliberationId, toArgumentId, toDiagramId, targetInferenceId });
+      alert('Missing IDs to undercut (argument or deliberation).');
+      return;
+    }
     setBusy(true);
     try {
       const r = await fetch('/api/attacks/undercut', {
         method: 'POST',
         headers: { 'Content-Type':'application/json' },
         body: JSON.stringify({
-          deliberationId, toArgumentId, targetInferenceId,
+           deliberationId, toArgumentId, targetInferenceId, toDiagramId,
           ...(fromArgumentId ? { fromArgumentId } : { fromText: 'Undercut: the inference is not licensed.' }),
         }),
       });

@@ -44,7 +44,8 @@ function Dot({ label }: { label: 'IN'|'OUT'|'UNDEC' }) {
 
 const PAGE_SIZE = 8;
 
-export default function ClaimMiniMap({ deliberationId }: { deliberationId: string }) {
+export default function ClaimMiniMap({ deliberationId, selectedClaimId, onClaimClick }: 
+  { deliberationId: string; selectedClaimId?: string; onClaimClick?: (claimId: string) => void; }) {
   const { data: summary, error, isLoading } = useSWR(
     `/api/claims/summary?deliberationId=${deliberationId}`,
     fetcher,
@@ -99,7 +100,9 @@ React.useEffect(() => {
               const lab = labels[c.id]?.label ?? 'UNDEC';
               const tip = labels[c.id]?.explainJson ? JSON.stringify(labels[c.id]?.explainJson) : undefined;
               return (
-                <div key={c.id} className="flex border rounded-lg border-slate-200 items-start p-1 gap-3 w-fit bg-slate-50" title={tip}>
+                <div key={c.id} id={`row-${c.id}`}
+          data-claim-id={c.id}
+          onClick={() => onClaimClick?.(c.id)} className="flex border rounded-lg border-slate-200 items-start p-1 gap-3 w-fit bg-slate-50" title={tip}>
                   <div className="mt-1"><Dot label={lab} /></div>
                   <div className="flex-1 text-sm line-clamp-2 max-w-[34rem]">{c.text}</div>
                   <div className="shrink-0 flex items-center gap-2">

@@ -1,3 +1,4 @@
+// components/issues/IssuesDrawer.tsx
 'use client';
 import * as React from 'react';
 import useSWR, { mutate as globalMutate } from 'swr';
@@ -11,7 +12,9 @@ export default function IssuesDrawer({
   open,
   onOpenChange,
   argumentId,           // 👈 NEW
-  claimId,    
+  claimId,  
+  cardId,
+  inferenceId,
 
 }: {
   deliberationId: string;
@@ -19,24 +22,28 @@ export default function IssuesDrawer({
   onOpenChange: (o:boolean)=>void;
   argumentId?: string;  // 👈 NEW
   claimId?: string;     // 👈 NEW
+  cardId?: string;
+  inferenceId?: string;
 
 }) {
   const [state, setState] = React.useState<'open'|'closed'|'all'>('open');
   const [q, setQ] = React.useState('');
   const [focus, setFocus] = React.useState<string|null>(null);
   //const [filters, setFilters] = React.useState<{ argumentId?: string }>({});
-  const [filters, setFilters] = React.useState<{ argumentId?: string; claimId?: string; cardId?: string }>({});
+  const [filters, setFilters] = React.useState<{ argumentId?: string; claimId?: string; cardId?: string; inferenceId?: string }>({});
 
   React.useEffect(() => {
 
    if (!open) return;
-   setFilters(prev => ({ ...prev, argumentId, claimId }));
- }, [open, argumentId, claimId]);
+    setFilters(prev => ({ ...prev, argumentId, claimId, cardId, inferenceId }));
+  }, [open, argumentId, claimId, cardId, inferenceId]);
 
- const key = `/api/deliberations/${encodeURIComponent(deliberationId)}/issues` +
-   `?state=${state}&search=${encodeURIComponent(q)}` +
-   (filters.argumentId ? `&argumentId=${encodeURIComponent(filters.argumentId)}` : '') +
-   (filters.claimId ? `&claimId=${encodeURIComponent(filters.claimId)}` : '');
+    const key = `/api/deliberations/${encodeURIComponent(deliberationId)}/issues`
+     + `?state=${state}&search=${encodeURIComponent(q)}`
+     + (filters.argumentId ? `&argumentId=${encodeURIComponent(filters.argumentId)}` : '')
+     + (filters.claimId ? `&claimId=${encodeURIComponent(filters.claimId)}` : '')
+     + (filters.cardId ? `&cardId=${encodeURIComponent(filters.cardId)}` : '')
+     + (filters.inferenceId ? `&targetType=inference&targetId=${encodeURIComponent(filters.inferenceId)}` : '');
   const { data, isLoading } = useSWR<{ ok:true; issues:any[] }>(open ? key : null, fetcher, { revalidateOnFocus:false });
 
   // keep in sync via global event

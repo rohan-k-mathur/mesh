@@ -1,551 +1,857 @@
-// app/api/evidentialdev/seed-aif-debate/route.ts
+// // app/api/evidentialdev/seed-aif-debate/route.ts
+// import { NextRequest, NextResponse } from 'next/server';
+// import { prisma } from '@/lib/prismaclient';
+// import type { StatementRole, InferenceKind, EdgeType, TargetScope } from '@prisma/client';
+
+// export const dynamic = 'force-dynamic';
+// export const revalidate = 0;
+// const NO_STORE = { headers: { 'Cache-Control': 'no-store' } } as const;
+
+// const uid = (n = 6) => Math.random().toString(36).slice(2, 2 + n);
+// const moid = (tag: string) => `seed:${tag}:${Date.now()}:${uid(4)}`;
+// const must = <T>(x: T | undefined | null, m: string): T => {
+//   if (x === undefined || x === null) throw new Error(m);
+//   return x;
+// };
+
+// export async function GET() {
+//   return NextResponse.json({ ok: true }, NO_STORE);
+// }
+
+// export async function POST(_req: NextRequest) {
+//   try {
+//     const result = await prisma.$transaction(async (db) => {
+//       // ==================== 0) Setup: Room + Deliberation ====================
+//       const room = await db.agoraRoom.create({
+//         data: {
+//           slug: `bike-lanes-${Date.now()}-${uid(3)}`,
+//           title: 'Protected Bike Lanes on Maple Avenue',
+//           summary: 'Should the city install protected bike lanes on Maple Ave?',
+//         },
+//         select: { id: true, slug: true, title: true },
+//       });
+
+//       // Create deliberation (keep it simple & typed)
+//       const delib = await db.deliberation.create({
+//         data: {
+//           hostType: 'post',          // any of: article|post|room_thread|library_stack|site|inbox_thread
+//           hostId: `topic:${uid(6)}`,
+//           createdById: 'system',
+//           rule: 'utilitarian',       // RepresentationRule
+//           roomId: room.id,           // link for convenience
+//           agoraRoomId: room.id,      // optional: keep both if you use both in your app
+//         },
+//         select: { id: true },
+//       });
+//       const deliberationId = delib.id;
+
+//       // ==================== 1) Claims ====================
+//       const [mainClaim, safetyClaim, trafficClaim, costClaim] = await Promise.all([
+//         db.claim.create({
+//           data: {
+//             deliberationId,
+//             text: 'The city should install protected bike lanes on Maple Avenue',
+//             createdById: 'system',
+//             moid: moid('main-claim'),
+//           },
+//           select: { id: true, text: true },
+//         }),
+//         db.claim.create({
+//           data: {
+//             deliberationId,
+//             text: 'Protected bike lanes significantly improve cyclist safety',
+//             createdById: 'system',
+//             moid: moid('safety-claim'),
+//           },
+//           select: { id: true, text: true },
+//         }),
+//         db.claim.create({
+//           data: {
+//             deliberationId,
+//             text: 'Bike lanes will worsen traffic congestion',
+//             createdById: 'system',
+//             moid: moid('traffic-claim'),
+//           },
+//           select: { id: true, text: true },
+//         }),
+//         db.claim.create({
+//           data: {
+//             deliberationId,
+//             text: 'The project cost is justified by long-term benefits',
+//             createdById: 'system',
+//             moid: moid('cost-claim'),
+//           },
+//           select: { id: true, text: true },
+//         }),
+//       ]);
+
+//       // ==================== 2) Safety Argument (supporting main claim) ====================
+//       const safetyArg = await db.argument.create({
+//         data: {
+//           deliberationId,
+//           authorId: 'system',
+//           text: 'Safety Argument: Protected lanes reduce injuries',
+//           claimId: mainClaim.id, // “about” the main claim
+//           // optionally also model the argument’s conclusion as a Claim row:
+//           conclusionClaimId: mainClaim.id,
+//           mediaType: 'text',
+//         },
+//         select: { id: true, text: true },
+//       });
+
+//       // Internal diagram: statements + inference(kind) + premises
+//       const safetyDiagram = await db.argumentDiagram.create({
+//         data: {
+//           title: 'Safety Case for Protected Bike Lanes',
+//           createdById: 'system',
+//           statements: {
+//             create: [
+//               {
+//                 text: 'Protected lanes reduce injuries by 40–50% in peer cities',
+//                 role: 'premise' as StatementRole,
+//                 tags: ['data', 'safety'],
+//               },
+//               {
+//                 text: 'Maple Ave carries heavy bike and scooter traffic from two schools',
+//                 role: 'premise' as StatementRole,
+//                 tags: ['context', 'demand'],
+//               },
+//               {
+//                 text: 'If an intervention reduces injuries and demand is high, the city ought to implement it',
+//                 role: 'warrant' as StatementRole,
+//                 tags: ['policy-principle'],
+//               },
+//               {
+//                 text: 'The city should install protected bike lanes on Maple Avenue',
+//                 role: 'conclusion' as StatementRole,
+//                 tags: ['recommendation'],
+//               },
+//             ],
+//           },
+//         },
+//         include: { statements: true },
+//       });
+
+//       const S = new Map<string, string>(
+//         safetyDiagram.statements.map((s) => [s.text, s.id])
+//       );
+
+//       const safetyInf = await db.inference.create({
+//         data: {
+//           diagramId: safetyDiagram.id,
+//           kind: 'presumptive' as InferenceKind,             // enum per schema
+//           conclusionId: must(
+//             S.get('The city should install protected bike lanes on Maple Avenue'),
+//             'safety: missing conclusionId'
+//           ),
+//           schemeKey: 'value_based_practical_reasoning',
+//           cqKeys: [],                                       // String[]
+//         },
+//         select: { id: true },
+//       });
+
+//       await db.inferencePremise.createMany({
+//         data: [
+//           {
+//             inferenceId: safetyInf.id,
+//             statementId: must(
+//               S.get('Protected lanes reduce injuries by 40–50% in peer cities'),
+//               'safety: missing premise 1'
+//             ),
+//           },
+//           {
+//             inferenceId: safetyInf.id,
+//             statementId: must(
+//               S.get('Maple Ave carries heavy bike and scooter traffic from two schools'),
+//               'safety: missing premise 2'
+//             ),
+//           },
+//           {
+//             inferenceId: safetyInf.id,
+//             statementId: must(
+//               S.get(
+//                 'If an intervention reduces injuries and demand is high, the city ought to implement it'
+//               ),
+//               'safety: missing warrant'
+//             ),
+//           },
+//         ],
+//         skipDuplicates: true,
+//       });
+
+//       // ==================== 3) Traffic Opposition Argument ====================
+//       const trafficArg = await db.argument.create({
+//         data: {
+//           deliberationId,
+//           authorId: 'system',
+//           text: 'Traffic Argument: Lanes will worsen congestion',
+//           claimId: trafficClaim.id,
+//           conclusionClaimId: trafficClaim.id,
+//           mediaType: 'text',
+//         },
+//         select: { id: true, text: true },
+//       });
+
+//       const trafficDiagram = await db.argumentDiagram.create({
+//         data: {
+//           title: 'Traffic Congestion Concerns',
+//           createdById: 'system',
+//           statements: {
+//             create: [
+//               {
+//                 text: 'Removing one car lane will reduce vehicle capacity',
+//                 role: 'premise' as StatementRole,
+//                 tags: ['traffic'],
+//               },
+//               {
+//                 text: 'Maple Ave is already congested during peak hours',
+//                 role: 'premise' as StatementRole,
+//                 tags: ['context'],
+//               },
+//               {
+//                 text: 'Reduced capacity on congested roads increases delays',
+//                 role: 'warrant' as StatementRole,
+//                 tags: ['traffic-principle'],
+//               },
+//               {
+//                 text: 'Bike lanes will worsen traffic congestion',
+//                 role: 'conclusion' as StatementRole,
+//                 tags: ['prediction'],
+//               },
+//             ],
+//           },
+//         },
+//         include: { statements: true },
+//       });
+
+//       const T = new Map<string, string>(
+//         trafficDiagram.statements.map((s) => [s.text, s.id])
+//       );
+
+//       const trafficInf = await db.inference.create({
+//         data: {
+//           diagramId: trafficDiagram.id,
+//           kind: 'inductive' as InferenceKind,               // causal = inductive
+//           conclusionId: must(
+//             T.get('Bike lanes will worsen traffic congestion'),
+//             'traffic: missing conclusionId'
+//           ),
+//           schemeKey: 'cause_to_effect',
+//           cqKeys: [],
+//         },
+//         select: { id: true },
+//       });
+
+//       await db.inferencePremise.createMany({
+//         data: [
+//           {
+//             inferenceId: trafficInf.id,
+//             statementId: must(
+//               T.get('Removing one car lane will reduce vehicle capacity'),
+//               'traffic: missing premise 1'
+//             ),
+//           },
+//           {
+//             inferenceId: trafficInf.id,
+//             statementId: must(
+//               T.get('Maple Ave is already congested during peak hours'),
+//               'traffic: missing premise 2'
+//             ),
+//           },
+//           {
+//             inferenceId: trafficInf.id,
+//             statementId: must(
+//               T.get('Reduced capacity on congested roads increases delays'),
+//               'traffic: missing warrant'
+//             ),
+//           },
+//         ],
+//         skipDuplicates: true,
+//       });
+
+//       // ==================== 4) Counter‑argument: Modal Shift (undercuts traffic inference) ====================
+//       const modalArg = await db.argument.create({
+//         data: {
+//           deliberationId,
+//           authorId: 'system',
+//           text: 'Modal Shift Response: More biking reduces car traffic',
+//           claimId: mainClaim.id,
+//           // this argument’s conclusion is *not* the main claim; it’s a causal claim about congestion
+//           conclusionClaimId: (
+//             await db.claim.create({
+//               data: {
+//                 deliberationId,
+//                 text: 'The net effect reduces congestion rather than increasing it',
+//                 createdById: 'system',
+//                 moid: moid('modal-concl'),
+//               },
+//               select: { id: true },
+//             })
+//           ).id,
+//           mediaType: 'text',
+//         },
+//         select: { id: true, conclusionClaimId: true, text: true },
+//       });
+
+//       const modalDiagram = await db.argumentDiagram.create({
+//         data: {
+//           title: 'Modal Shift Counterargument',
+//           createdById: 'system',
+//           statements: {
+//             create: [
+//               {
+//                 text: 'Protected lanes increase cycling by 50–75% (Seattle, Portland data)',
+//                 role: 'premise' as StatementRole,
+//                 tags: ['data'],
+//               },
+//               {
+//                 text: 'Each new cyclist is one less car on the road',
+//                 role: 'premise' as StatementRole,
+//                 tags: ['modal-shift'],
+//               },
+//               {
+//                 text: 'The net effect reduces congestion rather than increasing it',
+//                 role: 'conclusion' as StatementRole,
+//                 tags: ['rebuttal'],
+//               },
+//             ],
+//           },
+//         },
+//         include: { statements: true },
+//       });
+
+//       const M = new Map<string, string>(
+//         modalDiagram.statements.map((s) => [s.text, s.id])
+//       );
+
+//       const modalInf = await db.inference.create({
+//         data: {
+//           diagramId: modalDiagram.id,
+//           kind: 'inductive' as InferenceKind,
+//           conclusionId: must(
+//             M.get('The net effect reduces congestion rather than increasing it'),
+//             'modal: missing conclusionId'
+//           ),
+//           schemeKey: 'cause_to_effect',
+//           cqKeys: [],
+//         },
+//         select: { id: true },
+//       });
+
+//       await db.inferencePremise.createMany({
+//         data: [
+//           {
+//             inferenceId: modalInf.id,
+//             statementId: must(
+//               M.get('Protected lanes increase cycling by 50–75% (Seattle, Portland data)'),
+//               'modal: missing premise 1'
+//             ),
+//           },
+//           {
+//             inferenceId: modalInf.id,
+//             statementId: must(
+//               M.get('Each new cyclist is one less car on the road'),
+//               'modal: missing premise 2'
+//             ),
+//           },
+//         ],
+//         skipDuplicates: true,
+//       });
+
+//       // ==================== 5) Expert Opinion (supports main claim) ====================
+//       const expertArg = await db.argument.create({
+//         data: {
+//           deliberationId,
+//           authorId: 'system',
+//           text: 'Expert Opinion: Transportation planners support the project',
+//           claimId: mainClaim.id,
+//           conclusionClaimId: mainClaim.id,
+//           mediaType: 'text',
+//         },
+//         select: { id: true, text: true },
+//       });
+
+//       const expertDiagram = await db.argumentDiagram.create({
+//         data: {
+//           title: 'Expert Opinion Support',
+//           createdById: 'system',
+//           statements: {
+//             create: [
+//               {
+//                 text: 'City Transportation Department recommends protected lanes for Maple Ave',
+//                 role: 'premise' as StatementRole,
+//                 tags: ['expert'],
+//               },
+//               {
+//                 text: 'Transportation planners are experts in urban mobility',
+//                 role: 'premise' as StatementRole,
+//                 tags: ['credibility'],
+//               },
+//               {
+//                 text: 'We should follow expert recommendations on technical matters',
+//                 role: 'warrant' as StatementRole,
+//                 tags: ['epistemic'],
+//               },
+//               {
+//                 text: 'The city should install protected bike lanes on Maple Avenue',
+//                 role: 'conclusion' as StatementRole,
+//                 tags: ['recommendation'],
+//               },
+//             ],
+//           },
+//         },
+//         include: { statements: true },
+//       });
+
+//       const E = new Map<string, string>(
+//         expertDiagram.statements.map((s) => [s.text, s.id])
+//       );
+
+//       const expertInf = await db.inference.create({
+//         data: {
+//           diagramId: expertDiagram.id,
+//           kind: 'presumptive' as InferenceKind,
+//           conclusionId: must(
+//             E.get('The city should install protected bike lanes on Maple Avenue'),
+//             'expert: missing conclusionId'
+//           ),
+//           schemeKey: 'argument_from_expert_opinion',
+//           // NOTE: use double quotes to avoid breaking the parser on "expert's"
+//           cqKeys: [
+//             'CQ1: Is the source a genuine expert?',
+//             "CQ2: Is the expert's opinion relevant?",
+//           ],
+//         },
+//         select: { id: true },
+//       });
+
+//       await db.inferencePremise.createMany({
+//         data: [
+//           {
+//             inferenceId: expertInf.id,
+//             statementId: must(
+//               E.get('City Transportation Department recommends protected lanes for Maple Ave'),
+//               'expert: missing premise 1'
+//             ),
+//           },
+//           {
+//             inferenceId: expertInf.id,
+//             statementId: must(
+//               E.get('Transportation planners are experts in urban mobility'),
+//               'expert: missing premise 2'
+//             ),
+//           },
+//           {
+//             inferenceId: expertInf.id,
+//             statementId: must(
+//               E.get('We should follow expert recommendations on technical matters'),
+//               'expert: missing warrant'
+//             ),
+//           },
+//         ],
+//         skipDuplicates: true,
+//       });
+
+//       // ==================== 6) Argument supports & attack edges ====================
+//       await db.argumentSupport.createMany({
+//         data: [
+//           {
+//             deliberationId,
+//             claimId: mainClaim.id,
+//             argumentId: safetyArg.id,
+//             mode: 'product',
+//             strength: 0.72,
+//             base: 0.72,
+//           },
+//           {
+//             deliberationId,
+//             claimId: trafficClaim.id,
+//             argumentId: trafficArg.id,
+//             mode: 'product',
+//             strength: 0.58,
+//             base: 0.58,
+//           },
+//           {
+//             deliberationId,
+//             claimId: must(modalArg.conclusionClaimId, 'modal: missing conclusionClaimId'),
+//             argumentId: modalArg.id,
+//             mode: 'product',
+//             strength: 0.65,
+//             base: 0.65,
+//           },
+//           {
+//             deliberationId,
+//             claimId: mainClaim.id,
+//             argumentId: expertArg.id,
+//             mode: 'product',
+//             strength: 0.68,
+//             base: 0.68,
+//           },
+//         ],
+//         skipDuplicates: true,
+//       });
+
+//       // modal shift UNDERCUTS the traffic inference (argument → argument)
+//       await db.argumentEdge.create({
+//         data: {
+//           deliberationId,
+//           fromArgumentId: modalArg.id,
+//           toArgumentId: trafficArg.id,
+//           type: 'undercut' as EdgeType,         // EdgeType enum
+//           createdById: 'system',
+//           targetScope: 'inference' as TargetScope,
+//           attackType: 'UNDERCUTS',              // keep legacy AF field in sync
+//         },
+//       });
+
+//       // (optional) traffic argument REBUTS the main claim’s conclusion (claim‑level)
+//       // If you also want claim‑level attacks in your AF:
+//       await db.claimEdge.create({
+//         data: {
+//           fromClaimId: trafficClaim.id,
+//           toClaimId: mainClaim.id,
+//           type: 'rebuts',
+//           targetScope: 'conclusion',
+//           deliberationId,
+//           attackType: 'REBUTS',
+//         },
+//       });
+
+//       // ==================== 7) DebateSheet (nodes wiring) ====================
+//       const sheet = await db.debateSheet.create({
+//         data: {
+//           title: `Bike Lanes Debate • ${room.slug}`,
+//           createdById: 'system',
+//           deliberationId,
+//           roomId: room.id,
+//         },
+//         select: { id: true },
+//       });
+
+//       await db.debateNode.createMany({
+//         data: [
+//           // claims
+//           { sheetId: sheet.id, title: mainClaim.text, claimId: mainClaim.id },
+//           { sheetId: sheet.id, title: safetyClaim.text, claimId: safetyClaim.id },
+//           { sheetId: sheet.id, title: trafficClaim.text, claimId: trafficClaim.id },
+//           { sheetId: sheet.id, title: costClaim.text, claimId: costClaim.id },
+//           // arguments + diagrams
+//           { sheetId: sheet.id, title: 'Safety Argument', argumentId: safetyArg.id, diagramId: safetyDiagram.id },
+//           { sheetId: sheet.id, title: 'Traffic Argument', argumentId: trafficArg.id, diagramId: trafficDiagram.id },
+//           { sheetId: sheet.id, title: 'Modal Shift', argumentId: modalArg.id, diagramId: modalDiagram.id },
+//           { sheetId: sheet.id, title: 'Expert Opinion', argumentId: expertArg.id, diagramId: expertDiagram.id },
+//         ],
+//         skipDuplicates: true,
+//       });
+
+//       return {
+//         room,
+//         deliberationId,
+//         sheetId: sheet.id,
+//         claims: { main: mainClaim.id, safety: safetyClaim.id, traffic: trafficClaim.id, cost: costClaim.id },
+//         args: {
+//           safety: { id: safetyArg.id, diagramId: safetyDiagram.id },
+//           traffic: { id: trafficArg.id, diagramId: trafficDiagram.id },
+//           modal: { id: modalArg.id, diagramId: modalDiagram.id },
+//           expert: { id: expertArg.id, diagramId: expertDiagram.id },
+//         },
+//       };
+//     });
+
+//     return NextResponse.json(
+//       {
+//         ok: true,
+//         room: result.room,
+//         deliberationId: result.deliberationId,
+//         sheetId: result.sheetId,
+//         urls: {
+//           room: `/agora/rooms/${result.room.slug}`,
+//           deliberation: `/deliberation/${result.deliberationId}`,
+//           sheet: `/api/sheets/${result.sheetId}`,
+//           sheetAlias: `/api/sheets/delib:${result.deliberationId}`,
+//           evidential: `/api/deliberations/${result.deliberationId}/evidential?mode=product`,
+//           evidentialMin: `/api/deliberations/${result.deliberationId}/evidential?mode=min`,
+//           graph: `/api/deliberations/${result.deliberationId}/graph?semantics=preferred&confidence=0.6&mode=product`,
+//         },
+//         created: { claims: result.claims, arguments: result.args },
+//         summary: {
+//           scenario: 'Protected bike lanes debate with 4 claims, 4 arguments, all diagrammed',
+//           features: [
+//             'Safety argument (presumptive practical reasoning)',
+//             'Traffic opposition (inductive/causal)',
+//             'Modal shift counter-argument (undercut on inference)',
+//             'Expert opinion (presumptive scheme)',
+//           ],
+//         },
+//       },
+//       NO_STORE
+//     );
+//   } catch (err: any) {
+//     return NextResponse.json(
+//       { ok: false, error: String(err?.message || err) },
+//       { status: 500, ...NO_STORE }
+//     );
+//   }
+// }
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
-import { $Enums } from '@prisma/client';
-import type { AifSubgraph } from '@/lib/arguments/diagram';
-import type { StatementRole, InferenceKind } from '@prisma/client';
+import type { StatementRole, InferenceKind, EdgeType, TargetScope } from '@prisma/client';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
-
 const NO_STORE = { headers: { 'Cache-Control': 'no-store' } } as const;
+
 const uid = (n = 6) => Math.random().toString(36).slice(2, 2 + n);
 const moid = (tag: string) => `seed:${tag}:${Date.now()}:${uid(4)}`;
+const must = <T>(x: T | null | undefined, msg: string) => { if (x == null) throw new Error(msg); return x; };
 
-export async function GET() { 
-  return NextResponse.json({ ok: true }, NO_STORE); 
-}
+export async function GET() { return NextResponse.json({ ok: true }, NO_STORE); }
 
 export async function POST(_req: NextRequest) {
-  // ==================== 0) Setup: Room + Deliberation ====================
-  const room = await prisma.agoraRoom.create({
-    data: { 
-      slug: `bike-lanes-${Date.now()}-${uid(3)}`, 
-      title: 'Protected Bike Lanes on Maple Avenue',
-      summary: 'Should the city install protected bike lanes on Maple Ave?'
-    },
-    select: { id: true, slug: true, title: true }
-  });
-
-  // Create deliberation
-  let deliberationId: string;
   try {
-    const hostTypeAny = (Object.values(($Enums as any)?.DeliberationHostType ?? {})[0] as any) || 'topic';
-    const delib = await prisma.deliberation.create({
+    // 0) Room + Deliberation
+    const room = await prisma.agoraRoom.create({
+      data: { slug: `bike-lanes-${Date.now()}-${uid(3)}`, title: 'Protected Bike Lanes on Maple Avenue',
+              summary: 'Should the city install protected bike lanes on Maple Ave?' },
+      select: { id: true, slug: true, title: true }
+    });
+
+    const { id: deliberationId } = await prisma.deliberation.create({
       data: {
-        hostType: hostTypeAny,
-        hostId: `topic:bike-lanes-${uid(4)}`,
+        hostType: 'post',
+        hostId: `topic:${uid(6)}`,
         createdById: 'system',
-        rule: 'utilitarian' as any,
+        rule: 'utilitarian',
         roomId: room.id,
-        agoraRoomId: room.id as any,
+        agoraRoomId: room.id,
       },
       select: { id: true }
-    }).catch(async () => {
-      return await prisma.deliberation.create({
-        data: {
-          hostType: hostTypeAny, 
-          hostId: `topic:${uid(6)}`, 
-          createdById: 'system', 
-          rule: 'utilitarian' as any, 
-          roomId: room.id
-        },
-        select: { id: true }
-      });
     });
-    deliberationId = delib.id;
-  } catch {
-    const anyDelib = await prisma.deliberation.findFirst({ select: { id: true } });
-    if (!anyDelib) {
-      return NextResponse.json(
-        { ok: false, error: 'Cannot create deliberation' },
-        { status: 500, ...NO_STORE }
-      );
-    }
-    deliberationId = anyDelib.id;
-  }
 
-  // ==================== 1) Claims ====================
-  const [mainClaim, safetyClaim, trafficClaim, costClaim] = await Promise.all([
-    prisma.claim.create({
-      data: {
-        deliberationId,
-        text: 'The city should install protected bike lanes on Maple Avenue',
-        createdById: 'system',
-        moid: moid('main-claim'),
-      },
+    // 1) Claims
+    const [mainClaim, safetyClaim, trafficClaim, costClaim] = await Promise.all([
+      prisma.claim.create({ data: { deliberationId, text: 'The city should install protected bike lanes on Maple Avenue',
+        createdById: 'system', moid: moid('main') }, select: { id: true, text: true } }),
+      prisma.claim.create({ data: { deliberationId, text: 'Protected bike lanes significantly improve cyclist safety',
+        createdById: 'system', moid: moid('safety') }, select: { id: true, text: true } }),
+      prisma.claim.create({ data: { deliberationId, text: 'Bike lanes will worsen traffic congestion',
+        createdById: 'system', moid: moid('traffic') }, select: { id: true, text: true } }),
+      prisma.claim.create({ data: { deliberationId, text: 'The project cost is justified by long-term benefits',
+        createdById: 'system', moid: moid('cost') }, select: { id: true, text: true } }),
+    ]);
+
+    // 2) Safety (supports main)
+    const safetyArg = await prisma.argument.create({
+      data: { deliberationId, authorId: 'system', text: 'Safety Argument: Protected lanes reduce injuries',
+              claimId: mainClaim.id, conclusionClaimId: mainClaim.id, mediaType: 'text' },
       select: { id: true, text: true }
-    }),
-    prisma.claim.create({
+    });
+
+    const safetyDiagram = await prisma.argumentDiagram.create({
       data: {
-        deliberationId,
-        text: 'Protected bike lanes significantly improve cyclist safety',
+        title: 'Safety Case for Protected Bike Lanes',
         createdById: 'system',
-        moid: moid('safety-claim'),
+        statements: { create: [
+          { text: 'Protected lanes reduce injuries by 40–50% in peer cities', role: 'premise', tags: ['data','safety'] },
+          { text: 'Maple Ave carries heavy bike and scooter traffic from two schools', role: 'premise', tags: ['context','demand'] },
+          { text: 'If an intervention reduces injuries and demand is high, the city ought to implement it', role: 'warrant', tags: ['policy-principle'] },
+          { text: 'The city should install protected bike lanes on Maple Avenue', role: 'conclusion', tags: ['recommendation'] },
+        ] }
       },
-      select: { id: true, text: true }
-    }),
-    prisma.claim.create({
+      include: { statements: true }
+    });
+    const S = new Map(safetyDiagram.statements.map(s => [s.text, s.id]));
+    const safetyInf = await prisma.inference.create({
       data: {
-        deliberationId,
-        text: 'Bike lanes will worsen traffic congestion',
-        createdById: 'system',
-        moid: moid('traffic-claim'),
+        diagramId: safetyDiagram.id,
+        kind: 'presumptive',
+        conclusionId: must(S.get('The city should install protected bike lanes on Maple Avenue'), 'safety: missing conclusion'),
+        schemeKey: 'value_based_practical_reasoning',
+        cqKeys: [],
       },
+      select: { id: true }
+    });
+    await prisma.inferencePremise.createMany({
+      data: [
+        { inferenceId: safetyInf.id, statementId: must(S.get('Protected lanes reduce injuries by 40–50% in peer cities'), 'safety p1') },
+        { inferenceId: safetyInf.id, statementId: must(S.get('Maple Ave carries heavy bike and scooter traffic from two schools'), 'safety p2') },
+        { inferenceId: safetyInf.id, statementId: must(S.get('If an intervention reduces injuries and demand is high, the city ought to implement it'), 'safety warrant') },
+      ], skipDuplicates: true
+    });
+
+    // 3) Traffic (opposes)
+    const trafficArg = await prisma.argument.create({
+      data: { deliberationId, authorId: 'system', text: 'Traffic Argument: Lanes will worsen congestion',
+              claimId: trafficClaim.id, conclusionClaimId: trafficClaim.id, mediaType: 'text' },
       select: { id: true, text: true }
-    }),
-    prisma.claim.create({
+    });
+    const trafficDiagram = await prisma.argumentDiagram.create({
       data: {
-        deliberationId,
-        text: 'The project cost is justified by long-term benefits',
+        title: 'Traffic Congestion Concerns',
         createdById: 'system',
-        moid: moid('cost-claim'),
-      },
-      select: { id: true, text: true }
-    }),
-  ]);
-
-  // ==================== 2) Safety Argument (Main Supporting) ====================
-  const safetyArg = await prisma.argument.create({
-    data: {
-      deliberationId,
-      authorId: 'system',
-      text: 'Safety Argument: Protected lanes reduce injuries',
-      claimId: mainClaim.id,
-    },
-    select: { id: true, text: true }
-  });
-
-  // Create detailed ArgumentDiagram for safety argument with AIF
-  const safetyDiagram = await prisma.argumentDiagram.create({
-    data: {
-      title: 'Safety Case for Protected Bike Lanes',
-      createdById: 'system',
-      statements: {
-        create: [
-          { 
-            text: 'Protected lanes reduce injuries by 40-50% in peer cities', 
-            role: 'premise', 
-            tags: ['data', 'safety'] 
-          },
-          { 
-            text: 'Maple Ave carries heavy bike and scooter traffic from two schools', 
-            role: 'premise', 
-            tags: ['context', 'demand'] 
-          },
-          { 
-            text: 'If an intervention reduces injuries and demand is high, the city ought to implement it', 
-            role: 'warrant', 
-            tags: ['policy-principle'] 
-          },
-          { 
-            text: 'The city should install protected bike lanes on Maple Avenue', 
-            role: 'conclusion', 
-            tags: ['recommendation'] 
-          },
-        ]
-      }
-    },
-    select: { id: true, title: true, statements: { select: { id: true, text: true, role: true } } }
-  });
-
-  // Create inference linking premises to conclusion
-  const stmtMap = new Map<string, string>(
-    safetyDiagram.statements.map((s: { id: string; text: string; role: StatementRole }) => [s.text, s.id])
-  );
-  const safetyInference = await prisma.inference.create({
-    data: {
-      diagramId: safetyDiagram.id,
-     kind: 'PRESUMPTIVE',
-      conclusionId: stmtMap.get('The city should install protected bike lanes on Maple Avenue')!,
-      schemeKey: 'value_based_practical_reasoning',
-      cqKeys: [],
-    },
-    select: { id: true }
-  });
-
-  // Link premises to inference
-  await Promise.all([
-    prisma.inferencePremise.create({
-      data: { 
-        inferenceId: safetyInference.id, 
-        statementId: stmtMap.get('Protected lanes reduce injuries by 40-50% in peer cities')! 
-      }
-    }),
-    prisma.inferencePremise.create({
-      data: { 
-        inferenceId: safetyInference.id, 
-        statementId: stmtMap.get('Maple Ave carries heavy bike and scooter traffic from two schools')! 
-      }
-    }),
-    prisma.inferencePremise.create({
-      data: { 
-        inferenceId: safetyInference.id, 
-        statementId: stmtMap.get('If an intervention reduces injuries and demand is high, the city ought to implement it')! 
-      }
-    }),
-  ]);
-
-  // Generate AIF graph for safety argument
-  const safetyAif: AifSubgraph = {
-    nodes: [
-      { id: 'I:safety_data', kind: 'I', label: 'Protected lanes reduce injuries by 40-50%', 
-        label: 'Protected lanes reduce injuries by 40-50% in peer cities' },
-      { id: 'I:demand', kind: 'I', label: 'High bike traffic from schools', 
-        label: 'Maple Ave carries heavy bike and scooter traffic from two schools' },
-      { id: 'I:warrant', kind: 'I', label: 'Policy principle', 
-        label: 'If an intervention reduces injuries and demand is high, the city ought to implement it' },
-      { id: 'RA:safety', kind: 'RA', label: 'Safety reasoning', schemeKey: 'value_based_practical_reasoning' },
-      { id: 'I:conclusion', kind: 'I', label: 'Should install bike lanes', 
-        label: 'The city should install protected bike lanes on Maple Avenue' },
-    ],
-    edges: [
-      { id: 'e1', from: 'I:safety_data', to: 'RA:safety', role: 'premise' },
-      { id: 'e2', from: 'I:demand', to: 'RA:safety', role: 'premise' },
-      { id: 'e3', from: 'I:warrant', to: 'RA:safety', role: 'premise' },
-      { id: 'e4', from: 'RA:safety', to: 'I:conclusion', role: 'conclusion' },
-    ]
-  };
-
-  // Update diagram with AIF data
-  await prisma.argumentDiagram.update({
-    where: { id: safetyDiagram.id },
-    data: { aif: safetyAif as any }
-  });
-
-  // ==================== 3) Traffic Opposition Argument ====================
-  const trafficArg = await prisma.argument.create({
-    data: {
-      deliberationId,
-      authorId: 'system',
-      text: 'Traffic Argument: Lanes will worsen congestion',
-      claimId: trafficClaim.id,
-    },
-    select: { id: true, text: true }
-  });
-
-  const trafficDiagram = await prisma.argumentDiagram.create({
-    data: {
-      title: 'Traffic Congestion Concerns',
-      createdById: 'system',
-      statements: {
-        create: [
+        statements: { create: [
           { text: 'Removing one car lane will reduce vehicle capacity', role: 'premise', tags: ['traffic'] },
           { text: 'Maple Ave is already congested during peak hours', role: 'premise', tags: ['context'] },
           { text: 'Reduced capacity on congested roads increases delays', role: 'warrant', tags: ['traffic-principle'] },
           { text: 'Bike lanes will worsen traffic congestion', role: 'conclusion', tags: ['prediction'] },
-        ]
-      }
-    },
-    select: { id: true, statements: { select: { id: true, text: true, role: true } } }
-  });
+        ] }
+      },
+      include: { statements: true }
+    });
+    const T = new Map(trafficDiagram.statements.map(s => [s.text, s.id]));
+    const trafficInf = await prisma.inference.create({
+      data: {
+        diagramId: trafficDiagram.id,
+        kind: 'inductive',
+        conclusionId: must(T.get('Bike lanes will worsen traffic congestion'), 'traffic: missing conclusion'),
+        schemeKey: 'cause_to_effect',
+        cqKeys: [],
+      }, select: { id: true }
+    });
+    await prisma.inferencePremise.createMany({
+      data: [
+        { inferenceId: trafficInf.id, statementId: must(T.get('Removing one car lane will reduce vehicle capacity'), 'traffic p1') },
+        { inferenceId: trafficInf.id, statementId: must(T.get('Maple Ave is already congested during peak hours'), 'traffic p2') },
+        { inferenceId: trafficInf.id, statementId: must(T.get('Reduced capacity on congested roads increases delays'), 'traffic warrant') },
+      ], skipDuplicates: true
+    });
 
-//   enum InferenceKind {
-//   presumptive
-//   deductive
-//   inductive
-//   abductive
-//   defeasible
-//   analogy
-// }
-
-  const trafficStmtMap = new Map(trafficDiagram.statements.map(s => [s.text, s.id]));
-  const trafficInference = await prisma.inference.create({
-    data: {
-      diagramId: trafficDiagram.id,
-      kind: 'causal_reasoning',
-      conclusionId: trafficStmtMap.get('Bike lanes will worsen traffic congestion')!,
-      schemeKey: 'cause_to_effect',
-      cqKeys: [],
-    },
-    select: { id: true }
-  });
-
-  await Promise.all([
-    prisma.inferencePremise.create({
-      data: { inferenceId: trafficInference.id, statementId: trafficStmtMap.get('Removing one car lane will reduce vehicle capacity')! }
-    }),
-    prisma.inferencePremise.create({
-      data: { inferenceId: trafficInference.id, statementId: trafficStmtMap.get('Maple Ave is already congested during peak hours')! }
-    }),
-    prisma.inferencePremise.create({
-      data: { inferenceId: trafficInference.id, statementId: trafficStmtMap.get('Reduced capacity on congested roads increases delays')! }
-    }),
-  ]);
-
-  // AIF for traffic argument with conflict
-  const trafficAif: AifSubgraph = {
-    nodes: [
-      { id: 'I:capacity', kind: 'I', label: 'Reduced vehicle capacity', 
-        label: 'Removing one car lane will reduce vehicle capacity' },
-      { id: 'I:current_congestion', kind: 'I', label: 'Already congested', 
-        label: 'Maple Ave is already congested during peak hours' },
-      { id: 'I:traffic_warrant', kind: 'I', label: 'Traffic principle', 
-        label: 'Reduced capacity on congested roads increases delays' },
-      { id: 'RA:traffic', kind: 'RA', label: 'Traffic reasoning', schemeKey: 'cause_to_effect' },
-      { id: 'I:traffic_conclusion', kind: 'I', label: 'Will worsen congestion', 
-        label: 'Bike lanes will worsen traffic congestion' },
-      // Conflict with safety argument
-      { id: 'CA:conflict1', kind: 'CA', label: 'Rebut', schemeKey: 'REBUT' },
-    ],
-    edges: [
-      { id: 'e1', from: 'I:capacity', to: 'RA:traffic', role: 'premise' },
-      { id: 'e2', from: 'I:current_congestion', to: 'RA:traffic', role: 'premise' },
-      { id: 'e3', from: 'I:traffic_warrant', to: 'RA:traffic', role: 'premise' },
-      { id: 'e4', from: 'RA:traffic', to: 'I:traffic_conclusion', role: 'conclusion' },
-      // Conflict: traffic concerns rebut the bike lane proposal
-      { id: 'e5', from: 'RA:traffic', to: 'CA:conflict1', role: 'conflictingElement' },
-      { id: 'e6', from: 'CA:conflict1', to: 'I:conclusion', role: 'conflictedElement' },
-    ]
-  };
-
-  await prisma.argumentDiagram.update({
-    where: { id: trafficDiagram.id },
-    data: { aif: trafficAif as any }
-  });
-
-  // ==================== 4) Counter-argument: Modal Shift ====================
-  const modalShiftArg = await prisma.argument.create({
-    data: {
-      deliberationId,
-      authorId: 'system',
-      text: 'Modal Shift Response: More biking reduces car traffic',
-      claimId: mainClaim.id,
-    },
-    select: { id: true, text: true }
-  });
-
-  const modalShiftDiagram = await prisma.argumentDiagram.create({
-    data: {
-      title: 'Modal Shift Counterargument',
-      createdById: 'system',
-      statements: {
-        create: [
-          { text: 'Protected lanes increase cycling by 50-75% (Seattle, Portland data)', role: 'premise', tags: ['data'] },
+    // 4) Modal-shift (undercuts traffic inference)
+    const modalClaim = await prisma.claim.create({
+      data: { deliberationId, text: 'The net effect reduces congestion rather than increasing it', createdById: 'system', moid: moid('modal-concl') },
+      select: { id: true }
+    });
+    const modalArg = await prisma.argument.create({
+      data: { deliberationId, authorId: 'system', text: 'Modal Shift Response: More biking reduces car traffic',
+              claimId: mainClaim.id, conclusionClaimId: modalClaim.id, mediaType: 'text' },
+      select: { id: true, text: true }
+    });
+    const modalDiagram = await prisma.argumentDiagram.create({
+      data: {
+        title: 'Modal Shift Counterargument',
+        createdById: 'system',
+        statements: { create: [
+          { text: 'Protected lanes increase cycling by 50–75% (Seattle, Portland data)', role: 'premise', tags: ['data'] },
           { text: 'Each new cyclist is one less car on the road', role: 'premise', tags: ['modal-shift'] },
           { text: 'The net effect reduces congestion rather than increasing it', role: 'conclusion', tags: ['rebuttal'] },
-        ]
-      }
-    },
-    select: { id: true, statements: { select: { id: true, text: true, role: true } } }
-  });
+        ] }
+      },
+      include: { statements: true }
+    });
+    const M = new Map(modalDiagram.statements.map(s => [s.text, s.id]));
+    const modalInf = await prisma.inference.create({
+      data: {
+        diagramId: modalDiagram.id,
+        kind: 'inductive',
+        conclusionId: must(M.get('The net effect reduces congestion rather than increasing it'), 'modal: missing conclusion'),
+        schemeKey: 'cause_to_effect',
+        cqKeys: [],
+      }, select: { id: true }
+    });
+    await prisma.inferencePremise.createMany({
+      data: [
+        { inferenceId: modalInf.id, statementId: must(M.get('Protected lanes increase cycling by 50–75% (Seattle, Portland data)'), 'modal p1') },
+        { inferenceId: modalInf.id, statementId: must(M.get('Each new cyclist is one less car on the road'), 'modal p2') },
+      ], skipDuplicates: true
+    });
 
-  const modalStmtMap = new Map(modalShiftDiagram.statements.map(s => [s.text, s.id]));
-  const modalInference = await prisma.inference.create({
-    data: {
-      diagramId: modalShiftDiagram.id,
-      kind: 'causal_reasoning',
-      conclusionId: modalStmtMap.get('The net effect reduces congestion rather than increasing it')!,
-      schemeKey: 'cause_to_effect',
-      cqKeys: [],
-    },
-    select: { id: true }
-  });
-
-  await Promise.all([
-    prisma.inferencePremise.create({
-      data: { inferenceId: modalInference.id, statementId: modalStmtMap.get('Protected lanes increase cycling by 50-75% (Seattle, Portland data)')! }
-    }),
-    prisma.inferencePremise.create({
-      data: { inferenceId: modalInference.id, statementId: modalStmtMap.get('Each new cyclist is one less car on the road')! }
-    }),
-  ]);
-
-  // Complex AIF with undercut attack on traffic argument
-  const modalShiftAif: AifSubgraph = {
-    nodes: [
-      { id: 'I:modal_data', kind: 'I', label: 'Cycling increases 50-75%', 
-        label: 'Protected lanes increase cycling by 50-75% (Seattle, Portland data)' },
-      { id: 'I:one_less_car', kind: 'I', label: 'Modal substitution', 
-        label: 'Each new cyclist is one less car on the road' },
-      { id: 'RA:modal_shift', kind: 'RA', label: 'Modal shift reasoning', schemeKey: 'cause_to_effect' },
-      { id: 'I:modal_conclusion', kind: 'I', label: 'Net reduces congestion', 
-        label: 'The net effect reduces congestion rather than increasing it' },
-      // Undercut attack on traffic argument's inference
-      { id: 'CA:undercut1', kind: 'CA', label: 'Undercut', schemeKey: 'UNDERCUT' },
-    ],
-    edges: [
-      { id: 'e1', from: 'I:modal_data', to: 'RA:modal_shift', role: 'premise' },
-      { id: 'e2', from: 'I:one_less_car', to: 'RA:modal_shift', role: 'premise' },
-      { id: 'e3', from: 'RA:modal_shift', to: 'I:modal_conclusion', role: 'conclusion' },
-      // Undercut: modal shift attacks the inference in traffic argument
-      { id: 'e4', from: 'RA:modal_shift', to: 'CA:undercut1', role: 'conflictingElement' },
-      { id: 'e5', from: 'CA:undercut1', to: 'RA:traffic', role: 'conflictedElement' },
-    ]
-  };
-
-  await prisma.argumentDiagram.update({
-    where: { id: modalShiftDiagram.id },
-    data: { aif: modalShiftAif as any }
-  });
-
-  // ==================== 5) Expert Opinion Argument ====================
-  const expertArg = await prisma.argument.create({
-    data: {
-      deliberationId,
-      authorId: 'system',
-      text: 'Expert Opinion: Transportation planners support the project',
-      claimId: mainClaim.id,
-    },
-    select: { id: true, text: true }
-  });
-
-  const expertDiagram = await prisma.argumentDiagram.create({
-    data: {
-      title: 'Expert Opinion Support',
-      createdById: 'system',
-      statements: {
-        create: [
+    // 5) Expert opinion (supports main)
+    const expertArg = await prisma.argument.create({
+      data: { deliberationId, authorId: 'system', text: 'Expert Opinion: Transportation planners support the project',
+              claimId: mainClaim.id, conclusionClaimId: mainClaim.id, mediaType: 'text' },
+      select: { id: true, text: true }
+    });
+    const expertDiagram = await prisma.argumentDiagram.create({
+      data: {
+        title: 'Expert Opinion Support',
+        createdById: 'system',
+        statements: { create: [
           { text: 'City Transportation Department recommends protected lanes for Maple Ave', role: 'premise', tags: ['expert'] },
           { text: 'Transportation planners are experts in urban mobility', role: 'premise', tags: ['credibility'] },
           { text: 'We should follow expert recommendations on technical matters', role: 'warrant', tags: ['epistemic'] },
           { text: 'The city should install protected bike lanes on Maple Avenue', role: 'conclusion', tags: ['recommendation'] },
-        ]
+        ] }
+      },
+      include: { statements: true }
+    });
+    const E = new Map(expertDiagram.statements.map(s => [s.text, s.id]));
+    const expertInf = await prisma.inference.create({
+      data: {
+        diagramId: expertDiagram.id,
+        kind: 'presumptive',
+        conclusionId: must(E.get('The city should install protected bike lanes on Maple Avenue'), 'expert: missing conclusion'),
+        schemeKey: 'argument_from_expert_opinion',
+        cqKeys: ['CQ1: Is the source a genuine expert?', "CQ2: Is the expert's opinion relevant?"],
+      }, select: { id: true }
+    });
+    await prisma.inferencePremise.createMany({
+      data: [
+        { inferenceId: expertInf.id, statementId: must(E.get('City Transportation Department recommends protected lanes for Maple Ave'), 'expert p1') },
+        { inferenceId: expertInf.id, statementId: must(E.get('Transportation planners are experts in urban mobility'), 'expert p2') },
+        { inferenceId: expertInf.id, statementId: must(E.get('We should follow expert recommendations on technical matters'), 'expert warrant') },
+      ], skipDuplicates: true
+    });
+
+    // 6) Supports & attack edge (modal undercuts traffic)
+    await prisma.argumentSupport.createMany({
+      data: [
+        { deliberationId, claimId: mainClaim.id,    argumentId: safetyArg.id, mode: 'product', strength: 0.72, base: 0.72 },
+        { deliberationId, claimId: trafficClaim.id, argumentId: trafficArg.id, mode: 'product', strength: 0.58, base: 0.58 },
+        { deliberationId, claimId: modalClaim.id,   argumentId: modalArg.id,   mode: 'product', strength: 0.65, base: 0.65 },
+        { deliberationId, claimId: mainClaim.id,    argumentId: expertArg.id,  mode: 'product', strength: 0.68, base: 0.68 },
+      ], skipDuplicates: true
+    });
+
+    await prisma.argumentEdge.create({
+      data: {
+        deliberationId,
+        fromArgumentId: modalArg.id,
+        toArgumentId:   trafficArg.id,
+        type: 'undercut' as EdgeType,
+        targetScope: 'inference' as TargetScope,
+        attackType: 'UNDERCUTS',
+        createdById: 'system',
       }
-    },
-    select: { id: true, statements: { select: { id: true, text: true, role: true } } }
-  });
+    });
 
-  const expertStmtMap = new Map(expertDiagram.statements.map(s => [s.text, s.id]));
-  const expertInference = await prisma.inference.create({
-    data: {
-      diagramId: expertDiagram.id,
-      kind: 'expert_opinion',
-      conclusionId: expertStmtMap.get('The city should install protected bike lanes on Maple Avenue')!,
-      schemeKey: 'argument_from_expert_opinion',
-      cqKeys: ['CQ1: Is the source a genuine expert?', 'CQ2: Is the expert's opinion relevant?'],
-    },
-    select: { id: true }
-  });
+    // 7) Sheet
+    const { id: sheetId } = await prisma.debateSheet.create({
+      data: {
+        title: `Bike Lanes Debate • ${room.slug}`,
+        createdById: 'system',
+        deliberationId,
+        roomId: room.id,
+      }, select: { id: true }
+    });
 
-  await Promise.all([
-    prisma.inferencePremise.create({
-      data: { inferenceId: expertInference.id, statementId: expertStmtMap.get('City Transportation Department recommends protected lanes for Maple Ave')! }
-    }),
-    prisma.inferencePremise.create({
-      data: { inferenceId: expertInference.id, statementId: expertStmtMap.get('Transportation planners are experts in urban mobility')! }
-    }),
-    prisma.inferencePremise.create({
-      data: { inferenceId: expertInference.id, statementId: expertStmtMap.get('We should follow expert recommendations on technical matters')! }
-    }),
-  ]);
+    await prisma.debateNode.createMany({
+      data: [
+        { sheetId, title: mainClaim.text,    claimId: mainClaim.id },
+        { sheetId, title: safetyClaim.text,  claimId: safetyClaim.id },
+        { sheetId, title: trafficClaim.text, claimId: trafficClaim.id },
+        { sheetId, title: costClaim.text,    claimId: costClaim.id },
+        { sheetId, title: 'Safety Argument',    argumentId: safetyArg.id, diagramId: safetyDiagram.id },
+        { sheetId, title: 'Traffic Argument',   argumentId: trafficArg.id, diagramId: trafficDiagram.id },
+        { sheetId, title: 'Modal Shift',        argumentId: modalArg.id,   diagramId: modalDiagram.id },
+        { sheetId, title: 'Expert Opinion',     argumentId: expertArg.id,  diagramId: expertDiagram.id },
+      ], skipDuplicates: true
+    });
 
-  const expertAif: AifSubgraph = {
-    nodes: [
-      { id: 'I:expert_says', kind: 'I', label: 'Transportation Dept recommends', 
-        label: 'City Transportation Department recommends protected lanes for Maple Ave' },
-      { id: 'I:expert_cred', kind: 'I', label: 'Planners are experts', 
-        label: 'Transportation planners are experts in urban mobility' },
-      { id: 'I:expert_warrant', kind: 'I', label: 'Follow expert advice', 
-        label: 'We should follow expert recommendations on technical matters' },
-      { id: 'RA:expert', kind: 'RA', label: 'Expert opinion', schemeKey: 'argument_from_expert_opinion' },
-      { id: 'I:expert_conclusion', kind: 'I', label: 'Should install lanes', 
-        label: 'The city should install protected bike lanes on Maple Avenue' },
-    ],
-    edges: [
-      { id: 'e1', from: 'I:expert_says', to: 'RA:expert', role: 'premise' },
-      { id: 'e2', from: 'I:expert_cred', to: 'RA:expert', role: 'premise' },
-      { id: 'e3', from: 'I:expert_warrant', to: 'RA:expert', role: 'premise' },
-      { id: 'e4', from: 'RA:expert', to: 'I:expert_conclusion', role: 'conclusion' },
-    ]
-  };
-
-  await prisma.argumentDiagram.update({
-    where: { id: expertDiagram.id },
-    data: { aif: expertAif as any }
-  });
-
-  // ==================== 6) Argument Supports & Edges ====================
-  await prisma.argumentSupport.createMany({
-    data: [
-      { deliberationId, claimId: mainClaim.id, argumentId: safetyArg.id, base: 0.72 },
-      { deliberationId, claimId: trafficClaim.id, argumentId: trafficArg.id, base: 0.58 },
-      { deliberationId, claimId: mainClaim.id, argumentId: modalShiftArg.id, base: 0.65 },
-      { deliberationId, claimId: mainClaim.id, argumentId: expertArg.id, base: 0.68 },
-    ],
-    skipDuplicates: true,
-  });
-
-  // Create argument edges (modal shift rebuts traffic argument)
-  await prisma.argumentEdge.createMany({
-    data: [
-      { 
-        deliberationId, 
-        fromArgumentId: modalShiftArg.id, 
-        toArgumentId: trafficArg.id, 
-        type: 'challenge' as any, 
-        createdById: 'system', 
-        targetScope: 'inference' as any 
-      },
-    ],
-    skipDuplicates: true,
-  });
-
-  // ==================== 7) DebateSheet & Nodes ====================
-  const sheet = await prisma.debateSheet.create({
-    data: {
-      title: `Bike Lanes Debate • ${room.slug}`,
-      createdById: 'system',
-      deliberation: { connect: { id: deliberationId } },
-      room: { connect: { id: room.id } },
-    },
-    select: { id: true }
-  });
-
-  await prisma.debateNode.createMany({
-    data: [
-      // Claims
-      { sheetId: sheet.id, title: mainClaim.text, claimId: mainClaim.id },
-      { sheetId: sheet.id, title: safetyClaim.text, claimId: safetyClaim.id },
-      { sheetId: sheet.id, title: trafficClaim.text, claimId: trafficClaim.id },
-      { sheetId: sheet.id, title: costClaim.text, claimId: costClaim.id },
-      // Arguments with diagrams
-      { sheetId: sheet.id, title: safetyArg.text, argumentId: safetyArg.id, diagramId: safetyDiagram.id },
-      { sheetId: sheet.id, title: trafficArg.text, argumentId: trafficArg.id, diagramId: trafficDiagram.id },
-      { sheetId: sheet.id, title: modalShiftArg.text, argumentId: modalShiftArg.id, diagramId: modalShiftDiagram.id },
-      { sheetId: sheet.id, title: expertArg.text, argumentId: expertArg.id, diagramId: expertDiagram.id },
-    ] as any,
-    skipDuplicates: true,
-  });
-
-  // ==================== 8) Response ====================
-  return NextResponse.json({
-    ok: true,
-    room: { id: room.id, slug: room.slug, title: room.title },
-    deliberationId,
-    sheetId: sheet.id,
-    urls: {
-      room: `/agora/rooms/${room.slug}`,
-      deliberation: `/deliberation/${deliberationId}`,
-      sheet: `/api/sheets/${sheet.id}`,
-      sheetAlias: `/api/sheets/delib:${deliberationId}`,
-      evidential: `/api/deliberations/${deliberationId}/evidential?mode=product`,
-      evidentialMin: `/api/deliberations/${deliberationId}/evidential?mode=min`,
-      graph: `/api/deliberations/${deliberationId}/graph?semantics=preferred&confidence=0.6&mode=product`,
-    },
-    created: {
-      claims: {
-        main: mainClaim.id,
-        safety: safetyClaim.id,
-        traffic: trafficClaim.id,
-        cost: costClaim.id,
-      },
-      arguments: {
-        safety: { id: safetyArg.id, diagramId: safetyDiagram.id },
-        traffic: { id: trafficArg.id, diagramId: trafficDiagram.id },
-        modalShift: { id: modalShiftArg.id, diagramId: modalShiftDiagram.id },
-        expert: { id: expertArg.id, diagramId: expertDiagram.id },
-      },
-    },
-    summary: {
-      scenario: 'Protected bike lanes debate with 4 claims, 4 arguments, all with AIF visualizations',
-      features: [
-        'Safety argument with practical reasoning',
-        'Traffic opposition with causal reasoning',
-        'Modal shift counter-argument with undercut attack',
-        'Expert opinion with argumentation scheme',
-        'Full AIF graphs with conflicts and preferences',
-      ],
-    },
-  }, NO_STORE);
+    // Response
+    return NextResponse.json({
+      ok: true,
+      room, deliberationId, sheetId,
+      urls: {
+        room: `/agora/rooms/${room.slug}`,
+        deliberation: `/deliberation/${deliberationId}`,
+        sheet: `/api/sheets/${sheetId}`,
+        sheetAlias: `/api/sheets/delib:${deliberationId}`,
+        evidential: `/api/deliberations/${deliberationId}/evidential?mode=product`,
+        evidentialMin: `/api/deliberations/${deliberationId}/evidential?mode=min`,
+        graph: `/api/deliberations/${deliberationId}/graph?semantics=preferred&confidence=0.6&mode=product`,
+      }
+    }, NO_STORE);
+  } catch (err: any) {
+    return NextResponse.json({ ok: false, error: String(err?.message || err) }, { status: 500, ...NO_STORE });
+  }
 }

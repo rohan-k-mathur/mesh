@@ -1,3 +1,4 @@
+// components/work/editors/OPThesesEditor.tsx
 'use client';
 import * as React from 'react';
 import { slotAnchorId } from './slot-helpers';

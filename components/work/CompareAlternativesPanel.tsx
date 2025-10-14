@@ -1,3 +1,4 @@
+// components/work/CompareAlternativesPanel.tsx
 'use client';
 import * as React from 'react';
 

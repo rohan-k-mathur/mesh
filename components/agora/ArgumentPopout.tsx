@@ -260,6 +260,8 @@ type LocalDiagram = {
   title?: string | null;
   statements: SheetStatement[];
   inferences: SheetInference[];
+  argumentId?: string;          // ← add
+  deliberationId?: string;      // ← add
 };
 
 type ViewMode = 'toulmin' | 'aif';
@@ -271,7 +273,7 @@ export default function ArgumentPopout({
   node: any;
   onClose: () => void;
 }) {
-  const [viewMode, setViewMode] = useState<ViewMode>('toulmin');
+  const [viewMode, setViewMode] = useState<ViewMode>('aif');
   const [clickedNode, setClickedNode] = useState<AifNode | null>(null); // ✅ Add missing state
 
   const key = node?.diagramId
@@ -447,9 +449,10 @@ export default function ArgumentPopout({
                       )}
                       <div className="flex flex-col gap-1.5 pt-1">
                         <UndercutPill
-                          toArgumentId={node.diagramId!}
+                          toArgumentId={node.argumentId ?? (raw as any).argumentId}
                           targetInferenceId={inf.id}
-                          deliberationId={node.deliberationId}
+                          deliberationId={(node as any).deliberationId ?? (raw as any).deliberationId}
+                          toDiagramId={node.diagramId ?? raw.id}            // optional fallback (see server fix below)
                         />
                       </div>
                     </li>

@@ -219,6 +219,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const { parentId, content } = body ?? {};
 
   const bodyText = toPlainText(content).slice(0, 5000);
+
+    const result = await prisma.$transaction(async (tx) => {
+
+
+
   const created = await prisma.forumComment.create({
     data: {
       discussionId: params.id,
@@ -232,7 +237,19 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       createdAt: true, score: true, sourceMessageId: true, parentId: true,
       discussionId: true,
     },
+     });
+
+    // Update discussion activity
+    await tx.discussion.update({
+      where: { id: params.id },
+      data: {
+        lastActiveAt: new Date(),
+        replyCount: { increment: 1 },
+      },
+    });
+
+    return created;
   });
 
-  return NextResponse.json({ comment: serializeComment(created) }, { status: 201 });
+  return NextResponse.json({ comment: serializeComment(result) }, { status: 201 });
 }

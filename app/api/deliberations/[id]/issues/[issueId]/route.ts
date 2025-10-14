@@ -7,13 +7,19 @@ import { asUserIdString } from '@/lib/auth/normalize';
  import { emitBus } from '@/lib/server/bus';
 
 
-const LinkBody = z.object({ argumentId: z.string().min(1), role: z.string().optional() });
-const PatchBody = z.object({ state: z.enum(['open','closed']).optional() });
+const LinkBody = z.union([
+  z.object({ argumentId: z.string().min(1), role: z.string().optional() }), // legacy
+  z.object({ targetType: z.enum(['argument','claim','card','inference']), targetId: z.string().min(1), role: z.string().optional() })
+]);
+const PatchBody = z.object({
+  state: z.enum(['open','pending','closed']).optional(),
+  assigneeId: z.string().optional(),
+});
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string; issueId: string } }) {
   const issue = await prisma.issue.findUnique({
     where: { id: params.issueId },
-    include: { links: { select: { argumentId: true, role: true } }, _count: { select: { links: true } } },
+    include: { links: { select: { targetType: true, targetId: true, role: true, argumentId: true } }, _count: { select: { links: true } } },
   });
   if (!issue || issue.deliberationId !== params.id) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   return NextResponse.json({ ok: true, issue, links: issue.links, commentCount: 0 });
@@ -24,13 +30,20 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string;
 export async function POST(req: NextRequest, { params }: { params: { id: string; issueId: string } }) {
   const userId = await getCurrentUserId();
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  const { argumentId, role } = LinkBody.parse(await req.json());
-  await prisma.issueLink.upsert({
-    where: { issueId_argumentId: { issueId: params.issueId, argumentId } },
-    create: { issueId: params.issueId, argumentId, role: role ?? 'related' },
-    update: { role: role ?? 'related' },
-  });
+  const b = LinkBody.parse(await req.json());
+  if ('argumentId' in b) {
+    await prisma.issueLink.upsert({
+      where: { issueId_argumentId: { issueId: params.issueId, argumentId: b.argumentId } },
+      create: { issueId: params.issueId, argumentId: b.argumentId, targetType: 'argument', targetId: b.argumentId, role: b.role ?? 'related' },
+      update: { role: b.role ?? 'related', targetType: 'argument', targetId: b.argumentId },
+    });
+  } else {
+    await prisma.issueLink.upsert({
+      where: { issueId_targetType_targetId: { issueId: params.issueId, targetType: b.targetType, targetId: b.targetId } } as any,
+      create: { issueId: params.issueId, targetType: b.targetType, targetId: b.targetId, role: b.role ?? 'related', argumentId: b.targetType==='argument' ? b.targetId : null },
+      update: { role: b.role ?? 'related' },
+    });
+  }
   try { emitBus('issues:changed', { deliberationId: params.id }); } catch {}
   return NextResponse.json({ ok: true });
 }
@@ -41,17 +54,21 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const uid = asUserIdString(userId);
   const body = await req.json().catch(() => ({}));
-  const { state } = PatchBody.parse(body ?? {});
-  const nextState = state ?? 'closed';
+  const { state, assigneeId } = PatchBody.parse(body ?? {});
+  const nextState = state ?? undefined;
   const current = await prisma.issue.findUnique({ where: { id: params.issueId }, select: { deliberationId: true } });
   if (!current || current.deliberationId !== params.id) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   const updated = await prisma.issue.update({
     where: { id: params.issueId },
-    data:
-      nextState === 'closed'
-        ? { state: 'closed', closedById: uid, closedAt: new Date() }
-        : { state: 'open', closedById: null, closedAt: null },
+    data: {
+      ...(nextState ? (
+        nextState === 'closed'
+          ? { state: 'closed', closedById: uid, closedAt: new Date() }
+          : { state: nextState, ...(nextState==='open' ? { closedById: null, closedAt: null } : {}) }
+      ) : {}),
+      ...(assigneeId ? { assigneeId: BigInt(assigneeId) } : {}),
+    },
   });
 
    try { emitBus('issues:changed', { deliberationId: params.id }); } catch {}
@@ -63,13 +80,19 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
   const userId = await getCurrentUserId();
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 const url = new URL(req.url);
-  const argumentId = url.searchParams.get('argumentId') || '';
-  if (!argumentId) return NextResponse.json({ error: 'argumentId required' }, { status: 400 });
+   const argumentId = url.searchParams.get('argumentId') || '';
+   const tt = url.searchParams.get('targetType') as any;
+   const tid = url.searchParams.get('targetId') || '';
+   if (!argumentId && !(tt && tid)) return NextResponse.json({ error: 'argumentId or (targetType,targetId) required' }, { status: 400 });
 
   const current = await prisma.issue.findUnique({ where: { id: params.issueId }, select: { deliberationId: true } });
   if (!current || current.deliberationId !== params.id) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-  await prisma.issueLink.delete({ where: { issueId_argumentId: { issueId: params.issueId, argumentId } } });
+   if (argumentId) {
+     await prisma.issueLink.delete({ where: { issueId_argumentId: { issueId: params.issueId, argumentId } } });
+   } else {
+     await prisma.issueLink.delete({ where: { issueId_targetType_targetId: { issueId: params.issueId, targetType: tt, targetId: tid } } } as any);
+   }
   try { emitBus('issues:changed', { deliberationId: params.id }); } catch {}
   return NextResponse.json({ ok: true });
 }

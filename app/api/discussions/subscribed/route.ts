@@ -52,6 +52,8 @@ export async function GET(req: NextRequest) {
       description: true,
       createdAt: true,
       updatedAt: true,
+        lastActiveAt: true, // ✅ Added
+
       conversationId: true,
       createdById: true,
       replyCount: true,
@@ -63,6 +65,8 @@ export async function GET(req: NextRequest) {
     ...i,
     createdAt: i.createdAt.toISOString(),
     updatedAt: i.updatedAt.toISOString(),
+      lastActiveAt: i.lastActiveAt.toISOString(), // ✅ Serialize
+
   }));
 
   const nextCursor = hasMore

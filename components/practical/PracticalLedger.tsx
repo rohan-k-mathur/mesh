@@ -1,3 +1,4 @@
+// components/practical/PracticalLedger.tsx
 'use client';
 
 import * as React from 'react';

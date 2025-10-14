@@ -3,21 +3,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
 
 export const dynamic = 'force-dynamic';
-export const revalidate = 60; // Cache for 1 minute
+export const revalidate = 60;
 
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
   const limit = Math.min(50, Math.max(1, Number(url.searchParams.get('limit') ?? 20)));
-  const cursor = url.searchParams.get('cursor'); // offset-based for simplicity
-  const sort = url.searchParams.get('sort') ?? 'hot'; // hot, new, top
+  const cursor = url.searchParams.get('cursor');
+  const sort = url.searchParams.get('sort') ?? 'hot';
 
   const offset = cursor ? parseInt(cursor, 10) : 0;
 
-  let orderBy: any = { updatedAt: 'desc' }; // default 'new'
-  
+  let orderBy: any = { updatedAt: 'desc' };
+
   if (sort === 'hot') {
     // Hot = recent activity + reply count
-    // We'll order by lastActiveAt desc, with high reply count as tiebreaker
     orderBy = [{ lastActiveAt: 'desc' }, { replyCount: 'desc' }];
   } else if (sort === 'top') {
     // Top = most replies all time
@@ -26,7 +25,6 @@ export async function GET(req: NextRequest) {
     orderBy = { createdAt: 'desc' };
   }
 
-  // Get count for total (optional, for pagination UI)
   const total = await prisma.discussion.count();
 
   const items = await prisma.discussion.findMany({
@@ -39,20 +37,19 @@ export async function GET(req: NextRequest) {
       description: true,
       createdAt: true,
       updatedAt: true,
-      lastActiveAt: true,
+      lastActiveAt: true, // ✅ Added
       replyCount: true,
       viewCount: true,
       createdById: true,
-      conversationId: true,
     },
   });
 
   const hasMore = items.length > limit;
-  const page = items.slice(0, limit).map(i => ({
+  const page = items.slice(0, limit).map((i) => ({
     ...i,
     createdAt: i.createdAt.toISOString(),
     updatedAt: i.updatedAt.toISOString(),
-    lastActiveAt: i.lastActiveAt?.toISOString() ?? i.updatedAt.toISOString(),
+    lastActiveAt: i.lastActiveAt.toISOString(), // ✅ Serialize
   }));
 
   const nextCursor = hasMore ? String(offset + limit) : null;

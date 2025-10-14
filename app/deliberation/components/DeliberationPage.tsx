@@ -5,13 +5,13 @@ import ArticleReader from "@/components/article/ArticleReader";
 import CommentModal from "@/components/article/CommentModal";
 import type { Anchor, CommentThread } from "@/types/comments";
 import Image from "next/image";
-import DeepDivePanel from "@/components/deepdive/DeepDivePanel";
+// import DeepDivePanel from "@/components/deepdive/DeepDivePanel";
 import { useRouter } from "next/navigation";
 import HomeButton from "@/components/buttons/HomeButton";
 import { RhetoricProvider } from "@/components/rhetoric/RhetoricContext";
 import { DeepDiveBackdrop } from "@/components/article/DeepDiveBackground";
 import { DialogueTargetProvider } from "@/components/dialogue/DialogueTargetContext";
-
+import DeepDivePanel from "@/components/deepdive/DeepDivePanelV2";
 type Props = {
 
     deliberationId?: string;
@@ -43,6 +43,7 @@ export default function DeliberationReader({
              <DeepDivePanel deliberationId={deliberationId}    
              containerClassName="flex flex-col  justify-center items-center mx-auto  gap-6"
              />
+             
            </DialogueTargetProvider>
          </RhetoricProvider>
        </div>

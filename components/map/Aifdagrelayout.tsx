@@ -36,6 +36,11 @@ export function calculateDagreLayout(
   graph: AifSubgraph,
   options: LayoutOptions = {}
 ): Map<string, NodePosition> {
+  // Validate graph structure
+  if (!graph || !graph.nodes || !graph.edges) {
+    return new Map<string, NodePosition>();
+  }
+
   const {
     rankdir = 'TB', // Top to bottom (premises -> conclusions)
     ranksep = 100,  // Vertical spacing
@@ -203,6 +208,11 @@ export function useDagreLayout(
 export function getOptimalLayoutDirection(
   graph: AifSubgraph
 ): 'TB' | 'LR' | 'RL' {
+  // Validate graph structure
+  if (!graph || !graph.nodes || !graph.edges) {
+    return 'TB';
+  }
+
   // Count premise vs conclusion nodes
   const premises = graph.nodes.filter(n => 
     graph.edges.some(e => e.from === n.id && e.role === 'conclusion' as AifEdgeRole)

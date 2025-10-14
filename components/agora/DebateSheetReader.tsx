@@ -6,7 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import ArgumentPopout from "./ArgumentPopout";
 import React from "react";
 import { useConfidence } from "./useConfidence";
-
+import { fetchClaimScores, ClaimScore } from '@/lib/client/evidential';
+import { SupportBar } from "../evidence/SupportBar";
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 type EvNode = {
@@ -26,6 +27,41 @@ type EvResp = {
   support?: Record<string, number>;
   dsSupport?: Record<string, { bel:number; pl:number }>;
 };
+
+
+export function ClaimsPane({ deliberationId, claims }: { deliberationId: string; claims: { id: string; text: string }[] }) {
+  const { mode, tau } = useConfidence();
+  const m = mode === 'ds' ? 'product' : mode; // service accepts 'min'|'product'
+  const { data: scores } = useSWR(
+    () => claims?.length ? ['scores', deliberationId, m, tau, claims.map(c=>c.id).join(',')] : null,
+    async () => fetchClaimScores({ deliberationId, mode: m as any, tau, claimIds: claims.map(c=>c.id) }),
+    { revalidateOnFocus: false }
+  );
+
+  const byId = new Map<string, ClaimScore>((scores ?? []).map(s => [s.id, s]));
+  const items = [...claims].map(c => ({ ...c, _s: byId.get(c.id) }));
+  items.sort((a,b) => ((b._s?.score ?? b._s?.bel ?? 0) - (a._s?.score ?? a._s?.bel ?? 0)));
+
+  return (
+    <ul className="space-y-2">
+      {items.map(c => {
+        const s = c._s;
+        const v = s?.score ?? s?.bel ?? 0;
+        return (
+          <li key={c.id} className="flex items-center gap-2">
+            <span className="text-sm">{c.text}</span>
+            <SupportBar value={v} />
+            {s?.accepted && (
+              <span className="text-[11px] px-1.5 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-emerald-700">
+                Accepted
+              </span>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
 
 export default function DebateSheetReader({ sheetId }: { sheetId: string }) {
   const { data, error } = useSWR(

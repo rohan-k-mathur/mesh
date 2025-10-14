@@ -10,15 +10,24 @@ export const revalidate = 0;
 export async function GET(req: NextRequest) {
   const u = new URL(req.url);
   const deliberationId = String(u.searchParams.get('deliberationId') ?? '');
-  const mode: Mode = (u.searchParams.get('mode') as Mode) ?? 'min';
+  const rawMode = String(u.searchParams.get('mode') ?? 'min').toLowerCase();
+  const mode: Mode = (rawMode === 'product' ? 'prod' : (rawMode as Mode)) || 'min';
   const tau = Math.max(0, Math.min(1, Number(u.searchParams.get('tau') ?? 0.7)));
   const explain = u.searchParams.get('explain') === '1';
-
+const idsParam = (u.searchParams.get('ids') || '').trim();
+  const onlyIds = idsParam ? idsParam.split(',').map(s => s.trim()).filter(Boolean) : null;
+ 
   if (!deliberationId) return NextResponse.json({ ok:false, error:'missing deliberationId' }, { status:400 });
 
   // Pull minimal neighborhood for this room
-  const [claims, args, edges] = await Promise.all([
-    prisma.claim.findMany({ where:{ deliberationId }, select:{ id:true, text:true }}),
+   const [claims, args, edges] = await Promise.all([
+    prisma.claim.findMany({
+      where: {
+        deliberationId,
+        ...(onlyIds ? { id: { in: onlyIds } } : {})
+      },
+      select:{ id:true, text:true }
+    }),
     prisma.argument.findMany({
       where:{ deliberationId },
       select:{ id:true, text:true, conclusionClaimId:true,
