@@ -104,10 +104,10 @@ function inferPathType(
   const edges = edgeIds.map(id => graph.edges.find(e => e.id === id)!);
   
   // Check if path contains CA nodes (attack)
-  if (edges.some(e => e.role === 'CA')) return 'attack';
+  if (edges.some(e => e.role === 'conflictedElement')) return 'attack';
   
   // Check if path contains PA nodes (preference)
-  if (edges.some(e => e.role === 'PA')) return 'preference';
+  if (edges.some(e => e.role === 'preferredElement')) return 'preference';
   
   // Default to support
   return 'support';
@@ -168,7 +168,7 @@ export function AifPathHighlighter({
 
   return (
     <div className={`absolute top-4 left-4 bg-white border border-gray-300 rounded-lg shadow-lg p-3 max-w-xs ${className}`}>
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between mb-2 gap-3">
         <h3 className="text-sm font-semibold text-gray-900">Argument Paths</h3>
         {activePath && (
           <button
@@ -191,7 +191,7 @@ export function AifPathHighlighter({
                 : 'bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100'
             }`}
           >
-            <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 justify-between">
               <span className="font-medium">
                 {path.type === 'support' && '✓ Support'}
                 {path.type === 'attack' && '⚔ Attack'}

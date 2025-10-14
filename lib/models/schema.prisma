@@ -3759,6 +3759,7 @@ model EristicMark {
 enum LudicPolarity {
   P
   O
+  DAIMON
 }
 
 enum LudicActKind {
@@ -4257,6 +4258,7 @@ enum StatementRole {
   conclusion
   assumption
   question
+  warrant
 }
 
 enum InferenceKind {

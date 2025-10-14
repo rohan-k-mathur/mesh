@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { legalAttacksFor } from '@/lib/dialogue/legalAttacks';
+import { legalAttacksFor } from '@/lib/dialogue/legalAttackCuesFor';
 
 export function SuggestedAttacks(
   { text, onInsert }: { text: string; onInsert: (tmpl: string) => void }

@@ -1,20 +1,74 @@
 // components/map/Aifdiagramviewerdagre.tsx
 /**
  * AIF Diagram Viewer - Complete with Dagre Layout
- * * All features integrated + hierarchical layout
- * This replaces the grid layout with intelligent dagre positioning
+ * All features integrated + hierarchical layout + edge styling + legend
  */
 
 'use client';
 
 import { useRef, useState, useEffect } from 'react';
-import type { AifSubgraph } from '@/lib/arguments/diagram';
+import type { AifSubgraph, AifEdgeRole } from '@/lib/arguments/diagram';
 import { AifDiagramMinimap } from './Aifdiagramminimap';
 import { AifPathHighlighter, usePathHighlight, type ArgumentPath } from './Aifpathhighlighter';
 import { AifDiagramSearch, useGraphSearch } from './Aifdiagramsearch';
 import { AifDiagramExportMenu } from './Aifdiagramexport';
 import { ZoomAwareAifNode } from './Enhancedaifnodes';
 import { useDagreLayout, LAYOUT_PRESETS } from './Aifdagrelayout';
+
+// ---------------- Edge Styling ----------------
+function getEdgeStyle(role: AifEdgeRole): {
+  stroke: string;
+  strokeWidth: number;
+  strokeDasharray?: string;
+  markerColor: string;
+} {
+  switch (role) {
+    case 'premise':
+      return { stroke: '#64748b', strokeWidth: 1, markerColor: '#64748b' };
+    case 'conclusion':
+      return { stroke: '#059669', strokeWidth: 1, markerColor: '#059669' };
+    case 'conflictingElement':
+      return { stroke: '#ef4444', strokeWidth: 1, markerColor: '#ef4444' };
+    case 'conflictedElement':
+      return { stroke: '#dc2626', strokeWidth: 1, markerColor: '#dc2626' };
+    case 'preferredElement':
+      return { stroke: '#8b5cf6', strokeWidth: 1 , strokeDasharray: '8,4', markerColor: '#8b5cf6' };
+    case 'dispreferredElement':
+      return { stroke: '#6b7280', strokeWidth: 1, strokeDasharray: '6,3', markerColor: '#6b7280' };
+    default:
+      return { stroke: '#94a3b8', strokeWidth: 1, markerColor: '#94a3b8' };
+  }
+}
+
+// ---------------- Legend Edge Component ----------------
+function LegendEdge({
+  color,
+  dash,
+  label,
+}: {
+  color: string;
+  dash?: string;
+  label: string;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <svg width="24" height="12" viewBox="0 0 54 12" aria-hidden="true">
+        <line
+          x1="2"
+          y1="6"
+          x2="42"
+          y2="6"
+          stroke={color}
+          strokeWidth={3}
+          strokeDasharray={dash || undefined}
+          strokeLinecap="round"
+        />
+        <path d="M44 6 L52 2 L52 10 Z" fill={color} />
+      </svg>
+      <span className="text-xs">{label}</span>
+    </div>
+  );
+}
 
 export function AifDiagramViewerDagre({
   initialGraph,
@@ -46,7 +100,7 @@ export function AifDiagramViewerDagre({
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState({ x: 0, y: 0 });
   
-  // **NEW**: State for drag-to-zoom
+  // State for drag-to-zoom
   const [isZooming, setIsZooming] = useState(false);
   const [zoomStart, setZoomStart] = useState({ y: 0, initialZoom: 1 });
 
@@ -56,24 +110,23 @@ export function AifDiagramViewerDagre({
   const { searchResults, selectedResult, highlightedNodeIds, onSearchChange, onResultSelect } = 
     useGraphSearch(graph);
   
-  // **REMOVED**: Old handleWheel zoom handler
+  // Legend state
+  const [showLegend, setShowLegend] = useState(true);
   
-  // **UPDATED**: Mouse down handler to differentiate between pan and zoom
+  // Mouse down handler to differentiate between pan and zoom
   function handleMouseDown(e: React.MouseEvent) {
-    if (e.button !== 0) return; // Ignore right/middle clicks
+    if (e.button !== 0) return;
     
     if (e.shiftKey) {
-      // Start zooming
       setIsZooming(true);
       setZoomStart({ y: e.clientY, initialZoom: zoom });
     } else {
-      // Start panning
       setIsPanning(true);
       setPanStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
     }
   }
   
-  // **UPDATED**: Mouse move handler for both pan and zoom
+  // Mouse move handler for both pan and zoom
   function handleMouseMove(e: React.MouseEvent) {
     if (isPanning) {
       setPan({
@@ -82,13 +135,12 @@ export function AifDiagramViewerDagre({
       });
     } else if (isZooming) {
       const deltaY = e.clientY - zoomStart.y;
-      // Adjust sensitivity by dividing; moving down zooms out
       const newZoom = zoomStart.initialZoom - deltaY * 0.005; 
       setZoom(Math.max(0.2, Math.min(3, newZoom)));
     }
   }
   
-  // **UPDATED**: Mouse up handler to reset both states
+  // Mouse up handler to reset both states
   function handleMouseUp() {
     setIsPanning(false);
     setIsZooming(false);
@@ -105,7 +157,6 @@ export function AifDiagramViewerDagre({
     onResultSelect(result);
     setSelectedNodeId(result.node.id);
     
-    // Pan to node
     const pos = nodePositions.get(result.node.id);
     if (pos) {
       setPan({
@@ -144,6 +195,9 @@ export function AifDiagramViewerDagre({
     }
   }, [graphBounds, nodePositions.size]);
   
+  // Get unique edge roles for markers
+  const uniqueEdgeRoles = Array.from(new Set(graph.edges.map(e => e.role)));
+  
   return (
     <div className={`relative w-full bg-gray-50 ${className}`} ref={containerRef}>
       {/* Top Controls */}
@@ -162,6 +216,7 @@ export function AifDiagramViewerDagre({
           <button
             onClick={() => setZoom((z) => Math.max(0.2, z * 0.8))}
             className="text-gray-600 hover:text-gray-900"
+            title="Zoom out"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
@@ -175,6 +230,7 @@ export function AifDiagramViewerDagre({
           <button
             onClick={() => setZoom((z) => Math.min(3, z * 1.25))}
             className="text-gray-600 hover:text-gray-900"
+            title="Zoom in"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -184,6 +240,7 @@ export function AifDiagramViewerDagre({
           <button
             onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }); }}
             className="ml-2 text-xs text-gray-500 hover:text-gray-700"
+            title="Reset view"
           >
             Reset
           </button>
@@ -202,30 +259,53 @@ export function AifDiagramViewerDagre({
       <svg
         ref={svgRef}
         className="w-full h-full cursor-move"
-        // **UPDATED**: SVG event handlers
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
       >
         <defs>
-          <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
-            <polygon points="0 0, 10 3, 0 6" fill="#64748b" />
-          </marker>
-          <marker id="arrowhead-highlighted" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+          {/* Create markers for each edge role */}
+          {uniqueEdgeRoles.map(role => {
+            const style = getEdgeStyle(role);
+            return (
+              <marker
+                key={role}
+                id={`arrow-${role}`}
+                markerWidth="10"
+                markerHeight="10"
+                refX="9"
+                refY="3"
+                orient="auto"
+              >
+                <polygon points="0 0, 10 3, 0 6" fill={style.markerColor} />
+              </marker>
+            );
+          })}
+          
+          {/* Highlighted marker */}
+          <marker
+            id="arrowhead-highlighted"
+            markerWidth="10"
+            markerHeight="10"
+            refX="9"
+            refY="3"
+            orient="auto"
+          >
             <polygon points="0 0, 10 3, 0 6" fill="#3b82f6" />
           </marker>
         </defs>
         
         <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
-          {/* Edges */}
-          {graph.edges.map((edge) => {
+          {/* Edges with role-based styling */}
+          {/* {graph.edges.map((edge) => {
             const from = nodePositions.get(edge.from);
             const to = nodePositions.get(edge.to);
             if (!from || !to) return null;
             
             const isHighlighted = highlightedEdges.has(edge.id);
             const opacity = activePath && !isHighlighted ? 0.2 : 1;
+            const style = getEdgeStyle(edge.role);
             
             return (
               <line
@@ -234,15 +314,59 @@ export function AifDiagramViewerDagre({
                 y1={from.y}
                 x2={to.x}
                 y2={to.y}
-                stroke={isHighlighted ? '#3b82f6' : '#64748b'}
-                strokeWidth={isHighlighted ? 3 : 2}
+                stroke={isHighlighted ? '#3b82f6' : style.stroke}
+                strokeWidth={isHighlighted ? style.strokeWidth + 1 : style.strokeWidth}
+                strokeDasharray={isHighlighted ? undefined : style.strokeDasharray}
                 strokeOpacity={opacity}
-                markerEnd={isHighlighted ? 'url(#arrowhead-highlighted)' : 'url(#arrowhead)'}
+                markerEnd={isHighlighted ? 'url(#arrowhead-highlighted)' : `url(#arrow-${edge.role})`}
                 className="transition-all"
               />
             );
-          })}
-          
+          })} */}
+          {graph.edges.map((edge) => {
+  const from = nodePositions.get(edge.from);
+  const to = nodePositions.get(edge.to);
+  if (!from || !to) return null;
+  
+  const isHighlighted = highlightedEdges.has(edge.id);
+  const opacity = activePath && !isHighlighted ? 0.2 : 1;
+  const style = getEdgeStyle(edge.role);
+  
+  // Calculate the midpoint of the edge
+  const midX = (from.x + to.x) / 2;
+  const midY = (from.y + to.y) / 2;
+
+  // Define common properties for both line segments
+  const commonLineProps = {
+    stroke: isHighlighted ? '#3b82f6' : style.stroke,
+    strokeWidth: isHighlighted ? style.strokeWidth + 1 : style.strokeWidth,
+    strokeDasharray: isHighlighted ? undefined : style.strokeDasharray,
+    strokeOpacity: opacity,
+    className: 'transition-all',
+  };
+  
+  return (
+    <g key={edge.id}>
+      {/* First half of the line, with the marker at its end (the midpoint) */}
+      <line
+        x1={from.x}
+        y1={from.y}
+        x2={midX}
+        y2={midY}
+        markerEnd={isHighlighted ? 'url(#arrowhead-highlighted)' : `url(#arrow-${edge.role})`}
+        {...commonLineProps}
+      />
+      {/* Second half of the line, from the midpoint to the end node */}
+      <line
+        x1={midX}
+        y1={midY}
+        x2={to.x}
+        y2={to.y}
+        {...commonLineProps}
+      />
+    </g>
+  );
+})}
           {/* Nodes */}
           {graph.nodes.map((node) => {
             const pos = nodePositions.get(node.id);
@@ -307,14 +431,74 @@ export function AifDiagramViewerDagre({
         onNavigate={handleMinimapNavigate}
       />
       
-      {/* **UPDATED**: Controls display text */}
-      <div className="absolute bottom-4 left-4 bg-white/90 border border-gray-300 rounded-lg px-3 py-2 text-xs text-gray-600">
+      {/* Collapsible Legend */}
+      <div className="absolute bottom-4 left-4 bg-white/95 backdrop-blur border border-slate-300 rounded-lg shadow-lg text-xs max-w-xs">
+        <button
+          onClick={() => setShowLegend(!showLegend)}
+          className="w-full flex items-center justify-between px-3 py-2 hover:bg-slate-50 rounded-t-lg transition-colors"
+        >
+          <span className="font-semibold text-slate-700">Legend</span>
+          <svg
+            className={`w-4 h-4 text-slate-600 transition-transform ${showLegend ? 'rotate-180' : ''}`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        
+        {showLegend && (
+          <div className="px-3 pb-3 space-y-3">
+            {/* Node Types */}
+            <div>
+              <div className="font-semibold mb-2 text-slate-700">Node Types</div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded border-2 border-blue-500 bg-blue-50" />
+                  <span>I-Node (Statement)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full border-2 border-green-500 bg-green-50" />
+                  <span>RA-Node (Argument)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full border-2 border-red-500 bg-red-50" />
+                  <span>CA-Node (Conflict)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full border-2 border-purple-500 bg-purple-50" />
+                  <span>PA-Node (Preference)</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Edge Connections */}
+            <div className="pt-2 border-t border-slate-200">
+              <div className="font-semibold mb-2 text-slate-700">Edge Connections</div>
+              <div className="space-y-1">
+                <LegendEdge color="#64748b" label="Premise (I → RA)" />
+                <LegendEdge color="#059669" label="Conclusion (RA → I)" />
+                <LegendEdge color="#ef4444" label="Conflicting element" />
+                <LegendEdge color="#dc2626" label="Conflicted element" />
+                <LegendEdge color="#8b5cf6" dash="8,4" label="Preferred element" />
+                <LegendEdge color="#6b7280" dash="6,3" label="Dispreferred element" />
+                <LegendEdge color="#94a3b8" label="Other / default" />
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+      
+      {/* Controls info */}
+      <div className="absolute bottom-4 right-4 bg-white/90 border border-gray-300 rounded-lg px-3 py-2 text-xs text-gray-600">
         <div className="font-semibold mb-1">Controls:</div>
         <div>• Drag to pan</div>
         <div>• Shift + Drag to zoom</div>
         <div>• Click node to select</div>
       </div>
       
+      {/* Stats */}
       <div className="absolute top-4 right-4 bg-white border border-gray-300 rounded-lg px-4 py-2 text-xs">
         <div className="font-semibold text-gray-900">{graph.nodes.length} nodes</div>
         <div className="text-gray-500">{graph.edges.length} edges</div>

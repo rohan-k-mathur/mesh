@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getCurrentUserId } from '@/lib/serverutils';
-import { legalAttacksFor } from '@/lib/dialogue/legalAttacks';
+import { legalAttacksFor } from '@/lib/dialogue/legalAttackCuesFor';
 
 const BodySchema = z.object({ text: z.string().min(1) });
 

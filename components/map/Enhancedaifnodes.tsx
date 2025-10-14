@@ -58,7 +58,7 @@ export function EnhancedCANode({
   isHovered?: boolean;
   zoomLevel?: number;
 }) {
-  const scheme = getConflictScheme(node.schemeKey);
+  const scheme = getConflictScheme(node.schemeKey ?? undefined);
   const showDetails = zoomLevel > 0.5; // Show details when zoomed in
   const showIcon = zoomLevel > 0.75; // Show icon only when well zoomed in
 
@@ -66,11 +66,18 @@ export function EnhancedCANode({
     // Fallback to basic CA node
     return (
       <g>
-        <ellipse
+        {/* <ellipse
           cx={width / 2}
           cy={height / 2}
           rx={width / 2 - 2}
           ry={height / 2 - 2}
+           */}
+                 <rect
+        x={2}
+        y={2}
+        width={width - 4}
+        height={height - 4}
+        rx={4}
           fill="#fef2f2"
           stroke="#ef4444"
           strokeWidth={isHovered ? 3 : 2}
@@ -166,12 +173,23 @@ export function EnhancedRANode({
   return (
     <g>
       {/* Main shape */}
-      <ellipse
+      {/* <ellipse
         cx={width / 2}
         cy={height / 2}
         rx={width / 2 - 2}
         ry={height / 2 - 2}
         fill="#eff6ff"
+        stroke="#3b82f6"
+        strokeWidth={isHovered ? 3 : 2}
+        className="transition-all"
+      /> */}
+       <rect
+        x={2}
+        y={2}
+        width={width - 4}
+        height={height - 4}
+        rx={4}
+        fill="#e7ebf3ff"
         stroke="#3b82f6"
         strokeWidth={isHovered ? 3 : 2}
         className="transition-all"
@@ -306,11 +324,17 @@ export function EnhancedPANode({
 
   return (
     <g>
-      <ellipse
+      {/* <ellipse
         cx={width / 2}
         cy={height / 2}
         rx={width / 2 - 2}
-        ry={height / 2 - 2}
+        ry={height / 2 - 2} */}
+              <rect
+        x={2}
+        y={2}
+        width={width - 4}
+        height={height - 4}
+        rx={4}
         fill="#f0fdf4"
         stroke="#22c55e"
         strokeWidth={isHovered ? 3 : 2}

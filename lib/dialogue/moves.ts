@@ -1,6 +1,8 @@
 // lib/dialogue/moves.ts
+import { LudicPolarity } from "@prisma/client";
 export type DialogueKind ="ASSERT" | "WHY" | "GROUNDS" | "RETRACT" | "CONCEDE" | "CLOSE" | "THEREFORE" | "SUPPOSE" | "DISCHARGE";
 export type TargetType = 'argument'|'claim'|'card';
+
 
 export function cqKey(p:any){ return String(p?.cqId ?? p?.schemeKey ?? 'default'); }
 export function hashExpr(s?: string) {
@@ -30,8 +32,10 @@ export function makeSignature(kind: DialogueKind, targetType: TargetType, target
 export function synthesizeActs(kind: DialogueKind, payload: any) {
   const locus = String(payload?.locusPath ?? '0');
   const expr  = String(payload?.expression ?? payload?.brief ?? payload?.text ?? payload?.note ?? '');
-  if (kind === 'WHY')     return [{ polarity:'neg', locusPath:locus, openings:[], expression: expr }];
-  if (kind === 'GROUNDS') return [{ polarity:'pos', locusPath:locus, openings:[], expression: expr, additive:false }];
-  if (kind === 'CLOSE')   return [{ polarity:'daimon', locusPath:locus, openings:[], expression:'†' }];
-  return [{ polarity:'pos', locusPath:locus, openings:[], expression: expr }];
+  const toLudicPolarity = (p: 'pos'|'neg'): 'P'|'O' => (p === 'pos' ? 'P' : 'O'); // aligns with schema
+
+  if (kind === 'WHY')     return [{ polarity:toLudicPolarity('neg') as LudicPolarity, locusPath:locus, openings:[], expression: expr }];
+  if (kind === 'GROUNDS') return [{ polarity:toLudicPolarity('pos') as LudicPolarity, locusPath:locus, openings:[], expression: expr, additive:false }];
+  if (kind === 'CLOSE')   return [{ polarity:'DAIMON' as LudicPolarity, locusPath:locus, openings:[], expression:'†' }];
+  return [{ polarity:toLudicPolarity('pos') as LudicPolarity, locusPath:locus, openings:[], expression: expr }];
 }

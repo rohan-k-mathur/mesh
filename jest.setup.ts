@@ -1,3 +1,4 @@
+// jest.setup.ts
 import React from "react";
 import "@testing-library/jest-dom";
 (require as any).context = jest.fn(() => ({
@@ -26,7 +27,6 @@ jest.mock("@xyflow/react", () => {
     useNodesState: (initial: any[]) => React.useState(initial),
     useEdgesState: (initial: any[]) => React.useState(initial),
     useReactFlow: () => ({ screenToFlowPosition: (pos: any) => pos }),
-    BackgroundVariant: { Dots: "dots" },
   };
 });
 

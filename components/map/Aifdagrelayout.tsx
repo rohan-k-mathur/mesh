@@ -8,7 +8,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import type { AifSubgraph, AifNode } from '@/lib/arguments/diagram';
+import type { AifSubgraph, AifNode,AifEdgeRole } from '@/lib/arguments/diagram';
 
 // Import dagre (install with: npm install dagre @types/dagre)
 import dagre from 'dagre';
@@ -104,7 +104,7 @@ function getNodeDimensions(node: AifNode): { width: number; height: number } {
   switch (node.kind) {
     case 'I':
       // Information nodes - wider for text
-      const textLength = (node.label || node.text || '').length;
+      const textLength = (node.label || '').length;
       return {
         width: Math.max(180, Math.min(300, textLength * 3)),
         height: Math.max(60, Math.min(120, Math.ceil(textLength / 30) * 20)),
@@ -129,9 +129,10 @@ function getNodeDimensions(node: AifNode): { width: number; height: number } {
  */
 export function calculateEdgePath(
   g: dagre.graphlib.Graph,
-  edgeId: string
+  from: string,
+  to: string
 ): string | null {
-  const edge = g.edge(edgeId);
+  const edge = g.edge(from, to);
   if (!edge || !edge.points) return null;
   
   // Create SVG path from points
@@ -204,11 +205,11 @@ export function getOptimalLayoutDirection(
 ): 'TB' | 'LR' | 'RL' {
   // Count premise vs conclusion nodes
   const premises = graph.nodes.filter(n => 
-    graph.edges.some(e => e.from === n.id && e.role === 'RA')
+    graph.edges.some(e => e.from === n.id && e.role === 'conclusion' as AifEdgeRole)
   );
   
   const conclusions = graph.nodes.filter(n =>
-    graph.edges.some(e => e.to === n.id && e.role === 'RA')
+    graph.edges.some(e => e.to === n.id && e.role === 'conclusion' as AifEdgeRole)
   );
   
   // If more horizontal spread, use left-right

@@ -1,7 +1,7 @@
 'use client';
 import React, { useMemo } from 'react';
 import { useSequentStatus } from './useSequentStatus';
-import { legalAttacksFor } from '@/lib/dialogue/legalAttacks';
+import { legalAttacksFor } from '@/lib/dialogue/legalAttackCuesFor';
 
 export function SequentDetails({
   gammaTexts, deltaTexts, onInsertTemplate,

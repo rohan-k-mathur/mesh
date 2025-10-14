@@ -1,7 +1,7 @@
 // lib/dialogue/legalMovesServer.ts
 import { prisma } from '@/lib/prismaclient';
 import { stepInteraction } from '@/packages/ludics-engine/stepper';
-import type { MoveKind } from './types';
+import type { MoveKind } from './types'; // (ok to remove if unused)
 import { legalAttacksFor } from '@/lib/dialogue/legalMoves';
 
 export type Move = {
@@ -15,7 +15,6 @@ export type Move = {
   postAs?: { targetType: 'argument'|'claim'|'card'; targetId: string };
 };
 
-
 type Input = {
   deliberationId: string;
   targetType: 'argument'|'claim'|'card';
@@ -27,17 +26,16 @@ type Input = {
 function cqKey(p: any) { return String(p?.cqId ?? p?.schemeKey ?? 'default'); }
 function exprOf(p: any) { return String(p?.expression ?? p?.brief ?? p?.note ?? '').trim(); }
 
-export async function computeLegalMoves(input: Input): Promise<{ moves: LegalMove[]; meta: any }> {
+export async function computeLegalMoves(input: Input): Promise<{ moves: Move[]; meta: any }> {
   const { deliberationId, targetType, targetId, locusPath, actorId } = input;
 
-  // Pull WHY/GROUNDS history to detect open critical questions (R4) and answered ones (R7).
+  // Pull WHY/GROUNDS history to detect open critical questions
   const wg = await prisma.dialogueMove.findMany({
     where: { deliberationId, targetType, targetId, kind: { in: ['WHY','GROUNDS'] } },
     orderBy: { createdAt: 'asc' },
     select: { id:true, kind:true, payload:true, actorId:true, createdAt:true },
   });
 
-  // Latest entry per CQ key
   type Row = { id:string; kind:'WHY'|'GROUNDS'; payload:any; createdAt: Date };
   const latestByKey = new Map<string, Row>();
   for (const r of wg as Row[]) {
@@ -48,8 +46,7 @@ export async function computeLegalMoves(input: Input): Promise<{ moves: LegalMov
   const openWhyKeys = [...latestByKey.entries()].filter(([,v]) => v.kind === 'WHY').map(([k])=>k);
   const anyGrounds = [...latestByKey.values()].some(v => v.kind === 'GROUNDS');
 
-  // R5: surrendered/closed?
-  // Look for last CONCEDE/CLOSE for this target (+ optional locus)
+  // Check if surrendered/closed at this locus
   const lastTerminator = await prisma.dialogueMove.findFirst({
     where: {
       deliberationId, targetType, targetId,
@@ -57,11 +54,11 @@ export async function computeLegalMoves(input: Input): Promise<{ moves: LegalMov
       ...(locusPath ? { payload: { path: ['locusPath'], equals: locusPath } } : {}),
     },
     orderBy: { createdAt: 'desc' },
-    select: { id:true, kind:true, createdAt:true }
+    select: { id:true }
   });
   const isClosed = !!lastTerminator;
 
-  // Optional: author role check for WHY↔GROUNDS on claims/arguments
+  // Author of the target (only author may answer WHY on their item)
   let targetAuthorId: string | null = null;
   if (targetType === 'argument') {
     const a = await prisma.argument.findFirst({ where: { id: targetId }, select: { authorId:true } });
@@ -71,69 +68,70 @@ export async function computeLegalMoves(input: Input): Promise<{ moves: LegalMov
     targetAuthorId = c?.createdById ?? null;
   }
 
-  const moves: LegalMove[] = [];
+  const moves: Move[] = [];
 
-  // --- R5 gating ---
   if (!isClosed) {
-    // GROUNDS can only answer open WHYs (R4)
+    // GROUNDS: only author answers open WHYs
     for (const key of openWhyKeys) {
+      const disabled = !!(actorId && targetAuthorId && String(actorId) !== String(targetAuthorId));
       moves.push({
         kind: 'GROUNDS',
         label: `Answer ${key}`,
         payload: { cqId: key, locusPath: locusPath || '0' },
-        disabled: !!(actorId && targetAuthorId && String(actorId) !== String(targetAuthorId)),
-        reason: (actorId && targetAuthorId && String(actorId) !== String(targetAuthorId))
-          ? 'Only the author may answer this WHY' : undefined
+        disabled,
+        reason: disabled ? 'Only the author may answer this WHY' : undefined
       });
     }
 
+    // WHY (when none open): anyone but author
     if (openWhyKeys.length === 0) {
-      // If there is no open WHY, anyone-but-author can ask WHY
+      // Optional: hint from shape
+      let label = 'Ask WHY';
+      const text =
+        targetType === 'argument'
+          ? (await prisma.argument.findFirst({ where: { id: targetId }, select: { text:true } }))?.text ?? null
+          : (await prisma.claim.findFirst({ where: { id: targetId }, select: { text:true } }))?.text ?? null;
+      if (text) {
+        const { options } = legalAttacksFor(text);
+        if (options.length) label = `WHY — ${options[0].label}`;
+      }
+      const disabled = !!(actorId && targetAuthorId && String(actorId) === String(targetAuthorId));
       moves.push({
         kind: 'WHY',
-        label: 'Ask WHY',
+        label,
         payload: { locusPath: locusPath || '0' },
-        disabled: !!(actorId && targetAuthorId && String(actorId) === String(targetAuthorId)),
-        reason: (actorId && targetAuthorId && String(actorId) === String(targetAuthorId))
-          ? 'You cannot ask WHY on your own claim' : undefined
+        disabled,
+        reason: disabled ? 'You cannot ask WHY on your own item' : undefined
       });
     }
   }
 
-  // R7: if a WHY on a **claim** was answered by GROUNDS (argument),
-  // then concession should target the *argument*, not the bare claim.
-  const concedeMoves: LegalMove[] = [];
+  // Concede (R7: if WHY on a claim was answered, accept the argument, not the bare claim)
+  const concede: Move[] = [];
   if (!isClosed) {
     if (targetType === 'claim' && anyGrounds) {
-      // Try to find candidate arguments attached to this claim
       const args = await prisma.argument.findMany({
         where: { deliberationId, claimId: targetId },
         orderBy: { createdAt: 'desc' },
         select: { id:true }
       });
       if (args.length) {
-        concedeMoves.push({
+        concede.push({
           kind: 'CONCEDE',
           label: 'Accept argument',
-          // UI should post to the *argument*, not the claim (R7)
           postAs: { targetType: 'argument', targetId: args[0].id },
           payload: { locusPath: locusPath || '0' },
         });
-      } else {
-        // Fallback: suppress conceding the claim if we know WHY has been answered,
-        // but no argument was found/linked yet.
       }
     } else {
-      // Normal concede on target (argument/claim/card)
-      concedeMoves.push({ kind: 'CONCEDE', label: 'Concede', payload: { locusPath: locusPath || '0' } });
+      concede.push({ kind: 'CONCEDE', label: 'Concede', payload: { locusPath: locusPath || '0' } });
     }
   }
 
-  // Retract is always available (protocol-wise); UI can further restrict.
-  const retractMove: LegalMove = { kind: 'RETRACT', label: 'Retract', payload: { locusPath: locusPath || '0' } };
+  // Retract is always available
+  const retract: Move = { kind: 'RETRACT', label: 'Retract', payload: { locusPath: locusPath || '0' } };
 
-  // †: ask stepper whether CLOSE is legal at this locus
-  let closable = false;
+  // † closability via stepper hint
   try {
     const designs = await prisma.ludicDesign.findMany({
       where: { deliberationId },
@@ -149,164 +147,26 @@ export async function computeLegalMoves(input: Input): Promise<{ moves: LegalMov
         phase: 'neutral', maxPairs: 256
       }).catch(() => null);
       const hints = new Set(trace?.daimonHints?.map((h:any) => h.locusPath) ?? []);
-      if (locusPath && hints.has(locusPath)) closable = true;
-      if (locusPath && closable) {
+      if (locusPath && hints.has(locusPath)) {
         moves.push({ kind: 'CLOSE', label: 'Close (†)', payload: { locusPath } });
       }
     }
   } catch {}
 
-  // Assemble respecting R5 (isClosed → no attacks)
-  const attackMoves = isClosed ? [] : moves;
-  const out: LegalMove[] = [
-    ...attackMoves,
-    ...concedeMoves,
-    retractMove,
-  ];
-
-  // R4 duplicate guard (cheap): mark GROUNDS duplicates (same cq + same expr + locus) as disabled
-  // NOTE: POST will still validate strictly; this is just a nicer UX hint in GET.
-  if (!isClosed) {
-    for (const m of out) {
-      if (m.kind === 'GROUNDS') {
-        const key = cqKey(m.payload);
-        const expr = exprOf(m.payload);
-        const dup = await prisma.dialogueMove.findFirst({
-          where: {
-            deliberationId, targetType, targetId, kind: 'GROUNDS',
-            payload: {
-              path: [],
-              array_contains: undefined, // noop for pgjson
-            }
-          },
-          // Prisma can't express "same cqId + same locus + same expr" easily with pure JSON filters,
-          // keep POST as the strict enforcement. Here we only annotate "possibly duplicate".
-        }).catch(() => null);
-        if (dup) {
-          m.disabled = true;
-          m.reason = 'A similar answer may already exist';
-        }
-      }
-    }
-  }
+  // Tag forces
+  const all: Move[] = [
+    ...(isClosed ? [] : moves),
+    ...concede,
+    retract,
+  ].map(m => ({
+    ...m,
+    force: (m.kind === 'WHY' || m.kind === 'GROUNDS') ? 'ATTACK'
+         : (m.kind === 'CONCEDE' || m.kind === 'RETRACT' || m.kind === 'CLOSE') ? 'SURRENDER'
+         : 'NEUTRAL'
+  }));
 
   return {
-    moves: out,
-    meta: { openWhyKeys, isClosed, anyGrounds, targetAuthorId, closable }
+    moves: all,
+    meta: { openWhyKeys, isClosed, anyGrounds, targetAuthorId }
   };
 }
-
-
-
-// lib/dialogue/legalMovesServer.ts -- version you just sent
-// import { prisma } from '@/lib/prismaclient';
-// import { stepInteraction } from '@/packages/ludics-engine/stepper';
-// import { legalAttacksFor } from '@/lib/dialogue/legalMoves';
-
-// export type Move = {
-//   kind: 'ASSERT'|'WHY'|'GROUNDS'|'RETRACT'|'CONCEDE'|'CLOSE'|'THEREFORE'|'SUPPOSE'|'DISCHARGE';
-//   label: string;
-//   payload?: any;
-//   disabled?: boolean;
-//   reason?: string;
-//   force?: 'ATTACK'|'SURRENDER'|'NEUTRAL';
-//   relevance?: 'likely'|'unlikely'|null;
-//   postAs?: { targetType: 'argument'|'claim'|'card'; targetId: string };
-// };
-
-// export async function computeLegalMoves(opts: {
-//   deliberationId: string;
-//   targetType: 'argument'|'claim'|'card';
-//   targetId: string;
-//   locusPath?: string;
-//   actorId?: string | null;
-// }): Promise<{ moves: Move[] }> {
-//   const { deliberationId, targetType, targetId, locusPath = '0', actorId } = opts;
-
-//   // Who authored the target?
-//   let targetAuthorId: string | null = null;
-//   if (targetType === 'argument') {
-//     targetAuthorId = (await prisma.argument.findUnique({ where: { id: targetId }, select: { authorId: true } }))?.authorId ?? null;
-//   } else if (targetType === 'claim') {
-//     targetAuthorId = (await prisma.claim.findUnique({ where: { id: targetId }, select: { createdById: true } }))?.createdById ?? null;
-//   }
-
-//   // Open CQs on this target (WHY not answered by GROUNDS, per key)
-//   const rows = await prisma.dialogueMove.findMany({
-//     where: { deliberationId, targetType, targetId, kind: { in: ['WHY','GROUNDS'] } },
-//     orderBy: { createdAt: 'asc' },
-//     select: { kind: true, payload: true, createdAt: true }
-//   });
-
-//   type Row = { kind: 'WHY'|'GROUNDS'; payload: any; createdAt: Date };
-//   const latestByKey = new Map<string, Row>();
-//   for (const r of rows as Row[]) {
-//     const k = String(r?.payload?.cqId ?? r?.payload?.schemeKey ?? 'default');
-//     const prev = latestByKey.get(k);
-//     if (!prev || r.createdAt > prev.createdAt) latestByKey.set(k, r);
-//   }
-//   const openKeys = [...latestByKey.entries()].filter(([,v]) => v.kind === 'WHY').map(([k]) => k);
-//   const anyGrounds = [...latestByKey.values()].some(v => v.kind === 'GROUNDS');
-
-//   const moves: Move[] = [];
-
-//   // GROUNDS (only author answers)
-//   for (const k of openKeys) {
-//     const disabled = !!(actorId && targetAuthorId && actorId !== String(targetAuthorId));
-//     moves.push({
-//       kind: 'GROUNDS',
-//       label: `Answer ${k}`,
-//       payload: { cqId: k, locusPath },
-//       disabled,
-//       reason: disabled ? 'Only the author may answer this WHY' : undefined
-//     });
-//   }
-
-//   // WHY (if none open) + shape hint
-//   if (!openKeys.length) {
-//     let label = 'Ask WHY';
-//     const text =
-//       targetType === 'argument'
-//         ? (await prisma.argument.findUnique({ where: { id: targetId }, select: { text: true } }))?.text ?? null
-//         : (await prisma.claim.findUnique({ where: { id: targetId }, select: { text: true } }))?.text ?? null;
-//     if (text) {
-//       const { options } = legalAttacksFor(text);
-//       if (options.length) label = `WHY — ${options[0].label}`;
-//     }
-//     const disabled = !!(actorId && targetAuthorId && actorId === String(targetAuthorId));
-//     moves.push({ kind: 'WHY', label, payload: { locusPath }, disabled, reason: disabled ? 'You cannot ask WHY on your own item' : undefined });
-//   }
-
-//   // Surrenders/retreat
-//   if (targetType === 'claim' && anyGrounds) {
-//     const args = await prisma.argument.findMany({
-//       where: { deliberationId, conclusionClaimId: targetId },
-//       orderBy: { createdAt: 'desc' }, select: { id: true }
-//     });
-//     if (args.length) {
-//       moves.push({ kind: 'CONCEDE', label: 'Accept argument', postAs: { targetType: 'argument', targetId: args[0].id }, payload: { locusPath } });
-//     }
-//   } else {
-//     moves.push({ kind: 'CONCEDE', label: 'Concede', payload: { locusPath } });
-//   }
-//   moves.push({ kind: 'RETRACT', label: 'Retract', payload: { locusPath } });
-
-//   // † closability
-//   const designs = await prisma.ludicDesign.findMany({
-//     where: { deliberationId }, orderBy: [{ participantId: 'asc' }, { id: 'asc' }],
-//     select: { id: true, participantId: true }
-//   });
-//   const pos = designs.find(d => d.participantId === 'Proponent') ?? designs[0];
-//   const neg = designs.find(d => d.participantId === 'Opponent') ?? designs[1] ?? designs[0];
-//   if (pos && neg) {
-//     const trace = await stepInteraction({ dialogueId: deliberationId, posDesignId: pos.id, negDesignId: neg.id, phase: 'neutral', maxPairs: 256 }).catch(() => null);
-//     const closable = new Set((trace?.daimonHints ?? []).map((h: any) => h.locusPath));
-//     if (closable.has(locusPath)) moves.push({ kind: 'CLOSE', label: 'Close (†)', payload: { locusPath } });
-//   }
-
-//   // Tag force/relevance; disable ATTACK after close (lightweight; legal route adds exact verdicts)
-//   for (const m of moves) {
-//     m.force = (m.kind === 'WHY' || m.kind === 'GROUNDS') ? 'ATTACK' : (m.kind === 'CONCEDE' || m.kind === 'RETRACT' || m.kind === 'CLOSE') ? 'SURRENDER' : 'NEUTRAL';
-//   }
-//   return { moves };
-// }
