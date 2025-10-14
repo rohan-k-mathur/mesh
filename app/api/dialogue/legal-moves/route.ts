@@ -146,17 +146,20 @@ moves.push({ kind:'DISCHARGE', label:'Discharge',          payload:{ locusPath: 
       select: { id:true }
     });
     if (args.length) {
-      moves.push({
-        kind: 'CONCEDE',
-        label: 'Accept argument',
-        postAs: { targetType: 'argument', targetId: args[0].id },
-        payload: { locusPath: locusPath || '0' },
-      });
+    moves.push({
+      kind: 'ASSERT',
+      label: 'Accept argument',
+      postAs: { targetType: 'argument', targetId: args[0].id },
+      payload: { locusPath: locusPath || '0', as: 'ACCEPT_ARGUMENT' },
+      verdict: { code: 'R7_ACCEPT_ARGUMENT', context:{ argumentId: args[0].id } }
+    });
     }
   } else {
     moves.push({ kind:'CONCEDE', label:'Concede', payload: { locusPath: locusPath || '0' }});
   }
   moves.push({ kind:'RETRACT', label:'Retract', payload: { locusPath: locusPath || '0' } });
+
+
 
   // † when closable at locus
   if (locusPath) {

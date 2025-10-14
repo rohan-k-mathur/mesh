@@ -1,3 +1,4 @@
+// lib/dialogue/winningness.ts
 export type Move = {
     id: string;
     targetType: 'argument'|'claim';

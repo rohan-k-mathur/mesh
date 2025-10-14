@@ -1,4 +1,5 @@
 
+// lib/dialogue/wellformedness.ts
 import type { WCode } from "./codes";
 export function wffChecksForTherefore({ hasAntecedents, isFirstMove, labelExists }: {hasAntecedents:boolean;isFirstMove:boolean;labelExists:boolean;}) {
   const out: WCode[] = [];

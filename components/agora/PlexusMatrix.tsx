@@ -1,3 +1,4 @@
+// components/agora/PlexusMatrix.tsx
 'use client';
 import * as React from 'react';
 import useSWR from 'swr';
@@ -48,8 +49,6 @@ export default function PlexusMatrix({ scope='public' }: { scope?: 'public'|'fol
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
-  if (error) return <div className="text-xs text-red-600">Failed to load network</div>;
-  if (!data)  return <div className="text-xs text-neutral-500">Loading…</div>;
 
   // Filter & order rooms
   const qn = q.trim().toLowerCase();
@@ -236,6 +235,8 @@ export default function PlexusMatrix({ scope='public' }: { scope?: 'public'|'fol
       containerRef.current.scrollTo({ left: targetLeft, top: targetTop, behavior: 'smooth' });
     }
   };
+  if (error) return <div className="text-xs text-red-600">Failed to load network</div>;
+  if (!data)  return <div className="text-xs text-neutral-500">Loading…</div>;
 
   return (
     <div className="rounded-xl border bg-white/80 p-3">

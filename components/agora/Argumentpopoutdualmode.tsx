@@ -10,7 +10,7 @@
 
 import { useState } from 'react';
 import useSWR from 'swr';
-import AifDiagramViewInteractive from './AifDiagramViewInteractive';
+import AifDiagramViewInteractive from '../map/AifDiagramViewInteractive';
 import type { AifNode } from '@/lib/arguments/diagram';
 
 // Assuming you have DiagramView component

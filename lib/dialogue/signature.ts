@@ -1,3 +1,4 @@
+// lib/dialogue/signature.ts
 import crypto from "crypto";
 
 // Deterministic JSON.stringify with sorted keys

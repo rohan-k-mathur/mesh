@@ -1,3 +1,4 @@
+// lib/dialogue/types.ts
 export type MoveKind = "ASSERT" | "WHY" | "GROUNDS" | "RETRACT" | "CONCEDE" | "CLOSE" | "THEREFORE" | "SUPPOSE" | "DISCHARGE";
 export type MoveForce = 'ATTACK'|'SURRENDER'|'NEUTRAL';
 

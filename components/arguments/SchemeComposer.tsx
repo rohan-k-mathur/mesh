@@ -7,7 +7,7 @@ import { LegalMoveToolbarAIF } from '@/components/dialogue/LegalMoveToolbarAIF';
 import { AttackMenuPro } from '@/components/arguments/AttackMenuPro';
 import { EntityPicker } from '@/components/kb/EntityPicker';
 import { SchemeComposerPicker } from '../ScchemeComposerPicker';
-
+import { ClaimConfidence } from '@/components/evidence/ClaimConfidence';
 
 type Props = {
   deliberationId: string;
@@ -184,6 +184,7 @@ export function SchemeComposer({ deliberationId, authorId, conclusionClaim, defa
           </div>
         )}
       </div>
+<ClaimConfidence deliberationId={deliberationId} claimId={conclusionClaim.id} mode="min" tau={0.7} />
 
       {!!argumentId && (
         <div className="rounded-md border bg-white p-3">
