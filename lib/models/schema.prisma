@@ -4262,6 +4262,7 @@ enum StatementRole {
 }
 
 enum InferenceKind {
+  presumptive
   deductive
   inductive
   abductive
