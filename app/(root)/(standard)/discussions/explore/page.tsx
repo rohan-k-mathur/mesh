@@ -1,14 +1,23 @@
 // app/(root)/(standard)/discussions/explore/page.tsx
 import { prisma } from '@/lib/prismaclient';
 import ExploreFeed from './ui/ExploreFeed';
+import { getUserFromCookies } from '@/lib/serverutils';
+import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 60;
 
 export default async function ExplorePage() {
+      const user = await getUserFromCookies();
+      if (!user) {
+        redirect('/login');
+        return null;
+      }
+    
+      const userId = String(user.userId);
   // Initial load - hot discussions
   const items = await prisma.discussion.findMany({
-    orderBy: [{ lastActiveAt: 'desc' }, { replyCount: 'desc' }],
+    orderBy: [{ updatedAt: 'desc' }, { replyCount: 'desc' }],
     take: 21,
     select: {
       id: true,
@@ -16,7 +25,6 @@ export default async function ExplorePage() {
       description: true,
       createdAt: true,
       updatedAt: true,
-      lastActiveAt: true,
       replyCount: true,
       viewCount: true,
       createdById: true,
@@ -30,8 +38,8 @@ export default async function ExplorePage() {
     ...i,
     createdAt: i.createdAt.toISOString(),
     updatedAt: i.updatedAt.toISOString(),
-    lastActiveAt: i.lastActiveAt?.toISOString() ?? i.updatedAt.toISOString(),
+    // lastActiveAt: i.lastActiveAt?.toISOString() ?? i.updatedAt.toISOString(),
   }));
 
-  return <ExploreFeed initialItems={initialItems} hasMore={hasMore} />;
+  return <ExploreFeed currentUserId={userId} initialItems={initialItems} hasMore={hasMore} />;
 }

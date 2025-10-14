@@ -9,7 +9,7 @@ type Item = {
   description?: string | null;
   createdAt: string;
   updatedAt: string;
-  lastActiveAt: string;
+  lastActiveAt?: string;
   replyCount?: number;
   viewCount?: number;
   createdById: string;
@@ -106,17 +106,17 @@ export default function ExploreFeed({
               >
                 {option === 'hot' && (
                   <span className="flex items-center gap-1.5">
-                    🔥 Hot
+                    Hot
                   </span>
                 )}
                 {option === 'new' && (
                   <span className="flex items-center gap-1.5">
-                    ✨ New
+                    New
                   </span>
                 )}
                 {option === 'top' && (
                   <span className="flex items-center gap-1.5">
-                    🏆 Top
+                    Top
                   </span>
                 )}
               </button>
@@ -220,7 +220,7 @@ function ExploreCard({
         {/* Title & Meta */}
         <div className="space-y-1">
           <div className="flex items-start justify-between gap-3">
-            
+            <a
               href={`/discussions/${item.id}`}
               className="flex-1 min-w-0 group/title"
             >
@@ -232,7 +232,7 @@ function ExploreCard({
             {/* Subscribe Button */}
             {!isOwner && (
               <div className={`transition-opacity ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
-                <SubscribeButton discussionId={item.id} variant="icon-only" />
+                <SubscribeButton discussionId={item.id} variant="text-only" />
               </div>
             )}
           </div>
@@ -276,7 +276,7 @@ function ExploreCard({
               isHovered ? 'opacity-100' : 'opacity-0'
             }`}
           >
-            
+            <a
               href={`/discussions/${item.id}`}
               className="inline-flex items-center gap-1 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700 transition-all"
             >
@@ -286,7 +286,7 @@ function ExploreCard({
               Join
             </a>
             {isOwner && (
-              
+              <a
                 href={`/discussions/${item.id}/edit`}
                 className="inline-flex items-center justify-center rounded-lg bg-slate-100 p-1.5 text-slate-600 hover:bg-slate-200 transition-all"
                 title="Manage discussion"
