@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prismaclient';
+import { headers } from 'next/headers';
 
 const Params = z.object({ id: z.string().min(3) });
 
@@ -23,12 +24,19 @@ function fieldStat<T extends Record<string, any>>(obj?: T | null, req: (keyof T)
 }
 
 async function countEvidenceForClaims(claimIds: string[]) {
-  // Be defensive across schemas: attempt both claimEvidence and claimCitation
   const [ev, cit] = await Promise.all([
     prisma.claimEvidence?.count?.({ where: { claimId: { in: claimIds } } }).catch(() => 0),
     prisma.claimCitation?.count?.({ where: { claimId: { in: claimIds } } }).catch(() => 0),
   ]);
   return (Number(ev) || 0) + (Number(cit) || 0);
+}
+
+function getBaseUrl() {
+  const h = headers();
+  const host = h.get('x-forwarded-host') ?? h.get('host');
+  const proto = h.get('x-forwarded-proto') ?? (process.env.NODE_ENV === 'development' ? 'http' : 'https');
+  const fromEnv = process.env.NEXT_PUBLIC_BASE_URL || process.env.BASE_URL;
+  return (fromEnv || (host ? `${proto}://${host}` : '')).replace(/\/$/, '');
 }
 
 export async function GET(_: Request, ctx: { params: { id: string } }) {
@@ -39,30 +47,36 @@ export async function GET(_: Request, ctx: { params: { id: string } }) {
     include: {
       WorkDNStructure: true, WorkIHTheses: true, WorkTCTheses: true, WorkOPTheses: true,
       dn: true, ih: true, tc: true, op: true,
-      relatedClaims: { include: { work: false } },
+      relatedClaims: true,
     }
   });
   if (!work) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-  // Compute per‑thesis slot coverage
   const dnSlots = ['explanandum','nomological','ceterisParibus'] as const;
   const ihSlots = ['structure','function','objectivity'] as const;
   const tcSlots = ['instrumentFunction','explanation','applications'] as const;
   const opSlots = ['unrecognizability','alternatives'] as const;
 
-  const dn = fieldStat(work.WorkDNStructure, dnSlots);
-  const ih = fieldStat(work.WorkIHTheses, ihSlots);
-  const tc = fieldStat(work.WorkTCTheses, tcSlots);
-  const op = fieldStat(work.WorkOPTheses, opSlots);
+  const dn = fieldStat(work.WorkDNStructure as any, dnSlots as any);
+  const ih = fieldStat(work.WorkIHTheses as any, ihSlots as any);
+  const tc = fieldStat(work.WorkTCTheses as any, tcSlots as any);
+  const op = fieldStat(work.WorkOPTheses as any, opSlots as any);
 
-  // Aggregate CQ across linked claims by calling your per‑claim summary route (fast in parallel)
-  const claimIds = work.relatedClaims.map(rc => rc.claimId);
+  const claimIds = (work.relatedClaims ?? []).map(rc => rc.claimId);
+  const origin = getBaseUrl();
+
   const cqSummaries = await Promise.all(
     claimIds.map(async (cid) => {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL ?? ''}/api/claims/${cid}/cq/summary`, { cache: 'no-store' })
-        .catch(() => null);
-      if (!res?.ok) return null;
-      return res.json() as Promise<{ schemes: Array<{schemeKey:string; required:number; satisfied:number; open:string[]}>; required:number; satisfied:number; completeness:number }>;
+      try {
+        const r = await fetch(`${origin}/api/claims/${cid}/cq/summary`, { cache: 'no-store' });
+        if (!r.ok) return null;
+        return r.json() as Promise<{
+          schemes: Array<{schemeKey:string; required:number; satisfied:number; open:string[]}>;
+          required:number; satisfied:number; completeness:number;
+        }>;
+      } catch {
+        return null;
+      }
     })
   );
 
@@ -78,36 +92,35 @@ export async function GET(_: Request, ctx: { params: { id: string } }) {
   }
   const openByScheme = [...schemesMap.entries()].map(([schemeKey, v]) => ({ schemeKey, required: v.required, satisfied: v.satisfied, open: v.open }));
 
-  // Evidence count (citations + evidence rows)
   const evidenceCount = claimIds.length ? await countEvidenceForClaims(claimIds) : 0;
 
-  // Advisory dialogue readiness (pull a tiny sample of legal moves)
-  // NOTE: thin, optional; if your endpoint requires more context, return empty.
+  // Optional dialogue peek
   let dialogue: any = { hasClosableLoci: false, legalMoves: [] as any[] };
   try {
-    // e.g., sample the first claim’s legal moves if available
-    const first = claimIds[0];
-    if (first) {
-      const lm = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL ?? ''}/api/dialogue/legal-moves?targetType=claim&targetId=${first}`, { cache: 'no-store' });
-      if (lm.ok) {
-        const { moves, closable } = await lm.json();
+    if (claimIds[0]) {
+      const r = await fetch(`${origin}/api/dialogue/legal-moves?targetType=claim&targetId=${claimIds[0]}`, { cache: 'no-store' });
+      if (r.ok) {
+        const { moves, closable } = await r.json();
         dialogue = {
           hasClosableLoci: !!closable,
-          legalMoves: (moves ?? []).slice(0, 4).map((m: any) => ({
-            kind: m.kind, force: m.force, relevance: m.relevance
-          }))
+          legalMoves: (moves ?? []).slice(0, 4).map((m: any) => ({ kind: m.kind, force: m.force, relevance: m.relevance }))
         };
       }
     }
   } catch {}
 
   const cqCompleteness = cqRequired ? cqSatisfied / cqRequired : 0;
-  const publishable =
-    (work.theoryType === 'DN' ? dn.required === dn.filled :
-     work.theoryType === 'IH' ? ih.required === ih.filled :
-     work.theoryType === 'TC' ? tc.required === tc.filled :
-     work.theoryType === 'OP' ? op.required === op.filled : true)
-    && cqCompleteness >= (Number(process.env.CQ_MIN_COMPLETENESS ?? '0.6'));
+  const minCQ = Number(process.env.CQ_MIN_COMPLETENESS ?? '0.6');
+
+  const typeStat =
+    work.theoryType === 'DN' ? dn :
+    work.theoryType === 'IH' ? ih :
+    work.theoryType === 'TC' ? tc :
+    work.theoryType === 'OP' ? op : { required: 0, filled: 0, open: [] };
+
+  const publishable = typeStat.required > 0
+    && typeStat.required === typeStat.filled
+    && cqCompleteness >= minCQ;
 
   return NextResponse.json({
     work: { id: work.id, title: work.title, theoryType: work.theoryType, status: work.status },
@@ -115,7 +128,7 @@ export async function GET(_: Request, ctx: { params: { id: string } }) {
     theses: { dn: dnSlots, ih: ihSlots, tc: tcSlots, op: opSlots },
     claims: {
       count: claimIds.length,
-      byRole: work.relatedClaims.reduce((acc, rc) => (acc[rc.role] = (acc[rc.role] ?? 0)+1, acc), {} as Record<string, number>),
+      byRole: (work.relatedClaims ?? []).reduce((acc, rc) => (acc[rc.role] = (acc[rc.role] ?? 0)+1, acc), {} as Record<string, number>),
       cq: { required: cqRequired, satisfied: cqSatisfied, openByScheme, completeness: cqCompleteness },
       evidence: { count: evidenceCount }
     },

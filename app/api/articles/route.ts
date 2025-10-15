@@ -1,3 +1,5 @@
+// app/api/articles/route.ts
+
 // import { NextResponse } from "next/server";
 // import { prisma } from "@/lib/prismaclient";
 
@@ -7,6 +9,7 @@
 //   const articles = await prisma.article.findMany();
 //   return NextResponse.json(articles);
 // }
+// // POST for creating a new article
 import { prisma } from '@/lib/prismaclient'
 import { NextResponse } from 'next/server'
 import { getUserFromCookies } from '@/lib/serverutils'
@@ -26,8 +29,11 @@ export async function GET(req: Request) {
   const sort     = url.searchParams.get('sort') || 'updatedAt:desc' // field:dir
 
   const [sortField, sortDir] = sort.split(':') as [string, 'asc'|'desc']
-  const orderBy = [{ [sortField || 'updatedAt']: (sortDir === 'asc' ? 'asc' : 'desc') as const }]
+  const orderBy = [{ [sortField || 'updatedAt']: (sortDir === 'asc' ? 'asc' : 'desc') }]
 
+  if (!user.userId) {
+    return NextResponse.json({ error: "User ID missing" }, { status: 400 });
+  }
   const where: any = {
     authorId: user.userId.toString(),
     deletedAt: view === 'trash' ? { not: null } : null,

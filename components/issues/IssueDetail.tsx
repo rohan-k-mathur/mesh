@@ -10,7 +10,7 @@ import { IssueEntityPicker } from './IssueEntityPicker';
 
 const fetcher = (u: string) => fetch(u, { cache: 'no-store' }).then(r => r.json());
 
-type TargetTypeOption = 'argument' | 'claim' | 'card' | 'inference';
+type TargetTypeOption =  'claim' | 'inference';
 type RoleOption = 'related' | 'blocks' | 'depends_on' | 'warrant' | 'evidence';
 
 export default function IssueDetail({
@@ -47,7 +47,7 @@ export default function IssueDetail({
     targetLabel?: string;
     role: RoleOption;
   }>({
-    targetType: 'argument',
+    targetType: 'claim',
     targetId: '',
     role: 'related',
   });
@@ -121,7 +121,7 @@ export default function IssueDetail({
       
       // Reset form
       setNewLink({
-        targetType: 'argument',
+        targetType: 'claim',
         targetId: '',
         targetLabel: undefined,
         role: 'related',
@@ -151,7 +151,15 @@ export default function IssueDetail({
 
   return (
     <>
-      <Dialog open onOpenChange={(o) => !o && onClose()}>
+      {/* Main Issue Dialog */}
+      <Dialog 
+        open={!showPicker} 
+        onOpenChange={(o) => {
+          if (!o && !showPicker) {
+            onClose();
+          }
+        }}
+      >
         <DialogContent className="bg-slate-700/10 backdrop-blur-xl shadow-white/50 shadow-lg rounded-2xl sm:max-w-[750px] max-h-[80vh] overflow-hidden flex flex-col">
           <DialogHeader className="border-b pb-6">
             <div className="flex items-start justify-between gap-3">
@@ -175,7 +183,7 @@ export default function IssueDetail({
                     {it.state}
                   </span>
                   {it.assigneeId && (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-blue-50 border border-indigo-200 text-indigo-700">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-indigo-50 border border-indigo-200 text-indigo-700">
                       <User className="h-3.5 w-3.5" />
                       {it.assigneeId}
                     </span>
@@ -208,7 +216,7 @@ export default function IssueDetail({
                   type="text"
                   value={assigneeInput}
                   onChange={(e) => setAssigneeInput(e.target.value)}
-                  className="flex-1 border border-neutral-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="flex-1 border border-neutral-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                   placeholder="Enter username..."
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') setAssignee(assigneeInput);
@@ -232,12 +240,13 @@ export default function IssueDetail({
             {/* Links */}
             <section>
               <div className="flex items-center justify-between mb-3">
+                <div className='inline-flex items-center gap-3'>
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-neutral-100">
                   Linked Items
                 </h3>
                 <button
                   onClick={() => setIsAddingLink(!isAddingLink)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 btnv2--ghost text-white text-xs font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-sky-600 btnv2--ghost text-white text-xs font-medium rounded-lg hover:bg-indigo-700 transition-colors"
                 >
                   {isAddingLink ? (
                     <>
@@ -251,6 +260,7 @@ export default function IssueDetail({
                     </>
                   )}
                 </button>
+                </div>
               </div>
 
               {/* Add Link Form */}
@@ -273,9 +283,7 @@ export default function IssueDetail({
                         }}
                         className="w-full border border-neutral-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                       >
-                        <option value="argument">Argument</option>
                         <option value="claim">Claim</option>
-                        <option value="card">Card</option>
                         <option value="inference">Inference</option>
                       </select>
                     </div>
@@ -366,9 +374,9 @@ export default function IssueDetail({
                     return (
                       <div
                         key={`${l.targetType}:${l.targetId}`}
-                        className={`group flex items-center gap-3 p-3 rounded-lg border transition-all ${
+                        className={`group flex items-center gap-3 p-3 bg-white rounded-lg border transition-all ${
                           isSelected
-                            ? 'bg-blue-50 border-blue-300 shadow-sm'
+                            ? 'bg-indigo-50 border-indigo-300 shadow-sm'
                             : 'bg-white border-neutral-200 hover:border-neutral-300 hover:shadow-sm'
                         }`}
                       >
@@ -383,7 +391,7 @@ export default function IssueDetail({
                               })
                             }
                             checked={isSelected}
-                            className="h-4 w-4 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                            className="h-4 w-4 text-indigo-600 focus:ring-2 focus:ring-indigo-500"
                           />
                         </label>
 
@@ -399,7 +407,7 @@ export default function IssueDetail({
 
                         <a
                           href={`#${l.targetType}-${l.targetId}`}
-                          className="flex-1 flex items-center gap-1.5 text-sm text-neutral-700 hover:text-blue-600 font-mono transition-colors"
+                          className="flex-1 flex items-center gap-1.5 text-sm text-neutral-700 hover:text-indigo-600 font-mono transition-colors"
                           title="Jump to item"
                         >
                           {l.targetId.slice(0, 12)}…
@@ -428,14 +436,14 @@ export default function IssueDetail({
 
             {/* Resolve Target */}
             {resolveTarget && (
-              <section className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+              <section className="rounded-lg border border-indigo-200 bg-white p-4">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-xs font-semibold uppercase tracking-wider text-blue-900">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-indigo-900">
                     Resolve at Selected Target
                   </h3>
                   <button
                     onClick={() => setResolveTarget(null)}
-                    className="text-blue-700 hover:text-blue-900 p-1"
+                    className="text-indigo-700 hover:text-indigo-900 p-1"
                     title="Clear selection"
                   >
                     <X className="h-4 w-4" />
@@ -507,20 +515,23 @@ export default function IssueDetail({
         </DialogContent>
       </Dialog>
 
-      {/* Entity Picker Modal */}
-      <IssueEntityPicker
-        deliberationId={deliberationId}
-        targetType={newLink.targetType}
-        open={showPicker}
-        onClose={() => setShowPicker(false)}
-        onPick={(item) => {
-          setNewLink({
-            ...newLink,
-            targetId: item.id,
-            targetLabel: item.label,
-          });
-        }}
-      />
+      {/* Entity Picker Modal - Rendered outside Dialog */}
+      {showPicker && (
+        <IssueEntityPicker
+          deliberationId={deliberationId}
+          targetType={newLink.targetType as 'claim' | 'inference'}
+          open={showPicker}
+          onClose={() => setShowPicker(false)}
+          onPick={(item) => {
+            setNewLink({
+              ...newLink,
+              targetId: item.id,
+              targetLabel: item.label,
+            });
+            setShowPicker(false);
+          }}
+        />
+      )}
     </>
   );
 }

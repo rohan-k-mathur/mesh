@@ -2,6 +2,8 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prismaclient';
+import { headers } from 'next/headers';
+
 
 const Params = z.object({ id: z.string().min(3) });
 const Body = z.object({
@@ -52,10 +54,30 @@ function asAIF({ claims, edges }:{ claims: {id:string,text:string}[], edges: Edg
   return { nodes: { I, RA, CA }, edges: E };
 }
 
+function getBaseUrl() {
+  const h = headers();
+  const host = h.get('x-forwarded-host') ?? h.get('host');
+  const proto = h.get('x-forwarded-proto') ?? (process.env.NODE_ENV === 'development' ? 'http' : 'https');
+  const fromEnv = process.env.NEXT_PUBLIC_BASE_URL || process.env.BASE_URL;
+  return (fromEnv || (host ? `${proto}://${host}` : '')).replace(/\/$/, '');
+}
+
+async function makeEdge(fromId: string, payload: Omit<EdgeSpec,'fromClaimId'>, origin: string) {
+  const res = await fetch(`${origin}/api/claims/${fromId}/edges`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  if (!res.ok) throw new Error(`edge upsert failed: ${await res.text()}`);
+  return res.json();
+}
+
 export async function POST(req: Request, ctx: { params: { id: string } }) {
   const { id } = Params.parse(ctx.params);
   const { to, options } = Body.parse(await req.json().catch(() => ({})));
+  const origin = getBaseUrl();
 
+  
   // Load work + relations
   const work = await prisma.theoryWork.findUnique({
     where: { id },
@@ -94,7 +116,14 @@ export async function POST(req: Request, ctx: { params: { id: string } }) {
       edges.push({ fromClaimId: rc.claimId, toClaimId: head, type: 'supports', attackType: 'SUPPORTS' });
     }
   }
-
+ if (!options.dryRun) {
+    for (const e of edges) {
+      await makeEdge(e.fromClaimId, {
+        toClaimId: e.toClaimId, type: e.type, attackType: e.attackType, targetScope: e.targetScope
+      }, origin).then(res => createdEdges.push(res.edge));
+    }
+  }
+  
   // Also translate your Rule rows into supports (STRICT/DEFEASIBLE => SUPPORTS vs UNDERCUTS targeting inference later)
   const rules = await prisma.rule.findMany({ where: { workId: work.id } });
   for (const r of rules) {
@@ -126,10 +155,17 @@ export async function POST(req: Request, ctx: { params: { id: string } }) {
   }
 
   // 4) Construct AIF if requested
-  const aif = options.includeAif ? asAIF({
-    claims: claims.map(c => ({ id: c.id, text: c.text })),
-    edges
-  }) : null;
+  // AIF preview (lightweight) – you already have a rich exporter; we keep this minimal here.
+  const aif = options.includeAif ? {
+    nodes: {
+      I: claims.map(c => ({ id: `I:${c.id}`, text: c.text })),
+      RA: edges.filter(e => e.type === 'supports').map((_,i)=>({ id:`RA:${i+1}`, scheme:'support'})),
+      CA: edges.filter(e => e.type === 'rebuts').map((_,i)=>({ id:`CA:${i+1}`, scheme:'rebut'})),
+      PA: [] as any[] // kept empty here; full PA export is in lib/aif/export.ts
+    },
+    edges: [] as any[]
+  } : null;
+
 
   // 5) Snapshot
   const snapshot = await prisma.theoryWorkSnapshot.create({
@@ -159,7 +195,7 @@ export async function POST(req: Request, ctx: { params: { id: string } }) {
   if (to === 'kb') links.kb = `kb://page/${work.slug}`;
   if (to === 'aif') links.aif = `agora://snap/${snapshot.id}.aif.json`;
 
-  return NextResponse.json({
+ return NextResponse.json({
     links, snapshotId: snapshot.id,
     created: { claims: 0, edges: createdEdges.length },
     updated: { claims: 0, edges: 0 },

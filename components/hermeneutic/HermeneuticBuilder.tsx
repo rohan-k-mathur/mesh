@@ -4,16 +4,20 @@ import * as React from 'react';
 import useSWR from 'swr';
 
 type JustificationKind = 'PERCEPTION'|'INSTRUMENT'|'INTERPRETIVE'|'TESTIMONY';
-
 type Fact = { id?: string; text: string; sourceUrl?: string; justification?: JustificationKind };
 type Hypothesis = { id?: string; text: string; notes?: string; prior?: number };
 type Plausibility = { hypothesisId: string; score: number; method: 'bayes'|'heuristic' };
 
 const fetcher = (u: string) => fetch(u, { cache: 'no-store' }).then(r => r.json());
 
+// helper to ensure local ids exist
+function ensureIds<T extends { id?: string }>(arr: T[], prefix: string): (T & { id: string })[] {
+  return (arr ?? []).map((x, i) => x.id ? (x as T & { id: string }) : ({ ...x, id: `${prefix}${Date.now()}_${i}` }));
+}
+
 export default function HermeneuticBuilder({
   workId,
-  onExportSelectedToPractical, // optional callback if you want to observe
+  onExportSelectedToPractical,
 }: {
   workId: string;
   onExportSelectedToPractical?: (labels: string[]) => void;
@@ -29,17 +33,16 @@ export default function HermeneuticBuilder({
 
   React.useEffect(() => {
     const h = data?.hermeneutic;
-    if (h) {
-      setCorpusUrl(h.corpusUrl ?? '');
-      setFacts(h.facts ?? []);
-      setHyps(h.hypotheses ?? []);
-      setPlaus(h.plausibility ?? []);
-      setSelectedIds(h.selectedIds ?? []);
-    }
+    if (!h) return;
+    setCorpusUrl(h.corpusUrl ?? '');
+    setFacts(ensureIds(h.facts ?? [], 'f|'));
+    setHyps(ensureIds(h.hypotheses ?? [], 'h|'));
+    setPlaus(h.plausibility ?? []);
+    setSelectedIds(h.selectedIds ?? []);
   }, [data?.hermeneutic]);
 
-  const addFact = () => setFacts(s => [...s, { text: '' }]);
-  const addHyp = () => setHyps(s => [...s, { text: '', prior: 0.5 }]);
+  const addFact = () => setFacts(s => [...s, { id:`f|${Date.now()}`, text: '' }]);
+  const addHyp  = () => setHyps(s => [...s, { id:`h|${Date.now()}`, text: '', prior: 0.5 }]);
 
   const save = async () => {
     setSaving(true);
@@ -47,7 +50,10 @@ export default function HermeneuticBuilder({
       const res = await fetch(`/api/works/${workId}/hermeneutic`, {
         method: 'PUT',
         headers: { 'content-type':'application/json' },
-        body: JSON.stringify({ corpusUrl: corpusUrl || null, facts, hypotheses: hyps, plausibility: plaus, selectedIds }),
+        body: JSON.stringify({
+          corpusUrl: corpusUrl || null,
+          facts, hypotheses: hyps, plausibility: plaus, selectedIds
+        }),
       });
       if (!res.ok) throw new Error(await res.text());
       await mutate();

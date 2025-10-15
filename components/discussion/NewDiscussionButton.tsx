@@ -1,3 +1,4 @@
+// components/discussion/NewDiscussionButton.tsx
 "use client";
 import * as React from "react";
 import { useRouter } from "next/navigation";

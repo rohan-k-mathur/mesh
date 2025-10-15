@@ -24,7 +24,7 @@ export default function IHThesesEditor({ workId }: { workId: string }) {
     })();
   }, [workId]);
 
-  async function save() {
+    async function save() {
     setSaving(true);
     try {
       const r = await fetch(`/api/works/${workId}/ih`, {
@@ -36,15 +36,16 @@ export default function IHThesesEditor({ workId }: { workId: string }) {
         alert(`Save IH failed: ${r.status} ${txt}`);
         return;
       }
-        } finally { setSaving(false); }
+      setSavedAt(Date.now()); // ✅ actually mark saved
+    } finally { setSaving(false); }
   }
 
   return (
     <div className="rounded border p-2 space-y-2 bg-white/70">
       <div className="text-sm font-medium">IH Theses</div>
 
-      <label id={slotAnchorId('IH.structure')} className="text-xs text-neutral-600">Structure (TIH)</label>
-      <PromoteSlotButton workId={workId} slotKey="IH.explanandum" getText={() => val.structure ?? ''} />
+       <label id={slotAnchorId('IH.structure')} className="text-xs text-neutral-600">Structure (TIH)</label>
+  <PromoteSlotButton workId={workId} slotKey="IH.structure" getText={() => val.structure ?? ''} />
 
       <textarea className="w-full border rounded px-2 py-1 text-sm" rows={2}
         placeholder="Describe the structure of the practice/system"

@@ -1,7 +1,10 @@
 // app/api/works/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
+import { jsonSafe } from '@/lib/bigintjson';
+import { getCurrentUserId } from '@/lib/serverutils';
 
+const PAGE_SIZE = 20; // Default page size for pagination
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
@@ -32,4 +35,39 @@ export async function GET(req: NextRequest) {
   );
   const byId = new Map(works.map((w,i) => [w.id, integ[i]]));
   return NextResponse.json({ ok:true, works: works.map(w => ({ ...w, integrity: byId.get(w.id) })) });
+}
+
+
+export async function POST(req: NextRequest) {
+  const userId = await getCurrentUserId();
+  if (!userId) return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 });
+
+  const body = await req.json().catch(() => ({}));
+  const {
+    title = 'Untitled Work',
+    theoryType = 'IH',
+    deliberationId = null,
+    standardOutput = null,
+  } = body ?? {};
+
+  const work = await prisma.theoryWork.create({
+    data: {
+      title,
+      theoryType,
+      deliberationId,
+      standardOutput,
+      authorId: String(userId),
+      body: "", // Provide a default empty string or appropriate value
+      deliberation: deliberationId ? { connect: { id: deliberationId } } : undefined, // Connect if deliberationId is present
+    },
+    select: {
+      id: true,
+      title: true,
+      theoryType: true,
+      authorId: true,
+      deliberationId: true,
+    },
+  });
+
+  return NextResponse.json(jsonSafe({ work }), { status: 201 });
 }
