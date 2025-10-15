@@ -1,3 +1,4 @@
+// components/deepdive/ApprovalsHeatStrip.tsx
 'use client';
 import useSWR from 'swr';
 

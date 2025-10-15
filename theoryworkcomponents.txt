@@ -1,0 +1,3076 @@
+1. // components/integrity/WorkIntegrityBadge.tsx
+'use client';
+import * as React from 'react';
+import useSWR from 'swr';
+const fetcher = (u:string)=>fetch(u,{cache:'no-store'}).then(r=>r.json());
+
+export default function WorkIntegrityBadge({ workId, theoryType }:{ workId:string; theoryType:'DN'|'IH'|'TC'|'OP' }) {
+  const { data: herm } = useSWR(theoryType==='IH' ? `/api/works/${workId}/hermeneutic` : null, fetcher);
+  const { data: pasc } = useSWR(theoryType==='OP' ? `/api/works/${workId}/pascal` : null, fetcher);
+  const { data: prac } = useSWR((theoryType==='IH' || theoryType==='TC') ? `/api/works/${workId}/practical` : null, fetcher);
+
+  let msg = 'OK';
+  let ok = true;
+  if (theoryType === 'IH') {
+    const hasHerm = !!herm?.hermeneutic && (herm.hermeneutic.hypotheses?.length || 0) > 0;
+    const hasPrac = !!prac?.practical && Object.keys(prac.practical.result || {}).length > 0;
+    ok = hasHerm && hasPrac;
+    msg = ok ? 'IH: Hermeneutic + Practical present' : `IH: ${hasHerm ? '' : 'needs Hermeneutic; '} ${hasPrac ? '' : 'needs Practical'}`.trim();
+  } else if (theoryType === 'TC') {
+    const hasPrac = !!prac?.practical && Object.keys(prac.practical.result || {}).length > 0;
+    ok = hasPrac;
+    msg = ok ? 'TC: Practical present' : 'TC: add Practical justification';
+  } else if (theoryType === 'OP') {
+    const hasPascal = !!pasc?.pascal && !!pasc.pascal.decision?.bestActionId;
+    ok = hasPascal;
+    msg = ok ? 'OP: Pascal decision present' : 'OP: add Pascal decision';
+  } else if (theoryType === 'DN') {
+    msg = 'DN: add supply links to IH/TC/OP (optional)';
+  }
+
+  return (
+    <span className={`text-[11px] px-2 py-0.5 rounded border ${ok ? 'bg-emerald-50 border-emerald-200 text-emerald-700':'bg-amber-50 border-amber-200 text-amber-800'}`}>
+      {msg}
+    </span>
+  );
+}
+
+2. // components/integrity/IntegrityBadge.tsx
+'use client';
+import * as React from 'react';
+
+export function IntegrityBadge({ workId, theoryType }:{
+  workId:string; theoryType:'DN'|'IH'|'TC'|'OP'
+}) {
+  const [data, setData] = React.useState<{ has: any }|null>(null);
+  React.useEffect(() => {
+    (async () => {
+      const res = await fetch(`/api/works/${workId}/integrity`, { cache:'no-store' });
+      const j = await res.json(); setData(j ?? null);
+    })();
+  }, [workId]);
+
+  if (!data) return null;
+
+  const h = data.has;
+  let ok=false, msg='';
+  if (theoryType==='DN') { ok = !!h.dn;                msg = ok ? 'DN slots complete' : 'Add DN structure'; }
+  if (theoryType==='IH') { ok = !!(h.ih && h.herm && h.prac && h.std); msg = ok ? 'IH complete' : 'Add IH + hermeneutic + practical + std.'; }
+  if (theoryType==='TC') { ok = !!(h.tc && h.prac && h.std);           msg = ok ? 'TC complete' : 'Add TC + practical + std.'; }
+  if (theoryType==='OP') { ok = !!(h.op && h.pascal);                   msg = ok ? 'OP complete' : 'Add OP + Pascal'; }
+
+  return (
+    <span className={`px-1.5 py-0.5 rounded text-[10px] border ${ok?'bg-emerald-50 border-emerald-200 text-emerald-700':'bg-amber-50 border-amber-200 text-amber-800'}`}>
+      {msg}
+    </span>
+  );
+}
+
+3. // components/hermeneutic/HermeneuticBuilder.tsx
+'use client';
+import * as React from 'react';
+import useSWR from 'swr';
+
+type JustificationKind = 'PERCEPTION'|'INSTRUMENT'|'INTERPRETIVE'|'TESTIMONY';
+
+type Fact = { id?: string; text: string; sourceUrl?: string; justification?: JustificationKind };
+type Hypothesis = { id?: string; text: string; notes?: string; prior?: number };
+type Plausibility = { hypothesisId: string; score: number; method: 'bayes'|'heuristic' };
+
+const fetcher = (u: string) => fetch(u, { cache: 'no-store' }).then(r => r.json());
+
+export default function HermeneuticBuilder({
+  workId,
+  onExportSelectedToPractical, // optional callback if you want to observe
+}: {
+  workId: string;
+  onExportSelectedToPractical?: (labels: string[]) => void;
+}) {
+  const { data, mutate, isLoading } = useSWR<{ok:boolean; hermeneutic:any}>(`/api/works/${workId}/hermeneutic`, fetcher);
+
+  const [corpusUrl, setCorpusUrl] = React.useState<string>('');
+  const [facts, setFacts] = React.useState<Fact[]>([]);
+  const [hyps, setHyps] = React.useState<Hypothesis[]>([]);
+  const [plaus, setPlaus] = React.useState<Plausibility[]>([]);
+  const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
+  const [saving, setSaving] = React.useState(false);
+
+  React.useEffect(() => {
+    const h = data?.hermeneutic;
+    if (h) {
+      setCorpusUrl(h.corpusUrl ?? '');
+      setFacts(h.facts ?? []);
+      setHyps(h.hypotheses ?? []);
+      setPlaus(h.plausibility ?? []);
+      setSelectedIds(h.selectedIds ?? []);
+    }
+  }, [data?.hermeneutic]);
+
+  const addFact = () => setFacts(s => [...s, { text: '' }]);
+  const addHyp = () => setHyps(s => [...s, { text: '', prior: 0.5 }]);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/works/${workId}/hermeneutic`, {
+        method: 'PUT',
+        headers: { 'content-type':'application/json' },
+        body: JSON.stringify({ corpusUrl: corpusUrl || null, facts, hypotheses: hyps, plausibility: plaus, selectedIds }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      await mutate();
+    } catch (e:any) {
+      alert(`Save failed: ${e?.message ?? 'Unknown error'}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(s => s.includes(id) ? s.filter(x => x !== id) : [...s, id]);
+  };
+
+  const exportToPractical = async () => {
+    // Build option labels from selected items (facts + hypotheses)
+    const byId = new Map<string, string>();
+    for (const f of facts) if (f.id) byId.set(f.id, f.text);
+    for (const h of hyps) if (h.id) byId.set(h.id, h.text);
+    const labels = selectedIds.map(id => byId.get(id)).filter(Boolean) as string[];
+
+    // Merge into practical options (GET→PUT)
+    try {
+      const res0 = await fetch(`/api/works/${workId}/practical`, { cache:'no-store' });
+      const { practical } = await res0.json();
+      const existing: any[] = Array.isArray(practical?.options) ? practical.options : [];
+      const newOpts = labels
+        .filter(l => !existing.some((o:any) => (o?.label ?? o) === l))
+        .map(l => ({ id: `sel:${l.slice(0,24)}`, label: l, desc: 'Selected from hermeneutic phase'}));
+
+      const res = await fetch(`/api/works/${workId}/practical`, {
+        method: 'PUT',
+        headers: { 'content-type':'application/json' },
+        body: JSON.stringify({
+          criteria: practical?.criteria ?? [],
+          options: [...existing, ...newOpts],
+          scores: practical?.scores ?? {},
+        }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      onExportSelectedToPractical?.(labels);
+      alert('Selected pieces exported to Practical options.');
+    } catch (e:any) {
+      alert(`Export failed: ${e?.message ?? 'Unknown error'}`);
+    }
+  };
+
+  return (
+    <section className="rounded border p-3 bg-white/60 space-y-3">
+      <div className="text-sm font-medium">Interpretive (Hermeneutic) Phase</div>
+
+      {isLoading && <div className="text-xs text-neutral-500">Loading…</div>}
+
+      <div>
+        <label className="block text-xs text-neutral-600">Corpus / practice URL (optional)</label>
+        <input
+          className="w-full border rounded px-2 py-1 text-sm"
+          placeholder="Link to the practice/text being interpreted"
+          value={corpusUrl}
+          onChange={(e)=>setCorpusUrl(e.target.value)}
+        />
+      </div>
+
+      {/* Facts */}
+      <div>
+        <div className="flex items-center justify-between">
+          <div className="text-xs font-medium">Facts / observations</div>
+          <button className="text-xs underline" onClick={addFact}>+ Add fact</button>
+        </div>
+        <div className="mt-2 space-y-2">
+          {facts.map((f, i) => (
+            <div key={i} className="rounded border p-2">
+              <input
+                className="w-full border rounded px-2 py-1 text-sm"
+                placeholder="Observed fact…"
+                value={f.text}
+                onChange={(e)=>setFacts(arr => { const c=[...arr]; c[i]={...c[i], text:e.target.value}; return c; })}
+              />
+              <div className="mt-1 flex gap-2">
+                <input
+                  className="flex-1 border rounded px-2 py-1 text-xs"
+                  placeholder="Source URL"
+                  value={f.sourceUrl || ''}
+                  onChange={(e)=>setFacts(arr => { const c=[...arr]; c[i]={...c[i], sourceUrl:e.target.value}; return c; })}
+                />
+                <select
+                  className="border rounded px-2 py-1 text-xs"
+                  value={f.justification ?? ''}
+                  onChange={(e)=>setFacts(arr => { const c=[...arr]; c[i]={...c[i], justification: (e.target.value || undefined) as JustificationKind}; return c; })}
+                >
+                  <option value="">— justification —</option>
+                  <option value="PERCEPTION">Perception</option>
+                  <option value="INSTRUMENT">Instrument</option>
+                  <option value="INTERPRETIVE">Interpretive</option>
+                  <option value="TESTIMONY">Testimony</option>
+                </select>
+                <label className="text-xs flex items-center gap-1">
+                  <input
+                    type="checkbox"
+                    checked={f.id ? selectedIds.includes(f.id) : false}
+                    onChange={()=> f.id && toggleSelect(f.id)}
+                    disabled={!f.id}
+                  />
+                  Select
+                </label>
+              </div>
+            </div>
+          ))}
+          {!facts.length && <div className="text-[11px] text-neutral-500">No facts yet.</div>}
+        </div>
+      </div>
+
+      {/* Hypotheses */}
+      <div>
+        <div className="flex items-center justify-between">
+          <div className="text-xs font-medium">Hypotheses (subjective reasons, functions)</div>
+          <button className="text-xs underline" onClick={addHyp}>+ Add hypothesis</button>
+        </div>
+        <div className="mt-2 space-y-2">
+          {hyps.map((h, i) => (
+            <div key={i} className="rounded border p-2">
+              <input
+                className="w-full border rounded px-2 py-1 text-sm"
+                placeholder="Hypothesis…"
+                value={h.text}
+                onChange={(e)=>setHyps(arr => { const c=[...arr]; c[i]={...c[i], text:e.target.value}; return c; })}
+              />
+              <div className="mt-1 flex items-center gap-2">
+                <input
+                  className="flex-1 border rounded px-2 py-1 text-xs"
+                  placeholder="Notes"
+                  value={h.notes || ''}
+                  onChange={(e)=>setHyps(arr => { const c=[...arr]; c[i]={...c[i], notes:e.target.value}; return c; })}
+                />
+                <div className="text-xs text-neutral-600">Plausibility:</div>
+                <input
+                  type="range"
+                  min={0} max={1} step={0.05}
+                  value={h.prior ?? 0.5}
+                  onChange={(e)=>setHyps(arr => { const c=[...arr]; c[i]={...c[i], prior: Number(e.target.value)}; return c; })}
+                />
+                <label className="text-xs flex items-center gap-1">
+                  <input
+                    type="checkbox"
+                    checked={h.id ? selectedIds.includes(h.id) : false}
+                    onChange={()=> h.id && toggleSelect(h.id)}
+                    disabled={!h.id}
+                  />
+                  Select
+                </label>
+              </div>
+            </div>
+          ))}
+          {!hyps.length && <div className="text-[11px] text-neutral-500">No hypotheses yet.</div>}
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <button
+          className="px-3 py-1 rounded border text-sm bg-white disabled:opacity-50"
+          onClick={save}
+          disabled={saving}
+        >
+          {saving ? 'Saving…' : 'Save interpretive phase'}
+        </button>
+
+        <button
+          className="px-3 py-1 rounded border text-sm bg-white"
+          onClick={exportToPractical}
+          title="Adds selected pieces as Practical options"
+        >
+          Export selected → Practical options
+        </button>
+      </div>
+
+      <div className="text-[11px] text-neutral-500">
+        Tip: In IH, interpretation precedes construction. Use “Export selected” to evaluate candidate pieces in the Practical builder.
+      </div>
+    </section>
+  );
+}
+
+4. // components/pascal/PascalBuilder.tsx
+'use client';
+import * as React from 'react';
+import useSWR from 'swr';
+
+const fetcher = (u: string) => fetch(u, { cache: 'no-store' }).then(r => r.json());
+
+type Proposition = { id: string; statement: string };
+type Action = { id: string; label: string };
+type Utilities = Record<string, Record<string, number>>; // actionId -> worldId -> utility
+
+export default function PascalBuilder({ workId }: { workId: string }) {
+  const { data, mutate, isLoading } = useSWR<{ok:boolean; pascal:any}>(`/api/works/${workId}/pascal`, fetcher);
+
+  const [propositions, setProps] = React.useState<Proposition[]>([]);
+  const [actions, setActs] = React.useState<Action[]>([]);
+  const [utilities, setUtils] = React.useState<Utilities>({});
+  const [assumption, setAssump] = React.useState<string>('');
+  const [method, setMethod] = React.useState<'laplace'|'minimax'|'regret'>('laplace');
+  const [saving, setSaving] = React.useState(false);
+
+  React.useEffect(() => {
+    const p = data?.pascal;
+    if (p) {
+      setProps(p.propositions ?? []);
+      setActs(p.actions ?? []);
+      setUtils(p.utilities ?? {});
+      setAssump(p.assumption ?? '');
+      setMethod(p.decision?.method ?? 'laplace');
+    }
+  }, [data?.pascal]);
+
+  const addWorld = () => setProps(s => [...s, { id: `w${Date.now()}`, statement: '' }]);
+  const addAction = () => setActs(s => [...s, { id: `a${Date.now()}`, label: '' }]);
+
+  const setU = (aId: string, wId: string, v: number) => {
+    setUtils(u => ({ ...u, [aId]: { ...(u[aId] ?? {}), [wId]: v } }));
+  };
+
+  const save = async () => {
+    if (!propositions.length || !actions.length) {
+      alert('Add at least one proposition and one action.');
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/works/${workId}/pascal`, {
+        method: 'PUT',
+        headers: { 'content-type':'application/json' },
+        body: JSON.stringify({ propositions, actions, utilities, assumption: assumption || null, method }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      await mutate();
+      alert('Decision saved.');
+    } catch (e:any) {
+      alert(`Save failed: ${e?.message ?? 'Unknown error'}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <section className="rounded border p-3 bg-white/60 space-y-3">
+      <div className="text-sm font-medium">Pascal Builder (as‑if decision, OP)</div>
+      {isLoading && <div className="text-xs text-neutral-500">Loading…</div>}
+
+      <div className="text-[11px] text-neutral-500">
+        Specify mutually‑exclusive propositions (worlds), actions, and a utility table. Laplace (uniform) expected utility is default;
+        minimax/regret available as alternatives.
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <div className="flex items-center justify-between">
+            <div className="text-xs font-medium">Propositions (worlds)</div>
+            <button className="text-xs underline" onClick={addWorld}>+ Add</button>
+          </div>
+          <div className="mt-2 space-y-2">
+            {propositions.map((w, i) => (
+              <input
+                key={w.id}
+                className="w-full border rounded px-2 py-1 text-sm"
+                placeholder="e.g., Determinism is true"
+                value={w.statement}
+                onChange={(e)=>setProps(arr => { const c=[...arr]; c[i]={...c[i], statement:e.target.value}; return c; })}
+              />
+            ))}
+            {!propositions.length && <div className="text-[11px] text-neutral-500">No propositions yet.</div>}
+          </div>
+        </div>
+
+        <div>
+          <div className="flex items-center justify-between">
+            <div className="text-xs font-medium">Actions</div>
+            <button className="text-xs underline" onClick={addAction}>+ Add</button>
+          </div>
+          <div className="mt-2 space-y-2">
+            {actions.map((a, i) => (
+              <input
+                key={a.id}
+                className="w-full border rounded px-2 py-1 text-sm"
+                placeholder="e.g., Act as if free will exists"
+                value={a.label}
+                onChange={(e)=>setActs(arr => { const c=[...arr]; c[i]={...c[i], label:e.target.value}; return c; })}
+              />
+            ))}
+            {!actions.length && <div className="text-[11px] text-neutral-500">No actions yet.</div>}
+          </div>
+        </div>
+      </div>
+
+      {/* Utilities matrix */}
+      {propositions.length > 0 && actions.length > 0 && (
+        <div className="overflow-auto">
+          <table className="min-w-full text-sm border">
+            <thead>
+              <tr className="bg-neutral-50">
+                <th className="border px-2 py-1 text-left">Action ↓ / World →</th>
+                {propositions.map(w => (
+                  <th key={w.id} className="border px-2 py-1 text-left">{w.statement || w.id}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {actions.map(a => (
+                <tr key={a.id}>
+                  <td className="border px-2 py-1 font-medium">{a.label || a.id}</td>
+                  {propositions.map(w => (
+                    <td key={`${a.id}:${w.id}`} className="border px-2 py-1">
+                      <input
+                        type="number"
+                        className="w-24 border rounded px-1 py-0.5"
+                        value={(utilities[a.id]?.[w.id] ?? 0)}
+                        onChange={(e)=>setU(a.id, w.id, Number(e.target.value))}
+                      />
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center gap-2">
+        <select
+          className="border rounded px-2 py-1 text-xs"
+          value={method}
+          onChange={(e)=>setMethod(e.target.value as any)}
+        >
+          <option value="laplace">Laplace (uniform expected utility)</option>
+          <option value="minimax">Minimax (max of worst‑case)</option>
+          <option value="regret">Minimize regret</option>
+        </select>
+        <input
+          className="flex-1 border rounded px-2 py-1 text-xs"
+          placeholder={`Assumption (e.g., "no theoretical evidence discriminates among worlds")`}
+          value={assumption}
+          onChange={(e)=>setAssump(e.target.value)}
+        />
+      </div>
+
+      <div className="flex gap-2">
+        <button className="px-3 py-1 rounded border text-sm bg-white disabled:opacity-50" onClick={save} disabled={saving}>
+          {saving ? 'Saving…' : 'Save decision'}
+        </button>
+      </div>
+    </section>
+  );
+}
+
+5. // components/practical/PracticalBuilder.tsx
+'use client';
+
+import * as React from 'react';
+import { mcdaResult, sensitivity } from '@/lib/practical/compute';
+type Crit = { id: string; label: string; weight: number; kind?: 'prudential'|'moral' };
+type Opt  = { id: string; label: string; desc?: string };
+type Scores = Record<string, Record<string, number>>;
+
+function uid(prefix: string) {
+  return `${prefix}_${Math.random().toString(36).slice(2, 9)}`;
+}
+
+export default function PracticalBuilder({
+  workId,
+  canEdit = true,
+  defaultOpen = true,
+  purposeDefault = '',
+  onSaved,
+  className = '',
+}: {
+  workId: string;
+  canEdit?: boolean;
+  defaultOpen?: boolean;
+  purposeDefault?: string;
+  onSaved?: (payload: any) => void;
+  className?: string;
+}) {
+  const [open, setOpen] = React.useState(defaultOpen);
+  const [loading, setLoading] = React.useState(true);
+  const [saving, setSaving] = React.useState(false);
+
+  const [purpose, setPurpose] = React.useState(purposeDefault);
+  const [criteria, setCriteria] = React.useState<Crit[]>([]);
+  const [options, setOptions]   = React.useState<Opt[]>([]);
+  const [scores, setScores]     = React.useState<Scores>({});
+  const [result, setResult]     = React.useState<any>(null);
+
+  // load existing
+  React.useEffect(() => {
+    let abort = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/works/${workId}/practical`, { cache: 'no-store' });
+        const data = await res.json();
+        if (abort) return;
+        const j = data?.justification ?? null;
+        if (j) {
+          setPurpose(j.purpose ?? '');
+          setCriteria(Array.isArray(j.criteria) ? j.criteria : []);
+          setOptions(Array.isArray(j.options) ? j.options : []);
+          setScores(j.scores ?? {});
+          setResult(j.result ?? null);
+        }
+      } catch (e) {
+        console.error('load practical failed', e);
+      } finally {
+        if (!abort) setLoading(false);
+      }
+    })();
+    return () => { abort = true; };
+  }, [workId]);
+
+  const addCriterion = () => {
+    const label = prompt('Criterion label (e.g., Simplicity, Coverage, Safety)');
+    if (!label) return;
+    const weightStr = prompt('Weight (e.g., 1..5; higher = more important)', '1') ?? '1';
+    const weight = Math.max(0, Number(weightStr) || 0);
+    const id = uid('c');
+    setCriteria(prev => [...prev, { id, label, weight }]);
+  };
+
+  const addOption = () => {
+    const label = prompt('Option label (e.g., Policy A, Rule v2)');
+    if (!label) return;
+    const desc  = prompt('Short description (optional)') ?? '';
+    const id = uid('o');
+    setOptions(prev => [...prev, { id, label, desc }]);
+    setScores(prev => ({ ...prev, [id]: prev[id] ?? {} }));
+  };
+
+  const removeCriterion = (id: string) => {
+    setCriteria(prev => prev.filter(c => c.id !== id));
+    // clean matrix column
+    setScores(prev => {
+      const next: Scores = {};
+      for (const [optId, row] of Object.entries(prev)) {
+        const { [id]: _, ...rest } = row;
+        next[optId] = rest;
+      }
+      return next;
+    });
+  };
+
+  const removeOption = (id: string) => {
+    setOptions(prev => prev.filter(o => o.id !== id));
+    setScores(prev => {
+      const { [id]: _, ...rest } = prev;
+      return rest;
+    });
+  };
+
+  const setCell = (optId: string, critId: string, val: number) => {
+    setScores(prev => ({
+      ...prev,
+      [optId]: { ...(prev[optId] ?? {}), [critId]: val }
+    }));
+  };
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      const payload = { purpose, criteria, options, scores };
+      const res = await fetch(`/api/works/${workId}/practical`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        const msg = data?.error ? JSON.stringify(data.error) : res.statusText;
+        alert(`Save failed: ${msg}`);
+        return;
+      }
+      setResult(data?.justification?.result ?? null);
+      onSaved?.(data);
+    } catch (e: any) {
+      alert(e?.message ?? 'Save failed');
+    } finally {
+      setSaving(false);
+    }
+  };
+  const res = mcdaResult(criteria, options, scores);
+const sen = sensitivity(criteria, options, scores, 0.1);
+
+
+  return (
+    <section className={`rounded border ${className}`}>
+      <div className="flex items-center justify-between px-3 py-2">
+        <div className="text-sm font-medium">Practical Argument (MCDA)</div>
+        <button
+          className="text-xs underline"
+          onClick={() => setOpen(o => !o)}
+          type="button"
+        >
+          {open ? 'Hide' : 'Show'}
+        </button>
+      </div>
+
+      {open && (
+        <div className="px-3 pb-3 space-y-3">
+          {loading ? (
+            <div className="text-xs text-neutral-500">Loading…</div>
+          ) : (
+            <>
+              <div>
+                <label className="block text-xs text-neutral-600 mb-1">
+                  Purpose (TL;DR of what you’re justifying)
+                </label>
+                <input
+                  className="w-full border rounded px-2 py-1 text-sm"
+                  value={purpose}
+                  onChange={(e) => setPurpose(e.target.value)}
+                  placeholder="e.g., Which instrument best realizes the standard output?"
+                  disabled={!canEdit}
+                />
+              </div>
+
+              {/* Criteria editor */}
+              <div>
+                <div className="flex items-center justify-between">
+                  <div className="text-xs text-neutral-600">Criteria</div>
+                  {canEdit && (
+                    <button className="text-xs underline" onClick={addCriterion} type="button">
+                      Add criterion
+                    </button>
+                  )}
+                </div>
+                {!criteria.length ? (
+                  <div className="text-xs text-neutral-500 mt-1">No criteria yet.</div>
+                ) : (
+                  <div className="mt-1 space-y-1">
+                    {criteria.map(c => (
+                      <div key={c.id} className="flex items-center gap-2 text-sm">
+                        <span className="px-1.5 py-0.5 rounded border bg-slate-50">{c.label}</span>
+                        <span className="text-[11px] text-neutral-500">weight {c.weight}</span>
+                        {canEdit && (
+                          <button className="text-[11px] underline" onClick={() => removeCriterion(c.id)} type="button">
+                            remove
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Options editor */}
+              <div>
+                <div className="flex items-center justify-between">
+                  <div className="text-xs text-neutral-600">Options</div>
+                  {canEdit && (
+                    <button className="text-xs underline" onClick={addOption} type="button">
+                      Add option
+                    </button>
+                  )}
+                </div>
+                {!options.length ? (
+                  <div className="text-xs text-neutral-500 mt-1">No options yet.</div>
+                ) : (
+                  <div className="mt-1 space-y-1">
+                    {options.map(o => (
+                      <div key={o.id} className="flex items-center gap-2 text-sm">
+                        <span className="px-1.5 py-0.5 rounded border bg-slate-50">{o.label}</span>
+                        {o.desc && <span className="text-[11px] text-neutral-500">— {o.desc}</span>}
+                        {canEdit && (
+                          <button className="text-[11px] underline" onClick={() => removeOption(o.id)} type="button">
+                            remove
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Score matrix */}
+              {options.length > 0 && criteria.length > 0 && (
+                <div className="overflow-x-auto">
+                  <table className="min-w-[520px] border text-sm">
+                    <thead>
+                      <tr className="bg-slate-50">
+                        <th className="border px-2 py-1 text-left">Option \ Criterion</th>
+                        {criteria.map(c => (
+                          <th key={c.id} className="border px-2 py-1 text-left">
+                            {c.label}<br/>
+                            <span className="text-[10px] text-neutral-500">w={c.weight}</span>
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {options.map(o => (
+                        <tr key={o.id}>
+                          <td className="border px-2 py-1">{o.label}</td>
+                          {criteria.map(c => {
+                            const v = scores[o.id]?.[c.id] ?? 0;
+                            return (
+                              <td key={c.id} className="border px-2 py-1">
+                                <input
+                                  type="number"
+                                  step="0.1"
+                                  min={0}
+                                  className="w-20 border rounded px-1 py-0.5"
+                                  value={v}
+                                  onChange={(e) => setCell(o.id, c.id, Number(e.target.value))}
+                                  disabled={!canEdit}
+                                />
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              <div className="flex items-center gap-2">
+                <button
+                  className="px-3 py-1 rounded border text-sm bg-white disabled:opacity-50"
+                  onClick={save}
+                  disabled={!canEdit || saving || !criteria.length || !options.length}
+                  type="button"
+                >
+                  {saving ? 'Saving…' : 'Compute & Save'}
+                </button>
+                {result?.bestOptionId && (
+                  <span className="text-sm">
+                    Best: <b>{(options.find(o => o.id === result.bestOptionId)?.label) ?? result.bestOptionId}</b>
+                  </span>
+                )}
+                <div className="text-xs mt-1">
+  {sen.stable
+    ? <span className="text-emerald-700">Sensitivity: stable (±10% weights keeps {res.bestOptionId})</span>
+    : <span className="text-amber-700">
+        Sensitivity: fragile — flips if {sen.flips.slice(0,3).map(f => `${f.criterionId}${f.dir}`).join(', ')}
+        {sen.flips.length>3 ? ` +${sen.flips.length-3}` : ''}
+      </span>
+  }
+</div>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
+6. // components/practical/PracticalLedger.tsx
+'use client';
+
+import * as React from 'react';
+
+export type ValueKey =
+  | 'economic'
+  | 'security'
+  | 'fairness'
+  | 'morality'
+  | 'capacity';
+
+export const DEFAULT_VALUE_WEIGHTS: Record<ValueKey, number> = {
+  economic: 1.0,
+  security: 1.0,
+  fairness: 1.0,
+  morality: 1.0,
+  capacity: 1.0,
+};
+
+export type Consequence = {
+  id: string;
+  optionId: string;           // which option this belongs to
+  description: string;
+  probability: number;        // 0..1
+  impact: Partial<Record<ValueKey, number>>; // negative/positive impact, typically -5..+5
+  evidenceUrl?: string;
+  rationale?: string;
+};
+
+export type Option = { id: string; label: string; note?: string };
+
+export type LedgerState = {
+  title?: string;
+  values: Record<ValueKey, number>; // weights for each value
+  options: Option[];
+  rows: Consequence[];
+  lastSavedAt?: string;
+};
+
+function uid() { return Math.random().toString(36).slice(2); }
+
+function clamp01(n: number) {
+  if (!Number.isFinite(n)) return 0;
+  return n < 0 ? 0 : n > 1 ? 1 : n;
+}
+
+function evOfRow(row: Consequence, w: Record<ValueKey, number>) {
+  const score = (Object.keys(w) as ValueKey[]).reduce((s, k) => {
+    const imp = row.impact[k] ?? 0;
+    return s + w[k] * imp;
+  }, 0);
+  return row.probability * score;
+}
+
+function netEV(rows: Consequence[], optionId: string, w: Record<ValueKey, number>) {
+  return rows.filter(r => r.optionId === optionId).reduce((s, r) => s + evOfRow(r, w), 0);
+}
+
+export default function PracticalLedger({
+  initial,
+  onChange,
+  onSave,
+}: {
+  initial?: Partial<LedgerState>;
+  onChange?: (s: LedgerState) => void;
+  onSave?: (s: LedgerState) => Promise<void> | void;
+}) {
+  const [state, setState] = React.useState<LedgerState>(() => ({
+    title: initial?.title ?? 'Practical Argument Ledger',
+    values: { ...DEFAULT_VALUE_WEIGHTS, ...(initial?.values || {}) },
+    options: initial?.options?.length ? initial.options : [
+      { id: uid(), label: 'Option A' },
+      { id: uid(), label: 'Option B' },
+    ],
+    rows: initial?.rows ?? [],
+    lastSavedAt: initial?.lastSavedAt,
+  }));
+
+  React.useEffect(() => { onChange?.(state); }, [state, onChange]);
+
+  const addRow = (optId: string) => {
+    setState(s => ({
+      ...s,
+      rows: [
+        ...s.rows,
+        {
+          id: uid(),
+          optionId: optId,
+          description: '',
+          probability: 0.5,
+          impact: {},
+        },
+      ],
+    }));
+  };
+
+  const removeRow = (rowId: string) => {
+    setState(s => ({ ...s, rows: s.rows.filter(r => r.id !== rowId) }));
+  };
+
+  const updateRow = (rowId: string, patch: Partial<Consequence>) => {
+    setState(s => ({
+      ...s,
+      rows: s.rows.map(r => (r.id === rowId ? { ...r, ...patch } : r)),
+    }));
+  };
+
+  const addOption = () => {
+    setState(s => ({
+      ...s,
+      options: [...s.options, { id: uid(), label: `Option ${String.fromCharCode(65 + s.options.length)}` }],
+    }));
+  };
+
+  const removeOption = (optId: string) => {
+    setState(s => ({
+      ...s,
+      options: s.options.filter(o => o.id !== optId),
+      rows: s.rows.filter(r => r.optionId !== optId),
+    }));
+  };
+
+  const save = async () => {
+    try {
+      await onSave?.(state);
+      setState(s => ({ ...s, lastSavedAt: new Date().toISOString() }));
+    } catch (e) {
+      console.error('save ledger failed', e);
+    }
+  };
+
+  const w = state.values;
+  const totals = Object.fromEntries(state.options.map(o => [o.id, netEV(state.rows, o.id, w)]));
+
+  return (
+    <div className="border rounded-md p-3 space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="text-sm font-semibold">
+          {state.title}
+          <span className="ml-2 text-[11px] text-neutral-600">Practical arguments net consequences × values. This ledger is <b>non‑exhaustive</b>—please add missing consequences.</span>
+        </div>
+        <button className="px-2 py-1 border rounded text-xs" onClick={save}>Save</button>
+      </div>
+
+      {/* Value weights */}
+      <div className="rounded border p-2">
+        <div className="text-xs mb-1 font-medium">Value weights</div>
+        <div className="flex flex-wrap gap-3 text-xs">
+          {(Object.keys(w) as ValueKey[]).map(k => (
+            <label key={k} className="flex items-center gap-1">
+              <span className="w-16 capitalize">{k}</span>
+              <input
+                type="number" step="0.1"
+                className="w-20 border rounded px-1 py-0.5"
+                value={w[k]}
+                onChange={e => {
+                  const v = Number(e.target.value);
+                  setState(s => ({ ...s, values: { ...s.values, [k]: Number.isFinite(v) ? v : 0 } }));
+                }}
+              />
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {/* Options */}
+      <div className="space-y-3">
+        {state.options.map(opt => {
+          const rows = state.rows.filter(r => r.optionId === opt.id);
+          const total = totals[opt.id] ?? 0;
+          return (
+            <div key={opt.id} className="rounded border p-2">
+              <div className="flex items-center justify-between">
+                <div className="text-xs font-medium">
+                  <input
+                    className="border rounded px-1 py-0.5 mr-2 text-sm"
+                    value={opt.label}
+                    onChange={e => setState(s => ({
+                      ...s,
+                      options: s.options.map(o => o.id === opt.id ? { ...o, label: e.target.value } : o),
+                    }))}
+                  />
+                  <span className="ml-2 text-[11px] text-neutral-600">Net EV: <b className={total >= 0 ? 'text-emerald-600' : 'text-rose-600'}>{total.toFixed(2)}</b></span>
+                </div>
+                <div className="flex gap-2">
+                  <button className="px-2 py-1 border rounded text-xs" onClick={() => addRow(opt.id)}>Add consequence</button>
+                  {state.options.length > 1 && (
+                    <button className="px-2 py-1 border rounded text-xs" onClick={() => removeOption(opt.id)}>Remove option</button>
+                  )}
+                </div>
+              </div>
+
+              {/* Rows */}
+              <div className="mt-2 space-y-2">
+                {rows.map(row => {
+                  return (
+                    <div key={row.id} className="p-2 border rounded">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <input
+                          className="flex-1 border rounded px-2 py-1 text-sm"
+                          placeholder="Consequence description"
+                          value={row.description}
+                          onChange={e => updateRow(row.id, { description: e.target.value })}
+                        />
+                        <label className="text-xs flex items-center gap-1">
+                          Prob
+                          <input
+                            type="number" step="0.05" min={0} max={1}
+                            className="w-20 border rounded px-1 py-0.5"
+                            value={row.probability}
+                            onChange={e => updateRow(row.id, { probability: clamp01(Number(e.target.value)) })}
+                          />
+                        </label>
+                        <input
+                          className="w-56 border rounded px-2 py-1 text-xs"
+                          placeholder="Evidence URL (optional)"
+                          value={row.evidenceUrl || ''}
+                          onChange={e => updateRow(row.id, { evidenceUrl: e.target.value })}
+                        />
+                        <button className="px-2 py-1 border rounded text-xs" onClick={() => removeRow(row.id)}>Remove</button>
+                      </div>
+                      {/* Impacts */}
+                      <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                        {(Object.keys(state.values) as ValueKey[]).map(k => (
+                          <label key={k} className="flex items-center gap-1">
+                            <span className="w-16 capitalize">{k}</span>
+                            <input
+                              type="number" step="0.5"
+                              className="w-20 border rounded px-1 py-0.5"
+                              value={row.impact[k] ?? 0}
+                              onChange={e => {
+                                const v = Number(e.target.value) || 0;
+                                updateRow(row.id, { impact: { ...row.impact, [k]: v } });
+                              }}
+                            />
+                          </label>
+                        ))}
+                      </div>
+                      {/* Rationale */}
+                      <textarea
+                        className="mt-2 w-full border rounded px-2 py-1 text-xs"
+                        placeholder="Rationale (why this consequence and impacts?)"
+                        rows={2}
+                        value={row.rationale || ''}
+                        onChange={e => updateRow(row.id, { rationale: e.target.value })}
+                      />
+                      <div className="mt-1 text-[11px] text-neutral-600">
+                        EV for this row: <b>{evOfRow(row, w).toFixed(2)}</b>
+                      </div>
+                    </div>
+                  );
+                })}
+                {!rows.length && (
+                  <div className="text-[11px] text-neutral-500">No consequences yet. Add the first one.</div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+        <button className="px-2 py-1 border rounded text-xs" onClick={addOption}>Add option</button>
+      </div>
+    </div>
+  );
+}
+
+7. // components/practical/PracticalSummary.tsx
+'use client';
+import * as React from 'react';
+
+export default function PracticalSummary({ workId, className='' }:{
+  workId: string; className?: string;
+}) {
+  const [loading, setLoading] = React.useState(true);
+  const [data, setData] = React.useState<any>(null);
+
+  // NEW: we need the deliberationId for candidate fetch
+  const [deliberationId, setDeliberationId] = React.useState<string | null>(null);
+  const [alts, setAlts] = React.useState<{id:string; title:string; theoryType:string}[]>([]);
+  const [pick, setPick] = React.useState('');
+
+  // load practical summary
+  React.useEffect(() => {
+    let abort = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const [metaRes, pracRes] = await Promise.all([
+          fetch(`/api/works/${workId}`, { cache: 'no-store' }),            // GET { ok:true, work:{ deliberationId,... } }
+          fetch(`/api/works/${workId}/practical`, { cache: 'no-store' }),
+        ]);
+        const meta = metaRes.ok ? await metaRes.json() : null;
+        const j    = await pracRes.json();
+        if (abort) return;
+        setDeliberationId(meta?.work?.deliberationId ?? null);
+        setData(j?.justification ?? null);
+      } catch (e) {
+        console.error('summary load failed', e);
+      } finally {
+        if (!abort) setLoading(false);
+      }
+    })();
+    return () => { abort = true; };
+  }, [workId]);
+
+  // load IH/TC candidates for “Compare vs…”
+  React.useEffect(() => {
+    if (!deliberationId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/works?deliberationId=${encodeURIComponent(deliberationId)}`, { cache:'no-store' });
+        const j = await res.json();
+        if (cancelled) return;
+        setAlts((j.works ?? []).filter((w:any) => w.theoryType==='IH' || w.theoryType==='TC'));
+      } catch {}
+    })();
+    return () => { cancelled = true; };
+  }, [deliberationId]);
+
+  if (loading) return <div className={`text-xs text-neutral-500 ${className}`}>Loading…</div>;
+  if (!data)   return <div className={`text-xs text-neutral-500 ${className}`}>No practical justification yet.</div>;
+
+  const result = data.result ?? {};
+  const bestId = result.bestOptionId as string | undefined;
+  const totals: Record<string, number> = result.totals ?? {};
+  const options: Array<{ id: string; label: string }> = data.options ?? [];
+
+  return (
+    <div className={`rounded border p-3 ${className}`}>
+      <div className="text-sm font-medium mb-2">Practical Justification — Summary</div>
+      {bestId ? (
+        <div className="mb-2 text-sm">
+          Best option: <b>{options.find(o => o.id === bestId)?.label ?? bestId}</b>
+        </div>
+      ) : (
+        <div className="mb-2 text-xs text-neutral-500">No computed result yet.</div>
+      )}
+
+      {!!Object.keys(totals).length && (
+        <div className="overflow-x-auto mb-3">
+          <table className="min-w-[420px] text-sm border">
+            <thead>
+              <tr className="bg-slate-50"><th className="border px-2 py-1 text-left">Option</th><th className="border px-2 py-1 text-left">Total (0–1)</th></tr>
+            </thead>
+            <tbody>
+              {Object.entries(totals).sort((a, b) => b[1] - a[1]).map(([optId, total]) => (
+                <tr key={optId}>
+                  <td className="border px-2 py-1">{options.find(o => o.id === optId)?.label ?? optId}</td>
+                  <td className="border px-2 py-1">{total.toFixed(3)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Compare vs (open EvaluationSheet) */}
+      <div className="flex items-center gap-2 text-xs">
+        <label className="text-neutral-600">Compare vs</label>
+        <select className="border rounded px-2 py-1" value={pick} onChange={e=>setPick(e.target.value)}>
+          <option value="">— Select IH/TC Work —</option>
+          {alts.map(a => <option key={a.id} value={a.id}>{a.title} [{a.theoryType}]</option>)}
+        </select>
+        <button
+          className="px-2 py-1 border rounded bg-white"
+          disabled={!pick}
+          onClick={() => window.dispatchEvent(new CustomEvent('mesh:open-evaluation-sheet', {
+            detail: { fromWorkId: workId, toWorkId: pick }  // source=this work; target=selected
+          }))}
+        >
+          Compare (create EVALUATES)
+        </button>
+      </div>
+    </div>
+  );
+}
+
+8. // components/compose/TheoryFraming.tsx
+'use client';
+import * as React from 'react';
+import PracticalBuilder from '../practical/PracticalBuilder';
+import PracticalSummary from '../practical/PracticalSummary';
+import HermeneuticBuilder from '../hermeneutic/HermeneuticBuilder';
+import PascalBuilder from '../pascal/PascalBuilder';
+import DNThesesEditor from '@/components/work/editors/DNThesesEditor';
+import IHThesesEditor from '@/components/work/editors/IHThesesEditor';
+import TCThesesEditor from '@/components/work/editors/TCThesesEditor';
+import OPThesesEditor from '@/components/work/editors/OPThesesEditor';
+import CompareAlternativesPanel from '@/components/work/CompareAlternativesPanel';
+
+type TheoryType = 'DN'|'IH'|'TC'|'OP';
+
+export function TheoryFraming({
+  value,
+  onChange,
+  workId,
+  canEditPractical = true,
+  defaultOpenBuilder = false,
+  className = '',
+}: {
+  value: { theoryType: TheoryType; standardOutput?: string };
+  onChange: (v: { theoryType: TheoryType; standardOutput?: string }) => void;
+  workId?: string;
+  canEditPractical?: boolean;
+  defaultOpenBuilder?: boolean;
+  className?: string;
+}) {
+  const t = (value?.theoryType ?? 'DN') as TheoryType;
+
+
+  return (
+    <div className={`rounded border p-3 space-y-3 ${className}`}>
+      <div className="text-sm font-medium">Argument Framing</div>
+
+      <label className="block text-xs text-neutral-600">Theory Type</label>
+      <select
+        className=" menuv2--lite  px-2 py-1 text-sm"
+        value={t}
+        onChange={(e) => onChange({ ...value, theoryType: e.target.value as TheoryType })}
+      >
+        <option value="DN">DN — Descriptive–Nomological (empirical)</option>
+        <option value="IH">IH — Idealizing–Hermeneutic (interpret → idealize)</option>
+        <option value="TC">TC — Technical–Constructive (design an instrument)</option>
+        <option value="OP">OP — Ontic–Practical (as‑if decision under uncertainty)</option>
+      </select>
+      <div className="text-[11px] text-neutral-500 -mt-1">
+    {t==='DN' && 'Describe regularities, supply data & laws.'}
+    {t==='IH' && 'Interpret actual practice → propose an ideal standard.'}
+    {t==='TC' && 'Design an instrument to realize the standard output.'}
+    {t==='OP' && 'As-if decision under uncertainty; justify a necessary assumption.'}
+  </div>
+      {(t === 'IH' || t === 'TC') && (
+        <div>
+          <label className="block text-xs text-neutral-600 mb-1">
+            Standard Output (purpose of the instrument)
+          </label>
+          <input
+            className="w-full border rounded px-2 py-1 text-sm"
+            value={value.standardOutput ?? ''}
+            onChange={(e) => onChange({ ...value, standardOutput: e.target.value })}
+            placeholder="e.g., Maximize public health while preserving autonomy"
+          />
+          <div className="mt-1 text-[11px] text-neutral-500">
+            This is the “key to all further findings” (Lumer TIH9/TTC2).
+          </div>
+        </div>
+      )}
+
+      {/* ==== Structured builders by type (requires a saved work) ==== */}
+      {!workId ? (
+    <div className="text-[11px] text-neutral-500">
+      Save this work to enable structured builders for {t}.
+    </div>
+  ) : (
+        <div className="space-y-3">
+          {/* {t === 'IH' && (
+            <>
+              <HermeneuticBuilder workId={workId} />
+              <PracticalSummary workId={workId} />
+              {canEditPractical && (
+                <PracticalBuilder workId={workId} defaultOpen={defaultOpenBuilder} />
+              )}
+            </>
+          )} */}
+
+          {/* {t === 'TC' && (
+            <>
+              <PracticalSummary workId={workId} />
+              {canEditPractical && (
+                <PracticalBuilder workId={workId} defaultOpen={defaultOpenBuilder} />
+              )}
+              <div className="text-[11px] text-neutral-500">
+                (Optional) Use the Hermeneutic builder if you want to ground your construction in
+                interpreted practice.
+              </div>
+            </>
+          )} */}
+          {t === 'IH' && (
+  <>
+    <HermeneuticBuilder workId={workId} />
+    <IHThesesEditor workId={workId} /> {/* NEW */}
+    <CompareAlternativesPanel workId={workId} /> {/* NEW */}
+    <PracticalSummary workId={workId} />
+    {canEditPractical && (<PracticalBuilder workId={workId} defaultOpen={defaultOpenBuilder} />)}
+  </>
+)}
+
+{t === 'TC' && (
+  <>
+    <TCThesesEditor workId={workId} /> {/* NEW */}
+    <CompareAlternativesPanel workId={workId} /> {/* NEW */}
+    <PracticalSummary workId={workId} />
+    {canEditPractical && (<PracticalBuilder workId={workId} defaultOpen={defaultOpenBuilder} />)}
+    <div className="text-[11px] text-neutral-500">
+      (Optional) Use the Hermeneutic builder if you want to ground your construction in interpreted practice.
+    </div>
+  </>
+)}
+
+{t === 'OP' && (
+  <>
+    <OPThesesEditor workId={workId} /> {/* NEW */}
+    <PascalBuilder workId={workId} />
+  </>
+)}
+
+{t === 'DN' && (
+  <>
+    <DNThesesEditor workId={workId} /> {/* NEW */}
+    <div className="text-[11px] text-neutral-500">
+      DN posts supply empirical premises. Link them later via the Supply function graph.
+    </div>
+  </>
+)}
+
+
+          
+        </div>
+      )}
+    </div>
+  );
+}
+
+9. // components/work/editors/DNThesesEditor.tsx
+'use client';
+import * as React from 'react';
+import { slotAnchorId } from './slot-helpers';
+import PromoteSlotButton from '../PromoteSlotButton';
+
+type Dn = {
+  explanandum?: string | null;
+  nomological?: string | null;
+  ceterisParibus?: string | null;
+};
+
+export default function DNThesesEditor({ workId }: { workId: string }) {
+  const [val, setVal] = React.useState<Dn>({});
+  const [saving, setSaving] = React.useState(false);
+  const [savedAt, setSavedAt] = React.useState<number | null>(null);
+
+  React.useEffect(() => {
+    (async () => {
+      const r = await fetch(`/api/works/${workId}/dn`, { cache: 'no-store' });
+      const j = await r.json();
+      if (j?.dn) setVal(j.dn);
+    })();
+  }, [workId]);
+
+  async function save() {
+    setSaving(true);
+    try {
+      const r = await fetch(`/api/works/${workId}/dn`, {
+        method: 'PUT',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(val),
+      });
+      if (!r.ok) {
+        const txt = await r.text();
+        alert(`Save DN failed: ${r.status} ${txt}`);
+        return;
+      }
+      setSavedAt(Date.now());
+    } finally {
+      setSaving(false);
+    }
+  }
+  return (
+    <div className="rounded border p-2 space-y-2 bg-white/70">
+      <div className="text-sm font-medium">DN Theses</div>
+
+      <label id={slotAnchorId('DN.explanandum')} className="text-xs text-neutral-600">Explanandum (TDN)</label>
+      <PromoteSlotButton workId={workId} slotKey="DN.explanandum" getText={() => val.explanandum ?? ''} />
+
+      <textarea className="w-full border rounded px-2 py-1 text-sm" rows={2}
+        placeholder="What phenomenon is described/explained?"
+        value={val.explanandum ?? ''}
+        onChange={e => setVal(v => ({ ...v, explanandum: e.target.value }))} />
+
+      <label className="text-xs text-neutral-600">Nomological laws / regularities (TDN)</label>
+      <textarea className="w-full border rounded px-2 py-1 text-sm" rows={3}
+        placeholder="Key laws/regularities (comma or line separated)"
+        value={val.nomological ?? ''}
+        onChange={e => setVal(v => ({ ...v, nomological: e.target.value }))} />
+
+      <label className="text-xs text-neutral-600">Ceteris paribus (optional)</label>
+      <input className="w-full border rounded px-2 py-1 text-sm"
+        placeholder="Boundary conditions, CP clauses"
+        value={val.ceterisParibus ?? ''}
+        onChange={e => setVal(v => ({ ...v, ceterisParibus: e.target.value }))} />
+
+      <div className="flex items-center gap-2">
+        <button className="px-2 py-1 border rounded text-xs bg-white" onClick={save} disabled={saving}>
+          {saving ? 'Saving…' : 'Save DN'}
+        </button>
+        {savedAt && <span className="text-[11px] text-neutral-500">Saved</span>}
+      </div>
+    </div>
+  );
+}
+
+10. // components/work/editors/IHThesesEditor.tsx
+'use client';
+import * as React from 'react';
+import { slotAnchorId } from './slot-helpers';
+import PromoteSlotButton from '../PromoteSlotButton';
+
+
+type Ih = {
+  structure?: string | null;
+  function?: string | null;
+  objectivity?: string | null;
+};
+
+export default function IHThesesEditor({ workId }: { workId: string }) {
+  const [val, setVal] = React.useState<Ih>({});
+  const [saving, setSaving] = React.useState(false);
+  const [savedAt, setSavedAt] = React.useState<number | null>(null);
+
+  React.useEffect(() => {
+    (async () => {
+      const r = await fetch(`/api/works/${workId}/ih`, { cache: 'no-store' });
+      const j = await r.json();
+      if (j?.ih) setVal(j.ih);
+    })();
+  }, [workId]);
+
+  async function save() {
+    setSaving(true);
+    try {
+      const r = await fetch(`/api/works/${workId}/ih`, {
+        method: 'PUT', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(val),
+      });
+      if (!r.ok) {
+        const txt = await r.text();
+        alert(`Save IH failed: ${r.status} ${txt}`);
+        return;
+      }
+        } finally { setSaving(false); }
+  }
+
+  return (
+    <div className="rounded border p-2 space-y-2 bg-white/70">
+      <div className="text-sm font-medium">IH Theses</div>
+
+      <label id={slotAnchorId('IH.structure')} className="text-xs text-neutral-600">Structure (TIH)</label>
+      <PromoteSlotButton workId={workId} slotKey="IH.explanandum" getText={() => val.structure ?? ''} />
+
+      <textarea className="w-full border rounded px-2 py-1 text-sm" rows={2}
+        placeholder="Describe the structure of the practice/system"
+        value={val.structure ?? ''} onChange={e => setVal(v => ({ ...v, structure: e.target.value }))} />
+
+      <label className="text-xs text-neutral-600">Function (TIH)</label>
+      <textarea className="w-full border rounded px-2 py-1 text-sm" rows={2}
+        placeholder="What function/ends does it (should it) serve?"
+        value={val.function ?? ''} onChange={e => setVal(v => ({ ...v, function: e.target.value }))} />
+
+      <label className="text-xs text-neutral-600">Objectivity of reasons (TIH)</label>
+      <textarea className="w-full border rounded px-2 py-1 text-sm" rows={2}
+        placeholder="Justify that reasons are objective / intersubjectively warranted"
+        value={val.objectivity ?? ''} onChange={e => setVal(v => ({ ...v, objectivity: e.target.value }))} />
+
+      <div className="flex items-center gap-2">
+        <button className="px-2 py-1 border rounded text-xs bg-white" onClick={save} disabled={saving}>
+          {saving ? 'Saving…' : 'Save IH'}
+        </button>
+        {savedAt && <span className="text-[11px] text-neutral-500">Saved</span>}
+      </div>
+    </div>
+  );
+}
+
+11. // components/work/editors/OPThesesEditor.tsx
+'use client';
+import * as React from 'react';
+import { slotAnchorId } from './slot-helpers';
+import PromoteSlotButton from '../PromoteSlotButton';
+
+
+type Op = {
+  unrecognizability?: string | null;
+  alternatives?: string[] | null;
+};
+
+export default function OPThesesEditor({ workId }: { workId: string }) {
+  const [val, setVal] = React.useState<Op>({});
+  const [altsInput, setAltsInput] = React.useState<string>('');
+  const [saving, setSaving] = React.useState(false);
+  const [savedAt, setSavedAt] = React.useState<number | null>(null);
+
+  React.useEffect(() => {
+    (async () => {
+      const r = await fetch(`/api/works/${workId}/op`, { cache: 'no-store' });
+      const j = await r.json();
+      if (j?.op) {
+        setVal(j.op);
+        setAltsInput((j.op.alternatives ?? []).join('\n'));
+      }
+    })();
+  }, [workId]);
+
+  async function save() {
+    setSaving(true);
+    try {
+      const payload: Op = {
+        unrecognizability: val.unrecognizability ?? '',
+        alternatives: altsInput.split('\n').map(s => s.trim()).filter(Boolean),
+      };
+      const r = await fetch(`/api/works/${workId}/op`, {
+        method: 'PUT', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!r.ok) {
+        const txt = await r.text();
+        alert(`Save OP failed: ${r.status} ${txt}`);
+        return;
+      }
+    } finally { setSaving(false); }
+  }
+
+  return (
+    <div className="rounded border p-2 space-y-2 bg-white/70">
+      <div className="text-sm font-medium">OP Theses</div>
+
+      <label id={slotAnchorId('OP.unrecognizability')} className="text-xs text-neutral-600">Unrecognizability (TOP)</label>
+      <PromoteSlotButton workId={workId} slotKey="OP.unrecognizability" getText={() => val.unrecognizability ?? ''} />
+
+      <textarea className="w-full border rounded px-2 py-1 text-sm" rows={2}
+        placeholder="Why no adequate theoretical evidence is possible"
+        value={val.unrecognizability ?? ''} onChange={e => setVal(v => ({ ...v, unrecognizability: e.target.value }))} />
+
+      <label className="text-xs text-neutral-600">Alternatives (one per line)</label>
+      <textarea className="w-full border rounded px-2 py-1 text-sm" rows={3}
+        placeholder="Alt A\nAlt B"
+        value={altsInput} onChange={e => setAltsInput(e.target.value)} />
+
+      <div className="flex items-center gap-2">
+        <button className="px-2 py-1 border rounded text-xs bg-white" onClick={save} disabled={saving}>
+          {saving ? 'Saving…' : 'Save OP'}
+        </button>
+        {savedAt && <span className="text-[11px] text-neutral-500">Saved</span>}
+      </div>
+    </div>
+  );
+}
+
+12. // components/work/editors/slot-helpers.ts
+export type SlotKey =
+  | 'DN.explanandum' | 'DN.nomological'
+  | 'IH.structure'   | 'IH.function' | 'IH.objectivity'
+  | 'TC.function'    | 'TC.explanation' | 'TC.applications'
+  | 'OP.unrecognizability' | 'OP.alternatives';
+
+export function slotAnchorId(key: SlotKey) {
+  return `slot-${key}`;             // e.g. slot-IH.function
+}
+
+13. // components/work/editors/TCThesesEditor.tsx
+'use client';
+import * as React from 'react';
+import { slotAnchorId } from './slot-helpers';
+import PromoteSlotButton from '../PromoteSlotButton';
+type Tc = {
+  instrumentFunction?: string | null;
+  explanation?: string | null;
+  applications?: string[] | null;
+};
+
+export default function TCThesesEditor({ workId }: { workId: string }) {
+  const [val, setVal] = React.useState<Tc>({});
+  const [appsInput, setAppsInput] = React.useState<string>('');
+  const [saving, setSaving] = React.useState(false);
+  const [savedAt, setSavedAt] = React.useState<number | null>(null);
+
+  React.useEffect(() => {
+    (async () => {
+      const r = await fetch(`/api/works/${workId}/tc`, { cache: 'no-store' });
+      if (!r.ok) {
+        const txt = await r.text();
+        alert(`Save TC failed: ${r.status} ${txt}`);
+        return;
+      }
+      setSavedAt(Date.now());
+      const j = await r.json();
+      if (j?.tc) {
+        setVal(j.tc);
+        setAppsInput((j.tc.applications ?? []).join('\n'));
+      }
+    })();
+  }, [workId]);
+
+  async function save() {
+    setSaving(true);
+    try {
+      const payload: Tc = {
+        instrumentFunction: val.instrumentFunction ?? '',
+        explanation: val.explanation ?? '',
+        applications: appsInput
+          .split('\n')
+          .map(s => s.trim()).filter(Boolean),
+      };
+      const r = await fetch(`/api/works/${workId}/tc`, {
+        method: 'PUT', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!r.ok) {
+        const txt = await r.text();
+        alert(`Save TC failed: ${r.status} ${txt}`);
+        return;
+      }
+    } finally { setSaving(false); }
+  }
+
+  return (
+    <div className="rounded border p-2 space-y-2 bg-white/70">
+      <div className="text-sm font-medium">TC Theses</div>
+
+      <label  id={slotAnchorId('TC.function')} className="text-xs text-neutral-600">Instrument function (TTC)</label>
+      <PromoteSlotButton workId={workId} slotKey="TC.function" getText={() => val.instrumentFunction ?? ''} />
+
+      <textarea className="w-full border rounded px-2 py-1 text-sm" rows={2}
+        placeholder="What function does the instrument perform?"
+        value={val.instrumentFunction ?? ''} onChange={e => setVal(v => ({ ...v, instrumentFunction: e.target.value }))} />
+
+      <label className="text-xs text-neutral-600">Explanation of functioning (TTC)</label>
+      <textarea className="w-full border rounded px-2 py-1 text-sm" rows={2}
+        placeholder="How does it work? (algorithm/causal chain)"
+        value={val.explanation ?? ''} onChange={e => setVal(v => ({ ...v, explanation: e.target.value }))} />
+
+      <label className="text-xs text-neutral-600">Applications (one per line)</label>
+      <textarea className="w-full border rounded px-2 py-1 text-sm" rows={3}
+        placeholder="Context A\nContext B"
+        value={appsInput} onChange={e => setAppsInput(e.target.value)} />
+
+      <div className="flex items-center gap-2">
+        <button className="px-2 py-1 border rounded text-xs bg-white" onClick={save} disabled={saving}>
+          {saving ? 'Saving…' : 'Save TC'}
+        </button>
+        {savedAt && <span className="text-[11px] text-neutral-500">Saved</span>}
+      </div>
+    </div>
+  );
+}
+
+14. // components/work/ClaimCiteText.tsx
+'use client';
+import * as React from 'react';
+
+export function ClaimCiteText({ text }:{ text:string }) {
+  const html = React.useMemo(() => {
+    return text.replace(/\[\[claim:([a-zA-Z0-9_-]{6,})\]\]/g, (_m, id) =>
+      `<a href="/claims/${id}" class="underline" data-claim-id="${id}">[claim:${id}]</a>`);
+  }, [text]);
+  return <div className="prose text-sm" dangerouslySetInnerHTML={{ __html: html }} />;
+}
+
+15. // components/work/CompareAlternativesPanel.tsx
+'use client';
+import * as React from 'react';
+
+type Edge = {
+  id: string;
+  kind: 'ALTERNATIVE_TO' | 'EVALUATES' | string;
+  fromWorkId?: string | null;
+  toWorkId?: string | null;
+  meta?: any;
+  createdAt?: string;
+};
+
+type WorkLite = { id: string; title: string; theoryType: 'IH'|'TC'|'DN'|'OP' };
+
+export default function CompareAlternativesPanel({ workId }:{ workId:string }) {
+  const [alts, setAlts] = React.useState<Edge[]>([]);
+  const [evals, setEvals] = React.useState<Edge[]>([]);
+  const [workMap, setWorkMap] = React.useState<Record<string, WorkLite>>({});
+
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const r = await fetch(`/api/knowledge-edges?toWorkId=${workId}&kinds=ALTERNATIVE_TO,EVALUATES`, { cache:'no-store' });
+      const j = await r.json();
+      if (cancelled) return;
+      setAlts((j.edges ?? []).filter((e:Edge)=>e.kind==='ALTERNATIVE_TO'));
+      setEvals((j.edges ?? []).filter((e:Edge)=>e.kind==='EVALUATES'));
+      const wm: Record<string, WorkLite> = {};
+      for (const w of (j.works ?? [])) wm[w.id] = w;
+      setWorkMap(wm);
+    })();
+    return () => { cancelled = true; };
+  }, [workId]);
+
+  const altIds = Array.from(new Set(alts.map(a => a.fromWorkId!).filter(Boolean)));
+  const rows = altIds.map(id => {
+    const w = workMap[id];
+    const ev = evals.find(e => e.fromWorkId === id);
+    const mcda = ev?.meta?.mcda;
+    const verdict =
+      mcda?.bestOptionId ? `Best: ${mcda.bestOptionId} (k=${Object.keys(mcda.totals||{}).length})` :
+      ev ? 'Evaluated' : '—';
+    return { id, title: w?.title ?? id, type: w?.theoryType ?? 'IH', verdict };
+  });
+
+  return (
+    <div className="rounded border p-2 bg-white/70">
+      <div className="text-sm font-medium">Compare alternatives</div>
+      {!rows.length ? (
+        <div className="text-xs text-neutral-500 mt-1">No ALTERNATIVE_TO edges yet.</div>
+      ) : (
+        <div className="mt-2 overflow-x-auto">
+          <table className="min-w-full text-sm border">
+            <thead className="bg-neutral-50">
+              <tr>
+                <th className="border px-2 py-1 text-left">Alternative Work</th>
+                <th className="border px-2 py-1 text-left">Type</th>
+                <th className="border px-2 py-1 text-left">Evaluation</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map(r => (
+                <tr key={r.id}>
+                  <td className="border px-2 py-1">
+                    <a className="underline" href={`/works/${r.id}`}>{r.title}</a>
+                  </td>
+                  
+                  <td className="border px-2 py-1">{r.type}</td>
+                  <td className="border px-2 py-1">{r.verdict}</td>
+                  <td className="border px-2 py-1">
+  {r.verdict}
+  <button
+    className="ml-2 text-xs underline"
+    onClick={() => window.dispatchEvent(new CustomEvent('mesh:open-evaluation-sheet', { detail: { toWorkId: workId, fromWorkId: r.id } }))}
+  >
+    Compare now
+  </button>
+</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <div className="text-[11px] text-neutral-500 mt-2">
+        Alternatives sourced from <code>ALTERNATIVE_TO</code>; evaluations from <code>EVALUATES</code> (MCDA snapshot).
+      </div>
+    </div>
+  );
+}
+
+16. // components/work/EvaluationSheet.tsx
+'use client';
+import * as React from 'react';
+
+type WorkLite = { id: string; deliberationId: string; title: string; theoryType: 'DN'|'IH'|'TC'|'OP' };
+
+type AdequacyItem = { id: string; criterion: string; result: 'pass'|'partial'|'fail' };
+
+export default function EvaluationSheet() {
+  const [open, setOpen] = React.useState(false);
+  const [ctx, setCtx] = React.useState<{ toWorkId: string; fromWorkId: string } | null>(null);
+
+  const [fromWork, setFromWork] = React.useState<WorkLite | null>(null);
+  const [toWork, setToWork]     = React.useState<WorkLite | null>(null);
+  const [deliberationId, setDeliberationId] = React.useState<string | null>(null);
+
+  const [mcda, setMcda] = React.useState<any | null>(null);
+  const [method, setMethod] = React.useState<'mcda'|'adequacy'>('mcda');
+  const [verdict, setVerdict] = React.useState<string>('');
+
+  const [adequacy, setAdequacy] = React.useState<AdequacyItem[]>([
+    { id: crypto.randomUUID(), criterion: 'Completeness', result: 'pass' },
+    { id: crypto.randomUUID(), criterion: 'Robustness',   result: 'partial' },
+  ]);
+
+  const [pending, setPending] = React.useState(false);
+  const [error, setError]     = React.useState<string | null>(null);
+
+  // open handler from outside
+  React.useEffect(() => {
+    const onOpen = (e: any) => {
+      setCtx(e.detail);
+      setOpen(true);
+    };
+    window.addEventListener('mesh:open-evaluation-sheet' as any, onOpen);
+    return () => window.removeEventListener('mesh:open-evaluation-sheet' as any, onOpen);
+  }, []);
+
+  // load work basics + MCDA snapshot
+  React.useEffect(() => {
+    if (!open || !ctx) return;
+
+    setError(null);
+    setFromWork(null);
+    setToWork(null);
+    setDeliberationId(null);
+    setMcda(null);
+
+    (async () => {
+      try {
+        const [src, dst] = await Promise.all([
+          fetch(`/api/works/${ctx.fromWorkId}`, { cache:'no-store' }).then(r=>r.ok?r.json():null),
+          fetch(`/api/works/${ctx.toWorkId}`,   { cache:'no-store' }).then(r=>r.ok?r.json():null),
+        ]);
+        if (src?.work) setFromWork(src.work as WorkLite);
+        if (dst?.work) {
+          setToWork(dst.work as WorkLite);
+          setDeliberationId(dst.work.deliberationId);
+        }
+
+        // pull MCDA snapshot if present
+        try {
+          const j = await fetch(`/api/works/${ctx.fromWorkId}/practical`, { cache:'no-store' }).then(r=>r.ok?r.json():null);
+          const m = j?.justification?.result ?? null;
+          setMcda(m);
+          setMethod(m ? 'mcda' : 'adequacy');
+        } catch {
+          setMethod('adequacy');
+        }
+      } catch (err:any) {
+        setError(err?.message ?? 'Failed to load works');
+      }
+    })();
+  }, [open, ctx]);
+
+  if (!open || !ctx) return null;
+
+  function updateAdequacyItem(id: string, patch: Partial<AdequacyItem>) {
+    setAdequacy(items => items.map(it => it.id === id ? { ...it, ...patch } : it));
+  }
+  function addAdequacyItem() {
+    setAdequacy(items => [...items, { id: crypto.randomUUID(), criterion: '', result: 'pass' }]);
+  }
+  function removeAdequacyItem(id: string) {
+    setAdequacy(items => items.filter(it => it.id !== id));
+  }
+
+  async function submit() {
+    setPending(true);
+    setError(null);
+    try {
+      if (!deliberationId) {
+        setError('Missing deliberationId for target work');
+        setPending(false);
+        return;
+      }
+
+      const meta: any = { method, verdict };
+      if (method === 'mcda') {
+        meta.mcda = mcda ?? null;
+        if (!meta.mcda) {
+          setError('No MCDA snapshot found on source work; pick “Adequacy” or add a Practical result.');
+          setPending(false);
+          return;
+        }
+      } else {
+        // pack adequacy checklist
+        meta.adequacy = {
+          items: adequacy
+            .map(a => ({ criterion: a.criterion.trim(), result: a.result }))
+            .filter(a => a.criterion.length > 0),
+        };
+      }
+
+      const r = await fetch('/api/knowledge-edges', {
+        method: 'POST',
+        headers: { 'content-type':'application/json' },
+        body: JSON.stringify({
+          deliberationId,
+          kind: 'EVALUATES',
+          fromWorkId: ctx.fromWorkId,
+          toWorkId: ctx.toWorkId,
+          meta,
+        }),
+      });
+      if (!r.ok) {
+        const txt = await r.text();
+        setError(`Save failed: ${r.status} ${txt}`);
+        setPending(false);
+        return;
+      }
+
+      // notify others (e.g. SupplyDrawer) to refresh
+      window.dispatchEvent(new CustomEvent('mesh:edges-updated', { detail: { toWorkId: ctx.toWorkId } }));
+      setOpen(false);
+    } catch (err:any) {
+      setError(err?.message ?? 'Unknown error');
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[60] bg-black/25" onClick={()=>setOpen(false)}>
+      <div
+        className="absolute right-0 top-0 h-full w-[460px] bg-white border-l p-3"
+        onClick={e=>e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between">
+          <div className="text-sm font-medium">Evaluation</div>
+          <button className="text-xs underline" onClick={()=>setOpen(false)}>Close</button>
+        </div>
+
+        <div className="mt-3 space-y-2 text-sm">
+          <div className="text-[12px] text-neutral-600">
+            Comparing <b>{fromWork?.title ?? ctx.fromWorkId}</b> → <b>{toWork?.title ?? ctx.toWorkId}</b>
+          </div>
+
+          {/* Method choice */}
+          <div className="mt-2">
+            <label className="text-xs text-neutral-600">Method</label>
+            <div className="mt-1 flex items-center gap-3 text-xs">
+              <label className="flex items-center gap-1">
+                <input
+                  type="radio"
+                  name="eval-method"
+                  value="mcda"
+                  checked={method === 'mcda'}
+                  onChange={()=>setMethod('mcda')}
+                  disabled={!mcda}
+                />
+                MCDA snapshot {mcda ? 'found' : '(none)'}
+              </label>
+              <label className="flex items-center gap-1">
+                <input
+                  type="radio"
+                  name="eval-method"
+                  value="adequacy"
+                  checked={method === 'adequacy'}
+                  onChange={()=>setMethod('adequacy')}
+                />
+                Adequacy checklist
+              </label>
+            </div>
+          </div>
+
+          {/* MCDA summary */}
+          {method === 'mcda' && (
+            <div className="rounded border p-2 bg-neutral-50 text-[12px]">
+              {mcda ? (
+                <>
+                  <div>Best option: <b>{mcda.bestOptionId ?? '—'}</b></div>
+                  <div>Options: {Object.keys(mcda.totals ?? {}).length}</div>
+                </>
+              ) : (
+                <div className="text-neutral-500">No MCDA result on source work.</div>
+              )}
+            </div>
+          )}
+
+          {/* Adequacy editor */}
+          {method === 'adequacy' && (
+            <div className="rounded border p-2 bg-neutral-50">
+              <div className="text-[11px] text-neutral-600 mb-1">Checklist</div>
+              <div className="space-y-2">
+                {adequacy.map(item => (
+                  <div key={item.id} className="flex items-center gap-2">
+                    <input
+                      className="flex-1 border rounded px-2 py-1 text-xs"
+                      placeholder="Criterion (e.g., Completeness)"
+                      value={item.criterion}
+                      onChange={e=>updateAdequacyItem(item.id, { criterion: e.target.value })}
+                    />
+                    <select
+                      className="border rounded px-1 py-1 text-xs"
+                      value={item.result}
+                      onChange={e=>updateAdequacyItem(item.id, { result: e.target.value as any })}
+                    >
+                      <option value="pass">pass</option>
+                      <option value="partial">partial</option>
+                      <option value="fail">fail</option>
+                    </select>
+                    <button className="text-[11px] underline" onClick={()=>removeAdequacyItem(item.id)}>remove</button>
+                  </div>
+                ))}
+                <button className="text-[11px] underline" onClick={addAdequacyItem}>+ add row</button>
+              </div>
+            </div>
+          )}
+
+          {/* Verdict */}
+          <label className="block text-xs text-neutral-600">Verdict (optional)</label>
+          <input
+            className="w-full border rounded px-2 py-1"
+            value={verdict}
+            onChange={e=>setVerdict(e.target.value)}
+            placeholder="e.g., Source dominates target on robustness and completeness"
+          />
+
+          <div className="text-[11px] text-neutral-500">
+            If the source work has a Practical (MCDA) result and you choose “MCDA snapshot,” it will be included automatically.
+          </div>
+
+          {error && <div className="text-[12px] text-rose-600">{error}</div>}
+
+          <button className="px-2 py-1 border rounded text-xs bg-white" onClick={submit} disabled={pending}>
+            {pending ? 'Saving…' : 'Save EVALUATES edge'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+17. // components/work/PromoteSlotButton.tsx
+'use client';
+import * as React from 'react';
+
+export default function PromoteSlotButton({
+  workId, slotKey, getText,
+}: {
+  workId: string;
+  slotKey: string;               // use SlotKey
+  getText?: () => string;        // optional; falls back to server read
+}) {
+  const [pending, setPending] = React.useState(false);
+  const [ok, setOk] = React.useState<boolean | null>(null);
+
+  return (
+    <button
+      type="button"
+      className="text-[11px] underline text-neutral-600 disabled:opacity-50"
+      disabled={pending}
+      onClick={async () => {
+        setPending(true);
+        try {
+          const text = getText?.().trim();
+          const r = await fetch(`/api/works/${workId}/slots/promote`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ slotKey, text: text || undefined }),
+          });
+          setOk(r.ok);
+          // Let edges/consumers refresh if needed
+          window.dispatchEvent(new CustomEvent('mesh:edges-updated', { detail: { toWorkId: workId } }));
+        } finally { setPending(false); }
+      }}
+    >
+      {pending ? 'Promoting…' : (ok ? 'Promoted ✓' : 'Promote to claim')}
+    </button>
+  );
+}
+
+18. // components/work/SelectionPromoteBar.tsx
+'use client';
+import * as React from 'react';
+
+export function SelectionPromoteBar({
+  workId,
+  deliberationId, // if you want to verify context client-side; server enforces anyway
+  getSelection,
+}: {
+  workId: string;
+  deliberationId: string;
+  getSelection: () => { text:string; start:number; end:number } | null; // you have the viewer offsets
+}) {
+  const [pending, setPending] = React.useState(false);
+  const [visible, setVisible] = React.useState(false);
+  const [sel, setSel] = React.useState<{text:string; start:number; end:number}|null>(null);
+
+  React.useEffect(() => {
+    const h = () => {
+      const s = getSelection();
+      setSel(s);
+      setVisible(!!s && s.text.trim().length >= 3);
+    };
+    document.addEventListener('selectionchange', h);
+    return () => document.removeEventListener('selectionchange', h);
+  }, [getSelection]);
+
+  if (!visible || !sel) return null;
+
+  return (
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 px-2 py-1 bg-white/90 border rounded shadow text-sm">
+      <button
+        disabled={pending}
+        className="px-2 py-1 border rounded"
+        onClick={async () => {
+          setPending(true);
+          try {
+            const res = await fetch(`/api/works/${workId}/promote-claim`, {
+              method:'POST',
+              headers:{ 'Content-Type':'application/json' },
+              body: JSON.stringify({
+                text: sel.text,
+                locatorStart: sel.start,
+                locatorEnd: sel.end,
+                excerptHash: btoa(sel.text).slice(0,32), // simple, replace with SHA if you prefer
+              })
+            });
+            if (!res.ok) {
+              const msg = await res.text();
+              alert(`Promote failed: ${msg}`);
+            } else {
+              setVisible(false);
+            }
+          } finally {
+            setPending(false);
+          }
+        }}
+      >
+        Promote to Claim
+      </button>
+    </div>
+  );
+}
+
+19. // components/work/SupplyAuthoringInline.tsx
+'use client';
+import * as React from 'react';
+
+type Work = { id:string; title:string; theoryType:'DN'|'IH'|'TC'|'OP' };
+
+export default function SupplyAuthoringInline({
+  deliberationId,
+  toWorkId,
+}: { deliberationId: string; toWorkId: string }) {
+  const [dnWorks, setDnWorks] = React.useState<Work[]>([]);
+  const [claims, setClaims] = React.useState<{ id:string; text:string }[]>([]);
+  const [selectedFromWorkId, setSelectedFromWorkId] = React.useState<string>('');
+  const [selectedFromClaimId, setSelectedFromClaimId] = React.useState<string>('');
+  const [pending, setPending] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!deliberationId) return; // ✅ guard
+    (async () => {
+      const res = await fetch(`/api/works?deliberationId=${encodeURIComponent(deliberationId)}`, { cache:'no-store' });
+      const json = await res.json();
+      const dn = (json.works ?? []).filter((w:Work) => w.theoryType === 'DN');
+      setDnWorks(dn);
+    })();
+    (async () => {
+      const res = await fetch(`/api/claims/search?deliberationId=${encodeURIComponent(deliberationId)}&q=`, { cache:'no-store' });
+      const json = await res.json();
+      setClaims(json.claims ?? []);
+    })();
+  }, [deliberationId]);
+
+  return (
+    <div className="rounded border p-2 space-y-2 bg-white/70">
+      <div className="text-xs font-medium">Add supplied premise</div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+        <div>
+          <label className="block text-[11px] text-neutral-600 mb-1">From DN Work (optional)</label>
+          <select
+            className="w-full border rounded px-2 py-1 text-sm"
+            value={selectedFromWorkId}
+            onChange={(e)=>setSelectedFromWorkId(e.target.value)}
+          >
+            <option value="">— Select a DN Work —</option>
+            {dnWorks.map(w => <option key={w.id} value={w.id}>{w.title}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="block text-[11px] text-neutral-600 mb-1">Or from Claim (optional)</label>
+          <select
+            className="w-full border rounded px-2 py-1 text-sm"
+            value={selectedFromClaimId}
+            onChange={(e)=>setSelectedFromClaimId(e.target.value)}
+          >
+            <option value="">— Select a Claim —</option>
+            {claims.slice(0,200).map(c => <option key={c.id} value={c.id}>{c.text.slice(0,90)}</option>)}
+          </select>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <button
+          disabled={pending || (!selectedFromWorkId && !selectedFromClaimId)}
+          className="px-2 py-1 text-sm border rounded bg-white disabled:opacity-50"
+          onClick={async () => {
+            if (!selectedFromWorkId && !selectedFromClaimId) return;
+            setPending(true);
+            try {
+              const res = await fetch('/api/knowledge-edges?kind=SUPPLIES_PREMISE', {
+                method: 'POST',
+                headers: { 'Content-Type':'application/json' },
+                body: JSON.stringify({
+                  deliberationId,
+                  kind: 'SUPPLIES_PREMISE',
+                  fromWorkId: selectedFromWorkId || undefined,
+                  fromClaimId: selectedFromClaimId || undefined,
+                  toWorkId,
+                }),
+              });
+              const text = await res.text();
+              if (!res.ok) return alert(text);
+              setSelectedFromClaimId('');
+              setSelectedFromWorkId('');
+              alert('Supply added.');
+            } finally {
+              setPending(false);
+            }
+          }}
+        >
+          Link as SUPPLIES_PREMISE
+        </button>
+        <div className="flex items-center gap-2">
+  <button className="px-2 py-1 text-sm border rounded"
+    disabled={!selectedFromWorkId}
+    onClick={async ()=>{
+      await fetch('/api/knowledge-edges', {
+        method:'POST', headers:{'content-type':'application/json'},
+        body: JSON.stringify({ deliberationId, kind:'ALTERNATIVE_TO', fromWorkId: selectedFromWorkId, toWorkId })
+      }); alert('Alternative linked.');
+    }}>
+    Link as ALTERNATIVE_TO
+  </button>
+  <button className="px-2 py-1 text-sm border rounded"
+    disabled={!selectedFromWorkId}
+    onClick={async ()=>{
+      // pull the evaluator work’s MCDA snapshot
+      const pj = await fetch(`/api/works/${selectedFromWorkId}/practical`).then(r=>r.json()).catch(()=>null);
+      await fetch('/api/knowledge-edges', {
+        method:'POST', headers:{'content-type':'application/json'},
+        body: JSON.stringify({ deliberationId, kind:'EVALUATES', fromWorkId: selectedFromWorkId, toWorkId, meta:{ mcda: pj?.justification?.result ?? {} } })
+      }); alert('Evaluation linked.');
+    }}>
+    Link as EVALUATES (MCDA)
+  </button>
+</div>
+        <div className="text-[11px] text-neutral-500">DN works and/or claims can supply premises to this work.</div>
+      </div>
+    </div>
+  );
+}
+
+20. // components/work/SupplyDrawer.tsx
+'use client';
+import * as React from 'react';
+import useSWR from 'swr';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+
+const fetcher = (u: string) => fetch(u, { cache: 'no-store' }).then(r => r.json());
+
+type Edge = {
+  id: string;
+  kind: string;
+  fromWorkId?: string | null;
+  toWorkId?: string | null;
+  fromClaimId?: string | null;
+  toClaimId?: string | null;
+  meta?: any;
+  createdAt?: string;
+};
+
+type WorkLite = { id: string; title: string; theoryType: 'DN'|'IH'|'TC'|'OP' };
+type ClaimLite = { id: string; text: string };
+
+export default function SupplyDrawer({
+  workId,
+  open,
+  onClose,
+}: { workId: string; open: boolean; onClose: () => void }) {
+
+
+  const [evalCandidates, setEvalCandidates] = React.useState<{ id:string; title:string; theoryType:string }[]>([]);
+  const [selectedEval, setSelectedEval] = React.useState('');
+  const [loadingEvalCandidates, setLoadingEvalCandidates] = React.useState(false);
+  
+  const [workMeta, setWorkMeta] = React.useState<{ deliberationId?: string } | null>(null);
+
+
+  const [onlyDN, setOnlyDN] = React.useState(true);
+
+  // --- Data sources (lazy when closed) ---
+  const suppliesKey = open ? `/api/works/${workId}/supplies` : null;
+  const altsKey     = open ? `/api/knowledge-edges?toWorkId=${workId}&kinds=ALTERNATIVE_TO` : null;
+  const evalsKey    = open ? `/api/knowledge-edges?toWorkId=${workId}&kinds=EVALUATES` : null;
+
+  // fetch IH/TC candidates (reuse the same request you used for alternatives)
+React.useEffect(() => {
+  if (!open) return;
+  (async () => {
+    setLoadingEvalCandidates(true);
+    try {
+      const res = await fetch(`/api/works?deliberationId=${encodeURIComponent(workId)}`, { cache:'no-store' });
+      const j = await res.json();
+      const ihTc = (j.works ?? []).filter((w:any) => w.theoryType==='IH' || w.theoryType==='TC');
+      setEvalCandidates(ihTc);
+    } catch {}
+    setLoadingEvalCandidates(false);
+  })();
+}, [open, workId]);
+
+// fetch deliberation for this work once the drawer opens
+React.useEffect(() => {
+  if (!open) return;
+  (async () => {
+    const r = await fetch(`/api/works/${workId}`, { cache:'no-store' }).then(r=>r.json()).catch(()=>null);
+    setWorkMeta(r?.work ? { deliberationId: r.work.deliberationId } : null);
+  })();
+}, [open, workId]);
+
+
+// candidate works for alternatives/evaluations
+const [candidates, setCandidates] = React.useState<{ id:string; title:string; theoryType:string }[]>([]);
+const [selectedAlt, setSelectedAlt] = React.useState('');
+const [loadingCandidates, setLoadingCandidates] = React.useState(false);
+
+React.useEffect(() => {
+  if (!open || !workMeta?.deliberationId) return;
+  (async () => {
+    setLoadingCandidates(true);
+    try {
+      const res = await fetch(`/api/works?deliberationId=${encodeURIComponent(workMeta.deliberationId)}`, { cache:'no-store' });
+      const j = await res.json();
+      const ihTc = (j.works ?? []).filter((w:any) => w.theoryType==='IH' || w.theoryType==='TC');
+      setCandidates(ihTc);
+    } catch {}
+    setLoadingCandidates(false);
+  })();
+}, [open, workMeta?.deliberationId]);
+
+  const {
+    data: supRes,
+    isLoading: loadingSup,
+    mutate: refetchSup,
+  } = useSWR<{ ok: boolean; edges: Edge[]; works: WorkLite[]; claims: ClaimLite[] }>(suppliesKey, fetcher);
+
+  const {
+    data: altsRes,
+    isLoading: loadingAlts,
+    mutate: refetchAlts,
+  } = useSWR<{ ok: boolean; edges: Edge[]; works: WorkLite[] }>(altsKey, fetcher);
+
+  const {
+    data: evalsRes,
+    isLoading: loadingEvals,
+    mutate: refetchEvals,
+  } = useSWR<{ ok: boolean; edges: Edge[]; works: WorkLite[] }>(evalsKey, fetcher);
+
+  // --- Auto-refresh on "mesh:edges-updated" ---
+  React.useEffect(() => {
+    if (!open) return;
+    const h = (e: any) => {
+      if (!e?.detail?.toWorkId || e.detail.toWorkId !== workId) return;
+      refetchSup();
+      refetchAlts();
+      refetchEvals();
+    };
+    window.addEventListener('mesh:edges-updated' as any, h);
+    return () => window.removeEventListener('mesh:edges-updated' as any, h);
+  }, [open, workId, refetchSup, refetchAlts, refetchEvals]);
+
+  if (!open) return null;
+
+  // --- Merge hydration across responses ---
+  const workMap: Record<string, WorkLite> = React.useMemo(() => {
+    const wm: Record<string, WorkLite> = {};
+    for (const w of (supRes?.works ?? [])) wm[w.id] = w;
+    for (const w of (altsRes?.works ?? [])) wm[w.id] = w;
+    for (const w of (evalsRes?.works ?? [])) wm[w.id] = w;
+    return wm;
+  }, [supRes?.works, altsRes?.works, evalsRes?.works]);
+
+  const claimMap: Record<string, ClaimLite> = React.useMemo(() => {
+    const cm: Record<string, ClaimLite> = {};
+    for (const c of (supRes?.claims ?? [])) cm[c.id] = c;
+    return cm;
+  }, [supRes?.claims]);
+
+
+React.useEffect(() => {
+  if (!open) return;
+  (async () => {
+    setLoadingCandidates(true);
+    try {
+      // fetch all works in this deliberation, then filter to IH/TC
+      const res = await fetch(`/api/works?deliberationId=${encodeURIComponent(workId)}`, { cache:'no-store' });
+      const j = await res.json();
+      const ihTc = (j.works ?? []).filter((w:any) => w.theoryType==='IH' || w.theoryType==='TC');
+      setCandidates(ihTc);
+    } catch {}
+    setLoadingCandidates(false);
+  })();
+}, [open, workId]);
+
+  // --- Tab datasets ---
+  const supplyEdges = (supRes?.edges ?? []).filter(e =>
+    !onlyDN || (e.fromWorkId && workMap[e.fromWorkId]?.theoryType === 'DN')
+  );
+  const altEdges    = (altsRes?.edges ?? []);
+  const evalEdges   = (evalsRes?.edges ?? []);
+
+  const emptySup = !loadingSup  && supplyEdges.length === 0;
+  const emptyAlt = !loadingAlts && altEdges.length    === 0;
+  const emptyEva = !loadingEvals && evalEdges.length  === 0;
+
+  return (
+    <div className="fixed inset-0 bg-black/20 z-50" onClick={onClose}>
+      <div
+        className="absolute right-0 top-0 h-full w-[460px] bg-white border-l p-3"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between">
+          <div className="text-sm font-medium">Dependencies</div>
+          <button className="text-xs underline" onClick={onClose}>Close</button>
+        </div>
+
+        <Tabs defaultValue="supplies" className="mt-3">
+          <TabsList>
+            <TabsTrigger value="supplies">Supplies</TabsTrigger>
+            <TabsTrigger value="alternatives">Alternatives</TabsTrigger>
+            <TabsTrigger value="evaluations">Evaluations</TabsTrigger>
+          </TabsList>
+
+          {/* SUPPLIES */}
+          <TabsContent value="supplies">
+            <div className="mt-2 text-xs">
+              <label className="inline-flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={onlyDN}
+                  onChange={e => setOnlyDN(e.target.checked)}
+                />
+                Only DN works
+              </label>
+            </div>
+
+            <div className="mt-3 space-y-2">
+              {loadingSup && <div className="text-xs text-neutral-500">Loading…</div>}
+              {!loadingSup && emptySup && <div className="text-xs text-neutral-500">No supplies yet.</div>}
+
+              {supplyEdges.map((e) => (
+                <div key={e.id} className="rounded border p-2 text-sm">
+                  <div className="text-[11px] text-neutral-500">{e.kind}</div>
+                  {e.fromWorkId && (
+                    <div>
+                      From Work: <b>{workMap[e.fromWorkId]?.title ?? e.fromWorkId}</b>{' '}
+                      <span className="text-[11px] text-neutral-500">
+                        [{workMap[e.fromWorkId]?.theoryType ?? '—'}]
+                      </span>
+                    </div>
+                  )}
+                  {e.fromClaimId && (
+                    <div>From Claim: “{claimMap[e.fromClaimId]?.text?.slice(0,120) ?? e.fromClaimId}”</div>
+                  )}
+                  {e.toClaimId && (
+                    <div className="text-[12px] text-neutral-600">
+                      Targets Claim: “{claimMap[e.toClaimId]?.text?.slice(0,120) ?? e.toClaimId}”
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </TabsContent>
+
+          {/* ALTERNATIVES */}
+          <TabsContent value="alternatives">
+  <div className="mt-2 space-y-2">
+    {loadingAlts && <div className="text-xs text-neutral-500">Loading…</div>}
+    {!loadingAlts && emptyAlt && <div className="text-xs text-neutral-500">No alternatives yet.</div>}
+
+    {altEdges.map((e) => (
+      <div key={e.id} className="border rounded p-2 text-sm">
+        <div className="text-[11px] text-neutral-500">ALTERNATIVE_TO</div>
+        <div>
+          From Work:{' '}
+          <b>{workMap[e.fromWorkId ?? '']?.title ?? e.fromWorkId}</b>{' '}
+          <span className="text-[11px] text-neutral-500">
+            [{workMap[e.fromWorkId ?? '']?.theoryType ?? '—'}]
+          </span>
+        </div>
+      </div>
+    ))}
+
+    {/* Add alternative form */}
+    <div className="mt-3 rounded border p-2 text-sm bg-neutral-50">
+      <div className="font-medium text-xs mb-1">Add alternative</div>
+      {loadingCandidates ? (
+        <div className="text-xs text-neutral-500">Loading IH/TC works…</div>
+      ) : (
+        <>
+          <select
+            className="border rounded px-2 py-1 text-xs w-full mb-2"
+            value={selectedAlt}
+            onChange={e=>setSelectedAlt(e.target.value)}
+          >
+            <option value="">— Select IH/TC Work —</option>
+            {candidates.map(c => (
+              <option key={c.id} value={c.id}>
+                {c.title} [{c.theoryType}]
+              </option>
+            ))}
+          </select>
+          <button
+            className="px-2 py-1 border rounded text-xs bg-white"
+            disabled={!selectedAlt}
+            onClick={async () => {
+              try {
+                const res = await fetch('/api/knowledge-edges', {
+                  method:'POST',
+                  headers:{ 'content-type':'application/json' },
+                  body: JSON.stringify({
+                    deliberationId: workMeta?.deliberationId ?? '',  // was workId; fix here
+
+                    kind: 'ALTERNATIVE_TO',
+                    fromWorkId: selectedAlt,
+                    toWorkId: workId,
+                  }),
+                });
+                if (!res.ok) {
+                  const txt = await res.text();
+                  alert(`Failed: ${res.status} ${txt}`);
+                  return;
+                }
+                setSelectedAlt('');
+                // trigger refresh
+                window.dispatchEvent(new CustomEvent('mesh:edges-updated', { detail: { toWorkId: workId } }));
+              } catch (err:any) {
+                alert(err.message || 'Error saving alternative');
+              }
+            }}
+          >
+            Add Alternative
+          </button>
+        </>
+      )}
+    </div>
+  </div>
+</TabsContent>
+
+          {/* EVALUATIONS */}
+          <TabsContent value="evaluations">
+  <div className="mt-2 space-y-2">
+    {loadingEvals && <div className="text-xs text-neutral-500">Loading…</div>}
+    {!loadingEvals && emptyEva && <div className="text-xs text-neutral-500">No evaluations yet.</div>}
+
+    {evalEdges.map((e) => {
+      const mcda = e.meta?.mcda;
+      return (
+        <div key={e.id} className="border rounded p-2 text-sm">
+          <div className="text-[11px] text-neutral-500">EVALUATES</div>
+          <div>
+            From Work:{' '}
+            <b>{workMap[e.fromWorkId ?? '']?.title ?? e.fromWorkId}</b>{' '}
+            <span className="text-[11px] text-neutral-500">
+              [{workMap[e.fromWorkId ?? '']?.theoryType ?? '—'}]
+            </span>
+          </div>
+          {e.meta?.verdict && <div className="text-[11px] mt-1">Verdict: {e.meta.verdict}</div>}
+          {mcda && (
+            <div className="text-[11px] text-neutral-600 mt-1">
+              Best option: <b>{mcda.bestOptionId ?? '—'}</b> · k={Object.keys(mcda.totals || {}).length}
+            </div>
+          )}
+          {e.meta?.adequacy?.items && (
+            <div className="text-[11px] text-neutral-600 mt-1">
+              Adequacy: {e.meta.adequacy.items.map((it: any) => `${it.criterion}:${it.result}`).join(', ')}
+            </div>
+          )}
+        </div>
+      );
+    })}
+
+    {/* Add evaluation form */}
+<div className="mt-3 rounded border p-2 text-sm bg-neutral-50">
+  <div className="font-medium text-xs mb-1">Add evaluation</div>
+  {loadingCandidates ? (
+    <div className="text-xs text-neutral-500">Loading IH/TC works…</div>
+  ) : (
+    <>
+      <select
+        className="border rounded px-2 py-1 text-xs w-full mb-2"
+        value={selectedAlt}
+        onChange={e=>setSelectedAlt(e.target.value)}
+      >
+        <option value="">— Select IH/TC Work —</option>
+        {candidates.map(c => (
+          <option key={c.id} value={c.id}>{c.title} [{c.theoryType}]</option>
+        ))}
+      </select>
+      <button
+        className="px-2 py-1 border rounded text-xs bg-white"
+        disabled={!selectedAlt}
+        onClick={() => {
+          // Source = selectedAlt (has its own MCDA), target = current workId
+          window.dispatchEvent(new CustomEvent('mesh:open-evaluation-sheet', {
+            detail: { fromWorkId: selectedAlt, toWorkId: workId }
+          }));
+          setSelectedAlt('');
+        }}
+      >
+        Open EvaluationSheet
+      </button>
+    </>
+  )}
+</div>
+  </div>
+</TabsContent>
+        </Tabs>
+      </div>
+    </div>
+  );
+}
+
+21. // components/work/WorkDetailClient.tsx
+'use client';
+
+import * as React from 'react';
+import { useRouter } from 'next/navigation';
+import { TheoryFraming } from '@/components/compose/TheoryFraming';
+import EvaluationSheet from './EvaluationSheet';
+export default function WorkDetailClient(props: {
+  id: string;
+  deliberationId: string;
+  title: string;
+  theoryType: 'DN'|'IH'|'TC'|'OP';
+  standardOutput?: string;
+  backHref?: string;
+}) {
+    const { id, deliberationId, title, theoryType, standardOutput, backHref } = props;
+      const router = useRouter();
+
+
+   //const [backHref, setBackHref] = React.useState<string | null>(null);
+   const [computedBackHref, setComputedBackHref] = React.useState<string | null>(null);
+   React.useEffect(() => {
+          let cancelled = false;
+          (async () => {
+            try {
+              const res = await fetch(`/api/deliberations/${deliberationId}`, { cache: 'no-store' });
+              if (!res.ok) return;
+              const data = await res.json();
+              const hostType = data.hostType ?? data.deliberation?.hostType;
+              const hostId   = data.hostId   ?? data.deliberation?.hostId;
+              const href = computeBackHref(hostType, hostId, deliberationId);
+              if (!cancelled) setComputedBackHref(href);
+            } catch {}
+          })();
+          return () => { cancelled = true; };
+        }, [deliberationId]);
+ 
+   function computeBackHref(hostType?: string, hostId?: string, delibId?: string) {
+     if (hostType && hostId) {
+       switch (hostType) {
+         case 'article':        return `/article/${hostId}`;
+         case 'post':           return `/p/${hostId}`;
+         case 'room_thread':    return `/rooms/${hostId}`;
+         case 'library_stack':  return `/stacks/${hostId}`;
+         case 'site':           return `/site/${hostId}`;
+         case 'inbox_thread':   return `/inbox/thread/${hostId}`;
+       }
+     }
+     // Fallback to Deep Dive if unknown
+     return `/deepdive/${delibId ?? deliberationId}`;
+   }
+
+
+  const [framing, setFraming] = React.useState<{
+    theoryType: 'DN'|'IH'|'TC'|'OP';
+    standardOutput?: string;
+  }>({
+    theoryType,
+    standardOutput,
+  });
+
+  return (
+    <div className="max-w-3xl mx-auto p-4 space-y-4">
+      {/* Back to Deep Dive button */}
+      <div className="flex items-center justify-between">
+      <button onClick={() => router.push(props.backHref ?? computedBackHref ?? `/deepdive/${deliberationId}`)} 
+          className="px-3 py-1 text-xs rounded-md border border-slate-300 bg-white hover:bg-slate-50"
+        >
+          ← Back to Discussion
+        </button>
+      </div>
+
+      <div className="flex items-center justify-between">
+        <div className="text-lg font-semibold">{title}</div>
+        <span className="text-[10px] px-1.5 py-0.5 rounded bg-neutral-100">
+          {theoryType}
+        </span>
+      </div>
+
+      <TheoryFraming
+        value={framing}
+        onChange={setFraming}
+        workId={id}
+        canEditPractical={true}
+        defaultOpenBuilder={true}
+      />
+      <EvaluationSheet />
+
+    </div>
+  );
+}
+
+22. // components/work/WorkHeaderBar.tsx
+'use client';
+import * as React from 'react';
+import SupplyDrawer from './SupplyDrawer';
+import { IntegrityBadge } from '../integrity/IntegrityBadge';
+
+export default function WorkHeaderBar({
+  workId,
+  title,
+  theoryType,
+  deliberationId
+}: { workId:string; title:string; theoryType:'DN'|'IH'|'TC'|'OP'; deliberationId:string }) {
+  const [open, setOpen] = React.useState(false);
+
+  return (
+    <div className="flex items-center justify-between border-b pb-2 mb-3">
+      <div className="flex items-center gap-2">
+        <span className="px-1.5 py-0.5 rounded bg-neutral-100 text-xs">{theoryType}</span>
+        <h2 className="text-sm font-semibold">{title}</h2>
+        <IntegrityBadge workId={workId} theoryType={theoryType} />
+      </div>
+      <div className="flex items-center gap-2">
+        <button className="px-2 py-1 border rounded text-xs bg-white" onClick={()=>setOpen(true)}>
+          Dependencies…
+        </button>
+        <button
+  className="px-2 py-1 border rounded text-xs bg-white"
+  onClick={async () => {
+    const res = await fetch(`/api/works/${workId}/dossier?format=md`);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `${title.replace(/\s+/g,'_')}_Dossier.md`;
+    a.click(); URL.revokeObjectURL(url);
+  }}
+>
+  Export Dossier
+</button>
+      </div>
+      <SupplyDrawer workId={workId} open={open} onClose={()=>setOpen(false)} />
+    </div>
+  );
+}
+
+23. // components/work/WorksList.tsx
+'use client';
+import * as React from 'react';
+import useSWR from 'swr';
+type Work = {
+  id: string;
+  title: string;
+  theoryType: 'DN'|'IH'|'TC'|'OP';
+  standardOutput?: string | null;
+  authorId: string;
+  createdAt: string;
+};
+const fetcher = (u:string)=>fetch(u,{cache:'no-store'}).then(r=>r.json());
+const safeJson = async (u: string) => {
+  try {
+    const r = await fetch(u, { cache: 'no-store' });
+    if (!r.ok) return { ok: false, works: [] };        // never throw into render
+    const txt = await r.text();
+    try { return JSON.parse(txt); } catch { return { ok: true, works: [] }; }
+  } catch {
+    return { ok: false, works: [] };
+  }
+};
+export default function WorksList({
+  deliberationId,
+  currentUserId,
+}: {
+  deliberationId: string;
+  currentUserId?: string;
+}) {
+  const [mineOnly, setMineOnly] = React.useState(false);
+  const [theoryFilter, setTheoryFilter] = React.useState<'ALL'|'DN'|'IH'|'TC'|'OP'>('ALL');
+  const [loading, setLoading] = React.useState(false);
+  const [onlyComplete, setOnlyComplete] = React.useState(false);
+
+ //const [works, setWorks] = React.useState<Work[]>([]);
+
+
+
+//   const qs = React.useMemo(() => {
+//     const p = new URLSearchParams({ deliberationId });
+//     if (mineOnly && currentUserId) p.set('authorId', currentUserId);
+//     if (theoryFilter !== 'ALL') p.set('theoryType', theoryFilter);
+//     return `/api/works?${p.toString()}`;
+//   }, [deliberationId, mineOnly, theoryFilter, currentUserId]);
+
+
+//   const { data, isLoading, mutate } = useSWR(qs, fetcher, { keepPreviousData:true });
+// setWorks(data?.works ?? []);
+//   async function load() {
+//     setLoading(true);
+//     try {
+//       const params = new URLSearchParams();
+//       params.set('deliberationId', deliberationId);
+//       if (mineOnly && currentUserId) params.set('authorId', currentUserId);
+//       if (theoryFilter !== 'ALL') params.set('theoryType', theoryFilter);
+//       const res = await fetch(`/api/works?${params.toString()}`, { cache:'no-store', signal: ac.signal });
+//       const json = await res.json();
+//       setWorks(json.works ?? []);
+//     } finally {
+//       setLoading(false);
+//     }
+//   }
+//   const filtered = onlyComplete ? works.filter(w => {
+//     const t = w.theoryType;
+//     const i = (w as any).integrity ?? {};
+//     if (t==='IH') return i.hasHerm && i.hasPrac && i.hasStd && i.hasIH;
+//     if (t==='TC') return i.hasPrac && i.hasStd && i.hasTC;
+//     if (t==='OP') return i.hasPascal && i.hasOP;
+//     if (t==='DN') return i.hasDN; // or keep permissive
+//     return false;
+//   }) : works;
+// //   React.useEffect(() => { load(); }, [deliberationId, mineOnly, theoryFilter]);
+//   //  React.useEffect(() => {
+//   //      if (!deliberationId) { setWorks([]); return; }
+//   //      const ac = new AbortController();
+//   //      (async () => {
+//   //     setLoading(true);
+//   //     try {
+//   //       const params = new URLSearchParams();
+//   //       params.set('deliberationId', deliberationId);
+//   //       if (mineOnly && currentUserId) params.set('authorId', currentUserId);
+//   //       if (theoryFilter !== 'ALL') params.set('theoryType', theoryFilter);
+//   //       const res = await fetch(`/api/works?${params.toString()}`, { cache:'no-store' });
+//   //       const json = await res.json();
+//   //       setWorks(json.works ?? []);
+//   //     } finally {
+//   //       setLoading(false);
+//   //     }
+//   //   })();
+//   //       return () => ac.abort();
+//   //     }, [deliberationId, mineOnly, theoryFilter, currentUserId]);
+
+//   const onCreateWork = () => {
+//     // 1) Scroll to the Composer anchor
+//     const anchor = document.getElementById('work-composer');
+//     if (anchor) anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+//     // 2) Ask the composer to open its “Save as a Theory Work” section
+//     window.dispatchEvent(new CustomEvent('mesh:open-work-fields', {
+//       detail: { deliberationId }
+//     }));
+//   };
+
+// //   return (
+// //     <div className="space-y-3">
+// //       <div className="flex flex-wrap items-center gap-2">
+// //         <button
+// //           className="px-2 py-1 border rounded text-xs bg-white"
+// //           onClick={onCreateWork}
+// //         >
+// //           Create Work
+// //         </button>
+
+// //         <div className="h-4 w-px bg-neutral-300" />
+
+// //         <label className="text-xs flex items-center gap-1">
+// //           <input
+// //             type="checkbox"
+// //             checked={mineOnly}
+// //             onChange={e => setMineOnly(e.target.checked)}
+// //             disabled={!currentUserId}
+// //           />
+// //           My Works
+// //         </label>
+
+// //         <label className="text-xs flex items-center gap-1">
+// //           Type:
+// //           <select
+// //             className="border rounded px-1 py-0.5 text-xs"
+// //             value={theoryFilter}
+// //             onChange={e => setTheoryFilter(e.target.value as any)}
+// //           >
+// //             <option value="ALL">All</option>
+// //             <option value="DN">DN</option>
+// //             <option value="IH">IH</option>
+// //             <option value="TC">TC</option>
+// //             <option value="OP">OP</option>
+// //           </select>
+// //         </label>
+
+// //         <button
+// //           className="px-2 py-1 border rounded text-xs"
+// //           onClick={load}
+// //           disabled={loading}
+// //         >
+// //           {loading ? 'Refreshing…' : 'Refresh'}
+// //         </button>
+// //       </div>
+
+// //       {!works.length && (
+// //         <div className="text-xs text-neutral-500">
+// //           {loading ? 'Loading…' : 'No works yet.'}
+// //         </div>
+// //       )}
+
+// //       <div className="space-y-2">
+// //         {works.map(w => (
+// //           <a key={w.id} href={`/works/${w.id}`} className="block rounded border p-2 hover:bg-neutral-50">
+// //             <div className="flex items-center justify-between">
+// //               <div className="text-sm font-medium">{w.title}</div>
+// //               <span className="text-[10px] px-1.5 py-0.5 rounded bg-neutral-100">{w.theoryType}</span>
+// //             </div>
+// //             {w.theoryType !== 'DN' && w.standardOutput && (
+// //               <div className="text-[11px] text-neutral-600 mt-1">
+// //                 Std. Output: {w.standardOutput}
+// //               </div>
+// //             )}
+// //             <div className="text-[11px] text-neutral-500">
+// //               Created {new Date(w.createdAt).toLocaleString()}
+// //             </div>
+// //           </a>
+// //         ))}
+// //       </div>
+// //     </div>
+// //   );
+// // }
+const key = React.useMemo(() => {
+  if (!deliberationId) return null;
+  const p = new URLSearchParams({ deliberationId });
+  if (mineOnly && currentUserId) p.set('authorId', currentUserId);
+  if (theoryFilter !== 'ALL') p.set('theoryType', theoryFilter);
+  // you can also append withIntegrity=1 if you want integrity badges here
+  return `/api/works?${p.toString()}`;
+}, [deliberationId, mineOnly, theoryFilter, currentUserId]);
+
+const { data, error, isLoading, mutate } = useSWR<{ ok:boolean; works: Work[] }>(key, safeJson, { revalidateOnFocus: false });
+const works = data?.works ?? [];
+
+if (!deliberationId) return <div className="text-xs text-neutral-500">No deliberation</div>;
+if (error) return <div className="text-xs text-rose-600">Failed to load works</div>;
+
+// return (
+//   <div className="space-y-3">
+//     <div className="flex flex-wrap items-center gap-2">
+//       <button className="px-2 py-1 border rounded text-xs bg-white" onClick={mutate}>
+//         {isLoading ? 'Refreshing…' : 'Refresh'}
+//       </button>
+//       <label className="text-xs flex items-center gap-1">
+//         <input type="checkbox" checked={mineOnly} onChange={e=>setMineOnly(e.target.checked)} disabled={!currentUserId}/>
+//         My Works
+//       </label>
+//       <label className="text-xs flex items-center gap-1">
+//         Type:
+//         <select className="border rounded px-1 py-0.5 text-xs" value={theoryFilter} onChange={e=>setTheoryFilter(e.target.value as any)}>
+//           <option value="ALL">All</option><option value="DN">DN</option><option value="IH">IH</option><option value="TC">TC</option><option value="OP">OP</option>
+//         </select>
+//       </label>
+//     </div>
+
+//     {!works.length && (<div className="text-xs text-neutral-500">{isLoading ? 'Loading…' : 'No works yet.'}</div>)}
+
+//     <div className="space-y-2">
+//       {works.map((w:any)=>(
+//         <a key={w.id} href={`/works/${w.id}`} className="block rounded border p-2 hover:bg-neutral-50">
+//           <div className="flex items-center justify-between">
+//             <div className="text-sm font-medium">{w.title}</div>
+//             <span className="text-[10px] px-1.5 py-0.5 rounded bg-neutral-100">{w.theoryType}</span>
+//           </div>
+//           {w.theoryType!=='DN' && w.standardOutput && (
+//             <div className="text-[11px] text-neutral-600 mt-1">Std. Output: {w.standardOutput}</div>
+//           )}
+//           <div className="text-[11px] text-neutral-500">Created {new Date(w.createdAt).toLocaleString()}</div>
+//         </a>
+//       ))}
+//     </div>
+//   </div>
+// );
+// }
+
+return (
+  <div className="space-y-3">
+    <div className="flex flex-wrap items-center gap-2">
+      <button className="px-2 py-1 border rounded text-xs bg-white" onClick={() => mutate()}>
+        {isLoading ? 'Refreshing…' : 'Refresh'}
+      </button>
+
+      <label className="text-xs flex items-center gap-1">
+        <input type="checkbox" checked={mineOnly} onChange={e=>setMineOnly(e.target.checked)} disabled={!currentUserId}/>
+        My Works
+      </label>
+
+      <label className="text-xs flex items-center gap-1">
+        Type:
+        <select className="border rounded px-1 py-0.5 text-xs" value={theoryFilter} onChange={(e)=>setTheoryFilter(e.target.value as any)}>
+          <option value="ALL">All</option><option value="DN">DN</option><option value="IH">IH</option><option value="TC">TC</option><option value="OP">OP</option>
+        </select>
+      </label>
+    </div>
+
+    {!works.length && (
+      <div className="text-xs text-neutral-500">
+        {isLoading ? 'Loading…' : 'No works yet.'}
+      </div>
+    )}
+
+    <div className="space-y-2">
+      {works.map(w => (
+        <a key={w.id} href={`/works/${w.id}`} className="block rounded border p-2 hover:bg-neutral-50">
+          <div className="flex items-center justify-between">
+            <div className="text-sm font-medium">{w.title}</div>
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-neutral-100">{w.theoryType}</span>
+          </div>
+          {w.theoryType !== 'DN' && w.standardOutput && (
+            <div className="text-[11px] text-neutral-600 mt-1">Std. Output: {w.standardOutput}</div>
+          )}
+          <div className="text-[11px] text-neutral-500">Created {new Date(w.createdAt).toLocaleString()}</div>
+        </a>
+      ))}
+    </div>
+  </div>
+);
+}
+24. // components/work/WorksRail.tsx
+'use client';
+import * as React from 'react';
+
+type Work = { id:string; title:string; theoryType:'DN'|'IH'|'TC'|'OP' };
+
+export default function WorksRail({ deliberationId }:{ deliberationId?: string }) {
+  const [works, setWorks] = React.useState<Work[]>([]);
+
+  React.useEffect(() => {
+    if (!deliberationId) return; // ✅ guard undefined
+    (async () => {
+      const res = await fetch(`/api/works?deliberationId=${encodeURIComponent(deliberationId)}`, { cache: 'no-store' });
+      const json = await res.json();
+      setWorks(json.works ?? []);
+    })();
+  }, [deliberationId]);
+
+  if (!deliberationId || !works.length) return null;
+
+  return (
+    <div className="flex flex-wrap gap-2 items-center">
+      {works.map(w => (
+        <a key={w.id} href={`/works/${w.id}`} className="px-2 py-1 rounded border text-xs bg-white hover:bg-neutral-50">
+          <span className="mr-1 inline-block px-1 rounded bg-neutral-100">{w.theoryType}</span>
+          <span className="font-medium">{w.title}</span>
+        </a>
+      ))}
+    </div>
+  );
+}
+26. // app/works/page.tsx
+import { prisma } from '@/lib/prismaclient';
+
+export default async function WorksIndexPage({ searchParams }:{ searchParams?: Record<string,string|undefined> }) {
+  const deliberationId = searchParams?.deliberationId || undefined;
+
+  const works = await prisma.theoryWork.findMany({
+    where: { ...(deliberationId ? { deliberationId } : {}) },
+    select: { id:true, title:true, theoryType:true, createdAt:true, deliberationId:true },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  return (
+    <div className="max-w-3xl mx-auto p-4">
+      <div className="text-sm font-medium mb-2">Theory Works {deliberationId ? `(Delib ${deliberationId})` : ''}</div>
+      <div className="space-y-2">
+        {works.map(w => (
+          <a key={w.id} className="block p-2 border rounded hover:bg-neutral-50" href={`/works/${w.id}`}>
+            <div className="flex items-center justify-between">
+              <div className="font-medium">{w.title}</div>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-neutral-100">{w.theoryType}</span>
+            </div>
+            <div className="text-[11px] text-neutral-500">Created {new Date(w.createdAt).toLocaleString()}</div>
+          </a>
+        ))}
+        {!works.length && <div className="text-xs text-neutral-500">No works found.</div>}
+      </div>
+    </div>
+  );
+}
+27. //app/works/[id]/page.tsx
+import { prisma } from '@/lib/prismaclient';
+import WorkDetailClient from '@/components/work/WorkDetailClient';
+
+export default async function Page({ params }: { params: { id: string } }) {
+  const work = await prisma.theoryWork.findUnique({
+    where: { id: params.id },
+    select: {
+      id: true, title: true, theoryType: true, standardOutput: true, deliberationId: true,
+      deliberation: { select: { hostType: true, hostId: true } },
+    },
+  });
+  if (!work) throw new Error('Work not found');
+
+  let backHref: string | undefined;
+  if (work.deliberation?.hostType === 'article') {
+    // Try key, then slug (name may differ in your Article model)
+    const article = await prisma.article.findUnique({
+              where: { id: work.deliberation.hostId },
+              select: { slug: true },
+            });
+            if (article?.slug) backHref = `/article/${article.slug}`;
+  }
+
+  return (
+    <WorkDetailClient
+      id={work.id}
+      deliberationId={work.deliberationId}
+      title={work.title}
+      theoryType={work.theoryType as any}
+      standardOutput={work.standardOutput ?? undefined}
+      backHref={backHref}
+      
+    />
+  );
+}

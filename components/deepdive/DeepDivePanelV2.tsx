@@ -12,7 +12,7 @@ import DiscusHelpPage from "../help/HelpPage";
 import ApprovalsHeatStrip from "@/components/deepdive/ApprovalsHeatStrip";
 import WorksList from "../work/WorksList";
 import LudicsPanel from "./LudicsPanel";
-import { FloatingSheet, SheetToggleButton } from '@/components/ui/FloatingSheet';
+import { FloatingSheet, SheetToggleButton } from "../ui/FloatingSheet";
 import { AFMinimap } from '@/components/dialogue/minimap/AFMinimap';
 import BehaviourInspectorCard from '@/components/ludics/BehaviourInspectorCard';
 import { scrollIntoViewById } from "@/lib/client/scroll";
@@ -355,19 +355,24 @@ export default function DeepDivePanel({
   const [rhetoricSample, setRhetoricSample] = useState<string>('');
   const [replyTarget, setReplyTarget] = React.useState<{ id: string; preview?: string } | null>(null);
   const [cardFilter, setCardFilter] = useState<'all' | 'mine' | 'published'>('all');
-  const [issuesOpen, setIssuesOpen] = useState(false);
-  const [issueTargetId, setIssueTargetId] = useState<string | null>(null);
+
 
   const ready = !loading && !!proId && !!oppId;
 
   const [diagramData, setDiagramData] = useState<AifSubgraph | null>(null);
-  const [commandActions, setCommandActions] = useState<CommandCardAction[]>([]);
+//   const [commandActions, setCommandActions] = useState<CommandCardAction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Floating sheet state with persistence
   const [leftSheetOpen, setLeftSheetOpen] = useState(false);
   const [rightSheetOpen, setRightSheetOpen] = useState(false);
   const [leftSheetTab, setLeftSheetTab] = useState<'arguments' | 'claims'>('arguments');
+
+  // at top of the component with the other state
+const [issuesOpen, setIssuesOpen] = useState(false);
+const [composerOpen, setComposerOpen] = useState(false);
+const [issueTargetId, setIssueTargetId] = useState<string | null>(null);
+
 
   // Load sheet state from localStorage
   useEffect(() => {
@@ -429,12 +434,28 @@ export default function DeepDivePanel({
   } : null;
 
   // Use the existing useMinimapData hook instead of manual fetch
-  const { nodes: minimapNodes, edges: minimapEdges } = useMinimapData(deliberationId, {
+const { 
+    nodes: minimapNodes, 
+    edges: minimapEdges,
+    loading: minimapLoading,
+    error: minimapError 
+  } = useMinimapData(deliberationId, {
     semantics: 'grounded',
     supportDefense: true,
     radius: 1,
     maxNodes: 400,
   });
+
+   // Debug: Log when data changes
+  useEffect(() => {
+    console.log('Minimap data updated:', {
+      nodes: minimapNodes?.length,
+      edges: minimapEdges?.length,
+      loading: minimapLoading,
+      error: minimapError
+    });
+  }, [minimapNodes, minimapEdges, minimapLoading, minimapError]);
+
 
   // Fetch diagram data when node is selected
   useEffect(() => {
@@ -447,7 +468,7 @@ export default function DeepDivePanel({
       setIsLoading(true);
       try {
         // First get the top argument for this claim
-        const topArgResponse = await fetch(`/api/claims/${selectedNodeId}/top-argument`);
+        const topArgResponse = await fetch(`/api/claims/${selectedNodeId}`);
         const topArgData = await topArgResponse.json();
 
         if (topArgData?.top?.id) {
@@ -469,24 +490,26 @@ export default function DeepDivePanel({
     fetchDiagramData();
   }, [selectedNodeId]);
 
+  
+
   // Fetch available commands
-  useEffect(() => {
-    if (!selectedNodeId) return;
+//   useEffect(() => {
+//     if (!selectedNodeId) return;
 
-    async function fetchCommands() {
-      try {
-        const response = await fetch(
-          `/api/dialogue/moves?deliberationId=${deliberationId}&targetId=${selectedNodeId}&targetType=claim`
-        );
-        const data = await response.json();
-        setCommandActions(data.items || []);
-      } catch (error) {
-        console.error('Failed to fetch commands:', error);
-      }
-    }
+//     async function fetchCommands() {
+//       try {
+//         const response = await fetch(
+//           `/api/dialogue/moves?deliberationId=${deliberationId}&targetId=${selectedNodeId}&targetType=claim`
+//         );
+//         const data = await response.json();
+//         setCommandActions(data.items || []);
+//       } catch (error) {
+//         console.error('Failed to fetch commands:', error);
+//       }
+//     }
 
-    fetchCommands();
-  }, [deliberationId, selectedNodeId]);
+//     fetchCommands();
+//   }, [deliberationId, selectedNodeId]);
 
   async function handleCommandPerform(action: CommandCardAction) {
     try {
@@ -608,15 +631,47 @@ export default function DeepDivePanel({
 
   const ftch = (u: string) => fetch(u, { cache: 'no-store' }).then(r => r.json());
 
+  // Fetch claim data directly (not top argument)
+  const { data: claimData, error: claimError, isLoading: claimLoading } = useSWR(
+    selectedNodeId ? `/api/claims/${encodeURIComponent(selectedNodeId)}` : null,
+    ftch,
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 2000,
+    }
+  );
+
+  // Fetch diagram only if we have a claim
+  const { data: diag, error: diagError, isLoading: diagLoading } = useSWR(
+    claimData?.topArgumentId ? `/api/arguments/${encodeURIComponent(claimData.topArgumentId)}?view=diagram` : null,
+    ftch,
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 2000,
+    }
+  );
+
+  // Debug logging
+  useEffect(() => {
+    console.log('Claim Data:', {
+      selectedNodeId,
+      loading: claimLoading,
+      error: claimError,
+      hasData: !!claimData,
+      claimData,
+    });
+  }, [selectedNodeId, claimLoading, claimError, claimData]);
+
+
   const { data: topArg } = useSWR(
     hudTarget?.type === 'claim' ? `/api/claims/${encodeURIComponent(hudTarget.id)}/top-argument` : null,
     ftch
   );
 
-  const { data: diag } = useSWR(
-    topArg?.top?.id ? `/api/arguments/${encodeURIComponent(topArg.top.id)}?view=diagram` : null,
-    ftch
-  );
+//   const { data: diag } = useSWR(
+//     topArg?.top?.id ? `/api/arguments/${encodeURIComponent(topArg.top.id)}?view=diagram` : null,
+//     ftch
+//   );
 
   useEffect(() => {
     const onSelect = (e: any) => {
@@ -632,7 +687,7 @@ export default function DeepDivePanel({
     ? { deliberationId, targetType: 'claim' as const, targetId: hudTarget.id, locusPath: hudTarget.locusPath }
     : null;
 
-  const { data: legalMoves } = useSWR(
+  const { data: legalMoves, error: legalMovesError, isLoading: legalMovesLoading } = useSWR(
     targetRef
       ? `/api/dialogue/legal-moves?deliberationId=${encodeURIComponent(deliberationId)}&targetType=claim&targetId=${encodeURIComponent(hudTarget!.id)}${hudTarget?.locusPath ? `&locusPath=${encodeURIComponent(hudTarget!.locusPath!)}` : ''}`
       : null,
@@ -640,7 +695,31 @@ export default function DeepDivePanel({
     { revalidateOnFocus: false }
   );
 
-  const cardActions = targetRef ? legalMovesToCommandCard(legalMoves?.moves ?? [], targetRef, true) : [];
+
+//   const cardActions = targetRef ? legalMovesToCommandCard(legalMoves?.moves ?? [], targetRef, true) : [];
+
+
+  // Adapt the moves to CommandCardAction format (this is the key!)
+  const cardActions = useMemo(() => {
+    if (!targetRef || !legalMoves?.moves) return [];
+    return legalMovesToCommandCard(legalMoves.moves, targetRef, true);
+  }, [targetRef, legalMoves]);
+
+  // Count badges for toggle buttons - USE cardActions instead of commandActions
+  const leftBadgeCount = useMemo(() => {
+    let count = 0;
+    if (selectedClaim?.id) count++;
+    if (cardActions.length > 0) count++;
+    return count;
+  }, [selectedClaim, cardActions]);
+
+  const rightBadgeCount = useMemo(() => {
+    let count = 0;
+    if (diag?.aif) count++;
+    if (cardActions.length > 0) count++;
+    return count;
+  }, [diag, cardActions]);
+
 
   useEffect(() => {
     const onRefresh = () => {
@@ -658,20 +737,20 @@ export default function DeepDivePanel({
     });
   }
 
-  // Count badges for toggle buttons
-  const leftBadgeCount = useMemo(() => {
-    let count = 0;
-    if (selectedClaim?.id) count++;
-    if (commandActions.length > 0) count++;
-    return count;
-  }, [selectedClaim, commandActions]);
+//   // Count badges for toggle buttons
+//   const leftBadgeCount = useMemo(() => {
+//     let count = 0;
+//     if (selectedClaim?.id) count++;
+//     if (commandActions.length > 0) count++;
+//     return count;
+//   }, [selectedClaim, commandActions]);
 
-  const rightBadgeCount = useMemo(() => {
-    let count = 0;
-    if (diag?.aif) count++;
-    if (cardActions.length > 0) count++;
-    return count;
-  }, [diag, cardActions]);
+//   const rightBadgeCount = useMemo(() => {
+//     let count = 0;
+//     if (diag?.aif) count++;
+//     if (cardActions.length > 0) count++;
+//     return count;
+//   }, [diag, cardActions]);
 
   // Main content
   const inner = (
@@ -763,30 +842,83 @@ export default function DeepDivePanel({
               <p className="text-xs text-slate-500 mb-3">
                 Interactive visualization of the structured argument network
               </p>
-              <AFMinimap
-                nodes={minimapNodes}
-                edges={minimapEdges}
-                selectedId={selectedNodeId}
-                onSelectNode={(id, locusPath) => handleClaimSelect(id, locusPath)}
-                width={432}
-                height={320}
-              />
+               {/* Loading State */}
+              {minimapLoading ? (
+                <div className="h-[320px] rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-2"></div>
+                    <div className="text-sm text-slate-600">Loading argument map...</div>
+                  </div>
+                </div>
+              ) : minimapError ? (
+                <div className="h-[320px] rounded-lg border border-red-200 bg-red-50 flex items-center justify-center">
+                  <div className="text-center p-4">
+                    <svg className="w-12 h-12 text-red-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <div className="text-sm text-red-900 font-medium mb-1">Failed to load</div>
+                    <div className="text-xs text-red-700">{String(minimapError)}</div>
+                  </div>
+                </div>
+              ) : (!minimapNodes || minimapNodes.length === 0) ? (
+                <div className="h-[320px] rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-center">
+                  <div className="text-center p-4">
+                    <svg className="w-12 h-12 text-slate-300 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                    </svg>
+                    <div className="text-sm text-slate-600 font-medium mb-1">No arguments yet</div>
+                    <div className="text-xs text-slate-500">Start the debate to see the argument map</div>
+                  </div>
+                </div>
+              ) : (
+                <AFMinimap
+                  nodes={minimapNodes}
+                  edges={minimapEdges}
+                  selectedId={selectedNodeId}
+                  onSelectNode={(id, locusPath) => handleClaimSelect(id, locusPath)}
+                  width={432}
+                  height={320}
+                />
+              )}
             </div>
 
-            {/* Command Card (if claim selected) */}
-            {selectedClaim?.id && commandActions.length > 0 && (
-              <div className="mt-6 p-4 bg-indigo-50 rounded-xl border border-indigo-200">
-                <h3 className="text-sm font-semibold text-indigo-900 mb-3 flex items-center gap-2">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                  Quick Actions
-                </h3>
-                <CommandCard
-                  actions={commandActions}
-                  onPerform={handleCommandPerform}
-                  variant="compact"
-                />
+              {/* Command Card (if claim selected) */}
+            {selectedClaim?.id && (
+              <div className="mt-6">
+                {legalMovesLoading ? (
+                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                    <div className="flex items-center gap-2 text-sm text-slate-600">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-600"></div>
+                      <span>Loading actions...</span>
+                    </div>
+                  </div>
+                ) : legalMovesError ? (
+                  <div className="p-4 bg-red-50 rounded-xl border border-red-200">
+                    <div className="text-sm text-red-900 font-medium mb-1">Failed to load actions</div>
+                    <div className="text-xs text-red-700">{String(legalMovesError)}</div>
+                  </div>
+                ) : cardActions.length > 0 ? (
+                  <div className="p-4 bg-indigo-50 rounded-xl border border-indigo-200">
+                    <h3 className="text-sm font-semibold text-indigo-900 mb-3 flex items-center gap-2">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                      </svg>
+                      Quick Actions
+                    </h3>
+                    <CommandCard
+                      actions={cardActions}
+                      onPerform={handleCommandPerform}
+                      variant="compact"
+                      showHotkeyHints={false}
+                    />
+                  </div>
+                ) : (
+                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
+                    <div className="text-xs text-slate-500 text-center">
+                      No actions available for this claim
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </>
@@ -799,34 +931,113 @@ export default function DeepDivePanel({
               <p className="text-xs text-slate-500 mb-3">
                 Dialectical structure with grounded semantics
               </p>
-              <CegMiniMap
-                deliberationId={deliberationId}
-                selectedClaimId={selectedClaim?.id}
-                onSelectClaim={handleClaimSelect}
-                width={432}
-                height={320}
-                showStats
-                showLegend
-              />
+                           <div className="rounded-lg overflow-hidden">
+                <CegMiniMap
+                  deliberationId={deliberationId}
+                  selectedClaimId={selectedClaim?.id}
+                  onSelectClaim={handleClaimSelect}
+                  width={432}
+                  height={320}
+                  showStats
+                  showLegend
+                />
+              </div>
+
             </div>
           </>
         )}
 
-        {/* Selected Claim Info */}
-        {selectedClaim?.id && (
+          {/* Selected Claim Info */}
+        {/* Selected Claim Info - FIXED VERSION */}
+          {selectedClaim?.id && (
           <div className="mt-6 p-4 bg-slate-50 rounded-xl border border-slate-200">
             <h3 className="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-2">
               Selected Claim
             </h3>
-            <div className="text-sm text-slate-700">
-              {topArg?.top?.text || 'Loading...'}
-            </div>
-            {topArg?.top && (
-              <div className="mt-2 flex items-center gap-2 text-xs text-slate-500">
-                <span>ID: {selectedClaim.id.slice(0, 8)}...</span>
-                {topArg.top.confidence && (
-                  <span>• Confidence: {(topArg.top.confidence * 100).toFixed(0)}%</span>
-                )}
+            
+            {claimLoading ? (
+              <div className="flex items-center gap-2 text-sm text-slate-600">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-600"></div>
+                <span>Loading claim...</span>
+              </div>
+            ) : claimError ? (
+              <div className="text-sm text-red-600">
+                Error: {String(claimError)}
+              </div>
+            ) : claimData ? (
+              <>
+                {/* Claim Text */}
+                <div className="text-sm text-slate-700 mb-3 leading-relaxed">
+                  {claimData.text}
+                </div>
+
+                {/* Claim Metadata */}
+                <div className="space-y-2 text-xs">
+                  {/* Status Badge */}
+                  {claimData.label && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-slate-500">Status:</span>
+                      <span className={clsx(
+                        'px-2 py-0.5 rounded-full font-medium',
+                        claimData.label === 'IN' && 'bg-green-100 text-green-700',
+                        claimData.label === 'OUT' && 'bg-red-100 text-red-700',
+                        claimData.label === 'UNDEC' && 'bg-gray-100 text-gray-700'
+                      )}>
+                        {claimData.label}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Confidence */}
+                  {claimData.confidence != null && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-slate-500">Confidence:</span>
+                      <div className="flex items-center gap-1">
+                        <div className="w-20 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-indigo-500 rounded-full"
+                            style={{ width: `${claimData.confidence * 100}%` }}
+                          />
+                        </div>
+                        <span className="text-slate-700 font-medium">
+                          {(claimData.confidence * 100).toFixed(0)}%
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Stats */}
+                  <div className="flex items-center gap-3 pt-2 border-t border-slate-200">
+                    {claimData._count?.supports != null && (
+                      <div className="flex items-center gap-1">
+                        <svg className="w-3 h-3 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        <span className="text-slate-600">{claimData._count.supports} support</span>
+                      </div>
+                    )}
+                    {claimData._count?.rebuttals != null && (
+                      <div className="flex items-center gap-1">
+                        <svg className="w-3 h-3 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                        </svg>
+                        <span className="text-slate-600">{claimData._count.rebuttals} attack</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* ID */}
+                  <div className="flex items-center gap-2 pt-2">
+                    <span className="text-slate-400">ID:</span>
+                    <code className="text-[10px] text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded">
+                      {selectedClaim.id.slice(0, 12)}...
+                    </code>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="text-sm text-slate-500">
+                No claim selected
               </div>
             )}
           </div>
@@ -877,6 +1088,7 @@ export default function DeepDivePanel({
         </div>
 
         {/* Diagram Viewer */}
+         {/* Diagram Viewer - UPDATED */}
         <div>
           <h3 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -884,7 +1096,54 @@ export default function DeepDivePanel({
             </svg>
             AIF Structure Diagram
           </h3>
-          {diag?.aif ? (
+          
+          {claimLoading ? (
+            <div className="h-[500px] rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-2"></div>
+                <div className="text-sm text-slate-600">Loading claim...</div>
+              </div>
+            </div>
+          ) : claimError ? (
+            <div className="h-[500px] rounded-xl border border-red-200 bg-red-50 flex items-center justify-center">
+              <div className="text-center p-4">
+                <svg className="w-12 h-12 text-red-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <div className="text-sm text-red-900 font-medium mb-1">Failed to load</div>
+                <div className="text-xs text-red-700">{String(claimError)}</div>
+              </div>
+            </div>
+          ) : !claimData?.topArgumentId ? (
+            <div className="rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 p-8 text-center">
+              <svg className="w-12 h-12 text-slate-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <div className="text-sm text-slate-600 font-medium mb-1">
+                No structured argument
+              </div>
+              <div className="text-xs text-slate-500">
+                This claim doesn't have an AIF diagram yet
+              </div>
+            </div>
+          ) : diagLoading ? (
+            <div className="h-[500px] rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-2"></div>
+                <div className="text-sm text-slate-600">Loading diagram...</div>
+              </div>
+            </div>
+          ) : diagError ? (
+            <div className="h-[500px] rounded-xl border border-red-200 bg-red-50 flex items-center justify-center">
+              <div className="text-center p-4">
+                <svg className="w-12 h-12 text-red-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <div className="text-sm text-red-900 font-medium mb-1">Failed to load diagram</div>
+                <div className="text-xs text-red-700">{String(diagError)}</div>
+              </div>
+            </div>
+          ) : diag?.aif ? (
             <div className="rounded-xl overflow-hidden border border-slate-200 shadow-sm">
               <DiagramViewer
                 graph={diag.aif}
@@ -913,18 +1172,6 @@ export default function DeepDivePanel({
                     <span className="text-slate-600">Preference</span>
                   </div>
                 </div>
-              </div>
-            </div>
-          ) : hudTarget ? (
-            <div className="rounded-xl border-2 border-dashed border-amber-200 bg-amber-50 p-8 text-center">
-              <svg className="w-12 h-12 text-amber-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-              <div className="text-sm text-amber-900 font-medium mb-1">
-                No structured argument
-              </div>
-              <div className="text-xs text-amber-700">
-                This claim doesn't have an AIF diagram yet
               </div>
             </div>
           ) : (
@@ -1210,7 +1457,7 @@ export default function DeepDivePanel({
                   className="px-3 py-1 text-xs bg-slate-100 hover:bg-slate-200 rounded"
                   onClick={() => {
                     setIssueTargetId(null);
-                    setIssuesOpen(true);
+                    setComposerOpen(true);
                   }}
                 >
                   New Issue
@@ -1220,32 +1467,33 @@ export default function DeepDivePanel({
               <div className="text-sm text-neutral-600 mb-3">
                 Track formal objections and disputes about contributions
               </div>
-              <button
-                className="w-full px-4 py-3 text-left border rounded-lg hover:bg-slate-50"
-                onClick={() => setIssuesOpen(true)}
-              >
-                <div className="font-medium text-sm">View All Issues</div>
-                <div className="text-xs text-neutral-500 mt-1">
-                  See objections, ambiguities, and formal challenges
-                </div>
-              </button>
+       <button
+  className="w-full px-4 py-3 text-left border rounded-lg hover:bg-slate-50"
+  onClick={() => setIssuesOpen(true)}
+>
+  <div className="font-medium text-sm">View All Issues</div>
+  <div className="text-xs text-neutral-500 mt-1">
+    See objections, ambiguities, and formal challenges
+  </div>
+</button>
 
-              <IssuesDrawer
-                deliberationId={deliberationId}
-                open={issuesOpen}
-                onOpenChange={setIssuesOpen}
-                argumentId={issueTargetId ?? undefined}
-              />
+       <IssuesDrawer
+  deliberationId={deliberationId}
+  open={issuesOpen}
+  onOpenChange={setIssuesOpen}
+  argumentId={issueTargetId ?? undefined}
+/>
 
-              <IssueComposer
-                deliberationId={deliberationId}
-                initialArgumentId={issueTargetId ?? undefined}
-                open={false}
-                onOpenChange={() => { }}
-                onCreated={() => {
-                  window.dispatchEvent(new CustomEvent('issues:refresh', { detail: { deliberationId } }));
-                }}
-              />
+<IssueComposer
+  deliberationId={deliberationId}
+  initialArgumentId={issueTargetId ?? undefined}
+ open={composerOpen}
+ onOpenChange={setComposerOpen}
+  onCreated={() => {
+   setComposerOpen(false);
+    window.dispatchEvent(new CustomEvent('issues:refresh', { detail: { deliberationId } }));
+  }}
+/>
             </SectionCard>
           </TabsContent>
         </Tabs>
