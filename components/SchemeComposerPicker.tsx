@@ -1,4 +1,4 @@
-//components/ScchemeComposerPicker.tsx
+//components/SchemeComposerPicker.tsx
 
 'use client';
 import * as React from 'react';

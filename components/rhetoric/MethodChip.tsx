@@ -1,3 +1,4 @@
+// components/rhetoric/MethodChip.tsx
 'use client';
 import * as React from 'react';
 import { analyzeText } from './detectors';

@@ -1,3 +1,4 @@
+// app/api/works/[id]/integrity/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
 

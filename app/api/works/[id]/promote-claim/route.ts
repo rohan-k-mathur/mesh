@@ -1,3 +1,4 @@
+// app/api/works/[id]/promote-claim/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
 import { z } from 'zod';

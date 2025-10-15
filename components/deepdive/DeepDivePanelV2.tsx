@@ -40,6 +40,8 @@ import IssuesDrawer from "@/components/issues/IssuesDrawer";
 import IssueComposer from "@/components/issues/IssueComposer";
 import { ConfidenceProvider } from "../agora/useConfidence";
 import ClaimMiniMap from "../claims/ClaimMiniMap";
+import { PropositionComposerPro } from "../propositions/PropositionComposerPro";
+import IssuesList from "../issues/IssuesList";
 
 const fetcher = (u: string) => fetch(u, { cache: 'no-store' }).then(r => r.json());
 
@@ -347,7 +349,7 @@ export default function DeepDivePanel({
   const [sel, setSel] = useState<Selection | null>(null);
   const [pending, setPending] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
-  const [tab, setTab] = useState<'debate' | 'models' | 'ludics' | 'cards' | 'issues'>('debate');
+  const [tab, setTab] = useState<'debate' | 'models' | 'ludics' | 'issues'>('debate');
   const [confMode, setConfMode] = React.useState<'product' | 'min'>('product');
   const [rule, setRule] = useState<"utilitarian" | "harmonic" | "maxcov">("utilitarian");
   const { user } = useAuth();
@@ -1241,14 +1243,15 @@ const {
             <TabsTrigger value="debate">Debate</TabsTrigger>
             <TabsTrigger value="models">Models</TabsTrigger>
             <TabsTrigger value="ludics">Ludics</TabsTrigger>
-            <TabsTrigger value="cards">Cards</TabsTrigger>
+            {/* <TabsTrigger value="cards">Cards</TabsTrigger> */}
             <TabsTrigger value="issues">Issues</TabsTrigger>
           </TabsList>
 
           {/* DEBATE TAB */}
           <TabsContent value="debate" className="space-y-4">
             <SectionCard title="Compose Proposition">
-              <PropositionComposer deliberationId={deliberationId} />
+              {/* <PropositionComposer deliberationId={deliberationId} /> */}
+              <PropositionComposerPro deliberationId={deliberationId} />
             </SectionCard>
 
             <SectionCard title="Propositions">
@@ -1342,8 +1345,18 @@ const {
                 </CollapsibleContent>
               </Collapsible>
             </SectionCard>
+ <SectionCard title="Scheme Composer">
+<AIFAuthoringPanel
+  deliberationId={deliberationId}
+  authorId={authorId || ''} // or 'current' if you enable server fallback
+  conclusionClaim={hudTarget?.id
+    ? { id: hudTarget.id, text: topArg?.top?.text ?? '' }
+    : { id: '', text: '' } // panel will prompt to choose
+  }
 
-            <SectionCard>
+/>
+  </SectionCard>
+            {/* <SectionCard>
               <Collapsible open={schemeComposerState.open} onOpenChange={schemeComposerState.setOpen}>
                 <CollapsibleTrigger className="w-full text-left px-3 py-2 text-sm font-semibold hover:bg-slate-50 rounded flex items-center justify-between">
                   <span>{schemeComposerState.open ? "▼" : "▶"} Scheme Composer</span>
@@ -1360,7 +1373,7 @@ const {
                   />
                 </CollapsibleContent>
               </Collapsible>
-            </SectionCard>
+            </SectionCard> */}
           </TabsContent>
 
           {/* LUDICS TAB */}
@@ -1385,7 +1398,7 @@ const {
             )}
           </TabsContent>
 
-          {/* CARDS TAB */}
+          {/* CARDS TAB
           <TabsContent value="cards" className="space-y-4">
             <SectionCard
               title="Cards"
@@ -1446,15 +1459,15 @@ const {
             <SectionCard title="Create Card">
               <CardComposerTab deliberationId={deliberationId} />
             </SectionCard>
-          </TabsContent>
+          </TabsContent> */}
 
           {/* ISSUES TAB */}
-          <TabsContent value="issues" className="space-y-4">
+          <TabsContent value="issues" className="h-screen space-y-4">
             <SectionCard
               title="Issues & Objections"
               action={
                 <button
-                  className="px-3 py-1 text-xs bg-slate-100 hover:bg-slate-200 rounded"
+                  className="px-3 py-2 btnv2 text-xs bg-slate-100 hover:bg-slate-200 rounded-lg"
                   onClick={() => {
                     setIssueTargetId(null);
                     setComposerOpen(true);
@@ -1467,22 +1480,28 @@ const {
               <div className="text-sm text-neutral-600 mb-3">
                 Track formal objections and disputes about contributions
               </div>
-       <button
-  className="w-full px-4 py-3 text-left border rounded-lg hover:bg-slate-50"
+       {/* <button
+  className="w-full px-4 py-3 text-left border rounded-lg  hover:bg-slate-50"
   onClick={() => setIssuesOpen(true)}
 >
   <div className="font-medium text-sm">View All Issues</div>
   <div className="text-xs text-neutral-500 mt-1">
     See objections, ambiguities, and formal challenges
   </div>
-</button>
+</button> */}
+<div className="flex w-full">
+<IssuesList
+    deliberationId={deliberationId}
 
+  />
+  </div>
+{/* 
        <IssuesDrawer
   deliberationId={deliberationId}
   open={issuesOpen}
   onOpenChange={setIssuesOpen}
   argumentId={issueTargetId ?? undefined}
-/>
+/> */}
 
 <IssueComposer
   deliberationId={deliberationId}

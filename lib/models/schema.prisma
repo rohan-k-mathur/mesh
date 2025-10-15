@@ -2691,10 +2691,11 @@ model Issue {
   createdById    BigInt // <-- FIXED: Was String
   closedById     String?
   closedAt       DateTime?
-
-  assigneeId BigInt? // <-- FIXED: Was String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  kind           IssueKind  @default(general)
+  key            String?
+  assigneeId     BigInt? // <-- FIXED: Was String?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
 
   // --- Relations ---
   deliberation Deliberation @relation(fields: [deliberationId], references: [id])
@@ -2704,24 +2705,29 @@ model Issue {
 
   @@index([deliberationId])
   @@index([deliberationId, state])
+  @@index([kind, key], map: "issues_kind_key_idx")
 }
 
 model IssueLink {
-  id         String              @id @default(cuid())
-  issueId    String
-  targetType IssueLinkTargetType // NEW
-  targetId   String // NEW
+  id             String              @id @default(cuid())
+  issueId        String
+  targetType     IssueLinkTargetType // NEW
+  targetId       String // NEW
   // Back-compat (nullable): keep while migrating
-  argumentId String?
-  role       IssueLinkRole? // tighten if you like (else String)
-  createdAt  DateTime            @default(now())
+  argumentId     String?
+  claimId        String?
+  deliberationId String?
+  role           IssueLinkRole? // tighten if you like (else String)
+  createdAt      DateTime            @default(now())
 
-  issue    Issue     @relation(fields: [issueId], references: [id], onDelete: Cascade)
-  Argument Argument? @relation(fields: [argumentId], references: [id])
+  issue        Issue         @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  Argument     Argument?     @relation(fields: [argumentId], references: [id])
+  Claim        Claim?        @relation(fields: [claimId], references: [id])
+  Deliberation Deliberation? @relation(fields: [deliberationId], references: [id])
 
   @@unique([issueId, targetType, targetId])
   @@index([targetType, targetId])
-  @@index([argumentId]) // supports current counts route
+  @@index([claimId]) // supports current counts route
 }
 
 // ---------- Enums ----------
@@ -3033,6 +3039,8 @@ model Claim {
   ClaimEvidence ClaimEvidence[]
 
   sourceProposition Proposition? @relation("PropositionClaim")
+
+  IssueLink IssueLink[]
 
   // NEW
   canonicalClaimId String?
@@ -3351,6 +3359,8 @@ model Deliberation {
   TheoryWork    TheoryWork[]
   KnowledgeEdge KnowledgeEdge[]
 
+  IssueLink IssueLink[]
+
   proofMode ProofMode @default(symmetric)
 
   tags    String[]             @default([])
@@ -3531,65 +3541,102 @@ enum PhilosophyTheoryType {
   OP // Ontic–Practical
 }
 
-/// A long-form “work” (article/essay) framed by a philosophical Theory Type.
-/// Kept separate from other content models (Argument, Brief, Card) to avoid collisions.
+enum WorkStatus {
+  DRAFT
+  ACTIVE
+  PUBLISHED
+  ARCHIVED
+}
+
 model TheoryWork {
-  id             String  @id @default(cuid())
+  id             String               @id @default(cuid())
   deliberationId String
   authorId       String
   title          String
-  body           String  @db.Text
-  theoryType     String?
+  slug           String               @unique
+  summary        String?              @db.Text
+  body           String               @db.Text
+  theoryType     PhilosophyTheoryType
   standardOutput String?
 
-  // existing relations (example)
+  status     WorkStatus @default(DRAFT)
+  visibility String     @default("room") // room | org | public
+  tags       String[]   @default([])
+
+  // Publishing hooks
+  publishedAt DateTime?
+  lastExport  Json? // { kind:'sheet'|'kb'|'aif', ids:[...], at:ISO }
+
   deliberation Deliberation @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
 
-  // 1:1 children — parent side has ONLY the relation name, no fields/references
-  practicalJustification WorkPracticalJustification? @relation("Work_Practical")
-  hermeneutic            WorkHermeneuticProject?     @relation("Work_to_HermeneuticProject")
-  pascal                 WorkPascalModel?            @relation("Work_to_PascalModel")
-
-  // NEW: back-relations for the 4 theses-slot models
-  WorkDNStructure WorkDNStructure?
-  WorkIHTheses    WorkIHTheses?
-  WorkTCTheses    WorkTCTheses?
-  WorkOPTheses    WorkOPTheses?
-
-  // NEW one-to-ones for DN/TC/IH/OP structure:
+  // 1:1 “project” wrappers (guarded by theoryType at API)
   dn WorkDnProject?
   tc WorkTcProject?
   op WorkOpProject?
   ih WorkIhProject?
 
+  // 1:1 theses slots
+  WorkDNStructure WorkDNStructure?
+  WorkIHTheses    WorkIHTheses?
+  WorkTCTheses    WorkTCTheses?
+  WorkOPTheses    WorkOPTheses?
+
+  // Practical & auxiliary
+  practicalJustification WorkPracticalJustification? @relation("Work_Practical")
+  hermeneutic            WorkHermeneuticProject?     @relation("Work_to_HermeneuticProject")
+  pascal                 WorkPascalModel?            @relation("Work_to_PascalModel")
+
+  // Linking into claim graph & argumentation
+  relatedClaims TheoryWorkClaim[]
+  rules         Rule[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  Rule      Rule[]
 
-  @@index([deliberationId, theoryType, createdAt])
+  @@index([deliberationId, theoryType, status, createdAt])
   @@index([authorId, createdAt])
+}
+
+model TheoryWorkClaim {
+  id      String     @id @default(cuid())
+  workId  String
+  claimId String
+  role    String // 'thesis'|'premise'|'exception'|'application'|'counter' etc.
+  order   Int        @default(0)
+  work    TheoryWork @relation(fields: [workId], references: [id], onDelete: Cascade)
+
+  @@unique([workId, claimId, role])
+  @@index([claimId])
 }
 
 model WorkIhProject {
   workId              String     @id
-  // TIH: lightweight project wrapper (complements WorkIHTheses   Hermeneutic builder)
-  practiceDescription String? // describe current practice you're interpreting
-  idealStandard       String? // brief of the proposed ideal standard (TIH9/TTC2)
-  methodNotes         String? // notes on interpretation method / sources
-  corroborationJson   Json? // e.g., { sources:[], stakeholders:[] }
-  applicationsJson    Json? // contexts where the ideal applies
+  practiceDescription String?
+  idealStandard       String? // TIH9 seed
+  methodNotes         String?
+  // NEW: explicit reasons
+  subjectiveReasons   Json? // [{source, agent, reason, evidenceIds[]}]
+  objectiveReasons    Json? // [{criterion, evaluation, warrant}]
+  corroborationJson   Json?
+  applicationsJson    Json?
   TheoryWork          TheoryWork @relation(fields: [workId], references: [id])
 }
 
 model WorkDnProject {
   workId           String     @id
-  // TDN1–TDN6
-  definitionsJson  Json? // array of {term, def, sources[]}
-  axiomsJson       Json? // array of {id, text, sources[]}
-  theoremsJson     Json? // array of {id, text, proofRefs[]}
-  confirmingJson   Json? // TDN4 — refs to data/claims/experiments
-  optimalityJson   Json? // TDN5 — {criteria:[], comparisons:[]}
-  applicationsJson Json? // TDN6 — list of explanatory applications
+  definitionsJson  Json?
+  axiomsJson       Json?
+  theoremsJson     Json?
+  confirmingJson   Json? // link to claim/evidence ids
+  // NEW: first-class DN5 scoring on GDN*
+  optimalityJson   Json? // {
+  //   coherence:{ok:boolean, notes:string},  // GDN1
+  //   confirmation:{ok:boolean, refs:[]},    // GDN2
+  //   noFalsification:{status:'none'|'minor'|'serious'}, // GDN3
+  //   simplicity:{ontological:number, semantic:number}, // GDN4-5
+  //   scope:number, connectivity:number, predictivePower:number // GDN6-8
+  // }
+  applicationsJson Json?
   TheoryWork       TheoryWork @relation(fields: [workId], references: [id])
 }
 
@@ -3650,23 +3697,30 @@ model WorkOPTheses {
   work TheoryWork @relation(fields: [workId], references: [id], onDelete: Cascade)
 }
 
+model TheoryWorkSnapshot {
+  id        String   @id @default(cuid())
+  workId    String
+  kind      String // 'sheet'|'kb'|'aif'
+  payload   Json // frozen expansion (claims, edges, CQ stats, evidence)
+  createdAt DateTime @default(now())
+
+  @@index([workId, createdAt])
+}
+
+
 model WorkPracticalJustification {
-  id      String @id @default(cuid())
-  // Child side owns FK; unique enforces 1:1
-  workId  String @unique
-  purpose String @default("")
-
-  // MCDA payloads
-  criteria Json @default("[]")
-  options  Json @default("[]")
-  scores   Json @default("{}")
-  result   Json @default("{}")
-
+  id        String   @id @default(cuid())
+  workId    String   @unique
+  purpose   String   @default("")
+  criteria  Json     @default("[]")
+  options   Json     @default("[]")
+  scores    Json     @default("{}")
+  result    Json     @default("{}")
+  // NEW:
+  adequacy  Json     @default("{}") // { completeness:true|false, dominance:'none'|'weak'|'strong', robustness:{sensitivityNotes:string} }
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  // Child side declares fields/references/onDelete AND uses SAME relation name
-  work TheoryWork @relation("Work_Practical", fields: [workId], references: [id], onDelete: Cascade)
+  work      TheoryWork @relation("Work_Practical", fields: [workId], references: [id], onDelete: Cascade)
 }
 
 /// ========= IH (interpretive phase) =========
@@ -3689,16 +3743,18 @@ model WorkHermeneuticProject {
 model WorkPascalModel {
   id           String   @id @default(cuid())
   workId       String   @unique
-  propositions Json     @default("[]")
+  propositions Json     @default("[]") // worlds
   actions      Json     @default("[]")
   utilities    Json     @default("{}")
-  assumption   String?
-  decision     Json     @default("{}")
+  assumption   String?  // notes
+  // NEW:
+  exhaustiveExclusive Boolean? // PP1/TOP3
+  noTheoreticalEvidence Boolean? // PP3/TOP2
+  orientationCriteria   String?  // what counts as 'orientation-relevant' (TOP4)
+  decision     Json     @default("{}") // include method + laplace details
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-
-  // child owns FK and declares fields/references + SAME relation name
-  work TheoryWork @relation("Work_to_PascalModel", fields: [workId], references: [id], onDelete: Cascade)
+  work         TheoryWork @relation("Work_to_PascalModel", fields: [workId], references: [id], onDelete: Cascade)
 }
 
 // (optional) history table if you want revisions now

@@ -1,3 +1,4 @@
+// components/rhetoric/lexiconAnalyzers.ts
 import { EMOTION, EmotionKey } from "./lexicons/emotionLex";
 import { FRAMES, FrameKey } from "./lexicons/framesLex";
 import { LIWC_LITE } from "./lexicons/liwcLite";

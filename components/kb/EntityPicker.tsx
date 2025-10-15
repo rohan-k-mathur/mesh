@@ -1,3 +1,4 @@
+// components/kb/EntityPicker.tsx
 'use client';
 import * as React from 'react';
 

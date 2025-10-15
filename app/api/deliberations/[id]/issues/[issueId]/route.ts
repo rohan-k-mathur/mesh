@@ -19,32 +19,35 @@ const PatchBody = z.object({
 export async function GET(_req: NextRequest, { params }: { params: { id: string; issueId: string } }) {
   const issue = await prisma.issue.findUnique({
     where: { id: params.issueId },
-    include: { links: { select: { targetType: true, targetId: true, role: true, argumentId: true } }, _count: { select: { links: true } } },
+    include: {
+      links: true,
+      _count: { select: { links: true } }
+    },
   });
-  if (!issue || issue.deliberationId !== params.id) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-  return NextResponse.json({ ok: true, issue, links: issue.links, commentCount: 0 });
+  if (!issue || issue.deliberationId !== params.id) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  return NextResponse.json(JSON.parse(JSON.stringify({ ok: true, issue, links: issue.links, commentCount: 0 }, (_, v) => typeof v === "bigint" ? v.toString() : v)));
 }
 
 
 // Link/Relink an argument
 export async function POST(req: NextRequest, { params }: { params: { id: string; issueId: string } }) {
   const userId = await getCurrentUserId();
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const b = LinkBody.parse(await req.json());
-  if ('argumentId' in b) {
+  if ("argumentId" in b) {
     await prisma.issueLink.upsert({
-      where: { issueId_argumentId: { issueId: params.issueId, argumentId: b.argumentId } },
-      create: { issueId: params.issueId, argumentId: b.argumentId, targetType: 'argument', targetId: b.argumentId, role: b.role ?? 'related' },
-      update: { role: b.role ?? 'related', targetType: 'argument', targetId: b.argumentId },
+      where: { issueId_argumentId: { issueId: params.issueId, argumentId: b.argumentId } } as any,
+      create: { issueId: params.issueId, argumentId: b.argumentId, targetType: "argument", targetId: b.argumentId, role: b.role ?? "related" } as any,
+      update: { role: b.role ?? "related", targetType: "argument", targetId: b.argumentId } as any,
     });
   } else {
     await prisma.issueLink.upsert({
       where: { issueId_targetType_targetId: { issueId: params.issueId, targetType: b.targetType, targetId: b.targetId } } as any,
-      create: { issueId: params.issueId, targetType: b.targetType, targetId: b.targetId, role: b.role ?? 'related', argumentId: b.targetType==='argument' ? b.targetId : null },
-      update: { role: b.role ?? 'related' },
+      create: { issueId: params.issueId, targetType: b.targetType, targetId: b.targetId, role: b.role ?? "related", argumentId: b.targetType==="argument" ? b.targetId : undefined } as any,
+      update: { role: b.role ?? "related" } as any,
     });
   }
-  try { emitBus('issues:changed', { deliberationId: params.id }); } catch {}
+  try { emitBus("issues:changed", { deliberationId: params.id }); } catch {}
   return NextResponse.json({ ok: true });
 }
 
@@ -63,16 +66,16 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     where: { id: params.issueId },
     data: {
       ...(nextState ? (
-        nextState === 'closed'
-          ? { state: 'closed', closedById: uid, closedAt: new Date() }
-          : { state: nextState, ...(nextState==='open' ? { closedById: null, closedAt: null } : {}) }
+        nextState === "closed"
+          ? { state: "closed", closedById: uid, closedAt: new Date() }
+          : { state: nextState, ...(nextState==="open" ? { closedById: null, closedAt: null } : {}) }
       ) : {}),
       ...(assigneeId ? { assigneeId: BigInt(assigneeId) } : {}),
-    },
+    } as any,
   });
 
-   try { emitBus('issues:changed', { deliberationId: params.id }); } catch {}
-  return NextResponse.json({ ok: true, issue: updated });
+   try { emitBus("issues:changed", { deliberationId: params.id }); } catch {}
+  return NextResponse.json(JSON.parse(JSON.stringify({ ok: true, issue: updated }, (_, v) => typeof v === "bigint" ? v.toString() : v)));
 }
 
 // Optional: remove a link

@@ -1,3 +1,4 @@
+// app/api/works/[id]/slots/promote/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
 import { getUserFromCookies } from '@/lib/serverutils';

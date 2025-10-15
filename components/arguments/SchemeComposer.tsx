@@ -6,7 +6,7 @@ import { ClaimPicker } from '@/components/claims/ClaimPicker';
 import { LegalMoveToolbarAIF } from '@/components/dialogue/LegalMoveToolbarAIF';
 import { AttackMenuPro } from '@/components/arguments/AttackMenuPro';
 import { EntityPicker } from '@/components/kb/EntityPicker';
-import { SchemeComposerPicker } from '../ScchemeComposerPicker';
+import { SchemeComposerPicker } from '../SchemeComposerPicker';
 import { ClaimConfidence } from '@/components/evidence/ClaimConfidence';
 
 type Props = {

@@ -369,11 +369,15 @@ export function AIFList({
 
 export default function ArgumentsList({
   deliberationId,
+   selectedClaimId, // Add this prop
+  onClaimClick, // Add this prop
   onReplyTo,
   onChanged,
   onVisibleTextsChanged,
 }: {
   deliberationId: string;
+   selectedClaimId?: string;
+  onClaimClick?: (claimId: string) => void;
   onReplyTo: (id: string) => void;
   onChanged?: () => void;
   onVisibleTextsChanged?: (texts: string[]) => void;

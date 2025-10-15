@@ -1,3 +1,4 @@
+// components/rhetoric/nlpLite.ts
 'use client';
 
 import type { Hit, Category } from './detectors';

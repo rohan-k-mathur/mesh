@@ -6,7 +6,6 @@ import { getCurrentUserId } from "@/lib/serverutils";
 import { asUserIdString } from "@/lib/auth/normalize";
 import { emitBus } from "@/lib/server/bus";
 import type { Prisma } from "@prisma/client";
-import { IssueLinkRole, IssueLinkTargetType } from "@prisma/client";
 
 const CreateBody = z.object({
   label: z.string().min(2).max(120),
@@ -49,16 +48,16 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       deliberationId,
       label: body.label,
       description: body.description ?? null,
-      kind: body.kind ?? 'general',
+      kind: body.kind ?? "general",
       key: body.key ?? null,
-      createdById: uid,
+      createdById: BigInt(uid),
        ...(linkCreates.length ? { links: { createMany: { data: linkCreates } } } : {}),
-    },
+    } as any,
     include: { links: true, _count: { select: { links: true } } },
   });
 
   try { emitBus("issues:changed", { deliberationId }); } catch {}
-  return NextResponse.json({ ok: true, issue });
+  return NextResponse.json(JSON.parse(JSON.stringify({ ok: true, issue }, (_, v) => typeof v === "bigint" ? v.toString() : v)));
 }
 
 // NEW: richer list with filters/search
@@ -94,42 +93,37 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   } else if (argumentId) {
     where = { ...where, links: { some: { argumentId } } };
   } else if (claimId) {
-    if (argumentId) {
-      where = { ...where, links: { some: { argumentId } } };
-    } else if (claimId) {
-      // find arguments that belong to this claim within the deliberation
-      const args = await prisma.argument.findMany({
-        where: { deliberationId, claimId },
-        select: { id: true },
-      });
-      const argIds = args.map(a => a.id);
-      if (argIds.length) {
-        where = { ...where, links: { some: { argumentId: { in: argIds } } } };
-      } else {
-        // return empty list early if no arguments map to the claim
-        return NextResponse.json({ ok: true, issues: [] });
-      }
-        } else if (cardId) {
-      // map card -> claim -> arguments
-      const card = await prisma.deliberationCard.findUnique({ where: { id: cardId }, select: { claimId: true } });
-      if (card?.claimId) {
-        const args = await prisma.argument.findMany({ where: { deliberationId, claimId: card.claimId }, select: { id: true } });
-        where = { ...where, links: { some: { argumentId: { in: args.map(a=>a.id) } } } };
-      } else {
-        return NextResponse.json({ ok: true, issues: [] });
-      }
+    // find arguments that belong to this claim within the deliberation
+    const args = await prisma.argument.findMany({
+      where: { deliberationId, claimId },
+      select: { id: true },
+    });
+    const argIds = args.map(a => a.id);
+    if (argIds.length) {
+      where = { ...where, links: { some: { argumentId: { in: argIds } } } };
+    } else {
+      // return empty list early if no arguments map to the claim
+      return NextResponse.json({ ok: true, issues: [] });
+    }
+  } else if (cardId) {
+    // map card -> claim -> arguments
+    const card = await prisma.deliberationCard.findUnique({ where: { id: cardId }, select: { claimId: true } });
+    if (card?.claimId) {
+      const args = await prisma.argument.findMany({ where: { deliberationId, claimId: card.claimId }, select: { id: true } });
+      where = { ...where, links: { some: { argumentId: { in: args.map(a=>a.id) } } } };
+    } else {
+      return NextResponse.json({ ok: true, issues: [] });
+    }
   }
   const list = await prisma.issue.findMany({
     where,
-    orderBy: { createdAt: 'desc' },
+    orderBy: { createdAt: "desc" },
     take: limit,
     include: {
-      links: { select: { targetType: true, targetId: true, role: true, argumentId: true } },
-
+      links: true,
       _count: { select: { links: true } }, // comments can be added later
     },
   });
 
-  return NextResponse.json({ ok: true, issues: list });
-}
+  return NextResponse.json(JSON.parse(JSON.stringify({ ok: true, issues: list }, (_, v) => typeof v === "bigint" ? v.toString() : v)));
 }

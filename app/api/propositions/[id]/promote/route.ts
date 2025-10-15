@@ -22,7 +22,12 @@ export async function POST(req: NextRequest, { params }: { params:{ id:string }}
 
   const result = await prisma.$transaction(async (tx) => {
 const claim = await tx.claim.create({
-  data: { deliberationId, text },
+  data: {
+    deliberationId,
+    text,
+    createdById: String(userId),
+    moid: [deliberationId, String(userId), Date.now()].join(":")
+  },
   select: { id: true }
 });
 

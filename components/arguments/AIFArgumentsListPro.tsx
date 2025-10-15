@@ -6,6 +6,7 @@ import { mutate as swrMutate } from 'swr';
 import useSWRInfinite from 'swr/infinite';
 import useSWR from 'swr';
 import { Virtuoso } from 'react-virtuoso';
+import { EntityPicker } from '../kb/EntityPicker';
 import dynamic from 'next/dynamic';
 import {
   Shield,
@@ -28,6 +29,7 @@ import PromoteToClaimButton from '@/components/claims/PromoteToClaimButton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
 import { ClaimPicker } from '@/components/claims/ClaimPicker';
 import { useConfidence } from '@/components/agora/useConfidence';
+import { set } from 'lodash';
 
 const AttackMenuPro = dynamic(() => import('@/components/arguments/AttackMenuPro').then(m => m.AttackMenuPro), { ssr: false });
 const LegalMoveToolbar = dynamic(() => import('@/components/dialogue/LegalMoveToolbar').then(m => m.LegalMoveToolbar), { ssr: false });
@@ -235,23 +237,26 @@ function ClampedBody({ text, lines = 4, onOpen }: { text: string; lines?: number
 function PreferenceQuick({
   deliberationId,
   argumentId,
+  authorId,
   onDone,
 }: {
   deliberationId: string;
   argumentId: string;
+  authorId: string;
   onDone?: () => void;
 }) {
   const [open, setOpen] = React.useState<null | 'prefer' | 'disprefer'>(null);
-  const [otherId, setOtherId] = React.useState('');
+  const [selectedClaim, setSelectedClaim] = React.useState<{ id: string; label: string } | null>(null);
+  const [showPicker, setShowPicker] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
 
   async function submit() {
-    if (!open || !otherId.trim() || busy) return;
+    if (!open || !selectedClaim || busy) return;
     setBusy(true);
     try {
       const body = open === 'prefer'
-        ? { deliberationId, preferredArgumentId: argumentId, dispreferredArgumentId: otherId.trim() }
-        : { deliberationId, preferredArgumentId: otherId.trim(), dispreferredArgumentId: argumentId };
+        ? { deliberationId, preferredArgumentId: argumentId, dispreferredArgumentId: selectedClaim.id }
+        : { deliberationId, preferredArgumentId: selectedClaim.id, dispreferredArgumentId: argumentId };
       const r = await fetch('/api/pa', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -259,7 +264,7 @@ function PreferenceQuick({
       });
       const j = await r.json().catch(() => ({}));
       if (!r.ok || j?.ok === false) throw new Error(j?.error || `HTTP ${r.status}`);
-      setOtherId('');
+      setSelectedClaim(null);
       setOpen(null);
       onDone?.();
     } catch (e) {
@@ -299,17 +304,24 @@ function PreferenceQuick({
         <ArrowDown className="w-3 h-3" />
         Disprefer to…
       </button>
+      
       {open && (
-        <div className="inline-flex items-center gap-2 p-2 bg-slate-50 rounded-lg border border-slate-200 animate-in slide-in-from-top duration-200">
-          <input
-            className="px-3 py-1.5 rounded-lg border border-slate-300 text-xs focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all"
-            placeholder="Argument ID…"
-            value={otherId}
-            onChange={e => setOtherId(e.target.value)}
+        <div className="absolute z-50 inline-flex items-center gap-2 px-3 py-3 bg-slate-50/20 backdrop-blur-xl rounded-lg border border-slate-200 animate-in slide-in-from-top duration-200">
+          <button
+            className="px-3 py-1.5 rounded-lg w-full text-xs font-medium bg-white border border-slate-300 hover:bg-slate-50 transition-all"
+            onClick={() => setShowPicker(true)}
+          >
+            {selectedClaim ? selectedClaim.label : 'Select claim…'}
+          </button>
+          <EntityPicker
+            kind="claim"
+            open={showPicker}
+            onClose={() => setShowPicker(false)}
+            onPick={(item) => setSelectedClaim(item)}
           />
           <button
             className="px-3 py-1.5 rounded-lg text-xs font-medium bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 transition-all"
-            disabled={!otherId.trim() || busy}
+            disabled={!selectedClaim || busy}
             onClick={submit}
           >
             {busy ? 'Posting…' : 'Post'}
@@ -318,7 +330,7 @@ function PreferenceQuick({
             className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-200 transition-all"
             onClick={() => {
               setOpen(null);
-              setOtherId('');
+              setSelectedClaim(null);
             }}
           >
             Cancel
@@ -690,6 +702,7 @@ function RowImpl({
                     )}
                     {c.attackType === 'UNDERCUTS' && (
                       <>
+                      
                         <input
                           className="px-3 py-1.5 rounded-lg border border-slate-300 text-xs focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all"
                           placeholder="Exception / rule‑defeater…"
@@ -780,7 +793,7 @@ function RowImpl({
             onPosted={() => window.dispatchEvent(new CustomEvent('dialogue:moves:refresh', { detail: { deliberationId } } as any))}
           />
 
-          <PreferenceQuick deliberationId={deliberationId} argumentId={a.id} onDone={() => onRefreshRow(a.id)} />
+          <PreferenceQuick deliberationId={deliberationId} argumentId={a.id} authorId={a.authorId} onDone={() => onRefreshRow(a.id)} />
 
           <AttackMenuPro
             deliberationId={deliberationId}
@@ -799,7 +812,7 @@ function RowImpl({
             <a
               href={`/claim/${meta.conclusion.id}`}
               className="
-                inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
+                inline-flex items-center gap-2 px-3 py-1 btnv2 rounded-lg text-xs font-medium
                 bg-emerald-100 text-emerald-700 border border-emerald-200
                 hover:bg-emerald-200 transition-all duration-200 shadow-sm hover:shadow
               "
@@ -820,7 +833,7 @@ function RowImpl({
 
           <button
             className="
-              inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium
+                inline-flex items-center gap-2 px-3 py-1 btnv2 rounded-lg text-xs font-medium
               bg-white text-slate-600 border border-slate-200
               hover:border-slate-300 hover:bg-slate-50
               transition-all duration-200
