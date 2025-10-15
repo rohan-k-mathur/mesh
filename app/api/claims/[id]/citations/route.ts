@@ -1,3 +1,5 @@
+// API route to create a citation for a claim
+//app/api/claims/[id]/citations/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
 

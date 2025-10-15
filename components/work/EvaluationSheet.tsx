@@ -3,8 +3,13 @@
 import * as React from 'react';
 
 type WorkLite = { id: string; deliberationId: string; title: string; theoryType: 'DN'|'IH'|'TC'|'OP' };
-
 type AdequacyItem = { id: string; criterion: string; result: 'pass'|'partial'|'fail' };
+
+const RESULT_STYLES = {
+  pass: 'bg-emerald-50 border-emerald-200 text-emerald-700',
+  partial: 'bg-amber-50 border-amber-200 text-amber-700',
+  fail: 'bg-rose-50 border-rose-200 text-rose-700',
+};
 
 export default function EvaluationSheet() {
   const [open, setOpen] = React.useState(false);
@@ -99,12 +104,11 @@ export default function EvaluationSheet() {
       if (method === 'mcda') {
         meta.mcda = mcda ?? null;
         if (!meta.mcda) {
-          setError('No MCDA snapshot found on source work; pick “Adequacy” or add a Practical result.');
+          setError('No MCDA snapshot found on source work; pick "Adequacy" or add a Practical result.');
           setPending(false);
           return;
         }
       } else {
-        // pack adequacy checklist
         meta.adequacy = {
           items: adequacy
             .map(a => ({ criterion: a.criterion.trim(), result: a.result }))
@@ -130,7 +134,6 @@ export default function EvaluationSheet() {
         return;
       }
 
-      // notify others (e.g. SupplyDrawer) to refresh
       window.dispatchEvent(new CustomEvent('mesh:edges-updated', { detail: { toWorkId: ctx.toWorkId } }));
       setOpen(false);
     } catch (err:any) {
@@ -141,110 +144,211 @@ export default function EvaluationSheet() {
   }
 
   return (
-    <div className="fixed inset-0 z-[60] bg-black/25" onClick={()=>setOpen(false)}>
+    <div 
+      className="fixed inset-0 z-[60] bg-black/20 backdrop-blur-sm" 
+      onClick={()=>setOpen(false)}
+    >
       <div
-        className="absolute right-0 top-0 h-full w-[460px] bg-white border-l p-3"
+        className="absolute right-0 top-0 h-full w-[480px] bg-white shadow-2xl flex flex-col"
         onClick={e=>e.stopPropagation()}
       >
-        <div className="flex items-center justify-between">
-          <div className="text-sm font-medium">Evaluation</div>
-          <button className="text-xs underline" onClick={()=>setOpen(false)}>Close</button>
+        {/* Header */}
+        <div className="flex-shrink-0 px-5 py-4 border-b bg-gradient-to-r from-neutral-50 to-white">
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-semibold text-neutral-900">Evaluation</h2>
+            <button 
+              className="px-3 py-1 text-xs font-medium text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 rounded-md transition-colors"
+              onClick={()=>setOpen(false)}
+            >
+              Close
+            </button>
+          </div>
+          
+          {/* Comparison Badge */}
+          <div className="mt-3 p-3 rounded-lg bg-neutral-50 border border-neutral-200">
+            <div className="flex items-center gap-2 text-xs">
+              <div className="flex-1 min-w-0">
+                <div className="font-medium text-neutral-900 truncate">
+                  {fromWork?.title ?? 'Source'}
+                </div>
+                <div className="text-[10px] text-neutral-500 mt-0.5">
+                  Source work
+                </div>
+              </div>
+              <div className="flex-shrink-0 px-2 py-1 bg-white rounded border border-neutral-200">
+                <svg className="w-3 h-3 text-neutral-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-medium text-neutral-900 truncate">
+                  {toWork?.title ?? 'Target'}
+                </div>
+                <div className="text-[10px] text-neutral-500 mt-0.5">
+                  Target work
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div className="mt-3 space-y-2 text-sm">
-          <div className="text-[12px] text-neutral-600">
-            Comparing <b>{fromWork?.title ?? ctx.fromWorkId}</b> → <b>{toWork?.title ?? ctx.toWorkId}</b>
-          </div>
-
-          {/* Method choice */}
-          <div className="mt-2">
-            <label className="text-xs text-neutral-600">Method</label>
-            <div className="mt-1 flex items-center gap-3 text-xs">
-              <label className="flex items-center gap-1">
-                <input
-                  type="radio"
-                  name="eval-method"
-                  value="mcda"
-                  checked={method === 'mcda'}
-                  onChange={()=>setMethod('mcda')}
-                  disabled={!mcda}
-                />
-                MCDA snapshot {mcda ? 'found' : '(none)'}
-              </label>
-              <label className="flex items-center gap-1">
-                <input
-                  type="radio"
-                  name="eval-method"
-                  value="adequacy"
-                  checked={method === 'adequacy'}
-                  onChange={()=>setMethod('adequacy')}
-                />
-                Adequacy checklist
-              </label>
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+          {/* Method Selection */}
+          <div className="space-y-2">
+            <label className="block text-xs font-medium text-neutral-700">
+              Evaluation Method
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setMethod('mcda')}
+                disabled={!mcda}
+                className={`
+                  px-3 py-2 rounded-lg border-2 text-left transition-all text-xs
+                  ${method === 'mcda'
+                    ? 'border-blue-300 bg-blue-50 text-blue-900'
+                    : 'border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300'
+                  }
+                  ${!mcda ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                `}
+              >
+                <div className="font-semibold">MCDA Snapshot</div>
+                <div className="text-[10px] mt-0.5 text-neutral-600">
+                  {mcda ? 'Available' : 'Not available'}
+                </div>
+              </button>
+              <button
+                onClick={() => setMethod('adequacy')}
+                className={`
+                  px-3 py-2 rounded-lg border-2 text-left transition-all text-xs cursor-pointer
+                  ${method === 'adequacy'
+                    ? 'border-purple-300 bg-purple-50 text-purple-900'
+                    : 'border-neutral-200 bg-white text-neutral-700 hover:border-neutral-300'
+                  }
+                `}
+              >
+                <div className="font-semibold">Adequacy Checklist</div>
+                <div className="text-[10px] mt-0.5 text-neutral-600">
+                  Manual evaluation
+                </div>
+              </button>
             </div>
           </div>
 
-          {/* MCDA summary */}
+          {/* MCDA Summary */}
           {method === 'mcda' && (
-            <div className="rounded border p-2 bg-neutral-50 text-[12px]">
+            <div className="p-4 rounded-lg border border-blue-200 bg-blue-50/50">
               {mcda ? (
-                <>
-                  <div>Best option: <b>{mcda.bestOptionId ?? '—'}</b></div>
-                  <div>Options: {Object.keys(mcda.totals ?? {}).length}</div>
-                </>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-neutral-700">Best option:</span>
+                    <span className="font-semibold text-neutral-900">{mcda.bestOptionId ?? '—'}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-neutral-700">Options evaluated:</span>
+                    <span className="font-semibold text-neutral-900">{Object.keys(mcda.totals ?? {}).length}</span>
+                  </div>
+                </div>
               ) : (
-                <div className="text-neutral-500">No MCDA result on source work.</div>
+                <p className="text-xs text-neutral-600">No MCDA result found on source work.</p>
               )}
             </div>
           )}
 
-          {/* Adequacy editor */}
+          {/* Adequacy Checklist Editor */}
           {method === 'adequacy' && (
-            <div className="rounded border p-2 bg-neutral-50">
-              <div className="text-[11px] text-neutral-600 mb-1">Checklist</div>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-medium text-neutral-700">
+                  Evaluation Criteria
+                </label>
+                <button 
+                  className="text-xs font-medium text-purple-600 hover:text-purple-700"
+                  onClick={addAdequacyItem}
+                >
+                  + Add criterion
+                </button>
+              </div>
+              
               <div className="space-y-2">
                 {adequacy.map(item => (
-                  <div key={item.id} className="flex items-center gap-2">
+                  <div key={item.id} className="p-3 rounded-lg border border-neutral-200 bg-white space-y-2">
                     <input
-                      className="flex-1 border rounded px-2 py-1 text-xs"
-                      placeholder="Criterion (e.g., Completeness)"
+                      className="w-full px-2 py-1 text-xs font-medium border-0 bg-transparent focus:outline-none placeholder:text-neutral-400"
+                      placeholder="Criterion name (e.g., Completeness)"
                       value={item.criterion}
                       onChange={e=>updateAdequacyItem(item.id, { criterion: e.target.value })}
                     />
-                    <select
-                      className="border rounded px-1 py-1 text-xs"
-                      value={item.result}
-                      onChange={e=>updateAdequacyItem(item.id, { result: e.target.value as any })}
-                    >
-                      <option value="pass">pass</option>
-                      <option value="partial">partial</option>
-                      <option value="fail">fail</option>
-                    </select>
-                    <button className="text-[11px] underline" onClick={()=>removeAdequacyItem(item.id)}>remove</button>
+                    <div className="flex items-center gap-2">
+                      {(['pass', 'partial', 'fail'] as const).map(result => (
+                        <button
+                          key={result}
+                          onClick={() => updateAdequacyItem(item.id, { result })}
+                          className={`
+                            flex-1 px-2 py-1.5 rounded-md text-[10px] font-medium capitalize
+                            border transition-all
+                            ${item.result === result
+                              ? RESULT_STYLES[result]
+                              : 'border-neutral-200 bg-neutral-50 text-neutral-600 hover:bg-neutral-100'
+                            }
+                          `}
+                        >
+                          {result}
+                        </button>
+                      ))}
+                      <button 
+                        className="px-2 py-1.5 text-[10px] text-neutral-500 hover:text-rose-600 transition-colors"
+                        onClick={()=>removeAdequacyItem(item.id)}
+                      >
+                        Remove
+                      </button>
+                    </div>
                   </div>
                 ))}
-                <button className="text-[11px] underline" onClick={addAdequacyItem}>+ add row</button>
               </div>
             </div>
           )}
 
           {/* Verdict */}
-          <label className="block text-xs text-neutral-600">Verdict (optional)</label>
-          <input
-            className="w-full border rounded px-2 py-1"
-            value={verdict}
-            onChange={e=>setVerdict(e.target.value)}
-            placeholder="e.g., Source dominates target on robustness and completeness"
-          />
-
-          <div className="text-[11px] text-neutral-500">
-            If the source work has a Practical (MCDA) result and you choose “MCDA snapshot,” it will be included automatically.
+          <div className="space-y-2">
+            <label className="block text-xs font-medium text-neutral-700">
+              Verdict <span className="text-neutral-500 font-normal">(optional)</span>
+            </label>
+            <textarea
+              className="w-full px-3 py-2 text-sm border border-neutral-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-neutral-900 focus:border-transparent transition-shadow resize-none"
+              rows={3}
+              value={verdict}
+              onChange={e=>setVerdict(e.target.value)}
+              placeholder="e.g., Source dominates target on robustness and completeness"
+            />
           </div>
 
-          {error && <div className="text-[12px] text-rose-600">{error}</div>}
+          {/* Info Note */}
+          <div className="p-3 rounded-lg bg-neutral-50 border border-neutral-200">
+            <p className="text-[10px] text-neutral-600 leading-relaxed">
+              {method === 'mcda' 
+                ? 'The MCDA snapshot from the source work will be automatically included in the evaluation edge.'
+                : 'The adequacy checklist will be saved with the evaluation edge for future reference.'
+              }
+            </p>
+          </div>
 
-          <button className="px-2 py-1 border rounded text-xs bg-white" onClick={submit} disabled={pending}>
-            {pending ? 'Saving…' : 'Save EVALUATES edge'}
+          {/* Error Display */}
+          {error && (
+            <div className="p-3 rounded-lg bg-rose-50 border border-rose-200">
+              <p className="text-xs text-rose-700">{error}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex-shrink-0 px-5 py-4 border-t bg-neutral-50">
+          <button 
+            className="w-full px-4 py-2.5 bg-neutral-900 text-white text-sm font-medium rounded-lg hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            onClick={submit} 
+            disabled={pending}
+          >
+            {pending ? 'Saving evaluation…' : 'Save Evaluation Edge'}
           </button>
         </div>
       </div>

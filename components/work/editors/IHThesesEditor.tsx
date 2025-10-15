@@ -42,28 +42,28 @@ export default function IHThesesEditor({ workId }: { workId: string }) {
 
   return (
     <div className="rounded border p-2 space-y-2 bg-white/70">
-      <div className="text-sm font-medium">IH Theses</div>
+      <div className="text-sm  font-medium">IH Theses</div>
 
        <label id={slotAnchorId('IH.structure')} className="text-xs text-neutral-600">Structure (TIH)</label>
   <PromoteSlotButton workId={workId} slotKey="IH.structure" getText={() => val.structure ?? ''} />
 
-      <textarea className="w-full border rounded px-2 py-1 text-sm" rows={2}
+      <textarea className="w-full minorfield border border-indigo-400/60 rounded px-1.5 py-1.5 text-sm" rows={2}
         placeholder="Describe the structure of the practice/system"
         value={val.structure ?? ''} onChange={e => setVal(v => ({ ...v, structure: e.target.value }))} />
 
       <label className="text-xs text-neutral-600">Function (TIH)</label>
-      <textarea className="w-full border rounded px-2 py-1 text-sm" rows={2}
+      <textarea className="w-full minorfield border border-indigo-400/60 rounded px-1.5 py-1.5 text-sm" rows={2}
         placeholder="What function/ends does it (should it) serve?"
         value={val.function ?? ''} onChange={e => setVal(v => ({ ...v, function: e.target.value }))} />
 
       <label className="text-xs text-neutral-600">Objectivity of reasons (TIH)</label>
-      <textarea className="w-full border rounded px-2 py-1 text-sm" rows={2}
+      <textarea className="w-full minorfield border border-indigo-400/60 rounded px-1.5 py-1.5 text-sm" rows={2}
         placeholder="Justify that reasons are objective / intersubjectively warranted"
         value={val.objectivity ?? ''} onChange={e => setVal(v => ({ ...v, objectivity: e.target.value }))} />
 
       <div className="flex items-center gap-2">
-        <button className="px-2 py-1 border rounded text-xs bg-white" onClick={save} disabled={saving}>
-          {saving ? 'Saving…' : 'Save IH'}
+        <button className="btnv2--ghost px-3 py-1 border rounded text-xs bg-white hover:bg-neutral-100" onClick={save} disabled={saving}>
+          {saving ? 'Saving…' : 'Save'}
         </button>
         {savedAt && <span className="text-[11px] text-neutral-500">Saved</span>}
       </div>

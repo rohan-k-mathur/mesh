@@ -55,42 +55,65 @@ export default function WorkDetailClient(props: {
   }>({ theoryType, standardOutput });
 
   return (
-    <div className="max-w-3xl mx-auto p-4 space-y-4">
-      {/* Back to Deep Dive button */}
-      <div className="flex items-center justify-between">
-        <button
-          onClick={() => router.push(props.backHref ?? computedBackHref ?? `/deepdive/${deliberationId}`)}
-          className="px-3 py-1 text-xs rounded-md border border-slate-300 bg-white hover:bg-slate-50"
-        >
-          ← Back to Discussion
-        </button>
+    <div className="min-h-screen backdrop-blur-lg  bg-gradient-to-br from-neutral-50/20 rounded-3xl via-slate-100/60 to-neutral-50/30">
+      <div className="container mx-auto px-6 py-6 space-y-6" style={{ maxWidth: 'min(100%, 90rem)' }}>
+        {/* Navigation */}
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => router.push(props.backHref ?? computedBackHref ?? `/works/`)}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border border-neutral-300 bg-white hover:bg-neutral-50 transition-colors"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Dashboard
+          </button>
+        </div>
+
+        {/* Header */}
+        <div className="bg-white w-full rounded-lg border shadow-sm p-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-xl font-bold text-neutral-900 leading-tight">
+                {title}
+              </h1>
+              <p className="text-sm text-neutral-500 mt-2">
+                Work ID: <span className="font-mono text-xs">{id}</span>
+              </p>
+            </div>
+            <span className="flex-shrink-0 px-3 py-1 rounded-lg text-xs font-semibold bg-neutral-100 text-neutral-700 border border-neutral-200">
+              {theoryType}
+            </span>
+          </div>
+        </div>
+
+        {/* Main Content Grid */}
+        <div className=" grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(min-content,20rem)] gap-3 ">
+          {/* Main Column */}
+          <div className="space-y-6 min-w-0">
+            <TheoryFraming
+              value={framing}
+              onChange={setFraming}
+              workId={id}
+              canEditPractical={true}
+              defaultOpenBuilder={true}
+            />
+          </div>
+
+          {/* Sidebar */}
+          <div className="w-full  min-w-0">
+            <div className="sticky  top-6 self-start">
+              <WorkStatusRail
+                workId={id}
+                deliberationId={deliberationId}
+                onPublished={() => {
+                  // Optional: handle post-publish actions
+                }}
+              />
+            </div>
+          </div>
+        </div>
       </div>
-
-      <div className="flex items-center justify-between">
-        <div className="text-lg font-semibold">{title}</div>
-        <span className="text-[10px] px-1.5 py-0.5 rounded bg-neutral-100">
-          {theoryType}
-        </span>
-      </div>
-
-      {/* New: Status Rail (checklist, CQs, legal moves, publish) */}
-      <WorkStatusRail
-        workId={id}
-        deliberationId={deliberationId}
-        className="mt-1"
-        onPublished={() => {
-          // Optional: keep EvaluationSheet / other panels in sync after publish
-        }}
-      />
-
-      {/* Existing builders */}
-      <TheoryFraming
-        value={framing}
-        onChange={setFraming}
-        workId={id}
-        canEditPractical={true}
-        defaultOpenBuilder={true}
-      />
 
       <EvaluationSheet />
     </div>

@@ -53,17 +53,17 @@ export default function OPThesesEditor({ workId }: { workId: string }) {
       <label id={slotAnchorId('OP.unrecognizability')} className="text-xs text-neutral-600">Unrecognizability (TOP)</label>
       <PromoteSlotButton workId={workId} slotKey="OP.unrecognizability" getText={() => val.unrecognizability ?? ''} />
 
-      <textarea className="w-full border rounded px-2 py-1 text-sm" rows={2}
+      <textarea className="w-full minorfield border border-indigo-400/60 rounded px-1.5 py-1.5 text-sm" rows={2}
         placeholder="Why no adequate theoretical evidence is possible"
         value={val.unrecognizability ?? ''} onChange={e => setVal(v => ({ ...v, unrecognizability: e.target.value }))} />
 
       <label className="text-xs text-neutral-600">Alternatives (one per line)</label>
-      <textarea className="w-full border rounded px-2 py-1 text-sm" rows={3}
+      <textarea className="w-full minorfield border border-indigo-400/60 rounded px-1.5 py-1.5 text-sm" rows={3}
         placeholder="Alt A\nAlt B"
         value={altsInput} onChange={e => setAltsInput(e.target.value)} />
 
       <div className="flex items-center gap-2">
-        <button className="px-2 py-1 border rounded text-xs bg-white" onClick={save} disabled={saving}>
+        <button className="btnv2--ghost px-3 py-1 border rounded text-xs bg-white hover:bg-neutral-100" onClick={save} disabled={saving}>
           {saving ? 'Saving…' : 'Save OP'}
         </button>
         {savedAt && <span className="text-[11px] text-neutral-500">Saved</span>}

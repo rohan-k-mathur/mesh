@@ -7,46 +7,39 @@ export function NewWorkButton({
   title = 'Untitled Work',
   theoryType = 'IH',
   deliberationId,
+  standardOutput,
+  className = '',
 }: {
   title?: string;
   theoryType?: 'DN' | 'IH' | 'TC' | 'OP';
   deliberationId?: string;
+  standardOutput?: string;
+  className?: string;
 }) {
   const router = useRouter();
   const [creating, setCreating] = React.useState(false);
+  const [href, setHref] = React.useState<string>("");
 
-  async function create() {
-    setCreating(true);
-    try {
-      const r = await fetch('/api/works', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ title, theoryType, deliberationId }),
-      });
-      if (!r.ok) {
-        const txt = await r.text();
-        throw new Error(`Create failed: ${r.status} ${txt}`);
-      }
-      const j = await r.json();
-      const id = j?.work?.id;
-      if (id) router.push(`/works/${id}`);
-    } catch (err) {
-      console.error(err);
-      alert(err instanceof Error ? err.message : 'Failed to create work');
-    } finally {
-      setCreating(false);
-    }
-  }
+  React.useEffect(() => {
+    const u = new URL('/works/new', window.location.origin);
+    if (title) u.searchParams.set('title', title);
+    if (theoryType) u.searchParams.set('theoryType', theoryType);
+    if (deliberationId) u.searchParams.set('deliberationId', deliberationId);
+    if (standardOutput) u.searchParams.set('standardOutput', standardOutput);
+    setHref(u.toString());
+  }, [title, theoryType, deliberationId, standardOutput]);
+
+  const isDisabled = creating || !href;
 
   return (
     <button
       type="button"
-      onClick={create}
+      onClick={() => { if (href) { setCreating(true); router.push(href); } }}
       className="btnv2 bg-white/50 flex items-center gap-2 text-sm px-3 py-3 rounded-xl disabled:opacity-60"
-      disabled={creating}
-      title="Create a new work"
+      disabled={isDisabled}
+      title="Compose a new model"
     >
-      {creating ? <span className="kb-spinner" /> : '⨁ New Work'}
+      {creating ? <span className="kb-spinner" /> : '⨁ New Model'}
     </button>
   );
 }

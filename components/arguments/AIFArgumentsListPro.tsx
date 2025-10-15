@@ -28,7 +28,7 @@ import { listSchemes, getArgumentCQs, askCQ, exportAif } from '@/lib/client/aifA
 import PromoteToClaimButton from '@/components/claims/PromoteToClaimButton';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@/components/ui/dialog';
 import { ClaimPicker } from '@/components/claims/ClaimPicker';
-import { useConfidence } from '@/components/agora/useConfidence';
+import { ConfidenceProvider, useConfidence } from '@/components/agora/useConfidence';
 import { set } from 'lodash';
 
 const AttackMenuPro = dynamic(() => import('@/components/arguments/AttackMenuPro').then(m => m.AttackMenuPro), { ssr: false });
@@ -1153,6 +1153,7 @@ export default function AIFArgumentsListPro({
   const nextCursor = data?.[data.length - 1]?.nextCursor ?? null;
 
   return (
+
     <section aria-label="AIF arguments list" className="w-full rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col h-full">
       <Controls
         schemes={schemes}
@@ -1237,6 +1238,28 @@ export default function AIFArgumentsListPro({
           }}
         />
       </div>
+        <Controls
+          schemes={schemes}
+          schemeKey={schemeKey}
+          setSchemeKey={setSchemeKey}
+          q={q}
+          setQ={setQ}
+          showPremises={showPremises}
+          setShowPremises={setShowPremises}
+          onExport={async () => {
+            try {
+              const doc = await exportAif(deliberationId, { includeLocutions: false, includeCQs: true });
+              const blob = new Blob([JSON.stringify(doc, null, 2)], { type: 'application/ld+json' });
+              const url = URL.createObjectURL(blob);
+              const a = document.createElement('a');
+              a.href = url;
+              a.download = `aif-${deliberationId}.jsonld`;
+              a.click();
+              URL.revokeObjectURL(url);
+            } catch (e) { console.error(e); }
+          }}
+        />
     </section>
+
   );
 }

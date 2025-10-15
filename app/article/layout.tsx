@@ -6,7 +6,7 @@ import "@/app/article/rhetoric.css";
 import "@/app/article/type-tokens.css";
 import '@/app/fonts/fonts.css';
 // import "@/app/globals.css";
-
+import { ConfidenceProvider } from '@/components/agora/useConfidence';
 
 
 export const metadata = {
@@ -22,7 +22,9 @@ export default function ReaderLayout({
   return (
     <html lang="en">
       <body className="flex antialiased justify-center items-center align-center mt-5  py-2 h-full w-full  bg-slate-50 ">
-      {children}
+        <ConfidenceProvider>
+          {children}
+        </ConfidenceProvider>
       </body>
     </html>
   );

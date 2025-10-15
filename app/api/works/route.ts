@@ -3,9 +3,33 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
 import { jsonSafe } from '@/lib/bigintjson';
 import { getCurrentUserId } from '@/lib/serverutils';
-
+import { customAlphabet } from 'nanoid';
 const PAGE_SIZE = 20; // Default page size for pagination
 export const dynamic = 'force-dynamic';
+
+const nano = customAlphabet('abcdefghijklmnopqrstuvwxyz0123456789', 6);
+
+
+function slugifyTitle(s: string) {
+  return s.toLowerCase()
+    .normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+    .replace(/-{2,}/g, '-') || 'work';
+}
+async function makeUniqueSlug(base: string) {
+  let slug = base || 'work';
+  let trySlug = slug;
+  let i = 2;
+  // Use findUnique if slug is UNIQUE, else fallback to count()
+  while (true) {
+    const exists = await prisma.theoryWork.findUnique({ where: { slug: trySlug } })
+      .then(Boolean)
+      .catch(async () => (await prisma.theoryWork.count({ where: { slug: trySlug } })) > 0);
+    if (!exists) return trySlug;
+    trySlug = `${slug}-${i++}`;
+    if (i > 99) return `${slug}-${nano()}`;
+  }
+}
 
 export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
@@ -36,8 +60,6 @@ export async function GET(req: NextRequest) {
   const byId = new Map(works.map((w,i) => [w.id, integ[i]]));
   return NextResponse.json({ ok:true, works: works.map(w => ({ ...w, integrity: byId.get(w.id) })) });
 }
-
-
 export async function POST(req: NextRequest) {
   const userId = await getCurrentUserId();
   if (!userId) return NextResponse.json({ error: 'Unauthenticated' }, { status: 401 });
@@ -46,23 +68,58 @@ export async function POST(req: NextRequest) {
   const {
     title = 'Untitled Work',
     theoryType = 'IH',
-    deliberationId = null,
+    deliberationId: incomingDeliberationId = null,
     standardOutput = null,
+    // optional: allow callers to attach to a room; we’ll inherit its representationRule
+    roomId = null as string | null,
   } = body ?? {};
 
+  // 1) slug
+  const slug = await makeUniqueSlug(slugifyTitle(String(title || '')));
+
+  // 2) ensure deliberation (connect if provided; else create with required fields)
+  let deliberationId: string;
+  if (incomingDeliberationId) {
+    deliberationId = String(incomingDeliberationId);
+  } else {
+    // inherit rule from room if present; fallback 'utilitarian'
+    let rule = 'utilitarian';
+    if (roomId) {
+      const room = await prisma.room.findUnique({
+        where: { id: roomId },
+        select: { representationRule: true },
+      });
+      if (room?.representationRule) rule = room.representationRule;
+    }
+
+    const created = await prisma.deliberation.create({
+      data: {
+        hostType: 'work',
+        hostId: slug,
+        roomId: roomId ?? undefined,
+        createdById: String(userId),
+        rule,
+      },
+      select: { id: true },
+    });
+    deliberationId = created.id;
+  }
+
+  // 3) create work and connect deliberation
   const work = await prisma.theoryWork.create({
     data: {
       title,
+      slug,
       theoryType,
-      deliberationId,
-      standardOutput,
       authorId: String(userId),
-      body: "", // Provide a default empty string or appropriate value
-      deliberation: deliberationId ? { connect: { id: deliberationId } } : undefined, // Connect if deliberationId is present
+      standardOutput,
+      body: '',
+      deliberation: { connect: { id: deliberationId } },
     },
     select: {
       id: true,
       title: true,
+      slug: true,
       theoryType: true,
       authorId: true,
       deliberationId: true,

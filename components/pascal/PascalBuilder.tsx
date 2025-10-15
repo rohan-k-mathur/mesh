@@ -70,8 +70,8 @@ export default function PascalBuilder({ workId }: { workId: string }) {
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <div>
-          <div className="flex items-center justify-between">
+        <div className='border rounded p-2'>
+          <div className="flex items-center justify-between ">
             <div className="text-xs font-medium">Propositions (worlds)</div>
             <button className="text-xs underline" onClick={addWorld}>+ Add</button>
           </div>
@@ -89,7 +89,8 @@ export default function PascalBuilder({ workId }: { workId: string }) {
           </div>
         </div>
 
-        <div>
+            <div className='border rounded p-2'>
+
           <div className="flex items-center justify-between">
             <div className="text-xs font-medium">Actions</div>
             <button className="text-xs underline" onClick={addAction}>+ Add</button>
@@ -161,7 +162,7 @@ export default function PascalBuilder({ workId }: { workId: string }) {
       </div>
 
       <div className="flex gap-2">
-        <button className="px-3 py-1 rounded border text-sm bg-white disabled:opacity-50" onClick={save} disabled={saving}>
+        <button className="btnv2--ghost px-3 py-1 rounded border text-xs bg-white hover:bg-neutral-100 disabled:opacity-50" onClick={save} disabled={saving}>
           {saving ? 'Saving…' : 'Save decision'}
         </button>
       </div>

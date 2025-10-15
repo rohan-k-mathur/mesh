@@ -5,7 +5,7 @@ import { emitBus } from "@/lib/server/bus";
 import { z } from "zod";
 
 const Body = z.object({
-  hostType: z.enum(["article","post","room","stack","card","claim"]).default("article"),
+  hostType: z.enum(["article","post","room","stack","card","claim","work"]).default("article"),
   hostId: z.string().min(1),
   tags: z.array(z.string()).optional(),
   title: z.string().optional(),

@@ -5,14 +5,31 @@ import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { useTheoryWorkChecklist } from '@/hooks/useTheoryWorkChecklist';
 
-function ProgressBar({ value }: { value: number }) {
+function ProgressBar({ value, color = 'neutral' }: { value: number; color?: 'neutral' | 'emerald' | 'amber' }) {
   const pct = Math.max(0, Math.min(100, Math.round(value * 100)));
+  
+  const colorClasses = {
+    neutral: 'bg-neutral-700',
+    emerald: 'bg-emerald-600',
+    amber: 'bg-amber-600',
+  };
+
   return (
-    <div className="h-2 w-full bg-neutral-200 rounded">
-      <div className="h-2 rounded bg-neutral-700" style={{ width: `${pct}%` }} />
+    <div className="relative h-2 w-full bg-neutral-100 rounded-full overflow-hidden">
+      <div 
+        className={`absolute inset-y-0 left-0 rounded-full transition-all duration-300 ${colorClasses[color]}`}
+        style={{ width: `${pct}%` }} 
+      />
     </div>
   );
 }
+
+const THEORY_LABELS = {
+  DN: 'Descriptive–Nomological',
+  IH: 'Idealizing–Hermeneutic',
+  TC: 'Technical–Constructive',
+  OP: 'Ontic–Practical',
+};
 
 export default function WorkStatusRail({
   workId,
@@ -30,6 +47,7 @@ export default function WorkStatusRail({
     useTheoryWorkChecklist(workId);
 
   const [publishing, setPublishing] = React.useState(false);
+  const [showDetails, setShowDetails] = React.useState(false);
   const publishable = !!data?.publishable;
 
   async function publish(to: 'sheet'|'kb'|'aif' = 'sheet') {
@@ -46,12 +64,10 @@ export default function WorkStatusRail({
       }
       const json = await res.json();
       onPublished?.(json?.snapshotId);
-      // Prefer the canonical synthetic DebateSheet 'delib:<id>' convention
-      // Resolve to Deep Dive (your DebateSheet overlay can mount there)
+      
       if (to === 'sheet') {
         router.push(`/deepdive/${deliberationId}?sheet=1`);
       } else {
-        // KB/AIF fallbacks (adjust to your routes as needed)
         router.refresh();
       }
     } catch (e: any) {
@@ -61,15 +77,13 @@ export default function WorkStatusRail({
     }
   }
 
-  // Optional quick WHY/GROUNDS post — will no-op if no target available
   async function postMove(kind: 'WHY'|'GROUNDS') {
     const target =
       data?.dialogue?.legalMoves?.find(m => m.kind === kind && m.targetId)?.targetId ??
-      data?.dialogue?.sampleTargetId ?? // if server exposes it
-      data?.claims?.ids?.[0];          // fallback if server exposes claim ids
+      data?.dialogue?.sampleTargetId ??
+      data?.claims?.ids?.[0];
 
     if (!target) {
-      // Graceful fallback: send the user to the Deep Dive where they can act
       router.push(`/deepdive/${deliberationId}#cqs`);
       return;
     }
@@ -80,7 +94,6 @@ export default function WorkStatusRail({
         body: JSON.stringify({ kind, targetType: 'claim', targetId: target })
       });
       if (!res.ok) throw new Error(await res.text());
-      // Show the locus in context
       router.push(`/deepdive/${deliberationId}#claim-${target}`);
     } catch (e: any) {
       alert(`Failed to post ${kind}: ${e?.message ?? 'Unknown error'}`);
@@ -88,56 +101,103 @@ export default function WorkStatusRail({
   }
 
   const theory = data?.work?.theoryType ?? 'DN';
-  const openList = activeOpen.slice(0, 5);
+  const openList = activeOpen.slice(0, 3);
 
   return (
-    <aside className={['rounded border bg-white/60 p-3 space-y-3', className].filter(Boolean).join(' ')}>
-      <div className="flex items-center justify-between">
-        <div className="text-sm font-medium">Status</div>
-        {isLoading && <div className="text-[11px] text-neutral-500">Loading…</div>}
-        {error && <div className="text-[11px] text-red-600">Failed to load</div>}
-      </div>
-
-      {/* Structure (DN/IH/TC/OP) */}
-      <div>
+    <aside className={['rounded-lg max-w-[500px] w-full border bg-white shadow-sm', className].filter(Boolean).join(' ')}>
+      {/* Header */}
+      <div className="rounded-xl px-4 py-3 border-b bg-gradient-to-r from-neutral-50 to-white">
         <div className="flex items-center justify-between">
-          <div className="text-xs font-medium">Structure ({theory})</div>
-          <div className="text-[11px] text-neutral-500">
-            {Math.round(structureProgress * 100)}%
-          </div>
+          <h3 className="text-sm font-semibold text-neutral-900">Work Status</h3>
+          {isLoading && (
+            <div className="flex items-center gap-1.5">
+              <div className="w-1 h-1 bg-neutral-400 rounded-full animate-pulse" />
+              <span className="text-[10px] text-neutral-500">Loading</span>
+            </div>
+          )}
+          {error && (
+            <span className="text-[10px] text-rose-600 font-medium">Failed to load</span>
+          )}
         </div>
-        <ProgressBar value={structureProgress} />
-        {!!openList.length && (
-          <div className="mt-1 text-[11px] text-neutral-600">
-            Missing: {openList.join(', ')}
-            {activeOpen.length > openList.length && ' …'}
-          </div>
-        )}
       </div>
 
-      {/* Claims & CQs */}
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <div className="text-xs font-medium">Claims & CQs</div>
-          <div className="mt-1">
-            <ProgressBar value={cqProgress} />
-            <div className="mt-1 text-[11px] text-neutral-600">
-              {Math.round((cqProgress ?? 0) * 100)}% CQ satisfied
+      <div className="p-5 space-y-6">
+        {/* Structure Progress */}
+        <div className="space-y-3">
+          <div className="flex items-baseline justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <h4 className="text-sm font-semibold text-neutral-900">Structure</h4>
+              <p className="text-xs text-neutral-500 mt-1">
+                {THEORY_LABELS[theory as keyof typeof THEORY_LABELS]}
+              </p>
+            </div>
+            <span className="text-lg font-bold text-neutral-900 tabular-nums">
+              {Math.round(structureProgress * 100)}%
+            </span>
+          </div>
+          <ProgressBar value={structureProgress} color={structureProgress >= 1 ? 'emerald' : 'neutral'} />
+          {!!openList.length && (
+            <div className="mt-3 p-3 rounded-lg bg-amber-50 border border-amber-200">
+              <p className="text-xs text-amber-800 leading-relaxed">
+                <span className="font-semibold">Missing:</span> {openList.join(', ')}
+                {activeOpen.length > openList.length && ' …'}
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div className="h-px bg-neutral-200" />
+
+        {/* Claims & CQs */}
+        <div className="space-y-3">
+          <div className="flex items-baseline justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <h4 className="text-sm font-semibold text-neutral-900">Claims & CQs</h4>
               {typeof data?.claims?.count === 'number' && (
-                <> • {data.claims.count} claims</>
+                <p className="text-xs text-neutral-500 mt-1">
+                  {data.claims.count} claim{data.claims.count !== 1 ? 's' : ''}
+                </p>
               )}
             </div>
+            <span className="text-lg font-bold text-neutral-900 tabular-nums">
+              {Math.round((cqProgress ?? 0) * 100)}%
+            </span>
           </div>
-          <div className="mt-1 text-[11px] text-neutral-600">
-            {data?.claims?.cq?.openByScheme?.slice(0, 2).map(s => (
-              <div key={s.schemeKey}>
-                {s.schemeKey}: {s.satisfied}/{s.required} (open {s.open.length})
-              </div>
-            ))}
-          </div>
-          <div className="mt-2 flex gap-1">
+          <ProgressBar value={cqProgress ?? 0} color={cqProgress >= 1 ? 'emerald' : 'amber'} />
+          
+          {/* CQ Details (Collapsible) */}
+          {data?.claims?.cq?.openByScheme?.length > 0 && (
+            <div className="mt-3">
+              <button
+                onClick={() => setShowDetails(!showDetails)}
+                className="w-full text-left px-3 py-2 rounded-md hover:bg-neutral-50 transition-colors"
+              >
+                <span className="text-xs font-medium text-neutral-600">
+                  {showDetails ? '− Hide' : '+ Show'} CQ details
+                </span>
+              </button>
+              {showDetails && (
+                <div className="mt-2 space-y-2 px-3 py-2 bg-neutral-50 rounded-md">
+                  {data.claims.cq.openByScheme.slice(0, 3).map(s => (
+                    <div key={s.schemeKey} className="flex justify-between text-xs">
+                      <span className="font-medium text-neutral-700">{s.schemeKey}:</span>
+                      <span className="text-neutral-600">
+                        {s.satisfied}/{s.required}
+                        {s.open.length > 0 && (
+                          <span className="ml-1.5 text-amber-600">({s.open.length} open)</span>
+                        )}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Quick Actions */}
+          <div className="grid grid-cols-3 gap-2 mt-4">
             <button
-              className="px-2 py-0.5 text-[11px] rounded border bg-white disabled:opacity-50"
+              className="px-3 py-2 text-xs font-medium rounded-md border border-neutral-200 bg-white hover:bg-neutral-50 disabled:opacity-50 transition-colors"
               onClick={() => postMove('WHY')}
               title="Ask for grounds (attack)"
               disabled={!data}
@@ -145,7 +205,7 @@ export default function WorkStatusRail({
               WHY
             </button>
             <button
-              className="px-2 py-0.5 text-[11px] rounded border bg-white disabled:opacity-50"
+              className="px-3 py-2 text-xs font-medium rounded-md border border-neutral-200 bg-white hover:bg-neutral-50 disabled:opacity-50 transition-colors"
               onClick={() => postMove('GROUNDS')}
               title="Provide grounds (defend)"
               disabled={!data}
@@ -153,61 +213,93 @@ export default function WorkStatusRail({
               GROUNDS
             </button>
             <button
-              className="px-2 py-0.5 text-[11px] rounded border bg-white"
+              className="px-3 py-2 text-xs font-medium rounded-md border border-neutral-200 bg-white hover:bg-neutral-50 transition-colors"
               onClick={() => router.push(`/deepdive/${deliberationId}#dialogue`)}
               title="Open dialogue panel"
             >
-              Open Dialogue
+              Dialogue
             </button>
           </div>
         </div>
 
-        {/* Evidence & Dialogue */}
-        <div>
-          <div className="text-xs font-medium">Evidence & Dialogue</div>
-          <div className="mt-1 text-[11px] text-neutral-600">
-            Evidence items: {data?.claims?.evidence?.count ?? 0}
+        <div className="h-px bg-neutral-200" />
+
+        {/* Evidence & Dialogue Status */}
+        <div className="space-y-3">
+          <h4 className="text-sm font-semibold text-neutral-900">Evidence & Dialogue</h4>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="p-3 rounded-lg bg-neutral-50 border border-neutral-200">
+              <div className="text-lg font-bold text-neutral-900 tabular-nums">
+                {data?.claims?.evidence?.count ?? 0}
+              </div>
+              <div className="text-xs text-neutral-600 mt-1">
+                Evidence items
+              </div>
+            </div>
+            <div className={`p-3 rounded-lg border ${
+              data?.dialogue?.hasClosableLoci 
+                ? 'bg-emerald-50 border-emerald-200' 
+                : 'bg-neutral-50 border-neutral-200'
+            }`}>
+              <div className={`text-xs font-semibold ${
+                data?.dialogue?.hasClosableLoci ? 'text-emerald-700' : 'text-neutral-600'
+              }`}>
+                {data?.dialogue?.hasClosableLoci ? '✓ Closable' : 'No closable'}
+              </div>
+              <div className="text-xs text-neutral-600 mt-1">
+                Dialogue loci
+              </div>
+            </div>
           </div>
-          <div className="mt-1 text-[11px]">
-            {data?.dialogue?.hasClosableLoci
-              ? <span className="text-emerald-700">† Some loci closable</span>
-              : <span className="text-neutral-600">No closable loci yet</span>}
-          </div>
-          {data?.dialogue?.legalMoves?.length ? (
-            <div className="mt-1 flex flex-wrap gap-1">
-              {data.dialogue.legalMoves.slice(0, 4).map((m, i) => (
+
+          {/* Legal Moves */}
+          {data?.dialogue?.legalMoves?.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {data.dialogue.legalMoves.slice(0, 6).map((m, i) => (
                 <span
                   key={i}
-                  className={[
-                    'text-[10px] px-1.5 py-0.5 rounded border',
-                    m.force === 'ATTACK' ? 'border-red-300 bg-red-50' :
-                    m.force === 'SURRENDER' ? 'border-emerald-300 bg-emerald-50' :
-                    'border-neutral-300 bg-neutral-50'
-                  ].join(' ')}
-                  title={m.relevance ? `relevance: ${m.relevance}` : ''}
+                  className={`
+                    px-2 py-1 rounded-md text-[10px] font-medium border
+                    ${m.force === 'ATTACK' 
+                      ? 'border-rose-200 bg-rose-50 text-rose-700' 
+                      : m.force === 'SURRENDER'
+                      ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                      : 'border-neutral-200 bg-neutral-50 text-neutral-700'
+                    }
+                  `}
+                  title={m.relevance ? `Relevance: ${m.relevance}` : undefined}
                 >
                   {m.kind}
                 </span>
               ))}
             </div>
-          ) : null}
+          )}
         </div>
-      </div>
 
-      {/* Publish */}
-      <div className="flex items-center justify-between">
-        <div className="text-[11px] text-neutral-600">
-          Publishing sends claims/edges to the debate and stores a snapshot.
-        </div>
-        <div className="flex gap-2">
+        <div className="h-px bg-neutral-200" />
+
+        {/* Publish Section */}
+        <div className="space-y-3">
+          <div className="p-4 rounded-lg bg-blue-50/50 border border-blue-200">
+            <p className="text-xs text-neutral-700 leading-relaxed">
+              Publishing sends claims and edges to the debate and stores a snapshot for review.
+            </p>
+          </div>
+          
           <button
-            className="px-3 py-1 rounded border text-sm bg-white disabled:opacity-50"
+            className="w-full px-4 py-3 rounded-lg text-sm font-semibold bg-neutral-900 text-white hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             onClick={() => publish('sheet')}
             disabled={!publishable || publishing}
             title={publishable ? 'Publish to DebateSheet' : 'Complete required fields & CQs to enable'}
           >
             {publishing ? 'Publishing…' : 'Publish to DebateSheet'}
           </button>
+          
+          {!publishable && (
+            <p className="text-xs text-amber-700 text-center leading-relaxed">
+              Complete all required fields to enable publishing
+            </p>
+          )}
         </div>
       </div>
     </aside>

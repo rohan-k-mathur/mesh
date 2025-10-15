@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
   const whereBase =
     scope === 'deliberation' && deliberationId
       ? { deliberationId }
-      : { createdById: userId };
+      : { authorId: userId };
 
   const where =
     cursorCreatedAt && cursorId

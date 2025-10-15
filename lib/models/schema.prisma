@@ -2782,6 +2782,7 @@ enum DeliberationHostType {
   library_stack
   site
   inbox_thread
+  work
 }
 
 enum RepresentationRule {

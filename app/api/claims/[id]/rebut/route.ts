@@ -1,3 +1,5 @@
+// API route to add a rebuttal to a claim
+//app/api/claims/[id]/rebut/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
 import crypto from 'crypto';

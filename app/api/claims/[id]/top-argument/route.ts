@@ -1,3 +1,5 @@
+// API route to get the top argument for a claim
+//app/api/claims/[id]/top-argument/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
 

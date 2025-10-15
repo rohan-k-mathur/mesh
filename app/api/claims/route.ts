@@ -1,3 +1,5 @@
+// API route to create or promote a claim
+//app/api/claims/route.ts
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prismaclient';
