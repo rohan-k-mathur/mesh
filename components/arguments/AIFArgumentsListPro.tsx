@@ -377,15 +377,15 @@ function Controls({
         <div className="flex items-center gap-2">
           <button
             onClick={onExport}
-            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium bg-indigo-600 text-white hover:bg-indigo-700 transition-all"
+            className="inline-flex btnv2--ghost bg-white items-center gap-2 px-2 py-2 font-medium rounded-lg text-xs "
             title="Download AIF JSON‑LD export"
           >
-            Export JSON‑LD
+            Export
           </button>
           <button
             onClick={() => setShowPremises(!showPremises)}
             className={`
-              inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium
+              inline-flex  btnv2--ghost  items-center gap-2 px-2 py-2 rounded-lg text-xs font-medium
               transition-all duration-200
               ${showPremises
                 ? 'bg-indigo-100 text-indigo-700 border border-indigo-200'
@@ -401,11 +401,10 @@ function Controls({
           <button
             onClick={() => setShowFilters(!showFilters)}
             className={`
-              inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium
-              transition-all duration-200
+             inline-flex btnv2--ghost items-center gap-2 px-2 py-2 font-medium rounded-lg text-xs
               ${showFilters || activeFilters > 0
                 ? 'bg-indigo-100 text-indigo-700 border border-indigo-200'
-                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+                : 'bg-white text-slate-600 '
               }
             `}
           >
@@ -542,14 +541,14 @@ function RowImpl({
     <article
       id={`arg-${a.id}`}
       className="
-        group relative p-5 bg-white border-b border-slate-100
-        hover:bg-slate-50/50 transition-all duration-200
-        hover:shadow-sm
+        group relative py-5 px-8 bg-slate-50 border border-indigo-400 shadow-md shadow-slate-400/50 rounded-xl
+        hover:shadow-slate-500/60 transition-all duration-100
+  
       "
       aria-label={`Argument ${a.id}`}
     >
       {meta?.conclusion?.id && (
-        <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-emerald-400 to-emerald-600" />
+        <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-transparent via-emerald-500 to-transparent" />
       )}
 
       <div className="flex flex-col gap-4">
@@ -1154,7 +1153,7 @@ export default function AIFArgumentsListPro({
 
   return (
 
-    <section aria-label="AIF arguments list" className="w-full rounded-xl border border-slate-200  bg-white panel-edge overflow-hidden flex flex-col h-full">
+    <section aria-label="AIF arguments list" className="w-full rounded-xl  bg-white panel-edge border border-zinc-500/50 overflow-hidden flex flex-col h-full">
       <Controls
         schemes={schemes}
         schemeKey={schemeKey}
@@ -1178,7 +1177,7 @@ export default function AIFArgumentsListPro({
       />
 
       {/* Confidence & sorting toolbar */}
-      <div className="px-4 py-2 border-b border-slate-100 bg-white/70 flex items-center justify-between">
+      <div className="px-4 py-2 border-b-2 border-b-zinc-400 rounded-b-xl  bg-zinc-100/70 shadow-md flex items-center justify-between ">
         <div className="text-xs text-slate-600">
           Confidence: <b>{mode.toUpperCase()}</b>
           {tau != null && <span> · τ={tau.toFixed(2)}</span>}
@@ -1205,6 +1204,8 @@ export default function AIFArgumentsListPro({
             const isVisible = index >= visibleRange.startIndex - 2 && index <= visibleRange.endIndex + 2;
 
             return (
+              <div className='px-2'>
+                <hr className='border-slate-300 h-1 my-3' />
               <Row
                 a={a}
                 meta={meta}
@@ -1216,6 +1217,7 @@ export default function AIFArgumentsListPro({
                 support={sRec?.v}
                 accepted={sRec?.acc}
               />
+              </div>
             );
           }}
           rangeChanged={(r) => setVisibleRange(r)}

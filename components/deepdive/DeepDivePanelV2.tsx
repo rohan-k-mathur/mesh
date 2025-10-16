@@ -215,7 +215,7 @@ export function SectionCard({
             ? "bg-rose-400/60"
             : "";
 
-  const bodyPad = padded ? (dense ? "px-3 py-3" : "px-5 py-4") : "";
+  const bodyPad = padded ? (dense ? "px-3 py-3" : "px-5 pt-4 pb-6") : "";
 
   return (
     <section
