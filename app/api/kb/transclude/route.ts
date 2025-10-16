@@ -19,6 +19,8 @@ const ItemZ = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('room_summary'), id: z.string().min(6), lens: z.string().optional(), limit: z.number().int().positive().max(50).default(5) }),
   z.object({ kind: z.literal('sheet'), id: z.string().min(6), lens: z.string().optional() }),
   z.object({ kind: z.literal('transport'), fromId: z.string().min(6), toId: z.string().min(6), lens: z.string().optional() }),
+    z.object({ kind: z.literal('theory_work'), id: z.string().min(6), lens: z.enum(['summary','structure','full']).optional() }),
+
 ]);
 
 const BodyZ = z.object({
@@ -83,6 +85,15 @@ export async function POST(req: NextRequest) {
             actions: { openRoom:`/deliberation/${roomId}`, openSheet:`/sheets/delib:${roomId}` }
           });
         }
+         // NEW: theory_work
+      else if (it.kind === 'theory_work') {
+        const res = await fetch(`${origin}/api/works/${it.id}/dossier?format=json`, { headers: authHeaders });
+        if (!res.ok) throw { code: 'work_fetch_failed' };
+        const j = await res.json();
+        results.push({ kind:'theory_work', lens: it.lens ?? 'summary', data: j });
+        continue;
+      }
+
 
         else if (it.kind === 'argument') {
           const r = await fetch(`${origin}/api/arguments/${it.id}?view=diagram`, {

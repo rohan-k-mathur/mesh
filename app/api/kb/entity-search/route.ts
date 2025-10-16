@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 const Q = z.object({
-  k: z.enum(['claim','argument','room','sheet']),
+  k: z.enum(['claim','argument','room','sheet','theory_work']).default('claim'),
 //   q: z.string().trim().default(''),
   q: z.string().optional().default(''),
 
@@ -52,6 +52,15 @@ export async function GET(req: NextRequest) {
 
   if (p.k === 'sheet') {
     const rows = await prisma.debateSheet.findMany({
+      where: like ? { title: { contains: like, mode: 'insensitive' } } : undefined,
+      select: { id:true, title:true },
+      take: p.limit,
+      orderBy: { id: 'desc' },
+    });
+    return NextResponse.json({ ok:true, items: rows.map(r => ({ id:r.id, label:r.title ?? `sheet:${r.id.slice(0,6)}…` })) });
+  }
+   if (p.k === 'theory_work') {
+    const rows = await prisma.theoryWork.findMany({
       where: like ? { title: { contains: like, mode: 'insensitive' } } : undefined,
       select: { id:true, title:true },
       take: p.limit,

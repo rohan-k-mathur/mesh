@@ -1,22 +1,17 @@
 // lib/aif/jsonld.ts
-
 import ctx from "@/lib/aif/context.json";
 import { prisma } from "@/lib/prismaclient";
 import { TargetType } from "@prisma/client";
-/**
- * Build a JSON-LD @graph for a set of arguments (and their local neighborhood)
- * Emits I (claims), RA (arguments), CA (conflicts), PA (preferences), plus L (locutions, optional).
- */
+
 export async function buildAifGraphJSONLD(opts: {
   deliberationId?: string;
-  argumentIds?: string[];        // if omitted + deliberationId set, we export all
-  includeLocutions?: boolean;    // default false
-  includeCQs?: boolean;           
-  
+  argumentIds?: string[];
+  includeLocutions?: boolean;
+  includeCQs?: boolean;
 }) {
-const { deliberationId, argumentIds = [], includeLocutions = false, includeCQs = false } = opts;
+  const { deliberationId, argumentIds = [], includeLocutions = false, includeCQs = false } = opts;
 
-  // 1) Pull arguments (scoped)
+  // 1) Arguments
   const args = await prisma.argument.findMany({
     where: {
       ...(deliberationId ? { deliberationId } : {}),
@@ -27,11 +22,9 @@ const { deliberationId, argumentIds = [], includeLocutions = false, includeCQs =
       premises: true,
     },
   });
-
-  // If ids not provided, materialize all arg ids in this deliberation
   const argIds = (argumentIds.length ? argumentIds : args.map(a => a.id));
 
-  // 2) Batch claims referenced by RAs (conclusions + premises)
+  // 2) Claims used by those arguments
   const claimIds = Array.from(new Set([
     ...args.map(a => a.conclusionClaimId).filter(Boolean) as string[],
     ...args.flatMap(a => a.premises.map(p => p.claimId)),
@@ -41,7 +34,7 @@ const { deliberationId, argumentIds = [], includeLocutions = false, includeCQs =
     : [];
   const textByClaimId = new Map(claims.map(c => [c.id, c.text || ""]));
 
-  // 3) CA (conflict) nodes via ConflictApplication (first-class) + legacy ArgumentEdge mapping
+  // 3) Conflicts
   const caRows = await prisma.conflictApplication.findMany({
     where: {
       OR: [
@@ -54,7 +47,7 @@ const { deliberationId, argumentIds = [], includeLocutions = false, includeCQs =
     orderBy: { createdAt: "asc" },
   });
 
-  // 4) PA (preference) nodes
+  // 4) Preferences
   const paRows = await prisma.preferenceApplication.findMany({
     where: {
       OR: [
@@ -76,65 +69,71 @@ const { deliberationId, argumentIds = [], includeLocutions = false, includeCQs =
       })
     : [];
 
-  // ---------- JSON-LD assembly ----------
-  const N: any[] = [];   // @graph items (nodes + edge resources)
+  // 6) Optional assumptions (presumptions/exceptions)
+  const uses = args.length
+    ? await prisma.assumptionUse.findMany({
+        where: { argumentId: { in: argIds } },
+        select: { id:true, argumentId:true, role:true, assumptionClaimId:true, assumptionText:true },
+      })
+    : [];
+
+  // ---------- Assembly ----------
+  const N: any[] = [];
   const seen = new Set<string>();
- const pushOnce = (o:any) => { const id=o['@id']; if (id && seen.has(id)) return; if (id) seen.add(id); N.push(o); };
+  const pushOnce = (o:any) => { const id=o['@id']; if (id && seen.has(id)) return; if (id) seen.add(id); N.push(o); };
 
-  // I-nodes (claims)
+  // I-nodes
   for (const c of claims) {
-    const id = `I:${c.id}`;
-       pushOnce({ "@id": id, "@type": "aif:InformationNode", "aif:text": textByClaimId.get(c.id) ?? "" });
-
+    pushOnce({ "@id": `I:${c.id}`, "@type": "aif:InformationNode", "aif:text": textByClaimId.get(c.id) ?? "" });
   }
 
-  // RA-nodes (arguments) + premise/conclusion edges
+  // RA-nodes + edges
   for (const a of args) {
     const sId = `S:${a.id}`;
-     pushOnce({
-       "@id": sId,
-       // Keep canonical RA type, but also allow a scheme type (as:<key>) for consumers
-       "@type": ["aif:RA"].concat(a.scheme?.key ? [`as:${a.scheme.key}`] : []),
-       "aif:usesScheme": a.scheme?.key ?? null,
-       "aif:name": a.scheme?.name ?? null,
-       "as:appliesSchemeKey": a.scheme?.key ?? null
-     });
+    pushOnce({
+      "@id": sId,
+      "@type": ["aif:RA"].concat(a.scheme?.key ? [`as:${a.scheme.key}`] : []),
+      "aif:usesScheme": a.scheme?.key ?? null,
+      "aif:name": a.scheme?.name ?? null,
+      "as:appliesSchemeKey": a.scheme?.key ?? null
+    });
 
-    // premises: I → RA
+    // Premises: I → RA
     for (const p of a.premises) {
       const from = `I:${p.claimId}`, to = sId;
       N.push({ "@type": "aif:Premise", "aif:from": from, "aif:to": to });
-      if (!seen.has(from)) {
-        // In case premises include a claim not in claimIds (paranoia)
-        N.push({ "@id": from, "@type": "aif:InformationNode", "aif:text": textByClaimId.get(p.claimId) ?? "" });
-        seen.add(from);
-      }
+      pushOnce({ "@id": from, "@type": "aif:InformationNode", "aif:text": textByClaimId.get(p.claimId) ?? "" });
     }
-
-    // conclusion: RA → I
+    // Conclusion: RA → I
     if (a.conclusionClaimId) {
       const to = `I:${a.conclusionClaimId}`;
       N.push({ "@type": "aif:Conclusion", "aif:from": sId, "aif:to": to });
-      const toId = `I:${a.conclusionClaimId}`;
-      pushOnce({ "@id": toId, "@type": "aif:InformationNode", "aif:text": textByClaimId.get(a.conclusionClaimId) ?? "" });
-     }
+      pushOnce({ "@id": to, "@type": "aif:InformationNode", "aif:text": textByClaimId.get(a.conclusionClaimId) ?? "" });
     }
-  
+  }
 
-  // CA-nodes (conflict applications): conflicting → CA → conflicted
+  // Presumptions / Exceptions (AssumptionUse → edges from RA to I)
+  for (const u of uses) {
+    const sId = `S:${u.argumentId}`;
+    const iId = u.assumptionClaimId ? `I:${u.assumptionClaimId}` : `I:ASSM:${u.id}`;
+    if (!seen.has(sId)) continue; // skip if RA not in export scope
+    pushOnce({ "@id": iId, "@type": "aif:InformationNode", "aif:text": u.assumptionText ?? "" });
+    N.push({
+      "@type": u.role === 'exception' ? "as:HasException" : "as:HasPresumption",
+      "aif:from": sId, "aif:to": iId
+    });
+  }
+
+  // CA-nodes (conflict): conflicting → CA → conflicted
   for (const c of caRows) {
     const caId = `CA:${c.id}`;
-    if (!seen.has(caId)) {
-      N.push({ "@id": caId, "@type": "aif:CA", "aif:usesScheme": c.schemeId ?? null });
-      seen.add(caId);
-    }
-    // conflict left
+    pushOnce({ "@id": caId, "@type": "aif:CA", "aif:usesScheme": c.schemeId ?? null });
+
     if (c.conflictingArgumentId) {
       N.push({ "@type":"aif:ConflictingElement", "aif:from": `S:${c.conflictingArgumentId}`, "aif:to": caId });
     } else if (c.conflictingClaimId) {
       N.push({ "@type":"aif:ConflictingElement", "aif:from": `I:${c.conflictingClaimId}`, "aif:to": caId });
     }
-    // conflict right
     if (c.conflictedArgumentId) {
       N.push({ "@type":"aif:ConflictedElement", "aif:from": caId, "aif:to": `S:${c.conflictedArgumentId}` });
     } else if (c.conflictedClaimId) {
@@ -142,20 +141,16 @@ const { deliberationId, argumentIds = [], includeLocutions = false, includeCQs =
     }
   }
 
-  // PA-nodes (preference applications): preferred → PA → dispreferred
+  // PA-nodes (preference): preferred → PA → dispreferred
   for (const p of paRows) {
     const paId = `PA:${p.id}`;
-    if (!seen.has(paId)) {
-      N.push({ "@id": paId, "@type": "aif:PA", "aif:usesScheme": p.schemeId ?? null });
-      seen.add(paId);
-    }
-    // preferred element
+    pushOnce({ "@id": paId, "@type": "aif:PA", "aif:usesScheme": p.schemeId ?? null });
+
     if (p.preferredArgumentId) {
       N.push({ "@type":"aif:PreferredElement", "aif:from": `S:${p.preferredArgumentId}`, "aif:to": paId });
     } else if (p.preferredClaimId) {
       N.push({ "@type":"aif:PreferredElement", "aif:from": `I:${p.preferredClaimId}`, "aif:to": paId });
     }
-    // dispreferred element
     if (p.dispreferredArgumentId) {
       N.push({ "@type":"aif:DispreferredElement", "aif:from": paId, "aif:to": `S:${p.dispreferredArgumentId}` });
     } else if (p.dispreferredClaimId) {
@@ -163,20 +158,19 @@ const { deliberationId, argumentIds = [], includeLocutions = false, includeCQs =
     }
   }
 
-  // L-nodes (locutions) with YA/TA projection (optional)
+  // Optional L-nodes (locutions) & "reply" transitions
   if (includeLocutions) {
     for (const m of locs) {
       const lId = `L:${m.id}`;
-      if (!seen.has(lId)) {
-        N.push({
-          "@id": lId, "@type": "aif:L",
-          "aif:text": typeof m?.payload === "object" && m?.payload !== null
-            ? String((m.payload as Record<string, any>).expression ?? (m.payload as Record<string, any>).note ?? "")
-            : String(m?.payload ?? ""),
-          "aif:illocution": m.kind ?? null, "aif:author": m.authorId ?? null
-        });
-        seen.add(lId);
-      }
+      pushOnce({
+        "@id": lId,
+        "@type": "aif:L",
+        "aif:text": typeof m?.payload === "object" && m?.payload !== null
+          ? String((m.payload as any).expression ?? (m.payload as any).note ?? "")
+          : String(m?.payload ?? ""),
+        "aif:illocution": m.kind ?? null,
+        "aif:author": m.authorId ?? null
+      });
       if (m.argumentId || (m.targetType === "argument" && m.targetId)) {
         N.push({ "@type":"aif:illocutes", "aif:from": lId, "aif:to": `S:${m.argumentId ?? m.targetId}` });
       } else if (m.targetType === "claim" && m.targetId) {
@@ -187,17 +181,19 @@ const { deliberationId, argumentIds = [], includeLocutions = false, includeCQs =
       }
     }
   }
-  // ---- Critical Questions (optional export) ----
+
+  // Optional CQ glue
   if (includeCQs && args.length) {
     const cqStatuses = await prisma.cQStatus.findMany({
       where: {
         OR: [
-              { argumentId: { in: args.map(a => a.id) } },
+          { argumentId: { in: args.map(a => a.id) } },
           { targetType: 'argument' as TargetType, targetId: { in: args.map(a => a.id) } },
         ],
       },
       select: { argumentId: true, targetId: true, targetType: true, schemeKey: true, cqKey: true, status: true }
     });
+
     const statusByArg = new Map<string, Array<{schemeKey:string, cqKey:string, status:string}>>();
     for (const s of cqStatuses) {
       const k = s.argumentId || (s.targetType === 'argument' as TargetType ? s.targetId : null);
@@ -206,6 +202,7 @@ const { deliberationId, argumentIds = [], includeLocutions = false, includeCQs =
       arr.push({ schemeKey: s.schemeKey, cqKey: s.cqKey, status: s.status || 'open' });
       statusByArg.set(k, arr);
     }
+
     for (const a of args) {
       const sId = `S:${a.id}`;
       const items = statusByArg.get(a.id) || [];

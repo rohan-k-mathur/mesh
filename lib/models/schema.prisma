@@ -2298,6 +2298,7 @@ model ArgumentPremise {
   claimId    String
   isImplicit Boolean  @default(false)
   argument   Argument @relation(fields: [argumentId], references: [id], onDelete: Cascade)
+  groupKey   String?
   claim      Claim    @relation(fields: [claimId], references: [id], onDelete: Cascade)
 
   // PK
@@ -3033,6 +3034,8 @@ model Claim {
   edgesTo   ClaimEdge[]     @relation("toClaim")
   citations ClaimCitation[]
 
+  claimType String? // "Agent" | "Assertion" | "Domain" | ...
+
   urns        Urn[]        @relation("ClaimUrns")
   ClaimLabel  ClaimLabel?
   claimValues ClaimValue[] // <— opposite side for ClaimValue.claim
@@ -3335,30 +3338,31 @@ enum ProofMode {
 }
 
 model Deliberation {
-  id            String               @id @default(cuid())
-  hostType      DeliberationHostType
-  hostId        String
-  rule          RepresentationRule   @default(utilitarian)
-  k             Int                  @default(3)
-  createdById   String
-  createdAt     DateTime             @default(now())
-  updatedAt     DateTime             @updatedAt
-  cards         DeliberationCard[]
-  title         String?
-  AgoraRoom     AgoraRoom?           @relation(fields: [agoraRoomId], references: [id], onDelete: SetNull)
-  agoraRoomId   String?
-  agoraRoomID   String?
-  roomId        String?
-  arguments     Argument[]
-  edges         ArgumentEdge[]
-  approvals     ArgumentApproval[]
-  selections    ViewpointSelection[]
-  Issue         Issue[]
-  Claim         Claim[]
-  ClaimEdge     ClaimEdge[]
-  Cluster       Cluster[]
-  TheoryWork    TheoryWork[]
-  KnowledgeEdge KnowledgeEdge[]
+  id              String               @id @default(cuid())
+  hostType        DeliberationHostType
+  hostId          String
+  rule            RepresentationRule   @default(utilitarian)
+  k               Int                  @default(3)
+  createdById     String
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  cards           DeliberationCard[]
+  title           String?
+  AgoraRoom       AgoraRoom?           @relation(fields: [agoraRoomId], references: [id], onDelete: SetNull)
+  agoraRoomId     String?
+  agoraRoomID     String?
+  roomId          String?
+  arguments       Argument[]
+  edges           ArgumentEdge[]
+  approvals       ArgumentApproval[]
+  selections      ViewpointSelection[]
+  Issue           Issue[]
+  Claim           Claim[]
+  ClaimEdge       ClaimEdge[]
+  Cluster         Cluster[]
+  TheoryWork      TheoryWork[]
+  KnowledgeEdge   KnowledgeEdge[]
+  workProvenances WorkProvenance[] // For WorkProvenance.deliberation
 
   IssueLink IssueLink[]
 
@@ -3381,9 +3385,10 @@ model Deliberation {
   argImportsTo   ArgumentImport[] @relation("ArgImpTo")
 
   // ✅ back-relations for SharedAuthorRoomEdge (two directed edges to Deliberation)
-  sharedAuthorsFrom SharedAuthorRoomEdge[] @relation("SharedAuthorFrom")
-  sharedAuthorsTo   SharedAuthorRoomEdge[] @relation("SharedAuthorTo")
-  DebateSheet       DebateSheet[]
+  sharedAuthorsFrom      SharedAuthorRoomEdge[]   @relation("SharedAuthorFrom")
+  sharedAuthorsTo        SharedAuthorRoomEdge[]   @relation("SharedAuthorTo")
+  DebateSheet            DebateSheet[]
+  WorkSourceDeliberation WorkSourceDeliberation[]
 
   @@index([agoraRoomID])
   @@index([hostType, hostId])
@@ -3533,7 +3538,7 @@ model BountySubmission {
   bounty Bounty @relation(fields: [bountyId], references: [id], onDelete: Cascade)
 }
 
-/// ====== Sprint 1: Framing & Knowledge edges ======
+/// ====== Theory Models ======
 
 enum PhilosophyTheoryType {
   DN // Descriptive–Nomological
@@ -3551,51 +3556,92 @@ enum WorkStatus {
 
 model TheoryWork {
   id             String               @id @default(cuid())
-  deliberationId String
-  authorId       String
-  title          String
   slug           String               @unique
+  title          String
+  authorId       String
+  theoryType     PhilosophyTheoryType
   summary        String?              @db.Text
   body           String               @db.Text
-  theoryType     PhilosophyTheoryType
   standardOutput String?
 
-  status     WorkStatus @default(DRAFT)
-  visibility String     @default("room") // room | org | public
-  tags       String[]   @default([])
+  // ↓ Decouple: deliberation is provenance, not container
+  deliberationId String? // was required → optional
+  deliberation   Deliberation? @relation(fields: [deliberationId], references: [id], onDelete: SetNull)
 
-  // Publishing hooks
-  publishedAt DateTime?
-  lastExport  Json? // { kind:'sheet'|'kb'|'aif', ids:[...], at:ISO }
+  // ✅ ADD ALL THESE BACK-RELATIONS:
+  claims                 TheoryWorkClaim[] // Line 3614 error
+  ihProject              WorkIhProject? // Line 3630 error
+  dnProject              WorkDnProject? // Line 3648 error
+  tcProject              WorkTcProject? // Line 3657 error
+  opProject              WorkOpProject? // Line 3665 error
+  dnStructure            WorkDNStructure? // Line 3676 error
+  ihTheses               WorkIHTheses? // Line 3686 error
+  tcTheses               WorkTCTheses? // Line 3696 error
+  opTheses               WorkOPTheses? // Line 3705 error
+  provenances            WorkProvenance[] // Line 3724 error
+  practicalJustification WorkPracticalJustification? @relation("Work_to_Practical")
+  hermeneuticProject     WorkHermeneuticProject?     @relation("Work_to_HermeneuticProject")
+  pascalModel            WorkPascalModel?            @relation("Work_to_PascalModel")
 
+  rules Rule[] // Line 3797 error
+
+  // NEW: KB anchoring
+  kbPageId String?
+  kbPage   KbPage? @relation(fields: [kbPageId], references: [id])
+
+  // Integrity & publication
+  integrityChecks Json? // dn/ih/tc/op adequacy payloads + mcda snapshot refs
+  integrityValid  Boolean    @default(false)
+  status          WorkStatus @default(DRAFT)
+  visibility      String     @default("room")
+  publishedAt     DateTime?
+  lastExport      Json?
+
+  // Existing 1:1s unchanged (dn/tc/op/ih…), snapshots, practicalJustification etc.
+
+  // NEW: citations bridge (polymorphic targets)
+  citations TheoryWorkCitation[]
+
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
+  WorkSourceDeliberation WorkSourceDeliberation[]
+
+  @@index([kbPageId])
+  @@index([authorId, createdAt])
+}
+
+/// Bridge: a Work can cite claims, arguments, propositions, and other works
+model TheoryWorkCitation {
+  id         String   @id @default(cuid())
+  workId     String
+  targetType String // 'claim' | 'argument' | 'proposition' | 'work'
+  targetId   String
+  section    String? // optional: where in the Work was it used
+  role       String // 'premise' | 'evidence' | 'example' | 'counterpoint' | 'reference' | 'thesis'
+  note       String?
+  createdAt  DateTime @default(now())
+  kbPageId   String?
+  kbPage     KbPage?  @relation(fields: [kbPageId], references: [id])
+
+  work TheoryWork @relation(fields: [workId], references: [id], onDelete: Cascade)
+
+  @@unique([workId, targetType, targetId, section])
+  @@index([kbPageId])
+  @@index([targetType, targetId])
+}
+
+/// Optional: track additional source deliberations beyond the Work's home one
+model WorkSourceDeliberation {
+  workId         String
+  deliberationId String
+  role           String   @default("source") // 'source' | 'context' | ...
+  createdAt      DateTime @default(now())
+
+  work         TheoryWork   @relation(fields: [workId], references: [id], onDelete: Cascade)
   deliberation Deliberation @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
 
-  // 1:1 “project” wrappers (guarded by theoryType at API)
-  dn WorkDnProject?
-  tc WorkTcProject?
-  op WorkOpProject?
-  ih WorkIhProject?
-
-  // 1:1 theses slots
-  WorkDNStructure WorkDNStructure?
-  WorkIHTheses    WorkIHTheses?
-  WorkTCTheses    WorkTCTheses?
-  WorkOPTheses    WorkOPTheses?
-
-  // Practical & auxiliary
-  practicalJustification WorkPracticalJustification? @relation("Work_Practical")
-  hermeneutic            WorkHermeneuticProject?     @relation("Work_to_HermeneuticProject")
-  pascal                 WorkPascalModel?            @relation("Work_to_PascalModel")
-
-  // Linking into claim graph & argumentation
-  relatedClaims TheoryWorkClaim[]
-  rules         Rule[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([deliberationId, theoryType, status, createdAt])
-  @@index([authorId, createdAt])
+  @@id([workId, deliberationId])
+  @@index([deliberationId])
 }
 
 model TheoryWorkClaim {
@@ -3708,20 +3754,33 @@ model TheoryWorkSnapshot {
   @@index([workId, createdAt])
 }
 
+model WorkProvenance {
+  id             String   @id @default(cuid())
+  workId         String
+  deliberationId String
+  role           String // 'source' | 'context'
+  createdAt      DateTime @default(now())
+
+  work         TheoryWork   @relation(fields: [workId], references: [id], onDelete: Cascade)
+  deliberation Deliberation @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
+
+  @@unique([workId, deliberationId, role])
+  @@index([deliberationId])
+}
 
 model WorkPracticalJustification {
-  id        String   @id @default(cuid())
-  workId    String   @unique
-  purpose   String   @default("")
-  criteria  Json     @default("[]")
-  options   Json     @default("[]")
-  scores    Json     @default("{}")
-  result    Json     @default("{}")
+  id        String     @id @default(cuid())
+  workId    String     @unique
+  purpose   String     @default("")
+  criteria  Json       @default("[]")
+  options   Json       @default("[]")
+  scores    Json       @default("{}")
+  result    Json       @default("{}")
   // NEW:
-  adequacy  Json     @default("{}") // { completeness:true|false, dominance:'none'|'weak'|'strong', robustness:{sensitivityNotes:string} }
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  work      TheoryWork @relation("Work_Practical", fields: [workId], references: [id], onDelete: Cascade)
+  adequacy  Json       @default("{}") // { completeness:true|false, dominance:'none'|'weak'|'strong', robustness:{sensitivityNotes:string} }
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  work      TheoryWork @relation("Work_to_Practical", fields: [workId], references: [id], onDelete: Cascade)
 }
 
 /// ========= IH (interpretive phase) =========
@@ -3742,20 +3801,20 @@ model WorkHermeneuticProject {
 
 /// ========= OP (Pascal-as-if) =========
 model WorkPascalModel {
-  id           String   @id @default(cuid())
-  workId       String   @unique
-  propositions Json     @default("[]") // worlds
-  actions      Json     @default("[]")
-  utilities    Json     @default("{}")
-  assumption   String?  // notes
+  id                    String     @id @default(cuid())
+  workId                String     @unique
+  propositions          Json       @default("[]") // worlds
+  actions               Json       @default("[]")
+  utilities             Json       @default("{}")
+  assumption            String? // notes
   // NEW:
-  exhaustiveExclusive Boolean? // PP1/TOP3
+  exhaustiveExclusive   Boolean? // PP1/TOP3
   noTheoreticalEvidence Boolean? // PP3/TOP2
-  orientationCriteria   String?  // what counts as 'orientation-relevant' (TOP4)
-  decision     Json     @default("{}") // include method + laplace details
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  work         TheoryWork @relation("Work_to_PascalModel", fields: [workId], references: [id], onDelete: Cascade)
+  orientationCriteria   String? // what counts as 'orientation-relevant' (TOP4)
+  decision              Json       @default("{}") // include method + laplace details
+  createdAt             DateTime   @default(now())
+  updatedAt             DateTime   @updatedAt
+  work                  TheoryWork @relation("Work_to_PascalModel", fields: [workId], references: [id], onDelete: Cascade)
 }
 
 // (optional) history table if you want revisions now
@@ -3828,6 +3887,8 @@ model KnowledgeEdge {
   @@index([deliberationId, kind, createdAt])
   @@index([fromWorkId, toWorkId])
   @@index([fromClaimId, toClaimId])
+    @@unique([deliberationId, kind, fromWorkId, toWorkId])
+
 }
 
 model NLILink {
@@ -4762,6 +4823,8 @@ enum KbBlockType {
   evidence_list
   cq_tracker
   plexus_tile
+  theory_work       // NEW
+  theory_section    // (optional) inline a single section from a work
 }
 
 model KbSpace {
@@ -4811,6 +4874,9 @@ model KbPage {
   space     KbSpace      @relation(fields: [spaceId], references: [id], onDelete: Cascade)
   blocks    KbBlock[]
   snapshots KbSnapshot[]
+
+  theoryWorks        TheoryWork[] // For TheoryWork.kbPage
+  TheoryWorkCitation TheoryWorkCitation[]
 
   @@unique([spaceId, slug])
   @@index([spaceId, updatedAt])

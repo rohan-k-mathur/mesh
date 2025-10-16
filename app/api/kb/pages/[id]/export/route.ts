@@ -46,6 +46,20 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   });
 
   let hydrated: any[] = new Array(blocks.length).fill(null);
+
+// After `let hydrated: any[] = new Array(blocks.length).fill(null);` add:
+async function hydrateTheoryWork(d:any) {
+  // d = block.dataJson
+  const wid = d?.workId || d?.id;
+  if (!wid) return null;
+  const r = await fetch(new URL(`/api/works/${wid}/dossier?format=json`, req.url).toString(), {
+    headers: fwdAuth(req)
+  });
+  if (!r.ok) return null;
+  const j = await r.json();
+  return { kind:'theory_work', data: j, lens: d?.lens ?? 'summary' };
+}
+
   if (items.length) {
     const j = await fetch(new URL('/api/kb/transclude', req.url).toString(), {
       method:'POST', headers: new Headers({ ...Object.fromEntries(fwdAuth(req)), 'Content-Type':'application/json' }),
@@ -53,6 +67,14 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     }).then(r => r.json()).catch(()=>({}));
     if (Array.isArray(j?.items)) j.items.forEach((env:any, k:number) => { hydrated[indexMap[k]] = env; });
   }
+
+// Later, right before serialization, populate `hydrated[i]` for live theory_work items
+for (let i = 0; i < blocks.length; i++) {
+  const b = blocks[i];
+  if (b.type === 'theory_work' && b.live !== false) {
+    hydrated[i] = await hydrateTheoryWork(b.dataJson);
+  }
+}
 
   // Simple MD serialization
   const lines: string[] = [`# ${page.title}`, ''];
@@ -87,6 +109,18 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       pairs.forEach(([a,b]) => lines.push(`- ${a} → ${b}`));
       lines.push('');
     }
+     else if (env.kind === 'theory_work') {
+  const m = env.data?.meta ?? {};
+  const lens = env.lens ?? 'summary';
+  lines.push(`### Theory Work — ${m.title ?? m.id}`);
+  lines.push(`_Type:_ **${m.theoryType ?? ''}**`);
+  if (lens !== 'full' && m.summary) lines.push(m.summary, '');
+  if (lens === 'full') {
+    lines.push('```json'); lines.push(JSON.stringify(env.data ?? {}, null, 2)); lines.push('```', '');
+  } else {
+    lines.push('_(summary view)_', '');
+  }
+}
   });
 
   const md = lines.join('\n');

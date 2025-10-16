@@ -14,7 +14,23 @@ export type BaseBlock = {
 export type KbBlockType =
   | 'text'|'image'|'link'
   | 'claim'|'claim_set'|'argument'|'sheet'|'room_summary'
-  | 'transport'|'evidence_list'|'cq_tracker'|'plexus_tile';
+  | 'transport'|'evidence_list'|'cq_tracker'|'plexus_tile'
+    | 'theory_work'|'theory_section'; // NEW;
+
+
+export type TheoryWorkData = {
+  workId: string;
+  workSlug?: string;
+  lens?: 'summary'|'structure'|'full';
+};
+
+export type TheorySectionData = {
+  workId: string;
+  section:
+    | 'dn'|'ih'|'tc'|'op'
+    | 'hermeneutic'|'practical'|'pascal'
+    | 'body';
+};
 
 export type TextData = { markdown: string };
 export type ImageData = { url: string; alt?: string|null; caption?: string|null };

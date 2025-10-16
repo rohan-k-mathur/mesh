@@ -22,7 +22,7 @@ export default function KbEditor({ pageId, spaceId }:{ pageId:string; spaceId:st
 
   /** ---------- Add blocks (with pickers) ---------- */
   const [picker, setPicker] =
-    React.useState<null|{kind:'claim'|'argument'|'room'|'sheet'|'transport'}>(null);
+    React.useState<null|{kind:'claim'|'argument'|'room'|'sheet'|'transport'|'theory_work'}>(null);
 
 //   async function createBlock(type: string, data?: any) {
 //     // Normalize text payloads to { md, lexical }
@@ -87,7 +87,7 @@ export default function KbEditor({ pageId, spaceId }:{ pageId:string; spaceId:st
 
 
   /** ---------- Fallback prompt creators (Ctrl-/ menu) ---------- */
-  function promptAndCreate(kind: 'claim'|'argument'|'sheet'|'room_summary'|'transport'|'image'|'link') {
+  function promptAndCreate(kind: 'claim'|'argument'|'sheet'|'room_summary'|'transport'|'image'|'link'|'theory_work') {
     const ask = (q: string) => window.prompt(q) || '';
     if (kind === 'image')        return createBlock('image', { src:'', alt:'' });
     if (kind === 'link')         return createBlock('link',  { href:'https://', text:'' });
@@ -95,6 +95,7 @@ export default function KbEditor({ pageId, spaceId }:{ pageId:string; spaceId:st
     if (kind === 'argument')     return createBlock('argument', { id: ask('Argument id (A0)…') });
     if (kind === 'sheet')        return createBlock('sheet', { id: ask('Sheet id…') });
     if (kind === 'room_summary') return createBlock('room_summary', { id: ask('Deliberation (room) id…'), limit: 5 });
+    if (kind === 'theory_work')  return createBlock('theory_work', { workId: ask('Theory Work id…'), lens:'summary' });
     if (kind === 'transport')    return createBlock('transport', { fromId: ask('From room id…'), toId: ask('To room id…') });
   }
 
@@ -127,6 +128,8 @@ export default function KbEditor({ pageId, spaceId }:{ pageId:string; spaceId:st
           <option value="link">Link</option>
           <option value="claim">Claim</option>
           <option value="argument">Argument</option>
+          <option value="theory_work">Theory Work</option>
+
           <option value="sheet">Sheet</option>
           <option value="room">Room summary</option>
           <option value="transport">Transport</option>
@@ -157,6 +160,12 @@ export default function KbEditor({ pageId, spaceId }:{ pageId:string; spaceId:st
             onPick={(it)=>createBlock('room_summary', { id: it.id, limit: 5 })}
           />
         )}
+{picker?.kind === 'theory_work' && (
+  <EntityPicker
+    kind="theory_work" open onClose={()=>setPicker(null)}
+    onPick={(it)=>createBlock('theory_work', { workId: it.id, lens:'summary' })}
+  />
+)}
         {picker?.kind === 'transport' && (
           <TransportComposer open onClose={()=>setPicker(null)} onCreate={(fromId, toId)=>{
             createBlock('transport', { fromId, toId });
@@ -246,7 +255,12 @@ function EditorStructuredPreview({ spaceId, block }:{
         block.type === 'argument'     ? (d.id ? { kind:'argument', id:d.id, lens:d.lens } : null) :
         block.type === 'sheet'        ? (d.id ? { kind:'sheet', id:d.id, lens:d.lens } : null) :
         block.type === 'room_summary' ? (d.id ? { kind:'room_summary', id:d.id, lens:d.lens, limit:d.limit ?? 5 } : null) :
-        block.type === 'transport'    ? (d.fromId && d.toId ? { kind:'transport', fromId:d.fromId, toId:d.toId, lens:d.lens ?? 'map' } : null) :
+        
+        block.type === 'transport'    ? (d.fromId && d.toId ? { kind:'transport', fromId:d.fromId, toId:d.toId, lens:d.lens ?? 'map' } :null) :
+        block.type === 'theory_work'
+    ? (block.dataJson?.workId
+        ? { kind:'theory_work', id:block.dataJson.workId, lens:block.dataJson.lens ?? 'summary' }
+        : null) :
         null;
 
       if (!item) { setEnv(null); return; }

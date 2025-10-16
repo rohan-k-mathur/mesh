@@ -1,3 +1,4 @@
+// lib/client/dialogue/fog.ts
 export function computeFogForNodes(
   nodeIds: string[],
   moves: Array<{ kind:'WHY'|'GROUNDS'|'CONCEDE'|'RETRACT'|'CLOSE'; targetId:string; fromId?:string; toId?:string; }>

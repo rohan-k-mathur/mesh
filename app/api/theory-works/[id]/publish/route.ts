@@ -82,8 +82,8 @@ export async function POST(req: Request, ctx: { params: { id: string } }) {
   const work = await prisma.theoryWork.findUnique({
     where: { id },
     include: {
-      relatedClaims: true,
-      WorkDNStructure: true, WorkIHTheses: true, WorkTCTheses: true, WorkOPTheses: true,
+      claims: true,
+      dnStructure: true, ihTheses: true, tcTheses: true, opTheses: true,
       dn: true, ih: true, tc: true, op: true,
     }
   });

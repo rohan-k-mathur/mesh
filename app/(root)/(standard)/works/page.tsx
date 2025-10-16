@@ -8,56 +8,6 @@ const PAGE_SIZE = 15;
 
 
 
-// model TheoryWork {
-//   id             String               @id @default(cuid())
-//   deliberationId String
-//   authorId       String
-//   title          String
-//   slug           String               @unique
-//   summary        String?              @db.Text
-//   body           String               @db.Text
-//   theoryType     PhilosophyTheoryType
-//   standardOutput String?
-
-//   status     WorkStatus @default(DRAFT)
-//   visibility String     @default("room") // room | org | public
-//   tags       String[]   @default([])
-
-//   // Publishing hooks
-//   publishedAt DateTime?
-//   lastExport  Json? // { kind:'sheet'|'kb'|'aif', ids:[...], at:ISO }
-
-//   deliberation Deliberation @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
-
-//   // 1:1 “project” wrappers (guarded by theoryType at API)
-//   dn WorkDnProject?
-//   tc WorkTcProject?
-//   op WorkOpProject?
-//   ih WorkIhProject?
-
-//   // 1:1 theses slots
-//   WorkDNStructure WorkDNStructure?
-//   WorkIHTheses    WorkIHTheses?
-//   WorkTCTheses    WorkTCTheses?
-//   WorkOPTheses    WorkOPTheses?
-
-//   // Practical & auxiliary
-//   practicalJustification WorkPracticalJustification? @relation("Work_Practical")
-//   hermeneutic            WorkHermeneuticProject?     @relation("Work_to_HermeneuticProject")
-//   pascal                 WorkPascalModel?            @relation("Work_to_PascalModel")
-
-//   // Linking into claim graph & argumentation
-//   relatedClaims TheoryWorkClaim[]
-//   rules         Rule[]
-
-//   createdAt DateTime @default(now())
-//   updatedAt DateTime @updatedAt
-
-//   @@index([deliberationId, theoryType, status, createdAt])
-//   @@index([authorId, createdAt])
-// }
-
-
 export default async function WorksPage({ searchParams }:{
   searchParams?: Record<string, string | undefined>;
 }) {

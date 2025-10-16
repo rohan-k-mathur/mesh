@@ -13,15 +13,22 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     select: { id:true },
   });
 
-  const edges = await prisma.knowledgeEdge.findMany({
-    where: {
-      OR: [
-        { toWorkId: params.id },
-        { toClaimId: { in: claimsInDelib.map(c => c.id) } },
-      ],
-    },
-    orderBy: { createdAt: 'desc' },
-  });
+const mode = _req.nextUrl.searchParams.get('mode') ?? 'all'; // 'work' | 'claims' | 'all'
+const where = mode === 'work' ? { OR: [{ toWorkId: params.id }, { fromWorkId: params.id }] } :
+             mode === 'claims' ? { toClaimId: { in: claimsInDelib.map(c => c.id) } } :
+             { OR: [{ toWorkId: params.id }, { fromWorkId: params.id }, { toClaimId: { in: claimsInDelib.map(c => c.id) } }] };
+const edges = await prisma.knowledgeEdge.findMany({ where, orderBy: { createdAt: 'desc' }});
+
+
+  // const edges = await prisma.knowledgeEdge.findMany({
+  //   where: {
+  //     OR: [
+  //       { toWorkId: params.id },
+  //       { toClaimId: { in: claimsInDelib.map(c => c.id) } },
+  //     ],
+  //   },
+  //   orderBy: { createdAt: 'desc' },
+  // });
 
   // Optionally hydrate minimal titles
   const workIds = Array.from(new Set(edges.flatMap(e => [e.fromWorkId, e.toWorkId]).filter(Boolean) as string[]));

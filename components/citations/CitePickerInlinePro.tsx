@@ -1,3 +1,4 @@
+// components/citations/CitePickerInlinePro.tsx
 "use client";
 
 import * as React from "react";
@@ -36,7 +37,7 @@ async function attachCitation(args: {
 }
 
 type Props = {
-  targetType: "comment" | "claim" | "argument" | "card" | "move";
+  targetType: "comment" | "claim" | "argument" | "card" | "move" | "work";
   targetId: string;
   onDone?: () => void;
 

@@ -3,6 +3,9 @@
 import * as React from 'react';
 import { slotAnchorId } from './slot-helpers';
 import PromoteSlotButton from '../PromoteSlotButton';
+import CiteSlotButton from '@/components/work/evidence/CiteSlotButton';
+import EvidenceChipsForSlot from '@/components/work/evidence/EvidenceChipsForSlot';
+
 type Tc = {
   instrumentFunction?: string | null;
   explanation?: string | null;
@@ -58,19 +61,32 @@ export default function TCThesesEditor({ workId }: { workId: string }) {
     <div className="rounded border p-2 space-y-2 bg-white/70">
       <div className="text-sm font-medium">TC Theses</div>
 
-      <label  id={slotAnchorId('TC.function')} className="text-xs text-neutral-600">Instrument function (TTC)</label>
-      <PromoteSlotButton workId={workId} slotKey="TC.function" getText={() => val.instrumentFunction ?? ''} />
-
+      <label className="text-xs text-neutral-600">Instrument Function (TTC)</label>
+<div className="flex items-center gap-2">
+  <PromoteSlotButton workId={workId} slotKey="TC.function" getText={() => val.instrumentFunction ?? ''} />
+  <CiteSlotButton     workId={workId} slotKey="TC.function" getText={() => val.instrumentFunction ?? ''} />
+</div>
+<EvidenceChipsForSlot workId={workId} slotKey="TC.function" className="mt-1" />
       <textarea className="w-full border rounded px-2 py-1 text-sm" rows={2}
         placeholder="What function does the instrument perform?"
         value={val.instrumentFunction ?? ''} onChange={e => setVal(v => ({ ...v, instrumentFunction: e.target.value }))} />
 
-      <label className="text-xs text-neutral-600">Explanation of functioning (TTC)</label>
+      <label className="text-xs text-neutral-600">Explanation (TTC)</label>
+<div className="flex items-center gap-2">
+  <PromoteSlotButton workId={workId} slotKey="TC.explanation" getText={() => val.explanation ?? ''} />
+  <CiteSlotButton     workId={workId} slotKey="TC.explanation" getText={() => val.explanation ?? ''} />
+</div>
+<EvidenceChipsForSlot workId={workId} slotKey="TC.explanation" className="mt-1" />
       <textarea className="w-full border rounded px-2 py-1 text-sm" rows={2}
         placeholder="How does it work? (algorithm/causal chain)"
         value={val.explanation ?? ''} onChange={e => setVal(v => ({ ...v, explanation: e.target.value }))} />
 
       <label className="text-xs text-neutral-600">Applications (one per line)</label>
+      <div className="flex items-center gap-2">
+  <PromoteSlotButton workId={workId} slotKey="TC.applications" getText={() => (val.applications ?? []).join(', ')} />
+  <CiteSlotButton     workId={workId} slotKey="TC.applications" getText={() => (val.applications ?? []).join(', ')} />
+</div>
+<EvidenceChipsForSlot workId={workId} slotKey="TC.applications" className="mt-1" />
       <textarea className="w-full border rounded px-2 py-1 text-sm" rows={3}
         placeholder="Context A\nContext B"
         value={appsInput} onChange={e => setAppsInput(e.target.value)} />

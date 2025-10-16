@@ -3,7 +3,10 @@
 import * as React from 'react';
 import { slotAnchorId } from './slot-helpers';
 import PromoteSlotButton from '../PromoteSlotButton';
-
+import CiteSlotButton from '@/components/work/evidence/CiteSlotButton';
+import SupplyQuickLink from '@/components/work/evidence/SupplyQuickLink';
+import CiteDetectedLinkSlot from '@/components/work/evidence/CiteDetectedLinkSlot';
+import EvidenceChipsForSlot from '@/components/work/evidence/EvidenceChipsForSlot';
 type Dn = {
   explanandum?: string | null;
   nomological?: string | null;
@@ -42,29 +45,57 @@ export default function DNThesesEditor({ workId }: { workId: string }) {
     }
   }
   return (
-    <div className="rounded border p-2 space-y-2 bg-white/70">
-      <div className="text-sm font-medium">DN Theses</div>
+ <div className="rounded border p-2 space-y-2 bg-white/70">
+      <div className="flex items-center justify-between">
+        <div className="text-sm font-medium">DN Theses</div>
+        {/* inline supply while authoring */}
+        <SupplyQuickLink workId={workId} />
+      </div>
 
+      {/* Explanandum */}
       <label id={slotAnchorId('DN.explanandum')} className="text-xs text-neutral-600">Explanandum (TDN)</label>
-      <PromoteSlotButton workId={workId} slotKey="DN.explanandum" getText={() => val.explanandum ?? ''} />
-
-      <textarea className="w-full minorfield border border-indigo-400/60 rounded px-1.5 py-1.5 text-sm" rows={2}
+      <div className="flex items-center gap-2">
+        <PromoteSlotButton workId={workId} slotKey="DN.explanandum" getText={() => val.explanandum ?? ''} />
+        <CiteSlotButton workId={workId} slotKey="DN.explanandum" getText={() => val.explanandum ?? ''} />
+      </div>
+      <textarea
+        className="w-full minorfield border border-indigo-400/60 rounded px-1.5 py-1.5 text-sm"
+        rows={2}
         placeholder="What phenomenon is described/explained?"
         value={val.explanandum ?? ''}
-        onChange={e => setVal(v => ({ ...v, explanandum: e.target.value }))} />
+        onChange={e => setVal(v => ({ ...v, explanandum: e.target.value }))}
+      />
 
+      {/* Nomological */}
       <label className="text-xs text-neutral-600">Nomological laws / regularities (TDN)</label>
-      <textarea className="w-full minorfield border border-indigo-400/60 rounded px-1.5 py-1.5 text-sm" rows={3}
+      <div className="flex items-center gap-2">
+        <PromoteSlotButton workId={workId} slotKey="DN.nomological" getText={() => val.nomological ?? ''} />
+        <CiteSlotButton workId={workId} slotKey="DN.nomological" getText={() => val.nomological ?? ''} />
+      </div>
+      <textarea
+        className="w-full minorfield border border-indigo-400/60 rounded px-1.5 py-1.5 text-sm"
+        rows={3}
         placeholder="Key laws/regularities (comma or line separated)"
         value={val.nomological ?? ''}
-        onChange={e => setVal(v => ({ ...v, nomological: e.target.value }))} />
+        onChange={e => setVal(v => ({ ...v, nomological: e.target.value }))}
+      />
+      <CiteDetectedLinkSlot workId={workId} slotKey="DN.nomological" text={val.nomological ?? ''} />
 
+
+      {/* CP */}
       <label className="text-xs text-neutral-600">Ceteris paribus (optional)</label>
-      <input className="w-full minorfield border border-indigo-400/60 rounded px-1.5 py-1.5 text-xs"
+      <div className="flex items-center gap-2">
+        <PromoteSlotButton workId={workId} slotKey="DN.ceterisParibus" getText={() => val.ceterisParibus ?? ''} />
+        <CiteSlotButton workId={workId} slotKey="DN.ceterisParibus" getText={() => val.ceterisParibus ?? ''} />
+      </div>
+      <input
+        className="w-full minorfield border border-indigo-400/60 rounded px-1.5 py-1.5 text-xs"
         placeholder="Boundary conditions, CP clauses"
         value={val.ceterisParibus ?? ''}
-        onChange={e => setVal(v => ({ ...v, ceterisParibus: e.target.value }))} />
+        onChange={e => setVal(v => ({ ...v, ceterisParibus: e.target.value }))}
+      />
 
+      {/* Save */}
       <div className="flex items-center gap-2">
         <button className="btnv2--ghost px-3 py-1 border rounded text-xs bg-white hover:bg-neutral-100" onClick={save} disabled={saving}>
           {saving ? 'Saving…' : 'Save'}

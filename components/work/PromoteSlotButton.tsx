@@ -15,8 +15,9 @@ export default function PromoteSlotButton({
   return (
     <button
       type="button"
-      className="text-[11px] underline text-neutral-600 disabled:opacity-50"
-      disabled={pending}
+      className="text-[11px] underline underline-offset-2 text-neutral-700 disabled:opacity-50"
+            disabled={(getText?.().trim().length === 0) || pending || ok === true}
+
       onClick={async () => {
         setPending(true);
         try {

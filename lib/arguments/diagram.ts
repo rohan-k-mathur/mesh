@@ -22,8 +22,8 @@ export type AifNodeKind = 'I'|'RA'|'CA'|'PA';
 export type AifEdgeRole =
   | 'premise' | 'conclusion'
   | 'conflictingElement' | 'conflictedElement'
-  | 'preferredElement'  | 'dispreferredElement';
-
+  | 'preferredElement'  | 'dispreferredElement'
+  | 'has-presumption' | 'has-exception';
 export type AifNode = {
   id: string;                // e.g., "I:claimId", "RA:argId", "CA:caId", "PA:paId"
   kind: AifNodeKind;
@@ -71,6 +71,28 @@ export async function buildAifSubgraphForArgument(argumentId: string): Promise<A
     : [];
   const labelOf = new Map(claims.map(c => [c.id, c.text || c.id]));
 
+// /// Tag a (possibly implicit) assumption that an argument a relies upon.
+// model AssumptionUse {
+//   id             String @id @default(cuid())
+//   deliberationId String
+//   argumentId     String
+
+//   // Either tie to an existing claim…
+//   assumptionClaimId String? // FK to Claim.id (nullable)
+//   // …or store freeform text for a local assumption (one of the two must be present)
+//   assumptionText    String?
+
+//   role       String @default("premise") // 'premise'|'warrant'|'value'|… (open set)
+//   weight     Float? // local weight 0..1 for this assumption (optional)
+//   confidence Float? // confidence provided by author/UI (optional)
+//   metaJson   Json?
+
+//   createdAt DateTime @default(now())
+
+//   @@index([argumentId])
+//   @@index([assumptionClaimId])
+// }
+
   // Base RA slice
   const nodes: AifNode[] = [
     { id: RA(arg.id), kind: 'RA', label: arg.text || `Argument ${arg.id.slice(0,8)}…` }
@@ -86,6 +108,24 @@ export async function buildAifSubgraphForArgument(argumentId: string): Promise<A
     nodes.push({ id: I(p.claimId), kind: 'I', label: labelOf.get(p.claimId) ?? p.claimId });
     edges.push({ id: `e:${arg.id}:prem:${p.claimId}`, from: I(p.claimId), to: RA(arg.id), role: 'premise' });
   }
+
+  const uses = await prisma.assumptionUse.findMany({
+  where: { argumentId: arg.id },
+  select: { id: true, role: true }
+});
+for (const u of uses) {
+  // add I-node (if not already)
+  if (!nodes.some(n => n.id === I(u.id))) {
+    const cl = await prisma.claim.findUnique({ where: { id: u.id }, select: { id:true, text:true } });
+    if (cl) nodes.push({ id: I(cl.id), kind:'I', label: cl.text || cl.id });
+  }
+  edges.push({
+    id: `e:${arg.id}:assm:${u.id}`,
+    from: RA(arg.id),
+    to: I(u.id),
+    role: (u.role === 'exception' ? 'has-exception' : 'has-presumption')
+  });
+}
 
   // Conflicts (CA) that touch this argument or its (conclusion/premises)
   const touchingClaimIds = new Set(claimIds);
@@ -196,6 +236,34 @@ export async function buildAifSubgraphForArgument(argumentId: string): Promise<A
     }
   }
 
+  
+  // Optional convergent support (if/when you add ArgumentPremise.groupKey)
+  const byGroup = new Map<string, string[]>(); // groupKey -> [claimId]
+  for (const p of (arg.premises as any[])) {
+    const g = (p.groupKey as string|undefined) ?? '__linked__';
+    const arr = byGroup.get(g) ?? [];
+    arr.push(p.claimId);
+    byGroup.set(g, arr);
+  }
+
+  if (byGroup.size > 1) {
+    // re‑wire to multiple RA "views"; keep original RA too
+    let idx = 0;
+    for (const [gk, list] of byGroup) {
+      const raId = gk === '__linked__' ? RA(arg.id) : RA(`${arg.id}:${++idx}`);
+      if (!nodes.some(n => n.id === raId)) nodes.push({ id: raId, kind:'RA', label: nodes.find(n => n.id===RA(arg.id))?.label ?? `Argument ${arg.id.slice(0,8)}…` });
+      for (const cid of list) {
+        if (!nodes.some(n => n.id === I(cid))) {
+          nodes.push({ id: I(cid), kind:'I', label: labelOf.get(cid) ?? cid });
+        }
+        edges.push({ id: `e:${raId}:prem:${cid}`, from: I(cid), to: raId, role:'premise' });
+      }
+      if (arg.conclusionClaimId) {
+        edges.push({ id: `e:${raId}:concl`, from: raId, to: I(arg.conclusionClaimId), role:'conclusion' });
+      }
+    }
+  }
+
   // Dedupe nodes/edges
   const uniqNodes = Array.from(new Map(nodes.map(n => [n.id, n])).values());
   const uniqEdges = Array.from(new Map(edges.map(e => [e.id, e])).values());
@@ -203,14 +271,15 @@ export async function buildAifSubgraphForArgument(argumentId: string): Promise<A
   return { nodes: uniqNodes, edges: uniqEdges };
 }
 
+
 export async function buildDiagramForArgument(argumentId: string): Promise<Diagram|null> {
   const arg = await prisma.argument.findUnique({
     where: { id: argumentId },
-    select: { id:true, text:true, claimId:true, deliberationId:true }
+    select: { id:true, text:true, conclusionClaimId:true, deliberationId:true }
   });
   if (!arg) return null;
 
-  // Parents (supports) → premises
+  // ArgumentEdges → treat as supports for a simple narrative diagram (optional)
   const edges = await prisma.argumentEdge.findMany({
     where: { deliberationId: arg.deliberationId, toArgumentId: arg.id },
     select: { fromArgumentId: true, type: true },
@@ -220,40 +289,35 @@ export async function buildDiagramForArgument(argumentId: string): Promise<Diagr
     .filter(e => (String(e.type).toLowerCase() === 'support') || (String(e.type).toLowerCase() === 'grounds'))
     .map(e => e.fromArgumentId);
 
+
   const premArgs = supportIds.length
-    ? await prisma.argument.findMany({ 
-        where: { id: { in: supportIds } }, 
-        select: { id: true, text: true } 
-      })
+    ? await prisma.argument.findMany({ where: { id: { in: supportIds } }, select: { id: true, text: true } })
     : [];
 
-  // Build statements array
+  // const premArgs = supportIds.length
+  //   ? await prisma.argument.findMany({ 
+  //       where: { id: { in: supportIds } }, 
+  //       select: { id: true, text: true } 
+  //     })
+  //   : [];
+
+
   const statements: Diagram['statements'] = [
-    { id: arg.id, text: arg.text, kind: 'claim' },
-    ...premArgs.map(p => ({ id: p.id, text: p.text, kind: 'premise' as const })),
+    { id: arg.id, text: arg.text ?? '', kind: 'claim' },
+    ...premArgs.map(p => ({ id: p.id, text: p.text ?? '', kind: 'premise' as const })),
   ];
 
-  // ALWAYS create an inference, even for atomic claims
   const inferences: Diagram['inferences'] = [{
     id: `inf_${arg.id}`,
     kind: premArgs.length > 0 ? 'defeasible' : 'atomic',
-    conclusion: { id: arg.id, text: arg.text },
-    premises: premArgs.map(p => ({ statement: { id: p.id, text: p.text } })),
+    conclusion: { id: arg.id, text: arg.text ?? '' },
+    premises: premArgs.map(p => ({ statement: { id: p.id, text: p.text ?? '' } })),
     scheme: premArgs.length > 0 ? null : 'assertion',
   }];
 
-  // Evidence (if you have a citations/evidence table, fetch here)
   const evidence: Diagram['evidence'] = [];
 
   // Attach AIF view
   const aif = await buildAifSubgraphForArgument(argumentId).catch(() => null);
-  
-  return { 
-    id: `synth:${arg.id}`, 
-    title: null, 
-    statements, 
-    inferences, 
-    evidence,
-    ...(aif ? { aif } : {})
-  };
+  return { id: `synth:${arg.id}`, title: null, statements, inferences, evidence, ...(aif ? { aif } : {}) };
 }

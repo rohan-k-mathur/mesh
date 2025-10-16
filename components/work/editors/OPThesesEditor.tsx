@@ -3,7 +3,8 @@
 import * as React from 'react';
 import { slotAnchorId } from './slot-helpers';
 import PromoteSlotButton from '../PromoteSlotButton';
-
+import CiteSlotButton from '@/components/work/evidence/CiteSlotButton';
+import EvidenceChipsForSlot from '@/components/work/evidence/EvidenceChipsForSlot';
 
 type Op = {
   unrecognizability?: string | null;
@@ -50,14 +51,23 @@ export default function OPThesesEditor({ workId }: { workId: string }) {
     <div className="rounded border p-2 space-y-2 bg-white/70">
       <div className="text-sm font-medium">OP Theses</div>
 
-      <label id={slotAnchorId('OP.unrecognizability')} className="text-xs text-neutral-600">Unrecognizability (TOP)</label>
-      <PromoteSlotButton workId={workId} slotKey="OP.unrecognizability" getText={() => val.unrecognizability ?? ''} />
+      <label className="text-xs text-neutral-600">Unrecognizability (TOP)</label>
+<div className="flex items-center gap-2">
+  <PromoteSlotButton workId={workId} slotKey="OP.unrecognizability" getText={() => val.unrecognizability ?? ''} />
+  <CiteSlotButton     workId={workId} slotKey="OP.unrecognizability" getText={() => val.unrecognizability ?? ''} />
+</div>
+<EvidenceChipsForSlot workId={workId} slotKey="OP.unrecognizability" className="mt-1" />
 
       <textarea className="w-full minorfield border border-indigo-400/60 rounded px-1.5 py-1.5 text-sm" rows={2}
         placeholder="Why no adequate theoretical evidence is possible"
         value={val.unrecognizability ?? ''} onChange={e => setVal(v => ({ ...v, unrecognizability: e.target.value }))} />
 
-      <label className="text-xs text-neutral-600">Alternatives (one per line)</label>
+      <label className="text-xs text-neutral-600">Alternatives (TOP)</label>
+<div className="flex items-center gap-2">
+  <PromoteSlotButton workId={workId} slotKey="OP.alternatives" getText={() => (val.alternatives ?? []).join(', ')} />
+  <CiteSlotButton     workId={workId} slotKey="OP.alternatives" getText={() => (val.alternatives ?? []).join(', ')} />
+</div>
+<EvidenceChipsForSlot workId={workId} slotKey="OP.alternatives" className="mt-1" />
       <textarea className="w-full minorfield border border-indigo-400/60 rounded px-1.5 py-1.5 text-sm" rows={3}
         placeholder="Alt A\nAlt B"
         value={altsInput} onChange={e => setAltsInput(e.target.value)} />

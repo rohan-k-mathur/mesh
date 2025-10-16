@@ -3,7 +3,7 @@
 import * as React from 'react';
 import SupplyDrawer from './SupplyDrawer';
 import { IntegrityBadge } from '../integrity/IntegrityBadge';
-
+import CitePickerModal from '@/components/citations/CitePickerModal';
 export default function WorkHeaderBar({
   workId,
   title,
@@ -23,6 +23,9 @@ export default function WorkHeaderBar({
         <button className="px-2 py-1 border rounded text-xs bg-white" onClick={()=>setOpen(true)}>
           Dependencies…
         </button>
+                <button className="px-2 py-1 border rounded text-xs bg-white" onClick={()=>setCiteOpen(true)}>
+          Cite this Work…
+        </button>
         <button
   className="px-2 py-1 border rounded text-xs bg-white"
   onClick={async () => {
@@ -37,6 +40,13 @@ export default function WorkHeaderBar({
   Export Dossier
 </button>
       </div>
+        <CitePickerModal
+        open={citeOpen}
+        onOpenChange={setCiteOpen}
+        targetType="work"
+        targetId={workId}
+        title="Attach citation to this Work"
+      />
       <SupplyDrawer workId={workId} open={open} onClose={()=>setOpen(false)} />
     </div>
   );

@@ -1,4 +1,4 @@
-// src/lib/aif/validate.ts
+//lib/aif/validate.ts
 import type { AIFGraph, AnyNode, Edge, EdgeType, NodeType } from './types';
 
 const VALID_EDGE_CONNECTIONS: Record<EdgeType, {from: NodeType[], to: NodeType[]}> = {

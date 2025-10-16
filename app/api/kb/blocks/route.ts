@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic'; export const revalidate = 0;
 const Body = z.object({
   pageId: z.string().min(6),
   type: z.enum([
-    'text','image','link','claim','claim_set','argument','sheet','room_summary','transport','evidence_list','cq_tracker','plexus_tile'
+    'text','image','link','claim','claim_set','argument','sheet','room_summary','transport','evidence_list','cq_tracker','plexus_tile','theory_work',
   ]),
   ord: z.number().int().min(0).optional(),
   data: z.any().optional()

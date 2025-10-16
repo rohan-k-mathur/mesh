@@ -6,7 +6,11 @@ import { useRouter } from 'next/navigation';
 import { TheoryFraming } from '@/components/compose/TheoryFraming';
 import EvaluationSheet from './EvaluationSheet';
 import WorkStatusRail from '@/components/work/WorkStatusRail';
-
+import { useAuth } from '@/lib/AuthContext'; // already used in other views
+import WorkTitleEditor from '@/components/work/WorkTitleEditor';
+import WorkHeaderBar from './WorkHeaderBar';
+import SupplyDrawer from './SupplyDrawer';
+import { IntegrityBadge } from '../integrity/IntegrityBadge';
 export default function WorkDetailClient(props: {
   id: string;
   deliberationId: string;
@@ -17,6 +21,10 @@ export default function WorkDetailClient(props: {
 }) {
   const { id, deliberationId, title, theoryType, standardOutput } = props;
   const router = useRouter();
+  const { user } = useAuth();
+  const me = user?.userId ? String(user.userId) : null;
+  const [authorId, setAuthorId] = React.useState<string | null>(null);
+  const canEdit = !!me && !!authorId && me === authorId;
 
   const [computedBackHref, setComputedBackHref] = React.useState<string | null>(null);
   React.useEffect(() => {
@@ -34,6 +42,20 @@ export default function WorkDetailClient(props: {
     })();
     return () => { cancelled = true; };
   }, [deliberationId]);
+
+    React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const r = await fetch(`/api/works/${id}`, { cache: 'no-store' });
+        if (r.ok) {
+          const j = await r.json();
+          if (!cancelled) setAuthorId(j?.work?.authorId ?? null);
+        }
+      } catch {}
+    })();
+    return () => { cancelled = true; };
+  }, [id]);
 
   function computeBackHref(hostType?: string, hostId?: string, delibId?: string) {
     if (hostType && hostId) {
@@ -53,6 +75,9 @@ export default function WorkDetailClient(props: {
     theoryType: 'DN'|'IH'|'TC'|'OP';
     standardOutput?: string;
   }>({ theoryType, standardOutput });
+
+    const [localTitle, setLocalTitle] = React.useState(title);
+
 
   return (
     <div className="min-h-screen backdrop-blur-lg  bg-gradient-to-br from-neutral-50/20 rounded-3xl via-slate-100/60 to-neutral-50/30">
@@ -74,9 +99,15 @@ export default function WorkDetailClient(props: {
         <div className="bg-white w-full rounded-lg border shadow-sm p-4">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
-              <h1 className="text-xl font-bold text-neutral-900 leading-tight">
+              {/* <h1 className="text-xl font-bold text-neutral-900 leading-tight">
                 {title}
-              </h1>
+              </h1> */}
+              <WorkTitleEditor
+                id={id}
+                title={localTitle}
+                canEdit={!canEdit}
+                onUpdated={(t) => setLocalTitle(t)}
+              />
               <p className="text-sm text-neutral-500 mt-2">
                 Work ID: <span className="font-mono text-xs">{id}</span>
               </p>
@@ -84,9 +115,9 @@ export default function WorkDetailClient(props: {
             <span className="flex-shrink-0 px-3 py-1 rounded-lg text-xs font-semibold bg-neutral-100 text-neutral-700 border border-neutral-200">
               {theoryType}
             </span>
+            <IntegrityBadge workId={id} theoryType={theoryType} />
           </div>
         </div>
-
         {/* Main Content Grid */}
         <div className=" grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(min-content,20rem)] gap-3 ">
           {/* Main Column */}
@@ -106,6 +137,8 @@ export default function WorkDetailClient(props: {
               <WorkStatusRail
                 workId={id}
                 deliberationId={deliberationId}
+                                decoupled={true}  // ✅ default to decoupled UX
+
                 onPublished={() => {
                   // Optional: handle post-publish actions
                 }}

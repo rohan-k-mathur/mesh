@@ -47,10 +47,18 @@ export async function createClaim(params: { deliberationId: string; authorId: st
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(params),
   });
-  const j = await asJson<{ id: string }>(res);
-  return j.id;
-}
 
+  // tolerate old/new shapes: {id} | {claim:{id}} | {claimId}
+  let j: any = null;
+  try { j = await res.json(); } catch {}
+  if (!res.ok || j?.ok === false || j?.error) {
+    const msg = j?.error || `HTTP ${res.status}`;
+    throw new Error(msg);
+  }
+  const id = j?.id || j?.claim?.id || j?.claimId;
+  if (!id) throw new Error('No claim id returned from /api/claims');
+  return String(id);
+}
 // export async function listSchemes() {
 //   const { items } = await asJson<{ items: Array<{ id: string; key: string; name: string; slotHints?: any; cqs?: any[] }> }>(
 //     await fetch('/api/schemes', { cache: 'no-store' })

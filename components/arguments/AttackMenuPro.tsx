@@ -14,6 +14,7 @@ import {
   ChevronRight,
   Swords,
 } from 'lucide-react';
+import { preferred } from '@/lib/argumentation/afEngine';
 
 // Lazy-load: ClaimPicker can be heavy (Command list, filters, fetches)
 const ClaimPicker = dynamic(
@@ -66,6 +67,7 @@ export function AttackMenuPro({
           {/* <Swords className="w-4 h-4" /> */}
           Counter
         </button>
+        
       </DialogTrigger>
 
       <DialogContent
@@ -153,6 +155,24 @@ function AttackMenuContent({
     return j.id as string;
   }, [authorId, deliberationId]);
 
+const postAssumption = React.useCallback(
+  async (argumentId: string, assumptionClaimId: string, role: 'exception'|'presumption', meta?: any, signal?: AbortSignal) => {
+    const r = await fetch(`/api/arguments/${argumentId}/assumptions`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        deliberationId,
+        role,
+        assumptionClaimId,
+        metaJson: meta ?? null,
+      }),
+      signal,
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || j?.ok === false) throw new Error(j?.error || `HTTP ${r.status}`);
+  }, [deliberationId]);
+
+
   const postCA = React.useCallback(async (body: any, signal?: AbortSignal) => {
     const r = await fetch('/api/ca', {
       method: 'POST',
@@ -166,6 +186,24 @@ function AttackMenuContent({
     }
   }, []);
 
+  const postPA = React.useCallback(async (body: any, signal?: AbortSignal) => {
+    const p = await fetch('/api/aif/preferences', {
+  method: 'POST',
+  headers: { 'content-type': 'application/json' },
+  body: JSON.stringify({
+    deliberationId,
+    createdById: authorId,
+    schemeKey: null, // or e.g., 'source_track_record'
+    preferred:    { kind: 'RA', id: body.preferredArgumentId  },
+    dispreferred: { kind: 'RA', id: body.dispreferredArgumentId }
+  })
+});
+if (!p.ok) {
+  const j = await p.json().catch(() => ({}));
+  throw new Error(j?.error || `HTTP ${p.status}`);
+}
+  }, [authorId, deliberationId]);
+  
   const fire = React.useCallback(async (kind: 'REBUTS' | 'UNDERCUTS' | 'UNDERMINES') => {
     if (busy) return;
     setBusy(kind);
@@ -184,14 +222,35 @@ function AttackMenuContent({
         const txt = undercutText.trim();
         if (!txt) return;
         const exceptionClaimId = await createClaim(txt, ctrl.signal);
-        await postCA({
-          deliberationId,
-          conflictingClaimId: exceptionClaimId,
-          conflictedArgumentId: target.id,
-          legacyAttackType: 'UNDERCUTS',
-          legacyTargetScope: 'inference',
-        }, ctrl.signal);
-      } else {
+  await postCA({
+    deliberationId,
+    conflictingClaimId: exceptionClaimId,
+    conflictedArgumentId: target.id,
+    legacyAttackType: 'UNDERCUTS',
+    legacyTargetScope: 'inference',
+  }, ctrl.signal);
+
+  // NEW: bind as a first-class exception assumption (enrich with schemeKey if available)
+  const schemeKey = (target as any)?.schemeKey ?? null;
+  await postAssumption(
+    target.id,
+    exceptionClaimId,
+    'exception',
+    { schemeKey, descriptorKey: 'exception' },
+    ctrl.signal
+  );
+
+  // NEW: bind exception to the attacked RA via AssumptionUse
+  await fetch(`/api/arguments/${encodeURIComponent(target.id)}/assumptions`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      deliberationId,
+      items: [{ assumptionId: exceptionClaimId, role: 'exception', metaJson: { schemeKey: null } }]
+    }),
+    signal: ctrl.signal
+  });
+} else {
         if (!premiseId || !undermine) return;
         await postCA({
           deliberationId,

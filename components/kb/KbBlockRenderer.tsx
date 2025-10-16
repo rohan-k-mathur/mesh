@@ -134,7 +134,25 @@ if (hydrated && hydrated.kind === 'error') {
       </div>
     );
   }
-
+   if (t === 'theory_work' && hydrated.kind === 'theory_work') {
+  const m = hydrated.data?.meta || {};
+  const integrity = hydrated.data?.integrity;
+  return (
+    <div className="rounded border p-3 bg-white">
+      <div className="flex items-center justify-between">
+        <div className="font-medium">{m.title}</div>
+        <span className="text-[10px] px-1.5 py-0.5 rounded bg-neutral-100">{m.theoryType}</span>
+      </div>
+      {hydrated.lens !== 'full' && m.summary && <p className="text-sm mt-1">{m.summary}</p>}
+      {integrity && (
+        <div className="mt-2 text-[11px] text-slate-600">
+          Integrity: {Math.round((integrity.completion ?? 0)*100)}%
+        </div>
+      )}
+      <a className="text-xs underline mt-2 inline-block" href={`/works/${m.id}`}>Open Work</a>
+    </div>
+  );
+}
 
   // SHEET
   if (t === 'sheet' && hydrated.kind === 'sheet') {

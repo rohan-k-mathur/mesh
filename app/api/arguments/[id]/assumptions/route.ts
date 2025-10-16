@@ -10,7 +10,7 @@ const Body = z.object({
   deliberationId: z.string(),
   items: z.array(z.object({
     assumptionId: z.string(),
-    role: z.enum(['premise','warrant','value','context']).default('premise'),
+    role: z.enum(['premise','warrant','value','context','presumption','exception']).default('premise'),
     weight: z.number().min(0).max(1).optional(),
     metaJson: z.any().optional()
   })).max(100)

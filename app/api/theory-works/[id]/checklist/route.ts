@@ -1,4 +1,6 @@
 // app/api/theory-works/[id]/checklist/route.ts
+// ✅ CORRECTED VERSION - Uses proper lowercase field names from updated schema
+
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prismaclient';
@@ -42,14 +44,22 @@ function getBaseUrl() {
 export async function GET(_: Request, ctx: { params: { id: string } }) {
   const { id } = Params.parse(ctx.params);
 
+  // ✅ FIXED: Use lowercase field names matching the updated schema
   const work = await prisma.theoryWork.findUnique({
     where: { id },
     include: {
-      WorkDNStructure: true, WorkIHTheses: true, WorkTCTheses: true, WorkOPTheses: true,
-      dn: true, ih: true, tc: true, op: true,
-      relatedClaims: true,
+      dnStructure: true,        // was: WorkDNStructure
+      ihTheses: true,           // was: WorkIHTheses
+      tcTheses: true,           // was: WorkTCTheses
+      opTheses: true,           // was: WorkOPTheses
+      claims: true,             // was: relatedClaims
+      dnProject: true,          // ✅ Added - you might need these too
+      ihProject: true,          // ✅ Added
+      tcProject: true,          // ✅ Added
+      opProject: true,          // ✅ Added
     }
   });
+  
   if (!work) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   const dnSlots = ['explanandum','nomological','ceterisParibus'] as const;
@@ -57,12 +67,14 @@ export async function GET(_: Request, ctx: { params: { id: string } }) {
   const tcSlots = ['instrumentFunction','explanation','applications'] as const;
   const opSlots = ['unrecognizability','alternatives'] as const;
 
-  const dn = fieldStat(work.WorkDNStructure as any, dnSlots as any);
-  const ih = fieldStat(work.WorkIHTheses as any, ihSlots as any);
-  const tc = fieldStat(work.WorkTCTheses as any, tcSlots as any);
-  const op = fieldStat(work.WorkOPTheses as any, opSlots as any);
+  // ✅ FIXED: Access the correctly named fields
+  const dn = fieldStat(work.dnStructure as any, dnSlots as any);
+  const ih = fieldStat(work.ihTheses as any, ihSlots as any);
+  const tc = fieldStat(work.tcTheses as any, tcSlots as any);
+  const op = fieldStat(work.opTheses as any, opSlots as any);
 
-  const claimIds = (work.relatedClaims ?? []).map(rc => rc.claimId);
+  // ✅ FIXED: Use 'claims' instead of 'relatedClaims'
+  const claimIds = (work.claims ?? []).map(c => c.claimId);
   const origin = getBaseUrl();
 
   const cqSummaries = await Promise.all(
@@ -83,14 +95,23 @@ export async function GET(_: Request, ctx: { params: { id: string } }) {
   const cqRequired = cqSummaries.reduce((a,s)=> a + (s?.required ?? 0), 0);
   const cqSatisfied = cqSummaries.reduce((a,s)=> a + (s?.satisfied ?? 0), 0);
   const schemesMap = new Map<string, { required: number; satisfied: number; open: string[] }>();
+  
   for (const s of cqSummaries.filter(Boolean) as NonNullable<typeof cqSummaries[number]>[]) {
     for (const row of s.schemes) {
       const acc = schemesMap.get(row.schemeKey) ?? { required: 0, satisfied: 0, open: [] as string[] };
-      acc.required += row.required; acc.satisfied += row.satisfied; acc.open.push(...row.open);
+      acc.required += row.required; 
+      acc.satisfied += row.satisfied; 
+      acc.open.push(...row.open);
       schemesMap.set(row.schemeKey, acc);
     }
   }
-  const openByScheme = [...schemesMap.entries()].map(([schemeKey, v]) => ({ schemeKey, required: v.required, satisfied: v.satisfied, open: v.open }));
+  
+  const openByScheme = [...schemesMap.entries()].map(([schemeKey, v]) => ({ 
+    schemeKey, 
+    required: v.required, 
+    satisfied: v.satisfied, 
+    open: v.open 
+  }));
 
   const evidenceCount = claimIds.length ? await countEvidenceForClaims(claimIds) : 0;
 
@@ -103,7 +124,11 @@ export async function GET(_: Request, ctx: { params: { id: string } }) {
         const { moves, closable } = await r.json();
         dialogue = {
           hasClosableLoci: !!closable,
-          legalMoves: (moves ?? []).slice(0, 4).map((m: any) => ({ kind: m.kind, force: m.force, relevance: m.relevance }))
+          legalMoves: (moves ?? []).slice(0, 4).map((m: any) => ({ 
+            kind: m.kind, 
+            force: m.force, 
+            relevance: m.relevance 
+          }))
         };
       }
     }
@@ -123,13 +148,27 @@ export async function GET(_: Request, ctx: { params: { id: string } }) {
     && cqCompleteness >= minCQ;
 
   return NextResponse.json({
-    work: { id: work.id, title: work.title, theoryType: work.theoryType, status: work.status },
+    work: { 
+      id: work.id, 
+      title: work.title, 
+      theoryType: work.theoryType, 
+      status: work.status 
+    },
     dn, ih, tc, op,
     theses: { dn: dnSlots, ih: ihSlots, tc: tcSlots, op: opSlots },
     claims: {
       count: claimIds.length,
-      byRole: (work.relatedClaims ?? []).reduce((acc, rc) => (acc[rc.role] = (acc[rc.role] ?? 0)+1, acc), {} as Record<string, number>),
-      cq: { required: cqRequired, satisfied: cqSatisfied, openByScheme, completeness: cqCompleteness },
+      // ✅ FIXED: Use 'claims' instead of 'relatedClaims'
+      byRole: (work.claims ?? []).reduce((acc, c) => {
+        acc[c.role] = (acc[c.role] ?? 0) + 1;
+        return acc;
+      }, {} as Record<string, number>),
+      cq: { 
+        required: cqRequired, 
+        satisfied: cqSatisfied, 
+        openByScheme, 
+        completeness: cqCompleteness 
+      },
       evidence: { count: evidenceCount }
     },
     dialogue,

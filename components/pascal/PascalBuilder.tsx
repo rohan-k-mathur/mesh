@@ -80,7 +80,7 @@ export default function PascalBuilder({ workId }: { workId: string }) {
               <input
                 key={w.id}
                 className="w-full border rounded px-2 py-1 text-sm"
-                placeholder="e.g., Determinism is true"
+                placeholder="e.g., [A] is true"
                 value={w.statement}
                 onChange={(e)=>setProps(arr => { const c=[...arr]; c[i]={...c[i], statement:e.target.value}; return c; })}
               />
@@ -100,7 +100,7 @@ export default function PascalBuilder({ workId }: { workId: string }) {
               <input
                 key={a.id}
                 className="w-full border rounded px-2 py-1 text-sm"
-                placeholder="e.g., Act as if free will exists"
+                placeholder="e.g., Act as if [A] is true"
                 value={a.label}
                 onChange={(e)=>setActs(arr => { const c=[...arr]; c[i]={...c[i], label:e.target.value}; return c; })}
               />

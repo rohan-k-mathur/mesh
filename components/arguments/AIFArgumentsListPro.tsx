@@ -581,7 +581,7 @@ function RowImpl({
             {meta?.implicitWarrant?.text && (
               <div className="mt-2 p-2.5 rounded-lg bg-amber-50 border border-amber-200">
                 <div className="flex items-start gap-2">
-                  <Sparkles className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+                  {/* <Sparkles className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" /> */}
                   <div>
                     <div className="text-xs font-medium text-amber-900 mb-0.5">Implicit Warrant</div>
                     <div className="text-xs text-amber-800">{meta.implicitWarrant.text}</div>

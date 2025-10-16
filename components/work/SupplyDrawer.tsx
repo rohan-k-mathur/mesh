@@ -27,36 +27,19 @@ export default function SupplyDrawer({
 }: { workId: string; open: boolean; onClose: () => void }) {
 
 
-  const [evalCandidates, setEvalCandidates] = React.useState<{ id:string; title:string; theoryType:string }[]>([]);
-  const [selectedEval, setSelectedEval] = React.useState('');
-  const [loadingEvalCandidates, setLoadingEvalCandidates] = React.useState(false);
-  
-  const [workMeta, setWorkMeta] = React.useState<{ deliberationId?: string } | null>(null);
 
 
   const [onlyDN, setOnlyDN] = React.useState(true);
+  // In components/work/SupplyDrawer.tsx
+const [candidates, setCandidates] = React.useState<{ id:string; title:string; theoryType:string }[]>([]);
+const [selectedAlt, setSelectedAlt] = React.useState('');
+const [selectedEval, setSelectedEval] = React.useState(''); // NEW
+const [loadingCandidates, setLoadingCandidates] = React.useState(false);
+const [workMeta, setWorkMeta] = React.useState<{ deliberationId?: string } | null>(null);
 
-  // --- Data sources (lazy when closed) ---
-  const suppliesKey = open ? `/api/works/${workId}/supplies` : null;
-  const altsKey     = open ? `/api/knowledge-edges?toWorkId=${workId}&kinds=ALTERNATIVE_TO` : null;
-  const evalsKey    = open ? `/api/knowledge-edges?toWorkId=${workId}&kinds=EVALUATES` : null;
 
-  // fetch IH/TC candidates (reuse the same request you used for alternatives)
-React.useEffect(() => {
-  if (!open) return;
-  (async () => {
-    setLoadingEvalCandidates(true);
-    try {
-      const res = await fetch(`/api/works?deliberationId=${encodeURIComponent(workId)}`, { cache:'no-store' });
-      const j = await res.json();
-      const ihTc = (j.works ?? []).filter((w:any) => w.theoryType==='IH' || w.theoryType==='TC');
-      setEvalCandidates(ihTc);
-    } catch {}
-    setLoadingEvalCandidates(false);
-  })();
-}, [open, workId]);
 
-// fetch deliberation for this work once the drawer opens
+// Fetch deliberation for this work once
 React.useEffect(() => {
   if (!open) return;
   (async () => {
@@ -66,11 +49,22 @@ React.useEffect(() => {
 }, [open, workId]);
 
 
-// candidate works for alternatives/evaluations
-const [candidates, setCandidates] = React.useState<{ id:string; title:string; theoryType:string }[]>([]);
-const [selectedAlt, setSelectedAlt] = React.useState('');
-const [loadingCandidates, setLoadingCandidates] = React.useState(false);
 
+
+
+// load work meta → deliberationId
+React.useEffect(() => {
+  if (!open) return;
+  (async () => {
+    try {
+      const r = await fetch(`/api/works/${workId}`, { cache:'no-store' });
+      const j = await r.json();
+      setWorkMeta(j?.work ? { deliberationId: j.work.deliberationId } : null);
+    } catch {}
+  })();
+}, [open, workId]);
+
+// fetch candidates using deliberationId
 React.useEffect(() => {
   if (!open || !workMeta?.deliberationId) return;
   (async () => {
@@ -84,6 +78,40 @@ React.useEffect(() => {
     setLoadingCandidates(false);
   })();
 }, [open, workMeta?.deliberationId]);
+
+  // --- Data sources (lazy when closed) ---
+  const suppliesKey = open ? `/api/works/${workId}/supplies` : null;
+  const altsKey     = open ? `/api/knowledge-edges?toWorkId=${workId}&kinds=ALTERNATIVE_TO` : null;
+  const evalsKey    = open ? `/api/knowledge-edges?toWorkId=${workId}&kinds=EVALUATES` : null;
+
+
+
+
+// // fetch deliberation for this work once the drawer opens
+// React.useEffect(() => {
+//   if (!open) return;
+//   (async () => {
+//     const r = await fetch(`/api/works/${workId}`, { cache:'no-store' }).then(r=>r.json()).catch(()=>null);
+//     setWorkMeta(r?.work ? { deliberationId: r.work.deliberationId } : null);
+//   })();
+// }, [open, workId]);
+
+
+
+
+// React.useEffect(() => {
+//   if (!open || !workMeta?.deliberationId) return;
+//   (async () => {
+//     setLoadingCandidates(true);
+//     try {
+//       const res = await fetch(`/api/works?deliberationId=${encodeURIComponent(workMeta.deliberationId)}`, { cache:'no-store' });
+//       const j = await res.json();
+//       const ihTc = (j.works ?? []).filter((w:any) => w.theoryType==='IH' || w.theoryType==='TC');
+//       setCandidates(ihTc);
+//     } catch {}
+//     setLoadingCandidates(false);
+//   })();
+// }, [open, workMeta?.deliberationId]);
 
   const {
     data: supRes,
@@ -116,7 +144,6 @@ React.useEffect(() => {
     return () => window.removeEventListener('mesh:edges-updated' as any, h);
   }, [open, workId, refetchSup, refetchAlts, refetchEvals]);
 
-  if (!open) return null;
 
   // --- Merge hydration across responses ---
   const workMap: Record<string, WorkLite> = React.useMemo(() => {
@@ -159,6 +186,9 @@ React.useEffect(() => {
   const emptySup = !loadingSup  && supplyEdges.length === 0;
   const emptyAlt = !loadingAlts && altEdges.length    === 0;
   const emptyEva = !loadingEvals && evalEdges.length  === 0;
+
+    if (!open) return null;
+
 
   return (
     <div className="fixed inset-0 bg-black/20 z-50" onClick={onClose}>
@@ -334,29 +364,21 @@ React.useEffect(() => {
     <div className="text-xs text-neutral-500">Loading IH/TC works…</div>
   ) : (
     <>
-      <select
-        className="border rounded px-2 py-1 text-xs w-full mb-2"
-        value={selectedAlt}
-        onChange={e=>setSelectedAlt(e.target.value)}
-      >
-        <option value="">— Select IH/TC Work —</option>
-        {candidates.map(c => (
-          <option key={c.id} value={c.id}>{c.title} [{c.theoryType}]</option>
-        ))}
-      </select>
-      <button
-        className="px-2 py-1 border rounded text-xs bg-white"
-        disabled={!selectedAlt}
-        onClick={() => {
-          // Source = selectedAlt (has its own MCDA), target = current workId
-          window.dispatchEvent(new CustomEvent('mesh:open-evaluation-sheet', {
-            detail: { fromWorkId: selectedAlt, toWorkId: workId }
-          }));
-          setSelectedAlt('');
-        }}
-      >
-        Open EvaluationSheet
-      </button>
+      <select value={selectedEval} onChange={e=>setSelectedEval(e.target.value)} /* ... */>
+  <option value="">— Select IH/TC Work —</option>
+  {candidates.map(c => <option key={c.id} value={c.id}>{c.title} [{c.theoryType}]</option>)}
+</select>
+<button
+  disabled={!selectedEval}
+  onClick={() => {
+    window.dispatchEvent(new CustomEvent('mesh:open-evaluation-sheet', {
+      detail: { fromWorkId: selectedEval, toWorkId: workId }
+    }));
+    setSelectedEval('');
+  }}
+>
+  Open EvaluationSheet
+</button>
     </>
   )}
 </div>

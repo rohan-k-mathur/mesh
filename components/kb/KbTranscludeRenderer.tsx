@@ -8,7 +8,8 @@ type Item =
   | { kind:'argument'; id:string; lens?:string }
   | { kind:'sheet'; id:string; lens?:string }
   | { kind:'room_summary'; id:string; lens?:string; limit?:number }
-  | { kind:'transport'; fromId:string; toId:string; lens?:string };
+  | { kind:'transport'; fromId:string; toId:string; lens?:string }
+  | { kind:'theory_work'; id:string; lens?:'summary'|'structure'|'full' }
 
 export function KbTranscludeRenderer({ spaceId, blocks }:{ spaceId:string; blocks:Block[] }) {
   const [items, setItems] = React.useState<any[]>([]);
@@ -23,6 +24,7 @@ export function KbTranscludeRenderer({ spaceId, blocks }:{ spaceId:string; block
       if (b.type === 'sheet' && d.id) req.push({ kind:'sheet', id:d.id, lens:d.lens });
       if (b.type === 'room_summary' && d.id) req.push({ kind:'room_summary', id:d.id, lens:d.lens, limit: d.limit ?? 5 });
       if (b.type === 'transport' && d.fromId && d.toId) req.push({ kind:'transport', fromId:d.fromId, toId:d.toId, lens:d.lens ?? 'map' });
+      if (b.type === 'theory_work' && b.dataJson?.workId) req.push({ kind:'theory_work', id:b.dataJson.workId, lens:b.dataJson.lens ?? 'summary' });
     }
     setItems(req);
   }, [blocks]);
@@ -87,6 +89,15 @@ export function KbTranscludeRenderer({ spaceId, blocks }:{ spaceId:string; block
             <div key={i} className="rounded border p-2">
               <div className="text-[13px] font-medium mb-1">Room functor map</div>
               <div className="text-xs text-slate-600">pairs {Object.keys(it.data.claimMap ?? {}).length}</div>
+              <ProvenanceChip p={it.provenance} a={it.actions} />
+            </div>
+          );
+        }
+        if (it.kind === 'theory_work') {
+          return (
+            <div key={i} className="rounded border p-2">
+              <div className="text-[13px] font-medium mb-1">{it.data?.title ?? 'Theory Work'}</div>
+              <div className="text-xs text-slate-600">authors {it.data?.authors?.length ?? 0}</div>
               <ProvenanceChip p={it.provenance} a={it.actions} />
             </div>
           );

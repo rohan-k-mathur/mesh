@@ -1,3 +1,4 @@
+// app/api/dialogue/legal-attacks/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getCurrentUserId } from '@/lib/serverutils';

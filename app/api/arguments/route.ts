@@ -1,39 +1,5 @@
 // // app/api/arguments/route.ts
-// import { NextRequest, NextResponse } from 'next/server';
-// import { prisma } from '@/lib/prismaclient';
-// import { assertCreateArgumentLegality } from 'packages/aif-core/src/guards';
 
-// export async function POST(req: NextRequest) {
-//   const body = await req.json().catch(()=> ({}));
-//   assertCreateArgumentLegality(body);
-
-//   const { deliberationId, authorId, conclusionClaimId, premiseClaimIds, schemeId, implicitWarrant, text } = body;
-
-//   const created = await prisma.$transaction(async (tx) => {
-//     // Ensure claims exist
-//     const [conc, prems] = await Promise.all([
-//       tx.claim.findUniqueOrThrow({ where: { id: conclusionClaimId }, select: { id: true } }),
-//       tx.claim.findMany({ where: { id: { in: premiseClaimIds } }, select: { id: true } }),
-//     ]);
-//     if (prems.length !== premiseClaimIds.length) throw new Error("One or more premiseClaimIds not found");
-
-//     const arg = await tx.argument.create({
-//       data: {
-//         deliberationId, authorId, text: text ?? "",
-//         schemeId: schemeId ?? null,
-//         conclusionClaimId: conc.id,
-//         implicitWarrant: implicitWarrant ?? null,
-//       },
-//     });
-//     await tx.argumentPremise.createMany({
-//       data: premiseClaimIds.map((cid: string) => ({ argumentId: arg.id, claimId: cid, isImplicit: false })),
-//       skipDuplicates: true
-//     });
-//     return arg;
-//   });
-
-//   return NextResponse.json({ ok: true, argumentId: created.id }, { status: 201 });
-// }
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
 // import { getServerSession } from 'next-auth'; // if you use NextAuth
@@ -41,17 +7,73 @@ import { getUserFromCookies } from '@/lib/serverutils';
 import { TargetType } from '@prisma/client';
 const NO_STORE = { headers: { 'Cache-Control': 'no-store' } } as const;
 
+type SlotValidators = Record<string, { expects?: string; required?: boolean }>;
+type SlotsPayload   = Record<string, string>; // role -> claimId
+
+async function validateSlotsAgainstScheme(params: {
+  tx: typeof prisma;
+  schemeId: string | null | undefined;
+  slots: SlotsPayload | undefined;
+}) {
+  const { tx, schemeId, slots } = params;
+  if (!schemeId) return; // no scheme → nothing to validate
+
+  const sc = await tx.argumentScheme.findUnique({ where: { id: schemeId }, select: { validators: true, key: true } });
+  const v: SlotValidators | undefined = (sc?.validators as any)?.slots;
+  if (!v) return;
+
+  // 1) required slots present?
+  const missing: string[] = [];
+  for (const [role, rule] of Object.entries(v)) {
+    if (rule?.required && (!slots || !slots[role])) {
+      missing.push(role);
+    }
+  }
+  if (missing.length) {
+    throw new Error(`Missing required scheme slots for ${sc?.key}: ${missing.join(', ')}`);
+  }
+
+  // 2) type check (if claimType column exists)
+  if (!slots || !Object.keys(slots).length) return;
+
+  const slotClaimIds = Object.values(slots);
+  const rows = await tx.claim.findMany({
+    where: { id: { in: slotClaimIds } },
+    select: { id: true }, // keep minimal; we may not have claimType yet
+  }) as Array<{ id: string; claimType?: string|null }>; // tolerate absence
+
+  const byId = new Map(rows.map(r => [r.id, r as any]));
+  const typeViolations: string[] = [];
+
+  for (const [role, claimId] of Object.entries(slots)) {
+    const expects = v[role]?.expects;
+    if (!expects) continue;
+    const row = byId.get(claimId);
+    const claimType = row?.claimType; // may be undefined if column not present
+    if (claimType && expects && claimType !== expects) {
+      typeViolations.push(`${role}: expected ${expects}, got ${claimType}`);
+    }
+  }
+
+  if (typeViolations.length) {
+    throw new Error(`Scheme slot type mismatch: ${typeViolations.join('; ')}`);
+  }
+}
+
+
+
 export async function POST(req: NextRequest) {
   const b = await req.json().catch(()=> ({}));
-  let { deliberationId, authorId, conclusionClaimId, premiseClaimIds, schemeId, implicitWarrant, text } = b ?? {};
+  
+  const { deliberationId, authorId, conclusionClaimId, premiseClaimIds, premises, implicitWarrant, text } = b ?? {};
   const user = await getUserFromCookies();
   if (!user) return null;
 
-  // Allow 'current' or empty → resolve from session
-  if (!authorId || authorId === 'current') {
-    // const session = await getServerSession(authOptions);
-    authorId = user.userId;
-  }
+  // // Allow 'current' or empty → resolve from session
+  // if (!authorId || authorId === 'current') {
+  //   // const session = await getServerSession(authOptions);
+  //   authorId = user.userId;
+  // }
     
 // app/api/arguments/route.ts (POST) — add a friendlier error
 if (!Array.isArray(premiseClaimIds) || premiseClaimIds.length === 0) {
@@ -64,6 +86,11 @@ if (!Array.isArray(premiseClaimIds) || premiseClaimIds.length === 0) {
   if (!deliberationId || !authorId || !conclusionClaimId || !Array.isArray(premiseClaimIds) || premiseClaimIds.length === 0) {
     return NextResponse.json({ ok:false, error:'Invalid payload' }, { status:400, ...NO_STORE });
   }
+  // const slots = b?.slots;
+const { schemeId, slots } = b; // assuming clients may send a role->claimId map when using a scheme
+
+  await validateSlotsAgainstScheme({ tx: prisma, schemeId, slots });
+
 
   const created = await prisma.$transaction(async (tx) => {
     // Optional: assert the claims exist to avoid foreign key errors
@@ -76,13 +103,18 @@ if (!Array.isArray(premiseClaimIds) || premiseClaimIds.length === 0) {
     const a = await tx.argument.create({
       data: { deliberationId, authorId, conclusionClaimId, schemeId: schemeId ?? null, implicitWarrant: implicitWarrant ?? null, text: text ?? '' }
     });
-    await tx.argumentPremise.createMany({
-      data: premiseClaimIds.map((cid:string) => ({ argumentId: a.id, claimId: cid, isImplicit:false })), skipDuplicates:true
-    });
+   const premData =
+      Array.isArray(premises) && premises.length
+        ? premises.map((p:any) => ({ argumentId: a.id, claimId: p.claimId, groupKey: p.groupKey ?? null, isImplicit:false }))
+        : (premiseClaimIds ?? []).map((cid:string) => ({ argumentId: a.id, claimId: cid, groupKey: null, isImplicit:false }));
+    await tx.argumentPremise.createMany({ data: premData, skipDuplicates:true });
     return a.id;
   });
 
   const argId = created;
+
+  // await validateSlotsAgainstScheme({ tx: prisma, schemeId, slots });
+
 
 // Seed CQ rows based on the scheme definition (if any)
 try {

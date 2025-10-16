@@ -48,6 +48,8 @@ async function togglePin(block:any, env:any) {
           out[i] = b.pinnedJson;
           return;
         }
+
+        
         // Structured kinds → push valid items; text/image/link are rendered locally
         if (b.type === 'claim' && typeof d.id === 'string' && d.id.length >= 6) {
           items.push({ kind:'claim', id:d.id, lens:d.lens ?? 'belpl', roomId:d.roomId });
@@ -61,7 +63,16 @@ async function togglePin(block:any, env:any) {
         } else if (b.type === 'room_summary' && typeof d.id === 'string' && d.id.length >= 6) {
           items.push({ kind:'room_summary', id:d.id, lens:d.lens ?? 'top_claims', limit: d.limit ?? 5 });
           mapIdx.push(i);
-        } else if (b.type === 'transport' && typeof d.fromId === 'string' && typeof d.toId === 'string'
+      
+        } 
+          // NEW
+  else if (b.type === 'theory_work' && typeof d.workId === 'string') {
+    items.push({ kind:'theory_work', id:d.workId, lens: d.lens ?? 'summary' } as any);
+    mapIdx.push(i);
+    return;
+  }
+
+        else if (b.type === 'transport' && typeof d.fromId === 'string' && typeof d.toId === 'string'
                     && d.fromId.length >= 6 && d.toId.length >= 6) {
           items.push({ kind:'transport', fromId:d.fromId, toId:d.toId, lens:d.lens ?? 'map' });
           mapIdx.push(i);

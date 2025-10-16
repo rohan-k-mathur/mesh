@@ -734,6 +734,271 @@ scroll-behavior: smooth;
   bottom: 0;
 }
 
+
+
+
+
+
+/* Subtle page background gradients */
+.kb-bg-gradient {
+  background: linear-gradient(
+    135deg,
+    rgba(238, 242, 255, 0.3) 0%,
+    rgba(255, 255, 255, 1) 50%,
+    rgba(255, 228, 230, 0.3) 100%
+  );
+  min-height: 100vh;
+}
+
+/* Enhanced postcard for KB items - builds on existing .postcard */
+.kb-card {
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.95),
+    rgba(249, 250, 255, 0.9)
+  );
+  box-shadow: 
+    inset 17px 17px 49px rgba(223, 223, 235, 0.25),
+    inset -17px -17px 49px rgba(254, 205, 211, 0.3),
+    0 8px 32px rgba(148, 163, 184, 0.08);
+  border: 0.5px solid rgba(209, 198, 231, 0.6);
+  backdrop-filter: blur(8px) saturate(1.4);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.kb-card:hover {
+  box-shadow: 
+    inset 17px 17px 49px rgba(223, 223, 235, 0.3),
+    inset -17px -17px 49px rgba(254, 205, 211, 0.35),
+    0 12px 48px rgba(148, 163, 184, 0.12);
+  transform: translateY(-2px);
+}
+
+/* Empty state styling */
+.kb-empty-state {
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.85),
+    rgba(245, 247, 255, 0.75)
+  );
+  border: 1px dashed rgba(165, 180, 252, 0.35);
+}
+
+/* Status badge variants */
+.kb-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  backdrop-filter: blur(4px);
+}
+
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* Backdrop fade */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Pulse animation for badges */
+@keyframes pulse-subtle {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.kb-badge--draft {
+  background: rgba(226, 232, 240, 0.5);
+  color: rgb(71, 85, 105);
+  border: 0.5px solid rgba(148, 163, 184, 0.3);
+}
+
+.kb-badge--published {
+  background: rgba(220, 252, 231, 0.5);
+  color: rgb(22, 101, 52);
+  border: 0.5px solid rgba(134, 239, 172, 0.4);
+}
+
+.kb-badge--archived {
+  background: rgba(254, 243, 199, 0.5);
+  color: rgb(120, 53, 15);
+  border: 0.5px solid rgba(251, 191, 36, 0.3);
+}
+
+/* Refined loading spinner */
+.kb-spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(129, 140, 248, 0.2);
+  border-top-color: rgb(129, 140, 248);
+  border-radius: 50%;
+  animation: kb-spin 0.6s linear infinite;
+}
+
+@keyframes kb-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Smooth page transitions */
+.kb-fade-in {
+  animation: kb-fadeIn 0.3s ease-out;
+}
+
+@keyframes kb-fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Grid item stagger effect */
+.kb-grid-item {
+  animation: kb-slideUp 0.4s ease-out backwards;
+}
+
+.kb-grid-item:nth-child(1) { animation-delay: 0.05s; }
+.kb-grid-item:nth-child(2) { animation-delay: 0.1s; }
+.kb-grid-item:nth-child(3) { animation-delay: 0.15s; }
+.kb-grid-item:nth-child(4) { animation-delay: 0.2s; }
+.kb-grid-item:nth-child(5) { animation-delay: 0.25s; }
+.kb-grid-item:nth-child(6) { animation-delay: 0.3s; }
+
+@keyframes kb-slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Subtle focus states for accessibility */
+.kb-focus-ring:focus-visible {
+  outline: 2px solid rgba(129, 140, 248, 0.4);
+  outline-offset: 2px;
+  border-radius: 10px;
+}
+
+/* Header gradient text */
+.kb-header-text {
+  background: linear-gradient(
+    135deg,
+    rgb(71, 85, 105) 0%,
+    rgb(100, 116, 139) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Metadata text styling */
+.kb-meta-text {
+  color: rgb(100, 116, 139);
+  font-size: 11px;
+  letter-spacing: 0.01em;
+  font-weight: 450;
+}
+
+/* Divider with gradient */
+.kb-divider {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    rgba(203, 213, 225, 0) 0%,
+    rgba(203, 213, 225, 0.5) 50%,
+    rgba(203, 213, 225, 0) 100%
+  );
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .kb-bg-gradient {
+    background: linear-gradient(
+      135deg,
+      rgba(15, 23, 42, 1) 0%,
+      rgba(30, 41, 59, 1) 50%,
+      rgba(51, 65, 85, 1) 100%
+    );
+  }
+
+  .kb-card {
+    background: linear-gradient(
+      145deg,
+      rgba(30, 41, 59, 0.95),
+      rgba(51, 65, 85, 0.9)
+    );
+    box-shadow: 
+      inset 17px 17px 49px rgba(0, 0, 0, 0.2),
+      inset -17px -17px 49px rgba(148, 163, 184, 0.05),
+      0 8px 32px rgba(0, 0, 0, 0.3);
+  }
+
+  .kb-header-text {
+    background: linear-gradient(
+      135deg,
+      rgb(241, 245, 249) 0%,
+      rgb(203, 213, 225) 100%
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .kb-fade-in,
+  .kb-grid-item,
+  .kb-card {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+
+
+
+
+
 label,
 textarea {
   font-size: 0.75rem; /* 12px */

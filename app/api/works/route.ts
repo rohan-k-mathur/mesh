@@ -46,11 +46,15 @@ export async function GET(req: NextRequest) {
 
 
   
-  const works = await prisma.theoryWork.findMany({
-    where,
-    select: { id:true, title:true, theoryType:true, standardOutput:true, authorId:true, createdAt:true },
-    orderBy: { createdAt: 'desc' },
-  });
+const works = await prisma.theoryWork.findMany({
+  where,
+  select: {
+    id: true, title: true, slug: true,
+    theoryType: true, standardOutput: true, authorId: true,
+    status: true, visibility: true, publishedAt: true, createdAt: true
+  },
+  orderBy: { createdAt: 'desc' },
+});
 
   if (!withIntegrity || !works.length) return NextResponse.json({ ok:true, works });
 

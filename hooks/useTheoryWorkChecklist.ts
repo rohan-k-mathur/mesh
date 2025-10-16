@@ -1,65 +1,53 @@
-// hooks/useTheoryWorkChecklist.ts
+// hooks/useTheoryWorkChecklist.ts  (new or replace)
 'use client';
+import * as React from 'react';
 
-import useSWR from 'swr';
+type IntegrityRes = {
+  ok: true;
+  type: 'DN'|'IH'|'TC'|'OP';
+  completion: number;
+  checklist: { key:string; label:string; ok:boolean }[];
+  has: any;
+  structureOk: boolean;
+  adequacyOk: boolean;
+  valid: boolean;
+};
 
-const fetcher = (u: string) => fetch(u, { cache: 'no-store' }).then(r => {
-  if (!r.ok) throw new Error(`Checklist fetch failed: ${r.status}`);
-  return r.json();
-});
+export function useTheoryWorkChecklist(workId: string) {
+  const [data, setData] = React.useState<any>(null);
+  const [isLoading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
 
-export type WorkStatus = 'DRAFT'|'ACTIVE'|'PUBLISHED'|'ARCHIVED';
-export type TheoryType = 'DN'|'IH'|'TC'|'OP';
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true); setError(null);
+      try {
+        const [wRes, integRes] = await Promise.all([
+          fetch(`/api/works/${workId}`, { cache: 'no-store' }).then(r => r.json()),
+          fetch(`/api/works/${workId}/integrity`, { cache: 'no-store' }).then(r => r.json()),
+        ]);
+        if (!cancelled) {
+          const integ = integRes as IntegrityRes;
+          const open = (integ?.checklist ?? []).filter(i => !i.ok).map(i => i.label);
+          setData({
+            work: { ...(wRes?.work ?? {}), integrityValid: integ?.valid },
+            integrity: integ,
+            claims: { count: undefined, cq: { completeness: 0 } }, // decoupled default
+            dialogue: {}, // decoupled default
+          });
+          setLoading(false);
+        }
+      } catch (e:any) {
+        if (!cancelled) { setError(e?.message || 'Failed'); setLoading(false); }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [workId]);
 
-export type Stat = { required: number; filled: number; open: string[] };
+  const structureProgress = data?.integrity?.completion ?? 0;
+  const activeOpen = (data?.integrity?.checklist ?? []).filter((i:any) => !i.ok).map((i:any) => i.label);
+  const cqProgress = data?.claims?.cq?.completeness ?? 0;
 
-export interface ChecklistResponse {
-  work: { id: string; title: string; theoryType: TheoryType; status: WorkStatus };
-  dn: Stat; ih: Stat; tc: Stat; op: Stat;
-  theses: { dn: string[]; ih: string[]; tc: string[]; op: string[] };
-  claims: {
-    count: number;
-    byRole: Record<string, number>;
-    cq: {
-      required: number;
-      satisfied: number;
-      completeness: number; // 0..1
-      openByScheme: { schemeKey: string; required: number; satisfied: number; open: string[] }[];
-    };
-    evidence: { count: number };
-    // Optional: server may later include ids sorted by CQ openness
-    ids?: string[];
-  };
-  dialogue?: {
-    hasClosableLoci?: boolean;
-    legalMoves?: { kind: string; force?: string; relevance?: string; targetType?: string; targetId?: string }[];
-    sampleTargetId?: string; // optional helper the API may return
-  };
-  publishable: boolean;
-}
-
-export function useTheoryWorkChecklist(id?: string) {
-  const key = id ? `/api/theory-works/${id}/checklist` : null;
-  const { data, error, isLoading, mutate } = useSWR<ChecklistResponse>(key, fetcher);
-
-  const theory = data?.work?.theoryType;
-  const activeStat =
-    theory === 'DN' ? data?.dn :
-    theory === 'IH' ? data?.ih :
-    theory === 'TC' ? data?.tc :
-    theory === 'OP' ? data?.op : undefined;
-
-  const structureProgress = activeStat
-    ? (activeStat.required > 0 ? activeStat.filled / activeStat.required : 0)
-    : 0;
-
-  return {
-    data,
-    error,
-    isLoading,
-    mutate,
-    structureProgress,
-    activeOpen: activeStat?.open ?? [],
-    cqProgress: data?.claims?.cq?.completeness ?? 0,
-  };
+  return { data, isLoading, error, structureProgress, activeOpen, cqProgress };
 }

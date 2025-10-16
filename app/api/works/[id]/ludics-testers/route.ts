@@ -9,17 +9,17 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
              where: { id: params.id },
              include: {
                // keep whatever 1:1s you actually use here:
-               ih: true, // if you added WorkIhProject
-               tc: true,
+               ihProject: true, // if you added WorkIhProject
+               tcProject: true,
                practicalJustification: true,
-               hermeneutic: true,
-               pascal: true,
-               WorkDNStructure: true,
-               WorkIHTheses: true,
-               WorkTCTheses: true,
-               WorkOPTheses: true,
-               dn: true,
-               op: true,
+               hermeneuticProject: true,
+               pascalModel: true,
+               dnStructure: true,
+               ihTheses: true,
+               tcTheses: true,
+               opTheses: true,
+               dnProject: true,
+               opProject: true,
              },
            });
   if (!w) return NextResponse.json({ ok:false, testers: [] });
@@ -27,7 +27,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   const testers: any[] = [];
 
   // If IH.objectivity exists → suggest a timeout/draw probe at a chosen locus (UI will choose)
-  if (w.ih?.objectivity) {
+  if (w.ihProject?.objectivity) {
     testers.push({ kind: 'timeout-draw', atPath: '' , explain: 'Probe objectivity: draw unless justified' });
   }
 

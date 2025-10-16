@@ -72,30 +72,52 @@ const acceptMove: Move = {
   const [inlineWhy, setInlineWhy] = React.useState(false);
   const [whyNote, setWhyNote] = React.useState("");
 
-  async function postMove(m: Move, extraPayload: any = {}) {
-    if (busy || m.disabled) return;
-    setBusy(true);
-    try {
-      const postTargetType = m.postAs?.targetType ?? targetType;
-      const postTargetId   = m.postAs?.targetId   ?? targetId;
-      const body = {
-        deliberationId,
-        targetType: postTargetType,
-        targetId: postTargetId,
-        kind: m.kind,
-        payload: { locusPath, ...(m.payload ?? {}), ...(extraPayload ?? {}) },
-        autoCompile: true, autoStep: true, phase: "neutral" as const,
-      };
-      const r = await fetch("/api/dialogue/move", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      onPosted?.();
-      mutate();
-      window.dispatchEvent(new CustomEvent("dialogue:moves:refresh", { detail: { deliberationId } } as any));
-    } finally {
-      setBusy(false);
-    }
-  }
 
+// NEW: post moves to the AIF dialogue route so L-nodes are persisted consistently
+async function postMove(m: Move, extraPayload: any = {}) {
+  if (busy || m.disabled) return;
+  setBusy(true);
+  try {
+    const postTargetType = m.postAs?.targetType ?? targetType;
+    const postTargetId   = m.postAs?.targetId   ?? targetId;
+
+    // Map Move.kind to AIF+ "type" and pick a light illocution label
+    const type = m.kind; // 'WHY' | 'ASSERT' | 'GROUNDS' | ...
+    const illocution =
+      type === 'WHY'    ? 'Question' :
+      type === 'ASSERT' ? 'Statement' :
+      type === 'GROUNDS'? 'Argue' : type;
+
+    const body: any = {
+      deliberationId,
+      targetType: postTargetType,
+      targetId: postTargetId,
+      type,
+      illocution,
+      replyToMoveId: (extraPayload?.replyToMoveId ?? m.payload?.replyToMoveId) || null,
+      payload: { locusPath, ...(m.payload ?? {}), ...(extraPayload ?? {}) },
+    };
+
+    // NOTE: GROUNDS via NLCommitPopover continues to handle its own posting.
+    if (type === 'GROUNDS') {
+      setOpenCommit(m); // opens your existing NLCommitPopover flow
+      return;
+    }
+
+    const r = await fetch('/api/dialogue/move-aif', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+
+    onPosted?.();
+    mutate();
+    window.dispatchEvent(new CustomEvent('dialogue:moves:refresh', { detail: { deliberationId } } as any));
+  } finally {
+    setBusy(false);
+  }
+}
   function Pill({ tone, children }:{ tone:"attack"|"resolve"|"more"; children: React.ReactNode }) {
     const base = "px-2 py-1 rounded-full text-[11px] border";
     const cls = tone==="attack"

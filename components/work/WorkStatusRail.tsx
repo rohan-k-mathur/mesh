@@ -36,11 +36,13 @@ export default function WorkStatusRail({
   deliberationId,
   className,
   onPublished,
+  decoupled=true,
 }: {
   workId: string;
   deliberationId: string;
   className?: string;
   onPublished?: (snapshotId: string) => void;
+  decoupled?: boolean;
 }) {
   const router = useRouter();
   const { data, isLoading, error, structureProgress, activeOpen, cqProgress } =
@@ -48,12 +50,21 @@ export default function WorkStatusRail({
 
   const [publishing, setPublishing] = React.useState(false);
   const [showDetails, setShowDetails] = React.useState(false);
-  const publishable = !!data?.publishable;
+  
+  // DECOUPLING LOGIC:
+  // Decoupled mode (works live in KB, not inside debate):
+  //   - Gate publishability on structure completeness + adequacy/MCDA (for IH/TC/OP)
+  //   - CQs become optional, soft checks with link-out to dialogue
+  // Coupled mode (traditional debate-embedded works):
+  //   - Gate on both structure and CQ completion (hard requirement)
+  const publishable = decoupled 
+    ? structureProgress >= 1 // && !!data?.work?.integrityValid // structure + integrity for decoupled
+    : !!data?.publishable; // original behavior: requires structure + CQs
 
   async function publish(to: 'sheet'|'kb'|'aif' = 'sheet') {
     try {
       setPublishing(true);
-      const res = await fetch(`/api/theory-works/${workId}/publish`, {
+      const res = await fetch(`/api/works/${workId}/publish`, {
         method: 'POST',
         headers: { 'content-type':'application/json' },
         body: JSON.stringify({ to })
@@ -102,6 +113,8 @@ export default function WorkStatusRail({
 
   const theory = data?.work?.theoryType ?? 'DN';
   const openList = activeOpen.slice(0, 3);
+  const hasClaims = (data?.claims?.count ?? 0) > 0;
+  const hasOpenCQs = (data?.claims?.cq?.openByScheme?.length ?? 0) > 0;
 
   return (
     <aside className={['rounded-lg max-w-[500px] w-full border bg-white shadow-sm', className].filter(Boolean).join(' ')}>
@@ -148,79 +161,120 @@ export default function WorkStatusRail({
 
         <div className="h-px bg-neutral-200" />
 
-        {/* Claims & CQs */}
-        <div className="space-y-3">
-          <div className="flex items-baseline justify-between gap-3">
-            <div className="flex-1 min-w-0">
-              <h4 className="text-sm font-semibold text-neutral-900">Claims & CQs</h4>
-              {typeof data?.claims?.count === 'number' && (
-                <p className="text-xs text-neutral-500 mt-1">
-                  {data.claims.count} claim{data.claims.count !== 1 ? 's' : ''}
+        {/* Claims & CQs Section - Conditional based on decoupled mode */}
+        {decoupled ? (
+          // DECOUPLED MODE: Soft check with link-out
+          <div className="space-y-3">
+            <div className="flex items-baseline justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <h4 className="text-sm font-semibold text-neutral-900">Claims</h4>
+                {typeof data?.claims?.count === 'number' && (
+                  <p className="text-xs text-neutral-500 mt-1">
+                    {data.claims.count} claim{data.claims.count !== 1 ? 's' : ''}
+                  </p>
+                )}
+              </div>
+            </div>
+            
+            {/* Optional CQ status indicator */}
+            {hasClaims && hasOpenCQs && (
+              <div className="mt-3 p-3 rounded-lg bg-blue-50 border border-blue-200">
+                <p className="text-xs text-blue-800 leading-relaxed mb-2">
+                  <span className="font-semibold">Optional:</span> Critical questions can be addressed in the dialogue panel to stress-test your claims.
                 </p>
-              )}
-            </div>
-            <span className="text-lg font-bold text-neutral-900 tabular-nums">
-              {Math.round((cqProgress ?? 0) * 100)}%
-            </span>
-          </div>
-          <ProgressBar value={cqProgress ?? 0} color={cqProgress >= 1 ? 'emerald' : 'amber'} />
-          
-          {/* CQ Details (Collapsible) */}
-          {data?.claims?.cq?.openByScheme?.length > 0 && (
-            <div className="mt-3">
-              <button
-                onClick={() => setShowDetails(!showDetails)}
-                className="w-full text-left px-3 py-2 rounded-md hover:bg-neutral-50 transition-colors"
-              >
-                <span className="text-xs font-medium text-neutral-600">
-                  {showDetails ? '− Hide' : '+ Show'} CQ details
-                </span>
-              </button>
-              {showDetails && (
-                <div className="mt-2 space-y-2 px-3 py-2 bg-neutral-50 rounded-md">
-                  {data.claims.cq.openByScheme.slice(0, 3).map(s => (
-                    <div key={s.schemeKey} className="flex justify-between text-xs">
-                      <span className="font-medium text-neutral-700">{s.schemeKey}:</span>
-                      <span className="text-neutral-600">
-                        {s.satisfied}/{s.required}
-                        {s.open.length > 0 && (
-                          <span className="ml-1.5 text-amber-600">({s.open.length} open)</span>
-                        )}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+                <button
+                  onClick={() => router.push(`/deepdive/${deliberationId}#dialogue`)}
+                  className="text-xs font-medium text-blue-700 hover:text-blue-900 underline"
+                >
+                  → Address in dialogue panel
+                </button>
+              </div>
+            )}
 
-          {/* Quick Actions */}
-          <div className="grid grid-cols-3 gap-2 mt-4">
+            {/* Simple dialogue link button */}
             <button
-              className="px-3 py-2 text-xs font-medium rounded-md border border-neutral-200 bg-white hover:bg-neutral-50 disabled:opacity-50 transition-colors"
-              onClick={() => postMove('WHY')}
-              title="Ask for grounds (attack)"
-              disabled={!data}
-            >
-              WHY
-            </button>
-            <button
-              className="px-3 py-2 text-xs font-medium rounded-md border border-neutral-200 bg-white hover:bg-neutral-50 disabled:opacity-50 transition-colors"
-              onClick={() => postMove('GROUNDS')}
-              title="Provide grounds (defend)"
-              disabled={!data}
-            >
-              GROUNDS
-            </button>
-            <button
-              className="px-3 py-2 text-xs font-medium rounded-md border border-neutral-200 bg-white hover:bg-neutral-50 transition-colors"
+              className="w-full px-3 py-2 text-xs font-medium rounded-md border border-neutral-200 bg-white hover:bg-neutral-50 transition-colors"
               onClick={() => router.push(`/deepdive/${deliberationId}#dialogue`)}
-              title="Open dialogue panel"
+              title="Open dialogue panel to discuss claims"
             >
-              Dialogue
+              Open Dialogue Panel
             </button>
           </div>
-        </div>
+        ) : (
+          // COUPLED MODE: Full CQ workflow with hard requirements
+          <div className="space-y-3">
+            <div className="flex items-baseline justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <h4 className="text-sm font-semibold text-neutral-900">Claims & CQs</h4>
+                {typeof data?.claims?.count === 'number' && (
+                  <p className="text-xs text-neutral-500 mt-1">
+                    {data.claims.count} claim{data.claims.count !== 1 ? 's' : ''}
+                  </p>
+                )}
+              </div>
+              <span className="text-lg font-bold text-neutral-900 tabular-nums">
+                {Math.round((cqProgress ?? 0) * 100)}%
+              </span>
+            </div>
+            <ProgressBar value={cqProgress ?? 0} color={cqProgress >= 1 ? 'emerald' : 'amber'} />
+            
+            {/* CQ Details (Collapsible) */}
+            {hasOpenCQs && (
+              <div className="mt-3">
+                <button
+                  onClick={() => setShowDetails(!showDetails)}
+                  className="w-full text-left px-3 py-2 rounded-md hover:bg-neutral-50 transition-colors"
+                >
+                  <span className="text-xs font-medium text-neutral-600">
+                    {showDetails ? '− Hide' : '+ Show'} CQ details
+                  </span>
+                </button>
+                {showDetails && (
+                  <div className="mt-2 space-y-2 px-3 py-2 bg-neutral-50 rounded-md">
+                    {data?.claims?.cq?.openByScheme?.slice(0, 3).map(s => (
+                      <div key={s.schemeKey} className="flex justify-between text-xs">
+                        <span className="font-medium text-neutral-700">{s.schemeKey}:</span>
+                        <span className="text-neutral-600">
+                          {s.satisfied}/{s.required}
+                          {s.open.length > 0 && (
+                            <span className="ml-1.5 text-amber-600">({s.open.length} open)</span>
+                          )}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Quick Actions */}
+            <div className="grid grid-cols-3 gap-2 mt-4">
+              <button
+                className="px-3 py-2 text-xs font-medium rounded-md border border-neutral-200 bg-white hover:bg-neutral-50 disabled:opacity-50 transition-colors"
+                onClick={() => postMove('WHY')}
+                title="Ask for grounds (attack)"
+                disabled={!data}
+              >
+                WHY
+              </button>
+              <button
+                className="px-3 py-2 text-xs font-medium rounded-md border border-neutral-200 bg-white hover:bg-neutral-50 disabled:opacity-50 transition-colors"
+                onClick={() => postMove('GROUNDS')}
+                title="Provide grounds (defend)"
+                disabled={!data}
+              >
+                GROUNDS
+              </button>
+              <button
+                className="px-3 py-2 text-xs font-medium rounded-md border border-neutral-200 bg-white hover:bg-neutral-50 transition-colors"
+                onClick={() => router.push(`/deepdive/${deliberationId}#dialogue`)}
+                title="Open dialogue panel"
+              >
+                Dialogue
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="h-px bg-neutral-200" />
 
@@ -252,8 +306,8 @@ export default function WorkStatusRail({
             </div>
           </div>
 
-          {/* Legal Moves */}
-          {data?.dialogue?.legalMoves?.length > 0 && (
+          {/* Legal Moves - Only show in coupled mode */}
+          {!decoupled && data?.dialogue?.legalMoves?.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-1.5">
               {data.dialogue.legalMoves.slice(0, 6).map((m, i) => (
                 <span
@@ -282,22 +336,43 @@ export default function WorkStatusRail({
         <div className="space-y-3">
           <div className="p-4 rounded-lg bg-blue-50/50 border border-blue-200">
             <p className="text-xs text-neutral-700 leading-relaxed">
-              Publishing sends claims and edges to the debate and stores a snapshot for review.
+              {decoupled 
+                ? 'Publishing creates a KB page from your work. Structure and adequacy checks must be complete.'
+                : 'Publishing sends claims and edges to the debate and stores a snapshot for review.'
+              }
             </p>
           </div>
           
           <button
             className="w-full px-4 py-3 rounded-lg text-sm font-semibold bg-neutral-900 text-white hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            onClick={() => publish('sheet')}
+            onClick={async () => {
+              const spaceId = prompt('Publish to which KB spaceId?');
+              if (!spaceId) return;
+              const r = await fetch(`/api/works/${workId}/publish`, {
+                method: 'POST',
+                headers: { 'content-type':'application/json' },
+                body: JSON.stringify({ spaceId, display: 'summary', live: false }) // pinned snapshot
+              });
+              const j = await r.json();
+              if (!r.ok) return alert(j?.error || 'Publish failed');
+              location.href = `/kb/pages/${j.pageId}/view`;
+            }}
             disabled={!publishable || publishing}
-            title={publishable ? 'Publish to DebateSheet' : 'Complete required fields & CQs to enable'}
+            title={
+              decoupled
+                ? (publishable ? 'Publish to Knowledge Base' : 'Complete structure and adequacy checks to enable')
+                : (publishable ? 'Publish to debate sheet' : 'Complete required fields & CQs to enable')
+            }
           >
-            {publishing ? 'Publishing…' : 'Publish to DebateSheet'}
+            {publishing ? 'Publishing…' : 'Publish'}
           </button>
           
           {!publishable && (
             <p className="text-xs text-amber-700 text-center leading-relaxed">
-              Complete all required fields to enable publishing
+              {decoupled
+                ? 'Complete structure and adequacy checks to enable publishing'
+                : 'Complete all required fields and CQs to enable publishing'
+              }
             </p>
           )}
         </div>

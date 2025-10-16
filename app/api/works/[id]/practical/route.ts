@@ -135,6 +135,19 @@ export async function PUT(
 
   const result = computeMcda(criteria, options, scores);
 
+  const adequacy = {
+  completeness: Object.keys(scores).length === options.length,
+  dominance: (() => {
+    // naive Pareto dominance check
+    const critIds = criteria.map(c => c.id);
+    const totalsArr = options.map(o => ({ id: o.id, t: result.totals[o.id] ?? 0 }));
+    const best = totalsArr.sort((a,b)=>b.t-a.t)[0];
+    const strictlyBetterThanAll = totalsArr.every(x => best.id === x.id || best.t > x.t);
+    return strictlyBetterThanAll ? 'strong' : 'none';
+  })(),
+  robustness: { sensitivityNotes: '' },
+};
+
   const saved = await prisma.workPracticalJustification.upsert({
     where: { workId },
     create: {
@@ -144,6 +157,7 @@ export async function PUT(
       options,
       scores,
       result,
+      adequacy,
     },
     update: {
       purpose,
@@ -151,6 +165,7 @@ export async function PUT(
       options,
       scores,
       result,
+      adequacy,
     },
   });
 

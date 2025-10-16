@@ -50,18 +50,24 @@ export async function GET(req: NextRequest) {
       createdAt: true,
       deliberationId: true,
       authorId: true,
+      slug: true,
+      status: true,
+      visibility: true,
+      publishedAt: true,
     },
   });
 
   const hasMore = rows.length > limit;
-  const page = rows.slice(0, limit).map(i => ({
-    id: i.id,
-    title: i.title ?? 'Untitled Work',
-    theoryType: i.theoryType as any,
-    createdAt: i.createdAt.toISOString(),
-    deliberationId: i.deliberationId ?? null,
-    authorId: i.authorId ?? null,
-  }));
+const page = rows.slice(0, limit).map(i => ({
+  id: i.id,
+  title: i.title ?? 'Untitled Work',
+  theoryType: i.theoryType as any,
+  createdAt: i.createdAt.toISOString(),
+  deliberationId: i.deliberationId ?? null,
+  authorId: i.authorId ?? null,
+  slug: i.slug,
+  status: i.status,
+}));
 
   const nextCursor = hasMore
     ? { createdAt: page[page.length - 1].createdAt, id: page[page.length - 1].id }

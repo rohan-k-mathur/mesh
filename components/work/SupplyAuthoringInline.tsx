@@ -14,13 +14,23 @@ export default function SupplyAuthoringInline({
   const [selectedFromClaimId, setSelectedFromClaimId] = React.useState<string>('');
   const [pending, setPending] = React.useState(false);
 
+  const [ihTcWorks, setIhTcWorks] = React.useState<Work[]>([]);
+
+
   React.useEffect(() => {
     if (!deliberationId) return; // ✅ guard
     (async () => {
       const res = await fetch(`/api/works?deliberationId=${encodeURIComponent(deliberationId)}`, { cache:'no-store' });
       const json = await res.json();
-      const dn = (json.works ?? []).filter((w:Work) => w.theoryType === 'DN');
-      setDnWorks(dn);
+      const works = (json.works ?? []);
+const dn = works.filter((w:Work) => w.theoryType === 'DN');
+const ihTc = works.filter((w:Work) => w.theoryType === 'IH' || w.theoryType === 'TC');
+
+      // const dn = (json.works ?? []).filter((w:Work) => w.theoryType === 'DN');
+setDnWorks(dn);
+// add a new state for ih/tc alternatives/evaluators
+setIhTcWorks(ihTc);
+
     })();
     (async () => {
       const res = await fetch(`/api/claims/search?deliberationId=${encodeURIComponent(deliberationId)}&q=`, { cache:'no-store' });
