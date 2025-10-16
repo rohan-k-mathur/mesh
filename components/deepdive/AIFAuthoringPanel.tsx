@@ -71,7 +71,7 @@ export function AIFAuthoringPanel({
   }
 
   return (
-    <div className="flex flex-1 h-[500px] bg-transparent backdrop-blur-md flex-col space-y-4 overflow-y-auto">
+    <div className="flex flex-1 h-[500px] bg-transparent backdrop-blur-md flex-col py-4 px-3 space-y-4 overflow-y-auto panel-edge rounded-xl">
 
       {/* Loading indicator for author */}
       {!user && !authorIdProp && (
@@ -101,7 +101,9 @@ export function AIFAuthoringPanel({
         <SchemeComposer
           deliberationId={deliberationId}
           authorId={effectiveAuthorId}
-          conclusionClaim={conclusion}
+  conclusionClaim={conclusion ?? {}}                 // allow empty at first
+            onChangeConclusion={(c) => setConclusion(c)}       // ✅ NEW
+
           attackContext={attackContext ?? null}         // ✅ pass scope to auto‑attach CA after publish
           onCreated={(id) => {
             // notify graph listeners

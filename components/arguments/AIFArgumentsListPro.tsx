@@ -1154,7 +1154,7 @@ export default function AIFArgumentsListPro({
 
   return (
 
-    <section aria-label="AIF arguments list" className="w-full rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col h-full">
+    <section aria-label="AIF arguments list" className="w-full rounded-xl border border-slate-200  bg-white panel-edge overflow-hidden flex flex-col h-full">
       <Controls
         schemes={schemes}
         schemeKey={schemeKey}
@@ -1238,7 +1238,7 @@ export default function AIFArgumentsListPro({
           }}
         />
       </div>
-        <Controls
+        {/* <Controls
           schemes={schemes}
           schemeKey={schemeKey}
           setSchemeKey={setSchemeKey}
@@ -1258,7 +1258,7 @@ export default function AIFArgumentsListPro({
               URL.revokeObjectURL(url);
             } catch (e) { console.error(e); }
           }}
-        />
+        /> */}
     </section>
 
   );

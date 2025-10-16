@@ -21,7 +21,8 @@ export type AttackContext =
 type Props = {
   deliberationId: string;
   authorId: string;
-  conclusionClaim: { id?: string; text?: string }; // ⬅️ allow missing id
+  conclusionClaim: { id?: string; text?: string } | null; // ⬅️ allow null to “clear”
+
   defaultSchemeKey?: string | null;
   attackContext?: AttackContext; // ✅ NEW
   onCreated?: (argumentId: string) => void;
@@ -30,7 +31,7 @@ type Props = {
     conclusion: { id: string; text: string };
     premises: { id: string; text: string }[];
   }) => void;
-  onChangeConclusion?: (c: { id: string; text?: string }) => void; // ⬅️ NEW
+  onChangeConclusion?: (c: { id?: string; text?: string } | null) => void; // ⬅️ accept null/partial
 };
 
 type Prem = { id: string; text: string };
@@ -88,14 +89,51 @@ export function SchemeComposer({
   );
   React.useEffect(() => {
     setConclusionDraft(conclusionClaim?.text ?? "");
-  }, [conclusionClaim?.text]);
+  }, [conclusionClaim?.id, conclusionClaim?.text]);
 
   const [premDraft, setPremDraft] = React.useState(""); // quick-add premise text
   const [pickerPremOpen, setPickerPremOpen] = React.useState(false);
   const [pickerConcOpen, setPickerConcOpen] = React.useState(false);
   const [editingConclusion, setEditingConclusion] = React.useState(false);
+  const [savingConclusion, setSavingConclusion] = React.useState(false);
 
+  async function saveConclusionNow() {
+    const draft = (conclusionDraft ?? "").trim();
+    if (!draft) return;
+    setSavingConclusion(true);
+    try {
+      const id = await createClaim({ deliberationId, authorId, text: draft });
+      onChangeConclusion?.({ id, text: draft });
+      setEditingConclusion(false);
+      window.dispatchEvent(
+        new CustomEvent("claims:changed", { detail: { deliberationId } })
+      );
+    } catch (e: any) {
+      setErr(e.message || "Failed to save conclusion");
+    } finally {
+      setSavingConclusion(false);
+    }
+  }
   const [pickerOpen, setPickerOpen] = React.useState(false);
+  const [currentConclusion, setCurrentConclusion] = React.useState<{
+    id?: string;
+    text?: string;
+  } | null>(conclusionClaim ?? null);
+  const [justPicked, setJustPicked] = React.useState(false);
+
+  // keep local in sync when parent prop changes
+  React.useEffect(() => {
+    setCurrentConclusion(conclusionClaim ?? null);
+  }, [conclusionClaim?.id, conclusionClaim?.text]);
+
+  // helper to set both local + parent
+  const setConclusion = React.useCallback(
+    (c: { id?: string; text?: string } | null) => {
+      setCurrentConclusion(c);
+      onChangeConclusion?.(c ?? null);
+    },
+    [onChangeConclusion]
+  );
 
   React.useEffect(() => {
     listSchemes()
@@ -110,9 +148,13 @@ export function SchemeComposer({
   // function removePremise(id: string) { setPremises(ps => ps.filter(p => p.id !== id)); }
 
   // allow: either an id or a non-empty text
+  // const hasConclusion =
+  //   Boolean(conclusionClaim?.id) ||
+  //   Boolean(conclusionDraft && conclusionDraft.trim().length > 0);
   const hasConclusion =
-    Boolean(conclusionClaim?.id) ||
-    Boolean(conclusionDraft && conclusionDraft.trim().length > 0);
+    Boolean(currentConclusion?.id) ||
+    Boolean((conclusionDraft ?? "").trim().length > 0);
+
   const canCreate = Boolean(authorId && hasConclusion && premises.length > 0);
 
   function removePremise(id: string) {
@@ -136,22 +178,22 @@ export function SchemeComposer({
   async function ensureConclusionId(): Promise<string> {
     const draft = (conclusionDraft ?? "").trim();
 
-    // If user typed something new, mint a new claim (even if an id is currently selected)
-    if (draft && draft !== (conclusionClaim?.text ?? "")) {
+    // If the user typed something new, mint it
+    if (draft && draft !== (currentConclusion?.text ?? "")) {
       const id = await createClaim({ deliberationId, authorId, text: draft });
-      onChangeConclusion?.({ id, text: draft });
+      setConclusion({ id, text: draft });
       return id;
     }
 
-    // Otherwise, use the selected id (or require text)
-    if (conclusionClaim?.id) return conclusionClaim.id;
+    if (currentConclusion?.id) return currentConclusion.id;
     if (draft) {
       const id = await createClaim({ deliberationId, authorId, text: draft });
-      onChangeConclusion?.({ id, text: draft });
+      setConclusion({ id, text: draft });
       return id;
     }
     throw new Error("Provide a conclusion.");
   }
+  const hasConclusionId = Boolean(currentConclusion?.id);
 
   // NEW: quick-add premise by typing
   async function addPremiseFromDraft() {
@@ -232,7 +274,7 @@ export function SchemeComposer({
         id,
         conclusion: {
           id: conclusionId,
-          text: (conclusionClaim.text ?? conclusionDraft) || conclusionId,
+          text: (conclusionClaim?.text ?? conclusionDraft) || conclusionId,
         },
         premises,
       });
@@ -290,7 +332,7 @@ export function SchemeComposer({
 
   return (
     <div className="bg-transparent space-y-4">
-      <div className="rounded-md border bg-transparent p-4 ">
+      <div className="rounded-xl border bg-transparent p-4 ">
         <div className="text-[14px] text-gray-500 ">
           {selected ? (
             <>
@@ -331,6 +373,8 @@ export function SchemeComposer({
             ) : null}
           </label>
 
+
+
           {/* ⇩ Conclusion: readable + change/pick control */}
           <label className="flex flex-col gap-1 md:col-span-2">
             <span className="text-sm text-gray-800">Conclusion</span>
@@ -349,6 +393,14 @@ export function SchemeComposer({
                 >
                   Pick existing
                 </button>
+                <button
+                  className="text-xs px-2 py-1 rounded-lg btnv2"
+                  disabled={!conclusionDraft.trim() || savingConclusion}
+                  onClick={saveConclusionNow}
+                  title="Save this text as a new claim"
+                >
+                  {savingConclusion ? "Saving…" : "Save as claim"}
+                </button>
                 {editingConclusion && (
                   <button
                     className="text-xs px-2 py-1 rounded-lg border"
@@ -360,24 +412,38 @@ export function SchemeComposer({
               </div>
             ) : (
               /* B) id present → show read-only row + actions */
-              <div className="flex items-center gap-2">
-                <div className="flex-1 min-w-0 border border-slate-500 rounded px-3 py-1 text-xs bg-white">
-                  {conclusionClaim.text ?? conclusionClaim.id}
-                </div>
+               <div className="flex items-center gap-2">
+    <div className="flex-1 min-w-0 border border-slate-500 rounded px-3 py-1 text-xs bg-white flex items-center justify-between">
+      <span className="truncate">
+        {currentConclusion ? (currentConclusion.text ?? currentConclusion.id) : ""}
+      </span>
+      {justPicked && (
+        <span className="ml-2 text-[11px] text-emerald-700">
+          Saved ✓
+        </span>
+      )}
+    </div>
+    <button className="text-xs px-2 py-1 rounded-lg btnv2--ghost" onClick={() => setPickerConcOpen(true)}>
+      Pick existing
+    </button>
+    <button
+      className="text-xs px-2 py-1 rounded-lg btnv2--ghost"
+      onClick={() => {
+        setEditingConclusion(true);
+        setConclusionDraft(currentConclusion?.text ?? '');
+      }}
+    >
+      Type new…
+    </button>
                 <button
-                  className="text-xs px-2 py-1 rounded-lg btnv2--ghost"
-                  onClick={() => setPickerConcOpen(true)}
-                >
-                  Pick existing
-                </button>
-                <button
-                  className="text-xs px-2 py-1 rounded-lg btnv2--ghost"
+                  className="text-xs px-2 py-1 rounded-lg border border-rose-200 text-rose-700 hover:bg-rose-50"
                   onClick={() => {
+                    setConclusion(null); // ← unset locally + parent
                     setEditingConclusion(true);
-                    setConclusionDraft(conclusionClaim.text ?? "");
+                    setConclusionDraft("");
                   }}
                 >
-                  Type new…
+                  Clear
                 </button>
               </div>
             )}
@@ -507,14 +573,14 @@ export function SchemeComposer({
         </>
       )} */}
 
-      {conclusionClaim?.id && (
+      {hasConclusionId && (
   <>
-    <ClaimConfidence deliberationId={deliberationId} claimId={conclusionClaim.id} mode="min" tau={0.7} />
+    <ClaimConfidence deliberationId={deliberationId} claimId={currentConclusion!.id!} mode="min" tau={0.7} />
     <div className={!argumentId ? "opacity-60 pointer-events-none" : ""}>
       <LegalMoveToolbarAIF
         deliberationId={deliberationId}
         targetType="claim"
-        targetId={conclusionClaim.id}
+        targetId={currentConclusion!.id!}
         onPosted={() => window.dispatchEvent(new CustomEvent('dialogue:moves:refresh', { detail:{ deliberationId } } as any))}
       />
       {!argumentId && <div className="text-xs text-slate-500 mt-1">Create the argument first to enable GROUNDS/CLOSE here.</div>}
@@ -538,9 +604,14 @@ export function SchemeComposer({
         open={pickerConcOpen}
         onClose={() => setPickerConcOpen(false)}
         onPick={(it) => {
-          onChangeConclusion?.({ id: it.id, text: it.label });
+          setConclusion({ id: it.id, text: it.label });
           setConclusionDraft(it.label || "");
+          setEditingConclusion(false); // switch to read-only row immediately
           setPickerConcOpen(false);
+
+          // micro-feedback chip
+          setJustPicked(true);
+          setTimeout(() => setJustPicked(false), 1200);
         }}
       />
       <SchemeComposerPicker
