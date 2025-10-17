@@ -678,6 +678,14 @@ text-align: left;
   border: 0.125rem solid rgb(233, 235, 255);
 }
 
+.panel-edge:hover,
+button.panel-edge:hover {
+  box-shadow: inset 1px 2px 12px rgba(220, 223, 238, 0.35),
+  inset -2px -1px 14px rgba(240, 234, 244, 0.35),
+    3px 3px 7px rgb(204, 199, 224,.35),
+-1px 2px 7px rgba(140, 90, 140, 0.35);
+}
+
 
 /* ---------- Inputs & Textareas ---------- */
 .inputv2,

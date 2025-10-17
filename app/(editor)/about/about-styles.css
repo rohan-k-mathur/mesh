@@ -462,20 +462,25 @@ position: relative;
 }
 
 .about-requirement:hover::before {
-  transform: scaleY(1);
+  transform: scaleY(0);
 }
 
 .about-requirement:hover {
-  background: linear-gradient(
+  /* background: linear-gradient(
     145deg,
     rgba(255, 255, 255, 0.95) 0%,
     rgba(238, 242, 255, 0.9) 100%
+  ); */
+    background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.9) 0%,
+    rgba(255, 250, 255, 0.85) 100%
   );
   border-color: rgba(var(--about-indigo-glow), 0.25);
   transform: translateX(4px);
   box-shadow: 
-    -2px 0 12px rgba(var(--about-indigo-glow), 0.1),
-    0 4px 16px rgba(148, 163, 184, 0.08);
+    -2px 0 12px rgba(var(--about-indigo-glow), 0.3),
+    0 4px 16px rgba(148, 163, 184, 0.38);
 }
 
 .about-requirement__current {
@@ -594,7 +599,7 @@ position: relative;
 
 .about-step-card__content {
   border-radius: 12px;
-  border-top: 1px solid rgba(var(--about-indigo-glow), 0.1);
+  border: 1px solid rgba(var(--about-indigo-glow), 0.1);
   background: linear-gradient(
     135deg,
     rgba(248, 250, 252, 0.6) 0%,

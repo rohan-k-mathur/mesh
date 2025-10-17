@@ -23,6 +23,8 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import '../about-styles.css'
+import { colorClasses } from '../details/page'
+import { foundationCategories } from '../details/page'
 
 export default function AboutPage() {
   const [expandedSteps, setExpandedSteps] = useState<Set<number>>(new Set())
@@ -40,13 +42,18 @@ export default function AboutPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-indigo-50/30 via-rose-50/30 to-slate-50 text-slate-900">
-      <TechnicalGrid />
-      <FloatingOrbs />
-      
+    <div className="min-h-screen  bg-gradient-to-b from-indigo-50/30 via-rose-50/30 to-slate-50 text-slate-900">
+      {/* <TechnicalGrid /> */}
+      {/* <FloatingOrbs /> */}
+                  {/* <FloatingOrbs /> */}
+
       <div className="relative z-10">
-        <HeroSectionAlternate />
+        {/* <HeroSectionAlternate /> */}
+  <HeroSection />
         <ProblemSection />
+        <CivicRequirementsSection />
+        <InstitutionalRequirementsSection />
+
         <JourneyOverview />
         <JourneySteps expandedSteps={expandedSteps} toggleStep={toggleStep} />
         <StatusSection />
@@ -54,7 +61,9 @@ export default function AboutPage() {
         <FoundationsSection />
         <AccessSection />
         <ClosingSection />
+
       </div>
+
     </div>
   )
 }
@@ -79,11 +88,11 @@ function TechnicalGrid() {
 /* ======================== FLOATING ORBS ======================== */
 function FloatingOrbs() {
   return (
-    <div aria-hidden className="pointer-events-none fixed inset-0 overflow-hidden">
+    <div aria-hidden className="pointer-events-none fixed  z-[1000] inset-0 overflow-hidden">
       <motion.div
-        className="absolute -top-24 left-1/4 h-96 w-96 rounded-full opacity-20 blur-3xl"
+        className="absolute -top-8 left-1/4 h-96 w-96 rounded-full opacity-100 blur-3xl"
         style={{ 
-          background: 'radial-gradient(circle, rgba(99,102,241,0.4) 0%, transparent 70%)'
+          background: 'radial-gradient(circle, rgba(99,102,241,0.4) 0%, transparent 50%)'
         }}
         animate={{ 
           x: [0, 30, 0],
@@ -97,9 +106,9 @@ function FloatingOrbs() {
         }}
       />
       <motion.div
-        className="absolute bottom-0 right-1/4 h-80 w-80 rounded-full opacity-20 blur-3xl"
+        className="absolute bottom-0 right-1/4 h-96 w-96 rounded-full opacity-100 blur-3xl"
         style={{ 
-          background: 'radial-gradient(circle, rgba(244,114,182,0.4) 0%, transparent 70%)'
+          background: 'radial-gradient(circle, rgba(245, 111, 93, 0.4) 0%, transparent 30%)'
         }}
         animate={{ 
           x: [0, -25, 0],
@@ -113,9 +122,9 @@ function FloatingOrbs() {
         }}
       />
       <motion.div
-        className="absolute top-1/3 right-1/3 h-72 w-72 rounded-full opacity-15 blur-3xl"
+        className="absolute bottom-24 left-8 h-96 w-96 rounded-full opacity-100 blur-3xl"
         style={{ 
-          background: 'radial-gradient(circle, rgba(168,85,247,0.35) 0%, transparent 70%)'
+          background: 'radial-gradient(circle, rgba(85, 198, 247, 0.35) 0%, transparent 40%)'
         }}
         animate={{ 
           x: [0, 20, 0],
@@ -132,95 +141,164 @@ function FloatingOrbs() {
   )
 }
 
+
 /* ======================== HERO SECTION ======================== */
-// function HeroSection() {
-//   return (
-//     <section className="border-b border-indigo-100/50 bg-white/40 about-backdrop-blur">
-//       <div className="mx-auto max-w-5xl px-8 py-20">
+function HeroSection() {
+  return (
+    <section className="border-b border-indigo-100/50 bg-white/40 about-backdrop-blur">
+      <div className="mx-auto max-w-5xl px-8 py-12">
         
-//         <motion.div 
-//           initial={{ opacity: 0, y: 10 }}
-//           animate={{ opacity: 1, y: 0 }}
-//           transition={{ duration: 0.5 }}
-//           className="about-badge about-badge--primary mb-6 about-shimmer"
-//         >
-//           <Terminal className="h-3.5 w-3.5" />
-//           <span>v1.0.0-alpha</span>
-//           <Sparkles className="h-3 w-3" />
-//         </motion.div>
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="about-badge about-badge--primary mb-6 about-shimmer"
+        >
+          <Terminal className="h-3.5 w-3.5" />
+          <span>v1.0.0-alpha</span>
+          <Sparkles className="h-3 w-3" />
+        </motion.div>
+        
+        <motion.h1
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.1 }}
+          className="mb-6 text-4xl font-medium leading-tight tracking-tight text-slate-900"
+        >
+          Digital Agora: Infrastructure for Public Reasoning
+        </motion.h1>
+        
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="mb-8 text-lg leading-relaxed text-slate-700"
+        >
+          A platform for structured discourse where arguments can be examined, challenged, and built upon.
+        </motion.p>
+        
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+          className="mb-8 space-y-4 text-base leading-relaxed text-slate-700"
+        >
+          <p>
+            Public deliberation occurs primarily on platforms designed for content circulation rather than knowledge formation. Arguments fragment across threads. Evidence remains disconnected from claims. Challenges receive no reply, and replies arrive in contexts where original exchanges cannot be traced. The infrastructure people use to reason together actively prevents the coherence that reasoning requires.
+          </p>
+          
+          <p>
+            This is not a moderation problem or an algorithm problem. It is an infrastructure deficit. Existing platforms provide no shared format for linking evidence to claims, no protocol requiring that challenges be answered or deferred, no mechanism for tracking how positions emerged from examined alternatives. They were built to maximize engagement at the cost of making sustained, rigorous discourse structurally impossible.
+          </p>
+          
+          <p>
+            Democratic deliberation requires a public sphere—spaces where people can reason together, test claims against evidence, and revise positions based on argument. The internet was supposed to provide this. Without infrastructure that operationalizes the basic requirements of rational discourse, people retreat to closed communities not from intellectual timidity but from the absence of tools that make collaborative reasoning possible.
+          </p>
+        </motion.div>
+        
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.4 }}
+          className="mb-8 space-y-4 text-base leading-relaxed text-slate-700"
+        >
+          <p>
+            The platform implements the structure that sustained reasoning requires. Each claim receives a stable identifier. Challenges must specify what they target: a premise, a logical inference, or supporting evidence. Exchanges follow protocols. When someone asks "what supports this claim," the system requires either an answer, a concession, or an explicit statement that the question is deferred. Questions cannot be ignored without record.
+          </p>
+          
+          <p>
+            A claim's epistemic status—accepted, rejected, undecided—derives from its position in the argument graph and the challenges it faces. When someone argues from expert testimony, argumentation schemes generate critical questions automatically: what are the expert's credentials, what is their potential bias, do other experts disagree. Deliberation continues until no participant can make a valid move under the protocol, producing a complete record of what was asserted, challenged, defended, and left unresolved.
+          </p>
+          
+          <p>
+            The output is structured disagreement: a graph showing which claims depend on which evidence, where challenges succeeded, where they failed, and where they remain unanswered. Others can examine this structure, accept parts, reject parts, or fork the analysis to explore alternatives. The work persists. Reasoning builds on prior reasoning rather than starting from scratch.
+          </p>
+        </motion.div>
+        
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.5 }}
+          className="about-glass-card-code w-full rounded-xl panel-edge postcard mb-8"
+        >
+          <div className='bg-transparent'>
+            <div className="mb-4 font-semibold text-[15px] text-slate-900">
+              Core System Capabilities
+            </div>
+            <div className="space-y-3 text-sm leading-relaxed text-slate-700">
+              <div className="flex items-start gap-3">
+                <span className="text-indigo-600 font-medium flex-shrink-0">→</span>
+                <span>
+                  <strong className="text-slate-900">Evidential precision:</strong> Claims link to source material at granular resolutions. When evidence updates or gets challenged, see which conclusions depend on it.
+                </span>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="text-indigo-600 font-medium flex-shrink-0">→</span>
+                <span>
+                  <strong className="text-slate-900">Protocol enforcement:</strong> Questions require answers or explicit deferrals. Unanswered challenges remain visible in the record. The system permits no implicit consensus.
+                </span>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="text-indigo-600 font-medium flex-shrink-0">→</span>
+                <span>
+                  <strong className="text-slate-900">Systematic stress-testing:</strong> Argumentation schemes generate critical questions automatically. Expert testimony arguments trigger questions about credentials. Analogies trigger questions about relevance.
+                </span>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="text-indigo-600 font-medium flex-shrink-0">→</span>
+                <span>
+                  <strong className="text-slate-900">Reusable reasoning:</strong> Import argument structures between deliberations. Fork analyses to adapt them to different contexts while preserving provenance.
+                </span>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="text-indigo-600 font-medium flex-shrink-0">→</span>
+                <span>
+                  <strong className="text-slate-900">Durable publication:</strong> Deliberations produce citable artifacts in standard formats (AIF, JSON-LD) that integrate with institutional systems.
+                </span>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+        
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.6 }}
+          className="about-alert about-alert--info mb-8"
+        >
+          Complex coordination problems—climate adaptation, healthcare policy, technology governance—require institutions to reason together across organizational boundaries. Without infrastructure that makes reasoning chains explicit, reusable, and verifiable, institutions work in isolation and public trust continues to erode.
+        </motion.div>
+        
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.7 }}
+          className="flex flex-wrap items-center gap-4"
+        >
+          <Link href="#access">
+            <button className="about-btn postcard group">
+              <span className="relative flex items-center gap-2">
+                Request Access
+                <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </span>
+            </button>
+          </Link>
+          
+          <div className="flex items-center gap-2 text-sm text-slate-600">
+            <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></div>
+            <span className="font-medium">Current deployment: 20 deliberations, 500 claims, 200 arguments</span>
+          </div>
+        </motion.div>
+      </div>
+    </section>
+  )
+}
 
-//         <motion.h1 
-//           initial={{ opacity: 0, y: 20 }}
-//           animate={{ opacity: 1, y: 0 }}
-//           transition={{ duration: 0.6, delay: 0.1 }}
-//           className="mb-6 text-4xl font-medium leading-tight tracking-tight text-slate-900"
-//         >
-//           Digital Agora: Computational Infrastructure for Structured Deliberation
-//         </motion.h1>
-
-//         <motion.p 
-//           initial={{ opacity: 0, y: 20 }}
-//           animate={{ opacity: 1, y: 0 }}
-//           transition={{ duration: 0.6, delay: 0.2 }}
-//           className="mb-8 text-lg leading-relaxed text-slate-700"
-//         >
-//           A formal implementation of collective reasoning where propositions, claims, arguments, and dialogue moves are first-class data objects with explicit semantics.
-//         </motion.p>
-
-//         <motion.div 
-//           initial={{ opacity: 0, y: 20 }}
-//           animate={{ opacity: 1, y: 0 }}
-//           transition={{ duration: 0.6, delay: 0.3 }}
-//           className="mb-8 space-y-4 text-base leading-relaxed text-slate-700"
-//         >
-//           <p>
-//             Contemporary discourse platforms lack primitives for epistemic work. There exists no shared representation for "here is a claim, here is the evidence that grounds it, here is the argument that attacks it, here is the inference that the attack targets."
-//           </p>
-//           <p>
-//             Digital Agora provides these primitives. Every assertion has a stable identifier. Every connection between assertions has a type and a target scope. Evidence links carry precise locators. Arguments decompose into directed acyclic graphs, making reasoning structure machine-readable and individually addressable.
-//           </p>
-//         </motion.div>
-
-//         <motion.div 
-//           initial={{ opacity: 0, y: 20 }}
-//           animate={{ opacity: 1, y: 0 }}
-//           transition={{ duration: 0.6, delay: 0.4 }}
-//           className="about-code-block mb-8"
-//         >
-//           <div className="mb-2 font-medium text-slate-900">Implementation basis:</div>
-//           <div className="leading-relaxed text-slate-600">
-//             <span className="about-code-keyword">Toulmin</span> (1958), 
-//             <span className="about-code-keyword"> Dung</span> (1995), 
-//             <span className="about-code-keyword"> Walton et al.</span> (2008), 
-//             <span className="about-code-keyword"> Prakken & Sartor</span> (1997), 
-//             <span className="about-code-keyword"> Girard</span> (2001)
-//           </div>
-//           <div className="mt-2 text-slate-500">These map directly to data models and API contracts.</div>
-//         </motion.div>
-
-//         <motion.div
-//           initial={{ opacity: 0, y: 20 }}
-//           animate={{ opacity: 1, y: 0 }}
-//           transition={{ duration: 0.6, delay: 0.5 }}
-//         >
-//           <Link href="#access">
-//             <button className="about-btn about-btn--gradient group">
-//               <span className="relative flex items-center gap-2">
-//                 Request Alpha Access
-//                 <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-//               </span>
-//             </button>
-//           </Link>
-//         </motion.div>
-//       </div>
-//     </section>
-//   )
-// }
 
 function HeroSectionAlternate() {
   return (
     <section className="border-b border-indigo-100/50 bg-white/40 about-backdrop-blur">
-      <div className="mx-auto max-w-5xl px-8 py-20">
+      <div className="mx-auto max-w-5xl px-8 py-12">
         
         <motion.div 
           initial={{ opacity: 0, y: 10 }}
@@ -320,9 +398,9 @@ function HeroSectionAlternate() {
           className="flex flex-wrap items-center gap-4"
         >
           <Link href="#access">
-            <button className="about-btn about-btn--gradient group">
+            <button className="about-btn postcard group">
               <span className="relative flex items-center gap-2">
-                Request Alpha Access
+                Register for Early Access
                 <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </span>
             </button>
@@ -338,6 +416,193 @@ function HeroSectionAlternate() {
   )
 }
 
+function HeroSectionRevised() {
+  return (
+    <section className="border-b border-indigo-100/50 bg-white/40 about-backdrop-blur">
+      <div className="mx-auto max-w-5xl px-8 py-12">
+        
+        <motion.div 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="about-badge about-badge--primary mb-6 about-shimmer"
+        >
+          <Terminal className="h-3.5 w-3.5" />
+          <span>v1.0.0-alpha</span>
+          <Sparkles className="h-3 w-3" />
+        </motion.div>
+
+        <motion.h1 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.1 }}
+          className="mb-6 text-4xl font-medium leading-tight tracking-tight text-slate-900"
+        >
+          Digital Agora: Infrastructure for Public Reasoning
+        </motion.h1>
+
+        <motion.p 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="mb-8 text-lg leading-relaxed text-slate-700"
+        >
+          A platform for structuring evidence, arguments, and decisions so they can be 
+          examined, reused, and verified across institutions and communities.
+        </motion.p>
+
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+          className="mb-8 space-y-4 text-base leading-relaxed text-slate-700"
+        >
+          <p>
+            When the FDA evaluates drug safety, when a city council debates zoning policy, 
+            when a technical committee reviews standards—these deliberations produce 
+            reasoning chains that other institutions need. But the reasoning exists only 
+            as prose in PDFs. There is no shared format for evidential grounding, no protocol 
+            for tracking challenges and responses, no way to see how a conclusion emerged from 
+            competing alternatives. Each institution starts from scratch.
+          </p>
+          
+          <p>
+            This creates three problems. First, work cannot transfer: the EMA cannot import 
+            the FDA's analysis and build on it—they must reconstruct everything manually. 
+            Second, reasoning cannot be verified: readers cannot trace which evidence supports 
+            which claims, or whether challenges were answered. Third, decisions appear arbitrary: 
+            without visible reasoning chains, institutional conclusions look like pronouncements 
+            rather than results of structured deliberation.
+          </p>
+        </motion.div>
+
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.4 }}
+          className="mb-8 space-y-4 text-base leading-relaxed text-slate-700"
+        >
+          <p>
+            Digital Agora addresses this by implementing the structure that rigorous discourse 
+            requires. Claims receive stable identifiers so they can be referenced precisely. 
+            Challenges target specific components—a premise, an inference, a piece of evidence—rather 
+            than entire arguments. Exchanges follow protocols: when someone asks "what is your 
+            evidence," the system requires an answer, a concession, or an explicit deferral. 
+            Questions cannot be silently ignored.
+          </p>
+          
+          <p>
+            The platform computes acceptance from structure rather than votes. A claim's 
+            status—accepted, rejected, or undecided—derives from its position in the argument 
+            graph and the attacks it faces. Argumentation schemes generate critical questions 
+            automatically: if you argue from expert testimony, the system asks about the expert's 
+            credentials and potential bias. When deliberation reaches a state where no legal moves 
+            remain, it terminates with a complete record of what was considered and why.
+          </p>
+        </motion.div>
+
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.5 }}
+          className="mb-8 space-y-4 text-base leading-relaxed text-slate-700"
+        >
+          <p>
+            The output is machine-readable: a graph of claims, evidence links, attack relations, 
+            and computed labels that external systems can import and build on. This means the 
+            FDA's drug evaluation can export as structured data (AIF, JSON-LD). The EMA can 
+            import it, inspect the reasoning, accept what holds under their standards, and 
+            fork what doesn't—preserving the original analysis while documenting exactly where 
+            and why their conclusion differs.
+          </p>
+        </motion.div>
+
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.6 }}
+          className="about-glass-card-code w-full rounded-xl panel-edge postcard mb-8"
+        >
+          <div className='bg-transparent'>
+            <div className="mb-4 font-semibold text-[15px] text-slate-900">
+              What the system provides
+            </div>
+            <div className="space-y-3 text-sm leading-relaxed text-slate-700">
+              <div className="flex items-start gap-3">
+                <span className="text-indigo-600 font-medium flex-shrink-0">→</span>
+                <span>
+                  Link claims to source material with character-level precision. When evidence 
+                  updates or gets challenged, see which conclusions depend on it.
+                </span>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="text-indigo-600 font-medium flex-shrink-0">→</span>
+                <span>
+                  Enforce response obligations. Questions require answers or explicit deferrals. 
+                  Unanswered challenges remain visible in the record.
+                </span>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="text-indigo-600 font-medium flex-shrink-0">→</span>
+                <span>
+                  Generate critical questions from argument structure. Expert testimony arguments 
+                  trigger questions about credentials. Analogies trigger questions about relevance.
+                </span>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="text-indigo-600 font-medium flex-shrink-0">→</span>
+                <span>
+                  Enable reasoning reuse. Import argument structures between deliberations. Fork 
+                  analyses to adapt them to different contexts while preserving provenance.
+                </span>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="text-indigo-600 font-medium flex-shrink-0">→</span>
+                <span>
+                  Export to standard formats. Deliberations produce citable artifacts (AIF, 
+                  JSON-LD) that integrate with institutional systems.
+                </span>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.7 }}
+          className="about-alert about-alert--info mb-8"
+        >
+          Complex problems—climate adaptation, healthcare coordination, technology governance—require 
+          institutions to reason together across organizational boundaries. Without infrastructure 
+          that makes reasoning chains explicit, reusable, and verifiable, each institution works 
+          in isolation and trust continues to erode.
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.8 }}
+          className="flex flex-wrap items-center gap-4"
+        >
+          <Link href="#access">
+            <button className="about-btn postcard group">
+              <span className="relative flex items-center gap-2">
+                Request Access
+                <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </span>
+            </button>
+          </Link>
+          
+          <div className="flex items-center gap-2 text-sm text-slate-600">
+            <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></div>
+            <span className="font-medium">Current deployment: 20 deliberations, 500 claims, 200 arguments</span>
+          </div>
+        </motion.div>
+      </div>
+    </section>
+  )
+}
 
 
 /* ======================== PROBLEM SECTION ======================== */
@@ -346,71 +611,147 @@ function ProblemSection() {
     <section className="border-b border-rose-100/50 about-panel-textured">
       <div className="mx-auto max-w-5xl px-8 py-16">
         
-        <motion.h2 
+        <motion.h2
           initial={{ opacity: 0, x: -20 }}
           whileInView={{ opacity: 1, x: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="mb-8 text-2xl font-medium text-slate-900"
+          className="mb-6 text-2xl font-medium text-slate-900"
         >
-          I. Requirements for Institutional Deliberation
+        The Problem: Degradation of the Public Sphere
         </motion.h2>
-
-        <div className="space-y-8">
-          <Requirement 
-            title="Reusability"
-            description="When institution A evaluates policy option X using evidence Y and reasoning Z, institution B should be able to inspect the complete chain—evidence, claims, inferences, attacks, resolutions—and either adopt it, fork it, or challenge specific components."
-            current="B starts from scratch or reads A's PDF and attempts manual reconstruction."
-            delay={0.1}
-          />
-          
-          <Requirement 
-            title="Granular Addressability"
-            description="When a claim is challenged, the challenge should target the weakest component: a specific premise, a specific inference, a specific evidentiary interpretation."
-            current="Challenges target entire arguments, forcing wholesale rejection or acceptance rather than surgical refinement."
-            delay={0.2}
-          />
-          
-          <Requirement 
-            title="Provenance Tracking"
-            description="When a conclusion changes (new evidence emerges, an inference is refuted, a premise is undermined), the system should surface which downstream conclusions are affected."
-            current="No dependency tracking. Impact analysis requires manual review of possibly-related documents."
-            delay={0.3}
-          />
-          
-          <Requirement 
-            title="Protocol Enforcement"
-            description='When participant A claims X, and participant B asks "what is your evidence for X," there should be a protocol that requires A to either supply evidence, concede the point, or mark it as unresolved.'
-            current="Questions can be ignored without record, creating the appearance of uncontested claims."
-            delay={0.4}
-          />
-          
-          <Requirement 
-            title="Machine Readability"
-            description="When a deliberation concludes, the result should be machine-readable: a graph of claims, evidence links, argument structure, attack relations, and semantic labels that external systems can import, analyze, or visualize."
-            current="Output is human-readable prose with implicit structure that resists tooling."
-            delay={0.5}
-          />
-        </div>
-
-        <motion.div 
+        
+        <motion.div
           initial={{ opacity: 0, y: 10 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.5, delay: 0.6 }}
-          className="about-alert about-alert--info mt-8"
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="space-y-4 text-sm leading-relaxed text-slate-700"
         >
-          These requirements emerge from observed failures in policy analysis, systematic review, technical specification, and scientific deliberation. Digital Agora is an attempt to meet them.
+          <p>
+            Democratic legitimacy requires more than voting. It requires that decisions emerge from public reasoning where participants aim for mutual understanding through force of better arguments rather than through strategic manipulation or power. Habermas called this communicative action: interaction oriented toward rationally motivated consensus, where validity claims can be challenged and must be justified through reasons accessible to all.
+          </p>
+          
+          <p>
+            The internet was supposed to enable this at unprecedented scale. Instead, the dominant platforms have systematically dismantled the conditions under which public reasoning can occur.
+          </p>
+          
+          <p>
+            Watch what happens when someone attempts serious discourse on contemporary platforms. They post a carefully constructed argument with supporting evidence. Within minutes, the algorithmic feed buries it beneath viral content optimized for emotional reaction. If the argument does surface, responses arrive as isolated reactions—upvotes, emoji responses, brief dismissals—with no mechanism connecting challenges to specific premises or requiring that questions receive answers. Someone asks "what evidence supports this?" The question disappears into the thread. Days later, the original poster may never see it. If they do see it and respond, their response appears in a different context where observers cannot reconstruct the original exchange. The argument fragments. The discourse state—what has been claimed, what challenged, what answered—exists nowhere except in the failing memories of whoever happened to follow the entire scattered exchange.
+          </p>
+          
+          <p>
+            This is not an unfortunate side effect of otherwise neutral platforms. It is the intended outcome of infrastructure optimized for engagement metrics. Every architectural decision works against sustained reasoning. Algorithmic feeds ensure arguments cannot develop sequentially because context constantly shifts. Vote-based ranking surfaces content that triggers reaction, not content that rewards careful thought. Threading structures make exchanges longer than three turns nearly impossible to follow. Character limits force complexity into simplification. The absence of structured citation means evidence links decay, sources become inaccessible, and claims float free from whatever grounding they once had.
+          </p>
+          
+          <p>
+            The result is a public sphere that does not merely fail to support reasoning—it actively prevents it. People who attempt good-faith engagement discover the infrastructure will not let them. They cannot make evidence legible because the platforms provide no format for precise citation. They cannot build on others' arguments because threading breaks, context disappears, and no mechanism exists for forking a line of reasoning to explore it further. They cannot expect challenges to receive responses because the architecture permits silent evasion as the default. They cannot distinguish genuine consensus from exhaustion, actual refutation from simple invisibility.
+          </p>
+          
+          <p>
+            What emerges is precisely what Habermas diagnosed in the twentieth century as "re-feudalization" of the public sphere—the transformation of spaces for rational-critical debate into arenas of spectacle. But where Habermas observed this process through mass media and public relations, contemporary platforms have perfected it through infrastructure. Discourse is not suppressed through censorship. It is rendered structurally impossible through architecture that makes every feature required for reasoning—answerability, evidential grounding, inferential coherence, cumulative development—technically unachievable.
+          </p>
+          
+          <p>
+            People do not lack the capacity for public reasoning. They lack spaces where that capacity can be exercised. The platforms they use were built by corporations that discovered engagement metrics optimize for outrage, tribal signaling, and parasocial performance. Every dollar of market capitalization in social media represents a successful bet against the possibility of citizens reasoning together. The infrastructure serves its purpose perfectly. The purpose was never public reasoning. It was advertising revenue through attention capture.
+          </p>
+          
+          <p>
+            The consequences compound. Institutional decisions that require public legitimacy cannot be grounded in public reasoning because there is no infrastructure on which such reasoning could occur. Citizens retreat from political engagement not because they cannot think but because attempting to think together on available platforms produces only confusion and exhaustion. Those with power face no requirement to justify their positions because the platforms provide no protocol making justification structurally necessary. Those seeking to understand complex questions—technological governance, climate coordination, institutional reform—find themselves unable to assemble evidence, evaluate arguments, and track how conclusions emerge from analysis. The work of collective intelligence simply cannot be done using tools built to prevent it.
+          </p>
+          
+          <p className="font-medium text-slate-900">
+            This is not a feature gap. It is a structural incompatibility. Platforms built for content circulation cannot be patched into platforms for knowledge formation. The architecture must be different from the ground up.
+          </p>
         </motion.div>
       </div>
     </section>
   )
 }
 
-function Requirement({ title, description, current, delay }: { 
+/* ======================== CIVIC REQUIREMENTS ======================== */
+function CivicRequirementsSection() {
+  return (
+    <section className="border-b border-blue-100/50 about-panel-textured">
+      <div className="mx-auto max-w-5xl px-8 py-16">
+        
+        <motion.h2
+          initial={{ opacity: 0, x: -20 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+          className="mb-4 text-2xl font-medium text-slate-900"
+        >
+          Requirements for Democratic Discourse
+        </motion.h2>
+        
+        <motion.p
+          initial={{ opacity: 0, y: 10 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="mb-8 text-sm leading-relaxed text-slate-700"
+        >
+          Habermas identified five conditions necessary for discourse to serve its epistemic function—producing justified beliefs rather than merely expressing power. These conditions define what civic deliberation infrastructure must provide.
+        </motion.p>
+        
+        <div className="space-y-8">
+          <CivicRequirement
+            number={1}
+            title="Transparency"
+            subtitle="Reasoning Chains Must Be Inspectable"
+            content="Citizens cannot evaluate institutional decisions when reasoning chains are opaque—buried in meeting minutes, internal memos, or absent entirely. Public consent requires the capacity to inspect how conclusions emerged: what evidence was considered, what alternatives evaluated, what objections raised, how they were resolved. When institutions adopt policies that affect citizens' lives, the reasoning behind those policies must be available for examination. Not as narrative justification written after the decision, but as structured record of the deliberative process itself."
+            delay={0.1}
+          />
+          
+          <CivicRequirement
+            number={2}
+            title="Accessibility"
+            subtitle="Complex Reasoning Must Be Navigable"
+            content="Policy questions generate reasoning structures too large for linear reading. Citizens need tools to navigate these structures: starting with conclusions, tracing back to evidence, exploring alternative arguments, understanding disputed points—without reading hundreds of pages sequentially. Accessibility is not about simplification. It is about providing structure that makes complexity navigable rather than overwhelming."
+            delay={0.2}
+          />
+          
+          <CivicRequirement
+            number={3}
+            title="Accountability"
+            subtitle="Claims Must Be Attributable and Testable"
+            content="Public discourse should distinguish grounded claims from ungrounded ones. Every assertion should have clear attribution (who made it, when, in what context), evidential grounding (what supports it), and a mechanism for challenge (what would constitute refutation). This is not about enforcing truth but about making truth-seeking possible. Claims that cannot be challenged cannot be tested. Claims that cannot be tested cannot be distinguished from propaganda."
+            delay={0.3}
+          />
+          
+          <CivicRequirement
+            number={4}
+            title="Collaboration"
+            subtitle="Arguments Must Improve Through Critical Examination"
+            content="Discourse should produce collaborative refinement, not just competitive victory. When someone identifies a weak premise, authors should be able to strengthen it. When new evidence emerges, arguments should incorporate it. Good-faith criticism should make positions better, not merely defeat them. The goal is collective intelligence—finding better answers through structured interaction—not debate as performance."
+            delay={0.4}
+          />
+          
+          <CivicRequirement
+            number={5}
+            title="Durability"
+            subtitle="Reasoning Should Accumulate as Common Resource"
+            content="Deliberations should produce durable knowledge artifacts that persist as foundations for future work. When a community resolves a question, that resolution should be available for others facing similar questions—not requiring each generation to rediscover arguments already developed. Democratic knowledge should accumulate. The alternative is permanent amnesia—each discussion starting from scratch, each generation re-litigating questions their predecessors already settled."
+            delay={0.5}
+          />
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function CivicRequirement({
+  number,
+  title,
+  subtitle,
+  content,
+  delay
+}: {
+  number: number
   title: string
-  description: string
-  current: string
+  subtitle: string
+  content: string
   delay: number
 }) {
   return (
@@ -421,13 +762,146 @@ function Requirement({ title, description, current, delay }: {
       transition={{ duration: 0.5, delay }}
       className="about-requirement"
     >
-      <h3 className="mb-3 font-mono text-sm font-medium text-slate-900">
-        {title}
-      </h3>
-      <p className="mb-3 text-sm leading-relaxed text-slate-700">{description}</p>
-      <div className="about-requirement__current">
-        <span className="font-medium">Current practice: </span>
-        {current}
+      <div className="mb-3 flex items-start gap-3">
+        <div className="about-number-badge flex-shrink-0" style={{ marginTop: '2px' }}>
+          {number}
+        </div>
+        <div>
+          <h3 className="font-mono text-sm font-medium text-slate-900 mb-1">
+            {title}
+          </h3>
+          <div className="text-sm font-medium text-indigo-700 mb-2">
+            {subtitle}
+          </div>
+        </div>
+      </div>
+      
+      <div className="ml-11 text-sm leading-relaxed text-slate-700">
+        {content}
+      </div>
+    </motion.div>
+  )
+}
+
+/* ======================== INSTITUTIONAL REQUIREMENTS ======================== */
+function InstitutionalRequirementsSection() {
+  return (
+    <section className="border-b border-rose-100/50 about-panel-textured">
+      <div className="mx-auto max-w-5xl px-8 py-16">
+        
+        <motion.h2
+          initial={{ opacity: 0, x: -20 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+          className="mb-4 text-2xl font-medium text-slate-900"
+        >
+          Requirements for Institutional Deliberation
+        </motion.h2>
+        
+        <motion.p
+          initial={{ opacity: 0, y: 10 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="mb-8 text-sm leading-relaxed text-slate-700"
+        >
+          When institutions evaluate complex questions—regulatory agencies assessing risk, standards bodies developing specifications, research consortia synthesizing evidence—they face recurring failures in how reasoning gets documented. Five gaps prevent institutional knowledge from being reusable, verifiable, or composable.
+        </motion.p>
+        
+        <div className="space-y-8">
+          <InstitutionalRequirement
+            number={1}
+            title="Reusability"
+            subtitle="Reasoning Should Transfer Between Institutions"
+            content="Institutions repeatedly evaluate the same questions but cannot build on each other's work. When one regulatory body completes an evidence synthesis, another facing the same question must reconstruct the analysis manually from source documents. The reasoning structure—which claims depend on which evidence, which challenges were raised, how they were resolved—does not transfer. The requirement: institutions should be able to import complete reasoning chains, inspect their structure, adopt what survives scrutiny, and fork what doesn't—while preserving visible provenance showing exactly where and why their analysis diverges. Without this, knowledge cannot accumulate across institutional boundaries. Each organization works in isolation even when addressing identical questions."
+            delay={0.1}
+          />
+          
+          <InstitutionalRequirement
+            number={2}
+            title="Granular Addressability"
+            subtitle="Challenges Should Target Specific Components"
+            content="When reasoning fails, it typically fails at specific points: a questionable premise, an unsupported inference, inadequate evidence for a particular claim. Current practice forces wholesale acceptance or rejection of entire arguments. This prevents incremental refinement—the process by which arguments get stronger through identifying and fixing their weakest points. The requirement: challenges should specify exactly what they target. Not 'this argument is flawed' but 'this argument's second premise contradicts established findings' or 'this inference assumes a causal mechanism that has not been demonstrated.' Precision in challenge enables precision in response. Arguments improve through surgical revision rather than complete reconstruction."
+            delay={0.2}
+          />
+          
+          <InstitutionalRequirement
+            number={3}
+            title="Provenance Tracking"
+            subtitle="Dependencies Should Be Visible"
+            content="In technical and policy domains, conclusions build on other conclusions. A specification relies on security assumptions. A policy recommendation depends on cost projections. An intervention's justification rests on empirical claims. When foundational elements change—new evidence, revised assumptions, challenged premises—institutions need to identify every downstream conclusion potentially affected. The requirement: the system should maintain dependency graphs. When element X changes status, surface every conclusion that relied on X. This enables systematic impact assessment rather than hopeful searching through potentially related documents. Without dependency tracking, institutions face hidden fragility. Foundations shift and downstream structures fail without anyone noticing until too late."
+            delay={0.3}
+          />
+          
+          <InstitutionalRequirement
+            number={4}
+            title="Protocol Enforcement"
+            subtitle="Challenges Cannot Be Silently Ignored"
+            content="In institutional deliberation, silence often passes for agreement. Someone raises an objection. It receives no response. Months later, the original proposal moves forward with the challenge forgotten. Outside observers cannot distinguish resolved objections from ignored ones. The requirement: when a claim is challenged, the claimant must either provide justification, concede the point, or explicitly defer response. Challenges that remain unanswered stay visible in the record. The system does not permit silent evasion. This creates accountability through structure. Not social pressure to respond but architectural impossibility of pretending challenges never occurred."
+            delay={0.4}
+          />
+          
+          <InstitutionalRequirement
+            number={5}
+            title="Machine Readability"
+            subtitle="Reasoning Should Be Computation-Ready"
+            content="Institutional deliberations produce prose documents. Human-readable but structure-implicit. Other institutions wanting to build on this work face manual parsing—extracting the argument structure, identifying premises and conclusions, mapping evidence to claims. The requirement: deliberations should produce machine-readable graphs. Nodes (claims, evidence), edges (support/attack relations), semantic labels (accepted/rejected/undecided), provenance metadata. Structured output that external systems can import, analyze, visualize, or extend algorithmically. Machine readability enables systematic analysis at scale. Pattern detection across deliberations. Automated consistency checking. Integration with computational tools for evidence synthesis and argument evaluation."
+            delay={0.5}
+          />
+        </div>
+        
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5, delay: 0.6 }}
+          className="about-alert about-alert--info mt-8"
+        >
+          <strong>Cross-Institutional Learning:</strong> These requirements become critical when institutions must coordinate across organizational boundaries. Without infrastructure enabling reasoning transfer, each institution operates in isolation. With it, they can build on each other's work—adopting sound reasoning, challenging weak points, and documenting precisely where their analyses converge or diverge. Knowledge accumulates instead of fragmenting.
+        </motion.div>
+      </div>
+    </section>
+  )
+}
+
+function InstitutionalRequirement({
+  number,
+  title,
+  subtitle,
+  content,
+  delay
+}: {
+  number: number
+  title: string
+  subtitle: string
+  content: string
+  delay: number
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.5, delay }}
+      className="about-requirement"
+    >
+      <div className="mb-3 flex items-start gap-3">
+        <div className="about-number-badge flex-shrink-0" style={{ marginTop: '2px' }}>
+          {number}
+        </div>
+        <div>
+          <h3 className="font-mono text-sm font-medium text-slate-900 mb-1">
+            {title}
+          </h3>
+          <div className="text-sm font-medium text-emerald-700 mb-2">
+            {subtitle}
+          </div>
+        </div>
+      </div>
+      
+      <div className="ml-11 text-sm leading-relaxed text-slate-700">
+        {content}
       </div>
     </motion.div>
   )
@@ -1231,356 +1705,12 @@ function AlphaSection() {
   )
 }
 
-// function FoundationsSection() {
-//   return (
-//     <section className="border-b border-indigo-100/50  about-panel-textured">
-//       <div className="mx-auto max-w-5xl px-8 py-16">
-//         <motion.h2 
-//           initial={{ opacity: 0, x: -20 }}
-//           whileInView={{ opacity: 1, x: 0 }}
-//           viewport={{ once: true }}
-//           transition={{ duration: 0.5 }}
-//           className="mb-8 text-2xl font-medium text-slate-900"
-//         >
-//           V. Theoretical Foundations
-//         </motion.h2>
-//         <motion.p 
-//           initial={{ opacity: 0, y: 10 }}
-//           whileInView={{ opacity: 1, y: 0 }}
-//           viewport={{ once: true }}
-//           transition={{ duration: 0.5, delay: 0.1 }}
-//           className="mb-6 text-sm  text-slate-700"
-//         >
-//           Each maps to specific data structures and operational semantics.
-//         </motion.p>
-//         <div className="space-y-5 font-mono text-xs">
-//           {[
-//             { cite: "Toulmin (1958)", impl: "Claim + ArgumentDiagram" },
-//             { cite: "Dung (1995)", impl: "ClaimLabel over ClaimEdge graphs" },
-//             { cite: "Walton et al. (2008)", impl: "ArgumentScheme + CQStatus" },
-//             { cite: "Prakken & Sartor (1997)", impl: "DialogueMove + ProofMode" },
-//             { cite: "Girard (2001)", impl: "LudicDesign + LudicTrace" }
-//           ].map((f, idx) => (
-//             <motion.div 
-//               key={f.cite}
-//               initial={{ opacity: 0, x: -20 }}
-//               whileInView={{ opacity: 1, x: 0 }}
-//               viewport={{ once: true }}
-//               transition={{ duration: 0.5, delay: idx * 0.1 }}
-//               className="postcard p-4 bg-white/30 w-fit rounded-lg panel-edge"
-//             >
-//               <div className="mb-1 font-medium text-indigo-700">
-//                 {f.cite}
-//               </div>
-//               <div className="text-slate-700">→ {f.impl}</div>
-//             </motion.div>
-//           ))}
-//         </div>
-//       </div>
-//     </section>
-//   )
-// }
-
 function FoundationsSection() {
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null)
 
-  const foundationCategories = [
-    {
-      id: 'core',
-      title: 'Core Argumentation Theory',
-      description: 'Foundational models for argument structure, schemes, and validity',
-      color: 'indigo',
-      sources: [
-        { 
-          cite: "Toulmin (1958)", 
-          title: "The Uses of Argument",
-          impl: "Claim + ArgumentDiagram",
-          detail: "Warrant-based argument structure with data, claim, backing, rebuttal"
-        },
-        { 
-          cite: "Walton et al. (2008)", 
-          title: "Argumentation Schemes",
-          impl: "ArgumentScheme + CQStatus + CriticalQuestion",
-          detail: "Scheme templates with critical questions for systematic evaluation"
-        },
-        { 
-          cite: "Macagno et al.", 
-          title: "Argumentation Schemes: History, Classifications, and Computational Applications",
-          impl: "SchemeLibrary + SchemeClassification",
-          detail: "Comprehensive taxonomy of reasoning patterns and fallacy detection"
-        },
-        { 
-          cite: "Lumer", 
-          title: "A Theory of Philosophical Arguments",
-          impl: "ArgumentValidity + EpistemicJustification",
-          detail: "Epistemological approach to argument adequacy and validation"
-        },
-        { 
-          cite: "Lumer", 
-          title: "Structure and Function of Argumentations",
-          impl: "ArgumentFunction + ValidityCriteria",
-          detail: "Epistemological criteria for determining argument validity and adequacy"
-        },
-      ]
-    },
-    {
-      id: 'formal',
-      title: 'Abstract Argumentation & Semantics',
-      description: 'Formal frameworks for argument acceptance, attack relations, and extensions',
-      color: 'purple',
-      sources: [
-        { 
-          cite: "Dung (1995)", 
-          title: "On the Acceptability of Arguments",
-          impl: "ClaimLabel + ArgumentExtension + AF.grounded/preferred/stable",
-          detail: "Abstract argumentation frameworks with extension-based semantics"
-        },
-        { 
-          cite: "Simari & Loui", 
-          title: "A Mathematical Treatment of Defeasible Reasoning",
-          impl: "DefeasibleRule + ArgumentStrength + Specificity",
-          detail: "Formal defeasible logic with specificity-based conflict resolution"
-        },
-        { 
-          cite: "Ambler", 
-          title: "A Categorical Approach to the Semantics of Argumentation",
-          impl: "ArgumentCategory + ConfidenceMeasure + EvidentialClosure",
-          detail: "Category theory foundations: arguments as morphisms in enriched categories"
-        },
-        { 
-          cite: "Caminada", 
-          title: "Argumentation Semantics as Formal Discussion",
-          impl: "DiscussionSemantics + LabelingFunction",
-          detail: "Formal discussion framework mapping dialogue to extension semantics"
-        },
-        { 
-          cite: "Bernreiter & Maly", 
-          title: "Combining Voting and Abstract Argumentation",
-          impl: "VotingAggregation + ArgumentRanking",
-          detail: "Integration of social choice theory with argumentation frameworks"
-        },
-        { 
-          cite: "Matt", 
-          title: "A Game-Theoretic Perspective on Argument Strength",
-          impl: "ArgumentGame + StrengthMeasure",
-          detail: "Game-theoretic analysis of argument strength in abstract argumentation"
-        },
-      ]
-    },
-    {
-      id: 'dialogue',
-      title: 'Dialogue Systems & Protocol',
-      description: 'Formal dialogue games, move types, protocol enforcement, and termination',
-      color: 'rose',
-      sources: [
-        { 
-          cite: "Prakken & Sartor (1997)", 
-          title: "Argument-Based Extended Logic Programming",
-          impl: "DialogueMove + ProofMode + Commitment",
-          detail: "Formal dialogue protocols with speech acts and commitment management"
-        },
-        { 
-          cite: "Prakken", 
-          title: "On Dialogue Systems with Speech Acts, Arguments, and Counterarguments",
-          impl: "SpeechAct + MoveType + DialogueProtocol",
-          detail: "Dialogue system combining speech acts with argumentation moves"
-        },
-        { 
-          cite: "McBurney & Parsons", 
-          title: "A Denotational Semantics for Deliberation Dialogues",
-          impl: "DeliberationProtocol + DialogueSemantics",
-          detail: "Formal semantics for multi-party deliberation with shared goals"
-        },
-        { 
-          cite: "McBurney & Parsons", 
-          title: "The Eightfold Way of Deliberation Dialogue",
-          impl: "DeliberationPhase + DialogueType",
-          detail: "Eight-phase model for structured deliberation: open, inform, propose, consider, revise, recommend, confirm, close"
-        },
-        { 
-          cite: "Bodenstaff et al.", 
-          title: "On Formalising Dialogue Systems in Event Calculus",
-          impl: "EventCalculus + DialogueState",
-          detail: "Event calculus formalization of dialogue dynamics and state transitions"
-        },
-        { 
-          cite: "Thang et al.", 
-          title: "Towards Argument-based Foundation for Sceptical and Credulous Dialogue Games",
-          impl: "DialogueGame + ProofStandard",
-          detail: "Dialogue games with varying burden of proof standards"
-        },
-      ]
-    },
-    {
-      id: 'ludics',
-      title: 'Ludics & Interactive Proof',
-      description: 'Proof-as-interaction, designs, normalization, and convergence/divergence',
-      color: 'amber',
-      sources: [
-        { 
-          cite: "Girard (2001)", 
-          title: "Locus Solum: From the Rules of Logic to the Logic of Rules",
-          impl: "LudicDesign + LudicTrace + Normalization",
-          detail: "Interactive logic: designs as proof strategies, normalization as dialogue"
-        },
-        { 
-          cite: "Lecomte", 
-          title: "Ludics, Dialogue and Inferentialism",
-          impl: "InferentialSemantics + DesignInteraction",
-          detail: "Inferentialist semantics grounded in ludics interaction"
-        },
-        { 
-          cite: "Fouqueré & Quatrini", 
-          title: "Inferences and Dialogues in Ludics",
-          impl: "LudicInference + DialogueConvergence",
-          detail: "Inference rules derived from interactive dialogue convergence"
-        },
-        { 
-          cite: "Fouqueré", 
-          title: "Argumentation and Inference: A Unified Approach",
-          impl: "ArgumentInference + UnifiedFramework",
-          detail: "Unification of argumentation theory with ludics inference model"
-        },
-        { 
-          cite: "Boritchev", 
-          title: "Dialogue Modeling in a Dynamic Framework",
-          impl: "DynamicDialogue + ContextUpdate",
-          detail: "Dynamic framework for dialogue with context-sensitive update"
-        },
-      ]
-    },
-    {
-      id: 'discourse',
-      title: 'Discourse Structure & Relations',
-      description: 'Textual entailment, discourse relations, enthymemes, and relevance',
-      color: 'emerald',
-      sources: [
-        { 
-          cite: "Rocci", 
-          title: "Diagramming the Enthymematic Structure of Counterarguments",
-          impl: "EnthymemeReconstruction + ImplicitPremise",
-          detail: "Methods for surfacing implicit premises in counterarguments"
-        },
-        { 
-          cite: "Catta", 
-          title: "Inferential Semantics as Argumentative Dialogues",
-          impl: "InferentialRole + DialogicalSemantics",
-          detail: "Meaning as inferential role expressed through dialogue"
-        },
-        { 
-          cite: "Catta", 
-          title: "Dialogical Argumentation and Textual Entailment",
-          impl: "TextualEntailment + DialogicalInference",
-          detail: "Mapping textual entailment to dialogical argumentation moves"
-        },
-        { 
-          cite: "Lascarides & Asher", 
-          title: "Discourse Relations and Defeasible Knowledge",
-          impl: "DiscourseRelation + DefeasibleConnective",
-          detail: "Defeasible logic for discourse coherence and relation interpretation"
-        },
-        { 
-          cite: "Schaden", 
-          title: "Relevance and Utility in an Argumentative Framework",
-          impl: "RelevanceFilter + TopicAccommodation",
-          detail: "Computational relevance for discourse topic management"
-        },
-        { 
-          cite: "Kocurek", 
-          title: "The Dynamics of Argumentative Discourse",
-          impl: "DiscourseUpdate + ArgumentativeDynamic",
-          detail: "Dynamic semantics for evolving argumentative contexts"
-        },
-      ]
-    },
-    {
-      id: 'interchange',
-      title: 'Argument Interchange Format (AIF)',
-      description: 'Standardized representation, import/export, and interoperability',
-      color: 'cyan',
-      sources: [
-        { 
-          cite: "Reed et al.", 
-          title: "The Argument Interchange Format (AIF) Specification",
-          impl: "AIFNode + AIFEdge + I/S/L-nodes",
-          detail: "Standard ontology for argument representation and exchange"
-        },
-        { 
-          cite: "Reed et al.", 
-          title: "AIF+: Dialogue in the Argument Interchange Format",
-          impl: "AIFDialogue + TransitionScheme",
-          detail: "Extended AIF with dialogue move representation"
-        },
-        { 
-          cite: "Bex et al.", 
-          title: "On Logical Specifications of the Argument Interchange Format",
-          impl: "AIFLogic + FormalSemantics",
-          detail: "Logical foundations and formal semantics for AIF"
-        },
-        { 
-          cite: "Bentahar et al.", 
-          title: "A Taxonomy of Argumentation Models",
-          impl: "ModelTaxonomy + RepresentationMapping",
-          detail: "Comprehensive taxonomy for comparing argumentation models"
-        },
-      ]
-    },
-    {
-      id: 'visualization',
-      title: 'Argument Mapping & Visualization',
-      description: 'Graphical representation, debate structure, and knowledge organization',
-      color: 'violet',
-      sources: [
-        { 
-          cite: "Harrell", 
-          title: "Representing the Structure of a Debate",
-          impl: "DebateSheet + ArgumentGraph",
-          detail: "Visual representation schemes for complex debate structure"
-        },
-        { 
-          cite: "Murungi", 
-          title: "Applying Argument Mapping to Facilitate Theory Building",
-          impl: "TheoryMap + ConceptualStructure",
-          detail: "Argument mapping as tool for theoretical knowledge construction"
-        },
-      ]
-    },
-    {
-      id: 'platform',
-      title: 'Platform Design & Epistemology',
-      description: 'Online deliberation, collective intelligence, and epistemic health',
-      color: 'pink',
-      sources: [
-        { 
-          cite: "De Liddo et al.", 
-          title: "Understanding Failures and Potentials of Argumentation Tools",
-          impl: "ToolEvaluation + UserRequirements",
-          detail: "Empirical analysis of argumentation tool adoption and effectiveness"
-        },
-        { 
-          cite: "Amico-Korby", 
-          title: "Building Epistemically Healthier Platforms",
-          impl: "EpistemicHealth + PlatformDesign",
-          detail: "Design principles for platforms that improve collective reasoning"
-        },
-        { 
-          cite: "Amico-Korby", 
-          title: "Do It Yourself Content and the Wisdom of the Crowds",
-          impl: "CollectiveIntelligence + ContentCuration",
-          detail: "User-generated content and collective knowledge aggregation"
-        },
-        { 
-          cite: "Negarestani", 
-          title: "Intelligence and Spirit",
-          impl: "CollectiveRationality + SapientPlatform",
-          detail: "Philosophical foundations for collective intelligence platforms"
-        },
-      ]
-    },
-  ]
 
   return (
-    <section className="border-b border-indigo-100/50 about-panel-textured">
+    <section className="border-b border-indigo-100/50">
       <div className="mx-auto max-w-5xl px-8 py-16">
         <motion.h2 
           initial={{ opacity: 0, x: -20 }}
@@ -1644,64 +1774,7 @@ function FoundationCategory({
   onToggle: () => void
   delay: number
 }) {
-  const colorClasses = {
-    indigo: {
-      bg: 'from-indigo-50/30 to-indigo-100/30',
-      border: 'border-indigo-200/60',
-      text: 'text-indigo-700',
-      badge: 'bg-indigo-100/80 text-indigo-700 border-indigo-200/60',
-      icon: 'text-indigo-500',
-    },
-    purple: {
-      bg: 'from-purple-50/30 to-purple-100/30',
-      border: 'border-purple-200/60',
-      text: 'text-purple-700',
-      badge: 'bg-purple-100/80 text-purple-700 border-purple-200/60',
-      icon: 'text-purple-500',
-    },
-    rose: {
-      bg: 'from-rose-50/30 to-rose-100/30',
-      border: 'border-rose-200/60',
-      text: 'text-rose-700',
-      badge: 'bg-rose-100/80 text-rose-700 border-rose-200/60',
-      icon: 'text-rose-500',
-    },
-    amber: {
-      bg: 'from-amber-50/30 to-amber-100/30',
-      border: 'border-amber-200/60',
-      text: 'text-amber-700',
-      badge: 'bg-amber-100/80 text-amber-700 border-amber-200/60',
-      icon: 'text-amber-500',
-    },
-    emerald: {
-      bg: 'from-emerald-50/30 to-emerald-100/30',
-      border: 'border-emerald-200/60',
-      text: 'text-emerald-700',
-      badge: 'bg-emerald-100/80 text-emerald-700 border-emerald-200/60',
-      icon: 'text-emerald-500',
-    },
-    cyan: {
-      bg: 'from-cyan-50/30 to-cyan-100/30',
-      border: 'border-cyan-200/60',
-      text: 'text-cyan-700',
-      badge: 'bg-cyan-100/80 text-cyan-700 border-cyan-200/60',
-      icon: 'text-cyan-500',
-    },
-    violet: {
-      bg: 'from-violet-50/30 to-violet-100/30',
-      border: 'border-violet-200/60',
-      text: 'text-violet-700',
-      badge: 'bg-violet-100/80 text-violet-700 border-violet-200/60',
-      icon: 'text-violet-500',
-    },
-    pink: {
-      bg: 'from-pink-50/30 to-pink-100/30',
-      border: 'border-pink-200/60',
-      text: 'text-pink-700',
-      badge: 'bg-pink-100/80 text-pink-700 border-pink-200/60',
-      icon: 'text-pink-500',
-    },
-  }
+
 
   const colors = colorClasses[category.color as keyof typeof colorClasses]
 
@@ -1711,13 +1784,13 @@ function FoundationCategory({
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.5, delay }}
-      className={`p-4 w-full rounded-lg panel-edge border ${colors.border} overflow-hidden transition-colors duration-500 ${
-        isExpanded ? `bg-gradient-to-br ${colors.bg}` : 'bg-transparent'
+      className={`p-4 w-full rounded-lg panel-edge border  ${colors.border} overflow-hidden transition-colors duration-500 ${
+        isExpanded ? `bg-gradient-to-br ${colors.bg}` : 'bg-transparent '
       }`}
     >
       <button
         onClick={onToggle}
-        className=" p-4 w-full bg-transparent  rounded-lg panel-edge "
+        className=" p-4 w-full bg-white/30 hover:bg-white/40 rounded-lg panel-edge "
       >
         
         <div className="flex items-start justify-between gap-4">
@@ -1817,12 +1890,20 @@ function AccessSection() {
           viewport={{ once: true }}
           transition={{ duration: 0.5, delay: 0.2 }}
         >
-          <button className="about-btn about-btn--gradient group about-pulse-glow">
+          {/* <button className="about-btn about-btn--gradient group about-pulse-glow">
             <span className="relative flex items-center gap-2">
               Request Alpha Access
               <Zap className="h-4 w-4" />
             </span>
-          </button>
+          </button> */}
+          <Link href="#access">
+            <button className="about-btn postcard group">
+              <span className="relative flex items-center gap-2">
+                Register for Early Access
+                <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </span>
+            </button>
+          </Link>
         </motion.div>
       </div>
     </section>
