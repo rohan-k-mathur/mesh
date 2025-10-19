@@ -80,6 +80,45 @@ function toSnippet(raw: string, max = 48) {
   return s.length > max ? s.slice(0, max - 1) + "…" : s;
 }
 
+// Threshold in milliseconds to determine if messages should be grouped (5 minutes)
+const MESSAGE_GROUP_TIME_THRESHOLD = 5 * 60 * 1000;
+
+/**
+ * Determines if a message should show the sender name/avatar.
+ * Returns true if:
+ * - It's the first message in the conversation
+ * - The sender is different from the previous message
+ * - More than MESSAGE_GROUP_TIME_THRESHOLD has passed since the previous message
+ */
+function shouldShowSenderInfo(
+  currentMessage: Message,
+  previousMessage: Message | null
+): boolean {
+  if (!previousMessage) return true;
+
+  // Different sender
+  if (currentMessage.senderId !== previousMessage.senderId) return true;
+
+  // Time gap too large
+  const currentTime = new Date(currentMessage.createdAt).getTime();
+  const previousTime = new Date(previousMessage.createdAt).getTime();
+
+  if (currentTime - previousTime > MESSAGE_GROUP_TIME_THRESHOLD) return true;
+
+  return false;
+}
+
+/**
+ * Determines spacing for a message based on grouping.
+ * Returns appropriate margin-top class.
+ */
+function getMessageSpacing(showSenderInfo: boolean): string {
+  // New message group (sender info shown)
+  if (showSenderInfo) return "py-.5";
+
+  // Same group, tight spacing
+  return "mt-0";
+}
 
 function PromoteToForumMenuItem({ messageId }: { messageId: string | number }) {
   const discussionId = useDiscussionId();
@@ -87,11 +126,17 @@ function PromoteToForumMenuItem({ messageId }: { messageId: string | number }) {
   return (
     <DropdownMenuItem
       onClick={async () => {
-        const r = await fetch(`/api/discussions/${discussionId}/bridge/promote`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "X-Idempotency-Key": `${discussionId}:${messageId}` },
-          body: JSON.stringify({ messageId }),
-        });
+        const r = await fetch(
+          `/api/discussions/${discussionId}/bridge/promote`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-Idempotency-Key": `${discussionId}:${messageId}`,
+            },
+            body: JSON.stringify({ messageId }),
+          }
+        );
         if (!r.ok) {
           const t = await r.text().catch(() => r.statusText);
           console.warn("[promote] failed", t);
@@ -122,14 +167,21 @@ function MergeHistorySummary({
   const [open, setOpen] = React.useState(false);
 
   // label summary (like your thread chip)
-  const label = hasReceipts
-    ? `v${latest?.v ?? list.length} • merged ${new Date(
-        (latest as any)?.mergedAt ?? (latest as any)?.merged_at ?? Date.now()
-      ).toLocaleString()}`
-    : <div className=" mt-2">(edited)</div>;
+  const label = hasReceipts ? (
+    `v${latest?.v ?? list.length} • merged ${new Date(
+      (latest as any)?.mergedAt ?? (latest as any)?.merged_at ?? Date.now()
+    ).toLocaleString()}`
+  ) : (
+    <div className=" mt-2">(edited)</div>
+  );
 
   return (
-    <div className={["mx-[3%] px-3 mt-0 mb-0", isMine ? "text-right" : "text-left"].join(" ")}>
+    <div
+      className={[
+        "mx-[3%] px-3 mt-0 mb-0",
+        isMine ? "text-right" : "text-left",
+      ].join(" ")}
+    >
       <button
         type="button"
         className={[
@@ -142,15 +194,19 @@ function MergeHistorySummary({
         <div className="flex inline-block gap-2 items-center">
           {isMine ? (
             <>
-              <span className="text-[.8rem] inline-block  hover:underline hover:underline-offset-4">{label}</span>
+              <span className="text-[.8rem] inline-block  hover:underline hover:underline-offset-4">
+                {label}
+              </span>
               <div className=" mr-4 w-8 h-3 border-b-[1px] border-r-[1px] border-slate-600"></div>
             </>
           ) : (
             <>
-            <div className=" ml-4 w-8 h-3 border-b-[1px] border-l-[1px] border-slate-600"></div>
+              <div className=" ml-4 w-8 h-3 border-b-[1px] border-l-[1px] border-slate-600"></div>
 
-              <span className="text-[.8rem] inline-block  hover:underline hover:underline-offset-4">{label}</span>
-              </>
+              <span className="text-[.8rem] inline-block  hover:underline hover:underline-offset-4">
+                {label}
+              </span>
+            </>
           )}
         </div>
       </button>
@@ -168,32 +224,42 @@ function MergeHistorySummary({
           ) : hasReceipts ? (
             <div className="space-y-1 ">
               {/* show newest first */}
-              {[...list].reverse().slice(0, 6).map((r: any) => {
-                const mergedAt = r.mergedAt ?? r.merged_at;
-                const v = r.v ?? "(?)";
-                return (
-                  <div key={`${messageId}-v-${v}`} className="text-[12px] text-slate-700">
-                    <span className="mr-2 font-medium">v{v}</span>
-                    <span className="mr-2 opacity-80">
-                      {mergedAt ? new Date(mergedAt).toLocaleString() : ""}
-                    </span>
-                    <a
-                      href={`/m/${encodeURIComponent(messageId)}/compare?v=${v}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="underline"
+              {[...list]
+                .reverse()
+                .slice(0, 6)
+                .map((r: any) => {
+                  const mergedAt = r.mergedAt ?? r.merged_at;
+                  const v = r.v ?? "(?)";
+                  return (
+                    <div
+                      key={`${messageId}-v-${v}`}
+                      className="text-[12px] text-slate-700"
                     >
-                      view
-                    </a>
-                  </div>
-                );
-              })}
+                      <span className="mr-2 font-medium">v{v}</span>
+                      <span className="mr-2 opacity-80">
+                        {mergedAt ? new Date(mergedAt).toLocaleString() : ""}
+                      </span>
+                      <a
+                        href={`/m/${encodeURIComponent(
+                          messageId
+                        )}/compare?v=${v}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="underline"
+                      >
+                        view
+                      </a>
+                    </div>
+                  );
+                })}
               {list.length > 6 && (
-                <div className="text-[12px] text-slate-500">… {list.length - 6} more</div>
+                <div className="text-[12px] text-slate-500">
+                  … {list.length - 6} more
+                </div>
               )}
             </div>
           ) : (
-          <div className="text-[.75rem]">edited @</div>
+            <div className="text-[.75rem]">edited @</div>
           )}
         </div>
       )}
@@ -327,31 +393,37 @@ function Attachment({
   );
 }
 
- function ReceiptRow({ messageId, isMine }: { messageId: string; isMine: boolean }) {
-     const { latest } = useReceipts(messageId);
-     if (!latest) return null;
-     const mergedAt = (latest as any).mergedAt ?? (latest as any).merged_at;
-     return (
-       <div
-         className={[
-           "mt-1 text-[11px] text-slate-500 italic",
-           isMine ? "text-right flex flex-col pr-3" : "text-left flex flex-col pl-3",
-         ].join(" ")}
-       >
-         v{latest.v} merge at {mergedAt ? new Date(mergedAt).toLocaleString() : ""}
-         {" "}
-         <a
-           className="underline"
-           href={`/m/${encodeURIComponent(messageId)}/compare?v=${latest.v}`}
-           target="_blank"
-           rel="noreferrer"
-         >
-           View 
-         </a>
-       </div>
-     );
-   }
-   
+function ReceiptRow({
+  messageId,
+  isMine,
+}: {
+  messageId: string;
+  isMine: boolean;
+}) {
+  const { latest } = useReceipts(messageId);
+  if (!latest) return null;
+  const mergedAt = (latest as any).mergedAt ?? (latest as any).merged_at;
+  return (
+    <div
+      className={[
+        "mt-1 text-[11px] text-slate-500 italic",
+        isMine
+          ? "text-right flex flex-col pr-3"
+          : "text-left flex flex-col pl-3",
+      ].join(" ")}
+    >
+      v{latest.v} merge at {mergedAt ? new Date(mergedAt).toLocaleString() : ""}{" "}
+      <a
+        className="underline"
+        href={`/m/${encodeURIComponent(messageId)}/compare?v=${latest.v}`}
+        target="_blank"
+        rel="noreferrer"
+      >
+        View
+      </a>
+    </div>
+  );
+}
 
 const MessageRow = memo(function MessageRow({
   m,
@@ -401,10 +473,15 @@ const MessageRow = memo(function MessageRow({
         <DropdownMenu>
           <DropdownMenuTrigger className="cursor-pointer">
             <ChatMessageAvatar
-              imageSrc={m.sender?.image || "/assets/user-helsinki.svg"}
+            variant="self"
+              imageSrc={m.sender?.image || "/assets/user.svg"}
             />
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" sideOffset={6}>
+          <DropdownMenuContent
+            className="flex mt-[-10px] ml-8 flex-col btnv2 bg-white/30 border-none backdrop-blur-xl rounded-xl max-w-[400px] py-2"
+            align="start"
+            sideOffset={0}
+          >
             <DropdownMenuItem
               onClick={() =>
                 onOpen(
@@ -414,10 +491,10 @@ const MessageRow = memo(function MessageRow({
                 )
               }
             >
-              💬 Side Chat
+              𒆿 Temporary Chat
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => onPrivateReply?.(m)}>
-              🔒 Reply To {m.sender?.name || "User"}
+              𒇆 Private Message
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -462,10 +539,16 @@ const MessageRow = memo(function MessageRow({
             ) : null}
 
             {/* ✅ Receipt row lives OUTSIDE the bubble container */}
-<div className={isMine ? "mt-1 w-full flex justify-end pr-3" : "mt-1 w-full flex justify-start pl-3"}>
-  <ReceiptRow messageId={String(m.id)} isMine={isMine} />
-</div>
-             {/* Merge receipt chip (safe hook usage in child) */}
+            <div
+              className={
+                isMine
+                  ? "mt-1 w-full flex justify-end pr-3"
+                  : "mt-1 w-full flex justify-start pl-3"
+              }
+            >
+              <ReceiptRow messageId={String(m.id)} isMine={isMine} />
+            </div>
+            {/* Merge receipt chip (safe hook usage in child) */}
 
             <div
               className={[
@@ -479,9 +562,7 @@ const MessageRow = memo(function MessageRow({
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
-                  
                     className="py-0 px-0 bg-transparent align-center my-auto  rounded-md text-xs focus:outline-none"
-                    
                     title="Message actions"
                     type="button"
                   >
@@ -498,14 +579,14 @@ const MessageRow = memo(function MessageRow({
                 <DropdownMenuContent
                   align={isMine ? "end" : "start"}
                   sideOffset={6}
-                  className="flex flex-col bg-white/50 border-none backdrop-blur rounded-xl max-w-[400px] py-2"
+                  className="flex flex-col bg-white/50 border-none backdrop-blur-xl rounded-xl max-w-[400px] py-2"
                 >
                   {isMine ? (
                     <>
                       <DropdownMenuItem
                         onClick={() => onProposeAlternative(m.id)}
                       >
-                        ሗ New Fork 
+                        ሗ New Fork
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => onCompareProposals(m.id)}
@@ -513,7 +594,7 @@ const MessageRow = memo(function MessageRow({
                         𐂶 Compare Forks
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => onMergeProposal(m.id)}>
-                      ✓ Approve Merge
+                        ✓ Approve Merge
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => alert("Edit is coming soon.")}
@@ -593,7 +674,7 @@ const MessageRow = memo(function MessageRow({
                       <DropdownMenuItem
                         onClick={() => onProposeAlternative(m.id)}
                       >
-                        ሗ New Fork 
+                        ሗ New Fork
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => onCompareProposals(m.id)}
@@ -604,7 +685,7 @@ const MessageRow = memo(function MessageRow({
                         {"↪\uFE0E"} Reply in DMs
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => onReplyInThread(m.id)}>
-                      ⏚ Thread Reply 
+                        ⏚ Thread Reply
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => {
@@ -628,7 +709,6 @@ const MessageRow = memo(function MessageRow({
                         {starred ? "★ Unstar" : "☆ Star"}
                       </DropdownMenuItem>
                       <PromoteToForumMenuItem messageId={m.id} />
-
                     </>
                   )}
                 </DropdownMenuContent>
@@ -638,124 +718,218 @@ const MessageRow = memo(function MessageRow({
         </>
       ) : (
         <>
-        
           <div
             className={[
               "relative  group w-full",
               isMine ? "flex justify-end" : "flex justify-start",
             ].join(" ")}
           >
+            {/* Button before content for outgoing messages */}
+            {isMine && (
+              <div
+                className={[
+                  "relative mx-3 z-20 flex",
+                  "invisible opacity-0 pointer-events-none",
+                  "group-hover:visible group-hover:opacity-100 group-hover:pointer-events-auto",
+                  "transition-opacity duration-150",
+                ].join(" ")}
+              >
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      className="btnv2--sunset align-center  my-auto rounded-full text-[12px] p-3 w-fit h-fit 
+                      hover:bg-rose-100/50 focus:outline-none "
+                      title="Message actions"
+                      type="button"
+                    ></button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    align={isMine ? "end" : "start"}
+                    sideOffset={6}
+                    className="flex flex-col bg-white/30 btnv2--sunset border border-rose-300 backdrop-blur-md rounded-xl max-w-[400px] py-2"
+                  >
+                    {isMine ? (
+                      <>
+                        <DropdownMenuItem
+                          variant="sunset"
+                          onClick={() => onProposeAlternative(m.id)}
+                        >
+                          ሗ New Fork
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          variant="sunset"
+                          onClick={() => onCompareProposals(m.id)}
+                        >
+                          𐂶 Compare Forks
+                        </DropdownMenuItem>
+
+                        <DropdownMenuItem
+                          variant="sunset"
+                          onClick={() => onMergeProposal(m.id)}
+                        >
+                          ✓ Approve Merge
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          variant="sunset"
+                          onClick={() => onReplyInThread(m.id)}
+                        >
+                          ⏚ Thread Reply
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          variant="sunset"
+                          onClick={() => {
+                            if (bookmarked) {
+                              toggleBookmark(m.id);
+                            } else {
+                              const label = (
+                                typeof window !== "undefined"
+                                  ? window.prompt("Add a label (optional)", "")
+                                  : ""
+                              )?.trim();
+                              toggleBookmark(m.id, {
+                                label: label ? label : null,
+                              });
+                            }
+                          }}
+                        >
+                          {bookmarked ? "⛉ Remove Bookmark" : "⛉ Bookmark"}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          variant="sunset"
+                          onClick={() => {
+                            const facetId =
+                              (m as any).defaultFacetId ??
+                              (Array.isArray(m.facets) && m.facets[0]?.id) ??
+                              undefined;
+                            useChatStore
+                              .getState()
+                              .setQuoteDraft(conversationId, {
+                                messageId: m.id,
+                                facetId,
+                              });
+                          }}
+                        >
+                          ❝ Quote
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                                                variant="sunset"
+
+                          onClick={() => alert("Edit is coming soon.")}
+                        >
+                          ✎ Edit
+                        </DropdownMenuItem>
+                        <PromoteToForumMenuItem messageId={m.id} />
+
+                        <DropdownMenuItem
+                          variant="sunset"
+                          onClick={() => toggleStar(m.id)}
+                        >
+                          {starred ? "★ Unstar" : "☆ Star"}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                                                  variant="sunset"
+
+                          className="text-red-600"
+                          onClick={() => onDelete(m.id)}
+                        >
+                          ⛝ Delete
+                        </DropdownMenuItem>
+                      </>
+                    ) : (
+                      <>
+                        <DropdownMenuItem
+                          onClick={() => onProposeAlternative(m.id)}
+                        >
+                          ⇵ Propose Alternative
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => onCompareProposals(m.id)}
+                        >
+                          𓐒 Compare Proposals
+                        </DropdownMenuItem>
+
+                        <DropdownMenuItem onClick={() => onReplyInThread(m.id)}>
+                          ⏚ Create Reply Thread
+                        </DropdownMenuItem>
+                        <PromoteToForumMenuItem messageId={m.id} />
+
+                        <DropdownMenuItem onClick={() => onPrivateReply?.(m)}>
+                          {"↪\uFE0E"} Reply in DMs
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            if (bookmarked) {
+                              toggleBookmark(m.id);
+                            } else {
+                              const label = (
+                                typeof window !== "undefined"
+                                  ? window.prompt("Add a label (optional)", "")
+                                  : ""
+                              )?.trim();
+                              toggleBookmark(m.id, {
+                                label: label ? label : null,
+                              });
+                            }
+                          }}
+                        >
+                          {bookmarked ? "⛉ Remove Bookmark" : "⛉ Bookmark"}
+                        </DropdownMenuItem>
+
+                        <DropdownMenuItem
+                          onClick={() => {
+                            const facetId =
+                              (m as any).defaultFacetId ??
+                              (Array.isArray(m.facets) && m.facets[0]?.id) ??
+                              undefined;
+                            useChatStore
+                              .getState()
+                              .setQuoteDraft(conversationId, {
+                                messageId: m.id,
+                                facetId,
+                              });
+                          }}
+                        >
+                          ❝ Quote
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => toggleStar(m.id)}>
+                          {starred ? "★ Unstar" : "☆ Star"}
+                        </DropdownMenuItem>
+                      </>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            )}
+
             {m.text ? (
               <ChatMessageContent content={m.text} />
             ) : (
               <ChatMessageContent content="" className="min-h-6" />
             )}
 
-        
-
-            <div
-              className={[
-                "absolute top-1 z-20 flex",
-                "invisible opacity-0 pointer-events-none",
-                "group-hover:visible group-hover:opacity-100 group-hover:pointer-events-auto",
-                "transition-opacity duration-150",
-              ].join(" ")}
-            >
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    className="py-0 px-0 bg-transparent align-center my-auto  rounded-md text-xs focus:outline-none"
-                    title="Message actions"
-                    type="button"
+            {/* Button after content for incoming messages */}
+            {!isMine && (
+              <div
+                className={[
+                  "relative mx-3 z-20 flex",
+                  "invisible opacity-0 pointer-events-none",
+                  "group-hover:visible group-hover:opacity-100 group-hover:pointer-events-auto",
+                  "transition-opacity duration-150",
+                ].join(" ")}
+              >
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      className="btnv2 align-center my-auto rounded-full text-[12px] p-3 w-fit h-fit hover:bg-indigo-100/50 focus:outline-none  "
+                      title="Message actions"
+                      type="button"
+                    ></button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    align="start"
+                    sideOffset={6}
+                    className="flex flex-col bg-white/30 btnv2 border border-indigo-300 backdrop-blur-md rounded-xl max-w-[400px] py-2"
                   >
-                    ᳀
-                    {/* <Image
-                      src="/assets/dot-mark.svg"
-                      alt="actions"
-                      width={32}
-                      height={32}
-                      className="cursor-pointer object-fill w-[10px]"
-                    /> */}
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align={isMine ? "end" : "start"}
-                  sideOffset={6}
-                  className="flex flex-col bg-white/30 border border-indigo-300 backdrop-blur-md rounded-xl max-w-[400px] py-2"
-                >
-                  {isMine ? (
-                    <>
-                      <DropdownMenuItem
-                        onClick={() => onProposeAlternative(m.id)}
-                      >
-                        ሗ New Fork
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => onCompareProposals(m.id)}
-                      >
-                        𐂶 Compare Forks
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onMergeProposal(m.id)}>
-                      ✓ Approve Merge
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onReplyInThread(m.id)}>
-                      ⏚ Thread Reply
-                      </DropdownMenuItem>
-
-                      <DropdownMenuItem
-                        onClick={() => alert("Edit is coming soon.")}
-                      >
-                        ✎ Edit
-                      </DropdownMenuItem>
-                      <PromoteToForumMenuItem messageId={m.id} />
-
-                      <DropdownMenuItem
-                        onClick={() => {
-                          const facetId =
-                            (m as any).defaultFacetId ??
-                            (Array.isArray(m.facets) && m.facets[0]?.id) ??
-                            undefined;
-                          useChatStore
-                            .getState()
-                            .setQuoteDraft(conversationId, {
-                              messageId: m.id,
-                              facetId,
-                            });
-                        }}
-                      >
-                        ❝ Quote
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => {
-                          if (bookmarked) {
-                            toggleBookmark(m.id);
-                          } else {
-                            const label = (
-                              typeof window !== "undefined"
-                                ? window.prompt("Add a label (optional)", "")
-                                : ""
-                            )?.trim();
-                            toggleBookmark(m.id, {
-                              label: label ? label : null,
-                            });
-                          }
-                        }}
-                      >
-                       {bookmarked ? "⛉ Remove Bookmark" : "⛉ Bookmark"}
-
-
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => toggleStar(m.id)}>
-                        {starred ? "★ Unstar" : "☆ Star"}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        className="text-red-600"
-                        onClick={() => onDelete(m.id)}
-                      >
-                        ⛝ Delete
-                      </DropdownMenuItem>
-                    </>
-                  ) : (
                     <>
                       <DropdownMenuItem
                         onClick={() => onProposeAlternative(m.id)}
@@ -767,32 +941,14 @@ const MessageRow = memo(function MessageRow({
                       >
                         𓐒 Compare Proposals
                       </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => {
-                          const facetId =
-                            (m as any).defaultFacetId ??
-                            (Array.isArray(m.facets) && m.facets[0]?.id) ??
-                            undefined;
-                          useChatStore
-                            .getState()
-                            .setQuoteDraft(conversationId, {
-                              messageId: m.id,
-                              facetId,
-                            });
-                        }}
-                      >
-                        ❝ Quote
+
+                      <DropdownMenuItem onClick={() => onReplyInThread(m.id)}>
+                        ⏚ Create Reply Thread
                       </DropdownMenuItem>
                       <PromoteToForumMenuItem messageId={m.id} />
 
                       <DropdownMenuItem onClick={() => onPrivateReply?.(m)}>
-                      {"↪\uFE0E"}  Reply in DMs
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => toggleStar(m.id)}>
-                        {starred ? "★ Unstar" : "☆ Star"}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onReplyInThread(m.id)}>
-                      ⏚ Create Reply Thread
+                        {"↪\uFE0E"} Reply in DMs
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => {
@@ -812,21 +968,38 @@ const MessageRow = memo(function MessageRow({
                       >
                         {bookmarked ? "⛉ Remove Bookmark" : "⛉ Bookmark"}
                       </DropdownMenuItem>
+
+                      <DropdownMenuItem
+                        onClick={() => {
+                          const facetId =
+                            (m as any).defaultFacetId ??
+                            (Array.isArray(m.facets) && m.facets[0]?.id) ??
+                            undefined;
+                          useChatStore
+                            .getState()
+                            .setQuoteDraft(conversationId, {
+                              messageId: m.id,
+                              facetId,
+                            });
+                        }}
+                      >
+                        ❝ Quote
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => toggleStar(m.id)}>
+                        {starred ? "★ Unstar" : "☆ Star"}
+                      </DropdownMenuItem>
                     </>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            )}
           </div>
         </>
       )}
 
       {isMine && (
-        <ChatMessageAvatar
-          imageSrc={m.sender?.image || "/assets/user-helsinki.svg"}
-        />
+        <ChatMessageAvatar  imageSrc={m.sender?.image || "/assets/user.svg"} />
       )}
-      
     </ChatMessage>
   );
 });
@@ -1433,8 +1606,6 @@ export default function ChatRoom({
       }
     };
 
- 
-
     const redactedHandler = ({ payload }: any) => {
       const mid = String(payload?.id ?? payload?.messageId ?? "");
       if (!mid) return;
@@ -1455,47 +1626,59 @@ export default function ChatRoom({
       });
     };
 
+    // --- Refresh merged message   invalidate SWR keys on merge ---
+    const proposalMergeHandler = ({ payload }: any) => {
+      const rootId = String(payload?.rootMessageId ?? payload?.messageId ?? "");
+      const versionHash = String(payload?.versionHash ?? "");
+      if (!rootId) return;
 
-         // --- Refresh merged message   invalidate SWR keys on merge ---
-         const proposalMergeHandler = ({ payload }: any) => {
-           const rootId = String(payload?.rootMessageId ?? payload?.messageId ?? "");
-           const versionHash = String(payload?.versionHash ?? "");
-           if (!rootId) return;
-     
-           fetch(
-             `/api/sheaf/messages?userId=${encodeURIComponent(
-               currentUserId
-             )}&messageId=${encodeURIComponent(rootId)}`,
-             { cache: "no-store" }
-           )
-             .then((r) => (r.ok ? r.json() : null))
-             .then((data) => {
-               const hydrated = data?.messages?.[0] ?? data?.message ?? null;
-               if (hydrated) {
-                 useChatStore
-                   .getState()
-                   .replaceMessageInConversation(conversationId, hydrated);
-               }
-             })
-             .catch(() => {});
-     
-           // SWR invalidations: receipts chip   candidates   counts
-           swrMutate(`/api/messages/${encodeURIComponent(rootId)}/receipts?latest=1`);
-           swrMutate(`/api/proposals/candidates?rootMessageId=${encodeURIComponent(rootId)}`);
-           swrMutate(`/api/proposals/list?rootMessageId=${encodeURIComponent(rootId)}`);
-     
-           console.log("[rt] proposal_merge received", { rootId, versionHash });
-         };
-     
-         // --- Refresh proposal counts/candidates when someone approves/blocks ---
-         const proposalSignalHandler = ({ payload }: any) => {
-           const rootId = String(payload?.rootMessageId ?? "");
-           if (!rootId) return;
-           swrMutate(`/api/proposals/list?rootMessageId=${encodeURIComponent(rootId)}`);
-           swrMutate(`/api/proposals/candidates?rootMessageId=${encodeURIComponent(rootId)}`);
-           console.log("[rt] proposal_signal refresh", { rootId, facetId: payload?.facetId, kind: payload?.kind });
-        };
+      fetch(
+        `/api/sheaf/messages?userId=${encodeURIComponent(
+          currentUserId
+        )}&messageId=${encodeURIComponent(rootId)}`,
+        { cache: "no-store" }
+      )
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => {
+          const hydrated = data?.messages?.[0] ?? data?.message ?? null;
+          if (hydrated) {
+            useChatStore
+              .getState()
+              .replaceMessageInConversation(conversationId, hydrated);
+          }
+        })
+        .catch(() => {});
 
+      // SWR invalidations: receipts chip   candidates   counts
+      swrMutate(
+        `/api/messages/${encodeURIComponent(rootId)}/receipts?latest=1`
+      );
+      swrMutate(
+        `/api/proposals/candidates?rootMessageId=${encodeURIComponent(rootId)}`
+      );
+      swrMutate(
+        `/api/proposals/list?rootMessageId=${encodeURIComponent(rootId)}`
+      );
+
+      console.log("[rt] proposal_merge received", { rootId, versionHash });
+    };
+
+    // --- Refresh proposal counts/candidates when someone approves/blocks ---
+    const proposalSignalHandler = ({ payload }: any) => {
+      const rootId = String(payload?.rootMessageId ?? "");
+      if (!rootId) return;
+      swrMutate(
+        `/api/proposals/list?rootMessageId=${encodeURIComponent(rootId)}`
+      );
+      swrMutate(
+        `/api/proposals/candidates?rootMessageId=${encodeURIComponent(rootId)}`
+      );
+      console.log("[rt] proposal_signal refresh", {
+        rootId,
+        facetId: payload?.facetId,
+        kind: payload?.kind,
+      });
+    };
 
     channel.on("broadcast", { event: "new_message" }, msgHandler);
     channel.on(
@@ -1510,8 +1693,11 @@ export default function ChatRoom({
     channel.on("broadcast", { event: "message_redacted" }, redactedHandler);
     channel.on("broadcast", { event: "read" }, readHandler);
     channel.on("broadcast", { event: "proposal_merge" }, proposalMergeHandler); // ← added
-    channel.on("broadcast", { event: "proposal_signal" }, proposalSignalHandler);
-
+    channel.on(
+      "broadcast",
+      { event: "proposal_signal" },
+      proposalSignalHandler
+    );
 
     let pingTimer: any = null;
     channel.on("broadcast", { event: "debug_ping" }, () => {});
@@ -1681,13 +1867,13 @@ export default function ChatRoom({
   }, [highlightMessageId, messages.length]);
 
   return (
-    <div className="space-y-3" data-chat-root>
+    <div className="space-y-4" data-chat-root>
       <ProposalsCompareModal
         open={!!compareFor}
         onClose={() => setCompareFor(null)}
         rootMessageId={String(compareFor || "")}
         conversationId={String(conversationId)}
-                currentUserId={currentUserId}
+        currentUserId={currentUserId}
         onOpenDrift={(driftId) =>
           setOpenDrifts((prev) => ({ ...prev, [driftId]: true }))
         }
@@ -1695,7 +1881,7 @@ export default function ChatRoom({
           // Optionally: refresh the root message; your existing hydration often handles it.
         }}
       />
-      {messages.map((m) => {
+      {messages.map((m, idx) => {
         const isMine = String(m.senderId) === String(currentUserId);
         const panes = Object.values(state.panes);
         const anchored = panes.find(
@@ -1710,8 +1896,22 @@ export default function ChatRoom({
           !!threadEntry?.drift?.title &&
           threadEntry.drift.title.toLowerCase().startsWith("proposal:");
 
+        // Calculate message grouping
+        const previousMessage = idx > 0 ? messages[idx - 1] : null;
+        const showSenderInfo = shouldShowSenderInfo(m, previousMessage);
+        const messageSpacing = getMessageSpacing(showSenderInfo);
+
         return (
-          <div key={m.id} className="space-y-2" data-msg-id={m.id}>
+          <div key={m.id} className={messageSpacing} data-msg-id={m.id}>
+            {/* Sender name and avatar - only shown at start of message group */}
+            {showSenderInfo && !isMine && (
+              <div className="flex items-center ml-8 px-3 pb-1">
+                <span className="text-[10px] font-light text-slate-600">
+                  {m.sender?.name || "Unknown"}
+                </span>
+              </div>
+            )}
+
             {!isDriftAnchor && (
               <MessageRow
                 m={m}
@@ -1776,14 +1976,14 @@ export default function ChatRoom({
                 return (
                   <div
                     className={[
-                      "px-3 mt-1 flex",
+                      "px-3 mt-2 flex",
                       isMine ? "justify-end" : "justify-start",
                     ].join(" ")}
                   >
                     <div className="max-w-[60%]">
                       <div className="text-slate-500 flex  items-center gap-1">
                         <span className="flex mr-1 h-2 w-2 mb-1 justify-center items-center align-center  rounded-full bg-slate-600" />
-                        <span className="text-[.75rem] align-center  my-auto">
+                        <span className="text-xs pb-1 align-center  my-auto">
                           Replying to&nbsp;{inlineLabel}
                         </span>
                       </div>
@@ -1792,7 +1992,7 @@ export default function ChatRoom({
                           "mt-1 h-fit  pl-3 border-l-[1px]",
                           isMine
                             ? "border-rose-400 ml-1"
-                            : "border-indigo-400 mx-1",
+                            : "border-indigo-400 mx-auto px-auto",
                         ].join(" ")}
                       >
                         {(m as any).quotes.map((q: any, i: number) => (
@@ -1852,11 +2052,10 @@ export default function ChatRoom({
               />
             )}
             <MergeHistorySummary
-  messageId={String(m.id)}
-  isMine={isMine}
-  edited={Boolean((m as any).edited)}
-/>
-
+              messageId={String(m.id)}
+              isMine={isMine}
+              edited={Boolean((m as any).edited)}
+            />
 
             <ThreadSummary
               threadEntry={threadEntry}

@@ -20,6 +20,7 @@ CornerDownRight,
   ArrowUpNarrowWide,
   Trash2,
   ArrowUpWideNarrow,
+  TextQuoteIcon,
 } from "lucide-react";
 
 /* ----------------------------- types & utils ----------------------------- */
@@ -37,7 +38,7 @@ type ForumComment = {
   _children?: ForumComment[]; // for future threaded rendering
 };
 
-const fetcher = (u: string) =>
+const fetcher = (u: string): Promise<any> =>
   fetch(u, { cache: "no-store" }).then((r) => r.json());
 
 function cx(...parts: Array<string | false | null | undefined>) {
@@ -156,10 +157,12 @@ export default function ForumPane({
   discussionId,
   conversationId, // string | null
   opUserId,
+  initialComments, // 👈 NEW: Accept server-seeded comments
 }: {
   discussionId: string;
   conversationId: string | null;
   opUserId?: string | number | null;
+  initialComments?: ForumComment[]; // 👈 NEW
 }) {
   const [sort, setSort] = React.useState<"best" | "top" | "new" | "old">(
     "best"
@@ -167,6 +170,7 @@ export default function ForumPane({
   const [limit, setLimit] = React.useState<number>(30);
   const [cursor, setCursor] = React.useState<string | null>(null);
   const [compact, setCompact] = React.useState(false);
+  const [hasMore, setHasMore] = React.useState(true);
 
   // Track URL hash for anchor highlight
   const [highlightId, setHighlightId] = React.useState<string | null>(null);
@@ -192,8 +196,20 @@ export default function ForumPane({
 
   const { data, mutate, isLoading, error } = useSWR<{ items: ForumComment[] }>(
     `/api/discussions/${discussionId}/forum?${query}&includeReplies=all`,
-    fetcher
+    fetcher,
+    {
+      // 👇 Use initial comments if provided (for demo/SSR hydration)
+      fallbackData: initialComments ? { items: initialComments } : undefined,
+    }
   );
+
+  // Update hasMore based on the response
+  React.useEffect(() => {
+    if (data?.items) {
+      // If we got fewer items than the limit, there are no more comments
+      setHasMore(data.items.length >= limit);
+    }
+  }, [data?.items, limit]);
 
   const items = React.useMemo(() => {
     const rows = data?.items ?? [];
@@ -341,7 +357,7 @@ export default function ForumPane({
         className="rounded-xl border bg-white p-3 panel-edge"
       >
         <textarea
-          className="w-full text-sm  border-none rounded-lg outline-[1px] outline-indigo-300 discussionfield bg-white
+          className="w-full text-sm p-2 border-none rounded-lg outline-[1px] outline-indigo-300 discussionfield bg-white
            resize-y min-h-[72px]"
           placeholder="Respond here…"
           value={body}
@@ -422,10 +438,10 @@ export default function ForumPane({
             const last = data?.items?.[data.items.length - 1];
             if (last) setCursor(String(last.id));
           }}
-          disabled={isLoading || !data?.items?.length}
-          title="Loads older comments"
+          disabled={isLoading || !data?.items?.length || !hasMore}
+          title={hasMore ? "Loads older comments" : "All comments loaded"}
         >
-          Load more
+          {hasMore ? "Load more" : "All comments loaded"}
         </button>
       </div>
     </div>
@@ -778,11 +794,11 @@ function ForumCommentItem({
             )}
           >
             <button
-              className="flex gap-1 btnv2--ghost  py-1 text-center align-center my-auto px-2 text-xs"
+              className="flex gap-1 btnv2--ghost rounded-xl py-1 text-center align-center my-auto px-2 text-xs"
               onClick={() => setReplyOpen((v) => !v)}
             >
               <CornerDownRight className="h-3.5 w-3.5" />
-              <div className="flex align-center text-center my-auto  underline underline-offset-4">Reply</div>
+              <div className="flex align-center text-center my-auto ">Reply</div>
             </button>
 
             <span className="text-slate-400">•</span>
@@ -1076,7 +1092,7 @@ function SaveButton({
   return (
     <button
       className={cx(
-        "flex items-center btnv2--ghost gap-1 underline underline-offset-4",
+        "flex items-center p-1 btnv2--ghost rounded-xl gap-1 ",
         saved && "text-emerald-700"
       )}
       onClick={onToggle}
@@ -1107,7 +1123,7 @@ function ShareButton({
   }
   return (
     <button
-      className="flex  items-center gap-1 underline underline-offset-4"
+      className="flex  items-center gap-1 p-1 btnv2--ghost rounded-xl"
       onClick={copy}
     >
       <Share2 className="h-3.5 w-3.5" />
@@ -1181,11 +1197,11 @@ function QuoteInChatButton({
 
   return (
     <button
-      className="flex gap-1 btnv2--ghost py-1 text-center align-center my-auto px-2 text-xs"
+      className="flex gap-1 btnv2--ghost rounded-xl py-1 text-center align-center my-auto px-2 text-xs"
       onClick={go}
     >
-      <MessageSquareQuote className="h-3.5 w-3.5" />
-      <div className="flex align-center text-center my-auto  "><span className="underline underline-offset-4">Quote</span></div>
+      <TextQuoteIcon className="h-3.5 w-3.5" />
+      <div className="flex align-center text-center my-auto  "><span className="flex  align-center text-center my-auto">Quote</span></div>
     </button>
   );
 }
@@ -1241,14 +1257,14 @@ function Replies({
     open && !have
       ? `/api/discussions/${discussionId}/forum?parentId=${parentId}`
       : null,
-    (u) => fetch(u, { cache: "no-store" }).then((r) => r.json())
+    (u: string) => fetch(u, { cache: "no-store" }).then((r) => r.json())
   );
   const kids = have ?? data?.items ?? [];
 
   if (!open) {
     return (
       <button
-        className="mt-2 text-[12px] underline underline-offset-4"
+        className="mt-2 text-[12px] "
         onClick={() => setOpen(true)}
       >
         View replies

@@ -40,6 +40,12 @@ export async function GET(req: NextRequest) {
   const messageId = searchParams.get("messageId");
   const driftId   = searchParams.get("driftId");
 
+  // Handle demo/non-numeric conversation IDs gracefully
+  if (convo && (convo.startsWith("demo-") || isNaN(Number(convo)))) {
+    // Return empty messages for demo conversations (they should use initialMessages)
+    return ok({ userId, messages: [] });
+  }
+
   // Build where
   const whereMsg: any = {};
   if (messageId) whereMsg.id = toBigInt(messageId);

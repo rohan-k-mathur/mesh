@@ -14,8 +14,8 @@ export default function EditorLayout({
 }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      {/* Tailwind ‘h-screen’ makes the editor fill the viewport */}
-      <body className=" justify-center items-center align-center mt-9  p-4 h-full w-full overflow-auto bg-slate-300">
+      {/* Tailwind 'h-screen' makes the editor fill the viewport */}
+      <body className="h-full w-full overflow-auto bg-slate-300">
         {children}
       </body>
     </html>

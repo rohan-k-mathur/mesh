@@ -140,9 +140,6 @@ function FloatingOrbs() {
     </div>
   )
 }
-
-
-/* ======================== HERO SECTION ======================== */
 function HeroSection() {
   return (
     <section className="border-b border-indigo-100/50 bg-white/40 about-backdrop-blur">
@@ -174,7 +171,7 @@ function HeroSection() {
           transition={{ duration: 0.6, delay: 0.2 }}
           className="mb-8 text-lg leading-relaxed text-slate-700"
         >
-          A platform for structured discourse where arguments can be examined, challenged, and built upon.
+          Enabling the collective deliberation a functioning democracy requires.
         </motion.p>
         
         <motion.div
@@ -184,15 +181,11 @@ function HeroSection() {
           className="mb-8 space-y-4 text-base leading-relaxed text-slate-700"
         >
           <p>
-            Public deliberation occurs primarily on platforms designed for content circulation rather than knowledge formation. Arguments fragment across threads. Evidence remains disconnected from claims. Challenges receive no reply, and replies arrive in contexts where original exchanges cannot be traced. The infrastructure people use to reason together actively prevents the coherence that reasoning requires.
+            Digital Agora is a platform for structured public discourse. The platform implements protocols that enable sustained deliberation where arguments can be examined, challenged, and developed.
           </p>
           
           <p>
-            This is not a moderation problem or an algorithm problem. It is an infrastructure deficit. Existing platforms provide no shared format for linking evidence to claims, no protocol requiring that challenges be answered or deferred, no mechanism for tracking how positions emerged from examined alternatives. They were built to maximize engagement at the cost of making sustained, rigorous discourse structurally impossible.
-          </p>
-          
-          <p>
-            Democratic deliberation requires a public sphere—spaces where people can reason together, test claims against evidence, and revise positions based on argument. The internet was supposed to provide this. Without infrastructure that operationalizes the basic requirements of rational discourse, people retreat to closed communities not from intellectual timidity but from the absence of tools that make collaborative reasoning possible.
+            Each claim receives a stable identifier and links to source material. Challenges target premises, inferences, or evidence and create tracked obligations. Argumentation schemes generate critical questions automatically based on argument type. Questions require answers, concessions, or explicit deferrals. Arguments persist as verifiable graphs showing accepted, contested, and rejected positions.
           </p>
         </motion.div>
         
@@ -200,25 +193,6 @@ function HeroSection() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.4 }}
-          className="mb-8 space-y-4 text-base leading-relaxed text-slate-700"
-        >
-          <p>
-            The platform implements the structure that sustained reasoning requires. Each claim receives a stable identifier. Challenges must specify what they target: a premise, a logical inference, or supporting evidence. Exchanges follow protocols. When someone asks "what supports this claim," the system requires either an answer, a concession, or an explicit statement that the question is deferred. Questions cannot be ignored without record.
-          </p>
-          
-          <p>
-            A claim's epistemic status—accepted, rejected, undecided—derives from its position in the argument graph and the challenges it faces. When someone argues from expert testimony, argumentation schemes generate critical questions automatically: what are the expert's credentials, what is their potential bias, do other experts disagree. Deliberation continues until no participant can make a valid move under the protocol, producing a complete record of what was asserted, challenged, defended, and left unresolved.
-          </p>
-          
-          <p>
-            The output is structured disagreement: a graph showing which claims depend on which evidence, where challenges succeeded, where they failed, and where they remain unanswered. Others can examine this structure, accept parts, reject parts, or fork the analysis to explore alternatives. The work persists. Reasoning builds on prior reasoning rather than starting from scratch.
-          </p>
-        </motion.div>
-        
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.5 }}
           className="about-glass-card-code w-full rounded-xl panel-edge postcard mb-8"
         >
           <div className='bg-transparent'>
@@ -229,7 +203,7 @@ function HeroSection() {
               <div className="flex items-start gap-3">
                 <span className="text-indigo-600 font-medium flex-shrink-0">→</span>
                 <span>
-                  <strong className="text-slate-900">Evidential precision:</strong> Claims link to source material at granular resolutions. When evidence updates or gets challenged, see which conclusions depend on it.
+                  <strong className="text-slate-900">Evidence verification:</strong> Claims link to specific passages in source material. When evidence updates or gets challenged, dependent conclusions become visible.
                 </span>
               </div>
               <div className="flex items-start gap-3">
@@ -241,19 +215,19 @@ function HeroSection() {
               <div className="flex items-start gap-3">
                 <span className="text-indigo-600 font-medium flex-shrink-0">→</span>
                 <span>
-                  <strong className="text-slate-900">Systematic stress-testing:</strong> Argumentation schemes generate critical questions automatically. Expert testimony arguments trigger questions about credentials. Analogies trigger questions about relevance.
+                  <strong className="text-slate-900">Systematic testing:</strong> Argumentation schemes generate critical questions automatically. Expert testimony triggers credential questions. Analogies trigger relevance questions.
                 </span>
               </div>
               <div className="flex items-start gap-3">
                 <span className="text-indigo-600 font-medium flex-shrink-0">→</span>
                 <span>
-                  <strong className="text-slate-900">Reusable reasoning:</strong> Import argument structures between deliberations. Fork analyses to adapt them to different contexts while preserving provenance.
+                  <strong className="text-slate-900">Cumulative reasoning:</strong> Import argument structures between deliberations. Fork analyses to adapt them to different contexts while preserving provenance.
                 </span>
               </div>
               <div className="flex items-start gap-3">
                 <span className="text-indigo-600 font-medium flex-shrink-0">→</span>
                 <span>
-                  <strong className="text-slate-900">Durable publication:</strong> Deliberations produce citable artifacts in standard formats (AIF, JSON-LD) that integrate with institutional systems.
+                  <strong className="text-slate-900">Standard formats:</strong> Deliberations produce citable artifacts in standard formats (AIF, JSON-LD) that integrate with institutional systems.
                 </span>
               </div>
             </div>
@@ -263,16 +237,16 @@ function HeroSection() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.6 }}
+          transition={{ duration: 0.6, delay: 0.5 }}
           className="about-alert about-alert--info mb-8"
         >
-          Complex coordination problems—climate adaptation, healthcare policy, technology governance—require institutions to reason together across organizational boundaries. Without infrastructure that makes reasoning chains explicit, reusable, and verifiable, institutions work in isolation and public trust continues to erode.
+          A healthy society requires that people can reason together about complex questions. Agora provides the infrastructure needed for this work.
         </motion.div>
         
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.7 }}
+          transition={{ duration: 0.6, delay: 0.6 }}
           className="flex flex-wrap items-center gap-4"
         >
           <Link href="#access">
@@ -293,7 +267,6 @@ function HeroSection() {
     </section>
   )
 }
-
 
 function HeroSectionAlternate() {
   return (
@@ -606,11 +579,11 @@ function HeroSectionRevised() {
 
 
 /* ======================== PROBLEM SECTION ======================== */
+
 function ProblemSection() {
   return (
     <section className="border-b border-rose-100/50 about-panel-textured">
       <div className="mx-auto max-w-5xl px-8 py-16">
-        
         <motion.h2
           initial={{ opacity: 0, x: -20 }}
           whileInView={{ opacity: 1, x: 0 }}
@@ -618,9 +591,9 @@ function ProblemSection() {
           transition={{ duration: 0.5 }}
           className="mb-6 text-2xl font-medium text-slate-900"
         >
-        The Problem: Degradation of the Public Sphere
+          The Problem: Degradation of the Public Sphere
         </motion.h2>
-        
+
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -628,45 +601,77 @@ function ProblemSection() {
           transition={{ duration: 0.5, delay: 0.1 }}
           className="space-y-4 text-sm leading-relaxed text-slate-700"
         >
-          <p>
-            Democratic legitimacy requires more than voting. It requires that decisions emerge from public reasoning where participants aim for mutual understanding through force of better arguments rather than through strategic manipulation or power. Habermas called this communicative action: interaction oriented toward rationally motivated consensus, where validity claims can be challenged and must be justified through reasons accessible to all.
+          <p className='about-glass-card-paragraph'>
+            Voting alone does not establish democratic legitimacy. Decisions must emerge from public
+            reasoning: discourse in which participants evaluate arguments to achieve mutual understanding.
+            Argument quality determines outcomes. Strategic manipulation and power are excluded. Habermas
+            termed this communicative action: interaction oriented toward rationally motivated consensus
+            through the examination and justification of validity claims.
           </p>
-          
-          <p>
-            The internet was supposed to enable this at unprecedented scale. Instead, the dominant platforms have systematically dismantled the conditions under which public reasoning can occur.
+    
+          <p className='about-glass-card-paragraph'>
+            The emergence of the Internet was expected to enable communicative action at a global scale. The dominant
+            platforms have instead systematically eliminated the conditions under which such collaboration can
+            occur. Even if these companies rooted out all the problems they are continually plagued by—misinformation,
+            harassment, manipulation—the way these systems are architected would still not be adequate for supporting
+            productive discourse. Arguments cannot be structured to show explicit reasoning chains from premises to conclusions.
+            Evidence links decay and break, preventing verification. Challenges to claims create no obligation
+            to respond. Discussions cannot build on previous exchanges or reference established conclusions.
+            No record exists of which arguments have survived challenge, which have been refuted, and which
+            remain contested.
           </p>
-          
-          <p>
-            Watch what happens when someone attempts serious discourse on contemporary platforms. They post a carefully constructed argument with supporting evidence. Within minutes, the algorithmic feed buries it beneath viral content optimized for emotional reaction. If the argument does surface, responses arrive as isolated reactions—upvotes, emoji responses, brief dismissals—with no mechanism connecting challenges to specific premises or requiring that questions receive answers. Someone asks "what evidence supports this?" The question disappears into the thread. Days later, the original poster may never see it. If they do see it and respond, their response appears in a different context where observers cannot reconstruct the original exchange. The argument fragments. The discourse state—what has been claimed, what challenged, what answered—exists nowhere except in the failing memories of whoever happened to follow the entire scattered exchange.
+
+                   <p className='about-glass-card-paragraph'>
+
+            Deliberate architectural choices produce these failures. Platforms present themselves as neutral
+            infrastructure—open spaces where anyone can speak to anyone. This framing is deceptive. The systems
+            intercept messages and distribute them according to proprietary algorithms that maximize attention
+            and advertising revenue. Creators produce content shaped by platform incentives. Viewers see content
+            selected by recommendation systems. The architecture functions as a managed distribution system
+            serving commercial goals incompatible with sustained deliberation.
           </p>
-          
-          <p>
-            This is not an unfortunate side effect of otherwise neutral platforms. It is the intended outcome of infrastructure optimized for engagement metrics. Every architectural decision works against sustained reasoning. Algorithmic feeds ensure arguments cannot develop sequentially because context constantly shifts. Vote-based ranking surfaces content that triggers reaction, not content that rewards careful thought. Threading structures make exchanges longer than three turns nearly impossible to follow. Character limits force complexity into simplification. The absence of structured citation means evidence links decay, sources become inaccessible, and claims float free from whatever grounding they once had.
+
+               <p className='about-glass-card-paragraph'>
+
+            What emerges is what Habermas diagnosed as re-feudalization: the transformation of spaces for
+            rational-critical debate into arenas of spectacle. Where Habermas observed this process through mass
+            media and public relations, contemporary platforms have perfected it through architecture. Discourse
+            is not suppressed through censorship. It is rendered structurally impossible by systems that make
+            every feature required for reasoning—answerability, evidential grounding, inferential coherence,
+            cumulative development—technically unachievable.
           </p>
-          
-          <p>
-            The result is a public sphere that does not merely fail to support reasoning—it actively prevents it. People who attempt good-faith engagement discover the infrastructure will not let them. They cannot make evidence legible because the platforms provide no format for precise citation. They cannot build on others' arguments because threading breaks, context disappears, and no mechanism exists for forking a line of reasoning to explore it further. They cannot expect challenges to receive responses because the architecture permits silent evasion as the default. They cannot distinguish genuine consensus from exhaustion, actual refutation from simple invisibility.
+
+              <p className='about-glass-card-paragraph'>
+
+            Capacity for reasoned deliberation exists. Infrastructure enabling its exercise does not. Current
+            platforms were built by corporations that discovered attention maximization through outrage, tribal
+            signaling, and parasocial performance generates more revenue than facilitating genuine discourse.
+            Every dollar of market capitalization in social media represents a bet against the possibility of
+            people reasoning together. These systems serve their intended purpose: advertising revenue through
+            attention capture.
           </p>
-          
-          <p>
-            What emerges is precisely what Habermas diagnosed in the twentieth century as "re-feudalization" of the public sphere—the transformation of spaces for rational-critical debate into arenas of spectacle. But where Habermas observed this process through mass media and public relations, contemporary platforms have perfected it through infrastructure. Discourse is not suppressed through censorship. It is rendered structurally impossible through architecture that makes every feature required for reasoning—answerability, evidential grounding, inferential coherence, cumulative development—technically unachievable.
+
+              <p className='about-glass-card-paragraph'>
+
+            The consequences compound. Institutional decisions that require legitimacy cannot be grounded in
+            deliberative processes because no suitable infrastructure exists. People retreat from political
+            engagement not because they lack capacity for thought but because attempting collaborative reasoning
+            on available platforms produces only confusion and exhaustion. Those exercising power face no
+            requirement to justify decisions. No protocol enforces accountability. Those seeking to understand
+            complex questions—technological governance, climate coordination, institutional reform—find themselves
+            unable to assemble evidence, evaluate arguments, and track how conclusions emerge from analysis.
+            Collaborative reasoning cannot be conducted using tools built to prevent it.
           </p>
-          
-          <p>
-            People do not lack the capacity for public reasoning. They lack spaces where that capacity can be exercised. The platforms they use were built by corporations that discovered engagement metrics optimize for outrage, tribal signaling, and parasocial performance. Every dollar of market capitalization in social media represents a successful bet against the possibility of citizens reasoning together. The infrastructure serves its purpose perfectly. The purpose was never public reasoning. It was advertising revenue through attention capture.
-          </p>
-          
-          <p>
-            The consequences compound. Institutional decisions that require public legitimacy cannot be grounded in public reasoning because there is no infrastructure on which such reasoning could occur. Citizens retreat from political engagement not because they cannot think but because attempting to think together on available platforms produces only confusion and exhaustion. Those with power face no requirement to justify their positions because the platforms provide no protocol making justification structurally necessary. Those seeking to understand complex questions—technological governance, climate coordination, institutional reform—find themselves unable to assemble evidence, evaluate arguments, and track how conclusions emerge from analysis. The work of collective intelligence simply cannot be done using tools built to prevent it.
-          </p>
-          
-          <p className="font-medium text-slate-900">
-            This is not a feature gap. It is a structural incompatibility. Platforms built for content circulation cannot be patched into platforms for knowledge formation. The architecture must be different from the ground up.
+
+              <p className='about-glass-card-paragraph'>
+            The problem is not a feature gap that can be patched. It represents a structural incompatibility.
+            Systems built for content circulation cannot be modified into systems for knowledge formation.
+            Different architecture is required from first principles.
           </p>
         </motion.div>
       </div>
     </section>
-  )
+  );
 }
 
 /* ======================== CIVIC REQUIREMENTS ======================== */
@@ -858,7 +863,7 @@ function InstitutionalRequirementsSection() {
           transition={{ duration: 0.5, delay: 0.6 }}
           className="about-alert about-alert--info mt-8"
         >
-          <strong>Cross-Institutional Learning:</strong> These requirements become critical when institutions must coordinate across organizational boundaries. Without infrastructure enabling reasoning transfer, each institution operates in isolation. With it, they can build on each other's work—adopting sound reasoning, challenging weak points, and documenting precisely where their analyses converge or diverge. Knowledge accumulates instead of fragmenting.
+          <strong>Cross-Institutional Coordination:</strong> These requirements become critical when institutions must coordinate across organizational boundaries. Without infrastructure enabling reasoning transfer, each institution operates in isolation. With it, they can build on each other's work—adopting sound reasoning, challenging weak points, and documenting precisely where their analyses converge or diverge. Knowledge accumulates instead of fragmenting.
         </motion.div>
       </div>
     </section>

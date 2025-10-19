@@ -50,3 +50,6 @@ export const WORKFLOW_CHANNEL = "workflow-updates";
 export const WORKFLOW_CURRENT_EVENT = "workflow-current";
 export const WORKFLOW_EXECUTED_EVENT = "workflow-executed";
 export const WORKFLOW_LOG_EVENT = "workflow-log";
+
+// Global flag for demo mode
+

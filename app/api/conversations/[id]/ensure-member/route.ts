@@ -9,6 +9,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const uid = await getCurrentUserId();
   if (!uid) return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
 
+  // Handle demo/non-numeric conversation IDs gracefully
+  if (params.id.startsWith("demo-") || isNaN(Number(params.id))) {
+    // Skip database operations for demo conversations
+    return NextResponse.json({ ok: true, demo: true });
+  }
+
   const convId = BigInt(params.id);
 
   try {

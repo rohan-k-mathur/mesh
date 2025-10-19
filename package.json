@@ -30,6 +30,8 @@
     "size:why": "size-limit --why",
     "worker": "tsx -r dotenv/config workers/index.ts",
     "acl:build": "tsc -p packages/sheaf-acl/tsconfig.json",
+    "seed:discussion": "tsx scripts/seed-discussion-demo.ts",
+    "seed:discussion:advanced": "tsx scripts/seed-discussion-advanced.ts",
     "acl:watch": "tsc -w -p packages/sheaf-acl/tsconfig.json",
     "acl:test": "vitest run packages/sheaf-acl",
     "sheaf:seed": "tsx --env-file=.env scripts/sheaf-seed.ts",
@@ -200,6 +202,7 @@
     "react-virtuoso": "^4.14.0",
     "remark-gfm": "^4.0.1",
     "sass": "^1.89.2",
+    "server-only": "^0.0.1",
     "shadcn": "^2.1.0",
     "shiki": "^3.2.1",
     "simple-statistics": "^7.8.8",
@@ -282,7 +285,7 @@
     "ts-jest": "^29.4.0",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
-    "tsx": "^4.20.5",
+    "tsx": "^4.20.6",
     "typescript": "^5.9.2",
     "vitest": "^3.2.4"
   }

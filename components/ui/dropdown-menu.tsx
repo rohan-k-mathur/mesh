@@ -56,16 +56,24 @@ const DropdownMenuSubContent = React.forwardRef<
 DropdownMenuSubContent.displayName =
   DropdownMenuPrimitive.SubContent.displayName;
 
+const dropdownMenuContentVariants = {
+  default: "",
+  sunset:  "",
+};
+
 const DropdownMenuContent = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Content>
->(({ className, sideOffset = 4, ...props }, ref) => (
+  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Content> & {
+    variant?: keyof typeof dropdownMenuContentVariants;
+  }
+>(({ className, sideOffset = 4, variant = "default", ...props }, ref) => (
   <DropdownMenuPrimitive.Portal>
     <DropdownMenuPrimitive.Content
       ref={ref}
       sideOffset={sideOffset}
       className={cn(
-        "z-50 min-w-[8rem] overflow-hidden rounded-md border border-slate-200 bg-white p-1 text-slate-950 shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-50",
+        "z-50 min-w-[8rem] overflow-hidden rounded-md border border-slate-200 bg-white p-1 w-full text-slate-950 shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-50",
+        dropdownMenuContentVariants[variant],
         className
       )}
       {...props}
@@ -74,16 +82,25 @@ const DropdownMenuContent = React.forwardRef<
 ));
 DropdownMenuContent.displayName = DropdownMenuPrimitive.Content.displayName;
 
+const dropdownMenuItemVariants = {
+  default: "focus:outline-indigo-300 focus:bg-slate-200/60 focus:text-slate-900 focus:shadow-[inset_-1px_-1px_4px_rgba(55,40,42,0.6)] dark:focus:bg-slate-800 dark:focus:text-slate-50",
+  sunset: " focus:outline-orange-300 focus:shadow-[inset_-1px_-1px_4px_rgba(55,40,42,0.6)] focus:bg-orange-100/60 focus:text-orange-900 dark:focus:bg-orange-900/20 dark:focus:text-orange-50",
+  borders: "focus:border-orange-300 focus:bg-orange-100/60 focus:text-orange-900 focus:border focus:border-t focus:border-b dark:focus:bg-orange-900/20 dark:focus:text-orange-50",
+
+};
+
 const DropdownMenuItem = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.Item>,
   React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Item> & {
     inset?: boolean;
+    variant?: keyof typeof dropdownMenuItemVariants;
   }
->(({ className, inset, ...props }, ref) => (
+>(({ className, inset, variant = "default", ...props }, ref) => (
   <DropdownMenuPrimitive.Item
     ref={ref}
     className={cn(
-      "relative flex cursor-default select-none items-center gap-2 rounded-lg px-2 py-1.5 text-sm outline-none focus:outline-[1.5px] focus:outline-offset-0 focus:outline-emerald-300 transition-colors focus:bg-slate-200 focus:text-slate-900 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 dark:focus:bg-slate-800 dark:focus:text-slate-50",
+      "relative flex w-full cursor-default select-none items-center gap-2 rounded-lg px-2 py-1.5 text-sm outline-none focus:outline-[1px] focus:outline-offset-0 focus:cursor-pointer transition-colors data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+      dropdownMenuItemVariants[variant],
       inset && "pl-8",
       className
     )}

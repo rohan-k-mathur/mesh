@@ -12,6 +12,10 @@ import ThreadListSidebar from "./ThreadListSidebar";
 import ForumRulesCard from "./ForumRulesCard";
 import DiscussionDescriptionEditor from './DiscussionDescriptionEditor';
 
+export const isdemo = false;
+
+
+
 // import { GridBG } from "./FX";
 import { GridBG } from "../ui/GridBG";
 import DiscussionTitleEditor from "./DiscussionTitleEditor";
@@ -22,10 +26,12 @@ export default function DiscussionView({
   discussion,
   conversationId,
   initialMessages = [],         // 👈 NEW
+  initialForumComments,          // 👈 NEW: Accept forum comments for demo/SSR
 }: {
   discussion: any;
   conversationId: string | null;   // ⬅️ string | null now
   initialMessages?: any[];
+  initialForumComments?: any[];    // 👈 NEW
 
 }) {
   const [tab, setTab] = React.useState<"chat" | "forum">("forum");
@@ -96,7 +102,7 @@ React.useEffect(() => {
 
     <div className="relative isolate w-full ">
   
-      <div className="relative z-10 mx-auto max-w-5xl p-0 space-y-3 w-full">
+      <div className="relative z-10 mx-auto  p-0 space-y-3 w-full">
       <header className=" panel-edge  rounded-2xl border bg-white/50 px-4 py-3 
       shadow-[0_10px_40px_-10px_rgba(2,6,23,0.12)]">
       <div className="flex items-center justify-between gap-3">
@@ -147,16 +153,34 @@ React.useEffect(() => {
  {tab === "chat" ? (
           conversationId ? (
             me ? (
-              <div className="glass-surface rounded-2xl panel-edge border bg-white/70 p-4">
-                <div className="space-y-6">
-                  <ChatRoom
-                    conversationId={conversationId}
-                    currentUserId={me}
-                    currentUserName={currentUserName}
-                    currentUserImage={currentUserImage}
-                    initialMessages={initialMessages}
-                  />
-                  <hr className="border-white/60" />
+              <div className={isdemo 
+                ? "rounded-2xl border-2 border-purple-400 bg-gradient-to-br from-purple-50/90 to-pink-50/90 px-4 py-3 shadow-lg" 
+                : "glass-surface rounded-2xl panel-edge border bg-white/70 px-3 py-2"
+              }>
+                <div className="space-y-6 ">
+                  <div className={isdemo 
+                    ? "max-h-screen overflow-y-auto pl-3 pt-3 pr-2 custom-scrollbar" 
+                    : "max-h-[70vh]  overflow-y-auto pl-2 pt-3 pr-2 pb-2 custom-scrollbar"
+                  }>
+                  {isdemo ? (
+                    <ChatRoom
+                      conversationId={conversationId}
+                      currentUserId={me}
+                      currentUserName={currentUserName}
+                      currentUserImage={currentUserImage}
+                      initialMessages={initialMessages}
+                    />
+                  ) : (
+                    <ChatRoom
+                      conversationId={conversationId}
+                      currentUserId={me}
+                      currentUserName={currentUserName}
+                      currentUserImage={currentUserImage}
+                      initialMessages={[]}
+                    />
+                  )}
+                  </div>
+                  <hr className="border-slate-400/60 " />
                   <MessageComposer
                     conversationId={String(conversationId)}
                     currentUserId={me}
@@ -180,6 +204,7 @@ React.useEffect(() => {
             <ForumPane
               discussionId={discussion.id}
               conversationId={conversationId}
+              initialComments={initialForumComments}
             />
           </div>
         )}

@@ -35,6 +35,7 @@
   transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+
 .about-glass-card-code {
   background: linear-gradient(
     145deg,
@@ -57,6 +58,37 @@ position: relative;
   font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
   font-size: 12px;
   line-height: 1.6;
+  overflow: hidden;
+    /* backdrop-filter: blur(12px) saturate(1.4); */
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+
+
+.about-glass-card-paragraph {
+  background: linear-gradient(
+    145deg,
+    rgba(233, 239, 250, 0.5) 0%,
+    rgba(228, 228, 251, 0.55) 50%,
+    rgba(240, 233, 253, 0.5) 100%
+  );
+  box-shadow: 
+    /* inset 17px 17px 49px rgba(255, 255, 255, 0.25),
+    inset -17px -17px 49px rgba(255, 254, 254, 0.3), */
+    /* 0 8px 32px rgba(var(--about-indigo-glow), 0.08), */
+    /* -7px 7px 4px rgba(85, 79, 102, 0.15), */
+    /* -7px 0px 4px rgba(79, 89, 102, 0.15),
+    -7px -8px 4px rgba(79, 89, 102, 0.15), */
+    0px 0px 8px rgba(123, 123, 218, 0.742);
+
+position: relative;
+
+  padding: .8rem;
+  font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.6;
+  font-weight: 700;
+  letter-spacing: 0.025em;
   overflow: hidden;
     /* backdrop-filter: blur(12px) saturate(1.4); */
   transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);

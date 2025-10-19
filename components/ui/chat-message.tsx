@@ -4,6 +4,8 @@ import { MarkdownContent } from "@/components/ui/markdown-content";
 import { type VariantProps, cva } from "class-variance-authority";
 import { SparklesIcon, UserIcon } from "lucide-react";
 import React, { type ReactNode } from "react";
+import { UserCircle } from "@mynaui/icons-react";
+
 
 const chatMessageVariants = cva("flex gap-4 w-full", {
 	variants: {
@@ -86,12 +88,13 @@ ChatMessage.displayName = "ChatMessage";
 // Avatar component
 
 const chatMessageAvatarVariants = cva(
-	" flex items-center w-5 h-5 aspect-square rounded-full justify-center align-center my-auto py-auto chat-bubble  overflow-hidden",
+	" flex items-center w-5 h-5 aspect-square rounded-full justify-center align-center my-auto py-auto chat-bubble border border-rose-50 overflow-hidden",
 	{
 		variants: {
 			type: {
 				incoming: "ring-slate-200 dark:ring-slate-800",
 				outgoing: "ring-slate-500/30 dark:ring-slate-400/30",
+				self: "chat-bubble-blue",
 			},
 		},
 		defaultVariants: {
@@ -103,16 +106,17 @@ const chatMessageAvatarVariants = cva(
 interface ChatMessageAvatarProps extends React.HTMLAttributes<HTMLDivElement> {
 	imageSrc?: string;
 	icon?: ReactNode;
+	variant?: "incoming" | "outgoing" | "self";
 }
 
 const ChatMessageAvatar = React.forwardRef<
 	HTMLDivElement,
 	ChatMessageAvatarProps
->(({ className, icon: iconProps, imageSrc, ...props }, ref) => {
+>(({ className, icon: iconProps, imageSrc, variant, ...props }, ref) => {
 	const context = useChatMessage();
-	const type = context?.type ?? "incoming";
+	const type = variant ?? context?.type ?? "incoming";
 	const icon =
-		iconProps ?? (type === "incoming" ? <SparklesIcon /> : <UserIcon />);
+		iconProps ?? (type === "incoming" ? <UserCircle /> : <UserCircle />);
 	return (
 		<div
 			ref={ref}
@@ -151,12 +155,12 @@ const chatMessageContentVariants = cva("flex flex-col gap-2 ", {
 		{
 			variant: "bubble",
 			type: "incoming",
-			className: "bg-sky-50  rounded-lg px-4   h-fit align-center my-auto py-[1.2px] tracking-wide max-w-[60%] bg-opacity-70 chat-bubble outline-transparent text-[.9rem]  text-slate-950 dark:bg-slate-50 dark:text-slate-900",
+			className: "bg-sky-50/30 backdrop-blur-md rounded-lg pl-2 pr-2  h-fit align-center my-auto py-1 tracking-wide max-w-[62%] bg-opacity-70 chat-bubble-blue outline-transparent text-sm text-slate-950 dark:bg-slate-50 dark:text-slate-900",
 		},
 		{
 			variant: "bubble",
 			type: "outgoing",
-			className: "bg-fuchsia-50  rounded-lg px-4 h-fit align-center my-auto py-[1.2px]  tracking-wide max-w-[60%] bg-opacity-70 chat-bubble outline-transparent text-[.9rem] text-slate-950 dark:bg-slate-50 dark:text-slate-900",
+			className: "bg-rose-50/30 backdrop-blur-md rounded-lg pl-2 pr-2 leading-tight h-fit  align-center my-auto py-1   tracking-wide max-w-[62%] bg-opacity-70  chat-bubble outline-transparent text-sm text-slate-950 dark:bg-slate-50 dark:text-slate-900",
 		},
 	],
 	defaultVariants: {
