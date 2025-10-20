@@ -1513,7 +1513,7 @@ mark[data-rhetoric] { line-height: inherit; }
   outline-style: solid;
   outline-width: .25px;
   border-radius: 4px;
-    transition: box-shadow 200ms ease-in-out;
+    transition: box-shadow 1200ms ease-in-out;
 
   box-shadow:   1px 1px 3px rgba(253, 205, 215, 0.95),
   1px -1px 3px rgba(176, 141, 151, 0.95);
@@ -1523,6 +1523,8 @@ mark[data-rhetoric] { line-height: inherit; }
 .sendbutton:hover{
   /* box-shadow:   2px 2px 4px rgba(253, 205, 205, 0.95),
   -.5px 1px 4px rgba(176, 141, 141, 0.95); */
+      transition: box-shadow 1200ms ease-in-out;
+
   box-shadow: inset  -1px -1px 3px rgba(253, 205, 215, 0.95),
   inset 1px 1px 3px rgba(176, 141, 151, 0.95);
 

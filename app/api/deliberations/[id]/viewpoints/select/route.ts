@@ -25,7 +25,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     if (!delib) return NextResponse.json({ error: 'Deliberation not found' }, { status: 404 });
 
     const roomRule = delib.roomId
-      ? (await prisma.room.findUnique({
+      ? (await prisma.agoraRoom.findUnique({
           where: { id: delib.roomId },
           select: { representationRule: true },
         }))?.representationRule

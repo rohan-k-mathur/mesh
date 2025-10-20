@@ -387,8 +387,9 @@ function StepSection({ step, isSchemaExpanded, onToggleSchema }: StepSectionProp
             </div>
             
             <div className="bg-white rounded-lg p-6 border border-blue-100">
-              {step.demo === 'discussion-upgrade' &&    <DiscussionViewDemo />}
-              {step.demo !== 'discussion-upgrade' && (
+              {step.demo === 'discussion-upgrade' && <DiscussionViewDemo />}
+              {step.demo === 'live-chat' && <DiscussionViewDemo />}
+              {step.demo !== 'discussion-upgrade' && step.demo !== 'live-chat' && (
                 <div className="text-center text-slate-500 py-12">
                   Demo component: <code className="text-sm font-mono bg-slate-100 px-2 py-1 rounded">{step.demo}</code>
                   <div className="text-xs mt-2">To be implemented in Phase 4</div>
@@ -459,20 +460,47 @@ interface AnnotatedScreenshotProps {
 
 function AnnotatedScreenshot({ src, alt, annotations }: AnnotatedScreenshotProps) {
   const [activeId, setActiveId] = useState<string | null>(null)
+  const [imageError, setImageError] = useState<string | null>(null)
 
   const activeAnnotation = annotations.find(a => a.id === activeId)
+
+  // Ensure the path starts with / and doesn't include "public/"
+  const normalizedSrc = src?.replace(/^public\//, '/').replace(/^(?!\/)/, '/')
 
   return (
     <div className="space-y-4">
       <div className="relative inline-block w-full">
-        {/* Placeholder for screenshot - replace with actual Image component when screenshots are ready */}
-        <div className="w-full aspect-video bg-gradient-to-br from-slate-100 to-slate-200 rounded-lg border border-slate-300 flex items-center justify-center">
-          <div className="text-center text-slate-500">
-            <div className="text-sm font-medium mb-1">Screenshot: {src}</div>
-            <div className="text-xs">{alt}</div>
-            <div className="text-xs mt-2 text-slate-400">To be added in Phase 2</div>
+        {/* Screenshot Image */}
+        {normalizedSrc ? (
+          <div className="relative w-full aspect-video rounded-lg overflow-hidden border border-slate-300 bg-slate-100">
+            <Image
+              src={normalizedSrc}
+              alt={alt}
+              width={1920}
+              height={1080}
+              className="object-contain w-full h-full"
+              priority
+              unoptimized
+              onError={(e) => {
+                console.error('Image failed to load:', normalizedSrc, e)
+                setImageError(`Failed to load: ${normalizedSrc}`)
+              }}
+            />
+            {imageError && (
+              <div className="absolute inset-0 flex items-center justify-center bg-red-50 text-red-600 text-sm p-4">
+                {imageError}
+              </div>
+            )}
           </div>
-        </div>
+        ) : (
+          <div className="w-full aspect-video bg-gradient-to-br from-slate-100 to-slate-200 rounded-lg border border-slate-300 flex items-center justify-center">
+            <div className="text-center text-slate-500">
+              <div className="text-sm font-medium mb-1">Screenshot placeholder</div>
+              <div className="text-xs">{alt}</div>
+              <div className="text-xs mt-2 text-slate-400">Image not yet added</div>
+            </div>
+          </div>
+        )}
         
         {/* Annotation Hotspots */}
         {annotations.map((ann) => (
@@ -480,18 +508,18 @@ function AnnotatedScreenshot({ src, alt, annotations }: AnnotatedScreenshotProps
             key={ann.id}
             onClick={() => setActiveId(activeId === ann.id ? null : ann.id)}
             className={`
-              absolute flex h-8 w-8 items-center justify-center rounded-full
-              border-2 border-white shadow-lg transition-all hover:scale-110
-              font-bold text-xs z-10
+              absolute flex h-6 w-6 items-center justify-center rounded-full
+              border-2 border-red-700 shadow-lg transition-all hover:scale-110
+              font-bold text-[10px] z-10
               ${activeId === ann.id 
-                ? 'bg-slate-900 text-white scale-110 ring-4 ring-slate-900/20' 
-                : 'bg-red-500 text-white hover:bg-red-600'
+                ? 'bg-slate-900 text-white scale-110 ring-4 ring-slate-700/40' 
+                : 'bg-red-300/50 backdrop-blur-md text-slate-900 hover:bg-rose-400'
               }
             `}
             style={{
               left: `${ann.x}%`,
               top: `${ann.y}%`,
-              transform: 'translate(-50%, -50%)'
+              transform: 'scale(102%, 102%)'
             }}
             aria-label={`Annotation ${ann.label}: ${ann.title}`}
           >

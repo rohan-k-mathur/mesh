@@ -903,7 +903,7 @@ export default function PropositionsList({
           }}
           endReached={() => !isValidating && nextCursor && setSize(s => s + 1)}
           itemContent={(_index, r) => (
-            <div id={`prop-${r.id}`}>
+            <div className='custom-scrollbar' id={`prop-${r.id}`}>
               <Row p={r} deliberationId={deliberationId} onRefresh={() => mutate()} />
             </div>
           )}

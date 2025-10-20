@@ -838,25 +838,34 @@ const MessageRow = memo(function MessageRow({
                     ) : (
                       <>
                         <DropdownMenuItem
+                          variant="blue"
                           onClick={() => onProposeAlternative(m.id)}
                         >
                           ⇵ Propose Alternative
                         </DropdownMenuItem>
                         <DropdownMenuItem
+                          variant="blue"
                           onClick={() => onCompareProposals(m.id)}
                         >
                           𓐒 Compare Proposals
                         </DropdownMenuItem>
 
-                        <DropdownMenuItem onClick={() => onReplyInThread(m.id)}>
+                        <DropdownMenuItem
+                          variant="blue"
+                          onClick={() => onReplyInThread(m.id)}
+                        >
                           ⏚ Create Reply Thread
                         </DropdownMenuItem>
                         <PromoteToForumMenuItem messageId={m.id} />
 
-                        <DropdownMenuItem onClick={() => onPrivateReply?.(m)}>
+                        <DropdownMenuItem
+                          variant="blue"
+                          onClick={() => onPrivateReply?.(m)}
+                        >
                           {"↪\uFE0E"} Reply in DMs
                         </DropdownMenuItem>
                         <DropdownMenuItem
+                          variant="blue"
                           onClick={() => {
                             if (bookmarked) {
                               toggleBookmark(m.id);
@@ -876,6 +885,7 @@ const MessageRow = memo(function MessageRow({
                         </DropdownMenuItem>
 
                         <DropdownMenuItem
+                        variant="blue"
                           onClick={() => {
                             const facetId =
                               (m as any).defaultFacetId ??
@@ -891,7 +901,10 @@ const MessageRow = memo(function MessageRow({
                         >
                           ❝ Quote
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => toggleStar(m.id)}>
+                        <DropdownMenuItem
+                          variant="blue"
+                          onClick={() => toggleStar(m.id)}
+                        >
                           {starred ? "★ Unstar" : "☆ Star"}
                         </DropdownMenuItem>
                       </>
@@ -919,6 +932,7 @@ const MessageRow = memo(function MessageRow({
               >
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
+
                     <button
                       className="btnv2 align-center my-auto rounded-full text-[12px] p-3 w-fit h-fit hover:bg-indigo-100/50 focus:outline-none  "
                       title="Message actions"
@@ -932,25 +946,37 @@ const MessageRow = memo(function MessageRow({
                   >
                     <>
                       <DropdownMenuItem
+                                              variant="blue"
+
                         onClick={() => onProposeAlternative(m.id)}
                       >
                         ⇵ Propose Alternative
                       </DropdownMenuItem>
                       <DropdownMenuItem
+                                              variant="blue"
+
                         onClick={() => onCompareProposals(m.id)}
                       >
                         𓐒 Compare Proposals
                       </DropdownMenuItem>
 
-                      <DropdownMenuItem onClick={() => onReplyInThread(m.id)}>
+                      <DropdownMenuItem 
+                                              variant="blue"
+
+                      onClick={() => onReplyInThread(m.id)}>
                         ⏚ Create Reply Thread
                       </DropdownMenuItem>
                       <PromoteToForumMenuItem messageId={m.id} />
 
-                      <DropdownMenuItem onClick={() => onPrivateReply?.(m)}>
+                      <DropdownMenuItem 
+                                              variant="blue"
+
+                      onClick={() => onPrivateReply?.(m)}>
                         {"↪\uFE0E"} Reply in DMs
                       </DropdownMenuItem>
                       <DropdownMenuItem
+                                              variant="blue"
+
                         onClick={() => {
                           if (bookmarked) {
                             toggleBookmark(m.id);
@@ -970,6 +996,8 @@ const MessageRow = memo(function MessageRow({
                       </DropdownMenuItem>
 
                       <DropdownMenuItem
+                                              variant="blue"
+
                         onClick={() => {
                           const facetId =
                             (m as any).defaultFacetId ??
@@ -985,7 +1013,10 @@ const MessageRow = memo(function MessageRow({
                       >
                         ❝ Quote
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => toggleStar(m.id)}>
+                      <DropdownMenuItem 
+                                              variant="blue"
+
+                      onClick={() => toggleStar(m.id)}>
                         {starred ? "★ Unstar" : "☆ Star"}
                       </DropdownMenuItem>
                     </>

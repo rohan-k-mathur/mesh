@@ -83,8 +83,10 @@ const DropdownMenuContent = React.forwardRef<
 DropdownMenuContent.displayName = DropdownMenuPrimitive.Content.displayName;
 
 const dropdownMenuItemVariants = {
-  default: "focus:outline-indigo-300 focus:bg-slate-200/60 focus:text-slate-900 focus:shadow-[inset_-1px_-1px_4px_rgba(55,40,42,0.6)] dark:focus:bg-slate-800 dark:focus:text-slate-50",
-  sunset: " focus:outline-orange-300 focus:shadow-[inset_-1px_-1px_4px_rgba(55,40,42,0.6)] focus:bg-orange-100/60 focus:text-orange-900 dark:focus:bg-orange-900/20 dark:focus:text-orange-50",
+  default: "focus:outline-indigo-300 focus:bg-slate-200/60 focus:text-slate-900  dark:focus:bg-slate-800 dark:focus:text-slate-50",
+    blue: "focus:outline-indigo-300 focus:bg-slate-200/60 focus:text-slate-900 focus:shadow-[inset_0px_0px_4px_rgba(55,40,42,0.6)] dark:focus:bg-slate-800 dark:focus:text-slate-50",
+
+  sunset: " focus:outline-orange-300 focus:shadow-[inset_0px_0px_4px_rgba(55,40,42,0.6)] focus:bg-orange-100/60 focus:text-orange-900 dark:focus:bg-orange-900/20 dark:focus:text-orange-50",
   borders: "focus:border-orange-300 focus:bg-orange-100/60 focus:text-orange-900 focus:border focus:border-t focus:border-b dark:focus:bg-orange-900/20 dark:focus:text-orange-50",
 
 };

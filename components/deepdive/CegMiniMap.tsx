@@ -1,38 +1,131 @@
 // components/graph/CegMiniMap.tsx
 'use client';
 
-import { useRef, useState, useMemo } from 'react';
+import { useRef, useState, useMemo, useCallback } from 'react';
 import { useCegData } from '../graph/useCegData';
 import type { CegNode, CegEdge } from '../graph/useCegData';
+
 interface CegMiniMapProps {
   deliberationId: string;
   selectedClaimId?: string | null;
   onSelectClaim?: (claimId: string) => void;
   width?: number;
   height?: number;
-  showStats?: boolean;
-  showLegend?: boolean;
-  focusMode?: 'all' | 'attacks' | 'supports';
+  viewMode?: 'graph' | 'clusters' | 'controversy' | 'flow';
 }
 
-// Simple force simulation for layout
-function useForceLayout(
+type LayoutMode = 'force' | 'hierarchical' | 'radial' | 'cluster';
+
+// Enhanced force layout with clustering awareness
+function useAdvancedForceLayout(
   nodes: CegNode[],
   edges: CegEdge[],
   width: number,
-  height: number
+  height: number,
+  layoutMode: LayoutMode
 ) {
   return useMemo(() => {
     if (nodes.length === 0) {
       return new Map<string, { x: number; y: number }>();
     }
 
-    // Initialize with circular layout
     const positions = new Map<string, { x: number; y: number; vx: number; vy: number }>();
-    const radius = Math.min(width, height) * 0.35;
     const centerX = width / 2;
     const centerY = height / 2;
 
+    // Hierarchical layout: arrange by semantic label
+    if (layoutMode === 'hierarchical') {
+      const inNodes = nodes.filter(n => n.label === 'IN');
+      const outNodes = nodes.filter(n => n.label === 'OUT');
+      const undecNodes = nodes.filter(n => n.label === 'UNDEC');
+
+      const layerHeight = height / 4;
+      
+      const placeLayer = (layerNodes: CegNode[], yPos: number) => {
+        const spacing = Math.min(width / (layerNodes.length + 1), 40);
+        layerNodes.forEach((node, i) => {
+          const x = (i + 1) * spacing;
+          positions.set(node.id, { x, y: yPos, vx: 0, vy: 0 });
+        });
+      };
+
+      placeLayer(inNodes, layerHeight);
+      placeLayer(undecNodes, 2 * layerHeight);
+      placeLayer(outNodes, 3 * layerHeight);
+      
+      return new Map(
+        Array.from(positions.entries()).map(([id, pos]) => [id, { x: pos.x, y: pos.y }])
+      );
+    }
+
+    // Radial layout: controversial claims in center
+    if (layoutMode === 'radial') {
+      const controversial = nodes.filter(n => n.isControversial);
+      const nonControversial = nodes.filter(n => !n.isControversial);
+
+      controversial.forEach((node, i) => {
+        const angle = (i / controversial.length) * 2 * Math.PI;
+        const r = 30;
+        positions.set(node.id, {
+          x: centerX + r * Math.cos(angle),
+          y: centerY + r * Math.sin(angle),
+          vx: 0,
+          vy: 0,
+        });
+      });
+
+      nonControversial.forEach((node, i) => {
+        const angle = (i / nonControversial.length) * 2 * Math.PI;
+        const r = Math.min(width, height) * 0.35;
+        positions.set(node.id, {
+          x: centerX + r * Math.cos(angle),
+          y: centerY + r * Math.sin(angle),
+          vx: 0,
+          vy: 0,
+        });
+      });
+
+      return new Map(
+        Array.from(positions.entries()).map(([id, pos]) => [id, { x: pos.x, y: pos.y }])
+      );
+    }
+
+    // Cluster layout: group by cluster ID
+    if (layoutMode === 'cluster') {
+      const clusters = new Map<number, CegNode[]>();
+      nodes.forEach(n => {
+        const cid = n.clusterId ?? 0;
+        if (!clusters.has(cid)) clusters.set(cid, []);
+        clusters.get(cid)!.push(n);
+      });
+
+      const clusterCount = clusters.size;
+      const clusterRadius = Math.min(width, height) * 0.25;
+
+      Array.from(clusters.entries()).forEach(([cid, clusterNodes], clusterIdx) => {
+        const clusterAngle = (clusterIdx / clusterCount) * 2 * Math.PI;
+        const clusterCenterX = centerX + clusterRadius * Math.cos(clusterAngle);
+        const clusterCenterY = centerY + clusterRadius * Math.sin(clusterAngle);
+        const innerRadius = 20;
+
+        clusterNodes.forEach((node, i) => {
+          const nodeAngle = (i / clusterNodes.length) * 2 * Math.PI;
+          positions.set(node.id, {
+            x: clusterCenterX + innerRadius * Math.cos(nodeAngle),
+            y: clusterCenterY + innerRadius * Math.sin(nodeAngle),
+            vx: 0,
+            vy: 0,
+          });
+        });
+      });
+
+      return new Map(
+        Array.from(positions.entries()).map(([id, pos]) => [id, { x: pos.x, y: pos.y }])
+      );
+    }
+
+    // Default: Force-directed with cluster attraction
+    const radius = Math.min(width, height) * 0.35;
     nodes.forEach((node, i) => {
       const angle = (i / nodes.length) * 2 * Math.PI;
       positions.set(node.id, {
@@ -43,10 +136,11 @@ function useForceLayout(
       });
     });
 
-    // Simple force simulation (50 iterations)
-    const iterations = 50;
-    const repulsion = 100;
-    const attraction = 0.01;
+    // Simulation parameters
+    const iterations = 60;
+    const repulsion = 120;
+    const attraction = 0.012;
+    const clusterAttraction = 0.03;
     const damping = 0.7;
 
     for (let iter = 0; iter < iterations; iter++) {
@@ -69,6 +163,23 @@ function useForceLayout(
             const dist = Math.sqrt(distSq);
             posA.vx += (dx / dist) * force;
             posA.vy += (dy / dist) * force;
+          }
+        });
+
+        // Cluster cohesion
+        nodes.forEach(nodeB => {
+          if (nodeA.id === nodeB.id) return;
+          if (nodeA.clusterId === nodeB.clusterId && nodeA.clusterId !== undefined) {
+            const posB = positions.get(nodeB.id)!;
+            const dx = posB.x - posA.x;
+            const dy = posB.y - posA.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist > 0) {
+              const force = clusterAttraction * alpha;
+              posA.vx += (dx / dist) * force;
+              posA.vy += (dy / dist) * force;
+            }
           }
         });
       });
@@ -103,7 +214,7 @@ function useForceLayout(
         pos.y += pos.vy;
 
         // Keep in bounds
-        const padding = 15;
+        const padding = 20;
         pos.x = Math.max(padding, Math.min(width - padding, pos.x));
         pos.y = Math.max(padding, Math.min(height - padding, pos.y));
       });
@@ -112,10 +223,14 @@ function useForceLayout(
     return new Map(
       Array.from(positions.entries()).map(([id, pos]) => [id, { x: pos.x, y: pos.y }])
     );
-  }, [nodes, edges, width, height]);
+  }, [nodes, edges, width, height, layoutMode]);
 }
 
-function getNodeColor(node: CegNode): string {
+function getNodeColor(node: CegNode, viewMode: string): string {
+  if (viewMode === 'controversy' && node.isControversial) {
+    return '#ea580c'; // Orange for controversial
+  }
+  
   switch (node.label) {
     case 'IN': return '#16a34a';
     case 'OUT': return '#dc2626';
@@ -124,21 +239,55 @@ function getNodeColor(node: CegNode): string {
   }
 }
 
-function getEdgeStyle(edge: CegEdge): { stroke: string; strokeDasharray?: string } {
-  if (edge.type === 'supports') {
-    return { stroke: '#64748b' };
+function getNodeRadius(node: CegNode, viewMode: string): number {
+  const base = 5;
+  
+  if (viewMode === 'controversy') {
+    return base + (node.isControversial ? 3 : 0);
   }
   
-  // Attacks (rebuts, undercuts, undermines)
+  // Size by centrality
+  return base + node.centrality * 4;
+}
+
+function getEdgeStyle(edge: CegEdge, viewMode: string): { 
+  stroke: string; 
+  strokeDasharray?: string;
+  opacity: number;
+} {
+  const baseOpacity = viewMode === 'flow' ? 0.6 : 0.4;
+  
+  if (edge.type === 'supports') {
+    return { 
+      stroke: '#16a34a',
+      opacity: baseOpacity,
+    };
+  }
+  
+  // Attacks
   switch (edge.attackType) {
     case 'UNDERCUTS':
-      return { stroke: '#a16207', strokeDasharray: '4 2' };
+      return { 
+        stroke: '#a16207', 
+        strokeDasharray: '4 2',
+        opacity: baseOpacity,
+      };
     case 'UNDERMINES':
-      return { stroke: '#dc2626', strokeDasharray: '2 2' };
+      return { 
+        stroke: '#dc2626', 
+        strokeDasharray: '2 2',
+        opacity: baseOpacity,
+      };
     case 'REBUTS':
-      return { stroke: '#dc2626' };
+      return { 
+        stroke: '#dc2626',
+        opacity: baseOpacity,
+      };
     default:
-      return { stroke: '#ef4444' };
+      return { 
+        stroke: '#ef4444',
+        opacity: baseOpacity,
+      };
   }
 }
 
@@ -146,42 +295,93 @@ export default function CegMiniMap({
   deliberationId,
   selectedClaimId,
   onSelectClaim,
-  width = 280,
-  height = 200,
-  showStats = true,
-  showLegend = true,
-  focusMode = 'all',
+  width = 320,
+  height = 280,
+  viewMode = 'graph',
 }: CegMiniMapProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const [tooltipData, setTooltipData] = useState<{
-    node: CegNode;
-    x: number;
-    y: number;
-  } | null>(null);
+  const [layoutMode, setLayoutMode] = useState<LayoutMode>('force');
+  const [showClusters, setShowClusters] = useState(false);
+  const [filterLabel, setFilterLabel] = useState<'all' | 'IN' | 'OUT' | 'UNDEC'>('all');
 
   const { nodes, edges, stats, loading, error } = useCegData(deliberationId);
 
-  // Filter edges based on focus mode
-  const filteredEdges = useMemo(() => {
-    switch (focusMode) {
-      case 'attacks':
-        return edges.filter(e => e.type === 'rebuts');
-      case 'supports':
-        return edges.filter(e => e.type === 'supports');
-      default:
-        return edges;
-    }
-  }, [edges, focusMode]);
+  // Filter nodes based on current filter
+  const filteredNodes = useMemo(() => {
+    if (filterLabel === 'all') return nodes;
+    return nodes.filter(n => n.label === filterLabel);
+  }, [nodes, filterLabel]);
 
-  const nodePositions = useForceLayout(nodes, filteredEdges, width, height);
+  // Filter edges to only include visible nodes
+  const filteredEdges = useMemo(() => {
+    const nodeIds = new Set(filteredNodes.map(n => n.id));
+    return edges.filter(e => nodeIds.has(e.source) && nodeIds.has(e.target));
+  }, [edges, filteredNodes]);
+
+  const nodePositions = useAdvancedForceLayout(
+    filteredNodes,
+    filteredEdges,
+    width,
+    height,
+    layoutMode
+  );
+
+  // Compute clusters for visualization
+  const clusterBounds = useMemo(() => {
+    if (!showClusters) return [];
+    
+    const clusters = new Map<number, { minX: number; maxX: number; minY: number; maxY: number; nodes: CegNode[] }>();
+    
+    filteredNodes.forEach(node => {
+      const cid = node.clusterId ?? 0;
+      const pos = nodePositions.get(node.id);
+      if (!pos) return;
+
+      if (!clusters.has(cid)) {
+        clusters.set(cid, {
+          minX: pos.x,
+          maxX: pos.x,
+          minY: pos.y,
+          maxY: pos.y,
+          nodes: [],
+        });
+      }
+
+      const cluster = clusters.get(cid)!;
+      cluster.minX = Math.min(cluster.minX, pos.x);
+      cluster.maxX = Math.max(cluster.maxX, pos.x);
+      cluster.minY = Math.min(cluster.minY, pos.y);
+      cluster.maxY = Math.max(cluster.maxY, pos.y);
+      cluster.nodes.push(node);
+    });
+
+    return Array.from(clusters.values()).map(c => ({
+      x: c.minX - 10,
+      y: c.minY - 10,
+      width: c.maxX - c.minX + 20,
+      height: c.maxY - c.minY + 20,
+      nodeCount: c.nodes.length,
+    }));
+  }, [showClusters, filteredNodes, nodePositions]);
+
+  const getConnectedNodes = useCallback((nodeId: string): Set<string> => {
+    const connected = new Set<string>([nodeId]);
+    filteredEdges.forEach(e => {
+      if (e.source === nodeId) connected.add(e.target);
+      if (e.target === nodeId) connected.add(e.source);
+    });
+    return connected;
+  }, [filteredEdges]);
+
+  const connectedNodes = hoveredId ? getConnectedNodes(hoveredId) : new Set<string>();
 
   if (loading) {
     return (
       <div className="rounded-xl border border-slate-200 bg-white/90 p-4">
         <div className="animate-pulse space-y-2">
-          <div className="h-4 w-24 bg-slate-200 rounded" />
-          <div className="h-32 bg-slate-100 rounded" />
+          <div className="h-4 w-32 bg-slate-200 rounded" />
+          <div className="h-48 bg-slate-100 rounded" />
         </div>
       </div>
     );
@@ -199,110 +399,214 @@ export default function CegMiniMap({
     return (
       <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-center">
         <div className="text-sm text-slate-500">No claims yet</div>
+        <div className="text-xs text-slate-400 mt-1">
+          Add claims to see the argument structure
+        </div>
       </div>
     );
   }
 
-  // Calculate connected nodes for hover highlighting
-  const getConnectedNodes = (nodeId: string): Set<string> => {
-    const connected = new Set<string>([nodeId]);
-    filteredEdges.forEach(e => {
-      if (e.source === nodeId) connected.add(e.target);
-      if (e.target === nodeId) connected.add(e.source);
-    });
-    return connected;
-  };
-
-  const connectedNodes = hoveredId ? getConnectedNodes(hoveredId) : new Set<string>();
+  const controversialNodes = nodes.filter(n => n.isControversial);
+  const hubNodes = nodes.filter(n => n.centrality >= 0.6);
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white/90 backdrop-blur shadow-sm">
-      {/* Header with Stats */}
-      {showStats && stats && (
-        <div className="px-3 py-2 border-b border-slate-200">
-          <div className="flex items-center justify-between mb-2">
-            <h4 className="text-xs font-semibold text-slate-700">Claim Graph</h4>
-            <span className="text-[10px] text-slate-500">
-              {nodes.length} claims
+    <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+      {/* Enhanced Header */}
+      <div className="px-3 py-2.5 border-b border-slate-200">
+        <div className="flex items-center justify-between mb-2">
+          <h4 className="text-sm font-semibold text-slate-800">Argument Map</h4>
+          <div className="flex items-center gap-1.5">
+            {/* Layout mode selector */}
+            <button
+              onClick={() => setLayoutMode(m => 
+                m === 'force' ? 'hierarchical' : 
+                m === 'hierarchical' ? 'radial' :
+                m === 'radial' ? 'cluster' : 'force'
+              )}
+              className="px-2 py-0.5 text-[10px] font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded transition-colors"
+              title="Change layout"
+            >
+              {layoutMode === 'force' ? '🔀' : 
+               layoutMode === 'hierarchical' ? '📊' :
+               layoutMode === 'radial' ? '⭕' : '🗂️'}
+            </button>
+            
+            {/* Cluster visibility */}
+            <button
+              onClick={() => setShowClusters(!showClusters)}
+              className={`px-2 py-0.5 text-[10px] font-medium rounded transition-colors ${
+                showClusters 
+                  ? 'bg-blue-100 text-blue-700' 
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+              }`}
+              title="Toggle cluster boundaries"
+            >
+              🗂️
+            </button>
+
+            <span className="text-[10px] text-slate-500 ml-1">
+              {filteredNodes.length} claims
             </span>
           </div>
-          
-          {/* Support vs Counter Bars */}
-          <div className="space-y-1.5">
-            <Bar
-              label="Support"
-              pct={stats.supportPct}
-              value={stats.supportWeighted}
-              color="#16a34a"
-            />
-            <Bar
-              label="Counter"
-              pct={stats.counterPct}
-              value={stats.counterWeighted}
-              color="#dc2626"
-            />
-          </div>
-
-          {/* Grounded Semantics Stats */}
-          <div className="mt-2 flex items-center gap-2 text-[10px] text-slate-600">
-            <div className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-[#16a34a]" />
-              <span>IN: {stats.inClaims}</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-[#dc2626]" />
-              <span>OUT: {stats.outClaims}</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-[#64748b]" />
-              <span>UNDEC: {stats.undecClaims}</span>
-            </div>
-          </div>
         </div>
-      )}
+
+        {/* Quick stats with insights */}
+        {stats && (
+          <div className="space-y-2">
+            {/* Support vs Counter */}
+            <div className="grid grid-cols-2 gap-2">
+              <div className="bg-green-50 rounded-lg p-1.5">
+                <div className="text-[9px] text-green-700 font-medium mb-0.5">Support</div>
+                <div className="text-lg font-bold text-green-800">
+                  {Math.round(stats.supportPct * 100)}%
+                </div>
+              </div>
+              <div className="bg-red-50 rounded-lg p-1.5">
+                <div className="text-[9px] text-red-700 font-medium mb-0.5">Counter</div>
+                <div className="text-lg font-bold text-red-800">
+                  {Math.round(stats.counterPct * 100)}%
+                </div>
+              </div>
+            </div>
+
+            {/* Semantic labels filter */}
+            <div className="flex items-center gap-1">
+              {(['all', 'IN', 'OUT', 'UNDEC'] as const).map(label => {
+                const count = label === 'all' ? nodes.length :
+                  label === 'IN' ? stats.inClaims :
+                  label === 'OUT' ? stats.outClaims :
+                  stats.undecClaims;
+                
+                const color = label === 'IN' ? 'green' :
+                  label === 'OUT' ? 'red' :
+                  label === 'UNDEC' ? 'slate' : 'blue';
+
+                return (
+                  <button
+                    key={label}
+                    onClick={() => setFilterLabel(label)}
+                    className={`flex-1 px-2 py-1 text-[10px] font-semibold rounded transition-all ${
+                      filterLabel === label
+                        ? `bg-${color}-100 text-${color}-800 ring-1 ring-${color}-300`
+                        : `text-slate-600 hover:bg-slate-50`
+                    }`}
+                  >
+                    {label === 'all' ? 'All' : label}
+                    <span className="ml-1 opacity-70">({count})</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Insights */}
+            <div className="flex flex-wrap gap-1.5 text-[9px]">
+              {controversialNodes.length > 0 && (
+                <div className="flex items-center gap-1 px-2 py-0.5 bg-orange-50 text-orange-700 rounded-full">
+                  <span>⚠️</span>
+                  <span className="font-medium">{controversialNodes.length} controversial</span>
+                </div>
+              )}
+              {hubNodes.length > 0 && (
+                <div className="flex items-center gap-1 px-2 py-0.5 bg-purple-50 text-purple-700 rounded-full">
+                  <span>⭐</span>
+                  <span className="font-medium">{hubNodes.length} hubs</span>
+                </div>
+              )}
+              {stats.clusterCount > 1 && (
+                <div className="flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full">
+                  <span>🗂️</span>
+                  <span className="font-medium">{stats.clusterCount} clusters</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Graph Visualization */}
-      <div className="relative p-2">
+      <div className="relative flex p-3 justify-center items-center mx-auto w-full">
         <svg
           ref={svgRef}
           viewBox={`0 0 ${width} ${height}`}
           width={width}
           height={height}
-          className="bg-slate-50/50 rounded-lg"
+          className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg"
         >
           <defs>
+            {/* Gradient backgrounds for clusters */}
+            <radialGradient id="cluster-gradient">
+              <stop offset="0%" stopColor="#e0e7ff" stopOpacity="0.3" />
+              <stop offset="100%" stopColor="#e0e7ff" stopOpacity="0" />
+            </radialGradient>
+
             {/* Arrow markers */}
             <marker
               id="arrow-support"
-              markerWidth="6"
-              markerHeight="6"
-              refX="5"
-              refY="3"
+              markerWidth="7"
+              markerHeight="7"
+              refX="6"
+              refY="3.5"
               orient="auto"
             >
-              <polygon points="0 0, 6 3, 0 6" fill="#64748b" />
+              <polygon points="0 0, 7 3.5, 0 7" fill="#16a34a" />
             </marker>
             <marker
               id="arrow-attack"
-              markerWidth="6"
-              markerHeight="6"
-              refX="5"
-              refY="3"
+              markerWidth="7"
+              markerHeight="7"
+              refX="6"
+              refY="3.5"
               orient="auto"
             >
-              <polygon points="0 0, 6 3, 0 6" fill="#dc2626" />
+              <polygon points="0 0, 7 3.5, 0 7" fill="#dc2626" />
             </marker>
             <marker
               id="arrow-undercut"
-              markerWidth="6"
-              markerHeight="6"
-              refX="5"
-              refY="3"
+              markerWidth="7"
+              markerHeight="7"
+              refX="6"
+              refY="3.5"
               orient="auto"
             >
-              <polygon points="0 0, 6 3, 0 6" fill="#a16207" />
+              <polygon points="0 0, 7 3.5, 0 7" fill="#a16207" />
             </marker>
+
+            {/* Glow effect for selected node */}
+            <filter id="glow">
+              <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+              <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
           </defs>
+
+          {/* Cluster boundaries */}
+          {showClusters && clusterBounds.map((cluster, idx) => (
+            <g key={idx}>
+              <rect
+                x={cluster.x}
+                y={cluster.y}
+                width={cluster.width}
+                height={cluster.height}
+                rx="8"
+                fill="url(#cluster-gradient)"
+                stroke="#a5b4fc"
+                strokeWidth="1"
+                strokeDasharray="3 3"
+                opacity="0.5"
+              />
+              <text
+                x={cluster.x + 4}
+                y={cluster.y + 10}
+                fontSize="8"
+                fill="#6366f1"
+                fontWeight="600"
+              >
+                Cluster {idx + 1} ({cluster.nodeCount})
+              </text>
+            </g>
+          ))}
 
           {/* Edges */}
           <g className="edges">
@@ -311,7 +615,7 @@ export default function CegMiniMap({
               const to = nodePositions.get(edge.target);
               if (!from || !to) return null;
 
-              const style = getEdgeStyle(edge);
+              const style = getEdgeStyle(edge, viewMode);
               const isHighlighted = hoveredId && (
                 connectedNodes.has(edge.source) && connectedNodes.has(edge.target)
               );
@@ -329,9 +633,9 @@ export default function CegMiniMap({
                   x2={to.x}
                   y2={to.y}
                   stroke={style.stroke}
-                  strokeWidth={isHighlighted ? 2 : 1}
+                  strokeWidth={isHighlighted ? 2.5 : 1.5}
                   strokeDasharray={style.strokeDasharray}
-                  strokeOpacity={isHighlighted ? 0.9 : 0.4}
+                  strokeOpacity={isHighlighted ? 0.9 : style.opacity}
                   markerEnd={`url(#${markerId})`}
                   className="transition-all duration-200"
                 />
@@ -341,15 +645,16 @@ export default function CegMiniMap({
 
           {/* Nodes */}
           <g className="nodes">
-            {nodes.map(node => {
+            {filteredNodes.map(node => {
               const pos = nodePositions.get(node.id);
               if (!pos) return null;
 
               const isSelected = node.id === selectedClaimId;
               const isHovered = node.id === hoveredId;
               const isConnected = connectedNodes.has(node.id);
-              const radius = isSelected ? 7 : isHovered ? 6 : 5;
-              const opacity = hoveredId && !isConnected ? 0.3 : 1;
+              const radius = getNodeRadius(node, viewMode);
+              const scaledRadius = isSelected ? radius + 2 : isHovered ? radius + 1 : radius;
+              const opacity = hoveredId && !isConnected ? 0.25 : 1;
 
               return (
                 <g
@@ -357,26 +662,46 @@ export default function CegMiniMap({
                   style={{ cursor: 'pointer' }}
                   opacity={opacity}
                   onClick={() => onSelectClaim?.(node.id)}
-                  onMouseEnter={() => {
-                    setHoveredId(node.id);
-                    setTooltipData({ node, x: pos.x, y: pos.y });
-                  }}
-                  onMouseLeave={() => {
-                    setHoveredId(null);
-                    setTooltipData(null);
-                  }}
+                  onMouseEnter={() => setHoveredId(node.id)}
+                  onMouseLeave={() => setHoveredId(null)}
                   className="transition-all duration-200"
+                  filter={isSelected ? 'url(#glow)' : undefined}
                 >
                   {/* Selection ring */}
                   {isSelected && (
+                    <>
+                      <circle
+                        cx={pos.x}
+                        cy={pos.y}
+                        r={scaledRadius + 4}
+                        fill="none"
+                        stroke="#3b82f6"
+                        strokeWidth={2}
+                        className="animate-pulse"
+                      />
+                      <circle
+                        cx={pos.x}
+                        cy={pos.y}
+                        r={scaledRadius + 7}
+                        fill="none"
+                        stroke="#3b82f6"
+                        strokeWidth={1}
+                        opacity={0.3}
+                      />
+                    </>
+                  )}
+
+                  {/* Controversial indicator ring */}
+                  {node.isControversial && !isSelected && (
                     <circle
                       cx={pos.x}
                       cy={pos.y}
-                      r={radius + 3}
+                      r={scaledRadius + 3}
                       fill="none"
-                      stroke="#3b82f6"
-                      strokeWidth={2}
-                      className="animate-pulse"
+                      stroke="#ea580c"
+                      strokeWidth={1.5}
+                      strokeDasharray="2 2"
+                      opacity={0.6}
                     />
                   )}
 
@@ -384,24 +709,64 @@ export default function CegMiniMap({
                   <circle
                     cx={pos.x}
                     cy={pos.y}
-                    r={radius}
-                    fill={getNodeColor(node)}
+                    r={scaledRadius}
+                    fill={getNodeColor(node, viewMode)}
                     stroke="#fff"
-                    strokeWidth={isHovered ? 2 : 1}
+                    strokeWidth={isHovered ? 2.5 : 1.5}
                   />
 
-                  {/* Approval indicator */}
+                  {/* Centrality indicator (inner dot for hubs) */}
+                  {node.centrality >= 0.6 && (
+                    <circle
+                      cx={pos.x}
+                      cy={pos.y}
+                      r={2}
+                      fill="#fff"
+                      opacity={0.9}
+                    />
+                  )}
+
+                  {/* Approval count */}
                   {node.approvals > 0 && (
                     <text
                       x={pos.x}
-                      y={pos.y + radius + 7}
-                      fontSize="6"
-                      fill="#64748b"
+                      y={pos.y + scaledRadius + 9}
+                      fontSize="7"
+                      fill="#16a34a"
                       textAnchor="middle"
-                      fontWeight="600"
+                      fontWeight="700"
                     >
                       +{node.approvals}
                     </text>
+                  )}
+
+                  {/* Degree indicators (small badges) */}
+                  {(isHovered || isSelected) && (node.inDegree > 0 || node.outDegree > 0) && (
+                    <>
+                      {node.inDegree > 0 && (
+                        <text
+                          x={pos.x - scaledRadius - 6}
+                          y={pos.y + 2}
+                          fontSize="6"
+                          fill="#64748b"
+                          fontWeight="600"
+                        >
+                          ←{node.inDegree}
+                        </text>
+                      )}
+                      {node.outDegree > 0 && (
+                        <text
+                          x={pos.x + scaledRadius + 6}
+                          y={pos.y + 2}
+                          fontSize="6"
+                          fill="#64748b"
+                          fontWeight="600"
+                          textAnchor="start"
+                        >
+                          {node.outDegree}→
+                        </text>
+                      )}
+                    </>
                   )}
                 </g>
               );
@@ -409,84 +774,163 @@ export default function CegMiniMap({
           </g>
         </svg>
 
-        {/* Tooltip */}
-        {tooltipData && (
-          <div
-            className="absolute z-50 bg-slate-900 text-white text-[10px] px-2 py-1.5 rounded shadow-lg pointer-events-none max-w-[200px]"
-            style={{
-              left: Math.min(tooltipData.x + 10, width - 100),
-              top: Math.max(tooltipData.y - 40, 10),
-            }}
-          >
-            <div className="font-semibold mb-0.5">
-              {tooltipData.node.label || 'UNDEC'}
-            </div>
-            <div className="opacity-90 line-clamp-3">
-              {tooltipData.node.text.substring(0, 100)}
-              {tooltipData.node.text.length > 100 && '...'}
-            </div>
-            {tooltipData.node.approvals > 0 && (
-              <div className="mt-1 text-emerald-300">
-                {tooltipData.node.approvals} approval{tooltipData.node.approvals !== 1 ? 's' : ''}
+        {/* Enhanced Tooltip */}
+        {hoveredId && (() => {
+          const node = nodes.find(n => n.id === hoveredId);
+          const pos = nodePositions.get(hoveredId);
+          if (!node || !pos) return null;
+
+          return (
+            <div
+              className="absolute z-50 bg-slate-900/95 backdrop-blur-sm text-white text-[10px] px-3 py-2 rounded-lg shadow-xl pointer-events-none max-w-[240px] border border-slate-700"
+              style={{
+                left: Math.min(pos.x + 15, width - 120),
+                top: Math.max(pos.y - 50, 10),
+              }}
+            >
+              {/* Label badge */}
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className={`px-1.5 py-0.5 text-[8px] font-bold rounded ${
+                  node.label === 'IN' ? 'bg-green-600' :
+                  node.label === 'OUT' ? 'bg-red-600' :
+                  'bg-slate-600'
+                }`}>
+                  {node.label}
+                </span>
+                {node.isControversial && (
+                  <span className="px-1.5 py-0.5 text-[8px] font-bold rounded bg-orange-600">
+                    CONTROVERSIAL
+                  </span>
+                )}
+                {node.centrality >= 0.6 && (
+                  <span className="px-1.5 py-0.5 text-[8px] font-bold rounded bg-purple-600">
+                    HUB
+                  </span>
+                )}
               </div>
-            )}
-          </div>
-        )}
+
+              {/* Claim text */}
+              <div className="font-medium mb-1.5 leading-tight">
+                {node.text.substring(0, 120)}
+                {node.text.length > 120 && '...'}
+              </div>
+
+              {/* Metrics */}
+              <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[9px] opacity-90 border-t border-slate-700 pt-1.5">
+                <div>
+                  <span className="text-slate-400">Support:</span>{' '}
+                  <span className="text-green-400 font-semibold">
+                    {node.supportStrength.toFixed(1)}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-400">Attack:</span>{' '}
+                  <span className="text-red-400 font-semibold">
+                    {node.attackStrength.toFixed(1)}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-400">In:</span>{' '}
+                  <span className="font-semibold">{node.inDegree}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400">Out:</span>{' '}
+                  <span className="font-semibold">{node.outDegree}</span>
+                </div>
+              </div>
+
+              {node.approvals > 0 && (
+                <div className="mt-1.5 pt-1.5 border-t border-slate-700 text-emerald-400 font-semibold">
+                  ✓ {node.approvals} approval{node.approvals !== 1 ? 's' : ''}
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </div>
 
-      {/* Legend */}
-      {showLegend && (
-        <div className="px-3 py-2 border-t border-slate-200 space-y-1.5">
-          <div className="text-[10px] font-semibold text-slate-600 mb-1">Legend</div>
-          <div className="flex flex-wrap gap-x-3 gap-y-1 text-[9px] text-slate-600">
-            <span className="flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#64748b]" />
-              Support
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#dc2626]" />
-              Rebut
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="w-3 h-0.5 bg-[#a16207]" style={{ backgroundImage: 'repeating-linear-gradient(90deg, #a16207 0, #a16207 2px, transparent 2px, transparent 4px)' }} />
-              Undercut
+      {/* Enhanced Legend & Insights */}
+      <div className="px-3 py-2.5 border-t border-slate-200 space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="text-[10px] font-semibold text-slate-700">Legend</div>
+          <div className="text-[9px] text-slate-500">
+            Layout: <span className="font-medium text-slate-700">
+              {layoutMode === 'force' ? 'Force-directed' :
+               layoutMode === 'hierarchical' ? 'Hierarchical' :
+               layoutMode === 'radial' ? 'Radial' : 'Clustered'}
             </span>
           </div>
         </div>
-      )}
-    </div>
-  );
-}
+        
+        {/* Edge types */}
+        <div className="flex flex-wrap gap-x-3 gap-y-1.5 text-[9px] text-slate-600">
+          <span className="flex items-center gap-1.5">
+            <svg width="16" height="2">
+              <line x1="0" y1="1" x2="16" y2="1" stroke="#16a34a" strokeWidth="2" />
+            </svg>
+            Support
+          </span>
+          <span className="flex items-center gap-1.5">
+            <svg width="16" height="2">
+              <line x1="0" y1="1" x2="16" y2="1" stroke="#dc2626" strokeWidth="2" />
+            </svg>
+            Rebut
+          </span>
+          <span className="flex items-center gap-1.5">
+            <svg width="16" height="2">
+              <line x1="0" y1="1" x2="16" y2="1" stroke="#a16207" strokeWidth="2" strokeDasharray="3 2" />
+            </svg>
+            Undercut
+          </span>
+        </div>
 
-function Bar({
-  label,
-  pct,
-  value,
-  color,
-}: {
-  label: string;
-  pct: number;
-  value: number;
-  color: string;
-}) {
-  const width = Math.round(pct * 100);
-  
-  return (
-    <div>
-      <div className="flex justify-between items-center text-[10px] mb-0.5">
-        <span className="text-slate-600">{label}</span>
-        <span className="font-semibold text-slate-700">
-          {width}% ({value.toFixed(1)})
-        </span>
-      </div>
-      <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
-        <div
-          className="h-full rounded-full transition-all duration-300"
-          style={{
-            width: `${width}%`,
-            backgroundColor: color,
-          }}
-        />
+        {/* Node indicators */}
+        <div className="flex flex-wrap gap-x-3 gap-y-1.5 text-[9px] text-slate-600">
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-[#16a34a]" />
+            IN
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-[#dc2626]" />
+            OUT
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-[#64748b]" />
+            UNDEC
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#ea580c] ring-1 ring-[#ea580c] ring-offset-1" />
+            Controversial
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-3 h-3 rounded-full bg-[#9333ea]" />
+            Hub
+          </span>
+        </div>
+
+        {/* Quick insights */}
+        {stats && (stats.isolatedCount > 0 || controversialNodes.length > 0) && (
+          <div className="pt-2 border-t border-slate-200">
+            <div className="text-[9px] text-slate-600 space-y-1">
+              {stats.isolatedCount > 0 && (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-amber-600">⚠️</span>
+                  <span>
+                    <span className="font-semibold">{stats.isolatedCount}</span> isolated claim{stats.isolatedCount !== 1 ? 's' : ''} (no connections)
+                  </span>
+                </div>
+              )}
+              {controversialNodes.length > 0 && (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-orange-600">𓏃</span>
+                  <span>
+                    <span className="font-semibold">{controversialNodes.length}</span> controversial claim{controversialNodes.length !== 1 ? 's' : ''} (balanced attacks/supports)
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

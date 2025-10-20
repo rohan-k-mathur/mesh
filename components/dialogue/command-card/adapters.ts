@@ -31,14 +31,6 @@ export function legalMovesToCommandCard(
         m.kind === 'RETRACT' ? 'RETRACT' :
         m.kind === 'CLOSE' ? 'CLOSE' : 'WHY',
       label: m.label,
-      hotkey:
-        m.kind === 'WHY' ? 'Q' :
-        m.kind === 'GROUNDS' ? 'W' :
-        m.kind === 'CLOSE' ? 'E' :
-        m.kind === 'CONCEDE' ? 'A' :
-        m.kind === 'RETRACT' ? 'S' :
-        m.kind === 'ASSERT' ? undefined :
-        undefined,
       force: (m.force ?? 'NEUTRAL') as any,
       disabled: m.disabled,
       reason: m.reason,
@@ -51,11 +43,11 @@ export function legalMovesToCommandCard(
       target,
       group:
         m.kind === 'WHY' || m.kind === 'GROUNDS' || m.kind === 'CLOSE' ? 'top' :
-        m.kind === 'CONCEDE' || m.kind === 'RETRACT' || m.kind === 'ACCEPT_ARGUMENT' ? 'mid' :
+        m.kind === 'CONCEDE' || m.kind === 'RETRACT' ? 'mid' :
         'mid',
       tone:
         m.kind === 'RETRACT' ? 'danger' :
-        m.kind === 'CLOSE' ? 'primary' : 'ghost',
+        m.kind === 'CLOSE' ? 'primary' : 'default',
     };
     actions.push(a);
   }
@@ -66,31 +58,28 @@ export function legalMovesToCommandCard(
         id: 'why-forall',
         kind: 'FORALL_INSTANTIATE',
         label: '∀‑instantiate',
-        hotkey: 'Z',
         force: 'ATTACK',
         target,
         group: 'bottom',
-        scaffold: { template: '∀x (…x…) — instantiate with x = …', analyticsName: 'scaffold:forall' },
+        scaffold: { template: 'Instantiate with…', analyticsName: 'scaffold:forall' },
       },
       {
         id: 'why-exists',
         kind: 'EXISTS_WITNESS',
         label: '∃‑witness',
-        hotkey: 'X',
         force: 'ATTACK',
         target,
         group: 'bottom',
-        scaffold: { template: '∃x (…x…) — provide witness: x = …', analyticsName: 'scaffold:exists' },
+        scaffold: { template: 'Provide witness…', analyticsName: 'scaffold:exists' },
       },
       {
         id: 'why-presup',
         kind: 'PRESUP_CHALLENGE',
         label: 'Presupposition?',
-        hotkey: 'C',
         force: 'ATTACK',
         target,
         group: 'bottom',
-        scaffold: { template: 'Presupposition: “…” — please justify or revise.', analyticsName: 'scaffold:presup' },
+        scaffold: { template: 'Justify presupposition...', analyticsName: 'scaffold:presup' },
       }
     );
   }

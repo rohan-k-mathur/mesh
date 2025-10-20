@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
     // inherit rule from room if present; fallback 'utilitarian'
     let rule = 'utilitarian';
     if (roomId) {
-      const room = await prisma.room.findUnique({
+      const room = await prisma.agoraRoom.findUnique({
         where: { id: roomId },
         select: { representationRule: true },
       });

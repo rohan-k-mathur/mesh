@@ -93,7 +93,7 @@ React.useEffect(() => {
         <div className="text-sm text-rose-600">Failed to load claims</div>
       ) : (
         <>
-          <h3 className="flex text-[16px] font-semibold mb-2">Claim mini-map</h3>
+          <h3 className="flex text-[16px] font-semibold mb-2">Claims List</h3>
 
           <div className="flex flex-wrap gap-3">
             {visibleClaims.map((c) => {

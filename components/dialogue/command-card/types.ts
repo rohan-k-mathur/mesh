@@ -31,8 +31,6 @@ export interface CommandCardAction {
   id: string;                // stable key, e.g. 'why-forall' or 'close'
   kind: CommandKind;
   label: string;             // UX label ("WHY — ∀‑instantiate", "Close (†)")
-  hotkey?: string;           // 'Q','W','E','A','S','D','Z','X','C'
-  icon?: React.ReactNode;    // optional
   force: Force;
   disabled?: boolean;
   reason?: string;           // why disabled
@@ -56,17 +54,18 @@ export interface CommandCardAction {
   target: TargetRef;
 
   // Optional UX tags
-  tone?: 'primary' | 'danger' | 'ghost';
+  tone?: 'primary' | 'danger' | 'default';
   group?: 'top' | 'mid' | 'bottom'; // place in the 3×3 grid row
 }
 
 export interface CommandCardProps {
   actions: CommandCardAction[];           // already filtered for current selection
-  onPerform: (a: CommandCardAction) => void; // called when user triggers (click/hotkey)
+  onPerform: (a: CommandCardAction) => void | Promise<void>; // called when user triggers (click)
   variant?: 'compact' | 'full';
-  showHotkeyHints?: boolean;
 }
 
+// Action grid layout:
 // Q W E   → WHY / GROUNDS / CLOSE (†)
 // A S D   → CONCEDE / RETRACT / ACCEPT ARGUMENT
 // Z X C   → ∀‑instantiate / ∃‑witness / Presupposition?
+// Note: Hotkey functionality has been removed, but grid positions remain for reference

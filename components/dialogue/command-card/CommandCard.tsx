@@ -53,7 +53,6 @@ export function CommandCard({
   actions,
   onPerform,
   variant = 'full',
-  showHotkeyHints = true,
 }: CommandCardProps) {
   const [executingId, setExecutingId] = useState<string | null>(null);
   const [lastExecutedId, setLastExecutedId] = useState<string | null>(null);
@@ -73,32 +72,12 @@ export function CommandCard({
     }
   }, [executingId, onPerform]);
 
-  // Hotkey handling
+  // Validate action count (warn if >9 since we only have 3x3 grid)
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignore if user is typing in an input
-      if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement ||
-        (e.target as HTMLElement).isContentEditable
-      ) {
-        return;
-      }
-
-      const key = e.key.toUpperCase();
-      const action = actions.find(
-        a => a.hotkey?.toUpperCase() === key && !a.disabled
-      );
-
-      if (action) {
-        e.preventDefault();
-        handlePerform(action);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [actions, handlePerform]);
+    if (actions.length > 9) {
+      console.warn(`CommandCard: ${actions.length} actions provided but only 9 can be displayed in 3x3 grid. Excess actions will be hidden.`);
+    }
+  }, [actions.length]);
 
   // Group actions by row
   const grid = [
@@ -107,18 +86,13 @@ export function CommandCard({
     actions.filter(a => a.group === 'bottom'),
   ];
 
-  const width = variant === 'compact' ? 'w-[220px]' : 'w-[280px]';
+  const width = variant === 'compact' ? 'w-[220px]' : 'w-full';
 
   return (
     <div className={`${width} rounded-xl border border-slate-200 bg-white/95 backdrop-blur shadow-lg p-2`}>
       {/* Header */}
       <div className="mb-2 px-1">
         <h3 className="text-xs font-semibold text-slate-700">Actions</h3>
-        {showHotkeyHints && (
-          <p className="text-[9px] text-slate-500 mt-0.5">
-            Press highlighted keys to execute
-          </p>
-        )}
       </div>
 
       {/* Action Grid */}
@@ -137,7 +111,6 @@ export function CommandCard({
                   className={getActionStyles(action, isExecuting)}
                   onClick={() => handlePerform(action)}
                   aria-label={action.label}
-                  aria-keyshortcuts={action.hotkey}
                 >
                   {/* Success flash */}
                   {wasExecuted && (
@@ -158,13 +131,6 @@ export function CommandCard({
                       <span className="truncate max-w-[80px]">{action.label}</span>
                       {getRelevanceIndicator(action.relevance)}
                     </div>
-
-                    {/* Hotkey hint */}
-                    {showHotkeyHints && action.hotkey && !action.disabled && (
-                      <span className="opacity-60 text-[9px] mt-0.5 font-mono bg-slate-100 px-1 rounded">
-                        {action.hotkey}
-                      </span>
-                    )}
 
                     {/* Disabled reason */}
                     {action.disabled && action.reason && (
@@ -187,17 +153,21 @@ export function CommandCard({
       </div>
 
       {/* Stats footer */}
-      <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[9px] text-slate-500 px-1">
-        <span>{actions.filter(a => !a.disabled).length} available</span>
-        {executingId && (
-          <span className="text-blue-600 font-medium animate-pulse">Executing...</span>
-        )}
-      </div>
+      {actions.length > 0 && (
+        <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[9px] text-slate-500 px-1">
+          <span>{actions.filter(a => !a.disabled).length} available</span>
+          {executingId && (
+            <span className="text-blue-600 font-medium animate-pulse">Executing...</span>
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
 // Helper function to execute commands (used by parent components)
+// Note: This is a standalone helper. For better state management and feedback,
+// consider passing the component's handlePerform method as onPerform instead.
 export async function performCommand(action: CommandCardAction): Promise<void> {
   if (action.scaffold?.template) {
     // Client-side: insert template into composer
@@ -211,6 +181,13 @@ export async function performCommand(action: CommandCardAction): Promise<void> {
     if (action.scaffold.analyticsName) {
       // trackEvent(action.scaffold.analyticsName);
     }
+    
+    // Dispatch a success event so UI can react if needed
+    window.dispatchEvent(
+      new CustomEvent('mesh:command:success', {
+        detail: { actionId: action.id, kind: action.kind },
+      })
+    );
     return;
   }
 

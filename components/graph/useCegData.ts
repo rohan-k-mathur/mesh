@@ -8,10 +8,22 @@ export type CegNode = {
   id: string;
   type: 'claim';
   text: string;
-  label?: 'IN' | 'OUT' | 'UNDEC';
+  label: 'IN' | 'OUT' | 'UNDEC';
+  confidence: number;
   approvals: number;
+  
+  // Enhanced metrics
+  supportStrength: number;
+  attackStrength: number;
+  netStrength: number;
+  inDegree: number;
+  outDegree: number;
+  centrality: number;
+  isControversial: boolean;
+  clusterId?: number;
+  
+  // Legacy fields
   rejections?: number;
-  confidence?: number;
   schemeIcon?: string | null;
   authorId?: string;
   createdAt?: string;
@@ -21,10 +33,10 @@ export type CegEdge = {
   id: string;
   source: string;
   target: string;
-  type: 'supports' | 'rebuts';
+  type: 'supports' | 'rebuts' | 'undercuts';
   attackType?: 'SUPPORTS' | 'REBUTS' | 'UNDERCUTS' | 'UNDERMINES';
   targetScope?: 'premise' | 'inference' | 'conclusion' | null;
-  confidence?: number;
+  confidence: number;
 };
 
 export type CegStats = {
@@ -32,17 +44,33 @@ export type CegStats = {
   counterWeighted: number;
   supportPct: number;
   counterPct: number;
-  totalClaims: number;
+  
+  // Semantic counts
   inClaims: number;
   outClaims: number;
   undecClaims: number;
+  totalClaims: number;
+  
+  // Graph metrics
+  totalEdges: number;
+  clusterCount: number;
+  controversialCount: number;
+  hubCount: number;
+  isolatedCount: number;
+  
+  // Highlights
+  hubs: Array<{ id: string; text: string; centrality: number }>;
+  isolated: Array<{ id: string; text: string }>;
+  controversial: Array<{ id: string; text: string }>;
+  
+  timestamp: string;
 };
 
 const fetcher = (url: string) => fetch(url, { cache: 'no-store' }).then(r => r.json());
 
 export function useCegData(deliberationId: string) {
-  const { data: graphData, error: graphError, mutate: mutateGraph } = useSWR(
-    `/api/deliberations/${deliberationId}/graph`,
+  const { data: miniData, error: miniError, mutate: mutateMini } = useSWR(
+    `/api/deliberations/${deliberationId}/ceg/mini`,
     fetcher,
     { 
       revalidateOnFocus: false,
@@ -50,32 +78,38 @@ export function useCegData(deliberationId: string) {
     }
   );
 
-  const { data: statsData, error: statsError, mutate: mutateStats } = useSWR(
-    `/api/deliberations/${deliberationId}/ceg/mini`,
-    fetcher,
-    { 
-      revalidateOnFocus: false,
-      refreshInterval: 30000,
-    }
-  );
-
-  const nodes: CegNode[] = graphData?.nodes ?? [];
-  const edges: CegEdge[] = graphData?.edges ?? [];
-  const stats: CegStats | null = statsData ? {
-    ...statsData,
-    totalClaims: nodes.length,
-    inClaims: nodes.filter(n => n.label === 'IN').length,
-    outClaims: nodes.filter(n => n.label === 'OUT').length,
-    undecClaims: nodes.filter(n => n.label === 'UNDEC').length,
+  // Extract nodes and edges from the enhanced mini endpoint
+  const nodes: CegNode[] = miniData?.nodes ?? [];
+  const edges: CegEdge[] = miniData?.edges ?? [];
+  
+  // Stats are directly in the mini response
+  const stats: CegStats | null = miniData ? {
+    supportWeighted: miniData.supportWeighted,
+    counterWeighted: miniData.counterWeighted,
+    supportPct: miniData.supportPct,
+    counterPct: miniData.counterPct,
+    inClaims: miniData.inClaims,
+    outClaims: miniData.outClaims,
+    undecClaims: miniData.undecClaims,
+    totalClaims: miniData.totalClaims,
+    totalEdges: miniData.totalEdges,
+    clusterCount: miniData.clusterCount,
+    controversialCount: miniData.controversialCount,
+    hubCount: miniData.hubCount,
+    isolatedCount: miniData.isolatedCount,
+    hubs: miniData.hubs ?? [],
+    isolated: miniData.isolated ?? [],
+    controversial: miniData.controversial ?? [],
+    timestamp: miniData.timestamp,
   } : null;
 
-  const loading = !graphData && !graphError;
-  const error = graphError || statsError;
+  const loading = !miniData && !miniError;
+  const error = miniError;
 
   // Manual refresh function
   const refresh = useCallback(async () => {
-    await Promise.all([mutateGraph(), mutateStats()]);
-  }, [mutateGraph, mutateStats]);
+    await mutateMini();
+  }, [mutateMini]);
 
   // Listen for refresh events
   useEffect(() => {
@@ -113,7 +147,7 @@ export function useFocusedCegData(
 ) {
   const { nodes: allNodes, edges: allEdges, loading, error, refresh } = useCegData(deliberationId);
 
-  const { focusedNodes, focusedEdges } = useCallback(() => {
+  const { focusedNodes, focusedEdges } = useMemo(() => {
     if (!focusNodeId || allNodes.length === 0) {
       return { focusedNodes: allNodes, focusedEdges: allEdges };
     }
@@ -127,7 +161,7 @@ export function useFocusedCegData(
       if (!edgeMap.has(e.source)) edgeMap.set(e.source, []);
       if (!edgeMap.has(e.target)) edgeMap.set(e.target, []);
       edgeMap.get(e.source)!.push(e.target);
-      edgeMap.get(e.target)!.push(e.source); // bidirectional for neighborhood
+      edgeMap.get(e.target)!.push(e.source);
     });
 
     while (queue.length > 0) {
@@ -149,7 +183,7 @@ export function useFocusedCegData(
     );
 
     return { focusedNodes, focusedEdges };
-  }, [focusNodeId, allNodes, allEdges, radius])();
+  }, [focusNodeId, allNodes, allEdges, radius]);
 
   return {
     nodes: focusedNodes,
@@ -159,3 +193,6 @@ export function useFocusedCegData(
     refresh,
   };
 }
+
+// Missing import
+import { useMemo } from 'react';
