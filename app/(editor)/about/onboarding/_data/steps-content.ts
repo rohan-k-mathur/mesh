@@ -799,8 +799,8 @@ const STEP_4: OnboardingStep = {
       },
       {
         id: 'layout-indicator',
-        x: 70,
-        y: 65,
+        x: 55,
+        y: 62,
         label: '10',
         title: 'Layout Mode Indicator',
         description: 'Bottom-right text "Layout: Hierarchical" shows current layout algorithm. Click layout selector icon (top-right of graph) to cycle through: force-directed (natural clustering), hierarchical (status stratification), radial (controversy-focused), clustered (sub-debate isolation).'

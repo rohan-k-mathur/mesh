@@ -501,7 +501,7 @@ function AnnotatedScreenshot({ src, alt, annotations }: AnnotatedScreenshotProps
             </div>
           </div>
         )}
-        
+        <div >
         {/* Annotation Hotspots */}
         {annotations.map((ann) => (
           <button
@@ -536,9 +536,9 @@ function AnnotatedScreenshot({ src, alt, annotations }: AnnotatedScreenshotProps
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2 }}
-            className="rounded-lg border border-slate-200 bg-slate-50 p-4"
+            className="absolute top-24 right-16 w-1/3   rounded-lg border border-slate-500 bg-white/20 backdrop-blur-lg p-4"
           >
-            <div className="flex items-start gap-3">
+            <div className=" flex  z-10 w-fit top-0 items-start gap-3">
               <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-900 text-white text-xs font-bold flex-shrink-0">
                 {activeAnnotation.label}
               </span>
@@ -552,7 +552,7 @@ function AnnotatedScreenshot({ src, alt, annotations }: AnnotatedScreenshotProps
               </div>
               <button
                 onClick={() => setActiveId(null)}
-                className="text-slate-400 hover:text-slate-600 transition-colors"
+                className="text-slate-500 hover:text-slate-600 transition-colors"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -560,6 +560,7 @@ function AnnotatedScreenshot({ src, alt, annotations }: AnnotatedScreenshotProps
           </motion.div>
         )}
       </AnimatePresence>
+      </div>
 
       {/* Annotation Legend */}
       <div className="text-xs text-slate-500 flex items-center gap-2">
