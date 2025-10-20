@@ -187,14 +187,14 @@ export function PlexusShell({ scope='public' }: { scope?: 'public'|'following' }
   const [view, setView] = React.useState<'graph'|'board'|'matrix'>('board'); // make Board the default
 
   return (
-    <div className="space-y-2 p-5">
-      <div className="flex items-center gap-2">
-        <div className="text-md font-semibold">Plexus</div>
-        <div className="ml-2 flex items-center gap-1">
+    <div className="space-y-2 p-2 ">
+      <div className="flex w-full items-center gap-2">
+        <div className="text-md px-2 font-semibold">Mode</div>
+        <div className="ml-1 flex items-center gap-0">
           {(['board','graph','matrix'] as const).map(v => (
             <button key={v}
               onClick={()=>setView(v)}
-              className={`px-2 py-1 text-[12px] rounded border ${view===v?'bg-slate-900 text-white':'bg-white hover:bg-slate-50'}`}>
+              className={`px-4 py-1 text-[12px]  border border-indigo-300 ${view===v?'bg-slate-900 text-white':'bg-white hover:bg-slate-50'}`}>
               {v}
             </button>
           ))}
@@ -219,7 +219,7 @@ export default function Agora({
   const [tab, setTab] = React.useState<
     "all" | "following" | "calls" | "votes" | "accepted"
   >("all");
-  const [view, setView] = React.useState<"feed" | "sheet" | "plexus">("feed"); // ⬅️ NEW top-level view
+  const [view, setView] = React.useState<"feed" | "debates" | "plexus">("feed"); // ⬅️ NEW top-level view
 
   const [q, setQ] = React.useState("");
   const [selected, setSelected] = React.useState<AgoraEvent | null>(null);
@@ -682,7 +682,7 @@ React.useEffect(() => {
   /* ------------------------------ render ----------------------------- */
   return (
 
-    <div className="mx-auto w-full max-w-screen justify-center px-0 pb-10 pt-2">
+    <div className="mx-auto w-full max-w-screen  justify-center px-0 pb-10 pt-2">
       <TopBar
         tab={tab}
         onTab={setTab}
@@ -692,15 +692,15 @@ React.useEffect(() => {
         onPause={() => setPaused((p) => !p)}
       />
       <div className="flex mt-3 mx-auto justify-end px-8">
-<NewKbButton />
+{/* <NewKbButton /> */}
 </div>
-  <div className="mb-2 mx-4">
-  <div className="inline-flex mt-3 rounded-xl border border-indigo-300 bg-white/70 text-sm overflow-hidden">
-    {(['feed','sheet','plexus'] as const).map(v => (
+  <div className="flex w-full justify-center items-center mb-2 mx-auto">
+  <div className="inline-flex mt-1 justify-center mx-auto rounded-xl border border-indigo-300 bg-white/70 text-sm overflow-hidden">
+    {(['feed','debates','plexus'] as const).map(v => (
       <button
         key={v}
         className={clsx(
-          'px-5 py-1 border-r border-r-indigo-300 last:border-r-0 ',
+          'px-5 py-1 border-r border-r-indigo-300 last:border-r-0 justify-end items-end mx-auto',
           view===v ? 'bg-slate-900 text-white' : 'hover:bg-slate-100'
         )}
         onClick={()=>setView(v)}
@@ -753,7 +753,7 @@ React.useEffect(() => {
       </div>
 )} */}
 
-{view === 'sheet' && (
+{view === 'debates' && (
 
 <div className="space-y-2 px-4">
   <div className="flex flex-wrap gap-3 p-2">

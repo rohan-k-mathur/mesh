@@ -14,7 +14,7 @@ import {
   Eye,
   Sparkles
 } from 'lucide-react'
-import DiscussionView from '@/components/discussion/DiscussionView'
+import DiscussionView from '@/components/discussion/DiscussionViewGlass'
 import type { DiscussionData } from './types'
 import { AuthContext } from '@/lib/AuthContext'
 import { PrivateChatProvider } from '@/contexts/PrivateChatManager'
@@ -157,7 +157,7 @@ export default function DiscussionViewDemoClient({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
-      className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden"
+      className="bg-transparent rounded-xl shadow-lg border border-slate-200 overflow-hidden"
     >
       {/* Header */}
       <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-6 border-b border-slate-200">
@@ -324,7 +324,7 @@ export default function DiscussionViewDemoClient({
         <div className='w-max-screen space-y-4 '>
 
       {/* Info Banner */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <div className="bg-indigo-50 border border-blue-200 rounded-lg p-4">
         <p className="text-sm text-slate-700 mb-2">
           <span className="font-semibold text-slate-900">
             Live Component
@@ -378,7 +378,7 @@ export default function DiscussionViewDemoClient({
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.95, opacity: 0 }}
             onClick={(e) => e.stopPropagation()}
-            className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6"
+            className="bg-transparent rounded-xl shadow-2xl max-w-md w-full p-6"
           >
             {!upgraded ? (
               <>
@@ -525,7 +525,7 @@ export default function DiscussionViewDemoClient({
         <div className="text-xs text-slate-500">
           {viewMode === 'simplified' 
             ? 'Focused demo showing upgrade flow' 
-            : 'Full DiscussionView with database data'
+            : 'Full component with seeded data'
           }
         </div>
       </div>

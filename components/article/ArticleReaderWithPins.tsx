@@ -5,7 +5,7 @@ import ArticleReader from "@/components/article/ArticleReader";
 import CommentModal from "@/components/article/CommentModal";
 import type { Anchor, CommentThread } from "@/types/comments";
 import Image from "next/image";
-import DeepDivePanel from "../deepdive/DeepDivePanel";
+import DeepDivePanel from "../deepdive/DeepDivePanelV2";
 import { useRouter } from "next/navigation";
 import HomeButton from "../buttons/HomeButton";
 import { RhetoricProvider } from "../rhetoric/RhetoricContext";

@@ -173,11 +173,11 @@ function RepliesModal({
           setReplies(items);
           
           // Fetch author names for unique authorIds
-          const uniqueAuthorIds = [...new Set(items.map((item: any) => item.authorId))];
+          const uniqueAuthorIds = [...new Set(items.map((item: any) => item.authorId as string))] as string[];
           const authorMap: Record<string, string> = {};
           
           await Promise.all(
-            uniqueAuthorIds.map(async (authorId) => {
+            uniqueAuthorIds.map(async (authorId: string) => {
               try {
                 const userRes = await fetch(`/api/users/${encodeURIComponent(authorId)}`, {
                   cache: "no-store"
@@ -494,16 +494,16 @@ function Row({
     <>
     <article className="
       group relative
-      p-5 bg-white border-b border-slate-100
+      p-5 about-flow border-b border-slate-100
       hover:bg-slate-50/50 transition-all duration-200
       hover:shadow-sm
     ">
       {/* Status indicator bar */}
       {p.status === 'CLAIMED' && (
-        <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-emerald-400 to-emerald-600" />
+        <div className="absolute rounded-xl left-[-2px] top-0 bottom-0 w-1 bg-gradient-to-b from-emerald-400 to-emerald-600" />
       )}
 
-      <div className="flex gap-4">
+      <div className="flex  gap-4">
         {/* Vote column */}
         <div className="flex flex-col items-center gap-1 pt-1">
           <button
@@ -566,7 +566,7 @@ function Row({
           </div>
 
           {/* Main text content */}
-          <div className="mb-4 p-4 bg-gradient-to-br from-slate-50 to-white rounded-xl border border-slate-200">
+          <div className="mb-4 p-4 bg-gradient-to-br from-slate-50/50 to-white/50 backdrop-blur-md rounded-xl border border-slate-200">
             <ClampedText text={p.text} lines={4} />
           </div>
 
@@ -813,7 +813,7 @@ export default function PropositionsList({
   const activeFilters = (claimed !== 'any' || q.trim()) ? 1 : 0;
 
   return (
-    <section className="w-full rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col h-full">
+    <section className="w-full rounded-xl border border-slate-200 bg-white/50 shadow-sm overflow-hidden flex flex-col h-full">
       {/* Header */}
       <div className="px-4 py-3 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white">
         <div className="flex items-center justify-between gap-3">
@@ -893,7 +893,7 @@ export default function PropositionsList({
       </div>
 
       {/* List */}
-      <div className="h-[600px]">
+      <div className="h-[600px] ">
         <Virtuoso
           data={rows}
           computeItemKey={(_i, r) => r.id}

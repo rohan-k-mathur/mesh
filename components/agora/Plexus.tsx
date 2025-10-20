@@ -304,7 +304,7 @@ export default function Plexus({
 
 
   return (
-    <div className="rounded-xl border bg-white/80 p-3">
+    <div className="rounded-xl border postcard p-3">
       {/* Header */}
       <div className="flex items-center justify-between mb-2 gap-3">
         <div className="flex items-center gap-2">

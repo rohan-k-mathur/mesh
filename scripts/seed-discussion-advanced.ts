@@ -742,7 +742,7 @@ async function seedDiscussion(conversation: any, users: any[]) {
   const discussion = await prisma.discussion.create({
     data: {
       title: 'Ranked-Choice Voting Analysis',
-      description: 'An example discussion regarding the topic of ranked-choice voting in local elections.',
+      description: 'A sample discussion on the topic of ranked-choice voting in local elections.',
       createdById: users[0].id.toString(),
       conversationId: conversation.id,
     },

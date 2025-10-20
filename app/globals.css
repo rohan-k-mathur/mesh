@@ -12,6 +12,18 @@
   --ubz-accent:   #1599A3;
   --ubz-shadow-1: -3px 3px 7px rgba(222,199,204,.53), 3px 3px 7px rgba(0,0,0,.15);
   --ubz-shadow-h: -2px 2px 4px rgba(222,199,204,.53), .5px 1px 4px rgba(0,0,0,.15);
+
+    /* Color palette - soft pastels with depth */
+  --about-indigo-glow: 129, 140, 248;
+  --about-rose-glow: 244, 114, 182;
+  --about-purple-glow: 168, 85, 247;
+  --about-amber-warm: 251, 191, 36;
+  
+  /* Glass surface variables */
+  --glass-border: rgba(129, 140, 248, 0.15);
+  --glass-bg-light: rgba(255, 255, 255, 0.85);
+  --glass-bg-medium: rgba(255, 255, 255, 0.65);
+  --glass-shadow: rgba(99, 102, 241, 0.08);
 }
 
 
@@ -252,6 +264,25 @@
   
 
 }
+
+.about-flow{
+      background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(94, 115, 183, 0.9) 100%
+  );
+  box-shadow: 
+    inset 27px 27px 49px rgb(253, 253, 255),
+    inset -27px -27px 49px rgb(255, 255, 255),
+    inset 27px -27px 49px rgba(255, 252, 252, 0.804),
+    inset -7px 7px 49px rgba(241, 234, 234, 0.895),
+    2px 2px 5px rgba(var(--about-indigo-glow), 0.25),
+    -2px -2px 5px rgba(var(--about-indigo-glow), 0.25),
+    2px -2px 8px white,
+    0 20px 60px -15px rgba(var(--about-indigo-glow), 0.2);
+  border: 0.125rem solid rgba(var(--about-indigo-glow), 0.25);
+}
+
 
 .cl-organizationSwitcherTrigger
   .cl-organizationPreview

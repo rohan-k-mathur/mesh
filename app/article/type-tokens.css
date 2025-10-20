@@ -16,6 +16,19 @@
     --clr-accent: #333333;
     --clr-red:    #d52020;
     --clr-muted:  #6b7280; /* slate-500-ish */
+
+        /* Color palette - soft pastels with depth */
+  --about-indigo-glow: 129, 140, 248;
+  --about-rose-glow: 244, 114, 182;
+  --about-purple-glow: 168, 85, 247;
+  --about-amber-warm: 251, 191, 36;
+  
+  
+  /* Glass surface variables */
+  --glass-border: rgba(129, 140, 248, 0.15);
+  --glass-bg-light: rgba(255, 255, 255, 0.85);
+  --glass-bg-medium: rgba(255, 255, 255, 0.65);
+  --glass-shadow: rgba(99, 102, 241, 0.08);
   }
   
   /* scope to both editor (.tiptap) and reader (.article-body) */
@@ -637,6 +650,23 @@ text-align: left;
   border: 0.045rem solid #D1C6E7;
 }
 
+.about-flow{
+      background: linear-gradient(
+    145deg,
+        rgba(250, 235, 240, 0.9) 0%,
+
+    rgba(235, 240, 245, 0.95) 50%,
+       rgba(240, 235, 250, 0.9) 100%
+
+  );
+  box-shadow: 
+   
+    2px 2px 5px rgba(var(--about-indigo-glow), 0.1),
+    -2px -2px 5px rgba(var(--about-indigo-glow), 0.15),
+    2px -2px 8px rgba(255, 255, 255, 0.345),
+    0 20px 60px -15px rgba(var(--about-indigo-glow), 0.2);
+  border: 0.125rem solid rgba(var(--about-indigo-glow), 0.25);
+}
 .kbcard {
 
   background: linear-gradient(360deg, rgb(255, 255, 255,.99), #fffbfba1);
@@ -1534,3 +1564,583 @@ text-align: left;
 .agoratab--ghost { background: rgba(238, 242, 255,.22); backdrop-filter: none; border-width: .75px;  border-color: rgb(129, 140, 248,.75);
   box-shadow: inset 0 0 0 1px rgba(255,255,255,.22); }
 .agoratab--ghost:hover { box-shadow: inset 0 1px 2px rgba(2,6,23,.08), 0 4px 10px -8px rgba(2,6,23,.12); }
+
+/* ========================================================================
+   GLASS PANEL VARIANTS - Inspired by btnv2 styling
+   ======================================================================== */
+
+/* === Glass Panel v2 (Main variant - Radial Shimmer) === */
+.panelv2 {
+  /* Theme hooks (RGB) - same as btnv2 */
+  --panel-accent: 239, 219, 248;
+  --panel-lite: 230, 230, 248;
+  --panel-heavy: 210, 200, 248;
+  --panel-border: 155, 163, 192;
+  --panel-outline: 199, 210, 248;
+  --panel-text: 30, 41, 59;
+  --panel-top: 255, 255, 255;
+  --panel-bot: 255, 255, 255;
+  
+  /* Ring gradient - radial burst from corners */
+  --panel-ring: conic-gradient(
+    from 45deg at 50% 50%,
+    rgba(var(--panel-heavy), 0.65) 0deg,
+    rgba(var(--panel-lite), .85) 45deg,
+    rgba(var(--panel-top), .80) 90deg,
+    rgba(var(--panel-heavy), .45) 135deg,
+    rgba(var(--panel-lite), .75) 180deg,
+    rgba(var(--panel-top), .75) 225deg,
+    rgba(var(--panel-heavy), .60) 270deg,
+    rgba(var(--panel-lite), .60) 315deg,
+    rgba(var(--panel-heavy), .65) 360deg
+  );
+  
+  /* Fill gradient */
+  --panel-fill: linear-gradient(
+    180deg,
+    rgba(var(--panel-top), .55) 0%,
+    rgba(var(--panel-lite), .14) 25%,
+    rgba(var(--panel-lite), .25) 50%,
+    rgba(var(--panel-lite), .10) 75%,
+    rgba(var(--panel-top), .45) 100%
+  );
+  
+  --ring-w: 1.5px;
+  
+  position: relative;
+  padding: 1.25rem;
+  border: none;
+  border-radius: 14px;
+  
+  /* Inner rim */
+  outline: 1px solid rgba(var(--panel-heavy), .45);
+  outline-offset: -2.5px;
+  
+  color: rgb(var(--panel-text));
+  background: var(--panel-fill);
+  
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, .45),
+    0 2px 6px rgba(51, 57, 82, 0.1),
+    0 14px 28px -14px rgba(98, 101, 114, 0.22);
+  backdrop-filter: saturate(2) blur(6px);
+  
+  transition: box-shadow .18s ease, transform .12s ease;
+}
+
+.panelv2::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: var(--ring-w);
+  border-radius: inherit;
+  background: var(--panel-ring);
+  
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  
+  pointer-events: none;
+}
+
+.panelv2:hover {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, .35),
+    0 2px 8px rgba(2, 6, 23, .08),
+    0 16px 32px -16px rgba(2, 6, 23, .18);
+  transform: translateY(-1px);
+}
+
+/* === Panel v2 - Aurora Wave (diagonal sweep) === */
+.panelv2--aurora {
+  --panel-ring: linear-gradient(
+    135deg,
+    rgba(var(--panel-heavy), 0.90) 0%,
+    rgba(var(--panel-lite), .70) 12%,
+    rgba(var(--panel-top), .95) 25%,
+    rgba(var(--panel-heavy), .60) 37%,
+    rgba(var(--panel-lite), .85) 50%,
+    rgba(var(--panel-top), .70) 62%,
+    rgba(var(--panel-heavy), .75) 75%,
+    rgba(var(--panel-lite), .60) 87%,
+    rgba(var(--panel-heavy), .80) 100%
+  );
+}
+
+/* === Panel v2 - Prismatic (multi-angle intersection) === */
+.panelv2--prismatic {
+  --ring-w: 2px;
+}
+
+.panelv2--prismatic::before {
+  background: 
+    linear-gradient(45deg, 
+      rgba(var(--panel-heavy), .85) 0%, 
+      transparent 30%, 
+      transparent 70%, 
+      rgba(var(--panel-heavy), .85) 100%),
+    linear-gradient(135deg, 
+      rgba(var(--panel-lite), .75) 0%, 
+      transparent 30%, 
+      transparent 70%, 
+      rgba(var(--panel-lite), .75) 100%),
+    linear-gradient(90deg,
+      rgba(var(--panel-top), .90) 0%,
+      rgba(var(--panel-heavy), .65) 50%,
+      rgba(var(--panel-top), .90) 100%
+    );
+}
+
+/* === Panel v2 - Crystalline (sharp peaks and valleys) === */
+.panelv2--crystalline {
+  --panel-ring: linear-gradient(
+    90deg,
+    rgba(var(--panel-heavy), 0.95) 0%,
+    rgba(var(--panel-top), .85) 8%,
+    rgba(var(--panel-heavy), .70) 16%,
+    rgba(var(--panel-lite), .90) 24%,
+    rgba(var(--panel-heavy), .75) 32%,
+    rgba(var(--panel-top), .80) 40%,
+    rgba(var(--panel-heavy), .85) 48%,
+    rgba(var(--panel-lite), .70) 56%,
+    rgba(var(--panel-heavy), .90) 64%,
+    rgba(var(--panel-top), .75) 72%,
+    rgba(var(--panel-heavy), .65) 80%,
+    rgba(var(--panel-lite), .85) 88%,
+    rgba(var(--panel-heavy), .95) 100%
+  );
+}
+
+/* === Panel v2 - Radiant (center glow outward) === */
+.panelv2--radiant {
+  --panel-ring: radial-gradient(
+    circle at 50% 50%,
+    rgba(var(--panel-top), .95) 0%,
+    rgba(var(--panel-lite), .85) 20%,
+    rgba(var(--panel-heavy), .90) 40%,
+    rgba(var(--panel-lite), .70) 60%,
+    rgba(var(--panel-heavy), .85) 80%,
+    rgba(var(--panel-lite), .75) 100%
+  );
+}
+
+/* === Panel v2 - Corner Bloom (emphasis at corners) === */
+.panelv2--bloom {
+  --ring-w: 1.75px;
+  --panel-ring: radial-gradient(
+    circle at 0% 0%,
+    rgba(var(--panel-heavy), .95) 0%, 
+    transparent 25%
+  ),
+  radial-gradient(
+    circle at 100% 0%,
+    rgba(var(--panel-lite), .90) 0%, 
+    transparent 25%
+  ),
+  radial-gradient(
+    circle at 0% 100%,
+    rgba(var(--panel-lite), .85) 0%, 
+    transparent 25%
+  ),
+  radial-gradient(
+    circle at 100% 100%,
+    rgba(var(--panel-heavy), .90) 0%, 
+    transparent 25%
+  ),
+  linear-gradient(
+    180deg,
+    rgba(var(--panel-heavy), .65) 0%,
+    rgba(var(--panel-top), .75) 50%,
+    rgba(var(--panel-heavy), .70) 100%
+  );
+}
+
+/* === Panel v2 - Spiral (rotating gradient) === */
+.panelv2--spiral {
+  --panel-ring: conic-gradient(
+    from 0deg at 50% 50%,
+    rgba(var(--panel-heavy), 0.90),
+    rgba(var(--panel-lite), .70) 30deg,
+    rgba(var(--panel-top), .95) 60deg,
+    rgba(var(--panel-heavy), .65) 90deg,
+    rgba(var(--panel-lite), .80) 120deg,
+    rgba(var(--panel-top), .85) 150deg,
+    rgba(var(--panel-heavy), .70) 180deg,
+    rgba(var(--panel-lite), .75) 210deg,
+    rgba(var(--panel-top), .90) 240deg,
+    rgba(var(--panel-heavy), .60) 270deg,
+    rgba(var(--panel-lite), .85) 300deg,
+    rgba(var(--panel-top), .75) 330deg,
+    rgba(var(--panel-heavy), .90) 360deg
+  );
+}
+
+/* === Panel v2 - Horizon (horizontal bands) === */
+.panelv2--horizon {
+  --panel-ring: linear-gradient(
+    0deg,
+    rgba(var(--panel-heavy), 0.85) 0%,
+    rgba(var(--panel-lite), .95) 10%,
+    rgba(var(--panel-top), .70) 20%,
+    rgba(var(--panel-heavy), .80) 30%,
+    rgba(var(--panel-lite), .65) 40%,
+    rgba(var(--panel-top), .90) 50%,
+    rgba(var(--panel-lite), .65) 60%,
+    rgba(var(--panel-heavy), .80) 70%,
+    rgba(var(--panel-top), .70) 80%,
+    rgba(var(--panel-lite), .95) 90%,
+    rgba(var(--panel-heavy), .85) 100%
+  );
+}
+
+/* === Panel v2 - Chevron (V-shaped pattern) === */
+.panelv2--chevron {
+  --ring-w: 1.75px;
+}
+
+.panelv2--chevron::before {
+  background: 
+    linear-gradient(45deg, 
+      transparent 0%,
+      transparent 45%,
+      rgba(var(--panel-heavy), .90) 50%,
+      transparent 55%,
+      transparent 100%
+    ),
+    linear-gradient(-45deg, 
+      transparent 0%,
+      transparent 45%,
+      rgba(var(--panel-heavy), .90) 50%,
+      transparent 55%,
+      transparent 100%
+    ),
+    linear-gradient(90deg,
+      rgba(var(--panel-lite), .75) 0%,
+      rgba(var(--panel-top), .85) 25%,
+      rgba(var(--panel-heavy), .70) 50%,
+      rgba(var(--panel-top), .85) 75%,
+      rgba(var(--panel-lite), .75) 100%
+    );
+  background-size: 100% 100%;
+}
+
+/* === Card Panel v2 (Subtle variant for cards) === */
+.cardv2 {
+  --card-accent: 129, 140, 248;
+  --card-lite: 200, 210, 248;
+  --card-heavy: 170, 180, 238;
+  --card-top: 255, 255, 255;
+  --card-bot: 255, 255, 255;
+  
+  --card-ring: linear-gradient(
+    360deg,
+    rgba(var(--card-heavy), 0.65) 0%,
+    rgba(var(--card-top), .65) 25%,
+    rgba(var(--card-heavy), .85) 50%,
+    rgba(var(--card-top), .65) 75%,
+    rgba(var(--card-heavy), .55) 100%
+  );
+  
+  --card-fill: linear-gradient(
+    180deg,
+    rgba(var(--card-top), .65) 0%,
+    rgba(var(--card-lite), .12) 30%,
+    rgba(var(--card-lite), .18) 50%,
+    rgba(var(--card-lite), .08) 70%,
+    rgba(var(--card-top), .55) 100%
+  );
+  
+  --ring-w: 1.25px;
+  
+  position: relative;
+  padding: 1rem;
+  border: none;
+  border-radius: 12px;
+  
+  outline: 0.75px solid rgba(var(--card-heavy), .35);
+  outline-offset: -2px;
+  
+  color: rgb(30, 41, 59);
+  background: var(--card-fill);
+  
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, .50),
+    0 1px 4px rgba(51, 57, 82, 0.08),
+    0 10px 20px -12px rgba(98, 101, 114, 0.18);
+  backdrop-filter: saturate(1.8) blur(5px);
+  
+  transition: box-shadow .15s ease, transform .1s ease;
+}
+
+.cardv2::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: var(--ring-w);
+  border-radius: inherit;
+  background: var(--card-ring);
+  
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  
+  pointer-events: none;
+}
+
+.cardv2:hover {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, .40),
+    0 2px 6px rgba(2, 6, 23, .10),
+    0 12px 24px -14px rgba(2, 6, 23, .20);
+  transform: translateY(-0.5px);
+}
+
+/* === Modal Panel v2 (Elevated variant) === */
+.modalv2 {
+  --modal-accent: 129, 140, 248;
+  --modal-lite: 200, 210, 248;
+  --modal-heavy: 170, 180, 238;
+  --modal-top: 255, 255, 255;
+  --modal-bot: 255, 255, 255;
+  
+  --modal-ring: linear-gradient(
+    360deg,
+    rgba(var(--modal-heavy), 0.80) 0%,
+    rgba(var(--modal-top), .80) 20%,
+    rgba(var(--modal-heavy), 1.0) 50%,
+    rgba(var(--modal-top), .80) 70%,
+    rgba(var(--modal-heavy), .70) 100%
+  );
+  
+  --modal-fill: linear-gradient(
+    180deg,
+    rgba(var(--modal-top), .70) 0%,
+    rgba(var(--modal-lite), .18) 25%,
+    rgba(var(--modal-lite), .30) 50%,
+    rgba(var(--modal-lite), .15) 75%,
+    rgba(var(--modal-top), .60) 100%
+  );
+  
+  --ring-w: 1.75px;
+  
+  position: relative;
+  padding: 1.5rem;
+  border: none;
+  border-radius: 16px;
+  
+  outline: 1.25px solid rgba(var(--modal-heavy), .50);
+  outline-offset: -3px;
+  
+  color: rgb(30, 41, 59);
+  background: var(--modal-fill);
+  
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, .55),
+    0 4px 12px rgba(51, 57, 82, 0.12),
+    0 20px 40px -20px rgba(98, 101, 114, 0.28);
+  backdrop-filter: saturate(2.2) blur(8px);
+  
+  transition: box-shadow .2s ease;
+}
+
+.modalv2::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: var(--ring-w);
+  border-radius: inherit;
+  background: var(--modal-ring);
+  
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  
+  pointer-events: none;
+}
+
+/* === Sidebar Panel v2 === */
+.sidebarv2 {
+  --sidebar-accent: 129, 140, 248;
+  --sidebar-lite: 205, 215, 248;
+  --sidebar-heavy: 175, 185, 238;
+  --sidebar-top: 255, 255, 255;
+  --sidebar-bot: 255, 255, 255;
+  
+  --sidebar-ring: linear-gradient(
+    90deg,
+    rgba(var(--sidebar-heavy), 0.70) 0%,
+    rgba(var(--sidebar-top), .70) 25%,
+    rgba(var(--sidebar-heavy), .90) 50%,
+    rgba(var(--sidebar-top), .70) 75%,
+    rgba(var(--sidebar-heavy), .60) 100%
+  );
+  
+  --sidebar-fill: linear-gradient(
+    90deg,
+    rgba(var(--sidebar-top), .60) 0%,
+    rgba(var(--sidebar-lite), .16) 30%,
+    rgba(var(--sidebar-lite), .22) 50%,
+    rgba(var(--sidebar-lite), .12) 70%,
+    rgba(var(--sidebar-top), .50) 100%
+  );
+  
+  --ring-w: 1.5px;
+  
+  position: relative;
+  padding: 1rem;
+  border: none;
+  border-radius: 12px;
+  
+  outline: 1px solid rgba(var(--sidebar-heavy), .40);
+  outline-offset: -2.5px;
+  
+  color: rgb(30, 41, 59);
+  background: var(--sidebar-fill);
+  
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, .45),
+    0 2px 6px rgba(51, 57, 82, 0.10),
+    0 12px 24px -14px rgba(98, 101, 114, 0.20);
+  backdrop-filter: saturate(1.9) blur(6px);
+}
+
+.sidebarv2::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: var(--ring-w);
+  border-radius: inherit;
+  background: var(--sidebar-ring);
+  
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  
+  pointer-events: none;
+}
+
+/* === Compact Panel v2 (For tight spaces) === */
+.panelv2--compact {
+  padding: 0.75rem;
+  border-radius: 10px;
+}
+
+/* === Wide Panel v2 (Full width containers) === */
+.panelv2--wide {
+  padding: 1.5rem 2rem;
+  border-radius: 16px;
+}
+
+/* === Surface v2 (Flat minimal variant) === */
+.surfacev2 {
+  --surface-accent: 129, 140, 248;
+  --surface-lite: 215, 220, 248;
+    --surface-accent: 235, 240, 248;
+
+  --surface-top: 255, 255, 255;
+  
+  position: relative;
+  padding: 1rem;
+  border: 1px solid rgba(var(--surface-accent), .22);
+  border-radius: 12px;
+  
+  background: linear-gradient(
+    90deg,
+    rgba(var(--surface-top), .55) 0%,
+    rgba(var(--surface-lite), .40) 25%,
+        rgba(var(--surface-accent), .40) 50%,
+    rgba(var(--surface-lite), .40) 75%,
+
+    rgba(var(--surface-top), .75) 100%
+  );
+  
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, .50),
+    0 1px 3px rgba(51, 57, 82, 0.08),
+    0 8px 16px -10px rgba(98, 101, 114, 0.15);
+  backdrop-filter: saturate(1.6) blur(4px);
+  
+  transition: box-shadow .15s ease;
+}
+
+.surfacev2:hover {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, .45),
+    0 2px 5px rgba(2, 6, 23, .10),
+    0 10px 20px -12px rgba(2, 6, 23, .18);
+}
+
+/* === Dark Mode Support === */
+.dark .panelv2,
+.dark .cardv2,
+.dark .modalv2,
+.dark .sidebarv2 {
+  --panel-text: 241, 245, 249;
+  --panel-top: 15, 23, 42;
+  --panel-bot: 15, 23, 42;
+  --card-top: 15, 23, 42;
+  --card-bot: 15, 23, 42;
+  --modal-top: 15, 23, 42;
+  --modal-bot: 15, 23, 42;
+  --sidebar-top: 15, 23, 42;
+  --sidebar-bot: 15, 23, 42;
+  
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, .06),
+    0 2px 8px rgba(0, 0, 0, .35),
+    0 12px 24px -12px rgba(0, 0, 0, .5);
+}
+
+.dark .surfacev2 {
+  --surface-top: 15, 23, 42;
+  
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, .05),
+    0 1px 4px rgba(0, 0, 0, .40),
+    0 8px 16px -10px rgba(0, 0, 0, .55);
+}
+
+/* === Accessibility === */
+@media (prefers-reduced-transparency: reduce) {
+  .panelv2, .cardv2, .modalv2, .sidebarv2, .surfacev2 {
+    backdrop-filter: none;
+  }
+}
+
+@supports not ((-webkit-backdrop-filter: blur(0)) or (backdrop-filter: blur(0))) {
+  .panelv2, .cardv2, .modalv2, .sidebarv2, .surfacev2 {
+    backdrop-filter: none;
+  }
+}
+
+/* === Fallback for older browsers === */
+@supports not ((mask-composite: exclude) or (-webkit-mask-composite: xor)) {
+  .panelv2, .cardv2, .modalv2, .sidebarv2 {
+    border: var(--ring-w) solid transparent;
+    background-origin: border-box, border-box;
+    background-clip: padding-box, border-box;
+  }
+  .panelv2::before, .cardv2::before, .modalv2::before, .sidebarv2::before {
+    content: none;
+  }
+}

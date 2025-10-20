@@ -18,6 +18,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { ONBOARDING_STEPS, type OnboardingStep } from './_data/steps-content'
 import dynamic from 'next/dynamic'
+import './onboarding-v2-subtle.css'
 
 // Lazy-load demo components
 const DiscussionViewDemo = dynamic(() => import('./_demos/discussion-view-demo'), {
@@ -50,7 +51,7 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/20 to-violet-50/20">
       {/* Progress Tracker (Desktop: Sidebar, Mobile: Top Bar) */}
       <ProgressTracker
         steps={ONBOARDING_STEPS}
@@ -100,7 +101,8 @@ export default function OnboardingPage() {
           </motion.header>
 
           {/* Step Sections */}
-          <div className="space-y-24 lg:space-y-32">
+          <div className="space-y-6 lg:space-y-32">
+           <hr className="border-slate-300 h-1" />
             {ONBOARDING_STEPS.map((step) => (
               <StepSection
                 key={step.id}
@@ -117,24 +119,24 @@ export default function OnboardingPage() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="text-center py-16 lg:py-24 mt-24 border-t border-slate-200"
+            className="text-center pt-6 pb-10 mt-6 border-t border-slate-400"
           >
             <h2 className="text-3xl font-bold text-slate-900 mb-4">
-              Ready to Experience This Firsthand?
+              Sign up for Early Access
             </h2>
-            <p className="text-lg text-slate-600 mb-8 max-w-2xl mx-auto">
-              Join the alpha program and gain access to the complete platform. 
-              Work with your team to transform discussions into structured knowledge.
+            <p className="text-lg text-slate-600 mb-5 max-w-2xl mx-auto">
+              Join the closed launch and gain access and test out the platform. 
+           
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link href="/about#access">
-                <button className="px-6 py-3 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors font-medium flex items-center gap-2">
-                  Request Alpha Access
+                <button className="px-6 py-3  rounded-xl  font-medium flex items-center gap-2 panelv2 panelv2--aurora">
+                  Request Early Access
                   <ChevronRight className="h-4 w-4" />
                 </button>
               </Link>
               <Link href="/about/details">
-                <button className="px-6 py-3 bg-white text-slate-700 rounded-lg hover:bg-slate-50 transition-colors font-medium border border-slate-200 flex items-center gap-2">
+                <button className="px-6 py-3   rounded-xl  font-medium border panelv2 panelv2--aurora flex items-center gap-2">
                   View Technical Specification
                   <ExternalLink className="h-4 w-4" />
                 </button>
@@ -161,16 +163,16 @@ function ProgressTracker({ steps, currentStep, onStepClick }: ProgressTrackerPro
   return (
     <>
       {/* Desktop: Sticky Sidebar */}
-      <aside className="hidden lg:block fixed left-0 top-0 h-screen w-64 border-r border-slate-200 bg-white/80 backdrop-blur-sm overflow-y-auto z-40">
-        <div className="p-6">
-          <div className="mb-8">
+      <aside className="hidden lg:block fixed left-0 top-0 h-screen w-64 border-r border-slate-200 bg-white/30 backdrop-blur-lg custom-scrollbar  overflow-y-auto z-40">
+        <div className="p-2 mt-3">
+          {/* <div className="mb-8">
             <Link href="/" className="text-xl font-bold text-slate-900">
               Digital Agora
             </Link>
             <p className="text-sm text-slate-500 mt-1">Onboarding</p>
-          </div>
+          </div> */}
 
-          <nav className="space-y-1">
+          <nav className="space-y-2">
             {steps.map((step) => {
               const Icon = step.icon
               const isActive = currentStep === step.number
@@ -181,7 +183,7 @@ function ProgressTracker({ steps, currentStep, onStepClick }: ProgressTrackerPro
                   key={step.number}
                   onClick={() => onStepClick(step.number)}
                   className={`
-                    w-full text-left p-3 rounded-lg transition-all flex items-center gap-3 group
+                    w-full text-left px-3 py-2 rounded-lg transition-all flex items-center gap-3 group
                     ${isActive ? 'bg-slate-100 font-medium' : 'hover:bg-slate-50'}
                     ${isCompleted ? 'text-slate-500' : 'text-slate-700'}
                   `}
@@ -208,9 +210,9 @@ function ProgressTracker({ steps, currentStep, onStepClick }: ProgressTrackerPro
             })}
           </nav>
 
-          <div className="mt-8 pt-8 border-t border-slate-200">
+          <div className="mt-2 pt-2 px-3 border-t border-slate-400/60">
             <div className="text-xs text-slate-500 mb-2">Progress</div>
-            <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+            <div className="h-2 bg-slate-300/60 rounded-full overflow-hidden">
               <div 
                 className="h-full bg-slate-900 transition-all duration-300 ease-out"
                 style={{ width: `${(currentStep / steps.length) * 100}%` }}
@@ -319,11 +321,11 @@ function StepSection({ step, isSchemaExpanded, onToggleSchema }: StepSectionProp
       viewport={{ once: true, margin: "-100px" }}
       transition={{ duration: 0.6 }}
       data-step-id={step.number}
-      className="scroll-mt-24 lg:scroll-mt-8"
+      className="scroll-mt-8"
     >
       {/* Step Header */}
-      <div className="flex items-start gap-4 mb-8">
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-bold text-lg flex-shrink-0">
+      <div className="flex items-start gap-4 mb-5">
+        <div className="flex h-12 w-12 items-center justify-center rounded-xl subtle-glass text-slate-500 font-bold text-lg flex-shrink-0">
           {step.number}
         </div>
         
@@ -334,7 +336,7 @@ function StepSection({ step, isSchemaExpanded, onToggleSchema }: StepSectionProp
               Step {step.number} of {ONBOARDING_STEPS.length}
             </span>
           </div>
-          <h2 className="text-3xl lg:text-4xl font-bold text-slate-900 mb-3">
+          <h2 className="text-3xl font-bold text-slate-900 mb-2">
             {step.title}
           </h2>
           <p className="text-lg text-slate-600 leading-relaxed">
@@ -346,7 +348,7 @@ function StepSection({ step, isSchemaExpanded, onToggleSchema }: StepSectionProp
       {/* Content Sections */}
       <div className="space-y-8 lg:space-y-12">
         {/* What / Why / User Action */}
-        <div className="grid lg:grid-cols-3 gap-6">
+        <div className="flex w-full flex-col gap-3 ">
           <ContentBlock title="What" content={step.content.what} />
           <ContentBlock title="Why" content={step.content.why} />
           <ContentBlock title="User Action" content={step.content.userAction} />
@@ -354,7 +356,7 @@ function StepSection({ step, isSchemaExpanded, onToggleSchema }: StepSectionProp
 
         {/* Screenshot (if exists) */}
         {step.screenshot.src && (
-          <div className="border border-slate-200 rounded-xl p-6 lg:p-8 bg-white">
+          <div className="border border-slate-200 rounded-xl modalv2 p-6 lg:p-8 ">
             <h3 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
               <ImageIcon className="h-5 w-5 text-slate-500" />
               Interface Preview
@@ -369,16 +371,14 @@ function StepSection({ step, isSchemaExpanded, onToggleSchema }: StepSectionProp
 
         {/* Interactive Demo (if exists) */}
         {step.demo && (
-          <div className="border-2 border-blue-200 rounded-xl p-6 lg:p-8 bg-gradient-to-br from-blue-50 to-indigo-50">
+          <div className="border-2 border-indigo-50 rounded-xl p-6 modalv2">
             <div className="flex items-start justify-between mb-4">
               <div>
                 <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
                   <Play className="h-5 w-5 text-blue-600" />
                   Interactive Demo
                 </h3>
-                <p className="text-sm text-slate-600 mt-1">
-                  Try this feature with mock data
-                </p>
+               
               </div>
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
                 <Info className="h-3 w-3" />
@@ -386,7 +386,7 @@ function StepSection({ step, isSchemaExpanded, onToggleSchema }: StepSectionProp
               </span>
             </div>
             
-            <div className="bg-white rounded-lg p-6 border border-blue-100">
+            <div className="bg-transparent rounded-lg p-6 border border-blue-100">
               {step.demo === 'discussion-upgrade' && <DiscussionViewDemo />}
               {step.demo === 'live-chat' && <DiscussionViewDemo />}
               {step.demo !== 'discussion-upgrade' && step.demo !== 'live-chat' && (
@@ -408,7 +408,7 @@ function StepSection({ step, isSchemaExpanded, onToggleSchema }: StepSectionProp
 
         {/* Transition */}
         {step.transition && (
-          <div className="border-l-4 border-indigo-500 pl-6 py-4 bg-indigo-50/50 rounded-r-lg">
+          <div className="border-l-2 border-indigo-500 pl-6 py-4 border  bg-indigo-50/50  pr-4 rounded-xl">
             <div className="text-sm font-medium text-indigo-900 mb-2 flex items-center gap-2">
               <ChevronRight className="h-4 w-4" />
               Next Step
@@ -432,7 +432,7 @@ interface ContentBlockProps {
 
 function ContentBlock({ title, content }: ContentBlockProps) {
   return (
-    <div className="border border-slate-200 rounded-lg p-6 bg-white hover:shadow-sm transition-shadow">
+    <div className="surfacev2">
       <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">
         {title}
       </h3>
@@ -536,7 +536,7 @@ function AnnotatedScreenshot({ src, alt, annotations }: AnnotatedScreenshotProps
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2 }}
-            className="absolute top-24 right-16 w-1/3   rounded-lg border border-slate-500 bg-white/20 backdrop-blur-lg p-4"
+            className="absolute top-[70%] right-16 w-1/3   rounded-lg border border-slate-500 bg-white/40 backdrop-blur-lg p-4"
           >
             <div className=" flex  z-10 w-fit top-0 items-start gap-3">
               <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-900 text-white text-xs font-bold flex-shrink-0">
@@ -596,12 +596,12 @@ interface SchemaReferenceProps {
 
 function SchemaReference({ schema, isExpanded, onToggle }: SchemaReferenceProps) {
   return (
-    <div className="border border-slate-200 rounded-lg overflow-hidden bg-white">
+    <div className="border border-slate-200 rounded-lg overflow-hidden panelv2 panelv2--bloom ">
       <button
         onClick={onToggle}
-        className="w-full flex items-center justify-between p-4 hover:bg-slate-50 transition-colors"
+        className="w-full flex items-center justify-between p-4 "
       >
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 ">
           <Database className="h-5 w-5 text-slate-500" />
           <span className="font-mono text-sm font-medium text-slate-900">
             model {schema.model}
@@ -622,7 +622,7 @@ function SchemaReference({ schema, isExpanded, onToggle }: SchemaReferenceProps)
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="p-4 bg-slate-50 border-t border-slate-200">
+            <div className="p-4 bg-white/30 rounded-xl backdrop-blur-md border border-slate-200">
               {/* Fields */}
               <div className="mb-4">
                 <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">

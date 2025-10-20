@@ -105,6 +105,7 @@ function Chip({
     </span>
   );
 }
+
 function Donut({
   r = 18,
   acc,
@@ -139,6 +140,8 @@ function Donut({
       strokeDasharray={`${L(rad) * share} ${L(rad)}`}
       transform="rotate(-90)"
       fill="none"
+      strokeLinecap="round"
+      opacity={0.85}
     />
   );
   return (
@@ -147,19 +150,42 @@ function Donut({
       height={(r + 20) * 2}
       viewBox={`${-(r + 20)} ${-(r + 20)} ${(r + 20) * 2} ${(r + 20) * 2}`}
       aria-hidden="true"
+      style={{ filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.08))" }}
     >
+      {/* Soft glow/shadow behind */}
+      <circle
+        r={r + 2}
+        fill={selected ? "rgba(167, 243, 208, 0.2)" : "rgba(186, 230, 253, 0.2)"}
+        stroke="none"
+      />
+      
+      {/* Main center circle with glass effect */}
       <circle
         r={r}
-        fill={selected ? "#10b981" : "#0ea5e9"}
-        fillOpacity={selected ? 0.95 : 0.85}
-        stroke={selected ? "#065f46" : "#0369a1"}
-        strokeWidth={selected ? 2 : 1}
+        fill={selected ? "rgba(209, 250, 229, 0.7)" : "rgba(224, 242, 254, 0.7)"}
+        stroke={selected ? "rgba(167, 243, 208, 0.6)" : "rgba(186, 230, 253, 0.6)"}
+        strokeWidth={1.5}
       />
-      <Ring rad={r + 4} col="#10b981" w={3} share={acc} />
-      <Ring rad={r + 8} col="#f43f5e" w={2} share={rej} />
-      <Ring rad={r + 12} col="#94a3b8" w={2} share={und} />
+      
+      {/* Inner subtle gradient circle for depth */}
+      <circle
+        r={r * 0.6}
+        fill={selected ? "rgba(236, 253, 245, 0.5)" : "rgba(240, 249, 255, 0.5)"}
+        stroke="none"
+      />
+      
+      {/* Acceptance ring - soft green/mint */}
+      <Ring rad={r + 4} col="rgba(134, 239, 172, 0.8)" w={2.5} share={acc} />
+      
+      {/* Rejection ring - soft coral/rose */}
+      <Ring rad={r + 8} col="rgba(252, 165, 165, 0.75)" w={2} share={rej} />
+      
+      {/* Undecided ring - soft lavender/gray */}
+      <Ring rad={r + 12} col="rgba(203, 213, 225, 0.7)" w={2} share={und} />
+      
+      {/* Tau confidence ring - soft purple/violet */}
       {typeof tauShare === "number" && (
-        <Ring rad={r + 16} col="#7c3aed" w={2} share={tauShare} />
+        <Ring rad={r + 16} col="rgba(196, 181, 253, 0.75)" w={2} share={tauShare} />
       )}
     </svg>
   );
@@ -429,15 +455,15 @@ React.useEffect(() => {
 
   /** ---------- render ---------- */
   return (
-    <div className="rounded-xl border bg-white/80 p-3">
+    <div className="rounded-xl border  about-flow  p-3">
       {/* Header */}
-      <div className="flex items-center justify-between gap-3 mb-2">
-        <div className="flex items-center gap-2">
-          <div className="text-sm font-semibold">Plexus • Board</div>
-          <span className="text-[11px] text-slate-600">
+      <div  className="flex  items-center justify-between gap-3 mb-2">
+        <div className="flex items-center  gap-2">
+          <div className="text-sm font-medium px-3">Plexus • Board</div>
+          <span className="text-xs text-slate-600">
             rooms {rooms.length}
           </span>
-          <span className="text-[11px] text-slate-600">
+          <span className="text-xs text-slate-600">
             • links {edges.length}
           </span>
         </div>
@@ -551,8 +577,8 @@ React.useEffect(() => {
             <div
               key={r.id}
               className={clsx(
-                "rounded-lg border bg-white/70 p-2 flex items-center gap-3 hover:shadow-sm relative",
-                selected && "ring-2 ring-emerald-500/70",
+                "rounded-lg border border-white/50 bg-white/30 backdrop-blur-xl p-2 flex shadow-[0px_0px_5px_rgba(165,180,252,0.6)] items-center gap-3 hover:bg-slate-100/40 relative",
+                selected && "ring-[1.5px] ring-indigo-400/50",
                 dragOver === r.id && "outline outline-2 outline-indigo-400"
               )}
               onContextMenu={(e) => {
@@ -768,7 +794,7 @@ onDragOver={(e) => {
               {/* Link-mode hint badge */}
               {linkMode && (
                 <div className="absolute top-1 right-1 text-[10px] px-1.5 py-[1px] rounded bg-indigo-50 border border-indigo-200 text-indigo-700">
-                  drag to link
+                  ◎
                 </div>
               )}
               {/* Source badge (top-left) */}

@@ -1253,7 +1253,7 @@ const {
               <PropositionComposerPro deliberationId={deliberationId} />
             </SectionCard>
 
-            <SectionCard title="Propositions">
+            <SectionCard>
               <PropositionsList deliberationId={deliberationId} />
             </SectionCard>
 
