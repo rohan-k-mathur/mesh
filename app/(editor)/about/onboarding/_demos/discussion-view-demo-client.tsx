@@ -69,6 +69,7 @@ interface Props {
   participants: Participant[]
   conversationId: string
   currentUserId: string
+  defaultTab?: "chat" | "forum" // 👈 NEW: Optional starting tab
 }
 
 export default function DiscussionViewDemoClient({
@@ -77,7 +78,8 @@ export default function DiscussionViewDemoClient({
   forumComments, // 👈 NEW: Receive forum comments
   participants,
   conversationId,
-  currentUserId
+  currentUserId,
+  defaultTab = "forum" // 👈 NEW: Default to forum
 }: Props) {
   // =========================================================================
   // STATE MANAGEMENT
@@ -352,6 +354,7 @@ export default function DiscussionViewDemoClient({
             conversationId={conversationId}
             initialMessages={messages}
             initialForumComments={forumComments}
+            defaultTab={defaultTab}
           />
         </PrivateChatProvider>
       </AuthContext.Provider>

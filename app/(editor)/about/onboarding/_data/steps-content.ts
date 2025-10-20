@@ -763,7 +763,7 @@ const STEP_4: OnboardingStep = {
         y: 25,
         label: '5',
         title: 'Controversy & Hub Insight Badges',
-        description: 'Yellow badge "⚠ 3 controversial" and purple badge "⭐ 3 hubs". Automatically computed patterns directing attention to contested claims and architectural keystones. Click to filter graph to these subsets.'
+        description: 'Yellow badge "⚠ 3 controversial" and purple badge "3 hubs". Automatically computed patterns directing attention to contested claims and architectural keystones. Click to filter graph to these subsets.'
       },
       {
         id: 'graph-canvas',

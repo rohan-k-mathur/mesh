@@ -100,13 +100,13 @@ function useAdvancedForceLayout(
       });
 
       const clusterCount = clusters.size;
-      const clusterRadius = Math.min(width, height) * 0.25;
+      const clusterRadius = Math.min(width, height) *0;
 
       Array.from(clusters.entries()).forEach(([cid, clusterNodes], clusterIdx) => {
         const clusterAngle = (clusterIdx / clusterCount) * 2 * Math.PI;
         const clusterCenterX = centerX + clusterRadius * Math.cos(clusterAngle);
         const clusterCenterY = centerY + clusterRadius * Math.sin(clusterAngle);
-        const innerRadius = 20;
+        const innerRadius = 200;
 
         clusterNodes.forEach((node, i) => {
           const nodeAngle = (i / clusterNodes.length) * 2 * Math.PI;
@@ -125,7 +125,7 @@ function useAdvancedForceLayout(
     }
 
     // Default: Force-directed with cluster attraction
-    const radius = Math.min(width, height) * 0.35;
+    const radius = Math.min(width, height) * 3;
     nodes.forEach((node, i) => {
       const angle = (i / nodes.length) * 2 * Math.PI;
       positions.set(node.id, {
@@ -214,7 +214,7 @@ function useAdvancedForceLayout(
         pos.y += pos.vy;
 
         // Keep in bounds
-        const padding = 20;
+        const padding = 5;
         pos.x = Math.max(padding, Math.min(width - padding, pos.x));
         pos.y = Math.max(padding, Math.min(height - padding, pos.y));
       });
@@ -782,7 +782,7 @@ export default function CegMiniMap({
 
           return (
             <div
-              className="absolute z-50 bg-slate-900/95 backdrop-blur-sm text-white text-[10px] px-3 py-2 rounded-lg shadow-xl pointer-events-none max-w-[240px] border border-slate-700"
+              className="absolute z-50 bg-slate-200/55 backdrop-blur-lg text-slate-900 text-[11px] px-2 py-2 rounded-lg shadow-xl pointer-events-none max-w-[270px] border border-slate-700"
               style={{
                 left: Math.min(pos.x + 15, width - 120),
                 top: Math.max(pos.y - 50, 10),
@@ -790,7 +790,7 @@ export default function CegMiniMap({
             >
               {/* Label badge */}
               <div className="flex items-center gap-2 mb-1.5">
-                <span className={`px-1.5 py-0.5 text-[8px] font-bold rounded ${
+                <span className={`px-1.5 py-0.5 text-[8px] text-white font-bold rounded ${
                   node.label === 'IN' ? 'bg-green-600' :
                   node.label === 'OUT' ? 'bg-red-600' :
                   'bg-slate-600'
@@ -798,12 +798,12 @@ export default function CegMiniMap({
                   {node.label}
                 </span>
                 {node.isControversial && (
-                  <span className="px-1.5 py-0.5 text-[8px] font-bold rounded bg-orange-600">
+                  <span className="px-1.5 py-0.5 text-[8px] text-white font-bold rounded bg-orange-600">
                     CONTROVERSIAL
                   </span>
                 )}
                 {node.centrality >= 0.6 && (
-                  <span className="px-1.5 py-0.5 text-[8px] font-bold rounded bg-purple-600">
+                  <span className="px-1.5 py-0.5 text-[8px] text-white font-bold rounded bg-purple-600">
                     HUB
                   </span>
                 )}
@@ -816,26 +816,26 @@ export default function CegMiniMap({
               </div>
 
               {/* Metrics */}
-              <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[9px] opacity-90 border-t border-slate-700 pt-1.5">
+              <div className="grid grid-cols-2 gap-x-3 gap-y-1 font-bold text-[10px] opacity-90 border-t border-slate-700 pt-1.5">
                 <div>
-                  <span className="text-slate-400">Support:</span>{' '}
-                  <span className="text-green-400 font-semibold">
+                  <span className="text-slate-900">Support:</span>{' '}
+                  <span className="text-green-700 font-bold">
                     {node.supportStrength.toFixed(1)}
                   </span>
                 </div>
                 <div>
-                  <span className="text-slate-400">Attack:</span>{' '}
-                  <span className="text-red-400 font-semibold">
+                  <span className="text-slate-900">Attack:</span>{' '}
+                  <span className="text-red-800 font-bold">
                     {node.attackStrength.toFixed(1)}
                   </span>
                 </div>
                 <div>
-                  <span className="text-slate-400">In:</span>{' '}
-                  <span className="font-semibold">{node.inDegree}</span>
+                  <span className="text-slate-900">In:</span>{' '}
+                  <span className="font-bold">{node.inDegree}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400">Out:</span>{' '}
-                  <span className="font-semibold">{node.outDegree}</span>
+                  <span className="text-slate-900">Out:</span>{' '}
+                  <span className="font-bold">{node.outDegree}</span>
                 </div>
               </div>
 

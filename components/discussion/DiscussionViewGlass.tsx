@@ -27,14 +27,16 @@ export default function DiscussionView({
   conversationId,
   initialMessages = [],         // 👈 NEW
   initialForumComments,          // 👈 NEW: Accept forum comments for demo/SSR
+  defaultTab = "forum",          // 👈 NEW: Allow caller to set starting tab
 }: {
   discussion: any;
   conversationId: string | null;   // ⬅️ string | null now
   initialMessages?: any[];
   initialForumComments?: any[];    // 👈 NEW
+  defaultTab?: "chat" | "forum";   // 👈 NEW: Optional starting tab
 
 }) {
-  const [tab, setTab] = React.useState<"chat" | "forum">("forum");
+  const [tab, setTab] = React.useState<"chat" | "forum">(defaultTab);
   const setMessages = useChatStore((s) => s.setMessages);
   const { user } = useAuth();
   const me = user?.userId ? String(user.userId) : null; // real DB userId as string

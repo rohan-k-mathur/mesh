@@ -650,7 +650,7 @@ export function DiscussionViewDemoLegacy() {
 
 
 
-export  function DiscussionViewDemo() {
+export  function DiscussionViewDemo({ defaultTab = "forum" }: { defaultTab?: "chat" | "forum" }) {
   const [data, setData] = useState<DiscussionData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -715,7 +715,7 @@ export  function DiscussionViewDemo() {
     )
   }
 
-  return <DiscussionViewDemoClient {...data} />
+  return <DiscussionViewDemoClient {...data} defaultTab={defaultTab} />
 }
 
 export default DiscussionViewDemo

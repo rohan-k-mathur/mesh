@@ -19,7 +19,13 @@ import Link from 'next/link'
 import { ONBOARDING_STEPS, type OnboardingStep } from './_data/steps-content'
 import dynamic from 'next/dynamic'
 import './onboarding-v2-subtle.css'
-
+import { ContentBlock, ContentAccordion, ContentSection,ContentTimeline
+  , ContentTabs, ContentTabsAutoFormat, ContentTabsWithHighlights,    // Highlights keywords
+  ContentTabsProgressiveReveal, // Animated sentence reveal
+  ContentTabsWithCallouts,      // Each sentence in callout box
+ } from './_components/enhanced-content-block'
+ import type { ContentBlockProps, ContentSectionProps } from './_components/enhanced-content-block'
+import CegExplorerEmbedded from './_components/ceg-explorer-embedded'
 // Lazy-load demo components
 const DiscussionViewDemo = dynamic(() => import('./_demos/discussion-view-demo'), {
   loading: () => <div className="text-center text-slate-500 py-12">Loading demo...</div>,
@@ -61,13 +67,13 @@ export default function OnboardingPage() {
 
       {/* Main Content Area */}
       <main className="lg:ml-64 min-h-screen">
-        <div className="mx-auto max-w-screen px-10 py-0">
+        <div className="mx-auto max-w-screen px-24 py-0">
           {/* Hero Section */}
           <motion.header 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="text-center mb-16 pt-12 "
+            className="text-center mb-10 pt-12 "
           >
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-50 border border-indigo-100 text-sm font-medium text-indigo-700 mb-6">
               <Play className="h-3.5 w-3.5" />
@@ -101,7 +107,7 @@ export default function OnboardingPage() {
           </motion.header>
 
           {/* Step Sections */}
-          <div className="space-y-6 lg:space-y-32">
+          <div className="space-y-6 lg:space-y-10">
            <hr className="border-slate-300 h-1" />
             {ONBOARDING_STEPS.map((step) => (
               <StepSection
@@ -172,7 +178,7 @@ function ProgressTracker({ steps, currentStep, onStepClick }: ProgressTrackerPro
             <p className="text-sm text-slate-500 mt-1">Onboarding</p>
           </div> */}
 
-          <nav className="space-y-2">
+          <nav className=" space-y-4">
             {steps.map((step) => {
               const Icon = step.icon
               const isActive = currentStep === step.number
@@ -184,7 +190,7 @@ function ProgressTracker({ steps, currentStep, onStepClick }: ProgressTrackerPro
                   onClick={() => onStepClick(step.number)}
                   className={`
                     w-full text-left px-3 py-2 rounded-lg transition-all flex items-center gap-3 group
-                    ${isActive ? 'bg-slate-100 font-medium' : 'hover:bg-slate-50'}
+                    ${isActive ? 'bg-slate-200 font-medium' : 'hover:bg-slate-100'}
                     ${isCompleted ? 'text-slate-500' : 'text-slate-700'}
                   `}
                 >
@@ -208,6 +214,8 @@ function ProgressTracker({ steps, currentStep, onStepClick }: ProgressTrackerPro
                 </button>
               )
             })}
+                             
+
           </nav>
 
           <div className="mt-2 pt-2 px-3 border-t border-slate-400/60">
@@ -244,7 +252,7 @@ function ProgressTracker({ steps, currentStep, onStepClick }: ProgressTrackerPro
               </div>
             </div>
           </div>
-          <ChevronDown className={`h-5 w-5 text-slate-400 transition-transform ${isMobileExpanded && 'rotate-180'}`} />
+          <ChevronDown className={`h-5 w-5 text-slate-900 transition-transform ${isMobileExpanded && 'rotate-180'}`} />
         </button>
         
         {/* Progress Bar */}
@@ -321,7 +329,7 @@ function StepSection({ step, isSchemaExpanded, onToggleSchema }: StepSectionProp
       viewport={{ once: true, margin: "-100px" }}
       transition={{ duration: 0.6 }}
       data-step-id={step.number}
-      className="scroll-mt-8"
+      className="scroll-mt-2 "
     >
       {/* Step Header */}
       <div className="flex items-start gap-4 mb-5">
@@ -348,11 +356,17 @@ function StepSection({ step, isSchemaExpanded, onToggleSchema }: StepSectionProp
       {/* Content Sections */}
       <div className="space-y-8 lg:space-y-12">
         {/* What / Why / User Action */}
-        <div className="flex w-full flex-col gap-3 ">
+        {/* <div className="flex w-full flex-col gap-3 ">
           <ContentBlock title="What" content={step.content.what} />
           <ContentBlock title="Why" content={step.content.why} />
           <ContentBlock title="User Action" content={step.content.userAction} />
-        </div>
+        </div> */}
+
+<ContentTabsAutoFormat
+  what={step.content.what}
+  why={step.content.why}
+  userAction={step.content.userAction}
+/>
 
         {/* Screenshot (if exists) */}
         {step.screenshot.src && (
@@ -388,7 +402,7 @@ function StepSection({ step, isSchemaExpanded, onToggleSchema }: StepSectionProp
             
             <div className="bg-transparent rounded-lg p-6 border border-blue-100">
               {step.demo === 'discussion-upgrade' && <DiscussionViewDemo />}
-              {step.demo === 'live-chat' && <DiscussionViewDemo />}
+              {step.demo === 'live-chat' && <DiscussionViewDemo defaultTab="chat" />}
               {step.demo !== 'discussion-upgrade' && step.demo !== 'live-chat' && (
                 <div className="text-center text-slate-500 py-12">
                   Demo component: <code className="text-sm font-mono bg-slate-100 px-2 py-1 rounded">{step.demo}</code>
@@ -405,6 +419,14 @@ function StepSection({ step, isSchemaExpanded, onToggleSchema }: StepSectionProp
           isExpanded={isSchemaExpanded}
           onToggle={onToggleSchema}
         />
+
+        {/* Live CEG Explorer (only for Step 4 - Claims) */}
+        {step.id === 'claims' && (
+          <CegExplorerEmbedded
+            deliberationId="cmgy6c8vz0000c04w4l9khiux"
+            defaultExpanded={false}
+          />
+        )}
 
         {/* Transition */}
         {step.transition && (
@@ -423,25 +445,25 @@ function StepSection({ step, isSchemaExpanded, onToggleSchema }: StepSectionProp
   )
 }
 
-/* ======================== CONTENT BLOCK ======================== */
+// /* ======================== CONTENT BLOCK ======================== */
 
-interface ContentBlockProps {
-  title: string
-  content: string
-}
+// interface ContentBlockProps {
+//   title: string
+//   content: string
+// }
 
-function ContentBlock({ title, content }: ContentBlockProps) {
-  return (
-    <div className="surfacev2">
-      <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">
-        {title}
-      </h3>
-      <p className="text-slate-700 leading-relaxed text-sm">
-        {content}
-      </p>
-    </div>
-  )
-}
+// function ContentBlock({ title, content }: ContentBlockProps) {
+//   return (
+//     <div className="surfacev2">
+//       <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">
+//         {title}
+//       </h3>
+//       <p className="text-slate-700 leading-relaxed text-sm">
+//         {content}
+//       </p>
+//     </div>
+//   )
+// }
 
 /* ======================== ANNOTATED SCREENSHOT ======================== */
 
