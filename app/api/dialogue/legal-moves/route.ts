@@ -124,31 +124,9 @@ export async function GET(req: NextRequest) {
   moves.push({ kind:'SUPPOSE',   label:'Suppose…',   payload:{ locusPath: locusPath || '0' } });
   moves.push({ kind:'DISCHARGE', label:'Discharge',  payload:{ locusPath: locusPath || '0' } });
  
-  // WHY when none open; prefer shape-aware label
-  if (!openKeys.length) {
-    const base: MoveWithVerdict = {
-      kind:'WHY',
-      label:'Ask WHY',
-      payload: { locusPath: locusPath || '0' },
-      disabled: !!(actorId && targetAuthorId && actorId === String(targetAuthorId)),
-      reason: (actorId && targetAuthorId && actorId === String(targetAuthorId)) ? 'You cannot ask WHY on your own claim' : undefined,
-       verdict: (actorId && targetAuthorId && actorId === String(targetAuthorId))
-       ? { code: 'R3_SELF_REPLY', context: { authorId: targetAuthorId } }
-       : { code: 'H1_SHAPE_ATTACK_SUGGESTION', context: { shape: 'auto' } }
-    };
-    if (targetText) {
-       const { on, options } = legalAttacksFor(targetText);
-       if (options.length) {
-         // prefer canonical chips
-         const l = options[0].label
-           .replace('Instantiate', '∀‑instantiate')
-           .replace('witness', '∃‑witness')
-           .replace('presupposition', 'Challenge presupposition');
-         base.label = `WHY — ${l}`;
-     }
-    }
-    moves.push(base);
-  }
+  // WHY moves are ONLY offered through CriticalQuestions component with proper cqId
+  // Generic WHY without cqId is no longer supported (causes malformed moves)
+  // Users should use AttackMenuPro for structural attacks or CriticalQuestions for scheme-specific WHY
 
   // Concede / Retract (server will enforce invariants on POST)
   // — If claim has been answered by GROUNDS, hint to concede the *argument*
