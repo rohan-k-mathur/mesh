@@ -32,7 +32,14 @@ const Body = z.object({
  });
 
 
-function cqKey(p: any) { return String(p?.cqId ?? p?.schemeKey ?? 'default'); }
+function cqKey(p: any) {
+  const key = p?.cqId;
+  if (!key) {
+    console.warn('[dialogue/move] Payload missing cqId, using fallback:', { cqId: p?.cqId, schemeKey: p?.schemeKey });
+    return p?.schemeKey ?? 'unknown';
+  }
+  return String(key);
+}
 function hashExpr(s?: string) { if (!s) return '∅'; let h=0; for (let i=0;i<s.length;i++) h=((h<<5)-h)+s.charCodeAt(i)|0; return String(h); }
 // function makeSignature(kind: string, targetType: string, targetId: string, payload: any) {
 //   if (kind === 'WHY') return ['WHY', targetType, targetId, cqKey(payload)].join(':');
@@ -117,6 +124,14 @@ if (!userId) return NextResponse.json({ error:'Unauthorized' }, { status: 401 })
   }
   if (kind === 'GROUNDS' && !payload.locusPath) payload.locusPath = '0';
 
+  // Validate cqId for WHY/GROUNDS moves
+  if ((kind === 'WHY' || kind === 'GROUNDS') && !payload.cqId) {
+    return NextResponse.json({
+      error: 'cqId required for WHY/GROUNDS moves',
+      received: payload,
+      hint: 'Include payload.cqId (e.g., "eo-1") to specify which critical question this addresses'
+    }, { status: 400 });
+  }
 
   const actorId = String(userId ?? 'unknown');
 
