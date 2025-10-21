@@ -68,7 +68,11 @@ export async function GET(req: NextRequest) {
   type Row = { kind:'WHY'|'GROUNDS'; payload:any; createdAt:Date };
   const latestByKey = new Map<string, Row>();
   for (const r of rows as Row[]) {
-    const key = String(r?.payload?.cqId ?? r?.payload?.schemeKey ?? 'default');
+    const key = r?.payload?.cqId;
+    if (!key) {
+      console.warn('[legal-moves] Move missing cqId, skipping:', { id: (r as any)?.id, kind: r.kind, payload: r.payload });
+      continue; // skip malformed moves
+    }
     const prev = latestByKey.get(key);
     if (!prev || r.createdAt > prev.createdAt) latestByKey.set(key, r);
   }

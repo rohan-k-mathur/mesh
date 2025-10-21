@@ -23,7 +23,14 @@ type Input = {
   actorId?: string | null;
 };
 
-function cqKey(p: any) { return String(p?.cqId ?? p?.schemeKey ?? 'default'); }
+function cqKey(p: any) {
+  const key = p?.cqId;
+  if (!key) {
+    console.warn('[legalMovesServer] Payload missing cqId:', { cqId: p?.cqId, schemeKey: p?.schemeKey });
+    return p?.schemeKey ?? 'unknown';
+  }
+  return String(key);
+}
 function exprOf(p: any) { return String(p?.expression ?? p?.brief ?? p?.note ?? '').trim(); }
 
 export async function computeLegalMoves(input: Input): Promise<{ moves: Move[]; meta: any }> {

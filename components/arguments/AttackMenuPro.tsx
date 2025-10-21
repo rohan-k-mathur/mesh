@@ -230,7 +230,7 @@ if (!p.ok) {
     legacyTargetScope: 'inference',
   }, ctrl.signal);
 
-  // NEW: bind as a first-class exception assumption (enrich with schemeKey if available)
+  // Bind as a first-class exception assumption (enrich with schemeKey if available)
   const schemeKey = (target as any)?.schemeKey ?? null;
   await postAssumption(
     target.id,
@@ -239,17 +239,6 @@ if (!p.ok) {
     { schemeKey, descriptorKey: 'exception' },
     ctrl.signal
   );
-
-  // NEW: bind exception to the attacked RA via AssumptionUse
-  await fetch(`/api/arguments/${encodeURIComponent(target.id)}/assumptions`, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({
-      deliberationId,
-      items: [{ assumptionId: exceptionClaimId, role: 'exception', metaJson: { schemeKey: null } }]
-    }),
-    signal: ctrl.signal
-  });
 } else {
         if (!premiseId || !undermine) return;
         await postCA({
