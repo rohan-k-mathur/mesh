@@ -782,7 +782,7 @@ export default function CegMiniMap({
 
           return (
             <div
-              className="absolute z-50 bg-slate-200/55 backdrop-blur-lg text-slate-900 text-[11px] px-2 py-2 rounded-lg shadow-xl pointer-events-none max-w-[270px] border border-slate-700"
+              className="fixed right-[100px] top-[300px]   z-50 bg-slate-200/55 backdrop-blur-lg text-slate-900 text-[11px] px-2 py-2 rounded-lg shadow-xl pointer-events-none max-w-[270px] border-2 border-orange-500"
               style={{
                 left: Math.min(pos.x + 15, width - 120),
                 top: Math.max(pos.y - 50, 10),
