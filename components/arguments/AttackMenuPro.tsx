@@ -209,7 +209,7 @@ if (!p.ok) {
     const ctrl = new AbortController();
     try {
       if (kind === 'REBUTS') {
-        if (!rebut) return;
+        if (!rebut || !rebut.id) return;
         await postCA({
           deliberationId,
           conflictingClaimId: rebut.id,
@@ -239,7 +239,7 @@ if (!p.ok) {
     ctrl.signal
   );
 } else {
-        if (!premiseId || !undermine) return;
+        if (!premiseId || !undermine || !undermine.id) return;
         await postCA({
           deliberationId,
           conflictingClaimId: undermine.id,
@@ -321,7 +321,7 @@ if (!p.ok) {
                   text-sm font-semibold bg-rose-600 text-white hover:bg-rose-700
                   disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow-md active:scale-95
                 "
-                disabled={!rebut || !!busy}
+                disabled={!rebut || !rebut.id || !!busy}
                 onClick={() => fire('REBUTS')}
                 aria-busy={busy === 'REBUTS'}
               >
@@ -496,7 +496,7 @@ if (!p.ok) {
                   text-sm font-semibold bg-slate-700 text-white hover:bg-slate-800
                   disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow-md active:scale-95
                 "
-                disabled={!premiseId || !undermine || !!busy}
+                disabled={!premiseId || !undermine || !undermine.id || !!busy}
                 onClick={() => fire('UNDERMINES')}
                 aria-busy={busy === 'UNDERMINES'}
               >
