@@ -18,6 +18,54 @@ import { emitBus } from '@/lib/server/bus'; // ✅ use the helper only
 function sig(s: string) { return crypto.createHash("sha1").update(s, "utf8").digest("hex"); }
 const WHY_TTL_HOURS = 24;
 
+/**
+ * Create an AIF Argument node from a GROUNDS response.
+ * This makes GROUNDS a first-class argument that can be attacked/defended.
+ */
+async function createArgumentFromGrounds(payload: {
+  deliberationId: string;
+  targetClaimId: string;
+  authorId: string;
+  groundsText: string;
+  cqId: string;
+  schemeKey?: string;
+}): Promise<string | null> {
+  try {
+    // Look up scheme ID if schemeKey is provided
+    let schemeId: string | null = null;
+    if (payload.schemeKey) {
+      const schemeRow = await prisma.argumentationScheme.findFirst({
+        where: { key: payload.schemeKey },
+        select: { id: true }
+      });
+      schemeId = schemeRow?.id ?? null;
+    }
+
+    // Create argument node
+    const arg = await prisma.argument.create({
+      data: {
+        deliberationId: payload.deliberationId,
+        authorId: payload.authorId,
+        text: payload.groundsText,
+        conclusionClaimId: payload.targetClaimId,
+        schemeId,
+        mediaType: 'text',
+      }
+    });
+
+    console.log('[createArgumentFromGrounds] Created argument:', {
+      argId: arg.id,
+      cqId: payload.cqId,
+      schemeKey: payload.schemeKey
+    });
+
+    return arg.id;
+  } catch (e) {
+    console.error('[createArgumentFromGrounds] Failed:', e);
+    return null;
+  }
+}
+
 const Body = z.object({
   deliberationId: z.string().min(1),
   targetType: z.enum(['argument','claim','card']),
@@ -194,6 +242,25 @@ try {
       update: { status: 'open', satisfied: false },
     });
   } else if (kind === 'GROUNDS' && schemeKey) {
+    const groundsText = String(payload?.expression ?? payload?.brief ?? payload?.note ?? '').trim();
+
+    // Create AIF argument node from GROUNDS if we have substantial content
+    if (groundsText && groundsText.length > 5 && targetType === 'claim') {
+      const argId = await createArgumentFromGrounds({
+        deliberationId,
+        targetClaimId: targetId,
+        authorId: actorId,
+        groundsText,
+        cqId: schemeKey,
+        schemeKey: payload?.schemeKey,
+      });
+
+      // Store argId in move payload for reference
+      if (argId) {
+        (payload as any).createdArgumentId = argId;
+      }
+    }
+
     await prisma.cQStatus.updateMany({
       where: { targetType: 'argument' as TargetType, targetId, schemeKey, cqKey: schemeKey },
       data: { status: 'answered', satisfied: true },
