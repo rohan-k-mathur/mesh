@@ -3887,11 +3887,10 @@ model KnowledgeEdge {
 
   deliberation Deliberation @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
 
+  @@unique([deliberationId, kind, fromWorkId, toWorkId])
   @@index([deliberationId, kind, createdAt])
   @@index([fromWorkId, toWorkId])
   @@index([fromClaimId, toClaimId])
-    @@unique([deliberationId, kind, fromWorkId, toWorkId])
-
 }
 
 model NLILink {
@@ -4826,8 +4825,8 @@ enum KbBlockType {
   evidence_list
   cq_tracker
   plexus_tile
-  theory_work       // NEW
-  theory_section    // (optional) inline a single section from a work
+  theory_work // NEW
+  theory_section // (optional) inline a single section from a work
 }
 
 model KbSpace {

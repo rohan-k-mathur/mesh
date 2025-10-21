@@ -31,7 +31,6 @@ export default async function DeliberationPage({
  return (
     // 1. Make this div the positioning context. It will now grow with its content.
     <div className="relative w-full">
-      <GridBG />
 
    
       {/* 2. Wrap your page content to control its stacking order. */}

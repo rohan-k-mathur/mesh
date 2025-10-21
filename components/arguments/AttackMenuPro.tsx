@@ -15,12 +15,7 @@ import {
   Swords,
 } from 'lucide-react';
 import { preferred } from '@/lib/argumentation/afEngine';
-
-// Lazy-load: ClaimPicker can be heavy (Command list, filters, fetches)
-const ClaimPicker = dynamic(
-  () => import('@/components/claims/ClaimPicker').then(m => m.ClaimPicker ),
-  { ssr: false, loading: () => <div className="h-9 rounded bg-slate-100 animate-pulse" /> }
-);
+import { SchemeComposerPicker } from '../SchemeComposerPicker';
 
 type ClaimRef = { id: string; text: string };
 type Prem = { id: string; text: string };
@@ -137,6 +132,10 @@ function AttackMenuContent({
   const [undercutText, setUndercutText] = React.useState('');
   const [premiseId, setPremiseId] = React.useState(target.premises[0]?.id ?? '');
   const [undermine, setUndermine] = React.useState<ClaimRef | null>(null);
+
+  // Picker modal states
+  const [pickerRebutOpen, setPickerRebutOpen] = React.useState(false);
+  const [pickerUndermineOpen, setPickerUndermineOpen] = React.useState(false);
 
   React.useEffect(() => {
     // if target changes while open, reset premise selection to first
@@ -301,12 +300,12 @@ if (!p.ok) {
               <label className="block text-xs font-medium text-slate-700 mb-2">
                 Your Counter-Claim
               </label>
-              <ClaimPicker
-                deliberationId={deliberationId}
-                authorId={authorId}
-                label="Select or create counter-claim"
-                onPick={setRebut}
-              />
+              <button
+                className="w-full px-3 py-2 rounded-lg border border-rose-300 text-sm text-left hover:bg-rose-50 transition"
+                onClick={() => setPickerRebutOpen(true)}
+              >
+                {rebut ? rebut.text : "Select or create a counter-claim"}
+              </button>
               {rebut && (
                 <div className="mt-2 p-2 bg-emerald-50 border border-emerald-200 rounded-lg">
                   <div className="flex items-start gap-2">
@@ -476,12 +475,12 @@ if (!p.ok) {
               <label className="block text-xs font-medium text-slate-700 mb-2">
                 Your Contradicting Claim
               </label>
-              <ClaimPicker
-                deliberationId={deliberationId}
-                authorId={authorId}
-                label="Select or create contradicting claim"
-                onPick={setUndermine}
-              />
+              <button
+                className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm text-left hover:bg-slate-50 transition"
+                onClick={() => setPickerUndermineOpen(true)}
+              >
+                {undermine ? undermine.text : "Select or create contradicting claim"}
+              </button>
               {undermine && (
                 <div className="mt-2 p-2 bg-emerald-50 border border-emerald-200 rounded-lg">
                   <div className="flex items-start gap-2">
@@ -518,6 +517,27 @@ if (!p.ok) {
           )}
         </div>
       </div>
+
+      {/* Picker Modals */}
+      <SchemeComposerPicker
+        kind="claim"
+        open={pickerRebutOpen}
+        onClose={() => setPickerRebutOpen(false)}
+        onPick={(it) => {
+          setRebut({ id: it.id, text: it.label });
+          setPickerRebutOpen(false);
+        }}
+      />
+      <SchemeComposerPicker
+        kind="claim"
+        open={pickerUndermineOpen}
+        onClose={() => setPickerUndermineOpen(false)}
+        onPick={(it) => {
+          setUndermine({ id: it.id, text: it.label });
+          setPickerUndermineOpen(false);
+        }}
+      />
     </div>
   );
 }
+

@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
   const created = await prisma.conflictApplication.create({
     data: {
       deliberationId: d.deliberationId,
-      schemeId: scheme?.id ?? null,
+      ...(scheme?.id ? { scheme: { connect: { id: scheme.id } } } : {}),
       createdById: String(userId),
       conflictingClaimId: d.conflictingClaimId ?? null,
       conflictingArgumentId: d.conflictingArgumentId ?? null,
