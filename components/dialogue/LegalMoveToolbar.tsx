@@ -3,6 +3,8 @@
 import * as React from "react";
 import useSWR from "swr";
 import { NLCommitPopover } from "@/components/dialogue/NLCommitPopover";
+import { CommandCard, performCommand } from "@/components/dialogue/command-card/CommandCard";
+import { movesToActions } from "@/lib/dialogue/movesToActions";
 
 type Force = "ATTACK" | "SURRENDER" | "NEUTRAL";
 type MoveKind = "ASSERT" | "WHY" | "GROUNDS" | "RETRACT" | "CONCEDE" | "CLOSE";
@@ -55,6 +57,7 @@ export function LegalMoveToolbar({
   const [busy, setBusy] = React.useState(false);
   const [inlineWhy, setInlineWhy] = React.useState(false);
   const [whyNote, setWhyNote] = React.useState("");
+  const [useCommandCard, setUseCommandCard] = React.useState(false);
 
   async function postMove(m: Move, extraPayload: any = {}) {
     if (busy || m.disabled) return;
@@ -126,15 +129,40 @@ export function LegalMoveToolbar({
           <Pill tone="attack">WHY {why ? "available" : "—"}</Pill>
           <Pill tone="resolve">{hasClose ? "Closable (†)" : "Not closable"}</Pill>
         </div>
-        {disabled.length > 0 && (
-          <button className="text-[11px] underline underline-offset-4 decoration-dotted " onClick={() => setShowAll(v => !v)}>
-            {showAll ? "Hide restricted" : `Show ${disabled.length} restricted`}
+        <div className="flex items-center gap-2">
+          <button
+            className="text-[11px] px-2 py-1 rounded border border-slate-200 hover:bg-slate-50"
+            onClick={() => setUseCommandCard(!useCommandCard)}
+          >
+            {useCommandCard ? 'List View' : 'Grid View'}
           </button>
-        )}
+          {disabled.length > 0 && (
+            <button className="text-[11px] underline underline-offset-4 decoration-dotted " onClick={() => setShowAll(v => !v)}>
+              {showAll ? "Hide restricted" : `Show ${disabled.length} restricted`}
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* CHALLENGE */}
-      {intent === "challenge" && (
+      {/* COMMAND CARD GRID */}
+      {useCommandCard ? (
+        <CommandCard
+          actions={movesToActions(moves, {
+            deliberationId,
+            targetType,
+            targetId,
+            locusPath
+          })}
+          onPerform={async (action) => {
+            await performCommand(action);
+            mutate();
+            onPosted?.();
+          }}
+        />
+      ) : (
+        <>
+          {/* CHALLENGE */}
+          {intent === "challenge" && (
         <div className="flex flex-wrap gap-2">
           {/* Ask WHY */}
           {why && (
@@ -231,18 +259,20 @@ export function LegalMoveToolbar({
         </div>
       )}
 
-      {/* Show illegal/disabled on demand */}
-      {showAll && (
-        <div className="pt-1 border-t border-slate-200/70">
-          <div className="text-[11px] text-neutral-500 mb-1">Currently illegal</div>
-          <div className="flex flex-wrap gap-2">
-            {disabled.map((m, i) => (
-              <span key={`${m.kind}-d-${i}`} className="px-2 py-1 rounded text-[11px] border border-slate-200/70 text-neutral-500 opacity-70" title={m.reason || "Illegal in current state"}>
-                {m.label || m.kind}
-              </span>
-            ))}
-          </div>
-        </div>
+          {/* Show illegal/disabled on demand */}
+          {showAll && (
+            <div className="pt-1 border-t border-slate-200/70">
+              <div className="text-[11px] text-neutral-500 mb-1">Currently illegal</div>
+              <div className="flex flex-wrap gap-2">
+                {disabled.map((m, i) => (
+                  <span key={`${m.kind}-d-${i}`} className="px-2 py-1 rounded text-[11px] border border-slate-200/70 text-neutral-500 opacity-70" title={m.reason || "Illegal in current state"}>
+                    {m.label || m.kind}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* Commit popover for GROUNDS */}
