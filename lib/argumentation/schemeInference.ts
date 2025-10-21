@@ -43,15 +43,15 @@ export async function inferAndAssignScheme(
  * Batch infer schemes for multiple arguments.
  * Useful for backfilling existing arguments.
  *
- * @param arguments - Array of { id, text, conclusionText? }
+ * @param args - Array of { id, text, conclusionText? }
  * @returns Map of argumentId → schemeId
  */
 export async function batchInferSchemes(
-  arguments: Array<{ id: string; text: string; conclusionText?: string }>
+  args: Array<{ id: string; text: string; conclusionText?: string }>
 ): Promise<Map<string, string | null>> {
   const results = new Map<string, string | null>();
 
-  for (const arg of arguments) {
+  for (const arg of args) {
     const schemeId = await inferAndAssignScheme(arg.text, arg.conclusionText);
     results.set(arg.id, schemeId);
   }
