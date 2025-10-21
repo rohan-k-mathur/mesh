@@ -17,6 +17,8 @@ const CreateCA = z.object({
   // optional bridge for legacy AF counts
   legacyAttackType: z.enum(['REBUTS','UNDERCUTS','UNDERMINES']).optional(),
   legacyTargetScope: z.enum(['conclusion','inference','premise']).optional(),
+  // NEW: metadata for CQ tracking
+  metaJson: z.record(z.any()).optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -50,6 +52,8 @@ export async function POST(req: NextRequest) {
       // legacy AF bridge (optional)
       legacyAttackType: d.legacyAttackType ?? scheme?.legacyAttackType ?? null,
       legacyTargetScope: d.legacyTargetScope ?? scheme?.legacyTargetScope ?? null,
+      // NEW: CQ tracking metadata
+      metaJson: d.metaJson ?? {},
     },
     select: { id:true }
   });

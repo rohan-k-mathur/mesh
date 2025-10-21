@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prismaclient';
 // import { getServerSession } from 'next-auth'; // if you use NextAuth
 import { getUserFromCookies } from '@/lib/serverutils';
 import { TargetType } from '@prisma/client';
+import { inferAndAssignScheme } from '@/lib/argumentation/schemeInference';
 const NO_STORE = { headers: { 'Cache-Control': 'no-store' } } as const;
 
 type SlotValidators = Record<string, { expects?: string; required?: boolean }>;
@@ -87,7 +88,17 @@ if (!Array.isArray(premiseClaimIds) || premiseClaimIds.length === 0) {
     return NextResponse.json({ ok:false, error:'Invalid payload' }, { status:400, ...NO_STORE });
   }
   // const slots = b?.slots;
-const { schemeId, slots } = b; // assuming clients may send a role->claimId map when using a scheme
+let { schemeId, slots } = b; // assuming clients may send a role->claimId map when using a scheme
+
+  // Infer scheme if not provided
+  if (!schemeId && text) {
+    const conclusionText = await prisma.claim.findUnique({
+      where: { id: conclusionClaimId },
+      select: { text: true }
+    }).then(c => c?.text);
+
+    schemeId = await inferAndAssignScheme(text, conclusionText ?? undefined);
+  }
 
   await validateSlotsAgainstScheme({ tx: prisma, schemeId, slots });
 
