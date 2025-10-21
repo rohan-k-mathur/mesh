@@ -2369,6 +2369,9 @@ model ConflictApplication {
   legacyAttackType  String? // 'REBUTS'|'UNDERCUTS'|'UNDERMINES'
   legacyTargetScope String? // 'conclusion'|'inference'|'premise'
 
+  // Metadata: track which CQ this attack addresses, source, etc.
+  metaJson Json? @default("{}")
+
   scheme ConflictScheme? @relation(fields: [schemeId], references: [id], onDelete: SetNull)
 
   @@index([deliberationId])

@@ -33,15 +33,39 @@ export async function GET(req: Request) {
     take: 2000,
   });
 
+  // 3) Check ConflictApplication.metaJson for CQ context
+  const conflicts = await prisma.conflictApplication.findMany({
+    where: {
+      OR: [
+        { conflictedClaimId: targetId },
+        { conflictedArgumentId: targetId }
+      ]
+    },
+    select: { metaJson: true },
+    take: 2000,
+  });
+
   const attached: Record<string, boolean> = {};
+
+  // Check GraphEdge meta
   for (const e of edges) {
     const m = (e.meta ?? {}) as any;
     const key = m?.schemeKey && m?.cqKey ? `${m.schemeKey}:${m.cqKey}` : null;
     if (key) attached[key] = true;
   }
+
+  // Check ConflictApplication metaJson
+  for (const ca of conflicts) {
+    const meta = ca.metaJson as any;
+    if (meta?.schemeKey && meta?.cqKey) {
+      const sig = `${meta.schemeKey}:${meta.cqKey}`;
+      attached[sig] = true;
+    }
+  }
+
   // If there are generic attacker edges without explicit scheme metadata,
-  // you’ll still gate via “isAttached overall” if you want (optional):
-  if (claimEdges.length > 0) attached['__ANY__'] = true;
+  // you'll still gate via "isAttached overall" if you want (optional):
+  if (claimEdges.length > 0 || conflicts.length > 0) attached['__ANY__'] = true;
 
   return NextResponse.json({ attached });
 }

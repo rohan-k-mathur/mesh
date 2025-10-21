@@ -689,6 +689,11 @@ function RowImpl({
                                 conflictedClaimId: meta?.conclusion?.id ?? '',
                                 legacyAttackType: 'REBUTS',
                                 legacyTargetScope: 'conclusion',
+                                metaJson: {
+                                  schemeKey: meta?.scheme?.key,
+                                  cqKey: c.cqKey,
+                                  source: 'cq-inline-objection-rebut'
+                                }
                               }),
                             });
                             setObCq(null);
@@ -727,6 +732,11 @@ function RowImpl({
                                 conflictedArgumentId: a.id,
                                 legacyAttackType: 'UNDERCUTS',
                                 legacyTargetScope: 'inference',
+                                metaJson: {
+                                  schemeKey: meta?.scheme?.key,
+                                  cqKey: c.cqKey,
+                                  source: 'cq-inline-objection-undercut'
+                                }
                               }),
                             });
                             setObCq(null);
@@ -765,6 +775,11 @@ function RowImpl({
                                 conflictedClaimId: obPremiseId,
                                 legacyAttackType: 'UNDERMINES',
                                 legacyTargetScope: 'premise',
+                                metaJson: {
+                                  schemeKey: meta?.scheme?.key,
+                                  cqKey: c.cqKey,
+                                  source: 'cq-inline-objection-undermine'
+                                }
                               }),
                             });
                             setObCq(null);
@@ -902,11 +917,13 @@ export default function AIFArgumentsListPro({
 
   // AIF metadata map
   const [aifMap, setAifMap] = React.useState<Record<string, AifMeta>>({});
+  const [refreshing, setRefreshing] = React.useState<Set<string>>(new Set());
   const aifMapRef = React.useRef(aifMap);
   React.useEffect(() => { aifMapRef.current = aifMap; }, [aifMap]);
 
   const refreshAifForId = React.useCallback(async (id: string) => {
     try {
+      setRefreshing(prev => new Set(prev).add(id));
       const one = await fetch(`/api/arguments/${id}/aif`).then(r => (r.ok ? r.json() : null));
       if (one?.aif) {
         setAifMap(prev => ({
@@ -923,6 +940,9 @@ export default function AIFArgumentsListPro({
         }));
       }
     } catch {/* ignore */ }
+    finally {
+      setRefreshing(prev => { const n = new Set(prev); n.delete(id); return n; });
+    }
   }, []);
 
   // Filters
@@ -1202,9 +1222,15 @@ export default function AIFArgumentsListPro({
             const cid = meta?.conclusion?.id;
             const sRec = cid ? byClaimScore.get(cid) : undefined;
             const isVisible = index >= visibleRange.startIndex - 2 && index <= visibleRange.endIndex + 2;
+            const isRefreshing = refreshing.has(a.id);
 
             return (
-              <div className='px-2'>
+              <div className='px-2 relative'>
+                {isRefreshing && (
+                  <div className="absolute inset-0 bg-white/60 backdrop-blur-sm flex items-center justify-center z-10 rounded-xl">
+                    <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                )}
                 <hr className='border-slate-300 h-1 my-3' />
               <Row
                 a={a}
