@@ -19,6 +19,7 @@ import { suggestionForCQ } from "@/lib/argumentation/cqSuggestions";
 import { NLCommitPopover } from "@/components/dialogue/NLCommitPopover";
 import { LegalMoveChips } from "@/components/dialogue/LegalMoveChips";
 import { useBusEffect } from "@/lib/client/useBusEffect";
+import { SchemeComposerPicker } from "@/components/SchemeComposerPicker";
 
 type RebutScope = "premise" | "inference" | "conclusion";
 type Suggestion = {
@@ -36,6 +37,7 @@ type CQ = {
   key: string;
   text: string;
   satisfied: boolean;
+  groundsText?: string; // Stored response/grounds for this CQ
   suggestion?: Suggestion;
 };
 
@@ -46,7 +48,7 @@ type Scheme = {
 };
 
 type CQsResponse = { 
-  targetType: "claim"; 
+  targetType: "claim" | "argument"; 
   targetId: string; 
   schemes: Scheme[];
 };
@@ -55,13 +57,13 @@ const fetcher = (u: string) =>
   fetch(u, { cache: "no-store" }).then((r) => r.json());
 
 // Cache keys for data endpoints
-const CQS_KEY = (id: string, scheme?: string) =>
-  `/api/cqs?targetType=claim&targetId=${id}${scheme ? `&scheme=${scheme}` : ""}`;
+const CQS_KEY = (type: "claim" | "argument", id: string, scheme?: string) =>
+  `/api/cqs?targetType=${type}&targetId=${id}${scheme ? `&scheme=${scheme}` : ""}`;
 const TOULMIN_KEY = (id: string) => `/api/claims/${id}/toulmin`;
 const GRAPH_KEY = (roomId: string, lens: string, audienceId?: string) =>
   `graph:${roomId}:${lens}:${audienceId ?? "none"}`;
-const ATTACH_KEY = (id: string) =>
-  `/api/cqs/attachments?targetType=claim&targetId=${id}`;
+const ATTACH_KEY = (type: "claim" | "argument", id: string) =>
+  `/api/cqs/attachments?targetType=${type}&targetId=${id}`;
 const MOVES_KEY = (deliberationId: string) =>
   `/api/deliberations/${deliberationId}/moves?limit=500`;
 const EDGES_KEY = (deliberationId: string) =>
@@ -94,7 +96,7 @@ export default function CriticalQuestions({
   selectedAttackerClaimId,
   prefilterKeys,
 }: {
-  targetType: "claim";
+  targetType: "claim" | "argument";
   targetId: string;
   createdById?: string;
   deliberationId: string;
@@ -143,14 +145,14 @@ export default function CriticalQuestions({
 
   // ----- Data fetching with SWR -----
   const { data, error, isLoading, mutate: mutateCQs } = useSWR<CQsResponse>(
-    CQS_KEY(targetId),
+    CQS_KEY(targetType, targetId),
     fetcher,
     { revalidateOnFocus: false, dedupingInterval: 2000 }
   );
 
   const { data: attachData, mutate: mutateAttach } = useSWR<{
     attached: Record<string, boolean>;
-  }>(ATTACH_KEY(targetId), fetcher, { revalidateOnFocus: false });
+  }>(ATTACH_KEY(targetType, targetId), fetcher, { revalidateOnFocus: false });
 
   const { data: movesData, mutate: mutateMoves } = useSWR(
     deliberationId ? MOVES_KEY(deliberationId) : null,
@@ -247,7 +249,7 @@ export default function CriticalQuestions({
 
     // Optimistic update
     globalMutate(
-      CQS_KEY(targetId),
+      CQS_KEY(targetType, targetId),
       (cur: CQsResponse | undefined) => {
         if (!cur) return cur;
         return {
@@ -304,7 +306,9 @@ export default function CriticalQuestions({
     }
   }
 
-  // ----- Resolve via GROUNDS move -----
+  // ----- Resolve via GROUNDS (simplified: just mark satisfied without posting dialogue moves) -----
+  // Note: Formal WHY/GROUNDS moves should be posted via LegalMoveChips/CommandCard instead.
+  // This function is for quick CQ satisfaction tracking in the UI.
   async function resolveViaGrounds(
     schemeKey: string,
     cqId: string,
@@ -317,46 +321,29 @@ export default function CriticalQuestions({
 
     try {
       setPostingKey(sig);
-      const res = await fetch("/api/dialogue/move", {
+      
+      // Mark CQ as satisfied and store grounds text
+      await fetch("/api/cqs/toggle", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          deliberationId,
-          targetType: "claim",
+          targetType,
           targetId,
-          kind: "GROUNDS",
-          payload: {
-            schemeKey,
-            cqId,
-            locusPath: locus,
-            expression: text,
-            original: text,
-          },
-          autoCompile: true,
-          autoStep: true,
+          schemeKey,
+          cqKey: cqId,
+          satisfied: true,
+          deliberationId,
+          attachSuggestion: false,
+          groundsText: text, // Store the grounds text response
         }),
       });
-      if (!res.ok) throw new Error(await res.text());
-
-      // Optional: mark satisfied after successful GROUNDS
-      if (alsoMark) {
-        await fetch("/api/cqs/toggle", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            targetType,
-            targetId,
-            schemeKey,
-            cqKey: cqId,
-            satisfied: true,
-            deliberationId,
-            attachSuggestion: false,
-          }),
-        });
-      }
 
       window.dispatchEvent(new CustomEvent("dialogue:moves:refresh"));
+      window.dispatchEvent(new CustomEvent("claims:changed"));
       flashOk(sig);
+    } catch (err) {
+      console.error("Error marking CQ satisfied:", err);
+      alert(`Failed to update CQ: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setPostingKey(null);
       setGroundsDraft((g) => ({ ...g, [sig]: "" }));
@@ -520,7 +507,7 @@ export default function CriticalQuestions({
 
   return (
     <>
-      <div className="space-y-3">
+      <div className="space-y-3 overflow-y-auto max-h-96">
         {schemes.map((s) => (
           <div key={s.key} className="rounded border bg-white p-2">
             <div className="text-sm font-semibold">{s.title}</div>
@@ -552,23 +539,31 @@ export default function CriticalQuestions({
                           }
                           disabled={!canAddress || posting}
                         />
-                        <span
-                          className={`${
-                            cq.satisfied ? "opacity-70 line-through" : ""
-                          }`}
-                        >
-                          {cq.text}
-                        </span>
-                        {ok && (
-                          <span className="text-[10px] text-emerald-700 ml-1">
-                            ✓
+                        <div className="flex-1">
+                          <span
+                            className={`${
+                              cq.satisfied ? "opacity-70 line-through" : ""
+                            }`}
+                          >
+                            {cq.text}
                           </span>
-                        )}
-                        {!cq.satisfied && !canAddress && (
-                          <span className="text-[10px] text-neutral-500 ml-2">
-                            (add)
-                          </span>
-                        )}
+                          {ok && (
+                            <span className="text-[10px] text-emerald-700 ml-1">
+                              ✓
+                            </span>
+                          )}
+                          {!cq.satisfied && !canAddress && (
+                            <span className="text-[10px] text-neutral-500 ml-2">
+                              (add)
+                            </span>
+                          )}
+                          {/* Display stored grounds text when satisfied */}
+                          {cq.satisfied && cq.groundsText && (
+                            <div className="mt-1 text-xs text-slate-600 bg-slate-50 border border-slate-200 rounded px-2 py-1">
+                              <strong>Response:</strong> {cq.groundsText}
+                            </div>
+                          )}
+                        </div>
                       </label>
 
                       {/* Right: Action buttons */}
@@ -736,7 +731,7 @@ export default function CriticalQuestions({
                     {!satisfied && (
                       <div className="pl-6 mt-1">
                         <button
-                          className="text-[11px] underline"
+                          className="text-[11px] text-indigo-600 hover:text-indigo-700 font-medium hover:underline transition-colors"
                           onClick={() =>
                             setAttachExistingFor({
                               schemeKey: s.key,
@@ -744,7 +739,7 @@ export default function CriticalQuestions({
                             })
                           }
                         >
-                          Attach existing counter…
+                          🔍 Search & attach counter-claim…
                         </button>
                       </div>
                     )}
@@ -824,91 +819,21 @@ export default function CriticalQuestions({
         </DialogContent>
       </Dialog>
 
-      {/* Attach existing (paste / search) */}
-      <Dialog
+      {/* Attach existing (using SchemeComposerPicker for better UX) */}
+      <SchemeComposerPicker
+        kind="claim"
         open={!!attachExistingFor}
-        onOpenChange={(o) => !o && setAttachExistingFor(null)}
-      >
-        <DialogContent className="bg-slate-200 rounded-xl sm:max-w-[560px]">
-          <DialogHeader>
-            <DialogTitle>Attach existing counter-claim</DialogTitle>
-            <DialogDescription>
-              Paste a claim ID, or search if available.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-2">
-            <div className="flex gap-2">
-              <Input
-                value={searchQ}
-                onChange={(e) => setSearchQ(e.target.value)}
-                placeholder="Search text or paste a claim ID…"
-              />
-              <Button
-                variant="outline"
-                onClick={onSearch}
-                disabled={searchBusy}
-              >
-                {searchBusy ? "Searching…" : "Search"}
-              </Button>
-            </div>
-            {!!searchRes.length && (
-              <div className="max-h-48 overflow-y-auto border rounded bg-white">
-                {searchRes.map((r) => (
-                  <div
-                    key={r.id}
-                    className="px-2 py-1 text-sm border-b last:border-0 flex items-center justify-between"
-                  >
-                    <span className="truncate mr-2">{r.text}</span>
-                    <Button
-                      size="sm"
-                      onClick={() => {
-                        if (!attachExistingFor) return;
-                        attachWithAttacker(
-                          attachExistingFor.schemeKey,
-                          attachExistingFor.cqKey,
-                          r.id
-                        );
-                        setAttachExistingFor(null);
-                      }}
-                    >
-                      Attach
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-            {/* Paste-only fallback */}
-            <div className="text-[11px] text-neutral-600">
-              Or paste a claim ID below and press Attach:
-            </div>
-            <div className="flex gap-2">
-              <Input id="attach-paste" placeholder="claim_…" />
-              <Button
-                onClick={() => {
-                  const el = document.getElementById(
-                    "attach-paste"
-                  ) as HTMLInputElement | null;
-                  const id = el?.value.trim();
-                  if (!id || !attachExistingFor) return;
-                  attachWithAttacker(
-                    attachExistingFor.schemeKey,
-                    attachExistingFor.cqKey,
-                    id
-                  );
-                  setAttachExistingFor(null);
-                }}
-              >
-                Attach
-              </Button>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setAttachExistingFor(null)}>
-              Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        onClose={() => setAttachExistingFor(null)}
+        onPick={(claim) => {
+          if (!attachExistingFor) return;
+          attachWithAttacker(
+            attachExistingFor.schemeKey,
+            attachExistingFor.cqKey,
+            claim.id
+          );
+          setAttachExistingFor(null);
+        }}
+      />
     </>
   );
 }

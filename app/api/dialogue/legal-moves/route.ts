@@ -8,6 +8,10 @@ import { getCurrentUserId } from '@/lib/serverutils';
 import type { RCode, WCode } from '@/lib/dialogue/codes';
 import { codeHelp } from '@/lib/dialogue/codes';
 
+// 🧪 Developer testing mode: allows authors to challenge their own claims
+// Set DIALOGUE_TESTING_MODE=true in .env to enable
+const TESTING_MODE = process.env.DIALOGUE_TESTING_MODE === 'true';
+
 const Q = z.object({
   deliberationId: z.string().min(5),
   targetType: z.enum(['argument','claim','card']),
@@ -82,6 +86,24 @@ export async function GET(req: NextRequest) {
  const actor = await getCurrentUserId().catch(() => null);
  const actorId = actor ? String(actor) : null;
 
+  // Fetch CQ text for open CQs to enhance labels
+  const cqTextMap = new Map<string, string>();
+  if (openKeys.length > 0 && targetType === 'claim') {
+    const instances = await prisma.schemeInstance.findMany({
+      where: { targetType: 'claim', targetId },
+      select: { scheme: { select: { key: true, cq: true } } },
+    });
+    
+    instances.forEach((inst) => {
+      const cqArray = Array.isArray(inst.scheme?.cq) ? inst.scheme.cq : [];
+      cqArray.forEach((cq: any) => {
+        if (cq.key && cq.text) {
+          cqTextMap.set(cq.key, cq.text);
+        }
+      });
+    });
+  }
+
   // Has surrender?
   // const lastTerminator = await prisma.dialogueMove.findFirst({
   //   where: {
@@ -101,9 +123,11 @@ export async function GET(req: NextRequest) {
     const moves: MoveWithVerdict[] = [];
 
 
-  // GROUNDS for each open CQ — only author answers
+  // GROUNDS for each open CQ — only author answers (unless testing mode)
   for (const k of openKeys) {
-    const disabled = !!(actorId && targetAuthorId && actorId !== String(targetAuthorId));
+    const disabled = TESTING_MODE ? false : !!(actorId && targetAuthorId && actorId !== String(targetAuthorId));
+    const cqText = cqTextMap.get(k) || null;
+    
     moves.push({
       kind: 'GROUNDS',
       label: `Answer ${k}`,
@@ -111,15 +135,75 @@ export async function GET(req: NextRequest) {
       disabled,
       reason: disabled ? 'Only the author may answer this WHY' : undefined,
        verdict: disabled
-       ? { code: 'R4_ROLE_GUARD', context: { cqKey: k } }
-       : { code: 'R2_OPEN_CQ_SATISFIED', context: { cqKey: k } }
+       ? { code: 'R4_ROLE_GUARD', context: { cqKey: k, cqText } }
+       : { code: 'R2_OPEN_CQ_SATISFIED', context: { cqKey: k, cqText } }
     });
    
   }
+  
+  // Generic WHY - only available if there are no open WHY moves
+  // (Prevents multiple simultaneous challenges)
+  // Also: cannot challenge your own item (unless testing mode)
+  if (openKeys.length === 0) {
+    const isOwnItem = !!(actorId && targetAuthorId && actorId === String(targetAuthorId));
+    const disabled = TESTING_MODE ? false : isOwnItem;
+    
+    moves.push({
+      kind: 'WHY',
+      label: 'Challenge',
+      payload: { locusPath: locusPath || '0' },
+      disabled,
+      reason: disabled ? 'You cannot ask WHY on your own item' : undefined,
+      verdict: disabled 
+        ? { code: 'R4_ROLE_GUARD', context: { hint: 'Cannot challenge your own claim' } }
+        : { code: 'H1_GENERIC_CHALLENGE', context: { hint: 'Ask a general challenge (Why should we accept this?)' } }
+    });
+  }
+  
   // Structural (Phase-2+) – offer once, not per CQ
   moves.push({ kind:'THEREFORE', label:'Therefore…', payload:{ locusPath: locusPath || '0' } });
   moves.push({ kind:'SUPPOSE',   label:'Suppose…',   payload:{ locusPath: locusPath || '0' } });
-  moves.push({ kind:'DISCHARGE', label:'Discharge',  payload:{ locusPath: locusPath || '0' } });
+  
+  // DISCHARGE: only enabled if there's an open SUPPOSE at this locus
+  const openSuppose = await prisma.dialogueMove.findFirst({
+    where: {
+      deliberationId,
+      targetType,
+      targetId,
+      kind: 'SUPPOSE',
+      payload: { path: ['locusPath'], equals: locusPath || '0' }
+    },
+    orderBy: { createdAt: 'desc' },
+    select: { id: true, createdAt: true }
+  }).catch(() => null);
+
+  let hasOpenSuppose = false;
+  if (openSuppose) {
+    // Check if already discharged
+    const matchingDischarge = await prisma.dialogueMove.findFirst({
+      where: {
+        deliberationId,
+        targetType,
+        targetId,
+        kind: 'DISCHARGE',
+        payload: { path: ['locusPath'], equals: locusPath || '0' },
+        createdAt: { gt: openSuppose.createdAt }
+      },
+      select: { id: true }
+    }).catch(() => null);
+    hasOpenSuppose = !matchingDischarge;
+  }
+
+  moves.push({ 
+    kind:'DISCHARGE', 
+    label:'Discharge',  
+    payload:{ locusPath: locusPath || '0' },
+    disabled: !hasOpenSuppose,
+    reason: hasOpenSuppose ? undefined : 'No open SUPPOSE at this locus',
+    verdict: hasOpenSuppose 
+      ? { code: 'H1_OPEN_SUPPOSE', context: { locusPath: locusPath || '0' } }
+      : { code: 'R8_NO_OPEN_SUPPOSE', context: { locusPath: locusPath || '0' } }
+  });
  
   // WHY moves are ONLY offered through CriticalQuestions component with proper cqId
   // Generic WHY without cqId is no longer supported (causes malformed moves)

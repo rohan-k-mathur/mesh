@@ -219,42 +219,147 @@ if (!p.ok) {
     try {
       if (kind === 'REBUTS') {
         if (!rebut || !rebut.id) return;
+        
+        // ✨ PHASE 3: Try to detect if this attack targets a specific CQ
+        let cqMetadata: any = {};
+        try {
+          // Fetch CQs for the target conclusion to see if we're attacking a known vulnerability
+          const cqRes = await fetch(`/api/cqs?targetType=claim&targetId=${target.conclusion.id}`, {
+            cache: 'no-store',
+            signal: ctrl.signal,
+          });
+          if (cqRes.ok) {
+            const cqData = await cqRes.json();
+            // Check if any unsatisfied CQs exist that could be linked to this attack
+            const schemes = cqData.schemes || [];
+            for (const scheme of schemes) {
+              for (const cq of scheme.cqs || []) {
+                if (!cq.satisfied && cq.key) {
+                  // Found an open CQ - link this attack to it
+                  cqMetadata = {
+                    cqId: cq.key,
+                    schemeKey: scheme.key,
+                    cqText: cq.text,
+                    cqContext: `Attacking: ${cq.text}`,
+                  };
+                  console.log('[AttackMenuPro] Linking rebuttal to CQ:', cqMetadata);
+                  break;
+                }
+              }
+              if (cqMetadata.cqId) break;
+            }
+          }
+        } catch (err) {
+          console.warn('[AttackMenuPro] Could not fetch CQs for attack context:', err);
+        }
+        
         await postCA({
           deliberationId,
           conflictingClaimId: rebut.id,
           conflictedClaimId: target.conclusion.id,
           legacyAttackType: 'REBUTS',
           legacyTargetScope: 'conclusion',
+          metaJson: cqMetadata,
         }, ctrl.signal);
       } else if (kind === 'UNDERCUTS') {
         const txt = undercutText.trim();
         if (!txt) return;
         const exceptionClaimId = await createClaim(txt, ctrl.signal);
-  await postCA({
-    deliberationId,
-    conflictingClaimId: exceptionClaimId,
-    conflictedArgumentId: target.id,
-    legacyAttackType: 'UNDERCUTS',
-    legacyTargetScope: 'inference',
-  }, ctrl.signal);
+        
+        // ✨ PHASE 3: Detect CQ context for undercuts (attacks on inference)
+        let cqMetadata: any = { descriptorKey: 'exception' };
+        const schemeKey = (target as any)?.schemeKey ?? null;
+        if (schemeKey) {
+          cqMetadata.schemeKey = schemeKey;
+          try {
+            // Try to find argument-level CQs that question the inference
+            const cqRes = await fetch(`/api/cqs?targetType=argument&targetId=${target.id}`, {
+              cache: 'no-store',
+              signal: ctrl.signal,
+            });
+            if (cqRes.ok) {
+              const cqData = await cqRes.json();
+              const schemes = cqData.schemes || [];
+              for (const scheme of schemes) {
+                for (const cq of scheme.cqs || []) {
+                  // Look for inference-related CQs
+                  if (!cq.satisfied && cq.text && 
+                      (cq.text.toLowerCase().includes('inference') || 
+                       cq.text.toLowerCase().includes('reasoning') ||
+                       cq.text.toLowerCase().includes('warrant'))) {
+                    cqMetadata.cqId = cq.key;
+                    cqMetadata.cqText = cq.text;
+                    cqMetadata.cqContext = `Exception: ${cq.text}`;
+                    console.log('[AttackMenuPro] Linking undercut to CQ:', cqMetadata);
+                    break;
+                  }
+                }
+                if (cqMetadata.cqId) break;
+              }
+            }
+          } catch (err) {
+            console.warn('[AttackMenuPro] Could not fetch CQs for undercut context:', err);
+          }
+        }
+        
+        await postCA({
+          deliberationId,
+          conflictingClaimId: exceptionClaimId,
+          conflictedArgumentId: target.id,
+          legacyAttackType: 'UNDERCUTS',
+          legacyTargetScope: 'inference',
+          metaJson: cqMetadata,
+        }, ctrl.signal);
 
-  // Bind as a first-class exception assumption (enrich with schemeKey if available)
-  const schemeKey = (target as any)?.schemeKey ?? null;
-  await postAssumption(
-    target.id,
-    exceptionClaimId,
-    'exception',
-    { schemeKey, descriptorKey: 'exception' },
-    ctrl.signal
-  );
-} else {
+        // Bind as a first-class exception assumption
+        await postAssumption(
+          target.id,
+          exceptionClaimId,
+          'exception',
+          cqMetadata,
+          ctrl.signal
+        );
+      } else {
         if (!premiseId || !undermine || !undermine.id) return;
+        
+        // ✨ PHASE 3: Detect CQ context for undermines (attacks on premises)
+        let cqMetadata: any = {};
+        try {
+          // Fetch CQs for the specific premise being attacked
+          const cqRes = await fetch(`/api/cqs?targetType=claim&targetId=${premiseId}`, {
+            cache: 'no-store',
+            signal: ctrl.signal,
+          });
+          if (cqRes.ok) {
+            const cqData = await cqRes.json();
+            const schemes = cqData.schemes || [];
+            for (const scheme of schemes) {
+              for (const cq of scheme.cqs || []) {
+                if (!cq.satisfied && cq.key) {
+                  cqMetadata = {
+                    cqId: cq.key,
+                    schemeKey: scheme.key,
+                    cqText: cq.text,
+                    cqContext: `Undermining premise: ${cq.text}`,
+                  };
+                  console.log('[AttackMenuPro] Linking undermine to CQ:', cqMetadata);
+                  break;
+                }
+              }
+              if (cqMetadata.cqId) break;
+            }
+          }
+        } catch (err) {
+          console.warn('[AttackMenuPro] Could not fetch CQs for undermine context:', err);
+        }
+        
         await postCA({
           deliberationId,
           conflictingClaimId: undermine.id,
           conflictedClaimId: premiseId,
           legacyAttackType: 'UNDERMINES',
           legacyTargetScope: 'premise',
+          metaJson: cqMetadata,
         }, ctrl.signal);
       }
 

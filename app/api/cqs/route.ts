@@ -4,9 +4,10 @@ import { z } from 'zod';
 import crypto from 'node:crypto';
 import { suggestionForCQ } from '@/lib/argumentation/cqSuggestions';
 import { ArgCQArraySchema, ArgCQ } from '@/lib/types/argument';
-
+import { TargetType } from '@prisma/client';
+import { T } from 'tldraw';
 const QuerySchema = z.object({
-  targetType: z.literal('claim'),
+  targetType: z.enum(['claim', 'argument']),
   targetId: z.string().min(1),
   scheme: z.string().min(1).optional(),
 });
@@ -44,13 +45,18 @@ export async function GET(req: NextRequest) {
 
   // fetch current statuses
   const statuses = await prisma.cQStatus.findMany({
-    where: { targetType, targetId, schemeKey: { in: keys } },
-    select: { schemeKey: true, cqKey: true, satisfied: true },
+    where: { targetType , targetId, schemeKey: { in: keys } },
+    select: { schemeKey: true, cqKey: true, satisfied: true, groundsText: true },
   });
 
-  const statusMap = new Map<string, Map<string, boolean>>();
+  const statusMap = new Map<string, Map<string, { satisfied: boolean; groundsText?: string }>>();
   keys.forEach((k) => statusMap.set(k, new Map()));
-  statuses.forEach((s) => statusMap.get(s.schemeKey)?.set(s.cqKey, s.satisfied));
+  statuses.forEach((s) => 
+    statusMap.get(s.schemeKey)?.set(s.cqKey, { 
+      satisfied: s.satisfied, 
+      groundsText: s.groundsText ?? undefined 
+    })
+  );
 
   const schemes = filtered.map((i) => {
     const key = i.scheme?.key ?? 'generic';
@@ -60,12 +66,16 @@ export async function GET(req: NextRequest) {
     const parsedCqs = ArgCQArraySchema.safeParse(i.scheme?.cq ?? []);
     const cqs: ArgCQ[] = parsedCqs.success ? parsedCqs.data : [];
 
-    const merged = cqs.map((cq) => ({
-      key: cq.key,
-      text: cq.text,
-      satisfied: statusMap.get(key)?.get(cq.key) ?? false,
-      suggestion: suggestionForCQ(key, cq.key),
-    }));
+    const merged = cqs.map((cq) => {
+      const status = statusMap.get(key)?.get(cq.key);
+      return {
+        key: cq.key,
+        text: cq.text,
+        satisfied: status?.satisfied ?? false,
+        groundsText: status?.groundsText, // Include stored grounds text
+        suggestion: suggestionForCQ(key, cq.key),
+      };
+    });
 
     return { key, title, cqs: merged };
   });

@@ -201,6 +201,7 @@ export default function ClaimMiniMap({ deliberationId, selectedClaimId, onClaimC
   const [cqOpenFor, setCqOpenFor] = useState<string | null>(null);
   const [expandedClaim, setExpandedClaim] = useState<string | null>(null);
   const [showMoves, setShowMoves] = useState<string | null>(null);
+  const [ensuringSchemes, setEnsuringSchemes] = useState(false);
 
   // Enrich claims with AIF + dialogical data
   const enrichedClaims: ClaimRow[] = useMemo(() => {
@@ -289,10 +290,28 @@ export default function ClaimMiniMap({ deliberationId, selectedClaimId, onClaimC
               <span className="ml-2 text-sm text-slate-500">({enrichedClaims.length})</span>
             </h3>
             <button
-              onClick={() => setExpandedClaim(expandedClaim ? null : visibleClaims[0]?.id ?? null)}
-              className="text-xs px-2 py-1 rounded border border-slate-300 bg-white hover:bg-slate-50"
+              onClick={async () => {
+                const newExpandedId = expandedClaim ? null : visibleClaims[0]?.id ?? null;
+                
+                // If expanding, ensure the claim has schemes
+                if (newExpandedId) {
+                  setEnsuringSchemes(true);
+                  try {
+                    await fetch(`/api/claims/${newExpandedId}/ensure-schemes`, { method: 'POST' });
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                  } catch (err) {
+                    console.error('Failed to ensure schemes:', err);
+                  } finally {
+                    setEnsuringSchemes(false);
+                  }
+                }
+                
+                setExpandedClaim(newExpandedId);
+              }}
+              className="text-xs px-2 py-1 rounded border border-slate-300 bg-white hover:bg-slate-50 disabled:opacity-50"
+              disabled={ensuringSchemes}
             >
-              {expandedClaim ? 'Collapse All' : 'Expand View'}
+              {ensuringSchemes ? 'Loading…' : expandedClaim ? 'Collapse All' : 'Expand View'}
             </button>
           </div>
 
@@ -352,11 +371,28 @@ export default function ClaimMiniMap({ deliberationId, selectedClaimId, onClaimC
                       
                       {/* Action buttons */}
                       <button
-                        className="text-[11px] px-1.5 py-0.5 rounded border bg-white hover:bg-slate-50"
+                        className="text-[11px] px-1.5 py-0.5 rounded border bg-white hover:bg-slate-50 disabled:opacity-50"
                         title="Open Critical Questions"
-                        onClick={(e) => { e.stopPropagation(); setCqOpenFor(c.id); }}
+                        disabled={ensuringSchemes}
+                        onClick={async (e) => { 
+                          e.stopPropagation(); 
+                          // Ensure claim has schemes before opening CQ modal
+                          setEnsuringSchemes(true);
+                          try {
+                            await fetch(`/api/claims/${c.id}/ensure-schemes`, { method: 'POST' });
+                            // Brief delay to let cache update
+                            await new Promise(resolve => setTimeout(resolve, 300));
+                            setCqOpenFor(c.id);
+                          } catch (err) {
+                            console.error('Failed to ensure schemes:', err);
+                            // Still open modal even if ensure fails
+                            setCqOpenFor(c.id);
+                          } finally {
+                            setEnsuringSchemes(false);
+                          }
+                        }}
                       >
-                        CQs
+                        {ensuringSchemes ? 'Loading…' : 'CQs'}
                       </button>
                       
                       <button
@@ -368,9 +404,27 @@ export default function ClaimMiniMap({ deliberationId, selectedClaimId, onClaimC
                       </button>
                       
                       <button
-                        className="text-[11px] px-1.5 py-0.5 rounded border bg-white hover:bg-indigo-50"
+                        className="text-[11px] px-1.5 py-0.5 rounded border bg-white hover:bg-indigo-50 disabled:opacity-50"
                         title="Expand details"
-                        onClick={(e) => { e.stopPropagation(); setExpandedClaim(isExpanded ? null : c.id); }}
+                        disabled={ensuringSchemes}
+                        onClick={async (e) => { 
+                          e.stopPropagation(); 
+                          
+                          // If expanding, ensure schemes
+                          if (!isExpanded) {
+                            setEnsuringSchemes(true);
+                            try {
+                              await fetch(`/api/claims/${c.id}/ensure-schemes`, { method: 'POST' });
+                              await new Promise(resolve => setTimeout(resolve, 200));
+                            } catch (err) {
+                              console.error('Failed to ensure schemes:', err);
+                            } finally {
+                              setEnsuringSchemes(false);
+                            }
+                          }
+                          
+                          setExpandedClaim(isExpanded ? null : c.id); 
+                        }}
                       >
                         {isExpanded ? '−' : '+'}
                       </button>
@@ -412,8 +466,23 @@ export default function ClaimMiniMap({ deliberationId, selectedClaimId, onClaimC
                         </div>
                       )}
 
-                      {/* Legal moves interface */}
+                      {/* Critical Questions interface */}
                       <div className="pt-2 border-t border-slate-200">
+                        <div className="text-xs font-semibold mb-2 text-slate-700">
+                          Critical Questions:
+                        </div>
+                        <div className="bg-slate-50 p-3 rounded-lg border border-slate-200">
+                          <CriticalQuestions
+                            targetType="claim"
+                            targetId={c.id}
+                            createdById="current"
+                            deliberationId={deliberationId}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Legal moves interface */}
+                      <div className="pt-2 border-t border-slate-200 mt-2">
                         <div className="text-xs font-semibold mb-1 text-slate-700">Legal Dialogical Moves:</div>
                         <LegalMoveChips
                           deliberationId={deliberationId}

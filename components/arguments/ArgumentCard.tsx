@@ -6,6 +6,7 @@ import useSWR from "swr";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AttackMenuPro } from "./AttackMenuPro";
 import CriticalQuestions from "@/components/claims/CriticalQuestionsV2";
+import { ArgumentCriticalQuestionsModal } from "./ArgumentCriticalQuestionsModal";
 
 const fetcher = (url: string) => fetch(url).then(r => r.json());
 
@@ -37,14 +38,21 @@ export function ArgumentCard({
   const [error, setError] = React.useState<string | null>(null);
   const [attacks, setAttacks] = React.useState<any[]>([]);
   const [cqDialogOpen, setCqDialogOpen] = React.useState(false);
+  const [argCqDialogOpen, setArgCqDialogOpen] = React.useState(false);
 
-  // Fetch CQ data for the conclusion claim
+  // Fetch CQ data for the conclusion claim (claim-level CQs)
   const { data: cqData } = useSWR(
     conclusion?.id ? `/api/cqs?targetType=claim&targetId=${conclusion.id}` : null,
     fetcher
   );
 
-  // Compute CQ status
+  // Fetch CQ data for the argument itself (argument-level CQs)
+  const { data: argCqData } = useSWR(
+    id ? `/api/cqs?targetType=argument&targetId=${id}` : null,
+    fetcher
+  );
+
+  // Compute CQ status for claim
   const cqStatus = React.useMemo(() => {
     if (!cqData) return null;
     // Handle different API response formats
@@ -55,6 +63,25 @@ export function ArgumentCard({
     const percentage = required > 0 ? Math.round((satisfied / required) * 100) : 0;
     return { required, satisfied, percentage };
   }, [cqData]);
+
+  // Compute CQ status for argument
+  const argCqStatus = React.useMemo(() => {
+    if (!argCqData) return null;
+    const schemes = argCqData.schemes || [];
+    if (schemes.length === 0) return null;
+    
+    let required = 0;
+    let satisfied = 0;
+    schemes.forEach((scheme: any) => {
+      const cqs = scheme.cqs || [];
+      required += cqs.length;
+      satisfied += cqs.filter((cq: any) => cq.satisfied).length;
+    });
+    
+    if (required === 0) return null;
+    const percentage = Math.round((satisfied / required) * 100);
+    return { required, satisfied, percentage };
+  }, [argCqData]);
 
   // Fetch attacks when expanded - from both ArgumentEdge and ConflictApplication
   // We need both sources because:
@@ -173,7 +200,14 @@ export function ArgumentCard({
                 {cqStatus && cqStatus.required > 0 && (
                   <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-amber-50 border border-amber-200">
                     <div className="text-[10px] font-medium text-amber-700">
-                      CQ {cqStatus.percentage}%
+                      Claim CQ {cqStatus.percentage}%
+                    </div>
+                  </div>
+                )}
+                {argCqStatus && argCqStatus.required > 0 && (
+                  <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-purple-50 border border-purple-200">
+                    <div className="text-[10px] font-medium text-purple-700">
+                      Arg CQ {argCqStatus.percentage}%
                     </div>
                   </div>
                 )}
@@ -183,14 +217,26 @@ export function ArgumentCard({
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          {/* CQs button */}
+          {/* Claim CQs button */}
           {cqStatus && cqStatus.required > 0 && (
             <button
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-indigo-300 text-indigo-700 hover:bg-indigo-50 transition-colors duration-200"
               onClick={() => setCqDialogOpen(true)}
-              aria-label="View critical questions"
+              aria-label="View critical questions for the conclusion claim"
+              title="Critical questions about the claim"
             >
-              CQs
+              Claim CQs
+            </button>
+          )}
+          {/* Argument CQs button */}
+          {argCqStatus && argCqStatus.required > 0 && (
+            <button
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-purple-300 text-purple-700 hover:bg-purple-50 transition-colors duration-200"
+              onClick={() => setArgCqDialogOpen(true)}
+              aria-label="View critical questions for the argument scheme"
+              title="Critical questions about the reasoning"
+            >
+              Arg CQs
             </button>
           )}
           <button
@@ -301,24 +347,132 @@ export function ArgumentCard({
               ) : (
                 <div className="space-y-1.5">
                   {rebutAttacks.length > 0 && (
-                    <div className="p-2 rounded-lg bg-rose-50 border border-rose-200">
-                      <span className="text-xs font-medium text-rose-700">
-                        {rebutAttacks.length} Rebuttal{rebutAttacks.length !== 1 ? "s" : ""} (challenging conclusion)
-                      </span>
+                    <div className="space-y-1">
+                      {rebutAttacks.map((attack: any) => (
+                        <div 
+                          key={attack.id}
+                          className={`p-2 rounded-lg border ${
+                            attack.dialogueStatus === 'answered' 
+                              ? 'bg-emerald-50 border-emerald-300' 
+                              : attack.dialogueStatus === 'challenged'
+                              ? 'bg-rose-50 border-rose-300'
+                              : 'bg-rose-50 border-rose-200'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className={`text-xs font-medium ${
+                              attack.dialogueStatus === 'answered'
+                                ? 'text-emerald-700'
+                                : 'text-rose-700'
+                            }`}>
+                              Rebuttal (challenging conclusion)
+                            </span>
+                            {attack.dialogueStatus === 'answered' && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-600 text-white font-medium">
+                                ✓ Answered
+                              </span>
+                            )}
+                            {attack.dialogueStatus === 'challenged' && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-rose-600 text-white font-medium">
+                                ⚠ Challenged
+                              </span>
+                            )}
+                          </div>
+                          {attack.dialogueStatus !== 'neutral' && (
+                            <div className="text-[10px] text-slate-600 mt-1">
+                              {attack.whyCount > 0 && `${attack.whyCount} WHY`}
+                              {attack.whyCount > 0 && attack.groundsCount > 0 && ' • '}
+                              {attack.groundsCount > 0 && `${attack.groundsCount} GROUNDS`}
+                            </div>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   )}
                   {undercutAttacks.length > 0 && (
-                    <div className="p-2 rounded-lg bg-amber-50 border border-amber-200">
-                      <span className="text-xs font-medium text-amber-700">
-                        {undercutAttacks.length} Undercut{undercutAttacks.length !== 1 ? "s" : ""} (challenging reasoning)
-                      </span>
+                    <div className="space-y-1">
+                      {undercutAttacks.map((attack: any) => (
+                        <div 
+                          key={attack.id}
+                          className={`p-2 rounded-lg border ${
+                            attack.dialogueStatus === 'answered' 
+                              ? 'bg-emerald-50 border-emerald-300' 
+                              : attack.dialogueStatus === 'challenged'
+                              ? 'bg-amber-50 border-amber-300'
+                              : 'bg-amber-50 border-amber-200'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className={`text-xs font-medium ${
+                              attack.dialogueStatus === 'answered'
+                                ? 'text-emerald-700'
+                                : 'text-amber-700'
+                            }`}>
+                              Undercut (challenging reasoning)
+                            </span>
+                            {attack.dialogueStatus === 'answered' && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-600 text-white font-medium">
+                                ✓ Answered
+                              </span>
+                            )}
+                            {attack.dialogueStatus === 'challenged' && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-600 text-white font-medium">
+                                ⚠ Challenged
+                              </span>
+                            )}
+                          </div>
+                          {attack.dialogueStatus !== 'neutral' && (
+                            <div className="text-[10px] text-slate-600 mt-1">
+                              {attack.whyCount > 0 && `${attack.whyCount} WHY`}
+                              {attack.whyCount > 0 && attack.groundsCount > 0 && ' • '}
+                              {attack.groundsCount > 0 && `${attack.groundsCount} GROUNDS`}
+                            </div>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   )}
                   {undermineAttacks.length > 0 && (
-                    <div className="p-2 rounded-lg bg-orange-50 border border-orange-200">
-                      <span className="text-xs font-medium text-orange-700">
-                        {undermineAttacks.length} Undermine{undermineAttacks.length !== 1 ? "s" : ""} (challenging premises)
-                      </span>
+                    <div className="space-y-1">
+                      {undermineAttacks.map((attack: any) => (
+                        <div 
+                          key={attack.id}
+                          className={`p-2 rounded-lg border ${
+                            attack.dialogueStatus === 'answered' 
+                              ? 'bg-emerald-50 border-emerald-300' 
+                              : attack.dialogueStatus === 'challenged'
+                              ? 'bg-orange-50 border-orange-300'
+                              : 'bg-orange-50 border-orange-200'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className={`text-xs font-medium ${
+                              attack.dialogueStatus === 'answered'
+                                ? 'text-emerald-700'
+                                : 'text-orange-700'
+                            }`}>
+                              Undermine (challenging premises)
+                            </span>
+                            {attack.dialogueStatus === 'answered' && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-600 text-white font-medium">
+                                ✓ Answered
+                              </span>
+                            )}
+                            {attack.dialogueStatus === 'challenged' && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-orange-600 text-white font-medium">
+                                ⚠ Challenged
+                              </span>
+                            )}
+                          </div>
+                          {attack.dialogueStatus !== 'neutral' && (
+                            <div className="text-[10px] text-slate-600 mt-1">
+                              {attack.whyCount > 0 && `${attack.whyCount} WHY`}
+                              {attack.whyCount > 0 && attack.groundsCount > 0 && ' • '}
+                              {attack.groundsCount > 0 && `${attack.groundsCount} GROUNDS`}
+                            </div>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
@@ -363,6 +517,14 @@ export function ArgumentCard({
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Argument CQ Dialog */}
+      <ArgumentCriticalQuestionsModal
+        open={argCqDialogOpen}
+        onOpenChange={setArgCqDialogOpen}
+        argumentId={id}
+        deliberationId={deliberationId}
+      />
     </div>
   );
 }

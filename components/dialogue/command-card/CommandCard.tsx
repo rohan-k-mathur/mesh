@@ -4,6 +4,7 @@
 import * as React from 'react';
 import { useState, useEffect, useCallback } from 'react';
 import type { CommandCardProps, CommandCardAction } from './types';
+import { NLCommitPopover } from '@/components/dialogue/NLCommitPopover';
 
 function getActionStyles(action: CommandCardAction, isExecuting: boolean) {
   const base = 'h-10 rounded-lg text-[11px] px-2 border transition-all duration-200 transform relative overflow-hidden';
@@ -56,9 +57,20 @@ export function CommandCard({
 }: CommandCardProps) {
   const [executingId, setExecutingId] = useState<string | null>(null);
   const [lastExecutedId, setLastExecutedId] = useState<string | null>(null);
+  
+  // Modal state for GROUNDS moves
+  const [groundsModalOpen, setGroundsModalOpen] = useState(false);
+  const [pendingGroundsAction, setPendingGroundsAction] = useState<CommandCardAction | null>(null);
 
   const handlePerform = useCallback(async (action: CommandCardAction) => {
     if (action.disabled || executingId) return;
+
+    // For GROUNDS moves, open the modal instead of posting directly
+    if (action.move?.kind === 'GROUNDS') {
+      setPendingGroundsAction(action);
+      setGroundsModalOpen(true);
+      return;
+    }
 
     setExecutingId(action.id);
     try {
@@ -161,6 +173,26 @@ export function CommandCard({
           )}
         </div>
       )}
+
+      {/* GROUNDS modal for answering critical questions */}
+      {groundsModalOpen && pendingGroundsAction && pendingGroundsAction.target && (
+        <NLCommitPopover
+          open={groundsModalOpen}
+          onOpenChange={setGroundsModalOpen}
+          deliberationId={pendingGroundsAction.target.deliberationId}
+          targetType={pendingGroundsAction.target.targetType}
+          targetId={pendingGroundsAction.target.targetId}
+          locusPath={pendingGroundsAction.target.locusPath || '0'}
+          cqKey={pendingGroundsAction.move?.payload?.cqId || 'default'}
+          defaultOwner="Proponent"
+          onDone={() => {
+            setGroundsModalOpen(false);
+            setPendingGroundsAction(null);
+            // Trigger UI refresh
+            window.dispatchEvent(new CustomEvent('mesh:dialogue:refresh'));
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -195,6 +227,36 @@ export async function performCommand(action: CommandCardAction): Promise<void> {
     // Server-side: execute protocol move
     const { deliberationId, targetType, targetId, locusPath } = action.target;
     
+    let payload: any = {
+      ...(action.move.payload || {}),
+      ...(locusPath ? { locusPath } : {}),
+    };
+
+    // For generic WHY without cqId, prompt for challenge text
+    if (action.move.kind === 'WHY' && !payload.cqId) {
+      const challengeText = window.prompt('What is your challenge? (Why should we accept this?)');
+      if (!challengeText || !challengeText.trim()) {
+        console.log('Challenge cancelled - no text entered');
+        return;
+      }
+      payload = { ...payload, expression: challengeText.trim() };
+    }
+
+    // For THEREFORE and SUPPOSE, prompt for expression text
+    if (action.move.kind === 'THEREFORE' || action.move.kind === 'SUPPOSE') {
+      const promptText = action.move.kind === 'THEREFORE' 
+        ? 'Enter the conclusion that follows from the premises:'
+        : 'Enter the supposition (what we\'re assuming):';
+      
+      const expression = window.prompt(promptText);
+      if (!expression || !expression.trim()) {
+        console.log('Cancelled - no text entered');
+        return;
+      }
+      
+      payload = { ...payload, expression: expression.trim() };
+    }
+    
     const response = await fetch('/api/dialogue/move', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -203,10 +265,7 @@ export async function performCommand(action: CommandCardAction): Promise<void> {
         targetType,
         targetId,
         kind: action.move.kind,
-        payload: {
-          ...(action.move.payload || {}),
-          ...(locusPath ? { locusPath } : {}),
-        },
+        payload,
         postAs: action.move.postAs,
         autoCompile: true,
         autoStep: true,
@@ -214,7 +273,8 @@ export async function performCommand(action: CommandCardAction): Promise<void> {
     });
 
     if (!response.ok) {
-      throw new Error(`Move failed: ${response.statusText}`);
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Move failed: ${response.statusText}`);
     }
 
     // Trigger UI refresh

@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import useSWR from "swr";
+import { SuppositionBanner, NestedMoveContainer } from "./SuppositionBanner";
+import { SchemeComposerPicker } from "@/components/SchemeComposerPicker";
 
 /**
  * DialogueInspector - A comprehensive debug component to visualize the entire
@@ -34,6 +36,7 @@ export function DialogueInspector({
 }: DialogueInspectorProps) {
   const [activeTab, setActiveTab] = useState<"overview" | "moves" | "legal" | "cqs" | "raw">("overview");
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [claimPickerOpen, setClaimPickerOpen] = useState(false);
 
   // Fetch target data (claim or argument)
   const { data: targetData } = useSWR(
@@ -76,6 +79,47 @@ export function DialogueInspector({
       (m: any) => m.targetId === targetId || m.payload?.targetId === targetId
     );
   }, [movesData, targetId]);
+
+  // Detect active SUPPOSE scope
+  const activeSupposition = React.useMemo(() => {
+    if (!movesData?.moves) return null;
+    
+    // Find all SUPPOSE moves at this locus
+    const supposes = movesData.moves.filter(
+      (m: any) => 
+        m.kind === "SUPPOSE" && 
+        m.targetId === targetId &&
+        (m.payload?.locusPath === locusPath || (!m.payload?.locusPath && locusPath === "0"))
+    );
+
+    if (supposes.length === 0) return null;
+
+    // Get most recent SUPPOSE
+    const mostRecentSuppose = supposes.sort(
+      (a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    )[0];
+
+    // Check if it's been discharged
+    const discharges = movesData.moves.filter(
+      (m: any) =>
+        m.kind === "DISCHARGE" &&
+        m.targetId === targetId &&
+        (m.payload?.locusPath === locusPath || (!m.payload?.locusPath && locusPath === "0")) &&
+        new Date(m.createdAt) > new Date(mostRecentSuppose.createdAt)
+    );
+
+    if (discharges.length > 0) return null; // Scope has been closed
+
+    // Extract expression from payload
+    const expression = mostRecentSuppose.payload?.expression || "Hypothetical assumption";
+
+    return {
+      id: mostRecentSuppose.id,
+      expression,
+      locusPath: mostRecentSuppose.payload?.locusPath || "0",
+      createdAt: mostRecentSuppose.createdAt,
+    };
+  }, [movesData, targetId, locusPath]);
 
   const toggleExpand = (key: string) => {
     setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -124,6 +168,14 @@ export function DialogueInspector({
         {/* OVERVIEW TAB */}
         {activeTab === "overview" && (
           <div className="space-y-4">
+            {/* Active Supposition Banner */}
+            {activeSupposition && (
+              <SuppositionBanner
+                suppositionText={activeSupposition.expression}
+                locusPath={activeSupposition.locusPath}
+              />
+            )}
+
             {/* Target Info */}
             <Section title="🎯 Target" defaultExpanded>
               <InfoRow label="Type" value={targetType} />
@@ -204,6 +256,14 @@ export function DialogueInspector({
         {/* MOVES TAB */}
         {activeTab === "moves" && (
           <div className="space-y-3">
+            {/* Active Supposition Banner */}
+            {activeSupposition && (
+              <SuppositionBanner
+                suppositionText={activeSupposition.expression}
+                locusPath={activeSupposition.locusPath}
+              />
+            )}
+
             <div className="flex justify-between items-center mb-2">
               <h3 className="font-semibold text-gray-700">
                 All Moves ({targetMoves.length})
@@ -215,9 +275,42 @@ export function DialogueInspector({
                 🔄 Refresh
               </button>
             </div>
-            {targetMoves.map((move: any, idx: number) => (
-              <MoveCard key={move.id} move={move} index={idx} />
-            ))}
+
+            {/* Categorize moves: before supposition, inside supposition, after discharge */}
+            {activeSupposition ? (
+              <>
+                {/* Moves before SUPPOSE */}
+                {targetMoves
+                  .filter((m: any) => new Date(m.createdAt) < new Date(activeSupposition.createdAt))
+                  .map((move: any, idx: number) => (
+                    <MoveCard key={move.id} move={move} index={idx} />
+                  ))}
+
+                {/* SUPPOSE marker */}
+                <div className="p-3 bg-purple-100 border-l-4 border-purple-500 rounded-r">
+                  <div className="text-xs font-semibold text-purple-900">
+                    📍 SUPPOSE: {activeSupposition.expression}
+                  </div>
+                  <div className="text-[10px] text-purple-700 mt-1">
+                    Opened: {new Date(activeSupposition.createdAt).toLocaleString()}
+                  </div>
+                </div>
+
+                {/* Nested moves inside supposition */}
+                <NestedMoveContainer level={1}>
+                  {targetMoves
+                    .filter((m: any) => new Date(m.createdAt) >= new Date(activeSupposition.createdAt))
+                    .map((move: any, idx: number) => (
+                      <MoveCard key={move.id} move={move} index={idx} isNested />
+                    ))}
+                </NestedMoveContainer>
+              </>
+            ) : (
+              /* No active supposition - show all moves normally */
+              targetMoves.map((move: any, idx: number) => (
+                <MoveCard key={move.id} move={move} index={idx} />
+              ))
+            )}
             {targetMoves.length === 0 && (
               <EmptyState message="No dialogue moves for this target yet" />
             )}
@@ -252,9 +345,18 @@ export function DialogueInspector({
               <h3 className="font-semibold text-gray-700">
                 Critical Questions ({cqsData?.cqs?.length || 0})
               </h3>
-              {targetType !== "claim" && (
-                <p className="text-xs text-amber-600">⚠️ CQs only available for claims</p>
-              )}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setClaimPickerOpen(true)}
+                  className="px-3 py-1.5 text-xs font-medium bg-indigo-100 hover:bg-indigo-200 text-indigo-700 rounded-lg transition-colors"
+                  title="Search and navigate to claims"
+                >
+                  🔍 Find Claim
+                </button>
+                {targetType !== "claim" && (
+                  <p className="text-xs text-amber-600">⚠️ CQs only available for claims</p>
+                )}
+              </div>
             </div>
             {cqsData?.cqs?.map((cq: any, idx: number) => (
               <CQCard key={idx} cq={cq} attachments={attachmentsData?.attachments || []} />
@@ -276,6 +378,23 @@ export function DialogueInspector({
           </div>
         )}
       </div>
+
+      {/* Claim Picker for navigation */}
+      <SchemeComposerPicker
+        kind="claim"
+        open={claimPickerOpen}
+        onClose={() => setClaimPickerOpen(false)}
+        onPick={(claim) => {
+          // Navigate to the selected claim (could be enhanced to update targetId dynamically)
+          console.log("Selected claim:", claim);
+          window.dispatchEvent(
+            new CustomEvent("mesh:navigate:claim", {
+              detail: { claimId: claim.id, roomId: claim.roomId },
+            })
+          );
+          setClaimPickerOpen(false);
+        }}
+      />
     </div>
   );
 }
@@ -352,7 +471,7 @@ function StatCard({
   );
 }
 
-function MoveCard({ move, index }: { move: any; index: number }) {
+function MoveCard({ move, index, isNested = false }: { move: any; index: number; isNested?: boolean }) {
   const [expanded, setExpanded] = useState(false);
 
   const forceIcons: Record<string, string> = {
@@ -362,14 +481,24 @@ function MoveCard({ move, index }: { move: any; index: number }) {
   };
   const forceIcon = forceIcons[move.payload?.force || "NEUTRAL"] || "●";
 
+  // Highlight SUPPOSE and DISCHARGE moves
+  const isStructural = move.kind === "SUPPOSE" || move.kind === "DISCHARGE";
+  const bgClass = isStructural 
+    ? "bg-purple-50 hover:bg-purple-100" 
+    : isNested 
+    ? "bg-slate-50 hover:bg-slate-100"
+    : "bg-gray-50 hover:bg-gray-100";
+
   return (
     <div className="border border-gray-200 rounded-lg overflow-hidden">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full px-3 py-2 bg-gray-50 hover:bg-gray-100 text-left flex items-center justify-between"
+        className={`w-full px-3 py-2 ${bgClass} text-left flex items-center justify-between`}
       >
         <div className="flex items-center gap-2">
-          <span className="text-xs font-mono bg-purple-100 px-2 py-1 rounded">
+          <span className={`text-xs font-mono px-2 py-1 rounded ${
+            isStructural ? "bg-purple-200 text-purple-900" : "bg-purple-100"
+          }`}>
             #{index + 1} {move.kind}
           </span>
           <span className="text-sm">{forceIcon}</span>

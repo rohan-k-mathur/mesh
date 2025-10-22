@@ -6,7 +6,8 @@ export type RCode =
   | 'R4_DUPLICATE_REPLY'
   | 'R5_AFTER_SURRENDER'
   | 'R6_COMMITMENT_INCOHERENCE'
-  | 'R7_ACCEPT_ARGUMENT_REQUIRED';
+  | 'R7_ACCEPT_ARGUMENT_REQUIRED'
+  | 'R8_NO_OPEN_SUPPOSE';
 
   
 
@@ -19,7 +20,7 @@ export type WCode =
   | 'W5_THEREFORE_TEST_FAIL'
   | 'W6_IDLE_SUPPOSITION';
 
-  export type HCode = 'H1_SHAPE_ATTACK_SUGGESTION' | 'H2_CLOSABLE';
+  export type HCode = 'H1_SHAPE_ATTACK_SUGGESTION' | 'H2_CLOSABLE' | 'H1_GENERIC_CHALLENGE' | 'H1_OPEN_SUPPOSE' | 'R2_OPEN_CQ_SATISFIED' | 'R4_ROLE_GUARD';
 
 
 // Helper for UI tooltips
@@ -31,7 +32,8 @@ export const codeHelp: Record<RCode | WCode, string> = {
   R5_AFTER_SURRENDER: 'Branch already surrendered or closed (†).',
   R6_COMMITMENT_INCOHERENCE: 'Would render your public commitments inconsistent.',
   R7_ACCEPT_ARGUMENT_REQUIRED: 'Accept the argument (not just the conclusion).',
-  W0_NO_INITIAL_THEREFORE: '“Therefore …” cannot start a discourse.',
+  R8_NO_OPEN_SUPPOSE: 'Cannot discharge: no open SUPPOSE at this locus.',
+  W0_NO_INITIAL_THEREFORE: '"Therefore …" cannot start a discourse.',
   W1_UNKNOWN_LABEL: 'Unknown label; open it with SUPPOSE before using it.',
   W2_SCOPE_VIOLATION: 'Move crosses out of the active scope improperly.',
   W3_RIGHT_FRONTIER: 'Targets a non-ancestral branch (right-frontier violation).',

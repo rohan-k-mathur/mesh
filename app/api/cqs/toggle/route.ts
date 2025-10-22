@@ -7,19 +7,19 @@ import { suggestionForCQ } from '@/lib/argumentation/cqSuggestions';
 import { resolveClaimContext } from '@/lib/server/resolveRoom';
 import { createClaimAttack } from '@/lib/argumentation/createClaimAttack';
 import { getNLIAdapter } from '@/lib/nli/adapter';
-// import { bus } from '@/lib/bus';
-import { bus } from '@/lib/server/bus';
+import { emitBus } from '@/lib/server/bus';
 
 
 const BodySchema = z.object({
-  targetType: z.literal('claim'),
+  targetType: z.enum(['claim', 'argument']),
   targetId: z.string().min(1),
   schemeKey: z.string().min(1),
   cqKey: z.string().min(1),
   satisfied: z.boolean(),
   deliberationId: z.string().optional(),
+  groundsText: z.string().optional(), // Text response/grounds for the CQ
 
-  // Optional convenience for “Attach” button in CQ UI
+  // Optional convenience for "Attach" button in CQ UI
   attachSuggestion: z.boolean().optional(),
   attackerClaimId: z.string().min(1).optional(),
 });
@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
   }
 
   const {
-    targetId, schemeKey, cqKey, satisfied,
+    targetId, schemeKey, cqKey, satisfied, groundsText,
     deliberationId: delibFromBody, attachSuggestion, attackerClaimId
   } = parsed.data;
 
@@ -84,16 +84,18 @@ export async function POST(req: NextRequest) {
     });
     edgeCreated = true;
   }
-     // (Optional) permission guard — only author/mods may flip CQs
+     // Permission guard: For now, allow any authenticated user to mark CQs satisfied
+     // Rationale: CQs are collaborative inquiry tools, not adversarial attacks
+     // TODO: Consider adding role-based restrictions if needed (e.g., only participants in deliberation)
      const claim = await prisma.claim.findUnique({
        where: { id: targetId }, select: { createdById: true }
      });
-     const isAuthor = String(claim?.createdById) === String(userId);
-     // TODO: wire a real moderator check if you have one
-     const isModerator = false;
-     if (!isAuthor && !isModerator) {
-       return NextResponse.json({ ok:false, error:'Only the claim author (or a moderator) can mark CQs satisfied/unsatisfied.' }, { status: 403 });
-     }
+     // Commenting out author-only restriction for CQ satisfaction
+     // const isAuthor = String(claim?.createdById) === String(userId);
+     // const isModerator = false;
+     // if (!isAuthor && !isModerator) {
+     //   return NextResponse.json({ ok:false, error:'Only the claim author (or a moderator) can mark CQs satisfied/unsatisfied.' }, { status: 403 });
+     // }
    
      // 2) Upsert CQStatus (optimistic write; we might revert if a proof guard fails)
   // 2) Upsert CQStatus (optimistic write; we might revert if guard fails)
@@ -103,10 +105,17 @@ export async function POST(req: NextRequest) {
         targetType: 'claim', targetId, schemeKey, cqKey,
       }
     },
-    update: { satisfied, updatedAt: new Date() },
+    update: { 
+      satisfied, 
+      groundsText: groundsText ?? undefined, // Only update if provided
+      updatedAt: new Date() 
+    },
     create: {
       targetType: 'claim', targetId, schemeKey, cqKey,
-      satisfied, createdById: String(userId), roomId,
+      satisfied, 
+      groundsText: groundsText ?? null, // Store grounds text if provided
+      createdById: String(userId), 
+      roomId,
     }
   });
 
@@ -209,8 +218,7 @@ export async function POST(req: NextRequest) {
       }, { status: 409 });
     }
   }
-  bus.emitEvent('cqs:changed', { deliberationId, targetType: 'claim', targetId });
-  bus.emitEvent('dialogue:moves:refresh', { deliberationId });
+  emitBus('dialogue:moves:refresh', { deliberationId });
   return NextResponse.json({
     ok: true,
     status,

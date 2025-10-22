@@ -172,12 +172,27 @@ if (!userId) return NextResponse.json({ error:'Unauthorized' }, { status: 401 })
   }
   if (kind === 'GROUNDS' && !payload.locusPath) payload.locusPath = '0';
 
-  // Validate cqId for WHY/GROUNDS moves
-  if ((kind === 'WHY' || kind === 'GROUNDS') && !payload.cqId) {
+  // For WHY without cqId, generate a generic one
+  if (kind === 'WHY' && !payload.cqId) {
+    payload.cqId = `generic_why_${Date.now()}`;
+    payload.schemeKey = 'generic_challenge';
+  }
+
+  // GROUNDS requires matching WHY with cqId
+  if (kind === 'GROUNDS' && !payload.cqId) {
     return NextResponse.json({
-      error: 'cqId required for WHY/GROUNDS moves',
+      error: 'cqId required for GROUNDS moves',
       received: payload,
-      hint: 'Include payload.cqId (e.g., "eo-1") to specify which critical question this addresses'
+      hint: 'GROUNDS must answer a specific WHY move. Include payload.cqId to match the WHY.'
+    }, { status: 400 });
+  }
+  
+  // Validate expression for structural moves
+  if ((kind === 'THEREFORE' || kind === 'SUPPOSE') && !payload.expression) {
+    return NextResponse.json({
+      error: 'expression required for THEREFORE/SUPPOSE moves',
+      received: payload,
+      hint: 'Include payload.expression with the text of the conclusion/supposition'
     }, { status: 400 });
   }
 
@@ -342,6 +357,58 @@ if (prop) {
     emitBus("dialogue:cs:refresh", { deliberationId, participantId: actorId });
   }
 }
+
+  // ✨ PHASE 1: Auto-create ConflictApplication when WHY move targets an argument
+  // This completes bidirectional sync: WHY ↔ ConflictApplication
+  if (kind === 'WHY' && targetType === 'argument' && move && !payload?.conflictApplicationId) {
+    try {
+      // Determine attack type from payload or default to REBUTS
+      const attackType = (payload?.attackType === 'UNDERCUTS' || payload?.attackType === 'UNDERMINES') 
+        ? payload.attackType 
+        : 'REBUTS';
+      
+      const ca = await prisma.conflictApplication.create({
+        data: {
+          deliberationId,
+          conflictingArgumentId: null, // WHY doesn't specify attacking argument yet
+          conflictedArgumentId: targetId,
+          legacyAttackType: attackType,
+          createdById: actorId,
+          metaJson: {
+            dialogueMoveId: move.id, // Link back to WHY move
+            cqId: payload?.cqId,
+            expression: payload?.expression,
+          },
+        },
+      });
+
+      console.log('[dialogue/move] Auto-created ConflictApplication for WHY:', {
+        whyMoveId: move.id,
+        caId: ca.id,
+        attackType,
+        targetId,
+      });
+
+      // Optionally: Store CA ID in move payload for reference
+      // This allows tracing from WHY move → ConflictApplication
+      try {
+        await prisma.dialogueMove.update({
+          where: { id: move.id },
+          data: {
+            payload: {
+              ...(move.payload as any),
+              conflictApplicationId: ca.id,
+            },
+          },
+        });
+      } catch (err) {
+        console.warn('[dialogue/move] Failed to update move with CA ID:', err);
+      }
+    } catch (err) {
+      console.error('[dialogue/move] Failed to auto-create ConflictApplication:', err);
+      // Don't fail the whole request if CA creation fails
+    }
+  }
 
   // compile & step
   let step: any = null;

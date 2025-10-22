@@ -72,7 +72,11 @@ export async function validateMove(input: {
   }
 
   // R5: no ATTACK after surrender/close at this locus
-  if (kind === 'WHY' || kind === 'GROUNDS' || (kind === 'ASSERT' && !payload?.as)) {
+  // EXCEPTION: CQ-based WHY/GROUNDS moves (clarifying questions and answers) are allowed even after surrender
+  // This allows continued inquiry via Critical Questions on surrendered claims
+  const isCQMove = (kind === 'WHY' || kind === 'GROUNDS') && (payload?.cqId || payload?.schemeKey);
+  
+  if (!isCQMove && (kind === 'WHY' || kind === 'GROUNDS' || (kind === 'ASSERT' && !payload?.as))) {
     const lastTerminator = await prisma.dialogueMove.findFirst({
       where: {
         deliberationId, targetType, targetId,
@@ -96,6 +100,45 @@ export async function validateMove(input: {
       select: { id:true }
     });
     if (existing) reasons.push('R4_DUPLICATE_REPLY');
+  }
+
+  // R8: DISCHARGE requires open SUPPOSE at same locus
+  if (kind === 'DISCHARGE') {
+    // Find the most recent SUPPOSE at this locus
+    const openSuppose = await prisma.dialogueMove.findFirst({
+      where: {
+        deliberationId,
+        targetType,
+        targetId,
+        kind: 'SUPPOSE',
+        payload: { path: ['locusPath'], equals: locusPath }
+      },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true, createdAt: true }
+    });
+
+    if (!openSuppose) {
+      // No SUPPOSE at this locus
+      reasons.push('R8_NO_OPEN_SUPPOSE');
+    } else {
+      // Check if this SUPPOSE was already discharged
+      const matchingDischarge = await prisma.dialogueMove.findFirst({
+        where: {
+          deliberationId,
+          targetType,
+          targetId,
+          kind: 'DISCHARGE',
+          payload: { path: ['locusPath'], equals: locusPath },
+          createdAt: { gt: openSuppose.createdAt }
+        },
+        select: { id: true }
+      });
+
+      if (matchingDischarge) {
+        // SUPPOSE was already discharged
+        reasons.push('R8_NO_OPEN_SUPPOSE');
+      }
+    }
   }
 
   return reasons.length ? { ok:false, reasons } : { ok:true };

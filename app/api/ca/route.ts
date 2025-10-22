@@ -57,6 +57,62 @@ export async function POST(req: NextRequest) {
     },
     select: { id:true }
   });
+  
+  // Auto-create WHY dialogue move when AIF attack is created
+  // This unifies the AIF graph system with the dialogical move system
+  try {
+    const targetType = d.conflictedArgumentId ? 'argument' : 'claim';
+    const targetId = d.conflictedArgumentId || d.conflictedClaimId;
+    
+    if (targetId) {
+      // Generate expression based on attack type
+      const attackLabels = {
+        'REBUTS': 'I challenge this conclusion',
+        'UNDERCUTS': 'I challenge the reasoning',
+        'UNDERMINES': 'I challenge this premise',
+      };
+      const expression = attackLabels[d.legacyAttackType as keyof typeof attackLabels] || 'I challenge this';
+      
+      // ✨ PHASE 3: Use real CQ information from metaJson if available
+      const cqId = (d.metaJson as any)?.cqId || `aif_attack_${created.id}`;
+      const cqText = (d.metaJson as any)?.cqText;
+      const schemeKey = (d.metaJson as any)?.schemeKey;
+      
+      // Create WHY move linked to this attack
+      await prisma.dialogueMove.create({
+        data: {
+          deliberationId: d.deliberationId,
+          targetType: targetType as TargetType,
+          targetId,
+          kind: 'WHY',
+          actorId: String(userId),
+          payload: {
+            cqId,
+            schemeKey: schemeKey || undefined,
+            locusPath: '0',
+            expression: (d.metaJson as any)?.cqContext || expression,
+            attackType: d.legacyAttackType,
+            conflictApplicationId: created.id, // Link back to AIF attack
+            cqText: cqText || undefined, // Include full CQ text for reference
+          },
+          signature: `WHY:${targetType}:${targetId}:${cqId}`,
+        },
+      });
+      
+      console.log('[ca] Auto-created WHY move for AIF attack:', {
+        attackId: created.id,
+        attackType: d.legacyAttackType,
+        targetType,
+        targetId,
+        cqId,
+        cqText: cqText ? cqText.substring(0, 50) + '...' : 'none',
+      });
+    }
+  } catch (err) {
+    console.error('[ca] Failed to auto-create WHY move:', err);
+    // Don't fail the whole request if WHY creation fails
+  }
+  
   // inside POST, after create ConflictApplication (in same transaction if you prefer)
 const { schemeKey, cqKey, conflictedArgumentId } = d as any;
 if (schemeKey && cqKey && conflictedArgumentId) {

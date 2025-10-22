@@ -25,10 +25,83 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
     select: {
       id: true, attackType: true, targetScope: true,
       fromArgumentId: true, toArgumentId: true,
-      targetClaimId: true, targetPremiseId: true, cqKey: true
+      targetClaimId: true, targetPremiseId: true, cqKey: true,
+      deliberationId: true,
     }
   });
-  return NextResponse.json({ ok: true, items }, NO_STORE);
+
+  // ✨ PHASE 2: Enrich edges with dialogue status (WHY/GROUNDS)
+  // For each edge, check if there are related DialogueMoves
+  const enrichedItems = await Promise.all(
+    items.map(async (edge) => {
+      try {
+        // Check for WHY moves targeting this argument (attack challenges)
+        const whyMoves = await prisma.dialogueMove.findMany({
+          where: {
+            deliberationId: edge.deliberationId,
+            targetType: 'argument',
+            targetId: edge.toArgumentId,
+            kind: 'WHY',
+            // Optional: filter by conflictApplicationId if linked
+          },
+          select: {
+            id: true,
+            createdAt: true,
+            payload: true,
+          },
+          orderBy: { createdAt: 'desc' },
+        });
+
+        // Check for GROUNDS responses to those WHY moves
+        const groundsMoves = await prisma.dialogueMove.findMany({
+          where: {
+            deliberationId: edge.deliberationId,
+            targetType: 'argument',
+            targetId: edge.toArgumentId,
+            kind: 'GROUNDS',
+          },
+          select: {
+            id: true,
+            createdAt: true,
+            payload: true,
+          },
+          orderBy: { createdAt: 'desc' },
+        });
+
+        // Determine dialogue status
+        const hasWhy = whyMoves.length > 0;
+        const hasGrounds = groundsMoves.length > 0;
+        
+        let dialogueStatus: 'neutral' | 'challenged' | 'answered' = 'neutral';
+        if (hasGrounds) {
+          dialogueStatus = 'answered';
+        } else if (hasWhy) {
+          dialogueStatus = 'challenged';
+        }
+
+        return {
+          ...edge,
+          dialogueStatus,
+          hasWhy,
+          hasGrounds,
+          whyCount: whyMoves.length,
+          groundsCount: groundsMoves.length,
+        };
+      } catch (err) {
+        console.error('[attacks/GET] Failed to enrich edge with dialogue status:', err);
+        return {
+          ...edge,
+          dialogueStatus: 'neutral' as const,
+          hasWhy: false,
+          hasGrounds: false,
+          whyCount: 0,
+          groundsCount: 0,
+        };
+      }
+    })
+  );
+
+  return NextResponse.json({ ok: true, items: enrichedItems }, NO_STORE);
 }
 
 // --- existing POST: keep your guards; only adjust CQ upsert ---

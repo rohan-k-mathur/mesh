@@ -4,6 +4,10 @@ import { stepInteraction } from '@/packages/ludics-engine/stepper';
 import type { MoveKind } from './types'; // (ok to remove if unused)
 import { legalAttacksFor } from '@/lib/dialogue/legalMoves';
 
+// 🧪 Developer testing mode: allows authors to challenge their own claims
+// Set DIALOGUE_TESTING_MODE=true in .env to enable
+const TESTING_MODE = process.env.DIALOGUE_TESTING_MODE === 'true';
+
 export type Move = {
   kind: 'ASSERT'|'WHY'|'GROUNDS'|'RETRACT'|'CONCEDE'|'CLOSE'|'THEREFORE'|'SUPPOSE'|'DISCHARGE';
   label: string;
@@ -78,9 +82,9 @@ export async function computeLegalMoves(input: Input): Promise<{ moves: Move[]; 
   const moves: Move[] = [];
 
   if (!isClosed) {
-    // GROUNDS: only author answers open WHYs
+    // GROUNDS: only author answers open WHYs (unless testing mode)
     for (const key of openWhyKeys) {
-      const disabled = !!(actorId && targetAuthorId && String(actorId) !== String(targetAuthorId));
+      const disabled = TESTING_MODE ? false : !!(actorId && targetAuthorId && String(actorId) !== String(targetAuthorId));
       moves.push({
         kind: 'GROUNDS',
         label: `Answer ${key}`,
@@ -90,7 +94,7 @@ export async function computeLegalMoves(input: Input): Promise<{ moves: Move[]; 
       });
     }
 
-    // WHY (when none open): anyone but author
+    // WHY (when none open): anyone but author (unless testing mode)
     if (openWhyKeys.length === 0) {
       // Optional: hint from shape
       let label = 'Ask WHY';
@@ -102,7 +106,7 @@ export async function computeLegalMoves(input: Input): Promise<{ moves: Move[]; 
         const { options } = legalAttacksFor(text);
         if (options.length) label = `WHY — ${options[0].label}`;
       }
-      const disabled = !!(actorId && targetAuthorId && String(actorId) === String(targetAuthorId));
+      const disabled = TESTING_MODE ? false : !!(actorId && targetAuthorId && String(actorId) === String(targetAuthorId));
       moves.push({
         kind: 'WHY',
         label,
@@ -138,6 +142,49 @@ export async function computeLegalMoves(input: Input): Promise<{ moves: Move[]; 
   // Retract is always available
   const retract: Move = { kind: 'RETRACT', label: 'Retract', payload: { locusPath: locusPath || '0' } };
 
+  // Structural moves (THEREFORE, SUPPOSE, DISCHARGE)
+  const structural: Move[] = [];
+  structural.push({ kind: 'THEREFORE', label: 'Therefore…', payload: { locusPath: locusPath || '0' } });
+  structural.push({ kind: 'SUPPOSE', label: 'Suppose…', payload: { locusPath: locusPath || '0' } });
+  
+  // DISCHARGE: only enabled if there's an open SUPPOSE at this locus
+  const openSuppose = await prisma.dialogueMove.findFirst({
+    where: {
+      deliberationId,
+      targetType,
+      targetId,
+      kind: 'SUPPOSE',
+      payload: { path: ['locusPath'], equals: locusPath || '0' }
+    },
+    orderBy: { createdAt: 'desc' },
+    select: { id: true, createdAt: true }
+  }).catch(() => null);
+
+  let hasOpenSuppose = false;
+  if (openSuppose) {
+    // Check if already discharged
+    const matchingDischarge = await prisma.dialogueMove.findFirst({
+      where: {
+        deliberationId,
+        targetType,
+        targetId,
+        kind: 'DISCHARGE',
+        payload: { path: ['locusPath'], equals: locusPath || '0' },
+        createdAt: { gt: openSuppose.createdAt }
+      },
+      select: { id: true }
+    }).catch(() => null);
+    hasOpenSuppose = !matchingDischarge;
+  }
+
+  structural.push({ 
+    kind: 'DISCHARGE', 
+    label: 'Discharge',  
+    payload: { locusPath: locusPath || '0' },
+    disabled: !hasOpenSuppose,
+    reason: hasOpenSuppose ? undefined : 'No open SUPPOSE at this locus'
+  });
+
   // † closability via stepper hint
   try {
     const designs = await prisma.ludicDesign.findMany({
@@ -163,6 +210,7 @@ export async function computeLegalMoves(input: Input): Promise<{ moves: Move[]; 
   // Tag forces
   const all: Move[] = [
     ...(isClosed ? [] : moves),
+    ...structural,
     ...concede,
     retract,
   ].map(m => ({

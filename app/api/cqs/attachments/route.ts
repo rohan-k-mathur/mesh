@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prismaclient';
 import { z } from 'zod';
 
 const Q = z.object({
-  targetType: z.enum(['claim']), // extend if you support more
+  targetType: z.enum(['claim', 'argument']),
   targetId: z.string().min(8),
 });
 

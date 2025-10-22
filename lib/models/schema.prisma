@@ -3213,6 +3213,7 @@ model CQStatus {
   schemeKey   String
   cqKey       String
   satisfied   Boolean  @default(false)
+  groundsText String?  // Stores the text response/grounds for the CQ
   createdById String
   roomId      String? // denormalized at write-time for RLS
   createdAt   DateTime @default(now())
