@@ -253,6 +253,8 @@ async function postMove(m: Move, extraPayload: any = {}) {
       <button
         className="px-2 py-1 rounded text-xs border border-sky-200 text-sky-800 hover:bg-sky-50"
         onClick={() => postMove(acceptMove)}
+            title="Accept argument (all CQs satisfied)"
+
       >
         Accept argument
       </button>
@@ -301,6 +303,7 @@ async function postMove(m: Move, extraPayload: any = {}) {
           targetType={targetType}
           targetId={targetId}
           locusPath={openCommit.payload?.justifiedByLocus ?? locusPath}
+          cqKey={openCommit.payload?.cqId ?? openCommit.payload?.schemeKey ?? "default"}
           defaultOwner={commitOwner}
           onDone={() => { setOpenCommit(null); mutate(); onPosted?.(); }}
         />

@@ -30,6 +30,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from '@
 import { ClaimPicker } from '@/components/claims/ClaimPicker';
 import { ConfidenceProvider, useConfidence } from '@/components/agora/useConfidence';
 import { set } from 'lodash';
+import { ArgumentCard } from './ArgumentCard';
 
 const AttackMenuPro = dynamic(() => import('@/components/arguments/AttackMenuPro').then(m => m.AttackMenuPro), { ssr: false });
 const LegalMoveToolbar = dynamic(() => import('@/components/dialogue/LegalMoveToolbar').then(m => m.LegalMoveToolbar), { ssr: false });
@@ -630,6 +631,20 @@ function RowImpl({
               <div className="text-sm leading-relaxed text-slate-700 whitespace-pre-wrap">{a.text}</div>
             )}
           </section>
+        )}
+
+        {/* ArgumentCard - shows interactive argument structure */}
+        {meta?.conclusion && (
+          <ArgumentCard 
+            deliberationId={deliberationId} 
+            authorId={a.authorId} 
+            id={a.id} 
+            conclusion={meta.conclusion}
+            premises={meta.premises || []}
+            schemeKey={meta.scheme?.key}
+            schemeName={meta.scheme?.name}
+            onAnyChange={() => onRefreshRow(a.id)}
+          />
         )}
 
         {/* Critical Questions */}

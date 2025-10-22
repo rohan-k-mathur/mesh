@@ -13,13 +13,16 @@ import ApprovalsHeatStrip from "@/components/deepdive/ApprovalsHeatStrip";
 import WorksList from "../work/WorksList";
 import LudicsPanel from "./LudicsPanel";
 import { FloatingSheet, SheetToggleButton } from "../ui/FloatingSheet";
+import { DialogueInspector } from "@/components/dialogue/DialogueInspector";
+
 import { AFMinimap } from '@/components/dialogue/minimap/AFMinimap';
 import BehaviourInspectorCard from '@/components/ludics/BehaviourInspectorCard';
 import { scrollIntoViewById } from "@/lib/client/scroll";
 import { CommandCard, performCommand } from '@/components/dialogue/command-card/CommandCard';
 import { CommandCardAction } from "../dialogue/command-card/types";
 import type { AifSubgraph } from '@/lib/arguments/diagram';
-import { legalMovesToCommandCard } from "../dialogue/command-card/adapters";
+import { movesToActions } from "@/lib/dialogue/movesToActions"; // ✅ Use newer adapter instead of legalMovesToCommandCard
+import { CQContextPanel } from "../dialogue/command-card/CQContextPanel";
 import { useMinimapData } from '@/lib/client/minimap/useMinimapData';
 import useSWR, { mutate as swrMutate } from "swr";
 import { AIFAuthoringPanel } from "./AIFAuthoringPanel";
@@ -701,10 +704,10 @@ const {
 //   const cardActions = targetRef ? legalMovesToCommandCard(legalMoves?.moves ?? [], targetRef, true) : [];
 
 
-  // Adapt the moves to CommandCardAction format (this is the key!)
+  // ✅ Adapt the moves to CommandCardAction format using the NEWER movesToActions adapter
   const cardActions = useMemo(() => {
     if (!targetRef || !legalMoves?.moves) return [];
-    return legalMovesToCommandCard(legalMoves.moves, targetRef, true);
+    return movesToActions(legalMoves.moves, targetRef);
   }, [targetRef, legalMoves]);
 
   // Count badges for toggle buttons - USE cardActions instead of commandActions
@@ -907,6 +910,15 @@ const {
                       </svg>
                       Quick Actions
                     </h3>
+                    {/* CQ Context Panel */}
+                    {selectedClaim?.id && (
+                      <CQContextPanel
+                        deliberationId={deliberationId}
+                        targetType="claim"
+                        targetId={selectedClaim.id}
+                        actions={cardActions}
+                      />
+                    )}
                     <CommandCard
                       actions={cardActions}
                       onPerform={handleCommandPerform}
@@ -1071,7 +1083,6 @@ const {
             <CommandCard
               actions={cardActions}
               onPerform={performCommand}
-              showHotkeyHints
             />
           ) : (
             <div className="rounded-xl border-2 border-dashed border-slate-200 p-8 text-center">
@@ -1252,7 +1263,12 @@ const {
               {/* <PropositionComposer deliberationId={deliberationId} /> */}
               <PropositionComposerPro deliberationId={deliberationId} />
             </SectionCard>
-
+<DialogueInspector
+  deliberationId="cmgy6c8vz0000c04w4l9khiux"
+  targetType="claim"
+  targetId="cmgzyuusc000ec0leqk4cf26g"
+  locusPath="0"
+/>
             <SectionCard>
               <PropositionsList deliberationId={deliberationId} />
             </SectionCard>

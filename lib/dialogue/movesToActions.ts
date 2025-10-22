@@ -142,54 +142,62 @@ export function movesToActions(
     });
   }
 
-  // Bottom row: Scaffolds (client-side templates)
-  // These are inferred from WHY label hints
-  const anyWhy = whyMoves[0];
-  if (anyWhy) {
-    if (anyWhy.label.includes('∀')) {
-      actions.push({
-        id: 'forall-inst',
-        kind: 'FORALL_INSTANTIATE',
-        label: '∀‑inst',
-        force: 'NEUTRAL',
-        group: 'bottom',
-        scaffold: {
-          template: 'Consider the specific case of [INSTANCE]...',
-          analyticsName: 'scaffold:forall'
-        },
-        target: targetRef
-      });
-    }
+  // Bottom row: Structural moves (THEREFORE, SUPPOSE, DISCHARGE)
+  const therefore = moves.find(m => m.kind === 'THEREFORE');
+  if (therefore) {
+    actions.push({
+      id: 'therefore',
+      kind: 'THEREFORE' as any,
+      label: therefore.label || 'Therefore…',
+      force: 'NEUTRAL',
+      disabled: therefore.disabled,
+      reason: therefore.reason,
+      relevance: therefore.relevance,
+      group: 'bottom',
+      move: {
+        kind: 'THEREFORE' as any,
+        payload: therefore.payload
+      },
+      target: targetRef
+    });
+  }
 
-    if (anyWhy.label.includes('∃')) {
-      actions.push({
-        id: 'exists-witness',
-        kind: 'EXISTS_WITNESS',
-        label: '∃‑witness',
-        force: 'NEUTRAL',
-        group: 'bottom',
-        scaffold: {
-          template: 'A counterexample is [WITNESS]...',
-          analyticsName: 'scaffold:exists'
-        },
-        target: targetRef
-      });
-    }
+  const suppose = moves.find(m => m.kind === 'SUPPOSE');
+  if (suppose) {
+    actions.push({
+      id: 'suppose',
+      kind: 'SUPPOSE' as any,
+      label: suppose.label || 'Suppose…',
+      force: 'NEUTRAL',
+      disabled: suppose.disabled,
+      reason: suppose.reason,
+      relevance: suppose.relevance,
+      group: 'bottom',
+      move: {
+        kind: 'SUPPOSE' as any,
+        payload: suppose.payload
+      },
+      target: targetRef
+    });
+  }
 
-    if (anyWhy.label.toLowerCase().includes('presupposition')) {
-      actions.push({
-        id: 'presup-challenge',
-        kind: 'PRESUP_CHALLENGE',
-        label: 'Presup?',
-        force: 'NEUTRAL',
-        group: 'bottom',
-        scaffold: {
-          template: 'The presupposition that [P] is questionable because...',
-          analyticsName: 'scaffold:presupposition'
-        },
-        target: targetRef
-      });
-    }
+  const discharge = moves.find(m => m.kind === 'DISCHARGE');
+  if (discharge) {
+    actions.push({
+      id: 'discharge',
+      kind: 'DISCHARGE' as any,
+      label: discharge.label || 'Discharge',
+      force: 'NEUTRAL',
+      disabled: discharge.disabled,
+      reason: discharge.reason,
+      relevance: discharge.relevance,
+      group: 'bottom',
+      move: {
+        kind: 'DISCHARGE' as any,
+        payload: discharge.payload
+      },
+      target: targetRef
+    });
   }
 
   return actions;

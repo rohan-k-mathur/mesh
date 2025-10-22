@@ -31,34 +31,32 @@ type Suggestion = {
     shape?: string;
   }>;
 } | null;
+
 type CQ = {
   key: string;
   text: string;
   satisfied: boolean;
   suggestion?: Suggestion;
 };
-type Scheme = { key: string; title: string; cqs: CQ[] };
-type CQsResponse = { targetType: "claim"; targetId: string; schemes: Scheme[] };
+
+type Scheme = { 
+  key: string; 
+  title: string; 
+  cqs: CQ[];
+};
+
+type CQsResponse = { 
+  targetType: "claim"; 
+  targetId: string; 
+  schemes: Scheme[];
+};
 
 const fetcher = (u: string) =>
   fetch(u, { cache: "no-store" }).then((r) => r.json());
 
-// const fetcher = async (u: string) => {
-//   const res = await fetch(u, { cache: 'no-store' });
-//     if (!res.ok) {
-//         let msg = 'Failed to toggle';
-//         try { const j = await res.json(); msg = j?.message || j?.error || msg; } catch { msg = await res.text().catch(()=>msg); }
-//         setBlockedMsg(m => ({ ...m, [sig]: msg }));
-//         return;
-//       }
-//   return res.json();
-// };
-
 // Cache keys for data endpoints
 const CQS_KEY = (id: string, scheme?: string) =>
-  `/api/cqs?targetType=claim&targetId=${id}${
-    scheme ? `&scheme=${scheme}` : ""
-  }`;
+  `/api/cqs?targetType=claim&targetId=${id}${scheme ? `&scheme=${scheme}` : ""}`;
 const TOULMIN_KEY = (id: string) => `/api/claims/${id}/toulmin`;
 const GRAPH_KEY = (roomId: string, lens: string, audienceId?: string) =>
   `graph:${roomId}:${lens}:${audienceId ?? "none"}`;
@@ -69,7 +67,7 @@ const MOVES_KEY = (deliberationId: string) =>
 const EDGES_KEY = (deliberationId: string) =>
   `/api/claims/edges?deliberationId=${deliberationId}`;
 
-// OPTIONAL: if you have a search endpoint; component degrades gracefully if not present.
+// OPTIONAL: search endpoint for attaching existing claims
 async function trySearchClaims(
   q: string
 ): Promise<Array<{ id: string; text: string }>> {
@@ -85,17 +83,16 @@ async function trySearchClaims(
   }
 }
 
-
 export default function CriticalQuestions({
   targetType,
   targetId,
-  createdById, // kept for parity; not used here directly
+  createdById,
   deliberationId,
   roomId,
   currentLens,
   currentAudienceId,
-  selectedAttackerClaimId, // when the user preselected a counter-claim elsewhere
-  prefilterKeys, // [{schemeKey,cqKey}]
+  selectedAttackerClaimId,
+  prefilterKeys,
 }: {
   targetType: "claim";
   targetId: string;
@@ -107,9 +104,8 @@ export default function CriticalQuestions({
   selectedAttackerClaimId?: string;
   prefilterKeys?: Array<{ schemeKey: string; cqKey: string }>;
 }) {
-  const [blockedMsg, setBlockedMsg] = React.useState<Record<string, string>>(
-    {}
-  );
+  // ----- UI state -----
+  const [blockedMsg, setBlockedMsg] = React.useState<Record<string, string>>({});
   const [commitOpen, setCommitOpen] = React.useState(false);
   const [commitCtx, setCommitCtx] = React.useState<{
     locus: string;
@@ -117,20 +113,9 @@ export default function CriticalQuestions({
     targetType: "claim";
     targetId: string;
   } | null>(null);
-  const [locus, setLocus] = React.useState("0"); // default locus for WHY/GROUNDS
-  // ----- data -----
-  const { data, error, isLoading } = useSWR<CQsResponse>(
-    CQS_KEY(targetId),
-    fetcher
-  );
-  const { data: attachData } = useSWR<{ attached: Record<string, boolean> }>(
-    ATTACH_KEY(targetId),
-    fetcher
-  );
-
-  // ----- local ui state -----
-  const [lingerKeys, setLingerKeys] = useState<Set<string>>(new Set()); // “Addressed ✓” ephemeral
-  const [justGrounded, setJustGrounded] = useState<Set<string>>(new Set()); // client-side permission to mark satisfied
+  const [locus, setLocus] = React.useState("0");
+  const [lingerKeys, setLingerKeys] = useState<Set<string>>(new Set());
+  const [justGrounded, setJustGrounded] = useState<Set<string>>(new Set());
   const [postingKey, setPostingKey] = useState<string | null>(null);
   const [okKey, setOkKey] = useState<string | null>(null);
 
@@ -145,42 +130,107 @@ export default function CriticalQuestions({
   } | null>(null);
   const [attachError, setAttachError] = useState<string | null>(null);
 
-  // attach existing claim popover (lightweight)
+  // attach existing claim popover
   const [attachExistingFor, setAttachExistingFor] = useState<{
     schemeKey: string;
     cqKey: string;
   } | null>(null);
   const [searchQ, setSearchQ] = useState("");
-  const [searchRes, setSearchRes] = useState<
-    Array<{ id: string; text: string }>
-  >([]);
+  const [searchRes, setSearchRes] = useState<Array<{ id: string; text: string }>>([]);
   const [searchBusy, setSearchBusy] = useState(false);
-  // const [blockedMsg, setBlockedMsg] = useState<Record<string,string>>({});
+  const [showLegalMoves, setShowLegalMoves] = useState<string | null>(null);
+  const [groundsDraft, setGroundsDraft] = useState<Record<string, string>>({});
 
-  async function postMove(kind: "WHY" | "GROUNDS", payload: any = {}) {
-    await fetch("/api/dialogue/move", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        deliberationId,
-        targetType: "claim",
-        targetId,
-        kind,
-        payload: { locusPath: locus, ...payload },
-        autoCompile: true,
-        autoStep: true,
-        phase: "neutral",
-      }),
-    })
-      .then((r) => r.json())
-      .catch(() => null);
-    window.dispatchEvent(new CustomEvent("dialogue:moves:refresh"));
-  }
+  // ----- Data fetching with SWR -----
+  const { data, error, isLoading, mutate: mutateCQs } = useSWR<CQsResponse>(
+    CQS_KEY(targetId),
+    fetcher,
+    { revalidateOnFocus: false, dedupingInterval: 2000 }
+  );
 
+  const { data: attachData, mutate: mutateAttach } = useSWR<{
+    attached: Record<string, boolean>;
+  }>(ATTACH_KEY(targetId), fetcher, { revalidateOnFocus: false });
+
+  const { data: movesData, mutate: mutateMoves } = useSWR(
+    deliberationId ? MOVES_KEY(deliberationId) : null,
+    fetcher,
+    { revalidateOnFocus: false }
+  );
+
+  const { data: edgesData, mutate: mutateEdges } = useSWR(
+    deliberationId ? EDGES_KEY(deliberationId) : null,
+    fetcher,
+    { revalidateOnFocus: false }
+  );
+
+  // ----- Event-driven cache invalidation via bus -----
+  useBusEffect(
+    [
+      "cqs:changed",
+      "dialogue:moves:refresh",
+      "arguments:changed",
+      "claims:changed",
+      "claims:edges:changed",
+    ],
+    () => {
+      mutateCQs();
+      mutateAttach();
+      mutateMoves();
+      mutateEdges();
+    },
+    { retry: true }
+  );
+
+  // Legacy event listeners for backwards compatibility
+  React.useEffect(() => {
+    const h = () => {
+      mutateCQs();
+      mutateAttach();
+      mutateMoves();
+      mutateEdges();
+    };
+    window.addEventListener("claims:changed", h);
+    window.addEventListener("dialogue:moves:refresh", h);
+    window.addEventListener("arguments:changed", h);
+    return () => {
+      window.removeEventListener("claims:changed", h);
+      window.removeEventListener("dialogue:moves:refresh", h);
+      window.removeEventListener("arguments:changed", h);
+    };
+  }, [mutateCQs, mutateAttach, mutateMoves, mutateEdges]);
+
+  // ----- Helper functions -----
   function sigOf(schemeKey: string, cqKey: string) {
     return `${schemeKey}:${cqKey}`;
   }
 
+  async function revalidateAll(schemeKey?: string) {
+    await Promise.all([
+      mutateCQs(),
+      mutateAttach(),
+      mutateMoves(),
+      mutateEdges(),
+      globalMutate(TOULMIN_KEY(targetId)),
+      roomId && currentLens
+        ? globalMutate(GRAPH_KEY(roomId, currentLens, currentAudienceId))
+        : Promise.resolve(),
+    ]);
+  }
+
+  function flashOk(sig: string) {
+    setOkKey(sig);
+    setTimeout(() => setOkKey((k) => (k === sig ? null : k)), 1000);
+  }
+
+  function canMarkAddressed(sig: string, satisfied: boolean) {
+    if (satisfied) return true;
+    const attachedSpecific = !!attachData?.attached?.[sig];
+    const attachedAny = !!attachData?.attached?.["__ANY__"];
+    return attachedSpecific || attachedAny;
+  }
+
+  // ----- Toggle CQ status (main action) -----
   async function toggleCQ(
     schemeKey: string,
     cqKey: string,
@@ -190,13 +240,12 @@ export default function CriticalQuestions({
     const sig = sigOf(schemeKey, cqKey);
     setBlockedMsg((m) => ({ ...m, [sig]: "" }));
 
-    // small “✓” linger when setting true
     if (next) {
       setOkKey(sig);
       setTimeout(() => setOkKey((k) => (k === sig ? null : k)), 1000);
     }
 
-    // optimistic local flip
+    // Optimistic update
     globalMutate(
       CQS_KEY(targetId),
       (cur: CQsResponse | undefined) => {
@@ -243,7 +292,6 @@ export default function CriticalQuestions({
       }
 
       if (!res.ok && res.status !== 409) {
-        // generic failure
         let msg = "Failed to toggle";
         try {
           const t = await res.text();
@@ -252,235 +300,71 @@ export default function CriticalQuestions({
         setBlockedMsg((m) => ({ ...m, [sig]: msg }));
       }
     } finally {
-      // re-sync caches no matter what
-      await Promise.all([
-        globalMutate(CQS_KEY(targetId)),
-        globalMutate(ATTACH_KEY(targetId)),
-        globalMutate(TOULMIN_KEY(targetId)),
-      ]);
+      await revalidateAll(schemeKey);
     }
   }
 
-  // inline grounds map: sig → text
-  const [groundsDraft, setGroundsDraft] = useState<Record<string, string>>({});
-
-  // Filtered schemes view (stable hooks → compute via memo)
-  const filtered = useMemo(() => {
-    if (!data || !prefilterKeys?.length) return data || null;
-    const wanted = new Set(
-      prefilterKeys.map((k) => `${k.schemeKey}:${k.cqKey}`)
-    );
-    const schemes = data.schemes
-      .map((s) => ({
-        ...s,
-        cqs: s.cqs.filter((cq) => {
-          const sig = `${s.key}:${cq.key}`;
-          return wanted.has(sig) && (!cq.satisfied || lingerKeys.has(sig));
-        }),
-      }))
-      .filter((s) => s.cqs.length);
-    return { ...data, schemes };
-  }, [data, prefilterKeys, lingerKeys]);
-
-  const view = filtered ??
-    data ?? { targetType: "claim", targetId, schemes: [] as Scheme[] };
-  const schemes: Scheme[] = Array.isArray(view.schemes) ? view.schemes : [];
-
-  // ----- helpers -----
-  // function sigOf(schemeKey: string, cqKey: string) { return `${schemeKey}:${cqKey}`; }
-
-  async function panelConfirmClaim(claimId: string) {
-    // fetch AF labels if you don’t already have them
-    const af = await fetch(
-      `/api/claims/labels?deliberationId=${deliberationId}`
-    )
-      .then((r) => r.json())
-      .catch(() => null);
-
-    await fetch("/api/dialogue/panel/confirm", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        deliberationId,
-        kind: "epistemic",
-        subject: { type: "claim", id: claimId },
-        rationale: "CQ satisfied, AF=IN",
-        inputs: {
-          cq: await await fetch(`/api/claims/${claimId}/cq/summary`)
-            .then((r) => r.json())
-            .catch(() => ({})),
-          af,
-        },
-      }),
-    });
-  }
-
-  async function revalidateAll(schemeKey?: string) {
-    await Promise.all([
-      globalMutate(CQS_KEY(targetId, schemeKey)),
-      globalMutate(TOULMIN_KEY(targetId)),
-      globalMutate(ATTACH_KEY(targetId)),
-      roomId && currentLens
-        ? globalMutate(GRAPH_KEY(roomId, currentLens, currentAudienceId))
-        : Promise.resolve(),
-    ]);
-  }
-
-  function flashOk(sig: string) {
-    setOkKey(sig);
-    setTimeout(() => setOkKey((k) => (k === sig ? null : k)), 1000);
-  }
-  function canMarkAddressed(sig: string, satisfied: boolean) {
-    if (satisfied) return true;
-    const attachedSpecific = !!attachData?.attached?.[sig];
-    const attachedAny = !!attachData?.attached?.["__ANY__"]; // fallback: any inbound rebut/undercut found
-    // Note: posting grounds alone does not satisfy the guard; keep checkbox disabled until there is an attachment.
-    return attachedSpecific || attachedAny;
-  }
-
-  // ----- actions -----
-
-  // // Toggle satisfied (with linger ✓)
-  // async function toggleCQ(schemeKey: string, cqKey: string, next: boolean) {
-  //   const sig = sigOf(schemeKey, cqKey);
-  //   if (next) {
-  //     setLingerKeys(p => new Set(p).add(sig));
-  //     setTimeout(() => setLingerKeys(p => { const n = new Set(p); n.delete(sig); return n; }), 1000);
-  //   }
-
-  //   // optimistic CQ cache
-  //   globalMutate(
-  //     CQS_KEY(targetId),
-  //     (cur: CQsResponse | undefined) => {
-  //       if (!cur) return cur;
-  //       return {
-  //         ...cur,
-  //         schemes: cur.schemes.map(s => s.key !== schemeKey ? s : {
-  //           ...s, cqs: s.cqs.map(cq => cq.key === cqKey ? { ...cq, satisfied: next } : cq),
-  //         })
-  //       };
-  //     },
-  //     { revalidate: false }
-  //   );
-
-  //   try {
-  //     setPostingKey(sig);
-  //     const res = await fetch('/api/cqs/toggle', {
-  //       method: 'POST',
-  //       headers: { 'content-type': 'application/json' },
-  //       body: JSON.stringify({ targetType, targetId, schemeKey, cqKey, satisfied: next, deliberationId }),
-  //     });
-
-  //     if (res.status === 409) {
-  //       const j = await res.json().catch(()=>null);
-  //       const req = j?.guard?.requiredAttack as ('rebut'|'undercut'|null);
-  //       const msg = req
-  //         ? `Needs a ${req} attached (or strong NLI for rebut).`
-  //         : `Needs an attached counter (rebut/undercut).`;
-  //       setBlockedMsg(m => ({ ...m, [sig]: msg }));
-  //       // Re-sync from server
-  //       await revalidateAll(schemeKey);
-  //       return;
-  //     }
-
-  //     if (!res.ok) throw new Error(await res.text());
-
-  //     setBlockedMsg(m => { const c = { ...m }; delete c[sig]; return c; });
-  //     window.dispatchEvent(new CustomEvent('dialogue:moves:refresh'));
-  //     flashOk(sig);
-  //   } finally {
-  //     setPostingKey(null);
-  //     await revalidateAll(schemeKey);
-  //   }
-  // }
-
-  // Resolve via grounds: post GROUNDS move (and optionally tick satisfied)
-  // async function resolveViaGrounds(schemeKey: string, cqKey: string, brief: string, alsoMark = true) {
-  //   const sig = sigOf(schemeKey, cqKey);
-  //   if (!brief.trim()) return;
-  //   try {
-  //     setPostingKey(sig);
-  //     await fetch('/api/dialogue/move', {
-  //       method: 'POST', headers: { 'content-type':'application/json' },
-  //       body: JSON.stringify({
-  //         deliberationId,
-  //         targetType: 'claim',
-  //         targetId,
-  //         kind: 'GROUNDS',
-  //         payload: { schemeKey, cqKey, brief },
-  //         autoCompile: true,
-  //         autoStep: true,
-  //       }),
-  //     });
-  //     setJustGrounded(p => new Set(p).add(sig));
-  //     window.dispatchEvent(new CustomEvent('dialogue:moves:refresh'));
-  //     if (alsoMark) await toggleCQ(schemeKey, cqKey, true);
-  //     flashOk(sig);
-  //   } finally {
-  //     setPostingKey(null);
-  //     setGroundsDraft(g => ({ ...g, [sig]: '' }));
-  //   }
-  // }
+  // ----- Resolve via GROUNDS move -----
   async function resolveViaGrounds(
-  schemeKey: string,
-  cqId: string,
-  brief: string,
-  alsoMark = false
-) {
-  const sig = sigOf(schemeKey, cqId);
-  const text = (brief || '').trim();
-  if (!text) return;
+    schemeKey: string,
+    cqId: string,
+    brief: string,
+    alsoMark = false
+  ) {
+    const sig = sigOf(schemeKey, cqId);
+    const text = (brief || "").trim();
+    if (!text) return;
 
-  try {
-    setPostingKey(sig);
-    const res = await fetch('/api/dialogue/move', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        deliberationId,
-        targetType: 'claim',
-        targetId,
-        kind: 'GROUNDS',
-        payload: {
-          schemeKey,           // optional, good for analytics/labels
-          cqId,                // ✅ the key the server pairs with WHY
-          locusPath: locus,    // ensure `const [locus,setLocus] = useState('0')`
-          expression: text,    // ✅ grounds go here
-          original: text       // optional copy for UI
-        },
-        autoCompile: true,
-        autoStep: true,
-      }),
-    });
-    if (!res.ok) throw new Error(await res.text());
-
-    // optional: mark satisfied after a successful GROUNDS
-    if (alsoMark) {
-      await fetch('/api/cqs/toggle', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
+    try {
+      setPostingKey(sig);
+      const res = await fetch("/api/dialogue/move", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          targetType,
-          targetId,
-          schemeKey,
-          cqKey: cqId,         // the toggle API uses cqKey
-          satisfied: true,
           deliberationId,
-          attachSuggestion: false,
+          targetType: "claim",
+          targetId,
+          kind: "GROUNDS",
+          payload: {
+            schemeKey,
+            cqId,
+            locusPath: locus,
+            expression: text,
+            original: text,
+          },
+          autoCompile: true,
+          autoStep: true,
         }),
       });
+      if (!res.ok) throw new Error(await res.text());
+
+      // Optional: mark satisfied after successful GROUNDS
+      if (alsoMark) {
+        await fetch("/api/cqs/toggle", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            targetType,
+            targetId,
+            schemeKey,
+            cqKey: cqId,
+            satisfied: true,
+            deliberationId,
+            attachSuggestion: false,
+          }),
+        });
+      }
+
+      window.dispatchEvent(new CustomEvent("dialogue:moves:refresh"));
+      flashOk(sig);
+    } finally {
+      setPostingKey(null);
+      setGroundsDraft((g) => ({ ...g, [sig]: "" }));
+      await revalidateAll(schemeKey);
     }
-
-    window.dispatchEvent(new CustomEvent('dialogue:moves:refresh'));
-    flashOk(sig);
-  } finally {
-    setPostingKey(null);
-    setGroundsDraft((g) => ({ ...g, [sig]: '' }));
-    await revalidateAll(schemeKey);
   }
-}
 
-  // Attach suggestion (existing selectedAttackerClaimId, or quick-create)
+  // ----- Attach suggestion with attacker claim -----
   async function attachWithAttacker(
     schemeKey: string,
     cqKey: string,
@@ -533,7 +417,7 @@ export default function CriticalQuestions({
     setComposeOpen(true);
   }
 
-  // quick-create a counter and attach
+  // Quick-create a counter and attach
   async function handleComposeSubmit() {
     if (!pendingAttach) return;
     const { schemeKey, cqKey, suggestion } = pendingAttach;
@@ -577,7 +461,54 @@ export default function CriticalQuestions({
     }
   }
 
-  // ----- rendering -----
+  async function panelConfirmClaim(claimId: string) {
+    const af = await fetch(
+      `/api/claims/labels?deliberationId=${deliberationId}`
+    )
+      .then((r) => r.json())
+      .catch(() => null);
+
+    await fetch("/api/dialogue/panel/confirm", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        deliberationId,
+        kind: "epistemic",
+        subject: { type: "claim", id: claimId },
+        rationale: "CQ satisfied, AF=IN",
+        inputs: {
+          cq: await fetch(`/api/claims/${claimId}/cq/summary`)
+            .then((r) => r.json())
+            .catch(() => ({})),
+          af,
+        },
+      }),
+    });
+  }
+
+  // ----- Filtered schemes view -----
+  const filtered = useMemo(() => {
+    if (!data || !prefilterKeys?.length) return data || null;
+    const wanted = new Set(
+      prefilterKeys.map((k) => `${k.schemeKey}:${k.cqKey}`)
+    );
+    const schemes = data.schemes
+      .map((s) => ({
+        ...s,
+        cqs: s.cqs.filter((cq) => {
+          const sig = `${s.key}:${cq.key}`;
+          return wanted.has(sig) && (!cq.satisfied || lingerKeys.has(sig));
+        }),
+      }))
+      .filter((s) => s.cqs.length);
+    return { ...data, schemes };
+  }, [data, prefilterKeys, lingerKeys]);
+
+  const view =
+    filtered ?? data ?? { targetType: "claim", targetId, schemes: [] as Scheme[] };
+  const schemes: Scheme[] = Array.isArray(view.schemes) ? view.schemes : [];
+
+  // ----- Rendering -----
   if (isLoading)
     return <div className="text-xs text-neutral-500">Loading CQs…</div>;
   if (error)
@@ -601,7 +532,6 @@ export default function CriticalQuestions({
                 const canAddress = canMarkAddressed(sig, satisfied);
                 const posting = postingKey === sig;
                 const ok = okKey === sig;
-
                 const rowSug: Suggestion =
                   cq.suggestion ?? suggestionForCQ(s.key, cq.key);
                 const groundsVal = groundsDraft[sig] ?? "";
@@ -612,8 +542,7 @@ export default function CriticalQuestions({
                     className="text-sm p-2 border-[1px] border-slate-200 rounded-md"
                   >
                     <div className="flex items-start justify-between gap-2">
-                      {/* left: text + checkbox */}
-
+                      {/* Left: Checkbox + text */}
                       <label className="flex-1 flex items-start gap-2 cursor-pointer">
                         <Checkbox
                           className="flex mt-1"
@@ -621,12 +550,7 @@ export default function CriticalQuestions({
                           onCheckedChange={(val) =>
                             toggleCQ(s.key, cq.key, Boolean(val))
                           }
-                          disabled={
-                            !canMarkAddressed(
-                              sigOf(s.key, cq.key),
-                              cq.satisfied
-                            ) || postingKey === sigOf(s.key, cq.key)
-                          }
+                          disabled={!canAddress || posting}
                         />
                         <span
                           className={`${
@@ -635,35 +559,21 @@ export default function CriticalQuestions({
                         >
                           {cq.text}
                         </span>
-                        {okKey === sigOf(s.key, cq.key) && (
+                        {ok && (
                           <span className="text-[10px] text-emerald-700 ml-1">
                             ✓
                           </span>
                         )}
-                        {!cq.satisfied &&
-                          !canMarkAddressed(
-                            sigOf(s.key, cq.key),
-                            cq.satisfied
-                          ) && (
-                            <span className="text-[10px] text-neutral-500 ml-2">
-                              (add)
-                            </span>
-                          )}
+                        {!cq.satisfied && !canAddress && (
+                          <span className="text-[10px] text-neutral-500 ml-2">
+                            (add)
+                          </span>
+                        )}
                       </label>
 
-                      {/* actions */}
+                      {/* Right: Action buttons */}
                       <div className="flex flex-col items-end gap-1">
-                        {/* locus control
-                        <div className="flex items-center gap-2">
-                          <label className="text-[11px]">Locus</label>
-                          <input
-                            className="text-[11px] border rounded px-1 py-0.5 w-20"
-                            value={locus}
-                            onChange={(e) => setLocus(e.target.value)}
-                          />
-                        </div> */}
-
-                        {/* locus + owner strip */}
+                        {/* Locus control */}
                         <div className="flex items-center gap-2 mb-1">
                           <label className="text-[11px]">Locus</label>
                           <input
@@ -675,115 +585,74 @@ export default function CriticalQuestions({
 
                         <div className="flex flex-wrap items-center gap-2">
                           <button
-  className="text-[11px] px-2 py-0.5 border rounded"
-  onClick={async () => {
-    await fetch('/api/dialogue/move', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        deliberationId,
-        targetType,
-        targetId,
-        kind: 'WHY',
-        payload: { locusPath: locus, schemeKey: s.key, cqId: cq.key }, // ✅
-      }),
-    });
-    window.dispatchEvent(new CustomEvent('dialogue:moves:refresh'));
-  }}
->
-  Ask WHY
-</button>
+                            className="text-[11px] px-2 py-0.5 border rounded"
+                            title="Confirm CQ/AF state"
+                            onClick={() => panelConfirmClaim(targetId)}
+                          >
+                            Confirm (panel)
+                          </button>
+
                           <button
                             className="text-[11px] px-2 py-0.5 border rounded"
-                            onClick={async () => {
-                              const brief = (
-                                window.prompt("Grounds (brief)", "") ?? ""
-                              ).trim();
-                              if (!brief) return;
-                              await postMove("GROUNDS", {
-                                brief,
-                                schemeKey: s.key,
-                                cqId: cq.key,
-                              });
-                              // Optional: open commit popover
-                              setCommitCtx({
-                                locus,
-                                owner: "Proponent",
-                                targetType: "claim",
-                                targetId,
-                              });
-                              setCommitOpen(true);
-                            }}
+                            onClick={() =>
+                              setShowLegalMoves(
+                                showLegalMoves === sig ? null : sig
+                              )
+                            }
                           >
-                            Supply GROUNDS
+                            {showLegalMoves === sig
+                              ? "Hide Moves"
+                              : "Show Moves"}
                           </button>
-                          <button
-                            className="text-[11px] px-2 py-0.5 border rounded"
-                            onClick={() => toggleCQ(s.key, cq.key, true)}
-                          >
-                            Mark satisfied
-                          </button>
-                          <button
-                            className="text-[11px] px-2 py-0.5 border rounded"
-                            onClick={() => toggleCQ(s.key, cq.key, false)}
-                          >
-                            Mark unsatisfied
-                          </button>
+
+                          {!satisfied && rowSug && (
+                            <button
+                              className="text-[11px] px-2 py-0 border rounded-md"
+                              disabled={posting}
+                              onClick={() => onAttachClick(s.key, cq.key, rowSug)}
+                              title={
+                                rowSug.type === "undercut"
+                                  ? "Attach undercut"
+                                  : `Attach rebut (${rowSug.scope ?? "conclusion"})`
+                              }
+                            >
+                              {posting ? "Attaching…" : "Attach"}
+                            </button>
+                          )}
                         </div>
 
-                        {blockedMsg[`${s.key}:${cq.key}`] && (
+                        {blockedMsg[sig] && (
                           <div className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1 mt-1">
-                            {blockedMsg[`${s.key}:${cq.key}`]}
+                            {blockedMsg[sig]}
                           </div>
                         )}
                       </div>
-                      <button
-                        className="text-[11px] border rounded px-2 py-0.5"
-                        onClick={async () => {
-                          await fetch("/api/dialogue/move", {
-                            method: "POST",
-                            headers: { "content-type": "application/json" },
-                            body: JSON.stringify({
-                              deliberationId,
-                              targetType,
-                              targetId,
-                              kind: "WHY",
-        payload: { locusPath: locus, schemeKey: s.key, cqId: cq.key }, // ✅
-                            }),
-                          });
-                          window.dispatchEvent(
-                            new CustomEvent("dialogue:moves:refresh")
-                          );
-                        }}
-                      >
-                        Ask WHY on this CQ
-                      </button>
-                      <button
-                        className="text-[11px] px-2 py-0.5 border rounded"
-                        onClick={() => panelConfirmClaim(targetId)}
-                        title="Record a receipt confirming current CQ/AF state"
-                      >
-                        Confirm (panel)
-                      </button>
-
-                      {/* right: attach suggestion */}
-                      {!satisfied && rowSug && (
-                        <button
-                          className="text-[11px] px-2 py-0 border rounded-md lockbutton"
-                          disabled={posting}
-                          onClick={() => onAttachClick(s.key, cq.key, rowSug)}
-                          title={
-                            rowSug.type === "undercut"
-                              ? "Attach undercut"
-                              : `Attach rebut (${rowSug.scope ?? "conclusion"})`
-                          }
-                        >
-                          {posting ? "Attaching…" : "Attach"}
-                        </button>
-                      )}
                     </div>
 
-                    {/* inline grounds */}
+                    {/* Legal moves panel */}
+                    {showLegalMoves === sig && (
+                      <div className="mt-2 pl-6 border-l-2 border-indigo-200 bg-indigo-50/30 p-2 rounded">
+                        <div className="text-xs font-semibold mb-1 text-slate-700">
+                          Legal Dialogical Moves:
+                        </div>
+                        <LegalMoveChips
+                          deliberationId={deliberationId}
+                          targetType="claim"
+                          targetId={targetId}
+                          locusPath={locus}
+                          onPosted={() => {
+                            window.dispatchEvent(
+                              new CustomEvent("claims:changed")
+                            );
+                            window.dispatchEvent(
+                              new CustomEvent("dialogue:moves:refresh")
+                            );
+                          }}
+                        />
+                      </div>
+                    )}
+
+                    {/* Inline grounds input */}
                     {!satisfied && (
                       <div className="mt-1 pl-6 flex items-center gap-2">
                         <Input
@@ -828,19 +697,20 @@ export default function CriticalQuestions({
                         >
                           {posting ? "Posting…" : "Post grounds"}
                         </Button>
-                        {/* (optional) just post grounds without marking satisfied */}
-       <Button
-  variant="ghost"
-  size="sm"
-  className="h-8 text-[12px]"
-  onClick={() => setGroundsDraft((g) => ({ ...g, [sig]: '' }))} // just clear
->
-  Clear
-</Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 text-[12px]"
+                          onClick={() =>
+                            setGroundsDraft((g) => ({ ...g, [sig]: "" }))
+                          }
+                        >
+                          Clear
+                        </Button>
                       </div>
                     )}
 
-                    {/* suggestion quick templates */}
+                    {/* Suggestion quick templates */}
                     {!satisfied && rowSug?.options?.length ? (
                       <div className="mt-1 pl-6 flex flex-wrap gap-1">
                         {rowSug.options.map((o) => (
@@ -862,7 +732,7 @@ export default function CriticalQuestions({
                       </div>
                     ) : null}
 
-                    {/* attach existing (tiny inline) */}
+                    {/* Attach existing counter */}
                     {!satisfied && (
                       <div className="pl-6 mt-1">
                         <button
@@ -885,6 +755,8 @@ export default function CriticalQuestions({
           </div>
         ))}
       </div>
+
+      {/* Commit popover */}
       {commitCtx && (
         <NLCommitPopover
           open={commitOpen}
@@ -907,6 +779,7 @@ export default function CriticalQuestions({
           }}
         />
       )}
+
       {/* Quick-compose dialog (new counter) */}
       <Dialog
         open={composeOpen}
@@ -925,7 +798,7 @@ export default function CriticalQuestions({
             <Textarea
               value={composeText}
               onChange={(e) => setComposeText(e.target.value)}
-              placeholder="e.g., The cited expert’s field is unrelated to the claim under discussion."
+              placeholder="e.g., The cited expert's field is unrelated to the claim under discussion."
               disabled={composeLoading}
               rows={5}
             />

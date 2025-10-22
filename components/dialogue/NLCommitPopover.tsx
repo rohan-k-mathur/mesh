@@ -1,128 +1,282 @@
 // components/dialogue/NLCommitPopover.tsx
-'use client';
-import * as React from 'react';
-import { normalizeNL } from '@/lib/nl';
+"use client";
+import * as React from "react";
+import { normalizeNL } from "@/lib/nl";
 
 export function NLCommitPopover({
-  open, onOpenChange,
-  deliberationId, targetType, targetId, locusPath,
-  defaultOwner = 'Proponent', // 'Proponent' | 'Opponent'
-  defaultPolarity = 'pos',    // 'pos' | 'neg'
-  defaultText = '',
+  open,
+  onOpenChange,
+  deliberationId,
+  targetType,
+  targetId,
+  locusPath,
+  defaultOwner = "Proponent",
+  defaultPolarity = "pos",
+  defaultText = "",
+  cqKey = "default",
   onDone,
 }: {
   open: boolean;
-  onOpenChange: (v:boolean)=>void;
+  onOpenChange: (v: boolean) => void;
   deliberationId: string;
-  targetType: 'argument'|'claim'|'card';
+  targetType: "argument" | "claim" | "card";
   targetId: string;
   locusPath: string;
-  defaultOwner?: 'Proponent'|'Opponent';
-  defaultPolarity?: 'pos'|'neg';
+  defaultOwner?: "Proponent" | "Opponent";
+  defaultPolarity?: "pos" | "neg";
   defaultText?: string;
-  onDone?: ()=>void;
-}) {
+  cqKey?: string;
+  onDone?: () => void;
+}): React.ReactElement | null {
   const [text, setText] = React.useState(defaultText);
-  const [owner, setOwner] = React.useState<'Proponent'|'Opponent'>(defaultOwner);
-  const [polarity, setPolarity] = React.useState<'pos'|'neg'>(defaultPolarity);
+  const [owner, setOwner] = React.useState<"Proponent" | "Opponent">(defaultOwner);
+  const [polarity, setPolarity] = React.useState<"pos" | "neg">(defaultPolarity);
   const [busy, setBusy] = React.useState(false);
-  const [preview, setPreview] = React.useState<{ kind:'fact'|'rule'; canonical:string; tips?:string[] }|null>(null);
-  const [error, setError] = React.useState<string|null>(null);
+  const [preview, setPreview] = React.useState<{
+    kind: "fact" | "rule";
+    canonical: string;
+    tips?: string[];
+  } | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (!open) {
+      setText(defaultText);
+      setError(null);
+      setPreview(null);
+    }
+  }, [open, defaultText]);
 
   React.useEffect(() => {
     let alive = true;
     (async () => {
-      if (!text.trim()) { setPreview(null); return; }
-      const res = await normalizeNL(text);
-      if (!alive) return;
-      if (!res.ok) { setPreview(null); setError('Could not parse. Try “A & B -> C”.'); return; }
-      if (res.kind === 'fact') setPreview({ kind:'fact', canonical: res.canonical, tips: res.suggestions });
-      else setPreview({ kind:'rule', canonical: res.canonical });
-      setError(null);
+      if (!text.trim()) {
+        setPreview(null);
+        setError(null);
+        return;
+      }
+      try {
+        const res = await normalizeNL(text);
+        if (!alive) return;
+        if (!res.ok) {
+          setPreview(null);
+          setError('Could not parse. Try "fact" or "A & B -> C" for rules.');
+          return;
+        }
+        if (res.kind === "fact") {
+          setPreview({
+            kind: "fact",
+            canonical: res.canonical,
+            tips: res.suggestions,
+          });
+        } else {
+          setPreview({ kind: "rule", canonical: res.canonical });
+        }
+        setError(null);
+      } catch (err) {
+        if (!alive) return;
+        console.error("[NLCommitPopover] Normalization error:", err);
+        setError("Failed to normalize input");
+        setPreview(null);
+      }
     })();
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, [text]);
 
   const submit = async () => {
     const canonical = preview?.canonical || text.trim();
-    if (!canonical) return;
+    if (!canonical) {
+      setError("Please enter a fact or rule");
+      return;
+    }
 
     setBusy(true);
+    setError(null);
+
     try {
-      // prefer the combined route when answering WHY; else fallback to plain commit+move pair.
-      const r = await fetch('/api/dialogue/answer-and-commit', {
-        method:'POST', headers:{'content-type':'application/json'},
+      const r = await fetch("/api/dialogue/answer-and-commit", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          deliberationId, targetType, targetId,
-          cqKey: 'default',                 // or pass a real cqKey if you have it in context
+          deliberationId,
+          targetType,
+          targetId,
+          cqKey,
           locusPath,
-          expression: canonical,            // canonical label or rule
-          original: text, 
+          expression: canonical,
+          original: text,
           commitOwner: owner,
-          commitPolarity: polarity
-        })
+          commitPolarity: polarity,
+        }),
       });
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      window.dispatchEvent(new CustomEvent('dialogue:moves:refresh'));
-      window.dispatchEvent(new CustomEvent('dialogue:cs:refresh', { detail: { dialogueId, ownerId: owner } } as any));
+
+      const result = await r.json();
+
+      if (!r.ok || !result.ok) {
+        throw new Error(result.error || `HTTP ${r.status}`);
+      }
+
+      window.dispatchEvent(
+        new CustomEvent("dialogue:moves:refresh", {
+          detail: { deliberationId, moveId: result.move?.id, kind: "GROUNDS" },
+        })
+      );
+      window.dispatchEvent(
+        new CustomEvent("dialogue:cs:refresh", {
+          detail: { dialogueId: deliberationId, ownerId: owner },
+        } as any)
+      );
+
       onDone?.();
       onOpenChange(false);
-    } catch (e:any) {
-      setError('Failed to post.'); 
-    } finally { setBusy(false); }
+    } catch (e: any) {
+      console.error("[NLCommitPopover] Submit error:", e);
+      setError(e.message || "Failed to post. Please try again.");
+    } finally {
+      setBusy(false);
+    }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      submit();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      onOpenChange(false);
+    }
+  };
+
+  if (!open) return null;
+
   return (
-    <div className="fixed inset-0 z-[1000] grid place-items-center bg-black/10">
-      <div className="w-[420px] rounded-lg border bg-white p-3 shadow-md">
-        <div className="text-sm font-semibold mb-1">Answer & Commit</div>
-        <div className="space-y-2">
-          <textarea
-            className="w-full h-20 border rounded p-2 text-sm"
-            placeholder='Type a fact or rule… e.g. "Congestion downtown is high" or "congestion_high & revenue_earmarked_transit -> net_public_benefit"'
-            value={text}
-            onChange={(e)=>setText(e.target.value)}
-          />
+    <div
+      className="fixed inset-0 z-[1000] grid place-items-center bg-black/20 backdrop-blur-sm"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !busy) onOpenChange(false);
+      }}
+    >
+      <div className="w-[480px] rounded-xl border border-slate-200 bg-white p-4 shadow-xl">
+        <div className="text-base font-semibold mb-3 text-slate-900">
+          Answer & Commit
+        </div>
+
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs font-medium text-slate-700 mb-1 block">
+              Fact or Rule
+            </label>
+            <textarea
+              className="w-full h-24 border border-slate-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent resize-none"
+              placeholder='Type a fact like "Congestion downtown is high" or a rule like "congestion_high & revenue_earmarked_transit -> net_public_benefit"'
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={handleKeyDown}
+              disabled={busy}
+              autoFocus
+            />
+          </div>
+
           {preview ? (
-            <div className="text-[12px] rounded border bg-slate-50 px-2 py-1">
-              <div><b>Will save:</b> <code>{preview.canonical}</code> <span className="opacity-60">({preview.kind})</span></div>
+            <div className="text-xs rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">
+              <div className="flex items-start gap-2">
+                <span className="font-semibold text-emerald-800">
+                  Will save:
+                </span>
+                <code className="flex-1 text-emerald-900 font-mono">
+                  {preview.canonical}
+                </code>
+                <span className="text-emerald-600 opacity-75">
+                  ({preview.kind})
+                </span>
+              </div>
               {preview.tips?.length ? (
-                <div className="mt-1 flex flex-wrap gap-1">
-                  <span className="text-[11px] opacity-60">Try:</span>
-                  {preview.tips.slice(0,3).map((t,i)=>(
-                    <button key={i} className="text-[11px] underline decoration-dotted" onClick={()=>setText(t)}>{t}</button>
+                <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                  <span className="text-[11px] text-emerald-700 opacity-75">
+                    Suggestions:
+                  </span>
+                  {preview.tips.slice(0, 3).map((t, i) => (
+                    <button
+                      key={i}
+                      className="text-[11px] px-2 py-0.5 rounded border border-emerald-300 hover:bg-emerald-100 transition-colors"
+                      onClick={() => setText(t)}
+                      disabled={busy}
+                    >
+                      {t}
+                    </button>
                   ))}
                 </div>
               ) : null}
             </div>
           ) : (
-            <div className="text-[12px] opacity-60">Enter a fact or rule. Examples: <code>congestion_high</code> · <code>congestion_high & revenue_earmarked_transit -&gt; net_public_benefit</code></div>
+            <div className="text-xs text-slate-500 px-1">
+              Enter a fact or rule. Examples:{" "}
+              <code className="bg-slate-100 px-1 rounded">congestion_high</code>{" "}
+              ·{" "}
+              <code className="bg-slate-100 px-1 rounded">
+                A &amp; B -&gt; C
+              </code>
+            </div>
           )}
 
-          <div className="flex items-center gap-2 text-[12px]">
-            <label className="inline-flex items-center gap-1">
-              Owner:
-              <select className="border rounded px-1" value={owner} onChange={(e)=>setOwner(e.target.value as any)}>
+          <div className="flex items-center gap-3 text-xs">
+            <label className="inline-flex items-center gap-1.5 text-slate-700">
+              <span className="font-medium">Owner:</span>
+              <select
+                className="border border-slate-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                value={owner}
+                onChange={(e) => setOwner(e.target.value as any)}
+                disabled={busy}
+              >
                 <option>Proponent</option>
                 <option>Opponent</option>
               </select>
             </label>
-            <label className="inline-flex items-center gap-1">
-              Polarity:
-              <select className="border rounded px-1" value={polarity} onChange={(e)=>setPolarity(e.target.value as any)}>
-                <option value="pos">fact</option>
-                <option value="neg">rule</option>
+            <label className="inline-flex items-center gap-1.5 text-slate-700">
+              <span className="font-medium">Type:</span>
+              <select
+                className="border border-slate-300 rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                value={polarity}
+                onChange={(e) => setPolarity(e.target.value as any)}
+                disabled={busy}
+              >
+                <option value="pos">Fact</option>
+                <option value="neg">Rule</option>
               </select>
             </label>
-            <span className="ml-auto text-[11px] opacity-60">@ {locusPath}</span>
+            <span className="ml-auto text-[11px] text-slate-500">
+              @ {locusPath}
+            </span>
           </div>
 
-          {error ? <div className="text-[12px] text-rose-700">{error}</div> : null}
-          <div className="flex items-center justify-end gap-2">
-            <button className="text-[12px] px-2 py-1 rounded border" onClick={()=>onOpenChange(false)} disabled={busy}>Cancel</button>
-            <button className="text-[12px] px-2 py-1 rounded border bg-slate-900 text-white" onClick={submit} disabled={busy || !text.trim()}>
-              {busy ? 'Posting…' : 'Post & Commit'}
-            </button>
+          {error ? (
+            <div className="text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-lg px-3 py-2">
+              {error}
+            </div>
+          ) : null}
+
+          <div className="flex items-center justify-between pt-2 border-t border-slate-200">
+            <div className="text-[11px] text-slate-500">
+              Press ⌘+Enter to submit
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                className="text-sm px-3 py-1.5 rounded-lg border border-slate-300 hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={() => onOpenChange(false)}
+                disabled={busy}
+              >
+                Cancel
+              </button>
+              <button
+                className="text-sm px-3 py-1.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={submit}
+                disabled={busy || !text.trim()}
+              >
+                {busy ? "Posting…" : "Post & Commit"}
+              </button>
+            </div>
           </div>
         </div>
       </div>

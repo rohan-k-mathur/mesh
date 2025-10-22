@@ -10,14 +10,19 @@ import { TargetType } from '@prisma/client';
 
 function useMicroToast() {
   const [msg, setMsg] = React.useState<{ kind:'ok'|'err'; text:string }|null>(null);
-  const show = React.useCallback((text:string, kind:'ok'|'err'='ok', ms=1400) => {
+  const show = React.useCallback((text:string, kind:'ok'|'err'='ok', ms=4000) => { // ✅ Increased from 1400ms to 4000ms
     setMsg({ kind, text }); const id = setTimeout(()=>setMsg(null), ms); return () => clearTimeout(id);
   }, []);
   const node = msg ? (
     <div className={[
-      'fixed bottom-3 right-3 z-50 rounded border px-2 py-1 text-xs shadow backdrop-blur bg-white/90',
-      msg.kind === 'ok' ? 'border-emerald-200 text-emerald-700' : 'border-rose-200 text-rose-700'
-    ].join(' ')}>{msg.text}</div>
+      'fixed bottom-4 right-4 z-50 rounded-lg border px-4 py-3 text-sm shadow-lg backdrop-blur bg-white/95 animate-in slide-in-from-bottom-2', // ✅ Better styling
+      msg.kind === 'ok' ? 'border-emerald-300 text-emerald-800 bg-emerald-50/95' : 'border-rose-300 text-rose-800 bg-rose-50/95'
+    ].join(' ')}>
+      <div className="flex items-center gap-2">
+        <span className="text-base">{msg.kind === 'ok' ? '✓' : '✕'}</span>
+        <span className="font-medium">{msg.text}</span>
+      </div>
+    </div>
   ) : null;
   return { show, node };
 }
@@ -79,31 +84,24 @@ export function LegalMoveChips({
 
       onPosted?.();
       mutate();
-      toast.show(`${m.label || m.kind} posted`, 'ok');
+      // ✅ Better success messages
+      const successMsg = 
+        m.kind === 'WHY' ? 'Challenge posted! Waiting for response.' :
+        m.kind === 'GROUNDS' ? 'Response posted successfully!' :
+        m.kind === 'CLOSE' ? 'Discussion closed.' :
+        m.kind === 'CONCEDE' ? 'Conceded - added to your commitments.' :
+        m.kind === 'RETRACT' ? 'Retracted successfully.' :
+        `${m.label || m.kind} posted`;
+      toast.show(successMsg, 'ok');
     } catch (e:any) {
-      toast.show(`Failed: ${m.label || m.kind}`, 'err');
+      toast.show(`Failed to post ${m.label || m.kind}: ${e.message}`, 'err');
     } finally {
       setBusy(null);
     }
   };
 
-  const answerAndCommit = async (m: Move) => {
-    if (busy) return;
-    const expression = (window.prompt('Commit label (fact or rule, e.g. "contract" or "A & B -> C")','') ?? '').trim();
-    if (!expression) return;
-    const cqKey = m.payload?.cqId ?? m.payload?.schemeKey ?? 'default';
-    setBusy('COMMIT');
-    try {
-      const r = await fetch('/api/dialogue/answer-and-commit', {
-        method:'POST', headers:{'content-type':'application/json'},
-        body: JSON.stringify({ deliberationId, targetType, targetId, cqKey, locusPath, expression, commitOwner, commitPolarity:'pos' })
-      });
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      await r.json().catch(()=>null);
-      onPosted?.(); mutate(); toast.show('Answered & committed', 'ok');
-    } catch { toast.show('Answer & commit failed', 'err'); }
-    finally { setBusy(null); }
-  };
+  // Removed: answerAndCommit now handled by NLCommitPopover modal
+  // No more browser prompt() - all GROUNDS moves now use the "+ commit" modal flow
 
   const moves = Array.isArray(data?.moves) ? (data!.moves as Move[]) : [];
 
@@ -142,61 +140,42 @@ export function LegalMoveChips({
       : 'border-slate-200 text-slate-700 hover:bg-slate-50',
     (m.disabled || !!busy) ? 'opacity-50 cursor-not-allowed' : ''
   ].join(' ');
- return (
+  return (
     <>
       <div className="flex flex-wrap gap-1">
         {sorted.map((m, i) => (
           <div key={`${m.kind}-${i}`} className="inline-flex items-center gap-1">
             <button
-              disabled={!!m.disabled}
-              title={m.reason || m.label}
-              // onClick={() => postMove(m)}
-              // className={cls(m)}
-                onClick={() => postMove(m)}
-              className={(m.kind === 'ASSERT' && (m as any)?.payload?.as === 'ACCEPT_ARGUMENT')
-                ? 'px-2 py-1 rounded text-xs border border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100'
+              disabled={!!m.disabled || !!busy || m.relevance === "unlikely"}
+              title={
+                m.disabled ? m.reason : 
+                m.kind === "WHY" ? "Challenge this claim - ask for justification" :
+                m.kind === "GROUNDS" ? "Respond to the challenge with your reasoning" :
+                m.kind === "CLOSE" ? "End this discussion and accept the current state" :
+                m.kind === "CONCEDE" ? "Accept this claim and add it to your commitments" :
+                m.kind === "RETRACT" ? "Withdraw your previous statement" :
+                m.label
+              }
+              onClick={() => {
+                // For GROUNDS moves, always open the modal (no more prompt!)
+                if (m.kind === "GROUNDS") {
+                  setPendingMove(m);
+                  setOpen(true);
+                } else {
+                  postMove(m);
+                }
+              }}
+              className={(m.kind === "ASSERT" && (m as any)?.payload?.as === "ACCEPT_ARGUMENT")
+                ? "px-2 py-1 rounded text-xs border border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100"
                 : cls(m)}
             >
-              {m.kind === 'CLOSE'   ? (m.label || 'Close (†)') :
-               m.kind === 'GROUNDS' ? `Answer ${m.label}` :
-               m.kind === 'WHY'     ? (m.label || 'CHALLENGE') :
+              {m.kind === "CLOSE"   ? (m.label || "Close (†)") :
+               m.kind === "GROUNDS" ? `Answer ${m.label}` :
+               m.kind === "WHY"     ? (m.label || "CHALLENGE") :
                m.label}
             </button>
-
-            {/* Answer & commit is available only for GROUNDS */}
-            {m.kind === 'GROUNDS' && !m.disabled && (
-              <button
-                className="text-[11px] underline decoration-dotted"
-                onClick={()=>{ setPendingMove(m); setOpen(true); }}
-              >
-                + commit
-              </button>
-            )}
           </div>
         ))}
-        {sorted.map(m => (
-  <div key={`${m.kind}-${m.label ?? ""}`} className="inline-flex items-center gap-1">
-    <button
-      disabled={!!m.disabled || !!busy || m.relevance === 'unlikely'}
-      title={m.reason || m.label}
-      onClick={() => postMove(m)}
-      className={[
-        'px-2 py-1 rounded text-xs border transition',
-        m.force === 'ATTACK' ? 'border-amber-200 hover:bg-amber-50' :
-        m.force === 'SURRENDER' ? 'border-slate-200 hover:bg-slate-50' :
-        'border-slate-200',
-        m.relevance === 'unlikely' ? 'opacity-60 cursor-not-allowed' : ''
-      ].join(' ')}
-    >
-      {m.label || m.kind}
-    </button>
-    {m.kind === 'GROUNDS' && !m.disabled && (
-      <button className="text-[11px] underline decoration-dotted" onClick={()=>{ setPendingMove(m); setOpen(true); }}>
-        + commit
-      </button>
-    )}
-  </div>
-))}
       </div>
 
       {open && pendingMove && (
@@ -204,9 +183,10 @@ export function LegalMoveChips({
           open={open}
           onOpenChange={setOpen}
           deliberationId={deliberationId}
-          targetType={targetType}
+          targetType={targetType as "argument" | "claim" | "card"}
           targetId={targetId}
           locusPath={pendingMove.payload?.justifiedByLocus ?? locusPath}
+          cqKey={pendingMove.payload?.cqId ?? pendingMove.payload?.schemeKey ?? "default"}
           defaultOwner={commitOwner}
           onDone={() => { mutate(); onPosted?.(); }}
         />

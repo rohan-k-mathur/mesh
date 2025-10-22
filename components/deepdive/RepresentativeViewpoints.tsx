@@ -7,7 +7,7 @@ import CQBar from './CQBar';
 import { useCQSummaryBatch } from '@/components/cq/useCQSummaryBatch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import CriticalQuestions from '@/components/claims/CriticalQuestions';
+import CriticalQuestions from '@/components/claims/CriticalQuestionsV2';
 import StyleDensityBadge from '@/components/rhetoric/StyleDensityBadge';
 import PracticalLedger from '@/components/practical/PracticalLedger';
 import SequentBadge from "../views/SequentBadge";
@@ -945,9 +945,7 @@ export function RepresentativeViewpoints(props: {
           onClick={async ()=>{ setPending(true); try { props.onReselect?.(s.rule, s.k); } finally { setPending(false); } }}>
           {pending ? 'Refreshing…' : 'Refresh Views'}
         </button>
-        <div className="text-xs text-neutral-600 flex flex-col gap-2">
-          <ClaimMiniMap deliberationId={s.deliberationId} />
-        </div>
+ 
       </div>
     </div>
   );

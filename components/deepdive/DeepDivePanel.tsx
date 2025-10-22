@@ -23,7 +23,7 @@ import DiagramView from "../map/DiagramView";
 import BehaviourInspectorCard from '@/components/ludics/BehaviourInspectorCard';
 import { scrollIntoViewById } from "@/lib/client/scroll";
 import { CommandCard, performCommand } from '@/components/dialogue/command-card/CommandCard';
-import { legalMovesToCommandCard } from "../dialogue/command-card/adapters";
+import { movesToActions } from "@/lib/dialogue/movesToActions"; // ✅ Use newer adapter
 import { computeFogForNodes } from "../dialogue/FogForNodesClient";
  import { useMinimapData } from '@/lib/client/minimap/useMinimapData';
 import useSWR, { mutate as swrMutate } from "swr";
@@ -183,7 +183,7 @@ function PanelCard({ deliberationId, targetType, targetId, locusPath }:{
 }) {
   const target = { deliberationId, targetType, targetId, locusPath };
   const { data } = useSWR(`/api/dialogue/legal-moves?deliberationId=${deliberationId}&targetType=${targetType}&targetId=${targetId}${locusPath ? `&locusPath=${locusPath}` : ''}`, (u)=>fetch(u,{cache:'no-store'}).then(r=>r.json()));
-  const actions = legalMovesToCommandCard(data?.moves ?? [], target, /* includeScaffolds */ true);
+  const actions = movesToActions(data?.moves ?? [], target); // ✅ Use newer adapter
   return <CommandCard actions={actions} onPerform={performCommand} />;
 }
 function onMinimapSelect(id: string, locusPath?: string | null) {
@@ -650,7 +650,7 @@ const { data: diag } = useSWR(
      fetcher,
      { revalidateOnFocus: false }
    );
- const cardActions = targetRef ? legalMovesToCommandCard(legalMoves?.moves ?? [], targetRef, true) : [];
+ const cardActions = targetRef ? movesToActions(legalMoves?.moves ?? [], targetRef) : []; // ✅ Use newer adapter
   
    // Revalidate SWR caches after protocol moves
    useEffect(() => {
@@ -960,8 +960,7 @@ onClearReply={() => setReplyTarget(null)}
        <div className="col-span-7">
          <CommandCard
            actions={cardActions}
-           onPerform={performCommand}   // calls /api/dialogue/move or inserts scaffolds
-           showHotkeyHints
+           onPerform={performCommand}
          />
          {!hudTarget && (
            <div className="mt-2 text-[11px] text-neutral-600">

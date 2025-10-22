@@ -2,8 +2,13 @@
 'use client';
 
 import { useRef, useState, useMemo, useCallback } from 'react';
+import useSWR from 'swr';
 import { useCegData } from '../graph/useCegData';
 import type { CegNode, CegEdge } from '../graph/useCegData';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import CriticalQuestions from '@/components/claims/CriticalQuestionsV2';
+
+const fetcher = (url: string) => fetch(url).then(r => r.json());
 
 interface CegMiniMapProps {
   deliberationId: string;
@@ -100,13 +105,25 @@ function useAdvancedForceLayout(
       });
 
       const clusterCount = clusters.size;
-      const clusterRadius = Math.min(width, height) *0;
+      const clusterRadius = Math.min(width, height) * 0.3;
 
       Array.from(clusters.entries()).forEach(([cid, clusterNodes], clusterIdx) => {
         const clusterAngle = (clusterIdx / clusterCount) * 2 * Math.PI;
         const clusterCenterX = centerX + clusterRadius * Math.cos(clusterAngle);
         const clusterCenterY = centerY + clusterRadius * Math.sin(clusterAngle);
-        const innerRadius = 200;
+        
+        // Dynamic inner radius based on cluster density
+        // Base calculation: scale with canvas size, node count, and cluster count
+        const baseRadius = Math.min(width, height) * 0.15; // 15% of canvas
+        const nodeDensityFactor = Math.sqrt(clusterNodes.length) / 3; // Scale with sqrt to avoid explosive growth
+        const clusterCountFactor = 1 / Math.sqrt(clusterCount); // More clusters = smaller inner radius
+        const innerRadius = Math.max(
+          30, // Minimum radius to prevent node overlap
+          Math.min(
+            baseRadius * nodeDensityFactor * clusterCountFactor,
+            Math.min(width, height) * 0.25 // Cap at 25% of canvas
+          )
+        );
 
         clusterNodes.forEach((node, i) => {
           const nodeAngle = (i / clusterNodes.length) * 2 * Math.PI;
@@ -304,14 +321,71 @@ export default function CegMiniMap({
   const [layoutMode, setLayoutMode] = useState<LayoutMode>('force');
   const [showClusters, setShowClusters] = useState(false);
   const [filterLabel, setFilterLabel] = useState<'all' | 'IN' | 'OUT' | 'UNDEC'>('all');
+  const [cqDialogOpen, setCqDialogOpen] = useState(false);
+  const [selectedClaimForCQ, setSelectedClaimForCQ] = useState<string | null>(null);
 
   const { nodes, edges, stats, loading, error } = useCegData(deliberationId);
 
+  // Fetch CQ data for all claims in the deliberation
+  const { data: cqData } = useSWR(
+    deliberationId ? `/api/deliberations/${deliberationId}/cqs` : null,
+    fetcher
+  );
+
+  // Fetch dialogical moves for WHY/GROUNDS counts
+  const { data: movesData } = useSWR(
+    deliberationId ? `/api/deliberations/${deliberationId}/moves` : null,
+    fetcher
+  );
+
+  // Enrich nodes with CQ and dialogical move data
+  const enrichedNodes = useMemo(() => {
+    return nodes.map(node => {
+      // CQ status - find data for this claim
+      const claimData = cqData?.items?.find((item: any) => item.targetId === node.id);
+      let required = 0;
+      let satisfied = 0;
+      
+      if (claimData?.schemes) {
+        for (const scheme of claimData.schemes) {
+          for (const cq of scheme.cqs || []) {
+            required++;
+            if (cq.satisfied) satisfied++;
+          }
+        }
+      }
+      
+      const cqPercentage = required > 0 ? Math.round((satisfied / required) * 100) : 0;
+
+      // Dialogical moves (WHY/GROUNDS) - handle different API response formats
+      const movesArray = Array.isArray(movesData) ? movesData : (movesData?.items || movesData?.moves || []);
+      const moves = movesArray.filter((m: any) => m.targetId === node.id);
+      const whyMoves = moves.filter((m: any) => m.kind === 'WHY');
+      const groundsMoves = moves.filter((m: any) => m.kind === 'GROUNDS');
+      
+      // Count open WHYs (WHY without matching GROUNDS)
+      const openWhys = whyMoves.filter((w: any) =>
+        !groundsMoves.some((g: any) =>
+          g.payload?.cqId === w.payload?.cqId &&
+          new Date(g.createdAt) > new Date(w.createdAt)
+        )
+      ).length;
+
+      const groundsCount = groundsMoves.length;
+
+      return {
+        ...node,
+        cqStatus: { required, satisfied, percentage: cqPercentage },
+        dialogicalStatus: { openWhys, groundsCount },
+      };
+    });
+  }, [nodes, cqData, movesData]);
+
   // Filter nodes based on current filter
   const filteredNodes = useMemo(() => {
-    if (filterLabel === 'all') return nodes;
-    return nodes.filter(n => n.label === filterLabel);
-  }, [nodes, filterLabel]);
+    if (filterLabel === 'all') return enrichedNodes;
+    return enrichedNodes.filter(n => n.label === filterLabel);
+  }, [enrichedNodes, filterLabel]);
 
   // Filter edges to only include visible nodes
   const filteredEdges = useMemo(() => {
@@ -375,6 +449,16 @@ export default function CegMiniMap({
   }, [filteredEdges]);
 
   const connectedNodes = hoveredId ? getConnectedNodes(hoveredId) : new Set<string>();
+
+  // Handle node click - open CQ dialog if CQs exist, otherwise just select
+  const handleNodeClick = useCallback((nodeId: string) => {
+    const node = enrichedNodes.find(n => n.id === nodeId);
+    if (node && node.cqStatus && node.cqStatus.required > 0) {
+      setSelectedClaimForCQ(nodeId);
+      setCqDialogOpen(true);
+    }
+    onSelectClaim?.(nodeId);
+  }, [enrichedNodes, onSelectClaim]);
 
   if (loading) {
     return (
@@ -661,7 +745,7 @@ export default function CegMiniMap({
                   key={node.id}
                   style={{ cursor: 'pointer' }}
                   opacity={opacity}
-                  onClick={() => onSelectClaim?.(node.id)}
+                  onClick={() => handleNodeClick(node.id)}
                   onMouseEnter={() => setHoveredId(node.id)}
                   onMouseLeave={() => setHoveredId(null)}
                   className="transition-all duration-200"
@@ -737,6 +821,47 @@ export default function CegMiniMap({
                       fontWeight="700"
                     >
                       +{node.approvals}
+                    </text>
+                  )}
+
+                  {/* CQ Status Badge */}
+                  {(node as any).cqStatus && (node as any).cqStatus.required > 0 && (
+                    <text
+                      x={pos.x}
+                      y={pos.y + scaledRadius + (node.approvals > 0 ? 17 : 9)}
+                      fontSize="6"
+                      fill="#6366f1"
+                      textAnchor="middle"
+                      fontWeight="700"
+                    >
+                      CQ {(node as any).cqStatus.percentage}%
+                    </text>
+                  )}
+
+                  {/* Open WHY count (if any) */}
+                  {(node as any).dialogicalStatus && (node as any).dialogicalStatus.openWhys > 0 && (
+                    <text
+                      x={pos.x + scaledRadius + 10}
+                      y={pos.y - scaledRadius - 2}
+                      fontSize="7"
+                      fill="#f59e0b"
+                      fontWeight="700"
+                    >
+                      ?{(node as any).dialogicalStatus.openWhys}
+                    </text>
+                  )}
+
+                  {/* GROUNDS count (if any) */}
+                  {(node as any).dialogicalStatus && (node as any).dialogicalStatus.groundsCount > 0 && (
+                    <text
+                      x={pos.x - scaledRadius - 10}
+                      y={pos.y - scaledRadius - 2}
+                      fontSize="7"
+                      fill="#10b981"
+                      textAnchor="end"
+                      fontWeight="700"
+                    >
+                      G:{(node as any).dialogicalStatus.groundsCount}
                     </text>
                   )}
 
@@ -844,6 +969,45 @@ export default function CegMiniMap({
                   ✓ {node.approvals} approval{node.approvals !== 1 ? 's' : ''}
                 </div>
               )}
+
+              {/* CQ Status */}
+              {(node as any).cqStatus && (node as any).cqStatus.required > 0 && (
+                <div className="mt-1.5 pt-1.5 border-t border-slate-700">
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span className="text-slate-900">Critical Questions:</span>
+                    <span className="font-bold text-indigo-400">
+                      {(node as any).cqStatus.satisfied}/{(node as any).cqStatus.required} ({(node as any).cqStatus.percentage}%)
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Dialogical Status */}
+              {(node as any).dialogicalStatus && ((node as any).dialogicalStatus.openWhys > 0 || (node as any).dialogicalStatus.groundsCount > 0) && (
+                <div className="mt-1.5 pt-1.5 border-t border-slate-700">
+                  <div className="grid grid-cols-2 gap-x-3 text-[10px]">
+                    {(node as any).dialogicalStatus.openWhys > 0 && (
+                      <div>
+                        <span className="text-slate-900">Open WHY:</span>{' '}
+                        <span className="font-bold text-amber-400">{(node as any).dialogicalStatus.openWhys}</span>
+                      </div>
+                    )}
+                    {(node as any).dialogicalStatus.groundsCount > 0 && (
+                      <div>
+                        <span className="text-slate-900">GROUNDS:</span>{' '}
+                        <span className="font-bold text-emerald-400">{(node as any).dialogicalStatus.groundsCount}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Click hint for CQs */}
+              {(node as any).cqStatus && (node as any).cqStatus.required > 0 && (
+                <div className="mt-1.5 pt-1.5 border-t border-slate-700 text-[9px] text-indigo-300 italic">
+                  Click to view critical questions →
+                </div>
+              )}
             </div>
           );
         })()}
@@ -932,6 +1096,22 @@ export default function CegMiniMap({
           </div>
         )}
       </div>
+
+      {/* CQ Dialog */}
+      <Dialog open={cqDialogOpen} onOpenChange={setCqDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Critical Questions</DialogTitle>
+          </DialogHeader>
+          {selectedClaimForCQ && (
+            <CriticalQuestions
+              targetType="claim"
+              targetId={selectedClaimForCQ}
+              deliberationId={deliberationId}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

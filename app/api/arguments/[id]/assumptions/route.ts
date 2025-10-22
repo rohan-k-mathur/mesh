@@ -29,7 +29,14 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   await prisma.assumptionUse.deleteMany({ where: { argumentId: argId } });
   if (items.length) {
     await prisma.assumptionUse.createMany({
-      data: items.map(i => ({ ...i, deliberationId, argumentId: argId }))
+      data: items.map(i => ({
+        deliberationId,
+        argumentId: argId,
+        assumptionClaimId: i.assumptionId, // Map assumptionId -> assumptionClaimId
+        role: i.role,
+        weight: i.weight,
+        metaJson: i.metaJson,
+      }))
     });
   }
   return NextResponse.json({ ok: true, count: items.length }, NO_STORE);

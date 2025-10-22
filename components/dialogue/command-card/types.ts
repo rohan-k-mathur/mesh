@@ -9,7 +9,10 @@ export type ProtocolKind =
   | 'CONCEDE'
   | 'RETRACT'
   | 'CLOSE'
-  | 'ACCEPT_ARGUMENT';
+  | 'ACCEPT_ARGUMENT'
+  | 'THEREFORE'    // ✅ Added structural moves
+  | 'SUPPOSE'
+  | 'DISCHARGE';
 
 export type ScaffoldKind =
   | 'FORALL_INSTANTIATE'   // ∀

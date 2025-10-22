@@ -3,7 +3,7 @@ import * as React from 'react';
 import useSWR from 'swr';
 import { SCHEME_SPECS, scanCues, densityPer100, SchemeKey } from './schemeSignals';
 import { useCQSummaryBatch } from '@/components/cq/useCQSummaryBatch';
-import CriticalQuestions from '@/components/claims/CriticalQuestions';
+import CriticalQuestions from '@/components/claims/CriticalQuestionsV2';
 
 const fetcher = (u: string) => fetch(u, { cache: 'no-store' }).then(r => r.json());
 

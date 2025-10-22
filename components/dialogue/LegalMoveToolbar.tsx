@@ -57,7 +57,7 @@ export function LegalMoveToolbar({
   const [busy, setBusy] = React.useState(false);
   const [inlineWhy, setInlineWhy] = React.useState(false);
   const [whyNote, setWhyNote] = React.useState("");
-  const [useCommandCard, setUseCommandCard] = React.useState(false);
+  const [useCommandCard, setUseCommandCard] = React.useState(true); // ✅ Changed: Grid view is now default
 
   async function postMove(m: Move, extraPayload: any = {}) {
     if (busy || m.disabled) return;
@@ -131,10 +131,11 @@ export function LegalMoveToolbar({
         </div>
         <div className="flex items-center gap-2">
           <button
-            className="text-[11px] px-2 py-1 rounded border border-slate-200 hover:bg-slate-50"
+            className="text-[11px] px-2 py-1 rounded border border-slate-200 hover:bg-slate-50 transition-colors"
             onClick={() => setUseCommandCard(!useCommandCard)}
+            title={useCommandCard ? "Switch to list view" : "Switch to grid view"}
           >
-            {useCommandCard ? 'List View' : 'Grid View'}
+            {useCommandCard ? '📋 List View' : '⚖️ Grid View'}
           </button>
           {disabled.length > 0 && (
             <button className="text-[11px] underline underline-offset-4 decoration-dotted " onClick={() => setShowAll(v => !v)}>
@@ -177,21 +178,25 @@ export function LegalMoveToolbar({
                   {why.label || "Ask WHY"}
                 </button>
               ) : (
-                <div className="flex items-center gap-1">
-                  <input
-                    className="text-xs rounded border px-2 py-1 w-56"
-                    placeholder="WHY? (brief note)…"
-                    value={whyNote}
-                    onChange={e => setWhyNote(e.target.value)}
-                  />
-                  <button
-                    className="px-2 py-1 rounded text-xs border border-amber-200 text-amber-700"
-                    disabled={!whyNote.trim() || busy}
-                    onClick={() => postMove(why, { note: whyNote.trim() }).then(()=>{ setInlineWhy(false); setWhyNote(""); })}
-                  >
-                    Post WHY
-                  </button>
-                  <button className="text-[11px]" onClick={() => { setInlineWhy(false); setWhyNote(""); }}>Cancel</button>
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-1">
+                    <input
+                      className="text-xs rounded border px-2 py-1 w-80"
+                      placeholder='e.g. "What evidence supports this?" or "How do you know this?"'
+                      value={whyNote}
+                      onChange={e => setWhyNote(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter' && whyNote.trim() && !busy) { postMove(why, { note: whyNote.trim() }).then(()=>{ setInlineWhy(false); setWhyNote(""); }); } }}
+                    />
+                    <button
+                      className="px-2 py-1 rounded text-xs border border-amber-200 text-amber-700 hover:bg-amber-100"
+                      disabled={!whyNote.trim() || busy}
+                      onClick={() => postMove(why, { note: whyNote.trim() }).then(()=>{ setInlineWhy(false); setWhyNote(""); })}
+                    >
+                      {busy ? "Posting..." : "Post WHY"}
+                    </button>
+                    <button className="text-[11px] hover:text-slate-700 text-slate-500" onClick={() => { setInlineWhy(false); setWhyNote(""); }}>Cancel</button>
+                  </div>
+                  <p className="text-[10px] text-slate-500 italic">💡 Tip: Ask a specific question about why they make this claim</p>
                 </div>
               )}
             </div>

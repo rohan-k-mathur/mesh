@@ -13,9 +13,12 @@ import {
   Sparkles,
   ChevronRight,
   Swords,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { preferred } from '@/lib/argumentation/afEngine';
 import { SchemeComposerPicker } from '../SchemeComposerPicker';
+import CriticalQuestions from '@/components/claims/CriticalQuestionsV2';
 
 type ClaimRef = { id: string; text: string };
 type Prem = { id: string; text: string };
@@ -128,6 +131,9 @@ function AttackMenuContent({
   const [showRebut, setShowRebut] = React.useState(false);
   const [showUndermine, setShowUndermine] = React.useState(false);
 
+  // CQ panel toggle
+  const [showCQs, setShowCQs] = React.useState(false);
+
   const [rebut, setRebut] = React.useState<ClaimRef | null>(null);
   const [undercutText, setUndercutText] = React.useState('');
   const [premiseId, setPremiseId] = React.useState(target.premises[0]?.id ?? '');
@@ -151,7 +157,8 @@ function AttackMenuContent({
     });
     const j = await r.json().catch(() => ({}));
     if (!r.ok || j?.ok === false) throw new Error(j?.error || `HTTP ${r.status}`);
-    return j.id as string;
+    // API returns { claim: { id, ... }, created: boolean }
+    return (j.claim?.id || j.id) as string;
   }, [authorId, deliberationId]);
 
 const postAssumption = React.useCallback(
@@ -161,9 +168,11 @@ const postAssumption = React.useCallback(
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({
         deliberationId,
-        role,
-        assumptionClaimId,
-        metaJson: meta ?? null,
+        items: [{
+          assumptionId: assumptionClaimId,
+          role,
+          metaJson: meta ?? null,
+        }]
       }),
       signal,
     });
@@ -262,6 +271,41 @@ if (!p.ok) {
 
   return (
     <div className="space-y-6">
+      {/* CQ Toggle Button */}
+      <button
+        onClick={() => setShowCQs(!showCQs)}
+        className="w-full flex items-center justify-between px-4 py-2.5 rounded-lg border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span className="text-sm font-semibold text-indigo-900">
+            {showCQs ? 'Hide' : 'View'} Critical Questions
+          </span>
+        </div>
+        {showCQs ? (
+          <ChevronUp className="w-4 h-4 text-indigo-600" />
+        ) : (
+          <ChevronDown className="w-4 h-4 text-indigo-600" />
+        )}
+      </button>
+
+      {/* CQ Panel */}
+      {showCQs && (
+        <div className="p-4 bg-indigo-50 rounded-lg border border-indigo-200">
+          <div className="text-xs text-indigo-700 mb-3 leading-relaxed">
+            Critical questions can help identify weaknesses in the argument structure before you attack.
+            Showing CQs for the conclusion claim.
+          </div>
+          <CriticalQuestions
+            targetType="claim"
+            targetId={target.conclusion.id}
+            deliberationId={deliberationId}
+          />
+        </div>
+      )}
+
       {/* REBUT */}
       <div className="group relative rounded-lg border border-rose-200 bg-rose-50  p-4 transition-all duration-200 hover:shadow-md">
         <div className="flex items-start gap-3 mb-3">
