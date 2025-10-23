@@ -1098,7 +1098,7 @@ export default function CegMiniMap({
       </div>
 
       {/* CQ Dialog */}
-      <Dialog open={cqDialogOpen} onOpenChange={setCqDialogOpen}>
+      {/* <Dialog open={cqDialogOpen} onOpenChange={setCqDialogOpen}>
         <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Critical Questions</DialogTitle>
@@ -1111,7 +1111,7 @@ export default function CegMiniMap({
             />
           )}
         </DialogContent>
-      </Dialog>
+      </Dialog> */}
     </div>
   );
 }

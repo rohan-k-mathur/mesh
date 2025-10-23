@@ -72,6 +72,10 @@ const Body = z.object({
   targetId: z.string().min(1),
  kind: z.enum(['ASSERT','WHY','GROUNDS','RETRACT','CONCEDE','CLOSE','THEREFORE','SUPPOSE','DISCHARGE']),
   payload: z.any().optional(),
+  postAs: z.object({
+    targetType: z.enum(['argument','claim','card']),
+    targetId: z.string().min(1),
+  }).optional(),
   autoCompile: z.boolean().optional().default(true),
   autoStep: z.boolean().optional().default(true),
   phase: z.enum(['focus-P','focus-O','neutral']).optional().default('neutral'),
@@ -159,7 +163,7 @@ export async function POST(req: NextRequest) {
 
 const userId = await getCurrentUserId().catch(() => null);
 if (!userId) return NextResponse.json({ error:'Unauthorized' }, { status: 401 });
-  let { deliberationId, targetType, targetId, kind, payload, autoCompile, autoStep, phase, replyToMoveId, replyTarget } = parsed.data;
+  let { deliberationId, targetType, targetId, kind, payload, postAs, autoCompile, autoStep, phase, replyToMoveId, replyTarget } = parsed.data;
 
 
 
@@ -214,8 +218,15 @@ const ok = allowedActive.some(m => {
   const kindOk = m.kind === kind;
   const locusOk = !m.payload?.locusPath || m.payload.locusPath === (payload?.locusPath ?? '0');
   const cqOk = !m.payload?.cqId || m.payload.cqId === (payload?.cqId ?? payload?.schemeKey);
-  const postAsOk = !m.postAs || (m.postAs.targetType === targetType && m.postAs.targetId === targetId);
-  return kindOk && locusOk && cqOk && postAsOk;
+  // Check postAs: if legal move specifies postAs, request must match it
+  const postAsOk = !m.postAs || (
+    postAs && 
+    m.postAs.targetType === postAs.targetType && 
+    m.postAs.targetId === postAs.targetId
+  );
+  // Also check payload.as for ACCEPT_ARGUMENT and similar markers
+  const payloadAsOk = !m.payload?.as || m.payload.as === payload?.as;
+  return kindOk && locusOk && cqOk && postAsOk && payloadAsOk;
 });
 
 if (!ok) {
@@ -294,14 +305,28 @@ try {
   (payload as MovePayload).acts = acts;
 
 
-  // signature
-  const signature = makeSignature(kind, targetType, targetId, payload);
+  // If postAs is provided, use it as the actual target (e.g., ACCEPT_ARGUMENT posts to argument, not claim)
+  const actualTargetType = postAs?.targetType ?? targetType;
+  const actualTargetId = postAs?.targetId ?? targetId;
+
+  // signature (use actual target for signature generation)
+  const signature = makeSignature(kind, actualTargetType, actualTargetId, payload);
 
   // write (with P2002 de-dup)
   let move: any, dedup = false;
   try {
     move = await prisma.dialogueMove.create({
-      data: { deliberationId, targetType, targetId, kind, payload, actorId, signature, replyToMoveId, replyTarget },
+      data: { 
+        deliberationId, 
+        targetType: actualTargetType, 
+        targetId: actualTargetId, 
+        kind, 
+        payload, 
+        actorId, 
+        signature, 
+        replyToMoveId, 
+        replyTarget 
+      },
     });
   } catch (e: any) {
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
@@ -317,11 +342,11 @@ try {
   // after creating `move`:
   async function resolveProposition(): Promise<string | null> {
     try {
-      if (targetType === 'claim') {
-        const c = await prisma.claim.findUnique({ where: { id: targetId }, select: { text:true } });
+      if (actualTargetType === 'claim') {
+        const c = await prisma.claim.findUnique({ where: { id: actualTargetId }, select: { text:true } });
         if (c?.text) return c.text;
-      } else if (targetType === 'argument') {
-        const a = await prisma.argument.findUnique({ where: { id: targetId }, select: { text:true } });
+      } else if (actualTargetType === 'argument') {
+        const a = await prisma.argument.findUnique({ where: { id: actualTargetId }, select: { text:true } });
         if (a?.text) return a.text;
       }
     } catch {}

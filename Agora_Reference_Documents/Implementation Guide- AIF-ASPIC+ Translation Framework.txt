@@ -1,0 +1,3045 @@
+# Implementation Guide: AIF-ASPIC+ Translation Framework
+
+## Executive Summary
+
+This document provides a comprehensive implementation guide for bidirectional translation between the Argument Interchange Format (AIF) ontology and the ASPIC+ logical argumentation framework. It is based on the research paper "On Logical Specifications of the Argument Interchange Format" by Bex et al.
+
+**Core Purpose:** Enable computational argumentation systems to interchange argument data and evaluate argument acceptability using formal logical semantics.
+
+**Key Components:**
+1. AIF Core Ontology (graph-based argument representation)
+2. ASPIC+ Framework (structured argumentation with fixed preferences)
+3. E-ASPIC+ Framework (extended with defeasible preferences)
+4. Bidirectional translation functions
+5. Identity-preserving properties and constraints
+
+---
+
+## 1. Conceptual Foundation
+
+### 1.1 The Argument Interchange Format (AIF)
+
+**Purpose:** A common ontology for expressing arguments across different computational argumentation systems, tools, and approaches.
+
+**Key Design Principles:**
+- **Interlingua approach:** Reduces translation complexity from O(n²) to O(n) for n argumentation formats
+- **Abstract representation:** Uses typed directed graphs, independent of specific logical formalisms
+- **Minimal encoding bias:** Operates at knowledge level without symbol-level dependencies
+- **Extensible:** Supports both formal logical systems and informal natural language arguments
+
+**Architecture:** Two-layer structure
+1. **Upper Ontology:** Defines basic building blocks (nodes and edges)
+2. **Forms Ontology:** Defines argumentation-theoretic concepts (schemes, statement types)
+
+### 1.2 The ASPIC+ Framework
+
+**Purpose:** A logical framework for structured argumentation that:
+- Constructs arguments as inference trees
+- Defines attack relations between arguments
+- Uses preferences to determine which attacks succeed as defeats
+- Instantiates Dung's abstract argumentation frameworks
+- Satisfies formal rationality postulates
+
+**Key Features:**
+- Intermediate abstraction level between fully abstract and fully concrete systems
+- Accommodates both strict (deductive) and defeasible inference rules
+- Supports three forms of attack: undercutting, rebutting, undermining
+- Proven to subsume multiple other argumentation formalisms
+
+### 1.3 E-ASPIC+ Framework
+
+**Extension of ASPIC+** that:
+- Allows preferences to be argued for (not just given)
+- Supports attacks on attacks (preference attacks)
+- Instantiates Extended Argumentation Frameworks (EAFs)
+- Enables full argumentation about argument preferences
+
+---
+
+## 2. AIF Core Ontology Specification
+
+### 2.1 Node Types (Upper Ontology)
+
+#### Information Nodes (I-nodes)
+- **Purpose:** Represent propositions, statements, claims
+- **Content:** Text, formulas, or other information
+- **Attributes:** Identifier, content, optional metadata (creator, date, etc.)
+
+#### Scheme Application Nodes (S-nodes)
+Three subtypes:
+
+1. **Rule Application Nodes (RA-nodes)**
+   - Represent specific instances of inference
+   - Fulfill inference schemes from Forms Ontology
+   - Can be deductive or defeasible
+
+2. **Conflict Application Nodes (CA-nodes)**
+   - Represent specific instances of conflict
+   - Fulfill conflict schemes from Forms Ontology
+   - Not necessarily symmetric
+
+3. **Preference Application Nodes (PA-nodes)**
+   - Represent specific instances of preference
+   - Fulfill preference schemes from Forms Ontology
+   - Not necessarily symmetric
+
+### 2.2 Edge Types
+
+**Edges connecting to RA-nodes:**
+- `premise`: From I-node or RA-node to RA-node (input)
+- `presumption`: From I-node to RA-node (defeasible input)
+- `conclusion`: From RA-node to I-node or RA-node (output)
+
+**Edges connecting to CA-nodes:**
+- `conflicting element`: From I-node or RA-node to CA-node (attacker)
+- `conflicted element`: From CA-node to I-node or RA-node (attacked)
+
+**Edges connecting to PA-nodes:**
+- `preferred element`: From I-node or RA-node to PA-node (stronger element)
+- `dispreferred element`: From PA-node to I-node or RA-node (weaker element)
+
+### 2.3 Formal Definition of AIF Argument Graph
+
+```
+Definition: AIF Argument Graph G = (V, E)
+
+Where:
+- V = I ∪ RA ∪ CA ∪ PA (set of all nodes)
+- E ⊆ V × V \ I × I (set of typed edges, no direct I-to-I connections)
+
+Constraints:
+1. I-nodes only connect via S-nodes (no direct I-I edges)
+2. Each S-node has ≥1 predecessor and ≥1 successor
+3. RA-nodes: ≥1 premise, exactly 1 conclusion
+4. PA-nodes: exactly 1 preferred element, exactly 1 dispreferred element
+5. CA-nodes: exactly 1 conflicting element, exactly 1 conflicted element
+```
+
+### 2.4 Forms Ontology
+
+**Inference Schemes:**
+- Define general principles of inference (like rules in logic)
+- Can be deductive (guaranteed conclusions) or defeasible (presumptive conclusions)
+- Examples: Modus Ponens, Argument from Expert Opinion
+
+**Conflict Schemes:**
+- Define general principles of conflict
+- Two elements: conflicting (attacker), conflicted (attacked)
+- Example: Conflict from Expert Unreliability
+
+**Preference Schemes:**
+- Define general principles of preference
+- Two elements: preferred (stronger), dispreferred (weaker)
+- Can apply to inferences or information
+- Example: Expert Opinion preferred over General Knowledge
+
+**Statement Descriptions:**
+- Ordinary premises (can be attacked, compared by preference)
+- Axioms (cannot be attacked)
+- Assumptions (can be attacked, attacks always succeed)
+
+---
+
+## 3. ASPIC+ Framework Specification
+
+### 3.1 Core Components
+
+#### Argumentation System (AS)
+```
+AS = (L, ¯, R, ≤)
+
+Components:
+- L: Logical language (set of well-formed formulas)
+- ¯: Contrariness function (L → 2^L)
+- R = Rs ∪ Rd: Inference rules (strict ∪ defeasible)
+- ≤: Partial preorder on Rd (rule preferences)
+```
+
+#### Knowledge Base (KB)
+```
+KB = (K, ≤')
+
+Components:
+- K = Kn ∪ Kp ∪ Ka
+  - Kn: Necessary axioms (cannot be attacked)
+  - Kp: Ordinary premises (can be attacked with preferences)
+  - Ka: Assumptions (can be attacked, always defeated)
+- ≤': Partial preorder on K\Kn (premise preferences)
+```
+
+#### Argumentation Theory (AT)
+```
+AT = (AS, KB, ≺)
+
+Components:
+- AS: Argumentation system
+- KB: Knowledge base
+- ≺: Admissible argument ordering (derived from ≤ and ≤')
+```
+
+### 3.2 Inference Rules
+
+**Strict Rules:** `φ₁, ..., φₙ → φ`
+- If antecedents hold, consequent necessarily holds
+- Cannot be attacked on the inference itself
+
+**Defeasible Rules:** `φ₁, ..., φₙ ⇒ φ`
+- If antecedents hold, consequent presumably holds
+- Can be undercut (attacked on the inference)
+
+**Rule Naming Convention:**
+- Subset LR ⊆ L contains formulas naming rules
+- Each rule r ∈ R has a corresponding name r ∈ LR
+- Enables undercutting attacks in the object language
+
+### 3.3 Argument Structure
+
+**Recursive Definition:**
+```
+Argument A:
+1. Base case: φ if φ ∈ K
+   - Prem(A) = {φ}
+   - Conc(A) = φ
+   - Sub(A) = {φ}
+   - Rules(A) = ∅
+
+2. Inductive case: A₁,...,Aₙ →/⇒ ψ
+   if ∃ rule (Conc(A₁),...,Conc(Aₙ) →/⇒ ψ) ∈ R
+   - Prem(A) = Prem(A₁) ∪ ... ∪ Prem(Aₙ)
+   - Conc(A) = ψ
+   - Sub(A) = Sub(A₁) ∪ ... ∪ Sub(Aₙ) ∪ {A}
+   - Rules(A) = Rules(A₁) ∪ ... ∪ Rules(Aₙ) ∪ {rule}
+```
+
+**Argument Classifications:**
+- **Strict:** DefRules(A) = ∅ (no defeasible rules)
+- **Defeasible:** DefRules(A) ≠ ∅ (has defeasible rules)
+- **Firm:** Prem(A) ⊆ Kn (only axioms as premises)
+- **Plausible:** Prem(A) ⊄ Kn (has non-axiom premises)
+
+### 3.4 Attack Relations
+
+**Three Forms of Attack:**
+
+1. **Undercutting:** A undercuts B on B'
+   - Conc(A) ∈ ¯r for some B' ∈ Sub(B)
+   - Where B' has defeasible top rule r
+   - Attacks the inference itself
+
+2. **Rebutting:** A rebuts B on B'
+   - Conc(A) ∈ ¯φ for some B' ∈ Sub(B)
+   - Where B' = B''₁,...,B''ₙ ⇒ φ
+   - Attacks the conclusion of an inference
+   - **Contrary-rebut:** if Conc(A) is contrary (not contradictory) to φ
+
+3. **Undermining:** A undermines B on φ
+   - Conc(A) ∈ ¯φ for some φ ∈ Prem(B)\Kn
+   - Attacks a non-axiom premise
+   - **Contrary-undermine:** if Conc(A) is contrary to φ or φ ∈ Ka
+
+### 3.5 Defeat Relations
+
+**Preference-Independent Attacks** (always succeed):
+- Undercutting
+- Contrary-rebutting
+- Contrary-undermining
+
+**Preference-Dependent Attacks** (succeed only if not weaker):
+- Regular rebutting (Conc(A) contradicts conclusion)
+- Regular undermining (Conc(A) contradicts ordinary premise)
+
+**Defeat Definition:**
+```
+A defeats B iff:
+  A attacks B on B', AND
+  (attack is preference-independent OR A ⊀ B')
+```
+
+**Strict Defeat:**
+```
+A strictly defeats B iff:
+  A defeats B AND B does not defeat A
+```
+
+### 3.6 Corresponding Dung Framework
+
+```
+DF_AT = (A, C)
+
+Where:
+- A: Set of all arguments constructible from AT
+- C: Defeat relation on A (from Definition 3.9)
+```
+
+Apply Dung semantics (grounded, preferred, stable, etc.) to evaluate acceptability.
+
+---
+
+## 4. E-ASPIC+ Framework Specification
+
+### 4.1 Key Differences from ASPIC+
+
+**Removed:**
+- Fixed preference orderings ≤ and ≤'
+- Fixed argument ordering ≺
+
+**Added:**
+- Preference language Lm for expressing preferences
+- Partial function P extracting orderings from preference arguments
+- Second attack relation D for attacks on attacks (pref-attacks)
+
+### 4.2 Extended Components
+
+#### Extended Argumentation System (EAS)
+```
+EAS = (L, ¯, R)
+
+Components:
+- L: Includes preference sublanguage Lm
+- Lm = {l > l' | l, l' ∈ L} (preference expressions)
+- ¯: Contrariness function
+- R = Rs ∪ Rd
+- Rs includes axioms for partial preorder:
+  - o1: (z > y) ∧ (y > x) → (z > x) [transitivity]
+  - o2: (y > x) → ¬(x > y) [asymmetry]
+```
+
+#### Extended Knowledge Base (EKB)
+```
+EKB = K = Kn ∪ Kp ∪ Ka
+
+Note: No orderings ≤ or ≤' (preferences now argued for)
+```
+
+#### Extended Argumentation Theory (EAT)
+```
+EAT = (EAS, EKB, P)
+
+Where P is a partial function:
+  P: 2^A → Pow(A × A)
+
+Interpretation:
+  If (X,Y) ∈ P(φ), then Y ≺ X given arguments φ
+  (Y is less preferred than X based on arguments φ)
+```
+
+### 4.3 Preference Function P
+
+**Two Standard Definitions:**
+
+**Weakest-Link Principle:**
+- B ≺ A if ALL of B's defeasible rules are weaker than ALL of A's rules
+- AND ALL of B's ordinary/assumption premises are weaker than ALL of A's premises
+
+**Last-Link Principle:**
+- B ≺ A if B's LAST defeasible rule is weaker than ALL of A's last rules
+- OR (if both strict) if B has a premise weaker than ALL of A's premises
+
+### 4.4 Extended Argumentation Framework
+
+```
+EAF_C = (A, C, D)
+
+Components:
+- A: Set of arguments
+- C: Attack relation (as in ASPIC+)
+- D ⊆ (2^A \ ∅) × C: Pref-attacks (attacks on attacks)
+
+Definition of D:
+  (φ, (A,B)) ∈ D iff:
+    1. (A,B) ∈ C (A attacks B)
+    2. For all B' attacked by A:
+       ∃φ' ⊆ φ such that A ≺ B' ∈ P(φ')
+    3. φ is minimal satisfying condition 2
+    4. A's attack on B is NOT preference-independent
+```
+
+**S-Defeat (relative to set S):**
+```
+A S-defeats B iff:
+  (A,B) ∈ C AND
+  ¬∃φ ⊆ S such that (φ, (A,B)) ∈ D
+```
+
+---
+
+## 5. Translation: AIF to ASPIC+
+
+### 5.1 Translation Algorithm
+
+**Input:** AIF graph G, Forms F, fulfillment relations
+**Output:** ASPIC+ argumentation theory AT
+
+#### Step 1: Construct Language L
+```python
+def construct_language(G):
+    L_o = set(I_nodes(G))  # All I-nodes
+    L_R = set(RA_nodes(G)) # All RA-nodes (rule names)
+    return L_o.union(L_R)
+```
+
+#### Step 2: Construct Knowledge Base K
+```python
+def construct_knowledge_base(G, F):
+    K_n = set()  # Axioms
+    K_p = set()  # Ordinary premises
+    K_a = set()  # Assumptions
+    
+    initial_nodes = get_initial_nodes(G)
+    
+    for node in initial_nodes:
+        form = fulfills(node, F)
+        if form == "axiom":
+            K_n.add(node)
+        elif form == "assumption":
+            K_a.add(node)
+        else:
+            K_p.add(node)
+    
+    return (K_n, K_p, K_a)
+```
+
+#### Step 3: Construct Inference Rules R
+```python
+def construct_rules(G, F):
+    R_s = set()  # Strict rules
+    R_d = set()  # Defeasible rules
+    
+    for ra_node in RA_nodes(G):
+        # Get predecessors via premise edges
+        premises = get_predecessors(ra_node, edge_type="premise")
+        
+        # Get successor via conclusion edge
+        conclusion = get_successor(ra_node, edge_type="conclusion")
+        
+        # Determine rule type from form
+        form = fulfills(ra_node, F)
+        
+        if form == "deductive":
+            rule = StrictRule(premises, conclusion, name=ra_node)
+            R_s.add(rule)
+        else:  # defeasible
+            rule = DefeasibleRule(premises, conclusion, name=ra_node)
+            R_d.add(rule)
+    
+    return R_s.union(R_d)
+```
+
+#### Step 4: Construct Contrariness Relation
+```python
+def construct_contrariness(G):
+    contrariness = {}  # Dict: formula -> set of contraries
+    
+    for ca_node in CA_nodes(G):
+        conflicting = get_predecessor(ca_node, edge_type="conflicting_element")
+        conflicted = get_successor(ca_node, edge_type="conflicted_element")
+        
+        if conflicting not in contrariness:
+            contrariness[conflicting] = set()
+        contrariness[conflicting].add(conflicted)
+    
+    return contrariness
+```
+
+#### Step 5: Construct Preference Orderings
+```python
+def construct_preferences(G):
+    pref_premises = set()  # ≤' on K\Kn
+    pref_rules = set()     # ≤ on Rd
+    
+    for pa_node in PA_nodes(G):
+        preferred = get_predecessor(pa_node, edge_type="preferred_element")
+        dispreferred = get_successor(pa_node, edge_type="dispreferred_element")
+        
+        # Check if both are I-nodes (premise preference)
+        if is_I_node(preferred) and is_I_node(dispreferred):
+            pref_premises.add((dispreferred, preferred))
+        
+        # Check if both are RA-nodes (rule preference)
+        elif is_RA_node(preferred) and is_RA_node(dispreferred):
+            pref_rules.add((dispreferred, preferred))
+    
+    return pref_premises, pref_rules
+```
+
+#### Complete Translation Function
+```python
+def translate_AIF_to_ASPIC(G, F):
+    """
+    Translates AIF graph G to ASPIC+ argumentation theory.
+    
+    Args:
+        G: AIF argument graph (V, E)
+        F: Forms ontology with fulfillment relations
+    
+    Returns:
+        AT: ASPIC+ argumentation theory (AS, KB, ≺)
+    """
+    # Construct language
+    L = construct_language(G)
+    
+    # Construct knowledge base
+    K_n, K_p, K_a = construct_knowledge_base(G, F)
+    KB = (K_n.union(K_p).union(K_a), None)  # ≤' added later
+    
+    # Construct rules
+    R = construct_rules(G, F)
+    
+    # Construct contrariness
+    contrariness = construct_contrariness(G)
+    
+    # Construct preferences
+    pref_premises, pref_rules = construct_preferences(G)
+    
+    # Create argumentation system
+    AS = ArgumentationSystem(L, contrariness, R, pref_rules)
+    
+    # Add premise preferences to KB
+    KB = (KB[0], pref_premises)
+    
+    # Derive argument ordering from preferences
+    arg_ordering = derive_argument_ordering(pref_premises, pref_rules)
+    
+    # Create argumentation theory
+    AT = ArgumentationTheory(AS, KB, arg_ordering)
+    
+    return AT
+```
+
+### 5.2 Implementation Considerations
+
+**Validation Checks:**
+1. Verify all S-nodes have required predecessors/successors
+2. Check that preferences form partial preorder
+3. Ensure no PA/CA-nodes connect to RA-nodes via premise/conclusion
+4. Validate all nodes have proper fulfillment in Forms F
+
+**Edge Cases:**
+- **Unconnected RA-nodes:** Indicates unused inference schemes (may be intentional)
+- **Non-transitive preferences:** Invalid in ASPIC+ (will cause error)
+- **Cyclic preferences:** Invalid in ASPIC+ (must be acyclic)
+
+**Performance Optimization:**
+- Index nodes by type for fast lookup
+- Cache fulfillment relations
+- Use graph traversal algorithms for efficiency
+
+---
+
+## 6. Translation: ASPIC+ to AIF
+
+### 6.1 Translation Algorithm
+
+**Input:** Set of ASPIC+ arguments A (from theory AT)
+**Output:** AIF graph G, Forms F, fulfillment relations
+
+#### Step 1: Construct I-nodes
+```python
+def construct_I_nodes(Args_AT, F):
+    I = set()
+    fulfillment = {}
+    
+    # Extract all formulas from arguments (excluding rule names)
+    for arg in Args_AT:
+        for formula in Wff(arg):
+            if formula not in L_R:  # Not a rule name
+                I.add(formula)
+                
+                # Determine fulfillment
+                if formula in K_n:
+                    fulfillment[formula] = get_form(F, "axiom")
+                elif formula in K_p:
+                    fulfillment[formula] = get_form(F, "ordinary_premise")
+                elif formula in K_a:
+                    fulfillment[formula] = get_form(F, "assumption")
+    
+    return I, fulfillment
+```
+
+#### Step 2: Construct RA-nodes
+```python
+def construct_RA_nodes(Args_AT, F):
+    RA = set()
+    fulfillment = {}
+    
+    # Extract all rules used in arguments
+    for arg in Args_AT:
+        for rule in Rules(arg):
+            RA.add(rule.name)
+            
+            # Determine fulfillment
+            if rule in R_s:
+                fulfillment[rule.name] = get_form(F, "deductive_inference")
+            else:
+                fulfillment[rule.name] = get_form(F, "defeasible_inference")
+    
+    return RA, fulfillment
+```
+
+#### Step 3: Construct CA-nodes
+```python
+def construct_CA_nodes(Args_AT):
+    CA = set()
+    correspondence = {}  # Maps CA-node to (φ, ψ) pair
+    
+    node_counter = 0
+    
+    # Extract all contrary pairs from arguments
+    for arg in Args_AT:
+        for formula1 in Wff(arg):
+            for formula2 in Wff(arg):
+                if formula2 in contrariness(formula1):
+                    ca_node = f"ca{node_counter}"
+                    CA.add(ca_node)
+                    correspondence[ca_node] = (formula1, formula2)
+                    node_counter += 1
+    
+    return CA, correspondence
+```
+
+#### Step 4: Construct PA-nodes
+```python
+def construct_PA_nodes(Args_AT, pref_premises, pref_rules):
+    PA = set()
+    correspondence = {}  # Maps PA-node to (φ, ψ) pair
+    
+    node_counter = 0
+    
+    # Add premise preferences
+    for (weaker, stronger) in pref_premises:
+        if weaker in Prem(Args_AT) and stronger in Prem(Args_AT):
+            pa_node = f"pa{node_counter}"
+            PA.add(pa_node)
+            correspondence[pa_node] = (stronger, weaker)
+            node_counter += 1
+    
+    # Add rule preferences
+    for (weaker_rule, stronger_rule) in pref_rules:
+        if weaker_rule in Rules(Args_AT) and stronger_rule in Rules(Args_AT):
+            pa_node = f"pa{node_counter}"
+            PA.add(pa_node)
+            correspondence[pa_node] = (stronger_rule, weaker_rule)
+            node_counter += 1
+    
+    return PA, correspondence
+```
+
+#### Step 5: Construct Edges
+```python
+def construct_edges(I, RA, CA, PA, Args_AT, ca_correspondence, pa_correspondence):
+    E = set()
+    
+    # 1. Edges for RA-nodes (premise and conclusion edges)
+    for rule in RA:
+        rule_obj = get_rule_from_name(rule, Rules(Args_AT))
+        
+        # Add premise edges
+        for antecedent in rule_obj.antecedents:
+            edge = Edge(antecedent, rule, type="premise")
+            E.add(edge)
+        
+        # Add conclusion edge
+        edge = Edge(rule, rule_obj.consequent, type="conclusion")
+        E.add(edge)
+    
+    # 2. Edges for CA-nodes (conflicting and conflicted edges)
+    for ca_node, (conflicting, conflicted) in ca_correspondence.items():
+        edge1 = Edge(conflicting, ca_node, type="conflicting_element")
+        edge2 = Edge(ca_node, conflicted, type="conflicted_element")
+        E.add(edge1)
+        E.add(edge2)
+    
+    # 3. Edges for PA-nodes (preferred and dispreferred edges)
+    for pa_node, (preferred, dispreferred) in pa_correspondence.items():
+        edge1 = Edge(preferred, pa_node, type="preferred_element")
+        edge2 = Edge(pa_node, dispreferred, type="dispreferred_element")
+        E.add(edge1)
+        E.add(edge2)
+    
+    return E
+```
+
+#### Complete Translation Function
+```python
+def translate_ASPIC_to_AIF(Args_AT, AT, F):
+    """
+    Translates ASPIC+ arguments to AIF graph.
+    
+    Args:
+        Args_AT: Set of arguments constructed from AT
+        AT: ASPIC+ argumentation theory
+        F: Forms ontology
+    
+    Returns:
+        G: AIF argument graph
+        fulfillment: Dictionary mapping nodes to forms
+    """
+    # Extract components from AT
+    AS = AT.argumentation_system
+    KB = AT.knowledge_base
+    
+    # Construct nodes
+    I, i_fulfillment = construct_I_nodes(Args_AT, F)
+    RA, ra_fulfillment = construct_RA_nodes(Args_AT, F)
+    CA, ca_correspondence = construct_CA_nodes(Args_AT)
+    PA, pa_correspondence = construct_PA_nodes(
+        Args_AT, 
+        KB.premise_preferences, 
+        AS.rule_preferences
+    )
+    
+    # Combine fulfillments
+    fulfillment = {**i_fulfillment, **ra_fulfillment}
+    
+    # Construct edges
+    E = construct_edges(I, RA, CA, PA, Args_AT, 
+                       ca_correspondence, pa_correspondence)
+    
+    # Create graph
+    V = I.union(RA).union(CA).union(PA)
+    G = ArgumentGraph(V, E)
+    
+    return G, fulfillment
+```
+
+### 6.2 Implementation Considerations
+
+**Important Notes:**
+1. Translation requires **constructed arguments**, not just the theory
+2. Only rules **used in arguments** become RA-nodes
+3. Only preferences between **elements in arguments** become PA-nodes
+4. CA-nodes created for each contrary pair **appearing in arguments**
+
+**Uniqueness:**
+- Use consistent naming schemes (ca0, ca1, pa0, pa1, etc.)
+- Maintain correspondence mappings for debugging
+
+---
+
+## 7. Translation: AIF to E-ASPIC+
+
+### 7.1 Key Differences from ASPIC+ Translation
+
+**Changes Required:**
+1. Expand language to include preference sublanguage Lm
+2. Extract preference statements instead of fixed orderings
+3. Allow PA-nodes to connect to other PA-nodes (nested preferences)
+4. Handle reasons for preferences (RA-nodes concluding preferences)
+
+### 7.2 Translation Algorithm
+
+#### Step 1: Construct Extended Language
+```python
+def construct_extended_language(G):
+    """
+    Constructs L = Lo ∪ LR ∪ Lm
+    where Lm contains preference expressions recursively
+    """
+    L_o = set(I_nodes(G))
+    L_R = set(RA_nodes(G))
+    
+    # Recursively build Lm
+    L_m = build_preference_language(G)
+    
+    return L_o.union(L_R).union(L_m)
+
+def build_preference_language(G):
+    """
+    Recursively constructs Lm from PA-nodes
+    """
+    L_m_0 = set()
+    preference_mapping = {}  # Maps preference formula to PA-node
+    
+    # Level 0: Direct preferences between I-nodes or RA-nodes
+    for pa_node in PA_nodes(G):
+        preferred = get_predecessor(pa_node, edge_type="preferred_element")
+        dispreferred = get_successor(pa_node, edge_type="dispreferred_element")
+        
+        if (is_I_node(preferred) or is_RA_node(preferred)) and \
+           (is_I_node(dispreferred) or is_RA_node(dispreferred)):
+            pref_formula = f"{preferred} > {dispreferred}"
+            L_m_0.add(pref_formula)
+            preference_mapping[pref_formula] = pa_node
+    
+    # Higher levels: Preferences over preferences
+    L_m = L_m_0.copy()
+    current_level = L_m_0
+    
+    while True:
+        next_level = set()
+        
+        for pa_node in PA_nodes(G):
+            preferred = get_predecessor(pa_node, edge_type="preferred_element")
+            dispreferred = get_successor(pa_node, edge_type="dispreferred_element")
+            
+            # Check if this PA-node has PA-node predecessors/successors
+            if is_PA_node(preferred) or is_PA_node(dispreferred):
+                # Find the formulas these PA-nodes correspond to
+                pref_phi = find_formula_for_pa_node(preferred, preference_mapping)
+                pref_psi = find_formula_for_pa_node(dispreferred, preference_mapping)
+                
+                if pref_phi and pref_psi:
+                    nested_pref = f"({pref_phi}) > ({pref_psi})"
+                    next_level.add(nested_pref)
+                    preference_mapping[nested_pref] = pa_node
+        
+        if not next_level:
+            break
+        
+        L_m = L_m.union(next_level)
+        current_level = next_level
+    
+    return L_m, preference_mapping
+```
+
+#### Step 2: Construct Extended Knowledge Base
+```python
+def construct_extended_KB(G, F, L_m, preference_mapping):
+    """
+    K includes both regular premises and preference premises
+    """
+    K_n = set()
+    K_p = set()
+    K_a = set()
+    
+    # Regular initial I-nodes
+    initial_I_nodes = [n for n in get_initial_nodes(G) if is_I_node(n)]
+    
+    for node in initial_I_nodes:
+        form = fulfills(node, F)
+        if form == "axiom":
+            K_n.add(node)
+        elif form == "assumption":
+            K_a.add(node)
+        else:
+            K_p.add(node)
+    
+    # Preference premises (PA-nodes with at most one predecessor)
+    for pref_formula, pa_node in preference_mapping.items():
+        predecessors = get_predecessors(pa_node)
+        
+        if len(predecessors) <= 1:
+            # This is a premise preference (not inferred)
+            K_p.add(pref_formula)
+    
+    return K_n.union(K_p).union(K_a)
+```
+
+#### Step 3: Construct Inference Rules with Preferences
+```python
+def construct_extended_rules(G, F, L_m, preference_mapping):
+    """
+    Rules may have preference expressions as antecedents or consequents
+    """
+    R_s = set()
+    R_d = set()
+    
+    for ra_node in RA_nodes(G):
+        premises = []
+        
+        # Get all predecessors via premise edges
+        for pred in get_predecessors(ra_node, edge_type="premise"):
+            if is_I_node(pred) or is_RA_node(pred):
+                premises.append(pred)
+            elif is_PA_node(pred):
+                # This is a preference used as premise
+                pref_formula = find_formula_for_pa_node(pred, preference_mapping)
+                premises.append(pref_formula)
+        
+        # Get conclusion
+        successor = get_successor(ra_node, edge_type="conclusion")
+        
+        if is_I_node(successor) or is_RA_node(successor):
+            conclusion = successor
+        elif is_PA_node(successor):
+            # This RA-node infers a preference
+            conclusion = find_formula_for_pa_node(successor, preference_mapping)
+        
+        # Create rule
+        form = fulfills(ra_node, F)
+        
+        if form == "deductive":
+            rule = StrictRule(premises, conclusion, name=ra_node)
+            R_s.add(rule)
+        else:
+            rule = DefeasibleRule(premises, conclusion, name=ra_node)
+            R_d.add(rule)
+    
+    # Add partial preorder axioms
+    R_s.add(transitivity_axiom)  # o1
+    R_s.add(asymmetry_axiom)      # o2
+    
+    return R_s.union(R_d)
+```
+
+#### Step 4: Construct Contrariness with Preferences
+```python
+def construct_extended_contrariness(G, preference_mapping):
+    """
+    Contrariness may involve preference expressions
+    """
+    contrariness = {}
+    
+    for ca_node in CA_nodes(G):
+        conflicting = get_predecessor(ca_node, edge_type="conflicting_element")
+        conflicted = get_successor(ca_node, edge_type="conflicted_element")
+        
+        # Convert to formulas (may be preferences)
+        if is_PA_node(conflicting):
+            conflicting = find_formula_for_pa_node(conflicting, preference_mapping)
+        if is_PA_node(conflicted):
+            conflicted = find_formula_for_pa_node(conflicted, preference_mapping)
+        
+        if conflicting not in contrariness:
+            contrariness[conflicting] = set()
+        contrariness[conflicting].add(conflicted)
+    
+    return contrariness
+```
+
+#### Complete E-ASPIC+ Translation
+```python
+def translate_AIF_to_EASPIC(G, F):
+    """
+    Translates AIF graph to E-ASPIC+ argumentation theory.
+    
+    Args:
+        G: AIF argument graph
+        F: Forms ontology
+    
+    Returns:
+        EAT: E-ASPIC+ extended argumentation theory
+    """
+    # Construct extended language with preferences
+    L_o = set(I_nodes(G))
+    L_R = set(RA_nodes(G))
+    L_m, preference_mapping = build_preference_language(G)
+    L = L_o.union(L_R).union(L_m)
+    
+    # Construct extended knowledge base
+    K = construct_extended_KB(G, F, L_m, preference_mapping)
+    
+    # Construct rules (including preference reasoning)
+    R = construct_extended_rules(G, F, L_m, preference_mapping)
+    
+    # Construct contrariness
+    contrariness = construct_extended_contrariness(G, preference_mapping)
+    
+    # Create extended argumentation system
+    EAS = ExtendedArgumentationSystem(L, contrariness, R)
+    
+    # Create extended knowledge base
+    EKB = ExtendedKnowledgeBase(K)
+    
+    # Define P function (weakest-link or last-link)
+    P = define_P_function(preference_principle="weakest_link")
+    
+    # Create extended argumentation theory
+    EAT = ExtendedArgumentationTheory(EAS, EKB, P)
+    
+    return EAT
+```
+
+### 7.3 Implementing the P Function
+
+#### Weakest-Link Implementation
+```python
+def P_weakest_link(arguments_set):
+    """
+    Implements weakest-link preference principle.
+    Returns set of (A, B) pairs where B ≺ A.
+    """
+    preferences = set()
+    
+    for arg_set in arguments_set:
+        # Extract all preference conclusions from argument set
+        pref_conclusions = []
+        for arg in arg_set:
+            if is_preference_formula(Conc(arg)):
+                pref_conclusions.append(Conc(arg))
+        
+        # Check all argument pairs
+        for A in all_arguments:
+            for B in all_arguments:
+                if A == B:
+                    continue
+                
+                # Check defeasible rules
+                rules_A = DefRules(A)
+                rules_B = DefRules(B)
+                
+                rule_condition = True
+                if rules_A and rules_B:
+                    # For each rule in B, check if it's weaker than all rules in A
+                    for r_B in rules_B:
+                        has_stronger = False
+                        for r_A in rules_A:
+                            if f"{r_A} > {r_B}" in pref_conclusions:
+                                has_stronger = True
+                                break
+                        if not has_stronger:
+                            rule_condition = False
+                            break
+                elif not rules_A and not rules_B:
+                    rule_condition = True
+                else:
+                    rule_condition = False
+                
+                # Check premises (if no defeasible rules)
+                premise_condition = True
+                if not rules_A and not rules_B:
+                    premises_A = Prem(A) & (K_p | K_a)
+                    premises_B = Prem(B) & (K_p | K_a)
+                    
+                    if premises_A and premises_B:
+                        for p_B in premises_B:
+                            has_stronger = False
+                            for p_A in premises_A:
+                                if f"{p_A} > {p_B}" in pref_conclusions:
+                                    has_stronger = True
+                                    break
+                            if not has_stronger:
+                                premise_condition = False
+                                break
+                
+                if rule_condition and premise_condition:
+                    preferences.add((B, A))  # B ≺ A
+    
+    return preferences
+```
+
+#### Last-Link Implementation
+```python
+def P_last_link(arguments_set):
+    """
+    Implements last-link preference principle.
+    Returns set of (A, B) pairs where B ≺ A.
+    """
+    preferences = set()
+    
+    for arg_set in arguments_set:
+        pref_conclusions = [Conc(arg) for arg in arg_set 
+                           if is_preference_formula(Conc(arg))]
+        
+        for A in all_arguments:
+            for B in all_arguments:
+                if A == B:
+                    continue
+                
+                # Get last defeasible rules
+                last_rules_A = get_last_defeasible_rules(A)
+                last_rules_B = get_last_defeasible_rules(B)
+                
+                if last_rules_A and last_rules_B:
+                    # Check if any last rule of B is weaker than all last rules of A
+                    for r_B in last_rules_B:
+                        all_stronger = True
+                        for r_A in last_rules_A:
+                            if f"{r_A} > {r_B}" not in pref_conclusions:
+                                all_stronger = False
+                                break
+                        if all_stronger:
+                            preferences.add((B, A))
+                            break
+                
+                # If both strict, check premises
+                elif not last_rules_A and not last_rules_B:
+                    premises_A = Prem(A) & (K_p | K_a)
+                    premises_B = Prem(B) & (K_p | K_a)
+                    
+                    if premises_A and premises_B:
+                        for p_B in premises_B:
+                            all_stronger = True
+                            for p_A in premises_A:
+                                if f"{p_A} > {p_B}" not in pref_conclusions:
+                                    all_stronger = False
+                                    break
+                            if all_stronger:
+                                preferences.add((B, A))
+                                break
+    
+    return preferences
+```
+
+---
+
+## 8. Translation: E-ASPIC+ to AIF
+
+### 8.1 Translation Algorithm
+
+#### Step 1: Construct Nodes (with Preference Handling)
+```python
+def construct_extended_I_nodes(Args_EAT, F):
+    """
+    Constructs I-nodes, excluding preference expressions
+    """
+    I = set()
+    fulfillment = {}
+    
+    for arg in Args_EAT:
+        for formula in Wff(arg):
+            # Exclude rule names and preference expressions
+            if formula not in L_R and formula not in L_m:
+                I.add(formula)
+                
+                # Determine fulfillment
+                if formula in K_n:
+                    fulfillment[formula] = get_form(F, "axiom")
+                elif formula in K_p:
+                    fulfillment[formula] = get_form(F, "ordinary_premise")
+                elif formula in K_a:
+                    fulfillment[formula] = get_form(F, "assumption")
+    
+    return I, fulfillment
+
+def construct_extended_PA_nodes(Args_EAT):
+    """
+    Constructs PA-nodes from preference expressions in Lm
+    """
+    PA = set()
+    correspondence = {}
+    node_counter = 0
+    
+    # Get all preference formulas used in arguments
+    for arg in Args_EAT:
+        for formula in Wff(arg):
+            if formula in L_m:
+                # Parse preference: φ > ψ
+                phi, psi = parse_preference(formula)
+                
+                pa_node = f"pa{node_counter}"
+                PA.add(pa_node)
+                correspondence[pa_node] = (phi, psi)
+                node_counter += 1
+    
+    return PA, correspondence
+```
+
+#### Step 2: Construct Edges (with Preference Support)
+```python
+def construct_extended_edges(I, RA, CA, PA, Args_EAT, 
+                            ca_correspondence, pa_correspondence):
+    """
+    Constructs edges including preference reasoning edges
+    """
+    E = set()
+    
+    # Create reverse mapping: preference formula -> PA-node
+    pref_to_pa = {f"{phi} > {psi}": pa 
+                  for pa, (phi, psi) in pa_correspondence.items()}
+    
+    # 1. RA-node edges
+    for rule in RA:
+        rule_obj = get_rule_from_name(rule, Rules(Args_EAT))
+        
+        # Handle antecedents (may include preferences)
+        for antecedent in rule_obj.antecedents:
+            if antecedent in L_m:
+                # Antecedent is a preference
+                pa_node = pref_to_pa[antecedent]
+                edge = Edge(pa_node, rule, type="premise")
+            else:
+                # Regular antecedent
+                edge = Edge(antecedent, rule, type="premise")
+            E.add(edge)
+        
+        # Handle consequent (may be a preference)
+        consequent = rule_obj.consequent
+        if consequent in L_m:
+            # Consequent is a preference
+            pa_node = pref_to_pa[consequent]
+            edge = Edge(rule, pa_node, type="conclusion")
+        else:
+            # Regular consequent
+            edge = Edge(rule, consequent, type="conclusion")
+        E.add(edge)
+    
+    # 2. CA-node edges (may involve preferences)
+    for ca_node, (conflicting, conflicted) in ca_correspondence.items():
+        # Check if conflicting/conflicted are preferences
+        if conflicting in L_m:
+            conflicting_node = pref_to_pa[conflicting]
+        else:
+            conflicting_node = conflicting
+        
+        if conflicted in L_m:
+            conflicted_node = pref_to_pa[conflicted]
+        else:
+            conflicted_node = conflicted
+        
+        edge1 = Edge(conflicting_node, ca_node, type="conflicting_element")
+        edge2 = Edge(ca_node, conflicted_node, type="conflicted_element")
+        E.add(edge1)
+        E.add(edge2)
+    
+    # 3. PA-node edges (may be nested)
+    for pa_node, (phi, psi) in pa_correspondence.items():
+        # Determine if phi/psi are themselves preferences
+        if phi in L_m:
+            phi_node = pref_to_pa[phi]
+        else:
+            phi_node = phi
+        
+        if psi in L_m:
+            psi_node = pref_to_pa[psi]
+        else:
+            psi_node = psi
+        
+        edge1 = Edge(phi_node, pa_node, type="preferred_element")
+        edge2 = Edge(pa_node, psi_node, type="dispreferred_element")
+        E.add(edge1)
+        E.add(edge2)
+    
+    return E
+```
+
+#### Complete Translation
+```python
+def translate_EASPIC_to_AIF(Args_EAT, EAT, F):
+    """
+    Translates E-ASPIC+ arguments to AIF graph.
+    """
+    # Extract components
+    EAS = EAT.extended_argumentation_system
+    EKB = EAT.extended_knowledge_base
+    
+    # Construct nodes
+    I, i_fulfillment = construct_extended_I_nodes(Args_EAT, F)
+    RA, ra_fulfillment = construct_RA_nodes(Args_EAT, F)
+    CA, ca_correspondence = construct_CA_nodes(Args_EAT)
+    PA, pa_correspondence = construct_extended_PA_nodes(Args_EAT)
+    
+    fulfillment = {**i_fulfillment, **ra_fulfillment}
+    
+    # Construct edges
+    E = construct_extended_edges(I, RA, CA, PA, Args_EAT,
+                                ca_correspondence, pa_correspondence)
+    
+    # Create graph
+    V = I.union(RA).union(CA).union(PA)
+    G = ArgumentGraph(V, E)
+    
+    return G, fulfillment
+```
+
+---
+
+## 9. Identity-Preserving Properties
+
+### 9.1 Assumptions for Valid Translation
+
+#### For ASPIC+ Translations
+
+**Assumption 4.3:**
+No PA-node or CA-node can be connected to:
+- RA-node via premise or conclusion edge
+- PA-node via preferred/dispreferred element edge
+- CA-node via conflicting/conflicted element edge
+
+**Rationale:** ASPIC+ cannot express preferences or conflicts in the object language. You cannot argue about whether a preference holds or whether a conflict exists.
+
+#### For E-ASPIC+ Translations
+
+**Assumption 5.3:**
+No CA-node can be connected to:
+- RA-node via premise or conclusion edge
+- PA-node via preferred/dispreferred element edge
+- CA-node via conflicting/conflicted element edge
+
+**Rationale:** E-ASPIC+ allows preferences to be argued about (via Lm), but conflicts still cannot be reasoned about in the object language.
+
+### 9.2 Theorem: Identity Preservation for ASPIC+
+
+**Theorem 4.4:**
+Let G' be an AIF graph satisfying Assumption 4.3, and AT be the ASPIC+ argumentation theory based on G'. Let G be an AIF graph based on Args_AT. Then G is isomorphic to G'.
+
+**What this means:**
+- Translating AIF → ASPIC+ → AIF returns the original graph (up to node naming)
+- No information is lost in the round trip
+- All argumentative structure is preserved
+
+**Implementation Verification:**
+```python
+def verify_roundtrip_ASPIC(G_original, F):
+    """
+    Verifies identity-preserving property for ASPIC+ translation.
+    """
+    # Forward translation
+    AT = translate_AIF_to_ASPIC(G_original, F)
+    
+    # Construct arguments
+    Args_AT = construct_all_arguments(AT)
+    
+    # Backward translation
+    G_reconstructed, _ = translate_ASPIC_to_AIF(Args_AT, AT, F)
+    
+    # Check isomorphism
+    return is_isomorphic(G_original, G_reconstructed)
+```
+
+### 9.3 Theorem: Identity Preservation for E-ASPIC+
+
+**Theorem 5.4:**
+Let G' be an AIF graph satisfying Assumption 5.3, and EAT be the E-ASPIC+ argumentation theory based on G'. Let G be an AIF graph based on Args_EAT. Then G is isomorphic to G'.
+
+**What this means:**
+- Translating AIF → E-ASPIC+ → AIF returns the original graph
+- Preference reasoning is fully preserved
+- Nested preferences are maintained
+
+---
+
+## 10. Practical Implementation: Rationale Tool Example
+
+### 10.1 Rationale Diagram Format
+
+**Rationale Elements:**
+- **Text boxes:** Claims, statements (equivalent to I-nodes)
+- **Green arrows (reasons):** Support relations (equivalent to RA-nodes with defeasible inference)
+- **Red arrows (objections):** Opposition relations (equivalent to CA-nodes or rebutting arguments)
+
+**Rationale Extensions:**
+- Reasons for reasons (warrants)
+- Objections to reasons (undercutters)
+- Objections to objections (reinstaters)
+
+### 10.2 Translation: Rationale to AIF
+
+```python
+def translate_Rationale_to_AIF(rationale_diagram):
+    """
+    Translates Rationale diagram to AIF graph.
+    
+    Args:
+        rationale_diagram: Parsed Rationale file
+    
+    Returns:
+        G: AIF argument graph
+    """
+    I = set()
+    RA = set()
+    CA = set()
+    E = set()
+    
+    # Extract text boxes as I-nodes
+    for text_box in rationale_diagram.text_boxes:
+        I.add(text_box.id)
+    
+    # Extract reason links as RA-nodes
+    for reason_link in rationale_diagram.reason_links:
+        ra_node = f"ra_{reason_link.id}"
+        RA.add(ra_node)
+        
+        # Add edges
+        source = reason_link.source  # I-node or other link
+        target = reason_link.target  # I-node
+        
+        E.add(Edge(source, ra_node, type="premise"))
+        E.add(Edge(ra_node, target, type="conclusion"))
+    
+    # Extract objection links as CA-nodes
+    for objection_link in rationale_diagram.objection_links:
+        ca_node = f"ca_{objection_link.id}"
+        CA.add(ca_node)
+        
+        # Add edges
+        source = objection_link.source
+        target = objection_link.target
+        
+        E.add(Edge(source, ca_node, type="conflicting_element"))
+        E.add(Edge(ca_node, target, type="conflicted_element"))
+    
+    V = I.union(RA).union(CA)
+    G = ArgumentGraph(V, E)
+    
+    return G
+```
+
+### 10.3 Interpretation Challenges
+
+#### Challenge 1: Objections as Conflicts vs. Rebuttals
+
+**Rationale representation:**
+```
+i3: "The surf is dangerous" --opposes--> i1: "I should go to beach"
+```
+
+**Two interpretations:**
+
+**Interpretation A (Direct conflict):**
+```python
+# i3 is contrary to i1
+contrariness[i3] = {i1}
+
+# Creates rebutting argument
+B: i3 (premise)
+A: ... ⇒ i1
+# B rebuts A
+```
+
+**Interpretation B (Implicit inference):**
+```python
+# Create implicit inference
+rule: i3 ⇒ i1_neg ("I should not go to beach")
+
+# Creates explicit rebutting
+B: i3 ⇒ i1_neg
+A: ... ⇒ i1
+# B rebuts A on conclusion
+```
+
+#### Challenge 2: Reasons for Links
+
+**Rationale representation:**
+```
+i7: "I run risk of drowning" --supports--> [objection link from i3 to i1]
+```
+
+**Cannot translate directly to ASPIC+** because:
+- ASPIC+ doesn't support arguments for contrariness relations
+- Must reinterpret as preference or as part of argument structure
+
+**Workaround interpretations:**
+
+**Option A:** Interpret as strengthening the argument
+```python
+# i7 supports the inference to i1_neg
+i3, i7 ⇒ i1_neg  # Stronger argument against i1
+```
+
+**Option B:** Use E-ASPIC+ preferences
+```python
+# i7 provides reason for preferring argument B over A
+i7 ⇒ (B > A)  # Preference argument
+```
+
+#### Challenge 3: Objections to Objections
+
+**Rationale representation:**
+```
+i6: "I'm a strong swimmer" --opposes--> [objection from i3 to i1]
+```
+
+**E-ASPIC+ interpretation:**
+```python
+# i6 attacks the attack from B to A
+# This is naturally handled in E-ASPIC+ as pref-attack
+
+# i6 provides reason for i1 > i1_neg
+C: i6 ⇒ (A > B)  # Preference argument
+
+# This creates pref-attack: ({C}, (B, A)) ∈ D
+# Meaning: C undermines B's defeat of A
+```
+
+### 10.4 Complete Example Translation
+
+```python
+def translate_beach_example():
+    """
+    Complete translation of beach argument from Rationale through AIF to ASPIC+.
+    """
+    # 1. Parse Rationale diagram
+    rationale_diagram = parse_rationale_file("beach_argument.rationale")
+    
+    # 2. Translate to AIF
+    G_aif = translate_Rationale_to_AIF(rationale_diagram)
+    
+    # 3. Add interpretation annotations
+    # Mark i3 as implicitly inferring i1_neg
+    add_implicit_inference(G_aif, source="i3", target="i1_neg", 
+                          rationale="surf dangerous implies shouldn't go")
+    
+    # Mark i7 as supporting the implicit inference
+    add_support(G_aif, supporter="i7", supported="ra_implicit",
+               rationale="risk of drowning strengthens danger argument")
+    
+    # 4. Translate to E-ASPIC+
+    F = load_forms_ontology()
+    EAT = translate_AIF_to_EASPIC(G_aif, F)
+    
+    # 5. Construct and evaluate arguments
+    Args_EAT = construct_all_arguments(EAT)
+    EAF = construct_extended_AF(Args_EAT, EAT)
+    
+    # 6. Evaluate acceptability
+    extensions = compute_preferred_extensions(EAF)
+    
+    return {
+        'aif_graph': G_aif,
+        'eat': EAT,
+        'arguments': Args_EAT,
+        'extensions': extensions
+    }
+```
+
+---
+
+## 11. Implementation Architecture
+
+### 11.1 System Components
+
+```
+┌─────────────────────────────────────────────────────┐
+│              AIF Core Ontology Layer                │
+│  - Graph structure (nodes, edges)                   │
+│  - Forms ontology                                   │
+│  - Fulfillment relations                            │
+└────────────────┬────────────────────────────────────┘
+                 │
+        ┌────────┴────────┐
+        ▼                 ▼
+┌──────────────┐  ┌──────────────┐
+│  ASPIC+      │  │  E-ASPIC+    │
+│  Framework   │  │  Framework   │
+│              │  │              │
+│ - Fixed prefs│  │ - Arg. prefs │
+│ - 3 attacks  │  │ - Pref-attacks│
+└──────┬───────┘  └──────┬───────┘
+       │                 │
+       └────────┬────────┘
+                ▼
+    ┌───────────────────────┐
+    │  Dung Framework       │
+    │  - Semantics          │
+    │  - Acceptability      │
+    └───────────────────────┘
+```
+
+### 11.2 Core Data Structures
+
+#### Graph Representation
+```python
+class Node:
+    def __init__(self, id, node_type, content=None):
+        self.id = id
+        self.type = node_type  # "I", "RA", "CA", "PA"
+        self.content = content
+        self.fulfills = None   # Reference to form in F
+        self.attributes = {}   # Metadata
+
+class Edge:
+    def __init__(self, source, target, edge_type):
+        self.source = source
+        self.target = target
+        self.type = edge_type  # "premise", "conclusion", etc.
+
+class AIFGraph:
+    def __init__(self):
+        self.nodes = {}  # id -> Node
+        self.edges = []  # List of Edge objects
+    
+    def add_node(self, node):
+        self.nodes[node.id] = node
+    
+    def add_edge(self, edge):
+        self.edges.append(edge)
+    
+    def get_predecessors(self, node_id, edge_type=None):
+        """Returns all predecessor nodes, optionally filtered by edge type."""
+        preds = []
+        for edge in self.edges:
+            if edge.target == node_id:
+                if edge_type is None or edge.type == edge_type:
+                    preds.append(edge.source)
+        return preds
+    
+    def get_successors(self, node_id, edge_type=None):
+        """Returns all successor nodes, optionally filtered by edge type."""
+        succs = []
+        for edge in self.edges:
+            if edge.source == node_id:
+                if edge_type is None or edge.type == edge_type:
+                    succs.append(edge.target)
+        return succs
+    
+    def is_initial_node(self, node_id):
+        """Checks if node has no predecessors."""
+        return len(self.get_predecessors(node_id)) == 0
+    
+    def validate(self):
+        """Validates graph constraints from Definition 2.1."""
+        for node_id, node in self.nodes.items():
+            if node.type in ["RA", "CA", "PA"]:
+                # S-nodes must have predecessors and successors
+                if len(self.get_predecessors(node_id)) == 0:
+                    raise ValidationError(f"S-node {node_id} has no predecessors")
+                if len(self.get_successors(node_id)) == 0:
+                    raise ValidationError(f"S-node {node_id} has no successors")
+            
+            if node.type == "RA":
+                # Must have ≥1 premise, exactly 1 conclusion
+                premises = self.get_predecessors(node_id, "premise")
+                conclusions = self.get_successors(node_id, "conclusion")
+                if len(premises) == 0:
+                    raise ValidationError(f"RA-node {node_id} has no premises")
+                if len(conclusions) != 1:
+                    raise ValidationError(f"RA-node {node_id} must have exactly 1 conclusion")
+            
+            elif node.type == "PA":
+                # Must have exactly 1 preferred, 1 dispreferred
+                preferred = self.get_predecessors(node_id, "preferred_element")
+                dispreferred = self.get_successors(node_id, "dispreferred_element")
+                if len(preferred) != 1 or len(dispreferred) != 1:
+                    raise ValidationError(f"PA-node {node_id} must have 1 preferred and 1 dispreferred")
+            
+            elif node.type == "CA":
+                # Must have exactly 1 conflicting, 1 conflicted
+                conflicting = self.get_predecessors(node_id, "conflicting_element")
+                conflicted = self.get_successors(node_id, "conflicted_element")
+                if len(conflicting) != 1 or len(conflicted) != 1:
+                    raise ValidationError(f"CA-node {node_id} must have 1 conflicting and 1 conflicted")
+```
+
+#### ASPIC+ Structures
+```python
+class InferenceRule:
+    def __init__(self, name, antecedents, consequent, rule_type):
+        self.name = name
+        self.antecedents = antecedents  # List of formulas
+        self.consequent = consequent     # Single formula
+        self.type = rule_type            # "strict" or "defeasible"
+    
+    def __str__(self):
+        arrow = "→" if self.type == "strict" else "⇒"
+        return f"{', '.join(self.antecedents)} {arrow} {self.consequent}"
+
+class Argument:
+    def __init__(self):
+        self.premises = set()
+        self.conclusion = None
+        self.sub_arguments = set()
+        self.rules = set()
+        self.top_rule = None
+    
+    def is_strict(self):
+        return all(rule.type == "strict" for rule in self.rules)
+    
+    def is_firm(self, K_n):
+        return self.premises.issubset(K_n)
+
+class ArgumentationSystem:
+    def __init__(self, language, contrariness, rules, rule_preferences):
+        self.L = language
+        self.contrariness = contrariness  # Dict: formula -> set of contraries
+        self.R_s = {r for r in rules if r.type == "strict"}
+        self.R_d = {r for r in rules if r.type == "defeasible"}
+        self.rule_prefs = rule_preferences  # Set of (weaker, stronger) tuples
+
+class KnowledgeBase:
+    def __init__(self, K_n, K_p, K_a, premise_prefs):
+        self.K_n = K_n  # Axioms
+        self.K_p = K_p  # Ordinary premises
+        self.K_a = K_a  # Assumptions
+        self.premise_prefs = premise_prefs  # Set of (weaker, stronger) tuples
+
+class ArgumentationTheory:
+    def __init__(self, arg_system, kb, arg_ordering):
+        self.AS = arg_system
+        self.KB = kb
+        self.arg_ordering = arg_ordering  # Function: (A, B) -> bool
+```
+
+#### E-ASPIC+ Extensions
+```python
+class ExtendedArgumentationSystem(ArgumentationSystem):
+    def __init__(self, language, contrariness, rules):
+        super().__init__(language, contrariness, rules, None)
+        # Extract preference sublanguage
+        self.L_m = self._extract_preference_language()
+        
+        # Add preorder axioms
+        self.R_s.add(self._transitivity_axiom())
+        self.R_s.add(self._asymmetry_axiom())
+    
+    def _extract_preference_language(self):
+        L_m = set()
+        for formula in self.L:
+            if self._is_preference(formula):
+                L_m.add(formula)
+        return L_m
+    
+    def _is_preference(self, formula):
+        return " > " in str(formula)
+
+class ExtendedArgumentationTheory:
+    def __init__(self, eas, ekb, P_function):
+        self.EAS = eas
+        self.EKB = ekb
+        self.P = P_function  # Function: set of args -> preference relation
+```
+
+### 11.3 Argument Construction
+
+```python
+class ArgumentConstructor:
+    def __init__(self, argumentation_theory):
+        self.AT = argumentation_theory
+        self.constructed_args = {}  # Cache: premise_set -> arguments
+    
+    def construct_all_arguments(self):
+        """Constructs all possible arguments from AT."""
+        arguments = set()
+        
+        # Base arguments from knowledge base
+        for premise in self.AT.KB.K_n | self.AT.KB.K_p | self.AT.KB.K_a:
+            arg = Argument()
+            arg.premises = {premise}
+            arg.conclusion = premise
+            arg.sub_arguments = {arg}
+            arguments.add(arg)
+        
+        # Iteratively build arguments using rules
+        changed = True
+        while changed:
+            changed = False
+            new_arguments = set()
+            
+            for rule in self.AT.AS.R_s | self.AT.AS.R_d:
+                # Find arguments matching rule antecedents
+                matching_args = self._find_matching_arguments(
+                    arguments, rule.antecedents
+                )
+                
+                for arg_combination in matching_args:
+                    # Build new argument
+                    new_arg = self._apply_rule(arg_combination, rule)
+                    
+                    if new_arg not in arguments:
+                        new_arguments.add(new_arg)
+                        changed = True
+            
+            arguments.update(new_arguments)
+        
+        return arguments
+    
+    def _find_matching_arguments(self, arguments, antecedents):
+        """Finds all combinations of arguments that match rule antecedents."""
+        matches = []
+        
+        def backtrack(index, current_combination):
+            if index == len(antecedents):
+                matches.append(current_combination[:])
+                return
+            
+            antecedent = antecedents[index]
+            for arg in arguments:
+                if arg.conclusion == antecedent:
+                    current_combination.append(arg)
+                    backtrack(index + 1, current_combination)
+                    current_combination.pop()
+        
+        backtrack(0, [])
+        return matches
+    
+    def _apply_rule(self, sub_arguments, rule):
+        """Applies rule to create new argument."""
+        new_arg = Argument()
+        
+        # Combine premises from all sub-arguments
+        for sub_arg in sub_arguments:
+            new_arg.premises.update(sub_arg.premises)
+        
+        new_arg.conclusion = rule.consequent
+        
+        # Combine sub-arguments
+        for sub_arg in sub_arguments:
+            new_arg.sub_arguments.update(sub_arg.sub_arguments)
+        new_arg.sub_arguments.add(new_arg)
+        
+        # Combine rules
+        for sub_arg in sub_arguments:
+            new_arg.rules.update(sub_arg.rules)
+        new_arg.rules.add(rule)
+        
+        new_arg.top_rule = rule
+        
+        return new_arg
+```
+
+### 11.4 Attack and Defeat Computation
+
+```python
+class AttackRelation:
+    def __init__(self, argumentation_theory):
+        self.AT = argumentation_theory
+    
+    def computes_attacks(self, arguments):
+        """Computes all attacks between arguments."""
+        attacks = set()
+        
+        for A in arguments:
+            for B in arguments:
+                if A == B:
+                    continue
+                
+                # Check undercutting
+                if self._undercuts(A, B):
+                    attacks.add(("undercut", A, B))
+                
+                # Check rebutting
+                if self._rebuts(A, B):
+                    attacks.add(("rebut", A, B))
+                
+                # Check undermining
+                if self._undermines(A, B):
+                    attacks.add(("undermine", A, B))
+        
+        return attacks
+    
+    def _undercuts(self, A, B):
+        """Checks if A undercuts B."""
+        A_conc = A.conclusion
+        
+        for B_sub in B.sub_arguments:
+            if B_sub.top_rule and B_sub.top_rule.type == "defeasible":
+                rule_name = B_sub.top_rule.name
+                # Check if A concludes negation of rule name
+                if A_conc in self.AT.AS.contrariness.get(rule_name, set()):
+                    return True
+        
+        return False
+    
+    def _rebuts(self, A, B):
+        """Checks if A rebuts B."""
+        A_conc = A.conclusion
+        
+        for B_sub in B.sub_arguments:
+            if B_sub.top_rule and B_sub.top_rule.type == "defeasible":
+                B_conc = B_sub.conclusion
+                # Check if A's conclusion conflicts with B's conclusion
+                if A_conc in self.AT.AS.contrariness.get(B_conc, set()):
+                    return True
+        
+        return False
+    
+    def _undermines(self, A, B):
+        """Checks if A undermines B."""
+        A_conc = A.conclusion
+        
+        for premise in B.premises:
+            if premise not in self.AT.KB.K_n:  # Not an axiom
+                # Check if A's conclusion conflicts with premise
+                if A_conc in self.AT.AS.contrariness.get(premise, set()):
+                    return True
+        
+        return False
+
+class DefeatRelation:
+    def __init__(self, argumentation_theory, arg_ordering):
+        self.AT = argumentation_theory
+        self.ordering = arg_ordering
+    
+    def compute_defeats(self, arguments, attacks):
+        """Computes defeat relation from attacks and preferences."""
+        defeats = set()
+        
+        for attack_type, A, B in attacks:
+            # Find the sub-argument B' that A attacks
+            B_prime = self._find_attacked_subargument(B, A, attack_type)
+            
+            # Check if attack succeeds as defeat
+            if self._is_preference_independent(attack_type, A, B):
+                defeats.add((A, B))
+            elif not self.ordering(A, B_prime):  # A not weaker than B'
+                defeats.add((A, B))
+        
+        return defeats
+    
+    def _is_preference_independent(self, attack_type, A, B):
+        """Checks if attack type is preference-independent."""
+        if attack_type == "undercut":
+            return True
+        
+        if attack_type == "rebut":
+            # Check if contrary-rebut
+            A_conc = A.conclusion
+            for B_sub in B.sub_arguments:
+                if B_sub.top_rule:
+                    B_conc = B_sub.conclusion
+                    if self._is_contrary(A_conc, B_conc):
+                        return True
+        
+        if attack_type == "undermine":
+            # Check if contrary-undermine
+            A_conc = A.conclusion
+            for premise in B.premises:
+                if premise in self.AT.KB.K_a or self._is_contrary(A_conc, premise):
+                    return True
+        
+        return False
+    
+    def _is_contrary(self, phi, psi):
+        """Checks if phi is contrary (not contradictory) to psi."""
+        return (phi in self.AT.AS.contrariness.get(psi, set()) and
+                psi not in self.AT.AS.contrariness.get(phi, set()))
+```
+
+### 11.5 Dung Framework and Semantics
+
+```python
+class DungFramework:
+    def __init__(self, arguments, defeat_relation):
+        self.arguments = arguments
+        self.defeats = defeat_relation  # Set of (A, B) tuples
+    
+    def is_conflict_free(self, S):
+        """Checks if set S is conflict-free."""
+        for A in S:
+            for B in S:
+                if (A, B) in self.defeats:
+                    return False
+        return True
+    
+    def is_acceptable(self, arg, S):
+        """Checks if arg is acceptable w.r.t. set S."""
+        for attacker in self.arguments:
+            if (attacker, arg) in self.defeats:
+                # Check if S defends arg
+                defended = False
+                for defender in S:
+                    if (defender, attacker) in self.defeats:
+                        defended = True
+                        break
+                if not defended:
+                    return False
+        return True
+    
+    def characteristic_function(self, S):
+        """Computes F(S) = set of arguments acceptable w.r.t. S."""
+        return {arg for arg in self.arguments 
+                if self.is_acceptable(arg, S)}
+    
+    def compute_grounded_extension(self):
+        """Computes the grounded extension (least fixed point)."""
+        current = set()
+        while True:
+            next_set = self.characteristic_function(current)
+            if next_set == current:
+                return current
+            current = next_set
+    
+    def compute_preferred_extensions(self):
+        """Computes all preferred extensions (maximal admissible)."""
+        admissible_sets = self._compute_admissible_sets()
+        
+        # Find maximal elements
+        preferred = []
+        for S in admissible_sets:
+            is_maximal = True
+            for T in admissible_sets:
+                if S < T:  # S is proper subset of T
+                    is_maximal = False
+                    break
+            if is_maximal:
+                preferred.append(S)
+        
+        return preferred
+    
+    def _compute_admissible_sets(self):
+        """Computes all admissible sets."""
+        admissible = []
+        
+        # Generate all subsets of arguments
+        from itertools import combinations
+        for r in range(len(self.arguments) + 1):
+            for subset in combinations(self.arguments, r):
+                S = set(subset)
+                
+                # Check if conflict-free
+                if not self.is_conflict_free(S):
+                    continue
+                
+                # Check if self-defending
+                is_admissible = True
+                for arg in S:
+                    if not self.is_acceptable(arg, S):
+                        is_admissible = False
+                        break
+                
+                if is_admissible:
+                    admissible.append(S)
+        
+        return admissible
+    
+    def compute_stable_extensions(self):
+        """Computes all stable extensions."""
+        stable = []
+        
+        for S in self._compute_admissible_sets():
+            # Check if S defeats all arguments outside S
+            is_stable = True
+            for arg in self.arguments:
+                if arg not in S:
+                    # Check if arg is defeated by some argument in S
+                    defeated = False
+                    for defender in S:
+                        if (defender, arg) in self.defeats:
+                            defeated = True
+                            break
+                    if not defeated:
+                        is_stable = False
+                        break
+            
+            if is_stable:
+                stable.append(S)
+        
+        return stable
+```
+
+---
+
+## 12. Testing and Validation
+
+### 12.1 Unit Tests
+
+```python
+import unittest
+
+class TestAIFGraph(unittest.TestCase):
+    def setUp(self):
+        self.graph = AIFGraph()
+    
+    def test_node_creation(self):
+        """Test creating nodes of all types."""
+        i_node = Node("i1", "I", "It is sunny")
+        ra_node = Node("ra1", "RA")
+        ca_node = Node("ca1", "CA")
+        pa_node = Node("pa1", "PA")
+        
+        self.graph.add_node(i_node)
+        self.graph.add_node(ra_node)
+        self.graph.add_node(ca_node)
+        self.graph.add_node(pa_node)
+        
+        self.assertEqual(len(self.graph.nodes), 4)
+    
+    def test_edge_creation(self):
+        """Test creating edges between nodes."""
+        i1 = Node("i1", "I", "p")
+        i2 = Node("i2", "I", "q")
+        ra1 = Node("ra1", "RA")
+        
+        self.graph.add_node(i1)
+        self.graph.add_node(i2)
+        self.graph.add_node(ra1)
+        
+        self.graph.add_edge(Edge("i1", "ra1", "premise"))
+        self.graph.add_edge(Edge("ra1", "i2", "conclusion"))
+        
+        preds = self.graph.get_predecessors("ra1")
+        succs = self.graph.get_successors("ra1")
+        
+        self.assertEqual(preds, ["i1"])
+        self.assertEqual(succs, ["i2"])
+    
+    def test_graph_validation(self):
+        """Test graph validation constraints."""
+        # Valid graph
+        i1 = Node("i1", "I", "p")
+        ra1 = Node("ra1", "RA")
+        i2 = Node("i2", "I", "q")
+        
+        self.graph.add_node(i1)
+        self.graph.add_node(ra1)
+        self.graph.add_node(i2)
+        
+        self.graph.add_edge(Edge("i1", "ra1", "premise"))
+        self.graph.add_edge(Edge("ra1", "i2", "conclusion"))
+        
+        # Should not raise
+        self.graph.validate()
+        
+        # Invalid graph: RA-node with no conclusion
+        invalid_graph = AIFGraph()
+        invalid_graph.add_node(i1)
+        invalid_graph.add_node(ra1)
+        invalid_graph.add_edge(Edge("i1", "ra1", "premise"))
+        
+        with self.assertRaises(ValidationError):
+            invalid_graph.validate()
+
+class TestTranslations(unittest.TestCase):
+    def test_AIF_to_ASPIC_roundtrip(self):
+        """Test identity-preserving property for ASPIC+."""
+        # Create simple AIF graph
+        G_original = self._create_sample_graph()
+        F = self._load_forms()
+        
+        # Forward translation
+        AT = translate_AIF_to_ASPIC(G_original, F)
+        
+        # Construct arguments
+        Args_AT = ArgumentConstructor(AT).construct_all_arguments()
+        
+        # Backward translation
+        G_reconstructed, _ = translate_ASPIC_to_AIF(Args_AT, AT, F)
+        
+        # Check isomorphism
+        self.assertTrue(self._is_isomorphic(G_original, G_reconstructed))
+    
+    def test_preference_extraction(self):
+        """Test extraction of preferences in E-ASPIC+."""
+        # Create graph with preferences
+        G = AIFGraph()
+        
+        i1 = Node("i1", "I", "p")
+        i2 = Node("i2", "I", "q")
+        pa1 = Node("pa1", "PA")
+        
+        G.add_node(i1)
+        G.add_node(i2)
+        G.add_node(pa1)
+        
+        G.add_edge(Edge("i1", "pa1", "preferred_element"))
+        G.add_edge(Edge("pa1", "i2", "dispreferred_element"))
+        
+        F = self._load_forms()
+        
+        # Translate to E-ASPIC+
+        EAT = translate_AIF_to_EASPIC(G, F)
+        
+        # Check that "p > q" is in Lm
+        self.assertIn("p > q", EAT.EAS.L_m)
+
+class TestArgumentConstruction(unittest.TestCase):
+    def test_basic_argument_construction(self):
+        """Test constructing simple arguments."""
+        AS = ArgumentationSystem(
+            language={"p", "q", "r1"},
+            contrariness={},
+            rules={InferenceRule("r1", ["p"], "q", "defeasible")},
+            rule_preferences=set()
+        )
+        
+        KB = KnowledgeBase(
+            K_n=set(),
+            K_p={"p"},
+            K_a=set(),
+            premise_prefs=set()
+        )
+        
+        AT = ArgumentationTheory(AS, KB, lambda A, B: False)
+        
+        constructor = ArgumentConstructor(AT)
+        arguments = constructor.construct_all_arguments()
+        
+        # Should have 2 arguments: p and p ⇒ q
+        self.assertEqual(len(arguments), 2)
+        
+        # Check conclusions
+        conclusions = {arg.conclusion for arg in arguments}
+        self.assertEqual(conclusions, {"p", "q"})
+    
+    def test_complex_argument_construction(self):
+        """Test constructing multi-step arguments."""
+        AS = ArgumentationSystem(
+            language={"p", "q", "r", "r1", "r2"},
+            contrariness={},
+            rules={
+                InferenceRule("r1", ["p"], "q", "defeasible"),
+                InferenceRule("r2", ["q"], "r", "strict")
+            },
+            rule_preferences=set()
+        )
+        
+        KB = KnowledgeBase(
+            K_n=set(),
+            K_p={"p"},
+            K_a=set(),
+            premise_prefs=set()
+        )
+        
+        AT = ArgumentationTheory(AS, KB, lambda A, B: False)
+        
+        constructor = ArgumentConstructor(AT)
+        arguments = constructor.construct_all_arguments()
+        
+        # Should have 3 arguments: p, p⇒q, (p⇒q)→r
+        self.assertEqual(len(arguments), 3)
+
+class TestSemantics(unittest.TestCase):
+    def test_grounded_extension(self):
+        """Test computation of grounded extension."""
+        # Create simple defeat graph
+        args = {f"A{i}" for i in range(3)}
+        defeats = {("A1", "A2"), ("A2", "A1")}  # Mutual defeat
+        
+        df = DungFramework(args, defeats)
+        grounded = df.compute_grounded_extension()
+        
+        # Only A0 should be in grounded (not attacked)
+        self.assertEqual(grounded, {"A0"})
+    
+    def test_preferred_extensions(self):
+        """Test computation of preferred extensions."""
+        args = {"A", "B", "C"}
+        defeats = {("A", "B"), ("B", "C"), ("C", "A")}
+        
+        df = DungFramework(args, defeats)
+        preferred = df.compute_preferred_extensions()
+        
+        # Should have 3 preferred extensions: {A}, {B}, {C}
+        self.assertEqual(len(preferred), 3)
+```
+
+### 12.2 Integration Tests
+
+```python
+class IntegrationTest(unittest.TestCase):
+    def test_full_pipeline_rationale_to_evaluation(self):
+        """Test complete pipeline from Rationale to acceptability."""
+        # 1. Load Rationale file
+        rationale_file = "examples/beach_argument.rationale"
+        rationale_diagram = parse_rationale_file(rationale_file)
+        
+        # 2. Translate to AIF
+        G_aif = translate_Rationale_to_AIF(rationale_diagram)
+        
+        # 3. Validate AIF graph
+        G_aif.validate()
+        
+        # 4. Translate to ASPIC+
+        F = load_forms_ontology()
+        AT = translate_AIF_to_ASPIC(G_aif, F)
+        
+        # 5. Construct arguments
+        constructor = ArgumentConstructor(AT)
+        arguments = constructor.construct_all_arguments()
+        
+        # 6. Compute attacks and defeats
+        attack_rel = AttackRelation(AT)
+        attacks = attack_rel.compute_attacks(arguments)
+        
+        arg_ordering = derive_argument_ordering(
+            AT.KB.premise_prefs,
+            AT.AS.rule_prefs
+        )
+        
+        defeat_rel = DefeatRelation(AT, arg_ordering)
+        defeats = defeat_rel.compute_defeats(arguments, attacks)
+        
+        # 7. Create Dung framework and compute extensions
+        df = DungFramework(arguments, defeats)
+        grounded = df.compute_grounded_extension()
+        preferred = df.compute_preferred_extensions()
+        
+        # 8. Verify results
+        self.assertIsNotNone(grounded)
+        self.assertGreater(len(preferred), 0)
+        
+        # 9. Export results
+        results = {
+            'grounded_extension': [str(arg) for arg in grounded],
+            'preferred_extensions': [
+                [str(arg) for arg in ext] for ext in preferred
+            ]
+        }
+        
+        return results
+    
+    def test_preference_argumentation_pipeline(self):
+        """Test pipeline with argumentation about preferences."""
+        # Create AIF graph with preference reasoning
+        G_aif = AIFGraph()
+        
+        # Add nodes
+        i1 = Node("i1", "I", "p")
+        i2 = Node("i2", "I", "q")
+        i3 = Node("i3", "I", "evidence_for_p_over_q")
+        
+        pa1 = Node("pa1", "PA")
+        ra1 = Node("ra1", "RA")
+        
+        G_aif.add_node(i1)
+        G_aif.add_node(i2)
+        G_aif.add_node(i3)
+        G_aif.add_node(pa1)
+        G_aif.add_node(ra1)
+        
+        # Add edges: i3 ⇒ (p > q)
+        G_aif.add_edge(Edge("i3", "ra1", "premise"))
+        G_aif.add_edge(Edge("ra1", "pa1", "conclusion"))
+        G_aif.add_edge(Edge("i1", "pa1", "preferred_element"))
+        G_aif.add_edge(Edge("pa1", "i2", "dispreferred_element"))
+        
+        # Translate to E-ASPIC+
+        F = load_forms_ontology()
+        EAT = translate_AIF_to_EASPIC(G_aif, F)
+        
+        # Construct arguments
+        constructor = ArgumentConstructor(EAT)
+        arguments = constructor.construct_all_arguments()
+        
+        # Verify preference argument exists
+        pref_args = [arg for arg in arguments 
+                    if ">" in str(arg.conclusion)]
+        self.assertGreater(len(pref_args), 0)
+```
+
+### 12.3 Performance Benchmarks
+
+```python
+import time
+import matplotlib.pyplot as plt
+
+class PerformanceBenchmarks:
+    def benchmark_argument_construction(self, max_premises=10):
+        """Benchmark argument construction with varying KB sizes."""
+        results = []
+        
+        for n_premises in range(1, max_premises + 1):
+            # Create knowledge base with n premises
+            AS = self._create_system_with_rules(n_premises)
+            KB = self._create_kb_with_premises(n_premises)
+            AT = ArgumentationTheory(AS, KB, lambda A, B: False)
+            
+            # Time construction
+            start = time.time()
+            constructor = ArgumentConstructor(AT)
+            arguments = constructor.construct_all_arguments()
+            elapsed = time.time() - start
+            
+            results.append({
+                'n_premises': n_premises,
+                'n_arguments': len(arguments),
+                'time': elapsed
+            })
+        
+        return results
+    
+    def benchmark_translation_aif_to_aspic(self, max_nodes=100):
+        """Benchmark AIF to ASPIC+ translation with varying graph sizes."""
+        results = []
+        
+        for n_nodes in range(10, max_nodes + 1, 10):
+            # Create AIF graph with n nodes
+            G = self._create_random_aif_graph(n_nodes)
+            F = load_forms_ontology()
+            
+            # Time translation
+            start = time.time()
+            AT = translate_AIF_to_ASPIC(G, F)
+            elapsed = time.time() - start
+            
+            results.append({
+                'n_nodes': n_nodes,
+                'time': elapsed
+            })
+        
+        return results
+    
+    def plot_results(self, results, title, xlabel, ylabel):
+        """Plot benchmark results."""
+        x = [r[xlabel] for r in results]
+        y = [r[ylabel] for r in results]
+        
+        plt.figure(figsize=(10, 6))
+        plt.plot(x, y, 'bo-')
+        plt.xlabel(xlabel.replace('_', ' ').title())
+        plt.ylabel(ylabel.replace('_', ' ').title())
+        plt.title(title)
+        plt.grid(True)
+        plt.savefig(f"{title.replace(' ', '_')}.png")
+        plt.close()
+```
+
+---
+
+## 13. Common Implementation Pitfalls
+
+### 13.1 Graph Construction Errors
+
+**Pitfall 1: Direct I-to-I Edges**
+```python
+# WRONG: Cannot connect I-nodes directly
+G.add_edge(Edge("i1", "i2", "premise"))
+
+# CORRECT: Must use RA-node
+G.add_edge(Edge("i1", "ra1", "premise"))
+G.add_edge(Edge("ra1", "i2", "conclusion"))
+```
+
+**Pitfall 2: S-nodes Without Predecessors/Successors**
+```python
+# WRONG: RA-node with no conclusion
+ra1 = Node("ra1", "RA")
+G.add_node(ra1)
+G.add_edge(Edge("i1", "ra1", "premise"))
+# Missing: conclusion edge!
+
+# CORRECT: Always add both
+G.add_edge(Edge("i1", "ra1", "premise"))
+G.add_edge(Edge("ra1", "i2", "conclusion"))
+```
+
+**Pitfall 3: Incorrect Edge Counts**
+```python
+# WRONG: PA-node with multiple preferred elements
+G.add_edge(Edge("i1", "pa1", "preferred_element"))
+G.add_edge(Edge("i2", "pa1", "preferred_element"))  # ERROR!
+
+# CORRECT: Exactly one preferred and one dispreferred
+G.add_edge(Edge("i1", "pa1", "preferred_element"))
+G.add_edge(Edge("pa1", "i2", "dispreferred_element"))
+```
+
+### 13.2 Translation Errors
+
+**Pitfall 4: Forgetting Rule Naming Convention**
+```python
+# WRONG: Rules without names in L_R
+rule = InferenceRule(None, ["p"], "q", "defeasible")
+
+# CORRECT: Rules must be named and names in L_R
+rule = InferenceRule("r1", ["p"], "q", "defeasible")
+# And "r1" ∈ L_R
+```
+
+**Pitfall 5: Translating Unused Rules**
+```python
+# WRONG: Translating all rules in R to RA-nodes
+for rule in AT.AS.R_s | AT.AS.R_d:
+    G.add_node(Node(rule.name, "RA"))
+
+# CORRECT: Only translate rules used in arguments
+for arg in Args_AT:
+    for rule in arg.rules:
+        G.add_node(Node(rule.name, "RA"))
+```
+
+**Pitfall 6: Ignoring Preference Mapping**
+```python
+# WRONG: Creating PA-node without tracking correspondence
+pa_node = Node("pa1", "PA")
+G.add_node(pa_node)
+
+# CORRECT: Maintain correspondence mapping
+correspondence[pa_node.id] = (preferred_formula, dispreferred_formula)
+```
+
+### 13.3 Argument Construction Errors
+
+**Pitfall 7: Not Checking Rule Applicability**
+```python
+# WRONG: Applying rule without checking antecedents
+def apply_rule(rule):
+    return Argument(conclusion=rule.consequent)
+
+# CORRECT: Verify antecedents are available
+def apply_rule(rule, available_args):
+    if all(any(arg.conclusion == ant for arg in available_args) 
+           for ant in rule.antecedents):
+        # Apply rule
+        pass
+```
+
+**Pitfall 8: Circular Argument Detection**
+```python
+# WRONG: Not detecting circular dependencies
+# p ⇒ q, q ⇒ p leads to infinite loop
+
+# CORRECT: Track argument history
+def construct_argument(premises, visited_rules):
+    if rule in visited_rules:
+        return None  # Circular!
+    visited_rules.add(rule)
+    # ... continue construction
+```
+
+### 13.4 Preference Handling Errors
+
+**Pitfall 9: Non-Transitive Preferences**
+```python
+# WRONG: Allowing circular preferences in ASPIC+
+prefs = {("r1", "r2"), ("r2", "r3"), ("r3", "r1")}  # Cycle!
+
+# CORRECT: Validate partial preorder property
+def validate_preferences(prefs):
+    # Check acyclicity
+    if has_cycle(prefs):
+        raise ValueError("Preferences must be acyclic")
+```
+
+**Pitfall 10: Mixing Preference Types**
+```python
+# WRONG: Comparing premise to rule
+PA_node connecting i1 (I-node) to r1 (RA-node)
+
+# CORRECT: Only compare same types
+# Either: i1 to i2 (premise to premise)
+# Or: r1 to r2 (rule to rule)
+```
+
+### 13.5 E-ASPIC+ Specific Errors
+
+**Pitfall 11: Forgetting Preorder Axioms**
+```python
+# WRONG: E-ASPIC+ without transitivity/asymmetry rules
+R_s = {user_defined_rules}
+
+# CORRECT: Always include PP axioms
+R_s = {user_defined_rules} | {transitivity_axiom, asymmetry_axiom}
+```
+
+**Pitfall 12: Incorrect P Function Implementation**
+```python
+# WRONG: Returning individual preferences instead of relation
+def P_function(arg_set):
+    for arg in arg_set:
+        if ">" in arg.conclusion:
+            return arg.conclusion  # Wrong return type!
+
+# CORRECT: Return set of (A, B) pairs
+def P_function(arg_set):
+    relation = set()
+    # ... compute relation
+    return relation  # Set of tuples
+```
+
+---
+
+## 14. API Reference
+
+### 14.1 Core Classes
+
+#### AIFGraph
+```python
+class AIFGraph:
+    """Represents an AIF argument graph."""
+    
+    def __init__(self):
+        """Initialize empty graph."""
+        pass
+    
+    def add_node(self, node: Node) -> None:
+        """Add a node to the graph."""
+        pass
+    
+    def add_edge(self, edge: Edge) -> None:
+        """Add an edge to the graph."""
+        pass
+    
+    def get_predecessors(self, node_id: str, 
+                        edge_type: Optional[str] = None) -> List[str]:
+        """Get predecessor nodes, optionally filtered by edge type."""
+        pass
+    
+    def get_successors(self, node_id: str,
+                      edge_type: Optional[str] = None) -> List[str]:
+        """Get successor nodes, optionally filtered by edge type."""
+        pass
+    
+    def validate(self) -> None:
+        """Validate graph constraints. Raises ValidationError if invalid."""
+        pass
+    
+    def to_dict(self) -> Dict:
+        """Export graph to dictionary format."""
+        pass
+    
+    @classmethod
+    def from_dict(cls, data: Dict) -> 'AIFGraph':
+        """Load graph from dictionary format."""
+        pass
+```
+
+#### ArgumentationTheory
+```python
+class ArgumentationTheory:
+    """Represents an ASPIC+ argumentation theory."""
+    
+    def __init__(self, arg_system: ArgumentationSystem,
+                 kb: KnowledgeBase,
+                 arg_ordering: Callable[[Argument, Argument], bool]):
+        """Initialize argumentation theory."""
+        pass
+    
+    def construct_arguments(self) -> Set[Argument]:
+        """Construct all arguments from this theory."""
+        pass
+    
+    def compute_attacks(self, arguments: Set[Argument]) -> Set[Tuple]:
+        """Compute attack relation."""
+        pass
+    
+    def compute_defeats(self, arguments: Set[Argument],
+                       attacks: Set[Tuple]) -> Set[Tuple]:
+        """Compute defeat relation."""
+        pass
+    
+    def to_dung_framework(self) -> DungFramework:
+        """Convert to Dung abstract argumentation framework."""
+        pass
+```
+
+### 14.2 Translation Functions
+
+```python
+def translate_AIF_to_ASPIC(graph: AIFGraph, 
+                          forms: FormsOntology) -> ArgumentationTheory:
+    """
+    Translate AIF graph to ASPIC+ argumentation theory.
+    
+    Args:
+        graph: AIF argument graph
+        forms: Forms ontology with fulfillment relations
+    
+    Returns:
+        ASPIC+ argumentation theory
+    
+    Raises:
+        ValidationError: If graph violates constraints
+        TranslationError: If translation cannot be performed
+    """
+    pass
+
+def translate_ASPIC_to_AIF(arguments: Set[Argument],
+                          theory: ArgumentationTheory,
+                          forms: FormsOntology) -> Tuple[AIFGraph, Dict]:
+    """
+    Translate ASPIC+ arguments to AIF graph.
+    
+    Args:
+        arguments: Set of constructed arguments
+        theory: Source argumentation theory
+        forms: Forms ontology
+    
+    Returns:
+        Tuple of (AIF graph, fulfillment mappings)
+    
+    Raises:
+        TranslationError: If translation cannot be performed
+    """
+    pass
+
+def translate_AIF_to_EASPIC(graph: AIFGraph,
+                           forms: FormsOntology) -> ExtendedArgumentationTheory:
+    """
+    Translate AIF graph to E-ASPIC+ extended argumentation theory.
+    
+    Args:
+        graph: AIF argument graph
+        forms: Forms ontology with fulfillment relations
+    
+    Returns:
+        E-ASPIC+ extended argumentation theory
+    
+    Raises:
+        ValidationError: If graph violates constraints
+        TranslationError: If translation cannot be performed
+    """
+    pass
+
+def translate_EASPIC_to_AIF(arguments: Set[Argument],
+                           theory: ExtendedArgumentationTheory,
+                           forms: FormsOntology) -> Tuple[AIFGraph, Dict]:
+    """
+    Translate E-ASPIC+ arguments to AIF graph.
+    
+    Args:
+        arguments: Set of constructed arguments
+        theory: Source extended argumentation theory
+        forms: Forms ontology
+    
+    Returns:
+        Tuple of (AIF graph, fulfillment mappings)
+    
+    Raises:
+        TranslationError: If translation cannot be performed
+    """
+    pass
+```
+
+### 14.3 Utility Functions
+
+```python
+def validate_graph_constraints(graph: AIFGraph) -> List[str]:
+    """
+    Validate AIF graph constraints and return list of violations.
+    
+    Args:
+        graph: AIF argument graph
+    
+    Returns:
+        List of constraint violation messages (empty if valid)
+    """
+    pass
+
+def verify_identity_preservation(graph_original: AIFGraph,
+                                forms: FormsOntology,
+                                framework: str = "aspic") -> bool:
+    """
+    Verify round-trip translation preserves identity.
+    
+    Args:
+        graph_original: Original AIF graph
+        forms: Forms ontology
+        framework: Either "aspic" or "easpic"
+    
+    Returns:
+        True if round-trip yields isomorphic graph
+    """
+    pass
+
+def export_to_aifd(graph: AIFGraph, filepath: str) -> None:
+    """
+    Export AIF graph to AIFdb SQL format.
+    
+    Args:
+        graph: AIF argument graph
+        filepath: Output file path
+    """
+    pass
+
+def import_from_rationale(filepath: str) -> AIFGraph:
+    """
+    Import Rationale diagram file to AIF graph.
+    
+    Args:
+        filepath: Path to Rationale file
+    
+    Returns:
+        Translated AIF graph
+    """
+    pass
+
+def visualize_graph(graph: AIFGraph, 
+                   output_path: str,
+                   format: str = "png") -> None:
+    """
+    Visualize AIF graph using graphviz.
+    
+    Args:
+        graph: AIF argument graph
+        output_path: Output file path
+        format: Output format (png, svg, pdf)
+    """
+    pass
+```
+
+---
+
+## 15. Deployment and Integration
+
+### 15.1 System Requirements
+
+**Minimum Requirements:**
+- Python 3.8+
+- 4GB RAM
+- 1GB disk space
+
+**Recommended:**
+- Python 3.10+
+- 8GB RAM
+- SSD storage for large argument databases
+
+**Dependencies:**
+```text
+networkx>=2.6        # Graph manipulation
+sqlalchemy>=1.4      # Database interface (for AIFdb)
+pydantic>=1.9        # Data validation
+lxml>=4.6            # XML processing (for Rationale)
+graphviz>=0.16       # Visualization
+pytest>=6.2          # Testing
+```
+
+### 15.2 Installation
+
+```bash
+# Create virtual environment
+python -m venv aif-aspic-env
+source aif-aspic-env/bin/activate  # On Windows: aif-aspic-env\Scripts\activate
+
+# Install package
+pip install aif-aspic-translator
+
+# Or install from source
+git clone https://github.com/arg-tech/aif-aspic
+cd aif-aspic
+pip install -e .
+```
+
+### 15.3 Configuration
+
+```python
+# config.py
+class Config:
+    # Database settings (for AIFdb integration)
+    DATABASE_URL = "postgresql://user:pass@localhost/aifdb"
+    
+    # Translation settings
+    VALIDATE_GRAPHS = True
+    STRICT_MODE = True  # Raise errors on assumption violations
+    
+    # Performance settings
+    MAX_ARGUMENT_DEPTH = 10  # Prevent infinite recursion
+    CACHE_ARGUMENTS = True
+    
+    # Forms ontology path
+    FORMS_PATH = "data/forms.json"
+    
+    # Visualization settings
+    VIZ_ENGINE = "dot"  # graphviz layout engine
+    VIZ_DPI = 150
+```
+
+### 15.4 Web API (Flask Example)
+
+```python
+from flask import Flask, request, jsonify
+from aif_aspic import translate_AIF_to_ASPIC, ArgumentConstructor
+
+app = Flask(__name__)
+
+@app.route('/api/translate/aif-to-aspic', methods=['POST'])
+def translate_endpoint():
+    """Endpoint for AIF to ASPIC+ translation."""
+    try:
+        # Parse request
+        graph_data = request.json['graph']
+        forms_data = request.json.get('forms', None)
+        
+        # Load graph
+        graph = AIFGraph.from_dict(graph_data)
+        forms = FormsOntology.from_dict(forms_data) if forms_data else load_default_forms()
+        
+        # Translate
+        theory = translate_AIF_to_ASPIC(graph, forms)
+        
+        # Construct arguments
+        constructor = ArgumentConstructor(theory)
+        arguments = constructor.construct_all_arguments()
+        
+        # Return result
+        return jsonify({
+            'success': True,
+            'theory': theory.to_dict(),
+            'n_arguments': len(arguments),
+            'arguments': [arg.to_dict() for arg in arguments]
+        })
+    
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 400
+
+@app.route('/api/evaluate', methods=['POST'])
+def evaluate_endpoint():
+    """Endpoint for computing argument extensions."""
+    try:
+        # Parse request
+        graph_data = request.json['graph']
+        semantics = request.json.get('semantics', 'preferred')
+        
+        # Load and translate
+        graph = AIFGraph.from_dict(graph_data)
+        forms = load_default_forms()
+        theory = translate_AIF_to_ASPIC(graph, forms)
+        
+        # Construct framework
+        df = theory.to_dung_framework()
+        
+        # Compute extensions
+        if semantics == 'grounded':
+            extensions = [df.compute_grounded_extension()]
+        elif semantics == 'preferred':
+            extensions = df.compute_preferred_extensions()
+        elif semantics == 'stable':
+            extensions = df.compute_stable_extensions()
+        else:
+            raise ValueError(f"Unknown semantics: {semantics}")
+        
+        return jsonify({
+            'success': True,
+            'semantics': semantics,
+            'extensions': [
+                [arg.to_dict() for arg in ext] 
+                for ext in extensions
+            ]
+        })
+    
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 400
+
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)
+```
+
+### 15.5 Command Line Interface
+
+```python
+# cli.py
+import click
+from aif_aspic import *
+
+@click.group()
+def cli():
+    """AIF-ASPIC+ translation toolkit."""
+    pass
+
+@cli.command()
+@click.argument('input_file')
+@click.option('--output', '-o', help='Output file path')
+@click.option('--format', '-f', default='json', 
+              type=click.Choice(['json', 'xml', 'sql']))
+def translate(input_file, output, format):
+    """Translate AIF graph to ASPIC+ theory."""
+    # Load graph
+    with open(input_file) as f:
+        graph = AIFGraph.from_json(f.read())
+    
+    # Translate
+    forms = load_default_forms()
+    theory = translate_AIF_to_ASPIC(graph, forms)
+    
+    # Export
+    output_path = output or input_file.replace('.json', f'_aspic.{format}')
+    
+    if format == 'json':
+        with open(output_path, 'w') as f:
+            f.write(theory.to_json())
+    elif format == 'xml':
+        with open(output_path, 'w') as f:
+            f.write(theory.to_xml())
+    elif format == 'sql':
+        theory.to_sql(output_path)
+    
+    click.echo(f"Translated to {output_path}")
+
+@cli.command()
+@click.argument('input_file')
+@click.option('--semantics', '-s', default='preferred',
+              type=click.Choice(['grounded', 'preferred', 'stable']))
+def evaluate(input_file, semantics):
+    """Evaluate argument acceptability."""
+    # Load and translate
+    with open(input_file) as f:
+        graph = AIFGraph.from_json(f.read())
+    
+    forms = load_default_forms()
+    theory = translate_AIF_to_ASPIC(graph, forms)
+    df = theory.to_dung_framework()
+    
+    # Compute extensions
+    if semantics == 'grounded':
+        extensions = [df.compute_grounded_extension()]
+    elif semantics == 'preferred':
+        extensions = df.compute_preferred_extensions()
+    else:
+        extensions = df.compute_stable_extensions()
+    
+    # Display results
+    click.echo(f"\n{semantics.capitalize()} Extensions:")
+    for i, ext in enumerate(extensions, 1):
+        click.echo(f"\nExtension {i}:")
+        for arg in ext:
+            click.echo(f"  - {arg}")
+
+@cli.command()
+@click.argument('input_file')
+@click.option('--output', '-o', help='Output image path')
+@click.option('--format', '-f', default='png',
+              type=click.Choice(['png', 'svg', 'pdf']))
+def visualize(input_file, output, format):
+    """Visualize AIF graph."""
+    with open(input_file) as f:
+        graph = AIFGraph.from_json(f.read())
+    
+    output_path = output or input_file.replace('.json', f'.{format}')
+    visualize_graph(graph, output_path, format)
+    
+    click.echo(f"Visualization saved to {output_path}")
+
+if __name__ == '__main__':
+    cli()
+```
+
+**Usage Examples:**
+```bash
+# Translate AIF to ASPIC+
+python cli.py translate my_argument.json -o theory.json
+
+# Evaluate acceptability
+python cli.py evaluate my_argument.json --semantics preferred
+
+# Visualize graph
+python cli.py visualize my_argument.json -o graph.png
+```
+
+---
+
+## 16. Future Extensions
+
+### 16.1 Planned Enhancements
+
+1. **Support for Additional Semantics**
+   - Semi-stable semantics
+   - Ideal semantics
+   - Stage semantics
+
+2. **Performance Optimizations**
+   - Lazy argument construction
+   - Incremental evaluation
+   - Parallel processing for large graphs
+
+3. **Enhanced Visualization**
+   - Interactive web-based visualization
+   - Real-time acceptability updates
+   - Argument path highlighting
+
+4. **Additional Translation Targets**
+   - Carneades framework
+   - ASPIC- (simplified version)
+   - Abstract Dialectical Frameworks (ADFs)
+
+5. **Natural Language Integration**
+   - NLP pipeline for text to AIF
+   - Argumentation mining
+   - Automatic scheme recognition
+
+### 16.2 Research Directions
+
+1. **Probabilistic Extensions**
+   - Uncertainty in arguments
+   - Probabilistic defeats
+   - Bayesian argument evaluation
+
+2. **Dialogue Support**
+   - Multi-agent argumentation
+   - Dialogue games
+   - Turn-taking protocols
+
+3. **Learning and Adaptation**
+   - Learning argument schemes from corpora
+   - Adaptive preference learning
+   - Argument quality assessment
+
+---
+
+## 17. Conclusion
+
+This implementation guide provides a comprehensive reference for developers implementing the AIF-ASPIC+ translation framework. Key takeaways:
+
+1. **AIF provides flexibility:** Graph-based representation accommodates diverse argumentation formats
+2. **ASPIC+ provides rigor:** Logical framework ensures formal correctness and enables automated reasoning
+3. **Translations are bidirectional:** Information-preserving properties guarantee round-trip fidelity
+4. **E-ASPIC+ adds expressiveness:** Allows full argumentation about preferences
+5. **Practical applications exist:** Integration with tools like Rationale demonstrates real-world utility
+
+**Critical Success Factors:**
+- Careful attention to graph validation constraints
+- Proper handling of the Forms Ontology and fulfillment relations
+- Correct implementation of preference functions
+- Thorough testing of identity-preserving properties
+
+**For Additional Support:**
+- AIF Community: http://www.arg.dundee.ac.uk/
+- AIFdb Repository: http://www.arg.dundee.ac.uk/AIFdb/
+- ASPIC+ Documentation: Referenced papers and technical reports
+
+This document should serve as the canonical reference for implementation teams developing AIF-ASPIC+ translation capabilities.

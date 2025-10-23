@@ -53,7 +53,7 @@ const MOVE_CONFIG: Record<MoveKind, {
   },
   DISCHARGE: {
     title: "Close the Supposition",
-    description: "Conclude the hypothetical scope and return to the main discussion. Provide a summary of what was learned.",
+    description: "Conclude the hypothetical scope and return to the main discussion. This closes the current supposition in the dialogue.",
     placeholder: "Having explored this scenario...",
     examples: [
       "Having explored this scenario, we can see that the assumption leads to contradiction",

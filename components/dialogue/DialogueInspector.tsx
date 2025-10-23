@@ -9,11 +9,13 @@ import { SchemeComposerPicker } from "@/components/SchemeComposerPicker";
  * DialogueInspector - A comprehensive debug component to visualize the entire
  * dialogue state including claims, arguments, moves, CQs, and legal actions.
  * 
+ * Now supports dynamic claim selection via SchemeComposerPicker.
+ * 
  * Usage:
  * <DialogueInspector
  *   deliberationId="delib_123"
- *   targetType="claim"
- *   targetId="claim_456"
+ *   initialTargetType="claim"  // optional
+ *   initialTargetId="claim_456" // optional
  * />
  */
 
@@ -21,71 +23,78 @@ type TargetType = "claim" | "argument" | "card";
 
 interface DialogueInspectorProps {
   deliberationId: string;
-  targetType: TargetType;
-  targetId: string;
-  locusPath?: string;
+  initialTargetType?: TargetType;
+  initialTargetId?: string;
+  initialLocusPath?: string;
 }
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 export function DialogueInspector({
   deliberationId,
-  targetType,
-  targetId,
-  locusPath = "0",
+  initialTargetType = "claim",
+  initialTargetId,
+  initialLocusPath = "0",
 }: DialogueInspectorProps) {
   const [activeTab, setActiveTab] = useState<"overview" | "moves" | "legal" | "cqs" | "raw">("overview");
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const [claimPickerOpen, setClaimPickerOpen] = useState(false);
+  const [claimPickerOpen, setClaimPickerOpen] = useState(false); // Only open when button clicked
+  
+  // Internal state for selected target
+  const [targetType, setTargetType] = useState<TargetType>(initialTargetType);
+  const [targetId, setTargetId] = useState<string | null>(initialTargetId || null);
+  const [locusPath, setLocusPath] = useState<string>(initialLocusPath);
 
-  // Fetch target data (claim or argument)
+  // Fetch target data (claim or argument) - only if targetId is set
   const { data: targetData } = useSWR(
-    targetType === "claim"
+    targetId && targetType === "claim"
       ? `/api/claims/${targetId}`
-      : targetType === "argument"
+      : targetId && targetType === "argument"
       ? `/api/arguments/${targetId}`
       : null,
     fetcher
   );
 
-  // Fetch dialogue moves
+  // Fetch dialogue moves for the entire deliberation
   const { data: movesData } = useSWR(
-    `/api/deliberations/${deliberationId}/moves?limit=100`,
+    `/api/dialogue/moves?deliberationId=${deliberationId}&limit=500`,
     fetcher
   );
 
-  // Fetch legal moves
+  // Fetch legal moves - only if targetId is set
   const { data: legalMovesData } = useSWR(
-    `/api/dialogue/legal-moves?deliberationId=${deliberationId}&targetType=${targetType}&targetId=${targetId}&locusPath=${locusPath}`,
+    targetId
+      ? `/api/dialogue/legal-moves?deliberationId=${deliberationId}&targetType=${targetType}&targetId=${targetId}&locusPath=${locusPath}`
+      : null,
     fetcher
   );
 
-  // Fetch CQs (if target is a claim)
+  // Fetch CQs (if target is a claim) - only if targetId is set
   const { data: cqsData } = useSWR(
-    targetType === "claim" ? `/api/cqs?targetType=claim&targetId=${targetId}` : null,
+    targetId && targetType === "claim" ? `/api/cqs?targetType=claim&targetId=${targetId}` : null,
     fetcher
   );
 
-  // Fetch CQ attachments
+  // Fetch CQ attachments - only if targetId is set
   const { data: attachmentsData } = useSWR(
-    targetType === "claim" ? `/api/cqs/attachments?targetType=claim&targetId=${targetId}` : null,
+    targetId && targetType === "claim" ? `/api/cqs/attachments?targetType=claim&targetId=${targetId}` : null,
     fetcher
   );
 
   // Filter moves related to this target
   const targetMoves = React.useMemo(() => {
-    if (!movesData?.moves) return [];
-    return movesData.moves.filter(
+    if (!movesData?.items) return [];
+    return movesData.items.filter(
       (m: any) => m.targetId === targetId || m.payload?.targetId === targetId
     );
   }, [movesData, targetId]);
 
   // Detect active SUPPOSE scope
   const activeSupposition = React.useMemo(() => {
-    if (!movesData?.moves) return null;
+    if (!movesData?.items) return null;
     
     // Find all SUPPOSE moves at this locus
-    const supposes = movesData.moves.filter(
+    const supposes = movesData.items.filter(
       (m: any) => 
         m.kind === "SUPPOSE" && 
         m.targetId === targetId &&
@@ -100,7 +109,7 @@ export function DialogueInspector({
     )[0];
 
     // Check if it's been discharged
-    const discharges = movesData.moves.filter(
+    const discharges = movesData.items.filter(
       (m: any) =>
         m.kind === "DISCHARGE" &&
         m.targetId === targetId &&
@@ -126,18 +135,40 @@ export function DialogueInspector({
   };
 
   return (
-    <div className="dialogue-inspector border-2 border-purple-500 rounded-lg bg-white shadow-lg p-4 my-4">
+    <div className="dialogue-inspector border-2 border-indigo-500 rounded-lg bg-white shadow-lg p-4 my-4">
       {/* Header */}
-      <div className="border-b border-purple-300 pb-3 mb-4">
-        <h2 className="text-xl font-bold text-purple-900 flex items-center gap-2">
-          🔍 Dialogue Inspector
-          <span className="text-xs font-mono bg-purple-100 px-2 py-1 rounded">
-            {targetType}:{targetId.slice(-8)}
-          </span>
-        </h2>
-        <p className="text-xs text-gray-600 mt-1">
-          Deliberation: <span className="font-mono">{deliberationId.slice(-8)}</span> | Locus: <span className="font-mono">{locusPath}</span>
-        </p>
+      <div className="border-b border-indigo-300 pb-3 mb-4">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex-1">
+            <h2 className="text-xl font-bold text-indigo-900 flex items-center gap-2">
+               Dialogue Inspector
+              {targetId && (
+                <span className="text-xs font-mono bg-indigo-100 px-2 py-1 rounded">
+                  {targetType}:{targetId.slice(-8)}
+                </span>
+              )}
+            </h2>
+            <p className="text-xs text-gray-600 mt-1">
+              Deliberation: <span className="font-mono">{deliberationId.slice(-8)}</span> | Locus: <span className="font-mono">{locusPath}</span>
+            </p>
+          </div>
+          
+          {/* Claim Selector Button */}
+          <button
+            onClick={() => setClaimPickerOpen(true)}
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
+          >
+            🔍 {targetId ? "Change Claim" : "Select Claim"}
+          </button>
+        </div>
+        
+        {!targetId && (
+          <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+            <p className="text-sm text-amber-800">
+              👆 Click <strong>&ldquo;Select Claim&rdquo;</strong> to choose a claim and view its dialogue state
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Tab Navigation */}
@@ -154,8 +185,8 @@ export function DialogueInspector({
             onClick={() => setActiveTab(tab.id as any)}
             className={`px-3 py-2 text-sm font-medium transition-colors ${
               activeTab === tab.id
-                ? "text-purple-700 border-b-2 border-purple-700"
-                : "text-gray-600 hover:text-purple-600"
+                ? "text-indigo-700 border-b-2 border-indigo-700"
+                : "text-gray-600 hover:text-indigo-600"
             }`}
           >
             {tab.label}
@@ -165,12 +196,28 @@ export function DialogueInspector({
 
       {/* Tab Content */}
       <div className="tab-content">
-        {/* OVERVIEW TAB */}
-        {activeTab === "overview" && (
-          <div className="space-y-4">
-            {/* Active Supposition Banner */}
-            {activeSupposition && (
-              <SuppositionBanner
+        {!targetId ? (
+          <div className="text-center py-12">
+            
+            <h3 className="text-lg font-semibold text-gray-700 mb-2">No Claim Selected</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Select a claim using the button above to inspect its dialogue state
+            </p>
+            <button
+              onClick={() => setClaimPickerOpen(true)}
+              className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-medium transition-colors"
+            >
+              Select Claim
+            </button>
+          </div>
+        ) : (
+          <>
+            {/* OVERVIEW TAB */}
+            {activeTab === "overview" && (
+              <div className="space-y-4">
+                {/* Active Supposition Banner */}
+                {activeSupposition && (
+                  <SuppositionBanner
                 suppositionText={activeSupposition.expression}
                 locusPath={activeSupposition.locusPath}
               />
@@ -218,12 +265,20 @@ export function DialogueInspector({
                 />
                 <StatCard
                   label="Critical Questions"
-                  value={cqsData?.cqs?.length || 0}
+                  value={(() => {
+                    if (!cqsData?.schemes) return 0;
+                    return cqsData.schemes.reduce((sum: number, scheme: any) => sum + (scheme.cqs?.length || 0), 0);
+                  })()}
                   color="amber"
                 />
                 <StatCard
                   label="Open CQs"
-                  value={cqsData?.cqs?.filter((cq: any) => !cq.satisfied).length || 0}
+                  value={(() => {
+                    if (!cqsData?.schemes) return 0;
+                    return cqsData.schemes.reduce((sum: number, scheme: any) => {
+                      return sum + (scheme.cqs?.filter((cq: any) => !cq.satisfied).length || 0);
+                    }, 0);
+                  })()}
                   color="rose"
                 />
               </div>
@@ -287,11 +342,11 @@ export function DialogueInspector({
                   ))}
 
                 {/* SUPPOSE marker */}
-                <div className="p-3 bg-purple-100 border-l-4 border-purple-500 rounded-r">
-                  <div className="text-xs font-semibold text-purple-900">
+                <div className="p-3 bg-indigo-100 border-l-4 border-indigo-500 rounded-r">
+                  <div className="text-xs font-semibold text-indigo-900">
                     📍 SUPPOSE: {activeSupposition.expression}
                   </div>
-                  <div className="text-[10px] text-purple-700 mt-1">
+                  <div className="text-[10px] text-indigo-700 mt-1">
                     Opened: {new Date(activeSupposition.createdAt).toLocaleString()}
                   </div>
                 </div>
@@ -343,27 +398,30 @@ export function DialogueInspector({
           <div className="space-y-3">
             <div className="flex justify-between items-center mb-2">
               <h3 className="font-semibold text-gray-700">
-                Critical Questions ({cqsData?.cqs?.length || 0})
+                Critical Questions (
+                {cqsData?.schemes
+                  ? cqsData.schemes.reduce((sum: number, s: any) => sum + (s.cqs?.length || 0), 0)
+                  : 0}
+                )
               </h3>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setClaimPickerOpen(true)}
-                  className="px-3 py-1.5 text-xs font-medium bg-indigo-100 hover:bg-indigo-200 text-indigo-700 rounded-lg transition-colors"
-                  title="Search and navigate to claims"
-                >
-                  🔍 Find Claim
-                </button>
-                {targetType !== "claim" && (
-                  <p className="text-xs text-amber-600">⚠️ CQs only available for claims</p>
-                )}
-              </div>
+              {targetType !== "claim" && (
+                <p className="text-xs text-amber-600">⚠️ CQs only available for claims</p>
+              )}
             </div>
-            {cqsData?.cqs?.map((cq: any, idx: number) => (
-              <CQCard key={idx} cq={cq} attachments={attachmentsData?.attachments || []} />
-            ))}
-            {targetType === "claim" && cqsData?.cqs?.length === 0 && (
-              <EmptyState message="No critical questions for this claim" />
+            {cqsData?.schemes?.map((scheme: any) =>
+              scheme.cqs?.map((cq: any, idx: number) => (
+                <CQCard
+                  key={`${scheme.key}-${cq.key}`}
+                  cq={{ ...cq, schemeKey: scheme.key, schemeTitle: scheme.title }}
+                  attachments={attachmentsData?.attachments || []}
+                />
+              ))
             )}
+            {targetType === "claim" &&
+              cqsData?.schemes &&
+              cqsData.schemes.every((s: any) => !s.cqs || s.cqs.length === 0) && (
+                <EmptyState message="No critical questions for this claim" />
+              )}
           </div>
         )}
 
@@ -371,27 +429,29 @@ export function DialogueInspector({
         {activeTab === "raw" && (
           <div className="space-y-4">
             <RawDataSection title="Target Data" data={targetData} />
-            <RawDataSection title="Moves Data" data={movesData} />
+            <RawDataSection
+              title={`Moves Data (${targetMoves.length} for this target, ${movesData?.items?.length || 0} total)`}
+              data={{ moves: targetMoves, total: movesData?.items?.length }}
+            />
             <RawDataSection title="Legal Moves Data" data={legalMovesData} />
             <RawDataSection title="CQs Data" data={cqsData} />
             <RawDataSection title="Attachments Data" data={attachmentsData} />
           </div>
         )}
+          </>
+        )}
       </div>
 
-      {/* Claim Picker for navigation */}
+      {/* Claim Picker for selection/navigation */}
       <SchemeComposerPicker
         kind="claim"
         open={claimPickerOpen}
         onClose={() => setClaimPickerOpen(false)}
         onPick={(claim) => {
-          // Navigate to the selected claim (could be enhanced to update targetId dynamically)
-          console.log("Selected claim:", claim);
-          window.dispatchEvent(
-            new CustomEvent("mesh:navigate:claim", {
-              detail: { claimId: claim.id, roomId: claim.roomId },
-            })
-          );
+          // Update selected claim
+          setTargetType("claim");
+          setTargetId(claim.id);
+          setLocusPath("0"); // Reset to root locus
           setClaimPickerOpen(false);
         }}
       />
@@ -484,7 +544,7 @@ function MoveCard({ move, index, isNested = false }: { move: any; index: number;
   // Highlight SUPPOSE and DISCHARGE moves
   const isStructural = move.kind === "SUPPOSE" || move.kind === "DISCHARGE";
   const bgClass = isStructural 
-    ? "bg-purple-50 hover:bg-purple-100" 
+    ? "bg-indigo-50 hover:bg-indigo-100" 
     : isNested 
     ? "bg-slate-50 hover:bg-slate-100"
     : "bg-gray-50 hover:bg-gray-100";
@@ -497,7 +557,7 @@ function MoveCard({ move, index, isNested = false }: { move: any; index: number;
       >
         <div className="flex items-center gap-2">
           <span className={`text-xs font-mono px-2 py-1 rounded ${
-            isStructural ? "bg-purple-200 text-purple-900" : "bg-purple-100"
+            isStructural ? "bg-indigo-200 text-indigo-900" : "bg-indigo-100"
           }`}>
             #{index + 1} {move.kind}
           </span>

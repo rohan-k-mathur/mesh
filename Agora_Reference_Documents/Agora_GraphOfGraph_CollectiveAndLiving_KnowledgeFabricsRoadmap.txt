@@ -1,0 +1,1158 @@
+How we turn the Agora into a graph‑of‑graphs knowledge fabric where arguments do not evaporate, but accrete into durable, navigable “living documents.” It integrates the Harrell “debate representation” lens with findings from public‑deliberation tools research and your in‑house roadmap notes. I keep it implementation‑agnostic and systems‑level, but precise enough to guide architecture and product decisions.
+
+1) Executive summary
+Goal. Reframe every debate on the platform as a durable, linkable knowledge object that slots into a larger graph‑of‑graphs. Each argument act—claims, challenges, evidence, concessions—becomes a first‑class, citable unit that can be re‑used across rooms and time. Instead of throwaway threads, we grow a collective, dynamic knowledge base of “living documents”: evolving debate sheets, topic can­vases, and cross‑debate syntheses.
+Why now. Research shows (i) there’s no broadly adopted way to represent entire debates without losing detail or overwhelming readers—yet such a representation is needed; (ii) argument tools succeed when they support parallel negotiation channels, web annotation to import external evidence, and multiple views (outline, two‑column, network) for sensemaking and onboarding; and (iii) “shallow in → shallow out”: tools must bring new knowledge in, not only summarize what’s already there.
+What changes. We introduce a metastructure with:
+	•	DebateSheets (one rigorous debate = one sheet) that capture moves, counter‑moves, and outcomes;
+	•	TopicCanvases (graph‑of‑sheets) that curate many sheets around a theme, with cross‑links and summaries;
+	•	Evidence Ingress (web annotation & provenance) and Back‑channels to negotiate structure without polluting the formal thread;
+	•	View Contracts so the same structure powers outline/two‑column/network views and teaching‑oriented “debate‑level” lenses.
+
+2) Research foundations (what we import)
+	•	Representing whole debates. Harrell (2022) shows that while argument diagramming helps, we lack a representation that captures both the essential detail of exchanges and the overall arc without becoming unwieldy; she motivates a two‑level approach (argument micro‑structures + debate meta‑flow). Our metastructure answers that gap. 
+	•	Adoption and UX patterns. De Liddo & Strube (C&T ’21) identify (a) three dominant UIs (outline, two‑column, network), (b) the need for parallel negotiation channels, and (c) the value of web annotation to pull in outside sources. They also document the “shallow debates → shallow summaries” trap and recommend tooling that imports new evidence, not just maps what’s there. These shape our multi‑view and evidence‑ingress requirements. 
+	•	Internal direction. Your “Digital Agora roadmap” emphasizes persistent argument maps, citation/cross‑reference infrastructure, and synthesis layers that evolve into a community memory—core to the graph‑of‑graphs. 
+	•	Current surface alignment. The existing Dialogical Panel and AF overlays give us a practical anchor for near‑term experiments with labels, legal‑move chips, and outcome badges that will later plug into the metastructure’s views. 
+	•	Additional lessons. In studies of LiteMap, mappers valued hierarchical structure, but noted structure is personal and must be negotiated; web annotation materially helped and was rated useful for seeing all discussion linked to arguments; and most tools lack direct messaging, yet some structured parallel channel (à la Kialo’s “suggest improvement”) is beneficial. These findings directly inform our Back‑channel and Structure Negotiation features. 
+
+3) System concept — the Agora “graph‑of‑graphs”
+3.1 Domain objects (idealized)
+	•	ArgumentAtom: the smallest citable unit (claim, premise, objection, undercut, concession).
+	•	Move: dialogical act with locus & role (ask‑why, give‑grounds, retract, concede, therefore‑test, suppose/discharge), stamped with provenance and constraints.
+	•	ArgumentThread: a small, well‑formed micro‑argument (Toulmin/AF slice) linking atoms and moves.
+	•	DebateSheet: one debate episode (e.g., “Should X be policy?”) composed of many threads + a debate‑level flow: phases, turns, branch choices, closing conditions, and a status ledger (skeptical/credulous labels, resource constraints if enabled). This is the unit of permanence for a debate.
+	•	TopicCanvas: a graph of DebateSheets about a theme (e.g., “Climate policy—carbon pricing”). Includes cross‑sheet edges: supports / rebuts / refines / generalizes / depends_on.
+	•	EvidenceNode: external resource with structured metadata (source, date, type) and annotation anchors; can support or attack atoms/threads.
+	•	PerspectiveCluster: a computed (and curator‑editable) set of representative statements capturing main “camps” in a topic; rendered in Insights. (This aligns with combining approval/voting signals with argument networks to surface representative viewpoints.) 
+3.2 Relations (graph schema)
+	•	DebateSheet embeds many ArgumentThreads; ArgumentThread composes Moves and ArgumentAtoms.
+	•	DebateSheet links_to DebateSheet (inter‑debate references, e.g., “rebuttal developed here”).
+	•	TopicCanvas curates many DebateSheets; PerspectiveCluster summarizes a subset of ArgumentAtoms across sheets.
+	•	EvidenceNode supports/attacks ArgumentAtom or ArgumentThread and maintains a provenance chain into external URLs and annotations.
+Rationale. This two‑layer (argument micro / debate macro) design directly addresses Harrell’s tension—retain analytic granularity while staying readable at the debate level. It also matches field evidence that readers need multiple lenses and imported evidence for serious deliberation.
+
+4) Product pillars (ideal feature set)
+	0.	DebateSheets as living documents
+	•	Structure: title, scope, roles, ruleset, phases; sections for key claims, challenges, answers; a debate flow timeline; and a decision/outcome card.
+	•	Status views: skeptical/credulous acceptance, closable loci, unresolved CQs, open tasks.
+	•	Teaching toggle: a “Harrell Lens” that shows meta‑flow (where objections target premises vs inferences) with collapsible detail. 
+	0.	TopicCanvases (graph‑of‑sheets)
+	•	Curators cluster debates, articulate cross‑links, and publish a Topic Synthesis (overview, camps, consensus points, gaps).
+	•	Persistent linkability: every atom/thread/sheet has a stable ID; cross‑sheet references work like scholarly citations. (Your roadmap endorses citable, build‑upon‑able work.) 
+	0.	Evidence ingress & provenance
+	•	Integrated web annotation sidebar to harvest snippets from outside sources; attach them as EvidenceNodes with anchors and citations.
+	•	Evidence gallery per sheet/canvas, with filters (type, reliability, date). Research shows web annotation + mapping improves sense‑making and mitigates echo chambers. 
+	0.	Parallel negotiation channels (social glue)
+	•	Per‑node “Suggest improvement” threads; map‑level comments to negotiate structure without polluting the formal argument. LiteMap/Kialo‑style back‑channels are reported as useful for negotiating meaning and coordinating mapping. 
+	0.	Multi‑view editors & readers
+	•	Outline, two‑column (pro/con), and network canvases over the same underlying data model; toggleable at will. These are the three dominant, proven interfaces for argument tools. 
+	0.	Debate Insights (perspectives & consensus)
+	•	“Main camps” panel with representative statements; “consensus points” panel that tracks statements broadly endorsed across sheets. This connects voting/reaction signals to the argument network to identify representative points of view. 
+	0.	Memory and governance
+	•	All moderation receipts and structural decisions become first‑class, linkable objects that feed back into community learning (institutional memory). This supports the platform’s goal that the best work can be “found, cited, and built upon over time.”
+
+5) View contracts (specs for UI surfaces powered by the same data)
+	•	DebateSheet / Reader Input: DebateSheet{id, title, roles, ruleset, timeline[], unresolvedCQs[], outcomes[], evidence[]} Must render: (a) debate flow with focus/zoom, (b) unresolved/closed loci, (c) status (skeptical/credulous labels), (d) evidence roll‑up.
+	•	DebateSheet / Editor Input: Sheet + capability grants. Must support: add/edit sections; attach evidence; open/close loci; publish outcome cards; insert cross‑sheet references.
+	•	TopicCanvas / Reader Input: TopicCanvas{id, sheets[], crossLinks[], clusters[]} Must render: cluster map of camps; synthesis summary; navigable cross‑references.
+	•	Insights Panel Input: computed PerspectiveCluster[], ConsensusPoint[] with links back to atoms/threads. Must render: representative statements, cluster sizes, provenance links. 
+	•	Back‑channel Input: thread bindings to any node/sheet/canvas. Must render: linear/social thread; decisions to “apply suggestion” recorded as structural edits with provenance. (Research flags parallel channels as a practical adoption lever.) 
+
+6) Data & governance invariants (selected)
+	•	Identity & Stability
+	•	Every ArgumentAtom, ArgumentThread, DebateSheet, TopicCanvas, EvidenceNode has a stable, dereferenceable ID and citation string.
+	•	Provenance
+	•	All cross‑links carry source, author(s), timestamp, and reason (support/rebut/refine/generalize).
+	•	DebateSheet closure
+	•	A locus is closable only if (a) all addressed CQs for that locus are either answered or retracted, and (b) no outstanding blocking move exists. (This aligns with the “closability” semantics you already expose via † hints in the panel.) 
+	•	Negotiation discipline
+	•	Structural changes via back‑channels are applied only when a sheet’s maintainers accept a suggestion; the suggestion thread remains linked as the reason for change. Research notes that structure is “highly personal” and benefits from explicit group negotiation. 
+
+7) Workflows (research‑justified)
+	0.	Start a DebateSheet → author sets scope, declares initial claims, adds evidence stubs.
+	0.	Engage → participants add moves; the sheet accrues atoms/threads; unresolved CQs populate a dashboard.
+	0.	Bring in evidence → web annotation harvest enriches EvidenceNodes; atoms get provenance. (Empirically valued by users and found useful in LiteMap studies.) 
+	0.	Negotiate structure → back‑channel threads propose merges/splits/renames; maintainers apply accepted changes; provenance logged. (Parallel channels are recommended to disambiguate meaning during co‑creation.) 
+	0.	Close loci & publish outcomes → sheet surfaces closable loci based on dialogical/game semantics and CQ status; publishes an outcome card. 
+	0.	Curate TopicCanvas → curators cluster related sheets, add cross‑links, and issue a synthesis (camps, consensus, gaps). Perspective clusters and consensus points are computed and then human‑audited. 
+
+8) Milestones & evaluation (systems‑level)
+	•	Milestone A — DebateSheet MVP (structure > visuals)
+	•	Data model: atoms/threads/sheets/evidence; stable IDs & citations; basic reader/editor.
+	•	Success: readers can navigate a sheet; unresolved CQs/evidence roll‑ups appear; linkbacks are functional.
+	•	Research checks: Can we keep detail and overview? (Harrell criterion.) Do back‑channels reduce structural friction? (C&T adoption lessons.)
+	•	Milestone B — TopicCanvas + Insights
+	•	Cross‑sheet links; perspective clusters; consensus points; synthesis page.
+	•	Success: newcomers can grasp “main camps” and reach representative statements with one click, with provenance. 
+	•	Milestone C — Evidence Ingress at scale
+	•	Web annotation, citation management, evidence gallery, and reuse across sheets.
+	•	Success: increased external‑evidence attachments per sheet; qualitative feedback that maps are more informative and less repetitive. 
+	•	Milestone D — Multi‑view & Teaching lens
+	•	Outline/two‑column/network parity; “debate‑level” meta‑flow view for teaching/briefings.
+	•	Success: improved comprehension/self‑reported sensemaking for non‑experts; lower time‑to‑grasp for large debates.
+KPIs (examples)
+	•	Knowledge permanence: % of atoms reused across sheets; # of inter‑sheet links per month.
+	•	Depth: external evidence ratio per sheet; CQ resolution rate.
+	•	Comprehension: time‑to‑useful‑overview for newcomers; click‑through on representative statements.
+	•	Governance memory: # of accepted structural suggestions applied with recorded provenance.
+
+9) Risks & mitigations
+	•	Over‑formalization fatigue. Mitigation: multi‑view & progressive disclosure; back‑channels to socialize structure; evidence tools that provide obvious value. 
+	•	Fragmentation across sheets. Mitigation: mandatory cross‑link prompts; topic curatorship; Insights surfacing representative statements and consensus. 
+	•	Shallow debates. Mitigation: active evidence ingress flows and “gap‑finder” prompts that nudge import of outside sources. (Matches “bring new evidence in.”) 
+
+10) Alignment with current surfaces (for later mapping)
+While this report is implementation‑agnostic, your existing Dialogical Panel already exposes legal‑move suggestions, CQ status, and closability hints (†). Those concepts translate cleanly into the DebateSheet status and the “Harrell Lens” meta‑flow view. This de‑risks incremental adoption of the metastructure without re‑platforming the UI stack.
+
+Appendix A — Rationale snapshots (with sources)
+	•	Why a two‑level representation? A single diagram often hides debate dynamics; a single transcript loses analytic structure. Harrell calls for a representation that preserves essentials and overview; our DebateSheet/TopicCanvas split is designed for exactly that. 
+	•	Why back‑channels & annotation? Public‑deliberation studies report that untrained users can succeed when they have space to negotiate structure and when the tool pulls in external evidence; otherwise maps stay shallow and adoption lags. 
+	•	Why persistence & cross‑references? Your roadmap identifies durability and citability as core to impact—arguments should be “found, cited, and built upon over time.” The graph‑of‑graphs makes this the default. 
+
+What you’ll get out of this phase
+	•	A coherent, research‑backed metastructure (objects, relations, invariants) for debates that scales to long‑running, cross‑room discourse.
+	•	View contracts that let you power outline, two‑column, network, and teaching lenses from the same data.
+	•	An adoption‑oriented plan that addresses known failure points (structure negotiation, evidence ingress, learning curve) from the argument‑tools literature. 
+If you’d like, I can now turn this into the promised formal specification pack (object schemas, invariants, state diagrams, and view contracts) with example payloads and acceptance tests mapped onto the DebateSheet/TopicCanvas model. (This would be prepared so architecture and research reviewers can evaluate it immediately using the same research traceability.)
+
+—here’s a formal specification pack for the Agora Debate Metastructure (the “graph‑of‑graphs” knowledge fabric). It is implementation‑independent and suitable for architectural review and research evaluation. I organize it as: domain model (object schemas), invariants, state machines, view contracts, and evaluation harness—with research traceability annotated inline.
+
+0) Scope & design principles
+Goal. Turn every deliberation into a durable debate‑level graph whose nodes are whole arguments and whose edges capture relations among those arguments (support, objection, rebuttal, refinement, etc.). Each argument node “pops out” to its argument‑level graph (premises, conclusions, and inferences). Users traverse, expand, and revise this structure across rooms and over time—so arguments don’t evaporate, they accrete into living, navigable documents. This follows Harrell’s two‑level representation and explicit expand/collapse requirement and Yoshimi’s “graph of graphs” idea.
+Why the two levels (research). Debate graphs relate arguments to arguments (threads, positions), while argument diagrams relate statements to statements. Both must co‑exist, with fast drill‑down and back to overview (expand/collapse), to keep large debates comprehensible. Sunburst/pop‑out patterns are proposed specifically to solve large‑scale density (L1–L4 limitations) and “show whole & detail in one tool.”
+UX corollary. Provide multi‑view editors and back‑channels; map readers and mappers have different needs. Argument tools that succeed at scale support parallel negotiation channels (e.g., “suggest improvement”) and web annotation to bring in new evidence—otherwise “shallow in → shallow out.”
+
+1) Ontology & object schemas (canonical)
+Below are normative TypeScript interfaces plus JSON‑Schema fragments for storage/API. IDs are content‑addressable or stable ULIDs; createdAt/updatedAt omitted for brevity.
+1.1 Core IDs & provenance
+type ID = string;     // ulid/uuid
+type URI = string;    // http(s):// or internal refs
+type IsoDate = string;
+interface Provenance {
+  createdBy: ID;             // user or agent
+  createdInDeliberation?: ID;
+  sources?: EvidenceLink[];  // web annotations, files, citations
+}
+1.2 Argument‑level graph (inside a node)
+type StatementRole = 'premise' | 'intermediate' | 'conclusion' | 'assumption' | 'question';
+type InferenceKind = 'deductive' | 'inductive' | 'abductive' | 'defeasible' | 'analogy';
+
+interface Statement {
+  id: ID;
+  text: string;              // canonicalized proposition; versioned
+  role: StatementRole;
+  tags?: string[];
+}
+
+interface InferenceEdge {
+  id: ID;
+  from: ID[];                // 1..n premises (linked, convergent allowed)
+  to: ID;                    // conclusion statement id
+  kind: InferenceKind;
+  polarity: 'support' | 'undercut' | 'rebut'; // local dialectical effect
+}
+
+interface ArgumentGraph {
+  id: ID;
+  title?: string;
+  statements: Statement[];
+  inferences: InferenceEdge[];
+  cq?: CriticalQuestionSet;  // scheme‑driven CQs, open/answered
+  provenance: Provenance;
+}
+Rationale. The argument map must represent statement‑level connections (not just AF attacks), because purely abstract AFs “pay no attention to internal structure,” which is inadequate for pedagogy and analysis. We therefore overlay AF views but retain internal structure.
+1.3 Debate‑level graph (graph‑of‑graphs)
+type DebateEdgeKind = 'supports' | 'objects' | 'rebuts' | 'refines' | 'restates' | 'answers' | 'questions';
+
+interface DebateNodeRef {
+  id: ID;                    // argument id
+  title?: string;            // label for the node in overview
+  snapshotOf?: ID;           // stable ref to living argument if node is a snapshot
+  metrics?: { cqOpen: number; evidenceCount: number; activity: number };
+}
+
+interface DebateEdge {
+  id: ID;
+  from: ID;                  // DebateNodeRef.id
+  to: ID;                    // DebateNodeRef.id
+  kind: DebateEdgeKind;
+  orientation?: 'for' | 'against' | 'neutral';   // color/UI hint
+}
+
+interface DebateGraph {
+  id: ID;
+  topic: string;             // human title
+  nodes: DebateNodeRef[];
+  edges: DebateEdge[];
+  overlays?: Overlays;       // AF/ABA acceptance, stats
+  provenance: Provenance;
+}
+Rationale. Two distinct but linked layers: debate nodes = whole arguments, edges = support/objection/rebuttal; node “pop‑out” reveals its statement‑level map and CQs; edges are color/distinct to show flow at a glance.
+1.4 Overlays (semantics & acceptance)
+type Semantics = 'grounded' | 'preferred' | 'stable' | 'prudent'; // AF/ABA families
+
+interface Overlays {
+  afProjection?: { nodes: ID[]; attacks: [ID, ID][]; extensions: Record<Semantics, ID[][]> };
+  scores?: Record<ID, { inDegree: number; outDegree: number; accept?: 'in'|'out'|'undec' }>;
+}
+Rationale. AF overlays are a projection from debate edges (objection/rebut form attacks). We retain internal structure but provide AF acceptability views for “at‑a‑glance” summaries. Harrell notes AF‑only is insufficient; our overlay is additive.
+1.5 Critical questions & obligations
+interface CriticalQuestion {
+  key: string;                       // e.g., "relevance", "feasibility"
+  text: string;
+  status: 'open'|'answered'|'verified'|'reopened';
+  answers?: { text: string; by: ID; at: IsoDate; evidence?: EvidenceLink[] }[];
+}
+
+interface CriticalQuestionSet {
+  schemeKey: string;                 // e.g., "PracticalInference"
+  questions: CriticalQuestion[];
+}
+1.6 Evidence & annotation (ingress)
+interface EvidenceLink {
+  id: ID;
+  uri: URI;                          // target page/file
+  quote?: string;                    // snippet
+  selectors?: { type:'TextPositionSelector'|string; start:number; end:number }[];
+  note?: string;
+  addedBy: ID;
+  addedAt: IsoDate;
+}
+Rationale. Backed by research on LiteMap: argument tools benefit when they harvest the web and annotate sources to bring new content into debates; this avoids echo chambers and “shallow maps.”
+1.7 Cross‑deliberation references (Agora level)
+interface CrossLink {
+  id: ID;
+  from: { debateId: ID; nodeId: ID };   // argument in Debate A
+  to:   { debateId: ID; nodeId: ID };   // argument in Debate B
+  relation: 'reuses'|'contradicts'|'updates'|'supersedes';
+  note?: string;
+}
+
+2) Invariants (normative)
+I‑1 Two‑level separation. Every DebateNodeRef must refer to exactly one ArgumentGraph. Drill‑down must not alter debate edges directly (edit occurs in the argument graph; edges are recomputed or curated).
+I‑2 Expand/collapse contract. Any debate node MUST support expand() to fetch its ArgumentGraph and collapse() without losing overview context. (Addresses L1–L4 scaling.)
+I‑3 Edge typing. Debate edges use a closed set of kinds; AF overlay is a deterministic projection:
+	•	objects|rebuts → attack; supports|refines|answers|restates → non‑attack. 
+I‑4 CQ lifecycle. A CQ under a node transitions open → answered → verified only when an answer exists and either (a) the answer is committed by the node’s author(s) or (b) verified by a designated referee.
+I‑5 Evidence attachment. Every answered CQ should link at least one EvidenceLink (policy), promoting “bring new content” rather than summarizing only.
+I‑6 Overlay honesty. AF acceptance must be displayed as an overlay badge, never as a replacement for statement‑level validity. (Research: AF ignores internal structure.)
+I‑7 Cross‑deliberation traceability. CrossLink.relation='supersedes' implies the predecessor node is marked deprecated in derived views but remains addressable for citation.
+I‑8 Governance neutrality. Back‑channels and mapper roles are orthogonal to content structure; parallel comments must never alter graphs without an explicit, logged action. (Back‑channel is critical for coordination.)
+
+3) State machines (normative)
+3.1 Debate node (argument) status
+Unassessed
+  ├─(WHY/objection arrives)→ UnderChallenge
+  ├─(CQ all verified & no open attacks)→ Defended
+  └─(Author concedes/retracts)→ Surrendered
+UnderChallenge
+  ├─(answers posted & verified; attacks resolved)→ Defended
+  ├─(contradiction found; culprit selected)→ Surrendered
+  └─(new attack)→ UnderChallenge
+Defended
+  └─(new attack or CQ reopened)→ UnderChallenge
+Surrendered
+  └─(substantial revision + re‑submission)→ Unassessed
+3.2 CQ status
+open → answered → verified → (evidence refuted) → reopened
+3.3 Locus/branch status (dialogical branch)
+open → closable († hint) → closed
+3.4 Obligation (per CQ/WHY)
+none → pending (deadline set) → satisfied | overdue → cleared
+Rationale. Status machines allow the UI to communicate progress and enforce obligations; † closability is surfaced as a hint, not auto‑closure. (Matches empirical needs for “following progress” and avoiding circular discussions.)
+
+4) API/view contracts (implementation‑agnostic)
+The platform exposes read contracts for views and write contracts for mappers. These are shape‑contracts; transport and auth are out of scope.
+4.1 Debate Overview (L0)
+GET /debates/:id/graph → DebateGraph
+	•	Guarantees edge kinds and node metrics.
+	•	Includes overlays (AF projection, acceptance badges). Justification: readers need at‑a‑glance flow and large‑scale overview. 
+4.2 Argument Pop‑out (L1)
+GET /arguments/:argId → ArgumentGraph
+	•	Includes statements, inferences, CQ sheet, evidence, provenance.
+	•	Pop‑out must be O(1) call from any debate node. Justification: direct drill‑down supports L1–L4 scale usability. 
+4.3 CQ Sheet
+GET /arguments/:argId/cq → CriticalQuestionSet POST /arguments/:argId/cq/:key/answer with {text, evidence[]} POST /arguments/:argId/cq/:key/verify with {by}
+Policy: verification authority is room‑configurable.
+4.4 Evidence ingress (web annotation)
+POST /evidence with EvidenceLink → id POST /arguments/:argId/evidence/:evidenceId/attach
+Justification: deliberate “web harvesting” to enrich maps and avoid platform islands.
+4.5 Back‑channel threads
+GET/POST /debates/:id/nodes/:argId/suggestions – A linear, per‑node “Suggest Improvement” channel (non‑structural). Justification: parallel negotiation channels correlate with adoption and coordination.
+4.6 Cross‑debate references
+GET/POST /agora/crosslinks with CrossLink – Enables reuse and contradiction linking across deliberations.
+
+5) JSON‑Schema (selected)
+DebateGraph (excerpt)
+{
+  "$id": "https://agora/specs/debate-graph.json",
+  "type": "object",
+  "required": ["id","topic","nodes","edges","provenance"],
+  "properties": {
+    "id": {"type":"string"},
+    "topic": {"type":"string"},
+    "nodes": {
+      "type":"array",
+      "items": { "$ref":"#/definitions/DebateNodeRef" }
+    },
+    "edges": {
+      "type":"array",
+      "items": { "$ref":"#/definitions/DebateEdge" }
+    },
+    "overlays": { "type":"object" },
+    "provenance": { "$ref":"#/definitions/Provenance" }
+  },
+  "definitions": {
+    "DebateNodeRef": {
+      "type":"object",
+      "required":["id"],
+      "properties":{
+        "id":{"type":"string"},
+        "title":{"type":"string"},
+        "snapshotOf":{"type":"string"},
+        "metrics":{"type":"object",
+          "properties":{
+            "cqOpen":{"type":"integer","minimum":0},
+            "evidenceCount":{"type":"integer","minimum":0},
+            "activity":{"type":"number","minimum":0}
+          }
+        }
+      }
+    },
+    "DebateEdge": {
+      "type":"object",
+      "required":["id","from","to","kind"],
+      "properties":{
+        "id":{"type":"string"},
+        "from":{"type":"string"},
+        "to":{"type":"string"},
+        "kind":{"enum":["supports","objects","rebuts","refines","restates","answers","questions"]},
+        "orientation":{"enum":["for","against","neutral"]}
+      }
+    },
+    "Provenance": {
+      "type":"object",
+      "required":["createdBy"],
+      "properties":{
+        "createdBy":{"type":"string"},
+        "createdInDeliberation":{"type":"string"},
+        "sources":{"type":"array","items":{"$ref":"#/definitions/EvidenceLink"}}
+      }
+    },
+    "EvidenceLink": {
+      "type":"object",
+      "required":["id","uri","addedBy","addedAt"],
+      "properties":{
+        "id":{"type":"string"},
+        "uri":{"type":"string","format":"uri"},
+        "quote":{"type":"string"},
+        "selectors":{"type":"array","items":{"type":"object"}},
+        "note":{"type":"string"},
+        "addedBy":{"type":"string"},
+        "addedAt":{"type":"string","format":"date-time"}
+      }
+    }
+  }
+}
+
+6) View‑level contracts (UI modules)
+These specify what each view requires/returns—it’s a stable contract for any frontend.
+	0.	Debate Canvas (graph‑of‑graphs). Input: DebateGraph + Overlay Must render: color‑coded edges by relation; per‑node badges: {cqOpen, acceptability, evidenceCount}; expand affordance. Why: Harrell’s “pop‑out” between debate and argument levels; color helps “flow at a glance.” 
+	0.	Argument Pop‑out (Fitch/Toulmin view). Input: ArgumentGraph Must render: statement roles; grouped inferences; CQ sheet; attached evidence.
+	0.	CQ Panel. Input: CriticalQuestionSet Must show: status chips (open/answered/verified) and “answer with evidence” flow.
+	0.	Back‑channel Thread. Input: per‑node thread items. Must be linear and non‑structural, explicitly separate from the graph. Why: supports negotiation without polluting the formal record. 
+	0.	Evidence Ingress (Web Annotation panel). Input: EvidenceLink[] Must support: add annotation via bookmarklet/selector; attach/detach to CQs/arguments. Why: bring in new knowledge; avoid echo chambers. 
+
+7) Research‑grounded acceptance criteria
+	•	Two‑level fidelity. Users can view the debate graph and pop out to argument internals, then collapse, in O(1) steps. (Meets Harrell Req. 1 & 5.) 
+	•	Scalability affordances. Large debates remain navigable (expand/collapse, overview metrics). (Addresses ArgVis L1–L4.) 
+	•	Parallel channels present. Each node has a “suggest improvement” thread; mappers report smoother coordination. 
+	•	Evidence ingress tracked. ≥X% of CQ answers include at least one EvidenceLink. 
+	•	Overlay honesty. AF acceptance displayed as badges; statement‑level map always accessible. (Avoid AF‑only pitfalls.) 
+
+8) Evaluation harness (research & regression)
+Create a corpus of micro‑plays with expected graph and overlay outcomes:
+	•	Graph‑of‑graphs drill‑down: 5‑node debate with two expansions; expected edges and AF overlay (in/out/undec).
+	•	CQ lifecycle: open→answered (with evidence)→verified; expected node status moves UnderChallenge→Defended.
+	•	Scaling test: auto‑generated 200‑argument corpus; measure “expand latency” and visibility of flow cues (color + badges). (Targets L1–L4.) 
+	•	Back‑channel effect: coordination tasks with/without per‑node threads; mappers’ time‑to‑convergence and duplication rate. 
+	•	Evidence ingress A/B: presence of the web annotation panel vs. control; measure proportion of new, external sources attached. 
+Each fixture asserts: (1) debate‑graph shape, (2) argument‑graph integrity, (3) overlay consistency, (4) CQ/evidence counts.
+
+9) Governance & roles (minimal)
+	•	Mapper: can restructure graphs (split/merge/retitle nodes), attach evidence, verify CQs (room policy).
+	•	Participant: can propose arguments, answer CQs, suggest improvements (back‑channel).
+	•	Referee (optional): can mark verification and resolve disputes. (Research notes differences between facilitated vs self‑regulated deliberation models; make roles configurable.) 
+
+10) Risks & mitigations (research‑aware)
+	•	AF dominance risk. Users over‑rely on badges → always provide “View internals” affordance inline; include training prompts. 
+	•	Usability learning curve. Offer outline/two‑column alternatives for entry; keep graph‑of‑graphs for exploration (multi‑view). 
+	•	Shallow content. Default prompts encourage evidence attachment; CQ verification requires sources by policy. 
+
+Appendix: compact glossary
+	•	Debate graph: nodes=arguments, edges=relations; color‑coded; expandable. 
+	•	Argument graph: statements + inferences + CQs + evidence.
+	•	AF overlay: abstract acceptance view; add‑on, not a substitute. 
+	•	Back‑channel: per‑node side thread for negotiation. 
+
+What this spec gives you
+	•	A coherent data model that operationalizes Harrell’s two‑level requirement with concrete schemas and invariants. 
+	•	Scalability provisions tied to ArgVis evidence (expand/collapse; overview metrics). 
+	•	Adoption‑proven UX features (parallel channels; web annotation; multi‑views) justified by the LiteMap studies. 
+If you want, I can also generate example payloads for a worked debate (5 nodes + 2 pop‑outs + overlay + CQ/evidence) and an evaluation fixture set matching the harness above; but the normative pack here already stands on its own for review.
+
+
+--Below is a systems‑level, research‑justified roadmap for turning the Agora into a graph‑of‑graphs knowledge fabric—so that debates become durable, navigable, and cumulatively useful “living documents,” not one‑off visualizations.
+I ground the design in Harrell’s analysis of debate representation and its limits (esp. the need for two levels—a debate graph and argument diagrams—with expand/collapse between them; the scale limits L1–L4; and the pitfalls of Dung‑only acceptability) and adapt those into platform‑wide imperatives and milestones. Where useful, I note how your current patterns (e.g., DialogicalPanel’s AF and drill‑down affordances) can serve as a conceptual anchor for some views later.
+
+I. First principles (what the platform must guarantee)
+	0.	Two‑level representation, natively
+	•	Debate graph: nodes are whole arguments/positions/episodes; edges capture supports / objects / rebuts / restates / clarifies with temporal threading.
+	•	Argument diagrams: internal structure (claims, premises, inferences, evidence).
+	•	Users can expand any debate node to its internal argument diagram and collapse back—precisely the mechanism Harrell identifies as the critical requirement (see “What is Needed,” Req. 1 & 5; the pop‑out mock in Fig. 14; and the sunburst→pop‑out pattern in Figs. 12–13). 
+	0.	Scales beyond node‑link clutter
+	•	The platform must support many nodes at both levels and offer overview + detail without the “dense and impenetrable” failure at ~20–30 nodes (Khartabil’s L1–L4, p. 601). This commits us to multiple coordinated views and hierarchical aggregation (thread, episode, position, edition). 
+	0.	Hybrid evaluation, not “last attacker wins”
+	•	Avoid the inadequacy of AF‑only semantics (p. 605)—labels must consider internal quality (premise truth, evidential strength, scheme CQ coverage) in addition to attack/defense topology. The system exposes AF semantics (grounded/preferred/stable) while factoring in argument‑internal metrics into a composite status. 
+	0.	Durability, lineage, and transclusion
+	•	Debates become living documents: edits are non‑destructive (lineage edges like restates, clarifies, supersedes), arguments are transcludable across rooms and debates, and everything carries provenance and editioning.
+	0.	Interoperability as a first‑class goal
+	•	Import/export to established schemas (AIF, Argdown, OVA), and support a compact internal model that can represent Yoshimi’s “graph‑of‑graphs” (debate nodes whose interior is itself an argument diagram). 
+
+II. Metamodel (graph‑of‑graphs substrate)
+A. Debate layer (macro)
+	•	Entities
+	•	Debate: a living container; scope (topics, time span), policies (semantics, visibility).
+	•	DebateNode: kind ∈ {argument, position, episode, meta}; references a canonical ArgumentDiagram via diagramId; has authors, time, and provenance (citations, quotes).
+	•	DebateEdge: typed relation with optional temporal threading: rel ∈ {supports, objects, rebuts, restates, clarifies, meta-notes}; sequence: {thread, order} to model debate threads (Yoshimi). 
+	•	Invariants
+	•	Idempotency on (from,to,rel,thread).
+	•	No destructive edits; refactors create new nodes with lineage edges.
+B. Argument layer (micro)
+	•	ArgumentDiagram: nodes: claim|premise|warrant|exception|evidence; edges: inference|attack|undercut; attributes: inferenceMode (deductive/inductive/abductive), scheme + CQ coverage; evidence slots with source/provenance.
+	•	Evaluation: internal scores (premise credibility, source reliability, scheme CQ coverage) feed the composite label.
+C. Cross‑cutting
+	•	Transclusion & canonicalization: repeated arguments map to canonical Position pages; paraphrases merge via soft canonical IDs (with human‑in‑the‑loop).
+	•	Editioning: snapshots yield citeable editions of a Debate; continuous view shows living state.
+	•	Provenance: every object carries source pointers (deliberation id, move ids, timestamps, authorship).
+This metamodel exactly matches Harrell’s requirement for two levels coupled by expand/collapse and supports scale via aggregation (threads/episodes/positions), the remedy proposed to avoid L1–L4 failure modes.
+
+III. Computation & semantics
+	0.	AF projection at the debate level Project DebateNodes to AF nodes and DebateEdges to attack/support/defense relations; run grounded / preferred / stable semantics and display labeling. (This is where your DialogicalPanel‑style AF toggles conceptually fits the ideal UX family of views.) 
+	0.	Argument‑internal scoring Compute per‑diagram scores:
+	•	CQ coverage (by scheme),
+	•	evidence credibility,
+	•	inference quality (mode‑specific heuristics),
+	•	consistency (no unretracted contradictions).
+	0.	Hybrid label Combine AF label + internal score → Composite Acceptance with an interpretable rule (e.g., AF label gates, internal score modulates confidence). This addresses Harrell’s critique that acceptance must consider more than “who spoke last.” 
+	0.	Thread and episode inference Given sequence metadata, compute thread summaries and episode boundaries; surface them as aggregations in overview views (Yoshimi/Harrell thread concept). 
+
+IV. Interaction system (views are interchangeable over the substrate)
+	0.	Debate Map (overview)
+	•	Node = DebateNode, Edge = DebateEdge; color encodes relation type (Req. 3 on color coding for flow). Click Expand to open the inner argument diagram (Req. 5). 
+	0.	Argument Pop‑out (detail)
+	•	The inner diagram (Beardsley/Freeman/Toulmin/sequent) with scheme/CQ overlays, evidence panels, and contradiction aides.
+	0.	Sunburst + Pop‑out
+	•	For very large arguments, adopt Khartabil’s sunburst overview with pop‑out node‑link (Figs. 12–13), now used to bridge debate‑level nodes to inner details (exactly Harrell’s Fig. 14 idea). 
+	0.	Thread Timeline
+	•	Linear (or swimlane) view of sequences per thread; supports reading and pedagogy (Yoshimi’s “debate thread” notion). 
+	0.	Position Pages (living dossiers)
+	•	Canonical page per claim/position aggregating all DebateNodes that support/object across time and rooms; shows edition history and provenance.
+	0.	Edition view
+	•	Frozen snapshots for citation; diff against living state.
+	0.	Matrix views
+	•	(a) Arguments × Evidence; (b) Arguments × CQs → completion and quality‑gap heatmaps (guides curation).
+Your current DialogicalPanel pattern—AF toggles, list + inspector pane—maps well to (1) and (2) at the concept level, and already demonstrates the toggle evaluation and drill‑down idioms we need in the ideal suite.
+
+V. Governance, authorship, and knowledge stewardship
+	•	Roles: Participant, Curator, Editor, Moderator, Observer.
+	•	Non‑destructive edits: refactor by creating new nodes and linking with restates/clarifies/supersedes.
+	•	Review states: draft → curated → canonical; audit trail of merges/splits.
+	•	Licensing & citation: every node has a citation block; exports embed full provenance.
+	•	Moderation surfaces: thread‑level locks, episode‑level summaries, curator notes.
+
+VI. Interop & standards
+	•	Imports: AIF‑JSON, Argdown, OVA exports; mapping from Dung‑style AAF into debate‑layer edges plus minimal inner skeletons (Fig. 10 shows the attack‑only view that we enrich). 
+	•	Exports: debate‑level (Horn/Yoshimi‑style map), inner diagrams, and combined “graph‑of‑graphs” bundles for archiving and teaching sets.
+	•	Schema guarantees: two‑level linking, edge reification, provenance fields.
+
+VII. Analytics & research instrumentation
+	•	Health metrics: thread length, cross‑room reuse, argument lifespan, CQ coverage, evidence density, revision churn.
+	•	Pedagogical metrics: “time to grasp” (depth clicks), “coverage per position,” “rebuttal depth” (how far alternating objections go).
+	•	Quality signals: alignment between AF labels and internal scores; flag divergences (e.g., accepted debate node with low evidence quality).
+
+VIII. Risks & mitigations
+	•	Cognitive overload → mitigated by hierarchical aggregation (threads/episodes/positions), expand/collapse, and coordinated views (Harrell’s call for overview+detail). 
+	•	Evaluation bias (AF‑only) → hybrid labels combining internals. 
+	•	Fragmentation across rooms → transclusion + canonicalization + editions.
+	•	Fragile provenance → mandatory source fields and idempotent edge signatures.
+
+IX. Program roadmap (idealized phases; technology‑agnostic)
+Phase 1 — Substrate & semantics
+	•	Finalize the metamodel (Debate/DebateNode/DebateEdge/ArgumentDiagram) and invariants.
+	•	Implement AF projection + internal scoring → composite labels.
+	•	Define editioning / lineage model (non‑destructive refactors).
+Artifacts: Schema spec; acceptance semantics spec; lineage & transclusion rules; import/export draft.
+Phase 2 — Core views (overview + detail)
+	•	Debate Map (color‑coded relations) with Expand to Argument Pop‑out.
+	•	Thread Timeline and Position Pages (living dossiers).
+	•	Sunburst + Pop‑out for large arguments (Harrell/Khrtabil pattern). 
+Artifacts: Interaction specs for each view; accessibility & pedagogy guidelines (overview→detail “story”).
+Phase 3 — Knowledge stewardship
+	•	Curation workflows (merge/split/restates), roles, and moderation surfaces.
+	•	Editioning UI + citation exports (AIF, Argdown, PDF appendices with stable IDs).
+	•	Cross‑room canonicalization (Position registries & paraphrase clustering).
+Artifacts: Governance policy; curator playbook; merge/supersede UX; citation styles.
+Phase 4 — Interop, pedagogy, and analytics
+	•	Full import/export adapters; classroom teaching kits (e.g., Russell–Copleston as a packaged graph‑of‑graphs), per Harrell’s educational aims. 
+	•	Analytics dashboards; research APIs for debate‑level corpora.
+Artifacts: Public datasets; method notes for researchers; longitudinal metrics.
+
+X. Concrete acceptance scenarios (research‑aligned)
+	0.	Graph‑of‑graphs fidelity
+	•	The Russell–Copleston slice is represented as a debate thread with nodes A1–A4 (support/object/rebut relations) and each node expands to its inner diagram (Figs. 9 & 14 concept). Users can traverse debate→argument→debate seamlessly. 
+	0.	Scale without clutter
+	•	A debate with >200 argument nodes remains navigable via thread/episode aggregates and sunburst overview + pop‑out detail (Figs. 12–13). 
+	0.	Hybrid acceptability
+	•	A node’s acceptance is not decided only by the last attacking edge; its status visibly synthesizes AF labels with internal argument quality (p. 605 critique). 
+	0.	Living document
+	•	Editors can restates/clarifies an argument; lineage preserves the original; Position Pages update automatically; editions are citeable snapshots.
+
+XI. Why this roadmap matches the research brief
+	•	It implements Harrell’s two‑level requirement with expand/collapse, ties in graph‑of‑graphs thinking (Yoshimi), and squarely addresses the scale limits observed in L1–L4 by adding hierarchical, multi‑view navigation (sunburst + pop‑out). 
+	•	It corrects the educational and analytic shortcomings of AF‑only representations by hybrid evaluation that respects argument internals (premises, evidence, schemes), which Harrell stresses are essential for teaching and real understanding. 
+	•	It keeps visualizations as views over a stable substrate, enabling wikis, archives, and “digital symposiums” that continually accrete value—exactly the “living document” ideal.
+
+Closing note (fit with your current patterns)
+Your existing DialogicalPanel already embodies the toggleable AF semantics and drill‑down inspector idioms. In the ideal platform, that interaction pattern becomes one of several coordinated views sitting atop the graph‑of‑graphs substrate described above—so users can fluidly move from debate‑level flow to argument‑level structure without losing context.
+If you’d like, I can now transform this roadmap into a formal specification pack (object schemas, invariants, state diagrams, and view contracts) suitable for architectural review and research evaluation.
+
+--Turning the Agora into a graph‑of‑graphs knowledge fabric where arguments don’t evaporate—they accrete into durable, navigable “living documents.” Below I translate Harrell’s requirements into a concrete metastructure and platform plan (data model, APIs, and UI flows), and then show exactly how this plugs into your current DialogicalPanel and AF pipeline.
+
+1) What Harrell shows we need (and why Dung‑only views aren’t enough)
+	•	Single big maps don’t scale. Node–arrow diagrams turn “dense and impenetrable” beyond ~25 boxes (echoing Khartabil’s L1–L4 limits)—you lose both overview and detail. Harrell’s figures 1–7 walk through how quickly a Russell–Copleston analysis explodes when you try to keep everything in one canvas. 
+	•	Debate ≠ single argument. We need a debate‑level graph (nodes = whole arguments or “moves”, edges = support/objection/rebuttal/restatement) with drill‑down to each argument’s internal diagram—Yoshimi’s “graph of graphs.” 
+	•	AF alone is not enough. Dung’s abstract frameworks ignore internal structure; “last attacker wins” can mislead (acceptance shouldn’t depend on who spoke last). A classroom‑ and research‑grade system must preserve argument internals (premises, inferential type, evidence) and the debate‑level relations. See the critique and requirement for two levels with expand/collapse. 
+	•	Zoom/Pop‑out interaction. Khartabil’s sunburst + pop‑out is the right UX metaphor for moving between overview and detail; Harrell’s ideal shows a debate map whose nodes expand into argument diagrams (Fig. 14). We’ll implement that as data first, then multiple UIs. 
+Takeaway: Represent debates as two coupled layers—(A) a Debate Graph (episodes, positions, arguments, relations through time) and (B) Argument Diagrams (claims↦inferences↦grounds). Keep them transcludable, versioned, and expandable. The visualizations are just views over that substrate.
+
+2) The Agora Debate Metastructure (graph‑of‑graphs)
+2.1 Core entities (data objects)
+Debate A container that spans one or more deliberations/rooms over time (e.g., “Existence of God: Contingency line”).
+{
+  "id": "deb_…",
+  "title": "Existence of God — Contingency Thread",
+  "scope": { "topic": ["philosophy/metaphysics/god"], "timespan": ["1948-…"] },
+  "roots": ["debNode_A1"],             // entry arguments / positions
+  "policies": { "semantics": "grounded|preferred|stable|hybrid" }
+}
+DebateNode (argument unit) A node in the debate graph representing a whole argument or move cluster with links to an ArgumentDiagram.
+{
+  "id": "debNode_A1",
+  "kind": "argument|position|episode|meta",
+  "title": "Copleston’s contingency argument (opening)",
+  "diagramId": "argDiag_…",           // drill-down ID
+  "sources": [{ "delibId": "dlg_…", "targetType":"argument", "targetId":"arg_…" }],
+  "authors": ["Copleston"],            // or user ids
+  "time": "1948-01-28T20:00:00Z",
+  "provenance": { "quotes":[…], "citations":[…] }
+}
+DebateEdge (relations between DebateNodes) Edges are typed and temporal.
+{
+  "id": "debEdge_E15",
+  "from": "debNode_A2", "to": "debNode_A1",
+  "rel": "objects|supports|rebuts|restates|clarifies|meta-notes",
+  "sequence": { "thread":"contingency", "order": 2 }   // “debate thread” à la Yoshimi
+}
+ArgumentDiagram (internal structure) The argument‑level graph (claims/premises/inferences), which can be rendered in Beardsley/Freeman, Toulmin, sequent, or your existing ludics‑friendly notation.
+{
+  "id": "argDiag_…",
+  "nodes": [
+    { "id":"n1", "type":"claim", "text":"There is a necessary being." },
+    { "id":"n2", "type":"premise", "text":"No contingent being explains itself." }
+  ],
+  "edges": [
+    { "from":"n2", "to":"n1", "kind":"inference", "mode":"deductive|inductive|abductive" }
+  ],
+  "evidence": [{ "node":"n2", "url":"…", "provenance":{ "date":"…", "auth":"…" } }]
+}
+This is precisely Harrell’s two levels (requirements 1–5, §4) expressed as data: a debate graph and an argument graph tied by expand/collapse, with colorable edges for support/objection and optional encodings for inferential types.
+2.2 Cross‑deliberation metastructure (Agora‑wide)
+To build “breathing and evolving wikis/archives”:
+	•	Transclusion: any ArgumentDiagram or DebateNode can be transcluded into multiple Debates and Deliberations. Track originId vs incarnationId and maintain lineage (supersedes/derivedFrom).
+	•	Canonicalization: map paraphrases to canonical claims (lightweight semantic match = “same stance” refs) so repeated arguments across rooms aggregate into a Position Node with multiple DebateNode children.
+	•	Episode: a segment (span) of a debate with a shared topic or CQ focus. Edges sequence:next line up episodes temporally (your “living document” timeline).
+	•	Provenance & versioning: every object carries source pointers (deliberation & move ids), time, and authors. Edges never destroy content—refactor creates new nodes and relates them with restates|clarifies.
+
+3) Why/How this maps cleanly onto your current stack
+Your DialogicalPanel already works with AFs and provides expanders (ArgumentInspector, CriticalQuestions modal) and a MapCanvas—it’s the ideal anchor for the drill‑down/up pattern. The component exposes AF semantics toggles and support→defense propagation, which we’ll reuse at the debate layer.
+3.1 Minimal new APIs
+	•	GET /api/debates/:debateId → Debate + node/edge index (paginated).
+	•	GET /api/debates/:debateId/nodes/:id → DebateNode + linked ArgumentDiagram.
+	•	POST /api/debates/edges → create supports|objects|rebuts|restates between two DebateNodes (idempotent signatures).
+	•	POST /api/debates/ingest-from-moves → batch promotes selected moves (WHY/GROUNDS/REBUT/UNDERCUT) into DebateNodes and wires DebateEdges (see §4 Immediate plan).
+3.2 How DialogicalPanel changes (small)
+	•	Source selector (Deliberation vs Debate): Panel can show either a local AF (per‑deliberation) or a debate‑level AF built by projecting DebateNodes to AF nodes and DebateEdges (objects→attacks, supports→defenses).
+	•	Pop‑out: when a DebateNode is selected, the right pane opens the ArgumentInspector (your existing component) on the linked ArgumentDiagram.
+	•	AF semantics: keep your grounded/preferred/stable toggle; but hybrid scoring = AF label × internal quality (premise truth, source reliability). This directly addresses Harrell’s critique of “last attacker wins” by letting internals inform acceptance. 
+
+4) Immediate plan (within today’s routes)
+Goal: Start recording debate‑level structure as a first‑class graph without changing user workflow.
+	0.	Auto‑promote nodes. When users post moves on an argument (WHY/GROUNDS/RETRACT/CONCEDE), add a light onMove hook that emits candidate DebateNodes anchored to the argument (one per “episode”/thread).
+	•	Heuristic: the first ASSERT for an argument starts/joins a DebateNode; WHY on that argument spawns a sibling DebateNode with rel:objects to the first; GROUNDS creates rebuts or supports accordingly.
+	•	These relations mirror Harrell’s debate‑level edges; the DebateNode keeps a pointer to the underlying argument. 
+	0.	Record episode edges. When replyToMoveId is present, add sequence: { thread, order } edge on the DebateGraph—this builds Yoshimi‑style debate threads over time. 
+	0.	New read endpoint. GET /api/debates/by-deliberation?deliberationId=… returns the debate subgraph projected from that room—Panel can switch to this lens.
+	0.	Panel integration. In DialogicalPanel.tsx, add a toggle (“Show debate layer”) that replaces the current nodes, edges props with the debate projection (a second SWR fetch). Keep the same AF rendering and semantics toggles—the data shape is aligned. 
+Acceptance (immediate)
+	•	Posting WHY on argument A creates/links a DebateNode for the objection.
+	•	GROUNDS on A builds a rebuts edge to that objection node.
+	•	DialogicalPanel “debate layer” shows these nodes; selecting a node opens the same inspector you already use.
+
+5) Near‑term (pop‑out & long‑form “living document”)
+	•	Pop‑out drill‑down. Implement Harrell’s “expand” requirement: a DebateNode expands to its ArgumentDiagram (your ArgumentInspector + MapCanvas does most of this). Add “Back to debate” breadcrumbs. 
+	•	Position Pages. Auto‑generate position dossiers: a wiki‑like page per canonical claim aggregating all DebateNodes (across rooms) that restate/support/attack it, with provenance and timeline.
+	•	Sunburst lens (optional). Provide a sunburst overview lens that groups DebateNodes by thread/episode, and a pop‑out shows the argument internals (à la Khartabil). This addresses L1‑L4 scalability elegantly. 
+
+6) Non‑immediate (scholarly depth & cross‑room synthesis)
+	•	Canonicalization services. Cluster paraphrases into canonical claims; promote frequently reused arguments into templates with parameter slots.
+	•	Composite evaluation. Calculate a node’s status from AF label ∧ internal argument strength (premise grades, scheme CQ coverage, evidence credibility). This is how we avoid “last attacker wins.” 
+	•	Archival editions. Snapshot a Debate at release time (e.g., “2026 Edition”), preserving lineage and allowing scholarly citation.
+
+7) Data invariants & signatures
+	•	DebateEdge is idempotent on (from,to,rel,thread).
+	•	DebateNode is idempotent on (origin:delibId+targetType+targetId, episode window).
+	•	No destructive edits: refactors create new nodes; add restates|clarifies|supersedes edges.
+	•	Provenance required: any Diagram change stores who, when, from where.
+
+8) Example: Russell–Copleston as an Agora “debate of debates”
+From Harrell’s walkthrough:
+	•	Node A1 = “Copleston contingency (opening)” (Fig. 1); nodes A2/A3 = Russell’s necessary‑being & totality objections (Figs. 2 & 4) with objects edges to A1. A4 = Copleston’s reply (Fig. 6) with rebuts to A3. This is exactly the debate‑level graph with pop‑outs to argument‑level diagrams. 
+	•	The thread sequence orders A2→A3→A4 (Fig. 7). Under AF projection: A2, A3 attack A1; A4 attacks A3. With hybrid scoring, acceptance of A1 depends not only on A4’s presence but on A1 internals (premise truth), avoiding “last‑speaker wins.” 
+
+9) How this plugs into your DialogicalPanel today
+Your panel already:
+	•	Builds AFs (projectToAF) and runs grounded/preferred/stable; has a right‑pane ArgumentInspector and opens CriticalQuestions for the claim‑level panel. 
+	•	Can therefore swap the source graph (room AF ↔ debate AF) and re‑use the same toggles and inspector UI, plus a tiny “Expand to argument” button that fetches ArgumentDiagram by diagramId. 
+Minimal UI changes:
+	•	Add a “View: Room AF | Debate AF” segmented control.
+	•	In list rows, show “Thread” and “Episode” chips (from sequence.order).
+	•	In the inspector, show Expand (pop‑out) to the linked ArgumentDiagram—your MapCanvas can render it; the CQ controls already exist.
+
+10) Rollout plan
+Phase 1 (2–4 days)
+	•	New tables (or Prisma models): Debate, DebateNode, DebateEdge, ArgumentDiagram (or reuse existing argument graph tables, add diagramId).
+	•	POST /debates/ingest-from-moves (batch promotion), GET /debates/:id.
+	•	DialogicalPanel “Debate AF” toggle and expand button.
+Phase 2 (next minor)
+	•	Transclusion, lineage, restates|clarifies edges; Position Pages (dossiers).
+	•	Sunburst lens (pure view on the same data).
+	•	Hybrid evaluation (AF × internals).
+Phase 3 (epic)
+	•	Canonicalization and cross‑room synthesis, archival editions, export (AIF‑JSON).
+Sanity checks
+	•	1:1 mapping of a small debate (like the Russell–Copleston slice in the paper) into DebateNodes/Edges with pop‑outs; verify AF projection matches expectations. 
+	•	UI performance with 200+ DebateNodes using pagination and lazy pop‑outs.
+
+Why this is the right foundation
+It directly instantiates Harrell’s required two‑level representation with expand/collapse (and the limitations motivating it, L1–L4), while making “visualization” an interchangeable UI layer over a stable, queryable substrate. That substrate is exactly what turns everyday argumentative acts into a collective, dynamic, citeable knowledge base—a living debate wiki, not a one‑off map.
+
+Pointers to your code where this lands first: DialogicalPanel AF toggles, inspector, and MapCanvas are the anchor points for pop‑outs and for switching to the Debate AF source; they already accept nodes/edges props and project to AF with semantics toggles—so the debate layer is a drop‑in alternative datasource plus one new modal.
+If you’d like, I can follow up with the Prisma model stubs (Debate, DebateNode, DebateEdge), the two route handlers (/debates/ingest-from-moves, /debates/:id), and the Panel diff (SWR fetch + toggle + Expand).
+
+
+--Absolutely—here is the **formal specification pack** for the Agora Debate Metastructure (graph‑of‑graphs). It is implementation‑independent and ready for architectural and research review. I’ve organized it as: **A) domain objects (schemas)**, **B) invariants**, **C) state machines**, **D) view contracts**, and **E) evaluation harness (fixtures & checks)**. Research traceability is annotated inline.
+
+> **Why this shape?** The spec deliberately separates *argument‑level structure* from *debate‑level flow* so we keep detail **and** overview; this addresses Harrell’s critique that we still lack good ways to represent whole debates without obscuring essentials or becoming unwieldy, and it bakes in multi‑view reading, parallel back‑channels, and evidence ingress—features repeatedly identified as critical for real adoption and depth.
+> **Fit with your planning notes.** This formalization instantiates the “graph‑of‑graphs living knowledge fabric” and its KPIs/milestones from the uploaded brainstorming session. 
+
+---
+
+## A) Canonical domain objects (schemas)
+
+Below are normative TypeScript interfaces (for clarity) and JSON‑Schema fragments (for storage/APIs). IDs are stable ULIDs (or content‑addressable). Provenance is first‑class.
+
+### A0. Common
+
+```ts
+type ID = string;        // ulid/uuid
+type IsoDate = string;
+type URI = string;       // http(s) or internal ref: ag://<kind>/<id>
+
+interface Provenance {
+  createdBy: ID;
+  createdAt: IsoDate;
+  updatedAt?: IsoDate;
+  createdInDeliberation?: ID;      // optional "where recorded"
+  sources?: EvidenceLink[];        // backlinks to EvidenceNodes
+}
+```
+
+```json
+// JSON-Schema fragment
+{
+  "definitions": {
+    "ID": { "type": "string", "minLength": 6 },
+    "IsoDate": { "type": "string", "format": "date-time" }
+  }
+}
+```
+
+### A1. Argument‑level graph (inside a node)
+
+```ts
+type StatementRole = 'premise'|'intermediate'|'conclusion'|'assumption'|'question';
+type InferenceKind = 'deductive'|'inductive'|'abductive'|'defeasible'|'analogy';
+
+interface Statement {
+  id: ID;
+  text: string;               // canonicalized proposition (versioned elsewhere)
+  role: StatementRole;
+  lang?: string;
+  tags?: string[];
+}
+
+interface Inference {
+  id: ID;
+  kind: InferenceKind;
+  premises: ID[];             // Statement ids
+  conclusion: ID;             // Statement id
+  schemeKey?: string;         // e.g., "practical-inference"
+  cqKeys?: string[];          // bound critical questions
+}
+
+interface ArgumentGraph {
+  id: ID;
+  title?: string;
+  statements: Statement[];
+  inferences: Inference[];
+  evidence?: EvidenceLink[];  // EvidenceNode refs supporting inferences/claims
+  cqStatus?: Record<string, 'open'|'answered'|'contested'>;
+  provenance: Provenance;
+}
+```
+
+> **Traceability.** The argument graph captures internal structure (premises, inferences, evidence) because AF‑only views hide what’s being attacked/defended—precisely Harrell’s objection and her call for a two‑level representation. 
+
+### A2. Debate‑level sheet (one debate episode)
+
+```ts
+type DebateEdgeKind = 'supports'|'rebuts'|'undercuts'|'refines'|'generalizes'|'depends_on';
+
+interface DebateNodeRef {
+  id: ID;                   // ArgumentGraph id (see A1)
+  title?: string;           // cached label
+  summary?: string;         // curator-provided synopsis
+}
+
+interface DebateEdge {
+  id: ID;
+  from: ID;                 // DebateNodeRef.id
+  to: ID;                   // DebateNodeRef.id
+  kind: DebateEdgeKind;
+  rationale?: string;       // why this relation holds
+  provenance: Provenance;
+}
+
+type AcceptanceLabel = 'undecided'|'skeptical-accepted'|'credulous-accepted'|'rejected';
+
+interface LocusStatus { locusPath: string; open: boolean; closable?: boolean; }
+
+interface DebateSheet {
+  id: ID;
+  title: string;
+  scope: string;               // question/issue definition
+  roles: string[];             // e.g., Proponent, Opponent, Panel
+  ruleset?: string;            // e.g., "classical", "linear", "dialogical"
+  nodes: DebateNodeRef[];
+  edges: DebateEdge[];
+  loci: LocusStatus[];         // Fitch-like blocks, closures (†)
+  acceptance?: {
+    semantics: 'grounded'|'preferred'|'hybrid';
+    labels: Record<ID, AcceptanceLabel>;   // per DebateNodeRef.id
+  };
+  unresolvedCQs?: Array<{ nodeId: ID; cqKey: string }>;
+  evidenceRollup?: EvidenceLink[];
+  outcomes?: Array<{ locusPath: string; decision: string; issuedAt: IsoDate }>;
+  provenance: Provenance;
+}
+```
+
+> **Traceability.** The sheet is the unit of permanence for a debate and carries status (skeptical/credulous labels), closable loci, and unresolved CQs—features you identified as milestones for “living documents,” and that keep both overview and progress visible at a glance. 
+
+### A3. Topic canvas (graph‑of‑sheets)
+
+```ts
+interface CrossLink {
+  id: ID;
+  fromSheet: ID;               // DebateSheet
+  toSheet: ID;                 // DebateSheet
+  kind: 'supports'|'rebuts'|'refines'|'generalizes'|'parallel'|'contrasts';
+  note?: string;
+  provenance: Provenance;
+}
+
+interface PerspectiveCluster {
+  id: ID;
+  label: string;               // e.g., "Cost-first skeptics"
+  representativeStatements: Array<{ statementId: ID; weight: number }>;
+  coverage: { sheets: ID[]; nodes: ID[] };
+  curatorNote?: string;
+  provenance: Provenance;
+}
+
+interface TopicCanvas {
+  id: ID;
+  title: string;
+  sheets: ID[];                // DebateSheet ids
+  crossLinks: CrossLink[];
+  clusters?: PerspectiveCluster[];
+  consensusPoints?: Array<{ statementId: ID; supportRate: number }>;
+  evidenceRollup?: EvidenceLink[];
+  provenance: Provenance;
+}
+```
+
+> **Traceability.** Curated canvases + “representative viewpoints” address newcomer comprehension and cross‑room synthesis, explicitly tying outcome and memory to re‑use and cross‑linking—the goal of the knowledge fabric roadmap. 
+
+### A4. Evidence, annotation, and provenance
+
+```ts
+interface EvidenceNode {
+  id: ID;
+  url: URI;
+  title?: string;
+  citation?: string;
+  selectors?: Array<{ type: 'text-quote'|'range'|'image-frag', value: string }>;
+  addedBy: ID;
+  addedAt: IsoDate;
+  kind?: 'study'|'news'|'dataset'|'doc'|'transcript'|'other';
+  reliability?: number; // 0..1
+}
+
+interface EvidenceLink {
+  id: ID;
+  evidenceId: ID;
+  target: { kind: 'statement'|'inference'|'argument'|'debate'; id: ID };
+  claim?: 'supports'|'rebuts'|'context';
+  note?: string;
+}
+```
+
+> **Traceability.** Integrated web annotation and evidence linking are repeatedly credited with improving sense‑making and mitigating echo‑chambers; we therefore model them as first‑class. 
+
+### A5. Back‑channels, suggestions, governance memory
+
+```ts
+interface SuggestionThread {
+  id: ID;
+  target: { kind: 'statement'|'inference'|'argument'|'debate'|'canvas'; id: ID };
+  messages: Array<{ id: ID; author: ID; text: string; at: IsoDate }>;
+  decision?: { status: 'accepted'|'rejected'|'deferred'; rationale?: string; at?: IsoDate };
+  provenance: Provenance;
+}
+
+interface ModerationReceipt {
+  id: ID;
+  subject: { kind: 'post'|'argument'|'debate'|'canvas'; id: ID };
+  action: 'hide'|'move'|'flag'|'annotate';
+  rationale: string;
+  panel?: ID[];             // reviewers
+  issuedAt: IsoDate;
+  provenance: Provenance;
+}
+```
+
+> **Traceability.** LiteMap & related studies document the need for parallel negotiation channels to manage meaning and disagreement during co‑creation; governance receipts make those decisions durable and citable. 
+
+---
+
+## B) Invariants (normative)
+
+**B1. Identity & provenance**
+
+* Every object has a stable `id`; every cross‑reference must point to an existing object.
+* Every structural edit must leave a provenance trail (who/when, optional sources).
+
+**B2. DebateSheet coherence**
+
+* `edges[].from` and `edges[].to` must reference existing `nodes[].id`.
+* `acceptance.labels` keys must be subset of `nodes[].id`.
+* `loci[].closable === true` **only if** all CQs bound to nodes at that locus are `answered` or `contested` with an explicit panel receipt; no open *attacking* moves remain at that locus. (This mirrors the † “closability” semantics you already surface.) 
+
+**B3. Two‑level coupling**
+
+* Any `DebateNodeRef.id` must dereference to an `ArgumentGraph`.
+* Any `CrossLink` between DebateSheets must be justified by at least one `rationale` text or an `EvidenceLink` trace.
+
+**B4. Evidence integrity**
+
+* `EvidenceLink.evidenceId` must dereference to an `EvidenceNode`.
+* Selectors must be well‑formed (non‑empty anchor values).
+* A debate cannot label a node “accepted” if it cites **no** evidence and **any** CQ on that node remains `open` (policy flag).
+
+**B5. Suggestion discipline**
+
+* A `SuggestionThread.decision.status='accepted'` must be accompanied by one or more concrete structural edits (e.g., node split/merge) linked back to the suggestion thread.
+
+**B6. TopicCanvas monotonicity**
+
+* Removing a `DebateSheet` from `TopicCanvas.sheets[]` requires removing or re‑targeting all dependent `CrossLink`s and recalculating affected `clusters`.
+
+---
+
+## C) State machines (normative lifecycles)
+
+### C1. Locus lifecycle (Fitch‑like block)
+
+```
+[OPEN] --(WHY on node in locus)--> [CHALLENGED]
+[CHALLENGED] --(GROUNDS for each open CQ)--> [ANSWERED]
+[CHALLENGED] --(CONCEDE/RETRACT)--> [SURRENDERED]
+[ANSWERED] --(no open CQ & no active attacks & † available)--> [CLOSABLE]
+[CLOSABLE] --(CLOSE †)--> [CLOSED]
+[CLOSED] --(panel reopen receipt)--> [OPEN]
+```
+
+> The *test vs update* distinction (e.g., THEREFORE as a test) and *suppose/discharge* nesting rules belong to the argument‑level engine; the locus state simply exposes whether closure is warranted. 
+
+### C2. DebateSheet lifecycle
+
+```
+[DRAFT] --(first publication)--> [ACTIVE]
+[ACTIVE] --(≥X% loci closed OR timeout)--> [SETTLING]
+[SETTLING] --(outcome cards issued)--> [ARCHIVED]
+[ARCHIVED] --(new evidence/sheet links)--> [ACTIVE]   // re‑openable by design
+```
+
+### C3. Evidence lifecycle
+
+```
+[PROPOSED] --(attach to target)--> [ATTACHED]
+[ATTACHED] --(curator verifies)--> [VERIFIED]
+[ATTACHED|VERIFIED] --(withdrawn or falsified)--> [RETRACTED]
+```
+
+### C4. Suggestion thread
+
+```
+[OPEN] --(maintainer decision)--> [ACCEPTED|REJECTED|DEFERRED]
+[ACCEPTED] --(edits applied)--> [APPLIED] (linked edit receipts)
+```
+
+---
+
+## D) View contracts (what each surface **must** consume/produce)
+
+### D1. DebateSheet Reader (overview)
+
+**Input**
+`DebateSheet` (A2) + `ArgumentGraph` headers for `nodes[].id`
+
+**Must render**
+
+* Graph of debate relations (edges), expandable nodes (pop‑out argument).
+* Locus chips (open/closable/closed).
+* Acceptance labels (skeptical/credulous/hybrid).
+* Evidence roll‑up with provenance links.
+* Unresolved CQs list.
+
+> This realizes Harrell’s “two levels with expand/collapse,” ensuring overview + detail remain tractable. 
+
+### D2. DebateSheet Editor
+
+**Capabilities**
+
+* Add/remove nodes; add edges with rationale; edit summaries.
+* Attach evidence (picker + annotation); mark loci closed (†) when invariants permit.
+* Record outcome cards.
+
+### D3. TopicCanvas Reader
+
+**Input**
+`TopicCanvas` (A3), resolved sheet titles, cluster summaries.
+
+**Must render**
+
+* Cross‑sheet map with filters (supports/rebuts/refines…).
+* Perspective clusters (representative statements → deep links).
+* Consensus points.
+
+> Curated canvases + “representatives” raise comprehension and re‑use, a key outcome in your roadmap. 
+
+### D4. Back‑channel panel
+
+**Input**
+`suggestion threads` bound to any node/sheet/canvas.
+
+**Must render**
+
+* Linear discussion, propose‑change controls, and “apply decision” receipts, keeping formal threads clean while preserving social negotiation, per evidence from LiteMap/Kialo‑style practice. 
+
+---
+
+## E) Evaluation harness (fixtures & acceptance checks)
+
+> **Goal.** Programmatically validate invariants, lifecycles, and view requirements with small “micro‑plays” that mirror realistic workflows (WHY→GROUNDS→†; cross‑sheet linking; evidence ingress; suggestion adoption). These fixtures are versionable research artefacts. 
+
+### E1. Fixture format (JSON)
+
+```json
+{
+  "name": "PI: congestion pricing — basic close",
+  "topicCanvas": { "title": "Urban transport policy" },
+  "sheets": [
+    {
+      "title": "Adopt congestion pricing in CBD",
+      "nodes": [
+        { "id": "arg1", "title": "PI core argument" }
+      ],
+      "edges": [],
+      "loci": [{ "locusPath": "0.1", "open": true }],
+      "unresolvedCQs": [{ "nodeId": "arg1", "cqKey": "alternatives" }],
+      "acceptance": { "semantics": "grounded", "labels": {} }
+    }
+  ],
+  "arguments": [
+    {
+      "id": "arg1",
+      "statements": [
+        { "id": "s1", "role": "premise", "text": "Congestion harms efficiency" },
+        { "id": "s2", "role": "premise", "text": "Pricing reduces peak demand" },
+        { "id": "s3", "role": "conclusion", "text": "Adopt congestion pricing" }
+      ],
+      "inferences": [{ "id": "inf1", "kind": "defeasible", "premises": ["s1","s2"], "conclusion": "s3", "schemeKey":"practical-inference", "cqKeys":["alternatives","feasibility"] }],
+      "cqStatus": { "alternatives":"open","feasibility":"open" }
+    }
+  ],
+  "script": [
+    { "op": "WHY", "nodeId": "arg1", "cqKey": "alternatives", "locusPath": "0.1" },
+    { "op": "GROUNDS", "nodeId": "arg1", "cqKey": "alternatives", "text": "Cordon pricing was benchmarked vs. bus lanes; pricing yields 18% peak drop." },
+    { "op": "EVIDENCE_ATTACH", "url": "https://city.gov/transport-study", "selector": "p.12-14", "target": ["inference","inf1"] },
+    { "op": "CLOSE", "locusPath": "0.1" }
+  ],
+  "expect": {
+    "loci": [{ "locusPath": "0.1", "open": false }],
+    "cqStatus": { "arg1:alternatives": "answered" },
+    "evidenceCount": 1
+  }
+}
+```
+
+**Checks**
+
+1. After `GROUNDS` on the same `cqKey`, `unresolvedCQs` must drop the key.
+2. `CLOSE` valid only if all CQs for the locus are `answered` or `contested` **and** no active attacks remain.
+3. Evidence must resolve to a valid `EvidenceNode` with a selector.
+
+### E2. Cross‑sheet synthesis fixture
+
+* Two DebateSheets on the same TopicCanvas: one **supports**, one **rebuts** the policy.
+* `CrossLink(kind='rebuts')` created with rationale + evidence.
+* **Expect:** TopicCanvas view lists both, clusterer emits two PerspectiveClusters with representative statements, each linking back to argument statements.
+
+### E3. Back‑channel adoption fixture
+
+* Suggestion thread proposes “split PI core argument into ‘pricing’ and ‘equity mitigations’.”
+* **Expect:** Decision `accepted`, argument split edit receipts linked; updated sheet nodes and edges preserve provenance.
+
+### E4. Teaching‑lens fixture (Harrell)
+
+* A large sheet with many nodes; reader switches to “debate‑level” overview and pop‑outs one node to its internal diagram.
+* **Expect:** Expand/collapse path is preserved; overview never loses context; argument internals remain visible for the selected node. 
+
+---
+
+## F) Example payloads (concise)
+
+### F1. Minimal `DebateSheet` with one argument node
+
+```json
+{
+  "id": "sheet_01",
+  "title": "Should the city adopt congestion pricing?",
+  "scope": "CBD workday peaks",
+  "roles": ["Proponent", "Opponent"],
+  "nodes": [{ "id": "arg_pi", "title": "Practical inference — reduce congestion" }],
+  "edges": [],
+  "loci": [{ "locusPath": "0.1", "open": true }],
+  "acceptance": { "semantics":"grounded", "labels":{ "arg_pi":"undecided" } },
+  "unresolvedCQs": [{ "nodeId":"arg_pi", "cqKey":"alternatives" }],
+  "provenance": { "createdBy":"u1", "createdAt":"2025-09-28T12:00:00Z" }
+}
+```
+
+### F2. `ArgumentGraph` (referenced by `arg_pi`)
+
+```json
+{
+  "id": "arg_pi",
+  "title": "Practical inference for congestion pricing",
+  "statements": [
+    { "id": "s1", "role":"premise", "text":"Congestion reduces productivity" },
+    { "id": "s2", "role":"premise", "text":"Pricing reduces peak traffic" },
+    { "id": "s3", "role":"conclusion", "text":"Adopt congestion pricing" }
+  ],
+  "inferences": [
+    { "id":"inf1","kind":"defeasible","premises":["s1","s2"],"conclusion":"s3","schemeKey":"practical-inference","cqKeys":["alternatives","feasibility"] }
+  ],
+  "cqStatus": { "alternatives":"open","feasibility":"open" },
+  "provenance": { "createdBy":"u1","createdAt":"2025-09-28T12:01:00Z" }
+}
+```
+
+### F3. `TopicCanvas` linking two sheets
+
+```json
+{
+  "id": "canvas_transport",
+  "title": "Urban Transport Policy",
+  "sheets": ["sheet_01","sheet_02"],
+  "crossLinks": [
+    { "id":"x1","fromSheet":"sheet_02","toSheet":"sheet_01","kind":"rebuts","note":"Equity concerns","provenance":{"createdBy":"u3","createdAt":"2025-09-28T12:05:00Z"} }
+  ],
+  "provenance": { "createdBy":"u2","createdAt":"2025-09-28T12:02:00Z" }
+}
+```
+
+---
+
+## G) Research traceability (selected assertions)
+
+* **Two‑level representation** (debate graph + argument diagrams) with expand/collapse is required to keep whole‑debate comprehension without sacrificing structure. 
+* **Parallel negotiation channels** (per‑node suggestion threads) and **web annotation** for evidence import are documented adoption levers; we model them as first‑class. 
+* **Living documents & governance memory** (receipts, cross‑sheet synthesis, representative viewpoints) directly implement the “graph‑of‑graphs knowledge fabric” outcomes from your planning document. 
+
+---
+
+## H) Acceptance test checklist (what reviewers can run)
+
+1. **Schema conformance.** All objects in fixtures validate against A‑schemas; IDs dereference; provenance present.
+2. **Invariant checks.**
+
+   * Locus closability requires: no open CQs on nodes at that locus; no active attacks; † allowed → `CLOSED` after `CLOSE`.
+   * CrossLinks require rationale or EvidenceLink trace; removing a sheet cleans dependent links.
+3. **Lifecycle transitions.** D, E scripts (WHY→GROUNDS→EVIDENCE→CLOSE) produce expected locus and CQ states.
+4. **View contract sanity.** DebateSheet Reader renders: debate edges, nodes labels, acceptance chips, evidence roll‑up, unresolved CQs; TopicCanvas Reader shows cross‑links and clusters.
+5. **Back‑channel causality.** An `ACCEPTED` suggestion is followed by a structural edit receipt linked back to the thread.
+
+---
+
+## I) “How this advances the platform” (for stakeholders)
+
+* **Durability & re‑use.** Arguments are citable atoms and sheets that accrete into topic canvases; cross‑sheet links and perspective clusters make the knowledge navigable. 
+* **Depth over time.** Evidence ingress and CQ discipline counter the “shallow in → shallow out” failure mode in public deliberation tooling. 
+* **Pedagogy & clarity.** Teaching‑lens expand/collapse keeps complex debates tractable without hiding argumentative internals—Harrell’s requirement. 
+
+---
+
+### Optional mapping note (if/when you integrate later)
+
+Your current DialogicalPanel’s loci/†, legal‑move chips, and CQ surfaces map cleanly to `loci`, `unresolvedCQs`, and `acceptance.labels` here, so you can phase this metastructure in without a rewrite when you’re ready. 
+
+---
+
+If you’d like, I can also **generate a starter fixture bundle** (JSON) for your repo’s `/packages/dialogue-tests/fixtures` with the scripts above and a tiny Node runner that asserts the invariants and view contracts. It will be cross‑referenced with the research and the brainstorming pack for traceable review. 
+
+

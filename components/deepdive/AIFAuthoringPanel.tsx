@@ -1,7 +1,7 @@
 'use client';
 import * as React from 'react';
 import { SchemeComposer, type AttackContext } from '@/components/arguments/SchemeComposer';
-import { ArgumentCard } from '@/components/arguments/ArgumentCard';
+import { ArgumentCardV2 } from '@/components/arguments/ArgumentCardV2';
 import { SchemeComposerPicker } from '../SchemeComposerPicker';
 import { getUserFromCookies } from '@/lib/server/getUser';
 
@@ -54,6 +54,10 @@ export function AIFAuthoringPanel({
   const effectiveAuthorId = user?.userId || authorIdProp || 'current';
   const readyForCompose = Boolean(effectiveAuthorId && conclusion?.id);
 
+  // Dynamic height: collapsed initially, expanded when picker is open or conclusion is selected
+  const isExpanded = Boolean(pickConclusionOpen || conclusion?.id || argument || createdArg);
+  const heightClass = isExpanded ? 'max-h-[550px] h-full overflow-y-auto' : 'h-fit ';
+
   function AttackScopeBar() {
     if (!attackContext) return null;
     const { mode, hint } = attackContext;
@@ -71,7 +75,7 @@ export function AIFAuthoringPanel({
   }
 
   return (
-    <div className="flex flex-1 h-[500px] bg-transparent backdrop-blur-md flex-col py-4 px-3 space-y-4 overflow-y-auto panel-edge rounded-xl">
+    <div className={`flex flex-1 ${heightClass} bg-transparent backdrop-blur-md flex-col py-4 px-3 space-y-4 overflow-y-auto panel-edge rounded-xl transition-all duration-300`}>
 
       {/* Loading indicator for author */}
       {!user && !authorIdProp && (
@@ -80,15 +84,13 @@ export function AIFAuthoringPanel({
         </div>
       )}
 
-      {/* Attack scope bar (only when launched from “Challenge…”) */}
-      <AttackScopeBar />
 
       {/* Conclusion picker prompt */}
       {!conclusion?.id && (
         <div className="border rounded-md p-3 bg-slate-50/50 text-sm flex items-center justify-between">
           <div>Select a conclusion claim to start composing an argument.</div>
           <button
-            className="text-xs px-2 py-1 border rounded bg-white hover:bg-slate-50"
+            className="btnv2  rounded-xl text-xs px-4 py-2 "
             onClick={() => setPickConclusionOpen(true)}
           >
             Choose conclusion
@@ -101,8 +103,10 @@ export function AIFAuthoringPanel({
         <SchemeComposer
           deliberationId={deliberationId}
           authorId={effectiveAuthorId}
-  conclusionClaim={conclusion ?? {}}                 // allow empty at first
-            onChangeConclusion={(c) => setConclusion(c)}       // ✅ NEW
+          conclusionClaim={conclusion ?? {}}                 // allow empty at first
+          onChangeConclusion={(c) => {
+            if (c && c.id) setConclusion({ id: c.id, text: c.text });
+          }}
 
           attackContext={attackContext ?? null}         // ✅ pass scope to auto‑attach CA after publish
           onCreated={(id) => {
@@ -116,38 +120,7 @@ export function AIFAuthoringPanel({
         />
       )}
 
-      {/* Existing argument (from props) */}
-      {argument && (
-        <ArgumentCard
-          deliberationId={deliberationId}
-          authorId={effectiveAuthorId}
-          id={argument.id}
-          conclusion={argument.conclusion}
-          premises={argument.premises}
-          onAnyChange={() =>
-            window.dispatchEvent(
-              new CustomEvent('debate:graph:refresh', { detail: { deliberationId } } as any)
-            )
-          }
-        />
-      )}
-
-      {/* Newly created (local) argument */}
-      {createdArg && !argument && (
-        <ArgumentCard
-          deliberationId={deliberationId}
-          authorId={effectiveAuthorId}
-          id={createdArg.id}
-          conclusion={createdArg.conclusion}
-          premises={createdArg.premises}
-          onAnyChange={() =>
-            window.dispatchEvent(
-              new CustomEvent('debate:graph:refresh', { detail: { deliberationId } } as any)
-            )
-          }
-        />
-      )}
-
+  
       {/* Conclusion picker modal */}
       <SchemeComposerPicker
         kind="claim"

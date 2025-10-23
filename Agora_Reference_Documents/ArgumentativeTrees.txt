@@ -1,0 +1,260 @@
+Absolutely—here’s a **paper‑faithful, step‑by‑step development roadmap** that turns Doury & Pilon’s “argumentative trees” into a concrete, scholar‑grade module, and plugs it into AIF so your work interops with ARG‑tech/OVA and the Argument Web.
+
+Throughout, I flag the specific claims in the paper that the design operationalizes (e.g., **linked vs convergent lines; undercut vs rebut; O’Keefe’s three levels with switchable views; OVA’s locution↔information duality**), and I show where our AIF mappings land in the backend (I‑/S‑/L‑nodes; RA/CA/PA; YA/TA). Where useful I call out the **figures/pages** you’ll want to echo visually.
+
+---
+
+## 0) North star (what we’re building)
+
+* **One artifact, many lenses.** Users edit a single “argumentative object,” then **toggle among lenses**: *Propositional Tree* (argument₁), *Dialogue* (making‑an‑argument), *Hybrid* (short spans only), *Narrative*, and *Relational overlays*. This is exactly the move Doury & Pilon recommend instead of one overloaded diagram; they highlight dynamic switching between modes as a key future direction (see their conclusion). 
+* **Theory‑visible affordances.** The UI **distinguishes convergent vs linked/co‑premise** supports, and **rebut vs undercut** attacks; it **marks implicit** (reconstructed) material differently. These are core contrasts the paper argues must be made visible to users (linked premises & subordinate argument chains; distinct undercut of the inference). 
+* **AIF as the internal contract.** The object serializes to AIF (I‑/S‑/L‑nodes; RA/CA/PA; YA/TA) for round‑trip with OVA/IAT. This is also the only stack the paper notes that cleanly ties dialogic locutions to propositional structure (OVA’s dual column view).
+
+---
+
+## 1) ATG v0 (Argumentative Tree Grammar) — theory‑faithful data contract
+
+> Build **outside your current DB** first (JSON + validators), then map back.
+
+**Core types (argument₁ layer)**
+
+* `Brick` — one proposition: `{ id, text, explicit: boolean, sourceRef?, tags? }`
+* `Block` — linked/co‑premises: `{ id, brickIds: string[], linkage: "linked" }`
+* `Edge` — relation from `Brick|Block → Brick`:
+
+  ```json
+  { "id": "...",
+    "from": { "kind": "brick"|"block", "id": "..." },
+    "to":   { "kind": "brick", "id": "..." },
+    "relation": "SUPPORT"|"CONFLICT",
+    "target": "conclusion"|"premise"|"inference",
+    "edgeId": "..." ,             // required iff target==="inference" (undercut)
+    "schemeKey": "argument_from_consequences" ,
+    "eval": { "premise": "accepted|questioned|rejected", "link": 0.0..1.0 }
+  }
+  ```
+
+  *Why:* linked/co‑premise vs convergent lines and **attacks that hit the inference (undercut)** must be representable (paper §4.3–4.4). The undercut needs an **edge‑target**, not a node target. 
+
+**Dialogue & interaction (making‑an‑argument / argument₂)**
+
+* `Locution` — utterance with act/force: `{ id, speakerId, text, time, act?, force?, replyTo? }`
+* `LocutionBinding` — tie locutions to bricks: `{ locutionId, brickId }`
+* `Transition` — sequencing: `{ fromLocutionId, toLocutionId, relation? }`
+  *(OVA’s dual column makes exactly this locution↔information mapping; see the diagram and description on pp. 19–21.)* 
+
+**Narrative segments (optional, paper §5 “what’s missing”)**
+
+* `{ id, text, locutionIds: string[], brickIds?: string[] }`
+  *Why:* testimony/story shouldn’t be forced into atomized propositions until needed; keep a **“segment that can explode into bricks”**. 
+
+**AIF export contract (v1)**
+
+* I‑nodes ⇄ `Brick`; RA/CA/PA (S‑nodes) ⇄ inference/applications; L‑nodes ⇄ `Locution`; **YA/TA** anchor forces & transitions. (Exact mapping below.) 
+
+---
+
+## 2) Rendering: five scholar‑grade lenses (paper → pixels)
+
+> One artifact rendered five ways; toggle in the header. All views share selection, focus, and cross‑highlight.
+
+1. **Propositional Tree**
+
+* **Convergent** supports: separate arrows into the same conclusion.
+* **Linked/co‑premise**: draw a **brace or “&” block** feeding **one** arrow. (Matches the paper’s coordinative/linked premise depiction.) 
+* **Undercut**: render as a **marker attached to an edge** (or a diamond “link node”) so users *see the attack is on the inference, not the claim*. (The paper’s §4.4.) 
+* **Implicit bricks**: **dashed capsules** with tooltip “reconstructed by analyst.” (Paper §4.5.) 
+* **Dual evaluation**: small two‑bar meter per edge: premise acceptability vs inference strength (Rationale‑style—paper §4.6). 
+
+2. **Dialogue View (locution rail)**
+
+* Vertical rail by time: **who said what** (badges, act, force).
+* Hover → highlight the bricks it carries; click → pan the tree.
+* *This is OVA’s core contribution; copy the **locution (right) ↔ information (left)** pattern for cross‑highlight. See fig./description on pp. 19–21.* 
+
+3. **Hybrid (short spans only)**
+
+* Side‑by‑side for short exchanges (paper notes readability costs at scale); gate with a “span too large” hint. 
+
+4. **Narrative Lens**
+
+* Stacked story blocks; *explode to bricks* on demand (avoid premature propositionalization). 
+
+5. **Relational overlays**
+
+* Optional layers for **address‑flow / dominance / emotion** as filters, not baked into the tree. (Paper emphasizes these matter for analysis but shouldn’t overload argument₁ diagrams.) 
+
+---
+
+## 3) Composer: concrete affordances (what users can *do*)
+
+* **/add brick** — freeform or from a text selection; **mark as implicit** (toggle).
+* **/add co‑premise** — attaches to a reason with a brace/& block (linked).
+* **/link → SUPPORT | CONFLICT** then **target**: *conclusion | premise | inference* (the last produces an **undercut**).
+* **/rate** — two sliders (premise acceptability; link strength).
+* **/bind to utterance** — pick speaker/time; the brick gains a “bound dot.”
+* **/segment (story)** — capture as **NarrativeSegment**, with “explode” wizard.
+* **/attach scheme** — optional; stores `schemeKey` on the Edge or RA‑node; drives CQ prompts later.
+  *(These affordances are the UI translations of the paper’s analytic distinctions and OVA/IAT linkages.)* 
+
+---
+
+## 4) AIF integration (backend substrate + interop)
+
+**What AIF gives you**
+
+* **I‑nodes** = propositions; **S‑nodes** partition reasoning: **RA** (supports), **CA** (attacks), **PA** (preferences); **L‑nodes** (utterances). This removes the ambiguity between “rebut claim” vs “undercut inference,” and anchors speech acts to the content via **YA/TA**. 
+
+**Concrete mapping (v1)**
+
+* `Brick` ⇄ **I‑node**
+* A single **Argument** (one conclusion + ≥1 premises) ⇄ **RA‑node** with I‑node links
+* **Attack** edges ⇄ **CA‑node** targeting either (a) a conclusion I‑node (rebut) or (b) an RA‑node (undercut)
+* **Locution** ⇄ **L‑node**; `LocutionBinding` + **YA** anchor force; `Transition` ⇄ **TA** (reply/sequence)
+  *(This mapping is already written out in your AIF notes; adopt it verbatim for lossless round‑trip.)*
+
+**Why AIF now:** it’s the only widely‑used format that lets you **export/import** the *whole* graph (the paper notes OVA/AIF are unique here), enabling analysis portability and evaluator trust. 
+
+---
+
+## 5) Build plan — step‑by‑step (with “Definition of Done”)
+
+### Phase A — Spec & scaffolding
+
+1. **Write JSON Schemas** for `Brick`, `Block`, `Edge`, `Locution`, `NarrativeSegment`, `Transition`.
+
+   * *DoD:* Schemas validate in CI; example “Twelve Angry Men” JSON passes; all constraints (e.g., undercut must have `edgeId`) are enforced. *(The paper’s examples around linked premises/undercuts are your canonical fixtures.)* 
+2. **AIF converter (v1)**
+
+   * `toAIF(atg)` and `fromAIF(aifJson)`, with full round‑trip tests.
+   * *DoD:* Import an OVA AIF (short span), export it back without loss. (Use I‑/RA/CA/L/YA/TA; reject input that confuses rebut vs undercut.) 
+
+### Phase B — Propositional Tree renderer (argument₁)
+
+3. **Layout engine**
+
+   * DAG, aliasing for re‑used bricks; **brace/& group** for `Block`; **edge‑attached markers** for undercuts; **dashed implicit** style.
+   * *DoD:* The renderer visually distinguishes **convergent vs linked**, **rebut vs undercut**, and **explicit vs implicit**, matching paper’s requirements. 
+4. **Evaluation glyphs** (two meters per link)
+
+   * *DoD:* Premise acceptability ≠ inference strength in UI (Rationale‑style). 
+
+### Phase C — Dialogue & Hybrid
+
+5. **Locution rail**
+
+   * Vertical time line; binds to bricks; hover cross‑highlights.
+   * *DoD:* Clicking a locution scrolls/zooms the tree to the right brick(s). (Implements the **locution↔information** duality OVA demonstrates on pp. 19–21.) 
+6. **Hybrid view** (short spans)
+
+   * Side‑by‑side with ribbon; auto‑disable for long spans.
+   * *DoD:* Usability test confirms legibility at small scale (paper cautions about complexity). 
+
+### Phase D — Composer
+
+7. **Slash‑menu & toolbar**
+
+   * `/add brick`, `/add co‑premise`, `/link support|conflict → target`, `/undercut`, `/mark implicit`, `/bind to utterance`, `/segment (story)`, `/attach scheme`.
+   * *DoD:* Every operation mutates the ATG object and is immediately visible across views; illegal commands are greyed with explanations (e.g., undercut requires choosing a link).
+8. **Scheme & CQ hooks** (stub)
+
+   * Choosing a `schemeKey` adds CQ prompts; store on RA/Edge.
+   * *DoD:* CQ list appears contextually; no reasoning yet—just UI scaffolding.
+
+### Phase E — Interop & exports
+
+9. **AIF I/O in UI**
+
+   * Import AIF (.json/.xml), Export AIF, Export SVG/PDF with legend and lens metadata; optional **MindMup JSON** export (argument₁ only).
+   * *DoD:* Example map round‑trips to OVA; exported views embed “linked/co‑premise” and “undercut” legend.
+
+### Phase F — Narrative & relational
+
+10. **Narrative lens**
+
+    * Segments shown; **explode to bricks** wizard; reversible.
+    * *DoD:* Segment‑to‑brick mapping preserved; users can keep a story intact per paper’s caution. 
+11. **Relational overlays**
+
+    * Optional chord/flow view of who addresses whom; simple emotion/dominance tags as filters.
+    * *DoD:* Overlays toggle without altering the tree; treated as annotations (paper: keep them as overlays, not core structure). 
+
+### Phase G — Integration back to your models (when ready)
+
+12. **Mapping (non‑destructive)**
+
+    * `Brick` → `Statement`/`Claim`; `Block` → set of `InferencePremise` for one `Inference`; `Edge` (support/conflict) → `DebateEdge` or `ClaimEdge/ArgumentEdge` with `targetScope` (*use `inference` for undercut*); `Locution` → `DialogueMove`; `NarrativeSegment` → `DeliberationCard` (or typed Kb blocks); evaluation → `ArgumentSupport`/labels.
+    * *DoD:* A migration script can ingest ATG JSON into your existing Prisma models without loss of meaning (especially **undercuts and linked premises**).
+
+---
+
+## 6) API surface (prototype)
+
+* `POST /api/atg` → create empty ATG
+* `GET /api/atg/:id` → fetch (optionally `?view=propositional|dialogue|hybrid|narrative`)
+* `PATCH /api/atg/:id` → apply operations (op‑log: add_brick, add_block, link_edge, mark_implicit, bind_locution, etc.)
+* `POST /api/atg/:id/import/aif` → upload AIF
+* `GET /api/atg/:id/export?as=aif|svg|pdf|mindmup` → export bundles
+* `GET /api/atg/:id/legend` → textual legend for accessibility
+
+*(Your AIF integration notes already outline the node mappings and round‑trip tests we’ll reuse here.)*
+
+---
+
+## 7) Accessibility & scholarly needs
+
+* **Color‑independent coding** (patterns/line styles for support vs conflict; dashed for implicit).
+* **Legend & rationale panel** explaining **why** an undercut targets a link.
+* **Citations/anchors** from bricks to sources (existing EvidenceLink/ClaimCitation).
+* **Provenance**: record whether a brick is author‑asserted or analyst‑reconstructed (paper stresses the risk of reinstating implicits). 
+
+---
+
+## 8) QA and evaluation (acceptance checks)
+
+* **Linked vs convergent** are visually distinct and stored distinctly. ✔️ 
+* **Undercut** is an attack on an **edge/inference**, never mistaken for a rebuttal of a node. ✔️ 
+* **Implicit** content is visibly dashed and round‑trips through exports. ✔️ 
+* **Dialogue ↔ information** cross‑highlight works (locution rail ↔ bricks). ✔️ 
+* **AIF round‑trip**: OVA import/export passes without loss (I/RA/CA/L/YA/TA). ✔️ 
+
+---
+
+## 9) Risk register (with mitigations)
+
+* **Graph blow‑up/legibility:** constrain Hybrid view to short spans; provide lens toggles & filters (paper’s warning). 
+* **Over‑formalizing narrative:** keep NarrativeSegments first‑class; exploding to bricks is optional. 
+* **User confusion about attack types:** micro‑coach tips (“You’re attacking the **inference** between R and C”). (Paper’s §4.4 motivates explicitness.) 
+
+---
+
+## 10) Deliverables checklist (before prototype hand‑off)
+
+* ATG JSON Schemas + fixtures (“Twelve Angry Men” micro‑scenes covering **convergent**, **linked**, **undercut**, **implicit**, **dialogue bindings**).
+* Tree renderer (SVG) with brace/& blocks, undercut markers, dashed implicits; evaluation glyphs.
+* Dialogue rail & cross‑highlight; Hybrid short‑span toggle.
+* Composer slash‑menu & command palette; legality feedback.
+* AIF import/export (v1) + round‑trip tests (reuse mappings from your AIF memo).
+* Export: AIF, SVG, PDF (with legend + lens metadata), optional MindMup JSON.
+* Docs: *Design rationale* citing the paper’s distinctions and what each UI element means.
+
+---
+
+## 11) How this roadmap aligns with the sources
+
+* **Three levels & multi‑lens UI** (argument₁ / making‑an‑argument / argument₂; O’Keefe’s distinctions, and the call for dynamic switching): the paper’s analysis and conclusion motivate this exact product shape; *figure on pp. 19–21* shows the OVA dual‑column we’re echoing.
+* **Linked vs convergent; subordinate chains; implicit premises; undercut vs rebut**: we surface each distinction explicitly in the data and the UI (paper §§4.2–4.6). 
+* **Narrative & socio‑relational facets**: provide optional lenses/overlays rather than forcing them into the tree (paper §5).
+* **Interoperability with AIF/OVA**: only OVA exposes full data via AIF; our module adopts AIF internally to guarantee research‑grade portability. 
+* **AIF mapping**: your AIF integration doc lays out the **I/RA/CA/L/YA/TA** mapping and a development plan that dovetails with this roadmap; we’re reusing that blueprint.
+
+---
+
+### Optional: immediate seeds I can generate next
+
+* A tiny **ATG JSON** with 5–8 bricks from *Twelve Angry Men* covering: one **linked** block, one **convergent** line, an **undercut**, and an **implicit** premise; plus the **AIF export** of the same, for OVA testing.
+* A minimal **React renderer** (SVG) for the Propositional Tree with: brace blocks, undercut markers, dashed implicits, and dual‑meter glyphs.
+
+---
+
+If you’d like, I’ll spin up the seed JSON + the AIF round‑trip fixtures first so design and engineering can work in parallel against a stable contract.

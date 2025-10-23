@@ -160,7 +160,7 @@ export default function IssueDetail({
           }
         }}
       >
-        <DialogContent className="bg-slate-700/10 backdrop-blur-xl shadow-white/50 shadow-lg rounded-2xl sm:max-w-[750px] max-h-[80vh] overflow-hidden flex flex-col">
+        <DialogContent className="bg-indigo-800/20 backdrop-blur-md shadow-white/50 shadow-lg rounded-2xl sm:max-w-[750px] max-h-[80vh] overflow-hidden flex flex-col">
           <DialogHeader className="border-b pb-6">
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1 space-y-3 min-w-0">

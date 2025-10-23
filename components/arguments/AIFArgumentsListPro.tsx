@@ -22,6 +22,7 @@ import {
   ArrowDown,
   Eye,
   EyeOff,
+  HelpCircle,
 } from 'lucide-react';
 
 import { listSchemes, getArgumentCQs, askCQ, exportAif } from '@/lib/client/aifApi';
@@ -31,9 +32,14 @@ import { ClaimPicker } from '@/components/claims/ClaimPicker';
 import { ConfidenceProvider, useConfidence } from '@/components/agora/useConfidence';
 import { set } from 'lodash';
 import { ArgumentCard } from './ArgumentCard';
+import { ArgumentCardV2 } from './ArgumentCardV2';
+import { SchemeComposerPicker } from '../SchemeComposerPicker';
 
-const AttackMenuPro = dynamic(() => import('@/components/arguments/AttackMenuPro').then(m => m.AttackMenuPro), { ssr: false });
-const LegalMoveToolbar = dynamic(() => import('@/components/dialogue/LegalMoveToolbar').then(m => m.LegalMoveToolbar), { ssr: false });
+
+const AttackMenuProV2 = dynamic(() => import('@/components/arguments/AttackMenuProV2').then(m => m.AttackMenuProV2), { ssr: false });
+const SchemeSpecificCQsModal = dynamic(() => import('@/components/arguments/SchemeSpecificCQsModal').then(m => m.SchemeSpecificCQsModal), { ssr: false });
+// LegalMoveToolbar - Not needed in argument browsing context. See COMPONENT_ANALYSIS_LMT_vs_AMP.md
+// const LegalMoveToolbar = dynamic(() => import('@/components/dialogue/LegalMoveToolbar').then(m => m.LegalMoveToolbar), { ssr: false });
 
 // ============================================================================
 // TYPES
@@ -139,13 +145,13 @@ function PreferenceCounts({ p }: { p?: { preferredBy?: number; dispreferredBy?: 
       {p.preferredBy !== 0 && (
         <div className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-medium">
           <ArrowUp className="w-3 h-3" />
-          {p.preferredBy}
+          {"preferred by " + p.preferredBy}
         </div>
       )}
       {p.dispreferredBy !== 0 && (
         <div className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium">
           <ArrowDown className="w-3 h-3" />
-          {p.dispreferredBy}
+          {"dispreferred by " + p.dispreferredBy}
         </div>
       )}
     </div>
@@ -495,29 +501,20 @@ function RowImpl({
 }) {
   const [open, setOpen] = React.useState(false);
   const [cqs, setCqs] = React.useState<Array<{ cqKey: string; text: string; status: 'open' | 'answered'; attackType: string; targetScope: string }>>([]);
-  const [obCq, setObCq] = React.useState<string | null>(null);
-  const [obPremiseId, setObPremiseId] = React.useState<string>('');
-  const [obText, setObText] = React.useState<string>('');
-  const [obClaim, setObClaim] = React.useState<{ id: string; text: string } | null>(null);
   const [showCopied, setShowCopied] = React.useState(false);
   const [cqsLoaded, setCqsLoaded] = React.useState(false);
-  const [showCqs, setShowCqs] = React.useState(false);
 
-  // Lazy load CQs when needed
-  React.useEffect(() => {
-    if (!showCqs || cqsLoaded === true) return;
-    let alive = true;
-    (async () => {
-      try {
-        const items = await getArgumentCQs(a.id);
-        if (alive) {
-          setCqs(items || []);
-          setCqsLoaded(true);
-        }
-      } catch {/* ignore */ }
-    })();
-    return () => { alive = false; };
-  }, [showCqs, cqsLoaded, a.id]);
+  // Lazy load CQs when modal opens
+  const loadCQs = React.useCallback(async () => {
+    if (cqsLoaded) return;
+    try {
+      const items = await getArgumentCQs(a.id);
+      setCqs(items || []);
+      setCqsLoaded(true);
+    } catch (err) {
+      console.error('[AIFArgumentsListPro] Failed to load CQs:', err);
+    }
+  }, [cqsLoaded, a.id]);
 
   const conclusionText = meta?.conclusion?.text || a.text || '';
   const created = new Date(a.createdAt).toLocaleDateString('en-US', {
@@ -542,7 +539,7 @@ function RowImpl({
     <article
       id={`arg-${a.id}`}
       className="
-        group relative py-5 px-8 bg-slate-50 border border-indigo-400 shadow-md shadow-slate-400/50 rounded-xl
+        group relative py-5 px-8 bg-slate-50 w-full border border-indigo-400 shadow-md shadow-slate-400/50 rounded-xl
         hover:shadow-slate-500/60 transition-all duration-100
   
       "
@@ -607,13 +604,7 @@ function RowImpl({
                   )}
                 </div>
               )}
-              <button
-                className="text-xs text-indigo-600 hover:underline"
-                onClick={() => setShowCqs(s => !s)}
-                title={showCqs ? 'Hide critical questions' : 'Show critical questions'}
-              >
-                {showCqs ? 'Hide CQs' : 'View CQs'}
-              </button>
+
             </div>
             <div className="flex items-center flex-wrap gap-1.5 justify-end">
               <PreferenceCounts p={meta?.preferences} />
@@ -633,9 +624,9 @@ function RowImpl({
           </section>
         )}
 
-        {/* ArgumentCard - shows interactive argument structure */}
+        {/* ArgumentCardV2 - shows interactive argument structure with improved UX */}
         {meta?.conclusion && (
-          <ArgumentCard 
+          <ArgumentCardV2 
             deliberationId={deliberationId} 
             authorId={a.authorId} 
             id={a.id} 
@@ -647,184 +638,12 @@ function RowImpl({
           />
         )}
 
-        {/* Critical Questions */}
-        {showCqs && (
-          <div className="flex flex-wrap gap-2" aria-label="Critical questions">
-            {cqs.length === 0 && !cqsLoaded && <span className="text-xs text-slate-500">Loading CQs…</span>}
 
-            {cqs.map(c => (
-              <div key={c.cqKey} className="inline-flex items-center gap-2">
-                <button
-                  className={`
-                    inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium
-                    transition-all duration-200 hover:scale-105
-                    ${c.status === 'answered'
-                      ? 'bg-emerald-100 border border-emerald-300 text-emerald-700'
-                      : 'bg-amber-100 border border-amber-300 text-amber-700'
-                    }
-                  `}
-                  onClick={async () => {
-                    await askCQ(a.id, c.cqKey, { authorId: a.authorId, deliberationId });
-                    setCqs(cs => cs.map(x => (x.cqKey === c.cqKey ? { ...x, status: 'open' } : x)));
-                  }}
-                  title={`${c.text} (${c.attackType.toLowerCase()}/${c.targetScope})`}
-                >
-                  {c.status === 'answered' ? <CheckCircle2 className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />}
-                  {c.cqKey}
-                </button>
-                <button
-                  className="text-xs text-indigo-600 hover:text-indigo-700 font-medium hover:underline transition-colors"
-                  title="Answer as objection…"
-                  onClick={() => {
-                    setObCq(prev => (prev === c.cqKey ? null : c.cqKey));
-                    setObPremiseId(meta?.premises?.[0]?.id ?? '');
-                    setObText('');
-                    setObClaim(null);
-                  }}
-                >
-                  objection…
-                </button>
 
-                {/* Inline objection editor */}
-                {obCq === c.cqKey && (
-                  <span className="inline-flex items-center gap-2 p-2 bg-slate-50 rounded-lg border border-slate-200 animate-in slide-in-from-left duration-200">
-                    {c.attackType === 'REBUTS' && (
-                      <>
-                        <ClaimPicker deliberationId={deliberationId} authorId={a.authorId} label="Counter‑claim" onPick={setObClaim} />
-                        <button
-                          className="px-3 py-1.5 rounded-lg text-xs font-medium bg-rose-600 text-white hover:bg-rose-700 disabled:opacity-50 transition-all"
-                          disabled={!obClaim}
-                          onClick={async () => {
-                            await fetch('/api/ca', {
-                              method: 'POST',
-                              headers: { 'content-type': 'application/json' },
-                              body: JSON.stringify({
-                                deliberationId,
-                                conflictingClaimId: obClaim!.id,
-                                conflictedClaimId: meta?.conclusion?.id ?? '',
-                                legacyAttackType: 'REBUTS',
-                                legacyTargetScope: 'conclusion',
-                                metaJson: {
-                                  schemeKey: meta?.scheme?.key,
-                                  cqKey: c.cqKey,
-                                  source: 'cq-inline-objection-rebut'
-                                }
-                              }),
-                            });
-                            setObCq(null);
-                            onRefreshRow(a.id);
-                          }}
-                        >
-                          Post rebuttal
-                        </button>
-                      </>
-                    )}
-                    {c.attackType === 'UNDERCUTS' && (
-                      <>
-                      
-                        <input
-                          className="px-3 py-1.5 rounded-lg border border-slate-300 text-xs focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all"
-                          placeholder="Exception / rule‑defeater…"
-                          value={obText}
-                          onChange={e => setObText(e.target.value)}
-                        />
-                        <button
-                          className="px-3 py-1.5 rounded-lg text-xs font-medium bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-50 transition-all"
-                          disabled={!obText.trim()}
-                          onClick={async () => {
-                            const r = await fetch('/api/claims', {
-                              method: 'POST',
-                              headers: { 'content-type': 'application/json' },
-                              body: JSON.stringify({ deliberationId, authorId: a.authorId, text: obText.trim() }),
-                            });
-                            const j = await r.json();
-                            await fetch('/api/ca', {
-                              method: 'POST',
-                              headers: { 'content-type': 'application/json' },
-                              body: JSON.stringify({
-                                deliberationId,
-                                conflictingClaimId: j.id,
-                                conflictedArgumentId: a.id,
-                                legacyAttackType: 'UNDERCUTS',
-                                legacyTargetScope: 'inference',
-                                metaJson: {
-                                  schemeKey: meta?.scheme?.key,
-                                  cqKey: c.cqKey,
-                                  source: 'cq-inline-objection-undercut'
-                                }
-                              }),
-                            });
-                            setObCq(null);
-                            setObText('');
-                            onRefreshRow(a.id);
-                          }}
-                        >
-                          Post undercut
-                        </button>
-                      </>
-                    )}
-                    {c.attackType === 'UNDERMINES' && (
-                      <>
-                        <select
-                          className="px-2 py-1.5 rounded-lg border border-slate-300 text-xs focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all bg-white"
-                          value={obPremiseId}
-                          onChange={e => setObPremiseId(e.target.value)}
-                        >
-                          {(meta?.premises ?? []).map(p => (
-                            <option key={p.id} value={p.id}>
-                              {p.text || p.id}
-                            </option>
-                          ))}
-                        </select>
-                        <ClaimPicker deliberationId={deliberationId} authorId={a.authorId} label="Contradicting claim" onPick={setObClaim} />
-                        <button
-                          className="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-600 text-white hover:bg-slate-700 disabled:opacity-50 transition-all"
-                          disabled={!obClaim || !obPremiseId}
-                          onClick={async () => {
-                            await fetch('/api/ca', {
-                              method: 'POST',
-                              headers: { 'content-type': 'application/json' },
-                              body: JSON.stringify({
-                                deliberationId,
-                                conflictingClaimId: obClaim!.id,
-                                conflictedClaimId: obPremiseId,
-                                legacyAttackType: 'UNDERMINES',
-                                legacyTargetScope: 'premise',
-                                metaJson: {
-                                  schemeKey: meta?.scheme?.key,
-                                  cqKey: c.cqKey,
-                                  source: 'cq-inline-objection-undermine'
-                                }
-                              }),
-                            });
-                            setObCq(null);
-                            setObClaim(null);
-                            onRefreshRow(a.id);
-                          }}
-                        >
-                          Post undermine
-                        </button>
-                      </>
-                    )}
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Actions footer */}
         <footer className="flex flex-wrap items-center gap-2">
-          <LegalMoveToolbar
-            deliberationId={deliberationId}
-            targetType="argument"
-            targetId={a.id}
-            onPosted={() => window.dispatchEvent(new CustomEvent('dialogue:moves:refresh', { detail: { deliberationId } } as any))}
-          />
-
           <PreferenceQuick deliberationId={deliberationId} argumentId={a.id} authorId={a.authorId} onDone={() => onRefreshRow(a.id)} />
 
-          <AttackMenuPro
+          <AttackMenuProV2
             deliberationId={deliberationId}
             authorId={a.authorId ?? 'current'}
             target={{
@@ -834,6 +653,41 @@ function RowImpl({
             }}
             onDone={() => onRefreshRow(a.id)}
           />
+
+          {/* Scheme-specific Critical Questions Modal */}
+          {meta?.scheme && (
+            <SchemeSpecificCQsModal
+              argumentId={a.id}
+              deliberationId={deliberationId}
+              authorId={a.authorId}
+              cqs={cqs}
+              meta={meta}
+              onRefresh={() => {
+                onRefreshRow(a.id);
+                setCqsLoaded(false); // Force reload CQs next time
+              }}
+              triggerButton={
+                <button
+                  onClick={loadCQs}
+                  className="
+                    inline-flex items-center gap-2 px-3 py-1.5 btnv2 rounded-lg text-xs font-medium
+                    bg-white text-slate-600 border border-slate-200
+                    hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700
+                    transition-all duration-200
+                  "
+                  title="View and answer critical questions for this argument scheme"
+                >
+                  <HelpCircle className="w-4 h-4" />
+                  CQs
+                  {meta.cq && (
+                    <span className="ml-1 px-1.5 py-0.5 rounded-full bg-slate-200 text-slate-700 text-[10px] font-bold">
+                      {meta.cq.satisfied}/{meta.cq.required}
+                    </span>
+                  )}
+                </button>
+              }
+            />
+          )}
 
           <div className="flex-1" />
 
@@ -1188,7 +1042,7 @@ export default function AIFArgumentsListPro({
 
   return (
 
-    <section aria-label="AIF arguments list" className="w-full rounded-xl  bg-white panel-edge border border-zinc-500/50 overflow-hidden flex flex-col h-full">
+    <section aria-label="AIF arguments list" className="w-full rounded-xl bg-white panel-edge border border-zinc-500/50 overflow-hidden flex flex-col h-full">
       <Controls
         schemes={schemes}
         schemeKey={schemeKey}

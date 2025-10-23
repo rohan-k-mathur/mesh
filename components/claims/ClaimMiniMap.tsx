@@ -10,7 +10,7 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json());
     DialogHeader,
     DialogTitle,
   } from '@/components/ui/dialog';
-  import CriticalQuestions from '@/components/claims/CriticalQuestionsV2';
+  import CriticalQuestions from '@/components/claims/CriticalQuestionsV3';
   import { LegalMoveChips } from '@/components/dialogue/LegalMoveChips';
 
 // Enhanced claim row with full AIF + dialogical integration

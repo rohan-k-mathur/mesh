@@ -23,6 +23,7 @@ import { CommandCardAction } from "../dialogue/command-card/types";
 import type { AifSubgraph } from '@/lib/arguments/diagram';
 import { movesToActions } from "@/lib/dialogue/movesToActions"; // ✅ Use newer adapter instead of legalMovesToCommandCard
 import { CQContextPanel } from "../dialogue/command-card/CQContextPanel";
+import { DialogueActionsButton } from "@/components/dialogue/DialogueActionsButton";
 import { useMinimapData } from '@/lib/client/minimap/useMinimapData';
 import useSWR, { mutate as swrMutate } from "swr";
 import { AIFAuthoringPanel } from "./AIFAuthoringPanel";
@@ -224,7 +225,7 @@ export function SectionCard({
     <section
       id={id}
       className={[
-        "group relative overflow-hidden rounded-2xl",
+        "group relative overflow-hidden  rounded-2xl",
         "panel-edge dark:border-slate-800/60",
         "bg-white/50 dark:bg-slate-900/50",
         "backdrop-blur-md supports-[backdrop-filter]:bg-white/50",
@@ -365,7 +366,7 @@ export default function DeepDivePanel({
   const ready = !loading && !!proId && !!oppId;
 
   const [diagramData, setDiagramData] = useState<AifSubgraph | null>(null);
-//   const [commandActions, setCommandActions] = useState<CommandCardAction[]>([]);
+  const [commandActions, setCommandActions] = useState<CommandCardAction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Floating sheet state with persistence
@@ -888,52 +889,74 @@ const {
             </div>
 
               {/* Command Card (if claim selected) */}
-            {selectedClaim?.id && (
-              <div className="mt-6">
-                {legalMovesLoading ? (
-                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-                    <div className="flex items-center gap-2 text-sm text-slate-600">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-600"></div>
-                      <span>Loading actions...</span>
-                    </div>
-                  </div>
-                ) : legalMovesError ? (
-                  <div className="p-4 bg-red-50 rounded-xl border border-red-200">
-                    <div className="text-sm text-red-900 font-medium mb-1">Failed to load actions</div>
-                    <div className="text-xs text-red-700">{String(legalMovesError)}</div>
-                  </div>
-                ) : cardActions.length > 0 ? (
-                  <div className="p-4 bg-indigo-50 rounded-xl border border-indigo-200">
-                    <h3 className="text-sm font-semibold text-indigo-900 mb-3 flex items-center gap-2">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                      </svg>
-                      Quick Actions
-                    </h3>
-                    {/* CQ Context Panel */}
-                    {selectedClaim?.id && (
-                      <CQContextPanel
-                        deliberationId={deliberationId}
-                        targetType="claim"
-                        targetId={selectedClaim.id}
-                        actions={cardActions}
-                      />
-                    )}
+              {/* Dialogical Actions */}
+        <div className="mb-6 w-full">
+          <h3 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+            </svg>
+            Dialogical Actions
+          </h3>
+          {hudTarget ? (
+            <div className="space-y-3">
+              {/* Selected Target Info */}
+              <div className="p-3 rounded-lg bg-indigo-50 border border-indigo-200">
+                <div className="text-xs font-medium text-indigo-900 mb-1">Selected Target</div>
+                <div className="text-xs text-indigo-700">
+                  {hudTarget.type === "claim" ? "Claim" : "Argument"}: {hudTarget.id.slice(0, 12)}...
+                </div>
+              </div>
+              
+              {/* Dialogue Actions Button */}
+              <DialogueActionsButton
+                deliberationId={deliberationId}
+                targetType={hudTarget.type as any}
+                targetId={hudTarget.id}
+                locusPath="0"
+                label="Open Dialogue Actions"
+                variant="default"
+                className="w-fit px-8 justify-center"
+                onMovePerformed={() => {
+                  // Refresh the graph and moves
+                  swrMutate(`/api/dialogue/legal-moves?deliberationId=${deliberationId}&targetType=${hudTarget.type}&targetId=${hudTarget.id}&locus=0`);
+                  window.dispatchEvent(new CustomEvent("dialogue:moves:refresh", { detail: { deliberationId } }));
+                }}
+              />
+              
+              {/* Legacy CommandCard - Keep for comparison */}
+              <details className="group">
+                <summary className="cursor-pointer text-xs text-slate-600 hover:text-slate-900 font-medium">
+                  Show Legacy Grid View
+                </summary>
+                <div className="mt-3">
+                  {cardActions.length > 0 ? (
                     <CommandCard
                       actions={cardActions}
-                      onPerform={handleCommandPerform}
-                      
+                      onPerform={performCommand}
                     />
-                  </div>
-                ) : (
-                  <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-                    <div className="text-xs text-slate-500 text-center">
-                      No actions available for this claim
+                  ) : (
+                    <div className="text-xs text-slate-500 text-center py-4">
+                      No actions available
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
+              </details>
+            </div>
+          ) : (
+            <div className="rounded-xl border-2 border-dashed border-slate-200 p-8 text-center">
+              <svg className="w-12 h-12 text-slate-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
+              </svg>
+              <div className="text-sm text-slate-600 font-medium mb-1">
+                No claim selected
               </div>
-            )}
+              <div className="text-xs text-slate-500">
+                Click a claim in the graph or debate to see available actions
+              </div>
+            </div>
+          )}
+        </div>
+
           </>
         ) : (
           <>
@@ -1071,7 +1094,7 @@ const {
           </svg>
         }
       >
-        {/* Command Card */}
+        {/* Dialogical Actions */}
         <div className="mb-6 w-full">
           <h3 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1079,11 +1102,51 @@ const {
             </svg>
             Dialogical Actions
           </h3>
-          {hudTarget && cardActions.length > 0 ? (
-            <CommandCard
-              actions={cardActions}
-              onPerform={performCommand}
-            />
+          {hudTarget ? (
+            <div className="space-y-3">
+              {/* Selected Target Info */}
+              <div className="p-3 rounded-lg bg-indigo-50 border border-indigo-200">
+                <div className="text-xs font-medium text-indigo-900 mb-1">Selected Target</div>
+                <div className="text-xs text-indigo-700">
+                  {hudTarget.type === "claim" ? "Claim" : "Argument"}: {hudTarget.id.slice(0, 12)}...
+                </div>
+              </div>
+              
+              {/* Dialogue Actions Button */}
+              <DialogueActionsButton
+                deliberationId={deliberationId}
+                targetType={hudTarget.type as any}
+                targetId={hudTarget.id}
+                locusPath="0"
+                label="Open Dialogue Actions"
+                variant="default"
+                className="w-full justify-center"
+                onMovePerformed={() => {
+                  // Refresh the graph and moves
+                  swrMutate(`/api/dialogue/legal-moves?deliberationId=${deliberationId}&targetType=${hudTarget.type}&targetId=${hudTarget.id}&locus=0`);
+                  window.dispatchEvent(new CustomEvent("dialogue:moves:refresh", { detail: { deliberationId } }));
+                }}
+              />
+              
+              {/* Legacy CommandCard - Keep for comparison */}
+              <details className="group">
+                <summary className="cursor-pointer text-xs text-slate-600 hover:text-slate-900 font-medium">
+                  Show Legacy Grid View
+                </summary>
+                <div className="mt-3">
+                  {cardActions.length > 0 ? (
+                    <CommandCard
+                      actions={cardActions}
+                      onPerform={performCommand}
+                    />
+                  ) : (
+                    <div className="text-xs text-slate-500 text-center py-4">
+                      No actions available
+                    </div>
+                  )}
+                </div>
+              </details>
+            </div>
           ) : (
             <div className="rounded-xl border-2 border-dashed border-slate-200 p-8 text-center">
               <svg className="w-12 h-12 text-slate-300 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1135,7 +1198,7 @@ const {
                 No structured argument
               </div>
               <div className="text-xs text-slate-500">
-                This claim doesn't have an AIF diagram yet
+                This claim doesn&apos;t have an AIF diagram yet
               </div>
             </div>
           ) : diagLoading ? (
@@ -1258,16 +1321,16 @@ const {
           </TabsList>
 
           {/* DEBATE TAB */}
-          <TabsContent value="debate" className="space-y-4">
+          <TabsContent value="debate" className="w-full min-w-0 mt-4 space-y-4">
             <SectionCard title="Compose Proposition">
               {/* <PropositionComposer deliberationId={deliberationId} /> */}
               <PropositionComposerPro deliberationId={deliberationId} />
             </SectionCard>
 <DialogueInspector
   deliberationId="cmgy6c8vz0000c04w4l9khiux"
-  targetType="claim"
-  targetId="cmgzyuusc000ec0leqk4cf26g"
-  locusPath="0"
+  initialTargetType="claim"
+  initialTargetId="cmgzyuusc000ec0leqk4cf26g"
+  initialLocusPath="0"
 />
             <SectionCard>
               <PropositionsList deliberationId={deliberationId} />
@@ -1309,15 +1372,15 @@ const {
           </TabsContent>
 
           {/* MODELS TAB */}
-          <TabsContent value="models" className="space-y-4">
-            <SectionCard title="Representative Viewpoints">
+          <TabsContent value="models" className="w-full min-w-0 space-y-4 mt-4">
+            {/* <SectionCard title="Representative Viewpoints">
               <RepresentativeViewpoints
                 selection={sel}
                 onReselect={(nextRule, nextK) => compute(nextRule, nextK)}
               />
-            </SectionCard>
+            </SectionCard> */}
 
-            <SectionCard>
+            {/* <SectionCard>
               <Collapsible open={worksState.open} onOpenChange={worksState.setOpen}>
                 <CollapsibleTrigger className="w-full text-left px-3 py-2 text-sm font-semibold hover:bg-slate-50 rounded flex items-center justify-between">
                   <span>{worksState.open ? "▼" : "▶"} Theoretical Models</span>
@@ -1329,9 +1392,34 @@ const {
                   <WorksList deliberationId={deliberationId} currentUserId={authorId} />
                 </CollapsibleContent>
               </Collapsible>
+            </SectionCard> */}
+
+            {/* <SectionCard title="Scheme Composer" className="w-full"> */}
+            <div className="flex flex-1 min-w-0 min-h-0  max-h-screen w-full h-full">
+<AIFAuthoringPanel
+  deliberationId={deliberationId}
+  authorId={authorId || ''} // or 'current' if you enable server fallback
+  conclusionClaim={hudTarget?.id
+    ? { id: hudTarget.id, text: topArg?.top?.text ?? '' }
+    : { id: '', text: '' } // panel will prompt to choose
+  }
+
+/>
+</div>
+  {/* </SectionCard> */}
+            <SectionCard title="AIF Arguments" className=" w-[1200px]" padded={false}>
+              <AIFArgumentsListPro
+                deliberationId={deliberationId}
+                onVisibleTextsChanged={(texts) => {
+                  window.dispatchEvent(new CustomEvent('mesh:texts:visible', { detail: { deliberationId, texts } }));
+                }}
+              />
+              <span className="block p-3 text-xs text-neutral-500">
+                Note: This list shows all structured arguments in the deliberation&apos;s AIF database. Some arguments may not yet be linked to claims in the debate.
+              </span>
             </SectionCard>
 
-            <SectionCard>
+   <SectionCard className="w-full">
               <Collapsible open={diagnosticsState.open} onOpenChange={diagnosticsState.setOpen}>
                 <CollapsibleTrigger className="w-full text-left px-3 py-2 text-sm font-semibold hover:bg-slate-50 rounded flex items-center justify-between">
                   <span>{diagnosticsState.open ? "▼" : "▶"} Diagnostics</span>
@@ -1343,34 +1431,6 @@ const {
                 </CollapsibleContent>
               </Collapsible>
             </SectionCard>
-
-            <SectionCard>
-              <Collapsible open={aifArgsState.open} onOpenChange={aifArgsState.setOpen}>
-                <CollapsibleTrigger className="w-full text-left px-3 py-2 text-sm font-semibold hover:bg-slate-50 rounded flex items-center justify-between">
-                  <span>{aifArgsState.open ? "▼" : "▶"} AIF Arguments</span>
-                  <span className="text-xs text-neutral-500">Structured argument graph</span>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="pt-3">
-                  <AIFArgumentsListPro
-                    deliberationId={deliberationId}
-                    onVisibleTextsChanged={(texts) => {
-                      window.dispatchEvent(new CustomEvent('mesh:texts:visible', { detail: { deliberationId, texts } }));
-                    }}
-                  />
-                </CollapsibleContent>
-              </Collapsible>
-            </SectionCard>
- <SectionCard title="Scheme Composer">
-<AIFAuthoringPanel
-  deliberationId={deliberationId}
-  authorId={authorId || ''} // or 'current' if you enable server fallback
-  conclusionClaim={hudTarget?.id
-    ? { id: hudTarget.id, text: topArg?.top?.text ?? '' }
-    : { id: '', text: '' } // panel will prompt to choose
-  }
-
-/>
-  </SectionCard>
             {/* <SectionCard>
               <Collapsible open={schemeComposerState.open} onOpenChange={schemeComposerState.setOpen}>
                 <CollapsibleTrigger className="w-full text-left px-3 py-2 text-sm font-semibold hover:bg-slate-50 rounded flex items-center justify-between">
@@ -1392,7 +1452,7 @@ const {
           </TabsContent>
 
           {/* LUDICS TAB */}
-          <TabsContent value="ludics" className="space-y-4">
+          <TabsContent value="ludics" className="w-full min-w-0 space-y-4">
             {proId && oppId ? (
               <>
                 <SectionCard title="Ludics Panel">
@@ -1477,7 +1537,7 @@ const {
           </TabsContent> */}
 
           {/* ISSUES TAB */}
-          <TabsContent value="issues" className="h-screen space-y-4">
+          <TabsContent value="issues" className="w-full min-w-0 h-screen space-y-4">
             <SectionCard
               title="Issues & Objections"
               action={

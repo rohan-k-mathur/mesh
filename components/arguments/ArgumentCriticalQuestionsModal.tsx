@@ -46,7 +46,7 @@ export function ArgumentCriticalQuestionsModal({
 }: ArgumentCriticalQuestionsModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto bg-white">
         <DialogHeader>
           <DialogTitle>Argument Critical Questions</DialogTitle>
           <p className="text-sm text-slate-600 mt-1">

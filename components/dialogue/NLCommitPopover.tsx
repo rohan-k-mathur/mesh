@@ -1,6 +1,7 @@
 // components/dialogue/NLCommitPopover.tsx
 "use client";
 import * as React from "react";
+import { createPortal } from "react-dom";
 import { normalizeNL } from "@/lib/nl";
 
 export function NLCommitPopover({
@@ -27,7 +28,7 @@ export function NLCommitPopover({
   defaultText?: string;
   cqKey?: string;
   onDone?: () => void;
-}): React.ReactElement | null {
+}) {
   const [text, setText] = React.useState(defaultText);
   const [owner, setOwner] = React.useState<"Proponent" | "Opponent">(defaultOwner);
   const [polarity, setPolarity] = React.useState<"pos" | "neg">(defaultPolarity);
@@ -38,12 +39,18 @@ export function NLCommitPopover({
     tips?: string[];
   } | null>(null);
   const [error, setError] = React.useState<string | null>(null);
+  const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 
   React.useEffect(() => {
     if (!open) {
       setText(defaultText);
       setError(null);
       setPreview(null);
+    } else {
+      // Ensure focus when opened, with a small delay to let the portal render
+      setTimeout(() => {
+        textareaRef.current?.focus();
+      }, 50);
     }
   }, [open, defaultText]);
 
@@ -151,14 +158,17 @@ export function NLCommitPopover({
 
   if (!open) return null;
 
-  return (
+  // Ensure we're in the browser before using portal
+  if (typeof window === "undefined") return null;
+
+  const modalContent = (
     <div
-      className="fixed inset-0 z-[1000] grid place-items-center bg-black/20 backdrop-blur-sm"
+      className="fixed inset-0 z-[9999] flex place-items-center justify-center bg-black/30 backdrop-blur-sm"
       onClick={(e) => {
         if (e.target === e.currentTarget && !busy) onOpenChange(false);
       }}
     >
-      <div className="w-[480px] rounded-xl border border-slate-200 bg-white p-4 shadow-xl">
+      <div className="w-[480px] rounded-xl border border-slate-200 bg-white p-4 shadow-xl mx-auto">
         <div className="text-base font-semibold mb-3 text-slate-900">
           Answer & Commit
         </div>
@@ -169,6 +179,7 @@ export function NLCommitPopover({
               Fact or Rule
             </label>
             <textarea
+              ref={textareaRef}
               className="w-full h-24 border border-slate-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent resize-none"
               placeholder='Type a fact like "Congestion downtown is high" or a rule like "congestion_high & revenue_earmarked_transit -> net_public_benefit"'
               value={text}
@@ -282,4 +293,7 @@ export function NLCommitPopover({
       </div>
     </div>
   );
+
+  // Render using portal to escape the modal's stacking context
+  return createPortal(modalContent, document.body);
 }

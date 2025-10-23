@@ -331,9 +331,13 @@ export function SchemeComposer({
   }
 
   return (
-    <div className="bg-transparent space-y-4">
-      <div className="rounded-xl border bg-transparent p-4 ">
-        <div className="text-[14px] text-gray-500 ">
+    <div className="bg-transparent space-y-4 ">
+      <div className="text-md font-semibold tracking-wide text-gray-900 ">
+        Argument Composer
+      </div>
+
+      <div className="rounded-xl border border-slate-600 bg-indigo-50 p-4 ">
+        <div className="text-[14px] text-gray-700 ">
           {selected ? (
             <>
               Using scheme: <b>{selected.name}</b>
@@ -342,13 +346,13 @@ export function SchemeComposer({
             "Freeform argument"
           )}
         </div>
-        <hr className="border-slate-200 my-2" />
+        <hr className="border-slate-500/50 my-2" />
 
         <div className="grid gap-3 md:grid-cols-3">
           <label className="flex flex-col gap-1 md:col-span-1">
             <span className="text-sm text-gray-800">Scheme</span>
             <select
-              className="w-full border rounded px-2 py-1 text-xs menuv2--lite"
+              className="w-full border rounded-lg px-2 py-1.5 text-sm menuv2--lite"
               value={schemeKey}
               onChange={(e) => setSchemeKey(e.target.value)}
             >
@@ -382,33 +386,34 @@ export function SchemeComposer({
             {editingConclusion || !conclusionClaim?.id ? (
               <div className="flex items-center gap-2">
                 <input
-                  className="flex-1 min-w-0 border rounded px-3 py-2 text-sm bg-white"
+                  className="flex-1 min-w-0  rounded-lg px-3 py-1.5 text-sm bg-white articlesearchfield"
                   placeholder="Type your conclusion…"
                   value={conclusionDraft}
                   onChange={(e) => setConclusionDraft(e.target.value)}
                 />
                 <button
-                  className="text-xs px-2 py-1 rounded-lg btnv2--ghost"
+                  className="text-xs px-2 py-1 rounded-lg border bg-slate-50 btnv2--ghost"
                   onClick={() => setPickerConcOpen(true)}
                 >
                   Pick existing
                 </button>
+                {editingConclusion && (
+                  <button
+                    className="text-xs px-2 py-1 rounded-lg border btnv2--ghost bg-slate-50"
+                    onClick={() => setEditingConclusion(false)}
+                  >
+                    Cancel
+                  </button>
+                )}
                 <button
-                  className="text-xs px-2 py-1 rounded-lg btnv2"
+                  className="text-xs px-3 py-1.5 rounded-xl btnv2 bg-indigo-600 text-white"
                   disabled={!conclusionDraft.trim() || savingConclusion}
                   onClick={saveConclusionNow}
                   title="Save this text as a new claim"
                 >
                   {savingConclusion ? "Saving…" : "Save as claim"}
                 </button>
-                {editingConclusion && (
-                  <button
-                    className="text-xs px-2 py-1 rounded-lg border"
-                    onClick={() => setEditingConclusion(false)}
-                  >
-                    Cancel
-                  </button>
-                )}
+                
               </div>
             ) : (
               /* B) id present → show read-only row + actions */
@@ -450,7 +455,7 @@ export function SchemeComposer({
           </label>
         </div>
 
-        <hr className="border-slate-200 my-3" />
+        <hr className="border-slate-500/50 my-3" />
         {/* Premises: typing OR picking */}
         <div className="mt-2">
           <div className="flex items-center justify-start gap-3">
@@ -466,7 +471,7 @@ export function SchemeComposer({
           {/* NEW: quick add by typing */}
           <div className="mt-2 flex gap-2">
             <input
-              className="flex-1 border rounded px-3 py-2 text-sm"
+              className="flex-1  rounded-lg px-3 py-1.5 text-sm articlesearchfield"
               placeholder="Type a premise and press Add"
               value={premDraft}
               onChange={(e) => setPremDraft(e.target.value)}
@@ -476,7 +481,7 @@ export function SchemeComposer({
               }}
             />
             <button
-              className="text-xs px-3 py-2 rounded-lg btnv2"
+              className="text-xs px-5   rounded-full bg-white btnv2"
               disabled={!premDraft.trim()}
               onClick={addPremiseFromDraft}
             >
@@ -489,7 +494,7 @@ export function SchemeComposer({
               {premises.map((p) => (
                 <li
                   key={p.id}
-                  className="flex items-center gap-2 px-2 py-1 rounded-full border bg-slate-50"
+                  className="flex items-center gap-2 px-3 py-1 rounded-full panel-edge bg-white/30"
                 >
                   <span className="text-xs">{p.text || p.id}</span>
                   <button
@@ -506,7 +511,7 @@ export function SchemeComposer({
           )}
         </div>
 
-        <hr className="border-slate-200 my-3" />
+        <hr className="border-slate-500/50 mt-4 mb-2" />
 
         {/* Optional notes / warrant */}
         <label className="flex flex-col gap-2 mt-0">
@@ -522,7 +527,7 @@ export function SchemeComposer({
 
         <div className="flex items-center gap-3 mt-4">
           <button
-            className="px-3 py-2 text-sm tracking-wide font-medium rounded-xl btnv2 disabled:opacity-50"
+            className="px-5 py-2 text-sm tracking-wide font-medium rounded-lg btnv2 bg-white disabled:opacity-50"
             disabled={creating || !canCreate}
             onClick={handleCreate}
           >
@@ -573,20 +578,7 @@ export function SchemeComposer({
         </>
       )} */}
 
-      {hasConclusionId && (
-  <>
-    <ClaimConfidence deliberationId={deliberationId} claimId={currentConclusion!.id!} mode="min" tau={0.7} />
-    <div className={!argumentId ? "opacity-60 pointer-events-none" : ""}>
-      <LegalMoveToolbarAIF
-        deliberationId={deliberationId}
-        targetType="claim"
-        targetId={currentConclusion!.id!}
-        onPosted={() => window.dispatchEvent(new CustomEvent('dialogue:moves:refresh', { detail:{ deliberationId } } as any))}
-      />
-      {!argumentId && <div className="text-xs text-slate-500 mt-1">Create the argument first to enable GROUNDS/CLOSE here.</div>}
-    </div>
-  </>
-)}
+     
 
       {/* Premise picker modal
       <SchemeComposerPicker

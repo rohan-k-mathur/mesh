@@ -4916,3 +4916,100 @@ model KbSnapshot {
 
   @@index([pageId, atTime])
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// NON-CANONICAL MOVES: Community-sourced dialogue responses with approval
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Non-canonical dialogue moves submitted by community members
+/// These require approval before becoming canonical protocol moves
+model NonCanonicalMove {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // ─── Context & Target ───────────────────────────────────────
+  deliberationId String
+  targetMoveId   String? // The move this responds to (WHY, clarification request, etc.)
+  targetType     String  // "argument" | "claim" | "clarification_request"
+  targetId       String  // ID of the argument/claim/request
+
+  // ─── Authorship ─────────────────────────────────────────────
+  contributorId String // User who submitted this non-canonical move
+  authorId      String // Original argument/claim author (for approval)
+
+  // ─── Move Content ───────────────────────────────────────────
+  moveType MoveType // What kind of response this is
+  content  Json     // Move-specific payload (expression, evidence, etc.)
+
+  // ─── Approval Workflow ──────────────────────────────────────
+  status          NCMStatus @default(PENDING)
+  approvedBy      String?   // userId who approved (author or asker)
+  approvedAt      DateTime?
+  rejectedBy      String?   // userId who rejected
+  rejectedAt      DateTime?
+  rejectionReason String?   @db.Text
+
+  // ─── Canonicalization ───────────────────────────────────────
+  canonicalMoveId String?   @unique // If approved & executed, links to DialogueMove
+  executedAt      DateTime?
+
+  // ─── Metadata ───────────────────────────────────────────────
+  metaJson Json @default("{}")
+
+  @@index([deliberationId, targetType, targetId])
+  @@index([targetMoveId])
+  @@index([contributorId])
+  @@index([authorId])
+  @@index([status, createdAt])
+  @@index([deliberationId, status])
+  @@map("non_canonical_moves")
+}
+
+enum NCMStatus {
+  PENDING   // Awaiting approval
+  APPROVED  // Approved but not yet canonical
+  EXECUTED  // Approved and converted to canonical DialogueMove
+  REJECTED  // Rejected by author/asker
+  WITHDRAWN // Withdrawn by contributor
+}
+
+enum MoveType {
+  GROUNDS_RESPONSE     // Answer to WHY challenge
+  CLARIFICATION_ANSWER // Answer to clarification request
+  CHALLENGE_RESPONSE   // Response to a challenge
+  EVIDENCE_ADDITION    // Additional evidence for existing move
+  PREMISE_DEFENSE      // Defense of undermined premise
+  EXCEPTION_REBUTTAL   // Rebuttal to undercut exception
+}
+
+/// Clarification requests (non-protocol questions seeking factual details)
+model ClarificationRequest {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // ─── Context ────────────────────────────────────────────────
+  deliberationId String
+  targetType     String // "argument" | "claim"
+  targetId       String // What needs clarification
+
+  // ─── Question ───────────────────────────────────────────────
+  askerId  String // User asking the question
+  question String @db.Text
+
+  // ─── Status ─────────────────────────────────────────────────
+  status ClarificationStatus @default(OPEN)
+
+  @@index([deliberationId, targetType, targetId])
+  @@index([askerId])
+  @@index([status, createdAt])
+  @@map("clarification_requests")
+}
+
+enum ClarificationStatus {
+  OPEN     // Awaiting answers
+  ANSWERED // Has at least one approved answer
+  RESOLVED // Asker marked as fully resolved
+  CLOSED   // No longer accepting answers
+}

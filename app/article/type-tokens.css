@@ -188,6 +188,154 @@
 
 
 
+/* === Sunset Glass Button v2.1 (Based on Aqua) ======================== */
+.btnv2--sunset {
+  /* --- Theme hooks (RGB) --- */
+  /* Original Blue: 129, 140, 248 -> HSL(234, 91%, 74%) */
+  --btn-accent: 246, 143, 131; /* New Orange: HSL(25, 91%, 74%) */
+
+  /* Original Blue: 200, 210, 248 -> HSL(231, 85%, 88%) */
+  --btn-lite: 248, 214, 202;   /* New Orange: HSL(25, 85%, 88%) */
+  
+  /* Original Blue: 170, 180, 238 -> HSL(231, 73%, 80%) */
+  --btn-heavy: 243, 185, 161;  /* New Orange: HSL(25, 73%, 80%) */
+
+  /* Original Blue: 99, 110, 218 -> HSL(234, 60%, 62%) */
+  --btn-outline: 214, 119, 99; /* New Orange: HSL(25, 60%, 62%) */
+  
+  /* --- Desaturated colors shifted from blue to brown --- */
+  /* Original Slate: 15, 23, 42 -> HSL(221, 47%, 11%) */
+  --btn-border: 42, 23, 15;    /* New Brown: HSL(25, 47%, 11%) */
+
+  /* Original Slate: 30, 41, 59 -> HSL(218, 34%, 17%) */
+  --btn-text: 59, 41, 30;       /* New Brown: HSL(25, 34%, 17%) */
+
+  /* --- Unchanged variables --- */
+  --btn-top: 255, 255, 255;
+  --btn-bot: 255, 255, 255;
+  --ring-w: 1.5px;
+  --btn-ring: linear-gradient(
+    360deg,
+    rgba(var(--btn-heavy), 0.75) 0%,
+    rgba(var(--btn-top), 0.75) 20%,
+    rgba(var(--btn-heavy), 0.95) 50%,
+    rgba(var(--btn-top), 0.75) 70%,
+    rgba(var(--btn-heavy), 0.65) 100%
+  );
+  --btn-ring-after: linear-gradient(
+    360deg,
+    rgba(var(--btn-lite), 0.55) 0%,
+    rgba(var(--btn-top), 0.75) 20%,
+    rgba(var(--btn-heavy), 0.95) 50%,
+    rgba(var(--btn-lite), 0.25) 70%,
+    rgba(var(--btn-heavy), 0.75) 100%
+  );
+  --btn-fill: linear-gradient(
+    180deg,
+    rgba(var(--btn-top), 0.55) 0%,
+    rgba(var(--btn-lite), 0.14) 25%,
+    rgba(var(--btn-lite), 0.25) 50%,
+    rgba(var(--btn-lite), 0.10) 75%,
+    rgba(var(--btn-top), 0.45) 100%
+  );
+
+  /* --- Base styles (Copied from .btnv2) --- */
+  -webkit-tap-highlight-color: transparent;
+  appearance: none;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.36rem 0.72rem;
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 450;
+  letter-spacing: 0.01em;
+  -webkit-font-smoothing: antialiased;
+  border: none;
+  border-radius: 10px;
+  outline: 1px solid rgba(var(--btn-heavy), 0.45);
+  outline-offset: -2.5px;
+  color: rgb(var(--btn-text));
+  background: var(--btn-fill);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.45),
+    0 2px 6px rgba(51, 57, 82, 0.1), 0 14px 28px -14px rgba(98, 101, 114, 0.22);
+  backdrop-filter: saturate(2) blur(6px);
+  transition: transform 0.08s ease, box-shadow 0.08s ease,
+    background-color 0.18s ease, color 0.18s ease;
+  cursor: pointer;
+}
+
+
+/* Gradient ring via masked ::before */
+.btnv2--sunset::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: var(--ring-w);
+  border-radius: inherit;
+  background: var(--btn-ring);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+.btnv2--sunset::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: var(--ring-w);
+  border-radius: inherit;
+  background: var(--btn-ring);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+
+/* Hover / active / focus states */
+.btnv2--sunset:hover {
+  --btn-fill: linear-gradient(
+    180deg,
+    rgba(var(--btn-top), 0.05) 0%,
+    rgba(var(--btn-lite), 0.1) 25%,
+    rgba(var(--btn-lite), 0.35) 50%,
+    rgba(var(--btn-lite), 0.1) 75%,
+    rgba(var(--btn-top), 0.05) 100%
+  );
+  transform: translateY(-0.5px);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35),
+    0 1px 2px rgba(2, 6, 23, 0.06), 0 10px 20px -12px rgba(2, 6, 23, 0.16);
+}
+
+.btnv2--sunset:hover::after {
+  opacity: 1;
+}
+
+.btnv2--sunset:active {
+  transform: translateY(0);
+  box-shadow: inset 0 2px 6px rgba(42, 46, 73, 0.08);
+}
+
+.btnv2--sunset:focus-visible {
+  outline: none;
+  --ring-w: 2px;
+  box-shadow: 0 0 0 2px rgba(var(--btn-accent), 0.22),
+    inset 0 0 0 1px rgba(var(--btn-accent), 0.35);
+}
+
+/* Disabled State */
+.btnv2--sunset[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+  filter: grayscale(10%);
+}
+
+
 
 /* Subtle page background gradients */
 .kb-bg-gradient {
@@ -717,6 +865,24 @@ button.panel-edge:hover {
 }
 
 
+.panel-edge-blue {
+  /*background: linear-gradient(145deg, #c5c9d8, #eaefff);*/
+  box-shadow: inset 2px 2px 12px rgba(200, 210, 238, 0.35),
+  inset -2px -2px 14px rgba(210, 224, 234, 0.35),
+    0px 0px 5px rgb(204, 199, 234,.35),
+-1px 2px 7px rgba(120, 100, 180, 0.35);
+  border: .5px solid rgba(199, 201, 222, 0.725);
+}
+
+.panel-edge-blue:hover,
+button.panel-edge:hover {
+  box-shadow: inset 1px 2px 12px rgba(200, 223, 238, 0.35),
+  inset -2px -1px 14px rgba(220, 230, 234, 0.35),
+     0px 0px 5px rgb(204, 199, 224,.35),
+-1px 2px 7px rgba(120, 100, 140, 0.35);
+}
+
+
 /* ---------- Inputs & Textareas ---------- */
 .inputv2,
 .textareav2,
@@ -1023,24 +1189,21 @@ textarea.textareav2 {
 }
 
 .modalfield {
-  outline:transparent;
-  border:none;
+
   box-shadow: inset  -3px -3px 7px rgba(203, 205, 253, 0.95),
   inset  3px 3px 7px rgba(141, 141, 176, 0.95);
 
 }
 .modalfield:hover {
-  outline:transparent;
-  border:none;
-  box-shadow: inset  -3px -3px 7px rgba(195, 195, 243, 0.95),
-  inset  3px 3px 7px rgba(131, 131, 165, 0.95);
+
+  box-shadow: inset  -4px -4px 5px rgba(195, 195, 243, 0.95),
+  inset  4px 4px 5px rgba(131, 131, 165, 0.95);
 
 }
 .modalfield:focus {
-  outline:transparent;
-  border:none;
-  box-shadow: inset  -3px -3px 7px rgba(195, 195, 243, 0.95),
-  inset  3px 3px 7px rgba(131, 131, 165, 0.95);
+
+  box-shadow: inset  -4px -4px 5px rgba(175, 175, 223, 0.95),
+  inset  4px 4px 5px rgba(111, 111, 145, 0.95);
 
 }
 .articlesearchfield{

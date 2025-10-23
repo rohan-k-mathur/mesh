@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { AttackMenuPro } from "./AttackMenuPro";
 import CriticalQuestions from "@/components/claims/CriticalQuestionsV2";
 import { ArgumentCriticalQuestionsModal } from "./ArgumentCriticalQuestionsModal";
+import { CommunityResponseBadge } from "@/components/agora/CommunityResponseBadge";
 
 const fetcher = (url: string) => fetch(url).then(r => r.json());
 
@@ -179,10 +180,10 @@ export function ArgumentCard({
   const undermineAttacks = attacks.filter(a => a.attackType === "UNDERMINES");
 
   return (
-    <div className="border border-slate-200 rounded-lg p-4 space-y-3 bg-white shadow-sm hover:shadow-md transition-shadow duration-200">
+    <div className="border border-slate-200 rounded-lg p-4 space-y-3 bg-white w-full shadow-sm hover:shadow-md transition-shadow duration-200">
       {/* Header */}
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex-1 min-w-0">
+      <div className="flex items-start justify-between gap-3 ">
+        <div className="flex-1 w-full min-w-0">
           <div className="flex items-start gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
             <div>
@@ -211,6 +212,12 @@ export function ArgumentCard({
                     </div>
                   </div>
                 )}
+                {/* Community Response Badge */}
+                <CommunityResponseBadge
+                  targetId={id}
+                  targetType="argument"
+                  variant="compact"
+                />
               </div>
             </div>
           </div>
@@ -229,7 +236,7 @@ export function ArgumentCard({
             </button>
           )}
           {/* Argument CQs button */}
-          {argCqStatus && argCqStatus.required > 0 && (
+          
             <button
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-purple-300 text-purple-700 hover:bg-purple-50 transition-colors duration-200"
               onClick={() => setArgCqDialogOpen(true)}
@@ -238,7 +245,7 @@ export function ArgumentCard({
             >
               Arg CQs
             </button>
-          )}
+
           <button
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-300 text-slate-700 hover:bg-slate-50 transition-colors duration-200 shrink-0"
             onClick={() => setExpanded(x => !x)}

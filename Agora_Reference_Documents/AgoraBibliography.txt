@@ -1,0 +1,178 @@
+Combining Voting and Abstract Argumentation to Understand Online Discussions
+
+Michael Bernreiter Jan Maly
+
+Diagramming the Enthymematic Structure of Counterarguments by Andrea Rocci
+
+"On Dialogue Systems with Speech Acts, Arguments, and Counterarguments" by Henry Prakken
+
+"On Formalising Dialogue Systems for Argumentation in Event Calculus" by Lianne Bodenstaff
+
+"A Theory of Philosophical Arguments"
+
+Author: Christoph Lumer
+
+Dialogue Modeling in a Dynamic Framework by Maria Boritchev
+
+Inferences and Dialogues in Ludics by Christophe Fouqueré
+
+Intelligence and Spirit by Reza Negarestani
+
+Representing the Structure of a Debate by Maralee Harrell
+
+TheDynamicsofArgumentativeDiscourse by AlexanderW.Kocurek
+
+Inferential Semantics as Argumentative Dialogues by Davide Catta
+
+Relevance and Utility in an Argumentative Framework.
+
+An Application to the Accommodation of Discourse Topics. by Gerhard Schaden
+
+A mathematical treatment of
+
+defeasible reasoning and its
+
+implementation by G u i l l e r m o R. Simari 
+
+DISCOURSE RELATIONS AND DEFEASIBLE KNOWLEDGE by A l e x L a s c a r i d e s 
+
+The Epistemological Theory of Argument-
+
+How and Why?
+
+CHRISTOPH LUMER
+
+Towards Argument-based Foundation for
+
+Sceptical and Credulous Dialogue Games
+
+P.M. THANG
+
+Ludics, dialogue and inferentialism
+
+Ludics, dialogue and inferentialism
+
+Alain Lecomte
+
+Argumentation and Inference: A Unified Approach
+
+Argumentation and Inference: A Unified Approach
+
+Christophe Fouqueré
+
+A taxonomy of argumentation models used
+
+for knowledge representation
+
+Jamal Bentahar
+
+Dialogical Argumentation and Textual
+
+Entailment
+
+DavideCatta
+
+Understanding Failures and Potentials of Argumentation Tools
+
+for Public Deliberation by Anna De Liddo
+
+THEORY THROUGH ARGUMENT: APPLYING
+
+ARGUMENT MAPPING TO FACILITATE THEORY
+
+BUILDING
+
+David Murungi
+
+On Logical Specifications of the Argument
+
+Interchange Format
+
+by Floris Bex
+
+AIF+: Dialogue in the Argument
+
+Interchange Format by 
+
+Chris Reed
+
+The Argument Interchange Format (AIF) Specification
+
+Argumentation Research Group, School of Computing, University of Dundee
+
+Argumentation Schemes.
+
+History, Classifications, and Computational
+
+Applications
+
+Fabrizio Macagno
+
+A denotational semantics for deliberation dialogues
+
+Peter McBurney
+
+The Eightfold Way of Deliberation Dialogue
+
+Peter McBurney
+
+A Game-Theoretic Perspective on the
+
+Notion of Argument Strength in Abstract
+
+Argumentation by
+
+Paul-Amaury MATT
+
+Building Epistemically Healthier Platforms by
+
+Dallas Amico-Korby
+
+Structure and function of argumentations
+
+An epistemological approach to determining criteria for the validity
+
+and adequacy of argumentations by
+
+Christoph Lumer
+
+A categorical approach to the semantics of
+
+argumentation by Simon Ambler ("Argumentation is a proof theoretic paradigm for reasoning under uncertainty. Whereas a
+
+'proof establishes its conclusion outright, an 'argument' can only lend a measure of support.
+
+Thus, the process of argumentation consists of identifying all the arguments for a particular
+
+hypothesis <f>, and then calculating the support for </ > from the weight attached to these
+
+individual arguments. Argumentation has been incorporated as the inference mechanism of
+
+a large scale medical expert system, the 'Oxford System of Medicine' (OSM), and it is
+
+therefore important to demonstrate that the approach is theoretically justified. This paper
+
+provides a formal semantics for the notion of argument embodied in the OSM. We present a
+
+categorical account in which arguments are the arrows of a semilattice enriched category.
+
+The axioms of a cartesian closed category are modified to give the notion of an 'evidential
+
+closed category', and we show that this provides the correct enriched setting in which to
+
+model the connectives of conjunction (&) and implication (=>).
+
+Finally, we develop a theory of 'confidence measures' over such categories, and relate this to
+
+the Dempster-Shafer theory of evidence.")
+
+Argumentation Semantics
+
+as Formal Discussion by
+
+Martin Caminada
+
+Do It Yourself Content and the Wisdom of the Crowds by
+
+Dallas Amico‑Korby
+
