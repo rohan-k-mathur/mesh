@@ -37,6 +37,7 @@ import { SchemeComposerPicker } from '../SchemeComposerPicker';
 
 
 const AttackMenuProV2 = dynamic(() => import('@/components/arguments/AttackMenuProV2').then(m => m.AttackMenuProV2), { ssr: false });
+const CommunityDefenseMenu = dynamic(() => import('@/components/agora/CommunityDefenseMenu').then(m => m.CommunityDefenseMenu), { ssr: false });
 const SchemeSpecificCQsModal = dynamic(() => import('@/components/arguments/SchemeSpecificCQsModal').then(m => m.SchemeSpecificCQsModal), { ssr: false });
 // LegalMoveToolbar - Not needed in argument browsing context. See COMPONENT_ANALYSIS_LMT_vs_AMP.md
 // const LegalMoveToolbar = dynamic(() => import('@/components/dialogue/LegalMoveToolbar').then(m => m.LegalMoveToolbar), { ssr: false });
@@ -576,11 +577,11 @@ function RowImpl({
             )}
 
             {meta?.implicitWarrant?.text && (
-              <div className="mt-2 p-2.5 rounded-lg bg-amber-50 border border-amber-200">
+              <div className="mt-2 px-2 py-1 rounded-lg bg-amber-50 border border-amber-200 w-fit">
                 <div className="flex items-start gap-2">
                   {/* <Sparkles className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" /> */}
-                  <div>
-                    <div className="text-xs font-medium text-amber-900 mb-0.5">Implicit Warrant</div>
+                  <div className='flex gap-1'>
+                    <div className="text-xs font-medium text-amber-900 mb-0.5">Implicit Warrant:</div>
                     <div className="text-xs text-amber-800">{meta.implicitWarrant.text}</div>
                   </div>
                 </div>
@@ -644,6 +645,17 @@ function RowImpl({
           <PreferenceQuick deliberationId={deliberationId} argumentId={a.id} authorId={a.authorId} onDone={() => onRefreshRow(a.id)} />
 
           <AttackMenuProV2
+            deliberationId={deliberationId}
+            authorId={a.authorId ?? 'current'}
+            target={{
+              id: a.id,
+              conclusion: { id: meta?.conclusion?.id ?? '', text: conclusionText ?? '' },
+              premises: meta?.premises ?? [],
+            }}
+            onDone={() => onRefreshRow(a.id)}
+          />
+
+          <CommunityDefenseMenu
             deliberationId={deliberationId}
             authorId={a.authorId ?? 'current'}
             target={{

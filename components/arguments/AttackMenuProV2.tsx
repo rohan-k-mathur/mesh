@@ -3,7 +3,6 @@
 
 import * as React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ShieldX,
   ShieldAlert,
@@ -18,14 +17,8 @@ import {
   HelpCircle,
   Zap,
   CheckCircle2,
-  Users,
 } from "lucide-react";
 import { SchemeComposerPicker } from "../SchemeComposerPicker";
-import CriticalQuestionsV2 from "@/components/claims/CriticalQuestionsV2";
-import { NonCanonicalResponseForm } from "@/components/agora/NonCanonicalResponseForm";
-import { CommunityResponsesTab } from "@/components/agora/CommunityResponsesTab";
-import { CommunityResponseBadge } from "@/components/agora/CommunityResponseBadge";
-import { NonCanonicalResponseFormLight } from "../agora/NonCanonicalResponseFormLight";
 type ClaimRef = { id: string; text: string };
 type Prem = { id: string; text: string };
 
@@ -42,8 +35,6 @@ export function AttackMenuProV2({
 }) {
   const [open, setOpen] = React.useState(false);
   const [mounted, setMounted] = React.useState(false);
-  const [activeTab, setActiveTab] = React.useState<"attacks" | "cqs" | "community">("attacks");
-  const [helpDefendOpen, setHelpDefendOpen] = React.useState(false);
   const titleRef = React.useRef<HTMLDivElement | null>(null);
 
   const handleOpenChange = React.useCallback((v: boolean) => {
@@ -118,133 +109,24 @@ export function AttackMenuProV2({
           </div>
         </div>
 
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="flex-1 flex flex-col min-h-0">
-          <TabsList className="grid grid-cols-3 w-full bg-slate-200">
-            <TabsTrigger value="attacks" className="flex items-center gap-2 data-[state=active]:bg-slate-700">
-              <Swords className="w-4 h-4" />
-              Formal Attacks
-            </TabsTrigger>
-            {/* <TabsTrigger value="cqs" className="flex items-center gap-2 data-[state=active]:bg-white">
-              <HelpCircle className="w-4 h-4" />
-              Critical Questions
-            </TabsTrigger> */}
-            <TabsTrigger value="community" className="flex items-center gap-2 data-[state=active]:bg-slate-700">
-              <Users className="w-4 h-4" />
-              Community
-              <CommunityResponseBadge
-                targetId={target.id}
-                targetType="argument"
-                variant="compact"
-              />
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="attacks" className="flex-1 overflow-y-auto mt-4 pr-2">
-            {mounted ? (
-              <AttackMenuContent
-                deliberationId={deliberationId}
-                authorId={authorId}
-                target={target}
-                onDone={handleDone}
-              />
-            ) : (
-              <div className="space-y-4">
-                <div className="h-32 rounded-xl border border-slate-200 bg-white animate-pulse" />
-                <div className="h-32 rounded-xl border border-slate-200 bg-white animate-pulse" />
-                <div className="h-32 rounded-xl border border-slate-200 bg-white animate-pulse" />
-              </div>
-            )}
-          </TabsContent>
-
-          {/* <TabsContent value="cqs" className="flex-1 overflow-y-auto mt-4 pr-2">
+        {/* Attack menu content */}
+        <div className="flex-1 overflow-y-auto mt-4 pr-2">
+          {mounted ? (
+            <AttackMenuContent
+              deliberationId={deliberationId}
+              authorId={authorId}
+              target={target}
+              onDone={handleDone}
+            />
+          ) : (
             <div className="space-y-4">
-              <div className="p-4 bg-indigo-50 border-2 border-indigo-200 rounded-xl">
-                <div className="flex items-start gap-3">
-                  <div className="p-2 rounded-lg bg-indigo-100">
-                    <HelpCircle className="w-5 h-5 text-indigo-600" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-sm font-semibold text-indigo-900 mb-1">
-                      Critical Questions Guide
-                    </h3>
-                    <p className="text-xs text-indigo-700 leading-relaxed">
-                      Critical questions reveal weaknesses in argument schemes. Unsatisfied questions
-                      indicate where the argument may be vulnerable to challenge.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl border-2 border-slate-200 p-4">
-                <CriticalQuestionsV2
-                  targetType="claim"
-                  targetId={target.conclusion.id}
-                  deliberationId={deliberationId}
-                />
-              </div>
+              <div className="h-32 rounded-xl border border-slate-200 bg-white animate-pulse" />
+              <div className="h-32 rounded-xl border border-slate-200 bg-white animate-pulse" />
+              <div className="h-32 rounded-xl border border-slate-200 bg-white animate-pulse" />
             </div>
-          </TabsContent> */}
-
-          <TabsContent value="community" className="flex-1 overflow-y-auto mt-4 pr-2">
-            <div className="space-y-4">
-              {/* Info Banner */}
-              <div className="p-4 bg-indigo-50 border-2 border-blue-200 rounded-xl">
-                <div className="flex items-start gap-3">
-                  <div className="p-2 rounded-lg bg-blue-100">
-                    <Users className="w-5 h-5 text-blue-600" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-sm font-semibold text-blue-900 mb-1">
-                      Community Defense
-                    </h3>
-                    <p className="text-xs text-blue-700 leading-relaxed">
-                      Help strengthen this argument by providing supporting responses. Your contributions
-                      will be submitted to the author for approval before becoming canonical moves.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Help Defend Button */}
-              <button
-                className="
-                  w-fit btnv2 flex items-center justify-center mx-auto gap-2 px-5 py-3 rounded-xl
-                  text-sm font-bold bg-gradient-to-b from-sky-500/70 to-sky-700/70 text-slate-100 
-                  hover:from-blue-700 hover:to-blue-800
-                  transition-all duration-200 shadow-md hover:shadow-lg active:scale-95
-                "
-                onClick={() => setHelpDefendOpen(true)}
-              >
-                <Users className="w-5 h-5" />
-                Help Defend This Argument
-                <ChevronRight className="w-5 h-5" />
-              </button>
-
-              {/* Community Responses List */}
-              <div className="bg-white rounded-xl border-2 border-slate-200 p-4">
-                <CommunityResponsesTab
-                  targetId={target.id}
-                  targetType="argument"
-                />
-              </div>
-            </div>
-          </TabsContent>
-        </Tabs>
+          )}
+        </div>
       </DialogContent>
-
-      {/* Help Defend Modal */}
-      <NonCanonicalResponseFormLight
-        open={helpDefendOpen}
-        onOpenChange={setHelpDefendOpen}
-        deliberationId={deliberationId}
-        targetType="argument"
-        targetId={target.id}
-        targetLabel={`Argument: ${target.conclusion.text}`}
-        onSuccess={() => {
-          // Refresh community tab after submission
-          setActiveTab("community");
-        }}
-      />
     </Dialog>
   );
 }

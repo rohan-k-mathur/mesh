@@ -105,7 +105,10 @@ export async function POST(req: NextRequest) {
     }
 
     // ─── 5. Security Check: Can't submit non-canonical for own content ─
-    if (currentUserId?.toString() === authorId) {
+    // Skip this check in testing mode to allow end-to-end testing
+    const isTestingMode = process.env.DIALOGUE_TESTING_MODE === "true";
+    
+    if (!isTestingMode && currentUserId?.toString() === authorId) {
       return NextResponse.json(
         { error: "You cannot submit non-canonical responses for your own content. Please edit your content directly or post canonical moves." },
         { status: 403 }
@@ -119,7 +122,7 @@ export async function POST(req: NextRequest) {
       WHERE "targetId" = ${targetId}
         AND "targetType" = ${targetType}
         AND "contributorId" = ${currentUserId?.toString() || ""}
-        AND "moveType" = ${moveType}
+        AND "moveType" = CAST(${moveType} AS "MoveType")
         AND status = 'PENDING'
       LIMIT 1
     `;
@@ -141,7 +144,7 @@ export async function POST(req: NextRequest) {
         "contributorId", "authorId", "moveType", content, status, "createdAt", "updatedAt"
       ) VALUES (
         ${ncmId}, ${deliberationId}, ${targetType}, ${targetId}, ${targetMoveId || null},
-        ${currentUserId?.toString()}, ${authorId}, ${moveType}::"MoveType", 
+        ${currentUserId?.toString()}, ${authorId}, CAST(${moveType} AS "MoveType"), 
         ${JSON.stringify(content)}::jsonb, 'PENDING'::"NCMStatus", ${now}, ${now}
       )
     `;

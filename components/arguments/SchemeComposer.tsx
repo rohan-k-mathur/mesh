@@ -331,12 +331,12 @@ export function SchemeComposer({
   }
 
   return (
-    <div className="bg-transparent space-y-4 ">
+    <div className="bg-transparent space-y-4 p-2 ">
       <div className="text-md font-semibold tracking-wide text-gray-900 ">
         Argument Composer
       </div>
 
-      <div className="rounded-xl border border-slate-600 bg-indigo-50 p-4 ">
+      <div className="rounded-xl panel-edge-blue bg-indigo-50 p-4 ">
         <div className="text-[14px] text-gray-700 ">
           {selected ? (
             <>
@@ -392,7 +392,7 @@ export function SchemeComposer({
                   onChange={(e) => setConclusionDraft(e.target.value)}
                 />
                 <button
-                  className="text-xs px-2 py-1 rounded-lg border bg-slate-50 btnv2--ghost"
+                  className="text-xs px-2 py-1 rounded-lg border  btnv2--ghost bg-white"
                   onClick={() => setPickerConcOpen(true)}
                 >
                   Pick existing
@@ -418,7 +418,8 @@ export function SchemeComposer({
             ) : (
               /* B) id present → show read-only row + actions */
                <div className="flex items-center gap-2">
-    <div className="flex-1 min-w-0 border border-slate-500 rounded px-3 py-1 text-xs bg-white flex items-center justify-between">
+    <div className="flex-1 min-w-0 border border-indigo-800/60 rounded-lg h-full py-1.5 px-2 text-sm bg-white/50 
+    flex items-center justify-between shadow-sm shadow-slate-400/30">
       <span className="truncate">
         {currentConclusion ? (currentConclusion.text ?? currentConclusion.id) : ""}
       </span>
@@ -428,11 +429,11 @@ export function SchemeComposer({
         </span>
       )}
     </div>
-    <button className="text-xs px-2 py-1 rounded-lg btnv2--ghost" onClick={() => setPickerConcOpen(true)}>
+    <button className="text-xs px-2 py-1 rounded-lg btnv2--ghost bg-white" onClick={() => setPickerConcOpen(true)}>
       Pick existing
     </button>
     <button
-      className="text-xs px-2 py-1 rounded-lg btnv2--ghost"
+      className="text-xs px-2 py-1 rounded-lg btnv2--ghost bg-white"
       onClick={() => {
         setEditingConclusion(true);
         setConclusionDraft(currentConclusion?.text ?? '');
@@ -441,7 +442,7 @@ export function SchemeComposer({
       Type new…
     </button>
                 <button
-                  className="text-xs px-2 py-1 rounded-lg border border-rose-200 text-rose-700 hover:bg-rose-50"
+                  className="text-xs px-2 py-1 rounded-lg border border-rose-200 text-rose-700 bg-rose-50 hover:bg-rose-100"
                   onClick={() => {
                     setConclusion(null); // ← unset locally + parent
                     setEditingConclusion(true);
@@ -461,7 +462,7 @@ export function SchemeComposer({
           <div className="flex items-center justify-start gap-3">
             <span className="text-sm text-gray-800">Premises</span>
             <button
-              className="text-xs px-2 py-1 rounded-lg btnv2--ghost"
+              className="text-xs px-2 py-1 rounded-lg btnv2--ghost bg-white"
               onClick={() => setPickerPremOpen(true)}
             >
               + Add from existing
@@ -471,8 +472,8 @@ export function SchemeComposer({
           {/* NEW: quick add by typing */}
           <div className="mt-2 flex gap-2">
             <input
-              className="flex-1  rounded-lg px-3 py-1.5 text-sm articlesearchfield"
-              placeholder="Type a premise and press Add"
+              className="flex-1  rounded-lg px-3 py-2 text-sm articlesearchfield"
+              placeholder="Add a premise"
               value={premDraft}
               onChange={(e) => setPremDraft(e.target.value)}
               onKeyDown={(e) => {
@@ -517,7 +518,7 @@ export function SchemeComposer({
         <label className="flex flex-col gap-2 mt-0">
           <span className="text-sm text-gray-800">Justification</span>
           <textarea
-            className="w-full articlesearchfield rounded-lg text-xs p-3 mt-1"
+            className="w-full articlesearchfield rounded-lg text-xs px-2.5 py-2 mt-1"
             cols={3}
             value={notes}
             placeholder="If [premises], then [conclusion] (unless [exception])."

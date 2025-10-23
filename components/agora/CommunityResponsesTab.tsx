@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import useSWR from "swr";
+import { Prisma
+ } from "@prisma/client";
 
 // ============================================================================
 // TYPES
@@ -25,7 +27,7 @@ type CommunityResponse = {
   targetId: string;
   contributorId: string;
   authorId: string;
-  moveType: string;
+  moveType: Prisma.MoveType;
   content: {
     expression: string;
     scheme?: string;
@@ -47,6 +49,8 @@ type CommunityResponse = {
   isOwnSubmission: boolean;
   canApprove: boolean;
 };
+
+
 
 export interface CommunityResponsesTabProps {
   targetId: string;
@@ -177,7 +181,7 @@ export function CommunityResponsesTab({
       <div className="space-y-3">
         {responses.map((response) => {
           const moveTypeInfo = MOVE_TYPE_LABELS[response.moveType] || {
-            label: response.moveType,
+            label: response.moveType as MoveType,
             color: "bg-gray-100 text-gray-800",
             icon: "📝",
           };

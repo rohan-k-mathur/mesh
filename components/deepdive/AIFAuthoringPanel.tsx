@@ -26,6 +26,7 @@ export function AIFAuthoringPanel({
 }) {
   const [user, setUser] = React.useState<{ userId?: string } | null>(null);
   const [pickConclusionOpen, setPickConclusionOpen] = React.useState(false);
+  const [userInteracted, setUserInteracted] = React.useState(false); // Track if user clicked to expand
 
   // selected conclusion (sync with prop)
   const [conclusion, setConclusion] = React.useState<{id:string; text?:string} | null>(
@@ -54,9 +55,9 @@ export function AIFAuthoringPanel({
   const effectiveAuthorId = user?.userId || authorIdProp || 'current';
   const readyForCompose = Boolean(effectiveAuthorId && conclusion?.id);
 
-  // Dynamic height: collapsed initially, expanded when picker is open or conclusion is selected
-  const isExpanded = Boolean(pickConclusionOpen || conclusion?.id || argument || createdArg);
-  const heightClass = isExpanded ? 'max-h-[550px] h-full overflow-y-auto' : 'h-fit ';
+  // Dynamic height: collapsed initially, expanded when user interacts or conclusion is selected
+  const isExpanded = Boolean(userInteracted || conclusion?.id || argument || createdArg);
+  const heightClass = isExpanded ? 'h-[530px]  overflow-y-auto' : 'h-fit ';
 
   function AttackScopeBar() {
     if (!attackContext) return null;
@@ -91,7 +92,10 @@ export function AIFAuthoringPanel({
           <div>Select a conclusion claim to start composing an argument.</div>
           <button
             className="btnv2  rounded-xl text-xs px-4 py-2 "
-            onClick={() => setPickConclusionOpen(true)}
+            onClick={() => {
+              setUserInteracted(true);
+              setPickConclusionOpen(true);
+            }}
           >
             Choose conclusion
           </button>

@@ -27,11 +27,11 @@ const scrollbarStyles = `
     border-radius: 4px;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: rgba(96, 165, 250, 0.4);
+    background: rgba(192, 194, 222, 0.4);
     border-radius: 4px;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: rgba(96, 165, 250, 0.6);
+    background: rgba(218, 228, 239, 0.6);
   }
 `;
 
@@ -198,8 +198,8 @@ export function NonCanonicalResponseForm({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <style dangerouslySetInnerHTML={{ __html: scrollbarStyles }} />
-      <DialogContent className="max-w-3xl max-h-screen overflow-hidden panel-edge 
-       bg-slate-900/55 backdrop-blur-xl shadow-2xl p-6">
+      <DialogContent className="max-w-3xl max-h-screen overflow-hidden panel-edge-blue 
+       bg-slate-900/75 backdrop-blur-xl shadow-2xl px-6 py-8">
         {/* Glass overlay effect */}
         <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-white/5 pointer-events-none" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(120,119,198,0.15),transparent_50%)] pointer-events-none" />
@@ -209,17 +209,18 @@ export function NonCanonicalResponseForm({
         <div className="absolute bottom-20 left-10 w-40 h-40 bg-cyan-400/15 rounded-full blur-3xl animate-pulse delay-1000" />
         
         <div className="relative z-10 overflow-y-auto max-h-[85vh] custom-scrollbar px-2">
-          <DialogHeader className="space-y-3 pb-2 border-b border-white/10">
+          <DialogHeader className="space-y-3 pb-3 border-b border-white/10">
             <DialogTitle className="text-3xl font-bold text-white flex items-center gap-3 drop-shadow-lg">
               <div className="p-3 rounded-2xl bg-gradient-to-b from-indigo-500/30 to-cyan-500/30 backdrop-blur-sm border border-white/20 shadow-lg">
                 <Users className="w-4 h-4 text-indigo-50 " />
               </div>
-              <span className="bg-gradient-to-r from-inigo-200 via-cyan-200 to-sky-200 text-2xl text-white">
-                Help Defend This
+              <span className="text-white/80 text-2xl">
+                Contribute to the Argument Defense 
               </span>
             </DialogTitle>
+         
             {targetLabel && (
-              <p className="w-fit text-sm border border-slate-100/50  rounded-md text-white leading-relaxed px-2 py-0">
+              <p className="w-fit ml-1 text-xs border  panel-edge-blue  rounded-lg text-white leading-relaxed px-3 py-1 bg-slate-700/40">
                 {targetLabel}
               </p>
             )}
@@ -278,15 +279,15 @@ export function NonCanonicalResponseForm({
                       <span
                         className={cn(
                           "text-sm font-semibold transition-colors duration-300",
-                          isSelected ? "text-cyan-100" : "text-slate-200"
+                          isSelected ? "text-cyan-50" : "text-slate-200"
                         )}
                       >
                         {type.label}
                       </span>
                     </div>
                     <span className={cn(
-                      "text-xs leading-relaxed transition-colors duration-300 relative",
-                      isSelected ? "text-indigo-200/90" : "text-slate-400"
+                      "text-xs leading-relaxed ml-1 transition-colors duration-300 relative",
+                      isSelected ? "text-indigo-50/90 " : "text-slate-200/90"
                     )}>
                       {type.description}
                     </span>
@@ -316,7 +317,7 @@ export function NonCanonicalResponseForm({
                 onChange={(e) => setExpression(e.target.value)}
                 disabled={isSubmitting}
                 placeholder={`Provide your ${selectedMoveType?.label.toLowerCase()} here...`}
-                className="min-h-[140px] resize-y bg-white/10 backdrop-blur-md border-white/20 text-white placeholder:text-slate-400 focus:border-cyan-400/60 focus:ring-2 focus:ring-cyan-400/20 rounded-xl shadow-lg"
+                className="min-h-[110px] resize-y bg-white/10 backdrop-blur-md border-white/20 text-white placeholder:text-slate-400 focus:border-cyan-400/60 focus:ring-2 focus:ring-cyan-400/20 rounded-xl shadow-lg"
               />
               <div className="absolute bottom-3 right-3 text-xs text-slate-400 bg-slate-900/50 px-2 py-1 rounded-md backdrop-blur-sm">
                 {expression.length} / 2000
@@ -328,7 +329,7 @@ export function NonCanonicalResponseForm({
           <div className="space-y-3">
             <Label htmlFor="scheme" className="text-sm font-semibold text-indigo-100 flex items-center gap-2">
               <div className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-              Argument Scheme <span className="text-slate-400 text-xs font-normal ml-1">(optional)</span>
+              Argument Scheme <span className="text-slate-400 text-xs font-normal ">(optional)</span>
             </Label>
             <input
               id="scheme"
@@ -337,19 +338,19 @@ export function NonCanonicalResponseForm({
               onChange={(e) => setScheme(e.target.value)}
               disabled={isSubmitting}
               placeholder="e.g., Modus Ponens, Argument from Authority, etc."
-              className="w-full px-4 py-3 bg-white/10 backdrop-blur-md border border-white/20 text-white placeholder:text-slate-400 rounded-xl focus:border-cyan-400/60 focus:ring-2 focus:ring-cyan-400/20 shadow-lg transition-all"
+              className="w-full px-4 py-3 bg-white/10 backdrop-blur-md border border-white/20 text-white text-sm placeholder:text-slate-400 rounded-xl focus:border-cyan-400/60 focus:ring-2 focus:ring-cyan-400/20 shadow-lg transition-all"
             />
           </div>
 
           {/* ─── Info Banner ────────────────────────────────────────── */}
-          <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-sky-500/20 to-cyan-500/20 backdrop-blur-md border border-cyan-400/30 p-5 shadow-lg">
+          <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-sky-500/20 to-cyan-500/20 backdrop-blur-md border border-cyan-400/30 py-3 px-3  shadow-lg">
             <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent" />
             <div className="relative flex gap-4">
               <div className="p-2.5 rounded-xl bg-gradient-to-br from-cyan-400/30 to-sky-400/30 shadow-lg h-fit">
                 <Users className="w-5 h-5 text-cyan-200" />
               </div>
               <div className="text-sm text-indigo-100 flex-1">
-                <p className="font-semibold mb-2 text-cyan-100">Community Response</p>
+                <p className="font-semibold mb-1 text-cyan-50">Community Response</p>
                 <p className="text-indigo-200/90 leading-relaxed">
                   Your response will be marked as <strong className="text-cyan-200">pending</strong> until the original author approves it.
                   Other participants can view your contribution, and if approved, it will become an official move in the deliberation.
@@ -384,11 +385,11 @@ export function NonCanonicalResponseForm({
         </div>
 
         {/* ─── Footer Actions ─────────────────────────────────────── */}
-        <div className="relative flex items-center justify-between pt-6 border-t border-white/10">
+        <div className="relative flex items-center justify-between pt-4 mb-3 border-t border-white/10">
           <button
             onClick={() => onOpenChange(false)}
             disabled={isSubmitting}
-            className="btnv2 rounded-xl bg-white/10 backdrop-blur-md border-white/20 text-white text-sm hover:bg-white/20 hover:border-white/30 transition-all"
+            className="btnv2 rounded-xl bg-white/10 px-3 py-2 backdrop-blur-md border-white/20 text-white text-sm hover:bg-white/20 hover:border-white/30 transition-all"
           >
             Cancel
           </button>
@@ -396,9 +397,9 @@ export function NonCanonicalResponseForm({
           <button
             onClick={handleSubmit}
             disabled={isSubmitting || !expression.trim() || submitStatus === "success"}
-            className="relative overflow-hidden btnv2 text-sm rounded-xl text-white
+            className="relative overflow-hidden btnv2 text-sm px-4 py-2.5 rounded-xl text-white
             bg-gradient-to-r from-sky-700 to-indigo-700 hover:from-cyan-600 
-            hover:to-indigo-600 text-white border-0 shadow-lg shadow-cyan-500/30 
+            hover:to-indigo-600 text-white border-0 shadow-lg shadow-cyan-300/10 
             hover:shadow-cyan-500/50 transition-all duration-300 group"
           >
             {/* Glass shine effect */}

@@ -71,7 +71,17 @@ export async function GET(req: NextRequest) {
       }
     });
 
-    const userMap = new Map(users.map(u => [u.id.toString(), u]));
+    // Convert BigInt to string for JSON serialization
+    const userMap = new Map(
+      users.map(u => [
+        u.id.toString(), 
+        {
+          id: u.id.toString(),
+          username: u.username,
+          image: u.image
+        }
+      ])
+    );
 
     const enrichedMoves = moves.map(move => ({
       ...move,
