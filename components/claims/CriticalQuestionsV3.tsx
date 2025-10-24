@@ -33,6 +33,7 @@ import {
   Send,
   Lightbulb,
   MessageCircle,
+  Plus,
 } from "lucide-react";
 import { TargetType } from "@prisma/client";
 
@@ -72,7 +73,9 @@ const fetcher = (u: string) =>
   fetch(u, { cache: "no-store" }).then((r) => r.json());
 
 const CQS_KEY = (type: "claim" | "argument", id: string, scheme?: string) =>
-  `/api/cqs?targetType=${type}&targetId=${id}${scheme ? `&scheme=${scheme}` : ""}`;
+  `/api/cqs?targetType=${type}&targetId=${id}${
+    scheme ? `&scheme=${scheme}` : ""
+  }`;
 const TOULMIN_KEY = (id: string) => `/api/claims/${id}/toulmin`;
 const GRAPH_KEY = (roomId: string, lens: string, audienceId?: string) =>
   `graph:${roomId}:${lens}:${audienceId ?? "none"}`;
@@ -138,9 +141,13 @@ export default function CriticalQuestionsV3({
 
   // Data fetching
   const cqsKey = CQS_KEY(targetType, targetId);
-  const { data: cqData, error: cqError } = useSWR<CQsResponse>(cqsKey, fetcher, {
-    revalidateOnFocus: false,
-  });
+  const { data: cqData, error: cqError } = useSWR<CQsResponse>(
+    cqsKey,
+    fetcher,
+    {
+      revalidateOnFocus: false,
+    }
+  );
 
   const attachKey = ATTACH_KEY(targetType, targetId);
   const { data: attachData } = useSWR<any>(attachKey, fetcher, {
@@ -199,7 +206,11 @@ export default function CriticalQuestionsV3({
   }, [cqsKey, attachKey, deliberationId]);
 
   // Helpers
-  const toggleCQ = async (schemeKey: string, cqKey: string, satisfied: boolean) => {
+  const toggleCQ = async (
+    schemeKey: string,
+    cqKey: string,
+    satisfied: boolean
+  ) => {
     const url = `/api/cqs/${targetType}/${targetId}`;
     const oldData = cqData;
 
@@ -209,7 +220,13 @@ export default function CriticalQuestionsV3({
       return {
         ...s,
         cqs: s.cqs.map((c) =>
-          c.key === cqKey ? { ...c, satisfied, groundsText: satisfied ? c.groundsText : undefined } : c
+          c.key === cqKey
+            ? {
+                ...c,
+                satisfied,
+                groundsText: satisfied ? c.groundsText : undefined,
+              }
+            : c
         ),
       };
     });
@@ -236,7 +253,11 @@ export default function CriticalQuestionsV3({
     }
   };
 
-  const resolveViaGrounds = async (schemeKey: string, cqKey: string, grounds: string) => {
+  const resolveViaGrounds = async (
+    schemeKey: string,
+    cqKey: string,
+    grounds: string
+  ) => {
     if (!grounds.trim()) return;
 
     const url = `/api/cqs/${targetType}/${targetId}`;
@@ -258,7 +279,12 @@ export default function CriticalQuestionsV3({
       const r = await fetch(url, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ schemeKey, cqKey, satisfied: true, groundsText: grounds }),
+        body: JSON.stringify({
+          schemeKey,
+          cqKey,
+          satisfied: true,
+          groundsText: grounds,
+        }),
       });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       await globalMutate(cqsKey);
@@ -278,13 +304,18 @@ export default function CriticalQuestionsV3({
   ) => {
     setPosting(true);
     try {
-      const r = await fetch(`/api/cqs/${targetType}/${targetId}/attach`, {
+      const r = await fetch("/api/cqs/toggle", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
+          targetType,
+          targetId,
           schemeKey,
           cqKey,
+          satisfied: false,
+          attachSuggestion: true,
           attackerClaimId,
+          deliberationId,
         }),
       });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
@@ -392,7 +423,8 @@ export default function CriticalQuestionsV3({
   }, [cqData, prefilterKeys]);
 
   const attachedMap = useMemo(() => {
-    const map: Record<string, { id: string; text: string; count: number }[]> = {};
+    const map: Record<string, { id: string; text: string; count: number }[]> =
+      {};
     if (!attachData?.attachments) return map;
 
     for (const att of attachData.attachments) {
@@ -413,7 +445,9 @@ export default function CriticalQuestionsV3({
         <div className="flex items-start gap-3">
           <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 shrink-0" />
           <div>
-            <p className="text-sm font-semibold text-red-900">Failed to Load Critical Questions</p>
+            <p className="text-sm font-semibold text-red-900">
+              Failed to Load Critical Questions
+            </p>
             <p className="text-xs text-red-700 mt-1">
               {cqError?.message || "Unknown error"}
             </p>
@@ -439,7 +473,9 @@ export default function CriticalQuestionsV3({
         <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-200 mb-3">
           <HelpCircle className="w-6 h-6 text-slate-500" />
         </div>
-        <p className="text-sm font-semibold text-slate-700">No Critical Questions</p>
+        <p className="text-sm font-semibold text-slate-700">
+          No Critical Questions
+        </p>
         <p className="text-xs text-slate-500 mt-1">
           There are no critical questions defined for this scheme.
         </p>
@@ -448,22 +484,25 @@ export default function CriticalQuestionsV3({
   }
 
   return (
-    <div className="space-y-4 max-h-[600px] overflow-y-auto pr-1">
+    <div className="space-y-2 max-h-[600px] overflow-y-auto px-3 py-2 custom-scrollbar">
       {filteredSchemes.map((scheme) => (
-        <div key={scheme.key} className="space-y-3">
-          <div className="flex items-center gap-3 pb-2 border-b-2 border-slate-200">
+        <div key={scheme.key} className="space-y-2 border border-slate-200 p-2 rounded-xl">
+          <div className="flex items-center gap-3 ">
             <div className="p-2 rounded-lg bg-indigo-100">
               <Target className="w-5 h-5 text-indigo-600" />
             </div>
             <div className="flex-1">
-              <h4 className="text-sm font-bold text-slate-900">{scheme.title}</h4>
+              <h4 className="text-sm font-bold text-slate-900">
+                {scheme.title}
+              </h4>
               <p className="text-xs text-slate-600">
-                {scheme.cqs.filter((c) => c.satisfied).length} / {scheme.cqs.length} satisfied
+                {scheme.cqs.filter((c) => c.satisfied).length} /{" "}
+                {scheme.cqs.length} satisfied
               </p>
             </div>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-2  ">
             {scheme.cqs.map((cq) => {
               const isExpanded = expandedCQ === cq.key;
               const attached = attachedMap[cq.key] || [];
@@ -473,27 +512,33 @@ export default function CriticalQuestionsV3({
                 <div
                   key={cq.key}
                   className={`
-                    rounded-xl border-2 transition-all duration-300
+                    rounded-xl border-2 transition-all duration-300 p-1
                     ${
                       cq.satisfied
-                        ? "border-emerald-200 bg-gradient-to-br from-emerald-50 to-emerald-100"
+                        ? "border-emerald-200 bg-gradient-to-br from-emerald-50/50 to-emerald-100/50"
                         : "border-slate-200 bg-white hover:border-slate-300 hover:shadow-md"
                     }
                   `}
                 >
-                  <div className="p-4">
+                  <div className="px-3 py-2">
                     <button
                       onClick={() => setExpandedCQ(isExpanded ? null : cq.key)}
                       className="w-full flex items-start gap-3 text-left"
                     >
                       <div className="mt-0.5 shrink-0">
                         {cq.satisfied ? (
-                          <div className="p-1 rounded-full bg-emerald-200">
-                            <CheckCircle2 className="w-5 h-5 text-emerald-700" strokeWidth={2.5} />
+                          <div className="p-0 rounded-full bg-emerald-200">
+                            <CheckCircle2
+                              className="w-5 h-5 text-emerald-700"
+                              strokeWidth={2.5}
+                            />
                           </div>
                         ) : (
-                          <div className="p-1 rounded-full bg-slate-100">
-                            <Circle className="w-5 h-5 text-slate-400" strokeWidth={2} />
+                          <div className="p-0 rounded-full bg-slate-100">
+                            <Circle
+                              className="w-5 h-5 text-slate-400"
+                              strokeWidth={2}
+                            />
                           </div>
                         )}
                       </div>
@@ -519,7 +564,8 @@ export default function CriticalQuestionsV3({
                           <div className="mt-2 flex items-center gap-2 text-xs">
                             <Link2 className="w-4 h-4 text-indigo-500" />
                             <span className="font-medium text-indigo-700">
-                              {attached.length} counter-claim{attached.length !== 1 ? "s" : ""} attached
+                              {attached.length} counter-claim
+                              {attached.length !== 1 ? "s" : ""} attached
                             </span>
                           </div>
                         )}
@@ -538,24 +584,24 @@ export default function CriticalQuestionsV3({
                     </button>
 
                     {isExpanded && (
-                      <div className="mt-4 space-y-4 animate-in slide-in-from-top-2 duration-300">
+                      <div className="mt-2 space-y-2 animate-in slide-in-from-top-0 duration-400">
                         {/* Quick Satisfaction Toggle */}
-                        <div className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200">
+                        <div className="flex items-center justify-between px-3 py-1.5 bg-white rounded-lg border border-indigo-200">
                           <span className="text-sm font-medium text-slate-700">
                             Mark as {cq.satisfied ? "unsatisfied" : "satisfied"}
                           </span>
-                          <Button
-                            size="sm"
-                            variant={cq.satisfied ? "outline" : "default"}
-                            onClick={() => toggleCQ(scheme.key, cq.key, !cq.satisfied)}
+                          <button
+                            onClick={() =>
+                              toggleCQ(scheme.key, cq.key, !cq.satisfied)
+                            }
                             className={
                               cq.satisfied
-                                ? "border-emerald-300 text-emerald-700 hover:bg-emerald-50"
-                                : ""
+                                ? "btnv2--ghost rounded-lg px-2 py-1 border-slate-300 bg-slate-100 text-slate-800 text-xs hover:bg-slate-200"
+                                : "btnv2--ghost rounded-lg px-2 py-1 text-xs "
                             }
                           >
                             {cq.satisfied ? "Unmark" : "Mark Satisfied"}
-                          </Button>
+                          </button>
                         </div>
 
                         {/* Grounds Input */}
@@ -571,19 +617,26 @@ export default function CriticalQuestionsV3({
                               placeholder="Explain why this question is satisfied..."
                               value={groundsInput[cq.key] || ""}
                               onChange={(e) =>
-                                setGroundsInput((prev) => ({ ...prev, [cq.key]: e.target.value }))
+                                setGroundsInput((prev) => ({
+                                  ...prev,
+                                  [cq.key]: e.target.value,
+                                }))
                               }
-                              className="text-sm resize-none"
+                              className="text-sm articlesearchfield resize-none"
                               rows={3}
                             />
-                                                          <div className="flex items-center justify-between">
+                            <div className="flex items-center justify-between">
                               <span className="text-xs text-slate-500">
                                 {(groundsInput[cq.key] || "").length} characters
                               </span>
                               <Button
                                 size="sm"
                                 onClick={() =>
-                                  resolveViaGrounds(scheme.key, cq.key, groundsInput[cq.key] || "")
+                                  resolveViaGrounds(
+                                    scheme.key,
+                                    cq.key,
+                                    groundsInput[cq.key] || ""
+                                  )
                                 }
                                 disabled={!(groundsInput[cq.key] || "").trim()}
                                 className="flex items-center gap-2"
@@ -596,7 +649,7 @@ export default function CriticalQuestionsV3({
                         )}
 
                         {/* Attach Counter-Claim */}
-                        <div className="space-y-3 pt-3 border-t border-slate-200">
+                        <div className="space-y-2 pt-2 border-t border-slate-400/40">
                           <div className="flex items-center gap-2">
                             <Link2 className="w-4 h-4 text-indigo-600" />
                             <label className="text-sm font-semibold text-slate-900">
@@ -614,30 +667,36 @@ export default function CriticalQuestionsV3({
                                   key={a.id}
                                   className="p-3 bg-indigo-50 border border-indigo-200 rounded-lg"
                                 >
-                                  <p className="text-sm text-indigo-900">{a.text}</p>
+                                  <p className="text-sm text-indigo-900">
+                                    {a.text}
+                                  </p>
                                 </div>
                               ))}
                             </div>
                           )}
 
                           <div className="flex items-center gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => openQuickCompose(scheme.key, cq.key)}
-                              className="flex-1"
+                            <button
+                              onClick={() =>
+                                openQuickCompose(scheme.key, cq.key)
+                              }
+                              className="flex flex-1 btnv2--ghost bg-white
+                              rounded-lg px-3 py-2 text-sm"
                             >
-                              Create New
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
+                              <div className="flex  items-center align-center ">
+                                <Plus className="w-4 h-4 mr-2" />
+                                Create New
+                              </div>
+                            </button>
+                            <button
                               onClick={() => openPicker(cq.key)}
-                              className="flex-1"
+                              className="flex btnv2--ghost flex-1 rounded-lg px-3 py-2 text-sm bg-white"
                             >
-                              <Search className="w-4 h-4 mr-2" />
-                              Find Existing
-                            </Button>
+                              <div className="flex  items-center align-center ">
+                                <Search className="w-4 h-4 mr-2" />
+                                Find Existing
+                              </div>
+                            </button>
                           </div>
                         </div>
 
@@ -646,7 +705,9 @@ export default function CriticalQuestionsV3({
                           <div className="pt-3 border-t border-slate-200">
                             <button
                               onClick={() =>
-                                setExpandedMoves(expandedMoves === cq.key ? null : cq.key)
+                                setExpandedMoves(
+                                  expandedMoves === cq.key ? null : cq.key
+                                )
                               }
                               className="w-full flex items-center justify-between text-sm font-semibold text-slate-700 hover:text-slate-900"
                             >
@@ -680,7 +741,7 @@ export default function CriticalQuestionsV3({
 
       {/* Quick Compose Dialog */}
       <Dialog open={quickDialogOpen} onOpenChange={setQuickDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl bg-sky-200/70 backdrop-blur-lg">
           <DialogHeader>
             <DialogTitle>Create Counter-Claim</DialogTitle>
             <DialogDescription>
@@ -691,19 +752,20 @@ export default function CriticalQuestionsV3({
             placeholder="Enter your counter-claim..."
             value={quickText}
             onChange={(e) => setQuickText(e.target.value)}
-            className="min-h-[120px]"
+            className="articlesearchfield min-h-[120px]"
             autoFocus
           />
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setQuickDialogOpen(false)}>
+          <DialogFooter className="gap-2">
+            <button className="btnv2--ghost px-2 py-1 bg-slate-200 text-sm rounded-lg" onClick={() => setQuickDialogOpen(false)}>
               Cancel
-            </Button>
-            <Button
+            </button>
+            <button
+            className="btnv2--ghost px-2 py-1 text-sm bg-white hover:bg-slate-100 rounded-lg"
               onClick={handleQuickSubmit}
               disabled={!quickText.trim() || posting}
             >
               {posting ? "Creating..." : "Create & Attach"}
-            </Button>
+            </button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -715,8 +777,6 @@ export default function CriticalQuestionsV3({
         onClose={() => setPickerOpen(false)}
         onPick={handlePickerSelect}
       />
-
-
     </div>
   );
 }

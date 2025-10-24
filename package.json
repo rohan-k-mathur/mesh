@@ -40,7 +40,8 @@
     "acl:watch": "tsc -w -p packages/sheaf-acl/tsconfig.json",
     "acl:test": "vitest run packages/sheaf-acl",
     "sheaf:seed": "tsx --env-file=.env scripts/sheaf-seed.ts",
-    "briefseed": "tsx --env-file=.env prisma/brief-seed.ts"
+    "briefseed": "tsx --env-file=.env prisma/brief-seed.ts",
+    "cq:backfill": "tsx --env-file=.env scripts/backfill-cq-responses.ts"
   },
   "size-limit": [
     {

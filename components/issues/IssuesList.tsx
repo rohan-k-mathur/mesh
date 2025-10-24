@@ -21,11 +21,6 @@ export default function IssuesList({
   const [focus, setFocus] = React.useState<string | null>(null);
   const [activeFilter, setActiveFilter] = React.useState<FilterTab>("all");
 
-  // Debug: Log currentUserId to verify it's being passed
-  React.useEffect(() => {
-    console.log("[IssuesList] currentUserId:", currentUserId);
-  }, [currentUserId]);
-
   const key = `/api/deliberations/${encodeURIComponent(deliberationId)}/issues?state=all`;
   const { data, isLoading } = useSWR<{ ok: true; issues: any[] }>(key, fetcher, {
     revalidateOnFocus: false,

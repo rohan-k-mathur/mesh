@@ -60,6 +60,16 @@ export type AttackOption = {
           template:'An accepted alternative definition in this domain yields a different classification.' },
       ]
     },
+    {
+      schemeKey: 'claim_truth',
+      shape: 'conditional',
+      options: [
+        { key:'rebut_evidence', label:'Rebut (counter-evidence)', type:'rebut', targetScope:'conclusion',
+          template:'Evidence contradicts or undermines the claim.' },
+        { key:'undercut_reliability', label:'Undercut (source reliability)', type:'undercut', targetScope:'inference',
+          template:'The evidence source is unreliable or the inference from evidence to claim is unwarranted.' },
+      ]
+    },
     // add more as you need…
   ];
   

@@ -368,7 +368,6 @@ export default function DeepDivePanel({
   React.useEffect(() => {
     getUserFromCookies().then((u) => {
       const userId = u?.userId != null ? String(u.userId) : undefined;
-      console.log("[DeepDivePanelV2] Fetched userId from cookies:", userId);
       setCurrentUserId(userId);
     });
   }, []);
@@ -1337,14 +1336,7 @@ const {
               {/* <PropositionComposer deliberationId={deliberationId} /> */}
               <PropositionComposerPro deliberationId={deliberationId} />
             </SectionCard>
-            <SectionCard>
-              <DialogueInspector
-                deliberationId={deliberationId}
-                initialTargetType="claim"
-               
-                initialLocusPath="0"
-              />
-            </SectionCard>
+            
             <SectionCard>
               <PropositionsList deliberationId={deliberationId} />
             </SectionCard>
@@ -1356,7 +1348,15 @@ const {
                 onClaimClick={handleClaimSelect}
               />
             </SectionCard>
-
+            <SectionCard>
+              <DialogueInspector
+                deliberationId={deliberationId}
+                initialTargetType="claim"
+               
+                initialLocusPath="0"
+              />
+            </SectionCard>
+{/* 
             <SectionCard title="Arguments">
               <ArgumentsList
                 deliberationId={deliberationId}
@@ -1381,7 +1381,7 @@ const {
                   compute(sel?.rule);
                 }}
               />
-            </SectionCard>
+            </SectionCard> */}
           </TabsContent>
 
           {/* MODELS TAB */}

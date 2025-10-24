@@ -3228,21 +3228,148 @@ model CQStatus {
   targetType TargetType
   targetId   String
   argumentId String?
-  status     String? // 'open' | 'answered'
+  status     String? // DEPRECATED: use statusEnum instead
+  
+  // New status enum for multi-layer system
+  statusEnum CQStatusEnum @default(OPEN)
 
   schemeKey   String
   cqKey       String
-  satisfied   Boolean  @default(false)
-  groundsText String?  // Stores the text response/grounds for the CQ
+  satisfied   Boolean  @default(false) // DEPRECATED: check statusEnum instead
+  groundsText String?  // DEPRECATED: use responses relation instead
+  
+  // Multi-response system
+  canonicalResponseId String?
+  canonicalResponse   CQResponse? @relation("CanonicalResponse", fields: [canonicalResponseId], references: [id], onDelete: SetNull)
+  responses           CQResponse[] @relation("AllResponses")
+  
+  // Review tracking
+  lastReviewedAt DateTime?
+  lastReviewedBy String?
+  
   createdById String
   roomId      String? // denormalized at write-time for RLS
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  
+  // Activity log
+  activities CQActivityLog[]
 
   @@unique([targetType, targetId, schemeKey, cqKey])
   @@index([targetType, targetId, schemeKey])
   @@index([targetType, targetId])
   @@index([roomId])
+  @@index([statusEnum, roomId])
+}
+
+enum CQStatusEnum {
+  OPEN                 // No responses yet
+  PENDING_REVIEW       // Has responses awaiting approval
+  PARTIALLY_SATISFIED  // Some responses approved, but incomplete
+  SATISFIED            // Author accepted canonical response
+  DISPUTED             // Conflicting responses or new challenges
+}
+
+model CQResponse {
+  id       String @id @default(cuid())
+  
+  cqStatusId String
+  cqStatus   CQStatus @relation("AllResponses", fields: [cqStatusId], references: [id], onDelete: Cascade)
+  
+  // Response content
+  groundsText      String   // The actual response text
+  evidenceClaimIds String[] // Claims that serve as evidence
+  sourceUrls       String[] // External citations
+  
+  // Workflow state
+  responseStatus ResponseStatus @default(PENDING)
+  
+  // Provenance
+  contributorId String  // Who wrote this response (auth_id string)
+  
+  reviewedAt    DateTime?
+  reviewedBy    String?   // Author or moderator who approved/rejected (auth_id)
+  reviewNotes   String?   // Why approved/rejected
+  
+  // Community validation
+  upvotes       Int @default(0)
+  downvotes     Int @default(0)
+  endorsements  CQEndorsement[]
+  
+  // Execution (if approved and converted to canonical move)
+  canonicalMoveId String?
+  executedAt      DateTime?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Back-reference for canonical selection
+  canonicalFor CQStatus[] @relation("CanonicalResponse")
+  
+  // Activity log
+  activities CQActivityLog[]
+
+  @@index([cqStatusId, responseStatus])
+  @@index([contributorId])
+  @@index([responseStatus, createdAt])
+}
+
+enum ResponseStatus {
+  PENDING          // Awaiting review
+  APPROVED         // Accepted by author/moderator
+  CANONICAL        // Selected as THE official answer
+  REJECTED         // Not accepted
+  SUPERSEDED       // Was canonical, but replaced
+  WITHDRAWN        // Contributor removed it
+}
+
+model CQEndorsement {
+  id         String @id @default(cuid())
+  responseId String
+  response   CQResponse @relation(fields: [responseId], references: [id], onDelete: Cascade)
+  
+  userId     String // auth_id of endorser
+  
+  weight     Int @default(1) // Could vary by user reputation
+  comment    String?         // Optional explanation
+  
+  createdAt  DateTime @default(now())
+
+  @@unique([responseId, userId])
+  @@index([responseId])
+  @@index([userId])
+}
+
+model CQActivityLog {
+  id       String @id @default(cuid())
+  
+  cqStatusId String
+  cqStatus   CQStatus @relation(fields: [cqStatusId], references: [id], onDelete: Cascade)
+  
+  action     CQAction
+  
+  actorId    String  // Who performed the action (auth_id)
+  
+  responseId String? // If action relates to a specific response
+  response   CQResponse? @relation(fields: [responseId], references: [id], onDelete: SetNull)
+  
+  metadata   Json?   // Additional context
+  createdAt  DateTime @default(now())
+
+  @@index([cqStatusId, createdAt])
+  @@index([actorId])
+  @@index([action, createdAt])
+}
+
+enum CQAction {
+  RESPONSE_SUBMITTED
+  RESPONSE_APPROVED
+  RESPONSE_REJECTED
+  RESPONSE_WITHDRAWN
+  STATUS_CHANGED
+  CANONICAL_SELECTED
+  ENDORSEMENT_ADDED
+  CLARIFICATION_REQUESTED
 }
 
 enum Illocution {

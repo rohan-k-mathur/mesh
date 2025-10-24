@@ -2534,6 +2534,7 @@ text-align: left;
   cursor: pointer;
 }
 
+
 /* Gradient ring via masked ::before */
 .btnv2--sunset::before {
   content: "";
@@ -2886,9 +2887,6 @@ html:before{
   transform: scale(1);
   margin-bottom: 0px;
 
-  
-
-   
  }
  .scroll-list__item.item-next {
   opacity: 1;
@@ -2897,3 +2895,22 @@ html:before{
 
 
   }
+
+/* === Custom Scrollbar - Light Mode (Glass Morphism) === */
+.custom-scrollbar-light::-webkit-scrollbar {
+  width: 3px;
+}
+
+.custom-scrollbar-light::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+}
+
+.custom-scrollbar-light::-webkit-scrollbar-thumb {
+  background: rgba(56, 189, 248, 0.4);
+  border-radius: 4px;
+}
+
+.custom-scrollbar-light::-webkit-scrollbar-thumb:hover {
+  background: rgba(56, 189, 248, 0.6);
+}
