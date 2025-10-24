@@ -16,8 +16,13 @@ const CreateBody = z.object({
    id: z.string().min(1),
     role: z.string().optional(),
   })).optional(),
-  kind: z.enum(['general','cq','moderation','evidence','structural','governance']).optional(),
+  kind: z.enum(['general','cq','moderation','evidence','structural','governance','clarification','community_defense']).optional(),
   key: z.string().optional(), // e.g. cqKey
+  // Clarification fields
+  questionText: z.string().max(5000).optional(),
+  // Community defense fields
+  ncmId: z.string().optional(),
+  assigneeId: z.string().optional(), // For auto-assigning to author
 });
 
 
@@ -51,6 +56,13 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       kind: body.kind ?? "general",
       key: body.key ?? null,
       createdById: BigInt(uid),
+      // Clarification-specific fields
+      questionText: body.kind === "clarification" ? body.questionText ?? null : null,
+      // Community defense-specific fields
+      ncmId: body.kind === "community_defense" ? body.ncmId ?? null : null,
+      ncmStatus: body.kind === "community_defense" && body.ncmId ? "PENDING" : null,
+      // Assignment
+      assigneeId: body.assigneeId ? BigInt(body.assigneeId) : null,
        ...(linkCreates.length ? { links: { createMany: { data: linkCreates } } } : {}),
     } as any,
     include: { links: true, _count: { select: { links: true } } },
@@ -121,9 +133,33 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     take: limit,
     include: {
       links: true,
-      _count: { select: { links: true } }, // comments can be added later
+      _count: { select: { links: true } },
+      createdBy: {
+        select: {
+          id: true,
+          username: true,
+          name: true,
+          image: true,
+        },
+      },
+      assignee: {
+        select: {
+          id: true,
+          username: true,
+          name: true,
+          image: true,
+        },
+      },
+      answeredBy: {
+        select: {
+          id: true,
+          username: true,
+          name: true,
+          image: true,
+        },
+      },
     },
-  });
+  } as any);
 
   return NextResponse.json(JSON.parse(JSON.stringify({ ok: true, issues: list }, (_, v) => typeof v === "bigint" ? v.toString() : v)));
 }

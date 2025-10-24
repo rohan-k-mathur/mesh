@@ -21,11 +21,35 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string;
     where: { id: params.issueId },
     include: {
       links: true,
-      _count: { select: { links: true } }
+      _count: { select: { links: true } },
+      createdBy: {
+        select: {
+          id: true,
+          username: true,
+          name: true,
+          image: true,
+        },
+      },
+      assignee: {
+        select: {
+          id: true,
+          username: true,
+          name: true,
+          image: true,
+        },
+      },
+      answeredBy: {
+        select: {
+          id: true,
+          username: true,
+          name: true,
+          image: true,
+        },
+      },
     },
-  });
+  } as any);
   if (!issue || issue.deliberationId !== params.id) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json(JSON.parse(JSON.stringify({ ok: true, issue, links: issue.links, commentCount: 0 }, (_, v) => typeof v === "bigint" ? v.toString() : v)));
+  return NextResponse.json(JSON.parse(JSON.stringify({ ok: true, issue, links: (issue as any).links, commentCount: 0 }, (_, v) => typeof v === "bigint" ? v.toString() : v)));
 }
 
 

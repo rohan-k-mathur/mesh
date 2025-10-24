@@ -214,7 +214,7 @@ export function NonCanonicalResponseForm({
               <div className="p-3 rounded-2xl bg-gradient-to-b from-indigo-500/30 to-cyan-500/30 backdrop-blur-sm border border-white/20 shadow-lg">
                 <Users className="w-4 h-4 text-indigo-50 " />
               </div>
-              <span className="text-white/80 text-2xl">
+              <span className="text-white/80 text-2xl tracking-wide">
                 Contribute to the Argument Defense 
               </span>
             </DialogTitle>
@@ -307,8 +307,8 @@ export function NonCanonicalResponseForm({
           {/* ─── Expression Input ───────────────────────────────────── */}
           <div className="space-y-3">
             <Label htmlFor="expression" className="text-sm font-semibold text-indigo-100 flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
-              Your Response <span className="text-rose-400">*</span>
+              <div className="w-1.5 h-1.5 rounded-full bg-rose-400" />
+              Your Response
             </Label>
             <div className="relative">
               <Textarea
@@ -317,7 +317,7 @@ export function NonCanonicalResponseForm({
                 onChange={(e) => setExpression(e.target.value)}
                 disabled={isSubmitting}
                 placeholder={`Provide your ${selectedMoveType?.label.toLowerCase()} here...`}
-                className="min-h-[110px] resize-y bg-white/10 backdrop-blur-md border-white/20 text-white placeholder:text-slate-400 focus:border-cyan-400/60 focus:ring-2 focus:ring-cyan-400/20 rounded-xl shadow-lg"
+                className="min-h-[110px] resize-y bg-white/10 backdrop-blur-md  py-3 text-white border-[1px] border-cyan-400/60 placeholder:text-slate-400 focus:border-cyan-400/60 focus:ring-2 focus:ring-cyan-400/20 rounded-xl shadow-lg"
               />
               <div className="absolute bottom-3 right-3 text-xs text-slate-400 bg-slate-900/50 px-2 py-1 rounded-md backdrop-blur-sm">
                 {expression.length} / 2000

@@ -147,6 +147,7 @@
     rgba(var(--btn-top),  .45) 100%
   );
 
+
   -webkit-tap-highlight-color: transparent;
   appearance: none;
   position: relative; /* needed for ::before */
@@ -268,6 +269,10 @@
 }
 
 
+.deliberation-bg{
+      background: linear-gradient(to right,#E4E4E7, rgb(193, 205, 234), rgb(234, 215, 221));
+
+}
 /* Gradient ring via masked ::before */
 .btnv2--sunset::before {
   content: "";
@@ -814,6 +819,22 @@ text-align: left;
     2px -2px 8px rgba(255, 255, 255, 0.345),
     0 20px 60px -15px rgba(var(--about-indigo-glow), 0.2);
   border: 0.125rem solid rgba(var(--about-indigo-glow), 0.25);
+}
+
+.about-flow-lite{
+      background: linear-gradient(
+    145deg,
+        rgba(250, 235, 240, 0.3) 0%,
+
+    rgba(235, 240, 245, 0.35) 50%,
+       rgba(240, 235, 250, 0.3) 100%
+
+  );
+  box-shadow: 
+   
+    
+    0px 0px  10px rgba(var(--about-indigo-glow), 0.4);
+  border: 0.5px solid rgba(var(--about-indigo-glow), 0.75);
 }
 .kbcard {
 

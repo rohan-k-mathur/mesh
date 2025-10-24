@@ -149,16 +149,48 @@ export async function POST(req: NextRequest) {
       )
     `;
 
-    // ─── 8. Send Notification to Author ───────────────────────
+    // ─── 8. Create Review Issue for Author ────────────────────
+    // Auto-create an issue for the author to review this NCM
+    const issueId = crypto.randomUUID();
+    const issueLabel = `Community Defense: ${moveType.replace(/_/g, " ")}`;
+    const issueDescription = `Review community-submitted ${moveType.toLowerCase().replace(/_/g, " ")} for your content.`;
+    
+    await prisma.$executeRaw`
+      INSERT INTO "issues" (
+        id, "deliberationId", label, description, kind, state,
+        "createdById", "assigneeId", "ncmId", "ncmStatus", "createdAt", "updatedAt"
+      ) VALUES (
+        ${issueId}, ${deliberationId}, ${issueLabel}, ${issueDescription},
+        'community_defense'::"IssueKind", 'pending'::"IssueState",
+        ${currentUserId?.toString()}, ${authorId}, ${ncmId}, 'PENDING'::"NCMStatus",
+        ${now}, ${now}
+      )
+    `;
+
+    // Link the issue to the target
+    await prisma.issueLink.create({
+      data: {
+        issueId,
+        targetType: targetType as any,
+        targetId,
+        role: "related",
+        argumentId: targetType === "argument" ? targetId : null,
+      },
+    });
+
+    console.log(`[non-canonical] Created review issue: ${issueId} for author ${authorId}`);
+
+    // ─── 9. Send Notification to Author ───────────────────────
     // TODO: Emit bus event "non-canonical:submitted"
     // TODO: Create notification for author
 
     console.log(`[non-canonical] Created: ${ncmId} by ${currentUserId} for ${targetType}:${targetId}`);
 
-    // ─── 9. Return Success ─────────────────────────────────────
+    // ─── 10. Return Success ────────────────────────────────────
     return NextResponse.json({
       success: true,
       ncmId,
+      issueId,
       status: "PENDING",
       message: "Your response has been submitted and is awaiting approval."
     });

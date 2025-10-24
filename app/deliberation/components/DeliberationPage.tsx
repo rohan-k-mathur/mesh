@@ -31,7 +31,7 @@ export default function DeliberationReader({
                </div> */}
          
                   {deliberationId && (
-     <section className="relative isolate">
+     <section className="relative isolate ">
        {/* <DeepDiveBackdrop className="pointer-events-none absolute inset-0 -z-10" /> */}
        <h2 className="text-4xl font-semibold tracking-wide text-center my-4">Discussion</h2>
        <div className="mx-auto mb-4 mt-5 w-[75%] border-b border-slate-700/40" />

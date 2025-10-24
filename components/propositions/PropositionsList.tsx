@@ -46,6 +46,27 @@ type PropositionRow = {
   createdAt: string;
 };
 
+
+
+// Custom scrollbar styles
+const scrollbarStyles = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 3px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(192, 194, 222, 0.4);
+    border-radius: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(218, 228, 239, 0.6);
+  }
+`;
+
+
 // Enhanced metric badge with icon
 function MetricBadge({ 
   icon: Icon, 
@@ -494,13 +515,12 @@ function Row({
     <>
     <article className="
       group relative
-      p-5 about-flow border-b border-slate-100
-      hover:bg-slate-50/50 transition-all duration-200
-      hover:shadow-sm
+      px-4 py-5  about-flow-lite rounded-xl mt-2 mx-2 
+     
     ">
       {/* Status indicator bar */}
       {p.status === 'CLAIMED' && (
-        <div className="absolute rounded-xl left-[-2px] top-0 bottom-0 w-1 bg-gradient-to-b from-emerald-400 to-emerald-600" />
+        <div className="absolute rounded-xl left-0 top-6 bottom-6 w-[1.5px] bg-gradient-to-b from-emerald-400 to-emerald-600" />
       )}
 
       <div className="flex  gap-4">
@@ -813,9 +833,9 @@ export default function PropositionsList({
   const activeFilters = (claimed !== 'any' || q.trim()) ? 1 : 0;
 
   return (
-    <section className="w-full rounded-xl border border-slate-200 bg-white/50 shadow-sm overflow-hidden flex flex-col h-full">
+    <section className="w-full rounded-xl panel-edge-blue bg-white/50 border border-sky-500/50 overflow-hidden flex flex-col h-full">
       {/* Header */}
-      <div className="px-4 py-3 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-white">
+      <div className="px-4 py-3 border-b-2 border-indigo-700 bg-gradient-to-r from-slate-50 to-white ">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 flex-1">
             <h2 className="text-lg font-semibold text-slate-900">
@@ -829,11 +849,11 @@ export default function PropositionsList({
           <button
             onClick={() => setShowFilters(!showFilters)}
             className={`
-              inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium
+              inline-flex items-center gap-2 px-2 py-1 rounded-lg text-sm font-medium btnv2--ghost
               transition-all duration-200
               ${showFilters || activeFilters > 0
-                ? 'bg-indigo-100 text-indigo-700 border border-indigo-200'
-                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
+                ? 'bg-indigo-100 text-indigo-700 '
+                : 'bg-slate-100 text-slate-600  hover:bg-slate-200'
               }
             `}
           >
@@ -893,7 +913,8 @@ export default function PropositionsList({
       </div>
 
       {/* List */}
-      <div className="h-[600px] ">
+      <div className="h-[600px] custom-scrollbar ">
+
         <Virtuoso
           data={rows}
           computeItemKey={(_i, r) => r.id}
@@ -903,7 +924,7 @@ export default function PropositionsList({
           }}
           endReached={() => !isValidating && nextCursor && setSize(s => s + 1)}
           itemContent={(_index, r) => (
-            <div className='custom-scrollbar' id={`prop-${r.id}`}>
+            <div className='custom-scrollbar px-3 py-2 rounded-xl ' id={`prop-${r.id}`}>
               <Row p={r} deliberationId={deliberationId} onRefresh={() => mutate()} />
             </div>
           )}

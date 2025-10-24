@@ -77,6 +77,7 @@ model User {
   reactions                 MessageReaction[]
   createdIssues             Issue[]                   @relation("CreatedIssues")
   assignedIssues            Issue[]                   @relation("AssignedIssues")
+  answeredIssues            Issue[]                   @relation("AnsweredIssues")
 
   driftMembers     DriftMember[]
   MessageMention   MessageMention[]
@@ -2684,6 +2685,8 @@ enum IssueKind {
   evidence
   structural
   governance
+  clarification     // NEW: For clarification requests (Q&A)
+  community_defense // NEW: For non-canonical move reviews
 }
 
 model Issue {
@@ -2701,15 +2704,32 @@ model Issue {
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
 
+  // --- NEW: For clarification requests ---
+  questionText   String?    // The actual question being asked
+  answerText     String?    // Author's answer (when provided)
+  answeredAt     DateTime?  // When the question was answered
+  answeredById   BigInt?    // Who answered the question
+
+  // --- NEW: For community defense (NCM) reviews ---
+  ncmId          String?    // Link to NonCanonicalMove being reviewed
+  ncmStatus      NCMStatus? // Status of the NCM (PENDING, APPROVED, REJECTED, EXECUTED)
+  reviewedAt     DateTime?  // When author reviewed the NCM
+  reviewNotes    String?    // Author's notes on approval/rejection
+
   // --- Relations ---
-  deliberation Deliberation @relation(fields: [deliberationId], references: [id])
-  createdBy    User         @relation("CreatedIssues", fields: [createdById], references: [id])
-  assignee     User?        @relation("AssignedIssues", fields: [assigneeId], references: [id])
-  links        IssueLink[]
+  deliberation       Deliberation       @relation(fields: [deliberationId], references: [id])
+  createdBy          User               @relation("CreatedIssues", fields: [createdById], references: [id])
+  assignee           User?              @relation("AssignedIssues", fields: [assigneeId], references: [id])
+  answeredBy         User?              @relation("AnsweredIssues", fields: [answeredById], references: [id])
+  nonCanonicalMove   NonCanonicalMove?  @relation(fields: [ncmId], references: [id])
+  links              IssueLink[]
 
   @@index([deliberationId])
   @@index([deliberationId, state])
+  @@index([deliberationId, kind])
   @@index([kind, key], map: "issues_kind_key_idx")
+  @@index([ncmId])
+  @@index([assigneeId])
 }
 
 model IssueLink {
@@ -4956,6 +4976,9 @@ model NonCanonicalMove {
 
   // ─── Metadata ───────────────────────────────────────────────
   metaJson Json @default("{}")
+
+  // ─── Relations ──────────────────────────────────────────────
+  reviewIssues Issue[] // Issues created for reviewing this NCM
 
   @@index([deliberationId, targetType, targetId])
   @@index([targetMoveId])

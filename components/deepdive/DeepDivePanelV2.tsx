@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/collapsible";
 import CardListVirtuoso from "@/components/deepdive/CardListVirtuoso";
 import { useAuth } from "@/lib/AuthContext";
+import { getUserFromCookies } from "@/lib/server/getUser";
 import AIFArgumentsListPro from '@/components/arguments/AIFArgumentsListPro';
 import PropositionsList from "../propositions/PropositionsList";
 import PropositionComposer from "../propositions/PropositionComposer";
@@ -362,6 +363,16 @@ export default function DeepDivePanel({
   const [replyTarget, setReplyTarget] = React.useState<{ id: string; preview?: string } | null>(null);
   const [cardFilter, setCardFilter] = useState<'all' | 'mine' | 'published'>('all');
 
+  // Fetch current user ID for issues dashboard
+  const [currentUserId, setCurrentUserId] = React.useState<string | undefined>(undefined);
+  React.useEffect(() => {
+    getUserFromCookies().then((u) => {
+      const userId = u?.userId != null ? String(u.userId) : undefined;
+      console.log("[DeepDivePanelV2] Fetched userId from cookies:", userId);
+      setCurrentUserId(userId);
+    });
+  }, []);
+
 
   const ready = !loading && !!proId && !!oppId;
 
@@ -372,7 +383,7 @@ export default function DeepDivePanel({
   // Floating sheet state with persistence
   const [leftSheetOpen, setLeftSheetOpen] = useState(false);
   const [rightSheetOpen, setRightSheetOpen] = useState(false);
-  const [leftSheetTab, setLeftSheetTab] = useState<'arguments' | 'claims'>('arguments');
+  const [leftSheetTab, setLeftSheetTab] = useState<'arguments' | 'claims'>('claims');
 
   // at top of the component with the other state
 const [issuesOpen, setIssuesOpen] = useState(false);
@@ -1326,12 +1337,14 @@ const {
               {/* <PropositionComposer deliberationId={deliberationId} /> */}
               <PropositionComposerPro deliberationId={deliberationId} />
             </SectionCard>
-<DialogueInspector
-  deliberationId="cmgy6c8vz0000c04w4l9khiux"
-  initialTargetType="claim"
-  initialTargetId="cmgzyuusc000ec0leqk4cf26g"
-  initialLocusPath="0"
-/>
+            <SectionCard>
+              <DialogueInspector
+                deliberationId={deliberationId}
+                initialTargetType="claim"
+               
+                initialLocusPath="0"
+              />
+            </SectionCard>
             <SectionCard>
               <PropositionsList deliberationId={deliberationId} />
             </SectionCard>
@@ -1407,14 +1420,14 @@ const {
 />
 </div>
   {/* </SectionCard> */}
-            <SectionCard title="AIF Arguments" className=" w-[1200px]" padded={false}>
+            <SectionCard title="AIF Arguments" className=" w-[1200px]" padded={true}>
               <AIFArgumentsListPro
                 deliberationId={deliberationId}
                 onVisibleTextsChanged={(texts) => {
                   window.dispatchEvent(new CustomEvent('mesh:texts:visible', { detail: { deliberationId, texts } }));
                 }}
               />
-              <span className="block p-3 text-xs text-neutral-500">
+              <span className="block mt-2 text-xs text-neutral-500">
                 Note: This list shows all structured arguments in the deliberation&apos;s AIF database. Some arguments may not yet be linked to claims in the debate.
               </span>
             </SectionCard>
@@ -1567,7 +1580,7 @@ const {
 <div className="flex w-full">
 <IssuesList
     deliberationId={deliberationId}
-
+    currentUserId={currentUserId}
   />
   </div>
 {/* 

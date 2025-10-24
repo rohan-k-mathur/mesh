@@ -119,10 +119,10 @@ export function ClarificationRequestButton({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant={variant} size={size} className={className}>
+        <button  className="btnv2 bg-indigo-500 text-slate-900">
           <HelpCircle className="w-4 h-4 mr-2" />
           Request Clarification
-        </Button>
+        </button>
       </DialogTrigger>
 
       <DialogContent className="max-w-xl bg-gradient-to-br from-amber-50 to-slate-50">

@@ -76,7 +76,7 @@ export function AIFAuthoringPanel({
   }
 
   return (
-    <div className={`flex flex-1 ${heightClass} bg-transparent backdrop-blur-md flex-col py-4 px-3 space-y-4 overflow-y-auto panel-edge rounded-xl transition-all duration-300`}>
+    <div className={`flex flex-1 ${heightClass} bg-white/50 backdrop-blur-md flex-col py-4 px-3 space-y-4 overflow-y-auto panel-edge rounded-xl transition-all duration-300`}>
 
       {/* Loading indicator for author */}
       {!user && !authorIdProp && (

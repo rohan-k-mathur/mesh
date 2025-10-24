@@ -40,10 +40,10 @@ export function CommunityDefenseMenu({
       <DialogTrigger asChild>
         <button
           className="
-            inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs
-            bg-gradient-to-r from-emerald-500 to-teal-600
-            hover:from-emerald-600 hover:to-teal-700
-            text-white font-medium
+            inline-flex btnv2  items-center gap-2 px-3 py-2 rounded-lg text-sm
+            bg-gradient-to-r from-emerald-300/30 to-teal-300/30
+            hover:from-emerald-400/40 hover:to-teal-400/40
+            text-slate-800 font-medium
             shadow-sm hover:shadow-md
             transition-all duration-200
             border border-emerald-400/20
@@ -59,45 +59,56 @@ export function CommunityDefenseMenu({
         </button>
       </DialogTrigger>
 
+        
       <DialogContent
-        className="max-w-4xl max-h-[90vh] overflow-hidden
-         bg-gradient-to-br from-slate-50 to-slate-100"
+        className="max-w-3xl max-h-screen overflow-hidden panel-edge-blue rounded-2xl
+       bg-gradient-to-b from-sky-100/55 via-white/50 to-sky-50/50 backdrop-blur-xl shadow-2xl px-6 py-8"
         onOpenAutoFocus={(e) => {
           e.preventDefault();
           titleRef.current?.focus();
         }}
       >
-        <DialogHeader className="space-y-2 pb-4 border-b border-slate-200">
+
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-900/5 via-transparent to-slate-900/10 pointer-events-none" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(59,130,246,0.08),transparent_50%)] pointer-events-none" />
+          {/* Water droplet decorations - light mode */}
+        <div className="absolute top-10 right-20 w-32 h-32 bg-sky-400/10 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-20 left-10 w-40 h-40 bg-cyan-400/8 rounded-full blur-3xl animate-pulse delay-1000" />
+        <DialogHeader className="space-y-2 pb-4 border-b border-white/80">
           <DialogTitle
             ref={titleRef as any}
             tabIndex={-1}
-            className="outline-none text-2xl font-bold text-slate-900 flex items-center gap-3"
-          >
-            <div className="p-2 rounded-lg bg-gradient-to-br from-emerald-50 to-teal-100">
-              <Shield className="w-6 h-6 text-emerald-700" />
+            className= "text-3xl font-bold text-slate-900 flex items-center gap-3 drop-shadow-sm">
+          
+            <div className="p-2 rounded-lg bg-gradient-to-br from-emerald-100 to-teal-100">
+              <Shield className="w-5 h-5 text-emerald-700" />
             </div>
+            <span className="tracking-wide bg-gradient-to-r from-teal-900 via-emerald-900 to-teal-900 bg-clip-text text-transparent text-3xl">
+
             Community Defense
+            </span>
           </DialogTitle>
-          <p className="text-sm text-slate-600 leading-relaxed">
+           <span className="ml-1 font-medium bg-gradient-to-r from-emerald-800 via-teal-700 to-cyan-800 bg-clip-text text-transparent  text-sm">
             Help defend this argument by providing responses to challenges, or view community contributions.
-          </p>
+          </span>
+          
         </DialogHeader>
 
         {/* Target summary card */}
-        <div className="p-4 bg-white rounded-xl border-2 border-slate-200 shadow-sm">
+        <div className="py-3 px-3  backdrop-blur-xl bg-white/70 rounded-xl shadow-md">
           <div className="flex items-start gap-3">
             <div className="p-2 rounded-lg bg-indigo-100">
-              <Target className="w-5 h-5 text-indigo-700" />
+              <Target className="w-4 h-4 text-indigo-700" />
             </div>
-            <div className="flex-1 space-y-2">
-              <div className="text-sm font-semibold text-slate-700">Target Argument</div>
-              <div className="text-sm text-slate-900 font-medium">
+            <div className="flex-1 space-y-1">
+              <div className="text-sm font-semibold text-slate-900">Target Argument</div>
+              <div className="text-sm text-slate-700 ml-1 font-medium">
                 {target.conclusion.text}
               </div>
               {target.premises?.length > 0 && (
-                <div className="space-y-1 pl-3 border-l-2 border-slate-200">
+                <div className="space-y-1 pl-2 ml-2 border-l border-slate-600">
                   {target.premises.map((p) => (
-                    <div key={p.id} className="text-xs text-slate-600">
+                    <div key={p.id} className="text-xs text-slate-700">
                       • {p.text}
                     </div>
                   ))}
@@ -109,10 +120,10 @@ export function CommunityDefenseMenu({
 
         <div className="space-y-4">
           {/* Help Defend Button */}
-          <div className="flex items-center justify-between p-4 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl border border-emerald-200">
+          <div className="flex items-center shadow-md justify-between p-4 bg-white/50 backdrop-blur-xl rounded-xl ">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-emerald-100">
-                <Shield className="w-5 h-5 text-emerald-700" />
+                <Shield className="w-4 h-4 text-emerald-700" />
               </div>
               <div>
                 <div className="text-sm font-semibold text-slate-900">
@@ -126,8 +137,8 @@ export function CommunityDefenseMenu({
             <button
               onClick={() => setHelpDefendOpen(true)}
               className="
-                inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm
-                bg-gradient-to-r from-emerald-500 to-teal-600
+                inline-flex btnv2 items-center gap-2 px-4 py-2 rounded-xl text-sm
+                bg-gradient-to-r from-emerald-600 to-teal-600
                 hover:from-emerald-600 hover:to-teal-700
                 text-white font-medium
                 shadow-sm hover:shadow-md
@@ -140,7 +151,7 @@ export function CommunityDefenseMenu({
           </div>
 
           {/* Community Responses */}
-          <div className="bg-white rounded-xl border border-slate-200 p-4">
+          <div className="bg-white/70 shadow-md rounded-xl border border-slate-200 p-2">
             <CommunityResponsesTab
               targetType="argument"
               targetId={target.id}

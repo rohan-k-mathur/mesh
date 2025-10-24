@@ -5,8 +5,10 @@ import useSWR, { mutate as globalMutate } from 'swr';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { LegalMoveChips } from '../dialogue/LegalMoveChips';
 import { TargetType } from '@prisma/client';
-import { AlertCircle, CheckCircle2, ExternalLink, Loader2, Trash2, User, X, Plus, Link2, Search } from 'lucide-react';
+import { AlertCircle, CheckCircle2, ExternalLink, Loader2, Trash2, User, X, Plus, Link2, Search, HelpCircle, Shield } from 'lucide-react';
 import { IssueEntityPicker } from './IssueEntityPicker';
+import { NCMReviewCard } from './NCMReviewCard';
+import { useMicroToast } from '@/hooks/useMicroToast';
 
 const fetcher = (u: string) => fetch(u, { cache: 'no-store' }).then(r => r.json());
 
@@ -37,6 +39,14 @@ export default function IssueDetail({
   const [actionLoading, setActionLoading] = React.useState<string | null>(null);
   const [confirmClose, setConfirmClose] = React.useState(false);
   const [assigneeInput, setAssigneeInput] = React.useState('');
+  const toast = useMicroToast();
+  
+  // Clarification answer state
+  const [answerText, setAnswerText] = React.useState('');
+  
+  // NCM data state
+  const [ncmData, setNcmData] = React.useState<any>(null);
+  const [loadingNcm, setLoadingNcm] = React.useState(false);
   
   // Link creation state
   const [isAddingLink, setIsAddingLink] = React.useState(false);
@@ -134,6 +144,83 @@ export default function IssueDetail({
     }
   }
 
+  async function submitAnswer() {
+    if (!answerText.trim()) return;
+    
+    setActionLoading('answer');
+    try {
+      await fetch(`${key}/answer`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ answerText }),
+      });
+      
+      window.dispatchEvent(new CustomEvent('issues:refresh', { detail: { deliberationId } }));
+      await globalMutate(key);
+      setAnswerText('');
+      toast.show('Answer submitted successfully!', 'ok');
+    } catch (error) {
+      console.error('Failed to submit answer:', error);
+      toast.show('Failed to submit answer', 'err');
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
+  async function approveNCM() {
+    setActionLoading('approve');
+    try {
+      await fetch(`${key}/approve-ncm`, {
+        method: 'POST',
+      });
+      
+      window.dispatchEvent(new CustomEvent('issues:refresh', { detail: { deliberationId } }));
+      await globalMutate(key);
+      toast.show('Response approved and executed!', 'ok');
+    } catch (error) {
+      console.error('Failed to approve NCM:', error);
+      toast.show('Failed to approve response', 'err');
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
+  async function rejectNCM(reviewNotes: string) {
+    setActionLoading('reject');
+    try {
+      await fetch(`${key}/reject-ncm`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ reviewNotes }),
+      });
+      
+      window.dispatchEvent(new CustomEvent('issues:refresh', { detail: { deliberationId } }));
+      await globalMutate(key);
+      toast.show('Response rejected with feedback', 'ok');
+    } catch (error) {
+      console.error('Failed to reject NCM:', error);
+      toast.show('Failed to reject response', 'err');
+    } finally {
+      setActionLoading(null);
+    }
+  }
+
+  // Fetch NCM data if this is a community_defense issue
+  React.useEffect(() => {
+    if (data?.issue?.kind === 'community_defense' && data?.issue?.ncmId) {
+      setLoadingNcm(true);
+      fetch(`/api/non-canonical/by-id?id=${data.issue.ncmId}`)
+        .then(r => r.json())
+        .then(result => {
+          if (result.ncm) {
+            setNcmData(result.ncm);
+          }
+        })
+        .catch(err => console.error('Failed to load NCM:', err))
+        .finally(() => setLoadingNcm(false));
+    }
+  }, [data?.issue?.kind, data?.issue?.ncmId]);
+
   if (isLoading || !data?.issue) {
     return (
       <Dialog open onOpenChange={(o) => !o && onClose()}>
@@ -151,6 +238,7 @@ export default function IssueDetail({
 
   return (
     <>
+      {toast.node}
       {/* Main Issue Dialog */}
       <Dialog 
         open={!showPicker} 
@@ -160,32 +248,33 @@ export default function IssueDetail({
           }
         }}
       >
-        <DialogContent className="bg-indigo-800/20 backdrop-blur-md shadow-white/50 shadow-lg rounded-2xl sm:max-w-[750px] max-h-[80vh] overflow-hidden flex flex-col">
-          <DialogHeader className="border-b pb-6">
+        <DialogContent className="bg-sky-800/25 backdrop-blur-xl shadow-white/50 shadow-lg rounded-2xl max-w-4xl px-8 py-6
+        max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader className="border-b pb-3">
             <div className="flex items-start justify-between gap-3">
-              <div className="flex-1 space-y-3 min-w-0">
-                <DialogTitle className="text-xl font-semibold text-neutral-100 mb-2">
+              <div className="flex flex-1 space-y-1 gap-4 min-w-0">
+                <DialogTitle className="text-2xl font-semibold text-white ">
                   {it.label}
                 </DialogTitle>
-                <div className="flex items-center gap-3">
+                <div className="flex gap-3">
                   <span
-                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium ${
+                    className={`flex items-center align-center my-auto gap-1 px-2 py-1 rounded-xl  text-xs font-medium ${
                       isOpen
-                        ? 'bg-amber-100 border border-amber-200 text-amber-800'
+                        ? 'bg-orange-100 border border-orange-200 text-orange-800'
                         : 'bg-emerald-100 border border-emerald-200 text-emerald-800'
                     }`}
                   >
                     {isOpen ? (
-                      <AlertCircle className="h-3.5 w-3.5" />
+                      <AlertCircle className="h-3.5 w-3.5 " />
                     ) : (
                       <CheckCircle2 className="h-3.5 w-3.5" />
                     )}
                     {it.state}
                   </span>
-                  {it.assigneeId && (
+                  {it.assignee && (
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-indigo-50 border border-indigo-200 text-indigo-700">
                       <User className="h-3.5 w-3.5" />
-                      {it.assigneeId}
+                      {it.assignee.username || it.assignee.name}
                     </span>
                   )}
                 </div>
@@ -193,21 +282,134 @@ export default function IssueDetail({
             </div>
           </DialogHeader>
 
-          <div className="flex-1 overflow-y-auto py-2 space-y-4">
+          <div className="flex-1 overflow-y-auto py-2 px-2 space-y-4">
+            {/* Metadata bar */}
+            <div className="flex items-center gap-4 text-xs text-neutral-200 pb-2 border-b border-white/20">
+              <span className="flex items-center gap-1.5">
+                <User className="h-3.5 w-3.5" />
+                <span className="font-medium">Created by:</span>
+                {it.createdBy?.username || it.createdBy?.name || 'Unknown'}
+              </span>
+              {it.answeredBy && (
+                <span className="flex items-center gap-1.5">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  <span className="font-medium">Answered by:</span>
+                  {it.answeredBy.username || it.answeredBy.name}
+                </span>
+              )}
+            </div>
+            
             {/* Description */}
             {it.description && (
               <section>
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-neutral-100 mb-2">
                   Description
                 </h3>
-                <p className="text-sm border rounded w-fit px-2 py-0.5 text-neutral-200 tracking-wide leading-relaxed">
+                <p className="text-sm border border-white text-white rounded-lg w-fit px-3 py-1 bg-sky-600 tracking-wide leading-relaxed">
                   {it.description}
                 </p>
               </section>
             )}
 
+            {/* Clarification Q&A Section */}
+            {it.kind === 'clarification' && (
+              <section className="space-y-3">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-neutral-100 mb-2 flex items-center gap-2">
+                  <HelpCircle className="h-4 w-4 text-blue-300" />
+                  Clarification Request
+                </h3>
+                
+                {/* Question */}
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="text-xs font-medium text-blue-900 mb-2 flex items-center gap-1.5">
+                    <HelpCircle className="h-3.5 w-3.5" />
+                    Question
+                  </div>
+                  <p className="text-sm text-blue-800 leading-relaxed">
+                    {it.questionText || 'No question provided'}
+                  </p>
+                </div>
+
+                {/* Answer (if provided) */}
+                {it.answerText ? (
+                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="text-xs font-medium text-green-900 mb-2 flex items-center gap-1.5">
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      Answer {it.answeredAt && `• ${new Date(it.answeredAt).toLocaleDateString()}`}
+                    </div>
+                    <p className="text-sm text-green-800 leading-relaxed">
+                      {it.answerText}
+                    </p>
+                  </div>
+                ) : (
+                  /* Answer Form (for author) */
+                  <div className="p-4 bg-white border border-neutral-200 rounded-lg space-y-3">
+                    <div className="text-xs font-medium text-neutral-700">
+                      Your Answer
+                    </div>
+                    <textarea 
+                      value={answerText}
+                      onChange={(e) => setAnswerText(e.target.value)}
+                      className="w-full border border-neutral-300 rounded-lg p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[100px] resize-y"
+                      placeholder="Provide a detailed answer to this clarification request..."
+                      disabled={actionLoading === 'answer'}
+                    />
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-neutral-500">
+                        {answerText.length} / 5000 characters
+                      </span>
+                      <button 
+                        onClick={submitAnswer}
+                        disabled={!answerText.trim() || actionLoading === 'answer'}
+                        className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                      >
+                        {actionLoading === 'answer' ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Submitting...
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle2 className="h-4 w-4" />
+                            Submit Answer
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </section>
+            )}
+
+            {/* Community Defense / NCM Review Section */}
+            {it.kind === 'community_defense' && (
+              <section className="space-y-3">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-neutral-100 mb-2 flex items-center gap-2">
+                  <Shield className="h-4 w-4 text-emerald-300" />
+                  Community Defense Review
+                </h3>
+                
+                {loadingNcm ? (
+                  <div className="flex items-center justify-center py-8 bg-white rounded-lg border border-neutral-200">
+                    <Loader2 className="h-5 w-5 animate-spin text-neutral-400" />
+                  </div>
+                ) : ncmData ? (
+                  <NCMReviewCard
+                    ncm={ncmData}
+                    onApprove={approveNCM}
+                    onReject={rejectNCM}
+                    isLoading={actionLoading === 'approve' || actionLoading === 'reject'}
+                  />
+                ) : (
+                  <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+                    No community defense data found
+                  </div>
+                )}
+              </section>
+            )}
+
             {/* Assignee Management */}
-            <section>
+            <section className='px-0'>
               <h3 className="text-xs font-semibold uppercase tracking-wider text-neutral-100 mb-2">
                 Assign User
               </h3>
@@ -216,7 +418,7 @@ export default function IssueDetail({
                   type="text"
                   value={assigneeInput}
                   onChange={(e) => setAssigneeInput(e.target.value)}
-                  className="flex-1 border border-neutral-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="flex-1 articlesearchfield bg-white/80 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none ml-.5 "
                   placeholder="Enter username..."
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') setAssignee(assigneeInput);
@@ -226,7 +428,8 @@ export default function IssueDetail({
                 <button
                   onClick={() => setAssignee(assigneeInput)}
                   disabled={!assigneeInput.trim() || actionLoading === 'assignee'}
-                  className="px-4 py-2 bg-indigo-600 btnv2--ghost text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                  className="px-4 py-1 bg-sky-600 btnv2--ghost text-white text-sm font-medium rounded-lg hover:bg-sky-700 
+                  disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
                 >
                   {actionLoading === 'assignee' ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -246,7 +449,8 @@ export default function IssueDetail({
                 </h3>
                 <button
                   onClick={() => setIsAddingLink(!isAddingLink)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-sky-600 btnv2--ghost text-white text-xs font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+                  className="inline-flex items-center gap-0 px-2.5 py-1.5 bg-sky-600 
+                  btnv2--ghost text-white text-xs font-medium rounded-lg hover:bg-sky-700 transition-colors"
                 >
                   {isAddingLink ? (
                     <>
@@ -330,7 +534,7 @@ export default function IssueDetail({
                     ) : (
                       <button
                         onClick={() => setShowPicker(true)}
-                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-dashed border-indigo-300 rounded-lg text-sm text-indigo-700 hover:bg-indigo-100 transition-colors"
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-dashed border-indigo-800 rounded-lg text-sm text-indigo-700 hover:bg-indigo-100 transition-colors"
                       >
                         <Search className="h-4 w-4" />
                         Search {newLink.targetType}s
@@ -360,7 +564,7 @@ export default function IssueDetail({
 
               {/* Existing Links List */}
               {(data.links ?? []).length === 0 ? (
-                <div className="text-center py-8 text-sm text-neutral-500 bg-neutral-50 rounded-lg border border-dashed border-neutral-300">
+                <div className="text-center py-8 text-sm text-neutral-500 bg-neutral-50 rounded-lg border border-dashed bg-white/80 border-neutral-300">
                   No linked items yet
                 </div>
               ) : (
@@ -462,7 +666,7 @@ export default function IssueDetail({
           <DialogFooter className="border-t pt-4 flex items-center justify-between">
             <button
               onClick={onClose}
-              className="px-4 py-2 border border-neutral-300 btnv2--ghost rounded-lg text-sm font-medium text-neutral-700 bg-neutral-100 hover:bg-neutral-300 transition-colors"
+              className="px-4 py-1 border border-neutral-300 btnv2--ghost rounded-lg text-sm font-medium text-neutral-700 bg-neutral-100 hover:bg-neutral-300 transition-colors"
             >
               Close
             </button>
@@ -474,14 +678,14 @@ export default function IssueDetail({
                     <button
                       onClick={() => setConfirmClose(false)}
                       disabled={actionLoading === 'state'}
-                      className="px-4 py-2 border border-neutral-300 bg-rose-50 rounded-lg text-sm font-medium text-neutral-700 hover:bg-rose-100 transition-colors"
+                      className="px-4 py-1 border border-neutral-300 bg-rose-50 rounded-lg text-sm font-medium text-neutral-700 hover:bg-rose-100 transition-colors"
                     >
                       Cancel
                     </button>
                     <button
                       onClick={() => setState('closed')}
                       disabled={actionLoading === 'state'}
-                      className="px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-lg hover:bg-amber-700 disabled:opacity-50 transition-colors flex items-center gap-2"
+                      className="px-4 py-2 bg-orange-600 text-white text-sm font-medium rounded-lg hover:bg-orange-700 disabled:opacity-50 transition-colors flex items-center gap-2"
                     >
                       {actionLoading === 'state' && <Loader2 className="h-4 w-4 animate-spin" />}
                       Confirm Close
@@ -490,7 +694,7 @@ export default function IssueDetail({
                 ) : (
                   <button
                     onClick={() => setConfirmClose(true)}
-                    className="px-4 py-2 bg-amber-600 btnv2--ghost text-white text-sm font-medium rounded-lg hover:bg-amber-700 transition-colors flex items-center gap-2"
+                    className="px-4 py-2 bg-orange-600 btnv2--ghost text-white text-sm font-medium rounded-lg hover:bg-orange-700 transition-colors flex items-center gap-2"
                   >
                     <CheckCircle2 className="h-4 w-4" />
                     Close Issue

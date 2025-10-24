@@ -38,6 +38,7 @@ import { SchemeComposerPicker } from '../SchemeComposerPicker';
 
 const AttackMenuProV2 = dynamic(() => import('@/components/arguments/AttackMenuProV2').then(m => m.AttackMenuProV2), { ssr: false });
 const CommunityDefenseMenu = dynamic(() => import('@/components/agora/CommunityDefenseMenu').then(m => m.CommunityDefenseMenu), { ssr: false });
+const ClarificationRequestButton = dynamic(() => import('@/components/issues/ClarificationRequestButton').then(m => m.ClarificationRequestButton), { ssr: false });
 const SchemeSpecificCQsModal = dynamic(() => import('@/components/arguments/SchemeSpecificCQsModal').then(m => m.SchemeSpecificCQsModal), { ssr: false });
 // LegalMoveToolbar - Not needed in argument browsing context. See COMPONENT_ANALYSIS_LMT_vs_AMP.md
 // const LegalMoveToolbar = dynamic(() => import('@/components/dialogue/LegalMoveToolbar').then(m => m.LegalMoveToolbar), { ssr: false });
@@ -664,6 +665,17 @@ function RowImpl({
               premises: meta?.premises ?? [],
             }}
             onDone={() => onRefreshRow(a.id)}
+          />
+
+          <ClarificationRequestButton
+            deliberationId={deliberationId}
+            targetType="argument"
+            targetId={a.id}
+            targetLabel={conclusionText ?? `Argument ${a.id.slice(0, 8)}`}
+            onSuccess={(issueId) => {
+              console.log('Clarification request created:', issueId);
+              // Optionally refresh or show success message
+            }}
           />
 
           {/* Scheme-specific Critical Questions Modal */}
