@@ -272,16 +272,22 @@ const { sendTyping } = useConversationRealtime(
   async function createQuestionMessage(question: string) {
     const fd = new FormData();
     fd.set("text", question);
-    // const res = await fetch(`/api/messages/${conversationId}`, {
-    //   method: "POST",
-    //   body: fd,
-    // });
-    const res = await fetch(
-      `/api/sheaf/messages?conversationId=${conversationId}&userId=${currentUserId}`,
-      { cache: "no-store" }
-    );
+    const res = await fetch(`/api/messages/${conversationId}`, {
+      method: "POST",
+      body: fd,
+    });
     if (!res.ok) throw new Error("Failed to create message");
-    const msg = await res.json(); // matches useChatStore Message dto
+    const data = await res.json();
+    const msg = {
+      id: data.id,
+      text: data.text,
+      createdAt: data.createdAt,
+      senderId: data.senderId,
+      sender: data.sender,
+      attachments: data.attachments || [],
+      driftId: data.driftId || null,
+      isRedacted: data.isRedacted || false,
+    };
     appendMessage(conversationId, msg);
     return msg;
   }

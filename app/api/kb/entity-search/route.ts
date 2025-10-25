@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 const Q = z.object({
-  k: z.enum(['claim','argument','room','sheet','theory_work']).default('claim'),
+  k: z.enum(['claim','argument','room','sheet','theory_work','scheme']).default('claim'),
 //   q: z.string().trim().default(''),
   q: z.string().optional().default(''),
 
@@ -67,6 +67,21 @@ export async function GET(req: NextRequest) {
       orderBy: { id: 'desc' },
     });
     return NextResponse.json({ ok:true, items: rows.map(r => ({ id:r.id, label:r.title ?? `sheet:${r.id.slice(0,6)}…` })) });
+  }
+
+  if (p.k === 'scheme') {
+    const rows = await prisma.argumentScheme.findMany({
+      where: like ? { 
+        OR: [
+          { name: { contains: like, mode: 'insensitive' } },
+          { key: { contains: like, mode: 'insensitive' } }
+        ]
+      } : undefined,
+      select: { id:true, name:true, key:true },
+      take: p.limit,
+      orderBy: { name: 'asc' },
+    });
+    return NextResponse.json({ ok:true, items: rows.map(r => ({ id:r.id, label:r.name ?? r.key ?? `scheme:${r.id.slice(0,6)}…` })) });
   }
 
   return NextResponse.json({ ok:false, error:'unsupported' }, { status:400 });

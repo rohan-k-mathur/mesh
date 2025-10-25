@@ -158,7 +158,9 @@ function MergeHistorySummary({
   isMine: boolean;
   edited?: boolean;
 }) {
-  const { list, latest, isLoading } = useReceipts(messageId);
+  // Guard against invalid messageId (e.g., "undefined" from optimistic updates)
+  const validMessageId = messageId && messageId !== "undefined" && messageId !== "null" ? messageId : null;
+  const { list, latest, isLoading } = useReceipts(validMessageId);
   const hasReceipts = Array.isArray(list) && list.length > 0;
   const hasEditsOnly = !!edited && !hasReceipts;
 

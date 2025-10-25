@@ -8,6 +8,8 @@ import { NonCanonicalResponseForm } from "./NonCanonicalResponseForm";
 import { CommunityResponsesTab } from "./CommunityResponsesTab";
 import { CommunityResponseBadge } from "./CommunityResponseBadge";
 
+import "./deliberation-styles.css";
+
 type ClaimRef = { id: string; text: string };
 type Prem = { id: string; text: string };
 
@@ -40,16 +42,15 @@ export function CommunityDefenseMenu({
       <DialogTrigger asChild>
         <button
           className="
-            inline-flex btnv2  items-center gap-2 px-3 py-2 rounded-lg text-sm
-            bg-gradient-to-r from-emerald-300/30 to-teal-300/30
-            hover:from-emerald-400/40 hover:to-teal-400/40
+            inline-flex btnv2--emerald  items-center gap-2 px-2 py-2 rounded-lg text-xs
+            
             text-slate-800 font-medium
-            shadow-sm hover:shadow-md
+           
             transition-all duration-200
-            border border-emerald-400/20
+            
           "
         >
-          <Users className="w-3.5 h-3.5" />
+          <Users className="w-3 h-3" />
           Community Defense
           <CommunityResponseBadge
             targetType="argument"

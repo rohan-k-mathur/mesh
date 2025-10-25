@@ -23,6 +23,8 @@ import {
   Eye,
   EyeOff,
   HelpCircle,
+  Triangle,
+  ExternalLink,
 } from 'lucide-react';
 
 import { listSchemes, getArgumentCQs, askCQ, exportAif } from '@/lib/client/aifApi';
@@ -34,6 +36,7 @@ import { set } from 'lodash';
 import { ArgumentCard } from './ArgumentCard';
 import { ArgumentCardV2 } from './ArgumentCardV2';
 import { SchemeComposerPicker } from '../SchemeComposerPicker';
+import { PreferenceAttackModal } from '@/components/agora/PreferenceAttackModal';
 
 
 const AttackMenuProV2 = dynamic(() => import('@/components/arguments/AttackMenuProV2').then(m => m.AttackMenuProV2), { ssr: false });
@@ -254,99 +257,29 @@ function PreferenceQuick({
   authorId: string;
   onDone?: () => void;
 }) {
-  const [open, setOpen] = React.useState<null | 'prefer' | 'disprefer'>(null);
-  const [selectedClaim, setSelectedClaim] = React.useState<{ id: string; label: string } | null>(null);
-  const [showPicker, setShowPicker] = React.useState(false);
-  const [busy, setBusy] = React.useState(false);
-
-  async function submit() {
-    if (!open || !selectedClaim || busy) return;
-    setBusy(true);
-    try {
-      const body = open === 'prefer'
-        ? { deliberationId, preferredArgumentId: argumentId, dispreferredArgumentId: selectedClaim.id }
-        : { deliberationId, preferredArgumentId: selectedClaim.id, dispreferredArgumentId: argumentId };
-      const r = await fetch('/api/pa', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      const j = await r.json().catch(() => ({}));
-      if (!r.ok || j?.ok === false) throw new Error(j?.error || `HTTP ${r.status}`);
-      setSelectedClaim(null);
-      setOpen(null);
-      onDone?.();
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setBusy(false);
-    }
-  }
+  const [open, setOpen] = React.useState(false);
 
   return (
-    <div className="inline-flex items-center gap-2 flex-wrap">
+    <>
       <button
-        className={`
-          inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium
-          transition-all duration-200
-          ${open === 'prefer'
-            ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
-            : 'bg-emerald-50/50 text-slate-600 border border-slate-200 hover:bg-emerald-50 hover:border-emerald-300'
-          }
-        `}
-        onClick={() => setOpen(open === 'prefer' ? null : 'prefer')}
+        onClick={() => setOpen(true)}
+        className="btnv2--rose inline-flex items-center gap-2 px-2 py-2 rounded-lg text-xs"
       >
-        <ArrowUp className="w-3 h-3" />
-        Prefer over…
+        <Triangle className="w-3 h-3" />
+        Preference
       </button>
-      <button
-        className={`
-          inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium
-          transition-all duration-200
-          ${open === 'disprefer'
-            ? 'bg-rose-100 text-rose-700 border border-rose-200'
-            : 'bg-rose-50/50 text-slate-600 border border-slate-200 hover:bg-rose-50 hover:border-rose-300'
-          }
-        `}
-        onClick={() => setOpen(open === 'disprefer' ? null : 'disprefer')}
-      >
-        <ArrowDown className="w-3 h-3" />
-        Disprefer to…
-      </button>
-      
-      {open && (
-        <div className="absolute z-50 inline-flex items-center gap-2 px-3 py-3 bg-slate-50/20 backdrop-blur-xl rounded-lg border border-slate-200 animate-in slide-in-from-top duration-200">
-          <button
-            className="px-3 py-1.5 rounded-lg w-full text-xs font-medium bg-white border border-slate-300 hover:bg-slate-50 transition-all"
-            onClick={() => setShowPicker(true)}
-          >
-            {selectedClaim ? selectedClaim.label : 'Select claim…'}
-          </button>
-          <EntityPicker
-            kind="claim"
-            open={showPicker}
-            onClose={() => setShowPicker(false)}
-            onPick={(item) => setSelectedClaim(item)}
-          />
-          <button
-            className="px-3 py-1.5 rounded-lg text-xs font-medium bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 transition-all"
-            disabled={!selectedClaim || busy}
-            onClick={submit}
-          >
-            {busy ? 'Posting…' : 'Post'}
-          </button>
-          <button
-            className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-200 transition-all"
-            onClick={() => {
-              setOpen(null);
-              setSelectedClaim(null);
-            }}
-          >
-            Cancel
-          </button>
-        </div>
-      )}
-    </div>
+
+      <PreferenceAttackModal
+        open={open}
+        onOpenChange={setOpen}
+        deliberationId={deliberationId}
+        sourceArgumentId={argumentId}
+        onSuccess={() => {
+          setOpen(false);
+          onDone?.();
+        }}
+      />
+    </>
   );
 }
 
@@ -719,11 +652,12 @@ function RowImpl({
             <a
               href={`/claim/${meta.conclusion.id}`}
               className="
-                inline-flex items-center gap-2 px-3 py-1 btnv2 rounded-lg text-xs font-medium
-                bg-emerald-100 text-emerald-700 border border-emerald-200
-                hover:bg-emerald-200 transition-all duration-200 shadow-sm hover:shadow
+                inline-flex items-center gap-2 px-2 py-2 btnv2--amber rounded-lg text-xs font-medium
+               text-slate-600 border border-amber-200
+                 transition-all duration-200 shadow-sm hover:shadow
               "
             >
+              <ExternalLink className="w-3 h-3" />
               {/* <TrendingUp className="w-4 h-4" /> */}
               View Claim
             </a>
@@ -740,7 +674,7 @@ function RowImpl({
 
           <button
             className="
-                inline-flex items-center gap-2 px-3 py-1 btnv2 rounded-lg text-xs font-medium
+                inline-flex items-center gap-1 px-2 py-2 btnv2 rounded-lg text-xs font-medium
               bg-white text-slate-600 border border-slate-200
               hover:border-slate-300 hover:bg-slate-50
               transition-all duration-200
@@ -748,7 +682,7 @@ function RowImpl({
             onClick={copyLink}
             title="Copy link to this argument"
           >
-            <Link2 className="w-4 h-4" />
+            <Link2 className="w-3 h-3" />
             {showCopied ? 'Copied!' : 'Share'}
           </button>
         </footer>

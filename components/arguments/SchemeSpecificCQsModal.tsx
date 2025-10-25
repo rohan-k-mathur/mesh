@@ -21,11 +21,19 @@ import {
   ShieldAlert,
   Sparkles,
   Zap,
+  MessageSquare,
+  Activity,
+  Send,
 } from "lucide-react";
 import { ClaimPicker } from "@/components/claims/ClaimPicker";
 import { askCQ } from "@/lib/client/aifApi";
+import CQResponseForm from "@/components/claims/CQResponseForm";
+import CQResponsesList from "@/components/claims/CQResponsesList";
+import CQActivityFeed from "@/components/claims/CQActivityFeed";
+import CQEndorseModal from "@/components/claims/CQEndorseModal";
 
 type CQItem = {
+  id?: string; // CQStatus ID for Phase 3 community responses
   cqKey: string;
   text: string;
   status: "open" | "answered";
@@ -60,6 +68,12 @@ export function SchemeSpecificCQsModal({
   const [expandedCQ, setExpandedCQ] = React.useState<string | null>(null);
   const [localCqs, setLocalCqs] = React.useState<CQItem[]>(cqs);
   const [posting, setPosting] = React.useState<string | null>(null);
+
+  // Phase 3 modal states
+  const [responseFormOpen, setResponseFormOpen] = React.useState(false);
+  const [selectedCQForResponse, setSelectedCQForResponse] = React.useState<CQItem | null>(null);
+  const [selectedResponseForEndorse, setSelectedResponseForEndorse] = React.useState<string | null>(null);
+  const [endorseModalOpen, setEndorseModalOpen] = React.useState(false);
 
   // Objection form states per CQ
   const [rebutClaim, setRebutClaim] = React.useState<Record<string, { id: string; text: string } | null>>({});
@@ -380,21 +394,6 @@ export function SchemeSpecificCQsModal({
                         >
                           {cq.text}
                         </p>
-
-                        <div className="mt-2 flex items-center gap-2">
-                          <span className="text-xs text-slate-500 font-mono">{cq.cqKey}</span>
-                          {cq.status === "open" && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleAskCQ(cq.cqKey);
-                              }}
-                              className="text-xs text-indigo-600 hover:text-indigo-700 font-medium hover:underline"
-                            >
-                              Mark as asked
-                            </button>
-                          )}
-                        </div>
                       </div>
 
                       <div
@@ -409,6 +408,21 @@ export function SchemeSpecificCQsModal({
                         />
                       </div>
                     </button>
+
+                    {/* Mark as asked button - outside the toggle button */}
+                    {cq.status === "open" && !isExpanded && (
+                      <div className="px-4 pb-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAskCQ(cq.cqKey);
+                          }}
+                          className="text-xs text-indigo-600 hover:text-indigo-700 font-medium hover:underline"
+                        >
+                          Mark as asked
+                        </button>
+                      </div>
+                    )}
 
                     {/* Expanded objection form */}
                     {isExpanded && (
@@ -539,6 +553,77 @@ export function SchemeSpecificCQsModal({
                             </>
                           )}
                         </button>
+
+                        {/* Phase 3 Community Response System */}
+                        {cq.id && (
+                          <div className="mt-6 space-y-4 pt-4 border-t-2 border-sky-200">
+                            {/* Section Header */}
+                            <div className="flex items-center gap-2 mb-3">
+                              <MessageSquare className="w-5 h-5 text-sky-600" />
+                              <h4 className="text-sm font-bold text-sky-900">
+                                Community Responses
+                              </h4>
+                            </div>
+
+                            {/* Response Form Button */}
+                            <button
+                              onClick={() => {
+                                setSelectedCQForResponse(cq);
+                                setResponseFormOpen(true);
+                              }}
+                              className="
+                                w-full inline-flex items-center justify-center gap-2 px-4 py-3
+                                bg-gradient-to-br from-sky-500 to-cyan-600
+                                text-white rounded-xl font-semibold text-sm
+                                hover:from-sky-600 hover:to-cyan-700
+                                shadow-md hover:shadow-lg
+                                transition-all duration-200 active:scale-95
+                              "
+                            >
+                              <Send className="w-4 h-4" />
+                              Submit Your Response
+                            </button>
+
+                            {/* Responses List */}
+                            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                              <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 border-b border-slate-200">
+                                <Activity className="w-4 h-4 text-slate-600" />
+                                <h5 className="text-xs font-bold text-slate-700 uppercase tracking-wide">
+                                  All Responses
+                                </h5>
+                              </div>
+                              <CQResponsesList
+                                cqStatusId={cq.id}
+                                currentUserId={authorId}
+                                canModerate={false}
+                                onEndorse={(responseId: string) => {
+                                  setSelectedResponseForEndorse(responseId);
+                                  setEndorseModalOpen(true);
+                                }}
+                              />
+                            </div>
+
+                            {/* Activity Timeline */}
+                            <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl border border-indigo-200 overflow-hidden">
+                              <div className="flex items-center gap-2 px-4 py-3 bg-indigo-100/50 border-b border-indigo-200">
+                                <Activity className="w-4 h-4 text-indigo-600" />
+                                <h5 className="text-xs font-bold text-indigo-900 uppercase tracking-wide">
+                                  Recent Activity
+                                </h5>
+                              </div>
+                              <CQActivityFeed cqStatusId={cq.id} limit={5} />
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Legacy Objection Notice */}
+                        {!cq.id && cq.status === "open" && (
+                          <div className="mt-4 p-3 bg-amber-50 rounded-lg border border-amber-200">
+                            <p className="text-xs text-amber-800">
+                              <strong>Note:</strong> Mark this question as "asked" to enable community responses.
+                            </p>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -548,6 +633,35 @@ export function SchemeSpecificCQsModal({
           )}
         </div>
       </DialogContent>
+
+      {/* Phase 3 CQ Response Form Modal */}
+      {selectedCQForResponse && selectedCQForResponse.id && (
+        <CQResponseForm
+          open={responseFormOpen}
+          onOpenChange={setResponseFormOpen}
+          cqStatusId={selectedCQForResponse.id}
+          cqText={selectedCQForResponse.text}
+          onSuccess={() => {
+            setResponseFormOpen(false);
+            onRefresh(); // Refresh CQs to show updated counts
+          }}
+        />
+      )}
+
+      {/* Phase 3 Endorse Modal */}
+      {selectedResponseForEndorse && selectedCQForResponse && selectedCQForResponse.id && (
+        <CQEndorseModal
+          open={endorseModalOpen}
+          onOpenChange={setEndorseModalOpen}
+          responseId={selectedResponseForEndorse}
+          cqStatusId={selectedCQForResponse.id}
+          onSuccess={() => {
+            setEndorseModalOpen(false);
+            setSelectedResponseForEndorse(null);
+            onRefresh();
+          }}
+        />
+      )}
     </Dialog>
   );
 }

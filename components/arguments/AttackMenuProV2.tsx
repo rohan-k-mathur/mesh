@@ -54,10 +54,10 @@ export function AttackMenuProV2({
       <DialogTrigger asChild>
         <button
           className="
-            inline-flex btnv2--sunset items-center gap-2 px-4 py-2 rounded-lg text-sm  rounded-lg 
+            inline-flex btnv2--sunset items-center gap-2 px-2 py-2 rounded-lg text-xs  rounded-lg 
           "
         >
-          <Swords className="w-4 h-4" />
+          <Swords className="w-3 h-3" />
           Challenge Argument
         </button>
       </DialogTrigger>

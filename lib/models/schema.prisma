@@ -92,6 +92,13 @@ model User {
   proposalSignals  ProposalSignal[]   @relation("UserProposalSignals")
   expertiseTags    String[]           @default([])
 
+  // Glossary system relations
+  proposedTerms          GlossaryTerm[]              @relation("ProposedTerms")
+  authoredDefinitions    GlossaryDefinition[]        @relation("AuthoredDefinitions")
+  definitionEndorsements GlossaryEndorsement[]       @relation("DefinitionEndorsements")
+  definitionVotes        GlossaryDefinitionVote[]    @relation("DefinitionVotes")
+  definitionChanges      GlossaryDefinitionHistory[] @relation("DefinitionChanges")
+
   @@map("users")
 }
 
@@ -3541,6 +3548,9 @@ model Deliberation {
   DebateSheet            DebateSheet[]
   WorkSourceDeliberation WorkSourceDeliberation[]
 
+  // Glossary system
+  glossaryTerms GlossaryTerm[]
+
   @@index([agoraRoomID])
   @@index([hostType, hostId])
   @@index([roomId])
@@ -5162,4 +5172,150 @@ enum ClarificationStatus {
   ANSWERED // Has at least one approved answer
   RESOLVED // Asker marked as fully resolved
   CLOSED   // No longer accepting answers
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DELIBERATION GLOSSARY: Collaborative term definitions to reduce semantic confusion
+// ═══════════════════════════════════════════════════════════════════════════
+
+/// Glossary terms for a deliberation - key words/phrases that need shared definitions
+model GlossaryTerm {
+  id             String   @id @default(cuid())
+  deliberationId String
+  deliberation   Deliberation @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
+
+  term           String // The word/phrase being defined (e.g., "Justice")
+  termNormalized String // Lowercase, trimmed version for matching
+
+  status GlossaryTermStatus @default(PENDING)
+  // PENDING: awaiting endorsements
+  // CONSENSUS: has sufficient endorsements for one definition
+  // CONTESTED: multiple competing definitions
+  // ARCHIVED: no longer active
+
+  proposedById String
+  proposedBy   User   @relation("ProposedTerms", fields: [proposedById], references: [auth_id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  definitions GlossaryDefinition[]
+  usages      GlossaryTermUsage[]
+
+  @@unique([deliberationId, termNormalized])
+  @@index([deliberationId, status])
+  @@index([termNormalized])
+  @@map("glossary_terms")
+}
+
+/// Definitions for glossary terms - multiple definitions allowed (competing views)
+model GlossaryDefinition {
+  id     String       @id @default(cuid())
+  termId String
+  term   GlossaryTerm @relation(fields: [termId], references: [id], onDelete: Cascade)
+
+  definition String  @db.Text // The actual definition text
+  examples   String? @db.Text // Optional usage examples
+  sources    Json?   // References/citations (URLs, books, etc.)
+
+  authorId String
+  author   User   @relation("AuthoredDefinitions", fields: [authorId], references: [auth_id])
+
+  isCanonical      Boolean @default(false) // Moderator-endorsed or consensus-reached
+  endorsementCount Int     @default(0) // Cached count for performance
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  endorsements GlossaryEndorsement[]
+  votes        GlossaryDefinitionVote[]
+  history      GlossaryDefinitionHistory[]
+
+  @@index([termId, isCanonical])
+  @@index([termId, endorsementCount])
+  @@map("glossary_definitions")
+}
+
+/// User endorsements of specific definitions
+model GlossaryEndorsement {
+  id           String             @id @default(cuid())
+  definitionId String
+  definition   GlossaryDefinition @relation(fields: [definitionId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation("DefinitionEndorsements", fields: [userId], references: [auth_id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([definitionId, userId])
+  @@index([definitionId])
+  @@index([userId])
+  @@map("glossary_endorsements")
+}
+
+/// Votes on competing definitions (when multiple exist)
+model GlossaryDefinitionVote {
+  id           String             @id @default(cuid())
+  definitionId String
+  definition   GlossaryDefinition @relation(fields: [definitionId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation("DefinitionVotes", fields: [userId], references: [auth_id])
+
+  value Int // +1 for upvote, -1 for downvote, 0 for neutral
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([definitionId, userId])
+  @@index([definitionId])
+  @@map("glossary_definition_votes")
+}
+
+/// History of changes to definitions (audit trail)
+model GlossaryDefinitionHistory {
+  id           String             @id @default(cuid())
+  definitionId String
+  definition   GlossaryDefinition @relation(fields: [definitionId], references: [id], onDelete: Cascade)
+
+  previousText String @db.Text
+  newText      String @db.Text
+  changeType   String // "created", "edited", "merged", "endorsed", "canonical_promoted"
+
+  changedById String
+  changedBy   User   @relation("DefinitionChanges", fields: [changedById], references: [auth_id])
+
+  createdAt DateTime @default(now())
+
+  @@index([definitionId, createdAt])
+  @@map("glossary_definition_history")
+}
+
+/// Track where glossary terms are used in arguments/claims
+model GlossaryTermUsage {
+  id     String       @id @default(cuid())
+  termId String
+  term   GlossaryTerm @relation(fields: [termId], references: [id], onDelete: Cascade)
+
+  // What used this term?
+  targetType String // "claim" | "argument" | "premise" | "comment"
+  targetId   String
+
+  // Context where it was used
+  contextText    String? @db.Text
+  highlightStart Int? // Character position in text where term starts
+  highlightEnd   Int? // Character position in text where term ends
+
+  detectedAt DateTime @default(now())
+
+  @@index([termId])
+  @@index([targetType, targetId])
+  @@map("glossary_term_usages")
+}
+
+enum GlossaryTermStatus {
+  PENDING   // Awaiting endorsements
+  CONSENSUS // Has consensus on one definition
+  CONTESTED // Multiple competing definitions
+  ARCHIVED  // No longer active/relevant
 }

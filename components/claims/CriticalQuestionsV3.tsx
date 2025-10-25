@@ -19,6 +19,12 @@ import { suggestionForCQ } from "@/lib/argumentation/cqSuggestions";
 import { LegalMoveChips } from "@/components/dialogue/LegalMoveChips";
 import { useBusEffect } from "@/lib/client/useBusEffect";
 import { SchemeComposerPicker } from "@/components/SchemeComposerPicker";
+import CQResponseForm from "./CQResponseForm";
+import CQResponsesList from "./CQResponsesList";
+import CQAuthorDashboard from "./CQAuthorDashboard";
+import CQStatusBadge from "./CQStatusBadge";
+import CQActivityFeed from "./CQActivityFeed";
+import CQEndorseModal from "./CQEndorseModal";
 import {
   CheckCircle2,
   Circle,
@@ -34,6 +40,9 @@ import {
   Lightbulb,
   MessageCircle,
   Plus,
+  MessageSquarePlus,
+  List,
+  Activity,
 } from "lucide-react";
 import { TargetType } from "@prisma/client";
 
@@ -50,6 +59,7 @@ type Suggestion = {
 } | null;
 
 type CQ = {
+  id?: string; // CQStatus ID from database
   key: string;
   text: string;
   satisfied: boolean;
@@ -139,6 +149,16 @@ export default function CriticalQuestionsV3({
   const [pickerCQKey, setPickerCQKey] = useState<string | null>(null);
   const [posting, setPosting] = useState(false);
 
+  // New CQ Response System UI State
+  const [responseFormOpen, setResponseFormOpen] = useState(false);
+  const [selectedCQForResponse, setSelectedCQForResponse] = useState<{ id: string; text: string } | null>(null);
+  const [responsesListOpen, setResponsesListOpen] = useState(false);
+  const [selectedCQForList, setSelectedCQForList] = useState<{ id: string; text: string } | null>(null);
+  const [activityFeedOpen, setActivityFeedOpen] = useState(false);
+  const [selectedCQForActivity, setSelectedCQForActivity] = useState<string | null>(null);
+  const [endorseModalOpen, setEndorseModalOpen] = useState(false);
+  const [selectedResponseForEndorse, setSelectedResponseForEndorse] = useState<string | null>(null);
+
   // Data fetching
   const cqsKey = CQS_KEY(targetType, targetId);
   const { data: cqData, error: cqError } = useSWR<CQsResponse>(
@@ -211,7 +231,7 @@ export default function CriticalQuestionsV3({
     cqKey: string,
     satisfied: boolean
   ) => {
-    const url = `/api/cqs/${targetType}/${targetId}`;
+    const url = `/api/cqs`;
     const oldData = cqData;
 
     // Optimistic update
@@ -238,6 +258,8 @@ export default function CriticalQuestionsV3({
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
+          targetType,
+          targetId,
           schemeKey,
           cqKey,
           satisfied,
@@ -260,7 +282,7 @@ export default function CriticalQuestionsV3({
   ) => {
     if (!grounds.trim()) return;
 
-    const url = `/api/cqs/${targetType}/${targetId}`;
+    const url = `/api/cqs`;
     const oldData = cqData;
 
     const updatedSchemes = oldData?.schemes.map((s) => {
@@ -280,6 +302,8 @@ export default function CriticalQuestionsV3({
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
+          targetType,
+          targetId,
           schemeKey,
           cqKey,
           satisfied: true,
@@ -700,6 +724,63 @@ export default function CriticalQuestionsV3({
                           </div>
                         </div>
 
+                        {/* Community Responses Section (NEW) */}
+                        <div className="space-y-2 pt-3 border-t border-slate-400/40">
+                          <div className="flex items-center gap-2 mb-2">
+                            <MessageSquarePlus className="w-4 h-4 text-sky-600" />
+                            <label className="text-sm font-semibold text-slate-900">
+                              Community Responses
+                            </label>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              onClick={() => {
+                                if (!cq.id) {
+                                  console.warn("CQ has no ID - cannot submit response");
+                                  return;
+                                }
+                                setSelectedCQForResponse({ id: cq.id, text: cq.text });
+                                setResponseFormOpen(true);
+                              }}
+                              className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-r from-sky-500/20 to-cyan-500/20 hover:from-sky-500/30 hover:to-cyan-500/30 border border-sky-400/30 transition-all text-sm font-semibold text-sky-900"
+                            >
+                              <MessageSquarePlus className="w-4 h-4" />
+                              Submit Response
+                            </button>
+
+                            <button
+                              onClick={() => {
+                                if (!cq.id) {
+                                  console.warn("CQ has no ID - cannot view responses");
+                                  return;
+                                }
+                                setSelectedCQForList({ id: cq.id, text: cq.text });
+                                setResponsesListOpen(true);
+                              }}
+                              className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-slate-900/5 hover:bg-slate-900/10 border border-slate-900/10 transition-all text-sm font-semibold text-slate-700"
+                            >
+                              <List className="w-4 h-4" />
+                              View Responses
+                            </button>
+                          </div>
+
+                          <button
+                            onClick={() => {
+                              if (cq.id) {
+                                setSelectedCQForActivity(cq.id);
+                                setActivityFeedOpen(true);
+                              } else {
+                                console.warn("CQ has no ID - cannot load activity feed");
+                              }
+                            }}
+                            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-slate-900/5 hover:bg-slate-900/10 border border-slate-900/10 transition-all text-sm font-semibold text-slate-700"
+                          >
+                            <Activity className="w-4 h-4" />
+                            Activity Timeline
+                          </button>
+                        </div>
+
                         {/* Legal Moves (if available) */}
                         {deliberationId && movesData && (
                           <div className="pt-3 border-t border-slate-200">
@@ -741,7 +822,10 @@ export default function CriticalQuestionsV3({
 
       {/* Quick Compose Dialog */}
       <Dialog open={quickDialogOpen} onOpenChange={setQuickDialogOpen}>
-        <DialogContent className="max-w-2xl bg-sky-200/70 backdrop-blur-lg">
+        <DialogContent 
+          className="!z-[70] max-w-2xl bg-sky-200/70 backdrop-blur-lg"
+          overlayClassName="!z-[70]"
+        >
           <DialogHeader>
             <DialogTitle>Create Counter-Claim</DialogTitle>
             <DialogDescription>
@@ -777,6 +861,120 @@ export default function CriticalQuestionsV3({
         onClose={() => setPickerOpen(false)}
         onPick={handlePickerSelect}
       />
+
+      {/* CQ Response Form */}
+      {selectedCQForResponse && (
+        <CQResponseForm
+          open={responseFormOpen}
+          onOpenChange={setResponseFormOpen}
+          cqStatusId={selectedCQForResponse.id}
+          cqText={selectedCQForResponse.text}
+          onSuccess={() => {
+            globalMutate(cqsKey);
+            window.dispatchEvent(new CustomEvent("cqs:changed"));
+          }}
+        />
+      )}
+
+      {/* CQ Responses List Dialog */}
+      <Dialog open={responsesListOpen} onOpenChange={setResponsesListOpen}>
+        <DialogContent 
+          className="!z-[70] max-w-4xl max-h-[90vh] overflow-hidden bg-white/95 backdrop-blur-xl shadow-2xl p-6 panel-edge"
+          overlayClassName="!z-[70]"
+        >
+          {/* Glass overlay */}
+          <div className="absolute inset-0 bg-gradient-to-b from-slate-900/5 via-transparent to-slate-900/10 pointer-events-none rounded-xl" />
+
+          {/* Radial light */}
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(56,189,248,0.08),transparent_50%)] pointer-events-none rounded-xl" />
+
+          <div className="relative z-10 overflow-y-auto max-h-[85vh] custom-scrollbar-light px-2">
+            <DialogHeader className="mb-4">
+              <DialogTitle className="text-2xl font-bold text-transparent bg-gradient-to-r from-sky-700 via-cyan-700 to-sky-700 bg-clip-text">
+                Community Responses
+              </DialogTitle>
+              {selectedCQForList && (
+                <DialogDescription className="text-slate-600 leading-relaxed">
+                  {selectedCQForList.text}
+                </DialogDescription>
+              )}
+            </DialogHeader>
+
+            {/* Author Dashboard (if user can moderate) */}
+            {selectedCQForList && createdById && (
+              <div className="mb-4">
+                <CQAuthorDashboard
+                  cqStatusId={selectedCQForList.id}
+                  currentUserId={createdById}
+                  canModerate={true}
+                  onApprove={async (responseId, setAsCanonical) => {
+                    // Handled by CQResponseCard/CQAuthorDashboard
+                  }}
+                  onReject={async (responseId, reason) => {
+                    // Handled by CQResponseCard/CQAuthorDashboard
+                  }}
+                />
+              </div>
+            )}
+
+            {/* Responses List */}
+            {selectedCQForList && (
+              <CQResponsesList
+                cqStatusId={selectedCQForList.id}
+                currentUserId={createdById}
+                canModerate={true}
+                onEndorse={(responseId) => {
+                  setSelectedResponseForEndorse(responseId);
+                  setEndorseModalOpen(true);
+                }}
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Activity Feed Dialog */}
+      <Dialog open={activityFeedOpen} onOpenChange={setActivityFeedOpen}>
+        <DialogContent 
+          className="!z-[70] max-w-2xl max-h-[90vh] overflow-hidden bg-white/95 backdrop-blur-xl shadow-2xl p-6 panel-edge"
+          overlayClassName="!z-[70]"
+        >
+          {/* Glass overlay */}
+          <div className="absolute inset-0 bg-gradient-to-b from-slate-900/5 via-transparent to-slate-900/10 pointer-events-none rounded-xl" />
+
+          {/* Radial light */}
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(56,189,248,0.08),transparent_50%)] pointer-events-none rounded-xl" />
+
+          <div className="relative z-10 overflow-y-auto max-h-[85vh] custom-scrollbar-light px-2">
+            <DialogHeader className="mb-4">
+              <DialogTitle className="text-2xl font-bold text-transparent bg-gradient-to-r from-sky-700 via-cyan-700 to-sky-700 bg-clip-text">
+                Activity Timeline
+              </DialogTitle>
+              <DialogDescription className="text-slate-600">
+                Recent activity for this critical question
+              </DialogDescription>
+            </DialogHeader>
+
+            {selectedCQForActivity && (
+              <CQActivityFeed cqStatusId={selectedCQForActivity} limit={20} />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Endorse Modal */}
+      {selectedResponseForEndorse && selectedCQForList && (
+        <CQEndorseModal
+          open={endorseModalOpen}
+          onOpenChange={setEndorseModalOpen}
+          responseId={selectedResponseForEndorse}
+          cqStatusId={selectedCQForList.id}
+          onSuccess={() => {
+            globalMutate(cqsKey);
+            window.dispatchEvent(new CustomEvent("cqs:changed"));
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -155,12 +155,12 @@ const chatMessageContentVariants = cva("flex flex-col gap-2 ", {
 		{
 			variant: "bubble",
 			type: "incoming",
-			className: "bg-sky-50/30 backdrop-blur-md rounded-lg pl-2 pr-2  h-fit align-center my-auto py-1 tracking-wide max-w-[62%] bg-opacity-70 chat-bubble-blue outline-transparent text-sm text-slate-950 dark:bg-slate-50 dark:text-slate-900",
+			className: "bg-sky-50/60 backdrop-blur-md rounded-lg pl-2 pr-2  h-fit align-center my-auto py-1 tracking-wide max-w-[62%] bg-opacity-70 chat-bubble-blue outline-transparent text-sm text-slate-950 dark:bg-slate-50 dark:text-slate-900",
 		},
 		{
 			variant: "bubble",
 			type: "outgoing",
-			className: "bg-rose-50/30 backdrop-blur-md rounded-lg pl-2 pr-2 leading-tight h-fit  align-center my-auto py-1   tracking-wide max-w-[62%] bg-opacity-70  chat-bubble outline-transparent text-sm text-slate-950 dark:bg-slate-50 dark:text-slate-900",
+			className: "bg-rose-50/60 backdrop-blur-md rounded-lg pl-2 pr-2 leading-tight h-fit  align-center my-auto py-1   tracking-wide max-w-[62%] bg-opacity-70  chat-bubble outline-transparent text-sm text-slate-950 dark:bg-slate-50 dark:text-slate-900",
 		},
 	],
 	defaultVariants: {

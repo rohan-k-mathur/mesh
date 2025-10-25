@@ -19,15 +19,19 @@ export async function GET(
   const statuses = await prisma.cQStatus.findMany({
     where: { argumentId: arg.id },
   });
-  const byKey = new Map(statuses.map(s => [s.cqKey, s.status]));
+  const byKey = new Map(statuses.map(s => [s.cqKey, { id: s.id, status: s.status }]));
 
-  const items = arg.scheme.cqs.map((cq) => ({
-    cqKey: cq.cqKey,
-    text: cq.text,
-    attackType: cq.attackType,
-    targetScope: cq.targetScope,
-    status: byKey.get(cq.cqKey ?? "") ?? "open",
-  }));
+  const items = arg.scheme.cqs.map((cq) => {
+    const statusData = byKey.get(cq.cqKey ?? "");
+    return {
+      id: statusData?.id, // Include CQStatus ID for Phase 3 components
+      cqKey: cq.cqKey,
+      text: cq.text,
+      attackType: cq.attackType,
+      targetScope: cq.targetScope,
+      status: statusData?.status ?? "open",
+    };
+  });
 
   return NextResponse.json({ ok: true, items });
 }

@@ -2,7 +2,7 @@
 'use client';
 import * as React from 'react';
 
-type Kind = 'claim'|'argument'|'room'|'sheet'|'theory_work';
+type Kind = 'claim'|'argument'|'room'|'sheet'|'theory_work'|'scheme';
 type Item = { id:string; label:string; roomId?:string };
 
 export function EntityPicker({

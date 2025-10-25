@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState, useMemo } from "react";
+import { MessageSquare } from "lucide-react";
 import DeliberationComposer from "./DeliberationComposer";
 import { RepresentativeViewpoints } from "./RepresentativeViewpoints";
 import ArgumentsList from "./ArgumentsList";
@@ -1322,12 +1323,12 @@ const {
 
         {/* Main Tabs */}
         <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
-          <TabsList className="w-full">
+          <TabsList className="w-full grid-cols-5">
             <TabsTrigger value="debate">Debate</TabsTrigger>
             <TabsTrigger value="models">Models</TabsTrigger>
             <TabsTrigger value="ludics">Ludics</TabsTrigger>
-            {/* <TabsTrigger value="cards">Cards</TabsTrigger> */}
             <TabsTrigger value="issues">Issues</TabsTrigger>
+            <TabsTrigger value="cq-review">CQ Review</TabsTrigger>
           </TabsList>
 
           {/* DEBATE TAB */}
@@ -1602,6 +1603,66 @@ const {
   }}
 />
             </SectionCard>
+          </TabsContent>
+
+          {/* CQ REVIEW TAB */}
+          <TabsContent value="cq-review" className="w-full min-w-0 mt-4 space-y-4">
+            <div className="p-6 bg-gradient-to-br from-sky-50 to-cyan-50 rounded-xl border-2 border-sky-200 shadow-sm">
+              <div className="flex items-start gap-4">
+                <div className="p-3 rounded-xl bg-gradient-to-br from-sky-500/20 to-cyan-500/20">
+                  <MessageSquare className="w-6 h-6 text-sky-700" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-bold text-sky-900 mb-2">
+                    Critical Question Review Dashboard
+                  </h3>
+                  <p className="text-sm text-sky-700 leading-relaxed mb-4">
+                    Review and moderate community responses to critical questions across all claims and arguments in this deliberation.
+                  </p>
+                  
+                  <div className="bg-white/80 rounded-lg p-4 border border-sky-300">
+                    <h4 className="text-sm font-semibold text-sky-900 mb-2">How to Review Responses:</h4>
+                    <ul className="text-sm text-sky-700 space-y-2">
+                      <li className="flex items-start gap-2">
+                        <span className="text-sky-500 font-bold">1.</span>
+                        <span>Navigate to the <strong>Debate tab</strong> to see all claims and arguments</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-sky-500 font-bold">2.</span>
+                        <span>Click on a <strong>claim card</strong> to expand its critical questions</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-sky-500 font-bold">3.</span>
+                        <span>For arguments, click the <strong>Critical Questions button</strong> to view scheme-specific questions</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-sky-500 font-bold">4.</span>
+                        <span>Each CQ shows buttons to <strong>View Responses</strong> where you can approve/reject as a moderator</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <span className="text-sky-500 font-bold">5.</span>
+                        <span>Use the <strong>Activity Timeline</strong> to track all actions taken on responses</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div className="mt-4 p-3 bg-indigo-100 rounded-lg border border-indigo-300">
+                    <p className="text-xs text-indigo-800 leading-relaxed">
+                      💡 <strong>Tip:</strong> Moderators see Approve/Reject buttons in the response lists. 
+                      Regular users can view responses, vote, and endorse them.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Future: Add deliberation-wide pending responses aggregator here */}
+            <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 text-center">
+              <p className="text-sm text-slate-600">
+                Deliberation-wide response aggregation coming soon. 
+                For now, review responses within individual claims and arguments in the Debate tab.
+              </p>
+            </div>
           </TabsContent>
         </Tabs>
       </div>

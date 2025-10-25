@@ -119,7 +119,7 @@ export function ClarificationRequestButton({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <button  className="btnv2 bg-indigo-500 text-slate-900">
+        <button  className="btnv2  text-slate-900 text-xs">
           <HelpCircle className="w-4 h-4 mr-2" />
           Request Clarification
         </button>

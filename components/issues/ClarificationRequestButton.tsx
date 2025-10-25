@@ -31,8 +31,8 @@ export function ClarificationRequestButton({
         onClick={() => setOpen(true)}
         className={
           className ||
-          `inline-flex items-center gap-2 px-3 py-2 btnv2 rounded-lg text-sm font-medium
-          bg-white text-slate-600 border border-slate-200
+          `inline-flex items-center gap-2 px-2 py-2 btnv2 rounded-lg text-xs font-medium
+           text-slate-600 border border-slate-200
           hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700
           transition-all duration-200`
         }

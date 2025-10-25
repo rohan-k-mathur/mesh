@@ -78,7 +78,7 @@ export default function MessengerPane({ currentUserId }: { currentUserId: string
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="absolute left-[14rem] tracking-wide top-6 z-[9000] rounded-full bg-white/50  px-4 py-1 likebutton"
+          className="fixed left-[8rem] tracking-wide top-6 z-[9000] rounded-full bg-white/80  px-4 py-1 likebutton"
         >
           ⇤
   Messages

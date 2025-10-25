@@ -7,7 +7,6 @@ import ChatRoom from "@/components/chat/ChatRoom";
 import MessageComposer from "@/components/chat/MessageComposer";
 import MessengerPane from "@/components/chat/MessengerPane";
 import Image from "next/image";
-import { headers } from "next/headers";
 
 
 export default async function Page({ params, searchParams }: { params: { id: string }; searchParams: { mid?: string } }) {
@@ -49,22 +48,25 @@ export default async function Page({ params, searchParams }: { params: { id: str
       ].filter(Boolean) as { name: string; image: string | null }[];
 
 
-  // Messages newest->oldest then flip so newest at bottom
-  const rows = (await fetchMessages({ conversationId })).reverse();
-  
   const highlightMessageId = searchParams?.mid || null;
- // Build an absolute base URL for server-side fetch
-const h = headers();
-const host = h.get("x-forwarded-host") ?? h.get("host");
-const proto = h.get("x-forwarded-proto") ?? "http";
-const base = `${proto}://${host}`;
-
-// Get Layer-aware messages (viewer-filtered + sender object)
-const res = await fetch(
-  `${base}/api/sheaf/messages?conversationId=${conversationId.toString()}&userId=${user.userId.toString()}`,
-  { cache: "no-store" }
-);
-const { messages: initialMessages } = await res.json();
+  
+  // Fetch messages directly from database during SSR
+  const rows = (await fetchMessages({ conversationId })).reverse();
+  const initialMessages = rows.map(m => ({
+    id: m.id.toString(),
+    text: m.text ?? null,
+    createdAt: m.created_at.toISOString(),
+    senderId: m.sender_id.toString(),
+    sender: { name: m.sender.name, image: m.sender.image },
+    attachments: m.is_redacted ? [] : m.attachments.map(a => ({
+      id: a.id.toString(),
+      path: a.path,
+      type: a.type,
+      size: a.size,
+    })),
+    isRedacted: m.is_redacted,
+    driftId: m.drift_id ? m.drift_id.toString() : null,
+  }));
   return (
     <main className="p-4 mt-[-4rem] items-center justify-center">
       <div className="flex w-full h-full items-center justify-center align-center gap-4">

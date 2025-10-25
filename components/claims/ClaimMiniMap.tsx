@@ -697,16 +697,19 @@ export default function ClaimMiniMap({ deliberationId, selectedClaimId, onClaimC
           {/* CQ Modal */}
           {cqOpenFor && (
             <Dialog open onOpenChange={(o) => { if (!o) setCqOpenFor(null); }}>
-              <DialogContent className="relative bg-white/95 backdrop-blur-xl rounded-xl sm:max-w-[880px] shadow-2xl overflow-hidden">
+              <DialogContent 
+                className="!z-[60] bg-white/95 backdrop-blur-xl rounded-xl max-w-[90vw] w-full sm:max-w-[880px] max-h-[85vh] overflow-y-auto shadow-2xl"
+                overlayClassName="!z-[60]"
+              >
                 {/* Glass overlay */}
-                <div className="absolute inset-0 bg-gradient-to-b from-slate-900/5 via-transparent to-slate-900/10 pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-b from-slate-900/5 via-transparent to-slate-900/10 pointer-events-none rounded-xl" />
                 
                 {/* Radial light */}
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(56,189,248,0.08),transparent_50%)] pointer-events-none" />
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(56,189,248,0.08),transparent_50%)] pointer-events-none rounded-xl" />
                 
                 {/* Water droplets */}
-                <div className="absolute top-10 right-20 w-24 h-24 bg-sky-400/10 rounded-full blur-3xl animate-pulse" />
-                <div className="absolute bottom-20 left-10 w-32 h-32 bg-cyan-400/8 rounded-full blur-3xl animate-pulse delay-1000" />
+                <div className="absolute top-10 right-20 w-24 h-24 bg-sky-400/10 rounded-full blur-3xl animate-pulse pointer-events-none" />
+                <div className="absolute bottom-20 left-10 w-32 h-32 bg-cyan-400/8 rounded-full blur-3xl animate-pulse delay-1000 pointer-events-none" />
                 
                 <div className="relative z-10">
                   <DialogHeader>

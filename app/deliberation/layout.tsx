@@ -5,6 +5,7 @@ import "@/app/article/rhetoric.css";
 
 import "@/app/article/type-tokens.css";
 import '@/app/fonts/fonts.css';
+import '@/components/agora/deliberation-styles.css';
 
 
 
