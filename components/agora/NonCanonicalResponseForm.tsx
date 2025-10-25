@@ -389,7 +389,7 @@ export function NonCanonicalResponseForm({
           <button
             onClick={() => onOpenChange(false)}
             disabled={isSubmitting}
-            className="btnv2 rounded-xl bg-white/10 px-3 py-2 backdrop-blur-md border-white/20 text-white text-sm hover:bg-white/20 hover:border-white/30 transition-all"
+            className="btnv2 rounded-xl bg-slate-300/10 px-3 py-2 backdrop-blur-md border-white/20 text-white text-sm  hover:border-white/30 transition-all"
           >
             Cancel
           </button>
@@ -397,11 +397,11 @@ export function NonCanonicalResponseForm({
           <button
             onClick={handleSubmit}
             disabled={isSubmitting || !expression.trim() || submitStatus === "success"}
-            className="relative overflow-hidden btnv2 text-sm px-4 py-2.5 rounded-xl text-white
-            bg-gradient-to-r from-sky-700 to-indigo-700 hover:from-cyan-600 
-            hover:to-indigo-600 text-white border-0 shadow-lg shadow-cyan-300/10 
-            hover:shadow-cyan-500/50 transition-all duration-300 group"
-          >
+             className="relative overflow-hidden btnv2 text-sm px-4 py-2.5 rounded-xl text-white
+                bg-gradient-to-bl from-sky-800 to-indigo-700 hover:from-sky-800 
+                hover:to-indigo-800 border-0 shadow-md shadow-indigo-300/10 
+                hover:shadow-indigo-500/50 transition-all duration-300 group disabled:opacity-50 disabled:cursor-not-allowed"
+              >
             {/* Glass shine effect */}
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
             

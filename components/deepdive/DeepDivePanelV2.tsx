@@ -27,6 +27,7 @@ import { CQContextPanel } from "../dialogue/command-card/CQContextPanel";
 import { DialogueActionsButton } from "@/components/dialogue/DialogueActionsButton";
 import { useMinimapData } from '@/lib/client/minimap/useMinimapData';
 import useSWR, { mutate as swrMutate } from "swr";
+import { DefinitionSheet } from "@/components/glossary/DefinitionSheet";
 import { AIFAuthoringPanel } from "./AIFAuthoringPanel";
 import React from "react";
 import clsx from "clsx";
@@ -383,7 +384,9 @@ export default function DeepDivePanel({
   // Floating sheet state with persistence
   const [leftSheetOpen, setLeftSheetOpen] = useState(false);
   const [rightSheetOpen, setRightSheetOpen] = useState(false);
+  const [termsSheetOpen, setTermsSheetOpen] = useState(false);
   const [leftSheetTab, setLeftSheetTab] = useState<'arguments' | 'claims'>('claims');
+  const [selectedTermId, setSelectedTermId] = useState<string | undefined>();
 
   // at top of the component with the other state
 const [issuesOpen, setIssuesOpen] = useState(false);
@@ -791,12 +794,24 @@ const {
         open={rightSheetOpen}
         onClick={() => setRightSheetOpen(!rightSheetOpen)}
         icon={
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-          </svg>
+         
+          <svg xmlns="http://www.w3.org/2000/svg"  viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-gamepad-directional-icon lucide-gamepad-directional"><path d="M11.146 15.854a1.207 1.207 0 0 1 1.708 0l1.56 1.56A2 2 0 0 1 15 18.828V21a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-2.172a2 2 0 0 1 .586-1.414z"/><path d="M18.828 15a2 2 0 0 1-1.414-.586l-1.56-1.56a1.207 1.207 0 0 1 0-1.708l1.56-1.56A2 2 0 0 1 18.828 9H21a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1z"/><path d="M6.586 14.414A2 2 0 0 1 5.172 15H3a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h2.172a2 2 0 0 1 1.414.586l1.56 1.56a1.207 1.207 0 0 1 0 1.708z"/><path d="M9 3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2.172a2 2 0 0 1-.586 1.414l-1.56 1.56a1.207 1.207 0 0 1-1.708 0l-1.56-1.56A2 2 0 0 1 9 5.172z"/></svg>
         }
         label="Actions"
         badge={rightBadgeCount}
+      />
+
+      <SheetToggleButton
+        side="right"
+        open={termsSheetOpen}
+        onClick={() => setTermsSheetOpen(!termsSheetOpen)}
+        offsetTop="top-40"
+        icon={
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+          </svg>
+        }
+        label="Terms"
       />
 
       {/* Left Floating Sheet - Graph Explorer */}
@@ -1271,6 +1286,24 @@ const {
             </div>
           )}
         </div>
+      </FloatingSheet>
+
+      {/* Terms Glossary Sheet */}
+      <FloatingSheet
+        open={termsSheetOpen}
+        onOpenChange={setTermsSheetOpen}
+        side="right"
+        width={650}
+        title="Deliberation Dictionary"
+        
+        variant="glass-dark"
+        icon={
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+          </svg>
+        }
+      >
+        <DefinitionSheet deliberationId={deliberationId} />
       </FloatingSheet>
 
       {/* Main Content - Full Width, No Columns */}

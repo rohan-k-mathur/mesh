@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { DialogueInspector } from "@/components/dialogue/DialogueInspector";
+import { Input } from "@/components/ui/input";
 
 /**
  * Dialogue Inspector Test Page
@@ -58,7 +59,7 @@ export default function DialogueInspectorPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Deliberation ID
                 </label>
-                <input
+                <Input
                   type="text"
                   value={deliberationId}
                   onChange={(e) => setDeliberationId(e.target.value)}
@@ -89,7 +90,7 @@ export default function DialogueInspectorPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Target ID
                 </label>
-                <input
+                <Input
                   type="text"
                   value={targetId}
                   onChange={(e) => setTargetId(e.target.value)}
@@ -104,7 +105,7 @@ export default function DialogueInspectorPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Locus Path
                 </label>
-                <input
+                <Input
                   type="text"
                   value={locusPath}
                   onChange={(e) => setLocusPath(e.target.value)}

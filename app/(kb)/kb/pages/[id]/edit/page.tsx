@@ -4,6 +4,7 @@
 import * as React from 'react';
 import useSWR from 'swr';
 import KbEditor from './ui/KbEditor';
+import { Input } from '@/components/ui/input';
 
 const fetcher = (u:string) => fetch(u, { cache:'no-store' }).then(r => r.json());
 
@@ -34,7 +35,7 @@ export default function EditPage({ params }: { params: { id: string } }) {
   return (
     <div className="p-4 max-w-3xl mx-auto space-y-4">
       <div className="flex items-center gap-2">
-        <input
+        <Input
           value={title}
           onChange={(e)=>{ const v = e.target.value; setTitle(v); saveTitle(v); }}
           placeholder="Page title…"

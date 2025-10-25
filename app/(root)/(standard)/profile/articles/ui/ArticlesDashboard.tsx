@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import useSWRInfinite from 'swr/infinite';
+import { Input } from "@/components/ui/input";
 
 type Item = {
   id: string;
@@ -181,7 +182,7 @@ export default function ArticlesDashboard({
       </div>
 
       <div className="flex flex-wrap gap-3 items-center px-2">
-        <input
+        <Input
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="Search..."
