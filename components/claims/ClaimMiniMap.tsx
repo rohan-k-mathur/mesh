@@ -48,7 +48,7 @@ type LabelRow = { claimId: string; label: 'IN'|'OUT'|'UNDEC'; explainJson?: any 
 
 // Memoized sub-components for performance
 const Dot = memo(({ label }: { label: 'IN'|'OUT'|'UNDEC' }) => {
-  const cls = label === 'IN' ? 'bg-emerald-500' : label === 'OUT' ? 'bg-rose-500' : 'bg-slate-400';
+  const cls = label === 'IN' ? 'bg-emerald-500' : label === 'OUT' ? 'bg-rose-500' : 'bg-zinc-600';
   const title =
     label === 'IN' ? 'Warranted (grounded semantics)' :
     label === 'OUT' ? 'Defeated by an IN attacker' : 'Undecided';
@@ -253,6 +253,7 @@ export default function ClaimMiniMap({ deliberationId, selectedClaimId, onClaimC
   const [expandedClaim, setExpandedClaim] = useState<string | null>(null);
   const [showMoves, setShowMoves] = useState<string | null>(null);
   const [loadingSchemes, setLoadingSchemes] = useState<Set<string>>(new Set());
+  const [expandedCQs, setExpandedCQs] = useState<Set<string>>(new Set());
 
   // Enrich claims with AIF + dialogical data
   const enrichedClaims: ClaimRow[] = useMemo(() => {
@@ -343,9 +344,28 @@ export default function ClaimMiniMap({ deliberationId, selectedClaimId, onClaimC
     const willExpand = expandedClaim !== claimId;
     if (willExpand) {
       await handleEnsureSchemes(claimId);
+    } else {
+      // When collapsing, also collapse CQs
+      setExpandedCQs(prev => {
+        const next = new Set(prev);
+        next.delete(claimId);
+        return next;
+      });
     }
     setExpandedClaim(willExpand ? claimId : null);
   }, [expandedClaim, handleEnsureSchemes]);
+
+  const handleToggleCQs = useCallback((claimId: string) => {
+    setExpandedCQs(prev => {
+      const next = new Set(prev);
+      if (next.has(claimId)) {
+        next.delete(claimId);
+      } else {
+        next.add(claimId);
+      }
+      return next;
+    });
+  }, []);
 
   const handleClaimClick = useCallback((claimId: string) => {
     onClaimClick?.(claimId);
@@ -449,7 +469,7 @@ export default function ClaimMiniMap({ deliberationId, selectedClaimId, onClaimC
                   data-claim-id={c.id}
                   className={`group relative flex flex-col rounded-xl transition-all duration-300 backdrop-blur-md border shadow-md overflow-hidden p-4 gap-3 ${
                     isSelected 
-                      ? "border-sky-300/20 bg-gradient-to-br from-cyan-200/20 to-sky-200/20 shadow-cyan-300/20" 
+                      ? "border-sky-300/20 bg-cyan-100/10  shadow-md shadow-cyan-600/20" 
                       : "border-slate-900/10 bg-slate-900/5 hover:bg-slate-900/10 hover:border-slate-900/20 "
                   }`}
                   title={tip}
@@ -543,7 +563,7 @@ export default function ClaimMiniMap({ deliberationId, selectedClaimId, onClaimC
                   {isExpanded && (
                     <div className="mt-3 pl-6 border-l-2 border-cyan-500/40 space-y-3">
                       {/* Metadata */}
-                      <div className="text-xs text-slate-700 space-y-1.5 bg-slate-900/5 backdrop-blur-sm p-3 rounded-lg border border-slate-900/10">
+                      <div className="text-xs text-slate-700 space-y-1 bg-slate-300/25 backdrop-blur-md p-3 rounded-lg border border-teal-500/30">
                         <div className="font-semibold text-sky-900 mb-2">Metadata</div>
                         <div><strong className="text-slate-900">ID:</strong> <span className="text-slate-600">{c.id}</span></div>
                         {c.moid && <div><strong className="text-slate-900">MOID:</strong> <span className="text-slate-600">{c.moid}</span></div>}
@@ -576,19 +596,34 @@ export default function ClaimMiniMap({ deliberationId, selectedClaimId, onClaimC
                       )}
 
                       {/* Critical Questions interface */}
-                      <div className="pt-2 border-t border-cyan-500/20">
-                        <div className="text-xs font-semibold mb-2 text-sky-900 flex items-center gap-2">
-                          <div className="w-1.5 h-1.5 rounded-full bg-cyan-600" />
-                          Critical Questions:
-                        </div>
-                        <div className="bg-white/80 backdrop-blur-md p-4 rounded-xl border border-slate-900/10 shadow-lg">
-                          <CriticalQuestions
-                            targetType="claim"
-                            targetId={c.id}
-                            createdById="current"
-                            deliberationId={deliberationId}
-                          />
-                        </div>
+                      <div className="h-full">
+                        <button
+                          onClick={() => handleToggleCQs(c.id)}
+                          className=" border   bg-white  border-cyan-500/50
+                          w-full h-full text-left text-md font-semibold  text-sky-900 flex items-center 
+                          gap-2 hover:text-cyan-700 transition-colors py-3 px-3 rounded-lg hover:bg-teal-300/10"
+                        >
+                          <div className="w-2 h-2 rounded-full bg-sky-600" />
+                          Critical Questions
+                          <svg 
+                            className={`w-4 h-4 ml-auto transition-transform duration-200 ${expandedCQs.has(c.id) ? "rotate-180" : ""}`}
+                            fill="none" 
+                            viewBox="0 0 24 24" 
+                            stroke="currentColor"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+                        {expandedCQs.has(c.id) && (
+                          <div className="bg-white/80 backdrop-blur-md p-4 rounded-xl border border-slate-900/10 shadow-lg animate-in fade-in slide-in-from-top-2 duration-200">
+                            <CriticalQuestions
+                              targetType="claim"
+                              targetId={c.id}
+                              createdById="current"
+                              deliberationId={deliberationId}
+                            />
+                          </div>
+                        )}
                       </div>
 
                       {/* Legal moves interface */}
@@ -597,7 +632,7 @@ export default function ClaimMiniMap({ deliberationId, selectedClaimId, onClaimC
                           <div className="w-1.5 h-1.5 rounded-full bg-cyan-600" />
                           Legal Dialogical Moves:
                         </div>
-                        <div className="bg-white/80 backdrop-blur-md p-3 rounded-xl border border-slate-900/10 shadow-lg">
+                        <div className="bg-white/40 backdrop-blur-xl p-3 rounded-xl border border-slate-900/10 shadow-sm">
                           <LegalMoveChips
                             deliberationId={deliberationId}
                             targetType="claim"
@@ -689,7 +724,7 @@ export default function ClaimMiniMap({ deliberationId, selectedClaimId, onClaimC
               <span className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-sm" /> OUT
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-slate-400 shadow-sm" /> UNDEC
+              <span className="w-2.5 h-2.5 rounded-full bg-zinc-700 shadow-sm" /> UNDEC
             </span>
             <span className="text-slate-500">(grounded semantics)</span>
             <span className="text-slate-300">|</span>

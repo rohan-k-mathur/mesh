@@ -94,16 +94,17 @@ export function GlossaryTermPicker({
 
   return (
     <div ref={containerRef} className={cn("relative", className)}>
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
+      <button
+     
+       
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 bg-slate-700/60 border-white/20 text-white hover:bg-slate-600/60 hover:border-white/30"
+            className="flex items-center gap-2 menuv2--lite rounded-lg p-1"
       >
-        <BookOpen className="w-4 h-4" />
-        Link Term
-      </Button>
+         <>
+        <BookOpen className="w-3 h-3" />
+              <span className="text-xs">Link Term</span>
+              </>
+      </button>
 
       {isOpen && (
         <div className="absolute top-full left-0 mt-2 w-96 z-50 bg-slate-900/95 backdrop-blur-xl border border-white/20 rounded-lg shadow-2xl overflow-hidden">

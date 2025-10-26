@@ -44,29 +44,27 @@ export function GlossaryEditorToolbar({
       />
       
       {onTogglePreview && (
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
+        <button
+        
           onClick={handleTogglePreview}
           className={cn(
             "flex items-center gap-2",
-            "bg-slate-700/60 border-white/20 text-white hover:bg-slate-600/60 hover:border-white/30"
+            "menuv2--lite rounded-lg p-1"
           )}
           title={preview ? "Hide link preview" : "Show link preview"}
         >
           {preview ? (
             <>
-              <EyeOff className="w-4 h-4" />
+              <EyeOff className="w-3 h-3" />
               <span className="text-xs">Hide Links</span>
             </>
           ) : (
             <>
-              <Eye className="w-4 h-4" />
+              <Eye className="w-3 h-3" />
               <span className="text-xs">Preview Links</span>
             </>
           )}
-        </Button>
+        </button>
       )}
     </div>
   );
