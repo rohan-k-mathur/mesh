@@ -10,6 +10,8 @@ import EnthymemeNudge from '@/components/deepdive/EnthymemeNudge';
 import { TheoryFraming } from '@/components/compose/TheoryFraming';
 import { invalidateDeliberation } from '@/lib/deepdive/invalidate';
 import { useLegalMoves } from '@/components/dialogue/useLegalMoves';
+import { GlossaryEditorToolbar } from '@/components/glossary/GlossaryEditorToolbar';
+import { GlossaryText } from '@/components/glossary/GlossaryText';
 import type { Proposition } from './PropositionComposer';
 
 // --- Types -------------------------------------------------------------------
@@ -64,6 +66,9 @@ export function PropositionComposerPro({
   const [text, setText] = React.useState('');
   const [sources, setSources] = React.useState<string[]>([]);
   const [imageUrl, setImageUrl] = React.useState('');
+
+  // Glossary preview mode
+  const [showPreview, setShowPreview] = React.useState(false);
 
   // Epistemics (non-intrusive, progressive disclosure)
   const [quantifier, setQuantifier] = React.useState<Quantifier | undefined>();
@@ -313,24 +318,43 @@ export function PropositionComposerPro({
 
       {/* Core text */}
       <div className="space-y-2">
-        <textarea
-          ref={textareaRef}
-          rows={4}
-          placeholder={placeholder}
-          className="w-full h-full resize-none rounded-lg articlesearchfield px-3 py-3 mt-1 bg-white text-sm"
-          value={text}
-          maxLength={max}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => {
-            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && !pending && text.trim()) {
-              e.preventDefault(); submit();
-            }
-          }}
-          disabled={pending}
-          spellCheck
-          aria-label="Proposition text"
-          enterKeyHint="done"
+        {/* Glossary toolbar */}
+        <GlossaryEditorToolbar
+          deliberationId={deliberationId}
+          onInsertTerm={(syntax) => insertAtCursor(textareaRef, syntax, setText)}
+          showPreview={showPreview}
+          onTogglePreview={() => setShowPreview(!showPreview)}
         />
+
+        {/* Edit mode: textarea */}
+        {!showPreview && (
+          <textarea
+            ref={textareaRef}
+            rows={4}
+            placeholder={placeholder}
+            className="w-full h-full resize-none rounded-lg articlesearchfield px-3 py-3 mt-1 bg-white text-sm"
+            value={text}
+            maxLength={max}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => {
+              if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && !pending && text.trim()) {
+                e.preventDefault(); submit();
+              }
+            }}
+            disabled={pending}
+            spellCheck
+            aria-label="Proposition text"
+            enterKeyHint="done"
+          />
+        )}
+
+        {/* Preview mode: glossary text */}
+        {showPreview && (
+          <div className="w-full min-h-[120px] rounded-lg articlesearchfield px-3 py-3 mt-1 bg-white text-sm">
+            <GlossaryText text={text} className="whitespace-pre-wrap" />
+          </div>
+        )}
+
         <div className="h-1.5 overflow-hidden rounded bg-slate-200/70" aria-hidden>
           <div className="h-full rounded bg-[linear-gradient(90deg,theme(colors.indigo.400),theme(colors.fuchsia.400),theme(colors.sky.400))]" style={{ width: `${pct * 100}%` }} />
         </div>

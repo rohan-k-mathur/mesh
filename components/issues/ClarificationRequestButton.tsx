@@ -2,7 +2,7 @@
 "use client";
 
 import * as React from "react";
-import { HelpCircle } from "lucide-react";
+import { HelpCircle, MessageCircleQuestion } from "lucide-react";
 import { IssueComposer } from "./IssueComposerExtended";
 import { useMicroToast } from "@/hooks/useMicroToast";
 
@@ -37,7 +37,7 @@ export function ClarificationRequestButton({
           transition-all duration-200`
         }
       >
-        <HelpCircle className="w-3.5 h-3.5" />
+        <MessageCircleQuestion className="w-3.5 h-3.5" />
         Request Clarification
       </button>
 

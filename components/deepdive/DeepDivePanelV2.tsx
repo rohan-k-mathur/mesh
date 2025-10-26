@@ -811,7 +811,7 @@ const {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
           </svg>
         }
-        label="Terms"
+        label="Dictionary"
       />
 
       {/* Left Floating Sheet - Graph Explorer */}
@@ -1111,7 +1111,7 @@ const {
         open={rightSheetOpen}
         onOpenChange={setRightSheetOpen}
         side="right"
-        width={520}
+        width={650}
         title="Actions & Diagram"
         subtitle={hudTarget ? 'Available moves' : 'Select a claim'}
         icon={
@@ -1293,7 +1293,7 @@ const {
         open={termsSheetOpen}
         onOpenChange={setTermsSheetOpen}
         side="right"
-        width={650}
+        width={1000}
         title="Deliberation Dictionary"
         
         variant="glass-dark"
@@ -1454,7 +1454,7 @@ const {
 />
 </div>
   {/* </SectionCard> */}
-            <SectionCard title="AIF Arguments" className=" w-[1200px]" padded={true}>
+            <SectionCard title="Arguments List (Argument Interchange Format)" className=" w-[1200px]" padded={true}>
               <AIFArgumentsListPro
                 deliberationId={deliberationId}
                 onVisibleTextsChanged={(texts) => {
@@ -1465,7 +1465,7 @@ const {
                 Note: This list shows all structured arguments in the deliberation&apos;s AIF database. Some arguments may not yet be linked to claims in the debate.
               </span>
             </SectionCard>
-
+{/* 
    <SectionCard className="w-full">
               <Collapsible open={diagnosticsState.open} onOpenChange={diagnosticsState.setOpen}>
                 <CollapsibleTrigger className="w-full text-left px-3 py-2 text-sm font-semibold hover:bg-slate-50 rounded flex items-center justify-between">
@@ -1477,7 +1477,7 @@ const {
                   <TopologyWidget deliberationId={deliberationId} />
                 </CollapsibleContent>
               </Collapsible>
-            </SectionCard>
+            </SectionCard> */}
             {/* <SectionCard>
               <Collapsible open={schemeComposerState.open} onOpenChange={schemeComposerState.setOpen}>
                 <CollapsibleTrigger className="w-full text-left px-3 py-2 text-sm font-semibold hover:bg-slate-50 rounded flex items-center justify-between">

@@ -3,7 +3,7 @@
 
 import * as React from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowUp, ArrowDown, Triangle, Target, Sparkles, CheckCircle2, AlertCircle, FileText, Loader2, GitBranch } from "lucide-react";
+import { ArrowUp, ArrowDown, Triangle, Target, Sparkles, CheckCircle2, AlertCircle, FileText, Loader2, GitBranch, FerrisWheel } from "lucide-react";
 import { EntityPicker } from "@/components/kb/EntityPicker";
 
 import "./deliberation-styles.css";
@@ -284,7 +284,7 @@ export function PreferenceAttackModal({
       <DialogContent
         className="max-w-2xl max-h-[80%] custom-scrollbar overflow-y-auto rounded-2xl border-2 border-purple-500/50
            
-          backdrop-blur-xl shadow-2xl px-6 py-8"
+          backdrop-blur-xl bg-purple-200/30 shadow-2xl px-6 py-8"
         onOpenAutoFocus={(e) => {
           e.preventDefault();
           titleRef.current?.focus();
@@ -555,7 +555,7 @@ export function PreferenceAttackModal({
             {/* Preference type selection */}
             <div className="space-y-3">
               <div className="text-sm font-semibold text-slate-900 flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-violet-600" />
+                <FerrisWheel className="w-4 h-4 text-violet-600" />
                 Select Preference Type
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -817,7 +817,7 @@ export function PreferenceAttackModal({
                 )}
 
                 {/* Justification field */}
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <label className="text-sm font-semibold text-slate-900 flex items-center gap-2">
                     <FileText className="w-4 h-4 text-violet-600" />
                     Justification <span className="text-xs text-slate-500 font-normal">(optional)</span>
@@ -833,12 +833,9 @@ export function PreferenceAttackModal({
                       focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent
                       transition-all duration-200"
                   />
-                  {justification.length > 0 && (
-                    <div className="text-xs text-slate-500">
-                      {justification.length} characters
-                    </div>
-                  )}
+                  
                 </div>
+                
               </div>
             )}
 
@@ -847,9 +844,9 @@ export function PreferenceAttackModal({
               <button
                 onClick={() => onOpenChange(false)}
                 disabled={busy}
-                className="flex-1 px-4 py-2.5 rounded-lg font-medium text-sm
-                  bg-white/70 hover:bg-slate-100/70 text-slate-700
-                  border border-slate-300 hover:border-slate-400
+                className="flex-1 px-4 py-2.5 rounded-lg font-medium text-sm 
+                  menuv2--lite bg-slate-200/60 text-slate-700 border border-slate-700
+                  
                   transition-all duration-200 disabled:opacity-50"
               >
                 Cancel
@@ -857,10 +854,9 @@ export function PreferenceAttackModal({
               <button
                 onClick={handleSubmit}
                 disabled={!canSubmit}
-                className="flex-1 px-4 py-2.5 rounded-lg font-medium text-sm
-                  bg-gradient-to-r from-violet-600 to-purple-600
-                  hover:from-violet-700 hover:to-purple-700
-                  text-white shadow-md hover:shadow-lg
+                className="flex-1 px-4 py-2.5 rounded-lg font-medium text-sm btnv2--violet
+                 
+                  text-purple-800 
                   transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed
                   flex items-center justify-center gap-2"
               >

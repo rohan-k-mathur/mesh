@@ -7,6 +7,8 @@ import useSWRInfinite from 'swr/infinite';
 import useSWR from 'swr';
 import { Virtuoso } from 'react-virtuoso';
 import { EntityPicker } from '../kb/EntityPicker';
+import { LetterQOctagon } from "@mynaui/icons-react";
+
 import dynamic from 'next/dynamic';
 import {
   Shield,
@@ -17,7 +19,7 @@ import {
   Filter,
   Link2,
   TrendingUp,
-  Sparkles,
+  FerrisWheel,
   ArrowUp,
   ArrowDown,
   Eye,
@@ -25,6 +27,7 @@ import {
   HelpCircle,
   Triangle,
   ExternalLink,
+  Scale,
 } from 'lucide-react';
 
 import { listSchemes, getArgumentCQs, askCQ, exportAif } from '@/lib/client/aifApi';
@@ -263,9 +266,9 @@ function PreferenceQuick({
     <>
       <button
         onClick={() => setOpen(true)}
-        className="btnv2--rose inline-flex items-center gap-2 px-2 py-2 rounded-lg text-xs"
+        className="btnv2--violet inline-flex items-center gap-2 px-2 py-2 rounded-lg text-xs"
       >
-        <Triangle className="w-3 h-3" />
+        <Scale className="w-3 h-3" />
         Preference
       </button>
 
@@ -474,7 +477,7 @@ function RowImpl({
     <article
       id={`arg-${a.id}`}
       className="
-        group relative py-5 px-8 bg-slate-50 w-full border border-indigo-400 shadow-md shadow-slate-400/50 rounded-xl
+        group relative py-5 px-8 about-flow-lite w-full border border-indigo-400 shadow-md shadow-slate-400/50 rounded-xl
         hover:shadow-slate-500/60 transition-all duration-100
   
       "
@@ -513,7 +516,7 @@ function RowImpl({
             {meta?.implicitWarrant?.text && (
               <div className="mt-2 px-2 py-1 rounded-lg bg-amber-50 border border-amber-200 w-fit">
                 <div className="flex items-start gap-2">
-                  {/* <Sparkles className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" /> */}
+                  <FerrisWheel className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
                   <div className='flex gap-1'>
                     <div className="text-xs font-medium text-amber-900 mb-0.5">Implicit Warrant:</div>
                     <div className="text-xs text-amber-800">{meta.implicitWarrant.text}</div>
@@ -627,17 +630,17 @@ function RowImpl({
                 <button
                   onClick={loadCQs}
                   className="
-                    inline-flex items-center gap-2 px-3 py-1.5 btnv2 rounded-lg text-xs font-medium
-                    bg-white text-slate-600 border border-slate-200
-                    hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700
+                    inline-flex items-center gap-2 px-3 py-1.5 btnv2--rose rounded-lg text-xs
+                    bg-white text-slate-600 
+                    
                     transition-all duration-200
                   "
                   title="View and answer critical questions for this argument scheme"
                 >
-                  <HelpCircle className="w-4 h-4" />
+                  <LetterQOctagon className="w-4 h-4" />
                   CQs
                   {meta.cq && (
-                    <span className="ml-1 px-1.5 py-0.5 rounded-full bg-slate-200 text-slate-700 text-[10px] font-bold">
+                    <span className="ml-1 px-1.5 py-0.5 rounded-full bg-rose-100 text-slate-700 text-[10px] font-bold">
                       {meta.cq.satisfied}/{meta.cq.required}
                     </span>
                   )}
@@ -653,7 +656,7 @@ function RowImpl({
               href={`/claim/${meta.conclusion.id}`}
               className="
                 inline-flex items-center gap-2 px-2 py-2 btnv2--amber rounded-lg text-xs font-medium
-               text-slate-600 border border-amber-200
+               text-slate-600  bg-yellow-50
                  transition-all duration-200 shadow-sm hover:shadow
               "
             >
@@ -1000,7 +1003,7 @@ export default function AIFArgumentsListPro({
 
   return (
 
-    <section aria-label="AIF arguments list" className="w-full rounded-xl bg-white panel-edge border border-zinc-500/50 overflow-hidden flex flex-col h-full">
+    <section aria-label="AIF arguments list" className="w-full rounded-xl bg-white/10 backdrop-blur-md panel-edge border border-zinc-500/50 overflow-hidden flex flex-col h-full">
       <Controls
         schemes={schemes}
         schemeKey={schemeKey}
@@ -1039,7 +1042,7 @@ export default function AIFArgumentsListPro({
       </div>
 
       {/* Virtualized list */}
-      <div className="h-[564px]">
+      <div className="h-[1000px]">
         <Virtuoso
           data={sorted}
           computeItemKey={(_i, a) => a.id}
@@ -1052,7 +1055,7 @@ export default function AIFArgumentsListPro({
             const isRefreshing = refreshing.has(a.id);
 
             return (
-              <div className='px-2 relative'>
+              <div className='px-3 relative'>
                 {isRefreshing && (
                   <div className="absolute inset-0 bg-white/60 backdrop-blur-sm flex items-center justify-center z-10 rounded-xl">
                     <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />

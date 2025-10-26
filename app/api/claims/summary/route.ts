@@ -7,7 +7,11 @@ export async function GET(req: Request) {
   if (!deliberationId) return NextResponse.json({ error: 'deliberationId required' }, { status: 400 });
 
   const [claims, edges] = await Promise.all([
-   prisma.claim.findMany({ where: { deliberationId }, select: { id: true, text: true, moid: true, createdAt: true } }),
+   prisma.claim.findMany({ 
+     where: { deliberationId }, 
+     select: { id: true, text: true, moid: true, createdAt: true },
+     orderBy: { createdAt: 'desc' }
+   }),
     prisma.claimEdge.findMany({ where: { deliberationId }, select: { fromClaimId: true, type: true } }),
   ]);
 
@@ -39,6 +43,7 @@ claims: claims.map((c) => ({
      id: c.id,
      text: c.text,
      moid: c.moid,
+     createdAt: c.createdAt,
      counts: counts[c.id] ?? { supports: 0, rebuts: 0 },
      cq: cqById[c.id] ?? { required: 0, satisfied: 0 },
    })),  });

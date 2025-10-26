@@ -3,6 +3,7 @@
 import { useState, useMemo, useCallback, memo } from 'react';
 import useSWR from 'swr';
 import React from 'react';
+import { GlossaryText } from '@/components/glossary/GlossaryText';
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
   import {
@@ -60,7 +61,7 @@ const CqMeter = memo(({ cq }: { cq?: { required: number; satisfied: number } }) 
   const pct = r ? Math.round((s / r) * 100) : 0;
   const color = pct >= 100 ? "bg-emerald-400/15 text-emerald-900 border-emerald-500/40" :
                 pct >= 50 ? "bg-amber-400/15 text-amber-900 border-amber-500/40" :
-                "bg-slate-900/5 text-slate-600 border-slate-900/20";
+                "bg-stone-200/75 text-slate-600 border-slate-900/20";
   return (
     <span
       className={`text-[10px] px-2 py-1 rounded-lg border backdrop-blur-sm ${color} font-medium`}
@@ -429,7 +430,7 @@ export default function ClaimMiniMap({ deliberationId, selectedClaimId, onClaimC
               to-transparent translate-y-[50%] 
               transition-transform duration-700" />
               <span className="relative">
-                {loadingSchemes.has(visibleClaims[0]?.id) ? "Loading…" : expandedClaim ? "Collapse All" : "Expand View"}
+                {loadingSchemes.has(visibleClaims[0]?.id) ? "Loading…" : expandedClaim ? "Collapse" : "Expand"}
               </span>
             </button>
           </div>
@@ -446,15 +447,15 @@ export default function ClaimMiniMap({ deliberationId, selectedClaimId, onClaimC
                   key={c.id}
                   id={`row-${c.id}`}
                   data-claim-id={c.id}
-                  className={`group relative flex flex-col rounded-xl transition-all duration-300 backdrop-blur-md border shadow-lg overflow-hidden p-4 gap-3 ${
+                  className={`group relative flex flex-col rounded-xl transition-all duration-300 backdrop-blur-md border shadow-md overflow-hidden p-4 gap-3 ${
                     isSelected 
-                      ? "border-cyan-500/60 bg-gradient-to-br from-cyan-400/20 to-sky-400/20 shadow-cyan-400/20" 
+                      ? "border-sky-300/20 bg-gradient-to-br from-cyan-200/20 to-sky-200/20 shadow-cyan-300/20" 
                       : "border-slate-900/10 bg-slate-900/5 hover:bg-slate-900/10 hover:border-slate-900/20 "
                   }`}
                   title={tip}
                 >
                   {/* Glass shine effect */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-slate-900/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                  {/* <div className="absolute inset-0 bg-gradient-to-br from-slate-900/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" /> */}
                   
                   {/* Selection indicator dot */}
                   {isSelected && (
@@ -467,12 +468,12 @@ export default function ClaimMiniMap({ deliberationId, selectedClaimId, onClaimC
                   <div className="relative flex items-start gap-3">
                     <div className="mt-1"><Dot label={lab} /></div>
                     <div 
-                      className={`flex-1 text-sm line-clamp-2 max-w-[34rem] cursor-pointer transition-colors duration-300 ${
-                        isSelected ? "text-cyan-900 font-medium" : "text-slate-900 hover:text-sky-700"
+                      className={`flex-1 text-sm line-clamp-2 max-w-[36rem] cursor-pointer  ${
+                        isSelected ? "text-cyan-900 font-medium" : "text-slate-900 hover:text-sky-800"
                       }`}
                       onClick={() => handleClaimClick(c.id)}
                     >
-                      {c.text}
+                      <GlossaryText text={c.text} />
                     </div>
                     <div className="shrink-0 flex items-center gap-2 flex-wrap">
                       {/* Support/Rebut counts */}
@@ -504,7 +505,7 @@ export default function ClaimMiniMap({ deliberationId, selectedClaimId, onClaimC
                       
                       {/* Action buttons */}
                       <button
-                        className="text-[11px] px-2.5 py-1.5 rounded-lg bg-slate-900/5 backdrop-blur-md border border-slate-900/20 text-slate-900 hover:bg-slate-900/10 hover:border-slate-900/30 transition-all duration-200 disabled:opacity-50 font-medium shadow-sm"
+                        className="text-[11px] px-2.5 py-1 rounded-lg bg-yellow-400/40 backdrop-blur-md border border-yellow-900/20 text-yellow-900 hover:bg-yellow-500/40 hover:border-yellow-900/30 transition-all duration-200 disabled:opacity-50 font-medium shadow-sm"
                         title="Open Critical Questions"
                         disabled={loadingSchemes.has(c.id)}
                         onClick={(e) => { 
@@ -516,7 +517,8 @@ export default function ClaimMiniMap({ deliberationId, selectedClaimId, onClaimC
                       </button>
                       
                       <button
-                        className="text-[11px] px-2.5 py-1.5 rounded-lg bg-slate-900/5 backdrop-blur-md border border-slate-900/20 text-slate-900 hover:bg-slate-900/10 hover:border-slate-900/30 transition-all duration-200 font-medium shadow-sm"
+                        className="text-[11px] px-2.5 py-1 rounded-lg bg-teal-500/30 backdrop-blur-md border border-teal-900/20 text-teal-900 hover:bg-teal-600/30 
+                        hover:border-teal-900/30 transition-all duration-200 font-medium shadow-sm"
                         title="Show dialogical moves"
                         onClick={(e) => { e.stopPropagation(); setShowMoves(showMoves === c.id ? null : c.id); }}
                       >
@@ -524,7 +526,7 @@ export default function ClaimMiniMap({ deliberationId, selectedClaimId, onClaimC
                       </button>
                       
                       <button
-                        className="text-[11px] px-2.5 py-1.5 rounded-lg bg-gradient-to-br from-sky-400/15 to-cyan-400/15 backdrop-blur-md border border-cyan-500/30 text-sky-900 hover:from-sky-400/20 hover:to-cyan-400/20 hover:border-cyan-500/40 transition-all duration-200 disabled:opacity-50 font-medium shadow-sm"
+                        className="text-[11px] px-2.5 py-1 rounded-lg bg-gradient-to-br from-sky-400/15 to-cyan-400/15 backdrop-blur-md border border-cyan-500/30 text-sky-900 hover:from-sky-400/20 hover:to-cyan-400/20 hover:border-cyan-500/40 transition-all duration-200 disabled:opacity-50 font-medium shadow-sm"
                         title="Expand details"
                         disabled={loadingSchemes.has(c.id)}
                         onClick={(e) => { 

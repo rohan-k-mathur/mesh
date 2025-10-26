@@ -6,6 +6,7 @@ import useSWRInfinite from 'swr/infinite';
 import { Virtuoso } from 'react-virtuoso';
 import { BookOpen, CheckOctagon, PlusHexagon } from "@mynaui/icons-react";
 import { Send, Share,EnvelopeOpen, TrendingUp, CheckSquare } from "@mynaui/icons-react";
+import { GlossaryText } from '@/components/glossary/GlossaryText';
 
 
 import { 
@@ -124,7 +125,7 @@ function ClampedText({ text, lines = 4 }: { text: string; lines?: number }) {
           ${expanded ? '' : `line-clamp-${lines}`}
         `}
       >
-        {text}
+        <GlossaryText text={text} />
       </div>
       {shouldClamp && !expanded && (
         <>
@@ -821,7 +822,7 @@ export default function PropositionsList({
             <MessageSquare className="w-8 h-8 text-indigo-600" />
           </div>
           <h3 className="text-lg font-semibold text-slate-900 mb-2">No propositions yet</h3>
-          <p className="text-sm text-slate-600 max-w-md mx-auto">
+          <p className="text-sm text-slate-600  mx-auto">
             Be the first to share an idea! Propositions are workshopped thoughts that can be elevated to claims.
           </p>
         </div>

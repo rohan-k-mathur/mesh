@@ -17,6 +17,7 @@ import {
   HelpCircle,
   Zap,
   CheckCircle2,
+  Crosshair,
 } from "lucide-react";
 import { SchemeComposerPicker } from "../SchemeComposerPicker";
 type ClaimRef = { id: string; text: string };
@@ -63,54 +64,68 @@ export function AttackMenuProV2({
       </DialogTrigger>
 
       <DialogContent
-        className="max-w-4xl max-h-[90vh] overflow-y-auto  custom-scrollbar
-         bg-gradient-to-br from-slate-50 to-slate-100"
+        className="max-w-4xl max-h-[90vh] overflow-y-auto  custom-scrollbar backdrop-blur-xl
+         bg-gradient-to-br from-rose-200/50 to-orange-200/70 panel-edge"
         onOpenAutoFocus={(e) => {
           e.preventDefault();
           titleRef.current?.focus();
         }}
       >
-        <DialogHeader className="space-y-2 pb-4 border-b border-slate-200">
+        <DialogHeader className="space-y-0 ">
           <DialogTitle
             ref={titleRef as any}
             tabIndex={-1}
-            className="outline-none text-2xl font-bold text-slate-900 flex items-center gap-3"
+            className="outline-none text-2xl font-bold text-slate-800 flex items-center gap-3"
           >
-            <div className="p-2 rounded-lg bg-gradient-to-br from-rose-50 to-rose-100">
-              <Swords className="w-6 h-6 text-rose-700" />
-            </div>
+            {/* <div className="p-2 rounded-lg bg-gradient-to-br from-rose-50 to-rose-100 ">
+              <Swords className="w-5 h-5 text-rose-700" />
+            </div> */}
+            <div className="tracking-wide mb-1">
             Challenge This Argument
+            </div>
           </DialogTitle>
-          <p className="text-sm text-slate-600 leading-relaxed">
-            Choose a strategic attack type or explore critical questions to identify weaknesses.
+          <p className="text-xs px-1 text-slate-700 leading-tight">
+            Respond to this argument with a specific attack type.
           </p>
         </DialogHeader>
 
         {/* Target summary card */}
-        <div className="p-4 bg-white rounded-xl border-2 border-slate-200 shadow-sm">
+        <div className="px-4 py-3 bg-white rounded-xl border-2 border-indigo-300 shadow-md gap-4">
           <div className="flex items-start gap-3">
-            <div className="p-2 rounded-lg bg-indigo-100">
-              <Target className="w-5 h-5 text-indigo-600" />
+                            <div className="flex items-start gap-2">
+                                <div className="flex flex-col">
+              <div className="flex items-center gap-2">
+                <div className="p-0 rounded-lg ">
+                  <Target className="w-5 h-5 text-indigo-600" />
             </div>
-            <div className="flex-1">
-              <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">
-                Target Argument
-              </div>
-              <div className="text-sm font-semibold text-slate-900 mb-2">
-                {target.conclusion.text}
-              </div>
-              <div className="flex items-center gap-2 text-xs text-slate-600">
-                <span className="font-medium">{target.premises.length} premise:{target.premises.length !== 1 ? 's' : ''}</span>
+                      
+                    <div className="flex gap-2 flex-wrap items-center">
+                    <div className="text-sm items-center font-bold text-indigo-700 uppercase tracking-wide ">
+                      Target Argument ⦂
+                    </div>
+                   
+                    <div className="text-sm font-medium text-indigo-800 tracking-wide">
+                      {target.conclusion.text}
+                      </div>
+                    </div>
+                    </div>
+                     <div className="flex items-center gap-2 text-sm justify-center text-indigo-900">
+                         <span className="font-medium"> ⸻</span>
+                <span className="font-medium">{target.premises.length} premise ⦂{target.premises.length !== 1 ? 's' : ''}</span>
                 <span className="font-light">{target.premises.map(p => p.text).join(", ")}</span>
-                <span className="text-slate-400">•</span>
+                <span className="text-slate-600">{target.premises.length !== 1 ? '•' : ''}</span>
                 {/* <span>ID: {target.id.slice(0, 20)}...</span> */}
               </div>
+              </div>
+                </div>
+                </div>
+               
+             
             </div>
-          </div>
-        </div>
-
+  
         {/* Attack menu content */}
-        <div className="flex-1 overflow-y-auto mt-4 pr-2">
+        <hr className="my-.5 border border-white/80 " />
+        <div className="flex-1 overflow-y-auto  ">
           {mounted ? (
             <AttackMenuContent
               deliberationId={deliberationId}
@@ -393,29 +408,31 @@ function AttackMenuContent({
   return (
     <div className="space-y-4">
       {/* REBUT Card */}
-      <div className="group relative rounded-xl border-2 border-rose-200 bg-gradient-to-br from-rose-50 to-rose-100 overflow-hidden transition-all duration-300 hover:shadow-lg">
-        <div className="p-5">
+      <div className="group relative rounded-xl  border-2 border-rose-200 hover:border-rose-400 bg-gradient-to-br from-rose-50 to-rose-100 overflow-hidden 
+      transition-all duration-300 ">
+        <div className="px-4 py-4">
           <button
             onClick={() => toggleExpand("rebut")}
             className="w-full flex items-start justify-between gap-4 text-left"
           >
-            <div className="flex items-start gap-4 flex-1">
-              <div className="p-3 rounded-xl bg-white shadow-sm">
-                <ShieldX className="w-6 h-6 text-rose-600" strokeWidth={2.5} />
+            <div className="flex items-start gap-3  flex-1">
+              <div className="p-0 rounded-xl mt-2 bg-transparent shadow-none">
+                <Crosshair className="w-6 h-6  text-rose-600" strokeWidth={2.5} />
               </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-bold text-rose-900 mb-1 flex items-center gap-2">
+              <div className="flex flex-col flex-1 ">
+                <h3 className="text-lg font-bold text-rose-900  flex items-center gap-2">
                   Rebut
-                  {rebut && <CheckCircle2 className="w-5 h-5 text-emerald-600" />}
+                  {rebut && <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
                 </h3>
-                <p className="text-sm text-rose-700 leading-relaxed">
+                <p className="text-sm text-rose-700 leading-tight">
                   Directly contradict the <span className="font-semibold">conclusion</span>
                 </p>
-                <div className="mt-2 flex items-center gap-2 text-xs">
-                  <span className="px-2 py-1 rounded-full bg-rose-200 text-rose-800 font-medium">
-                    High Impact
+                <div className="mt-1 flex items-center gap-2 text-xs">
+                                      <span className="text-rose-600">Attacks the core claim • </span>
+
+                  <span className="px-1 py-.5 rounded-md border bg-rose-200/50 border-rose-400 text-rose-800 font-medium">
+                    Direct
                   </span>
-                  <span className="text-rose-600">• Attacks the core claim</span>
                 </div>
               </div>
             </div>
@@ -425,45 +442,51 @@ function AttackMenuContent({
           </button>
 
           {isExpanded("rebut") && (
-            <div className="mt-4 space-y-4 animate-in slide-in-from-top-2 duration-300">
-              <div className="p-4 bg-white rounded-lg border border-rose-100 shadow-sm">
-                <div className="flex items-start gap-3">
-                  <Target className="w-5 h-5 text-rose-500 mt-0.5 shrink-0" />
-                  <div className="flex-1">
-                    <div className="text-xs font-semibold text-rose-700 uppercase tracking-wide mb-1">
-                      Target Conclusion
+            <div className="mt-2 space-y-2 px-3 animate-in slide-in-from-top-2 duration-300">
+              <div className="px-2 py-2 bg-white/80 border-rose-300 mt-3 rounded-lg border border-rose-100 shadow-md">
+                <div className="flex items-start gap-2">
+                
+                    <div className="flex items-center gap-2">
+                      
+                  <Target className="w-4 h-4 text-rose-500  " />
+                    <div className="flex gap-2 flex-wrap items-center">
+                    <div className="text-sm items-center font-semibold text-rose-700 uppercase tracking-wide ">
+                      Target Conclusion ⦂
                     </div>
-                    <div className="text-sm text-slate-800 leading-relaxed">
+                   
+                    <div className="text-sm text-rose-900 ">
                       {target.conclusion.text}
+                      </div>
                     </div>
-                  </div>
+                    </div>
                 </div>
               </div>
 
-              <div className="space-y-3">
-                <label className="block text-sm font-semibold text-slate-900">
-                  Your Counter-Claim
+              <div className="space-y-4 ">
+                <div className="space-y-2">
+                <label className=" text-sm px-1 font-medium text-rose-900">
+                  Your Counter-Claim ⦂
                 </label>
                 <button
-                  className="w-full px-4 py-3 rounded-lg border-2 border-rose-300 bg-white text-sm text-left hover:border-rose-400 hover:bg-rose-50 transition-all duration-200 shadow-sm"
+                  className="w-full  px-3 py-2 btnv2--rose rounded-lg border-2 border-rose-300 bg-white text-sm 
+                  text-left hover:border-rose-400  transition-all duration-200 shadow-sm"
                   onClick={() => setPickerRebutOpen(true)}
                 >
                   {rebut ? (
                     <div className="flex items-start gap-2">
-                      <Sparkles className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
                       <span className="text-slate-900">{rebut.text}</span>
                     </div>
                   ) : (
                     <span className="text-slate-500">Select or create a counter-claim...</span>
                   )}
                 </button>
-
+</div>
                 <button
                   className="
-                    w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl
-                    text-sm font-bold bg-gradient-to-r from-rose-600 to-rose-700 text-white
-                    hover:from-rose-700 hover:to-rose-800
-                    disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-rose-600
+                    w-fit  btnv2--rose inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl
+                    text-sm font-bold bg-gradient-to-r from-rose-500 to-rose-600 text-white
+                    hover:from-rose-600 hover:to-rose-700
+                    disabled:opacity-50 disabled:cursor-not-allowed 
                     transition-all duration-200 shadow-md hover:shadow-lg active:scale-95
                   "
                   disabled={!rebut || !rebut.id || !!busy}
@@ -477,8 +500,108 @@ function AttackMenuContent({
                     </>
                   ) : (
                     <>
-                      <Zap className="w-5 h-5" />
+                      {/* <Zap className="w-5 h-5" /> */}
+                      <Crosshair className="w-5 h-5" />
                       Post Rebuttal
+                      <ChevronRight className="w-5 h-5 " />
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+ {/* UNDERCUT Card */}
+      <div className="group relative rounded-xl border-2 border-amber-200 bg-gradient-to-br from-amber-50 
+      to-amber-100 overflow-hidden transition-all duration-300 hover:border-amber-400">
+        <div className="px-4 py-4">
+          <button
+            onClick={() => toggleExpand("undercut")}
+            className="w-full flex items-start justify-between gap-4 text-left"
+          >
+            <div className="flex items-start gap-3 flex-1">
+              <div className="p-0 rounded-xl mt-2 bg-transparent shadow-none">
+                <ShieldAlert className="w-6 h-6 text-amber-600" strokeWidth={2.5} />
+              </div>
+              <div className="flex flex-col flex-1">
+                <h3 className="text-lg font-bold text-amber-900 flex items-center gap-2">
+                  Undercut
+                  {undercutText && <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
+                </h3>
+                <p className="text-sm text-amber-700 leading-tight">
+                  Show that the <span className="font-semibold">inference is defective</span>
+                </p>
+                <div className="mt-1 flex items-center gap-2 text-xs">
+                  <span className="text-amber-600">Challenges reasoning • </span>
+                  <span className="px-1 py-.5 rounded-md border bg-amber-200/50 border-amber-400 text-amber-800 font-medium">
+                    Structural
+                  </span>
+                </div>
+              </div>
+            </div>
+            <div className={`transition-transform duration-300 ${isExpanded("undercut") ? "rotate-180" : ""}`}>
+              <ChevronDown className="w-5 h-5 text-amber-600" />
+            </div>
+          </button>
+
+          {isExpanded("undercut") && (
+            <div className="mt-0 space-y-2 px-3 animate-in slide-in-from-top-2 duration-300">
+              <div className="px-2 py-2 bg-white/80 border-amber-300 mt-3 rounded-lg border border-amber-100 shadow-md">
+                <p className="text-sm text-amber-800 leading-relaxed">
+                  Explain why the premises don't necessarily lead to the conclusion.
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <div className="space-y-2 p-0">
+                  <label className="text-sm px-1 font-medium text-amber-900">
+                    Exception or Rule-Defeater ⦂
+                  </label>
+                  <textarea
+                    value={undercutText}
+                    onChange={(e) => setUndercutText(e.target.value)}
+                    placeholder="E.g., 'However, the expert's opinion was given before key evidence emerged...'"
+                    className="
+                      w-full px-3 py-2 rounded-lg border-2 border-amber-300 bg-white
+                      focus:border-amber-400 focus:ring-2 focus:ring-amber-100 focus:outline-none
+                      transition-all duration-200 resize-none text-sm leading-relaxed
+                      placeholder:text-slate-400
+                    "
+                    rows={3}
+                  />
+                  <div className="flex items-center justify-between mt-0 px-2 text-xs">
+                    <span className="text-slate-500">{undercutText.length} characters</span>
+                    {undercutText.trim() && (
+                      <div className="flex items-center gap-1 text-emerald-600 font-medium">
+                        <CheckCircle2 className="w-4 h-4" />
+                        Ready to post
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <button
+                  className="
+                    w-fit btnv2--sunset inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl
+                    text-sm font-bold bg-gradient-to-r from-amber-500 to-amber-600 text-white
+                    hover:from-amber-600 hover:to-amber-700
+                    disabled:opacity-50 disabled:cursor-not-allowed 
+                    transition-all duration-200 shadow-md hover:shadow-lg active:scale-95
+                  "
+                  disabled={!undercutText.trim() || !!busy}
+                  onClick={() => fire("UNDERCUTS")}
+                  aria-busy={busy === "UNDERCUTS"}
+                >
+                  {busy === "UNDERCUTS" ? (
+                    <>
+                      <div className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin" />
+                      Posting undercut...
+                    </>
+                  ) : (
+                    <>
+                      <ShieldAlert className="w-5 h-5" />
+                      Post Undercut
                       <ChevronRight className="w-5 h-5" />
                     </>
                   )}
@@ -489,128 +612,31 @@ function AttackMenuContent({
         </div>
       </div>
 
-      {/* UNDERCUT Card */}
-      <div className="group relative rounded-xl border-2 border-amber-200 bg-gradient-to-br from-amber-50 to-amber-100 overflow-hidden transition-all duration-300 hover:shadow-lg">
-        <div className="p-5">
-          <button
-            onClick={() => toggleExpand("undercut")}
-            className="w-full flex items-start justify-between gap-4 text-left"
-          >
-            <div className="flex items-start gap-4 flex-1">
-              <div className="p-3 rounded-xl bg-white shadow-sm">
-                <ShieldAlert className="w-6 h-6 text-amber-600" strokeWidth={2.5} />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-bold text-amber-900 mb-1 flex items-center gap-2">
-                  Undercut
-                  {undercutText.trim() && <CheckCircle2 className="w-5 h-5 text-emerald-600" />}
-                </h3>
-                <p className="text-sm text-amber-700 leading-relaxed">
-                  Challenge the <span className="font-semibold">reasoning</span> by providing an exception
-                </p>
-                <div className="mt-2 flex items-center gap-2 text-xs">
-                  <span className="px-2 py-1 rounded-full bg-amber-200 text-amber-800 font-medium">
-                    Strategic
-                  </span>
-                  <span className="text-amber-600">• Attacks the inference</span>
-                </div>
-              </div>
-            </div>
-            <div className={`transition-transform duration-300 ${isExpanded("undercut") ? "rotate-180" : ""}`}>
-              <ChevronDown className="w-5 h-5 text-amber-600" />
-            </div>
-          </button>
-
-          {isExpanded("undercut") && (
-            <div className="mt-4 space-y-4 animate-in slide-in-from-top-2 duration-300">
-              <div className="flex items-start gap-3 p-4 bg-amber-100 border border-amber-200 rounded-lg">
-                <AlertCircle className="w-5 h-5 text-amber-700 mt-0.5 shrink-0" />
-                <p className="text-sm text-amber-900 leading-relaxed">
-                  Explain why the premises don't necessarily lead to the conclusion in this case.
-                </p>
-              </div>
-
-              <div className="space-y-3">
-                <label className="block text-sm font-semibold text-slate-900">
-                  Exception or Rule-Defeater
-                </label>
-                <textarea
-                  value={undercutText}
-                  onChange={(e) => setUndercutText(e.target.value)}
-                  placeholder="E.g., 'However, the expert's opinion was given before key evidence emerged...'"
-                  className="
-                    w-full px-4 py-3 rounded-lg border-2 border-amber-300 bg-white
-                    focus:border-amber-400 focus:ring-2 focus:ring-amber-100 focus:outline-none
-                    transition-all duration-200 resize-none text-sm leading-relaxed
-                    placeholder:text-slate-400
-                  "
-                  rows={4}
-                />
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-slate-500">{undercutText.length} characters</span>
-                  {undercutText.trim() && (
-                    <div className="flex items-center gap-1 text-emerald-600 font-medium">
-                      <CheckCircle2 className="w-4 h-4" />
-                      Ready to post
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <button
-                className="
-                  w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl
-                  text-sm font-bold bg-gradient-to-r from-amber-600 to-amber-700 text-white
-                  hover:from-amber-700 hover:to-amber-800
-                  disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-amber-600
-                  transition-all duration-200 shadow-md hover:shadow-lg active:scale-95
-                "
-                disabled={!undercutText.trim() || !!busy}
-                onClick={() => fire("UNDERCUTS")}
-                aria-busy={busy === "UNDERCUTS"}
-              >
-                {busy === "UNDERCUTS" ? (
-                  <>
-                    <div className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin" />
-                    Posting undercut...
-                  </>
-                ) : (
-                  <>
-                    <Zap className="w-5 h-5" />
-                    Post Undercut
-                    <ChevronRight className="w-5 h-5" />
-                  </>
-                )}
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-
       {/* UNDERMINE Card */}
-      <div className="group relative rounded-xl border-2 border-slate-300 bg-gradient-to-br from-slate-50 to-slate-100 overflow-hidden transition-all duration-300 hover:shadow-lg">
-        <div className="p-5">
+      <div className="group relative rounded-xl border-2 border-slate-200 bg-gradient-to-br 
+      from-slate-50 to-slate-100 overflow-hidden  hover:border-slate-400 transition-all duration-300">
+        <div className="px-4 py-4 ">
           <button
             onClick={() => toggleExpand("undermine")}
             className="w-full flex items-start justify-between gap-4 text-left"
           >
-            <div className="flex items-start gap-4 flex-1">
-              <div className="p-3 rounded-xl bg-white shadow-sm">
-                <Shield className="w-6 h-6 text-slate-700" strokeWidth={2.5} />
+            <div className="flex items-start gap-3 flex-1">
+              <div className="p-0 rounded-xl mt-2 bg-transparent shadow-none">
+                <Shield className="w-6 h-6 text-slate-600" strokeWidth={2.5} />
               </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-bold text-slate-900 mb-1 flex items-center gap-2">
+              <div className="flex flex-col flex-1">
+                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                   Undermine
-                  {undermine && <CheckCircle2 className="w-5 h-5 text-emerald-600" />}
+                  {undermine && <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
                 </h3>
-                <p className="text-sm text-slate-700 leading-relaxed">
+                <p className="text-sm text-slate-700 leading-tight">
                   Contradict a specific <span className="font-semibold">premise</span>
                 </p>
-                <div className="mt-2 flex items-center gap-2 text-xs">
-                  <span className="px-2 py-1 rounded-full bg-slate-200 text-slate-800 font-medium">
+                <div className="mt-1 flex items-center gap-2 text-xs">
+                  <span className="text-slate-600">Attacks foundational claims • </span>
+                  <span className="px-1 py-.5 rounded-md border bg-slate-200/50 border-slate-400 text-slate-800 font-medium">
                     Targeted
                   </span>
-                  <span className="text-slate-600">• Attacks foundational claims</span>
                 </div>
               </div>
             </div>
@@ -620,93 +646,95 @@ function AttackMenuContent({
           </button>
 
           {isExpanded("undermine") && (
-            <div className="mt-4 space-y-4 animate-in slide-in-from-top-2 duration-300">
-              <div className="space-y-3">
-                <label className="block text-sm font-semibold text-slate-900">
-                  Select Target Premise
-                </label>
-                <select
-                  className="
-                    w-full px-4 py-3 rounded-lg border-2 border-slate-300 bg-white
-                    focus:border-slate-400 focus:ring-2 focus:ring-slate-100 focus:outline-none
-                    transition-all duration-200 text-sm font-medium
-                  "
-                  value={premiseId}
-                  onChange={(e) => setPremiseId(e.target.value)}
-                >
-                  {target.premises.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.text}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <div className="mt-2 space-y-2 px-3 animate-in slide-in-from-top-2 duration-300">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm px-1 font-medium text-slate-900">
+                    Select Target Premise ⦂
+                  </label>
+                  <select
+                    className="
+                      w-full px-3 py-2 rounded-lg border-2 border-slate-300 bg-white
+                      focus:border-slate-400 focus:ring-2 focus:ring-slate-100 focus:outline-none
+                      transition-all duration-200 text-sm font-medium
+                    "
+                    value={premiseId}
+                    onChange={(e) => setPremiseId(e.target.value)}
+                  >
+                    {target.premises.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.text}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-              {premiseId && (
-                <div className="p-4 bg-white border-2 border-slate-200 rounded-lg shadow-sm">
-                  <div className="flex items-start gap-3">
-                    <Target className="w-5 h-5 text-slate-500 mt-0.5 shrink-0" />
-                    <div className="flex-1">
-                      <div className="text-xs font-semibold text-slate-700 uppercase tracking-wide mb-1">
-                        Target Premise
-                      </div>
-                      <div className="text-sm text-slate-800 leading-relaxed">
-                        {target.premises.find((p) => p.id === premiseId)?.text}
+                {premiseId && (
+                  <div className="px-2 py-2 bg-white/80 border-slate-300 rounded-lg border border-slate-100 shadow-md">
+                    <div className="flex items-start gap-2">
+                      <div className="flex items-center gap-2">
+                        <Target className="w-4 h-4 text-slate-500" />
+                        <div className="flex gap-2 flex-wrap items-center">
+                          <div className="text-sm items-center font-semibold text-slate-700 uppercase tracking-wide">
+                            Target Premise ⦂
+                          </div>
+                          <div className="text-sm text-slate-900">
+                            {target.premises.find((p) => p.id === premiseId)?.text}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              <div className="space-y-3">
-                <label className="block text-sm font-semibold text-slate-900">
-                  Your Contradicting Claim
-                </label>
+                <div className="space-y-2">
+                  <label className="text-sm px-1 font-medium text-slate-900">
+                    Your Contradicting Claim ⦂
+                  </label>
+                  <button
+                    className="w-full px-3 py-2 btnv2--slate rounded-lg border-2 border-slate-300 bg-white text-sm text-left hover:border-slate-400 transition-all duration-200 shadow-sm"
+                    onClick={() => setPickerUndermineOpen(true)}
+                  >
+                    {undermine ? (
+                      <div className="flex items-start gap-2">
+                        <span className="text-slate-900">{undermine.text}</span>
+                      </div>
+                    ) : (
+                      <span className="text-slate-500">Select or create contradicting claim...</span>
+                    )}
+                  </button>
+                </div>
+
                 <button
-                  className="w-full px-4 py-3 rounded-lg border-2 border-slate-300 bg-white text-sm text-left hover:border-slate-400 hover:bg-slate-50 transition-all duration-200 shadow-sm"
-                  onClick={() => setPickerUndermineOpen(true)}
+                  className="
+                    w-fit btnv2 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl
+                    text-sm font-bold bg-gradient-to-r from-slate-600 to-slate-700 text-white
+                    hover:from-slate-700 hover:to-slate-800
+                    disabled:opacity-50 disabled:cursor-not-allowed 
+                    transition-all duration-200 shadow-md hover:shadow-lg active:scale-95
+                  "
+                  disabled={!premiseId || !undermine || !undermine.id || !!busy}
+                  onClick={() => fire("UNDERMINES")}
+                  aria-busy={busy === "UNDERMINES"}
                 >
-                  {undermine ? (
-                    <div className="flex items-start gap-2">
-                      <Sparkles className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
-                      <span className="text-slate-900">{undermine.text}</span>
-                    </div>
+                  {busy === "UNDERMINES" ? (
+                    <>
+                      <div className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin" />
+                      Posting undermine...
+                    </>
                   ) : (
-                    <span className="text-slate-500">Select or create contradicting claim...</span>
+                    <>
+                      <Shield className="w-5 h-5" />
+                      Post Undermine
+                      <ChevronRight className="w-5 h-5" />
+                    </>
                   )}
                 </button>
               </div>
-
-              <button
-                className="
-                  w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl
-                  text-sm font-bold bg-gradient-to-r from-slate-700 to-slate-800 text-white
-                  hover:from-slate-800 hover:to-slate-900
-                  disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-slate-700
-                  transition-all duration-200 shadow-md hover:shadow-lg active:scale-95
-                "
-                disabled={!premiseId || !undermine || !undermine.id || !!busy}
-                onClick={() => fire("UNDERMINES")}
-                aria-busy={busy === "UNDERMINES"}
-              >
-                {busy === "UNDERMINES" ? (
-                  <>
-                    <div className="w-5 h-5 border-3 border-white/30 border-t-white rounded-full animate-spin" />
-                    Posting undermine...
-                  </>
-                ) : (
-                  <>
-                    <Zap className="w-5 h-5" />
-                    Post Undermine
-                    <ChevronRight className="w-5 h-5" />
-                  </>
-                )}
-              </button>
             </div>
           )}
         </div>
       </div>
-
       {/* Picker Modals */}
       <SchemeComposerPicker
         kind="claim"

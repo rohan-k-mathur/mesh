@@ -4,6 +4,9 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { EndorseButton } from "./EndorseButton";
+import { ViewHistoryModal } from "./ViewHistoryModal";
+import { ProposeAlternativeModal } from "./ProposeAlternativeModal";
+import { ViewUsageModal } from "./ViewUsageModal";
 import { 
   CheckCircle2, 
   AlertCircle, 
@@ -27,6 +30,9 @@ interface TermCardProps {
 
 export function TermCard({ term, isSelected, onSelect, onUpdate }: TermCardProps) {
   const [expanded, setExpanded] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [showProposeAlternative, setShowProposeAlternative] = useState(false);
+  const [showUsage, setShowUsage] = useState(false);
 
   const consensusDefinition = term.definitions.find((d: any) => d.isCanonical);
   const competingDefinitions = term.definitions.filter((d: any) => !d.isCanonical);
@@ -45,10 +51,10 @@ export function TermCard({ term, isSelected, onSelect, onUpdate }: TermCardProps
     CONTESTED: { 
       label: "Contested", 
       icon: AlertCircle,
-      gradient: "from-amber-500/20 to-yellow-500/20",
-      border: "border-amber-400/40",
-      text: "text-amber-100",
-      badge: "bg-amber-500/30 text-amber-50 border-amber-400/50"
+      gradient: "from-orange-500/20 to-yellow-500/20",
+      border: "border-orange-400/40",
+      text: "text-orange-100",
+      badge: "bg-orange-500/30 text-orange-50 border-orange-400/50"
     },
     PENDING: { 
       label: "Pending", 
@@ -71,6 +77,20 @@ export function TermCard({ term, isSelected, onSelect, onUpdate }: TermCardProps
   const status = statusConfig[term.status as keyof typeof statusConfig] || statusConfig.PENDING;
   const StatusIcon = status.icon;
 
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Don't toggle if clicking on a button or interactive element
+    const target = e.target as HTMLElement;
+    const isInteractive = target.closest('button') || 
+                         target.closest('[role="button"]') || 
+                         target.closest('a') ||
+                         target.closest('[data-interactive]');
+    
+    if (!isInteractive) {
+      onSelect();
+      setExpanded(!expanded);
+    }
+  };
+
   return (
     <div
       className={cn(
@@ -80,10 +100,7 @@ export function TermCard({ term, isSelected, onSelect, onUpdate }: TermCardProps
           ? "bg-gradient-to-br from-indigo-500/20 to-cyan-500/20 border-cyan-400/60 shadow-cyan-500/20 scale-[1.01]"
           : "bg-slate-800/40 border-white/50 hover:border-white   hover:scale-[1.001]"
       )}
-      onClick={() => {
-        onSelect();
-        setExpanded(!expanded);
-      }}
+      onClick={handleCardClick}
     >
       {/* Glass shine effect */}
       <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent opacity-0  transition-opacity duration-300 pointer-events-none" />
@@ -93,17 +110,17 @@ export function TermCard({ term, isSelected, onSelect, onUpdate }: TermCardProps
         <div className="absolute -inset-1 bg-gradient-to-r from-cyan-400/20 to-indigo-400/20 blur-xl opacity-50 pointer-events-none" />
       )}
 
-      <div className="relative p-4 space-y-3">
+      <div className="relative py-3 px-3 space-y-3">
         {/* Header */}
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+            <div className="flex items-center gap-4  flex-wrap">
               <h3 className="text-lg font-bold text-white drop-shadow-lg">
                 {term.term}
               </h3>
               <span
                 className={cn(
-                  "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold border backdrop-blur-sm shadow-md",
+                  "inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-semibold border backdrop-blur-sm shadow-md",
                   status.badge
                 )}
               >
@@ -121,25 +138,22 @@ export function TermCard({ term, isSelected, onSelect, onUpdate }: TermCardProps
             )}
           </div>
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setExpanded(!expanded);
-            }}
+            onClick={() => setExpanded(!expanded)}
             className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors backdrop-blur-sm"
           >
             {expanded ? (
-              <ChevronUp className="w-4 h-4 text-cyan-200" />
+              <ChevronUp className="w-3 h-3 text-cyan-200" />
             ) : (
-              <ChevronDown className="w-4 h-4 text-cyan-200" />
+              <ChevronDown className="w-3 h-3 text-cyan-200" />
             )}
           </button>
         </div>
 
         {/* Definition Body */}
-        <div className="space-y-2">
+        <div className="space-y-2 ">
           {consensusDefinition ? (
             <div className={cn(
-              "relative overflow-hidden rounded-xl backdrop-blur-md border p-4 shadow-lg",
+              "relative overflow-hidden rounded-xl backdrop-blur-md border px-3 py-2 shadow-lg",
               "bg-gradient-to-br", status.gradient, status.border
             )}>
               <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent" />
@@ -180,7 +194,7 @@ export function TermCard({ term, isSelected, onSelect, onUpdate }: TermCardProps
               {term.definitions.slice(0, expanded ? undefined : 1).map((def: any, idx: number) => (
                 <div
                   key={def.id}
-                  className="relative overflow-hidden rounded-xl bg-white/5 backdrop-blur-md border border-white/10 p-4 shadow-lg hover:bg-slate-300/10 transition-colors"
+                  className="relative overflow-hidden rounded-xl bg-white/5 backdrop-blur-md border border-white/10 py-2 px-3 shadow-lg hover:bg-slate-300/10 transition-colors"
                 >
                   <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-transparent" />
                   <div className="relative space-y-2">
@@ -222,10 +236,7 @@ export function TermCard({ term, isSelected, onSelect, onUpdate }: TermCardProps
               ))}
               {!expanded && term.definitions.length > 1 && (
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setExpanded(true);
-                  }}
+                  onClick={() => setExpanded(true)}
                   className="w-full py-2 px-3 rounded-lg bg-white/10 hover:bg-white/15 border border-white/20 text-xs font-medium text-cyan-200 transition-all flex items-center justify-center gap-2 backdrop-blur-sm"
                 >
                   <ChevronDown className="w-3.5 h-3.5" />
@@ -247,7 +258,7 @@ export function TermCard({ term, isSelected, onSelect, onUpdate }: TermCardProps
             Proposed by <span className="font-semibold text-indigo-100">{term.proposedBy.name}</span>
           </div>
           {hasCompeting && (
-            <div className="flex items-center gap-1.5 text-amber-200 font-semibold bg-amber-500/20 px-2 py-1 rounded-md border border-amber-400/30 backdrop-blur-sm">
+            <div className="flex items-center gap-1.5 text-orange-200 font-semibold bg-orange-500/20 px-2 py-1 rounded-md border border-amber-400/30 backdrop-blur-sm">
               <AlertCircle className="w-3 h-3" />
               {competingDefinitions.length} competing{" "}
               {competingDefinitions.length === 1 ? "definition" : "definitions"}
@@ -257,17 +268,26 @@ export function TermCard({ term, isSelected, onSelect, onUpdate }: TermCardProps
 
         {/* Footer Actions (only when expanded) */}
         {expanded && (
-          <div className="flex items-center gap-2 pt-3 border-t border-white/10">
-            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 border border-white/20 text-xs font-medium text-cyan-200 transition-all backdrop-blur-sm">
+          <div className="flex items-center gap-2 pt-2 border-t border-white/10">
+            <button 
+              onClick={() => setShowHistory(true)}
+              className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/10 hover:bg-white/15 border border-white/20 text-xs font-medium text-cyan-200 transition-all backdrop-blur-sm"
+            >
               <History className="w-3.5 h-3.5" />
               View History
             </button>
-            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 border border-white/20 text-xs font-medium text-cyan-200 transition-all backdrop-blur-sm">
+            <button 
+              onClick={() => setShowProposeAlternative(true)}
+              className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/10 hover:bg-white/15 border border-white/20 text-xs font-medium text-cyan-200 transition-all backdrop-blur-sm"
+            >
               <Plus className="w-3.5 h-3.5" />
               Propose Alternative
             </button>
             {term.usages && term.usages.length > 0 && (
-              <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 border border-white/20 text-xs font-medium text-cyan-200 transition-all backdrop-blur-sm">
+              <button 
+                onClick={() => setShowUsage(true)}
+                className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/10 hover:bg-white/15 border border-white/20 text-xs font-medium text-cyan-200 transition-all backdrop-blur-sm"
+              >
                 <Eye className="w-3.5 h-3.5" />
                 View Usage ({term.usages.length})
               </button>
@@ -275,6 +295,27 @@ export function TermCard({ term, isSelected, onSelect, onUpdate }: TermCardProps
           </div>
         )}
       </div>
+
+      {/* Modals */}
+      <ViewHistoryModal
+        isOpen={showHistory}
+        onClose={() => setShowHistory(false)}
+        termId={term.id}
+        termName={term.term}
+      />
+      <ProposeAlternativeModal
+        isOpen={showProposeAlternative}
+        onClose={() => setShowProposeAlternative(false)}
+        termId={term.id}
+        termName={term.term}
+        onSuccess={onUpdate}
+      />
+      <ViewUsageModal
+        isOpen={showUsage}
+        onClose={() => setShowUsage(false)}
+        termId={term.id}
+        termName={term.term}
+      />
     </div>
   );
 }

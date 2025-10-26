@@ -352,7 +352,7 @@ export function SchemeComposer({
           <label className="flex flex-col gap-1 md:col-span-1">
             <span className="text-sm text-gray-800">Scheme</span>
             <select
-              className="w-full border rounded-lg px-2 py-1.5 text-sm menuv2--lite"
+              className="w-full  text-slate-700 rounded-lg px-2 py-1 text-sm menuv2--lite"
               value={schemeKey}
               onChange={(e) => setSchemeKey(e.target.value)}
             >

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TermCard } from "./TermCard";
 import { ProposeTermModal } from "./ProposeTermModal";
+import { ExportGlossaryButton } from "./ExportGlossaryButton";
 import {
   Select,
   SelectContent,
@@ -68,7 +69,7 @@ export function DefinitionSheet({
   return (
     <div className="flex flex-col h-full mt-[-6px]">
       {/* Header */}
-      <div className="flex-shrink-0 space-y-4 mb-3">
+      <div className="flex-shrink-0 space-y-4 mb-4">
         <div className="flex items-center justify-between border-b border-slate-100/50 pb-3">
           <div className="flex gap-3 tracking-wide  items-center ">
             <h2 className="text-lg font-bold text-slate-100">Glossary</h2>
@@ -77,15 +78,20 @@ export function DefinitionSheet({
               {filteredTerms.length} {filteredTerms.length === 1 ? " term" : " terms"}
             </p>
           </div>
-          <button
-           
-            onClick={() => setProposeModalOpen(true)}
-            className="btnv2 rounded-xl px-3 py-2 text-xs text-white"
-          >
-            + Define a New Term
-          </button>
+          <div className="flex items-center gap-4">
+            <ExportGlossaryButton 
+              deliberationId={deliberationId}
+              terms={terms}
+            />
+            <button
+              onClick={() => setProposeModalOpen(true)}
+              className="btnv2 rounded-xl px-3 py-2 text-xs text-white"
+            >
+              + Define a New Term
+            </button>
+          </div>
         </div>
-
+<div className="flex gap-4 ">
         {/* Search */}
         <Input
           type="search"
@@ -98,7 +104,7 @@ export function DefinitionSheet({
         {/* Filters */}
         <div className="flex gap-2">
           <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
-            <SelectTrigger className="w-[140px] h-fit  text-xs px-2 py-1.5 bg-slate-700 btnv2--ghost text-white ">
+            <SelectTrigger className="w-[140px] h-fit rounded-xl text-xs px-2 py-2 bg-slate-700 btnv2--ghost text-white ">
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
             <SelectContent>
@@ -109,7 +115,7 @@ export function DefinitionSheet({
           </Select>
 
           <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="w-[140px] h-fit  text-xs px-2 py-1.5 bg-slate-700 btnv2--ghost text-white">
+            <SelectTrigger className="w-[140px] h-fit rounded-xl text-xs px-2 py-2 bg-slate-700 btnv2--ghost text-white">
               <SelectValue placeholder="Filter by status" />
             </SelectTrigger>
             <SelectContent>
@@ -119,6 +125,7 @@ export function DefinitionSheet({
               <SelectItem value="PENDING">Pending</SelectItem>
             </SelectContent>
           </Select>
+        </div>
         </div>
       </div>
 
