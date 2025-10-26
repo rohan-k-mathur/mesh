@@ -7,23 +7,23 @@
 
 ## 1. Schema Migrations (Prisma)
 
-### Brief Model (Complete)
+### Thesis Model (Complete)
 
 ```prisma
 // prisma/schema.prisma
 
-model Brief {
+model Thesis {
   id              String   @id @default(cuid())
   slug            String   @unique
   title           String
   
   // Core structure
   thesisClaimId   String
-  thesisClaim     Claim    @relation("BriefThesis", fields: [thesisClaimId], references: [id], onDelete: Restrict)
+  thesisClaim     Claim    @relation("ThesisThesis", fields: [thesisClaimId], references: [id], onDelete: Restrict)
   
   // Components
-  prongs          BriefProng[]
-  sections        BriefSection[]
+  prongs          ThesisProng[]
+  sections        ThesisSection[]
   
   // Context
   deliberationId  String?
@@ -33,12 +33,12 @@ model Brief {
   author          User     @relation(fields: [authorId], references: [id])
   
   // Versioning
-  status          BriefStatus  @default(DRAFT)
+  status          ThesisStatus  @default(DRAFT)
   version         Int          @default(1)
   publishedAt     DateTime?
   
   // Metadata
-  template        BriefTemplate @default(GENERAL)
+  template        ThesisTemplate @default(GENERAL)
   summary         String?
   meta            Json?
   
@@ -52,10 +52,10 @@ model Brief {
   @@index([status, publishedAt])
 }
 
-model BriefProng {
+model ThesisProng {
   id          String  @id @default(cuid())
-  briefId     String
-  brief       Brief   @relation(fields: [briefId], references: [id], onDelete: Cascade)
+  thesisId     String
+  thesis       Thesis   @relation(fields: [thesisId], references: [id], onDelete: Cascade)
   
   order       Int
   title       String
@@ -66,7 +66,7 @@ model BriefProng {
   mainClaim   Claim?   @relation(fields: [mainClaimId], references: [id], onDelete: SetNull)
   
   // Argument chain
-  arguments   BriefProngArgument[]
+  arguments   ThesisProngArgument[]
   
   // Prose framing (TipTap JSON)
   introduction Json?
@@ -74,14 +74,14 @@ model BriefProng {
   
   meta        Json?
   
-  @@index([briefId, order])
+  @@index([thesisId, order])
   @@index([mainClaimId])
 }
 
-model BriefProngArgument {
+model ThesisProngArgument {
   id          String  @id @default(cuid())
   prongId     String
-  prong       BriefProng @relation(fields: [prongId], references: [id], onDelete: Cascade)
+  prong       ThesisProng @relation(fields: [prongId], references: [id], onDelete: Cascade)
   
   argumentId  String
   argument    Argument @relation(fields: [argumentId], references: [id], onDelete: Restrict)
@@ -95,30 +95,30 @@ model BriefProngArgument {
   @@index([argumentId])
 }
 
-model BriefSection {
+model ThesisSection {
   id          String  @id @default(cuid())
-  briefId     String
-  brief       Brief   @relation(fields: [briefId], references: [id], onDelete: Cascade)
+  thesisId     String
+  thesis       Thesis   @relation(fields: [thesisId], references: [id], onDelete: Cascade)
   
   order       Int
-  sectionType BriefSectionType
+  sectionType ThesisSectionType
   title       String?
   
   // TipTap JSON content
   content     Json?
   
-  @@index([briefId, order])
+  @@index([thesisId, order])
 }
 
 // Enums
-enum BriefStatus {
+enum ThesisStatus {
   DRAFT
   SUBMITTED
   PUBLISHED
   ARCHIVED
 }
 
-enum BriefTemplate {
+enum ThesisTemplate {
   LEGAL_DEFENSE
   POLICY_CASE
   ACADEMIC_THESIS
@@ -137,7 +137,7 @@ enum ArgumentRole {
   COUNTER_RESPONSE // Responds to counter
 }
 
-enum BriefSectionType {
+enum ThesisSectionType {
   INTRODUCTION
   BACKGROUND
   LEGAL_STANDARD
@@ -149,16 +149,16 @@ enum BriefSectionType {
 model Claim {
   // ... existing fields ...
   
-  // NEW: Brief relations
-  briefsAsThesis BriefProng[] @relation("BriefThesis")
-  prongClaims    BriefProng[]
+  // NEW: Thesis relations
+  thesissAsThesis ThesisProng[] @relation("ThesisThesis")
+  prongClaims    ThesisProng[]
 }
 
 model Argument {
   // ... existing fields ...
   
-  // NEW: Brief relation
-  briefProngArguments BriefProngArgument[]
+  // NEW: Thesis relation
+  thesisProngArguments ThesisProngArgument[]
 }
 ```
 
@@ -217,10 +217,10 @@ enum SectionRole {
 
 ## 2. API Endpoints
 
-### Brief CRUD
+### Thesis CRUD
 
 ```typescript
-// app/api/briefs/route.ts
+// app/api/thesiss/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prismaclient";
@@ -240,7 +240,7 @@ export async function GET(req: NextRequest) {
   if (authorId) where.authorId = authorId;
   if (status) where.status = status;
   
-  const briefs = await prisma.brief.findMany({
+  const thesiss = await prisma.thesis.findMany({
     where,
     select: {
       id: true,
@@ -266,7 +266,7 @@ export async function GET(req: NextRequest) {
     orderBy: { createdAt: "desc" },
   });
   
-  return NextResponse.json({ briefs });
+  return NextResponse.json({ thesiss });
 }
 
 export async function POST(req: NextRequest) {
@@ -288,7 +288,7 @@ export async function POST(req: NextRequest) {
   // Generate slug
   const slug = `${title.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40)}-${nanoid(6)}`;
   
-  const brief = await prisma.brief.create({
+  const thesis = await prisma.thesis.create({
     data: {
       slug,
       title,
@@ -304,12 +304,12 @@ export async function POST(req: NextRequest) {
     }
   });
   
-  return NextResponse.json({ brief }, { status: 201 });
+  return NextResponse.json({ thesis }, { status: 201 });
 }
 ```
 
 ```typescript
-// app/api/briefs/[id]/route.ts
+// app/api/thesiss/[id]/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prismaclient";
@@ -319,7 +319,7 @@ export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const brief = await prisma.brief.findUnique({
+  const thesis = await prisma.thesis.findUnique({
     where: { id: params.id },
     include: {
       thesisClaim: {
@@ -389,11 +389,11 @@ export async function GET(
     }
   });
   
-  if (!brief) {
+  if (!thesis) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
   
-  return NextResponse.json({ brief });
+  return NextResponse.json({ thesis });
 }
 
 export async function PATCH(
@@ -405,19 +405,19 @@ export async function PATCH(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   
-  const brief = await prisma.brief.findUnique({
+  const thesis = await prisma.thesis.findUnique({
     where: { id: params.id },
     select: { authorId: true }
   });
   
-  if (!brief || brief.authorId !== userId) {
+  if (!thesis || thesis.authorId !== userId) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   
   const body = await req.json();
   const { title, status, summary, meta } = body;
   
-  const updated = await prisma.brief.update({
+  const updated = await prisma.thesis.update({
     where: { id: params.id },
     data: {
       ...(title && { title }),
@@ -427,7 +427,7 @@ export async function PATCH(
     }
   });
   
-  return NextResponse.json({ brief: updated });
+  return NextResponse.json({ thesis: updated });
 }
 
 export async function DELETE(
@@ -439,16 +439,16 @@ export async function DELETE(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   
-  const brief = await prisma.brief.findUnique({
+  const thesis = await prisma.thesis.findUnique({
     where: { id: params.id },
     select: { authorId: true }
   });
   
-  if (!brief || brief.authorId !== userId) {
+  if (!thesis || thesis.authorId !== userId) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   
-  await prisma.brief.delete({
+  await prisma.thesis.delete({
     where: { id: params.id }
   });
   
@@ -459,7 +459,7 @@ export async function DELETE(
 ### Prong Management
 
 ```typescript
-// app/api/briefs/[id]/prongs/route.ts
+// app/api/thesiss/[id]/prongs/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prismaclient";
@@ -474,12 +474,12 @@ export async function POST(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   
-  const brief = await prisma.brief.findUnique({
+  const thesis = await prisma.thesis.findUnique({
     where: { id: params.id },
     select: { authorId: true, _count: { select: { prongs: true } } }
   });
   
-  if (!brief || brief.authorId !== userId) {
+  if (!thesis || thesis.authorId !== userId) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   
@@ -490,10 +490,10 @@ export async function POST(
     return NextResponse.json({ error: "title required" }, { status: 400 });
   }
   
-  const prong = await prisma.briefProng.create({
+  const prong = await prisma.thesisProng.create({
     data: {
-      briefId: params.id,
-      order: brief._count.prongs,  // Append to end
+      thesisId: params.id,
+      order: thesis._count.prongs,  // Append to end
       title,
       role: role || "SUPPORT",
       mainClaimId,
@@ -512,7 +512,7 @@ export async function POST(
 ```
 
 ```typescript
-// app/api/briefs/[id]/prongs/[prongId]/arguments/route.ts
+// app/api/thesiss/[id]/prongs/[prongId]/arguments/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prismaclient";
@@ -527,16 +527,16 @@ export async function POST(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   
-  // Verify ownership via brief
-  const prong = await prisma.briefProng.findUnique({
+  // Verify ownership via thesis
+  const prong = await prisma.thesisProng.findUnique({
     where: { id: params.prongId },
     select: {
-      brief: { select: { authorId: true } },
+      thesis: { select: { authorId: true } },
       _count: { select: { arguments: true } }
     }
   });
   
-  if (!prong || prong.brief.authorId !== userId) {
+  if (!prong || prong.thesis.authorId !== userId) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   
@@ -550,7 +550,7 @@ export async function POST(
     );
   }
   
-  const prongArg = await prisma.briefProngArgument.create({
+  const prongArg = await prisma.thesisProngArgument.create({
     data: {
       prongId: params.prongId,
       argumentId,
@@ -590,22 +590,22 @@ export async function DELETE(
   }
   
   // Verify ownership
-  const prongArg = await prisma.briefProngArgument.findUnique({
+  const prongArg = await prisma.thesisProngArgument.findUnique({
     where: { id: prongArgumentId },
     select: {
       prong: {
         select: {
-          brief: { select: { authorId: true } }
+          thesis: { select: { authorId: true } }
         }
       }
     }
   });
   
-  if (!prongArg || prongArg.prong.brief.authorId !== userId) {
+  if (!prongArg || prongArg.prong.thesis.authorId !== userId) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   
-  await prisma.briefProngArgument.delete({
+  await prisma.thesisProngArgument.delete({
     where: { id: prongArgumentId }
   });
   
@@ -613,10 +613,10 @@ export async function DELETE(
 }
 ```
 
-### Publish Brief
+### Publish Thesis
 
 ```typescript
-// app/api/briefs/[id]/publish/route.ts
+// app/api/thesiss/[id]/publish/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prismaclient";
@@ -631,7 +631,7 @@ export async function POST(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   
-  const brief = await prisma.brief.findUnique({
+  const thesis = await prisma.thesis.findUnique({
     where: { id: params.id },
     select: {
       authorId: true,
@@ -645,25 +645,25 @@ export async function POST(
     }
   });
   
-  if (!brief || brief.authorId !== userId) {
+  if (!thesis || thesis.authorId !== userId) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
   
-  if (brief.status === "PUBLISHED") {
+  if (thesis.status === "PUBLISHED") {
     return NextResponse.json(
       { error: "Already published" },
       { status: 400 }
     );
   }
   
-  if (brief._count.prongs === 0) {
+  if (thesis._count.prongs === 0) {
     return NextResponse.json(
-      { error: "Brief must have at least one prong" },
+      { error: "Thesis must have at least one prong" },
       { status: 400 }
     );
   }
   
-  const updated = await prisma.brief.update({
+  const updated = await prisma.thesis.update({
     where: { id: params.id },
     data: {
       status: "PUBLISHED",
@@ -673,7 +673,7 @@ export async function POST(
     select: { id: true, slug: true, status: true, publishedAt: true }
   });
   
-  return NextResponse.json({ brief: updated });
+  return NextResponse.json({ thesis: updated });
 }
 ```
 
@@ -681,10 +681,10 @@ export async function POST(
 
 ## 3. React Components
 
-### BriefComposer (Top-Level)
+### ThesisComposer (Top-Level)
 
 ```tsx
-// components/brief/BriefComposer.tsx
+// components/thesis/ThesisComposer.tsx
 
 "use client";
 
@@ -694,32 +694,32 @@ import useSWR, { mutate } from "swr";
 import { ProngEditor } from "./ProngEditor";
 import { SectionEditor } from "./SectionEditor";
 import { ThesisSelector } from "./ThesisSelector";
-import { BriefTemplateSelector } from "./BriefTemplateSelector";
+import { ThesisTemplateSelector } from "./ThesisTemplateSelector";
 
 const fetcher = (url: string) => fetch(url).then(r => r.json());
 
 interface Props {
-  briefId: string;
+  thesisId: string;
   onPublished?: (slug: string) => void;
 }
 
-export function BriefComposer({ briefId, onPublished }: Props) {
-  const { data, error } = useSWR(`/api/briefs/${briefId}`, fetcher);
+export function ThesisComposer({ thesisId, onPublished }: Props) {
+  const { data, error } = useSWR(`/api/thesiss/${thesisId}`, fetcher);
   const [publishing, setPublishing] = useState(false);
   
-  const brief = data?.brief;
+  const thesis = data?.thesis;
   
-  if (error) return <div>Error loading brief</div>;
-  if (!brief) return <div>Loading...</div>;
+  if (error) return <div>Error loading thesis</div>;
+  if (!thesis) return <div>Loading...</div>;
   
   async function handlePublish() {
     setPublishing(true);
     try {
-      const res = await fetch(`/api/briefs/${briefId}/publish`, {
+      const res = await fetch(`/api/thesiss/${thesisId}/publish`, {
         method: "POST",
       });
-      const { brief: updated } = await res.json();
-      mutate(`/api/briefs/${briefId}`);
+      const { thesis: updated } = await res.json();
+      mutate(`/api/thesiss/${thesisId}`);
       onPublished?.(updated.slug);
     } catch (e: any) {
       alert(e.message || "Publish failed");
@@ -732,35 +732,35 @@ export function BriefComposer({ briefId, onPublished }: Props) {
     const title = prompt("Prong title:");
     if (!title) return;
     
-    await fetch(`/api/briefs/${briefId}/prongs`, {
+    await fetch(`/api/thesiss/${thesisId}/prongs`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title, role: "SUPPORT" }),
     });
     
-    mutate(`/api/briefs/${briefId}`);
+    mutate(`/api/thesiss/${thesisId}`);
   }
   
   async function addSection(type: string) {
-    await fetch(`/api/briefs/${briefId}/sections`, {
+    await fetch(`/api/thesiss/${thesisId}/sections`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ sectionType: type }),
     });
     
-    mutate(`/api/briefs/${briefId}`);
+    mutate(`/api/thesiss/${thesisId}`);
   }
   
   return (
     <div className="max-w-5xl mx-auto p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{brief.title}</h1>
+        <h1 className="text-2xl font-bold">{thesis.title}</h1>
         <div className="flex items-center gap-2">
           <span className="text-sm text-neutral-500">
-            Status: {brief.status}
+            Status: {thesis.status}
           </span>
-          {brief.status === "DRAFT" && (
+          {thesis.status === "DRAFT" && (
             <button
               className="btnv2 btnv2--sm"
               onClick={handlePublish}
@@ -773,17 +773,17 @@ export function BriefComposer({ briefId, onPublished }: Props) {
       </div>
       
       {/* Template */}
-      <BriefTemplateSelector
-        briefId={briefId}
-        currentTemplate={brief.template}
+      <ThesisTemplateSelector
+        thesisId={thesisId}
+        currentTemplate={thesis.template}
       />
       
       {/* Thesis */}
       <div className="rounded-lg border bg-white p-4">
         <h3 className="text-sm font-medium mb-2">Thesis</h3>
         <ThesisSelector
-          briefId={briefId}
-          currentClaim={brief.thesisClaim}
+          thesisId={thesisId}
+          currentClaim={thesis.thesisClaim}
         />
       </div>
       
@@ -798,8 +798,8 @@ export function BriefComposer({ briefId, onPublished }: Props) {
             + Add Section
           </button>
         </div>
-        {brief.sections.map((section: any) => (
-          <SectionEditor key={section.id} section={section} briefId={briefId} />
+        {thesis.sections.map((section: any) => (
+          <SectionEditor key={section.id} section={section} thesisId={thesisId} />
         ))}
       </div>
       
@@ -811,11 +811,11 @@ export function BriefComposer({ briefId, onPublished }: Props) {
             + Add Prong
           </button>
         </div>
-        {brief.prongs.map((prong: any, idx: number) => (
+        {thesis.prongs.map((prong: any, idx: number) => (
           <ProngEditor
             key={prong.id}
             prong={prong}
-            briefId={briefId}
+            thesisId={thesisId}
             index={idx + 1}
           />
         ))}
@@ -828,7 +828,7 @@ export function BriefComposer({ briefId, onPublished }: Props) {
 ### ProngEditor
 
 ```tsx
-// components/brief/ProngEditor.tsx
+// components/thesis/ProngEditor.tsx
 
 "use client";
 
@@ -842,11 +842,11 @@ import { ArgumentCard } from "../arguments/ArgumentCard";
 
 interface Props {
   prong: any;
-  briefId: string;
+  thesisId: string;
   index: number;
 }
 
-export function ProngEditor({ prong, briefId, index }: Props) {
+export function ProngEditor({ prong, thesisId, index }: Props) {
   const [adding, setAdding] = useState(false);
   
   const introEditor = useEditor({
@@ -872,7 +872,7 @@ export function ProngEditor({ prong, briefId, index }: Props) {
       return (field: string, value: any) => {
         clearTimeout(timeout);
         timeout = setTimeout(async () => {
-          await fetch(`/api/briefs/${briefId}/prongs/${prong.id}`, {
+          await fetch(`/api/thesiss/${thesisId}/prongs/${prong.id}`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ [field]: value }),
@@ -880,27 +880,27 @@ export function ProngEditor({ prong, briefId, index }: Props) {
         }, 1000);
       };
     },
-    [briefId, prong.id]
+    [thesisId, prong.id]
   );
   
   async function addArgument(argumentId: string) {
-    await fetch(`/api/briefs/${briefId}/prongs/${prong.id}/arguments`, {
+    await fetch(`/api/thesiss/${thesisId}/prongs/${prong.id}/arguments`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ argumentId, role: "PREMISE" }),
     });
     
-    mutate(`/api/briefs/${briefId}`);
+    mutate(`/api/thesiss/${thesisId}`);
     setAdding(false);
   }
   
   async function removeArgument(prongArgumentId: string) {
     await fetch(
-      `/api/briefs/${briefId}/prongs/${prong.id}/arguments?prongArgumentId=${prongArgumentId}`,
+      `/api/thesiss/${thesisId}/prongs/${prong.id}/arguments?prongArgumentId=${prongArgumentId}`,
       { method: "DELETE" }
     );
     
-    mutate(`/api/briefs/${briefId}`);
+    mutate(`/api/thesiss/${thesisId}`);
   }
   
   return (
@@ -973,7 +973,7 @@ export function ProngEditor({ prong, briefId, index }: Props) {
       {/* Argument Picker Modal */}
       {adding && (
         <ArgumentPicker
-          deliberationId={prong.brief.deliberationId}
+          deliberationId={prong.thesis.deliberationId}
           onSelect={addArgument}
           onClose={() => setAdding(false)}
         />
@@ -993,7 +993,7 @@ export function ProngEditor({ prong, briefId, index }: Props) {
 }
 ```
 
-### ArgumentCard (Enhanced for Brief Context)
+### ArgumentCard (Enhanced for Thesis Context)
 
 ```tsx
 // components/arguments/ArgumentCard.tsx (enhanced)
@@ -1011,7 +1011,7 @@ interface Props {
 
 export function ArgumentCard({ argument, compact, actions }: Props) {
   if (compact) {
-    // Compact view for briefs
+    // Compact view for thesiss
     return (
       <div className="rounded border bg-white p-3 space-y-2">
         <div className="flex items-start justify-between">
@@ -1057,10 +1057,10 @@ export function ArgumentCard({ argument, compact, actions }: Props) {
 }
 ```
 
-### BriefRenderer (Public View)
+### ThesisRenderer (Public View)
 
 ```tsx
-// components/brief/BriefRenderer.tsx
+// components/thesis/ThesisRenderer.tsx
 
 "use client";
 
@@ -1071,32 +1071,32 @@ import { generateHTML } from "@tiptap/html";
 import StarterKit from "@tiptap/starter-kit";
 
 interface Props {
-  brief: any;
+  thesis: any;
 }
 
-export function BriefRenderer({ brief }: Props) {
+export function ThesisRenderer({ thesis }: Props) {
   return (
     <article className="max-w-4xl mx-auto p-8 bg-white rounded-lg shadow">
       {/* Title */}
       <header className="border-b pb-6 mb-8">
         <div className="text-xs text-neutral-500 mb-2">
-          {brief.template.replace(/_/g, " ")}
+          {thesis.template.replace(/_/g, " ")}
         </div>
-        <h1 className="text-3xl font-bold">{brief.title}</h1>
+        <h1 className="text-3xl font-bold">{thesis.title}</h1>
         <div className="text-sm text-neutral-600 mt-2">
-          By {brief.author.email} • Published{" "}
-          {new Date(brief.publishedAt).toLocaleDateString()}
+          By {thesis.author.email} • Published{" "}
+          {new Date(thesis.publishedAt).toLocaleDateString()}
         </div>
       </header>
       
       {/* Thesis */}
       <section className="mb-8">
         <h2 className="text-xl font-semibold mb-4">Thesis</h2>
-        <ClaimBlock claim={brief.thesisClaim} />
+        <ClaimBlock claim={thesis.thesisClaim} />
       </section>
       
       {/* Sections (Intro, etc.) */}
-      {brief.sections.map((section: any) => (
+      {thesis.sections.map((section: any) => (
         <section key={section.id} className="mb-8">
           {section.title && (
             <h2 className="text-xl font-semibold mb-4">{section.title}</h2>
@@ -1113,7 +1113,7 @@ export function BriefRenderer({ brief }: Props) {
       ))}
       
       {/* Prongs */}
-      {brief.prongs.map((prong: any, idx: number) => (
+      {thesis.prongs.map((prong: any, idx: number) => (
         <section key={prong.id} className="mb-12">
           <h2 className="text-xl font-semibold mb-2">
             {idx + 1}. {prong.title}
@@ -1164,7 +1164,7 @@ export function BriefRenderer({ brief }: Props) {
       {/* Footer */}
       <footer className="border-t pt-6 mt-12">
         <div className="text-xs text-neutral-500">
-          Brief ID: {brief.id} • Version {brief.version}
+          Thesis ID: {thesis.id} • Version {thesis.version}
         </div>
       </footer>
     </article>
@@ -1176,40 +1176,40 @@ export function BriefRenderer({ brief }: Props) {
 
 ## 4. Integration Points
 
-### "Promote to Brief" Button on ClaimMiniMap
+### "Promote to Thesis" Button on ClaimMiniMap
 
 ```tsx
 // components/claims/ClaimMiniMap.tsx (add this)
 
-async function handlePromoteToBrief() {
-  // Create draft brief with this claim as thesis
-  const res = await fetch("/api/briefs", {
+async function handlePromoteToThesis() {
+  // Create draft thesis with this claim as thesis
+  const res = await fetch("/api/thesiss", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      title: `Brief: ${claim.text.slice(0, 50)}...`,
+      title: `Thesis: ${claim.text.slice(0, 50)}...`,
       thesisClaimId: claim.id,
       deliberationId: claim.deliberationId,
       template: "GENERAL",
     }),
   });
   
-  const { brief } = await res.json();
+  const { thesis } = await res.json();
   
-  // Navigate to brief composer
-  router.push(`/brief/${brief.id}/edit`);
+  // Navigate to thesis composer
+  router.push(`/thesis/${thesis.id}/edit`);
 }
 
 // In render:
 <button
   className="btnv2--ghost btnv2--sm"
-  onClick={handlePromoteToBrief}
+  onClick={handlePromoteToThesis}
 >
-  Promote to Brief
+  Promote to Thesis
 </button>
 ```
 
-### "Cite in Brief" Action on ArgumentCard
+### "Cite in Thesis" Action on ArgumentCard
 
 ```tsx
 // components/arguments/ArgumentCard.tsx (add to actions menu)
@@ -1217,26 +1217,26 @@ async function handlePromoteToBrief() {
 <Popover>
   <PopoverTrigger>
     <button className="btnv2--ghost btnv2--sm">
-      Add to Brief
+      Add to Thesis
     </button>
   </PopoverTrigger>
   <PopoverContent>
     <div className="space-y-2">
-      <div className="text-sm font-medium">Select Brief</div>
-      {userBriefs.map(brief => (
+      <div className="text-sm font-medium">Select Thesis</div>
+      {userThesiss.map(thesis => (
         <button
-          key={brief.id}
+          key={thesis.id}
           className="w-full text-left px-2 py-1 rounded hover:bg-neutral-100"
-          onClick={() => addToBrief(brief.id)}
+          onClick={() => addToThesis(thesis.id)}
         >
-          {brief.title}
+          {thesis.title}
         </button>
       ))}
       <button
         className="w-full text-left px-2 py-1 rounded text-blue-600"
-        onClick={createNewBrief}
+        onClick={createNewThesis}
       >
-        + Create New Brief
+        + Create New Thesis
       </button>
     </div>
   </PopoverContent>
@@ -1248,7 +1248,7 @@ async function handlePromoteToBrief() {
 ## 5. Export (PDF Generation)
 
 ```typescript
-// app/api/briefs/[id]/export/route.ts
+// app/api/thesiss/[id]/export/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prismaclient";
@@ -1259,34 +1259,34 @@ export async function GET(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  // Fetch full brief data (same as BriefRenderer)
-  const brief = await prisma.brief.findUnique({
+  // Fetch full thesis data (same as ThesisRenderer)
+  const thesis = await prisma.thesis.findUnique({
     where: { id: params.id },
     include: {
-      // ... (same includes as GET /api/briefs/[id])
+      // ... (same includes as GET /api/thesiss/[id])
     }
   });
   
-  if (!brief) {
+  if (!thesis) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
   
   // Generate Markdown
   const md: string[] = [];
   
-  md.push(`# ${brief.title}\n`);
-  md.push(`**${brief.template.replace(/_/g, " ")}**\n`);
-  md.push(`Author: ${brief.author.email}\n`);
-  md.push(`Published: ${new Date(brief.publishedAt).toLocaleDateString()}\n\n`);
+  md.push(`# ${thesis.title}\n`);
+  md.push(`**${thesis.template.replace(/_/g, " ")}**\n`);
+  md.push(`Author: ${thesis.author.email}\n`);
+  md.push(`Published: ${new Date(thesis.publishedAt).toLocaleDateString()}\n\n`);
   
   md.push(`## Thesis\n`);
-  md.push(`${brief.thesisClaim.text}\n`);
-  if (brief.thesisClaim.ClaimLabel) {
-    md.push(`*Label: ${brief.thesisClaim.ClaimLabel.label} (${brief.thesisClaim.ClaimLabel.semantics})*\n\n`);
+  md.push(`${thesis.thesisClaim.text}\n`);
+  if (thesis.thesisClaim.ClaimLabel) {
+    md.push(`*Label: ${thesis.thesisClaim.ClaimLabel.label} (${thesis.thesisClaim.ClaimLabel.semantics})*\n\n`);
   }
   
   // Sections
-  for (const section of brief.sections) {
+  for (const section of thesis.sections) {
     if (section.title) md.push(`## ${section.title}\n`);
     if (section.content) {
       const html = generateHTML(section.content, [StarterKit]);
@@ -1296,8 +1296,8 @@ export async function GET(
   }
   
   // Prongs
-  for (let i = 0; i < brief.prongs.length; i++) {
-    const prong = brief.prongs[i];
+  for (let i = 0; i < thesis.prongs.length; i++) {
+    const prong = thesis.prongs[i];
     md.push(`## ${i + 1}. ${prong.title}\n`);
     md.push(`*Role: ${prong.role}*\n\n`);
     
@@ -1338,7 +1338,7 @@ export async function GET(
   return new NextResponse(markdown, {
     headers: {
       "Content-Type": "text/markdown; charset=utf-8",
-      "Content-Disposition": `attachment; filename="${brief.slug}.md"`,
+      "Content-Disposition": `attachment; filename="${thesis.slug}.md"`,
     },
   });
 }
@@ -1350,13 +1350,13 @@ export async function GET(
 
 ### Key Components Built
 
-✅ `BriefComposer` - Top-level composition interface  
+✅ `ThesisComposer` - Top-level composition interface  
 ✅ `ProngEditor` - Prong with argument chain + prose  
 ✅ `ArgumentPicker` - Search/select arguments to add  
 ✅ `SectionEditor` - Prose sections (intro, conclusion, etc.)  
-✅ `BriefRenderer` - Public view of published brief  
+✅ `ThesisRenderer` - Public view of published thesis  
 ✅ `ThesisSelector` - Pick/create thesis claim  
-✅ `BriefTemplateSelector` - Choose brief type  
+✅ `ThesisTemplateSelector` - Choose thesis type  
 
 ### Reused Components
 
@@ -1370,19 +1370,19 @@ export async function GET(
 
 ## Next Steps
 
-1. **Schema Migration**: Run `prisma migrate dev --name add_brief_model`
-2. **Seed Data**: Create example briefs for testing
+1. **Schema Migration**: Run `prisma migrate dev --name add_thesis_model`
+2. **Seed Data**: Create example thesiss for testing
 3. **UI Development**: Build components in order:
    - ThesisSelector
-   - BriefTemplateSelector
+   - ThesisTemplateSelector
    - SectionEditor
    - ProngEditor
-   - BriefComposer (assembles all)
-   - BriefRenderer
-4. **Integration**: Add "Promote to Brief" buttons throughout app
+   - ThesisComposer (assembles all)
+   - ThesisRenderer
+4. **Integration**: Add "Promote to Thesis" buttons throughout app
 5. **Export**: Implement PDF generation (Pandoc integration or headless Chrome)
-6. **Testing**: End-to-end test creating and publishing a multi-prong brief
+6. **Testing**: End-to-end test creating and publishing a multi-prong thesis
 
-This gives you the complete implementation foundation for the Brief model. The TheoryWork enhancement follows a similar pattern but with theory-specific scaffolding (DN/IH/TC/OP).
+This gives you the complete implementation foundation for the Thesis model. The TheoryWork enhancement follows a similar pattern but with theory-specific scaffolding (DN/IH/TC/OP).
 
 Let me know which part you'd like to dive into first!

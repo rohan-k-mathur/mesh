@@ -33,7 +33,7 @@
 │  LAYER 3: COMPOSITION (High-level case building)                 │
 │                                                                   │
 │  ┌─────────────────────┐         ┌────────────────────────┐     │
-│  │   TheoryWork        │         │      Brief             │     │
+│  │   TheoryWork        │         │      Thesis             │     │
 │  │   (Academic)        │         │   (Legal/Debate)       │     │
 │  │                     │         │                        │     │
 │  │  Section 1: Prose   │         │  Thesis Claim          │     │
@@ -98,7 +98,7 @@
 
 ---
 
-## Data Flow: Creating a Brief
+## Data Flow: Creating a Thesis
 
 ### Step 1: User creates atomic claims (Layer 1)
 ```
@@ -130,9 +130,9 @@ Other users challenge via dialogue moves:
   - Result: CQs 5/6 answered
 ```
 
-### Step 3: User assembles brief (Layer 3)
+### Step 3: User assembles thesis (Layer 3)
 ```
-User: Creates Brief "Policy Case for Carbon Tax"
+User: Creates Thesis "Policy Case for Carbon Tax"
   - Thesis: Claim #c_103
   
   - Prong 1: "Climate Urgency" (SUPPORT)
@@ -147,7 +147,7 @@ User: Creates Brief "Policy Case for Carbon Tax"
     - Opposing arg: a_999 (embedded for context)
     - Counter chain: [a_400, a_401]
 
-System: Renders as polished brief with:
+System: Renders as polished thesis with:
   - Table of contents
   - Each prong shows logical skeleton + prose
   - Claims display with current labels
@@ -217,10 +217,10 @@ System: Renders as polished brief with:
 └─────────────────────────────────────────────────┘
 ```
 
-### Proposed Brief
+### Proposed Thesis
 ```
 ┌──────────────────────────────────────────────────┐
-│  Brief (Legal Defense)                           │
+│  Thesis (Legal Defense)                           │
 │                                                  │
 │  Title: "In Defense of Carbon Tax Policy"       │
 │  Template: Policy Case                          │
@@ -229,7 +229,7 @@ System: Renders as polished brief with:
 │                                                  │
 │  ┌────────────────────────────────────────────┐ │
 │  │ INTRODUCTION (prose)                       │ │
-│  │ "This brief presents three independent    │ │
+│  │ "This thesis presents three independent    │ │
 │  │  lines of reasoning..."                   │ │
 │  └────────────────────────────────────────────┘ │
 │                                                  │
@@ -274,7 +274,7 @@ System: Renders as polished brief with:
 │  │ "For these three independent reasons..."  │ │
 │  └────────────────────────────────────────────┘ │
 │                                                  │
-│  Export: PDF brief with logical annotations     │
+│  Export: PDF thesis with logical annotations     │
 └──────────────────────────────────────────────────┘
 ```
 
@@ -294,9 +294,9 @@ Argument (Layer 2)
   ↓
   Role: Logical inference step
   Knows: Premises, Conclusion, Scheme, CQs
-  Doesn't know: Which briefs/theories cite it
+  Doesn't know: Which thesiss/theories cite it
 
-Brief/TheoryWork (Layer 3)
+Thesis/TheoryWork (Layer 3)
   ↓
   Role: Composition container
   Knows: Which claims/arguments to reference, ordering, prose framing
@@ -321,15 +321,15 @@ Semantic Evaluation (grounded/preferred)
 ```
 
 **Benefits**:
-- Claims can change labels → Briefs show updated status
-- Arguments can be challenged → CQ count updates → Briefs reflect this
+- Claims can change labels → Thesiss show updated status
+- Arguments can be challenged → CQ count updates → Thesiss reflect this
 - No circular dependencies
 - Clear ownership boundaries
 
 ### 3. Reference vs. Embedding
 ```
 ❌ BAD: Embedding (copies data)
-Brief {
+Thesis {
   prongs: [
     {
       arguments: [
@@ -340,7 +340,7 @@ Brief {
 }
 
 ✅ GOOD: Reference (links to canonical source)
-Brief {
+Thesis {
   prongs: [
     {
       arguments: [
@@ -353,7 +353,7 @@ Brief {
 On render:
   - Fetch Argument #a_200 from DB
   - Display with current CQ status
-  - If status changes, Brief automatically shows updated info
+  - If status changes, Thesis automatically shows updated info
 ```
 
 ---
@@ -362,7 +362,7 @@ On render:
 
 ### Dialogue Moves
 ```
-User viewing Brief sees embedded Argument #a_200
+User viewing Thesis sees embedded Argument #a_200
   ↓
 User clicks "Challenge" button
   ↓
@@ -372,11 +372,11 @@ User posts WHY move
   ↓
 DialogueMove created, linked to Argument #a_200
   ↓
-Brief shows: "1 new challenge since publication"
+Thesis shows: "1 new challenge since publication"
   ↓
 Author responds with GROUNDS
   ↓
-Brief updates: CQs 4/6 → 5/6
+Thesis updates: CQs 4/6 → 5/6
 ```
 
 ### Semantic Labeling
@@ -389,18 +389,18 @@ Semantic evaluation runs (cron job or on-demand)
   ↓
 Label changes: IN → UNDEC
   ↓
-Briefs citing c_100 show warning icon ⚠️
+Thesiss citing c_100 show warning icon ⚠️
   ↓
-"Claim #c_100 status changed. Review brief."
+"Claim #c_100 status changed. Review thesis."
 ```
 
 ### Citations
 ```
-Brief cites Argument #a_200
+Thesis cites Argument #a_200
   ↓
 Argument #a_200 has sources: [source1.pdf, source2.org]
   ↓
-Brief's bibliography auto-generates from all cited arguments
+Thesis's bibliography auto-generates from all cited arguments
   ↓
 Export PDF includes full bibliography
 ```
@@ -409,9 +409,9 @@ Export PDF includes full bibliography
 
 ## Example Use Cases
 
-### Use Case 1: Legal Brief
+### Use Case 1: Legal Thesis
 ```
-Scenario: Public defender creating defense brief
+Scenario: Public defender creating defense thesis
 
 Steps:
 1. Create thesis: "Defendant is not guilty of theft"
@@ -454,7 +454,7 @@ Result: Academically rigorous white paper grounded in verified evidence
 Scenario: Debater preparing affirmative case
 
 Steps:
-1. Create Brief (Policy Case template)
+1. Create Thesis (Policy Case template)
 2. Thesis: "Universal healthcare should be adopted"
 3. Prong 1: "Health Outcomes" (SUPPORT)
    - Chain 3 arguments showing improved outcomes
@@ -498,7 +498,7 @@ TheoryWork: Multiple authors can contribute sections
   - Author B: Theoretical framework section
   - Author C: Synthesis section
   
-Brief: Co-counsels on legal team
+Thesis: Co-counsels on legal team
   - Lawyer A: Prong 1 (alibi)
   - Lawyer B: Prong 2 (intent)
   - Lawyer C: Introduction/conclusion
@@ -508,7 +508,7 @@ Conflict resolution: Version control per section
 
 ### 3. Interactive Exploration
 ```
-Reader viewing Brief clicks on Claim #c_100
+Reader viewing Thesis clicks on Claim #c_100
   ↓
 Modal opens showing:
   - Full claim text
@@ -528,13 +528,13 @@ Modal shows:
 
 ### 4. Cross-Deliberation Networks
 ```
-Brief A (Deliberation 1) cites Claim #c_100
-Brief B (Deliberation 2) also cites Claim #c_100
+Thesis A (Deliberation 1) cites Claim #c_100
+Thesis B (Deliberation 2) also cites Claim #c_100
   ↓
-System creates link: "Related Briefs"
+System creates link: "Related Thesiss"
   ↓
-Reader browsing Brief A sees:
-  "This claim is also cited in 2 other briefs"
+Reader browsing Thesis A sees:
+  "This claim is also cited in 2 other thesiss"
   ↓
 Discover network effect:
   - Same evidence used in different contexts
@@ -548,11 +548,11 @@ Discover network effect:
 
 ✅ **Preserves rigor**: AIF/ASPIC+ compliance maintained at Layer 2  
 ✅ **Enables complexity**: Layer 3 provides composition without muddying Layer 2  
-✅ **Supports use cases**: TheoryWorks for academia, Briefs for advocacy  
+✅ **Supports use cases**: TheoryWorks for academia, Thesiss for advocacy  
 ✅ **Backward compatible**: Existing features (Articles, Propositions) unchanged  
 ✅ **Future-proof**: Clear extension points for AI, collaboration, exploration  
 ✅ **Pedagogically sound**: Users learn incrementally (Claims → Arguments → Compositions)  
 
 The key insight: **Complexity lives in composition, not in the primitives.**
 
-Just like legal briefs have a multi-tiered structure while citing simple statutes and precedents, your system can have sophisticated Briefs/TheoryWorks while keeping Claims and Arguments atomic and AIF-compliant.
+Just like legal thesiss have a multi-tiered structure while citing simple statutes and precedents, your system can have sophisticated Thesiss/TheoryWorks while keeping Claims and Arguments atomic and AIF-compliant.

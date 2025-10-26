@@ -246,6 +246,19 @@ export function ArgumentCard({
               Arg CQs
             </button>
 
+          {/* Add to Thesis button */}
+          <button
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-teal-300 text-teal-700 hover:bg-teal-50 transition-colors duration-200"
+            onClick={() => {
+              // Navigate to thesis builder with this argument pre-selected
+              window.location.href = `/deliberations/${deliberationId}/thesis?addArgumentId=${id}`;
+            }}
+            aria-label="Add this argument to a thesis"
+            title="Add to a thesis document"
+          >
+            Add to Thesis
+          </button>
+
           <button
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-300 text-slate-700 hover:bg-slate-50 transition-colors duration-200 shrink-0"
             onClick={() => setExpanded(x => !x)}

@@ -225,7 +225,7 @@ export function LegalMoveChips({
 
 
   const cls = (m: Move) => [
-    'px-2 py-1 rounded text-xs btnv2--ghost',
+    'px-2 py-1 rounded text-xs menu',
     m.kind === 'GROUNDS' ? ' text-emerald-700' :
     m.kind === 'WHY'     ? ' text-amber-700'  :
     m.kind === 'CONCEDE' ? ' text-slate-700'  :
@@ -235,7 +235,7 @@ export function LegalMoveChips({
   ].join(' ');
 
   const btnClass = (m: Move) => [
-    'px-2 py-1 rounded text-xs border transition',
+    'px-2 py-1 rounded-md text-xs menuv2--lite transition',
     m.kind === 'CLOSE'
       ? 'border-indigo-300 text-indigo-800 bg-indigo-50 hover:bg-indigo-100 font-semibold'
       : m.kind === 'GROUNDS'
@@ -247,7 +247,7 @@ export function LegalMoveChips({
   ].join(' ');
   return (
     <>
-      <div className="flex flex-wrap gap-1">
+      <div className="flex flex-wrap gap-2">
         {sorted.map((m, i) => {
           // Extract CQ text from verdict context if available
           const cqText = (m as any).verdict?.context?.cqText;

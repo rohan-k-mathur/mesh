@@ -13,7 +13,7 @@ Your question touches on a fundamental architectural choice in argumentation sys
 **Recommendation**: **Both**, with clear separation of concerns:
 1. **Keep Arguments focused** (AIF-compliant atomic units)
 2. **Extend TheoryWorks** to become rich "Thesis" containers
-3. **Create a new "Brief" model** for legal-style case building with mixed formal/informal elements
+3. **Create a new "Thesis" model** for legal-style case building with mixed formal/informal elements
 
 This preserves your rigorous logical skeleton (AIF/ASPIC+/Dialogue) while enabling the expressive power of natural language composition.
 
@@ -33,7 +33,7 @@ This preserves your rigorous logical skeleton (AIF/ASPIC+/Dialogue) while enabli
 ❌ **Limited argument chaining** — hard to compose multi-step reasoning  
 ❌ **TheoryWorks underutilized** — great scaffolding but not integrated into deliberation flow  
 ❌ **Articles too informal** — no links to verified claims/arguments as building blocks  
-❌ **No "case building" primitive** — can't assemble multi-pronged defenses like legal briefs
+❌ **No "case building" primitive** — can't assemble multi-pronged defenses like legal thesiss
 
 ---
 
@@ -176,49 +176,51 @@ enum SectionRole {
 
 ---
 
-### Option C: Create New "Brief" Model (✅ Recommended for Legal/Debate Use)
+### Option C: Create New "Thesis" Model (✅ Recommended for Legal/Debate Use)
 
-**Approach**: Model after legal briefs — multi-tiered, multi-pronged structures where each "prong" is a complete argument chain, and the brief as a whole presents a holistic case.
+**Approach**: Model after legal thesiss — multi-tiered, multi-pronged structures where each "prong" is a complete argument chain, and the thesis document as a whole presents a holistic case.
+
+**Note**: Named "Thesis" in codebase to avoid conflict with existing `Thesis` model/routes.
 
 **Pros**:
-- ✅ **Purpose-built for case building** — explicitly models "thesis + multiple lines of support"
+- ✅ **Purpose-built for case building** — explicitly models "thesis claim + multiple lines of support"
 - ✅ **Natural for debates** — mirrors how debaters structure cases
-- ✅ **Preserves atomic arguments** — Brief is a *container*, not a new argument type
+- ✅ **Preserves atomic arguments** — Thesis is a *container*, not a new argument type
 - ✅ **Supports mixed formality** — can have rigorous sections + rhetorical sections
 
 **Schema**:
 ```prisma
-model Brief {
+model Thesis {
   id              String   @id @default(cuid())
   title           String
   slug            String   @unique
   
   // Core structure
   thesisClaimId   String   // The main claim being defended
-  thesisClaim     Claim    @relation("BriefThesis", fields: [thesisClaimId], references: [id])
+  thesisClaim     Claim    @relation("ThesisMainClaim", fields: [thesisClaimId], references: [id])
   
   // Multi-pronged structure
-  prongs          BriefProng[]  // Each prong is a line of support
-  sections        BriefSection[]  // Prose sections (intro, conclusion, etc.)
+  prongs          ThesisProng[]  // Each prong is a line of support
+  sections        ThesisSection[]  // Prose sections (intro, conclusion, etc.)
   
   // Context
   deliberationId  String?
   authorId        String
   
   // Versioning
-  status          BriefStatus  // DRAFT | SUBMITTED | PUBLISHED
+  status          ThesisStatus  // DRAFT | SUBMITTED | PUBLISHED
   version         Int          @default(1)
   publishedAt     DateTime?
   
   // Metadata
-  template        BriefTemplate  // LEGAL_DEFENSE | POLICY_CASE | ACADEMIC_THESIS
+  template        ThesisTemplate  // LEGAL_DEFENSE | POLICY_CASE | ACADEMIC_THESIS
   meta            Json?
 }
 
-model BriefProng {
+model ThesisProng {
   id          String  @id @default(cuid())
-  briefId     String
-  brief       Brief   @relation(fields: [briefId], references: [id])
+  thesisId     String
+  thesis       Thesis   @relation(fields: [thesisId], references: [id])
   
   order       Int
   title       String  // "Prong 1: Economic Benefits"
@@ -229,19 +231,19 @@ model BriefProng {
   mainClaim   Claim?   @relation(fields: [mainClaimId], references: [id])
   
   // Argument chain
-  arguments   BriefProngArgument[]  // Ordered list of arguments
+  arguments   ThesisProngArgument[]  // Ordered list of arguments
   
   // Prose framing
   introduction String?  // Rich text intro for this prong
   conclusion   String?  // Rich text summary
   
-  @@index([briefId, order])
+  @@index([thesisId, order])
 }
 
-model BriefProngArgument {
+model ThesisProngArgument {
   id          String  @id @default(cuid())
   prongId     String
-  prong       BriefProng @relation(fields: [prongId], references: [id])
+  prong       ThesisProng @relation(fields: [prongId], references: [id])
   
   argumentId  String
   argument    Argument @relation(fields: [argumentId], references: [id])
@@ -254,20 +256,20 @@ model BriefProngArgument {
   @@index([prongId, order])
 }
 
-model BriefSection {
+model ThesisSection {
   id          String  @id @default(cuid())
-  briefId     String
-  brief       Brief   @relation(fields: [briefId], references: [id])
+  thesisId     String
+  thesis       Thesis   @relation(fields: [thesisId], references: [id])
   
   order       Int
-  sectionType BriefSectionType  // INTRODUCTION | BACKGROUND | CONCLUSION
+  sectionType ThesisSectionType  // INTRODUCTION | BACKGROUND | CONCLUSION
   title       String?
   content     String  // Rich text (TipTap JSON)
   
-  @@index([briefId, order])
+  @@index([thesisId, order])
 }
 
-enum BriefTemplate {
+enum ThesisTemplate {
   LEGAL_DEFENSE    // "Defendant is not guilty because..."
   POLICY_CASE      // "We should adopt policy X because..."
   ACADEMIC_THESIS  // "My thesis is X, supported by..."
@@ -286,17 +288,17 @@ enum ArgumentRole {
   COUNTER_RESPONSE // Responds to counter-argument
 }
 
-enum BriefSectionType {
+enum ThesisSectionType {
   INTRODUCTION
   BACKGROUND
-  LEGAL_STANDARD  // For legal briefs
+  LEGAL_STANDARD  // For legal thesiss
   CONCLUSION
   APPENDIX
 }
 ```
 
 **UI Flow**:
-1. User creates Brief, selects template (Legal Defense, Policy Case, etc.)
+1. User creates Thesis, selects template (Legal Defense, Policy Case, etc.)
 2. Defines thesis claim (or selects existing claim)
 3. Adds prongs:
    - "Prong 1: Economic Benefits"
@@ -312,10 +314,10 @@ enum BriefSectionType {
 4. Adds prose sections (intro, background, conclusion)
 5. Preview shows:
    - Outline view (collapsible prongs)
-   - Full view (renders like legal brief)
+   - Full view (renders like legal thesis)
    - Logical view (CEG graph of all claims/arguments)
 
-**Example Brief Structure**:
+**Example Thesis Structure**:
 ```
 BRIEF: "Climate Policy X Should Be Adopted"
 ├─ INTRODUCTION (prose)
@@ -344,17 +346,17 @@ BRIEF: "Climate Policy X Should Be Adopted"
 
 ---
 
-## Hybrid Recommendation: TheoryWorks + Briefs
+## Hybrid Recommendation: TheoryWorks + Thesiss
 
 **Best approach**: Support **both models**, differentiated by use case:
 
-| Feature | TheoryWork (Academic) | Brief (Legal/Debate) |
+| Feature | TheoryWork (Academic) | Thesis (Legal/Debate) |
 |---------|----------------------|---------------------|
 | **Primary Use** | Scholarship, research papers | Advocacy, legal cases, policy debates |
 | **Structure** | DN/IH/TC/OP scaffolds | Multi-pronged argument structure |
 | **Formality** | High (theory-driven) | Mixed (formal skeleton + rhetoric) |
 | **Composition** | Sections with embedded formal elements | Prongs with argument chains + prose framing |
-| **Output** | PDF dossier, LaTeX export | Brief document, presentation deck |
+| **Output** | PDF dossier, LaTeX export | Thesis document, presentation deck |
 | **Integration** | Links to KB pages, citations | Links to deliberation claims/arguments |
 
 **Shared Infrastructure**:
@@ -387,33 +389,33 @@ BRIEF: "Climate Policy X Should Be Adopted"
 
 ---
 
-### Phase 2: Brief Model (3-4 weeks)
+### Phase 2: Thesis Model (3-4 weeks)
 **Goal**: Enable legal-style case building
 
 **Tasks**:
-1. **Schema**: Implement `Brief`, `BriefProng`, `BriefProngArgument`, `BriefSection`
-2. **API**: REST endpoints (`/api/briefs`, `/api/briefs/[id]`, `/api/briefs/[id]/prongs`)
-3. **UI**: Build "Brief Composer"
+1. **Schema**: Implement `Thesis`, `ThesisProng`, `ThesisProngArgument`, `ThesisSection`
+2. **API**: REST endpoints (`/api/thesiss`, `/api/thesiss/[id]`, `/api/thesiss/[id]/prongs`)
+3. **UI**: Build "Thesis Composer"
    - Template selector (Legal Defense, Policy Case, etc.)
    - Prong editor with drag-drop argument ordering
    - Prose editor for intro/conclusion
-4. **Rendering**: `/brief/[slug]` page with outline + full views
-5. **Export**: PDF generation for briefs
+4. **Rendering**: `/thesis/[slug]` page with outline + full views
+5. **Export**: PDF generation for thesiss
 
 **Acceptance**:
 - User can create 3-prong policy case with 5 total arguments
 - Each prong shows verified claims + scheme info
-- Export produces clean PDF brief
+- Export produces clean PDF thesis
 
 ---
 
 ### Phase 3: Integration & Cross-Pollination (1-2 weeks)
-**Goal**: Connect Briefs/TheoryWorks to deliberations
+**Goal**: Connect Thesiss/TheoryWorks to deliberations
 
 **Tasks**:
-1. **Discoverability**: "Promote to Brief" button on ClaimMiniMap
+1. **Discoverability**: "Promote to Thesis" button on ClaimMiniMap
 2. **Reuse**: "Cite in Theory" action on ArgumentCard
-3. **Navigation**: Backlinks (show which Briefs/Works cite a claim)
+3. **Navigation**: Backlinks (show which Thesiss/Works cite a claim)
 4. **Notifications**: Alert users when cited claim's status changes (IN → OUT)
 
 ---
@@ -478,19 +480,19 @@ BRIEF: "Climate Policy X Should Be Adopted"
 ## Technical Considerations
 
 ### 1. AIF Compliance
-✅ **Preserved**: Briefs and TheoryWorks are *containers* that reference atomic arguments. Arguments themselves remain AIF-compliant I/RA/CA nodes.
+✅ **Preserved**: Thesiss and TheoryWorks are *containers* that reference atomic arguments. Arguments themselves remain AIF-compliant I/RA/CA nodes.
 
 ### 2. Semantic Labeling
-✅ **Still works**: Claims maintain their labels (IN/OUT/UNDEC). When a claim is embedded in a Brief/TheoryWork, its current label is displayed. If label changes (due to new attacks), the containing document can show a notification.
+✅ **Still works**: Claims maintain their labels (IN/OUT/UNDEC). When a claim is embedded in a Thesis/TheoryWork, its current label is displayed. If label changes (due to new attacks), the containing document can show a notification.
 
 ### 3. Dialogue Moves
 ✅ **Still works**: Embedded arguments can be challenged via dialogue moves. The challenge creates a new DialogueMove linked to the argument, which appears in the original deliberation's dialogue history.
 
 ### 4. Cross-Deliberation Reuse
-✅ **Enhanced**: Briefs/TheoryWorks can cite claims/arguments from *multiple* deliberations. The `WorkSourceDeliberation` and `ArgumentImport` models already support this.
+✅ **Enhanced**: Thesiss/TheoryWorks can cite claims/arguments from *multiple* deliberations. The `WorkSourceDeliberation` and `ArgumentImport` models already support this.
 
 ### 5. Versioning
-⚠️ **New challenge**: If a cited claim's text changes or label changes, how does the Brief/TheoryWork reflect this?
+⚠️ **New challenge**: If a cited claim's text changes or label changes, how does the Thesis/TheoryWork reflect this?
 
 **Solution**: Snapshot approach
 - When embedding a claim, store a `CitationSnapshot`:
@@ -505,13 +507,13 @@ BRIEF: "Climate Policy X Should Be Adopted"
 ### For Existing Features
 1. **Articles**: Remain unchanged. Pure prose editorial content without formal primitives.
 2. **Propositions**: Remain unchanged. Informal discussion substrate.
-3. **Claims**: Gain new backlinks (`citedInBriefs`, `citedInTheories`).
-4. **Arguments**: Gain new relation (`briefProngArguments`).
+3. **Claims**: Gain new backlinks (`citedInThesiss`, `citedInTheories`).
+4. **Arguments**: Gain new relation (`thesisProngArguments`).
 5. **TheoryWorks**: Enhanced with new `sections` structure (backward compatible — can migrate `body` field to first prose section).
 
 ### For Users
 - **Gradual adoption**: Users can continue creating arguments/claims as before
-- **Opt-in composition**: "Assemble Brief" or "Write Theory" becomes new advanced feature
+- **Opt-in composition**: "Assemble Thesis" or "Write Theory" becomes new advanced feature
 - **Discoverability**: Show "5 claims, 3 arguments → ready to assemble" prompts in deliberation UI
 
 ---
@@ -519,33 +521,33 @@ BRIEF: "Climate Policy X Should Be Adopted"
 ## Success Metrics
 
 ### Quantitative
-- **Adoption**: % of deliberations that produce at least 1 Brief or TheoryWork
-- **Complexity**: Avg # of prongs per Brief, avg # of sections per TheoryWork
+- **Adoption**: % of deliberations that produce at least 1 Thesis or TheoryWork
+- **Complexity**: Avg # of prongs per Thesis, avg # of sections per TheoryWork
 - **Reuse**: % of claims/arguments cited in multiple compositions
 - **Cross-pollination**: # of cross-deliberation citations
 
 ### Qualitative
-- **User feedback**: "Briefs help me structure complex cases"
+- **User feedback**: "Thesiss help me structure complex cases"
 - **Exports**: # of PDF downloads (indicates "production ready" usage)
-- **Credibility**: Presence of Briefs/TheoryWorks in external citations (e.g., policy documents, academic papers)
+- **Credibility**: Presence of Thesiss/TheoryWorks in external citations (e.g., policy documents, academic papers)
 
 ---
 
 ## Open Questions for Discussion
 
-1. **Naming**: "Brief" vs "Case" vs "Dossier"? (I suggest "Brief" for legal connotation)
+1. **Naming**: "Thesis" vs "Case" vs "Dossier"? (I suggest "Thesis" for legal connotation)
 
-2. **Templates**: Should Brief templates be hard-coded (Legal Defense, Policy Case) or user-extensible?
+2. **Templates**: Should Thesis templates be hard-coded (Legal Defense, Policy Case) or user-extensible?
 
-3. **Collaboration**: Should Briefs support multi-author co-editing (like TheoryWorks can)?
+3. **Collaboration**: Should Thesiss support multi-author co-editing (like TheoryWorks can)?
 
-4. **Approval**: Should Briefs require community review/endorsement before publication?
+4. **Approval**: Should Thesiss require community review/endorsement before publication?
 
-5. **Argumentation Schemes**: Should Briefs have their own "meta-schemes" (e.g., "Defense Brief Scheme" with critical questions)?
+5. **Argumentation Schemes**: Should Thesiss have their own "meta-schemes" (e.g., "Defense Thesis Scheme" with critical questions)?
 
-6. **Integration with Voting**: Can a Brief be the subject of a VoteSession? (e.g., "Vote on whether this Brief successfully defends the thesis")
+6. **Integration with Voting**: Can a Thesis be the subject of a VoteSession? (e.g., "Vote on whether this Thesis successfully defends the thesis")
 
-7. **AI Assistance**: Should there be an "AI Brief Drafter" that suggests prongs/arguments based on the thesis claim?
+7. **AI Assistance**: Should there be an "AI Thesis Drafter" that suggests prongs/arguments based on the thesis claim?
 
 ---
 
@@ -554,7 +556,7 @@ BRIEF: "Climate Policy X Should Be Adopted"
 **Recommended Path**:
 1. ✅ **Don't extend Argument model** — keep it AIF-compliant
 2. ✅ **Enhance TheoryWorks** for academic use (Phase 1)
-3. ✅ **Create Brief model** for legal/debate use (Phase 2)
+3. ✅ **Create Thesis model** for legal/debate use (Phase 2)
 4. ✅ **Integrate both** with deliberations (Phase 3)
 
 This gives you:
@@ -570,7 +572,7 @@ The result: Users can build **multi-tiered, multi-pronged, holistic cases** that
 **Next Steps**: 
 1. Review this proposal
 2. Decide on naming conventions
-3. Prioritize Phase 1 (TheoryWorks) vs Phase 2 (Briefs)
+3. Prioritize Phase 1 (TheoryWorks) vs Phase 2 (Thesiss)
 4. I can help scaffold the schema, API endpoints, and UI components
 
 Let me know which direction resonates most with your vision!

@@ -99,6 +99,9 @@ model User {
   definitionVotes        GlossaryDefinitionVote[]    @relation("DefinitionVotes")
   definitionChanges      GlossaryDefinitionHistory[] @relation("DefinitionChanges")
 
+  // Thesis builder relations
+  authoredTheses Thesis[] @relation("AuthoredTheses")
+
   @@map("users")
 }
 
@@ -2286,6 +2289,9 @@ model Argument {
 
   debateNodes DebateNode[] @relation(name: "ArgumentDebateNodes")
 
+  // Thesis relations
+  thesisProngArguments ThesisProngArgument[] @relation("ThesisProngArguments")
+
   @@index([deliberationId])
   @@index([deliberationId, createdAt])
   @@index([deliberationId, claimId, createdAt])
@@ -2692,7 +2698,7 @@ enum IssueKind {
   evidence
   structural
   governance
-  clarification     // NEW: For clarification requests (Q&A)
+  clarification // NEW: For clarification requests (Q&A)
   community_defense // NEW: For non-canonical move reviews
 }
 
@@ -2712,24 +2718,24 @@ model Issue {
   updatedAt      DateTime   @updatedAt
 
   // --- NEW: For clarification requests ---
-  questionText   String?    // The actual question being asked
-  answerText     String?    // Author's answer (when provided)
-  answeredAt     DateTime?  // When the question was answered
-  answeredById   BigInt?    // Who answered the question
+  questionText String? // The actual question being asked
+  answerText   String? // Author's answer (when provided)
+  answeredAt   DateTime? // When the question was answered
+  answeredById BigInt? // Who answered the question
 
   // --- NEW: For community defense (NCM) reviews ---
-  ncmId          String?    // Link to NonCanonicalMove being reviewed
-  ncmStatus      NCMStatus? // Status of the NCM (PENDING, APPROVED, REJECTED, EXECUTED)
-  reviewedAt     DateTime?  // When author reviewed the NCM
-  reviewNotes    String?    // Author's notes on approval/rejection
+  ncmId       String? // Link to NonCanonicalMove being reviewed
+  ncmStatus   NCMStatus? // Status of the NCM (PENDING, APPROVED, REJECTED, EXECUTED)
+  reviewedAt  DateTime? // When author reviewed the NCM
+  reviewNotes String? // Author's notes on approval/rejection
 
   // --- Relations ---
-  deliberation       Deliberation       @relation(fields: [deliberationId], references: [id])
-  createdBy          User               @relation("CreatedIssues", fields: [createdById], references: [id])
-  assignee           User?              @relation("AssignedIssues", fields: [assigneeId], references: [id])
-  answeredBy         User?              @relation("AnsweredIssues", fields: [answeredById], references: [id])
-  nonCanonicalMove   NonCanonicalMove?  @relation(fields: [ncmId], references: [id])
-  links              IssueLink[]
+  deliberation     Deliberation      @relation(fields: [deliberationId], references: [id])
+  createdBy        User              @relation("CreatedIssues", fields: [createdById], references: [id])
+  assignee         User?             @relation("AssignedIssues", fields: [assigneeId], references: [id])
+  answeredBy       User?             @relation("AnsweredIssues", fields: [answeredById], references: [id])
+  nonCanonicalMove NonCanonicalMove? @relation(fields: [ncmId], references: [id])
+  links            IssueLink[]
 
   @@index([deliberationId])
   @@index([deliberationId, state])
@@ -3091,6 +3097,10 @@ model Claim {
   asPremiseOf  ArgumentPremise[]
   asConclusion Argument[]        @relation("Conclusion")
 
+  // Thesis relations
+  thesisReferences Thesis[]      @relation("ThesisMainClaim")
+  prongClaims      ThesisProng[] @relation("ProngMainClaim")
+
   @@index([deliberationId, id], name: "claim_delib_id") // NEW
   @@index([deliberationId, createdAt]) // claims by delib, time-sorted
   @@index([canonicalClaimId])
@@ -3236,29 +3246,29 @@ model CQStatus {
   targetId   String
   argumentId String?
   status     String? // DEPRECATED: use statusEnum instead
-  
+
   // New status enum for multi-layer system
   statusEnum CQStatusEnum @default(OPEN)
 
   schemeKey   String
   cqKey       String
-  satisfied   Boolean  @default(false) // DEPRECATED: check statusEnum instead
-  groundsText String?  // DEPRECATED: use responses relation instead
-  
+  satisfied   Boolean @default(false) // DEPRECATED: check statusEnum instead
+  groundsText String? // DEPRECATED: use responses relation instead
+
   // Multi-response system
   canonicalResponseId String?
-  canonicalResponse   CQResponse? @relation("CanonicalResponse", fields: [canonicalResponseId], references: [id], onDelete: SetNull)
+  canonicalResponse   CQResponse?  @relation("CanonicalResponse", fields: [canonicalResponseId], references: [id], onDelete: SetNull)
   responses           CQResponse[] @relation("AllResponses")
-  
+
   // Review tracking
   lastReviewedAt DateTime?
   lastReviewedBy String?
-  
+
   createdById String
   roomId      String? // denormalized at write-time for RLS
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
+
   // Activity log
   activities CQActivityLog[]
 
@@ -3270,49 +3280,49 @@ model CQStatus {
 }
 
 enum CQStatusEnum {
-  OPEN                 // No responses yet
-  PENDING_REVIEW       // Has responses awaiting approval
-  PARTIALLY_SATISFIED  // Some responses approved, but incomplete
-  SATISFIED            // Author accepted canonical response
-  DISPUTED             // Conflicting responses or new challenges
+  OPEN // No responses yet
+  PENDING_REVIEW // Has responses awaiting approval
+  PARTIALLY_SATISFIED // Some responses approved, but incomplete
+  SATISFIED // Author accepted canonical response
+  DISPUTED // Conflicting responses or new challenges
 }
 
 model CQResponse {
-  id       String @id @default(cuid())
-  
+  id String @id @default(cuid())
+
   cqStatusId String
   cqStatus   CQStatus @relation("AllResponses", fields: [cqStatusId], references: [id], onDelete: Cascade)
-  
+
   // Response content
-  groundsText      String   // The actual response text
+  groundsText      String // The actual response text
   evidenceClaimIds String[] // Claims that serve as evidence
   sourceUrls       String[] // External citations
-  
+
   // Workflow state
   responseStatus ResponseStatus @default(PENDING)
-  
+
   // Provenance
-  contributorId String  // Who wrote this response (auth_id string)
-  
-  reviewedAt    DateTime?
-  reviewedBy    String?   // Author or moderator who approved/rejected (auth_id)
-  reviewNotes   String?   // Why approved/rejected
-  
+  contributorId String // Who wrote this response (auth_id string)
+
+  reviewedAt  DateTime?
+  reviewedBy  String? // Author or moderator who approved/rejected (auth_id)
+  reviewNotes String? // Why approved/rejected
+
   // Community validation
-  upvotes       Int @default(0)
-  downvotes     Int @default(0)
-  endorsements  CQEndorsement[]
-  
+  upvotes      Int             @default(0)
+  downvotes    Int             @default(0)
+  endorsements CQEndorsement[]
+
   // Execution (if approved and converted to canonical move)
   canonicalMoveId String?
   executedAt      DateTime?
-  
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   // Back-reference for canonical selection
   canonicalFor CQStatus[] @relation("CanonicalResponse")
-  
+
   // Activity log
   activities CQActivityLog[]
 
@@ -3322,25 +3332,25 @@ model CQResponse {
 }
 
 enum ResponseStatus {
-  PENDING          // Awaiting review
-  APPROVED         // Accepted by author/moderator
-  CANONICAL        // Selected as THE official answer
-  REJECTED         // Not accepted
-  SUPERSEDED       // Was canonical, but replaced
-  WITHDRAWN        // Contributor removed it
+  PENDING // Awaiting review
+  APPROVED // Accepted by author/moderator
+  CANONICAL // Selected as THE official answer
+  REJECTED // Not accepted
+  SUPERSEDED // Was canonical, but replaced
+  WITHDRAWN // Contributor removed it
 }
 
 model CQEndorsement {
-  id         String @id @default(cuid())
+  id         String     @id @default(cuid())
   responseId String
   response   CQResponse @relation(fields: [responseId], references: [id], onDelete: Cascade)
-  
-  userId     String // auth_id of endorser
-  
-  weight     Int @default(1) // Could vary by user reputation
-  comment    String?         // Optional explanation
-  
-  createdAt  DateTime @default(now())
+
+  userId String // auth_id of endorser
+
+  weight  Int     @default(1) // Could vary by user reputation
+  comment String? // Optional explanation
+
+  createdAt DateTime @default(now())
 
   @@unique([responseId, userId])
   @@index([responseId])
@@ -3348,20 +3358,20 @@ model CQEndorsement {
 }
 
 model CQActivityLog {
-  id       String @id @default(cuid())
-  
+  id String @id @default(cuid())
+
   cqStatusId String
   cqStatus   CQStatus @relation(fields: [cqStatusId], references: [id], onDelete: Cascade)
-  
-  action     CQAction
-  
-  actorId    String  // Who performed the action (auth_id)
-  
+
+  action CQAction
+
+  actorId String // Who performed the action (auth_id)
+
   responseId String? // If action relates to a specific response
   response   CQResponse? @relation(fields: [responseId], references: [id], onDelete: SetNull)
-  
-  metadata   Json?   // Additional context
-  createdAt  DateTime @default(now())
+
+  metadata  Json? // Additional context
+  createdAt DateTime @default(now())
 
   @@index([cqStatusId, createdAt])
   @@index([actorId])
@@ -3550,6 +3560,7 @@ model Deliberation {
 
   // Glossary system
   glossaryTerms GlossaryTerm[]
+  Thesis        Thesis[]
 
   @@index([agoraRoomID])
   @@index([hostType, hostId])
@@ -5088,8 +5099,8 @@ model NonCanonicalMove {
   // ─── Context & Target ───────────────────────────────────────
   deliberationId String
   targetMoveId   String? // The move this responds to (WHY, clarification request, etc.)
-  targetType     String  // "argument" | "claim" | "clarification_request"
-  targetId       String  // ID of the argument/claim/request
+  targetType     String // "argument" | "claim" | "clarification_request"
+  targetId       String // ID of the argument/claim/request
 
   // ─── Authorship ─────────────────────────────────────────────
   contributorId String // User who submitted this non-canonical move
@@ -5097,13 +5108,13 @@ model NonCanonicalMove {
 
   // ─── Move Content ───────────────────────────────────────────
   moveType MoveType // What kind of response this is
-  content  Json     // Move-specific payload (expression, evidence, etc.)
+  content  Json // Move-specific payload (expression, evidence, etc.)
 
   // ─── Approval Workflow ──────────────────────────────────────
   status          NCMStatus @default(PENDING)
-  approvedBy      String?   // userId who approved (author or asker)
+  approvedBy      String? // userId who approved (author or asker)
   approvedAt      DateTime?
-  rejectedBy      String?   // userId who rejected
+  rejectedBy      String? // userId who rejected
   rejectedAt      DateTime?
   rejectionReason String?   @db.Text
 
@@ -5127,20 +5138,20 @@ model NonCanonicalMove {
 }
 
 enum NCMStatus {
-  PENDING   // Awaiting approval
-  APPROVED  // Approved but not yet canonical
-  EXECUTED  // Approved and converted to canonical DialogueMove
-  REJECTED  // Rejected by author/asker
+  PENDING // Awaiting approval
+  APPROVED // Approved but not yet canonical
+  EXECUTED // Approved and converted to canonical DialogueMove
+  REJECTED // Rejected by author/asker
   WITHDRAWN // Withdrawn by contributor
 }
 
 enum MoveType {
-  GROUNDS_RESPONSE     // Answer to WHY challenge
+  GROUNDS_RESPONSE // Answer to WHY challenge
   CLARIFICATION_ANSWER // Answer to clarification request
-  CHALLENGE_RESPONSE   // Response to a challenge
-  EVIDENCE_ADDITION    // Additional evidence for existing move
-  PREMISE_DEFENSE      // Defense of undermined premise
-  EXCEPTION_REBUTTAL   // Rebuttal to undercut exception
+  CHALLENGE_RESPONSE // Response to a challenge
+  EVIDENCE_ADDITION // Additional evidence for existing move
+  PREMISE_DEFENSE // Defense of undermined premise
+  EXCEPTION_REBUTTAL // Rebuttal to undercut exception
 }
 
 /// Clarification requests (non-protocol questions seeking factual details)
@@ -5168,10 +5179,10 @@ model ClarificationRequest {
 }
 
 enum ClarificationStatus {
-  OPEN     // Awaiting answers
+  OPEN // Awaiting answers
   ANSWERED // Has at least one approved answer
   RESOLVED // Asker marked as fully resolved
-  CLOSED   // No longer accepting answers
+  CLOSED // No longer accepting answers
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -5180,7 +5191,7 @@ enum ClarificationStatus {
 
 /// Glossary terms for a deliberation - key words/phrases that need shared definitions
 model GlossaryTerm {
-  id             String   @id @default(cuid())
+  id             String       @id @default(cuid())
   deliberationId String
   deliberation   Deliberation @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
 
@@ -5216,7 +5227,7 @@ model GlossaryDefinition {
 
   definition String  @db.Text // The actual definition text
   examples   String? @db.Text // Optional usage examples
-  sources    Json?   // References/citations (URLs, books, etc.)
+  sources    Json? // References/citations (URLs, books, etc.)
 
   authorId String
   author   User   @relation("AuthoredDefinitions", fields: [authorId], references: [auth_id])
@@ -5314,8 +5325,155 @@ model GlossaryTermUsage {
 }
 
 enum GlossaryTermStatus {
-  PENDING   // Awaiting endorsements
+  PENDING // Awaiting endorsements
   CONSENSUS // Has consensus on one definition
   CONTESTED // Multiple competing definitions
-  ARCHIVED  // No longer active/relevant
+  ARCHIVED // No longer active/relevant
+}
+
+// ============================================================================
+// THESIS BUILDER MODELS
+// ============================================================================
+// Multi-layered case building system for legal briefs, policy cases, etc.
+// Named "Thesis" to avoid conflict with existing Brief model
+
+/// Main thesis document - container for multi-pronged argumentation
+model Thesis {
+  id    String @id @default(cuid())
+  slug  String @unique
+  title String
+
+  // Core structure
+  thesisClaimId String
+  thesisClaim   Claim  @relation("ThesisMainClaim", fields: [thesisClaimId], references: [id], onDelete: Restrict)
+
+  // Multi-pronged structure
+  prongs   ThesisProng[] // Each prong is a line of support
+  sections ThesisSection[] // Prose sections (intro, conclusion, etc.)
+
+  // Context
+  deliberationId String?
+  deliberation   Deliberation? @relation(fields: [deliberationId], references: [id], onDelete: SetNull)
+
+  authorId String
+  author   User   @relation("AuthoredTheses", fields: [authorId], references: [auth_id], onDelete: Cascade)
+
+  // Versioning & status
+  status      ThesisStatus @default(DRAFT)
+  version     Int          @default(1)
+  publishedAt DateTime?
+
+  // Metadata
+  template ThesisTemplate @default(GENERAL)
+  summary  String?        @db.Text
+  meta     Json?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([deliberationId])
+  @@index([authorId])
+  @@index([thesisClaimId])
+  @@index([status, publishedAt])
+  @@map("theses")
+}
+
+/// Individual prong (line of reasoning) within a thesis
+model ThesisProng {
+  id       String @id @default(cuid())
+  thesisId String
+  thesis   Thesis @relation(fields: [thesisId], references: [id], onDelete: Cascade)
+
+  order Int // Order within thesis
+  title String
+  role  ProngRole @default(SUPPORT)
+
+  // Optional sub-claim for this prong
+  mainClaimId String?
+  mainClaim   Claim?  @relation("ProngMainClaim", fields: [mainClaimId], references: [id], onDelete: SetNull)
+
+  // Argument chain
+  arguments ThesisProngArgument[]
+
+  // Prose framing (TipTap JSON)
+  introduction Json? // Rich text intro
+  conclusion   Json? // Rich text conclusion
+
+  meta Json?
+
+  @@index([thesisId, order])
+  @@index([mainClaimId])
+  @@map("thesis_prongs")
+}
+
+/// Link between prong and argument (ordered)
+model ThesisProngArgument {
+  id      String      @id @default(cuid())
+  prongId String
+  prong   ThesisProng @relation(fields: [prongId], references: [id], onDelete: Cascade)
+
+  argumentId String
+  argument   Argument @relation("ThesisProngArguments", fields: [argumentId], references: [id], onDelete: Restrict)
+
+  order Int // Order within prong's argument chain
+  role  ArgumentRole @default(PREMISE)
+  note  String?      @db.Text // Optional annotation
+
+  @@unique([prongId, argumentId])
+  @@index([prongId, order])
+  @@index([argumentId])
+  @@map("thesis_prong_arguments")
+}
+
+/// Prose sections (introduction, background, conclusion, etc.)
+model ThesisSection {
+  id       String @id @default(cuid())
+  thesisId String
+  thesis   Thesis @relation(fields: [thesisId], references: [id], onDelete: Cascade)
+
+  order       Int
+  sectionType ThesisSectionType
+  title       String?
+
+  // TipTap JSON content
+  content Json? // Rich text content
+
+  @@index([thesisId, order])
+  @@map("thesis_sections")
+}
+
+// Enums for Thesis system
+enum ThesisStatus {
+  DRAFT
+  SUBMITTED
+  PUBLISHED
+  ARCHIVED
+}
+
+enum ThesisTemplate {
+  LEGAL_DEFENSE // "Defendant is not guilty because..."
+  POLICY_CASE // "We should adopt policy X because..."
+  ACADEMIC_THESIS // "My thesis is X, supported by..."
+  GENERAL // Freeform
+}
+
+enum ProngRole {
+  SUPPORT // Affirmative line of reasoning
+  REBUT // Counter opposing argument
+  PREEMPT // Address anticipated objection
+}
+
+enum ArgumentRole {
+  PREMISE // Establishes a premise
+  INFERENCE // Links premises to conclusion
+  COUNTER_RESPONSE // Responds to counter-argument
+}
+
+enum ThesisSectionType {
+  INTRODUCTION
+  BACKGROUND
+  LEGAL_STANDARD // For legal briefs
+  CONCLUSION
+  APPENDIX
 }
