@@ -12,17 +12,18 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Lightbulb, X } from "lucide-react";
+import type { MoveKind } from "@/types/dialogue";
 
-type MoveKind = "THEREFORE" | "SUPPOSE" | "DISCHARGE";
+type StructuralMoveKind = Extract<MoveKind, "THEREFORE" | "SUPPOSE" | "DISCHARGE">;
 
 interface StructuralMoveModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  kind: MoveKind;
+  kind: StructuralMoveKind;
   onSubmit: (text: string) => void | Promise<void>;
 }
 
-const MOVE_CONFIG: Record<MoveKind, {
+const MOVE_CONFIG: Record<StructuralMoveKind, {
   title: string;
   description: string;
   placeholder: string;
@@ -117,7 +118,7 @@ export function StructuralMoveModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl bg-white">
+      <DialogContent className="max-w-2xl bg-slate-50 border-2 border-indigo-300 ">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold text-slate-900">
             {config.title}
@@ -139,7 +140,7 @@ export function StructuralMoveModal({
               onChange={(e) => setText(e.target.value)}
               placeholder={config.placeholder}
               rows={4}
-              className="resize-none"
+              className="resize-none articlesearchfield"
               autoFocus
             />
             <div className="flex items-center justify-between text-xs text-slate-500">
@@ -157,10 +158,10 @@ export function StructuralMoveModal({
           </div>
 
           {/* Examples section */}
-          <div className="border-t border-slate-200 pt-4">
+          <div className="border-t border-slate-200 pt-2">
             <button
               onClick={() => setShowExamples(!showExamples)}
-              className="flex items-center gap-2 text-sm font-medium text-indigo-600 hover:text-indigo-700 transition-colors"
+              className="flex items-center gap-1 text-sm font-medium text-indigo-600 hover:text-indigo-700 transition-colors"
             >
               <Lightbulb className="w-4 h-4" />
               {showExamples ? "Hide" : "Show"} Examples
@@ -182,20 +183,18 @@ export function StructuralMoveModal({
           </div>
         </div>
 
-        <DialogFooter>
-          <Button
-            variant="outline"
+        <DialogFooter className="gap-2">
+          <button
             onClick={handleCancel}
             disabled={loading}
-            className="gap-2"
+            className="flex text-xs menuv2--lite rounded-xl px-2 py-2 gap-2"
           >
-            <X className="w-4 h-4" />
             Cancel
-          </Button>
-          <Button
+          </button>
+          <button       
             onClick={handleSubmit}
             disabled={!isValid || loading}
-            className="gap-2"
+            className="menuv2--lite text-xs rounded-xl px-2 py-2 gap-2"
           >
             {loading ? (
               <>
@@ -207,7 +206,7 @@ export function StructuralMoveModal({
                 Post {kind === "THEREFORE" ? "Conclusion" : kind === "SUPPOSE" ? "Supposition" : "Discharge"}
               </>
             )}
-          </Button>
+          </button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

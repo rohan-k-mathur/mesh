@@ -5,7 +5,7 @@ import { getCurrentUserId } from "@/lib/serverutils";
 import { emitBus } from "@/lib/server/bus";
 
 const Attach = z.object({
-  targetType: z.enum(["argument", "claim", "card", "comment", "move"]),
+  targetType: z.enum(["argument", "claim", "card", "comment", "move", "proposition"]),
   targetId: z.string().min(1),
   sourceId: z.string().min(1),
   locator: z.string().optional(),
@@ -68,6 +68,14 @@ if (d.targetType === "claim") {
       select: { deliberationId: true },
     });
     deliberationId = cl?.deliberationId ?? null;
+  } catch {}
+} else if (d.targetType === "proposition") {
+  try {
+    const prop = await (prisma as any).proposition.findUnique({
+      where: { id: d.targetId },
+      select: { deliberationId: true },
+    });
+    deliberationId = prop?.deliberationId ?? null;
   } catch {}
 } else if (d.targetType === "comment" && stackId) {
   try {

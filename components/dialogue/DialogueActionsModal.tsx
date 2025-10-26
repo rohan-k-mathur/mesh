@@ -295,8 +295,13 @@ export function DialogueActionsModal({
           move.kind === "DISCHARGE"
         ) {
           setStructuralMoveKind(move.kind);
-          setStructuralModalOpen(true);
           setExecutingMove(null);
+          // Close the main dialog first to release focus trap
+          onOpenChange(false);
+          // Open StructuralMoveModal after a brief delay to ensure dialog has released focus
+          setTimeout(() => {
+            setStructuralModalOpen(true);
+          }, 100);
           return;
         }
 

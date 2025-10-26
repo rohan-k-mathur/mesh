@@ -1,37 +1,28 @@
 // components/dialogue/LegalMoveChips.tsx
+/**
+ * LegalMoveChips - Minimal inline UI for dialogue moves
+ * 
+ * Purpose: Lightweight strip of button chips for quick move selection
+ * Use when: You need compact, inline move buttons without heavy UI
+ * 
+ * Opens specialized modals:
+ * - GROUNDS → NLCommitPopover
+ * - THEREFORE/SUPPOSE/DISCHARGE → StructuralMoveModal
+ * 
+ * For full-featured UI, use DialogueActionsButton + DialogueActionsModal instead.
+ */
 'use client';
 import * as React from 'react';
 import useSWR from 'swr';
 import { useMemo } from 'react';
 import { NLCommitPopover } from '@/components/dialogue/NLCommitPopover';
 import { StructuralMoveModal } from '@/components/dialogue/StructuralMoveModal';
+import { WhyChallengeModal } from '@/components/dialogue/WhyChallengeModal';
 import { useBusEffect } from '@/lib/client/useBusEffect';
-import type { Move } from '@/app/api/dialogue/legal-moves/route';
+import { useMicroToast } from '@/hooks/useMicroToast';
+import { useCQStats } from '@/hooks/useCQStats';
+import type { Move, MoveKind } from '@/types/dialogue';
 import { TargetType } from '@prisma/client';
-
-interface CQStatusBadge {
-  total: number;
-  satisfied: number;
-}
-
-function useMicroToast() {
-  const [msg, setMsg] = React.useState<{ kind:'ok'|'err'; text:string }|null>(null);
-  const show = React.useCallback((text:string, kind:'ok'|'err'='ok', ms=4000) => { // ✅ Increased from 1400ms to 4000ms
-    setMsg({ kind, text }); const id = setTimeout(()=>setMsg(null), ms); return () => clearTimeout(id);
-  }, []);
-  const node = msg ? (
-    <div className={[
-      'fixed bottom-4 right-4 z-50 rounded-lg border px-4 py-3 text-sm shadow-lg backdrop-blur bg-white/95 animate-in slide-in-from-bottom-2', // ✅ Better styling
-      msg.kind === 'ok' ? 'border-emerald-300 text-emerald-800 bg-emerald-50/95' : 'border-rose-300 text-rose-800 bg-rose-50/95'
-    ].join(' ')}>
-      <div className="flex items-center gap-2">
-        <span className="text-base">{msg.kind === 'ok' ? '✓' : '✕'}</span>
-        <span className="font-medium">{msg.text}</span>
-      </div>
-    </div>
-  ) : null;
-  return { show, node };
-}
 
 export function LegalMoveChips({
   deliberationId,
@@ -62,25 +53,8 @@ export function LegalMoveChips({
   const fetcher = (u:string)=>fetch(u,{cache:'no-store'}).then(r=>r.json());
   const { data, mutate, isLoading } = useSWR<{ ok:boolean; moves: Move[] }>(key, fetcher, { revalidateOnFocus:false });
 
-  // Fetch CQ status if target is a claim
-  const cqKey = targetType === 'claim' ? `/api/cqs?targetType=claim&targetId=${targetId}` : null;
-  const { data: cqData } = useSWR<{ schemes: Array<{ cqs: Array<{ satisfied: boolean }> }> }>(
-    cqKey,
-    fetcher,
-    { revalidateOnFocus: false }
-  );
-
-  // Calculate CQ stats
-  const cqStats: CQStatusBadge | null = React.useMemo(() => {
-    if (!cqData?.schemes) return null;
-    const allCqs = cqData.schemes.flatMap(s => s.cqs);
-    return {
-      total: allCqs.length,
-      satisfied: allCqs.filter(cq => cq.satisfied).length
-    };
-  }, [cqData]);
-
-  
+  // Fetch CQ stats using shared hook
+  const cqStats = useCQStats({ targetType, targetId });
 
   // live refresh on server events
   useBusEffect(['dialogue:changed','dialogue:moves:refresh'], () => mutate(), { retry: true });
@@ -94,20 +68,20 @@ export function LegalMoveChips({
   const [structuralModalOpen, setStructuralModalOpen] = React.useState(false);
   const [structuralMoveKind, setStructuralMoveKind] = React.useState<'THEREFORE' | 'SUPPOSE' | 'DISCHARGE' | null>(null);
   const [pendingStructuralMove, setPendingStructuralMove] = React.useState<Move | null>(null);
+  
+  // Modal state for WHY challenges
+  const [whyChallengeModalOpen, setWhyChallengeModalOpen] = React.useState(false);
+  const [pendingWhyMove, setPendingWhyMove] = React.useState<Move | null>(null);
 
   const postMove = async (m: Move) => {
     if (m.disabled || busy) return;
     if (onPick) { onPick(m); return; }
 
-    // For generic WHY without cqId, prompt for challenge text
+    // For generic WHY without cqId, open challenge modal instead of prompt
     if (m.kind === 'WHY' && !m.payload?.cqId) {
-      const challengeText = window.prompt('What is your challenge? (Why should we accept this?)');
-      if (!challengeText || !challengeText.trim()) {
-        toast.show('Cancelled - no challenge entered', 'err', 2000);
-        return;
-      }
-      // Add expression to payload
-      m = { ...m, payload: { ...m.payload, expression: challengeText.trim() } };
+      setPendingWhyMove(m);
+      setWhyChallengeModalOpen(true);
+      return; // Modal will handle the rest
     }
 
     // For THEREFORE, SUPPOSE, DISCHARGE - use modal instead of prompt
@@ -195,8 +169,44 @@ export function LegalMoveChips({
     }
   };
 
-  // Removed: answerAndCommit now handled by NLCommitPopover modal
-  // No more browser prompt() - all GROUNDS moves now use the "+ commit" modal flow
+  // Handler for WHY challenge modal submission
+  const handleWhyChallengeSubmit = async (challengeText: string) => {
+    if (!pendingWhyMove) return;
+    
+    const m = {
+      ...pendingWhyMove,
+      payload: { ...pendingWhyMove.payload, expression: challengeText.trim() }
+    };
+    
+    setBusy(m.kind);
+    try {
+      const postTargetType = m.postAs?.targetType ?? targetType;
+      const postTargetId   = m.postAs?.targetId   ?? targetId;
+      const body = {
+        deliberationId,
+        targetType: postTargetType,
+        targetId: postTargetId,
+        kind: m.kind,
+        payload: { locusPath, ...(m.payload ?? {}) },
+        autoCompile: true, autoStep: true, phase: 'neutral' as const,
+      };
+      const r = await fetch('/api/dialogue/move', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+      const j = await r.json().catch(()=>({}));
+      if (!r.ok || j?.ok === false) throw new Error(j?.error ?? `HTTP ${r.status}`);
+
+      onPosted?.();
+      mutate();
+      toast.show('Challenge posted! Waiting for response.', 'ok');
+    } catch (e:any) {
+      toast.show(`Failed to post challenge: ${e.message}`, 'err');
+      throw e; // Re-throw so modal can handle it
+    } finally {
+      setBusy(null);
+      setPendingWhyMove(null);
+    }
+  };
+
+  // Note: answerAndCommit removed - all GROUNDS moves now use NLCommitPopover modal flow
 
   const moves = Array.isArray(data?.moves) ? (data!.moves as Move[]) : [];
 
@@ -322,6 +332,15 @@ export function LegalMoveChips({
           onOpenChange={setStructuralModalOpen}
           kind={structuralMoveKind}
           onSubmit={handleStructuralMoveSubmit}
+        />
+      )}
+      
+      {/* WHY Challenge Modal */}
+      {whyChallengeModalOpen && (
+        <WhyChallengeModal
+          open={whyChallengeModalOpen}
+          onOpenChange={setWhyChallengeModalOpen}
+          onSubmit={handleWhyChallengeSubmit}
         />
       )}
       

@@ -1,16 +1,6 @@
 // lib/dialogue/movesToActions.ts
 import type { CommandCardAction, TargetRef } from '@/components/dialogue/command-card/types';
-
-export type Move = {
-  kind: 'ASSERT'|'WHY'|'GROUNDS'|'RETRACT'|'CONCEDE'|'CLOSE'|'THEREFORE'|'SUPPOSE'|'DISCHARGE';
-  label: string;
-  payload?: any;
-  disabled?: boolean;
-  reason?: string;
-  force?: 'ATTACK'|'SURRENDER'|'NEUTRAL';
-  relevance?: 'likely'|'unlikely'|null;
-  postAs?: { targetType: 'argument'|'claim'|'card'; targetId: string };
-};
+import type { Move } from '@/types/dialogue';
 
 /**
  * Convert legal moves from the dialogue API into CommandCard actions

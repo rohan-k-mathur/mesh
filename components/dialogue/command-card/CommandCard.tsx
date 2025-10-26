@@ -5,6 +5,8 @@ import * as React from 'react';
 import { useState, useEffect, useCallback } from 'react';
 import type { CommandCardProps, CommandCardAction } from './types';
 import { NLCommitPopover } from '@/components/dialogue/NLCommitPopover';
+import { StructuralMoveModal } from '@/components/dialogue/StructuralMoveModal';
+import { WhyChallengeModal } from '@/components/dialogue/WhyChallengeModal';
 
 function getActionStyles(action: CommandCardAction, isExecuting: boolean) {
   const base = 'h-10 rounded-lg text-[11px] px-2 border transition-all duration-200 transform relative overflow-hidden';
@@ -61,6 +63,14 @@ export function CommandCard({
   // Modal state for GROUNDS moves
   const [groundsModalOpen, setGroundsModalOpen] = useState(false);
   const [pendingGroundsAction, setPendingGroundsAction] = useState<CommandCardAction | null>(null);
+  
+  // Modal state for WHY challenges
+  const [whyChallengeModalOpen, setWhyChallengeModalOpen] = useState(false);
+  const [pendingWhyAction, setPendingWhyAction] = useState<CommandCardAction | null>(null);
+  
+  // Modal state for structural moves (THEREFORE/SUPPOSE)
+  const [structuralModalOpen, setStructuralModalOpen] = useState(false);
+  const [pendingStructuralAction, setPendingStructuralAction] = useState<CommandCardAction | null>(null);
 
   const handlePerform = useCallback(async (action: CommandCardAction) => {
     if (action.disabled || executingId) return;
@@ -69,6 +79,20 @@ export function CommandCard({
     if (action.move?.kind === 'GROUNDS') {
       setPendingGroundsAction(action);
       setGroundsModalOpen(true);
+      return;
+    }
+    
+    // For generic WHY without cqId, open challenge modal
+    if (action.move?.kind === 'WHY' && !action.move.payload?.cqId) {
+      setPendingWhyAction(action);
+      setWhyChallengeModalOpen(true);
+      return;
+    }
+    
+    // For THEREFORE/SUPPOSE, open structural modal
+    if (action.move?.kind === 'THEREFORE' || action.move?.kind === 'SUPPOSE') {
+      setPendingStructuralAction(action);
+      setStructuralModalOpen(true);
       return;
     }
 
@@ -193,13 +217,91 @@ export function CommandCard({
           }}
         />
       )}
+      
+      {/* WHY Challenge Modal */}
+      {whyChallengeModalOpen && pendingWhyAction && (
+        <WhyChallengeModal
+          open={whyChallengeModalOpen}
+          onOpenChange={setWhyChallengeModalOpen}
+          onSubmit={async (challengeText) => {
+            const actionWithPayload: CommandCardAction = {
+              ...pendingWhyAction,
+              move: {
+                ...pendingWhyAction.move!,
+                payload: {
+                  ...pendingWhyAction.move!.payload,
+                  expression: challengeText.trim()
+                }
+              }
+            };
+            
+            setWhyChallengeModalOpen(false);
+            setPendingWhyAction(null);
+            
+            // Execute the action with the challenge text
+            setExecutingId(actionWithPayload.id);
+            try {
+              await onPerform(actionWithPayload);
+              setLastExecutedId(actionWithPayload.id);
+              setTimeout(() => setLastExecutedId(null), 1000);
+            } catch (error) {
+              console.error('Command execution failed:', error);
+            } finally {
+              setExecutingId(null);
+            }
+          }}
+        />
+      )}
+      
+      {/* Structural Move Modal (THEREFORE/SUPPOSE) */}
+      {structuralModalOpen && pendingStructuralAction && (
+        <StructuralMoveModal
+          open={structuralModalOpen}
+          onOpenChange={setStructuralModalOpen}
+          kind={pendingStructuralAction.move!.kind as 'THEREFORE' | 'SUPPOSE'}
+          onSubmit={async (expressionText) => {
+            const actionWithPayload: CommandCardAction = {
+              ...pendingStructuralAction,
+              move: {
+                ...pendingStructuralAction.move!,
+                payload: {
+                  ...pendingStructuralAction.move!.payload,
+                  expression: expressionText.trim()
+                }
+              }
+            };
+            
+            setStructuralModalOpen(false);
+            setPendingStructuralAction(null);
+            
+            // Execute the action with the expression text
+            setExecutingId(actionWithPayload.id);
+            try {
+              await onPerform(actionWithPayload);
+              setLastExecutedId(actionWithPayload.id);
+              setTimeout(() => setLastExecutedId(null), 1000);
+            } catch (error) {
+              console.error('Command execution failed:', error);
+            } finally {
+              setExecutingId(null);
+            }
+          }}
+        />
+      )}
     </div>
   );
 }
 
 // Helper function to execute commands (used by parent components)
-// Note: This is a standalone helper. For better state management and feedback,
-// consider passing the component's handlePerform method as onPerform instead.
+// ⚠️ DEPRECATED: This standalone helper uses window.prompt() which is deprecated.
+// Instead, use the CommandCard component's handlePerform method which opens proper modals.
+// 
+// Migration guide:
+// - For WHY without cqId: Opens WhyChallengeModal
+// - For THEREFORE/SUPPOSE: Opens StructuralMoveModal
+// - For GROUNDS: Opens NLCommitPopover
+//
+// TODO: Remove this function once all callers are migrated to use CommandCard component directly
 export async function performCommand(action: CommandCardAction): Promise<void> {
   if (action.scaffold?.template) {
     // Client-side: insert template into composer
@@ -232,8 +334,9 @@ export async function performCommand(action: CommandCardAction): Promise<void> {
       ...(locusPath ? { locusPath } : {}),
     };
 
-    // For generic WHY without cqId, prompt for challenge text
+    // ⚠️ DEPRECATED: Using window.prompt() - should use WhyChallengeModal instead
     if (action.move.kind === 'WHY' && !payload.cqId) {
+      console.warn('[performCommand] DEPRECATED: window.prompt() for WHY. Use CommandCard component instead.');
       const challengeText = window.prompt('What is your challenge? (Why should we accept this?)');
       if (!challengeText || !challengeText.trim()) {
         console.log('Challenge cancelled - no text entered');
@@ -242,8 +345,9 @@ export async function performCommand(action: CommandCardAction): Promise<void> {
       payload = { ...payload, expression: challengeText.trim() };
     }
 
-    // For THEREFORE and SUPPOSE, prompt for expression text
+    // ⚠️ DEPRECATED: Using window.prompt() - should use StructuralMoveModal instead
     if (action.move.kind === 'THEREFORE' || action.move.kind === 'SUPPOSE') {
+      console.warn('[performCommand] DEPRECATED: window.prompt() for structural moves. Use CommandCard component instead.');
       const promptText = action.move.kind === 'THEREFORE' 
         ? 'Enter the conclusion that follows from the premises:'
         : 'Enter the supposition (what we\'re assuming):';

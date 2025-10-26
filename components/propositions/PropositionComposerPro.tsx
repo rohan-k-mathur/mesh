@@ -5,13 +5,13 @@ import useSWR from 'swr';
 import { z } from 'zod';
 
 import { inferEpistemicMetadata, type EpistemicMetadata } from '@/lib/epistemic/inferEpistemicMetadata';
-import { classifySource } from '@/lib/rhetoric/sourceQuality';
 import EnthymemeNudge from '@/components/deepdive/EnthymemeNudge';
 import { TheoryFraming } from '@/components/compose/TheoryFraming';
 import { invalidateDeliberation } from '@/lib/deepdive/invalidate';
 import { useLegalMoves } from '@/components/dialogue/useLegalMoves';
 import { GlossaryEditorToolbar } from '@/components/glossary/GlossaryEditorToolbar';
 import { GlossaryText } from '@/components/glossary/GlossaryText';
+import CitationCollector, { type PendingCitation } from '@/components/citations/CitationCollector';
 import type { Proposition } from './PropositionComposer';
 
 // --- Types -------------------------------------------------------------------
@@ -64,8 +64,10 @@ export function PropositionComposerPro({
   placeholder = 'State your proposition…',
 }: Props) {
   const [text, setText] = React.useState('');
-  const [sources, setSources] = React.useState<string[]>([]);
   const [imageUrl, setImageUrl] = React.useState('');
+  
+  // Citation management - collect citations to attach after proposition is created
+  const [pendingCitations, setPendingCitations] = React.useState<PendingCitation[]>([]);
 
   // Glossary preview mode
   const [showPreview, setShowPreview] = React.useState(false);
@@ -123,12 +125,13 @@ export function PropositionComposerPro({
   const { data: legalMoves } = useLegalMoves(targetText);
 
   // Silent epistemic detection (progressive disclosure)
-  const debounced = useDebounced({ text, sources }, 500);
+  const debounced = useDebounced({ text, citationCount: pendingCitations.length }, 500);
   React.useEffect(() => {
     let cancel = false;
     (async () => {
       if (!debounced.text.trim()) { setDetected(null); return; }
-      const m = await inferEpistemicMetadata(debounced.text, debounced.sources);
+      // Pass empty array for sources since we're using structured citations now
+      const m = await inferEpistemicMetadata(debounced.text, []);
       if (!cancel) setDetected(m);
       const diff =
         Math.abs((confidence ?? 0.5) - (m.confidence ?? 0.5)) > 0.2 ||
@@ -137,7 +140,7 @@ export function PropositionComposerPro({
       if (diff) setShowEpiPanel(true);
     })();
     return () => { cancel = true; };
-  }, [debounced.text, debounced.sources]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [debounced.text, debounced.citationCount]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Contextual “clarify confidence” only on ambiguity
   const needsConfidenceClarifier = React.useMemo(
@@ -156,18 +159,6 @@ export function PropositionComposerPro({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [text]);
-
-  // Source badges (host + quick quality color)
-  const sourceGrades = React.useMemo(
-    () =>
-      sources.map((u) => {
-        try {
-          const grade = classifySource(u, text);
-          return { url: u, host: new URL(u).host, score: grade.score };
-        } catch { return { url: u, host: u, score: 0.5 }; }
-      }),
-    [sources, text]
-  );
 
   function showError(msg: string) {
     setErrorMsg(msg);
@@ -244,7 +235,56 @@ export function PropositionComposerPro({
       }
 
       React.startTransition(() => invalidateDeliberation(deliberationId));
-      setText(''); setImageUrl('');
+      setText(''); setImageUrl(''); setPendingCitations([]);
+      
+      // Attach any pending citations to the newly created proposition
+      if (createdId && pendingCitations.length > 0) {
+        Promise.all(
+          pendingCitations.map(async (citation) => {
+            try {
+              // First resolve the source
+              let resolvePayload: any = {};
+              if (citation.type === "url") {
+                resolvePayload = { url: citation.value, meta: { title: citation.title } };
+              } else if (citation.type === "doi") {
+                resolvePayload = { doi: citation.value };
+              } else if (citation.type === "library") {
+                resolvePayload = { libraryPostId: citation.value, meta: { title: citation.title } };
+              }
+
+              const resolveRes = await fetch('/api/citations/resolve', {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify(resolvePayload),
+              });
+              const { source } = await resolveRes.json();
+              
+              if (!source?.id) throw new Error('Failed to resolve source');
+
+              // Then attach the citation
+              await fetch('/api/citations/attach', {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({
+                  targetType: 'proposition',
+                  targetId: createdId,
+                  sourceId: source.id,
+                  locator: citation.locator,
+                  quote: citation.quote,
+                  note: citation.note,
+                }),
+              });
+            } catch (e) {
+              console.error('Failed to attach citation:', e);
+            }
+          })
+        ).then(() => {
+          window.dispatchEvent(new CustomEvent('citations:changed', { 
+            detail: { targetType: 'proposition', targetId: createdId } 
+          }));
+        });
+      }
+      
       onCreated?.(created ?? ({ id: createdId!, deliberationId, authorId: '', text: trimmed, mediaType: parsed.data.mediaType, mediaUrl: (parsed.data as any).mediaUrl ?? null, status: 'PUBLISHED', promotedClaimId: null, voteUpCount: 0, voteDownCount: 0, endorseCount: 0, replyCount: 0, createdAt: new Date().toISOString() } as any));
       onPosted?.();
       window.dispatchEvent(new CustomEvent('propositions:created', { detail: { deliberationId, id: createdId } }));
@@ -410,8 +450,12 @@ export function PropositionComposerPro({
         )}
       </div>
 <div className='flex w-full gap-2'>
-      {/* Sources */}
-      <SourcesField sources={sources} onChange={setSources} grades={sourceGrades} />
+      {/* Citations - Use CitationCollector for evidence attachment */}
+      <CitationCollector
+        citations={pendingCitations}
+        onChange={setPendingCitations}
+        className="w-full"
+      />
 
       {/* Media attachment */}
       {replyTarget?.kind !== 'proposition' && (  // replies to propositions stay text-only per API
@@ -422,7 +466,7 @@ export function PropositionComposerPro({
       <details className="rounded-md border border-slate-200/80 bg-white/60 px-2 py-2">
         <summary className="cursor-pointer text-xs text-neutral-700">Connect to theory</summary>
         <div className="mt-2">
-          <TheoryFraming value={theoryFramingValue} onChange={setTheoryFramingValue} deliberationId={deliberationId} />
+          <TheoryFraming value={theoryFramingValue} onChange={setTheoryFramingValue} />
         </div>
       </details>
 

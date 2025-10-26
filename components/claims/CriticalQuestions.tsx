@@ -118,6 +118,15 @@ export default function CriticalQuestions({
     targetId: string;
   } | null>(null);
   const [locus, setLocus] = React.useState("0"); // default locus for WHY/GROUNDS
+
+  // Modal state for GROUNDS brief entry
+  const [groundsModalOpen, setGroundsModalOpen] = React.useState(false);
+  const [groundsBrief, setGroundsBrief] = React.useState("");
+  const [pendingGroundsContext, setPendingGroundsContext] = React.useState<{
+    schemeKey: string;
+    cqKey: string;
+  } | null>(null);
+
   // ----- data -----
   const { data, error, isLoading } = useSWR<CQsResponse>(
     CQS_KEY(targetId),
@@ -179,6 +188,30 @@ export default function CriticalQuestions({
 
   function sigOf(schemeKey: string, cqKey: string) {
     return `${schemeKey}:${cqKey}`;
+  }
+
+  async function handleGroundsSubmit() {
+    if (!pendingGroundsContext || !groundsBrief.trim()) return;
+    
+    await postMove("GROUNDS", {
+      brief: groundsBrief.trim(),
+      schemeKey: pendingGroundsContext.schemeKey,
+      cqId: pendingGroundsContext.cqKey,
+    });
+
+    // Optional: open commit popover
+    setCommitCtx({
+      locus,
+      owner: "Proponent",
+      targetType: "claim",
+      targetId,
+    });
+    setCommitOpen(true);
+    
+    // Close modal and reset state
+    setGroundsModalOpen(false);
+    setGroundsBrief("");
+    setPendingGroundsContext(null);
   }
 
   async function toggleCQ(
@@ -695,24 +728,10 @@ export default function CriticalQuestions({
 </button>
                           <button
                             className="text-[11px] px-2 py-0.5 border rounded"
-                            onClick={async () => {
-                              const brief = (
-                                window.prompt("Grounds (brief)", "") ?? ""
-                              ).trim();
-                              if (!brief) return;
-                              await postMove("GROUNDS", {
-                                brief,
-                                schemeKey: s.key,
-                                cqId: cq.key,
-                              });
-                              // Optional: open commit popover
-                              setCommitCtx({
-                                locus,
-                                owner: "Proponent",
-                                targetType: "claim",
-                                targetId,
-                              });
-                              setCommitOpen(true);
+                            onClick={() => {
+                              setPendingGroundsContext({ schemeKey: s.key, cqKey: cq.key });
+                              setGroundsBrief("");
+                              setGroundsModalOpen(true);
                             }}
                           >
                             Supply GROUNDS
@@ -1032,6 +1051,51 @@ export default function CriticalQuestions({
           <DialogFooter>
             <Button variant="ghost" onClick={() => setAttachExistingFor(null)}>
               Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* GROUNDS Brief Entry Modal */}
+      <Dialog open={groundsModalOpen} onOpenChange={setGroundsModalOpen}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Supply GROUNDS</DialogTitle>
+            <DialogDescription>
+              Provide a brief statement of the grounds (evidence/reason) that answers this critical question.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label htmlFor="grounds-brief" className="text-sm font-medium">
+                Brief description
+              </label>
+              <Input
+                id="grounds-brief"
+                placeholder="e.g., According to the 2023 study by Smith et al..."
+                value={groundsBrief}
+                onChange={(e) => setGroundsBrief(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && e.metaKey && groundsBrief.trim()) {
+                    handleGroundsSubmit();
+                  }
+                }}
+              />
+              <p className="text-xs text-muted-foreground">
+                Press <kbd className="px-1 py-0.5 text-xs border rounded">⌘</kbd>+
+                <kbd className="px-1 py-0.5 text-xs border rounded">Enter</kbd> to submit
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setGroundsModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleGroundsSubmit}
+              disabled={!groundsBrief.trim()}
+            >
+              Submit GROUNDS
             </Button>
           </DialogFooter>
         </DialogContent>

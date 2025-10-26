@@ -14,6 +14,7 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json());
   } from '@/components/ui/dialog';
   import CriticalQuestions from '@/components/claims/CriticalQuestionsV3';
   import { DialogueActionsButton } from '@/components/dialogue/DialogueActionsButton';
+  import { LegalMoveChips } from '@/components/dialogue/LegalMoveChips';
 
 // Enhanced claim row with full AIF + dialogical integration
 type ClaimRow = {
@@ -87,20 +88,25 @@ const SchemeBadge = memo(({ scheme }: { scheme?: { id: string; key: string; name
 SchemeBadge.displayName = 'SchemeBadge';
 
 const AttackBadges = memo(({ attacks }: { attacks?: { REBUTS: number; UNDERCUTS: number; UNDERMINES: number } }) => {
-  if (!attacks || (attacks.REBUTS + attacks.UNDERCUTS + attacks.UNDERMINES === 0)) return null;
+  // Only show if attacks object exists and has at least one non-zero attack
+  if (!attacks) return null;
+  
+  const totalAttacks = (attacks.REBUTS ?? 0) + (attacks.UNDERCUTS ?? 0) + (attacks.UNDERMINES ?? 0);
+  if (totalAttacks === 0) return null;
+  
   return (
     <div className="flex items-center gap-1.5">
-      {attacks.REBUTS > 0 && (
+      {(attacks.REBUTS ?? 0) > 0 && (
         <span className="text-[10px] px-2 py-1 rounded-lg bg-gradient-to-br from-rose-400/15 to-red-400/15 text-rose-900 border border-rose-500/40 backdrop-blur-sm font-medium" title="Rebuttals">
           R:{attacks.REBUTS}
         </span>
       )}
-      {attacks.UNDERCUTS > 0 && (
+      {(attacks.UNDERCUTS ?? 0) > 0 && (
         <span className="text-[10px] px-2 py-1 rounded-lg bg-gradient-to-br from-orange-400/15 to-amber-400/15 text-orange-900 border border-orange-500/40 backdrop-blur-sm font-medium" title="Undercuts">
           U:{attacks.UNDERCUTS}
         </span>
       )}
-      {attacks.UNDERMINES > 0 && (
+      {(attacks.UNDERMINES ?? 0) > 0 && (
         <span className="text-[10px] px-2 py-1 rounded-lg bg-gradient-to-br from-yellow-400/15 to-amber-400/15 text-yellow-900 border border-yellow-500/40 backdrop-blur-sm font-medium" title="Undermines">
           M:{attacks.UNDERMINES}
         </span>
@@ -248,7 +254,7 @@ export default function ClaimMiniMap({ deliberationId, selectedClaimId, onClaimC
     };
   }, [handleDataRefresh]);
 
-  const [limit, setLimit] = useState(PAGE_SIZE);
+  const [currentPage, setCurrentPage] = useState(1);
   const [cqOpenFor, setCqOpenFor] = useState<string | null>(null);
   const [expandedClaim, setExpandedClaim] = useState<string | null>(null);
   const [showMoves, setShowMoves] = useState<string | null>(null);
@@ -296,12 +302,20 @@ export default function ClaimMiniMap({ deliberationId, selectedClaimId, onClaimC
         return !answered;
       }).length;
 
+      // Calculate attacks from actual incoming edges instead of trusting API
+      const incomingEdges = edgesByTarget.incoming.get(c.id) ?? [];
+      const calculatedAttacks = {
+        REBUTS: incomingEdges.filter((e: any) => e.type === 'rebuts' || e.attackType === 'REBUTS').length,
+        UNDERCUTS: incomingEdges.filter((e: any) => e.attackType === 'UNDERCUTS').length,
+        UNDERMINES: incomingEdges.filter((e: any) => e.attackType === 'UNDERMINES').length,
+      };
+
       return {
         ...c,
         argumentCount: (aif as any)?._count?.arguments ?? 0,
         topArgumentId: (aif as any)?.topArgumentId ?? null,
         scheme: (aif as any)?.scheme ?? null,
-        attacks: (aif as any)?.attacks ?? { REBUTS: 0, UNDERCUTS: 0, UNDERMINES: 0 },
+        attacks: calculatedAttacks, // Use calculated attacks from edges
         moves: {
           whyCount: whyMoves.length,
           groundsCount: groundsMoves.length,
@@ -378,15 +392,20 @@ export default function ClaimMiniMap({ deliberationId, selectedClaimId, onClaimC
     ),
     [labelsData]
   );
-  const visibleClaims = enrichedClaims.slice(0, limit);
-  const remaining = Math.max(0, enrichedClaims.length - limit);
-  const canShowMore = remaining > 0;
-  const canCollapse = limit > PAGE_SIZE;
+  
+  // Pagination calculations
+  const totalPages = Math.ceil(enrichedClaims.length / PAGE_SIZE);
+  const startIndex = (currentPage - 1) * PAGE_SIZE;
+  const endIndex = startIndex + PAGE_SIZE;
+  const visibleClaims = enrichedClaims.slice(startIndex, endIndex);
+  
+  const canGoPrev = currentPage > 1;
+  const canGoNext = currentPage < totalPages;
 
   const failed = Boolean(error || summary?.error);
 
   return (
-    <div className="relative mt-3 rounded-xl overflow-hidden bg-white/95 backdrop-blur-xl shadow-2xl p-6 mb-1">
+    <div className="relative mt-3 rounded-xl overflow-hidden bg-white/55  shadow-lg p-6 mb-1">
       {/* Glass overlay */}
       {/* <div className="absolute inset-0 bg-gradient-to-b from-slate-900/5 via-transparent to-slate-900/10 pointer-events-none" /> */}
       
@@ -430,7 +449,7 @@ export default function ClaimMiniMap({ deliberationId, selectedClaimId, onClaimC
             <h3 className="text-lg font-semibold text-black flex items-center gap-2">
               {/* <div className="w-1.5 h-1.5 rounded-full bg-cyan-600" /> */}
               Claims List
-                            <span className="ml-2 text-sm font-normal text-slate-500">({enrichedClaims.length})</span>
+                            <span className=" text-sm font-normal text-slate-500">({enrichedClaims.length})</span>
             </h3>
             <button
               onClick={async () => {
@@ -440,8 +459,8 @@ export default function ClaimMiniMap({ deliberationId, selectedClaimId, onClaimC
                 }
                 setExpandedClaim(newExpandedId);
               }}
-              className="relative btnv2 overflow-hidden text-sm px-4 py-2 rounded-xl bg-gradient-to-b from-sky-600 to-indigo-700
-              shadow-sm shadow-indigo-600/30 hover:shadow-indigo-600/70 text-white
+              className="relative  overflow-hidden text-xs px-3 py-1 mb-2 rounded-xl menuv2--lite bg-teal-300
+              shadow-sm shadow-indigo-600/30 hover:shadow-indigo-600/70 text-slate-700 tracking-wide
                 transition-all duration-300 disabled:opacity-50 group"
               disabled={loadingSchemes.size > 0}
             >
@@ -470,7 +489,7 @@ export default function ClaimMiniMap({ deliberationId, selectedClaimId, onClaimC
                   className={`group relative flex flex-col rounded-xl transition-all duration-300 backdrop-blur-md border shadow-md overflow-hidden p-4 gap-3 ${
                     isSelected 
                       ? "border-sky-300/20 bg-cyan-100/10  shadow-md shadow-cyan-600/20" 
-                      : "border-slate-900/10 bg-slate-900/5 hover:bg-slate-900/10 hover:border-slate-900/20 "
+                      : "border-orange-300/50 bg-slate-900/5 hover:bg-slate-900/10 hover:border-slate-900/20 "
                   }`}
                   title={tip}
                 >
@@ -580,7 +599,7 @@ export default function ClaimMiniMap({ deliberationId, selectedClaimId, onClaimC
 
                       {/* Edges summary */}
                       {(c.edges && (c.edges.incoming.length > 0 || c.edges.outgoing.length > 0)) && (
-                        <div className="text-xs bg-slate-300/35 backdrop-blur-sm p-3 rounded-lg border border-slate-900/10">
+                        <div className="text-xs bg-slate-300/35 backdrop-blur-sm p-3 rounded-lg border border-cyan-300/40">
                           <strong className="text-sky-900 text-sm font-semibold">Graph Connections:</strong>
                           {c.edges.incoming.length > 0 && (
                             <div className="ml-2 mt-1.5 text-slate-700">
@@ -599,7 +618,7 @@ export default function ClaimMiniMap({ deliberationId, selectedClaimId, onClaimC
                       <div className="h-full">
                         <button
                           onClick={() => handleToggleCQs(c.id)}
-                          className=" border   bg-white  border-cyan-500/50
+                          className=" border btnv2  bg-white  border-cyan-500/50
                           w-full h-full text-left text-md font-semibold  text-sky-900 flex items-center 
                           gap-2 hover:text-cyan-700 transition-colors py-3 px-3 rounded-lg hover:bg-teal-300/10"
                         >
@@ -658,7 +677,7 @@ export default function ClaimMiniMap({ deliberationId, selectedClaimId, onClaimC
 
                   {/* Show moves panel */}
                   {showMoves === c.id && c.moves && (
-                    <div className="mt-3 pl-6 border-l-2 border-amber-500/40 bg-gradient-to-br from-amber-400/15 to-yellow-400/15 backdrop-blur-sm p-3 rounded-xl border border-amber-500/30 shadow-lg">
+                    <div className="mt-3 pl-6 border-l-2 border-amber-500/40 bg-gradient-to-br from-amber-400/15 to-yellow-400/15 backdrop-blur-sm p-4 rounded-xl border border-amber-500/30 shadow-lg space-y-4">
                       <div className="font-semibold mb-2 text-amber-900 text-xs flex items-center gap-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-amber-600" />
                         Dialogical Activity:
@@ -687,6 +706,26 @@ export default function ClaimMiniMap({ deliberationId, selectedClaimId, onClaimC
                           {c.moves.openWhys} open challenge{c.moves.openWhys > 1 ? "s" : ""} requiring response
                         </div>
                       )}
+
+                      {/* Interactive moves - LegalMoveChips */}
+                      <div className="pt-3 border-t border-amber-500/20">
+                        <div className="text-xs font-semibold text-amber-900 mb-2 flex items-center gap-2">
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          </svg>
+                          Quick Actions:
+                        </div>
+                        <LegalMoveChips
+                          deliberationId={deliberationId}
+                          targetType="claim"
+                          targetId={c.id}
+                          locusPath="0"
+                          onPosted={() => {
+                            window.dispatchEvent(new CustomEvent("claims:changed"));
+                            window.dispatchEvent(new CustomEvent("dialogue:moves:refresh"));
+                          }}
+                        />
+                      </div>
                     </div>
                   )}
                 </div>
@@ -699,28 +738,40 @@ export default function ClaimMiniMap({ deliberationId, selectedClaimId, onClaimC
             )}
           </div>
 
-          {(canShowMore || canCollapse) && (
-            <div className="mt-4 flex items-center gap-3">
-              {canShowMore && (
-                <button
-                  onClick={() => setLimit(n => n + PAGE_SIZE)}
-                  className="text-sm px-4 py-2 rounded-xl bg-slate-900/5 backdrop-blur-md border border-slate-900/20 text-slate-900 hover:bg-slate-900/10 hover:border-slate-900/30 transition-all duration-200 font-medium shadow-sm"
-                  aria-label={`Show ${Math.min(PAGE_SIZE, remaining)} more claims`}
-                >
-                  Show more{remaining > PAGE_SIZE ? ` (+${PAGE_SIZE})` : ` (+${remaining})`}
-                </button>
-              )}
-              {canCollapse && (
-                <button
-                  onClick={() => setLimit(PAGE_SIZE)}
-                  className="text-sm px-4 py-2 rounded-xl bg-slate-900/5 backdrop-blur-md border border-slate-900/20 text-slate-900 hover:bg-slate-900/10 hover:border-slate-900/30 transition-all duration-200 font-medium shadow-sm"
-                >
-                  Collapse
-                </button>
-              )}
-              <span className="text-xs text-slate-600 font-medium">
-                Showing {visibleClaims.length} of {enrichedClaims.length}
-              </span>
+          {enrichedClaims.length > 0 && (
+            <div className="mt-4 flex items-center justify-between gap-3">
+              <button
+                onClick={() => setCurrentPage(p => p - 1)}
+                disabled={!canGoPrev}
+                className="flex items-center gap-2 text-sm px-4 py-2 rounded-xl bg-slate-900/5 backdrop-blur-md border border-slate-900/20 text-slate-900 hover:bg-slate-900/10 hover:border-slate-900/30 transition-all duration-200 font-medium shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                aria-label="Previous page"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                Previous
+              </button>
+
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-slate-700 font-medium">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <span className="text-xs text-slate-500">
+                  ({startIndex + 1}-{Math.min(endIndex, enrichedClaims.length)} of {enrichedClaims.length})
+                </span>
+              </div>
+
+              <button
+                onClick={() => setCurrentPage(p => p + 1)}
+                disabled={!canGoNext}
+                className="flex items-center gap-2 text-sm px-4 py-2 rounded-xl bg-slate-900/5 backdrop-blur-md border border-slate-900/20 text-slate-900 hover:bg-slate-900/10 hover:border-slate-900/30 transition-all duration-200 font-medium shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                aria-label="Next page"
+              >
+                Next
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
             </div>
           )}
 

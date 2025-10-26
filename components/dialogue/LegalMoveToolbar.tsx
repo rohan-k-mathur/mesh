@@ -1,23 +1,25 @@
 // components/dialogue/LegalMoveToolbar.tsx
+/**
+ * LegalMoveToolbar
+ * 
+ * Full-featured dialogue toolbar with two view modes:
+ * - Grid view (CommandCard): Organized 2D grid of action buttons with modal-based interactions
+ * - List view: Categorized linear display (Challenge/Resolve/More)
+ * 
+ * Fetches legal moves from /api/dialogue/legal-moves and allows posting via /api/dialogue/move
+ */
 "use client";
 import * as React from "react";
 import useSWR from "swr";
 import { NLCommitPopover } from "@/components/dialogue/NLCommitPopover";
+import { WhyChallengeModal } from "@/components/dialogue/WhyChallengeModal";
+import { StructuralMoveModal } from "@/components/dialogue/StructuralMoveModal";
 import { CommandCard, performCommand } from "@/components/dialogue/command-card/CommandCard";
 import { movesToActions } from "@/lib/dialogue/movesToActions";
+import { useMicroToast } from "@/hooks/useMicroToast";
+import type { Move, MoveKind } from "@/types/dialogue";
 
 type Force = "ATTACK" | "SURRENDER" | "NEUTRAL";
-type MoveKind = "ASSERT" | "WHY" | "GROUNDS" | "RETRACT" | "CONCEDE" | "CLOSE";
-export type Move = {
-  kind: MoveKind;
-  label: string;
-  payload?: any;
-  disabled?: boolean;
-  reason?: string;
-  force?: Force;
-  relevance?: "likely" | "unlikely" | null;
-  postAs?: { targetType: "argument" | "claim" | "card"; targetId: string };
-};
 
 const fetcher = (u: string) => fetch(u, { cache: "no-store" }).then(r => r.json());
 
@@ -59,6 +61,14 @@ export function LegalMoveToolbar({
   const [whyNote, setWhyNote] = React.useState("");
   const [useCommandCard, setUseCommandCard] = React.useState(true); // ✅ Changed: Grid view is now default
 
+  // Modal state for list view
+  const [whyChallengeModalOpen, setWhyChallengeModalOpen] = React.useState(false);
+  const [pendingWhyMove, setPendingWhyMove] = React.useState<Move | null>(null);
+  const [structuralModalOpen, setStructuralModalOpen] = React.useState(false);
+  const [pendingStructuralMove, setPendingStructuralMove] = React.useState<Move | null>(null);
+
+  const toast = useMicroToast();
+
   async function postMove(m: Move, extraPayload: any = {}) {
     if (busy || m.disabled) return;
     setBusy(true);
@@ -75,12 +85,29 @@ export function LegalMoveToolbar({
       };
       const r = await fetch("/api/dialogue/move", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      toast.show(`${m.kind} move posted successfully`, "ok");
       onPosted?.();
       mutate();
       window.dispatchEvent(new CustomEvent("dialogue:moves:refresh", { detail: { deliberationId } } as any));
+    } catch (err) {
+      console.error("[LegalMoveToolbar] postMove failed:", err);
+      toast.show(`Failed to post ${m.kind} move`, "err");
+      throw err;
     } finally {
       setBusy(false);
     }
+  }
+
+  function handleWhyClick(m: Move) {
+    if (m.disabled || busy) return;
+    setPendingWhyMove(m);
+    setWhyChallengeModalOpen(true);
+  }
+
+  function handleStructuralClick(m: Move) {
+    if (m.disabled || busy) return;
+    setPendingStructuralMove(m);
+    setStructuralModalOpen(true);
   }
 
   function Pill({ tone, children }:{ tone:"attack"|"resolve"|"more"; children: React.ReactNode }) {
@@ -167,39 +194,14 @@ export function LegalMoveToolbar({
         <div className="flex flex-wrap gap-2">
           {/* Ask WHY */}
           {why && (
-            <div className="flex items-start gap-2">
-              {!inlineWhy ? (
-                <button
-                  className="px-2 py-1 rounded text-xs border border-amber-200 text-amber-700 hover:bg-amber-50"
-                  onClick={() => setInlineWhy(true)}
-                  title={why.reason || "Ask WHY"}
-                  disabled={!!why.disabled || busy}
-                >
-                  {why.label || "Ask WHY"}
-                </button>
-              ) : (
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center gap-1">
-                    <input
-                      className="text-xs rounded border px-2 py-1 w-80"
-                      placeholder='e.g. "What evidence supports this?" or "How do you know this?"'
-                      value={whyNote}
-                      onChange={e => setWhyNote(e.target.value)}
-                      onKeyDown={e => { if (e.key === 'Enter' && whyNote.trim() && !busy) { postMove(why, { note: whyNote.trim() }).then(()=>{ setInlineWhy(false); setWhyNote(""); }); } }}
-                    />
-                    <button
-                      className="px-2 py-1 rounded text-xs border border-amber-200 text-amber-700 hover:bg-amber-100"
-                      disabled={!whyNote.trim() || busy}
-                      onClick={() => postMove(why, { note: whyNote.trim() }).then(()=>{ setInlineWhy(false); setWhyNote(""); })}
-                    >
-                      {busy ? "Posting..." : "Post WHY"}
-                    </button>
-                    <button className="text-[11px] hover:text-slate-700 text-slate-500" onClick={() => { setInlineWhy(false); setWhyNote(""); }}>Cancel</button>
-                  </div>
-                  <p className="text-[10px] text-slate-500 italic">💡 Tip: Ask a specific question about why they make this claim</p>
-                </div>
-              )}
-            </div>
+            <button
+              className="px-2 py-1 rounded text-xs border border-amber-200 text-amber-700 hover:bg-amber-50"
+              onClick={() => handleWhyClick(why)}
+              title={why.reason || "Ask WHY"}
+              disabled={!!why.disabled || busy}
+            >
+              {why.label || "Ask WHY"}
+            </button>
           )}
 
           {/* Answer (GROUNDS) – can be multiple CQs */}
@@ -293,6 +295,37 @@ export function LegalMoveToolbar({
           onDone={() => { setOpenCommit(null); mutate(); onPosted?.(); }}
         />
       )}
+
+      {/* WHY Challenge Modal */}
+      {whyChallengeModalOpen && pendingWhyMove && (
+        <WhyChallengeModal
+          open={whyChallengeModalOpen}
+          onOpenChange={setWhyChallengeModalOpen}
+          onSubmit={async (note) => {
+            if (!pendingWhyMove) return;
+            await postMove(pendingWhyMove, { note });
+            setWhyChallengeModalOpen(false);
+            setPendingWhyMove(null);
+          }}
+        />
+      )}
+
+      {/* Structural Move Modal (THEREFORE/SUPPOSE/DISCHARGE) */}
+      {structuralModalOpen && pendingStructuralMove && (
+        <StructuralMoveModal
+          open={structuralModalOpen}
+          onOpenChange={setStructuralModalOpen}
+          kind={pendingStructuralMove.kind as any}
+          onSubmit={async (text) => {
+            if (!pendingStructuralMove) return;
+            await postMove(pendingStructuralMove, { text });
+            setStructuralModalOpen(false);
+            setPendingStructuralMove(null);
+          }}
+        />
+      )}
+
+      {toast.node}
     </div>
   );
 }

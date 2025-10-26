@@ -37,7 +37,7 @@ async function attachCitation(args: {
 }
 
 type Props = {
-  targetType: "comment" | "claim" | "argument" | "card" | "move" | "work";
+  targetType: "comment" | "claim" | "argument" | "card" | "move" | "work" | "proposition";
   targetId: string;
   onDone?: () => void;
 

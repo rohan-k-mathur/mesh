@@ -8,7 +8,7 @@ import CitePickerInlinePro from "@/components/citations/CitePickerInlinePro";
 type Props = {
   open: boolean;
   onOpenChange: (v: boolean) => void;
-  targetType: "comment" | "claim" | "argument" | "card" | "move" | "work";
+  targetType: "comment" | "claim" | "argument" | "card" | "move" | "work" | "proposition";
   targetId: string;
   title?: string;
 
