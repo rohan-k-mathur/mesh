@@ -201,8 +201,7 @@ export function NonCanonicalResponseFormLight({
       <DialogContent className="max-w-3xl max-h-screen overflow-hidden panel-edge-blue
        bg-gradient-to-b from-sky-100/55 via-white/50 to-sky-50/50 backdrop-blur-xl shadow-2xl px-6 py-8">
         {/* Glass overlay effect - light mode */}
-        <div className="absolute inset-0 bg-gradient-to-b from-slate-900/5 via-transparent to-slate-900/10 pointer-events-none" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(59,130,246,0.08),transparent_50%)] pointer-events-none" />
+      
         
         {/* Water droplet decorations - light mode */}
         <div className="absolute top-10 right-20 w-32 h-32 bg-sky-400/10 rounded-full blur-3xl animate-pulse" />

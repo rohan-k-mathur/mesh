@@ -33,15 +33,15 @@ export default function DeliberationReader({
                   {deliberationId && (
      <section className="relative isolate ">
        {/* <DeepDiveBackdrop className="pointer-events-none absolute inset-0 -z-10" /> */}
-       <h2 className="text-4xl font-semibold tracking-wide text-center my-4">Discussion</h2>
-       <div className="mx-auto mb-4 mt-5 w-[75%] border-b border-slate-700/40" />
+       <h2 className="text-4xl font-semibold tracking-wide text-center my-4">Deliberation</h2>
+       <div className="mx-auto mb-4 mt-5 w-[80%] border-b border-slate-500/40" />
  
        {/* Mirror the article layout’s column exactly */}
        <div className="flex flex-col justify-center items-center mx-auto px-3 gap-6">
          <RhetoricProvider>
            <DialogueTargetProvider>
              <DeepDivePanel deliberationId={deliberationId}    
-             containerClassName="flex flex-col  justify-center items-center mx-auto  gap-6"
+               containerClassName="flex flex-col justify-start w-full gap-6"
              />
              
            </DialogueTargetProvider>

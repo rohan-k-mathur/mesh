@@ -13,7 +13,7 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json());
     DialogTitle,
   } from '@/components/ui/dialog';
   import CriticalQuestions from '@/components/claims/CriticalQuestionsV3';
-  import { LegalMoveChips } from '@/components/dialogue/LegalMoveChips';
+  import { DialogueActionsButton } from '@/components/dialogue/DialogueActionsButton';
 
 // Enhanced claim row with full AIF + dialogical integration
 type ClaimRow = {
@@ -388,10 +388,10 @@ export default function ClaimMiniMap({ deliberationId, selectedClaimId, onClaimC
   return (
     <div className="relative mt-3 rounded-xl overflow-hidden bg-white/95 backdrop-blur-xl shadow-2xl p-6 mb-1">
       {/* Glass overlay */}
-      <div className="absolute inset-0 bg-gradient-to-b from-slate-900/5 via-transparent to-slate-900/10 pointer-events-none" />
+      {/* <div className="absolute inset-0 bg-gradient-to-b from-slate-900/5 via-transparent to-slate-900/10 pointer-events-none" /> */}
       
       {/* Radial light - sky tint */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(56,189,248,0.08),transparent_50%)] pointer-events-none" />
+      {/* <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(56,189,248,0.08),transparent_50%)] pointer-events-none" /> */}
       
       {/* Water droplets */}
       <div className="absolute top-10 right-20 w-32 h-32 bg-sky-400/10 rounded-full blur-3xl animate-pulse" />
@@ -426,9 +426,9 @@ export default function ClaimMiniMap({ deliberationId, selectedClaimId, onClaimC
           </div>
         ) : (
           <>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-sky-900 flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-cyan-600" />
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-lg font-semibold text-black flex items-center gap-2">
+              {/* <div className="w-1.5 h-1.5 rounded-full bg-cyan-600" /> */}
               Claims List
                             <span className="ml-2 text-sm font-normal text-slate-500">({enrichedClaims.length})</span>
             </h3>
@@ -488,7 +488,7 @@ export default function ClaimMiniMap({ deliberationId, selectedClaimId, onClaimC
                   <div className="relative flex items-start gap-3">
                     <div className="mt-1"><Dot label={lab} /></div>
                     <div 
-                      className={`flex-1 text-sm line-clamp-2 max-w-[36rem] cursor-pointer  ${
+                      className={`flex-1 text-sm line-clamp-2 w-full cursor-pointer  ${
                         isSelected ? "text-cyan-900 font-medium" : "text-slate-900 hover:text-sky-800"
                       }`}
                       onClick={() => handleClaimClick(c.id)}
@@ -564,7 +564,7 @@ export default function ClaimMiniMap({ deliberationId, selectedClaimId, onClaimC
                     <div className="mt-3 pl-6 border-l-2 border-cyan-500/40 space-y-3">
                       {/* Metadata */}
                       <div className="text-xs text-slate-700 space-y-1 bg-slate-300/25 backdrop-blur-md p-3 rounded-lg border border-teal-500/30">
-                        <div className="font-semibold text-sky-900 mb-2">Metadata</div>
+                        <div className="font-semibold text-sm text-sky-900 mb-2">Metadata</div>
                         <div><strong className="text-slate-900">ID:</strong> <span className="text-slate-600">{c.id}</span></div>
                         {c.moid && <div><strong className="text-slate-900">MOID:</strong> <span className="text-slate-600">{c.moid}</span></div>}
                         <div><strong className="text-slate-900">Created:</strong> <span className="text-slate-600">{new Date(c.createdAt).toLocaleString()}</span></div>
@@ -580,8 +580,8 @@ export default function ClaimMiniMap({ deliberationId, selectedClaimId, onClaimC
 
                       {/* Edges summary */}
                       {(c.edges && (c.edges.incoming.length > 0 || c.edges.outgoing.length > 0)) && (
-                        <div className="text-xs bg-slate-900/5 backdrop-blur-sm p-3 rounded-lg border border-slate-900/10">
-                          <strong className="text-sky-900 font-semibold">Graph Connections:</strong>
+                        <div className="text-xs bg-slate-300/35 backdrop-blur-sm p-3 rounded-lg border border-slate-900/10">
+                          <strong className="text-sky-900 text-sm font-semibold">Graph Connections:</strong>
                           {c.edges.incoming.length > 0 && (
                             <div className="ml-2 mt-1.5 text-slate-700">
                               ← {c.edges.incoming.length} incoming ({c.edges.incoming.filter((e: any) => e.type === "supports").length} supports, {c.edges.incoming.filter((e: any) => e.type === "rebuts").length} rebuts)
@@ -628,22 +628,30 @@ export default function ClaimMiniMap({ deliberationId, selectedClaimId, onClaimC
 
                       {/* Legal moves interface */}
                       <div className="pt-2 border-t border-cyan-500/20 mt-2">
-                        <div className="text-xs font-semibold mb-2 text-sky-900 flex items-center gap-2">
-                          <div className="w-1.5 h-1.5 rounded-full bg-cyan-600" />
-                          Legal Dialogical Moves:
-                        </div>
-                        <div className="bg-white/40 backdrop-blur-xl p-3 rounded-xl border border-slate-900/10 shadow-sm">
-                          <LegalMoveChips
+                        <div   className=" border   bg-white  border-purple-500/50
+                          w-full h-full text-left text-md font-semibold  text-sky-900 flex items-center 
+                          gap-2 hover:text-cyan-700 transition-colors py-3 px-3 rounded-lg "
+                        >
+                          <div className="w-2 h-2 rounded-full bg-sky-600" />
+                                                     <div className="flex items-center gap-5">
+
+                          <span className="text-md font-medium">Dialogical Moves</span>
+
+                          <DialogueActionsButton
                             deliberationId={deliberationId}
                             targetType="claim"
                             targetId={c.id}
                             locusPath="0"
-                            onPosted={() => {
+                            variant="compact"
+                            label="Open Dialogue Actions"
+                            onMovePerformed={() => {
                               window.dispatchEvent(new CustomEvent("claims:changed"));
                               window.dispatchEvent(new CustomEvent("dialogue:moves:refresh"));
                             }}
                           />
                         </div>
+                        </div>
+                       
                       </div>
                     </div>
                   )}
@@ -738,11 +746,6 @@ export default function ClaimMiniMap({ deliberationId, selectedClaimId, onClaimC
                 className="!z-[60] bg-white/95 backdrop-blur-xl rounded-xl max-w-[90vw] w-full sm:max-w-[880px] max-h-[85vh] overflow-y-auto shadow-2xl"
                 overlayClassName="!z-[60]"
               >
-                {/* Glass overlay */}
-                <div className="absolute inset-0 bg-gradient-to-b from-slate-900/5 via-transparent to-slate-900/10 pointer-events-none rounded-xl" />
-                
-                {/* Radial light */}
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(56,189,248,0.08),transparent_50%)] pointer-events-none rounded-xl" />
                 
                 {/* Water droplets */}
                 <div className="absolute top-10 right-20 w-24 h-24 bg-sky-400/10 rounded-full blur-3xl animate-pulse pointer-events-none" />

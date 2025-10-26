@@ -156,7 +156,7 @@ function StickyHeader({
   return (
     <div
       className={clsx(
-        "sticky top-0 z-20 px-4 py-2 rounded-lg transition-all duration-200",
+        "sticky top-0 z-20 px-4 py-2 rounded-lg transition-all duration-200 w-full",
         "bg-white/80 backdrop-blur-sm border-b border-slate-200",
         isScrolled && "shadow-md bg-white/95",
         className
@@ -276,7 +276,7 @@ export function SectionCard({
             stickyHeader ? "sticky top-0 z-10 -mx-px px-5 py-3" : "px-5 py-3",
             "flex items-center justify-between gap-3",
             "border-b border-slate-100/80 dark:border-slate-800/70",
-            "bg-white/60 dark:bg-slate-900/40 backdrop-blur-sm",
+            "bg-white/30 dark:bg-slate-900/40 backdrop-blur-md",
             "relative before:pointer-events-none before:absolute before:inset-0",
             "before:bg-[radial-gradient(120px_80px_at_var(--mx)_var(--my),rgba(99,102,241,0.10),transparent_70%)]",
             "before:opacity-0 hover:before:opacity-100 before:transition-opacity"
@@ -1454,7 +1454,7 @@ const {
 />
 </div>
   {/* </SectionCard> */}
-            <SectionCard title="Arguments List (Argument Interchange Format)" className=" w-[1200px]" padded={true}>
+            <SectionCard title="Arguments List (Argument Interchange Format)" className=" w-full" padded={true}>
               <AIFArgumentsListPro
                 deliberationId={deliberationId}
                 onVisibleTextsChanged={(texts) => {
@@ -1703,7 +1703,7 @@ const {
   );
 
   const placeholder = (
-    <div className="text-xs text-neutral-500 px-4 py-2">
+    <div className="text-xs w-full text-neutral-500 px-4 py-2">
       {loading ? 'Loading…' : 'No designs found'}
     </div>
   );

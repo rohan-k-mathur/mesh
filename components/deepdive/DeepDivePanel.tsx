@@ -717,11 +717,11 @@ useEffect(() => {
 //  ), [legalMoves, targetRef]);
       
       const inner = (
-        <div className={clsx("space-y-5 py-3 px-6 relative", className)}>
+        <div className={clsx("space-y-5 py-3 px-6 relative bg-black", className)}>
           {/* Header controls */}
       {/* Arguments + Composer */}
       <SectionCard busy={pending}>
-        <div className="relative  flex items-center gap-4 mx-auto mb-2 ">
+        <div className="relative flex items-center gap-4 mx-auto mb-2 ">
           <div className="flex items-center gap-2">
             {status && <StatusChip status={status} />}
                    <ChipBar >

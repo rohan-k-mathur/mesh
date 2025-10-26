@@ -148,11 +148,7 @@ export default function CQResponseForm({
         className="!z-[70] max-w-3xl max-h-screen overflow-hidden panel-edge bg-white/95 backdrop-blur-xl shadow-2xl p-6"
         overlayClassName="!z-[70]"
       >
-        {/* Glass overlay */}
-        <div className="absolute inset-0 bg-gradient-to-b from-slate-900/5 via-transparent to-slate-900/10 pointer-events-none rounded-xl" />
-
-        {/* Radial light */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(56,189,248,0.08),transparent_50%)] pointer-events-none rounded-xl" />
+      
 
         {/* Water droplets */}
         <div className="absolute top-10 right-20 w-32 h-32 bg-sky-400/10 rounded-full blur-3xl animate-pulse pointer-events-none" />

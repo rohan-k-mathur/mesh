@@ -882,11 +882,7 @@ export default function CriticalQuestionsV3({
           className="!z-[70] max-w-4xl max-h-[90vh] overflow-hidden bg-white/95 backdrop-blur-xl shadow-2xl p-6 panel-edge"
           overlayClassName="!z-[70]"
         >
-          {/* Glass overlay */}
-          <div className="absolute inset-0 bg-gradient-to-b from-slate-900/5 via-transparent to-slate-900/10 pointer-events-none rounded-xl" />
-
-          {/* Radial light */}
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(56,189,248,0.08),transparent_50%)] pointer-events-none rounded-xl" />
+          
 
           <div className="relative z-10 overflow-y-auto max-h-[85vh] custom-scrollbar-light px-2">
             <DialogHeader className="mb-4">
@@ -939,11 +935,7 @@ export default function CriticalQuestionsV3({
           className="!z-[70] max-w-2xl max-h-[90vh] overflow-hidden bg-white/95 backdrop-blur-xl shadow-2xl p-6 panel-edge"
           overlayClassName="!z-[70]"
         >
-          {/* Glass overlay */}
-          <div className="absolute inset-0 bg-gradient-to-b from-slate-900/5 via-transparent to-slate-900/10 pointer-events-none rounded-xl" />
-
-          {/* Radial light */}
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(56,189,248,0.08),transparent_50%)] pointer-events-none rounded-xl" />
+         
 
           <div className="relative z-10 overflow-y-auto max-h-[85vh] custom-scrollbar-light px-2">
             <DialogHeader className="mb-4">
