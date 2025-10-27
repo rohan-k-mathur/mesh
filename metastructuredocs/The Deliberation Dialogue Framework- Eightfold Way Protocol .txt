@@ -1,0 +1,56 @@
+The Deliberation Dialogue Framework: Eightfold Way Protocol
+
+The following report provides a comprehensive and rigorous analysis of the Deliberation Dialogue Framework (DDF), often referred to as the "Eightfold Way of Deliberation Dialogue". This framework defines a formal protocol and conceptual model for structured discourse where participants collaborate to reach a decision on a course of action. It is specifically designed to govern interactions between computational entities, such as autonomous software agents, though its structure is derived from human deliberation.
+A Canonical Report on the Deliberation Dialogue Framework (DDF)
+I. Foundational Concepts and Goals
+The DDF is built upon argumentation theory and dialogue game formalism, intended to implement a publicly verifiable protocol for joint decision-making.
+A. Distinction within Dialogue Typology Drawing on the typology established by Walton and Krabbe, the DDF defines deliberation by distinguishing it from other dialogue types:
+1. Vs. Persuasion: Deliberation differs from persuasion in that it is fundamentally mutual, focusing on reaching a joint decision over a course of action rather than persuading another participant to accept an initially defined proposal.
+2. Vs. Inquiry/Information-Seeking: Deliberation focuses on action, not the search for factual truth; appeals to value assumptions (goals, preferences, etc.) are therefore appropriate.
+3. Vs. Negotiation: While negotiation concerns the division of a scarce resource based on competing interests, deliberation assumes a collaborative environment where participants share a willingness to decide on a course of action. Participants in a deliberation are expected to share information and preferences, whereas negotiation often benefits from secrecy.
+B. Theoretical Underpinning: Retroflexive Argumentation The DDF is grounded in the retroflexive argumentation model proposed by Harald Wohlrapp. This model emphasizes that arguments should lead participants to re-examine the underlying assumptions or modify the action proposal itself in light of that argument, rather than merely debating acceptability. This mechanism ensures that the dialogue remains iterative and capable of generating robust, mutually accepted solutions.
+II. Structural Architecture: Sentence Types and Eight Stages
+The framework utilizes a restricted symbolic language for representing the subject matter and defines an eight-stage sequence for the deliberation process.
+A. Defined Sentence Types To manage the multi-dimensionality of deliberation—where decisions are based on facts, goals, values, and practical considerations—the DDF employs six mutually exclusive sentence types:
+1. Actions (Action-options): Sentences representing the deed or act that may be undertaken or recommended as the result of the dialogue.
+2. Goals: Sentences representing desired future world states that express the purpose for which actions are considered.
+3. Constraints: Sentences expressing limitations on the space of possible actions.
+4. Perspectives: Sentences representing criteria (e.g., moral, economic cost, feasibility) by which an action may be evaluated.
+5. Facts: Sentences expressing external states of affairs.
+6. Evaluations: Sentences expressing an assessment of a possible action with respect to a goal, constraint, or perspective.
+B. The Eight Stages of Dialogue (DDF Model) The deliberation proceeds through a series of stages that may cycle repeatedly, formalizing the Wohlrapp model:
+1. Open: The dialogue commences with the raising of a governing question.
+2. Inform: Discussion concerning desirable goals, constraints, relevant facts, and perspectives. This stage must precede all others except Open and Close.
+3. Propose: Suggesting potential action-options appropriate to the governing question.
+4. Consider: Participants assert evaluations of proposals from various perspectives.
+5. Revise: The stage where goals, constraints, perspectives, or action-options are modified in light of comments. This is the explicit operationalization of retroflexive argumentation.
+6. Recommend: A participant proposes an option for joint decision. This requires the utterance of a move(.) locution.
+7. Confirm: Unanimity of acceptance is required for the recommended option. This stage only occurs after a successful Recommend stage and precedes normal termination.
+8. Close: The final stage of a dialogue that terminates normally, typically when participants withdraw or confirm a decision.
+III. Dialogue Game Protocol and Formal Semantics
+The formal protocol is defined using a set of locutions (speech acts) and structural rules, providing the axiomatic semantics for the DDF.
+A. Locutions and Commitment Stores The protocol specifies locutions, each with preconditions for legal utterance and post-conditions defining their effect, particularly on the participants' commitment stores (CS). Commitment stores are private-write, public-read data stores that track publicly declared points of view.
+Key Locutions include:
+• open dialogue(Pi, q?) / enter dialogue(Pj, q?): Initiation moves.
+• assert(Pi, type, t): Inserts t into Pi's commitment store.
+• ask justify(Pj, Pi, type, t): Challenges an assertion t in Pi's CS. Pi must either retract(.) t or shift into an embedded persuasion dialogue to justify t.
+• move(Pi, action, a): Inserts the action a into Pi's CS and requests other participants to pronounce acceptance or rejection.
+• retract(Pj, locution): Deletes an entry from P
+j
+
+
+'s commitment store that was inserted by a prior assert, move, or prefer locution, enabling retraceability up to the Confirm stage.
+• withdraw dialogue(Pi, q?): Causes the dialogue to enter the Close stage.
+B. Embedded Dialogues and Justification The ask justify(.) locution provides a mechanism for embedding other dialogues, such as persuasion dialogues, within the main deliberation thread. This allows participants to resolve specific disputes over facts or evaluations by temporarily shifting focus to a rule-governed sub-protocol, and subsequently return the result to the main deliberation. This flexibility supports the application of logical pluralism within the deliberation context.
+IV. Normative Assessment and Compliance
+The viability of the DDF protocol is assessed against established normative principles for rational discourse, demonstrating its balance between structure (orderliness) and participant freedom (dialectification).
+A. Compliance with Alexy's Rules for Discourse Ethics The DDF satisfies several key normative rules for ethical discourse, particularly those focused on justification and procedure:
+• Satisfaction of Justification: The DDF fully satisfies the General Rule of Justification (A2) through the ask justify(.) locution, requiring a participant to justify any assertion upon request.
+• Handling of Sincerity: The DDF explicitly does not satisfy Alexy’s rules concerning sincerity (A1.2: asserting only what one believes) or consistency (A1.1: no self-contradiction). This is a foundational design choice, as the framework restricts itself to observable linguistic behavior and public semantics, making no assumptions about the participants' private beliefs or intentions.
+B. Compliance with Hitchcock's Principles of Rational Mutual Inquiry The DDF demonstrates a high degree of compliance with Hitchcock’s 18 principles, which cover essential aspects of inquiry and deliberation:
+• High Compliance: Principles such as H1 (Externalization), H3 (Mutuality), H6 (Staging), H9 (Semantic Openness), H16 (Tracking via Commitment Stores), and H18 (Allocation of Burden of Proof via ask justify(.)) are all satisfied.
+• Partial Compliance: H2 (Dialectification) and H14 (Openness) are only partly satisfied because the DDF, by defining a specific protocol, constrains the freedom of participants and imposes a structure on interactions. This partial satisfaction is intentional, reflecting the necessary trade-off between maximizing participant freedom and ensuring orderliness and focus in the dialogue. The protocol permits flexibility (e.g., non-fixed stage order), but imposes constraints (e.g., specific locutions) to maintain coherence.
+V. Computational Context and Future Development
+The DDF serves as a model for creating systems that facilitate rational interaction by allowing participants to change their beliefs, preferences, or intentions based on arguments received.
+A. Scalability and Applicability The design avoids maximal constraints to maintain a wide domain of applicability, recognizing that imposing strict rules (e e.g., requiring assertions to be consistent with prior constraints) would limit the framework's use in real-world deliberations. The model acknowledges that an optimal action-option for the group might be suboptimal from an individual perspective, necessitating the pooling of information and resources.
+B. Advanced Computational Extensions The structured nature of the DDF, particularly its explicit typing of sentences (actions, goals, constraints, etc.), suggests a clear pathway for highly advanced research. This explicit typing may facilitate mathematical representation using λ-calculus, which could lead to the development of a denotational semantics for the protocol using enriched category theory. This prospective application demonstrates the DDF's potential to serve as a foundational element in complex, multi-layered deliberation platforms designed to model interactions computationally.
