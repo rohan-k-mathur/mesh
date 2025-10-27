@@ -22,7 +22,8 @@ import {
   X,
   CheckCircle2,
   AlertCircle,
-  Sparkles
+  Sparkles,
+  BookPlus
 } from "lucide-react";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
@@ -395,7 +396,7 @@ export function ThesisComposer({
                 disabled={!title.trim()}
                 className="flex-1 px-6 py-3 bg-gradient-to-r from-teal-600 to-cyan-600 text-white rounded-lg font-semibold hover:from-teal-700 hover:to-cyan-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                <Sparkles className="w-5 h-5" />
+                <BookPlus className="w-5 h-5" />
                 Create Thesis
               </button>
               {onClose && (

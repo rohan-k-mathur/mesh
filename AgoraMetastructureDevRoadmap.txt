@@ -1,0 +1,817 @@
+Below is a systems‑level, end‑to‑end development & product roadmap for the Agora Debate Metastructure—the “graph‑of‑graphs” that turns individual deliberations into durable, navigable, and cumulatively useful living documents. It’s implementation‑agnostic but specific enough to guide architecture, product, and research work. Where helpful, I include specimen payloads and exit criteria. Research touchstones are cited inline.
+
+0) North‑star
+Make every debate a durable, citable knowledge object that composes into a larger graph‑of‑graphs. Each act (claim, objection, evidence, concession) is a first‑class, re‑usable unit; each debate becomes a DebateSheet; themed collections become TopicCanvases with cross‑links, provenance, and editioning. This answers the well‑documented need for a representation that preserves both the internal details of arguments and the debate‑level arc without overwhelming readers.
+
+1) Research foundations (what this roadmap operationalizes)
+	•	Two‑level representation with expand/collapse. Debates need a debate graph (nodes = whole arguments/positions; edges = support/object/rebut/restates) and argument diagrams (claims, premises, inferences) with a way to expand a debate‑node into its internal diagram and collapse it back. Sunburst overview + “pop‑out” detail is a proven UX metaphor for scale. 
+	•	Adoption & UX patterns that work. Tools succeed when they offer parallel negotiation channels (structure talk without polluting the formal thread), web annotation to import outside evidence, and multiple views (outline, two‑column, network) for sensemaking and onboarding. 
+	•	Don’t let “last attacker wins.” Debate labels should not be driven by abstract attack topology alone; keep AF semantics but surface internal quality (premise truth, scheme coverage, evidence strength). 
+	•	Internal alignment. Your in‑house roadmap already frames DebateSheets, TopicCanvases, evidence ingress, and acceptance scenarios for a research‑grade graph‑of‑graphs platform. 
+
+2) Domain model (metastructure)
+The data model is the stable substrate; all visualizations are views over it.
+2.1 Core objects
+	•	ArgumentAtom – minimal citable unit (type: claim|premise|objection|undercut|concession), with text, LF (optional), and provenance.
+	•	ArgumentDiagram – a graph of Atoms + Inferences (deductive/inductive/abductive; scheme metadata; CQ coverage).
+	•	DebateNode – a debate‑level node that references one ArgumentDiagram (or a Position/Edition wrapper).
+	•	DebateEdge – typed relation between DebateNodes: supports | objects | rebuts | restates | clarifies (+ temporal thread & order).
+	•	DebateSheet – container for a single debate episode (roles, ruleset, timeline, outcomes, open loci/CQs).
+	•	TopicCanvas – graph‑of‑sheets curated around a theme; holds cross‑sheet edges and syntheses (camps, consensus, gaps).
+	•	EvidenceNode – external resource + annotation anchors; can support/attack Atoms or Inferences.
+	•	PerspectiveCluster – curator/computed clusters of representative statements per “camp”.
+These objects implement the two‑level requirement and support expand/collapse interaction (debate node → internal argument diagram → back), exactly as called for in Harrell’s specification and sunburst→pop‑out mock‑ups.
+2.2 Invariants
+	•	Lineage, not overwrite. Edits create new nodes/editions with restates|clarifies|supersedes edges; all objects carry provenance.
+	•	Idempotent linking. (from, to, rel, thread) is unique.
+	•	Status = hybrid. status combines AF labels (grounded/preferred/stable) plus diagram‑internal quality signals. 
+
+3) System architecture (capabilities, not tech picks)
+	•	Graph substrate & indexers. Store debate‑level graphs; shard argument diagrams; index text, citations, and anchors.
+	•	Labeling engine. AF overlays (grounded, preferred, stable) + rule‑based CQ coverage + evidence scoring → composite status badges.
+	•	Evidence ingress service. Web annotation sidebar → EvidenceNode with anchors & reproducible citation trail (source, date, author, reliability). 
+	•	Back‑channel service. Per‑node “suggest improvement” threads + sheet‑level coordination lanes (moderation, merge/split proposals). 
+	•	Editioning & citation service. Stable IDs; export to AIF/Argdown/OVA; citeable snapshots (DOI‑like). 
+	•	Events & telemetry. Bus events for move/graph changes; activity & quality analytics.
+
+4) Product surfaces & view contracts
+	•	DebateSheet / Reader Input: { id, title, roles, ruleset, timeline[], nodes[], edges[], unresolvedCQs[], outcomes[], evidence[] } Must render: debate flow (phases/threads), open/closed loci, hybrid status badges, evidence gallery, expand/collapse to internals. (Satisfies two‑level + scale requirement.) 
+	•	DebateSheet / Editor Must support: add/retitle nodes, attach evidence, add cross‑links, issue editions, publish outcome cards; show “structure negotiation” back‑channels. 
+	•	TopicCanvas / Reader Input: { id, sheets[], crossLinks[], clusters[] } Must render: cluster map of “camps” + synthesis + navigable cross‑sheet edges; link into DebateSheets. 
+	•	Evidence Sidebar Must support: annotate web sources → attach to Atoms/Inferences; provenance retained; sheet/canvas evidence filters. 
+	•	Insights Must render: representative viewpoints & consensus points (clusters + high‑agreement atoms across sheets). 
+
+5) APIs (specimen shapes)
+// DebateSheet (GET)
+{
+  "id": "sheet_eg_001",
+  "title": "Contingency argument: Russell–Copleston",
+  "roles": ["Proponent","Opponent","Curator"],
+  "ruleset": { "semantics": ["grounded","preferred"], "backchannels": true },
+  "timeline": [{"t":1,"nodeId":"A1","event":"introduced"}],
+  "nodes": [{"id":"A1","diagramId":"D1","type":"argument","authors":["Copleston"]}],
+  "edges": [{"from":"A1","to":"A2","rel":"objects","thread":"t1","order":1}],
+  "unresolvedCQs": [{"diagramId":"D1","key":"CQ1"}],
+  "outcomes": [{"kind":"interim","summary":"CQ1 pending; evidence requested"}],
+  "evidence": [{"id":"E7","source":"...","anchors":[...]}]
+}
+// ArgumentDiagram (GET)
+{
+  "id": "D1",
+  "atoms": [
+    {"id":"c1","type":"claim","text":"Every contingent being has a reason"},
+    {"id":"p1","type":"premise","text":"PSR holds for all contingent beings"}
+  ],
+  "inferences": [{"from":["p1"],"to":"c1","scheme":"Deduction","cqs":["CQ1","CQ2"]}],
+  "status": { "af":"IN","cqCoverage":{"CQ1":false,"CQ2":true},"hybrid":"WEAK" }
+}
+// Cross-link (POST)
+{ "from":"sheet_eg_001#A2", "to":"sheet_eg_099#B3", "rel":"rebuts", "note":"see detailed refutation" }
+
+6) Phased roadmap (end‑to‑end)
+Each phase has clear artifacts, non‑goals, and exit criteria so the team doesn’t get lost in the weeds.
+Phase 1 — Substrate & minimal DebateSheets (foundations)
+Deliver
+	0.	Graph schema & services (objects/invariants above).
+	0.	DebateSheet Reader v1: thread timeline, nodes/edges, expand→ArgumentDiagram pop‑out, hybrid status badges (AF overlay + minimal CQ).
+	0.	Seed fixtures: Russell–Copleston mini‑pack (A1–A4) to validate two‑level navigation and cross‑links. 
+Exit criteria
+	•	Users can open a DebateSheet, expand a node into its internal diagram, and collapse back; AF labels visible; open CQs listed. 
+Phase 2 — Multi‑view + evidence ingress + back‑channels
+Deliver
+	0.	Multi‑view navigation: outline / two‑column / network views over the same sheet.
+	0.	Evidence Sidebar (web annotate → EvidenceNode) + evidence gallery.
+	0.	Parallel negotiation: per‑node “suggest improvement” threads and sheet‑level coordination. 
+Exit criteria
+	•	Users can toggle views; attach external evidence with anchors; run structure negotiations without polluting the main graph.
+Phase 3 — Knowledge stewardship (governance + editioning)
+Deliver
+	0.	Curator workflows: merge/split/restates; moderation surfaces; lineage UI.
+	0.	Editioning & citation exports (AIF/Argdown/OVA; citeable snapshots).
+	0.	Cross‑room canonicalization (position registries; paraphrase clustering). 
+Exit criteria
+	•	A debate can be re‑editted without loss (lineage preserved); cross‑sheet links updated; exports round‑trip with no semantic loss.
+Phase 4 — Interop, pedagogy & analytics
+Deliver
+	0.	Full import/export adapters; public research API.
+	0.	Teaching kits (packaged debate‑of‑graphs exemplars) aligned to Harrell’s educational goals.
+	0.	Analytics (progress, balance, evidence ingress %, CQ coverage). 
+Exit criteria
+	•	Educators can deploy a packaged sheet + guided reading; researchers can pull corpora; dashboards show longitudinal metrics.
+These phases align with your internal plan for a graph‑of‑graphs knowledge fabric and its acceptance scenarios.
+
+7) Acceptance scenarios & evaluation harness
+Create /fixtures/debates/ with scripted sheets + expectations. Run as CI.
+	•	Graph‑of‑graphs fidelity. Russell–Copleston: debate thread A1–A4 with expand→internal diagrams; seamless debate↔argument traversal. Pass if navigation works and links resolve. 
+	•	Scale without clutter. >200 argument nodes remain navigable via thread/episode aggregates + sunburst overview + pop‑out detail. Pass if interaction cost stays bounded. 
+	•	Hybrid acceptability. Node status synthesizes AF label + internal quality (CQ coverage/evidence strength). Pass if AF‑only flip‑flops do not change hybrid status without internal changes. 
+	•	Living document. Editors can restate/clarify an argument; lineage preserved; position pages update; editions remain citable. Pass if lineage graph is consistent across edits. 
+Instrument A/Bs for back‑channels and web annotation to validate expected gains in coordination and evidence ingress, as found in field studies.
+
+8) Roles & governance (minimal viable)
+	•	Participant – propose arguments, answer CQs, attach evidence; use back‑channels.
+	•	Mapper – restructure graphs (split/merge/retitle), verify CQs, curate links.
+	•	Referee (optional) – verify evidence, resolve disputes; aligns with “facilitated vs. self‑regulated” models. 
+
+9) Risks & mitigations
+	•	AF dominance / “badge‑driven reading.” Always show “View internals” affordance inline; include teaching prompts; keep hybrid status by default. 
+	•	Learning curve. Offer outline/two‑column entry paths; reserve graph‑of‑graphs for exploration and synthesis (multi‑view). 
+	•	Shallow content. Composer nudges to attach evidence; CQ verification can require sources by policy. 
+
+10) How this meets the brief (traceability)
+	•	Implements Harrell’s two‑level requirement (debate graph + argument diagrams) with expand/collapse and pop‑out detail; scales past node‑link clutter. 
+	•	Corrects AF‑only shortcomings with hybrid evaluation that respects internal structure and evidence. 
+	•	Builds adoption‑proven features into the substrate (parallel channels, web annotation, multi‑views), supporting living, citable knowledge objects. 
+
+11) Example: minimal payloads to kickstart Phase 1
+// POST /sheets
+{
+  "title": "Existence of God — Contingency line",
+  "scope": ["metaphysics","philosophy of religion"],
+  "policies": { "semantics": ["grounded"], "visibility": "public" }
+}
+// POST /sheets/:id/nodes (introduce A1)
+{
+  "diagram": {
+    "atoms":[
+      {"id":"c","type":"claim","text":"There must be a necessary being"},
+      {"id":"p1","type":"premise","text":"Every contingent being has a reason"}
+    ],
+    "inferences":[{"from":["p1"],"to":"c","scheme":"Deduction","cqs":["CQ1"]}]
+  },
+  "meta": { "authors":["Copleston"], "citations":[...] }
+}
+// POST /sheets/:id/edges (Russell objects with A2)
+{ "from":"A1","to":"A2","rel":"objects","thread":"main","order":2 }
+
+12) Near‑term bridge to your current surfaces (optional but handy)
+	•	Reuse the Dialogical Panel idioms (AF overlays, drill‑down, open CQ lists) as one of the coordinated views over DebateSheets—your UX flows (Formation Inspector, Local‑Reason Composer, Rank Control, etc.) slot naturally on top of the sheet substrate. 
+
+What you get
+	•	A coherent, research‑justified plan from substrate → views → governance → interop → pedagogy.
+	•	Clear phase exits and acceptance scenarios so teams know when each slice is “done.”
+	•	A roadmap expressly designed to produce the graph‑of‑graphs living documents the Agora aims for. 
+If you’d like, I can follow with the formal specification pack (schemas, invariants, state diagrams, and view contracts) mapped 1:1 to these phases and the DebateSheet/TopicCanvas model, using the same research traceability so architecture and research reviewers can evaluate quickly.
+
+Amazing—let’s turn the graph‑of‑graphs roadmap into shippable code. Below you’ll find:
+	0.	a starter PR plan you can execute immediately;
+	0.	Prisma schema extensions (with migration notes);
+	0.	Next.js API routes (zod‑validated, repo‑aware) with code;
+	0.	service modules (AF overlay, evidence ingress, back‑channels);
+	0.	UI surfaces (DebateSheet Reader/Editor, Argument Pop‑out, Evidence Sidebar, Topic Canvas) with component scaffolds;
+	0.	events + fixtures (CI harness) and acceptance checks;
+	0.	a one‑page info request checklist I’ll use to tailor follow‑ups to your exact codebase.
+I’ve embedded research/roadmap citations at decision points so PMs and reviewers can trace choices back to the spec and papers.
+
+0) Starter PR plan (branch: feature/debatesheets-substrate)
+Scope (Phase 1 slice):
+	•	Data layer: DebateSheet/DebateNode/DebateEdge + ArgumentDiagram(+Statement,+Inference) + EvidenceNode/EvidenceLink.
+	•	Read APIs: GET /api/sheets/:id (+ nodes/edges/loci/acceptance rollup), GET /api/arguments/:id.
+	•	Write APIs (MVP): POST /api/sheets, POST /api/sheets/:id/nodes, POST /api/sheets/:id/edges.
+	•	Services: AF overlay projection (grounded/preferred) + open‑CQ rollup from existing dialogical moves.
+	•	UI: DebateSheetReader with expand→ArgumentPopout + acceptance badges + open CQ list.
+	•	Fixtures: packages/debate-tests/fixtures/rc-mini.json (Russell–Copleston micro‑sheet). 
+Non‑goals in this PR: TopicCanvas, back‑channels UI, editioning/export. (Planned for Phases 2–3.)
+
+1) Prisma schema (new models + minimal links to your existing tables)
+Design note. We keep argument internals (statements, inferences) as first‑class to avoid AF‑only pitfalls, and couple them to a debate‑level sheet that provides overview + expand/collapse—exactly the two‑level requirement.
+Create a migration named 2025xxxx_debatesheets_substrate and add:
+// prisma/schema.prisma
+
+model DebateSheet {
+  id           String       @id @default(cuid())
+  title        String
+  scope        String?
+  roles        String[]     @default([])
+  rulesetJson  Json?        // { semantics: ["grounded","preferred"], ... }
+  // Debate-level nodes & edges
+  nodes        DebateNode[]
+  edges        DebateEdge[]
+  loci         LocusStatus[]
+  acceptance   SheetAcceptance?
+  unresolved   UnresolvedCQ[]
+  outcomes     Outcome[]
+  // Provenance
+  createdById  String
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+}
+
+model DebateNode {
+  id           String     @id @default(cuid())
+  sheetId      String
+  sheet        DebateSheet @relation(fields: [sheetId], references: [id], onDelete: Cascade)
+  title        String?
+  summary      String?
+  // Link to internals
+  diagramId    String?     @unique
+  diagram      ArgumentDiagram? @relation(fields: [diagramId], references: [id])
+  // Optional link to existing argument/claim (bridges today’s repo)
+  argumentId   String?     // prisma.argument id (if present in your db)
+  claimId      String?     // prisma.claim id (if present)
+  authorsJson  Json?       // ["Copleston"]
+  createdAt    DateTime    @default(now())
+}
+
+model DebateEdge {
+  id        String      @id @default(cuid())
+  sheetId   String
+  sheet     DebateSheet @relation(fields: [sheetId], references: [id], onDelete: Cascade)
+  fromId    String
+  toId      String
+  kind      DebateEdgeKind
+  thread    String?     // e.g., "main"
+  ord       Int?        // ordering within thread
+  rationale String?
+  createdAt DateTime    @default(now())
+
+  @@index([sheetId, fromId, toId, kind, thread])
+  @@unique([sheetId, fromId, toId, kind, thread], name: "edge_idempotent")
+}
+
+enum DebateEdgeKind {
+  supports
+  rebuts
+  objects
+  undercuts
+  refines
+  restates
+  clarifies
+  depends_on
+}
+
+model LocusStatus {
+  id        String      @id @default(cuid())
+  sheetId   String
+  sheet     DebateSheet @relation(fields: [sheetId], references: [id], onDelete: Cascade)
+  locusPath String
+  open      Boolean     @default(true)
+  closable  Boolean?    // † hint
+}
+
+model SheetAcceptance {
+  id        String      @id @default(cuid())
+  sheetId   String      @unique
+  sheet     DebateSheet @relation(fields: [sheetId], references: [id], onDelete: Cascade)
+  semantics String      // "grounded" | "preferred" | "hybrid"
+  // label per DebateNode.id
+  labels    Json        // { "nodeId": "undecided" | "skeptical-accepted" | "credulous-accepted" | "rejected" }
+}
+
+model UnresolvedCQ {
+  id        String      @id @default(cuid())
+  sheetId   String
+  sheet     DebateSheet @relation(fields: [sheetId], references: [id], onDelete: Cascade)
+  nodeId    String
+  cqKey     String
+  @@index([sheetId, nodeId, cqKey], name: "unresolved_cq_idx")
+}
+
+// Argument internals (two-level representation)
+model ArgumentDiagram {
+  id          String      @id @default(cuid())
+  title       String?
+  statements  Statement[]
+  inferences  Inference[]
+  cqStatus    Json?       // { "CQ1": "open", ... }
+  evidence    EvidenceLink[]
+  createdById String
+  createdAt   DateTime    @default(now())
+}
+
+model Statement {
+  id        String           @id @default(cuid())
+  diagramId String
+  diagram   ArgumentDiagram  @relation(fields: [diagramId], references: [id], onDelete: Cascade)
+  text      String
+  role      StatementRole
+  lang      String?
+  tags      String[]
+}
+
+enum StatementRole { premise intermediate conclusion assumption question }
+
+model Inference {
+  id          String           @id @default(cuid())
+  diagramId   String
+  diagram     ArgumentDiagram  @relation(fields: [diagramId], references: [id], onDelete: Cascade)
+  kind        InferenceKind
+  conclusionId String
+  conclusion  Statement        @relation("InferenceConclusion", fields: [conclusionId], references: [id])
+  schemeKey   String?
+  // Many premises via join
+  premises    InferencePremise[]
+  cqKeys      String[]         @default([])
+}
+
+model InferencePremise {
+  inferenceId String
+  statementId String
+  inference   Inference @relation(fields: [inferenceId], references: [id], onDelete: Cascade)
+  statement   Statement @relation(fields: [statementId], references: [id], onDelete: Cascade)
+  @@id([inferenceId, statementId])
+}
+
+enum InferenceKind { deductive inductive abductive defeasible analogy }
+
+// Evidence (first-class; supports web annotation)
+model EvidenceNode {
+  id        String   @id @default(cuid())
+  url       String
+  title     String?
+  citation  String?
+  kind      String?   // "study" | "news" | "dataset" | ...
+  reliability Float?
+  addedById String
+  addedAt   DateTime  @default(now())
+}
+
+model EvidenceLink {
+  id          String  @id @default(cuid())
+  evidenceId  String
+  evidence    EvidenceNode @relation(fields: [evidenceId], references: [id], onDelete: Cascade)
+  targetKind  String  // "statement" | "inference" | "argument" | "debate"
+  targetId    String
+  selectors   Json?   // annotation anchors
+  note        String?
+}
+Bridging current models. We kept optional foreign keys for DebateNode.argumentId/claimId so you can reference today’s argument/claim tables (shown in your routes). You can backfill these later when mapping legacy content into DebateSheets. (Your current DialogicalPanel will continue to work and can become one of the views over a DebateSheet node.)
+
+2) AF overlay + open‑CQ rollup (services)
+Create lib/agora/af.ts:
+// lib/agora/af.ts
+import type { DebateEdge, DebateNode } from '@prisma/client';
+
+// Project debate edges into AF attacks
+export function projectToAF(nodes: DebateNode[], edges: DebateEdge[]) {
+  const ids = nodes.map(n => n.id);
+  const attacks: Array<[string, string]> = [];
+  for (const e of edges) {
+    if (e.kind === 'rebuts' || e.kind === 'objects' || e.kind === 'undercuts') {
+      attacks.push([e.fromId, e.toId]);
+    }
+  }
+  return { ids, attacks };
+}
+Create lib/agora/acceptance.ts:
+import { grounded, preferred } from '@/lib/argumentation/afEngine'; // you already have these
+import { projectToAF } from './af';
+
+export function computeAcceptance(nodes, edges, mode: 'grounded'|'preferred'|'hybrid') {
+  const { ids, attacks } = projectToAF(nodes, edges);
+  const labels: Record<string, 'undecided'|'skeptical-accepted'|'credulous-accepted'|'rejected'> = {};
+  if (mode === 'grounded' || mode === 'hybrid') {
+    const g = grounded(ids.map(id => ({ id })), attacks);
+    for (const id of ids) labels[id] = g.in.has(id) ? 'skeptical-accepted'
+                         : g.out.has(id) ? 'rejected'
+                         : 'undecided';
+  }
+  if (mode === 'preferred' || mode === 'hybrid') {
+    const p = preferred(ids.map(id => ({ id })), attacks);
+    for (const id of ids) {
+      if (labels[id] === 'undecided' && p.in.has(id)) labels[id] = 'credulous-accepted';
+    }
+  }
+  return labels;
+}
+Create lib/agora/cqRollup.ts:
+import { prisma } from '@/lib/prismaclient';
+
+// Rolls up open WHYs per DebateNode by peeking into your existing dialogueMove table
+export async function unresolvedCQsForNode(sheetId: string, nodeId: string, targetType: 'claim'|'argument'|'card', targetId: string) {
+  // mirrors your /open-cqs route logic, but returns a simple list
+  const rows = await prisma.dialogueMove.findMany({
+    where: { deliberationId: sheetId, targetType, targetId, kind: { in: ['WHY','GROUNDS'] } },
+    orderBy: { createdAt: 'asc' },
+    select: { kind: true, payload: true, createdAt: true },
+  });
+  const latest = new Map<string, { kind:'WHY'|'GROUNDS', createdAt: Date }>();
+  for (const r of rows) {
+    const key = String(r.payload?.cqId ?? r.payload?.schemeKey ?? 'default');
+    const prev = latest.get(key);
+    if (!prev || r.createdAt > prev.createdAt) latest.set(key, { kind: r.kind as any, createdAt: r.createdAt });
+  }
+  return [...latest.entries()].filter(([,v]) => v.kind === 'WHY').map(([cqKey]) => ({ nodeId, cqKey }));
+}
+Why these services now? They let the DebateSheet Reader show AF badges and open CQ chips day one—meeting the “overview + detail” and “progress” requirements for representing whole debates, without waiting for the rest of the system.
+
+3) Next.js APIs (server routes)
+3.1 Create a DebateSheet
+app/api/sheets/route.ts:
+import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+import { prisma } from '@/lib/prismaclient';
+import { getCurrentUserId } from '@/lib/serverutils';
+
+const Body = z.object({
+  title: z.string().min(3),
+  scope: z.string().optional(),
+  ruleset: z.object({
+    semantics: z.array(z.enum(['grounded','preferred','hybrid'])).default(['grounded']),
+    backchannels: z.boolean().default(true)
+  }).optional()
+});
+
+export async function POST(req: NextRequest) {
+  const userId = await getCurrentUserId().catch(() => null);
+  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const { title, scope, ruleset } = Body.parse(await req.json());
+
+  const sheet = await prisma.debateSheet.create({
+    data: {
+      title,
+      scope,
+      roles: ['Proponent','Opponent','Curator'],
+      rulesetJson: ruleset ?? { semantics: ['grounded'], backchannels: true },
+      createdById: String(userId)
+    },
+    select: { id: true, title: true }
+  });
+
+  return NextResponse.json({ ok: true, sheet });
+}
+3.2 Add a node (and optional internal diagram)
+app/api/sheets/[id]/nodes/route.ts:
+import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+import { prisma } from '@/lib/prismaclient';
+
+const Body = z.object({
+  title: z.string().optional(),
+  summary: z.string().optional(),
+  // Either reference to existing argument/claim (bridge) or full diagram seed
+  argumentId: z.string().optional(),
+  claimId: z.string().optional(),
+  diagram: z.object({
+    title: z.string().optional(),
+    statements: z.array(z.object({
+      id: z.string().optional(),
+      text: z.string().min(1),
+      role: z.enum(['premise','intermediate','conclusion','assumption','question'])
+    })),
+    inferences: z.array(z.object({
+      kind: z.enum(['deductive','inductive','abductive','defeasible','analogy']),
+      premises: z.array(z.string()),
+      conclusionRef: z.string(),  // reference to statements[i].id/text
+      schemeKey: z.string().optional(),
+      cqKeys: z.array(z.string()).optional()
+    })).optional()
+  }).optional()
+});
+
+export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+  const sheetId = params.id;
+  const body = Body.parse(await req.json());
+
+  let diagramId: string | null = null;
+  if (body.diagram) {
+    const diag = await prisma.argumentDiagram.create({
+      data: {
+        title: body.diagram.title ?? body.title ?? null,
+        createdById: 'system',
+        statements: {
+          create: body.diagram.statements.map(s => ({
+            text: s.text,
+            role: s.role,
+            tags: []
+          }))
+        }
+      },
+      select: { id: true, statements: { select: { id: true, text: true } } }
+    });
+
+    diagramId = diag.id;
+    if (body.diagram.inferences?.length) {
+      // Build mapping from provided text -> actual ids
+      const textToId = new Map(diag.statements.map(s => [s.text, s.id]));
+      for (const inf of body.diagram.inferences) {
+        const conclusionId = textToId.get(inf.conclusionRef) ?? null;
+        if (!conclusionId) continue;
+        const newInf = await prisma.inference.create({
+          data: {
+            diagramId,
+            kind: inf.kind,
+            conclusionId,
+            schemeKey: inf.schemeKey ?? null,
+            cqKeys: inf.cqKeys ?? []
+          }
+        });
+        // premises join
+        for (const pText of inf.premises) {
+          const stId = textToId.get(pText);
+          if (stId) {
+            await prisma.inferencePremise.create({ data: { inferenceId: newInf.id, statementId: stId } });
+          }
+        }
+      }
+    }
+  }
+
+  const node = await prisma.debateNode.create({
+    data: {
+      sheetId,
+      title: body.title ?? null,
+      summary: body.summary ?? null,
+      diagramId,
+      argumentId: body.argumentId ?? null,
+      claimId: body.claimId ?? null
+    },
+    select: { id: true }
+  });
+
+  return NextResponse.json({ ok: true, node });
+}
+3.3 Add an edge
+app/api/sheets/[id]/edges/route.ts:
+import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+import { prisma } from '@/lib/prismaclient';
+
+const Body = z.object({
+  fromId: z.string().min(6),
+  toId: z.string().min(6),
+  kind: z.enum(['supports','rebuts','objects','undercuts','refines','restates','clarifies','depends_on']),
+  thread: z.string().optional(),
+  ord: z.number().int().positive().optional(),
+  rationale: z.string().optional()
+});
+
+export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+  const sheetId = params.id;
+  const { fromId, toId, kind, thread, ord, rationale } = Body.parse(await req.json());
+  const edge = await prisma.debateEdge.create({
+    data: { sheetId, fromId, toId, kind, thread: thread ?? null, ord: ord ?? null, rationale: rationale ?? null },
+    select: { id: true }
+  });
+  return NextResponse.json({ ok: true, edge });
+}
+3.4 Read a DebateSheet (with overlays)
+app/api/sheets/[id]/route.ts:
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prismaclient';
+import { computeAcceptance } from '@/lib/agora/acceptance';
+
+export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+  const sheet = await prisma.debateSheet.findUnique({
+    where: { id: params.id },
+    include: {
+      nodes: true,
+      edges: true,
+      loci: true,
+      acceptance: true,
+      unresolved: true,
+      outcomes: true
+    }
+  });
+  if (!sheet) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+
+  const labels = computeAcceptance(sheet.nodes, sheet.edges, 'grounded'); // default now
+  return NextResponse.json({
+    ok: true,
+    sheet: {
+      ...sheet,
+      acceptance: { semantics: 'grounded', labels }
+    }
+  }, { headers: { 'Cache-Control': 'no-store' } });
+}
+3.5 Read an ArgumentDiagram (pop‑out)
+app/api/arguments/[id]/route.ts:
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prismaclient';
+
+export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+  const diag = await prisma.argumentDiagram.findUnique({
+    where: { id: params.id },
+    include: {
+      statements: true,
+      inferences: { include: { premises: { include: { statement: true } }, conclusion: true } },
+      evidence: { include: { evidence: true } },
+    }
+  });
+  if (!diag) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  return NextResponse.json({ ok: true, diagram: diag }, { headers: { 'Cache-Control': 'no-store' } });
+}
+Why these endpoints? They deliver the two‑level expand/collapse contract and surface status (AF labels + open CQs) needed to comprehend full debates without drowning the reader—Harrell’s requirement.
+
+4) UI scaffolds (reader/editor; argument pop‑out; evidence sidebar)
+We leverage your existing DialogicalPanel idioms (AF badges, CQ hooks) and MapCanvas primitives where convenient. The DebateSheet Reader becomes the overview; ArgumentPopout is the detail.
+4.1 components/agora/DebateSheetReader.tsx
+'use client';
+import useSWR from 'swr';
+import { useState } from 'react';
+import { Chip } from '@/components/ui/chip';
+import ArgumentPopout from './ArgumentPopout';
+
+export default function DebateSheetReader({ sheetId }: { sheetId: string }) {
+  const { data, error } = useSWR(`/api/sheets/${sheetId}`, r => fetch(r).then(x => x.json()), { refreshInterval: 0 });
+  const [openNodeId, setOpenNodeId] = useState<string | null>(null);
+
+  if (error) return <div className="text-xs text-red-600">Failed to load sheet</div>;
+  if (!data?.sheet) return <div className="text-xs text-neutral-500">Loading…</div>;
+
+  const { nodes, edges, acceptance, unresolved, loci, title } = data.sheet;
+  return (
+    <div className="grid grid-cols-[320px_1fr] gap-4">
+      <aside className="space-y-3">
+        <h2 className="font-semibold">{title}</h2>
+        <div className="text-xs">Semantics: {acceptance.semantics}</div>
+        <div className="space-y-1">
+          {loci.map((l:any) => (
+            <div key={l.id} className="flex items-center justify-between text-xs border rounded px-2 py-1">
+              <span>Locus {l.locusPath}</span>
+              <Chip kind={l.open ? 'accent' : 'muted'}>{l.open ? (l.closable ? 'closable' : 'open') : 'closed'}</Chip>
+            </div>
+          ))}
+        </div>
+        <div className="mt-3">
+          <div className="text-xs font-medium mb-1">Unresolved CQs</div>
+          <ul className="text-xs space-y-1">
+            {unresolved.map((u:any) => <li key={`${u.nodeId}:${u.cqKey}`}>• {u.nodeId} — {u.cqKey}</li>)}
+          </ul>
+        </div>
+      </aside>
+
+      <main className="space-y-3">
+        <div className="rounded border p-2">
+          <div className="text-xs text-neutral-600 mb-2">Debate graph</div>
+          <ul className="grid md:grid-cols-2 lg:grid-cols-3 gap-2">
+            {nodes.map((n:any) => {
+              const label = acceptance.labels[n.id] ?? 'undecided';
+              return (
+                <li key={n.id} className="border rounded p-2">
+                  <div className="flex items-center justify-between">
+                    <div className="font-medium">{n.title ?? n.id}</div>
+                    <Chip kind={label.includes('accepted') ? 'success' : label === 'rejected' ? 'danger' : 'muted'}>{label}</Chip>
+                  </div>
+                  <div className="mt-2 text-xs flex gap-2">
+                    <button className="underline" onClick={() => setOpenNodeId(n.id)} disabled={!n.diagramId}>Expand</button>
+                    <span className="text-neutral-500">Edges: {edges.filter((e:any)=>e.fromId===n.id || e.toId===n.id).length}</span>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+
+        {openNodeId && (
+          <ArgumentPopout node={nodes.find((n:any)=>n.id===openNodeId)} onClose={() => setOpenNodeId(null)} />
+        )}
+      </main>
+    </div>
+  );
+}
+4.2 components/agora/ArgumentPopout.tsx
+'use client';
+import useSWR from 'swr';
+
+export default function ArgumentPopout({ node, onClose }:{ node:any, onClose:()=>void }) {
+  const { data } = useSWR(node?.diagramId ? `/api/arguments/${node.diagramId}` : null, r => fetch(r).then(x=>x.json()));
+  if (!node?.diagramId) return null;
+  if (!data?.diagram) return <div className="rounded border p-2 text-xs">Loading diagram…</div>;
+  const d = data.diagram;
+
+  return (
+    <div className="rounded-lg border p-3 bg-white">
+      <div className="flex items-center justify-between">
+        <h3 className="font-semibold">{node.title ?? d.title ?? 'Argument'}</h3>
+        <button className="text-xs underline" onClick={onClose}>Collapse</button>
+      </div>
+      <div className="mt-2 grid grid-cols-2 gap-3">
+        <div>
+          <div className="text-xs font-medium mb-1">Statements</div>
+          <ul className="text-xs space-y-1">
+            {d.statements.map((s:any)=>(
+              <li key={s.id}><span className="text-neutral-500 mr-1">[{s.role.slice(0,1).toUpperCase()}]</span>{s.text}</li>
+            ))}
+          </ul>
+        </div>
+        <div>
+          <div className="text-xs font-medium mb-1">Inferences</div>
+          <ul className="text-xs space-y-1">
+            {d.inferences.map((inf:any)=>(
+              <li key={inf.id}>
+                {inf.kind} → {inf.conclusion?.text}
+                {inf.premises?.length ? (
+                  <span className="text-neutral-500"> (from {inf.premises.map((p:any)=>p.statement.text).join(', ')})</span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+}
+Why these two components? They satisfy the expand/collapse navigation Harrell calls for (overview ↔ internal detail) and give immediate visibility into where attacks land and which CQs remain open; multi‑view variants (outline, two‑column, network) slot on top of the same contract in Phase 2.
+
+5) Evidence ingress (API + UI stub)
+5.1 API
+app/api/evidence/route.ts:
+import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+import { prisma } from '@/lib/prismaclient';
+
+const Body = z.object({
+  url: z.string().url(),
+  title: z.string().optional(),
+  citation: z.string().optional(),
+  kind: z.string().optional(),
+  reliability: z.number().min(0).max(1).optional(),
+  target: z.object({ kind: z.enum(['statement','inference','argument','debate']), id: z.string().min(6) }),
+  selectors: z.any().optional(),
+  note: z.string().optional()
+});
+
+export async function POST(req: NextRequest) {
+  const b = Body.parse(await req.json());
+  const en = await prisma.evidenceNode.create({
+    data: { url: b.url, title: b.title ?? null, citation: b.citation ?? null, kind: b.kind ?? null, reliability: b.reliability ?? null, addedById: 'system' }
+  });
+  const link = await prisma.evidenceLink.create({
+    data: { evidenceId: en.id, targetKind: b.target.kind, targetId: b.target.id, selectors: b.selectors ?? null, note: b.note ?? null }
+  });
+  return NextResponse.json({ ok: true, evidenceId: en.id, linkId: link.id });
+}
+Why now? Evidence ingress is one of the most replicated “what actually helped” findings (web annotation + mapping improved sense‑making; without it maps stay shallow). Treating it as first‑class will pay dividends in later phases.
+
+6) Back‑channels (data + MVP API)
+Field studies show mappers need parallel negotiation channels to coordinate structure; we keep it orthogonal to debate content.
+Add models (next migration, or append now if preferred):
+model SuggestionThread {
+  id        String   @id @default(cuid())
+  targetKind String
+  targetId   String
+  createdById String
+  createdAt DateTime @default(now())
+  decision   String? // "accepted" | "rejected" | "deferred"
+  rationale  String?
+  messages   SuggestionMessage[]
+}
+
+model SuggestionMessage {
+  id        String   @id @default(cuid())
+  threadId  String
+  thread    SuggestionThread @relation(fields:[threadId], references:[id], onDelete: Cascade)
+  authorId  String
+  text      String
+  at        DateTime @default(now())
+}
+Create MVP routes: POST /api/suggestions (open), POST /api/suggestions/:id/reply, POST /api/suggestions/:id/decide. (Omitted for brevity, structure mirrors your existing confirm route patterns.)
+
+7) Events + fixtures
+	•	Emit on writes:
+	•	emitBus('agora:sheet:changed', { sheetId })
+	•	emitBus('agora:argument:changed', { diagramId })
+	•	emitBus('agora:evidence:changed', { targetId })
+	•	Fixtures (CI) Add packages/debate-tests/fixtures/rc-mini.json (Russell–Copleston “contingency” slice). The test runner should:
+	0.	POST /api/sheets → sheetId
+	0.	POST /api/sheets/:id/nodes with Copleston A1 diagram
+	0.	POST /api/sheets/:id/nodes with Russell A2 diagram
+	0.	POST /api/sheets/:id/edges (objects)
+	0.	GET /api/sheets/:id and assert: acceptance labels exist; unresolved CQs populated. 
+
+8) Cross‑wiring with your existing DialogicalPanel (optional in Phase 1)
+	•	Your DialogicalPanel already projects AF and toggles semantics (grounded/preferred). The new DebateSheet Reader can reuse the same AF helpers (afEngine) and adopt the chip idioms you’re already rendering (force/relevance). This reduces UX novelty while we land the substrate. 
+
+9) Acceptance checks for this PR
+	•	Two‑level navigation: From DebateSheet Reader, expand a node to its ArgumentPopout and collapse back with context retained. Pass if ≥1 node can expand, and GET /api/arguments/:id returns statements & inferences. 
+	•	AF overlay: GET /api/sheets/:id returns acceptance.labels with grounded labels that respond to edges (objects/rebuts create attacks).
+	•	Open CQs: unresolved[] returns keys derived from WHY vs GROUNDS on same key via your dialogueMove table (mirrors your /open-cqs semantics).
+	•	Evidence ingress: POST /api/evidence creates both node and link; EvidenceSidebar (Phase 2) will read them. 
+
+10) Next slices (what to code after this PR lands)
+	•	Phase 2
+	•	Multi‑view: Outline/Two‑Column/Network renderers over the same GET /api/sheets/:id payload.
+	•	Evidence Sidebar UI: document selector → POST /api/evidence.
+	•	Back‑channels UI: per‑node “Suggest improvement”. (All research‑backed.) 
+	•	Phase 3
+	•	Editioning (snapshots with stable citations) + exports (AIF/Argdown/OVA).
+	•	Canonicalization (position registries; paraphrase merging).
+	•	Cross‑sheet TopicCanvas with PerspectiveCluster + “representative statements / consensus points.” 
+
+11) One‑time info request checklist (paste answers inline; I’ll tailor patches immediately)
+You don’t need to stop coding—this list just lets me align exact types/paths to your repo.
+Codebase & DB
+	•	Current Prisma models (full schema.prisma) and any relevant SQL views.
+	•	Table names for argument, claim, dialogueMove, commitment, ludicDesign.
+	•	Any existing argument internals (statements/premises) tables? Or only free‑text arguments?
+APIs
+	•	Confirm Next.js app router + route file layout (app/api/... already present).
+	•	Auth pattern (I used getCurrentUserId from your code).
+	•	SSE/bus helper to broadcast sheet changes (I used emitBus pattern).
+Frontend
+	•	Design system (shadcn components present? I used Chip/Dialog idioms you already have).
+	•	Routing convention for new views (page path where the DebateSheet Reader will live).
+	•	Whether MapCanvas is ReactFlow‑backed (I can wire the debate graph into it quickly).
+Ops
+	•	Seeding strategy for fixtures.
+	•	Environments requiring data migration steps.
+Research & product
+	•	Which semantics default to show on badges (grounded vs hybrid)?
+	•	CQ policy (must an answered CQ include evidence to permit † closure?).
+	•	First TopicCanvas themes to curate (so we can name fixture bundles).
+
+12) Why this is the right cut
+This PR establishes the substrate that cleanly separates argument internals from debate‑level flow and delivers expand/collapse navigation with visible status—exactly the remedy Harrell calls for (retain essentials without becoming unwieldy). It also sets up two adoption levers demonstrated in field work—parallel negotiation and evidence ingress—as first‑class, without blocking initial reading and mapping. Subsequent phases merely add views and curation workflows over this stable base.
+
+If you share the current Prisma schema and the target page routes, I’ll refine the models (e.g., reference your argument/claim PKs, reuse your MapCanvas) and provide exact diffs for the repo (file paths + imports) in the next message.

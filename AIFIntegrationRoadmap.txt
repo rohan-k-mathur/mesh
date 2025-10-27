@@ -1,0 +1,945 @@
+Fantastic—here’s a **step‑by‑step development roadmap** to make AIF the native substrate of Digital Agora. It is organized as a sequence of deliverable phases with concrete tasks, file‑level changes, acceptance tests, and risks/mitigations. Each phase directly implements the mappings and UX patterns specified in the AIF integration document you attached. 
+
+> **Guiding principles**
+>
+> * Separate **content** (I‑nodes = Claims) from **reasoning acts** (S‑nodes = RA/CA/PA) and **utterances** (L‑nodes = DialogueMoves). Keep the formal graph under the hood; expose intuitive controls (rebut, “challenge the reasoning”, ask a CQ, etc.). 
+> * Arguments are **instances of schemes** (RA nodes) with **linked premises** and **CQs** that materialize as typed attacks (CA nodes). 
+> * Provide **AIF import/export (JSON‑LD/RDF; AIFdb JSON)** for interoperability, while the primary UX stays Agora‑native. 
+
+---
+
+## Phase 0 — Repo scaffolding & invariants (foundation)
+
+**Scope**
+
+* Create an internal AIF library module and validator, plus shared types.
+* Define invariants and guardrails so the app only produces valid AIF graphs (e.g., no Claim→Claim supports without an intervening Argument/RA). 
+
+**Tasks**
+
+* `packages/aif-core/`:
+
+  * `AifTypes.ts` (I/RA/CA/PA/L node interfaces; edge interfaces).
+  * `aifInvariants.ts` (no I→I edges; S‑nodes must connect to I‑nodes; attacks target a conclusion I‑node or an RA node). 
+  * `aifValidateGraph.ts` (unit tests with pathological fixtures).
+* Add CI job **“aif-validate-export”** to run after migrations and seed: export a sample debate and validate the shape.
+
+**Acceptance**
+
+* Seeding a room and exporting yields a graph with only I/RA/CA/L constructs; validator passes. 
+
+**Risks/Mitigations**
+
+* *Risk:* accidental direct Claim→Claim support.
+  *Mitigation:* invariant check in request handlers + migration (Phase 4). 
+
+---
+
+## Phase 1 — Data model & migrations (AIF‑aligned schema)
+
+**Scope**
+
+* Use **Argument** as the concrete **RA‑node** container (one conclusion; 1..n premise Claims; optional scheme). Represent **CA** via typed **ArgumentEdge**; use **DialogueMove** as **L‑node** with reply chains. 
+
+**DB changes (Prisma)**
+
+* `Argument`: add `schemeId?`, `conclusionClaimId` (FK), create join `ArgumentPremise { argumentId, claimId, isImplicit boolean }`. Linked premises reflect **linked support** in one RA. 
+* `ArgumentEdge`: ensure `attackType` (`REBUTS|UNDERCUTS|UNDERMINES`) and `targetScope` (`conclusion|inference|premise`); optional `targetInferenceId` (maps to the RA being undercut). 
+* `DialogueMove`: add `replyToMoveId`, `contentClaimId?`, `argumentId?`, and `illocution` enum (Assert|Question|Argue|Concede|…); these carry **YA/TA** semantics without persisting separate YA/TA nodes. 
+* New tables: `ArgumentScheme`, `CriticalQuestion { schemeId, cqKey, text, role, attackType }`. 
+
+**Acceptance**
+
+* One Argument can list multiple premises (linked) and one conclusion; an ArgumentEdge with `attackType='UNDERCUTS'` targets an RA (by id). 
+
+---
+
+## Phase 2 — Scheme library & CQ engine
+
+**Scope**
+
+* Stand up the scheme catalog and CQ dataset; wire **CQ → typed attack** mapping. 
+
+**Tasks**
+
+* Seed canonical schemes (e.g., Expert Opinion, Consequences ±, Analogy, Causal, Classification, Practical Reasoning) with **premise slot hints** and **CQ sets** (CQ role: `premise|exception|license|counter-arg`). 
+* Service: `lib/schemes/getScheme(id)`; `listSchemes(filter)`; `getCQsForArgument(argumentId)` (joins scheme).
+* Add `CQStatus { argumentId, cqKey, status: 'open'|'answered' }` to persist open/answered CQs (open CQs act as **virtual CA nodes**). 
+
+**Acceptance**
+
+* Creating an Expert Opinion argument auto‑lists its CQs; answering “bias?” toggles a status and spawns an **undercut** helper when chosen. 
+
+---
+
+## Phase 3 — Service layer: atomic, transactional graph mutations
+
+**Scope**
+
+* Map **simple user actions** to **multi‑node AIF transforms** atomically. 
+
+**Tasks**
+
+* `POST /api/arguments`: create one RA with N premises + 1 conclusion; attach `schemeId?`; wrap in a transaction.
+* `POST /api/arguments/:id/attacks`: create **ArgumentEdge** with `attackType/targetScope/targetInferenceId` (undercuts → target RA). 
+* `POST /api/dialogue/move`: when `type='GROUNDS'`, create Argument (RA) and the locution (L) together; `replyToMoveId` captures **TA** chaining; `illocution` captures **YA**. 
+* Guards: deny GROUNDS without content Argument; deny illegal I→I support; ensure every rebut/undercut hits the correct locus. 
+
+**Acceptance**
+
+* A “Why?” → “Because …” pair yields (1) a DialogueMove YA:Argue linking to the challenge (TA), and (2) a persisted Argument RA with premises and conclusion. 
+
+---
+
+## Phase 4 — Migration & compatibility (flatten legacy edges)
+
+**Scope**
+
+* Convert **direct Claim→Claim supports** into **single‑premise RA Arguments**; preserve IDs in provenance. 
+
+**Tasks**
+
+* Migration script: for each `ClaimEdge(type='supports')`, create `Argument` with `premise=A, conclusion=B`, then delete edge; update references.
+* Write‑path shim: if any legacy client posts Claim→Claim support, auto‑materialize an Argument RA (deprecate after rollout). 
+
+**Acceptance**
+
+* No remaining direct supports in DB; exports show RA for every support step. 
+
+---
+
+## Phase 5 — AIF import/export (JSON‑LD, AIFdb JSON)
+
+**Scope**
+
+* Round‑trip **losslessly** between Agora graphs and AIF JSON‑LD / AIFdb JSON. 
+
+**Tasks**
+
+* `GET /api/deliberations/:id/aif?format=jsonld|aifdb`
+
+  * Export I/RA/CA/L nodes; map `Argument.schemeId` to RA “form”; generate CA from `ArgumentEdge`. 
+* `POST /api/aif/import`
+
+  * Parse nodes/edges; create Claims, Arguments (with premises → conclusion), Attacks, and optional DialogueMoves.
+* JSON‑LD `@context` for `aif:` URIs; stable `@id` scheme. 
+
+**Acceptance**
+
+* Export → import reproduces the same debate modulo IDs; validator passes; an AIFdb JSON sample loads correctly. 
+
+---
+
+## Phase 6 — Dialogue protocol anchoring (YA/TA behaviors)
+
+**Scope**
+
+* Make **legal‑moves** respect illocution and transition rules; surface in chips (ATTACK/SURRENDER/NEUTRAL). 
+
+**Tasks**
+
+* Extend legal‑moves service to read recent L‑nodes and compute allowed replies (e.g., “Why?” → “Argue” only).
+* Persist `illocution` on moves and derive YA/TA on export; no separate tables needed. 
+
+**Acceptance**
+
+* After an Assertion L‑node, “Why?” is legal; after a “Why?”, “Provide Grounds” is legal; illegal moves are blocked with clear reason. 
+
+---
+
+## Phase 7 — UX: scheme composer, CQ challenge flow, attack targeting
+
+**Scope**
+
+* Deliver **authoring and challenge flows** that hide AIF but honor its structure. 
+
+**Tasks**
+
+* **Scheme Composer**: optional form by scheme with slot hints (expert, domain, source, etc.) and live validation; freeform fallback. 
+* **CQ Challenge**: “⚡ Challenge” menu lists scheme‑specific CQs; selecting one creates a WHY move + prepares the correct **CA** (undercut/undermine/rebut). 
+* **Attack scope pill**: “Challenge claim / Challenge reasoning / Challenge premise” maps to `targetScope` & `attackType`. Distinct icons/edge styles for rebut vs undercut. 
+* **Expand/collapse**: pop‑out argument diagrams show warrant (inference) box; undercuts attach to the box; collapsed view shows badges. 
+
+**Acceptance**
+
+* From an argument card, picking “Is the expert biased?” creates a WHY + red CQ chip, and answering it spawns an undercut RA that defeats the virtual attack. 
+
+---
+
+## Phase 8 — Evaluation: AF labels & debate status
+
+**Scope**
+
+* Compute IN/OUT/UNDEC labels for Arguments via a Dung‑style evaluation over RA/CA; surface “Evaluate debate” affordance. 
+
+**Tasks**
+
+* `lib/eval/af.ts`: build AF from RA nodes (arguments) and CA edges (attacks).
+* Integrate a solver (internal or TOAST‑compatible output) to compute grounded/preferred semantics.
+* UI: lightweight badges (Accepted/Rejected/Undecided) and an **Analysis** panel explaining “why”. 
+
+**Acceptance**
+
+* When an undercut is added to the only supporting RA, the claim’s status turns “not supported”; explanation lists the undefeated attacker. 
+
+---
+
+## Phase 9 — Performance, caching, and graph APIs
+
+**Scope**
+
+* Keep AIF richness responsive: efficient fetches, caching, and shape‑specific endpoints. 
+
+**Tasks**
+
+* `GET /api/deliberations/:id/graph?aif=true` returns a **single normalized JSON** of I/RA/CA/L with premises grouped per RA.
+* Per‑block cache keys: `(artifactId, evalMode, τ)` for views.
+* Indexes: `ArgumentPremise(argumentId)`, `Argument(conclusionClaimId)`, `ArgumentEdge(fromId,toId)`.
+* Lazy expansion: fetch RA interiors on demand for pop‑out diagrams. 
+
+**Acceptance**
+
+* Opening/expanding complex arguments stays within performance budget; network shows one batched graph payload on load.
+
+---
+
+## Phase 10 — Interop polish (RDF/OWL, JSON‑LD contexts)
+
+**Scope**
+
+* Finalize Linked Data semantics; document contexts and ontology alignment. 
+
+**Tasks**
+
+* Provide an `@context` that maps local keys to `aif:` URIs; document in `docs/aif-jsonld.md`.
+* Optional RDF/OWL export (server‑side transformation of JSON‑LD).
+* Sample integration: export a public debate and validate with an AIFdb/OVA consumer. 
+
+**Acceptance**
+
+* JSON‑LD export passes external validator; RDF graph loads in a triple store.
+
+---
+
+## Phase 11 — Backfills, deprecation & rollout safety
+
+**Scope**
+
+* Convert legacy data, maintain compatibility, and progressively deprecate old shapes. 
+
+**Tasks**
+
+* One‑time backfill → RA for every support ClaimEdge.
+* Soft‑deprecate endpoints that allow direct Claim→Claim support; log warnings; remove after traffic drops.
+* Feature flag: “AIF authoring” for staged rollout.
+
+**Acceptance**
+
+* No regressions in existing debates; authoring defaults to RA creation; export/import used successfully on real rooms.
+
+---
+
+## Phase 12 — QA, docs, onboarding & analytics
+
+**Scope**
+
+* Make it easy to learn and monitor. 
+
+**Tasks**
+
+* **Onboarding**: micro‑hints for undercut vs rebut; “Explain this” popover describing the scheme in plain language. 
+* **Docs**: “How Agora models arguments” (user‑level) and “AIF developer guide” (engineer‑level).
+* **Analytics**: track CQ usage, undercut/rebut ratios, time‑to‑answer CQs; alert on orphan S‑nodes (should never happen).
+
+**Acceptance**
+
+* New users complete a short flow (add support, ask CQ, answer) without confusion; telemetry shows CQ flow engagement.
+
+---
+
+# Cross‑phase specifications & artifacts
+
+### Key endpoint contracts (final shapes)
+
+* **Create RA (Argument)**
+
+  ```http
+  POST /api/arguments
+  { "conclusionClaimId":"C", "premiseClaimIds":["P1","P2"], "schemeId":"expert_opinion", "implicitPremises":[...] }
+  ```
+
+  → 201 `{ "argumentId": "A123" }` (one RA with **linked premises**, not multiple edges). 
+
+* **Attack an argument (CA)**
+
+  ```http
+  POST /api/arguments/:id/attacks
+  { "fromArgumentId":"A_attacker", "attackType":"UNDERCUTS", "targetScope":"inference", "targetInferenceId":"A_target" }
+  ```
+
+  → targets the **warrant** (internal hom) of the RA being attacked. 
+
+* **Dialogue move (L, YA/TA anchoring)**
+
+  ```http
+  POST /api/dialogue/move
+  { "type":"GROUNDS","replyToMoveId":"M_prev","argument":{...}, "illocution":"Argue" }
+  ```
+
+  → creates an L‑node (locution) + RA content atomically and links them by **YA/TA** semantics. 
+
+* **Export AIF**
+
+  ```http
+  GET /api/deliberations/:id/aif?format=jsonld
+  ```
+
+  → JSON‑LD with `@type: aif:InformationNode|aif:RA|aif:CA|aif:L` and edges; lossless round‑trip. 
+
+### QA test plan (high‑leverage scenarios)
+
+1. **Linked premises**: one RA with P1,P2 ⇒ C; removing P2 invalidates the RA’s completeness; export shows one RA node with two incoming edges. 
+2. **CQ undercut**: pick “bias?” on Expert Opinion; system spawns an undercut challenge (CA on RA); answering creates an RA that defeats the CA; evaluation flips RA to IN. 
+3. **Rebut vs undercut visuals**: rebut attaches to the conclusion node; undercut attaches to the warrant box in expanded view; pill toggles map to correct `targetScope`. 
+4. **Dialogue legality**: “Why?” must be followed by “Provide Grounds”; illegal follow‑ups are blocked with a helpful explanation. 
+5. **Round‑trip**: export → import keeps counts of I/RA/CA/L and scheme annotations; validator green. 
+
+---
+
+# Risks & mitigations (summary)
+
+* **Model creep / complexity** → *Mitigate with progressive disclosure in UI,* atomic server ops, and invariant guards. 
+* **Performance** → *Batch graph fetches, lazy expand RA interiors, cache per evaluation context.* 
+* **User overwhelm** → *Offer outline/map/thread views; non‑jargon labels; micro‑tutorials; “Structured mode” toggle.* 
+* **Interop drift** → *Keep JSON‑LD context tested against AIFdb/OVA samples; CI export validation.* 
+
+---
+
+## What lands when we finish
+
+* Internally, every support is a **RA Argument with linked premises**; every counter is a typed **CA** (rebut/undercut/undermine). Locutions (L) anchor **who said what** and **how** (YA/TA) without exposing jargon to users. 
+* Users get a **scheme‑aware composer**, **CQ as actions**, **challenge‑the‑reasoning** affordance, expandable **argument diagrams**, and **debate status** analytics—while the platform exports/imports standard AIF. 
+
+If you’d like, I can turn these phases into **issue templates** (one per phase) with checklists and paste‑in migration snippets so engineering can pull them into the next sprint board.
+
+
+---
+
+Love it. Here’s a **fully fleshed, engineering‑ready roadmap** to make AIF your native substrate—with concrete schema diffs, endpoint contracts, invariants, UI wiring, import/export shapes, test plans, and rollout safeguards. Everything below instantiates the mappings in the AIF integration memo (I/RA/CA/L + YA/TA; schemes + CQs; JSON‑LD interop) while keeping the UX intuitive and non‑jargony. 
+
+---
+
+## 0) Ground rules (what we will *always* enforce)
+
+**AIF invariants we’ll encode in code + tests**
+
+* No direct **Claim → Claim** support. Every support is an **RA** (Argument container) with **premises → RA → conclusion**. 
+* Every attack is a **CA**:
+
+  * **Rebut** → attacks the **conclusion I‑node** (claim).
+  * **Undercut** → attacks the **inference (RA)** (the “warrant”).
+  * **Undermine** → attacks a **premise I‑node**. 
+* **Locutions** (L‑nodes) are **DialogueMoves**; **YA/TA** are properties/links between moves, not additional persisted tables. 
+
+> *Why these?* They’re the core of AIF + IAT: content (I) vs. reasoning (S=RA/CA/PA) vs. utterance (L), with YA/TA anchoring dialogue logic. We hide this structure from users but keep it exact in the backend. 
+
+---
+
+## 1) Library scaffolding & CI guardrails
+
+**New package:** `packages/aif-core/`
+
+* `AifTypes.ts` — TS types mirroring AIF: `InformationNode`, `RA`, `CA`, `L`, `Edge`.
+* `aifInvariants.ts` — validators:
+
+  * deny I→I support;
+  * ensure each RA has ≥1 premise and 1 conclusion;
+  * CA must target `conclusion` (rebut), `inference` (undercut), or `premise` (undermine). 
+* `aifValidateGraph.ts` — unit tests with pathological fixtures (dangling S‑nodes, orphan L‑nodes, etc.).
+
+**CI:** “aif‑validate‑export” job runs after seed: export an AIF graph and validate invariants + JSON‑LD @context. 
+
+---
+
+## 2) Schema (Prisma) — AIF‑aligned models
+
+> The memo recommends using our **Argument** as the RA container and edges for CA, plus DialogueMove for L/YA/TA. We’ll extend those models, not replace them. 
+
+```prisma
+model Claim {
+  id           String   @id @default(cuid())
+  text         String
+  canonicalKey String?  @unique // optional dedupe
+  // backlinks
+  asPremiseOf  ArgumentPremise[]
+  asConclusion Argument[]       @relation("Conclusion")
+}
+
+model Argument { // RA-node
+  id                 String   @id @default(cuid())
+  schemeId           String?  @db.VarChar(64)
+  scheme             ArgumentScheme? @relation(fields:[schemeId], references:[id])
+  conclusionClaimId  String
+  conclusion         Claim    @relation("Conclusion", fields:[conclusionClaimId], references:[id])
+  premises           ArgumentPremise[]
+  implicitWarrant    Json?    // optional enthymeme/warrant text or rule
+  createdAt          DateTime @default(now())
+}
+
+model ArgumentPremise {
+  argumentId String
+  claimId    String
+  isImplicit Boolean  @default(false)
+  // PK
+  @@id([argumentId, claimId])
+  argument   Argument @relation(fields:[argumentId], references:[id], onDelete: Cascade)
+  claim      Claim    @relation(fields:[claimId], references:[id], onDelete: Cascade)
+}
+
+enum AttackType { REBUTS UNDERCUTS UNDERMINES }
+enum TargetScope { conclusion inference premise }
+
+model ArgumentEdge { // CA-node as an edge
+  id                String     @id @default(cuid())
+  fromArgumentId    String     // attacker (an Argument)
+  toArgumentId      String?    // target Argument (for undercut / meta attacks)
+  targetClaimId     String?    // target Claim (for rebuttals)
+  targetPremiseId   String?    // target premise Claim (for undermines)
+  attackType        AttackType
+  targetScope       TargetScope
+  cqKey             String?    // optional Critical Question key
+  createdAt         DateTime   @default(now())
+}
+
+model ArgumentScheme { // F-node (scheme catalog)
+  id          String   @id @default(cuid())
+  key         String   @unique
+  name        String
+  description String?
+  // helps UI
+  slotHints   Json? // e.g., {premises:[{role:'expert',label:'Expert name'},{role:'cred',label:'Why credible?'}]}
+  cqs         CriticalQuestion[]
+}
+
+model CriticalQuestion {
+  id        String @id @default(cuid())
+  schemeId  String
+  scheme    ArgumentScheme @relation(fields:[schemeId], references:[id], onDelete: Cascade)
+  cqKey     String
+  text      String
+  // for automation: how the CQ maps to an attack
+  attackType  AttackType   // REBUTS | UNDERCUTS | UNDERMINES
+  targetScope TargetScope  // conclusion | inference | premise
+  // e.g., an "alternative cause?" CQ → UNDERCUTS + inference
+  @@unique([schemeId, cqKey])
+}
+
+model CQStatus {
+  id         String @id @default(cuid())
+  argumentId String
+  cqKey      String
+  status     String // 'open' | 'answered'
+  @@unique([argumentId, cqKey])
+}
+
+enum Illocution { Assert Question Argue Concede Retract Close }
+
+model DialogueMove { // L + YA/TA
+  id             String     @id @default(cuid())
+  authorId       String
+  deliberationId String
+  type           String     // existing kind: ASSERT|WHY|GROUNDS|CONCEDE|RETRACT|CLOSE...
+  illocution     Illocution
+  replyToMoveId  String?
+  contentClaimId String?    // ASSERT
+  argumentId     String?    // GROUNDS (anchors an RA)
+  createdAt      DateTime   @default(now())
+}
+```
+
+* **Why CQStatus on Argument (not Claim)?** Because CQs are about the **scheme instance** (the RA). Open CQs act as *virtual CA nodes* until answered—a first‑class AIF idea we’ll leverage in logic and UI. 
+* **YA/TA**: we keep them implicit via `illocution` + `replyToMoveId`. That’s standard IAT practice; we need not persist YA/TA as separate nodes. 
+
+---
+
+## 3) Server operations (atomic “user actions” → AIF transforms)
+
+> One user click = one transactional graph mutation; no partial AIF states. 
+
+**Create RA (Argument)**
+
+```http
+POST /api/arguments
+{
+  "conclusionClaimId": "C",
+  "premiseClaimIds": ["P1","P2"],
+  "schemeId": "expert_opinion",
+  "implicitWarrant": { "text": "If credible expert asserts X, then (defeasibly) X" }
+}
+→ 201 { "argumentId": "A123" }
+```
+
+* Validations: ≥1 premise; conclusion exists; no duplicate RA with identical {premises, conclusion}.
+* Side effect: create any missing Claims by text search+canonicalization; emit `agora:argument:changed`.
+* Why: RA = one inference with **linked** premises, not many independent edges. 
+
+**Attack an argument (CA)**
+
+```http
+POST /api/arguments/:id/attacks
+{
+  "fromArgumentId": "A_attacker",
+  "attackType": "UNDERCUTS",
+  "targetScope": "inference",
+  "targetInferenceId": "A_target",    // same as :id if you prefer path
+  "cqKey": "EO.bias"                  // optional, ties to scheme CQ
+}
+→ 201 { "edgeId": "E1" }
+```
+
+* **Rebuttal**: `attackType=REBUTS`, `targetScope=conclusion`, `targetClaimId=...`.
+* **Undermine**: `attackType=UNDERMINES`, `targetScope=premise`, `targetPremiseId=...`.
+* These edges *are* your CA nodes for export and evaluation. 
+
+**Post a dialogue move** (L + YA/TA)
+
+```http
+POST /api/dialogue/move
+{
+  "type": "GROUNDS",
+  "illocution": "Argue",
+  "replyToMoveId": "M_prev",
+  "argument": { "conclusionClaimId":"C","premiseClaimIds":["P1"] }
+}
+→ creates DialogueMove + Argument atomically
+```
+
+* Guard: `type=GROUNDS` **must** carry an `argument`.
+* Legal moves: compute from recent L‑nodes (e.g., `WHY` → `GROUNDS` is allowed, otherwise blocked with reason). 
+
+---
+
+## 4) Scheme & CQ services (the “guided” experience)
+
+* `/api/schemes` (list), `/api/schemes/:key` (get), returns slot hints + CQs.
+* `GET /api/arguments/:id/cqs` → list with `status=open|answered` (from `CQStatus`).
+* “⚡ Challenge” menu queues pre‑typed attacks from the scheme’s CQs; selecting one plants a `WHY` and a **virtual CA** until answered. 
+
+---
+
+## 5) AIF export/import (JSON‑LD + AIFdb JSON)
+
+> The memo recommends JSON‑LD with an `@context` mapping our keys to the AIF ontology, with optional AIFdb JSON for tools like OVA+. 
+
+**Export**
+
+```http
+GET /api/deliberations/:id/aif?format=jsonld|aifdb
+```
+
+**JSON‑LD (@context sketch)**
+
+```json
+{
+  "@context": {
+    "aif": "http://www.arg.dundee.ac.uk/aif#",
+    "nodes": "aif:nodes",
+    "edges": "aif:edges",
+    "text": "aif:text",
+    "scheme": "aif:usesScheme",
+    "premiseOf": "aif:Premise",
+    "concludes": "aif:Conclusion",
+    "attacks": "aif:attacks"
+  },
+  "nodes": [
+    {"@id":"I:C","@type":"aif:InformationNode","text":"…"},
+    {"@id":"S:A123","@type":"aif:RA","scheme":"ExpertOpinion"},
+    {"@id":"L:M7","@type":"aif:L","text":"Because …","author":"alice","at":"…"}
+  ],
+  "edges": [
+    {"from":"I:P1","to":"S:A123","role":"aif:Premise"},
+    {"from":"S:A123","to":"I:C","role":"aif:Conclusion"},
+    {"from":"S:Att","to":"S:A123","role":"aif:CA"} // undercut
+  ]
+}
+```
+
+**Import**
+
+```http
+POST /api/aif/import
+{ "format":"jsonld", "graph": { ... } }
+→ Creates Claims, Arguments (RA), Attacks (CA), and DialogueMoves (L)
+```
+
+* De‑dupe by claim text/canonicalKey; map RA premises/conclusions; map CA as `ArgumentEdge` with correct `attackType/scope`. 
+
+---
+
+## 6) Evaluation (AF labels) & analysis
+
+* Build AF where **nodes = RA arguments**, **edges = CA attacks**.
+* Implement `lib/eval/af.ts` (grounded/preferred); derive IN/OUT/UNDEC badges on arguments and optionally roll up to claims (“justified if any IN RA supports it and no undefeated attackers remain”). 
+
+---
+
+## 7) Frontend UX (AIF‑accurate, jargon‑free)
+
+> Design principle: **hide syntax, not structure**. Show linked premises, show “challenge the reasoning” vs “counter‑claim”, and progressively disclose details. 
+
+**New/updated components**
+
+* `components/arguments/SchemeComposer.tsx`
+
+  * Optional scheme template with slot hints and live CQ reminders.
+* `components/arguments/AttackMenu.tsx`
+
+  * Pills: **Challenge claim** (rebut), **Challenge reasoning** (undercut), **Challenge premise** (undermine) → sets `targetScope` correctly and prewires CQs. 
+* `components/arguments/ArgumentCard.tsx`
+
+  * Collapsed: conclusion + compact premise list + badges (“2 objections”, “1 open CQ”).
+  * Expanded: **warrant box** between premises and conclusion; undercuts attach to the warrant (clear visual). *This matches the illustrative AIF diagram (page 23: rectangles=I, diamonds=S), where rebuttals hit the claim and undercuts hit the RA.* 
+* `components/dialogue/LegalMovesChips.tsx`
+
+  * Reads `illocution` & reply chain; only shows allowed chips (WHY → GROUNDS, etc.). 
+* Multi‑view toggle stays: Outline / Map / Two‑Column; each is a projection of the same AIF graph. 
+
+---
+
+## 8) API additions & exact handler behavior
+
+**Graph (batched)**
+`GET /api/deliberations/:id/graph?aif=true&eval=grounded&tau=0.6`
+→ One payload: `claims[]`, `arguments[]` (with `premises[]`, `conclusion`), `attacks[]`, `locutions[]`, `labels{argumentId:'IN|OUT|UNDEC'}`.
+
+**CQ flows**
+
+* `POST /api/arguments/:id/cqs/:cqKey/ask` → creates WHY (L) + opens `CQStatus`.
+* `POST /api/arguments/:id/cqs/:cqKey/answer` → posts GROUNDS (Argument) and marks `CQStatus='answered'` (also creates appropriate CA to defeat the virtual attack). 
+
+**Legal moves**
+
+* `GET /api/dialogue/legal-moves?at=moveId` → derive from YA/TA table (implicit): only moves allowed by protocol; each move returns `force: ATTACK|SURRENDER|NEUTRAL`. 
+
+---
+
+## 9) Migrations & backfill (safe rollout)
+
+* Script: convert all `ClaimEdge(type='supports')` → `Argument` with single premise; remove direct supports.
+* Write‑path shim for legacy clients: if they POST claim→claim support, we auto‑materialize an RA; log deprecation.
+* Feature flag: `"aif.authoring": true`.
+
+This is the “Phase 4” work in your preliminary plan; acceptances: *no* remaining direct support edges; exports show RA for every support. 
+
+---
+
+## 10) Performance & caching
+
+* DB indexes:
+
+  * `Argument(conclusionClaimId)`,
+  * `ArgumentPremise(argumentId)`,
+  * `ArgumentEdge(fromArgumentId)`, `(toArgumentId)`.
+* Lazy expansion: fetch `premises[]` for arguments *only* when expanded in UI; cache `(debateId, evalMode, τ)` variants.
+* One **batched** graph call per load; pop‑outs use small diffs. (This was called out as necessary when adopting fine‑grained nodes.) 
+
+---
+
+## 11) QA matrix (end‑to‑end scenarios we will automate)
+
+1. **Linked premises are one RA**: delete one premise → RA becomes incomplete; export shows single RA with two premise edges. 
+2. **CQ→undercut flow**: click “Is the expert biased?” → WHY + red CQ chip (open). Answer with credentials → attacker defeated; RA label flips to IN under grounded semantics. 
+3. **Rebut vs undercut visuals**: rebut arrow lands on the claim; undercut lands on warrant box. (Matches the diagram on page 23.) 
+4. **Dialogue legality**: WHY must be followed by GROUNDS (Argue); illegal replies blocked with a reason. 
+5. **Round‑trip interop**: export as JSON‑LD → import → same counts of I/RA/CA/L, schemes, CQs. Validator green. 
+
+---
+
+## 12) Developer checklists (copy/paste into issues)
+
+**A. Schema & invariants PR**
+
+* [ ] Add models/enums shown above; run migrations.
+* [ ] Implement `packages/aif-core` with validators + tests.
+* [ ] Add CI job `aif-validate-export`.
+* [ ] Deny I→I support in handlers (guard + helpful message). 
+
+**B. Authoring & attacks PR**
+
+* [ ] `POST /api/arguments` (transactional).
+* [ ] `POST /api/arguments/:id/attacks` (map to REBUTS/UNDERCUTS/UNDERMINES + scopes).
+* [ ] Update `/api/dialogue/move` to attach RA on GROUNDS (YA/TA implicit). 
+
+**C. Schemes + CQ engine PR**
+
+* [ ] Seed **Expert Opinion, Consequences±, Analogy, Causal, Classification, Practical Reasoning** with slot hints & CQ mappings. 
+* [ ] `/api/arguments/:id/cqs` and CQStatus transitions.
+* [ ] UI: “⚡ Challenge” menu → prewired WHY and *virtual CA*. 
+
+**D. Export/import PR**
+
+* [ ] JSON‑LD context; `GET /aif` & `POST /aif/import`; round‑trip tests. 
+
+**E. Evaluation PR**
+
+* [ ] `lib/eval/af.ts` (grounded + preferred) → labels on RAs; claim roll‑up. 
+
+**F. UX PR**
+
+* [ ] SchemeComposer, AttackMenu pills, ArgumentCard expand/warrant box, LegalMoves chips. (Non‑jargon copy; tooltips for “challenge the reasoning”.) 
+
+**G. Migration PR**
+
+* [ ] Backfill supports → RA; write‑path shim; feature flag; metrics for legacy hits. 
+
+---
+
+## 13) Concrete examples devs can test locally
+
+**1‑premise support becomes RA**
+
+* Create `C="Carbon pricing reduces emissions"`, `P1="Carbon price raises cost of CO2"`.
+* `POST /api/arguments {P1 ⇒ C}` → UI shows one argument card under C; export shows `I:P1 → S:RA → I:C`. 
+
+**Undercut vs Rebut**
+
+* Add counter `A_alt: “Elasticities make reductions negligible”` → **REBUT** `target=C`.
+* Add `A_exc: “Rebound effect undermines P1⇒C”` → **UNDERCUT** `target=RA`.
+* Map view shows different attachment points; AF marks RA OUT if undercut undefeated. 
+
+**CQ “bias?” auto‑wires to undercut**
+
+* Scheme: Expert Opinion on `C`.
+* Click **Challenge → “Is the expert unbiased?”** → open CQ; answering with credentials creates RA supporting the (implicit) expertise premise and defeats the undercut. 
+
+---
+
+## 14) “Why this matches AIF” (traceability for reviewers)
+
+* **I/RA/CA/L mapping** precisely follows the memo’s table (Claims ↔ I, Arguments ↔ RA, ArgumentEdge ↔ CA, DialogueMove ↔ L/YA/TA). 
+* **YA/TA without storing extra nodes** is recommended; we carry `illocution` + reply links. 
+* **Schemes + CQs** treated as forms + instance metadata; open CQs as *virtual attacks* until answered.
+* **JSON‑LD export** uses `@type: aif:InformationNode|aif:RA|aif:CA|aif:L` as shown in the memo, enabling round‑trip with AIFdb/OVA. 
+
+---
+
+## 15) Risks & mitigations
+
+* **User overwhelm** → progressive disclosure (collapsed cards; warrant box only on expand; pill labels say “challenge claim/reasoning/premise,” not RA/CA). 
+* **Interop drift** → CI validates JSON‑LD against the context; sample exports imported back to verify counts of I/RA/CA/L. 
+* **Perf** → *one* batched graph call, lazy interior loads, and indexes above. 
+
+---
+
+## 16) What you can expect when this lands
+
+* Internally, **every support step is an RA** with linked premises; **every counter is a typed CA** hitting the right locus; moves are **L** with YA/TA semantics. Users don’t see jargon—they see **“Add reason / Counter / Challenge the reasoning / Ask why”** with crisp visual cues. 
+
+---
+
+### Appendix — snippets you can paste today
+
+**Invariant guard (server)**
+
+```ts
+// lib/aif/guards.ts
+export function assertAifLegality(input: CreateArgumentPayload) {
+  if (!input.premiseClaimIds?.length) throw new Error("Argument needs ≥1 premise");
+  if (!input.conclusionClaimId) throw new Error("Argument needs a conclusion");
+}
+
+export function assertAttackLegality(a: AttackPayload) {
+  if (a.attackType === 'UNDERCUTS' && a.targetScope !== 'inference')
+    throw new Error("Undercut must target an inference (RA)");
+  if (a.attackType === 'REBUTS' && a.targetScope !== 'conclusion')
+    throw new Error("Rebuttal targets a conclusion claim");
+  if (a.attackType === 'UNDERMINES' && a.targetScope !== 'premise')
+    throw new Error("Undermine targets a premise claim");
+}
+```
+
+**Legal moves (YA/TA) sketch**
+
+```ts
+function legalReplies(last: DialogueMove): MoveKind[] {
+  if (last.illocution === 'Assert') return ['WHY','REBUT','CONCEDE'];
+  if (last.type === 'WHY') return ['GROUNDS']; // Argue
+  // … extend as needed
+}
+```
+
+
+
+**CQ → action mapping**
+
+```ts
+// chooseCQ('EO.bias') → prefilled undercut
+{ attackType: 'UNDERCUTS', targetScope: 'inference', cqKey: 'EO.bias' }
+```
+
+
+
+---
+
+If you want, I can immediately break this into **PR‑sized tickets** (Schema, Authoring/Attacks, Schemes/CQs, Export/Import, Evaluation, UX, Migration), each with the exact checklists above and starter diffs, so the team can start coding against it. The roadmap text file you attached already outlines the phase boundaries—this pass fills in the concrete shapes and tests to ship those phases confidently. 
+
+
+--
+
+
+Short answer: **yes—Macagno’s scheme‑first layer is additive and fully compatible** with the AIF native substrate we just designed. In fact, the AIF core (I/RA/CA/L + YA/TA) was chosen specifically so we can *annotate* RA steps with scheme metadata and *drive* typed attacks from critical‑question roles—exactly what Macagno–Walton emphasize. No structural conflicts; a few design choices (noted below) make the integration clean. 
+
+---
+
+## How Macagno’s insights sit on top of AIF (fit‑map)
+
+| Macagno–Walton idea                                                                      | AIF layer (ours)                                             | Agora object(s) (ours)                                          | Notes                                                                                     |
+| ---------------------------------------------------------------------------------------- | ------------------------------------------------------------ | --------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| **Teleology:** action vs state‑of‑affairs; internal vs external sources                  | RA nodes carry *scheme* annotations                          | `Argument.schemeId` → `ArgumentScheme` with `purpose`, `source` | Classification lives in the scheme catalog; RA stays generic.                             |
+| **Relation × reasoning type × rule form** (e.g., cause→effect realized as defeasible‑MP) | Same RA step; scheme metadata records these facets           | `ArgumentScheme.{materialRelation, reasoningType, ruleForm}`    | Keeps RA structural uniformity and captures variation in metadata.                        |
+| **CQs as typed attacks** (premise / exception / license / counter‑arg)                   | CA nodes (REBUTS / UNDERCUTS / UNDERMINES) + YA/TA anchoring | `ArgumentEdge.attackType/targetScope`, `CQStatus`               | License/exception → **undercut**; premise → **undermine**; counter‑arg → **rebut**.       |
+| **Practical‑reasoning cluster** (Goal→Means→Ought + ±Consequences + Preferences/Values)  | RA chains; optional PA (preference) nodes                    | `Argument` chains; (optional) `Preference`/`PA` later           | Our RA chaining already supports layered practical bundles; PA can be added when needed.  |
+| **Validators & weights** (CAS2 e/v/g style)                                              | RA instance metadata + evaluation layer                      | `ArgumentScheme.validators`, `lib/eval/af.ts`                   | We wire “license to apply” into CQ→undercut and plug weights into evaluation (optional).  |
+
+> Bottom line: Macagno’s scheme library becomes the “form layer” over RA; CQs drive CA; YA/TA handles dialogical legality. The storage and flows we specced anticipate this. 
+
+---
+
+## Any conflicts? What to watch for
+
+**Not structural, only choices:**
+
+1. **Where to encode scheme richness.**
+   We keep RA as the single inference container; *all* scheme taxonomy (purpose/source/relation/type/form) sits in `ArgumentScheme` and `SchemeVariant`. This preserves AIF invariants (no I→I supports; linked premises feed one RA) and keeps export clean. 
+
+2. **Deontic conclusions (“ought”).**
+   AIF is content‑agnostic; we carry `conclusionType` in the scheme metadata for UX and validation (e.g., “ought/should” for PR). No clash—just metadata. 
+
+3. **CQ role granularity.**
+   Macagno distinguishes **license** vs **exception**. Both become **undercuts** in AIF, but we’ll keep the role in `CriticalQuestion.role` so the UI and validators can phrase guidance precisely (e.g., “license to apply this scheme is missing”). 
+
+4. **Preference (PA) nodes.**
+   Optional. We can add a `Preference` model later for value trade‑offs; AIF allows PA S‑nodes—no conflict. Start with RA/CA and roll PA in for policy use‑cases. 
+
+---
+
+## Additive integration plan (on top of the AIF roadmap)
+
+> These items extend the schema/services/UX we already scoped for AIF. Think of them as **Phase 2.5 + 7.5** bolt‑ons. 
+
+### 1) Extend the scheme catalog (schema + seeds)
+
+**Schema additions (Prisma)**
+
+```prisma
+model ArgumentScheme {
+  id            String @id @default(cuid())
+  key           String @unique
+  name          String
+  description   String?
+  // Macagno taxonomy:
+  purpose       String   // 'action' | 'state_of_affairs'
+  source        String   // 'internal' | 'external'
+  materialRelation String // 'cause' | 'definition' | 'analogy' | 'authority' | ...
+  reasoningType String    // 'deductive' | 'inductive' | 'abductive' | 'practical'
+  ruleForm      String    // 'MP' | 'MT' | 'defeasible_MP' | ...
+  conclusionType String?  // 'ought' | 'is' | ...
+  slotHints     Json?     // UI slot descriptions
+  variants      SchemeVariant[]
+  cqs           CriticalQuestion[]
+  validators    Json?     // CAS2-style v/e metadata (optional)
+}
+
+model SchemeVariant {
+  id        String @id @default(cuid())
+  schemeId  String
+  key       String // e.g., 'pos_conseq' | 'neg_conseq'
+  name      String
+  notes     String?
+  scheme    ArgumentScheme @relation(fields:[schemeId], references:[id], onDelete: Cascade)
+}
+```
+
+**Seed** ~15 prototypes: Practical Reasoning, +/− Consequences, Expert Opinion, Analogy, Causal, Classification/Definition, Sign, Commitment/Knowledge, Value/Preference… with CQ role mappings → attack types. 
+
+### 2) CQ roles → typed CA (no new plumbing needed)
+
+We already persist `CriticalQuestion.attackType` and `targetScope`. Keep **role** (`premise|exception|license|counterArg`) for UI copy and burden‑of‑proof prompts, but operationally these map to the CA we already create:
+
+* `premise` → **UNDERMINES** (target a premise I‑node)
+* `exception`/`license` → **UNDERCUTS** (target the RA/warrant)
+* `counterArg` → **REBUTS** (target the conclusion I‑node) 
+
+### 3) Validators (Macagno’s “license to apply” & “exceptions”)
+
+* Add a `validateSchemeInstance(instance)` hook (pure function per scheme) that returns:
+  `{ ok, messages[], unmetLicenses[], potentialExceptions[] }`.
+* Surface as live chips in the **Scheme Composer** and open corresponding CQ entries (virtual undercuts) until addressed. This reuses the “virtual CA until answered” we planned. 
+
+### 4) Composition ribbon (layered arguments)
+
+* Keep each **SchemeInstance == one RA**; wire outputs→inputs by setting a downstream premise to the upstream conclusion’s claim id.
+* No new storage: it’s just a chain of `Argument` rows whose `premises[]` include earlier `conclusionClaimId`s.
+* Optional: a thin `SchemeComposition` view model to fetch/rename the chain for the UI; export still becomes ordinary AIF RA/CA. 
+
+### 5) Practical‑reasoning bundle preset
+
+* Template that spawns three RAs:
+  (1) **Practical Reasoning** (G, A, Means(A,G) ⇒ Ought(A));
+  (2) **Neg Consequences** (A ⇒ BadEffects);
+  (3) **Alternatives** (A′ better than A).
+* Auto‑wire the CQ roles: feasibility (license), side‑effects (exception), alternatives (counter‑arg). The bundle simply creates the same three **Arguments** and the CA links that Macagno prescribes. 
+
+### 6) Evaluation tweaks (optional)
+
+* Keep our AF evaluation (RA nodes, CA edges) and *optionally* allow per‑scheme weights or policies: e.g., *license unmet* → mark the RA **provisionally OUT** until answered; deductive schemes may resist defeat unless a premise is undermined. This plugs into `lib/eval/af.ts` as policies; doesn’t change storage. 
+
+### 7) Export/interop
+
+* Continue exporting RA as `aif:RA`. Add JSON‑LD properties for scheme taxonomy (custom namespace, e.g., `agora:purpose`, `agora:materialRelation`). Consumers that know the scheme ontology can read it; others ignore it. Lossless round‑trip remains intact. 
+
+---
+
+## UX additions (on top of the AIF UI)
+
+* **Scheme Library & Finder**: facets *Purpose* (Action/SoA) → *Source* (Internal/External) → *Family* (Cause/Analogy/Authority/…); cards show slots + 3–5 CQs with role badges. (This is just a filter/view over `ArgumentScheme`.) 
+* **Scheme Composer**: same composer we planned, but slot labels and live “license/exception” guidance are driven by the validators above.
+* **CQ panel (roles)**: badges show *Premise* / *License* / *Exception* / *Counter‑argument* and the mapped attack icon (rebut / undercut / undermine). Clicking creates the correct WHY + CA scaffold we already support. 
+* **Ribbon composition**: visually stack RA cards; edges label which slot is filled by which prior conclusion (no new backend). 
+
+---
+
+## Concrete diffs & contracts (delta on the AIF roadmap)
+
+* **Schema**: only `ArgumentScheme` gains the Macagno fields + `SchemeVariant`; others stay as in the AIF roadmap. 
+* **Endpoints**:
+
+  * `GET /api/schemes?purpose=action&family=authority` (new filters).
+  * `POST /api/arguments` already accepts `schemeId`; keep it.
+  * `GET /api/arguments/:id/cqs` already returns role + mapped attack (we keep role granularity). 
+* **Validation**: `POST /api/arguments` calls the scheme validator to populate open CQ chips (virtual undercuts) if licenses/exceptions unmet.
+* **Export**: unchanged AIF node/edge set; add JSON‑LD annotations for scheme taxonomy. 
+
+---
+
+## Example (worked)
+
+**Expert Opinion → Analogy**
+
+1. Create RA (scheme=`expert_opinion`): slots E, D, φ (+ validator opens *license* CQ if E∉D).
+2. Answer *license* CQ: add RA supporting “E is an expert in D” → defeats virtual undercut.
+3. Add Analogical RA using φ as a premise to new case φ′.
+   → In AIF: two RA nodes chained; a CA (undercut) was opened then defeated; all annotated with scheme metadata. 
+
+**Practical bundle**
+Create PR (Goal G, Action A); CQ *side‑effects* opens (*exception*→undercut). Add Neg‑Consequences RA ({A ⇒ BadEffects}) that links as an undercut to PR. Evaluation shows PR OUT until the harm is countered or outweighed. 
+
+---
+
+## Summary
+
+* **Compatibility:** Full—Macagno’s taxonomy and CQ roles *decorate* RA/CA; the AIF graph remains canonical and exportable. 
+* **Value add:** Better authoring (purpose‑first finder; slot forms), clearer burden‑of‑proof (license/exception), and ready‑made practical bundles—without changing any AIF invariants or endpoints we just designed. 
+
+If you like, I can draft the **initial scheme seed file** (JSON with purpose/source/relation/type/form, slots, CQ roles/mappings) and the **validator stubs** so the team can drop them directly into the Phase‑2 “Scheme library & CQ engine” work—no further backend refactor needed. 
+

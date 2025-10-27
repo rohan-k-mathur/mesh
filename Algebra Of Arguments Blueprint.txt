@@ -1,0 +1,198 @@
+Below is a concrete, *file‑aware* blueprint for handling the **algebra of arguments**—connectives, entailment trees, warrants, attacks/undercuts—and turning them into precise data structures and smooth UI/UX flows that let users *compose* complex “discourse objects” and *reason with them*. I anchor each piece to the research and to components you already have (or have planned), so it’s buildable without guessing.
+
+---
+
+## 0) One‑line architecture
+
+Treat **each deliberation as a small evidential closed category**:
+
+* **Objects = claims (propositions).**
+* **Morphisms A→B = sets of arguments** establishing “from A, infer B.” These hom‑sets form a **join‑semilattice** (accrue multiple reasons by ∨), composition chains reasons, and the **internal hom [A,B]** stands for the **warrant** you can *undercut*. This gives you algebraic operations for ∧, ∨, →, ¬, ∀, ∃ and a principled way to score confidence. 
+
+Your own planning already frames this as “**room as category**” (deliberation = category; DebateSheet = a view over it; Plexus = the category of rooms). Build on that. 
+
+---
+
+## 1) Data model (atoms → algebra → derived views)
+
+### 1.1 Core objects (storage)
+
+* **Claim** `{id, text, canonicalId?, tags[], quantifier?, modality?}`
+  Canonical IDs let different phrasings unify; quantifier/modality feed shape‑aware challenges. 
+
+* **ArgumentDiagram** (the *inside* of a reason)
+
+  ```
+  { id, atoms: [{id,type:'premise'|'claim'|'exception'}...],
+    inferences: [{id, from:[atomIds], to:atomId, connective:'∧'|'∨'|'→'|'¬'|'∀'|'∃', scheme?, cqKeys[] }] }
+  ```
+
+  This is the morphism’s internal geometry; inferences represent connectives/warrants you can later *undercut*. 
+
+* **ClaimEdge** `{fromClaimId, toClaimId, type:'supports'|'rebuts', attackType:'SUPPORTS'|'REBUTS'|'UNDERCUTS'|'UNDERMINES', targetScope:'premise'|'inference'|'conclusion'}`
+  *Supports/Rebuts* target nodes; *Undercuts* target the **inference** ([A,B]). You already expose this in your API and recompute AF labels on write. 
+
+* **Evidence** (citations / web annotations)
+  API endpoints exist; they should be first‑class in composer and DebateSheet. 
+
+* **DialogueMove** (ASSERT | WHY | GROUNDS | RETRACT | CONCEDE | CLOSE)
+  Moves synthesize **acts** (polarity + locus), support † (daimon) termination, and are already wired through the stepper.
+
+* **(Add)** `ArgumentSupport` and `AssumptionUse`
+  Two light helper tables: (i) materialize the membership of a morphism A→B as a set of argument IDs (fast joins for ∨/∘ and scoring), (ii) track *assumptions/free variables* used by an argument for principled belief revision. (Proposed in your category integration notes.)
+
+> The DB scaffolding is compatible with your Prisma layout and AF overlay. 
+
+### 1.2 Algebra (what the system can *do*)
+
+* **Accrual (∨)**: hom‑sets are **join‑semilattices**—add reasons by union; 0 is the empty set. (This is the “pile up GROUNDS to answer a WHY” operation.) 
+* **Composition (∘)**: chain arguments along intermediate claims to build **entailment trees**. 
+* **Conjunction (⊗ / ∧)**, **Disjunction (⊕ / ∨)**, **Implication (→)**, **Negation (¬)**, **Quantifiers (∀, ∃)**: use **dialogical particle rules** to gate legal challenges/defences per connective; this is exactly what your “legal moves” menu can surface. 
+* **Internal hom [A,B]** = the **warrant** “A ⇒ B”. Targeting `[A,B]` with an undercut implements “challenge warrant” in the UI. 
+* **Confidence measure**: a per‑room rule telling you how to score a morphism from constituent arguments:
+
+  * **min** (“weakest link” on a chain), **product** (independent reasons reinforce), or **Dempster–Shafer** (belief/plausibility). Make it a room preset with a small switch in the composer panel. 
+
+> You already expose UI hooks for confidence mode (knobs) and AF thresholds; keep that contract.
+
+### 1.3 Derived views
+
+* **AF overlays** (grounded/preferred/stable labels) on top of the micro‑arguments—existing in your Dialogical Panel. 
+* **Ludics‑style traces** (LociTree, TraceRibbon, † closability), already prototyped in *LudicsPanel*. These make stage/termination visible.
+
+---
+
+## 2) Composer UX: concrete affordances that match the algebra
+
+**A. Two‑level canvas.** Users work in a **DebateSheet** (debate‑level graph) and can **pop‑out** any node to see/edit its **ArgumentDiagram** (premises, inferences, connectives). This answers the “keep debate‑level arc readable without losing internal detail” problem.
+
+**B. Connectives palette** (operator‑aware drafting).
+When the user adds an inference, show a small palette:
+
+* **∧** Add another premise (⊗)
+* **∨** Present alternative branches (⊕)
+* **→** Insert warrant (internal hom)
+* **¬** Flip polarity
+* **∀ / ∃** Insert binder; prompt for challenge choices (instantiate vs choose)
+
+The “WHY…” buttons beneath should be **connective‑aware** (particle rules), e.g. `WHY (choose left)`, `WHY (instantiate with a)`—a direct mapping of dialogical rules to UI labels. 
+
+**C. Scope toggle** (*attack the node or the link*).
+A pill‑switch: **Challenge claim** (rebut) vs **Challenge warrant** (undercut the inference) vs **Challenge premise** (undermine). Wire it to `targetScope` and `attackType`. You already have the API shape; make it first‑class in the composer. 
+
+**D. CQ inspector** (scheme‑driven “WHY”).
+Surface the scheme’s **Critical Questions** as ready‑made WHYs; ticking them off binds GROUNDS to specific CQs and updates completeness. This exists in your `CriticalQuestions` component; keep the “satisfied” badge and quick‑attach flows to answer open CQs.
+
+**E. Legal‑move chips with **force**.
+Show move options as chips tagged **ATTACK / SURRENDER / NEUTRAL**; grey out *unlikely* attacks when loci are closed. This matches your planned `/legal-moves` enrichment.
+
+**F. Evidence panel (inline web‑annotation → citation).**
+Attach snippets/DOIs to premises or to the whole morphism. Use your `/citations` and `/evidence` endpoints and display provenance chips inline. 
+
+**G. Confidence & acceptance knobs.**
+Room‑level mode = `min|product|ds`, plus a threshold τ. You already render these and gate AF summaries; keep the same affordances in the DebateSheet side‑rail.
+
+**H. Back‑channel for structure negotiation.**
+A small “Suggest improvement” thread per node/warrant so people can negotiate the map without polluting the formal graph—**critical for adoption** (LiteMap/Kialo lesson).
+
+---
+
+## 3) Entailment trees & dialogue: how plays become proofs
+
+* **Seed an entailment check**: from any text, “Check entailment → seed dialogue.” The system P‑ASSERTs premises, adds an O‑WHY on the hypothesis, and steps until † (close) or STUCK, then offers to persist the Dialogue → Sheet. This is already in your roadmap; productize it in the UI.
+* **Dialogical particle/structural rules** enforce what moves appear and when (e.g., Last‑Duty‑First, repetition ranks, copy‑cat SR2). These rules provide *precise* legal‑move menus for each connective. 
+* **Ludics layer** (acts, loci, daimon). Your *LudicsPanel* shows step traces and †‑closability; keep it as an “advanced” tab for scholars and for audits.
+
+---
+
+## 4) Debate‑level & cross‑debate UX
+
+* **DebateSheet** (reader/editor): a curated, two‑level “debate document” with status badges (skeptical/credulous acceptance), unresolved CQs, and an outcome card. (This is your durable, citable unit.)
+
+* **TopicCanvas** (graph‑of‑sheets): curators connect many DebateSheets (support/rebut/refine/generalize), surface **representative viewpoints** and consensus points. (Knowledge fabric, not throwaway threads.)
+
+* **Plexus board**: network of rooms/sheets with meta‑edges (xref / overlap / imports / shared_author) and a **Transport** action to carry structures responsibly between debates. The UI hook (`openTransport`) is there.
+
+* **Knowledge Base pages**: let authors embed live/pinned *Claim*, *Argument*, *Sheet*, *Transport* blocks with provenance chips—so research briefs stay readable but traceable. 
+
+> This multi‑view approach (outline, two‑column, network) is the adoption pattern from argument‑tools research; pair it with back‑channels and web annotation.
+
+---
+
+## 5) Move legality & auditability (make the algebra feel safe)
+
+* **Pre‑insert validator**: block self‑replies, invalid shapes, attacks after surrender, duplicate replies, and “concede when you must accept argument” (R7). Your route sketches already show where to plug this. The UI should explain *why* a move is illegal.
+* **Legal‑move inspector**: for any locus, list legal moves, with the connective‑specific reason (e.g., “you played ∃; now choose a witness”). 
+* **Trace/audit**: show which preconditions fired and which commitment updates occurred; the *LudicsPanel* badges and decisive indices are the right pattern.
+
+---
+
+## 6) Minimal payloads (so frontends/backends align)
+
+**Create an undercut on a warrant** (attack `[A,B]`):
+
+```json
+POST /api/claims/{attackerId}/edges
+{
+  "toClaimId": "<B>",
+  "type": "rebuts",
+  "attackType": "UNDERCUTS",
+  "targetScope": "inference",
+  "targetInferenceId": "<diagram inference id>"
+}
+```
+
+Uses your existing route; add `targetInferenceId` to pinpoint the internal hom the user picked. 
+
+**Score settings (room ruleset)**
+
+```json
+PATCH /api/deliberations/{id}/ruleset
+{ "confidence": { "mode": "min" }, "accrual": { "join": "max" }, "tau": 0.6 }
+```
+
+Switches “weakest link” vs “independent reinforcement” vs DS; UI knobs already exist.  
+
+---
+
+## 7) Why this is the “best way”
+
+* It gives you a **real algebra** (∨, ∘, [A,B], ⊗/⊕/→/¬/∀/∃) with **public semantics**—no hidden beliefs—so scholarly users can audit what happened and why. 
+* It maps **exactly** to UI affordances users understand: “challenge claim vs **challenge warrant**,” “answer the **open CQ**,” “add another **premise (∧)**,” “**choose** a disjunct,” “**instantiate** a universal,” etc. 
+* It matches adoption research: multi‑view editing, back‑channels for structure negotiation, and **web annotation** for evidence.
+* It plugs into your existing panels/components (CriticalQuestions, Dialogical/AF overlays, Ludics traces), minimizing refactor risk while upgrading rigor.  
+
+---
+
+## 8) Acceptance checks (what “done” looks like)
+
+1. **Composer can undercut a warrant**: clicking “Challenge warrant” produces an *inference‑targeted* edge; the DebateSheet highlights the attacked link. (Backed by `targetScope:'inference'`.) 
+2. **Open CQs fall**: posting GROUNDS with a `cqKey` marks that CQ satisfied; the CQ inspector’s completeness rises.
+3. **Confidence modes matter**: switching `min ↔ product` changes acceptance badges for some conclusions, visible in AF overlays and Sheet summaries. 
+4. **Legal‑move chips are connective‑aware**: after `∧`, users see “attack left/right conjunct”; after `∃`, “choose witness,” etc., per dialogical rules. 
+5. **Trace to †**: in the advanced tab, users can replay the move‑by‑move interaction; † shows which loci are closable and why.
+
+---
+
+### Pinned references you’re building on
+
+* Ambler’s **evidential closed categories** → the algebra and scoring. 
+* Your **room‑as‑category** contract (Deliberation ↔ DebateSheet ↔ Room/Plexus). 
+* **Dialogical logic** cheat‑sheet → particle/structural rules → “legal moves” UX. 
+* **Ludics** UI (acts, loci, †) → trace & termination affordances.
+* **CQ** components and scheme plumbing → targeted WHY/GROUNDS.
+* **Edges API** with `attackType`/`targetScope` → rebut vs undercut vs undermine. 
+* **Adoption research**: multi‑view + back‑channels + web annotation.
+
+If you want, I can turn this into a one‑week “thin slice” plan (which screens, which routes, which tests) that adds *just* the warrant‑undercut workflow + CQ inspector and toggled confidence—enough for scholars to feel the algebra under their fingertips.
+
+
+Medical References:
+1. None — DOI: file-UyRT4SLCoUgr2ocNzm9VK1
+2. None — DOI: file-19YVtzWh8xKcYn2Td1QkeK
+3. None — DOI: file-83pFD59aMF6pyeEUpTsULt
+4. None — DOI: file-HoUro1RMeX9X5cMZtcvi9r
+5. None — DOI: file-QMSd1jWneVRb7A1t3Qg97B
+6. None — DOI: file-7QhPcwKso7eomM1g4ANEqZ
+7. None — DOI: file-5J44drFjfZ6P8XTdcTaMSF
+8. None — DOI: file-MwHtfvFEEVyezo3f4KuBtk

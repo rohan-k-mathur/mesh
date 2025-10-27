@@ -5,7 +5,6 @@ import React, { useState, useEffect } from "react";
 
 interface ClaimPickerProps {
   deliberationId: string;
-  authorId: string;
   open: boolean;
   onClose: () => void;
   onPick: (claim: SearchResult) => void;
@@ -25,7 +24,6 @@ interface SearchResult {
  */
 export function ClaimPicker({
   deliberationId,
-  authorId,
   open,
   onClose,
   onPick,
@@ -50,7 +48,7 @@ export function ClaimPicker({
     const timeout = setTimeout(async () => {
       try {
         const response = await fetch(
-          `/api/deliberations/${deliberationId}/claims/search?q=${encodeURIComponent(query)}`
+          `/api/claims/search?deliberationId=${deliberationId}&q=${encodeURIComponent(query)}`
         );
         if (!response.ok) throw new Error("Search failed");
         const data = await response.json();
@@ -80,17 +78,18 @@ export function ClaimPicker({
 
     setIsCreating(true);
     try {
-      const response = await fetch(`/api/deliberations/${deliberationId}/claims`, {
+      const response = await fetch("/api/claims", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           text: query.trim(),
-          authorId,
+          deliberationId,
         }),
       });
 
       if (!response.ok) throw new Error("Failed to create claim");
       const data = await response.json();
+      // API returns { claim, created }
       handleSelect(data.claim);
     } catch (err) {
       console.error("Create claim error:", err);

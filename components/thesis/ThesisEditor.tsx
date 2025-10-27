@@ -15,6 +15,7 @@ import {
   Save,
   Eye,
   Settings,
+  BookPlus,
   ChevronLeft,
   Sparkles,
   MessageSquare,
@@ -29,6 +30,7 @@ import { ArgumentNode } from "@/lib/tiptap/extensions/argument-node";
 import { CitationNode } from "@/lib/tiptap/extensions/citation-node";
 import { TheoryWorkNode } from "@/lib/tiptap/extensions/theorywork-node";
 import { ClaimPicker } from "@/components/claims/ClaimPicker";
+import { ArgumentPicker } from "@/components/arguments/ArgumentPicker";
 import {
   Dialog,
   DialogContent,
@@ -235,6 +237,9 @@ export default function ThesisEditor({ thesisId, deliberationId }: ThesisEditorP
   const handleInsertArgument = useCallback((argument: any) => {
     if (!editor) return;
     
+    // Use conclusion text as the primary argument text (following AIFArgumentsListPro pattern)
+    const argumentText = argument.aif?.conclusion?.text || argument.text || "";
+    
     editor
       .chain()
       .focus()
@@ -242,10 +247,15 @@ export default function ThesisEditor({ thesisId, deliberationId }: ThesisEditorP
         type: "argumentNode",
         attrs: {
           argumentId: argument.id,
-          text: argument.text,
-          scheme: argument.scheme?.name,
-          role: argument.role || "PREMISE",
-          authorName: argument.author?.username || argument.author?.name,
+          text: argumentText,
+          scheme: argument.aif?.scheme?.name || argument.aif?.scheme?.key,
+          role: "PREMISE", // Default role; could be enhanced later
+          authorName: null, // Could add author info to search results if needed
+          premises: argument.aif?.premises || null,
+          implicitWarrant: argument.aif?.implicitWarrant || null,
+          cq: argument.aif?.cq || null,
+          attacks: argument.aif?.attacks || null,
+          preferences: argument.aif?.preferences || null,
         },
       })
       .run();
@@ -288,7 +298,7 @@ export default function ThesisEditor({ thesisId, deliberationId }: ThesisEditorP
     <div className="min-h-screen bg-slate-50">
       {/* Top Bar */}
       <div className="sticky top-0 z-40 bg-white border-b border-slate-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+        <div className="max-w-8xl mx-auto px-12 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
               onClick={() => router.push(`/deliberations/${deliberationId}`)}
@@ -330,9 +340,9 @@ export default function ThesisEditor({ thesisId, deliberationId }: ThesisEditorP
             </button>
             <button
               onClick={handlePublish}
-              className="px-4 py-1.5 bg-gradient-to-r from-teal-600 to-cyan-600 text-white text-sm font-semibold rounded-lg hover:from-teal-700 hover:to-cyan-700 transition-all flex items-center gap-2"
+              className="btnv2 px-4 py-1.5 bg-gradient-to-r from-teal-600 to-cyan-600 text-white text-sm font-semibold rounded-lg hover:from-teal-700 hover:to-cyan-700 transition-all flex items-center gap-2"
             >
-              <Sparkles className="w-4 h-4" />
+              <BookPlus className="w-4 h-4" />
               Publish
             </button>
           </div>
@@ -458,37 +468,21 @@ export default function ThesisEditor({ thesisId, deliberationId }: ThesisEditorP
       </div>
 
       {/* Claim Picker Modal */}
-      {authorId && (
-        <ClaimPicker
-          deliberationId={deliberationId}
-          authorId={authorId}
-          open={showClaimPicker}
-          onClose={() => setShowClaimPicker(false)}
-          onPick={handleInsertClaim}
-          allowCreate={true}
-        />
-      )}
+      <ClaimPicker
+        deliberationId={deliberationId}
+        open={showClaimPicker}
+        onClose={() => setShowClaimPicker(false)}
+        onPick={handleInsertClaim}
+        allowCreate={true}
+      />
 
-      {/* Argument Picker Modal - TODO: Create ArgumentPicker component */}
-      {showArgumentPicker && (
-        <Dialog open onOpenChange={() => setShowArgumentPicker(false)}>
-          <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Select Argument to Insert</DialogTitle>
-            </DialogHeader>
-            <div className="p-8 text-center text-slate-600">
-              <Quote className="w-12 h-12 mx-auto mb-4 text-slate-400" />
-              <p>Argument picker coming soon...</p>
-              <button
-                onClick={() => setShowArgumentPicker(false)}
-                className="mt-4 px-4 py-2 bg-slate-200 rounded-lg hover:bg-slate-300"
-              >
-                Close
-              </button>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
+      {/* Argument Picker Modal */}
+      <ArgumentPicker
+        deliberationId={deliberationId}
+        open={showArgumentPicker}
+        onClose={() => setShowArgumentPicker(false)}
+        onPick={handleInsertArgument}
+      />
     </div>
   );
 }

@@ -1,0 +1,211 @@
+Treat each deliberation as a small evidential closed category (objects = claims, morphisms = sets of arguments), expose join (∨) and composition at the API, let room‑level “confidence measures” choose how strengths combine (min / product / DS), and let Plexus be the “category of rooms” with typed meta‑edges. Ambler’s axioms justify your UI affordances (undercuts on an inference, GROUNDS joins, default rules), and your labeling/selection widgets become derived views over these operations.
+
+Ambler’s “evidential closed category” gives you a clean, formal substrate for everything you’re building—from a single Toulmin box up through Plexus. Below I turn your synthesis into concrete architecture and code hooks you can drop into the stack today, plus a minimal semantics API that makes the categorical ideas operational.
+
+
+1) The “room as category” contract
+Objects: Claim (or canonicalized propositions). Morphisms: sets of arguments from A→B. In your DB that’s the set of Argument instances and/or ClaimEdge + the supporting ArgumentEdge chains that establish A ⇒ B.
+	•	Join (∨): aggregation of lines of support. In practice: union of argument IDs (no duplicates).
+	•	Zero morphism (0): empty set (no known arguments A→B yet).
+	•	Monoidal product (⊗): “use A and B together” — you already model this as premises inside ArgumentDiagram.inferences.
+	•	Internal hom [A,B]: the warrant “A ⇒ B” as a first‑class target. Your targetScope: 'inference' + attackType: 'UNDERCUTS' is the UI/API face of attacking a morphism of type [A,B].
+	•	Comonoid (Δ, t): duplication/weakening (reuse or ignore a premise) — justify the composer’s ability to reuse a cited premise across multiple links and to drop irrelevant premises without “logical error” flags.
+Ambler’s move is exactly your current practice: each hom‑set 𝒜(A,B) is a join‑semilattice (SLat‑enriched); composition distributes over joins; and “confidence measures” map morphisms to a commutative monoid for scoring. This is why your “pile up GROUNDS to answer a WHY” interaction is not just UX—it is the ∨ operator.
+
+2) Make it real: minimal semantics service
+Add a tiny service that materializes hom‑sets, join, composition, and scoring—then your existing panels can call it.
+API shape
+
+GET /api/deliberations/:id/evidential?mode=min|prod|ds&supportDefense=0|1
+→ {
+  objects: string[],                             // claim ids
+  hom: { [pair: "A|B"]: { args: string[] } },    // argument ids for A→B
+  score: { [pair: "A|B"]: number },              // confidence c(f)
+  support: { [claimId: string]: number }         // S(φ) = sup c(I→φ)
+}
+Server sketch (TypeScript)
+
+type Mono = 'min'|'prod'|'ds';
+function combineChain(xs: number[], mode: Mono) {
+  if (!xs.length) return 0;
+  if (mode === 'min')  return Math.min(...xs);          // weakest link
+  if (mode === 'prod') return xs.reduce((a,b)=>a*b, 1); // independent supports
+  // 'ds' placeholder: fold via Dempster’s rule or map to belief mass first.
+  return xs.reduce((a,b)=>a*b, 1);
+}
+
+function joinScores(fs: number[], mode: Mono) {
+  // different choices are defensible; Ambler shows “accrual inside hom-sets”:
+  // use bounded sum or noisy-or if you want reinforcement; start simple:
+  return Math.max(...fs, 0);
+}
+Implementation note: Start with min and prod; plug a DS variant next (map each argument to a basic belief assignment over {φ, ¬φ, ⊤}, then combine with Dempster’s rule; your UI can surface “belief/plausibility”). Ambler’s Sec. “confidence measures” gives you the algebraic guardrails.
+
+3) Data model touches (small and additive)
+You already added the three Plexus meta‑edge tables. To support categorical ops and belief revision, add two light helpers:
+
+model ArgumentSupport {
+  id             String  @id @default(cuid())
+  deliberationId String
+  fromClaimId    String
+  toClaimId      String
+  argumentId     String   // concrete argument contributing to A→B
+  weight         Float?   // optional per-argument confidence in [0,1]
+  createdAt      DateTime @default(now())
+  @@index([deliberationId, fromClaimId, toClaimId])
+  @@unique([fromClaimId, toClaimId, argumentId])
+}
+
+model AssumptionUse { // for belief revision and “culprit sets”
+  id             String  @id @default(cuid())
+  argumentId     String
+  assumptionId   String   // claimId used as an open assumption in this argument
+  role           String?  // 'default','exception','background'
+  createdAt      DateTime @default(now())
+  @@index([argumentId])
+  @@index([assumptionId])
+}
+	•	ArgumentSupport materializes the membership of a morphism (hom‑set) as rows you can join fast.
+	•	AssumptionUse lets you surface the “free variables”/culprit assumptions Ambler talks about for belief revision (which premise deletions discharge a bad conclusion). 
+
+4) Make undercuts first‑class (internal hom in the UI)
+You already have targetScope: 'inference' and attackType:'UNDERCUTS'. Two quick refinements:
+	•	Diagram → Morphism binding: store an inferenceId on an undercut edge so an attack points to a specific [A,B] instance.
+	•	Composer hinting: when a user picks Challenge warrant, prefill a chip “attack [A⇒B]” and route to createClaimAttack({ type:'undercut', scope:'inference' }).
+This is exactly Ambler’s “attack the arrow, not just the nodes”—it operationalizes [A,B] as a first‑class thing your UX can poke.
+
+5) Scores = confidence measures (room‑level ruleset)
+Expose a per‑room setting:
+
+// deliberation.rulesetJson
+{
+  "confidence": { "mode": "min" | "prod" | "ds" },
+  "accrual":    { "join": "max" | "noisy-or" | "bounded-sum" }
+}
+	•	Weakest‑link: skeptically cautious dialogs (policy, safety).
+	•	Product: independent evidences reinforce (empirical, many studies).
+	•	DS: when evidence has mass on ignorance, show belief/plausibility intervals.
+These are exactly the monoids Ambler uses to interpret arrows’ strength in the enriched setting.
+
+6) Belief revision: “culprit set” flow
+	•	When a claim φ gets labeled OUT (or a moderator flags it), call /evidential to fetch the strongest A→φ arrows; for each argument pick its AssumptionUse set; surface “culprit sets” sorted by (a) how many bad consequences they explain, (b) minimal retraction cost.
+	•	Provide one‑click RETRACT assumption → posts a RETRACT move and recomputes labels.
+Ambler’s notion that closed λ‑terms are indefeasible proofs (max confidence) while open terms inherit uncertainty gives you the rule: only rows with assumptions are retractable; logical maps stay maxed.
+
+
+7) Plexus = “category of rooms” (and how your new edges fit)
+Keep what you shipped but name the kinds and add a legend toggle:
+
+type EdgeKind = 'xref'|'overlap'|'stack_ref'|'imports'|'shared_author';
+const COLORS: Record<EdgeKind,string> = {
+  xref:'#6366f1', overlap:'#ef4444', stack_ref:'#f59e0b', imports:'#14b8a6', shared_author:'#64748b'
+};
+
+const [show, setShow] = React.useState<Record<EdgeKind,boolean>>(
+  { xref:true, overlap:true, stack_ref:true, imports:true, shared_author:false }
+);
+
+{/* legend */}
+<div className="flex gap-3 text-[11px]">
+  {(['xref','overlap','stack_ref','imports','shared_author'] as EdgeKind[]).map(k=>(
+    <label key={k} className="inline-flex items-center gap-1">
+      <input type="checkbox" checked={show[k]} onChange={e=>setShow(s=>({ ...s, [k]:e.target.checked }))}/>
+      <span className="inline-block w-2 h-2 rounded" style={{background:COLORS[k]}} />
+      {k.replace('_',' ')}
+    </label>
+  ))}
+</div>
+
+{/* filter before drawing */}
+const edges = data.edges.filter(e => show[e.kind as EdgeKind]);
+Interpretation: each room is a small evidential category; a Plexus edge is a typed relationship between rooms (cross‑refs, shared authorship, imports, stack‑based ties). If you later want true functors between rooms (mapping objects/claims across rooms), add an optional roomFunctor table that records how “object IDs” translate; then a click in Plexus can transport an argument pattern from room A to B.
+
+9) UI upgrades that pay off immediately
+	•	DebateSheetReader: Show a thin “support bar” under each node = support[claimId]. Click toggles to list the contributing arguments (the members of the hom‑set I→φ).
+	•	DiagramView: For each inference, surface an Undercut pill; clicking opens a composer that posts a move:{kind:'WHY', targetScope:'inference'} pre‑tagged to that inference.
+	•	HUD (CommandCard): Add a rule selector that writes the room’s rulesetJson.confidence.mode and re‑queries /evidential.
+
+10) Why this is safe and extensible
+Ambler’s account (i) explains your “GROUNDS join” and default rules as SLat‑enrichment and comonoids, (ii) justifies undercutting an inference via internal hom, and (iii) gives you principled scoring plug‑ins (min/product/DS) instead of ad‑hoc weights. It also cleanly separates proofs (closed, max confidence logical maps) from arguments (open, defeasible) so belief revision has a clear target set. All of that is exactly the structure you need to keep Plexus coherent as it grows.
+
+A crisp “ship it” checklist
+	0.	Add /api/deliberations/:id/evidential with join/compose + scoring.
+	0.	Materialize ArgumentSupport; backfill from ClaimEdge/ArgumentEdge.
+	0.	Add AssumptionUse on argument save; populate via composer when users tag assumptions.
+	0.	Thread rulesetJson.confidence.mode through DeepDivePanel → API.
+	0.	Wire undercut attacks to a specific inferenceId.
+	0.	Upgrade Plexus with legend/toggles (edge kinds you already return).
+	0.	In DebateSheetReader, render support bars and the list of contributing arguments (hom(I,φ)).
+If you want, I can package #1–#3 into a single PR‑sized set of routes/types that slot straight into your existing /graph and /dialectic flows.
+
+
+—Arguments as arrows, not (single) proofs.
+ In Ambler’s semantics, objects are propositions and arrows are sets of proofs (finite sets of λ‑terms). That change lets the hom‑sets ⟨A,B⟩ carry an algebra for accruing evidence (join).
+
+SLat‑enrichment (“accrual inside the semantics”).
+ Each hom(A,B) is a join semilattice with a neutral 0 (empty set) and a commutative, associative ∨ (union) so you can say “f ∨ g” is a new argument that contains both lines of reasoning. Composition distributes over joins.
+
+Conjunction and implication stay categorical.
+ Conjunction is a symmetric monoidal tensor ⊗ (with comonoid structure per object for copy/discard), and implication is the right adjoint [X,–] to (–)⊗X (i.e., an internal hom). This yields an evidential closed category (ECC): the CCC laws you want, but enriched over joins.
+
+Logical maps vs. defeasible arguments.
+ “Logical maps” are arrows built only from structural/identity morphisms—i.e., closed proofs—so they always have max confidence; ordinary arrows can carry free assumptions (uncertainty). Clear separation of strict vs defeasible support.
+
+Confidence measures live on arrows.
+
+A confidence measure is a morphism from the hom‑sets into a commutative monoid with composition ↦ monoid multiplication, join ↦ monoid addition (in the abstract sense). It captures “weakest link”, independent reinforcement, etc.
+
+Evidence theories plug in.
+
+Ambler shows compatibility with Dempster‑Shafer—you can treat confidence as “probability of provability” over argument sets and combine masses along composition and join.
+
+Key payoff: accrual, combination, and strict/defeasible distinctions are not ad‑hoc rules—they’re laws the arrows already satisfy. This is exactly the layer you need between DebateSheets and AF/Dung acceptance.
+
+
+
+How to embed Ambler in Mesh/Plexus (practical mapping)
+Think of three layers:
+L0 (Graphical): what you already ship—claims, arguments, edges (supports/rebuts/undercuts), CQs, default‑rule template ⟨α,¬β⟩⇒γ.
+L1 (ECC runtime): a lightweight arrow algebra you run in memory (and optionally persist).
+L2 (Measures): pluggable confidence maps used by DebateSheets, AF acceptance, and Plexus weighting.
+B1. Arrow representation (software primitive)
+Treat each argument node as an arrow
+A
+→
+B
+A→B
+A→B whose value is a finite set of derivations (your “lines of reasoning”).
+
+B2. What is a “derivation” in your stack?
+Back it by what you already store:
+Define a generic interface over arrows that only depends on the derivations and their assumptions:
+
+
+Three useful presets (all lawful for ECC):
+	•	Weakest‑link (cautious):
+	•	derivation = min(weights of assumptions, defaults to 1 if none)
+	•	join = max (best line of reasoning)
+	•	compose = min
+	•	Probabilistic independence (optimistic):
+	•	assign each assumption a failure‑prob q = 1 − w  q=1-w  q=1−w
+	•	derivation = Π w_i (independent success)
+	•	join = 1 - Π(1 - x_i) (noisy‑OR across lines)
+	•	compose = x * y
+	•	Dempster‑Shafer‑lite:
+	•	treat each derivation as a mass on its conclusion; composition multiplies masses, join uses normalized orthogonal sum (pragmatically: m = (x + y - xy)/(1 - K) with a conflict K you estimate from contradicting derivations).
+Wire the choice into DebateSheet ruleset (sheet.rulesetJson.confidence = 'weakest'|'product'|'ds') and expose it in your “Rule” selector next to Utilitarian/Harmonic/MaxCov.
+B4. Where this touches AF/Dung
+	•	In /api/deliberations/[id]/graph you already support lenses and (optionally) support‑as‑defense. Add an optional weighting pass that computes the arrow confidence for every supports edge feeding a claim and converts total incoming support to a prior for the node; then you can:
+	•	use a thresholded prior to hide trivially weak arrows,
+	•	or weight your preferred/grounded tie‑breaking when multiple admissible labels exist.
+	•	Accrual (∨) across multiple supports→claim edges is exactly the join over arrows with same codomain. This is what your DebateSheet “accepted share ring” and DiagramView “premise chips” can now visualize.
+
+
+D) Belief revision, defaults, and CQs (how it plugs into your flows)
+	•	A derivation’s assumption set is your “culprit set”. If a conclusion is later rejected (label OUT) or a WHY expires without GROUNDS, you can:
+	0.	list culprit sets ranked by confidence contribution,
+	0.	suggest minimal deletions (assumptions to retract) that kill the unwanted path,
+	0.	emit an EnthymemeNudge (“+Warrant” or “Presupposition?”) for the specific assumption.
+	•	Your default rule scaffold SUPPOSE α · UNLESS ¬β · THEREFORE γ can be encoded as a derivation with an assumption of kind default‑exception on ¬β. If ¬β gets instantiated (a user fills the exception), all derivations referencing that assumption drop (belief revision by local deletion).
+	•	Unresolved CQs are assumption atoms of kind cq‑open; when resolved, you re‑score the derivation (confidence rises) and your acceptance rings update automatically.
+

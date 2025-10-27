@@ -1,13 +1,13 @@
 // app/api/thesis/[id]/publish/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prismaclient";
-import { getCurrentUserId } from "@/lib/serverutils";
+import { getCurrentUserAuthId } from "@/lib/serverutils";
 
 const NO_STORE = { headers: { "Cache-Control": "no-store" } } as const;
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const authorId = await getCurrentUserId();
+    const authorId = await getCurrentUserAuthId();
     if (!authorId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401, ...NO_STORE });
     }
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       return NextResponse.json({ error: "Thesis not found" }, { status: 404, ...NO_STORE });
     }
 
-    if (thesis.authorId !== String(authorId)) {
+    if (thesis.authorId !== authorId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403, ...NO_STORE });
     }
 
@@ -37,20 +37,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       return NextResponse.json({ error: "Already published" }, { status: 400, ...NO_STORE });
     }
 
-    // Validate thesis is ready to publish
-    if (!thesis.thesisClaimId) {
-      return NextResponse.json(
-        { error: "Thesis must have a main claim before publishing" },
-        { status: 400, ...NO_STORE }
-      );
-    }
-
-    if (thesis.prongs.length === 0) {
-      return NextResponse.json(
-        { error: "Thesis must have at least one prong before publishing" },
-        { status: 400, ...NO_STORE }
-      );
-    }
+    // Note: In the new document-based model, thesisClaimId and prongs are optional.
+    // The thesis content is stored in the `content` field (TipTap JSON).
+    // We could add validation here to check if content exists if needed.
 
     // Update status to PUBLISHED
     const updated = await prisma.thesis.update({

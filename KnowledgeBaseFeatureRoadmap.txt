@@ -1,0 +1,2526 @@
+Absolutely—here’s a reasoned, end‑to‑end concept for the Knowledge Base (KB) feature, tailored to what Agora already does well, and designed to scale without turning into a hairball. It’s written as a plain‑text blueprint you can hand to PMs/Design/Eng for planning and later spec’ing.
+
+0) Vision & design principles
+Goal. Give users a “wiki‑style” space that can mix ordinary content (text, images, links) with live, structured artifacts from Agora (claims, arguments, diagrams, sheets, evidential summaries, transport maps). Authors write narrative pages; the system keeps pages current, citable, and provenance‑safe.
+Principles
+* Narrative over graphs. People comprehend stories; graphs support, they don’t lead.
+* Live but citable. Transclusions default “live” (auto‑update), but can be pinned to a snapshot for reproducibility and auditing.
+* Provenance first. Every fact/blurb can point to claims/arguments/evidence; readers can drill down to sources and see confidence.
+* Composable lenses. The same data can be rendered as a short factbox, a full argument panel, or a room summary—without duplication.
+* Gradual structure. Authors can start with plain text and layer structure (claims, terms, citations) over time.
+* No dead ends. Every embedded artifact offers “open in context”: Room, Sheet, Diagram, or Transport.
+
+1) Primary use cases
+1. Topic pages (“What we know about X”) Blend text with a live claim bundle (φ, ψ, α…), the top supporting arguments, DS Bel/Pl, and links to active debates.
+2. Policy briefs / synthesis reports A curated narrative that imports the strongest lines from multiple rooms via Room Functor. Locally add undercuts and assumptions.
+3. Method & glossary Stable pages for canonical terms, schemes, and playbooks that can annotate live debates and validate their usage.
+4. Evidence dossiers Pages centered on an artifact (dataset, paper, video). Include claim annotations, reliability scores, and where the item was used.
+5. Decision logs A page per decision with the accepted claims, rationale diagrams, unresolved CQs, and links back to the debates.
+
+2) Concept model (no code—just the shape)
+* KB Space A container (org/team/private) with roles (owner, editor, commenter, reader), defaults, and governance rules.
+* KB Page Markdown/blocks + front‑matter (title, tags, summary, visibility, default lens). Pages are versioned.
+* Blocks (transclusions)
+    * Text, heading, image, link, file
+    * Claim block (single claim, with live Bel/Pl + source room)
+    * Claim set (bundle with filters: tag, canonical ID, room, functor map)
+    * Argument block (diagram view + inferences + undercut actions)
+    * Sheet block (mini sheet reader for a specific debate)
+    * Room summary block (evidential cards for top claims)
+    * Transport block (A→B mapping summary + import proposals)
+    * Evidence list (citations with reliability)
+    * CQ tracker (unresolved questions table)
+    * Plexus tile (board card or tiny matrix cell for a room/cohort)
+* Citations & provenance Any typed block can carry a “citations[]” list (links to claims/evidence/import lineage), with copyable citation strings.
+* Snapshots Any block can be pinned (snapshot key or timestamp). Page snapshots freeze all pinned blocks for “as‑of” publishing.
+* Canonical concepts Optional “Concept” records (topics/terms) link to canonical claims (via moid/claim family) and to pages that cover them.
+
+3) Authoring & reading experience
+Authoring
+* WYSIWYG/Lite‑MD with a palette for blocks.
+* Quick inserts via “/claim”, “/argument”, “/sheet”, “/transport”.
+* Inline claim linking by typing “[[" then search (auto‑convert to a Claim block or a link).
+* Toggle a block between Live and Pinned (as‑of).
+* Block Lens menu (Compact / Card / Full) to fit the narrative density.
+Reading
+* Clean typography and scannable layout.
+* Each structured block shows subtle, consistent metadata: provenance badge, confidence bar(s), last updated, “open in context”.
+* Side rail: page outline, citations, and related rooms.
+* “Where used?” back‑references: see other pages that embed this claim/argument.
+Navigation
+* Space home: “Board” of pages (cards) + filters by tag/last update.
+* Global search: normal text + structured objects (claims, arguments, rooms) with facet filters.
+* Page header actions: View snapshot, Compare with current, Export PDF/Markdown.
+
+4) Live vs Pinned transclusion model
+* Live (default): renders the current artifact state. Good for living wikis.
+* Pinned: page stores a (kind, id, atVersion|atTime) reference. Guarantees reproducibility; readers can toggle “view latest” vs “as pinned”.
+* Diff: any block can show a compact “then vs now”.
+Rules of thumb
+* Topic pages: mostly Live + callouts pinned for “key assertions as of YYYY‑MM”.
+* Policy briefs / publishables: mostly Pinned (with prominent “data is current as of …”).
+
+5) Structured linking & composition
+* Claim families / canonical claims A “canonical” handle groups paraphrases across rooms; pages target the canonical claim, but render room‑specific variants. Room Functor maps aid cross‑room embedding (“this φ in A corresponds to φ′ in B”).
+* Lens presets (author’s choice per block)
+    * Claim: “Statement only” / “Statement + Bel/Pl” / “Statement + Top 3 arguments”
+    * Argument: “Diagram only” / “Diagram + text explanations” / “Compact bullets”
+    * Room summary: “Top claims” / “By tag” / “By acceptance thresholds”
+    * Sheet: “Node list” / “Node+edges list” / “Mini map”
+    * Transport: “Map only” / “Map + import proposals”
+* Context parameters Blocks can carry evaluation parameters (mode = min/product/ds, τ threshold). They default to page/space settings.
+
+6) Permissions, moderation, and review
+* Roles per Space; optional per‑Page overrides.
+* Review states: Draft → In review → Published.
+* Protect sections: make individual blocks read‑only (e.g., “Method”), while the rest stays editable.
+* Commenting: inline comments and “suggest mode” for text; structured feedback for blocks (e.g., “Bel too high? propose undercut”).
+* Moderation queue: new/edited pages or contentious changes go through light review, with provenance kept.
+
+7) Search & discovery
+* Dual search: full‑text (pages) + entity search (claims, arguments, rooms).
+* Facets: tags, last update, acceptance tier, room cohort.
+* “Used by” graph: see which pages reuse the same claim/argument.
+* Recommendations: pages to update when an embedded artifact changes materially (Bel shift, new undercuts, etc.).
+
+8) Integrations & special blocks
+* Plexus:
+    * Board: inline card of a room; click opens Neighborhood panel.
+    * Matrix: mini heatmap for a tag cohort (e.g., imports between “Mobility” rooms).
+* Transport:
+    * Page can show a live A→B functor map with a “Proposals” list; optional inline Apply (if author has rights).
+* DebateSheet:
+    * Mini reader for curated sheets with acceptance labels, unresolved CQs, and expand-to-popout.
+* Evidence:
+    * Reference lists for sources; link to Stack items; show reliability and usage count.
+    * Snapshotted citations with canonical URIs (DOI/URL fingerprints).
+
+9) Quality & provenance safeguards
+* Every structured block displays a provenance chip (room/sheet/diagram id); clicking reveals: who created, when, last change, import lineage.
+* Bel/Pl displayed with clear caveats, mode (min/product/ds) visible.
+* “Why this value?” expands parts: base, premises, assumptions, imported contributions.
+* Flag drift: alert pages when pinned vs live diverge beyond a threshold.
+
+10) Implementation roadmap (phased, no dates)
+Phase A — MVP (publishable, useful immediately)
+* KB Space & Page CRUD with roles.
+* Editor with blocks: text, image, link, Claim, Argument (diagram), Room summary, Sheet.
+* Live vs Pinned per block; page Snapshot; export as‑of PDF/MD.
+* Basic search; space home with page cards & filters.
+* Provenance badges; “open in context” actions.
+Phase B — Transport & Claims at scale
+* Transport block (map + proposals); inline “open transport” and optional apply.
+* Canonical Claim support + family mapping; claim set block with filters; “Where used?” back‑refs.
+* DS plausibility (Bel ≤ Pl) with mapped ¬φ conflict; Page default evaluation (mode, τ) with overrides.
+Phase C — Workflow & moderation
+* Draft/Review/Publish; suggest mode for text; comments on blocks; visibility controls per block.
+* Update notifications to page owners when embedded artifacts change materially.
+Phase D — Discovery & analytics
+* Dual search (page + entities) with facets; “pages to update” recommendations; “used-by” graphs.
+* Quality signals: coverage of top claims, unresolved CQs present, number of sources cited.
+Phase E — Advanced views & exports
+* Additional lenses (compact/expanded variants), print‑ready layouts, per‑section export, full report composition by assembling pages.
+* Optional Graph/Matrix tiles for cohorts; concept glossary pages.
+
+11) Operational & technical notes (at-a-glance)
+* Storage model Pages store blocks as structured JSON with references to Agora IDs; snapshots store a pinned version map (kind, id, version/timestamp).
+* Rendering Server returns rich, normalized payloads for embedded artifacts; clients render via shared “transclusion” components.
+* Cache & performance Per-block caching keyed by (artifact id, mode, τ); page‑level revalidation on dependent artifact change.
+* Security Enforce RBAC at space and page levels; artifact transclusions honor source visibility (private rooms don’t leak).
+* Audit Page and block edit history; snapshot manifest includes hashes of transcluded payloads for verification.
+
+12) Success criteria
+* Authors can build a high‑signal topic page in minutes by transcluding live claims/arguments rather than copy/paste.
+* Readers understand what is asserted, how well‑supported it is (Bel/Pl), and where it comes from (one click).
+* Updates in debates propagate to pages without chaos: owners see diffs and decide when to pin or accept updates.
+* Transport enables true reuse: the same reasoning line appears once in source rooms, many times in wikis—with provenance intact.
+
+If you’re happy with this direction, the next step is to translate Phase A into a concrete spec (endpoint shapes, block JSON shape, editor events, and UI contracts for each block), then split tasks by component/API.
+
+—
+
+Short answer: don’t bring in a full wiki platform (e.g., Wiki.js / Outline) as your base. The fit is poor for live transclusions, evidential semantics, transport workflows, and provenance you’ve already built. Instead, build a thin, Agora-native “KB Core” and lean on open-source building blocks where they shine (editor, collaboration, search, citations). That gives you Notion-like comfort with first-class support for claims/arguments/rooms—without fighting a foreign architecture.
+Below is a crisp recommendation + a decision matrix.
+
+What you actually need vs what wiki engines provide
+You need
+* Live/pinned transclusions of Agora artifacts (claims, arguments/diagrams, sheets, transport maps, Bel/Pl bars, τ gating).
+* Per-block evaluation context (mode=min|product|ds, τ).
+* Provenance and “open in context” back into debates.
+* Transport UX (room functor) integrated into pages.
+* Snapshotting for publishable as-of states.
+* Gradual structure: pages can start as text, then layer claims/blocks.
+Wiki engines give
+* Auth, RBAC, search, Markdown/WYSIWYG, page trees.
+* But: no concept of structured, live blocks backed by your scoring semantics; no native functor/imports; would require deep forking or brittle embed hacks.
+Bottom line: a turnkey wiki is faster to turn on, but slower to make right for your core value. You’d end up fighting it.
+
+Recommended approach: build in-house “KB Core” + open-source building blocks
+Keep in-house
+* Block system & transclusion runtime (because your blocks are Agora-specific).
+* Snapshot logic (live vs pinned, page snapshot manifests).
+* Provenance UI (badges, lineage, “open in context”).
+* Transport/Room Functor UX blocks.
+Pull from OSS (à la carte)
+* Editor (one of):
+    * Lexical (MIT, fast, modern, plugin-able) — great for custom nodes (ClaimBlock, ArgumentBlock).
+    * Plate (Slate) (MIT) — simpler mental model; very hackable.
+    * Tiptap (ProseMirror) (core MIT; ecosystem is mature; some pro plugins are commercial)—also viable if your team is comfortable with PM.
+* Collaboration (Phase C): Yjs (+ lexical-yjs / slate-yjs / tiptap-yjs) for realtime multi-user editing, cursors, offline merges.
+* Search: Meilisearch or Typesense (fast, easy ops) for page text + entity (claims/arguments/rooms) indices; Elastic if you already run it.
+* Markdown import/export: remark/rehype pipeline; MDX for static rendering if you want a doc-build path.
+* Citations: citeproc-js (CSL rendering); DOI resolution via Crossref; keep CSL JSON in blocks’ metadata.
+* Media: your current S3 flow (or UploadThing) for images/files.
+* RBAC: keep your existing roles; libraries like casl are optional if you want granular policies in code.
+
+Decision matrix (time-to-value vs future fit)
+Option	Time to MVP	Fits live transclusions	Fits Bel/Pl & τ	Transport UX	Long-term maintenance
+Fork Wiki.js	Fast to “have a wiki”, slow to integrate	❌ (hard)	❌ (custom plugin deep)	❌ (bolt-on)	High (fighting core assumptions)
+Adopt Outline	Good DX, nice UI, still a fork	⚠️ (custom nodes)	⚠️	⚠️	Medium-high
+KB Core + OSS editor (Lexical/Plate)	2–4 weeks Phase A	✅ (custom nodes straightforward)	✅ (props on blocks)	✅ (block & page-level flows)	Low (you own the domain logic)
+Recommendation: KB Core + Lexical (or Plate), Yjs in Phase C, Meilisearch for search, remark/rehype for MD import/export, citeproc-js for bibliography. Everything else stays your stack (Next/SWR/Prisma).
+
+Why not MDX-only?
+MDX is great for dev-authored docs, but you want non-engineers authoring structured pages. Use block editor → render as React components (and optionally export an MDX build for static mirrors). That keeps authoring approachable.
+
+Practical starter kit (Phase A target)
+* Editor: Lexical with custom nodes:
+    * <ClaimBlock claimId mode τ pinnedAt lens />
+    * <ArgumentBlock argumentId view='diagram|compact' pinnedAt />
+    * <SheetBlock deliberationId lens pinnedAt />
+    * <RoomSummaryBlock roomId filters={...} mode τ />
+    * <TransportBlock from to show='map|proposals' />
+* Renderer: Each node resolves via your existing APIs (evidential/graph/sheets/functor).
+* Snapshots: Page snapshot = list of block pin refs ({type,id,asOf}) + a manifest hash; page UI toggle “as pinned / live”.
+* Search: Index page text + a derived field of embedded claim texts; facet by tags.
+* Governance: Draft/Publish; read roles from your current auth; RBAC at space/page; optional protected blocks.
+
+When to consider a full wiki later?
+If you need “team knowledge” features beyond Agora’s domain—spaces, comments, tasks, integrations like Slack notifications—Outline is the closest fit. You could embed Agora blocks via a slash command and a custom node extension. Still, that’s a future path if KB proves you need broader KM—and not a blocker now.
+
+TL;DR
+* Build the KB in-house to keep transclusions, evidential semantics, and transport native and first-class.
+* Leverage OSS where it saves time (editor, CRDT, search, citations).
+* You’ll ship faster to a Phase-A page experience that actually expresses what makes Agora special—and you won’t pay a long tail of “fighting a generic wiki” later.
+
+Fantastic—let’s turn Phase A of the Knowledge Base into a concrete, “ready‑to‑build” spec. No code; everything here is the contract, shapes, and responsibilities so Design/Eng can split and implement.
+
+1) Scope & success for Phase A
+Scope (Phase A / MVP)
+* Spaces (org/team/private) and Pages with roles.
+* Block editor with a minimal but high‑value block set:
+    * Text / Image / Link.
+    * Claim, Argument (diagram), Room Summary, Sheet blocks.
+* Live vs Pinned per block; Page Snapshot (“as‑of” view) and export (PDF/MD).
+* Provenance badges on structured blocks; Open in context actions.
+* Basic Space home (grid of pages) + search (page titles, text, tags).
+Success criteria
+* Authors can assemble a narrative page mixing text + structured blocks in minutes.
+* Readers see Bel/Pl (or support %) with clear mode/τ context and click through to source.
+* Pages can be frozen as‑of without breaking drill‑downs.
+
+2) Data model (DB‑level contract; field names & types)
+Use Postgres; JSONB for block props/snapshots. This mirrors your existing Prisma style without dictating schema code.
+Entities
+KB_Space
+* id (cuid), slug (unique), title
+* visibility: "public" | "org" | "private"
+* rolesJson: { [userId|groupId]: "owner"|"editor"|"commenter"|"reader" }
+* createdById, createdAt, updatedAt
+KB_Page
+* id (cuid), spaceId (FK → KB_Space)
+* title, slug (unique within space), summary?, tags: string[]
+* status: "draft" | "published"
+* Defaults for embedded evaluation: evalMode: "product"|"min"|"ds", tau?: number | null
+* publishedAt?, createdById, updatedById, createdAt, updatedAt
+KB_Block
+* id (cuid), pageId (FK → KB_Page)
+* ord: number (stable ordering)
+* type: "text"|"image"|"link"|"claim"|"argument"|"sheet"|"room_summary"
+* propsJson: JSON (see Block props contracts below)
+* Pinning: pinnedAt?: string | null (ISO timestamp or snapshot version tag)
+* Provenance (optional): citations?: CitationRef[] (see Citations below)
+* createdAt, updatedAt
+KB_Snapshot
+* id (cuid), pageId (FK), titleAt?: string, takenAt (ISO)
+* manifestJson: {
+*   "blocks": [
+*     { "blockId": "...", "type": "claim", "ref": { "kind": "claim", "id": "..." }, "pinnedAt": "2025-10-03T12:00:00Z", "eval": { "mode":"product","tau":0.6 }, "payloadHash":"...", "extractedText":"..." }
+*   ],
+*   "page": { "eval": {"mode":"product","tau":0.6} }
+* }
+* 
+* hash: short checksum of manifest for integrity
+* createdById, createdAt
+Citations (shape for citations arrays)
+* citations: Array<{ kind: "claim"|"argument"|"evidence"|"room"|"sheet"|"link", id?: string, uri?: string, note?: string }> (IDs map to Agora artifacts; uri for external sources.)
+
+3) Block props contracts (JSON you persist & render)
+Each block can be Live (default) or Pinned (pinnedAt on the block). All blocks inherit page‑level eval defaults (evalMode/tau) but can override in propsJson.eval.
+Common evaluation override
+{ "eval": { "mode": "product" | "min" | "ds", "tau": 0.6 } }
+text
+{ "kind":"text", "format":"lexical", "content": {/* lexical JSON */} }
+* Accept format:"markdown" later (optional); Phase A uses Lexical.
+image
+{ "kind":"image", "url":"https://...", "alt":"", "caption":"", "sourceUri?":"https://..." }
+link
+{ "kind":"link", "url":"https://...", "title?":"", "note?":"" }
+claim
+{
+  "kind":"claim",
+  "claimId":"<Claim.id>" | null,
+  "canonicalId?":"<CanonicalClaim.id>",
+  "roomId?":"<Deliberation.id>",          // preferred room when multiple
+  "lens":"statement" | "statement+belpl" | "statement+topN",
+  "topN?": 3,
+  "imports?":"off"|"materialized"|"virtual"|"all",  // passthrough to evidential API if needed
+  "eval?": { "mode":"product","tau":0.6 }
+}
+argument (diagram)
+{
+  "kind":"argument",
+  "argumentId":"<Argument.id>",
+  "view":"diagram" | "compact",
+  "showEvidence?": false,
+  "eval?": { "mode":"product","tau":0.6 }
+}
+sheet
+{
+  "kind":"sheet",
+  "sheetId?":"<DebateSheet.id>",
+  "deliberationId?":"<Deliberation.id>",
+  "lens":"nodes" | "nodes+edges" | "mini",
+  "eval?": { "mode":"product","tau":0.6 }
+}
+room_summary
+{
+  "kind":"room_summary",
+  "roomId":"<Deliberation.id>",
+  "show":"top_claims" | "by_tag",
+  "limit?": 6,
+  "eval?": { "mode":"product","tau":0.6 }
+}
+Transport block is Phase B; keep out of Phase A UI, but leave a slot type reserved ("transport").
+
+4) API surface (App Router endpoints; JSON contracts)
+Names are stable; implementation can sit under /app/api/kb/*. All responses include { ok: true } on success and Cache-Control: no-store for authoring operations.
+Spaces
+* GET /api/kb/spaces?scope=mine|org|public
+    * → { ok, spaces: [{ id, slug, title, visibility, role }] }
+* POST /api/kb/spaces (owner only)
+    * body: { title, slug?, visibility }
+    * → { ok, space: {...} }
+* GET /api/kb/spaces/:id
+* PATCH /api/kb/spaces/:id (owners)
+    * update title, visibility, rolesJson
+Pages
+* GET /api/kb/pages?space=:id&q=&tag=...&status=...
+    * → { ok, pages: [{ id, title, summary, tags, status, updatedAt }] }
+* POST /api/kb/pages
+    * body: { spaceId, title, slug?, summary?, tags?:string[], evalMode?, tau? }
+    * → { ok, page: {...} }
+* GET /api/kb/pages/:id
+    * → { ok, page: {...}, blocks: [ ... ] }
+* PATCH /api/kb/pages/:id
+    * update meta (title, summary, tags, eval defaults, status)
+* DELETE /api/kb/pages/:id (in trash; hard delete optional)
+Blocks
+* GET /api/kb/pages/:id/blocks
+    * → { ok, blocks: [{ id, type, ord, propsJson, pinnedAt, citations }] }
+* POST /api/kb/pages/:id/blocks
+    * body: { type, after?:blockId, props }
+    * → { ok, block }
+* PATCH /api/kb/blocks/:blockId
+    * body: { props?, pinnedAt?, citations?, ord? } (partial)
+    * → { ok, block }
+* DELETE /api/kb/blocks/:blockId
+Snapshots
+* POST /api/kb/pages/:id/snapshot
+    * body (optional): { titleAt? }
+    * → { ok, snapshot: { id, takenAt, manifestJson, hash } }
+* GET /api/kb/pages/:id/render?asOf=<snapshotId|ISO>
+    * → { ok, render: { page, blocks:[{blockId, type, viewModel, provenance}] } }
+    * viewModel = normalized payload ready for components (see §5).
+Search (Phase A basic)
+* GET /api/kb/search?q=&space=:id
+    * → { ok, pages: [...], hits: number }
+Auth: All routes enforce RBAC from KB_Space and page visibility. Transclusions must also respect the source artifact visibility.
+
+5) Rendering contracts (client ↔ server; “viewModel” shapes)
+The editor and reader use these stable view models; the server composes them from your existing APIs.
+claim viewModel
+{
+  "type":"claim",
+  "id":"<Claim.id>",
+  "text":"...",
+  "roomId":"<Deliberation.id>",
+  "belief": 0.72,                 // if mode!="ds": support scalar
+  "ds?": { "bel":0.68, "pl":0.81 }, // if mode=="ds"
+  "topArgs":[ { "argumentId":"...", "score":0.42, "text":"..." } ],
+  "eval": { "mode":"product", "tau":0.6 },
+  "provenance": { "deliberationId":"...", "sheetId?":"..." }
+}
+Server computes via /api/deliberations/:id/evidential?mode=&imports=... and maps to this shape.
+argument viewModel
+{
+  "type":"argument",
+  "id":"<Argument.id>",
+  "diagram": { "id":"...", "title": "...", "statements":[...], "inferences":[...], "evidence":[...] },
+  "eval": { "mode":"product", "tau":0.6 },
+  "provenance": { "argumentId":"...", "diagramId":"..." }
+}
+Server uses /api/arguments/:id?view=diagram.
+sheet viewModel
+{
+  "type":"sheet",
+  "id":"<DebateSheet.id>" ,
+  "title":"...",
+  "nodes":[{ id, title, diagramId?, claimId? }],
+  "edges":[{ fromId, toId, kind }],
+  "acceptance": { semantics:"preferred"|"grounded", "labels": { [nodeId]:"accepted"|"rejected"|"undecided" } }
+}
+Server proxies /api/sheets/:id (or delib:<id>).
+room_summary viewModel
+{
+  "type":"room_summary",
+  "id":"<Deliberation.id>",
+  "title":"Room title",
+  "claims":[ { "id":"...", "text":"...", "score":0.66 } ],
+  "meta": { "nArgs": 123, "updatedAt":"..." },
+  "eval": { "mode":"product", "tau":0.6 }
+}
+Error/skeleton convention Each block viewModel may include { error?: { code, message } }. Clients render a compact placeholder with retry.
+
+6) Editor behavior & events (UI contracts)
+Block palette
+* / menu: “Text”, “Image”, “Link”, “Claim”, “Argument”, “Sheet”, “Room summary”.
+Insert flows
+* Claim: search by text/ID; choose room if multiple; set lens; (optional) pin.
+* Argument: paste ID or pick from search; choose view; (optional) pin.
+* Sheet: choose sheet or delib:<id> alias; choose lens.
+* Room summary: pick room; choose show/limit.
+Block chrome (on focus)
+* Lens dropdown (block‑specific).
+* Live / Pinned toggle → on pin, resolve snapshot pinnedAt timestamp and persist on block.
+* Eval dropdown (inherit / override page defaults).
+* Provenance flyout (IDs, “Open in context” links).
+* Delete / Duplicate / Move up/down.
+Events (window or internal bus)
+* kb:page:created, kb:page:updated
+* kb:block:added, kb:block:updated, kb:block:deleted
+* kb:snapshot:created
+* Invalidate structured blocks on:
+    * dialogue:changed, plexus:links:changed, roomFunctor:changed
+
+7) Permissions & policy
+* Space roles:
+    * owner: manage space, roles, delete pages.
+    * editor: CRUD pages & blocks in space.
+    * commenter: (Phase C) can comment/suggest—view otherwise.
+    * reader: read pages honoring visibility.
+* Page visibility inherits from space; allow per‑page override to stricter (never looser).
+* Transclusion guard: if a block references a private room/sheet/argument not visible to the viewer, show a gated placeholder (“Private source”) and do not leak text.
+
+8) Caching & invalidation
+* Per‑block cache key: (kind, id(s), eval.mode, eval.tau, pinnedAt?).
+* Live blocks: SWR stale-while-revalidate 60–120s default.
+* Invalidate on: dialogue:changed, roomFunctor:changed, plexus:links:changed, any arguments:* or sheets:* mutation you already dispatch.
+* Snapshots: never revalidate remote payloads; render what was captured at pinnedAt (server repulls as-of if you support it; Phase A can store extracted text + numbers to guarantee immutability for exports).
+
+9) Space home & basic search
+Space home (/kb/:spaceSlug)
+* Page card grid: title, summary, tags, status, updatedAt.
+* Filters: tag, status; search by title/summary.
+* CTA: New page.
+Search (/api/kb/search)
+* Phase A: text search across titles/summaries + naive text extracted from text blocks.
+* Index fields: title, summary, tags, spaceId, textContent, blockTypes, and entityRefs extracted from blocks (claimIds, argumentIds, roomIds).
+* Phase B: swap backend to Meilisearch/Typesense; keep API shape.
+
+10) Exports
+* MD export: convert text blocks to MD; structured blocks to MD stubs with a short caption + source links.
+* PDF export: server render of the page (snapshot or live) with print CSS; include citations list.
+
+11) Non‑functional & quality
+* Accessibility: keyboard‑navigable blocks; focus rings; alt text required on images.
+* Performance: lazy‑mount structured blocks when scrolled into view; virtualization not required in Phase A.
+* Observability: log block render errors with (blockId, pageId, kind, ref); count cache hits/misses.
+
+12) Risks & mitigations (Phase A)
+* Leaking private artifacts: hard gate transclusions by viewer perms; render placeholders, never inline text.
+* Stale numbers in live view: SWR with clear “last updated” in the provenance chip; user can pin.
+* Multi‑room ambiguity for claims: require roomId when inserting a Claim block unless pointing to a canonical claim (Phase B).
+* Snapshot fidelity: until “as‑of” querying exists everywhere, store minimal numerics/text in snapshot manifest for export correctness.
+
+13) “Ready to implement” task split
+Backend
+1. Tables & migrations for KB_Space, KB_Page, KB_Block, KB_Snapshot.
+2. CRUD endpoints (spaces/pages/blocks) + RBAC checks.
+3. Render endpoints (/render?asOf=) composing existing Agora APIs into viewModels.
+4. Snapshot creation (manifest builder + hash) and MD/PDF export.
+5. Search endpoint (basic index build on publish/save).
+Frontend
+1. Space home (grid, filters, search) + “New page”.
+2. Page editor shell (title/tags/eval defaults).
+3. Block palette, insertion flows, ordering & deletion.
+4. Block components:
+    * Text (Lexical), Image, Link.
+    * Claim (statement, Bel/Pl or DS Bel/Pl, top args).
+    * Argument (diagram viewer; re‑use your DiagramView).
+    * Sheet (mini reader).
+    * Room Summary (cards/bars).
+5. Live ↔ Pinned toggle per block; provenance chip UI; open‑in‑context actions.
+6. Page Snapshot toggle (Live vs As‑of) and export button.
+Interop (reuse)
+* Use your existing endpoints:
+    * /api/arguments/:id?view=diagram
+    * /api/deliberations/:id/evidential?mode=&imports=
+    * /api/sheets/:id (or delib:<id>)
+* Reuse your Undercut and Transport affordances as deep links.
+QA / Fixtures
+* Seed script for a demo Space with:
+    * 3 pages (Topic, Brief, Dossier)
+    * Each page includes at least one of each structured block pointing to your seed rooms.
+* Tests:
+    * Create/edit blocks, reorder, pin, snapshot.
+    * Permission checks (private room transclusion).
+    * Export correctness (contains provenance & numerics).
+
+14) Open questions (resolve before implementation)
+1. Canonical claims: do we ship Phase A referencing only room‑specific claimId, or include a light canonicalId linker now? Recommendation: Defer to Phase B; keep canonicalId optional on the block to avoid migration.
+2. As‑of querying: do we want true historical queries for evidential/diagram endpoints (time travel), or store minimal snapshot numerics/text? Recommendation: Phase A stores minimal numerics/text in the snapshot manifest; add “as-of” queries in Phase B.
+3. Editor choice: Lexical vs Slate/Plate vs Tiptap. Recommendation: Lexical (best perf, clean custom nodes).
+4. Search backend: stick to Postgres FTS for Phase A? Recommendation: Yes. Plan for Meilisearch in Phase B; API remains stable.
+5. RBAC granularity: block‑level permissions now or Phase C? Recommendation: Page‑level in Phase A; block‑level in Phase C.
+
+If this spec looks right, I can turn each section into precise acceptance criteria (per endpoint and per UI component) so the team can sprint on it immediately.
+
+---
+
+Fantastic — here are **precise, testable acceptance criteria** you can hand to PM/Design/Eng to start building the Knowledge Base (KB) **Phase A (MVP)**. I’ve organized them **per API endpoint** and **per UI component**, with cross‑cutting criteria (RBAC, performance, a11y, telemetry) and a short “Definition of Done”. JSON examples are illustrative; exact field names may be adapted to your schema conventions.
+
+---
+
+## 0) Shared vocabulary (MVP)
+
+* **KB Space**: container (org/team/private) that owns pages and defaults.
+* **KB Page**: versioned document composed of **blocks**.
+* **Block**: renderable unit — either **native** (text/image/link) or **transclusion** (claim/argument/room summary/sheet/transport).
+* **Transclusion**: a reference `{ kind, id, params }` resolved at view time:
+
+  * `kind ∈ { claim, argument, room_summary, sheet, transport }`
+  * `params` may include evaluation knobs: `mode ∈ {product|min|ds}`, `tau?: number`, `asOf?: timestamp|snapshotId`
+* **Pinned vs Live**: a block’s `pinState` is `live` (default) or `pinned:{ snapshotKey|timestamp }`.
+
+---
+
+## 1) API acceptance criteria (Phase A)
+
+### 1.1 Spaces
+
+**POST `/api/kb/spaces`**
+
+* **Given** valid payload:
+
+  ```json
+  { "title":"Mobility KB", "visibility":"org", "defaultEval":{"mode":"product","tau":null} }
+  ```
+* **Then** returns 201 with:
+
+  * `id` (cuid), `slug`, `title`, `visibility ∈ {public|org|private}`, `defaultEval`, `createdById`, `createdAt`.
+* **And** creator is `owner` in `roles[]`.
+
+**GET `/api/kb/spaces/:id`**
+
+* **Then** returns space metadata and **page index** (paginated):
+
+  * `pages[]` include: `id`, `title`, `tags[]`, `updatedAt`, `author`, `snapshotCount`.
+
+**PATCH `/api/kb/spaces/:id`**
+
+* **Then** owners/editors can update `title`, `visibility`, `defaultEval`.
+
+**DELETE `/api/kb/spaces/:id`**
+
+* **Then** soft‑deletes space; readers lose access; owners can restore via admin tooling (out of scope for MVP UI).
+
+**RBAC**
+
+* **Readers** can GET.
+* **Editors** can create/update pages in the space.
+* **Owners** can update space settings/roles and delete space.
+
+---
+
+### 1.2 Pages
+
+**POST `/api/kb/pages`**
+
+* **Given** payload:
+
+  ```json
+  {
+    "spaceId":"space_123",
+    "title":"Protected bike lanes",
+    "tags":["mobility","safety"],
+    "blocks":[
+      {"kind":"h1","text":"What we know"},
+      {"kind":"text","text":"Summary of the evidence…"},
+      {"kind":"claim","ref":{"claimId":"clm_φ"},"eval":{"mode":"product"}},
+      {"kind":"argument","ref":{"argumentId":"arg_A0"},"lens":"diagram"}
+    ]
+  }
+  ```
+* **Then** returns 201 with page `id`, `version = 1`, `blocks[]` echo (with server ids), `createdAt`, `updatedAt`.
+
+**GET `/api/kb/pages/:id`**
+
+* **Then** returns:
+
+  * `page`: metadata (`id`, `spaceId`, `title`, `tags[]`, `version`, `author`, `updatedAt`)
+  * `blocks[]` with **server‑normalized shape** (see §1.4 transclusion resolve).
+  * If `?asOf=snapshotId|timestamp` provided, page renders using **pinned or historical** payloads (see Snapshots).
+
+**PATCH `/api/kb/pages/:id`**
+
+* **Given** payload updating title/tags and/or block list (full replace or patch, per your editor model).
+* **Then** increments `version` and returns updated page.
+* **And** all edits are attributed to the caller as `updatedBy`.
+
+**DELETE `/api/kb/pages/:id`**
+
+* **Then** soft‑deletes the page; `/space/:id` index must no longer list it for non‑owners.
+
+**Validation**
+
+* **Must** reject blocks with unknown `kind`.
+* **Must** reject transclusion refs missing required ids (`claimId`, `argumentId`, etc.).
+* **Must** enforce max page size (e.g., ≤ 500 blocks, ≤ 500KB raw text).
+
+---
+
+### 1.3 Snapshots
+
+**POST `/api/kb/pages/:id/snapshots`**
+
+* **Given** optional label in payload: `{ "label":"as-of 2025‑Q4" }`.
+* **Then** the server:
+
+  * Produces a **snapshot manifest**:
+
+    * `pageVersion`, `createdAt`, and for each block:
+
+      * If **native** (text/image/link): exact content.
+      * If **transclusion**: `{ kind, id, resolvedAt, payloadHash, pinnedParams }`.
+  * Persists manifest and returns `snapshotId`.
+
+**GET `/api/kb/pages/:id/snapshots/:snapshotId`**
+
+* **Then** returns immutable page render using the snapshot manifest.
+
+**Rules**
+
+* **Pinned blocks**: page stores `pinState = pinned:{ snapshotId or timestamp }`.
+* **Live blocks**: page stores `pinState = live`.
+* **GET** with `?asOf=snapshotId` overrides all blocks to pinned snapshot view for that request.
+
+---
+
+### 1.4 Transclusion resolver (normalize & cache)
+
+**POST `/api/kb/transclusions/resolve`**
+
+* **Given** `items[]` of `{ kind, id, params }` (max 50):
+
+  ```json
+  {
+    "items":[
+      { "kind":"claim", "id":"clm_φ", "params":{"mode":"product","tau":null} },
+      { "kind":"argument", "id":"arg_A0" },
+      { "kind":"room_summary", "id":"delib_123", "params":{"mode":"product"} },
+      { "kind":"sheet", "id":"sheet_456" }
+    ]
+  }
+  ```
+* **Then** returns `results[]` 1:1 with:
+
+  * `ok: true|false`, `error?`
+  * `payload` (normalized, minimal but sufficient for UI):
+
+    * **claim** → `{ id, text, ds?:{bel,pl}, support?:number, topArgs?:[{id,text,score}] }`
+      (fed by `/api/deliberations/:id/evidential` when `params.sourceDeliberationId` is needed; if absent, show claim sans support)
+    * **argument** → **diagram** rich shape (what `/api/arguments/:id?view=diagram` already returns)
+    * **room_summary** → `{ deliberationId, topClaims:[{claimId,text,support,ds?}] }`
+    * **sheet** → `{ id, title, nodes:[…], acceptance, unresolved:[…] }` (mini form)
+    * **transport** → `{ fromId, toId, claimMap:[{fromClaimId,fromText,toClaimId,toText}], proposals? }`
+* **Caching**
+
+  * **Must** cache each item by `(kind,id,params,asOf)` for ≥ 60s (private to space/page permissions).
+  * **Must** include `resolvedAt` timestamps for snapshot hashing.
+
+**Error behavior**
+
+* If an item can’t be resolved, `ok:false` with `error:"not_found|forbidden|timeout"`. Client will render a canonical placeholder (see UI criteria).
+
+---
+
+### 1.5 Search
+
+**GET `/api/kb/search`**
+
+* **Query params**: `q`, `spaceId`, `type ∈ {page|block|claim|argument|room|sheet}`, `tag[]`, `updatedAfter`, `limit=20`, `cursor`.
+* **Then** returns mixed results ranked by BM25 + type boosts:
+
+  * Pages: `id,title,summary,tags,updatedAt`
+  * Claims/Arguments/Rooms/Sheets: minimal cards to build facets.
+* **Must** be **permission‑aware** (no leaks across private rooms/spaces).
+
+---
+
+### 1.6 Export (as‑of)
+
+**GET `/api/kb/pages/:id/export?format=pdf|md&asOf=snapshotId|timestamp`**
+
+* **Then** returns downloadable content:
+
+  * **PDF**: print‑ready, 1‑column, with **citations list** at end.
+  * **Markdown**: inline figures as links; transclusions rendered as simple blocks (with “open in context” URLs).
+* **Must** indicate “as of” date/time in header and when blocks are pinned vs live.
+
+---
+
+### 1.7 Events (for freshness)
+
+* **On page create/update/snapshot**: dispatch DOM events (e.g., `kb:page:changed`) so UI lists can refresh.
+* **On underlying artifact change** (arguments/claims/sheets):
+
+  * If affects a **live** transclusion in any published page within the same space, enqueue a **“page possibly stale”** notification (MVP can be a badge in Page list; out‑of‑scope for email/push).
+
+---
+
+## 2) UI acceptance criteria (Phase A)
+
+### 2.1 Space Home (Board of pages)
+
+* **Shows** cards: `title`, `tags`, `updatedAt`, `author`, snapshot count badge, visibility chip.
+* **Filters**: by `tags`, search by `title`, sort by `updatedAt|title`.
+* **Click** → opens Page Reader.
+* **Create** → “New Page” button (owner/editor only).
+
+### 2.2 Page Reader
+
+* **Renders** blocks in order with clean typography.
+* **Each transclusion block** shows:
+
+  * **Provenance chip** (room/sheet/argument id) with “open in context” menu.
+  * **Evaluation chips** (mode, τ) when relevant.
+  * **Live/Pinned** indicator; if `?asOf=…` active, show a banner (“Viewing as of …; switch to latest”).
+* **Citations rail** (right or bottom):
+
+  * **Collects** citations referenced by blocks; supports copy as plaintext/MD.
+* **Keyboard**: `[`/`]` jumps between headings; `c` toggles citations rail.
+
+### 2.3 Page Editor
+
+* **WYSIWYG/Lite‑MD** with **slash menu**: `/text`, `/image`, `/link`, `/claim`, `/argument`, `/room`, `/sheet`, `/transport`, `/h2`, `/quote`.
+* **Insert Claim**:
+
+  * Search by text/id; on select → adds **Claim block** (default lens “Statement + Bel/Pl”).
+  * **Toggle** Live/Pinned; **Set evaluation** (inherits Space default; override per block).
+* **Insert Argument**:
+
+  * Search by id/text; adds **Argument block** with Diagram lens.
+* **Insert Room Summary**:
+
+  * Pick deliberation; shows top N claims with support bars; N configurable (default 3).
+* **Insert Sheet**:
+
+  * Pick sheet; renders mini list of nodes & acceptance labels.
+* **Insert Transport**:
+
+  * Pick `from` and `to` rooms; renders **claim map** table (ids + claim text), and a “Preview proposals” button; **Apply** only visible if editor has rights (Phase B can enable inline apply; MVP can omit).
+* **Block toolbar**:
+
+  * Lens (Compact/Card/Full) where applicable.
+  * Live/Pinned toggle.
+  * “Copy citation” for transclusions.
+  * Move up/down, delete.
+* **Autosave**: every 3s of idle or on blur; shows save state.
+* **Conflict**: if remote changes since load, offers merge (last‑writer‑wins for MVP, with warning).
+
+### 2.4 Claim Block (viewer)
+
+* **Displays** statement text.
+* If `eval` available (room context in params or block provides claim’s room):
+
+  * **Shows** scalar support bar or DS badge (Bel/Pl) consistent with your `/evidential` endpoint.
+  * **Shows** Top 3 arguments (text + score), link “expand argument”.
+* **Menu**: open Claim in source room; copy claim link; copy citation.
+* **Error state**: “Claim not found or private” with guidance; still preserves the block shell.
+
+### 2.5 Argument Block (viewer)
+
+* **Uses** your existing `DiagramView` (normalized shape).
+* **Shows** title (argument text truncated), diagram, list of premises, conclusion.
+* **Menu**: open in ArgumentPopout; open in Sheet if bridged.
+* **Error state**: hollow card describing missing argument.
+
+### 2.6 Room Summary Block (viewer)
+
+* **Shows** top N claims (`N ≤ 7`) with support bars (or DS).
+* **Chip** for semantics (preferred/grounded) — read‑only.
+* **Open**: link to `/deliberation/:id` and `/sheets/delib::id`.
+
+### 2.7 Sheet Block (viewer)
+
+* **Mini reader**:
+
+  * List nodes (title), acceptance pill (accepted/rejected/undecided), “expand” opens `ArgumentPopout` for nodes with diagrams.
+* **Unresolved CQs** count.
+
+### 2.8 Transport Block (viewer)
+
+* **Claim map** table with two columns `(A φ, B φ′)` showing **texts** and ids (toggle to show ids).
+* **“Preview proposals”** button → calls your `/room-functor/preview` and shows top proposals (argument text + base + φ→φ′).
+* **“Open full transport”** opens **in a new tab** (we’ll reuse the `openTransport()` helper).
+* **Error state**: if no mapping → “No mappings yet. Click Suggest on the Transport page.”
+
+### 2.9 Snapshot banner
+
+* **When page is viewed with `?asOf=…`** shows a sticky banner:
+
+  * “Viewing **snapshot** taken {date}. **View live** | **Compare** (opens diff view in new tab).”
+  * (Diff UI can be a later phase; MVP: link disabled with tooltip “Coming soon”.)
+
+---
+
+## 3) Cross‑cutting acceptance criteria
+
+### RBAC & privacy
+
+* Page render **must not** leak transcluded data from **private rooms/sheets** the viewer cannot access.
+* If a block points to a private artifact, render “private” placeholder and exclude it from citations (with a count of hidden items).
+* Space visibility:
+
+  * `public`: any authenticated user can read pages; only members per role can edit.
+  * `org`: only org members can read; roles restrict edit.
+  * `private`: only explicit members can read.
+
+### Performance
+
+* Page render ≤ **300ms server time** for 20 blocks with cached transclusions.
+* Resolver batches up to **50** items per call; client must dedupe.
+* LCP on Space Home ≤ **2.5s** on mid‑tier laptop (throttled network “Fast 3G”).
+
+### Accessibility
+
+* All block toolbars and menus are **keyboard navigable** (`Tab`, `Enter`, `Esc`, arrow keys).
+* **ARIA labels** on block controls; color-only indicators (support bars) accompanied by **text values**.
+* Snapshot banner and provenance chips are announced to screen readers.
+
+### Telemetry (MVP minimal)
+
+* Track `kb_page_view`, `kb_page_edit`, `kb_snapshot_create`, and `kb_transclusion_resolve` (count, latency, errors).
+
+### Error handling
+
+* API errors produce JSON with `error.code`, `error.message`.
+* UI toasts: non‑blocking; block‑level errors don’t crash whole page.
+
+---
+
+## 4) Definition of Done (Phase A)
+
+* ✅ CRUD for Spaces & Pages with RBAC.
+* ✅ Editor with slash insert for **Text/Image/Link/Claim/Argument/Room Summary/Sheet/Transport**.
+* ✅ Transclusion resolver with caching; consistent normalized shapes.
+* ✅ Live vs Pinned per block; Page snapshot creation & `?asOf=` viewing.
+* ✅ Citations rail aggregating from transclusions; “open in context” everywhere.
+* ✅ Space Home index with search, tags filter, sort.
+* ✅ Exports (PDF + Markdown) with “as‑of” labeling.
+* ✅ A11y basics, telemetry basics, and stated performance budgets.
+
+---
+
+## 5) Phase B preview (what you can stage behind flags)
+
+* **Transport block inline Apply** (permissioned) that uses your existing `/room-functor/apply`.
+* **Canonical Claim family** support (`moid`/equivalence) and **Claim Set** block (filters by family/tag/room).
+* **DS Bel/Pl** conflict‑aware plausibility (Bel ≤ Pl) using mapped ¬φ (drawn from Room Functor or `negatesClaimId`).
+* **“Where used?”** back‑references: pages embedding a given claim/argument.
+
+---
+
+## 6) Example end‑to‑end test scenarios
+
+1. **Create space & page**
+
+* Create space (org visibility).
+* Create page with 2 text blocks, 1 claim block, 1 argument block.
+* Page loads, renders claim support and argument diagram.
+
+2. **Live → Pinned**
+
+* Toggle claim block to **Pinned**; create snapshot.
+* Change underlying claim’s support (in source room).
+* Viewing page normally shows updated value; viewing `?asOf=snapshotId` shows original value.
+
+3. **Privacy guard**
+
+* Add a Sheet block pointing to a private sheet the viewer lacks rights to.
+* Page renders “private” placeholder; the rest of the page loads.
+
+4. **Transport**
+
+* Insert Transport block A→B; verify claim map shows **texts + ids**.
+* Click “Open full transport” → **new tab** with prefilled from/to.
+* Preview proposals returns stable list consistent with `/preview`.
+
+5. **Export**
+
+* Export page as PDF (as‑of snapshot). Contents match the snapshot; citations appear at end.
+
+---
+
+If this fits, I can take **each endpoint and component** above and expand to **ticket‑sized acceptance checks** (field‑level validations, error codes, and UI edge states), plus a **sample contract** for the block JSON schema so implementation can start immediately.
+
+
+--
+
+Fantastic — let’s start *building* the in‑house Knowledge Base (KB) with a lean, production‑ready Phase‑A implementation that plugs straight into your existing Agora stack. Below is a self‑contained “starter commit” with schema, endpoints, and minimal UI scaffolding. It’s aligned with the roadmap we just finalized (Vision, blocks/transclusions, Live vs Pinned, provenance, etc.). 
+
+---
+
+## What you’ll get in this starter pack
+
+* **DB models** for KB spaces, pages, blocks, and snapshots.
+* **CRUD APIs** for spaces/pages/blocks and a first pass at **page snapshots** (pinning).
+* **Types + block union** (Text, Image, Link, Claim, Argument, RoomSummary, Sheet, Transport) with JSON payloads.
+* **A minimal editor** that renders blocks, lets you add blocks, toggle live vs pinned, and shows provenance badges.
+* **No risky coupling**: transclusions reuse the stable Agora endpoints you already have; we layer a tiny “resolve” shim later.
+
+> ✅ Phase‑A acceptance coverage: Space & Page CRUD, blocks (Text/Image/Link/Claim/Argument/RoomSummary/Sheet/Transport), Live vs Pinned, Page Snapshot, “open in context”, basic search (by title/tags), provenance chip.
+
+---
+
+## 1) Prisma schema (additions)
+
+> **File:** `prisma/schema.prisma` (append; keep naming consistent with your style)
+
+```prisma
+// ---------- Knowledge Base (Phase A) ----------
+enum KbVisibility {
+  public
+  org
+  followers
+  private
+}
+
+enum KbRole {
+  owner
+  editor
+  commenter
+  reader
+}
+
+enum KbBlockType {
+  text
+  image
+  link
+  claim
+  claim_set
+  argument
+  sheet
+  room_summary
+  transport
+  evidence_list
+  cq_tracker
+  plexus_tile
+}
+
+model KbSpace {
+  id          String       @id @default(cuid())
+  slug        String       @unique
+  title       String
+  summary     String?
+  visibility  KbVisibility @default(public)
+  createdById String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  pages       KbPage[]
+  members     KbSpaceMember[]
+}
+
+model KbSpaceMember {
+  id        String   @id @default(cuid())
+  spaceId   String
+  userId    String
+  role      KbRole   @default(reader)
+  createdAt DateTime @default(now())
+
+  space     KbSpace  @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+
+  @@unique([spaceId, userId])
+}
+
+model KbPage {
+  id          String        @id @default(cuid())
+  spaceId     String
+  slug        String
+  title       String
+  summary     String?
+  visibility  KbVisibility  @default(public)
+  tags        String[]      // small, flexible
+  frontmatter Json?         // { defaultLens, eval: { mode, tau }, ... }
+  createdById String
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  space       KbSpace       @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  blocks      KbBlock[]
+  snapshots   KbSnapshot[]
+
+  @@unique([spaceId, slug])
+  @@index([spaceId, updatedAt])
+}
+
+model KbBlock {
+  id          String      @id @default(cuid())
+  pageId      String
+  ord         Int
+  type        KbBlockType
+  live        Boolean     @default(true) // live vs pinned
+  dataJson    Json        // discriminated payload by `type`
+  pinnedJson  Json?       // when !live, frozen data shape for reproducibility
+  citations   Json?       // [{ kind, id, uri, note }]
+  createdById String
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  page        KbPage      @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@index([pageId, ord])
+}
+
+model KbSnapshot {
+  id          String   @id @default(cuid())
+  pageId      String
+  label       String?
+  atTime      DateTime @default(now())
+  createdById String
+  manifest    Json     // { page, blocks: [{id, live, pinnedJson?, liveHash?}] }
+
+  page        KbPage   @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@index([pageId, atTime])
+}
+```
+
+> Run: `npx prisma generate && npx prisma migrate dev -n "kb_phase_a"`
+
+---
+
+## 2) Shared types (block union)
+
+> **File:** `lib/kb/types.ts`
+
+```ts
+export type EvalParams = { mode?: 'min'|'product'|'ds'; tau?: number|null };
+
+export type BaseBlock = {
+  id: string;
+  pageId: string;
+  ord: number;
+  type: KbBlockType;
+  live: boolean;
+  citations?: Array<{ kind?: string; id?: string; uri?: string; note?: string }>;
+  data: any;          // normalized at edge (API normalizes Prisma's dataJson)
+  pinned?: any|null;  // normalized from pinnedJson
+};
+
+export type KbBlockType =
+  | 'text'|'image'|'link'
+  | 'claim'|'claim_set'|'argument'|'sheet'|'room_summary'
+  | 'transport'|'evidence_list'|'cq_tracker'|'plexus_tile';
+
+export type TextData = { markdown: string };
+export type ImageData = { url: string; alt?: string|null; caption?: string|null };
+export type LinkData  = { url: string; title?: string|null };
+
+export type ClaimData = {
+  claimId: string;
+  label?: string|null;
+  eval?: EvalParams;
+  lens?: 'statement'|'statement+belpl'|'statement+top3';
+};
+
+export type ArgumentData = { argumentId: string; lens?: 'diagram'|'diagram+text'|'compact' };
+export type RoomSummaryData = { deliberationId: string; lens?: 'top'|'byTag'|'byThreshold'; eval?: EvalParams };
+export type SheetData = { sheetId: string; lens?: 'nodes'|'nodes+edges'|'mini' };
+export type TransportData = { fromId: string; toId: string; showProposals?: boolean };
+export type ClaimSetData = {
+  canonicalId?: string|null; roomId?: string|null; tags?: string[];
+  lens?: 'bundle'|'bundle+belpl';
+  eval?: EvalParams;
+};
+
+export type KbPageDTO = {
+  id: string; spaceId: string; slug: string; title: string; summary?: string|null;
+  tags: string[]; visibility: string; frontmatter?: any; updatedAt: string;
+  blocks: BaseBlock[];
+};
+```
+
+---
+
+## 3) API endpoints (App Router)
+
+### 3.1 Spaces
+
+> **File:** `app/api/kb/spaces/route.ts`
+
+```ts
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prismaclient';
+import { z } from 'zod';
+import { getCurrentUserId } from '@/lib/serverutils';
+
+export const dynamic = 'force-dynamic'; export const revalidate = 0;
+
+const Body = z.object({
+  slug: z.string().min(3).regex(/^[a-z0-9\-:]+$/i),
+  title: z.string().min(1),
+  summary: z.string().optional(),
+  visibility: z.enum(['public','org','followers','private']).default('public'),
+});
+
+export async function GET() {
+  const rows = await prisma.kbSpace.findMany({
+    select: { id:true, slug:true, title:true, summary:true, visibility:true, updatedAt:true },
+    orderBy: { updatedAt: 'desc' },
+  });
+  return NextResponse.json({ ok:true, spaces: rows }, { headers:{'Cache-Control':'no-store'}});
+}
+
+export async function POST(req: NextRequest) {
+  const userId = await getCurrentUserId().catch(()=> 'system');
+  const b = Body.parse(await req.json());
+  const row = await prisma.kbSpace.create({
+    data: {
+      slug: b.slug, title: b.title, summary: b.summary ?? null,
+      visibility: b.visibility as any, createdById: userId,
+      members: { create: [{ userId, role: 'owner' as any }] },
+    },
+    select: { id:true, slug:true },
+  });
+  return NextResponse.json({ ok:true, space: row }, { headers:{'Cache-Control':'no-store'}});
+}
+```
+
+> **File:** `app/api/kb/spaces/[id]/route.ts` (GET/PATCH/DELETE — similar pattern; keep concise)
+
+```ts
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prismaclient';
+import { z } from 'zod';
+
+export const dynamic = 'force-dynamic'; export const revalidate = 0;
+
+const Patch = z.object({
+  title: z.string().optional(),
+  summary: z.string().optional(),
+  visibility: z.enum(['public','org','followers','private']).optional(),
+});
+
+export async function GET(_:NextRequest,{ params }:{params:{id:string}}) {
+  const s = await prisma.kbSpace.findUnique({
+    where: { id: params.id },
+    select: { id:true, slug:true, title:true, summary:true, visibility:true, updatedAt:true },
+  });
+  if (!s) return NextResponse.json({ error:'Not found' }, { status:404 });
+  return NextResponse.json({ ok:true, space:s }, { headers:{'Cache-Control':'no-store'}});
+}
+
+export async function PATCH(req:NextRequest,{ params }:{params:{id:string}}) {
+  const b = Patch.parse(await req.json());
+  const s = await prisma.kbSpace.update({
+    where: { id: params.id }, data: { ...b }, select: { id:true, title:true, visibility:true }
+  }).catch(()=>null);
+  if (!s) return NextResponse.json({ error:'Not found' }, { status:404 });
+  return NextResponse.json({ ok:true, space:s });
+}
+
+export async function DELETE(_:NextRequest,{ params }:{params:{id:string}}) {
+  await prisma.kbSpace.delete({ where: { id: params.id } }).catch(()=>null);
+  return NextResponse.json({ ok:true });
+}
+```
+
+### 3.2 Pages
+
+> **File:** `app/api/kb/pages/route.ts` (list/create)
+
+```ts
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prismaclient';
+import { z } from 'zod';
+export const dynamic = 'force-dynamic'; export const revalidate = 0;
+
+const Create = z.object({
+  spaceId: z.string().min(6),
+  slug: z.string().min(3).regex(/^[a-z0-9\-:]+$/i),
+  title: z.string().min(1),
+  summary: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+  visibility: z.enum(['public','org','followers','private']).default('public'),
+  frontmatter: z.any().optional(),
+});
+
+export async function GET(req: NextRequest) {
+  const url = new URL(req.url);
+  const spaceId = url.searchParams.get('space') ?? undefined;
+  const where = spaceId ? { spaceId } : {};
+  const rows = await prisma.kbPage.findMany({
+    where, orderBy: { updatedAt: 'desc' },
+    select: { id:true, spaceId:true, slug:true, title:true, summary:true, tags:true, visibility:true, updatedAt:true },
+  });
+  return NextResponse.json({ ok:true, pages: rows }, { headers:{'Cache-Control':'no-store'}});
+}
+
+export async function POST(req:NextRequest) {
+  const b = Create.parse(await req.json());
+  const row = await prisma.kbPage.create({
+    data: {
+      spaceId: b.spaceId, slug: b.slug, title: b.title,
+      summary: b.summary ?? null, tags: b.tags ?? [],
+      visibility: b.visibility as any, frontmatter: b.frontmatter ?? {},
+      createdById: 'system',
+    },
+    select: { id:true, slug:true, title:true },
+  });
+  return NextResponse.json({ ok:true, page: row });
+}
+```
+
+> **File:** `app/api/kb/pages/[id]/route.ts` (read/update/delete + include blocks)
+
+```ts
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prismaclient';
+import { z } from 'zod';
+
+export const dynamic = 'force-dynamic'; export const revalidate = 0;
+
+const Patch = z.object({
+  title: z.string().optional(),
+  summary: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+  visibility: z.enum(['public','org','followers','private']).optional(),
+  frontmatter: z.any().optional(),
+});
+
+function normalizeBlock(b:any) {
+  return {
+    id: b.id, pageId: b.pageId, ord: b.ord, type: b.type,
+    live: b.live, citations: b.citations ?? [],
+    data: b.dataJson ?? {}, pinned: b.pinnedJson ?? null
+  };
+}
+
+export async function GET(_:NextRequest,{ params }:{params:{id:string}}) {
+  const p = await prisma.kbPage.findUnique({
+    where: { id: params.id },
+    select: {
+      id:true, spaceId:true, slug:true, title:true, summary:true, tags:true, visibility:true, frontmatter:true, updatedAt:true,
+      blocks: { select: { id:true, pageId:true, ord:true, type:true, live:true, dataJson:true, pinnedJson:true, citations:true }, orderBy:{ ord:'asc' } },
+    },
+  });
+  if (!p) return NextResponse.json({ error:'Not found' }, { status:404 });
+  return NextResponse.json({
+    ok:true,
+    page: {
+      id:p.id, spaceId:p.spaceId, slug:p.slug, title:p.title, summary:p.summary,
+      tags:p.tags, visibility:p.visibility, frontmatter:p.frontmatter, updatedAt:p.updatedAt,
+      blocks: p.blocks.map(normalizeBlock)
+    }
+  }, { headers:{'Cache-Control':'no-store'}});
+}
+
+export async function PATCH(req:NextRequest,{ params }:{params:{id:string}}) {
+  const b = Patch.parse(await req.json());
+  const p = await prisma.kbPage.update({
+    where: { id: params.id }, data: b,
+    select: { id:true, title:true, tags:true, visibility:true }
+  }).catch(()=>null);
+  if (!p) return NextResponse.json({ error:'Not found' }, { status:404 });
+  return NextResponse.json({ ok:true, page:p });
+}
+
+export async function DELETE(_:NextRequest,{ params }:{params:{id:string}}) {
+  await prisma.kbPage.delete({ where: { id: params.id } }).catch(()=>null);
+  return NextResponse.json({ ok:true });
+}
+```
+
+### 3.3 Blocks (create/reorder/toggle pin) + Snapshot
+
+> **File:** `app/api/kb/pages/[id]/blocks/route.ts` (GET list, POST create, PATCH reorder)
+
+```ts
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prismaclient';
+import { z } from 'zod';
+
+export const dynamic='force-dynamic'; export const revalidate=0;
+
+const Create = z.object({
+  type: z.enum([
+    'text','image','link','claim','claim_set','argument','sheet','room_summary','transport','evidence_list','cq_tracker','plexus_tile'
+  ]),
+  data: z.any().default({}),
+  citations: z.array(z.any()).optional(),
+  ord: z.number().int().optional(),
+  live: z.boolean().default(true),
+});
+
+const Reorder = z.object({
+  order: z.array(z.object({ id:z.string().min(6), ord:z.number().int().min(0) })).min(1)
+});
+
+function norm(b:any){ return { id:b.id, pageId:b.pageId, ord:b.ord, type:b.type, live:b.live, data:b.dataJson ?? {}, pinned:b.pinnedJson ?? null, citations:b.citations ?? [] }; }
+
+export async function GET(_:NextRequest,{ params }:{params:{id:string}}) {
+  const list = await prisma.kbBlock.findMany({
+    where:{ pageId: params.id },
+    orderBy:{ ord:'asc' },
+    select:{ id:true,pageId:true,ord:true,type:true,live:true,dataJson:true,pinnedJson:true,citations:true }
+  });
+  return NextResponse.json({ ok:true, blocks: list.map(norm) }, { headers:{'Cache-Control':'no-store'}});
+}
+
+export async function POST(req:NextRequest,{ params }:{params:{id:string}}) {
+  const b = Create.parse(await req.json());
+  const max = await prisma.kbBlock.aggregate({
+    _max: { ord:true }, where: { pageId: params.id }
+  });
+  const ord = (b.ord ?? ((max._max.ord ?? -1) + 1));
+  const row = await prisma.kbBlock.create({
+    data: {
+      pageId: params.id, ord, type: b.type as any, live: b.live,
+      dataJson: b.data ?? {}, citations: b.citations ?? [], createdById: 'system'
+    },
+    select:{ id:true,pageId:true,ord:true,type:true,live:true,dataJson:true,pinnedJson:true,citations:true }
+  });
+  return NextResponse.json({ ok:true, block: norm(row) });
+}
+
+export async function PATCH(req:NextRequest,{ params }:{params:{id:string}}) {
+  const b = Reorder.parse(await req.json());
+  await prisma.$transaction(
+    b.order.map(item =>
+      prisma.kbBlock.update({ where: { id: item.id }, data: { ord: item.ord } })
+    )
+  );
+  return NextResponse.json({ ok:true });
+}
+```
+
+> **File:** `app/api/kb/blocks/[id]/route.ts` (PATCH block data/toggle live, DELETE)
+
+```ts
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prismaclient';
+import { z } from 'zod';
+
+export const dynamic='force-dynamic'; export const revalidate=0;
+
+const Patch = z.object({
+  data: z.any().optional(),
+  citations: z.array(z.any()).optional(),
+  live: z.boolean().optional(),
+  // When setting live=false (pin), you can optionally send pinned payload; if omitted we’ll copy current dataJson
+  pinned: z.any().optional()
+});
+
+export async function PATCH(req:NextRequest,{ params }:{params:{id:string}}) {
+  const b = Patch.parse(await req.json());
+  const cur = await prisma.kbBlock.findUnique({
+    where:{ id: params.id },
+    select:{ id:true, dataJson:true, pinnedJson:true, live:true }
+  });
+  if (!cur) return NextResponse.json({ error:'Not found' }, { status:404 });
+
+  const next: any = {};
+  if ('data' in b) next.dataJson = b.data ?? {};
+  if ('citations' in b) next.citations = b.citations ?? [];
+  if ('live' in b)      next.live = b.live;
+  if ('pinned' in b)    next.pinnedJson = b.pinned ?? null;
+
+  // If we are flipping to pinned and no explicit pinned was sent, freeze current data
+  if (b.live === false && b.pinned === undefined) {
+    next.pinnedJson = cur.dataJson ?? {};
+  }
+  if (b.live === true) {
+    next.pinnedJson = null; // live blocks should not carry a stale pinned payload
+  }
+
+  const upd = await prisma.kbBlock.update({
+    where: { id: params.id }, data: next,
+    select:{ id:true,pageId:true,ord:true,type:true,live:true,dataJson:true,pinnedJson:true,citations:true }
+  });
+
+  return NextResponse.json({
+    ok:true,
+    block: {
+      id: upd.id, pageId: upd.pageId, ord: upd.ord, type: upd.type,
+      live: upd.live, data: upd.dataJson ?? {}, pinned: upd.pinnedJson ?? null, citations: upd.citations ?? []
+    }
+  });
+}
+
+export async function DELETE(_:NextRequest,{ params }:{params:{id:string}}) {
+  await prisma.kbBlock.delete({ where: { id: params.id } }).catch(()=>null);
+  return NextResponse.json({ ok:true });
+}
+```
+
+> **File:** `app/api/kb/pages/[id]/snapshot/route.ts` (create a page snapshot)
+
+```ts
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prismaclient';
+import { z } from 'zod';
+
+export const dynamic='force-dynamic'; export const revalidate=0;
+
+const Body = z.object({ label: z.string().optional() });
+
+export async function POST(req:NextRequest,{ params }:{params:{id:string}}) {
+  const { label } = Body.parse(await req.json().catch(()=>({})));
+  const page = await prisma.kbPage.findUnique({
+    where: { id: params.id },
+    select: {
+      id:true, spaceId:true, slug:true, title:true, summary:true, tags:true, visibility:true, frontmatter:true, updatedAt:true,
+      blocks: { select:{ id:true,type:true,live:true,dataJson:true,pinnedJson:true,ord:true }, orderBy:{ ord:'asc' } }
+    }
+  });
+  if (!page) return NextResponse.json({ error:'Not found' }, { status:404 });
+
+  const manifest = {
+    page: {
+      id: page.id, title: page.title, slug: page.slug,
+      frontmatter: page.frontmatter, tags: page.tags, visibility: page.visibility
+    },
+    blocks: page.blocks.map(b => ({
+      id: b.id, type: b.type, ord: b.ord, live: b.live,
+      liveHash: b.live ? JSON.stringify(b.dataJson ?? {}).length : undefined,
+      pinnedJson: !b.live ? (b.pinnedJson ?? b.dataJson ?? {}) : undefined
+    }))
+  };
+
+  const snap = await prisma.kbSnapshot.create({
+    data: { pageId: page.id, label: label ?? null, createdById: 'system', manifest },
+    select: { id:true, atTime:true }
+  });
+
+  return NextResponse.json({ ok:true, snapshot: snap });
+}
+```
+
+---
+
+## 4) Minimal UI (editor + block renderer)
+
+> **File:** `components/kb/KbBlockRenderer.tsx`
+
+```tsx
+'use client';
+import * as React from 'react';
+import useSWR from 'swr';
+import type { BaseBlock } from '@/lib/kb/types';
+
+const fetcher = (u:string) => fetch(u, { cache:'no-store' }).then(r=>r.json());
+
+export default function KbBlockRenderer({ block }: { block: BaseBlock }) {
+  const liveData = block.live ? block.data : (block.pinned ?? block.data);
+  const t = block.type;
+
+  // super‑minimal renderers; upgrade lenses later
+  if (t === 'text')   return <div className="prose prose-sm" dangerouslySetInnerHTML={{ __html: mdToHtml(liveData?.markdown || '') }} />;
+  if (t === 'image')  return <figure className="my-2"><img src={liveData?.url} alt={liveData?.alt||''} className="rounded"/>{liveData?.caption && <figcaption className="text-xs text-slate-600">{liveData.caption}</figcaption>}</figure>;
+  if (t === 'link')   return <a href={liveData?.url} className="underline" target="_blank" rel="noreferrer">{liveData?.title || liveData?.url}</a>;
+
+  if (t === 'claim') {
+    // Render statement + Bel/Pl using your evidential endpoint (claim’s room must be known via the block data in a later rev)
+    // For now: show statement + “open in context”
+    return (
+      <div className="rounded border bg-emerald-50/40 p-2">
+        <div className="text-sm">{liveData?.label ?? 'Claim'}</div>
+        <div className="text-xs text-slate-600 mt-1">claimId: <code>{liveData?.claimId}</code></div>
+        <div className="text-[11px] mt-1">
+          <a className="underline" href={`/claims/${encodeURIComponent(liveData?.claimId)}`} target="_blank">open in context</a>
+        </div>
+      </div>
+    );
+  }
+
+  if (t === 'argument') {
+    return (
+      <div className="rounded border bg-indigo-50/40 p-2">
+        <div className="text-sm">Argument</div>
+        <div className="text-xs text-slate-600 mt-1">argumentId: <code>{liveData?.argumentId}</code></div>
+        <a className="text-[11px] underline" href={`/api/arguments/${encodeURIComponent(liveData?.argumentId)}?view=diagram`} target="_blank">view diagram JSON</a>
+      </div>
+    );
+  }
+
+  if (t === 'room_summary') {
+    return (
+      <div className="rounded border bg-slate-50 p-2">
+        <div className="text-sm">Room summary</div>
+        <div className="text-xs text-slate-600 mt-1">deliberationId: <code>{liveData?.deliberationId}</code></div>
+        <a className="text-[11px] underline" href={`/api/deliberations/${encodeURIComponent(liveData?.deliberationId)}/evidential?mode=${encodeURIComponent(liveData?.eval?.mode || 'product')}`} target="_blank">open evidential</a>
+      </div>
+    );
+  }
+
+  if (t === 'sheet') {
+    return (
+      <div className="rounded border bg-slate-50 p-2">
+        <div className="text-sm">Sheet</div>
+        <div className="text-xs text-slate-600 mt-1">sheetId: <code>{liveData?.sheetId}</code></div>
+        <a className="text-[11px] underline" href={`/api/sheets/${encodeURIComponent(liveData?.sheetId)}`} target="_blank">open sheet JSON</a>
+      </div>
+    );
+  }
+
+  if (t === 'transport') {
+    return (
+      <div className="rounded border bg-teal-50/40 p-2">
+        <div className="text-sm">Transport map</div>
+        <div className="text-xs text-slate-600 mt-1">from → to: <code>{liveData?.fromId}</code> → <code>{liveData?.toId}</code></div>
+        <a className="text-[11px] underline" href={`/functor/transport?from=${encodeURIComponent(liveData?.fromId)}&to=${encodeURIComponent(liveData?.toId)}`} target="_blank" rel="noreferrer">open transport</a>
+      </div>
+    );
+  }
+
+  return <div className="text-xs text-slate-500">({t}) — renderer not yet implemented</div>;
+}
+
+// super‑tiny markdown renderer (replace with your MD lib)
+function mdToHtml(md:string){ return md.replace(/\n/g,'<br/>').replace(/\*\*(.+?)\*\*/g,'<b>$1</b>'); }
+```
+
+> **File:** `components/kb/KbPageEditor.tsx`
+
+```tsx
+'use client';
+import * as React from 'react';
+import useSWR from 'swr';
+import KbBlockRenderer from './KbBlockRenderer';
+
+const fetcher = (u:string)=>fetch(u,{cache:'no-store'}).then(r=>r.json());
+
+export default function KbPageEditor({ pageId }: { pageId: string }) {
+  const { data, error, mutate } = useSWR(`/api/kb/pages/${pageId}`, fetcher);
+
+  async function addBlock(type:string) {
+    await fetch(`/api/kb/pages/${pageId}/blocks`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ type, data: defaultDataFor(type) })
+    });
+    mutate();
+  }
+  async function toggleLive(id:string, live:boolean) {
+    await fetch(`/api/kb/blocks/${id}`, {
+      method:'PATCH', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ live })
+    });
+    mutate();
+  }
+  async function snapshot() {
+    await fetch(`/api/kb/pages/${pageId}/snapshot`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({}) });
+    mutate();
+  }
+
+  if (error) return <div className="text-xs text-red-600">Failed to load page</div>;
+  if (!data?.page) return <div className="text-xs text-neutral-500">Loading…</div>;
+
+  const p = data.page as any;
+
+  return (
+    <div className="space-y-3">
+      <header className="flex items-center justify-between">
+        <div>
+          <h1 className="text-lg font-semibold">{p.title}</h1>
+          <div className="text-[11px] text-slate-600">/kb/{p.spaceId}/{p.slug}</div>
+        </div>
+        <div className="flex items-center gap-2">
+          <select
+            className="text-[12px] rounded border px-2 py-1"
+            onChange={e => addBlock(e.target.value)}
+            defaultValue=""
+          >
+            <option value="" disabled>+ block</option>
+            <option value="text">text</option>
+            <option value="image">image</option>
+            <option value="link">link</option>
+            <option value="claim">claim</option>
+            <option value="argument">argument</option>
+            <option value="sheet">sheet</option>
+            <option value="room_summary">room summary</option>
+            <option value="transport">transport</option>
+          </select>
+          <button className="rounded border px-2 py-1 text-[12px] hover:bg-slate-50" onClick={snapshot}>snapshot</button>
+        </div>
+      </header>
+
+      <main className="space-y-3">
+        {p.blocks.map((b:any) => (
+          <section key={b.id} className="rounded border bg-white/70 p-2">
+            <div className="flex items-center justify-between mb-1">
+              <div className="text-[11px] uppercase tracking-wide text-slate-600">{b.type}{!b.live && <span className="ml-2 px-1.5 py-[1px] rounded bg-amber-50 border border-amber-200 text-amber-700">pinned</span>}</div>
+              <div className="text-[11px] flex items-center gap-2">
+                <button className="underline" onClick={()=>toggleLive(b.id, !b.live)}>{b.live ? 'Pin (freeze)' : 'Unpin (live)'}</button>
+                <button className="underline" onClick={async()=>{
+                  await fetch(`/api/kb/blocks/${b.id}`, { method:'DELETE' });
+                  mutate();
+                }}>Delete</button>
+              </div>
+            </div>
+            <KbBlockRenderer block={b} />
+          </section>
+        ))}
+      </main>
+    </div>
+  );
+}
+
+function defaultDataFor(type:string){
+  if (type==='text') return { markdown: 'Write here…' };
+  if (type==='image') return { url:'', alt:'', caption:'' };
+  if (type==='link')  return { url:'https://', title:'' };
+  if (type==='claim') return { claimId:'', label:'Claim' };
+  if (type==='argument') return { argumentId:'' };
+  if (type==='room_summary') return { deliberationId:'', eval:{ mode:'product' }, lens:'top' };
+  if (type==='sheet') return { sheetId:'', lens:'mini' };
+  if (type==='transport') return { fromId:'', toId:'', showProposals:true };
+  return {};
+}
+```
+
+---
+
+## 5) Minimal pages to mount the editor
+
+> **File:** `app/kb/pages/[id]/page.tsx`
+
+```tsx
+import KbPageEditor from '@/components/kb/KbPageEditor';
+
+export default function Page({ params }:{ params:{ id:string }}) {
+  return (
+    <div className="max-w-5xl mx-auto p-4">
+      <KbPageEditor pageId={params.id} />
+    </div>
+  );
+}
+```
+
+> **File:** `app/kb/spaces/[spaceId]/page.tsx` (simple list)
+
+```tsx
+'use client';
+import useSWR from 'swr';
+const f=(u:string)=>fetch(u,{cache:'no-store'}).then(r=>r.json());
+export default function SpaceHome({ params }:{ params:{ spaceId:string }}) {
+  const { data } = useSWR(`/api/kb/pages?space=${params.spaceId}`, f);
+  if (!data?.pages) return <div className="text-xs text-neutral-500 p-4">Loading…</div>;
+  return (
+    <div className="max-w-5xl mx-auto p-4">
+      <h1 className="text-lg font-semibold mb-3">Pages</h1>
+      <ul className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {data.pages.map((p:any)=>(
+          <li key={p.id} className="rounded border bg-white/70 p-3">
+            <div className="text-sm font-medium truncate">{p.title}</div>
+            <div className="text-[11px] text-slate-600">tags: {(p.tags||[]).join(', ') || '—'}</div>
+            <div className="mt-2">
+              <a className="text-[12px] underline" href={`/kb/pages/${p.id}`}>open</a>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+```
+
+---
+
+## 6) How this maps to the roadmap (and what to do next)
+
+* **Live vs Pinned** — implemented on each block (`live` + `pinnedJson`) and **page snapshots** store a manifest for “as‑of” publishing. 
+* **Provenance** — each block renders a *subtle* context link (argument diagram JSON, sheet JSON, evidential endpoint, transport page).
+* **Composable lenses** — stubbed; switch on `lens` in block data to swap views as we add richer components.
+* **Transport reuse** — the `transport` block deep‑links to `/functor/transport?from=&to=` and you can show proposals inline in Phase‑B.
+* **RBAC** — basic; we created `KbSpaceMember` for roles. In Phase‑A, keep enforcement simple (owner/editor only).
+* **Search** — Phase‑A includes simple page listing/search; Phase‑D adds dual page+entity search & facets.
+
+**Immediate follow‑ups (bite‑size tasks):**
+
+1. **Normalize transclusion** resolver: Add `/api/kb/transclude` that takes a batch of `{type, id, eval}` and fans out to existing endpoints, returning a **uniform** payload for Claim/Argument/RoomSummary/Sheet. (Editor then hydrates blocks consistently.)
+2. **MD editor**: Swap the quick `mdToHtml` with your preferred editor (TipTap/ProseMirror or your markdown lib).
+3. **Permissions middleware**: A tiny helper to assert space/page membership before mutations.
+4. **Export**: Add `/api/kb/pages/[id]/export?as=md|pdf&at=snapshotId` to serialize using pinned/live policy.
+
+---
+
+## 7) Dev notes
+
+* Endpoints are **idempotent** where it matters (reorder, patch).
+* Blocks store **raw JSON** so we can evolve shapes without migrations.
+* UI is intentionally minimal but *wired*: you can create spaces, pages, add blocks, pin blocks, and snapshot pages *today*.
+
+If this looks good, you can paste these files into your repo, run the migration, and you’ll have a working Phase‑A spine to iterate on. From here we can layer richer lenses, the transclusion aggregator, block‑level comments/suggest‑mode, and the more advanced “Claim Set” and “Transport (with proposals)” blocks exactly as specced.
+
+
+Medical References:
+1. None — DOI: file_00000000ad18623094d237ae815f4221
+
+
+--
+
+Fantastic—let’s turn the “Immediate follow‑ups” into working code. Below are drop‑in files (and light edits) that wire up:
+
+1. **Transclusion normalizer** (`POST /api/kb/transclude`)
+2. **Permissions helper** (space/page membership enforcement)
+3. **Markdown export** (`GET /api/kb/pages/:id/export?as=md`) — PDF stubbed for Phase‑A
+4. **A tiny Provenance chip** + minimal client block renderers (so you can see the payloads immediately)
+
+I’ve kept the code idiomatic to your repo (Next.js App Router + Prisma, `@/lib/prismaclient`) and **weakly coupled** to your existing debate/evidential endpoints. All auth lookups are encapsulated in a small helper so you can swap your real session provider easily.
+
+---
+
+## 0) Folder map (new files)
+
+```
+lib/kb/withSpaceAuth.ts
+app/api/kb/transclude/route.ts
+app/api/kb/pages/[id]/export/route.ts
+components/kb/ProvenanceChip.tsx
+components/kb/blocks/ClaimBlock.tsx
+components/kb/blocks/ArgumentBlock.tsx
+components/kb/blocks/RoomSummaryBlock.tsx
+components/kb/blocks/SheetBlock.tsx
+components/kb/blocks/TransportBlock.tsx
+```
+
+> If your actual model names differ (`KbSpace`, `KbPage`, `KbBlock`, `KbSpaceMember`, `KbSnapshot`), adjust the Prisma entity names in the files below; I’ve written the queries to be tolerant (small selects, no wide shapes).
+
+---
+
+## 1) Permissions helper — `lib/kb/withSpaceAuth.ts`
+
+```ts
+// lib/kb/withSpaceAuth.ts
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prismaclient';
+
+export type KbRole = 'reader' | 'editor' | 'owner';
+const RANK: Record<KbRole, number> = { reader: 1, editor: 2, owner: 3 };
+
+// --- Swap this with your real session lookup ---
+async function getUserId(req: NextRequest): Promise<string | null> {
+  // Try common patterns in your app, then fall back to dev header
+  try {
+    // @ts-ignore - your auth lib may expose this differently:
+    const uid = (req as any)?.auth?.user?.id || null;
+    if (uid) return uid;
+  } catch {}
+  const hdr = req.headers.get('x-user-id');
+  return hdr && hdr.trim() ? hdr.trim() : null;
+}
+// ------------------------------------------------
+
+export async function requireKbRole(
+  req: NextRequest,
+  opts: { spaceId?: string; pageId?: string; need: KbRole }
+): Promise<{ userId: string; spaceId: string; role: KbRole }> {
+  const userId = await getUserId(req);
+  if (!userId) {
+    throw new NextResponse(JSON.stringify({ ok: false, error: 'unauthorized' }), { status: 401 });
+  }
+
+  // Resolve spaceId from page if needed
+  let spaceId = opts.spaceId ?? null;
+  if (!spaceId && opts.pageId) {
+    const p = await prisma.kbPage.findUnique({
+      where: { id: opts.pageId },
+      select: { id: true, spaceId: true },
+    });
+    if (!p) {
+      // Hide existence to avoid enumeration
+      throw new NextResponse(JSON.stringify({ ok: false, error: 'not_found' }), { status: 404 });
+    }
+    spaceId = p.spaceId;
+  }
+  if (!spaceId) {
+    throw new NextResponse(JSON.stringify({ ok: false, error: 'space_required' }), { status: 400 });
+  }
+
+  // Member lookup
+  const m = await prisma.kbSpaceMember.findFirst({
+    where: { spaceId, userId },
+    select: { role: true },
+  });
+
+  // Owner shortcut (if you store owner on space)
+  let ownerBoost: KbRole | null = null;
+  const sp = await prisma.kbSpace.findUnique({
+    where: { id: spaceId },
+    select: { ownerId: true },
+  });
+  if (sp?.ownerId && sp.ownerId === userId) ownerBoost = 'owner';
+
+  const have: KbRole = ownerBoost ?? (m?.role as KbRole ?? null) ?? 'reader'; // default to lowest if member found; else no access
+
+  if (!m && !ownerBoost) {
+    // Not a member at all → hide space existence
+    throw new NextResponse(JSON.stringify({ ok: false, error: 'not_found' }), { status: 404 });
+  }
+  if (RANK[have] < RANK[opts.need]) {
+    throw new NextResponse(JSON.stringify({ ok: false, error: 'forbidden' }), { status: 403 });
+  }
+
+  return { userId, spaceId, role: have };
+}
+
+export function fail(err: unknown): NextResponse {
+  if (err instanceof NextResponse) return err;
+  const msg = (err as any)?.message ?? 'server_error';
+  return new NextResponse(JSON.stringify({ ok: false, error: msg }), { status: 500 });
+}
+```
+
+---
+
+## 2) Transclusion normalizer — `app/api/kb/transclude/route.ts`
+
+```ts
+// app/api/kb/transclude/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
+import { prisma } from '@/lib/prismaclient';
+import { requireKbRole, fail } from '@/lib/kb/withSpaceAuth';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+const EvalZ = z.object({
+  mode: z.enum(['product', 'min', 'ds']).default('product'),
+  tau: z.number().min(0).max(1).optional(),
+  imports: z.enum(['off', 'materialized', 'virtual', 'all']).default('off'),
+}).default({ mode: 'product', imports: 'off' });
+
+const ItemZ = z.discriminatedUnion('kind', [
+  z.object({ kind: z.literal('claim'), id: z.string().min(6), lens: z.string().optional(), roomId: z.string().optional() }),
+  z.object({ kind: z.literal('argument'), id: z.string().min(6), lens: z.string().optional() }),
+  z.object({ kind: z.literal('room_summary'), id: z.string().min(6), lens: z.string().optional(), limit: z.number().int().positive().max(50).default(5) }),
+  z.object({ kind: z.literal('sheet'), id: z.string().min(6), lens: z.string().optional() }),
+  z.object({ kind: z.literal('transport'), fromId: z.string().min(6), toId: z.string().min(6), lens: z.string().optional() }),
+]);
+
+const BodyZ = z.object({
+  spaceId: z.string().min(6),
+  eval: EvalZ,
+  at: z.string().datetime().or(z.null()).optional(), // for MVP we return live; pin support lands in Phase‑B
+  items: z.array(ItemZ).max(50),
+});
+
+type Item = z.infer<typeof ItemZ>;
+
+function urlOrigin(req: NextRequest) {
+  // Works in both dev and prod
+  return new URL(req.url).origin;
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = BodyZ.parse(await req.json());
+    // Enforce read access to space
+    await requireKbRole(req, { spaceId: body.spaceId, need: 'reader' });
+
+    const origin = urlOrigin(req);
+    const errors: Array<{ index: number; code: string; message?: string; ref?: any }> = [];
+    const results: any[] = [];
+
+    // Pre‑resolve claim → deliberation if roomId not provided
+    async function findClaimRoomId(claimId: string): Promise<string | null> {
+      const c = await prisma.claim.findUnique({ where: { id: claimId }, select: { deliberationId: true } });
+      return c?.deliberationId ?? null;
+    }
+
+    for (let i = 0; i < body.items.length; i++) {
+      const it = body.items[i] as Item;
+      try {
+        if (it.kind === 'claim') {
+          const roomId = it.roomId ?? (await findClaimRoomId(it.id));
+          if (!roomId) {
+            results.push(null);
+            errors.push({ index: i, code: 'not_found', ref: { kind: it.kind, id: it.id } });
+            continue;
+          }
+          const qs = new URLSearchParams({
+            mode: body.eval.mode,
+            imports: body.eval.imports,
+          });
+          if (body.eval.tau != null) qs.set('confidence', String(body.eval.tau));
+          const ev = await fetch(`${origin}/api/deliberations/${roomId}/evidential?${qs}`, { cache: 'no-store' });
+          if (!ev.ok) throw new Error(`evidential HTTP ${ev.status}`);
+          const ej = await ev.json();
+          // Support both scalar and DS shape
+          const bel = ej?.dsSupport?.[it.id]?.bel ?? ej?.support?.[it.id] ?? 0;
+          const pl  = ej?.dsSupport?.[it.id]?.pl  ?? bel;
+          const node = (ej?.nodes || []).find((n: any) => n.id === it.id);
+          const top = node?.top ?? [];
+
+          results.push({
+            kind: 'claim',
+            id: it.id,
+            live: true,
+            pinnedAt: null,
+            lens: it.lens ?? 'belpl',
+            data: { text: node?.text ?? '', bel, pl, top, roomId },
+            provenance: {
+              source: 'deliberation',
+              roomId,
+              endpoints: [`GET /api/deliberations/${roomId}/evidential?${qs}`],
+            },
+            actions: {
+              openRoom: `/deliberation/${roomId}`,
+              openSheet: `/sheets/delib:${roomId}`,
+            },
+          });
+        } else if (it.kind === 'argument') {
+          const r = await fetch(`${origin}/api/arguments/${it.id}?view=diagram`, { cache: 'no-store' });
+          if (!r.ok) throw new Error(`argument HTTP ${r.status}`);
+          const diag = await r.json();
+          results.push({
+            kind: 'argument',
+            id: it.id,
+            live: true,
+            pinnedAt: null,
+            lens: it.lens ?? 'diagram',
+            data: { diagram: diag },
+            provenance: { source: 'argument', endpoints: [`GET /api/arguments/${it.id}?view=diagram`] },
+            actions: { openArgument: `/api/arguments/${it.id}?view=diagram` },
+          });
+        } else if (it.kind === 'room_summary') {
+          const qs = new URLSearchParams({
+            mode: body.eval.mode,
+            imports: body.eval.imports,
+          });
+          if (body.eval.tau != null) qs.set('confidence', String(body.eval.tau));
+          const ev = await fetch(`${origin}/api/deliberations/${it.id}/evidential?${qs}`, { cache: 'no-store' });
+          if (!ev.ok) throw new Error(`evidential HTTP ${ev.status}`);
+          const ej = await ev.json();
+          const claims = (ej?.nodes || [])
+            .sort((a: any, b: any) => (b.score ?? 0) - (a.score ?? 0))
+            .slice(0, (it as any).limit ?? 5)
+            .map((n: any) => ({
+              id: n.id, text: n.text, score: n.score,
+              bel: ej?.dsSupport?.[n.id]?.bel ?? n.score,
+              pl:  ej?.dsSupport?.[n.id]?.pl  ?? n.score,
+              diagramId: n.diagramId ?? null,
+            }));
+          results.push({
+            kind: 'room_summary',
+            id: it.id,
+            live: true,
+            pinnedAt: null,
+            lens: it.lens ?? 'top_claims',
+            data: { claims },
+            provenance: { source: 'deliberation', endpoints: [`GET /api/deliberations/${it.id}/evidential?${qs}`] },
+            actions: { openRoom: `/deliberation/${it.id}` },
+          });
+        } else if (it.kind === 'sheet') {
+          const r = await fetch(`${origin}/api/sheets/${it.id}`, { cache: 'no-store' });
+          if (!r.ok) throw new Error(`sheet HTTP ${r.status}`);
+          const s = await r.json();
+          results.push({
+            kind: 'sheet',
+            id: it.id,
+            live: true,
+            pinnedAt: null,
+            lens: it.lens ?? 'nodes',
+            data: s,
+            provenance: { source: 'sheet', endpoints: [`GET /api/sheets/${it.id}`] },
+            actions: { openSheet: `/sheets/${it.id}` },
+          });
+        } else if (it.kind === 'transport') {
+          const mapRes = await fetch(`${origin}/api/room-functor/map?from=${it.fromId}&to=${it.toId}`, { cache: 'no-store' });
+          if (!mapRes.ok) throw new Error(`map HTTP ${mapRes.status}`);
+          const map = await mapRes.json();
+          const claimMap = (map?.mapping?.claimMapJson ?? {}) as Record<string, string>;
+          const includeProposals = (it.lens ?? 'map') === 'map_proposals';
+          let proposals: any[] = [];
+          if (includeProposals) {
+            const prev = await fetch(`${origin}/api/room-functor/preview`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ fromId: it.fromId, toId: it.toId, claimMap }),
+            });
+            if (prev.ok) {
+              const pj = await prev.json();
+              proposals = Array.isArray(pj?.proposals) ? pj.proposals : [];
+            }
+          }
+          results.push({
+            kind: 'transport',
+            fromId: it.fromId,
+            toId: it.toId,
+            live: true,
+            pinnedAt: null,
+            lens: it.lens ?? 'map',
+            data: { claimMap, proposals },
+            provenance: { source: 'room_functor', endpoints: ['/api/room-functor/map', ...(includeProposals ? ['/api/room-functor/preview'] : [])] },
+            actions: { openTransport: `/functor/transport?from=${it.fromId}&to=${it.toId}` },
+          });
+        }
+      } catch (e: any) {
+        results.push(null);
+        errors.push({ index: i, code: 'resolve_failed', message: e?.message, ref: it });
+      }
+    }
+
+    // Live cache; pinned will be immutable later
+    return NextResponse.json({ ok: true, items: results, errors }, { headers: { 'Cache-Control': 'private, max-age=30' } });
+  } catch (err) {
+    return fail(err);
+  }
+}
+```
+
+**What you get right now**
+
+* Mixed batch hydration (`claim`, `argument`, `room_summary`, `sheet`, `transport`)
+* Normalized envelopes with `provenance` + `actions`
+* Basic auth: caller must be in the space (≥ reader)
+* Unauthorized or missing items surface in `errors[]` without failing the whole batch
+
+---
+
+## 3) Export (Markdown now; PDF stub) — `app/api/kb/pages/[id]/export/route.ts`
+
+````ts
+// app/api/kb/pages/[id]/export/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/prismaclient';
+import { requireKbRole, fail } from '@/lib/kb/withSpaceAuth';
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+function fm(s: Record<string, any>) {
+  const yaml = Object.entries(s)
+    .map(([k, v]) => `${k}: ${typeof v === 'string' ? JSON.stringify(v) : JSON.stringify(v)}`)
+    .join('\n');
+  return `---\n${yaml}\n---\n`;
+}
+
+export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+  try {
+    const url = new URL(req.url);
+    const as = (url.searchParams.get('as') ?? 'md').toLowerCase();
+    const at = url.searchParams.get('at'); // snapshotId or ISO; Phase‑A: ignore ISO pinning, ship live+snapshot
+    const pageId = params.id;
+
+    // Auth
+    await requireKbRole(req, { pageId, need: 'reader' });
+
+    // Page + blocks + (optional) snapshot
+    const page = await prisma.kbPage.findUnique({
+      where: { id: pageId },
+      select: { id: true, title: true, summary: true, tags: true, spaceId: true },
+    });
+    if (!page) return NextResponse.json({ ok: false, error: 'not_found' }, { status: 404 });
+
+    let blocks = await prisma.kbBlock.findMany({
+      where: { pageId },
+      orderBy: { order: 'asc' },
+      select: { id: true, kind: true, data: true, pinnedJson: true },
+    });
+
+    let snapshotMeta: any = null;
+    if (at && !/^\d{4}-\d{2}-\d{2}T/.test(at)) {
+      // snapshot id path
+      const snap = await prisma.kbSnapshot.findUnique({
+        where: { id: at },
+        select: { id: true, createdAt: true, manifestJson: true, pageId: true },
+      });
+      if (!snap || snap.pageId !== pageId) {
+        return NextResponse.json({ ok: false, error: 'snapshot_not_found' }, { status: 404 });
+      }
+      snapshotMeta = { id: snap.id, createdAt: snap.createdAt };
+      // Replace live blocks with pinned where present
+      const byId = new Map(blocks.map((b) => [b.id, b]));
+      const manifest = (snap.manifestJson ?? {}) as Record<string, any>;
+      for (const bid of Object.keys(manifest)) {
+        const live = byId.get(bid);
+        if (live) live.pinnedJson = manifest[bid];
+      }
+    }
+
+    if (as === 'pdf') {
+      // Phase‑A: ship Markdown first; PDF will render the same HTML via a headless renderer in Phase‑B.
+      return NextResponse.json({ ok: false, error: 'pdf_not_implemented' }, { status: 501 });
+    }
+
+    // Build Markdown
+    const header = fm({
+      title: page.title ?? `KB Page ${page.id}`,
+      tags: page.tags ?? [],
+      spaceId: page.spaceId,
+      exportedAt: new Date().toISOString(),
+      ...(snapshotMeta ? { snapshotId: snapshotMeta.id, snapshotAt: snapshotMeta.createdAt } : {}),
+    });
+
+    // Manifests for reproducibility
+    const manifest = Object.fromEntries(
+      blocks.map((b) => [b.id, b.pinnedJson ? b.pinnedJson : null])
+    );
+    const manifestFence = [
+      '```json x-kb-manifest',
+      JSON.stringify(manifest, null, 2),
+      '```',
+      '',
+    ].join('\n');
+
+    const lines: string[] = [];
+    lines.push(`# ${page.title ?? `KB Page ${page.id}`}`);
+    if (page.summary) lines.push(`> ${page.summary}\n`);
+
+    for (const b of blocks) {
+      const pinned = !!b.pinnedJson;
+      const k = (b.kind as string).toLowerCase();
+      if (k === 'text') {
+        lines.push(String(b.data ?? ''));
+      } else {
+        // Compact serialization for structured blocks
+        lines.push(`\n## Block: ${k} ${pinned ? '📌 (pinned)' : '• live'}`);
+        lines.push('```json');
+        lines.push(JSON.stringify({ id: b.id, kind: b.kind, data: b.data, pinned: b.pinnedJson ?? null }, null, 2));
+        lines.push('```');
+      }
+    }
+
+    const md = [header, manifestFence, lines.join('\n')].join('\n');
+    return new NextResponse(md, {
+      headers: {
+        'Content-Type': 'text/markdown; charset=utf-8',
+        'Cache-Control': 'private, no-store',
+        'Content-Disposition': `attachment; filename="kb-${page.id}.md"`,
+      },
+    });
+  } catch (err) {
+    return fail(err);
+  }
+}
+````
+
+**What you get right now**
+
+* `GET /api/kb/pages/:id/export?as=md` streams a Markdown file with:
+
+  * YAML front‑matter
+  * an `x-kb-manifest` fenced block (per‑block pinned info)
+  * simple sections for each block
+* `as=pdf` returns 501 (stub; wire your headless renderer when ready)
+
+---
+
+## 4) Provenance chip (shared UI) — `components/kb/ProvenanceChip.tsx`
+
+```tsx
+// components/kb/ProvenanceChip.tsx
+'use client';
+import * as React from 'react';
+import clsx from 'clsx';
+
+export function ProvenanceChip({
+  source,
+  updated,
+  mode,
+  tau,
+  href,
+  pinnedAt,
+  className,
+}: {
+  source: string;          // e.g., "deliberation", "argument", "sheet", "room_functor"
+  updated?: string | null; // ISO
+  mode?: 'product'|'min'|'ds';
+  tau?: number | null;
+  href?: string;
+  pinnedAt?: string | null;
+  className?: string;
+}) {
+  const parts = [
+    source,
+    ...(mode ? [mode] : []),
+    ...(tau!=null ? [`τ=${tau}`] : []),
+    ...(pinnedAt ? [`pinned ${new Date(pinnedAt).toLocaleDateString()}`] : []),
+    ...(updated ? [`updated ${new Date(updated).toLocaleDateString()}`] : []),
+  ].filter(Boolean);
+
+  const inner = (
+    <span
+      className={clsx(
+        'inline-flex items-center gap-1 text-[11px] px-1.5 py-[2px] rounded border bg-white/70',
+        pinnedAt ? 'border-amber-300 text-amber-700' : 'border-slate-200 text-slate-700',
+        className
+      )}
+    >
+      <span className="inline-block w-1.5 h-1.5 rounded-full bg-slate-500" />
+      {parts.join(' • ')}
+    </span>
+  );
+
+  return href ? (
+    <a href={href} target="_blank" rel="noopener noreferrer">
+      {inner}
+    </a>
+  ) : inner;
+}
+```
+
+---
+
+## 5) Minimal client renderers (consume `/api/kb/transclude` envelopes)
+
+> These are intentionally tiny so you can drop them into your KB Page viewer immediately. They expect the normalized envelopes the transclusion endpoint returns.
+
+```tsx
+// components/kb/blocks/ClaimBlock.tsx
+'use client';
+import * as React from 'react';
+import { ProvenanceChip } from '../ProvenanceChip';
+
+export function ClaimBlock({ env }: { env: any }) {
+  if (!env?.data) return null;
+  const { text, bel, pl, top, roomId } = env.data;
+  return (
+    <div className="rounded border bg-white/70 p-3">
+      <div className="text-sm font-medium mb-1">{text || '—'}</div>
+      <div className="text-[11px] text-slate-700">Bel {Math.round((bel ?? 0)*100)}% • Pl {Math.round((pl ?? bel ?? 0)*100)}%</div>
+      {Array.isArray(top) && top.length > 0 && (
+        <ul className="mt-1 text-[12px] text-slate-700 list-disc ml-5">
+          {top.slice(0,3).map((t: any) => (
+            <li key={t.argumentId}>arg {t.argumentId.slice(0,8)}… • {Math.round((t.score ?? 0)*100)}%</li>
+          ))}
+        </ul>
+      )}
+      <div className="mt-2">
+        <ProvenanceChip
+          source="deliberation"
+          href={`/deliberation/${roomId}`}
+          mode={undefined}
+          tau={undefined}
+        />
+      </div>
+    </div>
+  );
+}
+```
+
+```tsx
+// components/kb/blocks/ArgumentBlock.tsx
+'use client';
+import * as React from 'react';
+import { ProvenanceChip } from '../ProvenanceChip';
+
+export function ArgumentBlock({ env }: { env: any }) {
+  const diag = env?.data?.diagram;
+  return (
+    <div className="rounded border bg-white/70 p-3">
+      <div className="text-sm font-semibold mb-1">Argument</div>
+      <pre className="text-[11px] bg-slate-50 p-2 rounded overflow-auto">{JSON.stringify(diag, null, 2)}</pre>
+      <div className="mt-2">
+        <ProvenanceChip source="argument" href={env?.actions?.openArgument} />
+      </div>
+    </div>
+  );
+}
+```
+
+```tsx
+// components/kb/blocks/RoomSummaryBlock.tsx
+'use client';
+import * as React from 'react';
+import { ProvenanceChip } from '../ProvenanceChip';
+
+export function RoomSummaryBlock({ env }: { env: any }) {
+  const claims = env?.data?.claims ?? [];
+  return (
+    <div className="rounded border bg-white/70 p-3">
+      <div className="text-sm font-semibold mb-2">Room summary</div>
+      <ul className="space-y-1">
+        {claims.map((c: any) => (
+          <li key={c.id} className="text-[12px]">
+            <span className="font-medium">{c.text}</span>{' '}
+            <span className="text-slate-600">• {Math.round((c.bel ?? c.score ?? 0)*100)}%</span>
+          </li>
+        ))}
+      </ul>
+      <div className="mt-2">
+        <ProvenanceChip source="deliberation" href={env?.actions?.openRoom} />
+      </div>
+    </div>
+  );
+}
+```
+
+```tsx
+// components/kb/blocks/SheetBlock.tsx
+'use client';
+import * as React from 'react';
+import { ProvenanceChip } from '../ProvenanceChip';
+
+export function SheetBlock({ env }: { env: any }) {
+  const s = env?.data;
+  return (
+    <div className="rounded border bg-white/70 p-3">
+      <div className="text-sm font-semibold mb-1">{s?.title ?? 'Sheet'}</div>
+      <div className="text-[11px] text-slate-600">nodes {s?.nodes?.length ?? 0}</div>
+      <div className="mt-2">
+        <ProvenanceChip source="sheet" href={env?.actions?.openSheet} />
+      </div>
+    </div>
+  );
+}
+```
+
+```tsx
+// components/kb/blocks/TransportBlock.tsx
+'use client';
+import * as React from 'react';
+import { ProvenanceChip } from '../ProvenanceChip';
+
+export function TransportBlock({ env }: { env: any }) {
+  const map = env?.data?.claimMap ?? {};
+  const proposals = env?.data?.proposals ?? [];
+  return (
+    <div className="rounded border bg-white/70 p-3">
+      <div className="text-sm font-semibold mb-2">Room Functor map</div>
+      <ul className="text-[12px] space-y-1">
+        {Object.keys(map).slice(0,20).map((k) => (
+          <li key={k}><code>{k.slice(0,8)}…</code> → <code>{map[k].slice(0,8)}…</code></li>
+        ))}
+      </ul>
+      {proposals.length > 0 && (
+        <>
+          <div className="mt-2 text-[12px] font-medium">Proposals</div>
+          <ul className="text-[12px] space-y-1">
+            {proposals.slice(0,5).map((p: any) => (
+              <li key={p.fingerprint}>{p.previewText ?? '(no text)'} • {Math.round((p.base ?? 0.55)*100)}%</li>
+            ))}
+          </ul>
+        </>
+      )}
+      <div className="mt-2">
+        <ProvenanceChip source="room_functor" href={env?.actions?.openTransport} />
+      </div>
+    </div>
+  );
+}
+```
+
+---
+
+## 6) How to test quickly
+
+1. **Permissions**
+
+   * Call `POST /api/kb/transclude` with a `spaceId` where your user is a member (or set `x-user-id` header to the owner).
+   * Include a mixed `items[]` batch: a claim id (from any deliberation), an argument id, a room summary (deliberation id), a sheet id, and a transport pair.
+   * Confirm the response has `items[]` envelopes and `errors[]` is empty (or only contains truly forbidden items).
+
+2. **Renderer sanity**
+
+   * In a simple page, fetch `/api/kb/transclude` and pass each envelope to the corresponding block component above. You should see usable previews + provenance chips.
+
+3. **Export**
+
+   * Hit `GET /api/kb/pages/:id/export?as=md`.
+   * Open the downloaded `.md`: verify front‑matter, manifest block, and that structured blocks are serialized in JSON fences.
+
+---
+
+## 7) Notes & next steps
+
+* **Pinning & snapshots.** The transclusion handler returns `live: true` today; when you wire snapshots, store the resolved payload hash in the page’s `manifest` and return `pinnedAt` per block.
+* **PDF.** When you’re ready, render the same page HTML server‑side (your KB Page view) and send as PDF. The export route is already the right place to hang it.
+* **Auth integration.** Replace `getUserId` with your real session lookup; the rest of the guard logic stays the same.
+* **Caching.** Live calls are `private, max-age=30`. Pinned will be immutable (add `ETag` and `Cache-Control: immutable`).
+
+If you’d like, I can wire a **one‑file KB Page viewer** that: loads a page, calls `/api/kb/transclude` for its blocks, and renders the corresponding block components with the provenance chips—so the whole experience is end‑to‑end in one PR.
+
+
+--Current Progress: # Mesh / Agora — Working Memory (Plexus, Functor, Knowledge Base)
+
+**Last updated:** 2025-10-05T20:00:27Z
+
+This file captures the salient context so any thread can pick up development without reloading the entire conversation.
+
+---
+
+## 1) Current state (shipped & tested)
+
+### Plexus
+- **Graph view**: radial layout, zoom/pan; node acceptance donuts (accepted/rejected/undecided). τ‑gated violet ring driven by `/api/deliberations/:id/graph?semantics=preferred&mode=&confidence=`. Zoom runaway bug fixed by preventing nested transforms and normalizing wheel delta.
+- **Board view**: grid of room cards with donuts, tags, edge‑type chips, search/order. **Link‑mode** (drag from card to card) to create `xref`/`stack_ref`/`imports` or **transport**; transport opens in a **new tab** via a centralized `openTransport()` helper.
+- **Matrix view**: adjacency heatmap that scales to hundreds of rooms; per‑kind stacked micro‑bars, hover highlights rows/cols.
+
+### Transport / Room Functor
+- Functor page renders **claim maps** and **proposed imports**; **open in new tab** preserved across CTA and drag‑to‑transport in Board.
+- Virtual vs materialized imports supported; provenance stored on `ArgumentSupport.provenanceJson` and in `ArgumentImport` rows.
+
+### Evidential (DS/Product/Min)
+- `/api/deliberations/:id/evidential?mode=product|min|ds&imports=` returns per‑claim support plus hom‑set members.
+- **DS first cut**: `pl = bel` (no conflict mass yet); plan to reduce `pl` by mapped attackers (¬φ) via functor/negation mappings.
+
+### Knowledge Base (KB) — Phase A spine
+- Prisma models for spaces, pages, blocks, snapshots, members.
+- **Create flow**: “New KB Page” CTA → loader → `POST /api/kb/pages` (creates in **personal space**) → redirect to editor route.
+- **Dashboard** for user’s KB pages.
+- **Transclusion normalizer**: `POST /api/kb/transclude` batches mixed items (claim/argument/room_summary/sheet/transport) and returns normalized envelopes w/ provenance and actions.
+- Page `GET/PATCH` route wired; permissions guard (withSpaceAuth) ready to apply across KB APIs.
+- Early provenance chip + “open in context” affordances in place.
+
+---
+
+## 2) Data model (high‑level)
+
+Key models added/confirmed:
+
+- **ArgumentDiagram**, **Statement**, **Inference**, **InferencePremise** — 2‑level argument detail (diagram + inferences).
+- **EvidenceNode / EvidenceLink** — first‑class evidence with reliability and selectors; links can target argument diagrams.
+- **StackReference** — edges when stacks reference/attach/cite other rooms.
+- **ArgumentImport** — lineage when arguments move across rooms (from/to deliberations, claim snapshot ids, baseAtImport, fingerprint).
+- **SharedAuthorRoomEdge** — light‑weight ties for shared authorships.
+- **ArgumentSupport** — evidential strength per (claim, argument, mode); includes `provenanceJson` and `base` backfill.
+- **AssumptionUse** — optional per‑argument assumptions + weights.
+- **AgoraRoom** — container with visibility and sheets; linked to deliberations.
+- **RoomFunctor** — persisted claim maps (A→B) and notes.
+
+KB models:
+
+- **KbSpace, KbSpaceMember** (roles: owner/editor/commenter/reader).
+- **KbPage** (slug/title/summary/tags/frontmatter; blocks + snapshots).
+- **KbBlock** (type, live vs pinned, `dataJson`, optional `pinnedJson`, citations).
+- **KbSnapshot** (page manifest for “as‑of” publishing).
+
+---
+
+## 3) APIs & routes (working set)
+
+- **Evidential:** `GET /api/deliberations/:id/evidential?mode=&imports=&confidence=`.
+- **Graph:** `GET /api/deliberations/:id/graph?semantics=preferred&mode=&confidence=`.
+- **Room Functor:** `GET /api/room-functor/map?from=&to=`, `POST /api/room-functor/preview`, `POST /api/room-functor/apply`.
+- **Plexus network:** `GET /api/agora/network?scope=`.
+- **KB:**  
+  - Create page: `POST /api/kb/pages` (auto‑create personal space + member if missing).  
+  - Page meta: `GET /api/kb/pages/:id`, `PATCH /api/kb/pages/:id`.  
+  - Transclusion: `POST /api/kb/transclude` (batch normalize).  
+  - (Planned) Export: `GET /api/kb/pages/:id/export?as=md|pdf&at=`.  
+  - (Planned) Snapshots: `POST /api/kb/pages/:id/snapshots`, `GET /api/kb/pages/:id/snapshots/:snapshotId`.
+
+---
+
+## 4) Front‑end components
+
+- **PlexusGraph**: radial canvas with edge toggles, zoom/pan, labels on hover.  
+- **PlexusBoard**: card grid, search/order, tag filters, link‑mode (drag), right‑click menu (open/sheet/copy link/set as source/transport here).  
+- **PlexusMatrix**: canvas heatmap with stacked bars per edge kind.  
+- **KB**: New‑page loader (`/kb/new`), personal KB dashboard, Page viewer/editor shell that calls `/api/kb/transclude` and renders block components with provenance chips.
+
+---
+
+## 5) Design principles to preserve
+
+- Narrative first; graphs as supporting context.  
+- Live **and** citable: blocks default live, can be pinned; page snapshots freeze an “as‑of” view for publishing.  
+- Provenance everywhere: each structured block has a chip + “open in context”.  
+- Composable lenses per block (claim: statement only vs bel/pl vs top‑3; argument: diagram vs bullets; etc.).
+
+---
+
+## 6) Roadmap alignment
+
+- **Phase A** (now): Spaces/Pages CRUD with RBAC; editor with core blocks; live vs pinned; snapshots; normalized transclusions; basic search; provenance chips; exports (MD/PDF).  
+- **Phase B**: Transport block (map + proposals + optional apply), canonical claim families & Claim Set block, DS plausibility with ¬φ conflict, “Where used?” back‑refs.  
+- **Phase C**: Draft/Review/Publish, suggest‑mode/comments, visibility per block, update notifications.  
+- **Phase D**: Dual search (page + entities), facets, recommendations, used‑by graphs.  
+- **Phase E**: Advanced lenses & exports, print‑ready layouts, concept glossary, cohort Graph/Matrix tiles.
+
+---
+
+## 7) Known fixes & gotchas captured
+
+- **Plexus zoom runaway** — normalized wheel delta; guard against nested transforms.  
+- **Functor page** — claim map displays ids; optional enhancement to include **texts** inline.  
+- **Board drag→transport** — always opens new tab (`openTransport`).  
+- **KB PATCH 404** — ensure route authorizes via space membership; avoid mismatched fields (e.g., `updatedById` if not in schema).  
+- **Prisma schema alignment** — `ArgumentSupport.provenanceJson` present; `ArgumentImport` indexes for fast “virtual imports” queries.
+
+---
+
+## 8) Next tasks (bite‑size)
+
+1) **withSpaceAuth** guard on all KB routes (GET/PATCH/POST) and snapshot/export.  
+2) **KB Page viewer** with hydrating blocks via `/api/kb/transclude` (claim/argument/sheet/room_summary/transport).  
+3) **Export**: Markdown first (with manifest), then PDF.  
+4) **Transport Block**: map + proposals, show texts + ids; “Open full transport” in new tab.  
+5) **DS plausibility**: incorporate mapped attackers (¬φ) to reduce `pl` below `bel` when conflicts exist.  
+6) **Search**: Page index with tags + “updated” sort; stage entity search later.
+
+---
+
+## 9) Suggested file/dir layout (not authoritative)
+
+```
+/app
+  /(kb)/kb
+    /new/page.tsx                # loader → create personal page → redirect
+    /dashboard/page.tsx         # personal dashboard
+    /pages/[id]/page.tsx        # viewer/editor shell
+  /api/kb
+    /pages/route.ts             # POST create
+    /pages/[id]/route.ts        # GET/PATCH meta
+    /transclude/route.ts        # normalize & batch hydrate
+    /pages/[id]/export/route.ts # (planned) exports
+    /pages/[id]/snapshots/...   # (planned) snapshots
+/components/kb
+  KbPageViewer.tsx              # renders blocks + provenance chips
+  KbBlocks/*                    # Claim/Argument/Room/Sheet/Transport/Text/Image/Link
+/lib/kb
+  withSpaceAuth.ts              # shared guard
+  transclude.ts                 # client helper
+```
+
+---
+
+## 10) Quick glossary
+
+- **Room / Deliberation**: a debate context.  
+- **Claim φ**: statement being assessed.  
+- **Argument**: textual or diagrammed support; may have premises and assumptions.  
+- **Support (hom(I, φ))**: family of arguments supporting φ.  
+- **Transport (Room Functor)**: A→B mapping of claims/arguments between rooms.  
+- **DS**: Dempster–Shafer variant — we currently return `bel` and `pl` equal; conflict‑aware `pl` reduction is upcoming.
+
+---
+
+This page is intentionally concise; expand or adjust as the codebase evolves.
+
