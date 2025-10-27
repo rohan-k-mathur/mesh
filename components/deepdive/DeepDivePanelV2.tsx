@@ -49,6 +49,9 @@ import { ConfidenceProvider } from "../agora/useConfidence";
 import ClaimMiniMap from "../claims/ClaimMiniMap";
 import { PropositionComposerPro } from "../propositions/PropositionComposerPro";
 import IssuesList from "../issues/IssuesList";
+import { ThesisComposer } from "../thesis/ThesisComposer";
+import { ThesisRenderer } from "../thesis/ThesisRenderer";
+import { ThesisListView } from "../thesis/ThesisListView";
 
 const fetcher = (u: string) => fetch(u, { cache: 'no-store' }).then(r => r.json());
 
@@ -356,7 +359,7 @@ export default function DeepDivePanel({
   const [sel, setSel] = useState<Selection | null>(null);
   const [pending, setPending] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
-  const [tab, setTab] = useState<'debate' | 'models' | 'ludics' | 'issues'>('debate');
+  const [tab, setTab] = useState<'debate' | 'models' | 'ludics' | 'issues' | 'cq-review' | 'thesis'>('debate');
   const [confMode, setConfMode] = React.useState<'product' | 'min'>('product');
   const [rule, setRule] = useState<"utilitarian" | "harmonic" | "maxcov">("utilitarian");
   const { user } = useAuth();
@@ -392,6 +395,12 @@ export default function DeepDivePanel({
 const [issuesOpen, setIssuesOpen] = useState(false);
 const [composerOpen, setComposerOpen] = useState(false);
 const [issueTargetId, setIssueTargetId] = useState<string | null>(null);
+
+  // Thesis state
+  const [thesisComposerOpen, setThesisComposerOpen] = useState(false);
+  const [selectedThesisId, setSelectedThesisId] = useState<string | null>(null);
+  const [thesisViewerOpen, setThesisViewerOpen] = useState(false);
+  const [viewedThesisId, setViewedThesisId] = useState<string | null>(null);
 
 
   // Load sheet state from localStorage
@@ -1356,12 +1365,13 @@ const {
 
         {/* Main Tabs */}
         <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
-          <TabsList className="w-full grid-cols-5">
+          <TabsList className="w-full grid-cols-6">
             <TabsTrigger value="debate">Debate</TabsTrigger>
             <TabsTrigger value="models">Models</TabsTrigger>
             <TabsTrigger value="ludics">Ludics</TabsTrigger>
             <TabsTrigger value="issues">Issues</TabsTrigger>
             <TabsTrigger value="cq-review">CQ Review</TabsTrigger>
+            <TabsTrigger value="thesis">Thesis</TabsTrigger>
           </TabsList>
 
           {/* DEBATE TAB */}
@@ -1696,6 +1706,77 @@ const {
                 For now, review responses within individual claims and arguments in the Debate tab.
               </p>
             </div>
+          </TabsContent>
+
+          {/* THESIS TAB */}
+          <TabsContent value="thesis" className="w-full min-w-0 mt-4 space-y-4">
+            <SectionCard
+              title="Thesis Documents"
+              action={
+                <button
+                  className="px-3 py-2 btnv2 text-xs bg-teal-100 hover:bg-teal-200 rounded-lg"
+                  onClick={() => {
+                    setSelectedThesisId(null);
+                    setThesisComposerOpen(true);
+                  }}
+                >
+                  Create Thesis
+                </button>
+              }
+            >
+              <div className="text-sm text-neutral-600 mb-3">
+                Build structured legal-style arguments that compose claims and arguments into cohesive theses
+              </div>
+              <ThesisListView
+                deliberationId={deliberationId}
+                onEdit={(id) => {
+                  setSelectedThesisId(id);
+                  setThesisComposerOpen(true);
+                }}
+                onView={(id) => {
+                  setViewedThesisId(id);
+                  setThesisViewerOpen(true);
+                }}
+              />
+            </SectionCard>
+
+            {/* Thesis Composer Modal */}
+            {thesisComposerOpen && (
+              <ThesisComposer
+                deliberationId={deliberationId}
+                authorId={authorId || ''}
+                thesisId={selectedThesisId || undefined}
+                onClose={() => {
+                  setThesisComposerOpen(false);
+                  setSelectedThesisId(null);
+                  // Refresh thesis list
+                  swrMutate(`/api/thesis?deliberationId=${deliberationId}`);
+                }}
+              />
+            )}
+
+            {/* Thesis Viewer Modal */}
+            {thesisViewerOpen && viewedThesisId && (
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto m-4">
+                  <div className="sticky top-0 bg-white border-b p-4 flex justify-between items-center">
+                    <h2 className="text-lg font-semibold">Thesis View</h2>
+                    <button
+                      onClick={() => {
+                        setThesisViewerOpen(false);
+                        setViewedThesisId(null);
+                      }}
+                      className="px-3 py-1 text-sm rounded hover:bg-slate-100"
+                    >
+                      Close
+                    </button>
+                  </div>
+                  <div className="p-6">
+                    <ThesisRenderer thesisId={viewedThesisId} />
+                  </div>
+                </div>
+              </div>
+            )}
           </TabsContent>
         </Tabs>
       </div>

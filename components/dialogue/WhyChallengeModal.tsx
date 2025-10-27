@@ -116,7 +116,7 @@ export function WhyChallengeModal({
                 setError(null);
               }}
               placeholder="What evidence supports this claim?"
-              className="min-h-[100px] text-sm resize-none"
+              className="min-h-[100px] articlesearchfield text-sm resize-none"
               autoFocus
               onKeyDown={(e) => {
                 if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {

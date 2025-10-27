@@ -76,3 +76,8 @@ export async function getCurrentUserId(): Promise<bigint | null> {
   // prisma expects BigInt; your `userId` is already the DB pk
   return u?.userId ? BigInt(u.userId) : null;
 }
+
+export async function getCurrentUserAuthId(): Promise<string | null> {
+  const u = await getUserFromCookies();
+  return u?.uid || null;
+}

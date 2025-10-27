@@ -163,8 +163,8 @@ export function DialogueInspector({
         </div>
         
         {!targetId && (
-          <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-            <p className="text-sm text-amber-800">
+          <div className="mt-3 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-lg">
+            <p className="text-sm text-emerald-800">
               👆 Click <strong>&ldquo;Select Claim&rdquo;</strong> to choose a claim and view its dialogue state
             </p>
           </div>

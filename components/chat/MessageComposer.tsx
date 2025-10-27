@@ -579,15 +579,16 @@ const { sendTyping } = useConversationRealtime(
               </Dialog> */}
 
               <Dialog open={showSheaf} onOpenChange={setShowSheaf}>
-  <DialogContent className="p-3 sheaf-shadow max-w-3xl w-full bg-white/10 rounded-xl  border-[2px] border-indigo-300
+  <DialogContent className="p-3 sheaf-shadow max-w-3xl w-full bg-white/30 rounded-xl  border-[2px] border-indigo-300
    backdrop-blur-lg">
     {/* The column wrapper needs an explicit height and min-h-0 so the middle can scroll */}
-    <div className="flex h-[90vh] max-h-[90vh] flex-col min-h-0  bg-transparent
+    <div className="flex  max-h-[90vh] flex-col min-h-0  bg-transparent
  rounded-xl border-none custom-scrollbar">
       {/* Header (not scrollable) */}
       <div className="shrink-0 p-4">
         <DialogHeader className="p-0  ">
-          <DialogTitle className="text-xl text-slate-100 px-2 py-2 tracking-wide  ">Create Stratified Message</DialogTitle>
+          <DialogTitle className="text-xl text-slate-800 px-2 font-semibold
+          py-2 tracking-wide  ">Create Stratified Message</DialogTitle>
         </DialogHeader>
         <hr className="border-white/40 "></hr>
       </div>

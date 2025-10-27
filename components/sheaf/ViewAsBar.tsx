@@ -58,7 +58,7 @@ export function ViewAsBar(props: {
   }, [who, JSON.stringify(facets)]);
 
   return (
-    <div className="rounded-lg  bg-transparent text-indigo-300 px-3 py-0 text-sm flex items-center gap-2">
+    <div className="rounded-lg  bg-transparent text-indigo-800 px-3 py-0 text-sm flex items-center gap-2">
       <span className="font-medium">Preview as:</span>
       <select
         className="rounded-md text-indigo-900 text-xs lockbutton  px-3 py-1 bg-white/80 tracking-wide focus:border-none focus:outline-none"

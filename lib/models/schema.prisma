@@ -5337,19 +5337,26 @@ enum GlossaryTermStatus {
 // Multi-layered case building system for legal briefs, policy cases, etc.
 // Named "Thesis" to avoid conflict with existing Brief model
 
-/// Main thesis document - container for multi-pronged argumentation
+/// Main thesis document - composed essay/brief with inserted structured objects
 model Thesis {
   id    String @id @default(cuid())
   slug  String @unique
   title String
 
-  // Core structure
-  thesisClaimId String
-  thesisClaim   Claim  @relation("ThesisMainClaim", fields: [thesisClaimId], references: [id], onDelete: Restrict)
+  // Rich text document content (TipTap JSON)
+  // Contains composed essay with embedded claims, arguments, citations, etc.
+  content Json? // Main document body
 
-  // Multi-pronged structure
-  prongs   ThesisProng[] // Each prong is a line of support
-  sections ThesisSection[] // Prose sections (intro, conclusion, etc.)
+  // Optional abstract/summary for metadata
+  abstract String? @db.Text
+
+  // Optional main claim reference (not required - user composes freely)
+  thesisClaimId String?
+  thesisClaim   Claim?  @relation("ThesisMainClaim", fields: [thesisClaimId], references: [id], onDelete: SetNull)
+
+  // Inserted structured objects (referenced within content)
+  prongs   ThesisProng[] // Lines of reasoning inserted in document
+  sections ThesisSection[] // Prose sections for organization
 
   // Context
   deliberationId String?
@@ -5365,7 +5372,6 @@ model Thesis {
 
   // Metadata
   template ThesisTemplate @default(GENERAL)
-  summary  String?        @db.Text
   meta     Json?
 
   // Timestamps

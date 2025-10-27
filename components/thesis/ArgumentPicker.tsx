@@ -23,9 +23,9 @@ export function ArgumentPicker({
     fetcher
   );
 
-  const arguments = data?.arguments ?? [];
+  const argumentsList = data?.arguments ?? [];
 
-  const filteredArguments = arguments.filter((arg: any) =>
+  const filteredArguments = argumentsList.filter((arg: any) =>
     arg.text?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 

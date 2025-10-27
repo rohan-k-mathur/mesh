@@ -235,7 +235,7 @@ export function LegalMoveChips({
   ].join(' ');
 
   const btnClass = (m: Move) => [
-    'px-2 py-1 rounded-md text-xs menuv2--lite transition',
+    'px-2 py-1 rounded-md text-xs btnv2--ghost border bg-white transition',
     m.kind === 'CLOSE'
       ? 'border-indigo-300 text-indigo-800 bg-indigo-50 hover:bg-indigo-100 font-semibold'
       : m.kind === 'GROUNDS'
@@ -295,7 +295,7 @@ export function LegalMoveChips({
         {showCQButton && cqStats && cqStats.total > 0 && (
           <button
             onClick={onViewCQs}
-            className="px-2 py-1 rounded text-xs border border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100 transition flex items-center gap-1"
+            className="px-2 py-1 rounded-md text-xs border border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition flex items-center gap-1"
             title={`View ${cqStats.total} critical questions (${cqStats.satisfied} answered)`}
           >
             <span>View CQs</span>

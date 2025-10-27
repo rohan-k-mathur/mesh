@@ -2,15 +2,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prismaclient";
-import { getCurrentUserId } from "@/lib/serverutils";
+import { getCurrentUserAuthId } from "@/lib/serverutils";
 
 const NO_STORE = { headers: { "Cache-Control": "no-store" } } as const;
 
 const UpdateThesisSchema = z.object({
-  title: z.string().min(3).optional(),
+  title: z.string().min(1).optional(),
   thesisClaimId: z.string().optional(),
   abstract: z.string().optional(),
   template: z.enum(["LEGAL_DEFENSE", "POLICY_CASE", "ACADEMIC_THESIS", "GENERAL"]).optional(),
+  content: z.any().optional(), // TipTap JSONContent
 });
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
@@ -96,7 +97,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const authorId = await getCurrentUserId();
+    const authorId = await getCurrentUserAuthId();
     if (!authorId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401, ...NO_STORE });
     }
@@ -117,7 +118,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       return NextResponse.json({ error: "Thesis not found" }, { status: 404, ...NO_STORE });
     }
 
-    if (existing.authorId !== String(authorId)) {
+    if (existing.authorId !== authorId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403, ...NO_STORE });
     }
 
@@ -145,7 +146,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const authorId = await getCurrentUserId();
+    const authorId = await getCurrentUserAuthId();
     if (!authorId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401, ...NO_STORE });
     }
@@ -160,7 +161,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
       return NextResponse.json({ error: "Thesis not found" }, { status: 404, ...NO_STORE });
     }
 
-    if (existing.authorId !== String(authorId)) {
+    if (existing.authorId !== authorId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403, ...NO_STORE });
     }
 

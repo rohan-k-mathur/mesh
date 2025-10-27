@@ -227,11 +227,12 @@ export function SheafComposer(props: {
               </div>
               <button
                 type="button"
-                className="text-xs align-center my-auto text-center bg-rose-500 text-slate-100 px-2 py-1 rounded-xl lockbutton"
+                className=" bg-rose-500 text-slate-100 px-1 rounded-md py-1 lockbutton"
                 disabled={facets.length === 1 || sending}
                 onClick={() => removeFacet(f.id)}
               >
-                Remove
+                                        <span className="flex text-xs  text-center items-center text-white font-medium">Remove</span>
+
               </button>
             </div>
 <div className='flex flex-col gap-3'>
@@ -305,7 +306,7 @@ export function SheafComposer(props: {
                         className="px-1 py-0.5 rounded border"
                         onClick={() => removeAttachment(f.id, i)}
                       >
-                        remove
+Remove
                       </button>
                     </li>
                   ))}
@@ -319,7 +320,7 @@ export function SheafComposer(props: {
       {error && <div className="text-xs text-rose-600">{error}</div>}
       <div className="flex items-center gap-4  pb-3">
         <button type="button" onClick={onCancel} className="px-4 py-3 rounded-xl tracking-wide lockbutton bg-white/70 text-sm" disabled={sending}>
-        𒁈
+        𒁈 Cancel
         </button>
         <button
           type="button"
@@ -327,7 +328,7 @@ export function SheafComposer(props: {
           className={sending ? 'px-4 py-3 rounded-xl tracking-wide lockbutton text-sm opacity-60 cursor-not-allowed bg-indigo-300' : 'px-3 py-3 tracking-wide rounded-xl lockbutton text-sm bg-indigo-500 text-white'}
           disabled={sending}
         >
-          {sending ? 'Sending…' : '𒓳𒓵'}
+          {sending ? 'Sending…' : '𒓵 Send'}
         </button>
       </div>
     </div>

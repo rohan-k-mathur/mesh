@@ -734,16 +734,18 @@ export default function ClaimMiniMap({ deliberationId, selectedClaimId, onClaimC
                           <Crosshair className="w-4 h-4 text-amber-600" />
                           Quick Actions:
                         </div>
-                        <LegalMoveChips
-                          deliberationId={deliberationId}
-                          targetType="claim"
-                          targetId={c.id}
-                          locusPath="0"
-                          onPosted={() => {
+                        <div>
+                          <LegalMoveChips
+                            deliberationId={deliberationId}
+                            targetType="claim"
+                            targetId={c.id}
+                            locusPath="0"
+                            onPosted={() => {
                             window.dispatchEvent(new CustomEvent("claims:changed"));
                             window.dispatchEvent(new CustomEvent("dialogue:moves:refresh"));
                           }}
                         />
+                        </div>
                       </div>
                     </div>
                   )}

@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { NLCommitPopover } from "@/components/dialogue/NLCommitPopover";
 import { StructuralMoveModal } from "@/components/dialogue/StructuralMoveModal";
+import { WhyChallengeModal } from "@/components/dialogue/WhyChallengeModal";
 import { CQContextPanel } from "@/components/dialogue/command-card/CQContextPanel";
 import type { CommandCardAction, ProtocolKind } from "@/components/dialogue/command-card/types";
 import { TargetType } from "@prisma/client";
@@ -180,6 +181,10 @@ export function DialogueActionsModal({
   const [structuralMoveKind, setStructuralMoveKind] = useState<
     "THEREFORE" | "SUPPOSE" | "DISCHARGE" | null
   >(null);
+  
+  // Modal state for WHY challenges
+  const [whyChallengeModalOpen, setWhyChallengeModalOpen] = useState(false);
+  const [pendingWhyMove, setPendingWhyMove] = useState<Move | null>(null);
 
   // Fetch legal moves
   const apiUrl = useMemo(() => {
@@ -275,6 +280,19 @@ export function DialogueActionsModal({
       setExecutingMove(move.kind);
 
       try {
+        // Special handling for WHY without cqId - open challenge modal
+        if (move.kind === "WHY" && !move.payload?.cqId) {
+          setPendingWhyMove(move);
+          setExecutingMove(null);
+          // Close the main dialog first to release focus trap
+          onOpenChange(false);
+          // Open WhyChallengeModal after a brief delay to ensure dialog has released focus
+          setTimeout(() => {
+            setWhyChallengeModalOpen(true);
+          }, 100);
+          return;
+        }
+
         // Special handling for GROUNDS - open commit modal
         if (move.kind === "GROUNDS") {
           setPendingGroundsPayload(move.payload || {});
@@ -416,6 +434,66 @@ export function DialogueActionsModal({
     },
     [
       structuralMoveKind,
+      deliberationId,
+      targetType,
+      targetId,
+      locusPath,
+      mutate,
+      onMovePerformed,
+      onOpenChange,
+    ]
+  );
+
+  // Handle WHY challenge modal submission
+  const handleWhyChallengeSubmit = useCallback(
+    async (challengeText: string) => {
+      if (!pendingWhyMove) return;
+
+      try {
+        const payload = {
+          ...pendingWhyMove.payload,
+          locusPath,
+          expression: challengeText.trim(),
+        };
+
+        const response = await fetch("/api/dialogue/move", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            deliberationId,
+            targetType,
+            targetId,
+            kind: "WHY",
+            locusPath,
+            payload,
+          }),
+        });
+
+        if (!response.ok) {
+          const error = await response.json().catch(() => ({}));
+          throw new Error(error.error || `HTTP ${response.status}`);
+        }
+
+        // Success!
+        await mutate();
+        onMovePerformed?.();
+        setWhyChallengeModalOpen(false);
+        setPendingWhyMove(null);
+
+        window.dispatchEvent(
+          new CustomEvent("dialogue:moves:refresh", {
+            detail: { deliberationId },
+          })
+        );
+
+        setTimeout(() => onOpenChange(false), 500);
+      } catch (err) {
+        console.error("Failed to submit WHY challenge:", err);
+        throw err;
+      }
+    },
+    [
+      pendingWhyMove,
       deliberationId,
       targetType,
       targetId,
@@ -629,6 +707,15 @@ export function DialogueActionsModal({
           onOpenChange={setStructuralModalOpen}
           kind={structuralMoveKind}
           onSubmit={handleStructuralMoveSubmit}
+        />
+      )}
+
+      {/* WHY Challenge Modal */}
+      {whyChallengeModalOpen && (
+        <WhyChallengeModal
+          open={whyChallengeModalOpen}
+          onOpenChange={setWhyChallengeModalOpen}
+          onSubmit={handleWhyChallengeSubmit}
         />
       )}
     </>

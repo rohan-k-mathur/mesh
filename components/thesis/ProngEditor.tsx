@@ -3,9 +3,9 @@
 
 import React, { useState, useCallback, useEffect } from "react";
 import useSWR, { mutate } from "swr";
-import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { ClaimPicker } from "@/components/claims/ClaimPicker";
 import { ArgumentPicker } from "./ArgumentPicker";
+import { useAuth } from "@/lib/AuthContext";
 import {
   Dialog,
   DialogContent,
@@ -31,6 +31,8 @@ export function ProngEditor({
   onClose: () => void;
 }) {
   const isNew = !prongId;
+  const { user } = useAuth();
+  const authorId = user?.userId != null ? String(user.userId) : "";
   
   const [title, setTitle] = useState("");
   const [role, setRole] = useState<ProngRole>("SUPPORT");
@@ -123,14 +125,19 @@ export function ProngEditor({
     }
   }, [thesisId, prongId, onClose]);
 
-  // Handle argument reordering
-  const handleArgumentDragEnd = useCallback(
-    async (result: DropResult) => {
-      if (!result.destination || !prong) return;
+  // Handle argument reordering with up/down
+  const handleMoveArgument = useCallback(
+    async (argumentId: string, direction: "up" | "down") => {
+      if (!prong) return;
+
+      const currentIndex = prong.arguments.findIndex((a: any) => a.argumentId === argumentId);
+      if (currentIndex === -1) return;
+      if (direction === "up" && currentIndex === 0) return;
+      if (direction === "down" && currentIndex === prong.arguments.length - 1) return;
 
       const items = Array.from(prong.arguments);
-      const [reordered] = items.splice(result.source.index, 1);
-      items.splice(result.destination.index, 0, reordered);
+      const targetIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+      [items[currentIndex], items[targetIndex]] = [items[targetIndex], items[currentIndex]];
 
       const argumentIds = items.map((a: any) => a.argumentId);
 
@@ -267,72 +274,58 @@ export function ProngEditor({
                 </button>
               </div>
 
-              <DragDropContext onDragEnd={handleArgumentDragEnd}>
-                <Droppable droppableId="arguments">
-                  {(provided) => (
-                    <div
-                      {...provided.droppableProps}
-                      ref={provided.innerRef}
-                      className="space-y-2 min-h-[100px] border-2 border-dashed border-slate-200 rounded-lg p-2"
-                    >
-                      {prong.arguments?.length === 0 && (
-                        <div className="text-sm text-slate-500 text-center py-8">
-                          No arguments yet. Add arguments to build your reasoning chain.
+              <div className="space-y-2 min-h-[100px] border-2 border-dashed border-slate-200 rounded-lg p-2">
+                {prong.arguments?.length === 0 && (
+                  <div className="text-sm text-slate-500 text-center py-8">
+                    No arguments yet. Add arguments to build your reasoning chain.
+                  </div>
+                )}
+                {prong.arguments?.map((arg: any, index: number) => (
+                  <div
+                    key={arg.id}
+                    className="border border-slate-200 rounded-lg p-3 bg-white shadow-sm"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="flex flex-col gap-1">
+                        <button
+                          onClick={() => handleMoveArgument(arg.argument.id, "up")}
+                          disabled={index === 0}
+                          className="p-1 text-slate-400 hover:text-slate-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                          title="Move up"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => handleMoveArgument(arg.argument.id, "down")}
+                          disabled={index === prong.arguments.length - 1}
+                          className="p-1 text-slate-400 hover:text-slate-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                          title="Move down"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xs px-2 py-0.5 rounded bg-sky-100 text-sky-800 font-medium">
+                            {arg.role}
+                          </span>
                         </div>
-                      )}
-                      {prong.arguments?.map((arg: any, index: number) => (
-                        <Draggable key={arg.id} draggableId={arg.id} index={index}>
-                          {(provided, snapshot) => (
-                            <div
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              className={`border border-slate-200 rounded-lg p-3 bg-white ${
-                                snapshot.isDragging ? "shadow-2xl" : "shadow-sm"
-                              }`}
-                            >
-                              <div className="flex items-start gap-3">
-                                <div
-                                  {...provided.dragHandleProps}
-                                  className="mt-1 cursor-grab active:cursor-grabbing"
-                                >
-                                  <svg
-                                    className="w-4 h-4 text-slate-400"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M4 8h16M4 16h16"
-                                    />
-                                  </svg>
-                                </div>
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <span className="text-xs px-2 py-0.5 rounded bg-sky-100 text-sky-800 font-medium">
-                                      {arg.role}
-                                    </span>
-                                  </div>
-                                  <div className="text-sm text-slate-700">{arg.argument.text}</div>
-                                </div>
-                                <button
-                                  onClick={() => handleRemoveArgument(arg.argument.id)}
-                                  className="px-2 py-1 text-xs text-rose-600 hover:bg-rose-50 rounded transition-colors"
-                                >
-                                  Remove
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                        </Draggable>
-                      ))}
-                      {provided.placeholder}
+                        <div className="text-sm text-slate-700">{arg.argument.text}</div>
+                      </div>
+                      <button
+                        onClick={() => handleRemoveArgument(arg.argument.id)}
+                        className="px-2 py-1 text-xs text-rose-600 hover:bg-rose-50 rounded transition-colors"
+                      >
+                        Remove
+                      </button>
                     </div>
-                  )}
-                </Droppable>
-              </DragDropContext>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
@@ -385,8 +378,9 @@ export function ProngEditor({
               </DialogHeader>
               <ClaimPicker
                 deliberationId={deliberationId}
-                onSelect={(claimId) => {
-                  setMainClaimId(claimId);
+                authorId={authorId}
+                onPick={(claim) => {
+                  setMainClaimId(claim.id);
                   setShowClaimPicker(false);
                 }}
               />

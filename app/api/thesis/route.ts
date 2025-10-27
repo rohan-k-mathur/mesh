@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prismaclient";
-import { getCurrentUserId } from "@/lib/serverutils";
+import { getCurrentUserAuthId } from "@/lib/serverutils";
 
 const NO_STORE = { headers: { "Cache-Control": "no-store" } } as const;
 
@@ -16,16 +16,27 @@ function slugify(s: string) {
 
 const CreateThesisSchema = z.object({
   deliberationId: z.string(),
-  title: z.string().min(3),
+  title: z.string().min(1).optional().default("Untitled Thesis"),
+  abstract: z.string().optional(),
   thesisClaimId: z.string().optional(),
   template: z.enum(["LEGAL_DEFENSE", "POLICY_CASE", "ACADEMIC_THESIS", "GENERAL"]).optional(),
 });
 
 export async function POST(req: NextRequest) {
   try {
-    const authorId = await getCurrentUserId();
+    const authorId = await getCurrentUserAuthId();
     if (!authorId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401, ...NO_STORE });
+    }
+
+    // Verify user exists
+    const user = await prisma.user.findUnique({
+      where: { auth_id: authorId },
+      select: { auth_id: true },
+    });
+    if (!user) {
+      console.error("[thesis POST] User not found for auth_id:", authorId);
+      return NextResponse.json({ error: "User not found" }, { status: 404, ...NO_STORE });
     }
 
     const body = await req.json().catch(() => ({}));
@@ -34,7 +45,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: parsed.error.flatten() }, { status: 400, ...NO_STORE });
     }
 
-    const { deliberationId, title, thesisClaimId, template } = parsed.data;
+    const { deliberationId, title, abstract, thesisClaimId, template } = parsed.data;
 
     // Verify deliberation exists
     const delib = await prisma.deliberation.findUnique({
@@ -66,12 +77,14 @@ export async function POST(req: NextRequest) {
     const thesis = await prisma.thesis.create({
       data: {
         deliberationId,
-        authorId: String(authorId),
+        authorId: authorId, // Now using auth_id string directly
         title,
         slug,
+        abstract: abstract ?? null,
         thesisClaimId: thesisClaimId ?? null,
         status: "DRAFT",
         template: template ?? "GENERAL",
+        content: null, // Empty document to start
       },
       select: {
         id: true,
