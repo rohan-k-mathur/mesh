@@ -74,6 +74,16 @@ export default function DebateSheetReader({ sheetId }: { sheetId: string }) {
 // const [mode, setMode] = useState<"product"|"min"|"ds">("product");
 const { mode, setMode } = useConfidence();
 
+  // Read room default mode on mount (only sync once when sheet loads)
+  const [hasSyncedRoomMode, setHasSyncedRoomMode] = React.useState(false);
+  React.useEffect(() => {
+    if (!data?.sheet?.rulesetJson || hasSyncedRoomMode) return;
+    const roomMode = (data.sheet.rulesetJson as any)?.confidence?.mode;
+    if (roomMode && roomMode !== mode) {
+      setMode(roomMode);
+      setHasSyncedRoomMode(true);
+    }
+  }, [data?.sheet?.rulesetJson, mode, setMode, hasSyncedRoomMode]);
 
   const [openNodeId, setOpenNodeId] = useState<string | null>(null);
   const [showArgsFor, setShowArgsFor] = useState<string | null>(null); // claimId
@@ -105,7 +115,7 @@ React.useEffect(() => {
   const { data: ev, mutate: refetchEv } = useSWR<EvResp>(
     delibId ? `/api/deliberations/${delibId}/evidential?mode=${mode}&imports=${imports}` : null,
     
-  u => fetch(u, { cache:'no-store' }).then(r => r.json())
+  (u: string) => fetch(u, { cache:'no-store' }).then(r => r.json())
 );
 
 // const { data: ev } = useSWR<EvResp>(

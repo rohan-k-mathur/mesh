@@ -10,8 +10,6 @@ export const revalidate = 0;
 export async function GET(req: NextRequest) {
   const u = new URL(req.url);
   const deliberationId = String(u.searchParams.get('deliberationId') ?? '');
-  const rawMode = String(u.searchParams.get('mode') ?? 'min').toLowerCase();
-  const mode: Mode = (rawMode === 'product' ? 'prod' : (rawMode as Mode)) || 'min';
   const tau = Math.max(0, Math.min(1, Number(u.searchParams.get('tau') ?? 0.7)));
   const explain = u.searchParams.get('explain') === '1';
 const idsParam = (u.searchParams.get('ids') || '').trim();
@@ -19,8 +17,18 @@ const idsParam = (u.searchParams.get('ids') || '').trim();
  
   if (!deliberationId) return NextResponse.json({ ok:false, error:'missing deliberationId' }, { status:400 });
 
-  // Pull minimal neighborhood for this room
-   const [claims, args, edges] = await Promise.all([
+  // Get debate sheet to read default mode from rulesetJson
+  const sheet = await prisma.debateSheet.findFirst({
+    where: { deliberationId },
+    select: { rulesetJson: true }
+  });
+  
+  const defaultMode = (sheet?.rulesetJson as any)?.confidence?.mode ?? 'product';
+  const rawMode = String(u.searchParams.get('mode') ?? defaultMode).toLowerCase();
+  const mode: Mode = (rawMode === 'product' ? 'prod' : (rawMode as Mode)) || 'min';
+
+  // Pull minimal neighborhood for this room + CQ statuses for arguments
+   const [claims, args, edges, cqStatuses] = await Promise.all([
     prisma.claim.findMany({
       where: {
         deliberationId,
@@ -31,15 +39,32 @@ const idsParam = (u.searchParams.get('ids') || '').trim();
     prisma.argument.findMany({
       where:{ deliberationId },
       select:{ id:true, text:true, conclusionClaimId:true,
-               premises:{ select:{ claimId:true, isImplicit:true } } }
+               premises:{ select:{ claimId:true, isImplicit:true } },
+               scheme:{ select:{ validators:true } } }
     }),
     prisma.argumentEdge.findMany({
       where:{ deliberationId },
       select:{ id:true, type:true, attackType:true, targetScope:true,
                fromArgumentId:true, toArgumentId:true,
                targetClaimId:true, targetPremiseId:true }
+    }),
+    prisma.cQStatus.findMany({
+      where: { 
+        targetType: 'ARGUMENT' as any,
+        argumentId: { not: null }
+      },
+      select: { argumentId: true, cqKey: true, satisfied: true }
     })
   ]);
+
+  // Build CQ map: argumentId → unsatisfied count
+  const cqMap = new Map<string, number>();
+  for (const cq of cqStatuses) {
+    if (cq.argumentId && !cq.satisfied) {
+      const count = cqMap.get(cq.argumentId) ?? 0;
+      cqMap.set(cq.argumentId, count + 1);
+    }
+  }
 
   // Indexes
   const argsByConclusion = new Map<string, any[]>();
@@ -107,13 +132,24 @@ const idsParam = (u.searchParams.get('ids') || '').trim();
     const chainExpls:any[] = [];
 
     for (const a of supporters) {
+      // Get scheme base confidence (default 0.6 if not specified)
+      const schemeBase = (a.scheme?.validators as any)?.baseConfidence ?? 0.6;
+      
       // premise aggregation
       const premSupports = a.premises.map((p:any) => supportClaim(p.claimId).score);
       const premMin = premSupports.length ? Math.min(...premSupports) : prior;
-      const premProd = premSupports.length ? premSupports.reduce((x,y)=>x*y,1) : prior;
-      let chain =
+      const premProd = premSupports.length ? premSupports.reduce((x: number,y: number)=>x*y,1) : prior;
+      
+      // Start with scheme base, then modulate by premises
+      let chain = schemeBase * (
         mode === 'min'  ? premMin :
-        mode === 'prod' ? premProd : premMin; // DS uses premMin inside, combine at top
+        mode === 'prod' ? premProd : premMin
+      );
+
+      // Apply CQ penalty: 0.85^(unsatisfiedCount)
+      const unsatisfiedCQCount = cqMap.get(a.id) ?? 0;
+      const cqPenalty = Math.pow(0.85, unsatisfiedCQCount);
+      chain = chain * cqPenalty;
 
       // undercuts to this argument reduce chain strength
       const u = undercutsByArg.get(a.id) ?? [];
@@ -127,7 +163,14 @@ const idsParam = (u.searchParams.get('ids') || '').trim();
       // (optional) could downweight premSupports where undermines exist.
 
       chainScores.push(chain);
-      if (explain) chainExpls.push({ argumentId: a.id, premises: a.premises.map((p:any)=>({ id:p.claimId, s: supportClaim(p.claimId).score })), chain });
+      if (explain) chainExpls.push({ 
+        argumentId: a.id,
+        schemeBase,
+        premises: a.premises.map((p:any)=>({ id:p.claimId, s: supportClaim(p.claimId).score })), 
+        unsatisfiedCQs: unsatisfiedCQCount,
+        cqPenalty,
+        chain 
+      });
     }
 
     // combine multiple lines
@@ -159,5 +202,5 @@ const idsParam = (u.searchParams.get('ids') || '').trim();
     return { id: c.id, text: c.text ?? '', score: s.score, bel: s.bel, pl: s.pl, accepted, explain: explain ? s.explain : undefined };
   });
 
-  return NextResponse.json({ ok:true, mode, tau, items: claimItems }, { headers: { 'Cache-Control':'no-store' }});
+  return NextResponse.json({ ok:true, mode, modeUsed: mode, tau, items: claimItems }, { headers: { 'Cache-Control':'no-store' }});
 }

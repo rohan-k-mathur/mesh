@@ -70,7 +70,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   // If a DebateSheet with this id exists, prefer the *sheet-backed* view.
   const sheet = await prisma.debateSheet.findUnique({
     where: { id: rawId },
-    select: { id: true },
+    select: { id: true, rulesetJson: true },
   });
 
   let nodes: SheetNode[] = [];
@@ -252,6 +252,7 @@ edges = dEdges
       acceptance,
       unresolved,
       loci: [{ id: `l0:${sheet ? rawId : resolvedDelibId}`, locusPath: '0', open: true, closable: false }],
+      rulesetJson: sheet?.rulesetJson ?? null,
     }
   }, { headers: { 'Cache-Control': 'no-store' } });
 }
