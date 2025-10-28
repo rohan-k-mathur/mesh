@@ -33,6 +33,34 @@ export async function POST(req: NextRequest) {
       select: { id: true, pageId: true, ord: true, type: true, dataJson: true, live: true, updatedAt: true }
     });
 
+    // Create DebateCitation if block references a deliberation
+    if ((type === 'claim' || type === 'argument') && data && typeof data === 'object') {
+      const deliberationId = (data as any).deliberationId;
+      if (deliberationId && typeof deliberationId === 'string') {
+        try {
+          await prisma.debateCitation.upsert({
+            where: {
+              deliberationId_kbPageId_kbBlockId: {
+                deliberationId,
+                kbPageId: pageId,
+                kbBlockId: created.id
+              }
+            },
+            create: {
+              deliberationId,
+              kbPageId: pageId,
+              kbBlockId: created.id
+            },
+            update: {
+              citedAt: new Date()
+            }
+          });
+        } catch (err) {
+          console.warn('[KB Blocks] Failed to create DebateCitation:', err);
+        }
+      }
+    }
+
     return NextResponse.json({ ok: true, block: created }, { headers: { 'Cache-Control': 'no-store' } });
   } catch (e) { return fail(e); }
 }

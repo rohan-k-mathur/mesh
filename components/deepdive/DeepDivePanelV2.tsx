@@ -1253,10 +1253,10 @@ const {
                 <div className="text-xs text-red-700">{String(diagError)}</div>
               </div>
             </div>
-          ) : diag?.aif ? (
+          ) : (diag?.diagram?.aif ?? diag?.aif) ? (
             <div className="rounded-xl overflow-hidden border border-slate-200 shadow-sm">
               <DiagramViewer
-                graph={diag.aif}
+                graph={diag?.diagram?.aif ?? diag?.aif}
                 selectedNodeId={selectedClaim?.id}
                 onNodeClick={handleNodeClick}
                 height={500}

@@ -48,10 +48,27 @@ export async function importAifJSONLD(deliberationId: string, graph: any) {
     const cI = conc.find((e:any) => e.from === sid)?.to;
     if (!cI) continue;
     const pIs = prem.filter((e:any) => e.to === sid).map((e:any) => e.from);
+    
+    // Extract scheme key from RA node
+    const schemeKey: string | null = s.scheme || s['aif:usesScheme'] || s['as:appliesSchemeKey'] || null;
+    
+    // Lookup scheme by key if provided
+    const scheme = schemeKey
+      ? await prisma.argumentScheme.findFirst({ 
+          where: { key: schemeKey }, 
+          select: { id: true, key: true } 
+        })
+      : null;
+    
+    if (schemeKey && !scheme) {
+      console.warn(`[AIF Import] Unknown scheme key "${schemeKey}" on RA node ${sid}, setting schemeId = null`);
+    }
+    
     const a = await prisma.argument.create({
       data: {
         deliberationId, authorId: 'importer', text: '',
-        schemeId: null, conclusionClaimId: claimMap.get(cI)!,
+        schemeId: scheme?.id ?? null, 
+        conclusionClaimId: claimMap.get(cI)!,
       }
     });
     if (pIs.length) {
@@ -111,6 +128,55 @@ export async function importAifJSONLD(deliberationId: string, graph: any) {
         });
       }
     }
+  }
+
+  // 4) Preferences (PA)
+  const PA_nodes = graph.nodes.filter((n:any) => n['@type'] === 'aif:PA');
+  const prefEdges = edges.filter((e:any) => e.role?.endsWith('PreferredElement'));
+  const dispEdges = edges.filter((e:any) => e.role?.endsWith('DispreferredElement'));
+
+  for (const pa of PA_nodes) {
+    const paId = pa['@id'];
+    
+    // Find preferred and dispreferred elements via edges
+    const prefEdge = prefEdges.find((e:any) => e.to === paId);
+    const dispEdge = dispEdges.find((e:any) => e.from === paId);
+    
+    if (!prefEdge || !dispEdge) {
+      console.warn(`[AIF Import] PA-node ${paId} missing preferred or dispreferred edges, skipping`);
+      continue;
+    }
+    
+    const prefType = typeOf(prefEdge.from);
+    const dispType = typeOf(dispEdge.to);
+    
+    // Lookup scheme if provided
+    const schemeKey: string | null = pa.scheme || pa['aif:usesScheme'] || null;
+    const scheme = schemeKey
+      ? await prisma.preferenceScheme.findFirst({
+          where: { key: schemeKey },
+          select: { id: true }
+        })
+      : null;
+    
+    if (schemeKey && !scheme) {
+      console.warn(`[AIF Import] Unknown preference scheme "${schemeKey}" on PA-node ${paId}, using null`);
+    }
+    
+    // Create PreferenceApplication
+    await prisma.preferenceApplication.create({
+      data: {
+        deliberationId,
+        createdById: 'importer',
+        schemeId: scheme?.id ?? null,
+        preferredKind: prefType === 'aif:RA' ? 'ARGUMENT' : 'CLAIM',
+        preferredArgumentId: prefType === 'aif:RA' ? raMap.get(prefEdge.from) ?? null : null,
+        preferredClaimId: prefType === 'aif:InformationNode' ? claimMap.get(prefEdge.from) ?? null : null,
+        dispreferredKind: dispType === 'aif:RA' ? 'ARGUMENT' : 'CLAIM',
+        dispreferredArgumentId: dispType === 'aif:RA' ? raMap.get(dispEdge.to) ?? null : null,
+        dispreferredClaimId: dispType === 'aif:InformationNode' ? claimMap.get(dispEdge.to) ?? null : null,
+      }
+    });
   }
 
   return { ok: true };

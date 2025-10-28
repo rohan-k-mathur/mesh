@@ -3562,6 +3562,9 @@ model Deliberation {
   glossaryTerms GlossaryTerm[]
   Thesis        Thesis[]
 
+  // KB bidirectional linking
+  debateCitations DebateCitation[]
+
   @@index([agoraRoomID])
   @@index([hostType, hostId])
   @@index([roomId])
@@ -5048,6 +5051,7 @@ model KbPage {
 
   theoryWorks        TheoryWork[] // For TheoryWork.kbPage
   TheoryWorkCitation TheoryWorkCitation[]
+  debateCitations    DebateCitation[]
 
   @@unique([spaceId, slug])
   @@index([spaceId, updatedAt])
@@ -5067,9 +5071,27 @@ model KbBlock {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
-  page KbPage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  page            KbPage           @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  debateCitations DebateCitation[]
 
   @@index([pageId, ord])
+}
+
+// DebateCitation: Tracks when KB blocks cite deliberations (bidirectional linking)
+model DebateCitation {
+  id             String   @id @default(cuid())
+  deliberationId String
+  kbPageId       String
+  kbBlockId      String
+  citedAt        DateTime @default(now())
+
+  deliberation Deliberation @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
+  kbPage       KbPage       @relation(fields: [kbPageId], references: [id], onDelete: Cascade)
+  kbBlock      KbBlock      @relation(fields: [kbBlockId], references: [id], onDelete: Cascade)
+
+  @@unique([deliberationId, kbPageId, kbBlockId])
+  @@index([deliberationId])
+  @@index([kbPageId])
 }
 
 model KbSnapshot {
