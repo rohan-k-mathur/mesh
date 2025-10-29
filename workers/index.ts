@@ -9,6 +9,7 @@ import '@/workers/tasteVector';
 import "@/workers/candidate-builder";
 import "@/workers/user-knn-builder";
 import "@/workers/sectionHeat";
+import "@/workers/decayConfidenceJob";
 
 
 console.log('All workers bootstrapped');

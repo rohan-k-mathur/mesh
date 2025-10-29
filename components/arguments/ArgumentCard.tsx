@@ -22,6 +22,7 @@ interface ArgumentCardProps {
   onAnyChange?: () => void;
   schemeKey?: string | null;
   schemeName?: string | null;
+  lastUpdatedAt?: Date | string; // Phase 2.2: Temporal decay
 }
 
 export function ArgumentCard({
@@ -33,6 +34,7 @@ export function ArgumentCard({
   onAnyChange,
   schemeKey,
   schemeName,
+  lastUpdatedAt,
 }: ArgumentCardProps) {
   const [expanded, setExpanded] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
@@ -40,6 +42,20 @@ export function ArgumentCard({
   const [attacks, setAttacks] = React.useState<any[]>([]);
   const [cqDialogOpen, setCqDialogOpen] = React.useState(false);
   const [argCqDialogOpen, setArgCqDialogOpen] = React.useState(false);
+
+  // Phase 2.2: Check if argument is stale (> 30 days old)
+  const isStale = React.useMemo(() => {
+    if (!lastUpdatedAt) return false;
+    const date = typeof lastUpdatedAt === "string" ? new Date(lastUpdatedAt) : lastUpdatedAt;
+    const daysSince = (Date.now() - date.getTime()) / (1000 * 60 * 60 * 24);
+    return daysSince > 30;
+  }, [lastUpdatedAt]);
+
+  const staleDays = React.useMemo(() => {
+    if (!lastUpdatedAt) return 0;
+    const date = typeof lastUpdatedAt === "string" ? new Date(lastUpdatedAt) : lastUpdatedAt;
+    return Math.floor((Date.now() - date.getTime()) / (1000 * 60 * 60 * 24));
+  }, [lastUpdatedAt]);
 
   // Fetch CQ data for the conclusion claim (claim-level CQs)
   const { data: cqData } = useSWR(
@@ -209,6 +225,18 @@ export function ArgumentCard({
                   <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-purple-50 border border-purple-200">
                     <div className="text-[10px] font-medium text-purple-700">
                       Arg CQ {argCqStatus.percentage}%
+                    </div>
+                  </div>
+                )}
+                {/* Stale Indicator (Phase 2.2) */}
+                {isStale && (
+                  <div 
+                    className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-amber-50 border border-amber-300"
+                    title={`This argument hasn't been updated in ${staleDays} days. Confidence may have decayed due to age.`}
+                  >
+                    <AlertCircle className="w-3 h-3 text-amber-600" />
+                    <div className="text-[10px] font-medium text-amber-700">
+                      Stale ({staleDays}d)
                     </div>
                   </div>
                 )}

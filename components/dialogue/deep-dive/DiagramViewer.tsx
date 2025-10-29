@@ -12,6 +12,8 @@ interface DiagramViewerProps {
   onNodeClick?: (nodeId: string) => void;
   height?: number;
   className?: string;
+  dsMode?: boolean; // Phase 2.3: Enable Dempster-Shafer display
+  deliberationId?: string; // For fetching DS data if needed
 }
 
 function getEdgeStyle(role: string): {
@@ -43,6 +45,8 @@ export function DiagramViewer({
   onNodeClick,
   height = 400,
   className = '',
+  dsMode = false,
+  deliberationId,
 }: DiagramViewerProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -265,6 +269,34 @@ export function DiagramViewer({
                   isHovered={isSelected}
                   zoomLevel={zoom}
                 />
+
+                {/* Phase 2.3: DS Mode Indicator */}
+                {/* TODO: Extend AifNode type to include confidence/belief/plausibility data */}
+                {/* For now, show DS mode indicator on RA nodes */}
+                {node.kind === 'RA' && dsMode && zoom > 0.6 && (
+                  <g transform={`translate(${pos.width / 2}, ${pos.height + 8})`}>
+                    <rect
+                      x={-25}
+                      y={-8}
+                      width={50}
+                      height={16}
+                      fill="white"
+                      stroke="#6366f1"
+                      strokeWidth={1}
+                      rx={4}
+                      opacity={0.95}
+                    />
+                    <text
+                      x={0}
+                      y={0}
+                      className="text-[10px] font-medium fill-indigo-700"
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                    >
+                      DS Mode
+                    </text>
+                  </g>
+                )}
               </g>
             );
           })}
