@@ -1,3 +1,5 @@
+//This is a legacy, obselete file kept for reference. Please do not edit or use this file.
+
 // components/deepdive/ChallengeWarrantCard.tsx
 'use client';
 import { useState } from 'react';

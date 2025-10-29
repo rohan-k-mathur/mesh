@@ -81,10 +81,12 @@ type AifRow = {
   deliberationId: string;
   authorId: string;
   createdAt: string;
+  updatedAt?: string; // Phase 3: For temporal decay
   text: string;
   mediaType: 'text' | 'image' | 'video' | 'audio' | null;
   aif: AifMeta;
   claimId?: string | null;
+  confidence?: number; // Phase 3: For confidence display
 };
 
 // ============================================================================
@@ -427,6 +429,8 @@ function RowImpl({
   isVisible,
   support,
   accepted,
+  dsMode = false,
+  onArgumentClick,
 }: {
   a: AifRow;
   meta?: AifMeta;
@@ -437,6 +441,8 @@ function RowImpl({
   isVisible: boolean;
   support?: number;
   accepted?: boolean;
+  dsMode?: boolean;
+  onArgumentClick?: (argument: { id: string; conclusionText?: string; schemeKey?: string }) => void;
 }) {
   const [open, setOpen] = React.useState(false);
   const [cqs, setCqs] = React.useState<Array<{ cqKey: string; text: string; status: 'open' | 'answered'; attackType: string; targetScope: string }>>([]);
@@ -497,7 +503,7 @@ function RowImpl({
               Conclusion: 
                 </span>
 
-            <span className="flex text-sm  menuv2--lite text-slate-800 font-medium  leading-snug ">
+            <span className="flex text-xs  menuv2--lite text-slate-800 font-medium  leading-snug ">
               {conclusionText}
             </span>
 </div>
@@ -510,7 +516,7 @@ function RowImpl({
                     className="
                       inline-flex items-center gap-1 font-normal px-2.5 py-1 rounded-lg
                       menuv2--lite text-slate-900
-                      text-sm transition-all duration-200
+                      text-xs transition-all duration-200
                       hover:bg-slate-200
                     "
                   >
@@ -571,16 +577,33 @@ function RowImpl({
 
         {/* ArgumentCardV2 - shows interactive argument structure with improved UX */}
         {meta?.conclusion && (
-          <ArgumentCardV2 
-            deliberationId={deliberationId} 
-            authorId={a.authorId} 
-            id={a.id} 
-            conclusion={meta.conclusion}
-            premises={meta.premises || []}
-            schemeKey={meta.scheme?.key}
-            schemeName={meta.scheme?.name}
-            onAnyChange={() => onRefreshRow(a.id)}
-          />
+          <div
+            onClick={() => {
+              if (onArgumentClick) {
+                onArgumentClick({
+                  id: a.id,
+                  conclusionText: conclusionText,
+                  schemeKey: meta?.scheme?.key,
+                });
+              }
+            }}
+            className="cursor-pointer hover:bg-slate-50/50 transition-colors rounded-lg"
+          >
+            <ArgumentCardV2 
+              deliberationId={deliberationId} 
+              authorId={a.authorId} 
+              id={a.id} 
+              conclusion={meta.conclusion}
+              premises={meta.premises || []}
+              schemeKey={meta.scheme?.key}
+              schemeName={meta.scheme?.name}
+              onAnyChange={() => onRefreshRow(a.id)}
+              createdAt={a.createdAt}
+              updatedAt={a.updatedAt || a.createdAt}
+              confidence={a.confidence}
+              dsMode={dsMode}
+            />
+          </div>
         )}
 
 
@@ -731,9 +754,13 @@ export const Row = React.memo(RowImpl, (prev, next) => {
 export default function AIFArgumentsListPro({
   deliberationId,
   onVisibleTextsChanged,
+  dsMode = false,
+  onArgumentClick,
 }: {
   deliberationId: string;
   onVisibleTextsChanged?: (texts: string[]) => void;
+  dsMode?: boolean;
+  onArgumentClick?: (argument: { id: string; conclusionText?: string; schemeKey?: string }) => void;
 }) {
   // Confidence settings
   const { mode, tau } = useConfidence();
@@ -1079,6 +1106,8 @@ export default function AIFArgumentsListPro({
                 isVisible={isVisible}
                 support={sRec?.v}
                 accepted={sRec?.acc}
+                dsMode={dsMode}
+                onArgumentClick={onArgumentClick}
               />
               </div>
             );

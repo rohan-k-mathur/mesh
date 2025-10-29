@@ -32,7 +32,7 @@
     "acl:build": "tsc -p packages/sheaf-acl/tsconfig.json",
     "seed:discussion": "tsx scripts/seed-discussion-demo.ts",
     "seed:discussion:advanced": "tsx scripts/seed-discussion-advanced.ts",
-     "seed:propositions": "tsx scripts/seed-propositions-demo.ts",
+    "seed:propositions": "tsx scripts/seed-propositions-demo.ts",
     "seed:propositions:quick": "tsx scripts/seed-propositions-quick.ts",
     "seed:propositions:clear": "tsx scripts/seed-propositions-demo.ts -- --clear",
     "seed:propositions:id": "tsx scripts/seed-propositions-demo.ts",
@@ -246,6 +246,7 @@
     "@tiptap/*": "2.26.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.56.1",
     "@size-limit/webpack": "^11.2.0",
     "@size-limit/webpack-why": "^11.2.0",
     "@tailwindcss/typography": "^0.5.16",
@@ -280,7 +281,7 @@
     "node-fetch": "^3.3.2",
     "pg": "^8.16.3",
     "pg-mock": "^1.0.1",
-    "playwright": "^1.54.1",
+    "playwright": "^1.56.1",
     "postcss": "^8",
     "prisma": "^6.10.1",
     "size-limit": "^11.2.0",

@@ -1,3 +1,4 @@
+//This is a legacy, obselete file kept for reference. Please do not edit or use this file.
 "use client";
 import { useEffect, useState, useMemo } from "react";
 import DeliberationComposer from "./DeliberationComposer";
@@ -717,7 +718,7 @@ useEffect(() => {
 //  ), [legalMoves, targetRef]);
       
       const inner = (
-        <div className={clsx("space-y-5 py-3 px-6 relative bg-black", className)}>
+        <div className={clsx("space-y-5 py-3 px-6 relative", className)}>
           {/* Header controls */}
       {/* Arguments + Composer */}
       <SectionCard busy={pending}>

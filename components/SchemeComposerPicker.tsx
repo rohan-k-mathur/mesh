@@ -54,7 +54,8 @@ export function SchemeComposerPicker({
             </ul>
           </div>
           <div className="mt-2  flex justify-end ">
-            <button className="text-[10px]   tracking-wide px-3 py-2 btnv2 border-none rounded outline-indigo-100 bg-slate-50/40" onClick={onClose}>Close</button>
+            <button className="text-xs   tracking-wide px-5 py-2 btnv2 border border-indigo-500 rounded-lg outline-indigo-100
+             bg-slate-200" onClick={onClose}>Close</button>
           </div>
         </div>
       </div>

@@ -18,8 +18,10 @@ import {
   Zap,
   CheckCircle2,
   Crosshair,
+  Plus,
 } from "lucide-react";
 import { SchemeComposerPicker } from "../SchemeComposerPicker";
+import { PropositionComposerPro } from "../propositions/PropositionComposerPro";
 type ClaimRef = { id: string; text: string };
 type Prem = { id: string; text: string };
 
@@ -170,6 +172,10 @@ function AttackMenuContent({
   const [pickerRebutOpen, setPickerRebutOpen] = React.useState(false);
   const [pickerUndermineOpen, setPickerUndermineOpen] = React.useState(false);
 
+  // Create counter-claim modals
+  const [createRebutModalOpen, setCreateRebutModalOpen] = React.useState(false);
+  const [createUndermineModalOpen, setCreateUndermineModalOpen] = React.useState(false);
+
   React.useEffect(() => {
     setPremiseId(target.premises[0]?.id ?? "");
   }, [target.premises]);
@@ -224,6 +230,48 @@ function AttackMenuContent({
       throw new Error(j?.error || `HTTP ${r.status}`);
     }
   }, []);
+
+  // Handler for creating counter-claim from proposition
+  const handlePropositionCreated = React.useCallback(
+    async (proposition: any, isForRebut: boolean) => {
+      try {
+        // Auto-promote proposition to claim
+        const res = await fetch("/api/claims", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            deliberationId,
+            text: proposition.text,
+          }),
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to promote to claim");
+
+        const claimId = data?.claim?.id ?? data?.claimId;
+        if (!claimId) throw new Error("No claim ID returned");
+
+        // Dispatch event for claim lists to update
+        window.dispatchEvent(
+          new CustomEvent("claims:changed", { detail: { claimId } })
+        );
+
+        // Set the claim in the appropriate state
+        const claimRef = { id: claimId, text: proposition.text };
+        if (isForRebut) {
+          setRebut(claimRef);
+          setCreateRebutModalOpen(false);
+        } else {
+          setUndermine(claimRef);
+          setCreateUndermineModalOpen(false);
+        }
+      } catch (err) {
+        console.error("[AttackMenuProV2] Failed to promote proposition:", err);
+        alert(`Failed to create counter-claim: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    },
+    [deliberationId]
+  );
 
   const fire = React.useCallback(
     async (kind: "REBUTS" | "UNDERCUTS" | "UNDERMINES") => {
@@ -467,19 +515,34 @@ function AttackMenuContent({
                 <label className=" text-sm px-1 font-medium text-rose-900">
                   Your Counter-Claim ⦂
                 </label>
-                <button
-                  className="w-full  px-3 py-2 btnv2--rose rounded-lg border-2 border-rose-300 bg-white text-sm 
-                  text-left hover:border-rose-400  transition-all duration-200 shadow-sm"
-                  onClick={() => setPickerRebutOpen(true)}
-                >
-                  {rebut ? (
-                    <div className="flex items-start gap-2">
-                      <span className="text-slate-900">{rebut.text}</span>
-                    </div>
-                  ) : (
-                    <span className="text-slate-500">Select or create a counter-claim...</span>
-                  )}
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    className="flex-1  px-3 py-2 btnv2--rose rounded-lg border-2 border-rose-300 bg-white text-sm 
+                    text-left hover:border-rose-400  transition-all duration-200 shadow-sm"
+                    onClick={() => setPickerRebutOpen(true)}
+                  >
+                    {rebut ? (
+                      <div className="flex items-start gap-2">
+                        <span className="text-slate-900">{rebut.text}</span>
+                      </div>
+                    ) : (
+                      <span className="text-slate-500">Select existing claim...</span>
+                    )}
+                  </button>
+                  <button
+                    className="
+                      inline-flex items-center gap-2 px-4 py-2 rounded-lg border-2 border-rose-300
+                      bg-gradient-to-r from-rose-500 to-rose-600 text-white text-sm font-semibold
+                      hover:from-rose-600 hover:to-rose-700 
+                      transition-all duration-200 shadow-sm hover:shadow-md
+                    "
+                    onClick={() => setCreateRebutModalOpen(true)}
+                    title="Create a new counter-claim"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Create
+                  </button>
+                </div>
 </div>
                 <button
                   className="
@@ -549,7 +612,7 @@ function AttackMenuContent({
             <div className="mt-0 space-y-2 px-3 animate-in slide-in-from-top-2 duration-300">
               <div className="px-2 py-2 bg-white/80 border-amber-300 mt-3 rounded-lg border border-amber-100 shadow-md">
                 <p className="text-sm text-amber-800 leading-relaxed">
-                  Explain why the premises don't necessarily lead to the conclusion.
+                  Explain why the premises don&apos;t necessarily lead to the conclusion.
                 </p>
               </div>
 
@@ -691,18 +754,33 @@ function AttackMenuContent({
                   <label className="text-sm px-1 font-medium text-slate-900">
                     Your Contradicting Claim ⦂
                   </label>
-                  <button
-                    className="w-full px-3 py-2 btnv2--slate rounded-lg border-2 border-slate-300 bg-white text-sm text-left hover:border-slate-400 transition-all duration-200 shadow-sm"
-                    onClick={() => setPickerUndermineOpen(true)}
-                  >
-                    {undermine ? (
-                      <div className="flex items-start gap-2">
-                        <span className="text-slate-900">{undermine.text}</span>
-                      </div>
-                    ) : (
-                      <span className="text-slate-500">Select or create contradicting claim...</span>
-                    )}
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      className="flex-1 px-3 py-2 btnv2--slate rounded-lg border-2 border-slate-300 bg-white text-sm text-left hover:border-slate-400 transition-all duration-200 shadow-sm"
+                      onClick={() => setPickerUndermineOpen(true)}
+                    >
+                      {undermine ? (
+                        <div className="flex items-start gap-2">
+                          <span className="text-slate-900">{undermine.text}</span>
+                        </div>
+                      ) : (
+                        <span className="text-slate-500">Select existing claim...</span>
+                      )}
+                    </button>
+                    <button
+                      className="
+                        inline-flex items-center gap-2 px-4 py-2 rounded-lg border-2 border-slate-300
+                        bg-gradient-to-r from-slate-600 to-slate-700 text-white text-sm font-semibold
+                        hover:from-slate-700 hover:to-slate-800 
+                        transition-all duration-200 shadow-sm hover:shadow-md
+                      "
+                      onClick={() => setCreateUndermineModalOpen(true)}
+                      title="Create a new contradicting claim"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Create
+                    </button>
+                  </div>
                 </div>
 
                 <button
@@ -754,6 +832,53 @@ function AttackMenuContent({
           setPickerUndermineOpen(false);
         }}
       />
+
+      {/* Create Counter-Claim Modals */}
+      <Dialog open={createRebutModalOpen} onOpenChange={setCreateRebutModalOpen}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto bg-gradient-to-br from-rose-50 to-white">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-rose-900">
+              Create Counter-Claim for Rebuttal
+            </DialogTitle>
+            <p className="text-sm text-rose-700">
+              Write your counter-claim that contradicts: <span className="font-semibold">{target.conclusion.text}</span>
+            </p>
+          </DialogHeader>
+          <div className="mt-4">
+            <PropositionComposerPro
+              deliberationId={deliberationId}
+              onCreated={(prop) => handlePropositionCreated(prop, true)}
+              onPosted={() => setCreateRebutModalOpen(false)}
+              placeholder="State your counter-claim that rebuts the conclusion..."
+              className="border-2 border-rose-200"
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={createUndermineModalOpen} onOpenChange={setCreateUndermineModalOpen}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto bg-gradient-to-br from-slate-50 to-white">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold text-slate-900">
+              Create Contradicting Claim for Undermine
+            </DialogTitle>
+            <p className="text-sm text-slate-700">
+              Write your contradicting claim for the premise: <span className="font-semibold">
+                {target.premises.find((p) => p.id === premiseId)?.text}
+              </span>
+            </p>
+          </DialogHeader>
+          <div className="mt-4">
+            <PropositionComposerPro
+              deliberationId={deliberationId}
+              onCreated={(prop) => handlePropositionCreated(prop, false)}
+              onPosted={() => setCreateUndermineModalOpen(false)}
+              placeholder="State your claim that contradicts the premise..."
+              className="border-2 border-slate-200"
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

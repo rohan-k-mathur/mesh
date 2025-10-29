@@ -1,6 +1,7 @@
 // app/api/evidential/score/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prismaclient';
+import { TargetType } from '@prisma/client';
 
 type Mode = 'min'|'prod'|'ds';
 
@@ -50,7 +51,7 @@ const idsParam = (u.searchParams.get('ids') || '').trim();
     }),
     prisma.cQStatus.findMany({
       where: { 
-        targetType: 'ARGUMENT' as any,
+        targetType: "argument" as TargetType,
         argumentId: { not: null }
       },
       select: { argumentId: true, cqKey: true, satisfied: true }

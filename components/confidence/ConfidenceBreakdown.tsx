@@ -1,6 +1,8 @@
 // components/confidence/ConfidenceBreakdown.tsx
 "use client";
 import * as React from "react";
+import { Info } from "lucide-react";
+import { DecayExplanationTooltip } from "./DecayExplanationTooltip";
 
 export interface ExplainData {
   schemeBase?: number;
@@ -10,6 +12,13 @@ export interface ExplainData {
   unsatisfiedCQs?: number;
   undercutDefeat?: number;
   rebutCounter?: number;
+  temporalDecay?: {
+    enabled: boolean;
+    ageInDays: number;
+    decayFactor: number;
+    halfLife: number;
+    minConfidence: number;
+  };
   final: number;
 }
 
@@ -24,6 +33,9 @@ export function ConfidenceBreakdown({ explain, mode = "product" }: ConfidenceBre
   const hasCQPenalty = explain.cqPenalty !== undefined && explain.cqPenalty < 1;
   const hasUndercuts = explain.undercutDefeat !== undefined && explain.undercutDefeat > 0;
   const hasRebuts = explain.rebutCounter !== undefined && explain.rebutCounter > 0;
+  const hasDecay = explain.temporalDecay?.enabled && explain.temporalDecay.decayFactor < 1;
+  
+  const [showDecayTooltip, setShowDecayTooltip] = React.useState(false);
 
   return (
     <div className="space-y-2 text-xs w-56">
@@ -85,6 +97,42 @@ export function ConfidenceBreakdown({ explain, mode = "product" }: ConfidenceBre
         </div>
       )}
 
+      {/* Temporal Decay (Phase 3.2) */}
+      {hasDecay && explain.temporalDecay && (
+        <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded">
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center gap-1">
+              <span className="text-slate-600 text-xs">Temporal Decay:</span>
+              <button
+                onClick={() => setShowDecayTooltip(!showDecayTooltip)}
+                className="text-yellow-600 hover:text-yellow-700"
+                title="Show decay formula"
+              >
+                <Info className="w-3 h-3" />
+              </button>
+            </div>
+            <span className="font-medium text-yellow-700">
+              {(explain.temporalDecay.decayFactor * 100).toFixed(0)}%
+            </span>
+          </div>
+          
+          <div className="text-[10px] text-slate-600">
+            {explain.temporalDecay.ageInDays} days old
+          </div>
+          
+          {showDecayTooltip && (
+            <div className="mt-2 p-2 bg-white rounded shadow-sm">
+              <DecayExplanationTooltip
+                ageInDays={explain.temporalDecay.ageInDays}
+                decayFactor={explain.temporalDecay.decayFactor}
+                halfLife={explain.temporalDecay.halfLife}
+                minConfidence={explain.temporalDecay.minConfidence}
+              />
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Separator */}
       <div className="border-t border-slate-200 my-2" />
 
@@ -102,6 +150,7 @@ export function ConfidenceBreakdown({ explain, mode = "product" }: ConfidenceBre
           {explain.schemeBase !== undefined ? "base" : "1"} 
           {hasPremises ? ` × premises` : ""}
           {hasCQPenalty ? ` × CQ` : ""}
+          {hasDecay ? ` × decay` : ""}
           {hasUndercuts ? ` × (1 - undercut)` : ""}
           {hasRebuts ? ` × (1 - rebut)` : ""}
         </span>

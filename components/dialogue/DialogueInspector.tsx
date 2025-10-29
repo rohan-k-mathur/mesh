@@ -135,7 +135,7 @@ export function DialogueInspector({
   };
 
   return (
-    <div className="dialogue-inspector border border-indigo-500 rounded-lg bg-white/30 backdrop-blur-md shadow-lg p-4 my-4">
+    <div className="dialogue-inspector border border-indigo-500 rounded-lg bg-white/30 backdrop-blur-md h-full shadow-lg p-4 mt-2 mb-0">
       {/* Header */}
       <div className="border-b border-indigo-300 pb-3 mb-4">
         <div className="flex items-start justify-between gap-4">
@@ -205,7 +205,7 @@ export function DialogueInspector({
             </p>
             <button
               onClick={() => setClaimPickerOpen(true)}
-            className="px-5 py-3 btnv2 bg-indigo-700 hover:bg-indigo-800 text-white rounded-lg text-lg font-medium transition-colors "
+            className="px-5 py-3 btnv2 bg-indigo-700 hover:bg-indigo-800 text-white rounded-xl text-lg font-medium transition-colors "
             >
               Select Claim
             </button>

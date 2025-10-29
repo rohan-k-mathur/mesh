@@ -1,3 +1,5 @@
+//This is a legacy, obselete file kept for reference. Please do not edit or use this file.
+
 "use client";
 
 import * as React from "react";

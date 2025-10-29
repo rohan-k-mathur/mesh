@@ -49,9 +49,13 @@ import { ConfidenceProvider } from "../agora/useConfidence";
 import ClaimMiniMap from "../claims/ClaimMiniMap";
 import { PropositionComposerPro } from "../propositions/PropositionComposerPro";
 import IssuesList from "../issues/IssuesList";
+import { ArgumentActionsSheet } from "../arguments/ArgumentActionsSheet";
 import { ThesisComposer } from "../thesis/ThesisComposer";
 import { ThesisRenderer } from "../thesis/ThesisRenderer";
 import { ThesisListView } from "../thesis/ThesisListView";
+import { ActiveAssumptionsPanel } from "@/components/assumptions/ActiveAssumptionsPanel";
+import { CreateAssumptionForm } from "@/components/assumptions/CreateAssumptionForm";
+import { HomSetComparisonChart } from "@/components/agora/HomSetComparisonChart";
 
 const fetcher = (u: string) => fetch(u, { cache: 'no-store' }).then(r => r.json());
 
@@ -341,6 +345,69 @@ function ChipBar({ children }: { children: React.ReactNode }) {
   );
 }
 
+// Phase 3: Hom-Sets Tab with data fetching
+function HomSetsTab({ deliberationId }: { deliberationId: string }) {
+  const { data, error, isLoading } = useSWR(
+    `/api/deliberations/${deliberationId}/arguments/aif?limit=50`,
+    fetcher,
+    { revalidateOnFocus: false }
+  );
+
+  // Transform arguments to include hom-set confidence metrics
+  const argumentsWithHomSets = React.useMemo(() => {
+    if (!data?.items) return [];
+    
+    return data.items
+      .filter((arg: any) => arg.aif?.conclusion?.id)
+      .map((arg: any) => ({
+        id: arg.id,
+        title: arg.aif?.conclusion?.text || arg.text || 'Untitled Argument',
+        homSetConfidence: arg.aif?.preferences?.preferredBy 
+          ? (arg.aif.preferences.preferredBy / (arg.aif.preferences.preferredBy + (arg.aif.preferences.dispreferredBy || 0) + 1))
+          : 0.5,
+        incomingCount: (arg.aif?.attacks?.REBUTS || 0) + (arg.aif?.attacks?.UNDERCUTS || 0) + (arg.aif?.attacks?.UNDERMINES || 0),
+        outgoingCount: 0, // TODO: Fetch outgoing attack counts from API
+      }))
+      .slice(0, 20); // Limit to top 20 for performance
+  }, [data]);
+
+  return (
+    <SectionCard title="Categorical Analysis" isLoading={isLoading}>
+      <p className="text-sm text-slate-600 mb-4">
+        Comparative hom-set confidence analysis across arguments in this deliberation.
+      </p>
+      
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+          Failed to load argument data: {error.message || 'Unknown error'}
+        </div>
+      )}
+      
+      {!isLoading && !error && argumentsWithHomSets.length === 0 && (
+        <div className="p-6 bg-slate-50 rounded-lg border border-slate-200 text-center">
+          <p className="text-sm text-slate-500">
+            No arguments with hom-set data available yet.
+          </p>
+        </div>
+      )}
+      
+      {!isLoading && !error && argumentsWithHomSets.length > 0 && (
+        <HomSetComparisonChart
+          arguments={argumentsWithHomSets}
+          onArgumentClick={(id) => {
+            // Scroll to argument in debate tab
+            window.location.hash = `arg-${id}`;
+            const el = document.getElementById(`arg-${id}`);
+            if (el) {
+              el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          }}
+        />
+      )}
+    </SectionCard>
+  );
+}
+
 export default function DeepDivePanel({
   deliberationId,
   containerClassName,
@@ -359,9 +426,10 @@ export default function DeepDivePanel({
   const [sel, setSel] = useState<Selection | null>(null);
   const [pending, setPending] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
-  const [tab, setTab] = useState<'debate' | 'models' | 'ludics' | 'issues' | 'cq-review' | 'thesis'>('debate');
+  const [tab, setTab] = useState<'debate' | 'models' | 'ludics' | 'issues' | 'cq-review' | 'thesis' | 'assumptions' | 'hom-sets'>('debate');
   const [confMode, setConfMode] = React.useState<'product' | 'min'>('product');
   const [rule, setRule] = useState<"utilitarian" | "harmonic" | "maxcov">("utilitarian");
+  const [dsMode, setDsMode] = React.useState(false); // Phase 3: Dempster-Shafer mode toggle
   const { user } = useAuth();
   const authorId = user?.userId != null ? String(user.userId) : undefined;
   const [rhetoricSample, setRhetoricSample] = useState<string>('');
@@ -390,6 +458,7 @@ export default function DeepDivePanel({
   const [termsSheetOpen, setTermsSheetOpen] = useState(false);
   const [leftSheetTab, setLeftSheetTab] = useState<'arguments' | 'claims'>('claims');
   const [selectedTermId, setSelectedTermId] = useState<string | undefined>();
+  const [selectedArgumentForActions, setSelectedArgumentForActions] = useState<{ id: string; conclusionText?: string; schemeKey?: string } | null>(null);
 
   // at top of the component with the other state
 const [issuesOpen, setIssuesOpen] = useState(false);
@@ -744,10 +813,11 @@ const {
 
   const rightBadgeCount = useMemo(() => {
     let count = 0;
+    if (selectedArgumentForActions) count++; // Argument selected for actions
     if (diag?.aif) count++;
     if (cardActions.length > 0) count++;
     return count;
-  }, [diag, cardActions]);
+  }, [selectedArgumentForActions, diag, cardActions]);
 
 
   useEffect(() => {
@@ -1115,20 +1185,28 @@ const {
         )}
       </FloatingSheet>
 
-      {/* Right Floating Sheet - Actions & Diagram */}
-      <FloatingSheet
-        open={rightSheetOpen}
-        onOpenChange={setRightSheetOpen}
-        side="right"
-        width={650}
-        title="Actions & Diagram"
-        subtitle={hudTarget ? 'Available moves' : 'Select a claim'}
-        icon={
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-          </svg>
-        }
-      >
+      {/* Right Floating Sheet - Actions & Diagram (Conditional) */}
+      {selectedArgumentForActions ? (
+        <ArgumentActionsSheet
+          open={rightSheetOpen}
+          onOpenChange={setRightSheetOpen}
+          deliberationId={deliberationId}
+          selectedArgument={selectedArgumentForActions}
+        />
+      ) : (
+        <FloatingSheet
+          open={rightSheetOpen}
+          onOpenChange={setRightSheetOpen}
+          side="right"
+          width={650}
+          title="Actions & Diagram"
+          subtitle={hudTarget ? 'Available moves' : 'Select a claim'}
+          icon={
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          }
+        >
         {/* Dialogical Actions */}
         <div className="mb-6 w-full">
           <h3 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
@@ -1295,7 +1373,8 @@ const {
             </div>
           )}
         </div>
-      </FloatingSheet>
+        </FloatingSheet>
+      )}
 
       {/* Terms Glossary Sheet */}
       <FloatingSheet
@@ -1354,6 +1433,23 @@ const {
                   </select>
                 </label>
               </ChipBar>
+
+              {/* Phase 3: DS Mode Toggle */}
+              <ChipBar>
+                <button
+                  onClick={() => setDsMode(!dsMode)}
+                  className={`
+                    text-xs px-3 py-1 rounded-md border transition-all duration-200
+                    ${dsMode 
+                      ? 'bg-indigo-100 border-indigo-300 text-indigo-700 hover:bg-indigo-200' 
+                      : 'bg-slate-100 border-slate-300 text-slate-600 hover:bg-slate-200'
+                    }
+                  `}
+                  title="Toggle Dempster-Shafer interval mode"
+                >
+                  DS Mode: {dsMode ? 'ON' : 'OFF'}
+                </button>
+              </ChipBar>
             </div>
 
             <div className="flex gap-2">
@@ -1365,13 +1461,15 @@ const {
 
         {/* Main Tabs */}
         <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
-          <TabsList className="w-full grid-cols-6">
+          <TabsList className="w-full grid-cols-8">
             <TabsTrigger value="debate">Debate</TabsTrigger>
             <TabsTrigger value="models">Models</TabsTrigger>
             <TabsTrigger value="ludics">Ludics</TabsTrigger>
             <TabsTrigger value="issues">Issues</TabsTrigger>
             <TabsTrigger value="cq-review">CQ Review</TabsTrigger>
             <TabsTrigger value="thesis">Thesis</TabsTrigger>
+            <TabsTrigger value="assumptions">Assumptions</TabsTrigger>
+            <TabsTrigger value="hom-sets">Hom-Sets</TabsTrigger>
           </TabsList>
 
           {/* DEBATE TAB */}
@@ -1469,6 +1567,11 @@ const {
                 deliberationId={deliberationId}
                 onVisibleTextsChanged={(texts) => {
                   window.dispatchEvent(new CustomEvent('mesh:texts:visible', { detail: { deliberationId, texts } }));
+                }}
+                dsMode={dsMode}
+                onArgumentClick={(argument) => {
+                  setSelectedArgumentForActions(argument);
+                  // Don't auto-open, just set badge notification
                 }}
               />
               <span className="block mt-2 text-xs text-neutral-500">
@@ -1777,6 +1880,22 @@ const {
                 </div>
               </div>
             )}
+          </TabsContent>
+
+          {/* ASSUMPTIONS TAB - Phase 3 Integration */}
+          <TabsContent value="assumptions" className="w-full min-w-0 mt-4 space-y-4">
+            <SectionCard title="Create Assumption">
+              <CreateAssumptionForm deliberationId={deliberationId} />
+            </SectionCard>
+            
+            <SectionCard title="Active Assumptions">
+              <ActiveAssumptionsPanel deliberationId={deliberationId} />
+            </SectionCard>
+          </TabsContent>
+
+          {/* HOM-SETS TAB - Phase 3 Integration */}
+          <TabsContent value="hom-sets" className="w-full min-w-0 mt-4 space-y-4">
+            <HomSetsTab deliberationId={deliberationId} />
           </TabsContent>
         </Tabs>
       </div>

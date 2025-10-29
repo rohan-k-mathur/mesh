@@ -19,6 +19,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { AttackMenuPro } from "./AttackMenuPro";
 import CriticalQuestions from "@/components/claims/CriticalQuestionsV2";
 import { ArgumentCriticalQuestionsModal } from "./ArgumentCriticalQuestionsModal";
+import { DialogueStateBadge } from "@/components/dialogue/DialogueStateBadge";
+import { StaleArgumentBadge } from "@/components/arguments/StaleArgumentBadge";
+import { ConfidenceDisplay } from "@/components/confidence/ConfidenceDisplay";
 
 const fetcher = (url: string) => fetch(url).then(r => r.json());
 
@@ -33,6 +36,10 @@ interface ArgumentCardV2Props {
   onAnyChange?: () => void;
   schemeKey?: string | null;
   schemeName?: string | null;
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
+  confidence?: number;
+  dsMode?: boolean; // Dempster-Shafer mode toggle
 }
 
 // ============================================================================
@@ -290,6 +297,10 @@ export function ArgumentCardV2({
   onAnyChange,
   schemeKey,
   schemeName,
+  createdAt,
+  updatedAt,
+  confidence,
+  dsMode = false,
 }: ArgumentCardV2Props) {
   const [expandedSections, setExpandedSections] = React.useState({
     premises: false,
@@ -436,6 +447,29 @@ export function ArgumentCardV2({
             
             {/* Badges Row */}
             <div className="flex items-center gap-2 flex-wrap ml-7">
+              {/* Phase 3: Dialogue State Badge */}
+              <DialogueStateBadge 
+                deliberationId={deliberationId}
+                argumentId={id}
+              />
+              
+              {/* Phase 3: Temporal Decay Badge */}
+              {updatedAt && (
+                <StaleArgumentBadge 
+                  lastUpdatedAt={updatedAt}
+                />
+              )}
+              
+              {/* Phase 3: DS Mode Confidence Display */}
+              {confidence !== undefined && (
+                <ConfidenceDisplay 
+                  value={confidence}
+                  dsMode={dsMode}
+                  showLabel={false}
+                  className="text-xs"
+                />
+              )}
+              
               {schemeName && (
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-50 border border-indigo-200">
                   <Sparkles className="w-3 h-3 text-indigo-600" />
@@ -489,7 +523,7 @@ export function ArgumentCardV2({
             </div>
           </div>
 
-          {/* Quick Action Button */}
+          {/* Quick Action Button
           <div className="shrink-0">
             <AttackMenuPro
               deliberationId={deliberationId}
@@ -497,7 +531,7 @@ export function ArgumentCardV2({
               target={{ id, conclusion, premises }}
               onDone={handleRefresh}
             />
-          </div>
+          </div> */}
         </div>
       </div>
 

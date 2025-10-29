@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useMemo } from 'react';
 import type { AifSubgraph, AifEdgeRole } from '@/lib/arguments/diagram';
 import { AifDiagramMinimap } from './Aifdiagramminimap';
 import { AifPathHighlighter, usePathHighlight, type ArgumentPath } from './Aifpathhighlighter';
@@ -75,11 +75,13 @@ export function AifDiagramViewerDagre({
   onNodeClick,
   layoutPreset = 'standard',
   className = '',
+  deliberationId, // Phase 3.1.4: For fetching dialogue state
 }: {
   initialGraph: AifSubgraph;
   onNodeClick?: (nodeId: string) => void;
   layoutPreset?: keyof typeof LAYOUT_PRESETS;
   className?: string;
+  deliberationId?: string; // Phase 3.1.4: Optional deliberation ID
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -88,9 +90,39 @@ export function AifDiagramViewerDagre({
   const [graph, setGraph] = useState(initialGraph);
   const [selectedNodeId, setSelectedNodeId] = useState<string>();
   
-  // Layout calculation with Dagre
+  // Phase 3.1.4: Dialogue state filter
+  const [dialogueFilter, setDialogueFilter] = useState<'all' | 'complete' | 'incomplete'>('all');
+  const [dialogueStates, setDialogueStates] = useState<Record<string, { moveComplete: boolean }>>({});
+  
+  // Phase 3.1.4: Filter nodes based on dialogue state
+  const filteredGraph = useMemo(() => {
+    if (dialogueFilter === 'all' || !deliberationId) return graph;
+    
+    const filteredNodes = graph.nodes.filter(node => {
+      // Only filter RA (argument) nodes
+      if (node.kind !== 'RA') return true;
+      
+      const state = dialogueStates[node.id];
+      if (!state) return true; // Include if state not loaded yet
+      
+      if (dialogueFilter === 'complete') return state.moveComplete;
+      if (dialogueFilter === 'incomplete') return !state.moveComplete;
+      return true;
+    });
+    
+    const filteredNodeIds = new Set(filteredNodes.map(n => n.id));
+    
+    // Filter edges to only include those between visible nodes
+    const filteredEdges = graph.edges.filter(
+      edge => filteredNodeIds.has(edge.from) && filteredNodeIds.has(edge.to)
+    );
+    
+    return { nodes: filteredNodes, edges: filteredEdges };
+  }, [graph, dialogueFilter, dialogueStates, deliberationId]);
+  
+  // Layout calculation with Dagre - use filtered graph
   const { nodePositions, graphBounds } = useDagreLayout(
-    graph,
+    filteredGraph,
     LAYOUT_PRESETS[layoutPreset]
   );
   
@@ -112,6 +144,42 @@ export function AifDiagramViewerDagre({
   
   // Legend state
   const [showLegend, setShowLegend] = useState(true);
+  
+  // Phase 3.1.4: Fetch dialogue states for all argument nodes
+  useEffect(() => {
+    if (!deliberationId) return;
+    
+    const fetchDialogueStates = async () => {
+      // Filter for inference nodes (RA = regular argument)
+      const argumentNodes = graph.nodes.filter(n => n.kind === 'RA');
+      const states: Record<string, { moveComplete: boolean }> = {};
+      
+      // Fetch states in parallel
+      await Promise.all(
+        argumentNodes.map(async (node) => {
+          try {
+            // Extract argument ID from node.id (format: "RA:argumentId")
+            const argumentId = node.id.split(':')[1];
+            if (!argumentId) return;
+            
+            const res = await fetch(
+              `/api/deliberations/${deliberationId}/dialogue-state?argumentId=${argumentId}`
+            );
+            if (res.ok) {
+              const data = await res.json();
+              states[node.id] = { moveComplete: data.state.moveComplete };
+            }
+          } catch (err) {
+            console.error(`Failed to fetch dialogue state for ${node.id}:`, err);
+          }
+        })
+      );
+      
+      setDialogueStates(states);
+    };
+    
+    fetchDialogueStates();
+  }, [deliberationId, graph.nodes]);
   
   // Mouse down handler to differentiate between pan and zoom
   function handleMouseDown(e: React.MouseEvent) {
@@ -196,7 +264,7 @@ export function AifDiagramViewerDagre({
   }, [graphBounds, nodePositions.size]);
   
   // Get unique edge roles for markers
-  const uniqueEdgeRoles = Array.from(new Set(graph.edges.map(e => e.role)));
+  const uniqueEdgeRoles = Array.from(new Set(filteredGraph.edges.map(e => e.role)));
   
   return (
     <div className={`relative w-full bg-gray-50 ${className}`} ref={containerRef}>
@@ -245,6 +313,25 @@ export function AifDiagramViewerDagre({
             Reset
           </button>
         </div>
+        
+        {/* Phase 3.1.4: Dialogue State Filter */}
+        {deliberationId && (
+          <div className="flex items-center gap-2 bg-white border border-gray-300 rounded-lg px-3 py-2">
+            <label className="text-xs font-medium text-gray-700">
+              Dialogue:
+            </label>
+            <select
+              value={dialogueFilter}
+              onChange={(e) => setDialogueFilter(e.target.value as 'all' | 'complete' | 'incomplete')}
+              className="text-xs border-gray-300 rounded px-2 py-1 focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              title="Filter arguments by dialogue completion status"
+            >
+              <option value="all">All Arguments</option>
+              <option value="complete">Complete (all attacks answered)</option>
+              <option value="incomplete">Incomplete (pending attacks)</option>
+            </select>
+          </div>
+        )}
       </div>
       
       {selectedNodeId && (
@@ -323,7 +410,7 @@ export function AifDiagramViewerDagre({
               />
             );
           })} */}
-          {graph.edges.map((edge) => {
+          {filteredGraph.edges.map((edge) => {
   const from = nodePositions.get(edge.from);
   const to = nodePositions.get(edge.to);
   if (!from || !to) return null;
@@ -368,7 +455,7 @@ export function AifDiagramViewerDagre({
   );
 })}
           {/* Nodes */}
-          {graph.nodes.map((node) => {
+          {filteredGraph.nodes.map((node) => {
             const pos = nodePositions.get(node.id);
             if (!pos) return null;
             
@@ -503,8 +590,11 @@ export function AifDiagramViewerDagre({
       
       {/* Stats */}
       <div className="absolute top-4 right-4 bg-white border border-gray-300 rounded-lg px-4 py-2 text-xs">
-        <div className="font-semibold text-gray-900">{graph.nodes.length} nodes</div>
-        <div className="text-gray-500">{graph.edges.length} edges</div>
+        <div className="font-semibold text-gray-900">{filteredGraph.nodes.length} nodes</div>
+        <div className="text-gray-500">{filteredGraph.edges.length} edges</div>
+        {dialogueFilter !== 'all' && (
+          <div className="text-indigo-600 mt-1">Filtered: {dialogueFilter}</div>
+        )}
         <div className="text-blue-600 mt-1">Dagre layout</div>
       </div>
     </div>

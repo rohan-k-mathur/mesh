@@ -1,3 +1,5 @@
+//This is a legacy, obselete file kept for reference. Please do not edit or use this file.
+
 "use client";
 import { useMemo, useState, useEffect } from "react";
 import useSWRInfinite from "swr/infinite";

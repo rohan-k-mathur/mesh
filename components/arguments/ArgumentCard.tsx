@@ -1,3 +1,5 @@
+////This is a legacy, obselete file kept for reference. Please do not edit or use this file.
+
 // components/arguments/ArgumentCard.tsx
 "use client";
 import * as React from "react";
@@ -8,6 +10,7 @@ import { AttackMenuPro } from "./AttackMenuPro";
 import CriticalQuestions from "@/components/claims/CriticalQuestionsV2";
 import { ArgumentCriticalQuestionsModal } from "./ArgumentCriticalQuestionsModal";
 import { CommunityResponseBadge } from "@/components/agora/CommunityResponseBadge";
+import { DialogueStateBadge } from "@/components/dialogue/DialogueStateBadge";
 
 const fetcher = (url: string) => fetch(url).then(r => r.json());
 
@@ -240,6 +243,11 @@ export function ArgumentCard({
                     </div>
                   </div>
                 )}
+                {/* Dialogue State Badge (Phase 3.1) */}
+                <DialogueStateBadge
+                  deliberationId={deliberationId}
+                  argumentId={id}
+                />
                 {/* Community Response Badge */}
                 <CommunityResponseBadge
                   targetId={id}
