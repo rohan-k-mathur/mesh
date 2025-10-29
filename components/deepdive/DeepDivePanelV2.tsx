@@ -356,22 +356,51 @@ function HomSetsTab({ deliberationId }: { deliberationId: string }) {
   // Transform arguments to include hom-set confidence metrics
   const argumentsWithHomSets = React.useMemo(() => {
     if (!data?.items) return [];
-    
+
     return data.items
       .filter((arg: any) => arg.aif?.conclusion?.id)
-      .map((arg: any) => ({
-        id: arg.id,
-        title: arg.aif?.conclusion?.text || arg.text || 'Untitled Argument',
-        homSetConfidence: arg.aif?.preferences?.preferredBy 
-          ? (arg.aif.preferences.preferredBy / (arg.aif.preferences.preferredBy + (arg.aif.preferences.dispreferredBy || 0) + 1))
-          : 0.5,
-        incomingCount: (arg.aif?.attacks?.REBUTS || 0) + (arg.aif?.attacks?.UNDERCUTS || 0) + (arg.aif?.attacks?.UNDERMINES || 0),
-        outgoingCount: 0, // TODO: Fetch outgoing attack counts from API
-      }))
+      .map((arg: any) => {
+        // Categorical hom-set confidence: aggregate edge strengths via join operation
+        // Based on evidential closed category semantics (Ambler 1996)
+        
+        // Collect edge counts (proxies for confidence in absence of explicit scores)
+        const incomingCount = (arg.aif?.attacks?.REBUTS || 0) + 
+                              (arg.aif?.attacks?.UNDERCUTS || 0) + 
+                              (arg.aif?.attacks?.UNDERMINES || 0);
+        const outgoingCount = arg.aif?.outgoingAttacks || 0; // If available
+        const totalEdges = incomingCount + outgoingCount;
+        
+        // Compute hom-set confidence based on mode (default to 'product' if not specified)
+        // In future: use actual ArgumentEdge.confidence scores when available
+        let homSetConfidence = 0;
+        
+        if (totalEdges > 0) {
+          // Default edge confidence (can be refined when ArgumentEdge.confidence is added)
+          const defaultEdgeConfidence = 0.7;
+          
+          // Categorical join operation based on confidence mode:
+          // - 'min': Weakest-link (best single edge) - max of individual confidences
+          // - 'product': Independent accrual (noisy-OR) - 1 - ∏(1 - cᵢ)
+          // - 'ds': Dempster-Shafer (simplified as max for now)
+          
+          // For now, use simplified heuristic based on edge count
+          // Product mode (noisy-OR): confidence increases with more edges
+          homSetConfidence = 1 - Math.pow(1 - defaultEdgeConfidence, totalEdges);
+          
+          // Min mode would use: Math.max(...edgeConfidences) ≈ defaultEdgeConfidence
+          // (single edge = defaultEdgeConfidence, multiple = same)
+        }
+        
+        return {
+          id: arg.id,
+          title: arg.aif?.conclusion?.text || arg.text || 'Untitled Argument',
+          homSetConfidence,
+          incomingCount,
+          outgoingCount,
+        };
+      })
       .slice(0, 20); // Limit to top 20 for performance
-  }, [data]);
-
-  return (
+  }, [data]);  return (
     <SectionCard title="Categorical Analysis" isLoading={isLoading}>
       <p className="text-sm text-slate-600 mb-4">
         Comparative hom-set confidence analysis across arguments in this deliberation.
