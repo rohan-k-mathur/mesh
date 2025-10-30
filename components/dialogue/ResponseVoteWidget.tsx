@@ -31,10 +31,23 @@ export function ResponseVoteWidget({
 
     const fetchVotes = async () => {
       try {
-        const res = await fetch(`/api/responses/${responseId}/votes`);
+        const res = await fetch(`/api/dialogue/moves/${responseId}/votes`);
         if (res.ok) {
           const data = await res.json();
-          setVotes(data);
+          // Handle both response formats: { counts: {...} } or { upvotes, downvotes, flags }
+          if (data.counts) {
+            setVotes({
+              upvotes: data.counts.UPVOTE || 0,
+              downvotes: data.counts.DOWNVOTE || 0,
+              flags: data.counts.FLAG || 0,
+            });
+          } else {
+            setVotes({
+              upvotes: data.upvotes || 0,
+              downvotes: data.downvotes || 0,
+              flags: data.flags || 0,
+            });
+          }
         }
       } catch (err) {
         console.error("Failed to fetch response votes:", err);

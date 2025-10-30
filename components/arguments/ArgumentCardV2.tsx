@@ -305,6 +305,7 @@ export function ArgumentCardV2({
   const [expandedSections, setExpandedSections] = React.useState({
     premises: false,
     inference: false,
+    assumptions: false,
     attacks: false,
   });
   const [loading, setLoading] = React.useState(false);
@@ -321,6 +322,12 @@ export function ArgumentCardV2({
   // Fetch CQ data for the argument itself (argument-level CQs)
   const { data: argCqData } = useSWR(
     id ? `/api/cqs?targetType=argument&targetId=${id}` : null,
+    fetcher
+  );
+
+  // Phase 3 Quick Win: Fetch AssumptionUse records
+  const { data: assumptionsData } = useSWR(
+    id ? `/api/arguments/${id}/assumption-uses` : null,
     fetcher
   );
 
@@ -609,6 +616,55 @@ export function ArgumentCardV2({
             </div>
           )}
         </div>
+
+        {/* OPEN ASSUMPTIONS SECTION - Phase 3 Quick Win */}
+        {assumptionsData?.assumptions && assumptionsData.assumptions.length > 0 && (
+          <div>
+            <SectionHeader
+              title="Open Assumptions"
+              icon={Sparkles}
+              count={assumptionsData.assumptions.length}
+              expanded={expandedSections.assumptions}
+              onToggle={() => toggleSection("assumptions")}
+            />
+            {expandedSections.assumptions && (
+              <div className="p-4 space-y-2 bg-blue-50/50">
+                <div className="text-xs text-blue-700 mb-3 flex items-center gap-2">
+                  <AlertCircle className="w-3 h-3" />
+                  <span>This argument relies on the following assumptions:</span>
+                </div>
+                {assumptionsData.assumptions.map((assumption: any, idx: number) => (
+                  <div 
+                    key={assumption.id}
+                    className="flex items-start gap-2 p-3 rounded-lg bg-white border border-blue-200 hover:border-blue-300 transition-colors"
+                  >
+                    <span className="inline-flex items-center justify-center min-w-[1.75rem] h-7 rounded-full bg-blue-100 text-blue-700 text-xs font-bold shrink-0">
+                      λ{idx + 1}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-slate-700 leading-relaxed">{assumption.text}</p>
+                      <div className="flex items-center gap-3 mt-1.5 text-[10px]">
+                        {assumption.weight !== undefined && (
+                          <span className="font-medium text-blue-700">
+                            weight: {assumption.weight.toFixed(2)}
+                          </span>
+                        )}
+                        {assumption.role && assumption.role !== "premise" && (
+                          <span className="text-slate-500">
+                            role: {assumption.role}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                <div className="text-[10px] text-blue-600 bg-blue-50 p-2 rounded border border-blue-200 mt-2">
+                  💡 <strong>Tip:</strong> Retracting or challenging an assumption may affect this argument&apos;s confidence.
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* ATTACKS SECTION */}
         <div>

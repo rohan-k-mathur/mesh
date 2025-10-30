@@ -102,6 +102,35 @@ const idsParam = (u.searchParams.get('ids') || '').trim();
     return 1 - prodNot;
   }
 
+  /**
+   * Dempster-Shafer combination for belief/plausibility intervals.
+   * 
+   * IMPLEMENTATION NOTE: This is a simplified DS implementation with limitations:
+   * 
+   * 1. POSITIVE-ONLY EVIDENCE: Assumes all evidence supports φ (no explicit mass on ¬φ).
+   *    Each argument score s is mapped to: m({φ})=s, m({Θ})=1-s.
+   *    There is no direct representation of counter-evidence.
+   * 
+   * 2. NO CONFLICT RESOLUTION: Uses basic Dempster's rule with k=1 (no conflict).
+   *    Does NOT implement PCR5/PCR6 (Proportional Conflict Redistribution) rules.
+   *    May produce unintuitive results when expert opinions strongly disagree.
+   * 
+   * 3. SIMPLIFIED PLAUSIBILITY: Returns pl=1 (no explicit mass on ¬φ).
+   *    In full DS theory, pl(φ) = 1 - m(¬φ), but we don't track ¬φ mass.
+   * 
+   * USE CASES:
+   * - ✅ WORKS WELL: Multiple independent arguments supporting same conclusion
+   * - ✅ WORKS WELL: Accumulating positive evidence with uncertainty
+   * - ⚠️ LIMITED: Conflicting expert opinions (no PCR redistribution)
+   * - ⚠️ LIMITED: Direct rebuttals (handled separately in supportClaim, not here)
+   * 
+   * For advanced conflict resolution with highly contradictory evidence,
+   * consider implementing PCR5 or PCR6 rules (see research literature on
+   * Proportional Conflict Redistribution in Dempster-Shafer theory).
+   * 
+   * @param bels - Array of belief values (0..1) to combine
+   * @returns {bel, pl} - Belief and plausibility interval
+   */
   function dsCombine(bels:number[]): { bel:number, pl:number } {
     // light-weight DS: combine independent masses on {φ}, {Θ};
     // treat each line score s => m({φ})=s, m({Θ})=1-s; Dempster's rule on binary frame.

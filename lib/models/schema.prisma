@@ -2400,39 +2400,17 @@ model ConflictApplication {
 
 // Dialogue Action Tracking Models (Phase 2.1)
 
-model DialogueAction {
+model ResponseVote {
   id             String   @id @default(cuid())
-  deliberationId String
-  actionType     String // "GROUNDS", "WARRANT", "BACKING", "REBUTTAL"
-  targetId       String // Argument or Claim ID
-  description    String?  @db.Text
-  createdById    String
+  dialogueMoveId String
+  voterId        String
+  voteType       String // "UPVOTE", "DOWNVOTE", "FLAG"
   createdAt      DateTime @default(now())
 
-  // Phase 2.1.3: Move Completion Tracking
-  completed   Boolean   @default(false)
-  completedAt DateTime?
-  completedBy String?
+  dialogueMove DialogueMove @relation(fields: [dialogueMoveId], references: [id], onDelete: Cascade)
 
-  votes ResponseVote[]
-
-  @@index([deliberationId])
-  @@index([targetId])
-  @@index([createdById])
-  @@index([completed])
-}
-
-model ResponseVote {
-  id               String   @id @default(cuid())
-  dialogueActionId String
-  voterId          String
-  voteType         String // "UPVOTE", "DOWNVOTE", "FLAG"
-  createdAt        DateTime @default(now())
-
-  dialogueAction DialogueAction @relation(fields: [dialogueActionId], references: [id], onDelete: Cascade)
-
-  @@unique([dialogueActionId, voterId])
-  @@index([dialogueActionId])
+  @@unique([dialogueMoveId, voterId])
+  @@index([dialogueMoveId])
   @@index([voterId])
 }
 
@@ -3534,11 +3512,20 @@ model DialogueMove {
 
   signature String @db.VarChar(255)
 
+  // Completion tracking (merged from DialogueAction)
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+  completedBy String?
+
+  // Vote integration (merged from DialogueAction)
+  votes ResponseVote[]
+
   @@unique([deliberationId, signature], name: "dm_unique_signature")
   @@index([deliberationId, targetType, targetId, kind, createdAt], name: "dm_by_target_kind_time")
   @@index([payload], type: Gin, name: "dm_payload_gin")
   @@index([deliberationId])
   @@index([targetType, targetId])
+  @@index([completed])
 }
 
 enum ProofMode {

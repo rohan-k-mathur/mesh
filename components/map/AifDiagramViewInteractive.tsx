@@ -373,6 +373,7 @@ export default function AifDiagramViewInteractive({
 
             const isExpanded = expansionState.expandedNodes.has(node.id);
             const isExpandable = aifNode.kind === 'RA' && !isExpanded;
+            const isExpanding = expansionState.isExpanding && expansionState.expandingNodeId === node.id;
             const summary = nodeSummaries.get(node.id);
             const hasConnections = summary && summary.totalConnections > 0;
 
@@ -392,8 +393,43 @@ export default function AifDiagramViewInteractive({
                   isHovered={hoveredNode === node.id}
                 />
                 
+                {/* Loading overlay during expansion */}
+                {isExpanding && (
+                  <g>
+                    <rect
+                      x="0"
+                      y="0"
+                      width={node.width}
+                      height={node.height}
+                      fill="white"
+                      opacity="0.85"
+                      rx="4"
+                    />
+                    <circle
+                      cx={node.width / 2}
+                      cy={node.height / 2}
+                      r="8"
+                      fill="none"
+                      stroke="#4f46e5"
+                      strokeWidth="2"
+                      strokeDasharray="12 4"
+                      className="animate-spin"
+                      style={{ transformOrigin: `${node.width / 2}px ${node.height / 2}px` }}
+                    >
+                      <animateTransform
+                        attributeName="transform"
+                        type="rotate"
+                        from={`0 ${node.width / 2} ${node.height / 2}`}
+                        to={`360 ${node.width / 2} ${node.height / 2}`}
+                        dur="1s"
+                        repeatCount="indefinite"
+                      />
+                    </circle>
+                  </g>
+                )}
+                
                 {/* Expansion indicator */}
-                {enableExpansion && isExpandable && hasConnections && (
+                {enableExpansion && isExpandable && hasConnections && !isExpanding && (
                   <g>
                     <circle
                       cx={node.width - 8}

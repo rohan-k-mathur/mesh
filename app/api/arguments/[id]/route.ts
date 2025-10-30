@@ -95,7 +95,31 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     // 2) Fallback: treat :id as Argument.id and synthesize with the same rich shape
     const computed = await buildDiagramForArgument(id);
     if (!computed) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-    return NextResponse.json({ ok: true, diagram: computed }, NO_STORE);
+    
+    // Check if this argument is imported from another deliberation
+    const importRecord = await prisma.argumentImport.findFirst({
+      where: { toArgumentId: id },
+      select: {
+        id: true,
+        kind: true,
+        fromDeliberationId: true,
+        fromDeliberation: {
+          select: { id: true, title: true }
+        }
+      }
+    });
+    
+    const response: any = { ok: true, diagram: computed };
+    if (importRecord) {
+      response.provenance = {
+        kind: importRecord.kind || 'import',
+        sourceDeliberationId: importRecord.fromDeliberationId,
+        sourceDeliberationName: importRecord.fromDeliberation?.title || 'Unknown Room',
+        importId: importRecord.id,
+      };
+    }
+    
+    return NextResponse.json(response, NO_STORE);
   }
 
   // Default: return the argument row

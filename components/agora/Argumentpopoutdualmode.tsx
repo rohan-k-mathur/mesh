@@ -11,6 +11,7 @@
 import { useState } from 'react';
 import useSWR from 'swr';
 import AifDiagramViewInteractive from '../map/AifDiagramViewInteractive';
+import UndercutPill from './UndercutPill';
 import type { AifNode } from '@/lib/arguments/diagram';
 
 // Assuming you have DiagramView component
@@ -68,14 +69,27 @@ export default function ArgumentPopoutDualMode({
 
   const diagram = data.diagram;
   const hasAif = !!diagram.aif;
+  const provenance = data.provenance;
 
   return (
     <div className="rounded-lg border border-slate-200 bg-white shadow-lg">
       {/* Header with mode toggle */}
       <div className="flex items-center justify-between p-3 border-b border-slate-200">
-        <h3 className="font-semibold text-slate-900">
-          {node.title || diagram.title || 'Argument'}
-        </h3>
+        <div className="flex items-center gap-2">
+          <h3 className="font-semibold text-slate-900">
+            {node.title || diagram.title || 'Argument'}
+          </h3>
+          
+          {/* Provenance badge */}
+          {provenance && (
+            <span 
+              className="text-[10px] bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full font-medium"
+              title={`Imported from ${provenance.sourceDeliberationName}`}
+            >
+              📥 Imported
+            </span>
+          )}
+        </div>
         
         <div className="flex items-center gap-2">
           {/* View mode toggle */}
@@ -147,6 +161,15 @@ export default function ArgumentPopoutDualMode({
                         from: {inf.premises.map((p: any) => p.statement.text).join(', ')}
                       </div>
                     )}
+                    {node.deliberationId && (
+                      <div className="mt-1">
+                        <UndercutPill
+                          toArgumentId={node.diagramId}
+                          targetInferenceId={inf.id}
+                          deliberationId={node.deliberationId}
+                        />
+                      </div>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -191,10 +214,10 @@ export default function ArgumentPopoutDualMode({
                         </div>
                       </div>
                     </div>
-                    {clickedAifNode.text && (
+                    {clickedAifNode.label && (
                       <div className="mt-2 pt-2 border-t border-slate-200">
                         <div className="text-slate-500 mb-1">Content</div>
-                        <div className="text-slate-700">{clickedAifNode.text}</div>
+                        <div className="text-slate-700">{clickedAifNode.label}</div>
                       </div>
                     )}
                   </div>
