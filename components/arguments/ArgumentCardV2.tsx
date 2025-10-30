@@ -40,6 +40,12 @@ interface ArgumentCardV2Props {
   updatedAt?: string | Date;
   confidence?: number;
   dsMode?: boolean; // Dempster-Shafer mode toggle
+  provenance?: {
+    kind: string;
+    sourceDeliberationId: string;
+    sourceDeliberationName: string;
+    fingerprint?: string;
+  } | null;
 }
 
 // ============================================================================
@@ -301,6 +307,7 @@ export function ArgumentCardV2({
   updatedAt,
   confidence,
   dsMode = false,
+  provenance,
 }: ArgumentCardV2Props) {
   const [expandedSections, setExpandedSections] = React.useState({
     premises: false,
@@ -454,6 +461,16 @@ export function ArgumentCardV2({
             
             {/* Badges Row */}
             <div className="flex items-center gap-2 flex-wrap ml-7">
+              {/* Phase 5A: Provenance Badge for Imported Arguments */}
+              {provenance && (
+                <span 
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-[10px] font-medium hover:bg-amber-100 transition-colors cursor-default"
+                  title={`Imported from "${provenance.sourceDeliberationName}" (fingerprint: ${provenance.fingerprint?.slice(0, 8)}...)`}
+                >
+                  📥 From {provenance.sourceDeliberationName}
+                </span>
+              )}
+              
               {/* Phase 3: Dialogue State Badge */}
               <DialogueStateBadge 
                 deliberationId={deliberationId}

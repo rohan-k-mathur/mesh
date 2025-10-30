@@ -33,15 +33,15 @@ export default function EditPage({ params }: { params: { id: string } }) {
   if (!page)     return <div className="p-4 text-sm text-rose-600">Not found</div>;
 
   return (
-    <div className="p-4 max-w-3xl mx-auto space-y-4">
-      <div className="flex items-center gap-2">
+    <div className="py-8 max-w-3xl mx-auto space-y-4">
+      <div className="flex items-center gap-4">
         <Input
           value={title}
           onChange={(e)=>{ const v = e.target.value; setTitle(v); saveTitle(v); }}
-          placeholder="Page title…"
-          className="text-xl font-semibold border rounded px-2 py-1 bg-white/80 w-full"
+          placeholder="Title…"
+          className="text-lg font-medium border-none rounded-lg tracking-wide px-4 py-1 articlesearchfield bg-white/80 w-full"
         />
-        <a href={`/kb/pages/${pageId}/view`} target="_blank" className="text-sm btnv2 px-4 text-slate-600 ">View</a>
+        <a href={`/kb/pages/${pageId}/view`} target="_blank" className="flex text-sm btnv2 px-4 bg-white/80 font-medium text-slate-900 "><span className="whitespace-nowrap flex">View Page</span></a>
       </div>
 
       {/* The whole editor lives here now */}

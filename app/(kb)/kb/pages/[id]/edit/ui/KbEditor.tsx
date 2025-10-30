@@ -105,7 +105,7 @@ export default function KbEditor({ pageId, spaceId }:{ pageId:string; spaceId:st
     : blocks;
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
 
       {/* --- Toolbar --- */}
       <div className="flex items-center gap-2">
@@ -120,7 +120,7 @@ export default function KbEditor({ pageId, spaceId }:{ pageId:string; spaceId:st
             e.target.value = '';
           }}
           defaultValue=""
-          className="px-2 py-1 border rounded text-sm bg-white/80"
+          className="px-2 py-1 menuv2--lite tracking-wide text-sm "
         >
           <option value="" disabled>+ block</option>
           <option value="text">Text</option>
@@ -172,29 +172,29 @@ export default function KbEditor({ pageId, spaceId }:{ pageId:string; spaceId:st
           }}/>
         )}
 
-        <div className="text-slate-400 text-xs">
+        <div className="text-slate-600 text-xs">
           Tip: inside a Text block press <kbd>Ctrl/Cmd</kbd> + <kbd>/</kbd> for inserts.
         </div>
 
-        <a className="ml-auto text-xs btnv2 px-2 py-1 "
+        <a className="ml-auto text-xs btnv2 px-4 bg-white/80 font-medium text-slate-900 "
            href={`/api/kb/pages/${pageId}/export?as=md`} target="_blank" rel="noopener noreferrer">
-          Export as MD
+          Export MD
         </a>
       </div>
 
       {/* --- One canonical, draggable list --- */}
-      <ul className="space-y-3" onDrop={onDrop}>
+      <ul className="space-y-4" onDrop={onDrop}>
         {orderedBlocks.map(b => (
           <li
             key={b.id}
             draggable
             onDragStart={()=>onDragStart(b.id)}
             onDragOver={(e)=>onDragOver(b.id, e)}
-            className="border rounded bg-white/80 p-2 cursor-grab active:cursor-grabbing"
+            className="border rounded-lg shadow-md bg-white/80 px-3 py-2 cursor-grab active:cursor-grabbing"
           >
             <div className="flex items-center justify-between mb-1">
               <div className="text-[11px] uppercase tracking-wide text-slate-600">
-                <span className="inline-block mr-2 select-none">≡</span>{b.type}
+                <span className="inline-block mr-2 text-sm select-none">≡</span>{b.type}
                 {!b.live && (
                   <span className="ml-2 px-1.5 py-[1px] rounded bg-amber-50 border border-amber-200 text-amber-700">
                     pinned
@@ -290,6 +290,30 @@ function EditorStructuredPreview({ spaceId, block }:{
 /** ---------- Pin / Unpin (editor-side) ---------- */
 function BlockToolbar({ b, onPinned }: { b:any; onPinned:()=>void }) {
   const [busy, setBusy] = React.useState(false);
+
+
+  async function resolveEnvForSnapshot() {
+    // Use the same “one-item” transclusion used by the preview
+    const d = b.dataJson || {};
+    const item =
+      b.type === 'theory_work' && d.workId ? { kind:'theory_work', id:d.workId, lens:d.lens ?? 'summary' } :
+      b.type === 'claim' && d.id ? { kind:'claim', id:d.id, lens:d.lens, roomId:d.roomId } :
+      b.type === 'argument' && d.id ? { kind:'argument', id:d.id, lens:d.lens } :
+      b.type === 'sheet' && d.id ? { kind:'sheet', id:d.id, lens:d.lens } :
+      b.type === 'room_summary' && d.id ? { kind:'room_summary', id:d.id, lens:d.lens, limit:d.limit ?? 5 } :
+      b.type === 'transport' && d.fromId && d.toId ? { kind:'transport', fromId:d.fromId, toId:d.toId, lens:d.lens ?? 'map' } :
+      null;
+
+    if (!item) return null;
+
+    const r = await fetch('/api/kb/transclude', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ items:[item] })
+    });
+    const j = await r.json().catch(()=>({}));
+    return Array.isArray(j?.items) ? j.items[0] : null;
+  }
+
   const pinNow = async () => {
     setBusy(true);
     // TIP: we could reuse the latest env from preview, but safest is to refetch now.

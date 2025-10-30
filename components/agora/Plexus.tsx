@@ -108,6 +108,38 @@ export default function Plexus({
   const [sel, setSel]               = React.useState<string[]>([]); // up to 2 rooms
   const [hoverRoom, setHoverRoom]   = React.useState<string|null>(null);
   const [hoverEdge, setHoverEdge]   = React.useState<MetaEdge|null>(null);
+  const [edgeMetadata, setEdgeMetadata] = React.useState<any>(null);
+
+  // Fetch edge metadata on hover
+  React.useEffect(() => {
+    if (!hoverEdge) {
+      setEdgeMetadata(null);
+      return;
+    }
+    
+    // Only fetch metadata for imports and shared_author edges
+    if (hoverEdge.kind !== "imports" && hoverEdge.kind !== "shared_author") {
+      return;
+    }
+    
+    const fetchMetadata = async () => {
+      try {
+        const res = await fetch(
+          `/api/agora/edge-metadata?from=${hoverEdge.from}&to=${hoverEdge.to}&kind=${hoverEdge.kind}`
+        );
+        const data = await res.json();
+        if (data.ok) {
+          setEdgeMetadata(data);
+        }
+      } catch (error) {
+        console.error("[Plexus] Failed to fetch edge metadata:", error);
+      }
+    };
+    
+    // Debounce slightly to avoid fetching on quick hover
+    const timer = setTimeout(fetchMetadata, 200);
+    return () => clearTimeout(timer);
+  }, [hoverEdge]);
 
   // Tag filters
   const allRooms = data?.rooms ?? [];
@@ -304,7 +336,7 @@ export default function Plexus({
 
 
   return (
-    <div className="rounded-xl border postcard p-3">
+    <div className="rounded-xl border  p-3">
       {/* Header */}
       <div className="flex items-center justify-between mb-2 gap-3">
         <div className="flex items-center gap-2">
@@ -594,10 +626,39 @@ export default function Plexus({
           </g>
         </svg>
 
-        {/* Edge tooltip */}
-        {edgeTooltip && (
-          <div className="absolute bottom-2 right-2 text-[11px] px-2 py-1 rounded bg-black/70 text-white pointer-events-none">
-            {edgeTooltip}
+        {/* Enhanced Edge tooltip with metadata */}
+        {edgeTooltip && hoverEdge && (
+          <div className="absolute bottom-2 right-2 text-[11px] px-3 py-2 rounded-lg bg-white/95 backdrop-blur border shadow-lg pointer-events-none max-w-md">
+            <div className="font-semibold text-xs mb-1">
+              {edgeTooltip}
+            </div>
+            
+            {/* Show metadata if available */}
+            {edgeMetadata && edgeMetadata.kind === "imports" && edgeMetadata.items && edgeMetadata.items.length > 0 && (
+              <div className="mt-2 space-y-1 text-[10px] text-slate-600">
+                <div className="text-slate-500">Recent imports:</div>
+                {edgeMetadata.items.slice(0, 3).map((item: any, idx: number) => (
+                  <div key={idx} className="border-l-2 border-amber-300 pl-2 py-0.5">
+                    <div className="font-medium text-slate-700">"{item.argumentText.slice(0, 60)}{item.argumentText.length > 60 ? "..." : ""}"</div>
+                    {item.claimText && (
+                      <div className="text-slate-500">→ {item.claimText.slice(0, 50)}{item.claimText.length > 50 ? "..." : ""}</div>
+                    )}
+                  </div>
+                ))}
+                {edgeMetadata.items.length > 3 && (
+                  <div className="text-slate-400 italic">+ {edgeMetadata.items.length - 3} more</div>
+                )}
+              </div>
+            )}
+            
+            {edgeMetadata && edgeMetadata.kind === "shared_author" && edgeMetadata.count > 0 && (
+              <div className="mt-2 text-[10px] text-slate-600">
+                <div className="text-slate-500">{edgeMetadata.count} shared author{edgeMetadata.count > 1 ? "s" : ""}</div>
+                {edgeMetadata.strength && (
+                  <div className="text-slate-400">Strength: {edgeMetadata.strength}</div>
+                )}
+              </div>
+            )}
           </div>
         )}
 

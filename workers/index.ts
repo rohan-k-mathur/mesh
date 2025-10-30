@@ -10,6 +10,7 @@ import "@/workers/candidate-builder";
 import "@/workers/user-knn-builder";
 import "@/workers/sectionHeat";
 import "@/workers/decayConfidenceJob";
+import "@/workers/computeSharedAuthorEdges";
 
 
 console.log('All workers bootstrapped');

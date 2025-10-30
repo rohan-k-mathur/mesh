@@ -2,23 +2,14 @@
 'use client';
 import * as React from 'react';
 import { ProvenanceChip } from './ProvenanceChip';
+import { TextBlock } from './blocks/TextBlock';
 
 export function KbBlockRenderer({
-  block, hydrated, canEdit, onTogglePin
-}: { block:any; hydrated:any; canEdit?:boolean; onTogglePin?:(env:any)=>void }) {
+  block, hydrated, canEdit, onTogglePin, onUpdate
+}: { block:any; hydrated:any; canEdit?:boolean; onTogglePin?:(env:any)=>void; onUpdate?:()=>void }) {
   const t = block.type as string;
 
-  // TEXT
-//   if (t === 'text') {
-//     // accept md (new) or legacy text
-//     const md = String(block?.dataJson?.md ?? block?.dataJson?.text ?? '').trim();
-//     return (
-//       <div className="rounded-lg border bg-white/80 p-4 prose prose-sm max-w-none">
-//         {md ? <pre className="whitespace-pre-wrap">{md}</pre> : <div className="text-slate-500 text-sm">Empty text block</div>}
-//       </div>
-//     );
-//   }
- function PinToggle() {
+  function PinToggle() {
     if (!canEdit) return null;
     if (!hydrated) return null;
     const live = hydrated?.live !== false;
@@ -32,20 +23,11 @@ export function KbBlockRenderer({
       </button>
     );
   }
-if (t === 'text') {
-  const md =
-    (block?.dataJson?.md ??       // new path from Lexical/textarea autosave
-     block?.dataJson?.text ??     // legacy
-     '').toString();
 
-  return (
-    <div className="rounded-lg border bg-white/80 p-4 prose prose-sm max-w-none">
-      {md.trim()
-        ? <pre className="whitespace-pre-wrap">{md}</pre>
-        : <div className="text-slate-500 text-sm">Empty text block</div>}
-    </div>
-  );
-}
+  // TEXT - Use enhanced TextBlock component
+  if (t === 'text') {
+    return <TextBlock block={block} canEdit={canEdit} onUpdate={onUpdate} />;
+  }
 if (hydrated && hydrated.kind === 'error') {
   return (
     <div className="rounded-lg border bg-amber-50/70 p-3 text-xs text-amber-800">
@@ -173,7 +155,7 @@ if (hydrated && hydrated.kind === 'error') {
   // TRANSPORT
   if (t === 'transport' && hydrated.kind === 'transport') {
     const m = hydrated.data?.claimMap || {};
-    const pairs = Object.entries(m);
+    const pairs = Object.entries(m) as Array<[string, string]>;
     return (
       <div className="rounded-lg border bg-white/80 p-4">
         <div className="text-sm font-medium mb-2">Room functor map</div>
