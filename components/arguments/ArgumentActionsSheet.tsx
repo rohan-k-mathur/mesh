@@ -493,6 +493,15 @@ function DiagramPanel({ deliberationId, argument }: DiagramPanelProps) {
   const nodeCount = data.aif.nodes?.length || 0;
   const edgeCount = data.aif.edges?.length || 0;
 
+  // Find the conclusion node for this argument
+  // The conclusion is the I-node that is the target of a 'conclusion' edge from the RA node
+  const raNodeId = `RA:${argument.id}`;
+  const conclusionEdge = data.aif.edges?.find(
+    (edge: { from: string; to: string; role: string }) => 
+      edge.from === raNodeId && edge.role === 'conclusion'
+  );
+  const conclusionNodeId = conclusionEdge?.to;
+
   return (
     <div>
       <div className="mb-3">
@@ -508,6 +517,7 @@ function DiagramPanel({ deliberationId, argument }: DiagramPanelProps) {
           initialGraph={data.aif}
           layoutPreset="compact"
           deliberationId={deliberationId}
+          initialSelectedNodeId={conclusionNodeId}
           onNodeClick={(nodeId) => {
             console.log('AIF node clicked:', nodeId);
             // TODO: Add navigation logic if needed

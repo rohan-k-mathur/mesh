@@ -76,19 +76,21 @@ export function AifDiagramViewerDagre({
   layoutPreset = 'standard',
   className = '',
   deliberationId, // Phase 3.1.4: For fetching dialogue state
+  initialSelectedNodeId, // Auto-select this node on mount
 }: {
   initialGraph: AifSubgraph;
   onNodeClick?: (nodeId: string) => void;
   layoutPreset?: keyof typeof LAYOUT_PRESETS;
   className?: string;
   deliberationId?: string; // Phase 3.1.4: Optional deliberation ID
+  initialSelectedNodeId?: string; // Node to auto-select on mount
 }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   
   // Graph state
   const [graph, setGraph] = useState(initialGraph);
-  const [selectedNodeId, setSelectedNodeId] = useState<string>();
+  const [selectedNodeId, setSelectedNodeId] = useState<string | undefined>(initialSelectedNodeId);
   
   // Phase 3.1.4: Dialogue state filter
   const [dialogueFilter, setDialogueFilter] = useState<'all' | 'complete' | 'incomplete'>('all');
@@ -250,9 +252,22 @@ export function AifDiagramViewerDagre({
     height: (containerRef.current?.clientHeight || 600) / zoom,
   };
   
-  // Auto-center on mount
+  // Auto-center on mount - prioritize selected node, otherwise center on graph
   useEffect(() => {
     if (containerRef.current && nodePositions.size > 0) {
+      // If there's an initially selected node, center on it
+      if (initialSelectedNodeId) {
+        const selectedPos = nodePositions.get(initialSelectedNodeId);
+        if (selectedPos) {
+          setPan({
+            x: -selectedPos.x + containerRef.current.clientWidth / 2,
+            y: -selectedPos.y + containerRef.current.clientHeight / 2,
+          });
+          return;
+        }
+      }
+      
+      // Otherwise, center on the entire graph
       const centerX = (graphBounds.minX + graphBounds.maxX) / 2;
       const centerY = (graphBounds.minY + graphBounds.maxY) / 2;
       
@@ -261,7 +276,7 @@ export function AifDiagramViewerDagre({
         y: -centerY + containerRef.current.clientHeight / 2,
       });
     }
-  }, [graphBounds, nodePositions.size]);
+  }, [graphBounds, nodePositions.size, initialSelectedNodeId, nodePositions]);
   
   // Get unique edge roles for markers
   const uniqueEdgeRoles = Array.from(new Set(filteredGraph.edges.map(e => e.role)));
@@ -481,7 +496,7 @@ export function AifDiagramViewerDagre({
                     fill="none"
                     stroke="#3b82f6"
                     strokeWidth={3}
-                    rx={node.kind === 'I' ? 6 : pos.width / 2}
+                    rx={6}
                     className="animate-pulse"
                   />
                 )}
@@ -494,7 +509,7 @@ export function AifDiagramViewerDagre({
                     fill="none"
                     stroke="#eab308"
                     strokeWidth={2}
-                    rx={node.kind === 'I' ? 6 : pos.width / 2}
+                    rx={6}
                   />
                 )}
                 
@@ -550,11 +565,11 @@ export function AifDiagramViewerDagre({
               <div className="font-semibold mb-2 text-slate-700">Node Types</div>
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded border-2 border-blue-500 bg-blue-50" />
+                  <div className="w-3 h-3 rounded border-2 border-amber-500 bg-amber-50" />
                   <span>I-Node (Statement)</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full border-2 border-green-500 bg-green-50" />
+                  <div className="w-3 h-3 rounded-full border-2 border-sky-500 bg-sky-50" />
                   <span>RA-Node (Argument)</span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -562,7 +577,7 @@ export function AifDiagramViewerDagre({
                   <span>CA-Node (Conflict)</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full border-2 border-purple-500 bg-purple-50" />
+                  <div className="w-3 h-3 rounded-full border-2 border-green-500 bg-green-50" />
                   <span>PA-Node (Preference)</span>
                 </div>
               </div>
