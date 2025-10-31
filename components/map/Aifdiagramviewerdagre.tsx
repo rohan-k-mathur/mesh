@@ -519,15 +519,15 @@ export function AifDiagramViewerDagre({
       />
       
       {/* Collapsible Legend */}
-<div className='absolute top-4 left-4 '>     {/* Controls info */}
-      <div className=" bg-white/90 border border-gray-300 rounded-lg px-3 py-2 text-xs text-gray-600">
+<div className='absolute bottom-4 left-[200px] '>     {/* Controls info */}
+      <div className=" bg-white/35 border border-indigo-300 rounded-lg px-3 py-2 text-xs backdrop-blur-md text-gray-600">
         <div className="font-semibold mb-1">Controls:</div>
         <div>• Drag to pan</div>
         <div>• Shift + Drag to zoom</div>
         <div>• Click node to select</div>
       </div>
       </div>
-      <div className="absolute bottom-4 left-4 bg-white/95 backdrop-blur border border-slate-300 rounded-lg shadow-lg text-xs max-w-xs">
+      <div className="absolute bottom-4 left-4 bg-white/35 backdrop-blur-lg border border-indigo-500 rounded-lg shadow-lg text-xs max-w-xs">
         <button
           onClick={() => setShowLegend(!showLegend)}
           className="w-full flex items-center justify-between px-3 py-2 hover:bg-slate-50 rounded-t-lg transition-colors"
@@ -544,7 +544,7 @@ export function AifDiagramViewerDagre({
         </button>
         
         {showLegend && (
-          <div className="px-3 pb-3 space-y-3">
+          <div className="px-3 pb-3 space-y-3 rounded-xl">
             {/* Node Types */}
             <div>
               <div className="font-semibold mb-2 text-slate-700">Node Types</div>

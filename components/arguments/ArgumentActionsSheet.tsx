@@ -5,6 +5,10 @@ import * as React from "react";
 import { FloatingSheet } from "../ui/FloatingSheet";
 import { Zap, GitBranch, Shield, Target, MessageSquare } from "lucide-react";
 import clsx from "clsx";
+import useSWR from "swr";
+import { AifDiagramViewerDagre } from "@/components/map/Aifdiagramviewerdagre";
+
+const fetcher = (url: string) => fetch(url).then(r => r.json());
 
 interface ArgumentActionsSheetProps {
   open: boolean;
@@ -52,7 +56,7 @@ export function ArgumentActionsSheet({
       open={open}
       onOpenChange={onOpenChange}
       side="right"
-      width={700}
+      width={1000}
       title="Argument Actions"
       subtitle={
         selectedArgument
@@ -105,7 +109,10 @@ export function ArgumentActionsSheet({
             )}
 
             {activeAction === "diagram" && (
-              <DiagramPanel argument={selectedArgument} />
+              <DiagramPanel 
+                deliberationId={deliberationId}
+                argument={selectedArgument} 
+              />
             )}
           </div>
         </>
@@ -426,33 +433,92 @@ function CQsPanel({ deliberationId, argument }: CQsPanelProps) {
 
 // Diagram Panel
 interface DiagramPanelProps {
+  deliberationId: string;
   argument: { id: string };
 }
 
-function DiagramPanel({ argument }: DiagramPanelProps) {
-  return (
-    <div>
-      <div className="mb-4">
-        <h4 className="text-sm font-semibold text-white/90 mb-1">AIF Structure Diagram</h4>
-        <p className="text-xs text-white/60">
-          Visual representation of this argument&apos;s network structure
-        </p>
-      </div>
-      
-      <div className="h-[500px] rounded-lg bg-white/5 border border-white/10 flex items-center justify-center">
-        <div className="text-center p-8">
-          <GitBranch className="w-12 h-12 text-white/30 mx-auto mb-3" />
-          <div className="text-sm text-white/70 font-medium mb-1">
-            AIF Diagram Integration
-          </div>
-          <div className="text-xs text-white/50">
-            Argument ID: {argument.id.slice(0, 12)}...
-          </div>
-          <div className="text-xs text-white/40 mt-2">
-            (Diagram viewer will be integrated here)
+function DiagramPanel({ deliberationId, argument }: DiagramPanelProps) {
+  const { data, isLoading, error } = useSWR(
+    `/api/arguments/${argument.id}/aif-neighborhood?depth=1`,
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 60000, // Cache for 1 minute
+    }
+  );
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div>
+        <div className="mb-3">
+          <h4 className="text-sm font-semibold text-white/90 mb-1">AIF Structure</h4>
+          <p className="text-xs text-white/60">
+            Loading diagram...
+          </p>
+        </div>
+        <div className="p-6 rounded-lg bg-white/5 border border-white/10">
+          <div className="flex items-center justify-center gap-2">
+            <div className="w-5 h-5 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+            <span className="text-sm text-white/70">Loading AIF diagram...</span>
           </div>
         </div>
       </div>
+    );
+  }
+
+  // Error state
+  if (error || !data?.ok || !data?.aif) {
+    return (
+      <div>
+        <div className="mb-3">
+          <h4 className="text-sm font-semibold text-white/90 mb-1">AIF Structure</h4>
+          <p className="text-xs text-white/60">
+            Visual representation of this argument&apos;s structure
+          </p>
+        </div>
+        <div className="p-6 rounded-lg bg-white/5 border border-white/10 text-center">
+          <div className="text-sm text-red-400 mb-1">
+            Unable to load AIF diagram
+          </div>
+          <div className="text-xs text-white/50">
+            {error?.message || 'Unknown error'}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Success: Render diagram
+  const nodeCount = data.aif.nodes?.length || 0;
+  const edgeCount = data.aif.edges?.length || 0;
+
+  return (
+    <div>
+      <div className="mb-3">
+        <h4 className="text-sm font-semibold text-white/90 mb-1">AIF Structure</h4>
+        <p className="text-xs text-white/60">
+          {nodeCount} nodes · {edgeCount} edges · Interactive diagram
+        </p>
+      </div>
+
+      {/* Diagram viewer with fixed height for sheet context */}
+      <div className="h-[600px]  rounded-lg overflow-hidden bg-white">
+        <AifDiagramViewerDagre
+          initialGraph={data.aif}
+          layoutPreset="compact"
+          deliberationId={deliberationId}
+          onNodeClick={(nodeId) => {
+            console.log('AIF node clicked:', nodeId);
+            // TODO: Add navigation logic if needed
+          }}
+          className="w-full h-full"
+        />
+      </div>
+
+      {/* Help text */}
+      
     </div>
   );
 }
+

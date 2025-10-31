@@ -237,7 +237,11 @@ for (const u of uses) {
   }
 
   
-  // Optional convergent support (if/when you add ArgumentPremise.groupKey)
+  // CONVERGENT SUPPORT: ArgumentPremise.groupKey field exists in schema but the logic
+  // below is UNTESTED and possibly broken. The code casts premises to any[] which suggests
+  // type issues. This feature is dormant and needs validation before production use.
+  // See CHUNK_1B_IMPLEMENTATION_STATUS.md Gap 1 for details.
+  // TODO: Remove type cast, verify logic, add tests if convergent support is needed.
   const byGroup = new Map<string, string[]>(); // groupKey -> [claimId]
   for (const p of (arg.premises as any[])) {
     const g = (p.groupKey as string|undefined) ?? '__linked__';

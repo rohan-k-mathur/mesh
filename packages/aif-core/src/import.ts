@@ -113,5 +113,30 @@ export async function importAifJSONLD(deliberationId: string, graph: any) {
     }
   }
 
+  // 4) Assumptions (Presumption/Exception edges)
+  const presumptionEdges = edges.filter((e:any) => 
+    e.role === 'as:HasPresumption' || e.role === 'as:HasException'
+  );
+  for (const pe of presumptionEdges) {
+    const raId = pe.to; // Target RA node
+    const assumptionId = pe.from; // Source I node
+    const argumentId = raMap.get(raId);
+    const claimId = claimMap.get(assumptionId);
+    
+    if (!argumentId || !claimId) continue;
+    
+    const role = pe.role === 'as:HasException' ? 'exception' : 'premise';
+    
+    await prisma.assumptionUse.create({
+      data: {
+        deliberationId,
+        argumentId,
+        assumptionClaimId: claimId,
+        role,
+        // status defaults to PROPOSED per schema
+      }
+    });
+  }
+
   return { ok: true };
 }

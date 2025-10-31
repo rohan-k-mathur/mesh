@@ -130,6 +130,16 @@ export function aifToASPIC(graph: AIFGraph): ArgumentationTheory {
     if (incoming === 0) premises.add((n as any).content ?? (n as any).text ?? n.id);
   }
 
+  // Assumptions: I-nodes linked via presumption edges to RA-nodes
+  for (const e of graph.edges) {
+    if (e.edgeType === 'presumption') {
+      const assumptionNode = graph.nodes.find(n => n.id === e.sourceId);
+      if (assumptionNode?.nodeType === 'I') {
+        assumptions.add((assumptionNode as any).content ?? (assumptionNode as any).text ?? assumptionNode.id);
+      }
+    }
+  }
+
   // RA: rules
   for (const ra of graph.nodes.filter(n => n.nodeType === 'RA')) {
     const premiseEdges = graph.edges.filter(e => e.targetId === ra.id && e.edgeType === 'premise');
