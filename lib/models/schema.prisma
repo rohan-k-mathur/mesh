@@ -4985,6 +4985,27 @@ enum AssumptionStatus {
   CHALLENGED // Under dispute
 }
 
+/// Link derivations to assumptions they rely upon.
+/// Enables per-derivation assumption tracking for categorical composition.
+/// Phase: Gap 4 - Per-Derivation Assumption Tracking
+model DerivationAssumption {
+  id           String   @id @default(cuid())
+  derivationId String   // FK to ArgumentSupport.id (derivation materializer)
+  assumptionId String   // FK to AssumptionUse.id
+  
+  // Strength of this assumption's contribution to this derivation
+  weight       Float    @default(1.0)  // 0..1 multiplier
+  
+  // Tracking metadata
+  inferredFrom String?  // If auto-generated via compose(), reference parent derivation
+  createdAt    DateTime @default(now())
+  
+  @@unique([derivationId, assumptionId])
+  @@index([derivationId])
+  @@index([assumptionId])
+  @@index([inferredFrom])  // Fast transitive queries
+}
+
 model AgoraRoom {
   id         String        @id @default(cuid())
   slug       String        @unique
