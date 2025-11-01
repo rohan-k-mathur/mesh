@@ -24,10 +24,8 @@ import { NonCanonicalResponseFormLight } from "@/components/agora";
 | Element | Dark Mode | Light Mode |
 |---------|-----------|------------|
 | **Container** | `bg-slate-900/55` | `bg-white/95` |
-| **Overlay Direction** | `from-white/10 to-white/5` | `from-slate-900/5 to-slate-900/10` |
-| **Radial Gradient** | Indigo `rgba(120,119,198,0.15)` | Sky `rgba(56,189,248,0.08)` |
-| **Water Droplet 1** | `bg-indigo-400/20` | `bg-sky-400/10` |
-| **Water Droplet 2** | `bg-cyan-400/15` | `bg-cyan-400/8` |
+
+
 | **Border (Divider)** | `border-white/10` | `border-slate-900/10` |
 | **Title Text** | `text-white` | `text-slate-900` |
 | **Title Gradient** | `from-inigo-200 via-cyan-200 to-sky-200` | `from-sky-700 via-cyan-700 to-sky-700` |
@@ -110,15 +108,6 @@ bg-white/95 → bg-slate-900/55
 
 // Light: Dark with low opacity  
 bg-slate-900/55 → bg-white/95
-```
-
-### Pattern 2: Glass Overlays
-```tsx
-// Dark: White gradient on dark
-from-white/10 to-white/5
-
-// Light: Dark gradient on light
-from-slate-900/5 to-slate-900/10
 ```
 
 ### Pattern 3: Text Colors
@@ -268,9 +257,7 @@ When implementing both variants, verify:
 - [ ] Text contrast meets WCAG AA/AAA in both modes
 - [ ] Interactive states (hover, focus, selected) are visible in both
 - [ ] Borders are visible but subtle in both modes
-- [ ] Glass effects create depth without being overwhelming
 - [ ] Scrollbars use appropriate class names
-- [ ] Water droplet decorations are visible but not distracting
 - [ ] Buttons maintain consistent interaction patterns
 - [ ] Success/error messages are clearly distinguishable
 - [ ] Theme switching transitions smoothly (if implemented)

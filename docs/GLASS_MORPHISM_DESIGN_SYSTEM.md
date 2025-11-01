@@ -45,14 +45,6 @@ Create visual depth by stacking multiple transparent layers:
 // Base container
 className="bg-slate-900/55 backdrop-blur-xl"
 
-// Glass overlay (top layer)
-<div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-white/5 pointer-events-none" />
-
-// Radial light effect (middle layer)
-<div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(120,119,198,0.15),transparent_50%)] pointer-events-none" />
-
-// Atmospheric decorations (ambient layer)
-<div className="absolute top-10 right-20 w-32 h-32 bg-indigo-400/20 rounded-full blur-3xl animate-pulse" />
 ```
 
 ### 2. Consistency in Opacity

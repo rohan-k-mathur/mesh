@@ -639,3 +639,321 @@ export async function batchInferSchemes(
 
   return results;
 }
+
+// ============================================================================
+// Phase 6C: Cluster-Aware Inference
+// ============================================================================
+
+/**
+ * Phase 6C: Infer schemes with cluster awareness
+ * 
+ * Enhances standard inference by:
+ * 1. Including parent schemes when child matches (e.g., if SSA matches, also include Negative Consequences)
+ * 2. Including child schemes when parent matches strongly (e.g., if Practical Reasoning matches, check specific subtypes)
+ * 3. Boosting confidence for schemes in the same cluster
+ * 
+ * Based on Macagno & Walton Section 6: Scheme Clustering & Family Resemblances
+ * 
+ * @param text - Argument text
+ * @param options - Configuration
+ * @param options.includeParents - Include parent schemes of matches (default: true)
+ * @param options.includeChildren - Include child schemes of matches (default: true)
+ * @param options.threshold - Minimum score threshold (default: 0.3)
+ * @param options.maxSchemes - Maximum schemes to return (default: 8)
+ * @param options.parentBoost - Confidence boost for parent schemes (default: 0.8)
+ * @param options.childBoost - Confidence boost for child schemes (default: 0.9)
+ * @returns Array of inferred schemes with family relationships
+ */
+export async function inferSchemesWithClusters(
+  text: string,
+  options: {
+    includeParents?: boolean;
+    includeChildren?: boolean;
+    threshold?: number;
+    maxSchemes?: number;
+    parentBoost?: number;
+    childBoost?: number;
+  } = {}
+): Promise<Array<InferredScheme & { source: 'direct' | 'parent' | 'child'; familyDepth?: number }>> {
+  const {
+    includeParents = true,
+    includeChildren = true,
+    threshold = 0.3,
+    maxSchemes = 8,
+    parentBoost = 0.8,
+    childBoost = 0.9,
+  } = options;
+
+  // Step 1: Run standard inference
+  const directMatches = await inferSchemesFromTextWithScores(text, {
+    threshold,
+    maxSchemes: maxSchemes * 2, // Get more candidates for cluster expansion
+  });
+
+  // Fetch schemes with hierarchy information
+  const allSchemeIds = directMatches.map((m) => m.schemeId);
+  const schemesWithHierarchy = await prisma.argumentScheme.findMany({
+    where: { id: { in: allSchemeIds } },
+    select: {
+      id: true,
+      key: true,
+      name: true,
+      parentSchemeId: true,
+      clusterTag: true,
+      parentScheme: {
+        select: {
+          id: true,
+          key: true,
+          name: true,
+          clusterTag: true,
+          parentScheme: {
+            select: {
+              id: true,
+              key: true,
+              name: true,
+              clusterTag: true,
+            },
+          },
+        },
+      },
+      childSchemes: {
+        select: {
+          id: true,
+          key: true,
+          name: true,
+          clusterTag: true,
+          materialRelation: true,
+          reasoningType: true,
+          source: true,
+          purpose: true,
+        },
+      },
+    },
+  });
+
+  // Build result set with family relationships
+  const results: Array<InferredScheme & { source: 'direct' | 'parent' | 'child'; familyDepth?: number }> = [];
+  const seenIds = new Set<string>();
+
+  // Add direct matches
+  for (const match of directMatches) {
+    results.push({
+      ...match,
+      source: 'direct',
+      familyDepth: 0,
+    });
+    seenIds.add(match.schemeId);
+  }
+
+  // Step 2: Include parent schemes (if enabled)
+  if (includeParents) {
+    for (const match of directMatches) {
+      const schemeInfo = schemesWithHierarchy.find((s) => s.id === match.schemeId);
+      if (!schemeInfo) continue;
+
+      // Add immediate parent
+      if (schemeInfo.parentScheme && !seenIds.has(schemeInfo.parentScheme.id)) {
+        results.push({
+          schemeId: schemeInfo.parentScheme.id,
+          schemeKey: schemeInfo.parentScheme.key,
+          schemeName: schemeInfo.parentScheme.name || schemeInfo.parentScheme.key,
+          confidence: match.confidence * parentBoost, // Parent gets 80% of child's confidence
+          isPrimary: false,
+          source: 'parent',
+          familyDepth: 1,
+        });
+        seenIds.add(schemeInfo.parentScheme.id);
+
+        // Add grandparent (if exists)
+        if (schemeInfo.parentScheme.parentScheme && !seenIds.has(schemeInfo.parentScheme.parentScheme.id)) {
+          results.push({
+            schemeId: schemeInfo.parentScheme.parentScheme.id,
+            schemeKey: schemeInfo.parentScheme.parentScheme.key,
+            schemeName: schemeInfo.parentScheme.parentScheme.name || schemeInfo.parentScheme.parentScheme.key,
+            confidence: match.confidence * parentBoost * 0.9, // Grandparent gets 72% (0.8 * 0.9)
+            isPrimary: false,
+            source: 'parent',
+            familyDepth: 2,
+          });
+          seenIds.add(schemeInfo.parentScheme.parentScheme.id);
+        }
+      }
+    }
+  }
+
+  // Step 3: Include child schemes (if enabled and parent matched strongly)
+  if (includeChildren) {
+    for (const match of directMatches) {
+      // Only check children if parent matched with high confidence (>= 0.6)
+      if (match.confidence < 0.6) continue;
+
+      const schemeInfo = schemesWithHierarchy.find((s) => s.id === match.schemeId);
+      if (!schemeInfo || schemeInfo.childSchemes.length === 0) continue;
+
+      // Check each child scheme against the text
+      for (const child of schemeInfo.childSchemes) {
+        if (seenIds.has(child.id)) continue;
+
+        // Score the child scheme
+        const childScore = calculateSchemeScore(text, child);
+        
+        // If child scores reasonably (>= 0.4), include it with boosted confidence
+        if (childScore.score >= 0.4) {
+          results.push({
+            schemeId: child.id,
+            schemeKey: child.key,
+            schemeName: child.name || child.key,
+            confidence: Math.min(1.0, childScore.score * childBoost), // Child gets 90% boost
+            isPrimary: false,
+            source: 'child',
+            familyDepth: 1,
+          });
+          seenIds.add(child.id);
+        }
+      }
+    }
+  }
+
+  // Sort by confidence descending
+  results.sort((a, b) => b.confidence - a.confidence);
+
+  // Limit to maxSchemes
+  const limited = results.slice(0, maxSchemes);
+
+  // Log cluster-aware inference
+  const directCount = limited.filter((r) => r.source === 'direct').length;
+  const parentCount = limited.filter((r) => r.source === 'parent').length;
+  const childCount = limited.filter((r) => r.source === 'child').length;
+
+  console.log(`[clusterInference] Text: "${text.slice(0, 60)}..."`);
+  console.log(`[clusterInference] Found ${limited.length} schemes (${directCount} direct, ${parentCount} parent, ${childCount} child)`);
+  
+  limited.forEach((r, i) => {
+    const marker = r.source === 'direct' ? '●' : r.source === 'parent' ? '↑' : '↓';
+    const depth = r.familyDepth !== undefined ? ` (depth: ${r.familyDepth})` : '';
+    console.log(`  ${i + 1}. ${marker} ${r.schemeName} (${(r.confidence * 100).toFixed(0)}%)${depth}`);
+  });
+
+  return limited;
+}
+
+/**
+ * Phase 6C: Get scheme cluster information
+ * 
+ * Returns the full family tree for a scheme (ancestors and descendants).
+ * Useful for UI display and understanding scheme relationships.
+ * 
+ * @param schemeId - ID of the scheme to get cluster info for
+ * @returns Cluster information with ancestors and descendants
+ */
+export async function getSchemeCluster(schemeId: string): Promise<{
+  scheme: { id: string; key: string; name: string; clusterTag: string | null };
+  ancestors: Array<{ id: string; key: string; name: string; depth: number }>;
+  descendants: Array<{ id: string; key: string; name: string; depth: number }>;
+  clusterMembers: Array<{ id: string; key: string; name: string }>;
+}> {
+  const scheme = await prisma.argumentScheme.findUnique({
+    where: { id: schemeId },
+    select: {
+      id: true,
+      key: true,
+      name: true,
+      clusterTag: true,
+      parentSchemeId: true,
+      parentScheme: {
+        select: {
+          id: true,
+          key: true,
+          name: true,
+          parentScheme: {
+            select: {
+              id: true,
+              key: true,
+              name: true,
+            },
+          },
+        },
+      },
+      childSchemes: {
+        select: {
+          id: true,
+          key: true,
+          name: true,
+          childSchemes: {
+            select: {
+              id: true,
+              key: true,
+              name: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!scheme) {
+    throw new Error(`Scheme ${schemeId} not found`);
+  }
+
+  // Collect ancestors (parents, grandparents)
+  const ancestors: Array<{ id: string; key: string; name: string; depth: number }> = [];
+  if (scheme.parentScheme) {
+    ancestors.push({
+      id: scheme.parentScheme.id,
+      key: scheme.parentScheme.key,
+      name: scheme.parentScheme.name || scheme.parentScheme.key,
+      depth: 1,
+    });
+    if (scheme.parentScheme.parentScheme) {
+      ancestors.push({
+        id: scheme.parentScheme.parentScheme.id,
+        key: scheme.parentScheme.parentScheme.key,
+        name: scheme.parentScheme.parentScheme.name || scheme.parentScheme.parentScheme.key,
+        depth: 2,
+      });
+    }
+  }
+
+  // Collect descendants (children, grandchildren)
+  const descendants: Array<{ id: string; key: string; name: string; depth: number }> = [];
+  for (const child of scheme.childSchemes) {
+    descendants.push({
+      id: child.id,
+      key: child.key,
+      name: child.name || child.key,
+      depth: 1,
+    });
+    for (const grandchild of child.childSchemes) {
+      descendants.push({
+        id: grandchild.id,
+        key: grandchild.key,
+        name: grandchild.name || grandchild.key,
+        depth: 2,
+      });
+    }
+  }
+
+  // Get all schemes in same cluster
+  const clusterMembers = scheme.clusterTag
+    ? await prisma.argumentScheme.findMany({
+        where: { clusterTag: scheme.clusterTag },
+        select: { id: true, key: true, name: true },
+      })
+    : [];
+
+  return {
+    scheme: {
+      id: scheme.id,
+      key: scheme.key,
+      name: scheme.name || scheme.key,
+      clusterTag: scheme.clusterTag,
+    },
+    ancestors,
+    descendants,
+    clusterMembers: clusterMembers.map((m) => ({
+      id: m.id,
+      key: m.key,
+      name: m.name || m.key,
+    })),
+  };
+}

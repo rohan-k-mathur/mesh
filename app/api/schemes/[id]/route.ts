@@ -95,6 +95,10 @@ export async function PUT(
         premises: body.premises !== undefined ? body.premises : undefined,
         conclusion: body.conclusion !== undefined ? body.conclusion : undefined,
         cq: body.cqs !== undefined ? body.cqs : undefined,
+        // Phase 6D: Clustering fields
+        parentSchemeId: body.parentSchemeId !== undefined ? body.parentSchemeId : undefined,
+        clusterTag: body.clusterTag !== undefined ? body.clusterTag : undefined,
+        inheritCQs: body.inheritCQs !== undefined ? body.inheritCQs : undefined,
       },
     });
 

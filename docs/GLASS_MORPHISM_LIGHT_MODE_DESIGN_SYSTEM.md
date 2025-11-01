@@ -29,8 +29,7 @@ The light mode maintains the glass morphism aesthetic through:
 
 ### 1. Inverted Opacity System
 Light mode uses **lower opacity values** for subtlety on bright backgrounds:
-- **5%** (`/5`): Hover states, subtle backgrounds, glass overlays
-- **8%** (`/8`): Atmospheric water droplets (lighter variant)
+- **5%** (`/5`): Hover states, subtle backgrounds
 - **10%** (`/10`): Standard borders, resting backgrounds, character counter borders
 - **15%** (`/15`): Info/success/error message backgrounds
 - **20%** (`/20`): Selected state backgrounds, icon badges, interactive cards, input borders
@@ -43,13 +42,6 @@ Light mode uses **lower opacity values** for subtlety on bright backgrounds:
 // Light mode container (compare to dark mode)
 className="bg-white/95 backdrop-blur-xl"  // vs bg-slate-900/55
 
-// Glass overlay
-<div className="absolute inset-0 bg-gradient-to-b from-slate-900/5 via-transparent to-slate-900/10 pointer-events-none" />
-// vs from-white/10 via-transparent to-white/5
-
-// Radial light (blue instead of indigo)
-<div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(59,130,246,0.08),transparent_50%)] pointer-events-none" />
-// vs rgba(120,119,198,0.15)
 ```
 
 ### 3. Gradient Directions (Same as Dark Mode)
@@ -72,12 +64,6 @@ bg-slate-900/5        // Resting state cards, input fields
 bg-slate-900/10       // Hover states, borders on overlays
 ```
 
-#### Atmospheric Decorations
-```tsx
-// Water droplets (lighter and more subtle than dark mode)
-bg-sky-400/10         // Top-right decoration (use sky, not blue)
-bg-cyan-400/8         // Bottom-left decoration
-```
 
 #### Text Colors - Inverted from Dark Mode
 
@@ -197,11 +183,7 @@ border-slate-700/30   // Target label border (slightly more visible)
 
 #### Container & Overlay Gradients
 ```tsx
-// Glass overlay (dark with low opacity instead of white)
-bg-gradient-to-b from-slate-900/5 via-transparent to-slate-900/10
 
-// Radial lighting (sky base instead of blue)
-bg-[radial-gradient(circle_at_50%_120%,rgba(56,189,248,0.08),transparent_50%)]  // sky-400
 
 // Selection state
 bg-gradient-to-br from-cyan-400/20 to-sky-400/20
@@ -239,16 +221,6 @@ translate-x-[-100%] group-hover:translate-x-[100%]
 ```tsx
 <DialogContent className="max-w-3xl max-h-screen overflow-hidden panel-edge 
   bg-white/95 backdrop-blur-xl shadow-2xl p-6">
-  
-  {/* Glass overlay - dark with low opacity */}
-  <div className="absolute inset-0 bg-gradient-to-b from-slate-900/5 via-transparent to-slate-900/10 pointer-events-none" />
-  
-  {/* Radial light - sky tint instead of blue */}
-  <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(56,189,248,0.08),transparent_50%)] pointer-events-none" />
-  
-  {/* Water droplets - lighter */}
-  <div className="absolute top-10 right-20 w-32 h-32 bg-sky-400/10 rounded-full blur-3xl animate-pulse" />
-  <div className="absolute bottom-20 left-10 w-40 h-40 bg-cyan-400/8 rounded-full blur-3xl animate-pulse delay-1000" />
   
   {/* Scrollable content */}
   <div className="relative z-10 overflow-y-auto max-h-[85vh] custom-scrollbar-light px-2">
@@ -490,7 +462,7 @@ Apply with: `className="custom-scrollbar-light"`
 | Element | Dark Mode | Light Mode |
 |---------|-----------|------------|
 | **Container Background** | `bg-slate-900/55` | `bg-white/95` |
-| **Glass Overlay** | `from-white/10 to-white/5` | `from-slate-900/5 to-slate-900/10` |
+
 | **Primary Text** | `text-white`, `text-cyan-100` | `text-slate-900`, `text-sky-900` |
 | **Resting Card BG** | `bg-white/5` | `bg-slate-900/5` |
 | **Selected Card BG** | `from-cyan-500/20 to-sky-500/20` | `from-cyan-400/20 to-sky-400/20` |
@@ -500,8 +472,7 @@ Apply with: `className="custom-scrollbar-light"`
 | **Icon (Selected)** | `text-cyan-200` | `text-cyan-700` |
 | **Placeholder Text** | `text-slate-400` | `text-slate-400` (same) |
 | **Character Counter BG** | `bg-slate-900/50` | `bg-white/80` |
-| **Water Droplets** | `bg-indigo-400/20`, `bg-cyan-400/15` | `bg-sky-400/10`, `bg-cyan-400/8` |
-| **Radial Light** | `rgba(120,119,198,0.15)` (indigo) | `rgba(56,189,248,0.08)` (sky) |
+
 | **Scrollbar Track** | `rgba(255,255,255,0.05)` (white) | `rgba(0,0,0,0.05)` (black) |
 | **Button Shine** | `via-white/20` | `via-white/30` (brighter) |
 | **Drop Shadow** | `drop-shadow-lg` | `drop-shadow-sm` (lighter) |
@@ -595,10 +566,7 @@ import { NonCanonicalResponseFormLight } from "@/components/agora";
 bg-white/95 backdrop-blur-xl shadow-2xl rounded-xl overflow-hidden
 ```
 
-**Glass Overlay**:
-```
-absolute inset-0 bg-gradient-to-b from-slate-900/5 via-transparent to-slate-900/10 pointer-events-none
-```
+
 
 **Interactive Card**:
 ```
@@ -638,9 +606,7 @@ When creating a light mode component:
 
 - [ ] **NO `blue-*` classes used** (use `sky`, `cyan`, or `indigo` instead)
 - [ ] Container uses `bg-white/95` (not slate-900/55)
-- [ ] Glass overlay uses dark (`from-slate-900/5 to-slate-900/10`)
 - [ ] Radial gradient uses sky base (not indigo or blue)
-- [ ] Water droplets are lighter (10% and 8% opacity, use sky not blue)
 - [ ] Primary text is dark (`text-slate-900`, `text-sky-900`)
 - [ ] Borders use dark with low opacity (`border-slate-900/10`)
 - [ ] Selected states use cyan-500/60 border (darker than dark mode's 400)

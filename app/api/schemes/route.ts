@@ -22,6 +22,10 @@ export async function GET(_: NextRequest) {
         premises: true,
         conclusion: true,
         cq: true, // Note: DB field is 'cq' not 'cqs'
+        // Phase 6D: Clustering fields
+        parentSchemeId: true,
+        clusterTag: true,
+        inheritCQs: true,
       },
     });
 
@@ -110,6 +114,10 @@ export async function POST(req: NextRequest) {
         premises: body.premises || null, // Formal structure
         conclusion: body.conclusion || null, // Formal structure
         cq: body.cqs, // Store CQs in JSON field
+        // Phase 6D: Clustering fields
+        parentSchemeId: body.parentSchemeId || null,
+        clusterTag: body.clusterTag || null,
+        inheritCQs: body.inheritCQs ?? true, // Default true
       },
     });
 

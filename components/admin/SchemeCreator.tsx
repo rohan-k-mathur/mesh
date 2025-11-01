@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, X, Save, Loader2, Sparkles, AlertCircle, CheckCircle2, Wand2 } from "lucide-react";
 import { generateCQsFromTaxonomy, type TaxonomyFields } from "@/lib/argumentation/cqGeneration";
 
@@ -58,6 +59,10 @@ type SchemeFormData = {
   premises: Premise[];
   conclusion: ConclusionTemplate | null;
   cqs: CriticalQuestion[];
+  // Phase 6D: Clustering fields
+  parentSchemeId: string;
+  clusterTag: string;
+  inheritCQs: boolean;
 };
 
 type SchemeCreatorProps = {
@@ -81,6 +86,10 @@ const INITIAL_FORM: SchemeFormData = {
   premises: [],
   conclusion: null,
   cqs: [],
+  // Phase 6D: Clustering fields
+  parentSchemeId: "",
+  clusterTag: "",
+  inheritCQs: true,
 };
 
 export default function SchemeCreator({
@@ -103,6 +112,22 @@ export default function SchemeCreator({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  
+  // Phase 6D: Available schemes for parent selector
+  const [availableSchemes, setAvailableSchemes] = useState<Array<{ id: string; key: string; name: string }>>([]);
+  
+  // Fetch available schemes on mount
+  React.useEffect(() => {
+    if (open) {
+      fetch("/api/schemes")
+        .then((res) => res.json())
+        .then((data) => {
+          const schemes = data.schemes || [];
+          setAvailableSchemes(schemes.map((s: any) => ({ id: s.id, key: s.key, name: s.name })));
+        })
+        .catch((err) => console.error("Failed to fetch schemes:", err));
+    }
+  }, [open]);
 
   const handleInputChange = (field: keyof SchemeFormData, value: string) => {
     setFormData({ ...formData, [field]: value });
@@ -415,6 +440,80 @@ export default function SchemeCreator({
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+          </div>
+
+          {/* Phase 6D: Scheme Clustering & Hierarchy */}
+          <div className="space-y-4 border-t pt-4">
+            <div>
+              <h3 className="font-semibold text-sm text-slate-700">Scheme Clustering & Hierarchy</h3>
+              <p className="text-xs text-slate-500 mt-1">
+                Optional: establish parent-child relationships and cluster families (Macagno & Walton Section 6)
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="parentScheme">Parent Scheme</Label>
+                <Select
+                  value={formData.parentSchemeId || "none"}
+                  onValueChange={(value) => handleInputChange("parentSchemeId", value === "none" ? "" : value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="No parent (root scheme)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No parent (root scheme)</SelectItem>
+                    {availableSchemes
+                      .filter((s) => s.id !== editScheme?.id) // Don't allow self-parenting
+                      .map((scheme) => (
+                        <SelectItem key={scheme.id} value={scheme.id}>
+                          {scheme.name} ({scheme.key})
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-slate-500 mt-1">
+                  Child schemes inherit parent's critical questions
+                </p>
+              </div>
+
+              <div>
+                <Label htmlFor="clusterTag">Cluster Tag</Label>
+                <Input
+                  id="clusterTag"
+                  list="cluster-suggestions"
+                  placeholder="e.g., practical_reasoning_family"
+                  value={formData.clusterTag}
+                  onChange={(e) => handleInputChange("clusterTag", e.target.value)}
+                />
+                <datalist id="cluster-suggestions">
+                  <option value="practical_reasoning_family" />
+                  <option value="authority_family" />
+                  <option value="similarity_family" />
+                  <option value="causal_family" />
+                  <option value="definition_family" />
+                </datalist>
+                <p className="text-xs text-slate-500 mt-1">
+                  Group related schemes into semantic families
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="inheritCQs"
+                checked={formData.inheritCQs}
+                onCheckedChange={(checked) => 
+                  setFormData({ ...formData, inheritCQs: checked as boolean })
+                }
+              />
+              <Label 
+                htmlFor="inheritCQs" 
+                className="text-sm font-normal cursor-pointer"
+              >
+                Inherit critical questions from parent scheme
+              </Label>
             </div>
           </div>
 

@@ -9,7 +9,11 @@
  * - Macagno's 6-dimensional taxonomy
  * - Standard argumentation theory (Pollock, Prakken)
  * 
+ * CLIENT-SAFE: This file can be imported in both client and server code.
+ * For server-only CQ inheritance logic, see lib/argumentation/cqInheritance.ts
+ * 
  * Created: October 31, 2025
+ * Updated: October 31, 2025 (Phase 6B - moved Prisma code to cqInheritance.ts)
  */
 
 export type CriticalQuestion = {

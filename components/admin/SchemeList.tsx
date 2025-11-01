@@ -4,8 +4,9 @@
 import * as React from "react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Edit, Trash2, Loader2, Search, Filter } from "lucide-react";
+import { Plus, Edit, Trash2, Loader2, Search, Filter, Network, List } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import SchemeHierarchyView from "./SchemeHierarchyView";
 import {
   Select,
   SelectContent,
@@ -43,6 +44,7 @@ export default function SchemeList() {
   const [editingScheme, setEditingScheme] = useState<ArgumentScheme | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterMaterial, setFilterMaterial] = useState<string>("");
+  const [viewMode, setViewMode] = useState<"list" | "hierarchy">("list"); // Phase 6D
 
   useEffect(() => {
     loadSchemes();
@@ -140,46 +142,79 @@ export default function SchemeList() {
         <div>
           <h2 className="text-2xl font-semibold">Argumentation Schemes</h2>
           <p className="text-sm text-slate-600 mt-1">
-            Manage custom schemes with Macagno taxonomy and critical questions
+            Manage and create custom argument schemes
           </p>
         </div>
-        <Button onClick={() => setShowCreator(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Create Scheme
-        </Button>
+        <div className="flex gap-2">
+          {/* View Mode Toggle */}
+          <div className="flex border rounded-lg overflow-hidden bg-white">
+            <button
+              className={`px-3 py-2 text-sm flex items-center gap-2 transition-colors ${
+                viewMode === "list" 
+                  ? "bg-slate-100 text-slate-900" 
+                  : "text-slate-600 hover:bg-slate-50"
+              }`}
+              onClick={() => setViewMode("list")}
+            >
+              <List className="h-4 w-4" />
+              List
+            </button>
+            <button
+              className={`px-3 py-2 text-sm flex items-center gap-2 transition-colors ${
+                viewMode === "hierarchy" 
+                  ? "bg-slate-100 text-slate-900" 
+                  : "text-slate-600 hover:bg-slate-50"
+              }`}
+              onClick={() => setViewMode("hierarchy")}
+            >
+              <Network className="h-4 w-4" />
+              Hierarchy
+            </button>
+          </div>
+
+          <button className="btnv2 text-sm bg-white" onClick={() => setShowCreator(true)}>
+            <Plus className="h-4 w-4" />
+            Create Scheme
+          </button>
+        </div>
       </div>
 
-      {/* Filters */}
-      <div className="flex gap-3">
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-          <Input
-            placeholder="Search schemes..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-        <div className="w-64">
-          <Select value={filterMaterial || "all"} onValueChange={(value) => setFilterMaterial(value === "all" ? "" : value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Filter by material relation..." />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Relations</SelectItem>
-              <SelectItem value="cause">Cause & Effect</SelectItem>
-              <SelectItem value="definition">Definition/Classification</SelectItem>
-              <SelectItem value="analogy">Analogy/Similarity</SelectItem>
-              <SelectItem value="authority">Authority/Expertise</SelectItem>
-              <SelectItem value="practical">Practical/Means-End</SelectItem>
-              <SelectItem value="correlation">Correlation/Sign</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+      {/* Hierarchy View */}
+      {viewMode === "hierarchy" ? (
+        <SchemeHierarchyView />
+      ) : (
+        <>
+          {/* Filters */}
+          <div className="flex gap-3">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Search schemes..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-8 h-full articlesearchfield border-indigo-300 border py-2.5 rounded-lg"
+              />
+            </div>
+            <div className="w-64">
+              <Select value={filterMaterial || "all"} onValueChange={(value) => setFilterMaterial(value === "all" ? "" : value)}>
+                <SelectTrigger className="rounded-lg menuv2--lite text-sm py-0 bg-white">
+                  <SelectValue placeholder="Filter by material relation..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Relations</SelectItem>
+                  <SelectItem value="cause">Cause & Effect</SelectItem>
+                  <SelectItem value="definition">Definition/Classification</SelectItem>
+                  <SelectItem value="analogy">Analogy/Similarity</SelectItem>
+                  <SelectItem value="authority">Authority/Expertise</SelectItem>
+                  <SelectItem value="practical">Practical/Means-End</SelectItem>
+                  <SelectItem value="correlation">Correlation/Sign</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
 
-      {/* Schemes List */}
-      {filteredSchemes.length === 0 ? (
+          {/* Schemes List */}
+          {filteredSchemes.length === 0 ? (
         <div className="text-center py-12 text-slate-500">
           {searchQuery || filterMaterial
             ? "No schemes match your filters"
@@ -190,7 +225,7 @@ export default function SchemeList() {
           {filteredSchemes.map((scheme) => (
             <div
               key={scheme.id}
-              className="border rounded-lg p-4 hover:shadow-md transition-shadow"
+              className="border rounded-lg p-4 bg-white/60 backdrop-blur-md shadow-md hover:shadow-slate-700/20 transition-shadow"
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
@@ -210,7 +245,7 @@ export default function SchemeList() {
                       </span>
                     )}
                     {scheme.reasoningType && (
-                      <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                      <span className="text-xs bg-sky-100 text-sky-700 px-2 py-1 rounded">
                         {scheme.reasoningType}
                       </span>
                     )}
@@ -235,26 +270,26 @@ export default function SchemeList() {
                 </div>
 
                 {/* Actions */}
-                <div className="flex gap-2 ml-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
+                <div className="flex gap-3 ml-4">
+                  <button
+                    className="btnv2--ghost px-4 py-2 rounded-lg bg-white"
                     onClick={() => handleEdit(scheme)}
                   >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
+                    <Edit className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    className="btnv2--ghost px-4 py-2 rounded-lg bg-white"
                     onClick={() => handleDelete(scheme.id)}
                   >
-                    <Trash2 className="h-4 w-4 text-red-500" />
-                  </Button>
+                    <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                  </button>
                 </div>
               </div>
             </div>
           ))}
         </div>
+      )}
+        </>
       )}
 
       {/* Creator Dialog */}
@@ -276,14 +311,18 @@ export default function SchemeList() {
                 reasoningType: editingScheme.reasoningType || "",
                 ruleForm: "",
                 conclusionType: "",
-                premises: (editingScheme.premises || []) as any,
-                conclusion: editingScheme.conclusion as any,
+                premises: [],
+                conclusion: null,
                 cqs: (editingScheme.cqs || []).map((cq) => ({
                   cqKey: cq.cqKey,
                   text: cq.text,
                   attackType: cq.attackType as "REBUTS" | "UNDERCUTS" | "UNDERMINES",
                   targetScope: cq.targetScope as "conclusion" | "inference" | "premise",
                 })),
+                // Phase 6D clustering fields
+                parentSchemeId: (editingScheme as any).parentSchemeId || "",
+                clusterTag: (editingScheme as any).clusterTag || "",
+                inheritCQs: (editingScheme as any).inheritCQs ?? true,
               }
             : undefined
         }

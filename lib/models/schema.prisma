@@ -3346,6 +3346,18 @@ model ArgumentScheme {
   
   // NEW: Phase 5 - Scheme net steps (for sequential scheme composition)
   schemeNetSteps SchemeNetStep[] @relation("SchemeNetSteps")
+  
+  // NEW: Phase 6 - Scheme clustering & family resemblances (Macagno & Walton Section 6)
+  // Enables hierarchical classification and CQ inheritance
+  parentSchemeId String?          @db.VarChar(64)
+  parentScheme   ArgumentScheme?  @relation("SchemeHierarchy", fields: [parentSchemeId], references: [id], onDelete: SetNull)
+  childSchemes   ArgumentScheme[] @relation("SchemeHierarchy")
+  
+  clusterTag     String?          // e.g., "practical_reasoning_family", "authority_family"
+  inheritCQs     Boolean          @default(true) // Whether to inherit parent scheme's CQs
+  
+  @@index([parentSchemeId])
+  @@index([clusterTag])
 }
 
 model CQStatus {
