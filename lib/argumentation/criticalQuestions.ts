@@ -1,4 +1,20 @@
 // lib/argumentation/criticalQuestions.ts
+/**
+ * @deprecated LEGACY FILE - Being phased out in favor of database-driven scheme system
+ * 
+ * This file contains hardcoded scheme definitions for 4 schemes only:
+ * - ExpertOpinion, Consequences, Analogy, Sign
+ * 
+ * New implementation: lib/argumentation/schemeInference.ts now queries the database
+ * and supports all schemes defined in ArgumentScheme table (currently 7+ schemes).
+ * 
+ * This file is kept for reference and backward compatibility.
+ * DO NOT add new schemes here - use scripts/schemes.seed.ts instead.
+ * 
+ * Migration Status: October 31, 2025
+ * - Phase 1: Database-driven inference implemented
+ * - This file: Retained as fallback only
+ */
 export type SchemeId = 'ExpertOpinion' | 'Consequences' | 'Analogy' | 'Sign';
 
 export type CriticalQuestion = { id: string; text: string; severity?: 'low'|'med'|'high' };
@@ -27,7 +43,13 @@ const CQS: Record<SchemeId, CriticalQuestion[]> = {
   ],
 };
 
-/** Heuristic scheme hints from shallow features (optional). */
+/**
+ * @deprecated Use lib/argumentation/schemeInference.ts -> inferSchemesFromText() instead
+ * 
+ * Heuristic scheme hints from shallow features (optional).
+ * This function only knows about 4 hardcoded schemes.
+ * The new implementation queries the database and supports 7+ schemes with taxonomy-based scoring.
+ */
 export function inferSchemesFromText(text: string): SchemeId[] {
   const t = text.toLowerCase();
   const out = new Set<SchemeId>();
@@ -42,6 +64,9 @@ export function inferSchemesFromText(text: string): SchemeId[] {
   return Array.from(out.size ? out : ['Consequences']); // default to consequences
 }
 
+/**
+ * @deprecated Use database queries instead: prisma.criticalQuestion.findMany({ where: { schemeId } })
+ */
 export function questionsForScheme(s: SchemeId): CriticalQuestion[] {
   return CQS[s] || [];
 }

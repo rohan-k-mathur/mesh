@@ -10,6 +10,7 @@ import {
 
 interface SupportBarProps {
   value: number;
+  upperBound?: number; // plausibility for DS mode
   label?: string;
   claimId?: string;
   deliberationId?: string;
@@ -19,6 +20,7 @@ interface SupportBarProps {
 
 export function SupportBar({ 
   value, 
+  upperBound,
   label, 
   claimId,
   deliberationId,
@@ -26,6 +28,7 @@ export function SupportBar({
   showBreakdown = true 
 }: SupportBarProps) {
   const v = Math.max(0, Math.min(1, value ?? 0));
+  const pl = upperBound !== undefined ? Math.max(0, Math.min(1, upperBound)) : undefined;
   const [explain, setExplain] = React.useState<ExplainData | null>(null);
   const [loading, setLoading] = React.useState(false);
 
@@ -60,10 +63,30 @@ export function SupportBar({
     <div className="w-44">
       <div className="flex justify-between text-[11px] text-slate-600 mb-0.5">
         <span>{label ?? "Support"}</span>
-        <span>{(v * 100).toFixed(0)}%</span>
+        {pl !== undefined ? (
+          <span>[{(v * 100).toFixed(0)}%, {(pl * 100).toFixed(0)}%]</span>
+        ) : (
+          <span>{(v * 100).toFixed(0)}%</span>
+        )}
       </div>
-      <div className="h-2 rounded bg-slate-200/70">
-        <div className="h-2 rounded bg-emerald-500" style={{ width: `${v * 100}%` }} />
+      <div className="h-2 rounded bg-slate-200/70 relative overflow-hidden">
+        {pl !== undefined ? (
+          <>
+            {/* DS mode: show [bel, pl] interval */}
+            <div 
+              className="h-2 rounded bg-emerald-500" 
+              style={{ width: `${v * 100}%` }}
+              title={`Belief: ${(v * 100).toFixed(1)}%`}
+            />
+            <div 
+              className="h-2 bg-emerald-300/50 absolute top-0" 
+              style={{ left: `${v * 100}%`, width: `${(pl - v) * 100}%` }}
+              title={`Plausibility range: ${(v * 100).toFixed(1)}% - ${(pl * 100).toFixed(1)}%`}
+            />
+          </>
+        ) : (
+          <div className="h-2 rounded bg-emerald-500" style={{ width: `${v * 100}%` }} />
+        )}
       </div>
     </div>
   );

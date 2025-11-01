@@ -2259,8 +2259,17 @@ model Argument {
   confidence     Float?
   isImplicit     Boolean @default(false)
 
+  // DEPRECATED: Legacy single scheme field (Phase 1-3)
+  // Use argumentSchemes many-to-many relation instead (Phase 4+)
   schemeId          String?           @db.VarChar(64)
-  scheme            ArgumentScheme?   @relation(fields: [schemeId], references: [id])
+  scheme            ArgumentScheme?   @relation("LegacyArgumentScheme", fields: [schemeId], references: [id])
+  
+  // NEW: Many-to-many relation for multi-scheme classification (Phase 4)
+  argumentSchemes   ArgumentSchemeInstance[]
+  
+  // NEW: Phase 5 - Nets of Argumentation Schemes (sequential composition)
+  schemeNet         SchemeNet? @relation("ArgumentSchemeNet")
+  
   conclusionClaimId String?
   conclusion        Claim?            @relation("Conclusion", fields: [conclusionClaimId], references: [id])
   premises          ArgumentPremise[]
@@ -2298,6 +2307,74 @@ model Argument {
   @@index([deliberationId])
   @@index([deliberationId, createdAt])
   @@index([deliberationId, claimId, createdAt])
+}
+
+// Junction table for many-to-many Argument-ArgumentScheme relation with confidence scores
+model ArgumentSchemeInstance {
+  id           String   @id @default(cuid())
+  argumentId   String
+  schemeId     String
+  confidence   Float    @default(1.0) // Scheme inference confidence (0.0-1.0)
+  isPrimary    Boolean  @default(false) // Marks the highest-confidence scheme
+  createdAt    DateTime @default(now())
+  
+  argument     Argument       @relation(fields: [argumentId], references: [id], onDelete: Cascade)
+  scheme       ArgumentScheme @relation("ArgumentSchemeInstances", fields: [schemeId], references: [id], onDelete: Cascade)
+  
+  @@unique([argumentId, schemeId])
+  @@index([argumentId])
+  @@index([schemeId])
+}
+
+// ============================
+// Phase 5: Nets of Argumentation Schemes
+// (Sequential composition of schemes for complex multi-step arguments)
+// Based on Macagno & Walton Section 7
+// ============================
+
+model SchemeNet {
+  id          String   @id @default(cuid())
+  argumentId  String   @unique
+  description String?  @db.Text // User description of the argumentative chain
+  
+  // Computed confidence (weakest link in chain)
+  overallConfidence Float @default(1.0)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  argument    Argument       @relation("ArgumentSchemeNet", fields: [argumentId], references: [id], onDelete: Cascade)
+  steps       SchemeNetStep[]
+  
+  @@index([argumentId])
+}
+
+model SchemeNetStep {
+  id              String   @id @default(cuid())
+  netId           String
+  schemeId        String
+  stepOrder       Int      // 1, 2, 3... (sequential position in chain)
+  label           String?  // User-friendly label for this step (e.g., "Classification", "Commitment")
+  
+  // Linkage between steps (how output of previous step feeds into this step)
+  inputFromStep   Int?     // Which step's conclusion feeds into this premise? (null for first step)
+  inputSlotMapping Json?   // Map conclusion variables to premise variables
+                           // e.g., { "A": "P1.E", "B": "P2.S" } means conclusion var A maps to premise 1 var E
+  
+  // Step-specific text and confidence
+  stepText        String?  @db.Text // Text excerpt for this inferential step
+  confidence      Float    @default(1.0) // Confidence for this specific step
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  net             SchemeNet      @relation(fields: [netId], references: [id], onDelete: Cascade)
+  scheme          ArgumentScheme @relation("SchemeNetSteps", fields: [schemeId], references: [id], onDelete: Restrict)
+  
+  @@unique([netId, stepOrder])
+  @@index([netId])
+  @@index([schemeId])
 }
 
 enum ArgumentAttackSubtype {
@@ -3245,6 +3322,10 @@ model ArgumentScheme {
   cq             Json             @default("{}") // we'll set a DB default to [] below; this avoids null
   SchemeInstance SchemeInstance[]
 
+  // Formal scheme structure (Walton-style)
+  premises   Json? // Array of premise templates: [{ id: "P1", type: "major|minor", text: "Source E is an expert...", variables: ["E", "S", "A"] }]
+  conclusion Json? // Conclusion template: { text: "A is true", variables: ["A"] }
+
   // Macagno taxonomy:
   purpose          String? // 'action' | 'state_of_affairs'
   source           String? // 'internal' | 'external'
@@ -3256,7 +3337,15 @@ model ArgumentScheme {
   variants         SchemeVariant[]
   cqs              CriticalQuestion[]
   validators       Json? // CAS2-style v/e metadata (optional)
-  Argument         Argument[]
+  
+  // DEPRECATED: Legacy single argument relation (Phase 1-3)
+  Argument         Argument[]       @relation("LegacyArgumentScheme")
+  
+  // NEW: Many-to-many relation for multi-scheme classification (Phase 4)
+  argumentSchemeInstances ArgumentSchemeInstance[] @relation("ArgumentSchemeInstances")
+  
+  // NEW: Phase 5 - Scheme net steps (for sequential scheme composition)
+  schemeNetSteps SchemeNetStep[] @relation("SchemeNetSteps")
 }
 
 model CQStatus {

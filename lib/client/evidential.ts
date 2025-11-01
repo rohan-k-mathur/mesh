@@ -92,3 +92,242 @@ export async function fetchHomSets(params: {
   
   return r.json();
 }
+
+// ============================================================================
+// Gap 4: Per-Derivation Assumption Tracking Client Wrappers
+// ============================================================================
+
+/**
+ * Response type for derivation assumptions
+ */
+export type DerivationAssumption = {
+  id: string;
+  derivationId: string;
+  assumptionId: string;
+  weight: number;
+  status: "ACCEPTED" | "CANDIDATE" | "REJECTED";
+  inferredFrom: string | null;
+  createdAt: string;
+  updatedAt: string;
+  assumptionUse?: {
+    id: string;
+    claimId: string;
+    claim: {
+      text: string;
+    };
+  };
+};
+
+/**
+ * Fetch all assumptions for a specific derivation.
+ * 
+ * @param derivationId - The ID of the derivation (ArgumentSupport)
+ * @param includeAll - If true, includes CANDIDATE and REJECTED assumptions (default: false, only ACCEPTED)
+ * @returns Promise resolving to array of assumptions with their metadata
+ * 
+ * @example
+ * ```typescript
+ * // Get accepted assumptions only
+ * const assumptions = await fetchDerivationAssumptions("deriv123");
+ * 
+ * // Get all assumptions including candidates
+ * const allAssumptions = await fetchDerivationAssumptions("deriv123", true);
+ * ```
+ */
+export async function fetchDerivationAssumptions(
+  derivationId: string,
+  includeAll?: boolean
+): Promise<DerivationAssumption[]> {
+  const q = new URLSearchParams();
+  if (includeAll) q.set("includeAll", "true");
+
+  const r = await fetch(
+    `/api/derivations/${derivationId}/assumptions?${q.toString()}`,
+    { cache: "no-store" }
+  );
+
+  if (!r.ok) {
+    throw new Error(`Failed to fetch derivation assumptions: HTTP ${r.status}`);
+  }
+
+  const json = await r.json();
+  return json.assumptions || [];
+}
+
+/**
+ * Link an assumption to a derivation (or update existing link).
+ * 
+ * This operation is idempotent: calling it multiple times with the same
+ * assumption and derivation will update the weight instead of creating duplicates.
+ * 
+ * @param params - Configuration for linking
+ * @param params.assumptionId - The ID of the AssumptionUse to link
+ * @param params.derivationId - The ID of the derivation (ArgumentSupport)
+ * @param params.weight - Confidence weight for this assumption (0.0 to 1.0)
+ * @param params.status - Status of the assumption (default: "ACCEPTED")
+ * @param params.inferredFrom - Optional: ID of another assumption this was inferred from
+ * 
+ * @returns Promise resolving to the created/updated DerivationAssumption
+ * 
+ * @example
+ * ```typescript
+ * // Link assumption with high confidence
+ * const link = await linkAssumptionToDerivation({
+ *   assumptionId: "assump123",
+ *   derivationId: "deriv456",
+ *   weight: 0.9
+ * });
+ * 
+ * // Link transitive assumption
+ * const transitive = await linkAssumptionToDerivation({
+ *   assumptionId: "assump789",
+ *   derivationId: "deriv456",
+ *   weight: 0.7,
+ *   inferredFrom: "assump123"
+ * });
+ * ```
+ */
+export async function linkAssumptionToDerivation(params: {
+  assumptionId: string;
+  derivationId: string;
+  weight: number;
+  status?: "ACCEPTED" | "CANDIDATE" | "REJECTED";
+  inferredFrom?: string;
+}): Promise<DerivationAssumption> {
+  const r = await fetch(`/api/assumptions/${params.assumptionId}/link`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      derivationId: params.derivationId,
+      weight: params.weight,
+      status: params.status || "ACCEPTED",
+      inferredFrom: params.inferredFrom || null,
+    }),
+  });
+
+  if (!r.ok) {
+    const error = await r.json().catch(() => ({ error: "Unknown error" }));
+    throw new Error(`Failed to link assumption: ${error.error || r.statusText}`);
+  }
+
+  const json = await r.json();
+  return json.link;
+}
+
+/**
+ * Response type for minimal assumptions
+ */
+export type MinimalAssumptionsResponse = {
+  ok: boolean;
+  argumentId: string;
+  minimalSet: Array<{
+    assumptionId: string;
+    assumptionText: string;
+    usedByDerivations: string[];
+    criticalityScore: number;
+  }>;
+  meta: {
+    totalDerivations: number;
+    uniqueAssumptions: number;
+  };
+};
+
+/**
+ * Compute the minimal set of assumptions for an argument.
+ * 
+ * This identifies which assumptions are most critical by analyzing how many
+ * derivations depend on each assumption. Returns assumptions sorted by
+ * criticality score (higher = more critical).
+ * 
+ * @param argumentId - The ID of the argument
+ * @returns Promise resolving to minimal assumption set with criticality scores
+ * 
+ * @example
+ * ```typescript
+ * const result = await fetchMinimalAssumptions("arg123");
+ * 
+ * console.log(`Argument has ${result.meta.totalDerivations} derivations`);
+ * console.log(`Uses ${result.meta.uniqueAssumptions} assumptions`);
+ * 
+ * for (const assump of result.minimalSet) {
+ *   console.log(`${assump.assumptionText}: ${assump.criticalityScore.toFixed(2)}`);
+ * }
+ * ```
+ */
+export async function fetchMinimalAssumptions(
+  argumentId: string
+): Promise<MinimalAssumptionsResponse> {
+  const r = await fetch(`/api/arguments/${argumentId}/minimal-assumptions`, {
+    cache: "no-store",
+  });
+
+  if (!r.ok) {
+    throw new Error(`Failed to fetch minimal assumptions: HTTP ${r.status}`);
+  }
+
+  return r.json();
+}
+
+/**
+ * Response type for assumption dependency graph
+ */
+export type AssumptionGraphResponse = {
+  ok: boolean;
+  deliberationId: string;
+  nodes: Array<{
+    id: string;
+    type: "claim" | "argument" | "derivation" | "assumption";
+    text?: string;
+  }>;
+  edges: Array<{
+    source: string;
+    target: string;
+    type: "supports" | "uses" | "inferred";
+    weight?: number;
+  }>;
+  meta: {
+    claimNodes: number;
+    argumentNodes: number;
+    derivationNodes: number;
+    assumptionNodes: number;
+    totalEdges: number;
+  };
+};
+
+/**
+ * Fetch the complete assumption dependency graph for a deliberation.
+ * 
+ * This returns a graph structure suitable for D3.js visualization showing:
+ * - Claims and their supporting arguments
+ * - Arguments and their derivations
+ * - Derivations and their assumptions
+ * - Transitive assumption relationships
+ * 
+ * @param deliberationId - The ID of the deliberation
+ * @returns Promise resolving to graph with nodes and edges
+ * 
+ * @example
+ * ```typescript
+ * const graph = await fetchAssumptionGraph("room123");
+ * 
+ * // Use with D3.js force simulation
+ * const simulation = d3.forceSimulation(graph.nodes)
+ *   .force("link", d3.forceLink(graph.edges).id(d => d.id))
+ *   .force("charge", d3.forceManyBody())
+ *   .force("center", d3.forceCenter());
+ * ```
+ */
+export async function fetchAssumptionGraph(
+  deliberationId: string
+): Promise<AssumptionGraphResponse> {
+  const r = await fetch(
+    `/api/deliberations/${deliberationId}/assumption-graph`,
+    { cache: "no-store" }
+  );
+
+  if (!r.ok) {
+    throw new Error(`Failed to fetch assumption graph: HTTP ${r.status}`);
+  }
+
+  return r.json();
+}

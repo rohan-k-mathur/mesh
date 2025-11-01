@@ -92,17 +92,46 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const parents = new Map<string,string[]>();
   for (const e of edges) (parents.get(e.toArgumentId) ?? parents.set(e.toArgumentId,[]).get(e.toArgumentId)!).push(e.fromArgumentId);
 
-  const uses = await prisma.assumptionUse.findMany({
+  // Gap 4: Per-derivation assumption tracking
+  // Fetch all derivations (ArgumentSupport) for these arguments
+  const derivations = await prisma.argumentSupport.findMany({
+    where: { argumentId: { in: realArgIds } },
+    select: { id: true, argumentId: true }
+  });
+  
+  const derivationIds = derivations.map(d => d.id);
+  const derivByArg = new Map<string, string[]>();
+  for (const d of derivations) {
+    (derivByArg.get(d.argumentId) ?? derivByArg.set(d.argumentId, []).get(d.argumentId)!).push(d.id);
+  }
+
+  // Fetch per-derivation assumptions
+  const derivAssumptions = await prisma.derivationAssumption.findMany({
+    where: { derivationId: { in: derivationIds } }
+  });
+
+  // Map: derivationId -> assumption weights
+  const assumpByDeriv = new Map<string, number[]>();
+  for (const da of derivAssumptions) {
+    (assumpByDeriv.get(da.derivationId) ?? assumpByDeriv.set(da.derivationId, []).get(da.derivationId)!)
+      .push(clamp01(da.weight));
+  }
+
+  // Legacy fallback: argument-level assumptions (for backward compatibility)
+  const legacyUses = await prisma.assumptionUse.findMany({
     where: { argumentId: { in: realArgIds } },
     select: { argumentId:true, weight:true },
   }).catch(()=>[] as any[]);
-  const assump = new Map<string, number[]>();
-  for (const u of uses) (assump.get(u.argumentId) ?? assump.set(u.argumentId,[]).get(u.argumentId)!).push(clamp01(u.weight ?? 0.6));
+  const legacyAssump = new Map<string, number[]>();
+  for (const u of legacyUses) {
+    (legacyAssump.get(u.argumentId) ?? legacyAssump.set(u.argumentId,[]).get(u.argumentId)!)
+      .push(clamp01(u.weight ?? 0.6));
+  }
 
   const baseByArg = new Map<string, number>();
   for (const s of allSupports) if (!s.argumentId.startsWith('virt:')) baseByArg.set(s.argumentId, s.base);
 
-  // 5) contributions
+  // 5) contributions (per-derivation assumption tracking)
   type Contribution = { argumentId:string; score:number; parts:{base:number; premises:number[]; assumptions:number[]} };
   const contributionsByClaim = new Map<string, Contribution[]>();
   const argsByClaim = new Map<string, string[]>();
@@ -113,9 +142,21 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const premIds = real ? (parents.get(s.argumentId) ?? []) : [];
     const premBases = real ? premIds.map(pid => baseByArg.get(pid) ?? 0.5) : [];
     const premFactor = premBases.length ? compose(premBases, mode) : 1;
-    const aBases = real ? (assump.get(s.argumentId) ?? []) : [];
-    const assumpFactor = aBases.length ? compose(aBases, mode) : 1;
 
+    // Per-derivation assumption tracking:
+    let aBases: number[] = [];
+    if (real) {
+      const derivIds = derivByArg.get(s.argumentId) ?? [];
+      const derivAssumps: number[] = [];
+      for (const dId of derivIds) {
+        const weights = assumpByDeriv.get(dId) ?? [];
+        if (weights.length) derivAssumps.push(...weights);
+      }
+      // Fallback to legacy argument-level if no per-derivation data
+      aBases = derivAssumps.length ? derivAssumps : (legacyAssump.get(s.argumentId) ?? []);
+    }
+
+    const assumpFactor = aBases.length ? compose(aBases, mode) : 1;
     const score = clamp01(compose([b, premFactor], mode) * assumpFactor);
 
     (contributionsByClaim.get(s.claimId) ?? contributionsByClaim.set(s.claimId, []).get(s.claimId)!)

@@ -32,10 +32,10 @@ type EvResp = {
 
 export function ClaimsPane({ deliberationId, claims }: { deliberationId: string; claims: { id: string; text: string }[] }) {
   const { mode, tau } = useConfidence();
-  const m = mode === 'ds' ? 'product' : mode; // service accepts 'min'|'product'
+  // DS mode is now supported by the API
   const { data: scores } = useSWR(
-    () => claims?.length ? ['scores', deliberationId, m, tau, claims.map(c=>c.id).join(',')] : null,
-    async () => fetchClaimScores({ deliberationId, mode: m as any, tau, claimIds: claims.map(c=>c.id) }),
+    () => claims?.length ? ['scores', deliberationId, mode, tau, claims.map(c=>c.id).join(',')] : null,
+    async () => fetchClaimScores({ deliberationId, mode: mode as any, tau, claimIds: claims.map(c=>c.id) }),
     { revalidateOnFocus: false }
   );
 
@@ -48,10 +48,17 @@ export function ClaimsPane({ deliberationId, claims }: { deliberationId: string;
       {items.map(c => {
         const s = c._s;
         const v = s?.score ?? s?.bel ?? 0;
+        const upperBound = mode === 'ds' ? s?.pl : undefined;
         return (
           <li key={c.id} className="flex items-center gap-2">
             <span className="text-sm">{c.text}</span>
-            <SupportBar value={v} />
+            <SupportBar 
+              value={v} 
+              upperBound={upperBound}
+              mode={mode}
+              claimId={c.id}
+              deliberationId={deliberationId}
+            />
             {s?.accepted && (
               <span className="text-[11px] px-1.5 py-0.5 rounded bg-emerald-50 border border-emerald-200 text-emerald-700">
                 Accepted

@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState, useMemo } from "react";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, Settings } from "lucide-react";
 import DeliberationComposer from "./DeliberationComposer";
 import { RepresentativeViewpoints } from "./RepresentativeViewpoints";
 import ArgumentsList from "./ArgumentsList";
@@ -15,6 +15,8 @@ import WorksList from "../work/WorksList";
 import LudicsPanel from "./LudicsPanel";
 import { FloatingSheet, SheetToggleButton } from "../ui/FloatingSheet";
 import { DialogueInspector } from "@/components/dialogue/DialogueInspector";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 import { AFMinimap } from '@/components/dialogue/minimap/AFMinimap';
 import BehaviourInspectorCard from '@/components/ludics/BehaviourInspectorCard';
@@ -56,6 +58,7 @@ import { ThesisListView } from "../thesis/ThesisListView";
 import { ActiveAssumptionsPanel } from "@/components/assumptions/ActiveAssumptionsPanel";
 import { CreateAssumptionForm } from "@/components/assumptions/CreateAssumptionForm";
 import { HomSetComparisonChart } from "@/components/agora/HomSetComparisonChart";
+import { SchemeBreakdown } from "@/components/arguments/SchemeBreakdown";
 
 const fetcher = (u: string) => fetch(u, { cache: 'no-store' }).then(r => r.json());
 
@@ -1482,6 +1485,17 @@ const {
             </div>
 
             <div className="flex gap-2">
+              <Link href="/admin/schemes" target="_blank">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs gap-2"
+                  title="Manage Argumentation Schemes"
+                >
+                  <Settings className="h-3.5 w-3.5" />
+                  Schemes
+                </Button>
+              </Link>
               <DiscusHelpPage />
               {pending && <div className="text-xs text-neutral-500">Computing…</div>}
             </div>
@@ -1557,6 +1571,13 @@ const {
 
           {/* MODELS TAB */}
           <TabsContent value="models" className="w-full min-w-0 space-y-4 mt-4">
+            {/* Phase 4: Scheme Breakdown for Selected Argument */}
+            {selectedArgumentForActions && (
+              <SectionCard title="Argumentation Schemes" className="w-full">
+                <SchemeBreakdown argumentId={selectedArgumentForActions.id} />
+              </SectionCard>
+            )}
+
             {/* <SectionCard title="Representative Viewpoints">
               <RepresentativeViewpoints
                 selection={sel}

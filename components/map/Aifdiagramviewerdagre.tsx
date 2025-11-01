@@ -284,7 +284,7 @@ export function AifDiagramViewerDagre({
   return (
     <div className={`relative w-full bg-gray-50 ${className}`} ref={containerRef}>
       {/* Top Controls */}
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-3">
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex  items-center gap-3">
         <div className="w-80">
           <AifDiagramSearch
             graph={graph}

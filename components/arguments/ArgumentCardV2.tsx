@@ -34,8 +34,15 @@ interface ArgumentCardV2Props {
   conclusion: { id: string; text: string };
   premises: Prem[];
   onAnyChange?: () => void;
-  schemeKey?: string | null;
-  schemeName?: string | null;
+  schemeKey?: string | null; // DEPRECATED: Use schemes array instead (Phase 4)
+  schemeName?: string | null; // DEPRECATED: Use schemes array instead (Phase 4)
+  schemes?: Array<{ // Phase 4: Multi-scheme support
+    schemeId: string;
+    schemeKey: string;
+    schemeName: string;
+    confidence: number;
+    isPrimary: boolean;
+  }>;
   createdAt?: string | Date;
   updatedAt?: string | Date;
   confidence?: number;
@@ -303,6 +310,7 @@ export function ArgumentCardV2({
   onAnyChange,
   schemeKey,
   schemeName,
+  schemes: propsSchemes,
   createdAt,
   updatedAt,
   confidence,
@@ -319,6 +327,15 @@ export function ArgumentCardV2({
   const [attacks, setAttacks] = React.useState<any[]>([]);
   const [cqDialogOpen, setCqDialogOpen] = React.useState(false);
   const [argCqDialogOpen, setArgCqDialogOpen] = React.useState(false);
+
+  // Phase 4: Fetch multi-scheme data if not provided via props
+  const { data: schemesData } = useSWR(
+    !propsSchemes && id ? `/api/arguments/${id}/schemes` : null,
+    fetcher
+  );
+
+  // Use schemes from props or fetched data
+  const schemes = propsSchemes || schemesData?.schemes || [];
 
   // Fetch CQ data for the conclusion claim (claim-level CQs)
   const { data: cqData } = useSWR(
@@ -623,12 +640,44 @@ export function ArgumentCardV2({
               <div className="p-3 rounded-lg bg-white border border-indigo-200">
                 <p className="text-sm text-indigo-900 leading-relaxed">
                   The reasoning that connects the premises to the conclusion.
-                  {schemeKey && (
+                </p>
+                
+                {/* Phase 4: Multi-scheme display */}
+                {schemes.length > 0 ? (
+                  <div className="mt-3 space-y-2">
+                    <div className="text-xs font-medium text-indigo-700">
+                      Argumentation Scheme{schemes.length > 1 ? "s" : ""}:
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {schemes.map((scheme) => (
+                        <div
+                          key={scheme.schemeId}
+                          className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border ${
+                            scheme.isPrimary
+                              ? "bg-indigo-100 border-indigo-300 text-indigo-800"
+                              : "bg-slate-100 border-slate-300 text-slate-700"
+                          }`}
+                          title={scheme.isPrimary ? "Primary scheme" : undefined}
+                        >
+                          <span className="font-semibold">{scheme.schemeName}</span>
+                          <span className="text-xs opacity-75">
+                            {Math.round(scheme.confidence * 100)}%
+                          </span>
+                          {scheme.isPrimary && (
+                            <span className="ml-0.5 text-[10px] font-bold">★</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  // Fallback to legacy single scheme display
+                  schemeKey && (
                     <span className="block mt-2 text-xs font-medium text-indigo-700">
                       Using scheme: <span className="font-mono">{schemeName || schemeKey}</span>
                     </span>
-                  )}
-                </p>
+                  )
+                )}
               </div>
             </div>
           )}

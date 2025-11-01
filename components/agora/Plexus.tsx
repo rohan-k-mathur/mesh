@@ -77,8 +77,8 @@ export default function Plexus({
   React.useEffect(() => { gatedShare.current.clear(); }, [mode, tau]);
   const fetchGated = React.useCallback(async (rid: string) => {
     if (gatedShare.current.has(rid)) return gatedShare.current.get(rid)!;
-    const gm = mode === 'ds' ? 'product' : mode;
-    const qs = new URLSearchParams({ semantics:'preferred', mode: gm, ...(tau!=null?{confidence:String(tau)}:{}) });
+    // DS mode is now supported by the API
+    const qs = new URLSearchParams({ semantics:'preferred', mode, ...(tau!=null?{confidence:String(tau)}:{}) });
     const r = await fetch(`/api/deliberations/${rid}/graph?`+qs, { cache:'no-store' }).catch(()=>null);
     const g = await r?.json().catch(()=>null);
     const total = Array.isArray(g?.nodes) ? g.nodes.length : 0;
