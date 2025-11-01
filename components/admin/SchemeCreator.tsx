@@ -263,7 +263,7 @@ export default function SchemeCreator({
       <DialogContent className="max-w-4xl max-h-[90vh] bg-slate-300 overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-purple-500" />
+            
             {editScheme ? "Edit Argumentation Scheme" : "Create Custom Argumentation Scheme"}
           </DialogTitle>
           <DialogDescription>
@@ -556,10 +556,7 @@ export default function SchemeCreator({
                         </SelectContent>
                       </Select>
                     </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
+                    <button
                       onClick={() => {
                         setFormData({
                           ...formData,
@@ -568,7 +565,7 @@ export default function SchemeCreator({
                       }}
                     >
                       <X className="h-4 w-4" />
-                    </Button>
+                    </button>
                   </div>
                   <Textarea
                     placeholder="e.g., Source E is an expert in subject domain S containing proposition A."
@@ -596,10 +593,9 @@ export default function SchemeCreator({
                 </div>
               ))}
 
-              <Button
+              <button
                 type="button"
-                variant="outline"
-                size="sm"
+                className="flex btnv2--ghost bg-white rounded-lg px-3 py-2"
                 onClick={() => {
                   const newId = `P${formData.premises.length + 1}`;
                   setFormData({
@@ -608,9 +604,9 @@ export default function SchemeCreator({
                   });
                 }}
               >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Premise
-              </Button>
+                
+                <span className="text-sm tracking-wide flex ">＋ Add Premise</span>
+              </button>
             </div>
 
             {/* Conclusion */}
@@ -620,14 +616,12 @@ export default function SchemeCreator({
                 <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-md space-y-2">
                   <div className="flex items-start justify-between">
                     <span className="text-sm font-mono font-bold text-indigo-700">∴ Therefore:</span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
+                    <button
+                 
                       onClick={() => setFormData({ ...formData, conclusion: null })}
                     >
                       <X className="h-4 w-4" />
-                    </Button>
+                    </button>
                   </div>
                   <Textarea
                     placeholder="e.g., A is true (false)."
@@ -659,10 +653,8 @@ export default function SchemeCreator({
                   </div>
                 </div>
               ) : (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
+                <button
+                  className="flex btnv2--ghost bg-white rounded-lg px-3 py-2"
                   onClick={() => {
                     setFormData({
                       ...formData,
@@ -670,9 +662,9 @@ export default function SchemeCreator({
                     });
                   }}
                 >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Conclusion
-                </Button>
+                                 <span className="text-sm tracking-wide flex ">＋ Add Conclusion</span>
+                  
+                </button>
               )}
             </div>
           </div>
@@ -683,16 +675,13 @@ export default function SchemeCreator({
               <h3 className="font-semibold text-sm text-slate-700">
                 Critical Questions * (at least 1 required)
               </h3>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
+              <button
+                className="flex btnv2--ghost bg-white text-xs rounded-lg px-3 py-2"
                 onClick={handleGenerateCQs}
                 disabled={!formData.key.trim()}
               >
-                <Wand2 className="h-4 w-4 mr-2" />
                 Generate from Taxonomy
-              </Button>
+              </button>
             </div>
 
             {!formData.key.trim() && (
