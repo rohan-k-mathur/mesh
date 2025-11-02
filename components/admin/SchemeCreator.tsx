@@ -26,6 +26,25 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Plus, X, Save, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { generateCQsFromTaxonomy, type TaxonomyFields } from "@/lib/argumentation/cqGeneration";
 
+// Custom scrollbar styles for light mode
+const scrollbarStyles = `
+  .custom-scrollbar-light::-webkit-scrollbar {
+    width: 3px;
+  }
+  .custom-scrollbar-light::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 4px;
+  }
+  .custom-scrollbar-light::-webkit-scrollbar-thumb {
+    background: rgba(56, 189, 248, 0.4);
+    border-radius: 4px;
+  }
+  .custom-scrollbar-light::-webkit-scrollbar-thumb:hover {
+    background: rgba(56, 189, 248, 0.6);
+  }
+`;
+
+
 type CriticalQuestion = {
   cqKey: string;
   text: string;
@@ -260,20 +279,26 @@ export default function SchemeCreator({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] bg-sky-100/40 backdrop-blur-xl border border-indigo-500 custom-scrollbar shadow-2xl overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-semibold text-slate-900">
+      <style dangerouslySetInnerHTML={{ __html: scrollbarStyles }} />
+      <DialogContent className="max-w-4xl max-h-[96vh] overflow-hidden bg-white/45 backdrop-blur-xl shadow-2xl py-6 px-5">
+        <DialogHeader className="pb-1">
+          <DialogTitle className="text-2xl font-bold text-slate-900">
             {editScheme ? "Edit Argumentation Scheme" : "Create Custom Argumentation Scheme"}
           </DialogTitle>
-          <DialogDescription className="text-slate-600 mt-2">
-            Define a new scheme with Macagno taxonomy fields and critical questions.
+          <DialogDescription className="text-slate-600 mt-1">
+            Define a new scheme with a formal structure, Walton taxonomy fields and critical questions.
           </DialogDescription>
         </DialogHeader>
-
-        <div className="space-y-2 ">
+        
+        {/* Scrollable content wrapper */}
+        <div className="relative z-10 overflow-y-auto max-h-[75vh] custom-scrollbar-light px-2">
+        <div className="space-y-6">
           {/* Basic Information */}
-          <div className="space-y-4 pb-3">
-            <h3 className="font-semibold text-base text-slate-900 tracking-tight">Basic Information</h3>
+          <div className="space-y-4">
+            <Label className="text-sm font-semibold text-sky-900 flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-cyan-600" />
+              Basic Information
+            </Label>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -284,7 +309,7 @@ export default function SchemeCreator({
                   value={formData.key}
                   onChange={(e) => handleInputChange("key", e.target.value)}
                   disabled={!!editScheme}
-                  className="bg-white/60 backdrop-blur-sm border-slate-200 focus:border-slate-400 focus:ring-slate-400/20"
+                  className="bg-slate-900/5 backdrop-blur-md border-slate-900/20 text-slate-900 placeholder:text-slate-400 focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/20 rounded-xl shadow-lg transition-all"
                 />
                 <p className="text-xs text-slate-500 mt-1.5">
                   Lowercase with underscores (immutable after creation)
@@ -298,19 +323,19 @@ export default function SchemeCreator({
                   placeholder="Argument from Expert Opinion"
                   value={formData.name}
                   onChange={(e) => handleInputChange("name", e.target.value)}
-                  className="bg-white/60 backdrop-blur-sm border-slate-200 focus:border-slate-400 focus:ring-slate-400/20"
+                  className="bg-slate-900/5 backdrop-blur-md border-slate-900/20 text-slate-900 placeholder:text-slate-400 focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/20 rounded-xl shadow-lg transition-all"
                 />
               </div>
             </div>
 
             <div>
-              <Label htmlFor="summary" className="text-sm font-medium  text-slate-700">Summary *</Label>
+              <Label htmlFor="summary" className="text-sm font-medium text-slate-700">Summary *</Label>
               <Input
                 id="summary"
                 placeholder="One-line description of the scheme"
                 value={formData.summary}
                 onChange={(e) => handleInputChange("summary", e.target.value)}
-                className="bg-white/60 backdrop-blur-sm border-slate-200 focus:border-slate-400 focus:ring-slate-400/20"
+                className="bg-slate-900/5 backdrop-blur-md border-slate-900/20 text-slate-900 placeholder:text-slate-400 focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/20 rounded-xl shadow-lg transition-all"
               />
             </div>
 
@@ -322,16 +347,17 @@ export default function SchemeCreator({
                 value={formData.description}
                 onChange={(e) => handleInputChange("description", e.target.value)}
                 rows={3}
-                    className="border-none articlesearchfield resize-none"
+                className="min-h-[90px] resize-y bg-slate-900/5 backdrop-blur-md border-slate-900/20 text-slate-900 placeholder:text-slate-400 focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/20 rounded-xl shadow-lg"
               />
             </div>
           </div>
 
           {/* Macagno Taxonomy */}
-          <div className="space-y-4 pt-3  border-t border-sky-800/60 ">
-            <h3 className="font-semibold text-base text-slate-900 tracking-tight">
-              Macagno Taxonomy (Optional but Recommended)
-            </h3>
+          <div className="space-y-4 border-t border-slate-900/10 pt-6">
+            <Label className="text-sm font-semibold text-sky-900 flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-cyan-600" />
+              Walton Taxonomy (Optional but Recommended)
+            </Label>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -340,7 +366,7 @@ export default function SchemeCreator({
                   value={formData.purpose || "none"}
                   onValueChange={(value) => handleInputChange("purpose", value === "none" ? "" : value)}
                 >
-                  <SelectTrigger className="bg-white/60 backdrop-blur-sm border-slate-200 focus:border-slate-400 focus:ring-slate-400/20">
+                  <SelectTrigger className="bg-slate-900/5 backdrop-blur-md border-slate-900/20 focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/20 rounded-xl shadow-lg">
                     <SelectValue placeholder="Select purpose..." />
                   </SelectTrigger>
                   <SelectContent className="bg-white/95 backdrop-blur-xl border-slate-200">
@@ -357,7 +383,7 @@ export default function SchemeCreator({
                   value={formData.source || "none"}
                   onValueChange={(value) => handleInputChange("source", value === "none" ? "" : value)}
                 >
-                  <SelectTrigger className="bg-white/60 backdrop-blur-sm border-slate-200 focus:border-slate-400 focus:ring-slate-400/20">
+                  <SelectTrigger className="bg-slate-900/5 backdrop-blur-md border-slate-900/20 focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/20 rounded-xl shadow-lg">
                     <SelectValue placeholder="Select source..." />
                   </SelectTrigger>
                   <SelectContent className="bg-white/95 backdrop-blur-xl border-slate-200">
@@ -374,7 +400,7 @@ export default function SchemeCreator({
                   value={formData.materialRelation || "none"}
                   onValueChange={(value) => handleInputChange("materialRelation", value === "none" ? "" : value)}
                 >
-                  <SelectTrigger className="bg-white/60 backdrop-blur-sm border-slate-200 focus:border-slate-400 focus:ring-slate-400/20">
+                  <SelectTrigger className="bg-slate-900/5 backdrop-blur-md border-slate-900/20 focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/20 rounded-xl shadow-lg">
                     <SelectValue placeholder="Select relation..." />
                   </SelectTrigger>
                   <SelectContent className="bg-white/95 backdrop-blur-xl border-slate-200">
@@ -395,7 +421,7 @@ export default function SchemeCreator({
                   value={formData.reasoningType || "none"}
                   onValueChange={(value) => handleInputChange("reasoningType", value === "none" ? "" : value)}
                 >
-                  <SelectTrigger className="bg-white/60 backdrop-blur-sm border-slate-200 focus:border-slate-400 focus:ring-slate-400/20">
+                  <SelectTrigger className="bg-slate-900/5 backdrop-blur-md border-slate-900/20 focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/20 rounded-xl shadow-lg">
                     <SelectValue placeholder="Select type..." />
                   </SelectTrigger>
                   <SelectContent className="bg-white/95 backdrop-blur-xl border-slate-200">
@@ -414,7 +440,7 @@ export default function SchemeCreator({
                   value={formData.ruleForm || "none"}
                   onValueChange={(value) => handleInputChange("ruleForm", value === "none" ? "" : value)}
                 >
-                  <SelectTrigger className="bg-white/60 backdrop-blur-sm border-slate-200 focus:border-slate-400 focus:ring-slate-400/20">
+                  <SelectTrigger className="bg-slate-900/5 backdrop-blur-md border-slate-900/20 focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/20 rounded-xl shadow-lg">
                     <SelectValue placeholder="Select form..." />
                   </SelectTrigger>
                   <SelectContent className="bg-white/95 backdrop-blur-xl border-slate-200">
@@ -433,7 +459,7 @@ export default function SchemeCreator({
                   value={formData.conclusionType || "none"}
                   onValueChange={(value) => handleInputChange("conclusionType", value === "none" ? "" : value)}
                 >
-                  <SelectTrigger className="bg-white/60 backdrop-blur-sm border-slate-200 focus:border-slate-400 focus:ring-slate-400/20">
+                  <SelectTrigger className="bg-slate-900/5 backdrop-blur-md border-slate-900/20 focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/20 rounded-xl shadow-lg">
                     <SelectValue placeholder="Select type..." />
                   </SelectTrigger>
                   <SelectContent className="bg-white/95 backdrop-blur-xl border-slate-200">
@@ -447,9 +473,12 @@ export default function SchemeCreator({
           </div>
 
           {/* Phase 6D: Scheme Clustering & Hierarchy */}
-          <div className="space-y-4 border-t border-sky-800/60 pt-3">
+          <div className="space-y-4 border-t border-slate-900/10 pt-6">
             <div>
-              <h3 className="font-semibold text-base text-slate-900 tracking-tight">Scheme Clustering & Hierarchy</h3>
+              <Label className="text-sm font-semibold text-sky-900 flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-cyan-600" />
+                Scheme Clustering & Hierarchy
+              </Label>
               <p className="text-xs text-slate-500 mt-1.5">
                 Optional: establish parent-child relationships and cluster families (Macagno & Walton Section 6)
               </p>
@@ -462,15 +491,16 @@ export default function SchemeCreator({
                   value={formData.parentSchemeId || "none"}
                   onValueChange={(value) => handleInputChange("parentSchemeId", value === "none" ? "" : value)}
                 >
-                  <SelectTrigger className="bg-white/60 backdrop-blur-sm border-slate-200 focus:border-slate-400 focus:ring-slate-400/20">
-                    <SelectValue placeholder="No parent (root scheme)" />
+                  <SelectTrigger                   className="bg-slate-900/5 backdrop-blur-md border-slate-900/20 text-slate-900 placeholder:text-slate-400 focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/20 rounded-xl shadow-lg transition-all"
+>
+                    <SelectValue  placeholder="No parent (root scheme)" />
                   </SelectTrigger>
                   <SelectContent className="bg-white/95 backdrop-blur-xl border-slate-200">
-                    <SelectItem  className="hover:bg-slate-300/50 cursor-pointer" value="none">No parent (root scheme)</SelectItem>
+                    <SelectItem className="hover:bg-slate-900/10  cursor-pointer" value="none">No parent (root scheme)</SelectItem>
                     {availableSchemes
                       .filter((s) => s.id !== editScheme?.id) // Don't allow self-parenting
                       .map((scheme) => (
-                        <SelectItem key={scheme.id} className="hover:bg-slate-300/50 cursor-pointer" value={scheme.id}>
+                        <SelectItem key={scheme.id} className="hover:bg-slate-900/10 cursor-pointer" value={scheme.id}>
                           {scheme.name} ({scheme.key})
                         </SelectItem>
                       ))}
@@ -482,14 +512,14 @@ export default function SchemeCreator({
               </div>
 
               <div>
-                <Label htmlFor="clusterTag" className="text-sm font-medium text-slate-700">Cluster Tag</Label>
+                <Label htmlFor="clusterTag" className="text-sm py-0 font-medium text-slate-700">Cluster Tag</Label>
                 <Input
                   id="clusterTag"
                   list="cluster-suggestions"
                   placeholder="e.g., practical_reasoning_family"
                   value={formData.clusterTag}
                   onChange={(e) => handleInputChange("clusterTag", e.target.value)}
-                  className="bg-white/60 backdrop-blur-sm border-slate-200 focus:border-slate-400 focus:ring-slate-400/20"
+                  className="bg-slate-900/5 backdrop-blur-md border-slate-900/20 text-slate-900 placeholder:text-slate-400 focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/20 rounded-xl shadow-lg transition-all"
                 />
                 <datalist id="cluster-suggestions">
                   <option value="practical_reasoning_family" />
@@ -504,9 +534,10 @@ export default function SchemeCreator({
               </div>
             </div>
 
-            <div className="flex items-center space-x-2">
+            <div className="flex items-start gap-2">
               <Checkbox
                 id="inheritCQs"
+                className="flex items-center bg-white w-4 border-indigo-200 focus:ring-1 focus:ring-indigo-500 h-5 "
                 checked={formData.inheritCQs}
                 onCheckedChange={(checked) => 
                   setFormData({ ...formData, inheritCQs: checked as boolean })
@@ -514,7 +545,7 @@ export default function SchemeCreator({
               />
               <Label 
                 htmlFor="inheritCQs" 
-                className="text-sm font-normal cursor-pointer text-slate-700"
+                className="text-sm items-center font-medium tracking-wide cursor-pointer text-slate-700"
               >
                 Inherit critical questions from parent scheme
               </Label>
@@ -522,90 +553,93 @@ export default function SchemeCreator({
           </div>
 
           {/* Formal Structure (Walton-style Premises & Conclusion) */}
-          <div className="space-y-4 border-t border-sky-800/60 pt-3 pb-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-semibold text-base text-slate-900 tracking-tight">
-                  Formal Structure (Premises & Conclusion)
-                </h3>
-                <p className="text-xs text-slate-500 mt-1.5">
-                  Define the logical structure following Walton&apos;s argumentation scheme format
-                </p>
-              </div>
+          <div className="space-y-4 border-t border-slate-900/10 pt-6">
+            <div>
+              <Label className="text-sm font-semibold text-sky-900 flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-cyan-600" />
+                Formal Structure (Premises & Conclusion)
+              </Label>
+              <p className="text-xs text-slate-500 mt-1.5">
+                Define the logical structure following Walton&apos;s argumentation scheme format
+              </p>
             </div>
 
             {/* Premises */}
             <div className="space-y-3">
-              <Label className="text-base font-medium text-slate-900 tracking-wide">Premises</Label>
+              <Label className="text-sm font-medium text-slate-700">Premises</Label>
               
               {formData.premises.map((premise, idx) => (
-                <div key={premise.id} className="p-4 bg-white/50 backdrop-blur-sm border border-slate-200 rounded-lg space-y-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-mono font-semibold text-slate-800">{premise.id}:</span>
-                      <Select
-                        value={premise.type}
-                        onValueChange={(value: "major" | "minor") => {
-                          const updated = [...formData.premises];
-                          updated[idx].type = value;
-                          setFormData({ ...formData, premises: updated });
+                <div key={premise.id} className="relative overflow-hidden p-4 backdrop-blur-md border shadow-lg rounded-xl transition-all duration-300 border-slate-900/10 bg-slate-900/5 hover:bg-slate-900/10 hover:border-slate-900/20">
+                  {/* Glass shine overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-slate-900/5 via-transparent to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300" />
+                  
+                  <div className="relative space-y-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-mono font-semibold text-slate-900">{premise.id}:</span>
+                        <Select
+                          value={premise.type}
+                          onValueChange={(value: "major" | "minor") => {
+                            const updated = [...formData.premises];
+                            updated[idx].type = value;
+                            setFormData({ ...formData, premises: updated });
+                          }}
+                        >
+                          <SelectTrigger className="w-32 h-8 bg-slate-900/5 border-slate-900/20">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="bg-white/95 backdrop-blur-xl border-slate-200">
+                            <SelectItem className="hover:bg-slate-900/10 cursor-pointer" value="major">Major</SelectItem>
+                            <SelectItem className="hover:bg-slate-900/10 cursor-pointer" value="minor">Minor</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setFormData({
+                            ...formData,
+                            premises: formData.premises.filter((_, i) => i !== idx)
+                          });
                         }}
+                        className="text-slate-400 hover:text-slate-600 transition-colors"
                       >
-                        <SelectTrigger className="w-32 h-8 bg-white/60 border-slate-200">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="bg-white/95 backdrop-blur-xl border-slate-200 ">
-                          <SelectItem className="hover:bg-slate-300/50 cursor-pointer" value="major">Major</SelectItem>
-                          <SelectItem className="hover:bg-slate-300/50 cursor-pointer" value="minor">Minor</SelectItem>
-                        </SelectContent>
-                      </Select>
+                        <X className="h-4 w-4" />
+                      </button>
                     </div>
-                    <button
-                      onClick={() => {
-                        setFormData({
-                          ...formData,
-                          premises: formData.premises.filter((_, i) => i !== idx)
-                        });
-                      }}
-                      className="text-slate-400 hover:text-slate-600 transition-colors"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                  <Textarea
-                    placeholder="e.g., Source E is an expert in subject domain S containing proposition A."
-                    value={premise.text}
-                    onChange={(e) => {
-                      const updated = [...formData.premises];
-                      updated[idx].text = e.target.value;
-                      setFormData({ ...formData, premises: updated });
-                    }}
-                    rows={2}
-                    className="articlesearchfield border-none resize-none"
-                  />
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-slate-600 font-medium">Variables:</span>
-                    <Input
-                      placeholder="E, S, A (comma-separated)"
-                      value={premise.variables.join(", ")}
+                    <Textarea
+                      placeholder="e.g., Source E is an expert in subject domain S containing proposition A."
+                      value={premise.text}
                       onChange={(e) => {
                         const updated = [...formData.premises];
-                        updated[idx].variables = e.target.value.split(",").map(v => v.trim()).filter(Boolean);
+                        updated[idx].text = e.target.value;
                         setFormData({ ...formData, premises: updated });
                       }}
-                      onKeyDown={(e) => {
-                        // Allow space key (prevent any event blocking)
-                        e.stopPropagation();
-                      }}
-                      className="h-8 text-xs font-mono bg-white border-slate-200"
+                      rows={2}
+                      className="min-h-[60px] resize-y bg-slate-900/5 backdrop-blur-md border-slate-900/20 text-slate-900 placeholder:text-slate-400 focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/20 rounded-xl shadow-lg"
                     />
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-slate-600 font-medium">Variables:</span>
+                      <Input
+                        placeholder="E, S, A (comma-separated)"
+                        value={premise.variables.join(", ")}
+                        onChange={(e) => {
+                          const updated = [...formData.premises];
+                          updated[idx].variables = e.target.value.split(",").map(v => v.trim()).filter(Boolean);
+                          setFormData({ ...formData, premises: updated });
+                        }}
+                        onKeyDown={(e) => {
+                          e.stopPropagation();
+                        }}
+                        className="h-8 text-xs font-mono bg-slate-900/5 border-slate-900/20 text-slate-900"
+                      />
+                    </div>
                   </div>
                 </div>
               ))}
 
               <button
                 type="button"
-                className="flex items-center gap-2 text-sm text-slate-700 btnv2--ghost px-3 py-1.5 rounded-lg bg-white/90 menuv2--lite"
+                className="relative overflow-hidden flex items-center gap-2 text-sm text-slate-700 hover:text-slate-900 bg-slate-900/5 hover:bg-slate-900/10 backdrop-blur-md border border-slate-900/20 hover:border-slate-900/30 rounded-xl px-4 py-2.5 transition-all group"
                 onClick={() => {
                   const newId = `P${formData.premises.length + 1}`;
                   setFormData({
@@ -614,62 +648,69 @@ export default function SchemeCreator({
                   });
                 }}
               >
-                <Plus className="h-3.5 w-3.5" />
-                <span className="font-medium tracking-wide text-sm">Add Premise</span>
+                <Plus className="h-4 w-4" />
+                <span className="font-medium">Add Premise</span>
               </button>
             </div>
 
             {/* Conclusion */}
             <div className="space-y-2">
-              <Label className="text-base font-medium text-slate-900 tracking-wide">Conclusion</Label>
+              <Label className="text-sm font-medium text-slate-700">Conclusion</Label>
               {formData.conclusion ? (
-                <div className="p-4 bg-indigo-50/70 backdrop-blur-sm border border-indigo-200/60 rounded-lg space-y-3">
-                  <div className="flex items-start justify-between">
-                    <span className="text-sm font-mono font-semibold text-indigo-900">∴ Therefore:</span>
-                    <button
-                      onClick={() => setFormData({ ...formData, conclusion: null })}
-                      className="text-indigo-400 hover:text-indigo-600 transition-colors"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                  <Textarea
-                    placeholder="e.g., A is true (false)."
-                    value={formData.conclusion.text}
-                    onChange={(e) => {
-                      setFormData({
-                        ...formData,
-                        conclusion: { ...formData.conclusion!, text: e.target.value }
-                      });
-                    }}
-                    rows={2}
-                    className="border-none articlesearchfield resize-none"
-                  />
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-indigo-700 font-medium">Variables:</span>
-                    <Input
-                      placeholder="A (comma-separated)"
-                      value={formData.conclusion.variables.join(", ")}
+                <div className="relative overflow-hidden p-4 rounded-xl bg-gradient-to-br from-sky-100/35 via-white to-cyan-50/55 backdrop-blur-md border border-cyan-500/30 shadow-lg">
+                  <div className="absolute inset-0 bg-gradient-to-br from-slate-900/5 via-transparent to-transparent" />
+                  <div className="relative space-y-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="px-2 rounded-lg bg-gradient-to-br from-cyan-500/30 to-sky-500/30 shadow-lg">
+                          <span className="text-sm font-mono font-semibold text-cyan-900">∴</span>
+                        </div>
+                        <span className="text-sm font-semibold text-cyan-900">Therefore:</span>
+                      </div>
+                      <button
+                        onClick={() => setFormData({ ...formData, conclusion: null })}
+                        className="text-cyan-600 hover:text-cyan-800 transition-colors"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                    <Textarea
+                      placeholder="e.g., A is true (false)."
+                      value={formData.conclusion.text}
                       onChange={(e) => {
                         setFormData({
                           ...formData,
-                          conclusion: {
-                            ...formData.conclusion!,
-                            variables: e.target.value.split(",").map(v => v.trim()).filter(Boolean)
-                          }
+                          conclusion: { ...formData.conclusion!, text: e.target.value }
                         });
                       }}
-                      onKeyDown={(e) => {
-                        // Allow space key (prevent any event blocking)
-                        e.stopPropagation();
-                      }}
-                      className="h-8 text-xs font-mono bg-white/60 backdrop-blur-sm border-indigo-200"
+                      rows={2}
+                      className="min-h-[60px] resize-y bg-slate-900/5 backdrop-blur-md border-slate-900/20 text-slate-900 placeholder:text-slate-400 focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/20 rounded-xl shadow-lg"
                     />
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-sky-700 font-medium">Variables:</span>
+                      <Input
+                        placeholder="A (comma-separated)"
+                        value={formData.conclusion.variables.join(", ")}
+                        onChange={(e) => {
+                          setFormData({
+                            ...formData,
+                            conclusion: {
+                              ...formData.conclusion!,
+                              variables: e.target.value.split(",").map(v => v.trim()).filter(Boolean)
+                            }
+                          });
+                        }}
+                        onKeyDown={(e) => {
+                          e.stopPropagation();
+                        }}
+                        className="h-8 text-xs font-mono bg-slate-900/5 border-slate-900/20 text-slate-900"
+                      />
+                    </div>
                   </div>
                 </div>
               ) : (
                 <button
-                className="flex items-center gap-2 text-sm text-slate-700 btnv2--ghost px-3 py-1.5 rounded-lg bg-white/90 menuv2--lite"
+                  className="relative overflow-hidden flex items-center gap-2 text-sm text-slate-700 hover:text-slate-900 bg-slate-900/5 hover:bg-slate-900/10 backdrop-blur-md border border-slate-900/20 hover:border-slate-900/30 rounded-xl px-4 py-2.5 transition-all group"
                   onClick={() => {
                     setFormData({
                       ...formData,
@@ -677,21 +718,22 @@ export default function SchemeCreator({
                     });
                   }}
                 >
-                  <Plus className="h-3.5 w-3.5" />
-                 <span className="font-medium tracking-wide text-sm">Add Conclusion</span>
+                  <Plus className="h-4 w-4" />
+                  <span className="font-medium">Add Conclusion</span>
                 </button>
               )}
             </div>
           </div>
 
           {/* Critical Questions */}
-          <div className="space-y-4 border-t border-slate-200/60 pt-3">
+          <div className="space-y-4 border-t border-slate-900/10 pt-6">
             <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-base text-slate-900 tracking-tight">
+              <Label className="text-sm font-semibold text-sky-900 flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-cyan-600" />
                 Critical Questions * (at least 1 required)
-              </h3>
+              </Label>
               <button
-                className="text-xs font-medium text-slate-700 hover:text-slate-900 bg-white/50 hover:bg-white/70 backdrop-blur-sm border border-slate-200 hover:border-slate-300 rounded-lg px-3 py-2 transition-all"
+                className="text-xs font-medium text-slate-700 hover:text-slate-900 bg-slate-900/5 hover:bg-slate-900/10 backdrop-blur-sm border border-slate-900/20 hover:border-slate-900/30 rounded-lg px-3 py-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={handleGenerateCQs}
                 disabled={!formData.key.trim()}
               >
@@ -700,8 +742,16 @@ export default function SchemeCreator({
             </div>
 
             {!formData.key.trim() && (
-              <div className="text-xs text-amber-700 bg-amber-50/70 backdrop-blur-sm border border-amber-200/60 rounded-lg p-3">
-                💡 Fill in the scheme key and taxonomy fields above, then click &quot;Generate from Taxonomy&quot; to auto-create baseline CQs!
+              <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-sky-400/15 to-cyan-400/15 backdrop-blur-md border border-cyan-500/30 p-4 shadow-lg">
+                <div className="absolute inset-0 bg-gradient-to-br from-slate-900/5 via-transparent to-transparent" />
+                <div className="relative flex gap-3">
+                  <div className="p-2 rounded-xl bg-gradient-to-br from-cyan-500/30 to-sky-500/30 shadow-lg h-fit">
+                    <AlertCircle className="w-4 h-4 text-cyan-700" />
+                  </div>
+                  <p className="text-sm text-sky-900 leading-relaxed">
+                    Fill in the scheme key and taxonomy fields above, then click &quot;Generate from Taxonomy&quot; to auto-create baseline CQs!
+                  </p>
+                </div>
               </div>
             )}
 
@@ -711,11 +761,14 @@ export default function SchemeCreator({
                 {formData.cqs.map((cq) => (
                   <div
                     key={cq.cqKey}
-                    className="flex items-start gap-3 bg-white/50 backdrop-blur-sm border border-slate-200 rounded-lg p-3 hover:bg-white/70 transition-colors"
+                    className="relative overflow-hidden flex items-start gap-3 backdrop-blur-md border shadow-lg rounded-xl p-3 transition-all duration-300 border-slate-900/10 bg-slate-900/5 hover:bg-slate-900/10 hover:border-slate-900/20 hover:scale-[1.01]"
                   >
-                    <div className="flex-1 space-y-2">
+                    {/* Glass shine overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-slate-900/5 via-transparent to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300" />
+                    
+                    <div className="relative flex-1 space-y-2">
                       <div className="font-medium text-sm text-slate-900">{cq.cqKey}</div>
-                      <div className="text-sm text-slate-700">{cq.text}</div>
+                      <div className="text-sm text-slate-700 leading-relaxed">{cq.text}</div>
                       <div className="flex gap-2">
                         <span className="text-xs bg-purple-100/80 text-purple-700 px-2 py-1 rounded-md font-medium">
                           {cq.attackType}
@@ -730,7 +783,7 @@ export default function SchemeCreator({
                       variant="ghost"
                       size="sm"
                       onClick={() => handleRemoveCQ(cq.cqKey)}
-                      className="text-slate-400 hover:text-slate-600"
+                      className="relative text-slate-400 hover:text-slate-600 hover:bg-slate-900/10"
                     >
                       <X className="h-4 w-4" />
                     </Button>
@@ -740,7 +793,7 @@ export default function SchemeCreator({
             )}
 
             {/* Add New CQ */}
-            <div className="bg-white/40 backdrop-blur-sm border border-slate-200 rounded-lg p-4 space-y-3">
+            <div className="bg-slate-900/5 backdrop-blur-md border border-slate-900/20 rounded-xl p-4 space-y-3 shadow-lg">
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label htmlFor="cqKey" className="text-xs font-medium text-slate-700">
@@ -753,7 +806,7 @@ export default function SchemeCreator({
                     onChange={(e) =>
                       setCurrentCQ({ ...currentCQ, cqKey: e.target.value })
                     }
-                    className="text-sm bg-white/60 backdrop-blur-sm border-slate-200 focus:border-slate-400 focus:ring-slate-400/20"
+                    className="text-sm bg-slate-900/5 backdrop-blur-md border-slate-900/20 text-slate-900 placeholder:text-slate-400 focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/20 rounded-xl shadow-lg"
                   />
                 </div>
 
@@ -770,13 +823,13 @@ export default function SchemeCreator({
                       })
                     }
                   >
-                    <SelectTrigger className="text-sm bg-white/60 backdrop-blur-sm border-slate-200">
+                    <SelectTrigger className="text-sm bg-slate-900/5 backdrop-blur-md border-slate-900/20 focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/20 rounded-xl shadow-lg">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-white/95 backdrop-blur-xl border-slate-200">
-                      <SelectItem  className="hover:bg-slate-300/50 cursor-pointer" value="REBUTS">REBUTS (conclusion)</SelectItem>
-                      <SelectItem className="hover:bg-slate-300/50 cursor-pointer" value="UNDERCUTS">UNDERCUTS (inference)</SelectItem>
-                      <SelectItem className="hover:bg-slate-300/50 cursor-pointer" value="UNDERMINES">UNDERMINES (premise)</SelectItem>
+                      <SelectItem className="hover:bg-slate-900/10 cursor-pointer" value="REBUTS">REBUTS (conclusion)</SelectItem>
+                      <SelectItem className="hover:bg-slate-900/10 cursor-pointer" value="UNDERCUTS">UNDERCUTS (inference)</SelectItem>
+                      <SelectItem className="hover:bg-slate-900/10 cursor-pointer" value="UNDERMINES">UNDERMINES (premise)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -794,7 +847,7 @@ export default function SchemeCreator({
                     setCurrentCQ({ ...currentCQ, text: e.target.value })
                   }
                   rows={2}
-                    className="border-none articlesearchfield resize-none"
+                  className="min-h-[60px] resize-y bg-slate-900/5 backdrop-blur-md border-slate-900/20 text-slate-900 placeholder:text-slate-400 focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/20 rounded-xl shadow-lg"
                 />
               </div>
 
@@ -811,13 +864,13 @@ export default function SchemeCreator({
                     })
                   }
                 >
-                  <SelectTrigger className="text-sm bg-white/60 backdrop-blur-sm border-slate-200">
+                  <SelectTrigger className="text-sm bg-slate-900/5 backdrop-blur-md border-slate-900/20 focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/20 rounded-xl shadow-lg">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-white/95 backdrop-blur-xl border-slate-200">
-                    <SelectItem  className="hover:bg-slate-300/50 cursor-pointer" value="conclusion">Conclusion</SelectItem>
-                    <SelectItem  className="hover:bg-slate-300/50 cursor-pointer" value="inference">Inference</SelectItem>
-                    <SelectItem className="hover:bg-slate-300/50 cursor-pointer" value="premise">Premise</SelectItem>
+                    <SelectItem className="hover:bg-slate-900/10 cursor-pointer" value="conclusion">Conclusion</SelectItem>
+                    <SelectItem className="hover:bg-slate-900/10 cursor-pointer" value="inference">Inference</SelectItem>
+                    <SelectItem className="hover:bg-slate-900/10 cursor-pointer" value="premise">Premise</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -827,7 +880,7 @@ export default function SchemeCreator({
                 onClick={handleAddCQ}
                 variant="outline"
                 size="sm"
-                className="w-full bg-white/50 hover:bg-white/70 border-slate-200 hover:border-slate-300 text-slate-700"
+                className="w-full bg-slate-900/5 hover:bg-slate-900/10 border-slate-900/20 hover:border-slate-900/30 text-slate-900 transition-all"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Critical Question
@@ -837,27 +890,34 @@ export default function SchemeCreator({
 
           {/* Error/Success Messages */}
           {error && (
-            <div className="flex items-center gap-2 p-3 bg-red-50/70 backdrop-blur-sm border border-red-200/60 rounded-lg text-sm text-red-700">
-              <AlertCircle className="h-4 w-4 flex-shrink-0" />
-              <span>{error}</span>
+            <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-rose-400/15 to-red-400/15 backdrop-blur-md border border-rose-500/40 p-4 shadow-lg">
+              <div className="absolute inset-0 bg-gradient-to-br from-slate-900/5 via-transparent to-transparent" />
+              <div className="relative flex gap-3">
+                <AlertCircle className="w-5 h-5 text-rose-600 flex-shrink-0" />
+                <p className="text-sm text-rose-900">{error}</p>
+              </div>
             </div>
           )}
 
           {success && (
-            <div className="flex items-center gap-2 p-3 bg-green-50/70 backdrop-blur-sm border border-green-200/60 rounded-lg text-sm text-green-700">
-              <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
-              <span>Scheme saved successfully!</span>
+            <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-emerald-400/15 to-green-400/15 backdrop-blur-md border border-emerald-500/40 p-4 shadow-lg">
+              <div className="absolute inset-0 bg-gradient-to-br from-slate-900/5 via-transparent to-transparent" />
+              <div className="relative flex gap-3">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0 animate-pulse" />
+                <p className="text-sm text-emerald-900">Scheme saved successfully!</p>
+              </div>
             </div>
           )}
         </div>
+        </div>
 
-        <DialogFooter className="border-t border-slate-200/60 pt-4">
+        <DialogFooter className="border-t border-slate-900/10 pt-1 mt-2 gap-3">
           <Button
             type="button"
             variant="outline"
             onClick={() => onOpenChange(false)}
             disabled={submitting}
-            className="bg-white/50 hover:bg-white/70 border-slate-200 text-slate-700"
+            className="bg-slate-900/5 backdrop-blur-md border-slate-900/20 text-slate-900 hover:bg-slate-900/10 hover:border-slate-900/30 transition-all"
           >
             Cancel
           </Button>
@@ -865,19 +925,24 @@ export default function SchemeCreator({
             type="button"
             onClick={handleSubmit}
             disabled={submitting}
-            className="bg-slate-900 hover:bg-slate-800 text-white shadow-lg"
+            className="relative overflow-hidden bg-gradient-to-r from-sky-600 to-indigo-700 hover:from-cyan-500 hover:to-indigo-600 text-white border-0 shadow-lg shadow-cyan-400/30 hover:shadow-cyan-400/50 transition-all duration-300 group"
           >
-            {submitting ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              <>
-                <Save className="h-4 w-4 mr-2" />
-                {editScheme ? "Update Scheme" : "Create Scheme"}
-              </>
-            )}
+            {/* Glass shine effect */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+            
+            <div className="relative flex items-center gap-2">
+              {submitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4" />
+                  {editScheme ? "Update Scheme" : "Create Scheme"}
+                </>
+              )}
+            </div>
           </Button>
         </DialogFooter>
       </DialogContent>
