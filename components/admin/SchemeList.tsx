@@ -4,7 +4,7 @@
 import * as React from "react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Edit, Trash2, Loader2, Search, Filter, Network, List, ChevronDown, ChevronRight } from "lucide-react";
+import { Plus, Edit, Trash2, Loader2, Search, Filter, Network, List, ChevronDown, ChevronRight, PlusCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import SchemeHierarchyView from "./SchemeHierarchyView";
 import {
@@ -194,7 +194,7 @@ export default function SchemeList() {
           </div>
 
           <button className="btnv2 text-sm bg-white" onClick={() => setShowCreator(true)}>
-            <Plus className="h-4 w-4" />
+            <PlusCircle className="h-4 w-4" />
             Create Scheme
           </button>
         </div>
@@ -330,7 +330,7 @@ export default function SchemeList() {
 
                 {/* Collapsible Details */}
                 {isExpanded && (
-                  <div className="border-t bg-slate-50/50 p-4 space-y-4">
+                  <div className="border-t bg-slate-50/90 px-12 py-3 space-y-4">
                     {/* Description */}
                     {scheme.description && (
                       <div>
@@ -340,7 +340,7 @@ export default function SchemeList() {
                     )}
 
                     {/* Macagno Taxonomy Details */}
-                    <div>
+                    <div >
                       <h4 className="text-sm font-semibold text-slate-700 mb-2">Taxonomy (Macagno & Walton)</h4>
                       <div className="grid grid-cols-2 gap-3 text-sm">
                         <div>
@@ -399,12 +399,12 @@ export default function SchemeList() {
                         {/* Premises */}
                         {scheme.premises && Array.isArray(scheme.premises) && scheme.premises.length > 0 && (
                           <div className="mb-3">
-                            <div className="text-xs font-medium text-slate-600 mb-1">Premises:</div>
+                            <div className="text-sm font-medium text-slate-600 mb-2">Premises:</div>
                             <div className="space-y-2">
                               {scheme.premises.map((premise: any, idx: number) => (
-                                <div key={idx} className="bg-white border rounded p-2">
+                                <div key={idx} className="bg-white border rounded-lg px-3 py-1.5">
                                   <div className="flex items-start gap-2">
-                                    <span className="text-xs font-mono font-bold text-slate-700 mt-0.5">
+                                    <span className="text-xs font-mono font-bold text-slate-700 mt-2 px-2">
                                       {premise.id}:
                                     </span>
                                     <div className="flex-1">
@@ -428,14 +428,14 @@ export default function SchemeList() {
                         {/* Conclusion */}
                         {scheme.conclusion && (
                           <div>
-                            <div className="text-xs font-medium text-slate-600 mb-1">Conclusion:</div>
-                            <div className="bg-indigo-50 border border-indigo-200 rounded p-2">
+                            <div className="text-sm font-medium text-slate-600 mb-2">Conclusion:</div>
+                            <div className="bg-indigo-50/50 border border-indigo-200 rounded-lg px-3 py-2">
                               <div className="flex items-start gap-2">
-                                <span className="text-xs font-mono font-bold text-indigo-700 mt-0.5">∴</span>
+                                <span className="text-sm font-mono px-2  font-bold text-indigo-700 mt-0.5">∴</span>
                                 <div className="flex-1">
-                                  <p className="text-sm text-slate-700">{scheme.conclusion.text}</p>
+                                  <p className="text-sm text-slate-900">{scheme.conclusion.text}</p>
                                   {scheme.conclusion.variables && scheme.conclusion.variables.length > 0 && (
-                                    <div className="text-xs text-slate-500 mt-1">
+                                    <div className="text-xs text-slate-500 px-1 mt-1">
                                       Variables: <code className="font-mono">{scheme.conclusion.variables.join(", ")}</code>
                                     </div>
                                   )}
@@ -450,14 +450,14 @@ export default function SchemeList() {
                     {/* Critical Questions */}
                     {scheme.cqs && scheme.cqs.length > 0 && (
                       <div>
-                        <h4 className="text-sm font-semibold text-slate-700 mb-2">
+                        <h4 className="text-sm font-semibold text-slate-700 mb-1">
                           Critical Questions ({scheme.cqs.length})
                         </h4>
                         <div className="space-y-2">
                           {scheme.cqs.map((cq, idx) => (
-                            <div key={idx} className="bg-white border rounded p-3">
-                              <div className="flex items-start gap-2">
-                                <span className="text-xs font-bold text-slate-600 mt-0.5">{idx + 1}.</span>
+                            <div key={idx} className="bg-white border  rounded-lg px-3 py-1.5">
+                              <div className="flex items-start gap-2 px-2 py-1">
+                                <span className="flex text-xs font-bold text-slate-600 mt-2">{idx + 1}.</span>
                                 <div className="flex-1">
                                   <code className="text-xs bg-slate-100 px-1.5 py-0.5 rounded font-mono">
                                     {cq.cqKey}
@@ -467,7 +467,7 @@ export default function SchemeList() {
                                     <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">
                                       {cq.attackType}
                                     </span>
-                                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
+                                    <span className="text-xs bg-sky-100 text-blue-700 px-2 py-0.5 rounded">
                                       targets: {cq.targetScope}
                                     </span>
                                   </div>

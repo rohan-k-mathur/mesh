@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, X, Save, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Plus, X, Save, Loader2, AlertCircle, CheckCircle2, PlusCircle } from "lucide-react";
 import { generateCQsFromTaxonomy, type TaxonomyFields } from "@/lib/argumentation/cqGeneration";
 
 // Custom scrollbar styles for light mode
@@ -280,22 +280,22 @@ export default function SchemeCreator({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <style dangerouslySetInnerHTML={{ __html: scrollbarStyles }} />
-      <DialogContent className="max-w-4xl max-h-[96vh] overflow-hidden bg-white/45 backdrop-blur-xl shadow-2xl py-6 px-5">
-        <DialogHeader className="pb-1">
-          <DialogTitle className="text-2xl font-bold text-slate-900">
+      <DialogContent className="max-w-4xl max-h-[94vh] overflow-hidden bg-white/65 backdrop-blur-xl panel-edge py-4 px-5">
+        <DialogHeader className="pb-0">
+          <DialogTitle className="text-xl font-bold text-slate-900">
             {editScheme ? "Edit Argumentation Scheme" : "Create Custom Argumentation Scheme"}
           </DialogTitle>
-          <DialogDescription className="text-slate-600 mt-1">
+          <DialogDescription className="text-slate-600 pb-0 border-sky-500">
             Define a new scheme with a formal structure, Walton taxonomy fields and critical questions.
           </DialogDescription>
         </DialogHeader>
         
         {/* Scrollable content wrapper */}
-        <div className="relative z-10 overflow-y-auto max-h-[75vh] custom-scrollbar-light px-2">
-        <div className="space-y-6">
+        <div className="relative z-10 overflow-y-auto max-h-[72vh] custom-scrollbar-light px-2">
+        <div className="space-y-3">
           {/* Basic Information */}
-          <div className="space-y-4">
-            <Label className="text-sm font-semibold text-sky-900 flex items-center gap-2">
+          <div className="space-y-2">
+            <Label className="text-base font-semibold text-sky-900 flex items-center gap-2">
               <div className="w-1.5 h-1.5 rounded-full bg-cyan-600" />
               Basic Information
             </Label>
@@ -553,7 +553,7 @@ export default function SchemeCreator({
           </div>
 
           {/* Formal Structure (Walton-style Premises & Conclusion) */}
-          <div className="space-y-4 border-t border-slate-900/10 pt-6">
+          <div className="space-y-2 border-t border-slate-900/10 pt-3">
             <div>
               <Label className="text-sm font-semibold text-sky-900 flex items-center gap-2">
                 <div className="w-1.5 h-1.5 rounded-full bg-cyan-600" />
@@ -571,7 +571,6 @@ export default function SchemeCreator({
               {formData.premises.map((premise, idx) => (
                 <div key={premise.id} className="relative overflow-hidden p-4 backdrop-blur-md border shadow-lg rounded-xl transition-all duration-300 border-slate-900/10 bg-slate-900/5 hover:bg-slate-900/10 hover:border-slate-900/20">
                   {/* Glass shine overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-slate-900/5 via-transparent to-transparent opacity-0 hover:opacity-100 transition-opacity duration-300" />
                   
                   <div className="relative space-y-3">
                     <div className="flex items-start justify-between">
@@ -615,7 +614,8 @@ export default function SchemeCreator({
                         setFormData({ ...formData, premises: updated });
                       }}
                       rows={2}
-                      className="min-h-[60px] resize-y bg-slate-900/5 backdrop-blur-md border-slate-900/20 text-slate-900 placeholder:text-slate-400 focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/20 rounded-xl shadow-lg"
+                      className="min-h-[60px] resize-y bg-slate-100/5 backdrop-blur-md border-slate-900/20 
+                      text-slate-900 placeholder:text-slate-400 focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/20 rounded-xl shadow-lg"
                     />
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-slate-600 font-medium">Variables:</span>
@@ -639,7 +639,10 @@ export default function SchemeCreator({
 
               <button
                 type="button"
-                className="relative overflow-hidden flex items-center gap-2 text-sm text-slate-700 hover:text-slate-900 bg-slate-900/5 hover:bg-slate-900/10 backdrop-blur-md border border-slate-900/20 hover:border-slate-900/30 rounded-xl px-4 py-2.5 transition-all group"
+                className="relative overflow-hidden flex items-center gap-2 text-sm text-slate-700 
+                hover:text-slate-900 bg-slate-900/5 hover:bg-slate-900/10
+                 backdrop-blur-md border border-slate-900/20 hover:border-slate-900/30 rounded-xl 
+                 px-4 py-1.5 transition-all group"
                 onClick={() => {
                   const newId = `P${formData.premises.length + 1}`;
                   setFormData({
@@ -648,8 +651,8 @@ export default function SchemeCreator({
                   });
                 }}
               >
-                <Plus className="h-4 w-4" />
-                <span className="font-medium">Add Premise</span>
+                <PlusCircle className="flex h-3.5 w-3.5" />
+                <span className="flex font-medium text-sm">Add Premise</span>
               </button>
             </div>
 
@@ -684,7 +687,8 @@ export default function SchemeCreator({
                         });
                       }}
                       rows={2}
-                      className="min-h-[60px] resize-y bg-slate-900/5 backdrop-blur-md border-slate-900/20 text-slate-900 placeholder:text-slate-400 focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/20 rounded-xl shadow-lg"
+                      className="min-h-[60px] resize-y bg-slate-100/75 backdrop-blur-md border-slate-900/20 text-slate-900
+                       placeholder:text-slate-400 focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/20 rounded-xl shadow-lg"
                     />
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-sky-700 font-medium">Variables:</span>
@@ -710,7 +714,9 @@ export default function SchemeCreator({
                 </div>
               ) : (
                 <button
-                  className="relative overflow-hidden flex items-center gap-2 text-sm text-slate-700 hover:text-slate-900 bg-slate-900/5 hover:bg-slate-900/10 backdrop-blur-md border border-slate-900/20 hover:border-slate-900/30 rounded-xl px-4 py-2.5 transition-all group"
+                  className="relative overflow-hidden flex items-center gap-2 text-sm text-slate-700 
+                  hover:text-slate-900 bg-slate-900/5 hover:bg-slate-900/10 backdrop-blur-md
+                   border border-slate-900/20 hover:border-slate-900/30 rounded-xl px-3 py-2 transition-all group"
                   onClick={() => {
                     setFormData({
                       ...formData,
@@ -718,7 +724,7 @@ export default function SchemeCreator({
                     });
                   }}
                 >
-                  <Plus className="h-4 w-4" />
+                  <PlusCircle className="flex h-3.5 w-3.5" />
                   <span className="font-medium">Add Conclusion</span>
                 </button>
               )}
@@ -726,14 +732,16 @@ export default function SchemeCreator({
           </div>
 
           {/* Critical Questions */}
-          <div className="space-y-4 border-t border-slate-900/10 pt-6">
+          <div className="space-y-3 border-t border-slate-900/10 pt-3">
             <div className="flex items-center justify-between">
               <Label className="text-sm font-semibold text-sky-900 flex items-center gap-2">
                 <div className="w-1.5 h-1.5 rounded-full bg-cyan-600" />
                 Critical Questions * (at least 1 required)
               </Label>
               <button
-                className="text-xs font-medium text-slate-700 hover:text-slate-900 bg-slate-900/5 hover:bg-slate-900/10 backdrop-blur-sm border border-slate-900/20 hover:border-slate-900/30 rounded-lg px-3 py-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="text-xs flex  font-medium text-slate-700 hover:text-slate-900 bg-slate-900/5 hover:bg-slate-900/10 backdrop-blur-sm
+                 border border-slate-900/20
+                 hover:border-slate-900/30 rounded-lg px-3 py-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={handleGenerateCQs}
                 disabled={!formData.key.trim()}
               >
@@ -742,10 +750,11 @@ export default function SchemeCreator({
             </div>
 
             {!formData.key.trim() && (
-              <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-sky-400/15 to-cyan-400/15 backdrop-blur-md border border-cyan-500/30 p-4 shadow-lg">
+              <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-sky-400/15 to-cyan-400/15 
+              backdrop-blur-md border border-cyan-500/30 px-2 py-2 shadow-lg">
                 <div className="absolute inset-0 bg-gradient-to-br from-slate-900/5 via-transparent to-transparent" />
                 <div className="relative flex gap-3">
-                  <div className="p-2 rounded-xl bg-gradient-to-br from-cyan-500/30 to-sky-500/30 shadow-lg h-fit">
+                  <div className="p-1 rounded-xl bg-gradient-to-br from-cyan-500/30 to-sky-500/30 shadow-lg h-fit">
                     <AlertCircle className="w-4 h-4 text-cyan-700" />
                   </div>
                   <p className="text-sm text-sky-900 leading-relaxed">
@@ -852,7 +861,7 @@ export default function SchemeCreator({
               </div>
 
               <div>
-                <Label htmlFor="targetScope" className="text-xs font-medium text-slate-700">
+                <Label htmlFor="targetScope" className="text-xs  font-medium text-slate-700">
                   Target Scope
                 </Label>
                 <Select
@@ -864,7 +873,7 @@ export default function SchemeCreator({
                     })
                   }
                 >
-                  <SelectTrigger className="text-sm bg-slate-900/5 backdrop-blur-md border-slate-900/20 focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/20 rounded-xl shadow-lg">
+                  <SelectTrigger className="text-sm mb-6 bg-slate-900/5 backdrop-blur-md border-slate-900/20 focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/20 rounded-xl shadow-lg">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-white/95 backdrop-blur-xl border-slate-200">
@@ -875,16 +884,16 @@ export default function SchemeCreator({
                 </Select>
               </div>
 
-              <Button
+              <button
                 type="button"
                 onClick={handleAddCQ}
-                variant="outline"
-                size="sm"
-                className="w-full bg-slate-900/5 hover:bg-slate-900/10 border-slate-900/20 hover:border-slate-900/30 text-slate-900 transition-all"
+                
+                className="flex items-center w-fit rounded-xl gap-1 px-3 gap-2 py-2 btnv2--ghost  tracking-wide
+                 menuv2--lite bg-slate-900/5  border-slate-900/20 text-slate-900 transition-all"
               >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Critical Question
-              </Button>
+                <PlusCircle className="h-3.5 w-3.5   items-center flex" />
+                <span className="flex items-center  text-sm flex-1">Add Critical Question</span>
+              </button>
             </div>
           </div>
 
@@ -912,20 +921,19 @@ export default function SchemeCreator({
         </div>
 
         <DialogFooter className="border-t border-slate-900/10 pt-1 mt-2 gap-3">
-          <Button
+          <button
             type="button"
-            variant="outline"
             onClick={() => onOpenChange(false)}
             disabled={submitting}
-            className="bg-slate-900/5 backdrop-blur-md border-slate-900/20 text-slate-900 hover:bg-slate-900/10 hover:border-slate-900/30 transition-all"
+            className="btnv2 text-sm bg-slate-900/5 backdrop-blur-md border-slate-900/20 text-slate-900 hover:bg-slate-900/10 hover:border-slate-900/30 transition-all"
           >
             Cancel
-          </Button>
-          <Button
+          </button>
+          <button
             type="button"
             onClick={handleSubmit}
             disabled={submitting}
-            className="relative overflow-hidden bg-gradient-to-r from-sky-600 to-indigo-700 hover:from-cyan-500 hover:to-indigo-600 text-white border-0 shadow-lg shadow-cyan-400/30 hover:shadow-cyan-400/50 transition-all duration-300 group"
+            className="relative btnv2 text-base overflow-hidden bg-gradient-to-r from-sky-700 to-sky-900 hover:from-cyan-600 hover:to-sky-800 text-white border-0 shadow-md shadow-cyan-400/30 hover:shadow-cyan-400/50 transition-all duration-300 group"
           >
             {/* Glass shine effect */}
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
@@ -943,7 +951,7 @@ export default function SchemeCreator({
                 </>
               )}
             </div>
-          </Button>
+          </button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -19,6 +19,30 @@ function sig(s: string) { return crypto.createHash("sha1").update(s, "utf8").dig
 const WHY_TTL_HOURS = 24;
 
 /**
+ * Map move kind to illocution (speech act type)
+ */
+function getIllocution(kind: string): 'Assert' | 'Question' | 'Argue' | 'Concede' | 'Retract' | 'Close' {
+  switch (kind) {
+    case 'WHY':
+      return 'Question';
+    case 'GROUNDS':
+    case 'THEREFORE':
+      return 'Argue';
+    case 'CONCEDE':
+      return 'Concede';
+    case 'RETRACT':
+      return 'Retract';
+    case 'CLOSE':
+      return 'Close';
+    case 'ASSERT':
+    case 'SUPPOSE':
+    case 'DISCHARGE':
+    default:
+      return 'Assert';
+  }
+}
+
+/**
  * Create an AIF Argument node from a GROUNDS response.
  * This makes GROUNDS a first-class argument that can be attacked/defended.
  */
@@ -312,6 +336,9 @@ try {
   // signature (use actual target for signature generation)
   const signature = makeSignature(kind, actualTargetType, actualTargetId, payload);
 
+  // map kind to illocution (speech act type)
+  const illocution = getIllocution(kind);
+
   // write (with P2002 de-dup)
   let move: any, dedup = false;
   try {
@@ -321,6 +348,7 @@ try {
         targetType: actualTargetType, 
         targetId: actualTargetId, 
         kind, 
+        illocution,
         payload, 
         actorId, 
         signature, 
