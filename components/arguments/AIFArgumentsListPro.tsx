@@ -74,6 +74,7 @@ type AifMeta = {
   attacks?: { REBUTS: number; UNDERCUTS: number; UNDERMINES: number };
   cq?: { required: number; satisfied: number };
   preferences?: { preferredBy?: number; dispreferredBy?: number };
+  provenance?: { kind: string; sourceDeliberationId: string; sourceDeliberationName: string; fingerprint?: string } | null; // Phase 5A
 };
 
 type AifRow = {
@@ -602,6 +603,7 @@ function RowImpl({
               updatedAt={a.updatedAt || a.createdAt}
               confidence={a.confidence}
               dsMode={dsMode}
+              provenance={meta.provenance}
             />
           </div>
         )}
@@ -800,6 +802,7 @@ export default function AIFArgumentsListPro({
             attacks: one.aif.attacks ?? { REBUTS: 0, UNDERCUTS: 0, UNDERMINES: 0 },
             cq: one.aif.cq ?? { required: 0, satisfied: 0 },
             preferences: one.aif.preferences ?? { preferredBy: 0, dispreferredBy: 0 },
+            provenance: one.provenance ?? null, // Phase 5A: Cross-deliberation import provenance
           }
         }));
       }
@@ -860,6 +863,7 @@ export default function AIFArgumentsListPro({
                 attacks: one.aif.attacks ?? { REBUTS: 0, UNDERCUTS: 0, UNDERMINES: 0 },
                 cq: one.aif.cq ?? { required: 0, satisfied: 0 },
                 preferences: one.aif.preferences ?? { preferredBy: 0, dispreferredBy: 0 },
+                provenance: one.provenance ?? null, // Phase 5A: Cross-deliberation import provenance
               };
               return;
             }

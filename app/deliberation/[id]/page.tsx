@@ -19,7 +19,30 @@ export default async function DeliberationPage({
   });
   if (!delib) notFound();
 
-  // If this delib is hosted by an article, fetch slug/title for a back-link
+  // Fetch the host object to get its name/title
+  let hostName: string | null = null;
+
+  if (delib.hostType === "article") {
+    const article = await prisma.article.findUnique({
+      where: { id: delib.hostId },
+      select: { slug: true, title: true },
+    });
+    hostName = article?.title ?? null;
+  } else if (delib.hostType === "post") {
+    const post = await prisma.post.findUnique({
+      where: { id: delib.hostId },
+      select: { title: true, textContent: true },
+    });
+    hostName = post?.title ?? post?.textContent?.slice(0, 50) ?? null;
+  } else if (delib.hostType === "room_thread") {
+    const thread = await prisma.roomThread.findUnique({
+      where: { id: delib.hostId },
+      select: { title: true },
+    });
+    hostName = thread?.title ?? null;
+  }
+
+  // If this delib is hosted by an article, fetch slug for a back-link
   const article =
     delib.hostType === "article"
       ? await prisma.article.findUnique({

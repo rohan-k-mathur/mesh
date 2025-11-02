@@ -171,6 +171,295 @@ type AifSubgraph = {
 
 ---
 
+## 2.3 Database Schema Extensions (Phase 1 - Nov 2025)
+
+**New Models**: `AifNode` and `AifEdge` added to support dialogue-aware AIF visualization.
+
+### Entity Relationship Diagram
+
+```mermaid
+erDiagram
+    Deliberation ||--o{ DialogueMove : "contains"
+    Deliberation ||--o{ AifNode : "tracks"
+    Deliberation ||--o{ AifEdge : "tracks"
+    
+    DialogueMove ||--o{ AifNode : "creates (DM-nodes)"
+    DialogueMove ||--o| AifNode : "has representation"
+    DialogueMove ||--o{ AifEdge : "causes"
+    
+    Argument ||--o| AifNode : "represented by"
+    Claim ||--o| AifNode : "represented by"
+    ConflictApplication ||--o| AifNode : "represented by"
+    PreferenceApplication ||--o| AifNode : "represented by"
+    
+    AifNode ||--o{ AifEdge : "source of"
+    AifNode ||--o{ AifEdge : "target of"
+    
+    Deliberation {
+        string id PK
+        string topic
+        timestamp createdAt
+    }
+    
+    DialogueMove {
+        string id PK
+        string deliberationId FK
+        string kind "WHY|GROUNDS|CONCEDE|RETRACT|THEREFORE|..."
+        string participantId
+        timestamp timestamp
+        string aifRepresentation FK "nullable, unique"
+    }
+    
+    AifNode {
+        string id PK "Format: I:xxx, RA:xxx, CA:xxx, PA:xxx, DM:xxx"
+        string deliberationId FK
+        string nodeKind "I|RA|CA|PA|DM"
+        string nodeSubtype "nullable, for DM-nodes: WHY|GROUNDS|..."
+        string argumentId FK "nullable"
+        string claimId FK "nullable"
+        string dialogueMoveId FK "nullable"
+        json dialogueMetadata "nullable, DialogueMetadata type"
+        string label "nullable"
+        string schemeKey "nullable"
+    }
+    
+    AifEdge {
+        string id PK
+        string deliberationId FK
+        string sourceId FK "references AifNode"
+        string targetId FK "references AifNode"
+        string edgeRole "premise|conclusion|conflict|triggers|answers|..."
+        string causedByMoveId FK "nullable, references DialogueMove"
+        json metadata "nullable"
+    }
+```
+
+### AifNode Types & Usage
+
+**Node Kinds:**
+
+| Kind | Description | Created By | Example ID |
+|------|-------------|------------|------------|
+| `I` | Information node (claim) | Argument premise/conclusion | `I:claim-uuid` |
+| `RA` | Reasoning Application (standard argument) | Argument submission | `RA:arg-uuid` |
+| `CA` | Conflict Application (attack relation) | ConflictApplication | `CA:ca-uuid` |
+| `PA` | Preference Application (preference relation) | PreferenceApplication | `PA:pa-uuid` |
+| `DM` | **Dialogue Move** (NEW) | DialogueMove | `DM:move-uuid` |
+
+**DM-Node Subtypes** (stored in `nodeSubtype` field):
+
+| Subtype | Locution | Color | Description |
+|---------|----------|-------|-------------|
+| `WHY` | question | amber | Request justification |
+| `GROUNDS` | question | blue | Request grounds/evidence |
+| `CONCEDE` | assertion | green | Accept claim/argument |
+| `RETRACT` | assertion | red | Withdraw prior claim |
+| `THEREFORE` | assertion | purple | Conclude from premises |
+| `ASSERT` | assertion | slate | Assert new claim |
+| `REBUT` | assertion | red | Direct contradiction |
+| `UNDERCUT` | assertion | orange | Attack inference |
+| `SUPPORT` | assertion | emerald | Add supporting evidence |
+
+**Dialogue Metadata Structure** (JSON field):
+
+```typescript
+{
+  locution: "question" | "assertion";    // Speech act type
+  speaker: string;                        // User ID
+  timestamp: string;                      // ISO 8601
+  targetNodeIds?: string[];               // Referenced nodes
+  claimId?: string;                       // Associated claim
+  replyToMoveId?: string;                 // Thread structure
+}
+```
+
+### Edge Types & Roles
+
+**Standard AIF Edge Roles:**
+
+| Role | Description | Connects |
+|------|-------------|----------|
+| `premise` | Argument premise | I-node → RA-node |
+| `conclusion` | Argument conclusion | RA-node → I-node |
+| `conflictingElement` | Source of conflict | CA-node → I/RA-node |
+| `conflictedElement` | Target of conflict | CA-node → I/RA-node |
+| `preferredElement` | Preferred option | PA-node → I/RA-node |
+| `dispreferredElement` | Less preferred option | PA-node → I/RA-node |
+
+**Dialogue-Aware Edge Roles** (NEW):
+
+| Role | Description | Connects | Created By |
+|------|-------------|----------|------------|
+| `triggers` | Move triggers another | DM-node → DM-node | WHY/GROUNDS questions |
+| `answers` | Move answers another | DM-node → DM-node | ASSERT/THEREFORE responses |
+| `commitsTo` | Move commits to claim | DM-node → I-node | ASSERT/CONCEDE |
+| `repliesTo` | Move replies to argument | DM-node → RA-node | REBUT/UNDERCUT |
+
+**Edge Metadata Structure** (JSON field):
+
+```typescript
+{
+  timestamp?: string;              // When edge was created
+  confidence?: number;             // 0.0-1.0 for inference strength
+  moveSequence?: number;           // Position in dialogue
+}
+```
+
+### Indexing Strategy
+
+**AifNode Indexes:**
+- `@@index([deliberationId])` - Filter by deliberation
+- `@@index([nodeKind])` - Filter by node type
+- `@@index([dialogueMoveId])` - Join with dialogue moves
+- `@@index([argumentId, claimId])` - Join with arguments/claims
+
+**AifEdge Indexes:**
+- `@@index([deliberationId])` - Filter by deliberation
+- `@@index([sourceId])` - Graph traversal (outgoing edges)
+- `@@index([targetId])` - Graph traversal (incoming edges)
+- `@@index([causedByMoveId])` - Timeline reconstruction
+
+**DialogueMove Index:**
+- `@@index([aifRepresentation])` - DM-node lookup (unique constraint)
+
+### Data Flow: Dialogue Move → AIF Graph
+
+```mermaid
+graph TD
+    A[User submits DialogueMove] --> B[Create DialogueMove record]
+    B --> C{Move kind?}
+    
+    C -->|WHY/GROUNDS| D[Create DM-node]
+    C -->|ASSERT| E[Create DM-node + I-node]
+    C -->|THEREFORE| F[Create DM-node + RA-node + I-nodes]
+    C -->|REBUT/UNDERCUT| G[Create DM-node + CA-node]
+    C -->|CONCEDE| H[Create DM-node only]
+    C -->|RETRACT| I[Create DM-node + update edges]
+    
+    D --> J[Create 'triggers' edge to parent move]
+    E --> K[Create 'commitsTo' edge to claim]
+    F --> L[Create 'repliesTo' edge + premise/conclusion edges]
+    G --> M[Create 'repliesTo' edge + conflict edges]
+    H --> N[Create 'commitsTo' edge to target claim]
+    I --> O[Create 'triggers' edge + mark retracted claim]
+    
+    J --> P[Update DialogueMove.aifRepresentation]
+    K --> P
+    L --> P
+    M --> P
+    N --> P
+    O --> P
+    
+    P --> Q[AIF graph now includes dialogue layer]
+```
+
+### Example: THEREFORE Move Creating Multiple Nodes
+
+**Scenario:** User says "THEREFORE, the beach is open" (concludes from prior claims)
+
+**Database Records Created:**
+
+1. **DialogueMove**:
+   ```json
+   {
+     "id": "move-abc123",
+     "kind": "THEREFORE",
+     "deliberationId": "delib-xyz",
+     "participantId": "user-001",
+     "timestamp": "2025-11-02T14:30:00Z",
+     "aifRepresentation": "DM:move-abc123"
+   }
+   ```
+
+2. **AifNode (DM-node)**:
+   ```json
+   {
+     "id": "DM:move-abc123",
+     "nodeKind": "DM",
+     "nodeSubtype": "THEREFORE",
+     "dialogueMoveId": "move-abc123",
+     "dialogueMetadata": {
+       "locution": "assertion",
+       "speaker": "user-001",
+       "timestamp": "2025-11-02T14:30:00Z"
+     }
+   }
+   ```
+
+3. **AifNode (RA-node)**:
+   ```json
+   {
+     "id": "RA:arg-new456",
+     "nodeKind": "RA",
+     "argumentId": "arg-new456",
+     "schemeKey": "modus-ponens"
+   }
+   ```
+
+4. **AifNode (I-node for conclusion)**:
+   ```json
+   {
+     "id": "I:claim-beach-open",
+     "nodeKind": "I",
+     "claimId": "claim-beach-open",
+     "label": "The beach is open"
+   }
+   ```
+
+5. **AifEdges**:
+   ```json
+   [
+     {
+       "sourceId": "DM:move-abc123",
+       "targetId": "RA:arg-new456",
+       "edgeRole": "repliesTo",
+       "causedByMoveId": "move-abc123"
+     },
+     {
+       "sourceId": "RA:arg-new456",
+       "targetId": "I:claim-beach-open",
+       "edgeRole": "conclusion",
+       "causedByMoveId": "move-abc123"
+     }
+   ]
+   ```
+
+**Graph Visualization:**
+
+```
+DM:move-abc123 (THEREFORE, purple)
+       ↓ repliesTo
+RA:arg-new456 (modus-ponens)
+       ↓ conclusion
+I:claim-beach-open ("The beach is open")
+```
+
+### Migration Strategy (Phase 1.4 - Pending)
+
+**Script:** `scripts/migrations/add-dialogue-aif-links.ts`
+
+**Process:**
+1. Fetch all existing DialogueMoves in chronological order
+2. For each move, determine node types to create based on `kind`
+3. Create corresponding AifNodes with proper relations
+4. Create AifEdges representing dialogue flow
+5. Update `DialogueMove.aifRepresentation` with DM-node ID
+6. Log progress and errors
+
+**Safety Measures:**
+- `--dry-run` flag for preview
+- Transaction-based batch processing (50 moves per transaction)
+- Rollback on error
+- Progress logging to file
+
+**Validation:**
+- Verify all DialogueMoves have `aifRepresentation` set
+- Check DM-node count matches DialogueMove count
+- Validate edge counts by role type
+- Test graph queries for performance
+
+---
+
 ## 3. Viewer Components (4 Phases)
 
 ### 3.1 Phase 1: Static Rendering

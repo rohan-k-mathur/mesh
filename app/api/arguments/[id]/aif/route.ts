@@ -20,7 +20,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   });
   if (!a) return NextResponse.json({ error: 'Not found' }, { status: 404, ...NO_STORE });
 
-  const [scheme, claims, atkCounts, cqAll] = await Promise.all([
+  const [scheme, claims, atkCounts, cqAll, argSupport] = await Promise.all([
     a.schemeId
       ? prisma.argumentScheme.findUnique({
           where: { id: a.schemeId },
@@ -45,6 +45,11 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
       },
       select: { cqKey: true, status: true },
     }),
+    // Fetch ArgumentSupport for provenance
+    prisma.argumentSupport.findFirst({
+      where: { argumentId: a.id },
+      select: { provenanceJson: true },
+    }),
   ]);
 
   const textById = new Map(claims.map(c => [c.id, c.text ?? '']));
@@ -55,6 +60,27 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   }
   const required = scheme?.cqs?.length ?? 0;
   const satisfied = new Set(cqAll.filter(s => s.status === 'answered' && s.cqKey).map(s => s.cqKey)).size;
+
+  // Extract provenance from ArgumentSupport.provenanceJson
+  let provenance: { kind: string; sourceDeliberationId: string; sourceDeliberationName: string; fingerprint?: string } | null = null;
+  if (argSupport?.provenanceJson) {
+    const prov = argSupport.provenanceJson as any;
+    if (prov?.kind === 'import' && prov.fromDeliberationId) {
+      // Fetch source deliberation name
+      const sourceDelib = await prisma.deliberation.findUnique({
+        where: { id: prov.fromDeliberationId },
+        select: { title: true },
+      });
+      if (sourceDelib) {
+        provenance = {
+          kind: 'import',
+          sourceDeliberationId: prov.fromDeliberationId,
+          sourceDeliberationName: sourceDelib.title || 'Unknown Deliberation',
+          fingerprint: prov.fingerprint,
+        };
+      }
+    }
+  }
 
      // Preference counts (optional, cheap)
   const [prefBy, dispBy] = await Promise.all([
@@ -81,6 +107,7 @@ const preferences = {
     createdAt: a.createdAt.toISOString(),
     text: a.text,
     mediaType: a.mediaType,
+    provenance,  // Phase 5A: Cross-deliberation import provenance
     aif: {
       scheme: scheme ? { id: scheme.id, key: scheme.key, name: scheme.name, slotHints: scheme.slotHints ?? null } : null,
       conclusion: a.conclusionClaimId ? { id: a.conclusionClaimId, text: textById.get(a.conclusionClaimId) ?? '' } : null,

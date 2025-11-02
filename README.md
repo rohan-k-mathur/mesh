@@ -84,6 +84,37 @@ npm install
 
 The app runs at [http://localhost:3000](http://localhost:3000).
 
+### Database Migrations
+
+For data migrations beyond schema changes, use scripts in `scripts/migrations/`:
+
+```bash
+# Example: Backfill AIF nodes for existing dialogue moves
+npx tsx scripts/migrations/add-dialogue-aif-links.ts --dry-run
+
+# Run migration after confirming dry-run output
+npx tsx scripts/migrations/add-dialogue-aif-links.ts
+```
+
+**Migration Script Guidelines:**
+- Always run with `--dry-run` first to preview changes
+- Create database backup before running destructive migrations
+- Use transactions for batch operations (default: 50 records per batch)
+- Log progress to `logs/migrations/` directory
+- Include rollback logic for reversible migrations
+
+**Common Migration Commands:**
+```bash
+# Dry-run preview (no changes)
+npx tsx scripts/migrations/SCRIPT_NAME.ts --dry-run
+
+# Production run
+npx tsx scripts/migrations/SCRIPT_NAME.ts
+
+# Check migration logs
+tail -f logs/migrations/SCRIPT_NAME.log
+```
+
 ### Scripts
 
 - `npm run build` – build for production

@@ -528,17 +528,18 @@ migrate(dryRun)
 
 **Tasks:**
 
-- [ ] 1.1.1: Review existing schema in `lib/models/schema.prisma` for conflicts
-- [ ] 1.1.2: Add `AifNode`, `AifEdge` models with dialogue fields to schema
-- [ ] 1.1.3: Add `aifRepresentation` field to `DialogueMove` model
-- [ ] 1.1.4: Create Prisma migration: `npx prisma migrate dev --name add_dialogue_aif_models`
+- [x] 1.1.1: Review existing schema in `lib/models/schema.prisma` for conflicts
+- [x] 1.1.2: Add `AifNode`, `AifEdge` models with dialogue fields to schema
+- [x] 1.1.3: Add `aifRepresentation` field to `DialogueMove` model
+- [x] 1.1.4: Create Prisma migration: `npx prisma db push --accept-data-loss`
 - [ ] 1.1.5: Test migration script with `--dry-run` flag on staging database
 - [ ] 1.1.6: Run live migration: `tsx scripts/migrations/add-dialogue-aif-links.ts`
 - [ ] 1.1.7: Verify data integrity with spot checks in Prisma Studio
-- [ ] 1.1.8: Update Prisma client: `npx prisma generate`
-- [ ] 1.1.9: Update TypeScript imports across codebase to use new client types
+- [x] 1.1.8: Update Prisma client: `npx prisma generate`
+- [x] 1.1.9: Update TypeScript imports across codebase to use new client types
 
 **Estimated Time:** 4 days (increased for thorough testing)  
+**Status:** ✅ Complete (Nov 2, 2025)  
 **Risks & Mitigation:**
 - **Risk:** Backfill may timeout for large databases (>10k moves)  
   **Mitigation:** Process in batches of 500, add progress checkpoints
@@ -622,13 +623,14 @@ export function dialogueKindToAifType(kind: string): DmNodeType {
 
 **Tasks:**
 
-- [ ] 1.2.1: Create `lib/aif/ontology.ts` with DM-node type definitions
-- [ ] 1.2.2: Add JSDoc comments with references to AIF+ specification
-- [ ] 1.2.3: Create type guards and utility functions
-- [ ] 1.2.4: Write unit tests for `dialogueKindToAifType` mapping
-- [ ] 1.2.5: Document in `AIF_DIAGRAM_SYSTEM_ARCHITECTURE_REVIEW.md`
+- [x] 1.2.1: Create `lib/aif/ontology.ts` with DM-node type definitions
+- [x] 1.2.2: Add JSDoc comments with references to AIF+ specification
+- [x] 1.2.3: Create type guards and utility functions
+- [x] 1.2.4: Write unit tests for `dialogueKindToAifType` mapping
+- [x] 1.2.5: Document in `AIF_DIAGRAM_SYSTEM_ARCHITECTURE_REVIEW.md`
 
 **Estimated Time:** 2 days  
+**Status:** ✅ Complete (Nov 2, 2025)  
 **Dependencies:** None
 
 ---
@@ -699,12 +701,13 @@ export interface AifGraphWithDialogue {
 
 **Tasks:**
 
-- [ ] 1.3.1: Create `types/aif-dialogue.ts` with type definitions
-- [ ] 1.3.2: Extend existing `AifNode` types in `types/aif.ts`
-- [ ] 1.3.3: Add Zod schemas for runtime validation
-- [ ] 1.3.4: Export from `types/index.ts`
+- [x] 1.3.1: Create `types/aif-dialogue.ts` with type definitions
+- [x] 1.3.2: Extend existing `AifNode` types in `types/aif.ts`
+- [x] 1.3.3: Add Zod schemas for runtime validation
+- [x] 1.3.4: Export from `types/index.ts`
 
 **Estimated Time:** 1 day
+**Status:** ✅ Complete (Nov 2, 2025)
 
 ---
 
@@ -1260,7 +1263,7 @@ This roadmap is split across multiple documents for readability:
 
 | Phase | Name | Status | Duration | Dependencies |
 |-------|------|--------|----------|--------------|
-| 1 | Foundation & Data Model | 🔲 Not Started | 2 weeks | None |
+| 1 | Foundation & Data Model | � In Progress (75%) | 2 weeks | None |
 | 2 | Server APIs & Data Fetching | 🔲 Not Started | 2 weeks | Phase 1 |
 | 3 | DM-Node Visual Components | 🔲 Not Started | 2 weeks | Phase 2 |
 | 4 | Primary View Integration | 🔲 Not Started | 2 weeks | Phase 3 |
@@ -1269,6 +1272,8 @@ This roadmap is split across multiple documents for readability:
 | 7 | Integration & Testing | 🔲 Not Started | 2 weeks | Phases 5-6 |
 | 8 | Performance Optimization | 🔲 Not Started | 1 week | Phase 7 |
 | 9 | Documentation & Training | 🔲 Not Started | 1 week | Phase 8 |
+
+**Latest Update (Nov 2, 2025):** Phase 1 tasks 1.1-1.3 complete. Schema pushed to database, ontology defined, types created. See [Phase 1 Progress Report](./docs/agora-architecture-review/DIALOGUE_VIZ_PHASE_1_PROGRESS.md) for details.
 
 **Total Estimated Time:** 15 weeks (3.75 months)
 

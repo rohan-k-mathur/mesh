@@ -3621,6 +3621,17 @@ model DialogueMove {
   // Vote integration (merged from DialogueAction)
   votes ResponseVote[]
 
+  // Dialogue Visualization System - Phase 1.1
+  // Link to AIF nodes this move created (via GROUNDS, THEREFORE, etc.)
+  createdAifNodes   AifNode[] @relation("AifNodeCreatedBy")
+  
+  // Primary AIF node representing this move as a DM-node
+  aifRepresentation String?   @unique
+  aifNode           AifNode?  @relation("MoveRepresentation", fields: [aifRepresentation], references: [id], onDelete: SetNull)
+  
+  // Edges caused by this dialogue move
+  causedEdges       AifEdge[] @relation("EdgeCausedBy")
+
   @@unique([deliberationId, signature], name: "dm_unique_signature")
   @@index([deliberationId, targetType, targetId, kind, createdAt], name: "dm_by_target_kind_time")
   @@index([payload], type: Gin, name: "dm_payload_gin")
@@ -3699,6 +3710,11 @@ model Deliberation {
 
   // KB bidirectional linking
   debateCitations DebateCitation[]
+
+  // Dialogue Visualization System - Phase 1.1
+  // AIF graph nodes and edges for this deliberation
+  aifNodes AifNode[]
+  aifEdges AifEdge[]
 
   @@index([agoraRoomID])
   @@index([hostType, hostId])
@@ -5675,4 +5691,83 @@ enum ThesisSectionType {
   LEGAL_STANDARD // For legal briefs
   CONCLUSION
   APPENDIX
+}
+
+// =============================================================================
+// DIALOGUE VISUALIZATION SYSTEM - Phase 1.1
+// AIF Ontology Extensions for Dialogue Move Integration
+// =============================================================================
+
+/// AIF Node model - represents nodes in Argument Interchange Format graphs
+/// Extended to support Dialogue Move (DM-node) integration
+model AifNode {
+  id             String   @id @default(cuid())
+  deliberationId String
+  deliberation   Deliberation @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
+  
+  nodeKind       String   // 'I'|'RA'|'CA'|'PA'|'DM' (DM = Dialogue Move node)
+  label          String?
+  text           String?
+  schemeKey      String?  // For RA/CA/PA nodes with argumentation schemes
+  
+  // Dialogue provenance tracking
+  dialogueMoveId    String?
+  dialogueMove      DialogueMove? @relation("AifNodeCreatedBy", fields: [dialogueMoveId], references: [id], onDelete: SetNull)
+  
+  // Node subtype for extensibility
+  nodeSubtype       String?  // "dialogue_move", "standard", "scheme_instantiation"
+  
+  // Dialogue-specific metadata (JSON for flexibility)
+  dialogueMetadata  Json?
+  /* Example structure:
+  {
+    "locution": "WHY",
+    "speaker": "user123",
+    "speakerName": "Alice",
+    "timestamp": "2025-11-02T10:30:00Z",
+    "replyToMoveId": "move456",
+    "illocution": "Question"
+  }
+  */
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  // Relations to other AIF structures
+  outgoingEdges     AifEdge[] @relation("EdgeSource")
+  incomingEdges     AifEdge[] @relation("EdgeTarget")
+  representedMove   DialogueMove? @relation("MoveRepresentation")
+  
+  @@index([deliberationId])
+  @@index([dialogueMoveId])
+  @@index([nodeKind])
+  @@index([nodeSubtype])
+  @@map("aif_nodes")
+}
+
+/// AIF Edge model - represents relationships between AIF nodes
+model AifEdge {
+  id             String   @id @default(cuid())
+  deliberationId String
+  deliberation   Deliberation @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
+  
+  sourceId       String
+  source         AifNode  @relation("EdgeSource", fields: [sourceId], references: [id], onDelete: Cascade)
+  
+  targetId       String
+  target         AifNode  @relation("EdgeTarget", fields: [targetId], references: [id], onDelete: Cascade)
+  
+  edgeRole       String   // 'premise'|'conclusion'|'conflictingElement'|'triggers'|'answers'|'repliesTo'
+  
+  // Track which dialogue move caused this edge
+  causedByMoveId String?
+  causedByMove   DialogueMove? @relation("EdgeCausedBy", fields: [causedByMoveId], references: [id], onDelete: SetNull)
+  
+  createdAt      DateTime @default(now())
+  
+  @@index([deliberationId])
+  @@index([sourceId])
+  @@index([targetId])
+  @@index([causedByMoveId])
+  @@map("aif_edges")
 }
