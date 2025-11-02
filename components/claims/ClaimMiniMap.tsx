@@ -12,7 +12,7 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json());
     DialogHeader,
     DialogTitle,
   } from '@/components/ui/dialog';
-  import CriticalQuestions from '@/components/claims/CriticalQuestionsV3';
+  import CriticalQuestionsV3 from '@/components/claims/CriticalQuestionsV3';
   import { DialogueActionsButton } from '@/components/dialogue/DialogueActionsButton';
   import { LegalMoveChips } from '@/components/dialogue/LegalMoveChips';
 import { Crosshair, Activity } from 'lucide-react';
@@ -636,7 +636,7 @@ export default function ClaimMiniMap({ deliberationId, selectedClaimId, onClaimC
                         </button>
                         {expandedCQs.has(c.id) && (
                           <div className="bg-white/80 backdrop-blur-md p-4 rounded-xl border border-slate-900/10 shadow-lg animate-in fade-in slide-in-from-top-2 duration-200">
-                            <CriticalQuestions
+                            <CriticalQuestionsV3
                               targetType="claim"
                               targetId={c.id}
                               createdById="current"
@@ -831,7 +831,7 @@ export default function ClaimMiniMap({ deliberationId, selectedClaimId, onClaimC
                     </DialogTitle>
                   </DialogHeader>
                   <div className="mt-4">
-                    <CriticalQuestions
+                    <CriticalQuestionsV3
                       targetType="claim"
                       targetId={cqOpenFor}
                       createdById="current"

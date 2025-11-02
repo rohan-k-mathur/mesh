@@ -4,7 +4,7 @@
 import * as React from "react";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, Edit, Trash2, Loader2, Search, Filter, Network, List } from "lucide-react";
+import { Plus, Edit, Trash2, Loader2, Search, Filter, Network, List, ChevronDown, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import SchemeHierarchyView from "./SchemeHierarchyView";
 import {
@@ -21,10 +21,18 @@ type ArgumentScheme = {
   key: string;
   name: string;
   summary: string;
+  description?: string;
   purpose?: string;
   source?: string;
   materialRelation?: string;
   reasoningType?: string;
+  ruleForm?: string;
+  conclusionType?: string;
+  clusterTag?: string;
+  inheritCQs?: boolean;
+  parentSchemeId?: string;
+  premises?: any;
+  conclusion?: any;
   cqs?: Array<{
     cqKey: string;
     text: string;
@@ -45,6 +53,19 @@ export default function SchemeList() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterMaterial, setFilterMaterial] = useState<string>("");
   const [viewMode, setViewMode] = useState<"list" | "hierarchy">("list"); // Phase 6D
+  const [expandedSchemes, setExpandedSchemes] = useState<Set<string>>(new Set()); // For accordion
+
+  const toggleSchemeExpanded = (schemeId: string) => {
+    setExpandedSchemes((prev) => {
+      const next = new Set(prev);
+      if (next.has(schemeId)) {
+        next.delete(schemeId);
+      } else {
+        next.add(schemeId);
+      }
+      return next;
+    });
+  };
 
   useEffect(() => {
     loadSchemes();
@@ -222,71 +243,246 @@ export default function SchemeList() {
         </div>
       ) : (
         <div className="grid gap-4">
-          {filteredSchemes.map((scheme) => (
-            <div
-              key={scheme.id}
-              className="border rounded-lg p-4 bg-white/60 backdrop-blur-md shadow-md hover:shadow-slate-700/20 transition-shadow"
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-semibold text-lg">{scheme.name}</h3>
-                    <code className="text-xs bg-slate-100 px-2 py-0.5 rounded">
-                      {scheme.key}
-                    </code>
-                  </div>
-                  <p className="text-sm text-slate-600 mt-1">{scheme.summary}</p>
+          {filteredSchemes.map((scheme) => {
+            const isExpanded = expandedSchemes.has(scheme.id);
+            return (
+              <div
+                key={scheme.id}
+                className="border rounded-lg bg-white/60 backdrop-blur-md shadow-md hover:shadow-slate-700/20 transition-shadow"
+              >
+                {/* Main Card Content */}
+                <div className="p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => toggleSchemeExpanded(scheme.id)}
+                          className="p-1 hover:bg-slate-100 rounded transition-colors"
+                          title={isExpanded ? "Collapse details" : "Expand details"}
+                        >
+                          {isExpanded ? (
+                            <ChevronDown className="h-4 w-4 text-slate-600" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4 text-slate-600" />
+                          )}
+                        </button>
+                        <h3 className="font-semibold text-lg">{scheme.name}</h3>
+                        <code className="text-xs bg-slate-100 px-2 py-0.5 rounded">
+                          {scheme.key}
+                        </code>
+                      </div>
+                      <p className="text-sm text-slate-600 mt-1 ml-8">{scheme.summary}</p>
 
-                  {/* Taxonomy Badges */}
-                  <div className="flex flex-wrap gap-2 mt-3">
-                    {scheme.materialRelation && (
-                      <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded">
-                        {scheme.materialRelation}
-                      </span>
-                    )}
-                    {scheme.reasoningType && (
-                      <span className="text-xs bg-sky-100 text-sky-700 px-2 py-1 rounded">
-                        {scheme.reasoningType}
-                      </span>
-                    )}
-                    {scheme.source && (
-                      <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
-                        source: {scheme.source}
-                      </span>
-                    )}
-                    {scheme.purpose && (
-                      <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded">
-                        {scheme.purpose}
-                      </span>
-                    )}
-                  </div>
+                      {/* Taxonomy Badges */}
+                      <div className="flex flex-wrap gap-2 mt-3 ml-8">
+                        {scheme.materialRelation && (
+                          <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded">
+                            {scheme.materialRelation}
+                          </span>
+                        )}
+                        {scheme.reasoningType && (
+                          <span className="text-xs bg-sky-100 text-sky-700 px-2 py-1 rounded">
+                            {scheme.reasoningType}
+                          </span>
+                        )}
+                        {scheme.source && (
+                          <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">
+                            source: {scheme.source}
+                          </span>
+                        )}
+                        {scheme.purpose && (
+                          <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded">
+                            {scheme.purpose}
+                          </span>
+                        )}
+                        {scheme.clusterTag && (
+                          <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded">
+                            {scheme.clusterTag}
+                          </span>
+                        )}
+                      </div>
 
-                  {/* CQ Count */}
-                  {scheme.cqs && scheme.cqs.length > 0 && (
-                    <div className="text-xs text-slate-500 mt-2">
-                      {scheme.cqs.length} critical question{scheme.cqs.length !== 1 ? "s" : ""}
+                      {/* CQ Count */}
+                      {scheme.cqs && scheme.cqs.length > 0 && (
+                        <div className="text-xs text-slate-500 mt-2 ml-8">
+                          {scheme.cqs.length} critical question{scheme.cqs.length !== 1 ? "s" : ""}
+                        </div>
+                      )}
                     </div>
-                  )}
+
+                    {/* Actions */}
+                    <div className="flex gap-3 ml-4">
+                      <button
+                        className="btnv2--ghost px-4 py-2 rounded-lg bg-white"
+                        onClick={() => handleEdit(scheme)}
+                      >
+                        <Edit className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        className="btnv2--ghost px-4 py-2 rounded-lg bg-white"
+                        onClick={() => handleDelete(scheme.id)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
-                {/* Actions */}
-                <div className="flex gap-3 ml-4">
-                  <button
-                    className="btnv2--ghost px-4 py-2 rounded-lg bg-white"
-                    onClick={() => handleEdit(scheme)}
-                  >
-                    <Edit className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    className="btnv2--ghost px-4 py-2 rounded-lg bg-white"
-                    onClick={() => handleDelete(scheme.id)}
-                  >
-                    <Trash2 className="h-3.5 w-3.5 text-red-500" />
-                  </button>
-                </div>
+                {/* Collapsible Details */}
+                {isExpanded && (
+                  <div className="border-t bg-slate-50/50 p-4 space-y-4">
+                    {/* Description */}
+                    {scheme.description && (
+                      <div>
+                        <h4 className="text-sm font-semibold text-slate-700 mb-1">Description</h4>
+                        <p className="text-sm text-slate-600">{scheme.description}</p>
+                      </div>
+                    )}
+
+                    {/* Macagno Taxonomy Details */}
+                    <div>
+                      <h4 className="text-sm font-semibold text-slate-700 mb-2">Taxonomy (Macagno & Walton)</h4>
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                          <span className="font-medium text-slate-600">Purpose:</span>{" "}
+                          <span className="text-slate-800">{scheme.purpose || "not set"}</span>
+                        </div>
+                        <div>
+                          <span className="font-medium text-slate-600">Source:</span>{" "}
+                          <span className="text-slate-800">{scheme.source || "not set"}</span>
+                        </div>
+                        <div>
+                          <span className="font-medium text-slate-600">Material Relation:</span>{" "}
+                          <span className="text-slate-800">{scheme.materialRelation || "not set"}</span>
+                        </div>
+                        <div>
+                          <span className="font-medium text-slate-600">Reasoning Type:</span>{" "}
+                          <span className="text-slate-800">{scheme.reasoningType || "not set"}</span>
+                        </div>
+                        <div>
+                          <span className="font-medium text-slate-600">Rule Form:</span>{" "}
+                          <span className="text-slate-800">{scheme.ruleForm || "not set"}</span>
+                        </div>
+                        <div>
+                          <span className="font-medium text-slate-600">Conclusion Type:</span>{" "}
+                          <span className="text-slate-800">{scheme.conclusionType || "not set"}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Hierarchy Info */}
+                    <div>
+                      <h4 className="text-sm font-semibold text-slate-700 mb-2">Clustering & Hierarchy</h4>
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                          <span className="font-medium text-slate-600">Cluster Tag:</span>{" "}
+                          <span className="text-slate-800">{scheme.clusterTag || "none"}</span>
+                        </div>
+                        <div>
+                          <span className="font-medium text-slate-600">Inherit CQs:</span>{" "}
+                          <span className="text-slate-800">{scheme.inheritCQs ? "Yes" : "No"}</span>
+                        </div>
+                        {scheme.parentSchemeId && (
+                          <div className="col-span-2">
+                            <span className="font-medium text-slate-600">Parent Scheme ID:</span>{" "}
+                            <code className="text-xs bg-slate-200 px-1.5 py-0.5 rounded">{scheme.parentSchemeId}</code>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Formal Structure (Premises & Conclusion) */}
+                    {(scheme.premises || scheme.conclusion) && (
+                      <div>
+                        <h4 className="text-sm font-semibold text-slate-700 mb-2">Formal Structure (Walton-style)</h4>
+                        
+                        {/* Premises */}
+                        {scheme.premises && Array.isArray(scheme.premises) && scheme.premises.length > 0 && (
+                          <div className="mb-3">
+                            <div className="text-xs font-medium text-slate-600 mb-1">Premises:</div>
+                            <div className="space-y-2">
+                              {scheme.premises.map((premise: any, idx: number) => (
+                                <div key={idx} className="bg-white border rounded p-2">
+                                  <div className="flex items-start gap-2">
+                                    <span className="text-xs font-mono font-bold text-slate-700 mt-0.5">
+                                      {premise.id}:
+                                    </span>
+                                    <div className="flex-1">
+                                      <span className="text-xs bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded">
+                                        {premise.type}
+                                      </span>
+                                      <p className="text-sm text-slate-700 mt-1">{premise.text}</p>
+                                      {premise.variables && premise.variables.length > 0 && (
+                                        <div className="text-xs text-slate-500 mt-1">
+                                          Variables: <code className="font-mono">{premise.variables.join(", ")}</code>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Conclusion */}
+                        {scheme.conclusion && (
+                          <div>
+                            <div className="text-xs font-medium text-slate-600 mb-1">Conclusion:</div>
+                            <div className="bg-indigo-50 border border-indigo-200 rounded p-2">
+                              <div className="flex items-start gap-2">
+                                <span className="text-xs font-mono font-bold text-indigo-700 mt-0.5">∴</span>
+                                <div className="flex-1">
+                                  <p className="text-sm text-slate-700">{scheme.conclusion.text}</p>
+                                  {scheme.conclusion.variables && scheme.conclusion.variables.length > 0 && (
+                                    <div className="text-xs text-slate-500 mt-1">
+                                      Variables: <code className="font-mono">{scheme.conclusion.variables.join(", ")}</code>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Critical Questions */}
+                    {scheme.cqs && scheme.cqs.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-semibold text-slate-700 mb-2">
+                          Critical Questions ({scheme.cqs.length})
+                        </h4>
+                        <div className="space-y-2">
+                          {scheme.cqs.map((cq, idx) => (
+                            <div key={idx} className="bg-white border rounded p-3">
+                              <div className="flex items-start gap-2">
+                                <span className="text-xs font-bold text-slate-600 mt-0.5">{idx + 1}.</span>
+                                <div className="flex-1">
+                                  <code className="text-xs bg-slate-100 px-1.5 py-0.5 rounded font-mono">
+                                    {cq.cqKey}
+                                  </code>
+                                  <p className="text-sm text-slate-700 mt-1">{cq.text}</p>
+                                  <div className="flex gap-2 mt-2">
+                                    <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">
+                                      {cq.attackType}
+                                    </span>
+                                    <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
+                                      targets: {cq.targetScope}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
         </>

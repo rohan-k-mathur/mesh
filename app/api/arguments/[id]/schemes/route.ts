@@ -30,8 +30,8 @@ export async function GET(
       ]
     });
 
-    // Format response
-    const schemes = instances.map((instance) => ({
+        // If no instances found, check legacy schemeId field on Argument
+    let schemes = instances.map((instance: any) => ({
       schemeId: instance.scheme.id,
       schemeKey: instance.scheme.key,
       schemeName: instance.scheme.name || instance.scheme.key,
@@ -41,6 +41,39 @@ export async function GET(
       confidence: instance.confidence,
       isPrimary: instance.isPrimary
     }));
+
+    // Fallback: Check for legacy schemeId field if no instances found
+    if (schemes.length === 0) {
+      const argument = await prisma.argument.findUnique({
+        where: { id: argumentId },
+        select: {
+          schemeId: true,
+          scheme: {
+            select: {
+              id: true,
+              key: true,
+              name: true,
+              summary: true,
+              premises: true,
+              conclusion: true
+            }
+          }
+        }
+      });
+
+      if (argument?.scheme) {
+        schemes = [{
+          schemeId: argument.scheme.id,
+          schemeKey: argument.scheme.key,
+          schemeName: argument.scheme.name || argument.scheme.key,
+          schemeSummary: argument.scheme.summary,
+          premises: argument.scheme.premises,
+          conclusion: argument.scheme.conclusion,
+          confidence: 1.0, // Default to 100% for legacy
+          isPrimary: true
+        }];
+      }
+    }
 
     return NextResponse.json(
       {

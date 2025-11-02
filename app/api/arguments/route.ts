@@ -119,6 +119,19 @@ let { schemeId, slots } = b; // assuming clients may send a role->claimId map wh
         ? premises.map((p:any) => ({ argumentId: a.id, claimId: p.claimId, groupKey: p.groupKey ?? null, isImplicit:false }))
         : (premiseClaimIds ?? []).map((cid:string) => ({ argumentId: a.id, claimId: cid, groupKey: null, isImplicit:false }));
     await tx.argumentPremise.createMany({ data: premData, skipDuplicates:true });
+    
+    // NEW: Create ArgumentSchemeInstance if scheme is provided
+    if (schemeId) {
+      await (tx as any).argumentSchemeInstance.create({
+        data: {
+          argumentId: a.id,
+          schemeId: schemeId,
+          confidence: 1.0,
+          isPrimary: true,
+        },
+      });
+    }
+    
     return a.id;
   });
 

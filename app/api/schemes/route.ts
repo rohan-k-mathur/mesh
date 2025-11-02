@@ -29,12 +29,39 @@ export async function GET(_: NextRequest) {
       },
     });
 
-    // Parse and normalize to 'cqs' for API response
-    const items = schemes.map((s) => ({
-      ...s,
-      cqs: Array.isArray(s.cq) ? s.cq : [],
-      cq: undefined, // Remove the DB field name from response
-    }));
+    // Helper to recursively calculate total CQ count including inheritance
+    const calculateTotalCQs = (schemeId: string, visited = new Set<string>()): number => {
+      if (visited.has(schemeId)) return 0; // Prevent circular references
+      visited.add(schemeId);
+
+      const scheme = schemes.find((s) => s.id === schemeId);
+      if (!scheme) return 0;
+
+      const ownCQs = Array.isArray(scheme.cq) ? scheme.cq.length : 0;
+      
+      // If scheme inherits CQs and has a parent, add parent's total CQs
+      const schemeAny = scheme as any;
+      if (schemeAny.inheritCQs && schemeAny.parentSchemeId) {
+        return ownCQs + calculateTotalCQs(schemeAny.parentSchemeId, visited);
+      }
+
+      return ownCQs;
+    };
+
+    // Parse and normalize to 'cqs' for API response + add calculated fields
+    const items = schemes.map((s) => {
+      const cqs = Array.isArray(s.cq) ? s.cq : [];
+      const ownCQCount = cqs.length;
+      const totalCQCount = calculateTotalCQs(s.id);
+
+      return {
+        ...s,
+        cqs,
+        ownCQCount,
+        totalCQCount,
+        cq: undefined, // Remove the DB field name from response
+      };
+    });
 
     return NextResponse.json({ items }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
@@ -118,8 +145,24 @@ export async function POST(req: NextRequest) {
         parentSchemeId: body.parentSchemeId || null,
         clusterTag: body.clusterTag || null,
         inheritCQs: body.inheritCQs ?? true, // Default true
-      },
+      } as any,
     });
+
+    // NEW: Create CriticalQuestion records (needed for CQ seeding in arguments)
+    if (body.cqs && Array.isArray(body.cqs) && body.cqs.length > 0) {
+      await prisma.criticalQuestion.createMany({
+        data: body.cqs.map((cq: any) => ({
+          schemeId: scheme.id,
+          cqKey: cq.cqKey,
+          text: cq.text,
+          attackKind: cq.attackType || "UNDERCUTS",
+          status: "open",
+          attackType: cq.attackType || "UNDERCUTS",
+          targetScope: cq.targetScope || "inference",
+        })) as any,
+        skipDuplicates: true,
+      });
+    }
 
     return NextResponse.json(
       { success: true, schemeId: scheme.id, scheme },

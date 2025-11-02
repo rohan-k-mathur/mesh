@@ -185,11 +185,16 @@ export default function SchemeHierarchyView() {
           {node.depth === 0 ? (
             <span className="text-purple-600 font-bold text-sm">●</span>
           ) : (
-            <span className="text-slate-400 text-sm">↳</span>
+            <span
+              className="flex  text-slate-600 font-medium items-center text-sm"
+              style={{ paddingLeft: `${node.depth * 24}px` }}
+            >
+              ↳
+            </span>
           )}
 
           {/* Scheme info */}
-          <div className="flex-1 flex items-center gap-2">
+          <div className="flex-1 flex items-center pt-1.5 gap-2">
             <span className="font-medium text-sm">{node.scheme.name}</span>
             <code className="text-xs text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
               {node.scheme.key}

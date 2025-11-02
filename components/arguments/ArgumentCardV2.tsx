@@ -17,8 +17,9 @@ import {
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AttackMenuPro } from "./AttackMenuPro";
-import CriticalQuestions from "@/components/claims/CriticalQuestionsV2";
+import CriticalQuestionsV3 from "@/components/claims/CriticalQuestionsV3";
 import { ArgumentCriticalQuestionsModal } from "./ArgumentCriticalQuestionsModal";
+import { SchemeBreakdownModal } from "./SchemeBreakdownModal";
 import { DialogueStateBadge } from "@/components/dialogue/DialogueStateBadge";
 import { StaleArgumentBadge } from "@/components/arguments/StaleArgumentBadge";
 import { ConfidenceDisplay } from "@/components/confidence/ConfidenceDisplay";
@@ -327,10 +328,13 @@ export function ArgumentCardV2({
   const [attacks, setAttacks] = React.useState<any[]>([]);
   const [cqDialogOpen, setCqDialogOpen] = React.useState(false);
   const [argCqDialogOpen, setArgCqDialogOpen] = React.useState(false);
+  const [schemeDialogOpen, setSchemeDialogOpen] = React.useState(false);
 
   // Phase 4: Fetch multi-scheme data if not provided via props
+  // Always fetch if we don't have scheme data, even when schemeName is provided (legacy support)
+  const shouldFetchSchemes = (!propsSchemes || propsSchemes.length === 0) && id;
   const { data: schemesData } = useSWR(
-    !propsSchemes && id ? `/api/arguments/${id}/schemes` : null,
+    shouldFetchSchemes ? `/api/arguments/${id}/schemes` : null,
     fetcher
   );
 
@@ -511,11 +515,21 @@ export function ArgumentCardV2({
                 />
               )}
               
-              {schemeName && (
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-50 border border-indigo-200">
+              {/* Scheme badge - clickable to open modal */}
+              {(schemeName || schemes.length > 0) && (
+                <button
+                  onClick={() => setSchemeDialogOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 hover:border-indigo-300 transition-all cursor-pointer"
+                  title="View scheme breakdown"
+                >
                   <Sparkles className="w-3 h-3 text-indigo-600" />
-                  <span className="text-xs font-medium text-indigo-700">{schemeName}</span>
-                </div>
+                  <span className="text-xs font-medium text-indigo-700">
+                    {schemes.length > 0 
+                      ? `${schemes.length} scheme${schemes.length > 1 ? 's' : ''}`
+                      : schemeName
+                    }
+                  </span>
+                </button>
               )}
               
               {cqStatus && (
@@ -645,19 +659,28 @@ export function ArgumentCardV2({
                 {/* Phase 4: Multi-scheme display */}
                 {schemes.length > 0 ? (
                   <div className="mt-3 space-y-2">
-                    <div className="text-xs font-medium text-indigo-700">
-                      Argumentation Scheme{schemes.length > 1 ? "s" : ""}:
+                    <div className="flex items-center justify-between">
+                      <div className="text-xs font-medium text-indigo-700">
+                        Argumentation Scheme{schemes.length > 1 ? "s" : ""}:
+                      </div>
+                      <button
+                        onClick={() => setSchemeDialogOpen(true)}
+                        className="text-xs text-indigo-600 hover:text-indigo-800 underline font-medium"
+                      >
+                        View full breakdown →
+                      </button>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {schemes.map((scheme) => (
-                        <div
+                        <button
                           key={scheme.schemeId}
-                          className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border ${
+                          onClick={() => setSchemeDialogOpen(true)}
+                          className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border transition-all hover:scale-105 ${
                             scheme.isPrimary
-                              ? "bg-indigo-100 border-indigo-300 text-indigo-800"
-                              : "bg-slate-100 border-slate-300 text-slate-700"
+                              ? "bg-indigo-100 border-indigo-300 text-indigo-800 hover:bg-indigo-200"
+                              : "bg-slate-100 border-slate-300 text-slate-700 hover:bg-slate-200"
                           }`}
-                          title={scheme.isPrimary ? "Primary scheme" : undefined}
+                          title={scheme.isPrimary ? "Primary scheme - click for details" : "Click for details"}
                         >
                           <span className="font-semibold">{scheme.schemeName}</span>
                           <span className="text-xs opacity-75">
@@ -666,16 +689,19 @@ export function ArgumentCardV2({
                           {scheme.isPrimary && (
                             <span className="ml-0.5 text-[10px] font-bold">★</span>
                           )}
-                        </div>
+                        </button>
                       ))}
                     </div>
                   </div>
                 ) : (
                   // Fallback to legacy single scheme display
                   schemeKey && (
-                    <span className="block mt-2 text-xs font-medium text-indigo-700">
-                      Using scheme: <span className="font-mono">{schemeName || schemeKey}</span>
-                    </span>
+                    <button
+                      onClick={() => setSchemeDialogOpen(true)}
+                      className="block mt-2 text-xs font-medium text-indigo-700 hover:text-indigo-900 underline"
+                    >
+                      Using scheme: <span className="font-mono">{schemeName || schemeKey}</span> →
+                    </button>
                   )
                 )}
               </div>
@@ -776,17 +802,29 @@ export function ArgumentCardV2({
 
       {/* CQ Dialogs */}
       <Dialog open={cqDialogOpen} onOpenChange={setCqDialogOpen}>
-        <DialogContent className="max-w-4xl bg-white max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Critical Questions - Conclusion Claim</DialogTitle>
-          </DialogHeader>
-          {conclusion?.id && (
-            <CriticalQuestions
-              targetType="claim"
-              targetId={conclusion.id}
-              deliberationId={deliberationId}
-            />
-          )}
+        <DialogContent className="!z-[60] bg-white/95 backdrop-blur-xl rounded-xl max-w-[90vw] w-full sm:max-w-[880px] max-h-[85vh] overflow-y-auto shadow-2xl">
+          {/* Water droplets */}
+          <div className="absolute top-10 right-20 w-24 h-24 bg-sky-400/10 rounded-full blur-3xl animate-pulse pointer-events-none" />
+          <div className="absolute bottom-20 left-10 w-32 h-32 bg-cyan-400/8 rounded-full blur-3xl animate-pulse delay-1000 pointer-events-none" />
+          
+          <div className="relative z-10">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-semibold text-sky-900 flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-cyan-600" />
+                Claim-level Critical Questions
+              </DialogTitle>
+            </DialogHeader>
+            <div className="mt-4">
+              {conclusion?.id && (
+                <CriticalQuestionsV3
+                  targetType="claim"
+                  targetId={conclusion.id}
+                  createdById={authorId}
+                  deliberationId={deliberationId}
+                />
+              )}
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -795,6 +833,14 @@ export function ArgumentCardV2({
         onOpenChange={setArgCqDialogOpen}
         argumentId={id}
         deliberationId={deliberationId}
+      />
+
+      {/* Scheme Breakdown Modal */}
+      <SchemeBreakdownModal
+        open={schemeDialogOpen}
+        onOpenChange={setSchemeDialogOpen}
+        argumentId={id}
+        argumentText={conclusion.text}
       />
     </div>
   );

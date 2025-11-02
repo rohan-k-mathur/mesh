@@ -26,7 +26,7 @@ import {
   Send,
 } from "lucide-react";
 import { ClaimPicker } from "@/components/claims/ClaimPicker";
-import { askCQ } from "@/lib/client/aifApi";
+import { askCQ, getArgumentCQsWithProvenance } from "@/lib/client/aifApi";
 import CQResponseForm from "@/components/claims/CQResponseForm";
 import CQResponsesList from "@/components/claims/CQResponsesList";
 import CQActivityFeed from "@/components/claims/CQActivityFeed";
@@ -39,6 +39,10 @@ type CQItem = {
   status: "open" | "answered";
   attackType: string;
   targetScope: string;
+  inherited?: boolean; // Phase 6: Whether this CQ comes from a parent scheme
+  sourceSchemeId?: string; // Phase 6: Parent scheme ID
+  sourceSchemeName?: string; // Phase 6: Parent scheme name
+  sourceSchemeKey?: string; // Phase 6: Parent scheme key
 };
 
 type AifMeta = {
@@ -69,6 +73,18 @@ export function SchemeSpecificCQsModal({
   const [localCqs, setLocalCqs] = React.useState<CQItem[]>(cqs);
   const [posting, setPosting] = React.useState<string | null>(null);
 
+  // Phase 6: Provenance data
+  const [provenanceData, setProvenanceData] = React.useState<{
+    ownCQs: CQItem[];
+    inheritedCQs: CQItem[];
+    allCQs: CQItem[];
+    totalCount: number;
+    ownCount: number;
+    inheritedCount: number;
+    inheritancePath: Array<{ id: string; name: string; key: string }>;
+  } | null>(null);
+  const [loadingProvenance, setLoadingProvenance] = React.useState(false);
+
   // Phase 3 modal states
   const [responseFormOpen, setResponseFormOpen] = React.useState(false);
   const [selectedCQForResponse, setSelectedCQForResponse] = React.useState<CQItem | null>(null);
@@ -85,6 +101,38 @@ export function SchemeSpecificCQsModal({
   React.useEffect(() => {
     setLocalCqs(cqs);
   }, [cqs]);
+
+  // Phase 6: Fetch provenance data when modal opens
+  React.useEffect(() => {
+    if (open && !provenanceData && !loadingProvenance) {
+      setLoadingProvenance(true);
+      getArgumentCQsWithProvenance(argumentId)
+        .then((data) => {
+          setProvenanceData(data);
+          // Merge provenance data into localCqs
+          const mergedCqs = cqs.map((cq) => {
+            const provenanceCQ = data.allCQs.find((p: CQItem) => p.cqKey === cq.cqKey);
+            if (provenanceCQ) {
+              return {
+                ...cq,
+                inherited: provenanceCQ.inherited,
+                sourceSchemeId: provenanceCQ.sourceSchemeId,
+                sourceSchemeName: provenanceCQ.sourceSchemeName,
+                sourceSchemeKey: provenanceCQ.sourceSchemeKey,
+              };
+            }
+            return cq;
+          });
+          setLocalCqs(mergedCqs);
+        })
+        .catch((err) => {
+          console.error("[SchemeSpecificCQsModal] Failed to load provenance:", err);
+        })
+        .finally(() => {
+          setLoadingProvenance(false);
+        });
+    }
+  }, [open, argumentId, cqs, provenanceData, loadingProvenance]);
 
   const handleAskCQ = async (cqKey: string) => {
     try {
@@ -286,6 +334,34 @@ export function SchemeSpecificCQsModal({
           </div>
         )}
 
+        {/* Phase 6: Provenance Summary */}
+        {provenanceData && provenanceData.inheritedCount > 0 && (
+          <div className="p-4 bg-gradient-to-br from-emerald-50 to-emerald-100/50 rounded-xl border-2 border-emerald-200 shadow-sm">
+            <div className="flex items-start gap-3">
+              <div className="p-2 rounded-lg bg-emerald-200">
+                <Sparkles className="w-5 h-5 text-emerald-700" />
+              </div>
+              <div className="flex-1">
+                <div className="text-xs font-semibold text-emerald-700 uppercase tracking-wide mb-1">
+                  CQ Inheritance
+                </div>
+                <div className="text-sm text-emerald-900">
+                  <span className="font-bold">{provenanceData.ownCount} own</span>
+                  {" + "}
+                  <span className="font-bold">{provenanceData.inheritedCount} inherited</span>
+                  {" = "}
+                  <span className="font-bold">{provenanceData.totalCount} total</span>
+                </div>
+                {provenanceData.inheritancePath.length > 0 && (
+                  <div className="mt-2 text-xs text-emerald-800">
+                    Inherited from: {provenanceData.inheritancePath.map((p) => p.name).join(" → ")}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* CQ List */}
         <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-3">
           {localCqs.length === 0 ? (
@@ -371,7 +447,7 @@ export function SchemeSpecificCQsModal({
                       </div>
 
                       <div className="flex-1">
-                        <div className="flex items-start gap-2 mb-2">
+                        <div className="flex items-start gap-2 mb-2 flex-wrap">
                           <span
                             className={`
                               inline-flex items-center gap-1 px-2 py-0.5 rounded-full
@@ -385,6 +461,20 @@ export function SchemeSpecificCQsModal({
                           <span className="text-[10px] text-slate-500 uppercase tracking-wide">
                             {cq.targetScope}
                           </span>
+                          {/* Phase 6: Provenance badge */}
+                          {cq.inherited && cq.sourceSchemeName && (
+                            <span
+                              className="
+                                inline-flex items-center gap-1 px-2 py-0.5 rounded-full
+                                text-[10px] font-semibold tracking-wide border
+                                bg-emerald-100 text-emerald-700 border-emerald-300
+                              "
+                              title={`Inherited from ${cq.sourceSchemeName} (${cq.sourceSchemeKey})`}
+                            >
+                              <Sparkles className="w-3 h-3" />
+                              Inherited from {cq.sourceSchemeName}
+                            </span>
+                          )}
                         </div>
 
                         <p
@@ -548,7 +638,7 @@ export function SchemeSpecificCQsModal({
                             </>
                           ) : (
                             <>
-                              <Zap className="w-5 h-5" />
+                              
                               Post {cq.attackType} Objection
                             </>
                           )}

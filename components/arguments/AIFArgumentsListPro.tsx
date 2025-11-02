@@ -503,7 +503,7 @@ function RowImpl({
               Conclusion: 
                 </span>
 
-            <span className="flex text-xs  menuv2--lite text-slate-800 font-medium  leading-snug ">
+            <span className="flex text-xs px-2 py-1 tracking-wide menuv2--lite text-slate-800 font-medium  leading-snug ">
               {conclusionText}
             </span>
 </div>
@@ -527,12 +527,12 @@ function RowImpl({
             )}
 
             {meta?.implicitWarrant?.text && (
-              <div className="mt-3 px-3 py-2 rounded-lg bg-orange-50/50 border border-orange-400 w-fit">
+              <div className="mt-3 px-3 py-1 rounded-lg bg-orange-50/50 border border-orange-400 w-fit">
                 <div className="flex items-center gap-2">
                   <ArrowRightFromLine className="w-4 h-4 text-orange-600  " />
                   <div className='flex gap-1'>
-                    <div className="text-sm font-medium tracking-wide text-orange-900 ">Implicit Warrant:</div>
-                    <div className="text-sm text-orange-800">{meta.implicitWarrant.text}</div>
+                    <div className="text-xs font-medium tracking-wide text-orange-900 ">Implicit Warrant:</div>
+                    <div className="text-xs text-orange-800">{meta.implicitWarrant.text}</div>
                   </div>
                 </div>
               </div>
@@ -813,7 +813,7 @@ export default function AIFArgumentsListPro({
   const [schemeKey, setSchemeKey] = React.useState('');
   const [q, setQ] = React.useState('');
   const dq = React.useDeferredValue(q);
-  const [showPremises, setShowPremises] = React.useState(true);
+  const [showPremises, setShowPremises] = React.useState(false);
   const [visibleRange, setVisibleRange] = React.useState({ startIndex: 0, endIndex: 20 });
 
   // Base list with pagination

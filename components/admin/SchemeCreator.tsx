@@ -122,7 +122,7 @@ export default function SchemeCreator({
       fetch("/api/schemes")
         .then((res) => res.json())
         .then((data) => {
-          const schemes = data.schemes || [];
+          const schemes = data.items || data.schemes || [];
           setAvailableSchemes(schemes.map((s: any) => ({ id: s.id, key: s.key, name: s.name })));
         })
         .catch((err) => console.error("Failed to fetch schemes:", err));

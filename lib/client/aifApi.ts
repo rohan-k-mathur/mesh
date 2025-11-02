@@ -73,8 +73,17 @@ export async function listSchemes() {
     id: s.id ?? s.schemeId ?? s._id,
     key: s.key,
     name: s.name ?? s.title ?? s.key,         // ← tolerate both shapes
+    summary: s.summary,
     slotHints: s.slotHints ?? s.hints ?? null,
     cqs: Array.isArray(s.cqs) ? s.cqs : (Array.isArray(s.cq) ? s.cq : []),
+    // Phase 6D: Hierarchy fields
+    parentSchemeId: s.parentSchemeId ?? null,
+    clusterTag: s.clusterTag ?? null,
+    inheritCQs: s.inheritCQs ?? true,
+    ownCQCount: s.ownCQCount ?? (Array.isArray(s.cqs) ? s.cqs.length : 0),
+    totalCQCount: s.totalCQCount ?? (Array.isArray(s.cqs) ? s.cqs.length : 0),
+    // Phase 6E: Formal structure
+    formalStructure: s.formalStructure ?? null,
   }));
 }
 
@@ -103,6 +112,21 @@ export async function getArgumentCQs(argumentId: string) {
   if (!res.ok) throw new Error(j?.error || `HTTP ${res.status}`);
   return j.items ?? [];
 }
+
+export async function getArgumentCQsWithProvenance(argumentId: string) {
+  const res = await fetch(`/api/arguments/${argumentId}/cqs-with-provenance`, { cache: 'no-store' });
+  const j = await res.json().catch(() => ({ 
+    ownCQs: [], 
+    inheritedCQs: [], 
+    allCQs: [],
+    totalCount: 0,
+    ownCount: 0,
+    inheritedCount: 0 
+  }));
+  if (!res.ok) throw new Error(j?.error || `HTTP ${res.status}`);
+  return j;
+}
+
 export async function exportAif(deliberationId: string, opts?: { includeLocutions?: boolean; includeCQs?: boolean }) {
   const params = new URLSearchParams({ deliberationId });
   if (opts?.includeLocutions) params.set('loc', '1');

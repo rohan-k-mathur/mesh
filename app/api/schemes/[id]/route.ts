@@ -102,6 +102,30 @@ export async function PUT(
       },
     });
 
+    // NEW: Sync CriticalQuestion records if CQs were updated
+    if (body.cqs !== undefined && Array.isArray(body.cqs)) {
+      // Delete existing CQ records for this scheme
+      await prisma.criticalQuestion.deleteMany({
+        where: { schemeId: params.id },
+      });
+
+      // Create new CQ records
+      if (body.cqs.length > 0) {
+        await prisma.criticalQuestion.createMany({
+          data: body.cqs.map((cq: any) => ({
+            schemeId: params.id,
+            cqKey: cq.cqKey,
+            text: cq.text,
+            attackKind: cq.attackType || "UNDERCUTS",
+            status: "open",
+            attackType: cq.attackType || "UNDERCUTS",
+            targetScope: cq.targetScope || "inference",
+          })) as any,
+          skipDuplicates: true,
+        });
+      }
+    }
+
     return NextResponse.json({ success: true, scheme: updated });
   } catch (error) {
     console.error(`[PUT /api/schemes/${params.id}] Error:`, error);

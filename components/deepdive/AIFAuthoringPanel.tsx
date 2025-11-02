@@ -1,6 +1,6 @@
 'use client';
 import * as React from 'react';
-import { SchemeComposer, type AttackContext } from '@/components/arguments/AIFArgumentWithSchemeComposer';
+import { AIFArgumentWithSchemeComposer, type AttackContext } from '@/components/arguments/AIFArgumentWithSchemeComposer';
 import { ArgumentCardV2 } from '@/components/arguments/ArgumentCardV2';
 import { SchemeComposerPicker } from '../SchemeComposerPicker';
 import { getUserFromCookies } from '@/lib/server/getUser';
@@ -26,7 +26,6 @@ export function AIFAuthoringPanel({
 }) {
   const [user, setUser] = React.useState<{ userId?: string } | null>(null);
   const [pickConclusionOpen, setPickConclusionOpen] = React.useState(false);
-  const [userInteracted, setUserInteracted] = React.useState(false); // Track if user clicked to expand
 
   // selected conclusion (sync with prop)
   const [conclusion, setConclusion] = React.useState<{id:string; text?:string} | null>(
@@ -53,11 +52,10 @@ export function AIFAuthoringPanel({
   }, []);
 
   const effectiveAuthorId = user?.userId || authorIdProp || 'current';
-  const readyForCompose = Boolean(effectiveAuthorId && conclusion?.id);
+  const readyForCompose = Boolean(effectiveAuthorId);
 
-  // Dynamic height: collapsed initially, expanded when user interacts or conclusion is selected
-  const isExpanded = Boolean(userInteracted || conclusion?.id || argument || createdArg);
-  const heightClass = isExpanded ? 'h-[530px]  overflow-y-auto' : 'h-fit ';
+  // Always expanded now - removed userInteracted state
+  const heightClass = 'h-[530px] overflow-y-auto';
 
   function AttackScopeBar() {
     if (!attackContext) return null;
@@ -91,11 +89,8 @@ export function AIFAuthoringPanel({
         <div className="border rounded-md p-3 bg-slate-50/50 text-sm flex items-center justify-between">
           <div>Select a conclusion claim to start composing an argument.</div>
           <button
-            className="btnv2  rounded-xl text-xs px-4 py-2 "
-            onClick={() => {
-              setUserInteracted(true);
-              setPickConclusionOpen(true);
-            }}
+            className="btnv2 rounded-xl text-xs px-4 py-2"
+            onClick={() => setPickConclusionOpen(true)}
           >
             Choose conclusion
           </button>
@@ -103,13 +98,14 @@ export function AIFAuthoringPanel({
       )}
 
       {/* Composer (kept minimal; no AttackMenu here) */}
-      {readyForCompose && conclusion?.id && (
-        <SchemeComposer
+      {readyForCompose && (
+        <AIFArgumentWithSchemeComposer
           deliberationId={deliberationId}
           authorId={effectiveAuthorId}
-          conclusionClaim={conclusion ?? {}}                 // allow empty at first
+          conclusionClaim={conclusion}                       // ✅ pass null if not selected yet
           onChangeConclusion={(c) => {
             if (c && c.id) setConclusion({ id: c.id, text: c.text });
+            else setConclusion(null);                        // ✅ handle clear
           }}
 
           attackContext={attackContext ?? null}         // ✅ pass scope to auto‑attach CA after publish

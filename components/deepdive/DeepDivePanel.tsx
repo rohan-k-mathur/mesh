@@ -29,7 +29,7 @@ import { computeFogForNodes } from "../dialogue/FogForNodesClient";
  import { useMinimapData } from '@/lib/client/minimap/useMinimapData';
 import useSWR, { mutate as swrMutate } from "swr";
 import DebateSheetReader from "../agora/DebateSheetReader";
-import { SchemeComposer } from "../arguments/AIFArgumentWithSchemeComposer";
+import { AIFArgumentWithSchemeComposer } from "../arguments/AIFArgumentWithSchemeComposer";
 import { AIFAuthoringPanel } from "./AIFAuthoringPanel";
 import { AIFList } from "./ArgumentsList";
 import React from "react";
@@ -978,7 +978,7 @@ onClearReply={() => setReplyTarget(null)}
        : <div className="text-xs text-neutral-500">Select a claim (minimap) to load its top argument.</div>}
    </SectionCard> */}
    {/* <SectionCard title="Scheme Composer">
-    <SchemeComposer schemeKey={1}  />
+    <AIFArgumentWithSchemeComposer schemeKey={1}  />
    </SectionCard> */}
    <SectionCard title="Scheme Composer">
 <AIFAuthoringPanel
