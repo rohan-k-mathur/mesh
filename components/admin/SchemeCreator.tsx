@@ -587,6 +587,10 @@ export default function SchemeCreator({
                         updated[idx].variables = e.target.value.split(",").map(v => v.trim()).filter(Boolean);
                         setFormData({ ...formData, premises: updated });
                       }}
+                      onKeyDown={(e) => {
+                        // Allow space key (prevent any event blocking)
+                        e.stopPropagation();
+                      }}
                       className="h-7 text-xs font-mono"
                     />
                   </div>
@@ -647,6 +651,10 @@ export default function SchemeCreator({
                             variables: e.target.value.split(",").map(v => v.trim()).filter(Boolean)
                           }
                         });
+                      }}
+                      onKeyDown={(e) => {
+                        // Allow space key (prevent any event blocking)
+                        e.stopPropagation();
                       }}
                       className="h-7 text-xs font-mono"
                     />

@@ -6,6 +6,7 @@
 import { prisma } from "@/lib/prismaclient";
 import { AIFGraphBuilder } from "./graphBuilder";
 import { serializeToRDFXML, serializeToTurtle, serializeToJSONLD } from "./serializers";
+import { getCQsWithInheritance } from "@/lib/argumentation/cqInheritance";
 import {
   AIFExportOptions,
   AIFExportResult,
@@ -39,10 +40,22 @@ export async function exportSchemeToAIF(
             attackKind: true,
           },
         } : false,
-        // TODO: Enable in Phase 8E.3 (Hierarchy Export) after schema regeneration
-        // parentScheme: opts.includeHierarchy ? true : false,
-        // childSchemes: opts.includeHierarchy ? true : false,
-      },
+        // Phase 8E.3: Load full parent hierarchy for transitive ancestors
+        parentScheme: opts.includeHierarchy ? {
+          include: {
+            parentScheme: {
+              include: {
+                parentScheme: {
+                  include: {
+                    parentScheme: true, // Support up to 4 levels of nesting
+                  },
+                },
+              },
+            },
+          },
+        } : false,
+        // childSchemes: We don't need this for single scheme export
+      } as any, // Type assertion for Phase 6 fields
     });
 
     if (!scheme) {
@@ -64,11 +77,22 @@ export async function exportSchemeToAIF(
 
     // Build RDF graph
     const builder = new AIFGraphBuilder(opts.baseURI || AIF_BASE_URI, AIF_NAMESPACES);
-    builder.addScheme(scheme as SchemeWithRelations, {
-      includeHierarchy: opts.includeHierarchy,
-      includeCQs: opts.includeCQs,
-      includeMeshExtensions: opts.includeMeshExtensions,
-    });
+    
+    // Fetch inherited CQs if requested
+    if (opts.includeCQs) {
+      const inheritedCQs = await getCQsWithInheritance(schemeId, true);
+      await builder.addSchemeWithInheritedCQs(scheme as SchemeWithRelations, inheritedCQs, {
+        includeHierarchy: opts.includeHierarchy,
+        includeCQs: opts.includeCQs,
+        includeMeshExtensions: opts.includeMeshExtensions,
+      });
+    } else {
+      builder.addScheme(scheme as SchemeWithRelations, {
+        includeHierarchy: opts.includeHierarchy,
+        includeCQs: false,
+        includeMeshExtensions: opts.includeMeshExtensions,
+      });
+    }
 
     const triples = builder.getTriples();
     const namespaces = builder.getNamespaces();
@@ -197,10 +221,21 @@ export async function exportClusterFamily(
             attackKind: true,
           },
         } : false,
-        // TODO: Enable in Phase 8E.3 (Hierarchy Export) after Prisma client update
-        // parentScheme: opts.includeHierarchy,
-        // childSchemes: opts.includeHierarchy,
-      },
+        // Phase 8E.3: Load parent hierarchy for each scheme in cluster
+        parentScheme: opts.includeHierarchy ? {
+          include: {
+            parentScheme: {
+              include: {
+                parentScheme: {
+                  include: {
+                    parentScheme: true,
+                  },
+                },
+              },
+            },
+          },
+        } : false,
+      } as any, // Type assertion for Phase 6 fields
     });
 
     if (schemes.length === 0) {
@@ -225,15 +260,20 @@ export async function exportClusterFamily(
     
     let totalQuestions = 0;
     for (const scheme of schemes) {
-      builder.addScheme(scheme as SchemeWithRelations, {
-        includeHierarchy: opts.includeHierarchy,
-        includeCQs: opts.includeCQs,
-        includeMeshExtensions: opts.includeMeshExtensions,
-      });
-      
-      const schemeWithCqs = scheme as any;
-      if (schemeWithCqs.cqs) {
-        totalQuestions += schemeWithCqs.cqs.length;
+      if (opts.includeCQs) {
+        const inheritedCQs = await getCQsWithInheritance(scheme.id, true);
+        await builder.addSchemeWithInheritedCQs(scheme as SchemeWithRelations, inheritedCQs, {
+          includeHierarchy: opts.includeHierarchy,
+          includeCQs: opts.includeCQs,
+          includeMeshExtensions: opts.includeMeshExtensions,
+        });
+        totalQuestions += inheritedCQs.length;
+      } else {
+        builder.addScheme(scheme as SchemeWithRelations, {
+          includeHierarchy: opts.includeHierarchy,
+          includeCQs: false,
+          includeMeshExtensions: opts.includeMeshExtensions,
+        });
       }
     }
 
@@ -338,10 +378,21 @@ export async function exportAllSchemes(
             attackKind: true,
           },
         } : false,
-        // TODO: Enable in Phase 8E.3 (Hierarchy Export)
-        // parentScheme: opts.includeHierarchy,
-        // childSchemes: opts.includeHierarchy,
-      },
+        // Phase 8E.3: Load parent hierarchy for all schemes
+        parentScheme: opts.includeHierarchy ? {
+          include: {
+            parentScheme: {
+              include: {
+                parentScheme: {
+                  include: {
+                    parentScheme: true,
+                  },
+                },
+              },
+            },
+          },
+        } : false,
+      } as any, // Type assertion for Phase 6 fields
     });
 
     if (schemes.length === 0) {

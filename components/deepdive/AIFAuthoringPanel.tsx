@@ -1,6 +1,6 @@
 'use client';
 import * as React from 'react';
-import { SchemeComposer, type AttackContext } from '@/components/arguments/SchemeComposer';
+import { SchemeComposer, type AttackContext } from '@/components/arguments/AIFArgumentWithSchemeComposer';
 import { ArgumentCardV2 } from '@/components/arguments/ArgumentCardV2';
 import { SchemeComposerPicker } from '../SchemeComposerPicker';
 import { getUserFromCookies } from '@/lib/server/getUser';

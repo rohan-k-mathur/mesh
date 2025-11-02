@@ -68,6 +68,15 @@ export class AIFGraphBuilder {
     if (includeHierarchy && schemeWithPhase6.parentSchemeId && scheme.parentScheme) {
       const parentURI = this.getSchemeURI(scheme.parentScheme.key);
       this.addTriple(schemeURI, CONST.AIF_IS_SUBTYPE_OF, parentURI, "uri");
+      
+      // Add transitive ancestors (compute full ancestor chain)
+      const ancestors = this.collectAncestors(scheme.parentScheme);
+      if (ancestors.length > 0) {
+        for (const ancestorKey of ancestors) {
+          const ancestorURI = this.getSchemeURI(ancestorKey);
+          this.addTriple(schemeURI, CONST.MESH_HAS_ANCESTOR, ancestorURI, "uri");
+        }
+      }
     }
 
     // Mesh extensions
@@ -87,10 +96,69 @@ export class AIFGraphBuilder {
       }
     }
 
-    // Critical questions
+    // Critical Questions (own CQs)
     if (includeCQs && scheme.cqs && scheme.cqs.length > 0) {
       for (const cq of scheme.cqs) {
         this.addQuestion(schemeURI, cq, scheme.key);
+      }
+    }
+  }
+
+  /**
+   * Add a scheme with inherited CQs to the graph
+   * This includes CQ inheritance metadata
+   */
+  async addSchemeWithInheritedCQs(
+    scheme: SchemeWithRelations,
+    inheritedCQs: Array<{
+      cqKey: string;
+      text: string;
+      attackType: string;
+      inherited: boolean;
+      fromScheme: string;
+    }>,
+    options: {
+      includeHierarchy?: boolean;
+      includeCQs?: boolean;
+      includeMeshExtensions?: boolean;
+    } = {}
+  ): Promise<void> {
+    // First add the base scheme
+    this.addScheme(scheme, {
+      ...options,
+      includeCQs: false, // We'll add CQs manually below
+    });
+
+    if (!options.includeCQs) {
+      return;
+    }
+
+    const schemeURI = this.getSchemeURI(scheme.key);
+
+    // Add all CQs (own + inherited)
+    for (const cq of inheritedCQs) {
+      const questionURI = this.getQuestionURI(cq.fromScheme, cq.cqKey);
+      this.nodes.add(questionURI);
+
+      // Type declaration
+      this.addTriple(questionURI, CONST.RDF_TYPE, CONST.AIF_QUESTION_CLASS, "uri");
+
+      // Link to current scheme (even if inherited)
+      this.addTriple(schemeURI, CONST.AIF_HAS_QUESTION, questionURI, "uri");
+
+      // Question text
+      this.addTriple(questionURI, CONST.AIF_QUESTION_TEXT, cq.text, "literal", CONST.XSD_STRING);
+
+      // Attack kind (UNDERMINES, UNDERCUTS, REBUTS)
+      if (cq.attackType) {
+        this.addTriple(questionURI, CONST.MESH_ATTACK_KIND, cq.attackType, "literal", CONST.XSD_STRING);
+      }
+
+      // If inherited, add provenance metadata
+      if (cq.inherited && cq.fromScheme !== scheme.key) {
+        // Add inheritedFrom property directly on the question
+        const sourceSchemeURI = this.getSchemeURI(cq.fromScheme);
+        this.addTriple(questionURI, CONST.MESH_INHERITED_FROM, sourceSchemeURI, "uri");
       }
     }
   }
@@ -136,6 +204,30 @@ export class AIFGraphBuilder {
       const ancestorURI = this.getSchemeURI(ancestorKey);
       this.addTriple(schemeURI, CONST.MESH_HAS_ANCESTOR, ancestorURI, "uri");
     }
+  }
+
+  /**
+   * Collect all ancestors of a scheme (recursive traversal up the hierarchy)
+   */
+  private collectAncestors(scheme: any, visited = new Set<string>()): string[] {
+    const ancestors: string[] = [];
+    
+    // Prevent infinite loops
+    if (visited.has(scheme.key)) {
+      return ancestors;
+    }
+    visited.add(scheme.key);
+    
+    // Add current scheme as ancestor
+    ancestors.push(scheme.key);
+    
+    // Recursively collect parent's ancestors
+    if (scheme.parentScheme) {
+      const parentAncestors = this.collectAncestors(scheme.parentScheme, visited);
+      ancestors.push(...parentAncestors);
+    }
+    
+    return ancestors;
   }
 
   /**

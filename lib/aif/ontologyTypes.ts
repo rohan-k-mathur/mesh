@@ -88,10 +88,11 @@ export interface AIFExportGraph {
 /**
  * Extended scheme type with relations needed for AIF export
  * Matches actual Prisma ArgumentScheme model structure
+ * Supports recursive parent hierarchy for transitive ancestor tracking
  */
 export type SchemeWithRelations = ArgumentScheme & {
   cqs?: CriticalQuestion[];
-  parentScheme?: ArgumentScheme | null;
+  parentScheme?: (ArgumentScheme & { parentScheme?: any }) | null; // Recursive parent
   childSchemes?: ArgumentScheme[];
 };
 

@@ -29,7 +29,7 @@ import { computeFogForNodes } from "../dialogue/FogForNodesClient";
  import { useMinimapData } from '@/lib/client/minimap/useMinimapData';
 import useSWR, { mutate as swrMutate } from "swr";
 import DebateSheetReader from "../agora/DebateSheetReader";
-import { SchemeComposer } from "../arguments/SchemeComposer";
+import { SchemeComposer } from "../arguments/AIFArgumentWithSchemeComposer";
 import { AIFAuthoringPanel } from "./AIFAuthoringPanel";
 import { AIFList } from "./ArgumentsList";
 import React from "react";
