@@ -1,8 +1,9 @@
 //app/api/deliberations/[id]/evidential/route.ts
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prismaclient';
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prismaclient";
+import { DEFAULT_ARGUMENT_CONFIDENCE, DEFAULT_PREMISE_BASE } from "@/lib/config/confidence";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 type Mode = 'product'|'min'|'ds';
@@ -67,12 +68,12 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       .map(i => ({
         claimId: i.toClaimId!,
         argumentId: `virt:${i.fingerprint}`,
-        base: clamp01(i.baseAtImport ?? 0.55),
+        base: clamp01(i.baseAtImport ?? DEFAULT_ARGUMENT_CONFIDENCE),
       }));
   }
 
   const allSupports = [
-    ...localSupports.map(s => ({ claimId: s.claimId, argumentId: s.argumentId, base: clamp01(s.base ?? 0.55) })),
+    ...localSupports.map(s => ({ claimId: s.claimId, argumentId: s.argumentId, base: clamp01(s.base ?? DEFAULT_ARGUMENT_CONFIDENCE) })),
     ...virtualAdds,
   ];
 
@@ -137,10 +138,10 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const argsByClaim = new Map<string, string[]>();
 
   for (const s of allSupports) {
-    const real = !s.argumentId.startsWith('virt:');
+    const real = !s.argumentId.startsWith("virt:");
     const b = real ? (baseByArg.get(s.argumentId) ?? s.base) : s.base;
     const premIds = real ? (parents.get(s.argumentId) ?? []) : [];
-    const premBases = real ? premIds.map(pid => baseByArg.get(pid) ?? 0.5) : [];
+    const premBases = real ? premIds.map(pid => baseByArg.get(pid) ?? DEFAULT_PREMISE_BASE) : [];
     const premFactor = premBases.length ? compose(premBases, mode) : 1;
 
     // Per-derivation assumption tracking:
@@ -166,17 +167,62 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       .push(s.argumentId);
   }
 
-  // 6) support + nodes + hom (unchanged idea)
+  // 6) support + nodes + hom + DS conflict mass computation
   const support: Record<string, number> = {};
   const dsSupport: Record<string,{ bel:number; pl:number }> = {};
+
+  // For DS mode, fetch negation mappings to compute conflict mass
+  let negationMappings: Map<string, string[]> = new Map(); // claimId -> [negatedClaimIds]
+  if (mode === "ds") {
+    const negMaps = await prisma.negationMap.findMany({
+      where: { deliberationId },
+      select: { claimId: true, negatedClaimId: true, confidence: true },
+    });
+    
+    for (const nm of negMaps) {
+      const list = negationMappings.get(nm.claimId) ?? [];
+      list.push(nm.negatedClaimId);
+      negationMappings.set(nm.claimId, list);
+    }
+  }
 
   const nodes = claims.map(c => {
     const contribs = (contributionsByClaim.get(c.id) ?? []).sort((a,b)=>b.score - a.score);
     const s = join(contribs.map(x=>x.score), mode);
     support[c.id] = +s.toFixed(4);
-    if (mode === 'ds') dsSupport[c.id] = { bel: support[c.id], pl: support[c.id] }; // pl=bel for now
+    
+    // DS interval: compute bel and pl with conflict mass
+    if (mode === "ds") {
+      const bel = support[c.id];
+      let conflictMass = 0;
+      
+      // Find negated claims and compute their support (conflict mass)
+      const negatedIds = negationMappings.get(c.id) ?? [];
+      if (negatedIds.length > 0) {
+        const negContribs: number[] = [];
+        for (const negId of negatedIds) {
+          const negSupports = contributionsByClaim.get(negId) ?? [];
+          const negScore = join(negSupports.map(x => x.score), mode);
+          negContribs.push(negScore);
+        }
+        // Conflict mass = join of all negation supports
+        conflictMass = negContribs.length > 0 ? join(negContribs, mode) : 0;
+      }
+      
+      // Uncertainty mass (uncommitted belief)
+      const uncertaintyMass = Math.max(0, 1 - bel - conflictMass);
+      
+      // Plausibility: bel + uncertainty = 1 - conflict
+      const pl = Math.min(1, bel + uncertaintyMass);
+      
+      dsSupport[c.id] = { 
+        bel: +bel.toFixed(4), 
+        pl: +pl.toFixed(4) 
+      };
+    }
+    
     const top = contribs.slice(0,5).map(x => ({ argumentId: x.argumentId, score: +x.score.toFixed(4) }));
-    return { id:c.id, diagramId: conclByClaim.get(c.id) ?? null, type:'claim' as const, text:c.text, score: support[c.id], top };
+    return { id:c.id, diagramId: conclByClaim.get(c.id) ?? null, type:"claim" as const, text:c.text, score: support[c.id], top };
   });
 
   const argIds = Array.from(new Set(allSupports.map(s => s.argumentId).filter(id => !id.startsWith('virt:'))));

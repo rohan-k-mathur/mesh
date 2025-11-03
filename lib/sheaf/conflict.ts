@@ -1,6 +1,7 @@
-import type { AudienceSelector, MessageFacet } from '@app/sheaf-acl';
-import { audienceSubsetOf } from '@app/sheaf-acl';
-import type { AudienceEnv } from '@app/sheaf-acl';
+import type { AudienceSelector, MessageFacet } from "@app/sheaf-acl";
+import { audienceSubsetOf } from "@app/sheaf-acl";
+import type { AudienceEnv } from "@app/sheaf-acl";
+import { DIVERGENCE_WARNING_THRESHOLD } from "@/lib/config/confidence";
 
 function extractText(body: any): string {
   if (!body) return '';
@@ -59,7 +60,7 @@ export function detectFacetConflicts(
   opts?: { highDivergenceBelowSim?: number; warnDivergenceBelowSim?: number }
 ): Conflict[] {
   const HIGH = opts?.highDivergenceBelowSim ?? 0.35; // lower sim -> more divergent
-  const WARN = opts?.warnDivergenceBelowSim ?? 0.55;
+  const WARN = opts?.warnDivergenceBelowSim ?? DIVERGENCE_WARNING_THRESHOLD;
 
   const texts = new Map(facets.map(f => [f.id, tokenize(extractText(f.body))]));
   const out: Conflict[] = [];

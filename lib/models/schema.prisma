@@ -2261,15 +2261,15 @@ model Argument {
 
   // DEPRECATED: Legacy single scheme field (Phase 1-3)
   // Use argumentSchemes many-to-many relation instead (Phase 4+)
-  schemeId          String?           @db.VarChar(64)
-  scheme            ArgumentScheme?   @relation("LegacyArgumentScheme", fields: [schemeId], references: [id])
-  
+  schemeId String?         @db.VarChar(64)
+  scheme   ArgumentScheme? @relation("LegacyArgumentScheme", fields: [schemeId], references: [id])
+
   // NEW: Many-to-many relation for multi-scheme classification (Phase 4)
-  argumentSchemes   ArgumentSchemeInstance[]
-  
+  argumentSchemes ArgumentSchemeInstance[]
+
   // NEW: Phase 5 - Nets of Argumentation Schemes (sequential composition)
-  schemeNet         SchemeNet? @relation("ArgumentSchemeNet")
-  
+  schemeNet SchemeNet? @relation("ArgumentSchemeNet")
+
   conclusionClaimId String?
   conclusion        Claim?            @relation("Conclusion", fields: [conclusionClaimId], references: [id])
   premises          ArgumentPremise[]
@@ -2311,16 +2311,16 @@ model Argument {
 
 // Junction table for many-to-many Argument-ArgumentScheme relation with confidence scores
 model ArgumentSchemeInstance {
-  id           String   @id @default(cuid())
-  argumentId   String
-  schemeId     String
-  confidence   Float    @default(1.0) // Scheme inference confidence (0.0-1.0)
-  isPrimary    Boolean  @default(false) // Marks the highest-confidence scheme
-  createdAt    DateTime @default(now())
-  
-  argument     Argument       @relation(fields: [argumentId], references: [id], onDelete: Cascade)
-  scheme       ArgumentScheme @relation("ArgumentSchemeInstances", fields: [schemeId], references: [id], onDelete: Cascade)
-  
+  id         String   @id @default(cuid())
+  argumentId String
+  schemeId   String
+  confidence Float    @default(1.0) // Scheme inference confidence (0.0-1.0)
+  isPrimary  Boolean  @default(false) // Marks the highest-confidence scheme
+  createdAt  DateTime @default(now())
+
+  argument Argument       @relation(fields: [argumentId], references: [id], onDelete: Cascade)
+  scheme   ArgumentScheme @relation("ArgumentSchemeInstances", fields: [schemeId], references: [id], onDelete: Cascade)
+
   @@unique([argumentId, schemeId])
   @@index([argumentId])
   @@index([schemeId])
@@ -2333,45 +2333,45 @@ model ArgumentSchemeInstance {
 // ============================
 
 model SchemeNet {
-  id          String   @id @default(cuid())
-  argumentId  String   @unique
-  description String?  @db.Text // User description of the argumentative chain
-  
+  id          String  @id @default(cuid())
+  argumentId  String  @unique
+  description String? @db.Text // User description of the argumentative chain
+
   // Computed confidence (weakest link in chain)
   overallConfidence Float @default(1.0)
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  argument    Argument       @relation("ArgumentSchemeNet", fields: [argumentId], references: [id], onDelete: Cascade)
-  steps       SchemeNetStep[]
-  
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  argument Argument        @relation("ArgumentSchemeNet", fields: [argumentId], references: [id], onDelete: Cascade)
+  steps    SchemeNetStep[]
+
   @@index([argumentId])
 }
 
 model SchemeNetStep {
-  id              String   @id @default(cuid())
-  netId           String
-  schemeId        String
-  stepOrder       Int      // 1, 2, 3... (sequential position in chain)
-  label           String?  // User-friendly label for this step (e.g., "Classification", "Commitment")
-  
+  id        String  @id @default(cuid())
+  netId     String
+  schemeId  String
+  stepOrder Int // 1, 2, 3... (sequential position in chain)
+  label     String? // User-friendly label for this step (e.g., "Classification", "Commitment")
+
   // Linkage between steps (how output of previous step feeds into this step)
-  inputFromStep   Int?     // Which step's conclusion feeds into this premise? (null for first step)
-  inputSlotMapping Json?   // Map conclusion variables to premise variables
-                           // e.g., { "A": "P1.E", "B": "P2.S" } means conclusion var A maps to premise 1 var E
-  
+  inputFromStep    Int? // Which step's conclusion feeds into this premise? (null for first step)
+  inputSlotMapping Json? // Map conclusion variables to premise variables
+  // e.g., { "A": "P1.E", "B": "P2.S" } means conclusion var A maps to premise 1 var E
+
   // Step-specific text and confidence
-  stepText        String?  @db.Text // Text excerpt for this inferential step
-  confidence      Float    @default(1.0) // Confidence for this specific step
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
+  stepText   String? @db.Text // Text excerpt for this inferential step
+  confidence Float   @default(1.0) // Confidence for this specific step
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  net             SchemeNet      @relation(fields: [netId], references: [id], onDelete: Cascade)
-  scheme          ArgumentScheme @relation("SchemeNetSteps", fields: [schemeId], references: [id], onDelete: Restrict)
-  
+  net    SchemeNet      @relation(fields: [netId], references: [id], onDelete: Cascade)
+  scheme ArgumentScheme @relation("SchemeNetSteps", fields: [schemeId], references: [id], onDelete: Restrict)
+
   @@unique([netId, stepOrder])
   @@index([netId])
   @@index([schemeId])
@@ -3187,6 +3187,10 @@ model Claim {
   negates        Claim?  @relation("NegationClaims", fields: [negatesClaimId], references: [id], onDelete: SetNull)
   negatedBy      Claim[] @relation("NegationClaims")
 
+  // NegationMap relations (for explicit negation mappings)
+  negationMaps  NegationMap[] @relation("NegationMapClaim")
+  negatedByMaps NegationMap[] @relation("NegationMapNegatedClaim")
+
   debateNodes  DebateNode[] @relation(name: "ClaimDebateNodes")
   canonicalKey String?      @unique
 
@@ -3337,25 +3341,25 @@ model ArgumentScheme {
   variants         SchemeVariant[]
   cqs              CriticalQuestion[]
   validators       Json? // CAS2-style v/e metadata (optional)
-  
+
   // DEPRECATED: Legacy single argument relation (Phase 1-3)
-  Argument         Argument[]       @relation("LegacyArgumentScheme")
-  
+  Argument Argument[] @relation("LegacyArgumentScheme")
+
   // NEW: Many-to-many relation for multi-scheme classification (Phase 4)
   argumentSchemeInstances ArgumentSchemeInstance[] @relation("ArgumentSchemeInstances")
-  
+
   // NEW: Phase 5 - Scheme net steps (for sequential scheme composition)
   schemeNetSteps SchemeNetStep[] @relation("SchemeNetSteps")
-  
+
   // NEW: Phase 6 - Scheme clustering & family resemblances (Macagno & Walton Section 6)
   // Enables hierarchical classification and CQ inheritance
   parentSchemeId String?          @db.VarChar(64)
   parentScheme   ArgumentScheme?  @relation("SchemeHierarchy", fields: [parentSchemeId], references: [id], onDelete: SetNull)
   childSchemes   ArgumentScheme[] @relation("SchemeHierarchy")
-  
-  clusterTag     String?          // e.g., "practical_reasoning_family", "authority_family"
-  inheritCQs     Boolean          @default(true) // Whether to inherit parent scheme's CQs
-  
+
+  clusterTag String? // e.g., "practical_reasoning_family", "authority_family"
+  inheritCQs Boolean @default(true) // Whether to inherit parent scheme's CQs
+
   @@index([parentSchemeId])
   @@index([clusterTag])
 }
@@ -3623,14 +3627,14 @@ model DialogueMove {
 
   // Dialogue Visualization System - Phase 1.1
   // Link to AIF nodes this move created (via GROUNDS, THEREFORE, etc.)
-  createdAifNodes   AifNode[] @relation("AifNodeCreatedBy")
-  
+  createdAifNodes AifNode[] @relation("AifNodeCreatedBy")
+
   // Primary AIF node representing this move as a DM-node
-  aifRepresentation String?   @unique
-  aifNode           AifNode?  @relation("MoveRepresentation", fields: [aifRepresentation], references: [id], onDelete: SetNull)
-  
+  aifRepresentation String?  @unique
+  aifNode           AifNode? @relation("MoveRepresentation", fields: [aifRepresentation], references: [id], onDelete: SetNull)
+
   // Edges caused by this dialogue move
-  causedEdges       AifEdge[] @relation("EdgeCausedBy")
+  causedEdges AifEdge[] @relation("EdgeCausedBy")
 
   @@unique([deliberationId, signature], name: "dm_unique_signature")
   @@index([deliberationId, targetType, targetId, kind, createdAt], name: "dm_by_target_kind_time")
@@ -3699,8 +3703,12 @@ model Deliberation {
   argImportsTo   ArgumentImport[] @relation("ArgImpTo")
 
   // ✅ back-relations for SharedAuthorRoomEdge (two directed edges to Deliberation)
-  sharedAuthorsFrom      SharedAuthorRoomEdge[]   @relation("SharedAuthorFrom")
-  sharedAuthorsTo        SharedAuthorRoomEdge[]   @relation("SharedAuthorTo")
+  sharedAuthorsFrom SharedAuthorRoomEdge[] @relation("SharedAuthorFrom")
+  sharedAuthorsTo   SharedAuthorRoomEdge[] @relation("SharedAuthorTo")
+
+  // ✅ back-relation for NegationMap
+  negationMaps NegationMap[] @relation("NegationMapDeliberation")
+
   DebateSheet            DebateSheet[]
   WorkSourceDeliberation WorkSourceDeliberation[]
 
@@ -4990,30 +4998,100 @@ model StackReference {
   @@index([stackId])
 }
 
-/// Edges when arguments/claims are imported or restated across rooms.
-/// Keep both room ids; optionally track argument id mapping (from→to) and a kind.
+/// ArgumentImport: Cross-Deliberation Argument Referencing
+///
+/// Tracks when arguments are imported, restated, or quoted across deliberation rooms.
+/// Enables the "Transport Functor" workflow where arguments from one room (source)
+/// are brought into another room (target) while preserving provenance.
+///
+/// **Key Features:**
+/// - SHA-1 fingerprint-based identity for idempotent imports
+/// - Supports materialized imports (full Argument record created) and virtual imports (read-only reference)
+/// - Preserves confidence snapshot at import time (baseAtImport)
+/// - Tracks claim mapping between source and target (fromClaimId → toClaimId)
+///
+/// **Import Kinds:**
+/// - 'import': Full argument import with structure preservation (default)
+/// - 'restatement': Argument restated in target's language/context
+/// - 'quote': Direct quote/citation from source argument
+///
+/// **Virtual vs Materialized:**
+/// - Materialized: toArgumentId != null (full Argument record exists in target room)
+/// - Virtual: toArgumentId == null (read-only reference, ID scheme: virt:{fingerprint})
+///
+/// **Fingerprint Computation:**
+/// SHA-1 hash of: fromDeliberationId|toDeliberationId|fromClaimId|toClaimId|fromArgumentId
+/// Ensures same argument imported to same target with same claim mapping gets same fingerprint.
+///
+/// **Referential Integrity:**
+/// - Cascade delete when either deliberation is removed
+/// - SetNull when argument is deleted (preserves import record for provenance tracking)
+///
+/// **Related Systems:**
+/// - Plexus Visualization: Displays imports as teal edges between rooms
+/// - Evidential API: Virtual imports participate in confidence join operations
+/// - Transport Functor UI: /functor/transport for claim mapping and import workflow
 model ArgumentImport {
-  id                 String  @id @default(cuid())
-  fromDeliberationId String
-  toDeliberationId   String
-  fromArgumentId     String?
-  toArgumentId       String?
-  kind               String? // 'import' | 'restatement' | 'quote' | ...
+  /// Unique identifier for this import record
+  id String @id @default(cuid())
 
-  fromClaimId  String? // snapshot at import time
-  toClaimId    String? // snapshot at import time
+  /// Source deliberation ID (where argument originated)
+  fromDeliberationId String
+
+  /// Target deliberation ID (where argument is imported to)
+  toDeliberationId String
+
+  /// Source argument ID (original argument being imported)
+  fromArgumentId String?
+
+  /// Target argument ID (null = virtual import, non-null = materialized)
+  /// Virtual imports use synthetic ID: virt:{fingerprint}
+  toArgumentId String?
+
+  /// Import kind: 'import' (default), 'restatement', 'quote'
+  /// - import: Full argument with structure preservation
+  /// - restatement: Argument restated in target context
+  /// - quote: Direct citation/reference
+  kind String? // 'import' | 'restatement' | 'quote' | ...
+
+  /// Source claim ID (claim in source deliberation)
+  /// Preserved for categorical functor verification: F(φ_A) = ψ_B
+  fromClaimId String? // snapshot at import time
+
+  /// Target claim ID (mapped claim in target deliberation)
+  /// Required for DS conflict mass computation
+  toClaimId String? // snapshot at import time
+
+  /// Confidence snapshot at import time
+  /// Enables historical analysis of confidence drift
+  /// No automatic sync - user must manually re-import for updates
   baseAtImport Float? // snapshot
 
+  /// SHA-1 fingerprint: fromId|toId|fromClaimId|toClaimId|fromArgId
+  /// Ensures idempotent imports (re-applying same import uses same fingerprint)
+  /// Unique constraint prevents duplicate imports
   fingerprint String @unique // sha1(from|to|fromClaim|toClaim|fromArg)
-  metaJson    Json?
 
+  /// Toulmin structure from source argument (preserves composition)
+  /// Stores complete argument graph: statements, inferences, evidence, premises
+  /// Enables reconstruction in target deliberation with remapped claim IDs
+  /// Schema: { statements: [{id, text, role}], inferences: [{id, schemeId, ...}], premises: [argId], evidence: [...] }
+  structureJson Json?
+
+  /// Extensible metadata (JSON)
+  /// Future use: composition tracking, source metadata, user notes
+  metaJson Json?
+
+  /// Timestamp of import creation
   createdAt DateTime @default(now())
 
+  // Relations
   fromDeliberation Deliberation @relation("ArgImpFrom", fields: [fromDeliberationId], references: [id], onDelete: Cascade)
   toDeliberation   Deliberation @relation("ArgImpTo", fields: [toDeliberationId], references: [id], onDelete: Cascade)
   fromArgument     Argument?    @relation("ArgImpFromArg", fields: [fromArgumentId], references: [id], onDelete: SetNull)
   toArgument       Argument?    @relation("ArgImpToArg", fields: [toArgumentId], references: [id], onDelete: SetNull)
 
+  // Indexes for optimal query performance
   @@unique([fromArgumentId, toArgumentId, kind])
   @@index([fromDeliberationId])
   @@index([toDeliberationId])
@@ -5039,6 +5117,70 @@ model SharedAuthorRoomEdge {
   @@unique([fromId, toId])
   @@index([fromId])
   @@index([toId])
+}
+
+/// NegationMap: Claim Negation Mappings for DS Conflict Mass
+///
+/// Stores explicit negation relationships between claims within a deliberation.
+/// Required for Dempster-Shafer conflict mass computation when importing arguments.
+///
+/// **Purpose:**
+/// When importing argument A that supports claim φ from source deliberation,
+/// we need to know which claim ¬φ (negation of φ) exists in the source to compute
+/// conflict mass for the target claim ψ.
+///
+/// **DS Conflict Mass Algorithm:**
+/// 1. Identify attacks on imported arguments in source deliberation
+/// 2. Map attacking claims via functor negation: F(¬φ) = ¬F(φ) if mapping exists
+/// 3. Compute conflict mass: m(¬ψ) = join({support(¬ψ_i)})
+/// 4. Reduce plausibility: pl(ψ) = bel(ψ) + m(Ω) - m(¬ψ)
+///
+/// **Example:**
+/// - Claim φ: "Climate change is caused by humans" (id: clm_abc)
+/// - Claim ¬φ: "Climate change is not caused by humans" (id: clm_xyz)
+/// - NegationMap record: claimId=clm_abc, negatedClaimId=clm_xyz, deliberationId=delib123
+///
+/// **Symmetric Mapping:**
+/// System should maintain both directions: if (φ, ¬φ) exists, then (¬φ, φ) should also exist.
+/// Application code responsible for creating symmetric pairs.
+///
+/// **Related Systems:**
+/// - Transport Functor UI: Interface for defining negation mappings during import
+/// - Evidential API: Uses negation maps to compute DS conflict mass
+/// - ArgumentImport: Negation maps enable functor-based attack propagation
+model NegationMap {
+  /// Unique identifier
+  id String @id @default(cuid())
+
+  /// The claim being negated
+  claimId String
+
+  /// The claim that represents the negation
+  negatedClaimId String
+
+  /// Deliberation context (negation relationships are deliberation-specific)
+  deliberationId String
+
+  /// Optional confidence in the negation relationship (0..1)
+  /// 1.0 = perfect logical negation, <1.0 = partial/pragmatic negation
+  confidence Float? @default(1.0)
+
+  /// Optional metadata (reason, user notes, etc.)
+  metaJson Json?
+
+  /// Creation timestamp
+  createdAt DateTime @default(now())
+
+  // Relations
+  claim        Claim        @relation("NegationMapClaim", fields: [claimId], references: [id], onDelete: Cascade)
+  negatedClaim Claim        @relation("NegationMapNegatedClaim", fields: [negatedClaimId], references: [id], onDelete: Cascade)
+  deliberation Deliberation @relation("NegationMapDeliberation", fields: [deliberationId], references: [id], onDelete: Cascade)
+
+  // Ensure one negation relationship per claim pair per deliberation
+  @@unique([claimId, negatedClaimId, deliberationId])
+  @@index([deliberationId])
+  @@index([claimId])
+  @@index([negatedClaimId])
 }
 
 /// ——— Evidence/strength over arguments that support a claim (hom(I, φ)) ———
@@ -5084,10 +5226,10 @@ model AssumptionUse {
   createdAt DateTime @default(now())
 
   // Phase 2.4: Assumption lifecycle tracking
-  status           AssumptionStatus @default(PROPOSED)
-  statusChangedAt  DateTime         @default(now())
-  statusChangedBy  String?
-  challengeReason  String?          @db.Text // Optional reason for CHALLENGED status
+  status          AssumptionStatus @default(PROPOSED)
+  statusChangedAt DateTime         @default(now())
+  statusChangedBy String?
+  challengeReason String?          @db.Text // Optional reason for CHALLENGED status
 
   @@index([argumentId])
   @@index([assumptionClaimId])
@@ -5096,9 +5238,9 @@ model AssumptionUse {
 }
 
 enum AssumptionStatus {
-  PROPOSED   // Initial state - awaiting review
-  ACCEPTED   // Accepted as valid assumption
-  RETRACTED  // Withdrawn by proposer or community
+  PROPOSED // Initial state - awaiting review
+  ACCEPTED // Accepted as valid assumption
+  RETRACTED // Withdrawn by proposer or community
   CHALLENGED // Under dispute
 }
 
@@ -5106,21 +5248,21 @@ enum AssumptionStatus {
 /// Enables per-derivation assumption tracking for categorical composition.
 /// Phase: Gap 4 - Per-Derivation Assumption Tracking
 model DerivationAssumption {
-  id           String   @id @default(cuid())
-  derivationId String   // FK to ArgumentSupport.id (derivation materializer)
-  assumptionId String   // FK to AssumptionUse.id
-  
+  id           String @id @default(cuid())
+  derivationId String // FK to ArgumentSupport.id (derivation materializer)
+  assumptionId String // FK to AssumptionUse.id
+
   // Strength of this assumption's contribution to this derivation
-  weight       Float    @default(1.0)  // 0..1 multiplier
-  
+  weight Float @default(1.0) // 0..1 multiplier
+
   // Tracking metadata
-  inferredFrom String?  // If auto-generated via compose(), reference parent derivation
+  inferredFrom String? // If auto-generated via compose(), reference parent derivation
   createdAt    DateTime @default(now())
-  
+
   @@unique([derivationId, assumptionId])
   @@index([derivationId])
   @@index([assumptionId])
-  @@index([inferredFrom])  // Fast transitive queries
+  @@index([inferredFrom]) // Fast transitive queries
 }
 
 model AgoraRoom {
@@ -5701,43 +5843,44 @@ enum ThesisSectionType {
 /// AIF Node model - represents nodes in Argument Interchange Format graphs
 /// Extended to support Dialogue Move (DM-node) integration
 model AifNode {
-  id             String   @id @default(cuid())
+  id             String       @id @default(cuid())
   deliberationId String
   deliberation   Deliberation @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
-  
-  nodeKind       String   // 'I'|'RA'|'CA'|'PA'|'DM' (DM = Dialogue Move node)
-  label          String?
-  text           String?
-  schemeKey      String?  // For RA/CA/PA nodes with argumentation schemes
-  
+
+  nodeKind  String // 'I'|'RA'|'CA'|'PA'|'DM' (DM = Dialogue Move node)
+  label     String?
+  text      String?
+  schemeKey String? // For RA/CA/PA nodes with argumentation schemes
+
   // Dialogue provenance tracking
-  dialogueMoveId    String?
-  dialogueMove      DialogueMove? @relation("AifNodeCreatedBy", fields: [dialogueMoveId], references: [id], onDelete: SetNull)
-  
+  dialogueMoveId String?
+  dialogueMove   DialogueMove? @relation("AifNodeCreatedBy", fields: [dialogueMoveId], references: [id], onDelete: SetNull)
+
   // Node subtype for extensibility
-  nodeSubtype       String?  // "dialogue_move", "standard", "scheme_instantiation"
-  
+  nodeSubtype String? // "dialogue_move", "standard", "scheme_instantiation"
+
   // Dialogue-specific metadata (JSON for flexibility)
-  dialogueMetadata  Json?
-  /* Example structure:
-  {
-    "locution": "WHY",
-    "speaker": "user123",
-    "speakerName": "Alice",
-    "timestamp": "2025-11-02T10:30:00Z",
-    "replyToMoveId": "move456",
-    "illocution": "Question"
-  }
-  */
-  
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  
+  dialogueMetadata Json?
+  /**
+   * Example structure:
+   * {
+   * "locution": "WHY",
+   * "speaker": "user123",
+   * "speakerName": "Alice",
+   * "timestamp": "2025-11-02T10:30:00Z",
+   * "replyToMoveId": "move456",
+   * "illocution": "Question"
+   * }
+   */
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations to other AIF structures
-  outgoingEdges     AifEdge[] @relation("EdgeSource")
-  incomingEdges     AifEdge[] @relation("EdgeTarget")
-  representedMove   DialogueMove? @relation("MoveRepresentation")
-  
+  outgoingEdges   AifEdge[]     @relation("EdgeSource")
+  incomingEdges   AifEdge[]     @relation("EdgeTarget")
+  representedMove DialogueMove? @relation("MoveRepresentation")
+
   @@index([deliberationId])
   @@index([dialogueMoveId])
   @@index([nodeKind])
@@ -5747,24 +5890,24 @@ model AifNode {
 
 /// AIF Edge model - represents relationships between AIF nodes
 model AifEdge {
-  id             String   @id @default(cuid())
+  id             String       @id @default(cuid())
   deliberationId String
   deliberation   Deliberation @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
-  
-  sourceId       String
-  source         AifNode  @relation("EdgeSource", fields: [sourceId], references: [id], onDelete: Cascade)
-  
-  targetId       String
-  target         AifNode  @relation("EdgeTarget", fields: [targetId], references: [id], onDelete: Cascade)
-  
-  edgeRole       String   // 'premise'|'conclusion'|'conflictingElement'|'triggers'|'answers'|'repliesTo'
-  
+
+  sourceId String
+  source   AifNode @relation("EdgeSource", fields: [sourceId], references: [id], onDelete: Cascade)
+
+  targetId String
+  target   AifNode @relation("EdgeTarget", fields: [targetId], references: [id], onDelete: Cascade)
+
+  edgeRole String // 'premise'|'conclusion'|'conflictingElement'|'triggers'|'answers'|'repliesTo'
+
   // Track which dialogue move caused this edge
   causedByMoveId String?
   causedByMove   DialogueMove? @relation("EdgeCausedBy", fields: [causedByMoveId], references: [id], onDelete: SetNull)
-  
-  createdAt      DateTime @default(now())
-  
+
+  createdAt DateTime @default(now())
+
   @@index([deliberationId])
   @@index([sourceId])
   @@index([targetId])

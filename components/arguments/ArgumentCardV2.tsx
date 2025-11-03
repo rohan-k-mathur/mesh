@@ -484,12 +484,16 @@ export function ArgumentCardV2({
             <div className="flex items-center gap-2 flex-wrap ml-7">
               {/* Phase 5A: Provenance Badge for Imported Arguments */}
               {provenance && (
-                <span 
-                  className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-[10px] font-medium hover:bg-amber-100 transition-colors cursor-default"
-                  title={`Imported from "${provenance.sourceDeliberationName}" (fingerprint: ${provenance.fingerprint?.slice(0, 8)}...)`}
+                <a
+                  href={`/room/${provenance.sourceDeliberationId}?highlightArg=${provenance.fingerprint?.split(":")[1] || ""}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-[10px] font-medium hover:bg-amber-100 hover:border-amber-300 transition-colors cursor-pointer"
+                  title={`View source argument in "${provenance.sourceDeliberationName}" (fingerprint: ${provenance.fingerprint?.slice(0, 8)}...)`}
+                  onClick={(e) => e.stopPropagation()}
                 >
                   📥 From {provenance.sourceDeliberationName}
-                </span>
+                </a>
               )}
               
               {/* Phase 3: Dialogue State Badge */}

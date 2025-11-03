@@ -22,27 +22,7 @@ export default async function DeliberationPage({
   // Fetch the host object to get its name/title
   let hostName: string | null = null;
 
-  if (delib.hostType === "article") {
-    const article = await prisma.article.findUnique({
-      where: { id: delib.hostId },
-      select: { slug: true, title: true },
-    });
-    hostName = article?.title ?? null;
-  } else if (delib.hostType === "post") {
-    const post = await prisma.post.findUnique({
-      where: { id: delib.hostId },
-      select: { title: true, textContent: true },
-    });
-    hostName = post?.title ?? post?.textContent?.slice(0, 50) ?? null;
-  } else if (delib.hostType === "room_thread") {
-    const thread = await prisma.roomThread.findUnique({
-      where: { id: delib.hostId },
-      select: { title: true },
-    });
-    hostName = thread?.title ?? null;
-  }
-
-  // If this delib is hosted by an article, fetch slug for a back-link
+  // If this delib is hosted by an article, fetch slug/title for a back-link
   const article =
     delib.hostType === "article"
       ? await prisma.article.findUnique({
@@ -51,6 +31,10 @@ export default async function DeliberationPage({
         })
       : null;
 
+  if (article) {
+    hostName = article.title;
+  }
+
  return (
     // 1. Make this div the positioning context. It will now grow with its content.
     <div className="relative w-full">
@@ -58,7 +42,7 @@ export default async function DeliberationPage({
    
       {/* 2. Wrap your page content to control its stacking order. */}
       <div className="relative z-10 mt-4">
-        <DeliberationReader deliberationId={delib.id} />
+        <DeliberationReader deliberationId={delib.id} hostName={hostName} />
         {article && (
           <NextLink
             href={`/article/${article.slug}`}

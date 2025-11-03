@@ -315,7 +315,9 @@ export default function Plexus({
   };
 
   /** --------------------- Rendering ---------------------- */
-  const edgeTooltip = hoverEdge ? `${EDGE_LABELS[hoverEdge.kind]} • weight ${Math.round(hoverEdge.weight)}` : null;
+  const edgeTooltip = hoverEdge 
+    ? `${EDGE_LABELS[hoverEdge.kind]} • ${hoverEdge.kind === "imports" ? `${Math.round(hoverEdge.weight)} argument${Math.round(hoverEdge.weight) !== 1 ? "s" : ""}` : `weight ${Math.round(hoverEdge.weight)}`}` 
+    : null;
 
   // Content bounds (for minimap)
   const bounds = React.useMemo(() => {
@@ -502,18 +504,40 @@ export default function Plexus({
               const cx = mx + (nx / norm) * off;
               const cy = my + (ny / norm) * off;
               const color = EDGE_COLORS[e.kind];
+              const showLabel = e.kind === "imports" && e.weight >= 1;
 
               return (
-                <path
-                  key={i}
-                  d={`M ${a.x} ${a.y} Q ${cx} ${cy} ${b.x} ${b.y}`}
-                  fill="none"
-                  stroke={color}
-                  strokeOpacity={hoverEdge === e ? 0.6 : 0.22}
-                  strokeWidth={wgt}
-                  onMouseEnter={() => setHoverEdge(e)}
-                  onMouseLeave={() => setHoverEdge(null)}
-                />
+                <g key={i}>
+                  <path
+                    d={`M ${a.x} ${a.y} Q ${cx} ${cy} ${b.x} ${b.y}`}
+                    fill="none"
+                    stroke={color}
+                    strokeOpacity={hoverEdge === e ? 0.6 : 0.22}
+                    strokeWidth={wgt}
+                    onMouseEnter={() => setHoverEdge(e)}
+                    onMouseLeave={() => setHoverEdge(null)}
+                  />
+                  {/* Edge label for imports */}
+                  {showLabel && (hoverEdge === e || transform.k > 0.8) && (
+                    <text
+                      x={cx}
+                      y={cy}
+                      textAnchor="middle"
+                      dominantBaseline="middle"
+                      fontSize={10 / transform.k}
+                      fill={color}
+                      fontWeight="600"
+                      opacity={hoverEdge === e ? 1 : 0.7}
+                      pointerEvents="none"
+                      style={{
+                        textShadow: "0 0 2px white, 0 0 2px white, 0 0 2px white",
+                        paintOrder: "stroke fill"
+                      }}
+                    >
+                      {Math.round(e.weight)}
+                    </text>
+                  )}
+                </g>
               );
             })}
 

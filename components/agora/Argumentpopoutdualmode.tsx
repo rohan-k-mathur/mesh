@@ -82,12 +82,16 @@ export default function ArgumentPopoutDualMode({
           
           {/* Provenance badge */}
           {provenance && (
-            <span 
-              className="text-[10px] bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full font-medium"
-              title={`Imported from ${provenance.sourceDeliberationName}`}
+            <a
+              href={`/room/${provenance.sourceDeliberationId}?highlightArg=${provenance.fingerprint?.split(":")[1] || ""}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[10px] bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full font-medium hover:bg-amber-100 hover:border-amber-300 transition-colors cursor-pointer"
+              title={`View source argument in "${provenance.sourceDeliberationName}" (fingerprint: ${provenance.fingerprint?.slice(0, 8)}...)`}
+              onClick={(e) => e.stopPropagation()}
             >
               📥 Imported
-            </span>
+            </a>
           )}
         </div>
         

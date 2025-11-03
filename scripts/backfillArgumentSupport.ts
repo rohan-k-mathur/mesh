@@ -1,13 +1,18 @@
 // scripts/backfillArgumentSupport.ts
-import 'dotenv/config';
+import "dotenv/config";
 
-import { prisma } from '@/lib/prisma-cli';
+import { prisma } from "@/lib/prisma-cli";
+import { 
+  DEFAULT_ARGUMENT_CONFIDENCE, 
+  MIN_ARGUMENT_CONFIDENCE, 
+  MAX_BACKFILL_CONFIDENCE 
+} from "@/lib/config/confidence";
 
-/** Base confidence: start from argument.confidence (0..1) or 0.55; lift by approvals; cap 0.9. */
+/** Base confidence: start from argument.confidence (0..1) or DEFAULT_ARGUMENT_CONFIDENCE; lift by approvals; cap MAX_BACKFILL_CONFIDENCE. */
 function computeBase(conf?: number|null, approvals = 0) {
-  const start = conf == null ? 0.55 : Math.max(0.3, Math.min(1, conf));
+  const start = conf == null ? DEFAULT_ARGUMENT_CONFIDENCE : Math.max(MIN_ARGUMENT_CONFIDENCE, Math.min(1, conf));
   const lift  = Math.log1p(approvals) * 0.08;   // ~ +0.08..0.20 typical
-  return Math.min(0.9, +(start + lift).toFixed(3));
+  return Math.min(MAX_BACKFILL_CONFIDENCE, +(start + lift).toFixed(3));
 }
 
 async function main() {

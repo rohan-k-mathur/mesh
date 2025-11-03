@@ -1,6 +1,7 @@
-import type { z } from 'zod';
+import type { z } from "zod";
+import { NLI_NEUTRAL_OVERLAP_THRESHOLD, NLI_NEUTRAL_CONFIDENCE } from "@/lib/config/confidence";
 
-export type NLIResult = { relation: 'entails'|'contradicts'|'neutral'; score: number };
+export type NLIResult = { relation: "entails"|"contradicts"|"neutral"; score: number };
 
 export interface NLIAdapter {
   name: string;
@@ -9,7 +10,7 @@ export interface NLIAdapter {
 
 /** Heuristic stub: fast, deterministic, zero deps. */
 export const stubNLI: NLIAdapter = {
-  name: 'stub-heuristic',
+  name: "stub-heuristic",
   async batch(pairs) {
     return pairs.map(({ premise, hypothesis }) => {
       const P = premise.toLowerCase(), H = hypothesis.toLowerCase();
@@ -18,10 +19,10 @@ export const stubNLI: NLIAdapter = {
       const negP = /\b(no|not|never|none|cannot|can't|won't|n't)\b/.test(P);
       const overlap = jaccard(tokens(P), tokens(H));
       // If hypothesis is negation of a high-overlap premise → contradiction-ish
-      if (overlap > 0.5 && negH !== negP) return { relation: 'contradicts', score: 0.75 };
-      if (overlap > 0.66) return { relation: 'entails', score: 0.70 };
-      if (overlap > 0.4) return { relation: 'neutral', score: 0.55 };
-      return { relation: 'neutral', score: 0.5 };
+      if (overlap > 0.5 && negH !== negP) return { relation: "contradicts", score: 0.75 };
+      if (overlap > 0.66) return { relation: "entails", score: 0.70 };
+      if (overlap > NLI_NEUTRAL_OVERLAP_THRESHOLD) return { relation: "neutral", score: NLI_NEUTRAL_CONFIDENCE };
+      return { relation: "neutral", score: 0.5 };
     });
   },
 };
