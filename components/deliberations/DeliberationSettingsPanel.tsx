@@ -541,6 +541,71 @@ export function DeliberationSettingsPanel({
         )}
       </div>
 
+      {/* Generate Debate Map Section */}
+      <div className="space-y-2 pt-2 border-t border-slate-200">
+        <div className="flex-1">
+          <div className="font-medium text-slate-900">
+            Generate Debate Map
+          </div>
+          <div className="text-xs text-slate-600 mt-1">
+            Create DebateNodes and DebateEdges from all arguments in this deliberation.
+            Populates metadata (schemes, CQ status, conflicts, preferences).
+          </div>
+        </div>
+
+        <button
+          onClick={async () => {
+            setLoading(true);
+            setError(null);
+            setSuccess(false);
+
+            try {
+              const res = await fetch("/api/sheets/generate", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ deliberationId }),
+              });
+
+              if (!res.ok) {
+                const data = await res.json();
+                throw new Error(data.error || "Failed to generate debate map");
+              }
+
+              const result = await res.json();
+              setSuccess(true);
+              alert(
+                `Debate map generated!\n\n` +
+                `• ${result.stats.nodesCreated} nodes created\n` +
+                `• ${result.stats.edgesCreated} edges created\n` +
+                `• ${result.stats.unresolvedCreated} unresolved CQs recorded`
+              );
+              onUpdate?.();
+
+              setTimeout(() => setSuccess(false), 2000);
+            } catch (err: any) {
+              setError(err.message || "Failed to generate debate map");
+            } finally {
+              setLoading(false);
+            }
+          }}
+          disabled={loading}
+          className={`
+            w-full px-4 py-2 rounded-md font-medium text-sm transition-colors
+            ${loading
+              ? "bg-slate-300 text-slate-500 cursor-not-allowed"
+              : "bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer"
+            }
+          `}
+        >
+          {loading ? "Generating..." : "Generate Debate Map"}
+        </button>
+
+        <div className="text-xs text-slate-600 bg-blue-50 p-2 rounded border border-blue-200">
+          <strong>What this does:</strong> Creates DebateNodes from Arguments, DebateEdges from ArgumentEdges, 
+          and populates UnresolvedCQ records. Idempotent - safe to run multiple times.
+        </div>
+      </div>
+
       {/* Error Message */}
       {error && (
         <div className="p-3 rounded-md bg-red-50 border border-red-200 text-sm text-red-700">

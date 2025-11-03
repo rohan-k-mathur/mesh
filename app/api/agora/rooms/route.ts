@@ -13,12 +13,12 @@ export async function GET(_req: NextRequest) {
   });
 
   const counts = await prisma.deliberation.groupBy({
-    by: ['roomId'],
-    _count: { roomId: true },
-    where: { roomId: { in: rooms.map(r => r.id) } },
+    by: ['agoraRoomId'],
+    _count: { agoraRoomId: true },
+    where: { agoraRoomId: { in: rooms.map(r => r.id) } },
   });
 
-  const countBy = new Map(counts.map(c => [c.roomId!, c._count.roomId]));
+  const countBy = new Map(counts.map(c => [c.agoraRoomId!, c._count.agoraRoomId]));
   return NextResponse.json({
     items: rooms.map(r => ({
       ...r,

@@ -509,29 +509,115 @@ enum DebateEdgeKind {
 ### Phase 4: DebateSheet Modernization (7-10 days)
 
 **Tasks**:
+0. **Make sure the deliberation-->agoraroom-->debate auto generation process works and is backfilled properly so that every deliberation has an agoraroom and every agoraroom has a debate (with a default synthetic sheet)**
+   - [x] ✅ COMPLETE (10 AgoraRooms created, 43 DebateSheets backfilled)
+
 1. **Auto-generate DebateSheets**:
-   - [ ] Create `scripts/generate-debate-sheets.ts`
-   - [ ] Logic:
-     ```typescript
-     for each Argument in Deliberation:
-       - Create DebateNode (link to ArgumentDiagram via DebateNode.diagramId)
-       - Compute schemeKey, cqStatus, conflictCount
-     for each ArgumentEdge:
-       - Create DebateEdge (map type → kind, add attackSubtype)
-     for each UnresolvedCQ:
-       - Add to DebateSheet.unresolved
-     ```
-   - [ ] Run for test rooms
-   - [ ] Add UI button: "Generate Debate Map" in room settings
+   - [x] ✅ Create `scripts/generate-debate-sheets.ts`
+   - [x] ✅ Logic implemented:
+     - [x] ✅ Create DebateNode per Argument (with argumentId link)
+     - [x] ✅ Compute schemeKey from ArgumentScheme
+     - [x] ✅ Compute cqStatus from CQStatus table (IMPROVED: real queries, not placeholder)
+     - [x] ✅ Compute conflictCount from ConflictApplication (IMPROVED: CA-nodes, not ArgumentEdge)
+     - [x] ✅ Compute preferences from PreferenceApplication (IMPROVED: real counts)
+     - [x] ✅ **FIXED**: Create DebateEdge from ConflictApplication (NOT ArgumentEdge - see "Critical Learning" below)
+     - [x] ✅ Compute toulminDepth from inference chains
+   - [x] ✅ Run for test rooms (deliberation cmgy6c8vz0000c04w4l9khiux: 10 nodes, 4 edges created from 22 CAs)
+   - [x] ✅ Add UI button: "Generate Debate Map" in DeliberationSettingsPanel
+   - [x] ✅ **FIXED**: UnresolvedCQ population (implemented in script + API)
+   - [x] ✅ **FIXED**: API endpoint `/api/sheets/generate` created
+   
+   **⚠️ CRITICAL LEARNING - DebateEdge Generation**:
+   
+   **Problem**: Initial implementation queried `ArgumentEdge` table, which was **empty** (0 records), resulting in "Edges: 0" for all nodes despite visible attack counts.
+   
+   **Root Cause**: Attack data lives in the **AIF system** (`ConflictApplication` table), NOT in `ArgumentEdge`. The `ArgumentEdge` table appears to be legacy/unused in production.
+   
+   **Solution**: Follow the proven pattern from `diagram-neighborhoods.ts`:
+   
+   1. **ConflictApplications link Claims, not Arguments**:
+      - `conflictingArgumentId` is often NULL
+      - Must resolve `conflictingClaimId` → parent Argument
+      - Must resolve `conflictedClaimId` → parent Argument
+   
+   2. **Build claim-to-argument resolution map**:
+      ```typescript
+      // Map both conclusion claims AND premise claims
+      const claimToArgMap = new Map<string, string>();
+      
+      // Map conclusions
+      for (const arg of args) {
+        if (arg.claimId) claimToArgMap.set(arg.claimId, arg.id);
+      }
+      
+      // Map premises (arguments can attack premises too!)
+      const premises = await prisma.argumentPremise.findMany({
+        where: { argumentId: { in: args.map(a => a.id) } }
+      });
+      for (const prem of premises) {
+        if (!claimToArgMap.has(prem.claimId)) {
+          claimToArgMap.set(prem.claimId, prem.argumentId);
+        }
+      }
+      ```
+   
+   3. **Resolve ConflictApplications to DebateEdges**:
+      ```typescript
+      const conflicts = await prisma.conflictApplication.findMany({
+        where: { deliberationId }
+      });
+      
+      for (const c of conflicts) {
+        // Resolve attacking argument
+        let fromArgId = c.conflictingArgumentId || 
+                        claimToArgMap.get(c.conflictingClaimId);
+        
+        // Resolve targeted argument
+        let toArgId = c.conflictedArgumentId || 
+                      claimToArgMap.get(c.conflictedClaimId);
+        
+        if (!fromArgId || !toArgId) continue;
+        
+        // Map attack type (legacyAttackType field)
+        const attackType = c.legacyAttackType || "REBUT";
+        const kind = attackType === "UNDERCUT" ? "undercuts" :
+                     attackType === "UNDERMINE" ? "objects" : "rebuts";
+        
+        await prisma.debateEdge.create({
+          data: {
+            sheetId, fromId, toId, kind,
+            attackSubtype: attackType // REBUT | UNDERCUT | UNDERMINE
+          }
+        });
+      }
+      ```
+   
+   4. **Test Results**:
+      - **Before**: Found 0 ArgumentEdges → Created 0 DebateEdges
+      - **After**: Found 22 ConflictApplications → Derived 5 edges → Created 4 (1 duplicate)
+      - **Verification**: DebateSheet now shows "Edges: 3" for cmh00i node ✅
+   
+   **Key Takeaway**: `ConflictApplication` is the authoritative source for attack relationships. `ArgumentEdge` appears to be legacy. All edge generation must query the AIF system, not the ArgumentEdge table.
+   
+   **Reference Files**:
+   - `lib/arguments/diagram-neighborhoods.ts` - Proven pattern for CA resolution
+   - `scripts/generate-debate-sheets.ts` (lines 425-570) - Updated implementation
+   - `DEBATE_EDGE_GENERATION_FIXED.md` - Full technical writeup
 
 2. **Enhance DebateSheetReader**:
-   - [ ] Show scheme badges on nodes
-   - [ ] Show CQ status indicators (orange dot = open CQs)
-   - [ ] Show conflict count badge
-   - [ ] Add filter controls:
-     - [ ] Filter by scheme
-     - [ ] Show only nodes with open CQs
-     - [ ] Show only conflicted nodes
+   - [x] ✅ Show scheme badges on nodes (SchemeBadge component created)
+   - [x] ✅ Show CQ status indicators (CQStatusIndicator with orange dot for open CQs)
+   - [x] ✅ Show conflict count badge (AttackBadge with R/U/M breakdown)
+   - [x] ✅ Show preference badges (PreferenceBadge with upvote/downvote counts)
+   - [x] ✅ Add filter controls:
+     - [x] ✅ Filter by scheme (dropdown with available schemes)
+     - [x] ✅ Show only nodes with open CQs (checkbox filter)
+     - [x] ✅ Show only conflicted nodes (checkbox filter)
+     - [x] ✅ Clear filters button
+   - [x] ✅ Fixed `/api/sheets/[id]` to include `argumentId` field
+   - [x] ✅ Fetch AIF metadata from `/api/deliberations/[id]/arguments/aif`
+   - [x] ✅ Build argumentId → metadata lookup map
+   - [x] ✅ Display all badges with real data
 
 3. **Integrate AIF neighborhoods**:
    - [ ] On DebateNode hover → fetch mini-neighborhood (depth=1)

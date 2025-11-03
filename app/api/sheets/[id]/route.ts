@@ -13,6 +13,7 @@ type SheetNode = {
   title: string | null;
   diagramId?: string | null;    // prefer for UI lookup
   claimId?: string | null;      // lets the reader bridge to /evidential
+  argumentId?: string | null;   // FK to Argument (for joining with AIF metadata)
   
   // Phase 2.1: Scheme metadata
   schemeKey?: string | null;
@@ -220,6 +221,7 @@ nodes = dNodes.map(n => {
     title: n.title ?? renderId,
     diagramId: n.diagramId ?? null,
     claimId: n.claimId ?? null,
+    argumentId: n.argumentId ?? null,  // Add argumentId for UI to join with AIF data
     ...metadata,  // Spread enhanced metadata
   };
 });

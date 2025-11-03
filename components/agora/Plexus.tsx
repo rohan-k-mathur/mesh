@@ -4,6 +4,7 @@ import useSWR from 'swr';
 import clsx from 'clsx';
 import { useConfidence } from './useConfidence';
 import { useRoomGraphPrefetch } from '@/components/agora/useRoomGraphPrefetch';
+import PlexusRoomMetrics from '@/components/agora/PlexusRoomMetrics';
 
 /** ---------------- Types & constants ---------------- */
 type EdgeKind = 'xref'|'overlap'|'stack_ref'|'imports'|'shared_author';
@@ -19,6 +20,7 @@ type RoomNode = {
   undecided: number;
   tags?: string[];
   updatedAt?: string | null;
+  debateSheetId?: string | null;
 };
 
 type MetaEdge = { from: string; to: string; kind: EdgeKind; weight: number };
@@ -485,13 +487,32 @@ export default function Plexus({
           style={{ touchAction:'none', cursor: (drag ? 'grabbing' : (handlers as any)._cursor ?? (linkMode ? 'crosshair' : 'default')) }}
         >
           <defs>
+            {/* Standard arrow for link sketch */}
             <marker id="arrow-tip" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
               <path d="M 0 0 L 10 5 L 0 10 z" fill="#334155" />
+            </marker>
+            
+            {/* Import edge arrows (teal) */}
+            <marker id="arrow-imports" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#14b8a6" />
+            </marker>
+            <marker id="arrow-imports-hover" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#0d9488" />
+            </marker>
+            
+            {/* Xref arrows (indigo) */}
+            <marker id="arrow-xref" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#6366f1" />
+            </marker>
+            
+            {/* Stack ref arrows (amber) */}
+            <marker id="arrow-stack-ref" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#f59e0b" />
             </marker>
           </defs>
 
           <g transform={`translate(${transform.tx},${transform.ty}) scale(${transform.k})`}>
-            {/* Edges */}
+            {/* Edges with enhanced import visualization */}
             {edges.map((e, i) => {
               const a = coords.get(e.from), b = coords.get(e.to);
               if (!a || !b) return null;
@@ -504,7 +525,18 @@ export default function Plexus({
               const cx = mx + (nx / norm) * off;
               const cy = my + (ny / norm) * off;
               const color = EDGE_COLORS[e.kind];
+              const isHovered = hoverEdge === e;
               const showLabel = e.kind === "imports" && e.weight >= 1;
+              
+              // Determine marker based on edge kind
+              let marker = undefined;
+              if (e.kind === "imports") {
+                marker = isHovered ? "url(#arrow-imports-hover)" : "url(#arrow-imports)";
+              } else if (e.kind === "xref") {
+                marker = "url(#arrow-xref)";
+              } else if (e.kind === "stack_ref") {
+                marker = "url(#arrow-stack-ref)";
+              }
 
               return (
                 <g key={i}>
@@ -512,30 +544,41 @@ export default function Plexus({
                     d={`M ${a.x} ${a.y} Q ${cx} ${cy} ${b.x} ${b.y}`}
                     fill="none"
                     stroke={color}
-                    strokeOpacity={hoverEdge === e ? 0.6 : 0.22}
-                    strokeWidth={wgt}
+                    strokeOpacity={isHovered ? 0.7 : (e.kind === "imports" ? 0.35 : 0.22)}
+                    strokeWidth={isHovered ? wgt + 1 : wgt}
+                    markerEnd={marker}
                     onMouseEnter={() => setHoverEdge(e)}
                     onMouseLeave={() => setHoverEdge(null)}
+                    style={{ transition: "stroke-opacity 0.2s, stroke-width 0.2s" }}
                   />
-                  {/* Edge label for imports */}
-                  {showLabel && (hoverEdge === e || transform.k > 0.8) && (
-                    <text
-                      x={cx}
-                      y={cy}
-                      textAnchor="middle"
-                      dominantBaseline="middle"
-                      fontSize={10 / transform.k}
-                      fill={color}
-                      fontWeight="600"
-                      opacity={hoverEdge === e ? 1 : 0.7}
-                      pointerEvents="none"
-                      style={{
-                        textShadow: "0 0 2px white, 0 0 2px white, 0 0 2px white",
-                        paintOrder: "stroke fill"
-                      }}
-                    >
-                      {Math.round(e.weight)}
-                    </text>
+                  {/* Edge label for imports with enhanced styling */}
+                  {showLabel && (isHovered || transform.k > 0.8) && (
+                    <g>
+                      {/* Background for better readability */}
+                      <rect
+                        x={cx - 15}
+                        y={cy - 8}
+                        width={30}
+                        height={16}
+                        rx={3}
+                        fill="white"
+                        fillOpacity={0.9}
+                        pointerEvents="none"
+                      />
+                      <text
+                        x={cx}
+                        y={cy}
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        fontSize={10 / transform.k}
+                        fill={color}
+                        fontWeight="600"
+                        opacity={isHovered ? 1 : 0.8}
+                        pointerEvents="none"
+                      >
+                        {Math.round(e.weight)}
+                      </text>
+                    </g>
                   )}
                 </g>
               );
@@ -618,6 +661,26 @@ export default function Plexus({
                       {r.title ?? `room:${r.id.slice(0, 6)}…`}
                     </text>
                   )}
+                  {/* DebateSheet indicator badge */}
+                  {r.debateSheetId && (
+                    <g transform={`translate(${size - 6}, ${-size + 6})`}>
+                      <circle
+                        r={6}
+                        fill="#8b5cf6"
+                        stroke="white"
+                        strokeWidth={1.5}
+                        style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.2))' }}
+                      />
+                      <text
+                        textAnchor="middle"
+                        dominantBaseline="middle"
+                        y={0.5}
+                        className="fill-white text-[8px] font-bold pointer-events-none"
+                      >
+                        S
+                      </text>
+                    </g>
+                  )}
                 </g>
               );
             })}
@@ -686,7 +749,7 @@ export default function Plexus({
           </div>
         )}
 
-        {/* Room hover card */}
+        {/* Room hover card with enhanced metrics */}
         {hoverRoom && (() => {
           const r = allRooms.find(x => x.id === hoverRoom);
           if (!r) return null;
@@ -694,19 +757,45 @@ export default function Plexus({
           const acc = r.accepted / total, rej = r.rejected / total, und = r.undecided / total;
           const gated = gatedShare.current.get(r.id);
           return (
-            <div className="absolute top-2 left-2 rounded-lg bg-white/90 backdrop-blur border px-3 py-2 text-[12px] shadow-sm">
-              <div className="font-medium text-[12px] truncate max-w-[320px]">{r.title ?? r.id}</div>
-              <div className="text-[11px] text-slate-600">
-                args {r.nArgs} • edges {r.nEdges} • acc {Math.round(acc*100)}% • rej {Math.round(rej*100)}% • und {Math.round(und*100)}%
-                {tau!=null && gated!=null && <> • τ‑gated IN {Math.round(gated*100)}%</>}
+            <div className="absolute top-2 left-2 rounded-lg bg-white/95 backdrop-blur border shadow-lg max-w-md">
+              {/* Header section */}
+              <div className="px-3 py-2 border-b border-slate-200">
+                <div className="font-medium text-[13px] truncate max-w-[380px]">{r.title ?? r.id}</div>
+                <div className="text-[11px] text-slate-600">
+                  args {r.nArgs} • edges {r.nEdges} • acc {Math.round(acc*100)}% • rej {Math.round(rej*100)}% • und {Math.round(und*100)}%
+                  {tau!=null && gated!=null && <> • τ‑gated IN {Math.round(gated*100)}%</>}
+                </div>
               </div>
-              <div className="mt-1 flex gap-1">
+              
+              {/* Metrics section */}
+              <PlexusRoomMetrics roomId={r.id} />
+              
+              {/* Action buttons */}
+              <div className="px-3 py-2 border-t border-slate-200 flex gap-1">
                 {!linkMode && (
                   <>
-                    <button className="px-1.5 py-0.5 rounded border hover:bg-slate-50" onClick={() => window.location.assign(`/deliberation/${r.id}`)}>open</button>
-                    <button className="px-1.5 py-0.5 rounded border hover:bg-slate-50" onClick={() => window.location.assign(`/sheets/delib:${r.id}`)}>sheet</button>
+                    <button 
+                      className="px-2 py-1 text-[11px] rounded border hover:bg-slate-50 transition-colors" 
+                      onClick={() => window.location.assign(`/deliberation/${r.id}`)}
+                    >
+                      open
+                    </button>
+                    <button 
+                      className={`px-2 py-1 text-[11px] rounded border transition-colors ${
+                        r.debateSheetId 
+                          ? 'bg-violet-50 text-violet-700 border-violet-200 hover:bg-violet-100' 
+                          : 'hover:bg-slate-50'
+                      }`}
+                      onClick={() => window.location.assign(`/sheets/delib:${r.id}`)}
+                      title={r.debateSheetId ? 'Open existing DebateSheet' : 'View/create DebateSheet'}
+                    >
+                      {r.debateSheetId ? '📋 sheet' : 'sheet'}
+                    </button>
                     {sel.length === 1 && sel[0] !== r.id && (
-                      <button className="px-1.5 py-0.5 rounded border hover:bg-slate-50" onClick={() => window.location.assign(`/functor/transport?from=${sel[0]}&to=${r.id}`)}>
+                      <button 
+                        className="px-2 py-1 text-[11px] rounded border hover:bg-indigo-50 transition-colors" 
+                        onClick={() => window.location.assign(`/functor/transport?from=${sel[0]}&to=${r.id}`)}
+                      >
                         transport {sel[0].slice(0,4)}→{r.id.slice(0,4)}
                       </button>
                     )}

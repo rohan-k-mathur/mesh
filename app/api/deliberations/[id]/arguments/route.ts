@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prismaclient';
 import { getCurrentUserId } from '@/lib/serverutils';
 import { PaginationQuery, makePage } from '@/lib/server/pagination';
 import { since as startTimer, addServerTiming } from '@/lib/server/timing';
+import { ensureArgumentSupport } from '@/lib/arguments/ensure-support';
 
 const Query = PaginationQuery.extend({
   claimId: z.string().optional(),
@@ -161,6 +162,17 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         mediaUrl: d.mediaUrl ?? null,
       },
     });
+    
+    // NEW: Ensure ArgumentSupport record exists if argument has a claim
+    // Note: This endpoint creates arguments without claims, so we only create support if claimId exists
+    if (created.claimId) {
+      await ensureArgumentSupport({
+        argumentId: created.id,
+        claimId: created.claimId,
+        deliberationId,
+        base: d.confidence ?? 0.7,
+      });
+    }
 
     return NextResponse.json({ ok: true, argument: created });
   } catch (e: any) {

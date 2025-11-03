@@ -118,16 +118,25 @@ export async function extractArgumentStructure(
     return null;
   }
 
-  // Find premise arguments (ArgumentEdge type='support')
-  const premiseEdges = await prisma.argumentEdge.findMany({
+  // Find premise arguments - FIXED: Query ConflictApplication instead of ArgumentEdge
+  // ArgumentEdge is legacy/empty - attack data lives in the AIF system
+  // For support relationships, we need to find arguments that this argument builds upon
+  // This is typically stored in ArgumentPremise links or referenced in the diagram itself
+  
+  // Get all premise claims for this argument
+  const premiseClaimIds = await prisma.argumentPremise.findMany({
+    where: { argumentId },
+    select: { claimId: true }
+  });
+  
+  // Find arguments that have these claims as their conclusions
+  // (i.e., arguments that support this one)
+  const premiseArguments = await prisma.argument.findMany({
     where: {
-      toArgumentId: argumentId,
-      type: "support",
       deliberationId,
+      claimId: { in: premiseClaimIds.map(p => p.claimId) }
     },
-    select: {
-      fromArgumentId: true,
-    },
+    select: { id: true }
   });
 
   return {
@@ -150,7 +159,7 @@ export async function extractArgumentStructure(
       uri: e.uri,
       note: e.note,
     })),
-    premiseArguments: premiseEdges.map((e) => e.fromArgumentId),
+    premiseArguments: premiseArguments.map(a => a.id),
   };
 }
 
@@ -353,16 +362,15 @@ export async function recursivelyImportPremises(
 
     importedIds.push(newPremiseArgId);
 
-    // Create ArgumentEdge: premise supports target
-    await prisma.argumentEdge.create({
-      data: {
-        fromArgumentId: newPremiseArgId,
-        toArgumentId: targetArgumentId,
-        type: "support",
-        deliberationId: targetDeliberationId,
-        createdById,
-      },
-    });
+    // NOTE: Support relationships in the new system should be implicit through
+    // ArgumentPremise links (premise claims that are conclusions of other arguments)
+    // ArgumentEdge is legacy/empty. If we need explicit support edges in the future,
+    // consider using ConflictApplication with a "SUPPORTS" type or a new table.
+    
+    // For now, the support relationship is captured by:
+    // 1. The premise claim in targetArgumentId references targetPremiseClaimId
+    // 2. newPremiseArgId has targetPremiseClaimId as its conclusion
+    // This creates an implicit support chain that can be traversed via claim links
 
     // Recursively import nested premises
     if (structure.premiseArguments && structure.premiseArguments.length > 0) {

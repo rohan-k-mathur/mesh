@@ -17,7 +17,7 @@ import { FloatingSheet, SheetToggleButton } from "../ui/FloatingSheet";
 import { DialogueInspector } from "@/components/dialogue/DialogueInspector";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-
+import { DeliberationSettingsPanel } from "../deliberations/DeliberationSettingsPanel";
 import { AFMinimap } from '@/components/dialogue/minimap/AFMinimap';
 import BehaviourInspectorCard from '@/components/ludics/BehaviourInspectorCard';
 import { scrollIntoViewById } from "@/lib/client/scroll";
@@ -1517,6 +1517,7 @@ const {
 
           {/* DEBATE TAB */}
           <TabsContent value="debate" className="w-full min-w-0 mt-4 space-y-4">
+            <SectionCard><DeliberationSettingsPanel deliberationId={deliberationId} /></SectionCard>
             <SectionCard title="Compose Proposition">
               {/* <PropositionComposer deliberationId={deliberationId} /> */}
               <PropositionComposerPro deliberationId={deliberationId} />

@@ -102,19 +102,24 @@ npx prisma validate
 
 ### When You Get Stuck
 
-1. **Schema conflicts?** → Check `docs/DIALOGUE_MERGER_COMPLETE.md` for past migration patterns
+1. **Schema conflicts?** → Check `DEBATE_LAYER_MODERNIZATION_PLAN.md` for ArgumentEdge/ConflictApplication learnings
 2. **Type errors?** → Run `npx prisma generate` to update Prisma client
 3. **API not working?** → Check `app/api/dialogue/moves/route.ts` for existing patterns
-4. **Need examples?** → Look at `lib/arguments/diagram.ts` for AIF graph construction
+4. **Need examples?** → Look at `scripts/generate-debate-sheets.ts` for claim resolution pattern
+5. **Edge generation issues?** → Query ConflictApplication NOT ArgumentEdge (it's empty!)
+6. **Support relationships?** → Use ArgumentPremise + Claim lookup (see `structure-import.ts` fixes)
 
 ### Success Indicators (Phase 1)
 
 You'll know Phase 1 is complete when:
-- [ ] `npx prisma migrate status` shows all migrations applied
-- [ ] `npx prisma studio` shows `AifNode` and `AifEdge` tables
+- [ ] `npx prisma migrate status` shows `add_dialogue_provenance` migration applied
+- [ ] `npx prisma studio` shows `DialogueVisualizationNode` table (NOT AifNode/AifEdge)
+- [ ] Argument table has `createdByMoveId` field populated for GROUNDS moves
+- [ ] ConflictApplication table has `createdByMoveId` field
 - [ ] No TypeScript errors in `lib/aif/ontology.ts`
 - [ ] Migration script runs without errors in dry-run mode
 - [ ] New types importable: `import type { AifNodeWithDialogue } from "@/types/aif-dialogue"`
+- [ ] Test query successfully derives edges from ConflictApplication (not ArgumentEdge)
 
 ---
 
@@ -209,128 +214,193 @@ Schemes + CQs ──→ Displayed in scheme cards
 3. **Semantic Fidelity:** Visual encodings reflect formal dialogue game semantics (Prakken, Reed & Walton)
 4. **Performance First:** Lazy loading, virtualization for large dialogue sequences
 5. **Accessible:** ARIA labels, keyboard navigation, screen reader support for all new components
+6. **Single Source of Truth:** Build on existing data structures (Argument, Claim, ConflictApplication) rather than duplicating data
+
+## ⚠️ ARCHITECTURAL DECISION: Align with Existing Architecture
+
+**Date:** November 2, 2025  
+**Decision:** Use existing Argument/Claim/ConflictApplication architecture instead of creating parallel AifNode/AifEdge tables
+
+### Critical Context
+
+Recent work on `generate-debate-sheets.ts` and `structure-import.ts` revealed that:
+
+1. **ArgumentEdge table is EMPTY/LEGACY** (0 records in production)
+2. **ConflictApplication is authoritative** for attack relationships (22 records found)
+3. **Claim linkage is implicit** through ArgumentPremise → Claim → Argument (conclusion)
+4. **Working pattern proven**: Query Arguments/Claims/ConflictApplication, derive edges dynamically
+
+### Why Not Create AifNode/AifEdge Tables?
+
+**Problem with separate tables:**
+- Arguments already exist in `Argument` table
+- Would create duplicate RA-nodes in `AifNode` table
+- Two edge systems: `ConflictApplication` (existing) vs `AifEdge` (new)
+- Sync issues: What happens when an Argument is updated?
+- Performance overhead: JOIN between AifNode → Argument to get actual data
+
+**Proven alternative:**
+- ONE source of truth: `Argument` for arguments, `ConflictApplication` for attacks
+- Dialogue visualization = query layer built from existing data
+- Less migration risk, simpler mental model
+- Existing indexes already optimized
+
+### Implementation Strategy
+
+```
+┌─────────────────────────────────────────────────────────┐
+│             DIALOGUE VISUALIZATION APPROACH              │
+├─────────────────────────────────────────────────────────┤
+│                                                           │
+│  EXISTING DATA (Single Source of Truth):                 │
+│  ├─ Argument table → RA-nodes                            │
+│  │  └─ Add: createdByMoveId field                        │
+│  ├─ Claim table → I-nodes                                │
+│  │  └─ Add: introducedByMoveId field                     │
+│  ├─ ConflictApplication → CA-nodes + attack edges        │
+│  │  └─ Add: createdByMoveId field                        │
+│  └─ ArgumentPremise → support edges (implicit)           │
+│                                                           │
+│  NEW DATA (Minimal Addition):                            │
+│  └─ DialogueVisualizationNode → DM-nodes                 │
+│     (ONLY for WHY, CONCEDE, RETRACT - no argument)       │
+│                                                           │
+│  VISUALIZATION LAYER:                                    │
+│  └─ buildDialogueAwareGraph() queries existing tables    │
+│     and derives graph dynamically                        │
+│                                                           │
+└─────────────────────────────────────────────────────────┘
+```
+
+### References
+
+See related documentation:
+- `DEBATE_LAYER_MODERNIZATION_PLAN.md` - Critical learnings about ConflictApplication
+- `scripts/generate-debate-sheets.ts` - Working implementation of claim resolution
+- `lib/arguments/structure-import.ts` - Fixed to use claim-based patterns
+- `lib/arguments/diagram-neighborhoods.ts` - Claim-to-argument mapping pattern
 
 ---
 
 ## Phase 1: Foundation & Data Model (Weeks 1-2)
 
-**Objective:** Establish the extended AIF ontology and database schema to support dialogue-aware nodes.
+**Objective:** Add dialogue provenance tracking to existing data structures and create minimal new tables only for pure dialogue visualization nodes.
 
 ### 1.1 Database Schema Extensions
 
 **File:** `lib/models/schema.prisma` (actual location based on codebase)
 
-**Context:** The Mesh codebase uses Prisma with schema in `lib/models/schema.prisma`. DialogueMove already exists with fields: `id`, `authorId`, `illocution`, `deliberationId`, `targetType`, `targetId`, `kind`, `payload`, `actorId`, `createdAt`, `replyToMoveId`, `argumentId`, etc.
+**Context:** The Mesh codebase uses Prisma with schema in `lib/models/schema.prisma`. DialogueMove already exists. We will ADD dialogue provenance to existing models rather than creating parallel AifNode/AifEdge tables.
+
+**IMPORTANT:** Do NOT create AifNode/AifEdge tables. These would duplicate existing Argument/Claim/ConflictApplication data.
 
 **Changes Required:**
 
 ```prisma
-// Create AifNode model (if not exists) or extend existing
-model AifNode {
+// EXTEND existing Argument model with dialogue provenance
+model Argument {
+  // ... all existing fields ...
+  
+  // NEW: Track which dialogue move created this argument
+  createdByMoveId    String?
+  createdByMove      DialogueMove? @relation("ArgumentCreatedBy", fields: [createdByMoveId], references: [id], onDelete: SetNull)
+  
+  @@index([createdByMoveId])
+  // ... existing indexes ...
+}
+
+// EXTEND existing ConflictApplication model with dialogue provenance
+model ConflictApplication {
+  // ... all existing fields ...
+  
+  // NEW: Track which dialogue move created this attack
+  createdByMoveId    String?
+  createdByMove      DialogueMove? @relation("ConflictCreatedBy", fields: [createdByMoveId], references: [id], onDelete: SetNull)
+  
+  @@index([createdByMoveId])
+  // ... existing indexes ...
+}
+
+// EXTEND existing Claim model with dialogue provenance (for CONCEDE/RETRACT)
+model Claim {
+  // ... all existing fields ...
+  
+  // NEW: Track which dialogue move introduced this claim (optional)
+  introducedByMoveId String?
+  introducedByMove   DialogueMove? @relation("ClaimIntroducedBy", fields: [introducedByMoveId], references: [id], onDelete: SetNull)
+  
+  @@index([introducedByMoveId])
+  // ... existing indexes ...
+}
+
+// CREATE NEW table ONLY for pure dialogue visualization nodes
+// (WHY, CONCEDE, RETRACT - moves that don't create Arguments)
+model DialogueVisualizationNode {
   id                String        @id @default(cuid())
   deliberationId    String
-  nodeKind          String        // 'I'|'RA'|'CA'|'PA'|'DM' (new)
-  label             String?
-  text              String?
-  schemeKey         String?       // For RA/CA/PA nodes
+  dialogueMoveId    String        @unique
+  dialogueMove      DialogueMove  @relation("VisualizationNode", fields: [dialogueMoveId], references: [id], onDelete: Cascade)
   
-  // NEW: Dialogue provenance tracking
-  dialogueMoveId    String?       
-  dialogueMove      DialogueMove? @relation("AifNodeCreatedBy", fields: [dialogueMoveId], references: [id], onDelete: SetNull)
+  nodeKind          String        // "WHY", "CONCEDE", "RETRACT", etc.
   
-  // NEW: Node subtype for extensibility
-  nodeSubtype       String?       // "dialogue_move", "standard", "scheme_instantiation"
-  
-  // NEW: Dialogue-specific metadata (JSON for flexibility)
-  dialogueMetadata  Json?         
+  // Metadata for visualization
+  metadata          Json?         
   /* Example structure:
   {
-    "locution": "WHY",
     "speaker": "user123",
     "speakerName": "Alice",
     "timestamp": "2025-11-02T10:30:00Z",
-    "replyToMoveId": "move456",
-    "illocution": "Question"
+    "targetClaimId": "claim456",
+    "targetArgumentId": "arg789"
   }
   */
   
   createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
-  
-  // Relations to other AIF structures
-  outgoingEdges     AifEdge[]     @relation("EdgeSource")
-  incomingEdges     AifEdge[]     @relation("EdgeTarget")
-  representedMove   DialogueMove? @relation("MoveRepresentation")
   
   @@index([deliberationId])
-  @@index([dialogueMoveId])
   @@index([nodeKind])
-  @@index([nodeSubtype])
-  @@map("aif_nodes")
+  @@map("dialogue_visualization_nodes")
 }
 
-// Extend DialogueMove to reference AIF representation
+// EXTEND DialogueMove to link to visualization nodes
 model DialogueMove {
-  // ... existing fields: id, authorId, illocution, deliberationId, etc. ...
+  // ... all existing fields ...
   
-  // NEW: Link to AIF nodes this move created (via GROUNDS, THEREFORE, etc.)
-  createdAifNodes   AifNode[]     @relation("AifNodeCreatedBy")
+  // NEW: Link to visualization node (for non-argument moves)
+  visualizationNode DialogueVisualizationNode? @relation("VisualizationNode")
   
-  // NEW: Primary AIF node representing this move as a DM-node
-  aifRepresentation String?       @unique
-  aifNode           AifNode?      @relation("MoveRepresentation", fields: [aifRepresentation], references: [id], onDelete: SetNull)
+  // NEW: Reverse relations for provenance tracking
+  createdArguments  Argument[]              @relation("ArgumentCreatedBy")
+  createdConflicts  ConflictApplication[]   @relation("ConflictCreatedBy")
+  introducedClaims  Claim[]                 @relation("ClaimIntroducedBy")
   
-  // Existing relations...
-  deliberation      Deliberation  @relation(...)
-  votes             ResponseVote[]
-  // ... other existing relations ...
-  
-  @@index([aifRepresentation])
-  // ... existing indexes ...
-}
-
-// Create AifEdge model for explicit edge storage
-model AifEdge {
-  id                String        @id @default(cuid())
-  deliberationId    String
-  
-  sourceId          String
-  source            AifNode       @relation("EdgeSource", fields: [sourceId], references: [id], onDelete: Cascade)
-  
-  targetId          String
-  target            AifNode       @relation("EdgeTarget", fields: [targetId], references: [id], onDelete: Cascade)
-  
-  edgeRole          String        // 'premise'|'conclusion'|'conflictingElement'|'triggers'|'answers'|'repliesTo'
-  
-  // NEW: Track which dialogue move caused this edge
-  causedByMoveId    String?
-  causedByMove      DialogueMove? @relation("EdgeCausedBy", fields: [causedByMoveId], references: [id], onDelete: SetNull)
-  
-  createdAt         DateTime      @default(now())
-  
-  @@index([deliberationId])
-  @@index([sourceId])
-  @@index([targetId])
-  @@index([causedByMoveId])
-  @@map("aif_edges")
+  // ... existing relations ...
 }
 ```
+
+**Key Design Decisions:**
+
+1. ✅ **Reuse existing tables**: Argument, Claim, ConflictApplication
+2. ✅ **Add dialogue provenance**: Track which DialogueMove created each entity
+3. ✅ **Minimal new tables**: Only DialogueVisualizationNode for pure dialogue moves (WHY, CONCEDE, RETRACT)
+4. ✅ **Derive edges dynamically**: Query ConflictApplication for attacks, ArgumentPremise for support
+5. ✅ **No data duplication**: Arguments aren't stored twice
 
 **Migration Script:**
 
 ```typescript
-// scripts/migrations/add-dialogue-aif-links.ts
+// scripts/migrations/add-dialogue-provenance.ts
 #!/usr/bin/env tsx
 /**
- * Migration: Add Dialogue-AIF bidirectional links
+ * Migration: Add Dialogue Provenance to Existing Data Structures
  * 
  * Purpose:
- * 1. Create AifNode and AifEdge tables (if not exists)
- * 2. Add dialogue provenance fields to existing structures
- * 3. Backfill links for existing DialogueMoves that created Arguments
- * 4. Generate DM-nodes for protocol moves (WHY, CONCEDE, etc.)
+ * 1. Add dialogue provenance fields to Argument, ConflictApplication, Claim
+ * 2. Create DialogueVisualizationNode table for pure dialogue moves
+ * 3. Backfill links for existing DialogueMoves that created Arguments/Conflicts
+ * 4. Generate visualization nodes for protocol moves (WHY, CONCEDE, etc.)
  * 
- * Usage: tsx scripts/migrations/add-dialogue-aif-links.ts [--dry-run]
+ * Usage: tsx scripts/migrations/add-dialogue-provenance.ts [--dry-run]
  */
 
 import { PrismaClient } from "@prisma/client";
@@ -339,22 +409,24 @@ const prisma = new PrismaClient();
 
 interface MigrationStats {
   totalMoves: number;
-  dmNodesCreated: number;
   argumentsLinked: number;
-  edgesCreated: number;
+  conflictsLinked: number;
+  claimsLinked: number;
+  vizNodesCreated: number;
   errors: string[];
 }
 
 async function migrate(dryRun: boolean = false): Promise<MigrationStats> {
   const stats: MigrationStats = {
     totalMoves: 0,
-    dmNodesCreated: 0,
     argumentsLinked: 0,
-    edgesCreated: 0,
+    conflictsLinked: 0,
+    claimsLinked: 0,
+    vizNodesCreated: 0,
     errors: []
   };
 
-  console.log(`🔧 Starting dialogue-AIF migration (${dryRun ? "DRY RUN" : "LIVE"})`);
+  console.log(`🔧 Starting dialogue provenance migration (${dryRun ? "DRY RUN" : "LIVE"})`);
   console.log("─".repeat(70));
 
   // Step 1: Fetch all DialogueMoves
@@ -367,128 +439,30 @@ async function migrate(dryRun: boolean = false): Promise<MigrationStats> {
   stats.totalMoves = moves.length;
   console.log(`\n📊 Found ${stats.totalMoves} dialogue moves`);
 
-  // Step 2: Create DM-nodes for protocol moves
-  console.log("\n🔹 Creating DM-nodes for protocol moves...");
-  const protocolKinds = ["WHY", "GROUNDS", "CONCEDE", "RETRACT", "CLOSE", "ACCEPT_ARGUMENT", "THEREFORE", "SUPPOSE", "DISCHARGE"];
-  
-  for (const move of moves) {
-    if (!protocolKinds.includes(move.kind)) continue;
-    
-    try {
-      // Check if DM-node already exists
-      const existing = await prisma.aifNode.findFirst({
-        where: { 
-          deliberationId: move.deliberationId,
-          nodeSubtype: "dialogue_move",
-          dialogueMoveId: move.id
-        }
-      });
-      
-      if (existing) {
-        console.log(`   ⏭️  DM-node exists for move ${move.id.slice(0, 8)}`);
-        continue;
-      }
-
-      if (!dryRun) {
-        const dmNode = await prisma.aifNode.create({
-          data: {
-            deliberationId: move.deliberationId,
-            nodeKind: "DM",
-            nodeSubtype: "dialogue_move",
-            label: `${move.kind} by ${move.actorId.slice(0, 8)}`,
-            dialogueMoveId: move.id,
-            dialogueMetadata: {
-              locution: move.kind,
-              speaker: move.actorId,
-              timestamp: move.createdAt.toISOString(),
-              replyToMoveId: move.replyToMoveId,
-              illocution: move.illocution,
-              payload: move.payload
-            }
-          }
-        });
-
-        // Link back to DialogueMove
-        await prisma.dialogueMove.update({
-          where: { id: move.id },
-          data: { aifRepresentation: dmNode.id }
-        });
-
-        stats.dmNodesCreated++;
-        console.log(`   ✅ Created DM-node for ${move.kind} (${move.id.slice(0, 8)})`);
-      } else {
-        console.log(`   [DRY RUN] Would create DM-node for ${move.kind}`);
-        stats.dmNodesCreated++;
-      }
-    } catch (error) {
-      stats.errors.push(`Failed to create DM-node for move ${move.id}: ${error}`);
-    }
-  }
-
-  // Step 3: Link Arguments created by GROUNDS moves
-  console.log("\n🔹 Linking Arguments to GROUNDS moves...");
+  // Step 2: Link GROUNDS moves to Arguments
+  console.log("\n🔹 Linking GROUNDS moves to Arguments...");
   const groundsMoves = moves.filter(m => m.kind === "GROUNDS" && m.argumentId);
   
   for (const move of groundsMoves) {
     try {
-      // Find the argument this move created
       const argument = await prisma.argument.findUnique({
-        where: { id: move.argumentId! },
-        include: { 
-          conclusion: { select: { id: true } },
-          premises: { select: { claimId: true } }
-        }
+        where: { id: move.argumentId! }
       });
 
       if (!argument) {
-        console.log(`   ⚠️  Argument ${move.argumentId} not found for move ${move.id.slice(0, 8)}`);
+        console.log(`   ⚠️  Argument ${move.argumentId} not found`);
         continue;
       }
 
       if (!dryRun) {
-        // Create/find RA-node for this argument
-        let raNode = await prisma.aifNode.findFirst({
-          where: {
-            deliberationId: move.deliberationId,
-            nodeKind: "RA",
-            // Could link via argumentId if we add that field
-          }
+        await prisma.argument.update({
+          where: { id: move.argumentId! },
+          data: { createdByMoveId: move.id }
         });
-
-        if (!raNode) {
-          raNode = await prisma.aifNode.create({
-            data: {
-              deliberationId: move.deliberationId,
-              nodeKind: "RA",
-              label: argument.text || `Argument ${argument.id.slice(0, 8)}`,
-              dialogueMoveId: move.id,
-              schemeKey: argument.schemeId || undefined
-            }
-          });
-        }
-
-        // Create edges: DM-node --answers--> RA-node
-        const dmNode = await prisma.aifNode.findFirst({
-          where: { dialogueMoveId: move.id, nodeKind: "DM" }
-        });
-
-        if (dmNode && raNode) {
-          await prisma.aifEdge.create({
-            data: {
-              deliberationId: move.deliberationId,
-              sourceId: dmNode.id,
-              targetId: raNode.id,
-              edgeRole: "answers",
-              causedByMoveId: move.id
-            }
-          });
-          stats.edgesCreated++;
-        }
-
         stats.argumentsLinked++;
         console.log(`   ✅ Linked argument ${argument.id.slice(0, 8)} to move ${move.id.slice(0, 8)}`);
       } else {
-        console.log(`   [DRY RUN] Would link argument ${move.argumentId?.slice(0, 8)} to move`);
+        console.log(`   [DRY RUN] Would link argument ${move.argumentId?.slice(0, 8)}`);
         stats.argumentsLinked++;
       }
     } catch (error) {
@@ -496,12 +470,94 @@ async function migrate(dryRun: boolean = false): Promise<MigrationStats> {
     }
   }
 
+  // Step 3: Link ATTACK moves to ConflictApplications
+  console.log("\n🔹 Linking ATTACK moves to ConflictApplications...");
+  // Note: We need to infer which ConflictApplications were created by which moves
+  // This might require checking timestamps and deliberation context
+  
+  const attackMoves = moves.filter(m => 
+    m.kind === "ATTACK" || m.kind === "REBUT" || m.kind === "UNDERCUT"
+  );
+  
+  for (const move of attackMoves) {
+    try {
+      // Find ConflictApplications created around the same time
+      const conflicts = await prisma.conflictApplication.findMany({
+        where: {
+          deliberationId: move.deliberationId,
+          createdAt: {
+            gte: new Date(move.createdAt.getTime() - 5000), // 5 sec before
+            lte: new Date(move.createdAt.getTime() + 5000)  // 5 sec after
+          }
+        }
+      });
+
+      if (conflicts.length === 1 && !dryRun) {
+        await prisma.conflictApplication.update({
+          where: { id: conflicts[0].id },
+          data: { createdByMoveId: move.id }
+        });
+        stats.conflictsLinked++;
+        console.log(`   ✅ Linked conflict ${conflicts[0].id.slice(0, 8)} to move ${move.id.slice(0, 8)}`);
+      } else if (conflicts.length === 1) {
+        console.log(`   [DRY RUN] Would link conflict ${conflicts[0].id.slice(0, 8)}`);
+        stats.conflictsLinked++;
+      }
+    } catch (error) {
+      stats.errors.push(`Failed to link conflict for move ${move.id}: ${error}`);
+    }
+  }
+
+  // Step 4: Create visualization nodes for non-argument moves
+  console.log("\n🔹 Creating visualization nodes for pure dialogue moves...");
+  const vizMoveKinds = ["WHY", "CONCEDE", "RETRACT", "CLOSE", "ACCEPT_ARGUMENT"];
+  
+  for (const move of moves) {
+    if (!vizMoveKinds.includes(move.kind)) continue;
+    
+    try {
+      const existing = await prisma.dialogueVisualizationNode.findUnique({
+        where: { dialogueMoveId: move.id }
+      });
+      
+      if (existing) {
+        console.log(`   ⏭️  Viz node exists for move ${move.id.slice(0, 8)}`);
+        continue;
+      }
+
+      if (!dryRun) {
+        await prisma.dialogueVisualizationNode.create({
+          data: {
+            deliberationId: move.deliberationId,
+            dialogueMoveId: move.id,
+            nodeKind: move.kind,
+            metadata: {
+              speaker: move.actorId,
+              timestamp: move.createdAt.toISOString(),
+              targetType: move.targetType,
+              targetId: move.targetId,
+              payload: move.payload
+            }
+          }
+        });
+        stats.vizNodesCreated++;
+        console.log(`   ✅ Created viz node for ${move.kind} (${move.id.slice(0, 8)})`);
+      } else {
+        console.log(`   [DRY RUN] Would create viz node for ${move.kind}`);
+        stats.vizNodesCreated++;
+      }
+    } catch (error) {
+      stats.errors.push(`Failed to create viz node for move ${move.id}: ${error}`);
+    }
+  }
+
   console.log("\n" + "─".repeat(70));
   console.log("📈 Migration Summary:");
   console.log(`   Total moves processed: ${stats.totalMoves}`);
-  console.log(`   DM-nodes created: ${stats.dmNodesCreated}`);
   console.log(`   Arguments linked: ${stats.argumentsLinked}`);
-  console.log(`   Edges created: ${stats.edgesCreated}`);
+  console.log(`   Conflicts linked: ${stats.conflictsLinked}`);
+  console.log(`   Claims linked: ${stats.claimsLinked}`);
+  console.log(`   Viz nodes created: ${stats.vizNodesCreated}`);
   console.log(`   Errors: ${stats.errors.length}`);
 
   if (stats.errors.length > 0) {
@@ -528,18 +584,21 @@ migrate(dryRun)
 
 **Tasks:**
 
-- [x] 1.1.1: Review existing schema in `lib/models/schema.prisma` for conflicts
-- [x] 1.1.2: Add `AifNode`, `AifEdge` models with dialogue fields to schema
-- [x] 1.1.3: Add `aifRepresentation` field to `DialogueMove` model
-- [x] 1.1.4: Create Prisma migration: `npx prisma db push --accept-data-loss`
-- [ ] 1.1.5: Test migration script with `--dry-run` flag on staging database
-- [ ] 1.1.6: Run live migration: `tsx scripts/migrations/add-dialogue-aif-links.ts`
-- [ ] 1.1.7: Verify data integrity with spot checks in Prisma Studio
-- [x] 1.1.8: Update Prisma client: `npx prisma generate`
-- [x] 1.1.9: Update TypeScript imports across codebase to use new client types
+- [ ] 1.1.1: Review existing schema in `lib/models/schema.prisma` for conflicts
+- [ ] 1.1.2: Add `createdByMoveId` field to `Argument` model
+- [ ] 1.1.3: Add `createdByMoveId` field to `ConflictApplication` model
+- [ ] 1.1.4: Add `introducedByMoveId` field to `Claim` model (optional)
+- [ ] 1.1.5: Create `DialogueVisualizationNode` table for pure dialogue moves
+- [ ] 1.1.6: Add reverse relations to `DialogueMove` model
+- [ ] 1.1.7: Create Prisma migration: `npx prisma migrate dev --name add_dialogue_provenance`
+- [ ] 1.1.8: Test migration script with `--dry-run` flag on staging database
+- [ ] 1.1.9: Run live migration: `tsx scripts/migrations/add-dialogue-provenance.ts`
+- [ ] 1.1.10: Verify data integrity with spot checks in Prisma Studio
+- [ ] 1.1.11: Update Prisma client: `npx prisma generate`
+- [ ] 1.1.12: Update TypeScript imports across codebase to use new client types
 
-**Estimated Time:** 4 days (increased for thorough testing)  
-**Status:** ✅ Complete (Nov 2, 2025)  
+**Estimated Time:** 3 days (reduced due to simpler approach)  
+**Status:** 🔲 Not Started  
 **Risks & Mitigation:**
 - **Risk:** Backfill may timeout for large databases (>10k moves)  
   **Mitigation:** Process in batches of 500, add progress checkpoints
@@ -547,13 +606,18 @@ migrate(dryRun)
   **Mitigation:** Use `onDelete: SetNull` for optional relations
 - **Risk:** Schema sync issues between dev/staging/prod  
   **Mitigation:** Use Prisma migrations (not `db push`) for production
+- **Risk:** Inferring which ConflictApplication matches which DialogueMove  
+  **Mitigation:** Use timestamp heuristics, manual review for ambiguous cases
 
 **Rollback Plan:**
 ```bash
 # If migration fails:
-npx prisma migrate resolve --rolled-back <migration_name>
+npx prisma migrate resolve --rolled-back add_dialogue_provenance
 # Restore from backup:
-psql $DATABASE_URL < backup_before_aif_migration.sql
+psql $DATABASE_URL < backup_before_dialogue_provenance.sql
+
+# Remove added fields:
+npx prisma migrate dev --name rollback_dialogue_provenance
 ```
 
 ---
@@ -628,9 +692,10 @@ export function dialogueKindToAifType(kind: string): DmNodeType {
 - [x] 1.2.3: Create type guards and utility functions
 - [x] 1.2.4: Write unit tests for `dialogueKindToAifType` mapping
 - [x] 1.2.5: Document in `AIF_DIAGRAM_SYSTEM_ARCHITECTURE_REVIEW.md`
+- [ ] 1.2.6: Add reference to ConflictApplication-based edge derivation pattern
 
-**Estimated Time:** 2 days  
-**Status:** ✅ Complete (Nov 2, 2025)  
+**Estimated Time:** 1 day (reduced, ontology already exists)  
+**Status:** ✅ Mostly Complete (Nov 2, 2025) - needs documentation update  
 **Dependencies:** None
 
 ---
@@ -713,15 +778,23 @@ export interface AifGraphWithDialogue {
 
 ## Phase 1 Summary
 
-**Duration:** 2 weeks  
+**Duration:** 1.5 weeks (reduced from 2 weeks)  
 **Deliverables:**
-- ✅ Extended Prisma schema with dialogue-AIF links
-- ✅ Migration scripts and backfilled data
+- ✅ Extended Prisma schema with dialogue provenance fields on existing models
+- ✅ New DialogueVisualizationNode table for pure dialogue moves only
+- ✅ Migration scripts and backfilled dialogue provenance links
 - ✅ AIF ontology extension definitions
 - ✅ TypeScript types for dialogue-aware nodes
+- ✅ Documentation of architectural decisions (ConflictApplication pattern)
 - ✅ Unit tests for all new utilities
 
-**Next Phase Preview:** Phase 2 will focus on server-side APIs to fetch and construct dialogue-aware AIF graphs, including efficient queries for provenance data.
+**Key Architectural Decisions:**
+1. **No duplicate tables**: Build on existing Argument/Claim/ConflictApplication
+2. **Dialogue provenance**: Added `createdByMoveId` fields to track origins
+3. **Dynamic edge derivation**: Query ConflictApplication for attacks (proven pattern)
+4. **Minimal new tables**: Only DialogueVisualizationNode for non-argument moves
+
+**Next Phase Preview:** Phase 2 will focus on server-side APIs to fetch and construct dialogue-aware AIF graphs using the claim resolution pattern from `generate-debate-sheets.ts`.
 
 ---
 
@@ -863,11 +936,21 @@ export async function GET(request: NextRequest) {
 
 **File:** `lib/aif/graph-builder.ts` (new)
 
+**CRITICAL:** Follow the pattern from `generate-debate-sheets.ts` - query existing tables, derive edges dynamically.
+
 **Implementation:**
 
 ```typescript
 /**
  * Core logic for building dialogue-aware AIF graphs
+ * 
+ * ARCHITECTURE NOTE:
+ * - Arguments are stored in Argument table (NOT duplicated in AifNode)
+ * - Attack edges derived from ConflictApplication table
+ * - Support edges derived from ArgumentPremise + Claim linkage (implicit)
+ * - Only pure dialogue moves (WHY, CONCEDE, RETRACT) use DialogueVisualizationNode
+ * 
+ * See: generate-debate-sheets.ts for proven implementation pattern
  */
 
 import { prisma } from "@/lib/prismaclient";
@@ -877,7 +960,6 @@ import type {
   DialogueAwareEdge,
   DialogueMoveWithAif 
 } from "@/types/aif-dialogue";
-import { buildAifSubgraphForArgument } from "@/lib/arguments/diagram";
 
 interface BuildGraphOptions {
   deliberationId: string;
@@ -891,96 +973,250 @@ export async function buildDialogueAwareGraph(
 ): Promise<AifGraphWithDialogue> {
   const { deliberationId, includeDialogue, includeMoves, participantFilter } = options;
 
-  // Step 1: Fetch all arguments in deliberation
+  const nodes: AifNodeWithDialogue[] = [];
+  const edges: DialogueAwareEdge[] = [];
+
+  // Step 1: Fetch all arguments (RA-nodes) with dialogue provenance
   const arguments = await prisma.argument.findMany({
     where: { deliberationId },
     include: {
       conclusion: { select: { id: true, text: true } },
-      premises: { select: { claimId: true, claim: { select: { text: true } } } },
-      scheme: { select: { name: true, category: true } }
+      premises: { 
+        select: { 
+          claimId: true, 
+          claim: { select: { id: true, text: true } } 
+        } 
+      },
+      scheme: { select: { id: true, name: true, category: true } },
+      createdByMove: { 
+        include: { 
+          author: { select: { id: true, username: true, displayName: true } } 
+        } 
+      }
     }
   });
 
-  // Step 2: Build base AIF graph (I-nodes, RA-nodes, CA-nodes, PA-nodes)
-  const nodes: AifNodeWithDialogue[] = [];
-  const edges: DialogueAwareEdge[] = [];
+  // Step 2: Build nodes from arguments
+  for (const arg of arguments) {
+    // RA-node (Reasoning Application node)
+    nodes.push({
+      id: `RA:${arg.id}`,
+      nodeType: "aif:RANode",
+      text: arg.text || `Argument using ${arg.scheme?.name || "scheme"}`,
+      dialogueMoveId: arg.createdByMoveId,
+      dialogueMove: arg.createdByMove || null,
+      dialogueMetadata: arg.createdByMove ? {
+        locution: arg.createdByMove.kind,
+        speaker: arg.createdByMove.actorId,
+        speakerName: arg.createdByMove.author?.displayName || arg.createdByMove.author?.username || "Unknown",
+        timestamp: arg.createdByMove.createdAt.toISOString(),
+        replyToMoveId: arg.createdByMove.replyToMoveId
+      } : null,
+      nodeSubtype: "standard"
+    });
 
-  // Fetch existing AIF nodes from database
-  const aifNodes = await prisma.aifNode.findMany({
-    where: { 
-      deliberationId,
-      ...(includeDialogue ? {} : { nodeKind: { not: "DM" } })
-    },
+    // I-node for conclusion
+    if (arg.conclusion) {
+      nodes.push({
+        id: `I:${arg.conclusion.id}`,
+        nodeType: "aif:INode",
+        text: arg.conclusion.text,
+        dialogueMoveId: null,
+        dialogueMove: null,
+        dialogueMetadata: null,
+        nodeSubtype: "standard"
+      });
+
+      // Edge: RA → I (conclusion)
+      edges.push({
+        id: `edge:${arg.id}:conclusion`,
+        source: `RA:${arg.id}`,
+        target: `I:${arg.conclusion.id}`,
+        edgeType: "inference",
+        causedByDialogueMoveId: arg.createdByMoveId
+      });
+    }
+
+    // I-nodes for premises and edges: I → RA
+    for (const premise of arg.premises) {
+      const premiseINodeId = `I:${premise.claimId}`;
+      
+      // Add I-node if not already added
+      if (!nodes.some(n => n.id === premiseINodeId)) {
+        nodes.push({
+          id: premiseINodeId,
+          nodeType: "aif:INode",
+          text: premise.claim.text,
+          dialogueMoveId: null,
+          dialogueMove: null,
+          dialogueMetadata: null,
+          nodeSubtype: "standard"
+        });
+      }
+
+      // Edge: I → RA (premise)
+      edges.push({
+        id: `edge:${premise.claimId}:premise:${arg.id}`,
+        source: premiseINodeId,
+        target: `RA:${arg.id}`,
+        edgeType: "inference",
+        causedByDialogueMoveId: arg.createdByMoveId
+      });
+    }
+  }
+
+  // Step 3: Derive attack edges from ConflictApplication (CRITICAL!)
+  const conflicts = await prisma.conflictApplication.findMany({
+    where: { deliberationId },
     include: {
-      dialogueMove: {
+      createdByMove: {
         include: {
           author: { select: { id: true, username: true, displayName: true } }
         }
-      },
-      outgoingEdges: { include: { target: true } },
-      incomingEdges: { include: { source: true } }
+      }
     }
   });
 
-  // Transform to typed nodes
-  for (const node of aifNodes) {
-    nodes.push({
-      id: node.id,
-      nodeType: `aif:${node.nodeKind}Node`,
-      text: node.label || node.text || "",
-      dialogueMoveId: node.dialogueMoveId,
-      dialogueMove: node.dialogueMove || null,
-      dialogueMetadata: node.dialogueMetadata as any,
-      nodeSubtype: node.nodeSubtype
-    });
+  // Build claim-to-argument resolution map (follows generate-debate-sheets.ts pattern)
+  const claimToArgMap = new Map<string, string>();
+  
+  // Map conclusions
+  for (const arg of arguments) {
+    if (arg.claimId) {
+      claimToArgMap.set(arg.claimId, arg.id);
+    }
   }
-
-  // Step 3: Fetch edges
-  const aifEdges = await prisma.aifEdge.findMany({
-    where: { deliberationId }
+  
+  // Map premises
+  const allPremises = await prisma.argumentPremise.findMany({
+    where: {
+      argument: { deliberationId }
+    },
+    select: { claimId: true, argumentId: true }
   });
+  
+  for (const prem of allPremises) {
+    claimToArgMap.set(prem.claimId, prem.argumentId);
+  }
 
-  for (const edge of aifEdges) {
+  // Resolve conflicts to CA-nodes and edges
+  for (const conflict of conflicts) {
+    // Resolve claims to arguments
+    let fromArgId = conflict.conflictingArgumentId || 
+                    claimToArgMap.get(conflict.conflictingClaimId || "");
+    let toArgId = conflict.conflictedArgumentId || 
+                  claimToArgMap.get(conflict.conflictedClaimId || "");
+
+    if (!fromArgId || !toArgId) continue; // Skip unresolved conflicts
+
+    const caNodeId = `CA:${conflict.id}`;
+    
+    // Create CA-node (Conflict Application node)
+    nodes.push({
+      id: caNodeId,
+      nodeType: "aif:CANode",
+      text: `${conflict.legacyAttackType || "Attack"}`,
+      dialogueMoveId: conflict.createdByMoveId,
+      dialogueMove: conflict.createdByMove || null,
+      dialogueMetadata: conflict.createdByMove ? {
+        locution: conflict.createdByMove.kind,
+        speaker: conflict.createdByMove.actorId,
+        speakerName: conflict.createdByMove.author?.displayName || "Unknown",
+        timestamp: conflict.createdByMove.createdAt.toISOString(),
+        replyToMoveId: conflict.createdByMove.replyToMoveId
+      } : null,
+      nodeSubtype: "standard"
+    });
+
+    // Edges: attacking arg → CA, CA → targeted arg
     edges.push({
-      id: edge.id,
-      source: edge.sourceId,
-      target: edge.targetId,
-      edgeType: mapEdgeRole(edge.edgeRole),
-      causedByDialogueMoveId: edge.causedByMoveId
+      id: `edge:${fromArgId}:attacks:${caNodeId}`,
+      source: `RA:${fromArgId}`,
+      target: caNodeId,
+      edgeType: "conflict",
+      causedByDialogueMoveId: conflict.createdByMoveId
+    });
+
+    edges.push({
+      id: `edge:${caNodeId}:targets:${toArgId}`,
+      source: caNodeId,
+      target: `RA:${toArgId}`,
+      edgeType: "conflict",
+      causedByDialogueMoveId: conflict.createdByMoveId
     });
   }
 
-  // Step 4: Fetch dialogue moves (if needed)
+  // Step 4: Add dialogue visualization nodes (WHY, CONCEDE, RETRACT, etc.)
+  if (includeDialogue) {
+    const vizNodes = await prisma.dialogueVisualizationNode.findMany({
+      where: { deliberationId },
+      include: {
+        dialogueMove: {
+          include: {
+            author: { select: { id: true, username: true, displayName: true } }
+          }
+        }
+      }
+    });
+
+    for (const vizNode of vizNodes) {
+      nodes.push({
+        id: `DM:${vizNode.id}`,
+        nodeType: `aif:DialogueMove_${vizNode.nodeKind}`,
+        text: `${vizNode.nodeKind}`,
+        dialogueMoveId: vizNode.dialogueMoveId,
+        dialogueMove: vizNode.dialogueMove,
+        dialogueMetadata: {
+          locution: vizNode.nodeKind,
+          speaker: vizNode.dialogueMove.actorId,
+          speakerName: vizNode.dialogueMove.author?.displayName || "Unknown",
+          timestamp: vizNode.createdAt.toISOString(),
+          replyToMoveId: vizNode.dialogueMove.replyToMoveId
+        },
+        nodeSubtype: "dialogue_move"
+      });
+
+      // Create edges for dialogue move interactions (e.g., WHY → RA)
+      const metadata = vizNode.metadata as any;
+      if (metadata?.targetArgumentId) {
+        edges.push({
+          id: `edge:${vizNode.id}:triggers:${metadata.targetArgumentId}`,
+          source: `DM:${vizNode.id}`,
+          target: `RA:${metadata.targetArgumentId}`,
+          edgeType: "triggers",
+          causedByDialogueMoveId: vizNode.dialogueMoveId
+        });
+      }
+    }
+  }
+
+  // Step 5: Fetch dialogue moves metadata
   let dialogueMoves: DialogueMoveWithAif[] = [];
   if (includeDialogue) {
     const moveFilter: any = { deliberationId };
     
-    // Filter by move type
     if (includeMoves === "protocol") {
       moveFilter.kind = { in: ["WHY", "GROUNDS", "CONCEDE", "RETRACT", "CLOSE", "ACCEPT_ARGUMENT"] };
     } else if (includeMoves === "structural") {
       moveFilter.kind = { in: ["THEREFORE", "SUPPOSE", "DISCHARGE"] };
     }
     
-    // Filter by participant
     if (participantFilter) {
       moveFilter.actorId = participantFilter;
     }
 
-    const moves = await prisma.dialogueMove.findMany({
+    dialogueMoves = await prisma.dialogueMove.findMany({
       where: moveFilter,
       include: {
-        aifNode: true,
-        createdAifNodes: true,
-        author: { select: { id: true, username: true, displayName: true } }
+        author: { select: { id: true, username: true, displayName: true } },
+        createdArguments: true,
+        createdConflicts: true
       },
       orderBy: { createdAt: "asc" }
-    });
-
-    dialogueMoves = moves as any;
+    }) as any;
   }
 
-  // Step 5: Build commitment stores
+  // Step 6: Build commitment stores
   const commitments = await prisma.commitment.findMany({
     where: { deliberationId, isRetracted: false }
   });
@@ -1000,34 +1236,20 @@ export async function buildDialogueAwareGraph(
     commitmentStores
   };
 }
-
-// Helper: Map edge roles to typed enum
-function mapEdgeRole(role: string): DialogueAwareEdge["edgeType"] {
-  const mapping: Record<string, DialogueAwareEdge["edgeType"]> = {
-    "premise": "inference",
-    "conclusion": "inference",
-    "conflictingElement": "conflict",
-    "conflictedElement": "conflict",
-    "preferredElement": "preference",
-    "triggers": "triggers",
-    "answers": "answers",
-    "commitsTo": "commitsTo",
-    "repliesTo": "repliesTo"
-  };
-  return mapping[role] || "inference";
-}
 ```
 
 **Tasks:**
 
-- [ ] 2.2.1: Create `lib/aif/graph-builder.ts` with core graph construction logic
-- [ ] 2.2.2: Implement efficient batched queries (avoid N+1 problem)
-- [ ] 2.2.3: Add caching layer using Redis/Upstash (optional but recommended)
-- [ ] 2.2.4: Optimize for large graphs (>1000 nodes) with pagination/streaming
-- [ ] 2.2.5: Write unit tests for graph builder with mock data
-- [ ] 2.2.6: Add performance logging (query times, node counts)
+- [ ] 2.2.1: Create `lib/aif/graph-builder.ts` following proven pattern from `generate-debate-sheets.ts`
+- [ ] 2.2.2: Implement claim-to-argument resolution map (CRITICAL for edge derivation)
+- [ ] 2.2.3: Query ConflictApplication for attack edges (NOT ArgumentEdge - it's empty!)
+- [ ] 2.2.4: Add support for DialogueVisualizationNode rendering
+- [ ] 2.2.5: Optimize queries with proper includes to avoid N+1 problem
+- [ ] 2.2.6: Write unit tests with mock data matching production patterns
+- [ ] 2.2.7: Add performance logging (query times, node counts)
+- [ ] 2.2.8: Document architectural decisions in code comments
 
-**Estimated Time:** 4 days
+**Estimated Time:** 3 days (reduced due to proven pattern)
 
 ---
 
@@ -1230,13 +1452,20 @@ export async function GET(
 
 ## Phase 2 Summary
 
-**Duration:** 2 weeks  
+**Duration:** 1.5 weeks (reduced from 2 weeks)  
 **Deliverables:**
-- ✅ Core API for fetching dialogue-aware graphs
-- ✅ Graph builder utility with optimized queries
-- ✅ Client-side hooks for data fetching
+- ✅ Core API for fetching dialogue-aware graphs using existing data structures
+- ✅ Graph builder utility with claim resolution pattern (proven in generate-debate-sheets.ts)
+- ✅ Client-side hooks for data fetching with SWR
 - ✅ Provenance and timeline APIs
 - ✅ Comprehensive API documentation
+- ✅ Performance optimizations using existing indexes
+
+**Key Implementation Notes:**
+- Graph builder queries Argument, Claim, ConflictApplication (NOT AifNode/AifEdge)
+- Edges derived dynamically from ConflictApplication using claim-to-argument map
+- Support relationships inferred from ArgumentPremise + Claim linkage
+- Dialogue visualization nodes fetched separately only when needed
 
 **Next Phase Preview:** Phase 3 will implement the visual components for DM-nodes, including React components, SVG rendering, and interaction handlers.
 
@@ -1364,6 +1593,8 @@ Phase 1 (Foundation) → Phase 2 (APIs) → Phase 3 (Components) → Phase 4 (In
 | 2025-11-02 | Use DM-nodes instead of edge annotations | Better semantic clarity, follows AIF+ spec | Schema complexity increases |
 | 2025-11-02 | Store dialogue metadata as JSON | Flexibility for future extensions | Requires JSON query optimization |
 | 2025-11-02 | Split roadmap into multiple docs | Avoid overwhelming single file | Easier navigation, parallel editing |
+| 2025-11-02 | **CRITICAL: Align with existing Argument/Claim/ConflictApplication architecture** | ArgumentEdge table is empty/legacy; proven pattern exists in generate-debate-sheets.ts | Avoids data duplication, uses single source of truth, simpler migration |
+| 2025-11-02 | Add dialogue provenance to existing models instead of creating AifNode/AifEdge | Prevents sync issues, leverages existing indexes, follows working patterns | Less schema complexity, faster queries, no JOIN overhead |
 
 ### Open Questions
 

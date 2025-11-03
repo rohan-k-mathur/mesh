@@ -11,7 +11,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   if (!exist) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
   const debates = await prisma.deliberation.findMany({
-    where: { roomId },
+    where: { agoraRoomId: roomId },
     select: { id: true, title: true, updatedAt: true },
     orderBy: { updatedAt: 'desc' },
     take: 200,

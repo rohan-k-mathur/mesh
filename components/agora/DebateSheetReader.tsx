@@ -9,6 +9,10 @@ import React from "react";
 import { useConfidence } from "./useConfidence";
 import { fetchClaimScores, ClaimScore } from '@/lib/client/evidential';
 import { SupportBar } from "../evidence/SupportBar";
+import { SchemeBadge } from "@/components/aif/SchemeBadge";
+import { CQStatusIndicator } from "@/components/aif/CQStatusIndicator";
+import { AttackBadge } from "@/components/aif/AttackBadge";
+import { PreferenceBadge } from "@/components/aif/PreferenceBadge";
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 type EvNode = {
@@ -97,6 +101,11 @@ const { mode, setMode } = useConfidence();
 
 const [imports, setImports] = React.useState<'off'|'materialized'|'virtual'|'all'>('off');
 
+  // Filter state
+  const [filterScheme, setFilterScheme] = useState<string | null>(null);
+  const [filterOpenCQs, setFilterOpenCQs] = useState(false);
+  const [filterAttacked, setFilterAttacked] = useState(false);
+
   // inside DebateSheetReader
 const isSynthetic = sheetId.startsWith('delib:');
 
@@ -117,6 +126,24 @@ React.useEffect(() => {
     return data?.sheet?.deliberationId
       ?? (sheetId.startsWith("delib:") ? sheetId.slice("delib:".length) : null);
   }, [data?.sheet?.deliberationId, sheetId]);
+
+  // Fetch AIF metadata for all arguments in this deliberation
+  const { data: aifData } = useSWR(
+    delibId ? `/api/deliberations/${delibId}/arguments/aif?limit=100` : null,
+    fetcher,
+    { revalidateOnFocus: false }
+  );
+
+  // Build lookup map: argumentId -> aif metadata
+  const aifByArgId = useMemo(() => {
+    const m = new Map<string, any>();
+    if (aifData?.items) {
+      for (const item of aifData.items) {
+        m.set(item.id, item.aif);
+      }
+    }
+    return m;
+  }, [aifData]);
 
   //  const [imports, setImports] = React.useState<'none'|'virtual'>('none');
   const { data: ev, mutate: refetchEv } = useSWR<EvResp>(
@@ -154,6 +181,50 @@ function barFor(claimId?: string|null) {
     (ev?.nodes ?? []).forEach(n => m.set(n.id, n.top ?? []));
     return m;
   }, [ev]);
+
+  // Get unique schemes for filter dropdown (must be before early returns)
+  const availableSchemes = useMemo(() => {
+    const schemes = new Set<string>();
+    if (!aifData?.items) return [];
+    
+    for (const item of aifData.items) {
+      if (item.aif?.scheme?.key) {
+        schemes.add(item.aif.scheme.key);
+      }
+    }
+    return Array.from(schemes).sort();
+  }, [aifData]);
+
+  // Filter nodes based on criteria (must be before early returns)
+  const filteredNodes = useMemo(() => {
+    const nodes = data?.sheet?.nodes;
+    if (!nodes) return [];
+    let filtered = [...nodes];
+
+    if (filterScheme) {
+      filtered = filtered.filter((n: any) => {
+        const aif = n.argumentId ? aifByArgId.get(n.argumentId) : null;
+        return aif?.scheme?.key === filterScheme;
+      });
+    }
+
+    if (filterOpenCQs) {
+      filtered = filtered.filter((n: any) => {
+        const aif = n.argumentId ? aifByArgId.get(n.argumentId) : null;
+        return aif?.cq && aif.cq.satisfied < aif.cq.required;
+      });
+    }
+
+    if (filterAttacked) {
+      filtered = filtered.filter((n: any) => {
+        const aif = n.argumentId ? aifByArgId.get(n.argumentId) : null;
+        const total = aif?.attacks ? (aif.attacks.REBUTS + aif.attacks.UNDERCUTS + aif.attacks.UNDERMINES) : 0;
+        return total > 0;
+      });
+    }
+
+    return filtered;
+  }, [data?.sheet?.nodes, filterScheme, filterOpenCQs, filterAttacked, aifByArgId]);
 
   if (error) return <div className="text-xs text-red-600">Failed to load sheet</div>;
   if (!data?.sheet) return <div className="text-xs text-neutral-500">Loading…</div>;
@@ -207,6 +278,34 @@ function barFor(claimId?: string|null) {
           </div>
         </div>
 
+        {/* Filter controls */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <label className="text-[11px] text-neutral-600">Filters:</label>
+          <select
+            className="menuv2--lite rounded px-2 py-1 text-[12px]"
+            value={filterScheme ?? ""}
+            onChange={(e) => setFilterScheme(e.target.value || null)}
+          >
+            <option value="">All schemes</option>
+            {availableSchemes.map(s => (
+              <option key={s} value={s}>{s.replace(/_/g, " ")}</option>
+            ))}
+          </select>
+          <label className="text-[11px] inline-flex items-center gap-1">
+            <input type="checkbox" checked={filterOpenCQs} onChange={(e) => setFilterOpenCQs(e.target.checked)} />
+            Open CQs only
+          </label>
+          <label className="text-[11px] inline-flex items-center gap-1">
+            <input type="checkbox" checked={filterAttacked} onChange={(e) => setFilterAttacked(e.target.checked)} />
+            Attacked only
+          </label>
+          {(filterScheme || filterOpenCQs || filterAttacked) && (
+            <button className="text-[11px] underline text-blue-600" onClick={() => { setFilterScheme(null); setFilterOpenCQs(false); setFilterAttacked(false); }}>
+              Clear filters
+            </button>
+          )}
+        </div>
+
         <div className="text-xs">Semantics: {acceptance.semantics}</div>
 
         <div className="space-y-1">
@@ -230,45 +329,42 @@ function barFor(claimId?: string|null) {
 
       <main className="space-y-3">
         <div className="rounded border p-2">
-          <div className="text-xs text-neutral-600 mb-2">Debate graph</div>
+          <div className="text-xs text-neutral-600 mb-2">
+            Debate graph ({filteredNodes.length} {filteredNodes.length === 1 ? "node" : "nodes"})
+          </div>
           <ul className="grid md:grid-cols-2 lg:grid-cols-3 gap-2">
-            {nodes.map((n:any) => {
+            {filteredNodes.map((n:any) => {
               const label = acceptance.labels[n.id] ?? 'undecided';
               const s = supportOfClaimId(n.claimId);
               const v = barFor(n.claimId);
+              const aif = n.argumentId ? aifByArgId.get(n.argumentId) : null;
 
               return (
                 <li key={n.id} className="border rounded p-2">
-                  <div className="flex items-center justify-between">
-                    <div className="font-medium">{n.title ?? n.id}</div>
-                    {v && v.kind === 'scalar' && (
-  <>
-    {/* <div className="flex items-center justify-between text-[11px] text-neutral-600 mb-0.5">
-      <span>{"Support" + " "}</span>
-      <span>{typeof v.s === "number" ?    (v.s * 100).toFixed(0) + "%" : "N/A"}</span>
-    </div> */}
-    <div className="h-1.5 bg-neutral-200 rounded">
-      <div className="h-1.5 rounded bg-emerald-500 transition-all" style={{ width: `${Math.max(0, Math.min(1, v.s ?? 0)) * 100}%` }} />
-    </div>
-  </>
-)}
-{v && v.kind === 'ds' && (
-  <>
-    <div className="flex items-center justify-between text-[11px] text-neutral-600 mb-0.5 gap-1">
-      <span >{"Belief:" + " "} </span>
-    
-      <span>{typeof v.bel === "number" ? (v.bel * 100).toFixed(0) +  "%" : "N/A"}</span>
-    </div>
-    <div className="h-1.5 bg-neutral-200 rounded">
-      <div className="h-1.5 rounded bg-emerald-500 transition-all" style={{ width: `${Math.max(0, Math.min(1, v.bel ?? 0)) * 100}%` }} />
-    </div>
-    {/* <div className="mt-1 text-[11px] text-neutral-600">
-      Bel/Pl: 
-      {typeof v.bel === "number" ? (v.bel * 100).toFixed(0) + "%" : "N/A"} / 
-      {typeof v.pl === "number" ? (v.pl * 100).toFixed(0) + "%" : "N/A"}
-    </div> */}
-  </>
-)}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1">
+                      <div className="font-medium text-sm mb-1">{n.title ?? n.id}</div>
+                      
+                      {/* Metadata badges */}
+                      <div className="flex flex-wrap gap-1 mb-2">
+                        {aif?.scheme && (
+                          <SchemeBadge schemeKey={aif.scheme.key} schemeName={aif.scheme.name} />
+                        )}
+                        {aif?.cq && (
+                          <CQStatusIndicator required={aif.cq.required} satisfied={aif.cq.satisfied} />
+                        )}
+                        {aif?.attacks && (
+                          <AttackBadge attacks={aif.attacks} />
+                        )}
+                        {aif?.preferences && (
+                          <PreferenceBadge 
+                            preferredBy={aif.preferences.preferredBy} 
+                            dispreferredBy={aif.preferences.dispreferredBy} 
+                          />
+                        )}
+                      </div>
+                    </div>
+
                     <Badge
                       variant={
                         label === 'accepted'
@@ -277,11 +373,30 @@ function barFor(claimId?: string|null) {
                             ? 'destructive'
                             : 'outline'
                       }
-                      className="text-[10px]"
+                      className="text-[10px] shrink-0"
                     >
                       {label}
                     </Badge>
                   </div>
+
+                  {v && v.kind === 'scalar' && (
+                    <div className="mt-2">
+                      <div className="h-1.5 bg-neutral-200 rounded">
+                        <div className="h-1.5 rounded bg-emerald-500 transition-all" style={{ width: `${Math.max(0, Math.min(1, v.s ?? 0)) * 100}%` }} />
+                      </div>
+                    </div>
+                  )}
+                  {v && v.kind === 'ds' && (
+                    <div className="mt-2">
+                      <div className="flex items-center justify-between text-[11px] text-neutral-600 mb-0.5 gap-1">
+                        <span>{"Belief:" + " "}</span>
+                        <span>{typeof v.bel === "number" ? (v.bel * 100).toFixed(0) + "%" : "N/A"}</span>
+                      </div>
+                      <div className="h-1.5 bg-neutral-200 rounded">
+                        <div className="h-1.5 rounded bg-emerald-500 transition-all" style={{ width: `${Math.max(0, Math.min(1, v.bel ?? 0)) * 100}%` }} />
+                      </div>
+                    </div>
+                  )}
 
                   {typeof s === 'number' && (
                     <div className="mt-2">

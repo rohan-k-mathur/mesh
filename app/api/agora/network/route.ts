@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
   }
 
   /* ---------------- 2) Per-room summaries -------------- */
-  const [argCounts, edgeCounts, labels] = await Promise.all([
+  const [argCounts, edgeCounts, labels, debateSheets] = await Promise.all([
     prisma.argument.groupBy({
       by: ['deliberationId'],
       _count: { deliberationId: true },
@@ -62,6 +62,10 @@ export async function GET(req: NextRequest) {
     prisma.claimLabel.findMany({
       where: { deliberationId: { in: roomIds } },
       select: { deliberationId: true, label: true },
+    }).catch(() => [] as any),
+    prisma.debateSheet.findMany({
+      where: { deliberationId: { in: roomIds } },
+      select: { id: true, deliberationId: true },
     }).catch(() => [] as any),
   ]);
 
@@ -79,6 +83,9 @@ export async function GET(req: NextRequest) {
     else b.undecided++;
     accBy.set(r.deliberationId, b);
   });
+  
+  const mSheets = new Map<string, string>();
+  (debateSheets as any[]).forEach((s: any) => mSheets.set(s.deliberationId, s.id));
 
   /* ---------------- 3) Meta-edges (XR + overlap + 3 new kinds) -------------- */
   const meta: EdgeRow[] = [];
@@ -171,6 +178,7 @@ const claims = await prisma.claim.findMany({
       nArgs: mArgs.get(r.id) ?? 0,
       nEdges: mEdges.get(r.id) ?? 0,
       ...(accBy.get(r.id) ?? { accepted: 0, rejected: 0, undecided: 0 }),
+      debateSheetId: mSheets.get(r.id) ?? null,
     })),
     edges: Array.from(agg.values()),
   };

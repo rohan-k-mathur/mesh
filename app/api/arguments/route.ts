@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prismaclient';
 import { getUserFromCookies } from '@/lib/serverutils';
 import { TargetType } from '@prisma/client';
 import { inferAndAssignScheme } from '@/lib/argumentation/schemeInference';
+import { ensureArgumentSupportInTx } from '@/lib/arguments/ensure-support';
 const NO_STORE = { headers: { 'Cache-Control': 'no-store' } } as const;
 
 type SlotValidators = Record<string, { expects?: string; required?: boolean }>;
@@ -114,6 +115,17 @@ let { schemeId, slots } = b; // assuming clients may send a role->claimId map wh
     const a = await tx.argument.create({
       data: { deliberationId, authorId, conclusionClaimId, schemeId: schemeId ?? null, implicitWarrant: implicitWarrant ?? null, text: text ?? '' }
     });
+    
+    // NEW: Ensure ArgumentSupport record exists (required for evidential API)
+    if (conclusionClaimId) {
+      await ensureArgumentSupportInTx(tx, {
+        argumentId: a.id,
+        claimId: conclusionClaimId,
+        deliberationId,
+        base: 0.7, // Default confidence
+      });
+    }
+    
    const premData =
       Array.isArray(premises) && premises.length
         ? premises.map((p:any) => ({ argumentId: a.id, claimId: p.claimId, groupKey: p.groupKey ?? null, isImplicit:false }))
