@@ -14,7 +14,7 @@ const TabsList = React.forwardRef<
   <TabsPrimitive.List
     ref={ref}
     className={cn(
-      "inline-flex gap-0 border-slate-700 border-[1px] w-fit rounded-full overflow-hidden",
+      "inline-flex gap-0 cardv2 bg-white/50 p-0 hover:translate-y-0 w-fit rounded-full overflow-hidden",
       className
     )}
     {...props}
@@ -30,7 +30,7 @@ const TabsTrigger = React.forwardRef<
     ref={ref}
     className={cn(
       // default to no rounding, but make first/last get the end-caps
-      "inline-flex items-center justify-center whitespace-nowrap rounded-none first:rounded-l-full last:rounded-r-full px-3 py-1.5 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-slate-700 hover:data-[state=active]:bg-slate-700 hover:bg-slate-400/50 data-[state=active]:text-slate-100 dark:ring-offset-slate-950 dark:focus-visible:ring-slate-300 dark:data-[state=active]:bg-slate-950 dark:data-[state=active]:text-slate-50",
+      "inline-flex items-center justify-center whitespace-nowrap rounded-none first:rounded-l-full last:rounded-r-full px-3 py-1.5 text-sm tracking-wide transition-all focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-slate-800 hover:data-[state=active]:bg-slate-800 hover:bg-slate-500/30 data-[state=active]:text-slate-100  dark:data-[state=active]:bg-slate-950 dark:data-[state=active]:text-slate-50",
       className
     )}
     {...props}

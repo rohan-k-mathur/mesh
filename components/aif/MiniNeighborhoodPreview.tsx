@@ -19,9 +19,9 @@ import { Loader2 } from "lucide-react";
 
 interface AifNode {
   id: string;
-  type: "RA" | "I" | "CA" | "PA" | "YA" | "MA" | "TA";
-  text?: string;
-  role?: string;
+  kind: "RA" | "I" | "CA" | "PA" | "YA" | "MA" | "TA";
+  label?: string | null;
+  schemeKey?: string | null;
 }
 
 interface AifEdge {
@@ -34,13 +34,12 @@ interface AifEdge {
 interface NeighborhoodData {
   nodes: AifNode[];
   edges: AifEdge[];
-  centerNodeId: string;
 }
 
 interface MiniNeighborhoodPreviewProps {
-  data: NeighborhoodData | null;
+  data: { ok: boolean; aif?: NeighborhoodData } | null;
   loading?: boolean;
-  error?: string | null;
+  error?: any;
   maxWidth?: number;
   maxHeight?: number;
 }
@@ -74,11 +73,14 @@ export function MiniNeighborhoodPreview({
 }: MiniNeighborhoodPreviewProps) {
   // Compute simple layout (circular around center)
   const layout = useMemo(() => {
-    if (!data) return null;
+    if (!data?.ok || !data.aif) return null;
 
-    const { nodes, centerNodeId } = data;
-    const centerNode = nodes.find((n) => n.id === centerNodeId);
-    if (!nodes.length || !centerNode) return null;
+    const { nodes, edges } = data.aif;
+    if (!nodes.length) return null;
+
+    // Find center node (first RA node, which is the queried argument)
+    const centerNode = nodes.find((n: AifNode) => n.kind === 'RA');
+    if (!centerNode) return null;
 
     const centerX = maxWidth / 2;
     const centerY = maxHeight / 2;
@@ -86,13 +88,13 @@ export function MiniNeighborhoodPreview({
 
     // Center node at center
     const positions = new Map<string, { x: number; y: number }>();
-    positions.set(centerNodeId, { x: centerX, y: centerY });
+    positions.set(centerNode.id, { x: centerX, y: centerY });
 
     // Arrange other nodes in circle
-    const otherNodes = nodes.filter((n) => n.id !== centerNodeId);
+    const otherNodes = nodes.filter((n: AifNode) => n.id !== centerNode.id);
     const angleStep = (2 * Math.PI) / Math.max(otherNodes.length, 1);
 
-    otherNodes.forEach((node, index) => {
+    otherNodes.forEach((node: AifNode, index: number) => {
       const angle = index * angleStep - Math.PI / 2; // Start from top
       positions.set(node.id, {
         x: centerX + radius * Math.cos(angle),
@@ -100,13 +102,13 @@ export function MiniNeighborhoodPreview({
       });
     });
 
-    return { nodes, positions, centerNodeId };
+    return { nodes, edges, positions, centerNodeId: centerNode.id };
   }, [data, maxWidth, maxHeight]);
 
   if (loading) {
     return (
       <div
-        className="flex items-center justify-center bg-gray-50 border border-gray-200 rounded-lg"
+        className="flex items-center justify-center bg-gray-50/35 backdrop-blur-lg border border-gray-200 rounded-lg"
         style={{ width: maxWidth, height: maxHeight }}
       >
         <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
@@ -136,13 +138,13 @@ export function MiniNeighborhoodPreview({
     );
   }
 
-  const { nodes, positions, centerNodeId } = layout;
+  const { nodes, edges, positions, centerNodeId } = layout;
 
   return (
-    <div className="relative bg-white border border-gray-300 rounded-lg overflow-hidden">
-      <svg width={maxWidth} height={maxHeight} className="bg-gray-50">
+    <div className=" border border-gray-300 rounded-lg overflow-hidden">
+      <svg width={maxWidth} height={maxHeight} className="bg-white/25 panel-edge">
         {/* Draw edges first (behind nodes) */}
-        {data.edges.map((edge) => {
+        {edges.map((edge: AifEdge) => {
           const fromPos = positions.get(edge.from);
           const toPos = positions.get(edge.to);
           if (!fromPos || !toPos) return null;
@@ -168,13 +170,13 @@ export function MiniNeighborhoodPreview({
         })}
 
         {/* Draw nodes */}
-        {nodes.map((node) => {
+        {nodes.map((node: AifNode) => {
           const pos = positions.get(node.id);
           if (!pos) return null;
 
           const isCenter = node.id === centerNodeId;
-          const color = NODE_COLORS[node.type] || "#6b7280";
-          const label = NODE_LABELS[node.type] || node.type;
+          const color = NODE_COLORS[node.kind] || "#6b7280";
+          const label = NODE_LABELS[node.kind] || node.kind;
           const radius = isCenter ? 18 : 14;
 
           return (
@@ -200,10 +202,10 @@ export function MiniNeighborhoodPreview({
                 {label}
               </text>
               {/* Tooltip text (truncated) */}
-              {node.text && (
+              {node.label && (
                 <title>
-                  {node.type}: {node.text.slice(0, 100)}
-                  {node.text.length > 100 ? "..." : ""}
+                  {node.kind}: {node.label.slice(0, 100)}
+                  {node.label.length > 100 ? "..." : ""}
                 </title>
               )}
             </g>
@@ -212,8 +214,8 @@ export function MiniNeighborhoodPreview({
       </svg>
 
       {/* Legend */}
-      <div className="absolute bottom-1 right-1 bg-white/90 backdrop-blur-sm rounded px-2 py-1 text-[9px] text-gray-600">
-        {nodes.length} nodes • {data.edges.length} edges
+      <div className="relative  bottom-0 right-0 bg-white/90 px-4 py-1 text-xs text-gray-600">
+        {nodes.length} nodes • {edges.length} edges
       </div>
     </div>
   );

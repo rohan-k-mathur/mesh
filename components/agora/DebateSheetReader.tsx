@@ -4,6 +4,12 @@
 import useSWR from "swr";
 import { useState, useMemo, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import ArgumentPopout from "./ArgumentPopout";
 import React from "react";
 import clsx from "clsx";
@@ -16,6 +22,7 @@ import { AttackBadge } from "@/components/aif/AttackBadge";
 import { PreferenceBadge } from "@/components/aif/PreferenceBadge";
 import { MiniNeighborhoodPreview } from "@/components/aif/MiniNeighborhoodPreview";
 import { ArgumentActionsSheet } from "@/components/arguments/ArgumentActionsSheet";
+import { Waypoints } from "lucide-react";
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 type EvNode = {
@@ -101,8 +108,10 @@ const { mode, setMode } = useConfidence();
 
   const [openNodeId, setOpenNodeId] = useState<string | null>(null);
   const [showArgsFor, setShowArgsFor] = useState<string | null>(null); // claimId
-  const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
-  const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null);
+  
+  // State for MiniNeighborhoodPreview modal (button-triggered)
+  const [previewNodeId, setPreviewNodeId] = useState<string | null>(null);
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);
   
   // State for ArgumentActionsSheet modal
   const [actionsSheetOpen, setActionsSheetOpen] = useState(false);
@@ -196,68 +205,41 @@ function barFor(claimId?: string|null) {
     return m;
   }, [ev]);
 
-  // Fetch neighborhood for hovered node (with debounce)
-  const hoveredArgumentId = useMemo(() => {
-    if (!hoveredNodeId) return null;
-    const node = data?.sheet?.nodes?.find((n: any) => n.id === hoveredNodeId);
+  // Fetch neighborhood for previewed node (button-triggered)
+  const previewedArgumentId = useMemo(() => {
+    if (!previewNodeId) return null;
+    const node = data?.sheet?.nodes?.find((n: any) => n.id === previewNodeId);
     return node?.argumentId || null;
-  }, [hoveredNodeId, data?.sheet?.nodes]);
+  }, [previewNodeId, data?.sheet?.nodes]);
 
   const { data: neighborhoodData, error: neighborhoodError, isLoading: neighborhoodLoading } = useSWR(
-    hoveredArgumentId ? `/api/arguments/${hoveredArgumentId}/neighborhood?depth=1` : null,
+    previewedArgumentId ? `/api/arguments/${previewedArgumentId}/aif-neighborhood?depth=1` : null,
     fetcher,
     { revalidateOnFocus: false, dedupingInterval: 60000 }
   );
 
-  // Hover handlers with debounce
-  const handleNodeMouseEnter = (nodeId: string) => {
-    // Clear any existing timeout
-    if (hoverTimeout) {
-      clearTimeout(hoverTimeout);
-    }
-    
-    // Set new timeout (300ms debounce)
-    const timeout = setTimeout(() => {
-      setHoveredNodeId(nodeId);
-    }, 300);
-    
-    setHoverTimeout(timeout);
+  // Toggle preview modal for a node
+  const togglePreview = (nodeId: string) => {
+    setPreviewNodeId(nodeId);
+    setPreviewModalOpen(true);
   };
-
-  const handleNodeMouseLeave = () => {
-    // Clear timeout on leave
-    if (hoverTimeout) {
-      clearTimeout(hoverTimeout);
-      setHoverTimeout(null);
-    }
-    
-    // Clear hovered node after a short delay to allow moving to tooltip
-    setTimeout(() => {
-      setHoveredNodeId(null);
-    }, 100);
-  };
-
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (hoverTimeout) {
-        clearTimeout(hoverTimeout);
-      }
-    };
-  }, [hoverTimeout]);
 
   // Handle node click to open ArgumentActionsSheet
   const handleNodeClick = (node: any) => {
     if (!node.argumentId) return;
     
-    const aif = aifByArgId.get(node.argumentId);
-    setSelectedArgumentForActions({
-      id: node.argumentId,
-      text: node.title || node.id,
-      conclusionText: node.title || node.id,
-      schemeKey: aif?.scheme?.key,
-    });
-    setActionsSheetOpen(true);
+    try {
+      const aif = aifByArgId?.get(node.argumentId);
+      setSelectedArgumentForActions({
+        id: node.argumentId,
+        text: node.title || node.id,
+        conclusionText: node.title || node.id,
+        schemeKey: aif?.scheme?.key,
+      });
+      setActionsSheetOpen(true);
+    } catch (error) {
+      console.error("Error opening argument actions sheet:", error);
+    }
   };
 
   // Get unique schemes for filter dropdown (must be before early returns)
@@ -439,46 +421,8 @@ function barFor(claimId?: string|null) {
               return (
                 <li 
                   key={n.id} 
-                  className={clsx(
-                    "panelv2 px-4 py-3 relative transition-all",
-                    n.argumentId && "cursor-pointer hover:shadow-md hover:border-indigo-300"
-                  )}
-                  onMouseEnter={() => n.argumentId && handleNodeMouseEnter(n.id)}
-                  onMouseLeave={handleNodeMouseLeave}
-                  onClick={() => handleNodeClick(n)}
+                  className="panelv2 panelv2--aurora px-4 py-3 relative transition-all"
                 >
-                  {/* Mini neighborhood preview on hover */}
-                  {hoveredNodeId === n.id && n.argumentId && (
-                    <div 
-                      className="absolute z-50 bg-white border shadow-lg rounded-lg p-3"
-                      style={{ 
-                        top: '100%', 
-                        left: '0', 
-                        marginTop: '8px',
-                        minWidth: '320px'
-                      }}
-                      onMouseEnter={() => {
-                        // Keep tooltip open when hovering over it
-                        if (hoverTimeout) {
-                          clearTimeout(hoverTimeout);
-                          setHoverTimeout(null);
-                        }
-                      }}
-                      onMouseLeave={handleNodeMouseLeave}
-                    >
-                      <div className="text-xs font-medium text-neutral-600 mb-2">
-                        AIF Neighborhood
-                      </div>
-                      <MiniNeighborhoodPreview 
-                        data={neighborhoodData}
-                        loading={neighborhoodLoading}
-                        error={neighborhoodError}
-                      />
-                      <div className="text-[10px] text-neutral-500 mt-2 text-center">
-                        Click node to view full argument
-                      </div>
-                    </div>
-                  )}
                   
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1">
@@ -503,21 +447,41 @@ function barFor(claimId?: string|null) {
                       </div>
                     </div>
 
-                    <Badge
-                      variant={
-                        label === 'accepted'
-                          ? 'secondary'
-                          : label === 'rejected'
-                            ? 'destructive'
-                            : 'outline'
-                      }
-                      className="text-[10px] shrink-0"
-                    >
-                      {label}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      {/* Preview toggle button */}
+                      {n.argumentId && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            togglePreview(n.id);
+                          }}
+                          className="p-1.5 rounded-lg border transition-all bg-white border-gray-300 text-gray-500 hover:bg-gray-50 hover:border-gray-400"
+                          title="View AIF neighborhood"
+                        >
+                          <Waypoints className="w-4 h-4" />
+                        </button>
+                      )}
+                      
+                      <Badge
+                        variant={
+                          label === 'accepted'
+                            ? 'secondary'
+                            : label === 'rejected'
+                              ? 'destructive'
+                              : 'outline'
+                        }
+                        className="text-[10px] shrink-0"
+                      >
+                        {label}
+                      </Badge>
+                    </div>
                   </div>
-                      <div className="justify-end items-end align-end mt-auto">
-
+                  
+                  {/* Click node card to open full argument sheet */}
+                  <div 
+                    className="cursor-pointer hover:opacity-80 transition-opacity"
+                    onClick={() => handleNodeClick(n)}
+                  >
                   {v && v.kind === 'scalar' && (
                     <div className="mt-2">
                       <div className="h-1.5 bg-neutral-200 rounded">
@@ -568,6 +532,7 @@ function barFor(claimId?: string|null) {
                     </span>
                   </div>
                   </div>
+                  {/* End clickable wrapper */}
                 </li>
               );
             })}
@@ -605,13 +570,36 @@ function barFor(claimId?: string|null) {
       </main>
     </div>
 
+    {/* AIF Neighborhood Preview Modal */}
+    <Dialog open={previewModalOpen} onOpenChange={setPreviewModalOpen}>
+      <DialogContent className="max-w-[750px] bg-white/15 backdrop-blur-md border border-white rounded-xl ">
+        <DialogHeader>
+          <DialogTitle className="tracking-wide font-medium">AIF Neighborhood Preview</DialogTitle>
+        </DialogHeader>
+        <div className="py-0">
+          <MiniNeighborhoodPreview 
+            data={neighborhoodData}
+            loading={neighborhoodLoading}
+            error={neighborhoodError}
+            maxWidth={700}
+            maxHeight={400}
+          />
+        </div>
+        <div className="text-xs text-neutral-600 text-center border-t pt-1">
+          Click the node card to view the full argument with all actions
+        </div>
+      </DialogContent>
+    </Dialog>
+
     {/* ArgumentActionsSheet Modal for detailed argument exploration */}
-    <ArgumentActionsSheet
-      open={actionsSheetOpen}
-      onOpenChange={setActionsSheetOpen}
-      deliberationId={deliberationId}
-      selectedArgument={selectedArgumentForActions}
-    />
+    {deliberationId && (
+      <ArgumentActionsSheet
+        open={actionsSheetOpen}
+        onOpenChange={setActionsSheetOpen}
+        deliberationId={deliberationId}
+        selectedArgument={selectedArgumentForActions}
+      />
+    )}
     </>
   );
 }
