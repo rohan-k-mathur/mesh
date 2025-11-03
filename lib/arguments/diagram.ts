@@ -29,6 +29,20 @@ export type AifNode = {
   kind: AifNodeKind;
   label?: string | null;     // human label (claim text, "RA a123…", etc.)
   schemeKey?: string | null; // optional: scheme typing for RA/CA/PA (if available)
+  
+  // Phase 2.4: Enhanced metadata (Debate Layer Modernization)
+  schemeName?: string | null;        // Human-readable scheme name
+  cqStatus?: {                        // Critical question status
+    total: number;
+    answered: number;
+    open: number;
+    keys: string[];
+  } | null;
+  dialogueMoveId?: string | null;    // Which move created this argument
+  locutionType?: string | null;      // ASSERT | WHY | RETRACT | etc.
+  isImported?: boolean;              // Was this imported cross-delib?
+  importedFrom?: string[] | null;    // Source deliberation IDs
+  toulminDepth?: number | null;      // Max inference chain depth (for RA-nodes)
 };
 
 export type AifEdge = { 

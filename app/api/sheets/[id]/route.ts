@@ -6,17 +6,112 @@ import { buildAttackGraph, preferredExtensions } from '@/lib/deepdive/af'; // sa
 const Q = z.object({
   semantics: z.enum(['preferred','grounded']).default('preferred'),
 });
+
+// Enhanced type with Phase 2 metadata
 type SheetNode = {
   id: string;                   // render key (diagramId for sheet nodes; argumentId for deliberation)
   title: string | null;
   diagramId?: string | null;    // prefer for UI lookup
   claimId?: string | null;      // lets the reader bridge to /evidential
+  
+  // Phase 2.1: Scheme metadata
+  schemeKey?: string | null;
+  schemeName?: string | null;
+  
+  // Phase 2.1: CQ status
+  cqStatus?: {
+    open: number;
+    answered: number;
+    total: number;
+    keys: string[];
+  } | null;
+  
+  // Phase 2.1: Conflict metadata
+  conflictCount?: number;
+  
+  // Phase 2.1: Preference rank
+  preferenceRank?: number | null;
+  
+  // Phase 2.1: Toulmin structure depth
+  toulminDepth?: number | null;
 };
 type SheetEdge = { fromId: string; toId: string; kind: 'support'|'rebut'|'undercut'; targetScope?: 'premise'|'inference'|'conclusion'|null };
+type AcceptanceLabel = 'accepted'|'rejected'|'undecided';
 
-// type SheetNode = { id: string; title: string | null; diagramId?: string | null };
-// type SheetEdge = { fromId: string; toId: string; kind: 'support'|'rebut'|'undercut'; targetScope?: 'premise'|'inference'|'conclusion'|null };
- type AcceptanceLabel = 'accepted'|'rejected'|'undecided';
+/**
+ * Phase 2.1: Compute enhanced metadata for a debate node
+ * Fetches scheme, CQ status, conflict count, and Toulmin depth
+ */
+async function computeNodeMetadata(argumentId: string, deliberationId: string): Promise<Partial<SheetNode>> {
+  // Fetch argument with scheme relation
+  const arg = await prisma.argument.findUnique({
+    where: { id: argumentId },
+    select: {
+      id: true,
+      schemeId: true,
+      scheme: {
+        select: {
+          key: true,
+          name: true,
+        }
+      }
+    }
+  });
+
+  if (!arg) return {};
+
+  // Fetch conflict count (CA-nodes targeting this argument)
+  // TODO: Re-enable after Prisma client regenerates
+  let conflictCount = 0;
+  try {
+    conflictCount = await (prisma as any).conflictApplication.count({
+      where: {
+        deliberationId,
+        OR: [
+          { conflictedArgumentId: argumentId },
+          { conflictingArgumentId: argumentId },
+        ]
+      }
+    });
+  } catch (e) {
+    console.warn('ConflictApplication query failed:', e);
+  }
+
+  // Fetch preference rank (simple: count of preferences favoring this argument)
+  let preferenceCount = 0;
+  try {
+    preferenceCount = await (prisma as any).preferenceApplication.count({
+      where: {
+        deliberationId,
+        preferredArgumentId: argumentId,
+      }
+    });
+  } catch (e) {
+    console.warn('PreferenceApplication query failed:', e);
+  }
+
+  // Compute Toulmin depth (max inference chain depth via ArgumentEdge)
+  // This is a simplified version - could be enhanced with recursive depth calculation
+  const maxDepth = await prisma.argumentEdge.count({
+    where: {
+      toArgumentId: argumentId,
+      type: 'support',
+    }
+  });
+
+  // TODO: CQ status computation - requires ArgumentDiagram.cqStatus field
+  // For now, return placeholder
+  const cqStatus = null;
+
+  return {
+    schemeKey: arg.scheme?.key ?? arg.schemeId ?? null,
+    schemeName: arg.scheme?.name ?? null,
+    cqStatus,
+    conflictCount,
+    preferenceRank: preferenceCount > 0 ? preferenceCount / 10.0 : null, // Normalize to 0-1 scale
+    toulminDepth: maxDepth > 0 ? maxDepth : null,
+  };
+}
 
 function groundedExtension(nodes: string[], attackMap: Map<string, Set<string>>): Set<string> {
   const attackersOf = (x: string) => {
@@ -93,30 +188,39 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       }),
     ]);
 
-    // Prefer diagramId for UI id (matches your DebateSheetReader and ArgumentPopout)
-    // nodes = dNodes.map(n => ({
-    //   id: n.diagramId ?? n.argumentId ?? n.id,
-    //   title: n.title ?? n.diagramId ?? n.id,
-    //   diagramId: n.diagramId ?? null,
-    //   claimId: n.claimId ?? null,
-    // }));
+    // Try to derive a deliberation from any bridged argument (needed for metadata computation)
+    const bridgedArg = dNodes.find(n => n.argumentId)?.argumentId;
+    if (bridgedArg) {
+      const arg = await prisma.argument.findUnique({ where: { id: bridgedArg }, select: { deliberationId: true } });
+      resolvedDelibId = arg?.deliberationId ?? null;
+    }
 
-    // edges = dEdges
-    //   .map(e => {
-    //     const k = normalizeEdgeKind(e.kind);
-    //     return k ? { fromId: e.fromId, toId: e.toId, kind: k, targetScope: k === 'undercut' ? 'inference' : k === 'rebut' ? 'conclusion' : null } : null;
-    //   })
-    //   .filter(Boolean) as SheetEdge[];
     // Build nodes + a mapping from DebateNode.id -> renderId (diagramId|argumentId|id)
 const idMap = new Map<string,string>();
+
+// Phase 2.1: Compute metadata for nodes with argumentId
+const metadataMap = new Map<string, Partial<SheetNode>>();
+const nodesWithArgs = dNodes.filter(n => n.argumentId);
+if (nodesWithArgs.length > 0 && resolvedDelibId) {
+  const metadataPromises = nodesWithArgs.map(n => 
+    computeNodeMetadata(n.argumentId!, resolvedDelibId!)
+  );
+  const metadataResults = await Promise.all(metadataPromises);
+  nodesWithArgs.forEach((n, idx) => {
+    metadataMap.set(n.argumentId!, metadataResults[idx]);
+  });
+}
+
 nodes = dNodes.map(n => {
   const renderId = n.diagramId ?? n.argumentId ?? n.id;
   idMap.set(n.id, renderId);
+  const metadata = n.argumentId ? metadataMap.get(n.argumentId) || {} : {};
   return {
     id: renderId,
     title: n.title ?? renderId,
     diagramId: n.diagramId ?? null,
     claimId: n.claimId ?? null,
+    ...metadata,  // Spread enhanced metadata
   };
 });
 
@@ -155,12 +259,7 @@ edges = dEdges
     for (const id of ids) labels[id] = IN.has(id) ? 'accepted' : OUT.has(id) ? 'rejected' : 'undecided';
     acceptance = { semantics, labels };
 
-    // Try to derive a deliberation from any bridged argument
-    const bridgedArg = dNodes.find(n => n.argumentId)?.argumentId;
-    if (bridgedArg) {
-      const arg = await prisma.argument.findUnique({ where: { id: bridgedArg }, select: { deliberationId: true } });
-      resolvedDelibId = arg?.deliberationId ?? null;
-    }
+    // resolvedDelibId already set earlier in this block
   } else {
     // --- Mode A (deliberation-backed)
     const [args, aEdges] = await Promise.all([
@@ -175,11 +274,16 @@ edges = dEdges
       }),
     ]);
 
-    nodes = args.map(a => ({
+    // Phase 2.1: Compute enhanced metadata for each argument
+    const metadataPromises = args.map(a => computeNodeMetadata(a.id, deliberationId));
+    const metadataResults = await Promise.all(metadataPromises);
+
+    nodes = args.map((a, idx) => ({
       id: a.id,
       title: a.text?.slice(0, 140) || a.id,
       diagramId: a.id,
-      claimId: a.claimId ?? null,            // <-- bridge for /evidential
+      claimId: a.claimId ?? null,
+      ...metadataResults[idx],  // Spread enhanced metadata
     }));
 
     edges = aEdges.map(e => ({

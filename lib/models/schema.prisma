@@ -3636,6 +3636,10 @@ model DialogueMove {
   // Edges caused by this dialogue move
   causedEdges AifEdge[] @relation("EdgeCausedBy")
 
+  // Phase 2.3: Link to DebateNode (Debate Layer Modernization)
+  debateNodeId String?
+  debateNode   DebateNode? @relation("DialogueMoveDebateNode", fields: [debateNodeId], references: [id], onDelete: SetNull)
+
   @@unique([deliberationId, signature], name: "dm_unique_signature")
   @@index([deliberationId, targetType, targetId, kind, createdAt], name: "dm_by_target_kind_time")
   @@index([payload], type: Gin, name: "dm_payload_gin")
@@ -4834,6 +4838,9 @@ model DebateNode {
 
   authorsJson Json?
   createdAt   DateTime @default(now())
+  
+  // Phase 2.3: Reverse relation for DialogueMove (Debate Layer Modernization)
+  dialogueMoves DialogueMove[] @relation("DialogueMoveDebateNode")
 }
 
 model DebateEdge {
@@ -4846,6 +4853,12 @@ model DebateEdge {
   thread    String?
   ord       Int?
   rationale String?
+  
+  // Phase 2.2: Enhanced edge metadata (Debate Layer Modernization)
+  attackSubtype ArgumentAttackSubtype? // rebut | undercut | undermine (for attack edges)
+  schemeKey     String?                // if edge represents scheme application
+  cqKey         String?                // if edge is a critical question challenge
+  
   createdAt DateTime       @default(now())
 
   @@unique([sheetId, fromId, toId, kind, thread], name: "edge_idempotent")

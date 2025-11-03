@@ -18,6 +18,8 @@ type Proposal = {
   fromArgumentId?: string | null;
   fromClaimId?: string | null;
   toClaimId?: string | null;
+  premiseCount?: number;
+  premiseChain?: string[];
 };
 
 type ApiOk = { ok?: boolean };
@@ -84,6 +86,7 @@ export default function TransportPage() {
   const [busyApply, setBusyApply] = React.useState(false);
   const [note, setNote] = React.useState<string>('');
   const [err, setErr] = React.useState<string>('');
+  const [depth, setDepth] = React.useState<number>(1);
 
 
 const { data: fromNames } = useSWR(
@@ -157,7 +160,7 @@ const [showIds, setShowIds] = React.useState(false);
       const r = await fetch('/api/room-functor/preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fromId, toId, claimMap }),
+        body: JSON.stringify({ fromId, toId, claimMap, depth }),
       });
       const text = await r.text();
       const j: PreviewResponse = text ? JSON.parse(text) : {};
@@ -189,7 +192,7 @@ const [showIds, setShowIds] = React.useState(false);
       const r = await fetch('/api/room-functor/apply', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fromId, toId, proposals, claimMap }),
+        body: JSON.stringify({ fromId, toId, proposals, claimMap, depth }),
       });
       const text = await r.text();
       const j: ApplyResponse = text ? JSON.parse(text) : {};
@@ -278,6 +281,19 @@ const [showIds, setShowIds] = React.useState(false);
       </div>
 
       <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-medium">Depth:</label>
+          <select 
+            value={depth} 
+            onChange={(e) => setDepth(Number(e.target.value))}
+            className="px-2 py-1 border rounded text-sm"
+            disabled={anyBusy}
+          >
+            <option value={1}>1 (no premises)</option>
+            <option value={2}>2 (include premises)</option>
+            <option value={3}>3 (recursive premises)</option>
+          </select>
+        </div>
         <button
           type="button"
           className="px-2 py-1 border rounded disabled:opacity-50"
@@ -305,6 +321,7 @@ const [showIds, setShowIds] = React.useState(false);
   proposals.map((p) => {
     const leftTxt  = nameOfFrom(p.fromClaimId) || "";
     const rightTxt = nameOfTo(p.toClaimId)     || "";
+    const hasPremises = (p.premiseCount ?? 0) > 0;
     return (
       <li key={p.fingerprint} className="border rounded px-2 py-1">
         <div className="text-[13px]">{p.previewText || "(no preview)"}</div>
@@ -313,6 +330,12 @@ const [showIds, setShowIds] = React.useState(false);
   arg:{p.fromArgumentId ? p.fromArgumentId.slice(0,8) : "—"}… · {Math.round((p.base ?? 0)*100)}% ·
   φ:{leftTxt ? `"${leftTxt.slice(0,60)}"` : (p.fromClaimId ? p.fromClaimId.slice(0,6)+'…' : "—")} → φ′:{rightTxt ? `"${rightTxt.slice(0,60)}"` : (p.toClaimId ? p.toClaimId.slice(0,6)+'…' : "—")}
 </div>
+        {hasPremises && (
+          <div className="text-[11px] text-emerald-700 mt-1 flex items-center gap-1">
+            <span className="font-medium">📊 Composition:</span>
+            <span>{p.premiseCount} premise{(p.premiseCount ?? 0) > 1 ? 's' : ''} will be imported recursively</span>
+          </div>
+        )}
       </li>
     );
   })

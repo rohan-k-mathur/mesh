@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prismaclient";
+import { 
+  extractArgumentStructure, 
+  reconstructArgumentStructure, 
+  recursivelyImportPremises,
+  type ClaimMapping 
+} from "@/lib/arguments/structure-import";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -14,6 +20,8 @@ const ProposalZ = z.object({
   toClaimId: z.string().min(6),
   base: z.number().min(0).max(1),
   previewText: z.string().optional(),
+  premiseCount: z.number().int().min(0).optional(),
+  premiseChain: z.array(z.string()).optional(),
 });
 
 const Body = z.object({
@@ -21,14 +29,24 @@ const Body = z.object({
   toId: z.string().min(6),
   claimMap: z.record(z.string().min(6)).optional(),
   proposals: z.array(ProposalZ).default([]),
+  depth: z.number().int().min(1).max(3).default(1),
+  userId: z.string().min(6).optional(), // Creator ID for ArgumentEdge records
 });
 
 export async function POST(req: NextRequest) {
-  const { fromId, toId, proposals } = Body.parse(await req.json());
+  const { fromId, toId, proposals, depth, claimMap, userId } = Body.parse(await req.json());
   if (!proposals.length) return NextResponse.json({ ok: true, applied: 0, skipped: 0 }, NO_STORE);
 
+  const createdById = userId || 'system';
+  const claimMapping: ClaimMapping = claimMap || {};
+
   let applied = 0, skipped = 0;
-  const results: Array<{ fingerprint: string; status: 'applied' | 'skipped' | 'materialized'; argumentId: string }> = [];
+  const results: Array<{ 
+    fingerprint: string; 
+    status: 'applied' | 'skipped' | 'materialized'; 
+    argumentId: string;
+    premisesImported?: number;
+  }> = [];
 
   for (const p of proposals) {
     // Quick Win #3: Conflict Detection - Check for existing fingerprint
@@ -109,16 +127,33 @@ export async function POST(req: NextRequest) {
     // Quick Win #2: Wrap in transaction for atomicity
     try {
       const result = await prisma.$transaction(async (tx) => {
-        const toArg = await tx.argument.create({
-          data: {
-            deliberationId: toId,
-            authorId: src?.authorId ?? 'system',
-            text: p.previewText || src?.text || 'Imported support',
-            claimId: p.toClaimId,
-            isImplicit: false,
-          },
-          select: { id: true }
-        });
+        // Extract structure if depth > 1 for composition tracking
+        const structure = depth > 1 ? await extractArgumentStructure(p.fromArgumentId, fromId) : null;
+        
+        let toArg;
+        if (structure && Object.keys(claimMapping).length > 0) {
+          // Use structure-aware import with proper Toulmin preservation
+          const reconstructed = await reconstructArgumentStructure(
+            structure,
+            toId,
+            p.toClaimId,
+            claimMapping,
+            src?.authorId || createdById
+          );
+          toArg = { id: reconstructed.argumentId };
+        } else {
+          // Simple text-only import (legacy behavior)
+          toArg = await tx.argument.create({
+            data: {
+              deliberationId: toId,
+              authorId: src?.authorId ?? createdById,
+              text: p.previewText || src?.text || 'Imported support',
+              claimId: p.toClaimId,
+              isImplicit: false,
+            },
+            select: { id: true }
+          });
+        }
 
         await tx.argumentSupport.create({
           data: {
@@ -150,11 +185,32 @@ export async function POST(req: NextRequest) {
           }
         });
 
-        return toArg;
+        // Handle recursive premise imports if depth > 1 and premises exist
+        let premisesImported = 0;
+        if (depth > 1 && p.premiseChain && p.premiseChain.length > 0) {
+          const importedPremiseIds = await recursivelyImportPremises(
+            p.premiseChain,
+            fromId,
+            toId,
+            toArg.id,
+            claimMapping,
+            src?.authorId || createdById,
+            1,
+            depth
+          );
+          premisesImported = importedPremiseIds.length;
+        }
+
+        return { argumentId: toArg.id, premisesImported };
       });
 
       applied++;
-      results.push({ fingerprint: p.fingerprint, status: 'applied', argumentId: result.id });
+      results.push({ 
+        fingerprint: p.fingerprint, 
+        status: 'applied', 
+        argumentId: result.argumentId,
+        ...(result.premisesImported > 0 && { premisesImported: result.premisesImported })
+      });
     } catch (error) {
       console.error('Transaction failed for fingerprint', p.fingerprint, error);
       skipped++;
