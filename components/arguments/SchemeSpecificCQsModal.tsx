@@ -96,6 +96,10 @@ export function SchemeSpecificCQsModal({
   const [undercutText, setUndercutText] = React.useState<Record<string, string>>({});
   const [underminePremise, setUnderminePremise] = React.useState<Record<string, string>>({});
   const [undermineClaim, setUndermineClaim] = React.useState<Record<string, { id: string; text: string } | null>>({});
+  
+  // Claim picker state for REBUTS and UNDERMINES
+  const [rebutClaimPickerOpen, setRebutClaimPickerOpen] = React.useState<string | null>(null);
+  const [undermineClaimPickerOpen, setUndermineClaimPickerOpen] = React.useState<string | null>(null);
 
   // Sync local CQs when prop changes
   React.useEffect(() => {
@@ -296,7 +300,7 @@ export function SchemeSpecificCQsModal({
         {triggerButton || defaultTrigger}
       </DialogTrigger>
 
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-slate-50 to-slate-100">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-slate-50 to-slate-100 custom-scrollbar">
         <DialogHeader className="space-y-2 pb-4 border-b border-slate-200">
           <DialogTitle className="text-2xl font-bold text-slate-900 flex items-center gap-3">
             <div className="p-2 rounded-lg bg-gradient-to-br from-indigo-100 to-indigo-200">
@@ -326,7 +330,7 @@ export function SchemeSpecificCQsModal({
               </div>
               <div className="text-right">
                 <div className="text-xs text-slate-500 mb-1">Progress</div>
-                <div className="text-lg font-bold text-indigo-600">
+                <div className="text-sm font-bold text-indigo-600">
                   {answeredCount}/{totalCount}
                 </div>
               </div>
@@ -363,7 +367,7 @@ export function SchemeSpecificCQsModal({
         )}
 
         {/* CQ List */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-3">
+        <div className="flex-1 overflow-y-auto custom-scrollbar space-y-3">
           {localCqs.length === 0 ? (
             <div className="p-6 bg-white rounded-xl border-2 border-slate-200 text-center">
               <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-100 mb-3">
@@ -501,13 +505,13 @@ export function SchemeSpecificCQsModal({
 
                     {/* Mark as asked button - outside the toggle button */}
                     {cq.status === "open" && !isExpanded && (
-                      <div className="px-4 pb-2">
+                      <div className="w-full pt-2">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             handleAskCQ(cq.cqKey);
                           }}
-                          className="text-xs text-indigo-600 hover:text-indigo-700 font-medium hover:underline"
+                          className="w-fit border py-1 px-1 bg-white rounded-xl text-xs text-indigo-600 hover:text-indigo-700 font-medium hover:underline"
                         >
                           Mark as asked
                         </button>
@@ -529,15 +533,23 @@ export function SchemeSpecificCQsModal({
                         {cq.attackType === "REBUTS" && (
                           <div className="space-y-3">
                             <label className="block text-sm font-semibold text-slate-900">
-                              Select Counter-Claim (contradicts conclusion)
+                              Select or Create Counter-Claim (contradicts conclusion)
                             </label>
+                            <button
+                              onClick={() => setRebutClaimPickerOpen(cq.cqKey)}
+                              className="w-full text-sm btnv2 w-fit px-4 py-2 text-center rounded-lg bg-indigo-200/50 hover:bg-indigo-400/20 transition-colors"
+                            >
+                              {rebutClaim[cq.cqKey]?.text || "Select or create counter-claim..."}
+                            </button>
                             <ClaimPicker
                               deliberationId={deliberationId}
-                              authorId={authorId}
-                              label={rebutClaim[cq.cqKey]?.text || "Select or create counter-claim..."}
-                              onPick={(claim) =>
-                                setRebutClaim((prev) => ({ ...prev, [cq.cqKey]: claim }))
-                              }
+                              open={rebutClaimPickerOpen === cq.cqKey}
+                              onClose={() => setRebutClaimPickerOpen(null)}
+                              onPick={(claim) => {
+                                setRebutClaim((prev) => ({ ...prev, [cq.cqKey]: claim }));
+                                setRebutClaimPickerOpen(null);
+                              }}
+                              allowCreate={true}
                             />
                             {meta?.conclusion && (
                               <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
@@ -602,18 +614,24 @@ export function SchemeSpecificCQsModal({
                             <label className="block text-sm font-semibold text-slate-900 mt-3">
                               Select Contradicting Claim
                             </label>
+                            <button
+                              onClick={() => setUndermineClaimPickerOpen(cq.cqKey)}
+                              className="w-full text-sm btnv2 w-fit px-4 py-2 text-center rounded-lg bg-indigo-200/50 hover:bg-indigo-400/20 transition-colors"
+                            >
+                              {undermineClaim[cq.cqKey]?.text || "Select or create contradicting claim..."}
+                            </button>
                             <ClaimPicker
                               deliberationId={deliberationId}
-                              authorId={authorId}
-                              label={undermineClaim[cq.cqKey]?.text || "Select or create contradicting claim..."}
-                              onPick={(claim) =>
-                                setUndermineClaim((prev) => ({ ...prev, [cq.cqKey]: claim }))
-                              }
+                              open={undermineClaimPickerOpen === cq.cqKey}
+                              onClose={() => setUndermineClaimPickerOpen(null)}
+                              onPick={(claim) => {
+                                setUndermineClaim((prev) => ({ ...prev, [cq.cqKey]: claim }));
+                                setUndermineClaimPickerOpen(null);
+                              }}
+                              allowCreate={true}
                             />
                           </div>
-                        )}
-
-                        {/* Submit button */}
+                        )}                        {/* Submit button */}
                         <button
                           className={`
                             w-full inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl

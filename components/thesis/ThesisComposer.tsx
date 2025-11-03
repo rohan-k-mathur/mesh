@@ -410,23 +410,17 @@ export function ThesisComposer({
             </div>
           </div>
 
-          {showClaimPicker && (
-            <Dialog open onOpenChange={() => setShowClaimPicker(false)}>
-              <DialogContent className="max-w-3xl">
-                <DialogHeader>
-                  <DialogTitle>Select Thesis Claim</DialogTitle>
-                </DialogHeader>
-                <ClaimPicker
-                  deliberationId={deliberationId}
-                  authorId={authorId}
-                  onPick={(claim) => {
-                    setSelectedThesisClaimId(claim.id);
-                    setShowClaimPicker(false);
-                  }}
-                />
-              </DialogContent>
-            </Dialog>
-          )}
+          {/* Claim Picker Modal */}
+          <ClaimPicker
+            deliberationId={deliberationId}
+            open={showClaimPicker}
+            onClose={() => setShowClaimPicker(false)}
+            onPick={(claim) => {
+              setSelectedThesisClaimId(claim.id);
+              setShowClaimPicker(false);
+            }}
+            allowCreate={true}
+          />
         </DialogContent>
       </Dialog>
     );
@@ -853,23 +847,17 @@ export function ThesisComposer({
         </div>
 
         {/* Claim Picker Modal */}
-        {showClaimPicker && (
-          <Dialog open onOpenChange={() => setShowClaimPicker(false)}>
-            <DialogContent className="max-w-3xl">
-              <DialogHeader>
-                <DialogTitle>Select Thesis Claim</DialogTitle>
-              </DialogHeader>
-              <ClaimPicker
-                deliberationId={deliberationId}
-                authorId={authorId}
-                onPick={(claim) => {
-                  setSelectedThesisClaimId(claim.id);
-                  setShowClaimPicker(false);
-                }}
-              />
-            </DialogContent>
-          </Dialog>
-        )}
+        {/* Claim Picker Modal */}
+        <ClaimPicker
+          deliberationId={deliberationId}
+          open={showClaimPicker}
+          onClose={() => setShowClaimPicker(false)}
+          onPick={(claim) => {
+            setSelectedThesisClaimId(claim.id);
+            setShowClaimPicker(false);
+          }}
+          allowCreate={true}
+        />
 
         {/* Prong Editor Modal */}
         {editingProngId && (

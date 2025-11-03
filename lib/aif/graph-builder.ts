@@ -3,10 +3,15 @@
  * 
  * Purpose: Build complete AIF graphs with optional dialogue move layer
  * Phase: 2.1 - Dialogue Visualization Roadmap
- * Date: November 2, 2025
+ * Date: November 3, 2025
  * 
- * This module provides functions to construct AIF graphs from database records,
- * including dialogue move provenance when requested.
+ * CRITICAL ARCHITECTURE:
+ * - Builds graphs from Argument/Claim/ConflictApplication (NOT AifNode/AifEdge)
+ * - Follows proven pattern from generate-debate-sheets.ts
+ * - Uses claim-to-argument resolution map for edge derivation
+ * - Queries ConflictApplication for attack edges (ArgumentEdge table is empty/legacy)
+ * 
+ * See: DIALOGUE_VISUALIZATION_ROADMAP.md Phase 2.2
  */
 
 import { prisma } from "@/lib/prismaclient";
@@ -36,107 +41,270 @@ export async function buildDialogueAwareGraph(
     timeRange,
   } = options;
 
-  // Build where clause for filtering
-  const whereClause: any = { deliberationId };
+  const nodes: AifNodeWithDialogue[] = [];
+  const edges: DialogueAwareEdge[] = [];
 
-  // Add participant filter if provided
-  if (participantFilter && includeDialogue) {
-    whereClause.dialogueMetadata = {
-      path: ["speaker"],
-      equals: participantFilter,
-    };
-  }
-
-  // Fetch all AIF nodes for this deliberation
-  const nodesPromise = (prisma as any).aifNode.findMany({
-    where: whereClause,
-    include: {
-      dialogueMove: includeDialogue,
-      outgoingEdges: true,
-      incomingEdges: true,
-    },
-  });
-
-  // Fetch all AIF edges for this deliberation
-  const edgesPromise = (prisma as any).aifEdge.findMany({
+  // Step 1: Fetch all arguments (RA-nodes) with dialogue provenance
+  const argumentsList = await prisma.argument.findMany({
     where: { deliberationId },
     include: {
-      causedByMove: includeDialogue,
+      conclusion: { select: { id: true, text: true } },
+      premises: {
+        select: {
+          claimId: true,
+          claim: { select: { id: true, text: true } },
+        },
+      },
+      createdByMove: includeDialogue
+        ? { select: { id: true, kind: true, createdAt: true, actorId: true } }
+        : false,
     },
   });
 
-  // Fetch dialogue moves if requested
-  let dialogueMovesPromise: Promise<any[]> | null = null;
-  if (includeDialogue) {
-    const moveWhereClause: any = { deliberationId };
-    
-    if (participantFilter) {
-      moveWhereClause.actorId = participantFilter;
+  // Step 2: Build nodes from arguments
+  for (const arg of argumentsList) {
+    // RA-node (Reasoning Application node)
+    nodes.push({
+      id: `RA:${arg.id}`,
+      nodeType: "aif:RANode",
+      text: arg.text || `Argument using ${arg.scheme?.name || "scheme"}`,
+      dialogueMoveId: arg.createdByMoveId || null,
+      dialogueMove: arg.createdByMove || null,
+      dialogueMetadata: arg.createdByMove
+        ? {
+            locution: arg.createdByMove.kind,
+            speaker: arg.createdByMove.actorId,
+            speakerName: arg.createdByMove.actorId, // Would need user lookup for display name
+            timestamp: arg.createdByMove.createdAt.toISOString(),
+            replyToMoveId: null,
+          }
+        : null,
+      nodeSubtype: "standard",
+    });
+
+    // I-node for conclusion
+    if (arg.conclusion) {
+      const conclusionNodeId = `I:${arg.conclusion.id}`;
+      if (!nodes.some((n) => n.id === conclusionNodeId)) {
+        nodes.push({
+          id: conclusionNodeId,
+          nodeType: "aif:INode",
+          text: arg.conclusion.text,
+          dialogueMoveId: null,
+          dialogueMove: null,
+          dialogueMetadata: null,
+          nodeSubtype: "standard",
+        });
+      }
+
+      // Edge: RA → I (conclusion)
+      edges.push({
+        id: `edge:${arg.id}:conclusion`,
+        source: `RA:${arg.id}`,
+        target: conclusionNodeId,
+        edgeType: "inference",
+        causedByDialogueMoveId: arg.createdByMoveId || null,
+      });
     }
-    
+
+    // I-nodes for premises and edges: I → RA
+    for (const premise of arg.premises) {
+      const premiseINodeId = `I:${premise.claimId}`;
+
+      // Add I-node if not already added
+      if (!nodes.some((n) => n.id === premiseINodeId)) {
+        nodes.push({
+          id: premiseINodeId,
+          nodeType: "aif:INode",
+          text: premise.claim.text,
+          dialogueMoveId: null,
+          dialogueMove: null,
+          dialogueMetadata: null,
+          nodeSubtype: "standard",
+        });
+      }
+
+      // Edge: I → RA (premise)
+      edges.push({
+        id: `edge:${premise.claimId}:premise:${arg.id}`,
+        source: premiseINodeId,
+        target: `RA:${arg.id}`,
+        edgeType: "inference",
+        causedByDialogueMoveId: arg.createdByMoveId || null,
+      });
+    }
+  }
+
+  // Step 3: Derive attack edges from ConflictApplication (CRITICAL!)
+  const conflicts = await prisma.conflictApplication.findMany({
+    where: { deliberationId },
+    include: includeDialogue
+      ? {
+          createdByMove: {
+            select: { id: true, kind: true, createdAt: true, actorId: true },
+          },
+        }
+      : {},
+  });
+
+  // Build claim-to-argument resolution map (follows generate-debate-sheets.ts pattern)
+  const claimToArgMap = new Map<string, string>();
+
+  // Map conclusions
+  for (const arg of argumentsList) {
+    if (arg.conclusionClaimId) {
+      claimToArgMap.set(arg.conclusionClaimId, arg.id);
+    }
+  }
+
+  // Map premises
+  const allPremises = await prisma.argumentPremise.findMany({
+    where: {
+      argument: { deliberationId },
+    },
+    select: { claimId: true, argumentId: true },
+  });
+
+  for (const prem of allPremises) {
+    if (!claimToArgMap.has(prem.claimId)) {
+      claimToArgMap.set(prem.claimId, prem.argumentId);
+    }
+  }
+
+  // Resolve conflicts to CA-nodes and edges
+  for (const conflict of conflicts) {
+    // Resolve claims to arguments
+    let fromArgId =
+      conflict.conflictingArgumentId ||
+      (conflict.conflictingClaimId
+        ? claimToArgMap.get(conflict.conflictingClaimId)
+        : null);
+    let toArgId =
+      conflict.conflictedArgumentId ||
+      (conflict.conflictedClaimId
+        ? claimToArgMap.get(conflict.conflictedClaimId)
+        : null);
+
+    if (!fromArgId || !toArgId) continue; // Skip unresolved conflicts
+
+    const caNodeId = `CA:${conflict.id}`;
+
+    // Create CA-node (Conflict Application node)
+    nodes.push({
+      id: caNodeId,
+      nodeType: "aif:CANode",
+      text: `${conflict.legacyAttackType || "Attack"}`,
+      dialogueMoveId: conflict.createdByMoveId || null,
+      dialogueMove: (conflict as any).createdByMove || null,
+      dialogueMetadata: (conflict as any).createdByMove
+        ? {
+            locution: (conflict as any).createdByMove.kind,
+            speaker: (conflict as any).createdByMove.actorId,
+            speakerName: (conflict as any).createdByMove.actorId,
+            timestamp: (conflict as any).createdByMove.createdAt.toISOString(),
+            replyToMoveId: null,
+          }
+        : null,
+      nodeSubtype: "standard",
+    });
+
+    // Edges: attacking arg → CA, CA → targeted arg
+    edges.push({
+      id: `edge:${fromArgId}:attacks:${caNodeId}`,
+      source: `RA:${fromArgId}`,
+      target: caNodeId,
+      edgeType: "conflict",
+      causedByDialogueMoveId: conflict.createdByMoveId || null,
+    });
+
+    edges.push({
+      id: `edge:${caNodeId}:targets:${toArgId}`,
+      source: caNodeId,
+      target: `RA:${toArgId}`,
+      edgeType: "conflict",
+      causedByDialogueMoveId: conflict.createdByMoveId || null,
+    });
+  }
+
+  // Step 4: Add dialogue visualization nodes (WHY, CONCEDE, RETRACT, etc.)
+  if (includeDialogue) {
+    const vizNodes = await prisma.dialogueVisualizationNode.findMany({
+      where: { deliberationId },
+      include: {
+        dialogueMove: {
+          select: { id: true, kind: true, createdAt: true, actorId: true, targetType: true, targetId: true },
+        },
+      },
+    });
+
+    for (const vizNode of vizNodes) {
+      nodes.push({
+        id: `DM:${vizNode.id}`,
+        nodeType: `aif:DialogueMove_${vizNode.nodeKind}`,
+        text: `${vizNode.nodeKind}`,
+        dialogueMoveId: vizNode.dialogueMoveId,
+        dialogueMove: vizNode.dialogueMove as any,
+        dialogueMetadata: {
+          locution: vizNode.nodeKind,
+          speaker: vizNode.dialogueMove.actorId,
+          speakerName: vizNode.dialogueMove.actorId,
+          timestamp: vizNode.createdAt.toISOString(),
+          replyToMoveId: null,
+        },
+        nodeSubtype: "dialogue_move",
+      });
+
+      // Create edges for dialogue move interactions (e.g., WHY → RA)
+      const metadata = vizNode.metadata as any;
+      if (metadata?.targetId && vizNode.dialogueMove.targetType === "argument") {
+        // Link WHY/CLOSE/etc to the argument they reference
+        const targetArgId = metadata.targetId || vizNode.dialogueMove.targetId;
+        edges.push({
+          id: `edge:${vizNode.id}:triggers:${targetArgId}`,
+          source: `DM:${vizNode.id}`,
+          target: `RA:${targetArgId}`,
+          edgeType: "triggers",
+          causedByDialogueMoveId: vizNode.dialogueMoveId,
+        });
+      }
+    }
+  }
+
+  // Step 5: Fetch dialogue moves metadata
+  let dialogueMoves: DialogueMoveWithAif[] = [];
+  if (includeDialogue) {
+    const moveFilter: any = { deliberationId };
+
+    if (includeMoves === "protocol") {
+      moveFilter.kind = {
+        in: ["WHY", "GROUNDS", "CONCEDE", "RETRACT", "CLOSE", "ACCEPT_ARGUMENT"],
+      };
+    } else if (includeMoves === "structural") {
+      moveFilter.kind = { in: ["THEREFORE", "SUPPOSE", "DISCHARGE"] };
+    }
+
+    if (participantFilter) {
+      moveFilter.actorId = participantFilter;
+    }
+
     if (timeRange) {
-      moveWhereClause.createdAt = {
+      moveFilter.createdAt = {
         gte: new Date(timeRange.start),
         lte: new Date(timeRange.end),
       };
     }
 
-    dialogueMovesPromise = prisma.dialogueMove.findMany({
-      where: moveWhereClause,
-      orderBy: { createdAt: "asc" },
+    dialogueMoves = (await prisma.dialogueMove.findMany({
+      where: moveFilter,
       include: {
-        aifNode: true,
-        createdAifNodes: true,
-        causedEdges: true,
+        createdArguments: { select: { id: true, text: true } },
+        createdConflicts: { select: { id: true, legacyAttackType: true } },
       },
-    } as any);
+      orderBy: { createdAt: "asc" },
+    })) as any;
   }
 
-  // Execute all queries in parallel
-  const [nodes, edges, dialogueMoves] = await Promise.all([
-    nodesPromise,
-    edgesPromise,
-    dialogueMovesPromise || Promise.resolve([]),
-  ]);
-
-  // Filter nodes based on includeDialogue option
-  let filteredNodes = nodes;
-  if (!includeDialogue) {
-    // Exclude DM-nodes if dialogue layer not requested
-    filteredNodes = nodes.filter((node: any) => node.nodeKind !== "DM");
-  }
-
-  // Parse dialogue metadata for nodes with it
-  const nodesWithDialogue: AifNodeWithDialogue[] = filteredNodes.map((node: any) => ({
-    ...node,
-    dialogueMetadata: node.dialogueMetadata
-      ? (typeof node.dialogueMetadata === "string"
-          ? JSON.parse(node.dialogueMetadata)
-          : node.dialogueMetadata)
-      : undefined,
-  }));
-
-  // Transform edges to DialogueAwareEdge
-  const dialogueAwareEdges: DialogueAwareEdge[] = edges.map((edge: any) => ({
-    id: edge.id,
-    sourceId: edge.sourceId,
-    targetId: edge.targetId,
-    edgeRole: edge.edgeRole as any,
-    causedByMoveId: edge.causedByMoveId || undefined,
-    deliberationId: edge.deliberationId,
-    createdAt: edge.createdAt,
-  }));
-
-  // Transform dialogue moves
-  const movesWithAif: DialogueMoveWithAif[] = dialogueMoves.map((move: any) => ({
-    ...move,
-    aifRepresentation: move.aifRepresentation || undefined,
-    aifNode: move.aifNode || undefined,
-    createdAifNodes: move.createdAifNodes || [],
-    causedEdges: move.causedEdges || [],
-  }));
-
-  // Build commitment stores (map of userId -> claimIds they've committed to)
+  // Step 6: Build commitment stores
   const commitmentStores: Record<string, string[]> = {};
   if (includeDialogue) {
     for (const move of dialogueMoves) {
@@ -165,228 +333,113 @@ export async function buildDialogueAwareGraph(
   }
 
   return {
-    nodes: nodesWithDialogue,
-    edges: dialogueAwareEdges,
-    dialogueMoves: movesWithAif,
+    nodes,
+    edges,
+    dialogueMoves,
     commitmentStores,
     metadata: {
-      totalNodes: nodesWithDialogue.length,
-      dmNodeCount: nodesWithDialogue.filter((n: AifNodeWithDialogue) => n.nodeKind === "DM").length,
-      moveCount: movesWithAif.length,
+      totalNodes: nodes.length,
+      dmNodeCount: nodes.filter((n) => n.nodeSubtype === "dialogue_move").length,
+      moveCount: dialogueMoves.length,
       generatedAt: new Date().toISOString(),
     },
   };
 }
 
 /**
- * Get dialogue move provenance for a specific AIF node
+ * Get dialogue move provenance for a specific node
  * 
- * @param nodeId - The AIF node ID to get provenance for
- * @returns Provenance information including creating move, references, and timeline
+ * @param nodeId - The AIF node ID (e.g., "RA:abc123", "I:xyz789")
+ * @param deliberationId - The deliberation context
+ * @returns Provenance information
  */
-export async function getNodeProvenance(nodeId: string) {
-  // Fetch the node with all its edges and dialogue move relationships
-  const node = await (prisma as any).aifNode.findUnique({
-    where: { id: nodeId },
-    include: {
-      dialogueMove: true,
-      outgoingEdges: {
-        include: {
-          causedByMove: true,
-          target: true,
+export async function getNodeProvenance(nodeId: string, deliberationId: string) {
+  const [nodeType, id] = nodeId.split(":");
+
+  if (nodeType === "RA") {
+    // Argument node
+    const argument = await prisma.argument.findUnique({
+      where: { id },
+      include: {
+        createdByMove: {
+          select: { id: true, kind: true, createdAt: true, actorId: true },
+        },
+        conclusion: { select: { id: true, text: true } },
+        premises: {
+          select: { claim: { select: { id: true, text: true } } },
         },
       },
-      incomingEdges: {
-        include: {
-          causedByMove: true,
-          source: true,
-        },
+    });
+
+    if (!argument) {
+      throw new Error(`Argument ${id} not found`);
+    }
+
+    // Find dialogue moves that reference this argument
+    const referencingMoves = await prisma.dialogueMove.findMany({
+      where: {
+        deliberationId,
+        OR: [
+          { targetId: id, targetType: "argument" },
+          { argumentId: id },
+        ],
       },
-    },
-  });
+      orderBy: { createdAt: "asc" },
+    });
 
-  if (!node) {
-    throw new Error(`Node ${nodeId} not found`);
-  }
+    return {
+      node: {
+        id: nodeId,
+        type: "argument",
+        text: argument.text,
+      },
+      createdBy: argument.createdByMove
+        ? {
+            dialogueMoveId: argument.createdByMove.id,
+            kind: argument.createdByMove.kind,
+            participantId: argument.createdByMove.actorId,
+            timestamp: argument.createdByMove.createdAt.toISOString(),
+          }
+        : null,
+      referencedIn: referencingMoves.map((move) => ({
+        dialogueMoveId: move.id,
+        kind: move.kind,
+        participantId: move.actorId,
+        timestamp: move.createdAt.toISOString(),
+      })),
+    };
+  } else if (nodeType === "I") {
+    // Claim node
+    const claim = await prisma.claim.findUnique({
+      where: { id },
+      include: {
+        introducedByMove: includeDialogue
+          ? { select: { id: true, kind: true, createdAt: true, actorId: true } }
+          : false,
+      },
+    });
 
-  // Get the dialogue move that created this node
-  const createdBy = node.dialogueMove
-    ? {
-        dialogueMoveId: node.dialogueMove.id,
-        participantId: node.dialogueMove.actorId,
-        timestamp: node.dialogueMove.createdAt.toISOString(),
-        kind: node.dialogueMove.kind,
-      }
-    : null;
+    if (!claim) {
+      throw new Error(`Claim ${id} not found`);
+    }
 
-  // Get edges caused by dialogue moves
-  const causedEdges = node.outgoingEdges
-    .filter((edge: any) => edge.causedByMoveId)
-    .map((edge: any) => ({
-      id: edge.id,
-      targetId: edge.targetId,
-      edgeRole: edge.edgeRole,
-      moveKind: edge.causedByMove?.kind || "",
-    }));
-
-  // Find all dialogue moves that reference this node
-  const referencingMoves = await prisma.dialogueMove.findMany({
-    where: {
-      OR: [
-        { targetId: nodeId.replace(/^(I|RA|CA|PA):/, "") },
-        { argumentId: nodeId.replace(/^RA:/, "") },
-      ],
-    },
-    orderBy: { createdAt: "asc" },
-  });
-
-  const referencedIn = referencingMoves.map((move) => ({
-    dialogueMoveId: move.id,
-    participantId: move.actorId,
-    timestamp: move.createdAt.toISOString(),
-    kind: move.kind,
-  }));
-
-  // Build timeline of events for this node
-  const timeline = [
-    ...(createdBy
-      ? [
-          {
-            event: "created" as const,
-            moveId: createdBy.dialogueMoveId,
-            participantId: createdBy.participantId,
-            timestamp: createdBy.timestamp,
-          },
-        ]
-      : []),
-    ...referencedIn.map((ref) => ({
-      event: (ref.kind === "REBUT" || ref.kind === "UNDERCUT"
-        ? "attacked"
-        : ref.kind === "SUPPORT"
-        ? "supported"
-        : "referenced") as "referenced" | "attacked" | "supported",
-      moveId: ref.dialogueMoveId,
-      participantId: ref.participantId,
-      timestamp: ref.timestamp,
-    })),
-  ].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-
-  return {
-    node: {
-      ...node,
-      dialogueMetadata: node.dialogueMetadata
-        ? (typeof node.dialogueMetadata === "string"
-            ? JSON.parse(node.dialogueMetadata)
-            : node.dialogueMetadata)
-        : undefined,
-    },
-    createdBy,
-    causedEdges,
-    referencedIn,
-    timeline,
-  };
-}
-
-/**
- * Get commitment store for all participants in a deliberation
- * 
- * @param deliberationId - The deliberation ID
- * @param participantId - Optional: filter to specific participant
- * @param asOf - Optional: point-in-time query (defaults to now)
- * @returns Commitment stores with claim details
- */
-export async function getCommitmentStores(
-  deliberationId: string,
-  participantId?: string,
-  asOf?: string
-) {
-  const moveWhereClause: any = { deliberationId };
-  
-  if (participantId) {
-    moveWhereClause.actorId = participantId;
-  }
-  
-  if (asOf) {
-    moveWhereClause.createdAt = {
-      lte: new Date(asOf),
+    return {
+      node: {
+        id: nodeId,
+        type: "claim",
+        text: claim.text,
+      },
+      createdBy: (claim as any).introducedByMove
+        ? {
+            dialogueMoveId: (claim as any).introducedByMove.id,
+            kind: (claim as any).introducedByMove.kind,
+            participantId: (claim as any).introducedByMove.actorId,
+            timestamp: (claim as any).introducedByMove.createdAt.toISOString(),
+          }
+        : null,
+      referencedIn: [],
     };
   }
 
-  const moves = await prisma.dialogueMove.findMany({
-    where: moveWhereClause,
-    orderBy: { createdAt: "asc" },
-  });
-
-  // Build commitment stores
-  const commitmentStores: Record<string, any> = {};
-
-  for (const move of moves) {
-    const actorId = move.actorId;
-    if (!commitmentStores[actorId]) {
-      commitmentStores[actorId] = {
-        claimIds: [],
-        claims: [],
-      };
-    }
-
-    // Add claims
-    if (["ASSERT", "CONCEDE", "THEREFORE"].includes(move.kind)) {
-      if (move.targetType === "claim" && move.targetId) {
-        if (!commitmentStores[actorId].claimIds.includes(move.targetId)) {
-          commitmentStores[actorId].claimIds.push(move.targetId);
-          commitmentStores[actorId].claims.push({
-            id: move.targetId,
-            committedAt: move.createdAt.toISOString(),
-            committedByMove: move.id,
-            status: "active",
-          });
-        }
-      }
-    }
-
-    // Remove claims
-    if (move.kind === "RETRACT" && move.targetType === "claim" && move.targetId) {
-      const index = commitmentStores[actorId].claimIds.indexOf(move.targetId);
-      if (index > -1) {
-        commitmentStores[actorId].claimIds.splice(index, 1);
-        const claim = commitmentStores[actorId].claims.find(
-          (c: any) => c.id === move.targetId
-        );
-        if (claim) {
-          claim.status = "retracted";
-        }
-      }
-    }
-  }
-
-  // Fetch claim details
-  for (const actorId in commitmentStores) {
-    const claimIds = commitmentStores[actorId].claimIds;
-    if (claimIds.length > 0) {
-      const claims = await prisma.claim.findMany({
-        where: { id: { in: claimIds } },
-        select: { id: true, text: true },
-      });
-
-      // Merge claim text into commitment store
-      commitmentStores[actorId].claims = commitmentStores[actorId].claims.map(
-        (claim: any) => {
-          const claimData = claims.find((c) => c.id === claim.id);
-          return {
-            ...claim,
-            text: claimData?.text || "",
-          };
-        }
-      );
-    }
-  }
-
-  return {
-    commitments: commitmentStores,
-    metadata: {
-      deliberationId,
-      asOf: asOf || new Date().toISOString(),
-      participantCount: Object.keys(commitmentStores).length,
-    },
-  };
+  throw new Error(`Unsupported node type: ${nodeType}`);
 }

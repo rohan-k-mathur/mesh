@@ -1573,11 +1573,7 @@ const {
           {/* MODELS TAB */}
           <TabsContent value="models" className="w-full min-w-0 space-y-4 mt-4">
             {/* Phase 4: Scheme Breakdown for Selected Argument */}
-            {selectedArgumentForActions && (
-              <SectionCard title="Argumentation Schemes" className="w-full">
-                <SchemeBreakdown argumentId={selectedArgumentForActions.id} />
-              </SectionCard>
-            )}
+           
 
             {/* <SectionCard title="Representative Viewpoints">
               <RepresentativeViewpoints

@@ -57,9 +57,6 @@ async function addDialogueProvenance(options: {
   const allMoves = await prisma.dialogueMove.findMany({
     where: deliberationId ? { deliberationId } : {},
     orderBy: { createdAt: "asc" },
-    include: {
-      author: { select: { id: true, username: true } },
-    },
   });
 
   stats.totalMoves = allMoves.length;

@@ -206,19 +206,19 @@ function AttackCounts({ a }: { a?: AifMeta['attacks'] }) {
       {a.REBUTS > 0 && (
         <div className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium"
           title="Rebuts (attacks conclusion)">
-          {a.REBUTS}
+          {a.REBUTS} Rebuts
         </div>
       )}
       {a.UNDERCUTS > 0 && (
         <div className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-700 text-xs font-medium"
           title="Undercuts (attacks inference)">
-          {a.UNDERCUTS}
+          {a.UNDERCUTS} Undercuts
         </div>
       )}
       {a.UNDERMINES > 0 && (
         <div className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-slate-50 border border-slate-200 text-slate-700 text-xs font-medium"
           title="Undermines (attacks premise)">
-          {a.UNDERMINES}
+          {a.UNDERMINES} Undermines
         </div>
       )}
     </div>
@@ -500,13 +500,16 @@ function RowImpl({
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
             <div className='flex gap-2 mb-3'>
-            <span className="flex text-base font-semibold tracking-wide text-slate-900 flex items-center gap-2">
+            <span className="flex text-base font-medium tracking-wide text-slate-900 flex items-center gap-2">
               Conclusion: 
                 </span>
-
-            <span className="flex text-xs px-2 py-1 tracking-wide menuv2--lite text-slate-800 font-medium  leading-snug ">
-              {conclusionText}
-            </span>
+                <span
+                  className="flex text-xs px-2 py-1 tracking-wide menuv2--lite text-slate-800 font-medium leading-snug 
+                  max-w-[100%] overflow-hidden text-ellipsis whitespace-nowrap "
+                  title={conclusionText}
+                >
+                  {conclusionText}
+                </span>
 </div>
             {showPremises && meta?.premises && meta.premises.length > 0 && (
               <ul className="flex flex-wrap  tracking-wide font-semibold gap-1.5 mb-2" aria-label="Premises">

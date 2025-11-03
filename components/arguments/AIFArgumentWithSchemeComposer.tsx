@@ -13,6 +13,9 @@ import { SchemeComposerPicker } from "../SchemeComposerPicker";
 import { ClaimConfidence } from "@/components/evidence/ClaimConfidence";
 import { createClaim } from "@/lib/client/aifApi";
 import { SchemePickerWithHierarchy } from "./SchemePickerWithHierarchy";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { PropositionComposerPro } from "@/components/propositions/PropositionComposerPro";
+import { Save } from "lucide-react";
 export type AttackContext =
   | { mode: "REBUTS"; targetClaimId: string; hint?: string }
   | { mode: "UNDERCUTS"; targetArgumentId: string; hint?: string }
@@ -107,6 +110,8 @@ export function AIFArgumentWithSchemeComposer({
   const [pickerConcOpen, setPickerConcOpen] = React.useState(false);
   const [editingConclusion, setEditingConclusion] = React.useState(false);
   const [savingConclusion, setSavingConclusion] = React.useState(false);
+  const [expandedConclusionEditor, setExpandedConclusionEditor] = React.useState(false);
+  const [expandedPremiseEditor, setExpandedPremiseEditor] = React.useState(false);
 
   async function saveConclusionNow() {
     const draft = (conclusionDraft ?? "").trim();
@@ -440,32 +445,41 @@ export function AIFArgumentWithSchemeComposer({
             {editingConclusion || !conclusionClaim?.id ? (
               <div className="flex items-center gap-2">
                 <input
-                  className="flex-1 min-w-0  rounded-lg px-3 py-1.5 text-sm bg-white articlesearchfield"
+                  className="flex-1 min-w-0  rounded-lg px-3 py-2 text-sm bg-white articlesearchfield"
                   placeholder="Type your conclusion…"
                   value={conclusionDraft}
                   onChange={(e) => setConclusionDraft(e.target.value)}
                 />
                 <button
-                  className="text-xs px-2 py-1 rounded-lg border  btnv2--ghost bg-white"
+                  className="text-xs px-2 py-2 rounded-lg border  btnv2--ghost bg-white"
                   onClick={() => setPickerConcOpen(true)}
                 >
-                  Pick existing
+                  Pick Existing
                 </button>
                 {editingConclusion && (
                   <button
-                    className="text-xs px-2 py-1 rounded-lg border btnv2--ghost bg-slate-50"
+                    className="text-xs px-2 py-2 rounded-lg border btnv2--ghost bg-slate-50"
                     onClick={() => setEditingConclusion(false)}
                   >
                     Cancel
                   </button>
                 )}
                 <button
-                  className="text-xs px-3 py-1.5 rounded-xl btnv2 bg-indigo-600 text-white"
+                  className="text-xs px-3 py-2 rounded-lg border btnv2 bg-white"
+                  onClick={() => setExpandedConclusionEditor(true)}
+                  title="Open rich editor for complex claims"
+                >
+                  ➾ Expand
+                </button>
+                
+                <button
+                  className="text-xs px-3 py-2 rounded-lg btnv2 bg-indigo-400 text-white"
                   disabled={!conclusionDraft.trim() || savingConclusion}
                   onClick={saveConclusionNow}
                   title="Save this text as a new claim"
                 >
-                  {savingConclusion ? "Saving…" : "Save as claim"}
+                  <Save className="inline-block w-3 h-3 gap-1 text-sm" />
+                  {savingConclusion ? "Saving…" : "Save"}
                 </button>
                 
               </div>
@@ -483,11 +497,11 @@ export function AIFArgumentWithSchemeComposer({
         </span>
       )}
     </div>
-    <button className="text-xs px-2 py-1 rounded-lg btnv2--ghost bg-white" onClick={() => setPickerConcOpen(true)}>
+    <button className="text-xs px-2 py-2 rounded-lg btnv2--ghost bg-white" onClick={() => setPickerConcOpen(true)}>
       Pick existing
     </button>
     <button
-      className="text-xs px-2 py-1 rounded-lg btnv2--ghost bg-white"
+      className="text-xs px-2 py-2 rounded-lg btnv2--ghost bg-white"
       onClick={() => {
         setEditingConclusion(true);
         setConclusionDraft(currentConclusion?.text ?? '');
@@ -496,7 +510,7 @@ export function AIFArgumentWithSchemeComposer({
       Type new…
     </button>
                 <button
-                  className="text-xs px-2 py-1 rounded-lg border border-rose-200 text-rose-700 bg-rose-50 hover:bg-rose-100"
+                  className="text-xs px-2 py-2 rounded-lg border border-rose-200 text-rose-700 bg-rose-50 hover:bg-rose-100"
                   onClick={() => {
                     setConclusion(null); // ← unset locally + parent
                     setEditingConclusion(true);
@@ -526,7 +540,7 @@ export function AIFArgumentWithSchemeComposer({
           {/* NEW: quick add by typing */}
           <div className="mt-2 flex gap-2">
             <input
-              className="flex-1  rounded-lg px-3 py-2 text-sm articlesearchfield"
+              className="flex-1  rounded-lg px-3 2 text-sm articlesearchfield"
               placeholder="Add a premise"
               value={premDraft}
               onChange={(e) => setPremDraft(e.target.value)}
@@ -536,11 +550,18 @@ export function AIFArgumentWithSchemeComposer({
               }}
             />
             <button
+              className="text-xs px-5 rounded-full btnv2 bg-white"
+              onClick={() => setExpandedPremiseEditor(true)}
+              title="Open rich editor for complex premises"
+            >
+              ➾ Expand
+            </button>
+            <button
               className="text-xs px-5   rounded-full bg-white btnv2"
               disabled={!premDraft.trim()}
               onClick={addPremiseFromDraft}
             >
-              Add
+              ⊕ Add
             </button>
           </div>
 
@@ -729,6 +750,52 @@ export function AIFArgumentWithSchemeComposer({
           setPickerPremOpen(false);
         }}
       />
+
+      
+      {/* Expanded rich editor modal for complex conclusion claims */}
+      <Dialog open={expandedConclusionEditor} onOpenChange={setExpandedConclusionEditor}>
+        <DialogContent className="max-w-3xl bg-white">
+          <DialogHeader>
+            <DialogTitle>Compose Conclusion Claim</DialogTitle>
+          </DialogHeader>
+          <PropositionComposerPro
+            deliberationId={deliberationId}
+            onCreated={(prop) => {
+              setConclusionDraft(prop.text);
+              setConclusion({ id: prop.id, text: prop.text });
+              setExpandedConclusionEditor(false);
+              setEditingConclusion(false);
+              window.dispatchEvent(
+                new CustomEvent("claims:changed", { detail: { deliberationId } })
+              );
+            }}
+            onPosted={() => setExpandedConclusionEditor(false)}
+            placeholder="State your conclusion claim with rich formatting..."
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Expanded rich editor modal for complex premise claims */}
+      <Dialog open={expandedPremiseEditor} onOpenChange={setExpandedPremiseEditor}>
+        <DialogContent className="max-w-3xl bg-white">
+          <DialogHeader>
+            <DialogTitle>Compose Premise Claim</DialogTitle>
+          </DialogHeader>
+          <PropositionComposerPro
+            deliberationId={deliberationId}
+            onCreated={(prop) => {
+              setPremises((ps) => [...ps, { id: prop.id, text: prop.text }]);
+              setPremDraft("");
+              setExpandedPremiseEditor(false);
+              window.dispatchEvent(
+                new CustomEvent("claims:changed", { detail: { deliberationId } })
+              );
+            }}
+            onPosted={() => setExpandedPremiseEditor(false)}
+            placeholder="State your premise claim with rich formatting..."
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

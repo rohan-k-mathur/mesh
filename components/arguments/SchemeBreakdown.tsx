@@ -63,16 +63,16 @@ export function SchemeBreakdown({ argumentId }: { argumentId: string }) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <div className="text-sm text-slate-600">
         This argument matches <strong>{schemes.length}</strong> argumentation scheme{schemes.length > 1 ? "s" : ""}:
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-2">
         {schemes.map((scheme, index) => (
           <div
             key={scheme.schemeId}
-            className={`relative p-4 rounded-lg border-2 transition-all ${
+            className={`relative p-2 rounded-lg border-2 transition-all ${
               scheme.isPrimary
                 ? "bg-indigo-50 border-indigo-300"
                 : "bg-slate-50 border-slate-200"
@@ -80,7 +80,7 @@ export function SchemeBreakdown({ argumentId }: { argumentId: string }) {
           >
             {/* Primary badge */}
             {scheme.isPrimary && (
-              <div className="absolute -top-2 -right-2 bg-indigo-600 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-sm flex items-center gap-1">
+              <div className="absolute top-0 right-0 bg-indigo-600 text-white text-[9px] font-bold px-2 py-1 rounded-md shadow-sm flex items-center gap-1">
                 <Target className="h-3 w-3" />
                 PRIMARY
               </div>
@@ -94,7 +94,7 @@ export function SchemeBreakdown({ argumentId }: { argumentId: string }) {
                     className={`flex items-center justify-center w-7 h-7 rounded-full text-sm font-bold ${
                       scheme.isPrimary
                         ? "bg-indigo-600 text-white"
-                        : "bg-slate-300 text-slate-700"
+                        : "bg-slate-300 text-slate-300"
                     }`}
                   >
                     {index + 1}
@@ -118,7 +118,7 @@ export function SchemeBreakdown({ argumentId }: { argumentId: string }) {
 
                 {/* Formal Structure (if present) */}
                 {(scheme.premises || scheme.conclusion) && (
-                  <div className="mt-4 pt-3 border-t border-slate-200 space-y-3">
+                  <div className="mt-2 pt-2 border-t border-slate-700/50 space-y-3">
                     <div className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
                       Formal Structure
                     </div>
@@ -129,7 +129,7 @@ export function SchemeBreakdown({ argumentId }: { argumentId: string }) {
                         {scheme.premises.map((premise) => (
                           <div
                             key={premise.id}
-                            className="bg-white border border-slate-200 rounded px-3 py-2"
+                            className="bg-white border border-sky-200 w-full rounded-lg px-3 py-2"
                           >
                             <div className="flex items-center gap-2 mb-1">
                               <span className="font-mono text-xs font-bold text-slate-700">
@@ -162,7 +162,7 @@ export function SchemeBreakdown({ argumentId }: { argumentId: string }) {
 
                     {/* Conclusion */}
                     {scheme.conclusion && (
-                      <div className="bg-indigo-50 border-2 border-indigo-200 rounded px-3 py-2">
+                      <div className="bg-sky-50 border border-indigo-200 rounded-lg px-3 py-2">
                         <div className="flex items-center gap-2 mb-1">
                           <span className="text-indigo-700 font-bold">∴</span>
                           <span className="text-xs font-semibold uppercase tracking-wide text-indigo-700">
@@ -191,30 +191,6 @@ export function SchemeBreakdown({ argumentId }: { argumentId: string }) {
                 )}
               </div>
 
-              {/* Confidence meter */}
-              <div className="flex flex-col items-end gap-1 shrink-0">
-                <div className="flex items-center gap-1.5">
-                  <TrendingUp className={`h-4 w-4 ${
-                    scheme.isPrimary ? "text-indigo-600" : "text-slate-500"
-                  }`} />
-                  <span className={`text-lg font-bold ${
-                    scheme.isPrimary ? "text-indigo-900" : "text-slate-700"
-                  }`}>
-                    {Math.round(scheme.confidence * 100)}%
-                  </span>
-                </div>
-                <div className="text-xs text-slate-500">confidence</div>
-
-                {/* Visual confidence bar */}
-                <div className="w-20 h-2 bg-slate-200 rounded-full overflow-hidden mt-1">
-                  <div
-                    className={`h-full transition-all ${
-                      scheme.isPrimary ? "bg-indigo-600" : "bg-slate-400"
-                    }`}
-                    style={{ width: `${scheme.confidence * 100}%` }}
-                  />
-                </div>
-              </div>
             </div>
           </div>
         ))}
@@ -223,10 +199,11 @@ export function SchemeBreakdown({ argumentId }: { argumentId: string }) {
       {/* Legend */}
       <div className="pt-3 border-t text-xs text-slate-500 space-y-1">
         <div className="flex items-center gap-2">
-          <Target className="h-3 w-3" />
           <span>
             <strong>Primary scheme:</strong> Highest confidence score, used for CQ generation priority
           </span>
+                    <Target className="h-3 w-3" />
+
         </div>
         <div>
           <strong>Confidence:</strong> How well the argument text matches the scheme&apos;s taxonomy and patterns
@@ -235,3 +212,29 @@ export function SchemeBreakdown({ argumentId }: { argumentId: string }) {
     </div>
   );
 }
+
+
+              // {/* Confidence meter */}
+              // <div className="flex flex-col items-end gap-1 shrink-0">
+              //   <div className="flex items-center gap-1.5">
+              //     <TrendingUp className={`h-4 w-4 ${
+              //       scheme.isPrimary ? "text-indigo-600" : "text-slate-500"
+              //     }`} />
+              //     <span className={`text-lg font-bold ${
+              //       scheme.isPrimary ? "text-indigo-900" : "text-slate-700"
+              //     }`}>
+              //       {Math.round(scheme.confidence * 100)}%
+              //     </span>
+              //   </div>
+              //   <div className="text-xs text-slate-700 tracking-wider">confidence</div>
+
+              //   {/* Visual confidence bar */}
+              //   <div className="w-20 h-2 bg-slate-200 rounded-full overflow-hidden mt-1">
+              //     <div
+              //       className={`h-full transition-all ${
+              //         scheme.isPrimary ? "bg-indigo-600" : "bg-slate-400"
+              //       }`}
+              //       style={{ width: `${scheme.confidence * 100}%` }}
+              //     />
+              //   </div>
+              // </div>

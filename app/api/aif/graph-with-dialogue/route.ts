@@ -11,10 +11,10 @@ import { prisma } from "@/lib/prismaclient";
  * 
  * Query params:
  * - deliberationId (required): ID of the deliberation
- * - participantId (optional): Filter to specific participant's contributions
- * - startTime (optional): ISO timestamp for time range start
- * - endTime (optional): ISO timestamp for time range end
- * - includeDialogue (optional): Whether to include DM-nodes (default: true)
+ * - includeDialogue (optional): Whether to include DM-nodes (default: false)
+ * - includeMoves (optional): "all" | "protocol" | "structural" (default: "all")
+ * - participantFilter (optional): Filter to specific participant's contributions
+ * - timeRange (optional): JSON object {start: ISO8601, end: ISO8601}
  */
 export async function GET(req: NextRequest) {
   try {
@@ -30,11 +30,7 @@ export async function GET(req: NextRequest) {
     // Parse query parameters
     const searchParams = req.nextUrl.searchParams;
     const deliberationId = searchParams.get("deliberationId");
-    const participantId = searchParams.get("participantId") || undefined;
-    const startTime = searchParams.get("startTime") || undefined;
-    const endTime = searchParams.get("endTime") || undefined;
-    const includeDialogue = searchParams.get("includeDialogue") !== "false";
-
+    
     if (!deliberationId) {
       return NextResponse.json(
         { error: "Missing required parameter: deliberationId" },
@@ -42,9 +38,46 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    // Parse optional parameters
+    const includeDialogue = searchParams.get("includeDialogue") === "true";
+    const includeMoves = searchParams.get("includeMoves") || "all";
+    const participantFilter = searchParams.get("participantFilter") || undefined;
+    const timeRangeStr = searchParams.get("timeRange");
+
+    // Validate includeMoves parameter
+    if (!["all", "protocol", "structural"].includes(includeMoves)) {
+      return NextResponse.json(
+        { error: "includeMoves must be 'all', 'protocol', or 'structural'" },
+        { status: 400 }
+      );
+    }
+
+    // Parse timeRange if provided
+    let timeRange: { start: string; end: string } | undefined;
+    if (timeRangeStr) {
+      try {
+        timeRange = JSON.parse(timeRangeStr);
+        if (!timeRange?.start || !timeRange?.end) {
+          throw new Error("timeRange must have 'start' and 'end' properties");
+        }
+      } catch (error) {
+        return NextResponse.json(
+          { error: "Invalid timeRange format. Expected JSON: {start: ISO8601, end: ISO8601}" },
+          { status: 400 }
+        );
+      }
+    }
+
     // Verify user has access to this deliberation
     const deliberation = await prisma.deliberation.findUnique({
       where: { id: deliberationId },
+      select: {
+        id: true,
+        createdById: true,
+        roles: {
+          select: { userId: true },
+        },
+      },
     });
 
     if (!deliberation) {
@@ -54,24 +87,39 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Build time range object if provided
-    const timeRange =
-      startTime && endTime
-        ? { start: startTime, end: endTime }
-        : undefined;
+    // Check authorization: user must be creator or have a role in the deliberation
+    const userIdStr = String(userId);
+    const isCreator = deliberation.createdById === userIdStr;
+    const hasRole = deliberation.roles.some((role) => role.userId === userIdStr);
+    
+    if (!isCreator && !hasRole) {
+      return NextResponse.json(
+        { error: "You do not have access to this deliberation" },
+        { status: 403 }
+      );
+    }
 
     // Build the graph with dialogue layer
     const graph = await buildDialogueAwareGraph(deliberationId, {
-      participantFilter: participantId,
-      timeRange,
       includeDialogue,
+      includeMoves: includeMoves as "all" | "protocol" | "structural",
+      participantFilter,
+      timeRange,
     });
 
-    return NextResponse.json(graph, { status: 200 });
+    return NextResponse.json(graph, { 
+      status: 200,
+      headers: {
+        "Cache-Control": "private, max-age=60", // Cache for 1 minute
+      },
+    });
   } catch (error) {
     console.error("Error building dialogue-aware graph:", error);
     return NextResponse.json(
-      { error: "Failed to build graph" },
+      { 
+        error: "Failed to build graph",
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
       { status: 500 }
     );
   }

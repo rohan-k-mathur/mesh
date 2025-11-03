@@ -58,12 +58,12 @@ export function DialogueActionsButton({
 }: DialogueActionsButtonProps) {
   const [open, setOpen] = useState(false);
 
-  const baseStyles = "inline-flex items-center gap-2 rounded-lg transition-all duration-200";
+  const baseStyles = "inline-flex items-center gap-1 transition-all duration-200";
   
   const variantStyles = {
-    default: "px-4 py-2 bg-indigo-600 text-white hover:bg-indigo-700 shadow-md hover:shadow-lg text-sm font-medium",
-    compact: "px-3 py-1.5 bg-white border-2 border-indigo-300 text-indigo-700 hover:bg-indigo-50 text-xs font-medium",
-    icon: "p-2 bg-white border-2 border-slate-300 text-slate-700 hover:bg-slate-50 hover:border-indigo-300 hover:text-indigo-700",
+    default: "px-4 py-2 bg-indigo-600 text-white  rounded-lg hover:bg-indigo-700 shadow-md hover:shadow-lg text-sm font-medium",
+    compact: "px-3 py-1 bg-indigo-50/50 border rounded-full border-indigo-300 text-indigo-700 hover:bg-indigo-50 text-xs font-medium",
+    icon: "px-4 py-1 hover:bg-indigo-50  rounded-lg border border-indigo-300 text-slate-700 bg-slate-50 hover:border-indigo-300 hover:text-indigo-700",
   };
 
   return (
@@ -73,7 +73,7 @@ export function DialogueActionsButton({
         className={`${baseStyles} ${variantStyles[variant]} ${className}`}
         aria-label={label}
       >
-        <MessageSquare className="w-4 h-4" />
+        <MessageSquare className={variant === "compact" ? "w-3 h-3" : "w-4 h-4"} />
         {variant !== "icon" && <span>{label}</span>}
       </button>
 

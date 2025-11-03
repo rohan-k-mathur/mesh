@@ -370,23 +370,16 @@ export function ProngEditor({
         </div>
 
         {/* Claim Picker Modal */}
-        {showClaimPicker && (
-          <Dialog open onOpenChange={() => setShowClaimPicker(false)}>
-            <DialogContent className="max-w-3xl">
-              <DialogHeader>
-                <DialogTitle>Select Main Claim</DialogTitle>
-              </DialogHeader>
-              <ClaimPicker
-                deliberationId={deliberationId}
-                authorId={authorId}
-                onPick={(claim) => {
-                  setMainClaimId(claim.id);
-                  setShowClaimPicker(false);
-                }}
-              />
-            </DialogContent>
-          </Dialog>
-        )}
+        <ClaimPicker
+          deliberationId={deliberationId}
+          open={showClaimPicker}
+          onClose={() => setShowClaimPicker(false)}
+          onPick={(claim) => {
+            setMainClaimId(claim.id);
+            setShowClaimPicker(false);
+          }}
+          allowCreate={true}
+        />
 
         {/* Argument Picker Modal */}
         {showArgumentPicker && (

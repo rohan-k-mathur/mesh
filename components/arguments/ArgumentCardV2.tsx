@@ -12,6 +12,8 @@ import {
   Target,
   AlertCircle,
   Sparkles,
+  PanelBottomOpen,
+  StepForward,
   MessageSquare,
   Loader2
 } from "lucide-react";
@@ -664,7 +666,7 @@ export function ArgumentCardV2({
         <div>
           <SectionHeader
             title="Inference"
-            icon={Sparkles}
+            icon={StepForward}
             expanded={expandedSections.inference}
             onToggle={() => toggleSection("inference")}
             badge={undercutAttacks.length > 0 ? (
@@ -676,8 +678,8 @@ export function ArgumentCardV2({
             ) : undefined}
           />
           {expandedSections.inference && (
-            <div className="p-4 bg-indigo-50/50">
-              <div className="p-3 rounded-lg bg-white border border-indigo-200">
+            <div className="p-2 bg-indigo-50/50">
+              <div className="px-5 py-3 rounded-lg bg-white border border-indigo-200">
                 <p className="text-sm text-indigo-900 leading-relaxed">
                   The reasoning that connects the premises to the conclusion.
                 </p>
@@ -685,23 +687,23 @@ export function ArgumentCardV2({
                 {/* Phase 4: Multi-scheme display */}
                 {schemes.length > 0 ? (
                   <div className="mt-3 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="text-xs font-medium text-indigo-700">
+                    <div className="flex items-center gap-3">
+                      <div className="text-sm font-medium text-indigo-700">
                         Argumentation Scheme{schemes.length > 1 ? "s" : ""}:
                       </div>
                       <button
                         onClick={() => setSchemeDialogOpen(true)}
-                        className="text-xs text-indigo-600 hover:text-indigo-800 underline font-medium"
+                        className="flex text-sm text-indigo-600 hover:text-indigo-800 underline font-medium"
                       >
                         View full breakdown →
                       </button>
                     </div>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-2 pt-2 border-t border-indigo-200">
                       {schemes.map((scheme) => (
                         <button
                           key={scheme.schemeId}
                           onClick={() => setSchemeDialogOpen(true)}
-                          className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border transition-all hover:scale-105 ${
+                          className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium border transition-all hover:scale-105 ${
                             scheme.isPrimary
                               ? "bg-indigo-100 border-indigo-300 text-indigo-800 hover:bg-indigo-200"
                               : "bg-slate-100 border-slate-300 text-slate-700 hover:bg-slate-200"
@@ -740,7 +742,7 @@ export function ArgumentCardV2({
           <div>
             <SectionHeader
               title="Open Assumptions"
-              icon={Sparkles}
+              icon={PanelBottomOpen}
               count={assumptionsData.assumptions.length}
               expanded={expandedSections.assumptions}
               onToggle={() => toggleSection("assumptions")}

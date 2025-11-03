@@ -73,7 +73,16 @@ export interface DialogueMoveWithAif extends DialogueMove {
  * 
  * Extended edge types to support dialogue move relationships.
  */
-export interface DialogueAwareEdge extends PrismaAifEdge {
+export interface DialogueAwareEdge {
+  /** Edge ID */
+  id: string;
+  
+  /** Source node ID */
+  source: string;
+  
+  /** Target node ID */
+  target: string;
+  
   /** Typed edge role */
   edgeType: 
     | "inference"       // Standard AIF: premise/conclusion
@@ -83,6 +92,9 @@ export interface DialogueAwareEdge extends PrismaAifEdge {
     | "answers"         // Dialogue: DM-node answers challenge
     | "commitsTo"       // Dialogue: DM-node commits to claim
     | "repliesTo";      // Dialogue: DM-node replies to DM-node
+  
+  /** Dialogue move that caused this edge (if any) */
+  causedByDialogueMoveId?: string | null;
 }
 
 /**
