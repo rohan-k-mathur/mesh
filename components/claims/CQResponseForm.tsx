@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import {
   Send,
   Sparkles,
+  ListCheck,
   FileText,
   Link2,
   AlertCircle,
@@ -144,8 +145,8 @@ export default function CQResponseForm({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent 
-        className="!z-[70] max-w-3xl max-h-screen overflow-hidden panel-edge bg-white/95 backdrop-blur-xl shadow-2xl p-6"
+      <DialogContent
+        className="!z-[70] max-w-3xl max-h-screen overflow-hidden panel-edge border bg-white/75 backdrop-blur-xl  px-4 py-4"
         overlayClassName="!z-[70]"
       >
       
@@ -155,11 +156,11 @@ export default function CQResponseForm({
         <div className="absolute bottom-20 left-10 w-40 h-40 bg-cyan-400/8 rounded-full blur-3xl animate-pulse delay-1000 pointer-events-none" />
 
         {/* Scrollable content */}
-        <div className="relative z-10 overflow-y-auto max-h-[85vh] custom-scrollbar-light px-2">
-          <DialogHeader className="mb-6">
+        <div className="relative z-10 overflow-y-auto max-h-[85vh] custom-scrollbar px-2 ">
+          <DialogHeader className="mb-3">
             <div className="flex items-start gap-4">
               <div className="p-3 rounded-2xl bg-gradient-to-b from-sky-500/20 to-cyan-500/20 backdrop-blur-sm border border-slate-900/10 shadow-lg">
-                <Sparkles className="w-6 h-6 text-sky-700" />
+                <ListCheck className="w-6 h-6 text-sky-700" />
               </div>
               <div className="flex-1">
                 <DialogTitle className="text-2xl font-bold text-transparent bg-gradient-to-r from-sky-700 via-cyan-700 to-sky-700 bg-clip-text mb-2">
@@ -174,7 +175,7 @@ export default function CQResponseForm({
           </DialogHeader>
 
           {/* Critical Question Display */}
-          <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-sky-400/15 to-cyan-400/15 backdrop-blur-md border border-cyan-500/30 p-5 shadow-lg mb-6">
+          <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-sky-400/15 to-cyan-400/15 backdrop-blur-md border border-cyan-500/30 px-4 py-3 shadow-lg mb-4">
             <div className="absolute inset-0 bg-gradient-to-br from-slate-900/5 via-transparent to-transparent" />
             <div className="relative flex gap-4">
               <div className="p-2.5 rounded-xl bg-gradient-to-br from-cyan-500/30 to-sky-500/30 shadow-lg h-fit">
@@ -190,7 +191,7 @@ export default function CQResponseForm({
           </div>
 
           {/* Response Text */}
-          <div className="space-y-3 mb-6">
+          <div className="space-y-3 mb-4">
             <Label className="text-sm font-semibold text-sky-900 flex items-center gap-2">
               <div className="w-1.5 h-1.5 rounded-full bg-cyan-600" />
               Your Response
@@ -201,7 +202,7 @@ export default function CQResponseForm({
                 value={groundsText}
                 onChange={(e) => setGroundsText(e.target.value)}
                 placeholder="Provide a detailed, well-reasoned response (10-5000 characters)..."
-                className="min-h-[200px] resize-y bg-slate-900/5 backdrop-blur-md border-slate-900/20 text-slate-900 placeholder:text-slate-400 focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/20 rounded-xl shadow-lg pr-24"
+                className="min-h-[100px] resize-y bg-slate-900/5 backdrop-blur-md border-slate-900/20 text-slate-900 placeholder:text-slate-400 focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/20 rounded-xl shadow-lg pr-24"
                 disabled={submitting || success}
               />
               <div
@@ -371,16 +372,18 @@ export default function CQResponseForm({
             </div>
           )}
 
+        
+        </div>
           {/* Footer Actions */}
-          <DialogFooter className="gap-2 pt-4 border-t border-slate-900/10">
-            <Button
-              variant="outline"
+          <DialogFooter className="gap-2 pt-2 border-t border-slate-900/40">
+            <button
+             
               onClick={handleClose}
               disabled={submitting}
-              className="bg-slate-900/5 backdrop-blur-md border-slate-900/20 text-slate-900 hover:bg-slate-900/10 hover:border-slate-900/30 transition-all"
+              className="relative overflow-hidden btnv2 text-sm rounded-xl  bg-slate-900/5 backdrop-blur-md border-slate-900/20 text-slate-900 hover:bg-slate-900/10 hover:border-slate-900/30 transition-all"
             >
               Cancel
-            </Button>
+            </button>
             <button
               onClick={handleSubmit}
               disabled={!isValid || submitting || success}
@@ -409,7 +412,6 @@ export default function CQResponseForm({
               </div>
             </button>
           </DialogFooter>
-        </div>
       </DialogContent>
     </Dialog>
   );

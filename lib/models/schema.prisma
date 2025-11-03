@@ -2288,6 +2288,11 @@ model Argument {
   claimId String?
   claim   Claim?  @relation("ArgumentClaim", fields: [claimId], references: [id])
 
+  // Dialogue Visualization System - Phase 1.1
+  // Tracks which DialogueMove created this argument (typically GROUNDS move)
+  createdByMoveId String?
+  createdByMove   DialogueMove? @relation("ArgumentCreatedByMove", fields: [createdByMoveId], references: [id], onDelete: SetNull)
+
   deliberation      Deliberation        @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
   outgoingEdges     ArgumentEdge[]      @relation("fromArg")
   incomingEdges     ArgumentEdge[]      @relation("toArg")
@@ -2465,6 +2470,11 @@ model ConflictApplication {
 
   // Metadata: track which CQ this attack addresses, source, etc.
   metaJson Json? @default("{}")
+
+  // Dialogue Visualization System - Phase 1.1
+  // Tracks which DialogueMove created this conflict (typically ATTACK move)
+  createdByMoveId String?
+  createdByMove   DialogueMove? @relation("ConflictCreatedByMove", fields: [createdByMoveId], references: [id], onDelete: SetNull)
 
   scheme ConflictScheme? @relation(fields: [schemeId], references: [id], onDelete: SetNull)
 
@@ -3160,6 +3170,11 @@ model Claim {
   deliberationId String?
   deliberation   Deliberation? @relation(fields: [deliberationId], references: [id], onDelete: Cascade)
 
+  // Dialogue Visualization System - Phase 1.1
+  // Tracks which DialogueMove introduced this claim into the deliberation
+  introducedByMoveId String?
+  introducedByMove   DialogueMove? @relation("ClaimIntroducedByMove", fields: [introducedByMoveId], references: [id], onDelete: SetNull)
+
   arguments Argument[] @relation("ArgumentClaim")
 
   edgesFrom ClaimEdge[]     @relation("fromClaim")
@@ -3626,6 +3641,12 @@ model DialogueMove {
   votes ResponseVote[]
 
   // Dialogue Visualization System - Phase 1.1
+  // Reverse relations for dialogue provenance tracking
+  createdArguments   Argument[]                  @relation("ArgumentCreatedByMove")
+  createdConflicts   ConflictApplication[]       @relation("ConflictCreatedByMove")
+  introducedClaims   Claim[]                     @relation("ClaimIntroducedByMove")
+  visualizationNodes DialogueVisualizationNode[] @relation("DialogueMoveVisualizationNodes")
+
   // Link to AIF nodes this move created (via GROUNDS, THEREFORE, etc.)
   createdAifNodes AifNode[] @relation("AifNodeCreatedBy")
 
@@ -3646,6 +3667,25 @@ model DialogueMove {
   @@index([deliberationId])
   @@index([targetType, targetId])
   @@index([completed])
+}
+
+// Dialogue Visualization System - Phase 1.1
+// Represents pure dialogue moves (WHY, CONCEDE, RETRACT, etc.) that don't create Arguments/Conflicts
+// These are the ONLY moves that need dedicated visualization nodes
+model DialogueVisualizationNode {
+  id             String   @id @default(cuid())
+  deliberationId String
+  dialogueMoveId String
+  nodeKind       String // WHY | CONCEDE | RETRACT | CLOSE | ACCEPT_ARGUMENT
+  metadata       Json? // Store move-specific data (e.g., WHY target, CONCEDE reasoning)
+  createdAt      DateTime @default(now())
+
+  dialogueMove DialogueMove @relation("DialogueMoveVisualizationNodes", fields: [dialogueMoveId], references: [id], onDelete: Cascade)
+
+  @@unique([dialogueMoveId])
+  @@index([deliberationId])
+  @@index([deliberationId, nodeKind])
+  @@index([deliberationId, createdAt])
 }
 
 enum ProofMode {
@@ -4838,7 +4878,7 @@ model DebateNode {
 
   authorsJson Json?
   createdAt   DateTime @default(now())
-  
+
   // Phase 2.3: Reverse relation for DialogueMove (Debate Layer Modernization)
   dialogueMoves DialogueMove[] @relation("DialogueMoveDebateNode")
 }
@@ -4853,13 +4893,13 @@ model DebateEdge {
   thread    String?
   ord       Int?
   rationale String?
-  
+
   // Phase 2.2: Enhanced edge metadata (Debate Layer Modernization)
   attackSubtype ArgumentAttackSubtype? // rebut | undercut | undermine (for attack edges)
-  schemeKey     String?                // if edge represents scheme application
-  cqKey         String?                // if edge is a critical question challenge
-  
-  createdAt DateTime       @default(now())
+  schemeKey     String? // if edge represents scheme application
+  cqKey         String? // if edge is a critical question challenge
+
+  createdAt DateTime @default(now())
 
   @@unique([sheetId, fromId, toId, kind, thread], name: "edge_idempotent")
   @@index([sheetId, fromId, toId, kind, thread])

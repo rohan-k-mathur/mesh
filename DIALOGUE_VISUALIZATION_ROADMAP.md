@@ -53,9 +53,10 @@ code lib/models/schema.prisma
 # Look for: DialogueMove, Argument, Claim, Deliberation
 
 # Key questions to answer:
-# - Does AifNode model exist? (Likely NO - we'll create it)
+# - Does AifNode model exist? (NO - we do NOT create it, see Architectural Decision)
 # - What fields does DialogueMove have? (Should have: id, kind, argumentId, etc.)
 # - Are there existing indices we should follow patterns from?
+# - What is the ConflictApplication schema? (This is the authoritative source for attack edges)
 ```
 
 **Expected outcome:** Understanding of current schema, notes on potential conflicts.
@@ -112,14 +113,17 @@ npx prisma validate
 ### Success Indicators (Phase 1)
 
 You'll know Phase 1 is complete when:
-- [ ] `npx prisma migrate status` shows `add_dialogue_provenance` migration applied
+- [x] Schema changes implemented in `lib/models/schema.prisma`
+- [x] Prisma client regenerated successfully
+- [x] Migration script created: `scripts/add-dialogue-provenance.ts`
+- [ ] `npx prisma migrate dev` creates and applies migration
 - [ ] `npx prisma studio` shows `DialogueVisualizationNode` table (NOT AifNode/AifEdge)
 - [ ] Argument table has `createdByMoveId` field populated for GROUNDS moves
 - [ ] ConflictApplication table has `createdByMoveId` field
-- [ ] No TypeScript errors in `lib/aif/ontology.ts`
 - [ ] Migration script runs without errors in dry-run mode
-- [ ] New types importable: `import type { AifNodeWithDialogue } from "@/types/aif-dialogue"`
 - [ ] Test query successfully derives edges from ConflictApplication (not ArgumentEdge)
+
+**Status:** ✅ Phase 1.1 Complete (Schema Changes) | 🔄 Phase 1.2 Ready (Migration Script)
 
 ---
 
@@ -198,10 +202,11 @@ Schemes + CQs ──→ Displayed in scheme cards
 │  └──────────────────────────────────────────────────┘   │
 │                                                           │
 │  ┌──────────────────────────────────────────────────┐   │
-│  │  Prisma Schema Extensions                         │   │
-│  │  - AifNode.dialogueMoveId (optional)             │   │
-│  │  - DialogueMove.aifNodeId (optional)             │   │
-│  │  - New indexes for performance                    │   │
+│  │  Prisma Schema Extensions (REVISED)              │   │
+│  │  - Argument.createdByMoveId (optional FK)        │   │
+│  │  - ConflictApplication.createdByMoveId (FK)      │   │
+│  │  - DialogueVisualizationNode (new, minimal)      │   │
+│  │  - New indexes for dialogue provenance queries   │   │
 │  └──────────────────────────────────────────────────┘   │
 │                                                           │
 └───────────────────────────────────────────────────────────┘

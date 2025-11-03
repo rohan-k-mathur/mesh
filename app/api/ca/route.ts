@@ -54,12 +54,74 @@ export async function POST(req: NextRequest) {
       legacyTargetScope: d.legacyTargetScope ?? scheme?.legacyTargetScope ?? null,
       // NEW: CQ tracking metadata
       metaJson: d.metaJson ?? {},
+      // Phase 1 dialogue provenance: will be linked to ATTACK move below
+      // createdByMoveId: <set after ATTACK move created>
     },
     select: { id:true }
   });
   
-  // Auto-create WHY dialogue move when AIF attack is created
-  // This unifies the AIF graph system with the dialogical move system
+  // ✨ PHASE 1: Create ATTACK DialogueMove when AIF attack is created
+  // This completes bidirectional sync: ConflictApplication ↔ ATTACK move
+  let attackMoveId: string | null = null;
+  try {
+    const targetType = d.conflictedArgumentId ? 'argument' : 'claim';
+    const targetId = d.conflictedArgumentId || d.conflictedClaimId;
+    
+    if (targetId) {
+      // Generate expression based on attack type
+      const attackLabels = {
+        'REBUTS': 'I challenge this conclusion',
+        'UNDERCUTS': 'I challenge the reasoning',
+        'UNDERMINES': 'I challenge this premise',
+      };
+      const expression = attackLabels[d.legacyAttackType as keyof typeof attackLabels] || 'I challenge this';
+      
+      const cqId = (d.metaJson as any)?.cqId || `aif_attack_${created.id}`;
+      
+      // Create ATTACK move linked to this ConflictApplication
+      const attackMove = await prisma.dialogueMove.create({
+        data: {
+          deliberationId: d.deliberationId,
+          targetType: targetType as TargetType,
+          targetId,
+          kind: 'ATTACK', // 👈 Use ATTACK not WHY for actual attacks
+          actorId: String(userId),
+          payload: {
+            cqId,
+            schemeKey: d.schemeKey || undefined,
+            locusPath: '0',
+            expression: (d.metaJson as any)?.cqContext || expression,
+            attackType: d.legacyAttackType,
+            conflictApplicationId: created.id, // Link back to AIF attack
+          },
+          signature: `ATTACK:${targetType}:${targetId}:${cqId}:${created.id}`,
+          endsWithDaimon: false,
+        },
+      });
+      
+      attackMoveId = attackMove.id;
+      
+      console.log('[ca] Auto-created ATTACK move for AIF attack:', {
+        attackId: created.id,
+        attackMoveId: attackMove.id,
+        attackType: d.legacyAttackType,
+        targetType,
+        targetId,
+      });
+      
+      // Link ConflictApplication back to ATTACK move
+      await prisma.conflictApplication.update({
+        where: { id: created.id },
+        data: { createdByMoveId: attackMove.id }, // 👈 Dialogue provenance linkage
+      });
+    }
+  } catch (err) {
+    console.error('[ca] Failed to auto-create ATTACK move:', err);
+    // Don't fail the whole request if ATTACK creation fails
+  }
+  
+  // Optional: Also create WHY move for tracking challenges (separate from ATTACK)
+  // This maintains backward compatibility with existing WHY move tracking
   try {
     const targetType = d.conflictedArgumentId ? 'argument' : 'claim';
     const targetId = d.conflictedArgumentId || d.conflictedClaimId;

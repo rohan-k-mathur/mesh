@@ -7,6 +7,55 @@ import { getCurrentUserId } from "@/lib/serverutils";
 import { Prisma } from "@prisma/client";
 import { emitBus } from "@/lib/server/bus";
 
+/**
+ * Create an AIF Argument node from a GROUNDS response.
+ * This makes GROUNDS a first-class argument that can be attacked/defended.
+ * (Copied from dialogue/move/route.ts for consistency)
+ */
+async function createArgumentFromGrounds(payload: {
+  deliberationId: string;
+  targetClaimId: string;
+  authorId: string;
+  groundsText: string;
+  cqId: string;
+  schemeKey?: string;
+}): Promise<string | null> {
+  try {
+    // Look up scheme ID if schemeKey is provided
+    let schemeId: string | null = null;
+    if (payload.schemeKey) {
+      const schemeRow = await prisma.argumentScheme.findFirst({
+        where: { key: payload.schemeKey },
+        select: { id: true }
+      });
+      schemeId = schemeRow?.id ?? null;
+    }
+
+    // Create argument node
+    const arg = await prisma.argument.create({
+      data: {
+        deliberationId: payload.deliberationId,
+        authorId: payload.authorId,
+        text: payload.groundsText,
+        conclusionClaimId: payload.targetClaimId,
+        schemeId,
+        mediaType: "text",
+      }
+    });
+
+    console.log("[answer-and-commit] Created argument from GROUNDS:", {
+      argId: arg.id,
+      cqId: payload.cqId,
+      schemeKey: payload.schemeKey
+    });
+
+    return arg.id;
+  } catch (e) {
+    console.error("[answer-and-commit] Failed to create argument from GROUNDS:", e);
+    return null;
+  }
+}
+
 const Body = z.object({
   deliberationId: z.string().min(5),
   targetType: z.enum(["argument", "claim", "card"]),
@@ -93,12 +142,31 @@ export async function POST(req: NextRequest) {
     const userId = await getCurrentUserId().catch(() => null);
     const actorId = String(userId ?? "unknown");
 
-    // 1) Answer the WHY with GROUNDS move
+    // 1) Create Argument from GROUNDS if target is a claim
+    let createdArgumentId: string | null = null;
+    if (targetType === "claim" && expression.trim().length > 5) {
+      try {
+        createdArgumentId = await createArgumentFromGrounds({
+          deliberationId,
+          targetClaimId: targetId,
+          authorId: actorId,
+          groundsText: expression,
+          cqId: cqKey,
+          schemeKey: undefined, // answer-and-commit doesn't have scheme context
+        });
+      } catch (err) {
+        console.error("[answer-and-commit] Failed to create Argument from GROUNDS:", err);
+        // Non-fatal - continue with move creation
+      }
+    }
+
+    // 2) Answer the WHY with GROUNDS move
     const payload = {
       expression,
       cqId: cqKey,
       locusPath,
       original: original ?? expression,
+      createdArgumentId, // Store reference to created Argument
     };
     const signature = makeSignature(
       targetType,
@@ -107,6 +175,11 @@ export async function POST(req: NextRequest) {
       locusPath,
       expression
     );
+
+    // Extract argumentId for GROUNDS moves
+    const argumentIdForGrounds = (createdArgumentId && targetType === "claim") 
+      ? createdArgumentId 
+      : undefined;
 
     let move: any;
     try {
@@ -119,7 +192,15 @@ export async function POST(req: NextRequest) {
           payload,
           actorId,
           signature,
+          argumentId: argumentIdForGrounds, // Phase 1.1: Link to created Argument
         },
+      });
+      
+      console.log("[answer-and-commit] Created GROUNDS move:", {
+        moveId: move.id,
+        argumentId: argumentIdForGrounds,
+        targetType,
+        targetId,
       });
     } catch (e: any) {
       // Handle duplicate signatures gracefully
@@ -146,7 +227,24 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 2) Commit the same assertion to the chosen owner's CS
+    // 3) Link Argument back to GROUNDS move (bidirectional provenance)
+    if (move && createdArgumentId) {
+      try {
+        await prisma.argument.update({
+          where: { id: createdArgumentId },
+          data: { createdByMoveId: move.id },
+        });
+        console.log("[answer-and-commit] Linked Argument to GROUNDS move:", {
+          argumentId: createdArgumentId,
+          moveId: move.id,
+        });
+      } catch (err) {
+        console.error("[answer-and-commit] Failed to link Argument back to move:", err);
+        // Non-fatal
+      }
+    }
+
+    // 4) Commit the same assertion to the chosen owner's CS
     try {
       await applyToCS(deliberationId, commitOwner, {
         add: [
@@ -169,7 +267,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 3) Emit bus events to trigger UI refresh
+    // 5) Emit bus events to trigger UI refresh
     try {
       emitBus("dialogue:moves:refresh", { deliberationId, moveId: move.id, kind: "GROUNDS" });
       emitBus("dialogue:cs:refresh", { deliberationId, participantId: commitOwner });

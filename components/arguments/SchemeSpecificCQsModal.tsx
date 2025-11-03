@@ -675,7 +675,7 @@ export function SchemeSpecificCQsModal({
                             </button>
 
                             {/* Responses List */}
-                            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                            <div className="bg-white rounded-xl border border-slate-200 overflow-y-auto">
                               <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 border-b border-slate-200">
                                 <Activity className="w-4 h-4 text-slate-600" />
                                 <h5 className="text-xs font-bold text-slate-700 uppercase tracking-wide">

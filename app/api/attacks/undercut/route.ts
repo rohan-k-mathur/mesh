@@ -195,6 +195,40 @@ const deliberationId = parsed.data.deliberationId ?? (targetArg ? targetArg.deli
     select: { id: true }
   });
 
+  // ✨ PHASE 1: Create ATTACK DialogueMove for dialogue provenance
+  // This links the undercut to the dialogue system
+  let attackMoveId: string | null = null;
+  try {
+    const attackMove = await prisma.dialogueMove.create({
+      data: {
+        deliberationId,
+        targetType: 'argument',
+        targetId: toArgumentId,
+        kind: 'ATTACK',
+        actorId: String(userId),
+        payload: {
+          attackType: 'UNDERCUTS',
+          targetScope: 'inference',
+          targetInferenceId,
+          locusPath: '0',
+          expression: fromText,
+        },
+        signature: `ATTACK:argument:${toArgumentId}:undercut_${targetInferenceId}`,
+        endsWithDaimon: false,
+      },
+    });
+    attackMoveId = attackMove.id;
+    
+    console.log('[attacks/undercut] Created ATTACK move:', {
+      attackMoveId: attackMove.id,
+      fromArgumentId: fromId,
+      toArgumentId,
+    });
+  } catch (err) {
+    console.error('[attacks/undercut] Failed to create ATTACK move:', err);
+    // Don't fail the whole request
+  }
+
   // IMPORTANT: Also create a ConflictApplication for AIF compatibility
   // This ensures the undercut appears in the AIF graph
   const conflictApp = await prisma.conflictApplication.create({
@@ -202,9 +236,11 @@ const deliberationId = parsed.data.deliberationId ?? (targetArg ? targetArg.deli
       deliberationId,
       conflictingArgumentId: fromId!,
       conflictedArgumentId: toArgumentId,
-      legacyAttackType: 'undercut',
+      legacyAttackType: 'UNDERCUTS',
       legacyTargetScope: 'inference',
       createdById: String(userId),
+      // Link to ATTACK move for dialogue provenance
+      createdByMoveId: attackMoveId,
     },
     select: { id: true }
   });

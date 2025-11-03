@@ -7,6 +7,7 @@ import useSWR, { mutate as globalMutate } from "swr";
 import CQResponseCard from "./CQResponseCard";
 import {
   Sparkles,
+  ListCheck,
   CheckCircle2,
   Clock,
   List,
@@ -66,7 +67,7 @@ const tabs: Array<{
   {
     key: "canonical",
     label: "Canonical",
-    icon: Sparkles,
+    icon: ListCheck,
     color: "text-sky-700 border-sky-400 bg-sky-50",
   },
   {
@@ -206,9 +207,9 @@ export default function CQResponsesList({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2 p-2">
       {/* Tabs */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2">
+      <div className="flex items-center gap-2 overflow-x-auto py-2 px-4">
         {tabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.key;
@@ -218,7 +219,7 @@ export default function CQResponsesList({
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
               className={`
-                flex items-center gap-2 px-4 py-2 rounded-lg border-2 text-sm font-semibold transition-all whitespace-nowrap
+                flex items-center gap-2 px-3 py-1.5 rounded-lg border-2 text-xs font-semibold transition-all whitespace-nowrap
                 ${
                   isActive
                     ? `${tab.color} scale-105 shadow-lg`

@@ -23,6 +23,7 @@ import { SchemeBreakdownModal } from "./SchemeBreakdownModal";
 import { DialogueStateBadge } from "@/components/dialogue/DialogueStateBadge";
 import { StaleArgumentBadge } from "@/components/arguments/StaleArgumentBadge";
 import { ConfidenceDisplay } from "@/components/confidence/ConfidenceDisplay";
+import { DialogueActionsButton } from "@/components/dialogue/DialogueActionsButton";
 
 const fetcher = (url: string) => fetch(url).then(r => r.json());
 
@@ -526,7 +527,6 @@ export function ArgumentCardV2({
                   className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 hover:border-indigo-300 transition-all cursor-pointer"
                   title="View scheme breakdown"
                 >
-                  <Sparkles className="w-3 h-3 text-indigo-600" />
                   <span className="text-xs font-medium text-indigo-700">
                     {schemes.length > 0 
                       ? `${schemes.length} scheme${schemes.length > 1 ? 's' : ''}`
@@ -544,6 +544,17 @@ export function ArgumentCardV2({
                   onClick={() => setCqDialogOpen(true)}
                 />
               )}
+              
+              {/* Dialogue Actions for Conclusion Claim */}
+              <DialogueActionsButton
+                deliberationId={deliberationId}
+                targetType="claim"
+                targetId={conclusion.id}
+                locusPath="0"
+                variant="compact"
+                label="Dialogue"
+                onMovePerformed={onAnyChange}
+              />
               
               {argCqStatus && (
                 <CQStatusPill 
@@ -623,7 +634,18 @@ export function ArgumentCardV2({
                     <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 text-slate-600 text-xs font-bold shrink-0">
                       {idx + 1}
                     </span>
-                    <p className="text-sm text-slate-700 leading-relaxed flex-1">{p.text}</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-slate-700 leading-relaxed">{p.text}</p>
+                    </div>
+                    {/* Dialogue Actions for Premise Claim */}
+                    <DialogueActionsButton
+                      deliberationId={deliberationId}
+                      targetType="claim"
+                      targetId={p.id}
+                      locusPath="0"
+                      variant="icon"
+                      onMovePerformed={onAnyChange}
+                    />
                   </div>
                 ))
               ) : (

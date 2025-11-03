@@ -27,6 +27,50 @@ export async function POST(req: NextRequest) {
 
     // Optional: create a CA edge that embodies the answer/objection (if provided)
     if (attachCA?.attackType) {
+      // ✨ PHASE 1: Create ATTACK DialogueMove first
+      let attackMoveId: string | null = null;
+      try {
+        const targetType = attachCA.conflictedArgumentId ? 'argument' : 'claim';
+        const targetId = attachCA.conflictedArgumentId ?? attachCA.conflictedClaimId;
+        
+        if (targetId) {
+          const attackLabels: Record<string, string> = {
+            'REBUTS': 'I challenge this conclusion',
+            'UNDERCUTS': 'I challenge the reasoning',
+            'UNDERMINES': 'I challenge this premise',
+          };
+          const expression = attackLabels[attachCA.attackType] || 'I challenge this';
+          
+          const attackMove = await prisma.dialogueMove.create({
+            data: {
+              deliberationId,
+              targetType: targetType as any,
+              targetId,
+              kind: 'ATTACK',
+              actorId: String(authorId || 'self'),
+              payload: {
+                cqKey,
+                schemeKey,
+                locusPath: '0',
+                expression,
+                attackType: attachCA.attackType,
+              },
+              signature: `ATTACK:${targetType}:${targetId}:cq_${cqKey}`,
+              endsWithDaimon: false,
+            },
+          });
+          attackMoveId = attackMove.id;
+          
+          console.log('[cq] Created ATTACK move for CQ resolution:', {
+            attackMoveId: attackMove.id,
+            cqKey,
+            targetId,
+          });
+        }
+      } catch (err) {
+        console.error('[cq] Failed to create ATTACK move:', err);
+      }
+      
       await prisma.conflictApplication.create({
         data: {
           deliberationId,
@@ -36,6 +80,8 @@ export async function POST(req: NextRequest) {
           conflictedArgumentId: attachCA.conflictedArgumentId ?? null,
           conflictingClaimId: attachCA.conflictingClaimId ?? null,
           conflictedClaimId: attachCA.conflictedClaimId ?? null,
+          // Link to ATTACK move for dialogue provenance
+          createdByMoveId: attackMoveId,
         }
       }).catch(()=>{});
     }

@@ -315,8 +315,29 @@ try {
       where: { targetType: 'argument' as TargetType, targetId, schemeKey, cqKey: schemeKey },
       data: { status: 'answered', satisfied: true },
     });
+  } else if (kind === 'GROUNDS' && !schemeKey) {
+    // Handle GROUNDS moves without explicit CQ/scheme (e.g., generic grounds)
+    const groundsText = String(payload?.expression ?? payload?.brief ?? payload?.note ?? '').trim();
+    
+    if (groundsText && groundsText.length > 5 && targetType === 'claim') {
+      const argId = await createArgumentFromGrounds({
+        deliberationId,
+        targetClaimId: targetId,
+        authorId: actorId,
+        groundsText,
+        cqId: 'generic_grounds',
+        schemeKey: undefined,
+      });
+
+      // Store argId in move payload for reference
+      if (argId) {
+        (payload as any).createdArgumentId = argId;
+      }
+    }
   }
-} catch {}
+} catch (err) {
+  console.error('[dialogue/move] CQStatus/GROUNDS integration error:', err);
+}
 
   // WHY TTL
   if (kind === 'WHY') {
@@ -339,6 +360,13 @@ try {
   // map kind to illocution (speech act type)
   const illocution = getIllocution(kind);
 
+  // Extract argumentId for GROUNDS moves (before try block so it's in scope)
+  const argumentIdForGrounds = (kind === 'GROUNDS' && targetType === 'argument') 
+    ? targetId 
+    : (kind === 'GROUNDS' && payload?.createdArgumentId) 
+      ? payload.createdArgumentId 
+      : undefined;
+
   // write (with P2002 de-dup)
   let move: any, dedup = false;
   try {
@@ -353,7 +381,8 @@ try {
         actorId, 
         signature, 
         replyToMoveId, 
-        replyTarget 
+        replyTarget,
+        argumentId: argumentIdForGrounds, // 👈 Populate argumentId for GROUNDS moves
       },
     });
   } catch (e: any) {
@@ -364,6 +393,24 @@ try {
       dedup = true;
     } else {
       throw e;
+    }
+  }
+
+  // ✨ PHASE 1: Link Argument back to GROUNDS move that created it
+  // This completes bidirectional dialogue provenance: GROUNDS ↔ Argument
+  if (move && kind === 'GROUNDS' && argumentIdForGrounds && !dedup) {
+    try {
+      await prisma.argument.update({
+        where: { id: argumentIdForGrounds },
+        data: { createdByMoveId: move.id },
+      });
+      console.log('[dialogue/move] Linked Argument to GROUNDS move:', {
+        argumentId: argumentIdForGrounds,
+        moveId: move.id,
+      });
+    } catch (err) {
+      console.error('[dialogue/move] Failed to link Argument to GROUNDS move:', err);
+      // Don't fail the whole request
     }
   }
 
@@ -427,6 +474,7 @@ if (prop) {
           conflictedArgumentId: targetId,
           legacyAttackType: attackType,
           createdById: actorId,
+          createdByMoveId: move.id, // 👈 Link to dialogue move (Phase 1 dialogue provenance)
           metaJson: {
             dialogueMoveId: move.id, // Link back to WHY move
             cqId: payload?.cqId,

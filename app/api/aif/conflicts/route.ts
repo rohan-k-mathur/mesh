@@ -52,6 +52,57 @@ export async function POST(req: NextRequest) {
     select: { id: true, schemeId: true }
   });
 
+  // ✨ PHASE 1: Create ATTACK DialogueMove for dialogue provenance
+  let attackMoveId: string | null = null;
+  try {
+    const targetType = p.conflicted.kind === 'RA' ? 'argument' : 'claim';
+    const targetId = p.conflicted.id;
+    
+    const attackLabels: Record<string, string> = {
+      'REBUT': 'I challenge this conclusion',
+      'UNDERCUT': 'I challenge the reasoning',
+      'UNDERMINE': 'I challenge this premise',
+    };
+    const expression = attackLabels[p.schemeKey?.toUpperCase() || ''] || 'I challenge this';
+    
+    const attackMove = await prisma.dialogueMove.create({
+      data: {
+        deliberationId: p.deliberationId,
+        targetType: targetType as any,
+        targetId,
+        kind: 'ATTACK',
+        actorId: p.createdById,
+        payload: {
+          schemeKey: p.schemeKey,
+          cqKey: p.cqKey,
+          locusPath: '0',
+          expression,
+          conflictApplicationId: ca.id,
+        },
+        signature: `ATTACK:${targetType}:${targetId}:aif_${ca.id}`,
+        endsWithDaimon: false,
+      },
+    });
+    attackMoveId = attackMove.id;
+    
+    console.log('[aif/conflicts] Created ATTACK move:', {
+      attackMoveId: attackMove.id,
+      conflictApplicationId: ca.id,
+    });
+  } catch (err) {
+    console.error('[aif/conflicts] Failed to create ATTACK move:', err);
+  }
+
+  // Update ConflictApplication with dialogue provenance link
+  if (attackMoveId) {
+    await prisma.conflictApplication.update({
+      where: { id: ca.id },
+      data: { createdByMoveId: attackMoveId },
+    }).catch((err) => {
+      console.error('[aif/conflicts] Failed to link CA to ATTACK move:', err);
+    });
+  }
+
   // Materialize a legacy view row so your AF stays lit:
   // Map CA to argumentEdge when a RA is the target (undercuts), or when an I is the target (rebuts).
   // You can refine this mapping as needed.
