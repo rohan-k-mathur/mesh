@@ -22,6 +22,8 @@ import {
   Clock,
   Filter,
   Download,
+  Calendar,
+  X,
 } from "lucide-react";
 import { useState, useMemo } from "react";
 import { format } from "date-fns";
@@ -45,6 +47,70 @@ interface DialogueMove {
   targetId: string | null;
   payload: any;
   createdAt: string;
+}
+
+interface DialogueThread {
+  id: string;
+  initiatingMove: DialogueMove;
+  responses: DialogueMove[];
+  isExpanded?: boolean;
+}
+
+/**
+ * Group dialogue moves into threads based on target relationships
+ * A thread is a WHY/CHALLENGE followed by its responses (GROUNDS, CONCEDE, etc.)
+ */
+function groupMovesIntoThreads(moves: DialogueMove[]): (DialogueMove | DialogueThread)[] {
+  const result: (DialogueMove | DialogueThread)[] = [];
+  const processedIds = new Set<string>();
+
+  for (let i = 0; i < moves.length; i++) {
+    const move = moves[i];
+    
+    if (processedIds.has(move.id)) continue;
+
+    // Check if this is a threadable initiating move (WHY, CHALLENGE)
+    if (move.kind === "WHY" || move.kind === "CHALLENGE") {
+      const responses: DialogueMove[] = [];
+      
+      // Look ahead for responses targeting this move's target
+      for (let j = i + 1; j < moves.length && j < i + 10; j++) {
+        const potentialResponse = moves[j];
+        
+        // Check if it's a response to the same target
+        if (
+          potentialResponse.targetId === move.targetId &&
+          potentialResponse.targetType === move.targetType &&
+          (potentialResponse.kind === "GROUNDS" ||
+           potentialResponse.kind === "CONCEDE" ||
+           potentialResponse.kind === "RETRACT" ||
+           potentialResponse.kind === "ASSERT")
+        ) {
+          responses.push(potentialResponse);
+          processedIds.add(potentialResponse.id);
+        }
+      }
+
+      // Create thread if we found responses
+      if (responses.length > 0) {
+        result.push({
+          id: `thread-${move.id}`,
+          initiatingMove: move,
+          responses,
+          isExpanded: false,
+        });
+        processedIds.add(move.id);
+      } else {
+        result.push(move);
+        processedIds.add(move.id);
+      }
+    } else {
+      result.push(move);
+      processedIds.add(move.id);
+    }
+  }
+
+  return result;
 }
 
 /**
@@ -145,12 +211,14 @@ function TimelineEventCard({
   isLast,
   claimTexts,
   argTexts,
+  userNames,
 }: {
   move: DialogueMove;
   isFirst: boolean;
   isLast: boolean;
   claimTexts: Map<string, string>;
   argTexts: Map<string, string>;
+  userNames: Map<string, string>;
 }) {
   const moveInfo = getMoveIcon(move.kind);
   const timestamp = new Date(move.createdAt);
@@ -183,7 +251,7 @@ function TimelineEventCard({
                   <div className="font-semibold text-sm text-gray-900">{moveInfo.label}</div>
                   <div className="flex items-center gap-2 text-xs text-gray-500">
                     <User className="h-3 w-3" />
-                    <span>Participant {String(move.actorId).slice(0, 8)}...</span>
+                    <span>{userNames.get(move.actorId) || `User ${String(move.actorId).slice(0, 8)}...`}</span>
                     <span>•</span>
                     <Clock className="h-3 w-3" />
                     <span>{format(timestamp, "MMM d, yyyy 'at' h:mm a")}</span>
@@ -224,6 +292,130 @@ function TimelineEventCard({
 }
 
 /**
+ * Thread Card Component - Groups related moves together
+ */
+function ThreadCard({
+  thread,
+  isExpanded,
+  onToggle,
+  claimTexts,
+  argTexts,
+  userNames,
+}: {
+  thread: DialogueThread;
+  isExpanded: boolean;
+  onToggle: () => void;
+  claimTexts: Map<string, string>;
+  argTexts: Map<string, string>;
+  userNames: Map<string, string>;
+}) {
+  const initiatingInfo = getMoveIcon(thread.initiatingMove.kind);
+  const timestamp = new Date(thread.initiatingMove.createdAt);
+
+  return (
+    <div className="flex gap-4 group">
+      {/* Timeline line */}
+      <div className="flex flex-col items-center">
+        {/* Dot */}
+        <div
+          className={`${initiatingInfo.color} w-3 h-3 rounded-full ring-4 ring-white shadow-md`}
+        />
+        {/* Vertical line */}
+        <div className="w-0.5 flex-1 bg-gray-200 mt-1" style={{ minHeight: "60px" }} />
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 pb-8">
+        <Card className="surfacev2 border-l-4" style={{ borderLeftColor: initiatingInfo.color.replace("bg-", "#") }}>
+          <CardContent className="p-4">
+            {/* Thread header - always visible */}
+            <div
+              className="flex items-start justify-between cursor-pointer"
+              onClick={onToggle}
+            >
+              <div className="flex items-center gap-2 flex-1">
+                <div className={`${initiatingInfo.color} p-1.5 rounded-lg text-white`}>
+                  {initiatingInfo.icon}
+                </div>
+                <div className="flex-1">
+                  <div className="font-semibold text-sm text-gray-900">
+                    {initiatingInfo.label}
+                    <Badge variant="outline" className="ml-2 text-[10px]">
+                      {thread.responses.length} {thread.responses.length === 1 ? "response" : "responses"}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-gray-500">
+                    <User className="h-3 w-3" />
+                    <span>{userNames.get(thread.initiatingMove.actorId) || `User ${String(thread.initiatingMove.actorId).slice(0, 8)}...`}</span>
+                    <span>•</span>
+                    <Clock className="h-3 w-3" />
+                    <span>{format(timestamp, "MMM d, yyyy 'at' h:mm a")}</span>
+                  </div>
+                </div>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  <ArrowRight className={`h-4 w-4 transition-transform ${isExpanded ? "rotate-90" : ""}`} />
+                </Button>
+              </div>
+            </div>
+
+            {/* Target content - always visible */}
+            {thread.initiatingMove.targetId && (
+              <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="text-xs text-gray-500 mb-1">
+                  Target: {thread.initiatingMove.targetType}
+                </div>
+                {formatTargetText(thread.initiatingMove, claimTexts, argTexts)}
+              </div>
+            )}
+
+            {/* Expanded responses */}
+            {isExpanded && (
+              <div className="mt-4 space-y-3 pl-4 border-l-2 border-gray-200">
+                {thread.responses.map((response, idx) => {
+                  const responseInfo = getMoveIcon(response.kind);
+                  const responseTime = new Date(response.createdAt);
+                  
+                  return (
+                    <div key={response.id} className="bg-white rounded-lg border p-3">
+                      <div className="flex items-start gap-2 mb-2">
+                        <div className={`${responseInfo.color} p-1 rounded text-white`}>
+                          {responseInfo.icon}
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-medium text-sm text-gray-900">
+                            {responseInfo.label}
+                          </div>
+                          <div className="flex items-center gap-2 text-xs text-gray-500">
+                            <User className="h-3 w-3" />
+                            <span>{userNames.get(response.actorId) || `User ${String(response.actorId).slice(0, 8)}...`}</span>
+                            <span>•</span>
+                            <Clock className="h-3 w-3" />
+                            <span>{format(responseTime, "MMM d, h:mm a")}</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Response payload */}
+                      {response.payload && Object.keys(response.payload).length > 0 && (
+                        <div className="mt-2 text-xs text-gray-600">
+                          <pre className="bg-gray-50 p-2 rounded overflow-x-auto">
+                            {JSON.stringify(response.payload, null, 2)}
+                          </pre>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+/**
  * Statistics Summary Component
  */
 function TimelineStats({ moves }: { moves: DialogueMove[] }) {
@@ -255,32 +447,32 @@ function TimelineStats({ moves }: { moves: DialogueMove[] }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
       {/* Total moves */}
-      <Card>
-        <CardContent className="p-4">
+      <Card className="surfacev2 panel-edge">
+        <CardContent className="p-0">
           <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
           <div className="text-sm text-gray-500">Total Moves</div>
         </CardContent>
       </Card>
 
       {/* Participants */}
-      <Card>
-        <CardContent className="p-4">
+      <Card className="surfacev2 panel-edge">
+        <CardContent className="p-0">
           <div className="text-2xl font-bold text-gray-900">{stats.uniqueActors}</div>
           <div className="text-sm text-gray-500">Participants</div>
         </CardContent>
       </Card>
 
       {/* Timespan */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="text-sm font-semibold text-gray-900">Duration</div>
+      <Card className="surfacev2 panel-edge">
+        <CardContent className="p-0">
+          <div className="text-2xl font-semibold text-gray-900">Duration</div>
           {stats.timespan ? (
-            <div className="text-xs text-gray-500 mt-1">
+            <div className="text-sm text-gray-500 ">
               {format(stats.timespan.start, "MMM d")} →{" "}
               {format(stats.timespan.end, "MMM d, yyyy")}
             </div>
           ) : (
-            <div className="text-xs text-gray-500">No data</div>
+            <div className="text-xm text-gray-500">No data</div>
           )}
         </CardContent>
       </Card>
@@ -309,9 +501,10 @@ function MoveTypeDistribution({ moves }: { moves: DialogueMove[] }) {
   }, [moves]);
 
   return (
-    <Card>
+        <Card className="panelv2 hover:translate-y-0 p-1">
+
       <CardHeader>
-        <CardTitle className="text-sm">Move Type Distribution</CardTitle>
+        <CardTitle className="text-lg">Move Type Distribution</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
@@ -343,6 +536,168 @@ function MoveTypeDistribution({ moves }: { moves: DialogueMove[] }) {
 }
 
 /**
+ * Activity Heatmap Component - Shows dialogue activity by day
+ */
+function ActivityHeatmap({ moves }: { moves: DialogueMove[] }) {
+  const heatmapData = useMemo(() => {
+    if (moves.length === 0) return { days: [], maxCount: 0, dateRange: null };
+
+    // Group moves by date
+    const countByDate: Record<string, number> = {};
+    let minDate: Date | null = null;
+    let maxDate: Date | null = null;
+
+    moves.forEach((move) => {
+      const date = new Date(move.createdAt);
+      const dateKey = format(date, "yyyy-MM-dd");
+      countByDate[dateKey] = (countByDate[dateKey] || 0) + 1;
+
+      if (!minDate || date < minDate) minDate = date;
+      if (!maxDate || date > maxDate) maxDate = date;
+    });
+
+    if (!minDate || !maxDate) return { days: [], maxCount: 0, dateRange: null };
+
+    // Generate all days in range
+    const days: Array<{ date: string; count: number; displayDate: Date }> = [];
+    const current = new Date(minDate);
+    current.setHours(0, 0, 0, 0);
+    const end = new Date(maxDate);
+    end.setHours(0, 0, 0, 0);
+
+    while (current <= end) {
+      const dateKey = format(current, "yyyy-MM-dd");
+      days.push({
+        date: dateKey,
+        count: countByDate[dateKey] || 0,
+        displayDate: new Date(current),
+      });
+      current.setDate(current.getDate() + 1);
+    }
+
+    const maxCount = Math.max(...Object.values(countByDate));
+
+    return {
+      days,
+      maxCount,
+      dateRange: { start: minDate, end: maxDate },
+    };
+  }, [moves]);
+
+  const getIntensityColor = (count: number, maxCount: number) => {
+    if (count === 0) return "bg-gray-100";
+    const intensity = count / maxCount;
+    if (intensity > 0.75) return "bg-indigo-600";
+    if (intensity > 0.5) return "bg-indigo-500";
+    if (intensity > 0.25) return "bg-indigo-400";
+    return "bg-indigo-300";
+  };
+
+  if (heatmapData.days.length === 0) {
+    return (
+      <Card className="panelv2">
+        <CardHeader>
+          <CardTitle className="text-lg">Activity Heatmap</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-lg text-gray-500">No activity data available</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Group days by week
+  const weeks: Array<Array<typeof heatmapData.days[0]>> = [];
+  let currentWeek: Array<typeof heatmapData.days[0]> = [];
+  
+  heatmapData.days.forEach((day, index) => {
+    currentWeek.push(day);
+    if (day.displayDate.getDay() === 6 || index === heatmapData.days.length - 1) {
+      weeks.push([...currentWeek]);
+      currentWeek = [];
+    }
+  });
+
+  return (
+    <Card className="panelv2 hover:translate-y-0 p-1">
+      <CardHeader>
+        <CardTitle className="text-lg flex items-center justify-between">
+          <span>Activity Heatmap</span>
+          {heatmapData.dateRange && (
+            <span className="text-sm font-normal text-gray-500">
+              {format(heatmapData.dateRange.start, "MMM d")} - {format(heatmapData.dateRange.end, "MMM d, yyyy")}
+            </span>
+          )}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-2">
+          {/* Day labels */}
+          <div className="flex gap-1 text-xs text-gray-500 mb-2">
+            <div className="w-8"></div>
+            <div className="flex-1 grid grid-cols-7 gap-1 text-center">
+              <div>Sun</div>
+              <div>Mon</div>
+              <div>Tue</div>
+              <div>Wed</div>
+              <div>Thu</div>
+              <div>Fri</div>
+              <div>Sat</div>
+            </div>
+          </div>
+
+          {/* Heatmap grid */}
+          <div className="space-y-1">
+            {weeks.map((week, weekIndex) => (
+              <div key={weekIndex} className="flex gap-1 items-center">
+                <div className="w-8 text-xs text-gray-500">
+                  W{weekIndex + 1}
+                </div>
+                <div className="flex-1 grid grid-cols-7 gap-1">
+                  {Array.from({ length: 7 }).map((_, dayIndex) => {
+                    const day = week.find((d) => d.displayDate.getDay() === dayIndex);
+                    if (!day) {
+                      return <div key={dayIndex} className="aspect-square rounded bg-gray-50" />;
+                    }
+                    return (
+                      <div
+                        key={day.date}
+                        className={`aspect-square rounded ${getIntensityColor(day.count, heatmapData.maxCount)} hover:ring-2 hover:ring-indigo-400 transition-all cursor-pointer group relative`}
+                        title={`${format(day.displayDate, "MMM d, yyyy")}: ${day.count} ${day.count === 1 ? "move" : "moves"}`}
+                      >
+                        {/* Tooltip on hover */}
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-10">
+                          <div className="bg-gray-900 text-white text-xs rounded py-1 px-2 whitespace-nowrap">
+                            {format(day.displayDate, "MMM d")}: {day.count} {day.count === 1 ? "move" : "moves"}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Legend */}
+          <div className="flex items-center justify-end gap-2 mt-4 pt-4 border-t">
+            <span className="text-xs text-gray-500">Less</span>
+            <div className="flex gap-1">
+              <div className="w-4 h-4 rounded bg-gray-100" />
+              <div className="w-4 h-4 rounded bg-indigo-300" />
+              <div className="w-4 h-4 rounded bg-indigo-400" />
+              <div className="w-4 h-4 rounded bg-indigo-500" />
+              <div className="w-4 h-4 rounded bg-indigo-600" />
+            </div>
+            <span className="text-xs text-gray-500">More</span>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+/**
  * Main Dialogue Timeline Page
  */
 export default function DialogueTimelinePage() {
@@ -352,7 +707,43 @@ export default function DialogueTimelinePage() {
   const [filterKind, setFilterKind] = useState<string | null>(null);
   const [filterActor, setFilterActor] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [dateRange, setDateRange] = useState<{ start: string | null; end: string | null }>({
+    start: null,
+    end: null,
+  });
+  const [expandedThreads, setExpandedThreads] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<"timeline" | "analytics">("timeline");
+
+  // Helper function for date range presets
+  const setDateRangePreset = (preset: "today" | "week" | "month") => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    switch (preset) {
+      case "today":
+        setDateRange({
+          start: today.toISOString().split("T")[0],
+          end: today.toISOString().split("T")[0],
+        });
+        break;
+      case "week":
+        const weekAgo = new Date(today);
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        setDateRange({
+          start: weekAgo.toISOString().split("T")[0],
+          end: today.toISOString().split("T")[0],
+        });
+        break;
+      case "month":
+        const monthAgo = new Date(today);
+        monthAgo.setMonth(monthAgo.getMonth() - 1);
+        setDateRange({
+          start: monthAgo.toISOString().split("T")[0],
+          end: today.toISOString().split("T")[0],
+        });
+        break;
+    }
+  };
 
   // Fetch dialogue moves
   const { data: movesData, error: movesError, isLoading: movesLoading } = useSWR(
@@ -436,7 +827,7 @@ export default function DialogueTimelinePage() {
     const map = new Map<string, string>();
     if (usersData?.users) {
       usersData.users.forEach((u: any) => {
-        const displayName = u.name || u.username || u.email?.split("@")[0] || `User ${u.id.slice(0, 8)}`;
+        const displayName = u.name || u.username || `User ${u.id.slice(0, 8)}`;
         map.set(u.id, displayName);
       });
     }
@@ -456,6 +847,24 @@ export default function DialogueTimelinePage() {
       filtered = filtered.filter((m: DialogueMove) => String(m.actorId) === filterActor);
     }
 
+    // Apply date range filter
+    if (dateRange.start || dateRange.end) {
+      filtered = filtered.filter((m: DialogueMove) => {
+        const moveDate = new Date(m.createdAt);
+        if (dateRange.start && moveDate < new Date(dateRange.start)) {
+          return false;
+        }
+        if (dateRange.end) {
+          const endDate = new Date(dateRange.end);
+          endDate.setHours(23, 59, 59, 999); // Include the entire end date
+          if (moveDate > endDate) {
+            return false;
+          }
+        }
+        return true;
+      });
+    }
+
     // Apply sorting
     filtered.sort((a: DialogueMove, b: DialogueMove) => {
       const dateA = new Date(a.createdAt).getTime();
@@ -464,7 +873,7 @@ export default function DialogueTimelinePage() {
     });
 
     return filtered;
-  }, [movesData, filterKind, filterActor, sortOrder]);
+  }, [movesData, filterKind, filterActor, dateRange, sortOrder]);
 
   // Get unique move kinds and actors for filters
   const uniqueKinds = useMemo(() => {
@@ -476,6 +885,25 @@ export default function DialogueTimelinePage() {
     if (!movesData?.items) return [];
     return Array.from(new Set(movesData.items.map((m: DialogueMove) => String(m.actorId))));
   }, [movesData]);
+
+  // Prepare moves and threads BEFORE conditional returns to avoid hook ordering issues
+  const moves = filteredMoves as DialogueMove[];
+  
+  // Group moves into threads
+  const threaded = useMemo(() => groupMovesIntoThreads(moves), [moves]);
+
+  // Toggle thread expansion
+  const toggleThread = (threadId: string) => {
+    setExpandedThreads((prev) => {
+      const next = new Set(prev);
+      if (next.has(threadId)) {
+        next.delete(threadId);
+      } else {
+        next.add(threadId);
+      }
+      return next;
+    });
+  };
 
   if (movesLoading) {
     return (
@@ -507,8 +935,6 @@ export default function DialogueTimelinePage() {
       </div>
     );
   }
-
-  const moves = filteredMoves as DialogueMove[];
 
   // Export function
   const handleExport = () => {
@@ -584,7 +1010,7 @@ export default function DialogueTimelinePage() {
 
       {/* View mode tabs */}
       <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as any)} className="mb-6">
-        <TabsList >
+        <TabsList className="font-normal tracking-wide">
           <TabsTrigger value="timeline">Timeline View</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
         </TabsList>
@@ -592,58 +1018,119 @@ export default function DialogueTimelinePage() {
         {/* Timeline View */}
         <TabsContent value="timeline" className="mt-6">
           {/* Filters */}
-          <Card className="mb-6 panelv2 py-2 ">
+          <Card className="mb-6 panelv2 py-2 panel-edge hover:translate-y-0">
             <CardContent className="p-4">
-              <div className="flex items-center gap-4 flex-wrap">
-                <div className="flex items-center gap-2">
-                  <Filter className="h-4 w-4 text-gray-500" />
-                  <span className="text-sm font-medium text-gray-700">Filters:</span>
+              <div className="space-y-3">
+                {/* First row: Type and Participant filters */}
+                <div className="flex items-center gap-4 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <Filter className="h-4 w-4 text-gray-500" />
+                    <span className="text-sm font-medium text-gray-700">Filters:</span>
+                  </div>
+
+                  {/* Move kind filter */}
+                  <select
+                    value={filterKind || ""}
+                    onChange={(e) => setFilterKind(e.target.value || null)}
+                    className="menuv2--lite text-sm  rounded-lg px-3 py-1.5"
+                  >
+                    <option value="">All Move Types</option>
+                    {uniqueKinds.map((kind) => (
+                      <option key={kind} value={kind}>
+                        {kind}
+                      </option>
+                    ))}
+                  </select>
+
+                  {/* Actor filter */}
+                  <select
+                    value={filterActor || ""}
+                    onChange={(e) => setFilterActor(e.target.value || null)}
+                    className="menuv2--lite text-sm  rounded-lg px-3 py-1.5"
+                  >
+                    <option value="">All Participants</option>
+                    {uniqueActors.map((actor) => (
+                      <option key={actor} value={actor}>
+                        {userNames.get(actor) || `User ${actor.slice(0, 8)}...`}
+                      </option>
+                    ))}
+                  </select>
+
+                  {/* Clear filters */}
+                  {(filterKind || filterActor || dateRange.start || dateRange.end) && (
+                    <button
+                        className="text-sm text-red-600 hover:underline"
+                      onClick={() => {
+                        setFilterKind(null);
+                        setFilterActor(null);
+                        setDateRange({ start: null, end: null });
+                      }}
+                    >
+                      Clear All
+                    </button>
+                  )}
+
+                  <div className="ml-auto text-sm text-gray-500">
+                    Showing {moves.length} of {movesData?.items?.length || 0} moves
+                  </div>
                 </div>
 
-                {/* Move kind filter */}
-                <select
-                  value={filterKind || ""}
-                  onChange={(e) => setFilterKind(e.target.value || null)}
-                  className="menuv2--lite text-sm  rounded-lg px-3 py-1.5"
-                >
-                  <option value="">All Move Types</option>
-                  {uniqueKinds.map((kind) => (
-                    <option key={kind} value={kind}>
-                      {kind}
-                    </option>
-                  ))}
-                </select>
+                {/* Second row: Date range filter */}
+                <div className="flex items-center gap-3 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-gray-500" />
+                    <span className="text-sm font-medium text-gray-700">Date Range:</span>
+                  </div>
 
-                {/* Actor filter */}
-                <select
-                  value={filterActor || ""}
-                  onChange={(e) => setFilterActor(e.target.value || null)}
-                  className="menuv2--lite text-sm  rounded-lg px-3 py-1.5"
-                >
-                  <option value="">All Participants</option>
-                  {uniqueActors.map((actor) => (
-                    <option key={actor} value={actor}>
-                      Participant {actor.slice(0, 8)}...
-                    </option>
-                  ))}
-                </select>
+                  <input
+                    type="date"
+                    value={dateRange.start || ""}
+                    onChange={(e) => setDateRange((prev) => ({ ...prev, start: e.target.value || null }))}
+                    className="text-sm menuv2--lite rounded-lg px-3 py-1 bg-white/50"
+                    placeholder="Start date"
+                  />
+                  <span className="text-gray-800">→</span>
+                  <input
+                    type="date"
+                    value={dateRange.end || ""}
+                    onChange={(e) => setDateRange((prev) => ({ ...prev, end: e.target.value || null }))}
+                    className="text-sm menuv2--lite rounded-lg px-3 py-1 bg-white/50"
+                    placeholder="End date"
+                  />
 
-                {/* Clear filters */}
-                {(filterKind || filterActor) && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      setFilterKind(null);
-                      setFilterActor(null);
-                    }}
-                  >
-                    Clear Filters
-                  </Button>
-                )}
+                  {/* Preset buttons */}
+                  <div className="flex items-center gap-3">
+                    <button
+                      
+                      onClick={() => setDateRangePreset("today")}
+                      className="text-xs h-8 btnv2 bg-gray-100 hover:bg-gray-200 rounded-lg px-3 py-1.5"
+                    >
+                      Today
+                    </button>
+                    <button
+                  
+                      onClick={() => setDateRangePreset("week")}
+                      className="text-xs h-8 btnv2 bg-gray-100 hover:bg-gray-200 rounded-lg px-3 py-1.5"
+                    >
+                      Last 7 Days
+                    </button>
+                    <button
+                      onClick={() => setDateRangePreset("month")}
+                      className="text-xs h-8 btnv2 bg-gray-100 hover:bg-gray-200 rounded-lg px-3 py-1.5"
+                    >
+                      Last 30 Days
+                    </button>
+                   
+                  </div>
 
-                <div className="ml-auto text-sm text-gray-500">
-                  Showing {moves.length} of {movesData?.items?.length || 0} moves
+                  {(dateRange.start || dateRange.end) && (
+                    <button
+                      className="h-8 w-8 p-0"
+                      onClick={() => setDateRange({ start: null, end: null })}
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -659,16 +1146,36 @@ export default function DialogueTimelinePage() {
             </Card>
           ) : (
             <div className="pl-4">
-              {moves.map((move, index) => (
-                <TimelineEventCard
-                  key={move.id}
-                  move={move}
-                  isFirst={index === 0}
-                  isLast={index === moves.length - 1}
-                  claimTexts={claimTexts}
-                  argTexts={argTexts}
-                />
-              ))}
+              {threaded.map((item, index) => {
+                // Check if it's a thread or a single move
+                if ("initiatingMove" in item) {
+                  const thread = item as DialogueThread;
+                  return (
+                    <ThreadCard
+                      key={thread.id}
+                      thread={thread}
+                      isExpanded={expandedThreads.has(thread.id)}
+                      onToggle={() => toggleThread(thread.id)}
+                      claimTexts={claimTexts}
+                      argTexts={argTexts}
+                      userNames={userNames}
+                    />
+                  );
+                } else {
+                  const move = item as DialogueMove;
+                  return (
+                    <TimelineEventCard
+                      key={move.id}
+                      move={move}
+                      isFirst={index === 0}
+                      isLast={index === threaded.length - 1}
+                      claimTexts={claimTexts}
+                      argTexts={argTexts}
+                      userNames={userNames}
+                    />
+                  );
+                }
+              })}
             </div>
           )}
         </TabsContent>
@@ -677,7 +1184,10 @@ export default function DialogueTimelinePage() {
         <TabsContent value="analytics" className="mt-6">
           <div className="space-y-6">
             <TimelineStats moves={movesData?.items || []} />
-            <MoveTypeDistribution moves={movesData?.items || []} />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <MoveTypeDistribution moves={movesData?.items || []} />
+              <ActivityHeatmap moves={movesData?.items || []} />
+            </div>
           </div>
         </TabsContent>
       </Tabs>

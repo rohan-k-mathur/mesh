@@ -39,9 +39,10 @@ export function RightRail({ selected }: { selected: AgoraEvent | null }) {
       {/* Room (follow + open) */}
       {toDelib && (
         <div className="rounded-xl border bg-white/70 p-3">
-          <div className="text-sm font-medium">Room</div>
+          <div className="text-sm font-medium">Room {toDelib}</div>
           <div className="mt-2 flex items-center gap-2">
-            <a className="text-xs underline" href={`/deliberation/${toDelib}`}>Open</a>
+            <a className="text-xs underline" href={`/deliberation/${toDelib}`}>Open Deliberation</a>
+              <a className="text-xs underline" href={`/deliberation/${toDelib}/dialoguetimeline`}>Open Dialogue Timeline</a>
             {isFollowingRoom(toDelib) ? (
               <button className="text-xs px-2 py-1 rounded border bg-emerald-50 border-emerald-200 text-emerald-700"
                 onClick={() => unfollowRoom(toDelib)}>Following ✓</button>
