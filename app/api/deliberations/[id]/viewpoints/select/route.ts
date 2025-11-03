@@ -17,24 +17,17 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const userIdStr = asUserIdString(userId);
     const deliberationId = params.id;
 
-    // Load deliberation (and room default)
+    // Load deliberation
     const delib = await prisma.deliberation.findUnique({
       where: { id: deliberationId },
-      select: { id: true, rule: true, roomId: true },
+      select: { id: true, rule: true },
     });
     if (!delib) return NextResponse.json({ error: 'Deliberation not found' }, { status: 404 });
-
-    const roomRule = delib.roomId
-      ? (await prisma.agoraRoom.findUnique({
-          where: { id: delib.roomId },
-          select: { representationRule: true },
-        }))?.representationRule
-      : undefined;
 
     // Parse body
     let parsed = Body.safeParse(await req.json().catch(() => ({})));
     const rule: 'utilitarian'|'harmonic'|'maxcov' =
-      (parsed.success ? parsed.data.rule : undefined) ?? delib.rule ?? roomRule ?? 'utilitarian';
+      (parsed.success ? parsed.data.rule : undefined) ?? delib.rule ?? 'utilitarian';
     const k: number = (parsed.success ? parsed.data.k : 3);
 
     // --- CACHE SHORT-CIRCUIT (if nothing changed since last selection for same rule/k)

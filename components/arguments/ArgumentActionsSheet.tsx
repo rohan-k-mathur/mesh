@@ -504,15 +504,15 @@ function DiagramPanel({ deliberationId, argument }: DiagramPanelProps) {
 
   return (
     <div>
-      <div className="mb-3 ">
+      <div className="mb-3">
         <h4 className="text-sm font-semibold text-white/90 mb-1">AIF Structure</h4>
         <p className="text-xs text-white/60">
           {nodeCount} nodes · {edgeCount} edges · Interactive diagram
         </p>
       </div>
 
-      {/* Diagram viewer with fixed height for sheet context */}
-      <div className="h-[600px]  rounded-lg overflow-hidden bg-white">
+      {/* Diagram viewer with fixed height for sheet context - removed extra spacing */}
+      <div className="h-[620px] rounded-lg overflow-hidden bg-white">
         <AifDiagramViewerDagre
           initialGraph={data.aif}
           layoutPreset="compact"

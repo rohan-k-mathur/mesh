@@ -1,3 +1,4 @@
+//components/map/Enhancedaifnodes.tsx
 /**
  * Phase 3: Enhanced AIF Node Components with Conflict Type Visualization
  * 
@@ -86,9 +87,10 @@ export function EnhancedCANode({
         <text
           x={width / 2}
           y={height / 2}
-          className="text-xs font-medium fill-red-700"
+          className="text-xs font-medium fill-red-700 select-none"
           textAnchor="middle"
           dominantBaseline="middle"
+          style={{ userSelect: 'none' }}
         >
           CA
         </text>
@@ -397,16 +399,24 @@ export function ZoomAwareAifNode({
   isHovered?: boolean;
   zoomLevel?: number;
 }) {
-  switch (node.kind) {
-    case 'I':
-      return <EnhancedINode node={node} width={width} height={height} isHovered={isHovered} zoomLevel={zoomLevel} />;
-    case 'RA':
-      return <EnhancedRANode node={node} width={width} height={height} isHovered={isHovered} zoomLevel={zoomLevel} />;
-    case 'CA':
-      return <EnhancedCANode node={node} width={width} height={height} isHovered={isHovered} zoomLevel={zoomLevel} />;
-    case 'PA':
-      return <EnhancedPANode node={node} width={width} height={height} isHovered={isHovered} zoomLevel={zoomLevel} />;
-    default:
-      return null;
-  }
+  const nodeContent = (() => {
+    switch (node.kind) {
+      case 'I':
+        return <EnhancedINode node={node} width={width} height={height} isHovered={isHovered} zoomLevel={zoomLevel} />;
+      case 'RA':
+        return <EnhancedRANode node={node} width={width} height={height} isHovered={isHovered} zoomLevel={zoomLevel} />;
+      case 'CA':
+        return <EnhancedCANode node={node} width={width} height={height} isHovered={isHovered} zoomLevel={zoomLevel} />;
+      case 'PA':
+        return <EnhancedPANode node={node} width={width} height={height} isHovered={isHovered} zoomLevel={zoomLevel} />;
+      default:
+        return null;
+    }
+  })();
+
+  return (
+    <g style={{ userSelect: 'none', WebkitUserSelect: 'none', msUserSelect: 'none' }}>
+      {nodeContent}
+    </g>
+  );
 }

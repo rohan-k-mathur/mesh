@@ -59,6 +59,8 @@ import { ActiveAssumptionsPanel } from "@/components/assumptions/ActiveAssumptio
 import { CreateAssumptionForm } from "@/components/assumptions/CreateAssumptionForm";
 import { HomSetComparisonChart } from "@/components/agora/HomSetComparisonChart";
 import { SchemeBreakdown } from "@/components/arguments/SchemeBreakdown";
+import { DialogueAwareGraphPanel } from "@/components/aif/DialogueAwareGraphPanel";
+import { AifDiagramViewerDagre } from "@/components/map/Aifdiagramviewerdagre";
 
 const fetcher = (u: string) => fetch(u, { cache: 'no-store' }).then(r => r.json());
 
@@ -458,10 +460,14 @@ export default function DeepDivePanel({
   const [sel, setSel] = useState<Selection | null>(null);
   const [pending, setPending] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
-  const [tab, setTab] = useState<'debate' | 'models' | 'ludics' | 'issues' | 'cq-review' | 'thesis' | 'assumptions' | 'hom-sets'>('debate');
+  const [tab, setTab] = useState<'debate' | 'models' | 'dialogue' | 'ludics' | 'issues' | 'cq-review' | 'thesis' | 'assumptions' | 'hom-sets'>('debate');
   const [confMode, setConfMode] = React.useState<'product' | 'min'>('product');
   const [rule, setRule] = useState<"utilitarian" | "harmonic" | "maxcov">("utilitarian");
   const [dsMode, setDsMode] = React.useState(false); // Phase 3: Dempster-Shafer mode toggle
+  const [delibSettingsOpen, setDelibSettingsOpen] = React.useState(false);
+  // Phase 3: Dialogue Move Highlighting
+  const [highlightedDialogueMoveId, setHighlightedDialogueMoveId] = React.useState<string | null>(null);
+  
   const { user } = useAuth();
   const authorId = user?.userId != null ? String(user.userId) : undefined;
   const [rhetoricSample, setRhetoricSample] = useState<string>('');
@@ -1482,19 +1488,33 @@ const {
                   DS Mode: {dsMode ? 'ON' : 'OFF'}
                 </button>
               </ChipBar>
+              <ChipBar>
+                <button
+                  onClick={() => setDelibSettingsOpen(!delibSettingsOpen)}
+                  className={`
+                    text-xs px-3 py-1 rounded-md border transition-all duration-200
+                    ${delibSettingsOpen 
+                      ? 'bg-indigo-100 border-indigo-300 text-indigo-700 hover:bg-indigo-200' 
+                      : 'bg-slate-100 border-slate-300 text-slate-600 hover:bg-slate-200'
+                    }
+                  `}
+                  title="Toggle Deliberation Settings Panel"
+                >
+                  Delib Settings: {delibSettingsOpen ? 'ON' : 'OFF'}
+                </button>
+              </ChipBar>
             </div>
 
             <div className="flex gap-2">
               <Link href="/admin/schemes" target="_blank">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 text-xs gap-2"
+                <button
+                 
+                  className="flex px-3 py-0 items-center btnv2 rounded-md bg-white h-8 text-xs gap-2"
                   title="Manage Argumentation Schemes"
                 >
                   <Settings className="h-3.5 w-3.5" />
                   Schemes
-                </Button>
+                </button>
               </Link>
               <DiscusHelpPage />
               {pending && <div className="text-xs text-neutral-500">Computing…</div>}
@@ -1504,9 +1524,10 @@ const {
 
         {/* Main Tabs */}
         <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
-          <TabsList className="w-full grid-cols-8">
+          <TabsList className="w-full grid-cols-9">
             <TabsTrigger value="debate">Debate</TabsTrigger>
             <TabsTrigger value="models">Models</TabsTrigger>
+            <TabsTrigger value="dialogue">Dialogue</TabsTrigger>
             <TabsTrigger value="ludics">Ludics</TabsTrigger>
             <TabsTrigger value="issues">Issues</TabsTrigger>
             <TabsTrigger value="cq-review">CQ Review</TabsTrigger>
@@ -1517,7 +1538,9 @@ const {
 
           {/* DEBATE TAB */}
           <TabsContent value="debate" className="w-full min-w-0 mt-4 space-y-4">
-            <SectionCard><DeliberationSettingsPanel deliberationId={deliberationId} /></SectionCard>
+            {delibSettingsOpen && (
+              <SectionCard><DeliberationSettingsPanel deliberationId={deliberationId} /></SectionCard>
+            )}
             <SectionCard title="Compose Proposition">
               {/* <PropositionComposer deliberationId={deliberationId} /> */}
               <PropositionComposerPro deliberationId={deliberationId} />
@@ -1620,6 +1643,11 @@ const {
                   setSelectedArgumentForActions(argument);
                   // Don't auto-open, just set badge notification
                 }}
+                onViewDialogueMove={(moveId, delibId) => {
+                  // Phase 3: Navigate to Dialogue tab with highlighted move
+                  setHighlightedDialogueMoveId(moveId);
+                  setTab('dialogue');
+                }}
               />
               <span className="block mt-2 text-xs text-neutral-500">
                 Note: This list shows all structured arguments in the deliberation&apos;s AIF database. Some arguments may not yet be linked to claims in the debate.
@@ -1656,6 +1684,67 @@ const {
                 </CollapsibleContent>
               </Collapsible>
             </SectionCard> */}
+          </TabsContent>
+
+          {/* DIALOGUE TAB - Phase 3: Dialogue Visualization */}
+          <TabsContent value="dialogue" className="w-full min-w-0 space-y-4 mt-4">
+            <SectionCard title="Dialogue Visualization" className="w-full" padded={true}>
+              <div className="space-y-4">
+                <p className="text-sm text-slate-600">
+                  Explore the dialogue structure and argumentation moves in this deliberation.
+                  Toggle dialogue layers, filter by move types, and see how arguments were created through dialogue.
+                </p>
+                <div className="min-h-[600px]">
+                  <DialogueAwareGraphPanel
+                    deliberationId={deliberationId}
+                    initialShowDialogue={true}
+                    highlightMoveId={highlightedDialogueMoveId}
+                    className="w-full"
+                    renderGraph={(nodes, edges) => {
+                      // Convert dialogue-aware nodes/edges to AIF format for visualization
+                      const aifGraph = {
+                        nodes: nodes.map(n => ({
+                          id: n.id,
+                          kind: (n.nodeType === 'I-node' ? 'I' : 
+                                 n.nodeType === 'RA-node' ? 'RA' : 
+                                 n.nodeType === 'CA-node' ? 'CA' : 
+                                 n.nodeType === 'PA-node' ? 'PA' : 'I') as 'I' | 'RA' | 'CA' | 'PA',
+                          label: n.text || n.id,
+                          schemeKey: null,
+                          schemeName: null,
+                          cqStatus: null,
+                          dialogueMoveId: n.dialogueMove?.id || null,
+                          locutionType: n.dialogueMetadata?.locution || null,
+                          isImported: false,
+                          importedFrom: null,
+                          toulminDepth: null
+                        })),
+                        edges: edges.map(e => ({
+                          id: e.id || `${e.source}-${e.target}`,
+                          from: e.source,
+                          to: e.target,
+                          role: (e.edgeType || 'premise') as any // Map edge types to AIF roles
+                        }))
+                      };
+                      
+                      return (
+                        <div className="h-[600px] bg-white rounded-lg border border-slate-200">
+                          <AifDiagramViewerDagre
+                            initialGraph={aifGraph}
+                            layoutPreset="standard"
+                            deliberationId={deliberationId}
+                            onNodeClick={(nodeId) => {
+                              console.log('Dialogue node clicked:', nodeId);
+                            }}
+                            className="w-full h-full"
+                          />
+                        </div>
+                      );
+                    }}
+                  />
+                </div>
+              </div>
+            </SectionCard>
           </TabsContent>
 
           {/* LUDICS TAB */}

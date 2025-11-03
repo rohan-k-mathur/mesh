@@ -1,3 +1,4 @@
+// components/map/Aifpathhighlighter.tsx
 /**
  * AIF Diagram Path Highlighter
  * 
@@ -167,7 +168,7 @@ export function AifPathHighlighter({
   }
 
   return (
-    <div className={`relative left-4 top-[120px] w-fit bg-white border border-gray-300 rounded-lg shadow-lg p-3 max-w-xs ${className}`}>
+    <div className={`bg-white border border-gray-300 rounded-lg shadow-lg p-3 max-w-xs ${className}`}>
       <div className="flex items-center justify-between mb-2 gap-3">
         <h3 className="text-sm font-semibold text-gray-900">Argument Paths</h3>
         {activePath && (

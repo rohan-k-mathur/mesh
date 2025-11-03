@@ -26,6 +26,8 @@ import { DialogueStateBadge } from "@/components/dialogue/DialogueStateBadge";
 import { StaleArgumentBadge } from "@/components/arguments/StaleArgumentBadge";
 import { ConfidenceDisplay } from "@/components/confidence/ConfidenceDisplay";
 import { DialogueActionsButton } from "@/components/dialogue/DialogueActionsButton";
+import { DialogueProvenanceBadge, type DialogueMoveKind } from "@/components/aif/DialogueMoveNode";
+import { DialogueMoveDetailModal } from "@/components/dialogue/DialogueMoveDetailModal";
 
 const fetcher = (url: string) => fetch(url).then(r => r.json());
 
@@ -57,6 +59,14 @@ interface ArgumentCardV2Props {
     sourceDeliberationName: string;
     fingerprint?: string;
   } | null;
+  // Phase 3: Dialogue Visualization - Dialogue Provenance
+  dialogueProvenance?: {
+    moveId: string;
+    moveKind: DialogueMoveKind;
+    speakerName?: string;
+  } | null;
+  // Phase 3: Dialogue Tab Navigation
+  onViewDialogueMove?: (moveId: string, deliberationId: string) => void;
 }
 
 // ============================================================================
@@ -320,6 +330,8 @@ export function ArgumentCardV2({
   confidence,
   dsMode = false,
   provenance,
+  dialogueProvenance,
+  onViewDialogueMove,
 }: ArgumentCardV2Props) {
   const [expandedSections, setExpandedSections] = React.useState({
     premises: false,
@@ -332,6 +344,10 @@ export function ArgumentCardV2({
   const [cqDialogOpen, setCqDialogOpen] = React.useState(false);
   const [argCqDialogOpen, setArgCqDialogOpen] = React.useState(false);
   const [schemeDialogOpen, setSchemeDialogOpen] = React.useState(false);
+  
+  // Phase 3: Dialogue Move Detail Modal
+  const [dialogueMoveModalOpen, setDialogueMoveModalOpen] = React.useState(false);
+  const [selectedDialogueMoveId, setSelectedDialogueMoveId] = React.useState<string | null>(null);
 
   // Phase 4: Fetch multi-scheme data if not provided via props
   // Always fetch if we don't have scheme data, even when schemeName is provided (legacy support)
@@ -485,6 +501,19 @@ export function ArgumentCardV2({
             
             {/* Badges Row */}
             <div className="flex items-center gap-2 flex-wrap ml-7">
+              {/* Phase 3: Dialogue Provenance Badge */}
+              {dialogueProvenance && (
+                <DialogueProvenanceBadge
+                  moveId={dialogueProvenance.moveId}
+                  moveKind={dialogueProvenance.moveKind}
+                  speakerName={dialogueProvenance.speakerName}
+                  onClick={() => {
+                    setSelectedDialogueMoveId(dialogueProvenance.moveId);
+                    setDialogueMoveModalOpen(true);
+                  }}
+                />
+              )}
+              
               {/* Phase 5A: Provenance Badge for Imported Arguments */}
               {provenance && (
                 <a
@@ -699,7 +728,7 @@ export function ArgumentCardV2({
                       </button>
                     </div>
                     <div className="flex flex-wrap gap-2 pt-2 border-t border-indigo-200">
-                      {schemes.map((scheme) => (
+                      {schemes.map((scheme: any) => (
                         <button
                           key={scheme.schemeId}
                           onClick={() => setSchemeDialogOpen(true)}
@@ -869,6 +898,18 @@ export function ArgumentCardV2({
         onOpenChange={setSchemeDialogOpen}
         argumentId={id}
         argumentText={conclusion.text}
+      />
+      
+      {/* Phase 3: Dialogue Move Detail Modal */}
+      <DialogueMoveDetailModal
+        moveId={selectedDialogueMoveId}
+        open={dialogueMoveModalOpen}
+        onOpenChange={setDialogueMoveModalOpen}
+        onViewFullDialogue={(moveId, delibId) => {
+          if (onViewDialogueMove) {
+            onViewDialogueMove(moveId, delibId);
+          }
+        }}
       />
     </div>
   );

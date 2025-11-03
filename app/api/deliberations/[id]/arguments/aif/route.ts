@@ -31,6 +31,13 @@ type AifRow = {
     attacks?: { REBUTS: number; UNDERCUTS: number; UNDERMINES: number };
     cq?: { required: number; satisfied: number };
   };
+
+  // Phase 3: Dialogue Provenance
+  dialogueProvenance?: {
+    moveId: string;
+    moveKind: string;
+    speakerName?: string;
+  } | null;
 };
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
@@ -61,8 +68,17 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       text: true, mediaType: true,
       schemeId: true, conclusionClaimId: true,
       implicitWarrant: true,
-      // premises relation itself is cheap; we’ll hydrate texts in batch below
+      // premises relation itself is cheap; we'll hydrate texts in batch below
       premises: { select: { claimId: true, isImplicit: true } },
+      // Phase 3: Dialogue Provenance
+      createdByMoveId: true,
+      createdByMove: {
+        select: {
+          id: true,
+          kind: true,
+          actorId: true,
+        }
+      },
     },
   });
 
@@ -73,6 +89,20 @@ if (pageRows.length === 0) {
   const page = makePage([], limit);
   return NextResponse.json(page, NO_STORE);
 }
+
+  // Phase 3: Batch fetch user info for dialogue moves
+  const actorIds = Array.from(new Set(
+    pageRows
+      .map(r => r.createdByMove?.actorId)
+      .filter(Boolean) as string[]
+  ));
+  const actors = actorIds.length > 0
+    ? await prisma.user.findMany({
+        where: { id: { in: actorIds.map(id => BigInt(id)) } },
+        select: { id: true, name: true, username: true }
+      })
+    : [];
+  const actorById = new Map(actors.map(a => [String(a.id), a]));
 
 
   // Batch lookup: schemes (+ cqs), claims text for conclusion + premises,
@@ -249,6 +279,15 @@ const dispreferredByMap = Object.fromEntries(
     const scheme = r.schemeId ? schemeById.get(r.schemeId) : null;
     const required = scheme?.cqs?.length ?? 0;
     const satisfied = cqMap[r.id]?.satisfied ?? 0;
+    
+    // Phase 3: Dialogue Provenance
+    const move = (r as any).createdByMove;
+    const dialogueProvenance = move ? {
+      moveId: move.id,
+      moveKind: move.kind,
+      speakerName: actorById.get(move.actorId)?.name || actorById.get(move.actorId)?.username || undefined
+    } : null;
+    
     return {
       id: r.id,
       deliberationId: r.deliberationId,
@@ -266,7 +305,7 @@ const dispreferredByMap = Object.fromEntries(
             }
           : null,
         conclusion: r.conclusionClaimId ? { id: r.conclusionClaimId, text: textByClaimId.get(r.conclusionClaimId) ?? "" } : null,
-        premises: r.premises.map(p => ({ id: p.claimId, text: textByClaimId.get(p.claimId) ?? "", isImplicit: (p as any).isImplicit ?? false })),
+        premises: (r as any).premises.map((p: any) => ({ id: p.claimId, text: textByClaimId.get(p.claimId) ?? "", isImplicit: p.isImplicit ?? false })),
         implicitWarrant: (r.implicitWarrant as any) ?? null,
          attacks: atkByArg[r.id] ?? { REBUTS: 0, UNDERCUTS: 0, UNDERMINES: 0 },
   preferences: {
@@ -275,7 +314,9 @@ const dispreferredByMap = Object.fromEntries(
   },
   cq: { required, satisfied },
 
-    }}
+    },
+    dialogueProvenance
+    }
   });
 
   const page = makePage(items, limit);

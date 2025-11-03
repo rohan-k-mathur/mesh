@@ -540,7 +540,7 @@ export function AIFArgumentWithSchemeComposer({
           {/* NEW: quick add by typing */}
           <div className="mt-2 flex gap-2">
             <input
-              className="flex-1  rounded-lg px-3 2 text-sm articlesearchfield"
+              className="flex-1  rounded-lg px-3 py-2 text-sm articlesearchfield"
               placeholder="Add a premise"
               value={premDraft}
               onChange={(e) => setPremDraft(e.target.value)}
@@ -550,14 +550,14 @@ export function AIFArgumentWithSchemeComposer({
               }}
             />
             <button
-              className="text-xs px-5 rounded-full btnv2 bg-white"
+              className="text-xs px-5 rounded-lg btnv2 bg-white"
               onClick={() => setExpandedPremiseEditor(true)}
               title="Open rich editor for complex premises"
             >
               ➾ Expand
             </button>
             <button
-              className="text-xs px-5   rounded-full bg-white btnv2"
+              className="text-xs px-5   rounded-lg bg-white btnv2"
               disabled={!premDraft.trim()}
               onClick={addPremiseFromDraft}
             >

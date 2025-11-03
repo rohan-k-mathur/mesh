@@ -41,6 +41,7 @@ import { ArgumentCard } from './ArgumentCard';
 import { ArgumentCardV2 } from './ArgumentCardV2';
 import { SchemeComposerPicker } from '../SchemeComposerPicker';
 import { PreferenceAttackModal } from '@/components/agora/PreferenceAttackModal';
+import { DialogueMoveKind } from "@/components/aif/DialogueMoveNode";
 
 
 const AttackMenuProV2 = dynamic(() => import('@/components/arguments/AttackMenuProV2').then(m => m.AttackMenuProV2), { ssr: false });
@@ -67,14 +68,19 @@ type Arg = {
 };
 
 type AifMeta = {
-  scheme?: { id: string; key: string; name: string; slotHints?: { premises?: { role: string; label: string }[] } | null } | null;
+  scheme?: { id: string; key: string; name: string; slotHints?: any } | null;
   conclusion?: { id: string; text: string } | null;
-  premises?: Array<{ id: string; text: string; isImplicit?: boolean }> | null;
-  implicitWarrant?: { text?: string } | null;
-  attacks?: { REBUTS: number; UNDERCUTS: number; UNDERMINES: number };
+  premises?: { id: string; text: string }[] | null;
+  implicitWarrant?: { text: string } | null;
+  attacks?: { REBUTS: number; UNDERCUTS: number; UNDERMINES: number } | null;
   cq?: { required: number; satisfied: number };
-  preferences?: { preferredBy?: number; dispreferredBy?: number };
-  provenance?: { kind: string; sourceDeliberationId: string; sourceDeliberationName: string; fingerprint?: string } | null; // Phase 5A
+  preferences?: { preferredBy: number; dispreferredBy: number };
+  provenance?: {
+    kind: string;
+    sourceDeliberationId: string;
+    sourceDeliberationName: string;
+    fingerprint?: string;
+  } | null; // Phase 5A: Cross-deliberation import provenance
 };
 
 type AifRow = {
@@ -82,12 +88,18 @@ type AifRow = {
   deliberationId: string;
   authorId: string;
   createdAt: string;
-  updatedAt?: string; // Phase 3: For temporal decay
+  updatedAt?: string; // Phase 2: For temporal decay
   text: string;
   mediaType: 'text' | 'image' | 'video' | 'audio' | null;
   aif: AifMeta;
   claimId?: string | null;
-  confidence?: number; // Phase 3: For confidence display
+  confidence?: number; // Phase 2: For confidence display
+  // Phase 3: Dialogue Provenance
+  dialogueProvenance?: {
+    moveId: string;
+    moveKind: DialogueMoveKind;
+    speakerName?: string;
+  } | null;
 };
 
 // ============================================================================
@@ -142,7 +154,7 @@ function SchemeBadge({ scheme }: { scheme?: AifMeta['scheme'] }) {
         text-xs font-medium shadow-sm
         transition-all duration-200 hover:shadow-md
       "
-      title={scheme?.slotHints?.premises?.length ? scheme.slotHints.premises.map(p => p.label).join(' · ') : scheme?.name}
+      title={scheme?.slotHints?.premises?.length ? scheme.slotHints.premises.map((p: any) => p.label).join(' · ') : scheme?.name}
     >
       {scheme.name}
     </div>
@@ -432,6 +444,7 @@ function RowImpl({
   accepted,
   dsMode = false,
   onArgumentClick,
+  onViewDialogueMove,
 }: {
   a: AifRow;
   meta?: AifMeta;
@@ -444,6 +457,7 @@ function RowImpl({
   accepted?: boolean;
   dsMode?: boolean;
   onArgumentClick?: (argument: { id: string; conclusionText?: string; schemeKey?: string }) => void;
+  onViewDialogueMove?: (moveId: string, deliberationId: string) => void;
 }) {
   const [open, setOpen] = React.useState(false);
   const [cqs, setCqs] = React.useState<Array<{ cqKey: string; text: string; status: 'open' | 'answered'; attackType: string; targetScope: string }>>([]);
@@ -607,6 +621,12 @@ function RowImpl({
               confidence={a.confidence}
               dsMode={dsMode}
               provenance={meta.provenance}
+              dialogueProvenance={a.dialogueProvenance ? {
+                moveId: a.dialogueProvenance.moveId,
+                moveKind: a.dialogueProvenance.moveKind as DialogueMoveKind,
+                speakerName: a.dialogueProvenance.speakerName
+              } : null}
+              onViewDialogueMove={onViewDialogueMove}
             />
           </div>
         )}
@@ -761,11 +781,13 @@ export default function AIFArgumentsListPro({
   onVisibleTextsChanged,
   dsMode = false,
   onArgumentClick,
+  onViewDialogueMove,
 }: {
   deliberationId: string;
   onVisibleTextsChanged?: (texts: string[]) => void;
   dsMode?: boolean;
   onArgumentClick?: (argument: { id: string; conclusionText?: string; schemeKey?: string }) => void;
+  onViewDialogueMove?: (moveId: string, deliberationId: string) => void;
 }) {
   // Confidence settings
   const { mode, tau } = useConfidence();
@@ -866,7 +888,12 @@ export default function AIFArgumentsListPro({
                 attacks: one.aif.attacks ?? { REBUTS: 0, UNDERCUTS: 0, UNDERMINES: 0 },
                 cq: one.aif.cq ?? { required: 0, satisfied: 0 },
                 preferences: one.aif.preferences ?? { preferredBy: 0, dispreferredBy: 0 },
-                provenance: one.provenance ?? null, // Phase 5A: Cross-deliberation import provenance
+                provenance: one.provenance ? {
+                  kind: one.provenance.kind ?? 'imported',
+                  sourceDeliberationId: one.provenance.sourceDeliberationId,
+                  sourceDeliberationName: one.provenance.sourceDeliberationName ?? one.provenance.sourceDeliberationTitle ?? '',
+                  fingerprint: one.provenance.fingerprint
+                } : null, // Phase 5A: Cross-deliberation import provenance
               };
               return;
             }
@@ -1115,6 +1142,7 @@ export default function AIFArgumentsListPro({
                 accepted={sRec?.acc}
                 dsMode={dsMode}
                 onArgumentClick={onArgumentClick}
+                onViewDialogueMove={onViewDialogueMove}
               />
               </div>
             );

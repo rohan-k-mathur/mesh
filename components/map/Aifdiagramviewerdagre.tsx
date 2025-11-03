@@ -282,9 +282,9 @@ export function AifDiagramViewerDagre({
   const uniqueEdgeRoles = Array.from(new Set(filteredGraph.edges.map(e => e.role)));
   
   return (
-    <div className={`relative w-full bg-gray-50 ${className}`} ref={containerRef}>
+    <div className={`relative w-full h-full border-2 border-indigo-500 bg-gray-50 ${className}`} ref={containerRef}>
       {/* Top Controls */}
-      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex  items-center gap-3">
+      <div className="absolute top-2 left-1/2 -translate-x-1/2 z-10 flex items-center gap-3">
         <div className="w-80">
           <AifDiagramSearch
             graph={graph}
@@ -350,21 +350,24 @@ export function AifDiagramViewerDagre({
       </div>
       
       {selectedNodeId && (
-        <AifPathHighlighter
-          graph={graph}
-          selectedNodeId={selectedNodeId}
-          onPathSelect={setActivePath}
-        />
+        <div className="absolute left-4 top-[120px] z-20">
+          <AifPathHighlighter
+            graph={graph}
+            selectedNodeId={selectedNodeId}
+            onPathSelect={setActivePath}
+          />
+        </div>
       )}
       
       {/* Main SVG */}
       <svg
         ref={svgRef}
-        className="w-full h-full cursor-move"
+        className="relative border border-black w-full h-full cursor-move select-none"
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
+        style={{ userSelect: 'none', WebkitUserSelect: 'none' }}
       >
         <defs>
           {/* Create markers for each edge role */}
@@ -601,10 +604,8 @@ export function AifDiagramViewerDagre({
         
       </div>
       
-
-      
-      {/* Stats */}
-      <div className="absolute top-4 right-4 bg-white border border-gray-300 rounded-lg px-4 py-2 text-xs">
+ {/* Stats */}
+      <div className="absolute top-24 right-2 bg-white/50 backdrop-blur-md border border-gray-300 rounded-lg px-4 py-2 text-xs">
         <div className="font-semibold text-gray-900">{filteredGraph.nodes.length} nodes</div>
         <div className="text-gray-500">{filteredGraph.edges.length} edges</div>
         {dialogueFilter !== 'all' && (
@@ -612,6 +613,8 @@ export function AifDiagramViewerDagre({
         )}
         <div className="text-blue-600 mt-1">Dagre layout</div>
       </div>
+      
+     
     </div>
   );
 }
