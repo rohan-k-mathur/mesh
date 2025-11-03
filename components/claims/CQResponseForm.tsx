@@ -195,14 +195,14 @@ export default function CQResponseForm({
             <Label className="text-sm font-semibold text-sky-900 flex items-center gap-2">
               <div className="w-1.5 h-1.5 rounded-full bg-cyan-600" />
               Your Response
-              <span className="text-rose-600">*</span>
+             
             </Label>
             <div className="relative">
               <Textarea
                 value={groundsText}
                 onChange={(e) => setGroundsText(e.target.value)}
                 placeholder="Provide a detailed, well-reasoned response (10-5000 characters)..."
-                className="min-h-[100px] resize-y bg-slate-900/5 backdrop-blur-md border-slate-900/20 text-slate-900 placeholder:text-slate-400 focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/20 rounded-xl shadow-lg pr-24"
+                className="min-h-[100px] resize-y bg-white text-slate-900 placeholder:text-slate-400 focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/20 rounded-xl articlesearchfield pr-24"
                 disabled={submitting || success}
               />
               <div
@@ -263,7 +263,8 @@ export default function CQResponseForm({
                 value={newEvidenceId}
                 onChange={(e) => setNewEvidenceId(e.target.value)}
                 placeholder="Enter claim ID (e.g., claim_abc123)"
-                className="flex-1 bg-slate-900/5 backdrop-blur-md border-slate-900/20 text-slate-900 placeholder:text-slate-400 rounded-xl focus:border-cyan-500/60 focus:ring-2 focus:ring-cyan-500/20"
+                className="flex-1 bg-white border-slate-900/20 text-slate-900 placeholder:text-slate-400 rounded-xl focus:border-cyan-500/60 
+                focus:ring-2 focus:ring-cyan-500/20"
                 disabled={submitting || success}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
@@ -272,14 +273,13 @@ export default function CQResponseForm({
                   }
                 }}
               />
-              <Button
+              <button
                 onClick={handleAddEvidence}
                 disabled={!newEvidenceId.trim() || submitting || success}
-                variant="outline"
-                className="bg-slate-900/5 backdrop-blur-md border-slate-900/20 text-slate-900 hover:bg-slate-900/10 hover:border-slate-900/30"
+                className=" px-5 rounded-xl btnv2--ghost bg-white border-slate-900/20 text-slate-900 hover:bg-slate-50"
               >
                 <Plus className="w-4 h-4" />
-              </Button>
+              </button>
             </div>
           </div>
 
@@ -337,14 +337,13 @@ export default function CQResponseForm({
                   }
                 }}
               />
-              <Button
+              <button
                 onClick={handleAddSource}
                 disabled={!newSourceUrl.trim() || submitting || success}
-                variant="outline"
-                className="bg-slate-900/5 backdrop-blur-md border-slate-900/20 text-slate-900 hover:bg-slate-900/10 hover:border-slate-900/30"
+                className=" px-5 rounded-lg btnv2--ghost bg-slate-900/5 backdrop-blur-md border-slate-900/20 text-slate-900 hover:bg-slate-900/10 hover:border-slate-900/30"
               >
                 <Plus className="w-4 h-4" />
-              </Button>
+              </button>
             </div>
           </div>
 
@@ -375,19 +374,21 @@ export default function CQResponseForm({
         
         </div>
           {/* Footer Actions */}
-          <DialogFooter className="gap-2 pt-2 border-t border-slate-900/40">
+          <DialogFooter className="gap-2 pt-3 border-t border-slate-900/40">
             <button
              
               onClick={handleClose}
               disabled={submitting}
-              className="relative overflow-hidden btnv2 text-sm rounded-xl  bg-slate-900/5 backdrop-blur-md border-slate-900/20 text-slate-900 hover:bg-slate-900/10 hover:border-slate-900/30 transition-all"
+              className="relative overflow-hidden btnv2  py-2 px-3 text-sm rounded-xl  bg-slate-900/5 backdrop-blur-md border-slate-900/20 text-slate-900 hover:bg-slate-900/10 hover:border-slate-900/30 transition-all"
             >
               Cancel
             </button>
             <button
               onClick={handleSubmit}
               disabled={!isValid || submitting || success}
-              className="relative overflow-hidden btnv2 text-sm rounded-xl text-white bg-gradient-to-r from-sky-600 to-indigo-700 hover:from-cyan-500 hover:to-indigo-600 border-0 shadow-lg shadow-cyan-400/30 hover:shadow-cyan-400/50 transition-all duration-300 group disabled:opacity-50 disabled:cursor-not-allowed"
+              className="relative overflow-hidden btnv2 text-sm py-2 px-3 rounded-xl text-white bg-gradient-to-r 
+              from-sky-600 to-sky-700 hover:from-sky-500 hover:to-sky-600 border-0 shadow-md shadow-cyan-400/30 hover:shadow-cyan-400/50 
+              transition-all duration-300 group disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {/* Glass shine */}
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
