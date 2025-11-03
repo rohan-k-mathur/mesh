@@ -293,11 +293,78 @@ for (const u of uses) {
 export async function buildDiagramForArgument(argumentId: string): Promise<Diagram|null> {
   const arg = await prisma.argument.findUnique({
     where: { id: argumentId },
-    select: { id:true, text:true, conclusionClaimId:true, deliberationId:true }
+    select: { 
+      id: true, 
+      text: true, 
+      conclusionClaimId: true, 
+      deliberationId: true,
+      schemeId: true,
+      scheme: { select: { key: true, name: true } },
+      premises: {
+        select: {
+          claimId: true,
+          claim: { select: { id: true, text: true } }
+        }
+      }
+    }
   });
   if (!arg) return null;
 
-  // ArgumentEdges → treat as supports for a simple narrative diagram (optional)
+  // Build statements from the argument's conclusion and premises
+  const statements: Diagram['statements'] = [];
+  const inferences: Diagram['inferences'] = [];
+  
+  // Add conclusion as a statement
+  if (arg.conclusionClaimId) {
+    const conclusionClaim = await prisma.claim.findUnique({
+      where: { id: arg.conclusionClaimId },
+      select: { id: true, text: true }
+    });
+    if (conclusionClaim) {
+      statements.push({ 
+        id: conclusionClaim.id, 
+        text: conclusionClaim.text ?? '', 
+        kind: 'claim' 
+      });
+    }
+  }
+  
+  // Add each premise as a statement
+  const premiseStatementIds: string[] = [];
+  for (const premise of arg.premises) {
+    if (premise.claim) {
+      statements.push({
+        id: premise.claim.id,
+        text: premise.claim.text ?? '',
+        kind: 'premise'
+      });
+      premiseStatementIds.push(premise.claim.id);
+    }
+  }
+  
+  // Create an inference linking premises to conclusion
+  if (arg.conclusionClaimId && premiseStatementIds.length > 0) {
+    const conclusionClaim = await prisma.claim.findUnique({
+      where: { id: arg.conclusionClaimId },
+      select: { id: true, text: true }
+    });
+    
+    inferences.push({
+      id: `inf_${arg.id}`,
+      kind: arg.scheme?.key || 'defeasible',
+      conclusion: { 
+        id: arg.conclusionClaimId, 
+        text: conclusionClaim?.text ?? '' 
+      },
+      premises: premiseStatementIds.map(pid => {
+        const stmt = statements.find(s => s.id === pid);
+        return { statement: { id: pid, text: stmt?.text ?? '' } };
+      }),
+      scheme: arg.scheme?.key || null,
+    });
+  }
+
+  // Also check for ArgumentEdges → treat as additional supports
   const edges = await prisma.argumentEdge.findMany({
     where: { deliberationId: arg.deliberationId, toArgumentId: arg.id },
     select: { fromArgumentId: true, type: true },
@@ -307,31 +374,16 @@ export async function buildDiagramForArgument(argumentId: string): Promise<Diagr
     .filter(e => (String(e.type).toLowerCase() === 'support') || (String(e.type).toLowerCase() === 'grounds'))
     .map(e => e.fromArgumentId);
 
-
   const premArgs = supportIds.length
     ? await prisma.argument.findMany({ where: { id: { in: supportIds } }, select: { id: true, text: true } })
     : [];
-
-  // const premArgs = supportIds.length
-  //   ? await prisma.argument.findMany({ 
-  //       where: { id: { in: supportIds } }, 
-  //       select: { id: true, text: true } 
-  //     })
-  //   : [];
-
-
-  const statements: Diagram['statements'] = [
-    { id: arg.id, text: arg.text ?? '', kind: 'claim' },
-    ...premArgs.map(p => ({ id: p.id, text: p.text ?? '', kind: 'premise' as const })),
-  ];
-
-  const inferences: Diagram['inferences'] = [{
-    id: `inf_${arg.id}`,
-    kind: premArgs.length > 0 ? 'defeasible' : 'atomic',
-    conclusion: { id: arg.id, text: arg.text ?? '' },
-    premises: premArgs.map(p => ({ statement: { id: p.id, text: p.text ?? '' } })),
-    scheme: premArgs.length > 0 ? null : 'assertion',
-  }];
+  
+  // Add supporting arguments as additional premises
+  for (const p of premArgs) {
+    if (!statements.find(s => s.id === p.id)) {
+      statements.push({ id: p.id, text: p.text ?? '', kind: 'premise' });
+    }
+  }
 
   const evidence: Diagram['evidence'] = [];
 

@@ -443,3 +443,158 @@ export async function getNodeProvenance(nodeId: string, deliberationId: string) 
 
   throw new Error(`Unsupported node type: ${nodeType}`);
 }
+
+/**
+ * Get commitment stores for all participants in a deliberation
+ * 
+ * @param deliberationId - The deliberation ID
+ * @param participantId - Optional: filter to specific participant
+ * @param asOf - Optional: get commitments as of a specific timestamp
+ * @returns Commitment stores structured for CommitmentStorePanel
+ */
+export async function getCommitmentStores(
+  deliberationId: string,
+  participantId?: string,
+  asOf?: string
+) {
+  // Fetch all dialogue moves for this deliberation
+  const moves = await prisma.dialogueMove.findMany({
+    where: {
+      deliberationId,
+      ...(participantId ? { actorId: participantId } : {}),
+      ...(asOf ? { createdAt: { lte: new Date(asOf) } } : {}),
+    },
+    orderBy: { createdAt: "asc" },
+    select: {
+      id: true,
+      kind: true,
+      actorId: true,
+      targetType: true,
+      targetId: true,
+      createdAt: true,
+    },
+  });
+
+  // Fetch participant names
+  const participantIds = Array.from(new Set(moves.map((m) => m.actorId)));
+  const users = await prisma.user.findMany({
+    where: { id: { in: participantIds.map(id => BigInt(id)) } },
+    select: { id: true, name: true },
+  });
+  const userNameMap = new Map(users.map((u) => [String(u.id), u.name || "Unknown"]));
+
+
+  // Fetch all claims that might be referenced
+  const claimIds = Array.from(
+    new Set(
+      moves
+        .filter((m) => m.targetType === "claim" && m.targetId)
+        .map((m) => m.targetId!)
+    )
+  );
+
+  const claims = await prisma.claim.findMany({
+    where: { id: { in: claimIds } },
+    select: { id: true, text: true },
+  });
+
+  const claimTextMap = new Map(claims.map((c) => [c.id, c.text]));
+
+  // Build commitment stores per participant
+  interface ParticipantCommitments {
+    participantId: string;
+    participantName: string;
+    commitments: Array<{
+      claimId: string;
+      claimText: string;
+      moveId: string;
+      moveKind: "ASSERT" | "CONCEDE" | "RETRACT";
+      timestamp: string;
+      isActive: boolean;
+    }>;
+  }
+
+  const storesByParticipant = new Map<string, ParticipantCommitments>();
+
+  // Track active commitments per participant
+  const activeCommitments = new Map<string, Set<string>>(); // participantId -> Set<claimId>
+
+  for (const move of moves) {
+    const actorId = String(move.actorId);
+    const actorName = userNameMap.get(actorId) || "Unknown";
+
+    // Initialize participant store if needed
+    if (!storesByParticipant.has(actorId)) {
+      storesByParticipant.set(actorId, {
+        participantId: actorId,
+        participantName: actorName,
+        commitments: [],
+      });
+      activeCommitments.set(actorId, new Set());
+    }
+
+    const store = storesByParticipant.get(actorId)!;
+    const activeSet = activeCommitments.get(actorId)!;
+
+    // Process commitment-relevant moves
+    if (
+      ["ASSERT", "CONCEDE", "THEREFORE"].includes(move.kind) &&
+      move.targetType === "claim" &&
+      move.targetId
+    ) {
+      const claimId = move.targetId;
+      const claimText = claimTextMap.get(claimId) || claimId;
+
+      // Add to active set
+      activeSet.add(claimId);
+
+      // Add commitment record
+      store.commitments.push({
+        claimId,
+        claimText,
+        moveId: move.id,
+        moveKind: move.kind as "ASSERT" | "CONCEDE",
+        timestamp: move.createdAt.toISOString(),
+        isActive: true, // Will be updated if retracted later
+      });
+    }
+
+    // Handle retractions
+    if (move.kind === "RETRACT" && move.targetType === "claim" && move.targetId) {
+      const claimId = move.targetId;
+      const claimText = claimTextMap.get(claimId) || claimId;
+
+      // Remove from active set
+      activeSet.delete(claimId);
+
+      // Mark previous commitments to this claim as inactive
+      for (const commitment of store.commitments) {
+        if (commitment.claimId === claimId && commitment.isActive) {
+          commitment.isActive = false;
+        }
+      }
+
+      // Add retraction record
+      store.commitments.push({
+        claimId,
+        claimText,
+        moveId: move.id,
+        moveKind: "RETRACT",
+        timestamp: move.createdAt.toISOString(),
+        isActive: false,
+      });
+    }
+  }
+
+  // Update final isActive status based on active commitments
+  for (const [actorId, store] of storesByParticipant) {
+    const activeSet = activeCommitments.get(actorId)!;
+    for (const commitment of store.commitments) {
+      if (commitment.moveKind !== "RETRACT") {
+        commitment.isActive = activeSet.has(commitment.claimId);
+      }
+    }
+  }
+
+  return Array.from(storesByParticipant.values());
+}

@@ -196,6 +196,24 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       resolvedDelibId = arg?.deliberationId ?? null;
     }
 
+    // Fetch argument conclusion text for all nodes with argumentId
+    const argIdToText = new Map<string, string>();
+    const argIds = dNodes.filter(n => n.argumentId).map(n => n.argumentId!);
+    if (argIds.length > 0) {
+      const args = await prisma.argument.findMany({
+        where: { id: { in: argIds } },
+        select: { 
+          id: true, 
+          conclusion: { select: { text: true } } 
+        }
+      });
+      args.forEach(a => {
+        if (a.conclusion?.text) {
+          argIdToText.set(a.id, a.conclusion.text);
+        }
+      });
+    }
+
     // Build nodes + a mapping from DebateNode.id -> renderId (diagramId|argumentId|id)
 const idMap = new Map<string,string>();
 
@@ -216,9 +234,13 @@ nodes = dNodes.map(n => {
   const renderId = n.diagramId ?? n.argumentId ?? n.id;
   idMap.set(n.id, renderId);
   const metadata = n.argumentId ? metadataMap.get(n.argumentId) || {} : {};
+  // Use argument conclusion text if available, otherwise fall back to node title or renderId
+  const displayTitle = n.argumentId && argIdToText.has(n.argumentId) 
+    ? argIdToText.get(n.argumentId)!
+    : (n.title ?? renderId);
   return {
     id: renderId,
-    title: n.title ?? renderId,
+    title: displayTitle,
     diagramId: n.diagramId ?? null,
     claimId: n.claimId ?? null,
     argumentId: n.argumentId ?? null,  // Add argumentId for UI to join with AIF data
@@ -317,7 +339,7 @@ edges = dEdges
   }
 
   // Unresolved WHYs only when we know the deliberation
-  let unresolved: Array<{ nodeId: string; cqKey: string }> = [];
+  let unresolved: Array<{ nodeId: string; cqKey: string; cqText?: string }> = [];
   if (resolvedDelibId) {
     const mv = await prisma.dialogueMove.findMany({
       where: { deliberationId: resolvedDelibId },
@@ -331,6 +353,8 @@ edges = dEdges
       const k = `${m.targetType}:${m.targetId}`;
       (byTarget.get(k) ?? byTarget.set(k, []).get(k)!).push(m);
     }
+    
+    const rawUnresolved: Array<{ nodeId: string; cqKey: string }> = [];
     for (const [_k, list] of byTarget) {
       list.sort((a, b) => +a.createdAt - +b.createdAt);
       const stack: any[] = [];
@@ -342,12 +366,34 @@ edges = dEdges
       }
       const tail = stack.at(-1);
       if (tail && tail.targetType === 'argument') {
-        unresolved.push({ nodeId: String(tail.targetId), cqKey: String((tail.payload as any)?.cqId ?? 'default') });
+        rawUnresolved.push({ nodeId: String(tail.targetId), cqKey: String((tail.payload as any)?.cqId ?? 'default') });
       }
     }
+    
+    // Fetch CQ text for all unresolved CQs
+    const cqKeys = [...new Set(rawUnresolved.map(u => u.cqKey))];
+    const cqTextMap = new Map<string, string>();
+    if (cqKeys.length > 0) {
+      const cqs = await prisma.criticalQuestion.findMany({
+        where: { cqKey: { in: cqKeys } },
+        select: { cqKey: true, text: true }
+      });
+      cqs.forEach(cq => {
+        if (cq.cqKey) {
+          cqTextMap.set(cq.cqKey, cq.text);
+        }
+      });
+    }
+    
+    // Map to include CQ text
+    unresolved = rawUnresolved.map(u => ({
+      nodeId: u.nodeId,
+      cqKey: u.cqKey,
+      cqText: cqTextMap.get(u.cqKey)
+    }));
   }
 
-  const title = sheet ? `Debate sheet • ${rawId.slice(0,6)}…` : `Debate sheet • ${String(resolvedDelibId).slice(0,6)}…`;
+  const title = sheet ? `Debate sheet • ${rawId.slice(0,18)}…` : `Debate sheet • ${String(resolvedDelibId).slice(0,6)}…`;
 
   return NextResponse.json({
     sheet: {

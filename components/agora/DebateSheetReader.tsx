@@ -322,7 +322,25 @@ function barFor(claimId?: string|null) {
         <div className="mt-3">
           <div className="text-xs font-medium mb-1">Unresolved CQs</div>
           <ul className="text-xs space-y-1">
-            {unresolved.map((u:any) => <li key={`${u.nodeId}:${u.cqKey}`}>• {u.nodeId} — {u.cqKey}</li>)}
+            {unresolved.map((u:any) => {
+              // Format CQ text display
+              const cqDisplay = u.cqText 
+                ? u.cqText 
+                : u.cqKey.replace(/^aif_attack_/, "").replace(/_/g, " ");
+              
+              // Get argument title from nodes array for better context
+              const argNode = nodes.find((n: any) => n.id === u.nodeId || n.argumentId === u.nodeId);
+              const nodeDisplay = argNode?.title 
+                ? (argNode.title.length > 40 ? argNode.title.slice(0, 40) + "..." : argNode.title)
+                : u.nodeId;
+              
+              return (
+                <li key={`${u.nodeId}:${u.cqKey}`} className="border-l-2 border-amber-400 pl-2 py-1">
+                  <div className="font-medium text-amber-700">{cqDisplay}</div>
+                  <div className="text-[10px] text-neutral-500 mt-0.5">→ {nodeDisplay}</div>
+                </li>
+              );
+            })}
           </ul>
         </div>
       </aside>
@@ -332,7 +350,7 @@ function barFor(claimId?: string|null) {
           <div className="text-xs text-neutral-600 mb-2">
             Debate graph ({filteredNodes.length} {filteredNodes.length === 1 ? "node" : "nodes"})
           </div>
-          <ul className="grid md:grid-cols-2 lg:grid-cols-3 gap-2">
+          <ul className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
             {filteredNodes.map((n:any) => {
               const label = acceptance.labels[n.id] ?? 'undecided';
               const s = supportOfClaimId(n.claimId);
@@ -340,11 +358,10 @@ function barFor(claimId?: string|null) {
               const aif = n.argumentId ? aifByArgId.get(n.argumentId) : null;
 
               return (
-                <li key={n.id} className="border rounded p-2">
+                <li key={n.id} className="panelv2  px-4 py-3">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1">
                       <div className="font-medium text-sm mb-1">{n.title ?? n.id}</div>
-                      
                       {/* Metadata badges */}
                       <div className="flex flex-wrap gap-1 mb-2">
                         {aif?.scheme && (
@@ -378,6 +395,7 @@ function barFor(claimId?: string|null) {
                       {label}
                     </Badge>
                   </div>
+                      <div className="justify-end items-end align-end mt-auto">
 
                   {v && v.kind === 'scalar' && (
                     <div className="mt-2">
@@ -411,8 +429,14 @@ function barFor(claimId?: string|null) {
                     </div>
                   )}
 
-                  <div className="mt-2 text-xs flex gap-3">
-                    <button className="underline" onClick={() => setOpenNodeId(n.id)} disabled={!n.diagramId}>Expand</button>
+                  <div className="justify-end items-end align-end mt-auto text-xs flex gap-3">
+                    <button 
+                      className="underline disabled:opacity-50 disabled:cursor-not-allowed" 
+                      onClick={() => setOpenNodeId(n.id)} 
+                      disabled={!n.diagramId && !n.argumentId}
+                    >
+                      Expand
+                    </button>
                     {n.claimId && (
                       <button className="underline" onClick={() => setShowArgsFor(n.claimId)}>
                         View contributing arguments
@@ -421,6 +445,7 @@ function barFor(claimId?: string|null) {
                     <span className="text-neutral-500">
                       Edges: {edges.filter((e:any)=>e.fromId===n.id || e.toId===n.id).length}
                     </span>
+                  </div>
                   </div>
                 </li>
               );

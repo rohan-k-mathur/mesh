@@ -178,6 +178,19 @@ export function DialogueAwareGraphPanel({
     }
   );
 
+  // Fetch commitment stores when dialogue is enabled
+  const commitmentUrl = controlState.showDialogue 
+    ? `/api/aif/dialogue/${deliberationId}/commitments${controlState.participantFilter ? `?participantId=${controlState.participantFilter}` : ""}`
+    : null;
+  const { data: commitmentData, error: commitmentError, isLoading: commitmentLoading } = useSWR(
+    commitmentUrl,
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false
+    }
+  );
+
   // Scroll/highlight effect when highlightMoveId changes
   useEffect(() => {
     if (highlightMoveId && data) {
@@ -299,32 +312,54 @@ export function DialogueAwareGraphPanel({
       </Card>
 
       {/* Commitment Store Panel (only shown when dialogue layer is active) */}
-      {showCommitmentStore && controlState.showDialogue && data?.commitmentStores && Object.keys(data.commitmentStores).length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Commitment Stores</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {Object.entries(data.commitmentStores).map(([participantId, claimIds]) => {
-                const participant = participants.find(p => p.id === participantId);
-                return (
-                  <div key={participantId} className="p-3 rounded-lg border bg-gray-50">
-                    <div className="font-semibold text-sm mb-2">
-                      {participant?.name || "Unknown"} 
-                      <span className="ml-2 text-xs text-gray-500">
-                        ({claimIds.length} commitment{claimIds.length !== 1 ? "s" : ""})
-                      </span>
-                    </div>
-                    <div className="text-xs text-gray-600">
-                      Committed to {claimIds.length} claim{claimIds.length !== 1 ? "s" : ""}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
+      {showCommitmentStore && controlState.showDialogue && (
+        <>
+          {commitmentLoading && (
+            <Card>
+              <CardContent className="py-8">
+                <div className="flex items-center justify-center gap-2 text-gray-500">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span className="text-sm">Loading commitment stores...</span>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          
+          {commitmentError && (
+            <Card>
+              <CardContent className="py-8">
+                <div className="flex items-center justify-center gap-2 text-red-600">
+                  <AlertCircle className="h-4 w-4" />
+                  <span className="text-sm">Failed to load commitment stores</span>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          
+          {commitmentData && Array.isArray(commitmentData) && commitmentData.length > 0 && (
+            <CommitmentStorePanel
+              stores={commitmentData}
+              onClaimClick={(claimId) => {
+                console.log("Clicked claim:", claimId);
+                // TODO: Navigate to claim in graph or open claim detail
+              }}
+              showTimeline={false}
+            />
+          )}
+          
+          {commitmentData && Array.isArray(commitmentData) && commitmentData.length === 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Commitment Stores</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-gray-500">
+                  No commitments found. Participants haven&apos;t made any ASSERT, CONCEDE, or THEREFORE moves yet.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </>
       )}
     </div>
   );

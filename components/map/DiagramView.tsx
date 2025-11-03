@@ -102,13 +102,72 @@ export default function DiagramView({
 
   // Index statements for quick lookup
   const byId = useMemo(() => new Map(diagram.statements.map((s) => [s.id, s])), [diagram]);
-  const inf = diagram.inferences[0]; // minimal pop‑out focuses on the primary inference
+  
+  // Build a complete statement hierarchy showing all inferences
+  const { layers, allStatementIds } = useMemo(() => {
+    if (diagram.inferences.length === 0) {
+      return { layers: [], allStatementIds: new Set<string>() };
+    }
+
+    // Find all statements that are conclusions
+    const conclusionIds = new Set(diagram.inferences.map(inf => inf.conclusionId));
+    
+    // Find all statements that are only premises (never conclusions)
+    const allPremiseIds = new Set(diagram.inferences.flatMap(inf => inf.premiseIds));
+    const leafPremiseIds = new Set([...allPremiseIds].filter(id => !conclusionIds.has(id)));
+    
+    // Build layers from bottom up
+    const statementLayers: string[][] = [];
+    const processed = new Set<string>();
+    
+    // Layer 0: Leaf premises (statements that are never conclusions)
+    const layer0 = [...leafPremiseIds];
+    if (layer0.length > 0) {
+      statementLayers.push(layer0);
+      layer0.forEach(id => processed.add(id));
+    }
+    
+    // Build subsequent layers by finding statements whose premises are all processed
+    let safety = 0;
+    while (processed.size < diagram.statements.length && safety < 20) {
+      safety++;
+      const nextLayer: string[] = [];
+      
+      for (const inf of diagram.inferences) {
+        const conclusionId = inf.conclusionId;
+        if (processed.has(conclusionId)) continue;
+        
+        // Check if all premises for this inference are processed
+        const allPremisesProcessed = inf.premiseIds.every(pid => processed.has(pid));
+        if (allPremisesProcessed && !nextLayer.includes(conclusionId)) {
+          nextLayer.push(conclusionId);
+        }
+      }
+      
+      if (nextLayer.length === 0) break;
+      
+      statementLayers.push(nextLayer);
+      nextLayer.forEach(id => processed.add(id));
+    }
+    
+    // Add any remaining statements (shouldn't happen in well-formed diagrams)
+    const remaining = diagram.statements
+      .map(s => s.id)
+      .filter(id => !processed.has(id));
+    if (remaining.length > 0) {
+      statementLayers.push(remaining);
+    }
+    
+    return { 
+      layers: statementLayers,
+      allStatementIds: new Set(diagram.statements.map(s => s.id))
+    };
+  }, [diagram]);
 
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const premiseRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  const conclusionRef = useRef<HTMLDivElement | null>(null);
+  const statementRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  const [paths, setPaths] = useState<Array<{ d: string; fromId: string }>>([]);
+  const [paths, setPaths] = useState<Array<{ d: string; fromId: string; toId: string }>>([]);
   const [svgSize, setSvgSize] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
   const [hoverId, setHoverId] = useState<string | null>(null);
   const markerId = useId();
@@ -116,31 +175,38 @@ export default function DiagramView({
   // Measure and draw connectors
   const recompute = React.useCallback(() => {
     const root = containerRef.current;
-    if (!root || !inf) return;
+    if (!root || layers.length === 0) return;
+    
     const rootRect = root.getBoundingClientRect();
-    const concEl = conclusionRef.current;
-    if (!concEl) return;
-    const cRect = concEl.getBoundingClientRect();
+    const newPaths: Array<{ d: string; fromId: string; toId: string }> = [];
 
-    const newPaths: Array<{ d: string; fromId: string }> = [];
-    inf.premiseIds.forEach((pid) => {
-      const el = premiseRefs.current[pid];
-      if (!el) return;
-      const pRect = el.getBoundingClientRect();
-      const x1 = pRect.left - rootRect.left + pRect.width / 2;
-      const y1 = pRect.top - rootRect.top + pRect.height; // bottom center of premise
-      const x2 = cRect.left - rootRect.left + cRect.width / 2;
-      const y2 = cRect.top - rootRect.top; // top center of conclusion
-      const dx = Math.abs(x2 - x1);
-      const curv = Math.min(160, Math.max(48, dx * 0.4));
-      const d = `M ${x1} ${y1} C ${x1} ${y1 + curv}, ${x2} ${y2 - curv}, ${x2} ${y2}`;
-      newPaths.push({ d, fromId: pid });
+    // Draw connections for each inference
+    diagram.inferences.forEach((inf) => {
+      const conclusionEl = statementRefs.current[inf.conclusionId];
+      if (!conclusionEl) return;
+      const cRect = conclusionEl.getBoundingClientRect();
+
+      inf.premiseIds.forEach((pid) => {
+        const premiseEl = statementRefs.current[pid];
+        if (!premiseEl) return;
+        const pRect = premiseEl.getBoundingClientRect();
+        
+        const x1 = pRect.left - rootRect.left + pRect.width / 2;
+        const y1 = pRect.top - rootRect.top + pRect.height; // bottom center of premise
+        const x2 = cRect.left - rootRect.left + cRect.width / 2;
+        const y2 = cRect.top - rootRect.top; // top center of conclusion
+        
+        const dx = Math.abs(x2 - x1);
+        const curv = Math.min(160, Math.max(48, dx * 0.4));
+        const d = `M ${x1} ${y1} C ${x1} ${y1 + curv}, ${x2} ${y2 - curv}, ${x2} ${y2}`;
+        newPaths.push({ d, fromId: pid, toId: inf.conclusionId });
+      });
     });
 
     // Update svg size to container box
     setSvgSize({ w: rootRect.width, h: root.scrollHeight });
     setPaths(newPaths);
-  }, [inf]);
+  }, [diagram.inferences, layers]);
 
   const roRef = useResizeObserver(recompute);
   useEffect(() => {
@@ -154,26 +220,23 @@ export default function DiagramView({
   }, [recompute]);
 
   // --------------- UI ---------------
-  // const conclusion = inf ? byId.get(inf.conclusionId) : undefined;
-  // const premises = inf ? inf.premiseIds.map((id) => byId.get(id)).filter(Boolean) as Statement[] : [];
-
-  const conclusion = inf ? byId.get(inf.conclusionId) : undefined;
-const premises = inf ? inf.premiseIds.map((id) => byId.get(id)).filter(Boolean) as Statement[] : [];
-
-
-// Add this check:
-if (!inf && diagram.statements.length > 0) {
-  return (
-    <div className="text-center py-8 text-slate-500 text-sm">
-      This argument has no structured inferences yet.
-      <div className="mt-2 text-xs">
-        {diagram.statements.map(s => (
-          <div key={s.id} className="mt-1">{s.text}</div>
-        ))}
+  // Check if we have statements but no inferences
+  if (diagram.inferences.length === 0 && diagram.statements.length > 0) {
+    return (
+      <div className="text-center py-8 text-slate-500 text-sm">
+        This argument has no structured inferences yet.
+        <div className="mt-2 text-xs">
+          {diagram.statements.map(s => (
+            <div key={s.id} className="mt-1">{s.text}</div>
+          ))}
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
+
+  // Find the top-level conclusion (last layer)
+  const topLevelConclusionId = layers.length > 0 ? layers[layers.length - 1][0] : null;
+  const topLevelConclusion = topLevelConclusionId ? byId.get(topLevelConclusionId) : undefined;
   return (
     <div ref={(el) => { containerRef.current = el; roRef.current = el; }}
          className={classNames('relative w-full', className)}>
@@ -184,10 +247,14 @@ if (!inf && diagram.statements.length > 0) {
             <path d="M 0 0 L 10 5 L 0 10 z" className="fill-slate-400" />
           </marker>
         </defs>
-        {paths.map((p) => (
-          <path key={p.fromId}
+        {paths.map((p, idx) => (
+          <path key={`${p.fromId}-${p.toId}-${idx}`}
                 d={p.d}
-                className={classNames('fill-none stroke-slate-400', hoverId === p.fromId && 'stroke-2', !hoverId && 'stroke-[1.5]')}
+                className={classNames(
+                  'fill-none stroke-slate-400',
+                  (hoverId === p.fromId || hoverId === p.toId) && 'stroke-2 stroke-indigo-500',
+                  !hoverId && 'stroke-[1.5]'
+                )}
                 markerEnd={`url(#arrow-${markerId})`} />
         ))}
       </svg>
@@ -206,73 +273,90 @@ if (!inf && diagram.statements.length > 0) {
         </div>
       )}
 
-      {/* Premises grid */}
-      <div className="grid gap-3 md:gap-4 mb-6"
-           style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
-        {premises.map((s) => (
-          <motion.div
-            key={s.id}
-            ref={(el) => { premiseRefs.current[s.id] = el; }}
-            onMouseEnter={() => setHoverId(s.id)}
-            onMouseLeave={() => setHoverId(null)}
-            onClick={() => onStatementClick?.(s.id)}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.2 }}
-            className={classNames(
-              'relative rounded-2xl border p-3 md:p-4 shadow-sm cursor-default',
-              kindColors(s.kind),
-              'hover:shadow-md hover:border-indigo-300'
-            )}
-          >
-            <div className="text-[11px] uppercase tracking-wide text-slate-500 mb-1">{s.kind}</div>
-            <div className={classNames('text-sm text-slate-800 whitespace-pre-wrap', compact && 'text-[13px]')}>{s.text}</div>
-          </motion.div>
-        ))}
-      </div>
-
-      {/* Conclusion */}
-      {conclusion && (
-        <motion.div
-          ref={conclusionRef}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.25 }}
-          className={classNames(
-            'max-w-3xl mx-auto rounded-2xl border p-4 md:p-5 shadow-sm',
-            'bg-emerald-50 border-emerald-200'
-          )}
-        >
-          <div className="flex items-center gap-2 mb-2">
-            <div className="text-[11px] uppercase tracking-wide text-emerald-700">Conclusion</div>
-            {inf.scheme && (
-              <span className="text-[11px] text-emerald-700/80 bg-emerald-100 rounded-full px-2 py-[2px]">{inf.scheme}</span>
-            )}
-          </div>
-          <div className="text-slate-900 text-[15px] md:text-base whitespace-pre-wrap">{conclusion.text}</div>
-
-          {/* Evidence (optional) */}
-          {diagram.evidence?.length ? (
-            <div className="mt-3 pt-3 border-t border-emerald-200/60">
-              <div className="text-[11px] uppercase tracking-wide text-emerald-700 mb-1">Evidence</div>
-              <ul className="text-sm text-slate-800 list-disc pl-5 space-y-1">
-                {diagram.evidence.map((e) => (
-                  <li key={e.id}>
-                    <a className="underline decoration-dotted underline-offset-2 hover:decoration-solid" href={e.uri} target="_blank" rel="noreferrer">
-                      {e.note || e.uri}
-                    </a>
-                  </li>
-                ))}
-              </ul>
+      {/* Render all layers bottom-up */}
+      {layers.map((layer, layerIndex) => (
+        <div key={layerIndex} className="mb-6">
+          {layerIndex > 0 && (
+            <div className="text-[10px] uppercase tracking-wide text-slate-400 mb-2 text-center">
+              Layer {layerIndex}
             </div>
-          ) : null}
-        </motion.div>
+          )}
+          <div className="grid gap-3 md:gap-4"
+               style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+            {layer.map((statementId) => {
+              const statement = byId.get(statementId);
+              if (!statement) return null;
+              
+              // Check if this is a top-level conclusion
+              const isTopConclusion = layerIndex === layers.length - 1;
+              
+              return (
+                <motion.div
+                  key={statement.id}
+                  ref={(el) => { statementRefs.current[statement.id] = el; }}
+                  onMouseEnter={() => setHoverId(statement.id)}
+                  onMouseLeave={() => setHoverId(null)}
+                  onClick={() => onStatementClick?.(statement.id)}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2, delay: layerIndex * 0.05 }}
+                  className={classNames(
+                    'relative rounded-2xl border p-3 md:p-4 shadow-sm cursor-default',
+                    kindColors(statement.kind),
+                    isTopConclusion && 'ring-2 ring-emerald-300/50',
+                    'hover:shadow-md hover:border-indigo-300'
+                  )}
+                >
+                  <div className="text-[11px] uppercase tracking-wide text-slate-500 mb-1">
+                    {statement.kind}
+                    {isTopConclusion && ' (Main Conclusion)'}
+                  </div>
+                  <div className={classNames('text-sm text-slate-800 whitespace-pre-wrap', compact && 'text-[13px]')}>
+                    {statement.text}
+                  </div>
+                  
+                  {/* Show scheme if this statement is a conclusion of an inference */}
+                  {(() => {
+                    const inf = diagram.inferences.find(i => i.conclusionId === statement.id);
+                    if (inf?.scheme) {
+                      return (
+                        <div className="mt-2 pt-2 border-t border-slate-200/60">
+                          <span className="text-[10px] text-slate-600 bg-slate-100 rounded-full px-2 py-[2px]">
+                            {inf.scheme}
+                          </span>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
+                </motion.div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+
+      {/* Evidence (optional) - show at bottom */}
+      {diagram.evidence?.length > 0 && (
+        <div className="max-w-3xl mx-auto mt-6 pt-4 border-t border-slate-200">
+          <div className="text-[11px] uppercase tracking-wide text-slate-500 mb-2">Evidence</div>
+          <ul className="text-sm text-slate-800 list-disc pl-5 space-y-1">
+            {diagram.evidence.map((e) => (
+              <li key={e.id}>
+                <a className="underline decoration-dotted underline-offset-2 hover:decoration-solid" href={e.uri} target="_blank" rel="noreferrer">
+                  {e.note || e.uri}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
-      {/* Footer note when multiple inferences exist */}
-      {diagram.inferences.length > 1 && (
-        <div className="mt-3 text-xs text-slate-500 text-center">
-          Showing primary inference. ({diagram.inferences.length - 1} more available)
+      {/* Info footer */}
+      {layers.length > 0 && (
+        <div className="mt-4 text-xs text-slate-500 text-center">
+          Showing {diagram.statements.length} statement{diagram.statements.length !== 1 ? 's' : ''} across {layers.length} layer{layers.length !== 1 ? 's' : ''}
+          {diagram.inferences.length > 0 && ` • ${diagram.inferences.length} inference${diagram.inferences.length !== 1 ? 's' : ''}`}
         </div>
       )}
     </div>

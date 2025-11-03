@@ -85,7 +85,7 @@ export function AIFAuthoringPanel({
 
 
       {/* Conclusion picker prompt */}
-      {!conclusion?.id && (
+      {/* {!conclusion?.id && (
         <div className="border rounded-md p-3 bg-slate-50/50 text-sm flex items-center justify-between">
           <div>Select a conclusion claim to start composing an argument.</div>
           <button
@@ -95,7 +95,7 @@ export function AIFAuthoringPanel({
             Choose conclusion
           </button>
         </div>
-      )}
+      )} */}
 
       {/* Composer (kept minimal; no AttackMenu here) */}
       {readyForCompose && (
