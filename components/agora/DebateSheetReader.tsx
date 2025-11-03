@@ -320,8 +320,8 @@ function barFor(claimId?: string|null) {
         </div>
 
         <div className="mt-3">
-          <div className="text-xs font-medium mb-1">Unresolved CQs</div>
-          <ul className="text-xs space-y-1">
+          <div className="text-xs space-y-2 font-medium ">Unresolved CQs</div>
+          <ul className="text-xs flex  mt-2 flex-wrap gap-2 ">
             {unresolved.map((u:any) => {
               // Format CQ text display
               const cqDisplay = u.cqText 
@@ -335,7 +335,7 @@ function barFor(claimId?: string|null) {
                 : u.nodeId;
               
               return (
-                <li key={`${u.nodeId}:${u.cqKey}`} className="border-l-2 border-amber-400 pl-2 py-1">
+                <li key={`${u.nodeId}:${u.cqKey}`} className="border border-amber-400 rounded w-fit h-fit px-2 py-1">
                   <div className="font-medium text-amber-700">{cqDisplay}</div>
                   <div className="text-[10px] text-neutral-500 mt-0.5">→ {nodeDisplay}</div>
                 </li>
