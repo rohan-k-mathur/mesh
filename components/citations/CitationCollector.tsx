@@ -92,11 +92,11 @@ export default function CitationCollector({ citations, onChange, className }: Pr
 
   return (
     <div className={className}>
-      <div className="flex items-center justify-between mb-2">
-        <label className="text-xs font-medium text-slate-700">Evidence & Citations</label>
+      <div className="flex items-center justify-start gap-3  mb-2">
+        <label className="text-sm font-medium text-slate-700">Evidence & Citations</label>
         <button
           type="button"
-          className="text-xs px-2 py-1 rounded border bg-white hover:bg-slate-50"
+          className="btnv2 text-xs px-3 py-1.5 rounded-lg border bg-white hover:bg-slate-50"
           onClick={() => setShowForm(!showForm)}
         >
           {showForm ? "Hide" : "Add citation"}
@@ -243,14 +243,16 @@ export default function CitationCollector({ citations, onChange, className }: Pr
 
       {/* Display collected citations */}
       {citations.length > 0 && (
-        <div className="space-y-1 mt-2">
-          <div className="text-[11px] text-slate-600">
+        <div className="space-y-2 mt-2 ">
+                <div className="text-[11px] px-2 text-slate-600">
             {citations.length} citation(s) will be attached after posting
           </div>
+          <div className="flex flex-wrap  gap-2 ">
+    
           {citations.map((cit, idx) => (
             <div
               key={idx}
-              className="flex items-start gap-2 text-xs bg-white border rounded px-2 py-1.5"
+              className="flex  items-start w-fit gap-2 text-xs bg-white shadow-md border border-indigo-200  rounded-lg px-2 py-1.5"
             >
               <div className="flex-1 min-w-0">
                 <div className="truncate font-medium">
@@ -276,7 +278,10 @@ export default function CitationCollector({ citations, onChange, className }: Pr
             </div>
           ))}
         </div>
+        </div>
       )}
+      
     </div>
+
   );
 }

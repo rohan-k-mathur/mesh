@@ -1541,7 +1541,7 @@ const {
 
         {/* Main Tabs */}
         <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
-          <TabsList className="w-fit grid-cols-9">
+          <TabsList className="w-fit grid-cols-9 mb-2">
             <TabsTrigger value="debate">Debate</TabsTrigger>
             <TabsTrigger value="models">Models</TabsTrigger>
             <TabsTrigger value="dialogue">Dialogue</TabsTrigger>

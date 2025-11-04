@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import useSWR from "swr";
 import { SuppositionBanner, NestedMoveContainer } from "./SuppositionBanner";
 import { SchemeComposerPicker } from "@/components/SchemeComposerPicker";
-
+import { ClaimPicker } from "../claims/ClaimPicker";
 /**
  * DialogueInspector - A comprehensive debug component to visualize the entire
  * dialogue state including claims, arguments, moves, CQs, and legal actions.
@@ -156,7 +156,7 @@ export function DialogueInspector({
           {/* Claim Selector Button */}
           <button
             onClick={() => setClaimPickerOpen(true)}
-            className="px-5 py-2 btnv2 bg-indigo-700 hover:bg-indigo-800 text-white rounded-lg text-sm font-medium transition-colors "
+            className="px-5 py-2 btnv2 bg-indigo-300/70 hover:bg-indigo-400/70 text-indigo-700 rounded-full text-sm font-medium transition-colors "
           >
             {targetId ? "Change Claim" : "Select Claim"}
           </button>
@@ -165,7 +165,7 @@ export function DialogueInspector({
         {!targetId && (
           <div className="mt-3 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-lg">
             <p className="text-sm text-emerald-800">
-              👆 Click <strong>&ldquo;Select Claim&rdquo;</strong> to choose a claim and view its dialogue state
+              Click <strong>&ldquo;Select Claim&rdquo;</strong> to choose a claim and view its dialogue state
             </p>
           </div>
         )}
@@ -205,7 +205,7 @@ export function DialogueInspector({
             </p>
             <button
               onClick={() => setClaimPickerOpen(true)}
-            className="px-5 py-3 btnv2 bg-indigo-700 hover:bg-indigo-800 text-white rounded-xl text-lg font-medium transition-colors "
+            className="px-5 py-3 btnv2 bg-indigo-300/70 hover:bg-indigo-400/70 text-indigo-700 rounded-full text-base font-medium transition-colors "
             >
               Select Claim
             </button>
@@ -443,8 +443,8 @@ export function DialogueInspector({
       </div>
 
       {/* Claim Picker for selection/navigation */}
-      <SchemeComposerPicker
-        kind="claim"
+      <ClaimPicker
+        deliberationId={deliberationId}
         open={claimPickerOpen}
         onClose={() => setClaimPickerOpen(false)}
         onPick={(claim) => {

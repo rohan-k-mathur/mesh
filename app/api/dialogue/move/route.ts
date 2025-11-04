@@ -8,6 +8,8 @@ import { getCurrentUserId } from '@/lib/serverutils';
 import { computeLegalMoves } from '@/lib/dialogue/legalMovesServer';
 import { TargetType } from '@prisma/client';
 import { compileFromMoves } from '@/packages/ludics-engine/compileFromMoves';
+import { syncLudicsToAif } from '@/lib/ludics/syncToAif';
+import { invalidateInsightsCache } from '@/lib/ludics/insightsCache';
 import { stepInteraction } from '@/packages/ludics-engine/stepper';
 import type { MovePayload, DialogueAct } from '@/packages/ludics-core/types';
 import { validateMove } from '@/lib/dialogue/validate';
@@ -515,6 +517,14 @@ if (prop) {
   let step: any = null;
   if (autoCompile && !(dedup && (kind === 'WHY' || kind === 'GROUNDS'))) {
     await compileFromMoves(deliberationId).catch(() => {});
+    // Phase 1: Sync Ludics to AIF after compilation
+    await syncLudicsToAif(deliberationId).catch((err) => {
+      console.error("[ludics] Failed to sync to AIF:", err);
+    });
+    // Phase 1: Invalidate insights cache after sync
+    await invalidateInsightsCache(deliberationId).catch((err) => {
+      console.error("[ludics] Failed to invalidate cache:", err);
+    });
   }
   if (autoStep) {
     const designs = await prisma.ludicDesign.findMany({

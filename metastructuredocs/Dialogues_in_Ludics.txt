@@ -1,0 +1,969 @@
+
+
+
+See discussions, stats, and author profiles for this publication at: https://www.researchgate.net/publication/221350114
+
+Dialogues in Ludics
+
+Conference Paper in Lecture Notes in Computer Science · January 2011
+DOI: 10.1007/978-3-642-21490-5_7 · Source: DBLP
+
+
+	
+
+CITATIONS
+0
+
+READS
+196
+
+
+3 authors, including:
+
+
+Myriam Quatrini
+Aix-Marseille University
+33 PUBLICATIONS 143 CITATIONS
+
+
+Samuel Tronçon Netlab
+14 PUBLICATIONS 12 CITATIONS
+
+
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+All content following this page was uploaded by Samuel Tronçon on 19 December 2013.
+
+The user has requested enhancement of the downloaded file.
+
+
+Dialogues in Ludics
+
+Marie-Ren´ee Fleury1, Myriam Quatrini1, and Samuel Tronc¸on2
+1 Institut de Math´ematiques de Luminy, Aix-Marseille Universit´e
+2 Laboratoire "Structures Formelles du Langage", Universit´e Paris 8
+fleury@lumimath.univ-mrs.fr, {quatrini, troncon}@iml.univ-mrs.fr
+
+
+
+Abstract. In this text we expose and defend the following claim: "Lu- dics is a relevant framework to ensure both the formalisation and another way for studying dialogues".
+Once our model presenting a not formal notion of dialogue, and ex- plaining the correspondance with some core concepts in Ludics has been introduced, we give a light technical presentation of Ludics, focusing on the most relevant points for the study of formal dialogues : objects, ac- tions and interactions. At last, we present the concrete part of the model with some examples of dialogues in Ludics.
+
+
+Introduction
+
+We postulate that Ludics is a relevant framework to ensure both the formalisa- tion and another way for studying dialogues. This approach, which investigate the dynamics of interactive situations, offers richeful intuitions and mathemati- cal means easily linkables to the natural structure of our object. By this way, we can go deep in the interactive layer of dialogues, leaving both the propositional and the constructive ones.
+   We introduce our model presenting a not formal notion of dialogue, and ex- plaining the correspondence with some core concepts in Ludics. These remarks will be useful to understand the continuity between intuitive and formal di- alogues. In the second part we give a light technical presentation of Ludics, focusing on the most relevant points for the study of formal dialogues: objects, actions and interactions. Finally, we present the concrete part of the model with some examples of dialogues in ludics. We begin with an elementary decomposi- tion by the intervention-action matching. Secondly, we introduce a higher level of formalisation, refined approach of the same object, viewing interventions as complex actions. Finally, we open the level of inside relations, considering su- perstructures and recursive dialogues.
+
+1 Preliminary remarks
+
+Intuitively, we can define the dialogue as a common research done by some speak- ers which want to establish some knowledge by exploring possibilities opened by some thesis and its counter-thesis. This intuitive notion of dialogue corresponds
+
+
+in some way to the greek concept of dialegesthai (gr. bLaAsyco{)aL), which is a primitive notion in the western philosophy of knowledge, as opposed to the more traditional dialectic.
+   We describe parts of dialogues as sequences of polarized actions which con- stitute the chronology of symbolic exchanges underlying the communication of meanings. Their structure is both the research itself, seen as a process in progress, and the knowledge itself, seen as a stable object, finite at one step of develop- ment.
+   The dialogue carries out three essential functions: exchange of informations, construction of knowledge, resolution of a cognitive tension.
+First, at every stage, a speaker is giving a symbol, and this exchange is infor- mative in three ways: it informs us about the object discussed (some thesis), the subject which is speaking (his approach about this thesis), and the connec- tion between a present intervention and some counter-interventions (upstream or downstream, actuals or virtuals).
+Second, running dialogues shows arguments interacting like machines built up to explore relevant opportunities of discussion according to some global strategy: I argue in this way to reach this point, I open these branches to induce some reactions... So, dialogue is a sort of unfolding structure which represent some knowledge. Evidently, involving friendly but tenacious interlocutors ensures a good (exhaustive) exploration.
+Third, by the interaction, the locutors can extract some new information which is about the form of the interaction, contained in the result of the dialogue: what is stable, what is explored, what is new, what is in latence.
+   Interpreting ludics as a paradigmatic level which shows natural dynamics in logic, we can find some correspondences between dialogue functions and proper- ties of the logical world described in ludics.
+
+1.1 Action Dynamics
+First, we must observe that abstract identity (the same name refers to the same content) is replaced in Ludics by a concrete identity based, as if in a game, on a behavioral criterion requiring concrete observation:
+reactions experienced by a player corresponds likewise to the actions of his opponent.
+Consequently, a logical entity a is characterized by the set of all its interactions with the rest of the logical world. And a is identified with al when they interact exactly in the same manner with this world. This idea is very close to the fact that conceptual identity does not exist between two natural terms or two sen- tences, since it is only in the consideration of the context, and so in a definite situation of interaction, that we can evaluate a semantic item.
+This property, well known as holist evaluation in semantics of natural language, is produced by the localization constraint. In the old style we had different occur- rences of a same content. Context-sensitive logics, like linear logic, introduces
+
+
+occurrences linked by an orthogonality relation, permitting a strict ressource management. By the fact of localization, occurrences became locations (loci ) in a geometrical framework and, necessarily, locations are considered as different ones.
+So, we have a first notion of meaning, assuming that the set of all the possible interactions with other elements of the logical world is the conceptual meaning of my strategy, by the fact that interactions explains what can be expected from my actions. The action of my opponent is the meaning of my own: it is induced by actions I have done, and it induces reactions by me which opens or closes possible playings. The first part of our model will give sense to this intuition by setting the elementary decomposition: one intervention is treated as a ludic action, and actions are mirroring themselves.
+
+1.2 Exploration dynamics
+We can also refer to locations in two ways, depending on the cognitive subject position: consumer vs. producer, emettor vs. receptor, speaker vs. adressee, etc. In linguistics this point corresponds to the fact that duality is not an objective reality but a local opposition between persons who can change their positions. Even if we know (at least conceptually) that strategies interacts with all the strategies in the world, there is a very special relationship between a set of strategies, its counter strategies (a sort of optimal opponent which explores all the determinations of the player's intentions) and the counter strategies of these counter strategies, that is to say the initial set.
+So we have a second notion of meaning. My strategies are the meaning of the strategies of my opponent, since he made choices in all the playable strategies in order to select one which can optimally play against mine. Natural language sentences are not considered by themselves but regarding the interpretation pro- cesses they suggest. There is a construction of mine, its deconstruction by my opponent, a re-construction knowing that he knows what I said, and his re- deconstruction knowing that I know that he knows...
+The second part of our model will focuse attention to the explorative part of in- terventions, which are made in order to explore some thesis, by anticipation on the possible ways which would be choosen by an opponent. This will give a sec- ond level of formalisation, considering interventions as more complex structures: an intervention is a whole strategy, made of anticipations (about the opponent) and forecastings (about my own further plays).
+
+1.3 Inside dynamics
+Geometrical logics, whose ludics is a very representative one, are founded on the calculus dynamics. That is the crucial point in our attempt considering the fact that too many theories in this domain neglect to develop a really good dynamic part. Till now, we know very expressive systems, based on a lambda-calculus base, but without specific attention on ß-reduction and ?-expansion processes. On the contrary, here, we consider dynamics as the essential part of our research.
+
+
+According to this principle, we propose a third notion of meaning: the meaning of our common search is the form of our interaction itself. If we diverge, it means that no durable connection is possible between our games. But we explore, by means of this divergence, some determinations of the invoked strategies. And we would be able, in future games, to modify our intentions in order to greatly explore offered possibilities. In the case of convergence, a really useful exploration is always possible, which produces a new knowledge, not present explicitly in our past determinations. Useful interactions are interactions which urges us to explore more deeply the determinations of our playing intentions.
+   Considering dynamics, we must introduce a level of complexity, presented in the third part of the model. Inside the on-going dialogue, we must have the ca- pability of duplicating some modules, invoking strategies used in previous stages and dialogues, inserting dead-ends and closed loops, cheating in the argument arborescence, or disrupting opponent's plans. These are complex processes of de- and re-localization inside the running dialogue, and with outside parts turned inside out, as a sort of high-level transfer of training mechanism.
+
+*********
+
+   To prevent misinterpretations, let's not forget that there is no propositions in this model. We suppose a kind of multilevels structure, each level corresponding to a way of taking in account the object. The more abstract level is concerned by the propositional aspects of communication. And we found at the most primi- tive level the interactive structure of dialogue itself. Our work is clearly based on the latter. Fortunatly, it would be possible to invoke some principle of compila- tion between levels which ensure continuity and restore the connection between abstract and concrete views. But, this is another work.
+   Here, we don't use propositional analysis as in the syntactic style, and struc- tures we present are not based on conceptual contents as in the semantic styles, because we want to get our model away from the semantic/syntactic duality. We propose a third way, based on the exchange itself, considering the dialogue as a sequence of interactions in some place at some time. So, a locus would be a place and a moment of dialogue, and not a linguistic object considered on its own grammatical structure. Eventually, classical "propositions" can be used as a possible reading of the interactive structures we propose.
+
+2 Ludics in a nutshell
+
+Ludics can be sum up as a interaction theory. It appears in the work of J.-Y. Girard [Girard-01] as the issue of several changes of paradigms in "Proof The- ory"3: from provability to computation, then from computation to interaction.
+
+3 A deep presentation of the philosophic and epistemologic point of view of the math- ematical logic progress (when computer science is concerned in) can be found in the works of J.-B. Joinet [Joinet-07] and S. Tron¸con [Tron¸con-06].
+
+
+The first change of paradigm arises with the intuitionnistic logic, while the sec- ond is due to the development of linear logic. Continuing the new approachs of Linear Logic : a geometrical point of view of proofs ; an internal approach of dynamics, Ludics focalizes on the interaction.
+   The objects of the Ludics are no more proofs but instead incomplete proofs, attempts of proofs. So a rule called da¨imon is available in order to symbolize the giving up in a proof search or a pending lemma. These objects play the role of a proof architecture. Only what is needed for the interaction is kept. This has been made possible by means of the hypersequentialized linear logic introduced by J-M. Andr´eoli after he has discovered the polarity of formulas. Moreover, this work within polarized objects world allowed to create a link [Faggian-Hyland-02] between Ludics and recent works in Game Semantics which share similar moti- vations. So the Game Theory is a good metaphor for a first approach of Ludics, and it is the point of view that from now we shall often follow in this text.
+   Here you find a presentation of the theory in a very simplified version, but we recommand the source texts [Girard-01], [Girard-03] to the reader concerned with more details on the mathematical notions and rich concepts of Ludics ; we also recommand the reading of this introduction [Currien-01].
+
+
+2.1 The objects of Ludics
+
+The central object of Ludics is the design. By means of the metaphor of Games, a design can be understood as a strategy, i.e. as a set of plays (chronicles) end- ing by answers of Player against the moves planned by Opposant. The plays are alternated sequences of moves (actions). The moves are defined as a 3-uplet con- stitued by : firstly a polarity (positive polarity for a move of Player or negative polarity for a move of Opposant), secondly a locus (a fixed position) from which the move is anchored, and at last a finite number of positions reachable in one step (ramification). A unusual positive move is also possible : (the da¨imon).
+   In Ludics, the positions are addresses, loci incoded by means of a finite se- quence of integers (often noted ?, ?, s . . . ).
+   The starting positions (forks) are denoted G f-- ?; where G and ? are finite sets of loci such that G is either the empty set or a singleton one. When an element belongs to G , every play then starts on this element by means of an
+Opposant move (and the fork is said negative), else Player starts on an element of its choice taken in ? (and the fork is said positive).
+   For the hypersequentialized linear logic point of view, a design can be seen as a figure of a proof in this sequent calculus with some particularities : first we can use the da¨imon rule, for giving up the proof search. Finally we don't work with formulas but with addresses, and we just need two rules (the negative and positive ones) for representing the usual logical rules.
+
+
+Every usual logic connectives has not its own, only two rules are sufficient for subsuming these rules4.
+Definition: A design is a tree of forks G f-- ?, built by means of these three rules :
+- Da¨imon
+†
+f-- ?
+- Positive rule
+· · ·	?.i f-- ?i	· · · (?, I)
+f-- ?, ?
+where I is an eventually empty ramification such that for every couple of indexes (i, j) ? I, ?i and ?j are disconnected and every ?i is included5 in ?.
+- Negative rule
+· · ·	?.I f-- ?I	· · · (?, N )
+? f-- ?
+where N is a possibly empty or infinite set of ramifications such that for all I ? N ,
+?I is included in ?.
+
+Examples : Dai and Fax
+- The following designs are named Dai+ ou Dai- depending on the polarity of their bases :
+
+
+Dai+ =
+†
+?
+
+Dai- =
+
+\-- ?.I, ? ? \-- ?
+
+
+
+†
+(?, Pf (N))
+
+- The Fax?,?I is the following design, recursively defined (where Pf (N) is the set of finite subsets of N) :
+
+
+Fax?I ,?i
+?l.i \-- ?.i
+
+
+
+
+(?I ,I)
+
+Fax?I ,?j
+?l.j \-- ?.j
+
+
+
+
+(?I ,J)
+
+. . .
+
+\-- ?.I, ?l	. . .
+
+
+
+? \-- ?l
+
+\-- ?.J, ?l	. . .
+
+
+(?,Pf (N))
+
+
+
+4 it is a direct consequence of the focalization property : a proof of a formula in usual linear logic can be replaced with a proof of an equivalent formula written by means of polarized synthetic connectives. So only two rules schemes (positive or negative ones) are needed
+5 every rule where the union of the ?i is strictly included in ? correspond to the weakening rule (respectively for negative rule when ?I is strictly included in ?).
+
+
+Example : Faggian-Maurel contract in Ludics.
+Bob offers the following contract :
+She gives him one euro, then she can choose between a book or a sur- prise of his collection, a CD or a DVD that he will choose himself.6
+
+   We are going to represent by means of designs the Alice and Bob's strate- gies for the dialogue based on this contract. In the next section we shall study this contract in progress by studying the effect of the interaction between these designs. We arbitrarily start the interaction at locus ?.
+
+Two strategies of Bob in Ludics :
+   The two strategies begin in a same manner : first Bob sets out the contract (represesented by a positive action (?, {0})); then he is ready to receive one euro and give a book (represesented by a negative action (-, ?.0, {1, 2})), and he also is ready to receive one euro and choose a surprise for Alice ((-, ?.0, {1, 3})).
+   In the first strategy, Bob ends the exchange by giving the book in return of one euro ; in ludics, we will say that he plays † ; playing the daimon in a strategy allow us to attest that the exchange correctly ends7. In the second strategy, Bob
+gives a surprise in return of one euro.
+   Then the two strategies differ according on Bob gives a CD or a DVD. " Bob chooses the CD" will be represented by the positive action (+, ?.0.3, {1})), while " Bob chooses the DVD" will be represented by the positive action (+, ?.0.3, {2})).
+
+
+
+	†
+\-- ?.0.1, ?.0.2
+
+?.0.3.1 \ - - ?.0.1
+\-- ?.0.1, ?.0.3
+?.0 \--
+\-- ?
+
+
+	†
+\-- ?.0.1, ?.0.2
+
+?.0.3.2 \-- ?.0.1
+
+
+\-- ?.0.1, ?.0.3
+?.0 \--
+\-- ?
+
+Two strategies of Bob
+
+Three Alice strategies in Ludics :
+The three strategies begin in a same manner : she hears the exposition of the contract (she plays a negative action (-, ?, {0}).
+   - in the first strategy, " she gives an euro and chooses a book" is repre- sented by the positive action (+, ?.0, {1, 2}) ; in the second and third strategies " she gives an euro and chooses a surprise" is represented by the positive action (+, ?.0, {1, 3}).
+- in the second strategy, she chooses a surprise, so she is ready for both
+eventualities : receive a CD or receive a DVD ; so this is represented by two negative actions (-, ?.0.3, {1}) and (-, ?.0.3, {1})). In these two cases, she ends up the exchange by the positive action † (great, thank you).
+
+6 This contract can be described by means of this Linear Logic formula :
+1 euro -? (1 livre &(1 CD ? 1 DV D))
+7 Another possibility would be to make Bob playing an action (" Bob gives Alice a book" ) and then make Alice playing the daimon (" Alice thanks Bob" ).
+
+
+   - in the third strategy, she chooses a surprise, but she only is ready for re- ceiving a CD ; this is represented by the negative action (-, ?.0.3, {1}). In this case, she ends up the exchange by the positive action † (fine, thank you).
+
+
+	† 	†	†\-- ?.0.3.1 \-- ?.0.3.2\-- ?.0.3.1?.0.1 \--?.0.2 \--?.0.1 \--?.0.3 \--?.0.1 \--
+?.0.3 \--\-- ?.0\-- ?.0\-- ?.0? \--? \--? \--Three strategies of Alice
+
+
+2.2 The interaction
+The designs are built on the model of proofs without cut. The underlying signi- fication of the cut is the composition of morphisms or strategies. In Ludics, it is concretely translated by a coincidence of two loci in dual position in the bases
+of two designs. We can cut for example a design of base s f-- ? and a design of base ? f-- ?, so forming a cut-net8 of base s f-- ?.
+The interaction is obtained by means of the cut ; it creates a dynamics of
+rewriting of the cut-net ; at the end the process fails or we obtain a design with the same base as the starting cut-net. We are going to describe in a simplified way this dynamics and finish the section with some examples.
+
+Normalization procedure
+We set the elementary steps of the normalization procedure of a cut-net R. As usually, the rewriting is obtained by reiteration of the elementary steps.
+
+Closed case: Let R be a closed cut-net i.e. of base f--
+   In order to simplify the presentation, we shall say that R is constituted by E1 of base ? f--, E2 of base ? f-- and D of base f-- ?, ?; if the normalization succeeds, the base of design becomes f--. In a cut-net there is only one positive design (D in this example). Let k be its first rule.
+   - if k is the daimon then the normal form of R noted [[R]] is the design Dai+. It is the only case of termination of a closed cut-net and we shall say that the normalization of the cut-net R (the interaction between the designs E1, E2, and D) converges.
+- si k = (?, I) then we consider the design E1 of base ? f-- ; let (?, N ) be its
+last rule.
+. If I ?/ N , the normalisation fails.
+. If I ? N then for i ? I, let Di be the subdesign of D of base ? * i f-- or
+? * i f-- ? and let El be the subdesign of EI of base f-- ? * I. We define the cut-net
+
+8 a cut-net is a finite graph of designs the bases of which are pairwise connected by cuts ; the cut-net is connected and without cycle. The base of the cut-net is obtained by erasing the cut loci.
+
+
+S obtained by replacing D, E1 and E2 with the Di, ElI and E2 ; the resulting cut-net Sl is not necessarily connected (because of the weakness) ; we denote Sl the connected component El in S. Then [[R]], the result of the normalisation is recursively defined by : [[R]] = [[Sl]].
+
+
+. . .
+
+Di
+? * i f--	. . . (?, I)
+f-- ?, ?
+D
+
+;	· · ·
+
+l
+I
+f-- ? * I	· · · (?, N ) ;
+? f--
+E1
+
+
+.
+? f-- E2
+
+====================================
+?(is reduced in)
+
+· · ·· · ·· · ·· · ·S :f-- ? * I;? * i f-- ?· · ·? * il f--;? f--
+l	Di
+
+DiI	E2
+
+=============================
+
+Open case: Let R be a cut-net with a non empty base). We have to examine two new possibilities besides the previous cases :
+   - if the cut-net is positive (of positive base f-- ?, · · ·), and if the first rule of D (the only positif design) is (?, I), where ? is not a cut of the cut-net. We briefly define this elementary step, moreover the dots are elements taken in ? :
+
+
+
+The cut-net R :
+
+Di	DiI
+? * i f-- ?, · · ·	? * il f-- · · · (	;
+
+
+. (E)
+
+f-- ?, ?, ?
+
+?, I)
+
+? f--
+
+=====================
+
+?
+
+[[R]] :  [[Di, E]]	DiI  (?, I)
+f-- ?, ?
+   - if the cut-net is negatif (of negative base ? f-- ?). We consider the only design D in the cut-net R of base ? f-- ?, ? ; let (?, N ) be its last rule.
+The cut-net R :
+
+DI
+f-- ?.I, ?, · · ·
+
+DJ
+f-- ?.J, t, · · ·
+? f-- ?, ?, t
+
+DK
+f-- ?.K, · · · (?, N ) ;
+
+
+. E	;
+? f--
+
+
+. F
+t f--
+
+==================================
+
+?
+
+
+[[R]] :  [[DI, E]]	[[DJ , F]]  (?, N l)
+? f-- ?
+Let us remark that eventually N l ? N because the cut-net should be connected, then some K are lost.
+
+Examples : (continuation of Faggian-Maurel example).
+
+Example 1: the interaction between the second strategy of Alice and the first one of Bob:
+
+
+†
+f--  ?.0.3.1
+
+†
+f-- ?.0.3.2
+
+?.0.3.1 f-- ?.0.1
+
+
+?.0.1 f--
+
+
+f-- ?.0 ? f--
+
+?.0.3 f--
+
+f-- ?.0.1, ?.0.2
+
+f-- ?.0.1, ?.0.3
+?.0 f-- f-- ?
+
+=====================
+After two reduction steps we get9:
+
+
+?.0.3.1 f-- ?.0.1
+
+
+†
+f-- ?.0.3.1
+
+
+†
+f--  ?.0.3.2
+
+?.0.1 f--
+
+f-- ?.0.1, ?.0.3
+=======  ========
+
+?.0.3 f--
+
+For the next step, we first choose the cut on ?.0.3, then we get:
+
+
+†
+f-- ?.0.3.1	?.0.3.1 f-- ?.0.1	?.0.1 f--
+, we then get :
+
+†
+f-- ?.0.1	?.0.1 f--
+
+
+
+to end up to	Dai+.
+
+Example 2 : the interaction between the third strategy of Alice and the second one of Bob:
+
+
+
+
+?.0.1 f--
+
+†
+f-- ?.0.3.1
+
+?.0.3 f--
+f-- ?.0 ? f--
+
+
+
+†
+f-- ?.0.1, ?.0.2
+
+?.0.3.2 f-- ?.0.1
+
+f-- ?.0.1, ?.0.3
+?.0 f-- f-- ?
+
+
+
+9 The order chosen for executing the reduction steps is relevant in some rewriting system but it isn't the case in Ludics due to the separation theorem established in [Girard-01]
+
+
+After two reduction steps we get:
+
+
+
+
+?.0.1 f--
+
+?.0.3.2 f-- ?.0.1
+(?.0.3,{2})
+f-- ?.0.1, ?.0.3
+
+f--  ?.0.3.1
+?.0.3 f--
+
+†
+
+{{1}}
+
+	
+
+The next step produces a failure because {2} ?/ {{1}}.
+Example : Crucial normalisation: a design against the Fax.
+   Interaction between a design D of base f-- ? and the Fax of base ? f-- ? enables us to delocalize a design, to move it, to modify its place of anchoring. The resulting design is then a design Dl of base f-- ? which in fact is identical to the design D except that in the whole design, the locus ? has been replaced with le locus ?.
+
+
+D1	Di	Dn
+?.1 f-- . . . ?.i f-- . . . ?.n f--
+(?,I)
+f-- ?
+
+Fax
+.
+? f-- ?
+
+
+
+
+Two reduction steps produce :
+[[Fax?1,?1, D1]]
+?.1 f--	. . .
+
+
+[[Fax?.i,?.i, Di]]
+?.i f--	. . .
+
+
+[[Fax?.n,?.n, Dn]]
+?.n f--
+
+f-- ?
+
+(?,I)
+
+We observe that the last rule of D was copied in its normal form Dl and so on.
+
+Dispute
+   In Ludics, the notion of dispute allows us to report the sequence of the moves (actions) of the play (interaction between two designs connected by a cut), from the point of view of one of speakers.
+   For example, in the first scenario of the foregoing example (FM-contract between Alice et Bob), the dispute, from the point of view of Alice is :
+(-, ?, {0}), (+, ?.0, {1, 3})(-, ?.0.3, {1})†
+
+3 Dialogues in Ludics
+
+In this attempt to provide the dialogues with a formal frame, we shall be inter- ested only in the elements of the dialogue which are supports of the interaction. We superpose then a deconstruction of the dialogue (articulation and analysis
+
+
+of the successive interventions according to the created opportunities) and a re- construction of strategies (whose aim is the follow up of the dialogue), on which the dialogical interaction is based.
+   In this context, a dialogue is the result of an interaction between the strategies of two speakers.
+   The formal decomposition of dialogues will be considered at various levels of granularity : For an elementary decomposition, a dialogue is seen as an alternation of signed interventions ; the speaker anchors its intervention on a locus (a fixed position) created by the previous interventions. Some figures (trees
+/ designs of Ludics) emerge ; also, the supports of the sequence of interventions appear ; we can locate in it the trace of the actual interaction of the dialogue in progress. We can then refine this approach and decompose the interventions themselves, with regard to the way they are dynamically built.
+
+3.1 Elementary decomposition
+A dialogue and the interventions of each speakers are observed from the point of view of the interaction: on what previous interventions of the speakers a in- tervention of one of them is attached and which openings are created for the continuation of the dialogue.
+As announced in the preliminary remark, we don't retain the propositional con- tain.
+''Tomorrow the weather will be fine, I will go to work to Luminy by bike to Luminy''
+What could be the answers of addressee ? With this utterance, the speaker has opened three potential answers :
+1. Are you sure? Did you consult the weather forecast?
+2. Are you still working at Luminy?
+3. I did not know you are so good at sport!
+   We only are concerned in studying the geometrical aspect of a dialogue. So this utterance with its three created possibilities is represented by the following design :
+?.1 f--	?.2 f--	?.3 f-- (?, {1, 2, 3})
+f-- ?, ?
+Let us resume what we keep in consideration for our modelisation of dialogue:
+- a dialogue is an alternated sequence of interventions;
+   - an intervention is anchored at a certain place (a locus / a " sub-formula", a propositionnal content) among those created by the previous interactions and creates new ones ;
+- some interventions allow to close the dialogue.
+
+Our formalization of dialogues is built by means of the following elements:
+
+
+- An intervention of Speaker or Addressee10 is an action (E, ?, I), where:
+   . E is a polarity : + (from the point of view of the speaker who performs the intervention) or - (from the point of view of the one who records the interven- tion) ;
+   . ? (the focus), is the point from where the speaker either ends the conversa- tion or follows up on the opportunities created during the previous exchanges ;
+. I (the ramification) is the set of openings created by this intervention.
+- A dialogue is a sequence of alternated interventions ; the story told by one of the speakers of this alternation will be represented by a chronicle or in a more dynamic way by the trace of an interaction between the strategies of each of speakers (a dispute). In a same way, in Ludics an alternated sequence of actions can be view either from a static point of view (to tell about a past play) or from a dynamic point of view (to take part in the play in progress).
+
+   - A strategy of one of the speakers will be represented by a design. In order to build a strategy as the tree of its compulsory or offered possibilities, the fol- lowing rules are used :
+. to play a positive rule / to accomplish an intervention ;
+. to play a negative rule / to record, to anticipate the interventions of the other one ;
+. to play da¨imon / to terminate a dialogue.
+
+Example : " Sales of real estates "
+   Let us consider the following situation and let us imagine several dialogues about it :
+P knows that O have three real estates A1, A2, A3 ; he heard that O would like to sell some of its real estates. P is interested in the real estate A1, also he starts up a dialogue with O. P wants to know if O intend to sell A1 ; if yes, at what price does he sell it ; he does not want to show immediatly that he is interested in this purchase.
+- First possible dialogue : Dial1
+P : I have heart that you would like to sell some of your real estates, which one?
+O : I intend to sell A1 and A2.
+P : At what price do you sell A1 ?
+O : 100000 euros
+P : OK
+
+   This dialogue Dial1 can be represented as the result of the interaction be- tween the two following designs:
+
+10 To indicate the actors of a dialogue we shall either use P for Player and O for Opponent as in Theory Games, or Speaker and Addressee as in theory dialogues.
+
+
+
+	†
+\-- s.0.1.5.100, s.0.2
+
+
+s.0.1.5 \-- s.0.2
+
+\-- s.0.1, s.0.2
+
+
+s.0 \--
+
+\-- s
+
+
+s.0.1.5.100 \--
+
+\-- s.0.1.5
+
+s.0.1 \--	s.0.2 \--
+
+\-- s.0 s \--
+
+
+P	O
+
+Finally, the dialogue Dial1 is represented by the following dispute :
+(P, s, {0})	(O, s.0, {1, 2})	(P, s.0.1, {5})	(O, s.0.1.5, {100}) (P, †)
+
+I have heart...
+
+...A1 and A2
+
+...price of
+A1?
+
+100000 euros	OK
+
+
+Comment :
+- s is the locus where the dialogue starts :
+- s.0 is the locus of the question I have heard ...
+- s.0.1 and s.0.2 are the loci of the answers I sell A1 and I sell A2
+- s.0.1.5 is the locus of the question what is the price of A1 ?
+- s.0.1.5.100 is the locus of the answer 100 000 euros
+- P decide to stop the dialogue by playing †. He might continue by questioning about the real estates A2 (by focalizing on s.0.2)
+- Second possible dialogue : Dial2
+P : I have heard that ... .
+O : I intend to sell A2 and A3.
+P : Very well, good luck
+This dialogue Dial2 is seen as the interaction between the two following designs:
+
+
+†
+f-- s.0.2, s.0.3
+
+	s.0 f  - -	
+
+
+s.0.2 f-- s.0.3 f--
+
+	f-- s.0	
+
+f-- s	s f--
+P	O
+
+Finally the dialogue Dial2 is represented by the following dispute: (P, s, {0})	(O, s.0, {2, 3})	(P, †)
+
+I have heard ... I sell A2 and
+A3
+
+Well, good luck
+
+
+Comment :
+- s is the locus where the dialogue starts:
+- s.0 is the locus of the question I have heard ...
+- s.0.2 and s.0.3 are the loci of the answers I sell A2 and I sell A3
+
+
+- P is only interested in A1, so he decides to stop the dialogue by playing †. It is possible to represent by a design the project of conversation that P has built to obtain the following information: O sells A1 and if yes at what price
+?
+
+	†		†		†		†
+
+. . . \-- s.0.1.5.i . . . . . . \-- s.0.1.5.i . . .
+
+. . . \-- s.0.1.5.i . . .
+
+. . . \-- s.0.1.5.i . . .
+
+  s.0.1.5 \--
+\-- s.0.1, 0.2
+
+s.0.1.5 \--
+\-- s.0.1
+
+s.0.1.5 \--
+\-- s.0.1., 0.3
+s.0 \--
+\-- s
+
+
+s.0.1.5 \--
+
+\-- s.0.1, s.0.2, s.0.3
+
+
+	†
+\-- s.0.3 · · ·
+
+
+   It is really a strategy of conversation : P imagines the possible answers of O to his initial question and plans how to pursue the dialogue in each case.
+
+3.2 Refined approach
+Until now, we have represented a dialogue as a chronicle or as a dispute. This modelisation seems well adapted to dialogues as long as we only consider a dialogue as an exchange of information. But some refinement are needed as soon as we are concerned in dialogues of another nature as controversies or as a dialogue where the contextual elements are taken in account.
+   As first refinement we propose that the interventions of a speaker could be more complex than an action (in ludical meaning) : a whole design, possibly a cut-net, can be played instead of an action. To associate a whole design or a cut-net with the intervention of the speaker is the sign that this exchange could be broken down into more elementary ones. We shall perform this operation in order to take care of the dynamics of these exchanges.
+   The example of the presupposition will illustrate such an extension. An inter- vention is no more represented by actions (moves) but by whole designs (plays). This extension again will be used in the section 3.3 for the study of the inter- ventions which make use elements of the context in the ongoing dialogue (for example, an intervention will be represented by means of a delocalization of a design created in previous dialogues).
+   At last, Ludics also supplies us with tools to formalize the " picking up again" in a dialogue : each speaker can correct a past intervention and propose a new one instead of it.
+
+Presupposition It is an implicit assumption about the world or background belief relating to an utterance whose truth is taken for granted in discourse.
+   Let consider this well known example due to Aristote ; a judge asks a young delinquent this question: ''Do you still beat your father ?''.
+   The judge asks a question that presupposes something that has not necessar- ily been accepted by the young delinquent. The judge imposes to the delinquent
+
+
+the following exchange:
+- ''Do you beat your father?'' - '' Yes'' - '' Do you stop beating him ?''.
+   This exchange between the judge J and the delinquent D must be represented by the following interaction according to the previous elementary formalisation:
+
+?.0.1.0 f--
+
+f-- ?.0.1	f-- ?.0.2
+
+?.0 f-- f-- ?
+
+f--  ?.0.1.0
+
+?.0.1 f--
+
+f-- ?.0 ? f--
+
+
+J	D
+   But the judge utterance: - ''Do you still beat your father ?'' con- tains a presupposition. So it can't be represented by a only action, but by the whole chronicle:
+(+, ?, {0}) (-, ?.0, {1}) (+, ?.0.1, {0})
+   So J forbids addressee a branch who was due to him (the possibility to answer " No" ). If D agrees to answer according to this configuration (without diverging) he is trapped: he has to record the whole chronicle
+(-, ?, {0})(+, ?.0, {1})(-, ?.0.1, {0})
+and answer from the locus ?.0.1.0 ; so he implicitly answered the question '' Do
+you beat your father ?'' by '' yes'' .
+
+Picking up again We want to mean that in a dialogue a speaker can forget the current direction of the discussion and proposes a new one instead of it ; in terms of games, a player can replay a positive move.
+   In linear logic, the exponential formulae were essentially introduced to give the possibility of identifying various occurrences of the same formula (perform a contraction rule in linear logic). In order to integrate this possibility in Lu- dics, several propositions were advanced. Michele Basaldella11 suggests to handle multi-addresses (sequence of addresses). These multi-addresses give the possibil- ity (not authorized until now) of replaying a positive action on an already visited locus (provided that this locus is a multi-address).
+   In our modelisation of dialogues, we state that at anytime a speaker makes an intervention anchored in a locus which is a multi-address, all is proceeding as if this locus has been duplicated ; so the opponent can then decide to give up the discussion which has begun from the point localized at this multi-address ; then he can come back and restart the discussion at this point, but localised at a copy of this locus.
+   We shall not clarify more the technical aspects of this notion; we keep in mind this possibility and we shall illustrate it by means of an example read in the text from Schopenhauer "Dialectica Eristica", illustrating its first stratagem.
+
+11 Basaldella, M. : The exponentials in Ludics : how and at what price ?, S´eminaire a` l'I.M.L. 2007, http://iml.univ-mrs.fr:80/ldp/Seminaire/SemLog0708.html.
+
+
+   I asserted that the English were supreme in drama. My opponent attempted to give an instance to the contrary, and replied that it was a well-known fact that in opera, they could do nothing at all. I repelled the attack by reminding him that dramatic art covered tragedy and comedy alone ....
+
+The play (as usually in Games Theory) can be written: design de P :	design de O :	Dialogue:
+
+
+
+(+, ?.i1, {1})
+
+(-, ?.i1.1, {{1}, {2}}) (+, ?.i2, {1})
+
+
+
+c1=(-, ?.i1, {1}) the English were supreme ...
+(+, ?.i1.1, {3})	... useless in opera
+... tragedy and comedy alone
+c2=(-, ?.i2, {1})	doesn't it ?
+†	why not ? I agree
+
+
+To resume, during the dialogue the interventions can be:
+- to push the dialogue a little further (according to a preestablished strategy or not): to play a positive action
+- to refine the design according to the intervention of addressee: to play a negative action.
+- to turn back in order to keep on converging: to use multi-addresses in order to perform a new positive action.
+
+3.3 Towards more complex dialogues
+
+Ludics seems to be a fruitful framework to deal with more complex aspects of dialogues. During a dialogue, the speaker builds its strategy by using various elements: he can use pieces of former dialogues ; he can use some contextual elements... And, of course, he can use stratagems or dialectical tricks. It is possi- ble to describe such dialogical facts in Ludics. We rest on the following remark: in Ludics, the designs themselves can be seen as resulting of interactions. We already saw, in the case of presupposition, that some interventions have to be associated with some designs already built rather than with some elementary actions. We will go further associating with some elaborated interventions some cut-nets: several designs interacting. Particularly, this will be used to simulate the fact that the strategies supporting one dialogical interaction can be worked out by means of designs which are coming from outside the dialogue in progress. We then need to set that some designs, in fact a set of designs (a context) is available to the locutors when they build their interventions.
+   We will illustrate this possibility to deal with more complex aspects of di- alogues by studying two examples : first application of Ludics is proposed to deal with one of the stratagems suggested by Schopenhauer in Art to be right always ; a second one illustrates the possibility to explore in Ludics the core of fallacious sophisms by dealing with the petition of principle.
+
+
+The study of the 4th stratagem of Schopenhauer We sum up the fourth stratagem below:
+If you want to draw a conclusion, you must not let it be foreseen, but you must get the premisses admitted one by one, unobserved, mingling them here and there in your talk: otherwise, your opponent will attempt all sorts of chicanery. Or, if it is doubtful whether your opponent will admit them, you must advance the premisses of these premisses; that is to say, you must draw up pro-syllogisms, and get the premisses of several of them admitted in no definite order. In this way you conceal your game until you have obtained all the admissions that are necessary, and so reach your goal by making a circuit. [. . . ]
+Let us suppose the following situation: the speaker (here designed by "player" or P while addressee is designed by "opponent" or O) defends a thesis A ; he wants to justify A by resting on the fact that the propositions B and C imply A.
+- Some dialogical exchanges took place. The player affirmed B, which was accepted by O. In the same way, P affirmed C, which was also accepted by O.
+That is represented as follows: the proposition B was played at an arbitrary locus a, O recorded this affirmation and accepted it (he gave up). The same for C at an arbitrary locus ß.
+The following interactions took place:
+
+
+
+a.0 f--
+
+
+†
+f-- a.0
+
+ß.0 f--
+
+
+†
+f-- ß.0
+
+
+f-- a	a f--
+
+f-- ß
+
+ß f--
+
+P	O	P	O
+Let us denote by Da and Dß the winning designs of P respectively based on
+f-- a and f-- ß.
+The supports of such exchanges have been recorded and will be still avalaible
+when the speaker P will play its proposition A.
+- Now, we come back to the dialogue in progress: P is asserting its thesis A, arguing it by means of the premises B and C and disclosing its stratagem. This intervention (initiating the (short) dialogue in progress) is represented by the following design D, located in ?:
+
+R1
+.
+?.1 f--
+
+R2
+.
+?.2 f--	?.3 f--
+f- - ?
+
+The first action of this design is (+, ?, {1, 2, 3, }) where ?.1 is the locus of the argument B, ?.2 the one of C and ?.3 the locus of the proposition B ?C ? A.
+- Let us comment the construction of the subdesigns (normal forms of cut- nets) R1 and R2 of D:
+
+
+• the design R1 is built from the winning design Da by using:
+- one delocalisation from a into ?.1.0 (the proposition B affirmed "out of context" in a or affirmed in the context of the defense of the thesis A in ?.1.0);
+- one shift (the proposition B affirmed in ?.1.0 is used as an argument when it is localized in ?.1).
+The design R1, based on ?.1 f--, is the normal form of the cut-net con- sisting in the interaction12 between Da and Faxa,?.1.0.
+Then R1 =? [[Da, Faxa,?.1.0]] ;
+• In the same way: R2 =? [[Dß, Faxß,?.2.0]] and is based on ?.2 f--.
+- P is then in a good position to win the controversy. Indeed the reaction of O is strongly constrained ; this can be seen by looking at the interaction. After normalization, the design corresponding to the intervention of P is the following:
+
+
+?.1.0.0 \--
+
+
+\-- ?.1.0
+
+
+?.1 \--
+
+?.2.0.0 \--
+
+
+\-- ?.2.0
+
+
+?.2 \--	?.3 \--
+\-- ?
+
+
+In order to converge with this intervention of P , during the dialogue in progress, O has to develop the following design:
+
+\-- ?.1.0.0, ?.2.0.0, ?.3?.2.0 \-- ?.1.0.0, ?.3?.1.0.0 \--?.2.0.0 \--\-- ?.1.0.0, ?.2, ?.3,\-- ?.1.0\-- ?.2.0?.1.0 \-- ?.2, ?.3?.1 \--?.2 \--?.3 \--\-- ?.1, ?.2, ?.3\-- ?? \--PO
+That is: O has to recognize that D1 is the shift of one delocalisation of Da (and D2 of Dß), and has to remenber that against this designs O may only play the da¨imon (to stay coherent with itself).
+Then it is the turn to O to play. He is in the position f-- ?.1.0.0, ?.2.0.0, ?.3. The only opening for O would be to play an action located in ?.3 (since either on ?.1 or on ?.2, he can only play the da¨imon.) ; if he has nothing to oppose to the proposition B ? C ? A then O accepts the thesis of P , and plays the da¨imon.
+
+12 an interaction with a Fax enables one to delocalize some design.
+
+
+
+	†
+\-- ?.1.0.0, ?.2.0.0, ?.3?.2.0 \-- ?.1.0.0, ?.3?.1.0.0 \--?.2.0.0 \--\-- ?.1.0.0, ?.2, ?.3,\-- ?.1.0\-- ?.2.0?.1.0 \-- ?.2, ?.3?.1 \--?.2 \--?.3 \--\-- ?.1, ?.2, ?.3\-- ?? \--
+Petition of principle We already evoked the possibility of dealing with presup- positions in Ludics: to play a block already structured rather than an elementary action allows one to control the form of the interaction, and to give the initiative to the interlocutor only after the imposed achievement of a certain course. Our aim now is to understand in Ludics an utterance which uses petition of princi- ple. Rather using action, rather using already built designs, we propose to use a whole cut-net. The loci for connection (on which the opponent could anchor its answer) should appear after the normalization of such a cut-net, but these places would be in fact never available.
+- either because these places are pushed back to the infinite. It is the case when the petition of principle is expressed by a circular reasoning.
+- or because theses places are pinched. It is the case of a petition of principle consisting in imposing the premise of a thesis as it was commonly admitted instead of offer it to the discussion.
+Let us comment the foregoing affirmations.
+At first, let us study one example of a petition of principle expressed by a circular reasoning. The soul is immortal because it never dies is a petition of principle resting on the fact that an affirmation is justified by some proposition having the same meaning
+We propose to formalize this utterance "The soul is immortal because it never dies" , by the following (recursively defined) design:
+[[D?, Fax?,?11]]
+f-- ?.1.1
+?.1 f--
+
+D? =
+
+f-- ?
+
+Let us explain how such a design is recursively built: the proposition the soul is immortal is arbitrary located on a locus ? and is justified by only one argument (it never dies). The first positive action of the design D? is then something like: (+, ?, {1}) (with a ramification containing only one element). Moreover the intervention explicitely contains its argument ; it is then reasonable to set
+that this intervention is a design already built ; in this design appear the locus ?.1 on which the proposition the soul never dies is suggested as premise and the locus ?.1.1 on which the same proposition the soul never dies is affirmed.
+
+
+At last, such a design contains a subdesign corresponding to the defense of it never dies which seems to be nothing but The soul never dies because it is immortal. This subdesign D?.1.1, which has the same content than D?, is
+then obtained by a delocalization of the design D? from ? into ?.1.1, that is:
+D?.1.1 = [[D? , Fax?,?.1.1]].
+The resulting design is infinite; the loci to which the addressee could cling
+are never available:
+
+.
+?.1.1.1.1.1 f--
+D?.1.1.1.1 = f-- ?.1.1.1.1 ?.1.1.1 f--
+
+D?.1.1 =
+
+D? =
+
+f-- ?.1.1
+?.1 f-- f-- ?
+
+
+   Let us consider now an another case of the petition of principle. The one consisting in imposing one of the premises of an affirmation as if it was commonly admitted. An intervention using such a petition of principle may be presented by the following schema: Since A (which must have been justify but which is taken for granted) and since A implies B, you will agree about B.
+
+(?.1.1,Ø)
+f-- ?.1.1
+?.1 f--	?.2 f-- f-- ?
+where ? is the locus were B is affirmed, ?.1 and ?.2 are the loci of the premises of B (respectively A and A ? B). The subdesign corresponding to the justification of A is the design :
+
+Ø
+f-- ?.1.1
+That is: A appears here as being a data, not needing to be justified. The affir- mation of such a data is then an action (+, ?.1.1, Ø). The set of loci from which some speaker could continue the investigation of A is empty.
+Once again the loci to which the addressee could cling are not available.
+
+4 Conclusion
+
+The model we proposed has two essential features. The descriptive one, is done by the fact we retrieve the simple form of communicative exchange in the ba- sic structure of formal dialogues. The prospective one, commits us to observe complex processes inside dialogues.
+
+
+   Evidently, being descriptive is required by a genuine notion of model. But, by the fact of this double feature, we obtain a multi-scale theory, giving possibility of viewing objects at differents levels of granularity, depending on what we want to study in them. If our focus is on strategic remodelling processes upon arguments, we could make use of complex operations inside dialogues plans. If we just want to describe the chronology of actions, taking in account the fact that agents anticipate the plays of their opponents, we do not need more than the elementary decomposition level. So the model ensures continuity between fine, refined and complex levels, without change of formal background, just going deep beyond the surface structure of objects.
+   We must observe that this work opens the way to many others formalisations or conceptual problems. It takes a very important place in our program which consists in investigate possibilities offered by the geometrical turn in furnishing and deploying mathematical means for human and social sciences13. The formal- isation of dialogues takes a great position in this project, by the fact the notion is intrinsically connected to epistemic, semiotic, pragmatic and semantic layers.
+
+References
+
+
+[Currien-01] Currien,	P.-L.	(2001)	Introduction
+http://www.pps.jussieu.fr/~curien
+
+a`	la	Ludique,
+
+[Faggian-Hyland-02] Faggian, C., Hyland M. (2002) Designs, disputes and strategies.
+CSL 02, Lecture Notes in Computer Science, Springer, Berlin, 2471.
+[Gazdar] Gazdar, G. (1979) Pragmatics: Implicature, Presupposition, and Logical Form. New York: Academic Press.
+[Ginzburg] Ginzburg, J.; I. A. Sag & M. Purver, 2003. Integrating Conversational Move Types in the Grammar of Conversation, in P. Ku¨hnlein, H. Rieser and H. Zeevat (eds), Perspectives on Dialogue in the New Millennium, 25-42, Pragmatics & Be- yond, New Series Volume 114, John Benjamins.
+[Girard-01] Girard, J.-Y. (2002) Locus Solum: from the rules of logic to the logic of rules, Mathematical Structures in Computer Science 11 (3), pp 301-506.
+[Girard-03] Girard, J.-Y. (2004) From foundation to Ludics, Ehrhard, T., Girard, J.-Y. and Scott, P. Linear Logic in Computer Science, London mathematical Soci- ety, Lectures Notes Series, Cambridge University Press.
+[Hamblin] Hamblin, C.L., 1971. Mathematical Models of Dialogue, Theoria 37. 130-155.
+
+[Joinet-07] Joinet, J.-B. (2007) Logique et Interaction, Habilitation recherches, Universit´e Paris 7.
+
+a` diriger des
+
+[Tron¸con-06] Tron¸con, S. Dynamique des d´emonstrations et th´eorie de l'interaction, Th`ese de Doctorat, Universit´e de Provence, 2006 (En cours de publication)
+[Wittengstein] Wittgenstein, L. Remarques sur les fondements des math´ematiques, Gallimard, 1983.
+
+
+
+
+13 Some details in Lecomte, A. Vers une pragmatique th´eorique, Note d'intention a` l'origine du projet "Pr´elude", http://anr-prelude.fr/article16.html.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+View publication stats

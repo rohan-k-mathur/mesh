@@ -2,44 +2,29 @@
 
 import * as React from "react";
 import useSWR from "swr";
-import { LociTree } from "packages/ludics-react/LociTree";
-import { TraceRibbon } from "packages/ludics-react/TraceRibbon";
-import { JudgeConsole } from "packages/ludics-react/JudgeConsole";
-import { CommitmentsPanel } from "packages/ludics-react/CommitmentsPanel";
-import { DefenseTree } from "packages/ludics-react/DefenseTree";
+import { DefenseTree } from "@/packages/ludics-react/DefenseTree";
 import { ActInspector } from "@/packages/ludics-react/ActInspector";
 import { narrateTrace } from "@/components/dialogue/narrateTrace";
-import { mergeDesignsToTree } from "packages/ludics-react/mergeDesignsToTree";
-import { CommitmentDelta } from "@/components/dialogue/CommitmentDelta";
-import { NLCommitPopover } from "@/components/dialogue/NLCommitPopover";
-import { useDialogueTarget } from "@/components/dialogue/DialogueTargetContext";
 import type { StepResult } from "@/packages/ludics-core/types";
-import LociTreeWithControls from "@/components/ludics/LociTreeWithControls";
-import { LudicsForest } from "@/components/ludics/LudicsForest";
 import { InsightsBadge, PolarityBadge } from "@/components/ludics/InsightsBadges";
 import { InsightsTooltip } from "@/components/ludics/InsightsTooltip";
 import type { LudicsInsights } from "@/lib/ludics/computeInsights";
-import {
-  isPath,
-  dualPath,
-  type Act as VeAct,
-} from "@/packages/ludics-core/ve/pathCheck";
+import { Badge } from "@/components/ui/badge";
+// Phase 2 extracted components
+import { LudicsTraceViewer } from "@/components/ludics/LudicsTraceViewer";
+import { LudicsTreePanel } from "@/components/ludics/LudicsTreePanel";
+import { LudicsCommitmentsView } from "@/components/ludics/LudicsCommitmentsView";
+import { LudicsActionsToolbar } from "@/components/ludics/LudicsActionsToolbar";
 
 const fetcher = (u: string) =>
   fetch(u, { cache: "no-store" }).then((r) => r.json());
 
-// type TraceLike = {
-//   steps: { posActId?: string; negActId?: string; locusPath?: string; ts?: number }[];
-//   status?: 'ONGOING' | 'CONVERGENT' | 'DIVERGENT';
-//   decisiveIndices?: number[];
-// };
-
+// Helper for converting StepResult to TraceLike format
 function asTraceLike(t?: StepResult | null) {
   if (!t) return null;
   return {
     steps: (t.pairs ?? [])
-      .map((p) => {
-        // Only include if posActId and negActId are defined (as required by ActRef)
+      .map((p: any) => {
         if (typeof p.posActId === "string" && typeof p.negActId === "string") {
           return {
             posActId: p.posActId,
@@ -48,34 +33,15 @@ function asTraceLike(t?: StepResult | null) {
             ts: p.ts ?? 0,
           };
         }
-        // If not, skip this entry
         return null;
       })
-      .filter(
-        (
-          x
-        ): x is {
-          posActId: string;
-          negActId: string;
-          locusPath: string;
-          ts: number;
-        } => x !== null
-      ),
-    // map STUCK → ONGOING so it fits the older UI type
-    status: t.status === "STUCK" ? "ONGOING" : t.status,
+      .filter((x: any): x is NonNullable<typeof x> => x !== null),
+    status: t.status === "STUCK" ? ("ONGOING" as const) : t.status,
     decisiveIndices: t.decisiveIndices,
   };
 }
 
-/* ------------------------ UI helpers (consistent) ----------------------- */
-function ChipBar({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="inline-flex flex-wrap items-center gap-1.5 rounded-md border border-slate-200/80 bg-white/70 px-2.5 py-1 text-[11px] backdrop-blur">
-      {children}
-    </div>
-  );
-}
-
+// Micro toast notification hook
 function useMicroToast() {
   const [msg, setMsg] = React.useState<{
     kind: "ok" | "err";
@@ -106,68 +72,6 @@ function useMicroToast() {
   return { show, node };
 }
 
-function Segmented<T extends string>({
-  value,
-  onChange,
-  options,
-  ariaLabel,
-}: {
-  value: T;
-  onChange: (v: T) => void;
-  options: { value: T; label: string }[];
-  ariaLabel?: string;
-}) {
-  return (
-    <div
-      role="tablist"
-      aria-label={ariaLabel}
-      className="inline-flex rounded-md border border-slate-200/80 bg-white/70 p-0.5 backdrop-blur"
-    >
-      {options.map((o) => {
-        const active = value === o.value;
-        return (
-          <button
-            key={o.value}
-            role="tab"
-            aria-selected={active}
-            onClick={() => onChange(o.value)}
-            className={[
-              "px-2.5 py-1 text-xs rounded transition",
-              active
-                ? "bg-slate-900 text-white"
-                : "text-slate-700 hover:bg-white",
-            ].join(" ")}
-          >
-            {o.label}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-function SkeletonCard({ lines = 3 }: { lines?: number }) {
-  return (
-    <div className="border rounded-lg p-3 bg-white/60">
-      <div className="h-4 w-28 bg-slate-200/60 rounded mb-2" />
-      {Array.from({ length: lines }).map((_, i) => (
-        <div key={i} className="h-3 w-full bg-slate-200/50 rounded mb-1" />
-      ))}
-    </div>
-  );
-}
-
-/* ------------------------------- Types ---------------------------------- */
-// type StepResult = {
-//   steps: Array<{ posActId: string; negActId: string; ts?: number }>;
-//   status: 'ONGOING' | 'CONVERGENT' | 'DIVERGENT';
-//   endedAtDaimonForParticipantId?: string;
-//   endorsement?: { locusPath: string; byParticipantId: string; viaActId: string };
-//   decisiveIndices?: number[];
-//   usedAdditive?: Record<string, string>;
-// };
-
-/* -------------------------------- Panel --------------------------------- */
 export default function LudicsPanel({
   deliberationId,
   proDesignId,
@@ -216,8 +120,8 @@ export default function LudicsPanel({
   const [phase, setPhase] = React.useState<"neutral" | "focus-P" | "focus-O">(
     "neutral"
   );
-  const [viewMode, setViewMode] = React.useState<"forest" | "unified" | "split">(
-    "forest"
+  const [viewMode, setViewMode] = React.useState<"unified" | "split">(
+    "unified"
   );
   const [commitOpen, setCommitOpen] = React.useState(false);
   const [commitPath, setCommitPath] = React.useState<string | null>(null);
@@ -850,7 +754,6 @@ const suggestClose = React.useCallback((path: string) => {
             value={viewMode}
             onChange={(v) => setViewMode(v)}
             options={[
-              { value: "forest", label: "🌲 Forest" },
               { value: "unified", label: "Unified" },
               { value: "split", label: "Split" },
             ]}
@@ -1092,9 +995,7 @@ const suggestClose = React.useCallback((path: string) => {
       )}
       {/* Trees */}
       <div className="grid gap-4">
-        {viewMode === "forest" ? (
-          <LudicsForest deliberationId={deliberationId} />
-        ) : viewMode === "unified" ? (
+        {viewMode === "unified" ? (
           <div className="border rounded-lg p-2 bg-white/60">
             <div className="text-xs mb-1 flex items-center gap-2">
               <b>Unified loci</b>

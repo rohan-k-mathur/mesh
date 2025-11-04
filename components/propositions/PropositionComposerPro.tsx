@@ -370,7 +370,7 @@ export function PropositionComposerPro({
         {!showPreview && (
           <textarea
             ref={textareaRef}
-            rows={4}
+            rows={3}
             placeholder={placeholder}
             className="w-full h-full resize-none rounded-lg articlesearchfield px-3 py-3 mt-1 bg-white text-sm"
             value={text}
@@ -415,7 +415,7 @@ export function PropositionComposerPro({
       </div>
 
       {/* Epistemic metadata (collapsed by default, auto-opens when detection differs) */}
-      <div className="space-y-2">
+      {/* <div className="space-y-2">
         <button type="button" className="flex items-center gap-1 text-xs text-gray-600 hover:text-gray-900" onClick={() => setShowEpiPanel((v) => !v)}>
           {showEpiPanel ? '▼' : '▶'} Epistemic metadata
           {detected && !showEpiPanel && (
@@ -448,7 +448,7 @@ export function PropositionComposerPro({
             )}
           </div>
         )}
-      </div>
+      </div> */}
 <div className='flex w-full gap-2'>
       {/* Citations - Use CitationCollector for evidence attachment */}
       <CitationCollector
@@ -457,15 +457,26 @@ export function PropositionComposerPro({
         className="w-full"
       />
 
-      {/* Media attachment */}
+     
+</div>
+      <details className="rounded-md cardv2 bg-white items-center gap-4 panel-edge px-2 py-2">
+        <summary className="cursor-pointer text-xs text-start px-2 tracking-wide text-neutral-700">
+          <span className='px-1'>Attach media</span></summary>
+
+     
+        <div className="mt-4">
+
+ {/* Media attachment */}
       {replyTarget?.kind !== 'proposition' && (  // replies to propositions stay text-only per API
         <MediaField imageUrl={imageUrl} setImageUrl={setImageUrl} disabled={pending} />
       )}
 </div>
+ </details>
       {/* Connect to theory (single, not duplicated) */}
-      <details className="rounded-md border border-slate-200/80 bg-white/60 px-2 py-2">
-        <summary className="cursor-pointer text-xs text-neutral-700">Connect to theory</summary>
-        <div className="mt-2">
+       <details className="rounded-md cardv2 bg-white items-center gap-4 panel-edge px-2 py-2">
+        <summary className="cursor-pointer text-xs text-start px-2 tracking-wide text-neutral-700">
+          <span className='px-1'>Connect to theory</span></summary>
+        <div className="mt-3">
           <TheoryFraming value={theoryFramingValue} onChange={setTheoryFramingValue} />
         </div>
       </details>

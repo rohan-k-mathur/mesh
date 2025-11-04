@@ -4351,6 +4351,11 @@ model LudicDesign {
   version        Int        @default(1)
   extJson        Json?
 
+  // Scoped Designs Architecture (Phase 1)
+  scope         String? // 'issue:<id>' | 'actors:<id1>:<id2>' | 'argument:<id>' | null (legacy)
+  scopeType     String? // 'issue' | 'actor-pair' | 'argument' | null
+  scopeMetadata Json?   // { label, actors, issueId, argumentId, moveCount, ... }
+
   chronicles LudicChronicle[]
   acts       LudicAct[]
 
@@ -4362,6 +4367,9 @@ model LudicDesign {
   commitmentElements LudicCommitmentElement[]
 
   @@index([deliberationId, participantId])
+  @@index([deliberationId, scope]) // NEW: Query designs by scope
+  @@index([deliberationId, scopeType]) // NEW: Query by scope type
+  @@index([deliberationId, participantId, scope]) // NEW: Find P/O pair for scope
 }
 
 model LudicAct {
@@ -4382,6 +4390,9 @@ model LudicAct {
   orderInDesign  Int
   extJson        Json?
   LudicChronicle LudicChronicle[]
+
+  // Ludics integration (Phase 1) - back-relation to AIF
+  aifNode AifNode?
 
   @@index([designId, orderInDesign])
   @@index([locusId])
@@ -5934,10 +5945,20 @@ model AifNode {
   incomingEdges   AifEdge[]     @relation("EdgeTarget")
   representedMove DialogueMove? @relation("MoveRepresentation")
 
+  // Ludics integration (Phase 1)
+  ludicActId String?   @unique
+  ludicAct   LudicAct? @relation(fields: [ludicActId], references: [id], onDelete: SetNull)
+
+  // Locus annotations (denormalized for query performance)
+  locusPath String? // e.g., "0.1.2" - position in interaction tree
+  locusRole String? // "opener" | "responder" | "daimon" - role at locus
+
   @@index([deliberationId])
   @@index([dialogueMoveId])
   @@index([nodeKind])
   @@index([nodeSubtype])
+  @@index([ludicActId])
+  @@index([locusPath])
   @@map("aif_nodes")
 }
 

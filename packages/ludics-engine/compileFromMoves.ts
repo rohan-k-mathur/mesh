@@ -249,19 +249,25 @@ export async function compileFromMoves(dialogueId: string): Promise<{ ok: true; 
       }
 
       if (kind === 'WHY') {
-        const locus =
+        const parent =
           explicitPath ?? locFromId ??
           (targetKey ? anchorForTarget.get(targetKey) ?? null : null) ??
           lastAssertLocus ?? '0';
+        
+        // Create a child locus for the WHY challenge instead of placing at parent
+        const locus = pickChild(parent, explicitChild);
 
         outActs.push({
           designId: design.id,
           act: {
             kind: 'PROPER', polarity: 'O', locus,
             ramification: [], expression: expr,
-            meta: { justifiedByLocus: locus, schemeKey: payload.schemeKey ?? null, cqId: payload.cqId ?? null },
+            meta: { justifiedByLocus: parent, schemeKey: payload.schemeKey ?? null, cqId: payload.cqId ?? null },
           },
         });
+        
+        // Update anchor so follow-up GROUNDS can attach properly
+        if (targetKey) anchorForTarget.set(targetKey, locus);
         continue;
       }
 

@@ -28,6 +28,8 @@ import { ConfidenceDisplay } from "@/components/confidence/ConfidenceDisplay";
 import { DialogueActionsButton } from "@/components/dialogue/DialogueActionsButton";
 import { DialogueProvenanceBadge, type DialogueMoveKind } from "@/components/aif/DialogueMoveNode";
 import { DialogueMoveDetailModal } from "@/components/dialogue/DialogueMoveDetailModal";
+import { OrthogonalityBadge, DecisiveBadge, CommitmentAnchorBadge } from "@/components/ludics/InsightsBadges";
+import type { LudicsInsights } from "@/lib/ludics/computeInsights";
 
 const fetcher = (url: string) => fetch(url).then(r => r.json());
 
@@ -67,6 +69,8 @@ interface ArgumentCardV2Props {
   } | null;
   // Phase 3: Dialogue Tab Navigation
   onViewDialogueMove?: (moveId: string, deliberationId: string) => void;
+  // Phase 2 Week 2: Ludics Integration
+  showLudicsBadges?: boolean; // Default true
 }
 
 // ============================================================================
@@ -324,7 +328,7 @@ export function ArgumentCardV2({
   onAnyChange,
   schemeKey,
   schemeName,
-  schemes: propsSchemes,
+  schemes: propsSchemes = [],
   createdAt,
   updatedAt,
   confidence,
@@ -332,6 +336,7 @@ export function ArgumentCardV2({
   provenance,
   dialogueProvenance,
   onViewDialogueMove,
+  showLudicsBadges = true
 }: ArgumentCardV2Props) {
   const [expandedSections, setExpandedSections] = React.useState({
     premises: false,
@@ -348,6 +353,13 @@ export function ArgumentCardV2({
   // Phase 3: Dialogue Move Detail Modal
   const [dialogueMoveModalOpen, setDialogueMoveModalOpen] = React.useState(false);
   const [selectedDialogueMoveId, setSelectedDialogueMoveId] = React.useState<string | null>(null);
+
+  // Phase 2 Week 2: Fetch Ludics insights for this deliberation
+  const { data: ludicsInsights } = useSWR<LudicsInsights>(
+    showLudicsBadges ? `/api/ludics/insights?deliberationId=${deliberationId}` : null,
+    fetcher,
+    { revalidateOnFocus: false, revalidateOnReconnect: false }
+  );
 
   // Phase 4: Fetch multi-scheme data if not provided via props
   // Always fetch if we don't have scheme data, even when schemeName is provided (legacy support)
@@ -594,6 +606,35 @@ export function ArgumentCardV2({
                   type="argument"
                   onClick={() => setArgCqDialogOpen(true)}
                 />
+              )}
+
+              {/* Phase 2 Week 2: Ludics Badges */}
+              {showLudicsBadges && ludicsInsights && (
+                <>
+                  {/* Orthogonality Status Badge */}
+                  {ludicsInsights.orthogonalityStatus && (
+                    <OrthogonalityBadge 
+                      status={ludicsInsights.orthogonalityStatus}
+                      size="sm"
+                    />
+                  )}
+                  
+                  {/* Decisive Steps Badge */}
+                  {ludicsInsights.decisiveSteps && ludicsInsights.decisiveSteps > 0 && (
+                    <DecisiveBadge 
+                      count={ludicsInsights.decisiveSteps}
+                      size="sm"
+                    />
+                  )}
+                  
+                  {/* Commitment Anchor Badge - show if argument has commitments */}
+                  {ludicsInsights.totalActs && ludicsInsights.totalActs > 0 && (
+                    <CommitmentAnchorBadge 
+                      count={ludicsInsights.totalActs}
+                      size="sm"
+                    />
+                  )}
+                </>
               )}
 
               {totalAttacks > 0 && (

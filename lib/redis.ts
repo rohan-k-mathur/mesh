@@ -1,6 +1,10 @@
 import Redis from "ioredis";
 
-const redis = new Redis(process.env.REDIS_URL || "redis://localhost:6379");
+// Disable Redis in local dev if REDIS_URL is not set
+const redis = process.env.REDIS_URL 
+  ? new Redis(process.env.REDIS_URL)
+  : null as any; // Will cause getOrSet to skip redis operations
+
 const memory = new Map<string, string>();
 
 export function setSyncStatus(userId: number, status: string) {
@@ -12,15 +16,19 @@ export async function getOrSet<T>(
   ttl: number,
   fn: () => Promise<T>,
 ): Promise<T> {
-  const cached =
-    process.env.NODE_ENV === "test" ? memory.get(key) : await redis.get(key);
+  // Use in-memory cache in test or when Redis is unavailable
+  if (process.env.NODE_ENV === "test" || !redis) {
+    const cached = memory.get(key);
+    if (cached) return JSON.parse(cached) as T;
+    const result = await fn();
+    memory.set(key, JSON.stringify(result));
+    return result;
+  }
+  
+  const cached = await redis.get(key);
   if (cached) return JSON.parse(cached) as T;
   const result = await fn();
-  if (process.env.NODE_ENV === "test") {
-    memory.set(key, JSON.stringify(result));
-  } else {
-    await redis.setex(key, ttl, JSON.stringify(result));
-  }
+  await redis.setex(key, ttl, JSON.stringify(result));
   return result;
 }
 

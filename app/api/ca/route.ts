@@ -4,6 +4,9 @@ import { prisma } from '@/lib/prismaclient';
 import { z } from 'zod';
 import { getCurrentUserId } from '@/lib/serverutils';
 import { TargetType } from '@prisma/client';
+import { compileFromMoves } from '@/packages/ludics-engine/compileFromMoves';
+import { syncLudicsToAif } from '@/lib/ludics/syncToAif';
+import { invalidateInsightsCache } from '@/lib/ludics/insightsCache';
 const NO_STORE = { headers: { 'Cache-Control': 'no-store' } } as const;
 
 const CreateCA = z.object({
@@ -199,6 +202,19 @@ if (schemeKey && cqKey && conflictedArgumentId) {
     }
   }).catch(()=>{});
 }
+
+  // ✨ PHASE 1: Compile DialogueMoves → LudicActs → AifNodes
+  // This ensures ATTACK and WHY moves created above appear in LudicsPanel
+  try {
+    console.log('[ca] Compiling DialogueMoves to Ludics acts for deliberation:', d.deliberationId);
+    await compileFromMoves(d.deliberationId);
+    await syncLudicsToAif(d.deliberationId);
+    await invalidateInsightsCache(d.deliberationId);
+    console.log('[ca] ✓ Ludics compilation and AIF sync complete');
+  } catch (err) {
+    console.error('[ca] Failed to compile/sync Ludics:', err);
+    // Don't fail the whole request if Ludics sync fails
+  }
 
   return NextResponse.json({ ok:true, id: created.id }, NO_STORE);
 }

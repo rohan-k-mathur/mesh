@@ -15,7 +15,6 @@ import { NLCommitPopover } from "@/components/dialogue/NLCommitPopover";
 import { useDialogueTarget } from "@/components/dialogue/DialogueTargetContext";
 import type { StepResult } from "@/packages/ludics-core/types";
 import LociTreeWithControls from "@/components/ludics/LociTreeWithControls";
-import { LudicsForest } from "@/components/ludics/LudicsForest";
 import { InsightsBadge, PolarityBadge } from "@/components/ludics/InsightsBadges";
 import { InsightsTooltip } from "@/components/ludics/InsightsTooltip";
 import type { LudicsInsights } from "@/lib/ludics/computeInsights";
@@ -216,8 +215,8 @@ export default function LudicsPanel({
   const [phase, setPhase] = React.useState<"neutral" | "focus-P" | "focus-O">(
     "neutral"
   );
-  const [viewMode, setViewMode] = React.useState<"forest" | "unified" | "split">(
-    "forest"
+  const [viewMode, setViewMode] = React.useState<"unified" | "split">(
+    "unified"
   );
   const [commitOpen, setCommitOpen] = React.useState(false);
   const [commitPath, setCommitPath] = React.useState<string | null>(null);
@@ -850,7 +849,6 @@ const suggestClose = React.useCallback((path: string) => {
             value={viewMode}
             onChange={(v) => setViewMode(v)}
             options={[
-              { value: "forest", label: "🌲 Forest" },
               { value: "unified", label: "Unified" },
               { value: "split", label: "Split" },
             ]}
@@ -1092,9 +1090,7 @@ const suggestClose = React.useCallback((path: string) => {
       )}
       {/* Trees */}
       <div className="grid gap-4">
-        {viewMode === "forest" ? (
-          <LudicsForest deliberationId={deliberationId} />
-        ) : viewMode === "unified" ? (
+        {viewMode === "unified" ? (
           <div className="border rounded-lg p-2 bg-white/60">
             <div className="text-xs mb-1 flex items-center gap-2">
               <b>Unified loci</b>
